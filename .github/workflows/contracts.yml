@@ -22,16 +22,12 @@ on:
       - "scripts/lib/git-guardrails.mjs"
       - "scripts/quality/check-source-structure.js"
       - ".github/workflows/contracts.yml"
-  workflow_dispatch:
+  workflow_call:
     inputs:
       operation:
         description: "Contracts operation to run"
         required: true
-        type: choice
-        options:
-          - fork-readiness
-          - ci
-          - all
+        type: string
         default: fork-readiness
 
 permissions:

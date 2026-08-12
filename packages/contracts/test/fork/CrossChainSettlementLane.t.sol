@@ -62,7 +62,8 @@ contract CrossChainSettlementLaneForkTest is Test {
         }
     }
 
-    // ─────────────────────────────── Lane liveness ───────────────────────────────
+    // ─────────────────────────────── Lane liveness
+    // ───────────────────────────────
 
     /// @notice Both configured addresses are real CCIP routers, not stale or wrong entries.
     /// @dev Bytecode alone would pass for any contract; `typeAndVersion` is what makes this an
@@ -142,7 +143,7 @@ contract CrossChainSettlementLaneForkTest is Test {
     /// @notice The live Arbitrum-to-Celo lane prices the newly appended Refund command shape.
     /// @dev This proves the ABI increment still fits through the configured production transport;
     ///      executor authorization, available Safe balance, and DON delivery remain separate gates.
-    function testRefundCommandQuotesANonZeroFeeOnTheLiveLane() public {
+    function testCrossChainSettlementLane_refundCommandQuotesANonZeroFeeOnTheLiveLane() public {
         if (!forked) return;
 
         vm.selectFork(arbForkId);
@@ -150,7 +151,8 @@ contract CrossChainSettlementLaneForkTest is Test {
         assertGt(fee, 0, "Arbitrum One -> Celo Mainnet refund command quoted a zero fee");
     }
 
-    // ─────────────────────────────── Config integrity ───────────────────────────────
+    // ─────────────────────────────── Config integrity
+    // ───────────────────────────────
 
     /// @notice Neither side of the lane is left unconfigured.
     /// @dev Celo's router and selector were both zero until this lane was verified; a zero here
@@ -164,7 +166,8 @@ contract CrossChainSettlementLaneForkTest is Test {
         assertTrue(arbSelector != celoSelector, "the two chains cannot share a selector");
     }
 
-    // ───────────────────────────────── Helpers ─────────────────────────────────
+    // ───────────────────────────────── Helpers
+    // ─────────────────────────────────
 
     function _assertIsRouter(address router, string memory label) private {
         assertGt(router.code.length, 0, string.concat(label, ": configured ccipRouter has no bytecode"));

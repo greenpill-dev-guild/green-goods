@@ -63,15 +63,16 @@ contract ExecutorMockRouter {
         external
     {
         Client.EVMTokenAmount[] memory noTokens = new Client.EVMTokenAmount[](0);
-        ICcipMessageReceiver(receiver).ccipReceive(
-            Client.Any2EVMMessage({
-                messageId: messageId,
-                sourceChainSelector: sourceSelector,
-                sender: abi.encode(sender),
-                data: data,
-                destTokenAmounts: noTokens
-            })
-        );
+        ICcipMessageReceiver(receiver)
+            .ccipReceive(
+                Client.Any2EVMMessage({
+                    messageId: messageId,
+                    sourceChainSelector: sourceSelector,
+                    sender: abi.encode(sender),
+                    data: data,
+                    destTokenAmounts: noTokens
+                })
+            );
     }
 
     function deliverWithToken(
@@ -85,15 +86,16 @@ contract ExecutorMockRouter {
     {
         Client.EVMTokenAmount[] memory tokens = new Client.EVMTokenAmount[](1);
         tokens[0] = Client.EVMTokenAmount({ token: address(0xDEAD), amount: 1 });
-        ICcipMessageReceiver(receiver).ccipReceive(
-            Client.Any2EVMMessage({
-                messageId: messageId,
-                sourceChainSelector: sourceSelector,
-                sender: abi.encode(sender),
-                data: data,
-                destTokenAmounts: tokens
-            })
-        );
+        ICcipMessageReceiver(receiver)
+            .ccipReceive(
+                Client.Any2EVMMessage({
+                    messageId: messageId,
+                    sourceChainSelector: sourceSelector,
+                    sender: abi.encode(sender),
+                    data: data,
+                    destTokenAmounts: tokens
+                })
+            );
     }
 }
 
@@ -199,255 +201,257 @@ contract ExecutorMockRoles is IZodiacRoles {
     }
 }
 
-contract CeloSettlementExecutorTest is Test {
-    uint64 internal constant SOURCE_SELECTOR = 4_949_039_107_694_359_620;
-    uint64 internal constant CELO_SELECTOR = 1_346_049_177_634_351_622;
-    uint64 internal constant SOURCE_EVM_CHAIN_ID = 42_161;
-    address internal constant OWNER = address(0xA11CE);
-    address internal constant SOURCE_MODULE = address(0xBEEF);
-    address internal constant GARDEN = address(0x1000);
-    address internal constant BENEFICIARY_GARDEN = address(0x2000);
-    address internal constant CONTRIBUTOR = address(0x3000);
-    bytes32 internal constant ROLE_KEY = keccak256("role");
-    bytes32 internal constant ALLOWANCE_KEY = keccak256("allowance");
+    contract CeloSettlementExecutorTest is Test {
+        uint64 internal constant SOURCE_SELECTOR = 4_949_039_107_694_359_620;
+        uint64 internal constant CELO_SELECTOR = 1_346_049_177_634_351_622;
+        uint64 internal constant SOURCE_EVM_CHAIN_ID = 42_161;
+        address internal constant OWNER = address(0xA11CE);
+        address internal constant SOURCE_MODULE = address(0xBEEF);
+        address internal constant GARDEN = address(0x1000);
+        address internal constant BENEFICIARY_GARDEN = address(0x2000);
+        address internal constant CONTRIBUTOR = address(0x3000);
+        bytes32 internal constant ROLE_KEY = keccak256("role");
+        bytes32 internal constant ALLOWANCE_KEY = keccak256("allowance");
 
-    ExecutorMockRouter internal router;
-    ExecutorMockGoodDollar internal token;
-    ExecutorMockSafe internal payerSafe;
-    ExecutorMockSafe internal beneficiarySafe;
-    ExecutorMockRoles internal payerRoles;
-    ExecutorMockRoles internal beneficiaryRoles;
-    ICeloSettlementExecutor internal executor;
+        ExecutorMockRouter internal router;
+        ExecutorMockGoodDollar internal token;
+        ExecutorMockSafe internal payerSafe;
+        ExecutorMockSafe internal beneficiarySafe;
+        ExecutorMockRoles internal payerRoles;
+        ExecutorMockRoles internal beneficiaryRoles;
+        ICeloSettlementExecutor internal executor;
 
-    function setUp() public {
-        router = new ExecutorMockRouter();
-        token = new ExecutorMockGoodDollar();
-        payerSafe = new ExecutorMockSafe();
-        beneficiarySafe = new ExecutorMockSafe();
-        payerRoles = new ExecutorMockRoles(address(payerSafe), token);
-        beneficiaryRoles = new ExecutorMockRoles(address(beneficiarySafe), token);
+        function setUp() public {
+            router = new ExecutorMockRouter();
+            token = new ExecutorMockGoodDollar();
+            payerSafe = new ExecutorMockSafe();
+            beneficiarySafe = new ExecutorMockSafe();
+            payerRoles = new ExecutorMockRoles(address(payerSafe), token);
+            beneficiaryRoles = new ExecutorMockRoles(address(beneficiarySafe), token);
 
-        CeloSettlementExecutor implementation =
-            new CeloSettlementExecutor(address(router), address(token), CELO_SELECTOR, SOURCE_EVM_CHAIN_ID);
-        executor = ICeloSettlementExecutor(
-            address(
-                new ERC1967Proxy(
-                    address(implementation),
-                    abi.encodeWithSelector(
-                        ICeloSettlementExecutor.initialize.selector, OWNER, SOURCE_SELECTOR, SOURCE_MODULE, uint8(1)
+            CeloSettlementExecutor implementation =
+                new CeloSettlementExecutor(address(router), address(token), CELO_SELECTOR, SOURCE_EVM_CHAIN_ID);
+            executor = ICeloSettlementExecutor(
+                address(
+                    new ERC1967Proxy(
+                        address(implementation),
+                        abi.encodeWithSelector(
+                            ICeloSettlementExecutor.initialize.selector, OWNER, SOURCE_SELECTOR, SOURCE_MODULE, uint8(1)
+                        )
                     )
                 )
-            )
-        );
-        payerRoles.configureMember(address(executor), ROLE_KEY);
-        beneficiaryRoles.configureMember(address(executor), ROLE_KEY);
+            );
+            payerRoles.configureMember(address(executor), ROLE_KEY);
+            beneficiaryRoles.configureMember(address(executor), ROLE_KEY);
 
-        vm.startPrank(OWNER);
-        executor.configureGardenRoute(
-            GARDEN, address(payerSafe), address(payerRoles), ROLE_KEY, ALLOWANCE_KEY, keccak256("payer-permissions")
-        );
-        executor.configureGardenRoute(
-            BENEFICIARY_GARDEN,
-            address(beneficiarySafe),
-            address(beneficiaryRoles),
-            ROLE_KEY,
-            ALLOWANCE_KEY,
-            keccak256("beneficiary-permissions")
-        );
-        executor.setCaps(4, 1000 ether, 4000 ether);
-        executor.setFeePolicy(1000, 100 ether);
-        executor.setPeriodicCap(1 days, 10_000 ether);
-        executor.setAcknowledgmentFeeReserveMinimum(1);
-        vm.deal(OWNER, 1);
-        executor.fundAcknowledgmentFees{ value: 1 }();
-        executor.setPaused(false);
-        vm.stopPrank();
-        token.setBalance(address(payerSafe), 10_000 ether);
-    }
-
-    function testSenderPaidFeeDeliversExactNetAndStoresSuccess() public {
-        token.setFee(5 ether, true);
-        bytes32 messageId = keccak256("success-command");
-        router.deliver(
-            address(executor),
-            messageId,
-            SOURCE_SELECTOR,
-            SOURCE_MODULE,
-            _command(false, 7, 0, 0, _one(CONTRIBUTOR), _oneAmount(100 ether))
-        );
-
-        bytes32 key = keccak256(abi.encode(SOURCE_SELECTOR, SOURCE_MODULE, false, uint256(7), uint32(0)));
-        ICeloSettlementExecutor.ExecutionResult memory result = executor.executionResultOf(key);
-        assertEq(uint8(result.status), uint8(ICeloSettlementExecutor.ResultStatus.Success));
-        assertEq(uint8(result.failureCode), uint8(ICeloSettlementExecutor.FailureCode.None));
-        assertEq(token.balanceOf(CONTRIBUTOR), 100 ether);
-        assertEq(token.balanceOf(address(payerSafe)), 9895 ether);
-        assertTrue(result.acknowledgmentSent);
-    }
-
-    function testReceiverPaidFeeFailsClosedWithoutTransfer() public {
-        token.setFee(5 ether, false);
-        bytes32 messageId = keccak256("receiver-pays-command");
-        router.deliver(
-            address(executor),
-            messageId,
-            SOURCE_SELECTOR,
-            SOURCE_MODULE,
-            _command(false, 8, 0, 0, _one(CONTRIBUTOR), _oneAmount(100 ether))
-        );
-
-        bytes32 key = keccak256(abi.encode(SOURCE_SELECTOR, SOURCE_MODULE, false, uint256(8), uint32(0)));
-        ICeloSettlementExecutor.ExecutionResult memory result = executor.executionResultOf(key);
-        assertEq(uint8(result.status), uint8(ICeloSettlementExecutor.ResultStatus.Failed));
-        assertEq(uint8(result.failureCode), uint8(ICeloSettlementExecutor.FailureCode.UnsupportedReceiverPaysFee));
-        assertEq(token.balanceOf(CONTRIBUTOR), 0);
-        assertEq(token.balanceOf(address(payerSafe)), 10_000 ether);
-    }
-
-    function testGardenBeneficiaryRequiresRegisteredActiveSafe() public {
-        vm.startPrank(OWNER);
-        executor.setPaused(true);
-        executor.setGardenRouteActive(BENEFICIARY_GARDEN, false);
-        executor.setPaused(false);
-        vm.stopPrank();
-
-        router.deliver(
-            address(executor),
-            keccak256("inactive-beneficiary"),
-            SOURCE_SELECTOR,
-            SOURCE_MODULE,
-            _command(false, 9, 0, 3, _one(address(beneficiarySafe)), _oneAmount(100 ether))
-        );
-        bytes32 key = keccak256(abi.encode(SOURCE_SELECTOR, SOURCE_MODULE, false, uint256(9), uint32(0)));
-        ICeloSettlementExecutor.ExecutionResult memory result = executor.executionResultOf(key);
-        assertEq(uint8(result.failureCode), uint8(ICeloSettlementExecutor.FailureCode.InvalidRecipient));
-        assertEq(token.balanceOf(address(beneficiarySafe)), 0);
-    }
-
-    function testDuplicateCommandDoesNotPayTwice() public {
-        bytes memory payload = _command(false, 10, 0, 0, _one(CONTRIBUTOR), _oneAmount(100 ether));
-        router.deliver(address(executor), keccak256("first"), SOURCE_SELECTOR, SOURCE_MODULE, payload);
-        router.deliver(address(executor), keccak256("duplicate"), SOURCE_SELECTOR, SOURCE_MODULE, payload);
-        assertEq(token.balanceOf(CONTRIBUTOR), 100 ether);
-    }
-
-    function testCeloSettlementExecutor_loanPrincipalUsesTheBoundedGDollarTransferPath() public {
-        router.deliver(
-            address(executor),
-            keccak256("loan-principal"),
-            SOURCE_SELECTOR,
-            SOURCE_MODULE,
-            _command(false, 11, 0, 2, _one(CONTRIBUTOR), _oneAmount(100 ether))
-        );
-
-        bytes32 key = keccak256(abi.encode(SOURCE_SELECTOR, SOURCE_MODULE, false, uint256(11), uint32(0)));
-        ICeloSettlementExecutor.ExecutionResult memory result = executor.executionResultOf(key);
-        assertEq(uint8(result.status), uint8(ICeloSettlementExecutor.ResultStatus.Success));
-        assertEq(token.balanceOf(CONTRIBUTOR), 100 ether);
-        assertEq(token.balanceOf(address(payerSafe)), 9900 ether);
-    }
-
-    function testRefundUsesTheTypedBoundedGDollarTransferPath() public {
-        router.deliver(
-            address(executor),
-            keccak256("refund"),
-            SOURCE_SELECTOR,
-            SOURCE_MODULE,
-            _command(false, 12, 0, 4, _one(CONTRIBUTOR), _oneAmount(100 ether))
-        );
-
-        bytes32 key = keccak256(abi.encode(SOURCE_SELECTOR, SOURCE_MODULE, false, uint256(12), uint32(0)));
-        ICeloSettlementExecutor.ExecutionResult memory result = executor.executionResultOf(key);
-        assertEq(uint8(result.status), uint8(ICeloSettlementExecutor.ResultStatus.Success));
-        assertEq(uint8(result.failureCode), uint8(ICeloSettlementExecutor.FailureCode.None));
-        assertEq(token.balanceOf(CONTRIBUTOR), 100 ether);
-        assertEq(token.balanceOf(address(payerSafe)), 9900 ether);
-    }
-
-    function testRefundBelowSafeBalanceFailsWithoutPartialTransfer() public {
-        token.setBalance(address(payerSafe), 99 ether);
-        router.deliver(
-            address(executor),
-            keccak256("refund-below-safe-balance"),
-            SOURCE_SELECTOR,
-            SOURCE_MODULE,
-            _command(false, 13, 0, 4, _one(CONTRIBUTOR), _oneAmount(100 ether))
-        );
-
-        bytes32 key = keccak256(abi.encode(SOURCE_SELECTOR, SOURCE_MODULE, false, uint256(13), uint32(0)));
-        ICeloSettlementExecutor.ExecutionResult memory result = executor.executionResultOf(key);
-        assertEq(uint8(result.status), uint8(ICeloSettlementExecutor.ResultStatus.Failed));
-        assertEq(uint8(result.failureCode), uint8(ICeloSettlementExecutor.FailureCode.RouteReverted));
-        assertEq(token.balanceOf(CONTRIBUTOR), 0);
-        assertEq(token.balanceOf(address(payerSafe)), 99 ether);
-        assertTrue(result.acknowledgmentSent);
-    }
-
-    /// @notice Measures the executor's compile-time maximum atomic batch with all success-path
-    ///         balance, fee, Roles, storage, event, and acknowledgment work enabled.
-    /// @dev The mock router's delivery wrapper is included, making this a conservative local
-    ///      receiver measurement. The mock Roles module is not a substitute for the final live
-    ///      Safe/Zodiac condition tree, so release tooling records this evidence but must keep the
-    ///      manifest gas limit at zero until that separately authorized authority is frozen and
-    ///      measured on the same candidate.
-    function testCeloSettlementExecutor_measureHardMaxBatchDestinationGasCandidate() public {
-        vm.startPrank(OWNER);
-        executor.setPaused(true);
-        executor.setCaps(24, 1000 ether, 24_000 ether);
-        executor.setPeriodicCap(1 days, 100_000 ether);
-        executor.setPaused(false);
-        vm.stopPrank();
-
-        address[] memory recipients = new address[](24);
-        uint256[] memory amounts = new uint256[](24);
-        for (uint256 index; index < recipients.length; ++index) {
-            recipients[index] = address(uint160(0x4000 + index));
-            amounts[index] = 100 ether;
+            vm.startPrank(OWNER);
+            executor.configureGardenRoute(
+                GARDEN, address(payerSafe), address(payerRoles), ROLE_KEY, ALLOWANCE_KEY, keccak256("payer-permissions")
+            );
+            executor.configureGardenRoute(
+                BENEFICIARY_GARDEN,
+                address(beneficiarySafe),
+                address(beneficiaryRoles),
+                ROLE_KEY,
+                ALLOWANCE_KEY,
+                keccak256("beneficiary-permissions")
+            );
+            executor.setCaps(4, 1000 ether, 4000 ether);
+            executor.setFeePolicy(1000, 100 ether);
+            executor.setPeriodicCap(1 days, 10_000 ether);
+            executor.setAcknowledgmentFeeReserveMinimum(1);
+            vm.deal(OWNER, 1);
+            executor.fundAcknowledgmentFees{ value: 1 }();
+            executor.setPaused(false);
+            vm.stopPrank();
+            token.setBalance(address(payerSafe), 10_000 ether);
         }
 
-        bytes memory payload = _command(true, 12, 0, 0, recipients, amounts);
-        uint256 gasBefore = gasleft();
-        router.deliver(address(executor), keccak256("hard-max-batch-gas"), SOURCE_SELECTOR, SOURCE_MODULE, payload);
-        uint256 gasUsed = gasBefore - gasleft();
-        emit log_named_uint("settlement destination gas / local hard-max batch (24)", gasUsed);
+        function testSenderPaidFeeDeliversExactNetAndStoresSuccess() public {
+            token.setFee(5 ether, true);
+            bytes32 messageId = keccak256("success-command");
+            router.deliver(
+                address(executor),
+                messageId,
+                SOURCE_SELECTOR,
+                SOURCE_MODULE,
+                _command(false, 7, 0, 0, _one(CONTRIBUTOR), _oneAmount(100 ether))
+            );
 
-        bytes32 key = keccak256(abi.encode(SOURCE_SELECTOR, SOURCE_MODULE, true, uint256(12), uint32(0)));
-        ICeloSettlementExecutor.ExecutionResult memory result = executor.executionResultOf(key);
-        assertEq(uint8(result.status), uint8(ICeloSettlementExecutor.ResultStatus.Success));
-        assertTrue(result.acknowledgmentSent);
-        assertLt(gasUsed, 5_000_000, "local destination execution exceeded the measurement guardrail");
-        for (uint256 index; index < recipients.length; ++index) {
-            assertEq(token.balanceOf(recipients[index]), amounts[index]);
+            bytes32 key = keccak256(abi.encode(SOURCE_SELECTOR, SOURCE_MODULE, false, uint256(7), uint32(0)));
+            ICeloSettlementExecutor.ExecutionResult memory result = executor.executionResultOf(key);
+            assertEq(uint8(result.status), uint8(ICeloSettlementExecutor.ResultStatus.Success));
+            assertEq(uint8(result.failureCode), uint8(ICeloSettlementExecutor.FailureCode.None));
+            assertEq(token.balanceOf(CONTRIBUTOR), 100 ether);
+            assertEq(token.balanceOf(address(payerSafe)), 9895 ether);
+            assertTrue(result.acknowledgmentSent);
+        }
+
+        function testReceiverPaidFeeFailsClosedWithoutTransfer() public {
+            token.setFee(5 ether, false);
+            bytes32 messageId = keccak256("receiver-pays-command");
+            router.deliver(
+                address(executor),
+                messageId,
+                SOURCE_SELECTOR,
+                SOURCE_MODULE,
+                _command(false, 8, 0, 0, _one(CONTRIBUTOR), _oneAmount(100 ether))
+            );
+
+            bytes32 key = keccak256(abi.encode(SOURCE_SELECTOR, SOURCE_MODULE, false, uint256(8), uint32(0)));
+            ICeloSettlementExecutor.ExecutionResult memory result = executor.executionResultOf(key);
+            assertEq(uint8(result.status), uint8(ICeloSettlementExecutor.ResultStatus.Failed));
+            assertEq(uint8(result.failureCode), uint8(ICeloSettlementExecutor.FailureCode.UnsupportedReceiverPaysFee));
+            assertEq(token.balanceOf(CONTRIBUTOR), 0);
+            assertEq(token.balanceOf(address(payerSafe)), 10_000 ether);
+        }
+
+        function testGardenBeneficiaryRequiresRegisteredActiveSafe() public {
+            vm.startPrank(OWNER);
+            executor.setPaused(true);
+            executor.setGardenRouteActive(BENEFICIARY_GARDEN, false);
+            executor.setPaused(false);
+            vm.stopPrank();
+
+            router.deliver(
+                address(executor),
+                keccak256("inactive-beneficiary"),
+                SOURCE_SELECTOR,
+                SOURCE_MODULE,
+                _command(false, 9, 0, 3, _one(address(beneficiarySafe)), _oneAmount(100 ether))
+            );
+            bytes32 key = keccak256(abi.encode(SOURCE_SELECTOR, SOURCE_MODULE, false, uint256(9), uint32(0)));
+            ICeloSettlementExecutor.ExecutionResult memory result = executor.executionResultOf(key);
+            assertEq(uint8(result.failureCode), uint8(ICeloSettlementExecutor.FailureCode.InvalidRecipient));
+            assertEq(token.balanceOf(address(beneficiarySafe)), 0);
+        }
+
+        function testDuplicateCommandDoesNotPayTwice() public {
+            bytes memory payload = _command(false, 10, 0, 0, _one(CONTRIBUTOR), _oneAmount(100 ether));
+            router.deliver(address(executor), keccak256("first"), SOURCE_SELECTOR, SOURCE_MODULE, payload);
+            router.deliver(address(executor), keccak256("duplicate"), SOURCE_SELECTOR, SOURCE_MODULE, payload);
+            assertEq(token.balanceOf(CONTRIBUTOR), 100 ether);
+        }
+
+        function testCeloSettlementExecutor_loanPrincipalUsesTheBoundedGDollarTransferPath() public {
+            router.deliver(
+                address(executor),
+                keccak256("loan-principal"),
+                SOURCE_SELECTOR,
+                SOURCE_MODULE,
+                _command(false, 11, 0, 2, _one(CONTRIBUTOR), _oneAmount(100 ether))
+            );
+
+            bytes32 key = keccak256(abi.encode(SOURCE_SELECTOR, SOURCE_MODULE, false, uint256(11), uint32(0)));
+            ICeloSettlementExecutor.ExecutionResult memory result = executor.executionResultOf(key);
+            assertEq(uint8(result.status), uint8(ICeloSettlementExecutor.ResultStatus.Success));
+            assertEq(token.balanceOf(CONTRIBUTOR), 100 ether);
+            assertEq(token.balanceOf(address(payerSafe)), 9900 ether);
+        }
+
+        function testCeloSettlementExecutor_refundUsesTheTypedBoundedGDollarTransferPath() public {
+            router.deliver(
+                address(executor),
+                keccak256("refund"),
+                SOURCE_SELECTOR,
+                SOURCE_MODULE,
+                _command(false, 12, 0, 4, _one(CONTRIBUTOR), _oneAmount(100 ether))
+            );
+
+            bytes32 key = keccak256(abi.encode(SOURCE_SELECTOR, SOURCE_MODULE, false, uint256(12), uint32(0)));
+            ICeloSettlementExecutor.ExecutionResult memory result = executor.executionResultOf(key);
+            assertEq(uint8(result.status), uint8(ICeloSettlementExecutor.ResultStatus.Success));
+            assertEq(uint8(result.failureCode), uint8(ICeloSettlementExecutor.FailureCode.None));
+            assertEq(token.balanceOf(CONTRIBUTOR), 100 ether);
+            assertEq(token.balanceOf(address(payerSafe)), 9900 ether);
+        }
+
+        function testCeloSettlementExecutor_refundBelowSafeBalanceFailsWithoutPartialTransfer() public {
+            token.setBalance(address(payerSafe), 99 ether);
+            router.deliver(
+                address(executor),
+                keccak256("refund-below-safe-balance"),
+                SOURCE_SELECTOR,
+                SOURCE_MODULE,
+                _command(false, 13, 0, 4, _one(CONTRIBUTOR), _oneAmount(100 ether))
+            );
+
+            bytes32 key = keccak256(abi.encode(SOURCE_SELECTOR, SOURCE_MODULE, false, uint256(13), uint32(0)));
+            ICeloSettlementExecutor.ExecutionResult memory result = executor.executionResultOf(key);
+            assertEq(uint8(result.status), uint8(ICeloSettlementExecutor.ResultStatus.Failed));
+            assertEq(uint8(result.failureCode), uint8(ICeloSettlementExecutor.FailureCode.RouteReverted));
+            assertEq(token.balanceOf(CONTRIBUTOR), 0);
+            assertEq(token.balanceOf(address(payerSafe)), 99 ether);
+            assertTrue(result.acknowledgmentSent);
+        }
+
+        /// @notice Measures the executor's compile-time maximum atomic batch with all success-path
+        ///         balance, fee, Roles, storage, event, and acknowledgment work enabled.
+        /// @dev The mock router's delivery wrapper is included, making this a conservative local
+        ///      receiver measurement. The mock Roles module is not a substitute for the final live
+        ///      Safe/Zodiac condition tree, so release tooling records this evidence but must keep the
+        ///      manifest gas limit at zero until that separately authorized authority is frozen and
+        ///      measured on the same candidate.
+        function testCeloSettlementExecutor_measureHardMaxBatchDestinationGasCandidate() public {
+            vm.startPrank(OWNER);
+            executor.setPaused(true);
+            executor.setCaps(24, 1000 ether, 24_000 ether);
+            executor.setPeriodicCap(1 days, 100_000 ether);
+            executor.setPaused(false);
+            vm.stopPrank();
+
+            address[] memory recipients = new address[](24);
+            uint256[] memory amounts = new uint256[](24);
+            for (uint256 index; index < recipients.length; ++index) {
+                recipients[index] = address(uint160(0x4000 + index));
+                amounts[index] = 100 ether;
+            }
+
+            bytes memory payload = _command(true, 12, 0, 0, recipients, amounts);
+            uint256 gasBefore = gasleft();
+            router.deliver(address(executor), keccak256("hard-max-batch-gas"), SOURCE_SELECTOR, SOURCE_MODULE, payload);
+            uint256 gasUsed = gasBefore - gasleft();
+            emit log_named_uint("settlement destination gas / local hard-max batch (24)", gasUsed);
+
+            bytes32 key = keccak256(abi.encode(SOURCE_SELECTOR, SOURCE_MODULE, true, uint256(12), uint32(0)));
+            ICeloSettlementExecutor.ExecutionResult memory result = executor.executionResultOf(key);
+            assertEq(uint8(result.status), uint8(ICeloSettlementExecutor.ResultStatus.Success));
+            assertTrue(result.acknowledgmentSent);
+            assertLt(gasUsed, 5_000_000, "local destination execution exceeded the measurement guardrail");
+            for (uint256 index; index < recipients.length; ++index) {
+                assertEq(token.balanceOf(recipients[index]), amounts[index]);
+            }
+        }
+
+        function testMalformedCommandUsesFrozenFailureSelector() public {
+            vm.expectRevert(ICeloSettlementExecutor.MalformedSettlementCommand.selector);
+            router.deliver(address(executor), keccak256("malformed-command"), SOURCE_SELECTOR, SOURCE_MODULE, hex"01");
+        }
+
+        function _command(
+            bool isBatch,
+            uint256 settlementId,
+            uint32 attempt,
+            uint8 kind,
+            address[] memory recipients,
+            uint256[] memory amounts
+        )
+            internal
+            pure
+            returns (bytes memory)
+        {
+            return SettlementMessageCodec.encodeCommand(
+                1, settlementId, isBatch, attempt, GARDEN, kind, recipients, amounts
+            );
+        }
+
+        function _one(address account) internal pure returns (address[] memory values) {
+            values = new address[](1);
+            values[0] = account;
+        }
+
+        function _oneAmount(uint256 amount) internal pure returns (uint256[] memory values) {
+            values = new uint256[](1);
+            values[0] = amount;
         }
     }
-
-    function testMalformedCommandUsesFrozenFailureSelector() public {
-        vm.expectRevert(ICeloSettlementExecutor.MalformedSettlementCommand.selector);
-        router.deliver(address(executor), keccak256("malformed-command"), SOURCE_SELECTOR, SOURCE_MODULE, hex"01");
-    }
-
-    function _command(
-        bool isBatch,
-        uint256 settlementId,
-        uint32 attempt,
-        uint8 kind,
-        address[] memory recipients,
-        uint256[] memory amounts
-    )
-        internal
-        pure
-        returns (bytes memory)
-    {
-        return SettlementMessageCodec.encodeCommand(1, settlementId, isBatch, attempt, GARDEN, kind, recipients, amounts);
-    }
-
-    function _one(address account) internal pure returns (address[] memory values) {
-        values = new address[](1);
-        values[0] = account;
-    }
-
-    function _oneAmount(uint256 amount) internal pure returns (uint256[] memory values) {
-        values = new uint256[](1);
-        values[0] = amount;
-    }
-}

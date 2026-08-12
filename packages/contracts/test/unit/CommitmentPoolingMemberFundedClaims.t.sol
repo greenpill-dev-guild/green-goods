@@ -16,7 +16,7 @@ contract CommitmentPoolingMemberFundedClaimsTest is CommitmentPoolingFixture {
         _setMember(SECOND_FUNDER);
     }
 
-    function testMemberCanRequestPricedApprovalGatedOfferWithoutAcceptingIt() public {
+    function testCommitmentPooling_memberCanRequestPricedApprovalGatedOfferWithoutAcceptingIt() public {
         uint256 commitmentId =
             _pricedOffer(keccak256("member-priced-request"), ICommitmentPoolingModule.ClaimMode.ApprovalGated);
 
@@ -34,7 +34,7 @@ contract CommitmentPoolingMemberFundedClaimsTest is CommitmentPoolingFixture {
         assertEq(registry.openCommitmentCountOf(poolId, CREATOR), openBefore);
     }
 
-    function testOnlyPoolStewardCanAcceptMemberPricedClaim() public {
+    function testCommitmentPooling_onlyPoolStewardCanAcceptMemberPricedClaim() public {
         uint256 commitmentId = _pendingPricedOffer(keccak256("member-priced-accept"));
 
         vm.expectRevert(abi.encodeWithSelector(ICommitmentPoolingModule.NotPoolSteward.selector, CLAIMANT, poolId));
@@ -50,7 +50,7 @@ contract CommitmentPoolingMemberFundedClaimsTest is CommitmentPoolingFixture {
         assertEq(commitment.payerGarden, POOL_GARDEN);
     }
 
-    function testPricedApprovalClaimRechecksMembershipAtAcceptance() public {
+    function testCommitmentPooling_pricedApprovalClaimRechecksMembershipAtAcceptance() public {
         uint256 commitmentId = _pendingPricedOffer(keccak256("member-priced-stale"));
         hats.setGardener(POOL_GARDEN, CLAIMANT, false);
 
@@ -64,7 +64,7 @@ contract CommitmentPoolingMemberFundedClaimsTest is CommitmentPoolingFixture {
         );
     }
 
-    function testNoCallerCanDirectlyAcceptPricedOpenOffer() public {
+    function testCommitmentPooling_noCallerCanDirectlyAcceptPricedOpenOffer() public {
         uint256 commitmentId = _pricedOffer(keccak256("member-priced-open"), ICommitmentPoolingModule.ClaimMode.Open);
 
         vm.expectRevert(
@@ -86,7 +86,7 @@ contract CommitmentPoolingMemberFundedClaimsTest is CommitmentPoolingFixture {
         );
     }
 
-    function testFirstStewardAcceptanceWinsTwoFundersWithoutASecondCapacityCommit() public {
+    function testCommitmentPooling_firstStewardAcceptanceWinsTwoFundersWithoutASecondCapacityCommit() public {
         uint256 commitmentId =
             _pricedOffer(keccak256("two-funded-claims"), ICommitmentPoolingModule.ClaimMode.ApprovalGated);
         uint256 openCommitments = registry.openCommitmentCountOf(poolId, CREATOR);

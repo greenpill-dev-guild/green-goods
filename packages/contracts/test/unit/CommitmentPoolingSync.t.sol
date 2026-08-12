@@ -20,7 +20,8 @@ contract CommitmentPoolingSyncTest is CommitmentPoolingFixture {
         hats.setOperator(POOL_GARDEN, POOL_STEWARD, true);
     }
 
-    // ───────────────────────────── unlinkWork ─────────────────────────────
+    // ───────────────────────────── unlinkWork
+    // ─────────────────────────────
 
     function testUnlinkWorkIsStewardOnly() public {
         uint256 commitmentId = _acceptedDomainImpact(keccak256("unlink-gating"));
@@ -101,7 +102,8 @@ contract CommitmentPoolingSyncTest is CommitmentPoolingFixture {
         module.unlinkWork(WORK_A);
     }
 
-    // ────────────────────────── syncWorkDecisions ──────────────────────────
+    // ────────────────────────── syncWorkDecisions
+    // ──────────────────────────
 
     function testSyncIsStewardOnly() public {
         uint256 commitmentId = _acceptedDomainImpact(keccak256("sync-gating"));
@@ -259,7 +261,7 @@ contract CommitmentPoolingSyncTest is CommitmentPoolingFixture {
         module.syncWorkDecisions(commitmentId, _uids(approvalUID));
     }
 
-    function testPoolPauseKeepsWorkLinkUnlinkSyncAndDecisionHookAvailable() public {
+    function testCommitmentPooling_poolPauseKeepsWorkLinkUnlinkSyncAndDecisionHookAvailable() public {
         uint256 linkId = _acceptedDomainImpact(keccak256("paused-link"));
         uint256 unlinkId = _acceptedDomainImpact(keccak256("paused-unlink"));
         uint256 syncId = _acceptedDomainImpact(keccak256("paused-sync"));
@@ -288,7 +290,8 @@ contract CommitmentPoolingSyncTest is CommitmentPoolingFixture {
         assertEq(module.getRequirement(hookId, 0).approvedCount, 1);
     }
 
-    // ───────────────────────────── Helpers ─────────────────────────────
+    // ───────────────────────────── Helpers
+    // ─────────────────────────────
 
     /// @dev An accepted DomainImpact Offer with two single-count requirements.
     function _acceptedDomainImpact(bytes32 creationKey) private returns (uint256 commitmentId) {

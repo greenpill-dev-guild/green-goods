@@ -36,7 +36,7 @@ contract SettlementFundingInvariantTest is SettlementPayerTest {
 
     /// forge-config: default.invariant.runs = 32
     /// forge-config: default.invariant.depth = 64
-    function invariant_refundRelationshipNeverPointsAtAReplacementChild() public {
+    function invariant_SettlementFunding_refundRelationshipNeverPointsAtAReplacementChild() public {
         ISettlementModule.CommitmentFunding memory funding = settlement.getCommitmentFunding(fundingId);
         uint256 childId = settlement.fundingRefundDisbursementOf(fundingId);
 
@@ -57,7 +57,7 @@ contract SettlementFundingInvariantTest is SettlementPayerTest {
 
     /// forge-config: default.invariant.runs = 32
     /// forge-config: default.invariant.depth = 64
-    function invariant_refundChildPreservesTheRecordedObligation() public {
+    function invariant_SettlementFunding_refundChildPreservesTheRecordedObligation() public {
         ISettlementModule.CommitmentFunding memory funding = settlement.getCommitmentFunding(fundingId);
         assertEq(funding.commitmentId, COMMITMENT_ID);
         assertEq(funding.funder, FUNDER);
@@ -85,7 +85,7 @@ contract SettlementFundingInvariantTest is SettlementPayerTest {
 
     /// forge-config: default.invariant.runs = 32
     /// forge-config: default.invariant.depth = 64
-    function invariant_atMostOneRefundChildAndOneConfirmedRefundExist() public {
+    function invariant_SettlementFunding_atMostOneRefundChildAndOneConfirmedRefundExist() public {
         uint256 refundChildren;
         uint256 confirmedRefunds;
         // This isolated campaign starts at disbursement ID 1 and can allocate only through the
@@ -105,7 +105,7 @@ contract SettlementFundingInvariantTest is SettlementPayerTest {
         assertLe(confirmedRefunds, 1, "more than one refund confirmed");
     }
 
-    function testHandlerReachesFailureRequeueAndRefundWithoutReplacingTheChild() public {
+    function testSettlementFundingHandler_reachesFailureRequeueAndRefundWithoutReplacingTheChild() public {
         handler.dispatchAndFailRefund();
         handler.requeueRefund();
         handler.dispatchAndSucceedRefund();

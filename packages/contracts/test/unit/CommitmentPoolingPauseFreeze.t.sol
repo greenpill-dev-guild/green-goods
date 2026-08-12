@@ -15,7 +15,7 @@ contract CommitmentPoolingPauseFreezeTest is CommitmentPoolingFixture {
         hats.setOperator(POOL_GARDEN, POOL_STEWARD, true);
     }
 
-    function testPausedPoolBlocksEveryFrozenSelectorBeforeMutation() public {
+    function testCommitmentPooling_pausedPoolBlocksEveryFrozenSelectorBeforeMutation() public {
         uint256[] memory commitmentIds = new uint256[](8);
         commitmentIds[0] = _createOffer(keccak256("pause-claim"));
         commitmentIds[1] = _pendingOffer(keccak256("pause-accept-claim"));
@@ -33,7 +33,7 @@ contract CommitmentPoolingPauseFreezeTest is CommitmentPoolingFixture {
         }
     }
 
-    function testRegisterPoolRemainsCallableWhileModulePaused() public {
+    function testCommitmentPooling_registerPoolRemainsCallableWhileModulePaused() public {
         module.setPaused(true);
 
         uint256 registeredPoolId = module.registerPool(SECOND_GARDEN, ICommitmentPoolingModule.PoolType.Garden);
@@ -44,7 +44,7 @@ contract CommitmentPoolingPauseFreezeTest is CommitmentPoolingFixture {
         assertEq(uint256(pool.state), uint256(ICommitmentPoolingModule.PoolState.NotReady));
     }
 
-    function testPausedRegistrationPreservesAuthorityRootAndDuplicateGates() public {
+    function testCommitmentPooling_pausedRegistrationPreservesAuthorityRootAndDuplicateGates() public {
         module.setPaused(true);
 
         vm.expectRevert(abi.encodeWithSelector(ICommitmentPoolingModule.UnauthorizedCaller.selector, address(0xBAD)));
@@ -60,7 +60,7 @@ contract CommitmentPoolingPauseFreezeTest is CommitmentPoolingFixture {
         module.registerPool(POOL_GARDEN, ICommitmentPoolingModule.PoolType.Garden);
     }
 
-    function testPausedRegistrationDoesNotUngateGardenMintHook() public {
+    function testCommitmentPooling_pausedRegistrationDoesNotUngateGardenMintHook() public {
         module.setPaused(true);
 
         vm.expectRevert(ICommitmentPoolingModule.ModulePaused.selector);
@@ -68,7 +68,7 @@ contract CommitmentPoolingPauseFreezeTest is CommitmentPoolingFixture {
         module.onGardenMinted(SECOND_GARDEN);
     }
 
-    function testPausedPoolStillAllowsProofAndRosterWindDown() public {
+    function testCommitmentPooling_pausedPoolStillAllowsProofAndRosterWindDown() public {
         uint256 commitmentId = _createOffer(keccak256("pause-proof-roster"));
         _acceptOffer(commitmentId);
         address contributor = address(0xC011);
@@ -89,7 +89,7 @@ contract CommitmentPoolingPauseFreezeTest is CommitmentPoolingFixture {
         assertEq(module.getCommitment(commitmentId).evidenceCount, 1);
     }
 
-    function testPausedPoolStillAllowsCancellationAndExpiry() public {
+    function testCommitmentPooling_pausedPoolStillAllowsCancellationAndExpiry() public {
         uint256 cancellable = _createOffer(keccak256("pause-cancel"));
         ICommitmentPoolingModule.CreateCommitmentParams memory params = _baseParams(keccak256("pause-expire"));
         params.dueDate = uint64(block.timestamp + 1);
@@ -108,7 +108,7 @@ contract CommitmentPoolingPauseFreezeTest is CommitmentPoolingFixture {
         assertEq(uint256(module.getCommitment(expiring).state), uint256(ICommitmentPoolingModule.CommitmentState.Expired));
     }
 
-    function testPausedPoolStillAllowsDisputeRecovery() public {
+    function testCommitmentPooling_pausedPoolStillAllowsDisputeRecovery() public {
         uint256 commitmentId = _createOffer(keccak256("pause-dispute"));
         _acceptOffer(commitmentId);
         _pausePool();

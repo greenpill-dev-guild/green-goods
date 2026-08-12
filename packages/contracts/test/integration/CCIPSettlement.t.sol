@@ -55,25 +55,18 @@ contract AsynchronousSettlementRouter {
         deliver(receiver, lastMessageId, sourceSelector, sender, lastData);
     }
 
-    function deliver(
-        address receiver,
-        bytes32 messageId,
-        uint64 sourceSelector,
-        address sender,
-        bytes memory data
-    )
-        public
-    {
+    function deliver(address receiver, bytes32 messageId, uint64 sourceSelector, address sender, bytes memory data) public {
         Client.EVMTokenAmount[] memory noTokens = new Client.EVMTokenAmount[](0);
-        ICcipMessageReceiver(receiver).ccipReceive(
-            Client.Any2EVMMessage({
-                messageId: messageId,
-                sourceChainSelector: sourceSelector,
-                sender: abi.encode(sender),
-                data: data,
-                destTokenAmounts: noTokens
-            })
-        );
+        ICcipMessageReceiver(receiver)
+            .ccipReceive(
+                Client.Any2EVMMessage({
+                    messageId: messageId,
+                    sourceChainSelector: sourceSelector,
+                    sender: abi.encode(sender),
+                    data: data,
+                    destTokenAmounts: noTokens
+                })
+            );
     }
 }
 
@@ -316,7 +309,7 @@ contract CCIPSettlementIntegrationTest is Test {
         assertEq(token.balanceOf(address(beneficiarySafe)), 100 ether);
     }
 
-    function testRefundBelowSafeBalanceFailsThenReplenishesAndConfirmsTheSameChild() public {
+    function testCCIPSettlement_refundBelowSafeBalanceFailsThenReplenishesAndConfirmsTheSameChild() public {
         pooling.setPool(POOL_ID, _providerPool());
         pooling.setCommitment(2, _pricedIndividualOffer());
         pooling.setPendingClaim(
