@@ -74,7 +74,9 @@ jobs:
       # Restore the newest Foundry build for this compiler config, then save a
       # fresh entry per commit; forge recompiles only what changed since the
       # restored snapshot. Per-job key prefixes keep each job's profile
-      # artifacts in their own cache lineage.
+      # artifacts in their own cache lineage. This lineage holds two profile
+      # subdirectories (out/test and out/production) because the required gate
+      # below compiles both.
       - name: Cache Foundry build
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
         with:
@@ -85,6 +87,17 @@ jobs:
           restore-keys: |
             foundry-unit-${{ runner.os }}-${{ hashFiles('packages/contracts/foundry.toml') }}-
 
+      # `bun run test` is the required PR gate and chains, in order:
+      #   1. TypeScript typecheck
+      #   2. optimizer-off `test`-profile unit suite (the three source-acknowledgment
+      #      boundary fixtures are excluded by exact name — their gas is meaningless
+      #      outside release codegen)
+      #   3. `test:gas:release` — the production-profile (via_ir, optimizer_runs = 1)
+      #      cold-path proof of the frozen batch-size boundary, run with per-call
+      #      transaction isolation; this is release gas evidence, the nightly deep
+      #      lane's optimizer-200 numbers are not
+      #   4. script tests (vitest), including the release-lock derivation and the
+      #      gas-gate routing guardrail
       - name: Run contract unit tests
         working-directory: packages/contracts
         run: bun run test
