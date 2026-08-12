@@ -1036,8 +1036,26 @@ export function validateUpgradeCheckpointPrefix(
   }
 }
 
+export function buildCastJsonArgs(args: string[], rpcUrl: string): string[] {
+  const [command, ...commandArgs] = args;
+  if (!command) throw new Error("Cast command is required");
+  return [command, "--rpc-url", rpcUrl, "--json", ...commandArgs];
+}
+
+export function buildUpgradeBoundarySendArgs(
+  transaction: PersistedUpgradeTransaction,
+  chainId: string,
+  plannedNonce: number,
+  account: string,
+): string[] {
+  const sharedArgs = ["send", "--chain", chainId, "--nonce", String(plannedNonce), "--account", account];
+  return transaction.to
+    ? [...sharedArgs, transaction.to, transaction.data ?? "0x"]
+    : [...sharedArgs, "--create", transaction.data ?? "0x"];
+}
+
 function runCastJson(args: string[], rpcUrl: string): Record<string, unknown> {
-  const raw = execFileSync("cast", [...args, "--rpc-url", rpcUrl, "--json"], {
+  const raw = execFileSync("cast", buildCastJsonArgs(args, rpcUrl), {
     cwd: CONTRACTS_ROOT,
     env: process.env,
     encoding: "utf8",
@@ -1295,19 +1313,13 @@ function executeUpgradeBoundary(
     }
     assertUpgradeBoundaryPreconditions(plan, transaction, rpcUrl);
     const account = process.env.FOUNDRY_KEYSTORE_ACCOUNT || "green-goods-deployer";
-    const sendArgs = transaction.to
-      ? ["send", transaction.to, transaction.data ?? "0x"]
-      : ["send", "--create", transaction.data ?? "0x"];
     const receipt = runCastJson(
-      [
-        ...sendArgs,
-        "--chain",
+      buildUpgradeBoundarySendArgs(
+        transaction,
         networkManager.getChainIdString(options.network),
-        "--nonce",
-        String(plannedNonce),
-        "--account",
+        plannedNonce,
         account,
-      ],
+      ),
       rpcUrl,
     );
     const candidate = receipt.transactionHash;

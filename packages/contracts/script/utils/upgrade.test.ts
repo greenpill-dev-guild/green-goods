@@ -5,6 +5,8 @@ import { spawnSync } from "node:child_process";
 import { getCreateAddress, Interface, keccak256 } from "ethers";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
+  buildCastJsonArgs,
+  buildUpgradeBoundarySendArgs,
   findLatestUpgradeArtifactIn,
   type PersistedUpgradePlan,
   type UpgradeCheckpoint,
@@ -59,6 +61,39 @@ describe("upgrade transaction plan artifact discovery", () => {
 });
 
 describe("upgrade operator entrypoint", () => {
+  it("places every cast option before the raw CREATE subcommand", () => {
+    const sendArgs = buildUpgradeBoundarySendArgs(
+      {
+        index: 0,
+        from: "0x0000000000000000000000000000000000000001",
+        to: null,
+        nonce: "899",
+        value: "0",
+        data: "0x1234",
+        contractAddress: "0x0000000000000000000000000000000000000002",
+        function: null,
+      },
+      "42161",
+      899,
+      "green-goods-deployer",
+    );
+
+    expect(buildCastJsonArgs(sendArgs, "https://arb.example")).toEqual([
+      "send",
+      "--rpc-url",
+      "https://arb.example",
+      "--json",
+      "--chain",
+      "42161",
+      "--nonce",
+      "899",
+      "--account",
+      "green-goods-deployer",
+      "--create",
+      "0x1234",
+    ]);
+  });
+
   it("requires an explicit sender before a transaction plan can touch RPC", () => {
     const result = spawnSync(
       "bun",
