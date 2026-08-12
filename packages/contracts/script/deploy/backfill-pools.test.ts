@@ -1,9 +1,10 @@
 import { execFileSync, spawnSync } from "node:child_process";
 import * as path from "node:path";
-import { getAddress, Interface, keccak256, toUtf8Bytes } from "ethers";
+import { getAddress, Interface, keccak256, toUtf8Bytes, type TransactionResponse } from "ethers";
 import { describe, expect, it } from "vitest";
 import {
   buildBackfillTransactions,
+  parseSafeExecution,
   validateBackfillPlan,
   validateCheckpointPrefix,
   type BackfillCheckpoint,
@@ -253,6 +254,19 @@ describe("one-shot pool backfill entrypoint", () => {
       toUtf8Bytes("tampered"),
     );
     expect(() => validateCheckpointPrefix(changedGarden, canonical, 19)).toThrow("differs from the reviewed plan");
+  });
+
+  it("rejects a recovery receipt that attaches native value to the Safe", () => {
+    const reviewedPlan = plan();
+    const transaction = {
+      to: reviewedPlan.owner,
+      value: 1n,
+      data: "0x",
+    } as TransactionResponse;
+
+    expect(() => parseSafeExecution(transaction, reviewedPlan.transactions[0], reviewedPlan.owner)).toThrow(
+      "may not attach native value",
+    );
   });
 
   it("documents only Bun operator entrypoints", () => {

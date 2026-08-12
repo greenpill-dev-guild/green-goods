@@ -1,9 +1,11 @@
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
+import { execFileSync } from "node:child_process";
 import { afterEach, describe, expect, it } from "vitest";
 import {
   assertAllowedOperatorCommand,
+  assertPinnedCheckout,
   createPasswordLease,
   parseSessionOptions,
   RELEASE_OPERATOR_COMMANDS,
@@ -24,6 +26,25 @@ describe("release operator session", () => {
     expect(() => parseSessionOptions(["--commit", "abc"])).toThrow(/requires --commit/);
     expect(parseSessionOptions(["--commit", "a".repeat(40)])).toEqual({ commit: "a".repeat(40), help: false });
     expect(parseSessionOptions(["--help"])).toEqual({ help: true });
+  });
+
+  it("rejects checkout drift before a release boundary executes", () => {
+    const repository = fs.mkdtempSync(path.join(os.tmpdir(), "release-operator-repository-"));
+    temporaryDirectories.push(repository);
+    const git = (args: string[]) =>
+      execFileSync("git", args, { cwd: repository, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }).trim();
+    git(["init"]);
+    git(["config", "user.name", "Release Operator Test"]);
+    git(["config", "user.email", "release-operator@example.invalid"]);
+    git(["config", "commit.gpgsign", "false"]);
+    fs.writeFileSync(path.join(repository, "reviewed.txt"), "reviewed\n");
+    git(["add", "reviewed.txt"]);
+    git(["commit", "-m", "test: freeze candidate"]);
+    const candidate = git(["rev-parse", "HEAD"]);
+
+    expect(() => assertPinnedCheckout(candidate, repository)).not.toThrow();
+    fs.appendFileSync(path.join(repository, "reviewed.txt"), "drift\n");
+    expect(() => assertPinnedCheckout(candidate, repository)).toThrow(/checkout to stay clean/);
   });
 
   it("accepts only allowlisted Bun wrappers and never credential or RPC overrides", () => {

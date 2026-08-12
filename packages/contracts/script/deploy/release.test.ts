@@ -2,6 +2,14 @@ import { execFileSync, spawnSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { describe, expect, it } from "vitest";
+import {
+  type OwnershipCheckpoint,
+  type OwnershipTransferPlan,
+  type ReleaseCheckpoint,
+  validateOwnershipCheckpointPrefix,
+  validateReleaseCheckpointPrefix,
+} from "./release";
+import type { ReleaseTransactionBoundary } from "../utils/release-plan";
 
 const CONTRACTS_ROOT = path.join(__dirname, "../..");
 const ARBITRUM_ARTIFACT = path.join(CONTRACTS_ROOT, "deployments/42161-latest.json");
@@ -127,5 +135,94 @@ describe("release CLI real entrypoints", () => {
     ]);
     expect(result.status).not.toBe(0);
     expect(`${result.stdout}${result.stderr}`).toContain("Wrong sender");
+  });
+});
+
+describe("release boundary checkpoint integrity", () => {
+  const transactionHash = (suffix: string) => `0x${suffix.padStart(64, "0")}`;
+  const verifiedAt = "2026-08-12T12:00:00.000Z";
+
+  it("rejects a release checkpoint that omits any earlier receipt boundary", () => {
+    const transactions = [1, 2, 3].map(
+      (index): ReleaseTransactionBoundary => ({
+        index,
+        stage: "pooling",
+        kind: "configuration",
+        label: `boundary ${index}`,
+        network: "arbitrum",
+        sender: "0x0000000000000000000000000000000000000001",
+        to: "0x0000000000000000000000000000000000000002",
+        preconditions: [],
+        resumableState: "reviewed",
+        postActionVerifier: [],
+      }),
+    );
+    const checkpoint: ReleaseCheckpoint = {
+      schemaVersion: 1,
+      releaseId: "release",
+      manifestHash: transactionHash("a"),
+      stage: "pooling",
+      network: "arbitrum",
+      baseSalt: "salt",
+      lastVerifiedStep: 1,
+      verifiedBoundaries: [
+        {
+          index: 2,
+          label: "boundary 2",
+          expectedNonce: 11,
+          transactionHash: transactionHash("2"),
+          blockNumber: 2,
+          verifiedAt,
+        },
+      ],
+    };
+
+    expect(() => validateReleaseCheckpointPrefix(checkpoint, transactions, 3)).toThrow(
+      "not the next boundary in the verified prefix",
+    );
+  });
+
+  it("rejects an ownership checkpoint that contains only the immediately prior boundary", () => {
+    const plan: OwnershipTransferPlan = {
+      schemaVersion: 1,
+      releaseId: "release",
+      manifestHash: transactionHash("a"),
+      sourceCommit: "a".repeat(40),
+      network: "arbitrum",
+      chainId: 42161,
+      sender: "0x0000000000000000000000000000000000000001",
+      finalOwner: "0x0000000000000000000000000000000000000002",
+      transactions: [1, 2, 3].map((index) => ({
+        index,
+        label: `ownership ${index}`,
+        to: "0x0000000000000000000000000000000000000003",
+        calldata: "0x1234",
+        expectedNoncePolicy: "fresh-per-boundary" as const,
+        preconditions: [],
+        resumableState: "reviewed",
+        postActionVerifier: [],
+      })),
+      canonicalArtifactMutation: false,
+    };
+    const checkpoint: OwnershipCheckpoint = {
+      schemaVersion: 1,
+      releaseId: plan.releaseId,
+      manifestHash: plan.manifestHash,
+      network: plan.network,
+      completed: [
+        {
+          step: 2,
+          label: "ownership 2",
+          expectedNonce: 11,
+          transactionHash: transactionHash("2"),
+          blockNumber: 2,
+          verifiedAt,
+        },
+      ],
+    };
+
+    expect(() => validateOwnershipCheckpointPrefix(checkpoint, plan, 3)).toThrow(
+      "not the next boundary in the verified prefix",
+    );
   });
 });

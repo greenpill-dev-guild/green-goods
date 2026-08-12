@@ -30,6 +30,10 @@ import {
 
 const CONTRACTS_ROOT = path.join(__dirname, "../..");
 const GENERATED_SCHEMA_ROOT = path.join(CONTRACTS_ROOT, ".generated/release-schemas");
+export const SCHEMA_TRANSACTION_BOUNDARY_RULE =
+  "Execute and verify exactly one nonce-pinned transaction; do not continue until its receipt and live post-state are checkpointed.";
+export const SCHEMA_RESUMABLE_STATE =
+  "The exact on-chain postcondition is satisfied or absent; a conflicting record, owner, module, salt, or code identity fails closed.";
 
 /**
  * Addresses preparation produces. The resolver is deployed by this target now (contract-spec
@@ -77,7 +81,7 @@ interface ForgeSchemaArtifact {
   }>;
 }
 
-interface PersistedSchemaPlan {
+export interface PersistedSchemaPlan {
   schemaVersion: 1;
   releaseId: string;
   manifestHash: string;
@@ -117,7 +121,7 @@ interface PersistedSchemaPlan {
   canonicalArtifactMutation: false;
 }
 
-interface SchemaCheckpoint {
+export interface SchemaCheckpoint {
   schemaVersion: 1;
   planHash: string;
   completed: Array<{
@@ -126,6 +130,276 @@ interface SchemaCheckpoint {
     blockNumber: number;
     verifiedAt: string;
   }>;
+}
+
+export interface FrozenSchemaPlanInputs {
+  releaseId: string;
+  manifestHash: string;
+  sourceCommit: string;
+  mode: "preparation" | "finalization";
+  network: string;
+  chainId: number;
+  sender: string;
+  schemaRegistry: string;
+  testimonyResolver: string;
+  testimonyResolverImpl: string;
+  commitmentPoolingModule: string | null;
+  pinnedCommunityTestimonyUID: string;
+  create2: {
+    factory: string;
+    implementationSalt: string;
+    proxySalt: string;
+    implementationCreationCodeHash: string;
+    proxyCreationCodeHash: string;
+  };
+  schemas: PersistedSchemaPlan["schemas"];
+}
+
+export function validateSchemaCheckpointPrefix(
+  checkpoint: SchemaCheckpoint,
+  plan: PersistedSchemaPlan,
+  requestedStep: number,
+): void {
+  if (checkpoint.schemaVersion !== 1) throw new Error("Schema checkpoint version is unsupported");
+  const steps = checkpoint.completed.map((entry) => entry.step);
+  if (new Set(steps).size !== steps.length) throw new Error("Schema checkpoint contains duplicate boundaries");
+  for (let index = 0; index < checkpoint.completed.length; index += 1) {
+    const evidence = checkpoint.completed[index];
+    if (evidence.step !== index + 1) throw new Error("Schema checkpoint is not one contiguous verified prefix");
+    if (!/^0x[0-9a-f]{64}$/iu.test(evidence.transactionHash)) {
+      throw new Error(`Schema checkpoint boundary ${evidence.step} has no valid transaction hash`);
+    }
+    if (!Number.isSafeInteger(evidence.blockNumber) || evidence.blockNumber <= 0) {
+      throw new Error(`Schema checkpoint boundary ${evidence.step} has no valid block number`);
+    }
+    if (Number.isNaN(Date.parse(evidence.verifiedAt))) {
+      throw new Error(`Schema checkpoint boundary ${evidence.step} has no valid verification time`);
+    }
+  }
+  const alreadyVerified = steps.includes(requestedStep);
+  const requiredLength = alreadyVerified ? requestedStep : requestedStep - 1;
+  if (checkpoint.completed.length !== requiredLength) {
+    throw new Error(`Schema boundary ${requestedStep} is not the next boundary in the verified prefix`);
+  }
+  if (requestedStep < 1 || requestedStep > plan.transactions.length) {
+    throw new Error(`Schema plan has no boundary ${requestedStep}`);
+  }
+}
+
+export function validateSchemaReceiptTransaction(
+  transaction: { from: string; to: string | null; data: string; nonce: number; value: bigint },
+  plan: PersistedSchemaPlan,
+  boundary: PersistedSchemaPlan["transactions"][number],
+  transactionHash: string,
+): void {
+  if (
+    getAddress(transaction.from) !== getAddress(plan.sender) ||
+    !transaction.to ||
+    getAddress(transaction.to) !== getAddress(boundary.to) ||
+    transaction.data.toLowerCase() !== boundary.data.toLowerCase() ||
+    transaction.nonce !== boundary.nonce ||
+    transaction.value !== BigInt(boundary.value)
+  ) {
+    throw new Error(`Schema receipt ${transactionHash} differs from the reviewed boundary`);
+  }
+}
+
+export function validateReviewedSchemaPlan(plan: PersistedSchemaPlan, expected: FrozenSchemaPlanInputs): void {
+  if (
+    plan.schemaVersion !== 1 ||
+    plan.releaseId !== expected.releaseId ||
+    plan.manifestHash !== expected.manifestHash ||
+    plan.sourceCommit !== expected.sourceCommit ||
+    plan.mode !== expected.mode ||
+    plan.network !== expected.network ||
+    plan.chainId !== expected.chainId ||
+    getAddress(plan.sender) !== getAddress(expected.sender) ||
+    getAddress(plan.schemaRegistry) !== getAddress(expected.schemaRegistry) ||
+    getAddress(plan.testimonyResolver) !== getAddress(expected.testimonyResolver) ||
+    getAddress(plan.testimonyResolverImpl) !== getAddress(expected.testimonyResolverImpl) ||
+    plan.transactionBoundaryRule !== SCHEMA_TRANSACTION_BOUNDARY_RULE ||
+    plan.canonicalArtifactMutation !== false
+  ) {
+    throw new Error("Schema plan does not match the freshly derived frozen release inputs");
+  }
+  if (
+    (plan.commitmentPoolingModule === null) !== (expected.commitmentPoolingModule === null) ||
+    (plan.commitmentPoolingModule !== null &&
+      expected.commitmentPoolingModule !== null &&
+      getAddress(plan.commitmentPoolingModule) !== getAddress(expected.commitmentPoolingModule))
+  ) {
+    throw new Error("Schema plan CommitmentPoolingModule differs from the shipped deployment artifact");
+  }
+  if (plan.pinnedCommunityTestimonyUID.toLowerCase() !== expected.pinnedCommunityTestimonyUID.toLowerCase()) {
+    throw new Error("Schema plan Community Testimony UID differs from the canonical schema definition");
+  }
+  if (plan.schemas.length !== expected.schemas.length) {
+    throw new Error("Schema plan definition count differs from the canonical schema set");
+  }
+  for (let index = 0; index < expected.schemas.length; index += 1) {
+    const actual = plan.schemas[index];
+    const canonical = expected.schemas[index];
+    if (
+      actual.key !== canonical.key ||
+      actual.uid.toLowerCase() !== canonical.uid.toLowerCase() ||
+      actual.schema !== canonical.schema ||
+      getAddress(actual.resolver) !== getAddress(canonical.resolver) ||
+      actual.revocable !== canonical.revocable ||
+      actual.name !== canonical.name ||
+      actual.description !== canonical.description
+    ) {
+      throw new Error(`Schema plan definition ${index + 1} differs from the canonical schema set`);
+    }
+  }
+
+  const expectedKinds =
+    expected.mode === "preparation"
+      ? (["CREATE2_IMPLEMENTATION", "CREATE2_PROXY", "REGISTER_SCHEMA", "PIN_UID"] as const)
+      : (["REGISTER_SCHEMA", "ACTIVATE_RESOLVER"] as const);
+  if (plan.transactions.length !== expectedKinds.length) {
+    throw new Error(`Schema ${expected.mode} plan must contain the complete canonical transaction sequence`);
+  }
+  if (!Number.isSafeInteger(plan.expectedNonce) || plan.expectedNonce < 0) {
+    throw new Error("Schema plan starting nonce is invalid");
+  }
+  const schema = expected.schemas[0];
+  if (!schema) throw new Error("Canonical schema plan contains no schema definition");
+  for (let index = 0; index < plan.transactions.length; index += 1) {
+    const transaction = plan.transactions[index];
+    const kind = expectedKinds[index];
+    if (
+      transaction.index !== index + 1 ||
+      transaction.kind !== kind ||
+      getAddress(transaction.from) !== getAddress(expected.sender) ||
+      transaction.nonce !== plan.expectedNonce + index ||
+      BigInt(transaction.value) !== 0n ||
+      !/^0x[0-9a-f]*$/iu.test(transaction.data) ||
+      transaction.resumableState !== SCHEMA_RESUMABLE_STATE
+    ) {
+      throw new Error(`Schema transaction ${index + 1} differs from the canonical sequence`);
+    }
+    if (kind === "CREATE2_IMPLEMENTATION" || kind === "CREATE2_PROXY") {
+      const implementation = kind === "CREATE2_IMPLEMENTATION";
+      const salt = implementation ? expected.create2.implementationSalt : expected.create2.proxySalt;
+      const address = implementation ? expected.testimonyResolverImpl : expected.testimonyResolver;
+      const creationCodeHash = implementation
+        ? expected.create2.implementationCreationCodeHash
+        : expected.create2.proxyCreationCodeHash;
+      if (
+        getAddress(transaction.to) !== getAddress(expected.create2.factory) ||
+        transaction.expectedAddress === undefined ||
+        getAddress(transaction.expectedAddress) !== getAddress(address) ||
+        `0x${transaction.data.slice(2, 66)}`.toLowerCase() !== salt.toLowerCase() ||
+        keccak256(`0x${transaction.data.slice(66)}`).toLowerCase() !== creationCodeHash.toLowerCase() ||
+        transaction.expectedUID !== undefined
+      ) {
+        throw new Error(`Schema transaction ${index + 1} changes the frozen CREATE2 identity`);
+      }
+    } else if (kind === "REGISTER_SCHEMA") {
+      const calldata = schemaRegistryInterface.encodeFunctionData("register", [
+        schema.schema,
+        schema.resolver,
+        schema.revocable,
+      ]);
+      if (
+        getAddress(transaction.to) !== getAddress(expected.schemaRegistry) ||
+        transaction.data.toLowerCase() !== calldata.toLowerCase() ||
+        transaction.expectedUID?.toLowerCase() !== schema.uid.toLowerCase() ||
+        transaction.expectedAddress !== undefined
+      ) {
+        throw new Error(`Schema transaction ${index + 1} changes the canonical registration`);
+      }
+    } else if (kind === "PIN_UID") {
+      const calldata = testimonyInterface.encodeFunctionData("setSchemaUID", [expected.pinnedCommunityTestimonyUID]);
+      if (
+        getAddress(transaction.to) !== getAddress(expected.testimonyResolver) ||
+        transaction.data.toLowerCase() !== calldata.toLowerCase() ||
+        transaction.expectedUID?.toLowerCase() !== expected.pinnedCommunityTestimonyUID.toLowerCase() ||
+        transaction.expectedAddress !== undefined
+      ) {
+        throw new Error(`Schema transaction ${index + 1} changes the canonical UID pin`);
+      }
+    } else {
+      if (!expected.commitmentPoolingModule) throw new Error("Finalization has no CommitmentPoolingModule");
+      const calldata = testimonyInterface.encodeFunctionData("setCommitmentModule", [expected.commitmentPoolingModule]);
+      if (
+        getAddress(transaction.to) !== getAddress(expected.testimonyResolver) ||
+        transaction.data.toLowerCase() !== calldata.toLowerCase() ||
+        transaction.expectedUID !== undefined ||
+        transaction.expectedAddress !== undefined
+      ) {
+        throw new Error(`Schema transaction ${index + 1} changes the canonical resolver activation`);
+      }
+    }
+  }
+}
+
+export function deriveFrozenSchemaPlanInputs(args: {
+  manifest: ReturnType<typeof loadReleaseManifest>;
+  lock: ReturnType<typeof buildReleaseLock>;
+  mode: "preparation" | "finalization";
+  network: string;
+  chainId: number;
+  sender: string;
+  schemaRegistry: string;
+  deployment: Record<string, unknown>;
+}): FrozenSchemaPlanInputs {
+  const definitions = loadCommitmentSchemas().filter((definition) =>
+    args.mode === "finalization" ? definition.key === "communityTestimony" : definition.key === "assessmentV3",
+  );
+  const schemas = definitions.map((definition) => {
+    const resolverValue = args.deployment[RESOLVER_KEYS[definition.key]];
+    if (typeof resolverValue !== "string" || !isAddress(resolverValue) || getAddress(resolverValue) === ZeroAddress) {
+      throw new Error(`Shipped deployment artifact is missing ${RESOLVER_KEYS[definition.key]}`);
+    }
+    const resolver = getAddress(resolverValue);
+    const schema = schemaString(definition.fields);
+    return {
+      key: definition.key,
+      uid: computeSchemaUID(schema, resolver, definition.revocable),
+      schema,
+      resolver,
+      revocable: definition.revocable,
+      name: definition.name,
+      description: definition.description,
+    };
+  });
+  const communityDefinition = loadCommitmentSchemas().find((definition) => definition.key === "communityTestimony");
+  if (!communityDefinition) throw new Error("Community Testimony schema definition is missing");
+  const preparation = args.manifest.schemaPreparation;
+  const commitmentPoolingModule =
+    typeof args.deployment.commitmentPoolingModule === "string" && isAddress(args.deployment.commitmentPoolingModule)
+      ? getAddress(args.deployment.commitmentPoolingModule)
+      : null;
+  if (args.mode === "finalization" && !commitmentPoolingModule) {
+    throw new Error("Finalization requires the shipped CommitmentPoolingModule artifact");
+  }
+  return {
+    releaseId: args.manifest.releaseId,
+    manifestHash: args.lock.manifestHash,
+    sourceCommit: args.lock.sourceCommit,
+    mode: args.mode,
+    network: args.network,
+    chainId: args.chainId,
+    sender: getAddress(args.sender),
+    schemaRegistry: getAddress(args.schemaRegistry),
+    testimonyResolver: getAddress(preparation.expected.proxy),
+    testimonyResolverImpl: getAddress(preparation.expected.implementation),
+    commitmentPoolingModule,
+    pinnedCommunityTestimonyUID: computeSchemaUID(
+      schemaString(communityDefinition.fields),
+      preparation.expected.proxy,
+      communityDefinition.revocable,
+    ),
+    create2: {
+      factory: getAddress(preparation.create2.factory),
+      implementationSalt: preparation.create2.implementationSalt,
+      proxySalt: preparation.create2.proxySalt,
+      implementationCreationCodeHash: preparation.expected.implementationCreationCodeHash,
+      proxyCreationCodeHash: preparation.expected.proxyCreationCodeHash,
+    },
+    schemas,
+  };
 }
 
 /**
@@ -168,7 +442,7 @@ export class CommitmentSchemasDeployer {
     const deployment = this.deploymentAddresses.loadForChain(options.network) as Record<string, unknown>;
     const schemaRegistry = this.resolveSchemaRegistry(options.network, deployment);
     if (options.broadcast) {
-      await this.executeTransactionBoundary(options, Number(chainId));
+      await this.executeTransactionBoundary(options, Number(chainId), deployment, schemaRegistry);
       return;
     }
     // The two modes own different registrations. Preparation registers AssessmentV3 and only PINS
@@ -519,8 +793,7 @@ export class CommitmentSchemasDeployer {
         kind,
         expectedAddress,
         expectedUID,
-        resumableState:
-          "The exact on-chain postcondition is satisfied or absent; a conflicting record, owner, module, salt, or code identity fails closed.",
+        resumableState: SCHEMA_RESUMABLE_STATE,
       };
     });
     if (transactions.length === 0) {
@@ -554,8 +827,7 @@ export class CommitmentSchemasDeployer {
       pinnedCommunityTestimonyUID,
       schemas: schemaEntries,
       transactions,
-      transactionBoundaryRule:
-        "Execute and verify exactly one nonce-pinned transaction; do not continue until its receipt and live post-state are checkpointed.",
+      transactionBoundaryRule: SCHEMA_TRANSACTION_BOUNDARY_RULE,
       canonicalArtifactMutation: false,
     };
     const planPath = path.join(GENERATED_SCHEMA_ROOT, mode, `${chainId}-${mode}-transaction-plan.json`);
@@ -565,7 +837,12 @@ export class CommitmentSchemasDeployer {
     console.log("Canonical deployment artifact was not mutated");
   }
 
-  private async executeTransactionBoundary(options: ParsedOptions, chainId: number): Promise<void> {
+  private async executeTransactionBoundary(
+    options: ParsedOptions,
+    chainId: number,
+    deployment: Record<string, unknown>,
+    schemaRegistry: string,
+  ): Promise<void> {
     if (
       !options.artifactPath ||
       options.releaseStep === undefined ||
@@ -584,17 +861,20 @@ export class CommitmentSchemasDeployer {
     const plan = JSON.parse(fs.readFileSync(planPath, "utf8")) as PersistedSchemaPlan;
     const manifest = loadReleaseManifest();
     const lock = buildReleaseLock(manifest);
-    if (
-      plan.schemaVersion !== 1 ||
-      plan.releaseId !== manifest.releaseId ||
-      plan.manifestHash !== lock.manifestHash ||
-      plan.network !== options.network ||
-      plan.chainId !== chainId ||
-      plan.mode !== (options.finalizeCommunityTestimony ? "finalization" : "preparation") ||
-      getAddress(plan.sender) !== getAddress(options.sender)
-    ) {
-      throw new Error("Schema plan does not match the frozen release, mode, chain, or sender");
-    }
+    const mode = options.finalizeCommunityTestimony ? "finalization" : "preparation";
+    validateReviewedSchemaPlan(
+      plan,
+      deriveFrozenSchemaPlanInputs({
+        manifest,
+        lock,
+        mode,
+        network: options.network,
+        chainId,
+        sender: options.sender,
+        schemaRegistry,
+        deployment,
+      }),
+    );
     const boundary = plan.transactions[options.releaseStep - 1];
     if (!boundary || boundary.index !== options.releaseStep) {
       throw new Error(`Schema plan has no boundary ${options.releaseStep}`);
@@ -608,9 +888,7 @@ export class CommitmentSchemasDeployer {
       ? (JSON.parse(fs.readFileSync(checkpointPath, "utf8")) as SchemaCheckpoint)
       : { schemaVersion: 1, planHash, completed: [] };
     if (checkpoint.planHash !== planHash) throw new Error("Schema checkpoint belongs to a different reviewed plan");
-    if (options.releaseStep > 1 && !checkpoint.completed.some((entry) => entry.step === options.releaseStep! - 1)) {
-      throw new Error(`Schema boundary ${options.releaseStep - 1} has no verified checkpoint`);
-    }
+    validateSchemaCheckpointPrefix(checkpoint, plan, options.releaseStep);
 
     const rpcUrl = this.networkManager.getRpcUrl(options.network);
     const provider = new JsonRpcProvider(rpcUrl, chainId, { staticNetwork: true });
@@ -652,15 +930,7 @@ export class CommitmentSchemasDeployer {
     const receipt = await provider.getTransactionReceipt(transactionHash);
     if (!transaction || !receipt || receipt.status !== 1)
       throw new Error(`Schema receipt ${transactionHash} is unavailable or failed`);
-    if (
-      getAddress(transaction.from) !== getAddress(plan.sender) ||
-      !transaction.to ||
-      getAddress(transaction.to) !== getAddress(boundary.to) ||
-      transaction.data.toLowerCase() !== boundary.data.toLowerCase() ||
-      transaction.nonce !== boundary.nonce
-    ) {
-      throw new Error(`Schema receipt ${transactionHash} differs from the reviewed boundary`);
-    }
+    validateSchemaReceiptTransaction(transaction, plan, boundary, transactionHash);
     await this.verifySchemaBoundary(provider, plan, boundary);
     if (!prior) {
       checkpoint.completed.push({

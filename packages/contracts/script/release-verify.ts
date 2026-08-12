@@ -279,7 +279,7 @@ async function verifySettlement(
     check(
       checks,
       "CeloExecutor.sourcePeer.module",
-      buildReleaseLock().identities.find((item) => item.name === "SettlementModule" && item.kind === "proxy")?.address,
+      releaseProxy(lock, "SettlementModule"),
       peer.sourceSettlementModule,
       true,
     );
@@ -307,10 +307,21 @@ function deploymentFor(chainId: string): Record<string, unknown> {
   ) as Record<string, unknown>;
 }
 
-function releaseProxy(lock: ReturnType<typeof buildReleaseLock>, name: string): string {
+export function releaseProxy(lock: ReturnType<typeof buildReleaseLock>, name: string): string {
   const address = lock.identities.find((item) => item.kind === "proxy" && item.name === name)?.address;
   if (!address) throw new Error(`Missing release proxy ${name}`);
   return address;
+}
+
+export function implementationForProxy(
+  lock: ReturnType<typeof buildReleaseLock>,
+  proxy: ReleaseIdentity,
+): ReleaseIdentity {
+  const implementation = lock.identities.find(
+    (item) => item.kind === "implementation" && item.network === proxy.network && item.name === proxy.name,
+  );
+  if (!implementation) throw new Error(`Missing implementation for ${proxy.name}`);
+  return implementation;
 }
 
 async function verifyCreditBinding(
@@ -528,8 +539,7 @@ async function main() {
     }
     for (const identity of identities) await verifyCode(provider, identity, artifact, checks);
     for (const proxy of identities.filter((item) => item.kind === "proxy")) {
-      const implementation = identities.find((item) => item.kind === "implementation" && item.name === proxy.name);
-      if (!implementation) throw new Error(`Missing implementation for ${proxy.name}`);
+      const implementation = implementationForProxy(lock, proxy);
       await verifyProxy(provider, proxy, implementation, expectedOwner, checks);
       if (proxy.name === "CommitmentRegistry") {
         const registry = new Contract(proxy.address, ["function module() view returns (address)"], provider);
@@ -573,7 +583,9 @@ async function main() {
   console.log(`\nAll ${checks.length} release verification checks passed.`);
 }
 
-main().catch((error) => {
-  console.error(error instanceof Error ? error.message : String(error));
-  process.exit(1);
-});
+if (import.meta.main) {
+  main().catch((error) => {
+    console.error(error instanceof Error ? error.message : String(error));
+    process.exit(1);
+  });
+}

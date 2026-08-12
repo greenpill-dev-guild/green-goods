@@ -4,7 +4,7 @@ import { execFileSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import * as dotenv from "dotenv";
-import { Interface, getAddress, keccak256, toUtf8Bytes, ZeroAddress } from "ethers";
+import { getCreateAddress, Interface, getAddress, keccak256, toUtf8Bytes, ZeroAddress } from "ethers";
 import { NetworkManager } from "./utils/network";
 import { CONTRACTS_ROOT, getFoundryBroadcastPath } from "./utils/paths";
 import {
@@ -14,12 +14,17 @@ import {
 } from "./utils/pooling-release";
 import { assertSepoliaGate } from "./utils/release-gate";
 import { writeReleaseJsonAtomic } from "./utils/release-artifacts";
-import { buildReleaseLock, loadReleaseManifest } from "./utils/release-manifest";
+import {
+  buildReleaseLock,
+  loadReleaseManifest,
+  type ReleaseLock,
+  type ReleaseManifest,
+} from "./utils/release-manifest";
 
 // Load environment variables from root .env
 dotenv.config({ path: path.join(__dirname, "../../../", ".env") });
 
-type ContractName =
+export type ContractName =
   | "action-registry"
   | "garden-token"
   | "yield-resolver"
@@ -136,8 +141,10 @@ interface ForgeBroadcastArtifact {
   libraries?: string[];
 }
 
-interface PersistedUpgradeTransaction {
+export interface PersistedUpgradeTransaction {
   index: number;
+  transactionType?: string | null;
+  contractName?: string | null;
   from: string | null;
   to: string | null;
   nonce: string | null;
@@ -147,20 +154,27 @@ interface PersistedUpgradeTransaction {
   function: string | null;
 }
 
-interface PersistedUpgradePlan {
+export interface PersistedUpgradePlan {
+  generatedAt?: string;
   network: string;
   chainId: number;
   contract: ContractName;
+  functionSignature?: string;
   sender: string;
   expectedNonce: number;
   releaseManifestHash?: string;
+  releaseSourceCommit?: string;
+  transactionCount?: number;
   transactions: PersistedUpgradeTransaction[];
   upgrades: Array<{
     deploymentKey: string;
     proxy: string;
     ownerAtPlan: string;
     previousImplementation: string;
+    previousImplementationCodeHash?: string;
     newImplementation: string;
+    newImplementationCreationCodeHash?: string;
+    deployTransactionIndex?: number;
     upgradeTransactionIndex: number;
   }>;
   wiring: Array<{
@@ -175,9 +189,10 @@ interface PersistedUpgradePlan {
     transactionIndex: number;
     resumableState: string;
   };
+  transactionBoundaryRule?: string;
 }
 
-interface UpgradeCheckpoint {
+export interface UpgradeCheckpoint {
   schemaVersion: 1;
   planHash: string;
   completed: Array<{
@@ -187,6 +202,9 @@ interface UpgradeCheckpoint {
     verifiedAt: string;
   }>;
 }
+
+export const UPGRADE_TRANSACTION_BOUNDARY_RULE =
+  "Verify the receipt and post-state for one transaction before authorizing the next.";
 
 export interface UpgradePreState {
   contractName: ContractName;
@@ -762,7 +780,7 @@ function persistTxPlan(options: UpgradeOptions, chainId: number, preState: Upgra
     upgrades,
     wiring,
     assessmentSchemaPin,
-    transactionBoundaryRule: "Verify the receipt and post-state for one transaction before authorizing the next.",
+    transactionBoundaryRule: UPGRADE_TRANSACTION_BOUNDARY_RULE,
   };
 
   const runDate = new Date().toISOString().slice(0, 10);
@@ -799,6 +817,223 @@ function parsePlannedValue(value: string | null): bigint {
     throw new Error(`Invalid planned transaction value: ${String(value)}`);
   }
   return BigInt(value);
+}
+
+function sameAddress(actual: unknown, expected: string, label: string): void {
+  if (!isAddress(actual) || getAddress(actual) !== getAddress(expected)) {
+    throw new Error(`${label} differs from the frozen release`);
+  }
+}
+
+function assertCanonicalUpgradeTransaction(
+  transaction: PersistedUpgradeTransaction | undefined,
+  plan: PersistedUpgradePlan,
+  expectedIndex: number,
+): PersistedUpgradeTransaction {
+  if (!transaction || transaction.index !== expectedIndex) {
+    throw new Error(`Upgrade transaction ${expectedIndex + 1} is missing or out of order`);
+  }
+  sameAddress(transaction.from, plan.sender, `Upgrade transaction ${expectedIndex + 1} sender`);
+  if (parsePlannedNonce(transaction.nonce) !== plan.expectedNonce + expectedIndex) {
+    throw new Error(`Upgrade transaction ${expectedIndex + 1} nonce is not contiguous`);
+  }
+  if (parsePlannedValue(transaction.value) !== 0n) {
+    throw new Error(`Upgrade transaction ${expectedIndex + 1} may not move value`);
+  }
+  if (typeof transaction.data !== "string" || !/^0x[0-9a-f]*$/iu.test(transaction.data)) {
+    throw new Error(`Upgrade transaction ${expectedIndex + 1} has invalid calldata`);
+  }
+  return transaction;
+}
+
+export function validateReleaseOwnedUpgradePlan(
+  plan: PersistedUpgradePlan,
+  manifest: ReleaseManifest,
+  lock: ReleaseLock,
+  deployment: Record<string, unknown>,
+): void {
+  const expectedNames: Record<string, readonly string[]> = {
+    "assessment-resolver": ["AssessmentResolver"],
+    "garden-token": ["GardenToken"],
+    "work-approval-resolver": ["WorkApprovalResolver"],
+    "commitment-pooling": ["GardenToken", "WorkApprovalResolver"],
+  };
+  const names = expectedNames[plan.contract];
+  if (!names) throw new Error(`No frozen release-owned plan validator exists for ${plan.contract}`);
+  if (
+    plan.network !== "arbitrum" ||
+    plan.chainId !== Number(manifest.chains.arbitrum.evmChainId) ||
+    plan.releaseManifestHash !== lock.manifestHash ||
+    plan.releaseSourceCommit !== lock.sourceCommit ||
+    plan.functionSignature !== CONTRACT_FUNCTIONS[plan.contract] ||
+    plan.transactionBoundaryRule !== UPGRADE_TRANSACTION_BOUNDARY_RULE ||
+    !Number.isSafeInteger(plan.expectedNonce) ||
+    plan.expectedNonce < 0
+  ) {
+    throw new Error("Upgrade plan header differs from the freshly derived frozen release");
+  }
+  sameAddress(plan.sender, manifest.ownership.deploymentSender, "Upgrade plan sender");
+  if (plan.transactionCount !== plan.transactions.length) {
+    throw new Error("Upgrade plan transaction count differs from its transaction sequence");
+  }
+
+  const manifestUpgrades = new Map(manifest.existingProxyUpgrades.map((upgrade) => [upgrade.name, upgrade]));
+  const deploymentKeys: Record<string, string> = {
+    AssessmentResolver: "assessmentResolver",
+    GardenToken: "gardenToken",
+    WorkApprovalResolver: "workApprovalResolver",
+  };
+  if (plan.upgrades.length !== names.length) {
+    throw new Error("Upgrade plan changes the frozen release-owned proxy set");
+  }
+  const usedTransactions = new Set<number>();
+
+  for (const [ordinal, name] of names.entries()) {
+    const expected = manifestUpgrades.get(name);
+    if (!expected) throw new Error(`Frozen release has no existing-proxy entry for ${name}`);
+    const deploymentKey = deploymentKeys[name];
+    sameAddress(deployment[deploymentKey], expected.proxy, `${name} deployment proxy`);
+    const upgrade = plan.upgrades.find((candidate) => candidate.deploymentKey === deploymentKey);
+    if (!upgrade) throw new Error(`Upgrade plan omits ${name}`);
+    sameAddress(upgrade.proxy, expected.proxy, `${name} plan proxy`);
+    sameAddress(upgrade.ownerAtPlan, expected.currentOwner, `${name} plan owner`);
+    sameAddress(upgrade.previousImplementation, expected.currentImplementation, `${name} prior implementation`);
+    if (
+      upgrade.previousImplementationCodeHash !== expected.currentImplementationCodeHash ||
+      upgrade.newImplementationCreationCodeHash !== expected.expectedImplementationCreationCodeHash
+    ) {
+      throw new Error(`${name} implementation hashes differ from the frozen release`);
+    }
+
+    const deployIndex = ordinal * 2;
+    const upgradeIndex = deployIndex + 1;
+    if (upgrade.deployTransactionIndex !== deployIndex || upgrade.upgradeTransactionIndex !== upgradeIndex) {
+      throw new Error(`${name} deployment and upgrade boundaries are out of order`);
+    }
+    const deployTransaction = assertCanonicalUpgradeTransaction(plan.transactions[deployIndex], plan, deployIndex);
+    if (deployTransaction.to !== null || deployTransaction.transactionType !== "CREATE") {
+      throw new Error(`${name} implementation boundary is not the reviewed CREATE transaction`);
+    }
+    if (deployTransaction.contractName !== name) {
+      throw new Error(`${name} implementation boundary changes the reviewed contract artifact`);
+    }
+    if (keccak256(deployTransaction.data as `0x${string}`) !== expected.expectedImplementationCreationCodeHash) {
+      throw new Error(`${name} implementation creation code differs from the frozen release`);
+    }
+    const predictedImplementation = getCreateAddress({
+      from: plan.sender,
+      nonce: plan.expectedNonce + deployIndex,
+    });
+    sameAddress(deployTransaction.contractAddress, predictedImplementation, `${name} predicted implementation`);
+    sameAddress(upgrade.newImplementation, predictedImplementation, `${name} upgrade implementation`);
+
+    const upgradeTransaction = assertCanonicalUpgradeTransaction(plan.transactions[upgradeIndex], plan, upgradeIndex);
+    sameAddress(upgradeTransaction.to, expected.proxy, `${name} upgrade target`);
+    if (
+      upgradeTransaction.data!.toLowerCase() !==
+      upgradeInterface.encodeFunctionData("upgradeTo", [predictedImplementation]).toLowerCase()
+    ) {
+      throw new Error(`${name} upgrade calldata differs from the freshly derived boundary`);
+    }
+    usedTransactions.add(deployIndex);
+    usedTransactions.add(upgradeIndex);
+  }
+
+  if (plan.contract === "commitment-pooling") {
+    const frozenModule = lock.identities.find(
+      (identity) => identity.kind === "proxy" && identity.name === "CommitmentPoolingModule",
+    )?.address;
+    if (!frozenModule) throw new Error("Frozen release has no CommitmentPoolingModule proxy");
+    const expectedWiring = [
+      { deploymentKey: "gardenToken", functionName: "setCommitmentPoolingModule", index: names.length * 2 },
+      { deploymentKey: "workApprovalResolver", functionName: "setCommitmentModule", index: names.length * 2 + 1 },
+    ];
+    if (plan.wiring.length !== expectedWiring.length) {
+      throw new Error("Commitment Pooling upgrade changes the frozen wiring set");
+    }
+    for (const expected of expectedWiring) {
+      const wiring = plan.wiring.find((candidate) => candidate.function === `${expected.functionName}(address)`);
+      if (!wiring || wiring.transactionIndex !== expected.index) {
+        throw new Error(`Upgrade plan omits the ${expected.functionName} boundary`);
+      }
+      sameAddress(wiring.proxy, deployment[expected.deploymentKey] as string, `${expected.functionName} target`);
+      sameAddress(wiring.module, frozenModule, `${expected.functionName} module`);
+      const transaction = assertCanonicalUpgradeTransaction(plan.transactions[expected.index], plan, expected.index);
+      sameAddress(transaction.to, wiring.proxy, `${expected.functionName} transaction target`);
+      if (
+        transaction.data!.toLowerCase() !==
+        poolingIntegrationInterface.encodeFunctionData(expected.functionName, [frozenModule]).toLowerCase()
+      ) {
+        throw new Error(`${expected.functionName} calldata differs from the freshly derived boundary`);
+      }
+      usedTransactions.add(expected.index);
+    }
+  } else if (plan.wiring.length !== 0) {
+    throw new Error("Upgrade plan adds wiring outside the frozen Commitment Pooling upgrade");
+  }
+
+  if (plan.contract === "assessment-resolver") {
+    const schemas = deployment.schemas as Record<string, unknown> | undefined;
+    const expectedUid = schemas?.assessmentSchemaUID;
+    if (typeof expectedUid !== "string" || !/^0x[0-9a-f]{64}$/iu.test(expectedUid)) {
+      throw new Error("Canonical deployment has no exact Assessment v2 schema UID");
+    }
+    const pinIndex = names.length * 2;
+    const pin = plan.assessmentSchemaPin;
+    if (
+      !pin ||
+      pin.transactionIndex !== pinIndex ||
+      pin.expectedSchemaUID.toLowerCase() !== expectedUid.toLowerCase()
+    ) {
+      throw new Error("Assessment upgrade omits the frozen schema-pin boundary");
+    }
+    sameAddress(pin.proxy, deployment.assessmentResolver as string, "Assessment schema-pin proxy");
+    const transaction = assertCanonicalUpgradeTransaction(plan.transactions[pinIndex], plan, pinIndex);
+    sameAddress(transaction.to, pin.proxy, "Assessment schema-pin target");
+    if (
+      transaction.data!.toLowerCase() !==
+      assessmentSchemaInterface.encodeFunctionData("setSchemaUID", [expectedUid]).toLowerCase()
+    ) {
+      throw new Error("Assessment schema-pin calldata differs from the canonical deployment UID");
+    }
+    usedTransactions.add(pinIndex);
+  } else if (plan.assessmentSchemaPin) {
+    throw new Error("Upgrade plan adds an Assessment schema pin to another target");
+  }
+
+  if (usedTransactions.size !== plan.transactions.length) {
+    throw new Error("Upgrade plan contains an unreviewed or missing transaction boundary");
+  }
+}
+
+export function validateUpgradeCheckpointPrefix(
+  checkpoint: UpgradeCheckpoint,
+  plan: PersistedUpgradePlan,
+  requestedStep: number,
+): void {
+  if (checkpoint.schemaVersion !== 1) throw new Error("Upgrade checkpoint schema is unsupported");
+  if (requestedStep < 1 || requestedStep > plan.transactions.length) {
+    throw new Error(`Upgrade plan has no boundary ${requestedStep}`);
+  }
+  const steps = checkpoint.completed.map((entry) => entry.step);
+  if (new Set(steps).size !== steps.length) throw new Error("Upgrade checkpoint contains duplicate boundaries");
+  const alreadyVerified = steps.includes(requestedStep);
+  const requiredLength = alreadyVerified ? requestedStep : requestedStep - 1;
+  if (steps.length !== requiredLength) {
+    throw new Error(`Upgrade boundary ${requestedStep} is not the next boundary in the verified prefix`);
+  }
+  for (let index = 0; index < checkpoint.completed.length; index += 1) {
+    const evidence = checkpoint.completed[index];
+    if (evidence.step !== index + 1 || !/^0x[0-9a-f]{64}$/iu.test(evidence.transactionHash)) {
+      throw new Error("Upgrade checkpoint is not one contiguous receipt-backed prefix");
+    }
+    if (!/^(?:0x[0-9a-f]+|[1-9][0-9]*)$/iu.test(evidence.blockNumber)) {
+      throw new Error(`Upgrade checkpoint boundary ${evidence.step} has no valid block number`);
+    }
+    if (Number.isNaN(Date.parse(evidence.verifiedAt))) {
+      throw new Error(`Upgrade checkpoint boundary ${evidence.step} has no valid verification time`);
+    }
+  }
 }
 
 function runCastJson(args: string[], rpcUrl: string): Record<string, unknown> {
@@ -1014,8 +1249,12 @@ function executeUpgradeBoundary(
   ) {
     throw new Error("Upgrade plan does not match the exact contract, network, chain, or sender");
   }
-  const lock = buildReleaseLock(loadReleaseManifest());
-  if (plan.releaseManifestHash !== lock.manifestHash) throw new Error("Upgrade plan release-manifest hash is stale");
+  const manifest = loadReleaseManifest();
+  const lock = buildReleaseLock(manifest);
+  const deployment = JSON.parse(
+    fs.readFileSync(resolveDeploymentArtifactPath(`${chainId}-latest.json`), "utf8"),
+  ) as Record<string, unknown>;
+  validateReleaseOwnedUpgradePlan(plan, manifest, lock, deployment);
   const transaction = plan.transactions[options.releaseStep - 1];
   if (!transaction || transaction.index !== options.releaseStep - 1) {
     throw new Error(`Upgrade plan has no boundary ${options.releaseStep}`);
@@ -1030,10 +1269,7 @@ function executeUpgradeBoundary(
     ? (JSON.parse(fs.readFileSync(checkpointPath, "utf8")) as UpgradeCheckpoint)
     : { schemaVersion: 1 as const, planHash, completed: [] };
   if (checkpoint.planHash !== planHash) throw new Error("Upgrade checkpoint belongs to a different transaction plan");
-  const previousSteps = new Set(checkpoint.completed.map((entry) => entry.step));
-  if (options.releaseStep > 1 && !previousSteps.has(options.releaseStep - 1)) {
-    throw new Error(`Boundary ${options.releaseStep - 1} has no verified receipt checkpoint`);
-  }
+  validateUpgradeCheckpointPrefix(checkpoint, plan, options.releaseStep);
   const replay = checkpoint.completed.find((entry) => entry.step === options.releaseStep);
   if (replay) {
     assertReceiptAndTransaction(plan, transaction, replay.transactionHash, rpcUrl);

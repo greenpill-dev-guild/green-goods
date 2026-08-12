@@ -737,7 +737,10 @@ async function buildPlan(options: BackfillOptions): Promise<{ plan: PoolBackfill
   return { plan, outputPath };
 }
 
-function parseSafeExecution(transaction: TransactionResponse, expected: BackfillTransaction, safe: string) {
+export function parseSafeExecution(transaction: TransactionResponse, expected: BackfillTransaction, safe: string) {
+  if (transaction.value !== 0n) {
+    throw new Error("Backfill receipt transaction may not attach native value to the protocol Safe");
+  }
   if (!transaction.to || getAddress(transaction.to) !== getAddress(safe)) {
     throw new Error("Receipt transaction does not target the frozen protocol Safe");
   }

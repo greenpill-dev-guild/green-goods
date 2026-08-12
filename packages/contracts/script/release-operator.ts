@@ -243,12 +243,15 @@ async function readHiddenPassword(): Promise<string> {
   });
 }
 
-function assertPinnedCheckout(candidateCommit: string): void {
-  const head = execFileSync("git", ["rev-parse", "HEAD"], { cwd: REPOSITORY_ROOT, encoding: "utf8" }).trim();
+export function assertPinnedCheckout(candidateCommit: string, repositoryRoot = REPOSITORY_ROOT): void {
+  const head = execFileSync("git", ["rev-parse", "HEAD"], { cwd: repositoryRoot, encoding: "utf8" }).trim();
   if (head !== candidateCommit)
     throw new Error(`Candidate mismatch: requested ${candidateCommit}, checkout is ${head}`);
-  const status = execFileSync("git", ["status", "--porcelain"], { cwd: REPOSITORY_ROOT, encoding: "utf8" });
-  if (status.trim()) throw new Error("Release operator session requires a clean checkout before the first boundary");
+  const status = execFileSync("git", ["status", "--porcelain", "--untracked-files=all"], {
+    cwd: repositoryRoot,
+    encoding: "utf8",
+  });
+  if (status.trim()) throw new Error("Release operator session requires the exact candidate checkout to stay clean");
 }
 
 function verifyDeployerPassword(passwordFile: string): string {
@@ -299,6 +302,7 @@ async function runSession(candidateCommit: string): Promise<void> {
         }
         const command = assertAllowedOperatorCommand(tokenizeOperatorCommand(line));
         console.log(`Running Bun wrapper: ${command.script} ${command.args.join(" ")}`.trim());
+        assertPinnedCheckout(candidateCommit);
         const result = spawnSync("bun", ["run", command.script, ...command.args], {
           cwd: CONTRACTS_ROOT,
           stdio: "inherit",

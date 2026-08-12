@@ -1,9 +1,20 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
+import { Interface, keccak256 } from "ethers";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { ParsedOptions } from "../utils/cli-parser";
 import type { SchemaRegistrationPlan } from "../utils/pooling-release";
-import { CommitmentSchemasDeployer } from "./commitment-schemas";
+import {
+  CommitmentSchemasDeployer,
+  SCHEMA_RESUMABLE_STATE,
+  SCHEMA_TRANSACTION_BOUNDARY_RULE,
+  type FrozenSchemaPlanInputs,
+  type PersistedSchemaPlan,
+  type SchemaCheckpoint,
+  validateReviewedSchemaPlan,
+  validateSchemaCheckpointPrefix,
+  validateSchemaReceiptTransaction,
+} from "./commitment-schemas";
 
 /**
  * The append-only merge and its two side files.
@@ -169,5 +180,175 @@ describe("CommitmentSchemasDeployer artifact merge", () => {
         transactionPlan: false,
       } as ParsedOptions),
     ).rejects.toThrow(/requires --artifact <reviewed-plan>, --step, --expected-nonce, and --sender/);
+  });
+});
+
+describe("CommitmentSchemasDeployer reviewed boundary evidence", () => {
+  const SENDER = `0x${"10".repeat(20)}`;
+  const REGISTRY = `0x${"20".repeat(20)}`;
+  const FACTORY = `0x${"30".repeat(20)}`;
+  const RESOLVER = `0x${"40".repeat(20)}`;
+  const RESOLVER_IMPL = `0x${"50".repeat(20)}`;
+  const ASSESSMENT_RESOLVER = `0x${"60".repeat(20)}`;
+  const IMPLEMENTATION_SALT = `0x${"70".repeat(32)}`;
+  const PROXY_SALT = `0x${"80".repeat(32)}`;
+  const IMPLEMENTATION_INIT_CODE = "0x60006000";
+  const PROXY_INIT_CODE = "0x60016001";
+  const ASSESSMENT_UID = `0x${"11".repeat(32)}`;
+  const TESTIMONY_UID = `0x${"22".repeat(32)}`;
+  const schemaInterface = new Interface(["function register(string schema,address resolver,bool revocable)"]);
+  const testimonyInterface = new Interface(["function setSchemaUID(bytes32 uid)"]);
+
+  function fixture(): { plan: PersistedSchemaPlan; expected: FrozenSchemaPlanInputs } {
+    const schemas = [
+      {
+        key: "assessmentV3",
+        uid: ASSESSMENT_UID,
+        schema: "uint256 commitmentId",
+        resolver: ASSESSMENT_RESOLVER,
+        revocable: false,
+        name: "Assessment v3",
+        description: "canonical fixture",
+      },
+    ];
+    const expected: FrozenSchemaPlanInputs = {
+      releaseId: "review-fixture",
+      manifestHash: `0x${"aa".repeat(32)}`,
+      sourceCommit: "b".repeat(40),
+      mode: "preparation",
+      network: "arbitrum",
+      chainId: 42161,
+      sender: SENDER,
+      schemaRegistry: REGISTRY,
+      testimonyResolver: RESOLVER,
+      testimonyResolverImpl: RESOLVER_IMPL,
+      commitmentPoolingModule: null,
+      pinnedCommunityTestimonyUID: TESTIMONY_UID,
+      create2: {
+        factory: FACTORY,
+        implementationSalt: IMPLEMENTATION_SALT,
+        proxySalt: PROXY_SALT,
+        implementationCreationCodeHash: keccak256(IMPLEMENTATION_INIT_CODE),
+        proxyCreationCodeHash: keccak256(PROXY_INIT_CODE),
+      },
+      schemas,
+    };
+    const plan: PersistedSchemaPlan = {
+      schemaVersion: 1,
+      releaseId: expected.releaseId,
+      manifestHash: expected.manifestHash,
+      sourceCommit: expected.sourceCommit,
+      mode: expected.mode,
+      network: expected.network,
+      chainId: expected.chainId,
+      sender: expected.sender,
+      expectedNonce: 30,
+      schemaRegistry: expected.schemaRegistry,
+      testimonyResolver: expected.testimonyResolver,
+      testimonyResolverImpl: expected.testimonyResolverImpl,
+      commitmentPoolingModule: null,
+      pinnedCommunityTestimonyUID: TESTIMONY_UID,
+      schemas,
+      transactions: [
+        {
+          index: 1,
+          from: SENDER,
+          to: FACTORY,
+          nonce: 30,
+          data: `${IMPLEMENTATION_SALT}${IMPLEMENTATION_INIT_CODE.slice(2)}`,
+          value: "0x0",
+          kind: "CREATE2_IMPLEMENTATION",
+          expectedAddress: RESOLVER_IMPL,
+          resumableState: SCHEMA_RESUMABLE_STATE,
+        },
+        {
+          index: 2,
+          from: SENDER,
+          to: FACTORY,
+          nonce: 31,
+          data: `${PROXY_SALT}${PROXY_INIT_CODE.slice(2)}`,
+          value: "0x0",
+          kind: "CREATE2_PROXY",
+          expectedAddress: RESOLVER,
+          resumableState: SCHEMA_RESUMABLE_STATE,
+        },
+        {
+          index: 3,
+          from: SENDER,
+          to: REGISTRY,
+          nonce: 32,
+          data: schemaInterface.encodeFunctionData("register", [
+            schemas[0].schema,
+            schemas[0].resolver,
+            schemas[0].revocable,
+          ]),
+          value: "0x0",
+          kind: "REGISTER_SCHEMA",
+          expectedUID: ASSESSMENT_UID,
+          resumableState: SCHEMA_RESUMABLE_STATE,
+        },
+        {
+          index: 4,
+          from: SENDER,
+          to: RESOLVER,
+          nonce: 33,
+          data: testimonyInterface.encodeFunctionData("setSchemaUID", [TESTIMONY_UID]),
+          value: "0x0",
+          kind: "PIN_UID",
+          expectedUID: TESTIMONY_UID,
+          resumableState: SCHEMA_RESUMABLE_STATE,
+        },
+      ],
+      transactionBoundaryRule: SCHEMA_TRANSACTION_BOUNDARY_RULE,
+      canonicalArtifactMutation: false,
+    };
+    return { plan, expected };
+  }
+
+  it("re-derives every schema definition, identity, and transaction before authorization", () => {
+    const { plan, expected } = fixture();
+    expect(() => validateReviewedSchemaPlan(plan, expected)).not.toThrow();
+
+    const tampered = structuredClone(plan);
+    tampered.transactions[2].data = "0x1234";
+    expect(() => validateReviewedSchemaPlan(tampered, expected)).toThrow(/canonical registration/);
+  });
+
+  it("requires one receipt-backed contiguous checkpoint prefix", () => {
+    const { plan } = fixture();
+    const evidence = (step: number): SchemaCheckpoint["completed"][number] => ({
+      step,
+      transactionHash: `0x${String(step).padStart(64, "0")}`,
+      blockNumber: 100 + step,
+      verifiedAt: "2026-08-12T00:00:00.000Z",
+    });
+    const valid: SchemaCheckpoint = {
+      schemaVersion: 1,
+      planHash: `0x${"99".repeat(32)}`,
+      completed: [evidence(1), evidence(2)],
+    };
+    expect(() => validateSchemaCheckpointPrefix(valid, plan, 3)).not.toThrow();
+
+    const truncated = { ...valid, completed: [evidence(2)] };
+    expect(() => validateSchemaCheckpointPrefix(truncated, plan, 3)).toThrow(/contiguous verified prefix/);
+  });
+
+  it("rejects a recovery receipt carrying value outside the reviewed boundary", () => {
+    const { plan } = fixture();
+    const boundary = plan.transactions[0];
+    expect(() =>
+      validateSchemaReceiptTransaction(
+        {
+          from: plan.sender,
+          to: boundary.to,
+          data: boundary.data,
+          nonce: boundary.nonce,
+          value: 1n,
+        },
+        plan,
+        boundary,
+        `0x${"77".repeat(32)}`,
+      ),
+    ).toThrow(/differs from the reviewed boundary/);
   });
 });

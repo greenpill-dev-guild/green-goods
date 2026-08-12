@@ -19,7 +19,11 @@ import {
   type ReleaseManifest,
   type ReleaseStage,
 } from "../utils/release-manifest";
-import { buildPeerTransactionPlan, buildStageTransactionPlan } from "../utils/release-plan";
+import {
+  buildPeerTransactionPlan,
+  buildStageTransactionPlan,
+  type ReleaseTransactionBoundary,
+} from "../utils/release-plan";
 import { NetworkManager } from "../utils/network";
 import { getFoundryBroadcastPath } from "../utils/paths";
 import { assertSepoliaGate } from "../utils/release-gate";
@@ -62,7 +66,7 @@ function writeGenerated(filePath: string, value: unknown): void {
   writeReleaseJsonAtomic(filePath, value as Record<string, unknown>);
 }
 
-interface ReleaseCheckpoint {
+export interface ReleaseCheckpoint {
   schemaVersion: 1;
   releaseId: string;
   manifestHash: string;
@@ -80,7 +84,7 @@ interface ReleaseCheckpoint {
   }>;
 }
 
-interface OwnershipTransferPlan {
+export interface OwnershipTransferPlan {
   schemaVersion: 1;
   releaseId: string;
   manifestHash: string;
@@ -102,7 +106,7 @@ interface OwnershipTransferPlan {
   canonicalArtifactMutation: false;
 }
 
-interface OwnershipCheckpoint {
+export interface OwnershipCheckpoint {
   schemaVersion: 1;
   releaseId: string;
   manifestHash: string;
@@ -115,6 +119,78 @@ interface OwnershipCheckpoint {
     blockNumber: number;
     verifiedAt: string;
   }>;
+}
+
+function assertBoundaryEvidence(
+  evidence: { transactionHash: string; blockNumber: number; verifiedAt: string },
+  label: string,
+): void {
+  if (!/^0x[0-9a-f]{64}$/iu.test(evidence.transactionHash)) {
+    throw new Error(`${label} has no valid transaction hash`);
+  }
+  if (!Number.isSafeInteger(evidence.blockNumber) || evidence.blockNumber <= 0) {
+    throw new Error(`${label} has no valid block number`);
+  }
+  if (Number.isNaN(Date.parse(evidence.verifiedAt))) throw new Error(`${label} has no valid verification time`);
+}
+
+export function validateOwnershipCheckpointPrefix(
+  checkpoint: OwnershipCheckpoint,
+  plan: OwnershipTransferPlan,
+  requestedStep: number,
+): void {
+  if (requestedStep < 1 || requestedStep > plan.transactions.length) {
+    throw new Error(`Ownership plan has no boundary ${requestedStep}`);
+  }
+  const alreadyVerified = checkpoint.completed.some((entry) => entry.step === requestedStep);
+  const requiredLength = alreadyVerified ? requestedStep : requestedStep - 1;
+  if (checkpoint.completed.length !== requiredLength) {
+    throw new Error(`Ownership boundary ${requestedStep} is not the next boundary in the verified prefix`);
+  }
+  for (let index = 0; index < checkpoint.completed.length; index += 1) {
+    const evidence = checkpoint.completed[index];
+    const boundary = plan.transactions[index];
+    if (
+      evidence.step !== index + 1 ||
+      evidence.label !== boundary.label ||
+      !Number.isSafeInteger(evidence.expectedNonce) ||
+      evidence.expectedNonce < 0
+    ) {
+      throw new Error("Ownership checkpoint is not one contiguous reviewed prefix");
+    }
+    assertBoundaryEvidence(evidence, `Ownership checkpoint boundary ${evidence.step}`);
+  }
+}
+
+export function validateReleaseCheckpointPrefix(
+  checkpoint: ReleaseCheckpoint,
+  transactions: ReadonlyArray<ReleaseTransactionBoundary>,
+  requestedStep: number,
+): void {
+  if (requestedStep < 1 || requestedStep > transactions.length) {
+    throw new Error(`Release plan has no boundary ${requestedStep}`);
+  }
+  if (checkpoint.lastVerifiedStep !== checkpoint.verifiedBoundaries.length) {
+    throw new Error("Release checkpoint cursor differs from its receipt ledger");
+  }
+  const alreadyVerified = checkpoint.verifiedBoundaries.some((entry) => entry.index === requestedStep);
+  const requiredLength = alreadyVerified ? requestedStep : requestedStep - 1;
+  if (checkpoint.verifiedBoundaries.length !== requiredLength) {
+    throw new Error(`Release boundary ${requestedStep} is not the next boundary in the verified prefix`);
+  }
+  for (let index = 0; index < checkpoint.verifiedBoundaries.length; index += 1) {
+    const evidence = checkpoint.verifiedBoundaries[index];
+    const boundary = transactions[index];
+    if (
+      evidence.index !== index + 1 ||
+      evidence.label !== boundary.label ||
+      !Number.isSafeInteger(evidence.expectedNonce) ||
+      evidence.expectedNonce < 0
+    ) {
+      throw new Error("Release checkpoint is not one contiguous reviewed prefix");
+    }
+    assertBoundaryEvidence(evidence, `Release checkpoint boundary ${evidence.index}`);
+  }
 }
 
 const ownableInterface = new Interface([
@@ -407,7 +483,7 @@ Phase B boundary form (not authorized by Phase A):
           `chainId equals ${chainId}`,
           `code exists at ${target.address}`,
           `live owner equals ${manifest.ownership.deploymentSender}`,
-          "the immediately preceding boundary has a verified receipt checkpoint",
+          "every preceding boundary has a verified receipt checkpoint in one contiguous reviewed prefix",
         ],
         resumableState:
           "The target is owned by either the reviewed deployment sender or the exact protocol Safe; every other owner is a conflict.",
@@ -480,9 +556,7 @@ Phase B boundary form (not authorized by Phase A):
     ) {
       throw new Error("Ownership checkpoint does not match the frozen release and network");
     }
-    if (options.releaseStep > 1 && !checkpoint.completed.some((item) => item.step === options.releaseStep! - 1)) {
-      throw new Error(`Ownership boundary ${options.releaseStep - 1} has no verified checkpoint`);
-    }
+    validateOwnershipCheckpointPrefix(checkpoint, plan, options.releaseStep);
     const prior = checkpoint.completed.find((item) => item.step === options.releaseStep);
     let transactionHash = prior?.transactionHash ?? options.receiptHash;
     if (!transactionHash) {
@@ -524,7 +598,8 @@ Phase B boundary form (not authorized by Phase A):
       !transaction.to ||
       getAddress(transaction.to) !== getAddress(boundary.to) ||
       transaction.data.toLowerCase() !== boundary.calldata.toLowerCase() ||
-      transaction.nonce !== options.expectedNonce
+      transaction.nonce !== options.expectedNonce ||
+      transaction.value !== 0n
     ) {
       throw new Error(`Ownership receipt ${transactionHash} differs from the reviewed boundary`);
     }
@@ -613,7 +688,16 @@ Phase B boundary form (not authorized by Phase A):
       }
       if (!options.receiptHash) await this.assertLiveNonce(options, manifest, expectedNetwork);
       const checkpoint = this.readCheckpoint(checkpointPath);
-      this.assertCheckpoint(checkpoint, manifest, lock, stage, expectedNetwork, baseSalt, boundary.index);
+      this.assertCheckpoint(
+        checkpoint,
+        manifest,
+        lock,
+        stage,
+        expectedNetwork,
+        baseSalt,
+        boundary.index,
+        plan.transactions,
+      );
       if (checkpoint && checkpoint.lastVerifiedStep >= boundary.index) {
         const evidence = checkpoint.verifiedBoundaries.find((item) => item.index === boundary!.index);
         if (!evidence) throw new Error(`Boundary ${boundary.index} checkpoint has no receipt evidence`);
@@ -891,7 +975,8 @@ Phase B boundary form (not authorized by Phase A):
       getAddress(transaction.from) !== getAddress(manifest.ownership.deploymentSender) ||
       !transaction.to ||
       getAddress(transaction.to) !== getAddress(boundary.to) ||
-      transaction.nonce !== expectedNonce
+      transaction.nonce !== expectedNonce ||
+      transaction.value !== 0n
     ) {
       throw new Error(`Release receipt ${transactionHash} sender, target, or nonce differs from the reviewed boundary`);
     }
@@ -926,6 +1011,7 @@ Phase B boundary form (not authorized by Phase A):
     network: "arbitrum" | "celo",
     baseSalt: string,
     nextStep: number,
+    transactions: ReadonlyArray<ReleaseTransactionBoundary>,
   ): void {
     if (!checkpoint) {
       if (nextStep !== 1) throw new Error(`Boundary ${nextStep} is blocked until boundary 1 has a verified checkpoint`);
@@ -941,11 +1027,7 @@ Phase B boundary form (not authorized by Phase A):
     ) {
       throw new Error("Release checkpoint does not match the exact manifest, salt, stage, or chain");
     }
-    if (checkpoint.lastVerifiedStep < nextStep && checkpoint.lastVerifiedStep !== nextStep - 1) {
-      throw new Error(
-        `Boundary ${nextStep} is not resumable from verified boundary ${checkpoint.lastVerifiedStep}; execute exactly one step at a time`,
-      );
-    }
+    validateReleaseCheckpointPrefix(checkpoint, transactions, nextStep);
   }
 
   private async assertLiveNonce(
