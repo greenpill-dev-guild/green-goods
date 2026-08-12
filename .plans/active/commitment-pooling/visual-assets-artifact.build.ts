@@ -105,12 +105,14 @@ const EXTERNAL_LINKS = {
     "https://github.com/greenpill-dev-guild/green-goods/tree/develop/.plans/active/commitment-pooling",
   ruddickPooling: "https://www.ijccr.net/article/view/9297",
   ruddickStewardship: "https://www.ijccr.net/article/view/9512",
+  poolAPool: "https://willruddick.substack.com/p/what-makes-a-pool-a-pool",
   sarafuRct: "https://www.frontiersin.org/articles/10.3389/fbloc.2021.739751/full",
   regenerativeBonds: "https://arxiv.org/html/2606.23922",
   // 2026-08-11 founder-feedback pass: infrastructure and standards the story names
   // in passing now link out at first mention. Docs-site links stay banned (stale).
   hypercerts: "https://hypercerts.org",
   celo: "https://celo.org",
+  arbitrum: "https://arbitrum.io",
   safe: "https://safe.global",
   ccip: "https://docs.chain.link/ccip",
   octant: "https://octant.build",
@@ -441,7 +443,7 @@ const REFERENCE_RENAMES: Record<string, string> = {
 };
 
 // Since the 2026-08-02 renumbering, the D-number IS the reading position, so this
-// array is simply D1..D29. The groups below are the reader-facing arc the numbers
+// array is simply D1..D31. The groups below are the reader-facing arc the numbers
 // now encode: overview, then a promise in the field, states/claims/exchange, the
 // data and value rails, and finally operations with deployment last. A new diagram
 // takes the number of the place it belongs, rather than being appended.
@@ -462,6 +464,8 @@ const ARCHITECTURE_READING_ORDER = [
   "D28.", "D29.",
   // 8. Pool credit — the records-only loan lifecycle
   "D30.",
+  // 9. Member-funded claims — Safe custody accounting and one refund child
+  "D31.",
 ] as const;
 const architectureCandidates = dia.secs.filter((s) => !REFERENCE_TITLES.includes(s.title));
 const architectureSecs = ARCHITECTURE_READING_ORDER.map((prefix) => {
@@ -594,6 +598,7 @@ const requiredArchitectureSections = [
   ["D28.", "d28-three-identities-and-the-future-adapter-boundary"],
   ["D29.", "d29-full-commitment-pooling-grows-through-gates"],
   ["D30.", "d30-loan-state-machine-records-only-pool-credit-creditregistry"],
+  ["D31.", "d31-member-funded-claim-and-refund-state-machine"],
 ];
 
 // Every diagram-bearing section carries a reading guide. The list used to skip
@@ -603,7 +608,7 @@ const diagramHowToPrefixes = [
   "D1.", "D2.", "D3.", "D4.", "D5.", "D6.", "D7.", "D8.", "D9.", "D10.",
   "D11.", "D12.", "D13.", "D14.", "D15.", "D16.", "D17.", "D18.", "D19.",
   "D20.", "D21.", "D22.", "D23.", "D24.", "D25.", "D26.", "D27.", "D28.", "D29.",
-  "D30.",
+  "D30.", "D31.",
 ];
 
 const storyBodyRaw = `
@@ -612,8 +617,8 @@ const storyBodyRaw = `
   <p class="lede">How a community's mutual aid becomes visible, verifiable, and worth funding. This is the story behind every picture in the gallery.</p>
   <p>Regenerative work runs on promises long before it runs on money. Someone offers to restore the shade beds. A neighbour asks for help hauling compost. An elder pledges three work-parties for planting season.</p>
   <p>Most of that generosity is invisible the moment it happens. Nothing records it, nothing confirms it, and nothing connects it to the people who would gladly fund work they could trust.</p>
-  <p>Commitment pooling is ${extLink(EXTERNAL_LINKS.grassroots, "Grassroots Economics")}' answer, proven across years of community-currency practice in Kenya: pool the <em>promises</em> themselves, not tokens. A pool decides whose offers and requests may enter, values contributions in each other's terms, and caps how much any one person may promise. It keeps exchange honest with one simple rule: an independent person confirms each promise was kept — ordinarily the person who received the help, and <strong>never anyone who helped do the work</strong>. Green Goods brings that pattern to gardens. A commitment here is a written promise in the garden's pool: <strong>a record, never a coin</strong>.</p>
-  <p>What Green Goods adds is proof. Work is documented with photos and approvals on the tools gardens already use today, and the person who received the help confirms it. Small gardens sometimes have nobody eligible to confirm, so the person creating a promise may opt in — before anyone accepts it — to a fallback where the Green Goods team confirms instead, always with a recorded reason, and still never anyone who helped do the work. Seasons close into ${extLink(EXTERNAL_LINKS.hypercerts, "impact certificates")} a funder can trust. And when a promise carries a small ${extLink(EXTERNAL_LINKS.gooddollar, "G$")} reward, the money moves on its own separate rails: <strong>only a verified receipt, never a timer</strong>, counts as proof it arrived.</p>
+  <p>Commitment pooling is ${extLink(EXTERNAL_LINKS.grassroots, "Grassroots Economics")}' answer, proven across years of ${extLink(EXTERNAL_LINKS.sarafuRct, "community-currency practice in Kenya")}: pool the <em>promises</em> themselves, not tokens. A pool decides whose offers and requests may enter, values contributions in each other's terms, and caps how much any one person may promise. It keeps exchange honest with one simple rule: an independent person confirms each promise was kept — ordinarily the person who received the help, and <strong>never anyone who helped do the work</strong>. Green Goods brings that pattern to gardens. A commitment here is a written promise in the garden's pool: <strong>a record, never a coin</strong>.</p>
+  <p>What Green Goods adds is proof. Work is documented with photos and approvals on the tools gardens already use today, and the receiver's confirmation seals it. Small gardens sometimes have nobody eligible to confirm, so the person creating a promise may opt in — before anyone accepts it — to a Green Goods team fallback, always with a recorded reason and under the same rule: helpers never confirm. Seasons close into ${extLink(EXTERNAL_LINKS.hypercerts, "impact certificates")} a funder can trust. And when a promise carries a small ${extLink(EXTERNAL_LINKS.gooddollar, "G$")} reward, the money moves on its own separate rails: <strong>only a verified receipt, never a timer</strong>, counts as proof it arrived.</p>
   <p>The sections below follow one promise end to end, from naming a Need to funding the outcome it produced. Throughout the gallery, <strong>solid green means built and live today</strong>, and <strong>dashed means planned</strong>. The contracts, states, and flows behind each picture live one tab over, in Architecture.</p>
 </section>
 <section id="story-loop">
@@ -633,7 +638,7 @@ const storyBodyRaw = `
 <section id="story-use-cases">
   <h2>Three grounded journeys</h2>
   <p class="lede">A Need records the problem and desired outcome. A commitment then makes a Request or Offer to address it. The three journeys distinguish mutual aid, shared projects on today's evidence rails, and separately gated G$ settlement.</p>
-  <p>The first journey is pure mutual aid, like childcare during a work day or a ride to the market, where the recipient's confirmation <em>is</em> the whole review. The second is a shared project on the evidence rails that run today: planting, composting, and restoration work that travels through photo evidence and steward approval before anyone confirms. The third adds a declared G$ reward, settled separately on Celo under its own gates. <strong>It is the same loop each time.</strong> Only the proof required and the payout attached differ.</p>
+  <p>The first journey is <strong>pure mutual aid</strong>, like childcare during a work day or a ride to the market, where the recipient's confirmation <em>is</em> the whole review. The second is <strong>a shared project</strong> on the evidence rails that run today: planting, composting, and restoration work that travels through photo evidence and steward approval before anyone confirms. The third adds <strong>a declared G$ reward</strong>, settled separately on Celo under its own gates. <strong>It is the same loop each time.</strong> Only the proof required and the payout attached differ.</p>
   ${respSvg(useCasesSvg, "Three ways a Need becomes action")}
 </section>
 <section id="story-pilot-pathways">
@@ -644,8 +649,8 @@ const storyBodyRaw = `
 </section>
 <section id="story-money">
   <h2>Where value lives, and how we know it moved</h2>
-  <p class="lede">Proof and coordination stay on Arbitrum. G$ lives and moves only on ${extLink(EXTERNAL_LINKS.celo, "Celo")}. Good Labs Foundation provides Green Goods with $800 per month, paid in G$, for July through September 2026 — $2,400 total — through the House of Alignment pilot. That upstream funding lands in the designated protocol Safe. From there, one derived funding route reaches garden accounts. A downstream settlement counts as received only after the authenticated Celo executor acknowledgment returns through ${extLink(EXTERNAL_LINKS.ccip, "CCIP")}.</p>
-  <p>Think of Arbitrum as the ledger of promises and proof, and Celo as the vault. When the shade-bed promise carries a reward, its payout plan is prepared on Arbitrum, a data-only command crosses the bridge, and the provider garden's ${extLink(EXTERNAL_LINKS.safe, "Safe")} pays the exact net amount on Celo. Upstream of all that, the Foundation-funded ${extLink(EXTERNAL_LINKS.houseOfAlignment, "House of Alignment")} pilot provides three monthly $800 allocations paid in G$. A transaction-level token count never replaces that $2,400 agreement and never proves onward distribution. <strong>No token ever bridges at any point.</strong> Neither a person's report nor elapsed time can mark downstream support as arrived. Only the executor's authenticated acknowledgment does that.</p>
+  <p class="lede">Proof and coordination stay on ${extLink(EXTERNAL_LINKS.arbitrum, "Arbitrum")}. G$ lives and moves only on ${extLink(EXTERNAL_LINKS.celo, "Celo")}. Good Labs Foundation provides Green Goods with $800 per month, paid in G$, for July through September 2026 — $2,400 total — through the ${extLink(EXTERNAL_LINKS.houseOfAlignment, "House of Alignment")} pilot. That upstream funding lands in the designated protocol Safe. From there, one derived funding route reaches garden accounts. A downstream settlement counts as received only after the authenticated Celo executor acknowledgment returns through ${extLink(EXTERNAL_LINKS.ccip, "CCIP")}.</p>
+  <p>Think of Arbitrum as the ledger of promises and proof, and Celo as the vault. When the shade-bed promise carries a reward, its payout plan is prepared on Arbitrum, a data-only command crosses the bridge, and the provider garden's ${extLink(EXTERNAL_LINKS.safe, "Safe")} pays the exact net amount on Celo. Upstream of all that sits the Foundation-funded House of Alignment pilot described above; a transaction-level token count never replaces that agreement and never proves onward distribution. <strong>No token ever bridges at any point.</strong> Neither a person's report nor elapsed time can mark downstream support as arrived. Only the executor's authenticated acknowledgment does that.</p>
   ${respSvg(moneySvg, "Arbitrum proof and Celo value map")}
 </section>
 <section id="story-settlement">
@@ -664,14 +669,14 @@ const storyBodyRaw = `
   <h2>The full flywheel</h2>
   <p class="lede">The whole system in one frame: the commitment loop at the centre, four funding rails feeding it, and the borrow-and-repay ring around everything, drawn as gated.</p>
   <p>Read it from the centre out. Promises kept feed certificates, certificates attract funding, and funding seeds the next season's promises. The shade beds this season are what make the tool library believable next season.</p>
-  <p>The borrow-and-repay ring is drawn the way it is for two reasons. It wraps the whole flywheel because an advance only makes sense against the loop's confirmed record — it rides the same evidence and settlement rails everything else uses, and every advance comes back as a repayment record — so it encircles the system rather than plugging in as a fifth rail. And it is dashed because the three gates described under Three tiers of support still stand ahead of it. When it arrives, it arrives as <strong>interest-free, records-only mutual credit, with no custody and no per-person score</strong>.</p>
+  <p>The borrow-and-repay ring is drawn the way it is for two reasons. It wraps the whole flywheel because an advance only makes sense against the loop's confirmed record — it rides the same evidence and settlement rails everything else uses, and every advance comes back as a repayment record — so it encircles the system rather than plugging in as a fifth rail. And it is dashed because the three gates described under Three tiers of support still stand ahead of it.</p>
   ${respSvg(flywheelSvg, "The Commitment Pooling flywheel")}
 </section>
 <section id="story-tiers">
   <h2>Three tiers of mutual support</h2>
-  <p class="lede">Ordered by how much trust each one needs: mutual aid first, then G$-paid work, then borrow-and-repay. The first two are being built now; the third is a finished design whose build cannot start until its gates clear.</p>
+  <p class="lede">Ordered by how much trust each one needs — and that ladder is also the build order: mutual aid first, then G$-paid work, then borrow-and-repay.</p>
   <p>Trust is the ladder's rail. Mutual aid needs only neighbours and a confirmation, so it ships first and works everywhere, including fully offline. G$-paid work adds a treasury, Safes, and settlement discipline, so it arrives gated and rehearsed.</p>
-  <p>Borrow-and-repay needs the deepest trust of all, so it is held the most tightly — and it is worth being precise about what is actually rolling out. In the August wave, borrow-and-repay exists as a finished design, not a feature: nothing borrow-and-repay-shaped is visible to any user. Its build cannot even begin until three gates clear — the pooling and settlement interfaces it attaches to freeze in code, its design is revalidated against those frozen interfaces, and a human-owned legal and operations review signs off. What ships once the gates clear is deliberately modest: a recorded loop of advance and repayment riding rails that already exist, with <strong>no interest, no per-person score, and no leverage</strong>.</p>
+  <p>Borrow-and-repay needs the deepest trust of all, so it is held the most tightly. In the August wave it exists as a finished design, not a feature: nothing borrow-and-repay-shaped is visible to any user. Its build cannot even begin until three gates clear — the pooling and settlement interfaces it attaches to freeze in code, its design is revalidated against those frozen interfaces, and a human-owned legal and operations review signs off. What ships once the gates clear is deliberately modest: a recorded loop of advance and repayment riding rails that already exist, with <strong>no interest, no per-person score, and no leverage</strong>.</p>
   ${respSvg(tiersSvg, "Three tiers of commitment pooling")}
 </section>
 <section id="story-offer-continues">
@@ -680,7 +685,8 @@ const storyBodyRaw = `
   <p>There is one product noun — the <strong>Offer</strong> — and every Offer answers one question at creation: <strong>once, or ongoing?</strong> <strong>Offer once</strong> makes a single ordinary promise, exactly as the app already works. <strong>Offer over time</strong> keeps that offer going in one garden: a durable identity that can be Active, Resting, or Retired, which the app calls an <strong>ongoing Offer</strong> (and the contracts call a <code>CommitmentSeries</code>).</p>
   <p>An ongoing Offer opens a finite number of <strong>available places</strong>, each an ordinary immutable commitment with its own evidence, confirmation, and terminal state, and the <strong>Story</strong> groups those records with exact counts. <strong>Saved offer details</strong> — signed offchain, private by default, never on any chain — are reusable input to either path, not another thing to keep track of.</p>
   <p>The boundary that keeps this honest: a claim <strong>accepts</strong> a place that already exists. It never creates one. And offering the same thing in a second garden is a second ongoing Offer — the protocol never merges them, and no cross-pool identity or reputation exists.</p>
-  <p>One person holds an ongoing Offer today, and that is a starting point, not a philosophy: commitments already support group work with named contributors, so many people can keep an ongoing Offer's promises while one person holds its name. Group-held and garden-held ongoing Offers sit on the succession horizon and arrive with explicit consent controls, not by loosening who may act today. Requests stay episodic on purpose — a Request has no provider until someone accepts it, so there is nothing to hold open; a recurring ask lives as a <strong>Need</strong>, which persists and can raise a fresh Request whenever the need returns. And as fuller pooling arrives, the ongoing Offer is the identity the later layers attach to, so nothing a person learns in August gets replaced later.</p>
+  <p>One person holds an ongoing Offer today, and that is a starting point, not a philosophy: commitments already support group work with named contributors, so many people can keep an ongoing Offer's promises while one person holds its name. Group-held and garden-held ongoing Offers sit on the horizon (described under Succession later, with consent) and arrive with explicit consent controls, not by loosening who may act today.</p>
+  <p>Requests stay episodic on purpose — a Request has no provider until someone accepts it, so there is nothing to hold open. A recurring ask lives as a <strong>Need</strong>, which persists and can raise a fresh Request whenever the need returns. And as fuller pooling arrives, the ongoing Offer is the identity everything later attaches to, so nothing a person learns in August gets replaced later.</p>
   ${respSvg(offerContinuesSvg, "The Offer that continues")}
 </section>
 <section id="story-capacity">
@@ -715,8 +721,15 @@ const storyBodyRaw = `
   <h2>A circular G$ economy</h2>
   <p class="lede">A pool that only pays out eventually empties. The drawn hypothesis is a circle at every level: support streams in at the top, value flows outward for promises kept, and spending flows back — gardener to garden, garden to protocol — so G$ keeps moving instead of settling at the bottom.</p>
   <p>The triangle follows one rule: <strong>who is paid follows who claimed</strong>. The ${extLink(EXTERNAL_LINKS.houseOfAlignment, "House of Alignment")} pilot streams support into the protocol pool's Safe — the one solid, confirmed relationship in the drawing. When the pool asks for individual protocol work, the gardener who claims it is paid into their own account. When a garden claims garden-scoped work — an event, a garden survey — the garden's own Safe is paid, and discretionary seeding can top it up. And inside each garden runs the majority of all activity: <strong>the garden pays its own gardeners</strong> for the garden's own promises kept.</p>
-  <p>Circulation is the other direction, and it happens between people as much as between institutions. Most help between gardeners is mutual aid, where the confirmation is the value; when a claimed promise between gardeners does carry G$, the garden's Safe pays the provider, so value moves through the garden rather than wallet to wallet. Gardeners also spend earned G$ back with their garden — seedlings, tools, a place in a workshop — which today is an ordinary G$ payment on Celo: honest spending the protocol does not yet record. And at the top of the triangle, gardens spend earned G$ on Green Goods team services — support sessions, onboarding, workshops — where the garden claims the Offer and, as the claimant, pays. ${extLink(EXTERNAL_LINKS.gooddollar, "GoodDollar")} confirmed this arrangement on 2026-08-08 and said they want to see circulation. That confirmation closes the mandate question; partner claims still require evidence that circulation actually happened. Local merchant and store routes remain unmodeled.</p>
+  <p>Circulation is the other direction, and it happens between people as much as between institutions. Most help between gardeners is mutual aid, where the confirmation is the value; when a claimed promise between gardeners does carry G$, the garden's Safe pays the provider, so value moves through the garden rather than wallet to wallet. Gardeners also spend earned G$ back with their garden — seedlings, tools, a place in a workshop — which today is an ordinary G$ payment on Celo: honest spending the protocol does not yet record.</p>
+  <p>At the top of the triangle, gardens spend earned G$ on Green Goods team services — support sessions, onboarding, workshops — where the garden claims the Offer and, as the claimant, pays. ${extLink(EXTERNAL_LINKS.gooddollar, "GoodDollar")} confirmed this arrangement on 2026-08-08 and said they want to see circulation; that closes the mandate question, while partner claims still require evidence that circulation actually happened. Local merchant and store routes remain unmodeled.</p>
   ${respSvg(circSvg, "Circular G dollar economy")}
+</section>
+<section id="story-spend-back">
+  <h2>Spending it back into the pool</h2>
+  <p class="lede">This release makes one small circulation loop concrete: a gardener can put earned G$ behind another gardener's priced Offer.</p>
+  <p>Maria asks to take up Ben's Offer and sends the agreed amount to the garden's recoverable Safe. The Safe holds it while the promise is live, and the record keeps Maria's refund account attached to that deposit. If Ben delivers, the ordinary settlement path pays him. If the promise is declined, withdrawn, superseded, cancelled, or expires, a Garden Steward can queue the full recorded deposit back to Maria.</p>
+  <p>The earmark is honest accounting, not a token lock. A transfer that fails remains an obligation on the same refund record and can be tried again after the Safe is replenished. Only the authenticated receipt says the G$ returned.</p>
 </section>
 <section id="story-ge-functions">
   <h2>Six protocol functions, calibrated</h2>
@@ -731,7 +744,7 @@ const storyBodyRaw = `
   <p class="lede">After review with Grassroots Economics, the system describes one Commitment Pooling build in three explicit layers: an August coordination foundation, outcome-linked support on separate funding rails, and later reciprocal routing and exchange seams. "Commitment coordination" names the first layer. It does not rename or reduce the product.</p>
   <p>Naming the layers keeps the claim honest in both directions.</p>
   <p><strong>Layer one — commitment coordination — is the August foundation.</strong> It carries <strong>Needs</strong>, <strong>offers and requests</strong>, <strong>evidence</strong>, <strong>independent confirmation</strong>, and <strong>repair</strong>, with declared value and exchange references recorded as terms of the promise. Rotation and reserve framing are approved additions on the August app roadmap, not UI that has shipped; standing itself became the module-native ongoing Offer described above.</p>
-  <p><strong>Layer two is how value reaches verified outcomes.</strong> Four rails are planned or gated: <strong>direct support</strong>, <strong>${extLink(EXTERNAL_LINKS.octant, "supporter-vault yield")}</strong>, <strong>impact certificates</strong>, and the separately gated <strong>G$ settlement rail</strong>. <strong>Pooled funds live in treasury Safes and vaults, never inside the pooling mechanism.</strong> The <code>CreditRegistry</code> is this layer's August companion — records-only and interest-free — and its build cannot begin until three gates clear: an in-code interface freeze, a spec revalidation against those frozen interfaces, and a human-owned legal and operations review.</p>
+  <p><strong>Layer two is how value reaches verified outcomes.</strong> Four rails are planned or gated: <strong>direct support</strong>, <strong>${extLink(EXTERNAL_LINKS.octant, "supporter-vault yield")}</strong>, <strong>impact certificates</strong>, and the separately gated <strong>G$ settlement rail</strong>. <strong>Pooled funds live in treasury Safes and vaults, never inside the pooling mechanism.</strong> The <code>CreditRegistry</code> is this layer's August companion — records-only and interest-free — held behind the three dispatch gates spelled out under Three tiers of support.</p>
   <p><strong>Layer three names the later roadmap.</strong> <strong>Transferable vouchers</strong>, <strong>exchange execution</strong>, <strong>relative pricing</strong>, and <strong>garden-to-garden routing</strong> all attach through a reserved adapter seam, referencing the same base evidence while keeping a separate voucher identity. None of it is presented as shipped.</p>
   ${respSvg(layersSvg, "Three layers of commitment pooling built in stages")}
 </section>
@@ -769,6 +782,7 @@ const storyBodyRaw = `
     <li><b>${extLink(EXTERNAL_LINKS.flowPrototypes, "Flow Prototypes — the screens themselves")}</b> <span>click-through prototypes and the full screen library, one state at a time; the companion artifact to this gallery</span></li>
     <li><b>${extLink(EXTERNAL_LINKS.ruddickPooling, "Ruddick, “Commitment Pooling” (IJCCR, 2023)")}</b> <span>the protocol this system implements, described by its originator</span></li>
     <li><b>${extLink(EXTERNAL_LINKS.ruddickStewardship, "Ruddick, “Proto-Social Infrastructure and Stewardship of Commitment Pooling” (IJCCR, 2026)")}</b> <span>the later treatment that names the six functions the gallery's function map follows</span></li>
+    <li><b>${extLink(EXTERNAL_LINKS.poolAPool, "Ruddick, “What Makes a Pool a Pool?” (2026)")}</b> <span>the pool-anatomy tests this gallery's three-layer framing answers to</span></li>
     <li><b>${extLink(EXTERNAL_LINKS.sarafuRct, "Mqamelo, “Community Currencies as Crisis Response” (Frontiers in Blockchain, 2022)")}</b> <span>the randomised trial behind the Sarafu evidence — the field record, not a projection</span></li>
     <li><b>${extLink(EXTERNAL_LINKS.regenerativeBonds, "Ruddick et al., “Regenerative Bonds” (2026)")}</b> <span>formal debt, mutual aid, and local settlement capacity — the lineage behind borrow-and-repay</span></li>
     <li><b>${extLink(EXTERNAL_LINKS.houseOfAlignment, "GIP-26 — House of Alignment")}</b> <span>the failed protocol-emissions proposal that preceded the separately Foundation-funded pilot; it does not itself establish the current pilot terms</span></li>
@@ -802,6 +816,7 @@ const STORY_READING_ORDER = [
   ["story-tiers", "Three tiers of support"],
   ["story-flywheel", "The full flywheel"],
   ["story-circular", "A circular G$ economy"],
+  ["story-spend-back", "Spending it back into the pool"],
   ["story-timeline", "The rollout sequence"],
   ["story-ownership", "Where each document lives"],
   ["story-deeper", "Go deeper"],
@@ -829,7 +844,7 @@ const storyNav = STORY_READING_ORDER
 const archIntro = `
 <section id="arch-intro">
   <h2>How to read this set</h2>
-  <p class="lede">${architectureSecs.length} named diagrams, D1 through D${architectureSecs.length}, drawn from the frozen contract, settlement, exchange, evidence, and UI specs. They are execution reference: they introduce nothing the specs do not already define.</p>
+  <p class="lede">${architectureSecs.length + 1} Architecture sections: this reading guide plus ${architectureSecs.length} named diagrams, D1 through D${architectureSecs.length}. Together they contain 44 Mermaid blocks drawn from the frozen contract, settlement, exchange, evidence, and UI specs. They are execution reference: they introduce nothing the specs do not already define.</p>
   <p><strong>Read them in order.</strong> Since the 2026-08-02 renumbering the D-number <em>is</em> the reading position, moving from the whole system down to the code that deploys it. Returning readers can still open any section directly: every section carries its own “How to read this” panel, and D15 guides each sub-block separately. <strong>Anchors published before the renumbering still resolve</strong>, so an older link or citation lands on whichever section now holds that content.</p>
   <ul class="wayfind">
     <li><b>Overview · D1–D4</b> <span>who participates, where state and value live, who is accountable, and which role may do what</span></li>
@@ -839,6 +854,8 @@ const archIntro = `
     <li><b>Operate and deploy · D25–D26</b> <span>error recovery, then deployment last; the exact permission table lives on Reference</span></li>
     <li><b>Offer over time · D27</b> <span>the durable Offer identity, ordinary instances, Story, and honest capacity reservation</span></li>
     <li><b>Future full pool · D28–D29</b> <span>the three-identity compatibility boundary, then the evidence-gated path from fulfilled backing through one bounded pool to possible later federation</span></li>
+    <li><b>Pool credit · D30</b> <span>the records-only loan lifecycle and its one settlement child</span></li>
+    <li><b>Member-funded claims · D31</b> <span>a priced Offer's garden-Safe deposit, delivery close, and one mechanically eligible refund</span></li>
   </ul>
   <p><strong>Six sections open with an overview and then zoom in.</strong> D5 and D10 split into three acts, D15 into an entity map plus two field blocks, D21 into healthy path, idempotency and retries, D25 into the error, where it manifests, and how the person responds, and D14 into recognition and payment. Sub-blocks are indented in the section list on the left.</p>
   <p><strong>Two colour systems, never mixed.</strong> Component diagrams carry <em>build status</em> — the three treatments below. State machines carry <em>storage provenance</em> — the second key. Green tint always and only means built/live; people are paper with an ink outline; and every diagram footnotes exactly the treatments it uses, so the key you need is always directly under the drawing. Each entity-relationship diagram likewise carries its own cardinality key.</p>
@@ -854,7 +871,7 @@ const archIntro = `
     <li><span class="sw sw-derived" aria-hidden="true"></span><span><b>Derived</b> — the indexer computes it from events; no transaction writes it</span></li>
     <li><span class="sw sw-app" aria-hidden="true"></span><span><b>App-only</b> — client-side; <code>Draft</code> lives in IndexedDB and has no chain presence</span></li>
   </ul>
-  <p><strong>The Reference tab holds the rest</strong> — the 36-asset coverage matrix, the label glossary, the two <code>PoolType</code> vocabularies, the entity definitions these flows depend on, the un-numbered sensitive-action permission table, and the open questions this set does not answer.</p>
+  <p><strong>The Reference tab holds the rest</strong> — the 38-asset coverage matrix, the label glossary, the two <code>PoolType</code> vocabularies, the entity definitions these flows depend on, the un-numbered sensitive-action permission table, and the open questions this set does not answer.</p>
 </section>`;
 
 // Audited 2026-07-27 against the frozen specs, the Linear decision record, and the
@@ -1337,7 +1354,7 @@ section,h4[id],.anchor-alias{scroll-margin-top:calc(var(--header-h) + 1rem);}
 <header class="top">
   <div class="mast">
     <h1>Commitment Pooling — Visual Asset Gallery</h1>
-    <p class="sub">Green Goods · ${storyAssetCount} hand-drawn story assets · ${archDiagramCount} architecture diagrams · screens live in the ${extLink(EXTERNAL_LINKS.flowPrototypes, "Flow Prototypes artifact")} · source: <code>.plans/active/commitment-pooling/</code></p>
+    <p class="sub">Green Goods · ${storyAssetCount} hand-drawn story assets · 32 Architecture sections · ${archDiagramCount} Mermaid blocks · screens live in the ${extLink(EXTERNAL_LINKS.flowPrototypes, "Flow Prototypes artifact")} · source: <code>.plans/active/commitment-pooling/</code></p>
   </div>
   <nav class="tabs" role="tablist" aria-label="Gallery sections">
     <button id="tab-story" role="tab" aria-selected="true" aria-controls="pane-story" tabindex="0" data-tab="story">The story</button>
@@ -2347,7 +2364,7 @@ for (const [navHtml, bodyHtml, label] of [
     }
   }
 }
-assertBuild(architectureSectionCount === 31, "Architecture output must contain 31 sections (30 D-sections + the hand-written intro; the permission table renders on Reference)");
+assertBuild(architectureSectionCount === 32, "Architecture output must contain 32 sections (31 D-sections + the hand-written intro; the permission table renders on Reference)");
 // The opener states the diagram count in prose; tie it to the routed section list so
 // adding or removing a D-section cannot leave the sentence quietly stale.
 assertBuild(
@@ -2355,8 +2372,8 @@ assertBuild(
     && archIntro.includes(`${architectureSecs.length} named diagrams`),
   "the Architecture opener's diagram count must track the routed D-section count",
 );
-assertBuild(architectureMermaidCount === 43, "Architecture output must contain 43 Mermaid blocks (D25 splits into two recovery maps, D13 adds the bilateral exchange sequence, D27 splits into layers + capacity, D28–D29 add the future compatibility path, and D30 adds the loan machine)");
-assertBuild(mermaidCount === 43, "Gallery output must contain exactly the 43 Architecture Mermaid blocks (the Screens tab and its cross-surface flow map retired 2026-08-11; D1 carries the surface topology, and D30 adds the loan machine)");
+assertBuild(architectureMermaidCount === 44, "Architecture output must contain 44 Mermaid blocks (D25 splits into two recovery maps, D13 adds the bilateral exchange sequence, D27 splits into layers + capacity, D28–D29 add the future compatibility path, D30 adds the loan machine, and D31 adds member funding)");
+assertBuild(mermaidCount === 44, "Gallery output must contain exactly the 44 Architecture Mermaid blocks (the Screens tab and its cross-surface flow map retired 2026-08-11; D1 carries the surface topology, D30 adds the loan machine, and D31 adds member funding)");
 // Every diagram must be readable without remembering the global legend — the
 // promise visual-assets.md makes. Before 2026-08-05 only the 17 flowcharts and 9
 // state diagrams got a colour key; the 11 sequences, 4 ERDs, and 1 class diagram
