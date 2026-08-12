@@ -29,6 +29,7 @@ subtree is only honest if that index actually enumerates the tree (this failed r
 | `contract-spec.md` | Pooling module + register: state machines, events, §6.1 permission matrix | **Contract-layer source of truth** |
 | `settlement-spec.md` | G$ split-state settlement: Arbitrum CCIP command module, bounded Celo executor, acknowledgment, Safe authority, AA gate | **Settlement transport + execution source of truth** |
 | `exchange-architecture-brief.md` | Full follow-on architecture: three-identity compatibility boundary, versioned adapter/router, fulfilled then capacity backing, class/issuance/seed/exchange/redemption/repair, one-pool proof, Sarafu-pool hybrid, and federation gates | **Design only; implementation and activation remain gated** |
+| `member-funded-claims-brief.md` | Option-B design for the circulation loop: member claim-requests on priced Offers, garden-Safe-held deposits, refund disbursements on terminal non-fulfillment, delta inventory + sizing | **Draft for discussion (2026-08-11); no decision registered, no code authorized** |
 | `pilot-evidence-spec.md` | September pilot evaluation: claim hierarchy, baselines, metric registry, coercion/exposure/repair safeguards, circulation integrity, privacy, and reporting gates | **Pilot-evidence and outcome-claim source of truth; no implementation authority** |
 | `../commitment-credit-follow-on/spec.md` | Borrow-and-repay `CreditRegistry` | **August-wave companion chain** (unblocked 2026-08-01, Decision Log #39); dispatch gates in its status.json |
 | `uiux-spec.md` | Canonical cross-surface flows + §4 state tables + job kinds | UI/UX contract |
@@ -165,8 +166,10 @@ Known mis-resolutions fixed in place: `contract-spec.md` §Grassroots-Economics-
 | 60 | **An acknowledgment must satisfy the live route, and a stranded subject has an owner-only exit.** Acknowledgment authentication additionally requires the snapshotted executor to still be the active peer, or the previous peer inside its unexpired grace window, per `settlement-spec.md` §3.1.3. Because that strands any command genuinely in flight at a zero-grace cutover — `requeue` requires `Failed` and `cancelDisbursement` accepts only `Queued|Failed`, so a `Dispatched` child would be unrecoverable — the module also gains a bounded owner-only path to mark such a subject `Failed` once the grace window has expired, emitting its own event. | Afo decision 2026-08-09, on the pre-merge review's M1. Authentication ran only against the `CommandRecord` snapshot, so a drained cutover — the strongest revocation the source offers — left the retired executor able to mark its in-flight commands `Confirmed` with no G$ moved. Closing that alone would have traded a security hole for a liveness hole, so the exit path is part of the same decision rather than a follow-up. |
 | 61 | **Committing a garden to pay for an Offer requires a steward once the Offer is priced.** Claiming an Offer with a `gardenContext` requires `isGardenSteward` when the declared consideration is non-zero, and continues to require only `isGardenMember` when it is free. The ApprovalGated path re-checks the claimant's membership in `gardenContext` at final acceptance. | Afo decision 2026-08-09, on the pre-merge review's M4. The Garden-claim branch already required a steward while the Individual branch required only membership, so any gardener could bind their garden as the immutable `payerGarden` of a priced protocol Offer without any steward acting. No funds moved — the payer garden's own steward still has to create the payout plan — but the garden carried an unauthorized obligation record and reserved provider capacity. Pricing is the line because free peer-to-peer Offers are the common pilot case and should stay frictionless. This changes an expectation pinned in `CommitmentPoolingPayer.t.sol`. |
 | 62 | **Protocol Safe policy is threshold >= 2 with at least 3 owners; the exact live 2-of-6 set is approved for this release.** The release manifest must freeze and the verifier must reread the complete owner set and threshold. Garden settlement recovery remains its separate exact 2-of-3 policy. Production indexer deployment is removed from this contracts release lane: PRD-722 receives only the verified contract address/start-block artifact diff and owns configuration, reindex, cutover, rollback, and read-back. | Afo decision 2026-08-11. This resolves the living 3-of-5 guide conflict without weakening exact-set verification, and prevents the old hosted indexer from being silently treated as part of the contracts ceremony. Fable review was already dispatched against `de7863391`; any later candidate requires a refreshed exact-range disposition. No broadcast or hosted deployment is authorized. |
+| 64 | **Prototype UI reuses the shipping app's components and rhythms — never a parallel pattern.** Wizards render the real FormProgress chrome with back buttons; evidence is an MDR variant of Submit Work; the kind choice is equal cards; the promise detail carries people + team above the fold and one bar-held primary; ongoing is an inline expansion of the composer, not a detour; exchange is parked until it gets its own design session; "Request" is the single asking word; stewards declare G$ support in a real wizard step on the phone. | Afo's iteration-2 review, 2026-08-11: the correction pass fixed structure but not look-and-feel — flows still invented patterns the app already solves (dots vs FormProgress, sheet evidence vs MDR, X-only headers), the ongoing entry stayed invisible, and steward G$ had no phone surface at all. Register #102. |
+| 63 | **The client prototype catalog is a two-tier product: canonical journeys plus an exhaustive state library.** Seventeen client journeys each start at a drawn home surface, one person, one sitting; every offline/failure/cycle-state variant stays reviewable in the Screen library. The composer is entry-fixed with a details capture, and the ongoing and exchange paths folded in as choices; evidence and work capture share the shipping Submit-Work interaction; the work↔promise bridge is drawn in both directions; browse cards carry the D5 contract. Two new validator rules (entry-surface, one-row bars) keep both regressions impossible. | Afo decisions D1–D10, 2026-08-11 interactive plan session, after the deep client-PWA audit found the registry's state-coverage instrument being presented as UX journeys: wizard repetition across eight flows, mid-app starts, promise/offer vocabulary drift, unused MDR patterns, and a work-link mis-wired to the admin console. Register #101; admin findings recorded, not fixed, in `reports/admin-prototype-follow-up-2026-08-11.md`. |
 
-### Full decision register (2026-07-03 alignment session, entries 1–27; dated addenda 28–99)
+### Full decision register (2026-07-03 alignment session, entries 1–27; dated addenda 28–102)
 
 **Cite entries in this list as "register #N"** — see the disambiguation note above. (The heading previously read "27 decisions", which stopped being true once the addenda were appended.)
 
@@ -809,6 +812,55 @@ Known mis-resolutions fixed in place: `contract-spec.md` §Grassroots-Economics-
     §5.2/§6.2 prose, acceptance-matrix, uiux-spec, closure-matrices LC-01). A fuller claim/confirm
     pool freeze is a deliberate post-deploy upgrade candidate — not a defect — to be scheduled
     with the first pooling-tier upgrade window if operations wants it. Tracked as PRD-813.
+
+101. Client prototype correction pass (2026-08-11, Afo decisions D1–D10 in the interactive
+    plan session; the written contracts are the uiux-spec Appendix B addenda and the
+    contract-spec commitment-metadata schema addendum): the client catalog is two-tier — 17
+    canonical journeys, each starting at a drawn home surface (W1 pool tab / W5 wallet drawer /
+    WFLOW Garden tab; validator-enforced) with every offline/failure/cycle-state variant kept in
+    the Screen library; retired flow hashes (sb3a/7/16/26/28/30/36/38–41/44/52) follow the #sb9
+    precedent. The composer is entry-fixed — no in-form Direction control — with kind words, an
+    optional Add-details capture (photo / voice note / written note / links → commitment-metadata
+    JSON v1 → `metadataCID`; app-layer only, write-once, evidence is the post-creation channel),
+    How-often Just once / Ongoing (W33 retired into composer states `ongoing-terms`/
+    `ongoing-review` running one ordered `createCommitmentSeries` + place-creation queue
+    sequence), the exchange row as a labeled step-2 detour, sectioned Submit-Work review anatomy
+    with per-section edit links, and a real review step for requests. Evidence capture is
+    MDR-parity (camera / gallery / voice note from the fixed bar, link/note kinds, multi-item,
+    contributor chips kept). The work↔promise bridge is drawn in both directions: WFLOW is the
+    real four-step Submit Work flow plus the "Fulfills a promise" picker, and `w2.link-work`
+    targets a client work-picker instead of the admin console. Cards follow the D5 contract
+    (creator by-line, real progress only, one context action or one reason line, roster
+    indicator; ongoing places carry an Ongoing chip + places-left). "Things I can offer" gained
+    its drawn wallet entry; W31 is titled "Start from a template"; sb27 is a take-up journey with
+    steward-only season/campaign copy on the no-season state; action bars are kit-enforced
+    one-row with a validator check; the player restores catalog scroll on flow exit. "Promise"
+    names the record; offer/ask name the acts. Admin-console findings are recorded in
+    `reports/admin-prototype-follow-up-2026-08-11.md`, deliberately unfixed this pass. No runtime
+    package, contract, ABI, indexer, or Linear change.
+
+102. Iteration 2 on the client prototypes (2026-08-11 evening, Afo's artifact review + three
+    locked Q&A rounds; supersedes register #101's exchange, ongoing-detour, and ask-naming
+    placements): wizards wear the real Submit Work chrome (FormProgress numbered circles, close
+    on step 1 / back after, one-row fixed bar); the kind choice is equal 2-up cards and choice
+    rows are equal-height. Ongoing folds INLINE into the composer — the amount step expands and
+    the review gains a Places section; the separate Ongoing chapter and detour states retire.
+    **Exchange is parked**: no client journey walks it and the composer/template entries are
+    removed; W28–W30 remain Screen-library reference pending a dedicated design session.
+    "Request" is the one asking word ("Make a request" entry, Requests chapter), and the drawn
+    request walk is the steward cast with a real Support step — declaring G$ on the phone with
+    existing declared-consideration semantics, gardeners skipping the step. Evidence is a true
+    MDR variant (media → details → review with cast-preserving review variants and a tap-to-add
+    capture area). The promise detail gains the E5 anatomy — people row + team strip above the
+    fold, the one contextual primary in a fixed bottom bar (inline duplicates stripped). The
+    confirm walk ends once on the promise (duplicate kept-screen and the editorial echo
+    removed); the team journey enters through the promise detail and the new "Add people to
+    your team" walks the lead's roster add; the protocol journey runs claim → work → confirmed
+    → support arrived in one arc; change-of-plans splits into Withdraw an offer / Offer it
+    again; the campaign take-up journey folds into Help-with-what-was-requested branches. The
+    review catalog lays chapters two-up. 17 client journeys; build 39 screens / 414 states /
+    592 hotspots / 45 flows / 283 scenes, 0 warnings; artifact republished (share pin re-pinned
+    manually). No runtime package, contract, ABI, indexer, or Linear change.
 
 **Final recursive certification clarification (2026-07-25; no new decision-register entry):**
 the published `42161`↔`42220` production lane is the only required fully paired
