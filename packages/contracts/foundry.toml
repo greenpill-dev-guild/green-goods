@@ -137,7 +137,10 @@ cache_path = ".generated/foundry/cache/e2e"
 # ═══════════════════════════════════════════════════════════════════════════════
 [profile.fork]
 via_ir = true
-gas_limit = 80_000_000
+# Full-stack fork scenarios can create three independent Gardens V2 communities
+# in one test transaction. Keep the harness ceiling above that aggregate setup
+# cost; production transaction gas assertions remain in their scoped tests.
+gas_limit = 120_000_000
 fuzz = { runs = 32 }
 verbosity = 3
 out = ".generated/foundry/out/fork"
