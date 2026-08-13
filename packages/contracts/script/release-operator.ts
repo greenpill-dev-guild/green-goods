@@ -41,6 +41,8 @@ export const RELEASE_OPERATOR_COMMANDS = new Map<string, string>([
   ["credit:registry:deploy:arbitrum", "paused records-only CreditRegistry boundaries"],
   ["pooling:upgrade:arbitrum", "GardenToken and WorkApprovalResolver integration-upgrade boundaries"],
   ["settlement:executor:deploy:celo", "paused CeloSettlementExecutor boundaries"],
+  ["settlement:garden-safes:deploy:celo", "empty 1-of-2 Garden Safe bootstrap boundaries"],
+  ["settlement:garden-safes:swap:celo", "deployer-to-reviewed-owner Garden Safe swap boundaries"],
 ] as const);
 
 const FORBIDDEN_ARGUMENTS = new Set([
@@ -78,6 +80,8 @@ const RELEASE_OPERATOR_ARGUMENTS = new Map<string, ReadonlySet<string>>([
     new Set(["--plan", "--step", "--expected-nonce", "--receipt", "--override-sepolia-gate"]),
   ],
   ["settlement:executor:deploy:celo", new Set(["--step", "--expected-nonce", "--receipt", "--override-sepolia-gate"])],
+  ["settlement:garden-safes:deploy:celo", new Set(["--plan", "--inventory", "--step", "--receipt"])],
+  ["settlement:garden-safes:swap:celo", new Set(["--plan", "--inventory", "--replacements", "--step", "--receipt"])],
 ]);
 
 const BOOLEAN_ARGUMENTS = new Set(["--override-sepolia-gate"]);
@@ -180,7 +184,8 @@ export function assertAllowedOperatorCommand(tokens: string[]): { script: string
     throw new Error(`Release operator script is not allowlisted: ${script}`);
   }
   const args = tokens.slice(2);
-  const allowedArguments = RELEASE_OPERATOR_ARGUMENTS.get(script)!;
+  const allowedArguments = RELEASE_OPERATOR_ARGUMENTS.get(script);
+  if (!allowedArguments) throw new Error(`Release operator arguments are not configured for ${script}`);
   for (let index = 0; index < args.length; index += 1) {
     const argument = args[index];
     const flag = argument.includes("=") ? argument.slice(0, argument.indexOf("=")) : argument;
@@ -323,7 +328,8 @@ export function assertAutomatedPinnedCheckout(
   const unexpected = status
     .split(/\r?\n/u)
     .filter(Boolean)
-    .map((line) => line.slice(3).split(" -> ").at(-1)!)
+    .map((line) => line.slice(3).split(" -> ").at(-1))
+    .filter((filePath): filePath is string => filePath !== undefined)
     .filter((filePath) => !allowedMutations.has(filePath));
   if (unexpected.length > 0) {
     throw new Error(`Release automation detected concurrent checkout drift: ${unexpected.join(", ")}`);
@@ -812,7 +818,8 @@ if (import.meta.main) {
   try {
     const options = parseSessionOptions(process.argv.slice(2));
     if (options.help) showHelp();
-    else await runSession(options.commit!, options);
+    else if (options.commit) await runSession(options.commit, options);
+    else throw new Error("Release operator candidate commit was not resolved");
   } catch (error) {
     console.error(error instanceof Error ? error.message : String(error));
     process.exit(1);

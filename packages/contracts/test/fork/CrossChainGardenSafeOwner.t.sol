@@ -41,6 +41,8 @@ interface ISafeV141 {
     function getThreshold() external view returns (uint256);
     function nonce() external view returns (uint256);
 
+    function swapOwner(address prevOwner, address oldOwner, address newOwner) external;
+
     function encodeTransactionData(
         address to,
         uint256 value,
@@ -112,6 +114,7 @@ contract CrossChainGardenSafeOwnerForkTest is Test {
     uint256 private constant ROOT_GARDEN_TOKEN_ID = 0;
     uint256 private constant RECOVERY_ONE_KEY = 0xA11CE;
     uint256 private constant RECOVERY_TWO_KEY = 0xB0B;
+    uint256 private constant TEMPORARY_OWNER_KEY = 0xD3A10;
 
     address private constant ARBITRUM_GARDEN_TOKEN = 0xe1Da335110b1ed48e7df63209f5D424d02276593;
     address private constant ARBITRUM_GARDEN_IMPLEMENTATION = 0xE31cAeAc029A60AD17A49278Fdd58032eF9Cf692;
@@ -295,6 +298,51 @@ contract CrossChainGardenSafeOwnerForkTest is Test {
         assertEq(gardenSafe.nonce(), 1, "failed replay changed the Safe nonce");
     }
 
+    function testTemporaryDeploymentOwnerCanBeSwappedForGardenOwnerInOneSafeTransaction() public {
+        if (!forked) return;
+        vm.selectFork(celoFork);
+
+        address temporaryOwner = vm.addr(TEMPORARY_OWNER_KEY);
+        address[] memory bootstrapOwners = new address[](2);
+        bootstrapOwners[0] = temporaryOwner;
+        bootstrapOwners[1] = address(recoverySafeOne);
+        _sort(bootstrapOwners);
+        ISafeV141 temporarySafe = ISafeV141(
+            _deploySafeProxy(
+                bootstrapOwners,
+                1,
+                uint256(
+                    keccak256(abi.encode("GG_COMMITMENT_POOL_SAFE_V1", uint64(ARBITRUM_CHAIN_ID), ARBITRUM_ROOT_GARDEN))
+                )
+            )
+        );
+        address predecessor = _previousOwner(temporarySafe.getOwners(), temporaryOwner);
+        bytes memory swapCall = abi.encodeCall(ISafeV141.swapOwner, (predecessor, temporaryOwner, foreignGardenAccount));
+
+        vm.prank(temporaryOwner);
+        bool success = temporarySafe.execTransaction(
+            address(temporarySafe),
+            0,
+            swapCall,
+            0,
+            0,
+            0,
+            0,
+            address(0),
+            payable(address(0)),
+            _prevalidatedSignature(temporaryOwner)
+        );
+
+        address[] memory finalOwners = temporarySafe.getOwners();
+        assertTrue(success, "temporary owner swap failed");
+        assertEq(temporarySafe.getThreshold(), 1, "owner swap changed the threshold");
+        assertEq(temporarySafe.nonce(), 1, "owner swap did not consume exactly one Safe nonce");
+        assertEq(finalOwners.length, 2, "owner swap changed the owner count");
+        assertFalse(_contains(finalOwners, temporaryOwner), "temporary deployment owner remains");
+        assertTrue(_contains(finalOwners, foreignGardenAccount), "Garden owner replacement is missing");
+        assertTrue(_contains(finalOwners, address(recoverySafeOne)), "recovery Safe owner is missing");
+    }
+
     function _deployGardenSafe(address gardenOwner) private returns (address safe) {
         address[] memory owners = new address[](3);
         owners[0] = gardenOwner;
@@ -464,6 +512,13 @@ contract CrossChainGardenSafeOwnerForkTest is Test {
             if (values[i] == candidate) return true;
         }
         return false;
+    }
+
+    function _previousOwner(address[] memory owners, address owner) private pure returns (address) {
+        for (uint256 i = 0; i < owners.length; i++) {
+            if (owners[i] == owner) return i == 0 ? address(1) : owners[i - 1];
+        }
+        revert("owner missing");
     }
 
     function _rpcUrl(string memory key) private view returns (string memory url) {

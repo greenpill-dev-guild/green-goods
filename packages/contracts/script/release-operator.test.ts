@@ -1,16 +1,16 @@
+import { execFileSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
-import { execFileSync } from "node:child_process";
 import { afterEach, describe, expect, it } from "vitest";
 import {
+  AUTOMATED_RELEASE_STAGE_ORDER,
   assertAllowedOperatorCommand,
   assertAutomatedPinnedCheckout,
   assertPinnedCheckout,
-  AUTOMATED_RELEASE_STAGE_ORDER,
   createPasswordLease,
-  parseSessionOptions,
   POOL_BACKFILL_REGISTRATION_BOUNDARIES,
+  parseSessionOptions,
   RELEASE_OPERATOR_COMMANDS,
   tokenizeOperatorCommand,
 } from "./release-operator";
@@ -160,6 +160,35 @@ describe("release operator session", () => {
     expect(() =>
       assertAllowedOperatorCommand(tokenizeOperatorCommand("run pooling:backfill:arbitrum --step 1")),
     ).toThrow(/not allowlisted/);
+  });
+
+  it("allows only the empty Garden Safe bootstrap and reviewed owner-swap wrappers", () => {
+    const receipt = `0x${"cd".repeat(32)}`;
+    expect(
+      assertAllowedOperatorCommand(
+        tokenizeOperatorCommand(
+          `run settlement:garden-safes:deploy:celo --plan .generated/runtime/bootstrap.json --step 1 --receipt ${receipt}`,
+        ),
+      ),
+    ).toEqual({
+      script: "settlement:garden-safes:deploy:celo",
+      args: ["--plan", ".generated/runtime/bootstrap.json", "--step", "1", "--receipt", receipt],
+    });
+    expect(
+      assertAllowedOperatorCommand(
+        tokenizeOperatorCommand(
+          "run settlement:garden-safes:swap:celo --plan .generated/runtime/swap.json --replacements .generated/runtime/replacements.json",
+        ),
+      ),
+    ).toEqual({
+      script: "settlement:garden-safes:swap:celo",
+      args: ["--plan", ".generated/runtime/swap.json", "--replacements", ".generated/runtime/replacements.json"],
+    });
+    expect(() =>
+      assertAllowedOperatorCommand(
+        tokenizeOperatorCommand("run settlement:garden-safes:swap:celo --rpc-url https://unreviewed.invalid"),
+      ),
+    ).toThrow(/controlled by the frozen release session/);
   });
 
   it("keeps deployer backfill at 18 registrations so unpause remains a separate mode", () => {
