@@ -27,6 +27,7 @@ import {
 import { NetworkManager } from "../utils/network";
 import { getFoundryBroadcastPath } from "../utils/paths";
 import { assertSepoliaGate } from "../utils/release-gate";
+import { buildReadOnlyCastEnv } from "../utils/cast-env";
 
 const LOCK_PATH = path.join(CONTRACTS_ROOT, "config/commitment-pooling-release.lock.json");
 const GENERATED_ROOT = path.join(CONTRACTS_ROOT, ".generated/release");
@@ -808,7 +809,7 @@ Phase B boundary form (not authorized by Phase A):
           ? "arbitrum-through-credit"
           : stage;
     const environment = {
-      ...process.env,
+      ...buildReadOnlyCastEnv(),
       FOUNDRY_PROFILE: "release_simulation",
       RELEASE_STAGE: simulatedStage,
       RELEASE_CREATE2_FACTORY: manifest.create2.factory,
@@ -923,7 +924,7 @@ Phase B boundary form (not authorized by Phase A):
           "--rpc-url",
           this.networkManager.getRpcUrl(network),
         ],
-        { cwd: CONTRACTS_ROOT, env: process.env, encoding: "utf8" },
+        { cwd: CONTRACTS_ROOT, env: buildReadOnlyCastEnv(), encoding: "utf8" },
       ).trim(),
     );
     if (pendingNonce !== options.expectedNonce) {

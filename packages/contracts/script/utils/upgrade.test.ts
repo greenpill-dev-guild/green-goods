@@ -6,7 +6,6 @@ import { getCreateAddress, Interface, keccak256 } from "ethers";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   buildCastJsonArgs,
-  buildReadOnlyCastEnv,
   buildUpgradeBoundarySendArgs,
   findLatestUpgradeArtifactIn,
   type PersistedUpgradePlan,
@@ -15,6 +14,7 @@ import {
   validateReleaseOwnedUpgradePlan,
   validateUpgradeCheckpointPrefix,
 } from "../upgrade";
+import { buildReadOnlyCastEnv } from "./cast-env";
 import type { ReleaseLock, ReleaseManifest } from "./release-manifest";
 
 describe("upgrade transaction plan artifact discovery", () => {

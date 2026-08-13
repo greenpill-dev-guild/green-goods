@@ -14,6 +14,7 @@ import {
 } from "./utils/pooling-release";
 import { assertSepoliaGate } from "./utils/release-gate";
 import { writeReleaseJsonAtomic } from "./utils/release-artifacts";
+import { buildReadOnlyCastEnv } from "./utils/cast-env";
 import {
   buildReleaseLock,
   loadReleaseManifest,
@@ -1042,12 +1043,6 @@ export function buildCastJsonArgs(args: string[], rpcUrl: string): string[] {
   return [command, "--rpc-url", rpcUrl, "--json", ...commandArgs];
 }
 
-export function buildReadOnlyCastEnv(env: NodeJS.ProcessEnv = process.env): NodeJS.ProcessEnv {
-  const sanitized = { ...env };
-  delete sanitized.ETH_PASSWORD;
-  return sanitized;
-}
-
 export function buildUpgradeBoundarySendArgs(
   transaction: PersistedUpgradeTransaction,
   chainId: string,
@@ -1528,7 +1523,7 @@ function main(): void {
       throw new Error("Frozen release lock is missing the CommitmentPoolingModule proxy identity");
     }
     const environment = {
-      ...process.env,
+      ...(options.broadcast ? process.env : buildReadOnlyCastEnv()),
       FOUNDRY_PROFILE: "production",
       FORGE_BROADCAST: options.broadcast || options.txPlan ? "true" : "false",
       UPGRADE_REQUIRE_LIVE_DEPENDENCIES: options.broadcast ? "true" : "false",

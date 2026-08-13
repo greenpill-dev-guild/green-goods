@@ -18,6 +18,7 @@ import { mergeReleaseArtifact, writeReleaseJsonAtomic } from "../utils/release-a
 import { buildReleaseLock, loadReleaseManifest } from "../utils/release-manifest";
 import { getFoundryBroadcastPath } from "../utils/paths";
 import { assertSepoliaGate } from "../utils/release-gate";
+import { buildReadOnlyCastEnv } from "../utils/cast-env";
 import {
   type CommitmentSchemaDefinition,
   type OnChainSchemaRecord,
@@ -526,7 +527,7 @@ export class CommitmentSchemasDeployer {
           "--rpc-url",
           rpcUrl,
         ],
-        { cwd: CONTRACTS_ROOT, env: process.env, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] },
+        { cwd: CONTRACTS_ROOT, env: buildReadOnlyCastEnv(), encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] },
       ).trim();
     } catch (error) {
       throw new Error(
@@ -608,7 +609,7 @@ export class CommitmentSchemasDeployer {
           "--rpc-url",
           rpcUrl,
         ],
-        { cwd: CONTRACTS_ROOT, env: { ...process.env, FOUNDRY_PROFILE: "production" }, encoding: "utf8" },
+        { cwd: CONTRACTS_ROOT, env: { ...buildReadOnlyCastEnv(), FOUNDRY_PROFILE: "production" }, encoding: "utf8" },
       );
       console.log("\nTestimonyResolver deployment preview (no transactions sent):");
       // forge wraps script logs in its own banner; the console.log lines are what an operator
@@ -681,7 +682,7 @@ export class CommitmentSchemasDeployer {
       cwd: CONTRACTS_ROOT,
       stdio: "inherit",
       env: {
-        ...process.env,
+        ...buildReadOnlyCastEnv(),
         FOUNDRY_PROFILE: "production",
         DEPLOYMENT_OUTPUT_DIR: outputDirectory,
       },

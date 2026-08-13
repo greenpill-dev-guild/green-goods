@@ -5,7 +5,9 @@ import { execFileSync } from "node:child_process";
 import { afterEach, describe, expect, it } from "vitest";
 import {
   assertAllowedOperatorCommand,
+  assertAutomatedPinnedCheckout,
   assertPinnedCheckout,
+  AUTOMATED_RELEASE_STAGE_ORDER,
   createPasswordLease,
   parseSessionOptions,
   RELEASE_OPERATOR_COMMANDS,
@@ -24,8 +26,53 @@ describe("release operator session", () => {
   it("requires the exact pinned candidate commit before unlocking", () => {
     expect(() => parseSessionOptions([])).toThrow(/requires --commit/);
     expect(() => parseSessionOptions(["--commit", "abc"])).toThrow(/requires --commit/);
-    expect(parseSessionOptions(["--commit", "a".repeat(40)])).toEqual({ commit: "a".repeat(40), help: false });
-    expect(parseSessionOptions(["--help"])).toEqual({ help: true });
+    expect(parseSessionOptions(["--commit", "a".repeat(40)])).toEqual({
+      commit: "a".repeat(40),
+      help: false,
+      deployAll: false,
+    });
+    expect(parseSessionOptions(["--commit", "a".repeat(40), "--deploy-all"])).toEqual({
+      commit: "a".repeat(40),
+      help: false,
+      deployAll: true,
+    });
+    expect(parseSessionOptions(["--help"])).toEqual({ help: true, deployAll: false });
+  });
+
+  it("allows only canonical deployment artifacts to change during automated release", () => {
+    const repository = fs.mkdtempSync(path.join(os.tmpdir(), "release-automation-repository-"));
+    temporaryDirectories.push(repository);
+    const git = (args: string[]) =>
+      execFileSync("git", args, { cwd: repository, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }).trim();
+    git(["init"]);
+    git(["config", "user.name", "Release Operator Test"]);
+    git(["config", "user.email", "release-operator@example.invalid"]);
+    git(["config", "commit.gpgsign", "false"]);
+    fs.mkdirSync(path.join(repository, "deployments"));
+    fs.writeFileSync(path.join(repository, "deployments/42161-latest.json"), "{}\n");
+    fs.writeFileSync(path.join(repository, "reviewed.txt"), "reviewed\n");
+    git(["add", "deployments/42161-latest.json", "reviewed.txt"]);
+    git(["commit", "-m", "test: freeze release"]);
+    const candidate = git(["rev-parse", "HEAD"]);
+    const allowed = new Set(["deployments/42161-latest.json"]);
+
+    fs.writeFileSync(path.join(repository, "deployments/42161-latest.json"), '{"pooling":"deployed"}\n');
+    expect(() => assertAutomatedPinnedCheckout(candidate, repository, allowed)).not.toThrow();
+    fs.appendFileSync(path.join(repository, "reviewed.txt"), "drift\n");
+    expect(() => assertAutomatedPinnedCheckout(candidate, repository, allowed)).toThrow(/concurrent checkout drift/);
+  });
+
+  it("keeps the automated release in the frozen dependency order", () => {
+    expect(AUTOMATED_RELEASE_STAGE_ORDER).toEqual([
+      "assessment-resolver",
+      "schema-preparation",
+      "pooling",
+      "schema-finalization",
+      "settlement-module",
+      "credit-registry",
+      "pooling-integration-upgrade",
+      "settlement-executor",
+    ]);
   });
 
   it("rejects checkout drift before a release boundary executes", () => {
