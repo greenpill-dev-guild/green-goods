@@ -194,6 +194,36 @@ export function validateReleaseCheckpointPrefix(
   }
 }
 
+export function retryPostStateVerification(
+  verify: () => void,
+  options: {
+    attempts?: number;
+    wait?: (milliseconds: number) => void;
+    onRetry?: (attempt: number, error: unknown) => void;
+  } = {},
+): void {
+  const attempts = options.attempts ?? 6;
+  if (!Number.isSafeInteger(attempts) || attempts < 1) throw new Error("Post-state verifier requires an attempt");
+  const wait =
+    options.wait ??
+    ((milliseconds: number) => {
+      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, milliseconds);
+    });
+  let lastError: unknown;
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    try {
+      verify();
+      return;
+    } catch (error) {
+      lastError = error;
+      if (attempt === attempts) break;
+      options.onRetry?.(attempt, error);
+      wait(2_000);
+    }
+  }
+  throw lastError;
+}
+
 const ownableInterface = new Interface([
   "function owner() view returns (address)",
   "function transferOwnership(address newOwner)",
@@ -1076,40 +1106,54 @@ Phase B boundary form (not authorized by Phase A):
     artifactPath: string,
     baseSalt: string,
   ): void {
-    execFileSync(
-      "bun",
-      [
-        "script/release-verify.ts",
-        "--network",
-        options.network,
-        "--stage",
-        stage,
-        "--boundary-index",
-        String(boundaryIndex),
-        "--artifact",
-        artifactPath,
-        "--salt",
-        baseSalt,
-      ],
-      { cwd: CONTRACTS_ROOT, stdio: "inherit", env: process.env },
+    retryPostStateVerification(
+      () =>
+        execFileSync(
+          "bun",
+          [
+            "script/release-verify.ts",
+            "--network",
+            options.network,
+            "--stage",
+            stage,
+            "--boundary-index",
+            String(boundaryIndex),
+            "--artifact",
+            artifactPath,
+            "--salt",
+            baseSalt,
+          ],
+          { cwd: CONTRACTS_ROOT, stdio: "inherit", env: process.env },
+        ),
+      {
+        onRetry: (attempt) =>
+          console.warn(`Post-state verification has not propagated; retrying after attempt ${attempt}/6`),
+      },
     );
   }
 
   private runStageVerifier(options: ParsedOptions, stage: ReleaseStage, artifactPath: string, baseSalt: string): void {
-    execFileSync(
-      "bun",
-      [
-        "script/release-verify.ts",
-        "--network",
-        options.network,
-        "--stage",
-        stage,
-        "--artifact",
-        artifactPath,
-        "--salt",
-        baseSalt,
-      ],
-      { cwd: CONTRACTS_ROOT, stdio: "inherit", env: process.env },
+    retryPostStateVerification(
+      () =>
+        execFileSync(
+          "bun",
+          [
+            "script/release-verify.ts",
+            "--network",
+            options.network,
+            "--stage",
+            stage,
+            "--artifact",
+            artifactPath,
+            "--salt",
+            baseSalt,
+          ],
+          { cwd: CONTRACTS_ROOT, stdio: "inherit", env: process.env },
+        ),
+      {
+        onRetry: (attempt) =>
+          console.warn(`Stage verification has not propagated; retrying after attempt ${attempt}/6`),
+      },
     );
   }
 

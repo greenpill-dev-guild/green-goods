@@ -6,6 +6,7 @@ import {
   type OwnershipCheckpoint,
   type OwnershipTransferPlan,
   type ReleaseCheckpoint,
+  retryPostStateVerification,
   validateOwnershipCheckpointPrefix,
   validateReleaseCheckpointPrefix,
 } from "./release";
@@ -35,6 +36,39 @@ function fail(args: string[], env: NodeJS.ProcessEnv = process.env) {
 }
 
 describe("release CLI real entrypoints", () => {
+  it("retries transient post-state reads without repeating the transaction", () => {
+    let verificationAttempts = 0;
+    let waits = 0;
+
+    retryPostStateVerification(
+      () => {
+        verificationAttempts += 1;
+        if (verificationAttempts < 3) throw new Error("RPC has not propagated");
+      },
+      { attempts: 4, wait: () => (waits += 1) },
+    );
+
+    expect(verificationAttempts).toBe(3);
+    expect(waits).toBe(2);
+  });
+
+  it("fails closed after the bounded post-state retry window", () => {
+    let verificationAttempts = 0;
+    let waits = 0;
+
+    expect(() =>
+      retryPostStateVerification(
+        () => {
+          verificationAttempts += 1;
+          throw new Error("post-state remains unreadable");
+        },
+        { attempts: 3, wait: () => (waits += 1) },
+      ),
+    ).toThrow("post-state remains unreadable");
+    expect(verificationAttempts).toBe(3);
+    expect(waits).toBe(2);
+  });
+
   it("keeps every frozen CREATE2 identity executable by the release script", () => {
     const source = fs.readFileSync(path.join(CONTRACTS_ROOT, "script/DeployCommitmentRelease.s.sol"), "utf8");
     const executableLabels = new Set(
