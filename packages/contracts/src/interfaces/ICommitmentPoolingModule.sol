@@ -628,7 +628,9 @@ interface ICommitmentPoolingModule {
     ///         garden == rootGarden before any pool write, sets the write-once
     ///         protocolPoolId, and rejects a second Protocol pool with
     ///         PoolExists(existingProtocolGarden). PoolType.Garden requires
-    ///         garden operator/owner or module owner.
+    ///         garden operator/owner or module owner. This backfill entry point
+    ///         remains callable while the module is paused; every other authority
+    ///         and one-pool-per-garden gate is unchanged.
     function registerPool(address garden, PoolType poolType) external returns (uint256 poolId);
 
     /// @notice Gating for the pool lifecycle functions below: pool steward (garden operator/owner
@@ -761,13 +763,16 @@ interface ICommitmentPoolingModule {
     ///         hat in gardenContext; claimant = requestedBy = counterparty = caller.
     ///         ClaimMode.Open transitions to Accepted; ApprovalGated only emits
     ///         ClaimRequested and persists one pending request per canonical claimant.
+    ///         A priced Offer permits only the ApprovalGated request here; its
+    ///         steward-only price gate is enforced by acceptClaim.
     ///         Creator cannot be the canonical claimant or, for a Garden
-    ///         claim, its authenticated requestedBy caller.
+    ///         claim, its authenticated requestedBy caller. Pool must be Open.
     function claimCommitment(uint256 commitmentId, ClaimType kind, address gardenContext) external;
 
     /// @notice Gating: pool steward. ApprovalGated acceptance path; validates
     ///         the terms persisted by claimCommitment. The accepter cannot
-    ///         substitute a different kind or gardenContext.
+    ///         substitute a different kind or gardenContext. A priced Offer may
+    ///         be accepted only through this steward path. Pool must be Open.
     function acceptClaim(uint256 commitmentId, address claimant) external;
 
     /// @notice Atomic bilateral Offer x Offer acceptance. The argument is B,
@@ -781,12 +786,13 @@ interface ICommitmentPoolingModule {
     ///         slots, so no second registry commit or provider-cap headroom
     ///         check occurs. Both CommitmentAccepted events, one
     ///         ContributorAdded lead event per side, and the ExchangeAccepted
-    ///         marker commit or revert together.
+    ///         marker commit or revert together. The shared pool must be Open.
     function acceptExchange(uint256 exchangeCommitmentId) external;
 
     /// @notice Gating: pool steward. ApprovalGated decline path; reason is
     ///         mandatory. Clears the claimant's pending flag so a later request
-    ///         is possible and emits ClaimDeclined for the audit trail.
+    ///         is possible and emits ClaimDeclined for the audit trail. Pool
+    ///         must be Open.
     function declineClaim(uint256 commitmentId, address claimant, string calldata reasonCID) external;
 
     /// @notice Open-policy self-join. The caller must satisfy the same
@@ -932,9 +938,10 @@ interface ICommitmentPoolingModule {
     ///         submittable by the human who did the work; submitting is not
     ///         confirming, and the lead stays excluded from every
     ///         confirmation path.
+    ///         Pool must be Open.
     function submitForConfirmation(uint256 commitmentId) external;
 
-    /// @notice Path (c): steward override with visible reason.
+    /// @notice Path (c): steward override with visible reason. Pool must be Open.
     function markReadyForConfirmation(uint256 commitmentId, string calldata reason) external;
 
     /// @notice Gating: a named confirmer, or Offer counterparty / Request creator
@@ -943,7 +950,7 @@ interface ICommitmentPoolingModule {
     ///         resolves it to that garden's operator/owner Hat wearers and
     ///         accepts those addresses directly; confirmation is never routed
     ///         through ERC-6551 `execute`. No frozen contributor can
-    ///         confirm the team's fulfillment.
+    ///         confirm the team's fulfillment. Pool must be Open.
     function confirmFulfillment(uint256 commitmentId) external;
 
     /// @notice Gating: current commitment-pool steward/owner Hat wearer, or,
@@ -954,7 +961,7 @@ interface ICommitmentPoolingModule {
     ///         named/default path must be unreachable after contributor
     ///         exclusion or OrdinaryConfirmationStillReachable reverts.
     ///         Reason is mandatory and SelfConfirmation excludes every
-    ///         contributor on both paths.
+    ///         contributor on both paths. Pool must be Open.
     function confirmFulfillmentAsFallback(uint256 commitmentId, string calldata reason) external;
 
     // ─────────────── Exits, disputes, considerations ────────────────────────

@@ -55,25 +55,18 @@ contract AsynchronousSettlementRouter {
         deliver(receiver, lastMessageId, sourceSelector, sender, lastData);
     }
 
-    function deliver(
-        address receiver,
-        bytes32 messageId,
-        uint64 sourceSelector,
-        address sender,
-        bytes memory data
-    )
-        public
-    {
+    function deliver(address receiver, bytes32 messageId, uint64 sourceSelector, address sender, bytes memory data) public {
         Client.EVMTokenAmount[] memory noTokens = new Client.EVMTokenAmount[](0);
-        ICcipMessageReceiver(receiver).ccipReceive(
-            Client.Any2EVMMessage({
-                messageId: messageId,
-                sourceChainSelector: sourceSelector,
-                sender: abi.encode(sender),
-                data: data,
-                destTokenAmounts: noTokens
-            })
-        );
+        ICcipMessageReceiver(receiver)
+            .ccipReceive(
+                Client.Any2EVMMessage({
+                    messageId: messageId,
+                    sourceChainSelector: sourceSelector,
+                    sender: abi.encode(sender),
+                    data: data,
+                    destTokenAmounts: noTokens
+                })
+            );
     }
 }
 
@@ -85,6 +78,9 @@ contract CCIPSettlementIntegrationTest is Test {
     address internal constant OWNER = address(0xA11CE);
     address internal constant PROTOCOL_GARDEN = address(0x1000);
     address internal constant PROVIDER_GARDEN = address(0x2000);
+    address internal constant FUNDER = address(0xF00A);
+    address internal constant REFUND_ACCOUNT = address(0xA00A);
+    uint256 internal constant POOL_ID = 77;
     bytes32 internal constant ROLE_KEY = keccak256("role");
     bytes32 internal constant ALLOWANCE_KEY = keccak256("allowance");
 
@@ -313,6 +309,76 @@ contract CCIPSettlementIntegrationTest is Test {
         assertEq(token.balanceOf(address(beneficiarySafe)), 100 ether);
     }
 
+    function testCCIPSettlement_refundBelowSafeBalanceFailsThenReplenishesAndConfirmsTheSameChild() public {
+        pooling.setPool(POOL_ID, _providerPool());
+        pooling.setCommitment(2, _pricedIndividualOffer());
+        pooling.setPendingClaim(
+            2,
+            FUNDER,
+            ICommitmentPoolingModule.PendingClaim({
+                claimant: FUNDER,
+                requestedBy: FUNDER,
+                kind: ICommitmentPoolingModule.ClaimType.Individual,
+                gardenContext: PROVIDER_GARDEN,
+                requestedAt: uint64(block.timestamp),
+                active: true
+            })
+        );
+
+        vm.startPrank(OWNER);
+        uint256 fundingId = settlement.recordFunding(2, FUNDER, REFUND_ACCOUNT);
+        settlement.recordFundingDeposit(fundingId, 100 ether, keccak256("integration-refund-deposit"));
+        uint256 refundId = settlement.queueFundingRefund(fundingId);
+        settlement.dispatchDisbursement(refundId);
+        vm.stopPrank();
+
+        token.setBalance(address(beneficiarySafe), 99 ether);
+        celoRouter.deliver(
+            address(executor),
+            arbitrumRouter.lastMessageId(),
+            ARBITRUM_SELECTOR,
+            address(settlement),
+            arbitrumRouter.lastData()
+        );
+        arbitrumRouter.deliver(
+            address(settlement), celoRouter.lastMessageId(), CELO_SELECTOR, address(executor), celoRouter.lastData()
+        );
+
+        ISettlementModule.Disbursement memory failed = settlement.getDisbursement(refundId);
+        assertEq(uint8(failed.state), uint8(ISettlementModule.DisbursementState.Failed));
+        assertEq(failed.failureCode, uint8(ISettlementModule.FailureCode.RouteReverted));
+        assertEq(
+            uint8(settlement.getCommitmentFunding(fundingId).state), uint8(ISettlementModule.FundingState.RefundQueued)
+        );
+        assertEq(token.balanceOf(REFUND_ACCOUNT), 0);
+
+        token.setBalance(address(beneficiarySafe), 100 ether);
+        vm.startPrank(OWNER);
+        assertEq(settlement.queueFundingRefund(fundingId), refundId);
+        settlement.requeue(refundId);
+        settlement.dispatchDisbursement(refundId);
+        vm.stopPrank();
+
+        celoRouter.deliver(
+            address(executor),
+            arbitrumRouter.lastMessageId(),
+            ARBITRUM_SELECTOR,
+            address(settlement),
+            arbitrumRouter.lastData()
+        );
+        arbitrumRouter.deliver(
+            address(settlement), celoRouter.lastMessageId(), CELO_SELECTOR, address(executor), celoRouter.lastData()
+        );
+
+        ISettlementModule.Disbursement memory confirmed = settlement.getDisbursement(refundId);
+        assertEq(uint8(confirmed.state), uint8(ISettlementModule.DisbursementState.Confirmed));
+        assertEq(confirmed.attempt, 1);
+        assertEq(settlement.fundingRefundDisbursementOf(fundingId), refundId);
+        assertEq(uint8(settlement.getCommitmentFunding(fundingId).state), uint8(ISettlementModule.FundingState.Refunded));
+        assertEq(token.balanceOf(address(beneficiarySafe)), 0);
+        assertEq(token.balanceOf(REFUND_ACCOUNT), 100 ether);
+    }
+
     function _gardenRequest() internal pure returns (ICommitmentPoolingModule.Commitment memory commitment) {
         commitment.state = ICommitmentPoolingModule.CommitmentState.Fulfilled;
         commitment.direction = ICommitmentPoolingModule.CommitmentDirection.Request;
@@ -320,6 +386,27 @@ contract CCIPSettlementIntegrationTest is Test {
         commitment.counterpartyKind = ICommitmentPoolingModule.ClaimType.Garden;
         commitment.providerGarden = PROVIDER_GARDEN;
         commitment.payerGarden = PROTOCOL_GARDEN;
+        commitment.consideration = ICommitmentPoolingModule.DeclaredConsideration({
+            rail: ICommitmentPoolingModule.ConsiderationRail.CeloSettlement,
+            source: address(0),
+            token: address(0),
+            amount: 100 ether
+        });
+    }
+
+    function _providerPool() internal pure returns (ICommitmentPoolingModule.Pool memory pool) {
+        pool.garden = PROVIDER_GARDEN;
+        pool.poolType = ICommitmentPoolingModule.PoolType.Garden;
+        pool.state = ICommitmentPoolingModule.PoolState.Open;
+    }
+
+    function _pricedIndividualOffer() internal pure returns (ICommitmentPoolingModule.Commitment memory commitment) {
+        commitment.poolId = POOL_ID;
+        commitment.creator = address(0xC0DE);
+        commitment.state = ICommitmentPoolingModule.CommitmentState.Offered;
+        commitment.direction = ICommitmentPoolingModule.CommitmentDirection.Offer;
+        commitment.claimType = ICommitmentPoolingModule.ClaimType.Individual;
+        commitment.claimMode = ICommitmentPoolingModule.ClaimMode.ApprovalGated;
         commitment.consideration = ICommitmentPoolingModule.DeclaredConsideration({
             rail: ICommitmentPoolingModule.ConsiderationRail.CeloSettlement,
             source: address(0),

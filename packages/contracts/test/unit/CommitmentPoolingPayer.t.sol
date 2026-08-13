@@ -143,8 +143,8 @@ contract CommitmentPoolingPayerTest is CommitmentPoolingFixture {
         module.acceptClaim(commitmentId, PROVIDER_MEMBER);
     }
 
-    /// @notice A priced Individual claim must still have a steward when approval binds the payer.
-    function testCommitmentPoolingPayer_approvalGatedPricedOfferRechecksIndividualStewardship() public {
+    /// @notice A current member's priced request survives loss of their individual steward role.
+    function testCommitmentPoolingPayer_approvalGatedPricedOfferRechecksMembershipNotStewardship() public {
         ICommitmentPoolingModule.CreateCommitmentParams memory params =
             _baseParams(keccak256("payer-protocol-priced-individual-pending"));
         params.poolId = protocolPoolId;
@@ -157,13 +157,13 @@ contract CommitmentPoolingPayerTest is CommitmentPoolingFixture {
         module.claimCommitment(commitmentId, ICommitmentPoolingModule.ClaimType.Individual, POOL_GARDEN);
         hats.setOperator(POOL_GARDEN, GARDEN_STEWARD, false);
 
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                ICommitmentPoolingModule.PricedOfferClaimRequiresSteward.selector, POOL_GARDEN, GARDEN_STEWARD
-            )
-        );
         vm.prank(CREATOR);
         module.acceptClaim(commitmentId, GARDEN_STEWARD);
+
+        ICommitmentPoolingModule.Commitment memory commitment = module.getCommitment(commitmentId);
+        assertEq(uint256(commitment.state), uint256(ICommitmentPoolingModule.CommitmentState.Accepted));
+        assertEq(commitment.counterparty, GARDEN_STEWARD);
+        assertEq(commitment.payerGarden, POOL_GARDEN);
     }
 
     /// @notice A Garden claim rechecks the human steward rather than the GardenAccount claimant.

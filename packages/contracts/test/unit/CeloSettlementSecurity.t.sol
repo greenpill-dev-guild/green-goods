@@ -197,7 +197,7 @@ contract CeloSettlementSecurityTest is CeloSettlementExecutorTest {
         router.deliver(address(executor), keccak256("wrong-version"), SOURCE_SELECTOR, SOURCE_MODULE, wrongVersion);
 
         bytes memory unknownKind =
-            SettlementMessageCodec.encodeCommand(1, 42, false, 0, GARDEN, 4, _one(CONTRIBUTOR), _oneAmount(1 ether));
+            SettlementMessageCodec.encodeCommand(1, 42, false, 0, GARDEN, 5, _one(CONTRIBUTOR), _oneAmount(1 ether));
         vm.expectRevert(ICeloSettlementExecutor.MalformedSettlementCommand.selector);
         router.deliver(address(executor), keccak256("unknown-kind"), SOURCE_SELECTOR, SOURCE_MODULE, unknownKind);
     }

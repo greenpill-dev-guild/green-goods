@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p1",
     "created_at": "2026-07-19T21:59:29.102Z",
-    "updated_at": "2026-08-10T23:46:00.000Z"
+    "updated_at": "2026-08-11T00:00:00.000-07:00"
   },
   "links": {
     "brief": "brief.md",
@@ -63,8 +63,9 @@
     "Legal/operations review cleared 2026-08-09 (Afo): the interest-free, records-only lending posture is approved.",
     "Stage 2 owns contracts and their proof only. Deployment targets, artifacts/recovery, courier, Safe/Zodiac and live dependency configuration, post-deploy verification, and broadcast are deferred to stage 3 after merge.",
     "Frozen settlement selector: queueLoanPrincipal(uint256 loanId) returns (uint256 disbursementId), with a configured CreditRegistry, explicit registry+loan relationship, dedicated event, and dispatch-time revalidation.",
-    "Stage-2 contracts are merge-ready after the independent review's cross-rail double-payment finding and inherited source Safe identity dependency were resolved with focused RED/GREEN proof. The former indexer generated-helper drift is resolved at 1fbb6c1cd with local boundary, lint, 203-test, codegen, and TypeScript-build proof plus a green refreshed remote Indexer job. The root test target was rerun outside the restricted sandbox and passed, so the prior Foundry macOS system-proxy abort is no longer an active whole-branch proof gap.",
-    "Live Linear was re-read at closeout. PRD-785 is In Review and carries the final contracts proof comment."
+    "Stage-2 contracts merged in PR #695 at bff3b274d after the independent review's cross-rail double-payment finding and inherited source Safe identity dependency were resolved with focused RED/GREEN proof. The former indexer generated-helper drift is resolved at 1fbb6c1cd with local boundary, lint, 203-test, codegen, and TypeScript-build proof plus a green refreshed remote Indexer job. The root test target was rerun outside the restricted sandbox and passed, so the prior Foundry macOS system-proxy abort is no longer an active whole-branch proof gap.",
+    "Live Linear was re-read on 2026-08-11. PRD-785 is Done. The Phase A release-engineering reconciliation performs no Linear write.",
+    "August 10 release decision: deploy and bind SettlementModule and CreditRegistry in both directions, but leave every G$ pool credit configuration absent or disabled. G$ repayment remains disabled by GDollarRepaymentDisabled until a separately approved authenticated receipt policy exists."
   ],
   "lanes": {
     "ui": {
@@ -133,7 +134,7 @@
       },
       "skill_tags": ["contracts"],
       "manual_blocked": false,
-      "note": "Stage-2 contracts increment is merge-ready on feature/build-commitment-crediting-contracts after the independent findings and follow-up dependency guards. The predeploy ABI binds each pool's cap and exposure ledger to one immutable token denomination, rejects borrower self-repayment, refuses retries once the snapshotted executor can no longer acknowledge, releases a commitment link only when its loan becomes Repaid or Cancelled, and freezes the nested LoanPrincipalRelationship schema in the ERC-7201 baseline. The Credit range starts after pre-credit pooling hardening at 238e4e218; the integration PR includes that bounded AcceptanceLib, ClaimsLib, ExchangeLib, and PricedOfferClaimRequiresSteward ABI dependency. Human review and merge remain pending; deployment stays deferred to stage 3."
+      "note": "Stage-2 contracts increment merged in PR #695 at bff3b274d after the independent findings and follow-up dependency guards. The predeploy ABI binds each pool's cap and exposure ledger to one immutable token denomination, rejects borrower self-repayment, refuses retries once the snapshotted executor can no longer acknowledge, releases a commitment link only when its loan becomes Repaid or Cancelled, and freezes the nested LoanPrincipalRelationship schema in the ERC-7201 baseline. The Credit range starts after pre-credit pooling hardening at 238e4e218; the integration PR includes that bounded AcceptanceLib, ClaimsLib, ExchangeLib, and PricedOfferClaimRequiresSteward ABI dependency. Deployment tooling is now owned by the separate Phase A release-engineering lane."
     },
     "qa_pass_1": {
       "owner": "claude",
@@ -277,6 +278,14 @@
       "status": "passed",
       "branch": "feature/build-commitment-crediting-contracts",
       "note": "Hardened the ERC-7201 checker after the next review: annotated extraction is declaration-bound, referenced structs are unique, long NatSpec trivia is supported, and manifest sources cannot escape the contracts package lexically or through symlinks. Four new fixtures pass within the 104-test script suite; typecheck, formatting, source structure, and the full storage gate are green."
+    },
+    {
+      "timestamp": "2026-08-11T00:00:00.000-07:00",
+      "actor": "codex",
+      "lane": "contracts",
+      "status": "merged",
+      "branch": "feature/commitment-pooling-contracts-deployment",
+      "note": "Reconciled stage 2 to PR #695 merge bff3b274d, an ancestor of Phase A base 7a9c7ee. Live PRD-785 was re-read as Done. Phase A release engineering now owns deployment and recovery tooling; no Linear write or external transaction was performed."
     }
   ]
 }

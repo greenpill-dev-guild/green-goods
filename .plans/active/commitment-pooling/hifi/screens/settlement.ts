@@ -111,6 +111,7 @@ const W21_STATES = [
   ["close-delivery-confirm", "Close delivery — confirm"], ["cancelled-failed", "Failed item cancelled"],
   ["protocol-queue", "Protocol queue — garden funding"],
   ["protocol-funding-queued", "Garden funding — queued"],
+  ["refund-queued", "Member refund — queued"],
 ] as const;
 type W21State = (typeof W21_STATES)[number][0];
 
@@ -148,6 +149,27 @@ const w21Behind = (state: "failed" | "queued" | "unregistered" = "failed") =>
   });
 
 function w21(state: W21State): string {
+  if (state === "refund-queued") {
+    const header = pageHeader({
+      title: "Member refund queued",
+      eyebrow: "Garden · Celo",
+      description: "One ordinary settlement child returns the recorded deposit to the funder's frozen account.",
+    });
+    return deskWin(
+      "admin.greengoods.app/garden/settlement/refund",
+      adminCanvas("garden", "garden", {
+        screenId: "W21",
+        garden: "Rocinha",
+        header,
+        body: acard(
+          "Refund · settlement 108",
+          `${banner("The funding record points to this one queued child. Repeating the queue action returns settlement 108 and cannot create another refund.", "stone", "shield-check-line")}
+${kv("Funding", "F-204 · RefundQueued")}${kv("Kind", "Refund")}${kv("Source", "Rocinha garden Safe")}${kv("Recipient", "Maria · recorded 0x12…9a")}${kv("Amount", "40 G$")}
+<div class="actrow" style="justify-content:flex-end">${hot("w21.dispatch-refund", btn("Dispatch refund", { kind: "pri", sm: true }))}</div>`,
+        ),
+      }),
+    );
+  }
   if (state === "register-account")
     return deskWin(
       "admin.greengoods.app/garden/settlement",
@@ -483,6 +505,12 @@ ${disclosure(
 }
 
 const W21_HOTS: HifiDef["hots"] = {
+  "w21.dispatch-refund": {
+    l: "Dispatch refund",
+    to: "screen:W22@refund-dispatched",
+    info: "dispatchDisbursement sends the typed Refund child through the existing bounded garden-Safe command route. Dispatch is not arrival proof.",
+    calls: ["dispatchDisbursement"],
+  },
   "w21.edit-plan": { l: "Edit payout draft", to: "screen:W21@payout-plan-edit", info: "Opens the complete Draft vector, retained amount, and reason before finalization." },
   "w21.edit-cancel": { l: "Cancel payout draft edit", to: "screen:W21@payout-plan", info: "Returns to the unchanged Draft plan." },
   "w21.edit-save": { l: "Save complete payout draft", to: "screen:W21@payout-plan", info: "Calls setContributorPayouts with the complete ordered contributor vector, retention, totals, and required reason; the stable parent pointer and Draft status remain unchanged.", calls: ["setContributorPayouts"] },
@@ -537,6 +565,7 @@ const W22_STATES = [
   ["acknowledgment-pending", "Acknowledgment pending"], ["outcome", "Confirmed / failed"], ["role-guard", "Route gate"],
   ["cancel-batch-confirm", "Cancel batch — confirm"], ["garden-command", "Protocol-to-garden funding command"],
   ["individual-dispatched", "Contributor payout — dispatched"],
+  ["refund-dispatched", "Member refund — dispatched"], ["refund-confirmed", "Member refund — confirmed"],
 ] as const;
 type W22State = (typeof W22_STATES)[number][0];
 
@@ -557,6 +586,28 @@ const w22Behind = () =>
   });
 
 function w22(state: W22State): string {
+  if (state === "refund-dispatched" || state === "refund-confirmed") {
+    const confirmed = state === "refund-confirmed";
+    const header = pageHeader({
+      title: "Refund · settlement 108",
+      eyebrow: "Command/ack console",
+      description: "The refund shares the ordinary command, Celo execution, and authenticated acknowledgment route.",
+    });
+    return deskWin(
+      "admin.greengoods.app/garden/settlement/refund/108",
+      adminCanvas("garden", "garden", {
+        screenId: "W22",
+        garden: "Rocinha",
+        header,
+        body: acard(
+          "Member refund",
+          `${stages(["Queued", "Dispatched", "Celo executed", "Confirmed"], confirmed ? 3 : 1)}
+${banner(confirmed ? "The authenticated acknowledgment confirmed the 40 G$ transfer and closed F-204 as Refunded." : "The immutable Refund command was dispatched. Maria still sees returning until the authenticated acknowledgment arrives.", "stone", confirmed ? "checkbox-circle-fill" : "information-line")}
+${kv("Funding", `F-204 · ${confirmed ? "Refunded" : "RefundQueued"}`)}${kv("Recipient", "Maria · recorded 0x12…9a")}${kv("Amount", "40 G$")}${kv("Execution key", "0x3f…88 · same-key retry only")}${kv("Receipt", confirmed ? "0xac…44 · authenticated" : "Waiting")}`,
+        ),
+      }),
+    );
+  }
   if (state === "cancel-batch-confirm")
     return deskWin(
       "admin.greengoods.app/garden/settlement/batch",
@@ -933,12 +984,36 @@ const w21Facts = (state: W21State): StateFacts | undefined => {
       settlementAccount: "Active",
       beneficiarySettlementAccount: "Active",
     };
+  if (state === "refund-queued")
+    return {
+      commitment: "Cancelled",
+      funding: "RefundQueued",
+      disbursement: "Queued",
+      disbursementKind: "Refund",
+      settlementAccount: "Active",
+    };
   if (state === "cancelled-queued" || state === "batch-cancelled" || state === "cancelled-failed")
     return { disbursement: "Cancelled" };
   return undefined;
 };
 
 const w22Facts = (state: W22State): StateFacts | undefined => {
+  if (state === "refund-dispatched")
+    return {
+      commitment: "Cancelled",
+      funding: "RefundQueued",
+      disbursement: "Dispatched",
+      disbursementKind: "Refund",
+      settlementAccount: "Active",
+    };
+  if (state === "refund-confirmed")
+    return {
+      commitment: "Cancelled",
+      funding: "Refunded",
+      disbursement: "Confirmed",
+      disbursementKind: "Refund",
+      settlementAccount: "Active",
+    };
   if (state === "ready" || state === "role-guard" || state === "cancel-batch-confirm")
     return { disbursement: "Queued", settlementAccount: "Active" };
   if (["dispatched", "delivery-delayed", "executed", "acknowledgment-pending", "garden-command", "individual-dispatched"].includes(state))

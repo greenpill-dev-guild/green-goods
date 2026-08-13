@@ -26,7 +26,7 @@
 // One-shot op per CLAUDE.md scripts policy — lives in .plans, not scripts/.
 import { readFileSync, writeFileSync } from "node:fs";
 import { iconSprite } from "./hifi/icons";
-import { SBS } from "./hifi/journeys";
+import { SB_ROUTE_ALIASES, SBS } from "./hifi/journeys";
 import { PLAYER_JS } from "./hifi/player";
 import {
   HIFI_CSS,
@@ -84,6 +84,8 @@ const PLAYER_DATA = JSON.stringify({
   hots: HOTS,
   sbs,
   aliases: ALIASES,
+  // Retired `#sbX/i` routes → where that scene lives now (journeys.ts).
+  sbRoutes: SB_ROUTE_ALIASES,
 });
 
 const visibleSbs = sbs.filter((sb) => sb.reviewVisible);
@@ -104,24 +106,31 @@ const flowCardHtml = (sb: (typeof visibleSbs)[number]) => {
     // are exactly the actor-seam handoffs the card must advertise.
     .filter((target): target is string => !!target && target !== sb.id),
   ))];
-  // Continues-in reads as prose right after the description; role chips pin to
-  // the card's bottom edge so every card in a row shares the same tag position.
-  const nextLine = continuesIn.length
-    ? `<span class="nextline">↳ ${esc(continuesIn.map((target) => sbTitle.get(target) ?? target).join(" · "))}</span>`
-    : "";
-  return `<button class="sbcard" data-sb="${sb.id}"><span class="sbt">${esc(sb.title)}</span><span class="sbm">${esc(sb.persona)}</span>${nextLine}<span class="cardchips">${roleChips}</span></button>`;
+  // Card anatomy is title → description → tags (Afo, D3). The persona line the
+  // description replaced still shows on the stage pill and in the Reference
+  // tab. Continues-in is a tag too — a muted one, so the acting roles read
+  // first — and all tags pin to the bottom edge, sharing one row position.
+  const nextChips = continuesIn
+    .map((target) => `<span class="next-chip">↳ ${esc(sbTitle.get(target) ?? target)}</span>`)
+    .join("");
+  return `<button class="sbcard" data-sb="${sb.id}"><span class="sbt">${esc(sb.title)}</span><span class="sbd">${esc(sb.desc)}</span><span class="cardchips">${roleChips}${nextChips}</span></button>`;
 };
 const flowCatalog = FLOW_GROUPS.map(({ id, label }, groupIx) => {
   const groupSbs = visibleSbs.filter((sb) => sb.reviewGroup === id);
-  const chapters = (CHAPTERS[id] ?? []).flatMap((chapter) => {
+  const chapterBlocks = (CHAPTERS[id] ?? []).flatMap((chapter) => {
     const cards = groupSbs.filter((sb) => sb.chapter === chapter.id).map(flowCardHtml).join("");
     if (!cards) return []; // an empty chapter simply doesn't render (renameable data, no count asserts)
-    const inner = `<h3 class="chapter-h">${esc(chapter.label)}</h3><div class="grid">${cards}</div>`;
+    // Each chapter is a block inside a two-column grid (iteration 2): less
+    // scrolling, subcategories visible side by side on wide review screens.
+    const inner = `<section class="chapter-block"><h3 class="chapter-h">${esc(chapter.label)}</h3><div class="grid">${cards}</div></section>`;
     return [chapter.collapsed
-      ? `<details class="chapter-fold"><summary><h3 class="chapter-h">${esc(chapter.label)}</h3><span class="fold-hint">protocol team only — open when needed</span></summary><div class="grid">${cards}</div></details>`
+      ? `<details class="chapter-fold chapter-block"><summary><h3 class="chapter-h">${esc(chapter.label)}</h3><span class="fold-hint">protocol team only — open when needed</span></summary><div class="grid">${cards}</div></details>`
       : inner];
-  }).join("");
-  return `<section class="catalog-panel flow-catalog" id="flow-panel-${id}" role="tabpanel" aria-labelledby="flow-tab-${id}" data-flow-group="${id}"${groupIx ? " hidden" : ""}><h2>${esc(label)} flows</h2>${chapters}</section>`;
+  });
+  // The gutter rule only makes sense once a second column exists — derived from
+  // the blocks actually rendered, never asserted per surface.
+  const cols = `chapter-cols${chapterBlocks.length > 1 ? " ruled" : ""}`;
+  return `<section class="catalog-panel flow-catalog" id="flow-panel-${id}" role="tabpanel" aria-labelledby="flow-tab-${id}" data-flow-group="${id}"${groupIx ? " hidden" : ""}><h2>${esc(label)} flows</h2><div class="${cols}">${chapterBlocks.join("")}</div></section>`;
 }).join("");
 
 const screenCards = screenCardsHtml();
@@ -243,15 +252,18 @@ assertBuild(
   visibleSbs.some((sb) => sb.steps.some((step) => step.echo)),
   "no echo scenes — the cross-surface mechanic vanished",
 );
-// 33 = the 25-screen August set + four standing-commitment screens (W32–W35)
-// + the four exchange/template screens (W28–W31, register #97).
-assertBuild(visibleScreens.length === 33, `expected 33 visible screens, found ${visibleScreens.length}`);
-assertBuild(screenCounts.client === 18 && screenCounts.admin === 13 && screenCounts.editorial === 2, `screen grouping must be 18 client / 13 admin / 2 editorial`);
+// 34 = the 25-screen August set + three standing-commitment screens (W32/W34/
+// W35 — W33 folded into the composer 2026-08-11, D2) + the four
+// exchange/template screens (W28–W31, register #97) + the member and steward
+// funded-claim checkpoints (W36/W37, register #103).
+assertBuild(visibleScreens.length === 34, `expected 34 visible screens, found ${visibleScreens.length}`);
+assertBuild(screenCounts.client === 18 && screenCounts.admin === 14 && screenCounts.editorial === 2, `screen grouping must be 18 client / 14 admin / 2 editorial`);
 const presentationCatalogs = flowCatalog + screenCards;
 const presentationRuntimeCopy = [
   presentationCatalogs,
   ...visibleSbs.flatMap((sb) => [
     sb.title,
+    sb.desc,
     sb.persona,
     ...sb.steps.flatMap((step) => [
       step.hot?.l,
@@ -356,12 +368,25 @@ body{margin:0;background:var(--canvas);color:var(--ink);
 .sbn{font:700 11.5px ui-monospace,Menlo,monospace;color:var(--accent-ink)}
 .tick{color:var(--accent-ink);font-weight:700}
 .sbt{font-weight:650;font-size:14px}
-.sbm{font-size:11.5px;color:var(--stone)}
+.sbm{font-size:11.5px;color:var(--stone)} /* screen-library cards: one-line state count */
+.sbd{font-size:11.5px;line-height:1.45;color:var(--stone);margin-top:1px} /* flow cards: wrapping description */
 .chapter-h{margin:20px 0 8px;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--stone)}
 .catalog-panel .chapter-h:first-of-type{margin-top:6px}
+.chapter-cols{display:grid;grid-template-columns:1fr;gap:0 28px;align-items:start;position:relative}
+@media (min-width:760px){
+  .chapter-cols{grid-template-columns:1fr 1fr}
+  /* One continuous rule down the gutter, drawn on the grid itself: chapter
+     blocks are different heights, so a per-block border would break the seam
+     into ragged segments. The ruled class is set only when a panel actually
+     fills both columns, so the single-chapter editorial tab draws no line. */
+  .chapter-cols.ruled::before{content:"";position:absolute;top:0;bottom:0;left:50%;width:1px;background:var(--line)}
+}
+.chapter-block{min-width:0}
+.chapter-block .chapter-h{margin-top:14px}
+.chapter-cols .grid{grid-template-columns:repeat(auto-fill,minmax(210px,1fr))}
 .cardchips{display:flex;flex-wrap:wrap;gap:4px;margin-top:auto;padding-top:7px}
 .role-chip{border:1px solid color-mix(in srgb,var(--accent) 55%,transparent);border-radius:99px;padding:1px 8px;font-size:10.5px;font-weight:650;color:var(--accent-ink)}
-.nextline{font-size:11px;color:var(--stone);margin-top:2px}
+.next-chip{border:1px dashed var(--line);border-radius:99px;padding:1px 8px;font-size:10.5px;color:var(--stone)}
 .chapter-fold{border:1px dashed var(--line);border-radius:10px;padding:2px 12px 8px;margin:20px 0 8px}
 .chapter-fold summary{cursor:pointer;display:flex;align-items:center;gap:10px;min-height:44px;list-style:revert}
 .chapter-fold summary .chapter-h{margin:0}
@@ -698,16 +723,17 @@ if (
     "Privacy regression: W34@claimant-view must render only the approved structural claimant fields; holder Story and kept-count fields are not permitted.",
   );
 }
-for (const stateId of ["review", "active-two"]) {
-  const screenId = stateId === "review" ? "W33" : "W34";
+// W33 retired 2026-08-11 (D2), and iteration 2 folded ongoing INLINE into the
+// composer: the renewal phrase lives on the ongoing review state + W34.
+for (const [screenId, stateId] of [["W3", "support-review-ongoing"], ["W34", "active-two"]] as const) {
   if (!stateHtml(screenId, stateId).includes("Ask me again next cycle")) {
     throw new Error(`Renewal-copy regression: ${screenId}@${stateId} lost the exact phrase "Ask me again next cycle".`);
   }
 }
 const requiredTargets: [string, string][] = [
   ["w32.offer-once", "screen:W3@saved-offer-edit"],
-  ["w33.queued-done", "screen:W32@series-queued"],
-  ["w33.waiting-done", "screen:W32@series-queued-place-waiting"],
+  ["w32.offer-over-time", "screen:W3@support-howmuch-ongoing"],
+  ["w3.submit-ongoing", "screen:W32@series-queued"],
   ["w35.queued-done", "screen:W34@places-queued"],
 ];
 for (const [hotId, target] of requiredTargets) {

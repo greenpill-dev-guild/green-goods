@@ -2,8 +2,8 @@
 
 **Feature Slug**: `commitment-credit-follow-on`
 **Stage**: `active`
-**Status**: `CONTRACTS MERGE-READY — human review and merge pending`
-**Last Updated**: `2026-08-10`
+**Status**: `CONTRACTS MERGED — PHASE A RELEASE ENGINEERING IN PROGRESS`
+**Last Updated**: `2026-08-11`
 
 ## Promotion record and remaining dispatch gates
 
@@ -14,6 +14,8 @@
 5. [x] **Dispatch gate**: [spec.md](spec.md) revalidated against the implemented interfaces on 2026-08-09. The exact settlement selector, relationship, storage, event, and error consequences are frozen in [coverage-ledger.md](coverage-ledger.md).
 6. [x] **Dispatch gate**: Afo approved the interest-free, records-only legal/operations posture on 2026-08-09.
 7. [x] PRD-697 updated in Linear 2026-08-01: Todo, Medium, dispatch gates in the body; the fresh-executable-issue clause superseded. Validation commands still join the contracts handoff at dispatch.
+8. [x] Stage-2 contracts merged in PR #695 at `bff3b274d`; the merge is an ancestor of the
+   Phase A base `7a9c7ee`.
 
 ## Stage-2 implementation order
 
@@ -37,4 +39,7 @@ proxy initialization abort and indexer helper drift are no longer active Ship Ga
 
 ## Stage-3 boundary
 
-After this contracts increment merges, a separate authorized stage owns every deploy target, `DeploymentResult`/artifact and recovery path, Safe/Zodiac setup, courier, live configuration, post-deploy command, and broadcast ceremony. None of those are prerequisites or outputs of stage 2.
+The contracts increment has merged. The separately authorized Phase A release-engineering lane now
+owns every deploy target, `DeploymentResult`/artifact and recovery path, Safe/Zodiac plan, courier,
+configuration plan, and post-deploy command. It may prepare but may not execute the broadcast
+ceremony. None of those were prerequisites or outputs of stage 2.

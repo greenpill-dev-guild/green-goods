@@ -16,16 +16,17 @@ contract CommitmentPoolingTermsTest is CommitmentPoolingFixture {
     function setUp() public {
         _setUpProductionFixture();
         hats.setOperator(POOL_GARDEN, POOL_STEWARD, true);
-        // Claiming a priced Offer commits the garden to pay for it, which is a steward's call, so
-        // the priced tests below claim as the steward rather than as CLAIMANT. CLAIMANT stays a
-        // plain member on purpose — the steward-only assertions here depend on it.
+        // Priced Offers use ApprovalGated claims: CLAIMANT requests and the steward accepts.
         hats.setGardener(POOL_GARDEN, POOL_STEWARD, true);
     }
 
     // ─────────────────────────── Declared consideration ───────────────────────────
 
     function testSetDeclaredConsiderationIsStewardOnlyAndPreAcceptanceOnly() public {
-        uint256 commitmentId = _createOffer(keccak256("consideration-gating"));
+        ICommitmentPoolingModule.CreateCommitmentParams memory params = _baseParams(keccak256("consideration-gating"));
+        params.claimMode = ICommitmentPoolingModule.ClaimMode.ApprovalGated;
+        vm.prank(CREATOR);
+        uint256 commitmentId = module.createCommitment(params);
 
         vm.expectRevert(abi.encodeWithSelector(ICommitmentPoolingModule.NotPoolSteward.selector, CREATOR, poolId));
         vm.prank(CREATOR);
@@ -35,9 +36,10 @@ contract CommitmentPoolingTermsTest is CommitmentPoolingFixture {
         module.setDeclaredConsideration(commitmentId, _arbitrumConsideration(500));
         assertEq(module.getCommitment(commitmentId).consideration.amount, 500);
 
-        // Priced now, so the claim is a steward's to make.
-        vm.prank(POOL_STEWARD);
+        vm.prank(CLAIMANT);
         module.claimCommitment(commitmentId, ICommitmentPoolingModule.ClaimType.Individual, POOL_GARDEN);
+        vm.prank(POOL_STEWARD);
+        module.acceptClaim(commitmentId, CLAIMANT);
         vm.expectRevert(
             abi.encodeWithSelector(
                 ICommitmentPoolingModule.CommitmentNotInState.selector,
@@ -190,7 +192,8 @@ contract CommitmentPoolingTermsTest is CommitmentPoolingFixture {
     }
 
     function testRecordConsiderationPaidIsStewardOnlyAndFulfilledOnly() public {
-        uint256 commitmentId = _createOfferWithConsideration(keccak256("consideration-state"), _arbitrumConsideration(1500));
+        uint256 commitmentId =
+            _createApprovalOfferWithConsideration(keccak256("consideration-state"), _arbitrumConsideration(1500));
 
         vm.expectRevert(
             abi.encodeWithSelector(
@@ -231,11 +234,8 @@ contract CommitmentPoolingTermsTest is CommitmentPoolingFixture {
         module.recordConsiderationPaid(commitmentId, keccak256("payout"));
     }
 
-    /// @notice A member cannot commit their garden to pay for an Offer; a steward can.
-    /// @dev The garden that claims a priced Offer becomes its payer, so claiming one is the garden
-    ///      promising to pay. Before this rule any gardener could bind their garden to that
-    ///      obligation and reserve the provider's capacity against it, with no steward involved.
-    function testCommitmentPoolingTerms_pricedOfferIsClaimableOnlyByASteward() public {
+    /// @notice A priced Open Offer is invalid because it has no separate steward decision step.
+    function testCommitmentPoolingTerms_pricedOpenOfferRejectsMembersAndStewards() public {
         uint256 commitmentId = _createOfferWithConsideration(keccak256("priced-claim"), _arbitrumConsideration(500));
 
         vm.expectRevert(
@@ -244,9 +244,14 @@ contract CommitmentPoolingTermsTest is CommitmentPoolingFixture {
         vm.prank(CLAIMANT);
         module.claimCommitment(commitmentId, ICommitmentPoolingModule.ClaimType.Individual, POOL_GARDEN);
 
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ICommitmentPoolingModule.PricedOfferClaimRequiresSteward.selector, POOL_GARDEN, POOL_STEWARD
+            )
+        );
         vm.prank(POOL_STEWARD);
         module.claimCommitment(commitmentId, ICommitmentPoolingModule.ClaimType.Individual, POOL_GARDEN);
-        assertEq(uint8(module.getCommitment(commitmentId).state), uint8(ICommitmentPoolingModule.CommitmentState.Accepted));
+        assertEq(uint8(module.getCommitment(commitmentId).state), uint8(ICommitmentPoolingModule.CommitmentState.Offered));
     }
 
     /// @notice A free Offer stays claimable by any member — the gate is the price, not the shape.
@@ -296,6 +301,20 @@ contract CommitmentPoolingTermsTest is CommitmentPoolingFixture {
         return module.createCommitment(params);
     }
 
+    function _createApprovalOfferWithConsideration(
+        bytes32 creationKey,
+        ICommitmentPoolingModule.DeclaredConsideration memory consideration
+    )
+        private
+        returns (uint256 commitmentId)
+    {
+        ICommitmentPoolingModule.CreateCommitmentParams memory params = _baseParams(creationKey);
+        params.claimMode = ICommitmentPoolingModule.ClaimMode.ApprovalGated;
+        params.consideration = consideration;
+        vm.prank(CREATOR);
+        return module.createCommitment(params);
+    }
+
     function _fulfilledCommitmentWithConsideration(
         bytes32 creationKey,
         ICommitmentPoolingModule.DeclaredConsideration memory consideration
@@ -303,21 +322,22 @@ contract CommitmentPoolingTermsTest is CommitmentPoolingFixture {
         private
         returns (uint256 commitmentId)
     {
-        commitmentId = _createOfferWithConsideration(creationKey, consideration);
+        commitmentId = _createApprovalOfferWithConsideration(creationKey, consideration);
         _fulfillPriced(commitmentId);
     }
 
-    /// @dev The priced twin of `_fulfill`: a priced Offer may only be claimed by a steward of the
-    ///      garden that will owe the consideration, so the steward is also the confirmer here.
+    /// @dev The priced twin of `_fulfill`: the member requests, then the steward accepts.
     function _fulfillPriced(uint256 commitmentId) private {
-        vm.prank(POOL_STEWARD);
+        vm.prank(CLAIMANT);
         module.claimCommitment(commitmentId, ICommitmentPoolingModule.ClaimType.Individual, POOL_GARDEN);
+        vm.prank(POOL_STEWARD);
+        module.acceptClaim(commitmentId, CLAIMANT);
         address[] memory credited = new address[](1);
         credited[0] = CREATOR;
         vm.prank(CREATOR);
         module.attachEvidence(commitmentId, "bafy-terms-credit", credited);
         module.markReadyForConfirmation(commitmentId, "ready for consideration coverage");
-        vm.prank(POOL_STEWARD);
+        vm.prank(CLAIMANT);
         module.confirmFulfillment(commitmentId);
     }
 

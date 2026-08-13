@@ -12,10 +12,11 @@
   review-comment fixes described below applied on top in this commit.
 - Contracts commits: `1df10469bc0e6f554bf9edd3b467f325615d1a20`, `0b50c9205`, and
   `89fffc97241d527b3dad337f335a3fc7b69f0a67`.
-- Verdict: **APPROVE for the stage-2 contracts increment after post-review fixes**. Human review
-  and merge remain pending.
+- Merge: PR #695 at `bff3b274d`, verified as an ancestor of Phase A base `7a9c7ee`.
+- Verdict: **MERGED after approval of the stage-2 contracts increment and post-review fixes**.
 - Linear context: PRD-697 is the parent and PRD-785 is the contracts lane.
-- Linear mirror: PRD-785 was re-read, moved to In Review, and updated with the final contracts proof.
+- Linear mirror: PRD-785 was re-read as Done on 2026-08-11. This Phase A reconciliation makes no
+  Linear write.
 
 ## Delivered boundary
 
@@ -151,9 +152,11 @@ source-side stranded failure never makes the credit loan read as Disbursed.
 
 Known lower-severity or deliberately deferred constraints:
 
-- G$ repayment is disabled until an authenticated receipt policy is separately approved. Stage 3
-  must leave the SettlementModule's CreditRegistry dependency unset until then, preventing G$
-  principal from queuing or disbursing while Jar/Treasury records-only loans remain available.
+- G$ repayment is disabled until an authenticated receipt policy is separately approved. The
+  August 10 owner decision requires stage 3 to bind SettlementModule and CreditRegistry in both
+  directions while keeping G$ credit disabled through absent/disabled per-pool G$ credit
+  configuration. G$ repayment continues to revert `GDollarRepaymentDisabled`; Jar/Treasury
+  records-only loans remain available.
 - Stage-3 tooling must reconcile the Celo executor result and Safe movement before retrying a
   source-stranded principal command.
 - The remaining already-recorded settlement and indexer defects from the stage-1 pre-merge review
@@ -174,6 +177,6 @@ suites. The prior proxy initialization abort is no longer an active Ship Gate ga
 ## Stop point
 
 No deployment, broadcast, live configuration, authority transfer, indexer activation, or value
-movement occurred. The next action is human review and merge of this contracts increment. After it
-merges, stage 3 owns every deployment and release operation, and the downstream state/API lane may
-build against the frozen ABI.
+movement occurred in stage 2. PR #695 is merged. The active Phase A release-engineering lane owns
+the deployment, recovery, courier, and verification implementation and must stop before broadcast;
+the downstream state/API lane may build against the frozen ABI.

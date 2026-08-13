@@ -12,7 +12,8 @@ import {
     NotGardensModule,
     InvalidInvite,
     AlreadyGardener,
-    GardenFull
+    GardenFull,
+    NameTooLong
 } from "../../src/accounts/Garden.sol";
 import { IGardenAccount } from "../../src/interfaces/IGardenAccount.sol";
 import { IHatsModule } from "../../src/interfaces/IHatsModule.sol";
@@ -299,6 +300,26 @@ contract GardenAccountTest is Test, ERC6551Helper {
         gardenAccount.initialize(params);
     }
 
+    function testInitialize_revertsWhenNameTooLong() public {
+        GardenToken.GardenConfig memory config = GardenToken.GardenConfig({
+            name: _stringOfLength(73),
+            slug: "",
+            description: "",
+            location: "",
+            bannerImage: "",
+            metadata: "",
+            openJoining: false,
+            weightScheme: IGardensModule.WeightScheme.Linear,
+            domainMask: 0,
+            gardeners: new address[](0),
+            operators: new address[](0)
+        });
+
+        vm.prank(multisig);
+        vm.expectRevert(NameTooLong.selector);
+        gardenToken.mintGarden(config);
+    }
+
     // =========================================================================
     // updateName Tests
     // =========================================================================
@@ -333,6 +354,20 @@ contract GardenAccountTest is Test, ERC6551Helper {
         vm.prank(multisig);
         gardenAccount.updateName("");
         assertEq(gardenAccount.name(), "");
+    }
+
+    function testUpdateName_revertsWhenNameTooLong() public {
+        vm.prank(multisig);
+        vm.expectRevert(NameTooLong.selector);
+        gardenAccount.updateName(_stringOfLength(73));
+    }
+
+    function _stringOfLength(uint256 length) private pure returns (string memory) {
+        bytes memory raw = new bytes(length);
+        for (uint256 index; index < length; ++index) {
+            raw[index] = "a";
+        }
+        return string(raw);
     }
 
     // =========================================================================
@@ -868,6 +903,87 @@ contract GardenAccountTest is Test, ERC6551Helper {
         vm.prank(gardener);
         vm.expectRevert(NotGardenOwner.selector);
         gardenAccount.executeAutoStake(address(communityToken), address(0x123), 1e18, stranger);
+    }
+
+    // =========================================================================
+    // executeGardenSelfStake — Self-Only Access Control Tests
+    // =========================================================================
+
+    function testExecuteGardenSelfStake_revertsWhenCalledByOwner() public {
+        vm.prank(multisig);
+        vm.expectRevert(NotGardenOwner.selector);
+        gardenAccount.executeGardenSelfStake(address(communityToken), address(0x123), 1e18);
+    }
+
+    function testExecuteGardenSelfStake_revertsWhenCalledByStranger() public {
+        vm.prank(stranger);
+        vm.expectRevert(NotGardenOwner.selector);
+        gardenAccount.executeGardenSelfStake(address(communityToken), address(0x123), 1e18);
+    }
+
+    // =========================================================================
+    // attemptCommunityMembership — GardensModule-Only Early Returns
+    // =========================================================================
+
+    function testAttemptCommunityMembership_returnsWhenNoCommunity() public {
+        MockGardensModuleForAccount gardensModuleMock = new MockGardensModuleForAccount();
+        gardensModuleMock.setStakeAmountPerMember(1e18);
+        // Community left unset — defaults to address(0)
+
+        vm.prank(multisig);
+        gardenToken.setGardensModule(address(gardensModuleMock));
+
+        vm.prank(address(gardensModuleMock));
+        gardenAccount.attemptCommunityMembership();
+    }
+
+    function testAttemptCommunityMembership_returnsWhenStakeAmountZero() public {
+        MockGardensModuleForAccount gardensModuleMock = new MockGardensModuleForAccount();
+        MockRegistryCommunity community = new MockRegistryCommunity(address(communityToken), multisig);
+        gardensModuleMock.setGardenCommunity(gardenAddress, address(community));
+        gardensModuleMock.setStakeAmountPerMember(0);
+
+        vm.prank(multisig);
+        gardenToken.setGardensModule(address(gardensModuleMock));
+
+        vm.prank(address(gardensModuleMock));
+        gardenAccount.attemptCommunityMembership();
+
+        assertFalse(community.isRegisteredMember(gardenAddress));
+    }
+
+    function testAttemptCommunityMembership_returnsWhenGoodsTokenZero() public {
+        MockGardensModuleForAccount gardensModuleMock = new MockGardensModuleForAccount();
+        MockRegistryCommunity community = new MockRegistryCommunity(address(communityToken), multisig);
+        gardensModuleMock.setGardenCommunity(gardenAddress, address(community));
+        gardensModuleMock.setStakeAmountPerMember(1e18);
+        // Goods token left unset — defaults to address(0)
+
+        vm.prank(multisig);
+        gardenToken.setGardensModule(address(gardensModuleMock));
+
+        vm.prank(address(gardensModuleMock));
+        gardenAccount.attemptCommunityMembership();
+
+        assertFalse(community.isRegisteredMember(gardenAddress));
+    }
+
+    function testAttemptCommunityMembership_returnsWhenBalanceBelowStake() public {
+        MockGardensModuleForAccount gardensModuleMock = new MockGardensModuleForAccount();
+        MockERC20 goodsToken_ = new MockERC20();
+        MockRegistryCommunity community = new MockRegistryCommunity(address(goodsToken_), multisig);
+        gardensModuleMock.setGardenCommunity(gardenAddress, address(community));
+        gardensModuleMock.setStakeAmountPerMember(1e18);
+        gardensModuleMock.setGoodsToken(address(goodsToken_));
+        // No GOODS minted to the garden TBA — balance stays below the stake
+
+        vm.prank(multisig);
+        gardenToken.setGardensModule(address(gardensModuleMock));
+
+        vm.prank(address(gardensModuleMock));
+        gardenAccount.attemptCommunityMembership();
+
+        assertFalse(community.isRegisteredMember(gardenAddress));
     }
 
     // =========================================================================

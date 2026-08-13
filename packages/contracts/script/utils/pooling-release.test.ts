@@ -5,7 +5,7 @@ import { NetworkManager } from "./network";
 import {
   POOLING_CONFIGURATION_STEP_KEYS,
   POOLING_REHEARSAL_FORK_NETWORK,
-  POOLING_UPGRADE_KEYS,
+  POOLING_INTEGRATION_UPGRADE_KEYS,
   assertProxyOwnership,
   computeSchemaUID,
   configurationOwnerTargets,
@@ -103,37 +103,37 @@ describe("schema registration planning", () => {
 });
 
 describe("pooling upgrade targets", () => {
-  it("resolves the module and the register together as one grouped target", () => {
+  it("resolves the two existing pooling integrations together as one grouped target", () => {
     const deployment = {
-      commitmentPoolingModule: "0x1111111111111111111111111111111111111111",
-      commitmentRegistry: "0x2222222222222222222222222222222222222222",
+      gardenToken: "0x1111111111111111111111111111111111111111",
+      workApprovalResolver: "0x2222222222222222222222222222222222222222",
     };
 
-    const { resolved } = resolveUpgradeTargets("pooling", deployment);
+    const { resolved } = resolveUpgradeTargets("commitment-pooling", deployment);
 
-    expect(resolved.map((target) => target.deploymentKey)).toEqual([...POOLING_UPGRADE_KEYS]);
+    expect(resolved.map((target) => target.deploymentKey)).toEqual([...POOLING_INTEGRATION_UPGRADE_KEYS]);
   });
 
   it("fails closed when either half is missing from the artifact", () => {
     expect(() =>
-      resolveUpgradeTargets("pooling", { commitmentPoolingModule: "0x1111111111111111111111111111111111111111" }),
-    ).toThrow(/commitmentRegistry/);
+      resolveUpgradeTargets("commitment-pooling", { gardenToken: "0x1111111111111111111111111111111111111111" }),
+    ).toThrow(/workApprovalResolver/);
   });
 
   it("fails closed on a zero address rather than upgrading nothing", () => {
     expect(() =>
-      resolveUpgradeTargets("pooling", {
-        commitmentPoolingModule: "0x1111111111111111111111111111111111111111",
-        commitmentRegistry: ZERO,
+      resolveUpgradeTargets("commitment-pooling", {
+        gardenToken: "0x1111111111111111111111111111111111111111",
+        workApprovalResolver: ZERO,
       }),
-    ).toThrow(/commitmentRegistry/);
+    ).toThrow(/workApprovalResolver/);
   });
 });
 
 describe("live proxy owner preflight", () => {
   const targets = [
-    { label: "commitmentPoolingModule", address: "0x1111111111111111111111111111111111111111", owner: OWNER },
-    { label: "commitmentRegistry", address: "0x2222222222222222222222222222222222222222", owner: OWNER },
+    { label: "gardenToken", address: "0x1111111111111111111111111111111111111111", owner: OWNER },
+    { label: "workApprovalResolver", address: "0x2222222222222222222222222222222222222222", owner: OWNER },
   ];
 
   it("accepts a sender that owns every proxy, ignoring checksum casing", () => {
@@ -143,7 +143,7 @@ describe("live proxy owner preflight", () => {
   it("rejects a sender that owns only some of the proxies", () => {
     const mixed = [targets[0], { ...targets[1], owner: "0x3333333333333333333333333333333333333333" }];
 
-    expect(() => assertProxyOwnership(mixed, OWNER)).toThrow(/commitmentRegistry/);
+    expect(() => assertProxyOwnership(mixed, OWNER)).toThrow(/workApprovalResolver/);
   });
 
   it("refuses to run without a sender rather than assuming the keystore owns the proxies", () => {
@@ -153,7 +153,7 @@ describe("live proxy owner preflight", () => {
   it("refuses an unreadable owner rather than treating it as a pass", () => {
     const unreadable = [{ ...targets[0], owner: null }];
 
-    expect(() => assertProxyOwnership(unreadable, OWNER)).toThrow(/commitmentPoolingModule/);
+    expect(() => assertProxyOwnership(unreadable, OWNER)).toThrow(/gardenToken/);
   });
 });
 

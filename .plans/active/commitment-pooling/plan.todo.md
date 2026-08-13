@@ -4,7 +4,7 @@
 **Stage**: `active`
 **Status**: `ACTIVE: Offer once/over-time architecture remains the initial implementation scope, and the full Commitment Pooling compatibility boundary is now frozen pre-code: promise instance, ongoing Offer series, and future voucher class stay distinct; fulfilled backing precedes capacity backing; one bounded pool precedes federation; G$ support remains separate from redemption. The canonical six-tab Google Doc prose reconciliation is complete, accepted, and verified after reload. Live gallery republication and every image replacement/insertion remain manual publication steps. Contracts (PRD-721, dispatched 2026-08-05) and settlement (dispatched 2026-08-08) are in progress per status.json, with the pooling module and settlement contracts merged to develop — the 2026-08-10 audit verified all prototype-declared calls exist on-chain under exact names (58 including register #97's `acceptExchange`). Indexer carries the settlement/payout half only (no core pooling entities yet); state-api, ui-client, ui-admin, and editorial remain unstarted. Value release, Safe authority, audit, canary, and external evidence remain separately blocked`
 **Created**: `2026-07-03`
-**Last Updated**: `2026-08-10`
+**Last Updated**: `2026-08-11`
 
 Linear mirror: project [Commitment Pooling](https://linear.app/greenpill-dev-guild/project/commitment-pooling-4bc53572f354). Native phases: **Scope and Design** (2026-07-22), **Build** (2026-07-31), **Release** (2026-08-12), and **Follow On / Hardening** (2026-09-30). Operational checkpoints are separate: July dry run (2026-07-31) and Community plus settlement-evidence delivery (2026-09-30). **The full document map is the next section.** Community-specific diagrams, wireframes, journeys, and research operations live in `.plans/active/community-interface/`. The 2026-07-10/11 reconciliation, PRD-686/RESR-57 predicate, and null PRD-651/697 dates were live-verified historical state; current Linear convergence must be reread before any write. **Fourth-garden policy (Decision Log #29, 2026-07-18 — supersedes Decision Log #25 and Decision Log #27): no fourth garden is selected.** The slot is open, candidates are under consideration, and **no artifact names one**. The three named gardens cover all four action domains on their own. The earlier Decision Log #25→Decision Log #26→Decision Log #27 naming sequence is closed history; do not re-apply it.
 
@@ -14,8 +14,8 @@ Linear mirror: project [Commitment Pooling](https://linear.app/greenpill-dev-gui
 
 ## Document map
 
-Every file in this hub, by role — **133 files**: 21 at the hub root, 42 under `artifacts/`,
-19 under `handoffs/`, 18 under `hifi/`, 20 under `operations/`, and 13 under `reports/`.
+Every file in this hub, by role — **151 files**: 22 at the hub root, 42 under `artifacts/`,
+22 under `handoffs/`, 18 under `hifi/`, 20 under `operations/`, and 28 under `reports/`.
 **This list is the index — if you add a document here, add its row.** Root files each get their own
 row; the five subtrees get one row apiece naming their own in-tree index, because the row for a
 subtree is only honest if that index actually enumerates the tree (this failed review on
@@ -29,6 +29,7 @@ subtree is only honest if that index actually enumerates the tree (this failed r
 | `contract-spec.md` | Pooling module + register: state machines, events, §6.1 permission matrix | **Contract-layer source of truth** |
 | `settlement-spec.md` | G$ split-state settlement: Arbitrum CCIP command module, bounded Celo executor, acknowledgment, Safe authority, AA gate | **Settlement transport + execution source of truth** |
 | `exchange-architecture-brief.md` | Full follow-on architecture: three-identity compatibility boundary, versioned adapter/router, fulfilled then capacity backing, class/issuance/seed/exchange/redemption/repair, one-pool proof, Sarafu-pool hybrid, and federation gates | **Design only; implementation and activation remain gated** |
+| `member-funded-claims-brief.md` | Option-B design for the circulation loop: member claim-requests on priced Offers, garden-Safe-held deposits, refund disbursements on terminal non-fulfillment, delta inventory + sizing | **Draft for discussion (2026-08-11); no decision registered, no code authorized** |
 | `pilot-evidence-spec.md` | September pilot evaluation: claim hierarchy, baselines, metric registry, coercion/exposure/repair safeguards, circulation integrity, privacy, and reporting gates | **Pilot-evidence and outcome-claim source of truth; no implementation authority** |
 | `../commitment-credit-follow-on/spec.md` | Borrow-and-repay `CreditRegistry` | **August-wave companion chain** (unblocked 2026-08-01, Decision Log #39); dispatch gates in its status.json |
 | `uiux-spec.md` | Canonical cross-surface flows + §4 state tables + job kinds | UI/UX contract |
@@ -38,12 +39,13 @@ subtree is only honest if that index actually enumerates the tree (this failed r
 | `prototypes-coverage.md` | Rendered-state / hotspot / scene coverage snapshot for the prototypes artifact; the closure validator pins its three counts | Generated coverage snapshot |
 | `prototypes-artifact.build.ts` | Generator for the Flow Prototypes artifact; reads the `hifi/` registry alone (the retired `prototypes.md` stays as history, register #96) | Generator — never hand-edit its output |
 | `visual-assets.md` | Index of the audience graphics (SVG + 2x PNG) + style contract + regeneration; the ongoing-Offer story and architecture assets are published | Asset index |
-| `visual-assets-artifact.build.ts` | Generator for the Visual Asset Gallery: routes `diagrams.md` + `wireframes.md` into four tabs, derives every per-diagram colour/cardinality/arrow key, and enforces the section/block/key-count invariants | Generator — the gallery's build-time gate |
+| `visual-assets-artifact.build.ts` | Generator for the Visual Asset Gallery: routes `diagrams.md` + the hand-drawn SVGs into three tabs (Screens tab retired 2026-08-11, register #98 — screens live in the Flow Prototypes artifact), derives every per-diagram colour/cardinality/arrow key, and enforces the section/block/key-count invariants | Generator — the gallery's build-time gate |
 | `visual-assets-prerender.ts` | Freezes each gallery Mermaid block to inline light+dark SVG and writes the one publishable file; `--verify <file>` re-checks a candidate | Deploy step — **only its output may be published** |
 | `session-state-admin-canvas.md` | Session-continuity handover for the admin-canvas work stream | Execution context — not canonical design or contract truth |
 | `acceptance-matrix.md` | Exact copy / state / public-claim targets for handoffs and QA | Acceptance targets |
 | `architecture-closure-matrices.md` | Complete event/replay, retry/idempotency, persistence-truth, and lifecycle/wind-down inventories | **Binding cross-lane closure contract** |
-| `architecture-closure.validate.ts` | Machine gate for all 54 events, 26 entities, 86 module functions, eight sparse-event materialization cases, 58 executable calls, six jobs/persistence states, seven lifecycle subjects, and required source assertions | **Must pass before dispatch or merge** |
+| `architecture-closure.validate.ts` | Machine gate for all 58 ABI-closed events, 26 entities, 86 module functions, seven enum vocabularies, eight sparse-event materialization cases, 62 executable calls, six jobs/persistence states, eight lifecycle subjects, and required source assertions | **Must pass before dispatch or merge** |
+| `backfill-pools.ts` | Bun-wrapped, finalized-block pool-inventory and Safe-receipt verifier; fails closed on inventory/root drift and the frozen backfill-before-unpause ABI conflict | Phase A release tooling only; no broadcast authority |
 | `reports/corrections-log.md` | Claim-by-claim verification ledger (VERIFIED / CORRECTED / UNVERIFIABLE / SUPERSEDED) | **Correction record — §9 owns the fund-topology correction** |
 | `external-brief.md` | Pointer to the canonical Google Doc plus the repo's implementation/evidence source map | **Pointer only — never a prose mirror** |
 | `reports/audit-2026-07-20.md` | Original CP-AUD-001–021 dispatch-readiness audit | **IMMUTABLE INPUT — never edit** |
@@ -58,8 +60,11 @@ subtree is only honest if that index actually enumerates the tree (this failed r
 | `reports/linear/linear-update-pack.md` | Earlier reconciliation pack, superseded | **ARCHIVE — do not execute or re-apply** |
 | `reports/codex-readiness-review-2026-08-05.md` | Codex implementation-readiness and gallery-correctness review; its P1/P2/P3 findings are closed in this hub | **IMMUTABLE INPUT — never edit** |
 | `reports/eip170-size-wall-2026-08-08.md` | EIP-170 discovery (module was 2.30× the deploy limit), the deployed-library restructure, the `check:sizes` gate, verification evidence, deploy-ops follow-ups, and the compiler-research snapshot | Dated engineering record — binding rules live in `contract-spec.md` §6.1 |
+| `reports/phase-a-release-engineering-review-2026-08-11.md` | Pinned Phase A batch ledger, adversarial release findings, validation receipts, predicted-identity boundary, and blocked verdict | **Immutable committed-range release review; grants no broadcast authority** |
+| `reports/phase-a-release-scope-correction-2026-08-11.md` | Owner-approved Safe-policy/indexer-scope correction, one-password operator ceremony, fresh evidence, and remaining final-base blockers | **Dated correction record; grants no broadcast authority** |
+| `reports/phase-a-ownership-deferral-2026-08-11.md` | Owner-approved paused/deployer-owned endpoint, current operator enforcement, and later ownership/backfill/unpause issue acceptance | **Dated correction record; grants no broadcast authority** |
 | `status.json` | Machine state for the plan harness | Machine lanes |
-| `handoffs/` (19 files) | Per-lane dispatch files. **`handoffs/README.md` § File index enumerates all 19**; `claude-full-pooling-visual-docs.md` owns the additive hand-drawn Story and canonical Google Doc pass, `human-release-ops.md` owns broadcast/cutover authorization, and `human-settlement-evidence.md` owns the September operational-assignment gate | Per-lane dispatch |
+| `handoffs/` (22 files) | Per-lane dispatch files. **`handoffs/README.md` § File index enumerates all 22**; `fable-phase-a-release-review.md` owns the final pre-Phase-B independent review prompt, `claude-full-pooling-visual-docs.md` owns the additive hand-drawn Story and canonical Google Doc pass, `human-release-ops.md` owns broadcast/cutover authorization, and `human-settlement-evidence.md` owns the September operational-assignment gate | Per-lane dispatch |
 | `artifacts/visuals/` (42 files) | The 21 hand-crafted SVG assets and their 2x PNG upload companions. **`visual-assets.md` is the per-asset index** — it names every file, its Google Doc placement, and what it must show. Nothing here is generated by a build script; each pair is authored | Published audience graphics |
 | `hifi/` (18 files) | Executable hi-fi screen registry consumed by `prototypes-artifact.build.ts`: `screens/{client,client-wallet,admin,settlement,exchange,public,index}.ts` plus `journeys.ts`, `validate.ts`, `types.ts`, `fixtures.ts`, `tokens.ts`, `player.ts`, `html.ts`, `ascii.ts`, `icons.ts`, `kit.ts`, `legacy.ts`. The closure validator asserts directly against `screens/client.ts`, `screens/admin.ts`, `screens/settlement.ts`, `journeys.ts`, `types.ts`, and `validate.ts` | **Executable state/journey truth for the prototypes** |
 | `operations/` (20 files) | Live-chain operational evidence, one directory per operation. `steward-hat-relabel/` holds the PRD-748 Steward relabel: `README.md` (its own index), the `prepare.ts` / `relabel.ts` / `refresh-direct-plan.ts` scripts, dated `preflight-*` / `steward-upgrade-baseline-*` / `direct-admin-plan-*` / `execution-partitions-*` JSON captures keyed by chain and block, plus `preflight-findings.md`, `upgrade-plan-review.md`, and `post-execution-evidence.md` | **Dated operational evidence — captures are immutable** |
@@ -67,7 +72,7 @@ subtree is only honest if that index actually enumerates the tree (this failed r
 **Published artifacts** (rebuilt from this hub, same URLs on each rebuild):
 
 - [Flow Prototypes](https://claude.ai/code/artifact/19c3dcad-ac1d-4398-bcd4-57d0c892be2c) — 56 review-visible guided flows + 33 hi-fi screens (per the prototypes-coverage.md build snapshot, which stays authoritative as the registry grows); the one September Community source flow and wireframes remain hidden but validated (`prototypes-artifact.build.ts` + `hifi/`)
-- [Visual Asset Gallery](https://claude.ai/code/artifact/007ef090-9e26-4b1d-898c-615155304d9d) — all assets rendered, four audience tabs: story · Architecture · Screens · Reference (`visual-assets-artifact.build.ts`)
+- [Visual Asset Gallery](https://claude.ai/code/artifact/007ef090-9e26-4b1d-898c-615155304d9d) — all assets rendered, three audience tabs: story · Architecture · Reference (`visual-assets-artifact.build.ts`; Screens tab retired 2026-08-11 per register #98, screens live in the Flow Prototypes artifact below)
 
 **External-facing canonical home**: [Green Goods Commitment Pooling (Google Doc)](https://docs.google.com/document/d/16LNXMr5voQUgWC3iyULbL4iEhRrFo4DezZZLgNtA4hc/edit). `external-brief.md` is a pointer and source map only; no repo file mirrors the external narrative.
 
@@ -101,7 +106,7 @@ Known mis-resolutions fixed in place: `contract-spec.md` §Grassroots-Economics-
 | 2 | `CommitmentPoolingModule` (control plane) + companion non-transferable ERC-1155-style `CommitmentRegistry` (classes, balances, quotas), voucher-shaped from day one | Compatibility-amended by Decision Log #51/register #86: a later adapter consumes eligible fulfillment facts on the same `poolId` while issuing a separate `voucherClassId`; it never wraps the registry class as the same identity, and no proof construct gets replaced. Supersedes PRD-649's single-artifact stance (user-approved). |
 | 3 | Hybrid state weight: hard transitions on-chain (seed, offer/request, accept, evidence count, ReadyForConfirmation, Fulfilled, cancel/expire, dispute flag, cycle open/close/compost, pool pause); Draft and review-soft states derived | Full three-machine on-chain would be the heaviest contract in the repo; EAS is not indexed so events must carry everything the indexer needs. |
 | 4 | EAS bridge: WorkApprovalResolver try/catch hook (GAP precedent) + steward `syncWorkDecisions` fallback; pooling maintains a bounded enumerable active Work set, catch-up proves supplied decisions are current, and every readiness/direct-fulfillment freeze proves the complete set matches the resolver; inactive rejected Work may be unlinked despite historical approval delivery | Automatic state without blocking decision attestations; omitting stale Work A while syncing Work B cannot freeze credit, and reversible pre-freeze credit preserves the live Work correction model. |
-| 5 | Protocol pool = root garden (tokenId 1) pool, poolType PROTOCOL, cross-garden claim reach | Reuses existing custody and hats; no new identity machinery. |
+| 5 | Protocol pool = root garden (tokenId 0) pool, poolType PROTOCOL, cross-garden claim reach | Reuses existing custody and hats; no new identity machinery. |
 | 6 | Per-commitment claim mode (open vs approval-gated) set at seeding; declared reward carries an explicit rail. `ArbitrumExternal` uses operator-recorded `ConsiderationPaid`; `CeloSettlement` stores zero source/token sentinels and lets the separate SettlementModule derive its configured canonical G$; `None` has zero reward fields. The core module never custodies funds and the two payout records are mutually exclusive. | Zero CookieJar contract changes in August; custody stays where it is. Rail discriminator clarified by review on 2026-07-23. |
 | 7 | Lightweight evidence object (IPFS CID via module event) for SupportService/StewardCaptured; Offer recipient or Request creator confirms by default, named groups exclude the lead provider, and “Not yet” raises a dispute; DomainImpact keeps full MDR | One direction-aware human loop for low-stakes mutual aid without contributor self-confirmation; full approval rigor where impact is claimed. |
 | 8 | v3 authorship split: baseline = evaluator or operator; delta/re-assessment = Evaluator Hat only; testimony = Community Hat only | Preserves analog capture while keeping the two-voice evaluation model clean. |
@@ -160,8 +165,11 @@ Known mis-resolutions fixed in place: `contract-spec.md` §Grassroots-Economics-
 | 59 | **The settlement contracts emit their own deployment identity.** `initialize()` on both `SettlementModule` and `CeloSettlementExecutor` emits the CCIP router, the local chain selector, and the remote EVM chain ID — immutables that were previously knowable only from the constructor. The indexer stops gating entity creation on configuration it has no source for. | Afo decision 2026-08-09, on the pre-merge review's Critical finding. `remoteEvmChainId`, `localChainSelector`, and `localRouter` had no writer anywhere in the indexer, so `SettlementMessage`, `SettlementExecution`, and `SettlementGardenRoute` could never be created in production and `peerConfigured` was permanently false — masked because the tests hand-seed those fields. Neither `CcipRouteUpdated` nor `SourcePeerUpdated` carries an EVM chain ID and the router is emitted nowhere, so the alternative was a static deployment map inside the indexer, whose failure mode is silent and stale. The contracts are undeployed, so the ABI addition is free now and impossible later. A scoped extension of the PRD-796 freeze exception. |
 | 60 | **An acknowledgment must satisfy the live route, and a stranded subject has an owner-only exit.** Acknowledgment authentication additionally requires the snapshotted executor to still be the active peer, or the previous peer inside its unexpired grace window, per `settlement-spec.md` §3.1.3. Because that strands any command genuinely in flight at a zero-grace cutover — `requeue` requires `Failed` and `cancelDisbursement` accepts only `Queued|Failed`, so a `Dispatched` child would be unrecoverable — the module also gains a bounded owner-only path to mark such a subject `Failed` once the grace window has expired, emitting its own event. | Afo decision 2026-08-09, on the pre-merge review's M1. Authentication ran only against the `CommandRecord` snapshot, so a drained cutover — the strongest revocation the source offers — left the retired executor able to mark its in-flight commands `Confirmed` with no G$ moved. Closing that alone would have traded a security hole for a liveness hole, so the exit path is part of the same decision rather than a follow-up. |
 | 61 | **Committing a garden to pay for an Offer requires a steward once the Offer is priced.** Claiming an Offer with a `gardenContext` requires `isGardenSteward` when the declared consideration is non-zero, and continues to require only `isGardenMember` when it is free. The ApprovalGated path re-checks the claimant's membership in `gardenContext` at final acceptance. | Afo decision 2026-08-09, on the pre-merge review's M4. The Garden-claim branch already required a steward while the Individual branch required only membership, so any gardener could bind their garden as the immutable `payerGarden` of a priced protocol Offer without any steward acting. No funds moved — the payer garden's own steward still has to create the payout plan — but the garden carried an unauthorized obligation record and reserved provider capacity. Pricing is the line because free peer-to-peer Offers are the common pilot case and should stay frictionless. This changes an expectation pinned in `CommitmentPoolingPayer.t.sol`. |
+| 62 | **Protocol Safe policy is threshold >= 2 with at least 3 owners; the exact live 2-of-6 set is approved for this release.** The release manifest must freeze and the verifier must reread the complete owner set and threshold. Garden settlement recovery remains its separate exact 2-of-3 policy. Production indexer deployment is removed from this contracts release lane: PRD-722 receives only the verified contract address/start-block artifact diff and owns configuration, reindex, cutover, rollback, and read-back. | Afo decision 2026-08-11. This resolves the living 3-of-5 guide conflict without weakening exact-set verification, and prevents the old hosted indexer from being silently treated as part of the contracts ceremony. Fable review was already dispatched against `de7863391`; any later candidate requires a refreshed exact-range disposition. No broadcast or hosted deployment is authorized. |
+| 64 | **Prototype UI reuses the shipping app's components and rhythms — never a parallel pattern.** Wizards render the real FormProgress chrome with back buttons; evidence is an MDR variant of Submit Work; the kind choice is equal cards; the promise detail carries people + team above the fold and one bar-held primary; ongoing is an inline expansion of the composer, not a detour; exchange is parked until it gets its own design session; "Request" is the single asking word; stewards declare G$ support in a real wizard step on the phone. | Afo's iteration-2 review, 2026-08-11: the correction pass fixed structure but not look-and-feel — flows still invented patterns the app already solves (dots vs FormProgress, sheet evidence vs MDR, X-only headers), the ongoing entry stayed invisible, and steward G$ had no phone surface at all. Register #102. |
+| 63 | **The client prototype catalog is a two-tier product: canonical journeys plus an exhaustive state library.** Seventeen client journeys each start at a drawn home surface, one person, one sitting; every offline/failure/cycle-state variant stays reviewable in the Screen library. The composer is entry-fixed with a details capture, and the ongoing and exchange paths folded in as choices; evidence and work capture share the shipping Submit-Work interaction; the work↔promise bridge is drawn in both directions; browse cards carry the D5 contract. Two new validator rules (entry-surface, one-row bars) keep both regressions impossible. | Afo decisions D1–D10, 2026-08-11 interactive plan session, after the deep client-PWA audit found the registry's state-coverage instrument being presented as UX journeys: wizard repetition across eight flows, mid-app starts, promise/offer vocabulary drift, unused MDR patterns, and a work-link mis-wired to the admin console. Register #101; admin findings recorded, not fixed, in `reports/admin-prototype-follow-up-2026-08-11.md`. |
 
-### Full decision register (2026-07-03 alignment session, entries 1–27; dated addenda 28–97)
+### Full decision register (2026-07-03 alignment session, entries 1–27; dated addenda 28–103)
 
 **Cite entries in this list as "register #N"** — see the disambiguation note above. (The heading previously read "27 decisions", which stopped being true once the addenda were appended.)
 
@@ -172,7 +180,7 @@ Known mis-resolutions fixed in place: `contract-spec.md` §Grassroots-Economics-
 5. EAS bridge: WorkApprovalResolver approval/rejection hook (try/catch, non-blocking) plus steward `syncWorkDecisions` fallback.
 6. State weight: hybrid; hard transitions on-chain (seed, offer/request, accept, evidence count, ReadyForConfirmation, Fulfilled, cancel/expire, dispute flag, cycle open/close/compost, pool pause); Draft and review-soft states derived.
 7. v3 authorship: baseline = evaluator or operator; delta/re-assessment = Evaluator Hat only; testimony = Community Hat only.
-8. Protocol pool: the root garden's pool (tokenId 1), poolType PROTOCOL, cross-garden claim reach.
+8. Protocol pool: the root garden's pool (tokenId 0), poolType PROTOCOL, cross-garden claim reach.
 9. PWA placement: pool flows in the Garden tab; personal commitments + pending confirmations in the WalletDrawer pools tab; ~~Home gets at most a summary card~~ **superseded by Decision Log #28 and register #39: no active Home card; W6 only aliases W5 for compatibility.**
 10. Admin placement: garden-pool flows in the Garden workspace; the protocol pool console lives under `/community`; Hub gains a confirmation queue. **Amended by Decision Log #28, register #39, and Decision Log #37: `/community/pools` shows Protocol plus the current garden only; all-garden oversight moved to capability-gated Operations, with each write independently authorized.** No top-level `/pools` workspace exists.
 11. Seasons & Campaigns project: converted in place to "Green Goods Commitment Pooling" (supersedes the create-new-project instruction).
@@ -409,9 +417,13 @@ Known mis-resolutions fixed in place: `contract-spec.md` §Grassroots-Economics-
     equal retained plus all contributor payouts. Retention creates no self-transfer. Recipients
     are frozen eligible contributors whose Celo accounts are derived by the shared account
     profile. The provider-garden settlement account must remain Active for edit, finalization,
-    first preparation, ContributorConsideration batching, and initial dispatch.
+    first preparation, ContributorConsideration batching, and initial dispatch. *(Superseded by
+    register #90: the payer-garden settlement account holds this requirement; provider = payer
+    only for garden-internal commitments.)*
 66. Settlement reuse amendment (2026-07-28, Afo authorization): the provider garden Safe is the
     payer for contributor rewards, while ProtocolToGarden remains an independent top-up rail.
+    *(Payer half superseded by register #90, 2026-08-08: the payer garden Safe — the asking
+    side — pays.)*
     Protocol Safe to garden Safe value is always `Funding` created through `queueFunding`, never a
     garden-beneficiary commitment reward.
     Each non-zero payout becomes one ordinary bounded child disbursement; the payout plan's
@@ -765,11 +777,141 @@ Known mis-resolutions fixed in place: `contract-spec.md` §Grassroots-Economics-
     direction, the W2 request-work cast draws its work/evidence/people disclosures, and
     `acceptExchange` routes through `W30@submitting` — Matched renders only from confirmed
     `ExchangeAccepted`, never optimistically.
+98. Visual Asset Gallery Screens tab retired (2026-08-11, Afo decision after drift analysis): the
+    gallery no longer renders `wireframes.md`, leaving screens exactly one published surface — the
+    Flow Prototypes artifact generated from the validated `hifi/` registry. Rationale: the low-fi
+    mirror kept drifting from the registry (the 2026-07-27 audit found 4 of 25 frames matching;
+    every later wireframe wave reopened the reconciliation debt), and the two published screen
+    surfaces diverged faster than manual reconciliation closed them. The gallery drops to three
+    tabs (The story · Architecture · Reference) and 42 Mermaid blocks — the cross-surface flow map
+    retired with the tab since D1 carries the surface topology in richer form — and now links the
+    Flow Prototypes artifact from the masthead subtitle and the Go deeper list, with build
+    assertions keeping both links present and the tab from reappearing. The Reference tab's "Do
+    the wireframes mirror our UI prototypes?" finding records the closure. `wireframes.md` carries
+    a design-history status header — the same standing register #96 gave the retired
+    `prototypes.md`; its per-frame `#screens/SCREEN@state` deep links are dated to the 2026-07-27
+    reconciliation, not maintained. No repo consumer outside the plan hub referenced the tab, and
+    no published deep-link fragments into the gallery exist, so no anchor aliases were needed.
+99. The current contract ceremony stops paused and deployment-sender owned (2026-08-11, Afo
+    decision). It does not transfer any Arbitrum or Celo proxy to the protocol Safe, execute the
+    approved 18-garden/root-token-0 backfill, or unpause core. Those operations move together to a
+    separately reviewed Product issue, which must prove the paused-registration increment, exact
+    Safe owners/threshold on each target chain, one verified transfer boundary at a time, every
+    backfill receipt/checkpoint, and a separate unpause authorization. The protocol Safe remains
+    the approved future owner. This change does not invent an EOA backfill path: ownership and
+    backfill commands are absent from the current one-password operator, current ownership
+    broadcast fails closed in the manifest, and post-deploy owner verification stays in
+    `deployment` phase. The pending paused-registration increment no longer blocks a paused
+    deployment candidate, but remains mandatory before the later backfill issue can execute.
+100. Pool-pause scope is creation-side by design (2026-08-11, Afo decision from the
+    architecture-tab ↔ contracts audit): the shipped `PoolState.Paused` gates only creation-side
+    writes (`createCommitment`, series creation, cycle seed/open); claims, acceptance, Ready
+    submission, confirmation, and exchange remain callable on a paused pool, and the module-level
+    `setPaused` is the emergency freeze. The five documents that described pool pause as blocking
+    claims/Ready/confirm were corrected to the code posture in the same pass (D8, contract-spec
+    §5.2/§6.2 prose, acceptance-matrix, uiux-spec, closure-matrices LC-01). A fuller claim/confirm
+    pool freeze is a deliberate post-deploy upgrade candidate — not a defect — to be scheduled
+    with the first pooling-tier upgrade window if operations wants it. Tracked as PRD-813.
+
+101. Client prototype correction pass (2026-08-11, Afo decisions D1–D10 in the interactive
+    plan session; the written contracts are the uiux-spec Appendix B addenda and the
+    contract-spec commitment-metadata schema addendum): the client catalog is two-tier — 17
+    canonical journeys, each starting at a drawn home surface (W1 pool tab / W5 wallet drawer /
+    WFLOW Garden tab; validator-enforced) with every offline/failure/cycle-state variant kept in
+    the Screen library; retired flow hashes (sb3a/7/16/26/28/30/36/38–41/44/52) follow the #sb9
+    precedent. The composer is entry-fixed — no in-form Direction control — with kind words, an
+    optional Add-details capture (photo / voice note / written note / links → commitment-metadata
+    JSON v1 → `metadataCID`; app-layer only, write-once, evidence is the post-creation channel),
+    How-often Just once / Ongoing (W33 retired into composer states `ongoing-terms`/
+    `ongoing-review` running one ordered `createCommitmentSeries` + place-creation queue
+    sequence), the exchange row as a labeled step-2 detour, sectioned Submit-Work review anatomy
+    with per-section edit links, and a real review step for requests. Evidence capture is
+    MDR-parity (camera / gallery / voice note from the fixed bar, link/note kinds, multi-item,
+    contributor chips kept). The work↔promise bridge is drawn in both directions: WFLOW is the
+    real four-step Submit Work flow plus the "Fulfills a promise" picker, and `w2.link-work`
+    targets a client work-picker instead of the admin console. Cards follow the D5 contract
+    (creator by-line, real progress only, one context action or one reason line, roster
+    indicator; ongoing places carry an Ongoing chip + places-left). "Things I can offer" gained
+    its drawn wallet entry; W31 is titled "Start from a template"; sb27 is a take-up journey with
+    steward-only season/campaign copy on the no-season state; action bars are kit-enforced
+    one-row with a validator check; the player restores catalog scroll on flow exit. "Promise"
+    names the record; offer/ask name the acts. Admin-console findings are recorded in
+    `reports/admin-prototype-follow-up-2026-08-11.md`, deliberately unfixed this pass. No runtime
+    package, contract, ABI, indexer, or Linear change.
+
+102. Iteration 2 on the client prototypes (2026-08-11 evening, Afo's artifact review + three
+    locked Q&A rounds; supersedes register #101's exchange, ongoing-detour, and ask-naming
+    placements): wizards wear the real Submit Work chrome (FormProgress numbered circles, close
+    on step 1 / back after, one-row fixed bar); the kind choice is equal 2-up cards and choice
+    rows are equal-height. Ongoing folds INLINE into the composer — the amount step expands and
+    the review gains a Places section; the separate Ongoing chapter and detour states retire.
+    **Exchange is parked**: no client journey walks it and the composer/template entries are
+    removed; W28–W30 remain Screen-library reference pending a dedicated design session.
+    "Request" is the one asking word ("Make a request" entry, Requests chapter), and the drawn
+    request walk is the steward cast with a real Support step — declaring G$ on the phone with
+    existing declared-consideration semantics, gardeners skipping the step. Evidence is a true
+    MDR variant (media → details → review with cast-preserving review variants and a tap-to-add
+    capture area). The promise detail gains the E5 anatomy — people row + team strip above the
+    fold, the one contextual primary in a fixed bottom bar (inline duplicates stripped). The
+    confirm walk ends once on the promise (duplicate kept-screen and the editorial echo
+    removed); the team journey enters through the promise detail and the new "Add people to
+    your team" walks the lead's roster add; the protocol journey runs claim → work → confirmed
+    → support arrived in one arc; change-of-plans splits into Withdraw an offer / Offer it
+    again; the campaign take-up journey folds into Help-with-what-was-requested branches. The
+    review catalog lays chapters two-up. 17 client journeys; build 39 screens / 414 states /
+    592 hotspots / 45 flows / 283 scenes, 0 warnings; artifact republished (share pin re-pinned
+    manually). No runtime package, contract, ABI, indexer, or Linear change.
+
+103. The `commitment-pooling-settlement-credit-v1` candidate is deliberately reopened for one
+    coherent ABI increment (2026-08-11, Afo decision). The increment contains exactly three
+    changes: member-funded priced-Offer claims with garden-Safe custody and mechanically eligible
+    refunds under `member-funded-claims-brief.md` Option B; `PoolState.Paused` as the full per-pool
+    freeze for claim, decline, acceptance, exchange, Ready submission/override, and both
+    confirmation paths; and authority-preserving `registerPool` backfill while the module is
+    paused. This supersedes register #100's creation-side pool-pause posture. The frozen candidate
+    is reopened only for these three changes, then receives new interface/storage/event closure,
+    tests, release identities, and a fresh committed-range review before re-freeze. Specification,
+    closure matrices, ontology, Linear tracking, diagrams, prototypes, and the circulation
+    document must close and pass their gates before implementation begins; Afo reviews those
+    Phase 1–3 surfaces at the explicit pre-code checkpoint. Register #102 was already committed to
+    the client-prototype iteration before this dispatch, so this decision uses the next available
+    number rather than rewriting decision history.
+
+104. Narrow specification re-closure after the Phase 4 adversarial review (2026-08-11, Afo
+    authorization; amends register #103 without widening its product scope): `FundingWithdrawn`
+    becomes the fourth funding event so the later event-derived read model can distinguish a
+    nothing-owed `Pledged -> Withdrawn` transition from an unchanged pledge. The member-funding
+    ERC-7201 namespace appends `consumedFundingOfCommitment` as declaration six; consumption sets
+    that pointer once, and payout completion closes funding locally from it without an external
+    Commitment Pooling read on the fixed-gas authenticated acknowledgment path. The proposed
+    configured batch limit must be measured against the 300,000 source-receiver budget with the
+    worst case of distinct funded plans; a lower measured limit is required if 24 does not fit.
+    The unchanged paused-registration authority risk is explicitly accepted: a current root-garden
+    steward can register the root as Garden before the module owner registers the Protocol pool,
+    consume the root's one-pool slot, and block later Protocol registration. The reviewed backfill
+    must reject that shape and execute the owner-only exact-root Protocol registration first, but
+    this increment adds no new authority guard. These two spec corrections and the recorded risk
+    acceptance reclose and receive Afo review before their Phase 4 implementation changes; no
+    other ABI, storage, authority, release-lane blocker, or application/indexer scope rides this
+    amendment.
+
+105. Internal committed-range review substitution confirmed for the member-funded increment
+    (2026-08-12, Afo confirmation): the August 10 decision to use an internal committed-range
+    review instead of an external vendor audit extends to the reopened member-funded release
+    increment pinned at
+    `21454603967370e98a61df70d399cfa7c11ce63d..50a2c29d3d9f08ed97d9b0e8b8de95d07f6fcb63`
+    and reviewed in `reports/member-funded-release-rereview-2026-08-12.md`. This closes only the
+    explicit audit-disposition confirmation requested by that report. It does not authorize a
+    deployment, broadcast, Safe transaction, value movement, canary, unpause, cap increase, or
+    indexer activation; it does not close the protocol-Safe transfer, AssessmentResolver v3 Phase
+    B, final `destinationGasLimit`, or value-authority blockers; and it does not extend the pinned
+    range to later build/test optimization commits.
 
 **Final recursive certification clarification (2026-07-25; no new decision-register entry):**
 the published `42161`↔`42220` production lane is the only required fully paired
 `SettlementConfiguration`. Arbitrum Sepolia `421614` and Celo Sepolia `11142220` remain
-independent, paused component rehearsals: their contract blocks and local configuration facts are
+independent, paused component rehearsals *(dated context — the 2026-08-06/2026-08-10 decisions
+withdrew the `421614` network records and dropped the Celo Sepolia Safe/Zodiac rehearsal)*: their contract blocks and local configuration facts are
 preserved, but `remoteEvmChainId` remains null, `peerConfigured` remains false, and handlers emit
 no cross-chain relationship without a freshly published exact CCIP lane/router. The ephemeral
 Arbitrum Sepolia↔Ethereum Sepolia endpoint proof remains runtime-only. This corrects the
@@ -873,11 +1015,13 @@ does not begin against moving contracts or indexer queries.
 7. [ ] **Build the state/API backend third (PRD-723):** complete the shared state/API layer against the proven PRD-721 contracts and PRD-722 generated queries. PRD-723 must close before PRD-724, PRD-725, or PRD-726 begins.
 8. [ ] **Human-authorized core activation:** pass local/fork, storage, deploy-dry-run, and post-deploy
    gates plus every blocking repository requirement: external audit with no unresolved
-   critical/high finding, verified protocol 3-of-5 Safe ownership for every touched UUPS/admin
-   surface, 48-hour mainnet timelock, at least two weeks of testnet operation, and tested rollback.
+   critical/high finding, verified exact protocol Safe ownership satisfying threshold >= 2 and
+   owner count >= 3 for every touched UUPS/admin surface, the recorded timelock/soak disposition,
+   and tested rollback.
    Only then may a human authorize broadcast of the non-value module/register/schema tier, persist
-   and verify artifacts, update Envio deployment configuration, deploy/reindex, and re-read live
-   entities/queries. Value-bearing settlement retains its additional CCIP/AA/canary authorization.
+   and verify contract artifacts. PRD-722 separately owns the resulting indexer address/start-block
+   change, hosted deployment/reindex, cutover/rollback, and live entity/query read-back. Value-bearing
+   settlement retains its additional CCIP/AA/canary authorization.
 9. [ ] **Existing admin foundation:** resolve PRD-737 and the explicitly scoped admin-console/output defects against verified live backend data. Do not turn this into a redesign or absorb new Commitment Pooling feature implementation.
 10. [ ] **Complete prototype readiness:** PRD-789 is closed after correction, independent review,
     publication, and canonical-URL verification. Close the remaining PRD-760 fixture/chrome
@@ -918,6 +1062,10 @@ Machine-lane ownership mirrors `status.json`: Codex owns `contracts`, `state_api
 
 ### Contracts (`codex/contracts/commitment-pooling`): PRD-721 (historical labels PRD-671/672)
 
+- [ ] Implement register #103's full pool-pause freeze and paused `registerPool` path, as amended
+  by register #104's accepted root-registration residual, without
+  gating evidence/linkage, roster wind-down, cancellation/expiry/dispute recovery, or the
+  non-blocking Work-decision hook
 - [ ] Contract logic and tests per `contract-spec.md`; bun wrappers only, never raw forge
 - [ ] Implement `CommitmentSeries` exactly per `standing-commitments-spec.md`: storage, errors,
   events, direct-holder Active/Resting/Retired lifecycle, validated Offer-only instance reference,
@@ -938,6 +1086,16 @@ Machine-lane ownership mirrors `status.json`: Codex owns `contracts`, `state_api
 
 ### Settlement (`codex/settlement/commitment-pooling`): PRD-686
 
+- [x] Track the current-release member-funded increment in
+  [PRD-814](https://linear.app/greenpill-dev-guild/issue/PRD-814), parented to the live
+  [PRD-650](https://linear.app/greenpill-dev-guild/issue/PRD-650) roadmap and related to the
+  in-progress pool-freeze issue
+  [PRD-813](https://linear.app/greenpill-dev-guild/issue/PRD-813)
+- [ ] Implement register #103's member-funded claim records, steward-confirmed deposits,
+  acceptance consumption, one persistent refund child, failed-refund requeue, and ordinal-safe
+  `DisbursementKind.Refund` through the existing command/acknowledgment rail, as amended by
+  register #104's `FundingWithdrawn` event, sixth local closure pointer, and measured source-ack
+  gas proof
 - [ ] `SettlementModule` + tests per `settlement-spec.md` §3; zero changes to the pooling module or register; bun wrappers only
 - [ ] Build Arbitrum `SettlementModule` + Celo `CeloSettlementExecutor` against the exact command/ack tuples; reuse the existing `@chainlink/contracts-ccip` dependency and ENS sender/receiver authentication patterns
 - [ ] Prove immutable batch membership, disabled/configured/hard-ceiling batch bounds, per-member failed-attempt recovery, idempotent same-key command retry, independent acknowledgment retry, one immutable router per implementation, bounded peer grace, paused/drained router cutover, zero CCIP token amounts, native-fee reserve monitoring, bounded Safe execution/failure codes, exact indexer entities/events, and AA-gated PWA member delivery
@@ -967,7 +1125,7 @@ Machine-lane ownership mirrors `status.json`: Codex owns `contracts`, `state_api
 - [x] Rehearsal target settled 2026-08-06: Arbitrum One fork, not `421614`. Hats has no Arbitrum
       Sepolia deployment; `test/fork/ArbitrumCommitmentPooling.t.sol` runs the full runbook against
       live Hats/EAS/WorkApprovalResolver and passes 7/7.
-- [ ] Planning readiness: self-describing unit events, `421614` placement, canonical settlement
+- [ ] Planning readiness: self-describing unit events, `421614` placement (since withdrawn 2026-08-06 — Arbitrum One fork rehearsal), canonical settlement
   ERD, the Envio `3.2.1` multichain/replay behavior proven by merged PR #649 (`8fd89e660` on
   `develop`), first-event seeds, and Celo RPC mode are frozen locally;
   mirror convergence and event freeze still gate dispatch.
@@ -1090,6 +1248,13 @@ Per the Validation Intent Ladder: lane work uses targeted proof; the coordinator
 - [ ] Full-local dogfood before cycle 1: `bun run dev` + `bun run dev:smoke:full`
 
 ## Follow-ups from the 2026-07-18 audit response (Linear MCP was unauthenticated this session — file these when it reconnects)
+
+- [ ] **Post-release source-layout cleanup:** move the shared, internal-pure
+  `SettlementMessageCodec` from `packages/contracts/src/libraries/` into the canonical
+  `packages/contracts/src/lib/Settlement/` tree. Do this only after the current release freeze:
+  the source-unit path participates in compiler metadata and can change the bytecode identities of
+  every inlining consumer, so the move requires a fresh full build, CREATE2 manifest, and release
+  review rather than being folded into this re-freeze as cosmetic churn.
 
 1. **App-wide Operator → Steward rename**: community glossary (`docs/docs/reference/glossary-community.md`), docs site, i18n keys ×3 locales, admin/client UI copy, vocab-lint update. CP specs/visuals already use steward (mapping note: steward = operator/owner Hats).
 2. **PRD-727 docs-promotion appendix refresh** (historical PRD-680): diagrams.md §Appendix already lists the ship-time docs edits; re-check after the audit-response restructure (D10 acts, D4 matrix, CommitmentRequirement entity).

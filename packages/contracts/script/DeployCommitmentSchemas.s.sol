@@ -202,9 +202,8 @@ contract DeployCommitmentSchemas is DeployHelper {
         string memory serialized =
             vm.serializeBytes32(output, "predictedCommunityTestimonySchemaUID", result.communityTestimonyUID);
 
-        string memory outputPath = string.concat(
-            vm.projectRoot(), "/deployments/", vm.toString(block.chainid), "-commitment-schemas-prepared.json"
-        );
+        string memory outputPath =
+            _deploymentArtifactPath(string.concat(vm.toString(block.chainid), "-commitment-schemas-prepared.json"));
         vm.writeJson(serialized, outputPath);
         console.log("Preparation result written to:", outputPath);
     }
@@ -216,7 +215,7 @@ contract DeployCommitmentSchemas is DeployHelper {
         string memory serialized = vm.serializeBytes32(output, "communityTestimonySchemaUID", testimonyUID);
 
         string memory outputPath =
-            string.concat(vm.projectRoot(), "/deployments/", vm.toString(block.chainid), "-commitment-schemas-final.json");
+            _deploymentArtifactPath(string.concat(vm.toString(block.chainid), "-commitment-schemas-final.json"));
         vm.writeJson(serialized, outputPath);
         console.log("Finalization result written to:", outputPath);
     }

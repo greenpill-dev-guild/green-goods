@@ -6,6 +6,7 @@ import { Test } from "forge-std/Test.sol";
 import { IRouterClient } from "@chainlink/contracts-ccip/contracts/interfaces/IRouterClient.sol";
 import { Client } from "@chainlink/contracts-ccip/contracts/libraries/Client.sol";
 import { NetworkSelectors } from "../../script/lib/NetworkSelectors.sol";
+import { SettlementMessageCodec } from "../../src/libraries/SettlementMessageCodec.sol";
 
 interface ITypeAndVersion {
     function typeAndVersion() external view returns (string memory);
@@ -61,7 +62,8 @@ contract CrossChainSettlementLaneForkTest is Test {
         }
     }
 
-    // ─────────────────────────────── Lane liveness ───────────────────────────────
+    // ─────────────────────────────── Lane liveness
+    // ───────────────────────────────
 
     /// @notice Both configured addresses are real CCIP routers, not stale or wrong entries.
     /// @dev Bytecode alone would pass for any contract; `typeAndVersion` is what makes this an
@@ -138,7 +140,19 @@ contract CrossChainSettlementLaneForkTest is Test {
         emit log_named_uint("celo -> arbitrum fee (wei, native)", celoToArb);
     }
 
-    // ─────────────────────────────── Config integrity ───────────────────────────────
+    /// @notice The live Arbitrum-to-Celo lane prices the newly appended Refund command shape.
+    /// @dev This proves the ABI increment still fits through the configured production transport;
+    ///      executor authorization, available Safe balance, and DON delivery remain separate gates.
+    function testCrossChainSettlementLane_refundCommandQuotesANonZeroFeeOnTheLiveLane() public {
+        if (!forked) return;
+
+        vm.selectFork(arbForkId);
+        uint256 fee = IRouterClient(arbRouter).getFee(celoSelector, _refundCommandMessage());
+        assertGt(fee, 0, "Arbitrum One -> Celo Mainnet refund command quoted a zero fee");
+    }
+
+    // ─────────────────────────────── Config integrity
+    // ───────────────────────────────
 
     /// @notice Neither side of the lane is left unconfigured.
     /// @dev Celo's router and selector were both zero until this lane was verified; a zero here
@@ -152,7 +166,8 @@ contract CrossChainSettlementLaneForkTest is Test {
         assertTrue(arbSelector != celoSelector, "the two chains cannot share a selector");
     }
 
-    // ───────────────────────────────── Helpers ─────────────────────────────────
+    // ───────────────────────────────── Helpers
+    // ─────────────────────────────────
 
     function _assertIsRouter(address router, string memory label) private {
         assertGt(router.code.length, 0, string.concat(label, ": configured ccipRouter has no bytecode"));
@@ -180,6 +195,21 @@ contract CrossChainSettlementLaneForkTest is Test {
         return Client.EVM2AnyMessage({
             receiver: abi.encode(address(0xdEaD)),
             data: abi.encode(uint256(1), uint256(2)),
+            tokenAmounts: new Client.EVMTokenAmount[](0),
+            feeToken: address(0),
+            extraArgs: Client._argsToBytes(Client.EVMExtraArgsV1({ gasLimit: RECEIVER_GAS_LIMIT }))
+        });
+    }
+
+    function _refundCommandMessage() private pure returns (Client.EVM2AnyMessage memory) {
+        address[] memory recipients = new address[](1);
+        recipients[0] = address(0xF00D);
+        uint256[] memory amounts = new uint256[](1);
+        amounts[0] = 100 ether;
+
+        return Client.EVM2AnyMessage({
+            receiver: abi.encode(address(0xdEaD)),
+            data: SettlementMessageCodec.encodeCommand(1, 1, false, 0, address(0xCAFE), 4, recipients, amounts),
             tokenAmounts: new Client.EVMTokenAmount[](0),
             feeToken: address(0),
             extraArgs: Client._argsToBytes(Client.EVMExtraArgsV1({ gasLimit: RECEIVER_GAS_LIMIT }))

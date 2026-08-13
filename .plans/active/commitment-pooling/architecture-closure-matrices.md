@@ -33,8 +33,8 @@ control, persistence label, or lifecycle transition must add a row here and pass
 
 ### A1. Complete event inventory
 
-The canonical ABI inventory contains **54 events**. Every event is assigned exactly one primary
-projection policy below. Audit-row insertion is independently idempotent for all 54.
+The canonical ABI inventory contains **57 events**. Every event is assigned exactly one primary
+projection policy below. Audit-row insertion is independently idempotent for all 57.
 
 | ID | Events | Primary projection | Ordering and replay contract | Required reverse-delivery proof |
 |---|---|---|---|---|
@@ -66,6 +66,7 @@ projection policy below. Audit-row insertion is independently idempotent for all
 | EO-26 | `ModuleDependencyUpdated`, `ModuleSchemaUIDUpdated`, `ModulePauseStatusChanged`, `ModuleUpdated` | Pool-less configuration audit | Immutable audit rows only in this read model. No inferred actor, pool, cycle, or commitment relation. | all four before any pool plus duplicate delivery |
 | EO-27 | `ClassRegistered` | Immutable capacity class | Create one `CommitmentClass` row from emitted pool/cycle/label/quota. It changes no aggregate or exposure. | class before commitment and unit events |
 | EO-28 | `UnitsCommitted`, `UnitsReleased`, `UnitsFulfilled` | Exact-label summaries, provider exposure, pool/cycle open counts | Unique-event signed commutative deltas. Final totals are independent of delivery order; cumulative class totals are audit evidence, not aggregate assignment. Counts may be transiently negative during synthetic reverse replay but are never published as a completed checkpoint until the replay transaction/batch converges. | Commit/Release/Fulfill in every order, same label and case-distinct labels |
+| EO-29 | `FundingPledged`, `FundingDepositRecorded`, `FundingConsumed`, `FundingWithdrawn` | Member-funding immutable identity, deposit fact, acceptance consumption, and nothing-owed withdrawal | `FundingPledged` fills the base row once. Deposit, consumption, and withdrawal use independent nullable position cursors so any may arrive before pledge; an older event fills its fact without regressing a later funding outcome. `FundingWithdrawn` is the event-owned terminal outcome for `Pledged -> Withdrawn`; exact replay is an audit no-op. RefundQueued/Refunded/Closed derive from the persistent funding-child relationship plus existing claim, commitment, payout-plan, disbursement, and authenticated acknowledgment events. | deposit/consume/withdraw before pledge, consume before deposit, duplicate pledge/withdraw, and refund-child events before every funding event |
 
 ### A2. Complete indexed entity and relationship inventory
 
@@ -90,7 +91,7 @@ projection policy below. Audit-row insertion is independently idempotent for all
 | ER-17 | `CommitmentEvidenceAttributionIndex` | EO-21 | Unique sorted IDs; bounded direct lookup only. |
 | ER-18 | `CommitmentClaimRequest` | EO-14, EO-24 | `requestSeen`, nullable Request payload, and per-row lifecycle cursor; decline-first and commitment-terminal delivery never revive behind a winning marker. |
 | ER-19 | `CommitmentClaimRequestIndex` | EO-14 | Unique claimant-key IDs sorted lexicographically; sweep semantics do not depend on insertion order. |
-| ER-20 | `CommitmentEvent` | all 54 events | Immutable `chainId-txHash-logIndex` audit guard. |
+| ER-20 | `CommitmentEvent` | all 57 events | Immutable `chainId-txHash-logIndex` audit guard. |
 | ER-21 | `CommitmentPendingLifecycleProjection` | EO-10, EO-23–24 | Typed event payload; same ID as audit event; applied once. |
 | ER-22 | `CommitmentPendingLifecycleProjectionIndex` | EO-10, EO-23–24 | Unique IDs drained by stored position, never insertion order. |
 | ER-23 | `NeedCommitmentIndex` | EO-10, EO-24, bundle creation | Unique sorted composite relationship IDs; Fulfilled membership follows current terminal result. |
@@ -99,6 +100,7 @@ projection policy below. Audit-row insertion is independently idempotent for all
 | ER-26 | `PoolMemberHistory` | EO-14, EO-18, EO-23–24 | Event-owned actor counts plus reversible terminal lead outcome and once-only frozen participant outcome. |
 | ER-27 | Garden relationships (`gardenId`, `providerGardenId`, `gardenContextId`) | emitted addresses | Existing normalized bare-address `Garden.id`; never migrated to a composite key. |
 | ER-28 | Pool/cycle/series/commitment relationship fields and arrays | owning entity events | Composite IDs for new entities; every set-like array is unique and deterministically sorted, while semantically ordered pending projections sort by event position. |
+| ER-29 | `CommitmentFunding` | EO-29 plus claim/commitment, payout-plan, `DisbursementQueued`, requeue/cancel, and authenticated acknowledgment events | Immutable `chainId-fundingId` row with nullable base/deposit/consume/withdraw cursors; one `(commitmentId, funder)` identity, one persistent refund child ever, complete recorded-deposit refund amount, and no timeout/log-only transition to Refunded. |
 
 ### A3. Sparse-event materialization ledger
 
@@ -158,6 +160,7 @@ classified exactly once. “No hi-fi surface” is an explicit product boundary,
 | RI-19 | Settlement requeue/new logical attempt | online authority-gated | new attempt ID allowed only after authenticated failure | read prior terminal failure and preserve lineage | no hidden retry; explicit new attempt |
 | RI-20 | Payout plan parent/child recovery | online authority-gated | stable plan ID; immutable contributor-or-beneficiary shape and stable child pointer | retry only the failed child; never recreate the parent or convert its shape | explicit targeted retry |
 | RI-21 | Pre-acceptance term edits and Work correction | online steward mutation | target commitment/Work plus exact new term or current resolver decision | re-read the cursor-winning value/consideration/rule/link/decision; exact target is success and a newer conflicting target returns to review | no automatic retry |
+| RI-22 | Member funding record, deposit, consumption, and refund | online steward mutation | stable funding ID; immutable commitment, funder, refund account, expected amount, and one funding-to-disbursement pointer | re-read the funding state and immutable fields; an exact pledge/deposit/consumption result is success, while a refund retry returns the existing child and never creates a second refund | no automatic retry; exact retry is idempotent |
 
 ### B3. Executable-call coverage
 
@@ -181,6 +184,7 @@ that row's recovery rule; this table prevents a new visible mutation from bypass
 | RI-15 | `confirmFulfillmentAsFallback`, `recordConsiderationPaid` |
 | RI-17–RI-19 | `registerSettlementAccount`, `requeue`, `queueFunding`, `createBatch`, `dispatchDisbursement`, `dispatchBatch`, `retryCommand`, `retryBatchCommand`, `retryAcknowledgment`, `cancelBatch`, `cancelDisbursement` |
 | RI-20 | `createCommitmentPayoutPlan`, `setContributorPayouts`, `finalizeCommitmentPayoutPlan`, `prepareContributorPayout`, `prepareGardenBeneficiaryPayout` |
+| RI-22 | `recordFunding`, `recordFundingDeposit`, `consumeFunding`, `queueFundingRefund` |
 
 ---
 
@@ -225,13 +229,14 @@ unkeyed `createCommitment`.
 
 | ID | Subject | Live/open definition | Entry guard | Terminal/closure guard | Required wind-down while paused/non-open |
 |---|---|---|---|---|---|
-| LC-01 | Pool | every non-terminal commitment in the pool, including cycle-less Offered/Requested and every cycle-bound live state | creation/claim/readiness/ordinary confirmation require the documented pool state | `closePool` requires `Pool.liveCommitmentCount == 0` and no Open/Seeded/Reconciled cycle awaiting its own terminal act; Composted follows Closed | browse, evidence/linkage where still legal, cancel, expire, dispute, and resolution remain available; the admin lists every blocker |
+| LC-01 | Pool | every non-terminal commitment in the pool, including cycle-less Offered/Requested and every cycle-bound live state | register #103 makes Paused the full per-pool freeze: create commitment/series, cycle seed/open, claim/decline, acceptance, exchange, Ready submission/override, and both confirmation paths require Open. `registerPool` alone may run while the module is paused under its unchanged authority/identity gates | `closePool` requires `Pool.liveCommitmentCount == 0` and no Open/Seeded/Reconciled cycle awaiting its own terminal act; Composted follows Closed | browse, evidence/linkage where still legal, roster-safe wind-down, cancel, expire, dispute, resolution, and the non-blocking Work-decision hook remain available; the admin lists every blocker |
 | LC-02 | Cycle | every non-terminal commitment with this non-zero cycle ID | Seed while Ready/Open; Open from Seeded with valid snapshots and Season cardinality | close/cancel require `Cycle.liveCommitmentCount == 0`; compost requires Reconciled | safe-wind-down actions do not resume a Paused pool |
 | LC-03 | Series | Active/Resting series plus all linked instances, whose lifecycles remain independent | create in Ready/Open; add places only Active + pool Open | Retired blocks new places but never terminates or hides existing instances | existing Offered/Accepted instances remain discoverable/actionable until their own terminal state |
 | LC-04 | Commitment | Offered/Requested/Accepted/ReadyForConfirmation/Disputed are live; derived Active/EvidenceSubmitted/PartiallyApproved map to Accepted | complete creation/eligibility/capacity checks before mutation | Fulfilled and Cancelled are unconditionally terminal — no outgoing transition exists. **Expired is closed for capacity and live-count accounting but is dispute-reopenable**: `raiseDispute` is legal from Expired, re-increments the live counts, and `resolveDispute` then returns to Expired or resolves Cancelled, never Fulfilled. A generic "terminal state" guard must not be applied to Expired, or it will reject a valid dispute, strand the live count, and hide the wind-down action. Dispute restoration reverses/reapplies live counts exactly once | cancellation/expiry/dispute paths remain; a cycle-less due-date-less commitment requires explicit cancellation before pool closure |
 | LC-05 | Claim request | `PENDING` while the parent remains claimable | one active request per canonical claimant and exact stored terms; Garden kind is protocol-pool-only and must target a registered garden other than the protocol garden before pending state | Accepted/Declined/Superseded are terminal attempts; a fresh post-decline request is a later event | acceptance/cancel/expiry supersedes every current or late-arriving older request |
 | LC-06 | Capacity | Offered Offers and Accepted Offers/Requests hold full class units and one lead-provider slot | cap checked only on a new reservation | Fulfill converts; cancel/expire release; no second acceptance commit and no double release | pool/cycle/series state changes never silently release, recreate, or hide capacity |
 | LC-07 | Contributors | current cursor-correct active roster before freeze | eligibility/policy/cap/credit gates precede mutation | roster and credit ledger freeze before Ready/Fulfilled; terminal history waits for exact frozen rows | safe wind-down may finish evidence/work/dispute as allowed; no add/remove/assignment after freeze |
+| LC-08 | Settlement disbursement/batch | Queued and Dispatched rows and Queued batches are live subjects | queue via the four entry authorities — contributor/beneficiary preparation by the payer-garden steward, funding by the protocol steward or owner, loan principal by the pool-garden steward against an Approved loan; dispatch only from Queued with the frozen payload and key | Confirmed only by the authenticated current-key/attempt success acknowledgment; Failed by the authenticated failure acknowledgment **or** the owner-only `failStrandedSubject` retired-peer disposition (`SourceStranded`, Decision Log #60) — never from delay and never producing Confirmed; Cancelled from Queued or Failed with reason, never from Dispatched | requeue increments the attempt and detaches a failed batch entry; an immutable failed batch is never requeued as a batch; delay alone never cancels, creates an attempt, or pays twice |
 
 ### D1. Pool live-count contract
 
@@ -267,7 +272,7 @@ current counts:
 | Expansion order | no venue or federation | prove one bounded pool's seed, exchange in/out, redemption, and repair before federation |
 
 Any future voucher implementation must create its own complete event, entity, retry, persistence,
-lifecycle, custody, redemption, and wind-down matrices. It may not alter the current **54 events**,
+lifecycle, custody, redemption, and wind-down matrices. It may not alter the current **57 events**,
 **86 module functions**, **56 executable calls**, or other Matrix A–D counts until a separately
 reviewed implementation amendment deliberately promotes the new surface.
 
@@ -277,7 +282,7 @@ reviewed implementation amendment deliberately promotes the new surface.
 
 The architecture is closed only when:
 
-1. all 54 ABI events appear exactly once in Matrix A and every indexed entity/relationship has an
+1. all 57 ABI events appear exactly once in Matrix A and every indexed entity/relationship has an
    ER row;
 2. all 86 `ICommitmentPoolingModule` functions are classified exactly once, every one of the 56
    executable hi-fi calls has an RI policy, and all six offline job kinds are covered;

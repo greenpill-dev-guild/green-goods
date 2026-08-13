@@ -23,10 +23,13 @@ ${bottomBar}
 }
 
 // Fixed bottom action bar for full-screen flows — the Submit Work chrome
-// (uiux §5.4: TopNav + FormProgress fixed, actions fixed at the foot). Pass
-// the result as phoneFrame's appBar so it sits between the scroll and homebar.
-export function actionBar(actions: string): string {
-  return `<div class="fbar">${actions}</div>`;
+// (uiux §5.4 + 2026-08-11 Appendix B addendum: ONE row, matching the shipping
+// bar — an optional icon/short-text secondary beside one full-width primary,
+// never two stacked full buttons; detour affordances belong in page content).
+// validate.ts rejects a bar carrying two full-width buttons. Pass the result
+// as phoneFrame's appBar so it sits between the scroll and homebar.
+export function actionBar(primary: string, secondary?: string): string {
+  return `<div class="fbar">${secondary ?? ""}${primary}</div>`;
 }
 
 // Screen header — client views hand-render h1 (.title-screen grammar).
@@ -125,10 +128,11 @@ export function stateChip(state: string): string {
 
 export function btn(
   label: string,
-  opts: { kind?: "pri" | "sec" | "ghost" | "danger"; icon?: string; full?: boolean; sm?: boolean; disabled?: boolean } = {},
+  opts: { kind?: "pri" | "sec" | "ghost" | "danger"; icon?: string; full?: boolean; sm?: boolean; disabled?: boolean; ariaLabel?: string } = {},
 ): string {
   const k = opts.kind ?? "sec";
-  return `<button type="button" class="b ${k}${opts.full ? " full" : ""}${opts.sm ? " sm" : ""}"${opts.disabled ? " disabled" : ""}>${opts.icon ? icon(opts.icon, "s") : ""}${esc(label)}</button>`;
+  const aria = opts.ariaLabel ? ` aria-label="${escAttr(opts.ariaLabel)}"` : "";
+  return `<button type="button" class="b ${k}${opts.full ? " full" : ""}${opts.sm ? " sm" : ""}"${opts.disabled ? " disabled" : ""}${aria}>${opts.icon ? icon(opts.icon, "s") : ""}${esc(label)}</button>`;
 }
 
 export function meter(pct: number, opts: { left?: string; right?: string; tickPct?: number } = {}): string {
@@ -213,6 +217,42 @@ export function radio(
 
 export function stepDots(n: number, current: number): string {
   return `<div class="stepdots" role="img" aria-label="Step ${current + 1} of ${n}">${Array.from({ length: n }, (_, i) => `<i aria-hidden="true" class="${i < current ? "done" : i === current ? "on" : ""}"></i>`).join("")}</div>`;
+}
+
+// FormProgress — mirrors the shipping stepper (packages/client/src/components/
+// Communication/Progress/Progress.tsx): numbered 20px circles, a check when a
+// step completes, an accent ring on the current step, hairline + chevron
+// connectors. Wizards render THIS, not dots (iteration 2, 2026-08-11).
+export function formProgress(total: number, current: number): string {
+  const items: string[] = [];
+  for (let i = 0; i < total; i++) {
+    const done = i < current;
+    const cur = i === current;
+    items.push(`<span class="fpstep${done ? " done" : cur ? " cur" : ""}">${done ? icon("check-line", "s") : `<span class="num">${i + 1}</span>`}</span>`);
+    if (i < total - 1) items.push(`<span class="fpline${done ? " done" : ""}"></span><span class="fpsep">${icon("arrow-right-s-line", "s")}</span>`);
+  }
+  return `<div class="fprog" role="img" aria-label="Step ${current + 1} of ${total}">${items.join("")}</div>`;
+}
+
+// Fixed wizard header — the Submit Work TopNav: close on step 1, BACK on every
+// later step (iteration 2: the X-only header was a fidelity break), title,
+// FormProgress trailing.
+export function flowHeader(title: string, step: number, total: number): string {
+  const leading = step === 0
+    ? `<button type="button" class="hback" aria-label="Close — preview only" disabled>${icon("close-line", "l")}</button>`
+    : `<button type="button" class="hback" aria-label="Back — preview only" disabled>${icon("arrow-left-line", "l")}</button>`;
+  return `<div class="hdr fixed">${leading}<h1>${esc(title)}</h1><span class="hx">${formProgress(total, step)}</span></div>`;
+}
+
+// Equal 2-up kind cards (iteration 2): identical-size tappable cards — icon,
+// label, one meta line — selected card fills the accent tint. The same
+// component serves both directions of the composer.
+export function kindCards(options: { icon: string; label: string; meta: string; on?: boolean; hot?: string }[]): string {
+  const cells = options.map((o) => {
+    const cell = `<div class="kcard${o.on ? " on" : ""}">${icon(o.icon)}<div class="kl">${esc(o.label)}</div><div class="km">${esc(o.meta)}</div></div>`;
+    return o.hot ? hot(o.hot, cell) : cell;
+  });
+  return `<div class="kgrid">${cells.join("")}</div>`;
 }
 
 // ---- composition ------------------------------------------------------------
