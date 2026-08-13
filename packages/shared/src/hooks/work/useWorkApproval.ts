@@ -24,6 +24,11 @@ import {
   trackWorkRejectionSuccess,
 } from "../../modules/app/analytics-events";
 import { jobQueue } from "../../modules/job-queue";
+import {
+  LOCAL_OVERLAY_GRACE_MS,
+  type OverlayWork,
+  overlayDeadline,
+} from "../../modules/work/local-status-overlay";
 import { submitApprovalDirectly } from "../../modules/work/wallet-submission";
 import { submitApprovalToQueue } from "../../modules/work/work-submission";
 import type { Work, WorkApprovalDraft } from "../../types/domain";
@@ -47,8 +52,8 @@ interface ApprovalMutationResult {
   confirmed?: boolean;
 }
 
-const PENDING_AUTO_CLEAR_MS = 60_000;
-type PendingWork = Work & { _isPending?: boolean; _pendingUntilMs?: number };
+const PENDING_AUTO_CLEAR_MS = LOCAL_OVERLAY_GRACE_MS;
+type PendingWork = OverlayWork;
 
 export function useWorkApproval() {
   const { formatMessage } = useIntl();
@@ -290,13 +295,13 @@ export function useWorkApproval() {
       const actionLabel = draft.approved ? "approval" : "decision";
       const message =
         authMode === "wallet"
-          ? "Waiting for wallet confirmation..."
+          ? formatMessage({ id: "app.toast.approval.walletConfirm.message" })
           : !navigator.onLine
             ? `Saving ${actionLabel} offline...`
             : `Submitting ${actionLabel}...`;
       const title =
         authMode === "wallet"
-          ? "Confirm in your wallet"
+          ? formatMessage({ id: "app.toast.approval.walletConfirm.title" })
           : !navigator.onLine
             ? "Working offline"
             : "Submitting approval";
@@ -340,53 +345,48 @@ export function useWorkApproval() {
         });
       }
 
-      // A returned transaction hash means the decision has been submitted. Record
-      // its status even if the receipt wait timed out; useWorks otherwise retains
-      // the cached pending value over the indexer's eventual result. Offline hashes
-      // remain pending until their queued job is processed.
+      // A returned hash means the decision reached the chain, so record it —
+      // the operator should see that their action registered. Two things keep
+      // that honest: a submission whose receipt never arrived stays visibly
+      // pending, and every overlay carries a deadline. Once the deadline
+      // lapses the indexer is authoritative again, so a dropped transaction
+      // cannot leave the work looking resolved.
       if (variables) {
         const { draft, work } = variables;
         const confirmedStatus = draft.approved ? ("approved" as const) : ("rejected" as const);
+        const awaitingConfirmation = isOfflineHash || result.confirmed === false;
 
-        // Update to clear pending flag (optimistic update already set the status)
+        const recordDecision = (old: PendingWork[] = []): PendingWork[] =>
+          old.map((w) =>
+            w.id === draft.workUID
+              ? {
+                  ...w,
+                  status: confirmedStatus,
+                  _isPending: awaitingConfirmation,
+                  _txHash: isOfflineHash ? undefined : txHash,
+                  // Offline jobs stay authoritative until their queued job
+                  // completes; everything else expires back to indexed truth.
+                  _pendingUntilMs: isOfflineHash ? undefined : overlayDeadline(),
+                }
+              : w
+          );
+
         queryClient.setQueryData(
           queryKeys.works.merged(work.gardenAddress, chainId),
-          (old: Work[] = []) =>
-            old.map((w) =>
-              w.id === draft.workUID
-                ? {
-                    ...w,
-                    status: confirmedStatus,
-                    _isPending: isOfflineHash, // Keep pending for offline, clear for confirmed
-                    _txHash: isOfflineHash ? undefined : txHash,
-                    _pendingUntilMs: undefined,
-                  }
-                : w
-            )
+          recordDecision
         );
-
         queryClient.setQueryData(
           queryKeys.works.online(work.gardenAddress, chainId),
-          (old: Work[] = []) =>
-            old.map((w) =>
-              w.id === draft.workUID
-                ? {
-                    ...w,
-                    status: confirmedStatus,
-                    _isPending: isOfflineHash,
-                    _txHash: isOfflineHash ? undefined : txHash,
-                    _pendingUntilMs: undefined,
-                  }
-                : w
-            )
+          recordDecision
         );
 
         if (DEBUG_ENABLED) {
-          debugLog("[useWorkApproval] Confirmed optimistic update", {
+          debugLog("[useWorkApproval] Recorded decision", {
             authMode,
             workUID: draft.workUID,
             newStatus: confirmedStatus,
-            isPending: isOfflineHash,
+            isPending: awaitingConfirmation,
+            confirmed: result.confirmed,
             txHash,
           });
         }

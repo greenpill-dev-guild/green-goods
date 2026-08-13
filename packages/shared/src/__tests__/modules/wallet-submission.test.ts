@@ -444,6 +444,28 @@ describe("wallet-submission", () => {
       }
     });
 
+    it("rejects a mined-but-reverted receipt instead of reporting it confirmed", async () => {
+      // waitForTransactionReceipt resolves with the receipt on revert rather
+      // than throwing, so "a receipt arrived" is not proof the write landed.
+      mock(wagmiCore.getWalletClient).mockResolvedValue(mockWalletClient as WalletClient);
+      mock(encoders.encodeWorkApprovalData).mockReturnValue(
+        "0xEncodedApprovalData" as `0x${string}`
+      );
+      mock(mockWalletClient.sendTransaction!).mockResolvedValue(
+        "0xApprovalTxHash" as `0x${string}`
+      );
+      mock(wagmiCore.waitForTransactionReceipt).mockResolvedValue({ status: "reverted" } as any);
+
+      await expect(
+        submitApprovalDirectly(
+          mockApprovalDraft,
+          "0xGardenAddress",
+          "0xGardenerAddress",
+          mockChainId
+        )
+      ).rejects.toThrow(/reverted on chain/i);
+    });
+
     it("should throw error when wallet is not connected", async () => {
       // Setup: no wallet client
       mock(wagmiCore.getWalletClient).mockResolvedValue(null as any);

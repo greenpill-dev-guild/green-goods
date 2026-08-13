@@ -5,6 +5,7 @@ import { logger } from "../../modules/app/logger";
 import { getWorkApprovals, getWorks } from "../../modules/data/eas";
 import { jobQueue, jobQueueDB } from "../../modules/job-queue";
 import { jobQueueEventBus, useJobQueueEvents } from "../../modules/job-queue/event-bus";
+import { type OverlayWork, resolveWorkStatus } from "../../modules/work/local-status-overlay";
 import type { Work, WorkCard, WorkDisplayStatus } from "../../types/domain";
 import type { Job, WorkJobPayload } from "../../types/job-queue";
 import { useMerged } from "../app/useMerged";
@@ -17,7 +18,7 @@ function warnApprovalFetchOnce(error: unknown) {
   const now = Date.now();
   if (now - _lastApprovalWarnAt > 10_000) {
     _lastApprovalWarnAt = now;
-    warnApprovalFetchOnce(error);
+    logger.warn("Failed to fetch approvals, status may be stale", { source: "useWorks", error });
   }
 }
 
@@ -73,9 +74,11 @@ async function computeWorksWithStatus(
   }
   const approvalMap = new Map(approvals.map((approval) => [approval.workUID, approval]));
 
-  // Get cached status map to preserve optimistic updates
-  const cachedWorks = queryClient.getQueryData<Work[]>(queryKeys.works.merged(gardenId, chainId));
-  const cachedStatusMap = new Map((cachedWorks ?? []).map((w) => [w.id, w.status]));
+  // Preserve optimistic updates that are still covering indexer lag
+  const cachedWorks = queryClient.getQueryData<OverlayWork[]>(
+    queryKeys.works.merged(gardenId, chainId)
+  );
+  const cachedMap = new Map((cachedWorks ?? []).map((w) => [w.id, w]));
 
   return works.map((work) => {
     const approval = approvalMap.get(work.id);
@@ -85,7 +88,7 @@ async function computeWorksWithStatus(
         : ("rejected" as const)
       : ("pending" as const);
 
-    const status = cachedStatusMap.get(work.id) ?? computedStatus;
+    const status = resolveWorkStatus(computedStatus, cachedMap.get(work.id));
     return { ...work, status };
   });
 }
@@ -159,11 +162,11 @@ export function useWorks(gardenId: string, options: UseWorksOptions = {}) {
       }
       const approvalMap = new Map(approvals.map((approval) => [approval.workUID, approval]));
 
-      // Preserve optimistic updates from cache
-      const cachedWorks = queryClient.getQueryData<Work[]>(
+      // Preserve optimistic updates that are still covering indexer lag
+      const cachedWorks = queryClient.getQueryData<OverlayWork[]>(
         queryKeys.works.merged(gardenId, chainId)
       );
-      const cachedStatusMap = new Map((cachedWorks ?? []).map((w) => [w.id, w.status]));
+      const cachedMap = new Map((cachedWorks ?? []).map((w) => [w.id, w]));
 
       // Convert offline jobs to Work models
       const offlineWorks = await Promise.all(
@@ -187,7 +190,7 @@ export function useWorks(gardenId: string, options: UseWorksOptions = {}) {
             ? ("approved" as const)
             : ("rejected" as const)
           : ("pending" as const);
-        const status = cachedStatusMap.get(work.id) ?? computedStatus;
+        const status = resolveWorkStatus(computedStatus, cachedMap.get(work.id));
         workMap.set(work.id, { ...work, status });
       });
 

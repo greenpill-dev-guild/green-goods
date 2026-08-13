@@ -258,6 +258,67 @@ describe("hooks/work/useWorkApproval", () => {
       );
     });
 
+    it("keeps an unconfirmed wallet decision pending behind an expiring overlay", async () => {
+      // A timed-out receipt records the decision so the operator sees it landed,
+      // but it must stay flagged pending and must expire, so a transaction that
+      // is later dropped cannot leave the work looking resolved forever.
+      (submitApprovalDirectly as any).mockResolvedValue({
+        hash: MOCK_TX_HASH,
+        confirmed: false,
+      });
+
+      const work = createMockWork({ status: "pending" });
+      const draft = createMockWorkApprovalDraft({
+        actionUID: work.actionUID,
+        workUID: work.id,
+        approved: true,
+      });
+      const mergedKey = queryKeys.works.merged(work.gardenAddress, 11155111);
+      queryClient.setQueryData(mergedKey, [work]);
+
+      const { result } = renderHook(() => useWorkApproval(), { wrapper: createWrapper() });
+
+      await act(async () => {
+        await result.current.mutateAsync({ draft, work });
+      });
+
+      const cached =
+        queryClient.getQueryData<
+          Array<{ status: string; _isPending?: boolean; _pendingUntilMs?: number }>
+        >(mergedKey)?.[0];
+      expect(cached?.status).toBe("approved");
+      expect(cached?._isPending).toBe(true);
+      expect(cached?._pendingUntilMs).toBeGreaterThan(Date.now());
+    });
+
+    it("clears the pending flag but still stamps a deadline on a confirmed decision", async () => {
+      (submitApprovalDirectly as any).mockResolvedValue(MOCK_CONFIRMED_APPROVAL_RESULT);
+
+      const work = createMockWork({ status: "pending" });
+      const draft = createMockWorkApprovalDraft({
+        actionUID: work.actionUID,
+        workUID: work.id,
+        approved: true,
+      });
+      const mergedKey = queryKeys.works.merged(work.gardenAddress, 11155111);
+      queryClient.setQueryData(mergedKey, [work]);
+
+      const { result } = renderHook(() => useWorkApproval(), { wrapper: createWrapper() });
+
+      await act(async () => {
+        await result.current.mutateAsync({ draft, work });
+      });
+
+      const cached =
+        queryClient.getQueryData<
+          Array<{ status: string; _isPending?: boolean; _pendingUntilMs?: number }>
+        >(mergedKey)?.[0];
+      expect(cached?.status).toBe("approved");
+      expect(cached?._isPending).toBe(false);
+      // The deadline is what lets the indexer reclaim authority afterwards.
+      expect(cached?._pendingUntilMs).toBeGreaterThan(Date.now());
+    });
+
     it("leaves persisted work state unchanged when the wallet rejects the request", async () => {
       const walletError = new Error("User rejected the request");
       (submitApprovalDirectly as any).mockRejectedValue(walletError);

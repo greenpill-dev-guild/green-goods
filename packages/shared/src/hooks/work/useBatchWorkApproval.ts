@@ -16,6 +16,7 @@ import { toastService } from "../../components/toast";
 import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
 import { trackContractError } from "../../modules/app/error-tracking";
 import { track } from "../../modules/app/posthog";
+import { type OverlayWork, overlayDeadline } from "../../modules/work/local-status-overlay";
 import { submitBatchApprovalsWithPasskey } from "../../modules/work/passkey-submission";
 import { submitBatchApprovalsDirectly } from "../../modules/work/wallet-submission";
 import type { Work, WorkApprovalDraft } from "../../types/domain";
@@ -166,24 +167,30 @@ export function useBatchWorkApproval() {
         );
       }
 
-      // Optimistically update all works
+      // Optimistically update all works. The deadline matters: without one the
+      // overlay would outrank the indexer forever if this batch never lands.
       for (const { draft, work } of items) {
         const optimisticStatus = draft.approved ? ("approved" as const) : ("rejected" as const);
 
-        queryClient.setQueryData(
-          queryKeys.works.merged(work.gardenAddress, chainId),
-          (old: Work[] = []) =>
-            old.map((w) =>
-              w.id === draft.workUID ? { ...w, status: optimisticStatus, _isPending: true } : w
-            )
-        );
+        const applyOptimistic = (old: OverlayWork[] = []): OverlayWork[] =>
+          old.map((w) =>
+            w.id === draft.workUID
+              ? {
+                  ...w,
+                  status: optimisticStatus,
+                  _isPending: true,
+                  _pendingUntilMs: overlayDeadline(),
+                }
+              : w
+          );
 
         queryClient.setQueryData(
+          queryKeys.works.merged(work.gardenAddress, chainId),
+          applyOptimistic
+        );
+        queryClient.setQueryData(
           queryKeys.works.online(work.gardenAddress, chainId),
-          (old: Work[] = []) =>
-            old.map((w) =>
-              w.id === draft.workUID ? { ...w, status: optimisticStatus, _isPending: true } : w
-            )
+          applyOptimistic
         );
       }
 
@@ -214,28 +221,31 @@ export function useBatchWorkApproval() {
     onSuccess: (result, items) => {
       hapticSuccess();
 
-      // Clear pending flags on all items
+      // Clear pending flags on all items, keeping a grace window so the decision
+      // survives indexer lag without outliving a transaction that never landed.
       for (const { draft, work } of items) {
         const confirmedStatus = draft.approved ? ("approved" as const) : ("rejected" as const);
 
-        queryClient.setQueryData(
-          queryKeys.works.merged(work.gardenAddress, chainId),
-          (old: Work[] = []) =>
-            old.map((w) =>
-              w.id === draft.workUID
-                ? { ...w, status: confirmedStatus, _isPending: false, _txHash: result.hash }
-                : w
-            )
-        );
+        const recordDecision = (old: OverlayWork[] = []): OverlayWork[] =>
+          old.map((w) =>
+            w.id === draft.workUID
+              ? {
+                  ...w,
+                  status: confirmedStatus,
+                  _isPending: false,
+                  _txHash: result.hash,
+                  _pendingUntilMs: overlayDeadline(),
+                }
+              : w
+          );
 
         queryClient.setQueryData(
+          queryKeys.works.merged(work.gardenAddress, chainId),
+          recordDecision
+        );
+        queryClient.setQueryData(
           queryKeys.works.online(work.gardenAddress, chainId),
-          (old: Work[] = []) =>
-            old.map((w) =>
-              w.id === draft.workUID
-                ? { ...w, status: confirmedStatus, _isPending: false, _txHash: result.hash }
-                : w
-            )
+          recordDecision
         );
       }
 
