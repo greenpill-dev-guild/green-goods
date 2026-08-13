@@ -8,6 +8,7 @@ import {
   buildCastJsonArgs,
   buildUpgradeBoundarySendArgs,
   findLatestUpgradeArtifactIn,
+  isAddressOrZero,
   type PersistedUpgradePlan,
   type UpgradeCheckpoint,
   UPGRADE_TRANSACTION_BOUNDARY_RULE,
@@ -62,6 +63,12 @@ describe("upgrade transaction plan artifact discovery", () => {
 });
 
 describe("upgrade operator entrypoint", () => {
+  it("accepts zero as a readable pre-wiring address without treating it as configured", () => {
+    expect(isAddressOrZero("0x0000000000000000000000000000000000000000")).toBe(true);
+    expect(isAddressOrZero("0x0000000000000000000000000000000000000001")).toBe(true);
+    expect(isAddressOrZero("0x0")).toBe(false);
+  });
+
   it("keeps the password lease out of read-only cast commands", () => {
     expect(
       buildReadOnlyCastEnv({

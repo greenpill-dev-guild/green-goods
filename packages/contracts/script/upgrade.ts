@@ -227,8 +227,12 @@ const poolingIntegrationInterface = new Interface([
   "function setCommitmentModule(address)",
 ]);
 
+export function isAddressOrZero(value: unknown): value is string {
+  return typeof value === "string" && /^0x[a-fA-F0-9]{40}$/.test(value);
+}
+
 function isAddress(value: unknown): value is string {
-  return typeof value === "string" && /^0x[a-fA-F0-9]{40}$/.test(value) && !/^0x0+$/i.test(value);
+  return isAddressOrZero(value) && !/^0x0+$/i.test(value);
 }
 
 function resolveDeploymentOutputDir(): string {
@@ -1134,7 +1138,7 @@ function verifyUpgradeBoundary(
       env: buildReadOnlyCastEnv(),
       encoding: "utf8",
     }).trim();
-    if (!isAddress(value) || getAddress(value) !== getAddress(wiring.module)) {
+    if (!isAddressOrZero(value) || getAddress(value) !== getAddress(wiring.module)) {
       throw new Error(`Post-wiring mismatch for ${wiring.function}`);
     }
     return;
@@ -1212,7 +1216,9 @@ function assertUpgradeBoundaryPreconditions(
       env: buildReadOnlyCastEnv(),
       encoding: "utf8",
     }).trim();
-    if (!isAddress(current)) throw new Error(`Unreadable live wiring before boundary ${transaction.index + 1}`);
+    if (!isAddressOrZero(current)) {
+      throw new Error(`Unreadable live wiring before boundary ${transaction.index + 1}`);
+    }
     if (getAddress(current) !== ZeroAddress) {
       throw new Error(
         getAddress(current) === getAddress(wiring.module)
