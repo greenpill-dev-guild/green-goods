@@ -935,6 +935,22 @@ Known mis-resolutions fixed in place: `contract-spec.md` §Grassroots-Economics-
     transaction, trusted-executor mutation, value authority, value movement, peer wiring, canary,
     settlement ABI/storage change, or ownership transfer.
 
+108. Garden Safe addresses may be bootstrapped before the final Garden-controlled owner is ready
+    (2026-08-12, Afo authorization; temporary exception to register #107's unchanged deployment
+    owner set, without authorizing value). Each participating Garden Safe starts as exactly
+    1-of-2: the frozen deployment EOA plus the existing Celo Garden recovery Safe at
+    `0x49fa954B6C2Cd14B4b3604EF1Cc17cED20a9E42C`, live-verified as a module-free 2-of-3 Safe.
+    Bootstrap Safes must remain empty and have no guard, module, Zodiac role, executor authority,
+    G$, or other value. A resumable Bun-wrapped script derives all eighteen addresses from the
+    reviewed Garden inventory, deploys them through the pinned Safe v1.4.1 factory/singleton, and
+    later replaces the deployment EOA with an exact reviewed per-Garden owner through one
+    `swapOwner` Safe transaction per Garden. The swap must verify the predecessor, nonce, owner
+    set, threshold, zero balance, and zero modules before execution and reread the resulting owner
+    set afterward. Bootstrap or swap completion does not activate settlement: the canonical final
+    owner threshold, Garden-bound authentication, Roles permissions, caps, peer wiring, funding,
+    and value canary remain separate review and authorization gates. No broadcast is authorized by
+    this planning decision alone.
+
 **Final recursive certification clarification (2026-07-25; no new decision-register entry):**
 the published `42161`↔`42220` production lane is the only required fully paired
 `SettlementConfiguration`. Arbitrum Sepolia `421614` and Celo Sepolia `11142220` remain

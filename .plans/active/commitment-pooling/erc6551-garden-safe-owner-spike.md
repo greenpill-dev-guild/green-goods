@@ -2,7 +2,8 @@
 
 Date: 2026-08-12
 
-Status: fork proof complete; production owner-set decision remains open.
+Status: fork proof complete; temporary EOA bootstrap authorized; production owner-set decision
+remains open.
 
 Linear: [PRD-819](https://linear.app/greenpill-dev-guild/issue/PRD-819/deploy-celo-garden-safes-and-bounded-settlement-authority)
 
@@ -94,3 +95,16 @@ has no local NFT owner, and guardian trust alone does not authenticate an Arbitr
 Recommendation: keep the current three-recovery-owner configuration for the first Garden Safe
 deployment and treat same-address implementation deployment plus a bounded Garden-owner relay as
 a follow-on security design, not release ceremony configuration.
+
+## Temporary address bootstrap
+
+Afo authorized a narrower staging path on 2026-08-12. Each Garden Safe may be deployed empty as
+1-of-2 with the deployment EOA and the existing Celo Garden recovery Safe, which was live-read as
+a module-free 2-of-3 Safe. The EOA is a placeholder only. A Bun-wrapped script later swaps it for
+an exact reviewed per-Garden owner in one Safe transaction per Garden.
+
+This does not make the Garden Safe settlement-ready. No G$, native balance, module, guard, Zodiac
+role, executor authority, peer wiring, or value operation may exist before the placeholder is
+removed and the final owner and authorization gates are reviewed. The bootstrap solves address
+availability and avoids a multi-signer ceremony while the Safes are empty; it does not weaken the
+activation standard.
