@@ -1,5 +1,6 @@
 #!/usr/bin/env bun
 
+import { execFileSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import * as dotenv from "dotenv";
@@ -15,6 +16,7 @@ import {
   type TransactionResponse,
 } from "ethers";
 import { NetworkManager } from "../utils/network";
+import { parseCastTransactionHash } from "../utils/cast-env";
 import { retryRpcAvailability } from "../utils/rpc-retry";
 import { writeReleaseJsonAtomic } from "../utils/release-artifacts";
 import { assertSepoliaGate } from "../utils/release-gate";
@@ -22,14 +24,15 @@ import { buildReleaseLock, loadReleaseManifest } from "../utils/release-manifest
 
 const CONTRACTS_ROOT = path.resolve(__dirname, "../..");
 const REPO_ROOT = path.resolve(CONTRACTS_ROOT, "../..");
-const PLAN_HUB = path.join(REPO_ROOT, ".plans/active/commitment-pooling");
 const ROOT_ENV = path.join(REPO_ROOT, ".env");
 const EXPECTED_GARDEN_COUNT = 18;
 const TOKENBOUND_REGISTRY = "0x000000006551c19487814612e58FE06813775758";
 const TOKENBOUND_SALT = "0x6551655165516551655165516551655165516551655165516551655165516551";
 const ERC1967_IMPLEMENTATION_SLOT = "0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc";
-const TRANSACTION_BOUNDARY_RULE =
+const SAFE_TRANSACTION_BOUNDARY_RULE =
   "Authorize and execute one direct Safe execTransaction payload, verify its receipt and post-state, then stop.";
+const DEPLOYER_TRANSACTION_BOUNDARY_RULE =
+  "Execute one direct deployer transaction, verify its receipt and post-state, then stop.";
 
 dotenv.config({ path: ROOT_ENV });
 
@@ -68,7 +71,7 @@ export interface BackfillTransaction {
   kind: "UNPAUSE" | "REGISTER_PROTOCOL" | "REGISTER_GARDEN";
   garden?: string;
   tokenId?: number;
-  safeNonce: number;
+  nonce: number;
   to: string;
   value: "0";
   data: string;
@@ -87,8 +90,9 @@ export interface PoolBackfillPlan {
   finalizedBlock: number;
   module: string;
   moduleDeploymentPending: boolean;
+  authority: "SAFE" | "DEPLOYER";
   owner: string;
-  expectedSafeNonce: number;
+  expectedNonce: number;
   gardenToken: string;
   gardenAccountImplementation: string;
   tokenboundRegistry: string;
@@ -109,6 +113,8 @@ interface BackfillOptions {
   overrideSepoliaGate: boolean;
   planPath?: string;
   step?: number;
+  authority: "safe" | "deployer";
+  expectedNonce?: number;
   expectedSafeNonce?: number;
   receiptHash?: string;
   help: boolean;
@@ -145,7 +151,7 @@ export interface BackfillCheckpoint {
   >;
   completed: Array<{
     step: number;
-    safeNonce: number;
+    nonce: number;
     transactionHash: string;
     blockNumber: number;
     verifiedAt: string;
@@ -198,6 +204,7 @@ function parseOptions(args: string[]): BackfillOptions {
     dryRun: false,
     broadcast: false,
     overrideSepoliaGate: false,
+    authority: "safe",
     help: false,
   };
   for (let index = 0; index < args.length; index++) {
@@ -220,8 +227,19 @@ function parseOptions(args: string[]): BackfillOptions {
         options.planPath = args[++index];
         if (!options.planPath) throw new Error("--plan requires a path");
         break;
+      case "--authority": {
+        const authority = args[++index];
+        if (authority !== "safe" && authority !== "deployer") {
+          throw new Error("--authority requires safe or deployer");
+        }
+        options.authority = authority;
+        break;
+      }
       case "--step":
         options.step = parseInteger(args[++index], "--step", 1);
+        break;
+      case "--expected-nonce":
+        options.expectedNonce = parseInteger(args[++index], "--expected-nonce", 0);
         break;
       case "--expected-safe-nonce":
         options.expectedSafeNonce = parseInteger(args[++index], "--expected-safe-nonce", 0);
@@ -249,19 +267,24 @@ function showHelp(): void {
 Commitment Pooling one-shot activation and pool backfill
 
 Usage:
-  bun script/deploy/backfill-pools.ts --network arbitrum --dry-run
+  bun script/deploy/backfill-pools.ts --network arbitrum --dry-run --authority deployer
   bun script/deploy/backfill-pools.ts --network arbitrum --broadcast \\
+    --authority deployer --plan <reviewed-plan.json> --step <index> --expected-nonce <n>
+
+Future Safe receipt verification remains available with:
+  bun script/deploy/backfill-pools.ts --network arbitrum --broadcast --authority safe \\
     --plan <reviewed-plan.json> --step <index> --expected-safe-nonce <n> --receipt <safe-tx-hash>
 
 The dry-run pins a finalized Arbitrum block, enumerates exactly 18 live GardenToken accounts,
-requires the canonical root to round-trip as GardenToken token ID 0, and emits direct Safe
-boundaries that register the Protocol pool and every Garden pool while Commitment Pooling remains
-paused. Unpause is a separate final boundary after every registration receipt has been verified.
+requires the canonical root to round-trip as GardenToken token ID 0, and emits exact boundaries
+that register the Protocol pool and every Garden pool while Commitment Pooling remains paused.
+The current deployer ceremony executes registration boundaries 1-18. Unpause is boundary 19 and
+remains a separate command after every registration receipt has been verified.
 
-Broadcast is Phase B only. The owner is a contract Safe, so this wrapper never holds or infers
-Safe signatures. Each authorized Safe transaction is submitted through the reviewed Safe owner
-ceremony, then this Bun target verifies its exact execTransaction payload, receipt, post-state,
-and atomically advances the canonical backfill checkpoint. It will not continue to another step.
+Broadcast is Phase B only. Deployer mode sends one reviewed direct transaction through the frozen
+keystore session, then verifies its receipt and post-state before advancing the checkpoint. Safe
+mode never holds or infers Safe signatures and verifies only an externally submitted exact
+execTransaction receipt. Each invocation stops after one boundary.
 `);
 }
 
@@ -274,10 +297,12 @@ function readDeployment(chainId: number): Record<string, unknown> {
 function frozenModuleAddress(): {
   address: string;
   implementation: string;
-  implementationRuntimeHash: string;
+  implementationRuntimeHash?: string;
+  immutableRuntime: boolean;
   manifestHash: string;
   releaseId: string;
   sourceCommit: string;
+  deployer: string;
   safe: string;
 } {
   const manifest = loadReleaseManifest();
@@ -293,16 +318,16 @@ function frozenModuleAddress(): {
       identity.name === "CommitmentPoolingModule" &&
       identity.kind === "implementation",
   );
-  if (!implementation || implementation.immutableRuntime) {
-    throw new Error("Frozen release lock has no exact-runtime CommitmentPoolingModule implementation");
-  }
+  if (!implementation) throw new Error("Frozen release lock has no CommitmentPoolingModule implementation");
   return {
     address: requiredAddress(module.address, "frozen CommitmentPoolingModule proxy"),
     implementation: requiredAddress(implementation.address, "frozen CommitmentPoolingModule implementation"),
-    implementationRuntimeHash: implementation.runtimeTemplateHash,
+    implementationRuntimeHash: implementation.immutableRuntime ? undefined : implementation.runtimeTemplateHash,
+    immutableRuntime: implementation.immutableRuntime,
     manifestHash: lock.manifestHash,
     releaseId: manifest.releaseId,
     sourceCommit: lock.sourceCommit,
+    deployer: requiredAddress(manifest.ownership.deploymentSender, "deployment sender"),
     safe: requiredAddress(manifest.ownership.protocolSafe, "protocol Safe"),
   };
 }
@@ -348,8 +373,8 @@ export function validateBackfillPlan(plan: PoolBackfillPlan): void {
   if (!Number.isSafeInteger(plan.finalizedBlock) || plan.finalizedBlock < 1) {
     throw new Error("Backfill plan finalized block is invalid");
   }
-  if (!Number.isSafeInteger(plan.expectedSafeNonce) || plan.expectedSafeNonce < 0) {
-    throw new Error("Backfill plan Safe nonce is invalid");
+  if (!Number.isSafeInteger(plan.expectedNonce) || plan.expectedNonce < 0) {
+    throw new Error("Backfill plan authority nonce is invalid");
   }
   if (!Number.isSafeInteger(plan.rootTokenId) || plan.rootTokenId < 0) {
     throw new Error("Backfill plan root token ID is invalid");
@@ -364,7 +389,13 @@ export function validateBackfillPlan(plan: PoolBackfillPlan): void {
   ) {
     throw new Error("Backfill plan changes the canonical ERC-6551 derivation");
   }
-  if (plan.transactionBoundaryRule !== TRANSACTION_BOUNDARY_RULE) {
+  const expectedBoundaryRule =
+    plan.authority === "SAFE"
+      ? SAFE_TRANSACTION_BOUNDARY_RULE
+      : plan.authority === "DEPLOYER"
+        ? DEPLOYER_TRANSACTION_BOUNDARY_RULE
+        : undefined;
+  if (!expectedBoundaryRule || plan.transactionBoundaryRule !== expectedBoundaryRule) {
     throw new Error("Backfill plan changes the one-transaction boundary rule");
   }
   const rootGarden = requiredAddress(plan.rootGarden, "plan root garden");
@@ -375,7 +406,7 @@ export function validateBackfillPlan(plan: PoolBackfillPlan): void {
     module,
     rootGarden,
     gardens,
-    startingSafeNonce: plan.expectedSafeNonce,
+    startingNonce: plan.expectedNonce,
   });
   if (JSON.stringify(plan.transactions) !== JSON.stringify(canonical)) {
     throw new Error("Backfill plan transactions do not match the canonical root-first paused plan");
@@ -403,8 +434,8 @@ export function validateCheckpointPrefix(
     if (steps[index] !== index + 1) throw new Error("Backfill checkpoint is not one contiguous verified prefix");
     const expected = plan.transactions[index];
     const evidence = checkpoint.completed.find((entry) => entry.step === index + 1)!;
-    if (!expected || evidence.safeNonce !== expected.safeNonce) {
-      throw new Error("Backfill checkpoint Safe nonces do not match the reviewed plan");
+    if (!expected || evidence.nonce !== expected.nonce) {
+      throw new Error("Backfill checkpoint nonces do not match the reviewed plan");
     }
   }
   const alreadyVerified = steps.includes(requestedStep);
@@ -463,7 +494,7 @@ export function buildBackfillTransactions(args: {
   module: string;
   rootGarden: string;
   gardens: GardenEnumeration[];
-  startingSafeNonce: number;
+  startingNonce: number;
 }): BackfillTransaction[] {
   const module = requiredAddress(args.module, "module");
   const rootGarden = requiredAddress(args.rootGarden, "root garden");
@@ -495,7 +526,7 @@ export function buildBackfillTransactions(args: {
     kind: registration.kind,
     garden: registration.garden,
     tokenId: registration.tokenId,
-    safeNonce: args.startingSafeNonce + offset,
+    nonce: args.startingNonce + offset,
     to: module,
     value: "0",
     data: moduleInterface.encodeFunctionData("registerPool", [registration.garden, registration.poolType]),
@@ -505,7 +536,7 @@ export function buildBackfillTransactions(args: {
   transactions.push({
     index: transactions.length + 1,
     kind: "UNPAUSE",
-    safeNonce: args.startingSafeNonce + transactions.length,
+    nonce: args.startingNonce + transactions.length,
     to: module,
     value: "0",
     data: moduleInterface.encodeFunctionData("setPaused", [false]),
@@ -552,14 +583,16 @@ async function readModulePreflight(
   provider: JsonRpcProvider,
   deployment: Record<string, unknown>,
   module: string,
-  safe: string,
+  expectedOwner: string,
   blockTag: number,
 ): Promise<boolean> {
   const code = await provider.getCode(module, blockTag);
   if (code === "0x") return true;
   const pooling = new Contract(module, moduleInterface, provider);
   const owner = requiredAddress(await pooling.owner({ blockTag }), "pooling owner");
-  if (owner !== getAddress(safe)) throw new Error(`Pooling owner is ${owner}, expected protocol Safe ${safe}`);
+  if (owner !== getAddress(expectedOwner)) {
+    throw new Error(`Pooling owner is ${owner}, expected reviewed owner ${expectedOwner}`);
+  }
   if ((await pooling.paused({ blockTag })) !== true)
     throw new Error("Pooling must remain paused before activation planning");
 
@@ -576,7 +609,7 @@ async function readModulePreflight(
   if (gardenLink !== getAddress(module) || workLink !== getAddress(module)) {
     throw new Error("Both reverse integration links must equal the frozen pooling module before unpause planning");
   }
-  await pooling.setPaused.staticCall(false, { from: safe, blockTag });
+  await pooling.setPaused.staticCall(false, { from: expectedOwner, blockTag });
   return false;
 }
 
@@ -584,7 +617,7 @@ async function assertFrozenModuleIdentity(
   provider: JsonRpcProvider,
   module: string,
   implementation: string,
-  implementationRuntimeHash: string,
+  implementationRuntimeHash: string | undefined,
   blockTag: number,
 ): Promise<void> {
   if ((await provider.getCode(module, blockTag)) === "0x") throw new Error("Frozen pooling proxy has no code");
@@ -594,7 +627,7 @@ async function assertFrozenModuleIdentity(
     throw new Error(`Pooling proxy implementation is ${liveImplementation}, expected ${implementation}`);
   }
   const code = await provider.getCode(liveImplementation, blockTag);
-  if (code === "0x" || keccak256(code) !== implementationRuntimeHash) {
+  if (code === "0x" || (implementationRuntimeHash && keccak256(code) !== implementationRuntimeHash)) {
     throw new Error("Pooling implementation runtime code does not match the frozen release lock");
   }
 }
@@ -603,13 +636,15 @@ async function assertModuleConfiguration(
   provider: JsonRpcProvider,
   deployment: Record<string, unknown>,
   module: string,
-  safe: string,
+  expectedOwner: string,
   blockTag: number,
   expectedPaused: boolean,
 ): Promise<void> {
   const pooling = new Contract(module, moduleInterface, provider);
   const owner = requiredAddress(await pooling.owner({ blockTag }), "pooling owner");
-  if (owner !== getAddress(safe)) throw new Error(`Pooling owner is ${owner}, expected protocol Safe ${safe}`);
+  if (owner !== getAddress(expectedOwner)) {
+    throw new Error(`Pooling owner is ${owner}, expected reviewed owner ${expectedOwner}`);
+  }
   if ((await pooling.paused({ blockTag })) !== expectedPaused) {
     throw new Error(
       `Pooling pause state does not match the reviewed ${expectedPaused ? "paused" : "unpaused"} boundary`,
@@ -628,7 +663,7 @@ async function assertModuleConfiguration(
   if (gardenLink !== getAddress(module) || workLink !== getAddress(module)) {
     throw new Error("Both reverse integration links must equal the frozen pooling module");
   }
-  if (expectedPaused) await pooling.setPaused.staticCall(false, { from: safe, blockTag });
+  if (expectedPaused) await pooling.setPaused.staticCall(false, { from: expectedOwner, blockTag });
 }
 
 function assertInventoryMatchesPlan(plan: PoolBackfillPlan, observed: GardenEnumeration[]): void {
@@ -671,16 +706,24 @@ async function buildPlan(options: BackfillOptions): Promise<{ plan: PoolBackfill
   if (!rootEntry || getAddress(rootEntry.garden) !== rootGarden) {
     throw new Error("Canonical root artifact does not round-trip through the live ERC-6551 account derivation");
   }
-  const safe = new Contract(frozen.safe, safeInterface, provider);
-  const liveSafeNonce = safeNumber(await safe.nonce({ blockTag: finalized.number }), "protocol Safe nonce");
-  if (options.expectedSafeNonce !== undefined && options.expectedSafeNonce !== liveSafeNonce) {
-    throw new Error(`Safe nonce drift: expected ${options.expectedSafeNonce}, finalized nonce is ${liveSafeNonce}`);
+  const authority = options.authority === "deployer" ? "DEPLOYER" : "SAFE";
+  const owner = authority === "DEPLOYER" ? frozen.deployer : frozen.safe;
+  const liveNonce =
+    authority === "SAFE"
+      ? safeNumber(
+          await new Contract(owner, safeInterface, provider).nonce({ blockTag: finalized.number }),
+          "protocol Safe nonce",
+        )
+      : await provider.getTransactionCount(owner, "pending");
+  const requestedNonce = authority === "SAFE" ? options.expectedSafeNonce : options.expectedNonce;
+  if (requestedNonce !== undefined && requestedNonce !== liveNonce) {
+    throw new Error(`Authority nonce drift: expected ${requestedNonce}, live nonce is ${liveNonce}`);
   }
   const moduleDeploymentPending = await readModulePreflight(
     provider,
     deployment,
     frozen.address,
-    frozen.safe,
+    owner,
     finalized.number,
   );
   if (!moduleDeploymentPending) {
@@ -696,7 +739,7 @@ async function buildPlan(options: BackfillOptions): Promise<{ plan: PoolBackfill
     module: frozen.address,
     rootGarden,
     gardens,
-    startingSafeNonce: liveSafeNonce,
+    startingNonce: liveNonce,
   });
   const gardenRecords = Object.fromEntries(
     gardens.map((garden) => [
@@ -718,8 +761,9 @@ async function buildPlan(options: BackfillOptions): Promise<{ plan: PoolBackfill
     finalizedBlock: finalized.number,
     module: frozen.address,
     moduleDeploymentPending,
-    owner: frozen.safe,
-    expectedSafeNonce: liveSafeNonce,
+    authority,
+    owner,
+    expectedNonce: liveNonce,
     gardenToken: requiredAddress(deployment.gardenToken, "gardenToken"),
     gardenAccountImplementation: requiredAddress(deployment.gardenAccountImpl, "gardenAccountImpl"),
     tokenboundRegistry: TOKENBOUND_REGISTRY,
@@ -729,7 +773,8 @@ async function buildPlan(options: BackfillOptions): Promise<{ plan: PoolBackfill
     expectedGardenCount: EXPECTED_GARDEN_COUNT,
     gardens: gardenRecords,
     transactions,
-    transactionBoundaryRule: TRANSACTION_BOUNDARY_RULE,
+    transactionBoundaryRule:
+      authority === "DEPLOYER" ? DEPLOYER_TRANSACTION_BOUNDARY_RULE : SAFE_TRANSACTION_BOUNDARY_RULE,
     canonicalArtifactMutation: false,
   };
   validateBackfillPlan(plan);
@@ -762,6 +807,23 @@ export function parseSafeExecution(transaction: TransactionResponse, expected: B
     throw new Error("Safe backfill boundary may not configure a gas refund token, price, or recipient");
   }
   return decoded;
+}
+
+export function validateDeployerExecution(
+  transaction: TransactionResponse,
+  expected: BackfillTransaction,
+  deployer: string,
+): void {
+  if (transaction.value !== 0n) throw new Error("Deployer backfill transaction may not attach native value");
+  if (getAddress(transaction.from) !== getAddress(deployer)) {
+    throw new Error("Backfill receipt sender differs from the reviewed deployer");
+  }
+  if (!transaction.to || getAddress(transaction.to) !== getAddress(expected.to)) {
+    throw new Error("Backfill receipt target differs from the reviewed module");
+  }
+  if (transaction.data.toLowerCase() !== expected.data.toLowerCase() || transaction.nonce !== expected.nonce) {
+    throw new Error("Backfill receipt calldata or nonce differs from the reviewed boundary");
+  }
 }
 
 function assertSafeSuccess(receipt: TransactionReceipt, safe: string): string {
@@ -852,43 +914,53 @@ function initialCheckpoint(plan: PoolBackfillPlan, planHash: string): BackfillCh
 }
 
 async function verifyAuthorizedBoundary(options: BackfillOptions): Promise<void> {
-  if (
-    !options.planPath ||
-    options.step === undefined ||
-    options.expectedSafeNonce === undefined ||
-    !options.receiptHash
-  ) {
-    throw new Error(
-      "Safe boundary verification requires --plan, --step, --expected-safe-nonce, and --receipt; this wrapper never infers Safe signatures",
-    );
+  if (!options.planPath || options.step === undefined) {
+    throw new Error("Backfill boundary execution requires --plan and --step");
   }
   if (options.network !== "arbitrum") throw new Error("Pool backfill supports only --network arbitrum");
-  const receiptHash = options.receiptHash;
   const planPath = path.resolve(process.cwd(), options.planPath);
+  const canonicalPlanPath = path.join(CONTRACTS_ROOT, ".generated/runtime/42161-pool-backfill.json");
+  if (planPath !== canonicalPlanPath)
+    throw new Error(`Backfill broadcast requires the generated plan ${canonicalPlanPath}`);
   if (!fs.existsSync(planPath)) throw new Error(`Reviewed backfill plan not found: ${planPath}`);
   const plan = JSON.parse(fs.readFileSync(planPath, "utf8")) as PoolBackfillPlan;
   validateBackfillPlan(plan);
+  if (options.authority.toUpperCase() !== plan.authority) {
+    throw new Error(`Requested ${options.authority} authority differs from plan authority ${plan.authority}`);
+  }
+  const expectedNonce = plan.authority === "SAFE" ? options.expectedSafeNonce : options.expectedNonce;
+  if (expectedNonce === undefined) {
+    throw new Error(
+      plan.authority === "SAFE"
+        ? "Safe boundary verification requires --expected-safe-nonce and --receipt"
+        : "Deployer boundary execution requires --expected-nonce",
+    );
+  }
+  if (plan.authority === "SAFE" && !options.receiptHash) {
+    throw new Error("Safe boundary verification requires an externally submitted --receipt");
+  }
   const frozen = frozenModuleAddress();
+  const frozenOwner = plan.authority === "SAFE" ? frozen.safe : frozen.deployer;
   if (
     plan.schemaVersion !== 1 ||
     plan.chainId !== 42161 ||
     plan.network !== "arbitrum" ||
     getAddress(plan.module) !== frozen.address ||
-    getAddress(plan.owner) !== frozen.safe ||
+    getAddress(plan.owner) !== frozenOwner ||
     plan.releaseManifestHash !== frozen.manifestHash ||
     plan.releaseId !== frozen.releaseId ||
     plan.releaseSourceCommit !== frozen.sourceCommit
   ) {
-    throw new Error("Backfill plan does not match the frozen release, chain, module, or Safe owner");
+    throw new Error("Backfill plan does not match the frozen release, chain, module, or reviewed owner");
   }
   const boundary = plan.transactions[options.step - 1];
   if (!boundary || boundary.index !== options.step) throw new Error(`Backfill plan has no boundary ${options.step}`);
-  if (boundary.safeNonce !== options.expectedSafeNonce) {
-    throw new Error(`Boundary Safe nonce is ${boundary.safeNonce}, not ${options.expectedSafeNonce}`);
+  if (boundary.nonce !== expectedNonce) {
+    throw new Error(`Boundary nonce is ${boundary.nonce}, not ${expectedNonce}`);
   }
 
   const planHash = keccak256(toUtf8Bytes(stable(plan)));
-  const checkpointPath = path.join(PLAN_HUB, "artifacts/42161-pool-backfill.json");
+  const checkpointPath = path.join(CONTRACTS_ROOT, ".generated/runtime/42161-pool-backfill.checkpoint.json");
   const checkpoint = fs.existsSync(checkpointPath)
     ? (JSON.parse(fs.readFileSync(checkpointPath, "utf8")) as BackfillCheckpoint)
     : initialCheckpoint(plan, planHash);
@@ -896,7 +968,51 @@ async function verifyAuthorizedBoundary(options: BackfillOptions): Promise<void>
   validateCheckpointPrefix(checkpoint, plan, options.step);
 
   const networkManager = new NetworkManager();
-  const provider = new JsonRpcProvider(networkManager.getRpcUrl("arbitrum"), 42161, { staticNetwork: true });
+  const rpcUrl = networkManager.getRpcUrl("arbitrum");
+  const provider = new JsonRpcProvider(rpcUrl, 42161, { staticNetwork: true });
+  const existing = checkpoint.completed.find((entry) => entry.step === options.step);
+  let receiptHash = existing?.transactionHash ?? options.receiptHash;
+  if (!receiptHash) {
+    if (plan.authority !== "DEPLOYER") throw new Error("Safe backfill requires an externally submitted receipt");
+    const finalized = await provider.getBlock("finalized");
+    if (!finalized) throw new Error("Arbitrum RPC returned no finalized block before backfill broadcast");
+    const deployment = readDeployment(42161);
+    await assertFrozenModuleIdentity(
+      provider,
+      plan.module,
+      frozen.implementation,
+      frozen.implementationRuntimeHash,
+      finalized.number,
+    );
+    assertInventoryMatchesPlan(plan, await enumerateGardens(provider, deployment, finalized.number));
+    await assertModuleConfiguration(provider, deployment, plan.module, plan.owner, finalized.number, true);
+    const pendingNonce = await provider.getTransactionCount(plan.owner, "pending");
+    if (pendingNonce !== expectedNonce) {
+      throw new Error(`Deployer nonce drift: expected ${expectedNonce}, live pending nonce is ${pendingNonce}`);
+    }
+    const manifest = loadReleaseManifest();
+    receiptHash = parseCastTransactionHash(
+      execFileSync(
+        "cast",
+        [
+          "send",
+          boundary.to,
+          boundary.data,
+          "--chain",
+          "42161",
+          "--nonce",
+          String(expectedNonce),
+          "--account",
+          manifest.ownership.deploymentKeystore,
+          "--rpc-url",
+          rpcUrl,
+          "--json",
+        ],
+        { cwd: CONTRACTS_ROOT, env: process.env, encoding: "utf8", stdio: ["inherit", "pipe", "inherit"] },
+      ),
+      "Bun-wrapped deployer pool backfill boundary",
+    );
+  }
   const { transaction, receipt } = await retryRpcAvailability(
     async () => {
       const [transaction, receipt] = await Promise.all([
@@ -941,31 +1057,34 @@ async function verifyAuthorizedBoundary(options: BackfillOptions): Promise<void>
     receipt.blockNumber,
     boundary.kind !== "UNPAUSE",
   );
-  const decoded = parseSafeExecution(transaction, boundary, plan.owner);
-  const loggedSafeTransactionHash = assertSafeSuccess(receipt, plan.owner);
-  const safe = new Contract(plan.owner, safeInterface, provider);
-  const expectedSafeTransactionHash = String(
-    await safe.getTransactionHash(
-      decoded[0],
-      decoded[1],
-      decoded[2],
-      decoded[3],
-      decoded[4],
-      decoded[5],
-      decoded[6],
-      decoded[7],
-      decoded[8],
-      boundary.safeNonce,
-    ),
-  );
-  if (expectedSafeTransactionHash.toLowerCase() !== loggedSafeTransactionHash.toLowerCase()) {
-    throw new Error(`Safe receipt does not prove planned nonce ${boundary.safeNonce}`);
+  if (plan.authority === "SAFE") {
+    const decoded = parseSafeExecution(transaction, boundary, plan.owner);
+    const loggedSafeTransactionHash = assertSafeSuccess(receipt, plan.owner);
+    const safe = new Contract(plan.owner, safeInterface, provider);
+    const expectedSafeTransactionHash = String(
+      await safe.getTransactionHash(
+        decoded[0],
+        decoded[1],
+        decoded[2],
+        decoded[3],
+        decoded[4],
+        decoded[5],
+        decoded[6],
+        decoded[7],
+        decoded[8],
+        boundary.nonce,
+      ),
+    );
+    if (expectedSafeTransactionHash.toLowerCase() !== loggedSafeTransactionHash.toLowerCase()) {
+      throw new Error(`Safe receipt does not prove planned nonce ${boundary.nonce}`);
+    }
+  } else {
+    validateDeployerExecution(transaction, boundary, plan.owner);
   }
   const postState = await verifyPostState(provider, plan, boundary, checkpoint);
 
-  const existing = checkpoint.completed.find((entry) => entry.step === options.step);
   if (existing) {
-    if (existing.transactionHash.toLowerCase() !== options.receiptHash.toLowerCase()) {
+    if (existing.transactionHash.toLowerCase() !== receiptHash.toLowerCase()) {
       throw new Error(`Boundary ${options.step} already has a different verified receipt`);
     }
     console.log(`Boundary ${options.step} is already verified; no transaction was replayed`);
@@ -974,8 +1093,8 @@ async function verifyAuthorizedBoundary(options: BackfillOptions): Promise<void>
 
   const evidence = {
     step: options.step,
-    safeNonce: boundary.safeNonce,
-    transactionHash: options.receiptHash,
+    nonce: boundary.nonce,
+    transactionHash: receiptHash,
     blockNumber: receipt.blockNumber,
     verifiedAt: new Date().toISOString(),
   };
@@ -983,7 +1102,7 @@ async function verifyAuthorizedBoundary(options: BackfillOptions): Promise<void>
   if (boundary.kind === "UNPAUSE") {
     checkpoint.activation = {
       status: "VERIFIED",
-      transactionHash: options.receiptHash,
+      transactionHash: receiptHash,
       blockNumber: receipt.blockNumber,
     };
   } else if (boundary.kind === "REGISTER_PROTOCOL") {
@@ -991,7 +1110,7 @@ async function verifyAuthorizedBoundary(options: BackfillOptions): Promise<void>
       rootGarden: plan.rootGarden,
       status: "VERIFIED",
       poolId: postState.poolId,
-      transactionHash: options.receiptHash,
+      transactionHash: receiptHash,
       blockNumber: receipt.blockNumber,
     };
   } else if (boundary.garden) {
@@ -1002,7 +1121,7 @@ async function verifyAuthorizedBoundary(options: BackfillOptions): Promise<void>
       ...garden,
       status: "REGISTERED",
       poolId: postState.poolId,
-      transactionHash: options.receiptHash,
+      transactionHash: receiptHash,
       blockNumber: receipt.blockNumber,
     };
   }

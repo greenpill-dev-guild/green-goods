@@ -10,6 +10,7 @@ import {
   AUTOMATED_RELEASE_STAGE_ORDER,
   createPasswordLease,
   parseSessionOptions,
+  POOL_BACKFILL_REGISTRATION_BOUNDARIES,
   RELEASE_OPERATOR_COMMANDS,
   tokenizeOperatorCommand,
 } from "./release-operator";
@@ -30,13 +31,35 @@ describe("release operator session", () => {
       commit: "a".repeat(40),
       help: false,
       deployAll: false,
+      backfillAll: false,
+      unpausePooling: false,
     });
     expect(parseSessionOptions(["--commit", "a".repeat(40), "--deploy-all"])).toEqual({
       commit: "a".repeat(40),
       help: false,
       deployAll: true,
+      backfillAll: false,
+      unpausePooling: false,
     });
-    expect(parseSessionOptions(["--help"])).toEqual({ help: true, deployAll: false });
+    expect(parseSessionOptions(["--commit", "a".repeat(40), "--backfill-all"])).toMatchObject({
+      backfillAll: true,
+      deployAll: false,
+      unpausePooling: false,
+    });
+    expect(parseSessionOptions(["--commit", "a".repeat(40), "--unpause-pooling"])).toMatchObject({
+      backfillAll: false,
+      deployAll: false,
+      unpausePooling: true,
+    });
+    expect(() => parseSessionOptions(["--commit", "a".repeat(40), "--backfill-all", "--unpause-pooling"])).toThrow(
+      "only one automated release mode",
+    );
+    expect(parseSessionOptions(["--help"])).toEqual({
+      help: true,
+      deployAll: false,
+      backfillAll: false,
+      unpausePooling: false,
+    });
   });
 
   it("allows only canonical deployment artifacts to change during automated release", () => {
@@ -127,7 +150,7 @@ describe("release operator session", () => {
     expect(() => tokenizeOperatorCommand("run 'unterminated")).toThrow(/Unclosed quote/);
   });
 
-  it("excludes ownership and backfill from the paused deployer-owned ceremony", () => {
+  it("keeps ownership and backfill out of the interactive boundary allowlist", () => {
     expect([...RELEASE_OPERATOR_COMMANDS.keys()]).not.toContain("release:ownership:arbitrum");
     expect([...RELEASE_OPERATOR_COMMANDS.keys()]).not.toContain("release:ownership:celo");
     expect([...RELEASE_OPERATOR_COMMANDS.keys()]).not.toContain("pooling:backfill:arbitrum");
@@ -137,6 +160,10 @@ describe("release operator session", () => {
     expect(() =>
       assertAllowedOperatorCommand(tokenizeOperatorCommand("run pooling:backfill:arbitrum --step 1")),
     ).toThrow(/not allowlisted/);
+  });
+
+  it("keeps deployer backfill at 18 registrations so unpause remains a separate mode", () => {
+    expect(POOL_BACKFILL_REGISTRATION_BOUNDARIES).toBe(18);
   });
 
   it("accepts exact mined-receipt recovery for every current deployer-signed wrapper", () => {

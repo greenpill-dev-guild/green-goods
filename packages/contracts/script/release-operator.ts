@@ -30,6 +30,8 @@ export const AUTOMATED_RELEASE_STAGE_ORDER = [
   "settlement-executor",
 ] as const;
 
+export const POOL_BACKFILL_REGISTRATION_BOUNDARIES = 18;
+
 export const RELEASE_OPERATOR_COMMANDS = new Map<string, string>([
   ["assessment:upgrade:arbitrum", "AssessmentResolver upgrade and canonical-v2 pin boundaries"],
   ["pooling:schemas:arbitrum", "TestimonyResolver and AssessmentV3 schema preparation boundaries"],
@@ -84,6 +86,8 @@ export interface SessionOptions {
   commit?: string;
   help: boolean;
   deployAll: boolean;
+  backfillAll: boolean;
+  unpausePooling: boolean;
 }
 
 export interface PasswordLease {
@@ -92,7 +96,7 @@ export interface PasswordLease {
 }
 
 export function parseSessionOptions(args: string[]): SessionOptions {
-  const options: SessionOptions = { help: false, deployAll: false };
+  const options: SessionOptions = { help: false, deployAll: false, backfillAll: false, unpausePooling: false };
   for (let index = 0; index < args.length; index += 1) {
     const argument = args[index];
     if (argument === "--help" || argument === "-h") {
@@ -110,10 +114,21 @@ export function parseSessionOptions(args: string[]): SessionOptions {
       options.deployAll = true;
       continue;
     }
+    if (argument === "--backfill-all") {
+      options.backfillAll = true;
+      continue;
+    }
+    if (argument === "--unpause-pooling") {
+      options.unpausePooling = true;
+      continue;
+    }
     throw new Error(`Unknown release operator option: ${argument}`);
   }
   if (!options.help && (!options.commit || !/^[0-9a-f]{40}$/u.test(options.commit))) {
     throw new Error("Release operator session requires --commit <exact-40-character-candidate>");
+  }
+  if ([options.deployAll, options.backfillAll, options.unpausePooling].filter(Boolean).length > 1) {
+    throw new Error("Choose only one automated release mode");
   }
   return options;
 }
@@ -219,6 +234,8 @@ Green Goods release operator session
 Usage:
   bun run release:operator -- --commit <exact-40-character-candidate>
   bun run release:deploy:all -- --commit <exact-40-character-candidate>
+  bun run release:backfill:all -- --commit <exact-40-character-candidate>
+  bun run release:unpause:pooling -- --commit <exact-40-character-candidate>
 
 The session verifies a clean checkout at the exact candidate, prompts for the Foundry keystore
 password once, verifies that it unlocks the frozen deployment sender, and then accepts only the
@@ -236,8 +253,14 @@ current boundary before another command is entered.
 
 --deploy-all derives fresh nonce-bound plans and executes every remaining deployer-signed paused
 candidate stage in dependency order. It resumes verified checkpoints and stops on the first error.
-Ownership transfer, pool backfill, unpause, peer wiring, Safe authority, and value movement remain
-excluded because they require the later Safe ceremony.
+Ownership transfer, pool backfill, unpause, peer wiring, Safe authority, and value movement are
+excluded from that command.
+
+--backfill-all derives one finalized, root-Protocol-first plan and executes only registration
+boundaries 1-18 through the temporary deployment-sender owner. It keeps pooling paused and never
+transfers ownership. --unpause-pooling executes only boundary 19 after every registration receipt
+and pool ID is verified. Peer wiring, Safe authority, value movement, and ownership transfer remain
+excluded from both commands.
 
 Allowlisted package scripts:
 ${[...RELEASE_OPERATOR_COMMANDS].map(([name, description]) => `  ${name.padEnd(40)} ${description}`).join("\n")}
@@ -309,10 +332,11 @@ export function assertAutomatedPinnedCheckout(
 
 interface JsonPlan {
   contract?: string;
+  authority?: string;
   expectedNonce?: number;
   releaseManifestHash?: string;
   releaseSourceCommit?: string;
-  transactions: Array<{ nonce?: number | string }>;
+  transactions: Array<{ kind?: string; nonce?: number | string }>;
 }
 
 function readJson<T>(filePath: string): T {
@@ -377,8 +401,9 @@ function runAutomatedBunCommand(
   passwordFile: string,
   script: string,
   args: string[] = [],
+  allowedMutations: ReadonlySet<string> = AUTOMATED_RELEASE_MUTATIONS,
 ): void {
-  assertAutomatedPinnedCheckout(candidateCommit);
+  assertAutomatedPinnedCheckout(candidateCommit, REPOSITORY_ROOT, allowedMutations);
   console.log(`\n▶ ${script}${args.length > 0 ? ` ${args.join(" ")}` : ""}`);
   const manifest = loadReleaseManifest();
   const result = spawnSync("bun", ["run", script, ...args], {
@@ -395,7 +420,7 @@ function runAutomatedBunCommand(
     },
   });
   if (result.status !== 0) throw new Error(`${script} failed; release automation stopped`);
-  assertAutomatedPinnedCheckout(candidateCommit);
+  assertAutomatedPinnedCheckout(candidateCommit, REPOSITORY_ROOT, allowedMutations);
 }
 
 async function pendingNonce(network: "arbitrum" | "celo", sender: string): Promise<number> {
@@ -598,11 +623,117 @@ async function runAutomatedRelease(candidateCommit: string, passwordFile: string
     "settlement:executor:deploy:celo",
   );
   console.log("\nPaused deployer-owned candidates are complete on Arbitrum and Celo.");
-  console.log("Excluded next ceremony: Safe ownership, protocol-pool registration, garden backfill, and unpause.");
+  console.log("Next separate command: protocol-pool registration and Garden backfill.");
+  console.log("Ownership transfer and unpause remain separate ceremonies.");
 }
 
-async function runSession(candidateCommit: string, deployAll = false): Promise<void> {
-  if (deployAll) assertAutomatedPinnedCheckout(candidateCommit);
+function backfillPlanPath(): string {
+  return path.join(CONTRACTS_ROOT, ".generated/runtime/42161-pool-backfill.json");
+}
+
+async function runAutomatedPoolBackfill(candidateCommit: string, passwordFile: string): Promise<void> {
+  console.log("\nStarting resumable deployer-owned pool registration. Pooling remains paused.");
+  const planPath = backfillPlanPath();
+  const checkpointPath = planPath.replace(/\.json$/u, ".checkpoint.json");
+  const completed = fs.existsSync(checkpointPath) ? completedBoundaries(planPath) : 0;
+  if (completed === 0) {
+    runAutomatedBunCommand(candidateCommit, passwordFile, "pooling:backfill:dry:arbitrum", [], new Set());
+  }
+  if (!fs.existsSync(planPath)) throw new Error("Deployer pool-backfill plan was not generated");
+  const plan = readJson<JsonPlan>(planPath);
+  if (
+    plan.authority !== "DEPLOYER" ||
+    plan.transactions.length !== POOL_BACKFILL_REGISTRATION_BOUNDARIES + 1 ||
+    plan.transactions[0]?.kind !== "REGISTER_PROTOCOL" ||
+    plan.transactions[POOL_BACKFILL_REGISTRATION_BOUNDARIES]?.kind !== "UNPAUSE"
+  ) {
+    throw new Error("Pool-backfill plan is not the exact deployer-owned root-first registration plan");
+  }
+  if (completed > POOL_BACKFILL_REGISTRATION_BOUNDARIES) {
+    throw new Error("Pooling unpause is already checkpointed; backfill mode cannot report a paused end state");
+  }
+  const start = completedBoundaries(planPath) + 1;
+  if (start > POOL_BACKFILL_REGISTRATION_BOUNDARIES) {
+    console.log("✓ all 18 pool registrations are already verified; pooling remains paused");
+    return;
+  }
+  const liveNonce = await pendingNonce("arbitrum", loadReleaseManifest().ownership.deploymentSender);
+  const nextNonce = plannedNonce(plan.transactions[start - 1]?.nonce);
+  if (nextNonce !== liveNonce) {
+    throw new Error(
+      `Cannot resume pool backfill: next reviewed nonce is ${nextNonce}, live pending nonce is ${liveNonce}`,
+    );
+  }
+  const relativePlan = path.relative(CONTRACTS_ROOT, planPath);
+  for (let step = start; step <= POOL_BACKFILL_REGISTRATION_BOUNDARIES; step += 1) {
+    runAutomatedBunCommand(
+      candidateCommit,
+      passwordFile,
+      "pooling:backfill:arbitrum",
+      [
+        "--plan",
+        relativePlan,
+        "--step",
+        String(step),
+        "--expected-nonce",
+        String(plannedNonce(plan.transactions[step - 1]?.nonce)),
+        "--override-sepolia-gate",
+      ],
+      new Set(),
+    );
+  }
+  console.log("\nAll 18 pool registrations are receipt-verified. Pooling remains paused.");
+  console.log("Unpause requires the separate release:unpause:pooling command and authorization.");
+}
+
+async function runAutomatedPoolUnpause(candidateCommit: string, passwordFile: string): Promise<void> {
+  console.log("\nStarting separately authorized Commitment Pooling unpause boundary.");
+  const planPath = backfillPlanPath();
+  if (!fs.existsSync(planPath)) throw new Error("Pool-backfill plan is missing; complete registration first");
+  const plan = readJson<JsonPlan>(planPath);
+  if (
+    plan.authority !== "DEPLOYER" ||
+    plan.transactions.length !== POOL_BACKFILL_REGISTRATION_BOUNDARIES + 1 ||
+    plan.transactions[POOL_BACKFILL_REGISTRATION_BOUNDARIES]?.kind !== "UNPAUSE"
+  ) {
+    throw new Error("Pool-backfill plan has no exact separate unpause boundary");
+  }
+  const completed = completedBoundaries(planPath);
+  if (completed === plan.transactions.length) {
+    console.log("✓ Commitment Pooling is already unpaused and verified");
+    return;
+  }
+  if (completed !== POOL_BACKFILL_REGISTRATION_BOUNDARIES) {
+    throw new Error(`Pooling unpause requires 18 verified registrations; checkpoint has ${completed}`);
+  }
+  const boundary = plan.transactions[POOL_BACKFILL_REGISTRATION_BOUNDARIES];
+  const nonce = plannedNonce(boundary?.nonce);
+  const liveNonce = await pendingNonce("arbitrum", loadReleaseManifest().ownership.deploymentSender);
+  if (nonce !== liveNonce) {
+    throw new Error(`Cannot unpause pooling: reviewed nonce is ${nonce}, live pending nonce is ${liveNonce}`);
+  }
+  runAutomatedBunCommand(
+    candidateCommit,
+    passwordFile,
+    "pooling:backfill:arbitrum",
+    [
+      "--plan",
+      path.relative(CONTRACTS_ROOT, planPath),
+      "--step",
+      String(POOL_BACKFILL_REGISTRATION_BOUNDARIES + 1),
+      "--expected-nonce",
+      String(nonce),
+      "--override-sepolia-gate",
+    ],
+    new Set(),
+  );
+  console.log("\nCommitment Pooling unpause receipt and all 18 pool registrations are verified.");
+}
+
+async function runSession(candidateCommit: string, options: SessionOptions): Promise<void> {
+  const automated = options.deployAll || options.backfillAll || options.unpausePooling;
+  if (options.deployAll) assertAutomatedPinnedCheckout(candidateCommit);
+  else if (automated) assertAutomatedPinnedCheckout(candidateCommit, REPOSITORY_ROOT, new Set());
   else assertPinnedCheckout(candidateCommit);
   const manifest = loadReleaseManifest();
   const password = await readHiddenPassword();
@@ -622,8 +753,16 @@ async function runSession(candidateCommit: string, deployAll = false): Promise<v
   try {
     const signer = verifyDeployerPassword(lease.filePath);
     console.log(`Unlocked frozen deployment sender ${signer} for this process only.`);
-    if (deployAll) {
+    if (options.deployAll) {
       await runAutomatedRelease(candidateCommit, lease.filePath);
+      return;
+    }
+    if (options.backfillAll) {
+      await runAutomatedPoolBackfill(candidateCommit, lease.filePath);
+      return;
+    }
+    if (options.unpausePooling) {
+      await runAutomatedPoolUnpause(candidateCommit, lease.filePath);
       return;
     }
     console.log("Type help for the allowlist. Type exit when this authorized operator window closes.");
@@ -673,7 +812,7 @@ if (import.meta.main) {
   try {
     const options = parseSessionOptions(process.argv.slice(2));
     if (options.help) showHelp();
-    else await runSession(options.commit!, options.deployAll);
+    else await runSession(options.commit!, options);
   } catch (error) {
     console.error(error instanceof Error ? error.message : String(error));
     process.exit(1);

@@ -135,18 +135,13 @@ describe("release CLI real entrypoints", () => {
   it("replays a pure stage plan with the exact CLI salt and never mutates canonical artifacts", () => {
     const arbitrumBefore = fs.readFileSync(ARBITRUM_ARTIFACT);
     const celoBefore = fs.readFileSync(CELO_ARTIFACT);
-    const args = [
-      "settlement-module",
-      "--network",
-      "arbitrum",
-      "--pure-simulation",
-      "--salt",
-      "green-goods:test-entrypoint:v1",
-    ];
+    const manifest = loadReleaseManifest();
+    const frozenSalt = `${manifest.create2.domain}:${manifest.create2.version}`;
+    const args = ["settlement-module", "--network", "arbitrum", "--pure-simulation", "--salt", frozenSalt];
     const first = run(args);
     const replay = run(args);
-    expect(first).toContain('"baseSalt": "green-goods:test-entrypoint:v1"');
-    expect(replay).toContain('"baseSalt": "green-goods:test-entrypoint:v1"');
+    expect(first).toContain(`"baseSalt": "${frozenSalt}"`);
+    expect(replay).toContain(`"baseSalt": "${frozenSalt}"`);
     expect(fs.readFileSync(ARBITRUM_ARTIFACT).equals(arbitrumBefore)).toBe(true);
     expect(fs.readFileSync(CELO_ARTIFACT).equals(celoBefore)).toBe(true);
   });
