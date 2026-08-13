@@ -8,6 +8,8 @@ last_verified: 2026-07-23
 feature_status: Live
 source_of_truth:
   - .github/workflows/release.yml
+  - .github/workflows/client.yml
+  - .github/workflows/admin.yml
   - .github/release.yml
   - SECURITY.md
   - scripts/ops/bump-version.mjs
@@ -62,6 +64,8 @@ git switch main && git pull && git tag -a v1.2.0 -m "July 2026" && git push orig
 ```
 
 Pushing the tag triggers the GitHub Release (auto-generated notes). Then **back-merge**.
+
+**Check the source-map uploads on the merge run.** Merging the release PR pushes `main`, which runs `Upload Client Source Maps` and `Upload Admin Source Maps`. Neither is part of the CI Gate, so a failure blocks nothing and shows up on no pull request — it has to be checked by hand. A green job is not the whole proof: open a recent client error and a recent admin error in PostHog and confirm the frames resolve to original source rather than minified bundle offsets.
 
 ## Hotfixes
 
