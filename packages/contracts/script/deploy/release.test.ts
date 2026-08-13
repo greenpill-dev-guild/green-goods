@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 import {
   type OwnershipCheckpoint,
   type OwnershipTransferPlan,
+  parseCastSendTransactionHash,
   type ReleaseCheckpoint,
   validateOwnershipCheckpointPrefix,
   validateReleaseCheckpointPrefix,
@@ -14,6 +15,7 @@ import type { ReleaseTransactionBoundary } from "../utils/release-plan";
 const CONTRACTS_ROOT = path.join(__dirname, "../..");
 const ARBITRUM_ARTIFACT = path.join(CONTRACTS_ROOT, "deployments/42161-latest.json");
 const CELO_ARTIFACT = path.join(CONTRACTS_ROOT, "deployments/42220-latest.json");
+const TRANSACTION_HASH = `0x${"a".repeat(64)}`;
 
 function run(args: string[], env: NodeJS.ProcessEnv = process.env): string {
   return execFileSync("bun", ["script/deploy.ts", ...args], {
@@ -32,6 +34,14 @@ function fail(args: string[], env: NodeJS.ProcessEnv = process.env) {
 }
 
 describe("release CLI real entrypoints", () => {
+  it("accepts Cast transaction hashes from JSON receipts and single-quoted RPC output", () => {
+    expect(parseCastSendTransactionHash(JSON.stringify({ transactionHash: TRANSACTION_HASH }))).toBe(TRANSACTION_HASH);
+    expect(parseCastSendTransactionHash(`'${TRANSACTION_HASH}'`)).toBe(TRANSACTION_HASH);
+    expect(() => parseCastSendTransactionHash(`${TRANSACTION_HASH} ${`0x${"b".repeat(64)}`}`)).toThrow(
+      /no unique transaction hash/,
+    );
+  });
+
   it("replays a pure stage plan with the exact CLI salt and never mutates canonical artifacts", () => {
     const arbitrumBefore = fs.readFileSync(ARBITRUM_ARTIFACT);
     const celoBefore = fs.readFileSync(CELO_ARTIFACT);

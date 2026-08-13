@@ -194,6 +194,33 @@ export function validateReleaseCheckpointPrefix(
   }
 }
 
+export function parseCastSendTransactionHash(output: string): string {
+  const trimmed = output.trim();
+  const candidates = [trimmed];
+  if (trimmed.startsWith("'") && trimmed.endsWith("'") && trimmed.length > 1) {
+    candidates.push(trimmed.slice(1, -1));
+  }
+  for (const candidate of candidates) {
+    try {
+      const parsed = JSON.parse(candidate) as unknown;
+      const transactionHash =
+        typeof parsed === "string"
+          ? parsed
+          : parsed && typeof parsed === "object" && "transactionHash" in parsed
+            ? (parsed as { transactionHash?: unknown }).transactionHash
+            : undefined;
+      if (typeof transactionHash === "string" && /^0x[0-9a-fA-F]{64}$/u.test(transactionHash)) {
+        return transactionHash;
+      }
+    } catch {
+      // Some Cast/RPC combinations return a single-quoted hash even with --json.
+    }
+  }
+  const hashes = [...new Set(trimmed.match(/0x[0-9a-fA-F]{64}/gu) ?? [])];
+  if (hashes.length === 1) return hashes[0];
+  throw new Error("Bun-wrapped release boundary returned no unique transaction hash");
+}
+
 const ownableInterface = new Interface([
   "function owner() view returns (address)",
   "function transferOwnership(address newOwner)",
@@ -932,7 +959,7 @@ Phase B boundary form (not authorized by Phase A):
         `Nonce drift after simulation: expected ${options.expectedNonce}, live pending nonce is ${pendingNonce}`,
       );
     }
-    const result = JSON.parse(
+    const transactionHash = parseCastSendTransactionHash(
       execFileSync(
         "cast",
         [
@@ -951,11 +978,8 @@ Phase B boundary form (not authorized by Phase A):
         ],
         { cwd: CONTRACTS_ROOT, env: process.env, encoding: "utf8", stdio: ["inherit", "pipe", "inherit"] },
       ),
-    ) as Record<string, unknown>;
-    if (typeof result.transactionHash !== "string" || !/^0x[0-9a-fA-F]{64}$/u.test(result.transactionHash)) {
-      throw new Error("Bun-wrapped release boundary returned no transaction hash");
-    }
-    return result.transactionHash;
+    );
+    return transactionHash;
   }
 
   private async verifyReleaseReceipt(
