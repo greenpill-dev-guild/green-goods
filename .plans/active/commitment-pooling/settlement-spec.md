@@ -1789,7 +1789,15 @@ event AcknowledgmentDeferred(
   Strict verification reads the live Safe owner set, enabled modules, Roles avatar/target,
   executor membership, role assignment, allowance, and allowed/denied probe results; a stored
   hash alone is never proof of later Celo configuration.
-- **Ownership nuance (named honestly)**: an Arbitrum ERC-6551 account cannot sign on Celo today. “Garden-controlled” means the Arbitrum module authorizes the garden mapping and consideration, accountable Celo governance signers control recovery, and scoped executors perform the bounded transfer. A future validated cross-chain module may let the garden account trigger its Safe literally; that path is not required for base settlement.
+- **Ownership nuance (named honestly)**: the current AccountV3 implementation does not treat the
+  Arbitrum Garden NFT owner as a signer on Celo because the bound token is on a foreign chain. The
+  fork proof in `erc6551-garden-safe-owner-spike.md` shows that a guardian-trusted executor can make
+  a foreign Garden account satisfy one owner slot in a real threshold-2 Safe alongside one
+  recovery owner, while both recovery owners retain the recovery path. That is mechanics, not a
+  production authorization design: the exact Arbitrum implementation/account is not deployed at
+  the same address on Celo and no Garden-bound authenticated relay exists. The pilot therefore
+  keeps the three named recovery owners above. A later owner-set change requires both missing
+  gates to close and is not required for base settlement.
 - **Gas**: the Arbitrum module holds monitored native ETH for outbound commands; the Celo executor holds monitored native CELO for acknowledgments. Neither route uses LINK fee payment. Fee shortage is surfaced before dispatch where possible and is never presented as settlement failure. Gardener receipts are pure ERC-20 transfers; gardener sends use sponsored gas (§5).
 
 ## 5. Gardener receipt + multi-chain app

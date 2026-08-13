@@ -2,8 +2,7 @@
 
 Date: 2026-08-12
 
-Status: authorized for specification and fork-only proof; production owner-set decision remains
-open.
+Status: fork proof complete; production owner-set decision remains open.
 
 Linear: [PRD-819](https://linear.app/greenpill-dev-guild/issue/PRD-819/deploy-celo-garden-safes-and-bounded-settlement-authority)
 
@@ -76,3 +75,22 @@ pieces:
 
 If either gate remains open, the current settlement specification wins: protocol recovery, Dev
 Guild recovery, and one named Garden recovery delegate remain the three Safe owners.
+
+## Result
+
+The pinned Arbitrum One and Celo fork proof passed 8/8 ownership cases, and the complete settlement
+fork shard passed 16/16. It used the live canonical ERC-6551 registry, live Safe v1.4.1 singleton
+and factory, the deployed Celo AccountV3 implementation and guardian, and fork-local mutations
+only.
+
+The mechanics are viable: the foreign Garden account plus one nested recovery Safe executes a real
+Safe transaction, both nested recovery Safes retain an independent EIP-1271 recovery path, either
+owner alone fails, a different Garden account cannot substitute, an untrusted caller fails, and
+the Safe nonce rejects replay.
+
+The production path is not ready. The exact Arbitrum Garden account address still has no code on
+Celo, the deployed Celo implementation derives a different account address, the foreign account
+has no local NFT owner, and guardian trust alone does not authenticate an Arbitrum Garden action.
+Recommendation: keep the current three-recovery-owner configuration for the first Garden Safe
+deployment and treat same-address implementation deployment plus a bounded Garden-owner relay as
+a follow-on security design, not release ceremony configuration.

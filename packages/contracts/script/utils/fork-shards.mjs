@@ -24,6 +24,7 @@ const DEFAULTS = {
   ETHEREUM_FORK_BLOCK_NUMBER: "25170563",
   // Celo's public node. Only the settlement-lane shard forks Celo, and it is read-only.
   CELO_RPC_URL: "https://forno.celo.org",
+  CELO_FORK_BLOCK_NUMBER: "74700818",
 };
 
 const SHARDS = {
@@ -48,8 +49,9 @@ const SHARDS = {
   "settlement-lane": {
     chain: "ARBITRUM",
     description:
-      "Read-only proof of the live Arbitrum <-> Celo CCIP lane and a fork-local Cookie Jar credit round trip",
-    glob: "test/fork/{CrossChainSettlementLane,CreditTreasuryRoundTrip}.t.sol",
+      "Arbitrum <-> Celo settlement lane, Garden Safe ownership spike, and a fork-local Cookie Jar credit round trip",
+    glob:
+      "test/fork/{CrossChainSettlementLane,CrossChainGardenSafeOwner,CreditTreasuryRoundTrip}.t.sol",
   },
   "hats-module-upgrade-arbitrum": {
     chain: "ARBITRUM",

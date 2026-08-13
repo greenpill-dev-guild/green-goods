@@ -14,8 +14,8 @@ Linear mirror: project [Commitment Pooling](https://linear.app/greenpill-dev-gui
 
 ## Document map
 
-Every file in this hub, by role — **151 files**: 22 at the hub root, 42 under `artifacts/`,
-22 under `handoffs/`, 18 under `hifi/`, 20 under `operations/`, and 28 under `reports/`.
+Every file in this hub, by role — **159 files**: 24 at the hub root, 42 under `artifacts/`,
+22 under `handoffs/`, 19 under `hifi/`, 20 under `operations/`, and 32 under `reports/`.
 **This list is the index — if you add a document here, add its row.** Root files each get their own
 row; the five subtrees get one row apiece naming their own in-tree index, because the row for a
 subtree is only honest if that index actually enumerates the tree (this failed review on
@@ -28,6 +28,7 @@ subtree is only honest if that index actually enumerates the tree (this failed r
 | `standing-commitments-spec.md` | Offer once or Offer over time → pool-scoped internal `CommitmentSeries` for the ongoing path → finite Offer instances → linked Story; honest availability, persistence, trust, succession, and artifact ownership | **Ongoing-Offer architecture source of truth** |
 | `contract-spec.md` | Pooling module + register: state machines, events, §6.1 permission matrix | **Contract-layer source of truth** |
 | `settlement-spec.md` | G$ split-state settlement: Arbitrum CCIP command module, bounded Celo executor, acknowledgment, Safe authority, AA gate | **Settlement transport + execution source of truth** |
+| `erc6551-garden-safe-owner-spike.md` | Fork-only proof of a foreign-chain Garden ERC-6551 account as one threshold-2 Celo Safe owner alongside nested recovery Safes, plus the two production gates | **Spike evidence only; no production owner-set or deployment authority** |
 | `exchange-architecture-brief.md` | Full follow-on architecture: three-identity compatibility boundary, versioned adapter/router, fulfilled then capacity backing, class/issuance/seed/exchange/redemption/repair, one-pool proof, Sarafu-pool hybrid, and federation gates | **Design only; implementation and activation remain gated** |
 | `member-funded-claims-brief.md` | Option-B design for the circulation loop: member claim-requests on priced Offers, garden-Safe-held deposits, refund disbursements on terminal non-fulfillment, delta inventory + sizing | **Draft for discussion (2026-08-11); no decision registered, no code authorized** |
 | `pilot-evidence-spec.md` | September pilot evaluation: claim hierarchy, baselines, metric registry, coercion/exposure/repair safeguards, circulation integrity, privacy, and reporting gates | **Pilot-evidence and outcome-claim source of truth; no implementation authority** |
