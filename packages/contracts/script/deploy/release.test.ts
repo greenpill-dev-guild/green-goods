@@ -56,6 +56,20 @@ describe("release CLI real entrypoints", () => {
     );
   });
 
+  it("reverifies and promotes a checkpointed final release boundary before returning", () => {
+    const source = fs.readFileSync(path.join(CONTRACTS_ROOT, "script/deploy/release.ts"), "utf8");
+    const replayStart = source.indexOf("if (checkpoint && checkpoint.lastVerifiedStep >= boundary.index)");
+    const freshNonceCheck = source.indexOf("if (!options.receiptHash) await this.assertLiveNonce", replayStart);
+    const replayBranch = source.slice(replayStart, freshNonceCheck);
+
+    expect(replayStart).toBeGreaterThan(0);
+    expect(replayBranch).toContain("verifyReleaseReceipt");
+    expect(replayBranch).toContain("this.runBoundaryVerifier");
+    expect(replayBranch).toContain("this.runStageVerifier");
+    expect(replayBranch).toContain("mergeReleaseArtifact");
+    expect(replayBranch).toContain("no replay transaction was sent");
+  });
+
   it("retries unavailable RPC evidence without repeating the transaction", async () => {
     let reads = 0;
     let waits = 0;
@@ -222,6 +236,15 @@ describe("release CLI real entrypoints", () => {
     expect(corePlan).toContain("separate later unpause authorization");
     expect(corePlan).not.toContain('"command": "bun run release:ownership:plan:arbitrum"');
     expect(corePlan).not.toContain('"command": "bun run pooling:backfill:dry:arbitrum"');
+    expect(corePlan).toContain(
+      '"command": "bun run pooling:deploy:dry:arbitrum --expected-nonce <fresh-pending-nonce>"',
+    );
+    expect(corePlan).toContain(
+      '"command": "bun run settlement:module:plan:arbitrum --expected-nonce <fresh-pending-nonce>"',
+    );
+    expect(corePlan).toContain(
+      '"command": "bun run credit:registry:plan:arbitrum --expected-nonce <fresh-pending-nonce>"',
+    );
 
     const transfer = fail([
       "ownership-transfer",
@@ -236,6 +259,23 @@ describe("release CLI real entrypoints", () => {
     ]);
     expect(transfer.status).not.toBe(0);
     expect(`${transfer.stdout}${transfer.stderr}`).toContain("deferred to a later issue");
+  });
+
+  it("documents a reviewed nonce on every release-stage planning command", () => {
+    const cliHelp = fs.readFileSync(path.join(CONTRACTS_ROOT, "script/deploy/cli.ts"), "utf8");
+    const handoff = fs.readFileSync(
+      path.join(CONTRACTS_ROOT, "../../.plans/active/commitment-pooling/handoffs/human-release-ops.md"),
+      "utf8",
+    );
+    const requiredCommands = [
+      "pooling:deploy:dry:arbitrum --expected-nonce <fresh-pending-nonce>",
+      "settlement:module:plan:arbitrum --expected-nonce <fresh-pending-nonce>",
+      "credit:registry:plan:arbitrum --expected-nonce <fresh-pending-nonce>",
+      "settlement:executor:plan:celo --expected-nonce <fresh-pending-nonce>",
+    ];
+
+    for (const command of requiredCommands) expect(cliHelp).toContain(command);
+    expect(handoff).toContain("contracts:pooling:deploy:dry:arbitrum --expected-nonce <fresh-pending-nonce>");
   });
 
   it("runs scoped recovery simulation through the real CLI without canonical mutation", () => {

@@ -303,7 +303,7 @@ Release options:
   --sender <address>      Must equal the frozen deployment sender
   --stage <name>          Exact stage for recovery or scoped verification
   --step <index>          Required with --broadcast; executes exactly one transaction boundary
-  --expected-nonce <n>    Required with --broadcast; fails closed on pending nonce drift
+  --expected-nonce <n>    Required for release-stage plans, dry runs, and broadcasts
   --receipt <tx-hash>     Recover a mined boundary after local checkpoint persistence failed
   --artifact <path>       Explicit recovery artifact for verification
   --owner-phase <phase>   Verification owner phase: deployment or safe
@@ -313,9 +313,9 @@ Release options:
 Examples (Phase A, no broadcast):
   bun run release:manifest
   bun run release:core:plan:arbitrum
-  bun run settlement:module:plan:arbitrum
-  bun run credit:registry:plan:arbitrum
-  bun run settlement:executor:plan:celo
+  bun run settlement:module:plan:arbitrum --expected-nonce <fresh-pending-nonce>
+  bun run credit:registry:plan:arbitrum --expected-nonce <fresh-pending-nonce>
+  bun run settlement:executor:plan:celo --expected-nonce <fresh-pending-nonce>
   bun run settlement:safe:plan:celo
   bun run release:verify:plan:arbitrum
   bun run release:indexer:handoff
@@ -409,7 +409,7 @@ Phase B boundary form (not authorized by Phase A):
         },
         {
           index: 3,
-          command: "bun run pooling:deploy:dry:arbitrum",
+          command: "bun run pooling:deploy:dry:arbitrum --expected-nonce <fresh-pending-nonce>",
           outcome:
             "one complete paused pooling transaction plan with explicit libraries, module/register identities, and module-side dependency/schema wiring",
         },
@@ -420,12 +420,12 @@ Phase B boundary form (not authorized by Phase A):
         },
         {
           index: 5,
-          command: "bun run settlement:module:plan:arbitrum",
+          command: "bun run settlement:module:plan:arbitrum --expected-nonce <fresh-pending-nonce>",
           outcome: "paused message-only source candidate; no peer and no value authority",
         },
         {
           index: 6,
-          command: "bun run credit:registry:plan:arbitrum",
+          command: "bun run credit:registry:plan:arbitrum --expected-nonce <fresh-pending-nonce>",
           outcome: "paused records-only registry plus two-way settlement binding; G$ pool rail remains disabled",
         },
         {
@@ -754,7 +754,6 @@ Phase B boundary form (not authorized by Phase A):
           `Boundary ${boundary.index} reviewed nonce is ${String(boundary.nonce)}, not ${options.expectedNonce}`,
         );
       }
-      if (!options.receiptHash) await this.assertLiveNonce(options, manifest, expectedNetwork);
       const checkpoint = this.readCheckpoint(checkpointPath);
       this.assertCheckpoint(
         checkpoint,
@@ -777,9 +776,15 @@ Phase B boundary form (not authorized by Phase A):
           evidence.expectedNonce,
         );
         this.runBoundaryVerifier(options, stage, boundary.index, sidePath, baseSalt);
+        if (boundary.index === plan.transactions.length) {
+          this.runStageVerifier(options, stage, sidePath, baseSalt);
+          mergeReleaseArtifact({ canonicalPath, sidePath, ownedKeys: STAGE_KEYS[stage] });
+          console.log("Final boundary artifact was promoted after full stage reverification");
+        }
         console.log(`Boundary ${boundary.index} was already verified; no replay transaction was sent`);
         return;
       }
+      if (!options.receiptHash) await this.assertLiveNonce(options, manifest, expectedNetwork);
       if (boundary.index > 1) this.runBoundaryVerifier(options, stage, boundary.index - 1, sidePath, baseSalt);
     }
     const transactionHash =

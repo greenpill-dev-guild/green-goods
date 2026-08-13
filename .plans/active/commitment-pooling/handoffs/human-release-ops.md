@@ -266,7 +266,7 @@ bun run contracts:release:manifest
 bun run contracts:release:core:plan:arbitrum
 bun run contracts:pooling:schemas:preview:arbitrum
 bun run contracts:assessment:upgrade:dry:arbitrum
-bun run contracts:pooling:deploy:dry:arbitrum
+bun run contracts:pooling:deploy:dry:arbitrum --expected-nonce <fresh-pending-nonce>
 bun run contracts:pooling:finalize:dry:arbitrum
 bun run contracts:pooling:upgrade:dry:arbitrum
 bun run contracts:settlement:module:plan:arbitrum --expected-nonce <fresh-pending-nonce>

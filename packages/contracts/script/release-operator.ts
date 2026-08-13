@@ -353,11 +353,27 @@ function readJson<T>(filePath: string): T {
   return JSON.parse(fs.readFileSync(filePath, "utf8")) as T;
 }
 
-function completedBoundaries(planPath: string): number {
-  const checkpointPath = planPath.replace(/\.json$/u, ".checkpoint.json");
+function defaultCheckpointPath(planPath: string): string {
+  return planPath.replace(/\.json$/u, ".checkpoint.json");
+}
+
+export function completedBoundaries(planPath: string, checkpointPath = defaultCheckpointPath(planPath)): number {
   if (!fs.existsSync(checkpointPath)) return 0;
-  const checkpoint = readJson<{ completed?: unknown[]; verifiedBoundaries?: unknown[] }>(checkpointPath);
-  return checkpoint.completed?.length ?? checkpoint.verifiedBoundaries?.length ?? 0;
+  const checkpoint = readJson<{
+    completed?: unknown[];
+    lastVerifiedStep?: number;
+    verifiedBoundaries?: unknown[];
+  }>(checkpointPath);
+  const completed = checkpoint.completed?.length ?? checkpoint.verifiedBoundaries?.length ?? 0;
+  if (
+    checkpoint.lastVerifiedStep !== undefined &&
+    (!Number.isSafeInteger(checkpoint.lastVerifiedStep) ||
+      checkpoint.lastVerifiedStep < 0 ||
+      checkpoint.lastVerifiedStep !== completed)
+  ) {
+    throw new Error(`Checkpoint cursor differs from its receipt ledger: ${checkpointPath}`);
+  }
+  return completed;
 }
 
 function latestUpgradePlan(contract: string): string | undefined {
@@ -441,9 +457,21 @@ async function pendingNonce(network: "arbitrum" | "celo", sender: string): Promi
   return await provider.getTransactionCount(sender, "pending");
 }
 
-function assertPlanCanResume(planPath: string, liveNonce: number): JsonPlan {
+export function planBoundaryExecutionSteps(
+  planPath: string,
+  checkpointPath = defaultCheckpointPath(planPath),
+): number[] {
   const plan = readJson<JsonPlan>(planPath);
-  const completed = completedBoundaries(planPath);
+  const completed = completedBoundaries(planPath, checkpointPath);
+  if (completed > plan.transactions.length) throw new Error(`Checkpoint exceeds plan: ${planPath}`);
+  if (plan.transactions.length === 0) return [];
+  const firstStep = completed > 0 ? completed : 1;
+  return Array.from({ length: plan.transactions.length - firstStep + 1 }, (_, index) => firstStep + index);
+}
+
+export function assertPlanCanResume(planPath: string, checkpointPath: string, liveNonce: number): JsonPlan {
+  const plan = readJson<JsonPlan>(planPath);
+  const completed = completedBoundaries(planPath, checkpointPath);
   if (completed > plan.transactions.length) throw new Error(`Checkpoint exceeds plan: ${planPath}`);
   if (completed < plan.transactions.length) {
     const nextNonce = plannedNonce(plan.transactions[completed]?.nonce);
@@ -464,13 +492,11 @@ function runPlanBoundaries(
   planPath: string,
 ): void {
   const plan = readJson<JsonPlan>(planPath);
-  const start = completedBoundaries(planPath) + 1;
-  if (start > plan.transactions.length) {
-    console.log(`✓ ${script} already complete`);
-    return;
-  }
+  const checkpointPath = defaultCheckpointPath(planPath);
+  const completed = completedBoundaries(planPath, checkpointPath);
+  const steps = planBoundaryExecutionSteps(planPath, checkpointPath);
   const relativePlan = path.relative(CONTRACTS_ROOT, planPath);
-  for (let step = start; step <= plan.transactions.length; step += 1) {
+  for (const step of steps) {
     const nonce = plannedNonce(plan.transactions[step - 1]?.nonce);
     runAutomatedBunCommand(candidateCommit, passwordFile, script, [
       artifactFlag,
@@ -481,6 +507,9 @@ function runPlanBoundaries(
       String(nonce),
       "--override-sepolia-gate",
     ]);
+  }
+  if (completed === plan.transactions.length) {
+    console.log(`✓ ${script} already complete; final receipt and post-state reverified`);
   }
 }
 
@@ -494,7 +523,7 @@ async function ensureUpgradeStage(
   const sender = loadReleaseManifest().ownership.deploymentSender;
   let planPath = latestUpgradePlan(contract);
   if (planPath && completedBoundaries(planPath) === readJson<JsonPlan>(planPath).transactions.length) {
-    console.log(`✓ ${contract} already complete`);
+    runPlanBoundaries(candidateCommit, passwordFile, broadcastScript, "--plan", planPath);
     return;
   }
   const nonce = await pendingNonce("arbitrum", sender);
@@ -505,7 +534,7 @@ async function ensureUpgradeStage(
     }
   }
   if (!planPath) throw new Error(`${contract} transaction plan was not generated`);
-  assertPlanCanResume(planPath, nonce);
+  assertPlanCanResume(planPath, defaultCheckpointPath(planPath), nonce);
   runPlanBoundaries(candidateCommit, passwordFile, broadcastScript, "--plan", planPath);
 }
 
@@ -518,7 +547,7 @@ async function ensureSchemaStage(
 ): Promise<void> {
   const planPath = path.join(CONTRACTS_ROOT, `.generated/release-schemas/${mode}/42161-${mode}-transaction-plan.json`);
   if (fs.existsSync(planPath) && completedBoundaries(planPath) === readJson<JsonPlan>(planPath).transactions.length) {
-    console.log(`✓ schema ${mode} already complete`);
+    runPlanBoundaries(candidateCommit, passwordFile, broadcastScript, "--artifact", planPath);
     return;
   }
   const sender = loadReleaseManifest().ownership.deploymentSender;
@@ -528,7 +557,7 @@ async function ensureSchemaStage(
       runAutomatedBunCommand(candidateCommit, passwordFile, planScript, ["--expected-nonce", String(nonce)]);
     }
   }
-  assertPlanCanResume(planPath, nonce);
+  assertPlanCanResume(planPath, defaultCheckpointPath(planPath), nonce);
   runPlanBoundaries(candidateCommit, passwordFile, broadcastScript, "--artifact", planPath);
 }
 
@@ -544,28 +573,32 @@ async function ensureReleaseStage(
   const directory = path.join(CONTRACTS_ROOT, `.generated/release/${manifest.releaseId}/${network}`);
   const planPath = path.join(directory, `${stage}-transaction-plan.json`);
   const checkpointPath = path.join(directory, `${stage}-checkpoint.json`);
-  let completed = 0;
-  if (fs.existsSync(planPath) && fs.existsSync(checkpointPath)) {
-    const plan = readJson<JsonPlan>(planPath);
-    const checkpoint = readJson<{ lastVerifiedStep?: number }>(checkpointPath);
-    completed = checkpoint.lastVerifiedStep ?? 0;
-    if (checkpoint.lastVerifiedStep === plan.transactions.length) {
-      console.log(`✓ ${stage} already complete`);
-      return;
-    }
+  let completed = fs.existsSync(planPath) ? completedBoundaries(planPath, checkpointPath) : 0;
+  const existingPlan = fs.existsSync(planPath) ? readJson<JsonPlan>(planPath) : undefined;
+  if (existingPlan && completed > existingPlan.transactions.length) {
+    throw new Error(`Checkpoint exceeds plan: ${planPath}`);
+  }
+  if (existingPlan && completed === existingPlan.transactions.length && completed > 0) {
+    const finalStep = existingPlan.transactions.length;
+    runAutomatedBunCommand(candidateCommit, passwordFile, broadcastScript, [
+      "--step",
+      String(finalStep),
+      "--expected-nonce",
+      String(plannedNonce(existingPlan.transactions[finalStep - 1]?.nonce)),
+      "--override-sepolia-gate",
+    ]);
+    console.log(`✓ ${stage} already complete; final receipt and full stage state reverified`);
+    return;
   }
   const liveNonce = await pendingNonce(network, manifest.ownership.deploymentSender);
   if (completed === 0) {
     runAutomatedBunCommand(candidateCommit, passwordFile, planScript, ["--expected-nonce", String(liveNonce)]);
   } else {
-    assertPlanCanResume(planPath, liveNonce);
+    assertPlanCanResume(planPath, checkpointPath, liveNonce);
   }
   const plan = readJson<JsonPlan>(planPath);
-  const checkpoint = fs.existsSync(checkpointPath)
-    ? readJson<{ lastVerifiedStep?: number }>(checkpointPath)
-    : undefined;
-  const start = (checkpoint?.lastVerifiedStep ?? 0) + 1;
-  for (let step = start; step <= plan.transactions.length; step += 1) {
+  completed = completedBoundaries(planPath, checkpointPath);
+  for (const step of planBoundaryExecutionSteps(planPath, checkpointPath)) {
     const nonce = plannedNonce(plan.transactions[step - 1]?.nonce);
     runAutomatedBunCommand(candidateCommit, passwordFile, broadcastScript, [
       "--step",
@@ -575,6 +608,7 @@ async function ensureReleaseStage(
       "--override-sepolia-gate",
     ]);
   }
+  if (completed > 0) console.log(`✓ ${stage} resumed only after boundary ${completed} was reverified`);
 }
 
 async function runAutomatedRelease(candidateCommit: string, passwordFile: string): Promise<void> {
@@ -669,9 +703,28 @@ async function runAutomatedPoolBackfill(candidateCommit: string, passwordFile: s
   if (completed > POOL_BACKFILL_REGISTRATION_BOUNDARIES) {
     throw new Error("Pooling unpause is already checkpointed; backfill mode cannot report a paused end state");
   }
-  const start = completedBoundaries(planPath) + 1;
+  const relativePlan = path.relative(CONTRACTS_ROOT, planPath);
+  if (completed > 0) {
+    const replayStep = completed;
+    runAutomatedBunCommand(
+      candidateCommit,
+      passwordFile,
+      "pooling:backfill:arbitrum",
+      [
+        "--plan",
+        relativePlan,
+        "--step",
+        String(replayStep),
+        "--expected-nonce",
+        String(plannedNonce(plan.transactions[replayStep - 1]?.nonce)),
+        "--override-sepolia-gate",
+      ],
+      new Set(),
+    );
+  }
+  const start = completed + 1;
   if (start > POOL_BACKFILL_REGISTRATION_BOUNDARIES) {
-    console.log("✓ all 18 pool registrations are already verified; pooling remains paused");
+    console.log("✓ all 18 pool registrations are already verified; final receipt and pool state reverified");
     return;
   }
   const liveNonce = await pendingNonce("arbitrum", loadReleaseManifest().ownership.deploymentSender);
@@ -681,7 +734,6 @@ async function runAutomatedPoolBackfill(candidateCommit: string, passwordFile: s
       `Cannot resume pool backfill: next reviewed nonce is ${nextNonce}, live pending nonce is ${liveNonce}`,
     );
   }
-  const relativePlan = path.relative(CONTRACTS_ROOT, planPath);
   for (let step = start; step <= POOL_BACKFILL_REGISTRATION_BOUNDARIES; step += 1) {
     runAutomatedBunCommand(
       candidateCommit,
@@ -717,7 +769,23 @@ async function runAutomatedPoolUnpause(candidateCommit: string, passwordFile: st
   }
   const completed = completedBoundaries(planPath);
   if (completed === plan.transactions.length) {
-    console.log("✓ Commitment Pooling is already unpaused and verified");
+    const boundary = plan.transactions[POOL_BACKFILL_REGISTRATION_BOUNDARIES];
+    runAutomatedBunCommand(
+      candidateCommit,
+      passwordFile,
+      "pooling:backfill:arbitrum",
+      [
+        "--plan",
+        path.relative(CONTRACTS_ROOT, planPath),
+        "--step",
+        String(POOL_BACKFILL_REGISTRATION_BOUNDARIES + 1),
+        "--expected-nonce",
+        String(plannedNonce(boundary?.nonce)),
+        "--override-sepolia-gate",
+      ],
+      new Set(),
+    );
+    console.log("✓ Commitment Pooling is already unpaused; complete receipt and pool state reverified");
     return;
   }
   if (completed !== POOL_BACKFILL_REGISTRATION_BOUNDARIES) {

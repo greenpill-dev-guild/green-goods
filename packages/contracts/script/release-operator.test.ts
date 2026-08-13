@@ -5,11 +5,14 @@ import * as path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import {
   AUTOMATED_RELEASE_STAGE_ORDER,
+  assertPlanCanResume,
   assertAllowedOperatorCommand,
   assertAutomatedPinnedCheckout,
   assertAutomatedSessionStart,
   assertPinnedCheckout,
+  completedBoundaries,
   createPasswordLease,
+  planBoundaryExecutionSteps,
   POOL_BACKFILL_REGISTRATION_BOUNDARIES,
   parseSessionOptions,
   RELEASE_OPERATOR_COMMANDS,
@@ -98,6 +101,46 @@ describe("release operator session", () => {
       "pooling-integration-upgrade",
       "settlement-executor",
     ]);
+  });
+
+  it("uses the real stage checkpoint and replays the last verified boundary before resuming", () => {
+    const directory = fs.mkdtempSync(path.join(os.tmpdir(), "release-stage-resume-"));
+    temporaryDirectories.push(directory);
+    const planPath = path.join(directory, "pooling-transaction-plan.json");
+    const checkpointPath = path.join(directory, "pooling-checkpoint.json");
+    fs.writeFileSync(
+      planPath,
+      `${JSON.stringify({ transactions: [{ nonce: 40 }, { nonce: 41 }, { nonce: 42 }] }, null, 2)}\n`,
+    );
+    fs.writeFileSync(
+      checkpointPath,
+      `${JSON.stringify({ lastVerifiedStep: 1, verifiedBoundaries: [{ index: 1 }] }, null, 2)}\n`,
+    );
+
+    expect(completedBoundaries(planPath, checkpointPath)).toBe(1);
+    expect(planBoundaryExecutionSteps(planPath, checkpointPath)).toEqual([1, 2, 3]);
+    expect(() => assertPlanCanResume(planPath, checkpointPath, 41)).not.toThrow();
+    expect(() => assertPlanCanResume(planPath, checkpointPath, 40)).toThrow(/next reviewed nonce is 41/);
+  });
+
+  it("replays a completed final boundary and rejects a cursor-only checkpoint", () => {
+    const directory = fs.mkdtempSync(path.join(os.tmpdir(), "release-stage-complete-"));
+    temporaryDirectories.push(directory);
+    const planPath = path.join(directory, "settlement-module-transaction-plan.json");
+    const checkpointPath = path.join(directory, "settlement-module-checkpoint.json");
+    fs.writeFileSync(planPath, `${JSON.stringify({ transactions: [{ nonce: 70 }, { nonce: 71 }] }, null, 2)}\n`);
+    fs.writeFileSync(
+      checkpointPath,
+      `${JSON.stringify({ lastVerifiedStep: 2, verifiedBoundaries: [{ index: 1 }, { index: 2 }] }, null, 2)}\n`,
+    );
+
+    expect(planBoundaryExecutionSteps(planPath, checkpointPath)).toEqual([2]);
+
+    fs.writeFileSync(
+      checkpointPath,
+      `${JSON.stringify({ lastVerifiedStep: 2, verifiedBoundaries: [{ index: 1 }] }, null, 2)}\n`,
+    );
+    expect(() => completedBoundaries(planPath, checkpointPath)).toThrow(/cursor differs from its receipt ledger/);
   });
 
   it("rejects checkout drift before a release boundary executes", () => {
