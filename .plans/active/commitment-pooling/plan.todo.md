@@ -907,6 +907,22 @@ Known mis-resolutions fixed in place: `contract-spec.md` §Grassroots-Economics-
     B, final `destinationGasLimit`, or value-authority blockers; and it does not extend the pinned
     range to later build/test optimization commits.
 
+106. Protocol ownership transfer is deferred beyond this release, while the paused pool backfill
+    remains in the current release (2026-08-12, Afo decision; supersedes register #99 only where it
+    coupled ownership transfer and backfill into one later ceremony). The frozen deployment sender
+    remains the temporary `CommitmentPoolingModule` owner and may execute the exact reviewed
+    Arbitrum registration sequence directly: owner-only Protocol registration for the canonical
+    root token 0 first, followed by the other seventeen Garden registrations, with the module
+    paused throughout. The deployer path must use one password entry, one resumable command,
+    one direct zero-value transaction per boundary, fresh nonce checks, contiguous receipt-backed
+    checkpoints, finalized inventory and implementation checks, and the same root-first plan
+    reconstruction used by the Safe path. It must stop after registration boundary 18. Unpause is
+    a separate command that is unavailable until all eighteen receipts and pool IDs verify. This
+    decision grants no agent broadcast, ownership transfer, peer wiring, Safe/Zodiac value
+    authority, value movement, message-only ping, canary, cap increase, or indexer activation.
+    The protocol Safe remains the approved later owner, and its transfer receives its own future
+    review and authorization rather than blocking this release's paused registration backfill.
+
 **Final recursive certification clarification (2026-07-25; no new decision-register entry):**
 the published `42161`↔`42220` production lane is the only required fully paired
 `SettlementConfiguration`. Arbitrum Sepolia `421614` and Celo Sepolia `11142220` remain

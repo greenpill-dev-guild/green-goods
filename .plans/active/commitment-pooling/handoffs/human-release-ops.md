@@ -33,14 +33,23 @@ gardens, or unpause core. Those three operations move together to a separately r
 issue. The protocol Safe remains the approved future owner, not the owner expected by this
 ceremony's post-deploy verifier.
 
+**Owner decision 2026-08-12.** Protocol Safe ownership transfer is deferred beyond this release.
+The temporary deployment-sender owner may complete the exact paused registration backfill in this
+release: canonical root token 0 as the Protocol pool first, then the other seventeen Garden pools.
+The operator uses one password entry and one resumable command, verifies every direct zero-value
+transaction and pool ID, and stops after registration boundary 18. Pooling unpause remains a
+separate command and authorization. Peer wiring, Safe/Zodiac value authority, value movement,
+canary, cap increases, and indexer activation remain outside this decision.
+
 ## Outputs
 
 - A signed paused-deployment checklist covering the shared blocking security requirements and the ordered
   `AssessmentResolver` upgrade/schema preparation, pooling module/register/schema finalization,
   and `GardenToken`/`WorkApprovalResolver` upgrades and reverse wiring. Its terminal state is
   paused and deployment-sender owned.
-- A separate follow-up issue for protocol-Safe ownership transfer, the approved 18-garden/root-0
-  paused backfill, and the separately authorized pooling unpause.
+- A current-release deployer-owned, root-Protocol-first paused backfill with eighteen verified
+  registration receipts, plus a separately authorized pooling unpause command.
+- A later follow-up for protocol-Safe ownership transfer.
 - A separate signed value-tier checklist for Arbitrum `SettlementModule`, Celo `CeloSettlementExecutor`, and every enabled Safe/Zodiac configuration.
 - For every authorized broadcast: signer set, transaction hash, block, artifact diff,
   bytecode/proxy/admin/peer verification, pause state, rollback owner, and an exact indexer
@@ -99,14 +108,14 @@ A replacement owner must be named in PRD-686/PRD-731 and this handoff before exe
       both-direction wiring, and rollback state while pooling remains paused. Stop with every
       touched proxy owned by `0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6`.
 
-   **Deferred activation issue (updated 2026-08-11).** A new Product issue must own the exact
-   protocol-Safe transfers, merge/prove the separately reviewed ABI/storage-neutral paused-owner
-   registration increment derived from `5e70654c3`, execute the approved 18-account/root-token-0
-   backfill while paused, and request core unpause separately. It must reread the complete Safe
-   owner set and threshold on each target chain, verify one transfer receipt and live owner before
-   the next transfer, prove every backfill receipt/checkpoint, and preserve the deployment EOA as
-   the rollback owner until each individual transfer is confirmed. This deployment must not
-   improvise a temporary unpause or an EOA-specific backfill path.
+   **Activation correction (updated 2026-08-12).** Protocol-Safe transfer is deferred beyond this
+   release. While the module remains deployment-sender owned and paused, the current release may
+   execute the exact root-Protocol-first plus seventeen-Garden registration plan through the
+   reviewed deployer path. It must prove every direct transaction receipt, pool ID, finalized
+   inventory, owner, implementation, reverse integration link, and paused state, and stop after
+   registration boundary 18. Core unpause remains separately authorized. The later ownership
+   issue must reread the complete Safe owner set and threshold on each target chain and verify each
+   transfer independently; it does not block this release's registration backfill.
    Rehearse the exact sequence locally and on pinned forks. Ethereum Sepolia may prove an endpoint
    rehearsal where useful but is not target-chain proof. Arbitrum One and Celo remain separate,
    explicitly authorized production stages.
