@@ -1185,7 +1185,7 @@ Sixteen core NET-NEW pooling entities plus ten auxiliary contributor/provenance/
 
 #### D15.0 Entity map — names and relationships only
 
-**How to read this**: the boxes and their cardinality, with no fields. Read this first to check trust and shape; the two blocks below add only keys and discriminators. `GARDEN` and `HYPERCERT` are existing anchors; the 26 pooling/contributor/replay records are NET-NEW read models. Their event-source contract stays in `contract-spec.md` §8.2 and §9.2, including the Hypercert `ClaimStored` expansion for contributor allocations.
+**How to read this**: the boxes and their cardinality, with no fields. Read this first to check trust and shape; the two blocks below add only keys and discriminators. `GARDEN` and `HYPERCERT` are existing anchors; the 26 pooling/contributor/replay records plus the settlement-owned `CommitmentFunding` and bounded `CommitmentFundingIndex` records are 28 NET-NEW read models. Their event-source contract stays in `contract-spec.md` §8.2 and §9.2 plus `settlement-spec.md` §8.4, including the Hypercert `ClaimStored` expansion for contributor allocations.
 
 ```mermaid
 erDiagram

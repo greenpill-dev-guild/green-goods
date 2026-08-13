@@ -33,8 +33,8 @@ control, persistence label, or lifecycle transition must add a row here and pass
 
 ### A1. Complete event inventory
 
-The canonical ABI inventory contains **57 events**. Every event is assigned exactly one primary
-projection policy below. Audit-row insertion is independently idempotent for all 57.
+The canonical ABI inventory contains **58 events**. Every event is assigned exactly one primary
+projection policy below. Audit-row insertion is independently idempotent for all 58.
 
 | ID | Events | Primary projection | Ordering and replay contract | Required reverse-delivery proof |
 |---|---|---|---|---|
@@ -91,7 +91,7 @@ projection policy below. Audit-row insertion is independently idempotent for all
 | ER-17 | `CommitmentEvidenceAttributionIndex` | EO-21 | Unique sorted IDs; bounded direct lookup only. |
 | ER-18 | `CommitmentClaimRequest` | EO-14, EO-24 | `requestSeen`, nullable Request payload, and per-row lifecycle cursor; decline-first and commitment-terminal delivery never revive behind a winning marker. |
 | ER-19 | `CommitmentClaimRequestIndex` | EO-14 | Unique claimant-key IDs sorted lexicographically; sweep semantics do not depend on insertion order. |
-| ER-20 | `CommitmentEvent` | all 57 events | Immutable `chainId-txHash-logIndex` audit guard. |
+| ER-20 | `CommitmentEvent` | all 58 events | Immutable `chainId-txHash-logIndex` audit guard. |
 | ER-21 | `CommitmentPendingLifecycleProjection` | EO-10, EO-23–24 | Typed event payload; same ID as audit event; applied once. |
 | ER-22 | `CommitmentPendingLifecycleProjectionIndex` | EO-10, EO-23–24 | Unique IDs drained by stored position, never insertion order. |
 | ER-23 | `NeedCommitmentIndex` | EO-10, EO-24, bundle creation | Unique sorted composite relationship IDs; Fulfilled membership follows current terminal result. |
@@ -101,6 +101,7 @@ projection policy below. Audit-row insertion is independently idempotent for all
 | ER-27 | Garden relationships (`gardenId`, `providerGardenId`, `gardenContextId`) | emitted addresses | Existing normalized bare-address `Garden.id`; never migrated to a composite key. |
 | ER-28 | Pool/cycle/series/commitment relationship fields and arrays | owning entity events | Composite IDs for new entities; every set-like array is unique and deterministically sorted, while semantically ordered pending projections sort by event position. |
 | ER-29 | `CommitmentFunding` | EO-29 plus claim/commitment, payout-plan, `DisbursementQueued`, requeue/cancel, and authenticated acknowledgment events | Immutable `chainId-fundingId` row with nullable base/deposit/consume/withdraw cursors; one `(commitmentId, funder)` identity, one persistent refund child ever, complete recorded-deposit refund amount, and no timeout/log-only transition to Refunded. |
+| ER-30 | `CommitmentFundingIndex` | EO-29 plus `DisbursementQueued(kind=Refund)` | Bounded `chainId-commitmentId-lowercaseFunder` lookup because Refund events omit `fundingId`; retains the unique funding relationship and at most one reverse-delivered Refund child without RPC or database scans. |
 
 ### A3. Sparse-event materialization ledger
 
@@ -272,8 +273,8 @@ current counts:
 | Expansion order | no venue or federation | prove one bounded pool's seed, exchange in/out, redemption, and repair before federation |
 
 Any future voucher implementation must create its own complete event, entity, retry, persistence,
-lifecycle, custody, redemption, and wind-down matrices. It may not alter the current **57 events**,
-**86 module functions**, **56 executable calls**, or other Matrix A–D counts until a separately
+lifecycle, custody, redemption, and wind-down matrices. It may not alter the current **58 events**,
+**86 module functions**, **62 executable calls**, or other Matrix A–D counts until a separately
 reviewed implementation amendment deliberately promotes the new surface.
 
 ---
@@ -282,14 +283,14 @@ reviewed implementation amendment deliberately promotes the new surface.
 
 The architecture is closed only when:
 
-1. all 57 ABI events appear exactly once in Matrix A and every indexed entity/relationship has an
+1. all 58 ABI events appear exactly once in Matrix A and every indexed entity/relationship has an
    ER row;
 2. all 86 `ICommitmentPoolingModule` functions are classified exactly once, every one of the 56
    executable hi-fi calls has an RI policy, and all six offline job kinds are covered;
 3. all eight sparse-event materialization rows have explicit seen/null/fill semantics and
    reverse-delivery proof;
 4. Saved appears only after confirmed remote persistence and the W32/SB-38 states match Matrix C;
-5. all seven lifecycle subjects have an LC row and pool/cycle zero-live guards are represented in
+5. all eight lifecycle subjects have an LC row and pool/cycle zero-live guards are represented in
    contract, indexer, shared-state, admin, and client artifacts;
 6. `bun .plans/active/commitment-pooling/architecture-closure.validate.ts` passes;
 7. the normal prototype, visual, ontology, format, and repo verification gates pass; and

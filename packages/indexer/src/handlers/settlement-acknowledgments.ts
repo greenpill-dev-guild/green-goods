@@ -86,7 +86,7 @@ indexer.onEvent(
     }
 
     const planDeltas = new Map<string, { confirmed: number; failed: number }>();
-    const updateChild = (existing: Disbursement) => {
+    const updateChild = async (existing: Disbursement) => {
       const current = planDeltas.get(existing.payoutPlanEntityId ?? "") ?? {
         confirmed: 0,
         failed: 0,
@@ -108,6 +108,17 @@ indexer.onEvent(
         confirmedAt: event.params.success ? event.block.timestamp : undefined,
         updatedAt: event.block.timestamp,
       });
+      if (existing.kind === "REFUND" && existing.fundingEntityId) {
+        const funding = await context.CommitmentFunding.get(existing.fundingEntityId);
+        if (funding) {
+          context.CommitmentFunding.set({
+            ...funding,
+            state: event.params.success ? "REFUNDED" : "REFUND_QUEUED",
+            closedAt: event.params.success ? event.block.timestamp : funding.closedAt,
+            updatedAt: Math.max(funding.updatedAt, event.block.timestamp),
+          });
+        }
+      }
     };
 
     if (event.params.isBatch) {
@@ -128,14 +139,14 @@ indexer.onEvent(
         });
         for (const childEntityId of batch.disbursementEntityIds) {
           const child = await context.Disbursement.get(childEntityId);
-          if (child) updateChild(child);
+          if (child) await updateChild(child);
         }
       }
     } else {
       const child = await context.Disbursement.get(
         disbursementId(event.chainId, event.params.subjectId)
       );
-      if (child) updateChild(child);
+      if (child) await updateChild(child);
     }
 
     for (const [planEntityId, delta] of planDeltas) {

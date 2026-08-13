@@ -86,6 +86,8 @@ export function disbursementKind(kind: bigint): Disbursement["kind"] {
       return "LOAN_PRINCIPAL";
     case 3n:
       return "GARDEN_BENEFICIARY";
+    case 4n:
+      return "REFUND";
     default:
       return "UNKNOWN";
   }

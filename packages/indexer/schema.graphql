@@ -46,6 +46,18 @@ enum DisbursementKind {
   FUNDING
   LOAN_PRINCIPAL
   GARDEN_BENEFICIARY
+  REFUND
+}
+
+enum FundingState {
+  UNKNOWN
+  PLEDGED
+  DEPOSIT_RECORDED
+  CONSUMED
+  CLOSED
+  REFUND_QUEUED
+  REFUNDED
+  WITHDRAWN
 }
 
 enum FundingRoute {
@@ -259,6 +271,54 @@ type PayoutSnapshotCommit {
   updatedAt: Int!
 }
 
+type CommitmentFunding {
+  id: ID! # chainId-fundingId
+  chainId: Int!
+  fundingId: BigInt!
+  pledgeSeen: Boolean!
+  commitmentId: BigInt
+  commitmentEntityId: String
+  funder: String
+  garden: String
+  gardenId: String
+  refundAccount: String
+  expectedAmount: BigInt
+  depositedAmount: BigInt!
+  depositReference: String
+  state: FundingState!
+  refundDisbursementId: BigInt
+  refundDisbursementEntityId: String
+  pledgeBlockNumber: BigInt
+  pledgeLogIndex: Int
+  depositBlockNumber: BigInt
+  depositLogIndex: Int
+  consumeBlockNumber: BigInt
+  consumeLogIndex: Int
+  withdrawBlockNumber: BigInt
+  withdrawLogIndex: Int
+  pledgedAt: Int
+  depositRecordedAt: Int
+  consumedAt: Int
+  withdrawnAt: Int
+  closedAt: Int
+  updatedAt: Int!
+}
+
+# Bounded replay join. Refund disbursements carry commitmentId + funder but no fundingId;
+# the index may therefore exist before FundingPledged and retain one stable Refund child.
+type CommitmentFundingIndex {
+  id: ID! # chainId-commitmentId-lowercaseFunder
+  chainId: Int!
+  commitmentId: BigInt!
+  commitmentEntityId: String!
+  funder: String!
+  fundingId: BigInt
+  fundingEntityId: String
+  refundDisbursementId: BigInt
+  refundDisbursementEntityId: String
+  updatedAt: Int!
+}
+
 type Disbursement {
   id: ID!
   chainId: Int!
@@ -273,6 +333,8 @@ type Disbursement {
   payoutPlanEntityId: String
   contributor: String
   contributorEntityId: String
+  fundingId: BigInt
+  fundingEntityId: String
   creditRegistry: String
   loanId: BigInt
   settlementFlow: CommitmentSettlementFlow
@@ -444,6 +506,615 @@ type SettlementGardenRoute {
   updatedAt: Int!
 }
 
+enum CommitmentPoolType { UNKNOWN GARDEN PROTOCOL }
+enum CommitmentPoolState { UNKNOWN NOT_READY READY OPEN PAUSED CLOSED COMPOSTED }
+enum CommitmentCycleType { UNKNOWN SEASON CAMPAIGN }
+# On-chain vocabulary only. DRAFT / IN_PROGRESS / REVIEWING are derived in
+# shared selectors from these states + timestamps + commitment events.
+enum CommitmentCycleState { UNKNOWN SEEDED OPEN RECONCILED COMPOSTED CANCELLED }
+enum CommitmentDirection { UNKNOWN OFFER REQUEST }
+enum CommitmentKind { UNKNOWN DOMAIN_IMPACT SUPPORT_SERVICE SEASON_CAMPAIGN STEWARD_CAPTURED }
+# On-chain vocabulary only. DRAFT / ACTIVE / EVIDENCE_SUBMITTED /
+# PARTIALLY_APPROVED / RECONCILED are derived in shared selectors.
+enum CommitmentOnchainState { UNKNOWN OFFERED REQUESTED ACCEPTED READY_FOR_CONFIRMATION FULFILLED CANCELLED EXPIRED DISPUTED }
+enum CommitmentClaimType { UNKNOWN GARDEN INDIVIDUAL }
+enum CommitmentClaimMode { UNKNOWN OPEN APPROVAL_GATED }
+enum CommitmentContributorPolicy { UNKNOWN OPEN LEAD_MANAGED }
+enum CommitmentSeriesState { UNKNOWN ACTIVE RESTING RETIRED }
+enum CommitmentConsiderationRail { UNKNOWN NONE ARBITRUM_EXTERNAL CELO_SETTLEMENT }
+enum CommitmentConfirmationPath { UNKNOWN ORDINARY POOL_FALLBACK PROTOCOL_FALLBACK }
+enum CommitmentClaimRequestState { PENDING ACCEPTED DECLINED SUPERSEDED }
+enum CommitmentUnitScope { POOL CYCLE }
+  enum CommitmentEventType {
+    MODULE_UPDATED
+    MODULE_DEPENDENCY_UPDATED MODULE_SCHEMA_UID_UPDATED MODULE_PAUSE_STATUS_CHANGED
+  POOL_REGISTERED POOL_CHARTER_UPDATED POOL_READY POOL_OPENED POOL_PAUSED
+  POOL_RESUMED POOL_CLOSED POOL_COMPOSTED POOL_REOPENED
+  CLASS_REGISTERED PROVIDER_OPEN_COMMITMENT_CAP_UPDATED
+  CYCLE_SEEDED CYCLE_OPENED CYCLE_CLOSED CYCLE_COMPOSTED CYCLE_CANCELLED
+  COMMITMENT_SERIES_CREATED COMMITMENT_SERIES_METADATA_UPDATED
+  COMMITMENT_SERIES_RESTED COMMITMENT_SERIES_RESUMED COMMITMENT_SERIES_RETIRED
+  CREATED CONSIDERATION_DECLARED VALUE_DECLARED CONFIRMER_RULE_SET CLAIM_REQUESTED CLAIM_DECLINED ACCEPTED
+  EXCHANGE_ACCEPTED
+  CONTRIBUTOR_ADDED CONTRIBUTOR_REMOVED CONTRIBUTOR_REQUIREMENT_ASSIGNED CONTRIBUTOR_ROSTER_FROZEN
+  WORK_LINKED WORK_UNLINKED APPROVED_WORK_COUNTED APPROVED_WORK_REVERSED EVIDENCE_ATTACHED
+  ASSESSMENT_ATTACHED READY_FOR_CONFIRMATION CONFIRMATION_RECORDED FULFILLED
+  CANCELLED EXPIRED DISPUTED DISPUTE_RESOLVED CONSIDERATION_PAID
+  UNITS_COMMITTED UNITS_RELEASED UNITS_FULFILLED
+  FUNDING_PLEDGED FUNDING_DEPOSIT_RECORDED FUNDING_CONSUMED FUNDING_WITHDRAWN
+}
+
+type CommitmentPool {
+  id: ID! # chainId-poolId
+  chainId: Int!
+  poolId: BigInt!
+  registrationSeen: Boolean! # false only for an update-before-PoolRegistered placeholder
+  garden: String # garden account address, lowercase; null until registrationSeen
+  gardenId: String # relationship to documented bare-address Garden.id
+  poolType: CommitmentPoolType
+  state: CommitmentPoolState # null only when a charter/cap update created the placeholder first
+  charterCID: String
+  pauseReasonCID: String # set by PoolPaused; cleared by PoolResumed
+  openSeasonCycleId: BigInt # null when no Season is open; Campaigns may overlap
+  openSeasonCycleEntityId: String # relationship: chainId-cycleId
+  openCampaignIds: [BigInt!]! # event-derived raw identifiers; never enumerated on-chain
+  openCampaignEntityIds: [String!]! # relationship IDs in matching order
+  providerOpenCommitmentCap: BigInt!
+  liveCommitmentCount: BigInt! # every non-terminal pool commitment, including cycle-less
+  nonTerminalCycleCount: BigInt! # Seeded/Open/Reconciled cycles; zero before pool close
+  lifecycleBlockNumber: BigInt # nullable latest PoolReady/Open/Pause/Resume/Close/Compost/Reopen cursor
+  lifecycleLogIndex: Int # nullable cursor partner; older pool state events never regress state/reason
+  charterUpdateBlockNumber: BigInt # nullable latest PoolCharterUpdated cursor
+  charterUpdateLogIndex: Int
+  providerCapUpdateBlockNumber: BigInt # nullable latest ProviderOpenCommitmentCapUpdated cursor
+  providerCapUpdateLogIndex: Int
+  # Lifetime counts (event-driven counters, greenWill dedup pattern)
+  commitmentsOffered: BigInt!
+  commitmentsRequested: BigInt!
+  commitmentsAccepted: BigInt!
+  commitmentsReadyForConfirmation: BigInt!
+  commitmentsFulfilled: BigInt!
+  commitmentsCancelled: BigInt!
+  commitmentsExpired: BigInt!
+  commitmentsDisputed: BigInt!
+  workLinkedCount: BigInt!
+  workApprovedCount: BigInt!
+  # Count-safe cross-commitment stats. Unit totals live only in exact-label
+  # CommitmentUnitSummary rows.
+  openCommitmentCount: BigInt! # committed Offers plus accepted Requests not released or fulfilled
+  commitmentsDue: BigInt!     # accepted minus cancelled (mutually released promises are not broken promises)
+  createdAt: Int # PoolRegistered timestamp; null until registrationSeen
+  updatedAt: Int!
+}
+
+type CommitmentCycle {
+  id: ID! # chainId-cycleId
+  chainId: Int!
+  cycleId: BigInt!
+  seedSeen: Boolean! # false only for a lifecycle-before-CycleSeeded placeholder
+  poolId: BigInt!
+  poolEntityId: String! # relationship: chainId-poolId
+  garden: String # copied only from a registrationSeen pool
+  gardenId: String # relationship to documented bare-address Garden.id
+  cycleType: CommitmentCycleType # null until seedSeen
+  state: CommitmentCycleState # null only when no seed/lifecycle event has supplied it
+  startTime: BigInt # null until seedSeen
+  endTime: BigInt # null until seedSeen
+  metadataCID: String # null until seedSeen
+  # Allocation-class snapshot from CycleOpened (Hypercert cut-over input)
+  gardenersBps: Int!
+  treasuryBps: Int!
+  operatorBps: Int!
+  evaluatorBps: Int!
+  communityBps: Int!
+  funderBps: Int!
+  equalParticipationBps: Int!
+  verifiedContributionBps: Int!
+  liveCommitmentCount: BigInt! # every non-terminal cycle commitment, including Offered/Requested
+  lifecycleBlockNumber: BigInt # nullable latest CycleOpened/Closed/Composted/Cancelled cursor
+  lifecycleLogIndex: Int # nullable cursor partner; older cycle events never regress state/relations
+  # Per-cycle count stats. Unit totals live in exact-label summary rows.
+  commitmentsAccepted: BigInt!
+  commitmentsReadyForConfirmation: BigInt!
+  commitmentsFulfilled: BigInt!
+  commitmentsCancelled: BigInt!
+  commitmentsExpired: BigInt!
+  commitmentsDisputed: BigInt!
+  commitmentsDue: BigInt!
+  openCommitmentCount: BigInt!
+  createdAt: Int # CycleSeeded timestamp; null until seedSeen
+  updatedAt: Int!
+}
+
+# Immutable class declaration emitted before provider identity is known.
+type CommitmentClass {
+  id: ID! # chainId-classId
+  chainId: Int!
+  classId: BigInt!
+  poolId: BigInt!
+  poolEntityId: String!
+  cycleId: BigInt
+  cycleEntityId: String
+  unitLabel: String!
+  unitLabelHash: String!
+  quota: BigInt!
+  createdAt: Int!
+  updatedAt: Int!
+}
+
+# Exact-label aggregate. Identity uses keccak256 of the exact stored UTF-8
+# unitLabel bytes: "hours" and "Hours" intentionally produce separate rows.
+# Pool summary id: chainId-POOL-poolId-unitLabelHash
+# Cycle summary id: chainId-CYCLE-cycleId-unitLabelHash
+type CommitmentUnitSummary {
+  id: ID!
+  chainId: Int!
+  scope: CommitmentUnitScope!
+  scopeId: BigInt!
+  poolId: BigInt!
+  poolEntityId: String!
+  cycleId: BigInt
+  cycleEntityId: String
+  unitLabel: String!
+  unitLabelHash: String!
+  expectedUnits: BigInt!
+  approvedUnits: BigInt!
+  fulfilledUnits: BigInt!
+  openUnits: BigInt!
+  updatedAt: Int!
+}
+
+# Current concurrent commitment count for one accountable lead provider in one pool.
+type CommitmentProviderExposure {
+  id: ID! # chainId-poolId-lowercaseProvider
+  chainId: Int!
+  poolId: BigInt!
+  poolEntityId: String!
+  provider: String! # lead provider; field name retained only for this generic exposure entity
+  openCommitmentCount: BigInt!
+  updatedAt: Int!
+}
+
+type CommitmentSeries {
+  id: ID! # chainId-seriesId
+  chainId: Int!
+  seriesId: BigInt!
+  creationSeen: Boolean! # false only for an event-before-CommitmentSeriesCreated placeholder
+  poolId: BigInt # null until creationSeen
+  poolEntityId: String # null until creationSeen
+  createdBy: String # null until creationSeen
+  currentHolder: String # null until creationSeen
+  state: CommitmentSeriesState # null only when no creation/lifecycle event has supplied it
+  metadataCID: String # null only when no creation/metadata event has supplied it
+  instanceCount: BigInt!
+  offeredCount: BigInt!
+  acceptedCount: BigInt!
+  readyCount: BigInt!
+  fulfilledCount: BigInt!
+  cancelledCount: BigInt!
+  expiredCount: BigInt!
+  disputedCount: BigInt!
+  fulfilledCycleIds: [String!]!
+  latestLifecycleBlock: BigInt # independent nullable lifecycle cursor
+  latestLifecycleLogIndex: Int
+  latestMetadataBlock: BigInt # independent nullable metadata cursor
+  latestMetadataLogIndex: Int
+  createdAt: Int # CommitmentSeriesCreated timestamp; null until creationSeen
+  updatedAt: Int!
+}
+
+type CommitmentSeriesCycleSummary {
+  id: ID! # chainId-seriesId-cycleId
+  chainId: Int!
+  seriesId: BigInt!
+  seriesEntityId: String!
+  cycleId: BigInt!
+  cycleEntityId: String!
+  poolId: BigInt!
+  poolEntityId: String!
+  instanceCount: BigInt!
+  offeredCount: BigInt!
+  acceptedCount: BigInt!
+  readyCount: BigInt!
+  fulfilledCount: BigInt!
+  cancelledCount: BigInt!
+  expiredCount: BigInt!
+  disputedCount: BigInt!
+  updatedAt: Int!
+}
+
+type Commitment {
+  id: ID! # chainId-commitmentId
+  chainId: Int!
+  commitmentId: BigInt!
+  creationSeen: Boolean! # false only for an update-before-create placeholder
+  acceptanceSeen: Boolean! # true once the unique CommitmentAccepted payload is stored, even if its lifecycle cursor is older
+  creationRequestKey: String # creator-scoped sender-safe key emitted by CommitmentCreated
+  creationPayloadHash: String # frozen §6.1 creation preimage hash, emitted by CommitmentCreated; never an RPC read
+  poolId: BigInt # null until creationSeen
+  poolEntityId: String # relationship: chainId-poolId; null until creationSeen
+  cycleId: BigInt # null when not cycle-scoped
+  cycleEntityId: String # relationship: chainId-cycleId
+  commitmentSeriesId: BigInt # null when one-shot
+  commitmentSeriesEntityId: String # relationship: chainId-seriesId
+  garden: String # null until creationSeen and the registered pool relation exists
+  gardenId: String # relationship to documented bare-address Garden.id
+  creator: String # null until creationSeen
+  recordedBy: String # null until creationSeen
+  counterparty: String # null until accepted
+  leadProvider: String # Offer creator; Individual Request counterparty; Garden Request authenticated requester (Open caller or stored ApprovalGated requestedBy)
+  providerGarden: String # EAS recipient/provider role scope after acceptance
+  providerGardenId: String # relationship to documented bare-address Garden.id
+  payerGarden: String # settlement payer: pool garden for a Request (set at creation), claiming garden for an Offer (set at acceptance)
+  payerGardenId: String # relationship to documented bare-address Garden.id
+  counterpartyKind: CommitmentClaimType
+  direction: CommitmentDirection # null until creationSeen
+  commitmentType: CommitmentKind # null until creationSeen
+  state: CommitmentOnchainState # null only when a non-lifecycle update created the placeholder first
+  claimType: CommitmentClaimType # null until creationSeen
+  claimMode: CommitmentClaimMode # null until creationSeen
+  contributorPolicy: CommitmentContributorPolicy # null until creationSeen
+  domains: [Int!]! # unique derived tags; not positional and not a cardinality bound
+  requirementCount: Int!
+  contributorCount: Int!
+  contributorsFrozen: Boolean!
+  frozenContributorCount: Int # exact ContributorRosterFrozen count; null until that event arrives
+  memberHistoryOutcome: CommitmentOnchainState # nullable lead terminal bucket currently applied
+  fulfilledParticipantHistoryApplied: Boolean! # contributorFulfilled + receivedFulfilled idempotency guard
+  contributorEntityIds: [String!]!
+  unitLabel: String # null until creationSeen
+  targetUnits: BigInt # null until creationSeen
+  approvedUnits: BigInt!
+  confirmationThreshold: Int!
+  confirmationCount: Int!
+  confirmers: [String!]!
+  protocolFallbackEnabled: Boolean!
+  confirmerRuleUpdateBlockNumber: BigInt # nullable replay cursor; non-null means at least one ConfirmerRuleSet update was observed
+  confirmerRuleUpdateLogIndex: Int # nullable partner to confirmerRuleUpdateBlockNumber; compare the pair lexicographically
+  requiresAssessment: Boolean # null until creationSeen
+  assessmentUID: String
+  needUID: String # community Need this commitment addresses; null/zero when none (amendment 2026-07-04)
+  counterCommitmentId: BigInt # same-pool exchange reference; null/zero when none (amendment 2026-08-01)
+  counterCommitmentEntityId: String # relationship: chainId-counterCommitmentId; null when none
+  declaredUnitValue: BigInt # 0/null = undeclared (amendment 2026-08-01)
+  declaredValueBasis: String # exact-label basis; null when undeclared; value aggregation only per exact basis, read-model informational sums only
+  declaredValueUpdateBlockNumber: BigInt # nullable replay cursor; non-null means at least one ValueDeclared update was observed
+  declaredValueUpdateLogIndex: Int # nullable partner to declaredValueUpdateBlockNumber; compare the pair lexicographically
+  metadataCID: String # null until creationSeen
+  workUIDs: [String!]!
+  evidenceCIDs: [String!]!
+  evidenceCount: Int!
+  dueDate: BigInt # null until creationSeen
+  considerationRail: CommitmentConsiderationRail # null until creation or ConsiderationDeclared supplies it
+  considerationSource: String
+  considerationRecipient: String # ArbitrumExternal ConsiderationPaid recipient only; Celo beneficiary is on Disbursement
+  considerationToken: String
+  considerationAmount: BigInt
+  considerationPaid: Boolean!
+  considerationPayoutRef: String
+  considerationRecordedBy: String
+  considerationUpdateBlockNumber: BigInt # nullable latest DeclaredConsiderationUpdated/ConsiderationPaid cursor
+  considerationUpdateLogIndex: Int
+  readyOverridden: Boolean!
+  fulfilledBy: String # explicit CommitmentFulfilled.confirmer; null for non-confirmation terminal resolution
+  confirmationPath: CommitmentConfirmationPath # null until confirmed or when fulfillment came from dispute resolution
+  fallbackReason: String # non-empty only for POOL_FALLBACK / PROTOCOL_FALLBACK
+  fulfilledByFallback: Boolean! # convenience derivation: confirmationPath is a fallback value
+  preDisputeState: CommitmentOnchainState
+  acceptanceBlockNumber: BigInt # immutable CommitmentAccepted event position
+  acceptanceLogIndex: Int
+  lifecycleBlockNumber: BigInt # latest state-derived projection cursor
+  lifecycleLogIndex: Int # nullable partner; compare the pair lexicographically
+  disputeReasonCID: String
+  cancelReasonCID: String
+  createdAt: Int # CommitmentCreated timestamp; null until creationSeen
+  updatedAt: Int!
+}
+
+# Per-requirement progress read model: one row per bound
+# action so surfaces can render "Action × approved/required" without decoding arrays.
+type CommitmentRequirement {
+  id: ID! # chainId-commitmentId-requirementIndex
+  chainId: Int!
+  commitmentId: BigInt!
+  commitmentEntityId: String! # relationship: chainId-commitmentId
+  requirementIndex: Int!
+  domain: Int! # ActionRegistry-derived tag; repeated domains are valid
+  actionUID: BigInt!
+  requiredCount: Int!
+  approvedCount: Int! # incremented by ApprovedWorkCounted.requirementIndex
+  createdAt: Int!
+  updatedAt: Int!
+}
+
+type CommitmentContributor {
+  id: ID! # chainId-commitmentId-lowercaseContributor
+  chainId: Int!
+  commitmentId: BigInt!
+  commitmentEntityId: String!
+  contributor: String!
+  additionSeen: Boolean! # false only for remove/decision-before-ContributorAdded
+  active: Boolean!
+  isLead: Boolean!
+  approvedWorkCredits: Int!
+  evidenceCredits: Int!
+  uncountedLinkedWorkCount: Int!
+  requirementIndexes: [Int!]!
+  recognitionWeightBps: Int
+  membershipBlockNumber: BigInt # nullable latest ContributorAdded/ContributorRemoved cursor
+  membershipLogIndex: Int
+  addedBy: String # null until additionSeen
+  addedAt: Int # null until additionSeen
+  removedBy: String
+  removedAt: Int
+  updatedAt: Int!
+}
+
+type CommitmentContributorRequirementAssignment {
+  id: ID! # chainId-commitmentId-lowercaseContributor-requirementIndex
+  chainId: Int!
+  commitmentId: BigInt!
+  commitmentEntityId: String!
+  contributor: String!
+  contributorEntityId: String!
+  requirementIndex: Int!
+  assigned: Boolean!
+  lifecycleBlockNumber: BigInt!
+  lifecycleLogIndex: Int!
+  updatedAt: Int!
+}
+
+type HypercertCommitmentContributorAllocation {
+  id: ID! # chainId-hypercertId-commitmentId-lowercaseContributor
+  chainId: Int!
+  hypercertId: BigInt!
+  hypercertEntityId: String!
+  commitmentId: BigInt!
+  commitmentEntityId: String!
+  contributor: String!
+  contributorEntityId: String!
+  recognitionWeightBps: Int!
+  commitmentGardenersClassUnits: BigInt!
+  recognitionUnits: BigInt!
+  createdAt: Int!
+  updatedAt: Int!
+}
+
+type CommitmentWorkAttribution {
+  id: ID! # chainId-lowercaseWorkUID
+  chainId: Int!
+  workUID: String!
+  commitmentId: BigInt!
+  commitmentEntityId: String!
+  linkSeen: Boolean! # false only for unlink/decision-before-WorkLinked
+  contributor: String # null until linkSeen or a decision event supplies it
+  contributorEntityId: String
+  requirementIndex: Int
+  operationKey: String # null until linkSeen
+  linked: Boolean!
+  creditActive: Boolean!
+  linkLifecycleBlockNumber: BigInt # nullable until a Link/Unlink event is observed
+  linkLifecycleLogIndex: Int
+  latestDecisionSequence: BigInt
+  latestDecisionUID: String
+  linkedBy: String # null until linkSeen
+  linkedAt: Int # null until linkSeen
+  unlinkedBy: String
+  unlinkedAt: Int
+  updatedAt: Int!
+}
+
+type CommitmentContributorIndex {
+  id: ID! # chainId-commitmentId
+  chainId: Int!
+  commitmentId: BigInt!
+  commitmentEntityId: String!
+  contributorEntityIds: [String!]! # unique IDs sorted by normalized contributor address
+  updatedAt: Int!
+}
+
+type CommitmentContributorRequirementIndex {
+  id: ID! # chainId-commitmentId
+  chainId: Int!
+  commitmentId: BigInt!
+  commitmentEntityId: String!
+  assignmentEntityIds: [String!]! # unique IDs sorted by contributor then requirement index
+  updatedAt: Int!
+}
+
+type CommitmentEvidenceAttribution {
+  id: ID! # chainId-commitmentId-keccak256(cid)-lowercaseContributor
+  chainId: Int!
+  commitmentId: BigInt!
+  commitmentEntityId: String!
+  cid: String!
+  contributor: String!
+  contributorEntityId: String!
+  attacher: String!
+  confirmed: Boolean! # flips when the commitment is fulfilled
+  createdAt: Int!
+  updatedAt: Int!
+}
+
+# Event-owned lookup companion used when fulfillment confirms every evidence
+# attribution without relying on a database-wide scan.
+type CommitmentEvidenceAttributionIndex {
+  id: ID! # chainId-commitmentId
+  chainId: Int!
+  commitmentId: BigInt!
+  commitmentEntityId: String!
+  attributionEntityIds: [String!]! # unique, lexically sorted (ER-17 + the §8.3 relationship-array rule); each ID is loaded directly. Evidence order carries no meaning, so nothing consumes insertion order — only the semantically ordered pending lifecycle projections are exempt from lexical sorting.
+  updatedAt: Int!
+}
+
+type CommitmentClaimRequest {
+  id: ID! # chainId-commitmentId-lowercaseClaimant
+  chainId: Int!
+  commitmentId: BigInt!
+  commitmentEntityId: String! # relationship: chainId-commitmentId
+  claimant: String!
+  requestSeen: Boolean! # false only for ClaimDeclined-before-ClaimRequested
+  requestedBy: String # authenticated caller; null until requestSeen
+  claimType: CommitmentClaimType # null until requestSeen
+  gardenContext: String # null until requestSeen
+  gardenContextId: String # relationship to documented bare-address Garden.id
+  state: CommitmentClaimRequestState!
+  reasonCID: String
+  resolutionCode: String # CLAIM_DECLINED / CLAIM_ACCEPTED / COMMITMENT_ACCEPTED / COMMITMENT_CANCELLED / COMMITMENT_EXPIRED
+  lifecycleBlockNumber: BigInt # nullable until a request/decline resolution event is observed
+  lifecycleLogIndex: Int
+  requestedAt: Int # null until requestSeen
+  resolvedAt: Int
+  updatedAt: Int!
+}
+
+# Envio handler lookup companion. The current generated entity getWhere surfaces
+# are empty in this repo, so supersession uses this explicit composite-ID index
+# rather than assuming a non-ID query exists at event-processing time.
+type CommitmentClaimRequestIndex {
+  id: ID! # chainId-commitmentId
+  chainId: Int!
+  commitmentId: BigInt!
+  commitmentEntityId: String! # relationship: chainId-commitmentId
+  requestIds: [String!]! # unique claimant-key IDs sorted lexicographically
+  updatedAt: Int!
+}
+
+# Audit trail, one row per event (VaultEvent pattern, schema.graphql:132-144)
+type CommitmentEvent {
+  id: ID! # chainId-txHash-logIndex
+  chainId: Int!
+  poolId: BigInt # null for pool-less module/register configuration events
+  poolEntityId: String # relationship: chainId-poolId; null with poolId
+  cycleId: BigInt
+  cycleEntityId: String # relationship: chainId-cycleId
+  commitmentId: BigInt
+  commitmentEntityId: String # relationship: chainId-commitmentId
+  eventType: CommitmentEventType!
+  actor: String # only an explicit event actor; never inferred from transaction.from
+  configurationKey: Int # dependency/schema enum ordinal; null for ModuleUpdated/pause
+  previousValue: String # normalized address/bytes32/bool configuration value
+  newValue: String # normalized address/bytes32/bool configuration value
+  units: BigInt
+  data: String # reason / CID / payoutRef payload where the event carries one
+  txHash: String!
+  timestamp: Int!
+}
+
+# Durable replay buffer for commitment events whose state-derived projection requires immutable
+# facts from CommitmentCreated. ID is the event audit ID, so duplicate delivery cannot enqueue
+# twice. The typed optional fields preserve the exact emitted payload needed by the handler named
+# by eventType; no RPC read or transaction.from inference is permitted during the later drain.
+type CommitmentPendingLifecycleProjection {
+  id: ID! # chainId-txHash-logIndex; same identity as the CommitmentEvent audit row
+  chainId: Int!
+  commitmentId: BigInt!
+  commitmentEntityId: String!
+  eventType: CommitmentEventType!
+  blockNumber: BigInt!
+  logIndex: Int!
+  nextState: CommitmentOnchainState
+  actor: String
+  claimType: CommitmentClaimType
+  gardenContext: String
+  claimant: String
+  counterparty: String
+  leadProvider: String
+  providerGarden: String
+  payerGarden: String
+  confirmationCount: Int
+  confirmationThreshold: Int
+  overridden: Boolean
+  confirmationPath: CommitmentConfirmationPath
+  previousState: CommitmentOnchainState
+  disputeResolution: Int
+  data: String
+  applied: Boolean!
+  createdAt: Int!
+  updatedAt: Int!
+}
+
+# Explicit lookup companion; creation drains these IDs without a database-wide scan.
+type CommitmentPendingLifecycleProjectionIndex {
+  id: ID! # chainId-commitmentId
+  chainId: Int!
+  commitmentId: BigInt!
+  commitmentEntityId: String!
+  projectionIds: [String!]! # stable insertion; drained in blockNumber/logIndex order
+  updatedAt: Int!
+}
+
+# Protocol-event-only companion for Community joined reads. It indexes the
+# needUID reference carried by CommitmentCreated; it does not index EAS.
+type NeedCommitmentIndex {
+  id: ID! # chainId-lowercaseNeedUID
+  chainId: Int!
+  needUID: String!
+  commitmentEntityIds: [String!]!
+  fulfilledCommitmentEntityIds: [String!]!
+  cycleEntityIds: [String!]!
+  hypercertEntityIds: [String!]!
+  updatedAt: Int!
+}
+
+# Reverse lookup for the one-way counterCommitmentId reference (amendment
+# 2026-08-01): which commitments name this one as their exchange counterpart.
+# Same explicit composite-ID discipline as NeedCommitmentIndex because the
+# generated getWhere surfaces are empty in this repo.
+type CommitmentCounterIndex {
+  id: ID! # chainId-counterCommitmentId (the referenced commitment)
+  chainId: Int!
+  commitmentId: BigInt! # the referenced commitment's raw id
+  commitmentEntityId: String! # relationship: chainId-commitmentId
+  referencingCommitmentEntityIds: [String!]!
+  updatedAt: Int!
+}
+
+# One row per successful atomic bilateral acceptance. Pair identity is ordered
+# by the event's A/B semantics, not numerically sorted: B is the later
+# commitment whose counterCommitmentId names A.
+type CommitmentExchange {
+  id: ID! # chainId-EXCHANGE-poolId-idA-idB
+  chainId: Int!
+  poolId: BigInt!
+  poolEntityId: String! # relationship: chainId-poolId
+  commitmentIdA: BigInt!
+  commitmentEntityIdA: String! # relationship: chainId-commitmentIdA
+  commitmentIdB: BigInt!
+  commitmentEntityIdB: String! # relationship: chainId-commitmentIdB
+  acceptorA: String! # B creator, claimant of A; never A's lead/provider
+  acceptorB: String! # A creator, claimant of B; never B's lead/provider
+  txHash: String!
+  acceptedAt: Int!
+}
+
+# Per-member relational memory in one pool (amendment 2026-08-01): counts only,
+# derived from public events already indexed — no floats, no units (label-exact
+# rule), no score, no ranking, and never a public leaderboard. Decision #21 is a
+# product-disclosure rule, not a confidentiality claim: raw Envio rows can be
+# queried because their inputs are public onchain facts. Shared selectors require
+# the viewer account plus current steward capability and return a participant row
+# only to that pool's steward or the member themself; client/admin code consumes
+# those selectors, and editorial surfaces consume pool-level aggregates only.
+# "Received" counts the fulfilled commitments whose delivery this account was
+# eligible to confirm (Request creator / Offer counterparty side).
+type PoolMemberHistory {
+  id: ID! # chainId-poolId-lowercaseAccount
+  chainId: Int!
+  poolId: BigInt!
+  poolEntityId: String! # relationship: chainId-poolId
+  account: String!
+  leadAccepted: Int!
+  leadFulfilled: Int!
+  leadCancelled: Int!
+  leadExpired: Int!
+  contributorFulfilled: Int! # frozen-roster memberships on Fulfilled commitments, excluding lead rows
+  receivedFulfilled: Int!
+  confirmationsGiven: Int!
+  disputesRaised: Int!
+  updatedAt: Int!
+}
+
 type Action {
   id: ID!
   chainId: Int!
@@ -600,6 +1271,11 @@ enum HypercertStatus {
   UNKNOWN
 }
 
+enum HypercertBundleKind {
+  WORK_LEGACY
+  COMMITMENT
+}
+
 type Hypercert {
   id: ID! # chainId-tokenId
   chainId: Int!
@@ -613,6 +1289,10 @@ type Hypercert {
   claimedUnits: BigInt!
   attestationCount: Int!
   attestationUIDs: [String!]! # EAS attestation UIDs bundled into this hypercert
+  bundleKind: HypercertBundleKind!
+  commitmentIds: [BigInt!]!
+  commitmentEntityIds: [String!]!
+  needUIDs: [String!]!
   status: HypercertStatus!
   createdAt: Int!
   updatedAt: Int!

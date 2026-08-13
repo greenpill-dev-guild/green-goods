@@ -40,12 +40,74 @@ const ALLOWED_CONTRACT_EVENTS = {
   HypercertMinter: new Set(["TransferSingle", "ClaimStored"]),
   GreenWill: new Set(["BadgeClassConfigured", "BadgeIssued"]),
   CookieJarFactory: new Set(["JarCreated", "MetadataUpdated"]),
+  CommitmentPoolingModule: new Set([
+    "PoolRegistered",
+    "PoolCharterUpdated",
+    "PoolReady",
+    "PoolOpened",
+    "PoolPaused",
+    "PoolResumed",
+    "PoolClosed",
+    "PoolComposted",
+    "PoolReopened",
+    "CycleSeeded",
+    "CycleOpened",
+    "CycleClosed",
+    "CycleComposted",
+    "CycleCancelled",
+    "CommitmentSeriesCreated",
+    "CommitmentSeriesMetadataUpdated",
+    "CommitmentSeriesRested",
+    "CommitmentSeriesResumed",
+    "CommitmentSeriesRetired",
+    "CommitmentCreated",
+    "ConsiderationDeclared",
+    "ValueDeclared",
+    "ConfirmerRuleSet",
+    "ClaimRequested",
+    "ClaimDeclined",
+    "CommitmentAccepted",
+    "ExchangeAccepted",
+    "ContributorAdded",
+    "ContributorRemoved",
+    "ContributorRequirementAssigned",
+    "ContributorRosterFrozen",
+    "WorkLinked",
+    "WorkUnlinked",
+    "ApprovedWorkCounted",
+    "ApprovedWorkReversed",
+    "EvidenceAttached",
+    "AssessmentAttached",
+    "CommitmentReadyForConfirmation",
+    "ConfirmationRecorded",
+    "CommitmentFulfilled",
+    "CommitmentCancelled",
+    "CommitmentExpired",
+    "CommitmentDisputed",
+    "DisputeResolved",
+    "ConsiderationPaid",
+    "ModuleDependencyUpdated",
+    "ModuleSchemaUIDUpdated",
+    "ModulePauseStatusChanged",
+  ]),
+  CommitmentRegistry: new Set([
+    "ModuleUpdated",
+    "ClassRegistered",
+    "ProviderOpenCommitmentCapUpdated",
+    "UnitsCommitted",
+    "UnitsReleased",
+    "UnitsFulfilled",
+  ]),
   // Green Goods' own Arbitrum settlement command state (registers #90/#91). The boundary this
   // gate protects — no EAS re-indexing, no raw Celo/G$ transfer indexing — is unchanged: these
   // events are the module's command/acknowledgment lifecycle, not token movement observation.
   SettlementModule: new Set([
     "SettlementDeploymentPinned",
     "FundingConfigurationLocked",
+    "FundingPledged",
+    "FundingDepositRecorded",
+    "FundingConsumed",
+    "FundingWithdrawn",
     "SettlementAccountRegistered",
     "SettlementRecoveryUpdated",
     "SettlementAccountStatusChanged",
@@ -102,6 +164,7 @@ const ALLOWED_CONTRACTS = new Set(Object.keys(ALLOWED_CONTRACT_EVENTS));
 const REQUIRED_CHAIN_BOUNDARIES = new Map([
   [42161, { startBlock: 433_713_812, endBlock: undefined }],
   [11155111, { startBlock: 10_243_363, endBlock: undefined }],
+  [42220, { startBlock: 74_691_430, endBlock: undefined }],
 ]);
 
 const DISALLOWED_SCHEMA_ENTITIES = [
@@ -229,16 +292,25 @@ async function main() {
       }
     }
 
-    const octantVault = chainContracts.find((contract) => contract?.name === "OctantVault");
-    if (!octantVault) {
-      errors.push(`Chain ${chainId} is missing the dynamic OctantVault contract`);
-    } else if (Object.hasOwn(octantVault, "address")) {
-      errors.push(`Chain ${chainId} OctantVault must omit address for dynamic registration`);
-    }
+    if (chainId !== 42220) {
+      const octantVault = chainContracts.find((contract) => contract?.name === "OctantVault");
+      if (!octantVault) {
+        errors.push(`Chain ${chainId} is missing the dynamic OctantVault contract`);
+      } else if (Object.hasOwn(octantVault, "address")) {
+        errors.push(`Chain ${chainId} OctantVault must omit address for dynamic registration`);
+      }
 
-    const gardenAccount = chainContracts.find((contract) => contract?.name === "GardenAccount");
-    if (!gardenAccount?.address) {
-      errors.push(`Chain ${chainId} is missing the seeded GardenAccount implementation address`);
+      const gardenAccount = chainContracts.find((contract) => contract?.name === "GardenAccount");
+      if (!gardenAccount?.address) {
+        errors.push(`Chain ${chainId} is missing the seeded GardenAccount implementation address`);
+      }
+    } else {
+      const executor = chainContracts.find(
+        (contract) => contract?.name === "CeloSettlementExecutor"
+      );
+      if (!executor?.address) {
+        errors.push("Chain 42220 is missing the CeloSettlementExecutor deployment address");
+      }
     }
 
     const greenWill = chainContracts.find((contract) => contract?.name === "GreenWill");

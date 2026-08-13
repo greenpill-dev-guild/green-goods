@@ -1,5 +1,12 @@
 import assert from "assert";
-import { Addresses, createTestIndexer, HypercertMinter, serveJson } from "./v3";
+import {
+  Addresses,
+  CommitmentPoolingModule,
+  createTestIndexer,
+  HypercertMinter,
+  processEvents,
+  serveJson,
+} from "./v3";
 
 const CHAIN_ID = 42161;
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
@@ -326,6 +333,152 @@ describe("HypercertMinter.ClaimStored", () => {
       assert.equal(hc.garden, "0xgarden-address");
       assert.equal(hc.attestationCount, 2);
       assert.deepEqual(hc.attestationUIDs, ["0xatt-1", "0xatt-2"]);
+      assert.equal(hc.bundleKind, "WORK_LEGACY");
+      assert.deepEqual(hc.commitmentIds, []);
+    } finally {
+      await metadataServer.close();
+    }
+  });
+
+  it("indexes commitment bundles and certificate-scoped contributor units", async () => {
+    const metadataServer = await serveJson({
+      hidden_properties: {
+        gardenId: addr(1),
+        bundleKind: "COMMITMENT",
+        commitmentIds: [11, "11"],
+        needUIDs: [txHash(50), txHash(50)],
+      },
+    });
+    try {
+      let mockDb = createTestIndexer();
+      const start = 433_713_812;
+      const data = (offset: number, logIndex = 0) =>
+        mockEvent(CHAIN_ID, start + offset, {
+          blockNumber: start + offset,
+          txHash: txHash(500 + offset),
+          logIndex,
+        });
+      const events = [
+        CommitmentPoolingModule.PoolRegistered.createMockEvent({
+          poolId: 7n,
+          garden: addr(1),
+          poolType: 0n,
+          mockEventData: data(0),
+        }),
+        CommitmentPoolingModule.CycleSeeded.createMockEvent({
+          cycleId: 9n,
+          poolId: 7n,
+          cycleType: 0n,
+          startTime: 1n,
+          endTime: 2n,
+          metadataCID: "ipfs://cycle",
+          mockEventData: data(1),
+        }),
+        CommitmentPoolingModule.CycleOpened.createMockEvent({
+          cycleId: 9n,
+          poolId: 7n,
+          gardenersBps: 6000n,
+          treasuryBps: 1000n,
+          operatorBps: 1000n,
+          evaluatorBps: 500n,
+          communityBps: 500n,
+          funderBps: 1000n,
+          equalParticipationBps: 2000n,
+          verifiedContributionBps: 8000n,
+          mockEventData: data(2),
+        }),
+        CommitmentPoolingModule.CommitmentCreated.createMockEvent({
+          commitmentId: 11n,
+          poolId: 7n,
+          cycleId: 9n,
+          commitmentSeriesId: 0n,
+          creationRequestKey: txHash(1),
+          creationPayloadHash: txHash(2),
+          creator: addr(2),
+          recordedBy: addr(2),
+          direction: 0n,
+          commitmentType: 0n,
+          claimType: 1n,
+          claimMode: 1n,
+          contributorPolicy: 1n,
+          domains: [1n],
+          requirementActionUIDs: [10n],
+          requirementDomains: [1n],
+          requirementRequiredCounts: [1n],
+          unitLabel: "hours",
+          targetUnits: 1n,
+          requiresAssessment: false,
+          dueDate: 0n,
+          metadataCID: "ipfs://commitment",
+          needUID: txHash(50),
+          counterCommitmentId: 0n,
+          declaredUnitValue: 0n,
+          declaredValueBasis: "",
+          payerGarden: addr(1),
+          mockEventData: data(3),
+        }),
+        CommitmentPoolingModule.CommitmentAccepted.createMockEvent({
+          commitmentId: 11n,
+          claimant: addr(3),
+          counterparty: addr(3),
+          kind: 1n,
+          gardenContext: addr(3),
+          leadProvider: addr(2),
+          providerGarden: addr(1),
+          payerGarden: addr(3),
+          mockEventData: data(4),
+        }),
+        CommitmentPoolingModule.ContributorAdded.createMockEvent({
+          commitmentId: 11n,
+          contributor: addr(2),
+          addedBy: addr(2),
+          mockEventData: data(5),
+        }),
+        CommitmentPoolingModule.EvidenceAttached.createMockEvent({
+          commitmentId: 11n,
+          cid: "ipfs://evidence",
+          attacher: addr(2),
+          creditedContributors: [addr(2)],
+          mockEventData: data(6),
+        }),
+        CommitmentPoolingModule.ContributorRosterFrozen.createMockEvent({
+          commitmentId: 11n,
+          contributorCount: 1n,
+          mockEventData: data(7),
+        }),
+        CommitmentPoolingModule.CommitmentFulfilled.createMockEvent({
+          commitmentId: 11n,
+          confirmer: addr(3),
+          confirmationPath: 0n,
+          reason: "",
+          mockEventData: data(8),
+        }),
+      ];
+      mockDb = await processEvents(mockDb, events);
+      const claimStored = HypercertMinter.ClaimStored.createMockEvent({
+        claimID: 42n,
+        uri: metadataServer.url,
+        totalUnits: 1000n,
+        mockEventData: mockEvent(CHAIN_ID, start + 9, {
+          blockNumber: start + 9,
+          txHash: txHash(600),
+          logIndex: 0,
+        }),
+      });
+      mockDb = await HypercertMinter.ClaimStored.processEvent({ event: claimStored, mockDb });
+      const hypercert = await mockDb.Hypercert.get(`${CHAIN_ID}-42`);
+      const allocation = await mockDb.HypercertCommitmentContributorAllocation.get(
+        `${CHAIN_ID}-42-11-${addr(2).toLowerCase()}`
+      );
+      assert.ok(hypercert);
+      assert.ok(allocation);
+      assert.equal(hypercert.bundleKind, "COMMITMENT");
+      assert.deepEqual(hypercert.commitmentIds, [11n]);
+      assert.deepEqual(hypercert.commitmentEntityIds, [`${CHAIN_ID}-11`]);
+      assert.deepEqual(hypercert.needUIDs, [txHash(50)]);
+      assert.equal(allocation.recognitionWeightBps, 10_000);
+      assert.equal(allocation.commitmentGardenersClassUnits, 600n);
+      assert.equal(allocation.recognitionUnits, 600n);
     } finally {
       await metadataServer.close();
     }

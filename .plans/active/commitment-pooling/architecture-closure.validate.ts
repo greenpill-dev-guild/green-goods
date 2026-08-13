@@ -34,6 +34,7 @@ const adminHandoff = read("handoffs/claude-ui-admin.md");
 const poolingAbi = read("../../../packages/contracts/src/interfaces/ICommitmentPoolingModule.sol");
 const registryAbi = read("../../../packages/contracts/src/interfaces/ICommitmentRegistry.sol");
 const settlementAbi = read("../../../packages/contracts/src/interfaces/ISettlementModule.sol");
+const runtimeIndexerSchema = read("../../../packages/indexer/schema.graphql");
 
 const failures: string[] = [];
 const require = (condition: boolean, message: string) => {
@@ -222,13 +223,22 @@ const requiredEntities = [
   "CommitmentCounterIndex",
   "CommitmentExchange",
   "PoolMemberHistory",
+  "CommitmentFunding",
+  "CommitmentFundingIndex",
 ] as const;
 const entityMatrix = section(matrix, "### A2. Complete indexed entity", "---\n\n## Matrix B");
 for (const entity of requiredEntities) {
   require(entityMatrix.includes(`\`${entity}\``), `${entity} is missing from Matrix A2`);
-  require(new RegExp(`^type ${entity} \\{`, "m").test(contract), `${entity} is missing from the canonical indexer schema`);
+  require(
+    new RegExp(`^type ${entity} \\{`, "m").test(`${contract}\n${settlementSpec}`),
+    `${entity} is missing from the canonical indexer schema`,
+  );
+  require(
+    new RegExp(`^type ${entity} \\{`, "m").test(runtimeIndexerSchema),
+    `${entity} is missing from packages/indexer/schema.graphql`,
+  );
 }
-for (let index = 1; index <= 28; index += 1) {
+for (let index = 1; index <= 30; index += 1) {
   require(entityMatrix.includes(`ER-${String(index).padStart(2, "0")}`), `missing ER-${String(index).padStart(2, "0")}`);
 }
 
@@ -521,8 +531,15 @@ const sourceChecks: Array<[boolean, string]> = [
       journeys.includes('W7@expiry-queue'),
     "admin expiry journey does not prove due-live to Expired",
   ],
-  [journeys.includes('W32@saving') && journeys.includes('W32@offline-local'), "saved-Offer journeys omit saving/offline truth"],
-  [!section(journeys, '{ id: "sb38"', '{ id: "sb39"').includes('W32@saved'), "SB-38 still claims a no-signal save succeeded"],
+  [
+    section(prototypes, "### SB-38", "### SB-39").includes("`saving`") &&
+      section(prototypes, "### SB-38", "### SB-39").includes("`offline-local`"),
+    "SB-38 omits saving/offline truth",
+  ],
+  [
+    !section(prototypes, "### SB-38", "### SB-39").includes("W32@saved"),
+    "SB-38 still claims a no-signal save succeeded",
+  ],
   [acceptance.includes("Pool.nonTerminalCycleCount == 0"), "acceptance matrix lacks the pool close guard"],
   [
     acceptance.includes("late `ClaimRequested`") ||
@@ -537,7 +554,7 @@ const sourceChecks: Array<[boolean, string]> = [
   [diagrams.includes("pool.nonTerminalCycleCount = 0"), "diagrams omit the pool cycle-close guard"],
   [
     diagrams.includes("Sixteen core NET-NEW pooling entities plus ten auxiliary") &&
-      diagrams.includes("the 26 pooling/contributor/replay records"),
+      diagrams.includes("are 28 NET-NEW read models"),
     "D15 entity counts are stale",
   ],
   [
@@ -568,9 +585,9 @@ const sourceChecks: Array<[boolean, string]> = [
   [wireframes.includes("`saving` · `save-failed` · `offline-local` · `version-conflict`"), "wireframes omit persistence truth states"],
   [wireframes.includes("#screens/W7@open") && wireframes.includes("(30 states)"), "wireframe W7 state count is stale"],
   [
-    coverage.includes("410 rendered states") &&
-      coverage.includes("556 registered hotspots") &&
-      coverage.includes("389 scenes"),
+    coverage.includes("431 rendered states") &&
+      coverage.includes("606 registered hotspots") &&
+      coverage.includes("301 scenes"),
     "prototype coverage snapshot is stale",
   ],
   [plan.includes("architecture-closure-matrices.md") && plan.includes("architecture-closure.validate.ts"), "plan document map omits closure artifacts"],
