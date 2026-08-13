@@ -10,6 +10,7 @@ import {
   validateReleaseCheckpointPrefix,
 } from "./release";
 import { parseCastTransactionHash } from "../utils/cast-env";
+import { buildReleaseLock, loadReleaseManifest } from "../utils/release-manifest";
 import type { ReleaseTransactionBoundary } from "../utils/release-plan";
 
 const CONTRACTS_ROOT = path.join(__dirname, "../..");
@@ -34,6 +35,20 @@ function fail(args: string[], env: NodeJS.ProcessEnv = process.env) {
 }
 
 describe("release CLI real entrypoints", () => {
+  it("keeps every frozen CREATE2 identity executable by the release script", () => {
+    const source = fs.readFileSync(path.join(CONTRACTS_ROOT, "script/DeployCommitmentRelease.s.sol"), "utf8");
+    const executableLabels = new Set(
+      [...source.matchAll(/_deploy\([\s\S]*?,\s*"((?:library|implementation|proxy):[^"]+)"\s*\)/gu)].map(
+        (match) => match[1],
+      ),
+    );
+    const frozenLabels = buildReleaseLock(loadReleaseManifest()).identities.map(
+      (identity) => `${identity.kind}:${identity.name}`,
+    );
+
+    expect([...frozenLabels].filter((label) => !executableLabels.has(label))).toEqual([]);
+  });
+
   it("accepts Cast transaction hashes from JSON receipts and single-quoted RPC output", () => {
     expect(parseCastTransactionHash(JSON.stringify({ transactionHash: TRANSACTION_HASH }), "test boundary")).toBe(
       TRANSACTION_HASH,
