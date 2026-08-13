@@ -269,12 +269,12 @@ bun run contracts:assessment:upgrade:dry:arbitrum
 bun run contracts:pooling:deploy:dry:arbitrum
 bun run contracts:pooling:finalize:dry:arbitrum
 bun run contracts:pooling:upgrade:dry:arbitrum
-bun run contracts:settlement:module:plan:arbitrum
-bun run contracts:settlement:module:dry:arbitrum
-bun run contracts:credit:registry:plan:arbitrum
-bun run contracts:credit:registry:dry:arbitrum
-bun run contracts:settlement:executor:plan:celo
-bun run contracts:settlement:executor:dry:celo
+bun run contracts:settlement:module:plan:arbitrum --expected-nonce <fresh-pending-nonce>
+bun run contracts:settlement:module:dry:arbitrum --expected-nonce <same-reviewed-pending-nonce>
+bun run contracts:credit:registry:plan:arbitrum --expected-nonce <fresh-pending-nonce>
+bun run contracts:credit:registry:dry:arbitrum --expected-nonce <same-reviewed-pending-nonce>
+bun run contracts:settlement:executor:plan:celo --expected-nonce <fresh-pending-nonce>
+bun run contracts:settlement:executor:dry:celo --expected-nonce <same-reviewed-pending-nonce>
 bun run contracts:release:verify:plan:arbitrum
 bun run contracts:release:verify:plan:celo
 bun run contracts:release:indexer:handoff

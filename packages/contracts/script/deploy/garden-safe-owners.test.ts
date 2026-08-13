@@ -1,18 +1,28 @@
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
-import { AbiCoder, dataSlice, getAddress, Interface, keccak256, ZeroAddress } from "ethers";
+import { AbiCoder, dataSlice, getAddress, Interface, keccak256, type JsonRpcProvider, ZeroAddress } from "ethers";
 import { afterEach, describe, expect, it } from "vitest";
 import {
   atomicWrite,
+  assertBootstrapState,
+  assertSwappedState,
+  assertUniqueReplacementOwners,
   buildBootstrapInitializer,
+  buildSwappedDeploymentArtifact,
   buildSwapExecutionData,
   confinedRuntimePath,
   deriveSaltNonce,
+  isContractCallRevert,
   parseArguments,
   predictSafeAddress,
   prevalidatedSignature,
   previousOwner,
+  type BootstrapPlan,
+  type Checkpoint,
+  type SafeInspection,
+  type SwapPlan,
+  verifyReceipt,
 } from "./garden-safe-owners";
 
 const DEPLOYMENT_OWNER = "0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6";
@@ -30,6 +40,22 @@ const SAFE_INTERFACE = new Interface([
 ]);
 
 const temporaryDirectories: string[] = [];
+
+function safeInspection(owners: string[], nonce: string): SafeInspection {
+  return {
+    codePresent: true,
+    singleton: getAddress(SINGLETON),
+    version: "1.4.1",
+    owners: owners.map(getAddress),
+    threshold: "1",
+    modules: [],
+    guard: ZeroAddress,
+    fallbackHandler: getAddress(HANDLER),
+    nonce,
+    nativeBalance: "0",
+    tokenBalance: "0",
+  };
+}
 
 afterEach(() => {
   for (const directory of temporaryDirectories.splice(0)) {
@@ -137,5 +163,110 @@ describe("Garden Safe temporary owner tooling", () => {
       ["GG_COMMITMENT_POOL_SAFE_V1", 42161, garden],
     );
     expect(deriveSaltNonce(garden)).toBe(BigInt(keccak256(encoded)));
+  });
+
+  it("requires pristine bootstrap and exactly one owner-swap transaction", () => {
+    const bootstrap = safeInspection([DEPLOYMENT_OWNER, RECOVERY_SAFE], "0");
+    const swapped = safeInspection([REPLACEMENT_OWNER, RECOVERY_SAFE], "1");
+
+    expect(() => assertBootstrapState(bootstrap, DEPLOYMENT_OWNER, RECOVERY_SAFE, SINGLETON, HANDLER)).not.toThrow();
+    expect(() =>
+      assertBootstrapState({ ...bootstrap, nonce: "2" }, DEPLOYMENT_OWNER, RECOVERY_SAFE, SINGLETON, HANDLER),
+    ).toThrow(/bootstrap state/);
+    expect(() => assertSwappedState(swapped, REPLACEMENT_OWNER, RECOVERY_SAFE, SINGLETON, HANDLER)).not.toThrow();
+    expect(() =>
+      assertSwappedState({ ...swapped, nonce: "3" }, REPLACEMENT_OWNER, RECOVERY_SAFE, SINGLETON, HANDLER),
+    ).toThrow(/post-swap state/);
+  });
+
+  it("rejects replacement-owner reuse across Gardens", () => {
+    expect(() =>
+      assertUniqueReplacementOwners([
+        {
+          garden: "0x2222222222222222222222222222222222222222",
+          safe: "0x4444444444444444444444444444444444444444",
+          replacementOwner: REPLACEMENT_OWNER,
+        },
+        {
+          garden: "0x3333333333333333333333333333333333333333",
+          safe: "0x5555555555555555555555555555555555555555",
+          replacementOwner: REPLACEMENT_OWNER,
+        },
+      ]),
+    ).toThrow(/reuses one replacement owner/);
+  });
+
+  it("distinguishes a contract revert from RPC and transport failures", () => {
+    expect(isContractCallRevert({ code: "CALL_EXCEPTION" })).toBe(true);
+    expect(isContractCallRevert({ code: "NETWORK_ERROR" })).toBe(false);
+    expect(isContractCallRevert(new Error("timeout"))).toBe(false);
+  });
+
+  it("retries until both transaction and receipt evidence are available", async () => {
+    let receiptReads = 0;
+    let transactionReads = 0;
+    const transactionHash = `0x${"ab".repeat(32)}`;
+    const to = "0x4444444444444444444444444444444444444444";
+    const data = "0x1234";
+    const provider = {
+      getTransactionReceipt: async () => {
+        receiptReads += 1;
+        return receiptReads === 1 ? null : { status: 1, blockNumber: 123 };
+      },
+      getTransaction: async () => {
+        transactionReads += 1;
+        return transactionReads === 1 ? null : { from: DEPLOYMENT_OWNER, to, data, value: 0n, nonce: 7 };
+      },
+    } as unknown as JsonRpcProvider;
+
+    await expect(
+      verifyReceipt(
+        provider,
+        transactionHash,
+        DEPLOYMENT_OWNER,
+        { to, value: "0", data, nonce: 7 },
+        { attempts: 2, wait: async () => undefined },
+      ),
+    ).resolves.toEqual({ blockNumber: 123 });
+    expect(receiptReads).toBe(2);
+    expect(transactionReads).toBe(2);
+  });
+
+  it("promotes complete swap receipts and final owners into the durable artifact", () => {
+    const garden = "0x2222222222222222222222222222222222222222";
+    const safe = "0x4444444444444444444444444444444444444444";
+    const evidence = {
+      index: 1,
+      transactionHash: `0x${"ab".repeat(32)}`,
+      blockNumber: 123,
+      safe,
+      garden,
+    };
+    const bootstrap = {
+      factory: FACTORY,
+      recoverySafe: RECOVERY_SAFE,
+      entries: [{ tokenId: 0, garden, safe, initializerHash: `0x${"11".repeat(32)}`, saltNonce: "1" }],
+    } as unknown as BootstrapPlan;
+    const plan = {
+      releaseId: "commitment-pooling-settlement-credit-v1",
+      releaseSourceCommit: `0x${"22".repeat(20)}`,
+      singleton: SINGLETON,
+      compatibilityFallbackHandler: HANDLER,
+      recoverySafe: RECOVERY_SAFE,
+      entries: [{ garden, safe, replacementOwner: REPLACEMENT_OWNER }],
+    } as unknown as SwapPlan;
+    const checkpoint = { completed: [evidence] } as Checkpoint;
+
+    expect(buildSwappedDeploymentArtifact(plan, bootstrap, checkpoint, checkpoint)).toMatchObject({
+      stage: "reviewed-owner-swap-complete",
+      ownerPolicy: "1-of-2 unique per-Garden owner plus 2-of-3 recovery Safe; no value or modules",
+      safes: [
+        {
+          owners: expect.arrayContaining([getAddress(REPLACEMENT_OWNER), getAddress(RECOVERY_SAFE)]),
+          deployment: evidence,
+          ownerSwap: evidence,
+        },
+      ],
+    });
   });
 });

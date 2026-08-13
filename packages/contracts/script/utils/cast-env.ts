@@ -1,7 +1,36 @@
+import { execFileSync } from "node:child_process";
+import { redactRpcUrlsInText } from "./cli-parser";
+
 export function buildReadOnlyCastEnv(env: NodeJS.ProcessEnv = process.env): NodeJS.ProcessEnv {
   const sanitized = { ...env };
   delete sanitized.ETH_PASSWORD;
   return sanitized;
+}
+
+export function formatCastFailure(error: unknown, context: string): Error {
+  const stderr =
+    error && typeof error === "object" && "stderr" in error
+      ? (error as { stderr?: Buffer | string }).stderr
+      : undefined;
+  const detail = stderr ? String(stderr) : error instanceof Error ? error.message : String(error);
+  return new Error(`${context} failed: ${redactRpcUrlsInText(detail).trim()}`);
+}
+
+export function execCastCaptured(
+  args: string[],
+  options: { cwd: string; env?: NodeJS.ProcessEnv; inputStdio?: "ignore" | "inherit" },
+  context: string,
+): string {
+  try {
+    return execFileSync("cast", args, {
+      cwd: options.cwd,
+      encoding: "utf8",
+      env: options.env,
+      stdio: [options.inputStdio ?? "ignore", "pipe", "pipe"],
+    });
+  } catch (error) {
+    throw formatCastFailure(error, context);
+  }
 }
 
 export function parseCastTransactionHash(output: string, context: string): string {

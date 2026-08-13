@@ -28,7 +28,7 @@ import { NetworkManager } from "../utils/network";
 import { retryRpcAvailability } from "../utils/rpc-retry";
 import { getFoundryBroadcastPath } from "../utils/paths";
 import { assertSepoliaGate } from "../utils/release-gate";
-import { buildReadOnlyCastEnv, parseCastTransactionHash } from "../utils/cast-env";
+import { buildReadOnlyCastEnv, execCastCaptured, parseCastTransactionHash } from "../utils/cast-env";
 
 const LOCK_PATH = path.join(CONTRACTS_ROOT, "config/commitment-pooling-release.lock.json");
 const GENERATED_ROOT = path.join(CONTRACTS_ROOT, ".generated/release");
@@ -187,7 +187,8 @@ export function validateReleaseCheckpointPrefix(
       evidence.index !== index + 1 ||
       evidence.label !== boundary.label ||
       !Number.isSafeInteger(evidence.expectedNonce) ||
-      evidence.expectedNonce < 0
+      evidence.expectedNonce < 0 ||
+      (boundary.nonce !== undefined && evidence.expectedNonce !== boundary.nonce)
     ) {
       throw new Error("Release checkpoint is not one contiguous reviewed prefix");
     }
@@ -597,8 +598,7 @@ Phase B boundary form (not authorized by Phase A):
         throw new Error(`Nonce drift: expected ${options.expectedNonce}, live pending nonce is ${pendingNonce}`);
       }
       const result = JSON.parse(
-        execFileSync(
-          "cast",
+        execCastCaptured(
           [
             "send",
             boundary.to,
@@ -613,7 +613,8 @@ Phase B boundary form (not authorized by Phase A):
             this.networkManager.getRpcUrl(network),
             "--json",
           ],
-          { cwd: CONTRACTS_ROOT, env: process.env, encoding: "utf8", stdio: ["inherit", "pipe", "inherit"] },
+          { cwd: CONTRACTS_ROOT, env: process.env, inputStdio: "inherit" },
+          "Bun-wrapped ownership boundary",
         ),
       ) as Record<string, unknown>;
       if (typeof result.transactionHash !== "string" || !/^0x[0-9a-fA-F]{64}$/u.test(result.transactionHash)) {
@@ -677,6 +678,15 @@ Phase B boundary form (not authorized by Phase A):
       const detail = stage === "settlement-executor" ? "celo-sepolia is intentionally unsupported" : "wrong chain";
       throw new Error(`${stage} requires --network ${expectedNetwork} (${detail})`);
     }
+    if (options.broadcast && options.releaseStep === undefined) {
+      throw new Error("Broadcast requires --step <index>; one invocation may execute exactly one boundary");
+    }
+    if (options.broadcast && options.expectedNonce === undefined) {
+      throw new Error("Broadcast requires --expected-nonce <n>; nonce drift must fail closed");
+    }
+    if (!options.broadcast && options.expectedNonce === undefined) {
+      throw new Error("Release-stage planning and dry-run require --expected-nonce <reviewed-pending-nonce>");
+    }
     if (options.broadcast && !options.dryRun) {
       assertSepoliaGate({
         network: options.network,
@@ -686,13 +696,28 @@ Phase B boundary form (not authorized by Phase A):
     }
     const chainId = manifest.chains[expectedNetwork].evmChainId;
     const deployment = readDeployment(chainId);
-    const plan = buildStageTransactionPlan(manifest, lock, stage, deployment, baseSalt);
     const directory = path.join(GENERATED_ROOT, manifest.releaseId, expectedNetwork);
     const planPath = path.join(directory, `${stage}-transaction-plan.json`);
     const sidePath = path.join(directory, `${chainId}-${stage}-side.json`);
     const checkpointPath = path.join(directory, `${stage}-checkpoint.json`);
     const canonicalPath = path.join(CONTRACTS_ROOT, "deployments", `${chainId}-latest.json`);
-    writeGenerated(planPath, plan);
+    let plan: ReturnType<typeof buildStageTransactionPlan>;
+    if (options.broadcast) {
+      if (!fs.existsSync(planPath)) {
+        throw new Error(`Broadcast requires the reviewed nonce-bound transaction plan: ${planPath}`);
+      }
+      plan = JSON.parse(fs.readFileSync(planPath, "utf8")) as ReturnType<typeof buildStageTransactionPlan>;
+      if (!Number.isSafeInteger(plan.expectedNonce) || plan.expectedNonce! < 0) {
+        throw new Error("Release-stage transaction plan is not bound to a reviewed starting nonce");
+      }
+      const canonicalPlan = buildStageTransactionPlan(manifest, lock, stage, deployment, baseSalt, plan.expectedNonce);
+      if (stable(plan) !== stable(canonicalPlan)) {
+        throw new Error("Release-stage transaction plan differs from the freshly derived canonical plan");
+      }
+    } else {
+      plan = buildStageTransactionPlan(manifest, lock, stage, deployment, baseSalt, options.expectedNonce);
+      writeGenerated(planPath, plan);
+    }
     writeGenerated(sidePath, predictedSide(lock, stage));
     const simulatedMerge = simulateReleaseArtifactMerge({
       canonicalPath,
@@ -723,10 +748,11 @@ Phase B boundary form (not authorized by Phase A):
       );
     }
     if (options.broadcast) {
-      if (!boundary)
-        throw new Error("Broadcast requires --step <index>; one invocation may execute exactly one boundary");
-      if (options.expectedNonce === undefined) {
-        throw new Error("Broadcast requires --expected-nonce <n>; nonce drift must fail closed");
+      if (!boundary || options.expectedNonce === undefined) throw new Error("Broadcast boundary was not resolved");
+      if (boundary.nonce !== options.expectedNonce) {
+        throw new Error(
+          `Boundary ${boundary.index} reviewed nonce is ${String(boundary.nonce)}, not ${options.expectedNonce}`,
+        );
       }
       if (!options.receiptHash) await this.assertLiveNonce(options, manifest, expectedNetwork);
       const checkpoint = this.readCheckpoint(checkpointPath);
@@ -955,8 +981,7 @@ Phase B boundary form (not authorized by Phase A):
       }
     }
     const pendingNonce = Number(
-      execFileSync(
-        "cast",
+      execCastCaptured(
         [
           "nonce",
           manifest.ownership.deploymentSender,
@@ -965,7 +990,8 @@ Phase B boundary form (not authorized by Phase A):
           "--rpc-url",
           this.networkManager.getRpcUrl(network),
         ],
-        { cwd: CONTRACTS_ROOT, env: buildReadOnlyCastEnv(), encoding: "utf8" },
+        { cwd: CONTRACTS_ROOT, env: buildReadOnlyCastEnv() },
+        "Cast pending nonce",
       ).trim(),
     );
     if (pendingNonce !== options.expectedNonce) {
@@ -974,8 +1000,7 @@ Phase B boundary form (not authorized by Phase A):
       );
     }
     const transactionHash = parseCastTransactionHash(
-      execFileSync(
-        "cast",
+      execCastCaptured(
         [
           "send",
           getAddress(transaction.to),
@@ -990,7 +1015,8 @@ Phase B boundary form (not authorized by Phase A):
           this.networkManager.getRpcUrl(network),
           "--json",
         ],
-        { cwd: CONTRACTS_ROOT, env: process.env, encoding: "utf8", stdio: ["inherit", "pipe", "inherit"] },
+        { cwd: CONTRACTS_ROOT, env: process.env, inputStdio: "inherit" },
+        "Bun-wrapped release boundary",
       ),
       "Bun-wrapped release boundary",
     );
@@ -1145,7 +1171,7 @@ Phase B boundary form (not authorized by Phase A):
             "--salt",
             baseSalt,
           ],
-          { cwd: CONTRACTS_ROOT, stdio: "inherit", env: process.env },
+          { cwd: CONTRACTS_ROOT, stdio: "inherit", env: buildReadOnlyCastEnv() },
         ),
       {
         onRetry: (attempt) =>
@@ -1170,7 +1196,7 @@ Phase B boundary form (not authorized by Phase A):
             "--salt",
             baseSalt,
           ],
-          { cwd: CONTRACTS_ROOT, stdio: "inherit", env: process.env },
+          { cwd: CONTRACTS_ROOT, stdio: "inherit", env: buildReadOnlyCastEnv() },
         ),
       {
         onRetry: (attempt) =>
@@ -1372,7 +1398,7 @@ Phase B boundary form (not authorized by Phase A):
     if (options.artifactPath) args.push("--artifact", options.artifactPath);
     if (options.releaseOwnerPhase) args.push("--owner-phase", options.releaseOwnerPhase);
     if (options.deploymentSalt) args.push("--salt", options.deploymentSalt);
-    execFileSync("bun", args, { cwd: CONTRACTS_ROOT, stdio: "inherit", env: process.env });
+    execFileSync("bun", args, { cwd: CONTRACTS_ROOT, stdio: "inherit", env: buildReadOnlyCastEnv() });
   }
 
   private indexerHandoff(options: ParsedOptions, manifest: ReleaseManifest, lock: ReleaseLock): void {

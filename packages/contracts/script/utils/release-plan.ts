@@ -3,6 +3,7 @@ import type { ReleaseIdentity, ReleaseLock, ReleaseManifest, ReleaseStage } from
 
 export interface ReleaseTransactionBoundary {
   index: number;
+  nonce?: number;
   stage: ReleaseStage | "settlement-peer" | "ownership-transfer";
   kind: "create2" | "configuration" | "ownership";
   label: string;
@@ -26,6 +27,7 @@ export interface ReleaseTransactionPlan {
   network: string;
   sender: string;
   owner: string;
+  expectedNonce?: number;
   create2Factory: string;
   baseSalt: string;
   libraryMap: Record<string, string>;
@@ -93,7 +95,11 @@ export function buildStageTransactionPlan(
   stage: ReleaseStage,
   deployment: Record<string, unknown>,
   baseSalt: string,
+  startingNonce?: number,
 ): ReleaseTransactionPlan {
+  if (startingNonce !== undefined && (!Number.isSafeInteger(startingNonce) || startingNonce < 0)) {
+    throw new Error(`Invalid release-stage starting nonce: ${String(startingNonce)}`);
+  }
   const stageTarget = manifest.targets.find((target) => target.stage === stage);
   if (!stageTarget) throw new Error(`No manifest target for stage ${stage}`);
   const identities = lock.identities.filter((identity) => identity.stage === stage);
@@ -229,6 +235,17 @@ export function buildStageTransactionPlan(
     );
   }
 
+  const nonceBoundTransactions = transactions.map((transaction, index) =>
+    startingNonce === undefined ? transaction : { ...transaction, nonce: startingNonce + index },
+  );
+  if (
+    nonceBoundTransactions.some(
+      (transaction) => transaction.nonce !== undefined && !Number.isSafeInteger(transaction.nonce),
+    )
+  ) {
+    throw new Error("Release-stage transaction nonce exceeds the safe integer range");
+  }
+
   return {
     schemaVersion: 1,
     releaseId: manifest.releaseId,
@@ -237,10 +254,11 @@ export function buildStageTransactionPlan(
     network: stageTarget.network,
     sender: manifest.ownership.deploymentSender,
     owner: manifest.ownership.deploymentSender,
+    ...(startingNonce === undefined ? {} : { expectedNonce: startingNonce }),
     create2Factory: manifest.create2.factory,
     baseSalt,
     libraryMap: lock.libraryMap,
-    transactions,
+    transactions: nonceBoundTransactions,
     canonicalArtifactMutation: false,
   };
 }

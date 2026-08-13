@@ -19,7 +19,7 @@ import { mergeReleaseArtifact, writeReleaseJsonAtomic } from "../utils/release-a
 import { buildReleaseLock, loadReleaseManifest } from "../utils/release-manifest";
 import { getFoundryBroadcastPath } from "../utils/paths";
 import { assertSepoliaGate } from "../utils/release-gate";
-import { buildReadOnlyCastEnv, parseCastTransactionHash } from "../utils/cast-env";
+import { buildReadOnlyCastEnv, execCastCaptured, parseCastTransactionHash } from "../utils/cast-env";
 import {
   type CommitmentSchemaDefinition,
   type OnChainSchemaRecord,
@@ -908,8 +908,7 @@ export class CommitmentSchemasDeployer {
         );
       }
       transactionHash = parseCastTransactionHash(
-        execFileSync(
-          "cast",
+        execCastCaptured(
           [
             "send",
             boundary.to,
@@ -924,7 +923,8 @@ export class CommitmentSchemasDeployer {
             rpcUrl,
             "--json",
           ],
-          { cwd: CONTRACTS_ROOT, env: process.env, encoding: "utf8", stdio: ["inherit", "pipe", "inherit"] },
+          { cwd: CONTRACTS_ROOT, env: process.env, inputStdio: "inherit" },
+          "Bun-wrapped schema boundary",
         ),
         "Bun-wrapped schema boundary",
       );

@@ -1,6 +1,5 @@
 #!/usr/bin/env bun
 
-import { execFileSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import * as dotenv from "dotenv";
@@ -16,7 +15,7 @@ import {
   type TransactionResponse,
 } from "ethers";
 import { NetworkManager } from "../utils/network";
-import { parseCastTransactionHash } from "../utils/cast-env";
+import { execCastCaptured, parseCastTransactionHash } from "../utils/cast-env";
 import { retryRpcAvailability } from "../utils/rpc-retry";
 import { writeReleaseJsonAtomic } from "../utils/release-artifacts";
 import { assertSepoliaGate } from "../utils/release-gate";
@@ -826,6 +825,55 @@ export function validateDeployerExecution(
   }
 }
 
+export interface RegisteredPoolSnapshot {
+  garden: string;
+  poolId: string;
+  poolGarden: string;
+  poolType: number;
+  protocolPoolId?: string;
+}
+
+export function validateRegisteredPoolSnapshots(
+  plan: PoolBackfillPlan,
+  checkpoint: BackfillCheckpoint,
+  snapshots: RegisteredPoolSnapshot[],
+): void {
+  const registrations = plan.transactions.slice(0, -1);
+  if (snapshots.length !== registrations.length) {
+    throw new Error(`Unpause preflight requires ${registrations.length} exact live pools`);
+  }
+  const byGarden = new Map(snapshots.map((snapshot) => [getAddress(snapshot.garden), snapshot]));
+  if (byGarden.size !== registrations.length) throw new Error("Unpause preflight contains duplicate live pools");
+  for (const registration of registrations) {
+    if (!registration.garden) throw new Error("Canonical registration boundary has no garden");
+    const snapshot = byGarden.get(getAddress(registration.garden));
+    const expectedType = registration.kind === "REGISTER_PROTOCOL" ? 1 : 0;
+    if (
+      !snapshot ||
+      BigInt(snapshot.poolId) === 0n ||
+      getAddress(snapshot.poolGarden) !== getAddress(registration.garden) ||
+      snapshot.poolType !== expectedType
+    ) {
+      throw new Error(`Unpause preflight is missing exact pool ${registration.garden}`);
+    }
+    if (registration.kind === "REGISTER_PROTOCOL") {
+      if (
+        !snapshot.protocolPoolId ||
+        BigInt(snapshot.protocolPoolId) !== BigInt(snapshot.poolId) ||
+        !checkpoint.protocolRegistration.poolId ||
+        BigInt(checkpoint.protocolRegistration.poolId) !== BigInt(snapshot.poolId)
+      ) {
+        throw new Error("Unpause preflight Protocol pool differs from the receipt-backed checkpoint");
+      }
+    } else {
+      const saved = checkpoint.gardens[registration.garden.toLowerCase()];
+      if (!saved?.poolId || BigInt(saved.poolId) !== BigInt(snapshot.poolId)) {
+        throw new Error(`Unpause preflight pool ID differs from checkpoint for ${registration.garden}`);
+      }
+    }
+  }
+}
+
 function assertSafeSuccess(receipt: TransactionReceipt, safe: string): string {
   if (receipt.status !== 1) throw new Error(`Safe transaction ${receipt.hash} did not succeed`);
   let safeTransactionHash: string | undefined;
@@ -851,34 +899,7 @@ async function verifyPostState(
   const module = new Contract(plan.module, moduleInterface, provider);
   if (boundary.kind === "UNPAUSE") {
     if ((await module.paused()) !== false) throw new Error("Pooling remained paused after the Safe boundary");
-    for (const registration of plan.transactions.slice(0, -1)) {
-      if (!registration.garden) throw new Error("Canonical registration boundary has no garden");
-      const result = await module.getPoolByGarden(registration.garden);
-      const poolId = BigInt(result[0]);
-      const expectedType = registration.kind === "REGISTER_PROTOCOL" ? 1 : 0;
-      if (
-        poolId === 0n ||
-        getAddress(result[1].garden) !== getAddress(registration.garden) ||
-        Number(result[1].poolType) !== expectedType
-      ) {
-        throw new Error(`Final unpause is missing exact pool ${registration.garden}`);
-      }
-      if (registration.kind === "REGISTER_GARDEN") {
-        const saved = checkpoint.gardens[registration.garden.toLowerCase()];
-        if (!saved?.poolId || BigInt(saved.poolId) !== poolId) {
-          throw new Error(`Final unpause pool ID differs from checkpoint for ${registration.garden}`);
-        }
-      }
-      if (registration.kind === "REGISTER_PROTOCOL" && BigInt(await module.protocolPoolId()) !== poolId) {
-        throw new Error("Final unpause protocolPoolId does not point to the reviewed root");
-      }
-      if (
-        registration.kind === "REGISTER_PROTOCOL" &&
-        (!checkpoint.protocolRegistration.poolId || BigInt(checkpoint.protocolRegistration.poolId) !== poolId)
-      ) {
-        throw new Error("Final unpause Protocol pool ID differs from checkpoint");
-      }
-    }
+    validateRegisteredPoolSnapshots(plan, checkpoint, await readRegisteredPoolSnapshots(module, plan));
     return {};
   }
   if ((await module.paused()) !== true) throw new Error("Pooling unpaused before the pool backfill completed");
@@ -895,6 +916,74 @@ async function verifyPostState(
     throw new Error("protocolPoolId does not point to the root garden pool");
   }
   return { poolId: poolId.toString() };
+}
+
+async function readRegisteredPoolSnapshots(
+  module: Contract,
+  plan: PoolBackfillPlan,
+): Promise<RegisteredPoolSnapshot[]> {
+  const protocolPoolId = String(await module.protocolPoolId());
+  const snapshots: RegisteredPoolSnapshot[] = [];
+  for (const registration of plan.transactions.slice(0, -1)) {
+    if (!registration.garden) throw new Error("Canonical registration boundary has no garden");
+    const result = await module.getPoolByGarden(registration.garden);
+    snapshots.push({
+      garden: registration.garden,
+      poolId: String(result[0]),
+      poolGarden: String(result[1].garden),
+      poolType: Number(result[1].poolType),
+      ...(registration.kind === "REGISTER_PROTOCOL" ? { protocolPoolId } : {}),
+    });
+  }
+  return snapshots;
+}
+
+export async function verifyRegistrationReceiptPrefix(
+  provider: JsonRpcProvider,
+  plan: PoolBackfillPlan,
+  checkpoint: BackfillCheckpoint,
+): Promise<void> {
+  for (const boundary of plan.transactions.slice(0, -1)) {
+    const evidence = checkpoint.completed.find((entry) => entry.step === boundary.index);
+    if (!evidence) throw new Error(`Unpause preflight has no receipt for boundary ${boundary.index}`);
+    const { transaction, receipt } = await retryRpcAvailability(
+      async () => {
+        const [transaction, receipt] = await Promise.all([
+          provider.getTransaction(evidence.transactionHash),
+          provider.getTransactionReceipt(evidence.transactionHash),
+        ]);
+        return transaction && receipt ? { transaction, receipt } : undefined;
+      },
+      { unavailableMessage: `Unpause preflight receipt remained unavailable for boundary ${boundary.index}` },
+    );
+    if (receipt.status !== 1 || receipt.blockNumber !== evidence.blockNumber) {
+      throw new Error(`Unpause preflight receipt differs for boundary ${boundary.index}`);
+    }
+    if (plan.authority === "SAFE") {
+      const decoded = parseSafeExecution(transaction, boundary, plan.owner);
+      const loggedSafeTransactionHash = assertSafeSuccess(receipt, plan.owner);
+      const safe = new Contract(plan.owner, safeInterface, provider);
+      const expectedSafeTransactionHash = String(
+        await safe.getTransactionHash(
+          decoded[0],
+          decoded[1],
+          decoded[2],
+          decoded[3],
+          decoded[4],
+          decoded[5],
+          decoded[6],
+          decoded[7],
+          decoded[8],
+          boundary.nonce,
+        ),
+      );
+      if (expectedSafeTransactionHash.toLowerCase() !== loggedSafeTransactionHash.toLowerCase()) {
+        throw new Error(`Unpause preflight Safe receipt does not prove boundary ${boundary.index}`);
+      }
+    } else {
+      validateDeployerExecution(transaction, boundary, plan.owner);
+    }
+  }
 }
 
 function initialCheckpoint(plan: PoolBackfillPlan, planHash: string): BackfillCheckpoint {
@@ -986,14 +1075,18 @@ async function verifyAuthorizedBoundary(options: BackfillOptions): Promise<void>
     );
     assertInventoryMatchesPlan(plan, await enumerateGardens(provider, deployment, finalized.number));
     await assertModuleConfiguration(provider, deployment, plan.module, plan.owner, finalized.number, true);
+    if (boundary.kind === "UNPAUSE") {
+      await verifyRegistrationReceiptPrefix(provider, plan, checkpoint);
+      const module = new Contract(plan.module, moduleInterface, provider);
+      validateRegisteredPoolSnapshots(plan, checkpoint, await readRegisteredPoolSnapshots(module, plan));
+    }
     const pendingNonce = await provider.getTransactionCount(plan.owner, "pending");
     if (pendingNonce !== expectedNonce) {
       throw new Error(`Deployer nonce drift: expected ${expectedNonce}, live pending nonce is ${pendingNonce}`);
     }
     const manifest = loadReleaseManifest();
     receiptHash = parseCastTransactionHash(
-      execFileSync(
-        "cast",
+      execCastCaptured(
         [
           "send",
           boundary.to,
@@ -1008,7 +1101,8 @@ async function verifyAuthorizedBoundary(options: BackfillOptions): Promise<void>
           rpcUrl,
           "--json",
         ],
-        { cwd: CONTRACTS_ROOT, env: process.env, encoding: "utf8", stdio: ["inherit", "pipe", "inherit"] },
+        { cwd: CONTRACTS_ROOT, env: process.env, inputStdio: "inherit" },
+        "Bun-wrapped deployer pool backfill boundary",
       ),
       "Bun-wrapped deployer pool backfill boundary",
     );

@@ -6,6 +6,10 @@ import { Test } from "forge-std/Test.sol";
 import { IERC6551Registry } from "../../src/interfaces/IERC6551Registry.sol";
 import { SALT, TOKENBOUND_REGISTRY } from "../../src/lib/TBA.sol";
 
+interface IVmSkip {
+    function skip(bool skipTest) external;
+}
+
 interface IAccountGuardianView {
     function owner() external view returns (address);
     function isTrustedExecutor(address executor) external view returns (bool);
@@ -128,7 +132,6 @@ contract CrossChainGardenSafeOwnerForkTest is Test {
 
     uint256 private arbitrumFork;
     uint256 private celoFork;
-    bool private forked;
 
     address private recoverySignerOne;
     address private recoverySignerTwo;
@@ -141,11 +144,13 @@ contract CrossChainGardenSafeOwnerForkTest is Test {
     function setUp() public {
         string memory arbitrumRpc = _rpcUrl("ARBITRUM_RPC_URL");
         string memory celoRpc = _rpcUrl("CELO_RPC_URL");
-        if (bytes(arbitrumRpc).length == 0 || bytes(celoRpc).length == 0) return;
+        if (bytes(arbitrumRpc).length == 0 || bytes(celoRpc).length == 0) {
+            IVmSkip(address(vm)).skip(true);
+            return;
+        }
 
         arbitrumFork = _createPinnedFork(arbitrumRpc, "ARBITRUM_FORK_BLOCK_NUMBER");
         celoFork = _createPinnedFork(celoRpc, "CELO_FORK_BLOCK_NUMBER");
-        forked = true;
 
         recoverySignerOne = vm.addr(RECOVERY_ONE_KEY);
         recoverySignerTwo = vm.addr(RECOVERY_TWO_KEY);
@@ -165,8 +170,6 @@ contract CrossChainGardenSafeOwnerForkTest is Test {
     }
 
     function testGardenSafe_exactSourceTuplePredictsOneAddressButCodeIsNotDeployedCrossChain() public {
-        if (!forked) return;
-
         vm.selectFork(arbitrumFork);
         address arbitrumPrediction = _sourceAccount(ARBITRUM_GARDEN_IMPLEMENTATION, ROOT_GARDEN_TOKEN_ID);
         assertEq(arbitrumPrediction, ARBITRUM_ROOT_GARDEN, "Arbitrum deployment artifact drifted");
@@ -180,7 +183,6 @@ contract CrossChainGardenSafeOwnerForkTest is Test {
     }
 
     function testGardenSafe_foreignAccountHasNoLocalNftOwnerAndRejectsUntrustedExecution() public {
-        if (!forked) return;
         vm.selectFork(celoFork);
 
         assertEq(IForeignGardenAccount(foreignGardenAccount).owner(), address(0), "foreign token exposed a local owner");
@@ -197,7 +199,6 @@ contract CrossChainGardenSafeOwnerForkTest is Test {
     }
 
     function testGardenSafe_ownerSetIsExactAndThresholdTwo() public {
-        if (!forked) return;
         vm.selectFork(celoFork);
 
         assertEq(gardenSafe.VERSION(), "1.4.1", "unexpected Safe singleton release");
@@ -211,7 +212,6 @@ contract CrossChainGardenSafeOwnerForkTest is Test {
     }
 
     function testGardenSafe_gardenAccountPlusOneRecoveryOwnerExecutes() public {
-        if (!forked) return;
         vm.selectFork(celoFork);
 
         bytes memory action = abi.encodeCall(target.record, ());
@@ -226,7 +226,6 @@ contract CrossChainGardenSafeOwnerForkTest is Test {
     }
 
     function testGardenSafe_neitherGardenNorOneRecoveryOwnerCanExecuteAlone() public {
-        if (!forked) return;
         vm.selectFork(celoFork);
 
         bytes memory action = abi.encodeCall(target.record, ());
@@ -247,7 +246,6 @@ contract CrossChainGardenSafeOwnerForkTest is Test {
     }
 
     function testGardenSafe_bothRecoveryOwnersCanExecuteWithoutGardenAccount() public {
-        if (!forked) return;
         vm.selectFork(celoFork);
 
         bytes memory action = abi.encodeCall(target.record, ());
@@ -262,7 +260,6 @@ contract CrossChainGardenSafeOwnerForkTest is Test {
     }
 
     function testGardenSafe_differentGardenAccountCannotSubstituteForSafeOwner() public {
-        if (!forked) return;
         vm.selectFork(celoFork);
 
         address otherGardenAccount = IERC6551Registry(TOKENBOUND_REGISTRY)
@@ -280,7 +277,6 @@ contract CrossChainGardenSafeOwnerForkTest is Test {
     }
 
     function testGardenSafe_executedSafeTransactionCannotReplay() public {
-        if (!forked) return;
         vm.selectFork(celoFork);
 
         bytes memory action = abi.encodeCall(target.record, ());
@@ -299,7 +295,6 @@ contract CrossChainGardenSafeOwnerForkTest is Test {
     }
 
     function testGardenSafe_temporaryDeploymentOwnerCanBeSwappedForGardenOwnerInOneSafeTransaction() public {
-        if (!forked) return;
         vm.selectFork(celoFork);
 
         address temporaryOwner = vm.addr(TEMPORARY_OWNER_KEY);

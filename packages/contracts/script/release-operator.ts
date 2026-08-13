@@ -336,6 +336,10 @@ export function assertAutomatedPinnedCheckout(
   }
 }
 
+export function assertAutomatedSessionStart(candidateCommit: string, repositoryRoot = REPOSITORY_ROOT): void {
+  assertAutomatedPinnedCheckout(candidateCommit, repositoryRoot, new Set());
+}
+
 interface JsonPlan {
   contract?: string;
   authority?: string;
@@ -540,22 +544,29 @@ async function ensureReleaseStage(
   const directory = path.join(CONTRACTS_ROOT, `.generated/release/${manifest.releaseId}/${network}`);
   const planPath = path.join(directory, `${stage}-transaction-plan.json`);
   const checkpointPath = path.join(directory, `${stage}-checkpoint.json`);
+  let completed = 0;
   if (fs.existsSync(planPath) && fs.existsSync(checkpointPath)) {
     const plan = readJson<JsonPlan>(planPath);
     const checkpoint = readJson<{ lastVerifiedStep?: number }>(checkpointPath);
+    completed = checkpoint.lastVerifiedStep ?? 0;
     if (checkpoint.lastVerifiedStep === plan.transactions.length) {
       console.log(`✓ ${stage} already complete`);
       return;
     }
   }
-  runAutomatedBunCommand(candidateCommit, passwordFile, planScript);
+  const liveNonce = await pendingNonce(network, manifest.ownership.deploymentSender);
+  if (completed === 0) {
+    runAutomatedBunCommand(candidateCommit, passwordFile, planScript, ["--expected-nonce", String(liveNonce)]);
+  } else {
+    assertPlanCanResume(planPath, liveNonce);
+  }
   const plan = readJson<JsonPlan>(planPath);
   const checkpoint = fs.existsSync(checkpointPath)
     ? readJson<{ lastVerifiedStep?: number }>(checkpointPath)
     : undefined;
   const start = (checkpoint?.lastVerifiedStep ?? 0) + 1;
   for (let step = start; step <= plan.transactions.length; step += 1) {
-    const nonce = await pendingNonce(network, manifest.ownership.deploymentSender);
+    const nonce = plannedNonce(plan.transactions[step - 1]?.nonce);
     runAutomatedBunCommand(candidateCommit, passwordFile, broadcastScript, [
       "--step",
       String(step),
@@ -738,7 +749,7 @@ async function runAutomatedPoolUnpause(candidateCommit: string, passwordFile: st
 
 async function runSession(candidateCommit: string, options: SessionOptions): Promise<void> {
   const automated = options.deployAll || options.backfillAll || options.unpausePooling;
-  if (options.deployAll) assertAutomatedPinnedCheckout(candidateCommit);
+  if (options.deployAll) assertAutomatedSessionStart(candidateCommit);
   else if (automated) assertAutomatedPinnedCheckout(candidateCommit, REPOSITORY_ROOT, new Set());
   else assertPinnedCheckout(candidateCommit);
   const manifest = loadReleaseManifest();

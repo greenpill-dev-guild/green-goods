@@ -11,9 +11,10 @@ import {
   validateReleaseCheckpointPrefix,
 } from "./release";
 import { retryRpcAvailability } from "../utils/rpc-retry";
-import { parseCastTransactionHash } from "../utils/cast-env";
+import { formatCastFailure, parseCastTransactionHash } from "../utils/cast-env";
 import { buildReleaseLock, loadReleaseManifest } from "../utils/release-manifest";
 import type { ReleaseTransactionBoundary } from "../utils/release-plan";
+import { buildStageTransactionPlan } from "../utils/release-plan";
 
 const CONTRACTS_ROOT = path.join(__dirname, "../..");
 const ARBITRUM_ARTIFACT = path.join(CONTRACTS_ROOT, "deployments/42161-latest.json");
@@ -37,6 +38,24 @@ function fail(args: string[], env: NodeJS.ProcessEnv = process.env) {
 }
 
 describe("release CLI real entrypoints", () => {
+  it("redacts RPC credentials from captured Cast failures", () => {
+    const error = { stderr: "transport failed for https://arb-mainnet.g.alchemy.com/v2/private-key" };
+
+    expect(formatCastFailure(error, "Cast send").message).toContain("https://[REDACTED]");
+    expect(formatCastFailure(error, "Cast send").message).not.toContain("private-key");
+  });
+
+  it("runs every release verifier without the deployment password environment", () => {
+    const source = fs.readFileSync(path.join(CONTRACTS_ROOT, "script/deploy/release.ts"), "utf8");
+    const verifierCalls = source.match(/script\/release-verify\.ts[\s\S]{0,700}?env: ([^ }]+)[ }]/gu) ?? [];
+
+    expect(verifierCalls).toHaveLength(3);
+    expect(verifierCalls.every((call) => call.includes("buildReadOnlyCastEnv()"))).toBe(true);
+    expect(source).toContain(
+      'execFileSync("bun", args, { cwd: CONTRACTS_ROOT, stdio: "inherit", env: buildReadOnlyCastEnv() })',
+    );
+  });
+
   it("retries unavailable RPC evidence without repeating the transaction", async () => {
     let reads = 0;
     let waits = 0;
@@ -137,7 +156,16 @@ describe("release CLI real entrypoints", () => {
     const celoBefore = fs.readFileSync(CELO_ARTIFACT);
     const manifest = loadReleaseManifest();
     const frozenSalt = `${manifest.create2.domain}:${manifest.create2.version}`;
-    const args = ["settlement-module", "--network", "arbitrum", "--pure-simulation", "--salt", frozenSalt];
+    const args = [
+      "settlement-module",
+      "--network",
+      "arbitrum",
+      "--pure-simulation",
+      "--salt",
+      frozenSalt,
+      "--expected-nonce",
+      "700",
+    ];
     const first = run(args);
     const replay = run(args);
     expect(first).toContain(`"baseSalt": "${frozenSalt}"`);
@@ -147,10 +175,17 @@ describe("release CLI real entrypoints", () => {
   });
 
   it("routes the pooling command through the selective release stage", () => {
-    const output = run(["pooling", "--network", "arbitrum", "--pure-simulation"]);
+    const output = run(["pooling", "--network", "arbitrum", "--pure-simulation", "--expected-nonce", "700"]);
     expect(output).toContain('"stage": "pooling"');
     expect(output).toContain("implementation:CommitmentPoolingModule");
     expect(output).toContain("set Assessment v3 schema UID");
+  });
+
+  it("rejects release-stage plans that are not bound to a reviewed nonce", () => {
+    const result = fail(["pooling", "--network", "arbitrum", "--pure-simulation"]);
+
+    expect(result.status).toBe(1);
+    expect(`${result.stdout}${result.stderr}`).toContain("planning and dry-run require --expected-nonce");
   });
 
   it("fails closed for the wrong sender and unsupported Celo Sepolia target", () => {
@@ -237,10 +272,30 @@ describe("release boundary checkpoint integrity", () => {
   const transactionHash = (suffix: string) => `0x${suffix.padStart(64, "0")}`;
   const verifiedAt = "2026-08-12T12:00:00.000Z";
 
+  it("binds every release-stage boundary to the reviewed starting nonce", () => {
+    const manifest = loadReleaseManifest();
+    const lock = buildReleaseLock(manifest);
+    const deployment = JSON.parse(fs.readFileSync(ARBITRUM_ARTIFACT, "utf8")) as Record<string, unknown>;
+    const plan = buildStageTransactionPlan(
+      manifest,
+      lock,
+      "pooling",
+      deployment,
+      `${manifest.create2.domain}:${manifest.create2.version}`,
+      700,
+    );
+
+    expect(plan.expectedNonce).toBe(700);
+    expect(plan.transactions.map((boundary) => boundary.nonce)).toEqual(
+      plan.transactions.map((_, index) => 700 + index),
+    );
+  });
+
   it("rejects a release checkpoint that omits any earlier receipt boundary", () => {
     const transactions = [1, 2, 3].map(
       (index): ReleaseTransactionBoundary => ({
         index,
+        nonce: 10 + index,
         stage: "pooling",
         kind: "configuration",
         label: `boundary ${index}`,
@@ -274,6 +329,47 @@ describe("release boundary checkpoint integrity", () => {
 
     expect(() => validateReleaseCheckpointPrefix(checkpoint, transactions, 3)).toThrow(
       "not the next boundary in the verified prefix",
+    );
+  });
+
+  it("rejects receipt evidence whose nonce differs from the reviewed boundary", () => {
+    const transactions: ReleaseTransactionBoundary[] = [
+      {
+        index: 1,
+        nonce: 21,
+        stage: "pooling",
+        kind: "configuration",
+        label: "boundary 1",
+        network: "arbitrum",
+        sender: "0x0000000000000000000000000000000000000001",
+        to: "0x0000000000000000000000000000000000000002",
+        preconditions: [],
+        resumableState: "reviewed",
+        postActionVerifier: [],
+      },
+    ];
+    const checkpoint: ReleaseCheckpoint = {
+      schemaVersion: 1,
+      releaseId: "release",
+      manifestHash: transactionHash("a"),
+      stage: "pooling",
+      network: "arbitrum",
+      baseSalt: "salt",
+      lastVerifiedStep: 1,
+      verifiedBoundaries: [
+        {
+          index: 1,
+          label: "boundary 1",
+          expectedNonce: 22,
+          transactionHash: transactionHash("1"),
+          blockNumber: 1,
+          verifiedAt,
+        },
+      ],
+    };
+
+    expect(() => validateReleaseCheckpointPrefix(checkpoint, transactions, 1)).toThrow(
+      "not one contiguous reviewed prefix",
     );
   });
 

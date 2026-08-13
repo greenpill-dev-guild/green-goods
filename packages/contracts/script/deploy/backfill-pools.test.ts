@@ -1,6 +1,6 @@
 import { execFileSync, spawnSync } from "node:child_process";
 import * as path from "node:path";
-import { getAddress, Interface, keccak256, toUtf8Bytes, type TransactionResponse } from "ethers";
+import { getAddress, Interface, type JsonRpcProvider, keccak256, toUtf8Bytes, type TransactionResponse } from "ethers";
 import { describe, expect, it } from "vitest";
 import {
   buildBackfillTransactions,
@@ -8,6 +8,8 @@ import {
   validateBackfillPlan,
   validateCheckpointPrefix,
   validateDeployerExecution,
+  validateRegisteredPoolSnapshots,
+  verifyRegistrationReceiptPrefix,
   type BackfillCheckpoint,
   type GardenEnumeration,
   type PoolBackfillPlan,
@@ -256,6 +258,61 @@ describe("one-shot pool backfill entrypoint", () => {
       toUtf8Bytes("tampered"),
     );
     expect(() => validateCheckpointPrefix(changedGarden, canonical, 19)).toThrow("differs from the reviewed plan");
+  });
+
+  it("rejects unpause when any live pool is missing or differs from its receipt-backed checkpoint", () => {
+    const canonical = plan();
+    const complete = checkpoint(canonical, 18);
+    const snapshots = canonical.transactions.slice(0, -1).map((transaction) => ({
+      garden: transaction.garden!,
+      poolId: String(transaction.index),
+      poolGarden: transaction.garden!,
+      poolType: transaction.kind === "REGISTER_PROTOCOL" ? 1 : 0,
+      ...(transaction.kind === "REGISTER_PROTOCOL" ? { protocolPoolId: String(transaction.index) } : {}),
+    }));
+
+    expect(() => validateRegisteredPoolSnapshots(canonical, complete, snapshots)).not.toThrow();
+    expect(() => validateRegisteredPoolSnapshots(canonical, complete, snapshots.slice(0, -1))).toThrow(
+      "requires 18 exact live pools",
+    );
+    const wrongPoolId = structuredClone(snapshots);
+    wrongPoolId[1].poolId = "999";
+    expect(() => validateRegisteredPoolSnapshots(canonical, complete, wrongPoolId)).toThrow("differs from checkpoint");
+  });
+
+  it("rereads every completed registration receipt before unpause", async () => {
+    const canonical = plan();
+    canonical.authority = "DEPLOYER";
+    canonical.owner = address(2);
+    const complete = checkpoint(canonical, 18);
+    const transactions = new Map(
+      canonical.transactions.slice(0, -1).map((boundary, index) => [
+        complete.completed[index].transactionHash,
+        {
+          from: canonical.owner,
+          to: boundary.to,
+          data: boundary.data,
+          value: 0n,
+          nonce: boundary.nonce,
+        },
+      ]),
+    );
+    const receipts = new Map(
+      complete.completed.map((evidence) => [
+        evidence.transactionHash,
+        { status: 1, blockNumber: evidence.blockNumber },
+      ]),
+    );
+    const provider = {
+      getTransaction: async (hash: string) => transactions.get(hash),
+      getTransactionReceipt: async (hash: string) => receipts.get(hash),
+    } as unknown as JsonRpcProvider;
+
+    await expect(verifyRegistrationReceiptPrefix(provider, canonical, complete)).resolves.toBeUndefined();
+    receipts.get(complete.completed[4].transactionHash)!.blockNumber += 1;
+    await expect(verifyRegistrationReceiptPrefix(provider, canonical, complete)).rejects.toThrow(
+      "receipt differs for boundary 5",
+    );
   });
 
   it("rejects a recovery receipt that attaches native value to the Safe", () => {

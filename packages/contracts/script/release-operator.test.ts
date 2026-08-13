@@ -7,6 +7,7 @@ import {
   AUTOMATED_RELEASE_STAGE_ORDER,
   assertAllowedOperatorCommand,
   assertAutomatedPinnedCheckout,
+  assertAutomatedSessionStart,
   assertPinnedCheckout,
   createPasswordLease,
   POOL_BACKFILL_REGISTRATION_BOUNDARIES,
@@ -81,6 +82,7 @@ describe("release operator session", () => {
 
     fs.writeFileSync(path.join(repository, "deployments/42161-latest.json"), '{"pooling":"deployed"}\n');
     expect(() => assertAutomatedPinnedCheckout(candidate, repository, allowed)).not.toThrow();
+    expect(() => assertAutomatedSessionStart(candidate, repository)).toThrow(/concurrent checkout drift/);
     fs.appendFileSync(path.join(repository, "reviewed.txt"), "drift\n");
     expect(() => assertAutomatedPinnedCheckout(candidate, repository, allowed)).toThrow(/concurrent checkout drift/);
   });

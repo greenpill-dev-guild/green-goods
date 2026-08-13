@@ -14,7 +14,7 @@ import {
 } from "./utils/pooling-release";
 import { assertSepoliaGate } from "./utils/release-gate";
 import { writeReleaseJsonAtomic } from "./utils/release-artifacts";
-import { buildReadOnlyCastEnv } from "./utils/cast-env";
+import { buildReadOnlyCastEnv, execCastCaptured } from "./utils/cast-env";
 import {
   buildReleaseLock,
   loadReleaseManifest,
@@ -1060,12 +1060,15 @@ export function buildUpgradeBoundarySendArgs(
 }
 
 function runCastJson(args: string[], rpcUrl: string): Record<string, unknown> {
-  const raw = execFileSync("cast", buildCastJsonArgs(args, rpcUrl), {
-    cwd: CONTRACTS_ROOT,
-    env: args[0] === "send" ? process.env : buildReadOnlyCastEnv(),
-    encoding: "utf8",
-    stdio: ["inherit", "pipe", "inherit"],
-  }).trim();
+  const raw = execCastCaptured(
+    buildCastJsonArgs(args, rpcUrl),
+    {
+      cwd: CONTRACTS_ROOT,
+      env: args[0] === "send" ? process.env : buildReadOnlyCastEnv(),
+      inputStdio: "inherit",
+    },
+    `Cast ${args[0] ?? "command"}`,
+  ).trim();
   return JSON.parse(raw) as Record<string, unknown>;
 }
 

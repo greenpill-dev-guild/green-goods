@@ -1,6 +1,5 @@
 #!/usr/bin/env bun
 
-import { execFileSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import * as dotenv from "dotenv";
@@ -20,7 +19,8 @@ import {
   ZeroHash,
   zeroPadValue,
 } from "ethers";
-import { parseCastTransactionHash } from "../utils/cast-env";
+import { execCastCaptured, parseCastTransactionHash } from "../utils/cast-env";
+import { retryRpcAvailability } from "../utils/rpc-retry";
 import { NetworkManager } from "../utils/network";
 import { buildReleaseLock, loadReleaseManifest, type ReleaseManifest } from "../utils/release-manifest";
 
@@ -213,7 +213,7 @@ export interface SwapPlan {
   blockers: string[];
 }
 
-interface CheckpointEntry {
+export interface CheckpointEntry {
   index: number;
   transactionHash: string;
   blockNumber: number;
@@ -221,7 +221,7 @@ interface CheckpointEntry {
   garden: string;
 }
 
-interface Checkpoint {
+export interface Checkpoint {
   schemaVersion: 1;
   planHash: string;
   completed: CheckpointEntry[];
@@ -511,7 +511,7 @@ function emptyAndUnmodified(inspection: SafeInspection): boolean {
   );
 }
 
-function assertBootstrapState(
+export function assertBootstrapState(
   inspection: SafeInspection,
   deploymentOwner: string,
   recoverySafe: string,
@@ -523,6 +523,7 @@ function assertBootstrapState(
     inspection.singleton !== getAddress(singleton) ||
     inspection.version !== "1.4.1" ||
     inspection.threshold !== "1" ||
+    inspection.nonce !== "0" ||
     !sameOwnerSet(inspection.owners, [deploymentOwner, recoverySafe]) ||
     inspection.fallbackHandler !== getAddress(fallbackHandler) ||
     !emptyAndUnmodified(inspection)
@@ -531,7 +532,7 @@ function assertBootstrapState(
   }
 }
 
-function assertSwappedState(
+export function assertSwappedState(
   inspection: SafeInspection,
   replacementOwner: string,
   recoverySafe: string,
@@ -543,6 +544,7 @@ function assertSwappedState(
     inspection.singleton !== getAddress(singleton) ||
     inspection.version !== "1.4.1" ||
     inspection.threshold !== "1" ||
+    inspection.nonce !== "1" ||
     !sameOwnerSet(inspection.owners, [replacementOwner, recoverySafe]) ||
     inspection.fallbackHandler !== getAddress(fallbackHandler) ||
     !emptyAndUnmodified(inspection)
@@ -611,10 +613,19 @@ async function assertLiveSourceInventory(
   }
   try {
     await token.ownerOf(EXPECTED_GARDEN_COUNT, { blockTag: finalizedBlock });
-  } catch {
-    return;
+  } catch (error) {
+    if (isContractCallRevert(error)) return;
+    throw new Error(
+      `Unable to prove Garden inventory bound at token ${EXPECTED_GARDEN_COUNT}: ${
+        error instanceof Error ? error.message : String(error)
+      }`,
+    );
   }
   throw new Error(`Live Garden inventory now extends beyond token ${EXPECTED_GARDEN_COUNT - 1}`);
+}
+
+export function isContractCallRevert(error: unknown): boolean {
+  return Boolean(error && typeof error === "object" && "code" in error && error.code === "CALL_EXCEPTION");
 }
 
 async function buildBootstrapPlan(inventoryPath: string): Promise<BootstrapPlan> {
@@ -795,7 +806,7 @@ function loadReplacements(filePath: string, bootstrap: BootstrapPlan): Replaceme
   }
   const byGarden = new Map(input.replacements.map((entry) => [getAddress(entry.garden), entry]));
   if (byGarden.size !== EXPECTED_GARDEN_COUNT) throw new Error("Replacement file contains duplicate Gardens");
-  return bootstrap.entries.map((entry) => {
+  const replacements = bootstrap.entries.map((entry) => {
     const replacement = byGarden.get(getAddress(entry.garden));
     if (!replacement || getAddress(replacement.safe) !== getAddress(entry.safe)) {
       throw new Error(`Replacement mapping is missing exact Safe ${entry.safe}`);
@@ -811,6 +822,13 @@ function loadReplacements(filePath: string, bootstrap: BootstrapPlan): Replaceme
     }
     return { garden: getAddress(entry.garden), safe: getAddress(entry.safe), replacementOwner: owner };
   });
+  assertUniqueReplacementOwners(replacements);
+  return replacements;
+}
+
+export function assertUniqueReplacementOwners(replacements: ReplacementEntry[]): void {
+  const owners = new Set(replacements.map((entry) => getAddress(entry.replacementOwner)));
+  if (owners.size !== replacements.length) throw new Error("Replacement file reuses one replacement owner");
 }
 
 async function buildSwapPlan(
@@ -1031,8 +1049,7 @@ function foundryCredentialArgs(): string[] {
 }
 
 function sendTransaction(to: string, data: string, nonce: number, rpcUrl: string): string {
-  const output = execFileSync(
-    "cast",
+  const output = execCastCaptured(
     [
       "send",
       getAddress(to),
@@ -1049,21 +1066,30 @@ function sendTransaction(to: string, data: string, nonce: number, rpcUrl: string
       ...foundryCredentialArgs(),
       "--json",
     ],
-    { cwd: CONTRACTS_ROOT, encoding: "utf8", env: process.env, stdio: ["ignore", "pipe", "inherit"] },
+    { cwd: CONTRACTS_ROOT, env: process.env },
+    "Garden Safe boundary",
   );
   return parseCastTransactionHash(output, "Garden Safe boundary");
 }
 
-async function verifyReceipt(
+export async function verifyReceipt(
   provider: JsonRpcProvider,
   transactionHash: string,
   sender: string,
   transaction: { to: string; value: "0"; data: string; nonce: number },
+  retryOptions: { attempts?: number; wait?: (milliseconds: number) => Promise<void> } = {},
 ): Promise<{ blockNumber: number }> {
-  const receipt = await provider.getTransactionReceipt(transactionHash);
-  const live = await provider.getTransaction(transactionHash);
-  if (!receipt || !live || receipt.status !== 1)
-    throw new Error(`Transaction ${transactionHash} is unavailable or failed`);
+  const { receipt, live } = await retryRpcAvailability(
+    async () => {
+      const [receipt, live] = await Promise.all([
+        provider.getTransactionReceipt(transactionHash),
+        provider.getTransaction(transactionHash),
+      ]);
+      return receipt && live ? { receipt, live } : undefined;
+    },
+    { ...retryOptions, unavailableMessage: `Transaction ${transactionHash} remained unavailable` },
+  );
+  if (receipt.status !== 1) throw new Error(`Transaction ${transactionHash} failed`);
   if (
     getAddress(live.from) !== getAddress(sender) ||
     getAddress(live.to ?? ZeroAddress) !== getAddress(transaction.to) ||
@@ -1137,6 +1163,70 @@ async function verifyCompleteBootstrapEvidence(
     assertCheckpointRecord(recorded, entry);
     await verifyReceipt(provider, recorded.transactionHash, plan.sender, entry.transaction);
   }
+}
+
+export function buildBootstrapDeploymentArtifact(plan: BootstrapPlan, checkpoint: Checkpoint): unknown {
+  return {
+    schemaVersion: 1,
+    stage: "temporary-empty-bootstrap",
+    chainId: CELO_CHAIN_ID,
+    releaseId: plan.releaseId,
+    sourceCommit: plan.releaseSourceCommit,
+    authorityEnabled: false,
+    ownerPolicy: "1-of-2 deployment EOA plus 2-of-3 recovery Safe; no value or modules",
+    singleton: plan.singleton,
+    factory: plan.factory,
+    compatibilityFallbackHandler: plan.compatibilityFallbackHandler,
+    recoverySafe: plan.recoverySafe,
+    safes: plan.entries.map((entry, index) => ({
+      tokenId: entry.tokenId,
+      garden: entry.garden,
+      safe: entry.safe,
+      owners: entry.owners,
+      threshold: entry.threshold,
+      initializerHash: entry.initializerHash,
+      saltNonce: entry.saltNonce,
+      deployment: checkpoint.completed[index],
+    })),
+  };
+}
+
+export function buildSwappedDeploymentArtifact(
+  plan: SwapPlan,
+  bootstrap: BootstrapPlan,
+  bootstrapCheckpoint: Checkpoint,
+  swapCheckpoint: Checkpoint,
+): unknown {
+  if (
+    bootstrapCheckpoint.completed.length !== bootstrap.entries.length ||
+    swapCheckpoint.completed.length !== plan.entries.length
+  ) {
+    throw new Error("Post-swap deployment artifact requires complete bootstrap and swap evidence");
+  }
+  return {
+    schemaVersion: 1,
+    stage: "reviewed-owner-swap-complete",
+    chainId: CELO_CHAIN_ID,
+    releaseId: plan.releaseId,
+    sourceCommit: plan.releaseSourceCommit,
+    authorityEnabled: false,
+    ownerPolicy: "1-of-2 unique per-Garden owner plus 2-of-3 recovery Safe; no value or modules",
+    singleton: plan.singleton,
+    factory: bootstrap.factory,
+    compatibilityFallbackHandler: plan.compatibilityFallbackHandler,
+    recoverySafe: plan.recoverySafe,
+    safes: plan.entries.map((entry, index) => ({
+      tokenId: bootstrap.entries[index].tokenId,
+      garden: entry.garden,
+      safe: entry.safe,
+      owners: normalizedOwners([entry.replacementOwner, plan.recoverySafe]),
+      threshold: "1",
+      initializerHash: bootstrap.entries[index].initializerHash,
+      saltNonce: bootstrap.entries[index].saltNonce,
+      deployment: bootstrapCheckpoint.completed[index],
+      ownerSwap: swapCheckpoint.completed[index],
+    })),
+  };
 }
 
 async function executeBootstrap(
@@ -1215,30 +1305,7 @@ async function executeBootstrap(
     });
     writeCheckpoint(planPath, checkpoint);
   }
-  const artifact = {
-    schemaVersion: 1,
-    stage: "temporary-empty-bootstrap",
-    chainId: CELO_CHAIN_ID,
-    releaseId: plan.releaseId,
-    sourceCommit: plan.releaseSourceCommit,
-    authorityEnabled: false,
-    ownerPolicy: "1-of-2 deployment EOA plus 2-of-3 recovery Safe; no value or modules",
-    singleton: plan.singleton,
-    factory: plan.factory,
-    compatibilityFallbackHandler: plan.compatibilityFallbackHandler,
-    recoverySafe: plan.recoverySafe,
-    safes: plan.entries.map((entry, index) => ({
-      tokenId: entry.tokenId,
-      garden: entry.garden,
-      safe: entry.safe,
-      owners: entry.owners,
-      threshold: entry.threshold,
-      initializerHash: entry.initializerHash,
-      saltNonce: entry.saltNonce,
-      deployment: checkpoint.completed[index],
-    })),
-  };
-  atomicWrite(DEPLOYMENT_ARTIFACT, artifact);
+  atomicWrite(DEPLOYMENT_ARTIFACT, buildBootstrapDeploymentArtifact(plan, checkpoint));
   console.log(`Verified ${checkpoint.completed.length}/${plan.entries.length} empty Garden Safe bootstraps.`);
 }
 
@@ -1324,6 +1391,8 @@ async function executeSwap(
     });
     writeCheckpoint(planPath, checkpoint);
   }
+  const bootstrapCheckpoint = loadCheckpoint(bootstrapPath);
+  atomicWrite(DEPLOYMENT_ARTIFACT, buildSwappedDeploymentArtifact(plan, bootstrap, bootstrapCheckpoint, checkpoint));
   console.log(`Verified ${checkpoint.completed.length}/${plan.entries.length} deployer-owner swaps.`);
 }
 
