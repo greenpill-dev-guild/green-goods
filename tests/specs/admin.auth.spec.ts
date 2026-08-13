@@ -117,6 +117,6 @@ test.describe("Admin Authentication", () => {
   // A wrong-chain assertion needs an actual wagmi connector and chain fork, so
   // it belongs in an `*.fork.spec.ts` selected by the anvil-fork project. This
   // two-file CI integration scope cannot introduce that fork fixture.
-  // SKIP: #564 owner:afo expiry:2026-08-12 — anvil-fork owns real wagmi wrong-network coverage
+  // SKIP: #564 owner:afo expiry:2026-11-12 — anvil-fork owns real wagmi wrong-network coverage
   test.skip("defers real wagmi wrong-network coverage to anvil-fork", () => {});
 });
