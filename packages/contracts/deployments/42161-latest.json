@@ -53,7 +53,15 @@
     "workDescription": "Work submission schema for Green Goods protocol. Enables gardeners to submit completed regenerative agriculture tasks with media evidence and metadata for verification and payment.",
     "workName": "Green Goods Work Submission",
     "workSchema": "uint256 actionUID,string title,string feedback,string metadata,string[] media",
-    "workSchemaUID": "0x43ebd37da5479df9d495a4c6514e7cb7f370e9f4166a0a58e14a3baf466078c4"
+    "workSchemaUID": "0x43ebd37da5479df9d495a4c6514e7cb7f370e9f4166a0a58e14a3baf466078c4",
+    "assessmentV3SchemaUID": "0x9358f3371f9fcf6b3467c524da3ba5f8d43f8f0b9cc3ba12c925e77ecbcf06a0",
+    "assessmentV3Schema": "string title,string description,string assessmentConfigCID,uint8 domain,uint256 startDate,uint256 endDate,string location,uint8 assessmentKind,uint256 cycleId,bytes32 baselineUID",
+    "assessmentV3Name": "Green Goods Assessment v3",
+    "assessmentV3Description": "Assessment v3 schema for Green Goods gardens. Keeps every v2 field and appends the assessment kind, the module cycle reference, and the baseline attestation a delta re-assessment measures against. EAS schemas are immutable, so v3 is a fresh UID registered alongside the still-readable v2 record on the same AssessmentResolver proxy.",
+    "communityTestimonySchemaUID": "0xb9268b8a6096b7fda38a1aa642b66069e40b637f3fe0a846e0600e47e1aadcad",
+    "communityTestimonySchema": "uint256 commitmentId,string title,string testimonyCID",
+    "communityTestimonyName": "Green Goods Community Testimony",
+    "communityTestimonyDescription": "Community-Hat-gated testimony attached to a commitment. Narrative only and deliberately score-free: testimony gates nothing by itself, and confirmation power flows through the module's named-confirmer group rather than through this schema."
   },
   "unifiedPowerRegistry": "0xD36004307c136FFed0Fe425f699FB1569BFabCBa",
   "workApprovalResolver": "0x166732eD81Ab200A099215cF33F6A712309B69F7",
@@ -142,5 +150,40 @@
         "active": true
       }
     }
-  }
+  },
+  "testimonyResolver": "0x2897BcAE282D5d99DaeE535803F531B333Cc2329",
+  "testimonyResolverImpl": "0xA8283A563244dd002dA814A0C4CF24c29c8F30A7",
+  "poolingLibraries": {
+    "CommitmentPoolingClaimsLib": "0x6ab32927D709EA68b1B00aCAD31263F3B96b4D70",
+    "CommitmentPoolingConfirmLib": "0x9022375cB1cF383263872a1CE87ffEb6aEA502A5",
+    "CommitmentPoolingCreationLib": "0xe027C99791A1F1b840d2E41675ca98DC7b89756c",
+    "CommitmentPoolingCyclesLib": "0xfe079eD87f93E4eA6b91ca69bBEc7428Dc9fcA5D",
+    "CommitmentPoolingExchangeLib": "0xAB0DE52D60258098fdd3C4f91fE6BE07Ff2151fC",
+    "CommitmentPoolingPoolsLib": "0x715bD6b6713d32973D576471F75d9619BD4a541B",
+    "CommitmentPoolingProofLib": "0xdd6b42215F166b692568cE67921e6B961E59aFbb",
+    "CommitmentPoolingRecognitionLib": "0x4BeF099fAD5F25708aA449FeDCa5E69fAEEFAAA4",
+    "CommitmentPoolingRosterLib": "0x0B01c15e861449001b53eD7a58E082a7D4F0C1f2",
+    "CommitmentPoolingSeriesLib": "0xE5053DfE8701d29a98c95Ba703EFC199e2f9dafc",
+    "CommitmentPoolingSyncLib": "0x9954BfDAb752184e9f04e7c69c00f1CbeC79D8A9",
+    "CommitmentPoolingTerminalLib": "0x879Aa35D314924d6Ed426EfB9B7ACaf9C92a0a28",
+    "CommitmentPoolingTermsLib": "0xb24c7De88313ADd5e39e063427198f976d6BbA5c",
+    "CommitmentPoolingViewsLib": "0xEeb5fc5f3BDba63E3CDD235808a91d8997c95aB9"
+  },
+  "commitmentPoolingModule": "0x6BB5b0fd70b6771B0E955Fef37f8Bd2ce911470a",
+  "commitmentPoolingModuleImpl": "0x6268ec974bb217De39E7756d75c8D523b9A79218",
+  "commitmentRegistry": "0x66300dA4d3749bFc9F7326DB94e0DEb47A7a3959",
+  "commitmentRegistryImpl": "0x97d2bc3ec0209a9b9d1e2e7EB9f021d3C4DD2970",
+  "settlementLibraries": {
+    "SettlementAcknowledgmentLib": "0xE81212903382ed03c4D4E8d72d23a098d56DE645",
+    "SettlementCommandLib": "0x4082ea522EB463c4fab2f908bA099eb1E4D8e1D8",
+    "SettlementConfigurationLib": "0xa7042e327369beF53E01CCdC46E713Af7Ea9a687",
+    "SettlementFundingLib": "0x8cC05D2443AE960c4CB98F462D87D619774B2bfA",
+    "SettlementLifecycleLib": "0xA9901d5AbA09aFdC180900AAC423d0bF14633501",
+    "SettlementLoanLib": "0x44e0ADB51338dA96F2Aaa942924E47008e534122",
+    "SettlementPlanLib": "0xbDF2741aaEb9fa5F55bd8001579c5f7c13898622"
+  },
+  "settlementModule": "0x15c8F6CF25abA2161cc04719b4C4a93c4146935D",
+  "settlementModuleImpl": "0x1ceFD9d1905E650cc2e31faf73AAbb73991DA281",
+  "creditRegistry": "0xcfF1fdC12Bf130897dB0C9c74fB094C956196A34",
+  "creditRegistryImpl": "0x2ccd72813f02136EF54683c63DBe0bB48Ca13826"
 }
