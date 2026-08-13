@@ -6,6 +6,7 @@ import { getCreateAddress, Interface, keccak256 } from "ethers";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   buildCastJsonArgs,
+  buildReadOnlyCastEnv,
   buildUpgradeBoundarySendArgs,
   findLatestUpgradeArtifactIn,
   type PersistedUpgradePlan,
@@ -61,6 +62,16 @@ describe("upgrade transaction plan artifact discovery", () => {
 });
 
 describe("upgrade operator entrypoint", () => {
+  it("keeps the password lease out of read-only cast commands", () => {
+    expect(
+      buildReadOnlyCastEnv({
+        ETH_PASSWORD: "/tmp/private-password-file",
+        FOUNDRY_KEYSTORE_ACCOUNT: "green-goods-deployer",
+        RPC_MARKER: "preserved",
+      }),
+    ).toEqual({ FOUNDRY_KEYSTORE_ACCOUNT: "green-goods-deployer", RPC_MARKER: "preserved" });
+  });
+
   it("places every cast option before the raw CREATE subcommand", () => {
     const sendArgs = buildUpgradeBoundarySendArgs(
       {

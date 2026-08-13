@@ -345,7 +345,7 @@ function runPureSimulation(contract: ContractName, network: string, networkManag
 function readStorageAddress(proxy: string, rpcUrl: string): string {
   const raw = execFileSync("cast", ["storage", proxy, EIP1967_IMPLEMENTATION_SLOT, "--rpc-url", rpcUrl], {
     cwd: CONTRACTS_ROOT,
-    env: process.env,
+    env: buildReadOnlyCastEnv(),
     encoding: "utf8",
   }).trim();
   if (!/^0x[0-9a-fA-F]{64}$/.test(raw)) throw new Error(`Unreadable ERC-1967 implementation slot for ${proxy}`);
@@ -355,7 +355,7 @@ function readStorageAddress(proxy: string, rpcUrl: string): string {
 function readCodeHash(address: string, rpcUrl: string): string {
   const code = execFileSync("cast", ["code", address, "--rpc-url", rpcUrl], {
     cwd: CONTRACTS_ROOT,
-    env: process.env,
+    env: buildReadOnlyCastEnv(),
     encoding: "utf8",
   }).trim();
   if (!/^0x[0-9a-fA-F]+$/.test(code) || code === "0x") throw new Error(`No code at ${address}`);
@@ -379,7 +379,7 @@ function readUpgradePreState(
   const snapshots = resolved.map((target) => {
     const owner = execFileSync("cast", ["call", target.address, "owner()(address)", "--rpc-url", rpcUrl], {
       cwd: CONTRACTS_ROOT,
-      env: process.env,
+      env: buildReadOnlyCastEnv(),
       encoding: "utf8",
     }).trim();
     if (!isAddress(owner)) throw new Error(`Unreadable live owner for ${target.deploymentKey} (${target.address})`);
@@ -1042,6 +1042,12 @@ export function buildCastJsonArgs(args: string[], rpcUrl: string): string[] {
   return [command, "--rpc-url", rpcUrl, "--json", ...commandArgs];
 }
 
+export function buildReadOnlyCastEnv(env: NodeJS.ProcessEnv = process.env): NodeJS.ProcessEnv {
+  const sanitized = { ...env };
+  delete sanitized.ETH_PASSWORD;
+  return sanitized;
+}
+
 export function buildUpgradeBoundarySendArgs(
   transaction: PersistedUpgradeTransaction,
   chainId: string,
@@ -1057,7 +1063,7 @@ export function buildUpgradeBoundarySendArgs(
 function runCastJson(args: string[], rpcUrl: string): Record<string, unknown> {
   const raw = execFileSync("cast", buildCastJsonArgs(args, rpcUrl), {
     cwd: CONTRACTS_ROOT,
-    env: process.env,
+    env: args[0] === "send" ? process.env : buildReadOnlyCastEnv(),
     encoding: "utf8",
     stdio: ["inherit", "pipe", "inherit"],
   }).trim();
@@ -1130,7 +1136,7 @@ function verifyUpgradeBoundary(
       : "commitmentModule()(address)";
     const value = execFileSync("cast", ["call", wiring.proxy, getter, "--rpc-url", rpcUrl], {
       cwd: CONTRACTS_ROOT,
-      env: process.env,
+      env: buildReadOnlyCastEnv(),
       encoding: "utf8",
     }).trim();
     if (!isAddress(value) || getAddress(value) !== getAddress(wiring.module)) {
@@ -1144,7 +1150,7 @@ function verifyUpgradeBoundary(
     const value = execFileSync(
       "cast",
       ["call", assessmentSchemaPin.proxy, "schemaUID()(bytes32)", "--rpc-url", rpcUrl],
-      { cwd: CONTRACTS_ROOT, env: process.env, encoding: "utf8" },
+      { cwd: CONTRACTS_ROOT, env: buildReadOnlyCastEnv(), encoding: "utf8" },
     ).trim();
     if (value.toLowerCase() !== assessmentSchemaPin.expectedSchemaUID.toLowerCase()) {
       throw new Error("AssessmentResolver v2 schema UID does not match the reviewed post-upgrade pin");
@@ -1186,7 +1192,7 @@ function assertUpgradeBoundaryPreconditions(
   }
   const owner = execFileSync("cast", ["call", transaction.to, "owner()(address)", "--rpc-url", rpcUrl], {
     cwd: CONTRACTS_ROOT,
-    env: process.env,
+    env: buildReadOnlyCastEnv(),
     encoding: "utf8",
   }).trim();
   if (!isAddress(owner) || getAddress(owner) !== getAddress(plan.sender)) {
@@ -1208,7 +1214,7 @@ function assertUpgradeBoundaryPreconditions(
       : "commitmentModule()(address)";
     const current = execFileSync("cast", ["call", wiring.proxy, getter, "--rpc-url", rpcUrl], {
       cwd: CONTRACTS_ROOT,
-      env: process.env,
+      env: buildReadOnlyCastEnv(),
       encoding: "utf8",
     }).trim();
     if (!isAddress(current)) throw new Error(`Unreadable live wiring before boundary ${transaction.index + 1}`);
@@ -1229,7 +1235,7 @@ function assertUpgradeBoundaryPreconditions(
     const current = execFileSync(
       "cast",
       ["call", assessmentSchemaPin.proxy, "schemaUID()(bytes32)", "--rpc-url", rpcUrl],
-      { cwd: CONTRACTS_ROOT, env: process.env, encoding: "utf8" },
+      { cwd: CONTRACTS_ROOT, env: buildReadOnlyCastEnv(), encoding: "utf8" },
     ).trim();
     if (!/^0x[0-9a-f]{64}$/iu.test(current)) throw new Error("Unreadable AssessmentResolver v2 schema UID");
     if (current.toLowerCase() !== `0x${"0".repeat(64)}`) {
@@ -1299,7 +1305,7 @@ function executeUpgradeBoundary(
   const pendingNonce = Number(
     execFileSync("cast", ["nonce", options.sender, "--block", "pending", "--rpc-url", rpcUrl], {
       cwd: CONTRACTS_ROOT,
-      env: process.env,
+      env: buildReadOnlyCastEnv(),
       encoding: "utf8",
     }).trim(),
   );
@@ -1456,7 +1462,7 @@ function main(): void {
         const pendingNonce = Number(
           execFileSync("cast", ["nonce", options.sender, "--block", "pending", "--rpc-url", rpcUrl], {
             cwd: CONTRACTS_ROOT,
-            env: process.env,
+            env: buildReadOnlyCastEnv(),
             encoding: "utf8",
           }).trim(),
         );
