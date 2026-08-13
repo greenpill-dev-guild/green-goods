@@ -10,6 +10,7 @@ import {
   isAddress,
   keccak256,
   toUtf8Bytes,
+  zeroPadValue,
   ZeroAddress,
 } from "ethers";
 
@@ -173,10 +174,15 @@ export interface ReleaseManifest {
 interface FoundryArtifact {
   abi: InterfaceAbi;
   bytecode: { object: string; linkReferences?: LinkReferences };
-  deployedBytecode: { object: string; linkReferences?: LinkReferences; immutableReferences?: Record<string, unknown> };
+  deployedBytecode: {
+    object: string;
+    linkReferences?: LinkReferences;
+    immutableReferences?: ImmutableReferences;
+  };
 }
 
 type LinkReferences = Record<string, Record<string, Array<{ start: number; length: number }>>>;
+type ImmutableReferences = Record<string, Array<{ start: number; length: number }>>;
 
 export interface ReleaseIdentity {
   name: string;
@@ -622,6 +628,24 @@ function linkBytecode(
   return `0x${bytecode}`;
 }
 
+function materializeLibraryRuntime(
+  object: string,
+  references: ImmutableReferences | undefined,
+  libraryAddress: string,
+): string {
+  let bytecode = object.startsWith("0x") ? object.slice(2) : object;
+  for (const [name, offsets] of Object.entries(references ?? {})) {
+    if (name !== "library_deploy_address") throw new Error(`Unexpected library immutable reference: ${name}`);
+    for (const offset of offsets) {
+      if (offset.length !== 32) throw new Error(`Unexpected library address width: ${offset.length}`);
+      const replacement = zeroPadValue(libraryAddress, offset.length).slice(2).toLowerCase();
+      const start = offset.start * 2;
+      bytecode = `${bytecode.slice(0, start)}${replacement}${bytecode.slice(start + offset.length * 2)}`;
+    }
+  }
+  return `0x${bytecode}`;
+}
+
 function directLibraryReferences(artifact: FoundryArtifact): Array<{ source: string; name: string; artifact: string }> {
   return Object.entries(artifact.bytecode.linkReferences ?? {}).flatMap(([source, libraries]) =>
     Object.keys(libraries).map((name) => ({ source, name, artifact: libraryArtifact(source, name) })),
@@ -789,6 +813,9 @@ export function buildReleaseLock(manifest = loadReleaseManifest(), baseSalt?: st
           ),
         },
         baseSalt,
+      );
+      identity.runtimeTemplateHash = keccak256(
+        materializeLibraryRuntime(runtimeCode, artifact.deployedBytecode.immutableReferences, identity.address),
       );
       identities.push(identity);
       libraryMap[key] = identity.address;

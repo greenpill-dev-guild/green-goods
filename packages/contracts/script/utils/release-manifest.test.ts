@@ -152,6 +152,9 @@ describe("combined commitment release manifest", () => {
     expect(proxies).toHaveLength(5);
     expect(new Set(lock.identities.map((identity) => identity.address)).size).toBe(lock.identities.length);
     expect(Object.keys(lock.libraryMap)).toHaveLength(21);
+    expect(libraries.find((identity) => identity.name === "CommitmentPoolingClaimsLib")?.runtimeTemplateHash).toBe(
+      "0x9226b8fc80593906cb6f851c4b129a34ed48fb6bb7422bc84def33d011c7c7da",
+    );
     expect(libraries.find((identity) => identity.name === "SettlementFundingLib")).toBeDefined();
     expect(libraries.find((identity) => identity.name === "SettlementLifecycleLib")?.libraries).toHaveProperty(
       "src/lib/Settlement/CommandLib.sol:SettlementCommandLib",
