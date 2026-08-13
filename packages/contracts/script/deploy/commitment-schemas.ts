@@ -18,7 +18,7 @@ import { mergeReleaseArtifact, writeReleaseJsonAtomic } from "../utils/release-a
 import { buildReleaseLock, loadReleaseManifest } from "../utils/release-manifest";
 import { getFoundryBroadcastPath } from "../utils/paths";
 import { assertSepoliaGate } from "../utils/release-gate";
-import { buildReadOnlyCastEnv } from "../utils/cast-env";
+import { buildReadOnlyCastEnv, parseCastTransactionHash } from "../utils/cast-env";
 import {
   type CommitmentSchemaDefinition,
   type OnChainSchemaRecord,
@@ -35,6 +35,10 @@ export const SCHEMA_TRANSACTION_BOUNDARY_RULE =
   "Execute and verify exactly one nonce-pinned transaction; do not continue until its receipt and live post-state are checkpointed.";
 export const SCHEMA_RESUMABLE_STATE =
   "The exact on-chain postcondition is satisfied or absent; a conflicting record, owner, module, salt, or code identity fails closed.";
+
+export function schemaSimulationArtifactName(finalizeCommunityTestimony: boolean): string {
+  return finalizeCommunityTestimony ? "finalizeCommunityTestimony-latest.json" : "run-latest.json";
+}
 
 /**
  * Addresses preparation produces. The resolver is deployed by this target now (contract-spec
@@ -663,7 +667,7 @@ export class CommitmentSchemasDeployer {
       "DeployCommitmentSchemas.s.sol",
       String(chainId),
       "dry-run",
-      "run-latest.json",
+      schemaSimulationArtifactName(options.finalizeCommunityTestimony),
     );
     const startedAt = Date.now();
     const args = [
@@ -902,7 +906,7 @@ export class CommitmentSchemasDeployer {
           `Nonce drift: boundary expects ${boundary.nonce}, live pending nonce is ${pendingNonce}; use --receipt only for an exact mined recovery`,
         );
       }
-      const result = JSON.parse(
+      transactionHash = parseCastTransactionHash(
         execFileSync(
           "cast",
           [
@@ -921,11 +925,8 @@ export class CommitmentSchemasDeployer {
           ],
           { cwd: CONTRACTS_ROOT, env: process.env, encoding: "utf8", stdio: ["inherit", "pipe", "inherit"] },
         ),
-      ) as Record<string, unknown>;
-      if (typeof result.transactionHash !== "string" || !/^0x[0-9a-fA-F]{64}$/u.test(result.transactionHash)) {
-        throw new Error("Bun-wrapped schema boundary returned no transaction hash");
-      }
-      transactionHash = result.transactionHash;
+        "Bun-wrapped schema boundary",
+      );
     }
     const transaction = await provider.getTransaction(transactionHash);
     const receipt = await provider.getTransactionReceipt(transactionHash);

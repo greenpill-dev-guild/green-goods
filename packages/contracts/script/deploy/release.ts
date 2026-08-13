@@ -27,7 +27,7 @@ import {
 import { NetworkManager } from "../utils/network";
 import { getFoundryBroadcastPath } from "../utils/paths";
 import { assertSepoliaGate } from "../utils/release-gate";
-import { buildReadOnlyCastEnv } from "../utils/cast-env";
+import { buildReadOnlyCastEnv, parseCastTransactionHash } from "../utils/cast-env";
 
 const LOCK_PATH = path.join(CONTRACTS_ROOT, "config/commitment-pooling-release.lock.json");
 const GENERATED_ROOT = path.join(CONTRACTS_ROOT, ".generated/release");
@@ -192,33 +192,6 @@ export function validateReleaseCheckpointPrefix(
     }
     assertBoundaryEvidence(evidence, `Release checkpoint boundary ${evidence.index}`);
   }
-}
-
-export function parseCastSendTransactionHash(output: string): string {
-  const trimmed = output.trim();
-  const candidates = [trimmed];
-  if (trimmed.startsWith("'") && trimmed.endsWith("'") && trimmed.length > 1) {
-    candidates.push(trimmed.slice(1, -1));
-  }
-  for (const candidate of candidates) {
-    try {
-      const parsed = JSON.parse(candidate) as unknown;
-      const transactionHash =
-        typeof parsed === "string"
-          ? parsed
-          : parsed && typeof parsed === "object" && "transactionHash" in parsed
-            ? (parsed as { transactionHash?: unknown }).transactionHash
-            : undefined;
-      if (typeof transactionHash === "string" && /^0x[0-9a-fA-F]{64}$/u.test(transactionHash)) {
-        return transactionHash;
-      }
-    } catch {
-      // Some Cast/RPC combinations return a single-quoted hash even with --json.
-    }
-  }
-  const hashes = [...new Set(trimmed.match(/0x[0-9a-fA-F]{64}/gu) ?? [])];
-  if (hashes.length === 1) return hashes[0];
-  throw new Error("Bun-wrapped release boundary returned no unique transaction hash");
 }
 
 const ownableInterface = new Interface([
@@ -959,7 +932,7 @@ Phase B boundary form (not authorized by Phase A):
         `Nonce drift after simulation: expected ${options.expectedNonce}, live pending nonce is ${pendingNonce}`,
       );
     }
-    const transactionHash = parseCastSendTransactionHash(
+    const transactionHash = parseCastTransactionHash(
       execFileSync(
         "cast",
         [
@@ -978,6 +951,7 @@ Phase B boundary form (not authorized by Phase A):
         ],
         { cwd: CONTRACTS_ROOT, env: process.env, encoding: "utf8", stdio: ["inherit", "pipe", "inherit"] },
       ),
+      "Bun-wrapped release boundary",
     );
     return transactionHash;
   }

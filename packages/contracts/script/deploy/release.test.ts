@@ -5,11 +5,11 @@ import { describe, expect, it } from "vitest";
 import {
   type OwnershipCheckpoint,
   type OwnershipTransferPlan,
-  parseCastSendTransactionHash,
   type ReleaseCheckpoint,
   validateOwnershipCheckpointPrefix,
   validateReleaseCheckpointPrefix,
 } from "./release";
+import { parseCastTransactionHash } from "../utils/cast-env";
 import type { ReleaseTransactionBoundary } from "../utils/release-plan";
 
 const CONTRACTS_ROOT = path.join(__dirname, "../..");
@@ -35,9 +35,11 @@ function fail(args: string[], env: NodeJS.ProcessEnv = process.env) {
 
 describe("release CLI real entrypoints", () => {
   it("accepts Cast transaction hashes from JSON receipts and single-quoted RPC output", () => {
-    expect(parseCastSendTransactionHash(JSON.stringify({ transactionHash: TRANSACTION_HASH }))).toBe(TRANSACTION_HASH);
-    expect(parseCastSendTransactionHash(`'${TRANSACTION_HASH}'`)).toBe(TRANSACTION_HASH);
-    expect(() => parseCastSendTransactionHash(`${TRANSACTION_HASH} ${`0x${"b".repeat(64)}`}`)).toThrow(
+    expect(parseCastTransactionHash(JSON.stringify({ transactionHash: TRANSACTION_HASH }), "test boundary")).toBe(
+      TRANSACTION_HASH,
+    );
+    expect(parseCastTransactionHash(`'${TRANSACTION_HASH}'`, "test boundary")).toBe(TRANSACTION_HASH);
+    expect(() => parseCastTransactionHash(`${TRANSACTION_HASH} ${`0x${"b".repeat(64)}`}`, "test boundary")).toThrow(
       /no unique transaction hash/,
     );
   });

@@ -11,6 +11,7 @@ import {
   type FrozenSchemaPlanInputs,
   type PersistedSchemaPlan,
   type SchemaCheckpoint,
+  schemaSimulationArtifactName,
   validateReviewedSchemaPlan,
   validateSchemaCheckpointPrefix,
   validateSchemaReceiptTransaction,
@@ -29,6 +30,11 @@ import {
  * actually deploys to, so a failing case cannot leave a real artifact damaged.
  */
 describe("CommitmentSchemasDeployer artifact merge", () => {
+  it("uses Foundry's signature-specific artifact name for finalization plans", () => {
+    expect(schemaSimulationArtifactName(false)).toBe("run-latest.json");
+    expect(schemaSimulationArtifactName(true)).toBe("finalizeCommunityTestimony-latest.json");
+  });
+
   const CHAIN_ID = "99999901";
   const RESOLVER = `0x${"ab".repeat(20)}`;
   const RESOLVER_IMPL = `0x${"cd".repeat(20)}`;
