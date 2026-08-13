@@ -25,6 +25,7 @@ import {
   type ReleaseTransactionBoundary,
 } from "../utils/release-plan";
 import { NetworkManager } from "../utils/network";
+import { retryRpcAvailability } from "../utils/rpc-retry";
 import { getFoundryBroadcastPath } from "../utils/paths";
 import { assertSepoliaGate } from "../utils/release-gate";
 import { buildReadOnlyCastEnv, parseCastTransactionHash } from "../utils/cast-env";
@@ -620,10 +621,20 @@ Phase B boundary form (not authorized by Phase A):
       }
       transactionHash = result.transactionHash;
     }
-    const transaction = await provider.getTransaction(transactionHash);
-    const receipt = await provider.getTransactionReceipt(transactionHash);
-    if (!transaction || !receipt || receipt.status !== 1)
-      throw new Error(`Ownership receipt ${transactionHash} is unavailable or failed`);
+    const { transaction, receipt } = await retryRpcAvailability(
+      async () => {
+        const [transaction, receipt] = await Promise.all([
+          provider.getTransaction(transactionHash),
+          provider.getTransactionReceipt(transactionHash),
+        ]);
+        return transaction && receipt ? { transaction, receipt } : undefined;
+      },
+      {
+        unavailableMessage: `Ownership receipt ${transactionHash} remained unavailable`,
+        onRetry: (attempt) => console.warn(`Ownership receipt has not propagated; retrying after attempt ${attempt}/6`),
+      },
+    );
+    if (receipt.status !== 1) throw new Error(`Ownership receipt ${transactionHash} failed`);
     if (
       getAddress(transaction.from) !== getAddress(plan.sender) ||
       !transaction.to ||
@@ -995,10 +1006,21 @@ Phase B boundary form (not authorized by Phase A):
   ): Promise<{ blockNumber: number }> {
     const chainId = Number(manifest.chains[network].evmChainId);
     const provider = new JsonRpcProvider(this.networkManager.getRpcUrl(network), chainId, { staticNetwork: true });
-    const transaction = await provider.getTransaction(transactionHash);
-    const receipt = await provider.getTransactionReceipt(transactionHash);
-    if (!transaction || !receipt || receipt.status !== 1) {
-      throw new Error(`Release receipt ${transactionHash} is unavailable or failed`);
+    const { transaction, receipt } = await retryRpcAvailability(
+      async () => {
+        const [transaction, receipt] = await Promise.all([
+          provider.getTransaction(transactionHash),
+          provider.getTransactionReceipt(transactionHash),
+        ]);
+        return transaction && receipt ? { transaction, receipt } : undefined;
+      },
+      {
+        unavailableMessage: `Release receipt ${transactionHash} remained unavailable`,
+        onRetry: (attempt) => console.warn(`Release receipt has not propagated; retrying after attempt ${attempt}/6`),
+      },
+    );
+    if (receipt.status !== 1) {
+      throw new Error(`Release receipt ${transactionHash} failed`);
     }
     if (
       getAddress(transaction.from) !== getAddress(manifest.ownership.deploymentSender) ||

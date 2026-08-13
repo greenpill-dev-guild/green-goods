@@ -15,6 +15,7 @@ import {
   type TransactionResponse,
 } from "ethers";
 import { NetworkManager } from "../utils/network";
+import { retryRpcAvailability } from "../utils/rpc-retry";
 import { writeReleaseJsonAtomic } from "../utils/release-artifacts";
 import { assertSepoliaGate } from "../utils/release-gate";
 import { buildReleaseLock, loadReleaseManifest } from "../utils/release-manifest";
@@ -862,6 +863,7 @@ async function verifyAuthorizedBoundary(options: BackfillOptions): Promise<void>
     );
   }
   if (options.network !== "arbitrum") throw new Error("Pool backfill supports only --network arbitrum");
+  const receiptHash = options.receiptHash;
   const planPath = path.resolve(process.cwd(), options.planPath);
   if (!fs.existsSync(planPath)) throw new Error(`Reviewed backfill plan not found: ${planPath}`);
   const plan = JSON.parse(fs.readFileSync(planPath, "utf8")) as PoolBackfillPlan;
@@ -895,9 +897,20 @@ async function verifyAuthorizedBoundary(options: BackfillOptions): Promise<void>
 
   const networkManager = new NetworkManager();
   const provider = new JsonRpcProvider(networkManager.getRpcUrl("arbitrum"), 42161, { staticNetwork: true });
-  const transaction = await provider.getTransaction(options.receiptHash);
-  const receipt = await provider.getTransactionReceipt(options.receiptHash);
-  if (!transaction || !receipt) throw new Error(`Receipt evidence is unavailable for ${options.receiptHash}`);
+  const { transaction, receipt } = await retryRpcAvailability(
+    async () => {
+      const [transaction, receipt] = await Promise.all([
+        provider.getTransaction(receiptHash),
+        provider.getTransactionReceipt(receiptHash),
+      ]);
+      return transaction && receipt ? { transaction, receipt } : undefined;
+    },
+    {
+      unavailableMessage: `Receipt evidence remained unavailable for ${receiptHash}`,
+      onRetry: (attempt) => console.warn(`Backfill receipt has not propagated; retrying after attempt ${attempt}/6`),
+    },
+  );
+  if (receipt.status !== 1) throw new Error(`Backfill receipt ${receiptHash} failed`);
   const deployment = readDeployment(42161);
   await assertFrozenModuleIdentity(
     provider,

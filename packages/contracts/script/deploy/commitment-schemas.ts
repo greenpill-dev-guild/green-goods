@@ -14,6 +14,7 @@ import {
 import { type ParsedOptions } from "../utils/cli-parser";
 import { DeploymentAddresses } from "../utils/deployment-addresses";
 import { NetworkManager } from "../utils/network";
+import { retryRpcAvailability } from "../utils/rpc-retry";
 import { mergeReleaseArtifact, writeReleaseJsonAtomic } from "../utils/release-artifacts";
 import { buildReleaseLock, loadReleaseManifest } from "../utils/release-manifest";
 import { getFoundryBroadcastPath } from "../utils/paths";
@@ -928,10 +929,20 @@ export class CommitmentSchemasDeployer {
         "Bun-wrapped schema boundary",
       );
     }
-    const transaction = await provider.getTransaction(transactionHash);
-    const receipt = await provider.getTransactionReceipt(transactionHash);
-    if (!transaction || !receipt || receipt.status !== 1)
-      throw new Error(`Schema receipt ${transactionHash} is unavailable or failed`);
+    const { transaction, receipt } = await retryRpcAvailability(
+      async () => {
+        const [transaction, receipt] = await Promise.all([
+          provider.getTransaction(transactionHash),
+          provider.getTransactionReceipt(transactionHash),
+        ]);
+        return transaction && receipt ? { transaction, receipt } : undefined;
+      },
+      {
+        unavailableMessage: `Schema receipt ${transactionHash} remained unavailable`,
+        onRetry: (attempt) => console.warn(`Schema receipt has not propagated; retrying after attempt ${attempt}/6`),
+      },
+    );
+    if (receipt.status !== 1) throw new Error(`Schema receipt ${transactionHash} failed`);
     validateSchemaReceiptTransaction(transaction, plan, boundary, transactionHash);
     await this.verifySchemaBoundary(provider, plan, boundary);
     if (!prior) {

@@ -10,6 +10,7 @@ import {
   validateOwnershipCheckpointPrefix,
   validateReleaseCheckpointPrefix,
 } from "./release";
+import { retryRpcAvailability } from "../utils/rpc-retry";
 import { parseCastTransactionHash } from "../utils/cast-env";
 import { buildReleaseLock, loadReleaseManifest } from "../utils/release-manifest";
 import type { ReleaseTransactionBoundary } from "../utils/release-plan";
@@ -36,6 +37,44 @@ function fail(args: string[], env: NodeJS.ProcessEnv = process.env) {
 }
 
 describe("release CLI real entrypoints", () => {
+  it("retries unavailable RPC evidence without repeating the transaction", async () => {
+    let reads = 0;
+    let waits = 0;
+
+    const result = await retryRpcAvailability(
+      async () => {
+        reads += 1;
+        return reads === 3 ? "mined" : undefined;
+      },
+      { attempts: 4, wait: async () => void (waits += 1) },
+    );
+
+    expect(result).toBe("mined");
+    expect(reads).toBe(3);
+    expect(waits).toBe(2);
+  });
+
+  it("fails closed when RPC evidence remains unavailable", async () => {
+    let reads = 0;
+    let waits = 0;
+
+    await expect(
+      retryRpcAvailability(
+        async () => {
+          reads += 1;
+          return undefined;
+        },
+        {
+          attempts: 3,
+          wait: async () => void (waits += 1),
+          unavailableMessage: "receipt unavailable",
+        },
+      ),
+    ).rejects.toThrow("receipt unavailable");
+    expect(reads).toBe(3);
+    expect(waits).toBe(2);
+  });
+
   it("retries transient post-state reads without repeating the transaction", () => {
     let verificationAttempts = 0;
     let waits = 0;
