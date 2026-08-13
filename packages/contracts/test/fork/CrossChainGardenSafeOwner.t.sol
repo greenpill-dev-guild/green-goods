@@ -164,7 +164,7 @@ contract CrossChainGardenSafeOwnerForkTest is Test {
         target = new GardenSafeOwnerTarget();
     }
 
-    function testExactSourceTuplePredictsOneAddressButCodeIsNotDeployedCrossChain() public {
+    function testGardenSafe_exactSourceTuplePredictsOneAddressButCodeIsNotDeployedCrossChain() public {
         if (!forked) return;
 
         vm.selectFork(arbitrumFork);
@@ -179,7 +179,7 @@ contract CrossChainGardenSafeOwnerForkTest is Test {
         assertTrue(foreignGardenAccount != celoPrediction, "different implementations cannot prove same-address deployment");
     }
 
-    function testForeignAccountHasNoLocalNftOwnerAndRejectsUntrustedExecution() public {
+    function testGardenSafe_foreignAccountHasNoLocalNftOwnerAndRejectsUntrustedExecution() public {
         if (!forked) return;
         vm.selectFork(celoFork);
 
@@ -196,7 +196,7 @@ contract CrossChainGardenSafeOwnerForkTest is Test {
         assertEq(target.calls(), 0, "untrusted call reached its target");
     }
 
-    function testSafeOwnerSetIsExactAndThresholdTwo() public {
+    function testGardenSafe_ownerSetIsExactAndThresholdTwo() public {
         if (!forked) return;
         vm.selectFork(celoFork);
 
@@ -210,7 +210,7 @@ contract CrossChainGardenSafeOwnerForkTest is Test {
         assertTrue(_contains(owners, address(recoverySafeTwo)), "second recovery Safe missing");
     }
 
-    function testGardenAccountPlusOneRecoveryOwnerExecutes() public {
+    function testGardenSafe_gardenAccountPlusOneRecoveryOwnerExecutes() public {
         if (!forked) return;
         vm.selectFork(celoFork);
 
@@ -225,7 +225,7 @@ contract CrossChainGardenSafeOwnerForkTest is Test {
         assertEq(gardenSafe.nonce(), 1, "Safe nonce did not advance");
     }
 
-    function testNeitherGardenNorOneRecoveryOwnerCanExecuteAlone() public {
+    function testGardenSafe_neitherGardenNorOneRecoveryOwnerCanExecuteAlone() public {
         if (!forked) return;
         vm.selectFork(celoFork);
 
@@ -246,7 +246,7 @@ contract CrossChainGardenSafeOwnerForkTest is Test {
         assertEq(gardenSafe.nonce(), 0, "failed threshold checks changed the Safe nonce");
     }
 
-    function testBothRecoveryOwnersCanExecuteWithoutGardenAccount() public {
+    function testGardenSafe_bothRecoveryOwnersCanExecuteWithoutGardenAccount() public {
         if (!forked) return;
         vm.selectFork(celoFork);
 
@@ -261,7 +261,7 @@ contract CrossChainGardenSafeOwnerForkTest is Test {
         assertEq(target.calls(), 1, "recovery transaction did not reach target");
     }
 
-    function testDifferentGardenAccountCannotSubstituteForSafeOwner() public {
+    function testGardenSafe_differentGardenAccountCannotSubstituteForSafeOwner() public {
         if (!forked) return;
         vm.selectFork(celoFork);
 
@@ -279,7 +279,7 @@ contract CrossChainGardenSafeOwnerForkTest is Test {
         assertEq(target.calls(), 0, "wrong Garden account reached the target");
     }
 
-    function testExecutedSafeTransactionCannotReplay() public {
+    function testGardenSafe_executedSafeTransactionCannotReplay() public {
         if (!forked) return;
         vm.selectFork(celoFork);
 
@@ -298,7 +298,7 @@ contract CrossChainGardenSafeOwnerForkTest is Test {
         assertEq(gardenSafe.nonce(), 1, "failed replay changed the Safe nonce");
     }
 
-    function testTemporaryDeploymentOwnerCanBeSwappedForGardenOwnerInOneSafeTransaction() public {
+    function testGardenSafe_temporaryDeploymentOwnerCanBeSwappedForGardenOwnerInOneSafeTransaction() public {
         if (!forked) return;
         vm.selectFork(celoFork);
 
