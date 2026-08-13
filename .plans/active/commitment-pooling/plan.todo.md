@@ -923,6 +923,17 @@ Known mis-resolutions fixed in place: `contract-spec.md` §Grassroots-Economics-
     The protocol Safe remains the approved later owner, and its transfer receives its own future
     review and authorization rather than blocking this release's paused registration backfill.
 
+107. The Garden ERC-6551 account may replace the named Garden recovery delegate in the future
+    Celo Garden Safe owner set only after a bounded fork spike (2026-08-12, Afo authorization).
+    The spike is specified in `erc6551-garden-safe-owner-spike.md` and must separate deterministic
+    address derivation, code deployment, foreign-account execution, source authentication, Safe
+    threshold behavior, replay safety, and recovery. The production owner set does not change in
+    this decision. The current three-recovery-owner design remains canonical unless the exact
+    same-address implementation and a Garden-bound cross-chain executor both pass their gates.
+    The spike may add plan evidence and fork tests only; it authorizes no production Safe/Zodiac
+    transaction, trusted-executor mutation, value authority, value movement, peer wiring, canary,
+    settlement ABI/storage change, or ownership transfer.
+
 **Final recursive certification clarification (2026-07-25; no new decision-register entry):**
 the published `42161`↔`42220` production lane is the only required fully paired
 `SettlementConfiguration`. Arbitrum Sepolia `421614` and Celo Sepolia `11142220` remain
