@@ -14,6 +14,7 @@
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useRef } from "react";
+import { useIntl } from "react-intl";
 import { toastService } from "../../components/toast";
 import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
 import {
@@ -23,6 +24,11 @@ import {
   trackWorkRejectionSuccess,
 } from "../../modules/app/analytics-events";
 import { jobQueue } from "../../modules/job-queue";
+import {
+  LOCAL_OVERLAY_GRACE_MS,
+  type OverlayWork,
+  overlayDeadline,
+} from "../../modules/work/local-status-overlay";
 import { submitApprovalDirectly } from "../../modules/work/wallet-submission";
 import { submitApprovalToQueue } from "../../modules/work/work-submission";
 import type { Work, WorkApprovalDraft } from "../../types/domain";
@@ -43,45 +49,14 @@ interface UseWorkApprovalParams {
 /** Mutation result including wallet submission details */
 interface ApprovalMutationResult {
   hash: `0x${string}`;
+  confirmed?: boolean;
 }
 
-const PENDING_AUTO_CLEAR_MS = 60_000;
-type PendingWork = Work & { _isPending?: boolean; _pendingUntilMs?: number };
+const PENDING_AUTO_CLEAR_MS = LOCAL_OVERLAY_GRACE_MS;
+type PendingWork = OverlayWork;
 
-/**
- * Hook for submitting work approvals
- *
- * Automatically branches based on authentication mode:
- * - Wallet users: Direct blockchain transaction
- * - Passkey users: Sponsored smart-account transaction
- *
- * @returns TanStack Query mutation for approval submission
- *
- * @example
- * ```tsx
- * function ApprovalForm({ work }) {
- *   const approvalMutation = useWorkApproval();
- *
- *   const handleApprove = async () => {
- *     await approvalMutation.mutateAsync({
- *       draft: { workUID, actionUID, approved: true, feedback: "Great work!" },
- *       work
- *     });
- *   };
- *
- *   return (
- *     <button
- *       onClick={handleApprove}
- *       disabled={approvalMutation.isPending}
- *       aria-busy={approvalMutation.isPending || undefined}
- *     >
- *       Approve
- *     </button>
- *   );
- * }
- * ```
- */
 export function useWorkApproval() {
+  const { formatMessage } = useIntl();
   const { authMode, primaryAddress } = useUser();
   const sender = useTransactionSender();
   const chainId = DEFAULT_CHAIN_ID;
@@ -135,13 +110,13 @@ export function useWorkApproval() {
             workUID: draft.workUID,
           });
         }
-        const hash = await submitApprovalDirectly(
+        const { hash, confirmed } = await submitApprovalDirectly(
           draft,
           work.gardenAddress,
           work.gardenerAddress,
           chainId
         );
-        return { hash };
+        return { hash, confirmed };
       }
 
       // Non-wallet path: queue + inline processing via TransactionSender
@@ -245,82 +220,88 @@ export function useWorkApproval() {
         queryKeys.works.online(work.gardenAddress, chainId)
       );
 
-      const pendingUntilMs = Date.now() + PENDING_AUTO_CLEAR_MS;
+      // Wallet mode leaves indexed work untouched while the signature is pending.
+      // Once the wallet returns a transaction hash, onSuccess records the decision
+      // even when receipt waiting times out so stale cached pending status cannot
+      // override the indexer's later result.
 
-      // Optimistically update the work status with a pending indicator
-      const optimisticStatus = draft.approved ? ("approved" as const) : ("rejected" as const);
+      if (authMode !== "wallet") {
+        const optimisticStatus = draft.approved ? ("approved" as const) : ("rejected" as const);
 
-      queryClient.setQueryData(
-        queryKeys.works.merged(work.gardenAddress, chainId),
-        (old: Work[] = []) =>
-          old.map((w) =>
-            w.id === draft.workUID
-              ? {
-                  ...w,
-                  status: optimisticStatus,
-                  _isPending: true,
-                  _pendingUntilMs: pendingUntilMs,
-                }
-              : w
-          )
-      );
+        const pendingUntilMs = Date.now() + PENDING_AUTO_CLEAR_MS;
 
-      queryClient.setQueryData(
-        queryKeys.works.online(work.gardenAddress, chainId),
-        (old: Work[] = []) =>
-          old.map((w) =>
-            w.id === draft.workUID
-              ? {
-                  ...w,
-                  status: optimisticStatus,
-                  _isPending: true,
-                  _pendingUntilMs: pendingUntilMs,
-                }
-              : w
-          )
-      );
-
-      // Auto-clear stale pending flags if no completion signal is observed.
-      // Uses dedicated timer so it isn't cancelled by the indexer lag follow-up.
-      scheduleAutoClear(() => {
         queryClient.setQueryData(
           queryKeys.works.merged(work.gardenAddress, chainId),
-          (old: PendingWork[] = []) =>
+          (old: Work[] = []) =>
             old.map((w) =>
-              w.id === draft.workUID && w._isPending && (w._pendingUntilMs ?? 0) <= Date.now()
-                ? { ...w, _isPending: false, _pendingUntilMs: undefined }
+              w.id === draft.workUID
+                ? {
+                    ...w,
+                    status: optimisticStatus,
+                    _isPending: true,
+                    _pendingUntilMs: pendingUntilMs,
+                  }
                 : w
             )
         );
+
         queryClient.setQueryData(
           queryKeys.works.online(work.gardenAddress, chainId),
-          (old: PendingWork[] = []) =>
+          (old: Work[] = []) =>
             old.map((w) =>
-              w.id === draft.workUID && w._isPending && (w._pendingUntilMs ?? 0) <= Date.now()
-                ? { ...w, _isPending: false, _pendingUntilMs: undefined }
+              w.id === draft.workUID
+                ? {
+                    ...w,
+                    status: optimisticStatus,
+                    _isPending: true,
+                    _pendingUntilMs: pendingUntilMs,
+                  }
                 : w
             )
         );
-      }, PENDING_AUTO_CLEAR_MS + 1000);
 
-      if (DEBUG_ENABLED) {
-        debugLog("[useWorkApproval] Applied optimistic update", {
-          workUID: draft.workUID,
-          newStatus: optimisticStatus,
-        });
+        // Auto-clear stale pending flags if no completion signal is observed.
+        // Uses dedicated timer so it isn't cancelled by the indexer lag follow-up.
+        scheduleAutoClear(() => {
+          queryClient.setQueryData(
+            queryKeys.works.merged(work.gardenAddress, chainId),
+            (old: PendingWork[] = []) =>
+              old.map((w) =>
+                w.id === draft.workUID && w._isPending && (w._pendingUntilMs ?? 0) <= Date.now()
+                  ? { ...w, _isPending: false, _pendingUntilMs: undefined }
+                  : w
+              )
+          );
+          queryClient.setQueryData(
+            queryKeys.works.online(work.gardenAddress, chainId),
+            (old: PendingWork[] = []) =>
+              old.map((w) =>
+                w.id === draft.workUID && w._isPending && (w._pendingUntilMs ?? 0) <= Date.now()
+                  ? { ...w, _isPending: false, _pendingUntilMs: undefined }
+                  : w
+              )
+          );
+        }, PENDING_AUTO_CLEAR_MS + 1000);
+
+        if (DEBUG_ENABLED) {
+          debugLog("[useWorkApproval] Applied optimistic update", {
+            workUID: draft.workUID,
+            newStatus: optimisticStatus,
+          });
+        }
       }
 
       // Show loading toast
       const actionLabel = draft.approved ? "approval" : "decision";
       const message =
         authMode === "wallet"
-          ? "Waiting for wallet confirmation..."
+          ? formatMessage({ id: "app.toast.approval.walletConfirm.message" })
           : !navigator.onLine
             ? `Saving ${actionLabel} offline...`
             : `Submitting ${actionLabel}...`;
       const title =
         authMode === "wallet"
-          ? "Confirm in your wallet"
+          ? formatMessage({ id: "app.toast.approval.walletConfirm.title" })
           : !navigator.onLine
             ? "Working offline"
             : "Submitting approval";
@@ -364,51 +345,48 @@ export function useWorkApproval() {
         });
       }
 
-      // Clear _isPending flag and confirm status after transaction is confirmed
-      // For offline hashes, keep _isPending until job is processed
+      // A returned hash means the decision reached the chain, so record it —
+      // the operator should see that their action registered. Two things keep
+      // that honest: a submission whose receipt never arrived stays visibly
+      // pending, and every overlay carries a deadline. Once the deadline
+      // lapses the indexer is authoritative again, so a dropped transaction
+      // cannot leave the work looking resolved.
       if (variables) {
         const { draft, work } = variables;
         const confirmedStatus = draft.approved ? ("approved" as const) : ("rejected" as const);
+        const awaitingConfirmation = isOfflineHash || result.confirmed === false;
 
-        // Update to clear pending flag (optimistic update already set the status)
+        const recordDecision = (old: PendingWork[] = []): PendingWork[] =>
+          old.map((w) =>
+            w.id === draft.workUID
+              ? {
+                  ...w,
+                  status: confirmedStatus,
+                  _isPending: awaitingConfirmation,
+                  _txHash: isOfflineHash ? undefined : txHash,
+                  // Offline jobs stay authoritative until their queued job
+                  // completes; everything else expires back to indexed truth.
+                  _pendingUntilMs: isOfflineHash ? undefined : overlayDeadline(),
+                }
+              : w
+          );
+
         queryClient.setQueryData(
           queryKeys.works.merged(work.gardenAddress, chainId),
-          (old: Work[] = []) =>
-            old.map((w) =>
-              w.id === draft.workUID
-                ? {
-                    ...w,
-                    status: confirmedStatus,
-                    _isPending: isOfflineHash, // Keep pending for offline, clear for confirmed
-                    _txHash: isOfflineHash ? undefined : txHash,
-                    _pendingUntilMs: undefined,
-                  }
-                : w
-            )
+          recordDecision
         );
-
         queryClient.setQueryData(
           queryKeys.works.online(work.gardenAddress, chainId),
-          (old: Work[] = []) =>
-            old.map((w) =>
-              w.id === draft.workUID
-                ? {
-                    ...w,
-                    status: confirmedStatus,
-                    _isPending: isOfflineHash,
-                    _txHash: isOfflineHash ? undefined : txHash,
-                    _pendingUntilMs: undefined,
-                  }
-                : w
-            )
+          recordDecision
         );
 
         if (DEBUG_ENABLED) {
-          debugLog("[useWorkApproval] Confirmed optimistic update", {
+          debugLog("[useWorkApproval] Recorded decision", {
             authMode,
             workUID: draft.workUID,
             newStatus: confirmedStatus,
-            isPending: isOfflineHash,
+            isPending: awaitingConfirmation,
+            confirmed: result.confirmed,
             txHash,
           });
         }
@@ -419,7 +397,12 @@ export function useWorkApproval() {
         toastService.success({
           id: "approval-submit",
           title: isApproval ? "Approval submitted" : "Decision submitted",
-          message: "Transaction confirmed.",
+          message: formatMessage({
+            id:
+              result.confirmed === false
+                ? "app.toast.approval.walletConfirm.message"
+                : "app.toast.approval.walletConfirmed.message",
+          }),
           context: "wallet confirmation",
           suppressLogging: true,
         });

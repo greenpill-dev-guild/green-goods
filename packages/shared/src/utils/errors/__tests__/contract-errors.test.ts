@@ -41,6 +41,23 @@ describe("parseContractError", () => {
     });
   });
 
+  it("parses the work resolver self-attestation selector", () => {
+    // 0x9bce3284 = keccak256("SelfAttestation()")[0:4]
+    const result = parseContractError("execution reverted: 0x9bce3284");
+
+    expect(result).toEqual({
+      raw: "0x9bce3284",
+      name: "SelfAttestation",
+      message: "You cannot review your own work submission",
+      action: "Ask another garden operator to approve or reject this work",
+      messageKey: "app.errors.contract.selfAttestation.message",
+      actionKey: "app.errors.contract.selfAttestation.action",
+      isKnown: true,
+      recoverable: false,
+      suggestedAction: undefined,
+    });
+  });
+
   it("parses AlreadyGardener error code", () => {
     const result = parseContractError("0x42375a1e");
 

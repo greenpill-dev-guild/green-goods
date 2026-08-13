@@ -22,7 +22,7 @@ import {
 } from "../../../utils/blockchain/polling";
 import { simulateWorkSubmission } from "../simulate";
 import { WorkSubmissionError, type WalletSubmissionOptions } from "./types";
-import { waitForReceiptWithTimeout } from "./receipt";
+import { TransactionReceiptTimeoutError, waitForReceiptWithTimeout } from "./receipt";
 
 export async function submitWorkDirectly(
   draft: WorkDraft,
@@ -136,11 +136,19 @@ export async function submitWorkDirectly(
     throw new WorkSubmissionError(extractErrorMessage(err), "transaction", uploadBatchId, err);
   }
 
-  // ── Phase 3: Receipt, cache, and sync (non-critical) ───────────────
+  // ── Phase 3: Receipt, cache, and sync ──────────────────────────────
+  // Timing out is non-critical — the transaction may still land, and the
+  // optimistic cache below covers the gap. A revert is not: the attestation
+  // never happened, so surfacing it beats showing the gardener a submission
+  // that silently went nowhere.
   try {
     await waitForReceiptWithTimeout(hash, chainId, txTimeout);
     debugLog("[WalletSubmission] Transaction confirmed", { hash });
-  } catch {
+  } catch (err: unknown) {
+    if (!(err instanceof TransactionReceiptTimeoutError)) {
+      debugError("[WalletSubmission] Receipt phase failed", err);
+      throw new WorkSubmissionError(extractErrorMessage(err), "transaction", uploadBatchId, err);
+    }
     debugLog("[WalletSubmission] Transaction timeout, continuing...", { hash });
   }
 

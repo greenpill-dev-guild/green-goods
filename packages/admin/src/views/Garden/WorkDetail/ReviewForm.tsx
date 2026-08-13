@@ -1,5 +1,6 @@
 import {
   AudioRecorder,
+  compareAddresses,
   Confidence,
   ConfidenceSelector,
   ErrorBoundary,
@@ -10,6 +11,7 @@ import {
   uploadFileToIPFS,
   uploadJSONToIPFS,
   useEnsName,
+  usePrimaryAddress,
   useWorkApproval,
   VerificationMethod,
   type Work,
@@ -46,10 +48,12 @@ export function ReviewForm({
   onSuccess,
 }: ReviewFormProps) {
   const { formatMessage } = useIntl();
+  const primaryAddress = usePrimaryAddress();
   const { data: gardenerEnsName } = useEnsName(work.gardenerAddress);
   const gardenerDisplayName = formatEnsAddressName(work.gardenerAddress, gardenerEnsName);
 
   const isActionExpired = typeof actionEndTime === "number" && actionEndTime < Date.now();
+  const isOwnSubmission = compareAddresses(primaryAddress, work.gardenerAddress);
 
   const { control, watch, getValues } = useForm<WorkApprovalFormData>({
     resolver: zodResolver(workApprovalSchema),
@@ -143,17 +147,30 @@ export function ReviewForm({
 
       onSuccess?.();
     } catch (error) {
-      const { message, parsed } = parseAndFormatError(error);
+      const { message: formattedMessage, parsed } = parseAndFormatError(error);
 
       logger.error("Work approval submission failed", {
         error,
         source: "WorkDetail",
       });
 
+      const localizedKnownMessage = parsed.messageKey
+        ? [
+            formatMessage({ id: parsed.messageKey, defaultMessage: parsed.message }),
+            parsed.actionKey
+              ? formatMessage({
+                  id: parsed.actionKey,
+                  defaultMessage: parsed.action ?? "",
+                })
+              : parsed.action,
+          ]
+            .filter(Boolean)
+            .join(". ")
+        : formattedMessage;
       toastService.error({
         title: formatMessage({ id: "app.toast.approval.errorDecision.title" }),
         message: parsed.isKnown
-          ? message
+          ? localizedKnownMessage
           : formatMessage({ id: "app.toast.approval.errorWallet.message" }),
       });
     } finally {
@@ -164,13 +181,15 @@ export function ReviewForm({
 
   const blockedState = isReviewed
     ? "reviewed"
-    : isActionExpired
-      ? "expired"
-      : canReview && !canApproveOrReject
-        ? "role-blocked"
-        : canReview
-          ? "actionable"
-          : "no-permission";
+    : isOwnSubmission
+      ? "self-review"
+      : isActionExpired
+        ? "expired"
+        : canReview && !canApproveOrReject
+          ? "role-blocked"
+          : canReview
+            ? "actionable"
+            : "no-permission";
 
   return (
     <div className={layout === "page" ? "lg:col-span-2" : undefined}>
@@ -185,6 +204,22 @@ export function ReviewForm({
 
             {blockedState === "reviewed" ? (
               <ReviewSummary work={work} />
+            ) : blockedState === "self-review" ? (
+              <div className="mt-4 rounded-xl border border-information-light bg-information-lighter p-4">
+                <p className="text-sm font-medium text-information-dark">
+                  {formatMessage({
+                    id: "app.work.detail.reviewBlocked.selfReviewTitle",
+                    defaultMessage: "Independent review required",
+                  })}
+                </p>
+                <p className="mt-1 text-sm text-information-dark">
+                  {formatMessage({
+                    id: "app.work.detail.reviewBlocked.selfReviewMessage",
+                    defaultMessage:
+                      "You submitted this work. Another garden operator must approve or reject it.",
+                  })}
+                </p>
+              </div>
             ) : blockedState === "expired" ? (
               <div className="mt-4 rounded-xl border border-warning-light bg-warning-lighter/70 p-4">
                 <p className="text-sm font-medium text-warning-dark">

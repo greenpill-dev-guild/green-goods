@@ -56,8 +56,15 @@ export function useWizardData({ gardenId, gardenName, onComplete }: UseWizardDat
   const wizardTitle = useHypercertWizardStore((s) => s.title);
   const wizardDescription = useHypercertWizardStore((s) => s.description);
   const wizardWorkScopes = useHypercertWizardStore((s) => s.workScopes);
+  const wizardImpactScopes = useHypercertWizardStore((s) => s.impactScopes);
   const wizardWorkTimeframeStart = useHypercertWizardStore((s) => s.workTimeframeStart);
   const wizardWorkTimeframeEnd = useHypercertWizardStore((s) => s.workTimeframeEnd);
+  const wizardImpactTimeframeStart = useHypercertWizardStore((s) => s.impactTimeframeStart);
+  const wizardImpactTimeframeEnd = useHypercertWizardStore((s) => s.impactTimeframeEnd);
+  const wizardSdgs = useHypercertWizardStore((s) => s.sdgs);
+  const wizardCapitals = useHypercertWizardStore((s) => s.capitals);
+  const wizardOutcomes = useHypercertWizardStore((s) => s.outcomes);
+  const wizardExternalUrl = useHypercertWizardStore((s) => s.externalUrl);
   const wizardDraftId = useHypercertWizardStore((s) => s.draftId);
 
   const { currentStep, nextStep, previousStep, setStep, canProceed } = useCreateHypercertWorkflow();
@@ -82,10 +89,7 @@ export function useWizardData({ gardenId, gardenName, onComplete }: UseWizardDat
     if (lastPrefillId.current === selectedAssessment.id) return;
     lastPrefillId.current = selectedAssessment.id;
 
-    const prefill = prefillMetadataFromAssessment(
-      selectedAssessment as unknown as Parameters<typeof prefillMetadataFromAssessment>[0],
-      getSDGLabel
-    );
+    const prefill = prefillMetadataFromAssessment(selectedAssessment, getSDGLabel);
     updateMetadata(prefill);
   }, [selectedAssessment, updateMetadata]);
 
@@ -213,8 +217,16 @@ export function useWizardData({ gardenId, gardenName, onComplete }: UseWizardDat
       wizardTitle,
       wizardDescription,
       wizardWorkScopes,
+      wizardImpactScopes,
       wizardWorkTimeframeStart,
       wizardWorkTimeframeEnd,
+      wizardImpactTimeframeStart,
+      wizardImpactTimeframeEnd,
+      wizardSdgs,
+      wizardCapitals,
+      wizardOutcomes,
+      wizardExternalUrl,
+      currentStep,
       selectedAttestationIds,
       allowlist,
       distributionMode,

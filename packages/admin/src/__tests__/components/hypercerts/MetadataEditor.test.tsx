@@ -8,7 +8,7 @@
 import type { HypercertDraft } from "@green-goods/shared";
 import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { createElement } from "react";
+import { createElement, useState } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { renderWithProviders as render } from "../../test-utils";
 
@@ -59,6 +59,8 @@ vi.mock("@green-goods/shared", () => ({
     label,
     value,
     onChange,
+    onFocus,
+    onBlur,
     placeholder,
     "aria-required": ariaRequired,
   }: {
@@ -66,6 +68,8 @@ vi.mock("@green-goods/shared", () => ({
     label: React.ReactNode;
     value: string;
     onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+    onFocus?: React.FocusEventHandler<HTMLInputElement>;
+    onBlur?: React.FocusEventHandler<HTMLInputElement>;
     placeholder?: string;
     "aria-required"?: string;
   }) =>
@@ -77,6 +81,8 @@ vi.mock("@green-goods/shared", () => ({
         type: "text",
         value,
         onChange,
+        onFocus,
+        onBlur,
         placeholder,
         "aria-required": ariaRequired,
       }),
@@ -131,6 +137,27 @@ function createMockDraft(overrides: Partial<HypercertDraft> = {}): HypercertDraf
     capitals: [],
     ...overrides,
   };
+}
+
+function MetadataEditorHarness({
+  initialDraft = createMockDraft(),
+  onUpdate,
+}: {
+  initialDraft?: HypercertDraft;
+  onUpdate: (updates: Partial<HypercertDraft>) => void;
+}) {
+  const [draft, setDraft] = useState(initialDraft);
+
+  return createElement(MetadataEditor, {
+    draft,
+    onUpdate: (updates) => {
+      onUpdate(updates);
+      setDraft((current) => ({ ...current, ...updates }));
+    },
+    suggestedWorkScopes: [],
+    suggestedStart: null,
+    suggestedEnd: null,
+  });
 }
 
 describe("components/Hypercerts/MetadataEditor", () => {
@@ -284,6 +311,46 @@ describe("components/Hypercerts/MetadataEditor", () => {
       // Find the call that contains workScopes
       const workScopeCalls = onUpdate.mock.calls.filter((call) => call[0].workScopes !== undefined);
       expect(workScopeCalls.length).toBeGreaterThan(0);
+    });
+
+    it("preserves commas while editing work scopes", async () => {
+      const onUpdate = vi.fn();
+      const user = userEvent.setup();
+
+      render(createElement(MetadataEditorHarness, { onUpdate }));
+
+      const workScopeInput = screen.getByLabelText(/work scope/i);
+      await user.type(workScopeInput, "planting,");
+
+      expect(workScopeInput).toHaveValue("planting,");
+
+      await user.type(workScopeInput, " restoration");
+
+      expect(workScopeInput).toHaveValue("planting, restoration");
+      expect(onUpdate).toHaveBeenLastCalledWith({
+        workScopes: ["planting", "restoration"],
+      });
+    });
+
+    it("allows an existing impact scope to be replaced", async () => {
+      const onUpdate = vi.fn();
+      const user = userEvent.setup();
+
+      render(
+        createElement(MetadataEditorHarness, {
+          initialDraft: createMockDraft({ impactScopes: ["environment"] }),
+          onUpdate,
+        })
+      );
+
+      const impactScopeInput = screen.getByLabelText(/impact scope/i);
+      await user.clear(impactScopeInput);
+      await user.type(impactScopeInput, "community, cleaner air");
+
+      expect(impactScopeInput).toHaveValue("community, cleaner air");
+      expect(onUpdate).toHaveBeenLastCalledWith({
+        impactScopes: ["community", "cleaner air"],
+      });
     });
   });
 

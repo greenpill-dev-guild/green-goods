@@ -22,7 +22,7 @@ import {
 } from "../../../utils/blockchain/polling";
 import { simulateApprovalSubmission } from "../simulate";
 import type { BatchApprovalOptions } from "./types";
-import { waitForReceiptWithTimeout } from "./receipt";
+import { TransactionReceiptTimeoutError, waitForReceiptWithTimeout } from "./receipt";
 
 export async function submitBatchApprovalsDirectly(
   approvals: Array<{
@@ -98,10 +98,16 @@ export async function submitBatchApprovalsDirectly(
 
     debugLog("[WalletSubmission] Batch approval transaction sent", { hash });
 
+    // Only a timeout is tolerable here. A revert means none of the batched
+    // decisions were recorded, so it must not be swallowed into an optimistic
+    // cache write.
     try {
       await waitForReceiptWithTimeout(hash, chainId, txTimeout);
       debugLog("[WalletSubmission] Batch approval confirmed", { hash });
-    } catch {
+    } catch (err: unknown) {
+      if (!(err instanceof TransactionReceiptTimeoutError)) {
+        throw err;
+      }
       debugLog("[WalletSubmission] Batch approval timeout, continuing...", { hash });
     }
 

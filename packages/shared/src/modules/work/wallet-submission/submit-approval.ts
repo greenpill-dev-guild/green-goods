@@ -19,7 +19,7 @@ import { extractErrorMessage } from "../../../utils/errors/extract-message";
 import { pollQueriesAfterTransaction } from "../../../utils/blockchain/polling";
 import { simulateApprovalSubmission } from "../simulate";
 import type { WalletSubmissionOptions } from "./types";
-import { waitForReceiptWithTimeout } from "./receipt";
+import { TransactionReceiptTimeoutError, waitForReceiptWithTimeout } from "./receipt";
 
 export async function submitApprovalDirectly(
   draft: WorkApprovalDraft,
@@ -27,7 +27,7 @@ export async function submitApprovalDirectly(
   gardenerAddress: Address,
   chainId: number,
   options: WalletSubmissionOptions = {}
-): Promise<`0x${string}`> {
+): Promise<{ hash: `0x${string}`; confirmed: boolean }> {
   const { onProgress, txTimeout = 60_000 } = options;
   const startTime = Date.now();
 
@@ -88,10 +88,15 @@ export async function submitApprovalDirectly(
 
     debugLog("[WalletSubmission] Approval transaction sent", { hash });
 
+    let confirmed = false;
     try {
       await waitForReceiptWithTimeout(hash, chainId, txTimeout);
+      confirmed = true;
       debugLog("[WalletSubmission] Approval transaction confirmed", { hash });
-    } catch {
+    } catch (err: unknown) {
+      if (!(err instanceof TransactionReceiptTimeoutError)) {
+        throw err;
+      }
       debugLog("[WalletSubmission] Approval timeout, continuing...", { hash });
     }
 
@@ -143,7 +148,7 @@ export async function submitApprovalDirectly(
       hash,
       totalTimeMs: totalTime,
     });
-    return hash;
+    return { hash, confirmed };
   } catch (err: unknown) {
     const logMessage = "[WalletSubmission] Approval submission failed";
     if (DEBUG_ENABLED) {

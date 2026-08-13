@@ -381,7 +381,7 @@ describe("wallet-submission", () => {
       );
 
       // Verify
-      expect(result).toBe("0xApprovalTxHash");
+      expect(result).toEqual({ hash: "0xApprovalTxHash", confirmed: true });
       expect(wagmiCore.getWalletClient).toHaveBeenCalledWith({}, { chainId: mockChainId });
       expect(mockEnsureWagmiWalletChain).toHaveBeenCalledWith({}, mockChainId);
       expect(encoders.encodeWorkApprovalData).toHaveBeenCalledWith(mockApprovalDraft, mockChainId);
@@ -396,6 +396,74 @@ describe("wallet-submission", () => {
         {},
         { hash: "0xApprovalTxHash", chainId: mockChainId }
       );
+    });
+
+    it("reports an unconfirmed submission when the receipt helper times out", async () => {
+      mock(wagmiCore.getWalletClient).mockResolvedValue(mockWalletClient as WalletClient);
+      mock(encoders.encodeWorkApprovalData).mockReturnValue(
+        "0xEncodedApprovalData" as `0x${string}`
+      );
+      mock(mockWalletClient.sendTransaction!).mockResolvedValue(
+        "0xApprovalTxHash" as `0x${string}`
+      );
+      mock(wagmiCore.waitForTransactionReceipt).mockImplementation(() => new Promise(() => {}));
+
+      const result = await submitApprovalDirectly(
+        mockApprovalDraft,
+        "0xGardenAddress",
+        "0xGardenerAddress",
+        mockChainId,
+        { txTimeout: 0 }
+      );
+
+      expect(result).toEqual({ hash: "0xApprovalTxHash", confirmed: false });
+    });
+
+    it("rethrows receipt failures instead of recording an optimistic approval", async () => {
+      mock(wagmiCore.getWalletClient).mockResolvedValue(mockWalletClient as WalletClient);
+      mock(encoders.encodeWorkApprovalData).mockReturnValue(
+        "0xEncodedApprovalData" as `0x${string}`
+      );
+      mock(mockWalletClient.sendTransaction!).mockResolvedValue(
+        "0xApprovalTxHash" as `0x${string}`
+      );
+      const receiptError = new Error("Transaction execution reverted");
+      mock(wagmiCore.waitForTransactionReceipt).mockRejectedValue(receiptError);
+
+      try {
+        await submitApprovalDirectly(
+          mockApprovalDraft,
+          "0xGardenAddress",
+          "0xGardenerAddress",
+          mockChainId
+        );
+        expect.fail("Should have thrown");
+      } catch (error) {
+        expect((error as Error).message).toBe("Transaction execution reverted");
+        expect((error as Error).cause).toBe(receiptError);
+      }
+    });
+
+    it("rejects a mined-but-reverted receipt instead of reporting it confirmed", async () => {
+      // waitForTransactionReceipt resolves with the receipt on revert rather
+      // than throwing, so "a receipt arrived" is not proof the write landed.
+      mock(wagmiCore.getWalletClient).mockResolvedValue(mockWalletClient as WalletClient);
+      mock(encoders.encodeWorkApprovalData).mockReturnValue(
+        "0xEncodedApprovalData" as `0x${string}`
+      );
+      mock(mockWalletClient.sendTransaction!).mockResolvedValue(
+        "0xApprovalTxHash" as `0x${string}`
+      );
+      mock(wagmiCore.waitForTransactionReceipt).mockResolvedValue({ status: "reverted" } as any);
+
+      await expect(
+        submitApprovalDirectly(
+          mockApprovalDraft,
+          "0xGardenAddress",
+          "0xGardenerAddress",
+          mockChainId
+        )
+      ).rejects.toThrow(/reverted on chain/i);
     });
 
     it("should throw error when wallet is not connected", async () => {
