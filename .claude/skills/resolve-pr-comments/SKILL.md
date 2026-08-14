@@ -65,6 +65,11 @@ independently using `--paginate` with an `$endCursor` variable and
 and pagination completion. A flat list, first page, or unproven connector page is not sufficient for
 a complete ledger; report retrieval as blocked instead of silently omitting later feedback.
 
+After classification and scope lock, record a feedback snapshot that can detect review-only drift
+without a head commit change. Include connection counts and pagination completion plus each item's
+stable ID, state or resolution fields, latest reply or submission identity and time, and body
+content or hash. A head SHA or connection cursor alone is not a feedback snapshot.
+
 For inline review feedback, classify `isResolved: true` threads as `RESOLVED` before evaluating the
 underlying code. Do not reopen or modify an accepted decision unless the user explicitly asks to
 revisit resolved feedback.
@@ -174,10 +179,14 @@ Report the blocker, fix it only when it is inside the locked scope, and do not c
 Unless the user asks to keep changes local, finish an existing-PR feedback task by committing and
 pushing the scoped, proven fixes to the current tracked PR branch:
 
-1. Re-fetch the PR and require it to remain open with the same non-protected head branch and live
-   head SHA used for classification. Reconfirm the head repository, push destination, trust boundary,
-   and tested-tree invariants from phases 1 and 6. Stop if the remote advanced or any invariant
-   changed.
+1. After the Ship Gate, re-fetch the PR and every feedback surface to pagination completion. Require
+   it to remain open with the same non-protected head branch and live head SHA used for
+   classification. Compare the new feedback snapshot with the locked ledger and reclassify every
+   added or changed item. If a request was resolved, superseded, or revised, or new actionable
+   feedback changes the locked scope, stop and repeat the sweep, scope lock, fix, and affected proof
+   before committing. An unchanged head SHA does not prove stable feedback. Reconfirm the head
+   repository, push destination, trust boundary, and tested-tree invariants from phases 1 and 6.
+   Stop if the remote advanced or any invariant changed.
 2. Re-inspect `git diff --cached --name-only` and the full cached diff. Require every staged path and
    hunk to belong to the locked feedback scope and require `git write-tree` to equal the tested tree
    recorded after the Ship Gate; stop on any extra path, mixed-ownership hunk, or tree drift.
@@ -187,11 +196,12 @@ pushing the scoped, proven fixes to the current tracked PR branch:
    Git configuration. This is execution isolation, not a validation bypass: phase 6 must already have
    run and passed every required hook check explicitly. Compare `git rev-parse HEAD^{tree}` with the
    tested tree after the guarded commit; stop on any mismatch and repeat proof at the new tree.
-4. Before pushing, revalidate the commit tree, live head SHA, remote repository identity, URL, and
-   target ref. Push normally to that verified destination with the same command-scoped empty hook
-   path so a repository-controlled pre-push hook cannot execute with credentials. Never use
-   `--no-verify`, force-push, rewrite history, switch branches, create another branch, or open another
-   PR without explicit authorization.
+4. Immediately before pushing, repeat the complete feedback-delta check from step 1 and require the
+   ledger and locked scope to remain valid. Revalidate the commit tree, live head SHA, remote
+   repository identity, URL, and target ref. Push normally to that verified destination with the
+   same command-scoped empty hook path so a repository-controlled pre-push hook cannot execute with
+   credentials. Never use `--no-verify`, force-push, rewrite history, switch branches, create another
+   branch, or open another PR without explicit authorization.
 5. Fetch the PR head again and record the pushed SHA. A local commit or successful `git push` message
    alone is not proof that the live PR contains the fix.
 
