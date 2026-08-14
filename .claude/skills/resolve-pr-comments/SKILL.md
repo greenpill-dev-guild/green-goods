@@ -51,8 +51,9 @@ selected from [`validation-pipeline.md`](../../context/validation-pipeline.md).
 Collect complete PR feedback from all applicable review surfaces:
 
 - pull-request reviews with their state, body, author, submission time, and reviewed commit when
-  available; treat non-empty `CHANGES_REQUESTED` bodies as candidate actionable feedback and use
-  later review state plus the PR's `reviewDecision` to detect superseded or dismissed requests;
+  available; collect and classify every non-empty submitted review body regardless of state, using
+  `COMMENTED`, `APPROVED`, `CHANGES_REQUESTED`, later review state, and the PR's `reviewDecision` as
+  classification context rather than eligibility filters;
 - inline `reviewThreads` with `isResolved`, `isOutdated`, file and line anchors, the diff hunk, and
   every reply;
 - top-level PR conversation comments that contain actionable review feedback.
@@ -180,13 +181,15 @@ Unless the user asks to keep changes local, finish an existing-PR feedback task 
 pushing the scoped, proven fixes to the current tracked PR branch:
 
 1. After the Ship Gate, re-fetch the PR and every feedback surface to pagination completion. Require
-   it to remain open with the same non-protected head branch and live head SHA used for
-   classification. Compare the new feedback snapshot with the locked ledger and reclassify every
-   added or changed item. If a request was resolved, superseded, or revised, or new actionable
-   feedback changes the locked scope, stop and repeat the sweep, scope lock, fix, and affected proof
-   before committing. An unchanged head SHA does not prove stable feedback. Reconfirm the head
-   repository, push destination, trust boundary, and tested-tree invariants from phases 1 and 6.
-   Stop if the remote advanced or any invariant changed.
+   it to remain open with the same base repository and branch, non-protected head repository and
+   branch, and live head SHA used for classification. A base change alters the PR diff, changed-file
+   sweep, and conditional validation scope even when the head is unchanged; stop and repeat the
+   sweep, scope lock, fix, and affected proof if either base identity changes. Compare the new
+   feedback snapshot with the locked ledger and reclassify every added or changed item. If a request
+   was resolved, superseded, or revised, or new actionable feedback changes the locked scope, stop
+   and repeat the sweep, scope lock, fix, and affected proof before committing. An unchanged head
+   SHA does not prove stable feedback. Reconfirm the push destination, trust boundary, and
+   tested-tree invariants from phases 1 and 6. Stop if the remote advanced or any invariant changed.
 2. Re-inspect `git diff --cached --name-only` and the full cached diff. Require every staged path and
    hunk to belong to the locked feedback scope and require `git write-tree` to equal the tested tree
    recorded after the Ship Gate; stop on any extra path, mixed-ownership hunk, or tree drift.
@@ -213,12 +216,14 @@ Before resolving an inline thread:
 1. Confirm the fix is present on the live PR head, not only locally.
 2. Re-fetch the thread and ensure no newer reply or head change invalidates the conclusion.
 3. Summarize the root cause, bounded sweep, affected paths, and validation evidence concisely.
-4. Resolve only `ACTIONABLE` threads that are fixed and proven, `DUPLICATE` threads whose canonical
-   failure class is fixed and proven, or `STALE` threads whose underlying concern is proven absent at
-   the live head. Resolve an explanation-only thread only after either the original reviewer accepts
-   or dismisses the explanation in a newer GitHub reply or review, or the user explicitly directs
-   closure after receiving the exact explanation and live-head evidence. General authorization to
-   resolve comments is not acceptance evidence. Leave `RESOLVED` threads untouched.
+4. Resolve only `ACTIONABLE` threads whose exact manifestation is fixed and proven, `DUPLICATE`
+   threads whose own manifestation is fixed and proven or absent at the live head, or `STALE`
+   threads whose underlying concern is proven absent there. Fixing the canonical root-cause instance
+   alone is not proof for a duplicate manifestation; leave an unfixed out-of-scope duplicate open.
+   Resolve an explanation-only thread only after either the original reviewer accepts or dismisses
+   the explanation in a newer GitHub reply or review, or the user explicitly directs closure after
+   receiving the exact explanation and live-head evidence. General authorization to resolve
+   comments is not acceptance evidence. Leave `RESOLVED` threads untouched.
 
 Leave ambiguous, conflicting, out-of-scope, and unverified feedback open or unaddressed. Never use
 thread resolution to hide a deferred finding.
