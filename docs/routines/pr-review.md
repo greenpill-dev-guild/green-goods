@@ -6,7 +6,7 @@ triggers:
     filters:
       base_branch: [main, develop]
       is_draft: false
-      head_branch_excludes: claude/*  # routine PRs carry user's GitHub author (per docs), so filter on branch prefix instead
+      head_branch_excludes: claude/*  # legacy in-flight compatibility only; new branches use <type>/<work-description>
       from_fork: false
 repos:
   - green-goods
@@ -118,7 +118,7 @@ Query `search_issues` with `is:unresolved` (sort `freq`), optionally narrowing b
    **Idempotency:** skip an issue that already carries a pr-review comment for this PR at this head SHA; a new push to the PR = one fresh comment.
 2. **No Linear reference → the missing-issue catch.** Post ONE line to `#engineering` via Discord bot-token REST (`DISCORD_BOT_TOKEN` + `DISCORD_ENGINEERING_CHANNEL_ID`; channel guard: this is the only allowed channel — if unset, log and exit non-zero): `🔍 **PR #{n}** ({title}) has **no Linear issue referenced** — review: {verdict}, {N} flag(s). Add "Closes XXX-NNN" to the PR body or state why none is needed. <{PR url}>`. Flag only — never create a Linear issue from here.
 3. **Fail loud, never degrade.** If the Linear connector is unauthenticated and the PR has a reference, deliver via the `#engineering` line instead, prefixed "⚠️ Linear connector needs re-authorization —". If both surfaces fail, the run has FAILED: exit non-zero with the response bodies in the run log. Never end a run with a prepared-but-unposted review.
-4. **Skips:** draft PRs (already filtered), `claude/*` and `profile-refresh/*` branches, dependabot.
+4. **Skips:** draft PRs (already filtered), Dependabot, and the legacy `claude/*` / `profile-refresh/*` branches still covered by trigger compatibility. Those prefixes are not valid for new work.
 
 ## Review summary format (the Linear comment body)
 
@@ -139,4 +139,3 @@ Notes: …
 ```
 
 Use `COMMENT_ONLY` unless there is a hard-invariant violation (items 1, 2, 5). Items 3, 4, 6, 7, 8 are `REQUEST_CHANGES`-worthy only if the author has been told about them before in this PR thread — otherwise `COMMENT_ONLY`.
-

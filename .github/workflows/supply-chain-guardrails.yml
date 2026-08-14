@@ -150,7 +150,7 @@ jobs:
         run: bun run check:immutable-plan-reports
 
       - name: Run guidance guardrail tests
-        run: node --test scripts/quality/check-guidance-links.test.mjs scripts/quality/check-immutable-plan-reports.test.mjs
+        run: node --test scripts/quality/branch-name-policy.test.mjs scripts/quality/check-guidance-links.test.mjs scripts/quality/check-immutable-plan-reports.test.mjs
 
       - name: Check test quality
         run: bun run check:test-quality

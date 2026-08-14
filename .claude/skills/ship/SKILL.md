@@ -51,6 +51,7 @@ Before running any validation, confirm the branch is safe to ship:
 
 ```bash
 git rev-parse --abbrev-ref HEAD              # Not main/master/develop
+node scripts/quality/branch-name-policy.mjs "$(git branch --show-current)"
 git status --short                            # Know what's staged vs modified
 git log --oneline origin/main..HEAD -20       # Commits diverging from main
 git diff --stat origin/main...HEAD | tail -5  # Size of the change
@@ -58,7 +59,7 @@ git diff --stat origin/main...HEAD | tail -5  # Size of the change
 
 **Abort conditions:**
 - On detached HEAD, `main`, `master`, or `develop` → refuse, tell user to create a work branch first
-- Branch does not match `^(feature|fix|refactor|docs|chore|test|perf|ci|release|research)/[a-z0-9]+(-[a-z0-9]+)*$` → refuse. Branches describe the work; user, agent, Linear-ID, and generic lane prefixes are invalid.
+- Branch fails `scripts/quality/branch-name-policy.mjs` → refuse. Branches describe the work; user, agent, Linear-ID, and lane-only names are invalid.
 - Unstaged changes to `.env`, `*.env.*`, or files matching `credentials*`, `*.pem`, `*.key` → refuse, flag
 - Staged file larger than 5MB → warn, ask user to confirm (likely unintended binary)
 - No commits ahead of `origin/main` and no staged changes → nothing to ship; exit

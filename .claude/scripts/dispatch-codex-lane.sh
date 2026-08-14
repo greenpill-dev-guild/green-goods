@@ -68,12 +68,6 @@ done
 [ -n "$BASE" ] || { echo "Missing --base" >&2; usage; exit 1; }
 [ -n "$BRANCH" ] || { echo "Missing --branch" >&2; usage; exit 1; }
 
-if [[ ! "$BRANCH" =~ ^(feature|fix|refactor|docs|chore|test|perf|ci|release|research)/[a-z0-9]+(-[a-z0-9]+)*$ ]]; then
-  echo "Invalid work branch: $BRANCH" >&2
-  echo "Expected <type>/<concrete-kebab-case-work-description>; user, agent, issue, and lane prefixes are not allowed." >&2
-  exit 1
-fi
-
 if [ -n "$PROMPT" ] && [ -n "$PROMPT_FILE" ]; then
   echo "Provide --prompt OR --prompt-file, not both" >&2; exit 1
 fi
@@ -89,6 +83,8 @@ fi
 REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null)" || {
   echo "Not inside a git repository" >&2; exit 1
 }
+
+node "$REPO_ROOT/scripts/quality/branch-name-policy.mjs" "$BRANCH" >/dev/null || exit 1
 
 SCHEMA="${SCHEMA:-$REPO_ROOT/.codex/output-schema.json}"
 [ -f "$SCHEMA" ] || { echo "Schema not found: $SCHEMA" >&2; exit 1; }

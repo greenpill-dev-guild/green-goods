@@ -26,7 +26,7 @@ Valid package scopes map to `packages/<name>/**` (contracts, indexer, shared, cl
 
 ### Authoritative requirements
 
-After resolving the code scope, establish the requirement baseline in this order: (1) the user's current request and explicit acceptance criteria; (2) the PR description and any Linear issue linked there with `Fixes`, `Refs`, or `Relates to`; (3) any `.plans/` lane referenced by the request, PR, or issue (`brief.md`, `spec.md`, `plan.todo.md`, `status.json`); (4) directly applicable package documentation those sources reference. Never infer issue identity from the branch name. Record which sources were available. If no authoritative requirements can be established, continue with useful findings but set the final verdict to `COMMENT_ONLY` — do not claim that no gaps remain.
+After resolving the code scope, establish the requirement baseline in this order: (1) the user's current request and explicit acceptance criteria; (2) the PR description and any Linear issue linked there with `Fixes`, `Refs`, or `Relates to`, plus the legacy `Closes` and `Linear:` forms while existing PRs transition; (3) any `.plans/` lane referenced by the request, PR, or issue (`brief.md`, `spec.md`, `plan.todo.md`, `status.json`); (4) directly applicable package documentation those sources reference. Never infer issue identity from the branch name. Record which sources were available. If no authoritative requirements can be established, continue with useful findings but set the final verdict to `COMMENT_ONLY` — do not claim that no gaps remain.
 
 If scope resolves to >800 LOC, split it into declared review batches and keep a coverage ledger of reviewed vs remaining files; never narrow or imply completeness unless the user explicitly changes the scope.
 

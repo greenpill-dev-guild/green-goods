@@ -51,6 +51,8 @@ scripts/
 ### `quality/` — CI gates and consistency
 | Script | Caller | Purpose |
 |---|---|---|
+| `branch-name-policy.mjs` | Plan Hub, Codex dispatcher, Ship preflight, GitHub branch ruleset parity | Validate structural and semantic `<type>/<work-description>` branch naming without worker, issue, or lane-only identity |
+| `branch-name-policy.test.mjs` | Supply Chain Guardrails | Fixture coverage for accepted work names and rejected worker, Linear-ID, lane-only, and malformed names |
 | `check-codex-docs.js` | `bun run check:codex-guidance` | Verify `AGENTS.md` ↔ `.codex/` ↔ `package.json` ↔ `codex.mdx` parity |
 | `drift-check.mjs` | `bun run drift:check` | Read-only drift classifier across guidance, plans, design, docs, ontology, cleanup readiness, and quality guardrails |
 | `drift-check.test.mjs` | `node --test scripts/quality/drift-check.test.mjs` | Fixture tests for drift checker warning normalization, routing, and dirty-tree context |

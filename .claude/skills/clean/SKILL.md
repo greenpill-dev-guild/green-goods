@@ -167,7 +167,7 @@ A second-opinion pass after Claude's 8 agents merge and validation passes. Codex
 
 ### Lanes
 
-Both lanes dispatch via `.claude/scripts/dispatch-codex-lane.sh` against the approved implementation head, with `--phase regression` and `--phase gap`. Use worktree-backed lanes only when branch/worktree creation was explicitly approved.
+Both lanes dispatch via `.claude/scripts/dispatch-codex-lane.sh` against the approved implementation head. Lane R uses `--branch chore/cleanup-regression-review`; Lane G uses `--branch chore/cleanup-gap-review`. Use worktree-backed lanes only when branch/worktree creation was explicitly approved.
 
 The verbatim lane prompts (Lane R — regression hunt, diff-scoped; Lane G — miss hunt,
 codebase-wide) live in [codex-prompts.md](./codex-prompts.md) — load them at dispatch time,

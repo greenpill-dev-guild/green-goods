@@ -16,6 +16,8 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import * as yaml from "js-yaml";
 
+import { isWorkBranchName } from "../quality/branch-name-policy.mjs";
+
 const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(SCRIPT_DIR, "../..");
 const PLANS_ROOT = join(REPO_ROOT, ".plans");
@@ -125,7 +127,6 @@ const LANE_ALIASES = {
   qa_pass_2: "qa_pass_2",
 };
 const CANONICAL_LANES = ["ui", "state_api", "contracts", "qa_pass_1", "qa_pass_2"];
-const WORK_BRANCH_PATTERN = /^(feature|fix|refactor|docs|chore|test|perf|ci|release|research)\/[a-z0-9]+(-[a-z0-9]+)*$/;
 const LINEAR_SYNC_DIRECTION = "plans_to_linear_visibility";
 const LINEAR_LANE_SYNC_MODES = new Set(["lane_issues", "parent_only"]);
 const DEFAULT_LINEAR_LANE_SYNC_MODE = "lane_issues";
@@ -1267,7 +1268,7 @@ function validateExecutionSubLanes(status, featureDirPath, stage, errors) {
     if (status.version >= 2 && lane.branch !== null && lane.branch !== undefined) {
       if (!hasText(lane.branch)) {
         errors.push(`execution_sub_lanes.${laneName}.branch must be a string or null`);
-      } else if (!WORK_BRANCH_PATTERN.test(lane.branch)) {
+      } else if (!isWorkBranchName(lane.branch)) {
         errors.push(`execution_sub_lanes.${laneName}.branch must use <type>/<work-description>`);
       }
     }
@@ -1746,7 +1747,7 @@ function validateFeatureStatus(status, featureDirPath, stage, knownSlugs = forma
 
       if (lane.branch !== null && !hasText(lane.branch)) {
         errors.push(`lane "${requiredLane}" branch must be a string or null`);
-      } else if (status.version >= 2 && hasText(lane.branch) && !WORK_BRANCH_PATTERN.test(lane.branch)) {
+      } else if (status.version >= 2 && hasText(lane.branch) && !isWorkBranchName(lane.branch)) {
         errors.push(`lane "${requiredLane}" branch must use <type>/<work-description>`);
       }
     }

@@ -19,13 +19,16 @@ import { fileURLToPath } from "node:url";
 
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const SCRIPT_PATH = join(REPO_ROOT, "scripts", "harness", "plan-hub.mjs");
+const BRANCH_POLICY_PATH = join(REPO_ROOT, "scripts", "quality", "branch-name-policy.mjs");
 const TEMPLATE_PATH = join(REPO_ROOT, ".plans", "_templates", "feature");
 
 function createFixture() {
   const root = mkdtempSync(join(tmpdir(), "plan-hub-test-"));
   mkdirSync(join(root, "scripts", "harness"), { recursive: true });
+  mkdirSync(join(root, "scripts", "quality"), { recursive: true });
   mkdirSync(join(root, ".plans", "_templates"), { recursive: true });
   cpSync(SCRIPT_PATH, join(root, "scripts", "harness", "plan-hub.mjs"));
+  cpSync(BRANCH_POLICY_PATH, join(root, "scripts", "quality", "branch-name-policy.mjs"));
   cpSync(TEMPLATE_PATH, join(root, ".plans", "_templates", "feature"), { recursive: true });
   symlinkSync(join(REPO_ROOT, "node_modules"), join(root, "node_modules"), "dir");
   return root;

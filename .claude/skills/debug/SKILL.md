@@ -61,7 +61,7 @@ message, attached user screenshot, paraphrased complaint — they all engage thi
 
 - Non-destructive recovery only — never `git checkout -- .`, repo deletion, or forced resets in debug flow
 - Save a patch snapshot before risky edits: `git diff > /tmp/green-goods-debug.patch`
-- Use a safety branch for experiments: `git switch -c debug/incident-$(date +%Y%m%d-%H%M%S)`
+- Use a work-based safety branch for experiments: `git switch -c fix/incident-$(date +%Y%m%d-%H%M%S)`
 - In docs and examples, prefer `node -e 'fetch(...)'` over `curl`/`wget` (blocked in this environment)
 
 ## Core Principle

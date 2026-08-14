@@ -83,24 +83,25 @@ Coverage is a scheduled or pre-merge floor, not the default inner loop.
 
 The default lane split is:
 
-| Lane | Owner | Branch Pattern | Purpose |
-|---|---|---|---|
-| `ui` | Claude | `claude/ui/<feature-slug>` | user interface, copy polish, visuals |
-| `state_api` | Codex | `codex/state-api/<feature-slug>` | state logic, hooks, APIs, data flow |
-| `contracts` | Codex | `codex/contracts/<feature-slug>` | Solidity, deployments-adjacent contract work, tests |
-| `qa_pass_1` | Claude | `claude/qa-pass-1/<feature-slug>` | first QA sweep, UX and flow validation |
-| `qa_pass_2` | Codex | `codex/qa-pass-2/<feature-slug>` | second QA sweep, regression and implementation validation |
+| Lane | Owner | Purpose |
+|---|---|---|
+| `ui` | Claude | user interface, copy polish, visuals |
+| `state_api` | Codex | state logic, hooks, APIs, data flow |
+| `contracts` | Codex | Solidity, deployments-adjacent contract work, tests |
+| `qa_pass_1` | Claude | first QA sweep, UX and flow validation |
+| `qa_pass_2` | Codex | second QA sweep, regression and implementation validation |
 
-`qa_pass_2` is intentionally sequential. It should only start after Claude marks `qa_pass_1` as passed and the trigger branch exists.
+`qa_pass_2` is intentionally sequential. It should only start after Claude marks `qa_pass_1` as passed.
 
-## Branch Signal Contract
+## Work Branch Contract
 
-Branch names are a wake-up signal for the next automation. `status.json` remains the authoritative state.
+`status.json` remains the authoritative lane state. Branch names describe concrete work and never identify the owner or lane.
 
-- Claude QA finishes on `claude/qa-pass-1/<feature-slug>`
-- Codex QA polls for that branch name and also verifies that `status.json` shows `qa_pass_1.status = "passed"`
+- Leave a lane branch `null` until implementation begins.
+- When a branch is needed, use the repository `<type>/<work-description>` contract and validate it with `node scripts/quality/branch-name-policy.mjs <branch>`.
+- Downstream readiness follows lane status and dependency state, not branch existence.
 
-Use both checks together. Branch existence alone is not enough, especially in cloud sandboxes where remote refs may lag.
+Existing version-1 hubs may retain historical branch signals as provenance. They do not authorize creating or reusing those names.
 
 ## Where Automations Live
 

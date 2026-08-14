@@ -43,7 +43,7 @@ The [`release-prep` routine](https://github.com/greenpill-dev-guild/green-goods/
 ## Versioning & naming
 
 - **Semver, minor per month** (`1.1.0` → `1.2.0`); patch for hotfixes (`1.2.1`); major for breaking changes. `bun run version:bump <x.y.z>` keeps all packages on one version and updates the supported release in `SECURITY.md`.
-- A release is named for the **month it ships in** — branch `release/july-2026-v1.2.0`, tag `v1.2.0`, GitHub Release **July 2026 — v1.2.0**.
+- A release is named for the **month it ships in** — branch `release/july-2026-v1-2-0`, tag `v1.2.0`, GitHub Release **July 2026 — v1.2.0**. Branch descriptions stay kebab-case; Semver tags retain dots.
 
 ## GitHub Actions supply-chain policy
 
@@ -52,12 +52,12 @@ Every external action and reusable workflow reference must use a full 40-charact
 ## Cutting a release
 
 ```bash
-git switch -c release/july-2026-v1.2.0 origin/develop   # cut the tested snapshot
+git switch -c release/july-2026-v1-2-0 origin/develop   # cut the tested snapshot
 bun run version:bump 1.2.0                           # unify packages + SECURITY.md
 bun run version:check 1.2.0                          # fail if any release marker drifted
 # add the curated changelog entry, then run the gates:
 bun run format:check && bun run lint && bun run test && bun run build
-git commit -am "chore(release): v1.2.0 (July 2026)" && git push -u origin release/july-2026-v1.2.0
+git commit -am "chore(release): v1.2.0 (July 2026)" && git push -u origin release/july-2026-v1-2-0
 gh pr create --base main --title "Release July 2026 — v1.2.0"
 # once CI is green and the PR merges, tag the merged main HEAD:
 git switch main && git pull && git tag -a v1.2.0 -m "July 2026" && git push origin v1.2.0
@@ -90,9 +90,9 @@ If the direct push above is somehow unavailable and you must go through a PR, pu
 ```bash
 DATE=$(date +%Y-%m-%d)
 git fetch origin                                      # copy the current main, not a stale local ref
-git push origin origin/main:refs/heads/backmerge/main-$DATE
+git push origin origin/main:refs/heads/chore/backmerge-main-$DATE
 gh pr create --repo greenpill-dev-guild/green-goods \
-  --base develop --head "backmerge/main-$DATE" \
+  --base develop --head "chore/backmerge-main-$DATE" \
   --title "Back-merge main → develop"
 ```
 :::
