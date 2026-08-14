@@ -328,7 +328,7 @@ Spawn a codex-driving teammate with this prompt:
   bash .claude/scripts/dispatch-codex-lane.sh \
     --lane factory \
     --base feature/<feature-slug> \
-    --phase phase-1a \
+    --branch feature/factory-registration \
     --prompt-file .plans/active/<feature-slug>/handoffs/factory.md
 
 Run it via Bash with run_in_background=true. When it completes, read the JSON
@@ -340,7 +340,7 @@ On success: review the diff in the worktree, merge into feature/<feature-slug>
 with --no-ff, then clean up:
 
   git worktree remove /tmp/gg-codex-factory
-  git branch -d codex/factory/phase-1a
+  git branch -d feature/factory-registration
 
 Report the merge SHA, files changed, and any deviations from the original prompt."
 ```
@@ -355,9 +355,9 @@ Spawn a teammate to run codex on the factory task.
 
 `.claude/scripts/dispatch-codex-lane.sh` is the single entry point.
 
-- Required args: `--lane`, `--base`, and either `--prompt` or `--prompt-file`
-- Optional: `--phase` (default `main`), `--schema` (default `.codex/output-schema.json`)
-- Side effects: creates `/tmp/gg-codex-<lane>` worktree on branch `codex/<lane>/<phase>` and runs `codex exec --full-auto` with a fixed non-secret environment; root `.env` is never linked, so secret-backed validation remains a parent-session or human-run gate
+- Required args: `--lane`, `--base`, `--branch <type/work-description>`, and either `--prompt` or `--prompt-file`
+- Optional: `--schema` (default `.codex/output-schema.json`)
+- Side effects: creates `/tmp/gg-codex-<lane>` worktree on the caller-supplied work branch and runs `codex exec --full-auto` with a fixed non-secret environment; root `.env` is never linked, so secret-backed validation remains a parent-session or human-run gate
 - Stdout: JSON with `result_file`, `worktree`, `branch`, `dispatch_exit`
 - Does NOT clean up — that is the teammate's job after review and merge
 - Env overrides: `CODEX` (binary path), `CODEX_HOME` (configured Codex state directory),
@@ -368,7 +368,7 @@ Spawn a teammate to run codex on the factory task.
 Codex teammates follow the same ownership rules as Part 5. Assign each lane to exactly one teammate. A codex-driving teammate owns:
 
 - Its worktree path (`/tmp/gg-codex-<lane>`)
-- Its branch (`codex/<lane>/<phase>`)
+- Its caller-supplied work branch (`<type>/<work-description>`)
 - The files codex edits within the worktree
 - Merging the worktree back to the base branch
 

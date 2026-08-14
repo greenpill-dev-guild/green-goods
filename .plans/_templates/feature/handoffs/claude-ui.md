@@ -3,7 +3,7 @@
 ## Lane
 
 - Owner: Claude
-- Branch: `claude/ui/{{FEATURE_SLUG}}`
+- Branch: set when work begins using `<type>/<work-description>`
 - Status: pending implementation
 
 ## Scope

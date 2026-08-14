@@ -101,6 +101,20 @@ test("scaffolded hubs include TDD metadata on implementation lanes", () =>
 
     assert.equal(status.lanes.qa_pass_1.tdd, undefined);
     assert.equal(status.lanes.qa_pass_2.tdd, undefined);
+    for (const lane of Object.values(status.lanes)) {
+      assert.equal(lane.branch, null);
+    }
+    assert.equal(status.lanes.qa_pass_2.branch_trigger, undefined);
+
+    status.lanes.ui.branch = "codex/ui";
+    writeStatus(root, "active", "tdd-fixture", status);
+    const invalidBranch = runPlanHub(root, ["validate"]);
+    assert.notEqual(invalidBranch.status, 0);
+    assert.match(invalidBranch.stderr, /lane "ui" branch must use <type>\/<work-description>/);
+
+    status.lanes.ui.branch = "feature/profile-avatar-editor";
+    writeStatus(root, "active", "tdd-fixture", status);
+    assert.equal(runPlanHub(root, ["validate"]).status, 0);
   }));
 
 test("backlog scaffolds defer handoff files until activation", () =>
@@ -442,6 +456,10 @@ test("linear-sync manifest creates actionable lane issues for active hubs", () =
       "protocol:green-goods",
       "source:plans",
     ]);
+    for (const lane of manifest.lanes) {
+      assert.equal(Object.hasOwn(lane, "branch"), false);
+      assert.doesNotMatch(lane.description, /Branch signal/);
+    }
     assert.match(manifest.warnings.join("\n"), /missing Linear parent issue/);
     assert.match(manifest.warnings.join("\n"), /missing Linear issue for lane ui/);
     assert.match(manifest.warnings.join("\n"), /unprojected/);
@@ -712,7 +730,7 @@ test("linear-sync uses execution sub-lanes without duplicating aggregate impleme
         machine_lane: "contracts",
         owner: "codex",
         status: "ready",
-        branch: "codex/contracts/execution-linear",
+        branch: "feature/commitment-pooling-contracts",
         depends_on: [],
         handoff: "handoffs/codex-contracts.md",
         linear: { sync: true, issue: "PRD-1001", parentIssue: "PRD-1000", milestone: "build" },
@@ -748,6 +766,7 @@ test("linear-sync uses execution sub-lanes without duplicating aggregate impleme
     assert.deepEqual(manifest.warnings, []);
     assert.equal(manifest.lanes[0].issue, "PRD-1001");
     assert.equal(manifest.lanes[0].parentId, "PRD-1000");
+    assert.equal(Object.hasOwn(manifest.lanes[0], "branch"), false);
     assert.deepEqual(manifest.lanes[0].milestone, { key: "build", targetDate: "2026-07-31" });
     assert.equal(manifest.lanes[0].dueDate, null);
     assert.ok(manifest.lanes[0].labels.includes("ai:codex"));
@@ -796,7 +815,7 @@ test("execution and canonical lane scheduling metadata must reference valid proj
         machine_lane: "contracts",
         owner: "codex",
         status: "ready",
-        branch: "codex/contracts/bad-linear-schedule",
+        branch: "feature/linear-schedule-validation",
         depends_on: [],
         handoff: "handoffs/codex-contracts.md",
         linear: {
@@ -872,7 +891,7 @@ test("execution sub-lane validation rejects parent drift and duplicate issue rel
         machine_lane: "contracts",
         owner: "codex",
         status: "ready",
-        branch: "codex/contracts/relationship-drift",
+        branch: "feature/relationship-validation",
         depends_on: [],
         handoff: "handoffs/codex-contracts.md",
         linear: { sync: true, issue: "PRD-1203", parentIssue: "PRD-9999" },
@@ -882,7 +901,7 @@ test("execution sub-lane validation rejects parent drift and duplicate issue rel
         owner: "claude",
         status: "blocked",
         blocked_reason: "Wait for source convergence.",
-        branch: "claude/docs/relationship-drift",
+        branch: "docs/relationship-validation",
         depends_on: ["contracts"],
         handoff: "handoffs/codex-state-api.md",
         linear: { sync: true, issue: "PRD-1200", parentIssue: "PRD-1200" },
@@ -913,7 +932,7 @@ test("execution sub-lane validation rejects compatibility issue-list drift", () 
         machine_lane: "contracts",
         owner: "codex",
         status: "ready",
-        branch: "codex/contracts/compatibility-issue-drift",
+        branch: "feature/compatibility-validation",
         depends_on: [],
         handoff: "handoffs/codex-contracts.md",
         linear: { sync: true, issue: "PRD-1301", parentIssue: "PRD-1300" },
@@ -943,7 +962,7 @@ test("parent-only mode remains authoritative when execution sub-lanes are presen
         machine_lane: "contracts",
         owner: "codex",
         status: "ready",
-        branch: "codex/contracts/parent-only-execution",
+        branch: "feature/parent-only-execution",
         depends_on: [],
         handoff: "handoffs/codex-contracts.md",
         linear: { sync: true, issue: "PRD-1011", parentIssue: "PRD-1010" },
@@ -1443,7 +1462,7 @@ test("record-linear records repeated execution sub-lane issue ids", () =>
         machine_lane: "contracts",
         owner: "codex",
         status: "ready",
-        branch: "codex/contracts/record-execution-linear",
+        branch: "feature/record-linear-execution",
         depends_on: [],
         handoff: "handoffs/codex-contracts.md",
         linear: { sync: true, issue: "PRD-1099", parentIssue: "PRD-1100" },

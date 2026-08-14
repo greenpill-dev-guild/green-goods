@@ -255,7 +255,7 @@ This repo runs multiple concurrent Claude/Codex sessions on the same tree and `d
 
 ## Git Workflow
 
-**Branches**: `type/description` (e.g., `feature/hats-v2`, `bug/admin-fix`)
+**Branches**: `<type>/<work-description>`. Allowed types are `feature`, `fix`, `refactor`, `docs`, `chore`, `test`, `perf`, `ci`, `release`, and `research`. The description is a concrete kebab-case outcome, for example `feature/commitment-pooling-indexer` or `fix/calendar-timezone-selection`. Never encode the user, agent (`codex`/`claude`), Linear identifier, or generic orchestration lane in the branch name. Link Linear in the PR body instead: `Fixes PRD-NNN` for completed work, `Refs PRD-NNN` for partial or stacked work, or `Relates to PRD-NNN` for context.
 
 **Commits**: Conventional Commits with scope: `type(scope): description`
 - Types: feat, fix, refactor, chore, docs, test, perf, ci

@@ -36,5 +36,4 @@
 ### Codex QA Pass 2
 
 - Start only after `qa_pass_1` is passed
-- Confirm the trigger branch exists: `claude/qa-pass-1/{{FEATURE_SLUG}}`
 - Re-run targeted validation and close the loop on remaining defects
