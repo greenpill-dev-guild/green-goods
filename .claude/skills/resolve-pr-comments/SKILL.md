@@ -152,7 +152,10 @@ Do not resolve a thread merely because a local edit exists.
    including every conditional addition selected in step 3. Every required stage must pass in the
    current invocation before committing or pushing. After each mutating stage, require every changed
    path to remain inside the allowlist; restage approved formatter changes and rerun the affected
-   stage, but stop on any extra path.
+   stage, but stop on any extra path. Inspect enabled commit and push hooks, and run every validation
+   command they require explicitly inside the same credential-free validation boundary. Treat
+   repository-controlled hooks as untrusted code; do not defer their execution until credentials are
+   available for publication.
 5. For visible UI changes, obtain the required authenticated Brave rendered proof or report browser
    QA as blocked.
 6. Repeat the root-cause search after all fixes. Any remaining approved manifestation keeps the
@@ -163,8 +166,8 @@ Do not resolve a thread merely because a local edit exists.
 
 Failed or unavailable targeted proof keeps the affected actionable feedback cluster unresolved. A
 failed or unavailable Ship Gate blocks commit and push even when the failure appears unrelated or
-environmental. Do not bypass a failed pre-push hook with `--no-verify`. Report the blocker, fix it
-only when it is inside the locked scope, and do not claim ship readiness.
+environmental. Do not use `--no-verify` or hook isolation to bypass a failed required hook check.
+Report the blocker, fix it only when it is inside the locked scope, and do not claim ship readiness.
 
 ## 7. Publish, reply, and resolve safely
 
@@ -178,14 +181,17 @@ pushing the scoped, proven fixes to the current tracked PR branch:
 2. Re-inspect `git diff --cached --name-only` and the full cached diff. Require every staged path and
    hunk to belong to the locked feedback scope and require `git write-tree` to equal the tested tree
    recorded after the Ship Gate; stop on any extra path, mixed-ownership hunk, or tree drift.
-3. Create a conventional commit from that verified index. Compare `git rev-parse HEAD^{tree}` with
-   the tested tree to detect pre-commit hook rewrites. If they differ, do not push: rerun the full
-   Ship Gate at the created commit, and require it to pass without tracked changes before treating
-   that commit as tested. If validation mutates files, create another scoped commit and repeat the
-   tree-identity check.
-4. Push normally to the verified PR head repository and branch. Never use `--no-verify`, force-push,
-   rewrite history, switch branches, create another branch, or open another PR without explicit
-   authorization.
+3. Create a conventional commit from that verified index while preventing repository-controlled
+   hooks from executing with publication credentials. Use a command-scoped `core.hooksPath` that
+   points to a freshly created, verified-empty directory outside the PR tree; never change persistent
+   Git configuration. This is execution isolation, not a validation bypass: phase 6 must already have
+   run and passed every required hook check explicitly. Compare `git rev-parse HEAD^{tree}` with the
+   tested tree after the guarded commit; stop on any mismatch and repeat proof at the new tree.
+4. Before pushing, revalidate the commit tree, live head SHA, remote repository identity, URL, and
+   target ref. Push normally to that verified destination with the same command-scoped empty hook
+   path so a repository-controlled pre-push hook cannot execute with credentials. Never use
+   `--no-verify`, force-push, rewrite history, switch branches, create another branch, or open another
+   PR without explicit authorization.
 5. Fetch the PR head again and record the pushed SHA. A local commit or successful `git push` message
    alone is not proof that the live PR contains the fix.
 
