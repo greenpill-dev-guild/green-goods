@@ -59,16 +59,22 @@ bun run contracts:release:unpause:pooling -- --commit <exact-40-character-candid
 
 Both commands are resumable and reverify their receipt-backed checkpoints. The first stops after
 registration boundary 18. The second is the only command that may execute boundary 19.
+The exact executed plan and complete 19-boundary checkpoint are tracked at
+`packages/contracts/.generated/runtime/42161-pool-backfill.json` and
+`packages/contracts/.generated/runtime/42161-pool-backfill.checkpoint.json` so a clean checkout can
+reverify every registration, pool ID, receipt block, and the separate unpause.
 
 ### Complete paused-candidate sequence authorization (executed)
 
-The release owner's 2026-08-12 authorization for the one-command candidate deployment is frozen in
-`packages/contracts/config/commitment-pooling-release-automation-authorization.json`. It binds the
-exact release ID, manifest hash, source commit, and ordered assessment, schema, pooling, settlement,
-credit, integration-upgrade, and Celo executor stages. Its terminal state is paused and
-deployer-owned. It excludes ownership transfer, pool registration, pooling unpause, peer wiring,
-Safe/Zodiac value authority, value movement, and indexer activation. The operator refuses
-`release:deploy:all` when that tracked authorization differs from the release lock.
+The tracked
+`packages/contracts/config/commitment-pooling-release-automation-authorization.json` file is the
+authorization template. After the operator candidate is committed, the release owner copies it to
+a separately reviewed JSON file, replaces `operatorCandidateCommit` with that exact 40-character
+commit, and records the authorization outside the candidate commit. The operator requires that
+file through `--authorization` before password unlock. It also binds the exact release ID, manifest
+hash, source commit, ordered stages, paused deployer-owned terminal state, and exclusions for
+ownership transfer, pool registration, pooling unpause, peer wiring, Safe/Zodiac value authority,
+value movement, and indexer activation.
 
 ## Outputs
 
@@ -323,7 +329,9 @@ bun run contracts:pooling:upgrade:plan:arbitrum --expected-nonce <fresh-pending-
 Start exactly one session from a clean checkout at the authorized candidate:
 
 ```bash
-bun run contracts:release:operator -- --commit <pinned-40-character-candidate>
+bun run --cwd packages/contracts release:deploy:all -- \
+  --commit <pinned-40-character-candidate> \
+  --authorization <candidate-bound-reviewed-authorization.json>
 ```
 
 The session checks HEAD and cleanliness before unlocking, prompts once, verifies that the Foundry

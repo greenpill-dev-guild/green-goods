@@ -35,11 +35,6 @@ const AUTOMATED_RELEASE_MUTATIONS = new Set([
 ]);
 const GARDEN_SAFE_ARTIFACT_PATH = "packages/contracts/deployments/42220-settlement-safes.json";
 const GARDEN_SAFE_ARTIFACT_MUTATIONS = new Set([GARDEN_SAFE_ARTIFACT_PATH]);
-const COMPLETE_SEQUENCE_AUTHORIZATION_PATH = path.join(
-  CONTRACTS_ROOT,
-  "config/commitment-pooling-release-automation-authorization.json",
-);
-
 export const AUTOMATED_RELEASE_STAGE_ORDER = [
   "assessment-resolver",
   "schema-preparation",
@@ -62,8 +57,9 @@ export const AUTOMATED_RELEASE_EXCLUSIONS = [
 ] as const;
 
 export interface CompleteSequenceAuthorization {
-  schemaVersion: 1;
+  schemaVersion: 2;
   kind: "PAUSED_RELEASE_COMPLETE_SEQUENCE_AUTHORIZATION";
+  operatorCandidateCommit: string;
   releaseId: string;
   releaseManifestHash: string;
   releaseSourceCommit: string;
@@ -133,6 +129,7 @@ const BOOLEAN_ARGUMENTS = new Set(["--override-sepolia-gate"]);
 
 export interface SessionOptions {
   commit?: string;
+  authorization?: string;
   help: boolean;
   deployAll: boolean;
   backfillAll: boolean;
@@ -159,6 +156,13 @@ export function parseSessionOptions(args: string[]): SessionOptions {
       index += 1;
       continue;
     }
+    if (argument === "--authorization") {
+      const value = args[index + 1];
+      if (!value || value.startsWith("-")) throw new Error("--authorization requires a reviewed JSON file");
+      options.authorization = path.resolve(value);
+      index += 1;
+      continue;
+    }
     if (argument === "--deploy-all") {
       options.deployAll = true;
       continue;
@@ -178,6 +182,12 @@ export function parseSessionOptions(args: string[]): SessionOptions {
   }
   if ([options.deployAll, options.backfillAll, options.unpausePooling].filter(Boolean).length > 1) {
     throw new Error("Choose only one automated release mode");
+  }
+  if (options.deployAll && !options.authorization) {
+    throw new Error("--deploy-all requires --authorization <candidate-bound-reviewed-json>");
+  }
+  if (!options.deployAll && options.authorization) {
+    throw new Error("--authorization is accepted only with --deploy-all");
   }
   return options;
 }
@@ -283,7 +293,7 @@ Green Goods release operator session
 
 Usage:
   bun run release:operator -- --commit <exact-40-character-candidate>
-  bun run release:deploy:all -- --commit <exact-40-character-candidate>
+  bun run release:deploy:all -- --commit <exact-40-character-candidate> --authorization <reviewed-json>
   bun run release:backfill:all -- --commit <exact-40-character-candidate>
   bun run release:unpause:pooling -- --commit <exact-40-character-candidate>
 
@@ -303,6 +313,7 @@ current boundary before another command is entered.
 
 --deploy-all derives fresh nonce-bound plans and executes every remaining deployer-signed paused
 candidate stage in dependency order. It resumes verified checkpoints and stops on the first error.
+Its separately reviewed authorization JSON must name the same exact operator candidate commit.
 Ownership transfer, pool backfill, unpause, peer wiring, Safe authority, and value movement are
 excluded from that command.
 
@@ -385,10 +396,12 @@ export function validateCompleteSequenceAuthorization(
   authorization: CompleteSequenceAuthorization,
   manifest: ReleaseManifest,
   lock: ReleaseLock,
+  candidateCommit: string,
 ): void {
   if (
-    authorization.schemaVersion !== 1 ||
+    authorization.schemaVersion !== 2 ||
     authorization.kind !== "PAUSED_RELEASE_COMPLETE_SEQUENCE_AUTHORIZATION" ||
+    authorization.operatorCandidateCommit !== candidateCommit ||
     authorization.releaseId !== manifest.releaseId ||
     authorization.releaseManifestHash !== lock.manifestHash ||
     authorization.releaseSourceCommit !== lock.sourceCommit ||
@@ -403,15 +416,20 @@ export function validateCompleteSequenceAuthorization(
   }
 }
 
-function assertCompleteSequenceAuthorization(): void {
-  if (!fs.existsSync(COMPLETE_SEQUENCE_AUTHORIZATION_PATH)) {
-    throw new Error(`Complete release sequence authorization is missing: ${COMPLETE_SEQUENCE_AUTHORIZATION_PATH}`);
+function assertCompleteSequenceAuthorization(candidateCommit: string, authorizationPath: string): void {
+  if (!fs.existsSync(authorizationPath)) {
+    throw new Error(`Complete release sequence authorization is missing: ${authorizationPath}`);
+  }
+  const authorizationStat = fs.lstatSync(authorizationPath);
+  if (!authorizationStat.isFile() || authorizationStat.isSymbolicLink() || (authorizationStat.mode & 0o022) !== 0) {
+    throw new Error("Complete release sequence authorization must be a regular file without group/world write access");
   }
   const manifest = loadReleaseManifest();
   validateCompleteSequenceAuthorization(
-    readJson<CompleteSequenceAuthorization>(COMPLETE_SEQUENCE_AUTHORIZATION_PATH),
+    readJson<CompleteSequenceAuthorization>(authorizationPath),
     manifest,
     buildReleaseLock(manifest),
+    candidateCommit,
   );
 }
 
@@ -428,11 +446,12 @@ function automatedDirtyPaths(repositoryRoot: string): string[] {
 
 export function assertAutomatedSessionStart(
   candidateCommit: string,
+  authorizationPath: string,
   repositoryRoot = REPOSITORY_ROOT,
   validatePromotions: (candidate: string, root: string, paths: string[]) => void = assertVerifiedResumePromotions,
   allowedMutations: ReadonlySet<string> = AUTOMATED_RELEASE_MUTATIONS,
 ): void {
-  assertCompleteSequenceAuthorization();
+  assertCompleteSequenceAuthorization(candidateCommit, authorizationPath);
   assertAutomatedResumeStart(candidateCommit, repositoryRoot, validatePromotions, allowedMutations);
 }
 
@@ -1192,8 +1211,10 @@ async function runAutomatedPoolUnpause(candidateCommit: string, passwordFile: st
 
 async function runSession(candidateCommit: string, options: SessionOptions): Promise<void> {
   const automated = options.deployAll || options.backfillAll || options.unpausePooling;
-  if (options.deployAll) assertAutomatedSessionStart(candidateCommit);
-  else if (automated) assertAutomatedResumeStart(candidateCommit);
+  if (options.deployAll) {
+    if (!options.authorization) throw new Error("Complete release sequence authorization is missing");
+    assertAutomatedSessionStart(candidateCommit, options.authorization);
+  } else if (automated) assertAutomatedResumeStart(candidateCommit);
   else assertGardenSafeSessionStart(candidateCommit);
   const manifest = loadReleaseManifest();
   const password = await readHiddenPassword();

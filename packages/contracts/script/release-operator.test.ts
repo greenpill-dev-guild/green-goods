@@ -46,8 +46,18 @@ describe("release operator session", () => {
       backfillAll: false,
       unpausePooling: false,
     });
-    expect(parseSessionOptions(["--commit", "a".repeat(40), "--deploy-all"])).toEqual({
+    expect(() => parseSessionOptions(["--commit", "a".repeat(40), "--deploy-all"])).toThrow(/--authorization/);
+    expect(
+      parseSessionOptions([
+        "--commit",
+        "a".repeat(40),
+        "--deploy-all",
+        "--authorization",
+        "/tmp/release-authorization.json",
+      ]),
+    ).toEqual({
       commit: "a".repeat(40),
+      authorization: "/tmp/release-authorization.json",
       help: false,
       deployAll: true,
       backfillAll: false,
@@ -66,6 +76,9 @@ describe("release operator session", () => {
     expect(() => parseSessionOptions(["--commit", "a".repeat(40), "--backfill-all", "--unpause-pooling"])).toThrow(
       "only one automated release mode",
     );
+    expect(() =>
+      parseSessionOptions(["--commit", "a".repeat(40), "--authorization", "/tmp/release-authorization.json"]),
+    ).toThrow(/only with --deploy-all/);
     expect(parseSessionOptions(["--help"])).toEqual({
       help: true,
       deployAll: false,
@@ -90,6 +103,20 @@ describe("release operator session", () => {
     git(["commit", "-m", "test: freeze release"]);
     const candidate = git(["rev-parse", "HEAD"]);
     const allowed = new Set(["deployments/42161-latest.json"]);
+    const authorizationDirectory = fs.mkdtempSync(path.join(os.tmpdir(), "release-authorization-"));
+    temporaryDirectories.push(authorizationDirectory);
+    const authorizationPath = path.join(authorizationDirectory, "release-authorization.json");
+    const authorization = JSON.parse(
+      fs.readFileSync(
+        path.join(__dirname, "../config/commitment-pooling-release-automation-authorization.json"),
+        "utf8",
+      ),
+    ) as CompleteSequenceAuthorization;
+    fs.writeFileSync(
+      authorizationPath,
+      `${JSON.stringify({ ...authorization, operatorCandidateCommit: candidate }, null, 2)}\n`,
+      { mode: 0o600 },
+    );
 
     fs.writeFileSync(path.join(repository, "deployments/42161-latest.json"), '{"pooling":"deployed"}\n');
     expect(() => assertAutomatedPinnedCheckout(candidate, repository, allowed)).not.toThrow();
@@ -97,6 +124,7 @@ describe("release operator session", () => {
     expect(() =>
       assertAutomatedSessionStart(
         candidate,
+        authorizationPath,
         repository,
         (_candidate, _root, dirtyPaths) => {
           validated.push(dirtyPaths);
@@ -156,8 +184,9 @@ describe("release operator session", () => {
 
   it("binds one-command deployment to the exact reviewed sequence authorization", () => {
     const authorization: CompleteSequenceAuthorization = {
-      schemaVersion: 1,
+      schemaVersion: 2,
       kind: "PAUSED_RELEASE_COMPLETE_SEQUENCE_AUTHORIZATION",
+      operatorCandidateCommit: "1".repeat(40),
       releaseId: "release-v1",
       releaseManifestHash: `0x${"ab".repeat(32)}`,
       releaseSourceCommit: "1".repeat(40),
@@ -175,12 +204,18 @@ describe("release operator session", () => {
       sourceCommit: authorization.releaseSourceCommit,
     } as ReleaseLock;
 
-    expect(() => validateCompleteSequenceAuthorization(authorization, manifest, lock)).not.toThrow();
+    expect(() =>
+      validateCompleteSequenceAuthorization(authorization, manifest, lock, authorization.operatorCandidateCommit),
+    ).not.toThrow();
+    expect(() => validateCompleteSequenceAuthorization(authorization, manifest, lock, "2".repeat(40))).toThrow(
+      /exact reviewed authorization/,
+    );
     expect(() =>
       validateCompleteSequenceAuthorization(
         { ...authorization, authorizedStages: authorization.authorizedStages.slice(1) },
         manifest,
         lock,
+        authorization.operatorCandidateCommit,
       ),
     ).toThrow(/exact reviewed authorization/);
   });

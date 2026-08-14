@@ -1,6 +1,7 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "kind": "PAUSED_RELEASE_COMPLETE_SEQUENCE_AUTHORIZATION",
+  "operatorCandidateCommit": "REPLACE_WITH_EXACT_40_CHARACTER_OPERATOR_CANDIDATE",
   "releaseId": "commitment-pooling-settlement-credit-v1",
   "releaseManifestHash": "0x31c05bd61e7d8bcf187d6148e64f6f0415f34fb1fbe633b97e4cde1eef46c634",
   "releaseSourceCommit": "fab5daef2eebbe83c1d444f6c148c682e122f1c3",
