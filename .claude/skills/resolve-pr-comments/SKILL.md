@@ -20,20 +20,29 @@ selected from [`validation-pipeline.md`](../../context/validation-pipeline.md).
 
 1. Resolve the repository and PR from the supplied URL or number. For current-branch requests,
    resolve the PR from local Git and GitHub metadata.
-2. Fetch fresh PR metadata and record its state, base branch, head branch, live head SHA, changed
-   files, and local HEAD. Require the PR to be `OPEN` before classification or editing. Report a
-   closed or merged PR as blocked; do not edit or publish commits to its former head branch.
-3. Before editing, require the writable checkout to be the tracked PR head branch at the exact live
-   head SHA. Refuse to edit or publish directly from `main`, `master`, or `develop`. If the checkout
-   is on another branch, detached, ahead, behind, or diverged, stop and request authorization to use
-   an isolated writable checkout at the live head. Do not contaminate the current branch.
-4. Inspect the working tree and index before editing. Preserve unrelated changes and do not unstage,
+2. Fetch fresh PR metadata and record its state; base repository and branch; head repository owner,
+   name, URL, and branch; cross-repository status; live head SHA; changed files; and local HEAD.
+   Require the PR to be `OPEN` before classification or editing. Report a closed or merged PR as
+   blocked; do not edit or publish commits to its former head branch.
+3. Before editing, require the writable checkout to be the tracked PR head repository and branch at
+   the exact live head SHA. Resolve the upstream fetch and push destinations to repository identity
+   and require the push destination plus ref to match the PR head repository plus branch; a matching
+   branch name or SHA on another remote is insufficient. Refuse to edit or publish directly from
+   `main`, `master`, or `develop`. If the checkout is on another branch, tracks another repository,
+   is detached, ahead, behind, or diverged, stop and request authorization to use an isolated
+   writable checkout at the live head. Do not contaminate the current branch.
+4. Establish the execution trust boundary before running repository-controlled code from the PR
+   head. For a fork or otherwise untrusted head, first inspect changes to dependency manifests,
+   lockfiles, package-manager configuration, hooks, workflows, agent instructions, and validation
+   scripts. Run commands only in an isolated credential-free, network-restricted sandbox, or stop
+   and report validation as blocked. Never expose local credentials to an untrusted PR head.
+5. Inspect the working tree and index before editing. Preserve unrelated changes and do not unstage,
    overwrite, stash, or commit another session's work.
-5. Establish an exact live-head inspection surface before classifying feedback. Use GitHub file
+6. Establish an exact live-head inspection surface before classifying feedback. Use GitHub file
    contents addressed by the live SHA, `git show <live-head-sha>:<path>`, or an isolated clean
    snapshot at that SHA. Use the current checkout only after proving tree identity for every
    affected path and confirming those paths have no staged, unstaged, or untracked changes.
-6. Treat descendant-only commits or working-tree changes as a separate, read-only observation until
+7. Treat descendant-only commits or working-tree changes as a separate, read-only observation until
    the branch mismatch is coordinated. Classify against the exact live-head tree first. An ancestry
    check alone is not proof of live-head behavior or authority to edit or push the descendant.
 
@@ -131,16 +140,26 @@ Do not resolve a thread merely because a local edit exists.
 ## 6. Prove closure
 
 1. Run the lightest honest targeted proof for the touched behavior.
-2. When commit or push is in scope, also run the full Ship Gate from
-   [`validation-pipeline.md`](../../context/validation-pipeline.md), including every conditional
-   addition for the touched surfaces. Every required stage must pass in the current invocation
-   before committing or pushing.
-3. For visible UI changes, obtain the required authenticated Brave rendered proof or report browser
+2. Before a mutating Ship Gate, use an isolated clean writable checkout, or prove the entire
+   formatter-covered working tree and index contain only the approved feedback paths. If unrelated
+   changes exist anywhere the formatter can rewrite, refuse publication instead of running the gate.
+   Apply the credential-free sandbox requirement from phase 1 to every untrusted head.
+3. When commit or push is in scope, define the exact approved path allowlist, require an empty index,
+   stage only those paths, and inspect the full cached diff before the Ship Gate. Select conditional
+   checks from the union of the committed PR diff and every allowlisted staged, unstaged, and
+   untracked path so new fixes cannot escape touched-surface detection.
+4. Run the full Ship Gate from [`validation-pipeline.md`](../../context/validation-pipeline.md),
+   including every conditional addition selected in step 3. Every required stage must pass in the
+   current invocation before committing or pushing. After each mutating stage, require every changed
+   path to remain inside the allowlist; restage approved formatter changes and rerun the affected
+   stage, but stop on any extra path.
+5. For visible UI changes, obtain the required authenticated Brave rendered proof or report browser
    QA as blocked.
-4. Repeat the root-cause search after all fixes. Any remaining approved manifestation keeps the
+6. Repeat the root-cause search after all fixes. Any remaining approved manifestation keeps the
    feedback cluster open.
-5. Re-read the changed code and record the exact tested state. Distinguish fixes present only in the
-   local working tree from fixes present on the live PR head.
+7. Re-read the changed code, require the allowlisted paths to have no unstaged or untracked changes,
+   and record the tested index tree with `git write-tree`. Distinguish fixes present only in the
+   tested index from fixes present in a commit or on the live PR head.
 
 Failed or unavailable targeted proof keeps the affected actionable feedback cluster unresolved. A
 failed or unavailable Ship Gate blocks commit and push even when the failure appears unrelated or
@@ -153,16 +172,20 @@ Unless the user asks to keep changes local, finish an existing-PR feedback task 
 pushing the scoped, proven fixes to the current tracked PR branch:
 
 1. Re-fetch the PR and require it to remain open with the same non-protected head branch and live
-   head SHA used for classification. Stop if the remote advanced or any branch invariant changed.
-2. Define the exact path allowlist for the approved feedback clusters before staging. If
-   `git diff --cached --name-only` already contains unrelated paths, stop or move the work to an
-   authorized isolated checkout. Never unstage another session's work to make the index appear safe.
-3. Stage only the allowlisted paths, then inspect `git diff --cached --name-only` and the full cached
-   diff. Require every staged path and hunk to belong to the locked feedback scope; stop on any
-   extra path or mixed-ownership hunk.
-4. Create a conventional commit from that verified index, then push normally to the tracked PR head
-   branch. Never use `--no-verify`, force-push, rewrite history, switch branches, create another
-   branch, or open another PR without explicit authorization.
+   head SHA used for classification. Reconfirm the head repository, push destination, trust boundary,
+   and tested-tree invariants from phases 1 and 6. Stop if the remote advanced or any invariant
+   changed.
+2. Re-inspect `git diff --cached --name-only` and the full cached diff. Require every staged path and
+   hunk to belong to the locked feedback scope and require `git write-tree` to equal the tested tree
+   recorded after the Ship Gate; stop on any extra path, mixed-ownership hunk, or tree drift.
+3. Create a conventional commit from that verified index. Compare `git rev-parse HEAD^{tree}` with
+   the tested tree to detect pre-commit hook rewrites. If they differ, do not push: rerun the full
+   Ship Gate at the created commit, and require it to pass without tracked changes before treating
+   that commit as tested. If validation mutates files, create another scoped commit and repeat the
+   tree-identity check.
+4. Push normally to the verified PR head repository and branch. Never use `--no-verify`, force-push,
+   rewrite history, switch branches, create another branch, or open another PR without explicit
+   authorization.
 5. Fetch the PR head again and record the pushed SHA. A local commit or successful `git push` message
    alone is not proof that the live PR contains the fix.
 
@@ -175,9 +198,11 @@ Before resolving an inline thread:
 2. Re-fetch the thread and ensure no newer reply or head change invalidates the conclusion.
 3. Summarize the root cause, bounded sweep, affected paths, and validation evidence concisely.
 4. Resolve only `ACTIONABLE` threads that are fixed and proven, `DUPLICATE` threads whose canonical
-   failure class is fixed and proven, `STALE` threads whose underlying concern is proven absent at
-   the live head, or threads closed by an explicit, accurate explanation accepted by the requested
-   workflow. Leave `RESOLVED` threads untouched.
+   failure class is fixed and proven, or `STALE` threads whose underlying concern is proven absent at
+   the live head. Resolve an explanation-only thread only after either the original reviewer accepts
+   or dismisses the explanation in a newer GitHub reply or review, or the user explicitly directs
+   closure after receiving the exact explanation and live-head evidence. General authorization to
+   resolve comments is not acceptance evidence. Leave `RESOLVED` threads untouched.
 
 Leave ambiguous, conflicting, out-of-scope, and unverified feedback open or unaddressed. Never use
 thread resolution to hide a deferred finding.
@@ -191,11 +216,12 @@ update through a subsequent review.
 
 Report:
 
-1. PR number and live head SHA reviewed.
+1. PR number, base and head repositories and branches, live head SHA, and execution-trust decision.
 2. Feedback ledger with source, classification, and root-cause clusters.
 3. Sweep boundary, affected paths, and checked-unaffected paths.
 4. Fixes made and regression coverage added.
-5. Exact validation run, results, and any blocked proof.
+5. Exact validation run, tested index tree, committed-tree comparison, results, and any blocked proof.
 6. Feedback still open or unaddressed and why.
-7. Commit SHA, push result, and verified live PR head, or why publication was blocked or declined.
+7. Commit SHA, verified push repository and ref, and verified live PR head, or why publication was
+   blocked or declined.
 8. GitHub conversational writes performed, or an explicit statement that none were performed.
