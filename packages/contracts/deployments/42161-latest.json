@@ -184,6 +184,12 @@
   },
   "settlementModule": "0x15c8F6CF25abA2161cc04719b4C4a93c4146935D",
   "settlementModuleImpl": "0x1ceFD9d1905E650cc2e31faf73AAbb73991DA281",
+  "releaseReceipts": {
+    "settlementModule": {
+      "transactionHash": "0xe950f05b9b1a6906f86be3da8123f29ebcd5c0ed39a0e98ec9c4a2c9dbb47397",
+      "blockNumber": 493971677
+    }
+  },
   "creditRegistry": "0xcfF1fdC12Bf130897dB0C9c74fB094C956196A34",
   "creditRegistryImpl": "0x2ccd72813f02136EF54683c63DBe0bB48Ca13826"
 }

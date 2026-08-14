@@ -5,7 +5,7 @@
 - Execution sub-lane: `release_ops`
 - Machine lane: none; human-owned authorization surface
 - Accountable owner: Afolabi Aiyeloja
-- Current state: blocked
+- Current state: pooling registered and unpaused; settlement value activation remains blocked
 - Linear context: PRD-731
 
 This handoff never authorizes an agent broadcast. The core-upgrade/deployment tier and
@@ -40,6 +40,35 @@ The operator uses one password entry and one resumable command, verifies every d
 transaction and pool ID, and stops after registration boundary 18. Pooling unpause remains a
 separate command and authorization. Peer wiring, Safe/Zodiac value authority, value movement,
 canary, cap increases, and indexer activation remain outside this decision.
+
+**Verified execution 2026-08-13.** The resumable deployer ceremony registered the root Protocol
+pool first and all seventeen Garden pools while paused, then the separately authorized boundary 19
+unpaused Commitment Pooling. The unpause transaction is
+`0x69129f9cf15f537aca062770d579f13453700a09d01acd02910eecfb586227a4` at Arbitrum block
+`493999183`. SettlementModule, CreditRegistry, and CeloSettlementExecutor remain deployer-owned;
+SettlementModule and the Celo executor remain paused and have no Safe/Zodiac value authority.
+Ownership transfer, peer wiring, message-only ping, value authority, canary, and indexer activation
+remain separate ceremonies.
+
+The repository-root commands for the two completed core boundaries are:
+
+```bash
+bun run contracts:release:backfill:all -- --commit <exact-40-character-candidate>
+bun run contracts:release:unpause:pooling -- --commit <exact-40-character-candidate>
+```
+
+Both commands are resumable and reverify their receipt-backed checkpoints. The first stops after
+registration boundary 18. The second is the only command that may execute boundary 19.
+
+### Complete paused-candidate sequence authorization (executed)
+
+The release owner's 2026-08-12 authorization for the one-command candidate deployment is frozen in
+`packages/contracts/config/commitment-pooling-release-automation-authorization.json`. It binds the
+exact release ID, manifest hash, source commit, and ordered assessment, schema, pooling, settlement,
+credit, integration-upgrade, and Celo executor stages. Its terminal state is paused and
+deployer-owned. It excludes ownership transfer, pool registration, pooling unpause, peer wiring,
+Safe/Zodiac value authority, value movement, and indexer activation. The operator refuses
+`release:deploy:all` when that tracked authorization differs from the release lock.
 
 ## Outputs
 

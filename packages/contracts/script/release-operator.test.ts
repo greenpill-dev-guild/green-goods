@@ -4,12 +4,14 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import {
+  AUTOMATED_RELEASE_EXCLUSIONS,
   AUTOMATED_RELEASE_STAGE_ORDER,
   assertPlanCanResume,
   assertAllowedOperatorCommand,
   assertAutomatedPinnedCheckout,
   assertAutomatedSessionStart,
   assertPinnedCheckout,
+  changedPromotionLeafPaths,
   completedBoundaries,
   createPasswordLease,
   planBoundaryExecutionSteps,
@@ -17,7 +19,10 @@ import {
   parseSessionOptions,
   RELEASE_OPERATOR_COMMANDS,
   tokenizeOperatorCommand,
+  validateCompleteSequenceAuthorization,
+  type CompleteSequenceAuthorization,
 } from "./release-operator";
+import type { ReleaseLock, ReleaseManifest } from "./utils/release-manifest";
 
 const temporaryDirectories: string[] = [];
 
@@ -85,9 +90,67 @@ describe("release operator session", () => {
 
     fs.writeFileSync(path.join(repository, "deployments/42161-latest.json"), '{"pooling":"deployed"}\n');
     expect(() => assertAutomatedPinnedCheckout(candidate, repository, allowed)).not.toThrow();
-    expect(() => assertAutomatedSessionStart(candidate, repository)).toThrow(/concurrent checkout drift/);
+    const validated: string[][] = [];
+    expect(() =>
+      assertAutomatedSessionStart(
+        candidate,
+        repository,
+        (_candidate, _root, dirtyPaths) => {
+          validated.push(dirtyPaths);
+        },
+        allowed,
+      ),
+    ).not.toThrow();
+    expect(validated).toEqual([["deployments/42161-latest.json"]]);
     fs.appendFileSync(path.join(repository, "reviewed.txt"), "drift\n");
     expect(() => assertAutomatedPinnedCheckout(candidate, repository, allowed)).toThrow(/concurrent checkout drift/);
+  });
+
+  it("binds one-command deployment to the exact reviewed sequence authorization", () => {
+    const authorization: CompleteSequenceAuthorization = {
+      schemaVersion: 1,
+      kind: "PAUSED_RELEASE_COMPLETE_SEQUENCE_AUTHORIZATION",
+      releaseId: "release-v1",
+      releaseManifestHash: `0x${"ab".repeat(32)}`,
+      releaseSourceCommit: "1".repeat(40),
+      terminalState: "paused-deployer-owned",
+      authorizedStages: [...AUTOMATED_RELEASE_STAGE_ORDER],
+      excludedActions: [...AUTOMATED_RELEASE_EXCLUSIONS],
+      authorizedBy: "Release owner",
+      authorizedOn: "2026-08-12",
+      authorizationRecord: "reviewed-release-handoff.md",
+    };
+    const manifest = { releaseId: authorization.releaseId } as ReleaseManifest;
+    const lock = {
+      releaseId: authorization.releaseId,
+      manifestHash: authorization.releaseManifestHash,
+      sourceCommit: authorization.releaseSourceCommit,
+    } as ReleaseLock;
+
+    expect(() => validateCompleteSequenceAuthorization(authorization, manifest, lock)).not.toThrow();
+    expect(() =>
+      validateCompleteSequenceAuthorization(
+        { ...authorization, authorizedStages: authorization.authorizedStages.slice(1) },
+        manifest,
+        lock,
+      ),
+    ).toThrow(/exact reviewed authorization/);
+  });
+
+  it("validates newly added promotion objects at their exact leaf paths", () => {
+    expect(
+      changedPromotionLeafPaths(
+        {},
+        {
+          releaseReceipts: {
+            settlementModule: { transactionHash: `0x${"ab".repeat(32)}`, blockNumber: 493971677 },
+          },
+        },
+      ),
+    ).toEqual(["releaseReceipts.settlementModule.transactionHash", "releaseReceipts.settlementModule.blockNumber"]);
+    expect(changedPromotionLeafPaths({ releaseReceipts: "owned" }, { releaseReceipts: {} })).toEqual([
+      "releaseReceipts",
+    ]);
   });
 
   it("keeps the automated release in the frozen dependency order", () => {
@@ -162,6 +225,17 @@ describe("release operator session", () => {
     expect(() => assertPinnedCheckout(candidate, repository)).toThrow(/checkout to stay clean/);
   });
 
+  it("revalidates receipt-backed artifact promotions around every automated boundary", () => {
+    const source = fs.readFileSync(path.join(__dirname, "release-operator.ts"), "utf8");
+    const start = source.indexOf("function runAutomatedBunCommand");
+    const end = source.indexOf("async function pendingNonce", start);
+    const body = source.slice(start, end);
+
+    expect(body.match(/assertVerifiedResumePromotions/gu)).toHaveLength(2);
+    expect(body.indexOf("const beforeDirty")).toBeLessThan(body.indexOf("spawnSync"));
+    expect(body.indexOf("const afterDirty")).toBeGreaterThan(body.indexOf("spawnSync"));
+  });
+
   it("accepts only allowlisted Bun wrappers and never credential or RPC overrides", () => {
     const tokens = tokenizeOperatorCommand(
       'run pooling:schemas:arbitrum --step 2 --expected-nonce 123 --artifact "reviewed plan.json"',
@@ -207,7 +281,7 @@ describe("release operator session", () => {
     ).toThrow(/not allowlisted/);
   });
 
-  it("allows only the empty Garden Safe bootstrap and reviewed owner-swap wrappers", () => {
+  it("allows only the native/G$-clear Garden Safe bootstrap and reviewed owner-swap wrappers", () => {
     const receipt = `0x${"cd".repeat(32)}`;
     expect(
       assertAllowedOperatorCommand(

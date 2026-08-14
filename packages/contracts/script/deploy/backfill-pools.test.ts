@@ -4,6 +4,7 @@ import { getAddress, Interface, type JsonRpcProvider, keccak256, toUtf8Bytes, ty
 import { describe, expect, it } from "vitest";
 import {
   buildBackfillTransactions,
+  isContractCallRevert,
   parseSafeExecution,
   validateBackfillPlan,
   validateCheckpointPrefix,
@@ -145,6 +146,12 @@ function checkpoint(reviewedPlan: PoolBackfillPlan, throughStep: number): Backfi
 }
 
 describe("one-shot pool backfill entrypoint", () => {
+  it("stops only on a confirmed ownerOf revert, not RPC failure", () => {
+    expect(isContractCallRevert({ code: "CALL_EXCEPTION" })).toBe(true);
+    expect(isContractCallRevert({ code: "NETWORK_ERROR" })).toBe(false);
+    expect(isContractCallRevert(new Error("timeout"))).toBe(false);
+  });
+
   it("registers every pool while paused and emits unpause as the final separate boundary", () => {
     const enumeration = gardens();
     const transactions = buildBackfillTransactions({

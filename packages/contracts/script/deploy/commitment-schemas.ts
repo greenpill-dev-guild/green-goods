@@ -41,6 +41,24 @@ export function schemaSimulationArtifactName(finalizeCommunityTestimony: boolean
   return finalizeCommunityTestimony ? "finalizeCommunityTestimony-latest.json" : "run-latest.json";
 }
 
+export function finalizedPreparationModuleForReplay(input: {
+  mode: "preparation" | "finalization";
+  replayComplete: boolean;
+  deploymentModule?: string;
+  frozenPoolingModule?: string;
+}): string | undefined {
+  if (
+    input.mode !== "preparation" ||
+    !input.replayComplete ||
+    !input.deploymentModule ||
+    !input.frozenPoolingModule ||
+    getAddress(input.deploymentModule) !== getAddress(input.frozenPoolingModule)
+  ) {
+    return undefined;
+  }
+  return getAddress(input.frozenPoolingModule);
+}
+
 /**
  * Addresses preparation produces. The resolver is deployed by this target now (contract-spec
  * §6.4.4), so its addresses land here rather than coming from a separate step.
@@ -899,6 +917,16 @@ export class CommitmentSchemasDeployer {
     const rpcUrl = this.networkManager.getRpcUrl(options.network);
     const provider = new JsonRpcProvider(rpcUrl, chainId, { staticNetwork: true });
     const prior = checkpoint.completed.find((entry) => entry.step === options.releaseStep);
+    const frozenPoolingModule = lock.identities.find(
+      (identity) => identity.kind === "proxy" && identity.name === "CommitmentPoolingModule",
+    )?.address;
+    const finalizedPreparationModule = finalizedPreparationModuleForReplay({
+      mode: plan.mode,
+      replayComplete: Boolean(prior) && checkpoint.completed.length === plan.transactions.length,
+      deploymentModule:
+        typeof deployment.commitmentPoolingModule === "string" ? deployment.commitmentPoolingModule : undefined,
+      frozenPoolingModule,
+    });
     let transactionHash = prior?.transactionHash ?? options.receiptHash;
     if (!transactionHash) {
       const pendingNonce = await provider.getTransactionCount(plan.sender, "pending");
@@ -944,7 +972,7 @@ export class CommitmentSchemasDeployer {
     );
     if (receipt.status !== 1) throw new Error(`Schema receipt ${transactionHash} failed`);
     validateSchemaReceiptTransaction(transaction, plan, boundary, transactionHash);
-    await this.verifySchemaBoundary(provider, plan, boundary);
+    await this.verifySchemaBoundary(provider, plan, boundary, finalizedPreparationModule);
     if (!prior) {
       checkpoint.completed.push({
         step: options.releaseStep,
@@ -955,7 +983,7 @@ export class CommitmentSchemasDeployer {
       writeReleaseJsonAtomic(checkpointPath, checkpoint);
     }
     if (options.releaseStep === plan.transactions.length) {
-      await this.verifyCompleteSchemaPlan(provider, plan);
+      await this.verifyCompleteSchemaPlan(provider, plan, finalizedPreparationModule);
       this.promoteVerifiedSchemaPlan(plan);
     }
     console.log(
@@ -969,6 +997,7 @@ export class CommitmentSchemasDeployer {
     provider: JsonRpcProvider,
     plan: PersistedSchemaPlan,
     boundary: PersistedSchemaPlan["transactions"][number],
+    finalizedPreparationModule?: string,
   ): Promise<void> {
     if (boundary.kind === "CREATE2_IMPLEMENTATION" || boundary.kind === "CREATE2_PROXY") {
       if (!boundary.expectedAddress || (await provider.getCode(boundary.expectedAddress)) === "0x") {
@@ -1000,7 +1029,11 @@ export class CommitmentSchemasDeployer {
       if (String(await resolver.schemaUID()).toLowerCase() !== plan.pinnedCommunityTestimonyUID.toLowerCase()) {
         throw new Error("Community Testimony UID pin did not reach the exact frozen value");
       }
-      if (getAddress(await resolver.commitmentModule()) !== ZeroAddress) {
+      const liveModule = getAddress(await resolver.commitmentModule());
+      if (
+        liveModule !== ZeroAddress &&
+        (!finalizedPreparationModule || liveModule !== getAddress(finalizedPreparationModule))
+      ) {
         throw new Error("Preparation unexpectedly activated the Community Testimony resolver");
       }
       return;
@@ -1011,7 +1044,11 @@ export class CommitmentSchemasDeployer {
     }
   }
 
-  private async verifyCompleteSchemaPlan(provider: JsonRpcProvider, plan: PersistedSchemaPlan): Promise<void> {
+  private async verifyCompleteSchemaPlan(
+    provider: JsonRpcProvider,
+    plan: PersistedSchemaPlan,
+    finalizedPreparationModule?: string,
+  ): Promise<void> {
     if (
       (await provider.getCode(plan.testimonyResolverImpl)) === "0x" ||
       (await provider.getCode(plan.testimonyResolver)) === "0x"
@@ -1029,7 +1066,8 @@ export class CommitmentSchemasDeployer {
     if (String(await resolver.schemaUID()).toLowerCase() !== plan.pinnedCommunityTestimonyUID.toLowerCase()) {
       throw new Error("Community Testimony UID pin drift");
     }
-    const expectedModule = plan.mode === "finalization" ? plan.commitmentPoolingModule : ZeroAddress;
+    const expectedModule =
+      plan.mode === "finalization" ? plan.commitmentPoolingModule : (finalizedPreparationModule ?? ZeroAddress);
     if (!expectedModule || getAddress(await resolver.commitmentModule()) !== getAddress(expectedModule)) {
       throw new Error("Community Testimony activation state differs from the reviewed mode");
     }

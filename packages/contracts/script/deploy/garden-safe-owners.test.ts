@@ -64,7 +64,7 @@ afterEach(() => {
 });
 
 describe("Garden Safe temporary owner tooling", () => {
-  it("builds the exact empty threshold-one Safe initializer", () => {
+  it("builds the exact threshold-one Safe initializer", () => {
     const initializer = buildBootstrapInitializer(DEPLOYMENT_OWNER, RECOVERY_SAFE);
     const decoded = SAFE_INTERFACE.decodeFunctionData("setup", initializer);
 
@@ -253,13 +253,23 @@ describe("Garden Safe temporary owner tooling", () => {
       singleton: SINGLETON,
       compatibilityFallbackHandler: HANDLER,
       recoverySafe: RECOVERY_SAFE,
+      valueAssertion: {
+        nativeBalance: "zero",
+        canonicalTokenBalance: "zero",
+        arbitraryTokenInventory: "not-enumerated",
+      },
       entries: [{ garden, safe, replacementOwner: REPLACEMENT_OWNER }],
     } as unknown as SwapPlan;
     const checkpoint = { completed: [evidence] } as Checkpoint;
 
     expect(buildSwappedDeploymentArtifact(plan, bootstrap, checkpoint, checkpoint)).toMatchObject({
       stage: "reviewed-owner-swap-complete",
-      ownerPolicy: "1-of-2 unique per-Garden owner plus 2-of-3 recovery Safe; no value or modules",
+      ownerPolicy: "1-of-2 unique per-Garden owner plus 2-of-3 recovery Safe; no modules or guard",
+      valueAssertion: {
+        nativeBalance: "zero",
+        canonicalTokenBalance: "zero",
+        arbitraryTokenInventory: "not-enumerated",
+      },
       safes: [
         {
           owners: expect.arrayContaining([getAddress(REPLACEMENT_OWNER), getAddress(RECOVERY_SAFE)]),

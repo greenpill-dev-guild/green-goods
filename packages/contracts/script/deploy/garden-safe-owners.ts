@@ -157,6 +157,11 @@ export interface BootstrapPlan {
     canonicalToken: string;
   };
   authorityEnabled: false;
+  valueAssertion: {
+    nativeBalance: "zero";
+    canonicalTokenBalance: "zero";
+    arbitraryTokenInventory: "not-enumerated";
+  };
   entries: BootstrapEntry[];
   blockers: string[];
 }
@@ -188,7 +193,7 @@ export interface SwapEntry {
     nonce: number;
   };
   observed: SafeInspection;
-  state: "READY" | "SWAPPED";
+  state: "READY";
 }
 
 export interface SwapPlan {
@@ -209,6 +214,7 @@ export interface SwapPlan {
   compatibilityFallbackHandler: string;
   canonicalToken: string;
   authorityEnabled: false;
+  valueAssertion: BootstrapPlan["valueAssertion"];
   entries: SwapEntry[];
   blockers: string[];
 }
@@ -502,7 +508,7 @@ function sameOwnerSet(actual: string[], expected: string[]): boolean {
   return left.length === right.length && left.every((owner, index) => owner === right[index]);
 }
 
-function emptyAndUnmodified(inspection: SafeInspection): boolean {
+function canonicalBalancesAndConfigClear(inspection: SafeInspection): boolean {
   return (
     inspection.nativeBalance === "0" &&
     inspection.tokenBalance === "0" &&
@@ -526,9 +532,9 @@ export function assertBootstrapState(
     inspection.nonce !== "0" ||
     !sameOwnerSet(inspection.owners, [deploymentOwner, recoverySafe]) ||
     inspection.fallbackHandler !== getAddress(fallbackHandler) ||
-    !emptyAndUnmodified(inspection)
+    !canonicalBalancesAndConfigClear(inspection)
   ) {
-    throw new Error("Garden Safe is not the exact empty 1-of-2 bootstrap state");
+    throw new Error("Garden Safe is not the exact native/G$-clear 1-of-2 bootstrap state");
   }
 }
 
@@ -547,9 +553,9 @@ export function assertSwappedState(
     inspection.nonce !== "1" ||
     !sameOwnerSet(inspection.owners, [replacementOwner, recoverySafe]) ||
     inspection.fallbackHandler !== getAddress(fallbackHandler) ||
-    !emptyAndUnmodified(inspection)
+    !canonicalBalancesAndConfigClear(inspection)
   ) {
-    throw new Error("Garden Safe is not the exact empty post-swap state");
+    throw new Error("Garden Safe is not the exact native/G$-clear post-swap state");
   }
 }
 
@@ -675,7 +681,9 @@ async function buildBootstrapPlan(inventoryPath: string): Promise<BootstrapPlan>
     let state: BootstrapEntry["state"];
     if (!observed.codePresent) {
       state = "ABSENT";
-      if (!emptyAndUnmodified(observed)) blockers.push(`Counterfactual Safe ${safe} is prefunded`);
+      if (!canonicalBalancesAndConfigClear(observed)) {
+        blockers.push(`Counterfactual Safe ${safe} has native/G$ balance or configured authority`);
+      }
     } else {
       state = "BOOTSTRAPPED";
       try {
@@ -731,6 +739,11 @@ async function buildBootstrapPlan(inventoryPath: string): Promise<BootstrapPlan>
       canonicalToken: keccak256(tokenCode),
     },
     authorityEnabled: false,
+    valueAssertion: {
+      nativeBalance: "zero",
+      canonicalTokenBalance: "zero",
+      arbitraryTokenInventory: "not-enumerated",
+    },
     entries,
     blockers,
   };
@@ -752,6 +765,9 @@ function validateBootstrapPlan(plan: BootstrapPlan, inventoryPath: string): void
     !Number.isSafeInteger(plan.sourceFinalizedBlock) ||
     plan.sourceFinalizedBlock < 1 ||
     plan.authorityEnabled !== false ||
+    plan.valueAssertion?.nativeBalance !== "zero" ||
+    plan.valueAssertion?.canonicalTokenBalance !== "zero" ||
+    plan.valueAssertion?.arbitraryTokenInventory !== "not-enumerated" ||
     plan.entries.length !== EXPECTED_GARDEN_COUNT
   ) {
     throw new Error("Bootstrap plan is not bound to the current reviewed release and Garden inventory");
@@ -846,11 +862,10 @@ async function buildSwapPlan(
   const entries: SwapEntry[] = [];
   for (const [offset, replacement] of replacements.entries()) {
     const observed = await inspectSafe(provider, replacement.safe, bootstrap.canonicalToken, finalizedBlock);
-    let state: SwapEntry["state"];
+    const state: SwapEntry["state"] = "READY";
     let predecessor = ZeroAddress;
     let data = "0x";
     if (sameOwnerSet(observed.owners, [bootstrap.sender, bootstrap.recoverySafe])) {
-      state = "READY";
       try {
         assertBootstrapState(
           observed,
@@ -871,22 +886,17 @@ async function buildSwapPlan(
         blockers.push(`${replacement.safe}: ${error instanceof Error ? error.message : String(error)}`);
       }
     } else if (sameOwnerSet(observed.owners, [replacement.replacementOwner, bootstrap.recoverySafe])) {
-      state = "SWAPPED";
-      try {
-        assertSwappedState(
-          observed,
-          replacement.replacementOwner,
-          bootstrap.recoverySafe,
-          bootstrap.singleton,
-          bootstrap.compatibilityFallbackHandler,
-        );
-      } catch (error) {
-        blockers.push(`${replacement.safe}: ${error instanceof Error ? error.message : String(error)}`);
-      }
-      predecessor = SAFE_SENTINEL;
-      data = "0x";
+      assertSwappedState(
+        observed,
+        replacement.replacementOwner,
+        bootstrap.recoverySafe,
+        bootstrap.singleton,
+        bootstrap.compatibilityFallbackHandler,
+      );
+      throw new Error(
+        `Safe ${replacement.safe} is already swapped; recover the original reviewed swap plan with its exact receipt`,
+      );
     } else {
-      state = "READY";
       blockers.push(`${replacement.safe}: unexpected owner set before swap`);
     }
     entries.push({
@@ -921,6 +931,7 @@ async function buildSwapPlan(
     compatibilityFallbackHandler: bootstrap.compatibilityFallbackHandler,
     canonicalToken: bootstrap.canonicalToken,
     authorityEnabled: false,
+    valueAssertion: bootstrap.valueAssertion,
     entries,
     blockers,
   };
@@ -944,6 +955,9 @@ function validateSwapPlan(
     plan.bootstrapPlanHash !== hashFileContent(bootstrapPath) ||
     plan.replacementsHash !== hashFileContent(replacementsPath) ||
     plan.authorityEnabled !== false ||
+    plan.valueAssertion?.nativeBalance !== "zero" ||
+    plan.valueAssertion?.canonicalTokenBalance !== "zero" ||
+    plan.valueAssertion?.arbitraryTokenInventory !== "not-enumerated" ||
     plan.entries.length !== EXPECTED_GARDEN_COUNT
   ) {
     throw new Error("Swap plan is not bound to the reviewed bootstrap and replacement artifacts");
@@ -985,15 +999,6 @@ function validateSwapPlan(
       if (entry.previousOwner !== built.previousOwner || entry.transaction.data !== built.data) {
         throw new Error(`Swap plan calldata ${offset + 1} was modified`);
       }
-    } else if (entry.state === "SWAPPED") {
-      assertSwappedState(
-        entry.observed,
-        entry.replacementOwner,
-        plan.recoverySafe,
-        plan.singleton,
-        plan.compatibilityFallbackHandler,
-      );
-      if (entry.transaction.data !== "0x") throw new Error(`Completed swap boundary ${offset + 1} has calldata`);
     } else {
       throw new Error(`Swap plan boundary ${offset + 1} has invalid state`);
     }
@@ -1168,12 +1173,13 @@ async function verifyCompleteBootstrapEvidence(
 export function buildBootstrapDeploymentArtifact(plan: BootstrapPlan, checkpoint: Checkpoint): unknown {
   return {
     schemaVersion: 1,
-    stage: "temporary-empty-bootstrap",
+    stage: "temporary-canonical-balance-clear-bootstrap",
     chainId: CELO_CHAIN_ID,
     releaseId: plan.releaseId,
     sourceCommit: plan.releaseSourceCommit,
     authorityEnabled: false,
-    ownerPolicy: "1-of-2 deployment EOA plus 2-of-3 recovery Safe; no value or modules",
+    ownerPolicy: "1-of-2 deployment EOA plus 2-of-3 recovery Safe; no modules or guard",
+    valueAssertion: plan.valueAssertion,
     singleton: plan.singleton,
     factory: plan.factory,
     compatibilityFallbackHandler: plan.compatibilityFallbackHandler,
@@ -1210,7 +1216,8 @@ export function buildSwappedDeploymentArtifact(
     releaseId: plan.releaseId,
     sourceCommit: plan.releaseSourceCommit,
     authorityEnabled: false,
-    ownerPolicy: "1-of-2 unique per-Garden owner plus 2-of-3 recovery Safe; no value or modules",
+    ownerPolicy: "1-of-2 unique per-Garden owner plus 2-of-3 recovery Safe; no modules or guard",
+    valueAssertion: plan.valueAssertion,
     singleton: plan.singleton,
     factory: bootstrap.factory,
     compatibilityFallbackHandler: plan.compatibilityFallbackHandler,
@@ -1274,7 +1281,9 @@ async function executeBootstrap(
       }
       transactionHash = recoveryReceipt;
     } else {
-      if (!emptyAndUnmodified(observed)) throw new Error(`Counterfactual Safe ${entry.safe} is prefunded`);
+      if (!canonicalBalancesAndConfigClear(observed)) {
+        throw new Error(`Counterfactual Safe ${entry.safe} has native/G$ balance or configured authority`);
+      }
       const pendingNonce = await provider.getTransactionCount(plan.sender, "pending");
       if (pendingNonce !== entry.transaction.nonce) {
         throw new Error(
@@ -1306,7 +1315,9 @@ async function executeBootstrap(
     writeCheckpoint(planPath, checkpoint);
   }
   atomicWrite(DEPLOYMENT_ARTIFACT, buildBootstrapDeploymentArtifact(plan, checkpoint));
-  console.log(`Verified ${checkpoint.completed.length}/${plan.entries.length} empty Garden Safe bootstraps.`);
+  console.log(
+    `Verified ${checkpoint.completed.length}/${plan.entries.length} native/G$-clear Garden Safe bootstraps; arbitrary token inventory is not enumerated.`,
+  );
 }
 
 async function executeSwap(

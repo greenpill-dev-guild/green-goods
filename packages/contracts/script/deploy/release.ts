@@ -60,6 +60,11 @@ const STAGE_TARGET: Record<ReleaseStage, string[]> = {
   "settlement-executor": ["CeloSettlementExecutor"],
 };
 
+const STAGE_RECEIPT_KEY: Partial<Record<ReleaseStage, string>> = {
+  "settlement-module": "settlementModule",
+  "settlement-executor": "celoSettlementExecutor",
+};
+
 function stable(value: unknown): string {
   return `${JSON.stringify(value, null, 2)}\n`;
 }
@@ -235,6 +240,31 @@ function readDeployment(chainId: string): Record<string, unknown> {
   const filePath = path.join(CONTRACTS_ROOT, "deployments", `${chainId}-latest.json`);
   if (!fs.existsSync(filePath)) throw new Error(`Canonical deployment artifact not found: ${filePath}`);
   return JSON.parse(fs.readFileSync(filePath, "utf8")) as Record<string, unknown>;
+}
+
+export function releaseReceiptForIndexer(
+  deployment: Record<string, unknown>,
+  contract: "settlementModule" | "celoSettlementExecutor",
+): { transactionHash: string; blockNumber: number } {
+  const receipts = deployment.releaseReceipts;
+  const receipt =
+    receipts && typeof receipts === "object" && !Array.isArray(receipts)
+      ? (receipts as Record<string, unknown>)[contract]
+      : undefined;
+  if (!receipt || typeof receipt !== "object" || Array.isArray(receipt)) {
+    throw new Error(`Canonical deployment artifact has no ${contract} proxy receipt`);
+  }
+  const { transactionHash, blockNumber } = receipt as Record<string, unknown>;
+  if (
+    typeof transactionHash !== "string" ||
+    !/^0x[0-9a-f]{64}$/iu.test(transactionHash) ||
+    typeof blockNumber !== "number" ||
+    !Number.isSafeInteger(blockNumber) ||
+    blockNumber <= 0
+  ) {
+    throw new Error(`Canonical ${contract} proxy receipt is invalid`);
+  }
+  return { transactionHash, blockNumber };
 }
 
 function identity(lock: ReleaseLock, name: string, kind: "implementation" | "proxy") {
@@ -597,7 +627,7 @@ Phase B boundary form (not authorized by Phase A):
       if (pendingNonce !== options.expectedNonce) {
         throw new Error(`Nonce drift: expected ${options.expectedNonce}, live pending nonce is ${pendingNonce}`);
       }
-      const result = JSON.parse(
+      transactionHash = parseCastTransactionHash(
         execCastCaptured(
           [
             "send",
@@ -616,11 +646,8 @@ Phase B boundary form (not authorized by Phase A):
           { cwd: CONTRACTS_ROOT, env: process.env, inputStdio: "inherit" },
           "Bun-wrapped ownership boundary",
         ),
-      ) as Record<string, unknown>;
-      if (typeof result.transactionHash !== "string" || !/^0x[0-9a-fA-F]{64}$/u.test(result.transactionHash)) {
-        throw new Error("Bun-wrapped ownership boundary returned no transaction hash");
-      }
-      transactionHash = result.transactionHash;
+        "Bun-wrapped ownership boundary",
+      );
     }
     const { transaction, receipt } = await retryRpcAvailability(
       async () => {
@@ -779,6 +806,7 @@ Phase B boundary form (not authorized by Phase A):
         if (boundary.index === plan.transactions.length) {
           this.runStageVerifier(options, stage, sidePath, baseSalt);
           mergeReleaseArtifact({ canonicalPath, sidePath, ownedKeys: STAGE_KEYS[stage] });
+          this.promoteStageReceipt(canonicalPath, directory, stage, evidence);
           console.log("Final boundary artifact was promoted after full stage reverification");
         }
         console.log(`Boundary ${boundary.index} was already verified; no replay transaction was sent`);
@@ -831,6 +859,12 @@ Phase B boundary form (not authorized by Phase A):
       if (boundary.index === plan.transactions.length) {
         this.runStageVerifier(options, stage, sidePath, baseSalt);
         mergeReleaseArtifact({ canonicalPath, sidePath, ownedKeys: STAGE_KEYS[stage] });
+        this.promoteStageReceipt(
+          canonicalPath,
+          directory,
+          stage,
+          checkpoint.verifiedBoundaries[checkpoint.verifiedBoundaries.length - 1],
+        );
         console.log("Final boundary verified; the exact stage artifact was promoted atomically");
       } else {
         console.log(`Boundary ${boundary.index} verified and checkpointed; canonical artifact remains unchanged`);
@@ -839,6 +873,30 @@ Phase B boundary form (not authorized by Phase A):
       const forgedMerge = simulateReleaseArtifactMerge({ canonicalPath, sidePath, ownedKeys: STAGE_KEYS[stage] });
       console.log(`Foundry simulation completed through artifact promotion path; would change: ${forgedMerge.changed}`);
     }
+  }
+
+  private promoteStageReceipt(
+    canonicalPath: string,
+    directory: string,
+    stage: ReleaseStage,
+    evidence: ReleaseCheckpoint["verifiedBoundaries"][number],
+  ): void {
+    const receiptKey = STAGE_RECEIPT_KEY[stage];
+    if (!receiptKey) return;
+    const sidePath = path.join(directory, `${stage}-receipt-promotion.json`);
+    writeGenerated(sidePath, {
+      releaseReceipts: {
+        [receiptKey]: {
+          transactionHash: evidence.transactionHash,
+          blockNumber: evidence.blockNumber,
+        },
+      },
+    });
+    mergeReleaseArtifact({
+      canonicalPath,
+      sidePath,
+      ownedKeys: [`releaseReceipts.${receiptKey}`],
+    });
   }
 
   private runForgeStage(
@@ -1412,6 +1470,14 @@ Phase B boundary form (not authorized by Phase A):
     }
     const settlement = identity(lock, "SettlementModule", "proxy").address;
     const executor = identity(lock, "CeloSettlementExecutor", "proxy").address;
+    const settlementReceipt = releaseReceiptForIndexer(
+      readDeployment(manifest.chains.arbitrum.evmChainId),
+      "settlementModule",
+    );
+    const executorReceipt = releaseReceiptForIndexer(
+      readDeployment(manifest.chains.celo.evmChainId),
+      "celoSettlementExecutor",
+    );
     const plan = {
       schemaVersion: 1,
       activationAuthorized: false,
@@ -1422,13 +1488,15 @@ Phase B boundary form (not authorized by Phase A):
           chainId: "42161",
           contract: "SettlementModule",
           address: settlement,
-          startBlock: "RECEIPT_REQUIRED",
+          startBlock: settlementReceipt.blockNumber,
+          deploymentTransactionHash: settlementReceipt.transactionHash,
         },
         {
           chainId: "42220",
           contract: "CeloSettlementExecutor",
           address: executor,
-          startBlock: "RECEIPT_REQUIRED",
+          startBlock: executorReceipt.blockNumber,
+          deploymentTransactionHash: executorReceipt.transactionHash,
         },
       ],
       ownerLane: manifest.indexer.ownerLane,

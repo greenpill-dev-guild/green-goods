@@ -561,8 +561,11 @@ async function enumerateGardens(
     let tokenOwner: string;
     try {
       tokenOwner = requiredAddress(await token.ownerOf(tokenId, { blockTag }), `ownerOf(${tokenId})`);
-    } catch {
-      break;
+    } catch (error) {
+      if (isContractCallRevert(error)) break;
+      throw new Error(
+        `Unable to enumerate Garden token ${tokenId}: ${error instanceof Error ? error.message : String(error)}`,
+      );
     }
     const garden = requiredAddress(
       await registry.account(implementation, TOKENBOUND_SALT, 42161, gardenToken, tokenId, { blockTag }),
@@ -576,6 +579,10 @@ async function enumerateGardens(
   if (gardens.length === maximumInventory)
     throw new Error(`Garden inventory exceeded the bounded ${maximumInventory}-token scan`);
   return gardens;
+}
+
+export function isContractCallRevert(error: unknown): boolean {
+  return Boolean(error && typeof error === "object" && "code" in error && error.code === "CALL_EXCEPTION");
 }
 
 async function readModulePreflight(

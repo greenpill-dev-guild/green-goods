@@ -6,9 +6,15 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { createInterface } from "node:readline/promises";
 import * as dotenv from "dotenv";
-import { getAddress, JsonRpcProvider } from "ethers";
+import { getAddress, JsonRpcProvider, keccak256, toUtf8Bytes } from "ethers";
 import { NetworkManager } from "./utils/network";
-import { buildReleaseLock, loadReleaseManifest } from "./utils/release-manifest";
+import {
+  buildReleaseLock,
+  loadReleaseManifest,
+  type ReleaseLock,
+  type ReleaseManifest,
+  type ReleaseStage,
+} from "./utils/release-manifest";
 
 const CONTRACTS_ROOT = path.join(__dirname, "..");
 const REPOSITORY_ROOT = path.join(CONTRACTS_ROOT, "../..");
@@ -18,6 +24,10 @@ const AUTOMATED_RELEASE_MUTATIONS = new Set([
   "packages/contracts/deployments/42161-latest.json",
   "packages/contracts/deployments/42220-latest.json",
 ]);
+const COMPLETE_SEQUENCE_AUTHORIZATION_PATH = path.join(
+  CONTRACTS_ROOT,
+  "config/commitment-pooling-release-automation-authorization.json",
+);
 
 export const AUTOMATED_RELEASE_STAGE_ORDER = [
   "assessment-resolver",
@@ -30,6 +40,30 @@ export const AUTOMATED_RELEASE_STAGE_ORDER = [
   "settlement-executor",
 ] as const;
 
+export const AUTOMATED_RELEASE_EXCLUSIONS = [
+  "ownership-transfer",
+  "pool-registration",
+  "pooling-unpause",
+  "peer-wiring",
+  "safe-zodiac-value-authority",
+  "value-movement",
+  "indexer-activation",
+] as const;
+
+export interface CompleteSequenceAuthorization {
+  schemaVersion: 1;
+  kind: "PAUSED_RELEASE_COMPLETE_SEQUENCE_AUTHORIZATION";
+  releaseId: string;
+  releaseManifestHash: string;
+  releaseSourceCommit: string;
+  terminalState: "paused-deployer-owned";
+  authorizedStages: string[];
+  excludedActions: string[];
+  authorizedBy: string;
+  authorizedOn: string;
+  authorizationRecord: string;
+}
+
 export const POOL_BACKFILL_REGISTRATION_BOUNDARIES = 18;
 
 export const RELEASE_OPERATOR_COMMANDS = new Map<string, string>([
@@ -41,7 +75,7 @@ export const RELEASE_OPERATOR_COMMANDS = new Map<string, string>([
   ["credit:registry:deploy:arbitrum", "paused records-only CreditRegistry boundaries"],
   ["pooling:upgrade:arbitrum", "GardenToken and WorkApprovalResolver integration-upgrade boundaries"],
   ["settlement:executor:deploy:celo", "paused CeloSettlementExecutor boundaries"],
-  ["settlement:garden-safes:deploy:celo", "empty 1-of-2 Garden Safe bootstrap boundaries"],
+  ["settlement:garden-safes:deploy:celo", "native/G$-clear 1-of-2 Garden Safe bootstrap boundaries"],
   ["settlement:garden-safes:swap:celo", "deployer-to-reviewed-owner Garden Safe swap boundaries"],
 ] as const);
 
@@ -336,8 +370,61 @@ export function assertAutomatedPinnedCheckout(
   }
 }
 
-export function assertAutomatedSessionStart(candidateCommit: string, repositoryRoot = REPOSITORY_ROOT): void {
-  assertAutomatedPinnedCheckout(candidateCommit, repositoryRoot, new Set());
+export function validateCompleteSequenceAuthorization(
+  authorization: CompleteSequenceAuthorization,
+  manifest: ReleaseManifest,
+  lock: ReleaseLock,
+): void {
+  if (
+    authorization.schemaVersion !== 1 ||
+    authorization.kind !== "PAUSED_RELEASE_COMPLETE_SEQUENCE_AUTHORIZATION" ||
+    authorization.releaseId !== manifest.releaseId ||
+    authorization.releaseManifestHash !== lock.manifestHash ||
+    authorization.releaseSourceCommit !== lock.sourceCommit ||
+    authorization.terminalState !== "paused-deployer-owned" ||
+    JSON.stringify(authorization.authorizedStages) !== JSON.stringify(AUTOMATED_RELEASE_STAGE_ORDER) ||
+    JSON.stringify(authorization.excludedActions) !== JSON.stringify(AUTOMATED_RELEASE_EXCLUSIONS) ||
+    !authorization.authorizedBy.trim() ||
+    !/^\d{4}-\d{2}-\d{2}$/u.test(authorization.authorizedOn) ||
+    !authorization.authorizationRecord.trim()
+  ) {
+    throw new Error("Complete release sequence is not bound to the exact reviewed authorization artifact");
+  }
+}
+
+function assertCompleteSequenceAuthorization(): void {
+  if (!fs.existsSync(COMPLETE_SEQUENCE_AUTHORIZATION_PATH)) {
+    throw new Error(`Complete release sequence authorization is missing: ${COMPLETE_SEQUENCE_AUTHORIZATION_PATH}`);
+  }
+  const manifest = loadReleaseManifest();
+  validateCompleteSequenceAuthorization(
+    readJson<CompleteSequenceAuthorization>(COMPLETE_SEQUENCE_AUTHORIZATION_PATH),
+    manifest,
+    buildReleaseLock(manifest),
+  );
+}
+
+function automatedDirtyPaths(repositoryRoot: string): string[] {
+  return execFileSync("git", ["status", "--porcelain=v1", "--untracked-files=all"], {
+    cwd: repositoryRoot,
+    encoding: "utf8",
+  })
+    .split(/\r?\n/u)
+    .filter(Boolean)
+    .map((line) => line.slice(3).split(" -> ").at(-1))
+    .filter((filePath): filePath is string => filePath !== undefined);
+}
+
+export function assertAutomatedSessionStart(
+  candidateCommit: string,
+  repositoryRoot = REPOSITORY_ROOT,
+  validatePromotions: (candidate: string, root: string, paths: string[]) => void = assertVerifiedResumePromotions,
+  allowedMutations: ReadonlySet<string> = AUTOMATED_RELEASE_MUTATIONS,
+): void {
+  assertCompleteSequenceAuthorization();
+  assertAutomatedPinnedCheckout(candidateCommit, repositoryRoot, allowedMutations);
+  const dirty = automatedDirtyPaths(repositoryRoot);
+  if (dirty.length > 0) validatePromotions(candidateCommit, repositoryRoot, dirty);
 }
 
 interface JsonPlan {
@@ -351,6 +438,203 @@ interface JsonPlan {
 
 function readJson<T>(filePath: string): T {
   return JSON.parse(fs.readFileSync(filePath, "utf8")) as T;
+}
+
+function samePromotionValue(left: unknown, right: unknown): boolean {
+  if (typeof left === "string" && typeof right === "string" && left.startsWith("0x") && right.startsWith("0x")) {
+    return left.toLowerCase() === right.toLowerCase();
+  }
+  return JSON.stringify(left) === JSON.stringify(right);
+}
+
+function unsetPromotionValue(value: unknown): boolean {
+  return value === undefined || value === null || value === "" || (typeof value === "string" && /^0x0+$/iu.test(value));
+}
+
+export function changedPromotionLeafPaths(before: unknown, after: unknown, prefix = ""): string[] {
+  const beforeRecord = before && typeof before === "object" && !Array.isArray(before);
+  const afterRecord = after && typeof after === "object" && !Array.isArray(after);
+  if (beforeRecord || afterRecord) {
+    if ((!beforeRecord && !unsetPromotionValue(before)) || (!afterRecord && !unsetPromotionValue(after))) {
+      return [prefix];
+    }
+    const left = beforeRecord ? (before as Record<string, unknown>) : {};
+    const right = afterRecord ? (after as Record<string, unknown>) : {};
+    return [...new Set([...Object.keys(left), ...Object.keys(right)])].flatMap((key) =>
+      changedPromotionLeafPaths(left[key], right[key], prefix ? `${prefix}.${key}` : key),
+    );
+  }
+  return samePromotionValue(before, after) ? [] : [prefix];
+}
+
+function getPromotionValue(value: Record<string, unknown>, dottedPath: string): unknown {
+  return dottedPath.split(".").reduce<unknown>((current, segment) => {
+    if (!current || typeof current !== "object" || Array.isArray(current)) return undefined;
+    return (current as Record<string, unknown>)[segment];
+  }, value);
+}
+
+function requireCompleteCheckpoint(
+  planPath: string,
+  checkpointPath: string,
+  lock: ReleaseLock,
+): { plan: Record<string, unknown> & { transactions: unknown[] }; evidence: Array<Record<string, unknown>> } {
+  if (!fs.existsSync(planPath) || !fs.existsSync(checkpointPath)) {
+    throw new Error(`Verified resume promotion is missing its reviewed plan/checkpoint: ${planPath}`);
+  }
+  const plan = readJson<Record<string, unknown> & { transactions: unknown[] }>(planPath);
+  const checkpoint = readJson<Record<string, unknown>>(checkpointPath);
+  const evidence = (checkpoint.completed ?? checkpoint.verifiedBoundaries) as
+    | Array<Record<string, unknown>>
+    | undefined;
+  if (
+    !Array.isArray(plan.transactions) ||
+    !Array.isArray(evidence) ||
+    evidence.length !== plan.transactions.length ||
+    plan.releaseId !== lock.releaseId ||
+    (plan.manifestHash !== undefined && plan.manifestHash !== lock.manifestHash) ||
+    (plan.releaseManifestHash !== undefined && plan.releaseManifestHash !== lock.manifestHash) ||
+    (plan.sourceCommit !== undefined && plan.sourceCommit !== lock.sourceCommit) ||
+    (plan.releaseSourceCommit !== undefined && plan.releaseSourceCommit !== lock.sourceCommit) ||
+    (checkpoint.releaseId !== undefined && checkpoint.releaseId !== lock.releaseId) ||
+    (checkpoint.manifestHash !== undefined && checkpoint.manifestHash !== lock.manifestHash) ||
+    (checkpoint.releaseManifestHash !== undefined && checkpoint.releaseManifestHash !== lock.manifestHash) ||
+    (checkpoint.stage !== undefined && checkpoint.stage !== plan.stage) ||
+    (checkpoint.network !== undefined && checkpoint.network !== plan.network) ||
+    (checkpoint.lastVerifiedStep !== undefined && checkpoint.lastVerifiedStep !== evidence.length)
+  ) {
+    throw new Error(`Verified resume promotion has incomplete or mismatched evidence: ${planPath}`);
+  }
+  for (const [offset, item] of evidence.entries()) {
+    const cursor = item.step ?? item.index;
+    const boundary = plan.transactions[offset] as Record<string, unknown>;
+    if (
+      cursor !== offset + 1 ||
+      (item.label !== undefined && boundary.label !== undefined && item.label !== boundary.label) ||
+      (item.expectedNonce !== undefined && boundary.nonce !== undefined && item.expectedNonce !== boundary.nonce) ||
+      typeof item.transactionHash !== "string" ||
+      !/^0x[0-9a-f]{64}$/iu.test(item.transactionHash) ||
+      !Number.isSafeInteger(Number(item.blockNumber)) ||
+      Number(item.blockNumber) <= 0
+    ) {
+      throw new Error(`Verified resume checkpoint is not one contiguous receipt-backed prefix: ${checkpointPath}`);
+    }
+  }
+  if (typeof checkpoint.planHash === "string") {
+    const planHash = keccak256(toUtf8Bytes(`${JSON.stringify(plan, null, 2)}\n`));
+    if (checkpoint.planHash !== planHash) throw new Error(`Verified resume checkpoint belongs to another plan`);
+  }
+  return { plan, evidence };
+}
+
+function addExpectedStagePromotions(
+  expected: Map<string, unknown>,
+  lock: ReleaseLock,
+  stage: ReleaseStage,
+  evidence: Array<Record<string, unknown>>,
+): void {
+  for (const identity of lock.identities.filter((item) => item.stage === stage)) {
+    if (identity.kind === "library") {
+      const root = stage === "pooling" ? "poolingLibraries" : "settlementLibraries";
+      expected.set(`${root}.${identity.name}`, identity.address);
+      continue;
+    }
+    const name = `${identity.name[0].toLowerCase()}${identity.name.slice(1)}`;
+    expected.set(identity.kind === "implementation" ? `${name}Impl` : name, identity.address);
+    if (
+      identity.kind === "proxy" &&
+      (identity.name === "SettlementModule" || identity.name === "CeloSettlementExecutor")
+    ) {
+      const receipt = evidence.find((item) => item.label === `proxy:${identity.name}`);
+      if (!receipt) throw new Error(`Verified ${identity.name} proxy receipt is missing`);
+      expected.set(`releaseReceipts.${name}.transactionHash`, receipt.transactionHash);
+      expected.set(`releaseReceipts.${name}.blockNumber`, Number(receipt.blockNumber));
+    }
+  }
+}
+
+export function assertVerifiedResumePromotions(
+  candidateCommit: string,
+  repositoryRoot: string,
+  dirtyPaths: string[],
+): void {
+  const manifest = loadReleaseManifest();
+  const lock = buildReleaseLock(manifest);
+  const expectedByArtifact = new Map<string, Map<string, unknown>>([
+    ["packages/contracts/deployments/42161-latest.json", new Map()],
+    ["packages/contracts/deployments/42220-latest.json", new Map()],
+  ]);
+  const releaseRoot = path.join(CONTRACTS_ROOT, `.generated/release/${manifest.releaseId}`);
+  for (const [stage, network] of [
+    ["pooling", "arbitrum"],
+    ["settlement-module", "arbitrum"],
+    ["credit-registry", "arbitrum"],
+    ["settlement-executor", "celo"],
+  ] as const) {
+    const directory = path.join(releaseRoot, network);
+    const planPath = path.join(directory, `${stage}-transaction-plan.json`);
+    const checkpointPath = path.join(directory, `${stage}-checkpoint.json`);
+    if (
+      !fs.existsSync(planPath) ||
+      !fs.existsSync(checkpointPath) ||
+      completedBoundaries(planPath, checkpointPath) !== readJson<JsonPlan>(planPath).transactions.length
+    ) {
+      continue;
+    }
+    const { evidence } = requireCompleteCheckpoint(planPath, checkpointPath, lock);
+    addExpectedStagePromotions(
+      expectedByArtifact.get(
+        network === "arbitrum"
+          ? "packages/contracts/deployments/42161-latest.json"
+          : "packages/contracts/deployments/42220-latest.json",
+      )!,
+      lock,
+      stage,
+      evidence,
+    );
+  }
+  const arbitrumExpected = expectedByArtifact.get("packages/contracts/deployments/42161-latest.json")!;
+  for (const mode of ["preparation", "finalization"] as const) {
+    const directory = path.join(CONTRACTS_ROOT, `.generated/release-schemas/${mode}`);
+    const planPath = path.join(directory, `42161-${mode}-transaction-plan.json`);
+    const checkpointPath = path.join(directory, `42161-${mode}-transaction-plan.checkpoint.json`);
+    if (
+      !fs.existsSync(planPath) ||
+      !fs.existsSync(checkpointPath) ||
+      completedBoundaries(planPath, checkpointPath) !== readJson<JsonPlan>(planPath).transactions.length
+    ) {
+      continue;
+    }
+    const { plan } = requireCompleteCheckpoint(planPath, checkpointPath, lock);
+    if (mode === "preparation") {
+      arbitrumExpected.set("testimonyResolver", plan.testimonyResolver);
+      arbitrumExpected.set("testimonyResolverImpl", plan.testimonyResolverImpl);
+    }
+    for (const schema of (plan.schemas ?? []) as Array<Record<string, unknown>>) {
+      const key = String(schema.key);
+      const uidKey = key === "assessmentV3" ? "assessmentV3SchemaUID" : "communityTestimonySchemaUID";
+      arbitrumExpected.set(`schemas.${uidKey}`, schema.uid);
+      arbitrumExpected.set(`schemas.${key}Schema`, schema.schema);
+      arbitrumExpected.set(`schemas.${key}Name`, schema.name);
+      arbitrumExpected.set(`schemas.${key}Description`, schema.description);
+    }
+  }
+  for (const artifactPath of dirtyPaths) {
+    const expected = expectedByArtifact.get(artifactPath);
+    if (!expected) throw new Error(`Release resume artifact is not allowlisted: ${artifactPath}`);
+    const baseline = JSON.parse(
+      execFileSync("git", ["show", `${candidateCommit}:${artifactPath}`], { cwd: repositoryRoot, encoding: "utf8" }),
+    ) as Record<string, unknown>;
+    const current = readJson<Record<string, unknown>>(path.join(repositoryRoot, artifactPath));
+    for (const changedPath of changedPromotionLeafPaths(baseline, current)) {
+      if (!expected.has(changedPath)) throw new Error(`Release resume changed an unowned key: ${changedPath}`);
+      const before = getPromotionValue(baseline, changedPath);
+      const after = getPromotionValue(current, changedPath);
+      if (!unsetPromotionValue(before) || !samePromotionValue(after, expected.get(changedPath))) {
+        throw new Error(`Release resume key ${changedPath} is not an exact receipt-backed promotion`);
+      }
+    }
+  }
 }
 
 function defaultCheckpointPath(planPath: string): string {
@@ -430,6 +714,8 @@ function runAutomatedBunCommand(
   allowedMutations: ReadonlySet<string> = AUTOMATED_RELEASE_MUTATIONS,
 ): void {
   assertAutomatedPinnedCheckout(candidateCommit, REPOSITORY_ROOT, allowedMutations);
+  const beforeDirty = automatedDirtyPaths(REPOSITORY_ROOT);
+  if (beforeDirty.length > 0) assertVerifiedResumePromotions(candidateCommit, REPOSITORY_ROOT, beforeDirty);
   console.log(`\n▶ ${script}${args.length > 0 ? ` ${args.join(" ")}` : ""}`);
   const manifest = loadReleaseManifest();
   const result = spawnSync("bun", ["run", script, ...args], {
@@ -447,6 +733,8 @@ function runAutomatedBunCommand(
   });
   if (result.status !== 0) throw new Error(`${script} failed; release automation stopped`);
   assertAutomatedPinnedCheckout(candidateCommit, REPOSITORY_ROOT, allowedMutations);
+  const afterDirty = automatedDirtyPaths(REPOSITORY_ROOT);
+  if (afterDirty.length > 0) assertVerifiedResumePromotions(candidateCommit, REPOSITORY_ROOT, afterDirty);
 }
 
 async function pendingNonce(network: "arbitrum" | "celo", sender: string): Promise<number> {

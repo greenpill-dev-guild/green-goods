@@ -176,6 +176,8 @@
     "contracts:pooling:upgrade:arbitrum": "APP_ENV=development FOUNDRY_KEYSTORE_ACCOUNT=green-goods-deployer PINATA_JWT= PINATA_GATEWAY= SENDER_ADDRESS=0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6 bun run --cwd packages/contracts pooling:upgrade:arbitrum",
     "contracts:pooling:backfill:dry:arbitrum": "APP_ENV=development bun run --cwd packages/contracts pooling:backfill:dry:arbitrum",
     "contracts:pooling:backfill:arbitrum": "APP_ENV=development bun run --cwd packages/contracts pooling:backfill:arbitrum",
+    "contracts:release:backfill:all": "APP_ENV=development bun run --cwd packages/contracts release:backfill:all",
+    "contracts:release:unpause:pooling": "APP_ENV=development bun run --cwd packages/contracts release:unpause:pooling",
     "contracts:pooling:rehearse:arbitrum-fork": "APP_ENV=development bun run --cwd packages/contracts test:fork:pooling:arbitrum",
     "contracts:settlement:verify-lane": "APP_ENV=development bun run --cwd packages/contracts test:fork:settlement-lane",
     "contracts:release:manifest": "APP_ENV=development bun run --cwd packages/contracts release:manifest",

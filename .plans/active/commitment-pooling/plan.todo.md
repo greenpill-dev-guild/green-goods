@@ -952,7 +952,12 @@ Known mis-resolutions fixed in place: `contract-spec.md` §Grassroots-Economics-
     and swap receipt evidence. Bootstrap or swap completion does not activate settlement: the
     canonical final owner threshold, Garden-bound authentication, Roles permissions, caps, peer wiring, funding,
     and value canary remain separate review and authorization gates. No broadcast is authorized by
-    this planning decision alone.
+    this planning decision alone. **Evidence clarification (2026-08-14):** generic EVM token
+    holdings cannot be enumerated from a Safe address. The script proves and records only zero
+    native balance, zero canonical G$ balance, no modules, and no guard; it explicitly records
+    arbitrary ERC-20/ERC-721/ERC-1155 inventory as not enumerated and must not describe that
+    bounded check as proof that the Safe contains no other assets. Any later value-authority
+    activation requires its own reviewed asset-inventory evidence.
 
 **Final recursive certification clarification (2026-07-25; no new decision-register entry):**
 the published `42161`↔`42220` production lane is the only required fully paired

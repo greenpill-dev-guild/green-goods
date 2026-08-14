@@ -6,6 +6,7 @@ import {
   type OwnershipCheckpoint,
   type OwnershipTransferPlan,
   type ReleaseCheckpoint,
+  releaseReceiptForIndexer,
   retryPostStateVerification,
   validateOwnershipCheckpointPrefix,
   validateReleaseCheckpointPrefix,
@@ -163,6 +164,26 @@ describe("release CLI real entrypoints", () => {
     expect(() => parseCastTransactionHash(`${TRANSACTION_HASH} ${`0x${"b".repeat(64)}`}`, "test boundary")).toThrow(
       /no unique transaction hash/,
     );
+  });
+
+  it("requires a durable exact proxy receipt before producing an indexer start block", () => {
+    expect(
+      releaseReceiptForIndexer(
+        {
+          releaseReceipts: {
+            settlementModule: { transactionHash: TRANSACTION_HASH, blockNumber: 493971677 },
+          },
+        },
+        "settlementModule",
+      ),
+    ).toEqual({ transactionHash: TRANSACTION_HASH, blockNumber: 493971677 });
+    expect(() => releaseReceiptForIndexer({}, "settlementModule")).toThrow(/has no settlementModule proxy receipt/);
+    expect(() =>
+      releaseReceiptForIndexer(
+        { releaseReceipts: { settlementModule: { transactionHash: TRANSACTION_HASH, blockNumber: 0 } } },
+        "settlementModule",
+      ),
+    ).toThrow(/receipt is invalid/);
   });
 
   it("replays a pure stage plan with the exact CLI salt and never mutates canonical artifacts", () => {
