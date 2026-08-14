@@ -127,6 +127,31 @@
       "expect": "review"
     },
     {
+      "id": "resolve-pr-comments-01",
+      "query": "Address every unresolved review comment on PR #482 and fix the similar instances the reviewer may have missed",
+      "expect": "resolve-pr-comments"
+    },
+    {
+      "id": "resolve-pr-comments-02",
+      "query": "The reviewer found swallowed errors in one mutation hook. Validate the comment, sweep the other mutation hooks for the same issue, and fix the approved cases",
+      "expect": "resolve-pr-comments"
+    },
+    {
+      "id": "resolve-pr-comments-03",
+      "query": "Check which GitHub review threads still apply at the current PR head, implement the actionable feedback, and leave the stale ones alone",
+      "expect": "resolve-pr-comments"
+    },
+    {
+      "id": "resolve-pr-comments-04",
+      "query": "PR #482 has a Request changes review with feedback only in the review body. Address that feedback even though there are no inline comments",
+      "expect": "resolve-pr-comments"
+    },
+    {
+      "id": "resolve-pr-comments-neg-01",
+      "query": "The product brief changed. Please implement the requested changes to the onboarding copy",
+      "expect": "none"
+    },
+    {
       "id": "audit-01",
       "query": "Is the repo healthy? Feels like there's drift and dead code accumulating across packages",
       "expect": "audit"
