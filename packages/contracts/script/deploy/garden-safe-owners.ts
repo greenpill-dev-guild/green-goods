@@ -20,9 +20,9 @@ import {
   zeroPadValue,
 } from "ethers";
 import { execCastCaptured, parseCastTransactionHash } from "../utils/cast-env";
-import { retryRpcAvailability } from "../utils/rpc-retry";
 import { NetworkManager } from "../utils/network";
 import { buildReleaseLock, loadReleaseManifest, type ReleaseManifest } from "../utils/release-manifest";
+import { retryRpcAvailability } from "../utils/rpc-retry";
 
 const CONTRACTS_ROOT = path.join(__dirname, "../..");
 const REPOSITORY_ROOT = path.join(CONTRACTS_ROOT, "../..");
@@ -749,7 +749,7 @@ async function buildBootstrapPlan(inventoryPath: string): Promise<BootstrapPlan>
   };
 }
 
-function validateBootstrapPlan(plan: BootstrapPlan, inventoryPath: string): void {
+export function validateBootstrapPlan(plan: BootstrapPlan, inventoryPath: string): void {
   const manifest = loadReleaseManifest();
   const lock = buildReleaseLock(manifest);
   const inventory = validateInventory(inventoryPath, manifest, lock.manifestHash);
@@ -937,7 +937,7 @@ async function buildSwapPlan(
   };
 }
 
-function validateSwapPlan(
+export function validateSwapPlan(
   plan: SwapPlan,
   bootstrapPath: string,
   inventoryPath: string,

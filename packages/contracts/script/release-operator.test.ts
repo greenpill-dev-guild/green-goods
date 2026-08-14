@@ -10,6 +10,7 @@ import {
   assertAutomatedPinnedCheckout,
   assertAutomatedResumeStart,
   assertAutomatedSessionStart,
+  assertGardenSafeSessionStart,
   assertPinnedCheckout,
   assertPlanCanResume,
   type CompleteSequenceAuthorization,
@@ -20,6 +21,7 @@ import {
   parseSessionOptions,
   planBoundaryExecutionSteps,
   RELEASE_OPERATOR_COMMANDS,
+  shouldGenerateReviewedPlan,
   tokenizeOperatorCommand,
   validateCompleteSequenceAuthorization,
 } from "./release-operator";
@@ -119,6 +121,39 @@ describe("release operator session", () => {
     expect(() => assertAutomatedPinnedCheckout(candidate, repository, allowed)).toThrow(/concurrent checkout drift/);
   });
 
+  it("allows only an exactly verified Garden Safe artifact between bootstrap and owner swap", () => {
+    const repository = fs.mkdtempSync(path.join(os.tmpdir(), "garden-safe-operator-repository-"));
+    temporaryDirectories.push(repository);
+    const git = (args: string[]) =>
+      execFileSync("git", args, { cwd: repository, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }).trim();
+    git(["init"]);
+    git(["config", "user.name", "Release Operator Test"]);
+    git(["config", "user.email", "release-operator@example.invalid"]);
+    git(["config", "commit.gpgsign", "false"]);
+    fs.writeFileSync(path.join(repository, "reviewed.txt"), "reviewed\n");
+    git(["add", "reviewed.txt"]);
+    git(["commit", "-m", "test: freeze candidate"]);
+    const candidate = git(["rev-parse", "HEAD"]);
+    const artifact = "packages/contracts/deployments/42220-settlement-safes.json";
+    fs.mkdirSync(path.dirname(path.join(repository, artifact)), { recursive: true });
+    fs.writeFileSync(path.join(repository, artifact), '{"stage":"bootstrap"}\n');
+    const validated: string[][] = [];
+
+    expect(() =>
+      assertGardenSafeSessionStart(
+        candidate,
+        repository,
+        (_candidate, _root, dirtyPaths) => validated.push(dirtyPaths),
+        new Set([artifact]),
+      ),
+    ).not.toThrow();
+    expect(validated).toEqual([[artifact]]);
+    fs.appendFileSync(path.join(repository, "reviewed.txt"), "drift\n");
+    expect(() => assertGardenSafeSessionStart(candidate, repository, () => undefined, new Set([artifact]))).toThrow(
+      /concurrent checkout drift/,
+    );
+  });
+
   it("binds one-command deployment to the exact reviewed sequence authorization", () => {
     const authorization: CompleteSequenceAuthorization = {
       schemaVersion: 1,
@@ -197,6 +232,20 @@ describe("release operator session", () => {
     expect(planBoundaryExecutionSteps(planPath, checkpointPath)).toEqual([1, 2, 3]);
     expect(() => assertPlanCanResume(planPath, checkpointPath, 41)).not.toThrow();
     expect(() => assertPlanCanResume(planPath, checkpointPath, 40)).toThrow(/next reviewed nonce is 41/);
+  });
+
+  it("preserves an uncheckpointed reviewed plan when the live nonce has advanced", () => {
+    const directory = fs.mkdtempSync(path.join(os.tmpdir(), "release-plan-preservation-"));
+    temporaryDirectories.push(directory);
+    const planPath = path.join(directory, "pooling-transaction-plan.json");
+    const checkpointPath = path.join(directory, "pooling-checkpoint.json");
+    const plan = `${JSON.stringify({ expectedNonce: 80, transactions: [{ nonce: 80 }] }, null, 2)}\n`;
+    fs.writeFileSync(planPath, plan);
+
+    expect(shouldGenerateReviewedPlan(planPath, checkpointPath, 80)).toBe(false);
+    expect(() => shouldGenerateReviewedPlan(planPath, checkpointPath, 81)).toThrow(/reviewed nonce is 80/);
+    expect(fs.readFileSync(planPath, "utf8")).toBe(plan);
+    expect(shouldGenerateReviewedPlan(path.join(directory, "missing.json"), checkpointPath, 81)).toBe(true);
   });
 
   it("replays a completed final boundary and rejects a cursor-only checkpoint", () => {

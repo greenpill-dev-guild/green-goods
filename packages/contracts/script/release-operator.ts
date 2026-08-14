@@ -7,6 +7,15 @@ import * as path from "node:path";
 import { createInterface } from "node:readline/promises";
 import * as dotenv from "dotenv";
 import { getAddress, JsonRpcProvider, keccak256, toUtf8Bytes } from "ethers";
+import {
+  type BootstrapPlan,
+  buildBootstrapDeploymentArtifact,
+  buildSwappedDeploymentArtifact,
+  type Checkpoint,
+  type SwapPlan,
+  validateBootstrapPlan,
+  validateSwapPlan,
+} from "./deploy/garden-safe-owners";
 import { NetworkManager } from "./utils/network";
 import {
   buildReleaseLock,
@@ -24,6 +33,8 @@ const AUTOMATED_RELEASE_MUTATIONS = new Set([
   "packages/contracts/deployments/42161-latest.json",
   "packages/contracts/deployments/42220-latest.json",
 ]);
+const GARDEN_SAFE_ARTIFACT_PATH = "packages/contracts/deployments/42220-settlement-safes.json";
+const GARDEN_SAFE_ARTIFACT_MUTATIONS = new Set([GARDEN_SAFE_ARTIFACT_PATH]);
 const COMPLETE_SEQUENCE_AUTHORIZATION_PATH = path.join(
   CONTRACTS_ROOT,
   "config/commitment-pooling-release-automation-authorization.json",
@@ -436,6 +447,88 @@ export function assertAutomatedResumeStart(
   if (dirty.length > 0) validatePromotions(candidateCommit, repositoryRoot, dirty);
 }
 
+function requireCompleteGardenSafeCheckpoint(planPath: string, plan: BootstrapPlan | SwapPlan): Checkpoint {
+  const checkpointPath = defaultCheckpointPath(planPath);
+  if (!fs.existsSync(planPath) || !fs.existsSync(checkpointPath)) {
+    throw new Error(`Garden Safe artifact is missing its reviewed plan/checkpoint: ${planPath}`);
+  }
+  const checkpoint = readJson<Checkpoint>(checkpointPath);
+  const planHash = keccak256(toUtf8Bytes(fs.readFileSync(planPath, "utf8")));
+  if (
+    checkpoint.schemaVersion !== 1 ||
+    checkpoint.planHash !== planHash ||
+    checkpoint.completed.length !== plan.entries.length
+  ) {
+    throw new Error(`Garden Safe artifact lacks complete receipt-backed evidence: ${checkpointPath}`);
+  }
+  for (const [offset, evidence] of checkpoint.completed.entries()) {
+    const boundary = plan.entries[offset];
+    if (
+      evidence.index !== offset + 1 ||
+      getAddress(evidence.safe) !== getAddress(boundary.safe) ||
+      getAddress(evidence.garden) !== getAddress(boundary.garden) ||
+      !/^0x[0-9a-f]{64}$/iu.test(evidence.transactionHash) ||
+      !Number.isSafeInteger(evidence.blockNumber) ||
+      evidence.blockNumber < 1
+    ) {
+      throw new Error(`Garden Safe checkpoint boundary ${offset + 1} was modified`);
+    }
+  }
+  return checkpoint;
+}
+
+export function assertVerifiedGardenSafePromotion(
+  _candidateCommit: string,
+  repositoryRoot: string,
+  dirtyPaths: string[],
+): void {
+  if (dirtyPaths.length !== 1 || dirtyPaths[0] !== GARDEN_SAFE_ARTIFACT_PATH) {
+    throw new Error(`Garden Safe ceremony detected unrelated checkout drift: ${dirtyPaths.join(", ")}`);
+  }
+  const contractsRoot = path.join(repositoryRoot, "packages/contracts");
+  const runtimeRoot = path.join(contractsRoot, ".generated/runtime");
+  const inventoryPath = path.join(runtimeRoot, "42161-pool-backfill.json");
+  const bootstrapPath = path.join(runtimeRoot, "42220-garden-safe-bootstrap.json");
+  const swapPath = path.join(runtimeRoot, "42220-garden-safe-owner-swap.json");
+  const replacementsPath = path.join(runtimeRoot, "42220-garden-safe-replacements.json");
+  const artifactPath = path.join(repositoryRoot, GARDEN_SAFE_ARTIFACT_PATH);
+  if (!fs.existsSync(artifactPath) || !fs.existsSync(bootstrapPath)) {
+    throw new Error("Garden Safe promotion is missing its canonical artifact or bootstrap plan");
+  }
+
+  const bootstrap = readJson<BootstrapPlan>(bootstrapPath);
+  validateBootstrapPlan(bootstrap, inventoryPath);
+  const bootstrapCheckpoint = requireCompleteGardenSafeCheckpoint(bootstrapPath, bootstrap);
+  let expected = buildBootstrapDeploymentArtifact(bootstrap, bootstrapCheckpoint);
+
+  if (fs.existsSync(swapPath) && fs.existsSync(defaultCheckpointPath(swapPath))) {
+    const swap = readJson<SwapPlan>(swapPath);
+    const swapCheckpoint = readJson<Checkpoint>(defaultCheckpointPath(swapPath));
+    if (swapCheckpoint.completed.length === swap.entries.length) {
+      validateSwapPlan(swap, bootstrapPath, inventoryPath, replacementsPath);
+      const completeSwapCheckpoint = requireCompleteGardenSafeCheckpoint(swapPath, swap);
+      expected = buildSwappedDeploymentArtifact(swap, bootstrap, bootstrapCheckpoint, completeSwapCheckpoint);
+    }
+  }
+
+  const current = readJson<unknown>(artifactPath);
+  const changedPaths = changedPromotionLeafPaths(expected, current).filter(Boolean);
+  if (changedPaths.length > 0) {
+    throw new Error(`Garden Safe artifact differs from receipt-backed evidence: ${changedPaths.join(", ")}`);
+  }
+}
+
+export function assertGardenSafeSessionStart(
+  candidateCommit: string,
+  repositoryRoot = REPOSITORY_ROOT,
+  validatePromotion: (candidate: string, root: string, paths: string[]) => void = assertVerifiedGardenSafePromotion,
+  allowedMutations: ReadonlySet<string> = GARDEN_SAFE_ARTIFACT_MUTATIONS,
+): void {
+  assertAutomatedPinnedCheckout(candidateCommit, repositoryRoot, allowedMutations);
+  const dirty = automatedDirtyPaths(repositoryRoot);
+  if (dirty.length > 0) validatePromotion(candidateCommit, repositoryRoot, dirty);
+}
+
 interface JsonPlan {
   contract?: string;
   authority?: string;
@@ -779,11 +872,17 @@ export function assertPlanCanResume(planPath: string, checkpointPath: string, li
     const nextNonce = plannedNonce(plan.transactions[completed]?.nonce);
     if (nextNonce !== liveNonce) {
       throw new Error(
-        `Cannot resume ${path.basename(planPath)}: next reviewed nonce is ${nextNonce}, live pending nonce is ${liveNonce}`,
+        `Cannot resume ${path.basename(planPath)}: next reviewed nonce is ${nextNonce}, live pending nonce is ${liveNonce}. Preserve this plan and recover the mined boundary with --receipt; do not regenerate it`,
       );
     }
   }
   return plan;
+}
+
+export function shouldGenerateReviewedPlan(planPath: string, checkpointPath: string, liveNonce: number): boolean {
+  if (!fs.existsSync(planPath)) return true;
+  assertPlanCanResume(planPath, checkpointPath, liveNonce);
+  return false;
 }
 
 function runPlanBoundaries(
@@ -829,11 +928,9 @@ async function ensureUpgradeStage(
     return;
   }
   const nonce = await pendingNonce("arbitrum", sender);
-  if (!planPath || completedBoundaries(planPath) === 0) {
-    if (!planPath || readJson<JsonPlan>(planPath).expectedNonce !== nonce) {
-      runAutomatedBunCommand(candidateCommit, passwordFile, planScript, ["--expected-nonce", String(nonce)]);
-      planPath = latestUpgradePlan(contract);
-    }
+  if (!planPath) {
+    runAutomatedBunCommand(candidateCommit, passwordFile, planScript, ["--expected-nonce", String(nonce)]);
+    planPath = latestUpgradePlan(contract);
   }
   if (!planPath) throw new Error(`${contract} transaction plan was not generated`);
   assertPlanCanResume(planPath, defaultCheckpointPath(planPath), nonce);
@@ -854,10 +951,8 @@ async function ensureSchemaStage(
   }
   const sender = loadReleaseManifest().ownership.deploymentSender;
   const nonce = await pendingNonce("arbitrum", sender);
-  if (!fs.existsSync(planPath) || completedBoundaries(planPath) === 0) {
-    if (!fs.existsSync(planPath) || readJson<JsonPlan>(planPath).expectedNonce !== nonce) {
-      runAutomatedBunCommand(candidateCommit, passwordFile, planScript, ["--expected-nonce", String(nonce)]);
-    }
+  if (shouldGenerateReviewedPlan(planPath, defaultCheckpointPath(planPath), nonce)) {
+    runAutomatedBunCommand(candidateCommit, passwordFile, planScript, ["--expected-nonce", String(nonce)]);
   }
   assertPlanCanResume(planPath, defaultCheckpointPath(planPath), nonce);
   runPlanBoundaries(candidateCommit, passwordFile, broadcastScript, "--artifact", planPath);
@@ -893,11 +988,10 @@ async function ensureReleaseStage(
     return;
   }
   const liveNonce = await pendingNonce(network, manifest.ownership.deploymentSender);
-  if (completed === 0) {
+  if (shouldGenerateReviewedPlan(planPath, checkpointPath, liveNonce)) {
     runAutomatedBunCommand(candidateCommit, passwordFile, planScript, ["--expected-nonce", String(liveNonce)]);
-  } else {
-    assertPlanCanResume(planPath, checkpointPath, liveNonce);
   }
+  assertPlanCanResume(planPath, checkpointPath, liveNonce);
   const plan = readJson<JsonPlan>(planPath);
   completed = completedBoundaries(planPath, checkpointPath);
   for (const step of planBoundaryExecutionSteps(planPath, checkpointPath)) {
@@ -989,8 +1083,11 @@ async function runAutomatedPoolBackfill(candidateCommit: string, passwordFile: s
   const planPath = backfillPlanPath();
   const checkpointPath = planPath.replace(/\.json$/u, ".checkpoint.json");
   const completed = fs.existsSync(checkpointPath) ? completedBoundaries(planPath) : 0;
-  if (completed === 0) {
+  if (!fs.existsSync(planPath)) {
     runAutomatedBunCommand(candidateCommit, passwordFile, "pooling:backfill:dry:arbitrum");
+  } else if (completed === 0) {
+    const liveNonce = await pendingNonce("arbitrum", loadReleaseManifest().ownership.deploymentSender);
+    assertPlanCanResume(planPath, checkpointPath, liveNonce);
   }
   if (!fs.existsSync(planPath)) throw new Error("Deployer pool-backfill plan was not generated");
   const plan = readJson<JsonPlan>(planPath);
@@ -1097,7 +1194,7 @@ async function runSession(candidateCommit: string, options: SessionOptions): Pro
   const automated = options.deployAll || options.backfillAll || options.unpausePooling;
   if (options.deployAll) assertAutomatedSessionStart(candidateCommit);
   else if (automated) assertAutomatedResumeStart(candidateCommit);
-  else assertPinnedCheckout(candidateCommit);
+  else assertGardenSafeSessionStart(candidateCommit);
   const manifest = loadReleaseManifest();
   const password = await readHiddenPassword();
   const lease = createPasswordLease(password);
@@ -1141,7 +1238,9 @@ async function runSession(candidateCommit: string, options: SessionOptions): Pro
         }
         const command = assertAllowedOperatorCommand(tokenizeOperatorCommand(line));
         console.log(`Running Bun wrapper: ${command.script} ${command.args.join(" ")}`.trim());
-        assertPinnedCheckout(candidateCommit);
+        const gardenSafeCommand = command.script.startsWith("settlement:garden-safes:");
+        if (gardenSafeCommand) assertGardenSafeSessionStart(candidateCommit);
+        else assertPinnedCheckout(candidateCommit);
         const result = spawnSync("bun", ["run", command.script, ...command.args], {
           cwd: CONTRACTS_ROOT,
           stdio: "inherit",
@@ -1158,6 +1257,7 @@ async function runSession(candidateCommit: string, options: SessionOptions): Pro
         if (result.status !== 0) {
           throw new Error(`Bun wrapper ${command.script} failed; the credential session is closed`);
         }
+        if (gardenSafeCommand) assertGardenSafeSessionStart(candidateCommit);
         console.log("Boundary returned successfully. Confirm its receipt/checkpoint before entering another command.");
       }
     } finally {
