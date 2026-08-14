@@ -3,7 +3,7 @@
 > Sub-file of the [clean skill](./SKILL.md). Verbatim prompts for the two Codex review
 > lanes dispatched via `.claude/scripts/dispatch-codex-lane.sh` — load at dispatch time.
 
-## Lane R — Regression hunt (diff-scoped, `--phase regression`)
+## Lane R — Regression hunt (diff-scoped, `--branch chore/cleanup-regression-review`)
 
 ```
 You are reviewing the merged diff between $BASE_BRANCH and the approved implementation
@@ -32,7 +32,7 @@ Honor these invariants from CLAUDE.md — flag if any agent broke them:
 - Single root .env (no per-package .env)
 ```
 
-## Lane G — Miss hunt (codebase-wide, `--phase gap`)
+## Lane G — Miss hunt (codebase-wide, `--branch chore/cleanup-gap-review`)
 
 ```
 The 8 cleanup lanes have just finished. Their integrated summaries are included in

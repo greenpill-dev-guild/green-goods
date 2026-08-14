@@ -3,7 +3,7 @@
 ## Lane
 
 - Owner: Claude
-- Branch: `claude/qa-pass-1/{{FEATURE_SLUG}}`
+- Branch: set when work begins using `<type>/<work-description>`
 - Status: blocked until dependencies pass
 
 ## Scope

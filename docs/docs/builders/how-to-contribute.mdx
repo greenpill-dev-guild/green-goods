@@ -82,15 +82,26 @@ Green Goods uses a **`develop` (staging) → `main` (production)** flow: branch 
 
 ### Branch naming
 
-Follow the `type/description` convention:
+Use `<type>/<work-description>`. The name describes the concrete work, not the contributor, agent, Linear issue, or implementation lane.
 
 ```
-feature/hats-v2
-bug/admin-fix
+feature/commitment-pooling-indexer
+fix/calendar-timezone-selection
 refactor/shared-hooks
 docs/architecture-update
 chore/update-dependencies
+test/commitment-pooling-settlement
+perf/indexer-query-batching
+ci/contracts-cache
+release/v1-2-1
+research/hypercert-marketplace
 ```
+
+Allowed types are `feature`, `fix`, `refactor`, `docs`, `chore`, `test`, `perf`, `ci`, `release`, and `research`. Keep the description concrete and kebab-case. Do not use `codex/`, `claude/`, `<user>/PRD-NNN-...`, or generic lane prefixes.
+
+When a PR relates to Linear, link it in the PR body with `Fixes PRD-NNN` when merge completes the issue, `Refs PRD-NNN` for partial or stacked work, or `Relates to PRD-NNN` for context.
+
+Linear may still display a generated copy-branch suggestion containing a user or issue ID. Do not use that suggestion in this repository; create the work-based branch and link the issue from the PR body.
 
 ### Commit messages
 

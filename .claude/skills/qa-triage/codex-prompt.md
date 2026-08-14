@@ -13,7 +13,7 @@ Pattern source: this repository's QA-triage skill and the rendered prompt below.
 ```bash
 CODEX="$(.claude/scripts/resolve-codex-binary.sh)"
 WORKTREE=/tmp/gg-codex-qa-<slug>
-BRANCH=codex/qa-triage/<slug>
+BRANCH=chore/qa-triage-<slug>
 NOTES_SOURCE="$(pwd)/tmp/qa-triage/<slug>/notes.md"
 
 git worktree add "$WORKTREE" -b "$BRANCH" "$(git branch --show-current)"

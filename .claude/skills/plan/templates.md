@@ -76,9 +76,9 @@
 {
   "feature": { "slug": "feature-slug", "stage": "active" },
   "lanes": {
-    "ui": { "owner": "claude", "status": "ready", "branch": "claude/ui/feature-slug" },
-    "state_api": { "owner": "codex", "status": "ready", "branch": "codex/state-api/feature-slug" },
-    "contracts": { "owner": "codex", "status": "n/a", "branch": "codex/contracts/feature-slug" },
+    "ui": { "owner": "claude", "status": "ready", "branch": "feature/profile-avatar-editor" },
+    "state_api": { "owner": "codex", "status": "ready", "branch": "feature/profile-avatar-storage" },
+    "contracts": { "owner": "codex", "status": "n/a", "branch": null },
     "qa_pass_1": { "owner": "claude", "status": "blocked", "depends_on": ["ui", "state_api", "contracts"] },
     "qa_pass_2": { "owner": "codex", "status": "blocked", "depends_on": ["qa_pass_1"] }
   }

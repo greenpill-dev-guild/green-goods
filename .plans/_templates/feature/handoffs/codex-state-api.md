@@ -3,7 +3,7 @@
 ## Lane
 
 - Owner: Codex
-- Branch: `codex/state-api/{{FEATURE_SLUG}}`
+- Branch: set when work begins using `<type>/<work-description>`
 - Status: pending implementation
 
 ## Scope

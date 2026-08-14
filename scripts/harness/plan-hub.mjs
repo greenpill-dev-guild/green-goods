@@ -16,6 +16,8 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import * as yaml from "js-yaml";
 
+import { isWorkBranchName } from "../quality/branch-name-policy.mjs";
+
 const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(SCRIPT_DIR, "../..");
 const PLANS_ROOT = join(REPO_ROOT, ".plans");
@@ -124,13 +126,7 @@ const LANE_ALIASES = {
   "qa-pass-2": "qa_pass_2",
   qa_pass_2: "qa_pass_2",
 };
-const LANE_BRANCHES = {
-  ui: (slug) => `claude/ui/${slug}`,
-  state_api: (slug) => `codex/state-api/${slug}`,
-  contracts: (slug) => `codex/contracts/${slug}`,
-  qa_pass_1: (slug) => `claude/qa-pass-1/${slug}`,
-  qa_pass_2: (slug) => `codex/qa-pass-2/${slug}`,
-};
+const CANONICAL_LANES = ["ui", "state_api", "contracts", "qa_pass_1", "qa_pass_2"];
 const LINEAR_SYNC_DIRECTION = "plans_to_linear_visibility";
 const LINEAR_LANE_SYNC_MODES = new Set(["lane_issues", "parent_only"]);
 const DEFAULT_LINEAR_LANE_SYNC_MODE = "lane_issues";
@@ -897,7 +893,6 @@ function buildLinearLaneDescription(status, laneName, lane) {
     `Source plan: \`${source}\``,
     `Lane: \`${laneName}\``,
     `Owner: \`${lane.owner || "unassigned"}\``,
-    `Branch signal: \`${lane.branch || "n/a"}\``,
     `Handoff: \`${lane.handoff}\``,
     "",
     "This issue mirrors an actionable plan lane for Linear visibility. Keep implementation proof, lane state, and validation evidence in `.plans/status.json` and the lane handoff.",
@@ -986,7 +981,6 @@ function buildExecutionSubLaneLinearRecord(status, laneName, lane, project, team
     labels: linearLabelsForExecutionSubLane(status, laneName, lane),
     project,
     description: buildLinearExecutionSubLaneDescription(status, laneName, lane),
-    branch: lane.branch || null,
     handoff: lane.handoff,
     dependsOn: Array.isArray(lane.depends_on) ? lane.depends_on : [],
     blockedByIssues: resolveBlockedByIssues(status, lane.depends_on),
@@ -1048,7 +1042,7 @@ function buildLinearSyncManifest(status) {
   const executionSubLanes = executionSubLanesForLinear(normalized);
   const canonicalLaneNames = executionSubLanes.length > 0
     ? ["qa_pass_1", "qa_pass_2"]
-    : Object.keys(LANE_BRANCHES);
+    : CANONICAL_LANES;
   const canonicalLanes = laneSyncMode === "parent_only"
     ? []
     : canonicalLaneNames
@@ -1080,7 +1074,6 @@ function buildLinearSyncManifest(status) {
           ),
           project,
           description: buildLinearLaneDescription(normalized, laneName, lane),
-          branch: lane.branch || null,
           handoff: lane.handoff,
           dependsOn: Array.isArray(lane.depends_on) ? lane.depends_on : [],
           blockedByIssues: resolveBlockedByIssues(normalized, lane.depends_on),
@@ -1206,7 +1199,7 @@ function validateLinear(status, errors) {
   }
 
   for (const [laneName, laneLinear] of Object.entries(linear.lanes)) {
-    if (!Object.hasOwn(LANE_BRANCHES, laneName)) {
+    if (!CANONICAL_LANES.includes(laneName)) {
       errors.push(`linear.lanes has unknown lane "${laneName}"`);
       continue;
     }
@@ -1263,7 +1256,7 @@ function validateExecutionSubLanes(status, featureDirPath, stage, errors) {
       errors.push(`execution_sub_lanes.${laneName} must be an object`);
       continue;
     }
-    if (lane.machine_lane !== null && !Object.hasOwn(LANE_BRANCHES, lane.machine_lane)) {
+    if (lane.machine_lane !== null && !CANONICAL_LANES.includes(lane.machine_lane)) {
       errors.push(`execution_sub_lanes.${laneName}.machine_lane must reference a canonical machine lane or null`);
     }
     if (!EXECUTION_SUB_LANE_OWNERS.has(lane.owner)) {
@@ -1271,6 +1264,13 @@ function validateExecutionSubLanes(status, featureDirPath, stage, errors) {
     }
     if (!VALID_LANE_STATUSES.has(lane.status)) {
       errors.push(`execution_sub_lanes.${laneName}.status is invalid`);
+    }
+    if (status.version >= 2 && lane.branch !== null && lane.branch !== undefined) {
+      if (!hasText(lane.branch)) {
+        errors.push(`execution_sub_lanes.${laneName}.branch must be a string or null`);
+      } else if (!isWorkBranchName(lane.branch)) {
+        errors.push(`execution_sub_lanes.${laneName}.branch must use <type>/<work-description>`);
+      }
     }
     if (lane.linear && lane.status === "ready" && lane.owner === "human") {
       errors.push(`execution_sub_lanes.${laneName} cannot be ready with a human owner`);
@@ -1287,7 +1287,7 @@ function validateExecutionSubLanes(status, featureDirPath, stage, errors) {
       errors.push(`execution_sub_lanes.${laneName}.depends_on must be an array of lane names`);
     } else if (Array.isArray(lane.depends_on)) {
       const unknownDependencies = lane.depends_on.filter(
-        (dependency) => !names.has(dependency) && !Object.hasOwn(LANE_BRANCHES, dependency),
+        (dependency) => !names.has(dependency) && !CANONICAL_LANES.includes(dependency),
       );
       if (unknownDependencies.length > 0) {
         errors.push(
@@ -1734,7 +1734,7 @@ function validateFeatureStatus(status, featureDirPath, stage, knownSlugs = forma
   validateExecutionSubLanes(status, featureDirPath, stage, errors);
 
   if (stage !== "archive") {
-    for (const requiredLane of Object.keys(LANE_BRANCHES)) {
+    for (const requiredLane of CANONICAL_LANES) {
       if (!status.lanes[requiredLane]) {
         errors.push(`missing lane "${requiredLane}"`);
         continue;
@@ -1745,14 +1745,11 @@ function validateFeatureStatus(status, featureDirPath, stage, knownSlugs = forma
         errors.push(`lane "${requiredLane}" has invalid status "${lane.status}"`);
       }
 
-      const expectedBranch = LANE_BRANCHES[requiredLane](slug);
-      if (lane.branch !== expectedBranch) {
-        errors.push(`lane "${requiredLane}" branch must be "${expectedBranch}"`);
+      if (lane.branch !== null && !hasText(lane.branch)) {
+        errors.push(`lane "${requiredLane}" branch must be a string or null`);
+      } else if (status.version >= 2 && hasText(lane.branch) && !isWorkBranchName(lane.branch)) {
+        errors.push(`lane "${requiredLane}" branch must use <type>/<work-description>`);
       }
-    }
-
-    if (status.lanes.qa_pass_2?.branch_trigger !== LANE_BRANCHES.qa_pass_1(slug)) {
-      errors.push(`qa_pass_2.branch_trigger must be "${LANE_BRANCHES.qa_pass_1(slug)}"`);
     }
   }
 
@@ -2348,6 +2345,10 @@ function checkBranch(flags) {
   const { status } = readFeatureStatus(found.dir);
   const lane = status.lanes[laneName];
   const branchToCheck = lane.branch_trigger || lane.branch;
+
+  if (!hasText(branchToCheck)) {
+    fail(`No branch recorded for lane: ${laneName}`);
+  }
 
   if (!branchExists(branchToCheck)) {
     fail(`Missing branch signal: ${branchToCheck}`);

@@ -57,8 +57,8 @@ Routines @mention Afo only when his action is required (via `DISCORD_USER_ID_AFO
 ## Conventions
 
 - All routine PRs target `develop`. Hotfix-style flows (same-day p2 fixes to `main`) live in the `/debug` skill, not in this folder.
-- All routine branches use `claude/<routine-name>/<topic>`.
-- Loop prevention on `pr-review`: filter on `head_branch` starting with `claude/` (NOT on author — routine PRs carry the user's GitHub author per the docs).
+- Current routines do not create branches or PRs. Any future branch-producing routine must use the repository `<type>/<work-description>` policy rather than encode the routine or model identity.
+- `pr-review` retains its `claude/*` head filter only as compatibility for legacy in-flight branches; it is not a valid naming convention for new work.
 - **Linear is the durable backlog.** GitHub is for PRs and code review only — routines never file GitHub Issues, never write to GitHub Projects, and never apply GitHub Project iteration/Sprints fields. The retired GitHub Project #4 / Bug Board flows (and the `Sprints` field they depended on) are out of scope for any active routine.
 - **Model tier:** every GG routine runs `claude-opus-5` (moved off `claude-opus-4-8[1m]` on 2026-07-26; same token price, better instruction-following and bug-finding). Each spec names its model in frontmatter, and that frontmatter is documentation of the live trigger, not a control surface: changing it does not change the running model, so re-emit the trigger and edit the spec in the same change. The guild-level tiering rationale, including the routines on `claude-fable-5`, lives in [`greenpill-dev-guild/.github` → `routines/claude/README.md`](https://github.com/greenpill-dev-guild/.github/blob/main/routines/claude/README.md).
 

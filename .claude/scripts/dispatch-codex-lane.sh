@@ -10,7 +10,7 @@ set -uo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 LANE=""
 BASE=""
-PHASE="main"
+BRANCH=""
 PROMPT=""
 PROMPT_FILE=""
 SCHEMA=""
@@ -19,18 +19,18 @@ CODEX="$("$SCRIPT_DIR/resolve-codex-binary.sh")" || exit 1
 
 usage() {
   cat >&2 <<EOF
-Usage: dispatch-codex-lane.sh --lane <slug> --base <branch> [--phase <id>] \\
+Usage: dispatch-codex-lane.sh --lane <slug> --base <branch> --branch <type/work-description> \\
          (--prompt <text> | --prompt-file <path>) [--schema <path>]
 
 Required:
   --lane         Short slug (e.g. "factory", "state"). Worktree: /tmp/gg-codex-<lane>.
-                 Branch: codex/<lane>/<phase>.
   --base         Base branch to branch off (e.g. "feature/admin-ui-revamp" or "develop").
+  --branch       Concrete work branch. Allowed types: feature, fix, refactor, docs, chore,
+                 test, perf, ci, release, research.
   --prompt       Inline prompt text, OR
   --prompt-file  Path to a prompt file.
 
 Optional:
-  --phase        Phase id (default: "main"). Sets branch suffix codex/<lane>/<phase>.
   --schema       Output schema file (default: <repo>/.codex/output-schema.json).
 
 Env overrides:
@@ -55,7 +55,7 @@ while [ $# -gt 0 ]; do
   case "$1" in
     --lane)        LANE="${2:-}"; shift 2;;
     --base)        BASE="${2:-}"; shift 2;;
-    --phase)       PHASE="${2:-}"; shift 2;;
+    --branch)      BRANCH="${2:-}"; shift 2;;
     --prompt)      PROMPT="${2:-}"; shift 2;;
     --prompt-file) PROMPT_FILE="${2:-}"; shift 2;;
     --schema)      SCHEMA="${2:-}"; shift 2;;
@@ -66,6 +66,7 @@ done
 
 [ -n "$LANE" ] || { echo "Missing --lane" >&2; usage; exit 1; }
 [ -n "$BASE" ] || { echo "Missing --base" >&2; usage; exit 1; }
+[ -n "$BRANCH" ] || { echo "Missing --branch" >&2; usage; exit 1; }
 
 if [ -n "$PROMPT" ] && [ -n "$PROMPT_FILE" ]; then
   echo "Provide --prompt OR --prompt-file, not both" >&2; exit 1
@@ -82,6 +83,8 @@ fi
 REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null)" || {
   echo "Not inside a git repository" >&2; exit 1
 }
+
+node "$REPO_ROOT/scripts/quality/branch-name-policy.mjs" "$BRANCH" >/dev/null || exit 1
 
 SCHEMA="${SCHEMA:-$REPO_ROOT/.codex/output-schema.json}"
 [ -f "$SCHEMA" ] || { echo "Schema not found: $SCHEMA" >&2; exit 1; }
@@ -115,7 +118,6 @@ git show-ref --verify --quiet "refs/heads/$BASE" || {
 }
 
 WORKTREE="$WORKTREE_PARENT/gg-codex-$LANE"
-BRANCH="codex/$LANE/$PHASE"
 RESULT="$WORKTREE/codex-result.md"
 
 if [ -e "$WORKTREE" ]; then
@@ -148,7 +150,6 @@ env -i "${CODEX_ENV[@]}" "$CODEX" exec \
 cat <<EOF
 {
   "lane": "$LANE",
-  "phase": "$PHASE",
   "branch": "$BRANCH",
   "base": "$BASE",
   "worktree": "$WORKTREE",

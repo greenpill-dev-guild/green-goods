@@ -3,7 +3,7 @@
 ## Lane
 
 - Owner: Codex
-- Branch: `codex/qa-pass-2/{{FEATURE_SLUG}}`
+- Branch: set when work begins using `<type>/<work-description>`
 - Status: blocked until QA Pass 1 completes
 
 ## Scope
