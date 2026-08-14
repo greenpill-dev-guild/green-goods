@@ -1,6 +1,6 @@
 ---
 name: resolve-pr-comments
-description: Resolve actionable GitHub pull request review feedback with a validate, bounded-sweep, fix, proof, and publish workflow. Use when the user asks to address, fix, clear, or resolve unresolved PR review threads, requested changes on a pull request, review-level feedback, or GitHub PR comments. Confirm feedback against the current PR head, search the changed scope and direct consumers for the same root-cause class, fix approved instances, prove recurrence is closed, then commit and push scoped fixes to the existing PR branch by default. Make GitHub replies, reviews, reactions, and thread-resolution writes only with explicit authorization.
+description: Resolve actionable GitHub pull request review feedback with a validate, bounded-sweep, fix, proof, and publish workflow. Use when the user asks to address, fix, clear, or resolve unresolved PR review threads, requested changes on a pull request, review-level feedback, or GitHub PR comments. Confirm feedback against the current PR head, search the changed scope and direct consumers for the same root-cause class, fix approved instances, prove recurrence is closed, then commit and push scoped fixes to the existing PR branch by default after the full Ship Gate passes. Make GitHub replies, reviews, reactions, and thread-resolution writes only with explicit authorization.
 ---
 
 # Resolve PR Comments
@@ -20,18 +20,22 @@ selected from [`validation-pipeline.md`](../../context/validation-pipeline.md).
 
 1. Resolve the repository and PR from the supplied URL or number. For current-branch requests,
    resolve the PR from local Git and GitHub metadata.
-2. Fetch fresh PR metadata and record the base branch, live head SHA, changed files, and local HEAD.
-   Do not rely on an earlier feedback snapshot or a stale local checkout.
-3. Inspect the working tree before editing. Preserve unrelated changes and remain on the current
-   branch unless the user explicitly authorizes a branch change.
-4. Establish an exact live-head inspection surface before classifying feedback. Use GitHub file
+2. Fetch fresh PR metadata and record its state, base branch, head branch, live head SHA, changed
+   files, and local HEAD. Require the PR to be `OPEN` before classification or editing. Report a
+   closed or merged PR as blocked; do not edit or publish commits to its former head branch.
+3. Before editing, require the writable checkout to be the tracked PR head branch at the exact live
+   head SHA. Refuse to edit or publish directly from `main`, `master`, or `develop`. If the checkout
+   is on another branch, detached, ahead, behind, or diverged, stop and request authorization to use
+   an isolated writable checkout at the live head. Do not contaminate the current branch.
+4. Inspect the working tree and index before editing. Preserve unrelated changes and do not unstage,
+   overwrite, stash, or commit another session's work.
+5. Establish an exact live-head inspection surface before classifying feedback. Use GitHub file
    contents addressed by the live SHA, `git show <live-head-sha>:<path>`, or an isolated clean
    snapshot at that SHA. Use the current checkout only after proving tree identity for every
    affected path and confirming those paths have no staged, unstaged, or untracked changes.
-5. Treat a descendant checkout separately. Classify the feedback against the exact live-head tree
-   first, then record whether descendant-only commits or working-tree changes already contain a
-   proposed fix. An ancestry check alone is not proof of live-head behavior. Do not silently switch
-   branches.
+6. Treat descendant-only commits or working-tree changes as a separate, read-only observation until
+   the branch mismatch is coordinated. Classify against the exact live-head tree first. An ancestry
+   check alone is not proof of live-head behavior or authority to edit or push the descendant.
 
 ## 2. Validate each feedback item
 
@@ -52,11 +56,17 @@ independently using `--paginate` with an `$endCursor` variable and
 and pagination completion. A flat list, first page, or unproven connector page is not sufficient for
 a complete ledger; report retrieval as blocked instead of silently omitting later feedback.
 
-Classify every feedback item:
+For inline review feedback, classify `isResolved: true` threads as `RESOLVED` before evaluating the
+underlying code. Do not reopen or modify an accepted decision unless the user explicitly asks to
+revisit resolved feedback.
 
+Classify every remaining feedback item:
+
+- `RESOLVED`: GitHub already records the inline thread as resolved; exclude it from actionable work.
 - `ACTIONABLE`: the issue still exists at the live PR head and the requested outcome is coherent.
-- `STALE`: the exact live-head tree removed the issue, the diff anchor is outdated, or a later review
-  superseded or dismissed the request.
+- `STALE`: exact live-head inspection proves the underlying concern is absent. An outdated, moved, or
+  missing diff anchor is only a relocation signal and is never sufficient by itself.
+- `SUPERSEDED`: a later authoritative review or comment explicitly replaces or dismisses the request.
 - `DUPLICATE`: another feedback item describes the same root-cause class.
 - `INFORMATIONAL`: no code or response change is requested.
 - `UNSUPPORTED`: current code, behavior, or repository requirements do not support the claimed issue.
@@ -94,9 +104,9 @@ Present a numbered ledger before editing unless the user already explicitly aske
 unresolved actionable feedback item.
 
 Interpret "fix all comments" as authorization to fix all `ACTIONABLE` feedback items and their
-approved in-scope sibling instances. On an existing PR branch, it also authorizes staging only the
-scoped files, creating a conventional commit, and pushing normally to that tracked branch after the
-required proof passes. It does not authorize:
+approved in-scope sibling instances. On a safe existing PR branch, it also authorizes staging only
+the scoped files, creating a conventional commit, and pushing normally to that tracked branch after
+the full Ship Gate passes. It does not authorize:
 
 - ambiguous or conflicting changes;
 - unrelated repository cleanup;
@@ -104,8 +114,8 @@ required proof passes. It does not authorize:
 - creating or switching branches, creating another PR, rewriting history, or force-pushing;
 - GitHub replies, reviews, reactions, or thread resolution.
 
-Surface ambiguity or scope expansion for a human decision. Keep stale, duplicate, informational,
-and unsupported feedback in the ledger so the final outcome remains traceable.
+Surface ambiguity or scope expansion for a human decision. Keep resolved, stale, superseded,
+duplicate, informational, and unsupported feedback in the ledger so the outcome remains traceable.
 
 ## 5. Fix the approved failure classes
 
@@ -120,33 +130,40 @@ Do not resolve a thread merely because a local edit exists.
 
 ## 6. Prove closure
 
-1. Run the lightest honest validation rung for the touched behavior. Escalate proof for shared,
-   cross-package, critical, or ship-readiness changes according to the repository ladder.
-2. For visible UI changes, obtain the required authenticated Brave rendered proof or report browser
+1. Run the lightest honest targeted proof for the touched behavior.
+2. When commit or push is in scope, also run the full Ship Gate from
+   [`validation-pipeline.md`](../../context/validation-pipeline.md), including every conditional
+   addition for the touched surfaces. Every required stage must pass in the current invocation
+   before committing or pushing.
+3. For visible UI changes, obtain the required authenticated Brave rendered proof or report browser
    QA as blocked.
-3. Repeat the root-cause search after all fixes. Any remaining approved manifestation keeps the
+4. Repeat the root-cause search after all fixes. Any remaining approved manifestation keeps the
    feedback cluster open.
-4. Re-read the changed code and record the exact tested state. Distinguish fixes present only in the
+5. Re-read the changed code and record the exact tested state. Distinguish fixes present only in the
    local working tree from fixes present on the live PR head.
 
-Failed or unavailable proof keeps the affected actionable feedback cluster unresolved. Do not
-publish a behavior change whose required touched-behavior proof failed. An unrelated or
-environmental broad-gate blocker does not invalidate passing scoped proof, but report it honestly
-and do not claim ship readiness.
+Failed or unavailable targeted proof keeps the affected actionable feedback cluster unresolved. A
+failed or unavailable Ship Gate blocks commit and push even when the failure appears unrelated or
+environmental. Do not bypass a failed pre-push hook with `--no-verify`. Report the blocker, fix it
+only when it is inside the locked scope, and do not claim ship readiness.
 
 ## 7. Publish, reply, and resolve safely
 
 Unless the user asks to keep changes local, finish an existing-PR feedback task by committing and
 pushing the scoped, proven fixes to the current tracked PR branch:
 
-1. Re-check that the local branch is the PR's head branch and that the live head has not changed
-   since classification. Stop for coordination if the remote advanced, the checkout is detached,
-   or the branch does not track the PR head.
-2. Stage only files attributable to the approved feedback clusters. Preserve unrelated local work.
-3. Create a conventional commit that describes the feedback fix, then push normally to the tracked
-   branch. Never force-push, rewrite history, switch branches, create another branch, or open another
-   PR without explicit authorization.
-4. Fetch the PR head again and record the pushed SHA. A local commit or successful `git push` message
+1. Re-fetch the PR and require it to remain open with the same non-protected head branch and live
+   head SHA used for classification. Stop if the remote advanced or any branch invariant changed.
+2. Define the exact path allowlist for the approved feedback clusters before staging. If
+   `git diff --cached --name-only` already contains unrelated paths, stop or move the work to an
+   authorized isolated checkout. Never unstage another session's work to make the index appear safe.
+3. Stage only the allowlisted paths, then inspect `git diff --cached --name-only` and the full cached
+   diff. Require every staged path and hunk to belong to the locked feedback scope; stop on any
+   extra path or mixed-ownership hunk.
+4. Create a conventional commit from that verified index, then push normally to the tracked PR head
+   branch. Never use `--no-verify`, force-push, rewrite history, switch branches, create another
+   branch, or open another PR without explicit authorization.
+5. Fetch the PR head again and record the pushed SHA. A local commit or successful `git push` message
    alone is not proof that the live PR contains the fix.
 
 GitHub replies, reactions, thread resolution, and review submission remain separate conversational
@@ -158,8 +175,9 @@ Before resolving an inline thread:
 2. Re-fetch the thread and ensure no newer reply or head change invalidates the conclusion.
 3. Summarize the root cause, bounded sweep, affected paths, and validation evidence concisely.
 4. Resolve only `ACTIONABLE` threads that are fixed and proven, `DUPLICATE` threads whose canonical
-   failure class is fixed and proven, or threads closed by an explicit, accurate explanation
-   accepted by the requested workflow.
+   failure class is fixed and proven, `STALE` threads whose underlying concern is proven absent at
+   the live head, or threads closed by an explicit, accurate explanation accepted by the requested
+   workflow. Leave `RESOLVED` threads untouched.
 
 Leave ambiguous, conflicting, out-of-scope, and unverified feedback open or unaddressed. Never use
 thread resolution to hide a deferred finding.
