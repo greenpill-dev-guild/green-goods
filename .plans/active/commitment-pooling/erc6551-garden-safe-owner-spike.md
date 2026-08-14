@@ -80,7 +80,7 @@ Guild recovery, and one named Garden recovery delegate remain the three Safe own
 ## Result
 
 The pinned Arbitrum One and Celo fork proof passed 8/8 ownership cases, and the complete settlement
-fork shard passed 16/16. It used the live canonical ERC-6551 registry, live Safe v1.4.1 singleton
+fork shard passed 17/17. It used the live canonical ERC-6551 registry, live Safe v1.4.1 singleton
 and factory, the deployed Celo AccountV3 implementation and guardian, and fork-local mutations
 only.
 

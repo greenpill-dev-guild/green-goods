@@ -3,16 +3,17 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { Contract, getAddress, JsonRpcProvider, keccak256, toUtf8Bytes, ZeroAddress } from "ethers";
+import { NetworkManager } from "./utils/network";
 import {
   assertManifestMatchesNetworkDirectory,
   buildReleaseLock,
   CONTRACTS_ROOT,
+  commitmentPoolingImplementationRuntimeHash,
   loadReleaseManifest,
   type ReleaseIdentity,
   type ReleaseNetwork,
   type ReleaseStage,
 } from "./utils/release-manifest";
-import { NetworkManager } from "./utils/network";
 import { buildStageTransactionPlan, type ReleaseTransactionBoundary } from "./utils/release-plan";
 
 const IMPLEMENTATION_SLOT = "0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc";
@@ -126,14 +127,12 @@ async function verifyCode(
   const code = await provider.getCode(identity.address);
   check(checks, `${identity.kind}.${identity.name}.code-present`, true, code !== "0x");
   if (code === "0x") return;
-  if (!identity.immutableRuntime) {
-    check(
-      checks,
-      `${identity.kind}.${identity.name}.runtime-hash`,
-      identity.runtimeTemplateHash,
-      keccak256(code),
-      true,
-    );
+  const poolingImplementation = identity.kind === "implementation" && identity.name === "CommitmentPoolingModule";
+  if (!identity.immutableRuntime || poolingImplementation) {
+    const expectedRuntimeHash = poolingImplementation
+      ? commitmentPoolingImplementationRuntimeHash(identity)
+      : identity.runtimeTemplateHash;
+    check(checks, `${identity.kind}.${identity.name}.runtime-hash`, expectedRuntimeHash, keccak256(code), true);
   }
 }
 

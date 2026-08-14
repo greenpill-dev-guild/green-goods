@@ -5,21 +5,25 @@ import * as path from "node:path";
 import * as dotenv from "dotenv";
 import {
   Contract,
-  Interface,
-  JsonRpcProvider,
   getAddress,
+  Interface,
   isAddress,
+  JsonRpcProvider,
   keccak256,
-  toUtf8Bytes,
   type TransactionReceipt,
   type TransactionResponse,
+  toUtf8Bytes,
 } from "ethers";
-import { NetworkManager } from "../utils/network";
 import { execCastCaptured, parseCastTransactionHash } from "../utils/cast-env";
-import { retryRpcAvailability } from "../utils/rpc-retry";
+import { NetworkManager } from "../utils/network";
 import { writeReleaseJsonAtomic } from "../utils/release-artifacts";
 import { assertSepoliaGate } from "../utils/release-gate";
-import { buildReleaseLock, loadReleaseManifest } from "../utils/release-manifest";
+import {
+  buildReleaseLock,
+  commitmentPoolingImplementationRuntimeHash,
+  loadReleaseManifest,
+} from "../utils/release-manifest";
+import { retryRpcAvailability } from "../utils/rpc-retry";
 
 const CONTRACTS_ROOT = path.resolve(__dirname, "../..");
 const REPO_ROOT = path.resolve(CONTRACTS_ROOT, "../..");
@@ -296,8 +300,7 @@ function readDeployment(chainId: number): Record<string, unknown> {
 function frozenModuleAddress(): {
   address: string;
   implementation: string;
-  implementationRuntimeHash?: string;
-  immutableRuntime: boolean;
+  implementationRuntimeHash: string;
   manifestHash: string;
   releaseId: string;
   sourceCommit: string;
@@ -321,8 +324,7 @@ function frozenModuleAddress(): {
   return {
     address: requiredAddress(module.address, "frozen CommitmentPoolingModule proxy"),
     implementation: requiredAddress(implementation.address, "frozen CommitmentPoolingModule implementation"),
-    implementationRuntimeHash: implementation.immutableRuntime ? undefined : implementation.runtimeTemplateHash,
-    immutableRuntime: implementation.immutableRuntime,
+    implementationRuntimeHash: commitmentPoolingImplementationRuntimeHash(implementation),
     manifestHash: lock.manifestHash,
     releaseId: manifest.releaseId,
     sourceCommit: lock.sourceCommit,
@@ -432,8 +434,8 @@ export function validateCheckpointPrefix(
   for (let index = 0; index < steps.length; index++) {
     if (steps[index] !== index + 1) throw new Error("Backfill checkpoint is not one contiguous verified prefix");
     const expected = plan.transactions[index];
-    const evidence = checkpoint.completed.find((entry) => entry.step === index + 1)!;
-    if (!expected || evidence.nonce !== expected.nonce) {
+    const evidence = checkpoint.completed.find((entry) => entry.step === index + 1);
+    if (!expected || !evidence || evidence.nonce !== expected.nonce) {
       throw new Error("Backfill checkpoint nonces do not match the reviewed plan");
     }
   }
@@ -508,7 +510,8 @@ export function buildBackfillTransactions(args: {
   if (tokenIds.size !== EXPECTED_GARDEN_COUNT) throw new Error("Garden enumeration contains duplicate token IDs");
 
   const ordered = [...args.gardens].sort((left, right) => left.tokenId - right.tokenId);
-  const root = ordered.find((entry) => getAddress(entry.garden) === rootGarden)!;
+  const root = ordered.find((entry) => getAddress(entry.garden) === rootGarden);
+  if (!root) throw new Error("Garden enumeration does not contain the canonical root record");
   const registrations = [
     { kind: "REGISTER_PROTOCOL" as const, garden: rootGarden, tokenId: root.tokenId, poolType: 1 },
     ...ordered
@@ -623,7 +626,7 @@ async function assertFrozenModuleIdentity(
   provider: JsonRpcProvider,
   module: string,
   implementation: string,
-  implementationRuntimeHash: string | undefined,
+  implementationRuntimeHash: string,
   blockTag: number,
 ): Promise<void> {
   if ((await provider.getCode(module, blockTag)) === "0x") throw new Error("Frozen pooling proxy has no code");
@@ -633,7 +636,7 @@ async function assertFrozenModuleIdentity(
     throw new Error(`Pooling proxy implementation is ${liveImplementation}, expected ${implementation}`);
   }
   const code = await provider.getCode(liveImplementation, blockTag);
-  if (code === "0x" || (implementationRuntimeHash && keccak256(code) !== implementationRuntimeHash)) {
+  if (code === "0x" || keccak256(code) !== implementationRuntimeHash) {
     throw new Error("Pooling implementation runtime code does not match the frozen release lock");
   }
 }

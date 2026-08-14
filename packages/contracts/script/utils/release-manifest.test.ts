@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   assertManifestMatchesNetworkDirectory,
   buildReleaseLock,
+  commitmentPoolingImplementationRuntimeHash,
   loadReleaseManifest,
   validateReleaseManifest,
 } from "./release-manifest";
@@ -96,7 +97,9 @@ describe("combined commitment release manifest", () => {
     expect(() => validateReleaseManifest(prematureGasFreeze)).toThrow(/must remain zero/);
 
     const missingAcknowledgment = structuredClone(manifest);
-    missingAcknowledgment.chains.arbitrum.destinationGasMeasurement!.includesAcknowledgmentAttempt = false;
+    const gasMeasurement = missingAcknowledgment.chains.arbitrum.destinationGasMeasurement;
+    if (!gasMeasurement) throw new Error("Fixture must include the frozen destination gas measurement");
+    gasMeasurement.includesAcknowledgmentAttempt = false;
     expect(() => validateReleaseManifest(missingAcknowledgment)).toThrow(/include the acknowledgment attempt/);
 
     const ownershipTransfer = structuredClone(manifest);
@@ -159,8 +162,13 @@ describe("combined commitment release manifest", () => {
     expect(libraries.find((identity) => identity.name === "SettlementLifecycleLib")?.libraries).toHaveProperty(
       "src/lib/Settlement/CommandLib.sol:SettlementCommandLib",
     );
-    expect(implementations.find((identity) => identity.name === "CommitmentPoolingModule")?.libraries).toHaveProperty(
+    const poolingImplementation = implementations.find((identity) => identity.name === "CommitmentPoolingModule");
+    if (!poolingImplementation) throw new Error("Release lock must include the Commitment Pooling implementation");
+    expect(poolingImplementation?.libraries).toHaveProperty(
       "src/lib/CommitmentPooling/ClaimsLib.sol:CommitmentPoolingClaimsLib",
+    );
+    expect(commitmentPoolingImplementationRuntimeHash(poolingImplementation)).toBe(
+      "0x3f4e55e1632bde5ef29aadf5224e5a07498b529c27e82d850829583a75fce27f",
     );
   });
 });

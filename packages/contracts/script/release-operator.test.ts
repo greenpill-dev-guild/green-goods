@@ -6,21 +6,22 @@ import { afterEach, describe, expect, it } from "vitest";
 import {
   AUTOMATED_RELEASE_EXCLUSIONS,
   AUTOMATED_RELEASE_STAGE_ORDER,
-  assertPlanCanResume,
   assertAllowedOperatorCommand,
   assertAutomatedPinnedCheckout,
+  assertAutomatedResumeStart,
   assertAutomatedSessionStart,
   assertPinnedCheckout,
+  assertPlanCanResume,
+  type CompleteSequenceAuthorization,
   changedPromotionLeafPaths,
   completedBoundaries,
   createPasswordLease,
-  planBoundaryExecutionSteps,
   POOL_BACKFILL_REGISTRATION_BOUNDARIES,
   parseSessionOptions,
+  planBoundaryExecutionSteps,
   RELEASE_OPERATOR_COMMANDS,
   tokenizeOperatorCommand,
   validateCompleteSequenceAuthorization,
-  type CompleteSequenceAuthorization,
 } from "./release-operator";
 import type { ReleaseLock, ReleaseManifest } from "./utils/release-manifest";
 
@@ -93,6 +94,18 @@ describe("release operator session", () => {
     const validated: string[][] = [];
     expect(() =>
       assertAutomatedSessionStart(
+        candidate,
+        repository,
+        (_candidate, _root, dirtyPaths) => {
+          validated.push(dirtyPaths);
+        },
+        allowed,
+      ),
+    ).not.toThrow();
+    expect(validated).toEqual([["deployments/42161-latest.json"]]);
+    validated.length = 0;
+    expect(() =>
+      assertAutomatedResumeStart(
         candidate,
         repository,
         (_candidate, _root, dirtyPaths) => {

@@ -422,6 +422,15 @@ export function assertAutomatedSessionStart(
   allowedMutations: ReadonlySet<string> = AUTOMATED_RELEASE_MUTATIONS,
 ): void {
   assertCompleteSequenceAuthorization();
+  assertAutomatedResumeStart(candidateCommit, repositoryRoot, validatePromotions, allowedMutations);
+}
+
+export function assertAutomatedResumeStart(
+  candidateCommit: string,
+  repositoryRoot = REPOSITORY_ROOT,
+  validatePromotions: (candidate: string, root: string, paths: string[]) => void = assertVerifiedResumePromotions,
+  allowedMutations: ReadonlySet<string> = AUTOMATED_RELEASE_MUTATIONS,
+): void {
   assertAutomatedPinnedCheckout(candidateCommit, repositoryRoot, allowedMutations);
   const dirty = automatedDirtyPaths(repositoryRoot);
   if (dirty.length > 0) validatePromotions(candidateCommit, repositoryRoot, dirty);
@@ -522,7 +531,7 @@ function requireCompleteCheckpoint(
   }
   if (typeof checkpoint.planHash === "string") {
     const planHash = keccak256(toUtf8Bytes(`${JSON.stringify(plan, null, 2)}\n`));
-    if (checkpoint.planHash !== planHash) throw new Error(`Verified resume checkpoint belongs to another plan`);
+    if (checkpoint.planHash !== planHash) throw new Error("Verified resume checkpoint belongs to another plan");
   }
   return { plan, evidence };
 }
@@ -564,6 +573,11 @@ export function assertVerifiedResumePromotions(
     ["packages/contracts/deployments/42161-latest.json", new Map()],
     ["packages/contracts/deployments/42220-latest.json", new Map()],
   ]);
+  const expectedPromotionsFor = (artifactPath: string): Map<string, unknown> => {
+    const expected = expectedByArtifact.get(artifactPath);
+    if (!expected) throw new Error(`No verified promotion schema exists for ${artifactPath}`);
+    return expected;
+  };
   const releaseRoot = path.join(CONTRACTS_ROOT, `.generated/release/${manifest.releaseId}`);
   for (const [stage, network] of [
     ["pooling", "arbitrum"],
@@ -583,17 +597,17 @@ export function assertVerifiedResumePromotions(
     }
     const { evidence } = requireCompleteCheckpoint(planPath, checkpointPath, lock);
     addExpectedStagePromotions(
-      expectedByArtifact.get(
+      expectedPromotionsFor(
         network === "arbitrum"
           ? "packages/contracts/deployments/42161-latest.json"
           : "packages/contracts/deployments/42220-latest.json",
-      )!,
+      ),
       lock,
       stage,
       evidence,
     );
   }
-  const arbitrumExpected = expectedByArtifact.get("packages/contracts/deployments/42161-latest.json")!;
+  const arbitrumExpected = expectedPromotionsFor("packages/contracts/deployments/42161-latest.json");
   for (const mode of ["preparation", "finalization"] as const) {
     const directory = path.join(CONTRACTS_ROOT, `.generated/release-schemas/${mode}`);
     const planPath = path.join(directory, `42161-${mode}-transaction-plan.json`);
@@ -976,7 +990,7 @@ async function runAutomatedPoolBackfill(candidateCommit: string, passwordFile: s
   const checkpointPath = planPath.replace(/\.json$/u, ".checkpoint.json");
   const completed = fs.existsSync(checkpointPath) ? completedBoundaries(planPath) : 0;
   if (completed === 0) {
-    runAutomatedBunCommand(candidateCommit, passwordFile, "pooling:backfill:dry:arbitrum", [], new Set());
+    runAutomatedBunCommand(candidateCommit, passwordFile, "pooling:backfill:dry:arbitrum");
   }
   if (!fs.existsSync(planPath)) throw new Error("Deployer pool-backfill plan was not generated");
   const plan = readJson<JsonPlan>(planPath);
@@ -994,21 +1008,15 @@ async function runAutomatedPoolBackfill(candidateCommit: string, passwordFile: s
   const relativePlan = path.relative(CONTRACTS_ROOT, planPath);
   if (completed > 0) {
     const replayStep = completed;
-    runAutomatedBunCommand(
-      candidateCommit,
-      passwordFile,
-      "pooling:backfill:arbitrum",
-      [
-        "--plan",
-        relativePlan,
-        "--step",
-        String(replayStep),
-        "--expected-nonce",
-        String(plannedNonce(plan.transactions[replayStep - 1]?.nonce)),
-        "--override-sepolia-gate",
-      ],
-      new Set(),
-    );
+    runAutomatedBunCommand(candidateCommit, passwordFile, "pooling:backfill:arbitrum", [
+      "--plan",
+      relativePlan,
+      "--step",
+      String(replayStep),
+      "--expected-nonce",
+      String(plannedNonce(plan.transactions[replayStep - 1]?.nonce)),
+      "--override-sepolia-gate",
+    ]);
   }
   const start = completed + 1;
   if (start > POOL_BACKFILL_REGISTRATION_BOUNDARIES) {
@@ -1023,21 +1031,15 @@ async function runAutomatedPoolBackfill(candidateCommit: string, passwordFile: s
     );
   }
   for (let step = start; step <= POOL_BACKFILL_REGISTRATION_BOUNDARIES; step += 1) {
-    runAutomatedBunCommand(
-      candidateCommit,
-      passwordFile,
-      "pooling:backfill:arbitrum",
-      [
-        "--plan",
-        relativePlan,
-        "--step",
-        String(step),
-        "--expected-nonce",
-        String(plannedNonce(plan.transactions[step - 1]?.nonce)),
-        "--override-sepolia-gate",
-      ],
-      new Set(),
-    );
+    runAutomatedBunCommand(candidateCommit, passwordFile, "pooling:backfill:arbitrum", [
+      "--plan",
+      relativePlan,
+      "--step",
+      String(step),
+      "--expected-nonce",
+      String(plannedNonce(plan.transactions[step - 1]?.nonce)),
+      "--override-sepolia-gate",
+    ]);
   }
   console.log("\nAll 18 pool registrations are receipt-verified. Pooling remains paused.");
   console.log("Unpause requires the separate release:unpause:pooling command and authorization.");
@@ -1058,21 +1060,15 @@ async function runAutomatedPoolUnpause(candidateCommit: string, passwordFile: st
   const completed = completedBoundaries(planPath);
   if (completed === plan.transactions.length) {
     const boundary = plan.transactions[POOL_BACKFILL_REGISTRATION_BOUNDARIES];
-    runAutomatedBunCommand(
-      candidateCommit,
-      passwordFile,
-      "pooling:backfill:arbitrum",
-      [
-        "--plan",
-        path.relative(CONTRACTS_ROOT, planPath),
-        "--step",
-        String(POOL_BACKFILL_REGISTRATION_BOUNDARIES + 1),
-        "--expected-nonce",
-        String(plannedNonce(boundary?.nonce)),
-        "--override-sepolia-gate",
-      ],
-      new Set(),
-    );
+    runAutomatedBunCommand(candidateCommit, passwordFile, "pooling:backfill:arbitrum", [
+      "--plan",
+      path.relative(CONTRACTS_ROOT, planPath),
+      "--step",
+      String(POOL_BACKFILL_REGISTRATION_BOUNDARIES + 1),
+      "--expected-nonce",
+      String(plannedNonce(boundary?.nonce)),
+      "--override-sepolia-gate",
+    ]);
     console.log("✓ Commitment Pooling is already unpaused; complete receipt and pool state reverified");
     return;
   }
@@ -1085,28 +1081,22 @@ async function runAutomatedPoolUnpause(candidateCommit: string, passwordFile: st
   if (nonce !== liveNonce) {
     throw new Error(`Cannot unpause pooling: reviewed nonce is ${nonce}, live pending nonce is ${liveNonce}`);
   }
-  runAutomatedBunCommand(
-    candidateCommit,
-    passwordFile,
-    "pooling:backfill:arbitrum",
-    [
-      "--plan",
-      path.relative(CONTRACTS_ROOT, planPath),
-      "--step",
-      String(POOL_BACKFILL_REGISTRATION_BOUNDARIES + 1),
-      "--expected-nonce",
-      String(nonce),
-      "--override-sepolia-gate",
-    ],
-    new Set(),
-  );
+  runAutomatedBunCommand(candidateCommit, passwordFile, "pooling:backfill:arbitrum", [
+    "--plan",
+    path.relative(CONTRACTS_ROOT, planPath),
+    "--step",
+    String(POOL_BACKFILL_REGISTRATION_BOUNDARIES + 1),
+    "--expected-nonce",
+    String(nonce),
+    "--override-sepolia-gate",
+  ]);
   console.log("\nCommitment Pooling unpause receipt and all 18 pool registrations are verified.");
 }
 
 async function runSession(candidateCommit: string, options: SessionOptions): Promise<void> {
   const automated = options.deployAll || options.backfillAll || options.unpausePooling;
   if (options.deployAll) assertAutomatedSessionStart(candidateCommit);
-  else if (automated) assertAutomatedPinnedCheckout(candidateCommit, REPOSITORY_ROOT, new Set());
+  else if (automated) assertAutomatedResumeStart(candidateCommit);
   else assertPinnedCheckout(candidateCommit);
   const manifest = loadReleaseManifest();
   const password = await readHiddenPassword();
