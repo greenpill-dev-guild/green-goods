@@ -80,3 +80,93 @@ A **Components** tab in the artifact with:
 - `.plans/**` is outside biome's include set — the artifact build is the validation gate for these files; don't run the full repo Ship Gate for a `.plans`-only diff.
 - Branch per repo convention (`feature/…` — never encode the agent in the name), PR to `develop`, and check whether the polish-session PR this file arrived on is merged or still open before choosing your base.
 - Ask Afo before expanding scope beyond the Components tab (e.g. restyling components — this pass is about *extraction and reviewability*; adjustments come after his review).
+
+## Component-library contract (Phase 2 outcome, locked 2026-08-14)
+
+Agreed with Afo across three AskUserQuestion rounds in the components-tab
+session (Phase 1 audit presented in chat first; PR #710 confirmed merged, so
+Phase 3 branches off `develop`).
+
+**Tab.** A fourth tab, **Components**, between Screen library and
+Implementation reference. Root anchor `#components`; `applyHash` handles the
+`#components…` patterns *before* the doc-tab fallthrough.
+
+**Surfaces flip; they never mix.** The tab carries a surface switcher (same
+`.surface-tab` pattern as the Screen library): **Client PWA / Admin console /
+Editorial website** — three different design systems, each rendering its own
+family-grouped catalog in its own dialect. Shared primitives (button, chip,
+field, skeleton, empty state…) appear once per surface, drawn in that
+surface's dialect.
+
+**Grouping (client-led family order).** Chips & badges → Cards → Rails &
+carousels → Forms & inputs → Chrome → Feedback → People. The admin catalog
+follows the same order restricted to what exists there plus its cockpit-only
+set (PageHeader, AdminTabRail, AdminCard, AdminDialog + flow dialog, stage
+stepper, data table, GardenChip, canvas chrome). Editorial is a small set
+(site header, web window, kicker/serif type, panel, stat row, pipeline,
+install CTA) rendered from the existing `.s-public` classes.
+
+**Naming.** The shipping component name leads each entry title
+(StandardTabs, FormInfo, SyncStatusBar, StatusBadge, AdminCard…); the kit
+builder name appears in the annotation line. Net-new components carry their
+pooling name plus an explicit **NET-NEW** tag.
+
+**Variant presentation.** Static matrix grid per entry — every variant ×
+state rendered at once with labels; no interaction needed to review. Gallery
+specimens render controls **disabled** (satisfies the enabled-button
+validator; gallery registers no hotspots). Dark mode rides the existing
+global toggle — verify, don't fork.
+
+**Entry template (5 parts).** ① Title = shipping name + tags (NET-NEW /
+DRIFT / deliberate-divergence note) ② kit builder signature (e.g.
+`kit: gardenTabs(active, {hotPrefix})`) ③ shipping counterpart `file:line`,
+or "net-new — no shipping counterpart yet" ④ one-line usage rule (when to
+use / when not) ⑤ where-used screen ids as **clickable chips** linking
+`#screens/<id>` through the existing hash router. Drift entries add one
+delta sentence naming what shipping does differently, with `file:line`.
+
+**Drift policy: flag all, redraw nothing.** Every fidelity-gap specimen from
+the Phase 1 audit (flowHeader's added title h1, syncBar's single state vs
+the 3-state + Sync All shipping bar, FAB squircle/icon-swap vs rounded-full
+rotate-45, text-only domain row vs icon DomainBadge, selCard 200px 2-up vs
+~full-width 212px shipping slides, homeHeader 44px vs 32px icon buttons,
+gardenTabs missing counts/icons, banner tone set vs Alert's, formInfo
+radius/variants, emptyState/appBar/btn/meter/acard small gaps) renders
+exactly as screens draw it today plus an amber **DRIFT** tag; Afo picks
+redraws after reviewing the tab. Decided divergences (24px cards + 3px
+inset direction edges, chips-lead promise-card anatomy) render as decided
+and are annotated as deliberate, not drift.
+
+**Promotions into kit.ts.** From client.ts / client-wallet.ts: `byline`,
+`domainRow` (+ DOMAIN_CLS), `poolFilters`, `seasonCard`/`seasonSlide`/
+`emptySeasonSlide`/`campaignSlide`, `promiseSlide`, `selCard`/`selRail`,
+the offerCard family (`offerCard`, `requestCard`, `ongoingOfferCard`,
+`teamOfferCard`, `fundedOfferCard`), `offerRow` (W32), and a new
+`teamstrip` builder replacing the raw HTML duplicated in client.ts:1063 and
+funding.ts:35. Admin builders relocate from screens/admin.ts into kit.ts
+under an admin-dialect section (`deskWin`, `acard`, `stages`, `gardenChip`,
+`pageHeader`, `tabRail`, `adminCanvas` with its internal appBar/navDock/
+iconBtn helpers, `adminDialogM3`, `flowDialog`, `dtable`); journey-hot
+wiring (`adminChromeHots`, NAV_TARGETS) stays in screens/admin.ts. Screens
+import the moved builders back from kit. `statTiles` is **dropped** from
+kit.ts (used by zero screens; anatomy diverges from shipping StatCard).
+Screen-bound casts (`claimCard`, `walletShell`, intro section wrappers,
+CARD_* fixtures, `wfHead`) stay screen-local. Editorial stays class-based;
+`siteHeader`/`webWin` remain in public.ts.
+
+**Anchors & review affordance.** Stable kebab ids: `#components/<id>` with
+the player's `@` grammar for surface (`#components/chip@admin`); default
+surface = client when the component exists there, else its only surface. A
+deep link flips to the right surface tab and scrolls to the entry. Every
+entry has a copy-link button; the tab opens with a compact jump-index strip
+(family → entries) per surface.
+
+**Validation.** Zero warnings; no validator weakened, no global exemption.
+The build additionally runs the existing copy scanners (vocab / spec-citation
+/ aggregate) and the enabled-button control scan over the gallery HTML — new
+call sites, unchanged rules.
+
+**Bookkeeping.** Update `prototypes-coverage.md` (snapshot + Components-tab
+line) and add a `prototypes.md` changelog row; republish to the same
+artifact URL (`19c3dcad-ac1d-4398-bcd4-57d0c892be2c`) and DOM-verify before
+claiming success; PR to `develop` on a `feature/…` branch.

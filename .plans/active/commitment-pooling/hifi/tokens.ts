@@ -277,12 +277,6 @@ export const HIFI_CSS = `
 .hf .ban.green{background:var(--gr-bg);color:var(--gr-ink)}
 .hf .ban.error{background:color-mix(in srgb,var(--err) 9%,transparent);color:var(--err)}
 
-/* stat tiles */
-.hf .stats{display:flex;gap:10px}
-.hf .stat{flex:1;background:var(--card);border:1px solid var(--ln);border-radius:20px;padding:12px 14px}
-.hf .stat .n{font-size:22px;font-weight:650;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
-.hf .stat .l{font-size:12.5px;color:var(--stone);margin-top:1px}
-
 /* segmented filter chips */
 .hf .seg{display:flex;gap:6px;overflow-x:auto;padding:2px 0;scrollbar-width:none}
 .hf .seg .sg{border:0;background:var(--stone-bg);color:var(--stone);border-radius:99px;padding:6px 13px;

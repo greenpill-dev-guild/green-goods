@@ -8,8 +8,11 @@
 import { CYCLE, SEASON_LIVE } from "../fixtures";
 import { hot } from "../html";
 import { icon } from "../icons";
-import { banner, btn, chip, disclosure, field, input, kv, radio, reasonChips, stepDots } from "../kit";
-import { acard, adminCanvas, adminChromeHots, adminDialogM3, deskWin, dtable, pageHeader, stages, tabRail } from "./admin";
+import {
+  acard, adminCanvas, adminDialogM3, banner, btn, chip, deskWin, disclosure, dtable, field, input, kv, pageHeader, radio, reasonChips, stages,
+  stepDots, tabRail,
+} from "../kit";
+import { adminChromeHots } from "./admin";
 import type { HifiDef } from "./index";
 import type { StateFacts } from "../types";
 

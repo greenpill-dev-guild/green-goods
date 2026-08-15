@@ -9,12 +9,13 @@
 // W1@waiting-membership, MF6 → W2@request-evidence-submitted, MF10 → W1@cycle-summary.
 
 import { CYCLE, POOL_LIFETIME, SEASON_CLOSED, SEASON_LIVE } from "../fixtures";
-import { esc, hot } from "../html";
+import { hot } from "../html";
 import { icon } from "../icons";
 import {
-  actionBar, appBar, banner, btn, card, chip, cycleRail, disclosure, emptyState, fabButton, field, flowHeader, gardenHeader, gardenTabs, hdr, hero,
-  input, kindCards, kv, listRow, meter, pagepad, phoneFrame, radio, reasonChips, sectionTitle, seg,
-  sheetOver, skeleton, stateChip, syncBar, timeline,
+  actionBar, appBar, banner, btn, byline, campaignSlide, card, chip, cycleRail, disclosure, domainRow, emptySeasonSlide, emptyState, fabButton, field,
+  flowHeader, fundedOfferCard, gardenHeader, gardenTabs, hdr, hero, input, kindCards, kv, listRow, meter, offerCard, offerRow, ongoingOfferCard,
+  pagepad, phoneFrame, poolFilters, radio, reasonChips, requestCard, seasonCard, seasonSlide, sectionTitle, sheetOver, skeleton, stateChip, syncBar,
+  teamOfferCard, teamstrip, timeline,
 } from "../kit";
 import type { HifiDef } from "./index";
 import type { StateFacts } from "../types";
@@ -42,153 +43,15 @@ const W1_STATES = [
 ] as const;
 type W1State = (typeof W1_STATES)[number][0];
 
-// Scoped state counts, never a cross-commitment percentage: this pool's units
-// are hours, rides, sessions and surveys, so a single "62%" would average
-// incommensurable things (uiux-spec §5.2 "There is no synthetic
-// cross-commitment progress percentage", §12). A seeded or empty season shows
-// no counts line at all rather than a row of zeroes.
-//
-// The card counts promises made and kept, the same pair W5, W12, W15 and W26
-// print for this moment — not open offers, which are a subset of what the
-// season has promised and so can never exceed `made` (PRD-760).
-// Cycle cards follow layout option B (2026-08-14 third pass, Afo's pick):
-// the [Season]/[Campaign] + stage chips LEAD the card, everything stacks on
-// one left axis, and counts join the stack — nothing floats right.
-const seasonCard = (opts: { made?: number; kept?: number; stage?: string } = {}) => {
-  const made = opts.made ?? SEASON_LIVE.made;
-  const kept = opts.kept ?? SEASON_LIVE.kept;
-  const counts = made === 0 && kept === 0 ? "" : `<div class="t-meta num">${made} promises · ${kept} kept</div>`;
-  return card(
-    hot(
-      "w1.season-card",
-      `<div class="grow"><div class="cardrow">${chip("Season", "plain")}${chip(opts.stage ?? "Open", "plain")}</div><div class="t-title">${CYCLE}</div><div class="t-meta">runs through Aug 30</div>${counts}</div>`,
-    ),
-  );
-};
-
-// Season + campaigns share one snap rail (2026-08-14): the Season slide leads
-// and stays wider — campaigns are peers you can reach in one swipe, not what a
-// member came for. Presentation only: slides open their cycle, and the browse
-// scope select keeps owning list scope, so swiping never silently refilters.
-const seasonSlide = (opts: { made?: number; kept?: number; stage?: string } = {}) => `<div class="cslide lead">${seasonCard(opts)}</div>`;
-const emptySeasonSlide = () =>
-  `<div class="cslide lead">${card(
-    `<div class="cardrow">${chip("Season", "plain")}</div><div class="t-title">No season right now</div><div class="t-meta">Stewards open the next one</div>`,
-  )}</div>`;
-const campaignSlide = (hotId: string, title: string, stage: string, counts: string) =>
-  `<div class="cslide">${card(
-    hot(hotId, `<div class="grow"><div class="cardrow">${chip("Campaign", "plain")}${chip(stage, "plain")}</div><div class="t-title">${title}</div><div class="t-meta">through Aug 18</div><div class="t-meta num">${counts}</div></div>`),
-  )}</div>`;
+// seasonCard/seasonSlide/emptySeasonSlide/campaignSlide, poolFilters, byline,
+// domainRow, and the offerCard family were promoted into ../kit
+// (components-tab pass, 2026-08-14); the W1 fixture slides below compose them.
 const campaignSlides = () => [
   campaignSlide("w1.campaign-market", "Market rides", "Open", "6 of 16 kept"),
   campaignSlide("w1.campaign-tools", "Tool library", "Reviewing", "8 of 8 kept"),
 ];
 const cycleCarousel = (opts: { season?: { made?: number; kept?: number; stage?: string }; emptySeason?: boolean } = {}) =>
   cycleRail([opts.emptySeason ? emptySeasonSlide() : seasonSlide(opts.season), ...campaignSlides()]);
-
-// Browse filter row (2026-08-14): direction chips plus the personal Mine
-// toggle — personal scope is orthogonal to direction, so it is not a fourth
-// direction pill. The exchange-pair filter (formerly "Matched") returns with
-// the exchange wave; paired cards keep their "In exchange" chip meanwhile.
-const poolFilters = (activeIx: number, opts: { mine?: boolean } = {}) =>
-  hot(
-    "w1.filters",
-    `<div class="filters">${seg(["All", "Offers", "Requests"], activeIx)}<span class="mine${opts.mine ? " on" : ""}" role="switch" aria-checked="${opts.mine ? "true" : "false"}">Mine</span></div>`,
-  );
-
-// Creator by-line — the D5 card contract (uiux Appendix B addendum 2026-08-11)
-// puts a face on every browse card: avatar + name, "for {garden}" when a
-// garden claims. Cards carry chips → title → by-line → quantity+due → real
-// progress → ONE context action or one plain reason line; notes and declared
-// value live in detail.
-const byline = (name: string, opts: { forGarden?: string } = {}) =>
-  `<div class="byline"><span class="avatar" aria-hidden="true">${esc(name[0] ?? "")}</span><span class="t-meta">by ${esc(name)}${opts.forGarden ? ` · for ${esc(opts.forGarden)}` : ""}</span></div>`;
-
-// Domains get their own equal-weight row (2026-08-14 second pass, Afo): every
-// involved domain listed, none privileged as "primary" — a promise pairing
-// AGRO with EDU is both, not AGRO-with-a-footnote. No row = an evidence-only
-// service promise, and the "Support / service" kind chip up top says so in
-// words. The real build renders DomainBadge (icon + label) from DOMAIN_CONFIG.
-const DOMAIN_CLS: Record<string, string> = { AGRO: "agro", EDU: "edu", SOLAR: "solar", WASTE: "waste" };
-const domainRow = (domains: string[]) =>
-  domains.length
-    ? `<div class="dmrow">${domains.map((d) => `<span class="dm ${DOMAIN_CLS[d] ?? "agro"}">${esc(d)}</span>`).join("")}</div>`
-    : "";
-
-// Card grammar (2026-08-14 second pass, Afo — the shipping WorkCard grammar):
-// the WHOLE card opens the promise detail; the footer button exists only when
-// a claim act is available from browse. Navigation-only buttons are retired.
-const offerCard = (opts: {
-  queued?: boolean;
-  waiting?: boolean;
-  failed?: boolean;
-  readOnly?: boolean;
-  readOnlyNote?: string;
-  detailHot?: string;
-  team?: number;
-} = {}) => {
-  const chips = `${chip("Offer", "offer")}${opts.team ? chip(`Team of ${opts.team}`, "plain") : ""}${opts.queued ? chip("Queued", "queued") : ""}${opts.waiting ? chip("Waiting", "queued") : ""}${opts.failed ? chip("Couldn't send", "err") : ""}`;
-  const cta = opts.queued || opts.waiting || opts.failed || opts.readOnly
-    ? ""
-    : `<div class="brow">${hot("w1.take-up", btn("Take this up", { kind: "sec" }))}</div>`;
-  const note = opts.waiting
-    ? `<div class="t-meta">Waiting for your garden membership — it will send once you're welcomed in.</div>`
-    : opts.failed
-      ? `<div class="t-meta">Five send attempts used. You can retry or discard.</div><div class="brow">${hot("w1.retry-send", btn("Retry", { kind: "sec", sm: true }))}${hot("w1.discard-send", btn("Discard", { kind: "ghost", sm: true }))}</div>`
-      : opts.readOnly
-        ? `<div class="t-meta">${opts.readOnlyNote ?? "This promise remains visible, but taking it up is not available right now."}</div>`
-        : "";
-  const title = opts.waiting ? "Compost workshop" : "Prune the north beds";
-  const meta = opts.waiting ? "3 sessions · runs with the season" : "6 hours · due Aug 12";
-  // Queued/waiting/failed casts are YOUR OWN sends — no by-line on yourself
-  // (P1 row-subset rule: variants omit rows, never reorder them).
-  const own = opts.queued || opts.waiting || opts.failed;
-  const inner = `<div class="cardrow">${chips}</div><div class="t-title">${title}</div>${own ? "" : byline("Maria")}<div class="t-meta num">${meta}</div>${domainRow(["AGRO"])}${note}${cta}`;
-  if (opts.queued || opts.waiting || opts.failed) return card(inner, { edge: "offer" });
-  const openHot = opts.readOnly ? opts.detailHot : "w1.open-offer";
-  const c = card(inner, { edge: "offer", cls: openHot ? "cardlink" : undefined });
-  return openHot ? hot(openHot, c) : c;
-};
-
-const requestCard = (opts: { openClaim?: boolean; queued?: boolean; context?: string; claimHot?: string } = {}) => {
-  // Mode-helper trim (2026-08-14 night): the act's own label carries the
-  // claim mode — "I can help" is open, "Ask to take this up" is reviewed —
-  // so the separate mode line is gone from browse cards (uiux §5.2 trim note).
-  const inner = `<div class="cardrow">${chip("Request", "request")}${chip("Support / service", "plain")}${opts.queued ? chip("Queued", "queued") : ""}</div><div class="t-title">Ride to the market on Saturday</div>${byline("Ana")}<div class="t-meta num">1 ride · ${opts.context ?? "runs with the season"}</div>${
-    opts.queued
-      ? `<div class="t-meta">Saved on this device — it will send when connected.</div>`
-      : opts.openClaim
-        ? `<div class="brow">${hot(opts.claimHot ?? "w1.take-up-request", btn("I can help", { kind: "sec" }))}</div>`
-        : `<div class="brow">${hot("w1.ask-take-up", btn("Ask to take this up", { kind: "sec" }))}</div>`
-  }`;
-  if (opts.queued) return card(inner, { edge: "request" });
-  const openHot = opts.openClaim ? "w1.open-request" : "w1.open-request-gated";
-  return hot(openHot, card(inner, { edge: "request", cls: "cardlink" }));
-};
-
-// Ongoing-Offer place card — the public life of a CommitmentSeries on the pool
-// tab (D8a): "Ongoing" chip + places-left is the card's real progress; the
-// whole card opens the series detail where places are taken up (no nav button).
-const ongoingOfferCard = () =>
-  hot("w1.open-ongoing", card(
-    `<div class="cardrow">${chip("Offer", "offer")}${chip("Ongoing", "plain")}${chip("Support / service", "plain")}</div><div class="t-title">Saturday veggie box</div>${byline("Maria")}<div class="t-meta num">1 box each week · runs with the season</div><div class="t-meta num">2 places open</div>`,
-    { edge: "offer", cls: "cardlink" },
-  ));
-
-// Team-offer card — the D5 roster indicator: a forming team is visible right
-// on the browse card; the whole card opens the promise (team view lives inside).
-// Two-domain fixture: compost restoration pairs AGRO with WASTE, both equal.
-const teamOfferCard = () =>
-  hot("w1.open-team-offer", card(
-    `<div class="cardrow">${chip("Offer", "offer")}${chip("Team of 3", "plain")}</div><div class="t-title">Restore the compost bays</div>${byline("Maria")}<div class="t-meta num">4 sessions · due Aug 24</div>${domainRow(["AGRO", "WASTE"])}`,
-    { edge: "offer", cls: "cardlink" },
-  ));
-
-const fundedOfferCard = () =>
-  card(
-    `<div class="cardrow">${chip("Offer", "offer")}${chip("Support / service", "plain")}${chip("40 G$", "plain")}</div><div class="t-title">Design a market poster</div>${byline("Ben")}<div class="t-meta num">1 poster design · runs with the season</div><div class="t-meta">Your deposit instructions appear only after the funding record is ready.</div><div class="brow">${hot("w1.ask-funded", btn("Ask to fund this", { kind: "sec" }))}</div>`,
-    { edge: "offer" },
-  );
 
 const claimCard = (state: W1State) => {
   if (state === "claim-pending")
@@ -1060,7 +923,7 @@ function w2(state: W2State): string {
       : state === "browse-requested"
         ? { initials: ["A"], line: "Ana asked — no one has taken it up yet" }
         : W2_PEOPLE[cast];
-  const people = `<div class="cardrow" style="padding:2px 16px 0"><span class="teamstrip">${pp.initials.map((n) => `<span class="avatar" aria-hidden="true">${n}</span>`).join("")}</span><span class="t-meta">${pp.line}</span>${"team" in pp && pp.team ? hot("w2.team-strip", chip("Open team — join in", "ok")) : ""}</div>`;
+  const people = `<div class="cardrow" style="padding:2px 16px 0">${teamstrip(pp.initials)}<span class="t-meta">${pp.line}</span>${"team" in pp && pp.team ? hot("w2.team-strip", chip("Open team — join in", "ok")) : ""}</div>`;
   const meta = `${people}<div class="hsub num">${ident.meta}</div>`;
   // E5: the walked states put their ONE contextual primary in a fixed bottom
   // bar — the same rule the wizards follow. Content keeps the story; the bar
@@ -2605,20 +2468,8 @@ const W32_STATES = [
 ] as const;
 type W32State = (typeof W32_STATES)[number][0];
 
-// Rows here are saved Offer details — reusable input to either path, never a
-// second product object beside the Offer. "Offered over time" is the only tag
-// that implies a pool-scoped series exists.
-const offerRow = (opts: { title: string; meta: string; tag: string; tone: ChipToneLocal; hotId?: string }) => {
-  const row = listRow({
-    icon: "seedling-line",
-    primary: opts.title,
-    meta: opts.meta,
-    chipHtml: chip(opts.tag, opts.tone),
-    chevron: true,
-  });
-  return opts.hotId ? hot(opts.hotId, row) : row;
-};
-type ChipToneLocal = "plain" | "offer" | "ok" | "ink";
+// offerRow (saved Offer details rows) promoted into ../kit with the rest of
+// the browse-card family (components-tab pass, 2026-08-14).
 
 function w32(state: W32State): string {
   const head = hdr("Things I can offer", { back: true });
