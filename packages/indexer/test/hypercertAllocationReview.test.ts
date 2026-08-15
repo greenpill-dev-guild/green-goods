@@ -213,4 +213,76 @@ describe("commitment hypercert allocation reconciliation", () => {
     assert.ok(allocations.every((row) => row.recognitionUnits === 50n));
     assert.ok(allocations.every((row) => row.recognitionWeightBps === 10_000));
   });
+
+  it("retires allocations when a contributor loses recognition eligibility", async () => {
+    const db = createTestIndexer();
+    const cycle = {
+      ...createCycle(CHAIN_ID, 9n, 7n, 1),
+      state: "OPEN" as const,
+      gardenersBps: 10_000,
+      equalParticipationBps: 2_000,
+      verifiedContributionBps: 8_000,
+    };
+    const commitment = {
+      ...createCommitment(CHAIN_ID, 43n, 1),
+      creationSeen: true,
+      poolId: 7n,
+      poolEntityId: `${CHAIN_ID}-7`,
+      cycleId: 9n,
+      cycleEntityId: `${CHAIN_ID}-9`,
+      state: "FULFILLED" as const,
+      contributorsFrozen: true,
+      frozenContributorCount: 2,
+    };
+    const first = {
+      ...createContributor(CHAIN_ID, 43n, address(4), 1),
+      active: true,
+      approvedWorkCredits: 1,
+    };
+    const second = {
+      ...createContributor(CHAIN_ID, 43n, address(5), 1),
+      active: true,
+      approvedWorkCredits: 1,
+    };
+    db.CommitmentCycle.set(cycle);
+    db.Commitment.set(commitment);
+    db.CommitmentContributor.set(first);
+    db.CommitmentContributor.set(second);
+    db.CommitmentContributorIndex.set({
+      id: commitment.id,
+      chainId: CHAIN_ID,
+      commitmentId: commitment.commitmentId,
+      commitmentEntityId: commitment.id,
+      contributorEntityIds: [first.id, second.id],
+      updatedAt: 1,
+    });
+    const hypercert = {
+      ...createDefaultHypercert(`${CHAIN_ID}-78`, CHAIN_ID, 78n, 2),
+      totalUnits: 100n,
+      bundleKind: "COMMITMENT" as const,
+      commitmentIds: [43n],
+      commitmentEntityIds: [commitment.id],
+    };
+    db.Hypercert.set(hypercert);
+    await indexCommitmentHypercert(db, hypercert, 2);
+
+    db.CommitmentContributor.set({ ...second, approvedWorkCredits: 0 });
+    const indexedCommitment = await db.Commitment.get(commitment.id);
+    assert.ok(indexedCommitment);
+    await reconcileCommitmentHypercerts(db, indexedCommitment, 3);
+
+    const allocations = await db.HypercertCommitmentContributorAllocation.getAll();
+    const retained = allocations.find((row) => row.contributor === first.contributor);
+    const retired = allocations.find((row) => row.contributor === second.contributor);
+    assert.equal(retained?.recognitionWeightBps, 10_000);
+    assert.equal(retained?.recognitionUnits, 100n);
+    assert.equal(retired?.recognitionWeightBps, 0);
+    assert.equal(retired?.recognitionUnits, 0n);
+
+    db.CommitmentContributor.set({ ...first, approvedWorkCredits: 0 });
+    await reconcileCommitmentHypercerts(db, indexedCommitment, 4);
+    const fullyRetired = await db.HypercertCommitmentContributorAllocation.getAll();
+    assert.ok(fullyRetired.every((row) => row.recognitionWeightBps === 0));
+    assert.ok(fullyRetired.every((row) => row.recognitionUnits === 0n));
+  });
 });

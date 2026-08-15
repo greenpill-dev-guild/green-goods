@@ -1,6 +1,7 @@
 import type {
   Commitment,
   CommitmentClaimRequest,
+  CommitmentClaimRequestIndex,
   CommitmentClass,
   CommitmentContributor,
   CommitmentContributorIndex,
@@ -38,14 +39,7 @@ type EntityStore<T extends { readonly id: string }> = {
 export type PoolingContext = {
   Commitment: EntityStore<Commitment>;
   CommitmentClaimRequest: EntityStore<CommitmentClaimRequest>;
-  CommitmentClaimRequestIndex: EntityStore<{
-    readonly id: string;
-    readonly chainId: number;
-    readonly commitmentId: bigint;
-    readonly commitmentEntityId: string;
-    readonly requestIds: readonly string[];
-    readonly updatedAt: number;
-  }>;
+  CommitmentClaimRequestIndex: EntityStore<CommitmentClaimRequestIndex>;
   CommitmentClass: EntityStore<CommitmentClass>;
   CommitmentContributor: EntityStore<CommitmentContributor>;
   CommitmentContributorIndex: EntityStore<CommitmentContributorIndex>;

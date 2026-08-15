@@ -300,7 +300,7 @@ describe("Commitment Pooling review regressions", () => {
 
   it("reconciles a pre-creation Work link into the pool count", async () => {
     const workUID = hash(430);
-    let db = await processEvents(createTestIndexer(), [
+    const db = await processEvents(createTestIndexer(), [
       poolRegistered(START_BLOCK),
       cycleSeeded(START_BLOCK + 1),
       CommitmentPoolingModule.WorkLinked.createMockEvent({
@@ -326,7 +326,7 @@ describe("Commitment Pooling review regressions", () => {
 
   it("backfills a reverse-delivered relink owner without reactivating the Work", async () => {
     const workUID = hash(440);
-    let db = await processEvents(createTestIndexer(), [
+    const db = await processEvents(createTestIndexer(), [
       poolRegistered(START_BLOCK),
       cycleSeeded(START_BLOCK + 1),
       commitmentCreated(44n, START_BLOCK + 2),
@@ -393,7 +393,7 @@ describe("Commitment Pooling review regressions", () => {
 
   it("moves active Work membership when a relink arrives before the prior unlink", async () => {
     const workUID = hash(450);
-    let db = await processEvents(createTestIndexer(), [
+    const db = await processEvents(createTestIndexer(), [
       poolRegistered(START_BLOCK),
       cycleSeeded(START_BLOCK + 1),
       commitmentCreated(44n, START_BLOCK + 2),
@@ -453,7 +453,7 @@ describe("Commitment Pooling review regressions", () => {
   });
 
   it("retains a reverse-delivered removal without regressing active membership", async () => {
-    let db = await processEvents(createTestIndexer(), [
+    const db = await processEvents(createTestIndexer(), [
       poolRegistered(START_BLOCK),
       cycleSeeded(START_BLOCK + 1),
       commitmentCreated(48n, START_BLOCK + 2),
@@ -772,7 +772,7 @@ describe("Commitment Pooling review regressions", () => {
   });
 
   it("timestamps late claims from their acceptance or cancellation milestone", async () => {
-    let acceptedDb = await processEvents(createTestIndexer(), [
+    const acceptedDb = await processEvents(createTestIndexer(), [
       poolRegistered(START_BLOCK),
       cycleSeeded(START_BLOCK + 1),
       commitmentCreated(46n, START_BLOCK + 2, 1n),
@@ -799,7 +799,7 @@ describe("Commitment Pooling review regressions", () => {
     assert.equal(acceptedClaim?.state, "ACCEPTED");
     assert.equal(acceptedClaim?.resolvedAt, START_BLOCK + 6);
 
-    let cancelledDb = await processEvents(createTestIndexer(), [
+    const cancelledDb = await processEvents(createTestIndexer(), [
       poolRegistered(START_BLOCK),
       cycleSeeded(START_BLOCK + 1),
       commitmentCreated(47n, START_BLOCK + 2, 1n),

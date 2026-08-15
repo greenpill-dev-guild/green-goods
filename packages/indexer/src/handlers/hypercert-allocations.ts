@@ -68,7 +68,7 @@ async function contributorWeights(
     .sort((left, right) => compareCodeUnits(left.contributor, right.contributor));
   if (active.length !== commitment.frozenContributorCount) return undefined;
   const eligible = active.filter((row) => row.approvedWorkCredits + row.evidenceCredits > 0);
-  if (eligible.length === 0) return undefined;
+  if (eligible.length === 0) return [];
   const equalBps =
     cycle.equalParticipationBps + cycle.verifiedContributionBps === 10_000
       ? cycle.equalParticipationBps
@@ -157,6 +157,7 @@ async function expandCommitmentAllocations(
       commitmentBudget,
       weights.map(({ row, weight }) => ({ id: row.id, weight }))
     );
+    const currentAllocationIds = new Set<string>();
     for (const { row, weight } of weights) {
       if (row.recognitionWeightBps !== weight) {
         context.CommitmentContributor.set({
@@ -166,6 +167,7 @@ async function expandCommitmentAllocations(
         });
       }
       const id = `${hypercert.chainId}-${hypercert.tokenId}-${commitment.commitmentId}-${row.contributor}`;
+      currentAllocationIds.add(id);
       const existing = await context.HypercertCommitmentContributorAllocation.get(id);
       context.HypercertCommitmentContributorAllocation.set({
         id,
@@ -182,6 +184,22 @@ async function expandCommitmentAllocations(
         createdAt: existing?.createdAt ?? timestamp,
         updatedAt: Math.max(existing?.updatedAt ?? 0, timestamp),
       });
+    }
+    const contributorIndex = await context.CommitmentContributorIndex.get(commitment.id);
+    for (const contributorEntityId of contributorIndex?.contributorEntityIds ?? []) {
+      const contributor = await context.CommitmentContributor.get(contributorEntityId);
+      if (!contributor) continue;
+      const id = `${hypercert.chainId}-${hypercert.tokenId}-${commitment.commitmentId}-${contributor.contributor}`;
+      if (currentAllocationIds.has(id)) continue;
+      const existing = await context.HypercertCommitmentContributorAllocation.get(id);
+      if (existing && (existing.recognitionWeightBps !== 0 || existing.recognitionUnits !== 0n)) {
+        context.HypercertCommitmentContributorAllocation.set({
+          ...existing,
+          recognitionWeightBps: 0,
+          recognitionUnits: 0n,
+          updatedAt: Math.max(existing.updatedAt, timestamp),
+        });
+      }
     }
     if (commitment.needUID) {
       const needId = `${hypercert.chainId}-${commitment.needUID.toLowerCase()}`;

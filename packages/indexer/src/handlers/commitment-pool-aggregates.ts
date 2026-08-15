@@ -4,6 +4,7 @@ import {
   commitmentCycleType,
   commitmentPoolType,
   createCycle,
+  cycleAllocationUnset,
   cursorWins,
   poolingEntityId,
   sortedUnique,
@@ -251,14 +252,7 @@ export async function handleCycleEvent(
     CycleCancelled: "CANCELLED",
   };
   const isOpen = event.eventName === "CycleOpened";
-  const allocationUnset =
-    cycle.gardenersBps +
-      cycle.treasuryBps +
-      cycle.operatorBps +
-      cycle.evaluatorBps +
-      cycle.communityBps +
-      cycle.funderBps ===
-    0;
+  const allocationUnset = cycleAllocationUnset(cycle);
   if (!lifecycleWins && !(isOpen && allocationUnset)) return;
   const nextState = lifecycleWins ? stateByEvent[event.eventName] : cycle.state;
   const nextCycle = {

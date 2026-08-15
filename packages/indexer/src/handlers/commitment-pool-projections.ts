@@ -71,6 +71,20 @@ export function cursorWins(
   return incoming > currentBlock || (incoming === currentBlock && logIndex > currentLogIndex);
 }
 
+export function cycleAllocationUnset(cycle: CommitmentCycle): boolean {
+  return (
+    cycle.gardenersBps +
+      cycle.treasuryBps +
+      cycle.operatorBps +
+      cycle.evaluatorBps +
+      cycle.communityBps +
+      cycle.funderBps +
+      cycle.equalParticipationBps +
+      cycle.verifiedContributionBps ===
+    0
+  );
+}
+
 export function commitmentPoolType(value: bigint): CommitmentPool["poolType"] {
   return value === 0n ? "GARDEN" : value === 1n ? "PROTOCOL" : "UNKNOWN";
 }
