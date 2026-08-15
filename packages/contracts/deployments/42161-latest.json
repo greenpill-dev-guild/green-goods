@@ -171,6 +171,7 @@
   },
   "commitmentPoolingModule": "0x6BB5b0fd70b6771B0E955Fef37f8Bd2ce911470a",
   "commitmentPoolingModuleImpl": "0x6268ec974bb217De39E7756d75c8D523b9A79218",
+  "commitmentPoolingModulePaused": false,
   "commitmentRegistry": "0x66300dA4d3749bFc9F7326DB94e0DEb47A7a3959",
   "commitmentRegistryImpl": "0x97d2bc3ec0209a9b9d1e2e7EB9f021d3C4DD2970",
   "settlementLibraries": {

@@ -1,16 +1,21 @@
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
-import { AbiCoder, dataSlice, getAddress, Interface, keccak256, type JsonRpcProvider, ZeroAddress } from "ethers";
+import { AbiCoder, dataSlice, getAddress, Interface, type JsonRpcProvider, keccak256, ZeroAddress } from "ethers";
 import { afterEach, describe, expect, it } from "vitest";
 import {
-  atomicWrite,
   assertBootstrapState,
+  assertCheckpointReceiptBlock,
+  assertNextBoundary,
+  assertRecoverySafeConfiguration,
   assertSwappedState,
   assertUniqueReplacementOwners,
+  atomicWrite,
+  type BootstrapPlan,
   buildBootstrapInitializer,
-  buildSwappedDeploymentArtifact,
   buildSwapExecutionData,
+  buildSwappedDeploymentArtifact,
+  type Checkpoint,
   confinedRuntimePath,
   deriveSaltNonce,
   isContractCallRevert,
@@ -18,8 +23,6 @@ import {
   predictSafeAddress,
   prevalidatedSignature,
   previousOwner,
-  type BootstrapPlan,
-  type Checkpoint,
   type SafeInspection,
   type SwapPlan,
   verifyReceipt,
@@ -140,9 +143,25 @@ describe("Garden Safe temporary owner tooling", () => {
       { command: "deploy", broadcast: true, recoveryStep: 2 },
     );
     expect(() => parseArguments(["deploy"])).toThrow(/requires --broadcast/);
+    expect(() => parseArguments(["deploy", "--broadcast"])).toThrow(/requires one explicit --step/);
+    expect(parseArguments(["deploy", "--broadcast", "--step", "2"])).toMatchObject({
+      command: "deploy",
+      broadcast: true,
+      recoveryStep: 2,
+    });
     expect(() => parseArguments(["plan", "--broadcast"])).toThrow(/does not accept/);
+    expect(() => parseArguments(["plan", "--step", "1"])).toThrow(/does not accept --step/);
     expect(() => parseArguments(["swap", "--broadcast", "--private-key", "secret"])).toThrow(/Unknown argument/);
-    expect(() => parseArguments(["deploy", "--broadcast", "--step", "2"])).toThrow(/supplied together/);
+    expect(() => parseArguments(["deploy", "--broadcast", "--receipt", `0x${"ab".repeat(32)}`])).toThrow(
+      /--receipt requires --step/,
+    );
+  });
+
+  it("permits only the next uncheckpointed broadcast boundary", () => {
+    expect(assertNextBoundary(4, 3, "Bootstrap")).toBe(4);
+    expect(() => assertNextBoundary(undefined, 3, "Bootstrap")).toThrow(/next uncheckpointed boundary 4/);
+    expect(() => assertNextBoundary(5, 3, "Bootstrap")).toThrow(/next uncheckpointed boundary 4/);
+    expect(() => assertNextBoundary(3, 3, "Bootstrap")).toThrow(/next uncheckpointed boundary 4/);
   });
 
   it("writes complete JSON atomically without leaving its temporary file", () => {
@@ -177,6 +196,38 @@ describe("Garden Safe temporary owner tooling", () => {
     expect(() =>
       assertSwappedState({ ...swapped, nonce: "3" }, REPLACEMENT_OWNER, RECOVERY_SAFE, SINGLETON, HANDLER),
     ).toThrow(/post-swap state/);
+  });
+
+  it("requires an independently proven module-free 2-of-3 recovery Safe", () => {
+    const recovery = {
+      ...safeInspection(
+        [
+          "0x1111111111111111111111111111111111111111",
+          "0x2222222222222222222222222222222222222222",
+          "0x3333333333333333333333333333333333333333",
+        ],
+        "0",
+      ),
+      version: "1.3.0",
+      threshold: "2",
+    };
+    expect(() => assertRecoverySafeConfiguration(recovery)).not.toThrow();
+    expect(() => assertRecoverySafeConfiguration({ ...recovery, owners: recovery.owners.slice(0, 2) })).toThrow(
+      /exact module-free 2-of-3/,
+    );
+    expect(() => assertRecoverySafeConfiguration({ ...recovery, threshold: "1" })).toThrow(/exact module-free 2-of-3/);
+  });
+
+  it("rejects checkpoint blocks that do not equal the verified receipt", () => {
+    const checkpoint = {
+      index: 1,
+      transactionHash: `0x${"ab".repeat(32)}`,
+      blockNumber: 123,
+      safe: "0x4444444444444444444444444444444444444444",
+      garden: "0x2222222222222222222222222222222222222222",
+    };
+    expect(() => assertCheckpointReceiptBlock(checkpoint, 123)).not.toThrow();
+    expect(() => assertCheckpointReceiptBlock(checkpoint, 124)).toThrow(/verified receipt is block 124/);
   });
 
   it("rejects replacement-owner reuse across Gardens", () => {

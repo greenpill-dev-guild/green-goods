@@ -978,6 +978,16 @@ Known mis-resolutions fixed in place: `contract-spec.md` §Grassroots-Economics-
     authority, and value movement remain paused or disabled; enabling any of them requires a new
     tier-3 gate.
 
+110. Completed release ceremonies are retired rather than kept as replayable batch broadcasts
+    (2026-08-14, Afo quickest-safe-route authorization). The finished core deployment, root-first
+    18-pool backfill, and separate Pooling unpause orchestrators plus their placeholder authorization
+    files are removed; their receipt artifacts, recovery entrypoints, and read-only verifiers remain.
+    The remaining credential operator is limited to one explicitly selected Garden Safe bootstrap
+    or owner-swap boundary per password session. Each invocation verifies the complete checkpoint
+    prefix, exact receipt block, live dependency identities, and the independently read exact
+    module-free 2-of-3 recovery Safe before accepting the step. No peer wiring, Safe/Zodiac value
+    authority, ownership transfer, or value movement is added by this retirement.
+
 **Final recursive certification clarification (2026-07-25; no new decision-register entry):**
 the published `42161`↔`42220` production lane is the only required fully paired
 `SettlementConfiguration`. Arbitrum Sepolia `421614` and Celo Sepolia `11142220` remain

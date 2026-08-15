@@ -141,17 +141,32 @@ async function verifyProxy(
   proxy: ReleaseIdentity,
   implementation: ReleaseIdentity,
   expectedOwner: string,
+  expectedPaused: boolean | undefined,
   checks: Check[],
 ) {
   const implementationSlot = await provider.getStorage(proxy.address, IMPLEMENTATION_SLOT);
   check(checks, `${proxy.name}.implementation-slot`, implementation.address, addressFromSlot(implementationSlot), true);
   const contract = new Contract(proxy.address, OWNER_ABI, provider);
   check(checks, `${proxy.name}.owner`, expectedOwner, await contract.owner(), true);
+  if (expectedPaused !== undefined) check(checks, `${proxy.name}.paused`, expectedPaused, await contract.paused());
+}
+
+export function expectedProxyPaused(
+  proxyName: string,
+  artifact: Record<string, unknown>,
+  boundaryScoped: boolean,
+): boolean | undefined {
   if (
-    ["CommitmentPoolingModule", "SettlementModule", "CreditRegistry", "CeloSettlementExecutor"].includes(proxy.name)
+    !["CommitmentPoolingModule", "SettlementModule", "CreditRegistry", "CeloSettlementExecutor"].includes(proxyName)
   ) {
-    check(checks, `${proxy.name}.paused`, true, await contract.paused());
+    return undefined;
   }
+  if (proxyName !== "CommitmentPoolingModule" || boundaryScoped) return true;
+  const recorded = artifact.commitmentPoolingModulePaused;
+  if (typeof recorded !== "boolean") {
+    throw new Error("Deployment artifact must record commitmentPoolingModulePaused for current-state verification");
+  }
+  return recorded;
 }
 
 async function verifySettlement(
@@ -372,6 +387,7 @@ async function verifyConfigurationBoundary(
   lock: ReturnType<typeof buildReleaseLock>,
   deployment: Record<string, unknown>,
   expectedOwner: string,
+  expectedPoolingPaused: boolean,
   checks: Check[],
 ) {
   if (boundary.stage === "credit-registry") {
@@ -453,7 +469,7 @@ async function verifyConfigurationBoundary(
     throw new Error(`Unknown pooling configuration boundary ${boundary.label}`);
   }
   check(checks, "CommitmentPoolingModule.owner-after-boundary", expectedOwner, await module.owner(), true);
-  check(checks, "CommitmentPoolingModule.paused-after-boundary", true, await module.paused());
+  check(checks, "CommitmentPoolingModule.paused", expectedPoolingPaused, await module.paused());
 }
 
 async function main() {
@@ -539,7 +555,14 @@ async function main() {
     for (const identity of identities) await verifyCode(provider, identity, artifact, checks);
     for (const proxy of identities.filter((item) => item.kind === "proxy")) {
       const implementation = implementationForProxy(lock, proxy);
-      await verifyProxy(provider, proxy, implementation, expectedOwner, checks);
+      await verifyProxy(
+        provider,
+        proxy,
+        implementation,
+        expectedOwner,
+        expectedProxyPaused(proxy.name, artifact, boundary !== undefined),
+        checks,
+      );
       if (proxy.name === "CommitmentRegistry") {
         const registry = new Contract(proxy.address, ["function module() view returns (address)"], provider);
         check(
@@ -552,7 +575,7 @@ async function main() {
       }
     }
     if (boundary?.kind === "configuration") {
-      await verifyConfigurationBoundary(provider, boundary, manifest, lock, deployment, expectedOwner, checks);
+      await verifyConfigurationBoundary(provider, boundary, manifest, lock, deployment, expectedOwner, true, checks);
     } else {
       const settlementName = args.network === "arbitrum" ? "SettlementModule" : "CeloSettlementExecutor";
       const settlementProxy = identities.find((item) => item.name === settlementName && item.kind === "proxy");
@@ -560,8 +583,19 @@ async function main() {
       if (args.stage === "credit-registry" && !boundary) await verifyCreditBinding(provider, lock, checks);
       if (args.stage === "pooling" && !boundary) {
         const plan = buildStageTransactionPlan(manifest, lock, args.stage, deployment, baseSalt);
+        const expectedPoolingPaused = expectedProxyPaused("CommitmentPoolingModule", artifact, false);
+        if (expectedPoolingPaused === undefined) throw new Error("Commitment Pooling pause expectation is missing");
         for (const transaction of plan.transactions.filter((item) => item.kind === "configuration")) {
-          await verifyConfigurationBoundary(provider, transaction, manifest, lock, deployment, expectedOwner, checks);
+          await verifyConfigurationBoundary(
+            provider,
+            transaction,
+            manifest,
+            lock,
+            deployment,
+            expectedOwner,
+            expectedPoolingPaused,
+            checks,
+          );
         }
       }
     }

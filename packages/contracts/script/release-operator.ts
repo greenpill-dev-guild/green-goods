@@ -6,7 +6,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { createInterface } from "node:readline/promises";
 import * as dotenv from "dotenv";
-import { getAddress, JsonRpcProvider, keccak256, toUtf8Bytes } from "ethers";
+import { getAddress, keccak256, toUtf8Bytes } from "ethers";
 import {
   type BootstrapPlan,
   buildBootstrapDeploymentArtifact,
@@ -16,121 +16,23 @@ import {
   validateBootstrapPlan,
   validateSwapPlan,
 } from "./deploy/garden-safe-owners";
-import { NetworkManager } from "./utils/network";
-import {
-  buildReleaseLock,
-  loadReleaseManifest,
-  type ReleaseLock,
-  type ReleaseManifest,
-  type ReleaseStage,
-} from "./utils/release-manifest";
+import { buildReleaseLock, loadReleaseManifest, type ReleaseLock, type ReleaseStage } from "./utils/release-manifest";
 
 const CONTRACTS_ROOT = path.join(__dirname, "..");
 const REPOSITORY_ROOT = path.join(CONTRACTS_ROOT, "../..");
 dotenv.config({ path: path.join(REPOSITORY_ROOT, ".env"), quiet: true });
 
-const AUTOMATED_RELEASE_MUTATIONS = new Set([
+const RELEASE_ARTIFACT_MUTATIONS = new Set([
   "packages/contracts/deployments/42161-latest.json",
   "packages/contracts/deployments/42220-latest.json",
 ]);
 const GARDEN_SAFE_ARTIFACT_PATH = "packages/contracts/deployments/42220-settlement-safes.json";
 const GARDEN_SAFE_ARTIFACT_MUTATIONS = new Set([GARDEN_SAFE_ARTIFACT_PATH]);
-export const AUTOMATED_RELEASE_STAGE_ORDER = [
-  "assessment-resolver",
-  "schema-preparation",
-  "pooling",
-  "schema-finalization",
-  "settlement-module",
-  "credit-registry",
-  "pooling-integration-upgrade",
-  "settlement-executor",
-] as const;
-
-export const AUTOMATED_RELEASE_EXCLUSIONS = [
-  "ownership-transfer",
-  "pool-registration",
-  "pooling-unpause",
-  "peer-wiring",
-  "safe-zodiac-value-authority",
-  "value-movement",
-  "indexer-activation",
-] as const;
-
-export interface CompleteSequenceAuthorization {
-  schemaVersion: 3;
-  kind: "PAUSED_RELEASE_COMPLETE_SEQUENCE_AUTHORIZATION";
-  operatorCandidateCommit: string;
-  releaseId: string;
-  releaseManifestHash: string;
-  releaseSourceCommit: string;
-  terminalState: "paused-deployer-owned";
-  authorizedStages: string[];
-  excludedActions: string[];
-  authorizedBy: string;
-  authorizedOn: string;
-  authorizationRecord: string;
-  authorizationWindow: AuthorizationWindow;
-}
-
-export const POOL_BACKFILL_REGISTRATION_BOUNDARIES = 18;
-
-export type PoolCeremonyMode = "pool-backfill" | "pooling-unpause";
-
-export interface AuthorizationWindow {
-  notBefore: string;
-  expiresAt: string;
-}
-
-export interface PoolCeremonyAuthorization {
-  schemaVersion: 1;
-  kind: "POOL_CEREMONY_AUTHORIZATION";
-  mode: PoolCeremonyMode;
-  operatorCandidateCommit: string;
-  releaseId: string;
-  releaseManifestHash: string;
-  releaseSourceCommit: string;
-  network: "arbitrum";
-  chainId: 42161;
-  authority: "DEPLOYER";
-  planHash: string;
-  authorizedBoundaries: number[];
-  terminalState: "paused-deployer-owned-18-pools" | "unpaused-deployer-owned-18-pools";
-  excludedActions: string[];
-  authorizedBy: string;
-  authorizedOn: string;
-  authorizationRecord: string;
-  authorizationWindow: AuthorizationWindow;
-}
-
-export const POOL_BACKFILL_EXCLUSIONS = [
-  "ownership-transfer",
-  "pooling-unpause",
-  "peer-wiring",
-  "safe-zodiac-value-authority",
-  "value-movement",
-  "indexer-activation",
-] as const;
-
-export const POOL_UNPAUSE_EXCLUSIONS = [
-  "ownership-transfer",
-  "additional-pool-registration",
-  "peer-wiring",
-  "safe-zodiac-value-authority",
-  "value-movement",
-  "indexer-activation",
-] as const;
+const INTERACTIVE_ARTIFACT_MUTATIONS = new Set([...RELEASE_ARTIFACT_MUTATIONS, ...GARDEN_SAFE_ARTIFACT_MUTATIONS]);
 
 export const RELEASE_OPERATOR_COMMANDS = new Map<string, string>([
-  ["assessment:upgrade:arbitrum", "AssessmentResolver upgrade and canonical-v2 pin boundaries"],
-  ["pooling:schemas:arbitrum", "TestimonyResolver and AssessmentV3 schema preparation boundaries"],
-  ["pooling:deploy:arbitrum", "paused Commitment Pooling library/implementation/proxy boundaries"],
-  ["pooling:finalize:arbitrum", "Community Testimony record and resolver finalization boundaries"],
-  ["settlement:module:deploy:arbitrum", "paused Arbitrum SettlementModule boundaries"],
-  ["credit:registry:deploy:arbitrum", "paused records-only CreditRegistry boundaries"],
-  ["pooling:upgrade:arbitrum", "GardenToken and WorkApprovalResolver integration-upgrade boundaries"],
-  ["settlement:executor:deploy:celo", "paused CeloSettlementExecutor boundaries"],
-  ["settlement:garden-safes:deploy:celo", "native/G$-clear 1-of-2 Garden Safe bootstrap boundaries"],
-  ["settlement:garden-safes:swap:celo", "deployer-to-reviewed-owner Garden Safe swap boundaries"],
+  ["settlement:garden-safes:deploy:celo", "one native/G$-clear Garden Safe bootstrap boundary"],
+  ["settlement:garden-safes:swap:celo", "one deployer-to-reviewed-owner Garden Safe swap boundary"],
 ] as const);
 
 const FORBIDDEN_ARGUMENTS = new Set([
@@ -145,42 +47,13 @@ const FORBIDDEN_ARGUMENTS = new Set([
 ]);
 
 const RELEASE_OPERATOR_ARGUMENTS = new Map<string, ReadonlySet<string>>([
-  [
-    "assessment:upgrade:arbitrum",
-    new Set(["--plan", "--step", "--expected-nonce", "--receipt", "--override-sepolia-gate"]),
-  ],
-  [
-    "pooling:schemas:arbitrum",
-    new Set(["--artifact", "--step", "--expected-nonce", "--receipt", "--override-sepolia-gate"]),
-  ],
-  ["pooling:deploy:arbitrum", new Set(["--step", "--expected-nonce", "--receipt", "--override-sepolia-gate"])],
-  [
-    "pooling:finalize:arbitrum",
-    new Set(["--artifact", "--step", "--expected-nonce", "--receipt", "--override-sepolia-gate"]),
-  ],
-  [
-    "settlement:module:deploy:arbitrum",
-    new Set(["--step", "--expected-nonce", "--receipt", "--override-sepolia-gate"]),
-  ],
-  ["credit:registry:deploy:arbitrum", new Set(["--step", "--expected-nonce", "--receipt", "--override-sepolia-gate"])],
-  [
-    "pooling:upgrade:arbitrum",
-    new Set(["--plan", "--step", "--expected-nonce", "--receipt", "--override-sepolia-gate"]),
-  ],
-  ["settlement:executor:deploy:celo", new Set(["--step", "--expected-nonce", "--receipt", "--override-sepolia-gate"])],
   ["settlement:garden-safes:deploy:celo", new Set(["--plan", "--inventory", "--step", "--receipt"])],
   ["settlement:garden-safes:swap:celo", new Set(["--plan", "--inventory", "--replacements", "--step", "--receipt"])],
 ]);
 
-const BOOLEAN_ARGUMENTS = new Set(["--override-sepolia-gate"]);
-
 export interface SessionOptions {
   commit?: string;
-  authorization?: string;
   help: boolean;
-  deployAll: boolean;
-  backfillAll: boolean;
-  unpausePooling: boolean;
 }
 
 export interface PasswordLease {
@@ -189,7 +62,7 @@ export interface PasswordLease {
 }
 
 export function parseSessionOptions(args: string[]): SessionOptions {
-  const options: SessionOptions = { help: false, deployAll: false, backfillAll: false, unpausePooling: false };
+  const options: SessionOptions = { help: false };
   for (let index = 0; index < args.length; index += 1) {
     const argument = args[index];
     if (argument === "--help" || argument === "-h") {
@@ -203,38 +76,10 @@ export function parseSessionOptions(args: string[]): SessionOptions {
       index += 1;
       continue;
     }
-    if (argument === "--authorization") {
-      const value = args[index + 1];
-      if (!value || value.startsWith("-")) throw new Error("--authorization requires a reviewed JSON file");
-      options.authorization = path.resolve(value);
-      index += 1;
-      continue;
-    }
-    if (argument === "--deploy-all") {
-      options.deployAll = true;
-      continue;
-    }
-    if (argument === "--backfill-all") {
-      options.backfillAll = true;
-      continue;
-    }
-    if (argument === "--unpause-pooling") {
-      options.unpausePooling = true;
-      continue;
-    }
     throw new Error(`Unknown release operator option: ${argument}`);
   }
   if (!options.help && (!options.commit || !/^[0-9a-f]{40}$/u.test(options.commit))) {
     throw new Error("Release operator session requires --commit <exact-40-character-candidate>");
-  }
-  if ([options.deployAll, options.backfillAll, options.unpausePooling].filter(Boolean).length > 1) {
-    throw new Error("Choose only one automated release mode");
-  }
-  if ((options.deployAll || options.backfillAll || options.unpausePooling) && !options.authorization) {
-    throw new Error("Automated release modes require --authorization <candidate-bound-reviewed-json>");
-  }
-  if (!options.deployAll && !options.backfillAll && !options.unpausePooling && options.authorization) {
-    throw new Error("--authorization is accepted only with an automated release mode");
   }
   return options;
 }
@@ -288,6 +133,7 @@ export function assertAllowedOperatorCommand(tokens: string[]): { script: string
   const args = tokens.slice(2);
   const allowedArguments = RELEASE_OPERATOR_ARGUMENTS.get(script);
   if (!allowedArguments) throw new Error(`Release operator arguments are not configured for ${script}`);
+  const seenArguments = new Set<string>();
   for (let index = 0; index < args.length; index += 1) {
     const argument = args[index];
     const flag = argument.includes("=") ? argument.slice(0, argument.indexOf("=")) : argument;
@@ -297,10 +143,8 @@ export function assertAllowedOperatorCommand(tokens: string[]): { script: string
     if (!allowedArguments.has(flag)) {
       throw new Error(`Release operator argument is not allowlisted for ${script}: ${flag}`);
     }
-    if (BOOLEAN_ARGUMENTS.has(flag)) {
-      if (argument.includes("=")) throw new Error(`${flag} is a boolean flag and takes no value`);
-      continue;
-    }
+    if (seenArguments.has(flag)) throw new Error(`Release operator argument is duplicated for ${script}: ${flag}`);
+    seenArguments.add(flag);
     if (argument.includes("=")) {
       if (argument.slice(argument.indexOf("=") + 1).length === 0) throw new Error(`${flag} requires a value`);
       continue;
@@ -308,6 +152,9 @@ export function assertAllowedOperatorCommand(tokens: string[]): { script: string
     const value = args[index + 1];
     if (!value || value.startsWith("--")) throw new Error(`${flag} requires a value`);
     index += 1;
+  }
+  if (!seenArguments.has("--step")) {
+    throw new Error(`${script} requires one explicit --step boundary`);
   }
   return { script, args };
 }
@@ -340,14 +187,11 @@ Green Goods release operator session
 
 Usage:
   bun run release:operator -- --commit <exact-40-character-candidate>
-  bun run release:deploy:all -- --commit <exact-40-character-candidate> --authorization <reviewed-json>
-  bun run release:backfill:all -- --commit <exact-40-character-candidate> --authorization <reviewed-json>
-  bun run release:unpause:pooling -- --commit <exact-40-character-candidate> --authorization <reviewed-json>
 
-The session verifies a clean checkout at the exact candidate, prompts for the Foundry keystore
-password once, verifies that it unlocks the frozen deployment sender, and then accepts only the
-allowlisted Bun package scripts below. It never accepts a private key, password argument, RPC
-override, network override, sender override, raw Forge command, or arbitrary shell command.
+The session verifies the exact candidate plus any receipt-backed deployment artifacts, prompts for
+the Foundry keystore password, verifies that it unlocks the frozen deployment sender, and accepts
+one explicit Garden Safe boundary. It never accepts a private key, password argument, RPC override,
+network override, sender override, raw Forge command, or arbitrary shell command.
 
 Inside the session:
   help
@@ -355,21 +199,9 @@ Inside the session:
   exit
 
 Unlocking the session is not broadcast authorization. Run only the exact stage and transaction
-boundary separately authorized by the release owner. Every wrapper must verify and checkpoint the
-current boundary before another command is entered.
-
---deploy-all derives fresh nonce-bound plans and executes every remaining deployer-signed paused
-candidate stage in dependency order. It resumes verified checkpoints and stops on the first error.
-Its separately reviewed authorization JSON must name the same exact operator candidate commit.
-Ownership transfer, pool backfill, unpause, peer wiring, Safe authority, and value movement are
-excluded from that command.
-
---backfill-all derives one finalized, root-Protocol-first plan and executes only registration
-boundaries 1-18 through the temporary deployment-sender owner. It keeps pooling paused and never
-transfers ownership. --unpause-pooling executes only boundary 19 after every registration receipt
-and pool ID is verified. Peer wiring, Safe authority, value movement, and ownership transfer remain
-excluded from both commands. Each mode requires its own candidate-, plan-, boundary-, and
-time-window-bound authorization JSON before the keystore is unlocked.
+boundary separately authorized by the release owner. The credential session closes after that
+wrapper verifies and checkpoints the selected boundary. The completed core deployment, pool
+backfill, and pooling-unpause orchestrators are retired and cannot be replayed from this operator.
 
 Allowlisted package scripts:
 ${[...RELEASE_OPERATOR_COMMANDS].map(([name, description]) => `  ${name.padEnd(40)} ${description}`).join("\n")}
@@ -416,10 +248,10 @@ export function assertPinnedCheckout(candidateCommit: string, repositoryRoot = R
   if (status.trim()) throw new Error("Release operator session requires the exact candidate checkout to stay clean");
 }
 
-export function assertAutomatedPinnedCheckout(
+export function assertArtifactCheckout(
   candidateCommit: string,
   repositoryRoot = REPOSITORY_ROOT,
-  allowedMutations: ReadonlySet<string> = AUTOMATED_RELEASE_MUTATIONS,
+  allowedMutations: ReadonlySet<string> = INTERACTIVE_ARTIFACT_MUTATIONS,
 ): void {
   const head = execFileSync("git", ["rev-parse", "HEAD"], { cwd: repositoryRoot, encoding: "utf8" }).trim();
   if (head !== candidateCommit) {
@@ -436,137 +268,11 @@ export function assertAutomatedPinnedCheckout(
     .filter((filePath): filePath is string => filePath !== undefined)
     .filter((filePath) => !allowedMutations.has(filePath));
   if (unexpected.length > 0) {
-    throw new Error(`Release automation detected concurrent checkout drift: ${unexpected.join(", ")}`);
+    throw new Error(`Release operator detected concurrent checkout drift: ${unexpected.join(", ")}`);
   }
 }
 
-export function validateCompleteSequenceAuthorization(
-  authorization: CompleteSequenceAuthorization,
-  manifest: ReleaseManifest,
-  lock: ReleaseLock,
-  candidateCommit: string,
-  now = new Date(),
-): void {
-  if (
-    authorization.schemaVersion !== 3 ||
-    authorization.kind !== "PAUSED_RELEASE_COMPLETE_SEQUENCE_AUTHORIZATION" ||
-    authorization.operatorCandidateCommit !== candidateCommit ||
-    authorization.releaseId !== manifest.releaseId ||
-    authorization.releaseManifestHash !== lock.manifestHash ||
-    authorization.releaseSourceCommit !== lock.sourceCommit ||
-    authorization.terminalState !== "paused-deployer-owned" ||
-    JSON.stringify(authorization.authorizedStages) !== JSON.stringify(AUTOMATED_RELEASE_STAGE_ORDER) ||
-    JSON.stringify(authorization.excludedActions) !== JSON.stringify(AUTOMATED_RELEASE_EXCLUSIONS) ||
-    !authorization.authorizedBy.trim() ||
-    !/^\d{4}-\d{2}-\d{2}$/u.test(authorization.authorizedOn) ||
-    !authorization.authorizationRecord.trim() ||
-    !isActiveAuthorizationWindow(authorization.authorizationWindow, now)
-  ) {
-    throw new Error("Complete release sequence is not bound to the exact reviewed authorization artifact");
-  }
-}
-
-function isActiveAuthorizationWindow(window: AuthorizationWindow | undefined, now: Date): boolean {
-  if (!window) return false;
-  const notBefore = Date.parse(window.notBefore);
-  const expiresAt = Date.parse(window.expiresAt);
-  const current = now.getTime();
-  const maximumWindow = 24 * 60 * 60 * 1000;
-  return (
-    Number.isFinite(notBefore) &&
-    Number.isFinite(expiresAt) &&
-    expiresAt > notBefore &&
-    expiresAt - notBefore <= maximumWindow &&
-    current >= notBefore &&
-    current <= expiresAt
-  );
-}
-
-function readReviewedAuthorization<T>(authorizationPath: string, label: string): T {
-  if (!fs.existsSync(authorizationPath)) {
-    throw new Error(`${label} authorization is missing: ${authorizationPath}`);
-  }
-  const authorizationStat = fs.lstatSync(authorizationPath);
-  if (!authorizationStat.isFile() || authorizationStat.isSymbolicLink() || (authorizationStat.mode & 0o022) !== 0) {
-    throw new Error(`${label} authorization must be a regular file without group/world write access`);
-  }
-  return readJson<T>(authorizationPath);
-}
-
-function assertCompleteSequenceAuthorization(candidateCommit: string, authorizationPath: string): void {
-  const manifest = loadReleaseManifest();
-  validateCompleteSequenceAuthorization(
-    readReviewedAuthorization<CompleteSequenceAuthorization>(authorizationPath, "Complete release sequence"),
-    manifest,
-    buildReleaseLock(manifest),
-    candidateCommit,
-  );
-}
-
-function expectedPoolCeremonyBoundaries(mode: PoolCeremonyMode): number[] {
-  if (mode === "pool-backfill") {
-    return Array.from({ length: POOL_BACKFILL_REGISTRATION_BOUNDARIES }, (_, offset) => offset + 1);
-  }
-  return [POOL_BACKFILL_REGISTRATION_BOUNDARIES + 1];
-}
-
-export function validatePoolCeremonyAuthorization(
-  authorization: PoolCeremonyAuthorization,
-  manifest: ReleaseManifest,
-  lock: ReleaseLock,
-  candidateCommit: string,
-  mode: PoolCeremonyMode,
-  planHash: string,
-  now = new Date(),
-): void {
-  const backfill = mode === "pool-backfill";
-  const expectedTerminalState = backfill ? "paused-deployer-owned-18-pools" : "unpaused-deployer-owned-18-pools";
-  const expectedExclusions = backfill ? POOL_BACKFILL_EXCLUSIONS : POOL_UNPAUSE_EXCLUSIONS;
-  if (
-    authorization.schemaVersion !== 1 ||
-    authorization.kind !== "POOL_CEREMONY_AUTHORIZATION" ||
-    authorization.mode !== mode ||
-    authorization.operatorCandidateCommit !== candidateCommit ||
-    authorization.releaseId !== manifest.releaseId ||
-    authorization.releaseManifestHash !== lock.manifestHash ||
-    authorization.releaseSourceCommit !== lock.sourceCommit ||
-    authorization.network !== "arbitrum" ||
-    authorization.chainId !== 42161 ||
-    authorization.authority !== "DEPLOYER" ||
-    authorization.planHash !== planHash ||
-    JSON.stringify(authorization.authorizedBoundaries) !== JSON.stringify(expectedPoolCeremonyBoundaries(mode)) ||
-    authorization.terminalState !== expectedTerminalState ||
-    JSON.stringify(authorization.excludedActions) !== JSON.stringify(expectedExclusions) ||
-    !authorization.authorizedBy.trim() ||
-    !/^\d{4}-\d{2}-\d{2}$/u.test(authorization.authorizedOn) ||
-    !authorization.authorizationRecord.trim() ||
-    !isActiveAuthorizationWindow(authorization.authorizationWindow, now)
-  ) {
-    throw new Error(`Pool ceremony ${mode} is not bound to the exact reviewed authorization artifact`);
-  }
-}
-
-function assertPoolCeremonyAuthorization(
-  candidateCommit: string,
-  authorizationPath: string,
-  mode: PoolCeremonyMode,
-): void {
-  const planPath = backfillPlanPath();
-  if (!fs.existsSync(planPath)) {
-    throw new Error(`Pool ceremony authorization requires the reviewed plan: ${planPath}`);
-  }
-  const manifest = loadReleaseManifest();
-  validatePoolCeremonyAuthorization(
-    readReviewedAuthorization<PoolCeremonyAuthorization>(authorizationPath, `Pool ceremony ${mode}`),
-    manifest,
-    buildReleaseLock(manifest),
-    candidateCommit,
-    mode,
-    keccak256(toUtf8Bytes(fs.readFileSync(planPath, "utf8"))),
-  );
-}
-
-function automatedDirtyPaths(repositoryRoot: string): string[] {
+function artifactDirtyPaths(repositoryRoot: string): string[] {
   return execFileSync("git", ["status", "--porcelain=v1", "--untracked-files=all"], {
     cwd: repositoryRoot,
     encoding: "utf8",
@@ -575,28 +281,6 @@ function automatedDirtyPaths(repositoryRoot: string): string[] {
     .filter(Boolean)
     .map((line) => line.slice(3).split(" -> ").at(-1))
     .filter((filePath): filePath is string => filePath !== undefined);
-}
-
-export function assertAutomatedSessionStart(
-  candidateCommit: string,
-  authorizationPath: string,
-  repositoryRoot = REPOSITORY_ROOT,
-  validatePromotions: (candidate: string, root: string, paths: string[]) => void = assertVerifiedResumePromotions,
-  allowedMutations: ReadonlySet<string> = AUTOMATED_RELEASE_MUTATIONS,
-): void {
-  assertCompleteSequenceAuthorization(candidateCommit, authorizationPath);
-  assertAutomatedResumeStart(candidateCommit, repositoryRoot, validatePromotions, allowedMutations);
-}
-
-export function assertAutomatedResumeStart(
-  candidateCommit: string,
-  repositoryRoot = REPOSITORY_ROOT,
-  validatePromotions: (candidate: string, root: string, paths: string[]) => void = assertVerifiedResumePromotions,
-  allowedMutations: ReadonlySet<string> = AUTOMATED_RELEASE_MUTATIONS,
-): void {
-  assertAutomatedPinnedCheckout(candidateCommit, repositoryRoot, allowedMutations);
-  const dirty = automatedDirtyPaths(repositoryRoot);
-  if (dirty.length > 0) validatePromotions(candidateCommit, repositoryRoot, dirty);
 }
 
 function requireCompleteGardenSafeCheckpoint(planPath: string, plan: BootstrapPlan | SwapPlan): Checkpoint {
@@ -670,15 +354,31 @@ export function assertVerifiedGardenSafePromotion(
   }
 }
 
-export function assertGardenSafeSessionStart(
+export function assertInteractiveSessionStart(
   candidateCommit: string,
   repositoryRoot = REPOSITORY_ROOT,
-  validatePromotion: (candidate: string, root: string, paths: string[]) => void = assertVerifiedGardenSafePromotion,
-  allowedMutations: ReadonlySet<string> = GARDEN_SAFE_ARTIFACT_MUTATIONS,
+  validateReleasePromotions: (
+    candidate: string,
+    root: string,
+    paths: string[],
+  ) => void = assertVerifiedResumePromotions,
+  validateGardenSafePromotion: (
+    candidate: string,
+    root: string,
+    paths: string[],
+  ) => void = assertVerifiedGardenSafePromotion,
+  allowedMutations: ReadonlySet<string> = INTERACTIVE_ARTIFACT_MUTATIONS,
 ): void {
-  assertAutomatedPinnedCheckout(candidateCommit, repositoryRoot, allowedMutations);
-  const dirty = automatedDirtyPaths(repositoryRoot);
-  if (dirty.length > 0) validatePromotion(candidateCommit, repositoryRoot, dirty);
+  assertArtifactCheckout(candidateCommit, repositoryRoot, allowedMutations);
+  const dirty = artifactDirtyPaths(repositoryRoot);
+  const releaseArtifacts = dirty.filter((filePath) => RELEASE_ARTIFACT_MUTATIONS.has(filePath));
+  const gardenSafeArtifacts = dirty.filter((filePath) => GARDEN_SAFE_ARTIFACT_MUTATIONS.has(filePath));
+  if (releaseArtifacts.length > 0) {
+    validateReleasePromotions(candidateCommit, repositoryRoot, releaseArtifacts);
+  }
+  if (gardenSafeArtifacts.length > 0) {
+    validateGardenSafePromotion(candidateCommit, repositoryRoot, gardenSafeArtifacts);
+  }
 }
 
 interface JsonPlan {
@@ -919,37 +619,6 @@ export function completedBoundaries(planPath: string, checkpointPath = defaultCh
   return completed;
 }
 
-function latestUpgradePlan(contract: string): string | undefined {
-  const directory = path.join(CONTRACTS_ROOT, ".generated/release-upgrades");
-  if (!fs.existsSync(directory)) return undefined;
-  const manifest = loadReleaseManifest();
-  const lock = buildReleaseLock(manifest);
-  const candidates = fs
-    .readdirSync(directory)
-    .filter((name) => name.startsWith(`42161-${contract}-`) && name.endsWith("-plan.json"))
-    .map((name) => path.join(directory, name))
-    .filter((filePath) => {
-      const plan = readJson<JsonPlan>(filePath);
-      return plan.releaseManifestHash === lock.manifestHash && plan.releaseSourceCommit === lock.sourceCommit;
-    })
-    .sort((left, right) => fs.statSync(right).mtimeMs - fs.statSync(left).mtimeMs);
-  return (
-    candidates.find((filePath) => {
-      const plan = readJson<JsonPlan>(filePath);
-      const completed = completedBoundaries(filePath);
-      return completed > 0 && completed < plan.transactions.length;
-    }) ??
-    candidates.find((filePath) => completedBoundaries(filePath) === readJson<JsonPlan>(filePath).transactions.length) ??
-    candidates[0]
-  );
-}
-
-function plannedNonce(value: number | string | undefined): number {
-  if (typeof value === "number" && Number.isSafeInteger(value)) return value;
-  if (typeof value === "string" && /^(?:0x[0-9a-f]+|[0-9]+)$/iu.test(value)) return Number(BigInt(value));
-  throw new Error(`Invalid planned nonce: ${String(value)}`);
-}
-
 function verifyDeployerPassword(passwordFile: string): string {
   const manifest = loadReleaseManifest();
   const result = execFileSync("cast", ["wallet", "address", "--account", manifest.ownership.deploymentKeystore], {
@@ -964,399 +633,8 @@ function verifyDeployerPassword(passwordFile: string): string {
     throw new Error(`Keystore unlock resolved ${unlocked}, expected frozen sender ${expected}`);
   return unlocked;
 }
-
-function runAutomatedBunCommand(
-  candidateCommit: string,
-  passwordFile: string,
-  script: string,
-  args: string[] = [],
-  allowedMutations: ReadonlySet<string> = AUTOMATED_RELEASE_MUTATIONS,
-): void {
-  assertAutomatedPinnedCheckout(candidateCommit, REPOSITORY_ROOT, allowedMutations);
-  const beforeDirty = automatedDirtyPaths(REPOSITORY_ROOT);
-  if (beforeDirty.length > 0) assertVerifiedResumePromotions(candidateCommit, REPOSITORY_ROOT, beforeDirty);
-  console.log(`\n▶ ${script}${args.length > 0 ? ` ${args.join(" ")}` : ""}`);
-  const manifest = loadReleaseManifest();
-  const result = spawnSync("bun", ["run", script, ...args], {
-    cwd: CONTRACTS_ROOT,
-    stdio: "inherit",
-    env: {
-      ...process.env,
-      APP_ENV: "development",
-      ETH_PASSWORD: passwordFile,
-      FOUNDRY_KEYSTORE_ACCOUNT: manifest.ownership.deploymentKeystore,
-      PINATA_GATEWAY: "",
-      PINATA_JWT: "",
-      PINATA_JWT_OP_REF: "",
-    },
-  });
-  if (result.status !== 0) throw new Error(`${script} failed; release automation stopped`);
-  assertAutomatedPinnedCheckout(candidateCommit, REPOSITORY_ROOT, allowedMutations);
-  const afterDirty = automatedDirtyPaths(REPOSITORY_ROOT);
-  if (afterDirty.length > 0) assertVerifiedResumePromotions(candidateCommit, REPOSITORY_ROOT, afterDirty);
-}
-
-async function pendingNonce(network: "arbitrum" | "celo", sender: string): Promise<number> {
-  const manager = new NetworkManager();
-  const provider = new JsonRpcProvider(manager.getRpcUrl(network), manager.getChainId(network), {
-    staticNetwork: true,
-  });
-  return await provider.getTransactionCount(sender, "pending");
-}
-
-export function planBoundaryExecutionSteps(
-  planPath: string,
-  checkpointPath = defaultCheckpointPath(planPath),
-): number[] {
-  const plan = readJson<JsonPlan>(planPath);
-  const completed = completedBoundaries(planPath, checkpointPath);
-  if (completed > plan.transactions.length) throw new Error(`Checkpoint exceeds plan: ${planPath}`);
-  if (plan.transactions.length === 0) return [];
-  const firstStep = completed > 0 ? completed : 1;
-  return Array.from({ length: plan.transactions.length - firstStep + 1 }, (_, index) => firstStep + index);
-}
-
-export function assertPlanCanResume(planPath: string, checkpointPath: string, liveNonce: number): JsonPlan {
-  const plan = readJson<JsonPlan>(planPath);
-  const completed = completedBoundaries(planPath, checkpointPath);
-  if (completed > plan.transactions.length) throw new Error(`Checkpoint exceeds plan: ${planPath}`);
-  if (completed < plan.transactions.length) {
-    const nextNonce = plannedNonce(plan.transactions[completed]?.nonce);
-    if (nextNonce !== liveNonce) {
-      throw new Error(
-        `Cannot resume ${path.basename(planPath)}: next reviewed nonce is ${nextNonce}, live pending nonce is ${liveNonce}. Preserve this plan and recover the mined boundary with --receipt; do not regenerate it`,
-      );
-    }
-  }
-  return plan;
-}
-
-export function shouldGenerateReviewedPlan(planPath: string, checkpointPath: string, liveNonce: number): boolean {
-  if (!fs.existsSync(planPath)) return true;
-  assertPlanCanResume(planPath, checkpointPath, liveNonce);
-  return false;
-}
-
-function runPlanBoundaries(
-  candidateCommit: string,
-  passwordFile: string,
-  script: string,
-  artifactFlag: "--plan" | "--artifact",
-  planPath: string,
-): void {
-  const plan = readJson<JsonPlan>(planPath);
-  const checkpointPath = defaultCheckpointPath(planPath);
-  const completed = completedBoundaries(planPath, checkpointPath);
-  const steps = planBoundaryExecutionSteps(planPath, checkpointPath);
-  const relativePlan = path.relative(CONTRACTS_ROOT, planPath);
-  for (const step of steps) {
-    const nonce = plannedNonce(plan.transactions[step - 1]?.nonce);
-    runAutomatedBunCommand(candidateCommit, passwordFile, script, [
-      artifactFlag,
-      relativePlan,
-      "--step",
-      String(step),
-      "--expected-nonce",
-      String(nonce),
-      "--override-sepolia-gate",
-    ]);
-  }
-  if (completed === plan.transactions.length) {
-    console.log(`✓ ${script} already complete; final receipt and post-state reverified`);
-  }
-}
-
-async function ensureUpgradeStage(
-  candidateCommit: string,
-  passwordFile: string,
-  contract: "assessment-resolver" | "commitment-pooling",
-  planScript: "assessment:upgrade:plan:arbitrum" | "pooling:upgrade:plan:arbitrum",
-  broadcastScript: "assessment:upgrade:arbitrum" | "pooling:upgrade:arbitrum",
-): Promise<void> {
-  const sender = loadReleaseManifest().ownership.deploymentSender;
-  let planPath = latestUpgradePlan(contract);
-  if (planPath && completedBoundaries(planPath) === readJson<JsonPlan>(planPath).transactions.length) {
-    runPlanBoundaries(candidateCommit, passwordFile, broadcastScript, "--plan", planPath);
-    return;
-  }
-  const nonce = await pendingNonce("arbitrum", sender);
-  if (!planPath) {
-    runAutomatedBunCommand(candidateCommit, passwordFile, planScript, ["--expected-nonce", String(nonce)]);
-    planPath = latestUpgradePlan(contract);
-  }
-  if (!planPath) throw new Error(`${contract} transaction plan was not generated`);
-  assertPlanCanResume(planPath, defaultCheckpointPath(planPath), nonce);
-  runPlanBoundaries(candidateCommit, passwordFile, broadcastScript, "--plan", planPath);
-}
-
-async function ensureSchemaStage(
-  candidateCommit: string,
-  passwordFile: string,
-  mode: "preparation" | "finalization",
-  planScript: "pooling:schemas:plan:arbitrum" | "pooling:finalize:plan:arbitrum",
-  broadcastScript: "pooling:schemas:arbitrum" | "pooling:finalize:arbitrum",
-): Promise<void> {
-  const planPath = path.join(CONTRACTS_ROOT, `.generated/release-schemas/${mode}/42161-${mode}-transaction-plan.json`);
-  if (fs.existsSync(planPath) && completedBoundaries(planPath) === readJson<JsonPlan>(planPath).transactions.length) {
-    runPlanBoundaries(candidateCommit, passwordFile, broadcastScript, "--artifact", planPath);
-    return;
-  }
-  const sender = loadReleaseManifest().ownership.deploymentSender;
-  const nonce = await pendingNonce("arbitrum", sender);
-  if (shouldGenerateReviewedPlan(planPath, defaultCheckpointPath(planPath), nonce)) {
-    runAutomatedBunCommand(candidateCommit, passwordFile, planScript, ["--expected-nonce", String(nonce)]);
-  }
-  assertPlanCanResume(planPath, defaultCheckpointPath(planPath), nonce);
-  runPlanBoundaries(candidateCommit, passwordFile, broadcastScript, "--artifact", planPath);
-}
-
-async function ensureReleaseStage(
-  candidateCommit: string,
-  passwordFile: string,
-  stage: "pooling" | "settlement-module" | "credit-registry" | "settlement-executor",
-  network: "arbitrum" | "celo",
-  planScript: string,
-  broadcastScript: string,
-): Promise<void> {
-  const manifest = loadReleaseManifest();
-  const directory = path.join(CONTRACTS_ROOT, `.generated/release/${manifest.releaseId}/${network}`);
-  const planPath = path.join(directory, `${stage}-transaction-plan.json`);
-  const checkpointPath = path.join(directory, `${stage}-checkpoint.json`);
-  let completed = fs.existsSync(planPath) ? completedBoundaries(planPath, checkpointPath) : 0;
-  const existingPlan = fs.existsSync(planPath) ? readJson<JsonPlan>(planPath) : undefined;
-  if (existingPlan && completed > existingPlan.transactions.length) {
-    throw new Error(`Checkpoint exceeds plan: ${planPath}`);
-  }
-  if (existingPlan && completed === existingPlan.transactions.length && completed > 0) {
-    const finalStep = existingPlan.transactions.length;
-    runAutomatedBunCommand(candidateCommit, passwordFile, broadcastScript, [
-      "--step",
-      String(finalStep),
-      "--expected-nonce",
-      String(plannedNonce(existingPlan.transactions[finalStep - 1]?.nonce)),
-      "--override-sepolia-gate",
-    ]);
-    console.log(`✓ ${stage} already complete; final receipt and full stage state reverified`);
-    return;
-  }
-  const liveNonce = await pendingNonce(network, manifest.ownership.deploymentSender);
-  if (shouldGenerateReviewedPlan(planPath, checkpointPath, liveNonce)) {
-    runAutomatedBunCommand(candidateCommit, passwordFile, planScript, ["--expected-nonce", String(liveNonce)]);
-  }
-  assertPlanCanResume(planPath, checkpointPath, liveNonce);
-  const plan = readJson<JsonPlan>(planPath);
-  completed = completedBoundaries(planPath, checkpointPath);
-  for (const step of planBoundaryExecutionSteps(planPath, checkpointPath)) {
-    const nonce = plannedNonce(plan.transactions[step - 1]?.nonce);
-    runAutomatedBunCommand(candidateCommit, passwordFile, broadcastScript, [
-      "--step",
-      String(step),
-      "--expected-nonce",
-      String(nonce),
-      "--override-sepolia-gate",
-    ]);
-  }
-  if (completed > 0) console.log(`✓ ${stage} resumed only after boundary ${completed} was reverified`);
-}
-
-async function runAutomatedRelease(candidateCommit: string, passwordFile: string): Promise<void> {
-  console.log("\nStarting resumable paused-candidate deployment. One password, one command, fail closed.");
-  await ensureUpgradeStage(
-    candidateCommit,
-    passwordFile,
-    "assessment-resolver",
-    "assessment:upgrade:plan:arbitrum",
-    "assessment:upgrade:arbitrum",
-  );
-  await ensureSchemaStage(
-    candidateCommit,
-    passwordFile,
-    "preparation",
-    "pooling:schemas:plan:arbitrum",
-    "pooling:schemas:arbitrum",
-  );
-  await ensureReleaseStage(
-    candidateCommit,
-    passwordFile,
-    "pooling",
-    "arbitrum",
-    "pooling:deploy:plan:arbitrum",
-    "pooling:deploy:arbitrum",
-  );
-  await ensureSchemaStage(
-    candidateCommit,
-    passwordFile,
-    "finalization",
-    "pooling:finalize:plan:arbitrum",
-    "pooling:finalize:arbitrum",
-  );
-  await ensureReleaseStage(
-    candidateCommit,
-    passwordFile,
-    "settlement-module",
-    "arbitrum",
-    "settlement:module:plan:arbitrum",
-    "settlement:module:deploy:arbitrum",
-  );
-  await ensureReleaseStage(
-    candidateCommit,
-    passwordFile,
-    "credit-registry",
-    "arbitrum",
-    "credit:registry:plan:arbitrum",
-    "credit:registry:deploy:arbitrum",
-  );
-  await ensureUpgradeStage(
-    candidateCommit,
-    passwordFile,
-    "commitment-pooling",
-    "pooling:upgrade:plan:arbitrum",
-    "pooling:upgrade:arbitrum",
-  );
-  await ensureReleaseStage(
-    candidateCommit,
-    passwordFile,
-    "settlement-executor",
-    "celo",
-    "settlement:executor:plan:celo",
-    "settlement:executor:deploy:celo",
-  );
-  console.log("\nPaused deployer-owned candidates are complete on Arbitrum and Celo.");
-  console.log("Next separate command: protocol-pool registration and Garden backfill.");
-  console.log("Ownership transfer and unpause remain separate ceremonies.");
-}
-
-function backfillPlanPath(): string {
-  return path.join(CONTRACTS_ROOT, ".generated/runtime/42161-pool-backfill.json");
-}
-
-async function runAutomatedPoolBackfill(candidateCommit: string, passwordFile: string): Promise<void> {
-  console.log("\nStarting resumable deployer-owned pool registration. Pooling remains paused.");
-  const planPath = backfillPlanPath();
-  const checkpointPath = planPath.replace(/\.json$/u, ".checkpoint.json");
-  const completed = fs.existsSync(checkpointPath) ? completedBoundaries(planPath) : 0;
-  if (!fs.existsSync(planPath)) {
-    runAutomatedBunCommand(candidateCommit, passwordFile, "pooling:backfill:dry:arbitrum");
-  } else if (completed === 0) {
-    const liveNonce = await pendingNonce("arbitrum", loadReleaseManifest().ownership.deploymentSender);
-    assertPlanCanResume(planPath, checkpointPath, liveNonce);
-  }
-  if (!fs.existsSync(planPath)) throw new Error("Deployer pool-backfill plan was not generated");
-  const plan = readJson<JsonPlan>(planPath);
-  if (
-    plan.authority !== "DEPLOYER" ||
-    plan.transactions.length !== POOL_BACKFILL_REGISTRATION_BOUNDARIES + 1 ||
-    plan.transactions[0]?.kind !== "REGISTER_PROTOCOL" ||
-    plan.transactions[POOL_BACKFILL_REGISTRATION_BOUNDARIES]?.kind !== "UNPAUSE"
-  ) {
-    throw new Error("Pool-backfill plan is not the exact deployer-owned root-first registration plan");
-  }
-  if (completed > POOL_BACKFILL_REGISTRATION_BOUNDARIES) {
-    throw new Error("Pooling unpause is already checkpointed; backfill mode cannot report a paused end state");
-  }
-  const relativePlan = path.relative(CONTRACTS_ROOT, planPath);
-  if (completed > 0) {
-    const replayStep = completed;
-    runAutomatedBunCommand(candidateCommit, passwordFile, "pooling:backfill:arbitrum", [
-      "--plan",
-      relativePlan,
-      "--step",
-      String(replayStep),
-      "--expected-nonce",
-      String(plannedNonce(plan.transactions[replayStep - 1]?.nonce)),
-      "--override-sepolia-gate",
-    ]);
-  }
-  const start = completed + 1;
-  if (start > POOL_BACKFILL_REGISTRATION_BOUNDARIES) {
-    console.log("✓ all 18 pool registrations are already verified; final receipt and pool state reverified");
-    return;
-  }
-  const liveNonce = await pendingNonce("arbitrum", loadReleaseManifest().ownership.deploymentSender);
-  const nextNonce = plannedNonce(plan.transactions[start - 1]?.nonce);
-  if (nextNonce !== liveNonce) {
-    throw new Error(
-      `Cannot resume pool backfill: next reviewed nonce is ${nextNonce}, live pending nonce is ${liveNonce}`,
-    );
-  }
-  for (let step = start; step <= POOL_BACKFILL_REGISTRATION_BOUNDARIES; step += 1) {
-    runAutomatedBunCommand(candidateCommit, passwordFile, "pooling:backfill:arbitrum", [
-      "--plan",
-      relativePlan,
-      "--step",
-      String(step),
-      "--expected-nonce",
-      String(plannedNonce(plan.transactions[step - 1]?.nonce)),
-      "--override-sepolia-gate",
-    ]);
-  }
-  console.log("\nAll 18 pool registrations are receipt-verified. Pooling remains paused.");
-  console.log("Unpause requires the separate release:unpause:pooling command and authorization.");
-}
-
-async function runAutomatedPoolUnpause(candidateCommit: string, passwordFile: string): Promise<void> {
-  console.log("\nStarting separately authorized Commitment Pooling unpause boundary.");
-  const planPath = backfillPlanPath();
-  if (!fs.existsSync(planPath)) throw new Error("Pool-backfill plan is missing; complete registration first");
-  const plan = readJson<JsonPlan>(planPath);
-  if (
-    plan.authority !== "DEPLOYER" ||
-    plan.transactions.length !== POOL_BACKFILL_REGISTRATION_BOUNDARIES + 1 ||
-    plan.transactions[POOL_BACKFILL_REGISTRATION_BOUNDARIES]?.kind !== "UNPAUSE"
-  ) {
-    throw new Error("Pool-backfill plan has no exact separate unpause boundary");
-  }
-  const completed = completedBoundaries(planPath);
-  if (completed === plan.transactions.length) {
-    const boundary = plan.transactions[POOL_BACKFILL_REGISTRATION_BOUNDARIES];
-    runAutomatedBunCommand(candidateCommit, passwordFile, "pooling:backfill:arbitrum", [
-      "--plan",
-      path.relative(CONTRACTS_ROOT, planPath),
-      "--step",
-      String(POOL_BACKFILL_REGISTRATION_BOUNDARIES + 1),
-      "--expected-nonce",
-      String(plannedNonce(boundary?.nonce)),
-      "--override-sepolia-gate",
-    ]);
-    console.log("✓ Commitment Pooling is already unpaused; complete receipt and pool state reverified");
-    return;
-  }
-  if (completed !== POOL_BACKFILL_REGISTRATION_BOUNDARIES) {
-    throw new Error(`Pooling unpause requires 18 verified registrations; checkpoint has ${completed}`);
-  }
-  const boundary = plan.transactions[POOL_BACKFILL_REGISTRATION_BOUNDARIES];
-  const nonce = plannedNonce(boundary?.nonce);
-  const liveNonce = await pendingNonce("arbitrum", loadReleaseManifest().ownership.deploymentSender);
-  if (nonce !== liveNonce) {
-    throw new Error(`Cannot unpause pooling: reviewed nonce is ${nonce}, live pending nonce is ${liveNonce}`);
-  }
-  runAutomatedBunCommand(candidateCommit, passwordFile, "pooling:backfill:arbitrum", [
-    "--plan",
-    path.relative(CONTRACTS_ROOT, planPath),
-    "--step",
-    String(POOL_BACKFILL_REGISTRATION_BOUNDARIES + 1),
-    "--expected-nonce",
-    String(nonce),
-    "--override-sepolia-gate",
-  ]);
-  console.log("\nCommitment Pooling unpause receipt and all 18 pool registrations are verified.");
-}
-
-async function runSession(candidateCommit: string, options: SessionOptions): Promise<void> {
-  if (options.deployAll) {
-    if (!options.authorization) throw new Error("Complete release sequence authorization is missing");
-    assertAutomatedSessionStart(candidateCommit, options.authorization);
-  } else if (options.backfillAll || options.unpausePooling) {
-    if (!options.authorization) throw new Error("Pool ceremony authorization is missing");
-    assertAutomatedResumeStart(candidateCommit);
-    assertPoolCeremonyAuthorization(
-      candidateCommit,
-      options.authorization,
-      options.backfillAll ? "pool-backfill" : "pooling-unpause",
-    );
-  } else {
-    assertGardenSafeSessionStart(candidateCommit);
-  }
+async function runSession(candidateCommit: string): Promise<void> {
+  assertInteractiveSessionStart(candidateCommit);
   const manifest = loadReleaseManifest();
   const password = await readHiddenPassword();
   const lease = createPasswordLease(password);
@@ -1375,19 +653,7 @@ async function runSession(candidateCommit: string, options: SessionOptions): Pro
   try {
     const signer = verifyDeployerPassword(lease.filePath);
     console.log(`Unlocked frozen deployment sender ${signer} for this process only.`);
-    if (options.deployAll) {
-      await runAutomatedRelease(candidateCommit, lease.filePath);
-      return;
-    }
-    if (options.backfillAll) {
-      await runAutomatedPoolBackfill(candidateCommit, lease.filePath);
-      return;
-    }
-    if (options.unpausePooling) {
-      await runAutomatedPoolUnpause(candidateCommit, lease.filePath);
-      return;
-    }
-    console.log("Type help for the allowlist. Type exit when this authorized operator window closes.");
+    console.log("Type help for the allowlist. The session closes after one verified boundary.");
     const terminal = createInterface({ input: process.stdin, output: process.stdout, terminal: true });
     try {
       while (true) {
@@ -1400,9 +666,7 @@ async function runSession(candidateCommit: string, options: SessionOptions): Pro
         }
         const command = assertAllowedOperatorCommand(tokenizeOperatorCommand(line));
         console.log(`Running Bun wrapper: ${command.script} ${command.args.join(" ")}`.trim());
-        const gardenSafeCommand = command.script.startsWith("settlement:garden-safes:");
-        if (gardenSafeCommand) assertGardenSafeSessionStart(candidateCommit);
-        else assertPinnedCheckout(candidateCommit);
+        assertInteractiveSessionStart(candidateCommit);
         const result = spawnSync("bun", ["run", command.script, ...command.args], {
           cwd: CONTRACTS_ROOT,
           stdio: "inherit",
@@ -1419,8 +683,9 @@ async function runSession(candidateCommit: string, options: SessionOptions): Pro
         if (result.status !== 0) {
           throw new Error(`Bun wrapper ${command.script} failed; the credential session is closed`);
         }
-        if (gardenSafeCommand) assertGardenSafeSessionStart(candidateCommit);
-        console.log("Boundary returned successfully. Confirm its receipt/checkpoint before entering another command.");
+        assertInteractiveSessionStart(candidateCommit);
+        console.log("Boundary returned successfully; receipt/checkpoint verified. The credential session is closed.");
+        break;
       }
     } finally {
       terminal.close();
@@ -1437,7 +702,7 @@ if (import.meta.main) {
   try {
     const options = parseSessionOptions(process.argv.slice(2));
     if (options.help) showHelp();
-    else if (options.commit) await runSession(options.commit, options);
+    else if (options.commit) await runSession(options.commit);
     else throw new Error("Release operator candidate commit was not resolved");
   } catch (error) {
     console.error(error instanceof Error ? error.message : String(error));

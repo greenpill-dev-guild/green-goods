@@ -50,41 +50,15 @@ SettlementModule and the Celo executor remain paused and have no Safe/Zodiac val
 Ownership transfer, peer wiring, message-only ping, value authority, canary, and indexer activation
 remain separate ceremonies.
 
-The repository-root commands for the two completed core boundaries are:
-
-```bash
-bun run contracts:release:backfill:all -- --commit <exact-40-character-candidate> \
-  --authorization <candidate-and-plan-bound-backfill-authorization.json>
-bun run contracts:release:unpause:pooling -- --commit <exact-40-character-candidate> \
-  --authorization <candidate-and-plan-bound-unpause-authorization.json>
-```
-
-Both commands are resumable and reverify their receipt-backed checkpoints. The first stops after
-registration boundary 18. The second is the only command that may execute boundary 19.
 The exact executed plan and complete 19-boundary checkpoint are tracked at
 `packages/contracts/.generated/runtime/42161-pool-backfill.json` and
 `packages/contracts/.generated/runtime/42161-pool-backfill.checkpoint.json` so a clean checkout can
 reverify every registration, pool ID, receipt block, and the separate unpause.
 
-The tracked backfill and unpause authorization templates live in
-`packages/contracts/config/commitment-pooling-backfill-authorization.json` and
-`packages/contracts/config/commitment-pooling-unpause-authorization.json`. Each ceremony requires
-its own separately reviewed copy before password unlock. The operator binds that copy to the exact
-candidate, release lock, tracked plan hash, permitted boundaries, terminal state, exclusions, and
-an active window no longer than 24 hours.
-
-### Complete paused-candidate sequence authorization (executed)
-
-The tracked
-`packages/contracts/config/commitment-pooling-release-automation-authorization.json` file is the
-authorization template. After the operator candidate is committed, the release owner copies it to
-a separately reviewed JSON file, replaces `operatorCandidateCommit` with that exact 40-character
-commit, supplies an active authorization window no longer than 24 hours, and records the
-authorization outside the candidate commit. The operator requires that
-file through `--authorization` before password unlock. It also binds the exact release ID, manifest
-hash, source commit, ordered stages, paused deployer-owned terminal state, and exclusions for
-ownership transfer, pool registration, pooling unpause, peer wiring, Safe/Zodiac value authority,
-value movement, and indexer activation.
+The completed `release:deploy:all`, `release:backfill:all`, and `release:unpause:pooling` broadcast
+orchestrators and their placeholder authorization files are retired. They cannot replay a finished
+mainnet ceremony. Receipt artifacts, recovery entrypoints, and the read-only Arbitrum/Celo release
+verifiers remain available for historical evidence and current-state checks.
 
 ## Outputs
 
@@ -334,59 +308,29 @@ bun run contracts:pooling:finalize:plan:arbitrum --expected-nonce <fresh-pending
 bun run contracts:pooling:upgrade:plan:arbitrum --expected-nonce <fresh-pending-nonce>
 ```
 
-### Phase B deployer session (one password entry)
+### Current deployer session: one Garden Safe boundary
 
-Start exactly one session from a clean checkout at the authorized candidate:
+The core deployment, pool registration, and Pooling unpause broadcasts are complete and their
+orchestrators are retired. The remaining operator accepts only one explicitly selected Garden Safe
+bootstrap or owner-swap boundary, then destroys its temporary credential lease:
 
 ```bash
-bun run --cwd packages/contracts release:deploy:all -- \
-  --commit <pinned-40-character-candidate> \
-  --authorization <candidate-bound-reviewed-authorization.json>
+bun run contracts:release:operator -- --commit <pinned-40-character-candidate>
 ```
-
-The session checks HEAD and cleanliness before unlocking, prompts once, verifies that the Foundry
-keystore resolves to `0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6`, and keeps the password only in
-a mode-0600 temporary password file for the life of the session. It accepts no raw Forge, shell,
-private-key, password, account, keystore, RPC, network, sender, or arbitrary-script input. Each
-script accepts only the exact arguments shown below. It deletes the temporary credential file on
-normal exit and handled termination. A failed wrapper closes the session.
-
-Inside `release>`, run only the separately authorized boundary. Repeat a template with the next
-reviewed boundary/nonce only after the prior wrapper has persisted and verified its receipt:
 
 ```text
-run assessment:upgrade:arbitrum --plan <reviewed-assessment-plan.json> --step <i> --expected-nonce <n> --override-sepolia-gate
-run pooling:schemas:arbitrum --artifact <reviewed-preparation-plan.json> --step <i> --expected-nonce <n> --override-sepolia-gate
-run pooling:deploy:arbitrum --step <i> --expected-nonce <n> --override-sepolia-gate
-run pooling:finalize:arbitrum --artifact <reviewed-finalization-plan.json> --step <i> --expected-nonce <n> --override-sepolia-gate
-run settlement:module:deploy:arbitrum --step <i> --expected-nonce <n> --override-sepolia-gate
-run credit:registry:deploy:arbitrum --step <i> --expected-nonce <n> --override-sepolia-gate
-run pooling:upgrade:arbitrum --plan <reviewed-integration-upgrade-plan.json> --step <i> --expected-nonce <n> --override-sepolia-gate
-run settlement:executor:deploy:celo --step <i> --expected-nonce <n> --override-sepolia-gate
+run settlement:garden-safes:deploy:celo --plan <reviewed-bootstrap-plan.json> --step <next-boundary>
+run settlement:garden-safes:swap:celo --plan <reviewed-swap-plan.json> --replacements <reviewed-replacements.json> --step <next-boundary>
 ```
 
-Keep this single session open across the authorized Arbitrum and Celo boundaries to enter the
-deployer password once. A later broadcast window, normal exit, handled termination, or failed
-wrapper ends the credential lease and a new session will correctly prompt once again.
+If the selected transaction mined but checkpoint persistence failed, repeat that same step in a new
+credential session with `--receipt <mined-transaction-hash>`. The wrapper verifies the complete
+checkpoint prefix, sender, target, zero value, calldata, nonce, exact receipt block, live Safe state,
+and the independently read module-free 2-of-3 recovery Safe before accepting the boundary. A second
+boundary always requires a new explicit session and password unlock.
 
-If a transaction mined but local checkpoint persistence failed, reopen the pinned clean session
-and rerun the **same** wrapper, plan, step, and expected nonce with the mined receipt appended:
-
-```text
-run <same-current-wrapper> <same-reviewed-arguments> --receipt <mined-transaction-hash>
-```
-
-All eight current deployer-signed wrappers allow `--receipt`; the wrapper verifies the transaction
-sender, target, calldata, nonce, receipt, code/post-state, and checkpoint before promotion. Do not
-use `--receipt` to bypass a failed or mismatched transaction.
-
-There is deliberately no ownership-transfer or pool-backfill command in this operator session.
-The package retains their fail-closed planning/recovery code for the later issue, but the current
-manifest rejects an ownership broadcast and the current operator allowlist rejects both commands.
-
-No peer-wiring, Safe/Zodiac grant, message-only ping, unpause, canary, or cap-increase broadcast
-command is listed: those separately gated paths remain unavailable until their exact facts and
-reviewed wrappers exist. Do not substitute an ad hoc command.
+No ownership-transfer, peer-wiring, Safe/Zodiac grant, message-only ping, canary, cap-increase, core
+deployment, backfill, or unpause command is allowlisted. Do not substitute an ad hoc command.
 
 ### Recovery, verification, courier, and indexer handoff
 
@@ -417,11 +361,11 @@ the `release:verify:safe:*` variants; those belong to the later ownership-transf
   so this exact set satisfies the guide. It is future-transfer evidence only and is not an owner
   precondition for this paused deployment.
 - The approved GardenToken release inventory is all **18** finalized accounts (IDs 0–17), with
-  protocol root token 0. Its backfill and the pending human-reviewed increment derived from
-  `5e70654c3` are deferred together; neither blocks deploying and verifying paused contracts.
-- The live `AssessmentResolver` is not v3-capable. Downstream schema, pooling, SettlementModule,
-  and CreditRegistry stages still depend on its separately authorized upgrade. The exact
-  upgrade/v2-pin/schema-finalization sequence is green on one pinned Arbitrum fork.
+  protocol root token 0. The root-first Protocol plus seventeen-Garden backfill is complete and the
+  separate boundary 19 has unpaused Commitment Pooling.
+- The AssessmentResolver v3 upgrade, canonical v2 pin, schema finalization, Pooling,
+  SettlementModule, CreditRegistry, integration upgrade, and Celo executor deployment receipts are
+  complete. Their broadcast orchestrators are retired; current-state verification remains read-only.
 - A local hard-max 24-member executor run measured **1,383,897 gas**, including the acknowledgment
   attempt. The manifest remains `"0"` until the final Safe/Zodiac configuration exists and the same
   atomic path is measured through that live-authority policy.
@@ -430,10 +374,10 @@ the `release:verify:safe:*` variants; those belong to the later ownership-transf
 - The hosted production indexer is the older deployment and is deliberately outside this contracts
   ceremony. PRD-722 remains responsible for its later deployment/reindex/cutover/read-back.
 
-The paused deployment still requires a final pinned manifest/lock, fresh gates, exact-range review,
-and a new exact stage authorization naming the commit, chain, signer/owner, artifact diff, rollback
-checkpoint, and window. Deferred activation facts do not need to be resolved to deploy paused, but
-they continue to block ownership transfer, backfill, peer/value authority, and unpause.
+The next mutable boundary is one selected Garden Safe bootstrap. It still requires a pinned
+candidate, fresh gates, exact-range review, the reviewed deterministic plan, exact live 2-of-3
+recovery Safe proof, and explicit human authorization for that one step. Deferred activation facts
+continue to block ownership transfer, peer/value authority, message-only ping, and value movement.
 
 ## Core-tier unblock evidence
 
