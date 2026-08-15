@@ -31,6 +31,29 @@ test("rejects edits, deletions, and renames of dated reports", () => {
   ]);
 });
 
+test("allows only byte-identical dated report moves into the matching archive hub", () => {
+  const entries = parseNameStatus(
+    [
+      "R100\t.plans/backlog/example/reports/audit-2026-08-09.md\t.plans/archive/example/reports/audit-2026-08-09.md",
+      "R99\t.plans/backlog/example/reports/review-2026-08-10.md\t.plans/archive/example/reports/review-2026-08-10.md",
+      "R100\t.plans/active/example/reports/input-2026-08-08.md\t.plans/archive/other/reports/input-2026-08-08.md",
+      "R100\t.plans/ideas/example/reports/source-2026-08-07.md\t.plans/archive/example/reports/renamed-2026-08-07.md",
+    ].join("\n"),
+  );
+  assert.deepEqual(immutableReportViolations(entries), [
+    "R: .plans/backlog/example/reports/review-2026-08-10.md",
+    "R: .plans/active/example/reports/input-2026-08-08.md",
+    "R: .plans/ideas/example/reports/source-2026-08-07.md",
+  ]);
+});
+
+test("recognizes a NUL-delimited R100 canonical archive move", () => {
+  const entries = parseNameStatus(
+    "R100\0.plans/active/example/reports/review-2026-08-10.md\0.plans/archive/example/reports/review-2026-08-10.md\0",
+  );
+  assert.deepEqual(immutableReportViolations(entries), []);
+});
+
 test("allows new corrections and edits outside dated report paths", () => {
   const entries = parseNameStatus(
     [

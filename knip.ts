@@ -10,10 +10,15 @@ const config: KnipConfig = {
       // scripts/README.md entry, not by import analysis.
       entry: [
         "scripts/**/*.{ts,js,mjs,cjs}",
-        "ecosystem.config.cjs",
         "playwright.config.ts",
       ],
+      // PM2 loads ecosystem.config.cjs directly. Disable Knip's PM2 plugin so
+      // dead-code analysis never executes that config's root-env bootstrap.
+      pm2: false,
       ignore: [
+        // PM2 remains this external config's durable caller; the disabled plugin
+        // above keeps Knip from executing it during analysis.
+        "ecosystem.config.cjs",
         // Ambient type declarations for env-parity.mjs, which both Vite configs
         // import. Consumed by tsc, never by a runtime import.
         "scripts/lib/env-parity.d.mts",
