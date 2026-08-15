@@ -24,6 +24,8 @@ import {
   splitTableRow,
   titleCase,
   checkProjections,
+  collectProjectionEvidencePaths,
+  isMeaningfulEvidenceValue,
 } from "./check-ontology.mjs";
 import { expectedWorkflowNames } from "./ci-gate.mjs";
 import { escapeMdxTableCode, renderEntityMatrixMdx, renderOntologyMdx } from "./ontology-render.mjs";
@@ -647,4 +649,39 @@ test("checkProjections locks glossary counts to the sidecar", () => {
   const good = glossary.replace("the 3 things", "the 1 things");
   const { findings: after } = checkProjections(projOntology, projClaims, good);
   assert.ok(!after.some((f) => f.subject === "glossary:entity-count"));
+});
+
+test("checkProjections rejects duplicate capability, card, and claim entries", () => {
+  const dup = structuredClone(projOntology);
+  dup.capabilities.push(projCapability("garden"));
+  const claims = structuredClone(projClaims);
+  claims.claims.push(structuredClone(claims.claims[0]));
+  const { findings } = checkProjections(dup, claims, null);
+  assert.ok(findings.some((f) => f.detail === "duplicate capability entry"));
+  assert.ok(findings.some((f) => f.detail === "duplicate claim entry"));
+});
+
+test("isMeaningfulEvidenceValue rejects cleared deployment values, keeps booleans and zero ids", () => {
+  assert.equal(isMeaningfulEvidenceValue(null), false);
+  assert.equal(isMeaningfulEvidenceValue(""), false);
+  assert.equal(isMeaningfulEvidenceValue("0x0000000000000000000000000000000000000000"), false);
+  assert.equal(isMeaningfulEvidenceValue(`0x${"0".repeat(64)}`), false);
+  assert.equal(isMeaningfulEvidenceValue(false), true); // e.g. a paused flag reading false
+  assert.equal(isMeaningfulEvidenceValue(0), true); // e.g. the root garden's tokenId
+  assert.equal(isMeaningfulEvidenceValue("0x6BB5b0fd70b6771B0E955Fef37f8Bd2ce911470a"), true);
+});
+
+test("every projection evidence path is covered by the Ontology ci-gate matcher", () => {
+  const sidecar = JSON.parse(
+    readFileSync(new URL("../../packages/shared/src/ontology/green-goods-ontology.json", import.meta.url), "utf8")
+  );
+  const claims = JSON.parse(
+    readFileSync(new URL("../../packages/shared/src/ontology/marketing-claims.json", import.meta.url), "utf8")
+  );
+  for (const file of collectProjectionEvidencePaths(sidecar, claims)) {
+    assert.ok(
+      expectedWorkflowNames([file]).includes("Ontology"),
+      `projection evidence is outside the Ontology workflow path filter: ${file}`
+    );
+  }
 });

@@ -155,7 +155,7 @@
         "packages/contracts/deployments/42161-latest.json#schemas.assessmentV3SchemaUID",
         "packages/contracts/deployments/42161-latest.json#assessmentResolver",
         "packages/indexer/config.yaml",
-        "packages/admin/src/components/Assessment"
+        "packages/admin/src/components/Assessment/CreateAssessmentSteps/StrategyKernelStep.tsx"
       ],
       "verified_at": "2026-08-15"
     },
@@ -195,7 +195,7 @@
         "packages/contracts/deployments/42161-latest.json#hypercertMinter",
         "packages/contracts/deployments/42161-latest.json#marketplaceAdapter",
         "packages/indexer/config.yaml",
-        "packages/admin/src/components/Hypercerts"
+        "packages/admin/src/components/Hypercerts/ActiveListingsTable.tsx"
       ],
       "verified_at": "2026-08-15"
     },
@@ -231,7 +231,7 @@
         "packages/contracts/deployments/42161-latest.json#octantModule",
         "packages/contracts/deployments/42161-latest.json#yieldSplitter",
         "packages/indexer/config.yaml",
-        "packages/client/src/views/Public"
+        "packages/client/src/views/Public/Vaults.tsx"
       ],
       "verified_at": "2026-08-15"
     },
@@ -266,7 +266,7 @@
         "packages/contracts/deployments/42161-latest.json#cookieJarFactory",
         "packages/contracts/deployments/42161-latest.json#cookieJarModule",
         "packages/indexer/config.yaml",
-        "packages/admin/src/views/Cookies"
+        "packages/admin/src/views/Cookies/index.tsx"
       ],
       "verified_at": "2026-08-15"
     },
@@ -341,7 +341,7 @@
         "packages/contracts/src/lib/Hats.sol",
         "packages/contracts/deployments/42161-latest.json#hatsModule",
         "packages/indexer/config.yaml",
-        "packages/admin/src/views/Community"
+        "packages/admin/src/views/Community/index.tsx"
       ],
       "verified_at": "2026-08-15"
     },
@@ -1232,9 +1232,9 @@
     },
     {
       "id": "work-attested-at-submission",
-      "claim": "Field work becomes a permanent on-chain record the moment it is submitted.",
+      "claim": "Field work becomes a permanent on-chain record at submission — or the moment it syncs, when captured offline.",
       "maturity": "available",
-      "safe_wording": "Work is attested on-chain at submission; operator approval adds a separate linked approval attestation with confidence and verification method."
+      "safe_wording": "Work is attested on-chain at submission (offline submissions attest when the queue syncs); operator approval adds a separate linked approval attestation with confidence and verification method."
     },
     {
       "id": "passkey-onboarding",
@@ -1274,9 +1274,9 @@
     },
     {
       "id": "telegram-agent",
-      "claim": "Gardeners can submit and track work through a Telegram bot.",
+      "claim": "Gardeners can submit work through a Telegram bot.",
       "maturity": "available",
-      "safe_wording": "Telegram is the live conversational channel. SMS and WhatsApp are direction, not shipped — never present them as current."
+      "safe_wording": "Telegram work submission is live; reviewing submission status happens in the app, not the bot. SMS and WhatsApp are direction, not shipped — never present them as current."
     },
     {
       "id": "commitment-pooling-contracts",

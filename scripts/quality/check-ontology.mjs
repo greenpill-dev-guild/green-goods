@@ -862,6 +862,37 @@ function runGuards(ontology) {
   return { fatal, errors, findings, counts };
 }
 
+// A resolved json_path evidence value must actually prove something: a cleared
+// deployment artifact (null / "" / zero address or zero bytes32) means the
+// capability is NOT deployed, so it must fail the gate rather than keep public
+// "deployed" claims alive. Booleans and numbers stay meaningful as-is (false =
+// an unpaused flag; 0 = the root garden's tokenId).
+export function isMeaningfulEvidenceValue(value) {
+  if (value === undefined || value === null) return false;
+  if (typeof value === "string") {
+    if (value.trim() === "") return false;
+    if (/^0x0+$/i.test(value)) return false;
+  }
+  return true;
+}
+
+// Every evidence file referenced by the capability projection and claim ledger,
+// deduplicated — exported so the unit tests can assert each path stays inside
+// the Ontology workflow's path filter (a PR touching evidence must re-run the
+// gate that validates the claims built on it).
+export function collectProjectionEvidencePaths(ontology, claims) {
+  const paths = new Set();
+  for (const cap of ontology.capabilities ?? []) {
+    for (const dimension of Object.values(cap.dimensions ?? {})) {
+      for (const item of dimension?.evidence ?? []) if (item?.file) paths.add(item.file);
+    }
+  }
+  for (const claim of claims.claims ?? []) {
+    for (const item of claim.evidence ?? []) if (item?.file) paths.add(item.file);
+  }
+  return [...paths].sort();
+}
+
 // Capability projections, concept cards, claim ledger, machine endpoints, and
 // glossary counts. Every finding is baselineable under guard "projections" or
 // "state-machines"; evidence paths (and json_path pointers into JSON files)
@@ -882,7 +913,7 @@ export function checkProjections(ontology, claims, glossaryText) {
     try {
       let value = JSON.parse(readFileSync(path.join(REPO_ROOT, rel), "utf8"));
       for (const part of pointer.split(".")) value = value?.[part];
-      return value !== undefined;
+      return isMeaningfulEvidenceValue(value);
     } catch {
       return false;
     }
@@ -906,6 +937,20 @@ export function checkProjections(ontology, claims, glossaryText) {
   for (const entity of ontology.entities) {
     if (!capByEntity.has(entity.id)) push("projections", `capability:${entity.id}`, "missing capability projection");
     if (!cards.some((c) => c.entity === entity.id)) push("projections", `card:${entity.id}`, "missing concept card");
+  }
+  // Duplicates would let a Map-consumer (claim validation) and a find-consumer
+  // (renderers, manifest) silently disagree about which projection is real.
+  for (const [label, list, key] of [
+    ["capability", capabilities, (c) => c.entity],
+    ["card", cards, (c) => c.entity],
+    ["claim", claims.claims ?? [], (c) => c.id],
+  ]) {
+    const seen = new Set();
+    for (const item of list) {
+      const id = key(item);
+      if (seen.has(id)) push("projections", `${label}:${id}`, `duplicate ${label} entry`);
+      seen.add(id);
+    }
   }
   for (const cap of capabilities) {
     const subject = `capability:${cap.entity}`;

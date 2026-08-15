@@ -525,7 +525,9 @@ Lifecycle of the internal durable identity for one Offer used over time in one p
 |---|---|---|---|---|
 | solidity | solidity | <code>packages/contracts/src/interfaces/ICommitmentPoolingModule.sol · CommitmentSeriesState</code> | <code>None, Active, Resting, Retired</code> |  |
 
-## Commitment Pooling Vocabularies (spec — not deployed)
+## Commitment Pooling Vocabularies (spec-tracked)
+
+`spec` is the drift gate's cross-check mode — these vocabularies are validated against the locked spec instead of code representations. It says nothing about deployment: the contracts behind them may already be live, and deployment/availability maturity lives in the Entities table above.
 
 Locked vocabulary from the commitment-pooling contract spec, encoded ahead of implementation so the August lanes consume one canonical definition. No code cross-checks run until the planned anchors land; the gate then forces each entry to flip to live.
 
@@ -774,7 +776,9 @@ The union in types/domain.ts documents itself as the single source of truth: pen
 | pending | approved | on-chain | operator WorkApproval attestation with approved=true (WorkApproval.sol operator-hat gate) |
 | pending | rejected | on-chain | operator WorkApproval attestation with approved=false |
 
-### Commitment pooling (spec — not deployed)
+### Commitment pooling (spec-tracked)
+
+_Spec-tracked machines model contracts whose deployment maturity is carried in the Entities table — `spec` here is a cross-check mode, not a deployment state._
 
 Transcribed from the locked contract spec: "on-chain" means a named module function performs the transition and emits the listed event; "derived" means the indexer/app computes the state from events and the chain never stores it.
 

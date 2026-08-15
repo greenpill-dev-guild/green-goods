@@ -220,7 +220,11 @@ export function renderOntologyMdx(ontology) {
     lines.push(renderVocabulary(vocabulary));
   }
 
-  lines.push("## Commitment Pooling Vocabularies (spec — not deployed)");
+  lines.push("## Commitment Pooling Vocabularies (spec-tracked)");
+  lines.push("");
+  lines.push(
+    "`spec` is the drift gate's cross-check mode — these vocabularies are validated against the locked spec instead of code representations. It says nothing about deployment: the contracts behind them may already be live, and deployment/availability maturity lives in the Entities table above."
+  );
   lines.push("");
   lines.push(
     "Locked vocabulary from the commitment-pooling contract spec, encoded ahead of implementation so the August lanes consume one canonical definition. No code cross-checks run until the planned anchors land; the gate then forces each entry to flip to live."
@@ -279,7 +283,11 @@ export function renderOntologyMdx(ontology) {
   for (const machine of ontology.state_machines.filter((m) => m.status === "live")) {
     lines.push(renderStateMachine(machine, 3));
   }
-  lines.push("### Commitment pooling (spec — not deployed)");
+  lines.push("### Commitment pooling (spec-tracked)");
+  lines.push("");
+  lines.push(
+    "_Spec-tracked machines model contracts whose deployment maturity is carried in the Entities table — `spec` here is a cross-check mode, not a deployment state._"
+  );
   lines.push("");
   lines.push(
     'Transcribed from the locked contract spec: "on-chain" means a named module function performs the transition and emits the listed event; "derived" means the indexer/app computes the state from events and the chain never stores it.'

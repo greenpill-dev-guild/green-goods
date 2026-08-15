@@ -119,7 +119,7 @@ const TERMS: readonly GlossaryTerm[] = [
     defaultLabel: "Work",
     bodyId: "public.glossary.term.work.body",
     defaultBody:
-      "One Action carried out by a gardener, captured with a photo and description, and recorded on the blockchain the moment it is submitted. Operator approval adds a separate, linked approval record.",
+      "One Action carried out by a gardener, captured with a photo and description, and recorded on the blockchain at submission — or the moment it syncs, if captured offline. Operator approval adds a separate, linked approval record.",
     docsPath: "/glossary#work",
   },
 ] as const;

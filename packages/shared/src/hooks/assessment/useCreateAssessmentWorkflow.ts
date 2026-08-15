@@ -146,6 +146,16 @@ export function useCreateAssessmentWorkflow(options: UseCreateAssessmentWorkflow
 
               await ensureAppKitWalletChain(currentChainId);
 
+              // Resolve the on-chain domain before any IPFS upload so an
+              // unrecognized assessment type fails before user data is
+              // published to IPFS without an attestation referencing it.
+              const domain = params.domain ?? assessmentTypeToDomain(params.assessmentType);
+              if (domain === null) {
+                throw new Error(
+                  `Unrecognized assessment domain "${params.assessmentType}" — refusing to encode a fabricated domain`
+                );
+              }
+
               trackAdminAssessmentCreateStarted({
                 gardenId: params.gardenId,
                 assessmentType: params.assessmentType,
@@ -261,15 +271,8 @@ export function useCreateAssessmentWorkflow(options: UseCreateAssessmentWorkflow
                 const configUpload = await uploadJSONToIPFS(assessmentConfig);
                 const assessmentConfigCID = configUpload.cid;
 
-                // Map assessmentType to domain enum (0=SOLAR, 1=AGRO, 2=EDU, 3=WASTE).
-                // A domain is written permanently into the on-chain attestation, so an
-                // unrecognized assessment type must fail loudly — never default to SOLAR.
-                const domain = params.domain ?? assessmentTypeToDomain(params.assessmentType);
-                if (domain === null) {
-                  throw new Error(
-                    `Unrecognized assessment domain "${params.assessmentType}" — refusing to encode a fabricated domain`
-                  );
-                }
+                // Domain (0=SOLAR, 1=AGRO, 2=EDU, 3=WASTE) was resolved and
+                // validated at the top of the mutation, before any upload.
 
                 const toUnixSeconds = (value?: string | number | null) => {
                   if (!value) return 0;

@@ -3783,7 +3783,7 @@
               "json_path": "schemas.workSchemaUID"
             }
           ],
-          "note": "Work is attested on-chain the moment it is submitted.",
+          "note": "Work is attested on-chain at submission; offline submissions attest the moment the queued job syncs.",
           "verified_at": "2026-08-15"
         },
         "indexing": {
@@ -3857,7 +3857,7 @@
           "state": "complete",
           "evidence": [
             {
-              "file": "packages/admin/src/components/Assessment"
+              "file": "packages/admin/src/components/Assessment/CreateAssessmentSteps/StrategyKernelStep.tsx"
             }
           ],
           "verified_at": "2026-08-15"
@@ -3914,7 +3914,7 @@
           "state": "complete",
           "evidence": [
             {
-              "file": "packages/admin/src/components/Hypercerts"
+              "file": "packages/admin/src/components/Hypercerts/ActiveListingsTable.tsx"
             }
           ],
           "verified_at": "2026-08-15"
@@ -3971,7 +3971,7 @@
           "state": "complete",
           "evidence": [
             {
-              "file": "packages/client/src/views/Public"
+              "file": "packages/client/src/views/Public/Vaults.tsx"
             }
           ],
           "note": "Public /vaults route plus admin vault views.",
@@ -4026,7 +4026,7 @@
           "state": "complete",
           "evidence": [
             {
-              "file": "packages/admin/src/views/Cookies"
+              "file": "packages/admin/src/views/Cookies/index.tsx"
             }
           ],
           "verified_at": "2026-08-15"
@@ -4133,7 +4133,7 @@
           "state": "complete",
           "evidence": [
             {
-              "file": "packages/admin/src/views/Community"
+              "file": "packages/admin/src/views/Community/index.tsx"
             }
           ],
           "verified_at": "2026-08-15"
@@ -4662,7 +4662,7 @@
     {
       "entity": "work",
       "plain_name": "Documented work",
-      "why_it_matters": "The atomic unit of proof: field evidence recorded on-chain the moment a gardener submits it.",
+      "why_it_matters": "The atomic unit of proof: field evidence that becomes an on-chain record at submission — or the moment it syncs, when captured offline.",
       "example": "Twelve seedlings planted, three photos, submitted from an offline queue when signal returned.",
       "aliases": ["submission", "field log"],
       "not_confused_with": [

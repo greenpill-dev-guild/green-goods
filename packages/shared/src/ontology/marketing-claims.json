@@ -10,26 +10,32 @@
       "maturity": "available",
       "capabilities": ["work"],
       "evidence": [
-        { "file": "packages/shared/src/modules/job-queue" },
-        { "file": "packages/shared/src/hooks/app/useOnlineStatus.ts" }
+        {
+          "file": "packages/shared/src/modules/job-queue/index.ts"
+        },
+        {
+          "file": "packages/shared/src/hooks/app/useOnlineStatus.ts"
+        }
       ],
       "safe_wording": "The app works offline; queued work syncs automatically for passkey accounts and after a confirmation step for external wallets.",
       "verified_at": "2026-08-15"
     },
     {
       "id": "work-attested-at-submission",
-      "claim": "Field work becomes a permanent on-chain record the moment it is submitted.",
+      "claim": "Field work becomes a permanent on-chain record at submission — or the moment it syncs, when captured offline.",
       "audience": "funder",
       "maturity": "available",
       "capabilities": ["work", "attestation"],
       "evidence": [
-        { "file": "packages/contracts/src/resolvers/Work.sol" },
+        {
+          "file": "packages/contracts/src/resolvers/Work.sol"
+        },
         {
           "file": "packages/contracts/deployments/42161-latest.json",
           "json_path": "schemas.workSchemaUID"
         }
       ],
-      "safe_wording": "Work is attested on-chain at submission; operator approval adds a separate linked approval attestation with confidence and verification method.",
+      "safe_wording": "Work is attested on-chain at submission (offline submissions attest when the queue syncs); operator approval adds a separate linked approval attestation with confidence and verification method.",
       "verified_at": "2026-08-15"
     },
     {
@@ -38,7 +44,11 @@
       "audience": "community",
       "maturity": "available",
       "capabilities": ["garden"],
-      "evidence": [{ "file": "packages/shared/src/providers/Auth.tsx" }],
+      "evidence": [
+        {
+          "file": "packages/shared/src/providers/Auth.tsx"
+        }
+      ],
       "safe_wording": "Passkey sign-in creates a smart account; common gardener flows are sponsored (gasless), while external-wallet operators may pay network gas.",
       "verified_at": "2026-08-15"
     },
@@ -49,7 +59,9 @@
       "maturity": "available",
       "capabilities": ["work"],
       "evidence": [
-        { "file": "packages/admin/src/views/Garden/WorkDetail/ReviewForm.tsx" },
+        {
+          "file": "packages/admin/src/views/Garden/WorkDetail/ReviewForm.tsx"
+        },
         {
           "file": "packages/contracts/deployments/42161-latest.json",
           "json_path": "schemas.workApprovalSchema"
@@ -65,7 +77,10 @@
       "maturity": "available",
       "capabilities": ["vault"],
       "evidence": [
-        { "file": "packages/contracts/deployments/42161-latest.json", "json_path": "octantModule" }
+        {
+          "file": "packages/contracts/deployments/42161-latest.json",
+          "json_path": "octantModule"
+        }
       ],
       "safe_wording": "Vault deposits, withdrawals, and yield harvests are live on Arbitrum One.",
       "verified_at": "2026-08-15"
@@ -92,8 +107,13 @@
       "maturity": "available",
       "capabilities": ["hat"],
       "evidence": [
-        { "file": "packages/contracts/deployments/42161-latest.json", "json_path": "greenWill" },
-        { "file": "packages/client/src/views/Profile/Badges.tsx" }
+        {
+          "file": "packages/contracts/deployments/42161-latest.json",
+          "json_path": "greenWill"
+        },
+        {
+          "file": "packages/client/src/views/Profile/Badges.tsx"
+        }
       ],
       "safe_wording": "GreenWill badges are live on Arbitrum with an in-app claim flow (genesis, first work, first support).",
       "verified_at": "2026-08-15"
@@ -115,12 +135,16 @@
     },
     {
       "id": "telegram-agent",
-      "claim": "Gardeners can submit and track work through a Telegram bot.",
+      "claim": "Gardeners can submit work through a Telegram bot.",
       "audience": "community",
       "maturity": "available",
       "capabilities": ["work"],
-      "evidence": [{ "file": "packages/agent/src/platforms/telegram.ts" }],
-      "safe_wording": "Telegram is the live conversational channel. SMS and WhatsApp are direction, not shipped — never present them as current.",
+      "evidence": [
+        {
+          "file": "packages/agent/src/platforms/telegram.ts"
+        }
+      ],
+      "safe_wording": "Telegram work submission is live; reviewing submission status happens in the app, not the bot. SMS and WhatsApp are direction, not shipped — never present them as current.",
       "verified_at": "2026-08-15"
     },
     {
@@ -138,7 +162,9 @@
           "file": "packages/contracts/deployments/42161-latest.json",
           "json_path": "commitmentPoolingModulePaused"
         },
-        { "file": ".plans/active/commitment-pooling/status.json" }
+        {
+          "file": ".plans/active/commitment-pooling/status.json"
+        }
       ],
       "safe_wording": "The commitment pooling contracts are deployed and unpaused on Arbitrum with 18 pools registered; the in-app experience is still rolling out, so nothing is user-facing yet. A commitment is a record, never a coin.",
       "verified_at": "2026-08-15"
@@ -154,7 +180,9 @@
           "file": "packages/contracts/deployments/42161-latest.json",
           "json_path": "settlementModule"
         },
-        { "file": ".plans/active/commitment-pooling/status.json" }
+        {
+          "file": ".plans/active/commitment-pooling/status.json"
+        }
       ],
       "safe_wording": "Settlement contracts are deployed but paused with no value authority; G$ never bridges — an Arbitrum command executes on Celo with an authenticated acknowledgment. No value moves today.",
       "verified_at": "2026-08-15"
@@ -180,7 +208,11 @@
       "audience": "community",
       "maturity": "planned",
       "capabilities": ["need"],
-      "evidence": [{ "file": ".plans/active/community-interface/spec.md" }],
+      "evidence": [
+        {
+          "file": ".plans/active/community-interface/spec.md"
+        }
+      ],
       "safe_wording": "Needs are a locked architecture (four EAS schemas, two resolvers) with implementation not started; nothing is deployed or user-visible yet.",
       "verified_at": "2026-08-15"
     },
@@ -191,7 +223,10 @@
       "maturity": "in-build",
       "capabilities": ["garden"],
       "evidence": [
-        { "file": "packages/contracts/deployments/42161-latest.json", "json_path": "gardensModule" }
+        {
+          "file": "packages/contracts/deployments/42161-latest.json",
+          "json_path": "gardensModule"
+        }
       ],
       "safe_wording": "The Gardens V2 module is deployed, but signal-pool creation needs an initialized community — describe governance chain-readiness as in progress, not live.",
       "verified_at": "2026-08-15"
@@ -202,7 +237,11 @@
       "audience": "press",
       "maturity": "vision",
       "capabilities": ["garden"],
-      "evidence": [{ "file": "docs/docs/community/where-were-headed.mdx" }],
+      "evidence": [
+        {
+          "file": "docs/docs/community/where-were-headed.mdx"
+        }
+      ],
       "safe_wording": "Present the full-stack framing as direction; the shipped product is offline-first documentation, verification, and funding rails on Arbitrum.",
       "verified_at": "2026-08-15"
     }

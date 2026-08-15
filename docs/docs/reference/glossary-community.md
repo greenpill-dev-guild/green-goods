@@ -307,10 +307,10 @@ A smart contract-based wallet that enables gasless transactions, social recovery
 A garden's long-term treasury, powered by Octant. Funders deposit assets that stay in place as principal, and the yield those assets generate is harvested and split to support operators, gardeners, and community initiatives. Depositors can withdraw their principal later; see [Endow a Garden](/community/funder-guide/funding-a-garden) for how it works.
 
 ### Work
-A specific instance of an [Action](#action) performed by a gardener, captured with photos, a description, and metrics. Work is recorded as a permanent on-chain attestation the moment it is submitted; operator review then adds a separate, linked [Work Approval](#work-approval) attestation. Work is the umbrella term; [Work Submission](#work-submission) and [Work Approval](#work-approval) are its two halves.
+A specific instance of an [Action](#action) performed by a gardener, captured with photos, a description, and metrics. Work is recorded as a permanent on-chain attestation at submission — or the moment it syncs, when captured offline; operator review then adds a separate, linked [Work Approval](#work-approval) attestation. Work is the umbrella term; [Work Submission](#work-submission) and [Work Approval](#work-approval) are its two halves.
 
 ### Work Approval
 The validation step where operators review submitted work and either approve or reject it with constructive feedback. The approval is its own on-chain attestation, linked to the work it reviews — it never creates the work record, which already exists from submission. Karma GAP reporting is module-driven and currently manual (a linked project UID), not automatic.
 
 ### Work Submission
-Documentation of completed regenerative work submitted by a gardener. Work submissions follow the MDR workflow and include before/after photos, task details, metrics, and metadata. Media is stored in IPFS and the submission is recorded on-chain via an EAS attestation immediately — before, not after, review.
+Documentation of completed regenerative work submitted by a gardener. Work submissions follow the MDR workflow and include before/after photos, task details, metrics, and metadata. Media is stored in IPFS and the submission is recorded on-chain via an EAS attestation as soon as it reaches the network — before, not after, review.

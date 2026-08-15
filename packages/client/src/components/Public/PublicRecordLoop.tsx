@@ -28,7 +28,7 @@ const STEPS: readonly LoopStep[] = [
     defaultTitle: "Do the work.",
     bodyId: "public.home.loop.workBody",
     defaultBody:
-      "Gardeners submit Work from the field with media, details, and metadata — each submission is recorded on-chain right away. Operators then review the record and approve or return it.",
+      "Gardeners submit Work from the field with media, details, and metadata — each submission becomes an on-chain record when it reaches the network, immediately online or as soon as offline work syncs. Operators then review the record and approve or return it.",
     to: "/actions",
   },
   {

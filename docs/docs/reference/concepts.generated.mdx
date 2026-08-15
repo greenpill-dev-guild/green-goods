@@ -55,7 +55,7 @@ Every Green Goods concept as a human card — what it is, why it matters, what i
 
 ### Work
 
-**Documented work** — The atomic unit of proof: field evidence recorded on-chain the moment a gardener submits it.
+**Documented work** — The atomic unit of proof: field evidence that becomes an on-chain record at submission — or the moment it syncs, when captured offline.
 
 - **Maturity**: build ✓ · deploy ✓ · active ✓ · indexed ◐ · in-app ✓
 - **Definition**: One documented instance of an Action performed by a gardener — media, notes, and metadata submitted as an EAS Work attestation for operator review; approval records a separate Work Approval attestation.
@@ -78,7 +78,7 @@ Every Green Goods concept as a human card — what it is, why it matters, what i
 - **Not to be confused with Work**: an assessment frames future work; it is explicitly not a review of submitted Work (that is Work Approval)
 - **Related**: frames → Garden
 - **Safe claim**: Assessments are live; evaluators and operators author them before work begins.
-- **Evidence**: `packages/contracts/src/resolvers/Assessment.sol` · `packages/contracts/deployments/42161-latest.json → schemas.assessmentSchemaUID` · `packages/contracts/deployments/42161-latest.json → schemas.assessmentV3SchemaUID` · `packages/contracts/deployments/42161-latest.json → assessmentResolver` · `packages/indexer/config.yaml` · `packages/admin/src/components/Assessment`
+- **Evidence**: `packages/contracts/src/resolvers/Assessment.sol` · `packages/contracts/deployments/42161-latest.json → schemas.assessmentSchemaUID` · `packages/contracts/deployments/42161-latest.json → schemas.assessmentV3SchemaUID` · `packages/contracts/deployments/42161-latest.json → assessmentResolver` · `packages/indexer/config.yaml` · `packages/admin/src/components/Assessment/CreateAssessmentSteps/StrategyKernelStep.tsx`
 - **Verified**: 2026-08-15
 
 ### Hypercert
@@ -92,7 +92,7 @@ Every Green Goods concept as a human card — what it is, why it matters, what i
 - **Not to be confused with Attestation**: attestations are the raw records; a hypercert is a curated bundle of them
 - **Related**: bundles → Work · minted-for → Garden
 - **Safe claim**: Operators mint impact certificates from approved work on Arbitrum today.
-- **Evidence**: `packages/contracts/src/modules/Hypercerts.sol` · `packages/contracts/deployments/42161-latest.json → hypercertsModule` · `packages/contracts/deployments/42161-latest.json → hypercertMinter` · `packages/contracts/deployments/42161-latest.json → marketplaceAdapter` · `packages/indexer/config.yaml` · `packages/admin/src/components/Hypercerts`
+- **Evidence**: `packages/contracts/src/modules/Hypercerts.sol` · `packages/contracts/deployments/42161-latest.json → hypercertsModule` · `packages/contracts/deployments/42161-latest.json → hypercertMinter` · `packages/contracts/deployments/42161-latest.json → marketplaceAdapter` · `packages/indexer/config.yaml` · `packages/admin/src/components/Hypercerts/ActiveListingsTable.tsx`
 - **Verified**: 2026-08-15
 
 ### Vault
@@ -106,7 +106,7 @@ Every Green Goods concept as a human card — what it is, why it matters, what i
 - **Not to be confused with Cookie Jar**: vaults hold endowment principal; cookie jars hold small operational funds for frequent withdrawals
 - **Related**: treasury-of → Garden
 - **Safe claim**: Vault deposits, withdrawals, and yield harvests are live on Arbitrum.
-- **Evidence**: `packages/contracts/src/modules/Octant.sol` · `packages/contracts/deployments/42161-latest.json → octantModule` · `packages/contracts/deployments/42161-latest.json → yieldSplitter` · `packages/indexer/config.yaml` · `packages/client/src/views/Public`
+- **Evidence**: `packages/contracts/src/modules/Octant.sol` · `packages/contracts/deployments/42161-latest.json → octantModule` · `packages/contracts/deployments/42161-latest.json → yieldSplitter` · `packages/indexer/config.yaml` · `packages/client/src/views/Public/Vaults.tsx`
 - **Verified**: 2026-08-15
 
 ### Cookie Jar
@@ -120,7 +120,7 @@ Every Green Goods concept as a human card — what it is, why it matters, what i
 - **Not to be confused with Vault**: jars are for frequent small spending; vaults are for principal that generates yield
 - **Related**: discretionary-fund-of → Garden
 - **Safe claim**: Garden jars are provisioned automatically at garden mint; jar activity beyond creation is not yet indexed for reports.
-- **Evidence**: `packages/contracts/src/modules/CookieJar.sol` · `packages/contracts/deployments/42161-latest.json → cookieJarFactory` · `packages/contracts/deployments/42161-latest.json → cookieJarModule` · `packages/indexer/config.yaml` · `packages/admin/src/views/Cookies`
+- **Evidence**: `packages/contracts/src/modules/CookieJar.sol` · `packages/contracts/deployments/42161-latest.json → cookieJarFactory` · `packages/contracts/deployments/42161-latest.json → cookieJarModule` · `packages/indexer/config.yaml` · `packages/admin/src/views/Cookies/index.tsx`
 - **Verified**: 2026-08-15
 
 ### Attestation
@@ -148,7 +148,7 @@ Every Green Goods concept as a human card — what it is, why it matters, what i
 - **Not to be confused with Garden**: hats grant authority within a garden; they are not membership itself
 - **Related**: authority-in → Garden
 - **Safe claim**: Garden roles are live Hats Protocol tokens; the on-chain operator hat labels already read Steward.
-- **Evidence**: `packages/contracts/src/lib/Hats.sol` · `packages/contracts/deployments/42161-latest.json → hatsModule` · `packages/indexer/config.yaml` · `packages/admin/src/views/Community`
+- **Evidence**: `packages/contracts/src/lib/Hats.sol` · `packages/contracts/deployments/42161-latest.json → hatsModule` · `packages/indexer/config.yaml` · `packages/admin/src/views/Community/index.tsx`
 - **Verified**: 2026-08-15
 
 ### Season
@@ -272,14 +272,14 @@ What Green Goods may say in public, at which maturity, with the wording that kee
 | Claim | Audience | Maturity | Safe wording | Verified |
 |---|---|---|---|---|
 | Communities document regenerative work offline and sync when connectivity returns. | community | available | The app works offline; queued work syncs automatically for passkey accounts and after a confirmation step for external wallets. | 2026-08-15 |
-| Field work becomes a permanent on-chain record the moment it is submitted. | funder | available | Work is attested on-chain at submission; operator approval adds a separate linked approval attestation with confidence and verification method. | 2026-08-15 |
+| Field work becomes a permanent on-chain record at submission — or the moment it syncs, when captured offline. | funder | available | Work is attested on-chain at submission (offline submissions attest when the queue syncs); operator approval adds a separate linked approval attestation with confidence and verification method. | 2026-08-15 |
 | Gardeners sign in with a passkey — no seed phrase, no wallet setup. | community | available | Passkey sign-in creates a smart account; common gardener flows are sponsored (gasless), while external-wallet operators may pay network gas. | 2026-08-15 |
 | Operators review every submission and sign off with a confidence band and verification method. | funder | available | Operators — not evaluators — approve or reject work; the approval writes confidence and verification method permanently on-chain. | 2026-08-15 |
 | Funders endow gardens: principal stays put while yield funds operations. | funder | available | Vault deposits, withdrawals, and yield harvests are live on Arbitrum One. | 2026-08-15 |
 | Gardens carry small rule-bound operational funds with capped, interval-limited withdrawals. | community | available | Garden jars are provisioned automatically at garden mint; jar activity beyond creation is not yet indexed, so it does not appear in reports. | 2026-08-15 |
 | Gardeners claim recognition badges for milestones like their first approved work. | community | available | GreenWill badges are live on Arbitrum with an in-app claim flow (genesis, first work, first support). | 2026-08-15 |
 | Approved work rolls up into fundable impact certificates. | funder | available | Operators mint Hypercert impact certificates from approved work; marketplace listing exists, and buyer-side flows are still maturing. | 2026-08-15 |
-| Gardeners can submit and track work through a Telegram bot. | community | available | Telegram is the live conversational channel. SMS and WhatsApp are direction, not shipped — never present them as current. | 2026-08-15 |
+| Gardeners can submit work through a Telegram bot. | community | available | Telegram work submission is live; reviewing submission status happens in the app, not the bot. SMS and WhatsApp are direction, not shipped — never present them as current. | 2026-08-15 |
 | Commitment pooling is live on Arbitrum: gardens can register pools of promises on-chain. | press | deployed-not-available | The commitment pooling contracts are deployed and unpaused on Arbitrum with 18 pools registered; the in-app experience is still rolling out, so nothing is user-facing yet. A commitment is a record, never a coin. | 2026-08-15 |
 | Fulfilled commitments settle in G$ through a cross-chain payout plan. | press | in-build | Settlement contracts are deployed but paused with no value authority; G$ never bridges — an Arbitrum command executes on Celo with an authenticated acknowledgment. No value moves today. | 2026-08-15 |
 | Gardens can record interest-free advances and repayments against future work. | press | in-build | The CreditRegistry is a records-only control plane — it never holds or transfers funds, and there is no credit score, ever. Deployed, not yet in use. | 2026-08-15 |
