@@ -65,7 +65,9 @@ describe("Hub queue ENS display", () => {
       />
     );
 
-    expect(screen.getByText("Compost")).toBeInTheDocument();
+    // The 1a card keeps the action title in the hover title only (the visible
+    // body is title / status chip / gardener / relative age — Frontend Rule 17).
+    expect(screen.getAllByTitle(/Compost/).length).toBeGreaterThan(0);
     expect(screen.getByText("river")).toBeInTheDocument();
   });
 
@@ -81,7 +83,9 @@ describe("Hub queue ENS display", () => {
       />
     );
 
-    expect(screen.getByText("Compost")).toBeInTheDocument();
+    // The 1a card keeps the action title in the hover title only (the visible
+    // body is title / status chip / gardener / relative age — Frontend Rule 17).
+    expect(screen.getAllByTitle(/Compost/).length).toBeGreaterThan(0);
     expect(screen.getByText("river")).toBeInTheDocument();
   });
 });

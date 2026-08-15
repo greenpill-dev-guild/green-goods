@@ -113,7 +113,7 @@ export const HubGreenRoleChain: Story = {
 export const RadiusScale: Story = {
   render: () => (
     <Section title="Radius aliases (--r-*)">
-      {(["xs", "sm", "md", "lg", "xl", "full"] as const).map((size) => (
+      {(["xs", "sm", "md", "lg", "full"] as const).map((size) => (
         <div key={size} style={{ display: "flex", flexDirection: "column", gap: "0.375rem" }}>
           <div
             aria-label={`r-${size}`}
@@ -139,10 +139,10 @@ export const RadiusScale: Story = {
   ),
 };
 
-export const WarmShadowElevation: Story = {
+export const ElevationLadder: Story = {
   render: () => (
-    <Section title="Warm-shadow elevation (--e1, --e2, --e3, --e-float)">
-      {(["e1", "e2", "e3", "e-float"] as const).map((step) => (
+    <Section title="The ONE elevation ladder (--m3-elevation-0/1/2)">
+      {(["m3-elevation-0", "m3-elevation-1", "m3-elevation-2"] as const).map((step) => (
         <div
           key={step}
           style={{ display: "flex", flexDirection: "column", gap: "0.375rem", padding: "1rem" }}
@@ -171,15 +171,15 @@ export const WarmShadowElevation: Story = {
   ),
 };
 
-function ToneCanvas({ tone, strength, label }: { tone: string; strength: string; label: string }) {
+function ToneCanvas({ tone, label }: { tone: string; label: string }) {
   return (
     <div
       data-tone={tone}
-      data-tone-strength={strength}
       style={{
         width: "11rem",
         height: "7rem",
-        background: "var(--tone-canvas, var(--canvas))",
+        background:
+          "linear-gradient(180deg, var(--tone-surface-tint-color, transparent), transparent 320px), rgb(var(--m3-surface-container-low))",
         borderRadius: "var(--r-lg)",
         boxShadow: "var(--m3-elevation-1), 0 0 0 1px var(--hairline)",
         padding: "0.875rem",
@@ -196,31 +196,23 @@ function ToneCanvas({ tone, strength, label }: { tone: string; strength: string;
   );
 }
 
-export const ToneStrengthMatrix: Story = {
+export const CanvasWash: Story = {
   render: () => (
     <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
-      {(["off", "subtle", "default"] as const).map((strength) => (
-        <Section key={strength} title={`Tone × strength = ${strength}`}>
-          {(["hub", "garden", "community", "actions"] as const).map((tone) => (
-            <ToneCanvas
-              key={`${tone}-${strength}`}
-              tone={tone}
-              strength={strength}
-              label={`[data-tone="${tone}"][data-tone-strength="${strength}"]`}
-            />
-          ))}
-        </Section>
-      ))}
+      <Section title="Canvas wash — linen ground + 5% tone gradient (tone use 3 of 3)">
+        {(["hub", "garden", "community", "actions"] as const).map((tone) => (
+          <ToneCanvas key={tone} tone={tone} label={`[data-tone="${tone}"]`} />
+        ))}
+      </Section>
     </div>
   ),
   parameters: {
     docs: {
       description: {
         story:
-          "Each tone (hub/garden/community/actions) at three strengths. " +
-          "off → no wash (canvas only). subtle → 50% saturation. default → full spec, the default in both modes " +
-          "(dark formerly defaulted to subtle; flipped when the dark wash chroma was raised to legible levels). " +
-          "Tone touches the canvas only — never headers, cards, buttons, or status colors.",
+          "Each workspace's wash: a 5% gradient from the top (10% in dark) over the constant linen ground, " +
+          "fading out by 320px — the third and last sanctioned tone use. The old tone-strength axis is retired. " +
+          "Tone touches the canvas wash, the active tab/nav pill, and the one filled action — never headers, cards, borders, or hovers.",
       },
     },
   },

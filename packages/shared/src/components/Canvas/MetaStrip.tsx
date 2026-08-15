@@ -5,6 +5,8 @@ export interface MetaStripItem {
   id?: string;
   label: ReactNode;
   value?: ReactNode;
+  /** "critical" renders the value in the error text pair (e.g. overdue counts). */
+  valueTone?: "critical";
 }
 
 export interface MetaStripProps {
@@ -45,7 +47,14 @@ export function MetaStrip({ items, className, density = "pill" }: MetaStripProps
             ) : null}
             <span className="inline-flex items-center gap-1">
               {item.value ? (
-                <span className="font-semibold text-text-strong tabular-nums">{item.value}</span>
+                <span
+                  className={cn(
+                    "font-semibold tabular-nums",
+                    item.valueTone === "critical" ? "text-error-dark" : "text-text-strong"
+                  )}
+                >
+                  {item.value}
+                </span>
               ) : null}
               <span>{item.label}</span>
             </span>

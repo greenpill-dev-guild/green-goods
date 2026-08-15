@@ -179,25 +179,27 @@ function RealCanvasLayoutStory() {
 type CanvasLayoutStoryArgs = MockCanvasLayoutProps;
 type AdminWorkspaceTone = "hub" | "garden" | "community" | "actions";
 
-const DARK_TONE_HUES: Record<AdminWorkspaceTone, string> = {
-  hub: "240",
-  garden: "145",
-  community: "50",
-  actions: "30",
-};
-
 function getCanvasLayoutRoot(canvasElement: HTMLElement): HTMLElement {
   const root = canvasElement.querySelector<HTMLElement>('[data-component="CanvasLayout"]');
   expect(root).not.toBeNull();
   return root as HTMLElement;
 }
 
-function expectDarkCanvasTone(root: HTMLElement, tone: AdminWorkspaceTone) {
-  const toneCanvas = window.getComputedStyle(root).getPropertyValue("--tone-canvas").trim();
-
+// Cockpit M3 1a: the dark canvas ground is constant (the m3 floor); workspace
+// identity is the faint wash overlay. The contract per route is (a) the
+// [data-tone] attribute lands, and (b) the registered wash color
+// (--tone-surface-tint-color) resolves to a real, per-tone color — collected
+// by the caller to also prove the four workspaces resolve distinct washes.
+function expectDarkCanvasWash(
+  root: HTMLElement,
+  tone: AdminWorkspaceTone,
+  washes: Map<AdminWorkspaceTone, string>
+) {
   expect(root).toHaveAttribute("data-tone", tone);
-  expect(toneCanvas).toContain("oklch(20%");
-  expect(toneCanvas).toContain(DARK_TONE_HUES[tone]);
+  const wash = window.getComputedStyle(root).getPropertyValue("--tone-surface-tint-color").trim();
+  expect(wash).not.toBe("");
+  expect(wash).not.toBe("transparent");
+  washes.set(tone, wash);
 }
 
 const meta: Meta<CanvasLayoutStoryArgs> = {
@@ -308,7 +310,7 @@ export const DarkRouteToneContract: Story = {
     docs: {
       description: {
         story:
-          "Browser-level dark canvas tone contract for the canonical admin routes. Proves document-level [data-theme='dark'] still reaches the CanvasLayout [data-tone] root.",
+          "Browser-level dark canvas contract for the canonical admin routes. Proves document-level [data-theme='dark'] still reaches the CanvasLayout [data-tone] root and that each workspace resolves a distinct wash color over the constant dark ground.",
       },
     },
   },
@@ -316,9 +318,10 @@ export const DarkRouteToneContract: Story = {
     const canvas = within(canvasElement);
     await canvas.findByRole("banner");
     const root = getCanvasLayoutRoot(canvasElement);
+    const washes = new Map<AdminWorkspaceTone, string>();
 
     await withTemporaryDocumentTheme("dark", async () => {
-      await waitFor(() => expectDarkCanvasTone(root, "hub"));
+      await waitFor(() => expectDarkCanvasWash(root, "hub", washes));
       await waitFor(() => expectAdminShellDarkPalette(canvasElement));
 
       const routeCases = [
@@ -330,9 +333,12 @@ export const DarkRouteToneContract: Story = {
 
       for (const route of routeCases) {
         await userEvent.click(canvas.getByRole("button", { name: route.label }));
-        await waitFor(() => expectDarkCanvasTone(root, route.tone));
+        await waitFor(() => expectDarkCanvasWash(root, route.tone, washes));
         await waitFor(() => expectAdminShellDarkPalette(canvasElement));
       }
+
+      // Four workspaces, four distinct washes — tone identity survives dark.
+      expect(new Set(washes.values()).size).toBe(4);
     });
   },
 };
