@@ -1026,7 +1026,10 @@
   .hub-workbench-grid {
     display: grid;
     width: 100%;
-    grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr));
+    /* auto-FILL (not auto-fit): empty tracks are kept, so a single result —
+       e.g. a narrowed search — stays at one column's width instead of the
+       lone card stretching across the whole grid. */
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 18rem), 1fr));
     justify-content: stretch;
     align-items: stretch;
     gap: 0.875rem;
