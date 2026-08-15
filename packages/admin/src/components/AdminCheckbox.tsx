@@ -27,7 +27,7 @@ export interface AdminCheckboxProps {
  * AdminCheckbox — M3 Checkbox
  *
  * Implements Material Design 3 checkbox anatomy:
- * - Container: 18dp (h-[18px] w-[18px]), 2dp radius (rounded-[2px])
+ * - Container: 18dp (h-[18px] w-[18px]), 4dp radius (--m3-shape-xs)
  * - Touch target: 40dp circle around checkbox (h-10 w-10 centered)
  * - Unselected: transparent fill, 2dp border on-surface-variant
  * - Selected: primary fill, white SVG checkmark via background-image
@@ -122,8 +122,8 @@ export const AdminCheckbox = React.forwardRef<HTMLInputElement, AdminCheckboxPro
             className={cn(
               // Remove native appearance
               "appearance-none",
-              // Size: 18dp container, 2dp radius
-              "h-[18px] w-[18px] shrink-0 rounded-[2px]",
+              // Size: 18dp container, 4dp radius (--m3-shape-xs)
+              "h-[18px] w-[18px] shrink-0 rounded-[var(--m3-shape-xs)]",
               // Cursor
               "cursor-pointer disabled:cursor-not-allowed",
               // Transition

@@ -29,7 +29,7 @@ function Swatch({ spec }: { spec: SwatchSpec }) {
     height: "3.5rem",
     borderRadius: "var(--r-md)",
     background: `var(${spec.cssVar})`,
-    boxShadow: "var(--e1)",
+    boxShadow: "var(--m3-elevation-1)",
   };
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "0.375rem", minWidth: "5.5rem" }}>
@@ -122,7 +122,7 @@ export const RadiusScale: Story = {
               height: "3.5rem",
               background: "var(--surface-raised)",
               borderRadius: `var(--r-${size})`,
-              boxShadow: "var(--e2)",
+              boxShadow: "var(--m3-elevation-2)",
             }}
           />
           <code
@@ -181,7 +181,7 @@ function ToneCanvas({ tone, strength, label }: { tone: string; strength: string;
         height: "7rem",
         background: "var(--tone-canvas, var(--canvas))",
         borderRadius: "var(--r-lg)",
-        boxShadow: "var(--e1), 0 0 0 1px var(--hairline)",
+        boxShadow: "var(--m3-elevation-1), 0 0 0 1px var(--hairline)",
         padding: "0.875rem",
         display: "flex",
         flexDirection: "column",

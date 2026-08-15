@@ -15,7 +15,7 @@ export function HubWorkbenchSkeletonRows({
       <ul className="hub-workbench-grid" role="list" aria-busy="true">
         {Array.from({ length: count }).map((_, index) => (
           <li key={`hub-card-skeleton-${index}`} aria-hidden="true" className="min-w-0">
-            <div className="pointer-events-none h-full rounded-2xl bg-[rgb(var(--m3-surface-container-low))] p-4 shadow-[var(--edge-rest),var(--elevation-1)]">
+            <div className="pointer-events-none h-full rounded-2xl bg-[rgb(var(--m3-surface-container-low))] p-4 shadow-[var(--edge-rest),var(--m3-elevation-1)]">
               {hasMedia ? (
                 <div className="aspect-[16/9] rounded-xl skeleton-shimmer" />
               ) : (
@@ -65,7 +65,7 @@ export function HubWorkbenchSkeletonRows({
           className="pointer-events-none grid w-full grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-[0.875rem] px-4 py-3 max-[599px]:grid-cols-[auto_minmax(0,1fr)] max-[599px]:gap-3 max-[599px]:px-[0.8rem] max-[599px]:py-[0.85rem]"
         >
           <div className="flex w-[3.75rem] items-center justify-center max-[599px]:w-12">
-            <div className="h-14 w-14 rounded-2xl skeleton-shimmer max-[599px]:h-11 max-[599px]:w-11 max-[599px]:rounded-[0.85rem]" />
+            <div className="h-14 w-14 rounded-2xl skeleton-shimmer max-[599px]:h-11 max-[599px]:w-11 max-[599px]:rounded-[var(--m3-shape-md)]" />
           </div>
           <div className="min-w-0">
             <div className="h-3 w-24 rounded-full skeleton-shimmer" />

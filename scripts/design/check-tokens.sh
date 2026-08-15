@@ -434,29 +434,36 @@ if [[ "$LIGHT_TONE_BLOCKS" -lt 5 || "$DARK_TONE_BLOCKS" -ne "$LIGHT_TONE_BLOCKS"
   exit 1
 fi
 
-# (2) Elevation levels 1–5 must each have a [data-theme="dark"] override in both
-#     the admin M3 ladder (admin-m3-tokens.css) and the tonal ladder (index.css).
+# (2) The single elevation ladder (Cockpit M3 1a: levels 1 and 2 only) must
+#     have a [data-theme="dark"] override per level in admin-m3-tokens.css.
+#     The old parallel --elevation-* ladder in index.css is deleted; this guard
+#     also fails if it reappears.
 check_dark_elevation() {
   dark_levels="$(awk -v tok="$2" '
     /^[^{}]*\{/ { in_dark = ($0 ~ /\[data-theme="dark"\]/) }
     /\}/        { in_dark = 0 }
-    in_dark && $0 ~ (tok "-[1-5]:") { n++ }
+    in_dark && $0 ~ (tok "-[1-2]:") { n++ }
     END { print n + 0 }
   ' "$1")"
-  if [[ "$dark_levels" -lt 5 ]]; then
-    echo "❌ Dark elevation gap: ${2}-[1-5] has only ${dark_levels}/5 [data-theme=\"dark\"] overrides in ${1}."
+  if [[ "$dark_levels" -lt 2 ]]; then
+    echo "❌ Dark elevation gap: ${2}-[1-2] has only ${dark_levels}/2 [data-theme=\"dark\"] overrides in ${1}."
     echo "   Black drop shadows are invisible on dark surfaces — each elevation level needs a ring-forward dark override."
     exit 1
   fi
 }
 check_dark_elevation "$ADMIN_M3_TOKENS" "--m3-elevation"
-check_dark_elevation "$ADMIN_INDEX_CSS" "--elevation"
+
+if grep -qE '^[[:space:]]*--elevation-[0-9]:' "$ADMIN_INDEX_CSS"; then
+  echo "❌ Competing elevation ladder reintroduced: --elevation-N found in $ADMIN_INDEX_CSS."
+  echo "   The cockpit has ONE ladder — --m3-elevation-0/1/2 in $ADMIN_M3_TOKENS (plus the warm chrome shadow)."
+  exit 1
+fi
 
 node scripts/design/check-css-custom-properties.mjs
 node scripts/design/check-guidance-examples.mjs
 
 echo "✅ check-design-tokens: ${#EXPECTED_TOKENS[@]} runtime tokens present in theme.css."
-echo "✅ dark-mode parity guard: ${DARK_TONE_BLOCKS}/5 dark tone blocks; elevation levels 1–5 have dark overrides."
+echo "✅ dark-mode parity guard: ${DARK_TONE_BLOCKS}/5 dark tone blocks; elevation levels 1–2 have dark overrides (single ladder)."
 echo "✅ workspace tone propagation guard: --m3-primary re-declared at .admin-m3 scope; ${TONE_ACCENT_COUNT} --tone-on-surface-accent roles present."
 echo "✅ DesignMD radius outputs present in $GENERATED_CSS."
 echo "✅ admin M3 variable usages resolve to defined tokens."

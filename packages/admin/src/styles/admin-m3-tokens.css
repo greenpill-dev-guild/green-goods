@@ -6,26 +6,28 @@
 
 :root {
   /* --------------------------------------------------------------------------
-   * M3 Elevation Scale
-   * box-shadow values mapping to Material elevation levels 0–5
+   * M3 Elevation Scale — the ONE ladder (Cockpit M3 1a).
+   * Levels 1 and 2 only: cards and filled buttons rest at level 1 and step to
+   * level 2 on hover. Dialogs/sheets sit at level 2 over their scrim. The only
+   * other sanctioned shadow is the warm ambient chrome shadow on the floating
+   * navigation (--admin-chrome-shadow). Levels 3–5 and the parallel
+   * --elevation-* / --e* ladders are deleted — do not reintroduce them.
    * -------------------------------------------------------------------------- */
   --m3-elevation-0: none;
   --m3-elevation-1: 0 1px 2px rgba(0, 0, 0, 0.3), 0 1px 3px 1px rgba(0, 0, 0, 0.15);
   --m3-elevation-2: 0 1px 2px rgba(0, 0, 0, 0.3), 0 2px 6px 2px rgba(0, 0, 0, 0.15);
-  --m3-elevation-3: 0 1px 3px rgba(0, 0, 0, 0.3), 0 4px 8px 3px rgba(0, 0, 0, 0.15);
-  --m3-elevation-4: 0 2px 3px rgba(0, 0, 0, 0.3), 0 6px 10px 4px rgba(0, 0, 0, 0.15);
-  --m3-elevation-5: 0 4px 4px rgba(0, 0, 0, 0.3), 0 8px 12px 6px rgba(0, 0, 0, 0.15);
 
   /* --------------------------------------------------------------------------
    * M3 Shape Scale
-   * Border-radius tokens mapping to Material shape corners
+   * Border-radius tokens mapping to Material shape corners.
+   * The scale is 4 / 8 / 12 / 16 / 9999 — pills, 12px cards, 8px small
+   * controls, 16px page containers/dialogs. There is no 28px step.
    * -------------------------------------------------------------------------- */
   --m3-shape-none: 0px;
   --m3-shape-xs: 4px;
   --m3-shape-sm: 8px;
   --m3-shape-md: 12px;
   --m3-shape-lg: 16px;
-  --m3-shape-xl: 28px;
   --m3-shape-full: 9999px;
 
   /* --------------------------------------------------------------------------
@@ -163,9 +165,6 @@
   --m3-elevation-0: none;
   --m3-elevation-1: 0 0 0 1px rgb(var(--neutral-50) / 0.06);
   --m3-elevation-2: 0 1px 2px rgb(0 0 0 / 0.5), 0 0 0 1px rgb(var(--neutral-50) / 0.09);
-  --m3-elevation-3: 0 4px 12px rgb(0 0 0 / 0.55), 0 0 0 1px rgb(var(--neutral-50) / 0.12);
-  --m3-elevation-4: 0 8px 24px rgb(0 0 0 / 0.6), 0 0 0 1px rgb(var(--neutral-50) / 0.14);
-  --m3-elevation-5: 0 16px 40px rgb(0 0 0 / 0.6), 0 0 0 1px rgb(var(--neutral-50) / 0.16);
 
   --m3-on-surface: var(--text-strong-950);
   --m3-on-surface-variant: var(--text-sub-600);

@@ -34,7 +34,7 @@ export interface AdminTabRailProps {
  * - Grid container: `gap: 6px; padding: 6px; background: var(--surface-quiet);
  *   border-radius: 14px`.
  * - Tab button: `height: 40px; border-radius: 10px; font: 600 14px/1`.
- * - Active tab: raised background + `var(--e1)` shadow (no underline).
+ * - Active tab: raised background + `var(--m3-elevation-1)` shadow (no underline).
  * - Count chip: 22×20 pill, surface-raised on inactive, `var(--g-action)` (green)
  *   on active.
  *
@@ -159,7 +159,7 @@ export function AdminTabRail({
               color: active
                 ? "var(--ink, rgb(var(--m3-on-surface)))"
                 : "var(--on-surface-muted, rgb(var(--m3-on-surface-variant)))",
-              boxShadow: active ? "var(--e1, var(--m3-elevation-1))" : "none",
+              boxShadow: active ? "var(--m3-elevation-1)" : "none",
             }}
           >
             {Icon ? <Icon className="shrink-0" aria-hidden /> : null}

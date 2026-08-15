@@ -520,7 +520,7 @@ export function NavigationBar({ slots, activePath, onNavigate, fab }: Navigation
           className={cn(
             "canvas-navigation-bar flex w-max items-center",
             "gap-1.5 rounded-2xl px-2.5 py-2",
-            "border border-stroke-soft-200 bg-bg-white-0 shadow-[var(--edge-rest),_var(--elevation-2)]"
+            "border border-stroke-soft-200 bg-bg-white-0 shadow-[var(--edge-rest),_var(--m3-elevation-1)]"
           )}
           data-item-count={desktopSlots.length}
         >
@@ -559,7 +559,7 @@ export function NavigationBar({ slots, activePath, onNavigate, fab }: Navigation
           }}
           className={cn(
             "canvas-navigation-bar fixed inset-x-3 bottom-[max(0.75rem,env(safe-area-inset-bottom))] z-nav flex items-start gap-1.5 rounded-2xl px-2 py-2",
-            "border border-stroke-soft-200 bg-bg-white-0 shadow-[var(--edge-rest),_var(--elevation-3)]"
+            "border border-stroke-soft-200 bg-bg-white-0 shadow-[var(--edge-rest),_var(--m3-elevation-2)]"
           )}
         >
           {mobileSlots.map((slot) => (

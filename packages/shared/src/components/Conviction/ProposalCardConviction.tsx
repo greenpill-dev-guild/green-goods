@@ -27,9 +27,9 @@ export function ProposalCardConviction({
   const headingId = `proposal-card-${proposal.id}-title`;
   const surfaceClass = cn(
     "flex flex-col gap-3 rounded-[var(--r-lg,16px)] p-4 text-left",
-    "bg-[var(--surface-raised,rgb(var(--bg-white-0)))] shadow-[var(--e2)]",
+    "bg-[var(--surface-raised,rgb(var(--bg-white-0)))] shadow-[var(--m3-elevation-1)]",
     isInteractive &&
-      "cursor-pointer transition-shadow duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)] hover:shadow-[var(--e3)] focus-visible:outline-none focus-visible:shadow-[var(--e3)] focus-visible:ring-2 focus-visible:ring-[rgb(var(--primary-action))] motion-reduce:transition-none",
+      "cursor-pointer transition-shadow duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)] hover:shadow-[var(--m3-elevation-2)] focus-visible:outline-none focus-visible:shadow-[var(--m3-elevation-2)] focus-visible:ring-2 focus-visible:ring-[rgb(var(--primary-action))] motion-reduce:transition-none",
     className
   );
 

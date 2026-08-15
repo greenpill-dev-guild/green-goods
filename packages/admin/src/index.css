@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap");
 @import "tailwindcss";
 @import "@green-goods/shared/styles/theme.css";
 @import "./styles/admin-m3-tokens.css";
@@ -111,14 +111,16 @@
   --admin-radius-sm: 8px;
   --admin-radius-md: 12px;
   --admin-radius-lg: 16px;
-  --admin-radius-xl: 28px;
   --admin-radius-full: 9999px;
+  /* Builtin rounded-* utilities land on the admin scale (4 / 8 / 16 / 9999).
+     xl and 2xl collapse onto the 16px page-container step — the cockpit shape
+     scale has no 20/24px radii. 12px cards use rounded-[var(--m3-shape-md)]. */
   --radius-xs: var(--admin-radius-xs);
   --radius-sm: var(--admin-radius-sm);
   --radius-md: var(--gg-radius-md);
   --radius-lg: var(--gg-radius-lg);
-  --radius-xl: var(--gg-radius-xl);
-  --radius-2xl: var(--gg-radius-2xl);
+  --radius-xl: var(--admin-radius-lg);
+  --radius-2xl: var(--admin-radius-lg);
   --radius-full: var(--gg-radius-full);
 }
 
@@ -654,39 +656,14 @@
 }
 
 /* ============================================================================
- * TONAL ELEVATION - 6-level elevation system with dark-mode green tinting
+ * ELEVATION — one ladder only.
+ * The M3 ladder in admin-m3-tokens.css (--m3-elevation-0/1/2) is the single
+ * elevation source; the old parallel --elevation-0..5 scale, its dark
+ * overrides, and the .shadow-elevation-* utilities are deleted. The floating
+ * navigation's warm ambient shadow lives on --admin-chrome-shadow above.
  * ============================================================================ */
-:root {
-  --elevation-0: 0px 0px 0px 0px transparent;
-  --elevation-1: 0px 1px 2px 0px rgba(0, 0, 0, 0.05);
-  --elevation-2: 0px 1px 3px 0px rgba(0, 0, 0, 0.1), 0px 1px 2px -1px rgba(0, 0, 0, 0.1);
-  --elevation-3: 0px 4px 6px -1px rgba(0, 0, 0, 0.1), 0px 2px 4px -2px rgba(0, 0, 0, 0.1);
-  --elevation-4: 0px 10px 15px -3px rgba(0, 0, 0, 0.1), 0px 4px 6px -4px rgba(0, 0, 0, 0.1);
-  --elevation-5: 0px 20px 25px -5px rgba(0, 0, 0, 0.1), 0px 8px 10px -6px rgba(0, 0, 0, 0.1);
-}
 
-[data-theme="dark"] {
-  /* Ring-forward dark elevation: the depth cue is a warm-white hairline (was a
-   * green ring at 3–12%, imperceptible). Ring alpha scales with elevation so the
-   * step is legible; black blur retained for floating chrome over content. */
-  --elevation-1: 0px 1px 2px 0px rgba(0, 0, 0, 0.3), 0px 0px 0px 1px rgb(var(--neutral-50) / 0.06);
-  --elevation-2: 0px 1px 3px 0px rgba(0, 0, 0, 0.4), 0px 0px 0px 1px rgb(var(--neutral-50) / 0.09);
-  --elevation-3: 0px 4px 6px -1px rgba(0, 0, 0, 0.45), 0px 0px 0px 1px rgb(var(--neutral-50) / 0.12);
-  --elevation-4: 0px 10px 15px -3px rgba(0, 0, 0, 0.5), 0px 0px 0px 1px rgb(var(--neutral-50) / 0.14);
-  --elevation-5: 0px 20px 25px -5px rgba(0, 0, 0, 0.5), 0px 0px 0px 1px rgb(var(--neutral-50) / 0.16);
-}
-
-/* ============================================================================
- * DESIGN SYSTEM - Shadows & Elevation (utilities layer)
- * ============================================================================ */
 @layer utilities {
-  .shadow-elevation-0 { box-shadow: var(--elevation-0); }
-  .shadow-elevation-1 { box-shadow: var(--elevation-1); }
-  .shadow-elevation-2 { box-shadow: var(--elevation-2); }
-  .shadow-elevation-3 { box-shadow: var(--elevation-3); }
-  .shadow-elevation-4 { box-shadow: var(--elevation-4); }
-  .shadow-elevation-5 { box-shadow: var(--elevation-5); }
-
   .shadow-xs {
     box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
   }
@@ -930,10 +907,10 @@
   justify-content: space-between;
   gap: 0.5rem;
   padding: 0.5rem 0.75rem;
-  border-radius: 0.5rem;
+  border-radius: var(--m3-shape-sm);
   border: 1px solid var(--color-stroke-soft);
   background: var(--color-bg-weak);
-  font-size: 0.875rem;
+  font-size: var(--type-body-md, 0.875rem);
   transition: background-color var(--spring-effects-fast);
 }
 
@@ -1179,10 +1156,10 @@
     left: 50%;
     transform: translateX(-50%);
     padding: 4px 8px;
-    border-radius: 6px;
+    border-radius: var(--m3-shape-xs);
     background: rgb(var(--gray-950) / 0.9);
     color: rgb(var(--gray-0));
-    font-size: 0.6875rem;
+    font-size: var(--type-label-md, 0.75rem);
     line-height: 1.2;
     white-space: nowrap;
     pointer-events: none;
@@ -1225,19 +1202,6 @@
   /* ── Surface Primitives ── */
 
   /**
-   * M3 shape scale — tokenized radii so routes stop inlining ad-hoc `rounded-[1.6rem]` values.
-   * Values kept large-biased to preserve the warm-earth aesthetic already shipped.
-   */
-  :root {
-    --shape-xs: 0.5rem;   /* 8px — inline tags, chips */
-    --shape-sm: 0.75rem;  /* 12px — inputs, small buttons */
-    --shape-md: 1rem;     /* 16px — compact cards */
-    --shape-lg: 1.25rem;  /* 20px — panels, inspectors */
-    --shape-xl: 1.6rem;   /* 25.6px — route shells */
-    --shape-2xl: 1.9rem;  /* 30.4px — navigation dock */
-  }
-
-  /**
    * Canvas route card — the single outer surface that wraps a workspace view
    * (Hub, Garden, Community, Actions, Cookies, etc.). Mirrors the reference
    * design `.mainsheet` from `design_handoff_admin-revamp/screens/hub.css`:
@@ -1253,13 +1217,13 @@
     background: rgb(var(--admin-surface-0));
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
-    border-radius: var(--shape-xl);
+    border-radius: var(--admin-radius-lg);
     min-block-size: var(--admin-main-content-min-height, 100%);
     /* Symmetric padding — one value per breakpoint so header, tabs, and body
        content share an even inset (the old 14/16/20px asymmetry read as a
        misalignment on dense views). */
     padding: 1rem;
-    box-shadow: var(--edge-rest), var(--elevation-2);
+    box-shadow: var(--edge-rest), var(--m3-elevation-1);
   }
 
   .canvas-route-card > [role="tabpanel"],
@@ -1383,7 +1347,7 @@
   .workbench-card[data-selected="true"],
   .hub-work-card[data-selected="true"],
   .hub-history-card[data-selected="true"] {
-    box-shadow: var(--edge-focus), var(--elevation-2);
+    box-shadow: var(--edge-focus), var(--m3-elevation-2);
   }
 
   .hub-history-copy {
@@ -1395,12 +1359,12 @@
      translate utilities. */
   .workbench-row-clickable:hover {
     transform: translateY(-0.125rem);
-    box-shadow: var(--edge-hover), var(--elevation-1);
+    box-shadow: var(--edge-hover), var(--m3-elevation-1);
   }
 
   .workbench-card-clickable:hover {
     transform: translateY(-0.125rem);
-    box-shadow: var(--edge-hover), var(--elevation-2);
+    box-shadow: var(--edge-hover), var(--m3-elevation-2);
   }
 
   .hub-work-card:hover {
@@ -1423,7 +1387,7 @@
 
   /* Raised inner tiles (thumbnail / icon) — edge ring + elevation. */
   .workbench-raised {
-    box-shadow: var(--edge-rest), var(--elevation-1);
+    box-shadow: var(--edge-rest), var(--m3-elevation-1);
   }
 
   /* Row trailing affordance hides on the <600px two-column layout. */
@@ -1460,14 +1424,14 @@
     @apply rounded-xl;
     background: rgb(var(--admin-surface-0));
     @apply p-4 sm:p-5;
-    box-shadow: var(--edge-rest), var(--elevation-2);
+    box-shadow: var(--edge-rest), var(--m3-elevation-1);
   }
 
   /** Inset panel: nested inside a section or grid cell */
   .surface-inset {
     @apply rounded-lg bg-bg-white;
     @apply p-4;
-    box-shadow: var(--edge-rest), var(--elevation-2);
+    box-shadow: var(--edge-rest), var(--m3-elevation-1);
   }
 
   /** Compact card: metric tile, stat block */
@@ -1476,10 +1440,10 @@
     @apply transition-all hover:-translate-y-0.5;
     transition-duration: var(--spring-spatial-fast-duration);
     transition-timing-function: var(--spring-spatial-fast-easing);
-    box-shadow: var(--edge-rest), var(--elevation-2);
+    box-shadow: var(--edge-rest), var(--m3-elevation-1);
   }
   .surface-card:hover {
-    box-shadow: var(--edge-hover), var(--elevation-3);
+    box-shadow: var(--edge-hover), var(--m3-elevation-2);
   }
 
   /* ── Glass Surface ── Shared frosted treatment
@@ -1734,7 +1698,7 @@
   background-color: rgb(var(--neutral-400) / 0.55);
   background-clip: padding-box;
   border: 2px solid transparent;
-  border-radius: 9999px;
+  border-radius: var(--m3-shape-full);
 }
 
 .main-scroll-area::-webkit-scrollbar-thumb:hover {
@@ -1902,17 +1866,7 @@
   --r-sm: var(--admin-radius-sm);
   --r-md: var(--admin-radius-md);
   --r-lg: var(--admin-radius-lg);
-  --r-xl: var(--admin-radius-xl);
   --r-full: var(--admin-radius-full);
-
-  /* Warm-shadow elevation — parallel to --m3-elevation-*, do NOT remap */
-  --e1: 0 1px 2px rgb(var(--neutral-800) / 0.06), 0 1px 1px rgb(var(--neutral-800) / 0.04);
-  --e2: 0 2px 6px rgb(var(--neutral-800) / 0.08), 0 1px 2px rgb(var(--neutral-800) / 0.06);
-  --e3: 0 6px 16px rgb(var(--neutral-800) / 0.10), 0 2px 4px rgb(var(--neutral-800) / 0.06);
-  --e-float: 0 12px 32px rgb(var(--neutral-800) / 0.14), 0 2px 6px rgb(var(--neutral-800) / 0.08);
-
-  /* Sheet geometry — handoff sheet-system.css contract */
-  --radius-sheet: 24px;
 
   /* Typography alias to existing --font-heading */
   --font-sans: var(--font-heading);
@@ -1942,11 +1896,6 @@
   --g-soft-bg: rgb(var(--green-400) / 0.16);
   --g-soft-fg: rgb(var(--green-300));
   --g-on-action: rgb(var(--neutral-950));
-
-  --e1: 0 1px 2px rgba(0, 0, 0, 0.45);
-  --e2: 0 4px 12px rgba(0, 0, 0, 0.45);
-  --e3: 0 8px 20px rgba(0, 0, 0, 0.55);
-  --e-float: 0 16px 36px rgba(0, 0, 0, 0.6);
 }
 
 :is(.admin-m3[data-theme="dark"], [data-theme="dark"] .admin-m3) {

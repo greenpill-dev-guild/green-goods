@@ -33,7 +33,7 @@ export function TabBadge({ badge }: { badge: TabBadgeState }) {
 
   return (
     <span
-      className={`ml-2 inline-flex min-w-5 items-center justify-center rounded-full px-1.5 py-0.5 text-[11px] font-semibold ${BADGE_TONE_CLASSES[badge.severity]}`}
+      className={`ml-2 inline-flex min-w-5 items-center justify-center rounded-full px-1.5 py-0.5 text-label-sm font-semibold ${BADGE_TONE_CLASSES[badge.severity]}`}
     >
       {badge.count}
     </span>

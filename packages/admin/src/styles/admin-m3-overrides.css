@@ -15,14 +15,14 @@
   background: rgb(var(--m3-inverse-surface)) !important;
   color: rgb(var(--m3-inverse-on-surface)) !important;
   border-radius: var(--m3-shape-xs) !important;
-  box-shadow: var(--m3-elevation-3) !important;
+  box-shadow: var(--m3-elevation-2) !important;
 }
 
 /* Date Picker — M3 surface + shape */
 .admin-m3 .rdp {
   border-radius: var(--m3-shape-lg);
   background: rgb(var(--m3-surface-container-high));
-  box-shadow: var(--m3-elevation-3);
+  box-shadow: var(--m3-elevation-2);
 }
 
 .admin-m3 .rdp-day_selected {
@@ -43,7 +43,7 @@ body:has(.admin-m3) [data-component="AdminSideSheet"][data-slot="surface"],
 body:has(.admin-m3) [data-component="DialogShell"][data-slot="surface"],
 body:has(.admin-m3) [data-component="ConfirmDialog"][data-slot="surface"] {
   background: rgb(var(--m3-surface-container-high));
-  box-shadow: var(--m3-elevation-3);
+  box-shadow: var(--m3-elevation-2);
 }
 
 /* Shared controls that still appear inside admin routes/dialogs inherit the

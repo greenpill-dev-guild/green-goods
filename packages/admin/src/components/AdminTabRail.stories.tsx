@@ -19,7 +19,7 @@ const meta: Meta<typeof AdminTabRail> = {
           "Anatomy:",
           "- Grid container: `gap: 6px`, `padding: 6px`, `border-radius: 14px`, `var(--surface-quiet)` background",
           "- Tab button: `40px` × `10px` radius, font 600/14/-0.005em",
-          "- Active tab: raised bg + `var(--e1)` shadow + a barely-perceptible 6% tone wash via `linear-gradient`",
+          "- Active tab: raised bg + `var(--m3-elevation-1)` shadow + a barely-perceptible 6% tone wash via `linear-gradient`",
           "- Count chip: 22×20 pill, `var(--surface-raised)` inactive → `var(--g-action)` active",
           "- No sliding underline — the rewrite drops the M3 indicator in favor of bg-fill",
           "",

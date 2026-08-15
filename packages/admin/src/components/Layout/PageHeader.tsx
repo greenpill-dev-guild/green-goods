@@ -12,10 +12,10 @@ type BackLinkConfig = {
 type PageHeaderProps = {
   title: string;
   /**
-   * Optional 11px caps label rendered above the title (route name, breadcrumb,
-   * stage context). Per Tier 2a of the admin design handoff — see audit §5
-   * decision row "5.4.4 / IA". Use it to communicate *which* surface a member
-   * is on without re-declaring chrome (Frontend Rule 17).
+   * Optional caps meta label (label-md, 12px) rendered above the title (route
+   * name, breadcrumb, stage context). Per Tier 2a of the admin design handoff —
+   * see audit §5 decision row "5.4.4 / IA". Use it to communicate *which*
+   * surface a member is on without re-declaring chrome (Frontend Rule 17).
    */
   eyebrow?: ReactNode;
   description?: ReactNode;
@@ -100,18 +100,15 @@ export function PageHeader({
           {eyebrow ? (
             <div
               data-region="route-header-eyebrow"
-              className="text-[0.6875rem] font-semibold uppercase tracking-[0.08em] text-text-soft"
+              className="text-label-md font-semibold uppercase tracking-[0.08em] text-text-soft"
             >
               {eyebrow}
             </div>
           ) : null}
+          {/* Title sits on the M3 scale: title-large (22/28) at weight 600 —
+              no responsive display ramp (Cockpit M3 1a route header). */}
           <h1
-            className={cn(
-              "truncate text-text-strong",
-              isCanvas
-                ? "text-[1.625rem] font-bold leading-tight sm:text-[2rem] lg:text-[2.25rem]"
-                : "text-lg font-semibold sm:text-2xl"
-            )}
+            className="truncate text-title-lg font-semibold leading-[var(--type-title-lg-lh)] text-text-strong"
             title={typeof title === "string" ? title : undefined}
           >
             {title}
@@ -119,8 +116,8 @@ export function PageHeader({
           {description ? (
             <p
               className={cn(
-                "line-clamp-2 text-text-sub",
-                isCanvas ? "text-sm sm:text-[0.9375rem]" : "text-xs sm:text-sm"
+                "line-clamp-2 font-normal text-text-sub",
+                isCanvas ? "text-body-md leading-5" : "text-xs sm:text-sm"
               )}
               title={typeof description === "string" ? description : undefined}
             >
@@ -131,7 +128,7 @@ export function PageHeader({
             <div
               className={cn(
                 "text-text-soft",
-                isCanvas ? "pt-1 text-xs sm:text-sm" : "text-xs sm:text-sm"
+                isCanvas ? "pt-1 text-body-sm" : "text-xs sm:text-sm"
               )}
             >
               {metadata}
