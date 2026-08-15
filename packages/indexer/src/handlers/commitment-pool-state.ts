@@ -1,10 +1,4 @@
-import type {
-  Commitment,
-  CommitmentCycle,
-  CommitmentPool,
-  CommitmentSeries,
-  CommitmentSeriesCycleSummary,
-} from "envio";
+import type { Commitment, CommitmentSeries, CommitmentSeriesCycleSummary } from "envio";
 
 import {
   createSeries,
@@ -12,8 +6,10 @@ import {
   poolingEntityId,
   sortedUnique,
 } from "./commitment-pool-projections";
+import { reconcilePendingPoolClose } from "./commitment-pool-pool-reconciliation";
 import { isTerminal, reconcileMemberHistory } from "./commitment-pool-members";
 import type { PoolingContext } from "./commitment-pool-runtime";
+import { reconcileCommitmentHypercerts } from "./hypercert-allocations";
 
 function stateCounterKey(
   state: Commitment["state"]
@@ -46,8 +42,8 @@ function stateCounterKey(
   }
 }
 
-function aggregateStateCounterKey(
-  state: Commitment["state"]
+function lifetimeCounterKey(
+  state: NonNullable<Commitment["state"]>
 ):
   | "commitmentsAccepted"
   | "commitmentsReadyForConfirmation"
@@ -63,26 +59,6 @@ function aggregateStateCounterKey(
   if (state === "EXPIRED") return "commitmentsExpired";
   if (state === "DISPUTED") return "commitmentsDisputed";
   return undefined;
-}
-
-function applyAggregateStateTransition<T extends CommitmentPool | CommitmentCycle>(
-  aggregate: T,
-  previousState: Commitment["state"],
-  nextState: Commitment["state"]
-): T {
-  const previousKey = aggregateStateCounterKey(previousState);
-  const nextKey = aggregateStateCounterKey(nextState);
-  let updated = aggregate;
-  if (previousKey && previousKey !== nextKey) {
-    updated = {
-      ...updated,
-      [previousKey]: updated[previousKey] > 0n ? updated[previousKey] - 1n : 0n,
-    };
-  }
-  if (nextKey && previousKey !== nextKey) {
-    updated = { ...updated, [nextKey]: updated[nextKey] + 1n };
-  }
-  return updated;
 }
 
 export function createSeriesCycleSummary(
@@ -207,62 +183,79 @@ async function applyFulfillmentSideEffects(
 export async function applyLifecycleState(
   context: PoolingContext,
   commitment: Commitment,
-  nextState: Commitment["state"],
+  nextState: NonNullable<Commitment["state"]>,
   blockNumber: bigint,
   logIndex: number,
   timestamp: number,
   patch: Partial<Commitment> = {}
 ): Promise<Commitment> {
-  if (
-    !cursorWins(
-      Number(blockNumber),
-      logIndex,
-      commitment.lifecycleBlockNumber,
-      commitment.lifecycleLogIndex
-    )
-  )
-    return commitment;
+  const lifecycleWins = cursorWins(
+    Number(blockNumber),
+    logIndex,
+    commitment.lifecycleBlockNumber,
+    commitment.lifecycleLogIndex
+  );
+  const counterKey = lifetimeCounterKey(nextState);
+  const milestoneIsNew =
+    counterKey !== undefined && !commitment.countedLifecycleStates.includes(nextState);
   const previousState = commitment.state;
   const previousTerminal = isTerminal(previousState);
   const nextTerminal = isTerminal(nextState);
-  const updated: Commitment = {
-    ...commitment,
-    ...patch,
-    state: nextState,
-    lifecycleBlockNumber: blockNumber,
-    lifecycleLogIndex: logIndex,
-    updatedAt: Math.max(commitment.updatedAt, timestamp),
-  };
-  context.Commitment.set(updated);
+  let updated: Commitment = milestoneIsNew
+    ? {
+        ...commitment,
+        countedLifecycleStates: sortedUnique([...commitment.countedLifecycleStates, nextState]),
+        updatedAt: Math.max(commitment.updatedAt, timestamp),
+      }
+    : commitment;
+  if (lifecycleWins) {
+    updated = {
+      ...updated,
+      ...patch,
+      state: nextState,
+      lifecycleBlockNumber: blockNumber,
+      lifecycleLogIndex: logIndex,
+      updatedAt: Math.max(updated.updatedAt, timestamp),
+    };
+  }
+  if (lifecycleWins || milestoneIsNew) context.Commitment.set(updated);
 
   if (commitment.poolId !== undefined) {
     const pool = await context.CommitmentPool.get(
       poolingEntityId(commitment.chainId, commitment.poolId)
     );
     if (pool) {
-      const transitioned = applyAggregateStateTransition(pool, previousState, nextState);
-      context.CommitmentPool.set({
-        ...transitioned,
-        liveCommitmentCount:
-          previousTerminal === nextTerminal
-            ? pool.liveCommitmentCount
-            : nextTerminal
-              ? pool.liveCommitmentCount > 0n
-                ? pool.liveCommitmentCount - 1n
-                : 0n
-              : pool.liveCommitmentCount + 1n,
-        commitmentsDue:
-          commitment.acceptanceSeen && previousState !== nextState
-            ? previousState === "CANCELLED"
-              ? pool.commitmentsDue + 1n
-              : nextState === "CANCELLED"
-                ? pool.commitmentsDue > 0n
-                  ? pool.commitmentsDue - 1n
+      let nextPool =
+        milestoneIsNew && counterKey ? { ...pool, [counterKey]: pool[counterKey] + 1n } : pool;
+      if (lifecycleWins) {
+        nextPool = {
+          ...nextPool,
+          liveCommitmentCount:
+            previousTerminal === nextTerminal
+              ? nextPool.liveCommitmentCount
+              : nextTerminal
+                ? nextPool.liveCommitmentCount > 0n
+                  ? nextPool.liveCommitmentCount - 1n
                   : 0n
-                : pool.commitmentsDue
-            : pool.commitmentsDue,
-        updatedAt: Math.max(pool.updatedAt, timestamp),
-      });
+                : nextPool.liveCommitmentCount + 1n,
+          commitmentsDue:
+            commitment.acceptanceSeen && previousState !== nextState
+              ? previousState === "CANCELLED"
+                ? nextPool.commitmentsDue + 1n
+                : nextState === "CANCELLED"
+                  ? nextPool.commitmentsDue > 0n
+                    ? nextPool.commitmentsDue - 1n
+                    : 0n
+                  : nextPool.commitmentsDue
+              : nextPool.commitmentsDue,
+        };
+      }
+      context.CommitmentPool.set(
+        reconcilePendingPoolClose(
+          { ...nextPool, updatedAt: Math.max(nextPool.updatedAt, timestamp) },
+          timestamp
+        )
+      );
     }
   }
 
@@ -271,34 +264,43 @@ export async function applyLifecycleState(
       poolingEntityId(commitment.chainId, commitment.cycleId)
     );
     if (cycle) {
-      const transitioned = applyAggregateStateTransition(cycle, previousState, nextState);
-      context.CommitmentCycle.set({
-        ...transitioned,
-        liveCommitmentCount:
-          previousTerminal === nextTerminal
-            ? cycle.liveCommitmentCount
-            : nextTerminal
-              ? cycle.liveCommitmentCount > 0n
-                ? cycle.liveCommitmentCount - 1n
-                : 0n
-              : cycle.liveCommitmentCount + 1n,
-        commitmentsDue:
-          commitment.acceptanceSeen && previousState !== nextState
-            ? previousState === "CANCELLED"
-              ? cycle.commitmentsDue + 1n
-              : nextState === "CANCELLED"
-                ? cycle.commitmentsDue > 0n
-                  ? cycle.commitmentsDue - 1n
+      let nextCycle =
+        milestoneIsNew && counterKey ? { ...cycle, [counterKey]: cycle[counterKey] + 1n } : cycle;
+      if (lifecycleWins) {
+        nextCycle = {
+          ...nextCycle,
+          liveCommitmentCount:
+            previousTerminal === nextTerminal
+              ? nextCycle.liveCommitmentCount
+              : nextTerminal
+                ? nextCycle.liveCommitmentCount > 0n
+                  ? nextCycle.liveCommitmentCount - 1n
                   : 0n
-                : cycle.commitmentsDue
-            : cycle.commitmentsDue,
-        updatedAt: Math.max(cycle.updatedAt, timestamp),
+                : nextCycle.liveCommitmentCount + 1n,
+          commitmentsDue:
+            commitment.acceptanceSeen && previousState !== nextState
+              ? previousState === "CANCELLED"
+                ? nextCycle.commitmentsDue + 1n
+                : nextState === "CANCELLED"
+                  ? nextCycle.commitmentsDue > 0n
+                    ? nextCycle.commitmentsDue - 1n
+                    : 0n
+                  : nextCycle.commitmentsDue
+              : nextCycle.commitmentsDue,
+        };
+      }
+      context.CommitmentCycle.set({
+        ...nextCycle,
+        updatedAt: Math.max(nextCycle.updatedAt, timestamp),
       });
     }
   }
+  if (!lifecycleWins) return updated;
   await applySeriesTransition(context, commitment, previousState, nextState, timestamp);
   if (nextState === "FULFILLED" && previousState !== "FULFILLED") {
     await applyFulfillmentSideEffects(context, updated, timestamp);
   }
-  return reconcileMemberHistory(context, updated, timestamp);
+  const reconciled = await reconcileMemberHistory(context, updated, timestamp);
+  await reconcileCommitmentHypercerts(context, reconciled, timestamp);
+  return reconciled;
 }

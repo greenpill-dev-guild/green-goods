@@ -1,6 +1,11 @@
 import type { Commitment, CommitmentContributor, PoolMemberHistory } from "envio";
 
-import { createCommitment, poolMemberId, poolingEntityId } from "./commitment-pool-projections";
+import {
+  createCommitment,
+  poolMemberId,
+  poolingEntityId,
+  sortedUnique,
+} from "./commitment-pool-projections";
 import type { PoolingContext, RuntimeEvent } from "./commitment-pool-runtime";
 import { normalizeAddress } from "./shared";
 
@@ -123,52 +128,94 @@ export async function reconcileMemberHistory(
     context.Commitment.set(updated);
   }
 
+  let desiredContributorAccounts: string[] = [];
+  let desiredReceiver: string | undefined;
   if (
-    updated.state !== "FULFILLED" ||
-    updated.fulfilledParticipantHistoryApplied ||
-    !updated.acceptanceSeen ||
-    updated.frozenContributorCount === undefined
-  )
-    return updated;
-
-  const contributorIndex = await context.CommitmentContributorIndex.get(updated.id);
-  const contributors = (
-    await Promise.all(
-      (contributorIndex?.contributorEntityIds ?? []).map((id) =>
-        context.CommitmentContributor.get(id)
+    updated.state === "FULFILLED" &&
+    updated.acceptanceSeen &&
+    updated.frozenContributorCount !== undefined
+  ) {
+    const contributorIndex = await context.CommitmentContributorIndex.get(updated.id);
+    const contributors = (
+      await Promise.all(
+        (contributorIndex?.contributorEntityIds ?? []).map((id) =>
+          context.CommitmentContributor.get(id)
+        )
       )
-    )
-  ).filter((row): row is CommitmentContributor => Boolean(row?.active));
-  if (contributors.length !== updated.frozenContributorCount) return updated;
+    ).filter((row): row is CommitmentContributor => Boolean(row?.active));
+    if (contributors.length === updated.frozenContributorCount) {
+      desiredContributorAccounts = sortedUnique(
+        contributors
+          .map((contributor) => contributor.contributor)
+          .filter((account) => account !== updated.leadProvider)
+      );
+      desiredReceiver = updated.direction === "REQUEST" ? updated.creator : updated.counterparty;
+    }
+  }
 
-  for (const contributor of contributors) {
-    if (contributor.contributor === updated.leadProvider) continue;
+  const currentContributorAccounts = updated.fulfilledContributorHistoryAccounts;
+  const desiredSet = new Set(desiredContributorAccounts);
+  const currentSet = new Set(currentContributorAccounts);
+  for (const account of currentContributorAccounts) {
+    if (!desiredSet.has(account)) {
+      await applyMemberHistoryDelta(
+        context,
+        updated.chainId,
+        poolId,
+        account,
+        "contributorFulfilled",
+        -1,
+        timestamp
+      );
+    }
+  }
+  for (const account of desiredContributorAccounts) {
+    if (!currentSet.has(account)) {
+      await applyMemberHistoryDelta(
+        context,
+        updated.chainId,
+        poolId,
+        account,
+        "contributorFulfilled",
+        1,
+        timestamp
+      );
+    }
+  }
+  if (updated.fulfilledReceiverHistoryAccount !== desiredReceiver) {
     await applyMemberHistoryDelta(
       context,
       updated.chainId,
       poolId,
-      contributor.contributor,
-      "contributorFulfilled",
+      updated.fulfilledReceiverHistoryAccount,
+      "receivedFulfilled",
+      -1,
+      timestamp
+    );
+    await applyMemberHistoryDelta(
+      context,
+      updated.chainId,
+      poolId,
+      desiredReceiver,
+      "receivedFulfilled",
       1,
       timestamp
     );
   }
-  const receiver = updated.direction === "REQUEST" ? updated.creator : updated.counterparty;
-  await applyMemberHistoryDelta(
-    context,
-    updated.chainId,
-    poolId,
-    receiver,
-    "receivedFulfilled",
-    1,
-    timestamp
-  );
-  updated = {
-    ...updated,
-    fulfilledParticipantHistoryApplied: true,
-    updatedAt: Math.max(updated.updatedAt, timestamp),
-  };
-  context.Commitment.set(updated);
+  const contributorSetChanged =
+    currentContributorAccounts.length !== desiredContributorAccounts.length ||
+    currentContributorAccounts.some(
+      (account, index) => account !== desiredContributorAccounts[index]
+    );
+  if (contributorSetChanged || updated.fulfilledReceiverHistoryAccount !== desiredReceiver) {
+    updated = {
+      ...updated,
+      fulfilledContributorHistoryAccounts: desiredContributorAccounts,
+      fulfilledReceiverHistoryAccount: desiredReceiver,
+      updatedAt: Math.max(updated.updatedAt, timestamp),
+    };
+    context.Commitment.set(updated);
+  }
   return updated;
 }
 

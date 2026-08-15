@@ -21,6 +21,8 @@ import type {
   CommitmentSeriesCycleSummary,
   CommitmentUnitSummary,
   CommitmentWorkAttribution,
+  Hypercert,
+  HypercertCommitmentContributorAllocation,
   NeedCommitmentIndex,
   PoolMemberHistory,
 } from "envio";
@@ -64,6 +66,8 @@ export type PoolingContext = {
   CommitmentSeriesCycleSummary: EntityStore<CommitmentSeriesCycleSummary>;
   CommitmentUnitSummary: EntityStore<CommitmentUnitSummary>;
   CommitmentWorkAttribution: EntityStore<CommitmentWorkAttribution>;
+  Hypercert: EntityStore<Hypercert>;
+  HypercertCommitmentContributorAllocation: EntityStore<HypercertCommitmentContributorAllocation>;
   NeedCommitmentIndex: EntityStore<NeedCommitmentIndex>;
   PoolMemberHistory: EntityStore<PoolMemberHistory>;
 };

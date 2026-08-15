@@ -6,6 +6,7 @@ import {
   cursorWins,
   poolingEntityId,
   sortedUnique,
+  sortedUniqueByNumericSuffix,
 } from "./commitment-pool-projections";
 import {
   getCommitment,
@@ -13,6 +14,7 @@ import {
   reconcileRecognitionWeights,
 } from "./commitment-pool-members";
 import { type PoolingContext, type RuntimeEvent, value } from "./commitment-pool-runtime";
+import { reconcileCommitmentHypercerts } from "./hypercert-allocations";
 import { normalizeAddress } from "./shared";
 
 export async function addContributorToIndex(
@@ -88,7 +90,7 @@ export async function handleContributorEvent(
       chainId: event.chainId,
       commitmentId,
       commitmentEntityId: indexId,
-      assignmentEntityIds: sortedUnique([
+      assignmentEntityIds: sortedUniqueByNumericSuffix([
         ...(assignmentIndex?.assignmentEntityIds ?? []),
         assignmentId,
       ]),
@@ -96,17 +98,32 @@ export async function handleContributorEvent(
     });
     return;
   }
-  if (
-    !cursorWins(
-      event.block.number,
-      event.logIndex,
-      existing.membershipBlockNumber,
-      existing.membershipLogIndex
-    )
-  )
-    return;
   const adding = event.eventName === "ContributorAdded";
   const commitment = await getCommitment(event, context, commitmentId);
+  const membershipWins = cursorWins(
+    event.block.number,
+    event.logIndex,
+    existing.membershipBlockNumber,
+    existing.membershipLogIndex
+  );
+  if (!membershipWins) {
+    if (!adding || existing.additionSeen) return;
+    context.CommitmentContributor.set({
+      ...existing,
+      additionSeen: true,
+      isLead: existing.isLead || commitment.leadProvider === contributor,
+      addedBy: normalizeAddress(value<string>(event, "addedBy")),
+      addedAt: existing.addedAt ?? event.block.timestamp,
+      updatedAt: Math.max(existing.updatedAt, event.block.timestamp),
+    });
+    await addContributorToIndex(event, context, commitmentId, id);
+    context.Commitment.set({
+      ...commitment,
+      contributorEntityIds: sortedUnique([...commitment.contributorEntityIds, id]),
+      updatedAt: Math.max(commitment.updatedAt, event.block.timestamp),
+    });
+    return;
+  }
   const updatedContributor = {
     ...existing,
     additionSeen: adding || existing.additionSeen,
@@ -130,6 +147,11 @@ export async function handleContributorEvent(
     updatedAt: Math.max(commitment.updatedAt, event.block.timestamp),
   } satisfies Commitment;
   context.Commitment.set(updatedCommitment);
-  await reconcileMemberHistory(context, updatedCommitment, event.block.timestamp);
-  await reconcileRecognitionWeights(context, updatedCommitment, event.block.timestamp);
+  const reconciled = await reconcileMemberHistory(
+    context,
+    updatedCommitment,
+    event.block.timestamp
+  );
+  await reconcileRecognitionWeights(context, reconciled, event.block.timestamp);
+  await reconcileCommitmentHypercerts(context, reconciled, event.block.timestamp);
 }

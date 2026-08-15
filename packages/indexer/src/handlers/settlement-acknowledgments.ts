@@ -10,6 +10,7 @@ import {
   settlementSubjectId,
 } from "./settlement-projections";
 import { normalizeAddress } from "./shared";
+import { linkPayoutPlanToCommitment } from "./settlement-funding-reconciliation";
 
 const SOURCE_STRANDED_FAILURE_CODE = 12;
 
@@ -158,10 +159,12 @@ indexer.onEvent(
         failedPayoutCount: Math.max(0, plan.failedPayoutCount + delta.failed),
         updatedAt: event.block.timestamp,
       };
-      context.CommitmentPayoutPlan.set({
+      const updatedPlan = {
         ...updatedPlanBase,
         status: payoutStatus(updatedPlanBase),
-      });
+      };
+      context.CommitmentPayoutPlan.set(updatedPlan);
+      await linkPayoutPlanToCommitment(context, updatedPlan);
     }
   }
 );

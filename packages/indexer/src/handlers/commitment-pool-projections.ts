@@ -1,5 +1,5 @@
 import type { Commitment, CommitmentCycle, CommitmentPool } from "envio";
-import { keccak256, toBytes } from "viem";
+import { keccak256, stringToBytes } from "viem";
 
 import { normalizeAddress } from "./shared";
 
@@ -28,7 +28,7 @@ export function fundingIndexId(chainId: number, commitmentId: bigint, funder: st
 }
 
 export function exactLabelHash(label: string): string {
-  return keccak256(toBytes(label));
+  return keccak256(stringToBytes(label));
 }
 
 export function sortedUnique<T extends string | number | bigint>(values: readonly T[]): T[] {
@@ -36,7 +36,23 @@ export function sortedUnique<T extends string | number | bigint>(values: readonl
     if (typeof left === "bigint" && typeof right === "bigint") {
       return left < right ? -1 : left > right ? 1 : 0;
     }
+    if (typeof left === "number" && typeof right === "number") return left - right;
     return String(left).localeCompare(String(right));
+  });
+}
+
+export function sortedUniqueByNumericSuffix(values: readonly string[]): string[] {
+  return [...new Set(values)].sort((left, right) => {
+    const leftMatch = left.match(/-(\d+)$/);
+    const rightMatch = right.match(/-(\d+)$/);
+    if (leftMatch && rightMatch) {
+      const leftPrefix = left.slice(0, leftMatch.index);
+      const rightPrefix = right.slice(0, rightMatch.index);
+      const prefixOrder = leftPrefix.localeCompare(rightPrefix);
+      if (prefixOrder !== 0) return prefixOrder;
+      return Number(leftMatch[1]) - Number(rightMatch[1]);
+    }
+    return left.localeCompare(right);
   });
 }
 
@@ -115,6 +131,7 @@ export {
   createContributor,
   createCycle,
   createPool,
+  createRequirement,
   createSeries,
   createWorkAttribution,
 } from "./commitment-pool-factories";

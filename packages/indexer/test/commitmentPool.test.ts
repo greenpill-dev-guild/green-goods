@@ -297,7 +297,8 @@ describe("Commitment Pooling read model", () => {
     assert.ok(pool);
     assert.equal(commitment.state, "FULFILLED");
     assert.equal(commitment.acceptanceSeen, true);
-    assert.equal(commitment.fulfilledParticipantHistoryApplied, true);
+    assert.deepEqual(commitment.fulfilledContributorHistoryAccounts, []);
+    assert.equal(commitment.fulfilledReceiverHistoryAccount, address(3).toLowerCase());
     assert.equal(claim.state, "ACCEPTED");
     assert.equal(leadHistory.leadAccepted, 1);
     assert.equal(leadHistory.leadFulfilled, 1);

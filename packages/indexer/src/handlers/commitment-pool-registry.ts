@@ -4,6 +4,7 @@ import {
   exactLabelHash,
   poolingEntityId,
 } from "./commitment-pool-projections";
+import { withCycleChild } from "./commitment-pool-pool-reconciliation";
 import {
   getPool,
   optionalBigint,
@@ -60,6 +61,31 @@ export async function handleRegistryEvent(
       createdAt: event.block.timestamp,
       updatedAt: event.block.timestamp,
     });
+    const pool = await getPool(event, context, poolId);
+    if (cycleId === undefined) {
+      context.CommitmentPool.set(pool);
+    } else {
+      const cycleEntityId = poolingEntityId(event.chainId, cycleId);
+      const cycle =
+        (await context.CommitmentCycle.get(cycleEntityId)) ??
+        createCycle(event.chainId, cycleId, poolId, event.block.timestamp);
+      context.CommitmentCycle.set({
+        ...cycle,
+        garden: pool.registrationSeen ? pool.garden : cycle.garden,
+        gardenId: pool.registrationSeen ? pool.gardenId : cycle.gardenId,
+        updatedAt: Math.max(cycle.updatedAt, event.block.timestamp),
+      });
+      context.CommitmentPool.set(withCycleChild(pool, cycleEntityId));
+    }
+    await applyUnitSummaryDeltas(
+      context,
+      event.chainId,
+      poolId,
+      cycleId,
+      unitLabel,
+      event.block.timestamp,
+      {}
+    );
     return;
   }
   if (!event.eventName.startsWith("Units")) return;

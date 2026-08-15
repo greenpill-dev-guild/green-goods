@@ -14,6 +14,7 @@ import {
 } from "./settlement-projections";
 import { fundingIndexId, poolingEntityId } from "./commitment-pool-projections";
 import { normalizeAddress } from "./shared";
+import { linkPayoutPlanToCommitment } from "./settlement-funding-reconciliation";
 
 indexer.onEvent(
   { contract: "SettlementModule", event: "DisbursementQueued" },
@@ -111,12 +112,14 @@ indexer.onEvent(
       if (fundingIndex?.fundingEntityId) {
         const funding = await context.CommitmentFunding.get(fundingIndex.fundingEntityId);
         if (funding) {
+          const refunded = entity.state === "CONFIRMED";
           context.CommitmentFunding.set({
             ...funding,
             refundDisbursementId: funding.refundDisbursementId ?? retainedRefundId,
             refundDisbursementEntityId:
               funding.refundDisbursementEntityId ?? retainedRefundEntityId,
-            state: funding.state === "REFUNDED" ? "REFUNDED" : "REFUND_QUEUED",
+            state: funding.state === "REFUNDED" || refunded ? "REFUNDED" : "REFUND_QUEUED",
+            closedAt: refunded ? (entity.confirmedAt ?? entity.updatedAt) : funding.closedAt,
             updatedAt: Math.max(funding.updatedAt, event.block.timestamp),
           });
         }
@@ -155,10 +158,12 @@ indexer.onEvent(
         disbursementEntityIds: [...plan.disbursementEntityIds, entityId],
         updatedAt: event.block.timestamp,
       };
-      context.CommitmentPayoutPlan.set({
+      const updatedPlan = {
         ...nextBase,
         status: payoutStatus(nextBase),
-      });
+      };
+      context.CommitmentPayoutPlan.set(updatedPlan);
+      await linkPayoutPlanToCommitment(context, updatedPlan);
     }
   }
 );

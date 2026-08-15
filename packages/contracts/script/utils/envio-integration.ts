@@ -34,11 +34,16 @@ interface DeploymentData {
   gardensModule?: string;
   yieldSplitter?: string;
   cookieJarModule?: string;
+  cookieJarFactory?: string;
   hypercertMinter?: string;
   marketplaceAdapter?: string;
   unifiedPowerRegistry?: string;
   greenGoodsENS?: string;
   greenWill?: string;
+  commitmentPoolingModule?: string;
+  commitmentRegistry?: string;
+  settlementModule?: string;
+  celoSettlementExecutor?: string;
   [key: string]: string | undefined;
 }
 
@@ -70,6 +75,11 @@ const INDEXER_MANAGED_CONTRACT_ORDER = [
   "UnifiedPowerRegistry",
   "GreenGoodsENS",
   "GreenWill",
+  "CookieJarFactory",
+  "CommitmentPoolingModule",
+  "CommitmentRegistry",
+  "SettlementModule",
+  "CeloSettlementExecutor",
 ] as const;
 
 const INDEXER_MANAGED_CONTRACTS = new Set<string>(INDEXER_MANAGED_CONTRACT_ORDER);
@@ -151,6 +161,11 @@ export function applyDeploymentToEnvioChains({
   upsertContract("UnifiedPowerRegistry", deployment.unifiedPowerRegistry);
   upsertContract("GreenGoodsENS", deployment.greenGoodsENS);
   upsertContract("GreenWill", deployment.greenWill);
+  upsertContract("CookieJarFactory", deployment.cookieJarFactory);
+  upsertContract("CommitmentPoolingModule", deployment.commitmentPoolingModule);
+  upsertContract("CommitmentRegistry", deployment.commitmentRegistry);
+  upsertContract("SettlementModule", deployment.settlementModule);
+  upsertContract("CeloSettlementExecutor", deployment.celoSettlementExecutor);
   // Some contracts may be absent in deployment JSON for specific chains.
   // In that case, we preserve existing config entries (including placeholders).
   upsertContract("YieldSplitter", deployment.yieldSplitter);

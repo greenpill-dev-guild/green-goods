@@ -559,11 +559,16 @@ type CommitmentPool {
   openSeasonCycleEntityId: String # relationship: chainId-cycleId
   openCampaignIds: [BigInt!]! # event-derived raw identifiers; never enumerated on-chain
   openCampaignEntityIds: [String!]! # relationship IDs in matching order
+  childCycleEntityIds: [String!]! # bounded reverse join for late PoolRegistered garden hydration
+  childCommitmentEntityIds: [String!]! # bounded reverse join for late PoolRegistered garden hydration
   providerOpenCommitmentCap: BigInt!
   liveCommitmentCount: BigInt! # every non-terminal pool commitment, including cycle-less
   nonTerminalCycleCount: BigInt! # Seeded/Open/Reconciled cycles; zero before pool close
   lifecycleBlockNumber: BigInt # nullable latest PoolReady/Open/Pause/Resume/Close/Compost/Reopen cursor
   lifecycleLogIndex: Int # nullable cursor partner; older pool state events never regress state/reason
+  pendingCloseBlockNumber: BigInt # retained PoolClosed position while count guards are nonzero
+  pendingCloseLogIndex: Int
+  pendingCloseTimestamp: Int
   charterUpdateBlockNumber: BigInt # nullable latest PoolCharterUpdated cursor
   charterUpdateLogIndex: Int
   providerCapUpdateBlockNumber: BigInt # nullable latest ProviderOpenCommitmentCapUpdated cursor
@@ -760,11 +765,17 @@ type Commitment {
   contributorsFrozen: Boolean!
   frozenContributorCount: Int # exact ContributorRosterFrozen count; null until that event arrives
   memberHistoryOutcome: CommitmentOnchainState # nullable lead terminal bucket currently applied
-  fulfilledParticipantHistoryApplied: Boolean! # contributorFulfilled + receivedFulfilled idempotency guard
+  fulfilledContributorHistoryAccounts: [String!]! # reversible participant-history set currently applied
+  fulfilledReceiverHistoryAccount: String # reversible receivedFulfilled account currently applied
   contributorEntityIds: [String!]!
+  countedLifecycleStates: [CommitmentOnchainState!]! # lifetime pool/cycle counters applied once per milestone
   unitLabel: String # null until creationSeen
   targetUnits: BigInt # null until creationSeen
   approvedUnits: BigInt!
+  approvedUnitsBlockNumber: BigInt # independent cumulative snapshot cursor
+  approvedUnitsLogIndex: Int
+  pendingApprovedUnitDelta: BigInt! # decision-before-creation exact-label delta drained at creation
+  pendingWorkApprovedCountDelta: BigInt! # decision-before-creation pool count delta drained at creation
   confirmationThreshold: Int!
   confirmationCount: Int!
   confirmers: [String!]!
@@ -780,6 +791,11 @@ type Commitment {
   declaredValueBasis: String # exact-label basis; null when undeclared; value aggregation only per exact basis, read-model informational sums only
   declaredValueUpdateBlockNumber: BigInt # nullable replay cursor; non-null means at least one ValueDeclared update was observed
   declaredValueUpdateLogIndex: Int # nullable partner to declaredValueUpdateBlockNumber; compare the pair lexicographically
+  hypercertEntityIds: [String!]! # bounded inverse join for deferred allocation reconciliation
+  payoutPlanId: BigInt # one contract-owned payout plan per commitment
+  payoutPlanEntityId: String
+  consumedFundingId: BigInt # consumed member funding attached by FundingConsumed
+  consumedFundingEntityId: String
   metadataCID: String # null until creationSeen
   workUIDs: [String!]!
   evidenceCIDs: [String!]!
@@ -819,11 +835,14 @@ type CommitmentRequirement {
   commitmentId: BigInt!
   commitmentEntityId: String! # relationship: chainId-commitmentId
   requirementIndex: Int!
-  domain: Int! # ActionRegistry-derived tag; repeated domains are valid
-  actionUID: BigInt!
-  requiredCount: Int!
+  creationSeen: Boolean! # false only for a work-decision-before-CommitmentCreated placeholder
+  domain: Int # ActionRegistry-derived tag; repeated domains are valid; null until creationSeen
+  actionUID: BigInt # null until creationSeen
+  requiredCount: Int # null until creationSeen
   approvedCount: Int! # incremented by ApprovedWorkCounted.requirementIndex
-  createdAt: Int!
+  approvalBlockNumber: BigInt # independent cumulative approved-count snapshot cursor
+  approvalLogIndex: Int
+  createdAt: Int # CommitmentCreated timestamp; null until creationSeen
   updatedAt: Int!
 }
 

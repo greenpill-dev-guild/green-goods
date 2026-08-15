@@ -57,19 +57,29 @@ export async function handleClaimEvent(
       ? normalizeAddress(value<string>(event, "gardenContext"))
       : existing?.gardenContext;
   const requested = event.eventName === "ClaimRequested";
-  const nextState: CommitmentClaimRequest["state"] = requested
-    ? acceptanceIsNewer
-      ? commitment.counterparty === claimant
-        ? "ACCEPTED"
-        : "SUPERSEDED"
-      : terminalIsNewer
-        ? "SUPERSEDED"
-        : rowWins
-          ? "PENDING"
-          : (existing?.state ?? "PENDING")
-    : rowWins
-      ? "DECLINED"
-      : (existing?.state ?? "DECLINED");
+  const settledState =
+    existing?.state === "ACCEPTED" || existing?.state === "SUPERSEDED" ? existing.state : undefined;
+  const nextState: CommitmentClaimRequest["state"] = settledState
+    ? settledState
+    : requested
+      ? acceptanceIsNewer
+        ? commitment.counterparty === claimant
+          ? "ACCEPTED"
+          : "SUPERSEDED"
+        : terminalIsNewer
+          ? "SUPERSEDED"
+          : rowWins
+            ? "PENDING"
+            : (existing?.state ?? "PENDING")
+      : acceptanceIsNewer
+        ? commitment.counterparty === claimant
+          ? "ACCEPTED"
+          : "SUPERSEDED"
+        : terminalIsNewer
+          ? "SUPERSEDED"
+          : rowWins
+            ? "DECLINED"
+            : (existing?.state ?? "DECLINED");
   const request: CommitmentClaimRequest = {
     id,
     chainId: event.chainId,
@@ -85,7 +95,7 @@ export async function handleClaimEvent(
     gardenContextId: gardenContext,
     state: nextState,
     reasonCID:
-      event.eventName === "ClaimDeclined" && rowWins
+      nextState === "DECLINED" && event.eventName === "ClaimDeclined" && rowWins
         ? value<string>(event, "reasonCID")
         : nextState === "PENDING"
           ? undefined

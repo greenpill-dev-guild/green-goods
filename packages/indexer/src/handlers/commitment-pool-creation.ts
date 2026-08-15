@@ -8,11 +8,13 @@ import {
   considerationRail,
   contributorPolicy,
   createCycle,
+  createRequirement,
   createSeries,
   cursorWins,
   poolingEntityId,
   sortedUnique,
 } from "./commitment-pool-projections";
+import { withCommitmentChild } from "./commitment-pool-pool-reconciliation";
 import { getCommitment } from "./commitment-pool-members";
 import { drainPendingLifecycle } from "./commitment-pool-pending";
 import {
@@ -24,7 +26,9 @@ import {
   value,
 } from "./commitment-pool-runtime";
 import { createSeriesCycleSummary } from "./commitment-pool-state";
-import { normalizeAddress } from "./shared";
+import { applyUnitSummaryDeltas } from "./commitment-pool-unit-summary";
+import { reconcileCommitmentHypercerts } from "./hypercert-allocations";
+import { normalizeAddress, ZERO_ADDRESS } from "./shared";
 
 async function createRequirementRows(
   event: RuntimeEvent,
@@ -36,19 +40,17 @@ async function createRequirementRows(
   const requiredCounts = value<readonly bigint[]>(event, "requirementRequiredCounts");
   for (let index = 0; index < actionUIDs.length; index += 1) {
     const entityId = `${event.chainId}-${commitmentId}-${index}`;
-    if (await context.CommitmentRequirement.get(entityId)) continue;
+    const existing =
+      (await context.CommitmentRequirement.get(entityId)) ??
+      createRequirement(event.chainId, commitmentId, index, event.block.timestamp);
     context.CommitmentRequirement.set({
-      id: entityId,
-      chainId: event.chainId,
-      commitmentId,
-      commitmentEntityId: poolingEntityId(event.chainId, commitmentId),
-      requirementIndex: index,
+      ...existing,
+      creationSeen: true,
       domain: Number(domains[index] ?? 0n),
       actionUID: actionUIDs[index] ?? 0n,
       requiredCount: Number(requiredCounts[index] ?? 0n),
-      approvedCount: 0,
-      createdAt: event.block.timestamp,
-      updatedAt: event.block.timestamp,
+      createdAt: existing.createdAt ?? event.block.timestamp,
+      updatedAt: Math.max(existing.updatedAt, event.block.timestamp),
     });
   }
 }
@@ -66,7 +68,8 @@ export async function handleCommitmentCreated(
   const seriesId = optionalBigint(event, "commitmentSeriesId");
   const needUID = optionalBytes32(event, "needUID");
   const counterCommitmentId = optionalBigint(event, "counterCommitmentId");
-  const payerGarden = normalizeAddress(value<string>(event, "payerGarden"));
+  const normalizedPayerGarden = normalizeAddress(value<string>(event, "payerGarden"));
+  const payerGarden = normalizedPayerGarden === ZERO_ADDRESS ? undefined : normalizedPayerGarden;
   const initialState = direction === "OFFER" ? "OFFERED" : "REQUESTED";
   const created: Commitment = {
     ...existing,
@@ -105,24 +108,49 @@ export async function handleCommitmentCreated(
       counterCommitmentId === undefined
         ? undefined
         : poolingEntityId(event.chainId, counterCommitmentId),
-    declaredUnitValue: optionalBigint(event, "declaredUnitValue"),
-    declaredValueBasis: value<string>(event, "declaredValueBasis") || existing.declaredValueBasis,
+    declaredUnitValue:
+      existing.declaredValueUpdateBlockNumber === undefined
+        ? optionalBigint(event, "declaredUnitValue")
+        : existing.declaredUnitValue,
+    declaredValueBasis:
+      existing.declaredValueUpdateBlockNumber === undefined
+        ? value<string>(event, "declaredValueBasis") || existing.declaredValueBasis
+        : existing.declaredValueBasis,
     lifecycleBlockNumber: existing.lifecycleBlockNumber ?? BigInt(event.block.number),
     lifecycleLogIndex: existing.lifecycleLogIndex ?? event.logIndex,
     createdAt: existing.createdAt ?? event.block.timestamp,
     updatedAt: Math.max(existing.updatedAt, event.block.timestamp),
   };
-  context.Commitment.set(created);
+  const materialized: Commitment = {
+    ...created,
+    pendingApprovedUnitDelta: 0n,
+    pendingWorkApprovedCountDelta: 0n,
+  };
+  context.Commitment.set(materialized);
   await createRequirementRows(event, context, commitmentId);
 
-  if (!pool.registrationSeen) context.CommitmentPool.set(pool);
   const countKey = direction === "OFFER" ? "commitmentsOffered" : "commitmentsRequested";
   context.CommitmentPool.set({
-    ...pool,
+    ...withCommitmentChild(pool, created.id),
     [countKey]: pool[countKey] + 1n,
     liveCommitmentCount: pool.liveCommitmentCount + 1n,
+    workApprovedCount:
+      pool.workApprovedCount + existing.pendingWorkApprovedCountDelta < 0n
+        ? 0n
+        : pool.workApprovedCount + existing.pendingWorkApprovedCountDelta,
     updatedAt: Math.max(pool.updatedAt, event.block.timestamp),
   });
+  if (existing.pendingApprovedUnitDelta !== 0n) {
+    await applyUnitSummaryDeltas(
+      context,
+      event.chainId,
+      poolId,
+      cycleId,
+      materialized.unitLabel ?? value<string>(event, "unitLabel"),
+      event.block.timestamp,
+      { approved: existing.pendingApprovedUnitDelta }
+    );
+  }
 
   if (cycleId !== undefined) {
     const cycle =
@@ -171,7 +199,13 @@ export async function handleCommitmentCreated(
         poolingEntityId(event.chainId, commitmentId),
       ]),
       fulfilledCommitmentEntityIds: needIndex?.fulfilledCommitmentEntityIds ?? [],
-      cycleEntityIds: needIndex?.cycleEntityIds ?? [],
+      cycleEntityIds:
+        cycleId === undefined
+          ? (needIndex?.cycleEntityIds ?? [])
+          : sortedUnique([
+              ...(needIndex?.cycleEntityIds ?? []),
+              poolingEntityId(event.chainId, cycleId),
+            ]),
       hypercertEntityIds: needIndex?.hypercertEntityIds ?? [],
       updatedAt: Math.max(needIndex?.updatedAt ?? 0, event.block.timestamp),
     });
@@ -192,7 +226,8 @@ export async function handleCommitmentCreated(
       updatedAt: Math.max(counterIndex?.updatedAt ?? 0, event.block.timestamp),
     });
   }
-  await drainPendingLifecycle(context, created);
+  const reconciled = await drainPendingLifecycle(context, materialized);
+  await reconcileCommitmentHypercerts(context, reconciled, event.block.timestamp);
 }
 
 export async function handleCommitmentTerms(

@@ -1,9 +1,10 @@
 import type { Commitment, CommitmentWorkAttribution } from "envio";
-import { keccak256, toBytes } from "viem";
+import { keccak256, stringToBytes } from "viem";
 
 import {
   commitmentMemberId,
   createContributor,
+  createRequirement,
   createWorkAttribution,
   cursorWins,
   poolingEntityId,
@@ -18,6 +19,7 @@ import {
 } from "./commitment-pool-members";
 import { type PoolingContext, type RuntimeEvent, value } from "./commitment-pool-runtime";
 import { applyUnitSummaryDeltas } from "./commitment-pool-unit-summary";
+import { reconcileCommitmentHypercerts } from "./hypercert-allocations";
 import { normalizeAddress } from "./shared";
 
 export async function handleWorkEvent(event: RuntimeEvent, context: PoolingContext): Promise<void> {
@@ -28,38 +30,52 @@ export async function handleWorkEvent(event: RuntimeEvent, context: PoolingConte
     (await context.CommitmentWorkAttribution.get(id)) ??
     createWorkAttribution(event.chainId, commitmentId, workUID, event.block.timestamp);
   if (event.eventName === "WorkLinked" || event.eventName === "WorkUnlinked") {
-    if (
-      !cursorWins(
-        event.block.number,
-        event.logIndex,
-        existing.linkLifecycleBlockNumber,
-        existing.linkLifecycleLogIndex
-      )
-    )
-      return;
     const linking = event.eventName === "WorkLinked";
     const contributor = linking
       ? normalizeAddress(value<string>(event, "contributor"))
       : existing.contributor;
+    const linkWins = cursorWins(
+      event.block.number,
+      event.logIndex,
+      existing.linkLifecycleBlockNumber,
+      existing.linkLifecycleLogIndex
+    );
+    const baseAttribution: CommitmentWorkAttribution = linking
+      ? {
+          ...existing,
+          linkSeen: true,
+          contributor,
+          contributorEntityId:
+            contributor === undefined
+              ? undefined
+              : commitmentMemberId(event.chainId, commitmentId, contributor),
+          requirementIndex: Number(value<bigint>(event, "requirementIndex")),
+          operationKey: value<string>(event, "operationKey").toLowerCase(),
+          linkedBy: normalizeAddress(value<string>(event, "linker")),
+          linkedAt: existing.linkedAt ?? event.block.timestamp,
+          updatedAt: Math.max(existing.updatedAt, event.block.timestamp),
+        }
+      : existing;
+    if (!linkWins) {
+      if (!linking || existing.linkSeen) return;
+      context.CommitmentWorkAttribution.set(baseAttribution);
+      if (contributor) {
+        const contributorId = commitmentMemberId(event.chainId, commitmentId, contributor);
+        const contributorRow =
+          (await context.CommitmentContributor.get(contributorId)) ??
+          createContributor(event.chainId, commitmentId, contributor, event.block.timestamp);
+        context.CommitmentContributor.set(contributorRow);
+        await addContributorToIndex(event, context, commitmentId, contributorId);
+      }
+      return;
+    }
     const updatedAttribution = {
-      ...existing,
-      linkSeen: linking || existing.linkSeen,
-      contributor,
-      contributorEntityId:
-        contributor === undefined
-          ? undefined
-          : commitmentMemberId(event.chainId, commitmentId, contributor),
-      requirementIndex: linking
-        ? Number(value<bigint>(event, "requirementIndex"))
-        : existing.requirementIndex,
-      operationKey: linking
-        ? value<string>(event, "operationKey").toLowerCase()
-        : existing.operationKey,
+      ...baseAttribution,
       linked: linking,
       linkLifecycleBlockNumber: BigInt(event.block.number),
       linkLifecycleLogIndex: event.logIndex,
-      linkedBy: linking ? normalizeAddress(value<string>(event, "linker")) : existing.linkedBy,
-      linkedAt: linking ? (existing.linkedAt ?? event.block.timestamp) : existing.linkedAt,
+      linkedBy: baseAttribution.linkedBy,
+      linkedAt: baseAttribution.linkedAt,
       unlinkedBy: linking
         ? existing.unlinkedBy
         : normalizeAddress(value<string>(event, "unlinker")),
@@ -109,11 +125,50 @@ export async function handleWorkEvent(event: RuntimeEvent, context: PoolingConte
     return;
   }
   const sequence = value<bigint>(event, "decisionSequence");
-  if (existing.latestDecisionSequence !== undefined && sequence <= existing.latestDecisionSequence)
-    return;
   const counted = event.eventName === "ApprovedWorkCounted";
   const contributor = normalizeAddress(value<string>(event, "contributor"));
   const creditDelta = existing.creditActive === counted ? 0 : counted ? 1 : -1;
+  let commitment = await getCommitment(event, context, commitmentId);
+  if (
+    cursorWins(
+      event.block.number,
+      event.logIndex,
+      commitment.approvedUnitsBlockNumber,
+      commitment.approvedUnitsLogIndex
+    )
+  ) {
+    commitment = {
+      ...commitment,
+      approvedUnits: value<bigint>(event, "approvedUnits"),
+      approvedUnitsBlockNumber: BigInt(event.block.number),
+      approvedUnitsLogIndex: event.logIndex,
+      updatedAt: Math.max(commitment.updatedAt, event.block.timestamp),
+    };
+    context.Commitment.set(commitment);
+  }
+  const requirementIndex = Number(value<bigint>(event, "requirementIndex"));
+  const requirementId = `${event.chainId}-${commitmentId}-${requirementIndex}`;
+  const requirement =
+    (await context.CommitmentRequirement.get(requirementId)) ??
+    createRequirement(event.chainId, commitmentId, requirementIndex, event.block.timestamp);
+  if (
+    cursorWins(
+      event.block.number,
+      event.logIndex,
+      requirement.approvalBlockNumber,
+      requirement.approvalLogIndex
+    )
+  ) {
+    context.CommitmentRequirement.set({
+      ...requirement,
+      approvedCount: Number(value<bigint>(event, "approvedWorkCount")),
+      approvalBlockNumber: BigInt(event.block.number),
+      approvalLogIndex: event.logIndex,
+      updatedAt: Math.max(requirement.updatedAt, event.block.timestamp),
+    });
+  }
+  if (existing.latestDecisionSequence !== undefined && sequence <= existing.latestDecisionSequence)
+    return;
   context.CommitmentWorkAttribution.set({
     ...existing,
     contributor,
@@ -128,22 +183,6 @@ export async function handleWorkEvent(event: RuntimeEvent, context: PoolingConte
     latestDecisionUID: value<string>(event, counted ? "approvalUID" : "decisionUID").toLowerCase(),
     updatedAt: Math.max(existing.updatedAt, event.block.timestamp),
   });
-  const commitment = await getCommitment(event, context, commitmentId);
-  context.Commitment.set({
-    ...commitment,
-    approvedUnits: value<bigint>(event, "approvedUnits"),
-    updatedAt: Math.max(commitment.updatedAt, event.block.timestamp),
-  });
-  const requirementIndex = Number(value<bigint>(event, "requirementIndex"));
-  const requirementId = `${event.chainId}-${commitmentId}-${requirementIndex}`;
-  const requirement = await context.CommitmentRequirement.get(requirementId);
-  if (requirement) {
-    context.CommitmentRequirement.set({
-      ...requirement,
-      approvedCount: Number(value<bigint>(event, "approvedWorkCount")),
-      updatedAt: Math.max(requirement.updatedAt, event.block.timestamp),
-    });
-  }
   const contributorId = commitmentMemberId(event.chainId, commitmentId, contributor);
   const contributorRow =
     (await context.CommitmentContributor.get(contributorId)) ??
@@ -170,11 +209,18 @@ export async function handleWorkEvent(event: RuntimeEvent, context: PoolingConte
         updatedAt: Math.max(pool.updatedAt, event.block.timestamp),
       });
     }
+  } else if (!commitment.creationSeen && creditDelta !== 0) {
+    commitment = {
+      ...commitment,
+      pendingWorkApprovedCountDelta: commitment.pendingWorkApprovedCountDelta + BigInt(creditDelta),
+      updatedAt: Math.max(commitment.updatedAt, event.block.timestamp),
+    };
+    context.Commitment.set(commitment);
   }
+  const approvedDelta = counted
+    ? value<bigint>(event, "newlyApprovedUnits")
+    : -value<bigint>(event, "removedApprovedUnits");
   if (commitment.poolId !== undefined && commitment.unitLabel) {
-    const approvedDelta = counted
-      ? value<bigint>(event, "newlyApprovedUnits")
-      : -value<bigint>(event, "removedApprovedUnits");
     await applyUnitSummaryDeltas(
       context,
       event.chainId,
@@ -184,9 +230,17 @@ export async function handleWorkEvent(event: RuntimeEvent, context: PoolingConte
       event.block.timestamp,
       { approved: approvedDelta }
     );
+  } else if (!commitment.creationSeen) {
+    commitment = {
+      ...commitment,
+      pendingApprovedUnitDelta: commitment.pendingApprovedUnitDelta + approvedDelta,
+      updatedAt: Math.max(commitment.updatedAt, event.block.timestamp),
+    };
+    context.Commitment.set(commitment);
   }
-  await reconcileMemberHistory(context, commitment, event.block.timestamp);
-  await reconcileRecognitionWeights(context, commitment, event.block.timestamp);
+  const reconciled = await reconcileMemberHistory(context, commitment, event.block.timestamp);
+  await reconcileRecognitionWeights(context, reconciled, event.block.timestamp);
+  await reconcileCommitmentHypercerts(context, reconciled, event.block.timestamp);
 }
 
 export async function handleEvidence(event: RuntimeEvent, context: PoolingContext): Promise<void> {
@@ -199,7 +253,7 @@ export async function handleEvidence(event: RuntimeEvent, context: PoolingContex
   const attributionIds = [...(evidenceIndex?.attributionEntityIds ?? [])];
   for (const rawContributor of value<readonly string[]>(event, "creditedContributors")) {
     const contributor = normalizeAddress(rawContributor);
-    const id = `${event.chainId}-${commitmentId}-${keccak256(toBytes(cid))}-${contributor}`;
+    const id = `${event.chainId}-${commitmentId}-${keccak256(stringToBytes(cid))}-${contributor}`;
     if (!(await context.CommitmentEvidenceAttribution.get(id))) {
       context.CommitmentEvidenceAttribution.set({
         id,
@@ -246,6 +300,7 @@ export async function handleEvidence(event: RuntimeEvent, context: PoolingContex
     updatedAt: Math.max(commitment.updatedAt, event.block.timestamp),
   } satisfies Commitment;
   context.Commitment.set(updated);
-  await reconcileMemberHistory(context, updated, event.block.timestamp);
-  await reconcileRecognitionWeights(context, updated, event.block.timestamp);
+  const reconciled = await reconcileMemberHistory(context, updated, event.block.timestamp);
+  await reconcileRecognitionWeights(context, reconciled, event.block.timestamp);
+  await reconcileCommitmentHypercerts(context, reconciled, event.block.timestamp);
 }

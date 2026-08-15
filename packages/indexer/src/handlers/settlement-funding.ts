@@ -7,6 +7,7 @@ import {
   poolingEntityId,
 } from "./commitment-pool-projections";
 import { getTxHash, normalizeAddress } from "./shared";
+import { linkConsumedFundingToCommitment } from "./settlement-funding-reconciliation";
 
 function fundingEntityId(chainId: number, fundingId: bigint): string {
   return `${chainId}-${fundingId}`;
@@ -253,7 +254,23 @@ indexer.onEvent(
       updatedAt: Math.max(existing.updatedAt, event.block.timestamp),
       state: existing.state,
     };
-    context.CommitmentFunding.set({ ...next, state: derivedFundingState(next) });
+    const resolved = { ...next, state: derivedFundingState(next) } satisfies CommitmentFunding;
+    context.CommitmentFunding.set(resolved);
+    const indexId = fundingIndexId(event.chainId, commitmentId, funder);
+    const fundingIndex = await context.CommitmentFundingIndex.get(indexId);
+    context.CommitmentFundingIndex.set({
+      id: indexId,
+      chainId: event.chainId,
+      commitmentId,
+      commitmentEntityId: poolingEntityId(event.chainId, commitmentId),
+      funder,
+      fundingId: event.params.fundingId,
+      fundingEntityId: id,
+      refundDisbursementId: fundingIndex?.refundDisbursementId,
+      refundDisbursementEntityId: fundingIndex?.refundDisbursementEntityId,
+      updatedAt: Math.max(fundingIndex?.updatedAt ?? 0, event.block.timestamp),
+    });
+    await linkConsumedFundingToCommitment(context, resolved);
   }
 );
 

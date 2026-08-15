@@ -14,6 +14,7 @@ import {
 } from "./commitment-pool-members";
 import { type PoolingContext, type RuntimeEvent, value } from "./commitment-pool-runtime";
 import { applyLifecycleState } from "./commitment-pool-state";
+import { reconcileCommitmentHypercerts } from "./hypercert-allocations";
 import { normalizeAddress } from "./shared";
 
 export async function handleLifecycle(event: RuntimeEvent, context: PoolingContext): Promise<void> {
@@ -52,6 +53,12 @@ export async function handleLifecycle(event: RuntimeEvent, context: PoolingConte
     }
   }
   if (!state) return;
+  const lifecycleWins = cursorWins(
+    event.block.number,
+    event.logIndex,
+    commitment.lifecycleBlockNumber,
+    commitment.lifecycleLogIndex
+  );
   const updated = await applyLifecycleState(
     context,
     commitment,
@@ -73,6 +80,7 @@ export async function handleLifecycle(event: RuntimeEvent, context: PoolingConte
       cancelReasonCID,
     }
   );
+  if (!lifecycleWins) return;
 
   if (event.eventName === "CommitmentCancelled" || event.eventName === "CommitmentExpired") {
     await sweepClaimRequests(
@@ -120,8 +128,9 @@ export async function handleMiscCommitment(
       updatedAt: Math.max(commitment.updatedAt, event.block.timestamp),
     } satisfies Commitment;
     context.Commitment.set(updated);
-    await reconcileMemberHistory(context, updated, event.block.timestamp);
-    await reconcileRecognitionWeights(context, updated, event.block.timestamp);
+    const reconciled = await reconcileMemberHistory(context, updated, event.block.timestamp);
+    await reconcileRecognitionWeights(context, reconciled, event.block.timestamp);
+    await reconcileCommitmentHypercerts(context, reconciled, event.block.timestamp);
     return;
   }
   if (event.eventName === "AssessmentAttached") {
@@ -136,7 +145,10 @@ export async function handleMiscCommitment(
     const confirmer = normalizeAddress(value<string>(event, "confirmer"));
     const updated = {
       ...commitment,
-      confirmationCount: Number(value<bigint>(event, "confirmationCount")),
+      confirmationCount: Math.max(
+        commitment.confirmationCount,
+        Number(value<bigint>(event, "confirmationCount"))
+      ),
       confirmationThreshold: Number(value<bigint>(event, "threshold")),
       confirmers: sortedUnique([...commitment.confirmers, confirmer]),
       updatedAt: Math.max(commitment.updatedAt, event.block.timestamp),
