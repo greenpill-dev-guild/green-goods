@@ -29,7 +29,7 @@
       "status": "todo",
       "branch": "fix/docs-factual-corrections",
       "depends_on": [],
-      "handoff": "plan.todo.md",
+      "handoff": "handoffs/plan.md",
       "skill_tags": ["docs", "content"]
     },
     "state_api": {
@@ -37,7 +37,7 @@
       "status": "todo",
       "branch": "fix/docs-search-index",
       "depends_on": [],
-      "handoff": "plan.todo.md",
+      "handoff": "handoffs/plan.md",
       "skill_tags": ["docs", "build"]
     },
     "contracts": {
@@ -45,7 +45,7 @@
       "status": "todo",
       "branch": "fix/docs-commitment-pooling-stage-a",
       "depends_on": [],
-      "handoff": "plan.todo.md",
+      "handoff": "handoffs/plan.md",
       "skill_tags": ["docs", "content"]
     },
     "qa_pass_1": {
@@ -55,7 +55,7 @@
       "manual_blocked": false,
       "branch": "chore/docs-structure-gates",
       "depends_on": ["ui", "state_api", "contracts"],
-      "handoff": "plan.todo.md",
+      "handoff": "handoffs/plan.md",
       "skill_tags": ["docs", "testing"]
     },
     "qa_pass_2": {
@@ -66,7 +66,7 @@
       "branch": "chore/docs-structure-gates",
       "branch_trigger": "chore/docs-structure-gates",
       "depends_on": ["qa_pass_1"],
-      "handoff": "plan.todo.md",
+      "handoff": "handoffs/plan.md",
       "skill_tags": ["docs", "review"]
     }
   },
@@ -81,7 +81,7 @@
     }
   ],
   "taxonomy": {
-    "initiative": "documentation",
+    "initiative": "public-experience",
     "tracks": ["docs"],
     "work_types": ["implementation", "ops"],
     "surfaces": ["docs", ".github/workflows"],
