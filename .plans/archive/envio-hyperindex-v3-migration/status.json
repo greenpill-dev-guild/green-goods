@@ -1,0 +1,77 @@
+{
+  "version": 1,
+  "feature": {
+    "slug": "envio-hyperindex-v3-migration",
+    "title": "Envio HyperIndex 3.2.1 Migration",
+    "kind": "maintenance",
+    "stage": "archive"
+  },
+  "workflow": {
+    "overall_status": "done",
+    "priority": "p1",
+    "created_at": "2026-05-24T22:48:40.215Z",
+    "updated_at": "2026-08-15T06:35:02.788Z",
+    "target_date": null,
+    "archived_at": "2026-08-15T06:35:02.788Z",
+    "archive_reason": "Implementation landed in merged PR #649 and PRD-557 is Done; archive closed without retroactively certifying stale non-terminal lanes.",
+    "resolution": "closed"
+  },
+  "links": {
+    "brief": "brief.md",
+    "spec": "spec.md",
+    "plan": "plan.todo.md",
+    "eval": "eval.md"
+  },
+  "linear": {
+    "parentIssue": "PRD-557",
+    "project": "Green Goods v1.3.0 QA & Release",
+    "initiative": null,
+    "syncDirection": "plans_to_linear_visibility",
+    "laneSyncMode": "parent_only",
+    "lastSyncedAt": "2026-07-27T17:43:52.479Z",
+    "lanes": {}
+  },
+  "taxonomy": {
+    "initiative": "engineering-quality",
+    "tracks": ["indexer", "docs", "ops"],
+    "work_types": ["maintenance", "ops"],
+    "surfaces": ["packages/indexer", "docs", "agent-guidance", "ci"],
+    "depends_on_features": []
+  },
+  "lanes": {
+    "ui": {
+      "owner": "claude",
+      "status": "n/a"
+    },
+    "state_api": {
+      "owner": "codex",
+      "status": "in_progress"
+    },
+    "contracts": {
+      "owner": "codex",
+      "status": "n/a"
+    },
+    "docs_guidance": {
+      "owner": "codex",
+      "status": "blocked"
+    },
+    "qa_pass_1": {
+      "owner": "claude",
+      "status": "in_progress"
+    },
+    "qa_pass_2": {
+      "owner": "codex",
+      "status": "blocked"
+    }
+  },
+  "history": [
+    {
+      "timestamp": "2026-08-15T06:35:02.790Z",
+      "actor": "human",
+      "lane": "system",
+      "status": "moved_to_archive",
+      "branch": null,
+      "note": "Moved feature hub from active to archive"
+    }
+  ]
+}

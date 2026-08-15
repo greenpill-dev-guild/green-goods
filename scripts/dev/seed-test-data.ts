@@ -20,7 +20,7 @@
 import {
   startAnvilFork,
   type AnvilForkContext,
-} from "../tests/fixtures/anvil-fork";
+} from "../../tests/fixtures/anvil-fork";
 import {
   createGarden,
   registerAction,
@@ -31,7 +31,7 @@ import {
   type GardenResult,
   type ActionResult,
   type WorkResult,
-} from "../tests/fixtures/contract-helpers";
+} from "../../tests/fixtures/contract-helpers";
 
 // ============================================================================
 // TYPES

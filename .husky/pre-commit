@@ -16,12 +16,10 @@ if [ -n "${BASH_VERSION-}" ] && [ -f .nvmrc ]; then
   fi
 fi
 
-# Run lint-staged (bun first, npm fallback)
-if command -v bun >/dev/null 2>&1; then
-  bunx lint-staged
-elif command -v npm >/dev/null 2>&1; then
-  npx lint-staged
-else
-  echo "Error: Neither bun nor npm found. Install bun: https://bun.sh"
+# Run lint-staged through the repository's required package manager.
+if ! command -v bun >/dev/null 2>&1; then
+  echo "Error: Bun is required. Install bun: https://bun.sh"
   exit 1
 fi
+
+bunx lint-staged
