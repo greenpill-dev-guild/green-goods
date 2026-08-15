@@ -580,8 +580,7 @@ contract CommitmentPoolingProductionPathsTest is CommitmentPoolingFixture {
         params.commitmentType = ICommitmentPoolingModule.CommitmentType.DomainImpact;
         params.requirements = new ICommitmentPoolingModule.CommitmentRequirementInput[](1);
         params.requirements[0] = ICommitmentPoolingModule.CommitmentRequirementInput({
-            actionUID: 0,
-            requiredCount: uint32(module.MAX_LINKED_WORKS_PER_COMMITMENT() + 1)
+            actionUID: 0, requiredCount: uint32(module.MAX_LINKED_WORKS_PER_COMMITMENT() + 1)
         });
         _expectCreateRevert(params, CREATOR, ICommitmentPoolingModule.TooManyLinkedWorks.selector);
 

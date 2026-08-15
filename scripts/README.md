@@ -88,6 +88,8 @@ scripts/
 ### `contracts/` — contract audits + verification
 | Script | Caller | Purpose |
 |---|---|---|
+| `check-foundry-version.mjs` | pre-push, contracts format/lint wrappers, production verifier, Contracts CI | Require the exact Forge version pinned in `.mise.toml` before formatter-sensitive commands |
+| `check-foundry-version.test.mjs` | `bun run test:review-guardrails` | Fixture tests for the pinned Foundry version parser and comparison guard |
 | `check-test-realism.sh` | `contracts.yml`, `packages/contracts test:audit:realism` | Audit fork/E2E tests for mocks, generic reverts, CI skip-returns |
 | `check-solidity-test-names.mjs` | `bun run check:test-quality`, Contracts CI | Diff-aware naming guard for newly added or renamed Solidity test functions; legacy names are grandfathered |
 | `check-solidity-test-names.test.mjs` | `bun run test:review-guardrails`, Contracts CI | Fixture tests for canonical Solidity test categories and added-function diff parsing |

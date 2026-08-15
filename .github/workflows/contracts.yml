@@ -51,7 +51,7 @@ jobs:
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@908c540300062bd5a7e473851cdb4282204cee09
         with:
-          version: stable
+          version: v1.7.1
           cache: false # explicit actions/cache steps below own Foundry caching; the action's built-in cache only saved empty strays
 
       - name: Setup Node.js
@@ -114,7 +114,7 @@ jobs:
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@908c540300062bd5a7e473851cdb4282204cee09
         with:
-          version: stable
+          version: v1.7.1
           cache: false # explicit actions/cache steps below own Foundry caching; the action's built-in cache only saved empty strays
 
       - name: Setup Node.js
@@ -155,7 +155,7 @@ jobs:
 
       - name: Run contract lint
         working-directory: packages/contracts
-        run: bun run lint
+        run: bun run lint:check
 
       - name: Build contracts
         working-directory: packages/contracts
@@ -180,7 +180,7 @@ jobs:
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@908c540300062bd5a7e473851cdb4282204cee09
         with:
-          version: stable
+          version: v1.7.1
           cache: false # explicit actions/cache steps below own Foundry caching; the action's built-in cache only saved empty strays
 
       - name: Setup Node.js
@@ -268,7 +268,7 @@ jobs:
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@908c540300062bd5a7e473851cdb4282204cee09
         with:
-          version: stable
+          version: v1.7.1
           cache: false # explicit actions/cache steps below own Foundry caching; the action's built-in cache only saved empty strays
 
       - name: Setup Node.js
@@ -384,7 +384,7 @@ jobs:
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@908c540300062bd5a7e473851cdb4282204cee09
         with:
-          version: stable
+          version: v1.7.1
           cache: false # explicit actions/cache steps below own Foundry caching; the action's built-in cache only saved empty strays
 
       - name: Setup Node.js

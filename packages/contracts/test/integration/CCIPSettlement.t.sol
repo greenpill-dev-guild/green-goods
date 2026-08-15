@@ -60,12 +60,12 @@ contract AsynchronousSettlementRouter {
         ICcipMessageReceiver(receiver)
             .ccipReceive(
                 Client.Any2EVMMessage({
-                    messageId: messageId,
-                    sourceChainSelector: sourceSelector,
-                    sender: abi.encode(sender),
-                    data: data,
-                    destTokenAmounts: noTokens
-                })
+                messageId: messageId,
+                sourceChainSelector: sourceSelector,
+                sender: abi.encode(sender),
+                data: data,
+                destTokenAmounts: noTokens
+            })
             );
     }
 }

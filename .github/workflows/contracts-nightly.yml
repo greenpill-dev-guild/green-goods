@@ -29,7 +29,7 @@ jobs:
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@908c540300062bd5a7e473851cdb4282204cee09
         with:
-          version: stable
+          version: v1.7.1
           cache: false # explicit actions/cache step below owns Foundry caching
 
       - name: Setup Node.js

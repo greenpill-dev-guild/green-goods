@@ -20,7 +20,8 @@ import { CommitmentPoolingBase } from "./Base.sol";
 ///      deployed `CommitmentPoolingPoolsLib`; the shells own the pool counter increment and the
 ///      protocol-pool scalar write. ABI, events, and reverts are unchanged.
 abstract contract CommitmentPoolingAdmin is CommitmentPoolingBase {
-    // ═════════════════════════════ Config ═════════════════════════════
+    // ═════════════════════════════ Config
+    // ═════════════════════════════
 
     function MAX_CONFIRMERS() external pure returns (uint256) {
         return MAX_CONFIRMERS_VALUE;
@@ -42,11 +43,7 @@ abstract contract CommitmentPoolingAdmin is CommitmentPoolingBase {
         return MAX_LINKED_WORKS_PER_COMMITMENT_VALUE;
     }
 
-    function cyclelessRecognitionPolicy()
-        external
-        pure
-        returns (ICommitmentPoolingModule.RecognitionPolicy memory policy)
-    {
+    function cyclelessRecognitionPolicy() external pure returns (ICommitmentPoolingModule.RecognitionPolicy memory policy) {
         policy = ICommitmentPoolingModule.RecognitionPolicy({
             equalParticipationBps: CYCLELESS_EQUAL_PARTICIPATION_BPS,
             verifiedContributionBps: CYCLELESS_VERIFIED_CONTRIBUTION_BPS
@@ -177,7 +174,8 @@ abstract contract CommitmentPoolingAdmin is CommitmentPoolingBase {
         emit ICommitmentPoolingModule.ModulePauseStatusChanged(previous, paused_);
     }
 
-    // ═════════════════════════════ Pools ═════════════════════════════
+    // ═════════════════════════════ Pools
+    // ═════════════════════════════
 
     function onGardenMinted(address garden) external whenOperational returns (uint256 poolId) {
         poolId = CommitmentPoolingPoolsLib.onGardenMinted(gardenPool, pools, nextPoolId, gardenToken, garden);

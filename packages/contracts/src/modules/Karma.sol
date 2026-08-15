@@ -175,12 +175,7 @@ contract KarmaGAPModule is IKarmaGAPModule, OwnableUpgradeable, UUPSUpgradeable 
         // 1. Create Project attestation
         {
             AttestationRequestData memory reqData = AttestationRequestData({
-                recipient: garden,
-                expirationTime: 0,
-                revocable: true,
-                refUID: bytes32(0),
-                data: abi.encode(true),
-                value: 0
+                recipient: garden, expirationTime: 0, revocable: true, refUID: bytes32(0), data: abi.encode(true), value: 0
             });
 
             AttestationRequest memory req = AttestationRequest({ schema: KarmaLib.getProjectSchemaUID(), data: reqData });
@@ -207,8 +202,9 @@ contract KarmaGAPModule is IKarmaGAPModule, OwnableUpgradeable, UUPSUpgradeable 
             AttestationRequest memory req = AttestationRequest({ schema: KarmaLib.getMemberOfSchemaUID(), data: reqData });
 
             try gap.attest(req) {
-                // Success - continue to details
-            } catch {
+            // Success - continue to details
+            }
+            catch {
                 emit GAPOperationFailed(garden, "createProject", "MemberOf attestation failed");
                 return bytes32(0);
             }
@@ -230,8 +226,9 @@ contract KarmaGAPModule is IKarmaGAPModule, OwnableUpgradeable, UUPSUpgradeable 
             AttestationRequest memory req = AttestationRequest({ schema: KarmaLib.getDetailsSchemaUID(), data: reqData });
 
             try gap.attest(req) {
-                // Success - finalize below
-            } catch {
+            // Success - finalize below
+            }
+            catch {
                 emit GAPOperationFailed(garden, "createProject", "Details attestation failed");
                 return bytes32(0);
             }

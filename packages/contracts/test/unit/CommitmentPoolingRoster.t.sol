@@ -16,7 +16,8 @@ contract CommitmentPoolingRosterTest is CommitmentPoolingFixture {
         _setMember(JOINER);
     }
 
-    // ─────────────────────────────── Join ───────────────────────────────
+    // ─────────────────────────────── Join
+    // ───────────────────────────────
 
     function testOpenPolicySelfJoinAddsAnEligibleGardenMember() public {
         uint256 commitmentId = _openPolicyOffer(keccak256("roster-join"));
@@ -43,7 +44,8 @@ contract CommitmentPoolingRosterTest is CommitmentPoolingFixture {
         module.joinCommitment(open);
     }
 
-    // ─────────────────────────────── Leave ───────────────────────────────
+    // ─────────────────────────────── Leave
+    // ───────────────────────────────
 
     function testSelfExitIsBlockedForTheLeadAndForAnyCreditedContributor() public {
         uint256 commitmentId = _openPolicyOffer(keccak256("roster-leave"));
@@ -77,7 +79,8 @@ contract CommitmentPoolingRosterTest is CommitmentPoolingFixture {
         assertEq(module.getCommitment(commitmentId).contributorCount, 1);
     }
 
-    // ────────────────────────────── Removal ──────────────────────────────
+    // ────────────────────────────── Removal
+    // ──────────────────────────────
 
     function testLeadManagedRemovalRejectsOpenRostersTheLeadAndCreditedMembers() public {
         uint256 open = _openPolicyOffer(keccak256("roster-remove-open"));
@@ -107,7 +110,8 @@ contract CommitmentPoolingRosterTest is CommitmentPoolingFixture {
         assertFalse(module.isContributor(managed, JOINER));
     }
 
-    // ──────────────────────── Requirement assignment ────────────────────────
+    // ──────────────────────── Requirement assignment
+    // ────────────────────────
 
     function testRequirementAssignmentIsBoundedActiveAndIdempotent() public {
         uint256 commitmentId = _domainImpactOffer(keccak256("roster-requirement"));
@@ -133,7 +137,8 @@ contract CommitmentPoolingRosterTest is CommitmentPoolingFixture {
         assertEq(vm.getRecordedLogs().length, 0);
     }
 
-    // ─────────────── Default-confirmer reachability on roster entry ───────────────
+    // ─────────────── Default-confirmer reachability on roster entry
+    // ───────────────
     //
     // Every roster mutation revalidates confirmer reachability, including the
     // direction-aware default. Without this, the default confirmer could join, gain
@@ -203,7 +208,8 @@ contract CommitmentPoolingRosterTest is CommitmentPoolingFixture {
         assertEq(module.getCommitment(commitmentId).contributorCount, 2);
     }
 
-    // ───────────────────────────── Helpers ─────────────────────────────
+    // ───────────────────────────── Helpers
+    // ─────────────────────────────
 
     function _openPolicyOffer(bytes32 creationKey) private returns (uint256 commitmentId) {
         ICommitmentPoolingModule.CreateCommitmentParams memory params = _baseParams(creationKey);

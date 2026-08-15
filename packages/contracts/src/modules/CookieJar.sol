@@ -122,13 +122,7 @@ contract CookieJarModule is ICookieJarModule, OwnableUpgradeable, ReentrancyGuar
     /// @dev Called by GardenToken during mint. Creates one jar per supported asset
     ///      via the CookieJarFactory using ERC1155 (Hats) access gating on the
     ///      garden's gardener hat ID.
-    function onGardenMinted(address garden)
-        external
-        override
-        onlyGardenToken
-        nonReentrant
-        returns (address[] memory jars)
-    {
+    function onGardenMinted(address garden) external override onlyGardenToken nonReentrant returns (address[] memory jars) {
         uint256 assetCount = supportedAssets.length;
         jars = new address[](assetCount);
 
@@ -270,10 +264,7 @@ contract CookieJarModule is ICookieJarModule, OwnableUpgradeable, ReentrancyGuar
             maxWithdrawalPerPeriod: 0, // Unlimited
             metadata: "",
             multiTokenConfig: ICookieJarFactory.MultiTokenConfig({
-                enabled: false,
-                maxSlippagePercent: 0,
-                minSwapAmount: 0,
-                defaultFee: 0
+                enabled: false, maxSlippagePercent: 0, minSwapAmount: 0, defaultFee: 0
             })
         });
 
@@ -281,10 +272,7 @@ contract CookieJarModule is ICookieJarModule, OwnableUpgradeable, ReentrancyGuar
         ICookieJarFactory.AccessConfig memory accessConfig = ICookieJarFactory.AccessConfig({
             allowlist: new address[](0),
             nftRequirement: ICookieJarFactory.NftRequirement({
-                nftContract: hatsContract,
-                tokenId: gardenerHatId,
-                minBalance: 1,
-                isPoapEventGate: false
+                nftContract: hatsContract, tokenId: gardenerHatId, minBalance: 1, isPoapEventGate: false
             })
         });
 

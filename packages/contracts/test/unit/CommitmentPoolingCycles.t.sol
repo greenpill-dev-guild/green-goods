@@ -11,7 +11,8 @@ contract CommitmentPoolingCyclesTest is CommitmentPoolingFixture {
         _setUpProductionFixture();
     }
 
-    // ───────────────────────────── Seed and open ─────────────────────────────
+    // ───────────────────────────── Seed and open
+    // ─────────────────────────────
 
     function testSeedCycleRejectsAnInvertedWindowAndCountsNonTerminalCycles() public {
         uint64 start = uint64(block.timestamp);
@@ -74,7 +75,8 @@ contract CommitmentPoolingCyclesTest is CommitmentPoolingFixture {
         assertEq(module.getPool(poolId).openSeasonCycleId, seasonOne);
     }
 
-    // ──────────────────────── Reconcile, compost, cancel ────────────────────────
+    // ──────────────────────── Reconcile, compost, cancel
+    // ────────────────────────
 
     function testCloseCycleRequiresEveryCycleCommitmentToBeTerminal() public {
         uint256 cycleId = _openSeason();
@@ -164,7 +166,8 @@ contract CommitmentPoolingCyclesTest is CommitmentPoolingFixture {
         _createCycleOffer(keccak256("seeded-cycle"), cycleId);
     }
 
-    // ───────────────────────────── Helpers ─────────────────────────────
+    // ───────────────────────────── Helpers
+    // ─────────────────────────────
 
     function testCampaignCloseAndCancelNeverTouchTheSeasonGuard() public {
         uint256 seasonId = _openSeason();
@@ -193,12 +196,7 @@ contract CommitmentPoolingCyclesTest is CommitmentPoolingFixture {
 
     function _allocation() private pure returns (ICommitmentPoolingModule.AllocationBps memory) {
         return ICommitmentPoolingModule.AllocationBps({
-            gardeners: 5000,
-            treasury: 2000,
-            operator: 1000,
-            evaluator: 1000,
-            community: 500,
-            funder: 500
+            gardeners: 5000, treasury: 2000, operator: 1000, evaluator: 1000, community: 500, funder: 500
         });
     }
 

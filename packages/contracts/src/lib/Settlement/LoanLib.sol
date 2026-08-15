@@ -216,14 +216,7 @@ library SettlementLoanLib {
         account = _validatedSourceAccount(config, pool.garden, loan.borrower);
     }
 
-    function _validateRegistryIdentity(
-        RuntimeConfig memory config,
-        uint256 loanId,
-        ICreditRegistry registry
-    )
-        private
-        view
-    {
+    function _validateRegistryIdentity(RuntimeConfig memory config, uint256 loanId, ICreditRegistry registry) private view {
         if (
             registry.settlementModule() != address(this) || registry.commitmentPoolingModule() != config.poolingModule
                 || registry.hatsModule() != config.hatsModule
@@ -293,14 +286,7 @@ library SettlementLoanLib {
         if (borrower == account.account) revert ISettlementModule.InvalidPayoutVector();
     }
 
-    function _pool(
-        address poolingModule,
-        uint256 poolId
-    )
-        private
-        view
-        returns (ICommitmentPoolingModule.Pool memory pool)
-    {
+    function _pool(address poolingModule, uint256 poolId) private view returns (ICommitmentPoolingModule.Pool memory pool) {
         pool = ICommitmentPoolingModule(poolingModule).getPool(poolId);
         if (pool.state == ICommitmentPoolingModule.PoolState.None) {
             revert ISettlementModule.LoanPrincipalMismatch(0, 0);

@@ -8,7 +8,8 @@ pragma solidity ^0.8.25;
 ///         Economics register grammar (curation, limiting, valuing); valuing
 ///         is reserved for the transferable-voucher settlement layer.
 interface ICommitmentRegistry {
-    // ═════════════════════════════ Types ═════════════════════════════
+    // ═════════════════════════════ Types
+    // ═════════════════════════════
 
     enum AccountingState {
         Registered,
@@ -28,7 +29,8 @@ interface ICommitmentRegistry {
         bool exists;
     }
 
-    // ═════════════════════════════ Events ════════════════════════════
+    // ═════════════════════════════ Events
+    // ════════════════════════════
 
     event ModuleUpdated(address indexed oldModule, address indexed newModule);
     event ClassRegistered(
@@ -63,7 +65,8 @@ interface ICommitmentRegistry {
         uint256 totalFulfilled
     );
 
-    // ═════════════════════════════ Errors ════════════════════════════
+    // ═════════════════════════════ Errors
+    // ════════════════════════════
 
     error NotModule(address caller);
     error ModuleMustBePaused(address currentModule);
@@ -79,7 +82,8 @@ interface ICommitmentRegistry {
     error OpenCommitmentCapExceeded(uint256 poolId, address account, uint256 requestedCount, uint256 availableCount);
     error InsufficientCommitted(uint256 classId, address account, uint256 requested, uint256 available);
 
-    // ══════════════════════ Mutations (onlyModule) ═══════════════════
+    // ══════════════════════ Mutations (onlyModule)
+    // ═══════════════════
 
     function registerClass(
         uint256 classId,
@@ -108,7 +112,8 @@ interface ICommitmentRegistry {
     ///         committed balance and releases one open slot, then becomes terminal.
     function fulfillUnits(uint256 classId, address account, uint256 units) external;
 
-    // ══════════════════════ Views ════════════════════════════════════
+    // ══════════════════════ Views
+    // ════════════════════════════════════
 
     function getClass(uint256 classId) external view returns (CommitmentClass memory);
     function committedOf(address account, uint256 classId) external view returns (uint256);
@@ -116,7 +121,8 @@ interface ICommitmentRegistry {
     function openCommitmentCountOf(uint256 poolId, address account) external view returns (uint256);
     function providerOpenCommitmentCapOf(uint256 poolId) external view returns (uint256);
 
-    // ══════════════════════ Admin (owner) ════════════════════════════
+    // ══════════════════════ Admin (owner)
+    // ════════════════════════════
 
     function setModule(address module) external;
 

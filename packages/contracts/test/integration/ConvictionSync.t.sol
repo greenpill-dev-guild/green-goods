@@ -112,8 +112,9 @@ contract ReentrantStrategyWithGas is ICVSyncPowerFacet {
         reentrancyAttempted = true;
         // Attempt reentrant call -- the nonReentrant guard should block this
         try target.revokeRole(targetGarden, targetAccount, targetRole) {
-            // If this succeeds, reentrancy guard is broken
-        } catch {
+        // If this succeeds, reentrancy guard is broken
+        }
+        catch {
             // Expected: nonReentrant should revert the reentrant call
             reentrancyReverted = true;
         }

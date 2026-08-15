@@ -144,10 +144,7 @@ abstract contract CommitmentPoolingFixture is Test {
         params.targetUnits = 1;
         params.metadataCID = "bafy-commitment";
         params.consideration = ICommitmentPoolingModule.DeclaredConsideration({
-            rail: ICommitmentPoolingModule.ConsiderationRail.None,
-            source: address(0),
-            token: address(0),
-            amount: 0
+            rail: ICommitmentPoolingModule.ConsiderationRail.None, source: address(0), token: address(0), amount: 0
         });
     }
 

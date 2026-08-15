@@ -19,8 +19,9 @@ library CommitmentPoolingConfirmLib {
         mapping(uint256 commitmentId => bytes32[] activeWorkUIDs) storage commitmentWorkUIDs,
         mapping(bytes32 workUID => uint64 sequence) storage latestWorkDecisionSequence,
         mapping(uint256 commitmentId => address[] confirmers) storage commitmentConfirmers,
-        mapping(uint256 commitmentId => mapping(address contributor => ICommitmentPoolingModule.ContributorRecord record))
-            storage contributors,
+        mapping(
+            uint256 commitmentId => mapping(address contributor => ICommitmentPoolingModule.ContributorRecord record)
+        ) storage contributors,
         uint256 commitmentId
     )
         external
@@ -66,8 +67,9 @@ library CommitmentPoolingConfirmLib {
         mapping(uint256 commitmentId => bytes32[] activeWorkUIDs) storage commitmentWorkUIDs,
         mapping(bytes32 workUID => uint64 sequence) storage latestWorkDecisionSequence,
         mapping(uint256 commitmentId => address[] confirmers) storage commitmentConfirmers,
-        mapping(uint256 commitmentId => mapping(address contributor => ICommitmentPoolingModule.ContributorRecord record))
-            storage contributors,
+        mapping(
+            uint256 commitmentId => mapping(address contributor => ICommitmentPoolingModule.ContributorRecord record)
+        ) storage contributors,
         uint256 commitmentId,
         string calldata reason
     )
@@ -101,8 +103,9 @@ library CommitmentPoolingConfirmLib {
         mapping(uint256 poolId => ICommitmentPoolingModule.Pool pool) storage pools,
         mapping(uint256 cycleId => ICommitmentPoolingModule.Cycle cycle) storage cycles,
         mapping(uint256 commitmentId => ICommitmentPoolingModule.Commitment commitment) storage commitments,
-        mapping(uint256 commitmentId => mapping(address contributor => ICommitmentPoolingModule.ContributorRecord record))
-            storage contributors,
+        mapping(
+            uint256 commitmentId => mapping(address contributor => ICommitmentPoolingModule.ContributorRecord record)
+        ) storage contributors,
         mapping(uint256 commitmentId => address[] confirmers) storage commitmentConfirmers,
         mapping(uint256 commitmentId => mapping(address confirmer => bool confirmed)) storage hasConfirmed,
         uint256 commitmentId
@@ -118,9 +121,9 @@ library CommitmentPoolingConfirmLib {
             revert ICommitmentPoolingModule.CommitmentNotInState(commitmentId, commitment.state);
         }
         if (contributors[commitmentId][msg.sender].active) revert ICommitmentPoolingModule.SelfConfirmation();
-        if (
-            !CommitmentPoolingCreditLib.isOrdinaryConfirmer(env, commitmentConfirmers, commitmentId, commitment, msg.sender)
-        ) {
+        if (!CommitmentPoolingCreditLib.isOrdinaryConfirmer(
+                env, commitmentConfirmers, commitmentId, commitment, msg.sender
+            )) {
             revert ICommitmentPoolingModule.NotConfirmer(msg.sender);
         }
         if (hasConfirmed[commitmentId][msg.sender]) revert ICommitmentPoolingModule.AlreadyConfirmed(msg.sender);
@@ -148,8 +151,9 @@ library CommitmentPoolingConfirmLib {
         mapping(uint256 poolId => ICommitmentPoolingModule.Pool pool) storage pools,
         mapping(uint256 cycleId => ICommitmentPoolingModule.Cycle cycle) storage cycles,
         mapping(uint256 commitmentId => ICommitmentPoolingModule.Commitment commitment) storage commitments,
-        mapping(uint256 commitmentId => mapping(address contributor => ICommitmentPoolingModule.ContributorRecord record))
-            storage contributors,
+        mapping(
+            uint256 commitmentId => mapping(address contributor => ICommitmentPoolingModule.ContributorRecord record)
+        ) storage contributors,
         mapping(uint256 commitmentId => address[] confirmers) storage commitmentConfirmers,
         uint256 commitmentId,
         string calldata reason
@@ -164,11 +168,9 @@ library CommitmentPoolingConfirmLib {
         if (commitment.state != ICommitmentPoolingModule.CommitmentState.ReadyForConfirmation) {
             revert ICommitmentPoolingModule.CommitmentNotInState(commitmentId, commitment.state);
         }
-        if (
-            CommitmentPoolingCreditLib.ordinaryConfirmationReachable(
+        if (CommitmentPoolingCreditLib.ordinaryConfirmationReachable(
                 commitmentConfirmers, contributors, commitmentId, commitment
-            )
-        ) {
+            )) {
             revert ICommitmentPoolingModule.OrdinaryConfirmationStillReachable(commitmentId);
         }
         if (contributors[commitmentId][msg.sender].active) revert ICommitmentPoolingModule.SelfConfirmation();

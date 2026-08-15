@@ -29,7 +29,8 @@ contract NetworkSelectorsTest is Test {
         return string.concat('{"networks":{"probe":{"ccipChainSelector":', selectorLiteral, "}}}");
     }
 
-    // ───────────────────────── Accepted ─────────────────────────
+    // ───────────────────────── Accepted
+    // ─────────────────────────
 
     /// @notice The real Arbitrum selector, which exceeds JavaScript's safe-integer range.
     function testAStringSelectorParsesExactly() public {
@@ -57,7 +58,8 @@ contract NetworkSelectorsTest is Test {
         assertEq(this.read(_json("4949039107694359620")), 4_949_039_107_694_359_620);
     }
 
-    // ───────────────────────── Rejected ─────────────────────────
+    // ───────────────────────── Rejected
+    // ─────────────────────────
 
     /// @notice A value one past the boundary must fail, not wrap.
     /// @dev The headline case. `uint64(2**64 + 1)` is `1`, so before the range check this returned a

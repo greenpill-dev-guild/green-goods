@@ -40,7 +40,8 @@ contract CommitmentPoolingPayerTest is CommitmentPoolingFixture {
         hats.setOperator(POOL_GARDEN, GARDEN_STEWARD, true);
     }
 
-    // ═══════════════════ Garden-internal: unchanged behaviour ═══════════════════
+    // ═══════════════════ Garden-internal: unchanged behaviour
+    // ═══════════════════
 
     function testGardenOfferPaysFromTheSameGardenThatProvides() public {
         uint256 commitmentId = _createOffer(keccak256("payer-garden-offer"));
@@ -65,7 +66,8 @@ contract CommitmentPoolingPayerTest is CommitmentPoolingFixture {
         assertEq(commitment.payerGarden, POOL_GARDEN, "single-garden pools keep payer == provider");
     }
 
-    // ═══════════════════ Protocol pool: the two corrected flows ═══════════════════
+    // ═══════════════════ Protocol pool: the two corrected flows
+    // ═══════════════════
 
     /// @notice "Run this event / complete this survey." The protocol asks, a garden delivers, and
     ///         the protocol Safe is what settlement spends — not the garden's own Safe.
@@ -205,7 +207,8 @@ contract CommitmentPoolingPayerTest is CommitmentPoolingFixture {
         assertEq(module.getCommitment(commitmentId).payerGarden, payerAtAcceptance, "roster edits never move the payer");
     }
 
-    // ═══════════════ Recipient derivation (settlement boundary) ═══════════════
+    // ═══════════════ Recipient derivation (settlement boundary)
+    // ═══════════════
     //
     // The recipient rule lives in SettlementModule, which does not exist yet, so these cannot test
     // its behaviour. What they do test is the half that exists and that the rule depends on: that

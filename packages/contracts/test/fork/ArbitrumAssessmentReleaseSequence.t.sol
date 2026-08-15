@@ -78,9 +78,7 @@ contract ArbitrumAssessmentReleaseSequenceForkTest is Test {
                 assessmentV3Schema: ASSESSMENT_V3_SCHEMA,
                 communityTestimonySchema: COMMUNITY_TESTIMONY_SCHEMA,
                 assessmentEvidence: CommitmentSchemaLane.AssessmentEvidence({
-                    recorded: true,
-                    assessmentSchemaUID: ASSESSMENT_V2_UID,
-                    karmaGAPModule: preservedKarmaGap
+                    recorded: true, assessmentSchemaUID: ASSESSMENT_V2_UID, karmaGAPModule: preservedKarmaGap
                 })
             })
         );

@@ -14,7 +14,8 @@ contract CommitmentPoolingSeriesTest is CommitmentPoolingFixture {
         _setUpProductionFixture();
     }
 
-    // ───────────────────────────── Creation ─────────────────────────────
+    // ───────────────────────────── Creation
+    // ─────────────────────────────
 
     function testCreateCommitmentSeriesMakesTheCallerTheHolder() public {
         vm.expectEmit(true, true, true, true);
@@ -98,7 +99,8 @@ contract CommitmentPoolingSeriesTest is CommitmentPoolingFixture {
         module.createCommitmentSeries(poolId, SERIES_KEY, SERIES_CID);
     }
 
-    // ───────────────────────────── Lifecycle ─────────────────────────────
+    // ───────────────────────────── Lifecycle
+    // ─────────────────────────────
 
     function testHolderMovesTheSeriesBetweenActiveAndResting() public {
         uint256 seriesId = _series();
@@ -191,7 +193,8 @@ contract CommitmentPoolingSeriesTest is CommitmentPoolingFixture {
         module.restCommitmentSeries(99);
     }
 
-    // ─────────────────────── Commitment attachment ───────────────────────
+    // ─────────────────────── Commitment attachment
+    // ───────────────────────
 
     function testAnActiveSeriesBacksAnInstanceOffer() public {
         uint256 seriesId = _series();
@@ -245,7 +248,8 @@ contract CommitmentPoolingSeriesTest is CommitmentPoolingFixture {
         assertEq(module.getCommitment(commitmentId).commitmentSeriesId, seriesId);
     }
 
-    // ───────────────────────────── Helpers ─────────────────────────────
+    // ───────────────────────────── Helpers
+    // ─────────────────────────────
 
     function _series() private returns (uint256 seriesId) {
         vm.prank(CREATOR);

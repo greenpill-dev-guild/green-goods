@@ -289,7 +289,8 @@ library CommitmentSchemaLane {
         // The UID commits to (schema, resolver, revocable), so a record found under it matches by
         // construction. Compared anyway: this is the value the activation trusts.
         observation.recordMatches = record.uid == expectedUID && address(record.resolver) == testimonyResolver
-            && record.revocable == REVOCABLE && keccak256(bytes(record.schema)) == keccak256(bytes(communityTestimonySchema));
+            && record.revocable == REVOCABLE
+            && keccak256(bytes(record.schema)) == keccak256(bytes(communityTestimonySchema));
         observation.module = ITestimonyResolverLifecycle(testimonyResolver).commitmentModule();
         observation.expectedModule = expectedModule;
     }

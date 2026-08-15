@@ -252,9 +252,7 @@ contract ArbitrumHypercertsForkTest is Test {
         // Verify stored fields (scoped to reduce stack depth)
         {
             (
-                uint256 storedHypercertId,
-                ,
-                ,
+                uint256 storedHypercertId,,,
                 uint256 storedPrice,
                 uint256 storedMinUnits,
                 uint256 storedMaxUnits,

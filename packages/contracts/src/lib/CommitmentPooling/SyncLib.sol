@@ -24,8 +24,9 @@ library CommitmentPoolingSyncLib {
         CommitmentPoolingCommonLib.Env memory env,
         mapping(uint256 poolId => ICommitmentPoolingModule.Pool pool) storage pools,
         mapping(uint256 commitmentId => ICommitmentPoolingModule.Commitment commitment) storage commitments,
-        mapping(uint256 commitmentId => mapping(address contributor => ICommitmentPoolingModule.ContributorRecord record))
-            storage contributors,
+        mapping(
+            uint256 commitmentId => mapping(address contributor => ICommitmentPoolingModule.ContributorRecord record)
+        ) storage contributors,
         mapping(uint256 commitmentId => bytes32[] activeWorkUIDs) storage commitmentWorkUIDs,
         mapping(bytes32 workUID => uint256 commitmentId) storage workCommitment,
         mapping(bytes32 workUID => bytes32 approvalUID) storage latestWorkDecisionUID,
@@ -65,8 +66,9 @@ library CommitmentPoolingSyncLib {
         mapping(uint256 poolId => ICommitmentPoolingModule.Pool pool) storage pools,
         mapping(uint256 commitmentId => ICommitmentPoolingModule.Commitment commitment) storage commitments,
         mapping(uint256 cycleId => ICommitmentPoolingModule.Cycle cycle) storage cycles,
-        mapping(uint256 commitmentId => mapping(address contributor => ICommitmentPoolingModule.ContributorRecord record))
-            storage contributors,
+        mapping(
+            uint256 commitmentId => mapping(address contributor => ICommitmentPoolingModule.ContributorRecord record)
+        ) storage contributors,
         mapping(uint256 commitmentId => bytes32[] activeWorkUIDs) storage commitmentWorkUIDs,
         mapping(uint256 commitmentId => address[] confirmers) storage commitmentConfirmers,
         mapping(bytes32 workUID => uint256 commitmentId) storage workCommitment,
@@ -228,8 +230,9 @@ library CommitmentPoolingSyncLib {
     function _applyCurrentDecision(
         ApplyDecisionInput memory input,
         ICommitmentPoolingModule.Commitment storage commitment,
-        mapping(uint256 commitmentId => mapping(address contributor => ICommitmentPoolingModule.ContributorRecord record))
-            storage contributors,
+        mapping(
+            uint256 commitmentId => mapping(address contributor => ICommitmentPoolingModule.ContributorRecord record)
+        ) storage contributors,
         mapping(bytes32 workUID => uint64 sequence) storage latestWorkDecisionSequence,
         mapping(bytes32 workUID => bytes32 approvalUID) storage latestWorkDecisionUID,
         mapping(bytes32 approvalUID => bool counted) storage approvalCounted,

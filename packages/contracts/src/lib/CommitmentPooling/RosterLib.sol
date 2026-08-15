@@ -16,8 +16,9 @@ library CommitmentPoolingRosterLib {
     function joinCommitment(
         CommitmentPoolingCommonLib.Env memory env,
         mapping(uint256 commitmentId => ICommitmentPoolingModule.Commitment commitment) storage commitments,
-        mapping(uint256 commitmentId => mapping(address contributor => ICommitmentPoolingModule.ContributorRecord record))
-            storage contributors,
+        mapping(
+            uint256 commitmentId => mapping(address contributor => ICommitmentPoolingModule.ContributorRecord record)
+        ) storage contributors,
         mapping(uint256 commitmentId => address[] confirmers) storage commitmentConfirmers,
         uint256 commitmentId
     )
@@ -37,8 +38,9 @@ library CommitmentPoolingRosterLib {
     function leaveCommitment(
         CommitmentPoolingCommonLib.Env memory env,
         mapping(uint256 commitmentId => ICommitmentPoolingModule.Commitment commitment) storage commitments,
-        mapping(uint256 commitmentId => mapping(address contributor => ICommitmentPoolingModule.ContributorRecord record))
-            storage contributors,
+        mapping(
+            uint256 commitmentId => mapping(address contributor => ICommitmentPoolingModule.ContributorRecord record)
+        ) storage contributors,
         mapping(uint256 commitmentId => address[] confirmers) storage commitmentConfirmers,
         uint256 commitmentId
     )
@@ -61,8 +63,9 @@ library CommitmentPoolingRosterLib {
         CommitmentPoolingCommonLib.Env memory env,
         mapping(uint256 poolId => ICommitmentPoolingModule.Pool pool) storage pools,
         mapping(uint256 commitmentId => ICommitmentPoolingModule.Commitment commitment) storage commitments,
-        mapping(uint256 commitmentId => mapping(address contributor => ICommitmentPoolingModule.ContributorRecord record))
-            storage contributors,
+        mapping(
+            uint256 commitmentId => mapping(address contributor => ICommitmentPoolingModule.ContributorRecord record)
+        ) storage contributors,
         mapping(uint256 commitmentId => address[] confirmers) storage commitmentConfirmers,
         uint256 commitmentId,
         address contributor
@@ -94,10 +97,12 @@ library CommitmentPoolingRosterLib {
         CommitmentPoolingCommonLib.Env memory env,
         mapping(uint256 poolId => ICommitmentPoolingModule.Pool pool) storage pools,
         mapping(uint256 commitmentId => ICommitmentPoolingModule.Commitment commitment) storage commitments,
-        mapping(uint256 commitmentId => mapping(address contributor => ICommitmentPoolingModule.ContributorRecord record))
-            storage contributors,
-        mapping(uint256 commitmentId => mapping(uint16 requirementIndex => mapping(address contributor => bool assigned)))
-            storage requirementAssignments,
+        mapping(
+            uint256 commitmentId => mapping(address contributor => ICommitmentPoolingModule.ContributorRecord record)
+        ) storage contributors,
+        mapping(
+            uint256 commitmentId => mapping(uint16 requirementIndex => mapping(address contributor => bool assigned))
+        ) storage requirementAssignments,
         uint256 commitmentId,
         address contributor,
         uint16 requirementIndex,

@@ -101,7 +101,8 @@ contract ArbitrumCommitmentPoolingForkTest is ForkTestBase {
         targets.assessmentV3SchemaUID = assessmentV3SchemaUID;
     }
 
-    // ─────────────────────── Schema registration rehearsal ───────────────────────
+    // ─────────────────────── Schema registration rehearsal
+    // ───────────────────────
 
     /// @notice The deterministic UID the release tooling computes off-chain is the UID real EAS
     ///         assigns. This is what makes an interrupted registration resumable rather than a
@@ -147,7 +148,8 @@ contract ArbitrumCommitmentPoolingForkTest is ForkTestBase {
         assertEq(assessmentResolver.assessmentV3SchemaUID(), assessmentV3SchemaUID, "v3 UID must be set");
     }
 
-    // ───────────────────────── Deploy and wiring rehearsal ─────────────────────────
+    // ───────────────────────── Deploy and wiring rehearsal
+    // ─────────────────────────
 
     /// @notice The module is unusable until every dependency and all four schema UIDs are set.
     function testModuleRefusesToUnpauseUntilFullyWired() public {
@@ -160,7 +162,8 @@ contract ArbitrumCommitmentPoolingForkTest is ForkTestBase {
         assertFalse(pooling.paused(), "the fully wired module unpauses");
     }
 
-    // ─────────────────────── Deterministic deploy rehearsal ───────────────────────
+    // ─────────────────────── Deterministic deploy rehearsal
+    // ───────────────────────
 
     /// @notice The deploy target's own CREATE2 derivation, run against live Arbitrum.
     /// @dev Drives `TestimonyResolverDeployment` itself rather than a copy of its logic. The previous
@@ -286,7 +289,8 @@ contract ArbitrumCommitmentPoolingForkTest is ForkTestBase {
         this.deployOrReuseExternally(_easAddress(), owner, _create2Factory());
     }
 
-    // ─────────────────────── Resolver configuration rehearsal ───────────────────────
+    // ─────────────────────── Resolver configuration rehearsal
+    // ───────────────────────
 
     /// @notice Re-running the configure step on a configured chain is a no-op, not a revert.
     /// @dev The property that makes the step recoverable: an operator whose run died between two
@@ -389,7 +393,8 @@ contract ArbitrumCommitmentPoolingForkTest is ForkTestBase {
         assertEq(testimonyResolver.commitmentModule(), address(pooling));
     }
 
-    // ────────────── Community Testimony ordered recovery, against live EAS ──────────────
+    // ────────────── Community Testimony ordered recovery, against live EAS
+    // ──────────────
 
     /// @notice setUp walked the lane, so the live resolver reports Finalized.
     /// @dev The unit suite enumerates the classifier; this proves the states it names are the ones
@@ -816,7 +821,8 @@ contract ArbitrumCommitmentPoolingForkTest is ForkTestBase {
         observation.expectedModule = expectedModule;
     }
 
-    // ──────────────────── Full lifecycle through the live resolver ────────────────────
+    // ──────────────────── Full lifecycle through the live resolver
+    // ────────────────────
 
     /// @notice The whole promise, end to end, with real attestations on real EAS.
     function testCommitmentLifecycleThroughTheLiveWorkApprovalResolver() public {
@@ -898,7 +904,8 @@ contract ArbitrumCommitmentPoolingForkTest is ForkTestBase {
         assertEq(pooling.getCommitment(commitmentId).totalVerifiedCredits, 0);
     }
 
-    // ───────────────────────────── Rehearsal setup ─────────────────────────────
+    // ───────────────────────────── Rehearsal setup
+    // ─────────────────────────────
 
     /// @dev Mirrors what `commitment-schemas` preparation deploys: a UUPS proxy over an implementation whose
     ///      constructor bakes in the EAS address. Returns the schema registered against it, whose
@@ -917,14 +924,12 @@ contract ArbitrumCommitmentPoolingForkTest is ForkTestBase {
         // The implementation loads from artifacts rather than `new`, so its creation code never
         // enters this test contract's own bytecode — the full fork stack already fills it.
         resolver = TestimonyResolver(
-            payable(
-                address(
+            payable(address(
                     new ERC1967Proxy(
                         deployCode("Testimony.sol:TestimonyResolver", abi.encode(_easAddress())),
                         abi.encodeWithSelector(TestimonyResolver.initialize.selector, address(this))
                     )
-                )
-            )
+                ))
         );
 
         // EAS rejects a duplicate (schema, resolver, revocable) triple, but each proxy gets a fresh

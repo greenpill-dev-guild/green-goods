@@ -120,8 +120,9 @@ library CommitmentPoolingTerminalLib {
         mapping(uint256 poolId => ICommitmentPoolingModule.Pool pool) storage pools,
         mapping(uint256 cycleId => ICommitmentPoolingModule.Cycle cycle) storage cycles,
         mapping(uint256 commitmentId => ICommitmentPoolingModule.Commitment commitment) storage commitments,
-        mapping(uint256 commitmentId => mapping(address contributor => ICommitmentPoolingModule.ContributorRecord record))
-            storage contributors,
+        mapping(
+            uint256 commitmentId => mapping(address contributor => ICommitmentPoolingModule.ContributorRecord record)
+        ) storage contributors,
         mapping(uint256 commitmentId => bytes32[] activeWorkUIDs) storage commitmentWorkUIDs,
         mapping(bytes32 workUID => uint64 sequence) storage latestWorkDecisionSequence,
         uint256 commitmentId,
@@ -165,15 +166,17 @@ library CommitmentPoolingTerminalLib {
         emit ICommitmentPoolingModule.DisputeResolved(commitmentId, resolution, finalState, reasonCID);
     }
 
-    // ═════════════════════════════ Internal ═════════════════════════════
+    // ═════════════════════════════ Internal
+    // ═════════════════════════════
 
     // solhint-disable-next-line code-complexity
     function _applyDisputeResolution(
         CommitmentPoolingCommonLib.Env memory env,
         mapping(uint256 poolId => ICommitmentPoolingModule.Pool pool) storage pools,
         mapping(uint256 cycleId => ICommitmentPoolingModule.Cycle cycle) storage cycles,
-        mapping(uint256 commitmentId => mapping(address contributor => ICommitmentPoolingModule.ContributorRecord record))
-            storage contributors,
+        mapping(
+            uint256 commitmentId => mapping(address contributor => ICommitmentPoolingModule.ContributorRecord record)
+        ) storage contributors,
         mapping(uint256 commitmentId => bytes32[] activeWorkUIDs) storage commitmentWorkUIDs,
         mapping(bytes32 workUID => uint64 sequence) storage latestWorkDecisionSequence,
         uint256 commitmentId,
@@ -220,8 +223,9 @@ library CommitmentPoolingTerminalLib {
         CommitmentPoolingCommonLib.Env memory env,
         mapping(uint256 poolId => ICommitmentPoolingModule.Pool pool) storage pools,
         mapping(uint256 cycleId => ICommitmentPoolingModule.Cycle cycle) storage cycles,
-        mapping(uint256 commitmentId => mapping(address contributor => ICommitmentPoolingModule.ContributorRecord record))
-            storage contributors,
+        mapping(
+            uint256 commitmentId => mapping(address contributor => ICommitmentPoolingModule.ContributorRecord record)
+        ) storage contributors,
         mapping(uint256 commitmentId => bytes32[] activeWorkUIDs) storage commitmentWorkUIDs,
         mapping(bytes32 workUID => uint64 sequence) storage latestWorkDecisionSequence,
         uint256 commitmentId,

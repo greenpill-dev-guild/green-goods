@@ -41,7 +41,8 @@ abstract contract CommitmentPoolingStorage is OwnableUpgradeable, ReentrancyGuar
     uint16 internal constant CYCLELESS_VERIFIED_CONTRIBUTION_BPS =
         CommitmentPoolingCommonLib.CYCLELESS_VERIFIED_CONTRIBUTION_BPS;
 
-    // ═════════════════════════════════ Storage ═════════════════════════════════
+    // ═════════════════════════════════ Storage
+    // ═════════════════════════════════
 
     IHatsModule public hatsModule;
     address public gardenToken;

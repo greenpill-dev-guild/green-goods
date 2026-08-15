@@ -19,7 +19,8 @@ import { CommitmentPoolingOperations } from "./Operations.sol";
 ///      emits no phantom default-value return encoder. The series shell owns the series counter
 ///      increment. ABI, events, and reverts are unchanged.
 abstract contract CommitmentPoolingExtensions is CommitmentPoolingOperations {
-    // ═════════════════════════════ Exchange ═════════════════════════════
+    // ═════════════════════════════ Exchange
+    // ═════════════════════════════
 
     function acceptExchange(uint256 exchangeCommitmentId) external whenOperational nonReentrant {
         CommitmentPoolingExchangeLib.acceptExchange(
@@ -27,7 +28,8 @@ abstract contract CommitmentPoolingExtensions is CommitmentPoolingOperations {
         );
     }
 
-    // ═════════════════════════════ Recognition ═════════════════════════════
+    // ═════════════════════════════ Recognition
+    // ═════════════════════════════
 
     function validateRecognitionSnapshot(
         uint256 commitmentId,
@@ -43,7 +45,8 @@ abstract contract CommitmentPoolingExtensions is CommitmentPoolingOperations {
         );
     }
 
-    // ═════════════════════════════ Series ═════════════════════════════
+    // ═════════════════════════════ Series
+    // ═════════════════════════════
 
     function createCommitmentSeries(
         uint256 poolId,
@@ -112,7 +115,8 @@ abstract contract CommitmentPoolingExtensions is CommitmentPoolingOperations {
         return seriesIdByCreationRequest[holder][creationRequestKey];
     }
 
-    // ═════════════════════════════ Views ═════════════════════════════
+    // ═════════════════════════════ Views
+    // ═════════════════════════════
 
     function getCommitment(uint256 commitmentId) external view returns (ICommitmentPoolingModule.Commitment memory) {
         uint256 slot;
