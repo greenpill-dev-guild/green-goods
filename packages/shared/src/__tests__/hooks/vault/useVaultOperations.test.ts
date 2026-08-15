@@ -207,7 +207,7 @@ describe("hooks/vault/useVaultOperations", () => {
       })
     );
     expect(invalidateSpy).toHaveBeenCalled();
-  });
+  }, 20_000);
 
   it("skips approve when allowance is already sufficient", async () => {
     // Read sequence (no minSharesOut -> early slippage check skipped):

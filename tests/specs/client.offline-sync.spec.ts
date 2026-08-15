@@ -97,37 +97,11 @@ test.describe("Offline Sync Flows", () => {
 
       // Go back online
       await context.setOffline(false);
-      await page.waitForTimeout(3000);
-
-      // Check for "Back Online" message or hidden indicator
-      const backOnlineText = page.locator("text=/back online|connected|online/i").first();
-      const isBackOnlineVisible = await backOnlineText
-        .isVisible({ timeout: 2000 })
-        .catch(() => false);
-
-      if (isBackOnlineVisible) {
-        // Saw the back online message
-        expect(isBackOnlineVisible).toBeTruthy();
-      } else if (offlineIndicator) {
-        // Indicator should be hidden or have hidden classes
-        const isHidden = await offlineIndicator.isHidden({ timeout: 2000 }).catch(() => false);
-        const hasHiddenClass = await offlineIndicator
-          .evaluate((el) => {
-            const classes = el.className;
-            return (
-              classes.includes("opacity-0") ||
-              classes.includes("hidden") ||
-              classes.includes("-translate-y-full") ||
-              el.style.display === "none"
-            );
-          })
-          .catch(() => false);
-
-        expect(isHidden || hasHiddenClass).toBeTruthy();
-      } else {
-        // No offline indicator visible after going online is also success
-        expect(true).toBeTruthy();
-      }
+      const offlineStatus = page
+        .locator(offlineSelectors.join(", "))
+        .filter({ hasText: /offline/i })
+        .first();
+      await expect(offlineStatus).toBeHidden({ timeout: 5000 });
     });
 
     test("persists offline state across page reloads", async ({ page, context }) => {
