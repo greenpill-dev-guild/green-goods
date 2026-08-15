@@ -1,7 +1,6 @@
 import {
   ACTION_CAPITAL_LABEL_IDS,
   ActionBannerFallback,
-  Button,
   DEFAULT_CHAIN_ID,
   DOMAIN_CONFIG,
   type Domain,
@@ -374,12 +373,12 @@ export default function ActionDetail() {
         }
         actions={
           canManageActions ? (
-            <Button size="sm" asChild>
+            <AdminButton size="sm" asChild>
               <Link to={actionEditHref}>
                 <RiEditLine className="h-4 w-4" />
                 {formatMessage({ id: "app.actions.edit" })}
               </Link>
-            </Button>
+            </AdminButton>
           ) : undefined
         }
         sticky

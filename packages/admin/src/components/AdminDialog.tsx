@@ -212,7 +212,7 @@ export function AdminDialog({
           className={cn(
             "fixed inset-0 z-overlay"
             // Scrim fade is driven by the [data-component="AdminDialog"][data-slot="overlay"]
-            // rules in admin-m3-overrides.css (keyed off Radix's data-state). Do NOT re-add
+            // rules in admin-m3-components.css (keyed off Radix's data-state). Do NOT re-add
             // Tailwind `animate-*`/`fade-*` classes here — the tailwindcss-animate plugin is
             // not loaded in this build, so those utilities emit no CSS (dead classes).
           )}
@@ -239,7 +239,7 @@ export function AdminDialog({
             "shadow-[var(--m3-elevation-2)]",
             // Enter/exit motion (mobile sheet slide-up, desktop zoom) is driven by
             // the [data-component="AdminDialog"][data-slot="surface"][data-state]
-            // rules in admin-m3-overrides.css. Those keyframes animate only
+            // rules in admin-m3-components.css. Those keyframes animate only
             // `transform`; the centering uses Tailwind's independent `translate`
             // property, which composes so the surface stays centered. Do NOT re-add
             // Tailwind animate-*/slide-in-*/zoom-* classes — tailwindcss-animate is

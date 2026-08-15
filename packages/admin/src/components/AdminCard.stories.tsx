@@ -16,7 +16,7 @@ const meta: Meta<typeof AdminCard> = {
           "Interactive cards add an M3 state layer and elevation response.",
           "",
           "**Tone wash** — admin-scope cards layer a barely-perceptible 3% tone tint",
-          "via a `::before` pseudo-element defined in `admin-m3-overrides.css`. The pseudo",
+          "via a `::before` pseudo-element defined in `admin-m3-components.css`.. The pseudo",
           "lets dense lists (Hub queues, action templates) avoid per-element",
           "`background-image` paint cost. Outside admin scope (here in Storybook), the",
           "tint falls back to invisible black, so cards read as standard M3 surfaces.",

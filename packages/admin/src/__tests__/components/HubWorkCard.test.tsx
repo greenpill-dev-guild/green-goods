@@ -116,7 +116,7 @@ describe("HubWorkCard", () => {
     expect(screen.queryByText("Review")).not.toBeInTheDocument();
   });
 
-  it("renders a friendly submitted date instead of an ISO timestamp", () => {
+  it("renders a friendly relative timestamp instead of an ISO timestamp", () => {
     const { container } = renderCard({
       work: {
         id: "0xdate",
@@ -127,13 +127,14 @@ describe("HubWorkCard", () => {
         feedback: "",
         metadata: "{}",
         media: [],
-        createdAt: new Date("2026-07-08T12:34:00Z").getTime() / 1000,
+        // 26 hours before "now" — the 1a meta row shows relative age ("1d ago").
+        createdAt: Date.now() / 1000 - 26 * 60 * 60,
         status: "pending",
       },
     });
 
-    expect(screen.getByText(/Submitted · Jul 8, 2026/)).toBeInTheDocument();
-    expect(container.textContent).not.toContain("2026-07-08T12:34:00.000Z");
+    expect(screen.getByText(/ago$/)).toBeInTheDocument();
+    expect(container.textContent).not.toContain("T12:34:00.000Z");
   });
 
   it("strips generated ISO timestamp suffixes from legacy work titles", () => {

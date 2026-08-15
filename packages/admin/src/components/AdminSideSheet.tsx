@@ -109,7 +109,7 @@ export function AdminSideSheet({
           className={cn(
             "fixed inset-0 z-overlay"
             // Scrim fade is driven by the [data-component="AdminSideSheet"]
-            // [data-slot="overlay"] rules in admin-m3-overrides.css (keyed off
+            // [data-slot="overlay"] rules in admin-m3-components.css (keyed off
             // Radix's data-state) — same convention as AdminDialog.
           )}
         />
@@ -135,7 +135,7 @@ export function AdminSideSheet({
             "shadow-[var(--m3-elevation-2)]",
             // Enter/exit motion (mobile slide-up, desktop slide-in-from-right)
             // is driven by the [data-component="AdminSideSheet"][data-slot="surface"]
-            // [data-state] rules in admin-m3-overrides.css.
+            // [data-state] rules in admin-m3-components.css.
             "focus:outline-none",
             // Structured regions own their padding; panels bring SheetBody /
             // SheetFooter. overflow-hidden clips them to the rounded corners.

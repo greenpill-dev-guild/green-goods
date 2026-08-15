@@ -103,7 +103,7 @@ export const AdminCheckbox = React.forwardRef<HTMLInputElement, AdminCheckboxPro
           {/* Native checkbox — appearance-none, styled via CSS. The check glyph
               below is a WHITE data-URI stroke, correct on the deep light-mode
               fills; in dark mode the fills flip light (pastel --m3-primary /
-              light-red --m3-error) so admin-m3-overrides.css swaps the glyph
+              light-red --m3-error) so admin-m3-components.css swaps the glyph
               to an ink stroke via the data attributes. */}
           <input
             data-component="AdminCheckbox"

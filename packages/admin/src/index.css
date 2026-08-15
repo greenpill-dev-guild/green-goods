@@ -2,7 +2,7 @@
 @import "tailwindcss";
 @import "@green-goods/shared/styles/theme.css";
 @import "./styles/admin-m3-tokens.css";
-@import "./styles/admin-m3-overrides.css";
+@import "./styles/admin-m3-components.css";
 @import "@green-goods/shared/styles/utilities.css";
 
 /* Configure dark mode to use data-theme attribute */
@@ -389,202 +389,9 @@
   );
 }
 
-/* Animatable workspace tint — enables color cross-dissolve between views */
-@property --tone-surface-tint-color {
-  syntax: "<color>";
-  inherits: true;
-  initial-value: transparent;
-}
-
-/* ============================================================================
- * WORKSPACE TONAL PALETTES — M3-style per-workspace color roles
- * hub=blue, garden=green, community=orange, actions=red.
- *
- * Route color is environmental: canvas tint, focus, hairlines, and one filled
- * action role. Dense surfaces remain solid and readable.
- * ============================================================================ */
-
-/* Hub — Blue. `--tone-action` stays deep so filled actions keep white text. */
-[data-tone="hub"] {
-  --tone-primary: var(--blue-600);
-  --tone-on-primary: 255 255 255;
-  --tone-action: var(--blue-700);
-  --tone-action-hover: var(--blue-800);
-  --tone-on-action: 255 255 255;
-  --tone-primary-container: var(--blue-100);
-  --tone-on-primary-container: var(--blue-900);
-  /* Contrast-safe accent for tone-colored TEXT / outline / icon on light
-     surfaces (AA ≥4.5 on white). Distinct from --tone-action (filled bg w/ white
-     text) and --tone-primary (the mid fill step — too light as text, e.g.
-     green-600 ≈ 2.85:1). Consumed directly via var(); never indirected at :root. */
-  --tone-on-surface-accent: var(--blue-700);
-  --tone-surface-tint-color: rgb(var(--blue-500) / 5%);
-}
-
-/* Garden — Green. Uses a forest action tone for the cockpit's strongest CTA. */
-[data-tone="garden"] {
-  /* Dual-safe forest green (light applies the dark block's dual-use rule):
-   * green-600 failed as white-text fill (2.85) and as link text (2.85); the
-   * green-700 CTA failed AA with white (4.29). green-800 measures 5.72 both
-   * directions; hover deepens to green-900 (7.19). */
-  --tone-primary: var(--green-800);
-  --tone-on-primary: 255 255 255;
-  --tone-action: var(--green-800);
-  --tone-action-hover: var(--green-900);
-  --tone-on-action: 255 255 255;
-  --tone-primary-container: var(--green-100);
-  --tone-on-primary-container: var(--green-900);
-  --tone-on-surface-accent: var(--green-800);
-  --tone-surface-tint-color: rgb(var(--green-500) / 5%);
-}
-
-/* Community — Amber/Gold. The ambient canvas wash leans gold (oklch hue 80,
-   vs the Actions red-orange neighbor at 30) so the workspace reads clearly
-   apart (QA round 2: the earlier hue-50 wash still sat too close to red).
-   Primary stays orange-600 and action orange-700 because --tone-primary feeds
-   --m3-primary, which M3 renders as a white-text filled background (buttons,
-   FAB, date-picker selected day) — those need AA contrast, and orange-600 is
-   the lightest white-safe step in the ramp. The yellow separation therefore
-   comes from the canvas wash, surface tint, secondary, and containers, not the
-   primary accent. */
-[data-tone="community"] {
-  --tone-primary: var(--orange-600);
-  --tone-on-primary: 255 255 255;
-  --tone-action: var(--orange-700);
-  --tone-action-hover: var(--orange-800);
-  --tone-on-action: 255 255 255;
-  --tone-primary-container: var(--yellow-100);
-  --tone-on-primary-container: var(--yellow-900);
-  /* orange-800 (not -700) so tone-colored TEXT on the light community surface
-     clears AA — orange-700 measured 4.01:1 on the 14px current-step rail label. */
-  --tone-on-surface-accent: var(--orange-800);
-  --tone-surface-tint-color: rgb(var(--yellow-500) / 5%);
-}
-
-/* Actions — Red */
-[data-tone="actions"] {
-  /* red-500 (handoff 224 56 53) measured 4.39 as a white-text fill and as
-   * accent text on white — red-700 is dual-safe at 6.4 both directions. */
-  --tone-primary: var(--red-700);
-  --tone-on-primary: 255 255 255;
-  --tone-action: var(--red-700);
-  --tone-action-hover: var(--red-800);
-  --tone-on-action: 255 255 255;
-  --tone-primary-container: var(--red-100);
-  --tone-on-primary-container: var(--red-900);
-  --tone-on-surface-accent: var(--red-700);
-  --tone-surface-tint-color: rgb(var(--red-500) / 5%);
-}
-
-/* Home — Stone/Neutral (unauthenticated) */
-[data-tone="home"] {
-  /* neutral-600 (was -500): the stone accent measured 4.40 as text on the
-   * card — one step deeper clears body-text AA (5.9 card / 7.6 white). */
-  --tone-primary: 87 83 78;
-  --tone-on-primary: 255 255 255;
-  --tone-action: 68 64 60;
-  --tone-action-hover: 41 37 36;
-  --tone-on-action: 255 255 255;
-  --tone-primary-container: 231 229 228;
-  --tone-on-primary-container: 41 37 36;
-  --tone-on-surface-accent: 68 64 60;
-  --tone-surface-tint-color: rgb(120 113 108 / 5%);
-}
-
-/* Focus-ring role — the one token components use for focus indicators.
- * Light: the deep filled-action step (≥5:1 on light surfaces). Dark: the bright
- * on-surface accent (≥11:1) — deep fills measure 2.3–2.7 against dark surfaces,
- * below the 3:1 non-text minimum, so the ring flips to the text-accent step.
- * Resolves per-element via the tone indirection, exactly like --m3-primary. */
-[data-tone] {
-  --tone-focus-ring: var(--tone-action);
-}
-[data-theme="dark"] [data-tone] {
-  --tone-focus-ring: var(--tone-on-surface-accent);
-}
-
-/* Dark mode workspace accents — deliberate, AA-verified (not a light inversion).
- *
- * DUAL-USE RULE (do not "fix" --tone-primary to a deep step): --tone-primary
- * feeds --m3-primary, which admin components consume BOTH as a white-text FILL
- * (checkbox, progress, badge) AND as on-surface TEXT/icon/link color
- * (admin-m3-overrides.css color:, CampaignCookieJarPanel links,
- * CreateListingDialog icon). So --tone-primary stays LIGHT (the -200 step) to
- * read on the dark card (≥11.6:1), paired with a dark --tone-on-primary for the
- * tonal-fill case. Saturation lives in --tone-action (the strong filled CTA,
- * deep + white text, ≥5.0:1) and vividness in the canvas wash + bright accent
- * text — NOT in the primary fill, which would break the text usages above.
- * Every block keeps --tone-on-surface-accent (gate; the bright tone-TEXT role).
- * All ratios verified against the warm card surface (32 25 19). */
-[data-theme="dark"] [data-tone="hub"] {
-  --tone-primary: var(--blue-200);
-  --tone-on-primary: var(--blue-900);
-  --tone-action: var(--blue-700);
-  --tone-action-hover: var(--blue-800);
-  --tone-on-action: 255 255 255;
-  --tone-primary-container: var(--blue-900);
-  --tone-on-primary-container: var(--blue-100);
-  --tone-on-surface-accent: var(--blue-200);
-  --tone-surface-tint-color: rgb(var(--blue-200) / 10%);
-}
-
-[data-theme="dark"] [data-tone="garden"] {
-  --tone-primary: var(--green-200);
-  --tone-on-primary: var(--green-900);
-  --tone-action: var(--green-800);
-  --tone-action-hover: var(--green-900); /* deeper hover stays white-safe (green-700 fails 4.29) */
-  --tone-on-action: 255 255 255;
-  --tone-primary-container: var(--green-900);
-  --tone-on-primary-container: var(--green-100);
-  --tone-on-surface-accent: var(--green-200);
-  --tone-surface-tint-color: rgb(var(--green-200) / 10%);
-}
-
-/* Community = amber/gold. Filled action is a DEEP amber (orange-700, white-safe
- * 5.0:1) — a brighter amber is not white-safe, so the gold identity comes from
- * the wash, accent text, secondary and containers (the yellow family), matching
- * the light-mode strategy. Same orange-700 fill value as light mode → no hue
- * flip between modes. */
-[data-theme="dark"] [data-tone="community"] {
-  --tone-primary: var(--yellow-200);
-  --tone-on-primary: var(--yellow-900);
-  --tone-action: var(--orange-700);
-  --tone-action-hover: var(--orange-800);
-  --tone-on-action: 255 255 255;
-  --tone-primary-container: var(--yellow-900);
-  --tone-on-primary-container: var(--yellow-100);
-  --tone-on-surface-accent: var(--yellow-200);
-  --tone-surface-tint-color: rgb(var(--yellow-200) / 10%);
-}
-
-[data-theme="dark"] [data-tone="actions"] {
-  --tone-primary: var(--red-200);
-  --tone-on-primary: var(--red-900);
-  --tone-action: var(--red-700);
-  --tone-action-hover: var(--red-800); /* deeper hover stays white-safe (red-600 fails 4.15) */
-  --tone-on-action: 255 255 255;
-  --tone-primary-container: var(--red-900);
-  --tone-on-primary-container: var(--red-100);
-  --tone-on-surface-accent: var(--red-200);
-  --tone-surface-tint-color: rgb(var(--red-200) / 10%);
-}
-
-[data-theme="dark"] [data-tone="home"] {
-  --tone-primary: var(--neutral-300);
-  --tone-on-primary: var(--neutral-900);
-  --tone-action: var(--neutral-600);
-  --tone-action-hover: var(--neutral-700);
-  --tone-on-action: 255 255 255;
-  --tone-primary-container: var(--neutral-700);
-  --tone-on-primary-container: var(--neutral-100);
-  --tone-on-surface-accent: var(--neutral-300);
-  --tone-surface-tint-color: rgb(var(--neutral-300) / 10%);
-}
-
-/* Workspace color cross-dissolve when switching views */
-[data-tone] {
-  transition: --tone-surface-tint-color var(--spring-effects-slow-duration) var(--spring-effects-slow-easing);
-}
+/* Workspace tonal palettes ([data-tone] roles, light + dark) live in
+ * styles/admin-m3-tokens.css so the app and the shared Storybook read ONE
+ * definition — the Storybook parity copies are retired. */
 
 /* ============================================================================
  * ELEVATION — one ladder only.
@@ -1346,6 +1153,15 @@
   }
   .surface-card:hover {
     box-shadow: var(--m3-elevation-2);
+  }
+
+  /* Legacy shared Card surfaces (`glass-raised` from CardBase/Surface) rendered
+   * inside admin routes stay solid white cards — glass is reserved for the
+   * navigation chrome. Pending those consumers' migration to Admin* wrappers. */
+  .admin-m3 .canvas-area-main .glass-raised {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    background: rgb(var(--admin-surface-0));
   }
 
   /* ── Glass Surface ── Shared frosted treatment

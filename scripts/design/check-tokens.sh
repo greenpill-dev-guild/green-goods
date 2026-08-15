@@ -123,7 +123,7 @@ M3_DEFINITION_FILES=(
   "$IMPL"
   "$ADMIN_M3_TOKENS"
   "packages/admin/src/index.css"
-  "packages/admin/src/styles/admin-m3-overrides.css"
+  "packages/admin/src/styles/admin-m3-components.css"
 )
 
 MISSING_M3_DEFS=()
@@ -163,7 +163,7 @@ fi
 # Allowlist: token projection/definition files plus tests, where issue references
 # such as "#312" are not design values. Story and app style files are scanned;
 # existing intentional literals must be captured line-by-line in the baseline.
-USAGE_ALLOWLIST_REGEX='(packages/shared/src/styles/theme\.css|packages/shared/src/styles/design-md\.generated\.css|packages/admin/src/index\.css|packages/admin/src/styles/admin-m3-tokens\.css|packages/admin/src/styles/admin-m3-overrides\.css|\.test\.tsx?|packages/client/vite\.config\.ts)'
+USAGE_ALLOWLIST_REGEX='(packages/shared/src/styles/theme\.css|packages/shared/src/styles/design-md\.generated\.css|packages/admin/src/index\.css|packages/admin/src/styles/admin-m3-tokens\.css|packages/admin/src/styles/admin-m3-components\.css|\.test\.tsx?|packages/client/vite\.config\.ts)'
 
 TW_PALETTE_FAMILIES='(gray|slate|zinc|neutral|stone|red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose|black|white)'
 TW_COLOR_UTILITY='(accent|bg|border(-[trblxy])?|caret|decoration|divide|fill|from|outline|placeholder|ring|shadow|stroke|text|to|via)'
@@ -292,7 +292,7 @@ if [[ -n "$STALE_BASELINE" ]]; then
   exit 1
 fi
 
-ADMIN_CHROME_ALLOWLIST_REGEX='(packages/admin/src/index\.css|packages/admin/src/styles/admin-m3-overrides\.css|packages/admin/src/styles/admin-m3-tokens\.css)'
+ADMIN_CHROME_ALLOWLIST_REGEX='(packages/admin/src/index\.css|packages/admin/src/styles/admin-m3-components\.css|packages/admin/src/styles/admin-m3-tokens\.css)'
 ADMIN_CHROME_PATTERN='glass-(ground|raised|floating|overlay|surface)|backdrop-blur|backdrop-filter|linear-gradient\('
 
 collect_admin_chrome_violations() {
@@ -313,7 +313,7 @@ if [[ -n "$ADMIN_CHROME_VIOLATIONS" ]]; then
   echo "❌ Admin Controlled Chrome violation found:"
   echo "$ADMIN_CHROME_VIOLATIONS" | sed 's/^/  /'
   echo
-  echo "Admin glass/backdrop blur and decorative gradients must stay in the approved chrome contract: Navigation/FAB chrome only via packages/admin/src/index.css or admin-m3-overrides.css; the AppBar root stays transparent and dialogs/side sheets stay solid."
+  echo "Admin glass/backdrop blur and decorative gradients must stay in the approved chrome contract: Navigation/FAB chrome only via packages/admin/src/index.css, admin-m3-tokens.css, or admin-m3-components.css; the AppBar root stays transparent and dialogs/side sheets stay solid."
   echo "Route cards, forms, tables, records, and dense content must use solid semantic surfaces."
   exit 1
 fi
@@ -386,6 +386,7 @@ fi
 #      the mid --tone-primary step fails AA as text on white (green-600 ≈ 2.85).
 # A passing story is not proof the tint reaches the DOM — these checks are.
 # ----------------------------------------------------------------------------
+ADMIN_TONE_CSS="packages/admin/src/styles/admin-m3-tokens.css"
 ADMIN_INDEX_CSS="packages/admin/src/index.css"
 
 # (1) --m3-primary must be re-declared inside a `.admin-m3` rule, not only :root.
@@ -403,10 +404,10 @@ fi
 
 # (2) Every tone block that defines --tone-action must also define a
 #     contrast-safe --tone-on-surface-accent (text/outline/icon role).
-TONE_ACTION_COUNT="$(grep -cE '^[[:space:]]*--tone-action:' "$ADMIN_INDEX_CSS" || true)"
-TONE_ACCENT_COUNT="$(grep -cE '^[[:space:]]*--tone-on-surface-accent:' "$ADMIN_INDEX_CSS" || true)"
+TONE_ACTION_COUNT="$(grep -cE '^[[:space:]]*--tone-action:' "$ADMIN_TONE_CSS" || true)"
+TONE_ACCENT_COUNT="$(grep -cE '^[[:space:]]*--tone-on-surface-accent:' "$ADMIN_TONE_CSS" || true)"
 if [[ "$TONE_ACTION_COUNT" -eq 0 || "$TONE_ACCENT_COUNT" -ne "$TONE_ACTION_COUNT" ]]; then
-  echo "❌ Tone accent role drift in $ADMIN_INDEX_CSS: ${TONE_ACTION_COUNT} --tone-action vs ${TONE_ACCENT_COUNT} --tone-on-surface-accent declarations."
+  echo "❌ Tone accent role drift in $ADMIN_TONE_CSS: ${TONE_ACTION_COUNT} --tone-action vs ${TONE_ACCENT_COUNT} --tone-on-surface-accent declarations."
   echo "   Every [data-tone] block (light + dark) must define a contrast-safe --tone-on-surface-accent for tone-colored text/outline/icon."
   exit 1
 fi
@@ -426,10 +427,10 @@ fi
 #     Anchor `{` to end-of-line so the single-line wash assignments
 #     (`[data-tone="X"] { --tone-canvas: … }`) are excluded — only the multi-line
 #     `--tone-*` definition blocks count.
-LIGHT_TONE_BLOCKS="$(grep -cE '^\[data-tone="(hub|garden|community|actions|home)"\] \{ *$' "$ADMIN_INDEX_CSS" || true)"
-DARK_TONE_BLOCKS="$(grep -cE '^\[data-theme="dark"\] \[data-tone="(hub|garden|community|actions|home)"\] \{ *$' "$ADMIN_INDEX_CSS" || true)"
+LIGHT_TONE_BLOCKS="$(grep -cE '^\[data-tone="(hub|garden|community|actions|home)"\] \{ *$' "$ADMIN_TONE_CSS" || true)"
+DARK_TONE_BLOCKS="$(grep -cE '^\[data-theme="dark"\] \[data-tone="(hub|garden|community|actions|home)"\] \{ *$' "$ADMIN_TONE_CSS" || true)"
 if [[ "$LIGHT_TONE_BLOCKS" -lt 5 || "$DARK_TONE_BLOCKS" -ne "$LIGHT_TONE_BLOCKS" ]]; then
-  echo "❌ Dark tone parity drift in $ADMIN_INDEX_CSS: ${LIGHT_TONE_BLOCKS} light [data-tone] blocks vs ${DARK_TONE_BLOCKS} dark blocks (expected 5 each)."
+  echo "❌ Dark tone parity drift in $ADMIN_TONE_CSS: ${LIGHT_TONE_BLOCKS} light [data-tone] blocks vs ${DARK_TONE_BLOCKS} dark blocks (expected 5 each)."
   echo "   Every workspace tone must define a deliberate [data-theme=\"dark\"] [data-tone=\"…\"] block, not inherit the light values."
   exit 1
 fi

@@ -2989,6 +2989,7 @@
   "cockpit.hub.tabRail": "Hub pipeline stages",
   "cockpit.hub.title": "Hub",
   "cockpit.hub.viewSwitcher": "Pipeline stages",
+  "cockpit.hub.workCard.overdue": "Overdue",
   "cockpit.nav.account": "Account",
   "cockpit.nav.community": "Community",
   "cockpit.nav.garden": "Garden",

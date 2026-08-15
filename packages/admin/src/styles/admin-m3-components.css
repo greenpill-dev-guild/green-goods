@@ -1,16 +1,15 @@
 /* ============================================================================
- * Admin M3 overrides — REMAINING remote styling (being retired).
+ * Admin M3 component skins & motion — admin-owned CSS for admin-owned
+ * components (plus two third-party surfaces). Imported by admin's index.css
+ * AND the shared Storybook preview, so stories exercise the same motion and
+ * dark-mode fixes as the runtime app.
  *
- * The Canvas shell (NavigationBar, AppBar, FAB, MainSheet) is forked into
- * packages/admin/src/components/Shell/ and owns its styling in JSX; the dock
- * material lives in index.css under the Controlled Chrome contract. What
- * remains here is third-party surface styling (toast, date picker), the
- * AdminDialog/AdminSideSheet motion keyframes, shared-control remaps that are
- * still migrating to Admin* wrappers, and dark-mode glyph fixes. Target state
- * is this file removed entirely.
+ * This file contains NO remote styling of shared components — that practice
+ * ended with the Shell fork (Cockpit M3 1a, Step 1) and the removal of
+ * admin-m3-overrides.css (Step 5).
  * ============================================================================ */
 
-/* Toast / Snackbar — M3 inverse surface */
+/* Toast / Snackbar (react-hot-toast) — M3 inverse surface */
 .admin-m3 [data-hot-toast] > div {
   background: rgb(var(--m3-inverse-surface)) !important;
   color: rgb(var(--m3-inverse-on-surface)) !important;
@@ -18,7 +17,7 @@
   box-shadow: var(--m3-elevation-2) !important;
 }
 
-/* Date Picker — M3 surface + shape */
+/* Date Picker (react-day-picker) — M3 surface + shape */
 .admin-m3 .rdp {
   border-radius: var(--m3-shape-lg);
   background: rgb(var(--m3-surface-container-high));
@@ -33,114 +32,6 @@
 .admin-m3 .rdp-day_today {
   color: rgb(var(--m3-primary));
   font-weight: 700;
-}
-
-/* Dialog portals render outside .admin-m3. Keep portal surfaces mapped to
- * strict M3 tokens, with legacy selectors retained for any shared/non-admin
- * dialog that is mounted from an admin route. */
-body:has(.admin-m3) [data-component="AdminDialog"][data-slot="surface"],
-body:has(.admin-m3) [data-component="AdminSideSheet"][data-slot="surface"],
-body:has(.admin-m3) [data-component="DialogShell"][data-slot="surface"],
-body:has(.admin-m3) [data-component="ConfirmDialog"][data-slot="surface"] {
-  background: rgb(var(--m3-surface-container-high));
-  box-shadow: var(--m3-elevation-2);
-}
-
-/* Shared controls that still appear inside admin routes/dialogs inherit the
- * cockpit token roles while they are migrated to Admin* wrappers. */
-.admin-m3 .gg-button,
-body:has(.admin-m3) [data-component="AdminDialog"][data-slot="surface"] .gg-button,
-body:has(.admin-m3) [data-component="AdminSideSheet"][data-slot="surface"] .gg-button {
-  border-radius: var(--m3-shape-full);
-  font-size: var(--type-label-lg);
-  line-height: var(--type-label-lg-lh);
-  letter-spacing: var(--type-label-lg-ls);
-  font-weight: 500;
-  text-transform: capitalize;
-}
-
-.admin-m3 .gg-button:focus-visible,
-body:has(.admin-m3) [data-component="AdminDialog"][data-slot="surface"] .gg-button:focus-visible,
-body:has(.admin-m3) [data-component="AdminSideSheet"][data-slot="surface"] .gg-button:focus-visible {
-  box-shadow: 0 0 0 3px rgb(var(--tone-focus-ring, var(--m3-primary)) / 0.2);
-}
-
-.admin-m3 .gg-button-primary,
-.admin-m3 .gg-button-primary.gg-button-filled,
-body:has(.admin-m3) [data-component="AdminDialog"][data-slot="surface"] .gg-button-primary,
-body:has(.admin-m3) [data-component="AdminDialog"][data-slot="surface"] .gg-button-primary.gg-button-filled,
-body:has(.admin-m3) [data-component="AdminSideSheet"][data-slot="surface"] .gg-button-primary,
-body:has(.admin-m3) [data-component="AdminSideSheet"][data-slot="surface"] .gg-button-primary.gg-button-filled {
-  background: rgb(var(--tone-action, var(--m3-primary)));
-  color: rgb(var(--tone-on-action, var(--m3-on-primary)));
-}
-
-.admin-m3 .gg-button-primary:hover,
-.admin-m3 .gg-button-primary.gg-button-filled:hover,
-body:has(.admin-m3) [data-component="AdminDialog"][data-slot="surface"] .gg-button-primary:hover,
-body:has(.admin-m3) [data-component="AdminDialog"][data-slot="surface"] .gg-button-primary.gg-button-filled:hover,
-body:has(.admin-m3) [data-component="AdminSideSheet"][data-slot="surface"] .gg-button-primary:hover,
-body:has(.admin-m3) [data-component="AdminSideSheet"][data-slot="surface"] .gg-button-primary.gg-button-filled:hover {
-  background: color-mix(in srgb, rgb(var(--tone-action, var(--m3-primary))) 92%, rgb(var(--m3-on-surface)) 8%);
-}
-
-.admin-m3 .gg-button-secondary,
-.admin-m3 .gg-button-neutral.gg-button-stroke,
-body:has(.admin-m3) [data-component="AdminDialog"][data-slot="surface"] .gg-button-secondary,
-body:has(.admin-m3) [data-component="AdminDialog"][data-slot="surface"] .gg-button-neutral.gg-button-stroke,
-body:has(.admin-m3) [data-component="AdminSideSheet"][data-slot="surface"] .gg-button-secondary,
-body:has(.admin-m3) [data-component="AdminSideSheet"][data-slot="surface"] .gg-button-neutral.gg-button-stroke {
-  border-color: rgb(var(--m3-outline));
-  background: rgb(var(--m3-surface-container-low));
-  color: rgb(var(--m3-on-surface));
-}
-
-.admin-m3 .gg-button-secondary:hover,
-.admin-m3 .gg-button-neutral.gg-button-stroke:hover,
-body:has(.admin-m3) [data-component="AdminDialog"][data-slot="surface"] .gg-button-secondary:hover,
-body:has(.admin-m3) [data-component="AdminDialog"][data-slot="surface"] .gg-button-neutral.gg-button-stroke:hover,
-body:has(.admin-m3) [data-component="AdminSideSheet"][data-slot="surface"] .gg-button-secondary:hover,
-body:has(.admin-m3) [data-component="AdminSideSheet"][data-slot="surface"] .gg-button-neutral.gg-button-stroke:hover {
-  background: rgb(var(--m3-surface-container));
-  color: rgb(var(--m3-on-surface));
-}
-
-.admin-m3 .gg-button-ghost,
-.admin-m3 .gg-button-neutral.gg-button-ghost,
-.admin-m3 .gg-button-primary.gg-button-ghost,
-body:has(.admin-m3) [data-component="AdminDialog"][data-slot="surface"] .gg-button-ghost,
-body:has(.admin-m3) [data-component="AdminDialog"][data-slot="surface"] .gg-button-neutral.gg-button-ghost,
-body:has(.admin-m3) [data-component="AdminDialog"][data-slot="surface"] .gg-button-primary.gg-button-ghost,
-body:has(.admin-m3) [data-component="AdminSideSheet"][data-slot="surface"] .gg-button-ghost,
-body:has(.admin-m3) [data-component="AdminSideSheet"][data-slot="surface"] .gg-button-neutral.gg-button-ghost,
-body:has(.admin-m3) [data-component="AdminSideSheet"][data-slot="surface"] .gg-button-primary.gg-button-ghost {
-  background: transparent;
-  color: rgb(var(--tone-on-surface-accent, var(--m3-primary)));
-}
-
-.admin-m3 .gg-switch[data-surface="admin"] {
-  border-color: rgb(var(--m3-outline));
-  background: rgb(var(--m3-surface-container-highest));
-  box-shadow: inset 0 0 0 1px rgb(var(--m3-outline) / 0.18);
-}
-
-.admin-m3 .gg-switch[data-surface="admin"]:focus-visible {
-  box-shadow:
-    0 0 0 3px rgb(var(--tone-focus-ring, var(--m3-primary)) / 0.22),
-    inset 0 0 0 1px rgb(var(--m3-outline) / 0.18);
-}
-
-.admin-m3 .gg-switch[data-surface="admin"][data-state="checked"] {
-  border-color: rgb(var(--tone-action, var(--m3-primary)));
-  background: rgb(var(--tone-action, var(--m3-primary)));
-}
-
-.admin-m3 .gg-switch[data-surface="admin"] .gg-switch-thumb {
-  background: rgb(var(--m3-surface));
-}
-
-.admin-m3 .gg-switch[data-surface="admin"][data-state="checked"] .gg-switch-thumb {
-  background: rgb(var(--tone-on-action, var(--m3-on-primary)));
 }
 
 /* ============================================================================
@@ -159,9 +50,6 @@ body:has(.admin-m3) [data-component="AdminSideSheet"][data-slot="surface"] .gg-b
  * NOT `transform`. Because `translate` and `transform` compose, these keyframes
  * must NOT re-bake translate(-50%, …) into `transform`, or centered variants
  * would translate twice and land off-center.
- *
- * Replaces the prior dead Tailwind animate, slide-in, and zoom classes
- * (tailwindcss-animate is not loaded in this build, so they emitted no CSS).
  * ============================================================================ */
 
 /* Mobile bottom sheet — slide up from below, 2% overshoot for spring feel.
@@ -298,18 +186,8 @@ body:has(.admin-m3) [data-component="AdminSideSheet"][data-slot="surface"] .gg-b
   background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%230C0A09%22%20stroke-width%3D%223%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M20%206L9%2017l-5-5%22%2F%3E%3C%2Fsvg%3E");
 }
 
-/* Content lists/cards within MainSheet — solid surface-container-low */
-.admin-m3 .canvas-area-main .glass-raised {
-  backdrop-filter: none;
-  -webkit-backdrop-filter: none;
-  background: rgb(var(--m3-surface-container-low));
-}
-
-/* ============================================================================
- * AdminCard — solid content material
- * Route color stays on the workspace canvas and action/focus roles. Dense
- * cards remain neutral so dark mode does not become a full-page color wash.
- * ============================================================================ */
+/* AdminCard — content stacking above the (transparent) decorative layer so
+ * card children never paint under a future surface treatment. */
 .admin-m3 [data-component="AdminCard"]::before {
   content: "";
   position: absolute;
