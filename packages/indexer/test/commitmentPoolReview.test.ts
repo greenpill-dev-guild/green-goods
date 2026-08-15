@@ -5,10 +5,12 @@ import {
   handleCommitmentCreated,
   handleCommitmentTerms,
 } from "../src/handlers/commitment-pool-creation";
+import { handleContributorEvent } from "../src/handlers/commitment-pool-contributors";
 import { handleLifecycle } from "../src/handlers/commitment-pool-lifecycle";
 import { sortedUnique } from "../src/handlers/commitment-pool-projections";
 import {
   eventType,
+  firstExplicitActor,
   type PoolingContext,
   type RuntimeEvent,
 } from "../src/handlers/commitment-pool-runtime";
@@ -140,6 +142,31 @@ describe("Commitment Pooling review regressions", () => {
 
     const audit = (await db.CommitmentEvent.getAll()).find((row) => row.eventType === "CREATED");
     assert.equal(audit?.actor, address(8).toLowerCase());
+  });
+
+  it("attributes evidence and assessment audits to the emitted attacher", () => {
+    const evidence = CommitmentPoolingModule.EvidenceAttached.createMockEvent({
+      commitmentId: 39n,
+      cid: "ipfs://evidence",
+      attacher: address(8),
+      creditedContributors: [],
+      mockEventData: eventData(START_BLOCK + 3),
+    });
+    const assessment = CommitmentPoolingModule.AssessmentAttached.createMockEvent({
+      commitmentId: 39n,
+      assessmentUID: hash(39),
+      attacher: address(8),
+      mockEventData: eventData(START_BLOCK + 4),
+    });
+
+    assert.equal(
+      firstExplicitActor(runtimeEvent(evidence, "EvidenceAttached")),
+      address(8).toLowerCase()
+    );
+    assert.equal(
+      firstExplicitActor(runtimeEvent(assessment, "AssessmentAttached")),
+      address(8).toLowerCase()
+    );
   });
 
   it("backfills consideration rail without regressing a newer payment receipt", async () => {
@@ -314,12 +341,6 @@ describe("Commitment Pooling review regressions", () => {
         mockEventData: eventData(START_BLOCK + 4),
       }),
       CommitmentPoolingModule.WorkUnlinked.createMockEvent({
-        commitmentId: 44n,
-        workUID,
-        unlinker: address(4),
-        mockEventData: eventData(START_BLOCK + 5),
-      }),
-      CommitmentPoolingModule.WorkUnlinked.createMockEvent({
         commitmentId: 45n,
         workUID,
         unlinker: address(5),
@@ -339,17 +360,139 @@ describe("Commitment Pooling review regressions", () => {
       runtimeEvent(linkToSecond, "WorkLinked"),
       db as unknown as PoolingContext
     );
+    await handleWorkEvent(
+      runtimeEvent(
+        CommitmentPoolingModule.WorkUnlinked.createMockEvent({
+          commitmentId: 44n,
+          workUID,
+          unlinker: address(4),
+          mockEventData: eventData(START_BLOCK + 5),
+        }),
+        "WorkUnlinked"
+      ),
+      db as unknown as PoolingContext
+    );
 
     const attribution = await db.CommitmentWorkAttribution.get(`${CHAIN_ID}-${workUID}`);
+    const first = await db.Commitment.get(`${CHAIN_ID}-44`);
     const second = await db.Commitment.get(`${CHAIN_ID}-45`);
     const pool = await db.CommitmentPool.get(`${CHAIN_ID}-7`);
+    const firstContributor = await db.CommitmentContributor.get(
+      `${CHAIN_ID}-44-${address(4).toLowerCase()}`
+    );
     assert.equal(attribution?.commitmentId, 45n);
     assert.equal(attribution?.contributor, address(5).toLowerCase());
     assert.equal(attribution?.linked, false);
     assert.equal(attribution?.linkLifecycleBlockNumber, BigInt(START_BLOCK + 7));
     assert.equal(attribution?.linkPayloadBlockNumber, BigInt(START_BLOCK + 6));
+    assert.deepEqual(first?.workUIDs, []);
     assert.deepEqual(second?.workUIDs, []);
+    assert.equal(firstContributor?.uncountedLinkedWorkCount, 0);
     assert.equal(pool?.workLinkedCount, 0n);
+  });
+
+  it("moves active Work membership when a relink arrives before the prior unlink", async () => {
+    const workUID = hash(450);
+    let db = await processEvents(createTestIndexer(), [
+      poolRegistered(START_BLOCK),
+      cycleSeeded(START_BLOCK + 1),
+      commitmentCreated(44n, START_BLOCK + 2),
+      commitmentCreated(45n, START_BLOCK + 3),
+      CommitmentPoolingModule.WorkLinked.createMockEvent({
+        commitmentId: 44n,
+        workUID,
+        contributor: address(4),
+        requirementIndex: 0n,
+        linker: address(4),
+        operationKey: hash(451),
+        mockEventData: eventData(START_BLOCK + 4),
+      }),
+    ]);
+    await handleWorkEvent(
+      runtimeEvent(
+        CommitmentPoolingModule.WorkLinked.createMockEvent({
+          commitmentId: 45n,
+          workUID,
+          contributor: address(5),
+          requirementIndex: 0n,
+          linker: address(5),
+          operationKey: hash(452),
+          mockEventData: eventData(START_BLOCK + 6),
+        }),
+        "WorkLinked"
+      ),
+      db as unknown as PoolingContext
+    );
+    await handleWorkEvent(
+      runtimeEvent(
+        CommitmentPoolingModule.WorkUnlinked.createMockEvent({
+          commitmentId: 44n,
+          workUID,
+          unlinker: address(4),
+          mockEventData: eventData(START_BLOCK + 5),
+        }),
+        "WorkUnlinked"
+      ),
+      db as unknown as PoolingContext
+    );
+
+    const first = await db.Commitment.get(`${CHAIN_ID}-44`);
+    const second = await db.Commitment.get(`${CHAIN_ID}-45`);
+    const firstContributor = await db.CommitmentContributor.get(
+      `${CHAIN_ID}-44-${address(4).toLowerCase()}`
+    );
+    const secondContributor = await db.CommitmentContributor.get(
+      `${CHAIN_ID}-45-${address(5).toLowerCase()}`
+    );
+    const pool = await db.CommitmentPool.get(`${CHAIN_ID}-7`);
+    assert.deepEqual(first?.workUIDs, []);
+    assert.deepEqual(second?.workUIDs, [workUID]);
+    assert.equal(firstContributor?.uncountedLinkedWorkCount, 0);
+    assert.equal(secondContributor?.uncountedLinkedWorkCount, 1);
+    assert.equal(pool?.workLinkedCount, 1n);
+  });
+
+  it("retains a reverse-delivered removal without regressing active membership", async () => {
+    let db = await processEvents(createTestIndexer(), [
+      poolRegistered(START_BLOCK),
+      cycleSeeded(START_BLOCK + 1),
+      commitmentCreated(48n, START_BLOCK + 2),
+      CommitmentPoolingModule.ContributorAdded.createMockEvent({
+        commitmentId: 48n,
+        contributor: address(6),
+        addedBy: address(2),
+        mockEventData: eventData(START_BLOCK + 4),
+      }),
+      CommitmentPoolingModule.ContributorAdded.createMockEvent({
+        commitmentId: 48n,
+        contributor: address(6),
+        addedBy: address(3),
+        mockEventData: eventData(START_BLOCK + 6),
+      }),
+    ]);
+    await handleContributorEvent(
+      runtimeEvent(
+        CommitmentPoolingModule.ContributorRemoved.createMockEvent({
+          commitmentId: 48n,
+          contributor: address(6),
+          removedBy: address(4),
+          mockEventData: eventData(START_BLOCK + 5),
+        }),
+        "ContributorRemoved"
+      ),
+      db as unknown as PoolingContext
+    );
+
+    const contributor = await db.CommitmentContributor.get(
+      `${CHAIN_ID}-48-${address(6).toLowerCase()}`
+    );
+    const commitment = await db.Commitment.get(`${CHAIN_ID}-48`);
+    assert.equal(contributor?.active, true);
+    assert.equal(contributor?.membershipBlockNumber, BigInt(START_BLOCK + 6));
+    assert.equal(contributor?.removedBy, address(4).toLowerCase());
+    assert.equal(contributor?.removedAt, START_BLOCK + 5);
+    assert.equal(contributor?.removalBlockNumber, BigInt(START_BLOCK + 5));
+    assert.equal(commitment?.contributorCount, 1);
   });
 
   it("reconciles child identity, registry materialization, and a blocked pool close", async () => {
@@ -622,8 +765,72 @@ describe("Commitment Pooling review regressions", () => {
     assert.equal((await db.Commitment.get(`${CHAIN_ID}-36`))?.state, "DISPUTED");
     assert.equal(claim?.state, "SUPERSEDED");
     assert.equal(claim?.resolutionCode, "COMMITMENT_EXPIRED");
+    assert.equal(claim?.resolvedAt, START_BLOCK + 6);
     assert.equal(lateClaim?.state, "SUPERSEDED");
     assert.equal(lateClaim?.resolutionCode, "COMMITMENT_EXPIRED");
+    assert.equal(lateClaim?.resolvedAt, START_BLOCK + 6);
+  });
+
+  it("timestamps late claims from their acceptance or cancellation milestone", async () => {
+    let acceptedDb = await processEvents(createTestIndexer(), [
+      poolRegistered(START_BLOCK),
+      cycleSeeded(START_BLOCK + 1),
+      commitmentCreated(46n, START_BLOCK + 2, 1n),
+      accepted(46n, START_BLOCK + 6),
+    ]);
+    await handleClaimEvent(
+      runtimeEvent(
+        CommitmentPoolingModule.ClaimRequested.createMockEvent({
+          commitmentId: 46n,
+          claimant: address(3),
+          requestedBy: address(3),
+          kind: 1n,
+          gardenContext: address(4),
+          requestedAt: 100n,
+          mockEventData: eventData(START_BLOCK + 4),
+        }),
+        "ClaimRequested"
+      ),
+      acceptedDb as unknown as PoolingContext
+    );
+    const acceptedClaim = await acceptedDb.CommitmentClaimRequest.get(
+      `${CHAIN_ID}-46-${address(3).toLowerCase()}`
+    );
+    assert.equal(acceptedClaim?.state, "ACCEPTED");
+    assert.equal(acceptedClaim?.resolvedAt, START_BLOCK + 6);
+
+    let cancelledDb = await processEvents(createTestIndexer(), [
+      poolRegistered(START_BLOCK),
+      cycleSeeded(START_BLOCK + 1),
+      commitmentCreated(47n, START_BLOCK + 2, 1n),
+      CommitmentPoolingModule.CommitmentCancelled.createMockEvent({
+        commitmentId: 47n,
+        canceller: address(2),
+        reasonCID: "ipfs://cancelled",
+        mockEventData: eventData(START_BLOCK + 7),
+      }),
+    ]);
+    await handleClaimEvent(
+      runtimeEvent(
+        CommitmentPoolingModule.ClaimRequested.createMockEvent({
+          commitmentId: 47n,
+          claimant: address(8),
+          requestedBy: address(8),
+          kind: 1n,
+          gardenContext: address(9),
+          requestedAt: 100n,
+          mockEventData: eventData(START_BLOCK + 4),
+        }),
+        "ClaimRequested"
+      ),
+      cancelledDb as unknown as PoolingContext
+    );
+    const cancelledClaim = await cancelledDb.CommitmentClaimRequest.get(
+      `${CHAIN_ID}-47-${address(8).toLowerCase()}`
+    );
+    assert.equal(cancelledClaim?.state, "SUPERSEDED");
+    assert.equal(cancelledClaim?.resolutionCode, "COMMITMENT_CANCELLED");
+    assert.equal(cancelledClaim?.resolvedAt, START_BLOCK + 7);
   });
 
   it("applies every signed unit delta and refreshes ownership on a winning relink", async () => {

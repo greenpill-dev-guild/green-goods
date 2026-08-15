@@ -160,6 +160,7 @@ async function applyPendingProjection(
       counterpartyKind: projection.claimType,
       acceptanceBlockNumber: projection.blockNumber,
       acceptanceLogIndex: projection.logIndex,
+      acceptanceAt: projection.updatedAt,
     };
   } else if (projection.eventType === "READY_FOR_CONFIRMATION") {
     patch = { readyOverridden: projection.overridden ?? false };

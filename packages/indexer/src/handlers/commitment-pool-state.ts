@@ -205,6 +205,12 @@ export async function applyLifecycleState(
     ? {
         ...commitment,
         countedLifecycleStates: sortedUnique([...commitment.countedLifecycleStates, nextState]),
+        cancelledAt:
+          nextState === "CANCELLED"
+            ? (commitment.cancelledAt ?? timestamp)
+            : commitment.cancelledAt,
+        expiredAt:
+          nextState === "EXPIRED" ? (commitment.expiredAt ?? timestamp) : commitment.expiredAt,
         updatedAt: Math.max(commitment.updatedAt, timestamp),
       }
     : commitment;

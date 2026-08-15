@@ -821,8 +821,11 @@ type Commitment {
   preDisputeState: CommitmentOnchainState
   acceptanceBlockNumber: BigInt # immutable CommitmentAccepted event position
   acceptanceLogIndex: Int
+  acceptanceAt: Int # exact CommitmentAccepted timestamp; retained even when a newer lifecycle state wins
   lifecycleBlockNumber: BigInt # latest state-derived projection cursor
   lifecycleLogIndex: Int # nullable partner; compare the pair lexicographically
+  cancelledAt: Int # exact first CANCELLED milestone timestamp, including dispute resolution
+  expiredAt: Int # exact first EXPIRED milestone timestamp, including dispute resolution
   disputeReasonCID: String
   cancelReasonCID: String
   createdAt: Int # CommitmentCreated timestamp; null until creationSeen
@@ -864,6 +867,8 @@ type CommitmentContributor {
   recognitionWeightBps: Int
   membershipBlockNumber: BigInt # nullable latest ContributorAdded/ContributorRemoved cursor
   membershipLogIndex: Int
+  removalBlockNumber: BigInt # latest ContributorRemoved-owned provenance position
+  removalLogIndex: Int # nullable partner to removalBlockNumber; compare the pair lexicographically
   addedBy: String # null until additionSeen
   addedAt: Int # null until additionSeen
   removedBy: String

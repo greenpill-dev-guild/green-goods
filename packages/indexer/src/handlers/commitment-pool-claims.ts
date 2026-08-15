@@ -126,7 +126,19 @@ export async function handleClaimEvent(
       ? Number(value<bigint>(event, "requestedAt"))
       : existing?.requestedAt,
     resolvedAt:
-      nextState === "PENDING" ? undefined : (existing?.resolvedAt ?? event.block.timestamp),
+      nextState === "PENDING"
+        ? undefined
+        : (existing?.resolvedAt ??
+          (nextState === "ACCEPTED"
+            ? commitment.acceptanceAt
+            : nextState === "SUPERSEDED"
+              ? terminalIsNewer
+                ? terminalResolutionCode === "COMMITMENT_CANCELLED"
+                  ? commitment.cancelledAt
+                  : commitment.expiredAt
+                : commitment.acceptanceAt
+              : undefined) ??
+          event.block.timestamp),
     updatedAt: Math.max(existing?.updatedAt ?? 0, event.block.timestamp),
   };
   context.CommitmentClaimRequest.set(request);
@@ -269,6 +281,7 @@ export async function handleAccepted(event: RuntimeEvent, context: PoolingContex
       counterpartyKind: commitmentClaimType(value<bigint>(event, "kind")),
       acceptanceBlockNumber: BigInt(event.block.number),
       acceptanceLogIndex: event.logIndex,
+      acceptanceAt: event.block.timestamp,
     }
   );
   if (!accepted.acceptanceSeen) {
@@ -284,6 +297,7 @@ export async function handleAccepted(event: RuntimeEvent, context: PoolingContex
       counterpartyKind: commitmentClaimType(value<bigint>(event, "kind")),
       acceptanceBlockNumber: BigInt(event.block.number),
       acceptanceLogIndex: event.logIndex,
+      acceptanceAt: event.block.timestamp,
       updatedAt: Math.max(accepted.updatedAt, event.block.timestamp),
     };
     context.Commitment.set(accepted);

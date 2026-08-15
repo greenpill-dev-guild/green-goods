@@ -106,8 +106,28 @@ export async function handleContributorEvent(
     existing.membershipBlockNumber,
     existing.membershipLogIndex
   );
+  const removalWins =
+    !adding &&
+    cursorWins(
+      event.block.number,
+      event.logIndex,
+      existing.removalBlockNumber,
+      existing.removalLogIndex
+    );
   if (!membershipWins) {
-    if (!adding || existing.additionSeen) return;
+    if (!adding) {
+      if (!removalWins) return;
+      context.CommitmentContributor.set({
+        ...existing,
+        removedBy: normalizeAddress(value<string>(event, "removedBy")),
+        removedAt: event.block.timestamp,
+        removalBlockNumber: BigInt(event.block.number),
+        removalLogIndex: event.logIndex,
+        updatedAt: Math.max(existing.updatedAt, event.block.timestamp),
+      });
+      return;
+    }
+    if (existing.additionSeen) return;
     context.CommitmentContributor.set({
       ...existing,
       additionSeen: true,
@@ -133,8 +153,12 @@ export async function handleContributorEvent(
     membershipLogIndex: event.logIndex,
     addedBy: adding ? normalizeAddress(value<string>(event, "addedBy")) : existing.addedBy,
     addedAt: adding ? (existing.addedAt ?? event.block.timestamp) : existing.addedAt,
-    removedBy: adding ? existing.removedBy : normalizeAddress(value<string>(event, "removedBy")),
-    removedAt: adding ? existing.removedAt : event.block.timestamp,
+    removedBy: removalWins
+      ? normalizeAddress(value<string>(event, "removedBy"))
+      : existing.removedBy,
+    removedAt: removalWins ? event.block.timestamp : existing.removedAt,
+    removalBlockNumber: removalWins ? BigInt(event.block.number) : existing.removalBlockNumber,
+    removalLogIndex: removalWins ? event.logIndex : existing.removalLogIndex,
     updatedAt: Math.max(existing.updatedAt, event.block.timestamp),
   } satisfies CommitmentContributor;
   context.CommitmentContributor.set(updatedContributor);

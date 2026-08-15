@@ -22,6 +22,49 @@ import { applyUnitSummaryDeltas } from "./commitment-pool-unit-summary";
 import { reconcileCommitmentHypercerts } from "./hypercert-allocations";
 import { normalizeAddress } from "./shared";
 
+async function reconcileWorkMembership(
+  event: RuntimeEvent,
+  context: PoolingContext,
+  commitmentId: bigint,
+  contributor: string | undefined,
+  workUID: string,
+  linked: boolean,
+  creditActive: boolean
+): Promise<void> {
+  const commitment = await getCommitment(event, context, commitmentId);
+  const hasWork = commitment.workUIDs.includes(workUID);
+  if (hasWork === linked) return;
+  const membershipDelta = linked ? 1 : -1;
+  context.Commitment.set({
+    ...commitment,
+    workUIDs: linked
+      ? sortedUnique([...commitment.workUIDs, workUID])
+      : commitment.workUIDs.filter((candidate) => candidate !== workUID),
+    updatedAt: Math.max(commitment.updatedAt, event.block.timestamp),
+  });
+  if (commitment.poolId !== undefined) {
+    const pool = await getPool(event, context, commitment.poolId);
+    const nextWorkLinkedCount = pool.workLinkedCount + BigInt(membershipDelta);
+    context.CommitmentPool.set({
+      ...pool,
+      workLinkedCount: nextWorkLinkedCount < 0n ? 0n : nextWorkLinkedCount,
+      updatedAt: Math.max(pool.updatedAt, event.block.timestamp),
+    });
+  }
+  if (contributor === undefined) return;
+  const contributorId = commitmentMemberId(event.chainId, commitmentId, contributor);
+  const contributorRow =
+    (await context.CommitmentContributor.get(contributorId)) ??
+    createContributor(event.chainId, commitmentId, contributor, event.block.timestamp);
+  const uncountedDelta = creditActive ? 0 : membershipDelta;
+  context.CommitmentContributor.set({
+    ...contributorRow,
+    uncountedLinkedWorkCount: Math.max(0, contributorRow.uncountedLinkedWorkCount + uncountedDelta),
+    updatedAt: Math.max(contributorRow.updatedAt, event.block.timestamp),
+  });
+  await addContributorToIndex(event, context, commitmentId, contributorId);
+}
+
 export async function handleWorkEvent(event: RuntimeEvent, context: PoolingContext): Promise<void> {
   const commitmentId = value<bigint>(event, "commitmentId");
   const workUID = value<string>(event, "workUID").toLowerCase();
@@ -68,6 +111,18 @@ export async function handleWorkEvent(event: RuntimeEvent, context: PoolingConte
           updatedAt: Math.max(existing.updatedAt, event.block.timestamp),
         }
       : existing;
+    const ownerChanged = payloadWins && existing.linkSeen && existing.commitmentId !== commitmentId;
+    if (ownerChanged) {
+      await reconcileWorkMembership(
+        event,
+        context,
+        existing.commitmentId,
+        existing.contributor,
+        workUID,
+        false,
+        existing.creditActive
+      );
+    }
     if (!linkWins) {
       if (!payloadWins) return;
       context.CommitmentWorkAttribution.set(baseAttribution);
@@ -95,41 +150,15 @@ export async function handleWorkEvent(event: RuntimeEvent, context: PoolingConte
       updatedAt: Math.max(existing.updatedAt, event.block.timestamp),
     } satisfies CommitmentWorkAttribution;
     context.CommitmentWorkAttribution.set(updatedAttribution);
-    const linkDelta = existing.linked === linking ? 0 : linking ? 1 : -1;
-    const commitment = await getCommitment(event, context, commitmentId);
-    const updatedCommitment = {
-      ...commitment,
-      workUIDs: linking
-        ? sortedUnique([...commitment.workUIDs, workUID])
-        : commitment.workUIDs.filter((candidate) => candidate !== workUID),
-      updatedAt: Math.max(commitment.updatedAt, event.block.timestamp),
-    } satisfies Commitment;
-    context.Commitment.set(updatedCommitment);
-    if (commitment.poolId !== undefined && linkDelta !== 0) {
-      const pool = await getPool(event, context, commitment.poolId);
-      const nextWorkLinkedCount = pool.workLinkedCount + BigInt(linkDelta);
-      context.CommitmentPool.set({
-        ...pool,
-        workLinkedCount: nextWorkLinkedCount < 0n ? 0n : nextWorkLinkedCount,
-        updatedAt: Math.max(pool.updatedAt, event.block.timestamp),
-      });
-    }
-    if (contributor && linkDelta !== 0) {
-      const contributorId = commitmentMemberId(event.chainId, commitmentId, contributor);
-      const contributorRow =
-        (await context.CommitmentContributor.get(contributorId)) ??
-        createContributor(event.chainId, commitmentId, contributor, event.block.timestamp);
-      const uncountedDelta = updatedAttribution.creditActive ? 0 : linkDelta;
-      context.CommitmentContributor.set({
-        ...contributorRow,
-        uncountedLinkedWorkCount: Math.max(
-          0,
-          contributorRow.uncountedLinkedWorkCount + uncountedDelta
-        ),
-        updatedAt: Math.max(contributorRow.updatedAt, event.block.timestamp),
-      });
-      await addContributorToIndex(event, context, commitmentId, contributorId);
-    }
+    await reconcileWorkMembership(
+      event,
+      context,
+      commitmentId,
+      contributor,
+      workUID,
+      linking,
+      updatedAttribution.creditActive
+    );
     return;
   }
   const sequence = value<bigint>(event, "decisionSequence");
