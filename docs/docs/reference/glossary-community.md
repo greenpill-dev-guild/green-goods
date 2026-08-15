@@ -54,16 +54,23 @@ The 10 entities the system tracks. Use the canonical form in code (types, hooks,
 | **Vault** | entity | admin · client · public · docs | The garden's treasury. Funders deposit; the garden's Tokenbound Account holds; yield splits flow to operators / gardeners / community per configured ratios. |
 | **Cookie Jar** | entity | admin · client · public · docs | A garden-scoped emergency or discretionary fund with rate-limited withdrawals. Allowlisted members can claim within the configured cap. |
 | **Attestation** | entity | admin · client · public · docs | An EAS (Ethereum Attestation Service) record. Used for Work submissions, Assessment outcomes, and other off-chain-verifiable claims. |
-| **Hat** | entity | admin · client · public · docs | A Hats Protocol role token. Determines on-chain authority — operator hats can approve Work; gardener hats can submit Work; evaluator hats can attest. |
+| **Hat** | entity | admin · client · public · docs | A Hats Protocol role token. Determines on-chain authority — operator hats approve Work, gardener hats submit Work, evaluator hats author Assessments. Work review is never the evaluator's job. |
 | **Season** | entity | admin · client · agent · public · docs | A bounded period (typically a quarter) during which a garden runs a coordinated set of Actions and Assessments. Pacing primitive — never a countdown. |
 
 ### Planned Commitment Pooling entities
 
-These terms are `spec`, not live product claims. They are included here so plans, prototypes, and implementation handoffs use the same language, but they are not part of the live ten-entity table above.
+These terms are `spec` in the ontology sidecar: the contracts behind them are live on Arbitrum, but no in-app surface exists yet, so they are not part of the live ten-entity table above. Plans, prototypes, and implementation handoffs use this same language.
 
+- **Commitment Pool**: a garden-anchored container that registers, curates, and reconciles commitments under a charter — one pool per garden, holding promises, never funds. Not a Gardens V2 signal pool.
+- **Commitment Cycle**: a bounded run of a pool — a Season or a shorter campaign — that gives reconciliation a clear close. A pool's Season cycle is the on-chain form of the garden's existing Season, not a second kind of Season.
+- **Commitment Series**: one durable identity for an offer used over time ("offer over time"), so a repeated offer is set up once and reused; zero means "offer once".
 - **Commitment**: a promise with one accountable lead, an optional contributor team, repeatable requirements, evidence or Work, and direction-aware confirmation.
 - **Commitment Contributor**: a person on a commitment's roster whose approved Work or confirmed evidence can earn Hypercert recognition and a contributor payout; one roster member is the accountable lead.
 - **Commitment Payout Plan**: a garden-managed split of a fulfilled commitment's declared support into an explicit garden-retained amount and contributor child payouts. Its complete recognition vector is hash-bound, payment weights derive from amounts, and explicit finalization freezes it before dispatch.
+
+### Planned Community Needs entities
+
+- **Need**: a community-authored problem statement paired with a mandatory desired outcome, recorded against the garden. A Need has no request/offer direction — direction belongs to the commitment that answers it. Architecture is locked; nothing is deployed or user-visible yet.
 
 For planned pooled commitments, recognition and payment are related but distinct. Hypercert gardener shares record contribution to impact. Within each fulfilled commitment, 20% is shared equally among eligible contributors and 80% follows verified contribution; zero eligible contributors block certificate expansion rather than defaulting to the lead. Recognition seeds a payout plan, while the garden may retain an explicit amount and a steward may change the atomic amount vector only with a stored reason when the derived payment weights diverge. Finalization proves conservation before any child dispatch.
 
@@ -77,7 +84,7 @@ The 5 people Green Goods serves. Use the canonical form in copy, design prompts,
 |------|------|------------------|------------|
 | **Gardener** | persona | admin · client · agent · public · docs | A person doing regenerative Work in a garden. Submits Work, holds gardener Hats, receives credit toward Hypercerts and yield splits. |
 | **Operator** | persona | admin · client · agent · public · docs | A person who runs a garden — creates Actions, approves Work, configures Vault and Hat hierarchy. Holds operator Hats. |
-| **Evaluator** | persona | admin · client · public · docs | A person who verifies submitted Work, makes Assessments, and attests impact. Often domain experts (botanists, soil scientists, community elders). |
+| **Evaluator** | persona | admin · client · public · docs | A person who authors garden Assessments — baselines, targets, and scored outcomes — and certifies impact. Often domain experts (botanists, soil scientists, community elders). Reviewing and approving Work is the operator's job, not the evaluator's. |
 | **Funder** | persona | admin · client · public · docs | A person or org who deposits into a garden's Vault, holds Hypercert fractions, receives yield distributions per configured splits. |
 | **Community Member** | persona | client · public · docs | A local resident affected by a Garden's Work. Signals or attests that Work exists and is healthy, and helps prioritize future Actions through public signal and conviction flows. |
 
@@ -223,7 +230,7 @@ Green Goods assessments track impact across all eight capitals.
 > The numbering above is presentational. The canonical machine ordering is the `Capital` enum: Social (0), Material (1), Financial (2), Living (3), Intellectual (4), Experiential (5), Spiritual (6), Cultural (7).
 
 ### Evaluator
-Impact assessors who verify work quality, create garden assessments, and certify impact across the Eight Forms of Capital. Evaluators ensure that reported work meets quality standards and provide the trust layer between field operations and funding.
+Impact assessors who author garden assessments and certify impact across the Eight Forms of Capital. Evaluators set the baselines and success criteria that frame a season's work and score its outcomes; reviewing and approving submitted Work is the operator's job.
 
 ### Funder
 Capital allocators who deposit into Octant Vaults, purchase Hypercerts, and contribute to funding flows that sustain garden operations. Funders support regenerative work through yield-generating deposits and direct impact investment.
@@ -300,10 +307,10 @@ A smart contract-based wallet that enables gasless transactions, social recovery
 A garden's long-term treasury, powered by Octant. Funders deposit assets that stay in place as principal, and the yield those assets generate is harvested and split to support operators, gardeners, and community initiatives. Depositors can withdraw their principal later; see [Endow a Garden](/community/funder-guide/funding-a-garden) for how it works.
 
 ### Work
-A specific instance of an [Action](#action) performed by a gardener, captured with photos, a description, and metrics, then submitted for review. Approved Work becomes a permanent on-chain attestation. Work is the umbrella term; [Work Submission](#work-submission) and [Work Approval](#work-approval) are its two halves.
+A specific instance of an [Action](#action) performed by a gardener, captured with photos, a description, and metrics. Work is recorded as a permanent on-chain attestation the moment it is submitted; operator review then adds a separate, linked [Work Approval](#work-approval) attestation. Work is the umbrella term; [Work Submission](#work-submission) and [Work Approval](#work-approval) are its two halves.
 
 ### Work Approval
-The validation process where operators review gardener work submissions and either approve or reject them with constructive feedback. Approved work creates on-chain attestations that serve as permanent, verifiable records of impact. Approvals trigger Karma GAP impact attestations automatically.
+The validation step where operators review submitted work and either approve or reject it with constructive feedback. The approval is its own on-chain attestation, linked to the work it reviews — it never creates the work record, which already exists from submission. Karma GAP reporting is module-driven and currently manual (a linked project UID), not automatic.
 
 ### Work Submission
-Documentation of completed regenerative work submitted by a gardener. Work submissions follow the MDR workflow and include before/after photos, task details, metrics, and metadata. Submissions are stored in IPFS and referenced on-chain via EAS attestations once approved.
+Documentation of completed regenerative work submitted by a gardener. Work submissions follow the MDR workflow and include before/after photos, task details, metrics, and metadata. Media is stored in IPFS and the submission is recorded on-chain via an EAS attestation immediately — before, not after, review.

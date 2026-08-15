@@ -286,7 +286,7 @@ export interface ActionCard {
   instructions?: string;
   capitals: Capital[];
   media: string[];
-  domain: Domain;
+  domain: Domain | null; // null = unrecognized indexer domain — render "Other", never coerce
   createdAt: number;
 }
 

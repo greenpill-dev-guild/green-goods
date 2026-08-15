@@ -107,7 +107,7 @@ export function usePublicImpactEvidence(options: UsePublicImpactEvidenceOptions 
       // Action ids in the indexer are chainId-prefixed (`${chainId}-${actionUID}`)
       // so we can't match Work.actionUID directly — the lookup key has to be
       // assembled the same way the indexer keys its rows.
-      const actionDomainByCompositeId = new Map<string, Domain>(
+      const actionDomainByCompositeId = new Map<string, Domain | null>(
         actions.map((action) => [action.id, action.domain])
       );
 
@@ -159,7 +159,9 @@ export function usePublicImpactEvidence(options: UsePublicImpactEvidenceOptions 
           gardenId: gardenContext.id,
           gardenName: gardenContext.name,
           title: work.title,
-          domain: actionDomainByCompositeId.get(`${chainId}-${work.actionUID}`),
+          // Unknown domains surface as undefined here — the /impact domain filters
+          // then exclude the record from named-domain tabs while "All" keeps it.
+          domain: actionDomainByCompositeId.get(`${chainId}-${work.actionUID}`) ?? undefined,
           summary: work.feedback,
           media: work.media,
           easUid: work.id,

@@ -121,8 +121,8 @@ export interface EncodeWorkDataOptions {
   onFileProgress?: (progress: { completed: number; total: number; fileIndex: number }) => void;
   /** Batch ID for correlating upload events with submission errors */
   uploadBatchId?: string;
-  /** Domain for v2 metadata */
-  domain?: Domain;
+  /** Domain for v2 metadata; null (unknown domain) falls back to legacy v1 metadata rather than fabricating a domain */
+  domain?: Domain | null;
   /** Action slug for v2 metadata */
   actionSlug?: string;
 }
@@ -340,7 +340,8 @@ export async function encodeWorkData(
 
   // Upload metadata JSON (v2 if domain/slug provided, legacy otherwise)
   try {
-    const isV2 = options.domain !== undefined && options.actionSlug !== undefined;
+    const isV2 =
+      options.domain !== null && options.domain !== undefined && options.actionSlug !== undefined;
 
     const metadataPayload: WorkMetadata | Record<string, unknown> = isV2
       ? {

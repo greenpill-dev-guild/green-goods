@@ -5,7 +5,7 @@ slug: /reference/ontology.generated
 unlisted: false
 audience: developer
 owner: docs
-last_verified: 2026-08-02
+last_verified: 2026-08-15
 feature_status: Live
 source_of_truth:
   - packages/shared/src/ontology/green-goods-ontology.json
@@ -26,24 +26,27 @@ The formal specification of the Green Goods shared vocabulary: the entities the 
 
 ## Entities
 
-| Entity | Status | Definition | Layers |
+Maturity is the five-dimension capability projection (build · deploy · activate · index · in-app), not the internal `status` flag — `status` only tells the drift gate whether code representations are cross-checked. Legend: ✓ complete · ◐ partial · ⛔ blocked · ✗ not started · — not applicable.
+
+| Entity | Maturity | Definition | Layers |
 |---|---|---|---|
-| **Garden** | live | A community of gardeners rooted in a place, represented on-chain as an ERC-721 garden token whose ERC-6551 token-bound account holds the garden's treasury, role Hats, and metadata. | contracts · indexer (Garden) · shared · docs |
-| **Action** | live | A documented activity a gardener can perform — the unit of work template (e.g. "Plant native species", "Remove invasive growth"). | contracts · indexer (Action) · shared · docs |
-| **Work** | live | One documented instance of an Action performed by a gardener — media, notes, and metadata submitted as an EAS Work attestation for operator review; approval records a separate Work Approval attestation. | contracts · shared · docs |
-| **Assessment** | live | An up-front baseline and strategy for a garden — domain, diagnosis, SMART outcome targets, selected Actions, reporting period — authored by an evaluator or operator before work begins, mirrored to a Karma GAP milestone when that module is active; explicitly not a review of submitted Work (that is Work Approval). | contracts · shared · docs |
-| **Hypercert** | live | An on-chain claim of impact bundling approved Work into a fractional impact certificate. Funders hold fractions; gardeners hold contribution credit. | contracts · indexer (Hypercert) · shared · docs |
-| **Vault** | live | The garden's treasury. Funders deposit; the garden's Tokenbound Account holds; yield splits flow to operators / gardeners / community per configured ratios. | contracts · indexer (GardenVault) · shared · docs |
-| **Cookie Jar** | live | A garden-scoped emergency or discretionary fund with rate-limited withdrawals. Allowlisted members can claim within the configured cap. | contracts · indexer (CampaignCookieJar) · shared · docs |
-| **Attestation** | live | An EAS (Ethereum Attestation Service) record. Used for Work submissions, Assessment outcomes, and other off-chain-verifiable claims. | contracts · shared · docs |
-| **Hat** | live | A Hats Protocol role token. Determines on-chain authority — operator hats can approve Work; gardener hats can submit Work; evaluator hats can attest. | contracts · indexer (Garden) · shared · docs |
-| **Season** | live | A bounded period (typically a quarter) during which a garden runs a coordinated set of Actions and Assessments. Pacing primitive — never a countdown. | docs |
-| **Commitment Pool** | spec | A garden-anchored (or protocol root-garden) pool that registers, curates, and reconciles commitments under a charter. | spec |
-| **Commitment Cycle** | spec | A bounded run of a pool — a Season or Campaign — seeded with timing and an immutable six-role allocation snapshot at open. | spec |
-| **Commitment Series** | spec | The internal durable, pool-scoped identity for one Offer used over time. It groups ordinary Offer instances without creating obligations automatically, merging history across pools, or becoming a separate product noun. | spec |
-| **Commitment** | spec | A module-native promise record (offer or request) with one accountable lead, an optional contributor roster, repeatable action requirements, direction-aware confirmation, unit accounting in a non-transferable register, and evidence/work linkage — deliberately not an EAS attestation. | spec |
-| **Commitment Contributor** | spec | A person on a commitment's roster whose approved Work or confirmed evidence can earn Hypercert recognition and a contributor payout; one roster member is the accountable lead. | spec |
-| **Commitment Payout Plan** | spec | A garden-managed split of a fulfilled commitment's declared support into an explicit garden-retained amount and contributor child payouts. Its complete recognition vector is hash-bound, payment weights derive from amounts, and explicit finalization freezes it before dispatch. | spec |
+| **Garden** | build ✓ · deploy ✓ · active ✓ · indexed ✓ · in-app ✓ | A community of gardeners rooted in a place, represented on-chain as an ERC-721 garden token whose ERC-6551 token-bound account holds the garden's treasury, role Hats, and metadata. | contracts · indexer (Garden) · shared · docs |
+| **Action** | build ✓ · deploy ✓ · active ✓ · indexed ✓ · in-app ✓ | A documented activity a gardener can perform — the unit of work template (e.g. "Plant native species", "Remove invasive growth"). | contracts · indexer (Action) · shared · docs |
+| **Work** | build ✓ · deploy ✓ · active ✓ · indexed ◐ · in-app ✓ | One documented instance of an Action performed by a gardener — media, notes, and metadata submitted as an EAS Work attestation for operator review; approval records a separate Work Approval attestation. | contracts · shared · docs |
+| **Assessment** | build ✓ · deploy ✓ · active ✓ · indexed ◐ · in-app ✓ | An up-front baseline and strategy for a garden — domain, diagnosis, SMART outcome targets, selected Actions, reporting period — authored by an evaluator or operator before work begins, mirrored to a Karma GAP milestone when that module is active; explicitly not a review of submitted Work (that is Work Approval). | contracts · shared · docs |
+| **Hypercert** | build ✓ · deploy ✓ · active ✓ · indexed ◐ · in-app ✓ | An on-chain claim of impact bundling approved Work into a fractional impact certificate. Funders hold fractions; gardeners hold contribution credit. | contracts · indexer (Hypercert) · shared · docs |
+| **Vault** | build ✓ · deploy ✓ · active ✓ · indexed ✓ · in-app ✓ | The garden's treasury. Funders deposit; the garden's Tokenbound Account holds; yield splits flow to operators / gardeners / community per configured ratios. | contracts · indexer (GardenVault) · shared · docs |
+| **Cookie Jar** | build ✓ · deploy ✓ · active ✓ · indexed ◐ · in-app ✓ | A garden-scoped emergency or discretionary fund with rate-limited withdrawals. Allowlisted members can claim within the configured cap. | contracts · indexer (CampaignCookieJar) · shared · docs |
+| **Attestation** | build ✓ · deploy ✓ · active ✓ · indexed ◐ · in-app ✓ | An EAS (Ethereum Attestation Service) record. Used for Work submissions, Assessment outcomes, and other off-chain-verifiable claims. | contracts · shared · docs |
+| **Hat** | build ✓ · deploy ✓ · active ✓ · indexed ✓ · in-app ✓ | A Hats Protocol role token. Determines on-chain authority — operator hats approve Work, gardener hats submit Work, evaluator hats author Assessments. Work review is never the evaluator's job. | contracts · indexer (Garden) · shared · docs |
+| **Season** | build ✗ · deploy — · active — · indexed — · in-app ◐ | A bounded period (typically a quarter) during which a garden runs a coordinated set of Actions and Assessments. Pacing primitive — never a countdown. | docs |
+| **Commitment Pool** | build ✓ · deploy ✓ · active ✓ · indexed ✗ · in-app ⛔ | A garden-anchored (or protocol root-garden) pool that registers, curates, and reconciles commitments under a charter. | spec |
+| **Commitment Cycle** | build ✓ · deploy ✓ · active ✓ · indexed ✗ · in-app ⛔ | A bounded run of a pool — a Season or Campaign — seeded with timing and an immutable six-role allocation snapshot at open. | spec |
+| **Commitment Series** | build ✓ · deploy ✓ · active ✓ · indexed ✗ · in-app ⛔ | The internal durable, pool-scoped identity for one Offer used over time. It groups ordinary Offer instances without creating obligations automatically, merging history across pools, or becoming a separate product noun. | spec |
+| **Commitment** | build ✓ · deploy ✓ · active ✓ · indexed ✗ · in-app ⛔ | A module-native promise record (offer or request) with one accountable lead, an optional contributor roster, repeatable action requirements, direction-aware confirmation, unit accounting in a non-transferable register, and evidence/work linkage — deliberately not an EAS attestation. | spec |
+| **Commitment Contributor** | build ✓ · deploy ✓ · active ✓ · indexed ✗ · in-app ⛔ | A person on a commitment's roster whose approved Work or confirmed evidence can earn Hypercert recognition and a contributor payout; one roster member is the accountable lead. | spec |
+| **Commitment Payout Plan** | build ✓ · deploy ✓ · active ⛔ · indexed ◐ · in-app ⛔ | A garden-managed split of a fulfilled commitment's declared support into an explicit garden-retained amount and contributor child payouts. Its complete recognition vector is hash-bound, payment weights derive from amounts, and explicit finalization freezes it before dispatch. | spec |
+| **Need** | build ✗ · deploy ✗ · active ✗ · indexed ✗ · in-app ✗ | A community-authored problem statement paired with a mandatory desired outcome, recorded as an immutable EAS attestation whose recipient is the garden. A Need has no request/offer direction — direction belongs to the commitment that answers it. | spec |
 
 ## Personas
 
@@ -51,7 +54,7 @@ The formal specification of the Green Goods shared vocabulary: the entities the 
 |---|---|---|
 | **Gardener** | gardener | A person doing regenerative Work in a garden. Submits Work, holds gardener Hats, receives credit toward Hypercerts and yield splits. |
 | **Operator** | operator | A person who runs a garden — creates Actions, approves Work, configures Vault and Hat hierarchy. Holds operator Hats. |
-| **Evaluator** | evaluator | A person who verifies submitted Work, makes Assessments, and attests impact. Often domain experts (botanists, soil scientists, community elders). |
+| **Evaluator** | evaluator | A person who authors garden Assessments — baselines, targets, and scored outcomes — and certifies impact. Often domain experts (botanists, soil scientists, community elders). Reviewing and approving Work is the operator's job, not the evaluator's. |
 | **Funder** | funder | A person or org who deposits into a garden's Vault, holds Hypercert fractions, receives yield distributions per configured splits. |
 | **Community Member** | community | A local resident affected by a Garden's Work. Signals or attests that Work exists and is healthy, and helps prioritize future Actions through public signal and conviction flows. |
 
@@ -566,6 +569,22 @@ Read-model grouping boundary for exact-label commitment-unit summaries.
 
 _Spec-only — planned anchor `packages/indexer/schema.graphql` · `CommitmentUnitScope`. The drift gate flags arrival so the status flips to live with declared representations._
 
+### `need-moderation-state`
+
+Operator moderation axis of a Need, decided by the winning NeedStatus attestation (greatest timeCreated/uid tuple). Independent from progress — the UI never collapses the two axes.
+
+**Canonical members:** none (0) · acknowledged (1) · merged (2) · hidden (3) · declined (4)
+
+_Spec-only — planned anchor `packages/shared/src/types/needs.ts` · `NeedModerationState`. The drift gate flags arrival so the status flips to live with declared representations._
+
+### `need-progress-state`
+
+Derived, monotonic progress axis of a Need computed from linked commitments: the highest reached value across them, never protocol-written.
+
+**Canonical members:** open (0) · committed (1) · in-progress (2) · addressed (3)
+
+_Spec-only — planned anchor `packages/shared/src/types/needs.ts` · `NeedProgressState`. The drift gate flags arrival so the status flips to live with declared representations._
+
 ## EAS Schemas
 
 ### `assessment` — Green Goods Assessment v2
@@ -731,7 +750,7 @@ Cross-layer invariants and where they are enforced. This catalog is documentatio
 
 ### `work-display-status`
 
-The union in types/domain.ts documents itself as the single source of truth: pending/approved/rejected reflect protocol state; syncing/uploading/sync_failed/offline are client-derived from the offline job queue.
+The union in types/domain.ts documents itself as the single source of truth: pending/approved/rejected reflect protocol state; syncing/uploading/sync_failed/offline are client-derived from the offline job queue. `pending` means the Work attestation already exists on-chain — Work is recorded the moment it is submitted; approval adds a separate WorkApproval attestation and never creates the Work record.
 
 | State | Storage |
 |---|---|
@@ -743,6 +762,18 @@ The union in types/domain.ts documents itself as the single source of truth: pen
 | sync_failed | client-derived |
 | offline | client-derived |
 
+| From | To | Layer | Mechanism |
+|---|---|---|---|
+| offline | syncing | off-chain | connectivity returns; job queue flush begins |
+| syncing | uploading | off-chain | media/IPFS upload in progress |
+| uploading | pending | on-chain | EAS Work attestation confirmed (Work.sol gardener/operator gate) — the Work record now exists |
+| syncing | pending | on-chain | EAS Work attestation confirmed without a media re-upload step |
+| syncing | sync_failed | off-chain | queued submission failed; retryable |
+| uploading | sync_failed | off-chain | upload failed; retryable |
+| sync_failed | syncing | off-chain | manual or automatic retry re-enters the queue |
+| pending | approved | on-chain | operator WorkApproval attestation with approved=true (WorkApproval.sol operator-hat gate) |
+| pending | rejected | on-chain | operator WorkApproval attestation with approved=false |
+
 ### Commitment pooling (spec — not deployed)
 
 Transcribed from the locked contract spec: "on-chain" means a named module function performs the transition and emits the listed event; "derived" means the indexer/app computes the state from events and the chain never stores it.
@@ -753,6 +784,7 @@ Every pool state is on-chain; transitions are rare operator-console actions.
 
 | State | Storage |
 |---|---|
+| None | on-chain |
 | NotReady | on-chain |
 | Ready | on-chain |
 | Open | on-chain |
@@ -762,13 +794,15 @@ Every pool state is on-chain; transitions are rare operator-console actions.
 
 | From | To | Layer | Mechanism |
 |---|---|---|---|
-| (create) | NotReady | on-chain | onGardenMinted (GardenToken-only, idempotent) or registerPool → PoolRegistered |
+| None | NotReady | on-chain | onGardenMinted (GardenToken-only, idempotent) or registerPool → PoolRegistered |
 | NotReady | Ready | on-chain | markPoolReady — requires non-empty charter CID and a non-zero provider open-commitment cap → PoolReady |
 | Ready | Open | on-chain | openPool → PoolOpened |
 | Open | Paused | on-chain | pausePool with mandatory reasonCID → PoolPaused; resumePool returns to Open |
-| Open \| Paused | Closed | on-chain | closePool → PoolClosed |
+| Open | Closed | on-chain | closePool → PoolClosed |
+| Paused | Closed | on-chain | closePool → PoolClosed |
 | Closed | Composted | on-chain | compostPool → PoolComposted |
-| Composted | Ready \| Open | on-chain | reopenPool(toOpen) → PoolReopened |
+| Composted | Ready | on-chain | reopenPool(toOpen) → PoolReopened |
+| Composted | Open | on-chain | reopenPool(toOpen) → PoolReopened |
 
 #### `commitment-cycle`
 
@@ -793,11 +827,12 @@ One open Season per pool (openSeasonCycleId guard); Campaigns overlap freely. Su
 | InProgress | Reviewing | derived | block time &gt; endTime, OR all cycle commitments terminal or ReadyForConfirmation; new evidence/work flips back |
 | Reviewing | Reconciled | on-chain | closeCycle (the reconcile act) requires liveCommitmentCount = 0 → CycleClosed; commitment-level Reconciled derives from this event |
 | Reconciled | Composted | on-chain | compostCycle → CycleComposted |
-| Seeded \| Open | Cancelled | on-chain | cancelCycle(reasonCID) requires liveCommitmentCount = 0 → CycleCancelled; Draft is discarded off-chain |
+| Seeded | Cancelled | on-chain | cancelCycle(reasonCID) requires liveCommitmentCount = 0 → CycleCancelled; Draft is discarded off-chain |
+| Open | Cancelled | on-chain | cancelCycle(reasonCID) requires liveCommitmentCount = 0 → CycleCancelled; Draft is discarded off-chain |
 
 #### `commitment`
 
-Direction-aware fulfillment: the party receiving the team's work confirms by default (Offer → receiver, Request → creator), or a named group may be set before acceptance. A current local-garden steward/owner may use PoolFallback. When explicitly selected before acceptance and no ordinary/local confirmer is reachable, a current steward/owner of the registered Green Goods protocol garden may use ProtocolFallback. The authority paths are not time-based; module ownership alone grants neither fallback; every lead/contributor is excluded. Evidence/Work credit records only while Accepted and unfrozen; the contributor roster and credit ledger freeze atomically on the transition to ReadyForConfirmation or before a direct Fulfilled dispute resolution; Ready requires pre-freeze totalVerifiedCredits &gt; 0 and a structurally reachable confirmer, while recognition additionally requires Fulfilled plus an opened cycle policy or the immutable cycle-less 20/80 default; disputes restore an explicitly stored prior state.
+Direction-aware fulfillment: the party receiving the team's work confirms by default (Offer → receiver, Request → creator), or a named group may be set before acceptance. A current local-garden steward/owner may use PoolFallback. When explicitly selected before acceptance and no ordinary/local confirmer is reachable, a current steward/owner of the registered Green Goods protocol garden may use ProtocolFallback. The authority paths are not time-based; module ownership alone grants neither fallback; every lead/contributor is excluded. Evidence/Work credit records only while Accepted and unfrozen; the contributor roster and credit ledger freeze atomically on the transition to ReadyForConfirmation or before a direct Fulfilled dispute resolution; Ready requires pre-freeze totalVerifiedCredits &gt; 0 and a structurally reachable confirmer, while recognition additionally requires Fulfilled plus an opened cycle policy or the immutable cycle-less 20/80 default; disputes restore an explicitly stored prior state. Readiness gate (all paths): automatic once every repeatable action requirement is met and any declared assessment is attached; submitForConfirmation for evidence-only types requires evidenceCount ≥ 1; steward markReadyForConfirmation carries a reason. Every path requires an Open cycle when scoped (or the immutable cycle-less 20/80 policy), pre-freeze totalVerifiedCredits &gt; 0, and either a reachable ordinary confirmer or an explicitly selected registered protocol-garden fallback; the contributor roster and credit ledger freeze atomically before the ready event. Dispute resolution: RestorePrevious replays the stored preDisputeState; an Expired prior state can never resolve Fulfilled.
 
 | State | Storage |
 |---|---|
@@ -817,18 +852,39 @@ Direction-aware fulfillment: the party receiving the team's work confirms by def
 
 | From | To | Layer | Mechanism |
 |---|---|---|---|
-| Draft | Offered \| Requested | on-chain | createCommitment → CommitmentCreated (direction sets the initial state) |
-| Offered \| Requested | Accepted | on-chain | claimCommitment (runtime kind must equal immutable claimType; Open mode transitions immediately, ApprovalGated waits for operator acceptClaim) → CommitmentAccepted; register records committed units |
+| Draft | Offered | on-chain | createCommitment with direction Offer → CommitmentCreated |
+| Draft | Requested | on-chain | createCommitment with direction Request → CommitmentCreated |
+| Offered | Accepted | on-chain | claimCommitment (runtime kind must equal immutable claimType; Open mode transitions immediately, ApprovalGated waits for steward acceptClaim) → CommitmentAccepted; register records committed units |
+| Requested | Accepted | on-chain | claimCommitment (same gate as Offer claims) → CommitmentAccepted; register records committed units |
 | Accepted | Active | derived | first WorkLinked or EvidenceAttached after acceptance |
 | Active | EvidenceSubmitted | derived | any EvidenceAttached or WorkLinked event |
 | EvidenceSubmitted | PartiallyApproved | derived | ApprovedWorkCounted with some requirement counters below their required counts |
-| … | ReadyForConfirmation | on-chain | automatic once every repeatable action requirement is met and any declared assessment attached; submitForConfirmation for evidence-only types requires evidenceCount ≥ 1; steward markReadyForConfirmation with reason; every path requires an Open cycle when scoped or the immutable cycle-less 20/80 policy, pre-freeze totalVerifiedCredits &gt; 0, and either a reachable ordinary named/default confirmer threshold or an explicitly selected registered protocol-garden fallback; local-garden authority is confirmation-time PoolFallback provenance only and does not independently satisfy Ready reachability; contributor roster and credit ledger freeze atomically before the ready event |
-| ReadyForConfirmation | Fulfilled | on-chain | confirmFulfillment by named confirmer or direction-aware default, or confirmFulfillmentAsFallback with reason by current local-garden authority (PoolFallback) or explicitly selected registered protocol-garden authority (ProtocolFallback); local authority wins for dual-role callers; threshold N → CommitmentFulfilled with actor/path/reason; register converts units; every lead/contributor on the already-frozen roster is excluded from every confirmation path |
+| Accepted | ReadyForConfirmation | on-chain | readiness gate met (see machine note); roster and credit freeze atomically |
+| Active | ReadyForConfirmation | on-chain | readiness gate met (see machine note); roster and credit freeze atomically |
+| EvidenceSubmitted | ReadyForConfirmation | on-chain | readiness gate met (see machine note); roster and credit freeze atomically |
+| PartiallyApproved | ReadyForConfirmation | on-chain | readiness gate met (see machine note); roster and credit freeze atomically |
+| ReadyForConfirmation | Fulfilled | on-chain | confirmFulfillment by named confirmer or direction-aware default, or reasoned PoolFallback/ProtocolFallback; frozen-roster members are excluded from every confirmation path; register converts units |
 | Fulfilled | Reconciled | derived | CycleClosed for the commitment's cycle (or PoolClosed when cycle-less) |
-| … | Cancelled | on-chain | cancelCommitment(reasonCID) — creator or steward pre-acceptance, steward-only after; Accepted releases committed units |
-| … | Expired | on-chain | expireCommitment — permissionless once past dueDate (or cycle endTime); releases still-committed units |
-| Accepted \| ReadyForConfirmation \| Expired | Disputed | on-chain | raiseDispute(reasonCID) — module stores the exact prior state in preDisputeState → CommitmentDisputed |
-| Disputed | previous \| Fulfilled \| Cancelled \| Expired | on-chain | resolveDispute steward-only; RestorePrevious replays preDisputeState; an Expired prior state can never resolve Fulfilled; a direct Fulfilled resolution requires an available recognition policy and verified contributor, then freezes an unfrozen roster before DisputeResolved |
+| Offered | Cancelled | on-chain | cancelCommitment(reasonCID) — creator or steward pre-acceptance, steward-only after; Accepted releases committed units |
+| Requested | Cancelled | on-chain | cancelCommitment(reasonCID) — creator or steward pre-acceptance, steward-only after; Accepted releases committed units |
+| Accepted | Cancelled | on-chain | cancelCommitment(reasonCID) — creator or steward pre-acceptance, steward-only after; Accepted releases committed units |
+| Active | Cancelled | on-chain | cancelCommitment(reasonCID) — creator or steward pre-acceptance, steward-only after; Accepted releases committed units |
+| EvidenceSubmitted | Cancelled | on-chain | cancelCommitment(reasonCID) — creator or steward pre-acceptance, steward-only after; Accepted releases committed units |
+| PartiallyApproved | Cancelled | on-chain | cancelCommitment(reasonCID) — creator or steward pre-acceptance, steward-only after; Accepted releases committed units |
+| Offered | Expired | on-chain | expireCommitment — permissionless once past dueDate (or cycle endTime); releases still-committed units |
+| Requested | Expired | on-chain | expireCommitment — permissionless once past dueDate (or cycle endTime); releases still-committed units |
+| Accepted | Expired | on-chain | expireCommitment — permissionless once past dueDate (or cycle endTime); releases still-committed units |
+| Active | Expired | on-chain | expireCommitment — permissionless once past dueDate (or cycle endTime); releases still-committed units |
+| EvidenceSubmitted | Expired | on-chain | expireCommitment — permissionless once past dueDate (or cycle endTime); releases still-committed units |
+| PartiallyApproved | Expired | on-chain | expireCommitment — permissionless once past dueDate (or cycle endTime); releases still-committed units |
+| Accepted | Disputed | on-chain | raiseDispute(reasonCID) — module stores the exact prior state in preDisputeState |
+| ReadyForConfirmation | Disputed | on-chain | raiseDispute(reasonCID) — preDisputeState stored |
+| Expired | Disputed | on-chain | raiseDispute(reasonCID) — preDisputeState stored |
+| Disputed | Accepted | on-chain | resolveDispute steward-only — RestorePrevious replays a stored Accepted preDisputeState |
+| Disputed | ReadyForConfirmation | on-chain | resolveDispute steward-only — RestorePrevious replays a stored ReadyForConfirmation preDisputeState |
+| Disputed | Fulfilled | on-chain | resolveDispute steward-only — direct Fulfilled requires an available recognition policy and verified contributor, then freezes an unfrozen roster; never from an Expired prior state |
+| Disputed | Cancelled | on-chain | resolveDispute steward-only |
+| Disputed | Expired | on-chain | resolveDispute steward-only |
 
 #### `commitment-loan`
 
@@ -836,6 +892,7 @@ Records-only pool credit (CreditRegistry). Default is not terminal — a default
 
 | State | Storage |
 |---|---|
+| None | on-chain |
 | Requested | on-chain |
 | Approved | on-chain |
 | Disbursed | on-chain |
@@ -854,12 +911,60 @@ Records-only pool credit (CreditRegistry). Default is not terminal — a default
 | Disbursed | Repaid | on-chain | recordRepayment(loanId, amount, executionRef) clearing principal + fee → RepaymentRecorded + LoanRepaid; steward or executor, never the borrower; Jar/Treasury only |
 | Disbursed | Defaulted | on-chain | markDefaulted(loanId, reasonCID) → LoanDefaulted; steward; past dueDate only (NotDue); callable while paused |
 | Defaulted | Repaid | on-chain | recordRepayment clearing the balance → LoanRepaid(recoveredFromDefault = true); default is not terminal |
+| Disbursed | Repaying | derived | first partial repayment recorded |
+| Repaying | Repaid | on-chain | final repayment recorded; principal fully returned |
+| Repaying | Defaulted | on-chain | steward marks default after the repayment window lapses |
+
+#### `need-moderation`
+
+The winning moderation attestation is the greatest (timeCreated, uid) tuple. Moderation and progress are separate axes; the UI never collapses them into one precedence enum.
+
+| State | Storage |
+|---|---|
+| none | derived |
+| acknowledged | on-chain |
+| merged | on-chain |
+| hidden | on-chain |
+| declined | on-chain |
+
+| From | To | Layer | Mechanism |
+|---|---|---|---|
+| none | acknowledged | on-chain | operator NeedStatus attestation |
+| none | merged | on-chain | operator NeedStatus with mergedIntoNeedUID |
+| none | hidden | on-chain | operator NeedStatus attestation |
+| none | declined | on-chain | operator NeedStatus attestation |
+| acknowledged | merged | on-chain | later-winning operator NeedStatus |
+| acknowledged | hidden | on-chain | later-winning operator NeedStatus |
+| acknowledged | declined | on-chain | later-winning operator NeedStatus |
+| merged | acknowledged | on-chain | reopen with rationale (later-winning NeedStatus) |
+| hidden | acknowledged | on-chain | reopen with rationale |
+| declined | acknowledged | on-chain | reopen with rationale |
+
+#### `need-progress`
+
+Monotonic evidence lineage: the highest value reached across linked commitments; never written by the protocol, always derived at read time.
+
+| State | Storage |
+|---|---|
+| open | derived |
+| committed | derived |
+| in-progress | derived |
+| addressed | derived |
+
+| From | To | Layer | Mechanism |
+|---|---|---|---|
+| open | committed | derived | first commitment created with a non-zero needUID |
+| committed | in-progress | derived | a linked commitment is accepted or counts approved Work |
+| in-progress | addressed | derived | a linked commitment reaches Fulfilled |
 
 ## Known Issues
 
 - **`report-orphan-term`** — v1-0.mdx §16.1 defines a "Report" entity (aggregated bundle of approved work for grants/Hypercert minting) that is absent from the canonical entity set, the ERD, and the code. Formalize or retire the term when the reporting feature is actually designed — it overlaps Hypercert bundling today. _(`docs/docs/builders/specs/v1-0.mdx`)_
 - **`erd-stale-assessment-fields`** — The ERD's GardenAssessment shape lists only notes and mediaURIs, while the shipped assessment carries the full strategy kernel (domain, diagnosis, SMART outcomes, selected action UIDs, reporting period, assessmentConfigCID). _(`docs/docs/builders/architecture/erd.mdx`)_
 - **`missing-capital-mapping-fn`** — No runtime mapping function exists between the numeric Capital enum and the lowercase CapitalType union; index-based bridges are unsafe because the two declared orders currently differ. _(`packages/shared/src/types/domain.ts`, `packages/shared/src/types/hypercerts.ts`)_
+- **`assessment-domain-zero-default`** — EAS assessment decode defaults a missing domain field to 0 (SOLAR); admin StrategyKernelStep (packages/admin/src/components/Assessment/CreateAssessmentSteps/StrategyKernelStep.tsx) mirrors the guard. Legacy assessments without the field display solar metrics until the nullable-domain follow-up lands. _(`packages/shared/src/modules/data/eas.ts`)_
+- **`hypercert-metadata-mutual-credit-default`** — Hypercert metadata synthesis falls back to the deferred mutual_credit action domain when no attestation carries a domain — a fabricated default that should surface as absent instead. _(`packages/shared/src/lib/hypercerts/metadata.ts`)_
+- **`action-banner-agro-artwork`** — ActionBannerFallback uses AGRO artwork tokens for missing domains — decorative only, but inconsistent with the explicit-unknown rule everywhere else. _(`packages/shared/src/components/Display/ActionBannerFallback.tsx`)_
 
 ## Deliberately excluded from v1
 

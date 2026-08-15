@@ -24,16 +24,25 @@ import { getFileByHash, resolveIPFSUrl } from "./ipfs";
 
 const ACTION_INSTRUCTIONS_TIMEOUT_MS = 5_000;
 
-/** Maps indexer domain string (e.g., "SOLAR") to the Domain enum value. */
-function parseDomain(domain: string | undefined | null): Domain {
-  if (!domain) return Domain.SOLAR;
+/**
+ * Maps indexer domain string (e.g., "SOLAR") to the Domain enum value.
+ * Unrecognized values (including the indexer's forward-compat "UNKNOWN"
+ * sentinel) surface as null — never silently coerced to a real domain.
+ */
+export function parseDomain(domain: string | undefined | null): Domain | null {
+  if (!domain) return null;
   const map: Record<string, Domain> = {
     SOLAR: Domain.SOLAR,
     AGRO: Domain.AGRO,
     EDU: Domain.EDU,
     WASTE: Domain.WASTE,
   };
-  return map[domain] ?? Domain.SOLAR;
+  const parsed = map[domain];
+  if (parsed === undefined) {
+    logger.warn("[parseDomain] Unrecognized action domain from indexer", { domain });
+    return null;
+  }
+  return parsed;
 }
 
 function cloneInstructionConfig(config: ActionInstructionConfig): ActionInstructionConfig {

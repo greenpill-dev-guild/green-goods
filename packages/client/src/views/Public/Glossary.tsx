@@ -65,7 +65,7 @@ const TERMS: readonly GlossaryTerm[] = [
     defaultLabel: "Evaluator",
     bodyId: "public.glossary.term.evaluator.body",
     defaultBody:
-      "A trusted reviewer, from any background, who checks submitted Work and signs off with a confidence band and verification method. Their care is what turns a field log into evidence.",
+      "A trusted specialist, from any background, who sets a garden's baseline and success criteria up front and scores its outcomes. Evaluators author assessments; reviewing submitted Work is the operator's job.",
     docsPath: "/glossary#evaluator",
   },
   {
@@ -92,7 +92,7 @@ const TERMS: readonly GlossaryTerm[] = [
     defaultLabel: "Impact Certificate",
     bodyId: "public.glossary.term.impactCertificate.body",
     defaultBody:
-      "A bundle of the season's approved Work, evaluator-verified and anchored to a public blockchain so the record stays readable beyond any one platform.",
+      "A bundle of the season's operator-approved Work, framed by evaluator assessments and anchored to a public blockchain so the record stays readable beyond any one platform.",
     docsPath: "/glossary#impact-certificate",
   },
   {
@@ -119,7 +119,7 @@ const TERMS: readonly GlossaryTerm[] = [
     defaultLabel: "Work",
     bodyId: "public.glossary.term.work.body",
     defaultBody:
-      "One Action carried out by a gardener, captured with a photo and description, then recorded on the blockchain after operator approval.",
+      "One Action carried out by a gardener, captured with a photo and description, and recorded on the blockchain the moment it is submitted. Operator approval adds a separate, linked approval record.",
     docsPath: "/glossary#work",
   },
 ] as const;

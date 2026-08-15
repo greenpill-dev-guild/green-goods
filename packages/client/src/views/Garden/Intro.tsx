@@ -85,7 +85,9 @@ export const WorkIntro: React.FC<WorkIntroProps> = ({
       gardens.flatMap((g) => (g.domainMask ? expandDomainMask(g.domainMask) : []))
     );
     const domainSet =
-      gardenDomainSet.size > 0 ? gardenDomainSet : new Set(active.map((a) => a.domain));
+      gardenDomainSet.size > 0
+        ? gardenDomainSet
+        : new Set(active.map((a) => a.domain).filter((d): d is Domain => d !== null));
     const domains = Array.from(domainSet).sort((a, b) => a - b);
 
     // Auto-select domain: if only 1 domain or none selected yet, pick first available
@@ -96,8 +98,13 @@ export const WorkIntro: React.FC<WorkIntroProps> = ({
           ? domains[0]
           : null;
 
+    // Unknown-domain actions (a.domain == null) stay visible under every tab —
+    // hiding them would strand real submittable actions; coercing them into a
+    // named domain would mislabel them.
     const domainActions =
-      effective !== null ? active.filter((a) => a.domain === effective) : active;
+      effective !== null
+        ? active.filter((a) => a.domain === effective || a.domain === null)
+        : active;
 
     // Gardens without a domainMask (0 or undefined) pass through all filters.
     const domainGardens =

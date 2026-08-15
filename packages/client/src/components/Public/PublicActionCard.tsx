@@ -72,7 +72,8 @@ export function PublicActionCard({ action, onOpen }: PublicActionCardProps) {
   );
 }
 
-function domainSlug(domain: number | string): EditorialDomain | null {
+function domainSlug(domain: number | string | null): EditorialDomain | null {
+  if (domain === null) return null;
   if (typeof domain === "string") {
     const lower = domain.toLowerCase();
     if (["solar", "agro", "education", "waste"].includes(lower)) {

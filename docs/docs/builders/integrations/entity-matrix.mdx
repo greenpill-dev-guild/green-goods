@@ -5,7 +5,7 @@ slug: /builders/integrations/entity-matrix
 unlisted: true
 audience: developer
 owner: docs
-last_verified: 2026-08-02
+last_verified: 2026-08-15
 feature_status: Planned
 source_of_truth:
   - packages/shared/src/ontology/green-goods-ontology.json
@@ -33,9 +33,11 @@ This matrix is generated from the tracked ontology sidecar (`packages/shared/src
 - **Rows** are Green Goods domain entities (the canonical vocabulary used in code and docs).
 - **Columns** are partner protocols. Each cell shows the equivalent concept in that protocol.
 - **Empty cells** (`—`) mean no mapping exists — the protocol does not have an equivalent concept.
-- **Role entities** (Garden Operator through Data Scientist/Researcher) map to protocol-specific role or permission types.
+- Rows are grouped by reference kind: **entities** and **schemas** are canonical vocabulary; **personas** map to protocol-specific role or permission types; **concepts** are free-form product notions without a sidecar entity.
 
 ## Full Entity Matrix
+
+### Entities
 
 | Green Goods | Karma GAP | Hypercerts | Octant | Gardens V2 | Hats Protocol | Silvi | Cookie Jar | Unlock | ENS | Lido | FTC |
 |---|---|---|---|---|---|---|---|---|---|---|---|
@@ -43,10 +45,25 @@ This matrix is generated from the tracked ontology sidecar (`packages/shared/src
 | Assessment | Project Milestone | Hypercert Data | — | — | — | — | — | — | — | — | — |
 | Action | Partial Project Update | Hypercert Data | — | — | — | — | — | — | — | — | — |
 | Work | Partial Project Update | Hypercert Data | — | — | — | — | — | — | — | — | — |
+
+### Schemas
+
+| Green Goods | Karma GAP | Hypercerts | Octant | Gardens V2 | Hats Protocol | Silvi | Cookie Jar | Unlock | ENS | Lido | FTC |
+|---|---|---|---|---|---|---|---|---|---|---|---|
 | Work Approval | Partial Project Update | Hypercert Data | — | — | — | — | — | — | — | — | — |
+
+### Personas
+
+| Green Goods | Karma GAP | Hypercerts | Octant | Gardens V2 | Hats Protocol | Silvi | Cookie Jar | Unlock | ENS | Lido | FTC |
+|---|---|---|---|---|---|---|---|---|---|---|---|
 | Garden Operator | Project Owner | Creator | Vault Admin, TAM Operator | Council Member | Operator Hat | — | — | — | — | — | — |
 | Gardener | Project Member | Creator | TAM Proposer | Community Member | Gardener Hat | — | — | — | — | — | — |
 | Community Member | Project Explorer | Evaluator | TAM Voter | Community Member | Community Member | — | — | — | — | — | — |
+
+### Concepts
+
+| Green Goods | Karma GAP | Hypercerts | Octant | Gardens V2 | Hats Protocol | Silvi | Cookie Jar | Unlock | ENS | Lido | FTC |
+|---|---|---|---|---|---|---|---|---|---|---|---|
 | Funder/Evaluator | Grant Evaluator | Funder | Vault Depositor | Community Funder | Garden Supporter | — | — | — | — | — | — |
 | Data Scientist/Researcher | Grant Evaluator | Evaluator | — | Community Explorer | Garden Analyst | — | — | — | — | — | — |
 | Impact | — | Hypercert Token | — | — | — | — | — | — | — | — | — |

@@ -177,7 +177,11 @@ export function renderOntologyMdx(ontology) {
 
   lines.push("## Entities");
   lines.push("");
-  lines.push("| Entity | Status | Definition | Layers |");
+  lines.push(
+    "Maturity is the five-dimension capability projection (build · deploy · activate · index · in-app), not the internal `status` flag — `status` only tells the drift gate whether code representations are cross-checked. Legend: ✓ complete · ◐ partial · ⛔ blocked · ✗ not started · — not applicable."
+  );
+  lines.push("");
+  lines.push("| Entity | Maturity | Definition | Layers |");
   lines.push("|---|---|---|---|");
   for (const entity of ontology.entities) {
     const layers = [];
@@ -187,7 +191,7 @@ export function renderOntologyMdx(ontology) {
     if (entity.layers?.docs) layers.push("docs");
     if (entity.spec_source) layers.push("spec");
     lines.push(
-      `| **${esc(entity.display)}** | ${esc(entity.status)} | ${esc(entity.definition)} | ${esc(layers.join(" · "))} |`
+      `| **${esc(entity.display)}** | ${esc(maturitySummary(ontology, entity.id))} | ${esc(entity.definition)} | ${esc(layers.join(" · "))} |`
     );
   }
   lines.push("");
@@ -354,16 +358,28 @@ export function renderEntityMatrixMdx(ontology) {
   lines.push("- **Columns** are partner protocols. Each cell shows the equivalent concept in that protocol.");
   lines.push("- **Empty cells** (`—`) mean no mapping exists — the protocol does not have an equivalent concept.");
   lines.push(
-    "- **Role entities** (Garden Operator through Data Scientist/Researcher) map to protocol-specific role or permission types."
+    "- Rows are grouped by reference kind: **entities** and **schemas** are canonical vocabulary; **personas** map to protocol-specific role or permission types; **concepts** are free-form product notions without a sidecar entity."
   );
   lines.push("");
   lines.push("## Full Entity Matrix");
-  lines.push("");
-  lines.push(`| Green Goods | ${protocols.join(" | ")} |`);
-  lines.push(`|${Array(protocols.length + 1).fill("---").join("|")}|`);
-  for (const row of rows) {
-    const cells = protocols.map((protocol) => (row.cells[protocol] ? esc(row.cells[protocol]) : "—"));
-    lines.push(`| ${esc(row.label)} | ${cells.join(" | ")} |`);
+  const groups = [
+    ["entity:", "Entities"],
+    ["schema:", "Schemas"],
+    ["persona:", "Personas"],
+    ["concept:", "Concepts"],
+  ];
+  for (const [prefix, heading] of groups) {
+    const groupRows = rows.filter((row) => row.ref.startsWith(prefix));
+    if (groupRows.length === 0) continue;
+    lines.push("");
+    lines.push(`### ${heading}`);
+    lines.push("");
+    lines.push(`| Green Goods | ${protocols.join(" | ")} |`);
+    lines.push(`|${Array(protocols.length + 1).fill("---").join("|")}|`);
+    for (const row of groupRows) {
+      const cells = protocols.map((protocol) => (row.cells[protocol] ? esc(row.cells[protocol]) : "—"));
+      lines.push(`| ${esc(row.label)} | ${cells.join(" | ")} |`);
+    }
   }
   lines.push("");
   lines.push("## Protocol integration notes");
@@ -431,4 +447,191 @@ export function renderEntityMatrixMdx(ontology) {
   lines.push("");
 
   return lines.join("\n");
+}
+
+// ---------------------------------------------------------------------------
+// Capability / concept-card / claim-ledger projections
+// ---------------------------------------------------------------------------
+
+const MATURITY_GLYPH = {
+  complete: "✓",
+  partial: "◐",
+  blocked: "⛔",
+  not_started: "✗",
+  not_applicable: "—",
+};
+const DIMENSION_LABELS = [
+  ["implementation", "build"],
+  ["deployment", "deploy"],
+  ["activation", "active"],
+  ["indexing", "indexed"],
+  ["availability", "in-app"],
+];
+
+export function maturitySummary(ontology, entityId) {
+  const cap = (ontology.capabilities ?? []).find((c) => c.entity === entityId);
+  if (!cap) {
+    const entity = ontology.entities.find((e) => e.id === entityId);
+    return entity ? entity.status : "—";
+  }
+  return DIMENSION_LABELS.map(
+    ([dim, label]) => `${label} ${MATURITY_GLYPH[cap.dimensions?.[dim]?.state] ?? "?"}`
+  ).join(" · ");
+}
+
+export function renderConceptsMdx(ontology, claims) {
+  const cards = ontology.concept_cards ?? [];
+  const capabilities = ontology.capabilities ?? [];
+  const lines = [];
+  lines.push("---");
+  lines.push("title: Concepts & Claims");
+  lines.push("sidebar_label: Concepts & Claims");
+  lines.push("slug: /reference/concepts.generated");
+  lines.push("unlisted: false");
+  lines.push("audience: all");
+  lines.push("owner: docs");
+  lines.push(`last_verified: ${ontology.meta.last_verified}`);
+  lines.push("feature_status: Live");
+  lines.push("source_of_truth:");
+  lines.push("  - packages/shared/src/ontology/green-goods-ontology.json");
+  lines.push("  - packages/shared/src/ontology/marketing-claims.json");
+  lines.push("  - scripts/quality/check-ontology.mjs");
+  lines.push("keywords:");
+  lines.push("  - concepts");
+  lines.push("  - maturity");
+  lines.push("  - claims");
+  lines.push("---");
+  lines.push("");
+  lines.push(
+    "<!-- AUTO-GENERATED by scripts/quality/check-ontology.mjs --generate from the ontology sidecar and marketing-claims.json. Do not edit; run `bun run ontology:generate`. -->"
+  );
+  lines.push("");
+  lines.push("# Concepts & Claims");
+  lines.push("");
+  lines.push(
+    "Every Green Goods concept as a human card — what it is, why it matters, what it must never be confused with — plus the public claim ledger with the evidence behind each claim. Maturity is the five-dimension capability projection (build · deploy · activate · index · in-app). Legend: ✓ complete · ◐ partial · ⛔ blocked · ✗ not started · — not applicable."
+  );
+  lines.push("");
+  lines.push("## Concept cards");
+  for (const card of cards) {
+    const entity = ontology.entities.find((e) => e.id === card.entity);
+    const cap = capabilities.find((c) => c.entity === card.entity);
+    lines.push("");
+    lines.push(`### ${escapeMdxProse(entity?.display ?? card.entity)}`);
+    lines.push("");
+    lines.push(`**${escapeMdxProse(card.plain_name)}** — ${escapeMdxProse(card.why_it_matters)}`);
+    lines.push("");
+    lines.push(`- **Maturity**: ${escapeMdxProse(maturitySummary(ontology, card.entity))}`);
+    if (entity?.definition) lines.push(`- **Definition**: ${escapeMdxProse(entity.definition)}`);
+    lines.push(`- **Example**: ${escapeMdxProse(card.example)}`);
+    if (card.aliases?.length)
+      lines.push(`- **Also called**: ${card.aliases.map((a) => escapeMdxProse(a)).join(" · ")}`);
+    for (const nc of card.not_confused_with ?? []) {
+      const other = ontology.entities.find((e) => e.id === nc.ref);
+      lines.push(
+        `- **Not to be confused with ${escapeMdxProse(other?.display ?? nc.ref)}**: ${escapeMdxProse(nc.reason)}`
+      );
+    }
+    if (entity?.relationships?.length)
+      lines.push(
+        `- **Related**: ${entity.relationships
+          .map((r) => {
+            const target = ontology.entities.find((e) => e.id === r.to);
+            return `${escapeMdxProse(r.kind)} → ${escapeMdxProse(target?.display ?? r.to)}`;
+          })
+          .join(" · ")}`
+      );
+    lines.push(`- **Safe claim**: ${escapeMdxProse(card.safe_claim)}`);
+    if (cap) {
+      const evidence = [];
+      for (const [dim] of DIMENSION_LABELS) {
+        for (const item of cap.dimensions?.[dim]?.evidence ?? []) {
+          const ref = item.json_path ? `${item.file} → ${item.json_path}` : item.file;
+          if (!evidence.includes(ref)) evidence.push(ref);
+        }
+      }
+      lines.push(`- **Evidence**: ${evidence.map((e) => `\`${e}\``).join(" · ")}`);
+      const verified = cap.dimensions?.implementation?.verified_at;
+      if (verified) lines.push(`- **Verified**: ${verified}`);
+    }
+  }
+  lines.push("");
+  lines.push("## Public claim ledger");
+  lines.push("");
+  lines.push(
+    "What Green Goods may say in public, at which maturity, with the wording that keeps the claim honest. `available` requires the linked capability to be user-available; `deployed-not-available` marks live protocol capability that has no product surface yet."
+  );
+  lines.push("");
+  lines.push("| Claim | Audience | Maturity | Safe wording | Verified |");
+  lines.push("|---|---|---|---|---|");
+  for (const claim of claims.claims) {
+    lines.push(
+      `| ${escapeMdxTableCode(claim.claim)} | ${escapeMdxTableCode(claim.audience)} | ${escapeMdxTableCode(claim.maturity)} | ${escapeMdxTableCode(claim.safe_wording)} | ${escapeMdxTableCode(claim.verified_at)} |`
+    );
+  }
+  lines.push("");
+  lines.push(
+    "_The drift gate validates every card, capability dimension, and claim: evidence paths must exist, `available` claims must map to available capabilities, and this page regenerates from the sidecar — edit the source, never this file._"
+  );
+  lines.push("");
+  return lines.join("\n");
+}
+
+export function renderManifestJson(ontology, claims) {
+  const manifest = {
+    version: 1,
+    description:
+      "Compact, generated agent manifest for term lookup without loading the full ontology sidecar. Regenerate with `bun run ontology:generate`.",
+    generated_from: "packages/shared/src/ontology/green-goods-ontology.json",
+    last_verified: ontology.meta.last_verified,
+    terms: ontology.entities.map((entity) => {
+      const card = (ontology.concept_cards ?? []).find((c) => c.entity === entity.id);
+      const cap = (ontology.capabilities ?? []).find((c) => c.entity === entity.id);
+      const evidence = [];
+      if (cap) {
+        for (const [dim] of DIMENSION_LABELS) {
+          for (const item of cap.dimensions?.[dim]?.evidence ?? []) {
+            const ref = item.json_path ? `${item.file}#${item.json_path}` : item.file;
+            if (!evidence.includes(ref)) evidence.push(ref);
+          }
+        }
+      }
+      return {
+        id: entity.id,
+        kind: "entity",
+        display: entity.display,
+        plain_name: card?.plain_name ?? entity.display,
+        definition: entity.definition,
+        aliases: card?.aliases ?? [],
+        not_confused_with: (card?.not_confused_with ?? []).map((nc) => nc.ref),
+        relationships: (entity.relationships ?? []).map((r) => ({ to: r.to, kind: r.kind })),
+        maturity: cap
+          ? Object.fromEntries(
+              DIMENSION_LABELS.map(([dim]) => [dim, cap.dimensions?.[dim]?.state ?? "not_started"])
+            )
+          : null,
+        safe_claim: card?.safe_claim ?? null,
+        evidence,
+        verified_at: cap?.dimensions?.implementation?.verified_at ?? ontology.meta.last_verified,
+      };
+    }),
+    personas: ontology.personas.map((p) => ({
+      id: p.id,
+      kind: "persona",
+      display: p.display,
+      hat: p.hat,
+      definition: p.definition,
+    })),
+    vocabularies: ontology.vocabularies.map((v) => ({
+      id: v.id,
+      members: v.canonical.members,
+    })),
+    claims: claims.claims.map((c) => ({
+      id: c.id,
+      claim: c.claim,
+      maturity: c.maturity,
+      safe_wording: c.safe_wording,
+    })),
+  };
+  return `${JSON.stringify(manifest, null, 2)}\n`;
 }

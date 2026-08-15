@@ -105,6 +105,7 @@ export function useActionsController() {
       [Domain.WASTE]: 0,
     };
     for (const action of actions) {
+      if (action.domain === null) continue; // unknown-domain actions count toward "all" only
       counts[action.domain] = (counts[action.domain] ?? 0) + 1;
     }
     return counts;

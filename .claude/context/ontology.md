@@ -12,7 +12,25 @@ node --test scripts/quality/check-ontology.test.mjs   # Checker unit fixtures
 
 ## What the sidecar is
 
-`packages/shared/src/ontology/green-goods-ontology.json` is the canonical, machine-readable specification of the Green Goods domain: entities, personas, controlled vocabularies with per-layer representations, EAS schemas, cross-layer constraints, lifecycle state machines, the integration matrix, and known issues. `scripts/quality/check-ontology.mjs` drift-gates it against the code and docs on every relevant change (workflow: `.github/workflows/ontology.yml`; findings baseline: `scripts/data/ontology-drift-baseline.json`). The typed accessor is `packages/shared/src/ontology/index.ts` (internal — not in `package.json#exports` yet).
+`packages/shared/src/ontology/green-goods-ontology.json` is the canonical, machine-readable specification of the Green Goods domain: entities, personas, controlled vocabularies with per-layer representations, EAS schemas, cross-layer constraints, lifecycle state machines, the integration matrix, known issues, plus the **capability projection** (`capabilities`: five evidence-backed maturity dimensions per entity — implementation / deployment / activation / indexing / availability) and **concept cards** (`concept_cards`: the human explainer per entity). `scripts/quality/check-ontology.mjs` drift-gates it against the code and docs on every relevant change (workflow: `.github/workflows/ontology.yml`; findings baseline: `scripts/data/ontology-drift-baseline.json`). Public claims live in `packages/shared/src/ontology/marketing-claims.json` (maturity enum `available | deployed-not-available | in-build | planned | vision`), validated by the same gate: evidence paths must exist, `json_path` pointers must resolve, and an `available` claim requires user-available capability. The full typed accessor is `packages/shared/src/ontology/index.ts` (internal — not exported).
+
+## Meaning vs maturity
+
+The per-item `status: live | spec` field is only the drift gate's code-crosscheck switch (live = representations checked; spec = planned-anchor watched). It is **never** a product-availability claim — maturity lives in `capabilities` and is what the generated pages render. Commitment pooling is the canonical example: contracts live and unpaused on Arbitrum (implementation/deployment/activation complete) while indexing is not started and availability is blocked.
+
+## Agent query seam (stable usage path)
+
+Agents and app code look terms up through the generated compact manifest, never by loading the full sidecar:
+
+```ts
+import { lookupTerm, maturityOf, safeClaim } from "@green-goods/shared/ontology-manifest";
+
+lookupTerm("commitment pool"); // id, definition, aliases, relationships, maturity
+maturityOf("commitment-pool"); // { implementation: "complete", …, availability: "blocked" }
+safeClaim("commitment-pool");  // the vetted public sentence for this entity
+```
+
+The manifest (`packages/shared/src/ontology/ontology-manifest.generated.json`) regenerates with `bun run ontology:generate` and is byte-compared by the gate, so the seam cannot drift from the sidecar.
 
 ## Canon rules
 
@@ -41,4 +59,4 @@ Solidity has two unrelated `PoolType` enums: `IGardensModule.PoolType { ActionSi
 
 ## Human-facing surfaces
 
-Generated reference (listed): `docs/docs/reference/ontology.generated.mdx`. Entity matrix (unlisted, generated): `docs/docs/builders/integrations/entity-matrix.mdx`. Both carry AUTO-GENERATED banners — edit the sidecar, then regenerate.
+Generated reference (listed): `docs/docs/reference/ontology.generated.mdx`. Concept cards + public claim ledger (listed): `docs/docs/reference/concepts.generated.mdx`. Entity matrix (unlisted, generated, grouped by entity/schema/persona/concept): `docs/docs/builders/integrations/entity-matrix.mdx`. Agent manifest: `packages/shared/src/ontology/ontology-manifest.generated.json`. All four carry AUTO-GENERATED banners or headers — edit the sidecar (or `marketing-claims.json`), then regenerate. A new generated docs artifact must also be added to `.github/workflows/ontology.yml` (both trigger lists) and the `Ontology` matcher in `scripts/quality/ci-gate.mjs`.

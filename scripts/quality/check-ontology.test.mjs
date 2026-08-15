@@ -23,6 +23,7 @@ import {
   reconcileBaseline,
   splitTableRow,
   titleCase,
+  checkProjections,
 } from "./check-ontology.mjs";
 import { expectedWorkflowNames } from "./ci-gate.mjs";
 import { escapeMdxTableCode, renderEntityMatrixMdx, renderOntologyMdx } from "./ontology-render.mjs";
@@ -544,4 +545,106 @@ test("matrix renderer emits em-dash for missing cells and escapes pipes in mecha
   assert.ok(matrix.includes("| Garden | Project | — |"));
   const reference = renderOntologyMdx(miniOntology);
   assert.ok(reference.includes("markPoolReady \\| guard"));
+});
+
+// ---------------------------------------------------------------------------
+// Projections guard (capabilities, concept cards, claim ledger, machines)
+// ---------------------------------------------------------------------------
+
+const projDim = (state) => ({
+  state,
+  evidence: [{ file: "package.json" }],
+  verified_at: "2026-08-15",
+});
+const projCapability = (entity, availability = "complete") => ({
+  entity,
+  dimensions: {
+    implementation: projDim("complete"),
+    deployment: projDim("complete"),
+    activation: projDim("complete"),
+    indexing: projDim("partial"),
+    availability: projDim(availability),
+  },
+});
+const projCard = (entity) => ({
+  entity,
+  plain_name: "Thing",
+  why_it_matters: "It matters.",
+  example: "An example.",
+  aliases: [],
+  not_confused_with: [],
+  safe_claim: "A safe sentence.",
+});
+const projOntology = {
+  entities: [
+    { id: "garden", display: "Garden", status: "live", definition: "d", layers: { solidity: ["package.json"] } },
+    { id: "commitment", display: "Commitment", status: "spec", definition: "d", spec_source: "package.json" },
+  ],
+  personas: [{ id: "gardener", display: "Gardener", hat: "gardener", definition: "d" }],
+  capabilities: [projCapability("garden"), projCapability("commitment", "blocked")],
+  concept_cards: [projCard("garden"), projCard("commitment")],
+  state_machines: [
+    {
+      id: "ok-machine",
+      status: "live",
+      vocabulary: "v",
+      states: [{ name: "A", storage: "on-chain" }, { name: "B", storage: "on-chain" }],
+      transitions: [{ from: "A", to: "B", layer: "on-chain", mechanism: "m" }],
+    },
+  ],
+};
+const projClaims = {
+  maturity_values: ["available", "deployed-not-available", "in-build", "planned", "vision"],
+  claims: [
+    {
+      id: "c1",
+      claim: "Gardens are live.",
+      audience: "community",
+      maturity: "available",
+      capabilities: ["garden"],
+      evidence: [{ file: "package.json" }],
+      safe_wording: "Gardens are live on Arbitrum.",
+      verified_at: "2026-08-15",
+    },
+  ],
+};
+
+test("checkProjections passes a consistent projection set", () => {
+  const { findings } = checkProjections(projOntology, projClaims, null);
+  assert.deepEqual(findings, []);
+});
+
+test("checkProjections rejects available claims over blocked capabilities", () => {
+  const claims = structuredClone(projClaims);
+  claims.claims[0].capabilities = ["commitment"];
+  const { findings } = checkProjections(projOntology, claims, null);
+  assert.ok(findings.some((f) => f.detail.includes("not user-available")));
+});
+
+test("checkProjections rejects composite endpoints, missing evidence, and spec availability", () => {
+  const broken = structuredClone(projOntology);
+  broken.state_machines[0].transitions.push({ from: "A | B", to: "B", layer: "on-chain", mechanism: "m" });
+  broken.capabilities[0].dimensions.deployment.evidence = [];
+  broken.capabilities[1].dimensions.availability = projDim("complete");
+  const { findings } = checkProjections(broken, projClaims, null);
+  assert.ok(findings.some((f) => f.detail.includes("composite endpoint")));
+  assert.ok(findings.some((f) => f.detail.includes("has no evidence")));
+  assert.ok(findings.some((f) => f.detail.includes("spec but availability")));
+});
+
+test("checkProjections locks glossary counts to the sidecar", () => {
+  const glossary = [
+    "1. **Domain entities** — the 3 things the system tracks.",
+    "2. **Personas** — the 1 people the system serves.",
+    "## Domain Entities",
+    "| **Garden** | ... |",
+    "- **Commitment**: planned.",
+    "",
+    "---",
+  ].join("\n");
+  const { findings } = checkProjections(projOntology, projClaims, glossary);
+  assert.ok(findings.some((f) => f.subject === "glossary:entity-count"));
+  const good = glossary.replace("the 3 things", "the 1 things");
+  const { findings: after } = checkProjections(projOntology, projClaims, good);
+  assert.ok(!after.some((f) => f.subject === "glossary:entity-count"));
 });

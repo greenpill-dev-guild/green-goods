@@ -204,6 +204,50 @@ export interface OntologyKnownIssue {
   anchors: string[];
 }
 
+export type CapabilityState = "complete" | "partial" | "blocked" | "not_started" | "not_applicable";
+
+export interface CapabilityEvidence {
+  file: string;
+  /** Dot path into a JSON evidence file; the drift gate fails if it no longer resolves. */
+  json_path?: string;
+  note?: string;
+}
+
+export interface CapabilityDimension {
+  state: CapabilityState;
+  evidence: CapabilityEvidence[];
+  note?: string;
+  verified_at: string;
+}
+
+/** The maturity story of one entity — five dimensions, each evidence-backed. */
+export interface EntityCapability {
+  entity: string;
+  dimensions: {
+    implementation: CapabilityDimension;
+    deployment: CapabilityDimension;
+    activation: CapabilityDimension;
+    indexing: CapabilityDimension;
+    availability: CapabilityDimension;
+  };
+}
+
+export interface ConceptCardConfusion {
+  ref: string;
+  reason: string;
+}
+
+/** Human explainer for one entity; rendered into concepts.generated.mdx. */
+export interface ConceptCard {
+  entity: string;
+  plain_name: string;
+  why_it_matters: string;
+  example: string;
+  aliases: string[];
+  not_confused_with: ConceptCardConfusion[];
+  safe_claim: string;
+}
+
 export interface GreenGoodsOntology {
   version: number;
   description: string;
@@ -222,4 +266,6 @@ export interface GreenGoodsOntology {
   integration_matrix: OntologyIntegrationMatrix;
   pattern_watches: OntologyPatternWatch[];
   known_issues: OntologyKnownIssue[];
+  capabilities: EntityCapability[];
+  concept_cards: ConceptCard[];
 }

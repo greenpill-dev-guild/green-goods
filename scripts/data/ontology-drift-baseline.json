@@ -75,22 +75,13 @@
       "note": "Two lowercase spellings of the same domains. On-chain action slugs are immutable, so expect the ActionDomain union to converge toward the slug prefixes (or an explicit map) during Domain vocabulary unification."
     },
     {
-      "id": "action-domains-collision",
+      "id": "eas-assessment-domain-default",
       "guard": "pattern-watch",
-      "subject": "watch:action-domains-collision",
-      "detail": "pattern present: \\bconst ACTION_DOMAINS\\b",
+      "subject": "watch:eas-assessment-domain-default",
+      "detail": "pattern present: toNumberFromField\\(domainRaw\\) \\?\\? 0",
       "owner": "shared",
       "expires": "2026-11-30",
-      "note": "Rename the module-local numeric ACTION_DOMAINS in useActionForm (or reuse an exported domain-values constant) so the identifier no longer collides with the exported string vocabulary."
-    },
-    {
-      "id": "parsedomain-unknown-coercion",
-      "guard": "pattern-watch",
-      "subject": "watch:parsedomain-unknown-coercion",
-      "detail": "pattern present: \\?\\?\\s*Domain\\.SOLAR",
-      "owner": "shared",
-      "expires": "2026-11-30",
-      "note": "Make parseDomain surface unknown indexer domains (null/undefined) instead of silently coercing them to Domain.SOLAR, and update consumers to handle the unknown branch."
+      "note": "Legacy assessments missing a domain field decode as SOLAR. Make the decode nullable and give assessment consumers (StrategyKernelStep metric/guidance guards) an explicit unknown branch."
     }
   ]
 }

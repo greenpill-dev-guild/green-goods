@@ -85,6 +85,7 @@ const sidebars: SidebarsConfig = {
 
     {type: 'doc', id: 'reference/faq', label: 'FAQ'},
     {type: 'doc', id: 'reference/glossary-community', label: 'Glossary'},
+    {type: 'doc', id: 'reference/concepts.generated', label: 'Concepts & Claims'},
     {type: 'doc', id: 'reference/ontology.generated', label: 'Ontology'},
   ],
 

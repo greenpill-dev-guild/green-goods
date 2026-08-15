@@ -98,6 +98,7 @@ const WORKFLOW_MATCHERS = new Map([
         "docs/docs/reference/glossary-community.md",
         "docs/docs/reference/ontology.generated.mdx",
         "docs/docs/builders/integrations/entity-matrix.mdx",
+        "docs/docs/reference/concepts.generated.mdx",
         "scripts/quality/check-ontology.mjs",
         "scripts/quality/ontology-render.mjs",
         "scripts/quality/check-ontology.test.mjs",

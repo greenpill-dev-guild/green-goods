@@ -66,10 +66,11 @@ const PERSONAS: readonly PersonaEntry[] = [
     nameId: "public.home.personas.evaluator.name",
     defaultName: "Evaluators",
     roleId: "public.home.personas.evaluator.role",
-    defaultRole: "Verify the record. Review submitted Work, sign off on confidence and method.",
+    defaultRole:
+      "Frame and score impact. Author assessments with baselines, targets, and outcomes.",
     bodyId: "public.home.personas.evaluator.body",
     defaultBody:
-      "Evaluators are the trust layer of the public record. They come from many backgrounds, review submitted Work, sign off with a confidence band, and name the verification method behind each approval. Their care is what turns a field log into evidence.",
+      "Evaluators frame what success means before work begins and score what the season achieved. They come from many backgrounds — botanists, soil scientists, community elders — and their assessments give funders an independent read on impact.",
     ctaId: "public.home.personas.evaluator.cta",
     defaultCta: "Read the evaluator guide",
     cta: { type: "external", href: "https://docs.greengoods.app/community/evaluator-guide" },

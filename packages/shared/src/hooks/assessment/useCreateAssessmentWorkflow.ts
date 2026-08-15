@@ -43,14 +43,14 @@ const DOMAIN_MAP: Record<string, number> = {
   waste: 3,
 };
 
-function assessmentTypeToDomain(assessmentType: string): number {
+function assessmentTypeToDomain(assessmentType: string): number | null {
   const lower = assessmentType.toLowerCase();
   // Support both "solar" and "domain-0" formats
   if (lower.startsWith("domain-")) {
     const num = Number.parseInt(lower.replace("domain-", ""), 10);
-    return num >= 0 && num <= 3 ? num : 0;
+    return Number.isInteger(num) && num >= 0 && num <= 3 ? num : null;
   }
-  return DOMAIN_MAP[lower] ?? 0;
+  return DOMAIN_MAP[lower] ?? null;
 }
 
 export interface UseCreateAssessmentWorkflowOptions {
@@ -261,8 +261,15 @@ export function useCreateAssessmentWorkflow(options: UseCreateAssessmentWorkflow
                 const configUpload = await uploadJSONToIPFS(assessmentConfig);
                 const assessmentConfigCID = configUpload.cid;
 
-                // Map assessmentType to domain enum (0=SOLAR, 1=AGRO, 2=EDU, 3=WASTE)
+                // Map assessmentType to domain enum (0=SOLAR, 1=AGRO, 2=EDU, 3=WASTE).
+                // A domain is written permanently into the on-chain attestation, so an
+                // unrecognized assessment type must fail loudly — never default to SOLAR.
                 const domain = params.domain ?? assessmentTypeToDomain(params.assessmentType);
+                if (domain === null) {
+                  throw new Error(
+                    `Unrecognized assessment domain "${params.assessmentType}" — refusing to encode a fabricated domain`
+                  );
+                }
 
                 const toUnixSeconds = (value?: string | number | null) => {
                   if (!value) return 0;
