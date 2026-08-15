@@ -400,7 +400,7 @@ function domTokens(html: string) {
 // Enabled buttons are promises of interaction. A button is valid when it owns
 // a hotspot or sits inside one; preview-only chrome must be honestly disabled.
 // This small stack parser keeps the artifact build dependency-free.
-function scanEnabledButtons(screenId: string, stateId: string, html: string) {
+function scanEnabledButtons(screenId: string, stateId: string, html: string, sink = err) {
   const stack: { tag: string; hot: boolean }[] = [];
   const voidTags = new Set(["area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "param", "source", "track", "wbr"]);
   for (const match of html.matchAll(/<(\/?)([a-z][a-z0-9-]*)([^>]*)>/gi)) {
@@ -414,13 +414,13 @@ function scanEnabledButtons(screenId: string, stateId: string, html: string) {
     const ownsHot = /\bdata-hot\s*=/.test(attrs);
     if (tag === "button" && !/\bdisabled(?:\s|=|$)/.test(attrs) && !ownsHot && !stack.some((node) => node.hot)) {
       const label = stripTags(match.input.slice(match.index! + match[0].length).split("</button>", 1)[0]).trim().replace(/\s+/g, " ").slice(0, 48) || "icon button";
-      err.push(`CONTROL ${screenId}@${stateId}: enabled button "${label}" lacks data-hot`);
+      sink.push(`CONTROL ${screenId}@${stateId}: enabled button "${label}" lacks data-hot`);
     }
     if (!voidTags.has(tag) && !/\/\s*$/.test(attrs)) stack.push({ tag, hot: ownsHot });
   }
 }
 
-function scanFormNames(screenId: string, stateId: string, html: string) {
+function scanFormNames(screenId: string, stateId: string, html: string, sink = err) {
   for (const match of html.matchAll(/<(input|select)\b([^>]*)>/gi)) {
     const tag = match[1].toLowerCase();
     const attrs = match[2];
@@ -429,8 +429,38 @@ function scanFormNames(screenId: string, stateId: string, html: string) {
     const ariaLabel = attrs.match(/\baria-label="([^"]+)"/)?.[1];
     const hasFor = id ? html.includes(`for="${id}"`) : false;
     const hasLabelledBy = labelledBy ? labelledBy.split(/\s+/).every((labelId) => html.includes(`id="${labelId}"`)) : false;
-    if (!ariaLabel && !hasFor && !hasLabelledBy) err.push(`FORM ${screenId}@${stateId}: ${tag} lacks a visible programmatic label`);
+    if (!ariaLabel && !hasFor && !hasLabelledBy) sink.push(`FORM ${screenId}@${stateId}: ${tag} lacks a visible programmatic label`);
   }
+}
+
+// ---- components-tab gallery scan (2026-08-14) -------------------------------
+// The Components tab renders kit specimens outside the screen registry, so the
+// per-state pipeline below never sees them. Same rules, new call site: the
+// copy scans, the spec-citation guard, and the control/label discipline.
+// Specimens draw their controls disabled and carry no hotspots — an enabled
+// button here is a build error exactly as it is on a screen. `chromeText` is
+// the tab's own annotation copy (entry titles, rules, drift notes): it shares
+// the vocabulary/citation ceiling but hosts the tab's live copy-link buttons,
+// so the control scan covers specimens only.
+export function scanGalleryHtml(surface: "client" | "admin" | "editorial", html: string, chromeText = ""): string[] {
+  const sink: string[] = [];
+  const where = `COMPONENTS ${surface}`;
+  const text = `${stripTags(html)} ${chromeText}`;
+  scanEverywhere(where, text, sink);
+  const cite = text.match(/\b(?:CS|UX|AM|SS|WF|DG|LAP|CI-WF|CI-SPEC):\s?\d+|register #\d+|\bMF-\d+\b/);
+  if (cite) sink.push(`META ${where}: spec citation "${cite[0]}" rendered as gallery copy`);
+  const pct = text.match(/promised units|% of promised/i);
+  if (pct) sink.push(`AGGREGATE ${where}: "${pct[0]}" is a mixed-unit percentage`);
+  if (surface === "client" || surface === "editorial") {
+    for (const [re, name] of BANNED_CLIENT_PUBLIC) if (re.test(text)) sink.push(`VOCAB ${where}: "${name}"`);
+  }
+  if (surface === "admin") {
+    for (const [re, name] of ADMIN_HERO) if (re.test(text)) sink.push(`VOCAB ${where}: ${name}`);
+  }
+  if (/data-hot=/.test(html)) sink.push(`GALLERY ${where}: specimens must not carry data-hot`);
+  scanEnabledButtons("COMPONENTS", surface, html, sink);
+  scanFormNames("COMPONENTS", surface, html, sink);
+  return sink;
 }
 
 // ---- copy scans -------------------------------------------------------------

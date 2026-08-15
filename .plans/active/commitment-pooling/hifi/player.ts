@@ -6,7 +6,7 @@
 
 export const PLAYER_JS = `(function(){
   function $(id){ return document.getElementById(id); }
-  var tabs = { play: [$("tab-play"), $("tabbtn-play")], screens: [$("tab-screens"), $("tabbtn-screens")], doc: [$("tab-doc"), $("tabbtn-doc")] };
+  var tabs = { play: [$("tab-play"), $("tabbtn-play")], screens: [$("tab-screens"), $("tabbtn-screens")], comps: [$("tab-comps"), $("tabbtn-comps")], doc: [$("tab-doc"), $("tabbtn-doc")] };
   function setTab(name){
     Object.keys(tabs).forEach(function(k){
       tabs[k][0].classList.toggle("on", k === name);
@@ -18,6 +18,7 @@ export const PLAYER_JS = `(function(){
   }
   $("tabbtn-play").addEventListener("click", function(){ setTab("play"); });
   $("tabbtn-screens").addEventListener("click", function(){ setTab("screens"); });
+  $("tabbtn-comps").addEventListener("click", function(){ setTab("comps"); if (history.replaceState) history.replaceState(null, "", "#components"); });
   $("tabbtn-doc").addEventListener("click", function(){ setTab("doc"); });
 
   // ---- theme ----
@@ -136,6 +137,46 @@ export const PLAYER_JS = `(function(){
   document.querySelectorAll('.surface-tab[data-flow-group]').forEach(function(tab){ tab.addEventListener("click", function(){ setFlowGroup(tab.getAttribute("data-flow-group")); }); });
   document.querySelectorAll('.surface-tab[data-screen-surface]').forEach(function(tab){ tab.addEventListener("click", function(){ setScreenSurface(tab.getAttribute("data-screen-surface")); }); });
   setFlowGroup(selectedFlowGroup); setScreenSurface(selectedScreenSurface);
+
+  // ---- components tab: surface flip, deep links, copy-link ----
+  // Same flip mechanics as the Screen library. Entry anchors follow the
+  // player's grammar: #components/<id> (client-first default) and
+  // #components/<id>@<surface> — a deep link flips the surface and scrolls.
+  function setCompSurface(surface){
+    document.querySelectorAll('.surface-tab[data-comp-surface]').forEach(function(tab){
+      var on = tab.getAttribute("data-comp-surface") === surface;
+      tab.classList.toggle("on", on); tab.setAttribute("aria-selected", String(on)); tab.tabIndex = on ? 0 : -1;
+    });
+    document.querySelectorAll('.comp-catalog[data-comp-surface]').forEach(function(panel){ panel.hidden = panel.getAttribute("data-comp-surface") !== surface; });
+  }
+  document.querySelectorAll('.surface-tab[data-comp-surface]').forEach(function(tab){ tab.addEventListener("click", function(){ setCompSurface(tab.getAttribute("data-comp-surface")); }); });
+  setCompSurface("client");
+  function openComponent(id, surface){
+    var nodes = Array.prototype.slice.call(document.querySelectorAll('.centry[data-centry="' + id + '"]'));
+    if (!nodes.length) return;
+    var el = null;
+    if (surface) nodes.forEach(function(n){ if (!el && n.getAttribute("data-comp-surface") === surface) el = n; });
+    if (!el) ["client", "admin", "editorial"].forEach(function(s){ if (!el) nodes.forEach(function(n){ if (!el && n.getAttribute("data-comp-surface") === s) el = n; }); });
+    if (!el) el = nodes[0];
+    setCompSurface(el.getAttribute("data-comp-surface"));
+    el.scrollIntoView();
+    el.classList.add("hl");
+    setTimeout(function(){ el.classList.remove("hl"); }, 1600);
+  }
+  var compsPanel = $("tab-comps");
+  if (compsPanel) compsPanel.addEventListener("click", function(e){
+    var b = e.target.closest ? e.target.closest(".complink") : null;
+    if (!b) return;
+    var anchor = "#" + b.getAttribute("data-anchor");
+    var url = location.href.split("#")[0] + anchor;
+    function done(ok){
+      b.classList.add(ok ? "copied" : "copyfail");
+      setTimeout(function(){ b.classList.remove("copied"); b.classList.remove("copyfail"); }, 1300);
+      if (history.replaceState) history.replaceState(null, "", anchor);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(url).then(function(){ done(true); }, function(){ done(false); });
+    else done(false);
+  });
 
   var SURFACE = { pwa: "Client PWA", admin: "Admin console", editorial: "Editorial website", community: "Community PWA", safe: "Safe app (external)" };
 
@@ -392,7 +433,9 @@ export const PLAYER_JS = `(function(){
     var scr = screenOf(expCur);
     var st = stateOf(scr, expState);
     expState = st.id;
-    $("exp-key").textContent = scr.id;
+    // expCur, not scr.id — DATA.screens values carry no id field, so scr.id
+    // rendered this label empty since the registry restructure.
+    $("exp-key").textContent = expCur;
     $("exp-title").textContent = scr.title.replace(/^\\s*(?:W\\d+a?|HUBWORK|WFLOW)\\s*[·—:-]\\s*/i, "");
     var chips = $("expstates"); chips.textContent = "";
     if (scr.states.length > 1) {
@@ -535,6 +578,15 @@ export const PLAYER_JS = `(function(){
       return;
     }
     if (h === "screens") { setTab("screens"); expHome(); return; }
+    // Components anchors resolve BEFORE the doc fallthrough, or every entry
+    // link would land reviewers on the Reference tab.
+    var mComp = h.match(/^components(?:\\/([\\w-]+)(?:@(\\w+))?)?$/);
+    if (mComp) {
+      setTab("comps");
+      if (mComp[1]) openComponent(mComp[1], mComp[2]);
+      else window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+      return;
+    }
     setTab("doc");
     var t = document.getElementById(h);
     if (t) t.scrollIntoView();

@@ -18,7 +18,7 @@ export const HIFI_CSS = `
 /* Six motion tokens projected from theme.css. Component motion below derives
    from these values so reduced-motion can remove animation without leaving
    one-off timing curves behind. */
-.hf.s-client,.hf.s-admin,.hf.s-public{
+.hf.s-client,.hf.s-admin,.hf.s-editorial{
   --spring-spatial-duration:300ms;--spring-spatial-easing:cubic-bezier(0.16,1,0.3,1);
   --spring-spatial-fast-duration:200ms;--spring-spatial-fast-easing:cubic-bezier(0.34,1.56,0.64,1);
   --spring-spatial-slow-duration:400ms;--spring-spatial-slow-easing:cubic-bezier(0.16,1,0.3,1);
@@ -754,8 +754,8 @@ export const HIFI_CSS = `
 .hf .quietok{display:flex;gap:8px;align-items:center;font-size:12.5px;color:var(--gr-ink)}
 .hf .quietok .ic{width:15px;height:15px}
 
-/* ---------- editorial dialect (.s-public) — public website ---------- */
-.hf.s-public{
+/* ---------- editorial dialect (.s-editorial) — public website ---------- */
+.hf.s-editorial{
   --cv:#FBF8F2; --card:#FFFFFF; --ink:#2A2722; --stone:#6E6857; --ln:#E4DDD0;
   --ln2:#CFC6B6; --gr:#1FC16B; --gr-ink:#15803D; --act:#1A7544; --acth:#16643B;
   --amb:#9A6A10; --amb-bg:#F8F0DC; --stone-bg:#F2EEE5; --gr-bg:#E9F3EC;
@@ -765,16 +765,16 @@ export const HIFI_CSS = `
   color:var(--ink);
   -webkit-font-smoothing:antialiased;
 }
-[data-theme="dark"] .hf.s-public,
-:root:not([data-theme="light"]) .hf.s-public{}
+[data-theme="dark"] .hf.s-editorial,
+:root:not([data-theme="light"]) .hf.s-editorial{}
 @media (prefers-color-scheme: dark){
-  :root:not([data-theme="light"]) .hf.s-public{
+  :root:not([data-theme="light"]) .hf.s-editorial{
     --cv:#171511; --card:#211E19; --ink:#F0EDE6; --stone:#A69F90; --ln:#2F2B24;
     --ln2:#4A443A; --gr-ink:#4ADE80; --amb:#DFAA45; --amb-bg:#2E2512;
     --stone-bg:#292520; --gr-bg:#13291B;
   }
 }
-[data-theme="dark"] .hf.s-public{
+[data-theme="dark"] .hf.s-editorial{
   --cv:#171511; --card:#211E19; --ink:#F0EDE6; --stone:#A69F90; --ln:#2F2B24;
   --ln2:#4A443A; --gr-ink:#4ADE80; --amb:#DFAA45; --amb-bg:#2E2512;
   --stone-bg:#292520; --gr-bg:#13291B;

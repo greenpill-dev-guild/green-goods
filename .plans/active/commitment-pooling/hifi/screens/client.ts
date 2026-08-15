@@ -71,6 +71,16 @@ const claimCard = (state: W1State) => {
   );
 };
 
+// Gallery casts for the Components tab — the four claim outcomes W1 renders.
+// claimCard itself stays screen-local (fixture-bound to W1's story) per the
+// component-library contract; the tab documents it through these casts.
+export const claimCardCasts = () => ({
+  pending: claimCard("claim-pending"),
+  declined: claimCard("claim-declined"),
+  superseded: claimCard("claim-superseded"),
+  accepted: claimCard("claim-accepted"),
+});
+
 function w1(state: W1State): string {
   // Garden detail is an immersive garden route. The shipping AppBar hides for
   // every /home/garden/** path, so this screen owns its scroll surface without
