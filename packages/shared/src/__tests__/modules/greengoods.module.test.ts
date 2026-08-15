@@ -49,7 +49,8 @@ vi.mock("../../modules/data/graphql", () => ({
   greenGoodsGraphQL: vi.fn((query) => query),
 }));
 
-import { getActions, getGardens } from "../../modules/data/greengoods";
+import { getActions, getGardens, parseIndexerDomain } from "../../modules/data/greengoods";
+import { Domain } from "../../types/domain";
 import { instructionTemplates } from "../../utils/action/templates";
 
 describe("modules/data/greengoods", () => {
@@ -231,6 +232,12 @@ describe("modules/data/greengoods", () => {
   });
 
   describe("getActions", () => {
+    it("surfaces missing or unknown indexer domains instead of coercing them to solar", () => {
+      expect(parseIndexerDomain("SOLAR")).toBe(Domain.SOLAR);
+      expect(parseIndexerDomain("UNKNOWN")).toBeNull();
+      expect(parseIndexerDomain(undefined)).toBeNull();
+    });
+
     it("returns parsed action list on success", async () => {
       const mockActions = [
         {
@@ -268,6 +275,26 @@ describe("modules/data/greengoods", () => {
       const result = await getActions();
 
       expect(result).toEqual([]);
+    });
+
+    it("omits an action whose indexer domain is unknown", async () => {
+      mockQuery.mockResolvedValue({
+        data: {
+          Action: [
+            {
+              id: "11155111-unknown",
+              title: "Unknown domain",
+              slug: "unknown.action",
+              domain: "UNKNOWN",
+              capitals: [],
+              media: [],
+            },
+          ],
+        },
+      });
+
+      await expect(getActions()).resolves.toEqual([]);
+      expect(mockGetFileByHash).not.toHaveBeenCalled();
     });
 
     it("handles action without instructions gracefully", async () => {
