@@ -57,7 +57,7 @@ export const AUTOMATED_RELEASE_EXCLUSIONS = [
 ] as const;
 
 export interface CompleteSequenceAuthorization {
-  schemaVersion: 2;
+  schemaVersion: 3;
   kind: "PAUSED_RELEASE_COMPLETE_SEQUENCE_AUTHORIZATION";
   operatorCandidateCommit: string;
   releaseId: string;
@@ -69,9 +69,56 @@ export interface CompleteSequenceAuthorization {
   authorizedBy: string;
   authorizedOn: string;
   authorizationRecord: string;
+  authorizationWindow: AuthorizationWindow;
 }
 
 export const POOL_BACKFILL_REGISTRATION_BOUNDARIES = 18;
+
+export type PoolCeremonyMode = "pool-backfill" | "pooling-unpause";
+
+export interface AuthorizationWindow {
+  notBefore: string;
+  expiresAt: string;
+}
+
+export interface PoolCeremonyAuthorization {
+  schemaVersion: 1;
+  kind: "POOL_CEREMONY_AUTHORIZATION";
+  mode: PoolCeremonyMode;
+  operatorCandidateCommit: string;
+  releaseId: string;
+  releaseManifestHash: string;
+  releaseSourceCommit: string;
+  network: "arbitrum";
+  chainId: 42161;
+  authority: "DEPLOYER";
+  planHash: string;
+  authorizedBoundaries: number[];
+  terminalState: "paused-deployer-owned-18-pools" | "unpaused-deployer-owned-18-pools";
+  excludedActions: string[];
+  authorizedBy: string;
+  authorizedOn: string;
+  authorizationRecord: string;
+  authorizationWindow: AuthorizationWindow;
+}
+
+export const POOL_BACKFILL_EXCLUSIONS = [
+  "ownership-transfer",
+  "pooling-unpause",
+  "peer-wiring",
+  "safe-zodiac-value-authority",
+  "value-movement",
+  "indexer-activation",
+] as const;
+
+export const POOL_UNPAUSE_EXCLUSIONS = [
+  "ownership-transfer",
+  "additional-pool-registration",
+  "peer-wiring",
+  "safe-zodiac-value-authority",
+  "value-movement",
+  "indexer-activation",
+] as const;
 
 export const RELEASE_OPERATOR_COMMANDS = new Map<string, string>([
   ["assessment:upgrade:arbitrum", "AssessmentResolver upgrade and canonical-v2 pin boundaries"],
@@ -183,11 +230,11 @@ export function parseSessionOptions(args: string[]): SessionOptions {
   if ([options.deployAll, options.backfillAll, options.unpausePooling].filter(Boolean).length > 1) {
     throw new Error("Choose only one automated release mode");
   }
-  if (options.deployAll && !options.authorization) {
-    throw new Error("--deploy-all requires --authorization <candidate-bound-reviewed-json>");
+  if ((options.deployAll || options.backfillAll || options.unpausePooling) && !options.authorization) {
+    throw new Error("Automated release modes require --authorization <candidate-bound-reviewed-json>");
   }
-  if (!options.deployAll && options.authorization) {
-    throw new Error("--authorization is accepted only with --deploy-all");
+  if (!options.deployAll && !options.backfillAll && !options.unpausePooling && options.authorization) {
+    throw new Error("--authorization is accepted only with an automated release mode");
   }
   return options;
 }
@@ -294,8 +341,8 @@ Green Goods release operator session
 Usage:
   bun run release:operator -- --commit <exact-40-character-candidate>
   bun run release:deploy:all -- --commit <exact-40-character-candidate> --authorization <reviewed-json>
-  bun run release:backfill:all -- --commit <exact-40-character-candidate>
-  bun run release:unpause:pooling -- --commit <exact-40-character-candidate>
+  bun run release:backfill:all -- --commit <exact-40-character-candidate> --authorization <reviewed-json>
+  bun run release:unpause:pooling -- --commit <exact-40-character-candidate> --authorization <reviewed-json>
 
 The session verifies a clean checkout at the exact candidate, prompts for the Foundry keystore
 password once, verifies that it unlocks the frozen deployment sender, and then accepts only the
@@ -321,7 +368,8 @@ excluded from that command.
 boundaries 1-18 through the temporary deployment-sender owner. It keeps pooling paused and never
 transfers ownership. --unpause-pooling executes only boundary 19 after every registration receipt
 and pool ID is verified. Peer wiring, Safe authority, value movement, and ownership transfer remain
-excluded from both commands.
+excluded from both commands. Each mode requires its own candidate-, plan-, boundary-, and
+time-window-bound authorization JSON before the keystore is unlocked.
 
 Allowlisted package scripts:
 ${[...RELEASE_OPERATOR_COMMANDS].map(([name, description]) => `  ${name.padEnd(40)} ${description}`).join("\n")}
@@ -397,9 +445,10 @@ export function validateCompleteSequenceAuthorization(
   manifest: ReleaseManifest,
   lock: ReleaseLock,
   candidateCommit: string,
+  now = new Date(),
 ): void {
   if (
-    authorization.schemaVersion !== 2 ||
+    authorization.schemaVersion !== 3 ||
     authorization.kind !== "PAUSED_RELEASE_COMPLETE_SEQUENCE_AUTHORIZATION" ||
     authorization.operatorCandidateCommit !== candidateCommit ||
     authorization.releaseId !== manifest.releaseId ||
@@ -410,26 +459,110 @@ export function validateCompleteSequenceAuthorization(
     JSON.stringify(authorization.excludedActions) !== JSON.stringify(AUTOMATED_RELEASE_EXCLUSIONS) ||
     !authorization.authorizedBy.trim() ||
     !/^\d{4}-\d{2}-\d{2}$/u.test(authorization.authorizedOn) ||
-    !authorization.authorizationRecord.trim()
+    !authorization.authorizationRecord.trim() ||
+    !isActiveAuthorizationWindow(authorization.authorizationWindow, now)
   ) {
     throw new Error("Complete release sequence is not bound to the exact reviewed authorization artifact");
   }
 }
 
-function assertCompleteSequenceAuthorization(candidateCommit: string, authorizationPath: string): void {
+function isActiveAuthorizationWindow(window: AuthorizationWindow | undefined, now: Date): boolean {
+  if (!window) return false;
+  const notBefore = Date.parse(window.notBefore);
+  const expiresAt = Date.parse(window.expiresAt);
+  const current = now.getTime();
+  const maximumWindow = 24 * 60 * 60 * 1000;
+  return (
+    Number.isFinite(notBefore) &&
+    Number.isFinite(expiresAt) &&
+    expiresAt > notBefore &&
+    expiresAt - notBefore <= maximumWindow &&
+    current >= notBefore &&
+    current <= expiresAt
+  );
+}
+
+function readReviewedAuthorization<T>(authorizationPath: string, label: string): T {
   if (!fs.existsSync(authorizationPath)) {
-    throw new Error(`Complete release sequence authorization is missing: ${authorizationPath}`);
+    throw new Error(`${label} authorization is missing: ${authorizationPath}`);
   }
   const authorizationStat = fs.lstatSync(authorizationPath);
   if (!authorizationStat.isFile() || authorizationStat.isSymbolicLink() || (authorizationStat.mode & 0o022) !== 0) {
-    throw new Error("Complete release sequence authorization must be a regular file without group/world write access");
+    throw new Error(`${label} authorization must be a regular file without group/world write access`);
   }
+  return readJson<T>(authorizationPath);
+}
+
+function assertCompleteSequenceAuthorization(candidateCommit: string, authorizationPath: string): void {
   const manifest = loadReleaseManifest();
   validateCompleteSequenceAuthorization(
-    readJson<CompleteSequenceAuthorization>(authorizationPath),
+    readReviewedAuthorization<CompleteSequenceAuthorization>(authorizationPath, "Complete release sequence"),
     manifest,
     buildReleaseLock(manifest),
     candidateCommit,
+  );
+}
+
+function expectedPoolCeremonyBoundaries(mode: PoolCeremonyMode): number[] {
+  if (mode === "pool-backfill") {
+    return Array.from({ length: POOL_BACKFILL_REGISTRATION_BOUNDARIES }, (_, offset) => offset + 1);
+  }
+  return [POOL_BACKFILL_REGISTRATION_BOUNDARIES + 1];
+}
+
+export function validatePoolCeremonyAuthorization(
+  authorization: PoolCeremonyAuthorization,
+  manifest: ReleaseManifest,
+  lock: ReleaseLock,
+  candidateCommit: string,
+  mode: PoolCeremonyMode,
+  planHash: string,
+  now = new Date(),
+): void {
+  const backfill = mode === "pool-backfill";
+  const expectedTerminalState = backfill ? "paused-deployer-owned-18-pools" : "unpaused-deployer-owned-18-pools";
+  const expectedExclusions = backfill ? POOL_BACKFILL_EXCLUSIONS : POOL_UNPAUSE_EXCLUSIONS;
+  if (
+    authorization.schemaVersion !== 1 ||
+    authorization.kind !== "POOL_CEREMONY_AUTHORIZATION" ||
+    authorization.mode !== mode ||
+    authorization.operatorCandidateCommit !== candidateCommit ||
+    authorization.releaseId !== manifest.releaseId ||
+    authorization.releaseManifestHash !== lock.manifestHash ||
+    authorization.releaseSourceCommit !== lock.sourceCommit ||
+    authorization.network !== "arbitrum" ||
+    authorization.chainId !== 42161 ||
+    authorization.authority !== "DEPLOYER" ||
+    authorization.planHash !== planHash ||
+    JSON.stringify(authorization.authorizedBoundaries) !== JSON.stringify(expectedPoolCeremonyBoundaries(mode)) ||
+    authorization.terminalState !== expectedTerminalState ||
+    JSON.stringify(authorization.excludedActions) !== JSON.stringify(expectedExclusions) ||
+    !authorization.authorizedBy.trim() ||
+    !/^\d{4}-\d{2}-\d{2}$/u.test(authorization.authorizedOn) ||
+    !authorization.authorizationRecord.trim() ||
+    !isActiveAuthorizationWindow(authorization.authorizationWindow, now)
+  ) {
+    throw new Error(`Pool ceremony ${mode} is not bound to the exact reviewed authorization artifact`);
+  }
+}
+
+function assertPoolCeremonyAuthorization(
+  candidateCommit: string,
+  authorizationPath: string,
+  mode: PoolCeremonyMode,
+): void {
+  const planPath = backfillPlanPath();
+  if (!fs.existsSync(planPath)) {
+    throw new Error(`Pool ceremony authorization requires the reviewed plan: ${planPath}`);
+  }
+  const manifest = loadReleaseManifest();
+  validatePoolCeremonyAuthorization(
+    readReviewedAuthorization<PoolCeremonyAuthorization>(authorizationPath, `Pool ceremony ${mode}`),
+    manifest,
+    buildReleaseLock(manifest),
+    candidateCommit,
+    mode,
+    keccak256(toUtf8Bytes(fs.readFileSync(planPath, "utf8"))),
   );
 }
 
@@ -1210,12 +1343,20 @@ async function runAutomatedPoolUnpause(candidateCommit: string, passwordFile: st
 }
 
 async function runSession(candidateCommit: string, options: SessionOptions): Promise<void> {
-  const automated = options.deployAll || options.backfillAll || options.unpausePooling;
   if (options.deployAll) {
     if (!options.authorization) throw new Error("Complete release sequence authorization is missing");
     assertAutomatedSessionStart(candidateCommit, options.authorization);
-  } else if (automated) assertAutomatedResumeStart(candidateCommit);
-  else assertGardenSafeSessionStart(candidateCommit);
+  } else if (options.backfillAll || options.unpausePooling) {
+    if (!options.authorization) throw new Error("Pool ceremony authorization is missing");
+    assertAutomatedResumeStart(candidateCommit);
+    assertPoolCeremonyAuthorization(
+      candidateCommit,
+      options.authorization,
+      options.backfillAll ? "pool-backfill" : "pooling-unpause",
+    );
+  } else {
+    assertGardenSafeSessionStart(candidateCommit);
+  }
   const manifest = loadReleaseManifest();
   const password = await readHiddenPassword();
   const lease = createPasswordLease(password);

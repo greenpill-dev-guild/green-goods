@@ -53,8 +53,10 @@ remain separate ceremonies.
 The repository-root commands for the two completed core boundaries are:
 
 ```bash
-bun run contracts:release:backfill:all -- --commit <exact-40-character-candidate>
-bun run contracts:release:unpause:pooling -- --commit <exact-40-character-candidate>
+bun run contracts:release:backfill:all -- --commit <exact-40-character-candidate> \
+  --authorization <candidate-and-plan-bound-backfill-authorization.json>
+bun run contracts:release:unpause:pooling -- --commit <exact-40-character-candidate> \
+  --authorization <candidate-and-plan-bound-unpause-authorization.json>
 ```
 
 Both commands are resumable and reverify their receipt-backed checkpoints. The first stops after
@@ -64,13 +66,21 @@ The exact executed plan and complete 19-boundary checkpoint are tracked at
 `packages/contracts/.generated/runtime/42161-pool-backfill.checkpoint.json` so a clean checkout can
 reverify every registration, pool ID, receipt block, and the separate unpause.
 
+The tracked backfill and unpause authorization templates live in
+`packages/contracts/config/commitment-pooling-backfill-authorization.json` and
+`packages/contracts/config/commitment-pooling-unpause-authorization.json`. Each ceremony requires
+its own separately reviewed copy before password unlock. The operator binds that copy to the exact
+candidate, release lock, tracked plan hash, permitted boundaries, terminal state, exclusions, and
+an active window no longer than 24 hours.
+
 ### Complete paused-candidate sequence authorization (executed)
 
 The tracked
 `packages/contracts/config/commitment-pooling-release-automation-authorization.json` file is the
 authorization template. After the operator candidate is committed, the release owner copies it to
 a separately reviewed JSON file, replaces `operatorCandidateCommit` with that exact 40-character
-commit, and records the authorization outside the candidate commit. The operator requires that
+commit, supplies an active authorization window no longer than 24 hours, and records the
+authorization outside the candidate commit. The operator requires that
 file through `--authorization` before password unlock. It also binds the exact release ID, manifest
 hash, source commit, ordered stages, paused deployer-owned terminal state, and exclusions for
 ownership transfer, pool registration, pooling unpause, peer wiring, Safe/Zodiac value authority,

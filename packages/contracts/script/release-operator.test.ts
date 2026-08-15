@@ -14,16 +14,20 @@ import {
   assertPinnedCheckout,
   assertPlanCanResume,
   type CompleteSequenceAuthorization,
+  type PoolCeremonyAuthorization,
   changedPromotionLeafPaths,
   completedBoundaries,
   createPasswordLease,
   POOL_BACKFILL_REGISTRATION_BOUNDARIES,
+  POOL_BACKFILL_EXCLUSIONS,
+  POOL_UNPAUSE_EXCLUSIONS,
   parseSessionOptions,
   planBoundaryExecutionSteps,
   RELEASE_OPERATOR_COMMANDS,
   shouldGenerateReviewedPlan,
   tokenizeOperatorCommand,
   validateCompleteSequenceAuthorization,
+  validatePoolCeremonyAuthorization,
 } from "./release-operator";
 import type { ReleaseLock, ReleaseManifest } from "./utils/release-manifest";
 
@@ -63,12 +67,32 @@ describe("release operator session", () => {
       backfillAll: false,
       unpausePooling: false,
     });
-    expect(parseSessionOptions(["--commit", "a".repeat(40), "--backfill-all"])).toMatchObject({
+    expect(() => parseSessionOptions(["--commit", "a".repeat(40), "--backfill-all"])).toThrow(/--authorization/);
+    expect(
+      parseSessionOptions([
+        "--commit",
+        "a".repeat(40),
+        "--backfill-all",
+        "--authorization",
+        "/tmp/backfill-authorization.json",
+      ]),
+    ).toMatchObject({
+      authorization: "/tmp/backfill-authorization.json",
       backfillAll: true,
       deployAll: false,
       unpausePooling: false,
     });
-    expect(parseSessionOptions(["--commit", "a".repeat(40), "--unpause-pooling"])).toMatchObject({
+    expect(() => parseSessionOptions(["--commit", "a".repeat(40), "--unpause-pooling"])).toThrow(/--authorization/);
+    expect(
+      parseSessionOptions([
+        "--commit",
+        "a".repeat(40),
+        "--unpause-pooling",
+        "--authorization",
+        "/tmp/unpause-authorization.json",
+      ]),
+    ).toMatchObject({
+      authorization: "/tmp/unpause-authorization.json",
       backfillAll: false,
       deployAll: false,
       unpausePooling: true,
@@ -78,7 +102,7 @@ describe("release operator session", () => {
     );
     expect(() =>
       parseSessionOptions(["--commit", "a".repeat(40), "--authorization", "/tmp/release-authorization.json"]),
-    ).toThrow(/only with --deploy-all/);
+    ).toThrow(/only with an automated release mode/);
     expect(parseSessionOptions(["--help"])).toEqual({
       help: true,
       deployAll: false,
@@ -112,9 +136,21 @@ describe("release operator session", () => {
         "utf8",
       ),
     ) as CompleteSequenceAuthorization;
+    const now = Date.now();
     fs.writeFileSync(
       authorizationPath,
-      `${JSON.stringify({ ...authorization, operatorCandidateCommit: candidate }, null, 2)}\n`,
+      `${JSON.stringify(
+        {
+          ...authorization,
+          operatorCandidateCommit: candidate,
+          authorizationWindow: {
+            notBefore: new Date(now - 60_000).toISOString(),
+            expiresAt: new Date(now + 60_000).toISOString(),
+          },
+        },
+        null,
+        2,
+      )}\n`,
       { mode: 0o600 },
     );
 
@@ -184,7 +220,7 @@ describe("release operator session", () => {
 
   it("binds one-command deployment to the exact reviewed sequence authorization", () => {
     const authorization: CompleteSequenceAuthorization = {
-      schemaVersion: 2,
+      schemaVersion: 3,
       kind: "PAUSED_RELEASE_COMPLETE_SEQUENCE_AUTHORIZATION",
       operatorCandidateCommit: "1".repeat(40),
       releaseId: "release-v1",
@@ -196,6 +232,10 @@ describe("release operator session", () => {
       authorizedBy: "Release owner",
       authorizedOn: "2026-08-12",
       authorizationRecord: "reviewed-release-handoff.md",
+      authorizationWindow: {
+        notBefore: "2026-08-12T12:00:00.000Z",
+        expiresAt: "2026-08-12T13:00:00.000Z",
+      },
     };
     const manifest = { releaseId: authorization.releaseId } as ReleaseManifest;
     const lock = {
@@ -205,17 +245,116 @@ describe("release operator session", () => {
     } as ReleaseLock;
 
     expect(() =>
-      validateCompleteSequenceAuthorization(authorization, manifest, lock, authorization.operatorCandidateCommit),
+      validateCompleteSequenceAuthorization(
+        authorization,
+        manifest,
+        lock,
+        authorization.operatorCandidateCommit,
+        new Date("2026-08-12T12:30:00.000Z"),
+      ),
     ).not.toThrow();
-    expect(() => validateCompleteSequenceAuthorization(authorization, manifest, lock, "2".repeat(40))).toThrow(
-      /exact reviewed authorization/,
-    );
+    expect(() =>
+      validateCompleteSequenceAuthorization(
+        authorization,
+        manifest,
+        lock,
+        "2".repeat(40),
+        new Date("2026-08-12T12:30:00.000Z"),
+      ),
+    ).toThrow(/exact reviewed authorization/);
     expect(() =>
       validateCompleteSequenceAuthorization(
         { ...authorization, authorizedStages: authorization.authorizedStages.slice(1) },
         manifest,
         lock,
         authorization.operatorCandidateCommit,
+        new Date("2026-08-12T12:30:00.000Z"),
+      ),
+    ).toThrow(/exact reviewed authorization/);
+    expect(() =>
+      validateCompleteSequenceAuthorization(
+        authorization,
+        manifest,
+        lock,
+        authorization.operatorCandidateCommit,
+        new Date("2026-08-12T14:00:00.000Z"),
+      ),
+    ).toThrow(/exact reviewed authorization/);
+  });
+
+  it("binds backfill and unpause to separate reviewed plans, boundaries, and windows", () => {
+    const candidate = "1".repeat(40);
+    const planHash = `0x${"cd".repeat(32)}`;
+    const base = {
+      schemaVersion: 1,
+      kind: "POOL_CEREMONY_AUTHORIZATION",
+      operatorCandidateCommit: candidate,
+      releaseId: "release-v1",
+      releaseManifestHash: `0x${"ab".repeat(32)}`,
+      releaseSourceCommit: candidate,
+      network: "arbitrum",
+      chainId: 42161,
+      authority: "DEPLOYER",
+      planHash,
+      authorizedBy: "Release owner",
+      authorizedOn: "2026-08-12",
+      authorizationRecord: "reviewed-release-handoff.md",
+      authorizationWindow: {
+        notBefore: "2026-08-12T12:00:00.000Z",
+        expiresAt: "2026-08-12T13:00:00.000Z",
+      },
+    } as const;
+    const backfill: PoolCeremonyAuthorization = {
+      ...base,
+      mode: "pool-backfill",
+      authorizedBoundaries: Array.from({ length: POOL_BACKFILL_REGISTRATION_BOUNDARIES }, (_, offset) => offset + 1),
+      terminalState: "paused-deployer-owned-18-pools",
+      excludedActions: [...POOL_BACKFILL_EXCLUSIONS],
+    };
+    const unpause: PoolCeremonyAuthorization = {
+      ...base,
+      mode: "pooling-unpause",
+      authorizedBoundaries: [POOL_BACKFILL_REGISTRATION_BOUNDARIES + 1],
+      terminalState: "unpaused-deployer-owned-18-pools",
+      excludedActions: [...POOL_UNPAUSE_EXCLUSIONS],
+    };
+    const manifest = { releaseId: base.releaseId } as ReleaseManifest;
+    const lock = {
+      releaseId: base.releaseId,
+      manifestHash: base.releaseManifestHash,
+      sourceCommit: base.releaseSourceCommit,
+    } as ReleaseLock;
+    const insideWindow = new Date("2026-08-12T12:30:00.000Z");
+
+    expect(() =>
+      validatePoolCeremonyAuthorization(backfill, manifest, lock, candidate, "pool-backfill", planHash, insideWindow),
+    ).not.toThrow();
+    expect(() =>
+      validatePoolCeremonyAuthorization(unpause, manifest, lock, candidate, "pooling-unpause", planHash, insideWindow),
+    ).not.toThrow();
+    expect(() =>
+      validatePoolCeremonyAuthorization(backfill, manifest, lock, candidate, "pooling-unpause", planHash, insideWindow),
+    ).toThrow(/exact reviewed authorization/);
+    expect(() =>
+      validatePoolCeremonyAuthorization(
+        backfill,
+        manifest,
+        lock,
+        candidate,
+        "pool-backfill",
+        `0x${"ef".repeat(32)}`,
+        insideWindow,
+      ),
+    ).toThrow(/exact reviewed authorization/);
+    expect(() =>
+      validatePoolCeremonyAuthorization(
+        { ...unpause, authorizedBoundaries: [18, 19] },
+        manifest,
+        lock,
+        candidate,
+        "pooling-unpause",
+        planHash,
+        insideWindow,
       ),
     ).toThrow(/exact reviewed authorization/);
   });
