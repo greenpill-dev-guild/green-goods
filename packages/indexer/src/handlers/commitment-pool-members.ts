@@ -1,6 +1,7 @@
 import type { Commitment, CommitmentContributor, PoolMemberHistory } from "envio";
 
 import {
+  compareCodeUnits,
   createCommitment,
   poolMemberId,
   poolingEntityId,
@@ -226,26 +227,37 @@ export async function reconcileRecognitionWeights(
 ): Promise<void> {
   if (!commitment.contributorsFrozen || commitment.frozenContributorCount === undefined) return;
   const index = await context.CommitmentContributorIndex.get(commitment.id);
-  const active = (
+  const contributors = (
     await Promise.all(
       (index?.contributorEntityIds ?? []).map((id) => context.CommitmentContributor.get(id))
     )
   )
-    .filter((row): row is CommitmentContributor => Boolean(row?.active))
-    .sort((left, right) => left.contributor.localeCompare(right.contributor));
+    .filter((row): row is CommitmentContributor => Boolean(row))
+    .sort((left, right) => compareCodeUnits(left.contributor, right.contributor));
+  const active = contributors.filter((row) => row.active);
   if (active.length !== commitment.frozenContributorCount) return;
   const eligible = active.filter((row) => row.approvedWorkCredits + row.evidenceCredits > 0);
-  if (eligible.length === 0) return;
+  if (eligible.length === 0) {
+    for (const row of contributors) {
+      if (row.recognitionWeightBps !== undefined && row.recognitionWeightBps !== 0) {
+        context.CommitmentContributor.set({
+          ...row,
+          recognitionWeightBps: 0,
+          updatedAt: Math.max(row.updatedAt, timestamp),
+        });
+      }
+    }
+    return;
+  }
   let equalBps = 2_000;
   let verifiedBps = 8_000;
   if (commitment.cycleId !== undefined) {
     const cycle = await context.CommitmentCycle.get(
       poolingEntityId(commitment.chainId, commitment.cycleId)
     );
-    if (cycle && cycle.equalParticipationBps + cycle.verifiedContributionBps === 10_000) {
-      equalBps = cycle.equalParticipationBps;
-      verifiedBps = cycle.verifiedContributionBps;
-    }
+    if (!cycle || cycle.equalParticipationBps + cycle.verifiedContributionBps !== 10_000) return;
+    equalBps = cycle.equalParticipationBps;
+    verifiedBps = cycle.verifiedContributionBps;
   }
 
   const equalBase = Math.floor(equalBps / eligible.length);
@@ -268,13 +280,24 @@ export async function reconcileRecognitionWeights(
     [...verified]
       .sort(
         (left, right) =>
-          right.remainder - left.remainder || left.account.localeCompare(right.account)
+          right.remainder - left.remainder || compareCodeUnits(left.account, right.account)
       )
       .slice(0, verifiedRemainder)
       .map((row) => row.id)
   );
   const equalRemainderIds = new Set(eligible.slice(0, equalRemainder).map((row) => row.id));
-  for (const row of eligible) {
+  const eligibleIds = new Set(eligible.map((row) => row.id));
+  for (const row of contributors) {
+    if (!eligibleIds.has(row.id)) {
+      if (row.recognitionWeightBps !== undefined && row.recognitionWeightBps !== 0) {
+        context.CommitmentContributor.set({
+          ...row,
+          recognitionWeightBps: 0,
+          updatedAt: Math.max(row.updatedAt, timestamp),
+        });
+      }
+      continue;
+    }
     const verifiedRow = verified.find((candidate) => candidate.id === row.id);
     const weight =
       equalBase +

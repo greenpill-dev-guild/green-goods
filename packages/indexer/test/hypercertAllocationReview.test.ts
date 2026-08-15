@@ -4,13 +4,15 @@ import {
   createCommitment,
   createContributor,
   createCycle,
+  createPool,
 } from "../src/handlers/commitment-pool-projections";
+import { reconcileRecognitionWeights } from "../src/handlers/commitment-pool-members";
 import {
   indexCommitmentHypercert,
   reconcileCommitmentHypercerts,
 } from "../src/handlers/hypercert-allocations";
 import { createDefaultHypercert } from "../src/handlers/shared";
-import { Addresses, createTestIndexer } from "./v3";
+import { Addresses, CommitmentPoolingModule, createTestIndexer } from "./v3";
 
 const CHAIN_ID = 42161;
 
@@ -19,6 +21,116 @@ function address(index: number): string {
 }
 
 describe("commitment hypercert allocation reconciliation", () => {
+  it("defers cycle recognition until CycleOpened supplies its policy", async () => {
+    let db = createTestIndexer();
+    const commitment = {
+      ...createCommitment(CHAIN_ID, 39n, 1),
+      creationSeen: true,
+      poolId: 7n,
+      poolEntityId: `${CHAIN_ID}-7`,
+      cycleId: 9n,
+      cycleEntityId: `${CHAIN_ID}-9`,
+      contributorsFrozen: true,
+      frozenContributorCount: 2,
+    };
+    const first = {
+      ...createContributor(CHAIN_ID, 39n, address(4), 1),
+      active: true,
+      approvedWorkCredits: 1,
+    };
+    const second = {
+      ...createContributor(CHAIN_ID, 39n, address(5), 1),
+      active: true,
+      approvedWorkCredits: 3,
+    };
+    db.CommitmentPool.set({
+      ...createPool(CHAIN_ID, 7n, 1),
+      childCommitmentEntityIds: [commitment.id],
+    });
+    db.CommitmentCycle.set(createCycle(CHAIN_ID, 9n, 7n, 1));
+    db.Commitment.set(commitment);
+    db.CommitmentContributor.set(first);
+    db.CommitmentContributor.set(second);
+    db.CommitmentContributorIndex.set({
+      id: commitment.id,
+      chainId: CHAIN_ID,
+      commitmentId: commitment.commitmentId,
+      commitmentEntityId: commitment.id,
+      contributorEntityIds: [first.id, second.id],
+      updatedAt: 1,
+    });
+
+    await reconcileRecognitionWeights(db, commitment, 2);
+    assert.equal((await db.CommitmentContributor.get(first.id))?.recognitionWeightBps, undefined);
+    assert.equal((await db.CommitmentContributor.get(second.id))?.recognitionWeightBps, undefined);
+
+    db = await CommitmentPoolingModule.CycleOpened.processEvent({
+      event: CommitmentPoolingModule.CycleOpened.createMockEvent({
+        cycleId: 9n,
+        poolId: 7n,
+        gardenersBps: 6_000n,
+        treasuryBps: 1_000n,
+        operatorBps: 1_000n,
+        evaluatorBps: 500n,
+        communityBps: 500n,
+        funderBps: 1_000n,
+        equalParticipationBps: 6_000n,
+        verifiedContributionBps: 4_000n,
+        mockEventData: {
+          chainId: CHAIN_ID,
+          block: { timestamp: 3, number: 3 },
+          srcAddress: address(90),
+          transaction: { hash: `0x${"3".padStart(64, "0")}` },
+          logIndex: 0,
+        },
+      }),
+      mockDb: db,
+    });
+    assert.equal((await db.CommitmentContributor.get(first.id))?.recognitionWeightBps, 4_000);
+    assert.equal((await db.CommitmentContributor.get(second.id))?.recognitionWeightBps, 6_000);
+  });
+
+  it("clears stale weights when contributors lose recognition eligibility", async () => {
+    const db = createTestIndexer();
+    const commitment = {
+      ...createCommitment(CHAIN_ID, 40n, 1),
+      contributorsFrozen: true,
+      frozenContributorCount: 2,
+    };
+    const eligible = {
+      ...createContributor(CHAIN_ID, 40n, address(4), 1),
+      active: true,
+      approvedWorkCredits: 1,
+      recognitionWeightBps: 6_000,
+    };
+    const ineligible = {
+      ...createContributor(CHAIN_ID, 40n, address(5), 1),
+      active: true,
+      recognitionWeightBps: 4_000,
+    };
+    db.CommitmentContributor.set(eligible);
+    db.CommitmentContributor.set(ineligible);
+    db.CommitmentContributorIndex.set({
+      id: commitment.id,
+      chainId: CHAIN_ID,
+      commitmentId: commitment.commitmentId,
+      commitmentEntityId: commitment.id,
+      contributorEntityIds: [eligible.id, ineligible.id],
+      updatedAt: 1,
+    });
+
+    await reconcileRecognitionWeights(db, commitment, 2);
+    assert.equal((await db.CommitmentContributor.get(eligible.id))?.recognitionWeightBps, 10_000);
+    assert.equal((await db.CommitmentContributor.get(ineligible.id))?.recognitionWeightBps, 0);
+
+    db.CommitmentContributor.set({
+      ...(await db.CommitmentContributor.get(eligible.id))!,
+      approvedWorkCredits: 0,
+    });
+    await reconcileRecognitionWeights(db, commitment, 3);
+    assert.equal((await db.CommitmentContributor.get(eligible.id))?.recognitionWeightBps, 0);
+  });
+
   it("defers every allocation until the complete referenced roster is stable", async () => {
     const db = createTestIndexer();
     const cycle = {

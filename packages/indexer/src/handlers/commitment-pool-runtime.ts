@@ -131,6 +131,7 @@ const EVENT_TYPES: Readonly<Record<string, CommitmentEvent["eventType"]>> = {
   CommitmentCancelled: "CANCELLED",
   CommitmentExpired: "EXPIRED",
   CommitmentDisputed: "DISPUTED",
+  ModuleSchemaUIDUpdated: "MODULE_SCHEMA_UID_UPDATED",
   FundingPledged: "FUNDING_PLEDGED",
   FundingDepositRecorded: "FUNDING_DEPOSIT_RECORDED",
   FundingConsumed: "FUNDING_CONSUMED",

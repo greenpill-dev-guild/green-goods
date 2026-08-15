@@ -17,7 +17,7 @@ import {
   reconcileMemberHistory,
   reconcileRecognitionWeights,
 } from "./commitment-pool-members";
-import { type PoolingContext, type RuntimeEvent, value } from "./commitment-pool-runtime";
+import { getPool, type PoolingContext, type RuntimeEvent, value } from "./commitment-pool-runtime";
 import { applyUnitSummaryDeltas } from "./commitment-pool-unit-summary";
 import { reconcileCommitmentHypercerts } from "./hypercert-allocations";
 import { normalizeAddress } from "./shared";
@@ -43,6 +43,8 @@ export async function handleWorkEvent(event: RuntimeEvent, context: PoolingConte
     const baseAttribution: CommitmentWorkAttribution = linking
       ? {
           ...existing,
+          commitmentId,
+          commitmentEntityId: poolingEntityId(event.chainId, commitmentId),
           linkSeen: true,
           contributor,
           contributorEntityId:
@@ -94,17 +96,13 @@ export async function handleWorkEvent(event: RuntimeEvent, context: PoolingConte
     } satisfies Commitment;
     context.Commitment.set(updatedCommitment);
     if (commitment.poolId !== undefined && linkDelta !== 0) {
-      const pool = await context.CommitmentPool.get(
-        poolingEntityId(event.chainId, commitment.poolId)
-      );
-      if (pool) {
-        const nextWorkLinkedCount = pool.workLinkedCount + BigInt(linkDelta);
-        context.CommitmentPool.set({
-          ...pool,
-          workLinkedCount: nextWorkLinkedCount < 0n ? 0n : nextWorkLinkedCount,
-          updatedAt: Math.max(pool.updatedAt, event.block.timestamp),
-        });
-      }
+      const pool = await getPool(event, context, commitment.poolId);
+      const nextWorkLinkedCount = pool.workLinkedCount + BigInt(linkDelta);
+      context.CommitmentPool.set({
+        ...pool,
+        workLinkedCount: nextWorkLinkedCount < 0n ? 0n : nextWorkLinkedCount,
+        updatedAt: Math.max(pool.updatedAt, event.block.timestamp),
+      });
     }
     if (contributor && linkDelta !== 0) {
       const contributorId = commitmentMemberId(event.chainId, commitmentId, contributor);
@@ -167,6 +165,27 @@ export async function handleWorkEvent(event: RuntimeEvent, context: PoolingConte
       updatedAt: Math.max(requirement.updatedAt, event.block.timestamp),
     });
   }
+  const approvedDelta = counted
+    ? value<bigint>(event, "newlyApprovedUnits")
+    : -value<bigint>(event, "removedApprovedUnits");
+  if (commitment.poolId !== undefined && commitment.unitLabel) {
+    await applyUnitSummaryDeltas(
+      context,
+      event.chainId,
+      commitment.poolId,
+      commitment.cycleId,
+      commitment.unitLabel,
+      event.block.timestamp,
+      { approved: approvedDelta }
+    );
+  } else if (!commitment.creationSeen) {
+    commitment = {
+      ...commitment,
+      pendingApprovedUnitDelta: commitment.pendingApprovedUnitDelta + approvedDelta,
+      updatedAt: Math.max(commitment.updatedAt, event.block.timestamp),
+    };
+    context.Commitment.set(commitment);
+  }
   if (existing.latestDecisionSequence !== undefined && sequence <= existing.latestDecisionSequence)
     return;
   context.CommitmentWorkAttribution.set({
@@ -198,42 +217,17 @@ export async function handleWorkEvent(event: RuntimeEvent, context: PoolingConte
   });
   await addContributorToIndex(event, context, commitmentId, contributorId);
   if (commitment.poolId !== undefined && creditDelta !== 0) {
-    const pool = await context.CommitmentPool.get(
-      poolingEntityId(event.chainId, commitment.poolId)
-    );
-    if (pool) {
-      const nextWorkApprovedCount = pool.workApprovedCount + BigInt(creditDelta);
-      context.CommitmentPool.set({
-        ...pool,
-        workApprovedCount: nextWorkApprovedCount < 0n ? 0n : nextWorkApprovedCount,
-        updatedAt: Math.max(pool.updatedAt, event.block.timestamp),
-      });
-    }
+    const pool = await getPool(event, context, commitment.poolId);
+    const nextWorkApprovedCount = pool.workApprovedCount + BigInt(creditDelta);
+    context.CommitmentPool.set({
+      ...pool,
+      workApprovedCount: nextWorkApprovedCount < 0n ? 0n : nextWorkApprovedCount,
+      updatedAt: Math.max(pool.updatedAt, event.block.timestamp),
+    });
   } else if (!commitment.creationSeen && creditDelta !== 0) {
     commitment = {
       ...commitment,
       pendingWorkApprovedCountDelta: commitment.pendingWorkApprovedCountDelta + BigInt(creditDelta),
-      updatedAt: Math.max(commitment.updatedAt, event.block.timestamp),
-    };
-    context.Commitment.set(commitment);
-  }
-  const approvedDelta = counted
-    ? value<bigint>(event, "newlyApprovedUnits")
-    : -value<bigint>(event, "removedApprovedUnits");
-  if (commitment.poolId !== undefined && commitment.unitLabel) {
-    await applyUnitSummaryDeltas(
-      context,
-      event.chainId,
-      commitment.poolId,
-      commitment.cycleId,
-      commitment.unitLabel,
-      event.block.timestamp,
-      { approved: approvedDelta }
-    );
-  } else if (!commitment.creationSeen) {
-    commitment = {
-      ...commitment,
-      pendingApprovedUnitDelta: commitment.pendingApprovedUnitDelta + approvedDelta,
       updatedAt: Math.max(commitment.updatedAt, event.block.timestamp),
     };
     context.Commitment.set(commitment);

@@ -418,7 +418,28 @@ describe("Commitment Pooling read model", () => {
       contributorCount: 1n,
       mockEventData: eventData(START_BLOCK + 7, 0, 46),
     });
-    db = await processEvents(db, [contributor, linked, counted, evidenceA, evidenceB, frozen]);
+    const opened = CommitmentPoolingModule.CycleOpened.createMockEvent({
+      cycleId: 9n,
+      poolId: 7n,
+      gardenersBps: 6_000n,
+      treasuryBps: 1_000n,
+      operatorBps: 1_000n,
+      evaluatorBps: 500n,
+      communityBps: 500n,
+      funderBps: 1_000n,
+      equalParticipationBps: 2_000n,
+      verifiedContributionBps: 8_000n,
+      mockEventData: eventData(START_BLOCK + 8, 0, 47),
+    });
+    db = await processEvents(db, [
+      contributor,
+      linked,
+      counted,
+      evidenceA,
+      evidenceB,
+      frozen,
+      opened,
+    ]);
 
     const row = await db.CommitmentContributor.get(`${CHAIN_ID}-21-${address(2).toLowerCase()}`);
     const requirement = await db.CommitmentRequirement.get(`${CHAIN_ID}-21-0`);

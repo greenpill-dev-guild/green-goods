@@ -1888,16 +1888,22 @@
         "value_scheme": "index",
         "members": ["None", "Success", "Failed"]
       },
-      "planned_anchor": {
-        "file": "packages/contracts/src/interfaces/ISettlementExecutor.sol",
-        "symbol": "ResultStatus"
-      },
-      "representations": [],
+      "representations": [
+        {
+          "id": "executor-solidity",
+          "layer": "solidity",
+          "file": "packages/contracts/src/interfaces/ICeloSettlementExecutor.sol",
+          "symbol": "ResultStatus",
+          "extract": "solidity-enum",
+          "ordered": true,
+          "members": ["None", "Success", "Failed"]
+        }
+      ],
       "mappings": []
     },
     {
       "id": "acknowledgment-deferral-code",
-      "status": "spec",
+      "status": "live",
       "definition": "Why an executor acknowledgment could not be sent immediately without changing the stored execution result.",
       "spec_source": ".plans/active/commitment-pooling/settlement-spec.md",
       "canonical": {
@@ -1905,11 +1911,17 @@
         "value_scheme": "index",
         "members": ["None", "QuoteFailed", "FeeReserveLow", "SendFailed"]
       },
-      "planned_anchor": {
-        "file": "packages/contracts/src/interfaces/ISettlementExecutor.sol",
-        "symbol": "AcknowledgmentDeferralCode"
-      },
-      "representations": [],
+      "representations": [
+        {
+          "id": "executor-solidity",
+          "layer": "solidity",
+          "file": "packages/contracts/src/interfaces/ICeloSettlementExecutor.sol",
+          "symbol": "AcknowledgmentDeferralCode",
+          "extract": "solidity-enum",
+          "ordered": true,
+          "members": ["None", "QuoteFailed", "FeeReserveLow", "SendFailed"]
+        }
+      ],
       "mappings": []
     },
     {

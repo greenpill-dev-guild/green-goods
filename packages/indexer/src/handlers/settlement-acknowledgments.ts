@@ -14,6 +14,16 @@ import { linkPayoutPlanToCommitment } from "./settlement-funding-reconciliation"
 
 const SOURCE_STRANDED_FAILURE_CODE = 12;
 
+function acknowledgmentWins(
+  attempt: number,
+  nextState: "CONFIRMED" | "FAILED",
+  currentAttempt: number,
+  currentState: Disbursement["state"]
+): boolean {
+  if (attempt !== currentAttempt) return attempt > currentAttempt;
+  return currentState !== "CONFIRMED" || nextState === "CONFIRMED";
+}
+
 indexer.onEvent(
   { contract: "SettlementModule", event: "SettlementAcknowledged" },
   async ({ event, context }) => {
@@ -32,22 +42,27 @@ indexer.onEvent(
       context.SettlementConfiguration.get(configurationId(event.chainId)),
     ]);
     const attempt = commandIndex?.attempt ?? currentSubject?.attempt ?? 0;
-    context.SettlementSubjectState.set({
-      id: subjectEntityId,
-      chainId: event.chainId,
-      isBatch: event.params.isBatch,
-      subjectId: event.params.subjectId,
-      state: nextState,
-      attempt,
-      executionKey,
-      commandMessageId: originatingCommandMessageId,
-      acknowledgmentMessageId,
-      failureCode: Number(event.params.failureCode),
-      dispatchedAt: currentSubject?.dispatchedAt,
-      confirmedAt: event.params.success ? event.block.timestamp : undefined,
-      reasonCID: currentSubject?.reasonCID,
-      updatedAt: event.block.timestamp,
-    });
+    if (
+      !currentSubject ||
+      acknowledgmentWins(attempt, nextState, currentSubject.attempt, currentSubject.state)
+    ) {
+      context.SettlementSubjectState.set({
+        id: subjectEntityId,
+        chainId: event.chainId,
+        isBatch: event.params.isBatch,
+        subjectId: event.params.subjectId,
+        state: nextState,
+        attempt,
+        executionKey,
+        commandMessageId: originatingCommandMessageId,
+        acknowledgmentMessageId,
+        failureCode: Number(event.params.failureCode),
+        dispatchedAt: currentSubject?.dispatchedAt,
+        confirmedAt: event.params.success ? event.block.timestamp : undefined,
+        reasonCID: currentSubject?.reasonCID,
+        updatedAt: Math.max(currentSubject?.updatedAt ?? 0, event.block.timestamp),
+      });
+    }
     if (commandIndex) {
       context.SettlementCommandIndex.set({
         ...commandIndex,
@@ -88,6 +103,7 @@ indexer.onEvent(
 
     const planDeltas = new Map<string, { confirmed: number; failed: number }>();
     const updateChild = async (existing: Disbursement) => {
+      if (!acknowledgmentWins(attempt, nextState, existing.attempt, existing.state)) return;
       const current = planDeltas.get(existing.payoutPlanEntityId ?? "") ?? {
         confirmed: 0,
         failed: 0,
@@ -126,7 +142,7 @@ indexer.onEvent(
       const batch = await context.SettlementBatch.get(
         settlementBatchId(event.chainId, event.params.subjectId)
       );
-      if (batch) {
+      if (batch && acknowledgmentWins(attempt, nextState, batch.attempt, batch.state)) {
         context.SettlementBatch.set({
           ...batch,
           state: nextState,

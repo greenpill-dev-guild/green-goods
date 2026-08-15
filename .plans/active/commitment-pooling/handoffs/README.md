@@ -4,7 +4,7 @@ These files are the lane-level dispatch surfaces for .plans/active/commitment-po
 
 ## File index
 
-All 22 files in this directory. The plan hub's document map points here for the enumeration, so
+All 23 files in this directory. The plan hub's document map points here for the enumeration, so
 **a new handoff must get a row below in the same change** — this file previously described source
 order only, and a reader following the map could miss an active dispatch surface entirely.
 
@@ -30,6 +30,7 @@ order only, and a reader following the map could miss an active dispatch surface
 | `claude-standing-artifacts.md` | **Completed** 2026-08-02 Offer-once / Offer-over-time artifact convergence record | Claude | Closed — historical record |
 | `claude-offer-vocabulary-correction.md` | **Completed** PRD-789 sweep retiring `Practice` in favour of Offer once / Offer over time | Claude | Closed 2026-08-02 — historical record |
 | `claude-full-pooling-visual-docs.md` | Current bounded, additive unit: hand-drawn Story assets + the canonical Google Doc pass. Not a product implementation lane or branch instruction | Claude | Active, additive only |
+| `claude-components-tab-brief.md` | Three-phase alignment brief for a reviewable Components tab in the existing prototypes artifact | Claude | Phase 1 is read-only; generation waits for explicit approval |
 | `human-release-ops.md` | Broadcast, Garden-ID cutover, and live settlement exit evidence (PRD-731) | Afolabi Aiyeloja | **Human authorization boundary, not a machine lane** |
 | `human-settlement-evidence.md` | September measurement-definition and operational-assignment gate (COM-11) | Afolabi Aiyeloja | **Human authorization boundary, not a machine lane** |
 

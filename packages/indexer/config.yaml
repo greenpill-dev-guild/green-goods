@@ -163,7 +163,7 @@ contracts:
       - event: BatchCancelled(uint256 indexed batchId, address indexed actor, string reasonCID)
       - event: FeeReserveFunded(address indexed funder, uint256 amount)
       - event: ExcessFeesWithdrawn(address indexed recipient, uint256 amount)
-  # Code-level Celo read model only. No chain block/address is registered until release authorization.
+  # Celo executor read model; production block/address are pinned below from the authorized release.
   - name: CeloSettlementExecutor
     handler: src/EventHandlers.ts
     events:

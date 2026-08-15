@@ -31,13 +31,17 @@ export function exactLabelHash(label: string): string {
   return keccak256(stringToBytes(label));
 }
 
+export function compareCodeUnits(left: string, right: string): number {
+  return left < right ? -1 : left > right ? 1 : 0;
+}
+
 export function sortedUnique<T extends string | number | bigint>(values: readonly T[]): T[] {
   return [...new Set(values)].sort((left, right) => {
     if (typeof left === "bigint" && typeof right === "bigint") {
       return left < right ? -1 : left > right ? 1 : 0;
     }
     if (typeof left === "number" && typeof right === "number") return left - right;
-    return String(left).localeCompare(String(right));
+    return compareCodeUnits(String(left), String(right));
   });
 }
 
@@ -48,11 +52,11 @@ export function sortedUniqueByNumericSuffix(values: readonly string[]): string[]
     if (leftMatch && rightMatch) {
       const leftPrefix = left.slice(0, leftMatch.index);
       const rightPrefix = right.slice(0, rightMatch.index);
-      const prefixOrder = leftPrefix.localeCompare(rightPrefix);
+      const prefixOrder = compareCodeUnits(leftPrefix, rightPrefix);
       if (prefixOrder !== 0) return prefixOrder;
       return Number(leftMatch[1]) - Number(rightMatch[1]);
     }
-    return left.localeCompare(right);
+    return compareCodeUnits(left, right);
   });
 }
 

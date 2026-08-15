@@ -226,7 +226,7 @@
           "evidence": "RED: pooling, Garden identity, and funding fixtures failed before the frozen 58-event config, 28-entity schema, and handlers existed."
         },
         "green": {
-          "command": "bun run --filter @green-goods/indexer mocha -- --grep Commitment Pooling read model",
+          "command": "bun run --filter @green-goods/indexer test -- --grep \"Commitment Pooling read model\"",
           "evidence": "GREEN: six focused pooling projections passed, plus five ClaimStored tests covering legacy and commitment-bundle Hypercert reads."
         },
         "note": ""

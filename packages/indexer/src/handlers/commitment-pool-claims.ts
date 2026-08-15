@@ -43,20 +43,28 @@ export async function handleClaimEvent(
       commitment.acceptanceBlockNumber,
       commitment.acceptanceLogIndex
     );
+  const terminalMilestoneSeen =
+    commitment.countedLifecycleStates.includes("CANCELLED") ||
+    commitment.countedLifecycleStates.includes("EXPIRED");
+  const terminalResolutionCode =
+    commitment.state === "CANCELLED" || commitment.countedLifecycleStates.includes("CANCELLED")
+      ? "COMMITMENT_CANCELLED"
+      : "COMMITMENT_EXPIRED";
   const terminalIsNewer =
-    isTerminal(commitment.state) &&
-    commitment.lifecycleBlockNumber !== undefined &&
-    !cursorWins(
-      event.block.number,
-      event.logIndex,
-      commitment.lifecycleBlockNumber,
-      commitment.lifecycleLogIndex
-    );
-  const gardenContext =
-    event.eventName === "ClaimRequested"
-      ? normalizeAddress(value<string>(event, "gardenContext"))
-      : existing?.gardenContext;
+    terminalMilestoneSeen ||
+    (isTerminal(commitment.state) &&
+      commitment.lifecycleBlockNumber !== undefined &&
+      !cursorWins(
+        event.block.number,
+        event.logIndex,
+        commitment.lifecycleBlockNumber,
+        commitment.lifecycleLogIndex
+      ));
   const requested = event.eventName === "ClaimRequested";
+  const requestPayloadWins = requested && (rowWins || !(existing?.requestSeen ?? false));
+  const gardenContext = requestPayloadWins
+    ? normalizeAddress(value<string>(event, "gardenContext"))
+    : existing?.gardenContext;
   const settledState =
     existing?.state === "ACCEPTED" || existing?.state === "SUPERSEDED" ? existing.state : undefined;
   const nextState: CommitmentClaimRequest["state"] = settledState
@@ -87,10 +95,12 @@ export async function handleClaimEvent(
     commitmentEntityId: poolingEntityId(event.chainId, commitmentId),
     claimant,
     requestSeen: requested || (existing?.requestSeen ?? false),
-    requestedBy: requested
+    requestedBy: requestPayloadWins
       ? normalizeAddress(value<string>(event, "requestedBy"))
       : existing?.requestedBy,
-    claimType: requested ? commitmentClaimType(value<bigint>(event, "kind")) : existing?.claimType,
+    claimType: requestPayloadWins
+      ? commitmentClaimType(value<bigint>(event, "kind"))
+      : existing?.claimType,
     gardenContext,
     gardenContextId: gardenContext,
     state: nextState,
@@ -107,14 +117,14 @@ export async function handleClaimEvent(
           ? "COMMITMENT_ACCEPTED"
           : nextState === "SUPERSEDED"
             ? terminalIsNewer
-              ? commitment.state === "CANCELLED"
-                ? "COMMITMENT_CANCELLED"
-                : "COMMITMENT_EXPIRED"
+              ? terminalResolutionCode
               : "COMMITMENT_ACCEPTED"
             : undefined,
     lifecycleBlockNumber: rowWins ? BigInt(event.block.number) : existing?.lifecycleBlockNumber,
     lifecycleLogIndex: rowWins ? event.logIndex : existing?.lifecycleLogIndex,
-    requestedAt: requested ? Number(value<bigint>(event, "requestedAt")) : existing?.requestedAt,
+    requestedAt: requestPayloadWins
+      ? Number(value<bigint>(event, "requestedAt"))
+      : existing?.requestedAt,
     resolvedAt:
       nextState === "PENDING" ? undefined : (existing?.resolvedAt ?? event.block.timestamp),
     updatedAt: Math.max(existing?.updatedAt ?? 0, event.block.timestamp),

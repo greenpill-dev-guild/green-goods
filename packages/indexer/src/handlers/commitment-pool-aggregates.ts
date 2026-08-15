@@ -13,6 +13,7 @@ import {
   retainPendingPoolClose,
   withCycleChild,
 } from "./commitment-pool-pool-reconciliation";
+import { reconcileRecognitionWeights } from "./commitment-pool-members";
 import { getPool, type PoolingContext, type RuntimeEvent, value } from "./commitment-pool-runtime";
 import { normalizeAddress } from "./shared";
 import { reconcilePoolCommitmentHypercerts } from "./hypercert-allocations";
@@ -235,6 +236,14 @@ export async function handleCycleEvent(
     updatedAt: Math.max(cycle.updatedAt, event.block.timestamp),
   } satisfies CommitmentCycle;
   context.CommitmentCycle.set(nextCycle);
+  if (isOpen && allocationUnset) {
+    for (const commitmentEntityId of pool.childCommitmentEntityIds) {
+      const commitment = await context.Commitment.get(commitmentEntityId);
+      if (commitment?.cycleId === cycleId) {
+        await reconcileRecognitionWeights(context, commitment, event.block.timestamp);
+      }
+    }
+  }
   await reconcilePoolCommitmentHypercerts(context, pool, cycleId, event.block.timestamp);
   if (!lifecycleWins || !cycle.seedSeen) return;
   const wasTerminal = cycle.state === "COMPOSTED" || cycle.state === "CANCELLED";

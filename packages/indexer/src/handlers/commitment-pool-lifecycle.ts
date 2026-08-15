@@ -1,11 +1,6 @@
 import type { Commitment } from "envio";
 
-import {
-  commitmentState,
-  confirmationPath,
-  cursorWins,
-  sortedUnique,
-} from "./commitment-pool-projections";
+import { commitmentState, confirmationPath, cursorWins } from "./commitment-pool-projections";
 import { recordMemberEvent, sweepClaimRequests } from "./commitment-pool-claims";
 import {
   getCommitment,
@@ -80,8 +75,6 @@ export async function handleLifecycle(event: RuntimeEvent, context: PoolingConte
       cancelReasonCID,
     }
   );
-  if (!lifecycleWins) return;
-
   if (event.eventName === "CommitmentCancelled" || event.eventName === "CommitmentExpired") {
     await sweepClaimRequests(
       context,
@@ -91,6 +84,8 @@ export async function handleLifecycle(event: RuntimeEvent, context: PoolingConte
       event.block.timestamp
     );
   }
+  if (!lifecycleWins) return;
+
   if (
     event.eventName === "DisputeResolved" &&
     (updated.state === "CANCELLED" || updated.state === "EXPIRED")
@@ -143,14 +138,27 @@ export async function handleMiscCommitment(
   }
   if (event.eventName === "ConfirmationRecorded") {
     const confirmer = normalizeAddress(value<string>(event, "confirmer"));
+    const thresholdWins = cursorWins(
+      event.block.number,
+      event.logIndex,
+      commitment.confirmerRuleUpdateBlockNumber,
+      commitment.confirmerRuleUpdateLogIndex
+    );
     const updated = {
       ...commitment,
       confirmationCount: Math.max(
         commitment.confirmationCount,
         Number(value<bigint>(event, "confirmationCount"))
       ),
-      confirmationThreshold: Number(value<bigint>(event, "threshold")),
-      confirmers: sortedUnique([...commitment.confirmers, confirmer]),
+      confirmationThreshold: thresholdWins
+        ? Number(value<bigint>(event, "threshold"))
+        : commitment.confirmationThreshold,
+      confirmerRuleUpdateBlockNumber: thresholdWins
+        ? BigInt(event.block.number)
+        : commitment.confirmerRuleUpdateBlockNumber,
+      confirmerRuleUpdateLogIndex: thresholdWins
+        ? event.logIndex
+        : commitment.confirmerRuleUpdateLogIndex,
       updatedAt: Math.max(commitment.updatedAt, event.block.timestamp),
     } satisfies Commitment;
     context.Commitment.set(updated);

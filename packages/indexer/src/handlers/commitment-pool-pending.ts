@@ -3,6 +3,7 @@ import type { Commitment, CommitmentPendingLifecycleProjection } from "envio";
 import {
   commitmentClaimType,
   commitmentState,
+  compareCodeUnits,
   confirmationPath,
   eventAuditId,
   sortedUnique,
@@ -163,13 +164,25 @@ async function applyPendingProjection(
   } else if (projection.eventType === "READY_FOR_CONFIRMATION") {
     patch = { readyOverridden: projection.overridden ?? false };
   } else if (projection.eventType === "CONFIRMATION_RECORDED") {
+    const thresholdWins =
+      commitment.confirmerRuleUpdateBlockNumber === undefined ||
+      commitment.confirmerRuleUpdateLogIndex === undefined ||
+      projection.blockNumber > commitment.confirmerRuleUpdateBlockNumber ||
+      (projection.blockNumber === commitment.confirmerRuleUpdateBlockNumber &&
+        projection.logIndex > commitment.confirmerRuleUpdateLogIndex);
     const updated = {
       ...commitment,
       confirmationCount: Math.max(commitment.confirmationCount, projection.confirmationCount ?? 0),
-      confirmationThreshold: projection.confirmationThreshold ?? commitment.confirmationThreshold,
-      confirmers: projection.actor
-        ? sortedUnique([...commitment.confirmers, projection.actor])
-        : commitment.confirmers,
+      confirmationThreshold: thresholdWins
+        ? (projection.confirmationThreshold ?? commitment.confirmationThreshold)
+        : commitment.confirmationThreshold,
+      confirmerRuleUpdateBlockNumber: thresholdWins
+        ? projection.blockNumber
+        : commitment.confirmerRuleUpdateBlockNumber,
+      confirmerRuleUpdateLogIndex: thresholdWins
+        ? projection.logIndex
+        : commitment.confirmerRuleUpdateLogIndex,
+      confirmers: commitment.confirmers,
       updatedAt: Math.max(commitment.updatedAt, projection.updatedAt),
     };
     context.Commitment.set(updated);
@@ -276,7 +289,7 @@ export async function drainPendingLifecycle(
       if (left.blockNumber !== right.blockNumber)
         return left.blockNumber < right.blockNumber ? -1 : 1;
       if (left.logIndex !== right.logIndex) return left.logIndex - right.logIndex;
-      return left.id.localeCompare(right.id);
+      return compareCodeUnits(left.id, right.id);
     });
   let updated = commitment;
   for (const projection of projections) {

@@ -285,7 +285,7 @@ The architecture is closed only when:
 
 1. all 58 ABI events appear exactly once in Matrix A and every indexed entity/relationship has an
    ER row;
-2. all 86 `ICommitmentPoolingModule` functions are classified exactly once, every one of the 56
+2. all 86 `ICommitmentPoolingModule` functions are classified exactly once, every one of the 62
    executable hi-fi calls has an RI policy, and all six offline job kinds are covered;
 3. all eight sparse-event materialization rows have explicit seen/null/fill semantics and
    reverse-delivery proof;

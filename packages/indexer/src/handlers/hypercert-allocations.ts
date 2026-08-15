@@ -9,7 +9,12 @@ import type {
   NeedCommitmentIndex,
 } from "envio";
 
-import { createCommitment, poolingEntityId, sortedUnique } from "./commitment-pool-projections";
+import {
+  compareCodeUnits,
+  createCommitment,
+  poolingEntityId,
+  sortedUnique,
+} from "./commitment-pool-projections";
 
 type EntityStore<T extends { readonly id: string }> = {
   get(id: string): Promise<T | undefined>;
@@ -38,7 +43,7 @@ function distributeUnits<T extends { readonly id: string; readonly weight: numbe
   const remaining = units - provisional.reduce((total, row) => total + row.units, 0n);
   const remainderOrder = [...provisional].sort((left, right) => {
     if (left.remainder !== right.remainder) return left.remainder > right.remainder ? -1 : 1;
-    return left.row.id.localeCompare(right.row.id);
+    return compareCodeUnits(left.row.id, right.row.id);
   });
   const awarded = new Set(remainderOrder.slice(0, Number(remaining)).map((row) => row.row.id));
   return new Map(
@@ -60,11 +65,9 @@ async function contributorWeights(
     )
   )
     .filter((row): row is CommitmentContributor => Boolean(row?.active))
-    .sort((left, right) => left.contributor.localeCompare(right.contributor));
+    .sort((left, right) => compareCodeUnits(left.contributor, right.contributor));
   if (active.length !== commitment.frozenContributorCount) return undefined;
-  const eligible = active.filter(
-    (row) => (row.approvedWorkCredits ?? 0) + (row.evidenceCredits ?? 0) > 0
-  );
+  const eligible = active.filter((row) => row.approvedWorkCredits + row.evidenceCredits > 0);
   if (eligible.length === 0) return undefined;
   const equalBps =
     cycle.equalParticipationBps + cycle.verifiedContributionBps === 10_000
@@ -93,7 +96,7 @@ async function contributorWeights(
     [...verified]
       .sort(
         (left, right) =>
-          right.remainder - left.remainder || left.account.localeCompare(right.account)
+          right.remainder - left.remainder || compareCodeUnits(left.account, right.account)
       )
       .slice(0, verifiedRemainder)
       .map((row) => row.id)

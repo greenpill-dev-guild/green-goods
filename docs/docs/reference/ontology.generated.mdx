@@ -511,6 +511,20 @@ Celo executor result stored in Solidity; GraphQL exposes the same outcomes as Se
 
 **Canonical members:** None (0) · Success (1) · Failed (2)
 
+| Representation | Layer | Source | Expected members | Note |
+|---|---|---|---|---|
+| executor-solidity | solidity | <code>packages/contracts/src/interfaces/ICeloSettlementExecutor.sol · ResultStatus</code> | <code>None, Success, Failed</code> |  |
+
+### `acknowledgment-deferral-code`
+
+Why an executor acknowledgment could not be sent immediately without changing the stored execution result.
+
+**Canonical members:** None (0) · QuoteFailed (1) · FeeReserveLow (2) · SendFailed (3)
+
+| Representation | Layer | Source | Expected members | Note |
+|---|---|---|---|---|
+| executor-solidity | solidity | <code>packages/contracts/src/interfaces/ICeloSettlementExecutor.sol · AcknowledgmentDeferralCode</code> | <code>None, QuoteFailed, FeeReserveLow, SendFailed</code> |  |
+
 ### `settlement-execution-status`
 
 GraphQL execution-result mirror with an explicit UNKNOWN sentinel.
@@ -565,14 +579,6 @@ Lifecycle of the internal durable identity for one Offer used over time in one p
 ## Commitment Pooling Vocabularies (spec — not deployed)
 
 Locked vocabulary from the commitment-pooling contract spec, encoded ahead of implementation so the August lanes consume one canonical definition. No code cross-checks run until the planned anchors land; the gate then forces each entry to flip to live.
-
-### `acknowledgment-deferral-code`
-
-Why an executor acknowledgment could not be sent immediately without changing the stored execution result.
-
-**Canonical members:** None (0) · QuoteFailed (1) · FeeReserveLow (2) · SendFailed (3)
-
-_Spec-only — planned anchor `packages/contracts/src/interfaces/ISettlementExecutor.sol` · `AcknowledgmentDeferralCode`. The drift gate flags arrival so the status flips to live with declared representations._
 
 ## EAS Schemas
 
