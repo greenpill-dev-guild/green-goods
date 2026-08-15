@@ -17,6 +17,8 @@ import { expect, test } from "@playwright/test";
 import { setupAuthenticatedClient, TEST_URLS } from "../helpers/test-utils";
 
 const CLIENT_URL = TEST_URLS.client;
+const PWA_DEV_SERVICE_WORKER_SCRIPT = "/dev-sw.js?dev-sw";
+const PWA_APP_SCOPE = "/home";
 
 /**
  * Set up mocked environment with auth and GraphQL mocking.
@@ -36,16 +38,32 @@ async function waitForActiveServiceWorker(page: import("@playwright/test").Page)
     "Offline reload requires service-worker support on a secure localhost or HTTPS origin."
   ).toEqual({ secureContext: true, supported: true });
 
+  await page.evaluate(
+    async ({ scriptUrl, scope }) => {
+      const existingRegistration = await navigator.serviceWorker.getRegistration(scope);
+      const registration =
+        existingRegistration ??
+        (await navigator.serviceWorker.register(scriptUrl, {
+          scope,
+          updateViaCache: "none",
+        }));
+
+      await registration.update();
+      await navigator.serviceWorker.ready;
+    },
+    { scriptUrl: PWA_DEV_SERVICE_WORKER_SCRIPT, scope: PWA_APP_SCOPE }
+  );
+
   await expect
     .poll(
       () =>
-        page.evaluate(async () => {
-          const registration = await navigator.serviceWorker.getRegistration();
+        page.evaluate(async (scope) => {
+          const registration = await navigator.serviceWorker.getRegistration(scope);
           return registration?.active?.state ?? null;
-        }),
+        }, PWA_APP_SCOPE),
       {
         message:
-          "Expected an active PWA service worker. Start the client test server with VITE_ENABLE_SW_DEV=true.",
+          "Expected vite-plugin-pwa's development service worker to activate for the /home app scope.",
         timeout: 15000,
       }
     )
