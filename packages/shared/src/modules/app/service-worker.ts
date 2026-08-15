@@ -10,7 +10,8 @@ const REACT_QUERY_PERSISTENCE_KEY = "__rq_pc__";
  */
 class ServiceWorkerManager {
   private registration: ServiceWorkerRegistration | null = null;
-  private isSupported = false;
+  private isServiceWorkerSupported = false;
+  private isSyncSupported = false;
   private hasController = false;
   private hasReloadedForUpdate = false;
   private readonly boundMessageHandler = this.handleMessage.bind(this);
@@ -19,11 +20,14 @@ class ServiceWorkerManager {
     const hasNavigator = typeof navigator !== "undefined";
     const hasWindow = typeof window !== "undefined";
 
-    this.isSupported =
+    this.isServiceWorkerSupported =
       hasNavigator &&
       hasWindow &&
       "serviceWorker" in navigator &&
-      "ServiceWorkerRegistration" in window &&
+      "ServiceWorkerRegistration" in window;
+
+    this.isSyncSupported =
+      this.isServiceWorkerSupported &&
       // Background Sync support check — not in standard types yet
       "sync" in ServiceWorkerRegistration.prototype;
 
@@ -35,7 +39,7 @@ class ServiceWorkerManager {
    * Whether the current browser can register the Green Goods service worker.
    */
   canRegister(): boolean {
-    return this.isSupported;
+    return this.isServiceWorkerSupported;
   }
 
   /**
@@ -75,7 +79,7 @@ class ServiceWorkerManager {
    * Check if Background Sync is supported
    */
   isBackgroundSyncSupported(): boolean {
-    return this.isSupported && this.registration !== null;
+    return this.isSyncSupported && this.registration !== null;
   }
 
   /**
@@ -186,7 +190,7 @@ class ServiceWorkerManager {
    */
   getStatus() {
     return {
-      isSupported: this.isSupported,
+      isSupported: this.isServiceWorkerSupported,
       isRegistered: this.registration !== null,
       canBackgroundSync: this.isBackgroundSyncSupported(),
       scope: this.registration?.scope || null,

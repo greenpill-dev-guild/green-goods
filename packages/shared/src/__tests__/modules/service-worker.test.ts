@@ -1,9 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { serviceWorkerManager } from "../../modules/app/service-worker";
+type ServiceWorkerManager =
+  typeof import("../../modules/app/service-worker")["serviceWorkerManager"];
+
+let serviceWorkerManager: ServiceWorkerManager;
 
 describe("modules/service-worker", () => {
-  beforeEach(() => {
+  beforeEach(async () => {
+    vi.resetModules();
+
     // Use Object.defineProperty to mock navigator.serviceWorker
     // since it's a read-only property in modern browsers
     Object.defineProperty(navigator, "serviceWorker", {
@@ -16,12 +21,26 @@ describe("modules/service-worker", () => {
       configurable: true,
       writable: true,
     });
+
+    Object.defineProperty(window, "ServiceWorkerRegistration", {
+      value: class ServiceWorkerRegistration {},
+      configurable: true,
+      writable: true,
+    });
+
+    ({ serviceWorkerManager } = await import("../../modules/app/service-worker"));
   });
 
   it("exposes status shape", () => {
     const status = serviceWorkerManager.getStatus();
     expect(status).toHaveProperty("isSupported");
     expect(status).toHaveProperty("isRegistered");
+  });
+
+  it("can register a service worker when Background Sync is unavailable", () => {
+    expect("sync" in ServiceWorkerRegistration.prototype).toBe(false);
+    expect(serviceWorkerManager.canRegister()).toBe(true);
+    expect(serviceWorkerManager.isBackgroundSyncSupported()).toBe(false);
   });
 
   it("removes React Query localStorage persistence when clearing caches", async () => {
