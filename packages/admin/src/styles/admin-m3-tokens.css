@@ -52,12 +52,18 @@
   --m3-surface: var(--bg-white-0);
   --m3-surface-dim: 235 231 224;             /* oklch(93% .010 85) */
   --m3-surface-container-lowest: 255 255 255;
-  --m3-surface-container-low: 252 250 246;   /* oklch(98.5% .005 85) */
+  --m3-surface-container-low: 250 248 245;   /* #FAF8F5 — the linen canvas (DESIGN.md) */
   --m3-surface-container: 247 244 239;       /* oklch(96.8% .007 85) */
-  --m3-surface-container-high: 236 233 226;  /* oklch(93.5% .010 85) */
-  --m3-surface-container-highest: 226 222 213; /* oklch(90% .012 85) */
+  --m3-surface-container-high: 236 233 226;  /* oklch(93.5% .010 85) — chip bg */
+  --m3-surface-container-highest: 226 222 213; /* oklch(90% .012 85) — warm border step */
   --m3-on-surface: var(--text-strong-950);
   --m3-on-surface-variant: var(--text-sub-600);
+  /* Warm stone border (1a ramp): visible borders ride the 226 222 213 step —
+   * garden switcher, tab rail rule, card hairlines all share it. Declared here
+   * (unlayered) so it wins in admin; the dark flip below mirrors theme.css's
+   * dark intent because this unlayered :root value would otherwise beat
+   * theme's layered dark override. */
+  --stroke-sub-300: 226 222 213;
   /* Control-grade outline (4.8:1 on white): text-field/chip/outlined-button
    * boundaries. The old neutral-300 measured 1.49:1 — a decorative hairline
    * doing a control job. Decorative edges keep --m3-outline-variant. */
@@ -168,6 +174,9 @@
 
   --m3-on-surface: var(--text-strong-950);
   --m3-on-surface-variant: var(--text-sub-600);
+  /* Dark pair of the unlayered :root --stroke-sub-300 remap above — restores
+   * theme.css's dark border intent (neutral-700, warm 68 64 60). */
+  --stroke-sub-300: var(--neutral-700);
   /* Control-grade outline for dark (7.7:1 vs surface, 6.1 vs dialog): the
    * remapped stroke-sub-300 (neutral-700) measured 1.89:1. */
   --m3-outline: var(--neutral-400);
