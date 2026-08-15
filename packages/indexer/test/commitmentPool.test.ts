@@ -101,6 +101,33 @@ describe("Commitment Pooling read model", () => {
     assert.equal(pool.pauseReasonCID, "ipfs://pause");
   });
 
+  it("backfills a pause reason without regressing a newer closed pool", async () => {
+    let db = createTestIndexer();
+    const registered = CommitmentPoolingModule.PoolRegistered.createMockEvent({
+      poolId: 7n,
+      garden: address(1),
+      poolType: 0n,
+      mockEventData: eventData(START_BLOCK, 0, 5),
+    });
+    const closed = CommitmentPoolingModule.PoolClosed.createMockEvent({
+      poolId: 7n,
+      mockEventData: eventData(START_BLOCK + 3, 0, 6),
+    });
+    const paused = CommitmentPoolingModule.PoolPaused.createMockEvent({
+      poolId: 7n,
+      reasonCID: "ipfs://pause-before-close",
+      mockEventData: eventData(START_BLOCK + 2, 0, 7),
+    });
+
+    db = await processEvents(db, [registered, closed, paused]);
+    const pool = await db.CommitmentPool.get(`${CHAIN_ID}-7`);
+
+    assert.equal(pool?.state, "CLOSED");
+    assert.equal(pool?.lifecycleBlockNumber, BigInt(START_BLOCK + 3));
+    assert.equal(pool?.pauseReasonCID, "ipfs://pause-before-close");
+    assert.equal(pool?.pauseReasonBlockNumber, BigInt(START_BLOCK + 2));
+  });
+
   it("copies both creation recovery fields from CommitmentCreated without an RPC read", async () => {
     let db = createTestIndexer();
     const creationRequestKey = hash(41);
@@ -208,6 +235,83 @@ describe("Commitment Pooling read model", () => {
     assert.equal(pool.nonTerminalCycleCount, 0n);
     assert.equal(pool.openSeasonCycleId, undefined);
     assert.equal(pool.state, "CLOSED");
+  });
+
+  it("keeps the newest open Season across cycles and a lifecycle-before-seed", async () => {
+    let db = createTestIndexer();
+    const registered = CommitmentPoolingModule.PoolRegistered.createMockEvent({
+      poolId: 7n,
+      garden: address(1),
+      poolType: 0n,
+      mockEventData: eventData(START_BLOCK, 0, 16),
+    });
+    const firstSeeded = CommitmentPoolingModule.CycleSeeded.createMockEvent({
+      cycleId: 9n,
+      poolId: 7n,
+      cycleType: 0n,
+      startTime: 1n,
+      endTime: 2n,
+      metadataCID: "ipfs://first-season",
+      mockEventData: eventData(START_BLOCK + 1, 0, 17),
+    });
+    const secondOpened = CommitmentPoolingModule.CycleOpened.createMockEvent({
+      cycleId: 10n,
+      poolId: 7n,
+      gardenersBps: 6000n,
+      treasuryBps: 1000n,
+      operatorBps: 1000n,
+      evaluatorBps: 500n,
+      communityBps: 500n,
+      funderBps: 1000n,
+      equalParticipationBps: 2000n,
+      verifiedContributionBps: 8000n,
+      mockEventData: eventData(START_BLOCK + 5, 0, 18),
+    });
+    const firstOpened = CommitmentPoolingModule.CycleOpened.createMockEvent({
+      cycleId: 9n,
+      poolId: 7n,
+      gardenersBps: 6000n,
+      treasuryBps: 1000n,
+      operatorBps: 1000n,
+      evaluatorBps: 500n,
+      communityBps: 500n,
+      funderBps: 1000n,
+      equalParticipationBps: 2000n,
+      verifiedContributionBps: 8000n,
+      mockEventData: eventData(START_BLOCK + 2, 0, 19),
+    });
+    const firstClosed = CommitmentPoolingModule.CycleClosed.createMockEvent({
+      cycleId: 9n,
+      poolId: 7n,
+      mockEventData: eventData(START_BLOCK + 3, 0, 20),
+    });
+    const secondSeeded = CommitmentPoolingModule.CycleSeeded.createMockEvent({
+      cycleId: 10n,
+      poolId: 7n,
+      cycleType: 0n,
+      startTime: 3n,
+      endTime: 4n,
+      metadataCID: "ipfs://second-season",
+      mockEventData: eventData(START_BLOCK + 4, 0, 21),
+    });
+
+    db = await processEvents(db, [
+      registered,
+      firstSeeded,
+      secondOpened,
+      firstOpened,
+      firstClosed,
+      secondSeeded,
+    ]);
+    const pool = await db.CommitmentPool.get(`${CHAIN_ID}-7`);
+    const first = await db.CommitmentCycle.get(`${CHAIN_ID}-9`);
+    const second = await db.CommitmentCycle.get(`${CHAIN_ID}-10`);
+
+    assert.equal(first?.state, "RECONCILED");
+    assert.equal(second?.state, "OPEN");
+    assert.equal(pool?.openSeasonCycleId, 10n);
+    assert.equal(pool?.openSeasonCycleEntityId, `${CHAIN_ID}-10`);
+    assert.equal(pool?.openSeasonBlockNumber, BigInt(START_BLOCK + 5));
   });
 
   it("drains lifecycle events after creation and reconciles late acceptance, claims, and member history once", async () => {

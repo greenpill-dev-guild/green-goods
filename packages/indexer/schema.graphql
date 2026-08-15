@@ -555,8 +555,12 @@ type CommitmentPool {
   state: CommitmentPoolState # null only when a charter/cap update created the placeholder first
   charterCID: String
   pauseReasonCID: String # set by PoolPaused; cleared by PoolResumed
+  pauseReasonBlockNumber: BigInt # latest PoolPaused/PoolResumed payload cursor
+  pauseReasonLogIndex: Int # nullable cursor partner; reason provenance may backfill past newer pool state
   openSeasonCycleId: BigInt # null when no Season is open; Campaigns may overlap
   openSeasonCycleEntityId: String # relationship: chainId-cycleId
+  openSeasonBlockNumber: BigInt # latest Season lifecycle cursor across every cycle in this pool
+  openSeasonLogIndex: Int # nullable cursor partner for the singleton open Season relationship
   openCampaignIds: [BigInt!]! # event-derived raw identifiers; never enumerated on-chain
   openCampaignEntityIds: [String!]! # relationship IDs in matching order
   childCycleEntityIds: [String!]! # bounded reverse join for late PoolRegistered garden hydration

@@ -145,8 +145,11 @@ indexer.onEvent(
       txHash: getTxHash(event.transaction),
       log: context.log,
     });
+    if (metadata === null) {
+      throw new Error(`Hypercert metadata unavailable for ${hypercertId}`);
+    }
 
-    const parsedMetadata = metadata ? parseHypercertMetadata(metadata) : {};
+    const parsedMetadata = parseHypercertMetadata(metadata);
     const parsedAttestationUIDs = parsedMetadata.attestationUIDs;
     const bundleKind = parsedMetadata.bundleKind ?? "WORK_LEGACY";
     const commitmentIds = bundleKind === "COMMITMENT" ? (parsedMetadata.commitmentIds ?? []) : [];

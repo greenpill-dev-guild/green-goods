@@ -77,15 +77,32 @@ export async function handlePoolEvent(event: RuntimeEvent, context: PoolingConte
     });
     return;
   }
-  if (
-    !cursorWins(
+  const lifecycleWins = cursorWins(
+    event.block.number,
+    event.logIndex,
+    pool.lifecycleBlockNumber,
+    pool.lifecycleLogIndex
+  );
+  const pausePayloadWins =
+    (event.eventName === "PoolPaused" || event.eventName === "PoolResumed") &&
+    cursorWins(
       event.block.number,
       event.logIndex,
-      pool.lifecycleBlockNumber,
-      pool.lifecycleLogIndex
-    )
-  )
+      pool.pauseReasonBlockNumber,
+      pool.pauseReasonLogIndex
+    );
+  if (!lifecycleWins) {
+    if (!pausePayloadWins) return;
+    context.CommitmentPool.set({
+      ...pool,
+      pauseReasonCID:
+        event.eventName === "PoolPaused" ? value<string>(event, "reasonCID") : undefined,
+      pauseReasonBlockNumber: BigInt(event.block.number),
+      pauseReasonLogIndex: event.logIndex,
+      updatedAt: Math.max(pool.updatedAt, event.block.timestamp),
+    });
     return;
+  }
   const stateByEvent: Readonly<Record<string, CommitmentPool["state"]>> = {
     PoolReady: "READY",
     PoolOpened: "OPEN",
@@ -112,12 +129,15 @@ export async function handlePoolEvent(event: RuntimeEvent, context: PoolingConte
   const updatedPool = {
     ...pool,
     state: nextState,
-    pauseReasonCID:
-      event.eventName === "PoolPaused"
+    pauseReasonCID: pausePayloadWins
+      ? event.eventName === "PoolPaused"
         ? value<string>(event, "reasonCID")
-        : event.eventName === "PoolResumed"
-          ? undefined
-          : pool.pauseReasonCID,
+        : undefined
+      : pool.pauseReasonCID,
+    pauseReasonBlockNumber: pausePayloadWins
+      ? BigInt(event.block.number)
+      : pool.pauseReasonBlockNumber,
+    pauseReasonLogIndex: pausePayloadWins ? event.logIndex : pool.pauseReasonLogIndex,
     lifecycleBlockNumber: BigInt(event.block.number),
     lifecycleLogIndex: event.logIndex,
     pendingCloseBlockNumber:
@@ -158,18 +178,34 @@ export async function handleCycleEvent(
       updatedAt: Math.max(cycle.updatedAt, event.block.timestamp),
     } satisfies CommitmentCycle;
     context.CommitmentCycle.set(seeded);
+    const seasonCursorWins =
+      seeded.cycleType === "SEASON" &&
+      cycle.lifecycleBlockNumber !== undefined &&
+      cycle.lifecycleLogIndex !== undefined &&
+      cursorWins(
+        Number(cycle.lifecycleBlockNumber),
+        cycle.lifecycleLogIndex,
+        pool.openSeasonBlockNumber,
+        pool.openSeasonLogIndex
+      );
     if (!cycle.seedSeen && seeded.state !== "COMPOSTED" && seeded.state !== "CANCELLED") {
       context.CommitmentPool.set({
         ...withCycleChild(pool, seeded.id),
         nonTerminalCycleCount: pool.nonTerminalCycleCount + 1n,
-        openSeasonCycleId:
-          seeded.state === "OPEN" && seeded.cycleType === "SEASON"
+        openSeasonCycleId: seasonCursorWins
+          ? seeded.state === "OPEN"
             ? cycleId
-            : pool.openSeasonCycleId,
-        openSeasonCycleEntityId:
-          seeded.state === "OPEN" && seeded.cycleType === "SEASON"
+            : undefined
+          : pool.openSeasonCycleId,
+        openSeasonCycleEntityId: seasonCursorWins
+          ? seeded.state === "OPEN"
             ? seeded.id
-            : pool.openSeasonCycleEntityId,
+            : undefined
+          : pool.openSeasonCycleEntityId,
+        openSeasonBlockNumber: seasonCursorWins
+          ? cycle.lifecycleBlockNumber
+          : pool.openSeasonBlockNumber,
+        openSeasonLogIndex: seasonCursorWins ? cycle.lifecycleLogIndex : pool.openSeasonLogIndex,
         openCampaignIds:
           seeded.state === "OPEN" && seeded.cycleType === "CAMPAIGN"
             ? sortedUnique([...pool.openCampaignIds, cycleId])
@@ -180,8 +216,25 @@ export async function handleCycleEvent(
             : pool.openCampaignEntityIds,
         updatedAt: Math.max(pool.updatedAt, event.block.timestamp),
       });
-    } else if (!pool.childCycleEntityIds.includes(seeded.id)) {
-      context.CommitmentPool.set(withCycleChild(pool, seeded.id));
+    } else if (!pool.childCycleEntityIds.includes(seeded.id) || seasonCursorWins) {
+      context.CommitmentPool.set({
+        ...withCycleChild(pool, seeded.id),
+        openSeasonCycleId: seasonCursorWins
+          ? seeded.state === "OPEN"
+            ? cycleId
+            : undefined
+          : pool.openSeasonCycleId,
+        openSeasonCycleEntityId: seasonCursorWins
+          ? seeded.state === "OPEN"
+            ? seeded.id
+            : undefined
+          : pool.openSeasonCycleEntityId,
+        openSeasonBlockNumber: seasonCursorWins
+          ? cycle.lifecycleBlockNumber
+          : pool.openSeasonBlockNumber,
+        openSeasonLogIndex: seasonCursorWins ? cycle.lifecycleLogIndex : pool.openSeasonLogIndex,
+        updatedAt: Math.max(pool.updatedAt, event.block.timestamp),
+      });
     }
     return;
   }
@@ -248,6 +301,14 @@ export async function handleCycleEvent(
   if (!lifecycleWins || !cycle.seedSeen) return;
   const wasTerminal = cycle.state === "COMPOSTED" || cycle.state === "CANCELLED";
   const isTerminalCycle = nextState === "COMPOSTED" || nextState === "CANCELLED";
+  const seasonCursorWins =
+    cycle.cycleType === "SEASON" &&
+    cursorWins(
+      event.block.number,
+      event.logIndex,
+      pool.openSeasonBlockNumber,
+      pool.openSeasonLogIndex
+    );
   context.CommitmentPool.set(
     reconcilePendingPoolClose(
       {
@@ -260,18 +321,20 @@ export async function handleCycleEvent(
                 ? pool.nonTerminalCycleCount - 1n
                 : 0n
               : pool.nonTerminalCycleCount + 1n,
-        openSeasonCycleId:
-          nextState === "OPEN" && cycle.cycleType === "SEASON"
+        openSeasonCycleId: seasonCursorWins
+          ? nextState === "OPEN"
             ? cycleId
-            : pool.openSeasonCycleId === cycleId && nextState !== "OPEN"
-              ? undefined
-              : pool.openSeasonCycleId,
-        openSeasonCycleEntityId:
-          nextState === "OPEN" && cycle.cycleType === "SEASON"
+            : undefined
+          : pool.openSeasonCycleId,
+        openSeasonCycleEntityId: seasonCursorWins
+          ? nextState === "OPEN"
             ? entityId
-            : pool.openSeasonCycleId === cycleId && nextState !== "OPEN"
-              ? undefined
-              : pool.openSeasonCycleEntityId,
+            : undefined
+          : pool.openSeasonCycleEntityId,
+        openSeasonBlockNumber: seasonCursorWins
+          ? BigInt(event.block.number)
+          : pool.openSeasonBlockNumber,
+        openSeasonLogIndex: seasonCursorWins ? event.logIndex : pool.openSeasonLogIndex,
         openCampaignIds:
           cycle.cycleType === "CAMPAIGN"
             ? nextState === "OPEN"

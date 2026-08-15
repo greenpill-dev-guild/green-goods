@@ -484,7 +484,7 @@ describe("HypercertMinter.ClaimStored", () => {
     }
   });
 
-  it("handles metadata fetch failure gracefully", async () => {
+  it("fails before persistence when metadata is unavailable so the event can retry", async () => {
     const closedServer = await serveJson({});
     const unreachableUrl = closedServer.url;
     await closedServer.close();
@@ -497,15 +497,8 @@ describe("HypercertMinter.ClaimStored", () => {
       mockEventData: mockEvent(CHAIN_ID, 5000, { txHash: txHash(100), logIndex: 1 }),
     });
 
-    const result = await HypercertMinter.ClaimStored.processEvent({ event, mockDb });
-    const hc = await result.Hypercert.get(`${CHAIN_ID}-42`);
-
-    assert.ok(hc);
-    assert.equal(hc.metadataUri, unreachableUrl);
-    assert.equal(hc.totalUnits, 1000n);
-    // Metadata fields should be defaults since fetch failed
-    assert.equal(hc.garden, "");
-    assert.equal(hc.attestationCount, 0);
+    await assert.rejects(HypercertMinter.ClaimStored.processEvent({ event, mockDb }));
+    assert.equal(await mockDb.Hypercert.get(`${CHAIN_ID}-42`), undefined);
   });
 
   it("updates existing hypercert when TransferSingle arrives first", async () => {
