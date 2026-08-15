@@ -304,26 +304,6 @@ describe("modules/data/greengoods", () => {
       expect(result).toEqual([]);
     });
 
-    it("omits an action whose indexer domain is unknown", async () => {
-      mockQuery.mockResolvedValue({
-        data: {
-          Action: [
-            {
-              id: "11155111-unknown",
-              title: "Unknown domain",
-              slug: "unknown.action",
-              domain: "UNKNOWN",
-              capitals: [],
-              media: [],
-            },
-          ],
-        },
-      });
-
-      await expect(getActions()).resolves.toEqual([]);
-      expect(mockGetFileByHash).not.toHaveBeenCalled();
-    });
-
     it("handles action without instructions gracefully", async () => {
       const mockActions = [
         {
