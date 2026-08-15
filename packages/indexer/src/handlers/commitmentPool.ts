@@ -1,6 +1,6 @@
 import { indexer } from "envio";
 
-import { handleCycleEvent, handlePoolEvent, handleSeriesEvent } from "./commitment-pool-aggregates";
+import { handleCycleEvent, handlePoolEvent } from "./commitment-pool-aggregates";
 import { handleAccepted, handleClaimEvent, handleExchange } from "./commitment-pool-claims";
 import { handleContributorEvent } from "./commitment-pool-contributors";
 import { handleCommitmentCreated, handleCommitmentTerms } from "./commitment-pool-creation";
@@ -8,6 +8,7 @@ import { handleLifecycle, handleMiscCommitment } from "./commitment-pool-lifecyc
 import { enqueuePendingLifecycle } from "./commitment-pool-pending";
 import { handleRegistryEvent } from "./commitment-pool-registry";
 import { type PoolingContext, type RuntimeEvent, putAudit } from "./commitment-pool-runtime";
+import { handleSeriesEvent } from "./commitment-pool-series";
 import { handleEvidence, handleWorkEvent } from "./commitment-pool-work";
 
 async function routeEvent(event: RuntimeEvent, context: PoolingContext): Promise<void> {
