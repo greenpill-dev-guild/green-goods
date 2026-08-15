@@ -443,20 +443,36 @@ For new contract work, deployment artifacts move through phases:
 - Indexer config still points at a zero or stale address for newly deployed indexed contracts
 - Generated ABI/config artifacts were not refreshed after deployment metadata changed
 
-### Mainnet Additional Requirements (All Blocking)
+### Mainnet Requirements by Activation Risk
 
-- External security audit completed — no unresolved critical/high findings
-- Protocol UUPS/admin ownership configured on a Gnosis Safe with a threshold of at least 2 and
-  at least 3 owners. The exact approved owner set and threshold must be frozen in the release
-  manifest and verified live; the current approved protocol target is exact 2-of-6. This rule
-  governs protocol upgrade and administrative authority, not a garden's bounded operational Safe.
-- A per-garden Celo settlement Safe uses the Commitment Pooling pilot's exact 2-of-3 recovery
-  policy only when all three named owner roles, the scoped Roles/Allowance selectors and caps,
-  owner/executor separation, the recovery configuration hash, and live post-deploy verification
-  satisfy `settlement-spec.md`. It grants no protocol upgrade authority.
-- Timelock delay: 48h mainnet, 24h testnet
-- Minimum 2 weeks testnet operation before mainnet
-- Rollback procedures documented and tested
+Every mainnet boundary requires 100% passing required tests, explicit human release authorization,
+no unresolved critical/high finding under the recorded review disposition, persisted receipts and
+post-state verification, and documented/tested rollback. Beyond that common floor, apply the
+highest tier reached by the boundary:
+
+1. **Paused deployment only** — contracts remain paused, temporary authority is recorded, and no
+   peer, role, allowance, custody, transfer, or value-moving capability is enabled. Safe ownership,
+   timelock, and soak may remain later activation gates when the active release handoff records
+   them as blocked and the verifier proves the paused/no-authority endpoint.
+2. **Coordination-only activation** — the activated contract is non-custodial and its records are
+   non-transferable; every value-bearing dependency remains paused or disabled. A temporary owner
+   may remain only when the accountable release owner explicitly accepts that bounded risk in the
+   active handoff, the exact owner and rollback owner are verified, emergency pause remains
+   available, and the selected committed-range security review has no unresolved critical/high
+   finding. Any later custody, transferability, peer wiring, allowance, or value authority moves
+   the boundary to tier 3 before it is enabled.
+3. **Value-bearing or protocol-authority activation** — protocol UUPS/admin ownership must be on a
+   Gnosis Safe with a threshold of at least 2 and at least 3 owners. The exact approved owner set
+   and threshold must be frozen in the release manifest and verified live; the current approved
+   protocol target is exact 2-of-6. External audit, timelock (48h mainnet, 24h testnet), and minimum
+   two-week testnet operation are blocking defaults. A human release owner may replace or waive
+   one of those defaults only through an explicit, dated, release-scoped disposition that names
+   the substitute evidence; no agent, passing test, or deployment artifact grants that waiver.
+
+A per-garden Celo settlement Safe is always tier 3. It uses the Commitment Pooling pilot's exact
+2-of-3 recovery policy only when all three named owner roles, scoped Roles/Allowance selectors and
+caps, owner/executor separation, recovery configuration hash, and live post-deploy verification
+satisfy `settlement-spec.md`. It grants no protocol upgrade authority.
 
 ---
 

@@ -1430,27 +1430,27 @@ queued-callback retry.
 | Module pause admin | `setPaused` | module owner | initialize paused; pausing is always allowed; unpause requires all six dependencies plus all four non-zero, pairwise-distinct schema UIDs and emits old/new pause state |
 | Module limiting admin | `setProviderOpenCommitmentCap` | pool steward | non-zero concurrent commitment count; module forwards to the register; required before Ready |
 | Register | `registerClass` / `setProviderOpenCommitmentCap` / `commitUnits` / `releaseUnits` / `fulfillUnits` | CommitmentPoolingModule only (`NotModule`) | class quota is immutable at creation (`targetUnits`); only the accountable lead provider is the exposure/count subject (§6.2) |
-| Register admin | `setModule` | register owner: exact approved protocol Safe satisfying threshold >= 2 and owner count >= 3 before any mainnet activation | new module rejects zero; initial zero → non-zero wiring is allowed once; every later replacement requires the current module to be paused and emits `ModuleUpdated(old,new)` |
-| Assessment config | existing `setSchemaUID` / existing `setKarmaGAPModule` / new `setAssessmentV3SchemaUID` | existing AssessmentResolver owner: exact approved protocol Safe satisfying threshold >= 2 and owner count >= 3 before this lane's mainnet upgrade | v2 selector/event and deployment-window zero value remain compatible; KarmaGAP zero disables its optional hook; v2/v3 UID equality is rejected; v3 UID rejects zero and emits old/new |
-| Community Testimony config | `setSchemaUID` / `setCommitmentModule` | TestimonyResolver owner: exact approved protocol Safe satisfying threshold >= 2 and owner count >= 3 before any mainnet activation | UID rejects zero, pins once, treats an exact repeat as a no-op, and rejects conflict; module rejects zero and an unpinned UID; preparation pins the deterministic UID while module is zero, finalization reconciles the exact EAS record, and verified module activation is last |
-| Upgrades | `_authorizeUpgrade` on module, register, upgraded AssessmentResolver, and net-new TestimonyResolver | exact approved protocol Safe satisfying threshold >= 2 and owner count >= 3 | UUPS convention repo-wide; existing Assessment initializer is never re-run |
+| Register admin | `setModule` | register owner, subject to the mainnet activation tier below; protocol-authority use requires the exact approved Safe satisfying threshold >= 2 and owner count >= 3 | new module rejects zero; initial zero → non-zero wiring is allowed once; every later replacement requires the current module to be paused and emits `ModuleUpdated(old,new)` |
+| Assessment config | existing `setSchemaUID` / existing `setKarmaGAPModule` / new `setAssessmentV3SchemaUID` | existing AssessmentResolver owner, subject to the mainnet activation tier below; protocol-authority use requires the exact approved Safe | v2 selector/event and deployment-window zero value remain compatible; KarmaGAP zero disables its optional hook; v2/v3 UID equality is rejected; v3 UID rejects zero and emits old/new |
+| Community Testimony config | `setSchemaUID` / `setCommitmentModule` | TestimonyResolver owner, subject to the mainnet activation tier below; protocol-authority use requires the exact approved Safe | UID rejects zero, pins once, treats an exact repeat as a no-op, and rejects conflict; module rejects zero and an unpinned UID; preparation pins the deterministic UID while module is zero, finalization reconciles the exact EAS record, and verified module activation is last |
+| Upgrades | `_authorizeUpgrade` on module, register, upgraded AssessmentResolver, and net-new TestimonyResolver | current proxy owner, subject to the mainnet activation tier below; protocol-authority use requires the exact approved Safe satisfying threshold >= 2 and owner count >= 3 | UUPS convention repo-wide; existing Assessment initializer is never re-run |
 
-**Ownership and release gate (amended 2026-08-10; supersedes the 2026-08-02 external-audit,
-timelock, and soak requirements for this wave).** The live GardenToken, WorkApprovalResolver, and AssessmentResolver
-proxies currently report deployer EOA `0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6` as `owner()`.
-That is observed state, not acceptable final authority for this lane. The
-August 10 owner decision applies to this release wave: before any mainnet upgrade, deployment,
-schema/module activation, or unpause, the internal committed-range review has no unresolved
-Critical/High finding, protocol UUPS/admin authority is verified on protocol Safe
-`0x1B9Ac97Ea62f69521A14cbe6F45eb24aD6612C19`, Safe multisig approval is present, the current
-local/fork/optional Ethereum Sepolia endpoint/Arbitrum One/Celo evidence ladder is satisfied for
-the authorized stage, and rollback is documented and tested. The 48-hour timelock and former
-two-week testnet soak are waived for this wave. Deployment tooling may
-use the verified live owner only for a human-authorized, fail-closed ownership-transfer transaction
-plan whose post-check proves the Safe owns every touched proxy; no later plan step may rely on the
-EOA as upgrade or administrative authority. The same gate covers CommitmentPoolingModule,
-CommitmentRegistry, AssessmentResolver, TestimonyResolver, and every other protocol proxy this lane
-deploys or upgrades.
+**Ownership and release gate (amended 2026-08-14; supersedes the living all-or-nothing gate while
+preserving its history).** Every mainnet boundary requires passing required tests, explicit human
+authorization, no unresolved Critical/High finding under the selected review disposition,
+persisted receipt/post-state evidence, and documented/tested rollback. A paused deployment with no
+peer, role, allowance, custody, transfer, or value authority is tier 1. A non-custodial,
+non-transferable coordination activation with every value-bearing dependency paused or disabled is
+tier 2; temporary ownership is permitted only when the accountable release owner explicitly
+accepts that bounded risk, the exact current and rollback owner are verified, emergency pause
+remains available, and the selected committed-range review is clear of unresolved Critical/High
+findings. Custody, transferability, peer wiring, allowances, value movement, or protocol
+upgrade/administrative authority is tier 3 and requires the exact approved protocol Safe satisfying
+threshold >= 2 and owner count >= 3. External audit, the 48-hour mainnet timelock, and minimum
+two-week testnet operation are tier-3 defaults; only an explicit dated, release-scoped human
+disposition naming substitute evidence may replace or waive one. No agent, passing test, or
+deployment artifact grants a waiver. Per-garden Celo settlement Safes and settlement value
+authority are always tier 3 and retain their separate exact policy and live verification gates.
 
 EAS authorship, enforced by the resolvers (§6.4.3), for completeness of the access-control picture:
 

@@ -959,6 +959,25 @@ Known mis-resolutions fixed in place: `contract-spec.md` §Grassroots-Economics-
     bounded check as proof that the Safe contains no other assets. Any later value-authority
     activation requires its own reviewed asset-inventory evidence.
 
+109. Mainnet release gates are risk-tiered rather than one all-or-nothing checklist (2026-08-14,
+    Afo decision; supersedes register #78 only as the living activation rule and preserves its
+    historical record). Every boundary retains the common test, explicit-human-authorization,
+    selected-review, receipt/post-state, and tested-rollback floor. A paused deployment with no
+    peer, role, allowance, custody, transfer, or value authority is tier 1. A non-custodial,
+    non-transferable coordination activation with every value dependency paused or disabled is
+    tier 2; temporary ownership is permitted only with explicit accountable-owner risk acceptance,
+    exact current and rollback-owner verification, emergency pause, and no unresolved
+    Critical/High finding in the selected committed-range review. Custody, transferability, peer
+    wiring, allowances, value movement, or protocol upgrade/administrative authority is tier 3 and
+    requires the protocol Safe threshold/owner policy plus the external-audit, timelock, and soak
+    defaults. A human release owner may replace or waive an audit, timelock, or soak default only
+    through an explicit dated, release-scoped disposition that names substitute evidence. No
+    agent, passing test, or deployment artifact grants a waiver. Per-garden Celo settlement Safes
+    and settlement value authority are always tier 3. The current pooling activation is accepted
+    only as tier 2 while SettlementModule, CeloSettlementExecutor, peer wiring, Safe/Zodiac value
+    authority, and value movement remain paused or disabled; enabling any of them requires a new
+    tier-3 gate.
+
 **Final recursive certification clarification (2026-07-25; no new decision-register entry):**
 the published `42161`↔`42220` production lane is the only required fully paired
 `SettlementConfiguration`. Arbitrum Sepolia `421614` and Celo Sepolia `11142220` remain
@@ -1066,14 +1085,14 @@ does not begin against moving contracts or indexer queries.
 6. [ ] **Build the indexer backend second (PRD-722):** implement and prove the indexed read model against PRD-721's frozen events, including generation, replay/cutover, block preservation, and query-boundary evidence.
 7. [ ] **Build the state/API backend third (PRD-723):** complete the shared state/API layer against the proven PRD-721 contracts and PRD-722 generated queries. PRD-723 must close before PRD-724, PRD-725, or PRD-726 begins.
 8. [ ] **Human-authorized core activation:** pass local/fork, storage, deploy-dry-run, and post-deploy
-   gates plus every blocking repository requirement: external audit with no unresolved
-   critical/high finding, verified exact protocol Safe ownership satisfying threshold >= 2 and
-   owner count >= 3 for every touched UUPS/admin surface, the recorded timelock/soak disposition,
-   and tested rollback.
-   Only then may a human authorize broadcast of the non-value module/register/schema tier, persist
-   and verify contract artifacts. PRD-722 separately owns the resulting indexer address/start-block
-   change, hosted deployment/reindex, cutover/rollback, and live entity/query read-back. Value-bearing
-   settlement retains its additional CCIP/AA/canary authorization.
+   gates plus the risk tier in register #109. The non-value module/register/schema tier may activate
+   as tier 2 only while it remains non-custodial and non-transferable, every value dependency is
+   paused or disabled, temporary ownership and rollback authority are explicitly accepted and
+   verified, emergency pause remains available, the selected review has no unresolved
+   Critical/High finding, and rollback is tested. PRD-722 separately owns the resulting indexer
+   address/start-block change, hosted deployment/reindex, cutover/rollback, and live entity/query
+   read-back. Protocol authority and value-bearing settlement remain tier 3 and retain their
+   Safe, CCIP/AA, canary, and applicable audit/timelock/soak gates.
 9. [ ] **Existing admin foundation:** resolve PRD-737 and the explicitly scoped admin-console/output defects against verified live backend data. Do not turn this into a redesign or absorb new Commitment Pooling feature implementation.
 10. [ ] **Complete prototype readiness:** PRD-789 is closed after correction, independent review,
     publication, and canonical-URL verification. Close the remaining PRD-760 fixture/chrome
@@ -1395,9 +1414,13 @@ The executable order is:
 7. prove seed, exchange in/out, redemption, liquidity, and repair in one bounded pool; and
 8. consider capacity-backed issuance or federation only through new, separate scope locks.
 
-Every pooling-tier mainnet upgrade, deployment, activation, and unpause is blocked by register
-#78's external-audit, protocol 3-of-5 Safe, 48-hour mainnet timelock, two-week testnet-operation,
-and tested-rollback requirements. G$ split-state settlement is Build-phase scope via
+Mainnet release boundaries follow register #109's risk tiers. Paused/no-authority deployment is
+tier 1; non-custodial and non-transferable pooling coordination may activate as tier 2 only while
+all value dependencies remain paused or disabled and its explicit ownership, review, emergency-
+pause, receipt/post-state, and rollback evidence stays valid. Protocol authority, custody,
+transferability, peer wiring, allowances, and value movement are tier 3 and require the Safe plus
+applicable audit/timelock/soak gates or an explicit dated human disposition naming substitute
+evidence. G$ split-state settlement is Build-phase scope via
 [PRD-686](https://linear.app/greenpill-dev-guild/issue/PRD-686) (`settlement-spec.md`, Decision
 Log #14), targeting the 2026-08-12 Release. Implementation may begin only from its scoped handoff
 after the pooling reward/provider interface freezes; production Safe/Zodiac authority evidence,

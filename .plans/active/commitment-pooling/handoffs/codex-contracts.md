@@ -115,12 +115,14 @@ those process gates clear, this handoff may be reviewed but must not self-dispat
   The grouped `commitment-pooling` upgrade target is likewise NET-NEW and ships with its own
   check that GardenToken and WorkApprovalResolver report the same live owner before one plan
   persists.
-- Mainnet transaction planning fails closed unless the verified target owner is the protocol
-  exact approved protocol Safe satisfying threshold >= 2 and owner count >= 3. A human-authorized ownership-transfer plan may start from the observed deployer EOA,
-  but it must be isolated, name every touched proxy, and verify Safe ownership before any upgrade,
-  schema/module activation, or unpause plan can persist. Release evidence additionally binds the
-  repository's external-audit, 48-hour timelock, two-week testnet-operation, and tested-rollback
-  gates; this lane adds no tier waiver.
+- Mainnet transaction planning fails closed against the active risk tier. Paused/no-authority
+  deployment is tier 1. Non-custodial and non-transferable coordination is tier 2 only while every
+  value dependency is paused or disabled and the exact temporary/rollback owners, explicit human
+  risk acceptance, emergency pause, selected committed-range review, receipts/post-state, and
+  tested rollback are verified. Protocol authority, custody, transferability, peer wiring,
+  allowances, or value movement is tier 3 and requires the exact approved protocol Safe satisfying
+  threshold >= 2 and owner count >= 3 plus applicable audit/timelock/soak gates or an explicit
+  dated human disposition naming substitute evidence.
 - `packages/contracts/test/CommitmentPoolingBounds.t.sol`, the NET-NEW Foundry gas/payload
   benchmark harness that selects every `MAX_*` constant.
 
@@ -179,10 +181,11 @@ those process gates clear, this handoff may be reviewed but must not self-dispat
   requires the complete six-address/four-UID configuration. `CommitmentRegistry.setModule`
   permits the initial zero → non-zero wiring only; later replacement requires the current module
   paused and emits exact old/new without touching accounting state. The frozen
-  mainnet release plan additionally proves the external audit has no unresolved critical/high
-  finding, every touched UUPS/admin owner is the exact approved protocol Safe, the recorded timelock and
-  two-week testnet-operation requirements passed, and rollback was tested before any broadcast or
-  activation step is authorized.
+  mainnet release plan additionally proves the active risk tier: the common test, explicit human
+  authorization, selected-review, receipt/post-state, and tested-rollback floor for every boundary;
+  tier-2 temporary-owner acceptance, exact current/rollback-owner proof, emergency pause, and
+  paused/disabled value dependencies for coordination-only activation; or the exact approved Safe
+  plus applicable audit/timelock/soak gates for tier-3 protocol-authority or value activation.
   `ICommitmentPoolingModule` interface includes `paused() external view returns (bool)` because
   the register's replacement guard calls that selector; interface/implementation ABI proof must
   fail before deployment if it is absent.
