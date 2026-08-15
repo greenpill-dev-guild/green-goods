@@ -47,8 +47,10 @@ unpaused Commitment Pooling. The unpause transaction is
 `0x69129f9cf15f537aca062770d579f13453700a09d01acd02910eecfb586227a4` at Arbitrum block
 `493999183`. SettlementModule, CreditRegistry, and CeloSettlementExecutor remain deployer-owned;
 SettlementModule and the Celo executor remain paused and have no Safe/Zodiac value authority.
-Ownership transfer, peer wiring, message-only ping, value authority, canary, and indexer activation
-remain separate ceremonies.
+The Celo executor's initializer already pinned the nonzero Arbitrum selector and SettlementModule
+source peer, so that completed configuration boundary is tier 3 rather than future peer wiring.
+Ownership transfer, message-only ping, value authority, canary, and indexer activation remain
+separate ceremonies.
 
 The exact executed plan and complete 19-boundary checkpoint are tracked at
 `packages/contracts/.generated/runtime/42161-pool-backfill.json` and

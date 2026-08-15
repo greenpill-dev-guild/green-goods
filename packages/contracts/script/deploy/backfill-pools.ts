@@ -996,6 +996,16 @@ export async function verifyRegistrationReceiptPrefix(
   }
 }
 
+export async function verifyCompletedBackfillEvidence(
+  provider: JsonRpcProvider,
+  plan: PoolBackfillPlan,
+  checkpoint: BackfillCheckpoint,
+  snapshots: RegisteredPoolSnapshot[],
+): Promise<void> {
+  await verifyRegistrationReceiptPrefix(provider, plan, checkpoint);
+  validateRegisteredPoolSnapshots(plan, checkpoint, snapshots);
+}
+
 function initialCheckpoint(plan: PoolBackfillPlan, planHash: string): BackfillCheckpoint {
   return {
     schemaVersion: 1,
@@ -1071,6 +1081,10 @@ async function verifyAuthorizedBoundary(options: BackfillOptions): Promise<void>
   const provider = new JsonRpcProvider(rpcUrl, 42161, { staticNetwork: true });
   const existing = checkpoint.completed.find((entry) => entry.step === options.step);
   let receiptHash = existing?.transactionHash ?? options.receiptHash;
+  if (boundary.kind === "UNPAUSE") {
+    const module = new Contract(plan.module, moduleInterface, provider);
+    await verifyCompletedBackfillEvidence(provider, plan, checkpoint, await readRegisteredPoolSnapshots(module, plan));
+  }
   if (!receiptHash) {
     if (plan.authority !== "DEPLOYER") throw new Error("Safe backfill requires an externally submitted receipt");
     const finalized = await provider.getBlock("finalized");
@@ -1085,11 +1099,6 @@ async function verifyAuthorizedBoundary(options: BackfillOptions): Promise<void>
     );
     assertInventoryMatchesPlan(plan, await enumerateGardens(provider, deployment, finalized.number));
     await assertModuleConfiguration(provider, deployment, plan.module, plan.owner, finalized.number, true);
-    if (boundary.kind === "UNPAUSE") {
-      await verifyRegistrationReceiptPrefix(provider, plan, checkpoint);
-      const module = new Contract(plan.module, moduleInterface, provider);
-      validateRegisteredPoolSnapshots(plan, checkpoint, await readRegisteredPoolSnapshots(module, plan));
-    }
     const pendingNonce = await provider.getTransactionCount(plan.owner, "pending");
     if (pendingNonce !== expectedNonce) {
       throw new Error(`Deployer nonce drift: expected ${expectedNonce}, live pending nonce is ${pendingNonce}`);

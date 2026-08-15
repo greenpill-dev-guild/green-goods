@@ -8,6 +8,7 @@ import {
   assertCheckpointReceiptBlock,
   assertNextBoundary,
   assertRecoverySafeConfiguration,
+  assertRecoverySafeMatchesPlan,
   assertSwappedState,
   assertUniqueReplacementOwners,
   atomicWrite,
@@ -216,6 +217,28 @@ describe("Garden Safe temporary owner tooling", () => {
       /exact module-free 2-of-3/,
     );
     expect(() => assertRecoverySafeConfiguration({ ...recovery, threshold: "1" })).toThrow(/exact module-free 2-of-3/);
+  });
+
+  it("rejects a valid recovery Safe whose reviewed owner set changed", () => {
+    const reviewed = {
+      ...safeInspection(
+        [
+          "0x1111111111111111111111111111111111111111",
+          "0x2222222222222222222222222222222222222222",
+          "0x3333333333333333333333333333333333333333",
+        ],
+        "0",
+      ),
+      version: "1.3.0",
+      threshold: "2",
+    };
+    const changed = {
+      ...reviewed,
+      owners: [...reviewed.owners.slice(0, 2), "0x4444444444444444444444444444444444444444"].map(getAddress),
+    };
+
+    expect(() => assertRecoverySafeMatchesPlan(reviewed, reviewed)).not.toThrow();
+    expect(() => assertRecoverySafeMatchesPlan(changed, reviewed)).toThrow(/changed after bootstrap planning/);
   });
 
   it("rejects checkpoint blocks that do not equal the verified receipt", () => {

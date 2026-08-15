@@ -991,6 +991,17 @@ Known mis-resolutions fixed in place: `contract-spec.md` §Grassroots-Economics-
     module-free 2-of-3 recovery Safe before accepting the step. No peer wiring, Safe/Zodiac value
     authority, ownership transfer, or value movement is added by this retirement.
 
+111. The deployed Celo executor's initialized source peer is a completed tier-3 configuration
+    boundary (2026-08-14 classification correction). Its initializer pinned the nonzero Arbitrum
+    selector and SettlementModule address, and the release verifier requires that exact peer, so
+    current-state documents must not describe peer wiring as pending or disabled. This correction
+    does not reclassify the separately authorized Commitment Pooling unpause, which remains tier 2.
+    SettlementModule and CeloSettlementExecutor remain paused; Safe/Zodiac value authority, ping,
+    canary, caps, and value movement remain blocked behind their own tier-3 authorization and
+    evidence. The owner-confirmed internal committed-range review substitution applies to this
+    release increment, while no agent or artifact waives any still-open ownership or value-
+    activation gate.
+
 **Final recursive certification clarification (2026-07-25; no new decision-register entry):**
 the published `42161`↔`42220` production lane is the only required fully paired
 `SettlementConfiguration`. Arbitrum Sepolia `421614` and Celo Sepolia `11142220` remain

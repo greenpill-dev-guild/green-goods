@@ -531,6 +531,19 @@ export function assertRecoverySafeConfiguration(inspection: SafeInspection): voi
   }
 }
 
+export function assertRecoverySafeMatchesPlan(inspection: SafeInspection, reviewedInspection: SafeInspection): void {
+  assertRecoverySafeConfiguration(inspection);
+  if (
+    inspection.version !== reviewedInspection.version ||
+    inspection.singleton !== reviewedInspection.singleton ||
+    reviewedInspection.owners.length !== 3 ||
+    !sameOwnerSet(inspection.owners, reviewedInspection.owners) ||
+    inspection.fallbackHandler !== reviewedInspection.fallbackHandler
+  ) {
+    throw new Error("Garden recovery Safe configuration changed after bootstrap planning");
+  }
+}
+
 function canonicalBalancesAndConfigClear(inspection: SafeInspection): boolean {
   return (
     inspection.nativeBalance === "0" &&
@@ -1162,16 +1175,7 @@ async function assertLiveBootstrapDependencies(provider: JsonRpcProvider, plan: 
       throw new Error(`Live ${name} code differs from the reviewed bootstrap plan`);
     }
   }
-  assertRecoverySafeConfiguration(recoveryInspection);
-  if (
-    recoveryInspection.version !== plan.recoverySafeInspection.version ||
-    recoveryInspection.singleton !== plan.recoverySafeInspection.singleton ||
-    plan.recoverySafeInspection.owners.length !== 3 ||
-    !sameOwnerSet(recoveryInspection.owners, plan.recoverySafeInspection.owners) ||
-    recoveryInspection.fallbackHandler !== plan.recoverySafeInspection.fallbackHandler
-  ) {
-    throw new Error("Garden recovery Safe configuration changed after bootstrap planning");
-  }
+  assertRecoverySafeMatchesPlan(recoveryInspection, plan.recoverySafeInspection);
   const factory = new Contract(plan.factory, FACTORY_INTERFACE, provider);
   const proxyCreationCode = (await factory.proxyCreationCode()) as string;
   for (const entry of plan.entries) {
@@ -1340,6 +1344,10 @@ async function executeBootstrap(
     plan.singleton,
     plan.compatibilityFallbackHandler,
   );
+  assertRecoverySafeMatchesPlan(
+    await inspectSafe(provider, plan.recoverySafe, plan.canonicalToken, "latest"),
+    plan.recoverySafeInspection,
+  );
   checkpoint.completed.push({
     index: entry.index,
     transactionHash,
@@ -1427,6 +1435,10 @@ async function executeSwap(
     plan.recoverySafe,
     plan.singleton,
     plan.compatibilityFallbackHandler,
+  );
+  assertRecoverySafeMatchesPlan(
+    await inspectSafe(provider, plan.recoverySafe, plan.canonicalToken, "latest"),
+    bootstrap.recoverySafeInspection,
   );
   checkpoint.completed.push({
     index: entry.index,

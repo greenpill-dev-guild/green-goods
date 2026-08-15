@@ -10,6 +10,7 @@ import {
   validateCheckpointPrefix,
   validateDeployerExecution,
   validateRegisteredPoolSnapshots,
+  verifyCompletedBackfillEvidence,
   verifyRegistrationReceiptPrefix,
   type BackfillCheckpoint,
   type GardenEnumeration,
@@ -319,6 +320,47 @@ describe("one-shot pool backfill entrypoint", () => {
     receipts.get(complete.completed[4].transactionHash)!.blockNumber += 1;
     await expect(verifyRegistrationReceiptPrefix(provider, canonical, complete)).rejects.toThrow(
       "receipt differs for boundary 5",
+    );
+  });
+
+  it("replays every registration receipt and current pool ID for a completed unpause", async () => {
+    const canonical = plan();
+    canonical.authority = "DEPLOYER";
+    canonical.owner = address(2);
+    const complete = checkpoint(canonical, 19);
+    const transactions = new Map(
+      canonical.transactions.slice(0, -1).map((boundary, index) => [
+        complete.completed[index].transactionHash,
+        {
+          from: canonical.owner,
+          to: boundary.to,
+          data: boundary.data,
+          value: 0n,
+          nonce: boundary.nonce,
+        },
+      ]),
+    );
+    const receipts = new Map(
+      complete.completed
+        .slice(0, -1)
+        .map((evidence) => [evidence.transactionHash, { status: 1, blockNumber: evidence.blockNumber }]),
+    );
+    const provider = {
+      getTransaction: async (hash: string) => transactions.get(hash),
+      getTransactionReceipt: async (hash: string) => receipts.get(hash),
+    } as unknown as JsonRpcProvider;
+    const snapshots = canonical.transactions.slice(0, -1).map((transaction) => ({
+      garden: transaction.garden!,
+      poolId: String(transaction.index),
+      poolGarden: transaction.garden!,
+      poolType: transaction.kind === "REGISTER_PROTOCOL" ? 1 : 0,
+      ...(transaction.kind === "REGISTER_PROTOCOL" ? { protocolPoolId: String(transaction.index) } : {}),
+    }));
+
+    await expect(verifyCompletedBackfillEvidence(provider, canonical, complete, snapshots)).resolves.toBeUndefined();
+    receipts.get(complete.completed[7].transactionHash)!.blockNumber += 1;
+    await expect(verifyCompletedBackfillEvidence(provider, canonical, complete, snapshots)).rejects.toThrow(
+      "receipt differs for boundary 8",
     );
   });
 
