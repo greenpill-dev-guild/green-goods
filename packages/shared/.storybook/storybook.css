@@ -35,9 +35,11 @@
 :root {
   --admin-surface-0: 255 255 255;
   --admin-surface-50: 251 249 244;
-  --admin-chrome-bg: rgb(var(--admin-surface-0) / 0.78);
+  --admin-chrome-bg: rgb(var(--admin-surface-0) / 0.85);
   --admin-chrome-border: rgb(var(--neutral-800) / 0.08);
-  --admin-chrome-shadow: 0 18px 44px rgb(var(--warm-shadow, 133 109 70) / 0.12), var(--edge-rest);
+  --admin-chrome-shadow:
+    0 18px 44px rgb(var(--warm-shadow, 133 109 70) / 0.14),
+    0 0 0 1px rgb(var(--static-black, 0 0 0) / 0.05);
   --admin-chrome-blur: var(--blur-material-regular, 12px);
   --admin-appbar-shadow: 0 1px 0 rgb(var(--neutral-800) / 0.06);
   --admin-sheet-bg: rgb(var(--admin-surface-0) / 0.86);
@@ -81,11 +83,13 @@
 
 :root[data-theme="dark"],
 [data-theme="dark"] {
-  --admin-surface-0: 22 25 33;
-  --admin-surface-50: 17 19 27;
-  --admin-chrome-bg: rgb(var(--neutral-925) / 0.82);
+  --admin-surface-0: var(--m3-surface-container);
+  --admin-surface-50: var(--m3-surface-container-low);
+  --admin-chrome-bg: rgb(var(--m3-surface-container-high) / 0.85);
   --admin-chrome-border: rgb(var(--neutral-50) / 0.1);
-  --admin-chrome-shadow: 0 20px 48px rgb(var(--static-black) / 0.44), var(--edge-rest);
+  --admin-chrome-shadow:
+    0 20px 48px rgb(var(--warm-shadow, 30 22 14) / 0.44),
+    0 0 0 1px rgb(var(--neutral-50) / 0.08);
   --admin-appbar-shadow: 0 1px 0 rgb(var(--neutral-50) / 0.08);
   --admin-sheet-bg: rgb(var(--neutral-900) / 0.86);
   --admin-speed-dial-shadow: 0 16px 30px rgb(var(--static-black) / 0.42), var(--edge-rest);

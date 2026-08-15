@@ -2,8 +2,6 @@ import {
   FabProvider,
   RefreshActionProvider,
   GardenChip,
-  MainSheet,
-  AppBar,
   ACCOUNT_TAB_SEARCH_PARAM,
   ADMIN_WORKSPACE_VIEWS,
   NOTIFICATIONS_SHEET_CONTENT_ID,
@@ -36,6 +34,7 @@ import { RiUserLine } from "@remixicon/react";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { AdminSideSheet } from "@/components/AdminSideSheet";
+import { AppBar, MainSheet } from "@/components/Shell";
 import { useLocation, useNavigate } from "react-router-dom";
 import { releaseStuckDialogArtifacts } from "./dialogCloseSafetyNet";
 import { LeftSheetProvider } from "./leftSheetChannel";
