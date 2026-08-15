@@ -199,10 +199,11 @@ export function sectionTitle(t: string, trailing = ""): string {
 }
 
 // FormInfo — the shipping step-section header (client
-// components/Cards/Form/FormInfo.tsx): leading icon + title + helper line.
-// The Submit Work flow opens every step section with one.
+// components/Cards/Form/FormInfo.tsx): a filled, padded, rounded card with
+// the icon in a bordered 48px circular holder beside title + helper line
+// (PR #710 review corrected the bare-flex-row first draft).
 export function formInfo(ic: string, title: string, info: string): string {
-  return `<div class="finfo">${icon(ic)}<div class="grow"><div class="ft">${esc(title)}</div><div class="fi">${esc(info)}</div></div></div>`;
+  return `<div class="finfo"><span class="fic">${icon(ic)}</span><div class="grow"><div class="ft">${esc(title)}</div><div class="fi">${esc(info)}</div></div></div>`;
 }
 
 // ---- forms (W3 / sheets) ----------------------------------------------------
@@ -224,7 +225,7 @@ export function field(label: string, control: string): string {
   return `<div class="fld"><label class="fl" for="${controlId}">${esc(label)}</label>${linked}</div>`;
 }
 
-export function input(value: string, opts: { placeholder?: boolean; select?: boolean; icon?: string; ariaLabel?: string; labelledBy?: string } = {}): string {
+export function input(value: string, opts: { placeholder?: boolean; select?: boolean; textarea?: boolean; icon?: string; ariaLabel?: string; labelledBy?: string } = {}): string {
   const naming = opts.labelledBy
     ? ` aria-labelledby="${escAttr(opts.labelledBy)}"`
     : opts.ariaLabel
@@ -232,8 +233,12 @@ export function input(value: string, opts: { placeholder?: boolean; select?: boo
       : "";
   const control = opts.select
     ? `<select${naming} disabled><option>${esc(value)}</option></select>`
-    : `<input type="text"${naming}${opts.placeholder ? ` placeholder="${escAttr(value)}"` : ` value="${escAttr(value)}"`} readonly>`;
-  return `<span class="inp${opts.select ? " sel" : ""}">${opts.icon ? icon(opts.icon, "s") : ""}${control}</span>`;
+    : opts.textarea
+      // The shipping FormText renders a real multiline textarea (rows=4,
+      // views/Garden/Details.tsx) — a single-line input cannot stand in for it.
+      ? `<textarea rows="4"${naming}${opts.placeholder ? ` placeholder="${escAttr(value)}"` : ""} readonly>${opts.placeholder ? "" : esc(value)}</textarea>`
+      : `<input type="text"${naming}${opts.placeholder ? ` placeholder="${escAttr(value)}"` : ` value="${escAttr(value)}"`} readonly>`;
+  return `<span class="inp${opts.select ? " sel" : ""}${opts.textarea ? " ta" : ""}">${opts.icon ? icon(opts.icon, "s") : ""}${control}</span>`;
 }
 
 export function radio(

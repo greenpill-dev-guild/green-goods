@@ -162,7 +162,8 @@ const requestCard = (opts: { openClaim?: boolean; queued?: boolean; context?: st
         : `<div class="brow">${hot("w1.ask-take-up", btn("Ask to take this up", { kind: "sec" }))}</div>`
   }`;
   if (opts.queued) return card(inner, { edge: "request" });
-  return hot("w1.open-request", card(inner, { edge: "request", cls: "cardlink" }));
+  const openHot = opts.openClaim ? "w1.open-request" : "w1.open-request-gated";
+  return hot(openHot, card(inner, { edge: "request", cls: "cardlink" }));
 };
 
 // Ongoing-Offer place card — the public life of a CommitmentSeries on the pool
@@ -213,15 +214,19 @@ function w1(state: W1State): string {
   // reserving or drawing bottom navigation.
   const head = gardenHeader("Rocinha Community Garden", { location: "Rocinha, Rio de Janeiro", founded: "Founded 2021" });
 
+  // Pool-less tab row — a garden whose pool is absent (NotReady) or not found
+  // draws Work-first with no Pool tab (§4.1; PR #710 review closed the
+  // not-found gap where a Pool tab rendered beside "no pool here yet").
+  const poolAbsentTabs = `<div class="gtabs" role="tablist" aria-label="Garden sections"><button type="button" class="gtab on" role="tab" aria-selected="true" disabled>Work</button><button type="button" class="gtab" role="tab" aria-selected="false" disabled>Insights</button><button type="button" class="gtab" role="tab" aria-selected="false" disabled>Gardeners</button></div>`;
   if (state === "not-ready") {
-    const body = `${head}<div class="gtabs" role="tablist" aria-label="Garden sections"><button type="button" class="gtab on" role="tab" aria-selected="true" disabled>Work</button><button type="button" class="gtab" role="tab" aria-selected="false" disabled>Insights</button><button type="button" class="gtab" role="tab" aria-selected="false" disabled>Gardeners</button></div>${pagepad(
+    const body = `${head}${poolAbsentTabs}${pagepad(
       banner("This garden hasn't opened a pool yet. When its stewards set one up, a Pool tab appears here.", "stone"),
       card(`<div class="t-title">Work continues as usual</div><div class="t-meta">Submissions, approvals, and assessments are unaffected.</div>`),
     )}<div style="flex:1"></div>`;
     return phoneFrame(body);
   }
 
-  const tabs = gardenTabs("pool", { hotPrefix: "w1.tab" });
+  const tabs = state === "not-found" ? poolAbsentTabs : gardenTabs("pool", { hotPrefix: "w1.tab" });
   let content: string;
 
   switch (state) {
@@ -486,8 +491,9 @@ const W1_HOTS: HifiDef["hots"] = {
   "w1.create-cancel": { l: "Close the doors", to: "screen:W1", info: "Closes the creation doors without starting anything." },
   "w1.offer": { l: "Offer", to: "screen:W3@step-what", info: "Enters the composer with direction fixed = offer (2026-08-11 Appendix B addendum: no in-form Direction control). The door is one word (Afo, D3): the wizard it opens is titled Make an offer, so the button need not repeat the verb. Since 2026-08-14 the door stacks above the floating create entry (inline only on an empty pool). Templates are a prefill layer reached from step 1, no longer a gate before the form." },
   "w1.request": { l: "Request", to: "screen:W3@request-what", info: "Enters the composer with direction fixed = request; the paired one-word door (Afo, D3), opening the Make a request wizard. Since 2026-08-14 it stacks above the floating create entry (inline only on an empty pool). Step 1 chooses the kind (help or a service vs garden work) as plain words (2026-08-11 Appendix B addendum)." },
-  "w1.open-offer": { l: "Open the offer", to: "screen:W2@browse-offered", info: "Whole-card tap opens the pre-claim browse detail (2026-08-14 workflows round — the shipping WorkCard grammar): only the creator is on the promise, and the one act in the fixed bar is the same open-mode claim as the card button." },
-  "w1.open-request": { l: "Open the request", to: "screen:W2@browse-requested", info: "Whole-card tap opens the pre-claim request detail; I-can-help is the one act, in the card footer and the detail's fixed bar alike." },
+  "w1.open-offer": { l: "Open the offer", to: "screen:W2@browse-offered", info: "Whole-card tap opens the pre-claim browse detail (2026-08-14 workflows round — the shipping WorkCard grammar): only the creator is on the promise, and the one act in the fixed bar is the same open-mode claim as the card button. Keyboard note: in this static artifact the inner act button is the tab stop (the player never nests focusables); the shipping build renders the whole card as the WorkCard button wrapper, which owns the real keyboard path." },
+  "w1.open-request": { l: "Open the request", to: "screen:W2@browse-requested", info: "Whole-card tap opens the pre-claim request detail; I-can-help is the one act, in the card footer and the detail's fixed bar alike. Same keyboard note as the offer card." },
+  "w1.open-request-gated": { l: "Open the steward-reviewed request", to: "screen:W2@browse-requested-gated", info: "Whole-card tap on a steward-reviewed request opens the gated browse cast (PR #710 review): the detail names the review mode and its one act is Ask to take this up — opening a card never changes the modeled claim mode." },
   "w1.open-work-request": { l: "Open the work request", to: "screen:W2@request-work-active", info: "Whole-card tap opens the garden-work request detail; taking it up stays on the button. A dedicated work-request browse cast can follow the two drawn ones (browse-offered / browse-requested)." },
   "w1.open-ongoing": { l: "Open the ongoing Offer", to: "screen:W34@claimant-view", info: "The whole card opens the series detail (2026-08-14 second pass — the See-open-places nav button retired), where each open place is an ordinary Offered commitment that can be taken up (Appendix F.2). Places-left stays on the card as its real progress." },
   "w1.open-team-offer": { l: "Open the team promise", to: "screen:W2", info: "The whole card opens the promise DETAIL first (iteration 2 — jumping straight into the team view skipped the promise itself): the team strip sits above the fold and opens the team view from there. Nav button retired 2026-08-14; the card is the tap target." },
@@ -500,7 +506,7 @@ const W1_HOTS: HifiDef["hots"] = {
   "w1.campaign-market": { l: "Open Market rides campaign", to: "screen:W1@campaign-market", info: "Campaigns remain independently usable when no Season is open (UX:127)." },
   "w1.campaign-tools": { l: "Open Tool library campaign", to: "screen:W1@campaign-tools", info: "A Reviewing campaign stays independently browseable and keeps evidence and confirmation available (UX:74,127)." },
   "w1.campaigns-back": { l: "Back to campaigns", to: "screen:W1@no-season", info: "Returns to the no-Season pool home with both Campaigns available." },
-  "w1.open-tools-promise": { l: "Open the Tool library promise", to: "screen:W4@confirm-support", info: "Whole-card tap (nav button retired 2026-08-14). Opens a SupportService promise that remains confirmable while its Campaign is Reviewing — this cast shortcuts straight to the confirmation sheet." },
+  "w1.open-tools-promise": { l: "Open the Tool library promise", to: "screen:W2@support-ready-confirmer", info: "Whole-card tap (nav button retired 2026-08-14; PR #710 review closed the W4 shortcut). Opens the SupportService promise detail, ready to confirm — the confirmation act lives in the detail's fixed bar, per the card grammar." },
   "w1.ask-take-up": { l: "Ask to take this up (steward-reviewed)", to: "screen:W1@claim-pending", info: "Approval-gated: creates a claim request with stored terms; the commitment stays available to others (UX:99).", calls: ["claimCommitment"], facts: { commitment: "Requested", kind: "SupportService" } },
   "w1.ask-again": { l: "Ask again", to: "screen:W1@claim-pending", info: "Creates a FRESH request while the commitment is claimable — never retries the declined row (UX:105).", calls: ["claimCommitment"], facts: { commitment: "Requested", kind: "SupportService" } },
   "w1.back-browse": { l: "Back to browsing", to: "screen:W1", info: "Declined/superseded exits return to browse." },
@@ -525,6 +531,7 @@ const W1_HOTS: HifiDef["hots"] = {
 const W2_STATES = [
   ["accepted", "Accepted"], ["offered", "Offered (yours)"], ["requested", "Requested (yours)"],
   ["browse-offered", "Offered — browse view"], ["browse-requested", "Requested — browse view"],
+  ["browse-requested-gated", "Requested — browse view (steward-reviewed)"],
   ["active", "Active"], ["evidence-queued", "Evidence queued"],
   ["evidence-submitted", "Evidence in"], ["partially-approved", "Partly approved"],
   ["ready-confirmer", "Ready — confirmer view"], ["confirmation-pending", "Confirmation queued"],
@@ -574,7 +581,7 @@ type W2ChipState = Exclude<W2State, "loading" | "not-found" | "read-error">;
 
 const w2StateChip: Record<W2ChipState, string> = {
   accepted: "Accepted", offered: "Offered", requested: "Requested", active: "Active",
-  "browse-offered": "Offered", "browse-requested": "Requested",
+  "browse-offered": "Offered", "browse-requested": "Requested", "browse-requested-gated": "Requested",
   "evidence-queued": "Active", "evidence-submitted": "Evidence in", "partially-approved": "Partly approved",
   "ready-confirmer": "Ready to confirm", "confirmation-pending": "Ready to confirm",
   fulfilled: "Fulfilled", "fulfilled-pool-fallback": "Fulfilled",
@@ -611,7 +618,7 @@ const w2StateChip: Record<W2ChipState, string> = {
 };
 
 const W2_REQUEST = new Set<string>([
-  "browse-requested",
+  "browse-requested", "browse-requested-gated",
   "request-active", "request-evidence-queued", "request-evidence-submitted",
   "request-ready-pending", "request-ready-confirmer", "request-confirmation-pending",
   "request-fulfilled", "request-disputed",
@@ -759,9 +766,12 @@ type Moment = { label: string; meta?: string; open?: boolean; warn?: boolean; no
 // body made pre-acceptance states show an "Accepted" moment before anyone had
 // claimed, and made @cancelled promise a reason the timeline never carried.
 function w2Moments(state: W2State, overrideNote: boolean): Moment[] {
-  if (state === "offered" || state === "withdraw-confirm")
+  if (state === "offered" || state === "withdraw-confirm" || state === "browse-offered")
     return [{ label: "Offered", meta: "Maria · Jul 2 — waiting for someone to take it up", open: true }];
-  if (state === "requested") return [{ label: "Requested", meta: "Ana · Jul 2 — stewards review who takes this up", open: true }];
+  if (state === "requested" || state === "browse-requested-gated")
+    return [{ label: "Requested", meta: "Ana · Jul 2 — stewards review who takes this up", open: true }];
+  if (state === "browse-requested")
+    return [{ label: "Requested", meta: "Ana · Jul 2 — open to anyone here", open: true }];
 
   if (W2_CAMPAIGN_REQUEST.has(state)) {
     const campaignAsked: Moment[] = [
@@ -921,7 +931,8 @@ const w2Disclosures = (state: W2State, opts: { work?: boolean; overrideNote?: bo
   // Nothing has been done yet on an unclaimed promise — no evidence, no work.
   const preAcceptance =
     state === "offered" || state === "requested" || state === "support-offered" ||
-    state === "withdraw-confirm" || state === "withdrawn";
+    state === "withdraw-confirm" || state === "withdrawn" ||
+    state === "browse-offered" || state === "browse-requested" || state === "browse-requested-gated";
   const evidenceQueued =
     state === "evidence-queued" || state === "support-evidence-queued" || state === "request-evidence-queued" ||
     state === "campaign-request-evidence-queued" || state === "captured-evidence-queued";
@@ -1075,6 +1086,7 @@ function w2(state: W2State): string {
     requested: hot("w2.withdraw", btn("Withdraw this request…", { kind: "danger", full: true })),
     "browse-offered": hot("w2.take-up-browse", btn("Take this up", { kind: "pri", full: true })),
     "browse-requested": hot("w2.help-browse", btn("I can help", { kind: "pri", full: true })),
+    "browse-requested-gated": hot("w2.ask-browse", btn("Ask to take this up", { kind: "pri", full: true })),
     "ready-confirmer": hot("w2.confirm", btn("Confirm: promise kept", { kind: "pri", full: true })),
     expired: hot("w2.offer-again", btn("Offer it again", { kind: "pri", full: true })),
   };
@@ -1291,6 +1303,10 @@ function w2(state: W2State): string {
       band =
         card(`<div class="t-title">Open to help</div><div class="t-meta">Anyone here can help. You provide, attach evidence, and Ana — who asked — confirms it was kept.</div>`);
       break;
+    case "browse-requested-gated":
+      band =
+        card(`<div class="t-title">Stewards review who takes this up</div><div class="t-meta">Ask to take it up; a steward accepts one provider. The request stays open to others while they review.</div>`);
+      break;
     case "requested":
       band =
         card(`<div class="t-title">Your request is live</div><div class="t-meta">Stewards review who takes this up. You can withdraw it until it's accepted.</div>`);
@@ -1350,7 +1366,8 @@ function w2(state: W2State): string {
   }
 
   const showReward = ![
-    "offered", "requested", "cancelled", "expired", "disputed", "request-disputed",
+    "offered", "requested", "browse-offered", "browse-requested", "browse-requested-gated",
+    "cancelled", "expired", "disputed", "request-disputed",
     "support-disputed", "support-cancelled", "withdraw-confirm", "withdrawn",
     "request-active", "campaign-request-active", "campaign-request-evidence-queued",
     "campaign-request-evidence-submitted", "campaign-request-ready-pending",
@@ -1431,6 +1448,7 @@ const W2_HOTS: HifiDef["hots"] = {
   "w2.add-evidence-captured": { l: "Add captured-promise evidence", to: "screen:W2a@media", info: "Keeps the StewardCaptured kind and the member as promise source while opening the evidence composer." },
   "w2.take-up-browse": { l: "Take this up", to: "screen:W2", info: "The browse detail's one act (2026-08-14 workflows round — card-taps land here pre-claim): the same open-mode claim as the card button. Claim job → optimistic Accepted (UX:129).", calls: ["claimCommitment"], facts: { commitment: "Offered", kind: "DomainImpact" } },
   "w2.help-browse": { l: "I can help", to: "screen:W2@request-active", info: "The request browse detail's one act: open-mode claim — the claimant becomes the provider and Ana, the asker, remains the confirmer (UX:104).", calls: ["claimCommitment"], facts: { commitment: "Requested", kind: "SupportService" } },
+  "w2.ask-browse": { l: "Ask to take this up", to: "screen:W1@claim-pending", info: "The gated browse detail's one act (PR #710 review): approval-gated claim request with stored terms — the commitment stays available to others while stewards review (UX:99), and W1's pending/declined/superseded grammar takes over.", calls: ["claimCommitment"], facts: { commitment: "Requested", kind: "SupportService" } },
   "w2.submit-work": { l: "Submit work for this promise", to: "screen:WFLOW@intro-promise", info: "Deep-links the existing Garden-tab work flow with commitment context (UX:174). Promise-first entry scopes the intro (2026-08-14 workflows round): a fulfilling strip on top, the action grid filtered to the promise's requirement rows, the garden locked. DomainImpact only." },
   "w2.submit-work-request-detail": { l: "Submit work for this ask", to: "screen:WFLOW@intro-promise", info: "A DomainImpact Request rides the same Work rails as an offer: submitted work carries meta.commitmentId, approvals count toward the ask's requirements, and the asker confirms (register #97). Lands on the scoped promise-first intro (the drawn cast uses the offer fixture)." },
   "w2.link-work": { l: "Link existing work", to: "screen:WFLOW@link-picker", info: "Client work-picker (2026-08-11 D6 — this control previously mis-targeted the admin work console): selects one of the gardener's approved/pending Works plus one exact requirement row → workLink job carries requirementIndex (UX:140). Repeated action UIDs never use first-match behavior.", calls: ["linkWork"] },
@@ -1666,6 +1684,7 @@ const W3_STATES = [
   ["advanced-work-ask", "Advanced · garden-work ask"],
   ["step-advanced-no-protocol", "Advanced · no protocol pool"],
   ["step-confirmers", "Advanced · named confirmer group"],
+  ["step-confirmers-work", "Advanced · named group (garden-work ask)"],
   ["step-invite", "Advanced · invite contributors"],
   ["request-what", "Request · 1 · What"], ["request-howmuch", "Request · 2 · How much"],
   ["request-howmuch-steward", "Request · 2 · How much (steward)"],
@@ -1781,7 +1800,7 @@ ${card(`${icon("seedling-line")}<div class="t-title">Weed</div><div class="t-met
       content = pagepad(
         sectionTitle("Who confirms"),
         card(`${kv("Ordinary confirmation", "You — it was your request")}${kv("Limit", "Choose up to the current confirmer limit — read from MAX_CONFIRMERS on the deployed module, never a number drawn here")}`),
-        hot("w3.confirmer-group", field("Named group", input("None — add people to require more than one confirmation", { select: true }))),
+        hot("w3.confirmer-group-work", field("Named group", input("None — add people to require more than one confirmation", { select: true }))),
         hot("w3.protocol-fallback", `<label class="arow" style="align-items:flex-start"><input type="checkbox" aria-label="Let the Green Goods team confirm if nobody local is eligible" checked style="margin-top:4px"><span class="grow"><b>Let the Green Goods team confirm if nobody local is eligible</b><span class="t-meta" style="display:block">On for this pilot. Usable only while nobody local can confirm, always with a recorded reason — and never by a contributor.</span></span></label>`),
         sectionTitle("Who can take it"),
         hot("w3.claim-mode", field("Who can take this up", radio([
@@ -1822,6 +1841,24 @@ ${card(`${icon("seedling-line")}<div class="t-title">Weed</div><div class="t-met
         banner("Maria and Ana are on the contributor roster, so they are not listed — a contributor can never confirm.", "stone", "shield-check-line"),
       );
       actions = hot("w3.confirmers-done", btn("Use this group", { kind: "pri", full: true }));
+      break;
+    // Request-aware twin of step-confirmers (PR #710 review): entered from the
+    // garden-work ask's Advanced detour, so Use-this-group returns THERE, not
+    // to the offer detour.
+    case "step-confirmers-work":
+      head = w3Head("Make a request", 3);
+      content = pagepad(
+        sectionTitle("Named confirmer group"),
+        `<div class="t-meta">Any one of the people you name may confirm. The provider who takes this up can never confirm their own work.</div>`,
+        card(
+          `<label class="arow"><input type="checkbox" checked aria-label="João"><span class="grow"><b>João</b><span class="t-meta" style="display:block">Neighbour · not a contributor</span></span></label>` +
+            `<label class="arow"><input type="checkbox" checked aria-label="Luz"><span class="grow"><b>Luz</b><span class="t-meta" style="display:block">Garden member · not a contributor</span></span></label>`,
+          { cls: "flat" },
+        ),
+        field("How many must confirm", radio([{ label: "Any one of them", meta: "threshold 1 of 2 named", on: true }, { label: "Both of them", meta: "threshold 2 of 2 named" }], { interactive: true, name: "confirmer-threshold-work" })),
+        banner("Whoever takes up the ask joins the contributor roster and leaves this list — a contributor can never confirm.", "stone", "shield-check-line"),
+      );
+      actions = hot("w3.confirmers-work-done", btn("Use this group", { kind: "pri", full: true }));
       break;
     case "support-review":
       head = w3Head("Make an offer", 2, 3);
@@ -2163,6 +2200,8 @@ const W3_HOTS: HifiDef["hots"] = {
   "w3.advanced-work-done": { l: "Back to review", to: "screen:W3@request-work-review", info: "Returns to the garden-work ask's review with the detour's choices summarized in its Who-confirms section." },
   "w3.confirmer-group": { l: "Named confirmer group", to: "screen:W3@step-confirmers", info: "Opens the any-N named-group picker (UX §5.4 step 5). The list excludes the accountable lead and every contributor before threshold validation." },
   "w3.confirmers-done": { l: "Use this group", to: "screen:W3@step-advanced", info: "Returns the chosen addresses and threshold to Advanced, which carries them back to review." },
+  "w3.confirmer-group-work": { l: "Named confirmer group (garden-work ask)", to: "screen:W3@step-confirmers-work", info: "The request-aware twin of the group picker (PR #710 review): entered from the garden-work ask's Advanced detour, so its return path stays in the request composer." },
+  "w3.confirmers-work-done": { l: "Use this group", to: "screen:W3@advanced-work-ask", info: "Returns to the garden-work ask's Advanced detour — never the offer detour — keeping the claim-mode field and the request review in reach." },
   "w3.advanced-done": { l: "Back to review", to: "screen:W3@step-review", info: "Returns to review carrying any adjusted confirmer, team, or assessment choices. The detour is drawn once in the offer cast, so the drawn return lands on the offer review — service and request reviews reach it as a screen branch and return to their own review in the app (same reuse convention as W4@confirm-request)." },
   "w3.submit": { l: "Make this offer", to: "screen:W1@queued", info: "Enqueues the commitment job; returns to the pool tab with an optimistic queued card (UX:212).", calls: ["createCommitment"], pendingSync: true },
   "w3.submit-support": { l: "Make this service offer", to: "screen:W1@support-queued", info: "Enqueues the SupportService offer and returns to the pool with its optimistic queued card; a recipient may take it up only after sync.", calls: ["createCommitment"], pendingSync: true },
@@ -2476,7 +2515,7 @@ const w2Facts = (state: W2State): StateFacts | undefined => {
     : "DomainImpact";
   const commitment: StateFacts["commitment"] =
     state === "offered" || state === "support-offered" || state === "withdraw-confirm" || state === "browse-offered" ? "Offered"
-    : state === "requested" || state === "browse-requested" ? "Requested"
+    : state === "requested" || state === "browse-requested" || state === "browse-requested-gated" ? "Requested"
     : state === "active" || state === "evidence-queued" || state === "request-active" || state === "request-work-active" || state === "campaign-request-active" ||
       state === "request-evidence-queued" || state === "campaign-request-evidence-queued" ||
       state === "captured" || state === "captured-evidence-queued" ? "Active"

@@ -309,7 +309,7 @@ const promiseSlide = (opts: { title: string; needs: string; due: string; edge: "
   return opts.hotId ? hot(opts.hotId, c) : c;
 };
 
-type WflowState = "intro" | "intro-promise" | "intro-promises" | "media" | "details" | "fulfills-pick" | "review" | "link-picker";
+type WflowState = "intro" | "intro-promise" | "intro-promises" | "media" | "details" | "details-linked" | "fulfills-pick" | "review" | "link-picker";
 
 // Iteration 2: the real Submit Work TopNav — close on step 1, back after,
 // FormProgress numbered circles (kit.flowHeader). The link-picker keeps a
@@ -350,9 +350,23 @@ function wflow(state: WflowState): string {
       content = pagepad(
         formInfo("file-copy-line", "Work details", "Provide detailed information and feedback"),
         field("Time spent", input("2 hours", { select: true })),
+        hot("wflow.fulfills-field", listRow({ icon: "hand-heart-line", primary: "Fulfills a promise", meta: "None yet · tap to choose", chevron: true })),
+        `<div class="t-meta">Started from a promise? It arrives here already chosen. Plain garden work stays plain unless you pick one.</div>`,
+        field("Feedback", input("Provide feedback or any observations", { placeholder: true, textarea: true })),
+      );
+      actions = hot("wflow.details-continue", btn("Continue", { kind: "pri", full: true }));
+      break;
+    // The linked twin (PR #710 review): reached by choosing a promise in the
+    // picker or by promise-first entry. Plain work never passes through here,
+    // so the guided plain path cannot silently attach a commitment.
+    case "details-linked":
+      head = wfHead(2);
+      content = pagepad(
+        formInfo("file-copy-line", "Work details", "Provide detailed information and feedback"),
+        field("Time spent", input("2 hours", { select: true })),
         hot("wflow.fulfills-field", listRow({ icon: "hand-heart-line", primary: "Fulfills a promise", meta: "Prune the north beds · tap to change", chevron: true })),
-        `<div class="t-meta">Started from a promise? It's already chosen here. Started from the Garden tab? Pick one — or none.</div>`,
-        field("Feedback", input("Provide feedback or any observations", { placeholder: true })),
+        `<div class="t-meta">Approved work will count toward this promise's Prune requirement.</div>`,
+        field("Feedback", input("Provide feedback or any observations", { placeholder: true, textarea: true })),
       );
       actions = hot("wflow.details-continue", btn("Continue", { kind: "pri", full: true }));
       break;
@@ -428,8 +442,8 @@ function wflow(state: WflowState): string {
         formInfo("hand-heart-line", "Work toward a promise", "Swipe your open promises — tap one to work toward it"),
         selRail([
           promiseSlide({ title: "Prune the north beds", needs: "needs Prune × 2", due: "due Aug 12", edge: "offer", hotId: "wflow.promise-row" }),
-          promiseSlide({ title: "Clear the drainage channel", needs: "needs Mulch × 4", due: "due Aug 30", edge: "request" }),
-          promiseSlide({ title: "Mulch the pathways", needs: "needs Mulch × 3", due: "runs with the season", edge: "offer" }),
+          promiseSlide({ title: "Clear the drainage channel", needs: "needs Mulch × 4", due: "due Aug 30", edge: "request", hotId: "wflow.promise-row" }),
+          promiseSlide({ title: "Mulch the pathways", needs: "needs Mulch × 3", due: "runs with the season", edge: "offer", hotId: "wflow.promise-row" }),
         ]),
         `<div class="t-meta">Or choose plain garden work below — work never requires a promise.</div>`,
         introActionSection([CARD_PRUNE(true), CARD_WATER]),
@@ -458,7 +472,7 @@ const WFLOW_HOTS: HifiDef["hots"] = {
   "wflow.media-continue": { l: "Continue to details", to: "screen:WFLOW@details", info: "Media → details, exactly as shipped." },
   "wflow.fulfills-field": { l: "Fulfills a promise (NEW)", to: "screen:WFLOW@fulfills-pick", info: "The work-first direction (2026-08-11 D6, uiux §5.7 addendum): pickable when the flow was entered from the Garden tab; prefilled and locked when deep-linked from a promise. Writes the same meta.commitmentId + dependent workLink path." },
   "wflow.pick-promise": { l: "Choose this promise", info: "Lists the gardener's Accepted/Active garden-work promises in the selected garden; choosing none submits ordinary work." },
-  "wflow.pick-done": { l: "Use this promise", to: "screen:WFLOW@details", info: "Returns to details with the chosen promise shown in the fulfills field." },
+  "wflow.pick-done": { l: "Use this promise", to: "screen:WFLOW@details-linked", info: "Returns to details with the chosen promise shown in the fulfills field (PR #710 review: the default details cast stays unlinked, so plain work never silently carries a promise)." },
   "wflow.details-continue": { l: "Continue to review", to: "screen:WFLOW@review", info: "Details → review, exactly as shipped." },
   "wflow.fulfills": { l: "Fulfills row", info: "The locked read-only commitment-context row on review (MF-7, UX:174) — it repeats the details-step choice and never re-opens the picker here." },
   "wflow.submit": { l: "Submit work", to: "screen:W2@active", info: "Existing work job + meta.commitmentId; the queue auto-links after sync (UX:220)." },
@@ -500,6 +514,7 @@ export const WALLET_DEFS: HifiDef[] = [
         { id: "intro-promises", label: "1 · Intro — you hold promises", html: wflow("intro-promises") },
         { id: "media", label: "2 · Media", html: wflow("media") },
         { id: "details", label: "3 · Details (+ fulfills field)", html: wflow("details") },
+        { id: "details-linked", label: "3 · Details — promise chosen", html: wflow("details-linked") },
         { id: "fulfills-pick", label: "Fulfills a promise — picker", html: wflow("fulfills-pick") },
         { id: "review", label: "4 · Review (+ fulfills row)", html: wflow("review") },
         { id: "link-picker", label: "Link existing work — picker", facts: { pool: "Open", cycle: "Open", commitment: "Active", kind: "DomainImpact" } satisfies StateFacts, html: wflow("link-picker") },

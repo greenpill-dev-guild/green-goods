@@ -179,7 +179,7 @@ h1{font-size:22px;margin:0;text-wrap:balance}
 .themebtn:hover{color:var(--ink)}
 h2{font-size:17px;margin:40px 0 4px;padding-top:22px;border-top:1px solid var(--line);text-wrap:balance}
 section:first-of-type h2{border-top:0;padding-top:0}
-.lead{color:var(--stone);font-size:13.5px;margin:0 0 16px;max-width:80ch}
+p.lead{color:var(--stone);font-size:13.5px;margin:0 0 16px;max-width:80ch}
 .opt{margin:0 0 26px}
 .optname{display:flex;align-items:baseline;gap:10px;margin:0 0 10px}
 .optname .tagchip{font:700 11px inherit;letter-spacing:.07em;text-transform:uppercase;color:var(--accent-ink);border:1px solid var(--accent-ink);border-radius:99px;padding:2px 10px}
@@ -249,10 +249,11 @@ ${optBand("C", "Title first", phone(cycleC), "Title on top, type folded into one
 </section>
 </div>
 <script>
-(function(){var b=document.getElementById("tt"),r=document.documentElement;
-b.addEventListener("click",function(){var d=r.dataset.theme==="dark";
-if(d){r.dataset.theme="light";b.textContent="Dark mode";b.setAttribute("aria-pressed","false")}
-else{r.dataset.theme="dark";b.textContent="Light mode";b.setAttribute("aria-pressed","true")}});})();
+(function(){var b=document.getElementById("tt"),r=document.documentElement,
+d=r.dataset.theme==="dark"||(!r.dataset.theme&&matchMedia("(prefers-color-scheme: dark)").matches);
+function render(){b.textContent=d?"Light mode":"Dark mode";b.setAttribute("aria-pressed",String(d))}
+render();
+b.addEventListener("click",function(){d=!d;r.dataset.theme=d?"dark":"light";render()});})();
 </script>`;
 
 writeFileSync(OUT, html);

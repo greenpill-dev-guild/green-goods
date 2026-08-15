@@ -336,23 +336,29 @@ export const HIFI_CSS = `
    FormInfo section headers (client FormInfo.tsx) and the image-topped
    selection cards in horizontal Carousel rails (ActionCard/GardenCard,
    height "selection", media strip on top, body below, selected ring). */
-.hf .finfo{display:flex;gap:10px;align-items:flex-start}
-.hf .finfo .ic{color:var(--act);margin-top:2px;flex:none}
-.hf .finfo .ft{font:650 15px inherit}
-.hf .finfo .fi{font-size:12.5px;color:var(--stone)}
-.hf .selrail{display:flex;gap:10px;overflow-x:auto;margin:0 -16px;padding:2px 16px 4px;scrollbar-width:none}
-.hf .selrail::-webkit-scrollbar{display:none}
-.hf .acard{flex:0 0 200px;border:1px solid var(--ln);border-radius:14px;overflow:hidden;background:var(--card);display:flex;flex-direction:column}
-.hf .acard .amedia{height:80px;display:flex;align-items:flex-end;padding:8px 11px;color:#FFF;font:650 13px inherit;letter-spacing:.01em}
-.hf .acard .abody{padding:10px 12px;display:flex;flex-direction:column;gap:3px}
-.hf .acard .abody .at{font:650 14px inherit}
-.hf .acard .abody .am{font-size:12px;color:var(--stone);line-height:1.4}
-.hf .acard.on{border-color:var(--act);box-shadow:inset 0 0 0 1.5px var(--act)}
-.hf .amedia.agro{background:#3E5532}
-.hf .amedia.waste{background:#9B3C2D}
-.hf .amedia.edu{background:#2E4F6B}
-.hf .amedia.solar{background:#8A6420}
-.hf .amedia.garden{background:#5C6E4E}
+.hf.s-client .finfo{display:flex;gap:12px;align-items:center;background:var(--stone-bg);border:1px solid var(--ln);border-radius:14px;padding:12px 14px}
+.hf.s-client .finfo .fic{width:48px;height:48px;border-radius:99px;background:var(--card);border:1px solid var(--ln2);display:inline-flex;align-items:center;justify-content:center;flex:none}
+.hf.s-client .finfo .ic{color:var(--act)}
+.hf.s-client .finfo .ft{font:650 15px inherit}
+.hf.s-client .finfo .fi{font-size:12.5px;color:var(--stone)}
+.hf.s-client .selrail{display:flex;gap:10px;overflow-x:auto;margin:0 -16px;padding:2px 16px 4px;scrollbar-width:none}
+.hf.s-client .selrail::-webkit-scrollbar{display:none}
+/* scoped to the client dialect (PR #710 review): an unscoped .acard would be
+   overridden by the later admin .acard rule, whose --card-low does not exist
+   in .s-client. */
+.hf.s-client .selrail .acard{flex:0 0 200px;border:1px solid var(--ln);border-radius:14px;overflow:hidden;background:var(--card);padding:0;gap:0;box-shadow:none;display:flex;flex-direction:column}
+.hf.s-client .selrail .acard .amedia{height:80px;display:flex;align-items:flex-end;padding:8px 11px;color:#FFF;font:650 13px inherit;letter-spacing:.01em}
+.hf.s-client .selrail .acard .abody{padding:10px 12px;display:flex;flex-direction:column;gap:3px}
+.hf.s-client .selrail .acard .abody .at{font:650 14px inherit}
+.hf.s-client .selrail .acard .abody .am{font-size:12px;color:var(--stone);line-height:1.4}
+.hf.s-client .selrail .acard.on{border-color:var(--act);box-shadow:inset 0 0 0 1.5px var(--act)}
+.hf.s-client .amedia.agro{background:#3E5532}
+.hf.s-client .amedia.waste{background:#9B3C2D}
+.hf.s-client .amedia.edu{background:#2E4F6B}
+.hf.s-client .amedia.solar{background:#8A6420}
+.hf.s-client .amedia.garden{background:#5C6E4E}
+.hf.s-client .inp.ta{height:auto}
+.hf.s-client .inp.ta textarea{resize:none;background:none;border:0;font:inherit;color:inherit;width:100%}
 /* promise slides — the intro's third rail (2026-08-14): compact promise
    cards riding the same horizontal grammar as the action/garden rails, so
    holding many promises costs no extra vertical space. */

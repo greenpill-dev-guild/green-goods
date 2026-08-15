@@ -127,12 +127,12 @@ Content top to bottom:
 
 1. **Pool state banner**: renders the pool-state row from §4.1. Readiness-only vs live is stated plainly in the banner copy, not implied by chrome (open question 1, §13). Component: shared `Alert` for paused/cancelled tones; a quiet `Surface` band otherwise.
 2. **Current cycles**: the open Season, when present, renders as the primary card with its stage stepper, calm end date, scoped state counts, and exact-label unit groups (for example, `hours` and `Hours` remain separate). There is no synthetic cross-commitment progress percentage. A **Campaigns** rail/list follows with zero or more concurrently open Campaign cards; each shows its type, stage, date, counts, and same-label unit groups. A scope control (`All current work` / Season name / Campaign name) filters the commitment list and always labels aggregate scope. If no Season is open but Campaigns are, the Campaigns remain fully usable; an empty Season slot explains that no Season is active rather than hiding Campaigns.
-3. **Browse: open offers and requests**: filter chips All / Offers / Requests / Matched / Mine (client-local chips; admin `AdminFilterChip` is admin-only). Cards show: type chip (DomainImpact with `DomainBadge`; SupportService plain), title, unit label + target quantity, due date, state chip (`StatusBadge`), claim CTA.
-   - Claim CTA per claim mode (register #19): OPEN mode renders "Take this up" and enqueues immediately (optimistic Accepted). APPROVAL_GATED renders "Ask to take this up" and enqueues a claim request (optimistic "requested, waiting for steward"), then renders the exact request lifecycle in §4.4. Mode is visible on the card as helper text, not a mode toggle; gardeners never choose the mode.
+3. **Browse: open offers and requests** *(chip set + card anatomy superseded 2026-08-14 — see the §5.2 third-pass and second-pass addenda: the row is All / Offers / Requests + a Mine toggle, cards follow the chips-lead ①–⑧ anatomy with direction edges and the equal-weight domain row, and the whole card opens the detail)*: filter chips All / Offers / Requests / Matched / Mine (client-local chips; admin `AdminFilterChip` is admin-only). Cards show: type chip (DomainImpact with `DomainBadge`; SupportService plain), title, unit label + target quantity, due date, state chip (`StatusBadge`), claim CTA.
+   - Claim CTA per claim mode (register #19): OPEN mode renders "Take this up" and enqueues immediately (optimistic Accepted). APPROVAL_GATED renders "Ask to take this up" and enqueues a claim request (optimistic "requested, waiting for steward"), then renders the exact request lifecycle in §4.4. *(Mode-helper clause superseded 2026-08-14: the claim mode reads from the act's own label — the separate helper line left browse cards; garden-work asks additionally gained a gardener-set mode in the Advanced detour.)* Mode is visible on the card as helper text, not a mode toggle; gardeners never choose the mode.
    - Protocol-pool commitments surfaced in a garden context open the locked `W25@context-chooser` pre-claim sheet for eligible operators only (register #51): take this up as myself vs take this up for this garden. The claim stores `ClaimType` plus `gardenContext`; acceptance derives and stores `providerGarden`. This does not transfer token, commitment, or consideration custody and is not a gardener-delivery fallback. The choice is instrumented (§11).
 4. ~~My commitments strip~~ — **removed 2026-07-18** (client-minimalism audit): the WalletDrawer Commitments tab (§5.8) is the single cross-garden "mine" surface; the `Mine` filter chip in the browse section covers in-garden self-filtering. No horizontal strip renders on this tab.
 
-Empty pool (Open but zero commitments): planted-seed illustration slot + two primary CTAs "Offer support" / "Request help" and operator-seeded hint text. The two CTAs are the persistent creation entry at the top of the browse section in all non-empty states too (base surface, §2).
+Empty pool (Open but zero commitments): planted-seed illustration slot + two primary CTAs "Offer support" / "Request help" and operator-seeded hint text. *(Persistent-entry clause superseded 2026-08-14, first-pass addendum (d): in non-empty states creation lives in the floating create entry above the AppBar; only the empty pool keeps the inline CTAs.)*
 
 ### 5.3 Commitment detail NET-NEW (`/home/:id/pool/:commitmentId`)
 
@@ -768,9 +768,10 @@ this up" / "Ask to fund this" — register #19 stays satisfied). Navigation-only
 buttons ("Open promise", "See open places", "Review confirmation") are
 retired; those cards are plain tappable cards and the act lives in detail.
 This refines D5's "exactly one context action": the footer carries one claim
-act or nothing; plain reason lines stay. A pre-claim browse cast of W2 is a
-workflows-round follow-up — until it lands, card-taps open the nearest drawn
-cast, noted per hotspot.
+act or nothing; plain reason lines stay. *(The pre-claim browse casts landed
+the same day — third-pass item (e) — including the steward-reviewed variant
+`W2@browse-requested-gated` from the PR #710 review, so card-taps open true
+pre-claim details in every claim mode.)*
 (h) **Domains leave the top chip row for their own equal-weight domain row**
 (all involved domains listed, none privileged as primary — a promise pairing
 AGRO with EDU is both). The row renders `DomainBadge` per domain, wraps at
@@ -824,10 +825,14 @@ applies, absent entirely when it does not. Three layers:
 (d0) *policy (locked 2026-08-14)*: **work never requires a commitment** —
 free + led + recoverable. Free-standing work is the architectural substrate:
 `linkWork` (ProofLib.sol) attaches any existing non-revoked same-garden work
-by an active contributor to an Accepted, unfrozen commitment at its exact
-requirement row, one commitment per work, approvals reconciling in either
-order — so late attachment is first-class, pools stay optional per garden,
-and a mandatory tie was considered and rejected.
+by an active contributor to an Accepted, unfrozen commitment — at its exact
+requirement row for DomainImpact (evidence-only kinds carry no requirement
+rows and ignore that argument), one commitment per work. Approvals reconcile
+in either order, with the precision that a Work decision landing **before**
+linkage is not retained by the resolver hook and is caught up by steward
+`syncWorkDecisions` (contract-spec register #5). Late attachment is
+first-class, pools stay optional per garden, and a mandatory tie was
+considered and rejected.
 (d1) *flow entrance*: a promise-holder's Submit Work intro **opens with a
 "Work toward a promise" rail** — compact promise cards riding the same
 horizontal card-rail grammar as the intro's action and garden rails (nearest
