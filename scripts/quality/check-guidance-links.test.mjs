@@ -7,6 +7,7 @@ import { fileURLToPath } from "node:url";
 import {
   addedLineNumbersFromDiff,
   filterPresentPaths,
+  findBrokenRootCodePaths,
   findUntaggedFenceOpenings,
   parseNameStatus,
   scanDeletedSurfaceReferences,
@@ -20,6 +21,19 @@ test("finds an untagged opening fence but accepts a tagged fence", () => {
     "guide.md:1: fenced code block is missing a language tag",
   ]);
   assert.deepEqual(findUntaggedFenceOpenings("```text\ndiagram\n```", "guide.md"), []);
+});
+
+test("checks root-relative Markdown paths written as inline code", () => {
+  const text = [
+    "Read `docs/docs/reference/glossary-community.md`.",
+    "Do not read `docs/docs/missing.mdx`.",
+  ].join("\n");
+  assert.deepEqual(
+    findBrokenRootCodePaths(text, ".claude/context/agent.md", (target) =>
+      target.endsWith("glossary-community.md")
+    ),
+    [".claude/context/agent.md: broken code path -> docs/docs/missing.mdx"]
+  );
 });
 
 test("checks only changed fence openings", () => {

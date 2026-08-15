@@ -73,45 +73,59 @@ export const WorkIntro: React.FC<WorkIntroProps> = ({
   };
 
   // Single useMemo: compute available domains, filtered actions, filtered gardens (Rule 9)
-  const { availableDomains, filteredActions, filteredGardens, effectiveDomain } = useMemo(() => {
-    const now = Date.now();
+  const { availableDomains, filteredActions, unknownActions, filteredGardens, effectiveDomain } =
+    useMemo(() => {
+      const now = Date.now();
 
-    // Active actions only
-    const active = actions.filter((a) => now >= a.startTime && now <= a.endTime);
+      // Active actions only
+      const active = actions.filter((a) => now >= a.startTime && now <= a.endTime);
 
-    // Derive available domains from gardens' domain masks (decision 13),
-    // falling back to action-derived domains for backward compatibility
-    const gardenDomainSet = new Set(
-      gardens.flatMap((g) => (g.domainMask ? expandDomainMask(g.domainMask) : []))
-    );
-    const domainSet =
-      gardenDomainSet.size > 0 ? gardenDomainSet : new Set(active.map((a) => a.domain));
-    const domains = Array.from(domainSet).sort((a, b) => a - b);
+      // Derive available domains from gardens' domain masks (decision 13),
+      // falling back to action-derived domains for backward compatibility
+      const gardenDomainSet = new Set(
+        gardens.flatMap((g) => (g.domainMask ? expandDomainMask(g.domainMask) : []))
+      );
+      const domainSet =
+        gardenDomainSet.size > 0
+          ? gardenDomainSet
+          : new Set(active.map((a) => a.domain).filter((d): d is Domain => d !== null));
+      const domains = Array.from(domainSet).sort((a, b) => a - b);
 
-    // Auto-select domain: if only 1 domain or none selected yet, pick first available
-    const effective =
-      selectedDomain !== null && domainSet.has(selectedDomain)
-        ? selectedDomain
-        : domains.length > 0
-          ? domains[0]
-          : null;
+      // Auto-select domain: if only 1 domain or none selected yet, pick first available
+      const effective =
+        selectedDomain !== null && domainSet.has(selectedDomain)
+          ? selectedDomain
+          : domains.length > 0
+            ? domains[0]
+            : null;
 
-    const domainActions =
-      effective !== null ? active.filter((a) => a.domain === effective) : active;
+      // Unknown-domain actions (a.domain === null) never join the named
+      // carousel — even when no effective domain exists — so they are never
+      // mislabeled or duplicated: they render only in their own "Other" group.
+      const unknownDomainActions = active.filter((a) => a.domain === null);
+      const knownActions = active.filter((a) => a.domain !== null);
+      const domainActions =
+        effective !== null ? knownActions.filter((a) => a.domain === effective) : knownActions;
 
-    // Gardens without a domainMask (0 or undefined) pass through all filters.
-    const domainGardens =
-      effective !== null
-        ? gardens.filter((g) => (g.domainMask ? hasDomain(g.domainMask, effective) : true))
-        : gardens;
+      // Gardens without a domainMask (0 or undefined) pass through all filters.
+      // A selected unknown-domain action has no named domain, so the garden
+      // list must not inherit whichever named tab happened to be active.
+      const selectedActionIsUnknown = unknownDomainActions.some(
+        (a) => uidFromActionId(a.id) === selectedActionUID
+      );
+      const domainGardens =
+        effective !== null && !selectedActionIsUnknown
+          ? gardens.filter((g) => (g.domainMask ? hasDomain(g.domainMask, effective) : true))
+          : gardens;
 
-    return {
-      availableDomains: domains,
-      filteredActions: domainActions,
-      filteredGardens: domainGardens,
-      effectiveDomain: effective,
-    };
-  }, [actions, gardens, selectedDomain]);
+      return {
+        availableDomains: domains,
+        filteredActions: domainActions,
+        unknownActions: unknownDomainActions,
+        filteredGardens: domainGardens,
+        effectiveDomain: effective,
+      };
+    }, [actions, gardens, selectedDomain, selectedActionUID]);
 
   // Build tab items from available domains (resolved via intl)
   const domainTabItems: StandardTab[] = useMemo(
@@ -191,16 +205,19 @@ export const WorkIntro: React.FC<WorkIntroProps> = ({
             </CarouselItem>
           )}
 
-          {actionsStatus === "success" && actions.length > 0 && filteredActions.length === 0 && (
-            <CarouselItem className="basis-full max-w-full">
-              <div className="flex h-[13.25rem] w-full items-center rounded-lg border border-dashed border-stroke-soft-200 bg-bg-weak-50 p-4 text-sm leading-5 text-text-sub-600">
-                {intl.formatMessage({
-                  id: "app.garden.noActiveActions",
-                  defaultMessage: "No active actions at this time.",
-                })}
-              </div>
-            </CarouselItem>
-          )}
+          {actionsStatus === "success" &&
+            actions.length > 0 &&
+            filteredActions.length === 0 &&
+            unknownActions.length === 0 && (
+              <CarouselItem className="basis-full max-w-full">
+                <div className="flex h-[13.25rem] w-full items-center rounded-lg border border-dashed border-stroke-soft-200 bg-bg-weak-50 p-4 text-sm leading-5 text-text-sub-600">
+                  {intl.formatMessage({
+                    id: "app.garden.noActiveActions",
+                    defaultMessage: "No active actions at this time.",
+                  })}
+                </div>
+              </CarouselItem>
+            )}
 
           {filteredActions.length > 0 &&
             filteredActions.map((action) => {
@@ -227,6 +244,42 @@ export const WorkIntro: React.FC<WorkIntroProps> = ({
             })}
         </CarouselContent>
       </Carousel>
+
+      {/* Actions whose domain this client doesn't recognize (newer protocol
+          enum) — kept submittable in their own group, never under a named tab. */}
+      {unknownActions.length > 0 && (
+        <>
+          <p className="label-md text-text-sub-600">
+            {intl.formatMessage({ id: "app.domain.tab.unknown", defaultMessage: "Other" })}
+          </p>
+          <Carousel opts={{ align: "start" }}>
+            <CarouselContent>
+              {unknownActions.map((action) => {
+                const uid = uidFromActionId(action.id);
+                const displayAction = localizeAction(action, intl.locale);
+                return (
+                  <CarouselItem
+                    key={action.id}
+                    onClick={() => {
+                      if (uid !== null) {
+                        hapticSelection();
+                        setActionUID(uid);
+                      }
+                    }}
+                  >
+                    <ActionCard
+                      action={displayAction}
+                      selected={selectedActionUID === uid}
+                      media="small"
+                      height="selection"
+                    />
+                  </CarouselItem>
+                );
+              })}
+            </CarouselContent>
+          </Carousel>
+        </>
+      )}
       <FormInfo
         title={intl.formatMessage({
           id: "app.garden.selectYourGarden",
