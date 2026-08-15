@@ -1,8 +1,47 @@
 # Handoff: Components tab for the commitment pooling prototypes artifact
 
-- **Written**: 2026-08-14 (end of the pool-tab/cards/workflows polish session; PR of that session linked from the branch this file lands on)
+- **Written**: 2026-08-14 (end of the pool-tab/cards/workflows polish session; PR of that session linked from the branch this file lands on) · **amended same day**: the build is gated behind explicit alignment phases — see § Process.
 - **For**: a fresh Claude Code session
 - **Mission**: extract every component the commitment pooling prototypes use into a reviewable, Storybook-style **Components tab** inside the existing prototypes artifact, so Afo can review styling and feel per component, give coherent feedback, and we can align the whole set before adjusting.
+
+## Process — align before generating (non-negotiable)
+
+The point of this pass is to REDUCE review burden, so the library's shape is
+agreed **before** anything is generated. Run it in three phases and do not
+start Phase 3 without an explicit go.
+
+**Phase 1 — inventory & audit (read-only).** Scan `kit.ts`, every
+`screens/*.ts` composite, and each shipping counterpart component. Produce in
+chat: the full component inventory with a *proposed* grouping and naming, the
+variant/state matrix per component, which screen-local composites you propose
+promoting into `kit.ts`, and an honest drift list (specimen vs shipping
+counterpart, file:line). No edits in this phase.
+
+**Phase 2 — alignment rounds (AskUserQuestion, several rounds expected).**
+Afo prefers multiple rounds of design questions over one big approval — batch
+2–4 questions per round, always with a recommended option first, and keep the
+wireframe-or-specimen evidence in chat so choices are concrete. Decisions that
+belong to him, not you:
+- the grouping taxonomy and group order;
+- component naming where kit names and shipping names differ;
+- the per-entry template (which annotations, how much depth) and how variants
+  present (matrix grid vs stacked list vs interactive switcher);
+- how dialects show (client/admin side-by-side vs per-surface sections) and
+  whether public/editorial components are in scope;
+- what happens to each drifted specimen — redraw-to-shipping now, or render
+  with an explicit drift flag for a later fix;
+- which screen-local composites get promoted into `kit.ts`;
+- the review affordance (hash anchors, and whatever else he wants for giving
+  per-component feedback).
+Fold each round's answers into a short **component-library contract** section
+appended to this file (groups, entry template, presentation rules, drift
+policy) so the agreement is durable, then confirm the contract in one final
+question before building.
+
+**Phase 3 — generate.** Build the tab exactly per the locked contract,
+validate to zero warnings, verify in the rendered DOM, republish to the same
+URL, and hand back for a look-and-feel-only review — structural questions
+should all be settled by then.
 
 ## Context you must load first
 
