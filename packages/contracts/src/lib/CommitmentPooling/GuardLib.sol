@@ -119,8 +119,9 @@ library CommitmentPoolingGuardLib {
     function canEditProof(
         CommitmentPoolingCommonLib.Env memory env,
         mapping(uint256 poolId => ICommitmentPoolingModule.Pool pool) storage pools,
-        mapping(uint256 commitmentId => mapping(address contributor => ICommitmentPoolingModule.ContributorRecord record))
-            storage contributors,
+        mapping(
+            uint256 commitmentId => mapping(address contributor => ICommitmentPoolingModule.ContributorRecord record)
+        ) storage contributors,
         uint256 commitmentId,
         ICommitmentPoolingModule.Commitment storage commitment,
         address account

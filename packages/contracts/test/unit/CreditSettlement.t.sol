@@ -706,11 +706,7 @@ contract CreditSettlementTest is SettlementPayerTest {
         );
     }
 
-    function _approvedLoanWithDueDate(
-        address borrower,
-        uint256 principal,
-        uint64 dueDate
-    )
+    function _approvedLoanWithDueDate(address borrower, uint256 principal, uint64 dueDate)
         private
         returns (uint256 loanId)
     {

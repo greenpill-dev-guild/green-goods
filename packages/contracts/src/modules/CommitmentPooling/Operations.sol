@@ -20,7 +20,8 @@ import { CommitmentPoolingLifecycle } from "./Lifecycle.sol";
 ///      needs. The cycle shell owns the cycle counter increment. ABI, events, and reverts are
 ///      unchanged.
 abstract contract CommitmentPoolingOperations is CommitmentPoolingLifecycle {
-    // ═════════════════════════════ Terminal ═════════════════════════════
+    // ═════════════════════════════ Terminal
+    // ═════════════════════════════
 
     function cancelCommitment(uint256 commitmentId, string calldata reasonCID) external {
         CommitmentPoolingTerminalLib.cancelCommitment(_env(), pools, cycles, commitments, commitmentId, reasonCID);
@@ -58,7 +59,8 @@ abstract contract CommitmentPoolingOperations is CommitmentPoolingLifecycle {
         );
     }
 
-    // ═════════════════════════════ Cycles ═════════════════════════════
+    // ═════════════════════════════ Cycles
+    // ═════════════════════════════
 
     function seedCycle(
         uint256 poolId,
@@ -114,7 +116,8 @@ abstract contract CommitmentPoolingOperations is CommitmentPoolingLifecycle {
         } // unreachable
     }
 
-    // ═════════════════════════════ Roster ═════════════════════════════
+    // ═════════════════════════════ Roster
+    // ═════════════════════════════
 
     function joinCommitment(uint256 commitmentId) external whenOperational {
         CommitmentPoolingRosterLib.joinCommitment(_env(), commitments, contributors, commitmentConfirmers, commitmentId);
@@ -153,7 +156,8 @@ abstract contract CommitmentPoolingOperations is CommitmentPoolingLifecycle {
         );
     }
 
-    // ═════════════════════════════ Terms ═════════════════════════════
+    // ═════════════════════════════ Terms
+    // ═════════════════════════════
 
     /// @notice Declared consideration is a reference to a payment made elsewhere, never custody.
     function setDeclaredConsideration(
@@ -208,7 +212,8 @@ abstract contract CommitmentPoolingOperations is CommitmentPoolingLifecycle {
         CommitmentPoolingTermsLib.recordConsiderationPaid(_env(), pools, commitments, commitmentId, payoutRef);
     }
 
-    // ═════════════════════════════ Sync ═════════════════════════════
+    // ═════════════════════════════ Sync
+    // ═════════════════════════════
 
     function unlinkWork(bytes32 workUID) external whenOperational {
         CommitmentPoolingSyncLib.unlinkWork(

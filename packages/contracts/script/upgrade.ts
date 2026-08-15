@@ -14,6 +14,7 @@ import {
 } from "./utils/pooling-release";
 import { assertSepoliaGate } from "./utils/release-gate";
 import { writeReleaseJsonAtomic } from "./utils/release-artifacts";
+import { buildReadOnlyCastEnv, execCastCaptured, parseCastTransactionHash } from "./utils/cast-env";
 import {
   buildReleaseLock,
   loadReleaseManifest,
@@ -226,8 +227,12 @@ const poolingIntegrationInterface = new Interface([
   "function setCommitmentModule(address)",
 ]);
 
+export function isAddressOrZero(value: unknown): value is string {
+  return typeof value === "string" && /^0x[a-fA-F0-9]{40}$/.test(value);
+}
+
 function isAddress(value: unknown): value is string {
-  return typeof value === "string" && /^0x[a-fA-F0-9]{40}$/.test(value) && !/^0x0+$/i.test(value);
+  return isAddressOrZero(value) && !/^0x0+$/i.test(value);
 }
 
 function resolveDeploymentOutputDir(): string {
@@ -345,7 +350,7 @@ function runPureSimulation(contract: ContractName, network: string, networkManag
 function readStorageAddress(proxy: string, rpcUrl: string): string {
   const raw = execFileSync("cast", ["storage", proxy, EIP1967_IMPLEMENTATION_SLOT, "--rpc-url", rpcUrl], {
     cwd: CONTRACTS_ROOT,
-    env: process.env,
+    env: buildReadOnlyCastEnv(),
     encoding: "utf8",
   }).trim();
   if (!/^0x[0-9a-fA-F]{64}$/.test(raw)) throw new Error(`Unreadable ERC-1967 implementation slot for ${proxy}`);
@@ -355,7 +360,7 @@ function readStorageAddress(proxy: string, rpcUrl: string): string {
 function readCodeHash(address: string, rpcUrl: string): string {
   const code = execFileSync("cast", ["code", address, "--rpc-url", rpcUrl], {
     cwd: CONTRACTS_ROOT,
-    env: process.env,
+    env: buildReadOnlyCastEnv(),
     encoding: "utf8",
   }).trim();
   if (!/^0x[0-9a-fA-F]+$/.test(code) || code === "0x") throw new Error(`No code at ${address}`);
@@ -379,7 +384,7 @@ function readUpgradePreState(
   const snapshots = resolved.map((target) => {
     const owner = execFileSync("cast", ["call", target.address, "owner()(address)", "--rpc-url", rpcUrl], {
       cwd: CONTRACTS_ROOT,
-      env: process.env,
+      env: buildReadOnlyCastEnv(),
       encoding: "utf8",
     }).trim();
     if (!isAddress(owner)) throw new Error(`Unreadable live owner for ${target.deploymentKey} (${target.address})`);
@@ -1036,13 +1041,34 @@ export function validateUpgradeCheckpointPrefix(
   }
 }
 
+export function buildCastJsonArgs(args: string[], rpcUrl: string): string[] {
+  const [command, ...commandArgs] = args;
+  if (!command) throw new Error("Cast command is required");
+  return [command, "--rpc-url", rpcUrl, "--json", ...commandArgs];
+}
+
+export function buildUpgradeBoundarySendArgs(
+  transaction: PersistedUpgradeTransaction,
+  chainId: string,
+  plannedNonce: number,
+  account: string,
+): string[] {
+  const sharedArgs = ["send", "--chain", chainId, "--nonce", String(plannedNonce), "--account", account];
+  return transaction.to
+    ? [...sharedArgs, transaction.to, transaction.data ?? "0x"]
+    : [...sharedArgs, "--create", transaction.data ?? "0x"];
+}
+
 function runCastJson(args: string[], rpcUrl: string): Record<string, unknown> {
-  const raw = execFileSync("cast", [...args, "--rpc-url", rpcUrl, "--json"], {
-    cwd: CONTRACTS_ROOT,
-    env: process.env,
-    encoding: "utf8",
-    stdio: ["inherit", "pipe", "inherit"],
-  }).trim();
+  const raw = execCastCaptured(
+    buildCastJsonArgs(args, rpcUrl),
+    {
+      cwd: CONTRACTS_ROOT,
+      env: args[0] === "send" ? process.env : buildReadOnlyCastEnv(),
+      inputStdio: "inherit",
+    },
+    `Cast ${args[0] ?? "command"}`,
+  ).trim();
   return JSON.parse(raw) as Record<string, unknown>;
 }
 
@@ -1112,10 +1138,10 @@ function verifyUpgradeBoundary(
       : "commitmentModule()(address)";
     const value = execFileSync("cast", ["call", wiring.proxy, getter, "--rpc-url", rpcUrl], {
       cwd: CONTRACTS_ROOT,
-      env: process.env,
+      env: buildReadOnlyCastEnv(),
       encoding: "utf8",
     }).trim();
-    if (!isAddress(value) || getAddress(value) !== getAddress(wiring.module)) {
+    if (!isAddressOrZero(value) || getAddress(value) !== getAddress(wiring.module)) {
       throw new Error(`Post-wiring mismatch for ${wiring.function}`);
     }
     return;
@@ -1126,7 +1152,7 @@ function verifyUpgradeBoundary(
     const value = execFileSync(
       "cast",
       ["call", assessmentSchemaPin.proxy, "schemaUID()(bytes32)", "--rpc-url", rpcUrl],
-      { cwd: CONTRACTS_ROOT, env: process.env, encoding: "utf8" },
+      { cwd: CONTRACTS_ROOT, env: buildReadOnlyCastEnv(), encoding: "utf8" },
     ).trim();
     if (value.toLowerCase() !== assessmentSchemaPin.expectedSchemaUID.toLowerCase()) {
       throw new Error("AssessmentResolver v2 schema UID does not match the reviewed post-upgrade pin");
@@ -1168,7 +1194,7 @@ function assertUpgradeBoundaryPreconditions(
   }
   const owner = execFileSync("cast", ["call", transaction.to, "owner()(address)", "--rpc-url", rpcUrl], {
     cwd: CONTRACTS_ROOT,
-    env: process.env,
+    env: buildReadOnlyCastEnv(),
     encoding: "utf8",
   }).trim();
   if (!isAddress(owner) || getAddress(owner) !== getAddress(plan.sender)) {
@@ -1190,10 +1216,12 @@ function assertUpgradeBoundaryPreconditions(
       : "commitmentModule()(address)";
     const current = execFileSync("cast", ["call", wiring.proxy, getter, "--rpc-url", rpcUrl], {
       cwd: CONTRACTS_ROOT,
-      env: process.env,
+      env: buildReadOnlyCastEnv(),
       encoding: "utf8",
     }).trim();
-    if (!isAddress(current)) throw new Error(`Unreadable live wiring before boundary ${transaction.index + 1}`);
+    if (!isAddressOrZero(current)) {
+      throw new Error(`Unreadable live wiring before boundary ${transaction.index + 1}`);
+    }
     if (getAddress(current) !== ZeroAddress) {
       throw new Error(
         getAddress(current) === getAddress(wiring.module)
@@ -1211,7 +1239,7 @@ function assertUpgradeBoundaryPreconditions(
     const current = execFileSync(
       "cast",
       ["call", assessmentSchemaPin.proxy, "schemaUID()(bytes32)", "--rpc-url", rpcUrl],
-      { cwd: CONTRACTS_ROOT, env: process.env, encoding: "utf8" },
+      { cwd: CONTRACTS_ROOT, env: buildReadOnlyCastEnv(), encoding: "utf8" },
     ).trim();
     if (!/^0x[0-9a-f]{64}$/iu.test(current)) throw new Error("Unreadable AssessmentResolver v2 schema UID");
     if (current.toLowerCase() !== `0x${"0".repeat(64)}`) {
@@ -1281,7 +1309,7 @@ function executeUpgradeBoundary(
   const pendingNonce = Number(
     execFileSync("cast", ["nonce", options.sender, "--block", "pending", "--rpc-url", rpcUrl], {
       cwd: CONTRACTS_ROOT,
-      env: process.env,
+      env: buildReadOnlyCastEnv(),
       encoding: "utf8",
     }).trim(),
   );
@@ -1295,26 +1323,20 @@ function executeUpgradeBoundary(
     }
     assertUpgradeBoundaryPreconditions(plan, transaction, rpcUrl);
     const account = process.env.FOUNDRY_KEYSTORE_ACCOUNT || "green-goods-deployer";
-    const sendArgs = transaction.to
-      ? ["send", transaction.to, transaction.data ?? "0x"]
-      : ["send", "--create", transaction.data ?? "0x"];
-    const receipt = runCastJson(
-      [
-        ...sendArgs,
-        "--chain",
-        networkManager.getChainIdString(options.network),
-        "--nonce",
-        String(plannedNonce),
-        "--account",
-        account,
-      ],
-      rpcUrl,
+    const output = execCastCaptured(
+      buildCastJsonArgs(
+        buildUpgradeBoundarySendArgs(
+          transaction,
+          networkManager.getChainIdString(options.network),
+          plannedNonce,
+          account,
+        ),
+        rpcUrl,
+      ),
+      { cwd: CONTRACTS_ROOT, env: process.env, inputStdio: "inherit" },
+      "Bun-wrapped upgrade boundary",
     );
-    const candidate = receipt.transactionHash;
-    if (typeof candidate !== "string" || !/^0x[0-9a-fA-F]{64}$/.test(candidate)) {
-      throw new Error("Bun-wrapped boundary broadcast returned no transaction hash");
-    }
-    transactionHash = candidate;
+    transactionHash = parseCastTransactionHash(output, "Bun-wrapped upgrade boundary");
   }
 
   const evidence = assertReceiptAndTransaction(plan, transaction, transactionHash, rpcUrl);
@@ -1444,7 +1466,7 @@ function main(): void {
         const pendingNonce = Number(
           execFileSync("cast", ["nonce", options.sender, "--block", "pending", "--rpc-url", rpcUrl], {
             cwd: CONTRACTS_ROOT,
-            env: process.env,
+            env: buildReadOnlyCastEnv(),
             encoding: "utf8",
           }).trim(),
         );
@@ -1510,7 +1532,7 @@ function main(): void {
       throw new Error("Frozen release lock is missing the CommitmentPoolingModule proxy identity");
     }
     const environment = {
-      ...process.env,
+      ...(options.broadcast ? process.env : buildReadOnlyCastEnv()),
       FOUNDRY_PROFILE: "production",
       FORGE_BROADCAST: options.broadcast || options.txPlan ? "true" : "false",
       UPGRADE_REQUIRE_LIVE_DEPENDENCIES: options.broadcast ? "true" : "false",

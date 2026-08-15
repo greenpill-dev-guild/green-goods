@@ -21,7 +21,8 @@ contract CommitmentPoolingRecognitionTest is CommitmentPoolingFixture {
         _setMember(THIRD);
     }
 
-    // ─────────────────────── Cycle-less 20/80 preset ───────────────────────
+    // ─────────────────────── Cycle-less 20/80 preset
+    // ───────────────────────
 
     function testCyclelessPresetSplitsEqualParticipationRemaindersByAscendingAddress() public {
         uint256 commitmentId = _fulfilledEvidenceCommitment(keccak256("recognition-equal"), 0);
@@ -57,7 +58,8 @@ contract CommitmentPoolingRecognitionTest is CommitmentPoolingFixture {
         );
     }
 
-    // ───────────────────────── Opened cycle policy ─────────────────────────
+    // ───────────────────────── Opened cycle policy
+    // ─────────────────────────
 
     function testOpenedCyclePolicyOverridesTheCyclelessPreset() public {
         uint256 cycleId = _openCycle(4000, 6000);
@@ -72,7 +74,8 @@ contract CommitmentPoolingRecognitionTest is CommitmentPoolingFixture {
         );
     }
 
-    // ──────────────────────────── Rejections ────────────────────────────
+    // ──────────────────────────── Rejections
+    // ────────────────────────────
 
     function testRejectsACommitmentThatIsNotFulfilled() public {
         uint256 commitmentId = _createOffer(keccak256("recognition-unfulfilled"));
@@ -157,7 +160,8 @@ contract CommitmentPoolingRecognitionTest is CommitmentPoolingFixture {
         assertEq(module.validateRecognitionSnapshot(commitmentId, entries, expected), expected);
     }
 
-    // ──────────────── Defense in depth: incoherent aggregate credits ────────────────
+    // ──────────────── Defense in depth: incoherent aggregate credits
+    // ────────────────
 
     /// @notice The total-allocation guard rejects a vector whose every row is individually correct.
     /// @dev Recorded because a review round wrongly called this guard redundant. It is redundant
@@ -197,7 +201,8 @@ contract CommitmentPoolingRecognitionTest is CommitmentPoolingFixture {
         assertEq(commitment.eligibleContributorCount, 3, "neighbouring packed field was clobbered");
     }
 
-    // ───────────────────────────── Helpers ─────────────────────────────
+    // ───────────────────────────── Helpers
+    // ─────────────────────────────
 
     function _hash(
         uint256 commitmentId,
@@ -309,16 +314,10 @@ contract CommitmentPoolingRecognitionTest is CommitmentPoolingFixture {
         module.openCycle(
             cycleId,
             ICommitmentPoolingModule.AllocationBps({
-                gardeners: 6000,
-                treasury: 1500,
-                operator: 1000,
-                evaluator: 500,
-                community: 500,
-                funder: 500
+                gardeners: 6000, treasury: 1500, operator: 1000, evaluator: 500, community: 500, funder: 500
             }),
             ICommitmentPoolingModule.RecognitionPolicy({
-                equalParticipationBps: equalBps,
-                verifiedContributionBps: verifiedBps
+                equalParticipationBps: equalBps, verifiedContributionBps: verifiedBps
             })
         );
     }

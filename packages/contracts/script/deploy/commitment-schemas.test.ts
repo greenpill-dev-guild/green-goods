@@ -6,11 +6,13 @@ import type { ParsedOptions } from "../utils/cli-parser";
 import type { SchemaRegistrationPlan } from "../utils/pooling-release";
 import {
   CommitmentSchemasDeployer,
+  finalizedPreparationModuleForReplay,
   SCHEMA_RESUMABLE_STATE,
   SCHEMA_TRANSACTION_BOUNDARY_RULE,
   type FrozenSchemaPlanInputs,
   type PersistedSchemaPlan,
   type SchemaCheckpoint,
+  schemaSimulationArtifactName,
   validateReviewedSchemaPlan,
   validateSchemaCheckpointPrefix,
   validateSchemaReceiptTransaction,
@@ -29,6 +31,39 @@ import {
  * actually deploys to, so a failing case cannot leave a real artifact damaged.
  */
 describe("CommitmentSchemasDeployer artifact merge", () => {
+  it("uses Foundry's signature-specific artifact name for finalization plans", () => {
+    expect(schemaSimulationArtifactName(false)).toBe("run-latest.json");
+    expect(schemaSimulationArtifactName(true)).toBe("finalizeCommunityTestimony-latest.json");
+  });
+
+  it("accepts downstream activation only when replaying a fully checkpointed preparation", () => {
+    const module = `0x${"44".repeat(20)}`;
+    expect(
+      finalizedPreparationModuleForReplay({
+        mode: "preparation",
+        replayComplete: true,
+        deploymentModule: module,
+        frozenPoolingModule: module,
+      }),
+    ).toBe(module);
+    expect(
+      finalizedPreparationModuleForReplay({
+        mode: "preparation",
+        replayComplete: false,
+        deploymentModule: module,
+        frozenPoolingModule: module,
+      }),
+    ).toBeUndefined();
+    expect(
+      finalizedPreparationModuleForReplay({
+        mode: "preparation",
+        replayComplete: true,
+        deploymentModule: module,
+        frozenPoolingModule: `0x${"55".repeat(20)}`,
+      }),
+    ).toBeUndefined();
+  });
+
   const CHAIN_ID = "99999901";
   const RESOLVER = `0x${"ab".repeat(20)}`;
   const RESOLVER_IMPL = `0x${"cd".repeat(20)}`;

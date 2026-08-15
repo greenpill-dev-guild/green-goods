@@ -491,9 +491,8 @@ library SettlementPlanLib {
                 recognitionWeightBps: recognitionEntries[index].recognitionWeightBps
             });
         }
-        bytes32 canonical = ICommitmentPoolingModule(poolingModule).validateRecognitionSnapshot(
-            plan.commitmentId, poolingEntries, recognitionSnapshotHash
-        );
+        bytes32 canonical = ICommitmentPoolingModule(poolingModule)
+            .validateRecognitionSnapshot(plan.commitmentId, poolingEntries, recognitionSnapshotHash);
         if (canonical != recognitionSnapshotHash) {
             revert ISettlementModule.RecognitionSnapshotMismatch(canonical, recognitionSnapshotHash);
         }
@@ -774,10 +773,9 @@ library SettlementPlanLib {
             for (uint256 index; index < values.length; ++index) {
                 if (
                     !used[index]
-                        && (
-                            !found || remainders[index] > remainders[best]
-                                || (remainders[index] == remainders[best] && contributors[index] < contributors[best])
-                        )
+                        && (!found
+                            || remainders[index] > remainders[best]
+                            || (remainders[index] == remainders[best] && contributors[index] < contributors[best]))
                 ) {
                     best = index;
                     found = true;
@@ -804,13 +802,11 @@ library SettlementPlanLib {
             ISettlementModule.ContributorPayout storage payout =
                 self.contributorPayouts[payoutPlanId][plan.contributorOrder[index]];
             entries[index] = ICommitmentPoolingModule.RecognitionEntry({
-                contributor: payout.contributor,
-                recognitionWeightBps: payout.recognitionWeightBps
+                contributor: payout.contributor, recognitionWeightBps: payout.recognitionWeightBps
             });
         }
-        bytes32 canonical = ICommitmentPoolingModule(poolingModule).validateRecognitionSnapshot(
-            plan.commitmentId, entries, plan.recognitionSnapshotHash
-        );
+        bytes32 canonical = ICommitmentPoolingModule(poolingModule)
+            .validateRecognitionSnapshot(plan.commitmentId, entries, plan.recognitionSnapshotHash);
         if (canonical != plan.recognitionSnapshotHash) {
             revert ISettlementModule.RecognitionSnapshotMismatch(canonical, plan.recognitionSnapshotHash);
         }

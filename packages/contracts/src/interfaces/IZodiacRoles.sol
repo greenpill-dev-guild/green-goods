@@ -29,14 +29,7 @@ interface IZodiacRoles {
 
 interface IGoodDollarToken {
     function balanceOf(address account) external view returns (uint256);
-    function getFees(
-        uint256 amount,
-        address sender,
-        address recipient
-    )
-        external
-        view
-        returns (uint256 fee, bool senderPays);
+    function getFees(uint256 amount, address sender, address recipient) external view returns (uint256 fee, bool senderPays);
 }
 
 /// @notice Minimal Safe ownership check used to prove the executor is not an owner.

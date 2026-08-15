@@ -116,14 +116,7 @@ abstract contract CreditRegistryBase is ICreditRegistry, OwnableUpgradeable, Ree
         if (!_poolCreditConfig[poolId].enabled) revert PoolCreditDisabled(poolId);
     }
 
-    function _requirePoolSteward(
-        uint256 poolId,
-        ICommitmentPoolingModule.Pool memory pool,
-        address account
-    )
-        internal
-        view
-    {
+    function _requirePoolSteward(uint256 poolId, ICommitmentPoolingModule.Pool memory pool, address account) internal view {
         if (!_hasPoolStewardAuthority(pool, account)) revert NotPoolSteward(account, poolId);
     }
 
@@ -259,8 +252,9 @@ abstract contract CreditRegistryBase is ICreditRegistry, OwnableUpgradeable, Ree
         } catch {
             revert InvalidSettlementModule(module);
         }
-        try candidate.loanPrincipalRelationshipOf(0) returns (ISettlementModule.LoanPrincipalRelationship memory configured)
-        {
+        try candidate.loanPrincipalRelationshipOf(0) returns (
+            ISettlementModule.LoanPrincipalRelationship memory configured
+        ) {
             relationshipProbe = configured;
         } catch {
             revert InvalidSettlementModule(module);

@@ -24,9 +24,8 @@ library TBALib {
             block.chainid == 42_161 || block.chainid == 11_155_111 || block.chainid == 10 || block.chainid == 42_220
                 || block.chainid == 31_337
         ) {
-            return IERC6551Registry(TOKENBOUND_REGISTRY).createAccount(
-                implementation, SALT, block.chainid, tokenContract, tokenId
-            );
+            return IERC6551Registry(TOKENBOUND_REGISTRY)
+                .createAccount(implementation, SALT, block.chainid, tokenContract, tokenId);
         } else {
             revert InvalidChainId();
         }
@@ -43,8 +42,8 @@ library TBALib {
             block.chainid == 42_161 || block.chainid == 11_155_111 || block.chainid == 10 || block.chainid == 42_220
                 || block.chainid == 31_337
         ) {
-            return
-                IERC6551Registry(TOKENBOUND_REGISTRY).account(implementation, SALT, block.chainid, tokenContract, tokenId);
+            return IERC6551Registry(TOKENBOUND_REGISTRY)
+                .account(implementation, SALT, block.chainid, tokenContract, tokenId);
         } else {
             revert InvalidChainId();
         }

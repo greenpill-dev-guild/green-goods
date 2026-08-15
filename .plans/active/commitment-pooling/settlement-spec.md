@@ -1752,9 +1752,10 @@ event AcknowledgmentDeferred(
   inputs and never invents owners.
 - **Deterministic Safe address is fully specified**: use the official released Safe v1.4.1
   `SafeProxyFactory.createProxyWithNonce` and `SafeL2` singleton recorded for the target chain
-  in `@safe-global/safe-deployments`. The initializer contains the sorted three owners,
-  threshold 2, zero setup delegatecall, the released compatibility fallback handler, zero
-  payment token/amount/receiver. `saltNonce =
+  in `@safe-global/safe-deployments`. During the temporary address-bootstrap stage, the initializer
+  contains the sorted deployment EOA and existing Celo Garden recovery Safe, threshold 1, zero
+  setup delegatecall, the released compatibility fallback handler, and zero payment
+  token/amount/receiver. `saltNonce =
   uint256(keccak256(abi.encode("GG_COMMITMENT_POOL_SAFE_V1",
   uint64(sourceProtocolChainId), garden)))` (`42161` in production, `421614` in the Sepolia
   rehearsal).
@@ -1763,11 +1764,19 @@ event AcknowledgmentDeferred(
   requires a new reviewed artifact. The existing protocol Safe is verified and registered,
   never redeployed. The dry-run persists all inputs, predicted address, code hashes, and
   factory/singleton/fallback-handler versions before any broadcast.
-- **Owner set at deployment**: exactly 2-of-3 for the pilot — the protocol recovery
+- **Temporary owner bootstrap**: before the final Garden-controlled address is available, a Safe
+  may exist as exactly 1-of-2 with the deployment EOA and the existing Celo Garden recovery Safe.
+  The recovery Safe must reread as module-free 2-of-3. The Garden Safe must have zero native and
+  canonical-G$ balance, no guard, no modules, and no Zodiac or executor authority. The deployment
+  EOA may later replace itself with one exact reviewed Garden owner through a nonce-bound,
+  receipt-backed `swapOwner` Safe transaction. The script derives `prevOwner` from the live linked
+  list and fails on any owner, threshold, balance, module, or replacement mismatch. This staged
+  owner set is address preparation only and may never be registered as active settlement custody.
+- **Owner set before value activation**: exactly 2-of-3 for the pilot — the protocol recovery
   multisig, the Dev Guild recovery multisig, and one named garden recovery delegate who can
   sign on Celo. Deployment fails if an owner is duplicated, zero, unnamed in the artifact, or
   also configured as an executor. The Arbitrum garden account is the canonical attribution and
-  salt input, but is not inserted as a non-signing owner.
+  salt input. A later Garden-account substitution still requires the two production gates below.
 - **Signer scoping (one Zodiac Roles Modifier; no AllowanceModule)**: deploy or verify one
   Roles Modifier whose avatar and target are the Safe. `CeloSettlementExecutor`—not an
   operator key—is assigned to the exact `roleKey`. That role permits only canonical G$
@@ -1775,7 +1784,7 @@ event AcknowledgmentDeferred(
   through `WithinAllowance(allowanceKey)` on the amount argument. The executor independently
   enforces gross-debit per-transfer, batch, and period caps so GoodDollar fees cannot bypass
   the calldata allowance. No separate Allowance Module contract exists in this topology.
-  Removing the role still leaves the 2-of-3 recovery owners able to rotate modules safely.
+  Removing the role still leaves the final 2-of-3 recovery owners able to rotate modules safely.
 - **Artifact and hash split**: `packages/contracts/deployments/{chainId}-settlement-safes.json`
   records garden, Safe, sorted owners, threshold, factory/singleton/handler, initializer hash,
   salt nonce, Roles address, exact `roleKey`, exact `allowanceKey`, normalized permission
@@ -1789,7 +1798,15 @@ event AcknowledgmentDeferred(
   Strict verification reads the live Safe owner set, enabled modules, Roles avatar/target,
   executor membership, role assignment, allowance, and allowed/denied probe results; a stored
   hash alone is never proof of later Celo configuration.
-- **Ownership nuance (named honestly)**: an Arbitrum ERC-6551 account cannot sign on Celo today. “Garden-controlled” means the Arbitrum module authorizes the garden mapping and consideration, accountable Celo governance signers control recovery, and scoped executors perform the bounded transfer. A future validated cross-chain module may let the garden account trigger its Safe literally; that path is not required for base settlement.
+- **Ownership nuance (named honestly)**: the current AccountV3 implementation does not treat the
+  Arbitrum Garden NFT owner as a signer on Celo because the bound token is on a foreign chain. The
+  fork proof in `erc6551-garden-safe-owner-spike.md` shows that a guardian-trusted executor can make
+  a foreign Garden account satisfy one owner slot in a real threshold-2 Safe alongside one
+  recovery owner, while both recovery owners retain the recovery path. That is mechanics, not a
+  production authorization design: the exact Arbitrum implementation/account is not deployed at
+  the same address on Celo and no Garden-bound authenticated relay exists. The pilot therefore
+  keeps the three named recovery owners above. A later owner-set change requires both missing
+  gates to close and is not required for base settlement.
 - **Gas**: the Arbitrum module holds monitored native ETH for outbound commands; the Celo executor holds monitored native CELO for acknowledgments. Neither route uses LINK fee payment. Fee shortage is surfaced before dispatch where possible and is never presented as settlement failure. Gardener receipts are pure ERC-20 transfers; gardener sends use sponsored gas (§5).
 
 ## 5. Gardener receipt + multi-chain app

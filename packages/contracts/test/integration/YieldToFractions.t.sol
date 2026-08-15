@@ -75,8 +75,9 @@ contract YieldToFractionsTest is Test {
 
         // Deploy YieldResolver
         YieldResolver impl = new YieldResolver();
-        bytes memory initData =
-            abi.encodeWithSelector(YieldResolver.initialize.selector, owner, address(0), address(hatsModule), MIN_THRESHOLD);
+        bytes memory initData = abi.encodeWithSelector(
+            YieldResolver.initialize.selector, owner, address(0), address(hatsModule), MIN_THRESHOLD
+        );
         ERC1967Proxy proxy = new ERC1967Proxy(address(impl), initData);
         splitter = YieldResolver(address(proxy));
 

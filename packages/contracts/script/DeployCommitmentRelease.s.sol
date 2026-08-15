@@ -24,6 +24,7 @@ import { CommitmentPoolingViewsLib } from "../src/lib/CommitmentPooling/ViewsLib
 import { SettlementAcknowledgmentLib } from "../src/lib/Settlement/AcknowledgmentLib.sol";
 import { SettlementCommandLib } from "../src/lib/Settlement/CommandLib.sol";
 import { SettlementConfigurationLib } from "../src/lib/Settlement/ConfigurationLib.sol";
+import { SettlementFundingLib } from "../src/lib/Settlement/FundingLib.sol";
 import { SettlementLifecycleLib } from "../src/lib/Settlement/LifecycleLib.sol";
 import { SettlementLoanLib } from "../src/lib/Settlement/LoanLib.sol";
 import { SettlementPlanLib } from "../src/lib/Settlement/PlanLib.sol";
@@ -173,12 +174,13 @@ contract DeployCommitmentRelease is Script {
     }
 
     function _deploySettlementModule() private {
-        _deploy(type(SettlementAcknowledgmentLib).creationCode, "library:SettlementAcknowledgmentLib");
         _deploy(type(SettlementCommandLib).creationCode, "library:SettlementCommandLib");
         _deploy(type(SettlementConfigurationLib).creationCode, "library:SettlementConfigurationLib");
         _deploy(type(SettlementLifecycleLib).creationCode, "library:SettlementLifecycleLib");
         _deploy(type(SettlementLoanLib).creationCode, "library:SettlementLoanLib");
         _deploy(type(SettlementPlanLib).creationCode, "library:SettlementPlanLib");
+        _deploy(type(SettlementFundingLib).creationCode, "library:SettlementFundingLib");
+        _deploy(type(SettlementAcknowledgmentLib).creationCode, "library:SettlementAcknowledgmentLib");
 
         address router = vm.envAddress("RELEASE_ROUTER");
         uint64 localSelector = uint64(vm.envUint("RELEASE_LOCAL_SELECTOR"));

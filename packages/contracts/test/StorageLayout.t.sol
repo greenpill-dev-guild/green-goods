@@ -341,14 +341,12 @@ contract StorageLayoutTest is Test {
 
         AssessmentResolver assessmentImpl = new AssessmentResolver(address(eas));
         AssessmentResolver assessment = AssessmentResolver(
-            payable(
-                address(
+            payable(address(
                     new ERC1967Proxy(
                         address(assessmentImpl),
                         abi.encodeWithSelector(AssessmentResolver.initialize.selector, address(this))
                     )
-                )
-            )
+                ))
         );
         assessment.setSchemaUID(bytes32(uint256(1)));
         assessment.setAssessmentV3SchemaUID(bytes32(uint256(2)));
@@ -364,14 +362,12 @@ contract StorageLayoutTest is Test {
         );
         WorkApprovalResolver approvalImpl = new WorkApprovalResolver(address(eas), address(action));
         WorkApprovalResolver approval = WorkApprovalResolver(
-            payable(
-                address(
+            payable(address(
                     new ERC1967Proxy(
                         address(approvalImpl),
                         abi.encodeWithSelector(WorkApprovalResolver.initialize.selector, address(this))
                     )
-                )
-            )
+                ))
         );
         approval.setCommitmentModule(address(0x721));
         assertEq(
@@ -382,13 +378,11 @@ contract StorageLayoutTest is Test {
 
         TestimonyResolver testimonyImpl = new TestimonyResolver(address(eas));
         TestimonyResolver testimony = TestimonyResolver(
-            payable(
-                address(
+            payable(address(
                     new ERC1967Proxy(
                         address(testimonyImpl), abi.encodeWithSelector(TestimonyResolver.initialize.selector, address(this))
                     )
-                )
-            )
+                ))
         );
         testimony.setSchemaUID(bytes32(uint256(3)));
         testimony.setCommitmentModule(address(0x722));

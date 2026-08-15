@@ -95,7 +95,11 @@ contract WorkApprovalResolverTest is Test {
             attester: gardener,
             revocable: true,
             data: abi.encode(
-                activeActionId, "Planted 50 oak saplings at riverside", "Detailed planting work", "bafkreiMetadata123", media
+                activeActionId,
+                "Planted 50 oak saplings at riverside",
+                "Detailed planting work",
+                "bafkreiMetadata123",
+                media
             )
         });
         mockEAS.setAttestationByUID(workUID, workAttestation);

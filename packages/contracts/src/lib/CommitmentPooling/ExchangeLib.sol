@@ -21,8 +21,9 @@ library CommitmentPoolingExchangeLib {
         mapping(uint256 poolId => ICommitmentPoolingModule.Pool pool) storage pools,
         mapping(uint256 cycleId => ICommitmentPoolingModule.Cycle cycle) storage cycles,
         mapping(uint256 commitmentId => ICommitmentPoolingModule.Commitment commitment) storage commitments,
-        mapping(uint256 commitmentId => mapping(address contributor => ICommitmentPoolingModule.ContributorRecord record))
-            storage contributors,
+        mapping(
+            uint256 commitmentId => mapping(address contributor => ICommitmentPoolingModule.ContributorRecord record)
+        ) storage contributors,
         mapping(uint256 commitmentId => address[] confirmers) storage commitmentConfirmers,
         uint256 exchangeCommitmentId
     )

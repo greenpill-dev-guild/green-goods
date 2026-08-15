@@ -191,8 +191,9 @@ contract JsonBuilderTest is Test {
     }
 
     function testImpactWithMetadataCID() public {
-        string memory json =
-            wrapper.buildImpact("Work", "Desc", "QmProof", bytes32(0), address(0xBEEF), 1_700_000_000, "bafkreiMetadata123");
+        string memory json = wrapper.buildImpact(
+            "Work", "Desc", "QmProof", bytes32(0), address(0xBEEF), 1_700_000_000, "bafkreiMetadata123"
+        );
 
         assertTrue(
             _contains(json, "\"metadataCID\":\"ipfs://bafkreiMetadata123\""),

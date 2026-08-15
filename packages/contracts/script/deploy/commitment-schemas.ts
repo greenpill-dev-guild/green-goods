@@ -14,10 +14,12 @@ import {
 import { type ParsedOptions } from "../utils/cli-parser";
 import { DeploymentAddresses } from "../utils/deployment-addresses";
 import { NetworkManager } from "../utils/network";
+import { retryRpcAvailability } from "../utils/rpc-retry";
 import { mergeReleaseArtifact, writeReleaseJsonAtomic } from "../utils/release-artifacts";
 import { buildReleaseLock, loadReleaseManifest } from "../utils/release-manifest";
 import { getFoundryBroadcastPath } from "../utils/paths";
 import { assertSepoliaGate } from "../utils/release-gate";
+import { buildReadOnlyCastEnv, execCastCaptured, parseCastTransactionHash } from "../utils/cast-env";
 import {
   type CommitmentSchemaDefinition,
   type OnChainSchemaRecord,
@@ -34,6 +36,28 @@ export const SCHEMA_TRANSACTION_BOUNDARY_RULE =
   "Execute and verify exactly one nonce-pinned transaction; do not continue until its receipt and live post-state are checkpointed.";
 export const SCHEMA_RESUMABLE_STATE =
   "The exact on-chain postcondition is satisfied or absent; a conflicting record, owner, module, salt, or code identity fails closed.";
+
+export function schemaSimulationArtifactName(finalizeCommunityTestimony: boolean): string {
+  return finalizeCommunityTestimony ? "finalizeCommunityTestimony-latest.json" : "run-latest.json";
+}
+
+export function finalizedPreparationModuleForReplay(input: {
+  mode: "preparation" | "finalization";
+  replayComplete: boolean;
+  deploymentModule?: string;
+  frozenPoolingModule?: string;
+}): string | undefined {
+  if (
+    input.mode !== "preparation" ||
+    !input.replayComplete ||
+    !input.deploymentModule ||
+    !input.frozenPoolingModule ||
+    getAddress(input.deploymentModule) !== getAddress(input.frozenPoolingModule)
+  ) {
+    return undefined;
+  }
+  return getAddress(input.frozenPoolingModule);
+}
 
 /**
  * Addresses preparation produces. The resolver is deployed by this target now (contract-spec
@@ -526,7 +550,7 @@ export class CommitmentSchemasDeployer {
           "--rpc-url",
           rpcUrl,
         ],
-        { cwd: CONTRACTS_ROOT, env: process.env, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] },
+        { cwd: CONTRACTS_ROOT, env: buildReadOnlyCastEnv(), encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] },
       ).trim();
     } catch (error) {
       throw new Error(
@@ -608,7 +632,7 @@ export class CommitmentSchemasDeployer {
           "--rpc-url",
           rpcUrl,
         ],
-        { cwd: CONTRACTS_ROOT, env: { ...process.env, FOUNDRY_PROFILE: "production" }, encoding: "utf8" },
+        { cwd: CONTRACTS_ROOT, env: { ...buildReadOnlyCastEnv(), FOUNDRY_PROFILE: "production" }, encoding: "utf8" },
       );
       console.log("\nTestimonyResolver deployment preview (no transactions sent):");
       // forge wraps script logs in its own banner; the console.log lines are what an operator
@@ -662,7 +686,7 @@ export class CommitmentSchemasDeployer {
       "DeployCommitmentSchemas.s.sol",
       String(chainId),
       "dry-run",
-      "run-latest.json",
+      schemaSimulationArtifactName(options.finalizeCommunityTestimony),
     );
     const startedAt = Date.now();
     const args = [
@@ -681,7 +705,7 @@ export class CommitmentSchemasDeployer {
       cwd: CONTRACTS_ROOT,
       stdio: "inherit",
       env: {
-        ...process.env,
+        ...buildReadOnlyCastEnv(),
         FOUNDRY_PROFILE: "production",
         DEPLOYMENT_OUTPUT_DIR: outputDirectory,
       },
@@ -893,6 +917,16 @@ export class CommitmentSchemasDeployer {
     const rpcUrl = this.networkManager.getRpcUrl(options.network);
     const provider = new JsonRpcProvider(rpcUrl, chainId, { staticNetwork: true });
     const prior = checkpoint.completed.find((entry) => entry.step === options.releaseStep);
+    const frozenPoolingModule = lock.identities.find(
+      (identity) => identity.kind === "proxy" && identity.name === "CommitmentPoolingModule",
+    )?.address;
+    const finalizedPreparationModule = finalizedPreparationModuleForReplay({
+      mode: plan.mode,
+      replayComplete: Boolean(prior) && checkpoint.completed.length === plan.transactions.length,
+      deploymentModule:
+        typeof deployment.commitmentPoolingModule === "string" ? deployment.commitmentPoolingModule : undefined,
+      frozenPoolingModule,
+    });
     let transactionHash = prior?.transactionHash ?? options.receiptHash;
     if (!transactionHash) {
       const pendingNonce = await provider.getTransactionCount(plan.sender, "pending");
@@ -901,9 +935,8 @@ export class CommitmentSchemasDeployer {
           `Nonce drift: boundary expects ${boundary.nonce}, live pending nonce is ${pendingNonce}; use --receipt only for an exact mined recovery`,
         );
       }
-      const result = JSON.parse(
-        execFileSync(
-          "cast",
+      transactionHash = parseCastTransactionHash(
+        execCastCaptured(
           [
             "send",
             boundary.to,
@@ -918,20 +951,28 @@ export class CommitmentSchemasDeployer {
             rpcUrl,
             "--json",
           ],
-          { cwd: CONTRACTS_ROOT, env: process.env, encoding: "utf8", stdio: ["inherit", "pipe", "inherit"] },
+          { cwd: CONTRACTS_ROOT, env: process.env, inputStdio: "inherit" },
+          "Bun-wrapped schema boundary",
         ),
-      ) as Record<string, unknown>;
-      if (typeof result.transactionHash !== "string" || !/^0x[0-9a-fA-F]{64}$/u.test(result.transactionHash)) {
-        throw new Error("Bun-wrapped schema boundary returned no transaction hash");
-      }
-      transactionHash = result.transactionHash;
+        "Bun-wrapped schema boundary",
+      );
     }
-    const transaction = await provider.getTransaction(transactionHash);
-    const receipt = await provider.getTransactionReceipt(transactionHash);
-    if (!transaction || !receipt || receipt.status !== 1)
-      throw new Error(`Schema receipt ${transactionHash} is unavailable or failed`);
+    const { transaction, receipt } = await retryRpcAvailability(
+      async () => {
+        const [transaction, receipt] = await Promise.all([
+          provider.getTransaction(transactionHash),
+          provider.getTransactionReceipt(transactionHash),
+        ]);
+        return transaction && receipt ? { transaction, receipt } : undefined;
+      },
+      {
+        unavailableMessage: `Schema receipt ${transactionHash} remained unavailable`,
+        onRetry: (attempt) => console.warn(`Schema receipt has not propagated; retrying after attempt ${attempt}/6`),
+      },
+    );
+    if (receipt.status !== 1) throw new Error(`Schema receipt ${transactionHash} failed`);
     validateSchemaReceiptTransaction(transaction, plan, boundary, transactionHash);
-    await this.verifySchemaBoundary(provider, plan, boundary);
+    await this.verifySchemaBoundary(provider, plan, boundary, finalizedPreparationModule);
     if (!prior) {
       checkpoint.completed.push({
         step: options.releaseStep,
@@ -942,7 +983,7 @@ export class CommitmentSchemasDeployer {
       writeReleaseJsonAtomic(checkpointPath, checkpoint);
     }
     if (options.releaseStep === plan.transactions.length) {
-      await this.verifyCompleteSchemaPlan(provider, plan);
+      await this.verifyCompleteSchemaPlan(provider, plan, finalizedPreparationModule);
       this.promoteVerifiedSchemaPlan(plan);
     }
     console.log(
@@ -956,6 +997,7 @@ export class CommitmentSchemasDeployer {
     provider: JsonRpcProvider,
     plan: PersistedSchemaPlan,
     boundary: PersistedSchemaPlan["transactions"][number],
+    finalizedPreparationModule?: string,
   ): Promise<void> {
     if (boundary.kind === "CREATE2_IMPLEMENTATION" || boundary.kind === "CREATE2_PROXY") {
       if (!boundary.expectedAddress || (await provider.getCode(boundary.expectedAddress)) === "0x") {
@@ -987,7 +1029,11 @@ export class CommitmentSchemasDeployer {
       if (String(await resolver.schemaUID()).toLowerCase() !== plan.pinnedCommunityTestimonyUID.toLowerCase()) {
         throw new Error("Community Testimony UID pin did not reach the exact frozen value");
       }
-      if (getAddress(await resolver.commitmentModule()) !== ZeroAddress) {
+      const liveModule = getAddress(await resolver.commitmentModule());
+      if (
+        liveModule !== ZeroAddress &&
+        (!finalizedPreparationModule || liveModule !== getAddress(finalizedPreparationModule))
+      ) {
         throw new Error("Preparation unexpectedly activated the Community Testimony resolver");
       }
       return;
@@ -998,7 +1044,11 @@ export class CommitmentSchemasDeployer {
     }
   }
 
-  private async verifyCompleteSchemaPlan(provider: JsonRpcProvider, plan: PersistedSchemaPlan): Promise<void> {
+  private async verifyCompleteSchemaPlan(
+    provider: JsonRpcProvider,
+    plan: PersistedSchemaPlan,
+    finalizedPreparationModule?: string,
+  ): Promise<void> {
     if (
       (await provider.getCode(plan.testimonyResolverImpl)) === "0x" ||
       (await provider.getCode(plan.testimonyResolver)) === "0x"
@@ -1016,7 +1066,8 @@ export class CommitmentSchemasDeployer {
     if (String(await resolver.schemaUID()).toLowerCase() !== plan.pinnedCommunityTestimonyUID.toLowerCase()) {
       throw new Error("Community Testimony UID pin drift");
     }
-    const expectedModule = plan.mode === "finalization" ? plan.commitmentPoolingModule : ZeroAddress;
+    const expectedModule =
+      plan.mode === "finalization" ? plan.commitmentPoolingModule : (finalizedPreparationModule ?? ZeroAddress);
     if (!expectedModule || getAddress(await resolver.commitmentModule()) !== getAddress(expectedModule)) {
       throw new Error("Community Testimony activation state differs from the reviewed mode");
     }

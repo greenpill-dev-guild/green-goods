@@ -183,7 +183,8 @@ contract CommitmentPoolingExchangeTest is CommitmentPoolingFixture {
         assertEq(uint256(module.getCommitment(idB).state), uint256(ICommitmentPoolingModule.CommitmentState.Accepted));
     }
 
-    // ───────────────────────────── Helpers ─────────────────────────────
+    // ───────────────────────────── Helpers
+    // ─────────────────────────────
 
     /// @notice A priced side must be rejected before either Offer mutates. `acceptExchange` derives
     ///         one `gardenContext` from the pool and hands it to both acceptances, so a payable
@@ -289,12 +290,7 @@ contract CommitmentPoolingExchangeTest is CommitmentPoolingFixture {
         module.openCycle(
             cycleId,
             ICommitmentPoolingModule.AllocationBps({
-                gardeners: 6000,
-                treasury: 1500,
-                operator: 1000,
-                evaluator: 500,
-                community: 500,
-                funder: 500
+                gardeners: 6000, treasury: 1500, operator: 1000, evaluator: 500, community: 500, funder: 500
             }),
             ICommitmentPoolingModule.RecognitionPolicy({ equalParticipationBps: 2000, verifiedContributionBps: 8000 })
         );

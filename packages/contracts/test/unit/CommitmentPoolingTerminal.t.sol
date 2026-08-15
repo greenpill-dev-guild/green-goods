@@ -14,7 +14,8 @@ contract CommitmentPoolingTerminalTest is CommitmentPoolingFixture {
         hats.setOperator(POOL_GARDEN, POOL_STEWARD, true);
     }
 
-    // ───────────────────────────── Cancellation ─────────────────────────────
+    // ───────────────────────────── Cancellation
+    // ─────────────────────────────
 
     function testCreatorCancelsOfferedCommitmentAndReleasesUnits() public {
         uint256 commitmentId = _createOffer(keccak256("cancel-offered"));
@@ -66,7 +67,8 @@ contract CommitmentPoolingTerminalTest is CommitmentPoolingFixture {
         module.cancelCommitment(commitmentId, "not allowed except via dispute");
     }
 
-    // ─────────────────────────────── Expiry ───────────────────────────────
+    // ─────────────────────────────── Expiry
+    // ───────────────────────────────
 
     function testExpireIsPermissionlessOnlyOncePastDue() public {
         uint256 commitmentId = _createOfferDueAt(keccak256("expire-due"), uint64(block.timestamp + 1 days));
@@ -92,7 +94,8 @@ contract CommitmentPoolingTerminalTest is CommitmentPoolingFixture {
         module.expireCommitment(commitmentId);
     }
 
-    // ─────────────────────────────── Dispute ───────────────────────────────
+    // ─────────────────────────────── Dispute
+    // ───────────────────────────────
 
     function testRaiseDisputeRequiresEligibleRaiserAndReason() public {
         uint256 commitmentId = _createOffer(keccak256("dispute-gating"));
@@ -198,7 +201,8 @@ contract CommitmentPoolingTerminalTest is CommitmentPoolingFixture {
         assertEq(module.getPool(poolId).liveCommitmentCount, liveWhileDisputed - 1);
     }
 
-    // ───────────────────────────── Helpers ─────────────────────────────
+    // ───────────────────────────── Helpers
+    // ─────────────────────────────
 
     function _createOfferDueAt(bytes32 creationKey, uint64 dueDate) private returns (uint256 commitmentId) {
         ICommitmentPoolingModule.CreateCommitmentParams memory params = _baseParams(creationKey);

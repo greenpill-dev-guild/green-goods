@@ -22,8 +22,9 @@ library CommitmentPoolingWorkCreditLib {
         mapping(bytes32 approvalUID => bool counted) storage approvalCounted,
         mapping(bytes32 workUID => bool active) storage workCreditActive,
         mapping(bytes32 workUID => uint16 requirementIndexPlusOne) storage workRequirementIndexPlusOne,
-        mapping(uint256 commitmentId => mapping(address contributor => ICommitmentPoolingModule.ContributorRecord record))
-            storage contributors,
+        mapping(
+            uint256 commitmentId => mapping(address contributor => ICommitmentPoolingModule.ContributorRecord record)
+        ) storage contributors,
         uint256 commitmentId,
         ICommitmentPoolingModule.Commitment storage commitment,
         bytes32 workUID,
@@ -99,8 +100,9 @@ library CommitmentPoolingWorkCreditLib {
         mapping(uint256 commitmentId => bytes32[] activeWorkUIDs) storage commitmentWorkUIDs,
         mapping(bytes32 workUID => uint64 sequence) storage latestWorkDecisionSequence,
         mapping(uint256 commitmentId => address[] confirmers) storage commitmentConfirmers,
-        mapping(uint256 commitmentId => mapping(address contributor => ICommitmentPoolingModule.ContributorRecord record))
-            storage contributors,
+        mapping(
+            uint256 commitmentId => mapping(address contributor => ICommitmentPoolingModule.ContributorRecord record)
+        ) storage contributors,
         uint256 commitmentId,
         ICommitmentPoolingModule.Commitment storage commitment
     )

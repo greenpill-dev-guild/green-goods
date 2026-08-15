@@ -179,10 +179,10 @@ abstract contract CeloSettlementExecution is CeloSettlementAcknowledgments {
             }
             if (
                 fee != 0
-                    && (
-                        maxFeeBps == 0 || maxFeeAmount == 0 || fee > maxFeeAmount
-                            || fee > Math.mulDiv(amount, maxFeeBps, _BPS_DENOMINATOR)
-                    )
+                    && (maxFeeBps == 0
+                        || maxFeeAmount == 0
+                        || fee > maxFeeAmount
+                        || fee > Math.mulDiv(amount, maxFeeBps, _BPS_DENOMINATOR))
             ) return (FailureCode.FeeQuoteExceeded, recipientBalances, sourceBalance, 0);
 
             uint256 grossDebit = amount + fee;
@@ -235,14 +235,15 @@ abstract contract CeloSettlementExecution is CeloSettlementAcknowledgments {
     )
         internal
     {
-        (bool success, bytes memory returnData) = IZodiacRoles(route.rolesModifier).execTransactionWithRoleReturnData(
-            G_DOLLAR_TOKEN,
-            0,
-            abi.encodeWithSignature("transfer(address,uint256)", recipient, amount),
-            SafeOperation.Call,
-            route.roleKey,
-            true
-        );
+        (bool success, bytes memory returnData) = IZodiacRoles(route.rolesModifier)
+            .execTransactionWithRoleReturnData(
+                G_DOLLAR_TOKEN,
+                0,
+                abi.encodeWithSignature("transfer(address,uint256)", recipient, amount),
+                SafeOperation.Call,
+                route.roleKey,
+                true
+            );
         if (!success || returnData.length != 32 || !abi.decode(returnData, (bool))) {
             revert RoleExecutionRejected();
         }

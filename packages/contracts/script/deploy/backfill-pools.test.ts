@@ -1,12 +1,17 @@
 import { execFileSync, spawnSync } from "node:child_process";
 import * as path from "node:path";
-import { getAddress, Interface, keccak256, toUtf8Bytes, type TransactionResponse } from "ethers";
+import { getAddress, Interface, type JsonRpcProvider, keccak256, toUtf8Bytes, type TransactionResponse } from "ethers";
 import { describe, expect, it } from "vitest";
 import {
   buildBackfillTransactions,
+  isContractCallRevert,
   parseSafeExecution,
   validateBackfillPlan,
   validateCheckpointPrefix,
+  validateDeployerExecution,
+  validateRegisteredPoolSnapshots,
+  verifyCompletedBackfillEvidence,
+  verifyRegistrationReceiptPrefix,
   type BackfillCheckpoint,
   type GardenEnumeration,
   type PoolBackfillPlan,
@@ -46,8 +51,9 @@ function plan(): PoolBackfillPlan {
     finalizedBlock: 123,
     module,
     moduleDeploymentPending: false,
+    authority: "SAFE",
     owner,
-    expectedSafeNonce: 41,
+    expectedNonce: 41,
     gardenToken: address(3),
     gardenAccountImplementation: address(4),
     tokenboundRegistry: "0x000000006551c19487814612e58FE06813775758",
@@ -64,7 +70,7 @@ function plan(): PoolBackfillPlan {
         },
       ]),
     ),
-    transactions: buildBackfillTransactions({ module, rootGarden, gardens: enumeration, startingSafeNonce: 41 }),
+    transactions: buildBackfillTransactions({ module, rootGarden, gardens: enumeration, startingNonce: 41 }),
     transactionBoundaryRule:
       "Authorize and execute one direct Safe execTransaction payload, verify its receipt and post-state, then stop.",
     canonicalArtifactMutation: false,
@@ -74,7 +80,7 @@ function plan(): PoolBackfillPlan {
 function checkpoint(reviewedPlan: PoolBackfillPlan, throughStep: number): BackfillCheckpoint {
   const completed = reviewedPlan.transactions.slice(0, throughStep).map((transaction) => ({
     step: transaction.index,
-    safeNonce: transaction.safeNonce,
+    nonce: transaction.nonce,
     transactionHash: keccak256(toUtf8Bytes(`receipt-${transaction.index}`)),
     blockNumber: 200 + transaction.index,
     verifiedAt: "2026-08-11T00:00:00.000Z",
@@ -141,13 +147,19 @@ function checkpoint(reviewedPlan: PoolBackfillPlan, throughStep: number): Backfi
 }
 
 describe("one-shot pool backfill entrypoint", () => {
+  it("stops only on a confirmed ownerOf revert, not RPC failure", () => {
+    expect(isContractCallRevert({ code: "CALL_EXCEPTION" })).toBe(true);
+    expect(isContractCallRevert({ code: "NETWORK_ERROR" })).toBe(false);
+    expect(isContractCallRevert(new Error("timeout"))).toBe(false);
+  });
+
   it("registers every pool while paused and emits unpause as the final separate boundary", () => {
     const enumeration = gardens();
     const transactions = buildBackfillTransactions({
       module: address(1),
       rootGarden: enumeration[0].garden,
       gardens: enumeration,
-      startingSafeNonce: 41,
+      startingNonce: 41,
     });
 
     expect(transactions).toHaveLength(19);
@@ -156,14 +168,14 @@ describe("one-shot pool backfill entrypoint", () => {
       kind: "REGISTER_PROTOCOL",
       garden: enumeration[0].garden,
       tokenId: 0,
-      safeNonce: 41,
+      nonce: 41,
     });
     expect(moduleInterface.decodeFunctionData("registerPool", transactions[0].data)).toEqual([
       enumeration[0].garden,
       1n,
     ]);
     for (const transaction of transactions.slice(0, -1)) expect(transaction.kind).not.toBe("UNPAUSE");
-    expect(transactions.at(-1)).toMatchObject({ index: 19, kind: "UNPAUSE", safeNonce: 59 });
+    expect(transactions.at(-1)).toMatchObject({ index: 19, kind: "UNPAUSE", nonce: 59 });
     expect(moduleInterface.decodeFunctionData("setPaused", transactions.at(-1)!.data)).toEqual([false]);
   });
 
@@ -174,7 +186,7 @@ describe("one-shot pool backfill entrypoint", () => {
         module: address(1),
         rootGarden: enumeration[0].garden,
         gardens: enumeration.slice(0, 17),
-        startingSafeNonce: 0,
+        startingNonce: 0,
       }),
     ).toThrow("Expected exactly 18 gardens");
 
@@ -185,7 +197,7 @@ describe("one-shot pool backfill entrypoint", () => {
         module: address(1),
         rootGarden: duplicate[0].garden,
         gardens: duplicate,
-        startingSafeNonce: 0,
+        startingNonce: 0,
       }),
     ).toThrow("duplicate");
   });
@@ -202,7 +214,7 @@ describe("one-shot pool backfill entrypoint", () => {
         candidate.transactions[1].data = moduleInterface.encodeFunctionData("setPaused", [false]);
       },
       (candidate) => {
-        candidate.transactions[1].safeNonce += 1;
+        candidate.transactions[1].nonce += 1;
       },
       (candidate) => {
         candidate.transactions[1].to = address(999);
@@ -256,6 +268,102 @@ describe("one-shot pool backfill entrypoint", () => {
     expect(() => validateCheckpointPrefix(changedGarden, canonical, 19)).toThrow("differs from the reviewed plan");
   });
 
+  it("rejects unpause when any live pool is missing or differs from its receipt-backed checkpoint", () => {
+    const canonical = plan();
+    const complete = checkpoint(canonical, 18);
+    const snapshots = canonical.transactions.slice(0, -1).map((transaction) => ({
+      garden: transaction.garden!,
+      poolId: String(transaction.index),
+      poolGarden: transaction.garden!,
+      poolType: transaction.kind === "REGISTER_PROTOCOL" ? 1 : 0,
+      ...(transaction.kind === "REGISTER_PROTOCOL" ? { protocolPoolId: String(transaction.index) } : {}),
+    }));
+
+    expect(() => validateRegisteredPoolSnapshots(canonical, complete, snapshots)).not.toThrow();
+    expect(() => validateRegisteredPoolSnapshots(canonical, complete, snapshots.slice(0, -1))).toThrow(
+      "requires 18 exact live pools",
+    );
+    const wrongPoolId = structuredClone(snapshots);
+    wrongPoolId[1].poolId = "999";
+    expect(() => validateRegisteredPoolSnapshots(canonical, complete, wrongPoolId)).toThrow("differs from checkpoint");
+  });
+
+  it("rereads every completed registration receipt before unpause", async () => {
+    const canonical = plan();
+    canonical.authority = "DEPLOYER";
+    canonical.owner = address(2);
+    const complete = checkpoint(canonical, 18);
+    const transactions = new Map(
+      canonical.transactions.slice(0, -1).map((boundary, index) => [
+        complete.completed[index].transactionHash,
+        {
+          from: canonical.owner,
+          to: boundary.to,
+          data: boundary.data,
+          value: 0n,
+          nonce: boundary.nonce,
+        },
+      ]),
+    );
+    const receipts = new Map(
+      complete.completed.map((evidence) => [
+        evidence.transactionHash,
+        { status: 1, blockNumber: evidence.blockNumber },
+      ]),
+    );
+    const provider = {
+      getTransaction: async (hash: string) => transactions.get(hash),
+      getTransactionReceipt: async (hash: string) => receipts.get(hash),
+    } as unknown as JsonRpcProvider;
+
+    await expect(verifyRegistrationReceiptPrefix(provider, canonical, complete)).resolves.toBeUndefined();
+    receipts.get(complete.completed[4].transactionHash)!.blockNumber += 1;
+    await expect(verifyRegistrationReceiptPrefix(provider, canonical, complete)).rejects.toThrow(
+      "receipt differs for boundary 5",
+    );
+  });
+
+  it("replays every registration receipt and current pool ID for a completed unpause", async () => {
+    const canonical = plan();
+    canonical.authority = "DEPLOYER";
+    canonical.owner = address(2);
+    const complete = checkpoint(canonical, 19);
+    const transactions = new Map(
+      canonical.transactions.slice(0, -1).map((boundary, index) => [
+        complete.completed[index].transactionHash,
+        {
+          from: canonical.owner,
+          to: boundary.to,
+          data: boundary.data,
+          value: 0n,
+          nonce: boundary.nonce,
+        },
+      ]),
+    );
+    const receipts = new Map(
+      complete.completed
+        .slice(0, -1)
+        .map((evidence) => [evidence.transactionHash, { status: 1, blockNumber: evidence.blockNumber }]),
+    );
+    const provider = {
+      getTransaction: async (hash: string) => transactions.get(hash),
+      getTransactionReceipt: async (hash: string) => receipts.get(hash),
+    } as unknown as JsonRpcProvider;
+    const snapshots = canonical.transactions.slice(0, -1).map((transaction) => ({
+      garden: transaction.garden!,
+      poolId: String(transaction.index),
+      poolGarden: transaction.garden!,
+      poolType: transaction.kind === "REGISTER_PROTOCOL" ? 1 : 0,
+      ...(transaction.kind === "REGISTER_PROTOCOL" ? { protocolPoolId: String(transaction.index) } : {}),
+    }));
+
+    await expect(verifyCompletedBackfillEvidence(provider, canonical, complete, snapshots)).resolves.toBeUndefined();
+    receipts.get(complete.completed[7].transactionHash)!.blockNumber += 1;
+    await expect(verifyCompletedBackfillEvidence(provider, canonical, complete, snapshots)).rejects.toThrow(
+      "receipt differs for boundary 8",
+    );
+  });
+
   it("rejects a recovery receipt that attaches native value to the Safe", () => {
     const reviewedPlan = plan();
     const transaction = {
@@ -269,6 +377,37 @@ describe("one-shot pool backfill entrypoint", () => {
     );
   });
 
+  it("binds direct deployer receipts to the reviewed sender, target, calldata, nonce, and zero value", () => {
+    const reviewedPlan = plan();
+    const boundary = reviewedPlan.transactions[0];
+    const transaction = {
+      from: reviewedPlan.owner,
+      to: boundary.to,
+      value: 0n,
+      data: boundary.data,
+      nonce: boundary.nonce,
+    } as TransactionResponse;
+
+    expect(() => validateDeployerExecution(transaction, boundary, reviewedPlan.owner)).not.toThrow();
+    expect(() =>
+      validateDeployerExecution({ ...transaction, value: 1n } as TransactionResponse, boundary, reviewedPlan.owner),
+    ).toThrow("may not attach native value");
+    expect(() =>
+      validateDeployerExecution(
+        { ...transaction, from: address(999) } as TransactionResponse,
+        boundary,
+        reviewedPlan.owner,
+      ),
+    ).toThrow("sender differs");
+    expect(() =>
+      validateDeployerExecution(
+        { ...transaction, nonce: boundary.nonce + 1 } as TransactionResponse,
+        boundary,
+        reviewedPlan.owner,
+      ),
+    ).toThrow("calldata or nonce differs");
+  });
+
   it("documents only Bun operator entrypoints", () => {
     const output = execFileSync("bun", [scriptPath, "--help"], { encoding: "utf8" });
     expect(output).toContain("bun script/deploy/backfill-pools.ts");
@@ -276,13 +415,11 @@ describe("one-shot pool backfill entrypoint", () => {
     expect(output).not.toMatch(/(?:^|\n)\s*cast\s/mu);
   });
 
-  it("fails closed before RPC when a release boundary lacks its reviewed evidence", () => {
+  it("fails closed before RPC when a release boundary lacks its reviewed plan and step", () => {
     const result = spawnSync("bun", [scriptPath, "--network", "arbitrum", "--broadcast", "--override-sepolia-gate"], {
       encoding: "utf8",
     });
     expect(result.status).toBe(1);
-    expect(`${result.stdout}${result.stderr}`).toContain(
-      "requires --plan, --step, --expected-safe-nonce, and --receipt",
-    );
+    expect(`${result.stdout}${result.stderr}`).toContain("requires --plan and --step");
   });
 });

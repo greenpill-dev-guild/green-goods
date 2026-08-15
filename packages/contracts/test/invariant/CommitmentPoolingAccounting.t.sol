@@ -66,7 +66,8 @@ contract CommitmentPoolingAccountingInvariantTest is CommitmentPoolingFixture {
         _targetedContracts.push(address(handler));
     }
 
-    // ═════════════════════ 1. Class quota and single-shot units ═════════════════════
+    // ═════════════════════ 1. Class quota and single-shot units
+    // ═════════════════════
 
     /// @notice Committed plus fulfilled units never exceed the class quota, and units convert
     ///         exactly once.
@@ -127,7 +128,8 @@ contract CommitmentPoolingAccountingInvariantTest is CommitmentPoolingFixture {
         }
     }
 
-    // ═════════════════════ 2. Provider open-commitment count ═════════════════════
+    // ═════════════════════ 2. Provider open-commitment count
+    // ═════════════════════
 
     /// @notice `providerOpenCommitmentCount` equals the number of classes where that account
     ///         actually holds committed units.
@@ -151,7 +153,8 @@ contract CommitmentPoolingAccountingInvariantTest is CommitmentPoolingFixture {
         }
     }
 
-    // ═════════════════════ 3. Pool and cycle live counts ═════════════════════
+    // ═════════════════════ 3. Pool and cycle live counts
+    // ═════════════════════
 
     /// @notice Pool and cycle live counts equal the number of non-terminal commitments.
     /// @dev Disputed counts as live, including a dispute raised on an already-Expired commitment:
@@ -177,7 +180,8 @@ contract CommitmentPoolingAccountingInvariantTest is CommitmentPoolingFixture {
         assertEq(module.getCycle(invariantCycleId).liveCommitmentCount, liveInCycle, "cycle live count drifted");
     }
 
-    // ═════════════════════ 4. Contributor credit accounting ═════════════════════
+    // ═════════════════════ 4. Contributor credit accounting
+    // ═════════════════════
 
     /// @notice `eligibleContributorCount` and `totalVerifiedCredits` agree with the per-contributor
     ///         records.
@@ -207,7 +211,8 @@ contract CommitmentPoolingAccountingInvariantTest is CommitmentPoolingFixture {
         }
     }
 
-    // ═════════════════════ 5. Frozen roster immutability ═════════════════════
+    // ═════════════════════ 5. Frozen roster immutability
+    // ═════════════════════
 
     /// @notice Once frozen, a roster's size and credit totals never change again.
     /// @dev Scope note, verified 2026-08-06. `CommitmentPoolingProof.onWorkDecision` also short-
@@ -255,7 +260,8 @@ contract CommitmentPoolingAccountingInvariantTest is CommitmentPoolingFixture {
         }
     }
 
-    // ═════════════════════ Coverage guard ═════════════════════
+    // ═════════════════════ Coverage guard
+    // ═════════════════════
 
     /// @notice The handler can actually reach every state the invariants above are about.
     /// @dev Not expressible as an invariant — nothing exists at run start, so the assertions would
@@ -351,12 +357,7 @@ contract CommitmentPoolingAccountingInvariantTest is CommitmentPoolingFixture {
         module.openCycle(
             cycleId,
             ICommitmentPoolingModule.AllocationBps({
-                gardeners: 6000,
-                treasury: 1500,
-                operator: 1000,
-                evaluator: 500,
-                community: 500,
-                funder: 500
+                gardeners: 6000, treasury: 1500, operator: 1000, evaluator: 500, community: 500, funder: 500
             }),
             ICommitmentPoolingModule.RecognitionPolicy({ equalParticipationBps: 2000, verifiedContributionBps: 8000 })
         );

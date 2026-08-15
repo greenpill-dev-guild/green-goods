@@ -125,11 +125,13 @@ contract DeployGoodsProject is Script {
 
         vm.startBroadcast();
 
-        // ─── Step 1: Create Juicebox Project ─────────────────────────────
+        // ─── Step 1: Create Juicebox Project
+        // ─────────────────────────────
         projectId = _launchProject(controller, terminal, multisig, airdropPool, operatorPool, devPool);
         console.log("GOODS project created with ID:", projectId);
 
-        // ─── Step 2: Deploy GOODS ERC-20 ─────────────────────────────────
+        // ─── Step 2: Deploy GOODS ERC-20
+        // ─────────────────────────────────
         IJBToken token = controller.deployERC20For(
             projectId,
             "Green Goods",
@@ -139,7 +141,8 @@ contract DeployGoodsProject is Script {
         goodsToken = address(token);
         console.log("GOODS token deployed at:", goodsToken);
 
-        // ─── Step 3: Bootstrap — Seed Payment ────────────────────────────
+        // ─── Step 3: Bootstrap — Seed Payment
+        // ────────────────────────────
         if (msg.sender.balance >= SEED_PAYMENT_AMOUNT) {
             terminal.pay{ value: SEED_PAYMENT_AMOUNT }(
                 projectId,
@@ -155,7 +158,8 @@ contract DeployGoodsProject is Script {
             console.log("Insufficient balance for seed payment, skipping");
         }
 
-        // ─── Step 4: Bootstrap — Free Mint Buffer ────────────────────────
+        // ─── Step 4: Bootstrap — Free Mint Buffer
+        // ────────────────────────
         // Requires allowOwnerMinting = true in ruleset metadata
         uint256 minted = controller.mintTokensOf(
             projectId,
@@ -168,7 +172,8 @@ contract DeployGoodsProject is Script {
 
         vm.stopBroadcast();
 
-        // ─── Step 5: Save Deployment Artifacts ───────────────────────────
+        // ─── Step 5: Save Deployment Artifacts
+        // ───────────────────────────
         _saveArtifacts();
     }
 
@@ -253,7 +258,7 @@ contract DeployGoodsProject is Script {
             metadata: metadata,
             splitGroups: splitGroups,
             fundAccessLimitGroups: new JBFundAccessLimitGroup[](0) // No payout limits
-         });
+        });
 
         // Build terminal config (accept native ETH)
         JBAccountingContext[] memory accountingContexts = new JBAccountingContext[](1);
@@ -261,7 +266,7 @@ contract DeployGoodsProject is Script {
             token: JB_NATIVE_TOKEN,
             decimals: 18,
             currency: 0 // ETH
-         });
+        });
 
         JBTerminalConfig[] memory terminalConfigs = new JBTerminalConfig[](1);
         terminalConfigs[0] = JBTerminalConfig({ terminal: terminal, accountingContextsToAccept: accountingContexts });

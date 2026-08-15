@@ -5,13 +5,17 @@ import { spawnSync } from "node:child_process";
 import { getCreateAddress, Interface, keccak256 } from "ethers";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
+  buildCastJsonArgs,
+  buildUpgradeBoundarySendArgs,
   findLatestUpgradeArtifactIn,
+  isAddressOrZero,
   type PersistedUpgradePlan,
   type UpgradeCheckpoint,
   UPGRADE_TRANSACTION_BOUNDARY_RULE,
   validateReleaseOwnedUpgradePlan,
   validateUpgradeCheckpointPrefix,
 } from "../upgrade";
+import { buildReadOnlyCastEnv } from "./cast-env";
 import type { ReleaseLock, ReleaseManifest } from "./release-manifest";
 
 describe("upgrade transaction plan artifact discovery", () => {
@@ -59,6 +63,55 @@ describe("upgrade transaction plan artifact discovery", () => {
 });
 
 describe("upgrade operator entrypoint", () => {
+  it("accepts zero as a readable pre-wiring address without treating it as configured", () => {
+    expect(isAddressOrZero("0x0000000000000000000000000000000000000000")).toBe(true);
+    expect(isAddressOrZero("0x0000000000000000000000000000000000000001")).toBe(true);
+    expect(isAddressOrZero("0x0")).toBe(false);
+  });
+
+  it("keeps the password lease out of read-only cast commands", () => {
+    expect(
+      buildReadOnlyCastEnv({
+        ETH_PASSWORD: "/tmp/private-password-file",
+        FOUNDRY_KEYSTORE_ACCOUNT: "green-goods-deployer",
+        RPC_MARKER: "preserved",
+      }),
+    ).toEqual({ FOUNDRY_KEYSTORE_ACCOUNT: "green-goods-deployer", RPC_MARKER: "preserved" });
+  });
+
+  it("places every cast option before the raw CREATE subcommand", () => {
+    const sendArgs = buildUpgradeBoundarySendArgs(
+      {
+        index: 0,
+        from: "0x0000000000000000000000000000000000000001",
+        to: null,
+        nonce: "899",
+        value: "0",
+        data: "0x1234",
+        contractAddress: "0x0000000000000000000000000000000000000002",
+        function: null,
+      },
+      "42161",
+      899,
+      "green-goods-deployer",
+    );
+
+    expect(buildCastJsonArgs(sendArgs, "https://arb.example")).toEqual([
+      "send",
+      "--rpc-url",
+      "https://arb.example",
+      "--json",
+      "--chain",
+      "42161",
+      "--nonce",
+      "899",
+      "--account",
+      "green-goods-deployer",
+      "--create",
+      "0x1234",
+    ]);
+  });
+
   it("requires an explicit sender before a transaction plan can touch RPC", () => {
     const result = spawnSync(
       "bun",

@@ -18,7 +18,9 @@ library CommitmentPoolingSeriesLib {
         CommitmentPoolingCommonLib.Env memory env,
         mapping(uint256 poolId => ICommitmentPoolingModule.Pool pool) storage pools,
         mapping(uint256 seriesId => ICommitmentPoolingModule.CommitmentSeries series) storage commitmentSeries,
-        mapping(address holder => mapping(bytes32 creationRequestKey => uint256 seriesId)) storage seriesIdByCreationRequest,
+        mapping(
+            address holder => mapping(bytes32 creationRequestKey => uint256 seriesId)
+        ) storage seriesIdByCreationRequest,
         uint256 nextCommitmentSeriesIdValue,
         uint256 poolId,
         bytes32 creationRequestKey,
@@ -135,7 +137,8 @@ library CommitmentPoolingSeriesLib {
         }
     }
 
-    // ═════════════════════════════ Internal ═════════════════════════════
+    // ═════════════════════════════ Internal
+    // ═════════════════════════════
 
     function _requireSeriesHolder(
         mapping(uint256 seriesId => ICommitmentPoolingModule.CommitmentSeries series) storage commitmentSeries,

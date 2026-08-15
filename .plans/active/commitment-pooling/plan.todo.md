@@ -4,7 +4,7 @@
 **Stage**: `active`
 **Status**: `ACTIVE: Offer once/over-time architecture remains the initial implementation scope, and the full Commitment Pooling compatibility boundary is now frozen pre-code: promise instance, ongoing Offer series, and future voucher class stay distinct; fulfilled backing precedes capacity backing; one bounded pool precedes federation; G$ support remains separate from redemption. The canonical six-tab Google Doc prose reconciliation is complete, accepted, and verified after reload. Live gallery republication and every image replacement/insertion remain manual publication steps. Contracts (PRD-721, dispatched 2026-08-05) and settlement (dispatched 2026-08-08) are in progress per status.json, with the pooling module and settlement contracts merged to develop — the 2026-08-10 audit verified all prototype-declared calls exist on-chain under exact names (58 including register #97's `acceptExchange`). Indexer carries the settlement/payout half only (no core pooling entities yet); state-api, ui-client, ui-admin, and editorial remain unstarted. Value release, Safe authority, audit, canary, and external evidence remain separately blocked`
 **Created**: `2026-07-03`
-**Last Updated**: `2026-08-11`
+**Last Updated**: `2026-08-13`
 
 Linear mirror: project [Commitment Pooling](https://linear.app/greenpill-dev-guild/project/commitment-pooling-4bc53572f354). Native phases: **Scope and Design** (2026-07-22), **Build** (2026-07-31), **Release** (2026-08-12), and **Follow On / Hardening** (2026-09-30). Operational checkpoints are separate: July dry run (2026-07-31) and Community plus settlement-evidence delivery (2026-09-30). **The full document map is the next section.** Community-specific diagrams, wireframes, journeys, and research operations live in `.plans/active/community-interface/`. The 2026-07-10/11 reconciliation, PRD-686/RESR-57 predicate, and null PRD-651/697 dates were live-verified historical state; current Linear convergence must be reread before any write. **Fourth-garden policy (Decision Log #29, 2026-07-18 — supersedes Decision Log #25 and Decision Log #27): no fourth garden is selected.** The slot is open, candidates are under consideration, and **no artifact names one**. The three named gardens cover all four action domains on their own. The earlier Decision Log #25→Decision Log #26→Decision Log #27 naming sequence is closed history; do not re-apply it.
 
@@ -14,8 +14,8 @@ Linear mirror: project [Commitment Pooling](https://linear.app/greenpill-dev-gui
 
 ## Document map
 
-Every file in this hub, by role — **151 files**: 22 at the hub root, 42 under `artifacts/`,
-22 under `handoffs/`, 18 under `hifi/`, 20 under `operations/`, and 28 under `reports/`.
+Every file in this hub, by role — **159 files**: 24 at the hub root, 42 under `artifacts/`,
+22 under `handoffs/`, 19 under `hifi/`, 20 under `operations/`, and 32 under `reports/`.
 **This list is the index — if you add a document here, add its row.** Root files each get their own
 row; the five subtrees get one row apiece naming their own in-tree index, because the row for a
 subtree is only honest if that index actually enumerates the tree (this failed review on
@@ -28,6 +28,7 @@ subtree is only honest if that index actually enumerates the tree (this failed r
 | `standing-commitments-spec.md` | Offer once or Offer over time → pool-scoped internal `CommitmentSeries` for the ongoing path → finite Offer instances → linked Story; honest availability, persistence, trust, succession, and artifact ownership | **Ongoing-Offer architecture source of truth** |
 | `contract-spec.md` | Pooling module + register: state machines, events, §6.1 permission matrix | **Contract-layer source of truth** |
 | `settlement-spec.md` | G$ split-state settlement: Arbitrum CCIP command module, bounded Celo executor, acknowledgment, Safe authority, AA gate | **Settlement transport + execution source of truth** |
+| `erc6551-garden-safe-owner-spike.md` | Fork-only proof of a foreign-chain Garden ERC-6551 account as one threshold-2 Celo Safe owner alongside nested recovery Safes, plus the two production gates | **Spike evidence only; no production owner-set or deployment authority** |
 | `exchange-architecture-brief.md` | Full follow-on architecture: three-identity compatibility boundary, versioned adapter/router, fulfilled then capacity backing, class/issuance/seed/exchange/redemption/repair, one-pool proof, Sarafu-pool hybrid, and federation gates | **Design only; implementation and activation remain gated** |
 | `member-funded-claims-brief.md` | Option-B design for the circulation loop: member claim-requests on priced Offers, garden-Safe-held deposits, refund disbursements on terminal non-fulfillment, delta inventory + sizing | **Draft for discussion (2026-08-11); no decision registered, no code authorized** |
 | `pilot-evidence-spec.md` | September pilot evaluation: claim hierarchy, baselines, metric registry, coercion/exposure/repair safeguards, circulation integrity, privacy, and reporting gates | **Pilot-evidence and outcome-claim source of truth; no implementation authority** |
@@ -66,7 +67,7 @@ subtree is only honest if that index actually enumerates the tree (this failed r
 | `status.json` | Machine state for the plan harness | Machine lanes |
 | `handoffs/` (22 files) | Per-lane dispatch files. **`handoffs/README.md` § File index enumerates all 22**; `fable-phase-a-release-review.md` owns the final pre-Phase-B independent review prompt, `claude-full-pooling-visual-docs.md` owns the additive hand-drawn Story and canonical Google Doc pass, `human-release-ops.md` owns broadcast/cutover authorization, and `human-settlement-evidence.md` owns the September operational-assignment gate | Per-lane dispatch |
 | `artifacts/visuals/` (42 files) | The 21 hand-crafted SVG assets and their 2x PNG upload companions. **`visual-assets.md` is the per-asset index** — it names every file, its Google Doc placement, and what it must show. Nothing here is generated by a build script; each pair is authored | Published audience graphics |
-| `hifi/` (18 files) | Executable hi-fi screen registry consumed by `prototypes-artifact.build.ts`: `screens/{client,client-wallet,admin,settlement,exchange,public,index}.ts` plus `journeys.ts`, `validate.ts`, `types.ts`, `fixtures.ts`, `tokens.ts`, `player.ts`, `html.ts`, `ascii.ts`, `icons.ts`, `kit.ts`, `legacy.ts`. The closure validator asserts directly against `screens/client.ts`, `screens/admin.ts`, `screens/settlement.ts`, `journeys.ts`, `types.ts`, and `validate.ts` | **Executable state/journey truth for the prototypes** |
+| `hifi/` (19 files) | Executable hi-fi screen registry consumed by `prototypes-artifact.build.ts`: `screens/{client,client-wallet,admin,settlement,exchange,funding,public,index}.ts` plus `journeys.ts`, `validate.ts`, `types.ts`, `fixtures.ts`, `tokens.ts`, `player.ts`, `html.ts`, `ascii.ts`, `icons.ts`, `kit.ts`, `legacy.ts`. The closure validator asserts directly against `screens/client.ts`, `screens/admin.ts`, `screens/settlement.ts`, `journeys.ts`, `types.ts`, and `validate.ts` | **Executable state/journey truth for the prototypes** |
 | `operations/` (20 files) | Live-chain operational evidence, one directory per operation. `steward-hat-relabel/` holds the PRD-748 Steward relabel: `README.md` (its own index), the `prepare.ts` / `relabel.ts` / `refresh-direct-plan.ts` scripts, dated `preflight-*` / `steward-upgrade-baseline-*` / `direct-admin-plan-*` / `execution-partitions-*` JSON captures keyed by chain and block, plus `preflight-findings.md`, `upgrade-plan-review.md`, and `post-execution-evidence.md` | **Dated operational evidence — captures are immutable** |
 
 **Published artifacts** (rebuilt from this hub, same URLs on each rebuild):
@@ -907,6 +908,100 @@ Known mis-resolutions fixed in place: `contract-spec.md` §Grassroots-Economics-
     B, final `destinationGasLimit`, or value-authority blockers; and it does not extend the pinned
     range to later build/test optimization commits.
 
+106. Protocol ownership transfer is deferred beyond this release, while the paused pool backfill
+    remains in the current release (2026-08-12, Afo decision; supersedes register #99 only where it
+    coupled ownership transfer and backfill into one later ceremony). The frozen deployment sender
+    remains the temporary `CommitmentPoolingModule` owner and may execute the exact reviewed
+    Arbitrum registration sequence directly: owner-only Protocol registration for the canonical
+    root token 0 first, followed by the other seventeen Garden registrations, with the module
+    paused throughout. The deployer path must use one password entry, one resumable command,
+    one direct zero-value transaction per boundary, fresh nonce checks, contiguous receipt-backed
+    checkpoints, finalized inventory and implementation checks, and the same root-first plan
+    reconstruction used by the Safe path. It must stop after registration boundary 18. Unpause is
+    a separate command that is unavailable until all eighteen receipts and pool IDs verify. This
+    decision grants no agent broadcast, ownership transfer, peer wiring, Safe/Zodiac value
+    authority, value movement, message-only ping, canary, cap increase, or indexer activation.
+    The protocol Safe remains the approved later owner, and its transfer receives its own future
+    review and authorization rather than blocking this release's paused registration backfill.
+
+107. The Garden ERC-6551 account may replace the named Garden recovery delegate in the future
+    Celo Garden Safe owner set only after a bounded fork spike (2026-08-12, Afo authorization).
+    The spike is specified in `erc6551-garden-safe-owner-spike.md` and must separate deterministic
+    address derivation, code deployment, foreign-account execution, source authentication, Safe
+    threshold behavior, replay safety, and recovery. The production owner set does not change in
+    this decision. The current three-recovery-owner design remains canonical unless the exact
+    same-address implementation and a Garden-bound cross-chain executor both pass their gates.
+    The spike may add plan evidence and fork tests only; it authorizes no production Safe/Zodiac
+    transaction, trusted-executor mutation, value authority, value movement, peer wiring, canary,
+    settlement ABI/storage change, or ownership transfer.
+
+108. Garden Safe addresses may be bootstrapped before the final Garden-controlled owner is ready
+    (2026-08-12, Afo authorization; temporary exception to register #107's unchanged deployment
+    owner set, without authorizing value). Each participating Garden Safe starts as exactly
+    1-of-2: the frozen deployment EOA plus the existing Celo Garden recovery Safe at
+    `0x49fa954B6C2Cd14B4b3604EF1Cc17cED20a9E42C`, live-verified as a module-free 2-of-3 Safe.
+    Bootstrap Safes must remain empty and have no guard, module, Zodiac role, executor authority,
+    G$, or other value. A resumable Bun-wrapped script derives all eighteen addresses from the
+    reviewed Garden inventory, deploys them through the pinned Safe v1.4.1 factory/singleton, and
+    later replaces the deployment EOA with an exact reviewed per-Garden owner through one
+    `swapOwner` Safe transaction per Garden. Every replacement owner must be unique to one Garden.
+    The bootstrap must have nonce zero and the swapped state nonce one; the swap must verify the
+    predecessor, nonce, owner set, threshold, zero balance, and zero modules before execution and reread the resulting owner
+    set afterward. After all eighteen swaps verify, the durable deployment artifact must replace
+    the temporary EOA owner policy with the final per-Garden owner sets and retain both deployment
+    and swap receipt evidence. Bootstrap or swap completion does not activate settlement: the
+    canonical final owner threshold, Garden-bound authentication, Roles permissions, caps, peer wiring, funding,
+    and value canary remain separate review and authorization gates. No broadcast is authorized by
+    this planning decision alone. **Evidence clarification (2026-08-14):** generic EVM token
+    holdings cannot be enumerated from a Safe address. The script proves and records only zero
+    native balance, zero canonical G$ balance, no modules, and no guard; it explicitly records
+    arbitrary ERC-20/ERC-721/ERC-1155 inventory as not enumerated and must not describe that
+    bounded check as proof that the Safe contains no other assets. Any later value-authority
+    activation requires its own reviewed asset-inventory evidence.
+
+109. Mainnet release gates are risk-tiered rather than one all-or-nothing checklist (2026-08-14,
+    Afo decision; supersedes register #78 only as the living activation rule and preserves its
+    historical record). Every boundary retains the common test, explicit-human-authorization,
+    selected-review, receipt/post-state, and tested-rollback floor. A paused deployment with no
+    peer, role, allowance, custody, transfer, or value authority is tier 1. A non-custodial,
+    non-transferable coordination activation with every value dependency paused or disabled is
+    tier 2; temporary ownership is permitted only with explicit accountable-owner risk acceptance,
+    exact current and rollback-owner verification, emergency pause, and no unresolved
+    Critical/High finding in the selected committed-range review. Custody, transferability, peer
+    wiring, allowances, value movement, or any exercise of protocol upgrade/administrative
+    authority other than emergency pause is tier 3 and
+    requires the protocol Safe threshold/owner policy plus the external-audit, timelock, and soak
+    defaults. A human release owner may replace or waive an audit, timelock, or soak default only
+    through an explicit dated, release-scoped disposition that names substitute evidence. No
+    agent, passing test, or deployment artifact grants a waiver. Per-garden Celo settlement Safes
+    and settlement value authority are always tier 3. The current pooling activation is accepted
+    only as tier 2 while the deployment-sender owner key is passively retained under the explicit
+    temporary-owner risk acceptance and SettlementModule, CeloSettlementExecutor, peer wiring,
+    Safe/Zodiac value authority, and value movement remain paused or disabled. The retained owner
+    may emergency-pause Pooling, but any upgrade or other administrative mutation requires a new
+    tier-3 gate.
+
+110. Completed release ceremonies are retired rather than kept as replayable batch broadcasts
+    (2026-08-14, Afo quickest-safe-route authorization). The finished core deployment, root-first
+    18-pool backfill, and separate Pooling unpause orchestrators plus their placeholder authorization
+    files are removed; their receipt artifacts, recovery entrypoints, and read-only verifiers remain.
+    The remaining credential operator is limited to one explicitly selected Garden Safe bootstrap
+    or owner-swap boundary per password session. Each invocation verifies the complete checkpoint
+    prefix, exact receipt block, live dependency identities, and the independently read exact
+    module-free 2-of-3 recovery Safe before accepting the step. No peer wiring, Safe/Zodiac value
+    authority, ownership transfer, or value movement is added by this retirement.
+
+111. The deployed Celo executor's initialized source peer is a completed tier-3 configuration
+    boundary (2026-08-14 classification correction). Its initializer pinned the nonzero Arbitrum
+    selector and SettlementModule address, and the release verifier requires that exact peer, so
+    current-state documents must not describe peer wiring as pending or disabled. This correction
+    does not reclassify the separately authorized Commitment Pooling unpause, which remains tier 2.
+    SettlementModule and CeloSettlementExecutor remain paused; Safe/Zodiac value authority, ping,
+    canary, caps, and value movement remain blocked behind their own tier-3 authorization and
+    evidence. The owner-confirmed internal committed-range review substitution applies to this
+    release increment, while no agent or artifact waives any still-open ownership or value-
+    activation gate.
+
 **Final recursive certification clarification (2026-07-25; no new decision-register entry):**
 the published `42161`↔`42220` production lane is the only required fully paired
 `SettlementConfiguration`. Arbitrum Sepolia `421614` and Celo Sepolia `11142220` remain
@@ -1014,14 +1109,14 @@ does not begin against moving contracts or indexer queries.
 6. [ ] **Build the indexer backend second (PRD-722):** implement and prove the indexed read model against PRD-721's frozen events, including generation, replay/cutover, block preservation, and query-boundary evidence.
 7. [ ] **Build the state/API backend third (PRD-723):** complete the shared state/API layer against the proven PRD-721 contracts and PRD-722 generated queries. PRD-723 must close before PRD-724, PRD-725, or PRD-726 begins.
 8. [ ] **Human-authorized core activation:** pass local/fork, storage, deploy-dry-run, and post-deploy
-   gates plus every blocking repository requirement: external audit with no unresolved
-   critical/high finding, verified exact protocol Safe ownership satisfying threshold >= 2 and
-   owner count >= 3 for every touched UUPS/admin surface, the recorded timelock/soak disposition,
-   and tested rollback.
-   Only then may a human authorize broadcast of the non-value module/register/schema tier, persist
-   and verify contract artifacts. PRD-722 separately owns the resulting indexer address/start-block
-   change, hosted deployment/reindex, cutover/rollback, and live entity/query read-back. Value-bearing
-   settlement retains its additional CCIP/AA/canary authorization.
+   gates plus the risk tier in register #109. The non-value module/register/schema tier may activate
+   as tier 2 only while it remains non-custodial and non-transferable, every value dependency is
+   paused or disabled, temporary ownership and rollback authority are explicitly accepted and
+   verified, emergency pause remains available, the selected review has no unresolved
+   Critical/High finding, and rollback is tested. PRD-722 separately owns the resulting indexer
+   address/start-block change, hosted deployment/reindex, cutover/rollback, and live entity/query
+   read-back. Protocol authority and value-bearing settlement remain tier 3 and retain their
+   Safe, CCIP/AA, canary, and applicable audit/timelock/soak gates.
 9. [ ] **Existing admin foundation:** resolve PRD-737 and the explicitly scoped admin-console/output defects against verified live backend data. Do not turn this into a redesign or absorb new Commitment Pooling feature implementation.
 10. [ ] **Complete prototype readiness:** PRD-789 is closed after correction, independent review,
     publication, and canonical-URL verification. Close the remaining PRD-760 fixture/chrome
@@ -1343,9 +1438,13 @@ The executable order is:
 7. prove seed, exchange in/out, redemption, liquidity, and repair in one bounded pool; and
 8. consider capacity-backed issuance or federation only through new, separate scope locks.
 
-Every pooling-tier mainnet upgrade, deployment, activation, and unpause is blocked by register
-#78's external-audit, protocol 3-of-5 Safe, 48-hour mainnet timelock, two-week testnet-operation,
-and tested-rollback requirements. G$ split-state settlement is Build-phase scope via
+Mainnet release boundaries follow register #109's risk tiers. Paused/no-authority deployment is
+tier 1; non-custodial and non-transferable pooling coordination may activate as tier 2 only while
+all value dependencies remain paused or disabled and its explicit ownership, review, emergency-
+pause, receipt/post-state, and rollback evidence stays valid. Protocol authority, custody,
+transferability, peer wiring, allowances, and value movement are tier 3 and require the Safe plus
+applicable audit/timelock/soak gates or an explicit dated human disposition naming substitute
+evidence. G$ split-state settlement is Build-phase scope via
 [PRD-686](https://linear.app/greenpill-dev-guild/issue/PRD-686) (`settlement-spec.md`, Decision
 Log #14), targeting the 2026-08-12 Release. Implementation may begin only from its scoped handoff
 after the pooling reward/provider interface freezes; production Safe/Zodiac authority evidence,

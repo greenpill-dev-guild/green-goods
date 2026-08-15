@@ -300,8 +300,9 @@ contract KarmaGAPModuleResetProjectTest is Test {
 
     function setUp() public {
         KarmaGAPModule impl = new KarmaGAPModule();
-        bytes memory initData =
-            abi.encodeWithSelector(KarmaGAPModule.initialize.selector, moduleOwner, gardenTokenAddr, address(0), address(0));
+        bytes memory initData = abi.encodeWithSelector(
+            KarmaGAPModule.initialize.selector, moduleOwner, gardenTokenAddr, address(0), address(0)
+        );
         ERC1967Proxy proxy = new ERC1967Proxy(address(impl), initData);
         module = KarmaGAPModule(address(proxy));
     }

@@ -2,13 +2,17 @@ import { execFileSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { Contract, getAddress, Interface, isAddress, JsonRpcProvider, keccak256 } from "ethers";
+import { buildReadOnlyCastEnv, execCastCaptured, parseCastTransactionHash } from "../utils/cast-env";
 import type { ParsedOptions } from "../utils/cli-parser";
+import { NetworkManager } from "../utils/network";
+import { getFoundryBroadcastPath } from "../utils/paths";
 import {
   mergeReleaseArtifact,
   recoverReleaseArtifact,
   simulateReleaseArtifactMerge,
   writeReleaseJsonAtomic,
 } from "../utils/release-artifacts";
+import { assertSepoliaGate } from "../utils/release-gate";
 import {
   assertManifestMatchesNetworkDirectory,
   buildReleaseLock,
@@ -24,9 +28,7 @@ import {
   buildStageTransactionPlan,
   type ReleaseTransactionBoundary,
 } from "../utils/release-plan";
-import { NetworkManager } from "../utils/network";
-import { getFoundryBroadcastPath } from "../utils/paths";
-import { assertSepoliaGate } from "../utils/release-gate";
+import { retryRpcAvailability } from "../utils/rpc-retry";
 
 const LOCK_PATH = path.join(CONTRACTS_ROOT, "config/commitment-pooling-release.lock.json");
 const GENERATED_ROOT = path.join(CONTRACTS_ROOT, ".generated/release");
@@ -43,6 +45,7 @@ const STAGE_KEYS: Record<ReleaseStage, readonly string[]> = {
     "poolingLibraries",
     "commitmentPoolingModule",
     "commitmentPoolingModuleImpl",
+    "commitmentPoolingModulePaused",
     "commitmentRegistry",
     "commitmentRegistryImpl",
   ],
@@ -58,12 +61,22 @@ const STAGE_TARGET: Record<ReleaseStage, string[]> = {
   "settlement-executor": ["CeloSettlementExecutor"],
 };
 
+const STAGE_RECEIPT_KEY: Partial<Record<ReleaseStage, string>> = {
+  "settlement-module": "settlementModule",
+  "settlement-executor": "celoSettlementExecutor",
+};
+
 function stable(value: unknown): string {
   return `${JSON.stringify(value, null, 2)}\n`;
 }
 
 function writeGenerated(filePath: string, value: unknown): void {
   writeReleaseJsonAtomic(filePath, value as Record<string, unknown>);
+}
+
+function readReleaseArtifactIfPresent(filePath: string): Record<string, unknown> {
+  if (!fs.existsSync(filePath)) return {};
+  return JSON.parse(fs.readFileSync(filePath, "utf8")) as Record<string, unknown>;
 }
 
 export interface ReleaseCheckpoint {
@@ -134,6 +147,12 @@ function assertBoundaryEvidence(
   if (Number.isNaN(Date.parse(evidence.verifiedAt))) throw new Error(`${label} has no valid verification time`);
 }
 
+export function assertCheckpointReceiptBlock(storedBlock: number, receiptBlock: number, label: string): void {
+  if (storedBlock !== receiptBlock) {
+    throw new Error(`${label} checkpoint block ${storedBlock} does not match verified receipt block ${receiptBlock}`);
+  }
+}
+
 export function validateOwnershipCheckpointPrefix(
   checkpoint: OwnershipCheckpoint,
   plan: OwnershipTransferPlan,
@@ -185,12 +204,43 @@ export function validateReleaseCheckpointPrefix(
       evidence.index !== index + 1 ||
       evidence.label !== boundary.label ||
       !Number.isSafeInteger(evidence.expectedNonce) ||
-      evidence.expectedNonce < 0
+      evidence.expectedNonce < 0 ||
+      (boundary.nonce !== undefined && evidence.expectedNonce !== boundary.nonce)
     ) {
       throw new Error("Release checkpoint is not one contiguous reviewed prefix");
     }
     assertBoundaryEvidence(evidence, `Release checkpoint boundary ${evidence.index}`);
   }
+}
+
+export function retryPostStateVerification(
+  verify: () => void,
+  options: {
+    attempts?: number;
+    wait?: (milliseconds: number) => void;
+    onRetry?: (attempt: number, error: unknown) => void;
+  } = {},
+): void {
+  const attempts = options.attempts ?? 6;
+  if (!Number.isSafeInteger(attempts) || attempts < 1) throw new Error("Post-state verifier requires an attempt");
+  const wait =
+    options.wait ??
+    ((milliseconds: number) => {
+      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, milliseconds);
+    });
+  let lastError: unknown;
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    try {
+      verify();
+      return;
+    } catch (error) {
+      lastError = error;
+      if (attempt === attempts) break;
+      options.onRetry?.(attempt, error);
+      wait(2_000);
+    }
+  }
+  throw lastError;
 }
 
 const ownableInterface = new Interface([
@@ -204,13 +254,42 @@ function readDeployment(chainId: string): Record<string, unknown> {
   return JSON.parse(fs.readFileSync(filePath, "utf8")) as Record<string, unknown>;
 }
 
+export function releaseReceiptForIndexer(
+  deployment: Record<string, unknown>,
+  contract: "settlementModule" | "celoSettlementExecutor",
+): { transactionHash: string; blockNumber: number } {
+  const receipts = deployment.releaseReceipts;
+  const receipt =
+    receipts && typeof receipts === "object" && !Array.isArray(receipts)
+      ? (receipts as Record<string, unknown>)[contract]
+      : undefined;
+  if (!receipt || typeof receipt !== "object" || Array.isArray(receipt)) {
+    throw new Error(`Canonical deployment artifact has no ${contract} proxy receipt`);
+  }
+  const { transactionHash, blockNumber } = receipt as Record<string, unknown>;
+  if (
+    typeof transactionHash !== "string" ||
+    !/^0x[0-9a-f]{64}$/iu.test(transactionHash) ||
+    typeof blockNumber !== "number" ||
+    !Number.isSafeInteger(blockNumber) ||
+    blockNumber <= 0
+  ) {
+    throw new Error(`Canonical ${contract} proxy receipt is invalid`);
+  }
+  return { transactionHash, blockNumber };
+}
+
 function identity(lock: ReleaseLock, name: string, kind: "implementation" | "proxy") {
   const result = lock.identities.find((candidate) => candidate.name === name && candidate.kind === kind);
   if (!result) throw new Error(`Release lock has no ${kind} identity for ${name}`);
   return result;
 }
 
-function predictedSide(lock: ReleaseLock, stage: ReleaseStage): Record<string, unknown> {
+export function predictedSide(
+  lock: ReleaseLock,
+  stage: ReleaseStage,
+  commitmentPoolingModulePaused = true,
+): Record<string, unknown> {
   const targets = STAGE_TARGET[stage];
   const result: Record<string, unknown> = {};
   for (const target of targets) {
@@ -227,7 +306,21 @@ function predictedSide(lock: ReleaseLock, stage: ReleaseStage): Record<string, u
       libraries.map((candidate) => [candidate.name, candidate.address]),
     );
   }
+  if (stage === "pooling") result.commitmentPoolingModulePaused = commitmentPoolingModulePaused;
   return result;
+}
+
+export function poolingPauseStateForRecovery(artifact: Record<string, unknown>): boolean {
+  const recorded = artifact.commitmentPoolingModulePaused;
+  if (typeof recorded !== "boolean") {
+    throw new Error("Canonical deployment artifact must record commitmentPoolingModulePaused for Pooling recovery");
+  }
+  return recorded;
+}
+
+export function poolingPauseStateForStageArtifact(artifact: Record<string, unknown>): boolean {
+  const recorded = artifact.commitmentPoolingModulePaused;
+  return typeof recorded === "boolean" ? recorded : true;
 }
 
 function assertLockExact(expected: ReleaseLock): void {
@@ -270,7 +363,7 @@ Release options:
   --sender <address>      Must equal the frozen deployment sender
   --stage <name>          Exact stage for recovery or scoped verification
   --step <index>          Required with --broadcast; executes exactly one transaction boundary
-  --expected-nonce <n>    Required with --broadcast; fails closed on pending nonce drift
+  --expected-nonce <n>    Required for release-stage plans, dry runs, and broadcasts
   --receipt <tx-hash>     Recover a mined boundary after local checkpoint persistence failed
   --artifact <path>       Explicit recovery artifact for verification
   --owner-phase <phase>   Verification owner phase: deployment or safe
@@ -280,9 +373,9 @@ Release options:
 Examples (Phase A, no broadcast):
   bun run release:manifest
   bun run release:core:plan:arbitrum
-  bun run settlement:module:plan:arbitrum
-  bun run credit:registry:plan:arbitrum
-  bun run settlement:executor:plan:celo
+  bun run settlement:module:plan:arbitrum --expected-nonce <fresh-pending-nonce>
+  bun run credit:registry:plan:arbitrum --expected-nonce <fresh-pending-nonce>
+  bun run settlement:executor:plan:celo --expected-nonce <fresh-pending-nonce>
   bun run settlement:safe:plan:celo
   bun run release:verify:plan:arbitrum
   bun run release:indexer:handoff
@@ -376,7 +469,7 @@ Phase B boundary form (not authorized by Phase A):
         },
         {
           index: 3,
-          command: "bun run pooling:deploy:dry:arbitrum",
+          command: "bun run pooling:deploy:dry:arbitrum --expected-nonce <fresh-pending-nonce>",
           outcome:
             "one complete paused pooling transaction plan with explicit libraries, module/register identities, and module-side dependency/schema wiring",
         },
@@ -387,12 +480,12 @@ Phase B boundary form (not authorized by Phase A):
         },
         {
           index: 5,
-          command: "bun run settlement:module:plan:arbitrum",
+          command: "bun run settlement:module:plan:arbitrum --expected-nonce <fresh-pending-nonce>",
           outcome: "paused message-only source candidate; no peer and no value authority",
         },
         {
           index: 6,
-          command: "bun run credit:registry:plan:arbitrum",
+          command: "bun run credit:registry:plan:arbitrum --expected-nonce <fresh-pending-nonce>",
           outcome: "paused records-only registry plus two-way settlement binding; G$ pool rail remains disabled",
         },
         {
@@ -564,9 +657,8 @@ Phase B boundary form (not authorized by Phase A):
       if (pendingNonce !== options.expectedNonce) {
         throw new Error(`Nonce drift: expected ${options.expectedNonce}, live pending nonce is ${pendingNonce}`);
       }
-      const result = JSON.parse(
-        execFileSync(
-          "cast",
+      transactionHash = parseCastTransactionHash(
+        execCastCaptured(
           [
             "send",
             boundary.to,
@@ -581,18 +673,26 @@ Phase B boundary form (not authorized by Phase A):
             this.networkManager.getRpcUrl(network),
             "--json",
           ],
-          { cwd: CONTRACTS_ROOT, env: process.env, encoding: "utf8", stdio: ["inherit", "pipe", "inherit"] },
+          { cwd: CONTRACTS_ROOT, env: process.env, inputStdio: "inherit" },
+          "Bun-wrapped ownership boundary",
         ),
-      ) as Record<string, unknown>;
-      if (typeof result.transactionHash !== "string" || !/^0x[0-9a-fA-F]{64}$/u.test(result.transactionHash)) {
-        throw new Error("Bun-wrapped ownership boundary returned no transaction hash");
-      }
-      transactionHash = result.transactionHash;
+        "Bun-wrapped ownership boundary",
+      );
     }
-    const transaction = await provider.getTransaction(transactionHash);
-    const receipt = await provider.getTransactionReceipt(transactionHash);
-    if (!transaction || !receipt || receipt.status !== 1)
-      throw new Error(`Ownership receipt ${transactionHash} is unavailable or failed`);
+    const { transaction, receipt } = await retryRpcAvailability(
+      async () => {
+        const [transaction, receipt] = await Promise.all([
+          provider.getTransaction(transactionHash),
+          provider.getTransactionReceipt(transactionHash),
+        ]);
+        return transaction && receipt ? { transaction, receipt } : undefined;
+      },
+      {
+        unavailableMessage: `Ownership receipt ${transactionHash} remained unavailable`,
+        onRetry: (attempt) => console.warn(`Ownership receipt has not propagated; retrying after attempt ${attempt}/6`),
+      },
+    );
+    if (receipt.status !== 1) throw new Error(`Ownership receipt ${transactionHash} failed`);
     if (
       getAddress(transaction.from) !== getAddress(plan.sender) ||
       !transaction.to ||
@@ -602,6 +702,9 @@ Phase B boundary form (not authorized by Phase A):
       transaction.value !== 0n
     ) {
       throw new Error(`Ownership receipt ${transactionHash} differs from the reviewed boundary`);
+    }
+    if (prior) {
+      assertCheckpointReceiptBlock(prior.blockNumber, receipt.blockNumber, `Ownership boundary ${options.releaseStep}`);
     }
     const liveOwner = getAddress(await new Contract(boundary.to, ownableInterface, provider).owner());
     if (liveOwner !== getAddress(plan.finalOwner)) throw new Error(`Ownership post-state mismatch at ${boundary.to}`);
@@ -635,6 +738,15 @@ Phase B boundary form (not authorized by Phase A):
       const detail = stage === "settlement-executor" ? "celo-sepolia is intentionally unsupported" : "wrong chain";
       throw new Error(`${stage} requires --network ${expectedNetwork} (${detail})`);
     }
+    if (options.broadcast && options.releaseStep === undefined) {
+      throw new Error("Broadcast requires --step <index>; one invocation may execute exactly one boundary");
+    }
+    if (options.broadcast && options.expectedNonce === undefined) {
+      throw new Error("Broadcast requires --expected-nonce <n>; nonce drift must fail closed");
+    }
+    if (!options.broadcast && options.expectedNonce === undefined) {
+      throw new Error("Release-stage planning and dry-run require --expected-nonce <reviewed-pending-nonce>");
+    }
     if (options.broadcast && !options.dryRun) {
       assertSepoliaGate({
         network: options.network,
@@ -644,14 +756,31 @@ Phase B boundary form (not authorized by Phase A):
     }
     const chainId = manifest.chains[expectedNetwork].evmChainId;
     const deployment = readDeployment(chainId);
-    const plan = buildStageTransactionPlan(manifest, lock, stage, deployment, baseSalt);
     const directory = path.join(GENERATED_ROOT, manifest.releaseId, expectedNetwork);
     const planPath = path.join(directory, `${stage}-transaction-plan.json`);
     const sidePath = path.join(directory, `${chainId}-${stage}-side.json`);
     const checkpointPath = path.join(directory, `${stage}-checkpoint.json`);
     const canonicalPath = path.join(CONTRACTS_ROOT, "deployments", `${chainId}-latest.json`);
-    writeGenerated(planPath, plan);
-    writeGenerated(sidePath, predictedSide(lock, stage));
+    let plan: ReturnType<typeof buildStageTransactionPlan>;
+    if (options.broadcast) {
+      if (!fs.existsSync(planPath)) {
+        throw new Error(`Broadcast requires the reviewed nonce-bound transaction plan: ${planPath}`);
+      }
+      plan = JSON.parse(fs.readFileSync(planPath, "utf8")) as ReturnType<typeof buildStageTransactionPlan>;
+      if (!Number.isSafeInteger(plan.expectedNonce) || plan.expectedNonce! < 0) {
+        throw new Error("Release-stage transaction plan is not bound to a reviewed starting nonce");
+      }
+      const canonicalPlan = buildStageTransactionPlan(manifest, lock, stage, deployment, baseSalt, plan.expectedNonce);
+      if (stable(plan) !== stable(canonicalPlan)) {
+        throw new Error("Release-stage transaction plan differs from the freshly derived canonical plan");
+      }
+    } else {
+      plan = buildStageTransactionPlan(manifest, lock, stage, deployment, baseSalt, options.expectedNonce);
+      writeGenerated(planPath, plan);
+    }
+    const stagePoolingPaused =
+      stage === "pooling" ? poolingPauseStateForStageArtifact(readReleaseArtifactIfPresent(canonicalPath)) : true;
+    writeGenerated(sidePath, predictedSide(lock, stage, stagePoolingPaused));
     const simulatedMerge = simulateReleaseArtifactMerge({
       canonicalPath,
       sidePath,
@@ -681,12 +810,12 @@ Phase B boundary form (not authorized by Phase A):
       );
     }
     if (options.broadcast) {
-      if (!boundary)
-        throw new Error("Broadcast requires --step <index>; one invocation may execute exactly one boundary");
-      if (options.expectedNonce === undefined) {
-        throw new Error("Broadcast requires --expected-nonce <n>; nonce drift must fail closed");
+      if (!boundary || options.expectedNonce === undefined) throw new Error("Broadcast boundary was not resolved");
+      if (boundary.nonce !== options.expectedNonce) {
+        throw new Error(
+          `Boundary ${boundary.index} reviewed nonce is ${String(boundary.nonce)}, not ${options.expectedNonce}`,
+        );
       }
-      if (!options.receiptHash) await this.assertLiveNonce(options, manifest, expectedNetwork);
       const checkpoint = this.readCheckpoint(checkpointPath);
       this.assertCheckpoint(
         checkpoint,
@@ -701,17 +830,32 @@ Phase B boundary form (not authorized by Phase A):
       if (checkpoint && checkpoint.lastVerifiedStep >= boundary.index) {
         const evidence = checkpoint.verifiedBoundaries.find((item) => item.index === boundary!.index);
         if (!evidence) throw new Error(`Boundary ${boundary.index} checkpoint has no receipt evidence`);
-        await this.verifyReleaseReceipt(
+        const verifiedReceipt = await this.verifyReleaseReceipt(
           expectedNetwork,
           manifest,
           boundary,
           evidence.transactionHash,
           evidence.expectedNonce,
         );
+        assertCheckpointReceiptBlock(
+          evidence.blockNumber,
+          verifiedReceipt.blockNumber,
+          `Release boundary ${boundary.index}`,
+        );
         this.runBoundaryVerifier(options, stage, boundary.index, sidePath, baseSalt);
+        if (boundary.index === plan.transactions.length) {
+          this.runStageVerifier(options, stage, sidePath, baseSalt);
+          mergeReleaseArtifact({ canonicalPath, sidePath, ownedKeys: STAGE_KEYS[stage] });
+          this.promoteStageReceipt(canonicalPath, directory, stage, {
+            ...evidence,
+            blockNumber: verifiedReceipt.blockNumber,
+          });
+          console.log("Final boundary artifact was promoted after full stage reverification");
+        }
         console.log(`Boundary ${boundary.index} was already verified; no replay transaction was sent`);
         return;
       }
+      if (!options.receiptHash) await this.assertLiveNonce(options, manifest, expectedNetwork);
       if (boundary.index > 1) this.runBoundaryVerifier(options, stage, boundary.index - 1, sidePath, baseSalt);
     }
     const transactionHash =
@@ -758,6 +902,12 @@ Phase B boundary form (not authorized by Phase A):
       if (boundary.index === plan.transactions.length) {
         this.runStageVerifier(options, stage, sidePath, baseSalt);
         mergeReleaseArtifact({ canonicalPath, sidePath, ownedKeys: STAGE_KEYS[stage] });
+        this.promoteStageReceipt(
+          canonicalPath,
+          directory,
+          stage,
+          checkpoint.verifiedBoundaries[checkpoint.verifiedBoundaries.length - 1],
+        );
         console.log("Final boundary verified; the exact stage artifact was promoted atomically");
       } else {
         console.log(`Boundary ${boundary.index} verified and checkpointed; canonical artifact remains unchanged`);
@@ -766,6 +916,30 @@ Phase B boundary form (not authorized by Phase A):
       const forgedMerge = simulateReleaseArtifactMerge({ canonicalPath, sidePath, ownedKeys: STAGE_KEYS[stage] });
       console.log(`Foundry simulation completed through artifact promotion path; would change: ${forgedMerge.changed}`);
     }
+  }
+
+  private promoteStageReceipt(
+    canonicalPath: string,
+    directory: string,
+    stage: ReleaseStage,
+    evidence: ReleaseCheckpoint["verifiedBoundaries"][number],
+  ): void {
+    const receiptKey = STAGE_RECEIPT_KEY[stage];
+    if (!receiptKey) return;
+    const sidePath = path.join(directory, `${stage}-receipt-promotion.json`);
+    writeGenerated(sidePath, {
+      releaseReceipts: {
+        [receiptKey]: {
+          transactionHash: evidence.transactionHash,
+          blockNumber: evidence.blockNumber,
+        },
+      },
+    });
+    mergeReleaseArtifact({
+      canonicalPath,
+      sidePath,
+      ownedKeys: [`releaseReceipts.${receiptKey}`],
+    });
   }
 
   private runForgeStage(
@@ -808,7 +982,7 @@ Phase B boundary form (not authorized by Phase A):
           ? "arbitrum-through-credit"
           : stage;
     const environment = {
-      ...process.env,
+      ...buildReadOnlyCastEnv(),
       FOUNDRY_PROFILE: "release_simulation",
       RELEASE_STAGE: simulatedStage,
       RELEASE_CREATE2_FACTORY: manifest.create2.factory,
@@ -839,8 +1013,13 @@ Phase B boundary form (not authorized by Phase A):
       throw new Error(`Bun-wrapped ${stage} ${options.broadcast ? "boundary preflight" : "simulation"} failed`);
     }
     const written = JSON.parse(fs.readFileSync(sidePath, "utf8")) as Record<string, unknown>;
-    const expected = predictedSide(lock, stage);
-    for (const key of STAGE_KEYS[stage].filter((ownedKey) => !ownedKey.endsWith("Libraries"))) {
+    const canonicalPath = path.join(CONTRACTS_ROOT, "deployments", `${chain.evmChainId}-latest.json`);
+    const stagePoolingPaused =
+      stage === "pooling" ? poolingPauseStateForStageArtifact(readReleaseArtifactIfPresent(canonicalPath)) : true;
+    const expected = predictedSide(lock, stage, stagePoolingPaused);
+    for (const key of STAGE_KEYS[stage].filter(
+      (ownedKey) => !ownedKey.endsWith("Libraries") && ownedKey !== "commitmentPoolingModulePaused",
+    )) {
       const actual = written[key];
       const predicted = expected[key];
       if (typeof actual !== "string" || typeof predicted !== "string" || getAddress(actual) !== getAddress(predicted)) {
@@ -913,8 +1092,7 @@ Phase B boundary form (not authorized by Phase A):
       }
     }
     const pendingNonce = Number(
-      execFileSync(
-        "cast",
+      execCastCaptured(
         [
           "nonce",
           manifest.ownership.deploymentSender,
@@ -923,7 +1101,8 @@ Phase B boundary form (not authorized by Phase A):
           "--rpc-url",
           this.networkManager.getRpcUrl(network),
         ],
-        { cwd: CONTRACTS_ROOT, env: process.env, encoding: "utf8" },
+        { cwd: CONTRACTS_ROOT, env: buildReadOnlyCastEnv() },
+        "Cast pending nonce",
       ).trim(),
     );
     if (pendingNonce !== options.expectedNonce) {
@@ -931,9 +1110,8 @@ Phase B boundary form (not authorized by Phase A):
         `Nonce drift after simulation: expected ${options.expectedNonce}, live pending nonce is ${pendingNonce}`,
       );
     }
-    const result = JSON.parse(
-      execFileSync(
-        "cast",
+    const transactionHash = parseCastTransactionHash(
+      execCastCaptured(
         [
           "send",
           getAddress(transaction.to),
@@ -948,13 +1126,12 @@ Phase B boundary form (not authorized by Phase A):
           this.networkManager.getRpcUrl(network),
           "--json",
         ],
-        { cwd: CONTRACTS_ROOT, env: process.env, encoding: "utf8", stdio: ["inherit", "pipe", "inherit"] },
+        { cwd: CONTRACTS_ROOT, env: process.env, inputStdio: "inherit" },
+        "Bun-wrapped release boundary",
       ),
-    ) as Record<string, unknown>;
-    if (typeof result.transactionHash !== "string" || !/^0x[0-9a-fA-F]{64}$/u.test(result.transactionHash)) {
-      throw new Error("Bun-wrapped release boundary returned no transaction hash");
-    }
-    return result.transactionHash;
+      "Bun-wrapped release boundary",
+    );
+    return transactionHash;
   }
 
   private async verifyReleaseReceipt(
@@ -966,10 +1143,21 @@ Phase B boundary form (not authorized by Phase A):
   ): Promise<{ blockNumber: number }> {
     const chainId = Number(manifest.chains[network].evmChainId);
     const provider = new JsonRpcProvider(this.networkManager.getRpcUrl(network), chainId, { staticNetwork: true });
-    const transaction = await provider.getTransaction(transactionHash);
-    const receipt = await provider.getTransactionReceipt(transactionHash);
-    if (!transaction || !receipt || receipt.status !== 1) {
-      throw new Error(`Release receipt ${transactionHash} is unavailable or failed`);
+    const { transaction, receipt } = await retryRpcAvailability(
+      async () => {
+        const [transaction, receipt] = await Promise.all([
+          provider.getTransaction(transactionHash),
+          provider.getTransactionReceipt(transactionHash),
+        ]);
+        return transaction && receipt ? { transaction, receipt } : undefined;
+      },
+      {
+        unavailableMessage: `Release receipt ${transactionHash} remained unavailable`,
+        onRetry: (attempt) => console.warn(`Release receipt has not propagated; retrying after attempt ${attempt}/6`),
+      },
+    );
+    if (receipt.status !== 1) {
+      throw new Error(`Release receipt ${transactionHash} failed`);
     }
     if (
       getAddress(transaction.from) !== getAddress(manifest.ownership.deploymentSender) ||
@@ -1077,40 +1265,54 @@ Phase B boundary form (not authorized by Phase A):
     artifactPath: string,
     baseSalt: string,
   ): void {
-    execFileSync(
-      "bun",
-      [
-        "script/release-verify.ts",
-        "--network",
-        options.network,
-        "--stage",
-        stage,
-        "--boundary-index",
-        String(boundaryIndex),
-        "--artifact",
-        artifactPath,
-        "--salt",
-        baseSalt,
-      ],
-      { cwd: CONTRACTS_ROOT, stdio: "inherit", env: process.env },
+    retryPostStateVerification(
+      () =>
+        execFileSync(
+          "bun",
+          [
+            "script/release-verify.ts",
+            "--network",
+            options.network,
+            "--stage",
+            stage,
+            "--boundary-index",
+            String(boundaryIndex),
+            "--artifact",
+            artifactPath,
+            "--salt",
+            baseSalt,
+          ],
+          { cwd: CONTRACTS_ROOT, stdio: "inherit", env: buildReadOnlyCastEnv() },
+        ),
+      {
+        onRetry: (attempt) =>
+          console.warn(`Post-state verification has not propagated; retrying after attempt ${attempt}/6`),
+      },
     );
   }
 
   private runStageVerifier(options: ParsedOptions, stage: ReleaseStage, artifactPath: string, baseSalt: string): void {
-    execFileSync(
-      "bun",
-      [
-        "script/release-verify.ts",
-        "--network",
-        options.network,
-        "--stage",
-        stage,
-        "--artifact",
-        artifactPath,
-        "--salt",
-        baseSalt,
-      ],
-      { cwd: CONTRACTS_ROOT, stdio: "inherit", env: process.env },
+    retryPostStateVerification(
+      () =>
+        execFileSync(
+          "bun",
+          [
+            "script/release-verify.ts",
+            "--network",
+            options.network,
+            "--stage",
+            stage,
+            "--artifact",
+            artifactPath,
+            "--salt",
+            baseSalt,
+          ],
+          { cwd: CONTRACTS_ROOT, stdio: "inherit", env: buildReadOnlyCastEnv() },
+        ),
+      {
+        onRetry: (attempt) =>
+          console.warn(`Stage verification has not propagated; retrying after attempt ${attempt}/6`),
+      },
     );
   }
 
@@ -1284,7 +1486,12 @@ Phase B boundary form (not authorized by Phase A):
     const chainId = manifest.chains[network].evmChainId;
     const canonicalPath = path.join(CONTRACTS_ROOT, "deployments", `${chainId}-latest.json`);
     const sidePath = path.join(GENERATED_ROOT, manifest.releaseId, network, `${chainId}-${stage}-recovery.json`);
-    const recovered = predictedSide(lock, stage);
+    const canonicalArtifact = JSON.parse(fs.readFileSync(canonicalPath, "utf8")) as Record<string, unknown>;
+    const recovered = predictedSide(
+      lock,
+      stage,
+      stage === "pooling" ? poolingPauseStateForRecovery(canonicalArtifact) : true,
+    );
     writeGenerated(sidePath, recovered);
     const simulated = simulateReleaseArtifactMerge({
       canonicalPath,
@@ -1307,7 +1514,7 @@ Phase B boundary form (not authorized by Phase A):
     if (options.artifactPath) args.push("--artifact", options.artifactPath);
     if (options.releaseOwnerPhase) args.push("--owner-phase", options.releaseOwnerPhase);
     if (options.deploymentSalt) args.push("--salt", options.deploymentSalt);
-    execFileSync("bun", args, { cwd: CONTRACTS_ROOT, stdio: "inherit", env: process.env });
+    execFileSync("bun", args, { cwd: CONTRACTS_ROOT, stdio: "inherit", env: buildReadOnlyCastEnv() });
   }
 
   private indexerHandoff(options: ParsedOptions, manifest: ReleaseManifest, lock: ReleaseLock): void {
@@ -1316,6 +1523,14 @@ Phase B boundary form (not authorized by Phase A):
     }
     const settlement = identity(lock, "SettlementModule", "proxy").address;
     const executor = identity(lock, "CeloSettlementExecutor", "proxy").address;
+    const settlementReceipt = releaseReceiptForIndexer(
+      readDeployment(manifest.chains.arbitrum.evmChainId),
+      "settlementModule",
+    );
+    const executorReceipt = releaseReceiptForIndexer(
+      readDeployment(manifest.chains.celo.evmChainId),
+      "celoSettlementExecutor",
+    );
     const plan = {
       schemaVersion: 1,
       activationAuthorized: false,
@@ -1326,13 +1541,15 @@ Phase B boundary form (not authorized by Phase A):
           chainId: "42161",
           contract: "SettlementModule",
           address: settlement,
-          startBlock: "RECEIPT_REQUIRED",
+          startBlock: settlementReceipt.blockNumber,
+          deploymentTransactionHash: settlementReceipt.transactionHash,
         },
         {
           chainId: "42220",
           contract: "CeloSettlementExecutor",
           address: executor,
-          startBlock: "RECEIPT_REQUIRED",
+          startBlock: executorReceipt.blockNumber,
+          deploymentTransactionHash: executorReceipt.transactionHash,
         },
       ],
       ownerLane: manifest.indexer.ownerLane,

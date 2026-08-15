@@ -22,13 +22,7 @@ import { ZeroAddress, ArrayLengthMismatch } from "../CommonErrors.sol";
 /// - Each garden configures six hat IDs: owner, operator, evaluator, gardener, funder, community
 /// - Hat tree creation and role management are centralized here
 /// - Resolvers and UI call into this module for Hats-based permissions
-contract HatsModule is
-    IGardenAccessControl,
-    IHatsModule,
-    OwnableUpgradeable,
-    ReentrancyGuardUpgradeable,
-    UUPSUpgradeable
-{
+contract HatsModule is IGardenAccessControl, IHatsModule, OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUpgradeable {
     // ═══════════════════════════════════════════════════════════════════════════
     // Types
     // ═══════════════════════════════════════════════════════════════════════════
@@ -824,8 +818,11 @@ contract HatsModule is
             if (address(hatsModuleFactory) != address(0)) {
                 if (communityToken == address(0)) revert ZeroAddress();
                 bytes memory otherArgs = abi.encodePacked(communityToken, communityMinBalance);
-                try hatsModuleFactory.createHatsModule(communityEligibilityModule, communityHatIdParam, otherArgs, "", 0)
-                returns (address createdModule) {
+                try hatsModuleFactory.createHatsModule(
+                    communityEligibilityModule, communityHatIdParam, otherArgs, "", 0
+                ) returns (
+                    address createdModule
+                ) {
                     communityModule = createdModule;
                 } catch {
                     emit EligibilityModuleCreationFailed(communityHatIdParam, "community");

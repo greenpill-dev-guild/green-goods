@@ -60,8 +60,9 @@ library CommitmentPoolingCreationLib {
         mapping(uint256 commitmentId => ICommitmentPoolingModule.Commitment commitment) storage commitments,
         mapping(uint256 seriesId => ICommitmentPoolingModule.CommitmentSeries series) storage commitmentSeries,
         mapping(uint256 commitmentId => address[] confirmers) storage commitmentConfirmers,
-        mapping(address creator => mapping(bytes32 creationRequestKey => uint256 commitmentId)) storage
-            commitmentIdByCreationRequest,
+        mapping(
+            address creator => mapping(bytes32 creationRequestKey => uint256 commitmentId)
+        ) storage commitmentIdByCreationRequest,
         uint256 nextCommitmentIdValue
     )
         external
@@ -142,14 +143,15 @@ library CommitmentPoolingCreationLib {
         }
 
         for (uint256 i = 0; i < params.requirements.length; i++) {
-            commitment.requirements.push(
-                ICommitmentPoolingModule.CommitmentRequirement({
-                    actionUID: requirementActionUIDs[i],
-                    domain: requirementDomains[i],
-                    requiredCount: requirementRequiredCounts[i],
-                    approvedCount: 0
-                })
-            );
+            commitment.requirements
+                .push(
+                    ICommitmentPoolingModule.CommitmentRequirement({
+                        actionUID: requirementActionUIDs[i],
+                        domain: requirementDomains[i],
+                        requiredCount: requirementRequiredCounts[i],
+                        approvedCount: 0
+                    })
+                );
         }
         for (uint256 i = 0; i < params.confirmers.length; i++) {
             commitmentConfirmers[commitmentId].push(params.confirmers[i]);

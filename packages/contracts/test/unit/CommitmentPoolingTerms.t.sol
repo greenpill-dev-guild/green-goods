@@ -20,7 +20,8 @@ contract CommitmentPoolingTermsTest is CommitmentPoolingFixture {
         hats.setGardener(POOL_GARDEN, POOL_STEWARD, true);
     }
 
-    // ─────────────────────────── Declared consideration ───────────────────────────
+    // ─────────────────────────── Declared consideration
+    // ───────────────────────────
 
     function testSetDeclaredConsiderationIsStewardOnlyAndPreAcceptanceOnly() public {
         ICommitmentPoolingModule.CreateCommitmentParams memory params = _baseParams(keccak256("consideration-gating"));
@@ -84,7 +85,8 @@ contract CommitmentPoolingTermsTest is CommitmentPoolingFixture {
         );
     }
 
-    // ─────────────────────────── Declared value ───────────────────────────
+    // ─────────────────────────── Declared value
+    // ───────────────────────────
 
     function testSetDeclaredValueEnforcesThePairRule() public {
         uint256 commitmentId = _createOffer(keccak256("value-pair"));
@@ -107,7 +109,8 @@ contract CommitmentPoolingTermsTest is CommitmentPoolingFixture {
         assertEq(commitment.declaredValueBasis, "G$");
     }
 
-    // ─────────────────────────── Confirmer rule ───────────────────────────
+    // ─────────────────────────── Confirmer rule
+    // ───────────────────────────
 
     function testSetConfirmerRuleRewritesNamedGroupAndThreshold() public {
         uint256 commitmentId = _createOffer(keccak256("confirmer-rewrite"));
@@ -169,7 +172,8 @@ contract CommitmentPoolingTermsTest is CommitmentPoolingFixture {
         module.setConfirmerRule(commitmentId, confirmers, 0, false);
     }
 
-    // ──────────────────────────── Consideration record ────────────────────────────
+    // ──────────────────────────── Consideration record
+    // ────────────────────────────
 
     function testRecordConsiderationPaidEmitsTheDerivedRecordExactlyOnce() public {
         uint256 commitmentId =
@@ -273,7 +277,8 @@ contract CommitmentPoolingTermsTest is CommitmentPoolingFixture {
         module.recordConsiderationPaid(commitmentId, keccak256("payout"));
     }
 
-    // ───────────────────────────── Helpers ─────────────────────────────
+    // ───────────────────────────── Helpers
+    // ─────────────────────────────
 
     function _arbitrumConsideration(uint256 amount)
         private

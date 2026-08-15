@@ -15,7 +15,8 @@ import { CommitmentPoolingAdmin } from "./Admin.sol";
 ///      runs via DELEGATECALL in this contract's storage context. ABI, events, and reverts are
 ///      unchanged. The creation shell owns the commitment counter increment.
 abstract contract CommitmentPoolingLifecycle is CommitmentPoolingAdmin {
-    // ═════════════════════════════ Creation ═════════════════════════════
+    // ═════════════════════════════ Creation
+    // ═════════════════════════════
 
     function createCommitment(ICommitmentPoolingModule.CreateCommitmentParams calldata params)
         external
@@ -39,7 +40,8 @@ abstract contract CommitmentPoolingLifecycle is CommitmentPoolingAdmin {
         if (commitmentId == nextCommitmentId) nextCommitmentId = commitmentId + 1;
     }
 
-    // ═════════════════════════════ Claims ═════════════════════════════
+    // ═════════════════════════════ Claims
+    // ═════════════════════════════
 
     function claimCommitment(
         uint256 commitmentId,
@@ -80,7 +82,8 @@ abstract contract CommitmentPoolingLifecycle is CommitmentPoolingAdmin {
         );
     }
 
-    // ═════════════════════════════ Confirmation ═════════════════════════════
+    // ═════════════════════════════ Confirmation
+    // ═════════════════════════════
 
     function submitForConfirmation(uint256 commitmentId) external whenOperational {
         CommitmentPoolingConfirmLib.submitForConfirmation(
@@ -130,7 +133,8 @@ abstract contract CommitmentPoolingLifecycle is CommitmentPoolingAdmin {
         );
     }
 
-    // ═════════════════════════════ Proof ═════════════════════════════
+    // ═════════════════════════════ Proof
+    // ═════════════════════════════
 
     function attachEvidence(
         uint256 commitmentId,

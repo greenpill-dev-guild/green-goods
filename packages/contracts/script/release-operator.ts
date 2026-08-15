@@ -5,21 +5,34 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { createInterface } from "node:readline/promises";
-import { getAddress } from "ethers";
-import { loadReleaseManifest } from "./utils/release-manifest";
+import * as dotenv from "dotenv";
+import { getAddress, keccak256, toUtf8Bytes } from "ethers";
+import {
+  type BootstrapPlan,
+  buildBootstrapDeploymentArtifact,
+  buildSwappedDeploymentArtifact,
+  type Checkpoint,
+  type SwapPlan,
+  validateBootstrapPlan,
+  validateSwapPlan,
+} from "./deploy/garden-safe-owners";
+import { buildReleaseLock, loadReleaseManifest, type ReleaseLock, type ReleaseStage } from "./utils/release-manifest";
 
 const CONTRACTS_ROOT = path.join(__dirname, "..");
 const REPOSITORY_ROOT = path.join(CONTRACTS_ROOT, "../..");
+dotenv.config({ path: path.join(REPOSITORY_ROOT, ".env"), quiet: true });
+
+const RELEASE_ARTIFACT_MUTATIONS = new Set([
+  "packages/contracts/deployments/42161-latest.json",
+  "packages/contracts/deployments/42220-latest.json",
+]);
+const GARDEN_SAFE_ARTIFACT_PATH = "packages/contracts/deployments/42220-settlement-safes.json";
+const GARDEN_SAFE_ARTIFACT_MUTATIONS = new Set([GARDEN_SAFE_ARTIFACT_PATH]);
+const INTERACTIVE_ARTIFACT_MUTATIONS = new Set([...RELEASE_ARTIFACT_MUTATIONS, ...GARDEN_SAFE_ARTIFACT_MUTATIONS]);
 
 export const RELEASE_OPERATOR_COMMANDS = new Map<string, string>([
-  ["assessment:upgrade:arbitrum", "AssessmentResolver upgrade and canonical-v2 pin boundaries"],
-  ["pooling:schemas:arbitrum", "TestimonyResolver and AssessmentV3 schema preparation boundaries"],
-  ["pooling:deploy:arbitrum", "paused Commitment Pooling library/implementation/proxy boundaries"],
-  ["pooling:finalize:arbitrum", "Community Testimony record and resolver finalization boundaries"],
-  ["settlement:module:deploy:arbitrum", "paused Arbitrum SettlementModule boundaries"],
-  ["credit:registry:deploy:arbitrum", "paused records-only CreditRegistry boundaries"],
-  ["pooling:upgrade:arbitrum", "GardenToken and WorkApprovalResolver integration-upgrade boundaries"],
-  ["settlement:executor:deploy:celo", "paused CeloSettlementExecutor boundaries"],
+  ["settlement:garden-safes:deploy:celo", "one native/G$-clear Garden Safe bootstrap boundary"],
+  ["settlement:garden-safes:swap:celo", "one deployer-to-reviewed-owner Garden Safe swap boundary"],
 ] as const);
 
 const FORBIDDEN_ARGUMENTS = new Set([
@@ -34,32 +47,9 @@ const FORBIDDEN_ARGUMENTS = new Set([
 ]);
 
 const RELEASE_OPERATOR_ARGUMENTS = new Map<string, ReadonlySet<string>>([
-  [
-    "assessment:upgrade:arbitrum",
-    new Set(["--plan", "--step", "--expected-nonce", "--receipt", "--override-sepolia-gate"]),
-  ],
-  [
-    "pooling:schemas:arbitrum",
-    new Set(["--artifact", "--step", "--expected-nonce", "--receipt", "--override-sepolia-gate"]),
-  ],
-  ["pooling:deploy:arbitrum", new Set(["--step", "--expected-nonce", "--receipt", "--override-sepolia-gate"])],
-  [
-    "pooling:finalize:arbitrum",
-    new Set(["--artifact", "--step", "--expected-nonce", "--receipt", "--override-sepolia-gate"]),
-  ],
-  [
-    "settlement:module:deploy:arbitrum",
-    new Set(["--step", "--expected-nonce", "--receipt", "--override-sepolia-gate"]),
-  ],
-  ["credit:registry:deploy:arbitrum", new Set(["--step", "--expected-nonce", "--receipt", "--override-sepolia-gate"])],
-  [
-    "pooling:upgrade:arbitrum",
-    new Set(["--plan", "--step", "--expected-nonce", "--receipt", "--override-sepolia-gate"]),
-  ],
-  ["settlement:executor:deploy:celo", new Set(["--step", "--expected-nonce", "--receipt", "--override-sepolia-gate"])],
+  ["settlement:garden-safes:deploy:celo", new Set(["--plan", "--inventory", "--step", "--receipt"])],
+  ["settlement:garden-safes:swap:celo", new Set(["--plan", "--inventory", "--replacements", "--step", "--receipt"])],
 ]);
-
-const BOOLEAN_ARGUMENTS = new Set(["--override-sepolia-gate"]);
 
 export interface SessionOptions {
   commit?: string;
@@ -141,7 +131,9 @@ export function assertAllowedOperatorCommand(tokens: string[]): { script: string
     throw new Error(`Release operator script is not allowlisted: ${script}`);
   }
   const args = tokens.slice(2);
-  const allowedArguments = RELEASE_OPERATOR_ARGUMENTS.get(script)!;
+  const allowedArguments = RELEASE_OPERATOR_ARGUMENTS.get(script);
+  if (!allowedArguments) throw new Error(`Release operator arguments are not configured for ${script}`);
+  const seenArguments = new Set<string>();
   for (let index = 0; index < args.length; index += 1) {
     const argument = args[index];
     const flag = argument.includes("=") ? argument.slice(0, argument.indexOf("=")) : argument;
@@ -151,10 +143,8 @@ export function assertAllowedOperatorCommand(tokens: string[]): { script: string
     if (!allowedArguments.has(flag)) {
       throw new Error(`Release operator argument is not allowlisted for ${script}: ${flag}`);
     }
-    if (BOOLEAN_ARGUMENTS.has(flag)) {
-      if (argument.includes("=")) throw new Error(`${flag} is a boolean flag and takes no value`);
-      continue;
-    }
+    if (seenArguments.has(flag)) throw new Error(`Release operator argument is duplicated for ${script}: ${flag}`);
+    seenArguments.add(flag);
     if (argument.includes("=")) {
       if (argument.slice(argument.indexOf("=") + 1).length === 0) throw new Error(`${flag} requires a value`);
       continue;
@@ -162,6 +152,9 @@ export function assertAllowedOperatorCommand(tokens: string[]): { script: string
     const value = args[index + 1];
     if (!value || value.startsWith("--")) throw new Error(`${flag} requires a value`);
     index += 1;
+  }
+  if (!seenArguments.has("--step")) {
+    throw new Error(`${script} requires one explicit --step boundary`);
   }
   return { script, args };
 }
@@ -195,10 +188,10 @@ Green Goods release operator session
 Usage:
   bun run release:operator -- --commit <exact-40-character-candidate>
 
-The session verifies a clean checkout at the exact candidate, prompts for the Foundry keystore
-password once, verifies that it unlocks the frozen deployment sender, and then accepts only the
-allowlisted Bun package scripts below. It never accepts a private key, password argument, RPC
-override, network override, sender override, raw Forge command, or arbitrary shell command.
+The session verifies the exact candidate plus any receipt-backed deployment artifacts, prompts for
+the Foundry keystore password, verifies that it unlocks the frozen deployment sender, and accepts
+one explicit Garden Safe boundary. It never accepts a private key, password argument, RPC override,
+network override, sender override, raw Forge command, or arbitrary shell command.
 
 Inside the session:
   help
@@ -206,8 +199,9 @@ Inside the session:
   exit
 
 Unlocking the session is not broadcast authorization. Run only the exact stage and transaction
-boundary separately authorized by the release owner. Every wrapper must verify and checkpoint the
-current boundary before another command is entered.
+boundary separately authorized by the release owner. The credential session closes after that
+wrapper verifies and checkpoints the selected boundary. The completed core deployment, pool
+backfill, and pooling-unpause orchestrators are retired and cannot be replayed from this operator.
 
 Allowlisted package scripts:
 ${[...RELEASE_OPERATOR_COMMANDS].map(([name, description]) => `  ${name.padEnd(40)} ${description}`).join("\n")}
@@ -254,6 +248,377 @@ export function assertPinnedCheckout(candidateCommit: string, repositoryRoot = R
   if (status.trim()) throw new Error("Release operator session requires the exact candidate checkout to stay clean");
 }
 
+export function assertArtifactCheckout(
+  candidateCommit: string,
+  repositoryRoot = REPOSITORY_ROOT,
+  allowedMutations: ReadonlySet<string> = INTERACTIVE_ARTIFACT_MUTATIONS,
+): void {
+  const head = execFileSync("git", ["rev-parse", "HEAD"], { cwd: repositoryRoot, encoding: "utf8" }).trim();
+  if (head !== candidateCommit) {
+    throw new Error(`Candidate mismatch: requested ${candidateCommit}, checkout is ${head}`);
+  }
+  const status = execFileSync("git", ["status", "--porcelain=v1", "--untracked-files=all"], {
+    cwd: repositoryRoot,
+    encoding: "utf8",
+  });
+  const unexpected = status
+    .split(/\r?\n/u)
+    .filter(Boolean)
+    .map((line) => line.slice(3).split(" -> ").at(-1))
+    .filter((filePath): filePath is string => filePath !== undefined)
+    .filter((filePath) => !allowedMutations.has(filePath));
+  if (unexpected.length > 0) {
+    throw new Error(`Release operator detected concurrent checkout drift: ${unexpected.join(", ")}`);
+  }
+}
+
+function artifactDirtyPaths(repositoryRoot: string): string[] {
+  return execFileSync("git", ["status", "--porcelain=v1", "--untracked-files=all"], {
+    cwd: repositoryRoot,
+    encoding: "utf8",
+  })
+    .split(/\r?\n/u)
+    .filter(Boolean)
+    .map((line) => line.slice(3).split(" -> ").at(-1))
+    .filter((filePath): filePath is string => filePath !== undefined);
+}
+
+function requireCompleteGardenSafeCheckpoint(planPath: string, plan: BootstrapPlan | SwapPlan): Checkpoint {
+  const checkpointPath = defaultCheckpointPath(planPath);
+  if (!fs.existsSync(planPath) || !fs.existsSync(checkpointPath)) {
+    throw new Error(`Garden Safe artifact is missing its reviewed plan/checkpoint: ${planPath}`);
+  }
+  const checkpoint = readJson<Checkpoint>(checkpointPath);
+  const planHash = keccak256(toUtf8Bytes(fs.readFileSync(planPath, "utf8")));
+  if (
+    checkpoint.schemaVersion !== 1 ||
+    checkpoint.planHash !== planHash ||
+    checkpoint.completed.length !== plan.entries.length
+  ) {
+    throw new Error(`Garden Safe artifact lacks complete receipt-backed evidence: ${checkpointPath}`);
+  }
+  for (const [offset, evidence] of checkpoint.completed.entries()) {
+    const boundary = plan.entries[offset];
+    if (
+      evidence.index !== offset + 1 ||
+      getAddress(evidence.safe) !== getAddress(boundary.safe) ||
+      getAddress(evidence.garden) !== getAddress(boundary.garden) ||
+      !/^0x[0-9a-f]{64}$/iu.test(evidence.transactionHash) ||
+      !Number.isSafeInteger(evidence.blockNumber) ||
+      evidence.blockNumber < 1
+    ) {
+      throw new Error(`Garden Safe checkpoint boundary ${offset + 1} was modified`);
+    }
+  }
+  return checkpoint;
+}
+
+export function assertVerifiedGardenSafePromotion(
+  _candidateCommit: string,
+  repositoryRoot: string,
+  dirtyPaths: string[],
+): void {
+  if (dirtyPaths.length !== 1 || dirtyPaths[0] !== GARDEN_SAFE_ARTIFACT_PATH) {
+    throw new Error(`Garden Safe ceremony detected unrelated checkout drift: ${dirtyPaths.join(", ")}`);
+  }
+  const contractsRoot = path.join(repositoryRoot, "packages/contracts");
+  const runtimeRoot = path.join(contractsRoot, ".generated/runtime");
+  const inventoryPath = path.join(runtimeRoot, "42161-pool-backfill.json");
+  const bootstrapPath = path.join(runtimeRoot, "42220-garden-safe-bootstrap.json");
+  const swapPath = path.join(runtimeRoot, "42220-garden-safe-owner-swap.json");
+  const replacementsPath = path.join(runtimeRoot, "42220-garden-safe-replacements.json");
+  const artifactPath = path.join(repositoryRoot, GARDEN_SAFE_ARTIFACT_PATH);
+  if (!fs.existsSync(artifactPath) || !fs.existsSync(bootstrapPath)) {
+    throw new Error("Garden Safe promotion is missing its canonical artifact or bootstrap plan");
+  }
+
+  const bootstrap = readJson<BootstrapPlan>(bootstrapPath);
+  validateBootstrapPlan(bootstrap, inventoryPath);
+  const bootstrapCheckpoint = requireCompleteGardenSafeCheckpoint(bootstrapPath, bootstrap);
+  let expected = buildBootstrapDeploymentArtifact(bootstrap, bootstrapCheckpoint);
+
+  if (fs.existsSync(swapPath) && fs.existsSync(defaultCheckpointPath(swapPath))) {
+    const swap = readJson<SwapPlan>(swapPath);
+    const swapCheckpoint = readJson<Checkpoint>(defaultCheckpointPath(swapPath));
+    if (swapCheckpoint.completed.length === swap.entries.length) {
+      validateSwapPlan(swap, bootstrapPath, inventoryPath, replacementsPath);
+      const completeSwapCheckpoint = requireCompleteGardenSafeCheckpoint(swapPath, swap);
+      expected = buildSwappedDeploymentArtifact(swap, bootstrap, bootstrapCheckpoint, completeSwapCheckpoint);
+    }
+  }
+
+  const current = readJson<unknown>(artifactPath);
+  const changedPaths = changedPromotionLeafPaths(expected, current).filter(Boolean);
+  if (changedPaths.length > 0) {
+    throw new Error(`Garden Safe artifact differs from receipt-backed evidence: ${changedPaths.join(", ")}`);
+  }
+}
+
+export function assertInteractiveSessionStart(
+  candidateCommit: string,
+  repositoryRoot = REPOSITORY_ROOT,
+  validateReleasePromotions: (
+    candidate: string,
+    root: string,
+    paths: string[],
+  ) => void = assertVerifiedResumePromotions,
+  validateGardenSafePromotion: (
+    candidate: string,
+    root: string,
+    paths: string[],
+  ) => void = assertVerifiedGardenSafePromotion,
+  allowedMutations: ReadonlySet<string> = INTERACTIVE_ARTIFACT_MUTATIONS,
+): void {
+  assertArtifactCheckout(candidateCommit, repositoryRoot, allowedMutations);
+  const dirty = artifactDirtyPaths(repositoryRoot);
+  const releaseArtifacts = dirty.filter((filePath) => RELEASE_ARTIFACT_MUTATIONS.has(filePath));
+  const gardenSafeArtifacts = dirty.filter((filePath) => GARDEN_SAFE_ARTIFACT_MUTATIONS.has(filePath));
+  if (releaseArtifacts.length > 0) {
+    validateReleasePromotions(candidateCommit, repositoryRoot, releaseArtifacts);
+  }
+  if (gardenSafeArtifacts.length > 0) {
+    validateGardenSafePromotion(candidateCommit, repositoryRoot, gardenSafeArtifacts);
+  }
+}
+
+interface JsonPlan {
+  contract?: string;
+  authority?: string;
+  expectedNonce?: number;
+  releaseManifestHash?: string;
+  releaseSourceCommit?: string;
+  transactions: Array<{ kind?: string; nonce?: number | string }>;
+}
+
+function readJson<T>(filePath: string): T {
+  return JSON.parse(fs.readFileSync(filePath, "utf8")) as T;
+}
+
+function samePromotionValue(left: unknown, right: unknown): boolean {
+  if (typeof left === "string" && typeof right === "string" && left.startsWith("0x") && right.startsWith("0x")) {
+    return left.toLowerCase() === right.toLowerCase();
+  }
+  return JSON.stringify(left) === JSON.stringify(right);
+}
+
+function unsetPromotionValue(value: unknown): boolean {
+  return value === undefined || value === null || value === "" || (typeof value === "string" && /^0x0+$/iu.test(value));
+}
+
+export function changedPromotionLeafPaths(before: unknown, after: unknown, prefix = ""): string[] {
+  const beforeRecord = before && typeof before === "object" && !Array.isArray(before);
+  const afterRecord = after && typeof after === "object" && !Array.isArray(after);
+  if (beforeRecord || afterRecord) {
+    if ((!beforeRecord && !unsetPromotionValue(before)) || (!afterRecord && !unsetPromotionValue(after))) {
+      return [prefix];
+    }
+    const left = beforeRecord ? (before as Record<string, unknown>) : {};
+    const right = afterRecord ? (after as Record<string, unknown>) : {};
+    return [...new Set([...Object.keys(left), ...Object.keys(right)])].flatMap((key) =>
+      changedPromotionLeafPaths(left[key], right[key], prefix ? `${prefix}.${key}` : key),
+    );
+  }
+  return samePromotionValue(before, after) ? [] : [prefix];
+}
+
+function getPromotionValue(value: Record<string, unknown>, dottedPath: string): unknown {
+  return dottedPath.split(".").reduce<unknown>((current, segment) => {
+    if (!current || typeof current !== "object" || Array.isArray(current)) return undefined;
+    return (current as Record<string, unknown>)[segment];
+  }, value);
+}
+
+function requireCompleteCheckpoint(
+  planPath: string,
+  checkpointPath: string,
+  lock: ReleaseLock,
+): { plan: Record<string, unknown> & { transactions: unknown[] }; evidence: Array<Record<string, unknown>> } {
+  if (!fs.existsSync(planPath) || !fs.existsSync(checkpointPath)) {
+    throw new Error(`Verified resume promotion is missing its reviewed plan/checkpoint: ${planPath}`);
+  }
+  const plan = readJson<Record<string, unknown> & { transactions: unknown[] }>(planPath);
+  const checkpoint = readJson<Record<string, unknown>>(checkpointPath);
+  const evidence = (checkpoint.completed ?? checkpoint.verifiedBoundaries) as
+    | Array<Record<string, unknown>>
+    | undefined;
+  if (
+    !Array.isArray(plan.transactions) ||
+    !Array.isArray(evidence) ||
+    evidence.length !== plan.transactions.length ||
+    plan.releaseId !== lock.releaseId ||
+    (plan.manifestHash !== undefined && plan.manifestHash !== lock.manifestHash) ||
+    (plan.releaseManifestHash !== undefined && plan.releaseManifestHash !== lock.manifestHash) ||
+    (plan.sourceCommit !== undefined && plan.sourceCommit !== lock.sourceCommit) ||
+    (plan.releaseSourceCommit !== undefined && plan.releaseSourceCommit !== lock.sourceCommit) ||
+    (checkpoint.releaseId !== undefined && checkpoint.releaseId !== lock.releaseId) ||
+    (checkpoint.manifestHash !== undefined && checkpoint.manifestHash !== lock.manifestHash) ||
+    (checkpoint.releaseManifestHash !== undefined && checkpoint.releaseManifestHash !== lock.manifestHash) ||
+    (checkpoint.stage !== undefined && checkpoint.stage !== plan.stage) ||
+    (checkpoint.network !== undefined && checkpoint.network !== plan.network) ||
+    (checkpoint.lastVerifiedStep !== undefined && checkpoint.lastVerifiedStep !== evidence.length)
+  ) {
+    throw new Error(`Verified resume promotion has incomplete or mismatched evidence: ${planPath}`);
+  }
+  for (const [offset, item] of evidence.entries()) {
+    const cursor = item.step ?? item.index;
+    const boundary = plan.transactions[offset] as Record<string, unknown>;
+    if (
+      cursor !== offset + 1 ||
+      (item.label !== undefined && boundary.label !== undefined && item.label !== boundary.label) ||
+      (item.expectedNonce !== undefined && boundary.nonce !== undefined && item.expectedNonce !== boundary.nonce) ||
+      typeof item.transactionHash !== "string" ||
+      !/^0x[0-9a-f]{64}$/iu.test(item.transactionHash) ||
+      !Number.isSafeInteger(Number(item.blockNumber)) ||
+      Number(item.blockNumber) <= 0
+    ) {
+      throw new Error(`Verified resume checkpoint is not one contiguous receipt-backed prefix: ${checkpointPath}`);
+    }
+  }
+  if (typeof checkpoint.planHash === "string") {
+    const planHash = keccak256(toUtf8Bytes(`${JSON.stringify(plan, null, 2)}\n`));
+    if (checkpoint.planHash !== planHash) throw new Error("Verified resume checkpoint belongs to another plan");
+  }
+  return { plan, evidence };
+}
+
+function addExpectedStagePromotions(
+  expected: Map<string, unknown>,
+  lock: ReleaseLock,
+  stage: ReleaseStage,
+  evidence: Array<Record<string, unknown>>,
+): void {
+  for (const identity of lock.identities.filter((item) => item.stage === stage)) {
+    if (identity.kind === "library") {
+      const root = stage === "pooling" ? "poolingLibraries" : "settlementLibraries";
+      expected.set(`${root}.${identity.name}`, identity.address);
+      continue;
+    }
+    const name = `${identity.name[0].toLowerCase()}${identity.name.slice(1)}`;
+    expected.set(identity.kind === "implementation" ? `${name}Impl` : name, identity.address);
+    if (
+      identity.kind === "proxy" &&
+      (identity.name === "SettlementModule" || identity.name === "CeloSettlementExecutor")
+    ) {
+      const receipt = evidence.find((item) => item.label === `proxy:${identity.name}`);
+      if (!receipt) throw new Error(`Verified ${identity.name} proxy receipt is missing`);
+      expected.set(`releaseReceipts.${name}.transactionHash`, receipt.transactionHash);
+      expected.set(`releaseReceipts.${name}.blockNumber`, Number(receipt.blockNumber));
+    }
+  }
+}
+
+export function assertVerifiedResumePromotions(
+  candidateCommit: string,
+  repositoryRoot: string,
+  dirtyPaths: string[],
+): void {
+  const manifest = loadReleaseManifest();
+  const lock = buildReleaseLock(manifest);
+  const expectedByArtifact = new Map<string, Map<string, unknown>>([
+    ["packages/contracts/deployments/42161-latest.json", new Map()],
+    ["packages/contracts/deployments/42220-latest.json", new Map()],
+  ]);
+  const expectedPromotionsFor = (artifactPath: string): Map<string, unknown> => {
+    const expected = expectedByArtifact.get(artifactPath);
+    if (!expected) throw new Error(`No verified promotion schema exists for ${artifactPath}`);
+    return expected;
+  };
+  const releaseRoot = path.join(CONTRACTS_ROOT, `.generated/release/${manifest.releaseId}`);
+  for (const [stage, network] of [
+    ["pooling", "arbitrum"],
+    ["settlement-module", "arbitrum"],
+    ["credit-registry", "arbitrum"],
+    ["settlement-executor", "celo"],
+  ] as const) {
+    const directory = path.join(releaseRoot, network);
+    const planPath = path.join(directory, `${stage}-transaction-plan.json`);
+    const checkpointPath = path.join(directory, `${stage}-checkpoint.json`);
+    if (
+      !fs.existsSync(planPath) ||
+      !fs.existsSync(checkpointPath) ||
+      completedBoundaries(planPath, checkpointPath) !== readJson<JsonPlan>(planPath).transactions.length
+    ) {
+      continue;
+    }
+    const { evidence } = requireCompleteCheckpoint(planPath, checkpointPath, lock);
+    addExpectedStagePromotions(
+      expectedPromotionsFor(
+        network === "arbitrum"
+          ? "packages/contracts/deployments/42161-latest.json"
+          : "packages/contracts/deployments/42220-latest.json",
+      ),
+      lock,
+      stage,
+      evidence,
+    );
+  }
+  const arbitrumExpected = expectedPromotionsFor("packages/contracts/deployments/42161-latest.json");
+  for (const mode of ["preparation", "finalization"] as const) {
+    const directory = path.join(CONTRACTS_ROOT, `.generated/release-schemas/${mode}`);
+    const planPath = path.join(directory, `42161-${mode}-transaction-plan.json`);
+    const checkpointPath = path.join(directory, `42161-${mode}-transaction-plan.checkpoint.json`);
+    if (
+      !fs.existsSync(planPath) ||
+      !fs.existsSync(checkpointPath) ||
+      completedBoundaries(planPath, checkpointPath) !== readJson<JsonPlan>(planPath).transactions.length
+    ) {
+      continue;
+    }
+    const { plan } = requireCompleteCheckpoint(planPath, checkpointPath, lock);
+    if (mode === "preparation") {
+      arbitrumExpected.set("testimonyResolver", plan.testimonyResolver);
+      arbitrumExpected.set("testimonyResolverImpl", plan.testimonyResolverImpl);
+    }
+    for (const schema of (plan.schemas ?? []) as Array<Record<string, unknown>>) {
+      const key = String(schema.key);
+      const uidKey = key === "assessmentV3" ? "assessmentV3SchemaUID" : "communityTestimonySchemaUID";
+      arbitrumExpected.set(`schemas.${uidKey}`, schema.uid);
+      arbitrumExpected.set(`schemas.${key}Schema`, schema.schema);
+      arbitrumExpected.set(`schemas.${key}Name`, schema.name);
+      arbitrumExpected.set(`schemas.${key}Description`, schema.description);
+    }
+  }
+  for (const artifactPath of dirtyPaths) {
+    const expected = expectedByArtifact.get(artifactPath);
+    if (!expected) throw new Error(`Release resume artifact is not allowlisted: ${artifactPath}`);
+    const baseline = JSON.parse(
+      execFileSync("git", ["show", `${candidateCommit}:${artifactPath}`], { cwd: repositoryRoot, encoding: "utf8" }),
+    ) as Record<string, unknown>;
+    const current = readJson<Record<string, unknown>>(path.join(repositoryRoot, artifactPath));
+    for (const changedPath of changedPromotionLeafPaths(baseline, current)) {
+      if (!expected.has(changedPath)) throw new Error(`Release resume changed an unowned key: ${changedPath}`);
+      const before = getPromotionValue(baseline, changedPath);
+      const after = getPromotionValue(current, changedPath);
+      if (!unsetPromotionValue(before) || !samePromotionValue(after, expected.get(changedPath))) {
+        throw new Error(`Release resume key ${changedPath} is not an exact receipt-backed promotion`);
+      }
+    }
+  }
+}
+
+function defaultCheckpointPath(planPath: string): string {
+  return planPath.replace(/\.json$/u, ".checkpoint.json");
+}
+
+export function completedBoundaries(planPath: string, checkpointPath = defaultCheckpointPath(planPath)): number {
+  if (!fs.existsSync(checkpointPath)) return 0;
+  const checkpoint = readJson<{
+    completed?: unknown[];
+    lastVerifiedStep?: number;
+    verifiedBoundaries?: unknown[];
+  }>(checkpointPath);
+  const completed = checkpoint.completed?.length ?? checkpoint.verifiedBoundaries?.length ?? 0;
+  if (
+    checkpoint.lastVerifiedStep !== undefined &&
+    (!Number.isSafeInteger(checkpoint.lastVerifiedStep) ||
+      checkpoint.lastVerifiedStep < 0 ||
+      checkpoint.lastVerifiedStep !== completed)
+  ) {
+    throw new Error(`Checkpoint cursor differs from its receipt ledger: ${checkpointPath}`);
+  }
+  return completed;
+}
+
 function verifyDeployerPassword(passwordFile: string): string {
   const manifest = loadReleaseManifest();
   const result = execFileSync("cast", ["wallet", "address", "--account", manifest.ownership.deploymentKeystore], {
@@ -268,9 +633,8 @@ function verifyDeployerPassword(passwordFile: string): string {
     throw new Error(`Keystore unlock resolved ${unlocked}, expected frozen sender ${expected}`);
   return unlocked;
 }
-
 async function runSession(candidateCommit: string): Promise<void> {
-  assertPinnedCheckout(candidateCommit);
+  assertInteractiveSessionStart(candidateCommit);
   const manifest = loadReleaseManifest();
   const password = await readHiddenPassword();
   const lease = createPasswordLease(password);
@@ -289,7 +653,7 @@ async function runSession(candidateCommit: string): Promise<void> {
   try {
     const signer = verifyDeployerPassword(lease.filePath);
     console.log(`Unlocked frozen deployment sender ${signer} for this process only.`);
-    console.log("Type help for the allowlist. Type exit when this authorized operator window closes.");
+    console.log("Type help for the allowlist. The session closes after one verified boundary.");
     const terminal = createInterface({ input: process.stdin, output: process.stdout, terminal: true });
     try {
       while (true) {
@@ -302,7 +666,7 @@ async function runSession(candidateCommit: string): Promise<void> {
         }
         const command = assertAllowedOperatorCommand(tokenizeOperatorCommand(line));
         console.log(`Running Bun wrapper: ${command.script} ${command.args.join(" ")}`.trim());
-        assertPinnedCheckout(candidateCommit);
+        assertInteractiveSessionStart(candidateCommit);
         const result = spawnSync("bun", ["run", command.script, ...command.args], {
           cwd: CONTRACTS_ROOT,
           stdio: "inherit",
@@ -319,7 +683,11 @@ async function runSession(candidateCommit: string): Promise<void> {
         if (result.status !== 0) {
           throw new Error(`Bun wrapper ${command.script} failed; the credential session is closed`);
         }
-        console.log("Boundary returned successfully. Confirm its receipt/checkpoint before entering another command.");
+        assertInteractiveSessionStart(candidateCommit);
+        console.log(
+          "Boundary script returned successfully with no concurrent checkout drift. The credential session is closed.",
+        );
+        break;
       }
     } finally {
       terminal.close();
@@ -336,7 +704,8 @@ if (import.meta.main) {
   try {
     const options = parseSessionOptions(process.argv.slice(2));
     if (options.help) showHelp();
-    else await runSession(options.commit!);
+    else if (options.commit) await runSession(options.commit);
+    else throw new Error("Release operator candidate commit was not resolved");
   } catch (error) {
     console.error(error instanceof Error ? error.message : String(error));
     process.exit(1);

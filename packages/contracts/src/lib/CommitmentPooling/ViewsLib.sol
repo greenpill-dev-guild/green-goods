@@ -43,8 +43,9 @@ library CommitmentPoolingViewsLib {
 
     function getContributor(
         mapping(uint256 commitmentId => ICommitmentPoolingModule.Commitment commitment) storage commitments,
-        mapping(uint256 commitmentId => mapping(address contributor => ICommitmentPoolingModule.ContributorRecord record))
-            storage contributors,
+        mapping(
+            uint256 commitmentId => mapping(address contributor => ICommitmentPoolingModule.ContributorRecord record)
+        ) storage contributors,
         uint256 commitmentId,
         address contributor
     )
@@ -58,8 +59,9 @@ library CommitmentPoolingViewsLib {
 
     function getPendingClaim(
         mapping(uint256 commitmentId => ICommitmentPoolingModule.Commitment commitment) storage commitments,
-        mapping(uint256 commitmentId => mapping(address claimant => ICommitmentPoolingModule.PendingClaim claim)) storage
-            pendingClaim,
+        mapping(
+            uint256 commitmentId => mapping(address claimant => ICommitmentPoolingModule.PendingClaim claim)
+        ) storage pendingClaim,
         uint256 commitmentId,
         address claimant
     )

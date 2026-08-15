@@ -313,7 +313,8 @@ library SettlementFundingLib {
     function closeIfPlanComplete(SettlementPlanLib.State storage planState, uint256 payoutPlanId) public {
         if (
             payoutPlanId == 0
-                || SettlementPlanLib.payoutPlanStatus(planState, payoutPlanId) != ISettlementModule.PayoutPlanStatus.Complete
+                || SettlementPlanLib.payoutPlanStatus(planState, payoutPlanId)
+                    != ISettlementModule.PayoutPlanStatus.Complete
         ) return;
         ISettlementModule.CommitmentPayoutPlan storage plan = planState.payoutPlans[payoutPlanId];
         State storage state = _state();

@@ -170,7 +170,7 @@ Examples:
   # the sequence cannot be reordered. Rehearse the whole thing first on an Arbitrum One fork:
   #   bun run test:fork:pooling:arbitrum
   bun run pooling:schemas:plan:arbitrum --expected-nonce <fresh-pending-nonce>
-  bun run pooling:deploy:dry:arbitrum
+  bun run pooling:deploy:dry:arbitrum --expected-nonce <fresh-pending-nonce>
   bun run pooling:finalize:plan:arbitrum --expected-nonce <fresh-pending-nonce>
   bun run pooling:upgrade:plan:arbitrum --expected-nonce <fresh-pending-nonce>
   bun run pooling:backfill:dry:arbitrum
@@ -178,9 +178,9 @@ Examples:
   # Phase A release engineering (never broadcasts)
   bun run release:manifest
   bun run release:core:plan:arbitrum
-  bun run settlement:module:plan:arbitrum
-  bun run credit:registry:plan:arbitrum
-  bun run settlement:executor:plan:celo
+  bun run settlement:module:plan:arbitrum --expected-nonce <fresh-pending-nonce>
+  bun run credit:registry:plan:arbitrum --expected-nonce <fresh-pending-nonce>
+  bun run settlement:executor:plan:celo --expected-nonce <fresh-pending-nonce>
   bun run settlement:safe:plan:celo
   bun run release:verify:plan:arbitrum
   bun run release:indexer:handoff

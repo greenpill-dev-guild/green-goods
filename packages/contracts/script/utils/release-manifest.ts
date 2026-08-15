@@ -11,6 +11,7 @@ import {
   keccak256,
   toUtf8Bytes,
   ZeroAddress,
+  zeroPadValue,
 } from "ethers";
 
 export const CONTRACTS_ROOT = path.join(__dirname, "../..");
@@ -173,10 +174,15 @@ export interface ReleaseManifest {
 interface FoundryArtifact {
   abi: InterfaceAbi;
   bytecode: { object: string; linkReferences?: LinkReferences };
-  deployedBytecode: { object: string; linkReferences?: LinkReferences; immutableReferences?: Record<string, unknown> };
+  deployedBytecode: {
+    object: string;
+    linkReferences?: LinkReferences;
+    immutableReferences?: ImmutableReferences;
+  };
 }
 
 type LinkReferences = Record<string, Record<string, Array<{ start: number; length: number }>>>;
+type ImmutableReferences = Record<string, Array<{ start: number; length: number }>>;
 
 export interface ReleaseIdentity {
   name: string;
@@ -220,7 +226,7 @@ export function loadReleaseManifest(filePath = RELEASE_MANIFEST_PATH): ReleaseMa
   return manifest;
 }
 
-function requireAddress(value: unknown, label: string) {
+function requireAddress(value: unknown, label: string): asserts value is string {
   if (typeof value !== "string" || !isAddress(value) || getAddress(value) === ZeroAddress) {
     throw new Error(`${label} must be a non-zero EVM address`);
   }
@@ -442,13 +448,14 @@ export function validateReleaseManifest(manifest: ReleaseManifest): void {
   const preparation = manifest.schemaPreparation;
   requireAddress(preparation.owner, "schemaPreparation.owner");
   requireAddress(preparation.constructorEAS, "schemaPreparation.constructorEAS");
+  requireAddress(manifest.chains.arbitrum.eas, "chains.arbitrum.eas");
   requireAddress(preparation.create2.factory, "schemaPreparation.create2.factory");
   requireAddress(preparation.expected.implementation, "schemaPreparation.expected.implementation");
   requireAddress(preparation.expected.proxy, "schemaPreparation.expected.proxy");
   if (getAddress(preparation.owner) !== getAddress(manifest.ownership.deploymentSender)) {
     throw new Error("TestimonyResolver owner must be the exact deployment sender");
   }
-  if (getAddress(preparation.constructorEAS) !== getAddress(manifest.chains.arbitrum.eas!)) {
+  if (getAddress(preparation.constructorEAS) !== getAddress(manifest.chains.arbitrum.eas)) {
     throw new Error("TestimonyResolver constructor EAS must match the frozen Arbitrum EAS");
   }
   if (getAddress(preparation.create2.factory) !== getAddress(manifest.create2.factory)) {
@@ -503,9 +510,9 @@ export function validateReleaseManifest(manifest: ReleaseManifest): void {
     for (const [library, address] of Object.entries(upgrade.linkedLibraries)) {
       requireAddress(address, `existingProxyUpgrades.${upgrade.name}.linkedLibraries.${library}`);
     }
-    upgrade.constructorArguments.forEach((argument, index) =>
-      requireAddress(argument, `existingProxyUpgrades.${upgrade.name}.constructorArguments.${index}`),
-    );
+    upgrade.constructorArguments.forEach((argument, index) => {
+      requireAddress(argument, `existingProxyUpgrades.${upgrade.name}.constructorArguments.${index}`);
+    });
   }
   for (const required of ["AssessmentResolver", "GardenToken", "WorkApprovalResolver"]) {
     if (!upgradeNames.has(required)) throw new Error(`Missing existing proxy upgrade manifest for ${required}`);
@@ -620,6 +627,54 @@ function linkBytecode(
   }
   if (bytecode.includes("__$")) throw new Error("Unresolved library placeholder remains after linking");
   return `0x${bytecode}`;
+}
+
+function materializeLibraryRuntime(
+  object: string,
+  references: ImmutableReferences | undefined,
+  libraryAddress: string,
+): string {
+  let bytecode = object.startsWith("0x") ? object.slice(2) : object;
+  for (const [name, offsets] of Object.entries(references ?? {})) {
+    if (name !== "library_deploy_address") throw new Error(`Unexpected library immutable reference: ${name}`);
+    for (const offset of offsets) {
+      if (offset.length !== 32) throw new Error(`Unexpected library address width: ${offset.length}`);
+      const replacement = zeroPadValue(libraryAddress, offset.length).slice(2).toLowerCase();
+      const start = offset.start * 2;
+      bytecode = `${bytecode.slice(0, start)}${replacement}${bytecode.slice(start + offset.length * 2)}`;
+    }
+  }
+  return `0x${bytecode}`;
+}
+
+export function commitmentPoolingImplementationRuntimeHash(identity: ReleaseIdentity): string {
+  if (identity.kind !== "implementation" || identity.name !== "CommitmentPoolingModule" || !identity.immutableRuntime) {
+    throw new Error("Commitment Pooling runtime materialization requires its immutable implementation identity");
+  }
+  const artifact = loadArtifact(identity.artifact);
+  const runtimeCode = linkBytecode(
+    artifact.deployedBytecode.object,
+    artifact.deployedBytecode.linkReferences,
+    identity.libraries,
+  );
+  if (keccak256(runtimeCode).toLowerCase() !== identity.runtimeTemplateHash.toLowerCase()) {
+    throw new Error("Commitment Pooling runtime template does not match the frozen release identity");
+  }
+  const immutableReferences = artifact.deployedBytecode.immutableReferences ?? {};
+  const referenceNames = Object.keys(immutableReferences);
+  if (referenceNames.length !== 1) {
+    throw new Error(
+      `Commitment Pooling must expose only the inherited UUPS __self immutable; found ${referenceNames.length}`,
+    );
+  }
+  let materialized = runtimeCode.startsWith("0x") ? runtimeCode.slice(2) : runtimeCode;
+  for (const offset of immutableReferences[referenceNames[0]]) {
+    if (offset.length !== 32) throw new Error(`Unexpected UUPS __self width: ${offset.length}`);
+    const replacement = zeroPadValue(identity.address, offset.length).slice(2).toLowerCase();
+    const start = offset.start * 2;
+    materialized = `${materialized.slice(0, start)}${replacement}${materialized.slice(start + offset.length * 2)}`;
+  }
+  return keccak256(`0x${materialized}`);
 }
 
 function directLibraryReferences(artifact: FoundryArtifact): Array<{ source: string; name: string; artifact: string }> {
@@ -789,6 +844,9 @@ export function buildReleaseLock(manifest = loadReleaseManifest(), baseSalt?: st
           ),
         },
         baseSalt,
+      );
+      identity.runtimeTemplateHash = keccak256(
+        materializeLibraryRuntime(runtimeCode, artifact.deployedBytecode.immutableReferences, identity.address),
       );
       identities.push(identity);
       libraryMap[key] = identity.address;

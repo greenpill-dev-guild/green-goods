@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   assertManifestMatchesNetworkDirectory,
   buildReleaseLock,
+  commitmentPoolingImplementationRuntimeHash,
   loadReleaseManifest,
   validateReleaseManifest,
 } from "./release-manifest";
@@ -96,7 +97,9 @@ describe("combined commitment release manifest", () => {
     expect(() => validateReleaseManifest(prematureGasFreeze)).toThrow(/must remain zero/);
 
     const missingAcknowledgment = structuredClone(manifest);
-    missingAcknowledgment.chains.arbitrum.destinationGasMeasurement!.includesAcknowledgmentAttempt = false;
+    const gasMeasurement = missingAcknowledgment.chains.arbitrum.destinationGasMeasurement;
+    if (!gasMeasurement) throw new Error("Fixture must include the frozen destination gas measurement");
+    gasMeasurement.includesAcknowledgmentAttempt = false;
     expect(() => validateReleaseManifest(missingAcknowledgment)).toThrow(/include the acknowledgment attempt/);
 
     const ownershipTransfer = structuredClone(manifest);
@@ -152,12 +155,20 @@ describe("combined commitment release manifest", () => {
     expect(proxies).toHaveLength(5);
     expect(new Set(lock.identities.map((identity) => identity.address)).size).toBe(lock.identities.length);
     expect(Object.keys(lock.libraryMap)).toHaveLength(21);
+    expect(libraries.find((identity) => identity.name === "CommitmentPoolingClaimsLib")?.runtimeTemplateHash).toBe(
+      "0x9226b8fc80593906cb6f851c4b129a34ed48fb6bb7422bc84def33d011c7c7da",
+    );
     expect(libraries.find((identity) => identity.name === "SettlementFundingLib")).toBeDefined();
     expect(libraries.find((identity) => identity.name === "SettlementLifecycleLib")?.libraries).toHaveProperty(
       "src/lib/Settlement/CommandLib.sol:SettlementCommandLib",
     );
-    expect(implementations.find((identity) => identity.name === "CommitmentPoolingModule")?.libraries).toHaveProperty(
+    const poolingImplementation = implementations.find((identity) => identity.name === "CommitmentPoolingModule");
+    if (!poolingImplementation) throw new Error("Release lock must include the Commitment Pooling implementation");
+    expect(poolingImplementation?.libraries).toHaveProperty(
       "src/lib/CommitmentPooling/ClaimsLib.sol:CommitmentPoolingClaimsLib",
+    );
+    expect(commitmentPoolingImplementationRuntimeHash(poolingImplementation)).toBe(
+      "0x3f4e55e1632bde5ef29aadf5224e5a07498b529c27e82d850829583a75fce27f",
     );
   });
 });
