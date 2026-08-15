@@ -244,8 +244,6 @@
 :root {
   /* Shadow-as-border edge tokens (replace CSS border/ring) */
   --edge-rest: 0 0 0 1px rgba(0, 0, 0, 0.06);
-  --edge-hover: 0 0 0 1px rgba(31, 193, 107, 0.20);
-  --edge-active: 0 0 0 1px rgba(31, 193, 107, 0.30);
   --edge-disabled: 0 0 0 1px rgba(0, 0, 0, 0.03);
   /* Focus edge rides the workspace focus-ring role (green fallback outside a
    * tone). The old brand-green @20% alpha measured 1.19:1 — invisible. */
@@ -339,8 +337,6 @@
 
 [data-theme="dark"] {
   --edge-rest: 0 0 0 1px rgba(255, 255, 255, 0.08);
-  --edge-hover: 0 0 0 1px rgba(31, 193, 107, 0.30);
-  --edge-active: 0 0 0 1px rgba(31, 193, 107, 0.40);
   --edge-disabled: 0 0 0 1px rgba(255, 255, 255, 0.04);
   --edge-focus: 0 0 0 2px rgb(var(--tone-focus-ring, var(--green-200)));
 
@@ -417,16 +413,12 @@
   --tone-on-action: 255 255 255;
   --tone-primary-container: var(--blue-100);
   --tone-on-primary-container: var(--blue-900);
-  --tone-secondary: var(--blue-300);
-  --tone-surface-tint: var(--blue-600) / 8%;
-  --tone-outline: var(--blue-200);
-  --tone-surface-variant: var(--blue-50);
   /* Contrast-safe accent for tone-colored TEXT / outline / icon on light
      surfaces (AA ≥4.5 on white). Distinct from --tone-action (filled bg w/ white
      text) and --tone-primary (the mid fill step — too light as text, e.g.
      green-600 ≈ 2.85:1). Consumed directly via var(); never indirected at :root. */
   --tone-on-surface-accent: var(--blue-700);
-  --tone-surface-tint-color: rgb(var(--blue-600) / 8%);
+  --tone-surface-tint-color: rgb(var(--blue-500) / 5%);
 }
 
 /* Garden — Green. Uses a forest action tone for the cockpit's strongest CTA. */
@@ -442,12 +434,8 @@
   --tone-on-action: 255 255 255;
   --tone-primary-container: var(--green-100);
   --tone-on-primary-container: var(--green-900);
-  --tone-secondary: var(--green-300);
-  --tone-surface-tint: var(--green-600) / 8%;
-  --tone-outline: var(--green-200);
-  --tone-surface-variant: var(--green-50);
   --tone-on-surface-accent: var(--green-800);
-  --tone-surface-tint-color: rgb(var(--green-600) / 8%);
+  --tone-surface-tint-color: rgb(var(--green-500) / 5%);
 }
 
 /* Community — Amber/Gold. The ambient canvas wash leans gold (oklch hue 80,
@@ -467,14 +455,10 @@
   --tone-on-action: 255 255 255;
   --tone-primary-container: var(--yellow-100);
   --tone-on-primary-container: var(--yellow-900);
-  --tone-secondary: var(--yellow-300);
-  --tone-surface-tint: var(--yellow-500) / 8%;
-  --tone-outline: var(--yellow-200);
-  --tone-surface-variant: var(--yellow-50);
   /* orange-800 (not -700) so tone-colored TEXT on the light community surface
      clears AA — orange-700 measured 4.01:1 on the 14px current-step rail label. */
   --tone-on-surface-accent: var(--orange-800);
-  --tone-surface-tint-color: rgb(var(--yellow-500) / 8%);
+  --tone-surface-tint-color: rgb(var(--yellow-500) / 5%);
 }
 
 /* Actions — Red */
@@ -488,12 +472,8 @@
   --tone-on-action: 255 255 255;
   --tone-primary-container: var(--red-100);
   --tone-on-primary-container: var(--red-900);
-  --tone-secondary: var(--red-300);
-  --tone-surface-tint: var(--red-500) / 8%;
-  --tone-outline: var(--red-200);
-  --tone-surface-variant: var(--red-50);
   --tone-on-surface-accent: var(--red-700);
-  --tone-surface-tint-color: rgb(var(--red-500) / 8%);
+  --tone-surface-tint-color: rgb(var(--red-500) / 5%);
 }
 
 /* Home — Stone/Neutral (unauthenticated) */
@@ -507,12 +487,8 @@
   --tone-on-action: 255 255 255;
   --tone-primary-container: 231 229 228;
   --tone-on-primary-container: 41 37 36;
-  --tone-secondary: 168 162 158;
-  --tone-surface-tint: 120 113 108 / 8%;
-  --tone-outline: 214 211 209;
-  --tone-surface-variant: 245 245 244;
   --tone-on-surface-accent: 68 64 60;
-  --tone-surface-tint-color: rgb(120 113 108 / 8%);
+  --tone-surface-tint-color: rgb(120 113 108 / 5%);
 }
 
 /* Focus-ring role — the one token components use for focus indicators.
@@ -548,10 +524,6 @@
   --tone-on-action: 255 255 255;
   --tone-primary-container: var(--blue-900);
   --tone-on-primary-container: var(--blue-100);
-  --tone-secondary: var(--blue-300);
-  --tone-surface-tint: var(--blue-200) / 10%;
-  --tone-outline: var(--blue-700);
-  --tone-surface-variant: var(--blue-900);
   --tone-on-surface-accent: var(--blue-200);
   --tone-surface-tint-color: rgb(var(--blue-200) / 10%);
 }
@@ -564,10 +536,6 @@
   --tone-on-action: 255 255 255;
   --tone-primary-container: var(--green-900);
   --tone-on-primary-container: var(--green-100);
-  --tone-secondary: var(--green-300);
-  --tone-surface-tint: var(--green-200) / 10%;
-  --tone-outline: var(--green-700);
-  --tone-surface-variant: var(--green-900);
   --tone-on-surface-accent: var(--green-200);
   --tone-surface-tint-color: rgb(var(--green-200) / 10%);
 }
@@ -585,10 +553,6 @@
   --tone-on-action: 255 255 255;
   --tone-primary-container: var(--yellow-900);
   --tone-on-primary-container: var(--yellow-100);
-  --tone-secondary: var(--yellow-300);
-  --tone-surface-tint: var(--yellow-200) / 10%;
-  --tone-outline: var(--yellow-700);
-  --tone-surface-variant: var(--yellow-900);
   --tone-on-surface-accent: var(--yellow-200);
   --tone-surface-tint-color: rgb(var(--yellow-200) / 10%);
 }
@@ -601,10 +565,6 @@
   --tone-on-action: 255 255 255;
   --tone-primary-container: var(--red-900);
   --tone-on-primary-container: var(--red-100);
-  --tone-secondary: var(--red-300);
-  --tone-surface-tint: var(--red-200) / 10%;
-  --tone-outline: var(--red-700);
-  --tone-surface-variant: var(--red-900);
   --tone-on-surface-accent: var(--red-200);
   --tone-surface-tint-color: rgb(var(--red-200) / 10%);
 }
@@ -617,10 +577,6 @@
   --tone-on-action: 255 255 255;
   --tone-primary-container: var(--neutral-700);
   --tone-on-primary-container: var(--neutral-100);
-  --tone-secondary: var(--neutral-400);
-  --tone-surface-tint: var(--neutral-300) / 10%;
-  --tone-outline: var(--neutral-600);
-  --tone-surface-variant: var(--neutral-800);
   --tone-on-surface-accent: var(--neutral-300);
   --tone-surface-tint-color: rgb(var(--neutral-300) / 10%);
 }
@@ -1177,28 +1133,21 @@
   /* ── Surface Primitives ── */
 
   /**
-   * Canvas route card — the single outer surface that wraps a workspace view
-   * (Hub, Garden, Community, Actions, Cookies, etc.). Mirrors the reference
-   * design `.mainsheet` from `design_handoff_admin-revamp/screens/hub.css`:
-   *   mobile  ~16px sides
-   *   tablet  ~28px sides
-   *   desktop ~40px sides
-   * Page header, tabs, search, and content all live inside it with breathing
-   * room from the card edge — no card-on-card stacking.
+   * Canvas route frame — the region that wraps a workspace view (Hub, Garden,
+   * Community, Actions, Cookies, etc.). Cockpit M3 1a: the linen canvas IS the
+   * page ground, so this frame is transparent — route header, tab rail, and
+   * card grids sit directly on the canvas and its tone wash. Cards (white,
+   * elevation level 1) provide the raised surfaces. Padding follows the 1a
+   * Hub spec: 12px top, 32px sides at desktop (16px mobile / 24px tablet).
    */
   .canvas-route-card {
-    /* Solid M3 material for text-dense admin workspaces. Route tint belongs to
-     * the canvas behind this card, not to translucent content surfaces. */
-    background: rgb(var(--admin-surface-0));
+    background: transparent;
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
     border-radius: var(--admin-radius-lg);
     min-block-size: var(--admin-main-content-min-height, 100%);
-    /* Symmetric padding — one value per breakpoint so header, tabs, and body
-       content share an even inset (the old 14/16/20px asymmetry read as a
-       misalignment on dense views). */
-    padding: 1rem;
-    box-shadow: var(--edge-rest), var(--m3-elevation-1);
+    padding: 0.75rem 1rem 1.5rem;
+    box-shadow: none;
   }
 
   .canvas-route-card > [role="tabpanel"],
@@ -1216,6 +1165,8 @@
     flex: 1 1 auto;
   }
 
+  /* Media fallback tiles ride the domain palette; the no-domain fallback is
+     warm stone, not the workspace tone (tone never touches card surfaces). */
   .domain-gradient-fallback {
     background: linear-gradient(
       135deg,
@@ -1225,12 +1176,12 @@
         )
         0%,
       rgb(
-          var(--domain-fallback-ink-rgb, var(--tone-accent)) /
+          var(--domain-fallback-ink-rgb, var(--neutral-500)) /
             var(--admin-domain-fallback-ink-alpha)
         )
         100%
     );
-    color: rgb(var(--domain-fallback-ink-rgb, var(--tone-accent)));
+    color: rgb(var(--domain-fallback-ink-rgb, var(--neutral-500)));
   }
 
   .admin-media-readability-overlay {
@@ -1242,17 +1193,12 @@
     );
   }
 
+  /* Neutral stone identity tile — tone stays off card surfaces. */
   .account-avatar-tile {
     border-radius: var(--r-lg);
-    background: linear-gradient(
-      135deg,
-      rgb(var(--tone-tint) / 0.16),
-      rgb(var(--tone-accent) / 0.24)
-    );
-    color: rgb(var(--tone-accent));
-    box-shadow:
-      inset 0 0 0 1px rgb(var(--admin-surface-0) / 0.58),
-      0 18px 32px rgb(var(--warm-shadow-deep) / 0.14);
+    background: rgb(var(--m3-surface-container-high));
+    color: rgb(var(--m3-on-surface));
+    box-shadow: var(--m3-elevation-1);
   }
 
   [data-theme="dark"] .workbench-row-clickable:hover {
@@ -1296,13 +1242,15 @@
     padding: 0;
   }
 
+  /* Hover feedback is a pure elevation step (1 → 2) with box-shadow 150ms —
+     no translate lift, no hue shift (Cockpit M3 1a interaction contract). */
   .workbench-row,
   .workbench-card,
   .hub-work-card,
   .hub-history-card {
-    transition-property: background-color, transform, box-shadow, filter;
-    transition-duration: var(--spring-spatial-fast-duration);
-    transition-timing-function: var(--spring-spatial-fast-easing);
+    transition-property: background-color, box-shadow;
+    transition-duration: var(--spring-effects-fast-duration);
+    transition-timing-function: var(--spring-effects-fast-easing);
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -1314,9 +1262,10 @@
     }
   }
 
-  /* Selected row gains a container tint; the focus ring ships via Tailwind. */
+  /* Selected row gains a neutral ink state layer; the focus ring ships via
+     Tailwind. Selection is a state, not a workspace-tone surface. */
   .workbench-row[data-selected="true"] {
-    background-color: rgb(var(--tone-primary-container) / 0.12);
+    background-color: rgb(var(--m3-on-surface) / 0.08);
   }
 
   .workbench-card[data-selected="true"],
@@ -1329,35 +1278,21 @@
     overflow-wrap: anywhere;
   }
 
-  /* Clickable surfaces lift on hover (row → elevation-1, card → elevation-2)
-     and settle on press. Transform is owned here so it never races Tailwind's
-     translate utilities. */
   .workbench-row-clickable:hover {
-    transform: translateY(-0.125rem);
-    box-shadow: var(--edge-hover), var(--m3-elevation-1);
+    box-shadow: var(--m3-elevation-1);
   }
 
-  .workbench-card-clickable:hover {
-    transform: translateY(-0.125rem);
-    box-shadow: var(--edge-hover), var(--m3-elevation-2);
-  }
-
-  .hub-work-card:hover {
-    transform: translateY(-0.125rem);
-    box-shadow: var(--edge-hover), var(--m3-elevation-2);
-  }
-
+  .workbench-card-clickable:hover,
+  .hub-work-card:hover,
   .hub-history-card:hover {
-    transform: translateY(-0.125rem);
-    box-shadow: var(--edge-hover), var(--m3-elevation-2);
+    box-shadow: var(--m3-elevation-2);
   }
 
   .workbench-row-clickable:active,
   .workbench-card-clickable:active,
   .hub-work-card:active,
   .hub-history-card:active {
-    transform: translateY(0);
-    box-shadow: var(--edge-rest);
+    box-shadow: var(--m3-elevation-1);
   }
 
   /* Raised inner tiles (thumbnail / icon) — edge ring + elevation. */
@@ -1376,21 +1311,15 @@
     }
   }
 
-  @supports not (backdrop-filter: blur(1px)) {
-    .canvas-route-card {
-      background: rgb(var(--admin-surface-0));
-    }
-  }
-
   @media (min-width: 600px) {
     .canvas-route-card {
-      padding: 1.25rem;
+      padding: 0.75rem 1.5rem 1.5rem;
     }
   }
 
   @media (min-width: 1024px) {
     .canvas-route-card {
-      padding: 1.5rem;
+      padding: 0.75rem 2rem 1.5rem;
     }
   }
 
@@ -1409,16 +1338,14 @@
     box-shadow: var(--edge-rest), var(--m3-elevation-1);
   }
 
-  /** Compact card: metric tile, stat block */
+  /** Compact card: metric tile, stat block — hover is elevation only */
   .surface-card {
     @apply rounded-lg bg-bg-white p-4;
-    @apply transition-all hover:-translate-y-0.5;
-    transition-duration: var(--spring-spatial-fast-duration);
-    transition-timing-function: var(--spring-spatial-fast-easing);
+    transition: box-shadow var(--spring-effects-fast-duration) var(--spring-effects-fast-easing);
     box-shadow: var(--edge-rest), var(--m3-elevation-1);
   }
   .surface-card:hover {
-    box-shadow: var(--edge-hover), var(--m3-elevation-2);
+    box-shadow: var(--m3-elevation-2);
   }
 
   /* ── Glass Surface ── Shared frosted treatment
@@ -1550,50 +1477,24 @@
   }
 }
 
+/* Workspace canvas — a constant linen ground (#FAF8F5) with the faint tone
+ * wash as the ONLY environmental tone signal: a 5% gradient from the top that
+ * fades out by 320px (Cockpit M3 1a, tone use 3 of 3). The wash color is the
+ * animatable --tone-surface-tint-color, so switching workspaces cross-fades
+ * the wash rather than repainting the whole canvas. */
 .workspace-canvas {
-  --tone-tint: 59 130 246;
-  --tone-tint-2: 125 211 252;
-  --tone-accent: 37 99 235;
   position: relative;
   isolation: isolate;
-  background: var(--tone-canvas, rgb(var(--m3-surface-container-lowest)));
-  transition: background var(--admin-motion-canvas-tone-duration) var(--admin-motion-canvas-tone-easing);
+  background: rgb(var(--m3-surface-container-low));
 }
 
-.workspace-canvas[data-tone="home"] {
-  --tone-tint: 120 113 108;
-  --tone-tint-2: 168 162 158;
-  --tone-accent: 87 83 78;
-}
-
-.workspace-canvas[data-tone="hub"] {
-  --tone-tint: 59 130 246;
-  --tone-tint-2: 147 197 253;
-  --tone-accent: 37 99 235;
-}
-
-.workspace-canvas[data-tone="garden"] {
-  --tone-tint: 34 197 94;
-  --tone-tint-2: 110 231 183;
-  --tone-accent: 22 163 74;
-}
-
-.workspace-canvas[data-tone="community"] {
-  --tone-tint: 245 158 11;
-  --tone-tint-2: 250 204 21;
-  --tone-accent: 217 119 6;
-}
-
-.workspace-canvas[data-tone="actions"] {
-  --tone-tint: 239 68 68;
-  --tone-tint-2: 248 113 113;
-  --tone-accent: 220 38 38;
-}
-
-.workspace-canvas[data-tone="profile"] {
-  --tone-tint: 168 85 247;
-  --tone-tint-2: 196 181 253;
-  --tone-accent: 147 51 234;
+.workspace-canvas::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: linear-gradient(180deg, var(--tone-surface-tint-color, transparent), transparent 320px);
 }
 
 .main-scroll-area {
@@ -1688,39 +1589,10 @@
   }
 }
 
+/* Dark canvas — the m3 floor; the same wash overlay carries workspace identity
+ * (the per-tone dark --tone-surface-tint-color steps are brighter, at 10%). */
 [data-theme="dark"] .workspace-canvas {
-  background: var(--tone-canvas, rgb(var(--m3-surface-dim)));
-}
-
-[data-theme="dark"] .workspace-canvas[data-tone="home"] {
-  --tone-tint: 168 162 158;
-  --tone-tint-2: 120 113 108;
-  --tone-accent: 214 211 209;
-}
-[data-theme="dark"] .workspace-canvas[data-tone="hub"] {
-  --tone-tint: 147 197 253;
-  --tone-tint-2: 59 130 246;
-  --tone-accent: 191 219 254;
-}
-[data-theme="dark"] .workspace-canvas[data-tone="garden"] {
-  --tone-tint: 110 231 183;
-  --tone-tint-2: 34 197 94;
-  --tone-accent: 187 247 208;
-}
-[data-theme="dark"] .workspace-canvas[data-tone="community"] {
-  --tone-tint: 250 204 21;
-  --tone-tint-2: 245 158 11;
-  --tone-accent: 254 240 138;
-}
-[data-theme="dark"] .workspace-canvas[data-tone="actions"] {
-  --tone-tint: 248 113 113;
-  --tone-tint-2: 239 68 68;
-  --tone-accent: 254 202 202;
-}
-[data-theme="dark"] .workspace-canvas[data-tone="profile"] {
-  --tone-tint: 196 181 253;
-  --tone-tint-2: 168 85 247;
-  --tone-accent: 221 214 254;
+  background: rgb(var(--m3-surface));
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1906,48 +1778,16 @@
 }
 
 /* ============================================================================
- * TONE SYSTEM (Tier 1a — additive)
- * Per-view canvas wash. Tone is a peripheral signal that touches:
- *   - canvas background (this --tone-canvas variable)
- *   - active tab underline (consumer-driven, Tier 2)
- *   - page-header bottom hairline (consumer-driven, Tier 2)
- *   - garden-pill leaf in AppBar (consumer-driven, Tier 2)
- * Tone does NOT touch: header background, title text, cards, status chips,
- * or FAB. Filled actions consume --tone-action; other controls stay M3
- * neutral/semantic.
- *
- * Strength axis: off | subtle | default. Default for dark mode is subtle
- * per audit §5.4.3.
+ * TONE — restrained to exactly three uses (Cockpit M3 1a):
+ *   1. Active tab underline/label + active nav pill
+ *      (tone-primary-container / on-primary-container)
+ *   2. The single filled action button per route header (--tone-action)
+ *   3. The faint canvas wash (--tone-surface-tint-color, 5% → transparent 320px)
+ * Tone does NOT touch card surfaces, borders, or hovers. All hovers are
+ * elevation step-ups or neutral ink state layers — never a hue shift.
+ * The old per-tone --tone-canvas oklch washes and the tone-strength axis are
+ * deleted; the canvas ground is constant linen.
  * ============================================================================ */
-:root {
-  --tone-strength: 1;
-}
-[data-tone-strength="off"]     { --tone-strength: 0; }
-[data-tone-strength="subtle"]  { --tone-strength: 0.5; }
-[data-tone-strength="default"] { --tone-strength: 1; }
-
-/* Dark mode default = subtle (per audit §5.4.3) */
-/* Dark default flipped 0.5 → 1 (reverses audit §5.4.3 "subtle default in dark"):
- * justified because the dark wash chroma was so low that 0.5 made it invisible —
- * the oversaturation concern §5.4.3 guarded against can't occur at these chromas.
- * The `subtle` (0.5) and `off` (0) opt-outs below remain for per-view dialing. */
-[data-theme="dark"]                                  { --tone-strength: 1; }
-:is([data-theme="dark"][data-tone-strength="off"], [data-theme="dark"] [data-tone-strength="off"])         { --tone-strength: 0; }
-:is([data-theme="dark"][data-tone-strength="default"], [data-theme="dark"] [data-tone-strength="default"]) { --tone-strength: 1; }
-
-[data-tone="hub"]       { --tone-canvas: oklch(96.5% calc(0.008 * var(--tone-strength)) 240); }
-[data-tone="garden"]    { --tone-canvas: oklch(96.5% calc(0.008 * var(--tone-strength)) 145); }
-[data-tone="community"] { --tone-canvas: oklch(96.5% calc(0.016 * var(--tone-strength)) 80);  }
-[data-tone="actions"]   { --tone-canvas: oklch(96.5% calc(0.008 * var(--tone-strength)) 30);  }
-
-/* Dark wash: chroma raised ~2× (was ~0.012; at the old 0.5 strength the effective
- * chroma was ~0.006 — invisible, so every workspace read identically near-black).
- * Lightness kept at 17%, just UNDER the warm card (L≈21%), so cards still separate
- * by a lightness step while the per-view hue now reads in the canvas margins. */
-:is([data-theme="dark"][data-tone="hub"], [data-theme="dark"] [data-tone="hub"])             { --tone-canvas: oklch(17% calc(0.024 * var(--tone-strength)) 240); }
-:is([data-theme="dark"][data-tone="garden"], [data-theme="dark"] [data-tone="garden"])       { --tone-canvas: oklch(17% calc(0.024 * var(--tone-strength)) 145); }
-:is([data-theme="dark"][data-tone="community"], [data-theme="dark"] [data-tone="community"]) { --tone-canvas: oklch(17% calc(0.034 * var(--tone-strength)) 80);  }
-:is([data-theme="dark"][data-tone="actions"], [data-theme="dark"] [data-tone="actions"])     { --tone-canvas: oklch(17% calc(0.024 * var(--tone-strength)) 30);  }
 
 /* ============================================================================
  * STATUS PALETTE REMAP (Tier 1b — admin-scoped global remap)

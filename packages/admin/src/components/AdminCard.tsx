@@ -17,8 +17,9 @@ export const adminCardVariants = tv({
     variant: {
       // Filled — surface-container-highest, no outline, elevation 0→1 on hover
       filled: ["bg-[rgb(var(--m3-surface-container-highest))]", "shadow-[var(--m3-elevation-0)]"],
-      // Elevated — surface-container-low, elevation 1 base
-      elevated: ["bg-[rgb(var(--m3-surface-container-low))]", "shadow-[var(--m3-elevation-1)]"],
+      // Elevated — the white card on the linen canvas (--admin-surface-0 flips
+      // to the warm container step in dark), elevation 1 base
+      elevated: ["bg-[rgb(var(--admin-surface-0))]", "shadow-[var(--m3-elevation-1)]"],
       // Outlined — surface, no elevation, ring outline
       outlined: [
         "bg-[rgb(var(--m3-surface))]",

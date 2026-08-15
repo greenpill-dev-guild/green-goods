@@ -147,9 +147,11 @@ export function PageHeader({
       </div>
 
       {children ? (
+        // The tab rail carries its own hairline bottom rule (AdminTabRail);
+        // no separator above it — 18px clear of the status line per the 1a spec.
         <div
           data-region="route-header-tabs"
-          className={cn("mt-3 sm:mt-4", isCanvas && "border-t border-stroke-soft-200 pt-3")}
+          className={cn(isCanvas ? "mt-[18px]" : "mt-3 sm:mt-4")}
         >
           {children}
         </div>
