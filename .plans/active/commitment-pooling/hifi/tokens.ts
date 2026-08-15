@@ -159,6 +159,10 @@ export const HIFI_CSS = `
 .hf .card.flat{box-shadow:none}
 .hf .card.surface{border-radius:20px}
 .hf .card.inset{border-radius:16px}
+/* promise-direction edge (2026-08-14) — inset stripe: offers green, requests
+   sky. Direction reads at scroll speed; the chip stays the labelled signal. */
+.hf .card.edge-offer{box-shadow:inset 3px 0 0 var(--gr-ink),0 1px 3px rgba(14,18,27,.04)}
+.hf .card.edge-request{box-shadow:inset 3px 0 0 var(--sky),0 1px 3px rgba(14,18,27,.04)}
 
 /* skeleton — "loading preserves layout": card-shaped placeholders with a sheen */
 .hf .sk{background:var(--card);border:1px solid var(--ln);border-radius:24px;padding:14px;
@@ -285,6 +289,91 @@ export const HIFI_CSS = `
   font:600 13px inherit;white-space:nowrap;min-height:44px;display:inline-flex;align-items:center}
 .hf .seg .sg.on{background:var(--ink);color:var(--cv)}
 .hf .seg .sg[disabled],.hf .gtab[disabled],.hf .tabrail .trtab[disabled]{opacity:1;cursor:default}
+.hf .sg .nbadge{margin-left:6px;min-width:16px;height:16px;border-radius:99px;background:var(--act);color:var(--on-act);
+  font:700 10.5px/16px inherit;display:inline-block;text-align:center;padding:0 4px;vertical-align:1px}
+
+/* season + campaigns rail (2026-08-14) — bleeds to the screen edge inside
+   .pagepad so the next slide peeks; the Season slide leads wider. */
+.hf .crail{display:flex;gap:10px;overflow-x:auto;scroll-snap-type:x mandatory;margin:0 -16px;padding:2px 16px 4px;scrollbar-width:none}
+.hf .crail::-webkit-scrollbar{display:none}
+.hf .crail .cslide{flex:0 0 74%;scroll-snap-align:start;display:flex}
+.hf .crail .cslide.lead{flex-basis:84%}
+.hf .crail .cslide > .card{flex:1;min-width:0}
+
+/* domain row (2026-08-14 second pass) — domains leave the top chip row for
+   their own equal-weight row: every involved domain listed, none privileged.
+   Tints mirror theme.css --domain-*-rgb (agro moss, edu harbour, solar amber,
+   waste terracotta); the real build renders DomainBadge with its icons. */
+.hf .dmrow{display:flex;flex-wrap:wrap;gap:6px}
+.hf .dm{border-radius:99px;padding:2.5px 9px;font:600 11.5px/1.4 inherit;letter-spacing:.01em}
+.hf.s-client .dm.agro{background:#EAEFE2;color:#3E5532}
+.hf.s-client .dm.edu{background:#E2EAF0;color:#2E4F6B}
+.hf.s-client .dm.solar{background:#F8EDE0;color:#7A5A13}
+.hf.s-client .dm.waste{background:#F4E8E2;color:#9B3C2D}
+[data-theme="dark"] .hf.s-client .dm.agro{background:#26301F;color:#A9C68C}
+[data-theme="dark"] .hf.s-client .dm.edu{background:#1D2933;color:#9FBFDA}
+[data-theme="dark"] .hf.s-client .dm.solar{background:#322A18;color:#E0B65C}
+[data-theme="dark"] .hf.s-client .dm.waste{background:#33211C;color:#E09A85}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]) .hf.s-client .dm.agro{background:#26301F;color:#A9C68C}
+  :root:not([data-theme="light"]) .hf.s-client .dm.edu{background:#1D2933;color:#9FBFDA}
+  :root:not([data-theme="light"]) .hf.s-client .dm.solar{background:#322A18;color:#E0B65C}
+  :root:not([data-theme="light"]) .hf.s-client .dm.waste{background:#33211C;color:#E09A85}
+}
+
+/* whole-card open affordance (2026-08-14 second pass) — the WorkCard grammar:
+   the card is the navigation, footer buttons are reserved for claim acts. */
+.hf [data-hot].cardlink{cursor:pointer}
+
+/* browse filter row (2026-08-14) — direction chips + the personal Mine toggle */
+.hf .filters{display:flex;align-items:center;gap:8px}
+.hf .filters .seg{flex:1 1 auto;min-width:0}
+.hf .filters .mine{flex:none;border:1px solid var(--ln2);background:none;color:var(--stone);border-radius:99px;
+  padding:5px 12px;font:600 12.5px/1.2 inherit}
+.hf .filters .mine.on{border-color:var(--ink);background:var(--ink);color:var(--cv)}
+
+/* Submit Work grounding (2026-08-14) — mirrors the shipping flow's anatomy:
+   FormInfo section headers (client FormInfo.tsx) and the image-topped
+   selection cards in horizontal Carousel rails (ActionCard/GardenCard,
+   height "selection", media strip on top, body below, selected ring). */
+.hf.s-client .finfo{display:flex;gap:12px;align-items:center;background:var(--stone-bg);border:1px solid var(--ln);border-radius:14px;padding:12px 14px}
+.hf.s-client .finfo .fic{width:48px;height:48px;border-radius:99px;background:var(--card);border:1px solid var(--ln2);display:inline-flex;align-items:center;justify-content:center;flex:none}
+.hf.s-client .finfo .ic{color:var(--act)}
+.hf.s-client .finfo .ft{font:650 15px inherit}
+.hf.s-client .finfo .fi{font-size:12.5px;color:var(--stone)}
+.hf.s-client .selrail{display:flex;gap:10px;overflow-x:auto;margin:0 -16px;padding:2px 16px 4px;scrollbar-width:none}
+.hf.s-client .selrail::-webkit-scrollbar{display:none}
+/* scoped to the client dialect (PR #710 review): an unscoped .acard would be
+   overridden by the later admin .acard rule, whose --card-low does not exist
+   in .s-client. */
+.hf.s-client .selrail .acard{flex:0 0 200px;border:1px solid var(--ln);border-radius:14px;overflow:hidden;background:var(--card);padding:0;gap:0;box-shadow:none;display:flex;flex-direction:column}
+.hf.s-client .selrail .acard .amedia{height:80px;display:flex;align-items:flex-end;padding:8px 11px;color:#FFF;font:650 13px inherit;letter-spacing:.01em}
+.hf.s-client .selrail .acard .abody{padding:10px 12px;display:flex;flex-direction:column;gap:3px}
+.hf.s-client .selrail .acard .abody .at{font:650 14px inherit}
+.hf.s-client .selrail .acard .abody .am{font-size:12px;color:var(--stone);line-height:1.4}
+.hf.s-client .selrail .acard.on{border-color:var(--act);box-shadow:inset 0 0 0 1.5px var(--act)}
+.hf.s-client .amedia.agro{background:#3E5532}
+.hf.s-client .amedia.waste{background:#9B3C2D}
+.hf.s-client .amedia.edu{background:#2E4F6B}
+.hf.s-client .amedia.solar{background:#8A6420}
+.hf.s-client .amedia.garden{background:#5C6E4E}
+.hf.s-client .inp.ta{height:auto}
+.hf.s-client .inp.ta textarea{resize:none;background:none;border:0;font:inherit;color:inherit;width:100%}
+/* promise slides — the intro's third rail (2026-08-14): compact promise
+   cards riding the same horizontal grammar as the action/garden rails, so
+   holding many promises costs no extra vertical space. */
+.hf .pcard{flex:0 0 218px;border-radius:14px;padding:11px 12px;gap:3px}
+.hf .pcard .t-title{font-size:14px;line-height:1.3}
+
+/* floating creation entry (2026-08-14) — shared FabButton mirror above the AppBar */
+.hf .fabwrap{position:absolute;right:14px;bottom:106px;display:flex;flex-direction:column;align-items:flex-end;gap:10px;z-index:5}
+.hf .fabbtn{width:52px;height:52px;border-radius:18px;border:0;background:var(--act);color:var(--on-act);
+  display:flex;align-items:center;justify-content:center;box-shadow:0 6px 16px rgba(14,18,27,.26);cursor:pointer}
+.hf .fabbtn .ic{width:24px;height:24px}
+.hf .fabbtn.x{background:var(--card);color:var(--ink);border:1px solid var(--ln2)}
+.hf .fabscrim{position:absolute;inset:0;background:var(--scrim);z-index:4;border-radius:inherit}
+.hf .fabdoor{border:0;border-radius:99px;padding:11px 20px;font:600 14.5px/1.2 inherit;background:var(--card);color:var(--ink);
+  box-shadow:0 4px 14px rgba(14,18,27,.2);cursor:pointer}
 
 /* forms (W3 grammar) */
 .hf .fld{display:flex;flex-direction:column;gap:5px}
@@ -746,7 +835,11 @@ export const HIFI_CSS = `
    mis-click to reveal the options (Fix 2b). Reduced-motion keeps the static rings
    and drops the animations. */
 .hf [data-hot]{cursor:pointer}
-.hf [data-hot][role="button"]{display:inline-flex;align-items:center;box-sizing:border-box;min-width:44px;min-height:44px}
+/* Tap-target floor only (2026-08-14 third pass): the old display:inline-flex +
+   align-items:center here re-centered any button-less hotspot CONTAINER the
+   player promoted to role="button" — whole cards and the filter row included.
+   Block containers honor min-height without a display change. */
+.hf [data-hot][role="button"]{box-sizing:border-box;min-width:44px;min-height:44px}
 .hf :is(button,a)[data-hot]{box-sizing:border-box;min-width:44px;min-height:44px}
 .hf [data-hot].primary{outline:2px solid var(--gr);outline-offset:2px}
 @media (prefers-reduced-motion: no-preference){
