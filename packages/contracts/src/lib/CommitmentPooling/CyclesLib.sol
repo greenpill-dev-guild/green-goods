@@ -181,7 +181,8 @@ library CommitmentPoolingCyclesLib {
         }
     }
 
-    // ═════════════════════════════ Internal ═════════════════════════════
+    // ═════════════════════════════ Internal
+    // ═════════════════════════════
 
     /// @dev Only a Season may own the one-open-Season guard. Campaign close and cancel never read
     ///      or write it, so stale or migrated state pointing the field at a Campaign can never be

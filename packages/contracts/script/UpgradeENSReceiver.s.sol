@@ -247,9 +247,8 @@ contract UpgradeENSReceiver is Script {
 
         for (uint256 i = 0; i < slugs.length; i++) {
             // solhint-disable-next-line no-empty-blocks
-            try GreenGoodsENSReceiver(newReceiver).adminRegister(
-                slugs[i], owners[i], GreenGoodsENSReceiver.NameType(nameTypes[i])
-            ) {
+            try GreenGoodsENSReceiver(newReceiver)
+                .adminRegister(slugs[i], owners[i], GreenGoodsENSReceiver.NameType(nameTypes[i])) {
                 console.log("  Migrated:", slugs[i], "->", owners[i]);
                 success++;
             } catch {
@@ -295,7 +294,13 @@ contract UpgradeENSReceiver is Script {
         return vm.readFile(_deploymentPath(chainId));
     }
 
-    function _loadNetworkConfig(string memory /* networkName */ ) internal view returns (string memory) {
+    function _loadNetworkConfig(
+        string memory /* networkName */
+    )
+        internal
+        view
+        returns (string memory)
+    {
         string memory p = string.concat(vm.projectRoot(), "/deployments/networks.json");
         return vm.readFile(p);
     }

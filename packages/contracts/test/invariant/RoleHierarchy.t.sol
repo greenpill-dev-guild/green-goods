@@ -360,8 +360,7 @@ contract RoleHierarchyFuzzTest is Test {
             uint256 g1EvaluatorBefore,
             uint256 g1GardenerBefore,
             uint256 g1FunderBefore,
-            uint256 g1CommunityBefore,
-            ,
+            uint256 g1CommunityBefore,,
             bool g1ConfiguredBefore
         ) = adapter.gardenHats(garden1);
 
@@ -375,8 +374,7 @@ contract RoleHierarchyFuzzTest is Test {
             uint256 g1EvaluatorAfter,
             uint256 g1GardenerAfter,
             uint256 g1FunderAfter,
-            uint256 g1CommunityAfter,
-            ,
+            uint256 g1CommunityAfter,,
             bool g1ConfiguredAfter
         ) = adapter.gardenHats(garden1);
 

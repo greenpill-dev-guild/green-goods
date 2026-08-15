@@ -10,7 +10,12 @@ import { GardensModule } from "../../src/modules/Gardens.sol";
 import { GoodsToken } from "../../src/tokens/Goods.sol";
 import { IGardensModule } from "../../src/interfaces/IGardensModule.sol";
 import { IHatsModule } from "../../src/interfaces/IHatsModule.sol";
-import { IRegistryCommunity, IUnifiedPowerRegistry, PointSystem, NFTPowerSource } from "../../src/interfaces/IGardensV2.sol";
+import {
+    IRegistryCommunity,
+    IUnifiedPowerRegistry,
+    PointSystem,
+    NFTPowerSource
+} from "../../src/interfaces/IGardensV2.sol";
 import { MockRegistryFactory, MockRegistryCommunity, MockUnifiedPowerRegistry } from "../../src/mocks/GardensV2.sol";
 import { ZeroAddress, NotGardenOperator } from "../../src/CommonErrors.sol";
 

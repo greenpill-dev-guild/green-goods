@@ -40,7 +40,8 @@ contract CommitmentPoolingRecognitionFuzzTest is CommitmentPoolingFixture {
         _registerActions(1);
     }
 
-    // ───────────────────────────── Core invariant ─────────────────────────────
+    // ───────────────────────────── Core invariant
+    // ─────────────────────────────
 
     /// @notice Every canonical vector totals exactly 10,000 bps, for every reachable input.
     /// forge-config: default.fuzz.runs = 96
@@ -87,7 +88,8 @@ contract CommitmentPoolingRecognitionFuzzTest is CommitmentPoolingFixture {
         }
     }
 
-    // ─────────────────────── Remainder placement rules ───────────────────────
+    // ─────────────────────── Remainder placement rules
+    // ───────────────────────
 
     /// @notice Equal-pass remainders go to the lowest addresses, in order and without gaps.
     /// forge-config: default.fuzz.runs = 96
@@ -166,7 +168,8 @@ contract CommitmentPoolingRecognitionFuzzTest is CommitmentPoolingFixture {
         }
     }
 
-    // ─────────────────────── Uniqueness and hash stability ───────────────────────
+    // ─────────────────────── Uniqueness and hash stability
+    // ───────────────────────
 
     /// @notice Exactly one vector is accepted: moving a single bps between rows is rejected.
     /// @dev Without this the acceptance in every test above would be near-vacuous — a validator
@@ -291,7 +294,8 @@ contract CommitmentPoolingRecognitionFuzzTest is CommitmentPoolingFixture {
         );
     }
 
-    // ───────────────────────────── Construction ─────────────────────────────
+    // ───────────────────────────── Construction
+    // ─────────────────────────────
 
     /// @dev Builds the vector the module recomputes: two independent integer passes, each
     ///      distributing its own remainder. Deliberately mirrors the production loop — the tests
@@ -473,16 +477,10 @@ contract CommitmentPoolingRecognitionFuzzTest is CommitmentPoolingFixture {
         module.openCycle(
             cycleId,
             ICommitmentPoolingModule.AllocationBps({
-                gardeners: 6000,
-                treasury: 1500,
-                operator: 1000,
-                evaluator: 500,
-                community: 500,
-                funder: 500
+                gardeners: 6000, treasury: 1500, operator: 1000, evaluator: 500, community: 500, funder: 500
             }),
             ICommitmentPoolingModule.RecognitionPolicy({
-                equalParticipationBps: equalBps,
-                verifiedContributionBps: verifiedBps
+                equalParticipationBps: equalBps, verifiedContributionBps: verifiedBps
             })
         );
     }

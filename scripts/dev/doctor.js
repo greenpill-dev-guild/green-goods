@@ -12,11 +12,16 @@ import net from "node:net";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
+import {
+  foundryVersionMatches,
+  readPinnedFoundryVersion,
+} from "../contracts/check-foundry-version.mjs";
 import { commandExists, commandVersion, majorVersion } from "../lib/dev-shared.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const projectRoot = path.resolve(__dirname, "../..");
+const requiredFoundryVersion = readPinnedFoundryVersion(projectRoot);
 
 const validProfiles = new Set(["web", "full", "contracts", "upload", "prod", "prod-mirror"]);
 
@@ -278,11 +283,22 @@ function checkTools() {
         "fail",
         "Foundry not found",
         "Required for contracts work.",
-        "Install Foundry with curl -L https://foundry.paradigm.xyz | bash && foundryup.",
+        `Run foundryup --install v${requiredFoundryVersion} && foundryup --use v${requiredFoundryVersion}.`,
         { check: "tool:forge" }
       );
     } else {
-      add("pass", "Foundry available", commandVersion("forge"), "", { check: "tool:forge" });
+      const installedVersion = commandVersion("forge");
+      if (!foundryVersionMatches(installedVersion, requiredFoundryVersion)) {
+        add(
+          "fail",
+          "Foundry version mismatch",
+          `${installedVersion || "unknown version"} detected; ${requiredFoundryVersion} required.`,
+          `Run foundryup --install v${requiredFoundryVersion} && foundryup --use v${requiredFoundryVersion}.`,
+          { check: "tool:forge" }
+        );
+      } else {
+        add("pass", "Foundry available", installedVersion, "", { check: "tool:forge" });
+      }
     }
   }
 }

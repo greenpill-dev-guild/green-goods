@@ -160,10 +160,11 @@ library SettlementCommandLib {
             request.isBatch ? batches[request.subjectId].executionKey : disbursements[request.subjectId].executionKey;
         if (key != bytes32(0)) {
             ISettlementModule.CommandRecord storage record = records[key];
-            return IRouterClient(request.router).getFee(
-                record.destinationChainSelector,
-                _buildMessage(record.destinationExecutor, record.destinationGasLimit, payloads[key])
-            );
+            return IRouterClient(request.router)
+                .getFee(
+                    record.destinationChainSelector,
+                    _buildMessage(record.destinationExecutor, record.destinationGasLimit, payloads[key])
+                );
         }
         CommandFacts memory facts = _commandFacts(disbursements, batches, request.isBatch, request.subjectId);
         ISettlementModule.CcipRoute memory route = request.route;
@@ -177,9 +178,10 @@ library SettlementCommandLib {
             facts.recipients,
             facts.amounts
         );
-        return IRouterClient(request.router).getFee(
-            route.destinationChainSelector, _buildMessage(route.destinationExecutor, route.destinationGasLimit, payload)
-        );
+        return IRouterClient(request.router)
+            .getFee(
+                route.destinationChainSelector, _buildMessage(route.destinationExecutor, route.destinationGasLimit, payload)
+            );
     }
 
     function _commandFacts(

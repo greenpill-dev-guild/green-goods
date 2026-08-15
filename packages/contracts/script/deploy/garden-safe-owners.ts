@@ -20,9 +20,9 @@ import {
   zeroPadValue,
 } from "ethers";
 import { execCastCaptured, parseCastTransactionHash } from "../utils/cast-env";
-import { retryRpcAvailability } from "../utils/rpc-retry";
 import { NetworkManager } from "../utils/network";
 import { buildReleaseLock, loadReleaseManifest, type ReleaseManifest } from "../utils/release-manifest";
+import { retryRpcAvailability } from "../utils/rpc-retry";
 
 const CONTRACTS_ROOT = path.join(__dirname, "../..");
 const REPOSITORY_ROOT = path.join(CONTRACTS_ROOT, "../..");
@@ -157,6 +157,11 @@ export interface BootstrapPlan {
     canonicalToken: string;
   };
   authorityEnabled: false;
+  valueAssertion: {
+    nativeBalance: "zero";
+    canonicalTokenBalance: "zero";
+    arbitraryTokenInventory: "not-enumerated";
+  };
   entries: BootstrapEntry[];
   blockers: string[];
 }
@@ -188,7 +193,7 @@ export interface SwapEntry {
     nonce: number;
   };
   observed: SafeInspection;
-  state: "READY" | "SWAPPED";
+  state: "READY";
 }
 
 export interface SwapPlan {
@@ -209,6 +214,7 @@ export interface SwapPlan {
   compatibilityFallbackHandler: string;
   canonicalToken: string;
   authorityEnabled: false;
+  valueAssertion: BootstrapPlan["valueAssertion"];
   entries: SwapEntry[];
   blockers: string[];
 }
@@ -297,14 +303,23 @@ export function parseArguments(args: string[]): ParsedArguments {
     } else throw new Error(`Unknown argument: ${argument}`);
     index++;
   }
-  if ((recoveryReceipt === undefined) !== (recoveryStep === undefined)) {
-    throw new Error("--receipt and --step must be supplied together");
+  if (recoveryReceipt !== undefined && recoveryStep === undefined) {
+    throw new Error("--receipt requires --step");
   }
   if ((command === "deploy" || command === "swap") && !broadcast) {
     throw new Error(`${command} requires --broadcast`);
   }
+  if ((command === "deploy" || command === "swap") && recoveryStep === undefined) {
+    throw new Error(`${command} requires one explicit --step boundary`);
+  }
   if ((command === "plan" || command === "swap-plan") && broadcast) {
     throw new Error(`${command} does not accept --broadcast`);
+  }
+  if (
+    (command === "plan" || command === "swap-plan") &&
+    (recoveryReceipt !== undefined || recoveryStep !== undefined)
+  ) {
+    throw new Error(`${command} does not accept --step or --receipt`);
   }
   return { command, inventoryPath, planPath, replacementsPath, broadcast, recoveryReceipt, recoveryStep };
 }
@@ -502,7 +517,34 @@ function sameOwnerSet(actual: string[], expected: string[]): boolean {
   return left.length === right.length && left.every((owner, index) => owner === right[index]);
 }
 
-function emptyAndUnmodified(inspection: SafeInspection): boolean {
+export function assertRecoverySafeConfiguration(inspection: SafeInspection): void {
+  const owners = normalizedOwners(inspection.owners);
+  if (
+    !inspection.codePresent ||
+    inspection.threshold !== "2" ||
+    owners.length !== 3 ||
+    new Set(owners).size !== 3 ||
+    inspection.modules.length !== 0 ||
+    inspection.guard !== ZeroAddress
+  ) {
+    throw new Error("Garden recovery Safe is not the exact module-free 2-of-3 configuration");
+  }
+}
+
+export function assertRecoverySafeMatchesPlan(inspection: SafeInspection, reviewedInspection: SafeInspection): void {
+  assertRecoverySafeConfiguration(inspection);
+  if (
+    inspection.version !== reviewedInspection.version ||
+    inspection.singleton !== reviewedInspection.singleton ||
+    reviewedInspection.owners.length !== 3 ||
+    !sameOwnerSet(inspection.owners, reviewedInspection.owners) ||
+    inspection.fallbackHandler !== reviewedInspection.fallbackHandler
+  ) {
+    throw new Error("Garden recovery Safe configuration changed after bootstrap planning");
+  }
+}
+
+function canonicalBalancesAndConfigClear(inspection: SafeInspection): boolean {
   return (
     inspection.nativeBalance === "0" &&
     inspection.tokenBalance === "0" &&
@@ -526,9 +568,9 @@ export function assertBootstrapState(
     inspection.nonce !== "0" ||
     !sameOwnerSet(inspection.owners, [deploymentOwner, recoverySafe]) ||
     inspection.fallbackHandler !== getAddress(fallbackHandler) ||
-    !emptyAndUnmodified(inspection)
+    !canonicalBalancesAndConfigClear(inspection)
   ) {
-    throw new Error("Garden Safe is not the exact empty 1-of-2 bootstrap state");
+    throw new Error("Garden Safe is not the exact native/G$-clear 1-of-2 bootstrap state");
   }
 }
 
@@ -547,9 +589,9 @@ export function assertSwappedState(
     inspection.nonce !== "1" ||
     !sameOwnerSet(inspection.owners, [replacementOwner, recoverySafe]) ||
     inspection.fallbackHandler !== getAddress(fallbackHandler) ||
-    !emptyAndUnmodified(inspection)
+    !canonicalBalancesAndConfigClear(inspection)
   ) {
-    throw new Error("Garden Safe is not the exact empty post-swap state");
+    throw new Error("Garden Safe is not the exact native/G$-clear post-swap state");
   }
 }
 
@@ -655,13 +697,9 @@ async function buildBootstrapPlan(inventoryPath: string): Promise<BootstrapPlan>
   if (singletonCode === "0x" || factoryCode === "0x" || handlerCode === "0x" || tokenCode === "0x") {
     blockers.push("Pinned Safe or canonical-token dependency has no finalized Celo code");
   }
-  if (
-    !recoverySafeInspection.codePresent ||
-    recoverySafeInspection.threshold !== "2" ||
-    recoverySafeInspection.owners.length !== 3 ||
-    recoverySafeInspection.modules.length !== 0 ||
-    recoverySafeInspection.guard !== ZeroAddress
-  ) {
+  try {
+    assertRecoverySafeConfiguration(recoverySafeInspection);
+  } catch {
     blockers.push("Garden recovery Safe is not the reviewed module-free 2-of-3 configuration");
   }
   const owners = normalizedOwners([sender, recoverySafe]);
@@ -675,7 +713,9 @@ async function buildBootstrapPlan(inventoryPath: string): Promise<BootstrapPlan>
     let state: BootstrapEntry["state"];
     if (!observed.codePresent) {
       state = "ABSENT";
-      if (!emptyAndUnmodified(observed)) blockers.push(`Counterfactual Safe ${safe} is prefunded`);
+      if (!canonicalBalancesAndConfigClear(observed)) {
+        blockers.push(`Counterfactual Safe ${safe} has native/G$ balance or configured authority`);
+      }
     } else {
       state = "BOOTSTRAPPED";
       try {
@@ -731,12 +771,17 @@ async function buildBootstrapPlan(inventoryPath: string): Promise<BootstrapPlan>
       canonicalToken: keccak256(tokenCode),
     },
     authorityEnabled: false,
+    valueAssertion: {
+      nativeBalance: "zero",
+      canonicalTokenBalance: "zero",
+      arbitraryTokenInventory: "not-enumerated",
+    },
     entries,
     blockers,
   };
 }
 
-function validateBootstrapPlan(plan: BootstrapPlan, inventoryPath: string): void {
+export function validateBootstrapPlan(plan: BootstrapPlan, inventoryPath: string): void {
   const manifest = loadReleaseManifest();
   const lock = buildReleaseLock(manifest);
   const inventory = validateInventory(inventoryPath, manifest, lock.manifestHash);
@@ -752,6 +797,9 @@ function validateBootstrapPlan(plan: BootstrapPlan, inventoryPath: string): void
     !Number.isSafeInteger(plan.sourceFinalizedBlock) ||
     plan.sourceFinalizedBlock < 1 ||
     plan.authorityEnabled !== false ||
+    plan.valueAssertion?.nativeBalance !== "zero" ||
+    plan.valueAssertion?.canonicalTokenBalance !== "zero" ||
+    plan.valueAssertion?.arbitraryTokenInventory !== "not-enumerated" ||
     plan.entries.length !== EXPECTED_GARDEN_COUNT
   ) {
     throw new Error("Bootstrap plan is not bound to the current reviewed release and Garden inventory");
@@ -766,6 +814,7 @@ function validateBootstrapPlan(plan: BootstrapPlan, inventoryPath: string): void
   ) {
     throw new Error("Bootstrap plan identity differs from the frozen release inputs");
   }
+  assertRecoverySafeConfiguration(plan.recoverySafeInspection);
   const dependencyHashes = Object.values(plan.dependencyCodeHashes ?? {});
   if (dependencyHashes.length !== 4 || dependencyHashes.some((hash) => !/^0x[0-9a-f]{64}$/iu.test(hash))) {
     throw new Error("Bootstrap plan dependency code hashes are incomplete");
@@ -846,11 +895,10 @@ async function buildSwapPlan(
   const entries: SwapEntry[] = [];
   for (const [offset, replacement] of replacements.entries()) {
     const observed = await inspectSafe(provider, replacement.safe, bootstrap.canonicalToken, finalizedBlock);
-    let state: SwapEntry["state"];
+    const state: SwapEntry["state"] = "READY";
     let predecessor = ZeroAddress;
     let data = "0x";
     if (sameOwnerSet(observed.owners, [bootstrap.sender, bootstrap.recoverySafe])) {
-      state = "READY";
       try {
         assertBootstrapState(
           observed,
@@ -871,22 +919,17 @@ async function buildSwapPlan(
         blockers.push(`${replacement.safe}: ${error instanceof Error ? error.message : String(error)}`);
       }
     } else if (sameOwnerSet(observed.owners, [replacement.replacementOwner, bootstrap.recoverySafe])) {
-      state = "SWAPPED";
-      try {
-        assertSwappedState(
-          observed,
-          replacement.replacementOwner,
-          bootstrap.recoverySafe,
-          bootstrap.singleton,
-          bootstrap.compatibilityFallbackHandler,
-        );
-      } catch (error) {
-        blockers.push(`${replacement.safe}: ${error instanceof Error ? error.message : String(error)}`);
-      }
-      predecessor = SAFE_SENTINEL;
-      data = "0x";
+      assertSwappedState(
+        observed,
+        replacement.replacementOwner,
+        bootstrap.recoverySafe,
+        bootstrap.singleton,
+        bootstrap.compatibilityFallbackHandler,
+      );
+      throw new Error(
+        `Safe ${replacement.safe} is already swapped; recover the original reviewed swap plan with its exact receipt`,
+      );
     } else {
-      state = "READY";
       blockers.push(`${replacement.safe}: unexpected owner set before swap`);
     }
     entries.push({
@@ -921,12 +964,13 @@ async function buildSwapPlan(
     compatibilityFallbackHandler: bootstrap.compatibilityFallbackHandler,
     canonicalToken: bootstrap.canonicalToken,
     authorityEnabled: false,
+    valueAssertion: bootstrap.valueAssertion,
     entries,
     blockers,
   };
 }
 
-function validateSwapPlan(
+export function validateSwapPlan(
   plan: SwapPlan,
   bootstrapPath: string,
   inventoryPath: string,
@@ -944,6 +988,9 @@ function validateSwapPlan(
     plan.bootstrapPlanHash !== hashFileContent(bootstrapPath) ||
     plan.replacementsHash !== hashFileContent(replacementsPath) ||
     plan.authorityEnabled !== false ||
+    plan.valueAssertion?.nativeBalance !== "zero" ||
+    plan.valueAssertion?.canonicalTokenBalance !== "zero" ||
+    plan.valueAssertion?.arbitraryTokenInventory !== "not-enumerated" ||
     plan.entries.length !== EXPECTED_GARDEN_COUNT
   ) {
     throw new Error("Swap plan is not bound to the reviewed bootstrap and replacement artifacts");
@@ -985,15 +1032,6 @@ function validateSwapPlan(
       if (entry.previousOwner !== built.previousOwner || entry.transaction.data !== built.data) {
         throw new Error(`Swap plan calldata ${offset + 1} was modified`);
       }
-    } else if (entry.state === "SWAPPED") {
-      assertSwappedState(
-        entry.observed,
-        entry.replacementOwner,
-        plan.recoverySafe,
-        plan.singleton,
-        plan.compatibilityFallbackHandler,
-      );
-      if (entry.transaction.data !== "0x") throw new Error(`Completed swap boundary ${offset + 1} has calldata`);
     } else {
       throw new Error(`Swap plan boundary ${offset + 1} has invalid state`);
     }
@@ -1023,6 +1061,14 @@ function writeCheckpoint(planPath: string, checkpoint: Checkpoint): void {
   atomicWrite(checkpointPath(planPath), checkpoint);
 }
 
+export function assertNextBoundary(selected: number | undefined, completed: number, label: string): number {
+  const nextBoundary = completed + 1;
+  if (selected !== nextBoundary) {
+    throw new Error(`${label} must target the next uncheckpointed boundary ${nextBoundary}`);
+  }
+  return selected;
+}
+
 function assertCheckpointRecord(
   recorded: CheckpointEntry,
   entry: { index: number; safe: string; garden: string },
@@ -1036,6 +1082,14 @@ function assertCheckpointRecord(
     recorded.blockNumber < 1
   ) {
     throw new Error(`Checkpoint evidence for boundary ${entry.index} was modified`);
+  }
+}
+
+export function assertCheckpointReceiptBlock(recorded: CheckpointEntry, verifiedBlockNumber: number): void {
+  if (recorded.blockNumber !== verifiedBlockNumber) {
+    throw new Error(
+      `Checkpoint boundary ${recorded.index} records block ${recorded.blockNumber}, verified receipt is block ${verifiedBlockNumber}`,
+    );
   }
 }
 
@@ -1121,18 +1175,7 @@ async function assertLiveBootstrapDependencies(provider: JsonRpcProvider, plan: 
       throw new Error(`Live ${name} code differs from the reviewed bootstrap plan`);
     }
   }
-  if (
-    !recoveryInspection.codePresent ||
-    recoveryInspection.version !== plan.recoverySafeInspection.version ||
-    recoveryInspection.singleton !== plan.recoverySafeInspection.singleton ||
-    recoveryInspection.threshold !== "2" ||
-    !sameOwnerSet(recoveryInspection.owners, plan.recoverySafeInspection.owners) ||
-    recoveryInspection.modules.length !== 0 ||
-    recoveryInspection.guard !== ZeroAddress ||
-    recoveryInspection.fallbackHandler !== plan.recoverySafeInspection.fallbackHandler
-  ) {
-    throw new Error("Garden recovery Safe configuration changed after bootstrap planning");
-  }
+  assertRecoverySafeMatchesPlan(recoveryInspection, plan.recoverySafeInspection);
   const factory = new Contract(plan.factory, FACTORY_INTERFACE, provider);
   const proxyCreationCode = (await factory.proxyCreationCode()) as string;
   for (const entry of plan.entries) {
@@ -1161,19 +1204,21 @@ async function verifyCompleteBootstrapEvidence(
   for (const [index, entry] of plan.entries.entries()) {
     const recorded = checkpoint.completed[index];
     assertCheckpointRecord(recorded, entry);
-    await verifyReceipt(provider, recorded.transactionHash, plan.sender, entry.transaction);
+    const receipt = await verifyReceipt(provider, recorded.transactionHash, plan.sender, entry.transaction);
+    assertCheckpointReceiptBlock(recorded, receipt.blockNumber);
   }
 }
 
 export function buildBootstrapDeploymentArtifact(plan: BootstrapPlan, checkpoint: Checkpoint): unknown {
   return {
     schemaVersion: 1,
-    stage: "temporary-empty-bootstrap",
+    stage: "temporary-canonical-balance-clear-bootstrap",
     chainId: CELO_CHAIN_ID,
     releaseId: plan.releaseId,
     sourceCommit: plan.releaseSourceCommit,
     authorityEnabled: false,
-    ownerPolicy: "1-of-2 deployment EOA plus 2-of-3 recovery Safe; no value or modules",
+    ownerPolicy: "1-of-2 deployment EOA plus 2-of-3 recovery Safe; no modules or guard",
+    valueAssertion: plan.valueAssertion,
     singleton: plan.singleton,
     factory: plan.factory,
     compatibilityFallbackHandler: plan.compatibilityFallbackHandler,
@@ -1210,7 +1255,8 @@ export function buildSwappedDeploymentArtifact(
     releaseId: plan.releaseId,
     sourceCommit: plan.releaseSourceCommit,
     authorityEnabled: false,
-    ownerPolicy: "1-of-2 unique per-Garden owner plus 2-of-3 recovery Safe; no value or modules",
+    ownerPolicy: "1-of-2 unique per-Garden owner plus 2-of-3 recovery Safe; no modules or guard",
+    valueAssertion: plan.valueAssertion,
     singleton: plan.singleton,
     factory: bootstrap.factory,
     compatibilityFallbackHandler: plan.compatibilityFallbackHandler,
@@ -1233,7 +1279,7 @@ async function executeBootstrap(
   planPath: string,
   inventoryPath: string,
   recoveryReceipt?: string,
-  recoveryStep?: number,
+  boundaryStep?: number,
 ): Promise<void> {
   const plan = readJson<BootstrapPlan>(planPath);
   validateBootstrapPlan(plan, inventoryPath);
@@ -1246,49 +1292,13 @@ async function executeBootstrap(
   await assertLiveSourceInventory(source.provider, source.finalizedBlock, inventoryPath, inventory);
   await assertLiveBootstrapDependencies(provider, plan);
   const checkpoint = loadCheckpoint(planPath);
-  if (recoveryStep !== undefined && recoveryStep !== checkpoint.completed.length + 1) {
-    throw new Error(`Receipt recovery must target the next boundary ${checkpoint.completed.length + 1}`);
-  }
-  for (const entry of plan.entries) {
-    if (entry.index <= checkpoint.completed.length) {
-      const recorded = checkpoint.completed[entry.index - 1];
-      assertCheckpointRecord(recorded, entry);
-      await verifyReceipt(provider, recorded.transactionHash, plan.sender, entry.transaction);
-      assertBootstrapState(
-        await inspectSafe(provider, entry.safe, plan.canonicalToken, "latest"),
-        plan.sender,
-        plan.recoverySafe,
-        plan.singleton,
-        plan.compatibilityFallbackHandler,
-      );
-      continue;
-    }
-    const observed = await inspectSafe(provider, entry.safe, plan.canonicalToken, "latest");
-    let transactionHash: string;
-    if (observed.codePresent) {
-      assertBootstrapState(observed, plan.sender, plan.recoverySafe, plan.singleton, plan.compatibilityFallbackHandler);
-      if (recoveryStep !== entry.index || !recoveryReceipt) {
-        throw new Error(
-          `Safe ${entry.safe} exists without checkpoint evidence; recover boundary ${entry.index} with --receipt`,
-        );
-      }
-      transactionHash = recoveryReceipt;
-    } else {
-      if (!emptyAndUnmodified(observed)) throw new Error(`Counterfactual Safe ${entry.safe} is prefunded`);
-      const pendingNonce = await provider.getTransactionCount(plan.sender, "pending");
-      if (pendingNonce !== entry.transaction.nonce) {
-        throw new Error(
-          `Boundary ${entry.index} expected deployer nonce ${entry.transaction.nonce}, live ${pendingNonce}`,
-        );
-      }
-      transactionHash = sendTransaction(
-        entry.transaction.to,
-        entry.transaction.data,
-        entry.transaction.nonce,
-        networkManager.getRpcUrl("celo"),
-      );
-    }
-    const receipt = await verifyReceipt(provider, transactionHash, plan.sender, entry.transaction);
+  const selectedBoundary = assertNextBoundary(boundaryStep, checkpoint.completed.length, "Bootstrap");
+
+  for (const entry of plan.entries.slice(0, checkpoint.completed.length)) {
+    const recorded = checkpoint.completed[entry.index - 1];
+    assertCheckpointRecord(recorded, entry);
+    const receipt = await verifyReceipt(provider, recorded.transactionHash, plan.sender, entry.transaction);
+    assertCheckpointReceiptBlock(recorded, receipt.blockNumber);
     assertBootstrapState(
       await inspectSafe(provider, entry.safe, plan.canonicalToken, "latest"),
       plan.sender,
@@ -1296,26 +1306,70 @@ async function executeBootstrap(
       plan.singleton,
       plan.compatibilityFallbackHandler,
     );
-    checkpoint.completed.push({
-      index: entry.index,
-      transactionHash,
-      blockNumber: receipt.blockNumber,
-      safe: entry.safe,
-      garden: entry.garden,
-    });
-    writeCheckpoint(planPath, checkpoint);
   }
-  atomicWrite(DEPLOYMENT_ARTIFACT, buildBootstrapDeploymentArtifact(plan, checkpoint));
-  console.log(`Verified ${checkpoint.completed.length}/${plan.entries.length} empty Garden Safe bootstraps.`);
-}
 
+  const entry = plan.entries[selectedBoundary - 1];
+  const observed = await inspectSafe(provider, entry.safe, plan.canonicalToken, "latest");
+  let transactionHash: string;
+  if (recoveryReceipt) {
+    transactionHash = recoveryReceipt;
+  } else if (observed.codePresent) {
+    assertBootstrapState(observed, plan.sender, plan.recoverySafe, plan.singleton, plan.compatibilityFallbackHandler);
+    throw new Error(
+      `Safe ${entry.safe} exists without checkpoint evidence; recover boundary ${entry.index} with --receipt`,
+    );
+  } else {
+    if (!canonicalBalancesAndConfigClear(observed)) {
+      throw new Error(`Counterfactual Safe ${entry.safe} has native/G$ balance or configured authority`);
+    }
+    const pendingNonce = await provider.getTransactionCount(plan.sender, "pending");
+    if (pendingNonce !== entry.transaction.nonce) {
+      throw new Error(
+        `Boundary ${entry.index} expected deployer nonce ${entry.transaction.nonce}, live ${pendingNonce}`,
+      );
+    }
+    transactionHash = sendTransaction(
+      entry.transaction.to,
+      entry.transaction.data,
+      entry.transaction.nonce,
+      networkManager.getRpcUrl("celo"),
+    );
+  }
+
+  const receipt = await verifyReceipt(provider, transactionHash, plan.sender, entry.transaction);
+  assertBootstrapState(
+    await inspectSafe(provider, entry.safe, plan.canonicalToken, "latest"),
+    plan.sender,
+    plan.recoverySafe,
+    plan.singleton,
+    plan.compatibilityFallbackHandler,
+  );
+  assertRecoverySafeMatchesPlan(
+    await inspectSafe(provider, plan.recoverySafe, plan.canonicalToken, "latest"),
+    plan.recoverySafeInspection,
+  );
+  checkpoint.completed.push({
+    index: entry.index,
+    transactionHash,
+    blockNumber: receipt.blockNumber,
+    safe: entry.safe,
+    garden: entry.garden,
+  });
+  writeCheckpoint(planPath, checkpoint);
+  if (checkpoint.completed.length === plan.entries.length) {
+    atomicWrite(DEPLOYMENT_ARTIFACT, buildBootstrapDeploymentArtifact(plan, checkpoint));
+  }
+  console.log(
+    `Verified ${checkpoint.completed.length}/${plan.entries.length} native/G$-clear Garden Safe bootstraps; credential session must close before another boundary.`,
+  );
+}
 async function executeSwap(
   planPath: string,
   bootstrapPath: string,
   inventoryPath: string,
   replacementsPath: string,
   recoveryReceipt?: string,
-  recoveryStep?: number,
+  boundaryStep?: number,
 ): Promise<void> {
   const plan = readJson<SwapPlan>(planPath);
   validateSwapPlan(plan, bootstrapPath, inventoryPath, replacementsPath);
@@ -1325,56 +1379,13 @@ async function executeSwap(
   await assertLiveBootstrapDependencies(provider, bootstrap);
   await verifyCompleteBootstrapEvidence(provider, bootstrapPath, bootstrap);
   const checkpoint = loadCheckpoint(planPath);
-  if (recoveryStep !== undefined && recoveryStep !== checkpoint.completed.length + 1) {
-    throw new Error(`Receipt recovery must target the next boundary ${checkpoint.completed.length + 1}`);
-  }
-  for (const entry of plan.entries) {
-    if (entry.index <= checkpoint.completed.length) {
-      const recorded = checkpoint.completed[entry.index - 1];
-      assertCheckpointRecord(recorded, entry);
-      await verifyReceipt(provider, recorded.transactionHash, plan.sender, entry.transaction);
-      assertSwappedState(
-        await inspectSafe(provider, entry.safe, plan.canonicalToken, "latest"),
-        entry.replacementOwner,
-        plan.recoverySafe,
-        plan.singleton,
-        plan.compatibilityFallbackHandler,
-      );
-      continue;
-    }
-    const observed = await inspectSafe(provider, entry.safe, plan.canonicalToken, "latest");
-    let transactionHash: string;
-    if (sameOwnerSet(observed.owners, [entry.replacementOwner, plan.recoverySafe])) {
-      assertSwappedState(
-        observed,
-        entry.replacementOwner,
-        plan.recoverySafe,
-        plan.singleton,
-        plan.compatibilityFallbackHandler,
-      );
-      if (recoveryStep !== entry.index || !recoveryReceipt) {
-        throw new Error(`Safe ${entry.safe} is swapped without checkpoint evidence; recover boundary ${entry.index}`);
-      }
-      transactionHash = recoveryReceipt;
-    } else {
-      assertBootstrapState(observed, plan.sender, plan.recoverySafe, plan.singleton, plan.compatibilityFallbackHandler);
-      if (observed.nonce !== entry.expectedSafeNonce) {
-        throw new Error(`Safe ${entry.safe} nonce changed from ${entry.expectedSafeNonce} to ${observed.nonce}`);
-      }
-      const pendingNonce = await provider.getTransactionCount(plan.sender, "pending");
-      if (pendingNonce !== entry.transaction.nonce) {
-        throw new Error(
-          `Boundary ${entry.index} expected deployer nonce ${entry.transaction.nonce}, live ${pendingNonce}`,
-        );
-      }
-      transactionHash = sendTransaction(
-        entry.transaction.to,
-        entry.transaction.data,
-        entry.transaction.nonce,
-        networkManager.getRpcUrl("celo"),
-      );
-    }
-    const receipt = await verifyReceipt(provider, transactionHash, plan.sender, entry.transaction);
+  const selectedBoundary = assertNextBoundary(boundaryStep, checkpoint.completed.length, "Owner swap");
+
+  for (const entry of plan.entries.slice(0, checkpoint.completed.length)) {
+    const recorded = checkpoint.completed[entry.index - 1];
+    assertCheckpointRecord(recorded, entry);
+    const receipt = await verifyReceipt(provider, recorded.transactionHash, plan.sender, entry.transaction);
+    assertCheckpointReceiptBlock(recorded, receipt.blockNumber);
     assertSwappedState(
       await inspectSafe(provider, entry.safe, plan.canonicalToken, "latest"),
       entry.replacementOwner,
@@ -1382,20 +1393,69 @@ async function executeSwap(
       plan.singleton,
       plan.compatibilityFallbackHandler,
     );
-    checkpoint.completed.push({
-      index: entry.index,
-      transactionHash,
-      blockNumber: receipt.blockNumber,
-      safe: entry.safe,
-      garden: entry.garden,
-    });
-    writeCheckpoint(planPath, checkpoint);
   }
-  const bootstrapCheckpoint = loadCheckpoint(bootstrapPath);
-  atomicWrite(DEPLOYMENT_ARTIFACT, buildSwappedDeploymentArtifact(plan, bootstrap, bootstrapCheckpoint, checkpoint));
-  console.log(`Verified ${checkpoint.completed.length}/${plan.entries.length} deployer-owner swaps.`);
-}
 
+  const entry = plan.entries[selectedBoundary - 1];
+  const observed = await inspectSafe(provider, entry.safe, plan.canonicalToken, "latest");
+  let transactionHash: string;
+  if (recoveryReceipt) {
+    transactionHash = recoveryReceipt;
+  } else if (sameOwnerSet(observed.owners, [entry.replacementOwner, plan.recoverySafe])) {
+    assertSwappedState(
+      observed,
+      entry.replacementOwner,
+      plan.recoverySafe,
+      plan.singleton,
+      plan.compatibilityFallbackHandler,
+    );
+    throw new Error(`Safe ${entry.safe} is swapped without checkpoint evidence; recover boundary ${entry.index}`);
+  } else {
+    assertBootstrapState(observed, plan.sender, plan.recoverySafe, plan.singleton, plan.compatibilityFallbackHandler);
+    if (observed.nonce !== entry.expectedSafeNonce) {
+      throw new Error(`Safe ${entry.safe} nonce changed from ${entry.expectedSafeNonce} to ${observed.nonce}`);
+    }
+    const pendingNonce = await provider.getTransactionCount(plan.sender, "pending");
+    if (pendingNonce !== entry.transaction.nonce) {
+      throw new Error(
+        `Boundary ${entry.index} expected deployer nonce ${entry.transaction.nonce}, live ${pendingNonce}`,
+      );
+    }
+    transactionHash = sendTransaction(
+      entry.transaction.to,
+      entry.transaction.data,
+      entry.transaction.nonce,
+      networkManager.getRpcUrl("celo"),
+    );
+  }
+
+  const receipt = await verifyReceipt(provider, transactionHash, plan.sender, entry.transaction);
+  assertSwappedState(
+    await inspectSafe(provider, entry.safe, plan.canonicalToken, "latest"),
+    entry.replacementOwner,
+    plan.recoverySafe,
+    plan.singleton,
+    plan.compatibilityFallbackHandler,
+  );
+  assertRecoverySafeMatchesPlan(
+    await inspectSafe(provider, plan.recoverySafe, plan.canonicalToken, "latest"),
+    bootstrap.recoverySafeInspection,
+  );
+  checkpoint.completed.push({
+    index: entry.index,
+    transactionHash,
+    blockNumber: receipt.blockNumber,
+    safe: entry.safe,
+    garden: entry.garden,
+  });
+  writeCheckpoint(planPath, checkpoint);
+  if (checkpoint.completed.length === plan.entries.length) {
+    const bootstrapCheckpoint = loadCheckpoint(bootstrapPath);
+    atomicWrite(DEPLOYMENT_ARTIFACT, buildSwappedDeploymentArtifact(plan, bootstrap, bootstrapCheckpoint, checkpoint));
+  }
+  console.log(
+    `Verified ${checkpoint.completed.length}/${plan.entries.length} deployer-owner swaps; credential session must close before another boundary.`,
+  );
+}
 function printPlanSummary(planPath: string, plan: BootstrapPlan | SwapPlan): void {
   console.log(
     stable({

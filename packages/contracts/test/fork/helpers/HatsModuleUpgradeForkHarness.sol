@@ -139,9 +139,8 @@ abstract contract HatsModuleUpgradeForkHarness is Test {
     function _snapshotGardens(HatsModule proxy) private returns (GardenSnapshot[] memory snapshots) {
         snapshots = new GardenSnapshot[](reviewedGardenCount);
         for (uint256 tokenId = 0; tokenId < reviewedGardenCount; tokenId++) {
-            address garden = IERC6551Registry(TOKENBOUND_REGISTRY).account(
-                gardenAccountImpl, TOKENBOUND_SALT, chainIdUnderTest, gardenToken, tokenId
-            );
+            address garden = IERC6551Registry(TOKENBOUND_REGISTRY)
+                .account(gardenAccountImpl, TOKENBOUND_SALT, chainIdUnderTest, gardenToken, tokenId);
             assertGt(garden.code.length, 0, string.concat("garden account has no code: ", vm.toString(tokenId)));
 
             (bool success, bytes memory configuration) =

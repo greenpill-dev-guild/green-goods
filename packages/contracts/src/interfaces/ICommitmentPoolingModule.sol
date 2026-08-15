@@ -2,7 +2,8 @@
 pragma solidity ^0.8.25;
 
 interface ICommitmentPoolingModule {
-    // ═════════════════════════════ Types ═════════════════════════════
+    // ═════════════════════════════ Types
+    // ═════════════════════════════
 
     enum PoolType {
         Garden,
@@ -202,7 +203,7 @@ interface ICommitmentPoolingModule {
         bytes32 creationPayloadHash; // immutable full creation payload hash for replay conflict detection
         address counterparty; // provider (Request) or engager (Offer); zero until Accepted
         address leadProvider; // Offer creator; Individual Request counterparty; Garden Request authenticated requester
-            // (Open caller or stored ApprovalGated requestedBy)
+        // (Open caller or stored ApprovalGated requestedBy)
         ClaimType counterpartyKind;
         CommitmentDirection direction;
         CommitmentType commitmentType;
@@ -227,11 +228,11 @@ interface ICommitmentPoolingModule {
         bytes32 assessmentUID; // attached v2/v3 assessment; zero until attached
         bytes32 needUID; // community Need this commitment addresses; 0 = none (amendment 2026-07-04)
         uint256 counterCommitmentId; // same-pool commitment this one is made in exchange for; 0 = none; one-way, immutable
-            // (amendment 2026-08-01)
+        // (amendment 2026-08-01)
         string metadataCID; // terms/description payload (IPFS)
         DeclaredConsideration consideration;
         uint256 declaredUnitValue; // relative value of one unit against declaredValueBasis; 0 = undeclared (amendment
-            // 2026-08-01)
+        // 2026-08-01)
         string declaredValueBasis; // exact-label basis ("G$", "USD"); empty = undeclared; pair-bound with declaredUnitValue
         bool considerationPaid;
         CommitmentState preDisputeState; // exact state captured by raiseDispute
@@ -274,7 +275,7 @@ interface ICommitmentPoolingModule {
         string metadataCID;
         bytes32 needUID; // 0 = none; stored as-is, module never reads EAS (amendment 2026-07-04)
         uint256 counterCommitmentId; // 0 = none; must exist in the same pool; immutable one-way reference (amendment
-            // 2026-08-01)
+        // 2026-08-01)
         address[] confirmers; // empty = Offer recipient / Request creator default
         uint32 confirmationThreshold; // ignored (forced 1) when confirmers is empty
         bool protocolFallbackEnabled; // explicit structural fallback through registered protocol-pool Hats
@@ -295,7 +296,8 @@ interface ICommitmentPoolingModule {
         uint16 recognitionWeightBps;
     }
 
-    // ═════════════════════════════ Events ════════════════════════════
+    // ═════════════════════════════ Events
+    // ════════════════════════════
     // One event per hard transition (spec section 5), plus unit-count and
     // linkage events. All indexed on poolId/commitmentId for Envio.
 
@@ -492,7 +494,8 @@ interface ICommitmentPoolingModule {
     event ModuleSchemaUIDUpdated(ModuleSchemaKind indexed schemaKind, bytes32 previousUID, bytes32 newUID);
     event ModulePauseStatusChanged(bool previousPaused, bool paused);
 
-    // ═════════════════════════════ Errors ════════════════════════════
+    // ═════════════════════════════ Errors
+    // ════════════════════════════
 
     error UnauthorizedCaller(address caller);
     error NotPoolSteward(address caller, uint256 poolId);
@@ -602,7 +605,7 @@ interface ICommitmentPoolingModule {
     error ContributorNotActive(address contributor);
     error NotEligibleContributor(address contributor);
     error RosterAlreadyFrozen(uint256 commitmentId); // NOT ContributorRosterFrozen: Solidity gives events and errors one
-        // declaration namespace, so the event name above cannot be reused here
+    // declaration namespace, so the event name above cannot be reused here
     error ContributorPolicyMismatch(uint256 commitmentId);
     error LeadContributorCannotLeave(uint256 commitmentId);
     error ContributorHasCredit(address contributor);
@@ -617,7 +620,8 @@ interface ICommitmentPoolingModule {
     error WorkActionMismatch(uint256 actionUID);
     error InvalidDisputeResolution(uint256 commitmentId, DisputeResolution resolution);
 
-    // ══════════════════════ Pool lifecycle ═══════════════════════════
+    // ══════════════════════ Pool lifecycle
+    // ═══════════════════════════
 
     /// @notice GardenToken mint callback. Idempotent; registers a Garden-type
     ///         pool in NotReady. Gating: gardenToken only (CookieJar onlyGardenToken pattern).
@@ -650,7 +654,8 @@ interface ICommitmentPoolingModule {
     function compostPool(uint256 poolId) external;
     function reopenPool(uint256 poolId, bool toOpen) external;
 
-    // ══════════════════════ Cycle lifecycle ══════════════════════════
+    // ══════════════════════ Cycle lifecycle
+    // ══════════════════════════
 
     /// @notice Gating: pool steward. Pool must be Ready or Open to seed;
     ///         Open to open a cycle. The allocation is supplied atomically at
@@ -679,7 +684,8 @@ interface ICommitmentPoolingModule {
     /// @dev Requires liveCommitmentCount == 0 so cancellation cannot strand commitments.
     function cancelCycle(uint256 cycleId, string calldata reasonCID) external;
 
-    // ══════════════════════ Commitment series ═════════════════════
+    // ══════════════════════ Commitment series
+    // ═════════════════════
 
     /// @notice Direct-holder creation. Caller must be a current member of the
     ///         pool garden; pool must be Ready or Open. Exact replay of the
@@ -697,7 +703,8 @@ interface ICommitmentPoolingModule {
     function resumeCommitmentSeries(uint256 seriesId) external;
     function retireCommitmentSeries(uint256 seriesId) external;
 
-    // ══════════════════════ Commitments ══════════════════════════════
+    // ══════════════════════ Commitments
+    // ══════════════════════════════
 
     /// @notice Gating by commitment type (creation authority, locked):
     ///         gardeners create own offers/requests (any of the six garden role
@@ -738,12 +745,7 @@ interface ICommitmentPoolingModule {
     function setDeclaredConsideration(uint256 commitmentId, DeclaredConsideration calldata consideration) external;
     /// @notice Gating: pool steward, pre-acceptance only. Records-only valuation
     ///         term (decision 16); pair rule enforced, nothing derived on-chain.
-    function setDeclaredValue(
-        uint256 commitmentId,
-        uint256 declaredUnitValue,
-        string calldata declaredValueBasis
-    )
-        external;
+    function setDeclaredValue(uint256 commitmentId, uint256 declaredUnitValue, string calldata declaredValueBasis) external;
     function setConfirmerRule(
         uint256 commitmentId,
         address[] calldata confirmers,
@@ -905,7 +907,8 @@ interface ICommitmentPoolingModule {
         view
         returns (bytes32 canonicalHash);
 
-    // ─────────────── Evidence, assessment, confirmation ──────────────
+    // ─────────────── Evidence, assessment, confirmation
+    // ──────────────
 
     /// @notice Gating: active contributor, lead provider, or pool steward; the
     ///         commitment must still be Accepted and its roster/credit ledger
@@ -964,7 +967,8 @@ interface ICommitmentPoolingModule {
     ///         contributor on both paths. Pool must be Open.
     function confirmFulfillmentAsFallback(uint256 commitmentId, string calldata reason) external;
 
-    // ─────────────── Exits, disputes, considerations ────────────────────────
+    // ─────────────── Exits, disputes, considerations
+    // ────────────────────────
 
     /// @notice Gating: creator from Offered/Requested; pool steward from Accepted.
     function cancelCommitment(uint256 commitmentId, string calldata reasonCID) external;
@@ -986,7 +990,8 @@ interface ICommitmentPoolingModule {
     ///         Gating: pool steward.
     function recordConsiderationPaid(uint256 commitmentId, bytes32 payoutRef) external;
 
-    // ══════════════════════ Views ════════════════════════════════════
+    // ══════════════════════ Views
+    // ════════════════════════════════════
 
     function getPool(uint256 poolId) external view returns (Pool memory);
     function getPoolByGarden(address garden) external view returns (uint256 poolId, Pool memory pool);
@@ -1010,7 +1015,7 @@ interface ICommitmentPoolingModule {
     function getContributor(uint256 commitmentId, address contributor) external view returns (ContributorRecord memory);
     function isContributor(uint256 commitmentId, address contributor) external view returns (bool);
     function isEligibleContributor(uint256 commitmentId, address contributor) external view returns (bool); // Fulfilled +
-        // frozen active roster + Work/evidence credit
+    // frozen active roster + Work/evidence credit
     function getPendingClaim(uint256 commitmentId, address claimant) external view returns (PendingClaim memory);
     function getConfirmers(uint256 commitmentId) external view returns (address[] memory);
     function protocolPoolId() external view returns (uint256);
@@ -1032,7 +1037,8 @@ interface ICommitmentPoolingModule {
     function cyclelessRecognitionPolicy() external pure returns (RecognitionPolicy memory);
     function paused() external view returns (bool);
 
-    // ══════════════════════ Admin (module owner) ═════════════════════
+    // ══════════════════════ Admin (module owner)
+    // ═════════════════════
 
     /// @notice Initializes with paused == true and a non-zero canonical root
     ///         GardenAccount. Configuration is completed through the

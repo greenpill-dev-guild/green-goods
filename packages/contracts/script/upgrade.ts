@@ -14,7 +14,7 @@ import {
 } from "./utils/pooling-release";
 import { assertSepoliaGate } from "./utils/release-gate";
 import { writeReleaseJsonAtomic } from "./utils/release-artifacts";
-import { buildReadOnlyCastEnv, execCastCaptured } from "./utils/cast-env";
+import { buildReadOnlyCastEnv, execCastCaptured, parseCastTransactionHash } from "./utils/cast-env";
 import {
   buildReleaseLock,
   loadReleaseManifest,
@@ -1323,20 +1323,20 @@ function executeUpgradeBoundary(
     }
     assertUpgradeBoundaryPreconditions(plan, transaction, rpcUrl);
     const account = process.env.FOUNDRY_KEYSTORE_ACCOUNT || "green-goods-deployer";
-    const receipt = runCastJson(
-      buildUpgradeBoundarySendArgs(
-        transaction,
-        networkManager.getChainIdString(options.network),
-        plannedNonce,
-        account,
+    const output = execCastCaptured(
+      buildCastJsonArgs(
+        buildUpgradeBoundarySendArgs(
+          transaction,
+          networkManager.getChainIdString(options.network),
+          plannedNonce,
+          account,
+        ),
+        rpcUrl,
       ),
-      rpcUrl,
+      { cwd: CONTRACTS_ROOT, env: process.env, inputStdio: "inherit" },
+      "Bun-wrapped upgrade boundary",
     );
-    const candidate = receipt.transactionHash;
-    if (typeof candidate !== "string" || !/^0x[0-9a-fA-F]{64}$/.test(candidate)) {
-      throw new Error("Bun-wrapped boundary broadcast returned no transaction hash");
-    }
-    transactionHash = candidate;
+    transactionHash = parseCastTransactionHash(output, "Bun-wrapped upgrade boundary");
   }
 
   const evidence = assertReceiptAndTransaction(plan, transaction, transactionHash, rpcUrl);

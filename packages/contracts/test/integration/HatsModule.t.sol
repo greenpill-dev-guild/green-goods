@@ -175,8 +175,7 @@ contract HatsModuleTest is Test {
             uint256 evaluatorHat,
             uint256 gardenerHat,
             uint256 funderHat,
-            uint256 communityHat,
-            ,
+            uint256 communityHat,,
             bool configured
         ) = adapter.gardenHats(garden1);
         assertEq(ownerHat, GARDEN1_OWNER_HAT, "Owner hat should match");
@@ -350,8 +349,7 @@ contract HatsModuleTest is Test {
             uint256 evaluatorHat,
             uint256 gardenerHat,
             uint256 funderHat,
-            uint256 communityHat,
-            ,
+            uint256 communityHat,,
             bool configured
         ) = adapter.gardenHats(garden1);
         assertEq(ownerHat, GARDEN2_OWNER_HAT, "Owner hat should use new IDs");
@@ -824,8 +822,7 @@ contract HatsModuleTest is Test {
             uint256 evaluatorHatId,
             uint256 gardenerHatId,
             uint256 funderHatId,
-            uint256 communityHatId,
-            ,
+            uint256 communityHatId,,
             bool configured
         ) = adapter.gardenHats(garden2);
 

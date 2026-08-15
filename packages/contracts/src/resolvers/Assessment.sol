@@ -124,7 +124,14 @@ contract AssessmentResolver is SchemaResolver, OwnableUpgradeable, UUPSUpgradeab
     ///
     /// @param attestation The attestation data structure
     /// @return bool True if attestation is valid
-    function onAttest(Attestation calldata attestation, uint256 /*value*/ ) internal override returns (bool) {
+    function onAttest(
+        Attestation calldata attestation,
+        uint256 /*value*/
+    )
+        internal
+        override
+        returns (bool)
+    {
         if (assessmentV3SchemaUID != bytes32(0) && attestation.schema == assessmentV3SchemaUID) {
             return _onAttestV3(attestation);
         }
@@ -272,8 +279,9 @@ contract AssessmentResolver is SchemaResolver, OwnableUpgradeable, UUPSUpgradeab
             schema.location,
             schema.assessmentConfigCID
         ) {
-            // Success - event emitted by module, no additional action needed
-        } catch {
+        // Success - event emitted by module, no additional action needed
+        }
+            catch {
             // Intentionally ignore failures - assessment succeeds even if GAP integration fails
         }
     }
@@ -282,7 +290,16 @@ contract AssessmentResolver is SchemaResolver, OwnableUpgradeable, UUPSUpgradeab
     /// @notice Handles the logic to be executed when an attestation is revoked.
     /// @dev Assessments are NOT revocable - always returns false.
     /// @return Always false - assessments cannot be revoked.
-    function onRevoke(Attestation calldata, /*attestation*/ uint256 /*value*/ ) internal pure override returns (bool) {
+    function onRevoke(
+        Attestation calldata,
+        /*attestation*/
+        uint256 /*value*/
+    )
+        internal
+        pure
+        override
+        returns (bool)
+    {
         // Assessments are permanent and cannot be revoked
         return false;
     }

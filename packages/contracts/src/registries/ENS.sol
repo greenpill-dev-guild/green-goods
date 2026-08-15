@@ -276,7 +276,7 @@ contract GreenGoodsENS is Ownable {
             tokenAmounts: new Client.EVMTokenAmount[](0),
             extraArgs: Client._argsToBytes(Client.EVMExtraArgsV1({ gasLimit: 500_000 })),
             feeToken: address(0) // Pay in native ETH
-         });
+        });
     }
 
     // ═══════════════════════════════════════════════════════

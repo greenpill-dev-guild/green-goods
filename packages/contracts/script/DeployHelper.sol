@@ -95,8 +95,9 @@ abstract contract DeployHelper is Script {
         // Check if network is configured by trying to read chainId
         // solhint-disable-next-line no-empty-blocks
         try vm.parseJson(json, string.concat(basePath, ".chainId")) {
-            // Network exists - basePath is correct, continue with it
-        } catch {
+        // Network exists - basePath is correct, continue with it
+        }
+        catch {
             // Network not found, use localhost as fallback
             console.log("Network not found, using localhost as fallback");
             basePath = ".networks.localhost";

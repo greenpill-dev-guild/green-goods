@@ -217,8 +217,9 @@ contract Deploy is Script, DeploymentBase {
         // Add deployer to allowlist for minting during setup
         // solhint-disable-next-line no-empty-blocks
         try Deployment(address(deploymentRegistry)).addToAllowlist(msg.sender) {
-            // Success - deployer allowlisted
-        } catch {
+        // Success - deployer allowlisted
+        }
+        catch {
             console.log("WARNING: Failed to add deployer to allowlist - manual action required");
         }
 
@@ -226,8 +227,9 @@ contract Deploy is Script, DeploymentBase {
         if (config.multisig != address(0) && config.multisig != msg.sender) {
             // solhint-disable-next-line no-empty-blocks
             try Deployment(address(deploymentRegistry)).addToAllowlist(config.multisig) {
-                // Success - multisig allowlisted
-            } catch {
+            // Success - multisig allowlisted
+            }
+            catch {
                 console.log("WARNING: Failed to add multisig to allowlist - manual action required");
             }
             _initiateGovernanceTransfer(config.multisig);
@@ -1139,8 +1141,9 @@ contract Deploy is Script, DeploymentBase {
         if (!Deployment(address(deploymentRegistry)).isInAllowlist(multisig)) {
             // solhint-disable-next-line no-empty-blocks
             try Deployment(address(deploymentRegistry)).addToAllowlist(multisig) {
-                // Success - multisig added to allowlist
-            } catch {
+            // Success - multisig added to allowlist
+            }
+            catch {
                 console.log("WARNING: Failed to add multisig to allowlist before governance transfer");
             }
         }

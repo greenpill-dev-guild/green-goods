@@ -53,7 +53,8 @@ contract CommitmentSchemaRecoveryTest is Test {
         observation.expectedModule = MODULE;
     }
 
-    // ───────────────────────── The four legal states ─────────────────────────
+    // ───────────────────────── The four legal states
+    // ─────────────────────────
 
     function testUnpreparedIsUidZeroNoRecordModuleZero() public {
         CommitmentSchemaRecovery.Observation memory observation = _observation();
@@ -103,7 +104,8 @@ contract CommitmentSchemaRecoveryTest is Test {
         );
     }
 
-    // ───────────────────────── Out-of-order states ─────────────────────────
+    // ───────────────────────── Out-of-order states
+    // ─────────────────────────
 
     /// @notice A live module with no pinned UID is the headline out-of-order failure.
     function testModuleSetWithoutAPinnedUidIsInvalid() public {
@@ -234,7 +236,8 @@ contract CommitmentSchemaRecoveryTest is Test {
         this.finalizable(observation);
     }
 
-    // ───────────────────────── Phase gates ─────────────────────────
+    // ───────────────────────── Phase gates
+    // ─────────────────────────
 
     /// @notice Preparation accepts exactly the four module-zero states, and refuses the two others.
     /// @dev The record's presence is deliberately not a gate. Registration is permissionless, so
@@ -336,7 +339,8 @@ contract CommitmentSchemaRecoveryTest is Test {
         this.classify(observation);
     }
 
-    // ───────────────────────── Whole input space ─────────────────────────
+    // ───────────────────────── Whole input space
+    // ─────────────────────────
 
     /// @notice Every combination classifies, and the accepting sets are exactly the expected size.
     /// @dev The counts are the point. A classifier or gate that quietly widened its accepting set —

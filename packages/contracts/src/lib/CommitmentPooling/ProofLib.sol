@@ -19,8 +19,9 @@ library CommitmentPoolingProofLib {
         CommitmentPoolingCommonLib.Env memory env,
         mapping(uint256 poolId => ICommitmentPoolingModule.Pool pool) storage pools,
         mapping(uint256 commitmentId => ICommitmentPoolingModule.Commitment commitment) storage commitments,
-        mapping(uint256 commitmentId => mapping(address contributor => ICommitmentPoolingModule.ContributorRecord record))
-            storage contributors,
+        mapping(
+            uint256 commitmentId => mapping(address contributor => ICommitmentPoolingModule.ContributorRecord record)
+        ) storage contributors,
         mapping(uint256 commitmentId => mapping(bytes32 cidHash => bool attached)) storage evidenceAttached,
         uint256 commitmentId,
         string calldata cid,
@@ -79,8 +80,9 @@ library CommitmentPoolingProofLib {
         mapping(uint256 commitmentId => bytes32[] activeWorkUIDs) storage commitmentWorkUIDs,
         mapping(bytes32 workUID => uint64 sequence) storage latestWorkDecisionSequence,
         mapping(uint256 commitmentId => address[] confirmers) storage commitmentConfirmers,
-        mapping(uint256 commitmentId => mapping(address contributor => ICommitmentPoolingModule.ContributorRecord record))
-            storage contributors,
+        mapping(
+            uint256 commitmentId => mapping(address contributor => ICommitmentPoolingModule.ContributorRecord record)
+        ) storage contributors,
         uint256 commitmentId,
         bytes32 assessmentUID
     )
@@ -123,13 +125,15 @@ library CommitmentPoolingProofLib {
         CommitmentPoolingCommonLib.Env memory env,
         mapping(uint256 poolId => ICommitmentPoolingModule.Pool pool) storage pools,
         mapping(uint256 commitmentId => ICommitmentPoolingModule.Commitment commitment) storage commitments,
-        mapping(uint256 commitmentId => mapping(address contributor => ICommitmentPoolingModule.ContributorRecord record))
-            storage contributors,
+        mapping(
+            uint256 commitmentId => mapping(address contributor => ICommitmentPoolingModule.ContributorRecord record)
+        ) storage contributors,
         mapping(bytes32 workUID => uint256 commitmentId) storage workCommitment,
         mapping(uint256 commitmentId => bytes32[] activeWorkUIDs) storage commitmentWorkUIDs,
         mapping(bytes32 workUID => uint16 requirementIndexPlusOne) storage workRequirementIndexPlusOne,
-        mapping(address caller => mapping(bytes32 operationKey => bytes32 payloadHash)) storage
-            workLinkPayloadHashByOperation,
+        mapping(
+            address caller => mapping(bytes32 operationKey => bytes32 payloadHash)
+        ) storage workLinkPayloadHashByOperation,
         uint256 commitmentId,
         bytes32 workUID,
         uint16 requirementIndex,
@@ -193,8 +197,9 @@ library CommitmentPoolingProofLib {
     function onWorkDecision(
         CommitmentPoolingCommonLib.Env memory env,
         mapping(uint256 commitmentId => ICommitmentPoolingModule.Commitment commitment) storage commitments,
-        mapping(uint256 commitmentId => mapping(address contributor => ICommitmentPoolingModule.ContributorRecord record))
-            storage contributors,
+        mapping(
+            uint256 commitmentId => mapping(address contributor => ICommitmentPoolingModule.ContributorRecord record)
+        ) storage contributors,
         mapping(uint256 cycleId => ICommitmentPoolingModule.Cycle cycle) storage cycles,
         mapping(uint256 commitmentId => bytes32[] activeWorkUIDs) storage commitmentWorkUIDs,
         mapping(bytes32 workUID => uint256 commitmentId) storage workCommitment,
@@ -236,8 +241,7 @@ library CommitmentPoolingProofLib {
         (uint256 workActionUID,,,,) = abi.decode(work.data, (uint256, string, string, string, string[]));
         if (workActionUID != actionUID) return;
 
-        if (
-            !CommitmentPoolingWorkCreditLib.creditWorkDecision(
+        if (!CommitmentPoolingWorkCreditLib.creditWorkDecision(
                 latestWorkDecisionSequence,
                 latestWorkDecisionUID,
                 approvalCounted,
@@ -251,8 +255,7 @@ library CommitmentPoolingProofLib {
                 decisionSequence,
                 approved,
                 work.attester
-            )
-        ) {
+            )) {
             return;
         }
         CommitmentPoolingWorkCreditLib.evaluateAutomaticReady(

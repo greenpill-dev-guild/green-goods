@@ -161,12 +161,7 @@ interface ICeloSettlementExecutor {
     )
         external;
     function setGardenRouteActive(address garden, bool active) external;
-    function setSourcePeer(
-        address sourceSettlementModule,
-        uint8 protocolVersion,
-        uint64 previousPeerGraceSeconds
-    )
-        external;
+    function setSourcePeer(address sourceSettlementModule, uint8 protocolVersion, uint64 previousPeerGraceSeconds) external;
     function setCaps(uint16 maxBatchSize_, uint256 maxTransferAmount_, uint256 maxBatchAmount_) external;
     function setFeePolicy(uint16 maxFeeBps_, uint256 maxFeeAmount_) external;
     function setPeriodicCap(uint64 periodDuration_, uint256 maxPeriodAmount_) external;

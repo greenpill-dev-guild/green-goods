@@ -36,9 +36,9 @@ abstract contract CommitmentPoolingBase is CommitmentPoolingStorage {
     function _requireCompleteConfiguration() internal view {
         if (
             gardenToken == address(0) || address(hatsModule) == address(0) || address(actionRegistry) == address(0)
-                || address(commitmentRegistry) == address(0) || workApprovalResolver == address(0) || address(eas) == address(0)
-                || workSchemaUID == bytes32(0) || workApprovalSchemaUID == bytes32(0) || legacyAssessmentSchemaUID == bytes32(0)
-                || assessmentV3SchemaUID == bytes32(0)
+                || address(commitmentRegistry) == address(0) || workApprovalResolver == address(0)
+                || address(eas) == address(0) || workSchemaUID == bytes32(0) || workApprovalSchemaUID == bytes32(0)
+                || legacyAssessmentSchemaUID == bytes32(0) || assessmentV3SchemaUID == bytes32(0)
         ) revert ICommitmentPoolingModule.ModuleNotReady();
     }
 

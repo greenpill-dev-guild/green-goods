@@ -4,16 +4,13 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import {
-  AUTOMATED_RELEASE_STAGE_ORDER,
-  assertPlanCanResume,
   assertAllowedOperatorCommand,
-  assertAutomatedPinnedCheckout,
-  assertAutomatedSessionStart,
+  assertArtifactCheckout,
+  assertInteractiveSessionStart,
   assertPinnedCheckout,
+  changedPromotionLeafPaths,
   completedBoundaries,
   createPasswordLease,
-  planBoundaryExecutionSteps,
-  POOL_BACKFILL_REGISTRATION_BOUNDARIES,
   parseSessionOptions,
   RELEASE_OPERATOR_COMMANDS,
   tokenizeOperatorCommand,
@@ -27,188 +24,97 @@ afterEach(() => {
   }
 });
 
+function createCandidateRepository(): { repository: string; candidate: string } {
+  const repository = fs.mkdtempSync(path.join(os.tmpdir(), "release-operator-repository-"));
+  temporaryDirectories.push(repository);
+  const git = (args: string[]) =>
+    execFileSync("git", args, { cwd: repository, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }).trim();
+  git(["init"]);
+  git(["config", "user.name", "Release Operator Test"]);
+  git(["config", "user.email", "release-operator@example.invalid"]);
+  git(["config", "commit.gpgsign", "false"]);
+  fs.writeFileSync(path.join(repository, "reviewed.txt"), "reviewed\n");
+  git(["add", "reviewed.txt"]);
+  git(["commit", "-m", "test: freeze candidate"]);
+  return { repository, candidate: git(["rev-parse", "HEAD"]) };
+}
+
 describe("release operator session", () => {
-  it("requires the exact pinned candidate commit before unlocking", () => {
+  it("requires the exact pinned candidate and rejects retired broadcast modes", () => {
+    const candidate = "a".repeat(40);
     expect(() => parseSessionOptions([])).toThrow(/requires --commit/);
     expect(() => parseSessionOptions(["--commit", "abc"])).toThrow(/requires --commit/);
-    expect(parseSessionOptions(["--commit", "a".repeat(40)])).toEqual({
-      commit: "a".repeat(40),
-      help: false,
-      deployAll: false,
-      backfillAll: false,
-      unpausePooling: false,
-    });
-    expect(parseSessionOptions(["--commit", "a".repeat(40), "--deploy-all"])).toEqual({
-      commit: "a".repeat(40),
-      help: false,
-      deployAll: true,
-      backfillAll: false,
-      unpausePooling: false,
-    });
-    expect(parseSessionOptions(["--commit", "a".repeat(40), "--backfill-all"])).toMatchObject({
-      backfillAll: true,
-      deployAll: false,
-      unpausePooling: false,
-    });
-    expect(parseSessionOptions(["--commit", "a".repeat(40), "--unpause-pooling"])).toMatchObject({
-      backfillAll: false,
-      deployAll: false,
-      unpausePooling: true,
-    });
-    expect(() => parseSessionOptions(["--commit", "a".repeat(40), "--backfill-all", "--unpause-pooling"])).toThrow(
-      "only one automated release mode",
-    );
-    expect(parseSessionOptions(["--help"])).toEqual({
-      help: true,
-      deployAll: false,
-      backfillAll: false,
-      unpausePooling: false,
-    });
+    expect(parseSessionOptions(["--commit", candidate])).toEqual({ commit: candidate, help: false });
+    for (const retired of ["--deploy-all", "--backfill-all", "--unpause-pooling", "--authorization"]) {
+      expect(() => parseSessionOptions(["--commit", candidate, retired])).toThrow(/Unknown release operator option/);
+    }
+    expect(parseSessionOptions(["--help"])).toEqual({ help: true });
   });
 
-  it("allows only canonical deployment artifacts to change during automated release", () => {
-    const repository = fs.mkdtempSync(path.join(os.tmpdir(), "release-automation-repository-"));
-    temporaryDirectories.push(repository);
-    const git = (args: string[]) =>
-      execFileSync("git", args, { cwd: repository, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }).trim();
-    git(["init"]);
-    git(["config", "user.name", "Release Operator Test"]);
-    git(["config", "user.email", "release-operator@example.invalid"]);
-    git(["config", "commit.gpgsign", "false"]);
-    fs.mkdirSync(path.join(repository, "deployments"));
-    fs.writeFileSync(path.join(repository, "deployments/42161-latest.json"), "{}\n");
-    fs.writeFileSync(path.join(repository, "reviewed.txt"), "reviewed\n");
-    git(["add", "deployments/42161-latest.json", "reviewed.txt"]);
-    git(["commit", "-m", "test: freeze release"]);
-    const candidate = git(["rev-parse", "HEAD"]);
-    const allowed = new Set(["deployments/42161-latest.json"]);
+  it("accepts both receipt-backed release and Garden Safe artifact promotions", () => {
+    const { repository, candidate } = createCandidateRepository();
+    const releaseArtifact = "packages/contracts/deployments/42161-latest.json";
+    const safeArtifact = "packages/contracts/deployments/42220-settlement-safes.json";
+    for (const artifact of [releaseArtifact, safeArtifact]) {
+      fs.mkdirSync(path.dirname(path.join(repository, artifact)), { recursive: true });
+      fs.writeFileSync(path.join(repository, artifact), "{}\n");
+    }
 
-    fs.writeFileSync(path.join(repository, "deployments/42161-latest.json"), '{"pooling":"deployed"}\n');
-    expect(() => assertAutomatedPinnedCheckout(candidate, repository, allowed)).not.toThrow();
-    expect(() => assertAutomatedSessionStart(candidate, repository)).toThrow(/concurrent checkout drift/);
+    const releaseValidated: string[][] = [];
+    const safeValidated: string[][] = [];
+    expect(() =>
+      assertInteractiveSessionStart(
+        candidate,
+        repository,
+        (_candidate, _root, dirtyPaths) => releaseValidated.push(dirtyPaths),
+        (_candidate, _root, dirtyPaths) => safeValidated.push(dirtyPaths),
+      ),
+    ).not.toThrow();
+    expect(releaseValidated).toEqual([[releaseArtifact]]);
+    expect(safeValidated).toEqual([[safeArtifact]]);
+
     fs.appendFileSync(path.join(repository, "reviewed.txt"), "drift\n");
-    expect(() => assertAutomatedPinnedCheckout(candidate, repository, allowed)).toThrow(/concurrent checkout drift/);
+    expect(() =>
+      assertInteractiveSessionStart(
+        candidate,
+        repository,
+        () => undefined,
+        () => undefined,
+      ),
+    ).toThrow(/concurrent checkout drift/);
   });
 
-  it("keeps the automated release in the frozen dependency order", () => {
-    expect(AUTOMATED_RELEASE_STAGE_ORDER).toEqual([
-      "assessment-resolver",
-      "schema-preparation",
-      "pooling",
-      "schema-finalization",
-      "settlement-module",
-      "credit-registry",
-      "pooling-integration-upgrade",
-      "settlement-executor",
+  it("allows only the three receipt-backed deployment artifacts to differ from the candidate", () => {
+    const { repository, candidate } = createCandidateRepository();
+    const allowed = new Set(["reviewed.txt"]);
+    fs.appendFileSync(path.join(repository, "reviewed.txt"), "promotion\n");
+    expect(() => assertArtifactCheckout(candidate, repository, allowed)).not.toThrow();
+    fs.writeFileSync(path.join(repository, "unrelated.txt"), "drift\n");
+    expect(() => assertArtifactCheckout(candidate, repository, allowed)).toThrow(/concurrent checkout drift/);
+  });
+
+  it("keeps current-state promotion comparisons at exact leaf paths", () => {
+    expect(
+      changedPromotionLeafPaths(
+        {},
+        {
+          releaseReceipts: {
+            settlementModule: { transactionHash: `0x${"ab".repeat(32)}`, blockNumber: 493971677 },
+          },
+        },
+      ),
+    ).toEqual(["releaseReceipts.settlementModule.transactionHash", "releaseReceipts.settlementModule.blockNumber"]);
+    expect(changedPromotionLeafPaths({ releaseReceipts: "owned" }, { releaseReceipts: {} })).toEqual([
+      "releaseReceipts",
     ]);
   });
 
-  it("uses the real stage checkpoint and replays the last verified boundary before resuming", () => {
-    const directory = fs.mkdtempSync(path.join(os.tmpdir(), "release-stage-resume-"));
-    temporaryDirectories.push(directory);
-    const planPath = path.join(directory, "pooling-transaction-plan.json");
-    const checkpointPath = path.join(directory, "pooling-checkpoint.json");
-    fs.writeFileSync(
-      planPath,
-      `${JSON.stringify({ transactions: [{ nonce: 40 }, { nonce: 41 }, { nonce: 42 }] }, null, 2)}\n`,
-    );
-    fs.writeFileSync(
-      checkpointPath,
-      `${JSON.stringify({ lastVerifiedStep: 1, verifiedBoundaries: [{ index: 1 }] }, null, 2)}\n`,
-    );
-
-    expect(completedBoundaries(planPath, checkpointPath)).toBe(1);
-    expect(planBoundaryExecutionSteps(planPath, checkpointPath)).toEqual([1, 2, 3]);
-    expect(() => assertPlanCanResume(planPath, checkpointPath, 41)).not.toThrow();
-    expect(() => assertPlanCanResume(planPath, checkpointPath, 40)).toThrow(/next reviewed nonce is 41/);
-  });
-
-  it("replays a completed final boundary and rejects a cursor-only checkpoint", () => {
-    const directory = fs.mkdtempSync(path.join(os.tmpdir(), "release-stage-complete-"));
-    temporaryDirectories.push(directory);
-    const planPath = path.join(directory, "settlement-module-transaction-plan.json");
-    const checkpointPath = path.join(directory, "settlement-module-checkpoint.json");
-    fs.writeFileSync(planPath, `${JSON.stringify({ transactions: [{ nonce: 70 }, { nonce: 71 }] }, null, 2)}\n`);
-    fs.writeFileSync(
-      checkpointPath,
-      `${JSON.stringify({ lastVerifiedStep: 2, verifiedBoundaries: [{ index: 1 }, { index: 2 }] }, null, 2)}\n`,
-    );
-
-    expect(planBoundaryExecutionSteps(planPath, checkpointPath)).toEqual([2]);
-
-    fs.writeFileSync(
-      checkpointPath,
-      `${JSON.stringify({ lastVerifiedStep: 2, verifiedBoundaries: [{ index: 1 }] }, null, 2)}\n`,
-    );
-    expect(() => completedBoundaries(planPath, checkpointPath)).toThrow(/cursor differs from its receipt ledger/);
-  });
-
-  it("rejects checkout drift before a release boundary executes", () => {
-    const repository = fs.mkdtempSync(path.join(os.tmpdir(), "release-operator-repository-"));
-    temporaryDirectories.push(repository);
-    const git = (args: string[]) =>
-      execFileSync("git", args, { cwd: repository, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }).trim();
-    git(["init"]);
-    git(["config", "user.name", "Release Operator Test"]);
-    git(["config", "user.email", "release-operator@example.invalid"]);
-    git(["config", "commit.gpgsign", "false"]);
-    fs.writeFileSync(path.join(repository, "reviewed.txt"), "reviewed\n");
-    git(["add", "reviewed.txt"]);
-    git(["commit", "-m", "test: freeze candidate"]);
-    const candidate = git(["rev-parse", "HEAD"]);
-
-    expect(() => assertPinnedCheckout(candidate, repository)).not.toThrow();
-    fs.appendFileSync(path.join(repository, "reviewed.txt"), "drift\n");
-    expect(() => assertPinnedCheckout(candidate, repository)).toThrow(/checkout to stay clean/);
-  });
-
-  it("accepts only allowlisted Bun wrappers and never credential or RPC overrides", () => {
-    const tokens = tokenizeOperatorCommand(
-      'run pooling:schemas:arbitrum --step 2 --expected-nonce 123 --artifact "reviewed plan.json"',
-    );
-    expect(assertAllowedOperatorCommand(tokens)).toEqual({
-      script: "pooling:schemas:arbitrum",
-      args: ["--step", "2", "--expected-nonce", "123", "--artifact", "reviewed plan.json"],
-    });
-    expect(() => assertAllowedOperatorCommand(tokenizeOperatorCommand("run test"))).toThrow(/not allowlisted/);
-    expect(() =>
-      assertAllowedOperatorCommand(
-        tokenizeOperatorCommand("run settlement:module:deploy:arbitrum --private-key 0x1234"),
-      ),
-    ).toThrow(/controlled by the frozen release session/);
-    expect(() =>
-      assertAllowedOperatorCommand(
-        tokenizeOperatorCommand("run settlement:module:deploy:arbitrum --network celo --step 1"),
-      ),
-    ).toThrow(/controlled by the frozen release session/);
-    expect(() =>
-      assertAllowedOperatorCommand(
-        tokenizeOperatorCommand("run settlement:module:deploy:arbitrum --sender 0x1234 --step 1"),
-      ),
-    ).toThrow(/controlled by the frozen release session/);
-    expect(() =>
-      assertAllowedOperatorCommand(tokenizeOperatorCommand("run pooling:deploy:arbitrum --artifact plan.json")),
-    ).toThrow(/not allowlisted/);
-    expect(() => assertAllowedOperatorCommand(tokenizeOperatorCommand("run pooling:deploy:arbitrum --step"))).toThrow(
-      /requires a value/,
-    );
-    expect(() => tokenizeOperatorCommand("run 'unterminated")).toThrow(/Unclosed quote/);
-  });
-
-  it("keeps ownership and backfill out of the interactive boundary allowlist", () => {
-    expect([...RELEASE_OPERATOR_COMMANDS.keys()]).not.toContain("release:ownership:arbitrum");
-    expect([...RELEASE_OPERATOR_COMMANDS.keys()]).not.toContain("release:ownership:celo");
-    expect([...RELEASE_OPERATOR_COMMANDS.keys()]).not.toContain("pooling:backfill:arbitrum");
-    expect(() =>
-      assertAllowedOperatorCommand(tokenizeOperatorCommand("run release:ownership:arbitrum --step 1")),
-    ).toThrow(/not allowlisted/);
-    expect(() =>
-      assertAllowedOperatorCommand(tokenizeOperatorCommand("run pooling:backfill:arbitrum --step 1")),
-    ).toThrow(/not allowlisted/);
-  });
-
-  it("allows only the empty Garden Safe bootstrap and reviewed owner-swap wrappers", () => {
+  it("allowlists only one explicit Garden Safe boundary per command", () => {
     const receipt = `0x${"cd".repeat(32)}`;
+    expect([...RELEASE_OPERATOR_COMMANDS.keys()]).toEqual([
+      "settlement:garden-safes:deploy:celo",
+      "settlement:garden-safes:swap:celo",
+    ]);
     expect(
       assertAllowedOperatorCommand(
         tokenizeOperatorCommand(
@@ -219,45 +125,44 @@ describe("release operator session", () => {
       script: "settlement:garden-safes:deploy:celo",
       args: ["--plan", ".generated/runtime/bootstrap.json", "--step", "1", "--receipt", receipt],
     });
-    expect(
+    expect(() =>
       assertAllowedOperatorCommand(
         tokenizeOperatorCommand(
           "run settlement:garden-safes:swap:celo --plan .generated/runtime/swap.json --replacements .generated/runtime/replacements.json",
         ),
       ),
-    ).toEqual({
-      script: "settlement:garden-safes:swap:celo",
-      args: ["--plan", ".generated/runtime/swap.json", "--replacements", ".generated/runtime/replacements.json"],
-    });
+    ).toThrow(/requires one explicit --step/);
     expect(() =>
       assertAllowedOperatorCommand(
-        tokenizeOperatorCommand("run settlement:garden-safes:swap:celo --rpc-url https://unreviewed.invalid"),
+        tokenizeOperatorCommand("run settlement:garden-safes:deploy:celo --step 1 --step 2"),
+      ),
+    ).toThrow(/duplicated/);
+    expect(() =>
+      assertAllowedOperatorCommand(
+        tokenizeOperatorCommand("run settlement:garden-safes:swap:celo --step 1 --rpc-url https://unreviewed.invalid"),
       ),
     ).toThrow(/controlled by the frozen release session/);
+    expect(() => assertAllowedOperatorCommand(tokenizeOperatorCommand("run pooling:deploy:arbitrum --step 1"))).toThrow(
+      /not allowlisted/,
+    );
+    expect(() => tokenizeOperatorCommand("run 'unterminated")).toThrow(/Unclosed quote/);
   });
 
-  it("keeps deployer backfill at 18 registrations so unpause remains a separate mode", () => {
-    expect(POOL_BACKFILL_REGISTRATION_BOUNDARIES).toBe(18);
+  it("rejects checkout drift before a release boundary executes", () => {
+    const { repository, candidate } = createCandidateRepository();
+    expect(() => assertPinnedCheckout(candidate, repository)).not.toThrow();
+    fs.appendFileSync(path.join(repository, "reviewed.txt"), "drift\n");
+    expect(() => assertPinnedCheckout(candidate, repository)).toThrow(/checkout to stay clean/);
   });
 
-  it("accepts exact mined-receipt recovery for every current deployer-signed wrapper", () => {
-    const receipt = `0x${"ab".repeat(32)}`;
-    const commands = [
-      "assessment:upgrade:arbitrum",
-      "pooling:schemas:arbitrum",
-      "pooling:deploy:arbitrum",
-      "pooling:finalize:arbitrum",
-      "settlement:module:deploy:arbitrum",
-      "credit:registry:deploy:arbitrum",
-      "pooling:upgrade:arbitrum",
-      "settlement:executor:deploy:celo",
-    ];
-    for (const command of commands) {
-      expect(assertAllowedOperatorCommand(tokenizeOperatorCommand(`run ${command} --receipt ${receipt}`))).toEqual({
-        script: command,
-        args: ["--receipt", receipt],
-      });
-    }
+  it("rejects a checkpoint cursor that differs from its receipt ledger", () => {
+    const directory = fs.mkdtempSync(path.join(os.tmpdir(), "release-checkpoint-"));
+    temporaryDirectories.push(directory);
+    const planPath = path.join(directory, "plan.json");
+    const checkpointPath = path.join(directory, "checkpoint.json");
+    fs.writeFileSync(planPath, '{"transactions":[{"nonce":1}]}\n');
+    fs.writeFileSync(checkpointPath, '{"lastVerifiedStep":1,"verifiedBoundaries":[]}\n');
+    expect(() => completedBoundaries(planPath, checkpointPath)).toThrow(/cursor differs from its receipt ledger/);
   });
 
   it("uses a private 0600 password file and removes it when the session closes", () => {

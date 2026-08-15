@@ -102,7 +102,8 @@ library PoolingConfiguration {
         // Folding those two calls in here would have made activation just another setter.
         return assessment.schemaUID() == targets.assessmentSchemaUID
             && assessment.assessmentV3SchemaUID() == targets.assessmentV3SchemaUID
-            && IWorkApprovalResolverConfig(targets.workApprovalResolver).commitmentModule() == targets.commitmentPoolingModule;
+            && IWorkApprovalResolverConfig(targets.workApprovalResolver).commitmentModule()
+                == targets.commitmentPoolingModule;
     }
 
     /// @dev Both proxies must be owned by the SAME declared account, proven before the first

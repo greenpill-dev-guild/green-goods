@@ -102,7 +102,8 @@ contract CommitmentPoolingAccountingHandler {
         return commitments[index];
     }
 
-    // ───────────────────────────── Lifecycle actions ─────────────────────────────
+    // ───────────────────────────── Lifecycle actions
+    // ─────────────────────────────
 
     /// @dev An Offer commits its units at creation; a Request commits them at acceptance. Both
     ///      directions are reachable so the release path covers each holder.
@@ -290,7 +291,8 @@ contract CommitmentPoolingAccountingHandler {
         try module.resolveDispute(commitmentId, resolution, "bafy-invariant-resolution") { } catch { }
     }
 
-    // ───────────────────────────── Internals ─────────────────────────────
+    // ───────────────────────────── Internals
+    // ─────────────────────────────
 
     function _actor(uint8 seed) private view returns (address) {
         return actors[seed % ACTOR_COUNT];

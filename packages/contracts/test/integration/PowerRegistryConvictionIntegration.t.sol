@@ -96,11 +96,7 @@ contract PowerRegistryConvictionIntegrationTest is Test {
 
         // Source 2: HAT with 2x weight (20000 bps)
         sources[1] = NFTPowerSource({
-            token: address(hats),
-            nftType: NFTType.HAT,
-            weight: 20_000,
-            tokenId: 0,
-            hatId: HAT_ID_GARDENER
+            token: address(hats), nftType: NFTType.HAT, weight: 20_000, tokenId: 0, hatId: HAT_ID_GARDENER
         });
 
         vm.prank(GARDENS_MODULE);
@@ -187,11 +183,7 @@ contract PowerRegistryConvictionIntegrationTest is Test {
         // Register garden B with ERC1155 only
         NFTPowerSource[] memory sourcesB = new NFTPowerSource[](1);
         sourcesB[0] = NFTPowerSource({
-            token: address(nft1155),
-            nftType: NFTType.ERC1155,
-            weight: 5000,
-            tokenId: ERC1155_TOKEN_ID,
-            hatId: 0
+            token: address(nft1155), nftType: NFTType.ERC1155, weight: 5000, tokenId: ERC1155_TOKEN_ID, hatId: 0
         });
 
         vm.prank(GARDENS_MODULE);

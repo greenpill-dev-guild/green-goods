@@ -18,8 +18,9 @@ library CommitmentPoolingRecognitionLib {
     function validateRecognitionSnapshot(
         mapping(uint256 commitmentId => ICommitmentPoolingModule.Commitment commitment) storage commitments,
         mapping(uint256 cycleId => ICommitmentPoolingModule.Cycle cycle) storage cycles,
-        mapping(uint256 commitmentId => mapping(address contributor => ICommitmentPoolingModule.ContributorRecord record))
-            storage contributors,
+        mapping(
+            uint256 commitmentId => mapping(address contributor => ICommitmentPoolingModule.ContributorRecord record)
+        ) storage contributors,
         uint256 commitmentId,
         ICommitmentPoolingModule.RecognitionEntry[] calldata entries,
         bytes32 suppliedHash
@@ -49,7 +50,8 @@ library CommitmentPoolingRecognitionLib {
         if (canonicalHash != suppliedHash) revert ICommitmentPoolingModule.InvalidAllocation();
     }
 
-    // ═════════════════════════════ Internal ═════════════════════════════
+    // ═════════════════════════════ Internal
+    // ═════════════════════════════
 
     /// @dev A cycle-scoped commitment uses the policy snapshotted at its cycle's open; a
     ///      cycle-less one uses the immutable protocol preset.
@@ -80,8 +82,9 @@ library CommitmentPoolingRecognitionLib {
     /// @dev Proves the canonical sort and per-row eligibility, and reads each row's credit total.
     ///      Strictly ascending is what rejects both an out-of-order row and a duplicate.
     function _readCanonicalCredits(
-        mapping(uint256 commitmentId => mapping(address contributor => ICommitmentPoolingModule.ContributorRecord record))
-            storage contributors,
+        mapping(
+            uint256 commitmentId => mapping(address contributor => ICommitmentPoolingModule.ContributorRecord record)
+        ) storage contributors,
         uint256 commitmentId,
         ICommitmentPoolingModule.Commitment storage commitment,
         ICommitmentPoolingModule.RecognitionEntry[] calldata entries

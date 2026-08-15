@@ -55,15 +55,16 @@ contract SettlementPayerMockRouter {
         external
     {
         Client.EVMTokenAmount[] memory noTokens = new Client.EVMTokenAmount[](0);
-        ISettlementCcipReceiver(receiver).ccipReceive(
-            Client.Any2EVMMessage({
+        ISettlementCcipReceiver(receiver)
+            .ccipReceive(
+                Client.Any2EVMMessage({
                 messageId: messageId,
                 sourceChainSelector: sourceSelector,
                 sender: abi.encode(sender),
                 data: data,
                 destTokenAmounts: noTokens
             })
-        );
+            );
     }
 
     function tryDeliverWithReceiverGas(

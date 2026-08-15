@@ -219,7 +219,9 @@ library SettlementConfigurationLib {
         ) revert ISettlementModule.InvalidRecoveryConfiguration();
         if (
             destinationExecutor != address(0)
-                && (owners[0] == destinationExecutor || owners[1] == destinationExecutor || owners[2] == destinationExecutor)
+                && (owners[0] == destinationExecutor
+                    || owners[1] == destinationExecutor
+                    || owners[2] == destinationExecutor)
         ) revert ISettlementModule.InvalidRecoveryConfiguration();
     }
 

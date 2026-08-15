@@ -44,6 +44,7 @@ trap on_failure EXIT
 
 # 1. Format check (non-mutating)
 echo "📐 Checking formatting..."
+$RUNNER check:foundry-version
 $RUNNER format:check
 $RUNNER format:contracts:check
 

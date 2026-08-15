@@ -135,10 +135,7 @@ abstract contract SettlementViews is SettlementLifecycle {
             _commandRecords,
             _commandPayloads,
             SettlementCommandLib.QuoteRequest({
-                router: CCIP_ROUTER,
-                route: _ccipRoute,
-                isBatch: isBatch,
-                subjectId: subjectId
+                router: CCIP_ROUTER, route: _ccipRoute, isBatch: isBatch, subjectId: subjectId
             })
         );
     }

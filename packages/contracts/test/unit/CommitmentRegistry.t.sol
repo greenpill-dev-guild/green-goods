@@ -90,11 +90,12 @@ contract CommitmentRegistryTest is Test {
     }
 
     function testHasNoTransferOrApprovalSurface() public {
-        (bool transferSuccess,) = address(registry).call(
-            abi.encodeWithSignature(
-                "safeTransferFrom(address,address,uint256,uint256,bytes)", PROVIDER, OWNER, CLASS_ID, 1, ""
-            )
-        );
+        (bool transferSuccess,) = address(registry)
+            .call(
+                abi.encodeWithSignature(
+                    "safeTransferFrom(address,address,uint256,uint256,bytes)", PROVIDER, OWNER, CLASS_ID, 1, ""
+                )
+            );
         (bool approvalSuccess,) =
             address(registry).call(abi.encodeWithSignature("setApprovalForAll(address,bool)", OWNER, true));
 

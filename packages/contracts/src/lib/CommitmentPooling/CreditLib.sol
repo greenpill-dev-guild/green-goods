@@ -15,8 +15,9 @@ library CommitmentPoolingCreditLib {
     /// @dev Recognition eligibility, defined once: a still-active contributor of a Fulfilled
     ///      commitment whose roster has frozen, holding at least one verified credit.
     function isEligibleContributor(
-        mapping(uint256 commitmentId => mapping(address contributor => ICommitmentPoolingModule.ContributorRecord record))
-            storage contributors,
+        mapping(
+            uint256 commitmentId => mapping(address contributor => ICommitmentPoolingModule.ContributorRecord record)
+        ) storage contributors,
         uint256 commitmentId,
         ICommitmentPoolingModule.Commitment storage commitment,
         address contributor
@@ -32,8 +33,9 @@ library CommitmentPoolingCreditLib {
 
     function eligibleNamedConfirmerCount(
         mapping(uint256 commitmentId => address[] confirmers) storage commitmentConfirmers,
-        mapping(uint256 commitmentId => mapping(address contributor => ICommitmentPoolingModule.ContributorRecord record))
-            storage contributors,
+        mapping(
+            uint256 commitmentId => mapping(address contributor => ICommitmentPoolingModule.ContributorRecord record)
+        ) storage contributors,
         uint256 commitmentId,
         address prospectiveContributor
     )
@@ -54,8 +56,9 @@ library CommitmentPoolingCreditLib {
         mapping(uint256 commitmentId => bytes32[] activeWorkUIDs) storage commitmentWorkUIDs,
         mapping(bytes32 workUID => uint64 sequence) storage latestWorkDecisionSequence,
         mapping(uint256 commitmentId => address[] confirmers) storage commitmentConfirmers,
-        mapping(uint256 commitmentId => mapping(address contributor => ICommitmentPoolingModule.ContributorRecord record))
-            storage contributors,
+        mapping(
+            uint256 commitmentId => mapping(address contributor => ICommitmentPoolingModule.ContributorRecord record)
+        ) storage contributors,
         uint256 commitmentId,
         ICommitmentPoolingModule.Commitment storage commitment,
         bool overridden,
@@ -154,8 +157,9 @@ library CommitmentPoolingCreditLib {
     function assertConfirmationReachable(
         CommitmentPoolingCommonLib.Env memory env,
         mapping(uint256 commitmentId => address[] confirmers) storage commitmentConfirmers,
-        mapping(uint256 commitmentId => mapping(address contributor => ICommitmentPoolingModule.ContributorRecord record))
-            storage contributors,
+        mapping(
+            uint256 commitmentId => mapping(address contributor => ICommitmentPoolingModule.ContributorRecord record)
+        ) storage contributors,
         uint256 commitmentId,
         ICommitmentPoolingModule.Commitment storage commitment
     )
@@ -201,8 +205,9 @@ library CommitmentPoolingCreditLib {
     ///      stuck Garden Offer is the terminal machinery: raiseDispute and expireCommitment.
     function ordinaryConfirmationReachable(
         mapping(uint256 commitmentId => address[] confirmers) storage commitmentConfirmers,
-        mapping(uint256 commitmentId => mapping(address contributor => ICommitmentPoolingModule.ContributorRecord record))
-            storage contributors,
+        mapping(
+            uint256 commitmentId => mapping(address contributor => ICommitmentPoolingModule.ContributorRecord record)
+        ) storage contributors,
         uint256 commitmentId,
         ICommitmentPoolingModule.Commitment storage commitment
     )

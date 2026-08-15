@@ -80,7 +80,7 @@ Guild recovery, and one named Garden recovery delegate remain the three Safe own
 ## Result
 
 The pinned Arbitrum One and Celo fork proof passed 8/8 ownership cases, and the complete settlement
-fork shard passed 16/16. It used the live canonical ERC-6551 registry, live Safe v1.4.1 singleton
+fork shard passed 17/17. It used the live canonical ERC-6551 registry, live Safe v1.4.1 singleton
 and factory, the deployed Celo AccountV3 implementation and guardian, and fork-local mutations
 only.
 
@@ -98,13 +98,16 @@ a follow-on security design, not release ceremony configuration.
 
 ## Temporary address bootstrap
 
-Afo authorized a narrower staging path on 2026-08-12. Each Garden Safe may be deployed empty as
-1-of-2 with the deployment EOA and the existing Celo Garden recovery Safe, which was live-read as
-a module-free 2-of-3 Safe. The EOA is a placeholder only. A Bun-wrapped script later swaps it for
-an exact reviewed per-Garden owner in one Safe transaction per Garden.
+Afo authorized a narrower staging path on 2026-08-12. Each Garden Safe may be deployed as a
+native/G$-clear 1-of-2 with the deployment EOA and the existing Celo Garden recovery Safe, which
+was live-read as a module-free 2-of-3 Safe. The EOA is a placeholder only. A Bun-wrapped script
+later swaps it for an exact reviewed per-Garden owner in one Safe transaction per Garden. Generic
+ERC-20/ERC-721/ERC-1155 inventory is not enumerable from an address, so this bootstrap does not
+claim that arbitrary token balances are absent.
 
 This does not make the Garden Safe settlement-ready. No G$, native balance, module, guard, Zodiac
 role, executor authority, peer wiring, or value operation may exist before the placeholder is
 removed and the final owner and authorization gates are reviewed. The bootstrap solves address
 availability and avoids a multi-signer ceremony while the Safes are empty; it does not weaken the
-activation standard.
+activation standard. A separately reviewed asset-inventory check remains required before value
+authority is enabled.

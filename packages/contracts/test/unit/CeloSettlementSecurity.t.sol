@@ -549,9 +549,10 @@ contract CeloSettlementSecurityTest is CeloSettlementExecutorTest {
     function testSelfOnlyBatchExecutionRejectsExternalCaller() public {
         ICeloSettlementExecutor.GardenRoute memory route = executor.gardenRouteOf(GARDEN);
         vm.expectRevert(ICeloSettlementExecutor.InvalidCcipSender.selector);
-        CeloSettlementExecutor(payable(address(executor))).executeGdollarSettlementBatch(
-            route, _one(CONTRIBUTOR), _oneAmount(1 ether), _oneAmount(0), 10_000 ether, 1 ether
-        );
+        CeloSettlementExecutor(payable(address(executor)))
+            .executeGdollarSettlementBatch(
+                route, _one(CONTRIBUTOR), _oneAmount(1 ether), _oneAmount(0), 10_000 ether, 1 ether
+            );
     }
 
     function testFuzzTransferCapAllowsEveryPositiveBoundedAmount(uint96 rawAmount) public {

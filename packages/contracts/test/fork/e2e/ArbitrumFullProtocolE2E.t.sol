@@ -23,7 +23,8 @@ contract ArbitrumFullProtocolE2EForkTest is ForkTestBase {
     // Test 1: Complete Protocol Lifecycle (Golden Path)
     // ═══════════════════════════════════════════════════════════════════════════
 
-    /// @notice Full protocol flow on Arbitrum: deploy → schemas → mint → roles → action → work → approval → assessment
+    /// @notice Full protocol flow on Arbitrum: deploy → schemas → mint → roles → action → work → approval →
+    /// assessment
     function testForkArbitrum_e2e_completeProtocolLifecycle() public {
         if (!_tryChainFork("arbitrum")) {
             return;

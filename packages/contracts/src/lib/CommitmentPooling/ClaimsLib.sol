@@ -16,10 +16,12 @@ library CommitmentPoolingClaimsLib {
         mapping(uint256 poolId => ICommitmentPoolingModule.Pool pool) storage pools,
         mapping(address garden => uint256 poolId) storage gardenPool,
         mapping(uint256 commitmentId => ICommitmentPoolingModule.Commitment commitment) storage commitments,
-        mapping(uint256 commitmentId => mapping(address claimant => ICommitmentPoolingModule.PendingClaim claim)) storage
-            pendingClaim,
-        mapping(uint256 commitmentId => mapping(address contributor => ICommitmentPoolingModule.ContributorRecord record))
-            storage contributors,
+        mapping(
+            uint256 commitmentId => mapping(address claimant => ICommitmentPoolingModule.PendingClaim claim)
+        ) storage pendingClaim,
+        mapping(
+            uint256 commitmentId => mapping(address contributor => ICommitmentPoolingModule.ContributorRecord record)
+        ) storage contributors,
         mapping(uint256 commitmentId => address[] confirmers) storage commitmentConfirmers,
         uint256 commitmentId,
         ICommitmentPoolingModule.ClaimType kind,
@@ -75,10 +77,12 @@ library CommitmentPoolingClaimsLib {
         CommitmentPoolingCommonLib.Env memory env,
         mapping(uint256 poolId => ICommitmentPoolingModule.Pool pool) storage pools,
         mapping(uint256 commitmentId => ICommitmentPoolingModule.Commitment commitment) storage commitments,
-        mapping(uint256 commitmentId => mapping(address claimant => ICommitmentPoolingModule.PendingClaim claim)) storage
-            pendingClaim,
-        mapping(uint256 commitmentId => mapping(address contributor => ICommitmentPoolingModule.ContributorRecord record))
-            storage contributors,
+        mapping(
+            uint256 commitmentId => mapping(address claimant => ICommitmentPoolingModule.PendingClaim claim)
+        ) storage pendingClaim,
+        mapping(
+            uint256 commitmentId => mapping(address contributor => ICommitmentPoolingModule.ContributorRecord record)
+        ) storage contributors,
         mapping(uint256 commitmentId => address[] confirmers) storage commitmentConfirmers,
         uint256 commitmentId,
         address claimant
@@ -121,8 +125,9 @@ library CommitmentPoolingClaimsLib {
         CommitmentPoolingCommonLib.Env memory env,
         mapping(uint256 poolId => ICommitmentPoolingModule.Pool pool) storage pools,
         mapping(uint256 commitmentId => ICommitmentPoolingModule.Commitment commitment) storage commitments,
-        mapping(uint256 commitmentId => mapping(address claimant => ICommitmentPoolingModule.PendingClaim claim)) storage
-            pendingClaim,
+        mapping(
+            uint256 commitmentId => mapping(address claimant => ICommitmentPoolingModule.PendingClaim claim)
+        ) storage pendingClaim,
         uint256 commitmentId,
         address claimant,
         string calldata reasonCID
@@ -147,8 +152,9 @@ library CommitmentPoolingClaimsLib {
         CommitmentPoolingCommonLib.Env memory env,
         mapping(uint256 poolId => ICommitmentPoolingModule.Pool pool) storage pools,
         mapping(uint256 commitmentId => ICommitmentPoolingModule.Commitment commitment) storage commitments,
-        mapping(uint256 commitmentId => mapping(address contributor => ICommitmentPoolingModule.ContributorRecord record))
-            storage contributors,
+        mapping(
+            uint256 commitmentId => mapping(address contributor => ICommitmentPoolingModule.ContributorRecord record)
+        ) storage contributors,
         mapping(uint256 commitmentId => address[] confirmers) storage commitmentConfirmers,
         uint256 commitmentId,
         address contributor
