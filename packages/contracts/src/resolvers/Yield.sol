@@ -892,10 +892,6 @@ contract YieldResolver is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUp
         return assetThreshold > 0 ? assetThreshold : minYieldThreshold;
     }
 
-    // ═══════════════════════════════════════════════════════════════════════════
-    // UUPS Upgrade
-    // ═══════════════════════════════════════════════════════════════════════════
-
     /// @notice Authorizes an upgrade to a new implementation
     // solhint-disable-next-line no-empty-blocks
     function _authorizeUpgrade(address newImplementation) internal override onlyOwner { }
