@@ -12,12 +12,12 @@ import { PHONE_VIEWPORT_HEIGHT, PHONE_VIEWPORT_WIDTH } from "./tokens";
 // inner scroll surface as AppShell's #app-scroll. AppShell-backed frames carry
 // the shipping 69px AppBar reservation by default; callers may choose the active
 // destination or explicitly opt out for a genuinely non-AppShell surface.
-export function phoneFrame(body: string, opts: { offline?: boolean; appBar?: string | false; header?: string } = {}): string {
+export function phoneFrame(body: string, opts: { offline?: boolean; appBar?: string | false; header?: string; overlay?: string } = {}): string {
   const bottomBar = opts.appBar === false ? "" : (opts.appBar ?? appBar("garden"));
   return `<div class="phonefit" data-phone-scale="1"><div class="phone"><div class="scr" data-viewport-width="${PHONE_VIEWPORT_WIDTH}" data-viewport-height="${PHONE_VIEWPORT_HEIGHT}">
 <div class="statusbar"><span class="num">9:41</span><span class="sbr">${opts.offline ? icon("wifi-off-line", "s") : ""}<span class="sb-sig"><i style="height:4px"></i><i style="height:6px"></i><i style="height:8px"></i><i style="height:10px"></i></span><span class="sb-batt"></span></span></div>
 ${opts.header ?? ""}<main class="appscroll" data-appbar="${bottomBar ? "visible" : "hidden"}">${body}</main>
-${bottomBar}
+${opts.overlay ?? ""}${bottomBar}
 <div class="homebar"><i></i></div>
 </div></div></div>`;
 }
@@ -37,11 +37,13 @@ export function hdr(title: string, opts: { back?: boolean; trailing?: string } =
   return `<div class="hdr">${opts.back ? `<button type="button" class="hback" aria-label="Back — preview only" disabled>${icon("arrow-left-line", "l")}</button>` : ""}<h1>${esc(title)}</h1>${opts.trailing ? `<span class="hx">${opts.trailing}</span>` : ""}</div>`;
 }
 
-// Garden detail tab row — the net-new 4th GardenTab "Pool" (uiux-spec §5.1).
+// Garden detail tab row — the net-new GardenTab "Pool" leads and is the
+// default landing when a pool exists (uiux-spec §5.1 + 2026-08-14 addendum);
+// a garden without a pool draws the original Work-first row with Pool absent.
 // With a hotPrefix, inactive tabs become inspectable hotspots (`${prefix}-work` …)
 // so every drawn control a user would tap is registered.
 export function gardenTabs(active: "work" | "insights" | "gardeners" | "pool", opts: { hotPrefix?: string } = {}): string {
-  const tabs: [string, string][] = [["work", "Work"], ["insights", "Insights"], ["gardeners", "Gardeners"], ["pool", "Pool"]];
+  const tabs: [string, string][] = [["pool", "Pool"], ["work", "Work"], ["insights", "Insights"], ["gardeners", "Gardeners"]];
   return `<div class="gtabs" role="tablist" aria-label="Garden sections">${tabs
     .map(([id, l]) => {
       if (!opts.hotPrefix) return `<span class="gtab${id === active ? " on" : ""}"${id === active ? ' aria-current="true"' : ""}>${l}</span>`;
@@ -74,8 +76,12 @@ export function syncBar(text: string): string {
 
 // ---- surfaces ---------------------------------------------------------------
 
-export function card(inner: string, opts: { cls?: string } = {}): string {
-  return `<div class="card${opts.cls ? " " + opts.cls : ""}">${inner}</div>`;
+// opts.edge — the promise-direction edge (2026-08-14): a 3px inset stripe,
+// green for offers, sky for requests, so a browse list reads direction at
+// scroll speed without recoloring whole cards (volume hierarchy stays).
+export function card(inner: string, opts: { cls?: string; edge?: "offer" | "request" } = {}): string {
+  const cls = `${opts.cls ? " " + opts.cls : ""}${opts.edge ? ` edge-${opts.edge}` : ""}`;
+  return `<div class="card${cls}">${inner}</div>`;
 }
 
 export function banner(text: string, tone: "amber" | "stone" | "green" | "error", ic = "information-line"): string {
@@ -155,8 +161,33 @@ export function listRow(opts: { icon?: string; primary: string; meta?: string; c
   return `<div class="lr">${opts.icon ? icon(opts.icon) : ""}<div class="grow"><div class="lp">${esc(opts.primary)}</div>${opts.meta ? `<div class="lm">${esc(opts.meta)}</div>` : ""}</div>${tail ? `<div class="tail">${tail}</div>` : ""}</div>`;
 }
 
-export function seg(items: string[], activeIx: number): string {
-  return `<div class="seg" role="group" aria-label="Current filter">${items.map((l, i) => `<span class="sg${i === activeIx ? " on" : ""}"${i === activeIx ? ' aria-current="true"' : ""}>${esc(l)}</span>`).join("")}</div>`;
+// opts.badges — per-pill count badges (index → count), the WalletDrawer tab
+// count pattern (§5.8: Commitments mirrors the cookie-jar tab badge).
+export function seg(items: string[], activeIx: number, opts: { badges?: Partial<Record<number, number>> } = {}): string {
+  return `<div class="seg" role="group" aria-label="Current filter">${items
+    .map((l, i) => {
+      const n = opts.badges?.[i];
+      const badge = n ? `<span class="nbadge num">${n}</span>` : "";
+      return `<span class="sg${i === activeIx ? " on" : ""}"${i === activeIx ? ' aria-current="true"' : ""}>${esc(l)}${badge}</span>`;
+    })
+    .join("")}</div>`;
+}
+
+// Season + campaigns rail (2026-08-14) — one horizontal snap row: the Season
+// slide leads and stays visually primary (wider), campaign slides follow with
+// a peek of the next. Presentation only: slides open their cycle; the browse
+// scope select keeps owning list scope, so swiping never silently refilters.
+export function cycleRail(slides: string[]): string {
+  return `<div class="crail" role="group" aria-label="Season and campaigns">${slides.join("")}</div>`;
+}
+
+// Floating creation entry (2026-08-14) — mirrors the shared FabButton the
+// admin mobile shell already uses. Closed: one "+" above the AppBar. Open:
+// the caller stacks the two one-word doors (D3) above the same spot and the
+// FAB flips to a close affordance. Returns the bare button; callers wrap it
+// in hot() and assemble `.fabwrap` / `.fabscrim` around it.
+export function fabButton(open: boolean): string {
+  return `<button type="button" class="fabbtn${open ? " x" : ""}" aria-label="${open ? "Close" : "Offer or request"}" aria-expanded="${open ? "true" : "false"}">${icon(open ? "close-line" : "add-line", "l")}</button>`;
 }
 
 export function kv(k: string, v: string): string {
@@ -165,6 +196,14 @@ export function kv(k: string, v: string): string {
 
 export function sectionTitle(t: string, trailing = ""): string {
   return `<div class="t-sec">${esc(t)}${trailing ? `<span class="hx">${trailing}</span>` : ""}</div>`;
+}
+
+// FormInfo — the shipping step-section header (client
+// components/Cards/Form/FormInfo.tsx): a filled, padded, rounded card with
+// the icon in a bordered 48px circular holder beside title + helper line
+// (PR #710 review corrected the bare-flex-row first draft).
+export function formInfo(ic: string, title: string, info: string): string {
+  return `<div class="finfo"><span class="fic">${icon(ic)}</span><div class="grow"><div class="ft">${esc(title)}</div><div class="fi">${esc(info)}</div></div></div>`;
 }
 
 // ---- forms (W3 / sheets) ----------------------------------------------------
@@ -186,7 +225,7 @@ export function field(label: string, control: string): string {
   return `<div class="fld"><label class="fl" for="${controlId}">${esc(label)}</label>${linked}</div>`;
 }
 
-export function input(value: string, opts: { placeholder?: boolean; select?: boolean; icon?: string; ariaLabel?: string; labelledBy?: string } = {}): string {
+export function input(value: string, opts: { placeholder?: boolean; select?: boolean; textarea?: boolean; icon?: string; ariaLabel?: string; labelledBy?: string } = {}): string {
   const naming = opts.labelledBy
     ? ` aria-labelledby="${escAttr(opts.labelledBy)}"`
     : opts.ariaLabel
@@ -194,8 +233,12 @@ export function input(value: string, opts: { placeholder?: boolean; select?: boo
       : "";
   const control = opts.select
     ? `<select${naming} disabled><option>${esc(value)}</option></select>`
-    : `<input type="text"${naming}${opts.placeholder ? ` placeholder="${escAttr(value)}"` : ` value="${escAttr(value)}"`} readonly>`;
-  return `<span class="inp${opts.select ? " sel" : ""}">${opts.icon ? icon(opts.icon, "s") : ""}${control}</span>`;
+    : opts.textarea
+      // The shipping FormText renders a real multiline textarea (rows=4,
+      // views/Garden/Details.tsx) — a single-line input cannot stand in for it.
+      ? `<textarea rows="4"${naming}${opts.placeholder ? ` placeholder="${escAttr(value)}"` : ""} readonly>${opts.placeholder ? "" : esc(value)}</textarea>`
+      : `<input type="text"${naming}${opts.placeholder ? ` placeholder="${escAttr(value)}"` : ` value="${escAttr(value)}"`} readonly>`;
+  return `<span class="inp${opts.select ? " sel" : ""}${opts.textarea ? " ta" : ""}">${opts.icon ? icon(opts.icon, "s") : ""}${control}</span>`;
 }
 
 export function radio(
