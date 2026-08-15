@@ -409,9 +409,10 @@
         "packages/contracts/deployments/42161-latest.json#commitmentPoolingModule",
         "packages/contracts/deployments/42161-latest.json#commitmentRegistry",
         "packages/contracts/deployments/42161-latest.json#commitmentPoolingModulePaused",
-        ".plans/active/commitment-pooling/status.json",
+        ".plans/active/commitment-pooling/status.json#execution_sub_lanes.release_ops.current_ceremony_end_state",
         "packages/indexer/config.yaml",
-        "packages/shared/src/i18n/en.json"
+        "packages/shared/src/i18n/en.json",
+        ".plans/active/commitment-pooling/status.json"
       ],
       "verified_at": "2026-08-15"
     },
@@ -447,9 +448,10 @@
         "packages/contracts/deployments/42161-latest.json#commitmentPoolingModule",
         "packages/contracts/deployments/42161-latest.json#commitmentRegistry",
         "packages/contracts/deployments/42161-latest.json#commitmentPoolingModulePaused",
-        ".plans/active/commitment-pooling/status.json",
+        ".plans/active/commitment-pooling/status.json#execution_sub_lanes.release_ops.current_ceremony_end_state",
         "packages/indexer/config.yaml",
-        "packages/shared/src/i18n/en.json"
+        "packages/shared/src/i18n/en.json",
+        ".plans/active/commitment-pooling/status.json"
       ],
       "verified_at": "2026-08-15"
     },
@@ -489,9 +491,10 @@
         "packages/contracts/deployments/42161-latest.json#commitmentPoolingModule",
         "packages/contracts/deployments/42161-latest.json#commitmentRegistry",
         "packages/contracts/deployments/42161-latest.json#commitmentPoolingModulePaused",
-        ".plans/active/commitment-pooling/status.json",
+        ".plans/active/commitment-pooling/status.json#execution_sub_lanes.release_ops.current_ceremony_end_state",
         "packages/indexer/config.yaml",
-        "packages/shared/src/i18n/en.json"
+        "packages/shared/src/i18n/en.json",
+        ".plans/active/commitment-pooling/status.json"
       ],
       "verified_at": "2026-08-15"
     },
@@ -549,9 +552,10 @@
         "packages/contracts/deployments/42161-latest.json#commitmentPoolingModule",
         "packages/contracts/deployments/42161-latest.json#commitmentRegistry",
         "packages/contracts/deployments/42161-latest.json#commitmentPoolingModulePaused",
-        ".plans/active/commitment-pooling/status.json",
+        ".plans/active/commitment-pooling/status.json#execution_sub_lanes.release_ops.current_ceremony_end_state",
         "packages/indexer/config.yaml",
-        "packages/shared/src/i18n/en.json"
+        "packages/shared/src/i18n/en.json",
+        ".plans/active/commitment-pooling/status.json"
       ],
       "verified_at": "2026-08-15"
     },
@@ -595,9 +599,10 @@
         "packages/contracts/deployments/42161-latest.json#commitmentPoolingModule",
         "packages/contracts/deployments/42161-latest.json#commitmentRegistry",
         "packages/contracts/deployments/42161-latest.json#commitmentPoolingModulePaused",
-        ".plans/active/commitment-pooling/status.json",
+        ".plans/active/commitment-pooling/status.json#execution_sub_lanes.release_ops.current_ceremony_end_state",
         "packages/indexer/config.yaml",
-        "packages/shared/src/i18n/en.json"
+        "packages/shared/src/i18n/en.json",
+        ".plans/active/commitment-pooling/status.json"
       ],
       "verified_at": "2026-08-15"
     },
@@ -640,8 +645,9 @@
         "packages/contracts/src/modules/SettlementModule.sol",
         "packages/contracts/deployments/42161-latest.json#settlementModule",
         "packages/contracts/deployments/42161-latest.json#creditRegistry",
-        ".plans/active/commitment-pooling/status.json",
-        "packages/indexer/schema.graphql"
+        ".plans/active/commitment-pooling/status.json#execution_sub_lanes.release_ops.current_ceremony_end_state",
+        "packages/indexer/schema.graphql",
+        ".plans/active/commitment-pooling/status.json"
       ],
       "verified_at": "2026-08-15"
     },

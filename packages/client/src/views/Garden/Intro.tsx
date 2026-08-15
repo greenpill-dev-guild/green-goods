@@ -108,8 +108,13 @@ export const WorkIntro: React.FC<WorkIntroProps> = ({
         effective !== null ? knownActions.filter((a) => a.domain === effective) : knownActions;
 
       // Gardens without a domainMask (0 or undefined) pass through all filters.
+      // A selected unknown-domain action has no named domain, so the garden
+      // list must not inherit whichever named tab happened to be active.
+      const selectedActionIsUnknown = unknownDomainActions.some(
+        (a) => uidFromActionId(a.id) === selectedActionUID
+      );
       const domainGardens =
-        effective !== null
+        effective !== null && !selectedActionIsUnknown
           ? gardens.filter((g) => (g.domainMask ? hasDomain(g.domainMask, effective) : true))
           : gardens;
 
@@ -120,7 +125,7 @@ export const WorkIntro: React.FC<WorkIntroProps> = ({
         filteredGardens: domainGardens,
         effectiveDomain: effective,
       };
-    }, [actions, gardens, selectedDomain]);
+    }, [actions, gardens, selectedDomain, selectedActionUID]);
 
   // Build tab items from available domains (resolved via intl)
   const domainTabItems: StandardTab[] = useMemo(

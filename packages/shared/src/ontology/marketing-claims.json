@@ -164,7 +164,9 @@
           "equals": false
         },
         {
-          "file": ".plans/active/commitment-pooling/status.json"
+          "file": ".plans/active/commitment-pooling/status.json",
+          "json_path": "execution_sub_lanes.release_ops.current_ceremony_end_state",
+          "equals": "pooling-unpaused-deployer-owned-with-18-pools-registered"
         }
       ],
       "safe_wording": "The commitment pooling contracts are deployed and unpaused on Arbitrum with 18 pools registered; the in-app experience is still rolling out, so nothing is user-facing yet. A commitment is a record, never a coin.",

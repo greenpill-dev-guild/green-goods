@@ -1026,8 +1026,13 @@ export function checkProjections(ontology, claims, glossaryText, now = new Date(
     const availability = linked.map((id) => capByEntity.get(id)?.dimensions?.availability?.state);
     if (claim.maturity === "available" && !availability.every((s) => s === "complete"))
       push("projections", subject, "maturity available but a linked capability is not user-available");
-    if (claim.maturity === "deployed-not-available" && availability.every((s) => s === "complete"))
-      push("projections", subject, "maturity deployed-not-available but every linked capability is available — promote the claim");
+    if (claim.maturity === "deployed-not-available") {
+      if (availability.every((s) => s === "complete"))
+        push("projections", subject, "maturity deployed-not-available but every linked capability is available — promote the claim");
+      const deployment = linked.map((id) => capByEntity.get(id)?.dimensions?.deployment?.state);
+      if (!deployment.every((s) => s === "complete"))
+        push("projections", subject, "maturity deployed-not-available but a linked capability is not deployed — demote the claim");
+    }
   }
 
   let machineCount = 0;

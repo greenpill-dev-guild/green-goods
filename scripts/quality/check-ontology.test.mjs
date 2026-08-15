@@ -624,6 +624,16 @@ test("checkProjections rejects available claims over blocked capabilities", () =
   assert.ok(findings.some((f) => f.detail.includes("not user-available")));
 });
 
+test("deployed-not-available claims require every linked capability to stay deployed", () => {
+  const rolledBack = structuredClone(projOntology);
+  rolledBack.capabilities[1].dimensions.deployment = projDim("blocked");
+  const claims = structuredClone(projClaims);
+  claims.claims[0].maturity = "deployed-not-available";
+  claims.claims[0].capabilities = ["commitment"];
+  const { findings } = checkProjections(rolledBack, claims, null, PROJ_NOW);
+  assert.ok(findings.some((f) => f.detail.includes("not deployed — demote the claim")));
+});
+
 test("checkProjections rejects composite endpoints, missing evidence, and spec availability", () => {
   const broken = structuredClone(projOntology);
   broken.state_machines[0].transitions.push({ from: "A | B", to: "B", layer: "on-chain", mechanism: "m" });

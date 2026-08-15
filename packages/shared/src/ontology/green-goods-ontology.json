@@ -4227,7 +4227,9 @@
               "equals": false
             },
             {
-              "file": ".plans/active/commitment-pooling/status.json"
+              "file": ".plans/active/commitment-pooling/status.json",
+              "json_path": "execution_sub_lanes.release_ops.current_ceremony_end_state",
+              "equals": "pooling-unpaused-deployer-owned-with-18-pools-registered"
             }
           ],
           "note": "Module unpaused with the root Protocol pool plus seventeen Garden pools registered (release-ops record; unpause tx 0x69129f9c…, Arbitrum block 493999183).",
@@ -4293,7 +4295,9 @@
               "equals": false
             },
             {
-              "file": ".plans/active/commitment-pooling/status.json"
+              "file": ".plans/active/commitment-pooling/status.json",
+              "json_path": "execution_sub_lanes.release_ops.current_ceremony_end_state",
+              "equals": "pooling-unpaused-deployer-owned-with-18-pools-registered"
             }
           ],
           "note": "Module unpaused with the root Protocol pool plus seventeen Garden pools registered (release-ops record; unpause tx 0x69129f9c…, Arbitrum block 493999183).",
@@ -4359,7 +4363,9 @@
               "equals": false
             },
             {
-              "file": ".plans/active/commitment-pooling/status.json"
+              "file": ".plans/active/commitment-pooling/status.json",
+              "json_path": "execution_sub_lanes.release_ops.current_ceremony_end_state",
+              "equals": "pooling-unpaused-deployer-owned-with-18-pools-registered"
             }
           ],
           "note": "Module unpaused with the root Protocol pool plus seventeen Garden pools registered (release-ops record; unpause tx 0x69129f9c…, Arbitrum block 493999183).",
@@ -4425,7 +4431,9 @@
               "equals": false
             },
             {
-              "file": ".plans/active/commitment-pooling/status.json"
+              "file": ".plans/active/commitment-pooling/status.json",
+              "json_path": "execution_sub_lanes.release_ops.current_ceremony_end_state",
+              "equals": "pooling-unpaused-deployer-owned-with-18-pools-registered"
             }
           ],
           "note": "Module unpaused with the root Protocol pool plus seventeen Garden pools registered (release-ops record; unpause tx 0x69129f9c…, Arbitrum block 493999183).",
@@ -4491,7 +4499,9 @@
               "equals": false
             },
             {
-              "file": ".plans/active/commitment-pooling/status.json"
+              "file": ".plans/active/commitment-pooling/status.json",
+              "json_path": "execution_sub_lanes.release_ops.current_ceremony_end_state",
+              "equals": "pooling-unpaused-deployer-owned-with-18-pools-registered"
             }
           ],
           "note": "Module unpaused with the root Protocol pool plus seventeen Garden pools registered (release-ops record; unpause tx 0x69129f9c…, Arbitrum block 493999183).",
@@ -4552,7 +4562,9 @@
           "state": "blocked",
           "evidence": [
             {
-              "file": ".plans/active/commitment-pooling/status.json"
+              "file": ".plans/active/commitment-pooling/status.json",
+              "json_path": "execution_sub_lanes.release_ops.current_ceremony_end_state",
+              "equals": "pooling-unpaused-deployer-owned-with-18-pools-registered"
             }
           ],
           "note": "SettlementModule and CeloSettlementExecutor remain paused with no Safe/Zodiac value authority; unpause is a separate human authorization event.",
