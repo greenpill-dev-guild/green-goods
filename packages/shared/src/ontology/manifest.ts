@@ -67,7 +67,7 @@ export function lookupTerm(query: string): ManifestTerm | ManifestPersona | null
   if (!needle) return null;
   for (const term of manifest.terms) {
     if (
-      term.id === needle ||
+      term.id.toLowerCase() === needle ||
       term.display.toLowerCase() === needle ||
       term.plain_name.toLowerCase() === needle ||
       term.aliases.some((alias) => alias.toLowerCase() === needle)
@@ -76,7 +76,8 @@ export function lookupTerm(query: string): ManifestTerm | ManifestPersona | null
     }
   }
   for (const persona of manifest.personas) {
-    if (persona.id === needle || persona.display.toLowerCase() === needle) return persona;
+    if (persona.id.toLowerCase() === needle || persona.display.toLowerCase() === needle)
+      return persona;
   }
   return null;
 }

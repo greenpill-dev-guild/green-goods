@@ -577,6 +577,7 @@ const projCard = (entity) => ({
   not_confused_with: [],
   safe_claim: "A safe sentence.",
 });
+const PROJ_NOW = new Date("2026-08-20T00:00:00Z");
 const projOntology = {
   entities: [
     { id: "garden", display: "Garden", status: "live", definition: "d", layers: { solidity: ["package.json"] } },
@@ -612,14 +613,14 @@ const projClaims = {
 };
 
 test("checkProjections passes a consistent projection set", () => {
-  const { findings } = checkProjections(projOntology, projClaims, null);
+  const { findings } = checkProjections(projOntology, projClaims, null, PROJ_NOW);
   assert.deepEqual(findings, []);
 });
 
 test("checkProjections rejects available claims over blocked capabilities", () => {
   const claims = structuredClone(projClaims);
   claims.claims[0].capabilities = ["commitment"];
-  const { findings } = checkProjections(projOntology, claims, null);
+  const { findings } = checkProjections(projOntology, claims, null, PROJ_NOW);
   assert.ok(findings.some((f) => f.detail.includes("not user-available")));
 });
 
@@ -628,7 +629,7 @@ test("checkProjections rejects composite endpoints, missing evidence, and spec a
   broken.state_machines[0].transitions.push({ from: "A | B", to: "B", layer: "on-chain", mechanism: "m" });
   broken.capabilities[0].dimensions.deployment.evidence = [];
   broken.capabilities[1].dimensions.availability = projDim("complete");
-  const { findings } = checkProjections(broken, projClaims, null);
+  const { findings } = checkProjections(broken, projClaims, null, PROJ_NOW);
   assert.ok(findings.some((f) => f.detail.includes("composite endpoint")));
   assert.ok(findings.some((f) => f.detail.includes("has no evidence")));
   assert.ok(findings.some((f) => f.detail.includes("spec but availability")));
@@ -644,20 +645,22 @@ test("checkProjections locks glossary counts to the sidecar", () => {
     "",
     "---",
   ].join("\n");
-  const { findings } = checkProjections(projOntology, projClaims, glossary);
+  const { findings } = checkProjections(projOntology, projClaims, glossary, PROJ_NOW);
   assert.ok(findings.some((f) => f.subject === "glossary:entity-count"));
   const good = glossary.replace("the 3 things", "the 1 things");
-  const { findings: after } = checkProjections(projOntology, projClaims, good);
+  const { findings: after } = checkProjections(projOntology, projClaims, good, PROJ_NOW);
   assert.ok(!after.some((f) => f.subject === "glossary:entity-count"));
 });
 
 test("checkProjections rejects duplicate capability, card, and claim entries", () => {
   const dup = structuredClone(projOntology);
   dup.capabilities.push(projCapability("garden"));
+  dup.concept_cards.push(projCard("garden"));
   const claims = structuredClone(projClaims);
   claims.claims.push(structuredClone(claims.claims[0]));
-  const { findings } = checkProjections(dup, claims, null);
+  const { findings } = checkProjections(dup, claims, null, PROJ_NOW);
   assert.ok(findings.some((f) => f.detail === "duplicate capability entry"));
+  assert.ok(findings.some((f) => f.detail === "duplicate card entry"));
   assert.ok(findings.some((f) => f.detail === "duplicate claim entry"));
 });
 
@@ -692,10 +695,10 @@ test("evidence equals pins the resolved value (paused flag flipping fails the ga
   pinned.capabilities[0].dimensions.activation.evidence = [
     { file: "package.json", json_path: "private", equals: true },
   ];
-  assert.deepEqual(checkProjections(pinned, projClaims, null).findings, []);
+  assert.deepEqual(checkProjections(pinned, projClaims, null, PROJ_NOW).findings, []);
   pinned.capabilities[0].dimensions.activation.evidence = [
     { file: "package.json", json_path: "private", equals: false },
   ];
-  const { findings } = checkProjections(pinned, projClaims, null);
+  const { findings } = checkProjections(pinned, projClaims, null, PROJ_NOW);
   assert.ok(findings.some((f) => f.detail.includes("off-expectation")));
 });

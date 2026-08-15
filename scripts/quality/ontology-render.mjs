@@ -535,7 +535,9 @@ export function renderConceptsMdx(ontology, claims) {
     if (card.aliases?.length)
       lines.push(`- **Also called**: ${card.aliases.map((a) => escapeMdxProse(a)).join(" · ")}`);
     for (const nc of card.not_confused_with ?? []) {
-      const other = ontology.entities.find((e) => e.id === nc.ref);
+      const other =
+        ontology.entities.find((e) => e.id === nc.ref) ??
+        ontology.personas.find((p) => p.id === nc.ref);
       lines.push(
         `- **Not to be confused with ${escapeMdxProse(other?.display ?? nc.ref)}**: ${escapeMdxProse(nc.reason)}`
       );

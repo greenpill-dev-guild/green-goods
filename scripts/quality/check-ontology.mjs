@@ -897,7 +897,7 @@ export function collectProjectionEvidencePaths(ontology, claims) {
 // glossary counts. Every finding is baselineable under guard "projections" or
 // "state-machines"; evidence paths (and json_path pointers into JSON files)
 // must exist so no maturity or claim can outlive its proof.
-export function checkProjections(ontology, claims, glossaryText) {
+export function checkProjections(ontology, claims, glossaryText, now = new Date()) {
   const findings = [];
   const push = (guard, subject, detail) => findings.push({ guard, subject, detail });
   const DIMS = ["implementation", "deployment", "activation", "indexing", "availability"];
@@ -907,7 +907,7 @@ export function checkProjections(ontology, claims, glossaryText) {
   const capabilities = ontology.capabilities ?? [];
   const cards = ontology.concept_cards ?? [];
   const capByEntity = new Map(capabilities.map((c) => [c.entity, c]));
-  const today = new Date().toISOString().slice(0, 10);
+  const today = now.toISOString().slice(0, 10);
   const fileOk = (rel) => typeof rel === "string" && existsSync(path.join(REPO_ROOT, rel));
   const jsonPathOk = (rel, pointer, expected) => {
     try {
@@ -1153,7 +1153,7 @@ function main() {
   const { fatal, errors, findings, counts } = runGuards(ontology);
   const glossaryAbs = path.join(REPO_ROOT, GLOSSARY_PATH);
   const glossaryText = existsSync(glossaryAbs) ? readFileSync(glossaryAbs, "utf8") : null;
-  const projections = checkProjections(ontology, claims, glossaryText);
+  const projections = checkProjections(ontology, claims, glossaryText, new Date());
   findings.push(...projections.findings);
   if (fatal.length > 0) {
     console.error("check-ontology: could not evaluate anchors:\n");
