@@ -684,7 +684,9 @@ async function runSession(candidateCommit: string): Promise<void> {
           throw new Error(`Bun wrapper ${command.script} failed; the credential session is closed`);
         }
         assertInteractiveSessionStart(candidateCommit);
-        console.log("Boundary returned successfully; receipt/checkpoint verified. The credential session is closed.");
+        console.log(
+          "Boundary script returned successfully with no concurrent checkout drift. The credential session is closed.",
+        );
         break;
       }
     } finally {

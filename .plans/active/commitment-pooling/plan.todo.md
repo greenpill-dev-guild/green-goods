@@ -968,14 +968,17 @@ Known mis-resolutions fixed in place: `contract-spec.md` §Grassroots-Economics-
     tier 2; temporary ownership is permitted only with explicit accountable-owner risk acceptance,
     exact current and rollback-owner verification, emergency pause, and no unresolved
     Critical/High finding in the selected committed-range review. Custody, transferability, peer
-    wiring, allowances, value movement, or protocol upgrade/administrative authority is tier 3 and
+    wiring, allowances, value movement, or any exercise of protocol upgrade/administrative
+    authority other than emergency pause is tier 3 and
     requires the protocol Safe threshold/owner policy plus the external-audit, timelock, and soak
     defaults. A human release owner may replace or waive an audit, timelock, or soak default only
     through an explicit dated, release-scoped disposition that names substitute evidence. No
     agent, passing test, or deployment artifact grants a waiver. Per-garden Celo settlement Safes
     and settlement value authority are always tier 3. The current pooling activation is accepted
-    only as tier 2 while SettlementModule, CeloSettlementExecutor, peer wiring, Safe/Zodiac value
-    authority, and value movement remain paused or disabled; enabling any of them requires a new
+    only as tier 2 while the deployment-sender owner key is passively retained under the explicit
+    temporary-owner risk acceptance and SettlementModule, CeloSettlementExecutor, peer wiring,
+    Safe/Zodiac value authority, and value movement remain paused or disabled. The retained owner
+    may emergency-pause Pooling, but any upgrade or other administrative mutation requires a new
     tier-3 gate.
 
 110. Completed release ceremonies are retired rather than kept as replayable batch broadcasts

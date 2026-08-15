@@ -1444,13 +1444,17 @@ non-transferable coordination activation with every value-bearing dependency pau
 tier 2; temporary ownership is permitted only when the accountable release owner explicitly
 accepts that bounded risk, the exact current and rollback owner are verified, emergency pause
 remains available, and the selected committed-range review is clear of unresolved Critical/High
-findings. Custody, transferability, peer wiring, allowances, value movement, or protocol
-upgrade/administrative authority is tier 3 and requires the exact approved protocol Safe satisfying
+findings. Custody, transferability, peer wiring, allowances, value movement, or any exercise of
+protocol upgrade/administrative authority other than emergency pause is tier 3 and requires the
+exact approved protocol Safe satisfying
 threshold >= 2 and owner count >= 3. External audit, the 48-hour mainnet timelock, and minimum
 two-week testnet operation are tier-3 defaults; only an explicit dated, release-scoped human
 disposition naming substitute evidence may replace or waive one. No agent, passing test, or
 deployment artifact grants a waiver. Per-garden Celo settlement Safes and settlement value
 authority are always tier 3 and retain their separate exact policy and live verification gates.
+Passive retention of the deployment-sender owner key is only the bounded temporary-ownership risk
+explicitly accepted for tier 2; it authorizes emergency pause, but it does not authorize an upgrade
+or any other administrative mutation.
 
 EAS authorship, enforced by the resolvers (§6.4.3), for completeness of the access-control picture:
 

@@ -2,13 +2,17 @@ import { execFileSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { Contract, getAddress, Interface, isAddress, JsonRpcProvider, keccak256 } from "ethers";
+import { buildReadOnlyCastEnv, execCastCaptured, parseCastTransactionHash } from "../utils/cast-env";
 import type { ParsedOptions } from "../utils/cli-parser";
+import { NetworkManager } from "../utils/network";
+import { getFoundryBroadcastPath } from "../utils/paths";
 import {
   mergeReleaseArtifact,
   recoverReleaseArtifact,
   simulateReleaseArtifactMerge,
   writeReleaseJsonAtomic,
 } from "../utils/release-artifacts";
+import { assertSepoliaGate } from "../utils/release-gate";
 import {
   assertManifestMatchesNetworkDirectory,
   buildReleaseLock,
@@ -24,11 +28,7 @@ import {
   buildStageTransactionPlan,
   type ReleaseTransactionBoundary,
 } from "../utils/release-plan";
-import { NetworkManager } from "../utils/network";
 import { retryRpcAvailability } from "../utils/rpc-retry";
-import { getFoundryBroadcastPath } from "../utils/paths";
-import { assertSepoliaGate } from "../utils/release-gate";
-import { buildReadOnlyCastEnv, execCastCaptured, parseCastTransactionHash } from "../utils/cast-env";
 
 const LOCK_PATH = path.join(CONTRACTS_ROOT, "config/commitment-pooling-release.lock.json");
 const GENERATED_ROOT = path.join(CONTRACTS_ROOT, ".generated/release");
@@ -45,6 +45,7 @@ const STAGE_KEYS: Record<ReleaseStage, readonly string[]> = {
     "poolingLibraries",
     "commitmentPoolingModule",
     "commitmentPoolingModuleImpl",
+    "commitmentPoolingModulePaused",
     "commitmentRegistry",
     "commitmentRegistryImpl",
   ],
@@ -71,6 +72,11 @@ function stable(value: unknown): string {
 
 function writeGenerated(filePath: string, value: unknown): void {
   writeReleaseJsonAtomic(filePath, value as Record<string, unknown>);
+}
+
+function readReleaseArtifactIfPresent(filePath: string): Record<string, unknown> {
+  if (!fs.existsSync(filePath)) return {};
+  return JSON.parse(fs.readFileSync(filePath, "utf8")) as Record<string, unknown>;
 }
 
 export interface ReleaseCheckpoint {
@@ -139,6 +145,12 @@ function assertBoundaryEvidence(
     throw new Error(`${label} has no valid block number`);
   }
   if (Number.isNaN(Date.parse(evidence.verifiedAt))) throw new Error(`${label} has no valid verification time`);
+}
+
+export function assertCheckpointReceiptBlock(storedBlock: number, receiptBlock: number, label: string): void {
+  if (storedBlock !== receiptBlock) {
+    throw new Error(`${label} checkpoint block ${storedBlock} does not match verified receipt block ${receiptBlock}`);
+  }
 }
 
 export function validateOwnershipCheckpointPrefix(
@@ -273,7 +285,11 @@ function identity(lock: ReleaseLock, name: string, kind: "implementation" | "pro
   return result;
 }
 
-function predictedSide(lock: ReleaseLock, stage: ReleaseStage): Record<string, unknown> {
+export function predictedSide(
+  lock: ReleaseLock,
+  stage: ReleaseStage,
+  commitmentPoolingModulePaused = true,
+): Record<string, unknown> {
   const targets = STAGE_TARGET[stage];
   const result: Record<string, unknown> = {};
   for (const target of targets) {
@@ -290,7 +306,21 @@ function predictedSide(lock: ReleaseLock, stage: ReleaseStage): Record<string, u
       libraries.map((candidate) => [candidate.name, candidate.address]),
     );
   }
+  if (stage === "pooling") result.commitmentPoolingModulePaused = commitmentPoolingModulePaused;
   return result;
+}
+
+export function poolingPauseStateForRecovery(artifact: Record<string, unknown>): boolean {
+  const recorded = artifact.commitmentPoolingModulePaused;
+  if (typeof recorded !== "boolean") {
+    throw new Error("Canonical deployment artifact must record commitmentPoolingModulePaused for Pooling recovery");
+  }
+  return recorded;
+}
+
+export function poolingPauseStateForStageArtifact(artifact: Record<string, unknown>): boolean {
+  const recorded = artifact.commitmentPoolingModulePaused;
+  return typeof recorded === "boolean" ? recorded : true;
 }
 
 function assertLockExact(expected: ReleaseLock): void {
@@ -673,6 +703,9 @@ Phase B boundary form (not authorized by Phase A):
     ) {
       throw new Error(`Ownership receipt ${transactionHash} differs from the reviewed boundary`);
     }
+    if (prior) {
+      assertCheckpointReceiptBlock(prior.blockNumber, receipt.blockNumber, `Ownership boundary ${options.releaseStep}`);
+    }
     const liveOwner = getAddress(await new Contract(boundary.to, ownableInterface, provider).owner());
     if (liveOwner !== getAddress(plan.finalOwner)) throw new Error(`Ownership post-state mismatch at ${boundary.to}`);
     if (prior) {
@@ -745,7 +778,9 @@ Phase B boundary form (not authorized by Phase A):
       plan = buildStageTransactionPlan(manifest, lock, stage, deployment, baseSalt, options.expectedNonce);
       writeGenerated(planPath, plan);
     }
-    writeGenerated(sidePath, predictedSide(lock, stage));
+    const stagePoolingPaused =
+      stage === "pooling" ? poolingPauseStateForStageArtifact(readReleaseArtifactIfPresent(canonicalPath)) : true;
+    writeGenerated(sidePath, predictedSide(lock, stage, stagePoolingPaused));
     const simulatedMerge = simulateReleaseArtifactMerge({
       canonicalPath,
       sidePath,
@@ -795,18 +830,26 @@ Phase B boundary form (not authorized by Phase A):
       if (checkpoint && checkpoint.lastVerifiedStep >= boundary.index) {
         const evidence = checkpoint.verifiedBoundaries.find((item) => item.index === boundary!.index);
         if (!evidence) throw new Error(`Boundary ${boundary.index} checkpoint has no receipt evidence`);
-        await this.verifyReleaseReceipt(
+        const verifiedReceipt = await this.verifyReleaseReceipt(
           expectedNetwork,
           manifest,
           boundary,
           evidence.transactionHash,
           evidence.expectedNonce,
         );
+        assertCheckpointReceiptBlock(
+          evidence.blockNumber,
+          verifiedReceipt.blockNumber,
+          `Release boundary ${boundary.index}`,
+        );
         this.runBoundaryVerifier(options, stage, boundary.index, sidePath, baseSalt);
         if (boundary.index === plan.transactions.length) {
           this.runStageVerifier(options, stage, sidePath, baseSalt);
           mergeReleaseArtifact({ canonicalPath, sidePath, ownedKeys: STAGE_KEYS[stage] });
-          this.promoteStageReceipt(canonicalPath, directory, stage, evidence);
+          this.promoteStageReceipt(canonicalPath, directory, stage, {
+            ...evidence,
+            blockNumber: verifiedReceipt.blockNumber,
+          });
           console.log("Final boundary artifact was promoted after full stage reverification");
         }
         console.log(`Boundary ${boundary.index} was already verified; no replay transaction was sent`);
@@ -970,8 +1013,13 @@ Phase B boundary form (not authorized by Phase A):
       throw new Error(`Bun-wrapped ${stage} ${options.broadcast ? "boundary preflight" : "simulation"} failed`);
     }
     const written = JSON.parse(fs.readFileSync(sidePath, "utf8")) as Record<string, unknown>;
-    const expected = predictedSide(lock, stage);
-    for (const key of STAGE_KEYS[stage].filter((ownedKey) => !ownedKey.endsWith("Libraries"))) {
+    const canonicalPath = path.join(CONTRACTS_ROOT, "deployments", `${chain.evmChainId}-latest.json`);
+    const stagePoolingPaused =
+      stage === "pooling" ? poolingPauseStateForStageArtifact(readReleaseArtifactIfPresent(canonicalPath)) : true;
+    const expected = predictedSide(lock, stage, stagePoolingPaused);
+    for (const key of STAGE_KEYS[stage].filter(
+      (ownedKey) => !ownedKey.endsWith("Libraries") && ownedKey !== "commitmentPoolingModulePaused",
+    )) {
       const actual = written[key];
       const predicted = expected[key];
       if (typeof actual !== "string" || typeof predicted !== "string" || getAddress(actual) !== getAddress(predicted)) {
@@ -1438,7 +1486,12 @@ Phase B boundary form (not authorized by Phase A):
     const chainId = manifest.chains[network].evmChainId;
     const canonicalPath = path.join(CONTRACTS_ROOT, "deployments", `${chainId}-latest.json`);
     const sidePath = path.join(GENERATED_ROOT, manifest.releaseId, network, `${chainId}-${stage}-recovery.json`);
-    const recovered = predictedSide(lock, stage);
+    const canonicalArtifact = JSON.parse(fs.readFileSync(canonicalPath, "utf8")) as Record<string, unknown>;
+    const recovered = predictedSide(
+      lock,
+      stage,
+      stage === "pooling" ? poolingPauseStateForRecovery(canonicalArtifact) : true,
+    );
     writeGenerated(sidePath, recovered);
     const simulated = simulateReleaseArtifactMerge({
       canonicalPath,
