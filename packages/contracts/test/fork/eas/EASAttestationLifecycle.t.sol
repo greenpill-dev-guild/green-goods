@@ -231,7 +231,7 @@ contract EASAttestationLifecycleForkTest is ForkTestBase {
     // Test 5: Work Approval (Non-Operator Reverts)
     // ═══════════════════════════════════════════════════════════════════════════
 
-    /// @notice Work approval reverts when submitted by a gardener (not operator/evaluator)
+    /// @notice Work approval reverts when submitted by a gardener who is not an operator
     function test_fork_workApproval_revertsForNonOperator() public {
         if (!_tryChainFork("sepolia")) {
             return;

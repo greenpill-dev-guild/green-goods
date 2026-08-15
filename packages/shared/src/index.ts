@@ -1,6 +1,6 @@
-// Main entry point for @green-goods/shared
-// EXPLICIT EXPORTS for tree-shaking - organized by category
-
+// Main entry point: explicit @green-goods/shared exports organized by category.
+export type * from "./ontology/types";
+export * from "./ontology/query";
 // ============================================================================
 // COMPONENTS
 // ============================================================================
