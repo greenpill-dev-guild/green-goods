@@ -61,7 +61,8 @@ export const SBS: SB[] = [
 // proving (sb56) are their own walks. Old mid-ribbon hashes (#sb1/6, #sb29/5+)
 // retire exactly as #sb9 did.
 { id: "sb1", n: 1, title: "Make an offer", desc: "Maria offers to prune the north beds — four composer steps, then the promise sits queued on her phone until it syncs.", persona: "Gardener (Maria)", scen: "S1 · TAS workshop", reviewVisible: true, reviewGroup: "client", chapter: "make", roles: ["gardener"], steps: [
-  { f: "W1", hot: { h: "w1.offer", l: "Offer" }, st: "Pool open", ev: "the two entry verbs are the only creation doors — direction is fixed by the door and never re-asked inside", cite: "uiux Appendix B §5.4 addendum 2026-08-11" },
+  { f: "W1", hot: { h: "w1.create", l: "Offer or request" }, st: "Pool open", ev: "the one floating create entry stays reachable however far the list scrolls — it opens the doors, it is not a form", cite: "uiux §5.2 addendum 2026-08-14" },
+  { f: "W1@create-open", hot: { h: "w1.offer", l: "Offer" }, st: "Doors open", ev: "the two entry verbs are the only creation doors — direction is fixed by the door and never re-asked inside", cite: "uiux Appendix B §5.4 addendum 2026-08-11" },
   { f: "W3@step-what", hot: { h: "w3.continue-what" }, alts: [{ h: "w3.add-details", to: "screen:W3@step-details" }, { h: "w3.template", to: "screen:W31" }], st: "1 · What", ev: "kind words, the template prefill, and optional photos / voice note / links replace the old Direction radio", cite: "contract-spec metadata schema v1 addendum" },
   { f: "W3@step-howmuch", hot: { h: "w3.continue-howmuch" }, alts: [{ h: "w3.choose-ongoing", to: "screen:W3@support-howmuch-ongoing" }], st: "2 · How much", ev: "chip-picked unit and amount — and How often lives right here: Just once or Ongoing, equal choices on every offer" },
   { f: "W3@step-anchors", hot: { h: "w3.continue-anchors" }, st: "3 · Proof", ev: "the garden's own actions as tappable cards with counts — the Work-intro grammar, not an abstract requirement editor" },
@@ -75,7 +76,8 @@ export const SBS: SB[] = [
   { f: "W2@accepted", hot: null, st: "Accepted", ev: "the promise now has both people on it — and the next acts belong to them in turn: Maria proves it, João confirms it", br: [{ l: "Prove it with work", to: "sb4a:0" }, { l: "Confirm a promise kept", to: "sb42:0" }, { l: "Steward-reviewed offers wait for a decision", to: "screen:W1@claim-pending" }] },
 ]},
 { id: "sb29", n: 2, title: "Offer a service", desc: "Maria offers to host climate workshops — the same composer with a service kind, which names evidence rather than garden work as its proof.", persona: "Gardener (Maria)", scen: "S1 · SupportService offer", reviewVisible: true, reviewGroup: "client", chapter: "make", roles: ["gardener"], steps: [
-  { f: "W1", hot: { h: "w1.offer", l: "Offer" }, st: "Pool open", ev: "a service is a kind inside the same composer — not another flow with its own screens" },
+  { f: "W1", hot: { h: "w1.create", l: "Offer or request" }, st: "Pool open", ev: "the same floating door for every kind of promise" },
+  { f: "W1@create-open", hot: { h: "w1.offer", l: "Offer" }, st: "Doors open", ev: "a service is a kind inside the same composer — not another flow with its own screens" },
   { f: "W3@step-what", hot: { h: "w3.choose-support", l: "Kind: a service or support" }, st: "1 · What", ev: "the kind choice swaps the proof step for evidence — the dots promise three steps and keep it" },
   { f: "W3@support-howmuch", hot: { h: "w3.continue-support-howmuch" }, alts: [{ h: "w3.choose-ongoing", to: "screen:W3@support-howmuch-ongoing" }], st: "2 · How much", ev: "How often lives here too — Just once or Ongoing, equal choices; choosing Ongoing expands this same step" },
   { f: "W3@support-review", hot: { h: "w3.submit-support", l: "Make this offer" }, st: "3 · Review", ev: "the same sectioned review anatomy; service offers name evidence as their proof" },
@@ -84,7 +86,8 @@ export const SBS: SB[] = [
 // Exchange is PARKED (iteration 2, Afo decision): no client journey walks it
 // pending a dedicated design session. W28–W30 remain in the Screen library.
 { id: "sb2", n: 4, title: "Make a request", desc: "David asks the garden for a hand and declares G$ support right on the phone — the one extra step stewards get and gardeners never see.", persona: "Steward (David) — gardeners' requests skip the Support step", scen: "S2 · evidence-only request", reviewVisible: true, reviewGroup: "client", chapter: "ask", roles: ["steward", "gardener"], steps: [
-  { f: "W1", hot: { h: "w1.request", l: "Request" }, st: "Pool open", ev: "the request door mirrors the offer door — direction fixed, never re-asked" },
+  { f: "W1", hot: { h: "w1.create", l: "Offer or request" }, st: "Pool open", ev: "requests start at the same floating door as offers" },
+  { f: "W1@create-open", hot: { h: "w1.request", l: "Request" }, st: "Doors open", ev: "the request door mirrors the offer door — direction fixed, never re-asked" },
   { f: "W3@request-what", hot: { h: "w3.request-continue-what" }, alts: [{ h: "w3.request-choose-work", to: "screen:W3@request-work-what" }, { h: "w3.add-details", to: "screen:W3@step-details" }], st: "1 · What", ev: "help-or-a-service vs garden work as equal cards; details (photo, voice note, links) attach here too" },
   { f: "W3@request-howmuch-steward", hot: { h: "w3.request-continue-support" }, st: "2 · How much", ev: "chip-picked unit and amount; because David is a steward, a Support step follows — gardeners keep four steps" },
   { f: "W3@request-support", hot: { h: "w3.request-support-continue" }, st: "3 · Support", ev: "the missing piece: a steward declares G$ support right on the phone — amount presets, where it goes, nothing moves until confirmed kept" },
@@ -94,7 +97,8 @@ export const SBS: SB[] = [
   { f: "W1@request-open", hot: null, st: "Open", ev: "the request is live — João can say “I can help”, and the declared support travels with it", br: [{ l: "João's side: help with what was requested", to: "sb43:0" }, { l: "When help arrives: confirm it", to: "sb42:0" }] },
 ]},
 { id: "sb51", n: 5, title: "Request garden work", desc: "Ana asks for garden work: the request names the garden's own actions as its proof and rides the ordinary Work rails.", persona: "Gardener (Ana)", scen: "S2 · DomainImpact request", reviewVisible: true, reviewGroup: "client", chapter: "ask", roles: ["gardener"], steps: [
-  { f: "W1", hot: { h: "w1.request", l: "Request" }, st: "Pool open", ev: "a garden-work request starts at the same door as any request" },
+  { f: "W1", hot: { h: "w1.create", l: "Offer or request" }, st: "Pool open", ev: "a garden-work request starts at the same floating door as any promise" },
+  { f: "W1@create-open", hot: { h: "w1.request", l: "Request" }, st: "Doors open", ev: "a garden-work request starts at the same door as any request" },
   { f: "W3@request-what", hot: { h: "w3.request-choose-work", l: "Kind: garden work" }, st: "1 · What", ev: "garden work is an equal kind card — choosing it adds a proof step and the request rides the Work rails" },
   { f: "W3@request-work-what", hot: { h: "w3.request-work-continue-what" }, st: "1 · What (garden work)", ev: "titles are suggested from the garden's own actions" },
   { f: "W3@request-work-howmuch", hot: { h: "w3.request-continue-work" }, st: "2 · How much", ev: "chip-picked unit and amount, due defaults to the season" },
@@ -117,7 +121,7 @@ export const SBS: SB[] = [
 // "Help with what was requested" — the campaign cast lives on as W1/W2/W2a
 // states and the branch link on sb43's first scene.
 { id: "sb4a", n: 8, title: "Prove it with work", desc: "A gardener submits work from the Garden tab and points it at the promise it fulfills; each approval counts toward one named requirement.", persona: "Gardener (provider)", scen: "S4 · AGRO+EDU", reviewVisible: true, reviewGroup: "client", chapter: "keep", roles: ["gardener"], steps: [
-  { f: "WFLOW", hot: { h: "wflow.intro-continue" }, st: "1 · Intro", ev: "the AppBar Garden tab is the shipping work flow — promises meet it here, work-first", cite: "uiux §5.7 addendum 2026-08-11" },
+  { f: "WFLOW@intro-promises", hot: { h: "wflow.intro-continue" }, st: "1 · Intro", ev: "the AppBar Garden tab is the shipping work flow — and a promise-holder's intro opens with their commitments, standing from first paint, never popping up mid-flow; tap one to scope the flow, or continue with plain garden work", cite: "uiux §5.7 addendum 2026-08-14" },
   { f: "WFLOW@media", hot: { h: "wflow.media-continue" }, st: "2 · Media", ev: "camera, gallery, voice note from the bar — the interaction every pooling capture now mirrors" },
   { f: "WFLOW@details", hot: { h: "wflow.fulfills-field", l: "Fulfills a promise" }, st: "3 · Details", ev: "work-first: pick the promise this work fulfills — or none; promise-first entry arrives here prefilled and locked" },
   { f: "WFLOW@fulfills-pick", hot: { h: "wflow.pick-done", l: "Use this promise" }, st: "Picker", ev: "your open garden-work promises in this garden; approved work counts toward the one you pick" },
@@ -171,7 +175,8 @@ export const SBS: SB[] = [
   { f: "W2b@forming", hot: null, st: "Roster grew", ev: "the indexed roster confirms the new contributor; planning assignments stay separate from credit", br: [{ l: "Assign planned responsibility", to: "screen:W2b@assign-requirement" }, { l: "Invite at creation instead", to: "screen:W3@step-invite" }] },
 ]},
 { id: "sb37", n: 3, title: "Make an ongoing offer", desc: "Maria offers the same service over time: How often becomes Ongoing, and one submission creates the series and its first open places.", persona: "Gardener (Maria)", scen: "S15 · ongoing Offer", reviewVisible: true, reviewGroup: "client", chapter: "make", roles: ["gardener"], steps: [
-  { f: "W1", hot: { h: "w1.offer", l: "Offer" }, st: "Pool open", ev: "ongoing starts at the same door as everything else — it is a way of making an offer, not a separate section" },
+  { f: "W1", hot: { h: "w1.create", l: "Offer or request" }, st: "Pool open", ev: "ongoing starts at the same floating door as everything else" },
+  { f: "W1@create-open", hot: { h: "w1.offer", l: "Offer" }, st: "Doors open", ev: "it is a way of making an offer, not a separate section" },
   { f: "W3@step-what", hot: { h: "w3.choose-support", l: "Kind: a service" }, st: "1 · What", ev: "an ongoing offer is a service offered over time — same composer, equal kind cards" },
   { f: "W3@support-howmuch", hot: { h: "w3.choose-ongoing", l: "How often: Ongoing" }, st: "2 · How much", ev: "How often sits beside the amount — equal-sized choices; picking Ongoing expands this same step", cite: "iteration 2 E1" },
   { f: "W3@support-howmuch-ongoing", hot: { h: "w3.continue-support-howmuch-ongoing" }, st: "2 · How much — expanded", ev: "no detour wizard: places-to-start and scope appear inline under the choice" },
@@ -567,10 +572,11 @@ export const SBS: SB[] = [
 // catalog rather than guessing a scene.
 // ---------------------------------------------------------------------------
 export const SB_ROUTE_ALIASES: Record<string, string> = {
-  // D3 (2026-08-11) — "Make an offer and see it taken up" split at the actor seam.
-  "sb1/6": "sb55/1",
+  // D3 (2026-08-11) "sb1/6" → "sb55/1" and "sb29/5" → "sb56/1" retired
+  // 2026-08-14: the floating-door beat regrew those scene indexes, and a real
+  // route wins over a redirect. Old links land one branch-click from the same
+  // destination (the end-beats link to sb55/sb56).
   // D3 — "Offer a service and prove it with evidence": the proving half moved whole.
-  "sb29/5": "sb56/1",
   "sb29/6": "sb56/2",
   "sb29/7": "sb56/3",
   "sb29/8": "sb56/4",

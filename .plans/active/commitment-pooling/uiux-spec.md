@@ -734,6 +734,128 @@ kept moment, no editorial echo inside the member flow. (j) The team surface
 is entered through the promise detail, and the lead's add-people act is a
 first-class walk.
 
+**§5.1/§5.2/§5.8 pool-tab polish (2026-08-14 — Afo's prototype review).**
+(a) **Pool leads the GardenTab row** and is the garden-detail landing whenever
+the pool exists; §4.1 NotReady is unchanged (tab absent, Work leads). §5.1's
+"net-new fourth GardenTab" reads as "net-new GardenTab, first in order".
+(b) §5.2 item 2's Season card + Campaigns list render as **one horizontal
+snap rail**: the Season slide first and wider, campaign slides after with a
+peek of the next. Presentation only — slides open their cycle, and the item-2
+scope select still owns list scoping, so swiping never silently refilters.
+(c) §5.2 item 3's chip set becomes **All / Offers / Requests plus a
+right-aligned Mine toggle** (personal scope is orthogonal to direction). The
+exchange-pair filter (formerly "Matched") leaves the row until the exchange
+wave ships; paired cards keep their "In exchange" chip meanwhile.
+(d) The two persistent creation CTAs leave the browse header for **one
+floating create entry above the AppBar** (shared `FabButton`, the admin
+mobile precedent) that opens the two one-word doors (D3) over a scrim;
+direction stays fixed by the door. The empty-pool state keeps its big inline
+CTAs and draws no floating entry.
+(e) Browse cards carry a **direction edge** — a 3px inset stripe, green for
+offers, sky for requests — beside the existing chips; status/claim panels
+stay neutral.
+(f) §5.8: the Commitments tab **draws its promised count badge** (item 2's
+cookie-jar pattern), counting the attention inbox so it reads from any drawer
+tab; and the pending-confirmations inbox widens into an **attention inbox**
+that also surfaces the member's newly accepted asks. Queued/failed sends keep
+their item-4 chrome at the top of their own group.
+
+**§5.2/§5.8 second pass (2026-08-14 evening — Afo's card review).**
+(g) **Card grammar = the shipping WorkCard grammar**: the whole browse card is
+tappable and opens the promise detail; the footer button exists **only** for a
+claim act available from browse ("Take this up" / "I can help" / "Ask to take
+this up" / "Ask to fund this" — register #19 stays satisfied). Navigation-only
+buttons ("Open promise", "See open places", "Review confirmation") are
+retired; those cards are plain tappable cards and the act lives in detail.
+This refines D5's "exactly one context action": the footer carries one claim
+act or nothing; plain reason lines stay. A pre-claim browse cast of W2 is a
+workflows-round follow-up — until it lands, card-taps open the nearest drawn
+cast, noted per hotspot.
+(h) **Domains leave the top chip row for their own equal-weight domain row**
+(all involved domains listed, none privileged as primary — a promise pairing
+AGRO with EDU is both). The row renders `DomainBadge` per domain, wraps at
+four worst-case, and its absence marks an evidence-only service promise; every
+service promise consistently carries the "Support / service" kind chip
+(fixing plain request cards that showed no kind). The top chip row keeps
+direction + lifecycle chips only.
+(i) §5.8: **failed sends are actionable from the wallet** — the Commitments
+tab surfaces exhausted sends with the same retry/discard contract as the pool
+tab (§5.12), so recovery does not require finding the right garden first. A
+wallet creation entry was considered and **rejected**: creation stays
+garden-scoped; the wallet remains ledger + inbox + reusable-assets.
+
+**§5.2 third pass (2026-08-14 night — card-studies picks).** Cycle cards adopt
+the **chips-lead layout** (option B of the Pool Card Studies artifact):
+[Season] / [Campaign] + stage chips lead the card, title → calm date → counts
+stack on one left axis, and nothing floats right — campaign counts read
+"6 of 16 kept" in the stack, not as a trailing chip. The same layout carries
+the campaign detail headers and cancelled-cycle cards. Promise-card anatomy is
+confirmed as **chips-lead (P1)** per the master anatomy rows ①–⑧;
+queued/waiting/failed casts additionally drop the self by-line (your own send
+needs no "by you"). Kicker-lead and person-lead anatomies were explored and
+not chosen; the studies artifact records them. **Mode-helper trim** (amends
+item 3's "mode is visible on the card as helper text"): the claim mode now
+reads from the act's own label — "Take this up" / "I can help" are open,
+"Ask to take this up" / "Ask to fund this" are steward-reviewed — and the
+separate mode helper line leaves browse cards; the request lifecycle panels
+(§4.4) keep their fuller review copy.
+
+**§5.4/§5.7 workflows round (2026-08-14 late — Afo's workflow review).**
+(a) **Step 3 is the protection step**, named as doctrine: a service ask spends
+it choosing who can take it up (claim time is its only gate), a garden-work
+ask spends it naming required proof rows (the Work-approval rails are its
+gate) — both ask paths stay four steps and the dots never grow mid-flow.
+(b) **Garden-work asks gain a gardener-set claim mode in the Advanced
+detour** (`W3@advanced-work-ask`, default open) — amending step 1's "claim
+mode keeps the context default — not a gardener-facing control" for work asks
+only; service asks keep their step-3 choice, and steward seeding (§6.3)
+retains fuller control. The work-ask review's Who-confirms section summarizes
+the choice.
+(c) §5.7 **promise-first entry scopes the intro**: a fulfilling strip names
+the promise and its still-needed rows, the intro's action grid shows only the
+promise's requirement actions (pre-chosen when there is one), and the garden
+is the promise's. Media → details → review are untouched; the commitment
+context remains pure metadata.
+(d) §5.7 **standing attribution** *(supersedes the same-evening reactive tie
+suggestion — Afo: promise context must never feel like a popup)*. Principle:
+promise context is **standing furniture keyed to who the member is, never an
+event keyed to what they just tapped** — present from first paint when it
+applies, absent entirely when it does not. Three layers:
+(d0) *policy (locked 2026-08-14)*: **work never requires a commitment** —
+free + led + recoverable. Free-standing work is the architectural substrate:
+`linkWork` (ProofLib.sol) attaches any existing non-revoked same-garden work
+by an active contributor to an Accepted, unfrozen commitment at its exact
+requirement row, one commitment per work, approvals reconciling in either
+order — so late attachment is first-class, pools stay optional per garden,
+and a mandatory tie was considered and rejected.
+(d1) *flow entrance*: a promise-holder's Submit Work intro **opens with a
+"Work toward a promise" rail** — compact promise cards riding the same
+horizontal card-rail grammar as the intro's action and garden rails (nearest
+due first, pool-tab direction edges), so holding many promises costs swipes,
+never vertical space. Tapping a card enters the scoped promise-first intro;
+"or choose plain garden work below" keeps the shipping sections untouched.
+Members without promises see the shipping intro byte-identical. The
+details-step fulfills picker stays the mid-flow catch-all.
+(d2) *ambient*: §5.8's attention inbox gains **"your promise needs work"
+rows** ("1 of 2 Prune approved · add work"), counted in the Commitments
+badge — the cross-garden leading indicator.
+(d3) *recovery*: the promise detail's work section shows a **standing
+not-yet-linked row** whenever the member has approved work matching a
+requirement row ("Approved · Jul 8 — not yet linked · Link it"), feeding the
+existing exact-row link picker — missed attribution is recoverable, never
+silently lost.
+Motivation: unattributed work stalls a kept-in-reality promise toward expiry
+and undercounts the pool story.
+(e) §5.3 **pre-claim browse casts**: the commitment detail gains
+`W2@browse-offered` and `W2@browse-requested` — the detail as a would-be
+claimant sees it before anyone has taken the promise up. Only the creator sits
+on the people row, and the fixed bottom bar carries the one claim act ("Take
+this up" / "I can help"), mirroring the card button. Browse card-taps land
+here, completing the card grammar.
+(f) **Domain-row propagation**: the detail header and the composer reviews'
+Proof sections carry the §5.2 equal-weight domain row; the amber domain chip
+retires from W2's chip row (the chip row keeps direction + state).
+
 ## Appendix C: group commitments, recognition, and payout plans (2026-07-28)
 
 This appendix supersedes every singular-provider, max-four requirement, and single-beneficiary
