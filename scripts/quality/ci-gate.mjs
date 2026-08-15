@@ -92,47 +92,34 @@ const WORKFLOW_MATCHERS = new Map([
     (path) =>
       path.startsWith("packages/shared/src/") ||
       path.startsWith("packages/contracts/src/") ||
-      // Deployment artifacts are capability/claim evidence: clearing an address
-      // must re-run the gate that validates the "deployed" claims built on it.
       path.startsWith("packages/contracts/deployments/") ||
+      path.startsWith("packages/client/src/components/Public/") ||
+      path.startsWith("packages/client/src/views/Public/") ||
       [
         "packages/contracts/config/schemas.json",
+        "packages/client/src/views/Home/Garden/Assessment.tsx",
+        "packages/client/src/views/Home/Garden/Work.tsx",
         "packages/indexer/schema.graphql",
         "docs/docs/reference/glossary-community.md",
         "docs/docs/reference/ontology.generated.mdx",
+        "docs/docs/reference/ontology-human.generated.mdx",
+        "docs/docs/community/green-goods-claims.generated.mdx",
         "docs/docs/builders/integrations/entity-matrix.mdx",
-        "docs/docs/reference/concepts.generated.mdx",
         "scripts/quality/check-ontology.mjs",
         "scripts/quality/ontology-render.mjs",
         "scripts/quality/check-ontology.test.mjs",
         "scripts/data/ontology-drift-baseline.json",
         ".github/workflows/ontology.yml",
         ".plans/active/commitment-pooling/contract-spec.md",
+        ".plans/active/commitment-pooling/status.json",
         ".plans/active/commitment-pooling/standing-commitments-spec.md",
         ".plans/active/commitment-credit-follow-on/spec.md",
         ".plans/active/community-interface/spec.md",
+        ".plans/active/community-interface/status.json",
         ".plans/active/commitment-pooling/settlement-spec.md",
         "docs/docs/builders/architecture/erd.mdx",
         "docs/docs/builders/specs/v1-0.mdx",
         "packages/contracts/script/DeployBadgeSchema.s.sol",
-        // Projection evidence anchors outside the prefix families above —
-        // kept in lockstep with the sidecar/claims by the checker unit test
-        // "every projection evidence path is covered by the Ontology matcher".
-        "packages/indexer/config.yaml",
-        ".plans/active/commitment-pooling/status.json",
-        "docs/docs/community/where-were-headed.mdx",
-        "packages/agent/src/platforms/telegram.ts",
-        "packages/client/src/views/Public/Gardens.tsx",
-        "packages/client/src/views/Public/Actions.tsx",
-        "packages/client/src/views/Garden/index.tsx",
-        "packages/client/src/views/Public/Impact.tsx",
-        "packages/client/src/views/Public/Vaults.tsx",
-        "packages/client/src/views/Profile/Badges.tsx",
-        "packages/admin/src/views/Cookies/index.tsx",
-        "packages/admin/src/views/Community/index.tsx",
-        "packages/admin/src/components/Assessment/CreateAssessmentSteps/StrategyKernelStep.tsx",
-        "packages/admin/src/components/Hypercerts/ActiveListingsTable.tsx",
-        "packages/admin/src/views/Garden/WorkDetail/ReviewForm.tsx",
       ].includes(path),
   ],
   [

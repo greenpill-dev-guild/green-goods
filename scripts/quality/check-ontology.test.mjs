@@ -4,12 +4,16 @@ import test from "node:test";
 
 import {
   BASELINE_MAX_DAYS,
+  checkProjectionIntegrity,
+  checkSidecarIntegrity,
   collectAnchorFiles,
+  collectProjectionFiles,
   compareMembers,
   evalNumericToken,
   extractQuotedConstant,
   normalizeDocText,
   parseCapitalsNote,
+  parseCanonicalEntityCounts,
   parseGlossaryTable,
   parseGraphqlEnum,
   parseSolidityEnum,
@@ -28,7 +32,14 @@ import {
   isMeaningfulEvidenceValue,
 } from "./check-ontology.mjs";
 import { expectedWorkflowNames } from "./ci-gate.mjs";
-import { escapeMdxTableCode, renderEntityMatrixMdx, renderOntologyMdx } from "./ontology-render.mjs";
+import {
+  escapeMdxTableCode,
+  renderAgentManifest,
+  renderEntityMatrixMdx,
+  renderHumanOntologyMdx,
+  renderMarketingClaimsMdx,
+  renderOntologyMdx,
+} from "./ontology-render.mjs";
 
 // ---------------------------------------------------------------------------
 // Extractors
@@ -291,6 +302,15 @@ test("parseGlossaryTable includes unbolded rows so they surface as drift", () =>
   ]);
 });
 
+test("parseCanonicalEntityCounts finds every prose count", () => {
+  assert.deepEqual(
+    parseCanonicalEntityCounts(
+      "Domain entities — 17 canonical concepts.\nThe 17 canonical concepts are below."
+    ),
+    [17, 17]
+  );
+});
+
 test("splitTableRow honors escaped pipes", () => {
   assert.deepEqual(splitTableRow('| **Work** | entity | a \\| b | A "p" \\| "q" status. |'), [
     "",
@@ -443,7 +463,7 @@ const miniOntology = {
     {
       id: "garden",
       display: "Garden",
-      status: "live",
+      semantic_status: "canonical",
       definition: "A community of gardeners.",
       layers: { solidity: ["a.sol"], docs: "g.md" },
     },
@@ -453,7 +473,7 @@ const miniOntology = {
   vocabularies: [
     {
       id: "domain",
-      status: "live",
+      source_status: "implemented",
       definition: "Where work happens.",
       canonical: { ordered: true, value_scheme: "index", members: ["SOLAR", "AGRO"] },
       representations: [
@@ -471,7 +491,7 @@ const miniOntology = {
     },
     {
       id: "pool-state",
-      status: "spec",
+      source_status: "specified",
       definition: "Pool lifecycle.",
       spec_source: "spec.md",
       canonical: { ordered: true, value_scheme: "index", members: ["None", "Ready"] },
@@ -482,7 +502,7 @@ const miniOntology = {
   ],
   schemas: {
     work: {
-      status: "live",
+      source_status: "implemented",
       source: "schemas.json",
       name: "Work",
       revocable: false,
@@ -494,7 +514,7 @@ const miniOntology = {
     {
       id: "x",
       kind: "sum",
-      status: "live",
+      source_status: "implemented",
       statement: "Sums to 10000.",
       enforced_at: [{ file: "y.sol", lines: "1-2" }],
       holes: [],
@@ -503,18 +523,20 @@ const miniOntology = {
   state_machines: [
     {
       id: "work-display-status",
-      status: "live",
+      source_status: "implemented",
+      kind: "executable",
       vocabulary: "domain",
       states: [{ name: "pending", storage: "protocol" }],
       transitions: [],
     },
     {
       id: "pool",
-      status: "spec",
+      source_status: "specified",
+      kind: "executable",
       vocabulary: "pool-state",
       spec_source: "spec.md",
       states: [{ name: "Ready", storage: "on-chain" }],
-      transitions: [{ from: "None", to: "Ready", layer: "on-chain", mechanism: "markPoolReady | guard" }],
+      transitions: [{ from: ["Ready"], to: ["Ready"], layer: "on-chain", mechanism: "markPoolReady | guard" }],
     },
   ],
   integration_matrix: {
@@ -523,6 +545,54 @@ const miniOntology = {
   },
   pattern_watches: [],
   known_issues: [{ id: "k", statement: "An issue.", anchors: ["a.sol"] }],
+};
+
+const miniProjections = {
+  version: 1,
+  capabilities: [
+    {
+      ref: "entity:garden",
+      implementation: "implemented",
+      deployment: "deployed",
+      activation: "active",
+      integration: "integrated",
+      availability: "available",
+      evidence: [{ file: "a.sol", note: "Deployed source." }],
+      verified_at: "2026-07-25",
+    },
+  ],
+  human_concepts: [
+    {
+      ref: "entity:garden",
+      plain_name: "A community",
+      why_it_matters: "It coordinates work.",
+      who_touches_it: ["Gardener"],
+      example: "A local garden.",
+      aliases: ["community garden"],
+      not_confused_with: ["wallet"],
+    },
+    {
+      ref: "persona:gardener",
+      plain_name: "A person doing work",
+      why_it_matters: "The work starts here.",
+      who_touches_it: ["Operator"],
+      example: "A person plants a tree.",
+      aliases: ["field worker"],
+      not_confused_with: ["Operator"],
+    },
+  ],
+  marketing_claims: [
+    {
+      id: "garden",
+      claim: "Gardens coordinate work.",
+      audience: ["community"],
+      maturity: "available",
+      term_refs: ["entity:garden"],
+      evidence: [{ file: "a.sol", note: "Deployed source." }],
+      safe_wording: "Communities can coordinate work in a Garden.",
+      verified_at: "2026-07-25",
+    },
+  ],
 };
 
 test("every sidecar anchor file is covered by the Ontology ci-gate matcher", () => {
@@ -537,16 +607,66 @@ test("every sidecar anchor file is covered by the Ontology ci-gate matcher", () 
   }
 });
 
+test("every projection evidence file is covered by the Ontology ci-gate matcher", () => {
+  const ontology = JSON.parse(
+    readFileSync("packages/shared/src/ontology/green-goods-ontology.json", "utf8")
+  );
+  const projections = JSON.parse(
+    readFileSync("packages/shared/src/ontology/green-goods-projections.json", "utf8")
+  );
+  for (const file of collectProjectionFiles(projections)) {
+    assert.ok(
+      expectedWorkflowNames([file]).includes("Ontology"),
+      `projection evidence is outside the Ontology workflow path filter: ${file}`
+    );
+  }
+});
+
 test("renderers are deterministic", () => {
-  assert.equal(renderOntologyMdx(miniOntology), renderOntologyMdx(miniOntology));
+  assert.equal(
+    renderOntologyMdx(miniOntology, miniProjections),
+    renderOntologyMdx(miniOntology, miniProjections)
+  );
   assert.equal(renderEntityMatrixMdx(miniOntology), renderEntityMatrixMdx(miniOntology));
+  assert.equal(renderHumanOntologyMdx(miniOntology, miniProjections), renderHumanOntologyMdx(miniOntology, miniProjections));
+  assert.equal(renderMarketingClaimsMdx(miniProjections), renderMarketingClaimsMdx(miniProjections));
+  assert.equal(renderAgentManifest(miniOntology, miniProjections), renderAgentManifest(miniOntology, miniProjections));
 });
 
 test("matrix renderer emits em-dash for missing cells and escapes pipes in mechanisms", () => {
   const matrix = renderEntityMatrixMdx(miniOntology);
   assert.ok(matrix.includes("| Garden | Project | — |"));
-  const reference = renderOntologyMdx(miniOntology);
+  const reference = renderOntologyMdx(miniOntology, miniProjections);
   assert.ok(reference.includes("markPoolReady \\| guard"));
+  assert.ok(matrix.includes("### Entities"));
+});
+
+test("integrity rejects undeclared executable transition endpoints and relationship targets", () => {
+  const broken = structuredClone(miniOntology);
+  broken.entities[0].relationships = [{ to: "missing", kind: "points-to" }];
+  broken.state_machines[0].transitions = [
+    { from: ["pending"], to: ["missing"], layer: "derived", mechanism: "bad" },
+  ];
+  const errors = checkSidecarIntegrity(broken, () => true);
+  assert.ok(errors.some((error) => error.includes('undeclared state "missing"')));
+  assert.ok(errors.some((error) => error.includes('unknown entity "missing"')));
+});
+
+test("projection integrity requires capability and human coverage", () => {
+  const broken = structuredClone(miniProjections);
+  broken.capabilities = [];
+  broken.human_concepts = broken.human_concepts.slice(0, 1);
+  const errors = checkProjectionIntegrity(miniOntology, broken, () => true);
+  assert.ok(errors.includes("capabilities: missing entity:garden"));
+  assert.ok(errors.includes("human concepts: missing persona:gardener"));
+});
+
+test("projection integrity rejects unsupported availability", () => {
+  const broken = structuredClone(miniProjections);
+  broken.capabilities[0].activation = "inactive";
+  broken.capabilities[0].integration = "not-integrated";
+  const errors = checkProjectionIntegrity(miniOntology, broken, () => true);
+  assert.ok(errors.includes("capability entity:garden: available requires active and integrated"));
 });
 
 // ---------------------------------------------------------------------------

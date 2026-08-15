@@ -294,9 +294,9 @@ describe("Gardens View", () => {
 
 Read these docs pages when you need operator workflow context or garden management details:
 
-- Garden setup guide: `docs/docs/operator/setup-garden.mdx`
-- Manage gardeners: `docs/docs/operator/manage-gardeners.mdx`
-- Review work submissions: `docs/docs/operator/review-work.mdx`
-- Configure actions: `docs/docs/operator/configure-actions.mdx`
-- Impact reporting: `docs/docs/operator/impact-reporting.mdx`
-- Operator getting started: `docs/docs/operator/getting-started.mdx`
+- Garden setup guide: `docs/docs/community/operator-guide/creating-a-garden.mdx`
+- Manage gardeners: `docs/docs/community/operator-guide/index.mdx`
+- Review work submissions: `docs/docs/community/operator-guide/reviewing-work.mdx`
+- Configure actions: `docs/docs/community/operator-guide/managing-actions.mdx`
+- Impact reporting: `docs/docs/community/operator-guide/reporting-and-gap.mdx`
+- Operator getting started: `docs/docs/community/operator-guide/index.mdx`

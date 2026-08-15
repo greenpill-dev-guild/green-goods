@@ -65,7 +65,7 @@ const TERMS: readonly GlossaryTerm[] = [
     defaultLabel: "Evaluator",
     bodyId: "public.glossary.term.evaluator.body",
     defaultBody:
-      "A trusted specialist, from any background, who sets a garden's baseline and success criteria up front and scores its outcomes. Evaluators author assessments; reviewing submitted Work is the operator's job.",
+      "A person who strengthens Assessments, methods, and impact claims. Evaluators do not approve submitted Work; Operators record those decisions.",
     docsPath: "/glossary#evaluator",
   },
   {
@@ -92,7 +92,7 @@ const TERMS: readonly GlossaryTerm[] = [
     defaultLabel: "Impact Certificate",
     bodyId: "public.glossary.term.impactCertificate.body",
     defaultBody:
-      "A bundle of the season's operator-approved Work, framed by evaluator assessments and anchored to a public blockchain so the record stays readable beyond any one platform.",
+      "A bundle of approved Work grounded in an Assessment and anchored to a public blockchain so the record stays readable beyond any one platform.",
     docsPath: "/glossary#impact-certificate",
   },
   {
@@ -101,7 +101,7 @@ const TERMS: readonly GlossaryTerm[] = [
     defaultLabel: "Operator",
     bodyId: "public.glossary.term.operator.body",
     defaultBody:
-      "The person who runs a Garden: assembling the season's plan, accepting gardeners, and confirming the Work that gets recorded.",
+      "The person who runs a Garden: assembling the plan, accepting gardeners, and recording approval or rejection for submitted Work.",
     docsPath: "/glossary#operator",
   },
   {
@@ -119,7 +119,7 @@ const TERMS: readonly GlossaryTerm[] = [
     defaultLabel: "Work",
     bodyId: "public.glossary.term.work.body",
     defaultBody:
-      "One Action carried out by a gardener, captured with a photo and description, and recorded on the blockchain at submission — or the moment it syncs, if captured offline. Operator approval adds a separate, linked approval record.",
+      "One Action carried out by a gardener, captured with a photo and description, and recorded as a Work attestation when submitted. Approval is a separate record.",
     docsPath: "/glossary#work",
   },
 ] as const;

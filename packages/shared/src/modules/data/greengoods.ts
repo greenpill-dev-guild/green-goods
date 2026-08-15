@@ -24,12 +24,8 @@ import { getFileByHash, resolveIPFSUrl } from "./ipfs";
 
 const ACTION_INSTRUCTIONS_TIMEOUT_MS = 5_000;
 
-/**
- * Maps indexer domain string (e.g., "SOLAR") to the Domain enum value.
- * Unrecognized values (including the indexer's forward-compat "UNKNOWN"
- * sentinel) surface as null — never silently coerced to a real domain.
- */
-export function parseDomain(domain: string | undefined | null): Domain | null {
+/** Maps an indexer domain string without inventing a valid domain for unknown data. */
+export function parseIndexerDomain(domain: string | undefined | null): Domain | null {
   if (!domain) return null;
   const map: Record<string, Domain> = {
     SOLAR: Domain.SOLAR,
@@ -37,12 +33,7 @@ export function parseDomain(domain: string | undefined | null): Domain | null {
     EDU: Domain.EDU,
     WASTE: Domain.WASTE,
   };
-  const parsed = map[domain];
-  if (parsed === undefined) {
-    logger.warn("[parseDomain] Unrecognized action domain from indexer", { domain });
-    return null;
-  }
-  return parsed;
+  return map[domain] ?? null;
 }
 
 function cloneInstructionConfig(config: ActionInstructionConfig): ActionInstructionConfig {
@@ -243,6 +234,14 @@ export async function getActions(): Promise<Action[]> {
           instructions,
           createdAt,
         }) => {
+          const parsedDomain = parseIndexerDomain(domain as string | undefined);
+          if (parsedDomain === null) {
+            logger.warn("[getActions] Ignoring action with unknown domain", {
+              actionId: id,
+              domain,
+            });
+            return null;
+          }
           const actionSlug = typeof slug === "string" ? slug : "";
           const fallbackConfig = getActionInstructionFallback(actionSlug);
 
@@ -280,7 +279,7 @@ export async function getActions(): Promise<Action[]> {
             title,
             slug: actionSlug,
             instructions: instructions ? resolveIPFSUrl(instructions) : undefined,
-            domain: parseDomain(domain as string | undefined),
+            domain: parsedDomain,
             startTime: startTime ? Number(startTime) * 1000 : Date.now(),
             endTime: endTime ? Number(endTime) * 1000 : Date.now() + 365 * 24 * 60 * 60 * 1000, // Default to 1 year from now
             capitals: Array.isArray(capitals) ? capitals.map((c: unknown) => c as Capital) : [],
@@ -308,7 +307,7 @@ export async function getActions(): Promise<Action[]> {
       );
     }
 
-    return actions;
+    return actions.filter((action) => action !== null);
   } catch (error) {
     logger.error("[getActions] Failed to fetch actions", { error });
     return [];

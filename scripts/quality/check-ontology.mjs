@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Ontology drift gate: cross-checks packages/shared/src/ontology/green-goods-ontology.json
 // against Solidity enums, the indexer GraphQL schema, shared TypeScript vocabularies,
-// the EAS schema config, and the glossary tables; regenerates the two docs artifacts
+// the EAS schema config, projection evidence, and glossary tables; regenerates five artifacts
 // with --generate. Zero dependencies beyond the Node standard library on purpose —
 // the CI workflow runs it without installing anything, and the ci-gate matcher relies
 // on that by excluding package.json/bun.lock from its path filter.
@@ -15,9 +15,10 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import {
-  renderConceptsMdx,
+  renderAgentManifest,
   renderEntityMatrixMdx,
-  renderManifestJson,
+  renderHumanOntologyMdx,
+  renderMarketingClaimsMdx,
   renderOntologyMdx,
 } from "./ontology-render.mjs";
 
@@ -25,14 +26,15 @@ const __filename = fileURLToPath(import.meta.url);
 const REPO_ROOT = path.resolve(path.dirname(__filename), "../..");
 
 const SIDECAR_PATH = "packages/shared/src/ontology/green-goods-ontology.json";
+const PROJECTIONS_PATH = "packages/shared/src/ontology/green-goods-projections.json";
+const AGENT_MANIFEST_PATH = "packages/shared/src/ontology/agent-manifest.generated.json";
 const BASELINE_PATH = "scripts/data/ontology-drift-baseline.json";
 const SCHEMAS_JSON_PATH = "packages/contracts/config/schemas.json";
 const GLOSSARY_PATH = "docs/docs/reference/glossary-community.md";
 const GENERATED_REFERENCE_PATH = "docs/docs/reference/ontology.generated.mdx";
 const GENERATED_MATRIX_PATH = "docs/docs/builders/integrations/entity-matrix.mdx";
-const CLAIMS_PATH = "packages/shared/src/ontology/marketing-claims.json";
-const GENERATED_CONCEPTS_PATH = "docs/docs/reference/concepts.generated.mdx";
-const GENERATED_MANIFEST_PATH = "packages/shared/src/ontology/ontology-manifest.generated.json";
+const GENERATED_HUMAN_PATH = "docs/docs/reference/ontology-human.generated.mdx";
+const GENERATED_CLAIMS_PATH = "docs/docs/community/green-goods-claims.generated.mdx";
 
 export const BASELINE_MAX_DAYS = 250;
 export const BASELINE_WARN_DAYS = 30;
@@ -214,9 +216,13 @@ export function parseGlossaryTable(source, sectionHeading) {
     if (cells.length < 5) continue;
     const name = normalizeDocText(cells[1]);
     if (!name || name === "Term" || /^-+$/.test(name)) continue;
-    rows.push({ name, definition: cells[4] });
+    rows.push({ name, definition: cells.at(-2) });
   }
   return rows;
+}
+
+export function parseCanonicalEntityCounts(source) {
+  return [...source.matchAll(/\b(\d+) canonical concepts\b/g)].map((match) => Number(match[1]));
 }
 
 export function parseCapitalsNote(source) {
@@ -385,6 +391,123 @@ export function collectAnchorFiles(ontology) {
   return files;
 }
 
+export function collectProjectionFiles(projections) {
+  const files = new Set();
+  for (const capability of projections.capabilities ?? []) {
+    for (const evidence of capability.evidence ?? []) files.add(evidence.file);
+  }
+  for (const claim of projections.marketing_claims ?? []) {
+    for (const evidence of claim.evidence ?? []) files.add(evidence.file);
+  }
+  return files;
+}
+
+export function checkProjectionIntegrity(ontology, projections, fileExists) {
+  const errors = [];
+  const entityRefs = new Set(ontology.entities.map((entity) => `entity:${entity.id}`));
+  const personaRefs = new Set(ontology.personas.map((persona) => `persona:${persona.id}`));
+  const termRefs = new Set([...entityRefs, ...personaRefs]);
+  const availability = new Set([
+    "available",
+    "deployed-not-available",
+    "in-build",
+    "planned",
+    "vision",
+  ]);
+  const capabilityAxes = {
+    implementation: new Set(["implemented", "partial", "not-implemented", "not-applicable"]),
+    deployment: new Set(["deployed", "not-deployed", "not-applicable"]),
+    activation: new Set(["active", "inactive", "not-applicable"]),
+    integration: new Set(["integrated", "partial", "not-integrated", "not-applicable"]),
+  };
+  const unique = (label, values) => {
+    const seen = new Set();
+    for (const value of values) {
+      if (seen.has(value)) errors.push(`${label}: duplicate "${value}"`);
+      seen.add(value);
+    }
+  };
+
+  unique("capabilities", projections.capabilities.map((item) => item.ref));
+  unique("human concepts", projections.human_concepts.map((item) => item.ref));
+  unique("marketing claims", projections.marketing_claims.map((item) => item.id));
+
+  const capabilityRefs = new Set(projections.capabilities.map((item) => item.ref));
+  const capabilityByRef = new Map(projections.capabilities.map((item) => [item.ref, item]));
+  for (const ref of entityRefs) {
+    if (!capabilityRefs.has(ref)) errors.push(`capabilities: missing ${ref}`);
+  }
+  for (const capability of projections.capabilities) {
+    if (!entityRefs.has(capability.ref)) errors.push(`capability ${capability.ref}: unknown entity`);
+    if (!availability.has(capability.availability)) {
+      errors.push(`capability ${capability.ref}: invalid availability "${capability.availability}"`);
+    }
+    for (const [axis, allowed] of Object.entries(capabilityAxes)) {
+      if (!allowed.has(capability[axis])) {
+        errors.push(`capability ${capability.ref}: invalid ${axis} "${capability[axis]}"`);
+      }
+    }
+    if (
+      capability.availability === "available" &&
+      (capability.activation !== "active" || capability.integration !== "integrated")
+    ) {
+      errors.push(`capability ${capability.ref}: available requires active and integrated`);
+    }
+    if (capability.availability === "deployed-not-available" && capability.deployment !== "deployed") {
+      errors.push(`capability ${capability.ref}: deployed-not-available requires deployed`);
+    }
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(capability.verified_at)) {
+      errors.push(`capability ${capability.ref}: verified_at must be YYYY-MM-DD`);
+    }
+    if (!capability.evidence?.length) errors.push(`capability ${capability.ref}: evidence is required`);
+  }
+
+  const humanRefs = new Set(projections.human_concepts.map((item) => item.ref));
+  for (const ref of termRefs) {
+    if (!humanRefs.has(ref)) errors.push(`human concepts: missing ${ref}`);
+  }
+  const aliasOwner = new Map();
+  for (const concept of projections.human_concepts) {
+    if (!termRefs.has(concept.ref)) errors.push(`human concept ${concept.ref}: unknown term`);
+    for (const field of ["plain_name", "why_it_matters", "example"]) {
+      if (!concept[field]?.trim()) errors.push(`human concept ${concept.ref}: ${field} is required`);
+    }
+    for (const alias of concept.aliases ?? []) {
+      const key = alias.toLowerCase();
+      const previous = aliasOwner.get(key);
+      if (previous && previous !== concept.ref) {
+        errors.push(`human concept alias "${alias}" is ambiguous between ${previous} and ${concept.ref}`);
+      }
+      aliasOwner.set(key, concept.ref);
+    }
+  }
+
+  for (const claim of projections.marketing_claims) {
+    if (!availability.has(claim.maturity)) {
+      errors.push(`marketing claim ${claim.id}: invalid maturity "${claim.maturity}"`);
+    }
+    if (!claim.safe_wording?.trim()) errors.push(`marketing claim ${claim.id}: safe_wording is required`);
+    if (!claim.evidence?.length) errors.push(`marketing claim ${claim.id}: evidence is required`);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(claim.verified_at)) {
+      errors.push(`marketing claim ${claim.id}: verified_at must be YYYY-MM-DD`);
+    }
+    for (const ref of claim.term_refs ?? []) {
+      if (!termRefs.has(ref)) errors.push(`marketing claim ${claim.id}: unknown term ${ref}`);
+      const capability = capabilityByRef.get(ref);
+      if (claim.maturity === "available" && capability && capability.availability !== "available") {
+        errors.push(
+          `marketing claim ${claim.id}: available claim references ${ref} at ${capability.availability}`
+        );
+      }
+    }
+  }
+
+  for (const file of collectProjectionFiles(projections)) {
+    if (!fileExists(file)) errors.push(`projection evidence does not exist: ${file}`);
+  }
+  return errors;
+}
+
 export function checkSidecarIntegrity(ontology, fileExists) {
   const errors = [];
   const uniq = (label, ids) => {
@@ -418,12 +541,12 @@ export function checkSidecarIntegrity(ontology, fileExists) {
 
   for (const vocabulary of ontology.vocabularies) {
     if (vocabulary.canonical.members.length === 0) errors.push(`vocabulary ${vocabulary.id}: empty canonical member list`);
-    if (vocabulary.status === "spec") {
-      if (!vocabulary.spec_source) errors.push(`vocabulary ${vocabulary.id}: spec status requires spec_source`);
+    if (vocabulary.source_status === "specified") {
+      if (!vocabulary.spec_source) errors.push(`vocabulary ${vocabulary.id}: specified source requires spec_source`);
       if (vocabulary.representations.length > 0) {
-        errors.push(`vocabulary ${vocabulary.id}: spec status must not declare live representations`);
+        errors.push(`vocabulary ${vocabulary.id}: specified source must not declare implemented representations`);
       }
-      if (!vocabulary.planned_anchor) errors.push(`vocabulary ${vocabulary.id}: spec status requires planned_anchor`);
+      if (!vocabulary.planned_anchor) errors.push(`vocabulary ${vocabulary.id}: specified source requires planned_anchor`);
       else if (!fileExists(path.dirname(vocabulary.planned_anchor.file))) {
         errors.push(
           `vocabulary ${vocabulary.id}: planned_anchor directory does not exist: ${path.dirname(vocabulary.planned_anchor.file)}`
@@ -452,6 +575,32 @@ export function checkSidecarIntegrity(ontology, fileExists) {
   for (const machine of ontology.state_machines) {
     if (!vocabularyIds.has(machine.vocabulary)) {
       errors.push(`state machine ${machine.id}: unknown vocabulary "${machine.vocabulary}"`);
+    }
+    const stateNames = machine.states.map((state) => state.name);
+    const stateSet = new Set(stateNames);
+    if (stateSet.size !== stateNames.length) errors.push(`state machine ${machine.id}: duplicate state name`);
+    if (machine.kind === "executable") {
+      for (const [index, transition] of machine.transitions.entries()) {
+        if (!Array.isArray(transition.from) || transition.from.length === 0) {
+          errors.push(`state machine ${machine.id}/transition ${index}: from must contain atomic states`);
+        }
+        if (!Array.isArray(transition.to) || transition.to.length === 0) {
+          errors.push(`state machine ${machine.id}/transition ${index}: to must contain atomic states`);
+        }
+        for (const endpoint of [...(transition.from ?? []), ...(transition.to ?? [])]) {
+          if (!stateSet.has(endpoint)) {
+            errors.push(`state machine ${machine.id}/transition ${index}: undeclared state "${endpoint}"`);
+          }
+        }
+      }
+    }
+  }
+
+  for (const entity of ontology.entities) {
+    for (const relationship of entity.relationships ?? []) {
+      if (!entityIds.has(relationship.to)) {
+        errors.push(`entity ${entity.id}: relationship targets unknown entity "${relationship.to}"`);
+      }
     }
   }
 
@@ -584,7 +733,7 @@ function runGuards(ontology) {
     }
     if (schemasJson) {
       for (const [key, schema] of Object.entries(ontology.schemas)) {
-        if (schema.status === "spec") {
+        if (schema.source_status === "specified") {
           schemaSkipped += 1;
           continue;
         }
@@ -672,7 +821,22 @@ function runGuards(ontology) {
   // G5: glossary tables + definition lock.
   const glossary = sourceOf(GLOSSARY_PATH);
   if (glossary !== null) {
-    const liveEntities = ontology.entities.filter((e) => e.status === "live");
+    const liveEntities = ontology.entities.filter((e) => e.semantic_status === "canonical");
+    const proseCounts = parseCanonicalEntityCounts(glossary);
+    if (proseCounts.length === 0) {
+      fatal.push(`could not parse a canonical entity count in ${GLOSSARY_PATH}`);
+    } else {
+      const staleCounts = proseCounts.filter((count) => count !== liveEntities.length);
+      if (staleCounts.length > 0) {
+        findings.push({
+          guard: "docs-glossary",
+          subject: "docs:entity-count",
+          file: GLOSSARY_PATH,
+          detail: `expected ${liveEntities.length}; found [${proseCounts.join(", ")}]`,
+          message: "glossary canonical entity count deviates from the sidecar",
+        });
+      }
+    }
     const entityRows = parseGlossaryTable(glossary, "Domain Entities");
     if (!entityRows || entityRows.length === 0) fatal.push(`could not parse the Domain Entities table in ${GLOSSARY_PATH}`);
     else {
@@ -812,7 +976,7 @@ function runGuards(ontology) {
   // G7: spec arrival.
   let arrivalWatched = 0;
   for (const vocabulary of ontology.vocabularies) {
-    if (vocabulary.status !== "spec" || !vocabulary.planned_anchor) continue;
+    if (vocabulary.source_status !== "specified" || !vocabulary.planned_anchor) continue;
     arrivalWatched += 1;
     const abs = path.join(REPO_ROOT, vocabulary.planned_anchor.file);
     if (!existsSync(abs)) continue;
@@ -822,7 +986,7 @@ function runGuards(ontology) {
     const source = stripCode(readFileSync(abs, "utf8"));
     if (new RegExp(`\\b${vocabulary.planned_anchor.symbol}\\b`).test(source)) {
       errors.push(
-        `[spec-arrival] vocabulary "${vocabulary.id}" is now implemented at ${vocabulary.planned_anchor.file} — flip status to "live", declare representations, and regenerate the docs artifacts`
+        `[spec-arrival] vocabulary "${vocabulary.id}" is now implemented at ${vocabulary.planned_anchor.file} — flip source_status to "implemented", declare representations, and regenerate the docs artifacts`
       );
     }
   }
@@ -831,8 +995,8 @@ function runGuards(ontology) {
     try {
       const keys = new Set(Object.keys(JSON.parse(schemasJsonForArrival).schemas ?? {}));
       for (const [key, schema] of Object.entries(ontology.schemas)) {
-        if (schema.status === "spec" && keys.has(key)) {
-          errors.push(`[spec-arrival] schema "${key}" is now registered in schemas.json — flip status to "live"`);
+        if (schema.source_status === "specified" && keys.has(key)) {
+          errors.push(`[spec-arrival] schema "${key}" is now registered in schemas.json — flip source_status to "implemented"`);
         }
       }
     } catch {
@@ -862,238 +1026,27 @@ function runGuards(ontology) {
   return { fatal, errors, findings, counts };
 }
 
-// A resolved json_path evidence value must actually prove something: a cleared
-// deployment artifact (null / "" / zero address or zero bytes32) means the
-// capability is NOT deployed, so it must fail the gate rather than keep public
-// "deployed" claims alive. Booleans and numbers stay meaningful as-is (false =
-// an unpaused flag; 0 = the root garden's tokenId).
-export function isMeaningfulEvidenceValue(value) {
-  if (value === undefined || value === null) return false;
-  if (typeof value === "string") {
-    if (value.trim() === "") return false;
-    if (/^0x0+$/i.test(value)) return false;
-  }
-  return true;
-}
-
-// Every evidence file referenced by the capability projection and claim ledger,
-// deduplicated — exported so the unit tests can assert each path stays inside
-// the Ontology workflow's path filter (a PR touching evidence must re-run the
-// gate that validates the claims built on it).
-export function collectProjectionEvidencePaths(ontology, claims) {
-  const paths = new Set();
-  for (const cap of ontology.capabilities ?? []) {
-    for (const dimension of Object.values(cap.dimensions ?? {})) {
-      for (const item of dimension?.evidence ?? []) if (item?.file) paths.add(item.file);
-    }
-  }
-  for (const claim of claims.claims ?? []) {
-    for (const item of claim.evidence ?? []) if (item?.file) paths.add(item.file);
-  }
-  return [...paths].sort();
-}
-
-// Capability projections, concept cards, claim ledger, machine endpoints, and
-// glossary counts. Every finding is baselineable under guard "projections" or
-// "state-machines"; evidence paths (and json_path pointers into JSON files)
-// must exist so no maturity or claim can outlive its proof.
-export function checkProjections(ontology, claims, glossaryText, now = new Date()) {
-  const findings = [];
-  const push = (guard, subject, detail) => findings.push({ guard, subject, detail });
-  const DIMS = ["implementation", "deployment", "activation", "indexing", "availability"];
-  const STATES = new Set(["complete", "partial", "blocked", "not_started", "not_applicable"]);
-  const RANK = { complete: 3, not_applicable: 3, partial: 2, blocked: 1, not_started: 0 };
-  const entityIds = new Set(ontology.entities.map((e) => e.id));
-  const capabilities = ontology.capabilities ?? [];
-  const cards = ontology.concept_cards ?? [];
-  const capByEntity = new Map(capabilities.map((c) => [c.entity, c]));
-  const today = now.toISOString().slice(0, 10);
-  const fileOk = (rel) => typeof rel === "string" && existsSync(path.join(REPO_ROOT, rel));
-  const jsonPathOk = (rel, pointer, expected) => {
-    try {
-      let value = JSON.parse(readFileSync(path.join(REPO_ROOT, rel), "utf8"));
-      for (const part of pointer.split(".")) value = value?.[part];
-      // An explicit `equals` pins the proven value: a paused flag flipping
-      // from false to true must fail the gate, not merely "still resolve".
-      if (expected !== undefined) return value === expected;
-      return isMeaningfulEvidenceValue(value);
-    } catch {
-      return false;
-    }
-  };
-  const checkEvidence = (subject, label, evidence) => {
-    if (!Array.isArray(evidence) || evidence.length === 0) {
-      push("projections", subject, `${label} has no evidence`);
-      return;
-    }
-    for (const item of evidence) {
-      if (!fileOk(item?.file)) push("projections", subject, `${label} evidence path missing: ${item?.file}`);
-      else if (
-        item.json_path &&
-        (!item.file.endsWith(".json") || !jsonPathOk(item.file, item.json_path, item.equals))
-      )
-        push(
-          "projections",
-          subject,
-          `${label} evidence json_path unresolvable or off-expectation: ${item.file}#${item.json_path}`
-        );
-    }
-  };
-  const checkVerifiedAt = (subject, label, value) => {
-    if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) push("projections", subject, `${label} verified_at invalid`);
-    else if (value > today) push("projections", subject, `${label} verified_at is in the future`);
-  };
-
-  for (const entity of ontology.entities) {
-    if (!capByEntity.has(entity.id)) push("projections", `capability:${entity.id}`, "missing capability projection");
-    if (!cards.some((c) => c.entity === entity.id)) push("projections", `card:${entity.id}`, "missing concept card");
-  }
-  // Duplicates would let a Map-consumer (claim validation) and a find-consumer
-  // (renderers, manifest) silently disagree about which projection is real.
-  for (const [label, list, key] of [
-    ["capability", capabilities, (c) => c.entity],
-    ["card", cards, (c) => c.entity],
-    ["claim", claims.claims ?? [], (c) => c.id],
-  ]) {
-    const seen = new Set();
-    for (const item of list) {
-      const id = key(item);
-      if (seen.has(id)) push("projections", `${label}:${id}`, `duplicate ${label} entry`);
-      seen.add(id);
-    }
-  }
-  for (const cap of capabilities) {
-    const subject = `capability:${cap.entity}`;
-    if (!entityIds.has(cap.entity)) {
-      push("projections", subject, "capability references an unknown entity");
-      continue;
-    }
-    for (const dimName of DIMS) {
-      const dimension = cap.dimensions?.[dimName];
-      if (!dimension) {
-        push("projections", subject, `missing dimension ${dimName}`);
-        continue;
-      }
-      if (!STATES.has(dimension.state)) push("projections", subject, `invalid state "${dimension.state}" for ${dimName}`);
-      checkEvidence(subject, dimName, dimension.evidence);
-      checkVerifiedAt(subject, dimName, dimension.verified_at);
-    }
-    const dims = cap.dimensions ?? {};
-    const chain = ["implementation", "deployment", "activation", "availability"];
-    for (let i = 1; i < chain.length; i += 1) {
-      const lower = dims[chain[i]];
-      const upper = dims[chain[i - 1]];
-      if (lower && upper && lower.state !== "not_applicable" && RANK[lower.state] > RANK[upper.state])
-        push("projections", subject, `${chain[i]} (${lower.state}) exceeds ${chain[i - 1]} (${upper.state})`);
-    }
-    const entity = ontology.entities.find((e) => e.id === cap.entity);
-    const hasCodeLayers = Boolean(
-      entity?.layers?.solidity?.length || entity?.layers?.shared?.length || entity?.layers?.indexer
-    );
-    if (entity?.status === "live" && hasCodeLayers && dims.implementation?.state !== "complete")
-      push("projections", subject, "status live but implementation is not complete");
-    if (entity?.status === "spec" && dims.availability?.state === "complete")
-      push("projections", subject, "status spec but availability claims complete — a spec entity cannot be user-available");
-  }
-  for (const card of cards) {
-    const subject = `card:${card.entity}`;
-    if (!entityIds.has(card.entity)) push("projections", subject, "card references an unknown entity");
-    for (const field of ["plain_name", "why_it_matters", "example", "safe_claim"]) {
-      if (!card[field] || !String(card[field]).trim()) push("projections", subject, `card field ${field} is empty`);
-    }
-    const personaIds = new Set(ontology.personas.map((p) => p.id));
-    for (const nc of card.not_confused_with ?? []) {
-      if (!entityIds.has(nc.ref) && !personaIds.has(nc.ref))
-        push("projections", subject, `not_confused_with references unknown entity/persona ${nc.ref}`);
-    }
-  }
-
-  const maturityValues = new Set(claims.maturity_values ?? []);
-  for (const claim of claims.claims ?? []) {
-    const subject = `claim:${claim.id}`;
-    if (!maturityValues.has(claim.maturity)) push("projections", subject, `invalid maturity "${claim.maturity}"`);
-    checkEvidence(subject, "claim", claim.evidence);
-    checkVerifiedAt(subject, "claim", claim.verified_at);
-    if (!claim.safe_wording || !String(claim.safe_wording).trim()) push("projections", subject, "safe_wording is empty");
-    const linked = (claim.capabilities ?? []).filter((id) => {
-      if (!entityIds.has(id)) {
-        push("projections", subject, `claim references unknown entity ${id}`);
-        return false;
-      }
-      return true;
-    });
-    if (linked.length === 0) push("projections", subject, "claim links no entities");
-    const availability = linked.map((id) => capByEntity.get(id)?.dimensions?.availability?.state);
-    if (claim.maturity === "available" && !availability.every((s) => s === "complete"))
-      push("projections", subject, "maturity available but a linked capability is not user-available");
-    if (claim.maturity === "deployed-not-available") {
-      if (availability.every((s) => s === "complete"))
-        push("projections", subject, "maturity deployed-not-available but every linked capability is available — promote the claim");
-      const deployment = linked.map((id) => capByEntity.get(id)?.dimensions?.deployment?.state);
-      if (!deployment.every((s) => s === "complete"))
-        push("projections", subject, "maturity deployed-not-available but a linked capability is not deployed — demote the claim");
-    }
-  }
-
-  let machineCount = 0;
-  for (const machine of ontology.state_machines) {
-    machineCount += 1;
-    const subject = `machine:${machine.id}`;
-    const names = machine.states.map((s) => s.name);
-    if (new Set(names).size !== names.length) push("state-machines", subject, "duplicate state names");
-    const declared = new Set(names);
-    for (const t of machine.transitions) {
-      for (const endpoint of [t.from, t.to]) {
-        if (/[|…]/.test(endpoint)) push("state-machines", subject, `composite endpoint "${endpoint}" — split into atomic transitions`);
-        else if (!declared.has(endpoint)) push("state-machines", subject, `transition endpoint "${endpoint}" is not a declared state`);
-      }
-    }
-  }
-
-  if (typeof glossaryText === "string") {
-    const sectionStart = glossaryText.indexOf("## Domain Entities");
-    const sectionEnd = glossaryText.indexOf("\n---", sectionStart);
-    const section = sectionStart === -1 ? "" : glossaryText.slice(sectionStart, sectionEnd === -1 ? undefined : sectionEnd);
-    const liveCount = ontology.entities.filter((e) => e.status === "live").length;
-    const thingsMatch = glossaryText.match(/— the (\d+) things the system tracks/);
-    if (thingsMatch && Number(thingsMatch[1]) !== liveCount)
-      push("projections", "glossary:entity-count", `glossary says ${thingsMatch[1]} things, sidecar has ${liveCount} live entities`);
-    const peopleMatch = glossaryText.match(/— the (\d+) people the system serves/);
-    if (peopleMatch && Number(peopleMatch[1]) !== ontology.personas.length)
-      push("projections", "glossary:persona-count", `glossary says ${peopleMatch[1]} people, sidecar has ${ontology.personas.length} personas`);
-    for (const entity of ontology.entities.filter((e) => e.status === "spec")) {
-      if (!section.includes(`**${entity.display}**`))
-        push("projections", `glossary:planned:${entity.id}`, `spec entity "${entity.display}" missing from the glossary's planned blocks`);
-    }
-  }
-
-  return { findings, capCount: capabilities.length, cardCount: cards.length, claimCount: (claims.claims ?? []).length, machineCount };
-}
-
-function checkGeneratedArtifacts(ontology, claims) {
+function checkGeneratedArtifacts(ontology, projections) {
   const errors = [];
   const renderAll = () => ({
-    reference: renderOntologyMdx(ontology),
+    reference: renderOntologyMdx(ontology, projections),
     matrix: renderEntityMatrixMdx(ontology),
-    concepts: renderConceptsMdx(ontology, claims),
-    manifest: renderManifestJson(ontology, claims),
+    human: renderHumanOntologyMdx(ontology, projections),
+    claims: renderMarketingClaimsMdx(projections),
+    agent: renderAgentManifest(ontology, projections),
   });
   const first = renderAll();
   const second = renderAll();
-  if (
-    first.reference !== second.reference ||
-    first.matrix !== second.matrix ||
-    first.concepts !== second.concepts ||
-    first.manifest !== second.manifest
-  ) {
+  if (Object.keys(first).some((key) => first[key] !== second[key])) {
     errors.push("[generated-staleness] renderer is non-deterministic — render twice produced different output");
     return { errors, rendered: first };
   }
   for (const [relPath, expected] of [
     [GENERATED_REFERENCE_PATH, first.reference],
     [GENERATED_MATRIX_PATH, first.matrix],
-    [GENERATED_CONCEPTS_PATH, first.concepts],
-    [GENERATED_MANIFEST_PATH, first.manifest],
+    [GENERATED_HUMAN_PATH, first.human],
+    [GENERATED_CLAIMS_PATH, first.claims],
+    [AGENT_MANIFEST_PATH, first.agent],
   ]) {
     const abs = path.join(REPO_ROOT, relPath);
     const current = existsSync(abs) ? readFileSync(abs, "utf8").replace(/\r\n/g, "\n") : null;
@@ -1124,49 +1077,53 @@ function main() {
     process.exit(2);
   }
 
-  const integrityErrors = checkSidecarIntegrity(ontology, (file) => existsSync(path.join(REPO_ROOT, file)));
+  const projectionsAbs = path.join(REPO_ROOT, PROJECTIONS_PATH);
+  if (!existsSync(projectionsAbs)) {
+    console.error(`check-ontology: missing projections ${PROJECTIONS_PATH}`);
+    process.exit(2);
+  }
+  let projections;
+  try {
+    projections = JSON.parse(readFileSync(projectionsAbs, "utf8"));
+  } catch (error) {
+    console.error(`check-ontology: could not parse ${PROJECTIONS_PATH}: ${error.message}`);
+    process.exit(2);
+  }
+
+  const fileExists = (file) => existsSync(path.join(REPO_ROOT, file));
+  const integrityErrors = [
+    ...checkSidecarIntegrity(ontology, fileExists),
+    ...checkProjectionIntegrity(ontology, projections, fileExists),
+  ];
   if (integrityErrors.length > 0) {
     console.error("check-ontology: sidecar integrity failed:\n");
     for (const error of integrityErrors) console.error(`- ${error}`);
     process.exit(2);
   }
 
-  const claimsAbs = path.join(REPO_ROOT, CLAIMS_PATH);
-  if (!existsSync(claimsAbs)) {
-    console.error(`check-ontology: missing claims ledger ${CLAIMS_PATH}`);
-    process.exit(2);
-  }
-  let claims;
-  try {
-    claims = JSON.parse(readFileSync(claimsAbs, "utf8"));
-  } catch (error) {
-    console.error(`check-ontology: could not parse ${CLAIMS_PATH}: ${error.message}`);
-    process.exit(2);
-  }
-
   if (generateMode) {
-    writeFileSync(path.join(REPO_ROOT, GENERATED_REFERENCE_PATH), renderOntologyMdx(ontology));
-    writeFileSync(path.join(REPO_ROOT, GENERATED_MATRIX_PATH), renderEntityMatrixMdx(ontology));
-    writeFileSync(path.join(REPO_ROOT, GENERATED_CONCEPTS_PATH), renderConceptsMdx(ontology, claims));
-    writeFileSync(path.join(REPO_ROOT, GENERATED_MANIFEST_PATH), renderManifestJson(ontology, claims));
-    console.log(
-      `Generated ${GENERATED_REFERENCE_PATH}, ${GENERATED_MATRIX_PATH}, ${GENERATED_CONCEPTS_PATH}, and ${GENERATED_MANIFEST_PATH}.`
-    );
+    const reference = renderOntologyMdx(ontology, projections);
+    const matrix = renderEntityMatrixMdx(ontology);
+    const human = renderHumanOntologyMdx(ontology, projections);
+    const claims = renderMarketingClaimsMdx(projections);
+    const agent = renderAgentManifest(ontology, projections);
+    writeFileSync(path.join(REPO_ROOT, GENERATED_REFERENCE_PATH), reference);
+    writeFileSync(path.join(REPO_ROOT, GENERATED_MATRIX_PATH), matrix);
+    writeFileSync(path.join(REPO_ROOT, GENERATED_HUMAN_PATH), human);
+    writeFileSync(path.join(REPO_ROOT, GENERATED_CLAIMS_PATH), claims);
+    writeFileSync(path.join(REPO_ROOT, AGENT_MANIFEST_PATH), agent);
+    console.log("Generated 5 ontology projections (reference, matrix, human, claims, agent manifest).");
     return;
   }
 
   const { fatal, errors, findings, counts } = runGuards(ontology);
-  const glossaryAbs = path.join(REPO_ROOT, GLOSSARY_PATH);
-  const glossaryText = existsSync(glossaryAbs) ? readFileSync(glossaryAbs, "utf8") : null;
-  const projections = checkProjections(ontology, claims, glossaryText, new Date());
-  findings.push(...projections.findings);
   if (fatal.length > 0) {
     console.error("check-ontology: could not evaluate anchors:\n");
     for (const error of fatal) console.error(`- ${error}`);
     process.exit(2);
   }
 
-  errors.push(...checkGeneratedArtifacts(ontology, claims).errors);
+  errors.push(...checkGeneratedArtifacts(ontology, projections).errors);
 
   const baselineAbs = path.join(REPO_ROOT, BASELINE_PATH);
   if (!existsSync(baselineAbs)) {
@@ -1195,19 +1152,15 @@ function main() {
   console.log(`✅ solidity-enums: ${counts["solidity-enums"]} enums verified`);
   console.log(`✅ graphql-enums: ${counts["graphql-enums"]} enums verified`);
   console.log(`✅ shared-ts-vocab: ${counts["shared-ts-vocab"]} declarations verified`);
-  console.log(`✅ eas-schemas: ${counts["eas-schemas"]} schemas verified (↷ ${counts["eas-schemas-skipped"]} spec skipped)`);
-  console.log("✅ docs-glossary: entities, personas, capital ordering, and definitions locked");
+  console.log(`✅ eas-schemas: ${counts["eas-schemas"]} schemas verified (↷ ${counts["eas-schemas-skipped"]} specified skipped)`);
+  console.log("✅ docs-glossary: entity count, entities, personas, capital ordering, and definitions locked");
   console.log(`✅ mappings: ${counts.mappings} mappings verified`);
   console.log(`✅ spec-arrival: ${counts["spec-arrival"]} planned anchors watched`);
   console.log(`✅ pattern-watch: ${counts["pattern-watch"]} watches evaluated`);
-  console.log(
-    `✅ projections: ${projections.capCount} capabilities, ${projections.cardCount} concept cards, ${projections.claimCount} claims evidence-checked`
-  );
-  console.log(`✅ state-machines: ${projections.machineCount} machines atomic and endpoint-valid`);
-  console.log("✅ generated-staleness: 4 artifacts current and deterministic");
+  console.log("✅ generated-staleness: 5 artifacts current and deterministic");
   console.log(`✅ baseline: ${matched} finding(s) baselined`);
   for (const warning of warnings) console.log(`⚠️ ${warning}`);
-  console.log(`check-ontology: 13 guards passed, ${matched} baselined finding(s).`);
+  console.log(`check-ontology: all guards passed, ${matched} baselined finding(s).`);
 }
 
 const isDirectRun = process.argv[1] && path.resolve(process.argv[1]) === __filename;

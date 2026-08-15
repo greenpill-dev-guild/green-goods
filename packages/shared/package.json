@@ -36,7 +36,6 @@
     "./providers": "./src/providers/index.ts",
     "./profile-avatar": "./src/profile-avatar/index.ts",
     "./profile-avatar/protocol": "./src/profile-avatar/protocol.ts",
-    "./ontology-manifest": "./src/ontology/manifest.ts",
     "./public-contracts": "./src/public-contracts/index.ts",
     "./stores": "./src/stores/index.ts",
     "./styles": "./src/styles/theme.css",
