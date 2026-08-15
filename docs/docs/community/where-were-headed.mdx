@@ -5,172 +5,103 @@ slug: /community/where-were-headed
 sidebar_position: 4
 audience: all
 owner: docs
-last_verified: 2026-04-01
-feature_status: Live
+last_verified: 2026-08-15
+feature_status: In progress
 source_of_truth:
-  - docs/docs/builders/specs/v1-0.mdx
-  - docs/docs/builders/specs/revenue-explorer.mdx
-  - packages/shared/src/hooks/hypercerts
-  - packages/shared/src/hooks/vault
-  - packages/agent/src/index.ts
-  - packages/agent/src/handlers/submit.ts
+  - packages/shared/src/ontology/green-goods-projections.json
+  - .plans/active/commitment-pooling/status.json
+  - .plans/active/community-interface/status.json
 keywords:
   - strategy
   - roadmap
-  - goals
-  - partnerships
+  - impact
+  - coordination
   - capital formation
-  - success metrics
-  - regen stack
-  - greenwill
 ---
 
 import {NextBestAction} from "@site/src/components/docs";
 
 # Where We're Headed
 
-Green Goods is evolving from a field reporting tool into a **full-stack regenerative coordination platform** – connecting impact capture, community governance, and sustainable funding into one integrated system.
+Green Goods helps a community turn care for a place into a credible, portable record that can coordinate people and attract durable support.
 
----
+The story is one connected loop:
 
-## Vision & Strategy of Green Goods
+1. A **Garden** gives a community, its roles, and its records an accountable home.
+2. An **Assessment** names the baseline, desired change, and evidence standard.
+3. **Gardeners** submit **Work** as signed field records, including through the offline queue.
+4. **Operators** approve or reject that Work through a separate decision record.
+5. Approved evidence can support portable impact claims and funding decisions.
+6. Direct support, Cookie Jars, and Vaults help resources return to the work.
 
-### Our Long Term Vision
+Evaluators strengthen Assessments, methods, and impact claims. They do not approve or reject submitted Work; that authority belongs to Operators.
 
-Green Goods pursues three strategic goals, each reinforcing the others:
+## How to read this direction
 
-**1. Capital Formation** – Regenerative communities need sustainable funding, not one-off grants. Green Goods creates a cycle where **verified impact attracts capital**:
+Green Goods separates product availability from protocol and design maturity:
 
-- **Octant Vaults** – Yield-generating deposits where returns fund regenerative operations
-- **Hypercerts** – Tokenized impact certificates that funders can purchase
-- **RevNets** – Revenue-sharing token models for long-term community funding
-- **Conviction voting** – Communities signal which work matters most
+- **Available** means people can use the product flow now.
+- **Deployed, not available** means protocol capability exists onchain but its data and product surfaces are not ready.
+- **In build** means implementation exists in part, with activation or integration still incomplete.
+- **Planned** means the concept and intended behavior are specified but not implemented for use.
+- **Vision** is a direction we are exploring, not a delivery promise.
 
-**2. Impact Accessibility** – Impact reporting shouldn't require a grant writer or data scientist:
+The evidence-backed ledger is generated at [What Green Goods Can Honestly Claim](/community/green-goods-claims.generated). It is the safe source for partnership, grant, website, and campaign language.
 
-- **MDR workflow** – Evidence capture as simple as taking a photo
-- **AI agents** on WhatsApp/SMS for communities without smartphones
-- **Offline-first PWA** for low-connectivity environments
-- **Passkey authentication** eliminating wallet and seed phrase barriers
+## Available now
 
-**3. Coordination & Reputation** – Trust should be verifiable, not assumed:
+Today Green Goods can honestly say that communities can:
 
-- **Hats Protocol roles** – Transparent, revocable community permissions
-- **EAS attestations** – Permanent, portable records of verified work
-- **Gardens V2** – Conviction voting for community resource allocation
-- **ENS integration** – Human-readable identities for gardens and gardeners
+- organize roles and records around a shared Garden;
+- define Actions and Assessments;
+- capture Work in the field and sync it when connectivity returns;
+- have Operators record approval or rejection separately from the Work record;
+- use direct operational support and longer-term Vault deposits.
 
-### Our 2026 Strategy
+These are the foundation: evidence capture, accountable review, and funding rooted in a real community rather than a platform-owned profile.
 
-**Competitive moats** that strengthen over time:
+## Deployed protocol capability
 
-| Moat | Description |
-|------|-------------|
-| **Network effects** | More gardeners → more data → more funder confidence → more capital |
-| **Data moat** | Longitudinal impact data across 20+ communities builds unique evidence base |
-| **Capital moat** | Yield-backed vaults create compounding returns new entrants can't replicate |
-| **Switching costs** | Attestation history is portable, but workflow integration is sticky |
+Commitment Pooling is deployed on Arbitrum, unpaused, and has 18 registered pools. It can represent bounded Offers and Requests, cycles, recurring series, contributor rosters, evidence, confirmation, and non-transferable unit accounting.
 
----
+It is **not yet an available Green Goods product flow**. The indexer, shared state/API, and client/admin surfaces remain blocked. Settlement contracts are deployed but paused, with value authority disabled. We should describe this as deployed protocol capability, never as a feature communities can already use.
 
-## Where Green Goods Fits
+## In build
 
-Green Goods serves as the **field operations layer** in the Greenpill Dev Guild's approach to regenerative coordination. It is the entry point where physical regenerative work enters the digital verification and funding pipeline — connecting evidence capture to impact certification and capital formation.
+The Impact Certificate path has implemented and deployed foundations, but activation and indexing remain environment-dependent. Safe language is: Green Goods is building the path that turns Assessment-grounded, Operator-approved Work into portable Impact Certificates.
 
-If you want to test the funding assumptions behind this strategy, the builder docs include a [Protocol Revenue Explorer](/builders/specs/revenue-explorer) that models fees, TVL, Hypercert volume, treasury yield, and grants/contracts in one place.
+We are also connecting the deployed coordination protocol to readable product surfaces. That work must preserve the same calm distinction between promises, evidence, recognition, and payment that the contracts enforce.
 
-### How GreenWill Grows
+## Planned next
 
-**GreenWill** is the upcoming agentic layer that extends Green Goods into automated coordination:
+Community Needs & Signals begins the next part of the loop: communities name a **Need** and desired outcome before a solution is imposed. Signals, moderation, linked Commitments, and funding attribution can then build around it.
 
-- **Meeting-to-action pipelines** – Community meetings are transcribed, and action items are automatically created as on-chain tasks
-- **Agent-based reporting** – WhatsApp and SMS bots let gardeners submit work without a smartphone
-- **Automated evidence validation** – AI assists operators in reviewing submissions for completeness and consistency
-- **Cross-garden coordination** – GreenWill connects gardens that work on related ecological goals
+This layer is specified, not implemented. It should be described as planned until its contracts, joined reads, offline state, and Community/admin/funder surfaces are proven.
 
-### Public Good Staking Integration Points
+## Longer-term direction
 
-Green Goods connects to broader **public goods funding** mechanisms:
+The longer-term Green Goods picture is a community-owned coordination memory:
 
-- **Hypercerts Marketplace** – Verified impact certificates listed for purchase
-- **Octant Epoch Funding** – Community gardens eligible for quadratic funding rounds
-- **Gitcoin integration** – Impact data from Green Goods feeds into Gitcoin passport and funding rounds
-- **Squad Staking** – Community members can stake together to boost their garden's funding allocation
+- evidence remains portable beyond any single interface;
+- communities can name Needs and coordinate bounded commitments around them;
+- recognition reflects verified contribution rather than activity volume;
+- funding can support near-term operations and long-term capacity;
+- conversational tools can lower reporting barriers without hiding authority or inventing proof;
+- partner protocols can connect through explicit mappings instead of blurred claims.
 
----
+WhatsApp/SMS reporting, broader cross-garden coordination, additional identity systems, and new funding rails remain vision or planned work until the capability ledger carries stronger evidence.
 
-## Roadmap
+## The picture in one sentence
 
-### Q1 – Launch of v1 Beta connecting impact reporting with capital formation
-
-The v1 release brings together the full stack:
-
-- Offline-first work submission with photo evidence
-- Operator review and approval workflows
-- Hypercert minting from approved work batches
-- Vault deposits with yield tracking
-- Role management via Hats Protocol
-- EAS attestation chains (Work → Approval → Assessment)
-- Indexer for core state queries
-- Admin dashboard for garden operations
-
-### Q2 — Greenpill Garden Season with Arbitrum Support
-
-Funded by the **Arbitrum New Protocols and Ideas** grant, Q2 focuses on activating the Green Goods flywheel across partner gardens:
-
-- **Garden Season One** — 8+ gardens adopting the protocol across Nigeria, Cape Town, Brazil, Kenya, and the wider community network
-- **Hypercerts + Octant Vaults integration** — Connecting impact measurement to capital formation: verified work becomes Hypercerts, Octant Vault yield funds garden operations
-- **Recognition badges** — Unlock Protocol-based credentials for gardener contributions and milestones
-- **Agent-based reporting** — WhatsApp/SMS bots for communities without smartphones
-- **Karma GAP integration** — Enabling funders and evaluators to review impact across gardens
-
-### Q3/Q4 — Scaling and Sustainability
-
-- Expand garden network beyond Season One partners
-- Revenue generation through operator subscriptions and funder dashboards
-- Deepen Hypercert marketplace participation
-- Community-owned infrastructure exploration (RevNets, public goods staking)
-
----
-
-## Gardens In Season
-
-These communities are representative of the current live garden set participating in Garden Season One and testing the Green Goods protocol.
-
-**TAS HUB — Solar Infrastructure + Education** — Based in Awka, Nigeria, TAS HUB combines reliable power, internet access, and learning infrastructure. It is the clearest current live example of how Green Goods can connect solar operations, Ethereum-adjacent education, and verifiable local service delivery.
-
-**Muizenberg Community Garden — Waste + Community Food Systems** — Based in Cape Town, the Muizenberg garden uses Green Goods to document organic waste conversion, composting, planting, and harvest activity. It is a stronger current live reference for the waste domain than the older generic Cape Town framing.
-
-**AgroforestDAO — Agroforestry + Education** — Based in Minas Gerais, Brazil, AgroforestDAO uses Green Goods to document seasonal educational work and the spread of agroforestry culture. Portuguese language support remains critical for this community.
-
-**Greenpill Kenya — Education + Waste** — Greenpill Kenya is using Green Goods to document public goods programming and community sustainability initiatives. Its current live garden profile makes it a stronger reference for the education domain than older Uganda pilot language.
-
-### Partnerships
-
-**Active:**
-
-- **Hypercerts Foundation** – Impact certificate standard
-- **Hats Protocol** – Role-based access control
-- **Octant** – Yield-generating vault infrastructure
-- **Gardens V2** – Conviction voting and community governance
-- **EAS** – On-chain attestation infrastructure
-
-**Planned:**
-
-- **Unlock Protocol** – Token-gated credentials and badges
-- **Sarafu Network** – Community currency integration
-- **AgroforestryDAO** – DeSci data partnerships (Brazil)
-- **Fireflies.ai** – Meeting transcript processing for OpenClaw
-
----
+**Green Goods is the shared record and coordination layer that helps place-rooted communities show what they need, document what they do, verify decisions, recognize contribution, and bring resources back to the work.**
 
 <NextBestAction
-  title="Next: Gardener Guide"
-  why="Ready to participate? Start with the Gardener Guide to learn how to join a garden and begin documenting your work."
-  actionLabel="Joining a Garden"
-  actionHref="/community/gardener-guide/joining-a-garden"
+  title="Next: Green Goods in Human Terms"
+  why="Learn the canonical concepts, who touches them, how they relate, and what maturity each one has today."
+  actionLabel="Read the human ontology"
+  actionHref="/reference/ontology-human.generated"
   alternatives={[
-    { label: "Operator Guide", href: "/community/operator-guide/creating-a-garden" },
-    { label: "Builder Docs", href: "/builders/getting-started" }
+    { label: "Capability and claims ledger", href: "/community/green-goods-claims.generated" },
+    { label: "How Green Goods works", href: "/community/how-it-works" }
   ]}
 />

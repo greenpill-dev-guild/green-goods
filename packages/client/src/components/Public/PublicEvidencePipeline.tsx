@@ -141,10 +141,10 @@ export function PublicEvidencePipeline({
               title={
                 <EditorialTermTooltip
                   term="Impact Certificate"
-                  definition="A bundle of the season's approved Work, evaluator-verified and anchored to a public blockchain so the record stays readable beyond any one platform."
+                  definition="A bundle of approved Work grounded in an Assessment and anchored to a public blockchain so the record stays readable beyond any one platform."
                 />
               }
-              description="When the evidence is strong enough, the season's Work bundles into an Impact Certificate — evaluator-verified and recorded on a blockchain so the record outlasts any one platform."
+              description="When the evidence meets the Assessment standard, approved Work can bundle into an Impact Certificate — a portable record designed to outlast any one platform."
               closesCycle
             />
           </ol>
