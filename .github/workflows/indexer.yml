@@ -6,7 +6,6 @@ on:
     paths:
       - "package.json"
       - "bun.lock"
-      - "biome.json"
       - ".env.schema"
       - "packages/indexer/**"
       - "packages/contracts/src/**"
@@ -18,7 +17,6 @@ on:
     paths:
       - "package.json"
       - "bun.lock"
-      - "biome.json"
       - ".env.schema"
       - "packages/indexer/**"
       - "packages/contracts/src/**"

@@ -26,12 +26,12 @@
         ]
       },
       {
-        "matcher": "Write",
+        "matcher": "Write|Edit",
         "hooks": [
           {
             "type": "command",
             "command": "echo 'BLOCKED: Package-level .env files not allowed. Use root .env only.' >&2; exit 2",
-            "if": "Write(**/packages/*/.env*)",
+            "if": "Write|Edit(**/packages/*/.env*)",
             "statusMessage": "Checking env file location..."
           }
         ]
@@ -71,7 +71,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "CMD=$(cat | jq -r '.tool_input.command // empty'); if printf '%s' \"$CMD\" | grep -qE '(^|[;&|] *)git commit'; then cd \"$CLAUDE_PROJECT_DIR\" && bun lint --quiet 2>&1 | tail -5; fi; exit 0",
+            "command": "CMD=$(cat | jq -r '.tool_input.command // empty'); if printf '%s' \"$CMD\" | grep -qE '(^|[;&|] *)git commit'; then cd \"$CLAUDE_PROJECT_DIR\" && bun run lint 2>&1 | tail -5; fi; exit 0",
             "statusMessage": "Pre-commit lint check..."
           }
         ]
@@ -150,11 +150,11 @@
         "hooks": [
           {
             "type": "command",
-            "command": "FILE=$(cat | jq -r '.tool_input.file_path // empty'); if [ -n \"$FILE\" ] && echo \"$FILE\" | grep -qE '\\.(ts|tsx|js|jsx|json)$' && ! echo \"$FILE\" | grep -q 'packages/contracts/out/'; then npx @biomejs/biome format --write \"$FILE\" 2>/dev/null; fi; exit 0"
+            "command": "FILE=$(cat | jq -r '.tool_input.file_path // empty'); if [ -n \"$FILE\" ] && echo \"$FILE\" | grep -qE '\\.(ts|tsx|js|jsx|json)$' && ! echo \"$FILE\" | grep -q 'packages/contracts/out/'; then bunx @biomejs/biome format --write \"$FILE\" 2>/dev/null; fi; exit 0"
           },
           {
             "type": "command",
-            "command": "cd \"$CLAUDE_PROJECT_DIR/packages/shared\" && bunx tsc --noEmit 2>&1 | head -10; exit 0",
+            "command": "cd \"$CLAUDE_PROJECT_DIR/packages/shared\" && bun run typecheck 2>&1 | head -10; exit 0",
             "if": "Edit|Write(**/packages/shared/src/**)",
             "statusMessage": "Type-checking shared..."
           },

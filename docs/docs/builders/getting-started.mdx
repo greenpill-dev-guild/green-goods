@@ -232,6 +232,9 @@ bun run dev
 That includes the fork-backed app surfaces, agent, and Docker-backed indexer.
 For cross-repo orchestration, `dev launch green-goods` calls this same native
 repo command under workbench ownership.
+The workbench launches the canonical checkout registered in
+`.dev-surfaces/surfaces.json`. From an isolated worktree, run `bun run dev`
+inside that worktree so validation uses the code you are editing.
 
 The Docker-backed indexer is local infrastructure, but it mirrors the configured
 live networks into local Postgres/Hasura. Set `ENVIO_API_TOKEN` in the root

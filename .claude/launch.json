@@ -2,18 +2,6 @@
   "version": "0.0.1",
   "configurations": [
     {
-      "name": "proto",
-      "runtimeExecutable": "python3",
-      "runtimeArgs": ["-m", "http.server", "4601", "--directory", "/tmp/gg-proto"],
-      "port": 4601
-    },
-    {
-      "name": "gallery",
-      "runtimeExecutable": "python3",
-      "runtimeArgs": ["-m", "http.server", "4602", "--directory", "/tmp/gg-gallery"],
-      "port": 4602
-    },
-    {
       "name": "storybook",
       "runtimeExecutable": "bun",
       "runtimeArgs": ["run", "--filter", "@green-goods/shared", "storybook"],
