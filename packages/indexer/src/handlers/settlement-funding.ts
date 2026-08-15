@@ -110,7 +110,9 @@ indexer.onEvent(
   async ({ event, context }) => {
     const commitmentId = event.params.commitmentId;
     const funder = normalizeAddress(event.params.funder);
-    if (!(await putFundingAudit(event, context, "FUNDING_PLEDGED", commitmentId, funder))) return;
+    const recordedBy = normalizeAddress(event.params.recordedBy);
+    if (!(await putFundingAudit(event, context, "FUNDING_PLEDGED", commitmentId, recordedBy)))
+      return;
     const id = fundingEntityId(event.chainId, event.params.fundingId);
     const existing =
       (await context.CommitmentFunding.get(id)) ??

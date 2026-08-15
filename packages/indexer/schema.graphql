@@ -782,6 +782,8 @@ type Commitment {
   protocolFallbackEnabled: Boolean!
   confirmerRuleUpdateBlockNumber: BigInt # latest threshold-bearing ConfirmerRuleSet or ConfirmationRecorded event position
   confirmerRuleUpdateLogIndex: Int # nullable partner to confirmerRuleUpdateBlockNumber; compare the pair lexicographically
+  confirmerAuthorityUpdateBlockNumber: BigInt # latest ConfirmerRuleSet authority payload position
+  confirmerAuthorityUpdateLogIndex: Int # nullable partner to confirmerAuthorityUpdateBlockNumber; compare the pair lexicographically
   requiresAssessment: Boolean # null until creationSeen
   assessmentUID: String
   needUID: String # community Need this commitment addresses; null/zero when none (amendment 2026-07-04)

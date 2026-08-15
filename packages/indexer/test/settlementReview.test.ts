@@ -144,9 +144,13 @@ describe("Settlement review regressions", () => {
     db = await SettlementModule.FundingWithdrawn.processEvent({ event: withdrawn, mockDb: db });
     db = await SettlementModule.FundingWithdrawn.processEvent({ event: withdrawn, mockDb: db });
     let funding = await db.CommitmentFunding.get(`${CHAIN_ID}-60`);
+    const pledgeAudit = (await db.CommitmentEvent.getAll()).find(
+      (row) => row.eventType === "FUNDING_PLEDGED"
+    );
     assert.equal(funding?.state, "WITHDRAWN");
     assert.equal(funding?.withdrawnAt, 2);
     assert.equal(funding?.closedAt, 2);
+    assert.equal(pledgeAudit?.actor, address(7).toLowerCase());
 
     db = createTestIndexer();
     db = await SettlementModule.FundingWithdrawn.processEvent({ event: withdrawn, mockDb: db });

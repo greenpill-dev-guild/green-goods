@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 
 import { handleAccepted, handleClaimEvent } from "../src/handlers/commitment-pool-claims";
+import { handleCommitmentTerms } from "../src/handlers/commitment-pool-creation";
 import { handleLifecycle } from "../src/handlers/commitment-pool-lifecycle";
 import { sortedUnique } from "../src/handlers/commitment-pool-projections";
 import {
@@ -64,7 +65,8 @@ function commitmentCreated(
   commitmentId: bigint,
   blockNumber: number,
   direction = 0n,
-  payerGarden = address(1)
+  payerGarden = address(1),
+  recordedBy = address(2)
 ) {
   return CommitmentPoolingModule.CommitmentCreated.createMockEvent({
     commitmentId,
@@ -74,7 +76,7 @@ function commitmentCreated(
     creationRequestKey: hash(Number(commitmentId) + 100),
     creationPayloadHash: hash(Number(commitmentId) + 200),
     creator: address(2),
-    recordedBy: address(2),
+    recordedBy,
     direction,
     commitmentType: 0n,
     claimType: 1n,
@@ -124,6 +126,146 @@ describe("Commitment Pooling review regressions", () => {
   it("uses deterministic code-unit ordering and exact audit enum normalization", () => {
     assert.deepEqual(sortedUnique(["a", "B", "_", "-"]), ["-", "B", "_", "a"]);
     assert.equal(eventType("ModuleSchemaUIDUpdated"), "MODULE_SCHEMA_UID_UPDATED");
+  });
+
+  it("attributes steward-recorded creation to the explicit recorder", async () => {
+    const db = await processEvents(createTestIndexer(), [
+      poolRegistered(START_BLOCK),
+      cycleSeeded(START_BLOCK + 1),
+      commitmentCreated(39n, START_BLOCK + 2, 0n, address(1), address(8)),
+    ]);
+
+    const audit = (await db.CommitmentEvent.getAll()).find((row) => row.eventType === "CREATED");
+    assert.equal(audit?.actor, address(8).toLowerCase());
+  });
+
+  it("backfills consideration rail without regressing a newer payment receipt", async () => {
+    let db = await processEvents(createTestIndexer(), [
+      poolRegistered(START_BLOCK),
+      cycleSeeded(START_BLOCK + 1),
+      commitmentCreated(40n, START_BLOCK + 2),
+    ]);
+    const paid = CommitmentPoolingModule.ConsiderationPaid.createMockEvent({
+      commitmentId: 40n,
+      source: address(10),
+      recipient: address(11),
+      token: address(12),
+      amount: 100n,
+      payoutRef: hash(401),
+      recordedBy: address(13),
+      mockEventData: eventData(START_BLOCK + 6),
+    });
+    const declared = CommitmentPoolingModule.ConsiderationDeclared.createMockEvent({
+      commitmentId: 40n,
+      rail: 1n,
+      source: address(20),
+      token: address(21),
+      amount: 50n,
+      mockEventData: eventData(START_BLOCK + 5),
+    });
+    db = await CommitmentPoolingModule.ConsiderationPaid.processEvent({ event: paid, mockDb: db });
+    await handleCommitmentTerms(
+      runtimeEvent(declared, "ConsiderationDeclared"),
+      db as unknown as PoolingContext
+    );
+
+    const commitment = await db.Commitment.get(`${CHAIN_ID}-40`);
+    assert.equal(commitment?.considerationRail, "ARBITRUM_EXTERNAL");
+    assert.equal(commitment?.considerationSource, address(10).toLowerCase());
+    assert.equal(commitment?.considerationRecipient, address(11).toLowerCase());
+    assert.equal(commitment?.considerationToken, address(12).toLowerCase());
+    assert.equal(commitment?.considerationAmount, 100n);
+    assert.equal(commitment?.considerationPayoutRef, hash(401));
+    assert.equal(commitment?.considerationRecordedBy, address(13).toLowerCase());
+    assert.equal(commitment?.considerationUpdateBlockNumber, BigInt(START_BLOCK + 6));
+  });
+
+  it("keeps confirmer authority independent from the latest threshold cursor", async () => {
+    let db = await processEvents(createTestIndexer(), [
+      poolRegistered(START_BLOCK),
+      cycleSeeded(START_BLOCK + 1),
+      commitmentCreated(41n, START_BLOCK + 2),
+    ]);
+    db = await processEvents(db, [
+      CommitmentPoolingModule.ConfirmationRecorded.createMockEvent({
+        commitmentId: 41n,
+        confirmer: address(4),
+        confirmationCount: 1n,
+        threshold: 2n,
+        mockEventData: eventData(START_BLOCK + 6),
+      }),
+      CommitmentPoolingModule.ConfirmerRuleSet.createMockEvent({
+        commitmentId: 41n,
+        confirmers: [address(4), address(5)],
+        threshold: 1n,
+        protocolFallbackEnabled: true,
+        mockEventData: eventData(START_BLOCK + 5),
+      }),
+    ]);
+
+    let commitment = await db.Commitment.get(`${CHAIN_ID}-41`);
+    assert.equal(commitment?.confirmationThreshold, 2);
+    assert.equal(commitment?.confirmerRuleUpdateBlockNumber, BigInt(START_BLOCK + 6));
+    assert.deepEqual(
+      commitment?.confirmers,
+      sortedUnique([address(4), address(5)].map((value) => value.toLowerCase()))
+    );
+    assert.equal(commitment?.protocolFallbackEnabled, true);
+    assert.equal(commitment?.confirmerAuthorityUpdateBlockNumber, BigInt(START_BLOCK + 5));
+
+    db = await processEvents(db, [
+      CommitmentPoolingModule.ConfirmerRuleSet.createMockEvent({
+        commitmentId: 41n,
+        confirmers: [address(8)],
+        threshold: 3n,
+        protocolFallbackEnabled: false,
+        mockEventData: eventData(START_BLOCK + 8),
+      }),
+      CommitmentPoolingModule.ConfirmerRuleSet.createMockEvent({
+        commitmentId: 41n,
+        confirmers: [address(9)],
+        threshold: 1n,
+        protocolFallbackEnabled: true,
+        mockEventData: eventData(START_BLOCK + 7),
+      }),
+    ]);
+    commitment = await db.Commitment.get(`${CHAIN_ID}-41`);
+    assert.equal(commitment?.confirmationThreshold, 3);
+    assert.deepEqual(commitment?.confirmers, [address(8).toLowerCase()]);
+    assert.equal(commitment?.protocolFallbackEnabled, false);
+    assert.equal(commitment?.confirmerAuthorityUpdateBlockNumber, BigInt(START_BLOCK + 8));
+  });
+
+  it("records dispute facts when a newer resolution owns the lifecycle cursor", async () => {
+    let db = await processEvents(createTestIndexer(), [
+      poolRegistered(START_BLOCK),
+      cycleSeeded(START_BLOCK + 1),
+      commitmentCreated(42n, START_BLOCK + 2),
+    ]);
+    db = await processEvents(db, [
+      CommitmentPoolingModule.DisputeResolved.createMockEvent({
+        commitmentId: 42n,
+        resolution: 0n,
+        finalState: 5n,
+        reasonCID: "ipfs://resolved",
+        mockEventData: eventData(START_BLOCK + 8),
+      }),
+      CommitmentPoolingModule.CommitmentDisputed.createMockEvent({
+        commitmentId: 42n,
+        raiser: address(6),
+        previousState: 3n,
+        reasonCID: "ipfs://dispute-fact",
+        mockEventData: eventData(START_BLOCK + 7),
+      }),
+    ]);
+
+    const commitment = await db.Commitment.get(`${CHAIN_ID}-42`);
+    const raiser = await db.PoolMemberHistory.get(`${CHAIN_ID}-7-${address(6).toLowerCase()}`);
+    assert.equal(commitment?.state, "FULFILLED");
+    assert.equal(commitment?.lifecycleBlockNumber, BigInt(START_BLOCK + 8));
+    assert.equal(commitment?.preDisputeState, "ACCEPTED");
+    assert.equal(commitment?.disputeReasonCID, "ipfs://dispute-fact");
+    assert.equal(raiser?.disputesRaised, 1);
   });
 
   it("reconciles child identity, registry materialization, and a blocked pool close", async () => {

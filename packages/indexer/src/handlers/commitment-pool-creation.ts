@@ -237,15 +237,22 @@ export async function handleCommitmentTerms(
   const commitmentId = value<bigint>(event, "commitmentId");
   const commitment = await getCommitment(event, context, commitmentId);
   if (event.eventName === "ConsiderationDeclared") {
-    if (
-      !cursorWins(
-        event.block.number,
-        event.logIndex,
-        commitment.considerationUpdateBlockNumber,
-        commitment.considerationUpdateLogIndex
-      )
-    )
+    const declarationWins = cursorWins(
+      event.block.number,
+      event.logIndex,
+      commitment.considerationUpdateBlockNumber,
+      commitment.considerationUpdateLogIndex
+    );
+    if (!declarationWins) {
+      if (commitment.considerationRail === undefined) {
+        context.Commitment.set({
+          ...commitment,
+          considerationRail: considerationRail(value<bigint>(event, "rail")),
+          updatedAt: Math.max(commitment.updatedAt, event.block.timestamp),
+        });
+      }
       return;
+    }
     context.Commitment.set({
       ...commitment,
       considerationRail: considerationRail(value<bigint>(event, "rail")),
@@ -278,22 +285,42 @@ export async function handleCommitmentTerms(
     });
     return;
   }
-  if (
-    !cursorWins(
-      event.block.number,
-      event.logIndex,
-      commitment.confirmerRuleUpdateBlockNumber,
-      commitment.confirmerRuleUpdateLogIndex
-    )
-  )
-    return;
+  const thresholdWins = cursorWins(
+    event.block.number,
+    event.logIndex,
+    commitment.confirmerRuleUpdateBlockNumber,
+    commitment.confirmerRuleUpdateLogIndex
+  );
+  const authorityWins = cursorWins(
+    event.block.number,
+    event.logIndex,
+    commitment.confirmerAuthorityUpdateBlockNumber,
+    commitment.confirmerAuthorityUpdateLogIndex
+  );
+  if (!thresholdWins && !authorityWins) return;
   context.Commitment.set({
     ...commitment,
-    confirmers: sortedUnique(value<readonly string[]>(event, "confirmers").map(normalizeAddress)),
-    confirmationThreshold: Number(value<bigint>(event, "threshold")),
-    protocolFallbackEnabled: value<boolean>(event, "protocolFallbackEnabled"),
-    confirmerRuleUpdateBlockNumber: BigInt(event.block.number),
-    confirmerRuleUpdateLogIndex: event.logIndex,
+    confirmers: authorityWins
+      ? sortedUnique(value<readonly string[]>(event, "confirmers").map(normalizeAddress))
+      : commitment.confirmers,
+    confirmationThreshold: thresholdWins
+      ? Number(value<bigint>(event, "threshold"))
+      : commitment.confirmationThreshold,
+    protocolFallbackEnabled: authorityWins
+      ? value<boolean>(event, "protocolFallbackEnabled")
+      : commitment.protocolFallbackEnabled,
+    confirmerRuleUpdateBlockNumber: thresholdWins
+      ? BigInt(event.block.number)
+      : commitment.confirmerRuleUpdateBlockNumber,
+    confirmerRuleUpdateLogIndex: thresholdWins
+      ? event.logIndex
+      : commitment.confirmerRuleUpdateLogIndex,
+    confirmerAuthorityUpdateBlockNumber: authorityWins
+      ? BigInt(event.block.number)
+      : commitment.confirmerAuthorityUpdateBlockNumber,
+    confirmerAuthorityUpdateLogIndex: authorityWins
+      ? event.logIndex
+      : commitment.confirmerAuthorityUpdateLogIndex,
     updatedAt: Math.max(commitment.updatedAt, event.block.timestamp),
   });
 }

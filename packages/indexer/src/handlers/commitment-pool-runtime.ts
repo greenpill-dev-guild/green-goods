@@ -98,6 +98,10 @@ export function optionalBytes32(event: RuntimeEvent, key: string): string | unde
 }
 
 export function firstExplicitActor(event: RuntimeEvent): string | undefined {
+  if (event.eventName === "CommitmentCreated") {
+    const recordedBy = event.params.recordedBy;
+    if (typeof recordedBy === "string") return normalizeAddress(recordedBy);
+  }
   for (const key of [
     "actor",
     "creator",

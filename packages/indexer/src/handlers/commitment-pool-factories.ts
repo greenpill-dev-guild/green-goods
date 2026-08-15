@@ -199,6 +199,8 @@ export function createCommitment(
     protocolFallbackEnabled: false,
     confirmerRuleUpdateBlockNumber: undefined,
     confirmerRuleUpdateLogIndex: undefined,
+    confirmerAuthorityUpdateBlockNumber: undefined,
+    confirmerAuthorityUpdateLogIndex: undefined,
     requiresAssessment: undefined,
     assessmentUID: undefined,
     needUID: undefined,

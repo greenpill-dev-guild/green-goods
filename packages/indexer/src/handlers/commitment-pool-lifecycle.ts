@@ -54,7 +54,7 @@ export async function handleLifecycle(event: RuntimeEvent, context: PoolingConte
     commitment.lifecycleBlockNumber,
     commitment.lifecycleLogIndex
   );
-  const updated = await applyLifecycleState(
+  let updated = await applyLifecycleState(
     context,
     commitment,
     state,
@@ -84,6 +84,24 @@ export async function handleLifecycle(event: RuntimeEvent, context: PoolingConte
       event.block.timestamp
     );
   }
+  if (event.eventName === "CommitmentDisputed") {
+    if (!lifecycleWins) {
+      updated = {
+        ...updated,
+        preDisputeState: updated.preDisputeState ?? preDisputeState,
+        disputeReasonCID: updated.disputeReasonCID ?? disputeReasonCID,
+        updatedAt: Math.max(updated.updatedAt, event.block.timestamp),
+      } satisfies Commitment;
+      context.Commitment.set(updated);
+    }
+    await recordMemberEvent(
+      context,
+      updated,
+      normalizeAddress(value<string>(event, "raiser")),
+      "disputesRaised",
+      event.block.timestamp
+    );
+  }
   if (!lifecycleWins) return;
 
   if (
@@ -95,15 +113,6 @@ export async function handleLifecycle(event: RuntimeEvent, context: PoolingConte
       updated,
       undefined,
       updated.state === "CANCELLED" ? "COMMITMENT_CANCELLED" : "COMMITMENT_EXPIRED",
-      event.block.timestamp
-    );
-  }
-  if (event.eventName === "CommitmentDisputed") {
-    await recordMemberEvent(
-      context,
-      updated,
-      normalizeAddress(value<string>(event, "raiser")),
-      "disputesRaised",
       event.block.timestamp
     );
   }
