@@ -267,6 +267,33 @@ describe("modules/data/greengoods", () => {
       expect(result[0].title).toBe("Planting Trees");
     });
 
+    it("surfaces unrecognized indexer domains as null instead of coercing to SOLAR", async () => {
+      const mockActions = [
+        {
+          id: "42161-9",
+          chainId: 42161,
+          startTime: "1700000000",
+          endTime: "1800000000",
+          title: "Future Domain Action",
+          slug: "future.new_thing",
+          instructions: null,
+          capitals: [],
+          media: [],
+          domain: "UNKNOWN", // the indexer's forward-compat sentinel
+          createdAt: "1700000000",
+        },
+      ];
+
+      mockQuery.mockResolvedValue({
+        data: { Action: mockActions },
+      });
+
+      const result = await getActions();
+
+      expect(result).toHaveLength(1);
+      expect(result[0].domain).toBeNull();
+    });
+
     it("handles indexer unavailable gracefully", async () => {
       mockQuery.mockResolvedValue({
         error: { message: "Connection refused" },
@@ -275,26 +302,6 @@ describe("modules/data/greengoods", () => {
       const result = await getActions();
 
       expect(result).toEqual([]);
-    });
-
-    it("omits an action whose indexer domain is unknown", async () => {
-      mockQuery.mockResolvedValue({
-        data: {
-          Action: [
-            {
-              id: "11155111-unknown",
-              title: "Unknown domain",
-              slug: "unknown.action",
-              domain: "UNKNOWN",
-              capitals: [],
-              media: [],
-            },
-          ],
-        },
-      });
-
-      await expect(getActions()).resolves.toEqual([]);
-      expect(mockGetFileByHash).not.toHaveBeenCalled();
     });
 
     it("handles action without instructions gracefully", async () => {

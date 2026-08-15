@@ -121,10 +121,9 @@ export function ActionDetailPanel({
     defaultMessage:
       lifecycle === "active" ? "Active" : lifecycle === "upcoming" ? "Upcoming" : "Completed",
   });
-  const domainLabel = formatMessage({
-    id: DOMAIN_CONFIG[action.domain]?.labelId ?? "app.admin.nav.actions",
-  });
-  const DomainIcon = DOMAIN_CONFIG[action.domain]?.icon;
+  const domainConfig = action.domain !== null ? DOMAIN_CONFIG[action.domain] : undefined;
+  const domainLabel = formatMessage({ id: domainConfig?.labelId ?? "app.domain.tab.unknown" });
+  const DomainIcon = domainConfig?.icon;
 
   return (
     <div className="space-y-4 p-4 sm:p-5">

@@ -157,7 +157,7 @@ export function PublicEvidenceDialog({ open, onClose, record, garden }: PublicEv
     sourceRefs.push({
       label: formatMessage({
         id: "public.impact.dialog.refs.awaiting",
-        defaultMessage: "Awaiting evaluator",
+        defaultMessage: "Awaiting operator review",
       }),
       pending: true,
     });

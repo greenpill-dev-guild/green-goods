@@ -14,7 +14,7 @@ const messages: Record<string, string> = {
   "public.impact.dialog.openSource": "Open ↗",
   "public.impact.dialog.pending": "Pending",
   "public.impact.dialog.recordHeader": "Evidence record · № {id}",
-  "public.impact.dialog.refs.awaiting": "Awaiting evaluator",
+  "public.impact.dialog.refs.awaiting": "Awaiting operator review",
   "public.impact.dialog.refs.certificate": "Impact Certificate",
   "public.impact.dialog.sourceRecords": "Source records",
   "public.impact.evidence.viewSource": "View source",

@@ -234,13 +234,15 @@ export async function getActions(): Promise<Action[]> {
           instructions,
           createdAt,
         }) => {
+          // Unknown domains surface as null rather than dropping the action:
+          // hiding it would strand a real submittable action, and consumers
+          // render null-domain actions in their own explicit "Other" group.
           const parsedDomain = parseIndexerDomain(domain as string | undefined);
           if (parsedDomain === null) {
-            logger.warn("[getActions] Ignoring action with unknown domain", {
+            logger.warn("[getActions] Action has an unrecognized domain", {
               actionId: id,
               domain,
             });
-            return null;
           }
           const actionSlug = typeof slug === "string" ? slug : "";
           const fallbackConfig = getActionInstructionFallback(actionSlug);
