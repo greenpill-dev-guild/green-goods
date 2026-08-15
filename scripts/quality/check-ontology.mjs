@@ -909,10 +909,13 @@ export function checkProjections(ontology, claims, glossaryText) {
   const capByEntity = new Map(capabilities.map((c) => [c.entity, c]));
   const today = new Date().toISOString().slice(0, 10);
   const fileOk = (rel) => typeof rel === "string" && existsSync(path.join(REPO_ROOT, rel));
-  const jsonPathOk = (rel, pointer) => {
+  const jsonPathOk = (rel, pointer, expected) => {
     try {
       let value = JSON.parse(readFileSync(path.join(REPO_ROOT, rel), "utf8"));
       for (const part of pointer.split(".")) value = value?.[part];
+      // An explicit `equals` pins the proven value: a paused flag flipping
+      // from false to true must fail the gate, not merely "still resolve".
+      if (expected !== undefined) return value === expected;
       return isMeaningfulEvidenceValue(value);
     } catch {
       return false;
@@ -925,8 +928,15 @@ export function checkProjections(ontology, claims, glossaryText) {
     }
     for (const item of evidence) {
       if (!fileOk(item?.file)) push("projections", subject, `${label} evidence path missing: ${item?.file}`);
-      else if (item.json_path && (!item.file.endsWith(".json") || !jsonPathOk(item.file, item.json_path)))
-        push("projections", subject, `${label} evidence json_path unresolvable: ${item.file}#${item.json_path}`);
+      else if (
+        item.json_path &&
+        (!item.file.endsWith(".json") || !jsonPathOk(item.file, item.json_path, item.equals))
+      )
+        push(
+          "projections",
+          subject,
+          `${label} evidence json_path unresolvable or off-expectation: ${item.file}#${item.json_path}`
+        );
     }
   };
   const checkVerifiedAt = (subject, label, value) => {

@@ -1244,9 +1244,9 @@
     },
     {
       "id": "operator-review-with-confidence",
-      "claim": "Operators review every submission and sign off with a confidence band and verification method.",
+      "claim": "Operator approval is what turns submitted work into verified impact — recorded with a confidence band and verification method.",
       "maturity": "available",
-      "safe_wording": "Operators — not evaluators — approve or reject work; the approval writes confidence and verification method permanently on-chain."
+      "safe_wording": "Operators — not evaluators — approve or reject submissions, writing confidence and verification method permanently on-chain. Approval gates verified impact; a decision is not guaranteed for every submission (actions can expire unreviewed)."
     },
     {
       "id": "vault-endowments",
@@ -1262,9 +1262,9 @@
     },
     {
       "id": "greenwill-badges",
-      "claim": "Gardeners claim recognition badges for milestones like their first approved work.",
+      "claim": "Gardeners claim recognition badges for milestones like their first submitted work.",
       "maturity": "available",
-      "safe_wording": "GreenWill badges are live on Arbitrum with an in-app claim flow (genesis, first work, first support)."
+      "safe_wording": "GreenWill badges are live on Arbitrum with an in-app claim flow (genesis, first submitted work, first support) — the contract validates the Work attestation, not its approval."
     },
     {
       "id": "impact-certificates",

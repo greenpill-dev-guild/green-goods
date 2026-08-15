@@ -2132,7 +2132,7 @@
   "app.profile.help.faq.pools.question": "What are pools?",
   "app.profile.help.faq.profileName.answer": "Open your Profile to claim a personal Green Goods name. Type the name you want, check that it's available, and tap Claim name. To change your picture, tap the profile photo and choose an image. Green Goods shows your app photo first, then your ENS photo, then the default.",
   "app.profile.help.faq.profileName.question": "How do I set my name and picture?",
-  "app.profile.help.faq.reviewAndApproval.answer": "Operators review each submission and approve or return it with feedback. Your work is on-chain from submission (offline work lands when it syncs); approval adds a linked record that counts it toward the garden's verified impact.",
+  "app.profile.help.faq.reviewAndApproval.answer": "Operators review submissions and approve or return them with feedback. Your work is on-chain from submission (offline work lands when it syncs); approval adds a linked record that counts it toward the garden's verified impact.",
   "app.profile.help.faq.reviewAndApproval.question": "What happens after I submit work?",
   "app.profile.help.faq.sendingFunds.answer": "Open Garden funds and choose Send. You can send GOODS (the community token that carries voting power) or stablecoins to any address or garden member. Scan a QR code, paste an address, or search by name, review the details, and send.",
   "app.profile.help.faq.sendingFunds.question": "How do I send funds?",

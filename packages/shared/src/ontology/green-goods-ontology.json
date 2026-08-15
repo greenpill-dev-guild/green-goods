@@ -4223,7 +4223,8 @@
           "evidence": [
             {
               "file": "packages/contracts/deployments/42161-latest.json",
-              "json_path": "commitmentPoolingModulePaused"
+              "json_path": "commitmentPoolingModulePaused",
+              "equals": false
             },
             {
               "file": ".plans/active/commitment-pooling/status.json"
@@ -4288,7 +4289,8 @@
           "evidence": [
             {
               "file": "packages/contracts/deployments/42161-latest.json",
-              "json_path": "commitmentPoolingModulePaused"
+              "json_path": "commitmentPoolingModulePaused",
+              "equals": false
             },
             {
               "file": ".plans/active/commitment-pooling/status.json"
@@ -4353,7 +4355,8 @@
           "evidence": [
             {
               "file": "packages/contracts/deployments/42161-latest.json",
-              "json_path": "commitmentPoolingModulePaused"
+              "json_path": "commitmentPoolingModulePaused",
+              "equals": false
             },
             {
               "file": ".plans/active/commitment-pooling/status.json"
@@ -4418,7 +4421,8 @@
           "evidence": [
             {
               "file": "packages/contracts/deployments/42161-latest.json",
-              "json_path": "commitmentPoolingModulePaused"
+              "json_path": "commitmentPoolingModulePaused",
+              "equals": false
             },
             {
               "file": ".plans/active/commitment-pooling/status.json"
@@ -4483,7 +4487,8 @@
           "evidence": [
             {
               "file": "packages/contracts/deployments/42161-latest.json",
-              "json_path": "commitmentPoolingModulePaused"
+              "json_path": "commitmentPoolingModulePaused",
+              "equals": false
             },
             {
               "file": ".plans/active/commitment-pooling/status.json"

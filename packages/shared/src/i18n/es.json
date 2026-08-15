@@ -2132,7 +2132,7 @@
   "app.profile.help.faq.pools.question": "¿Qué son las pools?",
   "app.profile.help.faq.profileName.answer": "Abre tu Perfil para reclamar un nombre personal de Green Goods. Escribe el nombre que quieras, comprueba que esté disponible y toca Reclamar nombre. Para cambiar tu foto, toca la foto de perfil y elige una imagen. Green Goods muestra primero tu foto de la app, después tu foto de ENS y luego la predeterminada.",
   "app.profile.help.faq.profileName.question": "¿Cómo configuro mi nombre y mi foto?",
-  "app.profile.help.faq.reviewAndApproval.answer": "Los operadores revisan cada envío y lo aprueban o lo devuelven con comentarios. Tu trabajo está en la cadena desde el envío (el trabajo sin conexión llega al sincronizarse); la aprobación añade un registro vinculado que lo cuenta para el impacto verificado del jardín.",
+  "app.profile.help.faq.reviewAndApproval.answer": "Los operadores revisan los envíos y los aprueban o devuelven con comentarios. Tu trabajo está en la cadena desde el envío (el trabajo sin conexión llega al sincronizarse); la aprobación añade un registro vinculado que lo cuenta para el impacto verificado del jardín.",
   "app.profile.help.faq.reviewAndApproval.question": "¿Qué pasa después de enviar trabajo?",
   "app.profile.help.faq.sendingFunds.answer": "Abre Fondos del jardín y elige Enviar. Puedes enviar GOODS (el token comunitario que otorga poder de voto) o stablecoins a cualquier dirección o miembro del jardín. Escanea un código QR, pega una dirección o busca por nombre, revisa los detalles y envía.",
   "app.profile.help.faq.sendingFunds.question": "¿Cómo envío fondos?",

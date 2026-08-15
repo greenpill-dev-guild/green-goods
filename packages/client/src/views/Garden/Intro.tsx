@@ -99,12 +99,13 @@ export const WorkIntro: React.FC<WorkIntroProps> = ({
             ? domains[0]
             : null;
 
-      // Unknown-domain actions (a.domain === null) never join a named tab —
-      // that would mislabel them — and never disappear: they render in their
-      // own "Other" group below the tabbed carousel.
+      // Unknown-domain actions (a.domain === null) never join the named
+      // carousel — even when no effective domain exists — so they are never
+      // mislabeled or duplicated: they render only in their own "Other" group.
       const unknownDomainActions = active.filter((a) => a.domain === null);
+      const knownActions = active.filter((a) => a.domain !== null);
       const domainActions =
-        effective !== null ? active.filter((a) => a.domain === effective) : active;
+        effective !== null ? knownActions.filter((a) => a.domain === effective) : knownActions;
 
       // Gardens without a domainMask (0 or undefined) pass through all filters.
       const domainGardens =
@@ -199,16 +200,19 @@ export const WorkIntro: React.FC<WorkIntroProps> = ({
             </CarouselItem>
           )}
 
-          {actionsStatus === "success" && actions.length > 0 && filteredActions.length === 0 && (
-            <CarouselItem className="basis-full max-w-full">
-              <div className="flex h-[13.25rem] w-full items-center rounded-lg border border-dashed border-stroke-soft-200 bg-bg-weak-50 p-4 text-sm leading-5 text-text-sub-600">
-                {intl.formatMessage({
-                  id: "app.garden.noActiveActions",
-                  defaultMessage: "No active actions at this time.",
-                })}
-              </div>
-            </CarouselItem>
-          )}
+          {actionsStatus === "success" &&
+            actions.length > 0 &&
+            filteredActions.length === 0 &&
+            unknownActions.length === 0 && (
+              <CarouselItem className="basis-full max-w-full">
+                <div className="flex h-[13.25rem] w-full items-center rounded-lg border border-dashed border-stroke-soft-200 bg-bg-weak-50 p-4 text-sm leading-5 text-text-sub-600">
+                  {intl.formatMessage({
+                    id: "app.garden.noActiveActions",
+                    defaultMessage: "No active actions at this time.",
+                  })}
+                </div>
+              </CarouselItem>
+            )}
 
           {filteredActions.length > 0 &&
             filteredActions.map((action) => {

@@ -685,3 +685,17 @@ test("every projection evidence path is covered by the Ontology ci-gate matcher"
     );
   }
 });
+
+test("evidence equals pins the resolved value (paused flag flipping fails the gate)", () => {
+  const pinned = structuredClone(projOntology);
+  // Root package.json "private" is true — expecting true passes, false fails.
+  pinned.capabilities[0].dimensions.activation.evidence = [
+    { file: "package.json", json_path: "private", equals: true },
+  ];
+  assert.deepEqual(checkProjections(pinned, projClaims, null).findings, []);
+  pinned.capabilities[0].dimensions.activation.evidence = [
+    { file: "package.json", json_path: "private", equals: false },
+  ];
+  const { findings } = checkProjections(pinned, projClaims, null);
+  assert.ok(findings.some((f) => f.detail.includes("off-expectation")));
+});

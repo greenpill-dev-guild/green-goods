@@ -210,6 +210,8 @@ export interface CapabilityEvidence {
   file: string;
   /** Dot path into a JSON evidence file; the drift gate fails if it no longer resolves. */
   json_path?: string;
+  /** Pins the resolved json_path value (e.g. a paused flag must equal false); drift fails the gate. */
+  equals?: string | number | boolean;
   note?: string;
 }
 
