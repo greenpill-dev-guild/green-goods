@@ -25,8 +25,16 @@
 // banned-vocabulary / steward / quiet-admin / chain-placement scans.
 // One-shot op per CLAUDE.md scripts policy — lives in .plans, not scripts/.
 import { readFileSync, writeFileSync } from "node:fs";
+import {
+  COMPONENT_COUNTS,
+  COMPONENTS_TAB_HTML,
+  COVERED_KIT_BUILDERS,
+  GALLERY_ERRORS,
+  GALLERY_SCAN_INPUT,
+} from "./hifi/components";
 import { iconSprite } from "./hifi/icons";
 import { SB_ROUTE_ALIASES, SBS } from "./hifi/journeys";
+import * as kitAll from "./hifi/kit";
 import { PLAYER_JS } from "./hifi/player";
 import {
   HIFI_CSS,
@@ -47,7 +55,7 @@ import {
   TABLES,
 } from "./hifi/screens/index";
 import { CHAPTERS, FLOW_GROUPS, ROLES } from "./hifi/types";
-import { normalizeAndValidate } from "./hifi/validate";
+import { normalizeAndValidate, scanGalleryHtml } from "./hifi/validate";
 
 const OUT = process.env.OUT ?? "/tmp/commitment-pooling-prototypes.html";
 
@@ -71,7 +79,17 @@ if (!HIFI_CSS.includes("transform:scale(var(--phone-scale))"))
   frameContractErrors.push("FRAME CSS: phone shell must fit the review canvas with uniform scaling");
 if (!HIFI_CSS.includes(".device .phonefit,") || HIFI_CSS.includes(".device .phone,"))
   frameContractErrors.push("FRAME CSS: entry motion must animate the fit wrapper without overriding phone scaling");
-const allErrors = [...BUILD_ERRORS, ...errors, ...frameContractErrors];
+// Components-tab gallery: structural checks from the module itself, the same
+// copy/control scans the screens get (new call sites, unchanged rules), and a
+// completeness gate — every kit builder must have a gallery entry, so the tab
+// can never silently fall behind the kit.
+const galleryErrors: string[] = [...GALLERY_ERRORS];
+for (const { surface, specimens, chromeText } of GALLERY_SCAN_INPUT)
+  galleryErrors.push(...scanGalleryHtml(surface, specimens, chromeText));
+for (const [name, value] of Object.entries(kitAll))
+  if (typeof value === "function" && !COVERED_KIT_BUILDERS.has(name))
+    galleryErrors.push(`COMPONENTS: kit builder ${name} has no gallery entry`);
+const allErrors = [...BUILD_ERRORS, ...errors, ...frameContractErrors, ...galleryErrors];
 for (const w of warnings) console.warn("WARN", w);
 if (allErrors.length > 0) {
   for (const e of allErrors) console.error(e);
@@ -349,8 +367,54 @@ body{margin:0;background:var(--canvas);color:var(--ink);
 .chromebtn[aria-pressed="false"] .tb-dark{display:inline-flex}
 .chromebtn[aria-pressed="true"] .tb-light{display:inline-flex}
 .chromebtn svg{width:15px;height:15px;fill:currentColor;flex:none}
-#tab-doc,#tab-play,#tab-screens{display:none}
-#tab-doc.on,#tab-play.on,#tab-screens.on{display:block}
+#tab-doc,#tab-play,#tab-screens,#tab-comps{display:none}
+#tab-doc.on,#tab-play.on,#tab-screens.on,#tab-comps.on{display:block}
+
+/* ---- Components tab (component-library contract, 2026-08-14) ---- */
+#comps{max-width:1180px;margin:0 auto;padding:26px 20px 60px}
+#comps h1{font-size:21px;margin:0 0 4px;text-wrap:balance}
+#comps .sub{color:var(--stone);font-size:13px;margin:0 0 14px;max-width:88ch}
+.cindex{display:flex;flex-direction:column;gap:4px;margin:0 0 18px;border:1px solid var(--line);border-radius:12px;background:var(--panel);padding:10px 12px;font-size:12px}
+.cindex .cig{display:flex;flex-wrap:wrap;gap:2px 4px;align-items:center}
+.cindex b{font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--stone);margin-right:6px;font-weight:700}
+.cindex a{color:var(--accent-ink);text-decoration:none;padding:3px 7px;border-radius:6px}
+.cindex a:hover{background:var(--canvas)}
+.cfam h3{margin:26px 0 6px;font-size:12px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--stone)}
+.centry{border:1px solid var(--line);border-radius:12px;background:var(--panel);padding:14px 16px 12px;margin:10px 0;scroll-margin-top:64px}
+.centry.hl{outline:2px solid var(--accent);outline-offset:2px}
+.chead{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.chead h4{margin:0;font-size:15px}
+.ckit{font:11px ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--stone);background:var(--canvas);border:1px solid var(--line);border-radius:5px;padding:1px 7px}
+.complink{margin-left:auto;border:1px solid var(--line);background:var(--canvas);color:var(--stone);border-radius:7px;min-width:34px;min-height:34px;cursor:pointer;font-size:14px}
+.complink:hover{color:var(--ink);border-color:var(--accent-ink)}
+.complink.copied::after{content:" copied";font-size:10.5px;color:var(--accent-ink)}
+.complink.copyfail::after{content:" copy failed";font-size:10.5px;color:var(--amber)}
+.ctag{font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;border-radius:99px;padding:2px 8px}
+.ctag.new{background:color-mix(in srgb,var(--accent) 14%,transparent);color:var(--accent-ink)}
+.ctag.drift{background:var(--amber-bg);color:var(--amber)}
+.ctag.delib{background:var(--chipw);color:var(--stone)}
+.cship,.cused{margin:6px 0 0;font-size:12.5px;color:var(--stone)}
+.cship code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px}
+.cship.netnew{color:var(--accent-ink)}
+.crule{margin:6px 0 0;font-size:12.5px;color:var(--ink);max-width:88ch}
+.cdrift{margin:6px 0 0;font-size:12.5px;color:var(--amber);border-left:3px solid var(--amber);background:var(--amber-bg);border-radius:0 6px 6px 0;padding:4px 9px;max-width:88ch}
+.cdelib{margin:6px 0 0;font-size:12.5px;color:var(--stone);border-left:3px solid var(--line);padding-left:9px;max-width:88ch}
+.cspecs{display:flex;flex-wrap:wrap;gap:12px;margin:12px 0 2px;align-items:flex-start}
+.spec{margin:0;display:flex;flex-direction:column;gap:5px;min-width:0;max-width:100%}
+.spec figcaption{font:11px ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--stone)}
+.specbox{border:1px solid var(--line);border-radius:10px;padding:14px;background:var(--cv);overflow:auto}
+.spec.w-p .specbox{width:358px;max-width:100%}
+.spec.w-m .specbox{width:min(560px,100%)}
+.spec.w-l{flex:1 1 100%}
+.spec.w-l .specbox{width:100%}
+.spec.w-frame .specbox{padding:10px}
+.zoomwrap{width:calc(${PHONE_SHELL_WIDTH}px*.5);height:calc(${PHONE_SHELL_HEIGHT}px*.5);overflow:hidden}
+.zoomwrap>.phonefit{transform:scale(.5);transform-origin:top left}
+.specbox[style*="height"]{display:flex;flex-direction:column}
+.specbox[style*="height"]>.sheetstage,.specbox[style*="height"]>.dlgstage,
+.specbox[style*="height"]>.deskwin,.specbox[style*="height"]>.webwin{flex:1;min-height:0}
+.uchip{font:600 11px ui-monospace,SFMono-Regular,Menlo,monospace;border:1px solid var(--line);background:var(--canvas);color:var(--accent-ink);border-radius:6px;padding:2px 7px;text-decoration:none;margin-right:4px;display:inline-block;margin-top:2px}
+.uchip:hover{border-color:var(--accent-ink)}
 
 #play,#screens{max-width:1080px;margin:0 auto;padding:26px 20px 44px}
 #play h1,#screens h1{font-size:21px;margin:0 0 4px;text-wrap:balance}
@@ -600,6 +664,7 @@ ${iconSprite()}
   <span class="tt">Commitment Pooling</span>
   <button class="tab on" id="tabbtn-play" role="tab" aria-selected="true" aria-controls="tab-play">Guided flows</button>
   <button class="tab" id="tabbtn-screens" role="tab" aria-selected="false" aria-controls="tab-screens" tabindex="-1">Screen library</button>
+  <button class="tab" id="tabbtn-comps" role="tab" aria-selected="false" aria-controls="tab-comps" tabindex="-1">Components</button>
   <button class="tab" id="tabbtn-doc" role="tab" aria-selected="false" aria-controls="tab-doc" tabindex="-1">Implementation reference</button>
   <button class="chromebtn" id="themebtn" type="button" aria-pressed="false"><span class="tb tb-dark"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 5.5a8.5 8.5 0 0 0 8.5 8.5c.7 0 1.4-.09 2.06-.25A9.5 9.5 0 1 1 10.25 3.44 8.5 8.5 0 0 0 10 5.5z"/></svg>Dark mode</span><span class="tb tb-light"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9 7 7M17 17l2.1 2.1M19.1 4.9 17 7M7 17l-2.1 2.1" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/></svg>Light mode</span></button>
 </div>
@@ -662,6 +727,10 @@ ${iconSprite()}
     <div id="expinsp" role="status" aria-live="polite"></div>
   </div>
 </div>
+</div>
+
+<div id="tab-comps" role="tabpanel" aria-labelledby="tabbtn-comps" hidden>
+${COMPONENTS_TAB_HTML}
 </div>
 
 <div id="tab-doc" role="tabpanel" aria-labelledby="tabbtn-doc" hidden>
@@ -772,6 +841,8 @@ console.log(
   "| hotspots:", Object.keys(HOTS).length,
   "| journeys:", sbs.length,
   "| scenes:", sbs.reduce((a, b) => a + b.steps.length, 0),
+  "| components:", COMPONENT_COUNTS.entries,
+  "| specimens:", COMPONENT_COUNTS.specimens,
   "| warnings:", warnings.length,
   "| chars:", html.length,
   "| bytes:", byteSize,

@@ -8,65 +8,20 @@
 // W10@attach-assessment.
 
 import { POOL_LIFETIME } from "../fixtures";
-import { esc, hot } from "../html";
+import { hot } from "../html";
 import { icon } from "../icons";
-import { banner, btn, chip, disclosure, emptyState, field, input, kv, meter, radio, reasonChips, skeleton } from "../kit";
+import {
+  acard, adminCanvas, adminDialogM3, banner, btn, chip, deskWin, disclosure, dtable, emptyState, field, flowDialog, input, kv, meter,
+  navItems, pageHeader, radio, reasonChips, skeleton, stages, tabRail,
+} from "../kit";
+import type { FlowStep, NavId, RailTab, Tone } from "../kit";
 import type { HifiDef } from "./index";
 import type { StateFacts } from "../types";
 
-// ---- admin chrome helpers ---------------------------------------------------
-
-// The browser window is the outer viewer frame (S1 scales it); its body hosts
-// the full canvas (adminCanvas). deskWin stays; the invented top tab-bar does not.
-export function deskWin(url: string, body: string): string {
-  return `<div class="deskwin"><div class="winbar"><span class="dots"><i></i><i></i><i></i></span><span class="url">${url}</span></div>${body}</div>`;
-}
-
-// AdminCard — M3 elevated solid surface (head + optional trailing + body).
-export const acard = (head: string, body: string, trailing = "") =>
-  `<div class="acard"><div class="ahead"><span class="at">${head}</span>${trailing ? `<span class="ax">${trailing}</span>` : ""}</div>${body}</div>`;
-
-// Cycle/settlement stage stepper.
-export const stages = (list: string[], activeIx: number) =>
-  `<div class="stages">${list
-    .map((s, i) => `<span class="st1${i < activeIx ? " done" : i === activeIx ? " on" : ""}"><i></i>${s}</span>`)
-    .join(`<span class="sep"></span>`)}</div>`;
-
-// ---- real Canvas cockpit chrome (CanvasLayout.tsx) --------------------------
-// The invented top tab-bar (adminBar) is replaced by the app's actual model:
-// a 2-row canvas grid — transparent AppBar (GardenChip + icon buttons) over a
-// scrolling gradient canvas that floats an opaque route card, with a floating
-// glass workspace dock at the window's foot.
-
-export type Tone = "garden" | "hub" | "community" | "actions";
-export type NavId = "hub" | "garden" | "community" | "actions" | "operations";
-
-// GardenChip — the AppBar's left pill (garden selector), never a brand logo.
-export const gardenChip = (name: string, hotId?: string) =>
-  `<button type="button" class="gchip" data-component="GardenChip"${hotId ? ` data-hot="${hotId}"` : " disabled"} aria-label="Select garden"><span class="leaf">${icon("seedling-line", "s")}<span class="dot"></span></span><span class="nm">${esc(name)}</span><span class="caret"></span></button>`;
-
-const iconBtn = (name: string, label: string) =>
-  `<button type="button" class="iconbtn" aria-label="${esc(label)} — preview only" disabled>${icon(name)}</button>`;
-
-// Transparent AppBar (h-14) — GardenChip left, search/bell/settings/profile right.
-const appBar = (garden: string, hotPrefix: string, interactive: boolean) =>
-  `<header class="appbar" data-component="AppBar">${gardenChip(garden, interactive ? `${hotPrefix}.garden-selector` : undefined)}<div class="appbar-actions">${iconBtn("search-line", "Search")}${iconBtn("notification-line", "Notifications")}${iconBtn("settings-line", "Settings")}${iconBtn("user-line", "Profile")}</div></header>`;
-
-// Floating glass workspace dock (NavigationBar) — the app's only backdrop-blur.
-// Visual chrome: the active workspace is highlighted in its tone; available
-// destinations open a representative workspace screen while current/preview-only
-// items open the inspector. Operations is appended only inside its deployer-
-// gated workspace; it is not a global fifth destination for ordinary stewards.
-const CORE_NAV_ITEMS: [NavId, string, string][] = [
-  ["hub", "Hub", "home-line"], ["garden", "Garden", "seedling-line"],
-  ["community", "Community", "group-line"], ["actions", "Actions", "leaf-line"],
-];
-const OPERATIONS_NAV_ITEM: [NavId, string, string] = ["operations", "Operations", "send-plane-line"];
-const navItems = (active: NavId) => active === "operations" ? [...CORE_NAV_ITEMS, OPERATIONS_NAV_ITEM] : CORE_NAV_ITEMS;
-const navDock = (active: NavId, hotPrefix: string, interactive: boolean) =>
-  `<nav class="navdock" aria-label="Workspaces" data-component="NavigationBar">${navItems(active).map(
-    ([id, l, ic]) => `<button type="button" class="nditem${id === active ? " on" : ""}"${interactive ? ` data-hot="${hotPrefix}.nav-${id}"` : " disabled"} aria-label="${l} workspace"${id === active ? ' aria-current="page"' : ""}><span class="ndic">${icon(ic)}</span><span>${l}</span></button>`,
-  ).join("")}</nav>`;
+// Admin chrome/component builders were relocated into ../kit (components-tab
+// pass, 2026-08-14) so the kit is the single component source. What stays here
+// is journey wiring — chrome hotspot registration and nav targets — plus the
+// screen definitions themselves.
 
 const NAV_TARGETS: Partial<Record<NavId, string>> = {
   hub: "screen:W13",
@@ -90,98 +45,6 @@ export function adminChromeHots(hotPrefix: string, active: NavId): HifiDef["hots
   }
   return hots;
 }
-
-// PageHeader — big bold h1 (sticky under the AppBar) with slots. text/eyebrow/
-// description are plain copy (escaped); meta/actions/toolbar carry markup.
-export function pageHeader(opts: {
-  title: string; eyebrow?: string; description?: string; meta?: string; actions?: string; toolbar?: string;
-}): string {
-  const main = `<div class="ph-main">${opts.eyebrow ? `<div class="eyebrow">${esc(opts.eyebrow)}</div>` : ""}<h1>${esc(opts.title)}</h1>${
-    opts.description ? `<div class="ph-desc">${esc(opts.description)}</div>` : ""
-  }${opts.meta ? `<div class="ph-meta">${opts.meta}</div>` : ""}</div>`;
-  return `<div class="pghead" data-component="PageHeader"><div class="ph-row">${main}${
-    opts.actions ? `<div class="ph-actions">${opts.actions}</div>` : ""
-  }</div>${opts.toolbar ? `<div class="ph-toolbar">${opts.toolbar}</div>` : ""}</div>`;
-}
-
-// AdminTabRail — segmented-card sub-tabs (NOT underline). Each tab may carry a
-// count and an optional hotspot id (wired only where it maps to a real screen).
-export type RailTab = { label: string; count?: number; hot?: string };
-export function tabRail(items: RailTab[], activeIx: number): string {
-  const interactive = items.some((it) => it.hot);
-  return `<div class="tabrail" role="${interactive ? "tablist" : "group"}" aria-label="${interactive ? "View" : "Current section"}" data-component="AdminTabRail" style="grid-template-columns:repeat(${items.length},minmax(0,1fr))">${items
-    .map((it, i) => {
-      const cnt = it.count != null ? `<span class="cnt">${it.count}</span>` : "";
-      const content = `<span class="lbl">${esc(it.label)}</span>${cnt}`;
-      return it.hot
-        ? hot(it.hot, `<span class="trhit"><button type="button" role="tab" aria-selected="${i === activeIx}" class="trtab${i === activeIx ? " on" : ""}">${content}</button></span>`)
-        : `<span class="trtab${i === activeIx ? " on" : ""}"${interactive ? ` role="tab" aria-selected="${i === activeIx}" aria-disabled="true"` : ""}>${content}</span>`;
-    })
-    .join("")}</div>`;
-}
-
-// Assemble the canvas body (AppBar + route card + dock). Screen fns wrap this in
-// deskWin(url, …). tone drives the gradient + accents; nav highlights the dock.
-export function adminCanvas(
-  tone: Tone, nav: NavId,
-  parts: { screenId: string; garden: string; header: string; tabRail?: string; body: string; interactiveChrome?: boolean },
-): string {
-  const hotPrefix = parts.screenId.toLowerCase();
-  const interactiveChrome = parts.interactiveChrome !== false;
-  return `<div class="wsgrid" data-tone="${tone}" data-component="CanvasLayout">${appBar(parts.garden, hotPrefix, interactiveChrome)}<main class="mainscroll"><section class="routecard">${parts.header}${
-    parts.tabRail ?? ""
-  }${parts.body}</section></main>${navDock(nav, hotPrefix, interactiveChrome)}</div>`;
-}
-
-// AdminDialog — own scrim + 28dp solid surface over the dimmed canvas. `behind`
-// is the full adminCanvas(...) so the dialog reads as floating over the route.
-export function adminDialogM3(
-  behind: string, tone: Tone, opts: { title: string; body: string; actions: string; closeHot?: string },
-): string {
-  const close = `<button type="button" class="dclose" aria-label="Close">${icon("close-line", "s")}</button>`;
-  return `<div class="dlgstage"><div class="dlg-behind" inert aria-hidden="true">${behind}</div><div class="scrimm"></div><div class="adlg" data-tone="${tone}" data-component="AdminDialog" role="dialog" aria-modal="true" aria-labelledby="admin-dialog-title"><div class="dlg-head"><span class="dt" id="admin-dialog-title">${esc(
-    opts.title,
-  )}</span>${opts.closeHot ? hot(opts.closeHot, close) : close}</div><div class="dlg-body">${opts.body}</div><div class="dlg-foot">${opts.actions}</div></div></div>`;
-}
-
-// Admin action flows are hosted in a centered flow AdminDialog wrapping
-// ActionFlowShell: pinned header, desktop step rail, centred reading column,
-// pinned footer. The footer mirrors the shipping callers (SubmitWork /
-// CreateAssessment / CreateAction): ONE leading button that morphs — Cancel on
-// the first step, Back after — beside the primary, right-aligned. Back and
-// Cancel never render together; the AdminDialog X (cancelHot) is the constant
-// exit on every step. The real footer's left slot is a progress/status slot
-// (AdminLinearProgress + message), drawn empty here because no in-flight state
-// is prototyped.
-export type FlowStep = { title: string; desc: string };
-export function flowDialog(
-  behind: string,
-  tone: Tone,
-  opts: { context: string; title: string; steps: FlowStep[]; current: number; body: string; back?: string; cancelHot: string; next: string },
-): string {
-  const rail = `<nav class="steprail" aria-label="Steps">${opts.steps
-    .map((s, i) => {
-      const cls = i === opts.current ? " on" : i < opts.current ? " done" : "";
-      return `<div class="srow${cls}"${i === opts.current ? ' aria-current="step"' : ""}><span class="sdot">${i < opts.current ? "✓" : i + 1}</span><span><span class="st">${esc(s.title)}</span><span class="sd">${esc(s.desc)}</span></span></div>`;
-    })
-    .join("")}</nav>`;
-  const leading = opts.back
-    ? hot(opts.back, btn("Back", { kind: "ghost", icon: "arrow-left-line" }))
-    : hot(opts.cancelHot, btn("Cancel", { kind: "ghost" }));
-  const close = hot(opts.cancelHot, `<button type="button" class="dclose" aria-label="Close">${icon("close-line", "s")}</button>`);
-  return `<div class="dlgstage"><div class="dlg-behind" inert aria-hidden="true">${behind}</div><div class="scrimm"></div><div class="adlg flow" data-tone="${tone}" data-component="AdminDialog" role="dialog" aria-modal="true" aria-labelledby="flow-dialog-title"><div class="dlg-head"><span class="eyebrow">${esc(
-    opts.context,
-  )}</span><span class="dt" id="flow-dialog-title">${esc(opts.title)}</span>${close}</div><div class="flowrow">${rail}<div class="dlg-body"><div class="flowform">${
-    opts.body
-  }</div></div></div><div class="dlg-foot"><span class="fprog"></span><span class="fend">${leading}${opts.next}</span></div></div></div>`;
-}
-
-// Dense data table — hairline row dividers, no cell borders, no zebra
-// (uiux-spec §12: tabular data stays a table; queues render as list-rows).
-export const dtable = (heads: string[], rows: string[][], caption: string) =>
-  `<table class="dtab"><caption class="visually-hidden">${esc(caption)}</caption><thead><tr>${heads.map((h) => `<th scope="col">${h ? esc(h) : '<span class="visually-hidden">Actions</span>'}</th>`).join("")}</tr></thead><tbody>${rows
-    .map((r) => `<tr>${r.map((c) => `<td>${c}</td>`).join("")}</tr>`)
-    .join("")}</tbody></table>`;
 
 // Dirty-flow discard guard — one per flow, so "Keep editing" returns to the
 // flow that was actually open. A single shared W8 dialog swallowed capture,
