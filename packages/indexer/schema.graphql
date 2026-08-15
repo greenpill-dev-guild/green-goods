@@ -916,6 +916,8 @@ type CommitmentWorkAttribution {
   creditActive: Boolean!
   linkLifecycleBlockNumber: BigInt # nullable until a Link/Unlink event is observed
   linkLifecycleLogIndex: Int
+  linkPayloadBlockNumber: BigInt # latest WorkLinked-owned relationship payload position
+  linkPayloadLogIndex: Int # nullable partner to linkPayloadBlockNumber; compare the pair lexicographically
   latestDecisionSequence: BigInt
   latestDecisionUID: String
   linkedBy: String # null until linkSeen

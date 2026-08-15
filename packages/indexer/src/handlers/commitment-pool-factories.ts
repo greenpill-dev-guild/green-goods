@@ -323,6 +323,8 @@ export function createWorkAttribution(
     creditActive: false,
     linkLifecycleBlockNumber: undefined,
     linkLifecycleLogIndex: undefined,
+    linkPayloadBlockNumber: undefined,
+    linkPayloadLogIndex: undefined,
     latestDecisionSequence: undefined,
     latestDecisionUID: undefined,
     linkedBy: undefined,

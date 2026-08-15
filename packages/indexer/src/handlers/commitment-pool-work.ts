@@ -40,7 +40,15 @@ export async function handleWorkEvent(event: RuntimeEvent, context: PoolingConte
       existing.linkLifecycleBlockNumber,
       existing.linkLifecycleLogIndex
     );
-    const baseAttribution: CommitmentWorkAttribution = linking
+    const payloadWins =
+      linking &&
+      cursorWins(
+        event.block.number,
+        event.logIndex,
+        existing.linkPayloadBlockNumber,
+        existing.linkPayloadLogIndex
+      );
+    const baseAttribution: CommitmentWorkAttribution = payloadWins
       ? {
           ...existing,
           commitmentId,
@@ -54,12 +62,14 @@ export async function handleWorkEvent(event: RuntimeEvent, context: PoolingConte
           requirementIndex: Number(value<bigint>(event, "requirementIndex")),
           operationKey: value<string>(event, "operationKey").toLowerCase(),
           linkedBy: normalizeAddress(value<string>(event, "linker")),
-          linkedAt: existing.linkedAt ?? event.block.timestamp,
+          linkedAt: event.block.timestamp,
+          linkPayloadBlockNumber: BigInt(event.block.number),
+          linkPayloadLogIndex: event.logIndex,
           updatedAt: Math.max(existing.updatedAt, event.block.timestamp),
         }
       : existing;
     if (!linkWins) {
-      if (!linking || existing.linkSeen) return;
+      if (!payloadWins) return;
       context.CommitmentWorkAttribution.set(baseAttribution);
       if (contributor) {
         const contributorId = commitmentMemberId(event.chainId, commitmentId, contributor);

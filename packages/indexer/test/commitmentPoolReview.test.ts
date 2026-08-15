@@ -1,7 +1,10 @@
 import assert from "node:assert/strict";
 
 import { handleAccepted, handleClaimEvent } from "../src/handlers/commitment-pool-claims";
-import { handleCommitmentTerms } from "../src/handlers/commitment-pool-creation";
+import {
+  handleCommitmentCreated,
+  handleCommitmentTerms,
+} from "../src/handlers/commitment-pool-creation";
 import { handleLifecycle } from "../src/handlers/commitment-pool-lifecycle";
 import { sortedUnique } from "../src/handlers/commitment-pool-projections";
 import {
@@ -266,6 +269,87 @@ describe("Commitment Pooling review regressions", () => {
     assert.equal(commitment?.preDisputeState, "ACCEPTED");
     assert.equal(commitment?.disputeReasonCID, "ipfs://dispute-fact");
     assert.equal(raiser?.disputesRaised, 1);
+  });
+
+  it("reconciles a pre-creation Work link into the pool count", async () => {
+    const workUID = hash(430);
+    let db = await processEvents(createTestIndexer(), [
+      poolRegistered(START_BLOCK),
+      cycleSeeded(START_BLOCK + 1),
+      CommitmentPoolingModule.WorkLinked.createMockEvent({
+        commitmentId: 43n,
+        workUID,
+        contributor: address(4),
+        requirementIndex: 0n,
+        linker: address(4),
+        operationKey: hash(431),
+        mockEventData: eventData(START_BLOCK + 5),
+      }),
+    ]);
+    await handleCommitmentCreated(
+      runtimeEvent(commitmentCreated(43n, START_BLOCK + 2), "CommitmentCreated"),
+      db as unknown as PoolingContext
+    );
+
+    const pool = await db.CommitmentPool.get(`${CHAIN_ID}-7`);
+    const commitment = await db.Commitment.get(`${CHAIN_ID}-43`);
+    assert.equal(pool?.workLinkedCount, 1n);
+    assert.deepEqual(commitment?.workUIDs, [workUID]);
+  });
+
+  it("backfills a reverse-delivered relink owner without reactivating the Work", async () => {
+    const workUID = hash(440);
+    let db = await processEvents(createTestIndexer(), [
+      poolRegistered(START_BLOCK),
+      cycleSeeded(START_BLOCK + 1),
+      commitmentCreated(44n, START_BLOCK + 2),
+      commitmentCreated(45n, START_BLOCK + 3),
+      CommitmentPoolingModule.WorkLinked.createMockEvent({
+        commitmentId: 44n,
+        workUID,
+        contributor: address(4),
+        requirementIndex: 0n,
+        linker: address(4),
+        operationKey: hash(441),
+        mockEventData: eventData(START_BLOCK + 4),
+      }),
+      CommitmentPoolingModule.WorkUnlinked.createMockEvent({
+        commitmentId: 44n,
+        workUID,
+        unlinker: address(4),
+        mockEventData: eventData(START_BLOCK + 5),
+      }),
+      CommitmentPoolingModule.WorkUnlinked.createMockEvent({
+        commitmentId: 45n,
+        workUID,
+        unlinker: address(5),
+        mockEventData: eventData(START_BLOCK + 7),
+      }),
+    ]);
+    const linkToSecond = CommitmentPoolingModule.WorkLinked.createMockEvent({
+      commitmentId: 45n,
+      workUID,
+      contributor: address(5),
+      requirementIndex: 0n,
+      linker: address(5),
+      operationKey: hash(442),
+      mockEventData: eventData(START_BLOCK + 6),
+    });
+    await handleWorkEvent(
+      runtimeEvent(linkToSecond, "WorkLinked"),
+      db as unknown as PoolingContext
+    );
+
+    const attribution = await db.CommitmentWorkAttribution.get(`${CHAIN_ID}-${workUID}`);
+    const second = await db.Commitment.get(`${CHAIN_ID}-45`);
+    const pool = await db.CommitmentPool.get(`${CHAIN_ID}-7`);
+    assert.equal(attribution?.commitmentId, 45n);
+    assert.equal(attribution?.contributor, address(5).toLowerCase());
+    assert.equal(attribution?.linked, false);
+    assert.equal(attribution?.linkLifecycleBlockNumber, BigInt(START_BLOCK + 7));
+    assert.equal(attribution?.linkPayloadBlockNumber, BigInt(START_BLOCK + 6));
+    assert.deepEqual(second?.workUIDs, []);
+    assert.equal(pool?.workLinkedCount, 0n);
   });
 
   it("reconciles child identity, registry materialization, and a blocked pool close", async () => {

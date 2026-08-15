@@ -146,7 +146,7 @@ describe("applyDeploymentToEnvioChains", () => {
     expect(findContract(chains, "SettlementModule")?.address).toBe(ADDRESS.settlementModule);
   });
 
-  it("preserves the Celo settlement executor during deployment-driven updates", () => {
+  it("keeps deployment-driven Celo updates executor-only", () => {
     const celoChain = {
       id: 42220,
       start_block: 52_000_000,
@@ -156,16 +156,17 @@ describe("applyDeploymentToEnvioChains", () => {
       chains: [celoChain],
       chainId: 42220,
       deployment: {
-        actionRegistry: ZERO_ADDRESS,
-        gardenToken: ZERO_ADDRESS,
+        actionRegistry: ADDRESS.actionRegistry,
+        gardenToken: ADDRESS.gardenToken,
+        octantModule: ADDRESS.octantModule,
+        commitmentPoolingModule: ADDRESS.commitmentPoolingModule,
         celoSettlementExecutor: ADDRESS.celoSettlementExecutor,
       },
+      gardenAccountAddress: ADDRESS.gardenAccount,
       fallbackStartBlock: 1,
     });
 
-    expect(chains[0]?.contracts.find((contract) => contract.name === "CeloSettlementExecutor")?.address).toBe(
-      ADDRESS.celoSettlementExecutor,
-    );
+    expect(chains[0]?.contracts).toEqual([{ name: "CeloSettlementExecutor", address: ADDRESS.celoSettlementExecutor }]);
   });
 
   it("ignores zero addresses rather than writing placeholders", () => {

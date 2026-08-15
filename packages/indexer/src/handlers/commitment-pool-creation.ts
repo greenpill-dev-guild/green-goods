@@ -134,6 +134,7 @@ export async function handleCommitmentCreated(
     ...withCommitmentChild(pool, created.id),
     [countKey]: pool[countKey] + 1n,
     liveCommitmentCount: pool.liveCommitmentCount + 1n,
+    workLinkedCount: pool.workLinkedCount + BigInt(existing.workUIDs.length),
     workApprovedCount:
       pool.workApprovedCount + existing.pendingWorkApprovedCountDelta < 0n
         ? 0n
