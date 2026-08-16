@@ -81,9 +81,27 @@ installation or upgrade, workflow rerun, GitHub setting change, deployment, broa
   a net loss (20.7s restore against 14.9s of install saved, on an already-over-quota repository
   cache) and was removed from `.github/actions/setup-js`. This is the one accepted optimization that
   the evidence rejected.
-- The local runner executes checks sequentially. `parallel groups` was listed as a passing AC-3
-  behavior but no grouping exists in `scripts/dev/ci-local.js`; the acceptance row has been
-  corrected and the measured opportunity recorded in `eval.md`.
-- `--reuse-passing-receipts` is implemented and fixture-tested but is reachable only as a raw flag:
-  no package script, workflow, or guidance names it, so the receipt-reuse saving is currently
-  undiscoverable in practice.
+- `parallel groups` was listed as a passing AC-3 behavior while `scripts/dev/ci-local.js` ran a
+  strictly sequential loop. Concurrency now exists: independent package suites declare a
+  `concurrencyGroup` in the policy (shared with docs; client with admin and agent, mirroring the
+  root `test` script), and only checks adjacent in plan order batch together, so printed order and
+  the stop rule are unchanged.
+- `--reuse-passing-receipts` is now named in `.claude/context/validation-pipeline.md`; it was
+  previously implemented, fixture-tested, and reachable only as an undocumented raw flag.
+- The scoped `format` command passed changed paths straight to Biome, which exits non-zero when it
+  handles none of them. Markdown-, Solidity-, and YAML-only changes therefore failed at the first
+  check and fail-fast stopped the plan. Fixed with `--no-errors-on-unmatched`; the previous fixture
+  had asserted the broken command verbatim.
+- Indexer suite profiling (requirement 7) was carried out and produced no shipped change. `mocha
+  --parallel` is attractive but not yet safe:
+  - On a bounded four-file subset it ran 412.6s to 182.4s (2.26x) with 76 passing in both arms and
+    c8 coverage identical to the digit (24.7 / 97.1 / 17.58 / 24.7), so coverage collection does
+    survive worker processes.
+  - On the full suite at mocha's default worker count (cores minus one, so nine on the measuring
+    host) `GreenWill.BadgeIssued > materializes canonical ownership and grant history` failed. The
+    same test passes serially in 5.1s. Per-test durations inflated to 16-17s against the suite's
+    30000ms timeout, so oversubscription rather than a pure isolation defect is the leading
+    explanation, and an explicit `--jobs` bound is the next thing to test.
+  - The suite is slow per test, not slow to start: CI spends 559s on 245 tests, roughly 2.3s each,
+    against 42s of setup and 1s of codegen. Any real fix has to make individual tests cheaper or
+    spread them safely, not trim startup.

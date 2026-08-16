@@ -14,7 +14,7 @@
 |---|---|---|---|---|
 | AC-1 | Intent/path/risk selection | Fixture matrix for docs, UI, package TS, contract, shared API, ship, blocked, cancel | `state_api` | working-copy fixtures pass |
 | AC-2 | Aggregate failure | Completed failure wins over pending/missing workflows | `contracts` | working-copy fixtures pass |
-| AC-3 | Local execution | Fail-fast, cancellation, receipts, no repeated unchanged checks | `state_api` | fixtures pass at `fb835410`; fail-fast confirmed on a live run |
+| AC-3 | Local execution | Fail-fast, concurrent package suites, cancellation, receipts, no repeated unchanged checks | `state_api` | 73 fixtures pass; fail-fast confirmed on a live run; concurrency added after certification |
 | AC-4 | CI safety | Workflow mapping, cache keys, reporters, required hard gates | `contracts` | workflow parity and YAML syntax pass |
 | AC-5 | Guidance parity | Agent commands render the same selector plan and honor stop intent | `ui` | four guidance checks pass; durable Bun caller fixed |
 | AC-6 | Integrated review | Current-SHA targeted and Repo Quick evidence | `qa_pass_1` | working-copy review and Repo Quick pass; clean-SHA receipt pending |
