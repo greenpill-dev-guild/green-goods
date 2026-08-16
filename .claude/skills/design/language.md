@@ -101,6 +101,8 @@ Shape communicates emphasis level. This is the core Warm Earth principle for but
 
 **Rule**: When a capsule button sits next to a squircle button, the capsule reads as primary and the squircle as secondary — no color difference needed. Shape alone creates hierarchy.
 
+**Admin note**: cockpit buttons are pills (`AdminButton`, sentence case), but the admin **FAB-large is 16px**, not a capsule — admin radii are the fixed 4/8/12/16/9999 set with no 20/24/28px steps.
+
 ### Shape Morphing
 
 Interactive elements shift shape on engagement. This creates physical, tactile feedback — the "Expressive touch" from M3 that makes interfaces feel alive.
@@ -114,6 +116,8 @@ Interactive elements shift shape on engagement. This creates physical, tactile f
 - Hover: scale(1.008) + green shadow glow (lift-and-press)
 - Press: scale(0.985) + corner radius tightens 2-4px (shape morph addition)
 - Combined: the card feels like it's being pressed into the surface
+
+**Admin carve-out**: the card motion above is client canon. Admin cards never lift, scale, or glow — hover/press feedback is an elevation step (`--m3-elevation-1`→`2`) or the neutral ink layer `rgb(var(--m3-on-surface)/0.08)` only.
 
 **CSS approach sketch**:
 ```css
@@ -226,7 +230,7 @@ Motion is built into components, not applied externally:
 | Component | Motion | Spring Token |
 |-----------|--------|-------------|
 | **Buttons** | Shape morph on press (capsule → squircle or squircle → tighter) | `--spring-spatial-fast` |
-| **Cards** | Hover lift (scale 1.008) + press (scale 0.985 + radius tighten) | `--spring-spatial-fast` |
+| **Cards** | Client: hover lift (scale 1.008) + press (scale 0.985 + radius tighten). Admin: no lift/scale/glow — elevation 1→2 or the neutral 8% ink layer | `--spring-spatial-fast` |
 | **Client/PWA sheets** | Slide from source element; client shell depth may respond | `--spring-spatial` |
 | **Navigation** | Active indicator slides with spring transition | `--spring-spatial` |
 | **Progress (wavy)** | Organic wave motion on track | `--spring-effects-slow` |
@@ -312,7 +316,7 @@ Each garden can derive an accent palette from its visual identity — this is M3
 | Admin dashboard (default) | Green Goods brand — primary green |
 | Garden detail view | Derived from garden's banner image |
 | Client PWA | Adapts to the garden the user operates in |
-| Workspace atmospheres | Subtle tonal wash per workspace (already spec'd in spatial architecture) |
+| Admin workspace wash | One faint top wash (`--tone-surface-tint-color`, 5% light / 10% dark, fading to transparent by 320px) over the constant linen canvas — per-workspace canvas tinting is retired |
 
 **Implementation note**: Dynamic garden theming is aspirational — the brand palette is the baseline. Garden-derived palettes are a future enhancement when the garden profile system supports banner images.
 
@@ -339,7 +343,7 @@ Admin dark mode is a **deliberate palette, not a light inversion**. Three rules 
 | `surface-container-high` | `26% .016 65` | `42 35 28` | Sheet / dialog |
 | `surface-container-highest` | `30% .018 65` | `52 44 36` | Active / hover, chips |
 
-**2 — Ring-forward elevation.** Depth is a warm-white hairline ring (`--neutral-50` at 6–16%, scaling with level) plus a small black blur only for chrome floating over content — never a black drop shadow as the primary cue. The canvas wash carries each workspace's hue at L≈17% (just under the card) with chroma ~0.024 (community ~0.034); the dark `--tone-strength` default is `1` (the wash chroma is too low to oversaturate).
+**2 — Ring-forward elevation.** Depth is a warm-white hairline ring (`--neutral-50` at low opacity, stepping across the single `--m3-elevation-0/1/2` ladder) plus a small black blur only for chrome floating over content — never a black drop shadow as the primary cue. The dark canvas stays constant; the only workspace atmosphere is the same faint `--tone-surface-tint-color` top wash as light (10% in dark, fading to transparent by 320px) — the per-workspace canvas hue wash is retired.
 
 **3 — Per-view accents (dual-use-safe).** `--tone-primary` feeds `--m3-primary`, which components consume **both** as a white-text fill **and** as on-surface text/icon/link color. So `--tone-primary` stays **light** (the `-200` step, readable as text on the dark card); saturation lives in `--tone-action` (deep, white-text filled CTA) and vividness in the wash + bright accent text. Never set `--tone-primary` to a deep step — it would make tone-colored links/icons unreadable.
 
@@ -351,7 +355,7 @@ Admin dark mode is a **deliberate palette, not a light inversion**. Three rules 
 | actions (red) | `red-700` · 6.5:1 | `red-200` · 12.0:1 | `red-900` / `red-100` |
 | home (stone) | `neutral-600` · 7.6:1 | `neutral-300` · 11.7:1 | `neutral-700` / `neutral-100` |
 
-**Contrast invariant:** filled actions carry white text and MUST clear AA (≥4.5:1) — this forces *deep* steps, so "vivid" can never come from brightening the fill. Accent-text `-200` steps clear AA on the `surface-container` card (≥11.7:1). A `check:design-tokens` dark-parity guard enforces light/dark tone-block and elevation parity.
+**Contrast invariant:** filled actions carry white text and MUST clear AA (≥4.5:1) — this forces *deep* steps, so "vivid" can never come from brightening the fill. Accent-text `-200` steps clear AA on the `surface-container` card (≥11.7:1). A `check:design-tokens` dark-parity guard enforces light/dark tone-block parity and the single 2-level `--m3-elevation-0/1/2` ladder.
 
 **Light mode follows the same discipline** (applied 2026-07-03 after a 190-pair audit):
 
@@ -381,9 +385,11 @@ Three sizes, shape-as-emphasis hierarchy:
 
 **Color variants** (from M3): Filled, Tonal, Outlined, Ghost. Combined with shape, these give sufficient hierarchy without introducing more sizes.
 
+**Admin carve-out**: the size/morph table above is client canon. Cockpit buttons are `AdminButton` — pill at every size, sentence-case labels, no press-morph; the filled variant is `--tone-action` stepping elevation 1→2.
+
 ### Floating Toolbar
 
-Contextual page-level actions. The admin cockpit's primary action surface.
+Contextual page-level actions — client/spatial vocabulary, not a shipped admin surface. The admin cockpit's primary actions live in the `AdminViewActions` header row and the nav-shell FAB.
 
 - Desktop: always visible, docked to content zone edge or floating centered
 - Mobile: replaced by bottom navigation bar
@@ -412,6 +418,8 @@ Admin workspace action/detail flows open in centered `AdminDialog`; the admin ca
 | **Nav Bar** (bottom) | Mobile, 3-4 tabs | Capsule container, capsule active indicator | Symbol-first, tap to switch workspace |
 | **Nav Rail** (side) | Tablet, desktop sidebar | Collapsible (icons only) / expandable (icons + labels) | Icon moves from above to beside label when expanded |
 | **Floating Toolbar** | Desktop content zone | Capsule, glass material | Contextual actions, always visible |
+
+**Admin dock**: the cockpit's bottom nav is a flat dock, not a glass capsule — `rgb(var(--admin-surface-0)/0.85)` with 12px blur, a 1px ink ring, and the warm chrome shadow (`0 18px 44px rgb(var(--warm-shadow)/0.14)`); the active item is a tone primary-container pill. The Floating Toolbar row is client/spatial vocabulary — admin ships no floating toolbar.
 
 **Symbol-first rule** (from Liquid Glass): Persistent navigation uses symbols (icons). Text labels only when the icon is genuinely ambiguous. Don't pair a symbol with text in a way that looks like a single button — if you need text, let it sit on its own container.
 
@@ -513,9 +521,8 @@ Content extends behind glass surfaces for immersion. The glass layer floats abov
 
 | Pattern | Use |
 |---------|-----|
-| Hero images extend behind sidebar glass | Admin garden detail — banner flows behind nav rail |
 | Garden banners extend behind nav bar | Client PWA — banner visible through top glass |
-| Ambient color wash behind glass layers | Workspace atmospheres visible in margins around canvas |
+| Ambient color wash behind glass layers | Client ambient surfaces; in admin the only atmosphere is the faint workspace top wash over the constant linen canvas — no margin tinting |
 
 **Rule**: Text and controls must always layer above the extended background. Glass material provides the separation — content behind glass is visible but not interactive.
 
@@ -579,7 +586,7 @@ From Liquid Glass: persistent navigation bars now rely more on symbols (icons) t
 - Text labels only when the icon is genuinely ambiguous (e.g., "Select" vs "Edit" — a pencil could mean either).
 - Don't pair symbol with text in a way that reads as a single button.
 - When actions are closely related (multiple copy variants), use the symbol once to introduce the group, then text for variants.
-- The admin cockpit already follows this — floating toolbar uses RiClipboardLine, RiSeedlingLine, RiTeamLine with delayed tooltips.
+- The admin cockpit already follows this in its nav dock and AppBar icon actions (admin has no floating toolbar).
 
 **Grouping** (from Liquid Glass): Related bar items should share a glass background:
 - Group by function and frequency — related actions together

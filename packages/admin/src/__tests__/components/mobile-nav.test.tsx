@@ -22,37 +22,43 @@ const { mockUseEffectiveToolbarPermissions, mockEligibleAdminGardens } = vi.hois
   },
 }));
 
+vi.mock("@/components/Shell", () => ({
+  NavigationBar: ({
+    slots,
+    activePath,
+  }: {
+    slots: Array<{ id: string; label: string; visible: boolean; path: string }>;
+    activePath: string;
+  }) => (
+    <nav data-testid="navigation-bar" aria-label="Main navigation">
+      <div data-testid="active-path">{activePath}</div>
+      <ul>
+        {slots
+          .filter((slot) => slot.visible)
+          .map((slot) => (
+            <li key={slot.id} data-testid={`nav-item-${slot.id}`}>
+              {slot.label}
+            </li>
+          ))}
+      </ul>
+    </nav>
+  ),
+  AppBar: (props: {
+    gardenChip: React.ReactNode;
+    onOpenSearch?: () => void;
+    onOpenSettings?: () => void;
+    onOpenProfile?: () => void;
+  }) => <div data-testid="top-context-bar">{props.gardenChip}</div>,
+  MainSheet: ({ children }: { children: React.ReactNode }) => (
+    <div data-testid="main-sheet">{children}</div>
+  ),
+}));
+
 vi.mock("@green-goods/shared", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@green-goods/shared")>();
   return {
     ...actual,
-    NavigationBar: ({
-      slots,
-      activePath,
-    }: {
-      slots: Array<{ id: string; label: string; visible: boolean; path: string }>;
-      activePath: string;
-    }) => (
-      <nav data-testid="navigation-bar" aria-label="Main navigation">
-        <div data-testid="active-path">{activePath}</div>
-        <ul>
-          {slots
-            .filter((slot) => slot.visible)
-            .map((slot) => (
-              <li key={slot.id} data-testid={`nav-item-${slot.id}`}>
-                {slot.label}
-              </li>
-            ))}
-        </ul>
-      </nav>
-    ),
     GardenChip: () => <div>Garden Chip</div>,
-    AppBar: (props: {
-      gardenChip: React.ReactNode;
-      onOpenSearch?: () => void;
-      onOpenSettings?: () => void;
-      onOpenProfile?: () => void;
-    }) => <div data-testid="top-context-bar">{props.gardenChip}</div>,
     useAdminStore: (selector: (state: any) => unknown) =>
       selector({
         selectedGarden: null,

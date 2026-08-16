@@ -391,7 +391,7 @@ export function MetadataEditor({
               >
                 <span
                   className={cn(
-                    "flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold",
+                    "flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-label-sm font-bold",
                     isSelected
                       ? "bg-primary-base text-primary-foreground"
                       : "bg-bg-soft text-text-sub"

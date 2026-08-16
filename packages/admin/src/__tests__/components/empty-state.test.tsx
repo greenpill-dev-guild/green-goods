@@ -27,37 +27,40 @@ const { mockNavigate, mockEligibleAdminGardens } = vi.hoisted(() => ({
   },
 }));
 
+vi.mock("@/components/Shell", () => ({
+  NavigationBar: ({
+    slots,
+  }: {
+    slots: Array<{ id: string; label: string; visible: boolean; path: string }>;
+  }) => (
+    <nav data-testid="navigation-bar">
+      <ul>
+        {slots
+          .filter((slot) => slot.visible)
+          .map((slot) => (
+            <li key={slot.id}>{slot.label}</li>
+          ))}
+      </ul>
+    </nav>
+  ),
+  AppBar: (props: {
+    gardenChip: React.ReactNode;
+    onOpenSearch?: () => void;
+    onOpenSettings?: () => void;
+    onOpenProfile?: () => void;
+  }) => <div data-testid="top-context-bar">{props.gardenChip}</div>,
+  MainSheet: ({ children }: { children: React.ReactNode }) => (
+    <div data-testid="main-sheet">{children}</div>
+  ),
+}));
+
 vi.mock("@green-goods/shared", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@green-goods/shared")>();
   return {
     ...actual,
     cn: (...args: unknown[]) => args.filter(Boolean).join(" "),
     Button: (props: React.ButtonHTMLAttributes<HTMLButtonElement>) => <button {...props} />,
-    NavigationBar: ({
-      slots,
-    }: {
-      slots: Array<{ id: string; label: string; visible: boolean; path: string }>;
-    }) => (
-      <nav data-testid="navigation-bar">
-        <ul>
-          {slots
-            .filter((slot) => slot.visible)
-            .map((slot) => (
-              <li key={slot.id}>{slot.label}</li>
-            ))}
-        </ul>
-      </nav>
-    ),
     GardenChip: () => <div>Garden Chip</div>,
-    AppBar: (props: {
-      gardenChip: React.ReactNode;
-      onOpenSearch?: () => void;
-      onOpenSettings?: () => void;
-      onOpenProfile?: () => void;
-    }) => <div data-testid="top-context-bar">{props.gardenChip}</div>,
-    MainSheet: ({ children }: { children: React.ReactNode }) => (
-      <div data-testid="main-sheet">{children}</div>
-    ),
     useAdminStore: (selector: (state: any) => unknown) =>
       selector({
         selectedGarden: null,

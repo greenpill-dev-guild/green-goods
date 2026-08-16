@@ -1,6 +1,6 @@
 # Surfaces — Depth, Materials & Interaction Mechanics
 
-How Warm Earth surfaces get built: the Z-layer depth model, the semantic material system, and the interaction patterns that keep every surface reachable across input modalities. Merged from the former `spatial.md`, `materials.md`, and `interaction.md` (2026-08 round-3 consolidation).
+How Warm Earth surfaces get built: the Z-layer depth model, the semantic material system, and the interaction patterns that keep every surface reachable across input modalities. Merged from three former sub-files of this skill in the 2026-08 round-3 consolidation.
 
 Canonical token values live in root `DESIGN.md` front matter and [language.md](./language.md); this file covers *when and how* to apply them.
 
@@ -20,7 +20,7 @@ Z0: Substrate    → The "world" behind the app — never directly styled
 
 Higher layers use thicker materials for readability. Z4 always uses thick or solid — never ultrathin glass over critical content.
 
-Admin's 6-level elevation system (`packages/admin/src/index.css`) maps onto this: elevation-0 = Z1, elevation-1/2 = Z2, elevation-3/4 = Z3, elevation-5 = Z4.
+Admin backs the Z-model with the single 2-level ladder — `--m3-elevation-0/1/2` in `packages/admin/src/styles/admin-m3-tokens.css` — plus the warm chrome shadow (`--admin-chrome-shadow`) for floating chrome at Z3. Dialogs sit at level 2 over their scrim; Z4 separation comes from the scrim, not a bigger shadow.
 
 ### Depth Without Vision
 
@@ -100,6 +100,8 @@ const pane = tv({
 
 A pane hardcoding `bg-white/65` forgets dark-mode opacity and high-contrast mode entirely — that's why the tokens are mandatory.
 
+> **Admin carve-out**: the recipe above is client canon. In the cockpit these resolve differently — surfaces are solid, depth is the 2-level `--m3-elevation-0/1/2` ladder, interactive surfaces step elevation only (no scale-press), and radius tops out at 16px.
+
 **Corners**: shape types, the `child_radius = parent_radius − padding` concentricity formula, radius scale, and pitfalls are canonical in [language.md § Shape System](./language.md#shape-system).
 
 ---
@@ -112,7 +114,7 @@ Every interaction must be reachable through at least two modalities — fallback
 
 ### Hover is a preview, not a gate
 
-Design hover states as if the cursor were an eye: generous hit areas (≥ 44px), glow not just color shift, and a brief contextual reveal using the shared effects timing. Never hide essential information behind hover — touch and gaze cannot hover; primary content must be visible at rest.
+Design hover states as if the cursor were an eye: generous hit areas (≥ 44px), glow not just color shift, and a brief contextual reveal using the shared effects timing. (Admin carve-out: cockpit hovers never glow — an elevation step or the neutral `rgb(var(--m3-on-surface)/0.08)` ink layer only.) Never hide essential information behind hover — touch and gaze cannot hover; primary content must be visible at rest.
 
 ### Adaptive Density
 

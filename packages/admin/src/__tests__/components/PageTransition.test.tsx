@@ -374,16 +374,21 @@ describe("PageTransition", () => {
   });
 
   it("keeps persistent navigation active-state changes motionless", () => {
-    const css = readFileSync(resolve(__dirname, "../../styles/admin-m3-overrides.css"), "utf-8");
+    // The dock's material + motionless contract lives in admin-m3-tokens.css
+    // (the shell fork owns geometry in JSX; see Shell/NavigationBar.tsx).
+    const css = readFileSync(resolve(__dirname, "../../styles/admin-m3-tokens.css"), "utf-8");
 
-    expect(css).toMatch(/\.admin-m3 \.canvas-navigation-bar button\s*{[^}]*transition:\s*none;/s);
-    expect(css).toMatch(/\.admin-m3 \.canvas-navigation-bar\s*{[^}]*transition:\s*none;/s);
-    expect(css).not.toMatch(/\.admin-m3 \.canvas-navigation-bar\s*{[^}]*transition:\s*all/s);
+    // Anchored to line start: an unanchored pattern also matches a re-scoped
+    // `.admin-m3 .canvas-navigation-bar`, which is the regression this guards
+    // against for portaled surfaces.
+    expect(css).toMatch(/^\.canvas-navigation-bar button\s*{[^}]*transition:\s*none;/m);
+    expect(css).toMatch(/^\.canvas-navigation-bar\s*{[^}]*transition:\s*none;/m);
+    expect(css).not.toMatch(/^\.canvas-navigation-bar\s*{[^}]*transition:\s*all/m);
     expect(css).toMatch(
-      /\.admin-m3 \.canvas-navigation-bar button > span:first-child\s*{[^}]*transition:\s*none;/s
+      /^\.canvas-navigation-bar button > span:first-child\s*{[^}]*transition:\s*none;/m
     );
     expect(css).toMatch(
-      /\.admin-m3 \.canvas-navigation-bar button > span:last-child\s*{[^}]*transition:\s*none;/s
+      /^\.canvas-navigation-bar button > span:last-child\s*{[^}]*transition:\s*none;/m
     );
   });
 

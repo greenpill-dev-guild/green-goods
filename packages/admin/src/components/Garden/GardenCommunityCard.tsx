@@ -1,7 +1,6 @@
 import {
   type Address,
   AddressDisplay,
-  Button,
   Card,
   logger,
   PoolType,
@@ -14,6 +13,7 @@ import {
 import { RiAddLine, RiAlertLine, RiCheckLine, RiGroupLine, RiQuestionLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
+import { AdminButton } from "@/components/AdminButton";
 
 interface GardenPool {
   poolType: PoolType;
@@ -249,7 +249,8 @@ export const GardenCommunityCard: React.FC<GardenCommunityCardProps> = ({
               {formatMessage({ id: "app.community.noPoolsYet" })}
             </p>
             {canManage && community && (
-              <Button
+              <AdminButton
+                variant="filled"
                 size="sm"
                 className="mt-2"
                 onClick={async () => {
@@ -271,7 +272,7 @@ export const GardenCommunityCard: React.FC<GardenCommunityCardProps> = ({
               >
                 {!isCreatingPools && <RiAddLine className="h-4 w-4" />}
                 {formatMessage({ id: "app.community.createPools" })}
-              </Button>
+              </AdminButton>
             )}
           </div>
         )}

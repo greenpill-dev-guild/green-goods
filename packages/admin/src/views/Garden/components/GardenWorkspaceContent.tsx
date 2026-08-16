@@ -283,7 +283,7 @@ export function GardenWorkspaceContent({ workspace }: GardenWorkspaceContentProp
                       </AdminButton>
                     ) : null}
                     {bannerIsDraft ? (
-                      <span className="absolute bottom-2 right-2 rounded-full bg-bg-white/90 px-2 py-0.5 text-[11px] font-medium text-text-sub shadow-[var(--edge-rest)]">
+                      <span className="absolute bottom-2 right-2 rounded-full bg-bg-white/90 px-2 py-0.5 text-label-sm font-medium text-text-sub shadow-[var(--edge-rest)]">
                         {formatMessage({
                           id: "app.garden.settings.bannerDraft",
                           defaultMessage: "Preview · uploads on save",

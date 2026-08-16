@@ -4,6 +4,7 @@ import {
   EmptyStateShell,
   type HubActionSummary,
   type Work,
+  hoursSince,
   useEnsName,
 } from "@green-goods/shared";
 import { RiCheckboxCircleLine, RiSearchLine } from "@remixicon/react";
@@ -45,6 +46,9 @@ function HubWorkQueueItem({
   const { formatMessage } = useIntl();
   const { data: ensName } = useEnsName(work.gardenerAddress);
   const gardenerDisplayName = formatEnsAddressName(work.gardenerAddress, ensName);
+  // Same 72h critical bucket the Hub header stats use (useGardenDerivedState):
+  // a pending submission older than 72h reads as Overdue in the error pair.
+  const isOverdue = hoursSince(work.createdAt) >= 72;
 
   return (
     <HubWorkCard
@@ -55,10 +59,12 @@ function HubWorkQueueItem({
         selectedGardenName ?? formatMessage({ id: "cockpit.nav.hub", defaultMessage: "Hub" })
       }
       gardenerDisplayName={gardenerDisplayName}
-      statusLabel={formatMessage({
-        id: "app.admin.work.filter.pending",
-        defaultMessage: "Pending",
-      })}
+      statusLabel={
+        isOverdue
+          ? formatMessage({ id: "cockpit.hub.workCard.overdue", defaultMessage: "Overdue" })
+          : formatMessage({ id: "app.admin.work.filter.pending", defaultMessage: "Pending" })
+      }
+      statusTone={isOverdue ? "error" : "neutral"}
       selected={selected}
       eagerImages={eagerImages}
       onClick={() => onOpenWorkDetail(work.id)}

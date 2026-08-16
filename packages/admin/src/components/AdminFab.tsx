@@ -67,7 +67,7 @@ export function AdminFab({
         // State layer
         "m3-state-layer [--state-layer-color:var(--m3-on-primary-container)]",
         // Elevation
-        "shadow-[var(--m3-elevation-3)] hover:shadow-[var(--m3-elevation-4)]",
+        "shadow-[var(--admin-chrome-shadow,var(--m3-elevation-2))]",
         // Transition
         "transition-shadow duration-[var(--spring-spatial-fast-duration)] ease-[var(--spring-spatial-fast-easing)]",
         // Focus
@@ -88,9 +88,9 @@ export function AdminFab({
               ]
             : size === "large"
               ? [
-                  // Large: 96dp, corner-extra-large (28dp)
+                  // Large: 96dp, corner-large (16dp — the shape scale tops at 16)
                   "h-24 w-24",
-                  "rounded-[var(--m3-shape-xl)]",
+                  "rounded-[var(--m3-shape-lg)]",
                 ]
               : [
                   // Standard: 56dp, corner-large (16dp)

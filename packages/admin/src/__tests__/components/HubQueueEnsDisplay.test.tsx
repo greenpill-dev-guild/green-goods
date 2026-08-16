@@ -3,7 +3,7 @@
  */
 
 import type { Address, Work } from "@green-goods/shared";
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import { IntlProvider } from "react-intl";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import enMessages from "@green-goods/shared/i18n/en.json";
@@ -65,7 +65,10 @@ describe("Hub queue ENS display", () => {
       />
     );
 
-    expect(screen.getByText("Compost")).toBeInTheDocument();
+    // The queue search matches on the action title, so the card has to show it
+    // — a hover-only title leaves a search hit with no visible matching text.
+    const card = screen.getByRole("button", { name: /Compost setup/ });
+    expect(within(card).getByText("Compost")).toBeInTheDocument();
     expect(screen.getByText("river")).toBeInTheDocument();
   });
 
@@ -81,7 +84,10 @@ describe("Hub queue ENS display", () => {
       />
     );
 
-    expect(screen.getByText("Compost")).toBeInTheDocument();
+    // The queue search matches on the action title, so the card has to show it
+    // — a hover-only title leaves a search hit with no visible matching text.
+    const card = screen.getByRole("button", { name: /Compost setup/ });
+    expect(within(card).getByText("Compost")).toBeInTheDocument();
     expect(screen.getByText("river")).toBeInTheDocument();
   });
 });

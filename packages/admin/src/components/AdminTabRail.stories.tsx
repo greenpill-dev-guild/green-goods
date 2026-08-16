@@ -14,14 +14,13 @@ const meta: Meta<typeof AdminTabRail> = {
     docs: {
       description: {
         component: [
-          "**AdminTabRail** — segmented-card tabs per `design_handoff_admin-revamp/screens/review.css` (`.rv-tabs` / `.rv-tab` / `.rv-tab-count`).",
+          "**AdminTabRail** — underline tabs (Cockpit M3, finished — 1a).",
           "",
           "Anatomy:",
-          "- Grid container: `gap: 6px`, `padding: 6px`, `border-radius: 14px`, `var(--surface-quiet)` background",
-          "- Tab button: `40px` × `10px` radius, font 600/14/-0.005em",
-          "- Active tab: raised bg + `var(--e1)` shadow + a barely-perceptible 6% tone wash via `linear-gradient`",
-          "- Count chip: 22×20 pill, `var(--surface-raised)` inactive → `var(--g-action)` active",
-          "- No sliding underline — the rewrite drops the M3 indicator in favor of bg-fill",
+          "- Rail: flex row, 4px gap, hairline bottom rule on the warm stone border step",
+          "- Tab: 10px 16px padding, 14px text; active weight 600 in the workspace accent + 2px underline (tone use 1 of 3); inactive weight 500 sub ink, hover darkens text only",
+          "- Count badge: 1px 8px pill, 12px/600 — active `tone-primary-container` / `on-primary-container`, inactive the neutral chip pair",
+          "- Hovers never shift hue or background — text darken only",
           "",
           "**Accessibility**:",
           '- `role="tablist"` + `role="tab"` + `aria-selected` per WAI-ARIA Tabs pattern',
@@ -217,6 +216,23 @@ export const CountStates: Story = {
     };
     return <Demo />;
   },
+  tags: ["storybook-ci"],
+  /**
+   * The badge count reaches assistive tech through translated, visually hidden
+   * text — not an `aria-label` on a role-less span, which is not reliably
+   * exposed and announces a bare number without units. The visible badge also
+   * collapses past 99, so the accessible name must carry the true count.
+   */
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+
+    await expect(canvas.getByRole("tab", { name: "Single 1 item" })).toBeVisible();
+    await expect(canvas.getByRole("tab", { name: "Many 99 items" })).toBeVisible();
+    // Visible badge reads "99+"; the accessible name keeps the real number.
+    await expect(canvas.getByRole("tab", { name: "Overflow 1,234 items" })).toBeVisible();
+    // A zero count renders no badge at all.
+    await expect(canvas.getByRole("tab", { name: "None" })).toBeVisible();
+  },
 };
 
 // --- tone matrix -----------------------------------------------------------
@@ -230,7 +246,7 @@ function ToneFrame({
 }) {
   return (
     <div data-tone={tone} className="rounded-2xl bg-bg-white-0 p-4">
-      <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.06em] text-text-soft">
+      <div className="mb-2 text-label-sm font-semibold uppercase tracking-[0.06em] text-text-soft">
         [data-tone=&quot;{tone}&quot;]
       </div>
       {children}
@@ -239,7 +255,7 @@ function ToneFrame({
 }
 
 /**
- * Hub tone — `[data-tone="hub"]`, blue accent on active tab raised bg + count
+ * Hub tone — `[data-tone="hub"]`, blue accent on the active underline + count
  * chip. Visual weight stays neutral; tone reads as "context", not "content"
  * per `DESIGN_NOTES § Tone system`.
  */

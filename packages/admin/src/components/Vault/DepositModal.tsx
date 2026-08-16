@@ -1,7 +1,6 @@
 import {
   type Address,
   AssetSelector,
-  Button,
   FormField,
   formatTokenAmount,
   type GardenVault,
@@ -273,8 +272,8 @@ export function DepositModal({
                 invalid={Boolean(amountError)}
                 className="min-w-0 flex-1"
               />
-              <Button
-                variant="secondary"
+              <AdminButton
+                variant="outlined"
                 size="sm"
                 className="w-full sm:w-auto"
                 onClick={() => {
@@ -287,7 +286,7 @@ export function DepositModal({
                 disabled={!decimalsReady || depositMutation.isPending}
               >
                 {formatMessage({ id: "app.treasury.max" })}
-              </Button>
+              </AdminButton>
             </div>
             {!decimalsReady && selectedVault && (
               <p className="text-xs text-warning-base" role="alert">

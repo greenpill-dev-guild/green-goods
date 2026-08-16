@@ -187,7 +187,7 @@ Single design language across frontend packages, with distinct admin, installed 
 
 Proven workarounds in this repo (do **not** chase a Vite/Tailwind config fix — none has been wired up and none has worked):
 - Inline styles or CSS custom properties for layout in shared components (`packages/shared/src/components/Canvas/MainSheet.tsx`, commit `374508db`).
-- CSS overrides in the consuming package (`packages/admin/src/styles/admin-m3-overrides.css` restates `width: max-content` instead of relying on shared's `w-max`, commit `bba06573`).
+- Fork the component into the consuming package — the admin Canvas shell (`packages/admin/src/components/Shell/`) exists precisely so its utility classes live where the content scan reaches them.
 - Apply utility classes in the consumer's JSX, not in shared.
 
 When you see a layout bug that "looks like" a missing class, first check: was the class authored in `packages/shared/src/`? If yes, this gotcha is the likely cause.

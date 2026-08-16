@@ -56,20 +56,40 @@ export function GardenChip({
   };
   const showCreateAction = Boolean(onCreateGarden && showCreateGardenAction);
 
-  // Static chip when only 1 garden — handoff `.rv-pill`: flat surface-raised
-  // background + 1px outline, no elevation shadow. `--surface-raised` and
-  // `--outline` are complete CSS colors so admin can scope them per theme.
+  // Leading avatar — 22px round mint tile with the seedling glyph (Cockpit M3
+  // 1a switcher anatomy). Inline styles keep this shared JSX off Tailwind
+  // utilities that admin's content scan may not reach.
+  const leadingAvatar = (
+    <span
+      className="flex shrink-0 items-center justify-center rounded-full"
+      style={{
+        width: "22px",
+        height: "22px",
+        background: "rgb(var(--green-100))",
+        color: "rgb(var(--green-900))",
+      }}
+      aria-hidden="true"
+      data-slot="avatar"
+    >
+      <RiSeedlingLine style={{ width: "0.875rem", height: "0.875rem" }} />
+    </span>
+  );
+
+  // Static chip when only 1 garden — 36px pill, raised surface, hairline
+  // border, no elevation shadow. `--surface-raised` is a complete CSS color so
+  // admin can scope it per theme; the border rides the semantic stroke token.
   if (!hasMultiple) {
     return (
       <span
         className={cn(
-          "inline-flex max-w-sm items-center gap-1.5 rounded-full",
-          "px-3 py-1.5",
+          "inline-flex max-w-sm items-center gap-2 rounded-full",
           "text-label-lg font-medium text-text-strong"
         )}
         style={{
+          height: "36px",
+          padding: "0 14px 0 8px",
           background: "var(--surface-raised, rgb(var(--bg-white-0)))",
-          border: "1px solid var(--outline, rgb(var(--neutral-800) / 0.10))",
+          border: "1px solid rgb(var(--stroke-sub-300))",
           ...chipTriggerStyle,
         }}
         data-component="GardenChip"
@@ -77,19 +97,7 @@ export function GardenChip({
         data-state={selectedGarden ? "selected" : "empty"}
       >
         {selectedGarden ? (
-          <span className="relative flex h-4 w-4 shrink-0 items-center justify-center">
-            <RiSeedlingLine
-              className="h-4 w-4"
-              // Handoff DESIGN_NOTES § Tone system: garden-pill leaf tints to
-              // the active view's tone. Falls back to brand green if the
-              // ancestor doesn't set [data-tone].
-              style={{ color: "rgb(var(--tone-action, var(--green-800)))" }}
-            />
-            <span
-              className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full ring-2 ring-bg-white"
-              style={{ background: "rgb(var(--tone-action, var(--green-800)))" }}
-            />
-          </span>
+          leadingAvatar
         ) : (
           <RiSeedlingLine className="h-4 w-4 shrink-0 text-text-sub" />
         )}
@@ -107,8 +115,7 @@ export function GardenChip({
         <button
           type="button"
           className={cn(
-            "inline-flex cursor-pointer items-center gap-1.5 rounded-full",
-            "px-3 py-1.5",
+            "inline-flex cursor-pointer items-center gap-2 rounded-full",
             "text-label-lg font-medium text-text-strong",
             "transition-colors duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)]",
             "motion-reduce:transition-none",
@@ -116,8 +123,10 @@ export function GardenChip({
             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-focus-ring,var(--tone-action,var(--green-800))))]"
           )}
           style={{
+            height: "36px",
+            padding: "0 14px 0 8px",
             background: "var(--surface-raised, rgb(var(--bg-white-0)))",
-            border: "1px solid var(--outline, rgb(var(--neutral-800) / 0.10))",
+            border: "1px solid rgb(var(--stroke-sub-300))",
             ...chipTriggerStyle,
           }}
           data-component="GardenChip"
@@ -125,16 +134,7 @@ export function GardenChip({
           data-selection-state={selectedGarden ? "selected" : "empty"}
         >
           {selectedGarden ? (
-            <span className="relative flex h-4 w-4 shrink-0 items-center justify-center">
-              <RiSeedlingLine
-                className="h-4 w-4"
-                style={{ color: "rgb(var(--tone-action, var(--green-800)))" }}
-              />
-              <span
-                className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full ring-2 ring-bg-white"
-                style={{ background: "rgb(var(--tone-action, var(--green-800)))" }}
-              />
-            </span>
+            leadingAvatar
           ) : (
             <RiSeedlingLine className="h-4 w-4 shrink-0 text-text-sub" />
           )}
@@ -148,10 +148,10 @@ export function GardenChip({
           <RiArrowDownSLine
             aria-hidden="true"
             style={{
-              height: "1rem",
-              width: "1rem",
+              height: "0.75rem",
+              width: "0.75rem",
               flexShrink: 0,
-              color: "rgb(var(--text-sub-600))",
+              color: "rgb(var(--text-soft-400))",
             }}
           />
         </button>
@@ -162,7 +162,7 @@ export function GardenChip({
           align="start"
           sideOffset={8}
           className={cn(
-            "z-overlay rounded-xl glass-floating p-1 shadow-[var(--edge-rest),_var(--elevation-4)]",
+            "z-overlay rounded-xl glass-floating p-1 shadow-[var(--edge-rest),_var(--m3-elevation-2)]",
             "animate-in fade-in-0 zoom-in-95",
             "data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95",
             "motion-reduce:animate-none"

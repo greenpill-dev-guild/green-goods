@@ -1,11 +1,10 @@
 import {
-  AppBar,
-  MainSheet,
   adminRoutes,
   queryKeys,
   useCurrentChain,
   type AdminAccessState,
 } from "@green-goods/shared";
+import { AppBar, MainSheet } from "@/components/Shell";
 import { useQueryClient } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import { useIntl } from "react-intl";

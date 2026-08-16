@@ -83,6 +83,9 @@ export function buildHubHeaderStats({
     {
       id: "overdue",
       value: String(overdueCount),
+      // Overdue count reads in the error pair when anything is overdue
+      // (Cockpit M3 1a status line); zero stays quiet ink.
+      valueTone: overdueCount > 0 ? "critical" : undefined,
       label: formatMessage({
         id: "cockpit.hub.stats.overdue",
         defaultMessage: "overdue",

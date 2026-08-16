@@ -27,7 +27,7 @@ export interface AdminCheckboxProps {
  * AdminCheckbox — M3 Checkbox
  *
  * Implements Material Design 3 checkbox anatomy:
- * - Container: 18dp (h-[18px] w-[18px]), 2dp radius (rounded-[2px])
+ * - Container: 18dp (h-[18px] w-[18px]), 4dp radius (--m3-shape-xs)
  * - Touch target: 40dp circle around checkbox (h-10 w-10 centered)
  * - Unselected: transparent fill, 2dp border on-surface-variant
  * - Selected: primary fill, white SVG checkmark via background-image
@@ -103,7 +103,7 @@ export const AdminCheckbox = React.forwardRef<HTMLInputElement, AdminCheckboxPro
           {/* Native checkbox — appearance-none, styled via CSS. The check glyph
               below is a WHITE data-URI stroke, correct on the deep light-mode
               fills; in dark mode the fills flip light (pastel --m3-primary /
-              light-red --m3-error) so admin-m3-overrides.css swaps the glyph
+              light-red --m3-error) so admin-m3-components.css swaps the glyph
               to an ink stroke via the data attributes. */}
           <input
             data-component="AdminCheckbox"
@@ -122,8 +122,8 @@ export const AdminCheckbox = React.forwardRef<HTMLInputElement, AdminCheckboxPro
             className={cn(
               // Remove native appearance
               "appearance-none",
-              // Size: 18dp container, 2dp radius
-              "h-[18px] w-[18px] shrink-0 rounded-[2px]",
+              // Size: 18dp container, 4dp radius (--m3-shape-xs)
+              "h-[18px] w-[18px] shrink-0 rounded-[var(--m3-shape-xs)]",
               // Cursor
               "cursor-pointer disabled:cursor-not-allowed",
               // Transition

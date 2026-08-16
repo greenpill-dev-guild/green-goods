@@ -769,7 +769,7 @@ export function CommunityTab({
                   </AdminCard>
                   {allocationSplits ? (
                     <div className="space-y-1.5 border-t border-stroke-soft pt-2">
-                      <p className="mb-1.5 text-[11px] text-text-soft">
+                      <p className="mb-1.5 text-label-md text-text-soft">
                         {formatMessage({
                           id: "app.garden.detail.community.yieldAllocationHint",
                           defaultMessage: "How yield is distributed",

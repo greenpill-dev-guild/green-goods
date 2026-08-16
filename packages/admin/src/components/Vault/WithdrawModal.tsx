@@ -2,7 +2,6 @@ import {
   type Address,
   Alert,
   AssetSelector,
-  Button,
   FormField,
   formatTokenAmount,
   type GardenVault,
@@ -244,14 +243,14 @@ export function WithdrawModal({
               invalid={Boolean(amountError)}
               className="min-w-0 flex-1"
             />
-            <Button
-              variant="secondary"
+            <AdminButton
+              variant="outlined"
               size="sm"
               className="w-full sm:w-auto"
               onClick={() => setAmountInput(formatUnits(maxWithdrawable, assetDecimals))}
             >
               {formatMessage({ id: "app.treasury.max" })}
-            </Button>
+            </AdminButton>
           </div>
         </FormField>
 

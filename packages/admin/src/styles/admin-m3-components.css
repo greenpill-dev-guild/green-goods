@@ -1,0 +1,230 @@
+/* ============================================================================
+ * Admin M3 component skins & motion — admin-owned CSS for admin-owned
+ * components (plus two third-party surfaces). Imported by admin's index.css
+ * AND the shared Storybook preview, so stories exercise the same motion and
+ * dark-mode fixes as the runtime app.
+ *
+ * This file contains NO remote styling of shared components — that practice
+ * ended with the Shell fork (Cockpit M3 1a, Step 1) and the removal of
+ * admin-m3-overrides.css (Step 5).
+ * ============================================================================ */
+
+/* Toast / Snackbar (react-hot-toast) — M3 inverse surface */
+.admin-m3 [data-hot-toast] > div {
+  background: rgb(var(--m3-inverse-surface)) !important;
+  color: rgb(var(--m3-inverse-on-surface)) !important;
+  border-radius: var(--m3-shape-xs) !important;
+  box-shadow: var(--m3-elevation-2) !important;
+}
+
+/* Date Picker (react-day-picker) — M3 surface + shape */
+.admin-m3 .rdp {
+  border-radius: var(--m3-shape-lg);
+  background: rgb(var(--m3-surface-container-high));
+  box-shadow: var(--m3-elevation-2);
+}
+
+.admin-m3 .rdp-day_selected {
+  background: rgb(var(--m3-primary)) !important;
+  color: rgb(var(--m3-on-primary)) !important;
+}
+
+.admin-m3 .rdp-day_today {
+  color: rgb(var(--m3-primary));
+  font-weight: 700;
+}
+
+/* ============================================================================
+ * AdminDialog motion — admin-owned enter/exit animation
+ *
+ * AdminDialog portals to <body> (outside .admin-m3), so these rules use bare
+ * [data-component="AdminDialog"] selectors keyed off Radix's data-state — the
+ * same convention the shared dialog primitives use in utilities.css. Token-
+ * driven (--spring-*) so there are no raw duration/easing literals.
+ *
+ * These keyframes animate ONLY the motion delta (slide on Y, or scale) via the
+ * `transform` property. AdminDialog.tsx uses Tailwind v4 translate utilities
+ * only where a variant is centered (compact mobile dialogs and all desktop
+ * dialogs); full-width mobile action sheets have no X translate. Tailwind v4
+ * compiles translate utilities to the independent `translate` CSS property —
+ * NOT `transform`. Because `translate` and `transform` compose, these keyframes
+ * must NOT re-bake translate(-50%, …) into `transform`, or centered variants
+ * would translate twice and land off-center.
+ * ============================================================================ */
+
+/* Mobile bottom sheet — slide up from below, 2% overshoot for spring feel.
+ * X placement comes from AdminDialog.tsx geometry; we only move Y. */
+@keyframes adminDialogSheetIn {
+  from { transform: translateY(100%); opacity: 0.85; }
+  60%  { transform: translateY(-2%); opacity: 1; }
+  to   { transform: translateY(0); opacity: 1; }
+}
+@keyframes adminDialogSheetOut {
+  from { transform: translateY(0); opacity: 1; }
+  to   { transform: translateY(100%); opacity: 0.85; }
+}
+
+/* Desktop centered modal — subtle scale, no overshoot. Centering comes from the
+ * Tailwind `translate` property; scale is about the surface center. */
+@keyframes adminDialogModalIn {
+  from { transform: scale(0.96); opacity: 0; }
+  to   { transform: scale(1); opacity: 1; }
+}
+@keyframes adminDialogModalOut {
+  from { transform: scale(1); opacity: 1; }
+  to   { transform: scale(0.96); opacity: 0; }
+}
+
+/* Scrim — reuses the shared scrimFadeIn/scrimFadeOut keyframes (utilities.css,
+ * imported by both admin index.css and the Storybook preview). No transform on
+ * the overlay, so no centering conflict. */
+[data-component="AdminDialog"][data-slot="overlay"][data-state="open"] {
+  animation: scrimFadeIn var(--spring-effects-duration) var(--spring-effects-easing) both;
+}
+[data-component="AdminDialog"][data-slot="overlay"][data-state="closed"] {
+  animation: scrimFadeOut var(--spring-effects-fast-duration) var(--spring-effects-fast-easing) both;
+}
+
+/* Surface — mobile bottom-sheet slide is the default; >= 640px swaps to the
+ * centered-modal zoom (matching the sm: breakpoint AdminDialog.tsx uses). */
+[data-component="AdminDialog"][data-slot="surface"][data-state="open"] {
+  animation: adminDialogSheetIn var(--spring-spatial-slow-duration)
+    var(--spring-spatial-slow-easing) both;
+}
+[data-component="AdminDialog"][data-slot="surface"][data-state="closed"] {
+  animation: adminDialogSheetOut var(--spring-spatial-duration)
+    var(--spring-spatial-easing) both;
+}
+
+@media (min-width: 640px) {
+  [data-component="AdminDialog"][data-slot="surface"][data-state="open"] {
+    animation: adminDialogModalIn var(--spring-spatial-slow-duration)
+      var(--spring-spatial-slow-easing) both;
+  }
+  [data-component="AdminDialog"][data-slot="surface"][data-state="closed"] {
+    animation: adminDialogModalOut var(--spring-spatial-duration)
+      var(--spring-spatial-easing) both;
+  }
+}
+
+/* ============================================================================
+ * AdminSideSheet motion — the three global AppBar surfaces (Profile,
+ * Settings, Notifications). Mobile keeps the dialog's bottom-sheet slide
+ * (same keyframes, same composition with the compact Tailwind `translate` centering);
+ * ≥640px slides in from the right edge as an M3 modal side sheet.
+ * ============================================================================ */
+
+@keyframes adminSideSheetIn {
+  from { transform: translateX(100%); opacity: 0.85; }
+  60%  { transform: translateX(-1.5%); opacity: 1; }
+  to   { transform: translateX(0); opacity: 1; }
+}
+@keyframes adminSideSheetOut {
+  from { transform: translateX(0); opacity: 1; }
+  to   { transform: translateX(100%); opacity: 0.85; }
+}
+
+[data-component="AdminSideSheet"][data-slot="overlay"][data-state="open"] {
+  animation: scrimFadeIn var(--spring-effects-duration) var(--spring-effects-easing) both;
+}
+[data-component="AdminSideSheet"][data-slot="overlay"][data-state="closed"] {
+  animation: scrimFadeOut var(--spring-effects-fast-duration) var(--spring-effects-fast-easing) both;
+}
+
+/* Surface — mobile bottom-sheet slide by default; ≥640px swaps to the
+ * right-edge slide (matching the sm: breakpoint AdminSideSheet.tsx uses). */
+[data-component="AdminSideSheet"][data-slot="surface"][data-state="open"] {
+  animation: adminDialogSheetIn var(--spring-spatial-slow-duration)
+    var(--spring-spatial-slow-easing) both;
+}
+[data-component="AdminSideSheet"][data-slot="surface"][data-state="closed"] {
+  animation: adminDialogSheetOut var(--spring-spatial-duration)
+    var(--spring-spatial-easing) both;
+}
+
+@media (min-width: 640px) {
+  [data-component="AdminSideSheet"][data-slot="surface"][data-state="open"] {
+    animation: adminSideSheetIn var(--spring-spatial-slow-duration)
+      var(--spring-spatial-slow-easing) both;
+  }
+  [data-component="AdminSideSheet"][data-slot="surface"][data-state="closed"] {
+    animation: adminSideSheetOut var(--spring-spatial-duration)
+      var(--spring-spatial-easing) both;
+  }
+}
+
+/* Reduced motion — disable the enter/exit animation (mirrors the shared
+ * dialog block in utilities.css). The `to`/forwards fill still resolves the
+ * resting transform, so the surface lands centered, just without motion. */
+@media (prefers-reduced-motion: reduce) {
+  [data-component="AdminDialog"][data-slot],
+  [data-component="AdminSideSheet"][data-slot] {
+    animation-duration: 0ms !important;
+  }
+}
+
+/* Instant exit — set by AdminDialog when a close happens in a hidden tab
+ * (frozen animations would never fire animationend, so Radix would keep the
+ * exit node and its body pointer-events lock forever), and by the
+ * dialogCloseSafetyNet when it finds an already-stuck exit node. No animation
+ * lets Radix unmount synchronously; display:none belts-and-braces a node whose
+ * exit was already frozen mid-animation so it can never sit half-visible. */
+[data-component="AdminDialog"][data-instant-exit][data-state="closed"],
+[data-component="AdminSideSheet"][data-instant-exit][data-state="closed"] {
+  animation: none !important;
+  display: none !important;
+}
+
+/* Dark-mode check glyph — ink stroke instead of the component's white data-URI.
+ * Dark checked fills are LIGHT (pastel --m3-primary -200 step; light-red
+ * --m3-error), so the white glyph measures ~1.3–2.1:1 — invisible. Ink
+ * (neutral-950 #0C0A09) measures ≥6:1 on both, mirroring how --m3-on-primary /
+ * --m3-on-error flip to ink in dark. Same mechanism as the .gg-control-select
+ * chevron (theme.css): a per-theme data-URI swap. Unlayered on purpose so it
+ * beats the Tailwind utility that sets the white glyph. */
+[data-theme="dark"] [data-component="AdminCheckbox"][data-slot="input"]:checked {
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%230C0A09%22%20stroke-width%3D%223%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M20%206L9%2017l-5-5%22%2F%3E%3C%2Fsvg%3E");
+}
+
+/* AdminCard — content stacking above the (transparent) decorative layer so
+ * card children never paint under a future surface treatment. */
+.admin-m3 [data-component="AdminCard"]::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: transparent;
+  z-index: 0;
+}
+.admin-m3 [data-component="AdminCard"] > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* ============================================================================
+ * Action flow phase cross-fade (qualify ↔ configure)
+ * Animates only the content group — the ActionFlowShell header + footer stay
+ * stationary. Reuses the route-content fade keyframe + admin motion tokens
+ * (minimal-cockpit budget). Disabled under reduced motion.
+ * ============================================================================ */
+.action-flow-fade {
+  animation: var(--admin-motion-route-content-duration) var(--admin-motion-route-content-easing) both
+    route-content-fade-in;
+}
+@media (prefers-reduced-motion: reduce) {
+  .action-flow-fade {
+    animation: none;
+  }
+}
+
+/* Reduced motion — the stepper dot color transitions, the 300ms horizontal
+ * connector scaleX fill, and the chooser card press are decorative; zero them
+ * out. There is no universal `*{transition:none}` reset in this repo (only
+ * scoped allow-lists like this one), so the stepper/chooser must opt in here. */
+@media (prefers-reduced-motion: reduce) {
+  [data-component="ActionFlowStepper"] *,
+  [data-component="AdminSelectableCard"] {
+    transition: none !important;
+  }
+}

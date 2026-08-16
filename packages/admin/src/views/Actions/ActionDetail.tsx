@@ -1,7 +1,6 @@
 import {
   ACTION_CAPITAL_LABEL_IDS,
   ActionBannerFallback,
-  Button,
   DEFAULT_CHAIN_ID,
   DOMAIN_CONFIG,
   type Domain,
@@ -298,10 +297,10 @@ export default function ActionDetail() {
         <CanvasRouteContent maxWidthClassName="max-w-[1200px]" className="mt-4">
           <div className="space-y-4" role="status" aria-live="polite">
             <span className="sr-only">{formatMessage({ id: "app.actions.loading" })}</span>
-            <div className="h-28 rounded-[1.4rem] skeleton-shimmer" />
+            <div className="h-28 rounded-[var(--radius-xl)] skeleton-shimmer" />
             <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,2fr)_minmax(18rem,1fr)]">
-              <div className="h-80 rounded-[1.4rem] skeleton-shimmer" />
-              <div className="h-80 rounded-[1.4rem] skeleton-shimmer" />
+              <div className="h-80 rounded-[var(--radius-xl)] skeleton-shimmer" />
+              <div className="h-80 rounded-[var(--radius-xl)] skeleton-shimmer" />
             </div>
           </div>
         </CanvasRouteContent>
@@ -373,12 +372,12 @@ export default function ActionDetail() {
         }
         actions={
           canManageActions ? (
-            <Button size="sm" asChild>
+            <AdminButton size="sm" asChild>
               <Link to={actionEditHref}>
                 <RiEditLine className="h-4 w-4" />
                 {formatMessage({ id: "app.actions.edit" })}
               </Link>
-            </Button>
+            </AdminButton>
           ) : undefined
         }
         sticky

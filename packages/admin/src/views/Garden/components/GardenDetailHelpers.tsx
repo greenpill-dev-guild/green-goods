@@ -1,5 +1,4 @@
 import {
-  Button,
   Card,
   DOMAIN_COLORS,
   DOMAIN_LABEL_IDS,
@@ -33,7 +32,7 @@ export function TabBadge({ badge }: { badge: TabBadgeState }) {
 
   return (
     <span
-      className={`ml-2 inline-flex min-w-5 items-center justify-center rounded-full px-1.5 py-0.5 text-[11px] font-semibold ${BADGE_TONE_CLASSES[badge.severity]}`}
+      className={`ml-2 inline-flex min-w-5 items-center justify-center rounded-full px-1.5 py-0.5 text-label-sm font-semibold ${BADGE_TONE_CLASSES[badge.severity]}`}
     >
       {badge.count}
     </span>
@@ -180,9 +179,9 @@ export function SectionStateCard({ title, description, closeLabel, onClose }: Se
           <h3 className="label-md text-text-strong">{title}</h3>
           <p className="mt-1 text-sm text-text-sub">{description}</p>
         </div>
-        <Button variant="ghost" size="sm" onClick={onClose} aria-label={closeLabel}>
+        <AdminButton variant="text" size="sm" onClick={onClose} aria-label={closeLabel}>
           <RiCloseLine className="h-4 w-4" />
-        </Button>
+        </AdminButton>
       </Card.Body>
     </Card>
   );

@@ -16,7 +16,7 @@ export function WorkbenchList({
         className
       )}
       style={{
-        boxShadow: "var(--edge-rest), var(--elevation-1)",
+        boxShadow: "var(--edge-rest), var(--m3-elevation-1)",
         ...style,
       }}
     >

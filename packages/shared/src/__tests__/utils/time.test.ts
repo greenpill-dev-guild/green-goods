@@ -6,7 +6,6 @@ import {
   formatDate,
   formatDateTime,
   formatDuration,
-  formatRelativeTime,
   fromDateTimeLocalValue,
   getCurrentTimezone,
   getDurationMs,
@@ -19,6 +18,7 @@ import {
   toSafeDate,
   toSafeInstant,
 } from "../../utils/time";
+import { formatRelativeTime } from "../../utils/relativeTime";
 
 describe("Time Utilities", () => {
   const NOW = 1704067200000; // 2024-01-01 00:00:00 UTC

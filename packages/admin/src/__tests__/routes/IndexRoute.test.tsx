@@ -40,16 +40,19 @@ const { mockAuthState, mockEligibleAdminGardens } = vi.hoisted(() => ({
   },
 }));
 
+vi.mock("@/components/Shell", () => ({
+  AppBar: (props: { gardenChip: React.ReactNode }) => (
+    <div data-testid="top-context-bar">{props.gardenChip}</div>
+  ),
+  MainSheet: ({ children }: { children: React.ReactNode }) => (
+    <div data-testid="main-sheet">{children}</div>
+  ),
+}));
+
 vi.mock("@green-goods/shared", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@green-goods/shared")>();
   return {
     ...actual,
-    AppBar: (props: { gardenChip: React.ReactNode }) => (
-      <div data-testid="top-context-bar">{props.gardenChip}</div>
-    ),
-    MainSheet: ({ children }: { children: React.ReactNode }) => (
-      <div data-testid="main-sheet">{children}</div>
-    ),
     useAuth: () => mockAuthState.current,
     useEligibleAdminGardens: () => mockEligibleAdminGardens.current,
     useAdminAccessState: () => {
