@@ -1,6 +1,6 @@
 # Surfaces — Depth, Materials & Interaction Mechanics
 
-How Warm Earth surfaces get built: the Z-layer depth model, the semantic material system, and the interaction patterns that keep every surface reachable across input modalities. Merged from the former `spatial.md`, `materials.md`, and `interaction.md` (2026-08 round-3 consolidation).
+How Warm Earth surfaces get built: the Z-layer depth model, the semantic material system, and the interaction patterns that keep every surface reachable across input modalities. Merged from three former sub-files of this skill in the 2026-08 round-3 consolidation.
 
 Canonical token values live in root `DESIGN.md` front matter and [language.md](./language.md); this file covers *when and how* to apply them.
 
