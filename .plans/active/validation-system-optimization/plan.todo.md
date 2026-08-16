@@ -92,16 +92,26 @@ installation or upgrade, workflow rerun, GitHub setting change, deployment, broa
   handles none of them. Markdown-, Solidity-, and YAML-only changes therefore failed at the first
   check and fail-fast stopped the plan. Fixed with `--no-errors-on-unmatched`; the previous fixture
   had asserted the broken command verbatim.
-- Indexer suite profiling (requirement 7) was carried out and produced no shipped change. `mocha
-  --parallel` is attractive but not yet safe:
-  - On a bounded four-file subset it ran 412.6s to 182.4s (2.26x) with 76 passing in both arms and
-    c8 coverage identical to the digit (24.7 / 97.1 / 17.58 / 24.7), so coverage collection does
-    survive worker processes.
-  - On the full suite at mocha's default worker count (cores minus one, so nine on the measuring
-    host) `GreenWill.BadgeIssued > materializes canonical ownership and grant history` failed. The
-    same test passes serially in 5.1s. Per-test durations inflated to 16-17s against the suite's
-    30000ms timeout, so oversubscription rather than a pure isolation defect is the leading
-    explanation, and an explicit `--jobs` bound is the next thing to test.
-  - The suite is slow per test, not slow to start: CI spends 559s on 245 tests, roughly 2.3s each,
-    against 42s of setup and 1s of codegen. Any real fix has to make individual tests cheaper or
-    spread them safely, not trim startup.
+- Indexer suite profiling (requirement 7) was carried out and produced no shipped change.
+  Measurements on an idle 10-core host, full suite unless noted:
+
+  | Configuration | Wall | Passing | Failing |
+  |---|---|---|---|
+  | serial (baseline) | 606.6s | 244 | 0 |
+  | `--parallel`, default 9 workers | 442.6s | 197 | 47 |
+  | `--parallel --jobs 4` | 401.3s | 242 | 2 |
+
+  Every one of those 49 failures is `Timeout of 30000ms exceeded`; not one is an assertion failure,
+  so the suite is logically parallel-safe and c8 coverage is byte-identical between serial and
+  parallel runs (24.7 / 97.1 / 17.58 / 24.7 on a two-file probe). What blocks parallelism is
+  headroom: the slowest test already takes 20.3s serially on an idle machine against a 30000ms
+  timeout. Bounding workers helps a lot and is not enough, so `--parallel` must not ship until
+  per-test cost falls.
+
+- The per-test cost is one call. `processEvent` costs about 1,184ms steady-state (first call
+  1,574ms), while `createTestIndexer()` costs 0.1ms and module import 696ms once per worker. At one
+  call per test that is 289s of the 606.6s suite, and most tests make several. Cost is also spread
+  rather than concentrated: 158 of 244 tests are slow enough for mocha to print a duration and the
+  slowest 30 are only 37% of the total, so there is no small set of offenders to fix. The lever is
+  `processEvent` itself, which is an Envio harness question rather than a Green Goods test-authoring
+  one.
