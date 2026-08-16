@@ -1,0 +1,610 @@
+{
+  "version": 1,
+  "capabilities": [
+    {
+      "ref": "entity:garden",
+      "implementation": "implemented",
+      "deployment": "deployed",
+      "activation": "active",
+      "integration": "integrated",
+      "availability": "available",
+      "evidence": [
+        {
+          "file": "packages/contracts/deployments/42161-latest.json",
+          "note": "Arbitrum deployment includes the Garden token, account, and module."
+        },
+        {
+          "file": "packages/client/src/views/Public/GardenDetail.tsx",
+          "note": "The client exposes a public Garden surface."
+        }
+      ],
+      "verified_at": "2026-08-15"
+    },
+    {
+      "ref": "entity:action",
+      "implementation": "implemented",
+      "deployment": "deployed",
+      "activation": "active",
+      "integration": "integrated",
+      "availability": "available",
+      "evidence": [
+        {
+          "file": "packages/contracts/deployments/42161-latest.json",
+          "note": "Arbitrum deployment includes the Action registry."
+        },
+        {
+          "file": "packages/client/src/views/Public/Actions.tsx",
+          "note": "The client exposes public Action records."
+        }
+      ],
+      "verified_at": "2026-08-15"
+    },
+    {
+      "ref": "entity:work",
+      "implementation": "implemented",
+      "deployment": "deployed",
+      "activation": "active",
+      "integration": "integrated",
+      "availability": "available",
+      "evidence": [
+        {
+          "file": "packages/contracts/src/resolvers/Work.sol",
+          "note": "Work submission creates its EAS attestation before review."
+        },
+        {
+          "file": "packages/client/src/views/Home/Garden/Work.tsx",
+          "note": "Gardeners have a product surface for Work."
+        }
+      ],
+      "verified_at": "2026-08-15"
+    },
+    {
+      "ref": "entity:assessment",
+      "implementation": "implemented",
+      "deployment": "deployed",
+      "activation": "active",
+      "integration": "integrated",
+      "availability": "available",
+      "evidence": [
+        {
+          "file": "packages/contracts/src/resolvers/Assessment.sol",
+          "note": "Assessment resolver accepts Evaluator or Operator attestations."
+        },
+        {
+          "file": "packages/client/src/views/Home/Garden/Assessment.tsx",
+          "note": "The client exposes the Garden Assessment flow."
+        }
+      ],
+      "verified_at": "2026-08-15"
+    },
+    {
+      "ref": "entity:hypercert",
+      "implementation": "implemented",
+      "deployment": "deployed",
+      "activation": "inactive",
+      "integration": "partial",
+      "availability": "in-build",
+      "evidence": [
+        {
+          "file": "packages/contracts/deployments/42161-latest.json",
+          "note": "Hypercert module and minting contracts are deployed; product activation remains deployment/indexing dependent."
+        }
+      ],
+      "verified_at": "2026-08-15"
+    },
+    {
+      "ref": "entity:vault",
+      "implementation": "implemented",
+      "deployment": "deployed",
+      "activation": "active",
+      "integration": "integrated",
+      "availability": "available",
+      "evidence": [
+        {
+          "file": "packages/contracts/deployments/42161-latest.json",
+          "note": "Octant factory and module are present in the Arbitrum deployment."
+        },
+        {
+          "file": "packages/client/src/views/Public/Vaults.tsx",
+          "note": "The public client exposes active Vault flows."
+        }
+      ],
+      "verified_at": "2026-08-15"
+    },
+    {
+      "ref": "entity:cookie-jar",
+      "implementation": "implemented",
+      "deployment": "deployed",
+      "activation": "active",
+      "integration": "integrated",
+      "availability": "available",
+      "evidence": [
+        {
+          "file": "packages/contracts/deployments/42161-latest.json",
+          "note": "Cookie Jar factory and module are present in the Arbitrum deployment."
+        },
+        {
+          "file": "packages/client/src/views/Public/Cookies.tsx",
+          "note": "The public client exposes active Cookie Jar records."
+        }
+      ],
+      "verified_at": "2026-08-15"
+    },
+    {
+      "ref": "entity:attestation",
+      "implementation": "implemented",
+      "deployment": "deployed",
+      "activation": "active",
+      "integration": "integrated",
+      "availability": "available",
+      "evidence": [
+        {
+          "file": "packages/contracts/config/schemas.json",
+          "note": "Registered Green Goods EAS schema definitions."
+        }
+      ],
+      "verified_at": "2026-08-15"
+    },
+    {
+      "ref": "entity:hat",
+      "implementation": "implemented",
+      "deployment": "deployed",
+      "activation": "active",
+      "integration": "integrated",
+      "availability": "available",
+      "evidence": [
+        {
+          "file": "packages/contracts/deployments/42161-latest.json",
+          "note": "Hats module is present in the Arbitrum deployment."
+        },
+        {
+          "file": "packages/client/src/components/Public/PublicWhoTendsAGarden.tsx",
+          "note": "The public client explains active Garden roles."
+        }
+      ],
+      "verified_at": "2026-08-15"
+    },
+    {
+      "ref": "entity:season",
+      "implementation": "partial",
+      "deployment": "not-applicable",
+      "activation": "not-applicable",
+      "integration": "partial",
+      "availability": "planned",
+      "evidence": [
+        {
+          "file": ".plans/active/commitment-pooling/contract-spec.md",
+          "note": "Commitment Cycle type Season is implemented onchain, but the product season surface is not available."
+        }
+      ],
+      "verified_at": "2026-08-15"
+    },
+    {
+      "ref": "entity:need",
+      "implementation": "not-implemented",
+      "deployment": "not-deployed",
+      "activation": "inactive",
+      "integration": "not-integrated",
+      "availability": "planned",
+      "evidence": [
+        {
+          "file": ".plans/active/community-interface/status.json",
+          "note": "Community Needs contract, state/API, and UI lanes remain blocked."
+        }
+      ],
+      "verified_at": "2026-08-15"
+    },
+    {
+      "ref": "entity:commitment-pool",
+      "implementation": "implemented",
+      "deployment": "deployed",
+      "activation": "active",
+      "integration": "not-integrated",
+      "availability": "deployed-not-available",
+      "evidence": [
+        {
+          "file": ".plans/active/commitment-pooling/status.json",
+          "note": "Pooling is unpaused and 18 pools are receipt-verified; indexer/shared/UI lanes remain blocked."
+        }
+      ],
+      "verified_at": "2026-08-15"
+    },
+    {
+      "ref": "entity:commitment-cycle",
+      "implementation": "implemented",
+      "deployment": "deployed",
+      "activation": "active",
+      "integration": "not-integrated",
+      "availability": "deployed-not-available",
+      "evidence": [
+        {
+          "file": "packages/contracts/src/interfaces/ICommitmentPoolingModule.sol",
+          "note": "Cycle struct and lifecycle interface are implemented in the deployed pooling boundary."
+        }
+      ],
+      "verified_at": "2026-08-15"
+    },
+    {
+      "ref": "entity:commitment-series",
+      "implementation": "implemented",
+      "deployment": "deployed",
+      "activation": "active",
+      "integration": "not-integrated",
+      "availability": "deployed-not-available",
+      "evidence": [
+        {
+          "file": "packages/contracts/src/interfaces/ICommitmentPoolingModule.sol",
+          "note": "Series struct and lifecycle interface are implemented in the deployed pooling boundary."
+        }
+      ],
+      "verified_at": "2026-08-15"
+    },
+    {
+      "ref": "entity:commitment",
+      "implementation": "implemented",
+      "deployment": "deployed",
+      "activation": "active",
+      "integration": "not-integrated",
+      "availability": "deployed-not-available",
+      "evidence": [
+        {
+          "file": ".plans/active/commitment-pooling/status.json",
+          "note": "Onchain coordination is active; product integration and user surfaces remain blocked."
+        }
+      ],
+      "verified_at": "2026-08-15"
+    },
+    {
+      "ref": "entity:commitment-contributor",
+      "implementation": "implemented",
+      "deployment": "deployed",
+      "activation": "active",
+      "integration": "not-integrated",
+      "availability": "deployed-not-available",
+      "evidence": [
+        {
+          "file": "packages/contracts/src/interfaces/ICommitmentPoolingModule.sol",
+          "note": "Contributor roster and credit fields are implemented in the deployed pooling boundary."
+        }
+      ],
+      "verified_at": "2026-08-15"
+    },
+    {
+      "ref": "entity:commitment-payout-plan",
+      "implementation": "implemented",
+      "deployment": "deployed",
+      "activation": "inactive",
+      "integration": "partial",
+      "availability": "deployed-not-available",
+      "evidence": [
+        {
+          "file": ".plans/active/commitment-pooling/status.json",
+          "note": "Settlement contracts are deployed but paused; value authority and product activation remain disabled."
+        }
+      ],
+      "verified_at": "2026-08-15"
+    }
+  ],
+  "human_concepts": [
+    {
+      "ref": "entity:garden",
+      "plain_name": "A community and its shared place",
+      "why_it_matters": "It gives people, roles, records, and funds one accountable home.",
+      "who_touches_it": ["Gardener", "Operator", "Evaluator", "Funder", "Community Member"],
+      "example": "A neighborhood garden coordinating planting, evidence, and funding.",
+      "aliases": ["community garden"],
+      "not_confused_with": ["a personal wallet", "a single project"]
+    },
+    {
+      "ref": "entity:action",
+      "plain_name": "A reusable work instruction",
+      "why_it_matters": "It makes expected work and evidence clear before anyone submits it.",
+      "who_touches_it": ["Operator", "Gardener"],
+      "example": "Plant native species and capture before-and-after photos.",
+      "aliases": ["work template"],
+      "not_confused_with": ["Work", "Commitment"]
+    },
+    {
+      "ref": "entity:work",
+      "plain_name": "A field record of completed activity",
+      "why_it_matters": "It turns local action into portable evidence without waiting for approval to exist.",
+      "who_touches_it": ["Gardener", "Operator"],
+      "example": "A photo and description submitted as a Work attestation, then approved separately.",
+      "aliases": ["work submission", "field record"],
+      "not_confused_with": ["Work Approval", "Assessment"]
+    },
+    {
+      "ref": "entity:assessment",
+      "plain_name": "A baseline and strategy",
+      "why_it_matters": "It states what a place needs and what good evidence should demonstrate.",
+      "who_touches_it": ["Evaluator", "Operator"],
+      "example": "A soil-health baseline with targets and selected Actions.",
+      "aliases": ["baseline"],
+      "not_confused_with": ["Work Approval"]
+    },
+    {
+      "ref": "entity:hypercert",
+      "plain_name": "A portable impact certificate",
+      "why_it_matters": "It lets approved contribution records become a fundable impact claim.",
+      "who_touches_it": ["Funder", "Gardener", "Operator"],
+      "example": "A certificate bundling a season of approved Work.",
+      "aliases": ["Impact Certificate"],
+      "not_confused_with": ["Attestation", "Work Approval"]
+    },
+    {
+      "ref": "entity:vault",
+      "plain_name": "A Garden's long-term treasury",
+      "why_it_matters": "Principal can remain deposited while yield supports ongoing work.",
+      "who_touches_it": ["Funder", "Operator"],
+      "example": "A funder endows a Garden and the yield supports operations.",
+      "aliases": ["endowment"],
+      "not_confused_with": ["Cookie Jar"]
+    },
+    {
+      "ref": "entity:cookie-jar",
+      "plain_name": "A bounded near-term fund",
+      "why_it_matters": "It supports smaller operational needs with explicit claim limits.",
+      "who_touches_it": ["Operator", "Gardener", "Funder"],
+      "example": "An allowlisted member claims a capped amount for supplies.",
+      "aliases": ["jar"],
+      "not_confused_with": ["Vault"]
+    },
+    {
+      "ref": "entity:attestation",
+      "plain_name": "A signed public record",
+      "why_it_matters": "It makes a claim portable and independently readable.",
+      "who_touches_it": ["Gardener", "Operator", "Evaluator", "Community Member"],
+      "example": "A Work submission and its later approval are two attestations.",
+      "aliases": ["EAS record"],
+      "not_confused_with": ["Hypercert"]
+    },
+    {
+      "ref": "entity:hat",
+      "plain_name": "A portable role and permission",
+      "why_it_matters": "It makes garden authority explicit and revocable.",
+      "who_touches_it": ["Operator", "Gardener", "Evaluator", "Funder", "Community Member"],
+      "example": "An Operator Hat allows its wearer to approve Work.",
+      "aliases": ["role Hat"],
+      "not_confused_with": ["persona"]
+    },
+    {
+      "ref": "entity:season",
+      "plain_name": "A shared period of coordinated work",
+      "why_it_matters": "It gives planning and reflection a calm common rhythm.",
+      "who_touches_it": ["Gardener", "Operator", "Evaluator"],
+      "example": "A quarter of Actions, Work, and Assessments.",
+      "aliases": ["garden season"],
+      "not_confused_with": ["Commitment Cycle"]
+    },
+    {
+      "ref": "entity:need",
+      "plain_name": "A community need and desired outcome",
+      "why_it_matters": "It lets communities name what should change before solutions or funding are proposed.",
+      "who_touches_it": ["Community Member", "Operator", "Funder"],
+      "example": "Reliable shade is needed at a neighborhood gathering place.",
+      "aliases": ["community need"],
+      "not_confused_with": ["Commitment", "Action"]
+    },
+    {
+      "ref": "entity:commitment-pool",
+      "plain_name": "A governed home for promises",
+      "why_it_matters": "It gives a Garden rules and bounds for coordinating offers and requests.",
+      "who_touches_it": ["Operator", "Gardener", "Community Member"],
+      "example": "A Garden pool coordinates transport offers under a charter.",
+      "aliases": ["pool"],
+      "not_confused_with": ["Vault", "Cookie Jar"]
+    },
+    {
+      "ref": "entity:commitment-cycle",
+      "plain_name": "A bounded run of a commitment pool",
+      "why_it_matters": "It snapshots time and recognition rules for a coherent period.",
+      "who_touches_it": ["Operator", "Gardener"],
+      "example": "A Season cycle opens with a six-role allocation.",
+      "aliases": ["cycle"],
+      "not_confused_with": ["Season"]
+    },
+    {
+      "ref": "entity:commitment-series",
+      "plain_name": "A durable identity for recurring offers",
+      "why_it_matters": "It connects repeated Offer instances without merging their histories.",
+      "who_touches_it": ["Gardener", "Operator"],
+      "example": "A weekly transport Offer represented by separate commitments over time.",
+      "aliases": ["series"],
+      "not_confused_with": ["Commitment Cycle"]
+    },
+    {
+      "ref": "entity:commitment",
+      "plain_name": "A bounded promise to offer or request support",
+      "why_it_matters": "It makes responsibility, evidence, confirmation, and unit accounting explicit.",
+      "who_touches_it": ["Gardener", "Operator", "Community Member"],
+      "example": "Offer three rides, with one lead and two contributors.",
+      "aliases": ["offer", "request"],
+      "not_confused_with": ["Attestation", "Need"]
+    },
+    {
+      "ref": "entity:commitment-contributor",
+      "plain_name": "A person credited on a commitment",
+      "why_it_matters": "It separates accountable leadership from the people whose verified contribution earns recognition.",
+      "who_touches_it": ["Gardener", "Operator"],
+      "example": "Two gardeners share verified contribution on one fulfilled commitment.",
+      "aliases": ["contributor"],
+      "not_confused_with": ["lead provider", "confirmer"]
+    },
+    {
+      "ref": "entity:commitment-payout-plan",
+      "plain_name": "A frozen split for declared support",
+      "why_it_matters": "It proves conservation and contributor amounts before any payment dispatch.",
+      "who_touches_it": ["Operator", "Gardener"],
+      "example": "A Garden retains part and assigns the rest to eligible contributors.",
+      "aliases": ["payout plan"],
+      "not_confused_with": ["recognition weights", "payment receipt"]
+    },
+    {
+      "ref": "persona:gardener",
+      "plain_name": "A person doing and documenting the work",
+      "why_it_matters": "Green Goods begins with evidence captured by people caring for a place.",
+      "who_touches_it": ["Operator", "Evaluator"],
+      "example": "A gardener records planting while offline and syncs later.",
+      "aliases": ["field contributor"],
+      "not_confused_with": ["Commitment Contributor"]
+    },
+    {
+      "ref": "persona:operator",
+      "plain_name": "A person stewarding Garden operations",
+      "why_it_matters": "Operators turn community policy into accountable review and coordination.",
+      "who_touches_it": ["Gardener", "Evaluator", "Funder", "Community Member"],
+      "example": "An operator creates Actions and approves or rejects Work.",
+      "aliases": ["Garden Operator", "steward"],
+      "not_confused_with": ["Evaluator"]
+    },
+    {
+      "ref": "persona:evaluator",
+      "plain_name": "A person shaping assessment and impact rigor",
+      "why_it_matters": "Evaluators help communities frame baselines, methods, outcomes, and defensible claims.",
+      "who_touches_it": ["Operator", "Funder"],
+      "example": "An evaluator authors a soil-health Assessment.",
+      "aliases": ["impact assessor"],
+      "not_confused_with": ["Operator", "Work approver"]
+    },
+    {
+      "ref": "persona:funder",
+      "plain_name": "A person or organization supporting the work",
+      "why_it_matters": "Funding connects credible evidence to durable community capacity.",
+      "who_touches_it": ["Operator", "Gardener"],
+      "example": "A funder deposits into a Vault or supports verified impact.",
+      "aliases": ["supporter"],
+      "not_confused_with": ["Community Member"]
+    },
+    {
+      "ref": "persona:community-member",
+      "plain_name": "A local person affected by the work",
+      "why_it_matters": "Community voice should shape needs and accountability, not sit outside the record.",
+      "who_touches_it": ["Operator", "Gardener"],
+      "example": "A resident signals support for a Need.",
+      "aliases": ["resident"],
+      "not_confused_with": ["Gardener"]
+    }
+  ],
+  "marketing_claims": [
+    {
+      "id": "place-rooted-coordination",
+      "claim": "Green Goods gives a real community, its roles, and its records one accountable Garden.",
+      "audience": ["community", "operator", "funder"],
+      "maturity": "available",
+      "term_refs": ["entity:garden", "entity:hat"],
+      "evidence": [
+        {
+          "file": "packages/contracts/deployments/42161-latest.json",
+          "note": "Garden and Hats modules are deployed on Arbitrum."
+        }
+      ],
+      "safe_wording": "Communities can organize people and records around a shared Garden.",
+      "verified_at": "2026-08-15"
+    },
+    {
+      "id": "field-evidence",
+      "claim": "Gardeners can submit portable Work evidence, including through the offline queue.",
+      "audience": ["gardener", "operator", "funder"],
+      "maturity": "available",
+      "term_refs": ["entity:work", "persona:gardener"],
+      "evidence": [
+        {
+          "file": "packages/shared/src/modules/job-queue",
+          "note": "Offline-first submission queue is the runtime write boundary."
+        }
+      ],
+      "safe_wording": "Gardeners can document Work in the field and sync it when connectivity returns.",
+      "verified_at": "2026-08-15"
+    },
+    {
+      "id": "operator-review",
+      "claim": "Operators approve or reject submitted Work through a separate attestation.",
+      "audience": ["operator", "funder", "evaluator"],
+      "maturity": "available",
+      "term_refs": ["entity:work", "persona:operator"],
+      "evidence": [
+        {
+          "file": "packages/contracts/src/resolvers/WorkApproval.sol",
+          "note": "Work Approval is Operator-only and separate from Work submission."
+        }
+      ],
+      "safe_wording": "Operators review Work and record an approval or rejection separately.",
+      "verified_at": "2026-08-15"
+    },
+    {
+      "id": "assessment-rigor",
+      "claim": "Operators and Evaluators can define a baseline and strategy before Work begins.",
+      "audience": ["operator", "evaluator", "funder"],
+      "maturity": "available",
+      "term_refs": ["entity:assessment", "persona:evaluator"],
+      "evidence": [
+        {
+          "file": "packages/contracts/src/resolvers/Assessment.sol",
+          "note": "Assessment authorizes both Evaluator and Operator roles."
+        }
+      ],
+      "safe_wording": "Assessments make the baseline, plan, and evidence standard explicit.",
+      "verified_at": "2026-08-15"
+    },
+    {
+      "id": "durable-funding",
+      "claim": "Gardens can receive direct operational support and longer-term Vault deposits.",
+      "audience": ["funder", "operator"],
+      "maturity": "available",
+      "term_refs": ["entity:vault", "entity:cookie-jar"],
+      "evidence": [
+        {
+          "file": "packages/contracts/deployments/42161-latest.json",
+          "note": "Vault and Cookie Jar modules are deployed."
+        }
+      ],
+      "safe_wording": "Support can meet near-term needs or remain deposited so yield supports work over time.",
+      "verified_at": "2026-08-15"
+    },
+    {
+      "id": "impact-certificates",
+      "claim": "Approved Work can become portable Impact Certificates.",
+      "audience": ["funder", "operator", "gardener"],
+      "maturity": "in-build",
+      "term_refs": ["entity:hypercert", "entity:work"],
+      "evidence": [
+        {
+          "file": "packages/contracts/deployments/42161-latest.json",
+          "note": "Hypercert contracts are deployed, while activation and indexing remain environment-dependent."
+        }
+      ],
+      "safe_wording": "Green Goods is building the activation path that turns approved Work into portable Impact Certificates.",
+      "verified_at": "2026-08-15"
+    },
+    {
+      "id": "commitment-pooling",
+      "claim": "Green Goods has deployed onchain coordination for bounded offers, requests, cycles, contributors, and confirmation.",
+      "audience": ["operator", "community", "partner"],
+      "maturity": "deployed-not-available",
+      "term_refs": ["entity:commitment-pool", "entity:commitment"],
+      "evidence": [
+        {
+          "file": ".plans/active/commitment-pooling/status.json",
+          "note": "Pooling is unpaused with 18 registered pools; indexer/shared/UI remain blocked."
+        }
+      ],
+      "safe_wording": "The coordination protocol is deployed, but it is not yet an available Green Goods product flow.",
+      "verified_at": "2026-08-15"
+    },
+    {
+      "id": "community-needs",
+      "claim": "Communities will be able to name Needs, signal support, and connect commitments and funding evidence.",
+      "audience": ["community", "operator", "funder"],
+      "maturity": "planned",
+      "term_refs": ["entity:need", "entity:commitment"],
+      "evidence": [
+        {
+          "file": ".plans/active/community-interface/status.json",
+          "note": "Community Needs remains planned with blocked implementation lanes."
+        }
+      ],
+      "safe_wording": "Community Needs is a planned layer, not a feature people can use today.",
+      "verified_at": "2026-08-15"
+    }
+  ]
+}

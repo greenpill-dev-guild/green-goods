@@ -183,12 +183,12 @@ test.describe("Work Approval Flows (Operator)", () => {
               (await page
                 .locator('[role="status"]')
                 .isVisible({ timeout: 3000 })
-                .catch(() => true))
+                .catch(() => false))
           ).toBeTruthy();
         }
       } else {
-        // No work to approve - test passes (nothing to test)
-        expect(true).toBeTruthy();
+        // SKIP: #338 owner:afo expiry:2026-09-15 — requires pending operator work fixture
+        test.skip(true, "No pending work is available to approve");
       }
     });
 
@@ -213,12 +213,12 @@ test.describe("Work Approval Flows (Operator)", () => {
           const newCount = await workItems.count();
           // Either count decreased or page shows success state
           expect(
-            newCount <= initialCount || (await page.getByText(/approved|success/i).isVisible())
+            newCount < initialCount || (await page.getByText(/approved|success/i).isVisible())
           ).toBeTruthy();
         }
       } else {
-        // No work to test with
-        expect(true).toBeTruthy();
+        // SKIP: #338 owner:afo expiry:2026-09-15 — requires pending operator work fixture
+        test.skip(true, "No pending work is available to update");
       }
     });
   });
@@ -309,8 +309,8 @@ test.describe("Work Approval Flows (Operator)", () => {
           }
         }
       } else {
-        // No work to test with
-        expect(true).toBeTruthy();
+        // SKIP: #338 owner:afo expiry:2026-09-15 — requires pending operator work fixture
+        test.skip(true, "No pending work is available to reject");
       }
     });
   });
@@ -339,11 +339,11 @@ test.describe("Work Approval Flows (Operator)", () => {
           // Restore online state
           await context.setOffline(false);
 
-          // Either error shown or action was queued
-          expect(isErrorVisible || true).toBeTruthy(); // Always pass - offline handling varies
+          expect(isErrorVisible).toBe(true);
         }
       } else {
-        expect(true).toBeTruthy();
+        // SKIP: #338 owner:afo expiry:2026-09-15 — requires pending operator work fixture
+        test.skip(true, "No pending work is available for offline failure handling");
       }
     });
 

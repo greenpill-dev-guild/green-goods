@@ -5,10 +5,11 @@ slug: /reference/ontology.generated
 unlisted: false
 audience: developer
 owner: docs
-last_verified: 2026-08-02
+last_verified: 2026-08-15
 feature_status: Live
 source_of_truth:
   - packages/shared/src/ontology/green-goods-ontology.json
+  - packages/shared/src/ontology/green-goods-projections.json
   - scripts/quality/check-ontology.mjs
 keywords:
   - ontology
@@ -26,24 +27,25 @@ The formal specification of the Green Goods shared vocabulary: the entities the 
 
 ## Entities
 
-| Entity | Status | Definition | Layers |
-|---|---|---|---|
-| **Garden** | live | A community of gardeners rooted in a place, represented on-chain as an ERC-721 garden token whose ERC-6551 token-bound account holds the garden's treasury, role Hats, and metadata. | contracts · indexer (Garden) · shared · docs |
-| **Action** | live | A documented activity a gardener can perform — the unit of work template (e.g. "Plant native species", "Remove invasive growth"). | contracts · indexer (Action) · shared · docs |
-| **Work** | live | One documented instance of an Action performed by a gardener — media, notes, and metadata submitted as an EAS Work attestation for operator review; approval records a separate Work Approval attestation. | contracts · shared · docs |
-| **Assessment** | live | An up-front baseline and strategy for a garden — domain, diagnosis, SMART outcome targets, selected Actions, reporting period — authored by an evaluator or operator before work begins, mirrored to a Karma GAP milestone when that module is active; explicitly not a review of submitted Work (that is Work Approval). | contracts · shared · docs |
-| **Hypercert** | live | An on-chain claim of impact bundling approved Work into a fractional impact certificate. Funders hold fractions; gardeners hold contribution credit. | contracts · indexer (Hypercert) · shared · docs |
-| **Vault** | live | The garden's treasury. Funders deposit; the garden's Tokenbound Account holds; yield splits flow to operators / gardeners / community per configured ratios. | contracts · indexer (GardenVault) · shared · docs |
-| **Cookie Jar** | live | A garden-scoped emergency or discretionary fund with rate-limited withdrawals. Allowlisted members can claim within the configured cap. | contracts · indexer (CampaignCookieJar) · shared · docs |
-| **Attestation** | live | An EAS (Ethereum Attestation Service) record. Used for Work submissions, Assessment outcomes, and other off-chain-verifiable claims. | contracts · shared · docs |
-| **Hat** | live | A Hats Protocol role token. Determines on-chain authority — operator hats can approve Work; gardener hats can submit Work; evaluator hats can attest. | contracts · indexer (Garden) · shared · docs |
-| **Season** | live | A bounded period (typically a quarter) during which a garden runs a coordinated set of Actions and Assessments. Pacing primitive — never a countdown. | docs |
-| **Commitment Pool** | spec | A garden-anchored (or protocol root-garden) pool that registers, curates, and reconciles commitments under a charter. | spec |
-| **Commitment Cycle** | spec | A bounded run of a pool — a Season or Campaign — seeded with timing and an immutable six-role allocation snapshot at open. | spec |
-| **Commitment Series** | spec | The internal durable, pool-scoped identity for one Offer used over time. It groups ordinary Offer instances without creating obligations automatically, merging history across pools, or becoming a separate product noun. | spec |
-| **Commitment** | spec | A module-native promise record (offer or request) with one accountable lead, an optional contributor roster, repeatable action requirements, direction-aware confirmation, unit accounting in a non-transferable register, and evidence/work linkage — deliberately not an EAS attestation. | spec |
-| **Commitment Contributor** | spec | A person on a commitment's roster whose approved Work or confirmed evidence can earn Hypercert recognition and a contributor payout; one roster member is the accountable lead. | spec |
-| **Commitment Payout Plan** | spec | A garden-managed split of a fulfilled commitment's declared support into an explicit garden-retained amount and contributor child payouts. Its complete recognition vector is hash-bound, payment weights derive from amounts, and explicit finalization freezes it before dispatch. | spec |
+| Entity | Semantic status | Availability | Capability | Definition | Layers |
+|---|---|---|---|---|---|
+| **Garden** | canonical | available | implemented · deployed · active · integrated | A community of gardeners rooted in a place, represented on-chain as an ERC-721 garden token whose ERC-6551 token-bound account holds the garden's treasury, role Hats, and metadata. | contracts · indexer (Garden) · shared · docs |
+| **Action** | canonical | available | implemented · deployed · active · integrated | A documented activity a gardener can perform — the unit of work template (e.g. "Plant native species", "Remove invasive growth"). | contracts · indexer (Action) · shared · docs |
+| **Work** | canonical | available | implemented · deployed · active · integrated | One documented instance of an Action performed by a gardener — media, notes, and metadata submitted as an EAS Work attestation for operator review; approval records a separate Work Approval attestation. | contracts · shared · docs |
+| **Assessment** | canonical | available | implemented · deployed · active · integrated | An up-front baseline and strategy for a garden — domain, diagnosis, SMART outcome targets, selected Actions, reporting period — authored by an evaluator or operator before work begins, mirrored to a Karma GAP milestone when that module is active; explicitly not a review of submitted Work (that is Work Approval). | contracts · shared · docs |
+| **Hypercert** | canonical | in-build | implemented · deployed · inactive · partial | An on-chain claim of impact bundling approved Work into a fractional impact certificate. Funders hold fractions; gardeners hold contribution credit. | contracts · indexer (Hypercert) · shared · docs |
+| **Vault** | canonical | available | implemented · deployed · active · integrated | The garden's treasury. Funders deposit; the garden's Tokenbound Account holds; yield splits flow to operators / gardeners / community per configured ratios. | contracts · indexer (GardenVault) · shared · docs |
+| **Cookie Jar** | canonical | available | implemented · deployed · active · integrated | A garden-scoped emergency or discretionary fund with rate-limited withdrawals. Allowlisted members can claim within the configured cap. | contracts · indexer (CampaignCookieJar) · shared · docs |
+| **Attestation** | canonical | available | implemented · deployed · active · integrated | An EAS (Ethereum Attestation Service) record. Used for Work submissions, Assessment outcomes, and other off-chain-verifiable claims. | contracts · shared · docs |
+| **Hat** | canonical | available | implemented · deployed · active · integrated | A Hats Protocol role token. Determines on-chain authority — operator hats can approve Work; gardener hats can submit Work; evaluator hats can attest. | contracts · indexer (Garden) · shared · docs |
+| **Season** | canonical | planned | partial · not-applicable · not-applicable · partial | A bounded period (typically a quarter) during which a garden runs a coordinated set of Actions and Assessments. Pacing primitive — never a countdown. | docs |
+| **Need** | canonical | planned | not-implemented · not-deployed · inactive · not-integrated | A community-authored statement of a place-based problem paired with a desired outcome. A Need can gather signals, moderation, linked commitments, and verified funding attribution without becoming a commitment or payment itself. | spec |
+| **Commitment Pool** | canonical | deployed-not-available | implemented · deployed · active · not-integrated | A garden-anchored (or protocol root-garden) pool that registers, curates, and reconciles commitments under a charter. | contracts · spec |
+| **Commitment Cycle** | canonical | deployed-not-available | implemented · deployed · active · not-integrated | A bounded run of a pool — a Season or Campaign — seeded with timing and an immutable six-role allocation snapshot at open. | contracts · spec |
+| **Commitment Series** | canonical | deployed-not-available | implemented · deployed · active · not-integrated | The internal durable, pool-scoped identity for one Offer used over time. It groups ordinary Offer instances without creating obligations automatically, merging history across pools, or becoming a separate product noun. | contracts · spec |
+| **Commitment** | canonical | deployed-not-available | implemented · deployed · active · not-integrated | A module-native promise record (offer or request) with one accountable lead, an optional contributor roster, repeatable action requirements, direction-aware confirmation, unit accounting in a non-transferable register, and evidence/work linkage — deliberately not an EAS attestation. | contracts · spec |
+| **Commitment Contributor** | canonical | deployed-not-available | implemented · deployed · active · not-integrated | A person on a commitment's roster whose approved Work or confirmed evidence can earn Hypercert recognition and a contributor payout; one roster member is the accountable lead. | contracts · spec |
+| **Commitment Payout Plan** | canonical | deployed-not-available | implemented · deployed · inactive · partial | A garden-managed split of a fulfilled commitment's declared support into an explicit garden-retained amount and contributor child payouts. Its complete recognition vector is hash-bound, payment weights derive from amounts, and explicit finalization freezes it before dispatch. | contracts · indexer (CommitmentPayoutPlan) · shared · spec |
 
 ## Personas
 
@@ -51,7 +53,7 @@ The formal specification of the Green Goods shared vocabulary: the entities the 
 |---|---|---|
 | **Gardener** | gardener | A person doing regenerative Work in a garden. Submits Work, holds gardener Hats, receives credit toward Hypercerts and yield splits. |
 | **Operator** | operator | A person who runs a garden — creates Actions, approves Work, configures Vault and Hat hierarchy. Holds operator Hats. |
-| **Evaluator** | evaluator | A person who verifies submitted Work, makes Assessments, and attests impact. Often domain experts (botanists, soil scientists, community elders). |
+| **Evaluator** | evaluator | A person who authors or strengthens Assessments and attests impact methodology or outcomes. Evaluators do not approve or reject submitted Work; that authority belongs to Operators. |
 | **Funder** | funder | A person or org who deposits into a garden's Vault, holds Hypercert fractions, receives yield distributions per configured splits. |
 | **Community Member** | community | A local resident affected by a Garden's Work. Signals or attests that Work exists and is healthy, and helps prioritize future Actions through public signal and conviction flows. |
 
@@ -522,9 +524,9 @@ Lifecycle of the internal durable identity for one Offer used over time in one p
 |---|---|---|---|---|
 | solidity | solidity | <code>packages/contracts/src/interfaces/ICommitmentPoolingModule.sol · CommitmentSeriesState</code> | <code>None, Active, Resting, Retired</code> |  |
 
-## Commitment Pooling Vocabularies (spec — not deployed)
+## Specified vocabularies without an implemented source
 
-Locked vocabulary from the commitment-pooling contract spec, encoded ahead of implementation so the August lanes consume one canonical definition. No code cross-checks run until the planned anchors land; the gate then forces each entry to flip to live.
+These vocabularies are canonical specifications whose declared implementation anchor has not arrived. The gate watches each anchor and requires the source status and representations to be updated when it lands.
 
 ### `result-status`
 
@@ -532,7 +534,7 @@ Celo executor result stored in Solidity; GraphQL exposes the same outcomes as Se
 
 **Canonical members:** None (0) · Success (1) · Failed (2)
 
-_Spec-only — planned anchor `packages/contracts/src/interfaces/ISettlementExecutor.sol` · `ResultStatus`. The drift gate flags arrival so the status flips to live with declared representations._
+_Specified source — planned anchor `packages/contracts/src/interfaces/ISettlementExecutor.sol` · `ResultStatus`. The drift gate flags arrival so the source status becomes implemented with declared representations._
 
 ### `acknowledgment-deferral-code`
 
@@ -540,7 +542,7 @@ Why an executor acknowledgment could not be sent immediately without changing th
 
 **Canonical members:** None (0) · QuoteFailed (1) · FeeReserveLow (2) · SendFailed (3)
 
-_Spec-only — planned anchor `packages/contracts/src/interfaces/ISettlementExecutor.sol` · `AcknowledgmentDeferralCode`. The drift gate flags arrival so the status flips to live with declared representations._
+_Specified source — planned anchor `packages/contracts/src/interfaces/ISettlementExecutor.sol` · `AcknowledgmentDeferralCode`. The drift gate flags arrival so the source status becomes implemented with declared representations._
 
 ### `commitment-claim-request-state`
 
@@ -548,7 +550,7 @@ Indexer lifecycle of a commitment claim request, including peer supersession aft
 
 **Canonical members:** PENDING · ACCEPTED · DECLINED · SUPERSEDED
 
-_Spec-only — planned anchor `packages/indexer/schema.graphql` · `CommitmentClaimRequestState`. The drift gate flags arrival so the status flips to live with declared representations._
+_Specified source — planned anchor `packages/indexer/schema.graphql` · `CommitmentClaimRequestState`. The drift gate flags arrival so the source status becomes implemented with declared representations._
 
 ### `commitment-event-type`
 
@@ -556,7 +558,7 @@ Normalized event vocabulary for commitment-pooling history and read-model aggreg
 
 **Canonical members:** MODULE_UPDATED · MODULE_DEPENDENCY_UPDATED · MODULE_SCHEMA_UID_UPDATED · MODULE_PAUSE_STATUS_CHANGED · POOL_REGISTERED · POOL_CHARTER_UPDATED · POOL_READY · POOL_OPENED · POOL_PAUSED · POOL_RESUMED · POOL_CLOSED · POOL_COMPOSTED · POOL_REOPENED · CLASS_REGISTERED · PROVIDER_OPEN_COMMITMENT_CAP_UPDATED · CYCLE_SEEDED · CYCLE_OPENED · CYCLE_CLOSED · CYCLE_COMPOSTED · CYCLE_CANCELLED · CREATED · CONSIDERATION_DECLARED · VALUE_DECLARED · CONFIRMER_RULE_SET · CLAIM_REQUESTED · CLAIM_DECLINED · ACCEPTED · EXCHANGE_ACCEPTED · COMMITMENT_SERIES_CREATED · COMMITMENT_SERIES_METADATA_UPDATED · COMMITMENT_SERIES_RESTED · COMMITMENT_SERIES_RESUMED · COMMITMENT_SERIES_RETIRED · CONTRIBUTOR_ADDED · CONTRIBUTOR_REMOVED · CONTRIBUTOR_REQUIREMENT_ASSIGNED · CONTRIBUTOR_ROSTER_FROZEN · WORK_LINKED · WORK_UNLINKED · APPROVED_WORK_COUNTED · APPROVED_WORK_REVERSED · EVIDENCE_ATTACHED · ASSESSMENT_ATTACHED · READY_FOR_CONFIRMATION · CONFIRMATION_RECORDED · FULFILLED · CANCELLED · EXPIRED · DISPUTED · DISPUTE_RESOLVED · CONSIDERATION_PAID · UNITS_COMMITTED · UNITS_RELEASED · UNITS_FULFILLED
 
-_Spec-only — planned anchor `packages/indexer/schema.graphql` · `CommitmentEventType`. The drift gate flags arrival so the status flips to live with declared representations._
+_Specified source — planned anchor `packages/indexer/schema.graphql` · `CommitmentEventType`. The drift gate flags arrival so the source status becomes implemented with declared representations._
 
 ### `commitment-unit-scope`
 
@@ -564,13 +566,13 @@ Read-model grouping boundary for exact-label commitment-unit summaries.
 
 **Canonical members:** POOL · CYCLE
 
-_Spec-only — planned anchor `packages/indexer/schema.graphql` · `CommitmentUnitScope`. The drift gate flags arrival so the status flips to live with declared representations._
+_Specified source — planned anchor `packages/indexer/schema.graphql` · `CommitmentUnitScope`. The drift gate flags arrival so the source status becomes implemented with declared representations._
 
 ## EAS Schemas
 
 ### `assessment` — Green Goods Assessment v2
 
-status: live · revocable: false · resolver: `packages/contracts/src/resolvers/Assessment.sol`
+source: implemented · revocable: false · resolver: `packages/contracts/src/resolvers/Assessment.sol`
 
 | Field | Type |
 |---|---|
@@ -584,7 +586,7 @@ status: live · revocable: false · resolver: `packages/contracts/src/resolvers/
 
 ### `work` — Green Goods Work Submission
 
-status: live · revocable: false · resolver: `packages/contracts/src/resolvers/Work.sol`
+source: implemented · revocable: false · resolver: `packages/contracts/src/resolvers/Work.sol`
 
 | Field | Type |
 |---|---|
@@ -596,7 +598,7 @@ status: live · revocable: false · resolver: `packages/contracts/src/resolvers/
 
 ### `workApproval` — Green Goods Work Approval
 
-status: live · revocable: false · resolver: `packages/contracts/src/resolvers/WorkApproval.sol`
+source: implemented · revocable: false · resolver: `packages/contracts/src/resolvers/WorkApproval.sol`
 
 | Field | Type |
 |---|---|
@@ -610,7 +612,7 @@ status: live · revocable: false · resolver: `packages/contracts/src/resolvers/
 
 ### `badge` — GreenGoodsBadge
 
-status: live · revocable: true · resolver: none
+source: implemented · revocable: true · resolver: none
 
 Registered via the standalone badge-schemas path outside config/schemas.json; the only revocable Green Goods schema, with no resolver.
 
@@ -624,7 +626,7 @@ Registered via the standalone badge-schemas path outside config/schemas.json; th
 
 ### `assessmentV3` — Green Goods Assessment v3
 
-status: live · revocable: false · resolver: none
+source: implemented · revocable: false · resolver: none
 
 Assessment v2 fields plus assessmentKind, cycleId, and baselineUID; one of exactly two new EAS registrations in the commitment-pooling track.
 
@@ -643,7 +645,7 @@ Assessment v2 fields plus assessmentKind, cycleId, and baselineUID; one of exact
 
 ### `communityTestimony` — Green Goods Community Testimony
 
-status: live · revocable: false · resolver: none
+source: implemented · revocable: false · resolver: none
 
 Community-Hat-gated testimony attached to a commitment; the second of exactly two new EAS registrations.
 
@@ -655,7 +657,7 @@ Community-Hat-gated testimony attached to a commitment; the second of exactly tw
 
 ### `need` — Green Goods Need
 
-status: spec · revocable: true · planned resolver: `NeedsResolver`
+source: specified · revocable: true · planned resolver: `NeedsResolver`
 
 Root Needs use EAS recipient as the canonical garden, refUID zero, and expirationTime zero. NeedsResolver authorizes the attester through the recipient garden's Community role.
 
@@ -668,7 +670,7 @@ Root Needs use EAS recipient as the canonical garden, refUID zero, and expiratio
 
 ### `needSignal` — Green Goods Need Signal
 
-status: spec · revocable: true · planned resolver: `NeedsResolver`
+source: specified · revocable: true · planned resolver: `NeedsResolver`
 
 Child signal records use EAS recipient as the garden, refUID as the exact live same-garden Need, and expirationTime zero. Readers derive one current direction per attester through the canonical latest-winner rule.
 
@@ -678,7 +680,7 @@ Child signal records use EAS recipient as the garden, refUID as the exact live s
 
 ### `needStatus` — Green Goods Need Status
 
-status: spec · revocable: false · planned resolver: `NeedsResolver`
+source: specified · revocable: false · planned resolver: `NeedsResolver`
 
 Operator-authored child moderation records use EAS recipient as the garden, refUID as the exact live same-garden Need, and expirationTime zero. mergedIntoNeedUID remains custom data because it is a second Need relationship.
 
@@ -691,7 +693,7 @@ Operator-authored child moderation records use EAS recipient as the garden, refU
 
 ### `fundingAttribution` — Green Goods Funding Attribution
 
-status: spec · revocable: false · planned resolver: `FundingAttributionResolver`
+source: specified · revocable: false · planned resolver: `FundingAttributionResolver`
 
 Ungated child funding records use EAS recipient as the garden, refUID as the exact live same-garden Need, and expirationTime zero. FundingAttributionResolver remains separate from NeedsResolver and the joined reader verifies canonical receipts before display.
 
@@ -707,25 +709,25 @@ Ungated child funding records use EAS recipient as the garden, refUID as the exa
 
 Cross-layer invariants and where they are enforced. This catalog is documentation-grade: the drift gate verifies the anchors exist, not the semantics — the contracts and their tests own the semantics.
 
-- **`domain-closed-set`** · closed-set · live — Action domains form a closed four-member set; resolvers reject domain values above 3 and garden domain masks are validated as 4-bit. _(enforced at: `packages/contracts/src/registries/Action.sol:28-34`, `packages/contracts/src/resolvers/Assessment.sol:134-136`)_
-- **`work-attester-role`** · domain-range · live — A Work attestation's attester must be a gardener or operator of the recipient garden, and the referenced action must exist, be started, not be expired, and belong to a domain enabled on that garden. _(enforced at: `packages/contracts/src/resolvers/Work.sol:87-139`)_
-- **`approval-operator-only`** · domain-range · live — Only an operator of the garden may attest a Work Approval, and the approval's actionUID and recipient must match the referenced Work attestation. _(enforced at: `packages/contracts/src/resolvers/WorkApproval.sol:115-177`)_
-- **`approval-no-self-attestation`** · disjoint · live — The approver and the work attester must be different accounts — self-approval reverts. _(enforced at: `packages/contracts/src/resolvers/WorkApproval.sol:153-156`)_
-- **`assessment-author-role`** · domain-range · live — An Assessment attester must be an evaluator or operator of the recipient garden. _(enforced at: `packages/contracts/src/resolvers/Assessment.sol:118-122`)_
-- **`yield-split-sum`** · sum · live — The three-way yield split (CookieJar / Hypercert fractions / Juicebox) must sum to exactly 10000 bps. _(enforced at: `packages/contracts/src/resolvers/Yield.sol:107,373`)_
-- **`garden-nft-transfer-restriction`** · non-transferable · live — Garden NFT transfers obey the TransferRestriction mode (Unrestricted / OwnerOnly / Locked); minting is always allowed. _(enforced at: `packages/contracts/src/tokens/Garden.sol:43-48,513-518`)_
-- **`resolver-schema-pinning`** · existence · live — Each core resolver validates that incoming attestations use its pinned schema UID. _(enforced at: `packages/contracts/src/resolvers/Work.sol:87-95`, `packages/contracts/src/resolvers/WorkApproval.sol:115-123`, `packages/contracts/src/resolvers/Assessment.sol:98-106`)_
+- **`domain-closed-set`** · closed-set · implemented — Action domains form a closed four-member set; resolvers reject domain values above 3 and garden domain masks are validated as 4-bit. _(enforced at: `packages/contracts/src/registries/Action.sol:28-34`, `packages/contracts/src/resolvers/Assessment.sol:134-136`)_
+- **`work-attester-role`** · domain-range · implemented — A Work attestation's attester must be a gardener or operator of the recipient garden, and the referenced action must exist, be started, not be expired, and belong to a domain enabled on that garden. _(enforced at: `packages/contracts/src/resolvers/Work.sol:87-139`)_
+- **`approval-operator-only`** · domain-range · implemented — Only an operator of the garden may attest a Work Approval, and the approval's actionUID and recipient must match the referenced Work attestation. _(enforced at: `packages/contracts/src/resolvers/WorkApproval.sol:115-177`)_
+- **`approval-no-self-attestation`** · disjoint · implemented — The approver and the work attester must be different accounts — self-approval reverts. _(enforced at: `packages/contracts/src/resolvers/WorkApproval.sol:153-156`)_
+- **`assessment-author-role`** · domain-range · implemented — An Assessment attester must be an evaluator or operator of the recipient garden. _(enforced at: `packages/contracts/src/resolvers/Assessment.sol:118-122`)_
+- **`yield-split-sum`** · sum · implemented — The three-way yield split (CookieJar / Hypercert fractions / Juicebox) must sum to exactly 10000 bps. _(enforced at: `packages/contracts/src/resolvers/Yield.sol:107,373`)_
+- **`garden-nft-transfer-restriction`** · non-transferable · implemented — Garden NFT transfers obey the TransferRestriction mode (Unrestricted / OwnerOnly / Locked); minting is always allowed. _(enforced at: `packages/contracts/src/tokens/Garden.sol:43-48,513-518`)_
+- **`resolver-schema-pinning`** · existence · implemented — Each core resolver validates that incoming attestations use its pinned schema UID. _(enforced at: `packages/contracts/src/resolvers/Work.sol:87-95`, `packages/contracts/src/resolvers/WorkApproval.sol:115-123`, `packages/contracts/src/resolvers/Assessment.sol:98-106`)_
   - ⚠️ Hole: Schema validation is skipped while the stored schemaUID is zero (the deployment window) — a documented gap the commitment-pooling spec explicitly refuses to inherit (its module deploys fail-closed). _(`packages/contracts/src/resolvers/Work.sol:60-62`, `packages/contracts/src/resolvers/WorkApproval.sol:81-83`, `packages/contracts/src/resolvers/Assessment.sol:71-73`)_
-- **`pooling-allocation-bps-sum`** · sum · spec — The six-role allocation snapshot stored at cycle open must sum to exactly 10000 bps and is immutable for the cycle. _(enforced at: `.plans/active/commitment-pooling/contract-spec.md`)_
-- **`pooling-provider-confirmation-disjoint`** · disjoint · spec — Every member of a commitment's accountable lead/contributor team is excluded from every fulfillment-confirmation path, including the steward fallback; confirmation defaults are direction-aware (Offer → recipient, Request → creator). _(enforced at: `.plans/active/commitment-pooling/contract-spec.md`)_
-- **`pooling-recognition-allocation-sum`** · sum · spec — The gardener-class recognition budget is fully allocated only after every fulfilled commitment has an eligible contributor: equal budget per fulfilled commitment, then the immutable cycle-open RecognitionPolicy allocates its equal-participation and verified-contribution components through separate deterministic remainder passes before the row results are added. The protocol default and immutable cycle-less preset are 20% equal / 80% verified, but an opened cycle may select any two values summing to 10000 bps. Zero eligible contributors block certificate expansion; there is no lead fallback. _(enforced at: `.plans/active/commitment-pooling/contract-spec.md`)_
-- **`pooling-payout-plan-conservation`** · sum · spec — An explicitly finalized commitment payout plan conserves the declared support amount exactly: garden-retained amount plus all contributor child amounts equals the parent amount. A zero-child all-retained plan completes at finalization without a transfer. _(enforced at: `.plans/active/commitment-pooling/settlement-spec.md`)_
-- **`pooling-payout-plan-integrity`** · functional · spec — Each fulfilled commitment has at most one stable payout-plan pointer. The complete recognition vector matches its snapshot hash, payment weights derive from the atomic amount vector, finalization precedes dispatch, and child or batch cancellation never clears the parent pointer. _(enforced at: `.plans/active/commitment-pooling/settlement-spec.md`)_
-- **`pooling-one-open-season`** · functional · spec — A pool may have at most one open Season at a time (O(1) openSeasonCycleId guard); Campaigns may overlap freely. _(enforced at: `.plans/active/commitment-pooling/contract-spec.md`)_
-- **`commitment-register-non-transferable`** · non-transferable · spec — CommitmentRegistry unit classes are non-transferable by construction — no transfer, approval, or custody surface; balances move only via the module. _(enforced at: `.plans/active/commitment-pooling/contract-spec.md`)_
-- **`needs-eas-envelope-reference`** · domain-range · spec — All four Needs schemas use EAS recipient as the canonical garden and expirationTime zero; a Need is a root with refUID zero, while NeedSignal, NeedStatus, and FundingAttribution use refUID to reference an exact live same-garden Need. _(enforced at: `.plans/active/community-interface/spec.md`)_
-- **`need-signal-latest-winner`** · functional · spec — For each Need and attester, readers first select the greatest unsigned (timeCreated, uid) NeedSignal tuple and then apply revocation and expiry; a revoked or expired winner clears the signal without restoring an older record, and support and non-support remain separate counts. _(enforced at: `.plans/active/community-interface/spec.md`)_
-- **`needs-resolver-trust-boundaries`** · closed-set · spec — Exactly four Needs schemas route through two resolvers: NeedsResolver accepts only Need, NeedSignal, and NeedStatus with schema-specific Community or Operator authorization, while the ungated FundingAttribution schema routes through FundingAttributionResolver; unknown schema branches fail closed. _(enforced at: `.plans/active/community-interface/spec.md`)_
+- **`pooling-allocation-bps-sum`** · sum · implemented — The six-role allocation snapshot stored at cycle open must sum to exactly 10000 bps and is immutable for the cycle. _(enforced at: `packages/contracts/src/lib/CommitmentPooling/CyclesLib.sol:67-85`)_
+- **`pooling-provider-confirmation-disjoint`** · disjoint · implemented — Every member of a commitment's accountable lead/contributor team is excluded from every fulfillment-confirmation path, including the steward fallback; confirmation defaults are direction-aware (Offer → recipient, Request → creator). _(enforced at: `packages/contracts/src/lib/CommitmentPooling/ConfirmLib.sol:101-195`)_
+- **`pooling-recognition-allocation-sum`** · sum · implemented — The gardener-class recognition budget is fully allocated only after every fulfilled commitment has an eligible contributor: equal budget per fulfilled commitment, then the immutable cycle-open RecognitionPolicy allocates its equal-participation and verified-contribution components through separate deterministic remainder passes before the row results are added. The protocol default and immutable cycle-less preset are 20% equal / 80% verified, but an opened cycle may select any two values summing to 10000 bps. Zero eligible contributors block certificate expansion; there is no lead fallback. _(enforced at: `packages/contracts/src/lib/CommitmentPooling/RecognitionLib.sol:58-147`)_
+- **`pooling-payout-plan-conservation`** · sum · implemented — An explicitly finalized commitment payout plan conserves the declared support amount exactly: garden-retained amount plus all contributor child amounts equals the parent amount. A zero-child all-retained plan completes at finalization without a transfer. _(enforced at: `packages/contracts/src/lib/Settlement/PlanLib.sol:240-289, 562-586`)_
+- **`pooling-payout-plan-integrity`** · functional · implemented — Each fulfilled commitment has at most one stable payout-plan pointer. The complete recognition vector matches its snapshot hash, payment weights derive from the atomic amount vector, finalization precedes dispatch, and child or batch cancellation never clears the parent pointer. _(enforced at: `packages/contracts/src/lib/Settlement/PlanLib.sol:148-200, 240-337, 545-616`)_
+- **`pooling-one-open-season`** · functional · implemented — A pool may have at most one open Season at a time (O(1) openSeasonCycleId guard); Campaigns may overlap freely. _(enforced at: `packages/contracts/src/lib/CommitmentPooling/CyclesLib.sol:73-88, 177-193`)_
+- **`commitment-register-non-transferable`** · non-transferable · implemented — CommitmentRegistry unit classes are non-transferable by construction — no transfer, approval, or custody surface; balances move only via the module. _(enforced at: `packages/contracts/src/registries/Commitment.sol:11-159`)_
+- **`needs-eas-envelope-reference`** · domain-range · specified — All four Needs schemas use EAS recipient as the canonical garden and expirationTime zero; a Need is a root with refUID zero, while NeedSignal, NeedStatus, and FundingAttribution use refUID to reference an exact live same-garden Need. _(enforced at: `.plans/active/community-interface/spec.md`)_
+- **`need-signal-latest-winner`** · functional · specified — For each Need and attester, readers first select the greatest unsigned (timeCreated, uid) NeedSignal tuple and then apply revocation and expiry; a revoked or expired winner clears the signal without restoring an older record, and support and non-support remain separate counts. _(enforced at: `.plans/active/community-interface/spec.md`)_
+- **`needs-resolver-trust-boundaries`** · closed-set · specified — Exactly four Needs schemas route through two resolvers: NeedsResolver accepts only Need, NeedSignal, and NeedStatus with schema-specific Community or Operator authorization, while the ungated FundingAttribution schema routes through FundingAttributionResolver; unknown schema branches fail closed. _(enforced at: `.plans/active/community-interface/spec.md`)_
 
 ## State Machines
 
@@ -743,16 +745,21 @@ The union in types/domain.ts documents itself as the single source of truth: pen
 | sync_failed | client-derived |
 | offline | client-derived |
 
-### Commitment pooling (spec — not deployed)
+| From | To | Layer | Mechanism |
+|---|---|---|---|
+| offline · sync_failed | syncing | off-chain | the offline job queue starts or retries the Work submission |
+| syncing | uploading | off-chain | queued media begins uploading before the attestation is submitted |
+| syncing · uploading | sync_failed | off-chain | a recoverable queue or upload failure preserves the job for retry |
+| uploading | pending | on-chain | successful EAS Work attestation submission creates the pending public record |
+| pending | approved · rejected | on-chain | an Operator records a separate Work Approval attestation |
 
-Transcribed from the locked contract spec: "on-chain" means a named module function performs the transition and emits the listed event; "derived" means the indexer/app computes the state from events and the chain never stores it.
-
-#### `commitment-pool`
+### `commitment-pool`
 
 Every pool state is on-chain; transitions are rare operator-console actions.
 
 | State | Storage |
 |---|---|
+| None | on-chain |
 | NotReady | on-chain |
 | Ready | on-chain |
 | Open | on-chain |
@@ -762,21 +769,21 @@ Every pool state is on-chain; transitions are rare operator-console actions.
 
 | From | To | Layer | Mechanism |
 |---|---|---|---|
-| (create) | NotReady | on-chain | onGardenMinted (GardenToken-only, idempotent) or registerPool → PoolRegistered |
+| None | NotReady | on-chain | onGardenMinted (GardenToken-only, idempotent) or registerPool → PoolRegistered |
 | NotReady | Ready | on-chain | markPoolReady — requires non-empty charter CID and a non-zero provider open-commitment cap → PoolReady |
 | Ready | Open | on-chain | openPool → PoolOpened |
 | Open | Paused | on-chain | pausePool with mandatory reasonCID → PoolPaused; resumePool returns to Open |
-| Open \| Paused | Closed | on-chain | closePool → PoolClosed |
+| Open · Paused | Closed | on-chain | closePool → PoolClosed |
 | Closed | Composted | on-chain | compostPool → PoolComposted |
-| Composted | Ready \| Open | on-chain | reopenPool(toOpen) → PoolReopened |
+| Composted | Ready · Open | on-chain | reopenPool(toOpen) → PoolReopened |
 
-#### `commitment-cycle`
+### `commitment-cycle`
 
 One open Season per pool (openSeasonCycleId guard); Campaigns overlap freely. Succession between cycles is derived by pool ordering — no on-chain predecessor pointer.
 
 | State | Storage |
 |---|---|
-| Draft | off-chain |
+| None | on-chain |
 | Seeded | on-chain |
 | Open | on-chain |
 | InProgress | derived |
@@ -787,21 +794,21 @@ One open Season per pool (openSeasonCycleId guard); Campaigns overlap freely. Su
 
 | From | To | Layer | Mechanism |
 |---|---|---|---|
-| Draft | Seeded | on-chain | seedCycle(poolId, cycleType, startTime, endTime, metadataCID) → CycleSeeded; no allocation stored yet |
+| None | Seeded | on-chain | seedCycle(poolId, cycleType, startTime, endTime, metadataCID) → CycleSeeded; no allocation stored yet |
 | Seeded | Open | on-chain | openCycle(cycleId, allocation, recognitionPolicy) — six-role allocation bps and two-part recognition bps each sum to 10000, both store immutably → CycleOpened |
 | Open | InProgress | derived | first CommitmentAccepted for the cycle OR block time ≥ startTime |
 | InProgress | Reviewing | derived | block time &gt; endTime, OR all cycle commitments terminal or ReadyForConfirmation; new evidence/work flips back |
 | Reviewing | Reconciled | on-chain | closeCycle (the reconcile act) requires liveCommitmentCount = 0 → CycleClosed; commitment-level Reconciled derives from this event |
 | Reconciled | Composted | on-chain | compostCycle → CycleComposted |
-| Seeded \| Open | Cancelled | on-chain | cancelCycle(reasonCID) requires liveCommitmentCount = 0 → CycleCancelled; Draft is discarded off-chain |
+| Seeded · Open | Cancelled | on-chain | cancelCycle(reasonCID) requires liveCommitmentCount = 0 → CycleCancelled; Draft is discarded off-chain |
 
-#### `commitment`
+### `commitment`
 
 Direction-aware fulfillment: the party receiving the team's work confirms by default (Offer → receiver, Request → creator), or a named group may be set before acceptance. A current local-garden steward/owner may use PoolFallback. When explicitly selected before acceptance and no ordinary/local confirmer is reachable, a current steward/owner of the registered Green Goods protocol garden may use ProtocolFallback. The authority paths are not time-based; module ownership alone grants neither fallback; every lead/contributor is excluded. Evidence/Work credit records only while Accepted and unfrozen; the contributor roster and credit ledger freeze atomically on the transition to ReadyForConfirmation or before a direct Fulfilled dispute resolution; Ready requires pre-freeze totalVerifiedCredits &gt; 0 and a structurally reachable confirmer, while recognition additionally requires Fulfilled plus an opened cycle policy or the immutable cycle-less 20/80 default; disputes restore an explicitly stored prior state.
 
 | State | Storage |
 |---|---|
-| Draft | off-chain |
+| None | on-chain |
 | Offered | on-chain |
 | Requested | on-chain |
 | Accepted | on-chain |
@@ -817,18 +824,22 @@ Direction-aware fulfillment: the party receiving the team's work confirms by def
 
 | From | To | Layer | Mechanism |
 |---|---|---|---|
-| Draft | Offered \| Requested | on-chain | createCommitment → CommitmentCreated (direction sets the initial state) |
-| Offered \| Requested | Accepted | on-chain | claimCommitment (runtime kind must equal immutable claimType; Open mode transitions immediately, ApprovalGated waits for operator acceptClaim) → CommitmentAccepted; register records committed units |
+| None | Offered · Requested | on-chain | createCommitment → CommitmentCreated (direction sets the initial state) |
+| Offered · Requested | Accepted | on-chain | claimCommitment (runtime kind must equal immutable claimType; Open mode transitions immediately, ApprovalGated waits for operator acceptClaim) → CommitmentAccepted; register records committed units |
 | Accepted | Active | derived | first WorkLinked or EvidenceAttached after acceptance |
 | Active | EvidenceSubmitted | derived | any EvidenceAttached or WorkLinked event |
 | EvidenceSubmitted | PartiallyApproved | derived | ApprovedWorkCounted with some requirement counters below their required counts |
-| … | ReadyForConfirmation | on-chain | automatic once every repeatable action requirement is met and any declared assessment attached; submitForConfirmation for evidence-only types requires evidenceCount ≥ 1; steward markReadyForConfirmation with reason; every path requires an Open cycle when scoped or the immutable cycle-less 20/80 policy, pre-freeze totalVerifiedCredits &gt; 0, and either a reachable ordinary named/default confirmer threshold or an explicitly selected registered protocol-garden fallback; local-garden authority is confirmation-time PoolFallback provenance only and does not independently satisfy Ready reachability; contributor roster and credit ledger freeze atomically before the ready event |
+| Accepted · Active · EvidenceSubmitted · PartiallyApproved | ReadyForConfirmation | on-chain | automatic once every repeatable action requirement is met and any declared assessment attached; submitForConfirmation for evidence-only types requires evidenceCount ≥ 1; steward markReadyForConfirmation with reason; every path requires an Open cycle when scoped or the immutable cycle-less 20/80 policy, pre-freeze totalVerifiedCredits &gt; 0, and either a reachable ordinary named/default confirmer threshold or an explicitly selected registered protocol-garden fallback; local-garden authority is confirmation-time PoolFallback provenance only and does not independently satisfy Ready reachability; contributor roster and credit ledger freeze atomically before the ready event |
 | ReadyForConfirmation | Fulfilled | on-chain | confirmFulfillment by named confirmer or direction-aware default, or confirmFulfillmentAsFallback with reason by current local-garden authority (PoolFallback) or explicitly selected registered protocol-garden authority (ProtocolFallback); local authority wins for dual-role callers; threshold N → CommitmentFulfilled with actor/path/reason; register converts units; every lead/contributor on the already-frozen roster is excluded from every confirmation path |
 | Fulfilled | Reconciled | derived | CycleClosed for the commitment's cycle (or PoolClosed when cycle-less) |
-| … | Cancelled | on-chain | cancelCommitment(reasonCID) — creator or steward pre-acceptance, steward-only after; Accepted releases committed units |
-| … | Expired | on-chain | expireCommitment — permissionless once past dueDate (or cycle endTime); releases still-committed units |
-| Accepted \| ReadyForConfirmation \| Expired | Disputed | on-chain | raiseDispute(reasonCID) — module stores the exact prior state in preDisputeState → CommitmentDisputed |
-| Disputed | previous \| Fulfilled \| Cancelled \| Expired | on-chain | resolveDispute steward-only; RestorePrevious replays preDisputeState; an Expired prior state can never resolve Fulfilled; a direct Fulfilled resolution requires an available recognition policy and verified contributor, then freezes an unfrozen roster before DisputeResolved |
+| Offered · Requested · Accepted | Cancelled | on-chain | cancelCommitment(reasonCID) — creator or steward pre-acceptance, steward-only after; Accepted releases committed units |
+| Offered · Requested · Accepted · ReadyForConfirmation | Expired | on-chain | expireCommitment — permissionless once past dueDate (or cycle endTime); releases still-committed units |
+| Accepted · ReadyForConfirmation · Expired | Disputed | on-chain | raiseDispute(reasonCID) — module stores the exact prior state in preDisputeState → CommitmentDisputed |
+| Disputed | Accepted · ReadyForConfirmation · Fulfilled · Cancelled · Expired | on-chain | resolveDispute steward-only; RestorePrevious replays preDisputeState; an Expired prior state can never resolve Fulfilled; a direct Fulfilled resolution requires an available recognition policy and verified contributor, then freezes an unfrozen roster before DisputeResolved |
+
+### Specified machines without an implemented source
+
+"On-chain" means a named function performs the transition; "derived" means a reader computes it. These machines remain specified until their declared runtime source arrives.
 
 #### `commitment-loan`
 
@@ -836,6 +847,7 @@ Records-only pool credit (CreditRegistry). Default is not terminal — a default
 
 | State | Storage |
 |---|---|
+| None | on-chain |
 | Requested | on-chain |
 | Approved | on-chain |
 | Disbursed | on-chain |
@@ -855,6 +867,26 @@ Records-only pool credit (CreditRegistry). Default is not terminal — a default
 | Disbursed | Defaulted | on-chain | markDefaulted(loanId, reasonCID) → LoanDefaulted; steward; past dueDate only (NotDue); callable while paused |
 | Defaulted | Repaid | on-chain | recordRepayment clearing the balance → LoanRepaid(recoveredFromDefault = true); default is not terminal |
 
+## Agent query seam
+
+Agents and application code should use the compact read-only query API exported by `@green-goods/shared`. It resolves canonical ids, typed refs, display names, and declared aliases without importing the full semantic sidecar.
+
+```ts
+import {
+  getOntologyMaturity,
+  getOntologyRelationships,
+  getOntologySafeClaims,
+  getOntologyTerm,
+} from "@green-goods/shared";
+
+const term = getOntologyTerm("Commitment");
+const maturity = getOntologyMaturity("entity:commitment");
+const relationships = getOntologyRelationships("Commitment");
+const claims = getOntologySafeClaims("Commitment");
+```
+
+Use `maturity.availability` and the returned evidence before making a release claim. A canonical term can still be planned or deployed without being available to users.
+
 ## Known Issues
 
 - **`report-orphan-term`** — v1-0.mdx §16.1 defines a "Report" entity (aggregated bundle of approved work for grants/Hypercert minting) that is absent from the canonical entity set, the ERD, and the code. Formalize or retire the term when the reporting feature is actually designed — it overlaps Hypercert bundling today. _(`docs/docs/builders/specs/v1-0.mdx`)_
@@ -868,4 +900,4 @@ Records-only pool credit (CreditRegistry). Default is not terminal — a default
 
 ## How this page stays honest
 
-`bun run check:ontology` cross-checks the sidecar against the Solidity enums, the indexer GraphQL schema, the shared TypeScript vocabularies, the EAS schema config, and the glossary tables on every relevant change. Known drift lives in `scripts/data/ontology-drift-baseline.json` with an owner, an expiry, and a note — new drift fails CI immediately, and fixed drift fails until its baseline entry is deleted. To change the ontology, edit the sidecar and run `bun run ontology:generate`.
+`bun run check:ontology` cross-checks semantic sources, evidence-backed capability and claim projections, executable state endpoints, Solidity and GraphQL enums, shared TypeScript vocabularies, EAS schemas, and glossary tables. Known drift stays bidirectional in `scripts/data/ontology-drift-baseline.json`. To change the ontology, edit its semantic or projection source and run `bun run ontology:generate`.

@@ -64,15 +64,19 @@ QUICK_CMD=""
 case "$SCOPE" in
   contracts)
     RUN_DIR="$REPO_ROOT/packages/contracts"
-    QUICK_CMD="bun build"
+    QUICK_CMD="bun run build"
     ;;
   indexer)
     RUN_DIR="$REPO_ROOT/packages/indexer"
-    QUICK_CMD="bun build"
+    QUICK_CMD="bun run build"
     ;;
-  shared|client|admin)
+  shared)
     RUN_DIR="$REPO_ROOT/packages/$SCOPE"
-    QUICK_CMD="bunx tsc --noEmit"
+    QUICK_CMD="bun run typecheck"
+    ;;
+  client|admin)
+    RUN_DIR="$REPO_ROOT/packages/$SCOPE"
+    QUICK_CMD="node ../../scripts/dev/node-cli.js tsc --noEmit"
     ;;
 esac
 

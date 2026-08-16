@@ -290,7 +290,7 @@ export default function GardenDialog() {
                     helper={formatMessage({
                       id: "public.gardenDialog.certificates.helper",
                       defaultMessage:
-                        "Bundles of approved Work, evaluator-verified and anchored to a public blockchain.",
+                        "Bundles of approved Work grounded in an Assessment and anchored to a public blockchain.",
                     })}
                   />
                   <ul className="mt-4 flex flex-col divide-y divide-stroke-soft-200 border-y border-stroke-soft-200">
@@ -432,7 +432,7 @@ function FieldNotesSection({ notes }: { notes: readonly PublicFieldNote[] }) {
         <p className="mt-4 text-sm italic text-text-soft-400">
           {formatMessage({
             id: "public.gardenDialog.notes.empty",
-            defaultMessage: "No field notes yet — they appear as Work is approved.",
+            defaultMessage: "No field notes yet — they appear when Work is submitted.",
           })}
         </p>
       ) : (

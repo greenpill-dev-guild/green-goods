@@ -425,7 +425,10 @@ export default function ActionsGallery() {
           title={activeAction.title}
           subtitle={formatMessage({
             id: `app.domain.tab.${typeof activeAction.domain === "string" ? activeAction.domain : domainSlug(activeAction.domain)}`,
-            defaultMessage: String(activeAction.domain),
+            defaultMessage:
+              typeof activeAction.domain === "string"
+                ? activeAction.domain
+                : domainSlug(activeAction.domain),
           })}
         >
           {activeAction.media[0] ? (
@@ -464,7 +467,8 @@ export default function ActionsGallery() {
   );
 }
 
-function domainSlug(domain: number): string {
+function domainSlug(domain: number | null): string {
+  if (domain === null) return "unknown";
   switch (domain) {
     case 0:
       return "solar";
