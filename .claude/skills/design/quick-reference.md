@@ -33,6 +33,8 @@ values drift). The admin-operational notes at the bottom are this file's own con
 
 Concentricity formula, shape hierarchy, and pitfalls: language.md § Concentricity Rule.
 
+> **Admin carve-out**: the cockpit runs a reduced scale — `--m3-shape-xs/sm/md/lg/full` = 4/8/12/16/9999px, with no 20/24px steps. In admin, `rounded-xl` **and** `rounded-2xl` both remap to 16px, and dialogs/side sheets sit at 16px (no 28px dialog radius). The rows above are the client scale.
+
 ## 6 Spring Motion Tokens → [language.md § Motion System](./language.md)
 
 | Token | Use |
@@ -78,6 +80,8 @@ Z4 Overlay (modals, palettes) · Z3 Floating (tooltips, FABs) · Z2 Surface (car
 Z1 Ground (page background) · Z0 Substrate (never styled)
 ```
 
+> Admin backs this stack with the 2-level m3 elevation ladder (`--m3-elevation-0/1/2`) plus the warm `--admin-chrome-shadow` on the floating nav/FAB — no separate per-Z elevation ramp.
+
 ## Anti-Patterns → [SKILL.md § Anti-Patterns](./SKILL.md)
 
 The 13 sins (dashboard-itis, spatial-for-spatial's-sake, glass without purpose, …) live in
@@ -112,30 +116,32 @@ The slots compose inside a `flex flex-col` body container. `<SheetBody>` is the 
 | `SheetFooter` | `padding: 12px 16px`, hairline top border, `display: flex; gap: 8px`, raised bg, pins via `flex-shrink: 0` |
 | `SheetDivider` | 1px hairline with `16px 0` margin, `role="separator"` |
 
-Sheet shell tokens: `--radius-sheet: 24px` (client sheet shells, e.g. `PwaSheet`), `--canvas-blur-sheet-open: 6px` + `--e-float` (client sheet depth). The admin canvas no longer recedes — depth comes from the AdminDialog's own scrim.
+Sheet shell tokens: `--radius-sheet: 24px` (client sheet shells, e.g. `PwaSheet`). The admin canvas no longer recedes — depth comes from the AdminDialog's own scrim.
 
-## Tabs (segmented-card)
+## Tabs (underline)
 
-`AdminTabRail` ships handoff `.rv-tabs` anatomy — segmented cards in a grid container. **No sliding underline.**
+`AdminTabRail` is an **underline tab rail** — a flat flex rail sitting on a hairline stone rule. No segmented cards, no card background or shadow on tabs.
 
 | Property | Value |
 |---|---|
-| Container | `display: grid; gap: 6px; padding: 6px; border-radius: 14px; background: var(--surface-quiet)` |
-| Tab button | `height: 40px; border-radius: 10px; font: 600 14px/1; letter-spacing: -0.005em` |
-| Active tab | `background: var(--surface-raised)` + `box-shadow: var(--e1)` + 6% tone wash via `linear-gradient(rgb(var(--tone-action,…) / 0.06), …)` |
-| Count chip | 22×20 pill — inactive `var(--surface-raised)` + 1px outline; active `var(--g-action)` with white text |
-| Keyboard | Roving tabindex; ArrowLeft/ArrowRight cycle, Home/End jump (skip disabled tabs) |
+| Rail | `display: flex; gap: 4px` over a hairline stone bottom rule (admin `--stroke-sub-300`) |
+| Tab | `padding: 10px 16px`, 14px text; inactive weight 500 in sub ink, hover darkens the text only |
+| Active tab | weight 600 + 2px underline in `rgb(var(--tone-on-surface-accent))`, `margin-bottom: -1px` so it sits on the rule |
+| Count chip | `1px 8px` pill, 12px/600 — inactive `--m3-surface-container-high` / on-surface-variant; active `--tone-primary-container` / `--tone-on-primary-container` |
+| Keyboard | Roving tabindex per WAI-ARIA Tabs — Arrow keys cycle, Home/End jump; activation follows focus (unchanged by the underline rework) |
 
 ## Tone Consumption Rule
 
-`var(--tone-action, var(--green-800))` — `--tone-action` is a **raw RGB triplet** inside admin's `[data-tone]` scopes (e.g. `51 92 255` for Hub). The fallback must also be a raw triplet so `rgb(var(...) / 0.06)` alpha-blending stays valid:
+**Budget: tone appears in exactly 3 places** — (1) the active tab underline/label and active nav pill (`--tone-primary-container` / `--tone-on-primary-container`), (2) the single filled header action (`--tone-action`), (3) the faint canvas wash (`--tone-surface-tint-color`). Any other `--tone-*` consumer is drift; the canvas itself stays constant linen.
+
+`var(--tone-action, var(--green-800))` — `--tone-action` is a **raw RGB triplet** inside admin's `[data-tone]` scopes (e.g. `51 92 255` for Hub). The fallback must also be a raw triplet so `rgb(var(...) / alpha)` alpha-blending stays valid:
 
 ```css
-/* OK — both raw triplets */
-background: rgb(var(--tone-action, 26 117 68) / 0.06);
+/* OK — sanctioned use (1), the active nav pill; fallback is a raw triplet */
+background: rgb(var(--tone-primary-container, 213 227 255));
 
-/* BROKEN — fallback wraps `--g-action` which is itself rgb(...) */
-background: rgb(var(--tone-action, var(--g-action)) / 0.06);
+/* BROKEN — fallback wraps `--green-800` which is itself a full color, not a triplet */
+background: rgb(var(--tone-action, var(--green-800)) / 0.08);
 ```
 
 For non-blended use, either form works.

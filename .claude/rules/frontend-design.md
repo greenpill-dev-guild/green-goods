@@ -71,15 +71,15 @@ All user-generated text MUST have `truncate` or `line-clamp-*` AND a `title` att
 
 ## Rule 5: No Action Duplication
 
-Tab-level actions (in PageHeader or tab bar) are canonical. Do not create shortcut cards that duplicate them.
+View-level actions in the `CanvasRouteHeader` `actions` slot / `AdminViewActions` (or the tab bar) are canonical. Do not create shortcut cards that duplicate them.
 
 ## Rule 6: Flex Height
 
 Use `flex-1` on cards that should expand vertically within a flex container.
 
-## Rule 7: Filter Alignment
+## Rule 7: Filter Alignment (legacy shared Card only)
 
-When using `flex-col` inside `Card.Header`, always add `items-start` to override the base `items-center`.
+When using `flex-col` inside the legacy shared `Card.Header`, always add `items-start` to override the base `items-center`. This applies only to remaining shared `Card` usage — admin cards are `AdminCard` / `WorkbenchCard` / `AdminSelectableCard` and don't carry this footgun.
 
 ```tsx
 <Card.Header className="flex-col items-start gap-3">
@@ -87,11 +87,11 @@ When using `flex-col` inside `Card.Header`, always add `items-start` to override
 
 ## Rule 8: Thumbnails
 
-Entity references in lists (gardens, actions) include small thumbnails (40px) using `ImageWithFallback` or letter fallbacks.
+Entity references in lists (gardens, actions) include small thumbnails — 40px for generic lists — using `ImageWithFallback` or letter fallbacks. Shipped variants are sanctioned: `GardenChip`'s 22px avatar and `HubWorkCard`'s media mosaic.
 
 ## Rule 9: Typography Utilities
 
-Use `label-md`, `body-md` utilities from theme.css instead of raw Tailwind text sizes for form labels and body text. Mind the role split: `label-xs text-text-soft` is the **eyebrow / metadata** token (card overlines, definition-list keys, section meta) — it is **not** a form-field label. The title that labels a control goes through `FormField` / `AdminSettingRow` (see Rule 15).
+Use `label-md`, `body-md` utilities from theme.css instead of raw Tailwind text sizes for form labels and body text. In admin these utilities resolve through the remapped cockpit scale (14px body/labels · 12px meta · 11px chips-only). Mind the role split: `label-xs text-text-soft` is the **eyebrow / metadata** token (card overlines, definition-list keys, section meta) — it is **not** a form-field label. The title that labels a control goes through `FormField` / `AdminSettingRow` (see Rule 15).
 
 ## Rule 10: Icon Sizing Convention
 
@@ -114,11 +114,11 @@ Always include `sm:` breakpoint. Never skip from single-column to `md:` 2-column
 
 ## Rule 12: Accessibility — Status Indicators
 
-Status indicators must not rely on color alone. Use icons alongside color (WCAG 1.4.1). The `StatusBadge` component handles this — always use it.
+Status indicators must not rely on color alone. Use icons alongside color (WCAG 1.4.1). Use `StatusBadge` for generic status. `HubWorkCard`'s semantic status chip pairs are the sanctioned Hub exception — colors there are always icon/text-paired or text-labeled, never color-only.
 
 ## Rule 13: Dark Mode — Semantic Tokens Only
 
-Never use raw Tailwind colors (`bg-neutral-*`, `text-gray-*`). Always use semantic tokens (`bg-bg-sub`, `text-text-strong`).
+Never use raw Tailwind colors (`bg-neutral-*`, `text-gray-*`). Always use semantic tokens (`bg-bg-sub`, `text-text-strong`; in admin, the role tokens `--admin-surface-0` / `--m3-*` / `--tone-*`).
 
 ## Rule 14: Modal Mobile Safety
 
@@ -212,5 +212,15 @@ When to redeclare:
 - The body **disambiguates** (e.g., "the garden's vault is X, the parent DAO's vault is Y") — declaring the qualifier is the whole point of the line.
 
 Otherwise: trust the chrome. Anti-pattern guard for review: search the rendered DOM for the active garden / workspace / entity name; if it appears more than once outside chrome, justify it or remove it.
+
+## Rule 18: Cockpit M3 1a Invariants (admin)
+
+The five enforceable invariants of the admin cockpit finish — treat violations as design regressions:
+
+- **Single elevation ladder** — `--m3-elevation-0/1/2` plus `--admin-chrome-shadow` (floating nav/FAB chrome) are the only shadows.
+- **Admin radius set** — 4/8/12/16/9999px only; no 20/24/28px radii (`rounded-xl`/`rounded-2xl` remap to 16px in admin).
+- **Three-use tone budget** — workspace tone appears only in the active tab underline/label, the active nav pill, and one filled `--tone-action` header action (plus the faint canvas wash).
+- **Hover rule** — hovers are an elevation step-up or the neutral ink layer `rgb(var(--m3-on-surface) / 0.08)`; never translate/scale lifts or hue shifts.
+- **AdminButton only** — pill shape, sentence case; the shared `Button` (`gg-button`) must not appear in admin.
 
 > Full surface context: [.claude/context/client.md](../context/client.md) / [.claude/context/admin.md](../context/admin.md); implementation runbook: [.claude/skills/design/implementation.md](../skills/design/implementation.md).

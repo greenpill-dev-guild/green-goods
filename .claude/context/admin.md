@@ -4,6 +4,8 @@ Loaded when working in `packages/admin/`. Extends CLAUDE.md.
 
 **Primary persona**: David (Operator). For tone guidance and UX constraints, see `.claude/context/product.md` § Persona & Tone Quick-Reference.
 
+**Design routing**: surface spec `packages/admin/DESIGN.md` · AI prompt contract `.claude/skills/design/prompt-contract.md` · docs page `docs/docs/builders/packages/admin.mdx`.
+
 ## Quick Reference
 
 | Command | Purpose |
@@ -28,9 +30,12 @@ packages/admin/src/
 │   ├── Action/     # Action configuration
 │   ├── Assessment/ # Assessment workflow steps
 │   ├── Garden/     # Garden management
-│   └── Layout/     # Dashboard layout
+│   ├── Layout/     # Canvas layout (CanvasRouteFrame, LeftInspectorDialog, ...)
+│   ├── Shell/      # Admin-owned shell forks: AppBar, MainSheet, NavigationBar (+ FAB)
+│   └── Admin*.tsx  # Top-level admin M3 wrappers (AdminButton, AdminDialog, AdminCard, ...)
+├── styles/          # admin-m3-tokens.css (tokens + Controlled Chrome), admin-m3-components.css (admin skins/motion)
 ├── views/           # Main views (lazy-loaded)
-├── routes/          # Route guards (RequireRole, DashboardShell)
+├── routes/          # CanvasShell.tsx + RequireRole.tsx
 ├── config.ts        # Admin configuration
 └── router.tsx       # Route configuration
 ```
@@ -80,22 +85,7 @@ if (!permissions.canRemoveMembers(garden)) {
 
 ### Route Guards
 
-```typescript
-// Route configuration
-<Route element={<RequireAuth />}>
-  <Route element={<DashboardShell />}>
-    {/* Admin-only */}
-    <Route element={<RequireDeployer />}>
-      <Route path="/deployment" element={<Deployment />} />
-    </Route>
-
-    {/* Admin + Operator */}
-    <Route element={<RequireOperatorOrDeployer />}>
-      <Route path="/gardens" element={<Gardens />} />
-    </Route>
-  </Route>
-</Route>
-```
+`routes/` contains exactly two route components: `CanvasShell.tsx` (the canvas shell route wrapper) and `RequireRole.tsx` (the role guard). `router.tsx` composes them — check it for the live nesting. The legacy `RequireAuth` / `DashboardShell` / `RequireDeployer` / `RequireOperatorOrDeployer` guards are deleted.
 
 ### Toast for All Transactions (MANDATORY)
 
@@ -119,38 +109,25 @@ await executeWithToast(
 );
 ```
 
-### Radix Dialog for Modals
+### AdminDialog for Modals
 
-Use Radix Dialog for all admin modals (form-based interactions):
+`AdminDialog` / `AdminConfirmDialog` are the only admin dialog path: 16px radius, level-2
+elevation over the 32% scrim, solid `--admin-surface-0`-family surface, bottom-sheet
+presentation on mobile. Pass the mounting workspace's `tone` prop — the portal escapes
+`[data-tone]` and the prop re-establishes it. Full-surface creation/commit flows use
+`variant="flow"` with `ADMIN_FLOW_DIALOG_CLASS`.
 
 ```typescript
-import * as Dialog from "@radix-ui/react-dialog";
+import { AdminDialog } from "@/components/AdminDialog";
 
-<Dialog.Root>
-  <Dialog.Trigger asChild>
-    <button>Add Member</button>
-  </Dialog.Trigger>
-
-  <Dialog.Portal>
-    <Dialog.Overlay className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50" />
-    <Dialog.Content className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-lg shadow-2xl p-6 max-w-md w-full z-50">
-      <Dialog.Title>Add Member</Dialog.Title>
-      <form onSubmit={handleSubmit}>
-        {/* Form fields */}
-      </form>
-      <Dialog.Close asChild>
-        <button aria-label="Close">✕</button>
-      </Dialog.Close>
-    </Dialog.Content>
-  </Dialog.Portal>
-</Dialog.Root>
+<AdminDialog open={open} onOpenChange={setOpen} title="Add member" tone="community"
+  actions={<AdminButton onClick={handleSubmit}>Save</AdminButton>}>
+  {/* form fields */}
+</AdminDialog>
 ```
 
-**Benefits over custom modals:**
-- Complete ARIA support
-- Focus management built-in
-- Portal rendering
-- Composable API
+Raw Radix Dialog is allowed only when neither wrapper fits — and it must still honor the
+dialog contract (scrim, pinned actions, accessible title/description, mobile safety).
 
 ### Form Validation with Zod
 
@@ -287,7 +264,7 @@ describe("Gardens View", () => {
 
 - Role hooks: `@green-goods/shared` → `hooks/gardener/useRole.ts`
 - Permission hooks: `@green-goods/shared` → `hooks/garden/useGardenPermissions.ts`
-- Route guards: `routes/RequireAuth.tsx`, `RequireDeployer.tsx`, `RequireOperatorOrDeployer.tsx`
+- Route guards: `routes/CanvasShell.tsx`, `routes/RequireRole.tsx`
 - Toast action: `@green-goods/shared` → `hooks/app/useToastAction.ts`
 
 ## Documentation References (on-demand)

@@ -37,10 +37,10 @@ Unified PR review flow combining all four design lenses. Run in order — each l
 | # | Check | Pass | Fix if Fail |
 |---|-------|------|-------------|
 | 2.1 | **Paradigm declared?** Surface type chosen (Command / Ambient / Data Landscape / Conversational) | | Choose paradigm using the Decision Matrix below. Add comment to component: `// Paradigm: Command Surface` |
-| 2.2 | **Material appropriate?** Glass blur level matches content density | | Text-dense → thick material (solid bg). Glanceable → regular (light blur). Status → thin (max blur). See `surfaces.md` |
-| 2.3 | **Depth hierarchy?** Z-axis used for information priority (Z0–Z4) | | Primary content at Z2 (main pane), contextual at Z1 (recessed), alerts at Z3 (elevated). See `surfaces.md` |
+| 2.2 | **Material appropriate?** Glass blur level matches content density | | Text-dense → thick material (solid bg). Glanceable → regular (light blur). Status → thin (max blur). See `surfaces.md`. Admin: solid everywhere except the nav dock — blur outside the admin chrome files fails `check:design-tokens` |
+| 2.3 | **Depth hierarchy?** Z-axis used for information priority (Z0–Z4) | | Primary content at Z2 (main pane), contextual at Z1 (recessed), alerts at Z3 (elevated). See `surfaces.md`. Admin: depth is backed by the single `--m3-elevation-0/1/2` ladder plus the warm chrome shadow |
 | 2.4 | **Hit targets ≥ 44px?** All interactive elements large enough for touch/gaze | | Increase padding. Use `min-h-11 min-w-11` (44px) on clickable areas |
-| 2.5 | **Rounded corners scale?** Larger elements have larger radii | | Small badge: `rounded-lg` (8px). Card: `rounded-xl` (12px). Modal: `rounded-2xl` (16px). Full pane: `rounded-3xl` (24px) |
+| 2.5 | **Rounded corners scale?** Larger elements have larger radii | | Client: badge `rounded-lg` (8px), card `rounded-xl` (12px), modal `rounded-2xl` (16px), full pane `rounded-3xl` (24px). Admin: badge 8, card 12, dialog/pane 16, pill 9999 — no 24px step |
 | 2.6 | **Progressive disclosure?** Information layers: glance → scan → engage → deep dive | | Surface summary first. Details on click/expand. Full data behind navigation |
 | 2.7 | **Container-query aware?** Components adapt to container, not viewport | | Replace `@media` with `@container` where component may appear in different layout contexts |
 | 2.8 | **Motion respects reduced-motion?** Animations degrade gracefully | | Wrap animations in `@media (prefers-reduced-motion: no-preference)`. Use `motion-safe:` prefix |
@@ -77,6 +77,11 @@ Unified PR review flow combining all four design lenses. Run in order — each l
 | 4.8 | **i18n ready?** All user-facing strings use `intl.formatMessage()` | | Replace hardcoded strings. Update en.json, es.json, pt.json |
 | 4.9 | **Storybook story exists?** Component has story with loading/error/empty variants | | Create story file. Include `tags: ["autodocs"]`, add play functions for interactions |
 | 4.10 | **Offline state handled?** Component degrades gracefully without connectivity | | Show cached data with freshness indicator. Queue actions for background sync |
+| 4.11 | **Admin: single elevation ladder?** Only `--m3-elevation-0/1/2` (+ warm chrome shadow on floating chrome) | | Replace any other shadow token or ad-hoc `box-shadow` with the ladder |
+| 4.12 | **Admin: radius set?** Only 4/8/12/16/9999px | | Snap to the nearest admin step — no 20/24/28px |
+| 4.13 | **Admin: tone budget?** Workspace tone appears only in its 3 sanctioned uses (active tab/nav pill, one filled header action, faint canvas wash) | | Return extra tone usage to neutral ink/stone |
+| 4.14 | **Admin: hover discipline?** Elevation step or neutral 8% ink layer only — no lift, no glow, no hue shift | | Replace transform/glow hovers with elevation 1→2 or `rgb(var(--m3-on-surface)/0.08)` |
+| 4.15 | **Admin: sentence-case buttons?** Buttons are `AdminButton` (pill, sentence case); shared `Button` never appears in admin | | Swap shared `Button` for `AdminButton`; fix Title Case labels |
 
 ---
 
@@ -115,10 +120,10 @@ Q4: Is this AI/guidance interaction?
 
 | Paradigm | Background | Border | Text | Shadow |
 |----------|-----------|--------|------|--------|
-| **Command** | `bg-card` (solid) | `border-border` (visible) | `text-foreground` (high contrast) | `shadow-sm` to `shadow-md` |
-| **Ambient** | `bg-card/60 backdrop-blur-xl` | `border-border/30` (subtle) | `text-muted-foreground` | `shadow-none` |
-| **Data Landscape** | `bg-background` | `border-border/50` | `text-foreground` | Variable by depth |
-| **Conversational** | `bg-transparent` | `border-none` | `text-foreground` | `shadow-none` |
+| **Command** (admin) | Solid `rgb(var(--admin-surface-0))` | `--stroke-sub-300` hairline | `--text-strong-950` (high contrast) | `--m3-elevation-1` |
+| **Ambient** (client) | `--color-material-thin` + `--blur-material-thin` | `var(--border-material)` | `--text-sub-600` | None |
+| **Data Landscape** | `--bg-white-0` canvas | `--stroke-sub-300` hairline | `--text-strong-950` | Variable by depth (`--shadow-elevation-*`) |
+| **Conversational** | Transparent | None | `--text-strong-950` | None |
 
 ---
 
@@ -147,7 +152,7 @@ Each lens has a manual review pass. Some lenses also have automation that runs t
 | **2 — Spatial** | Paradigm declared, material thickness matches content density | Chromatic visual regression on paradigm-tagged stories; `@container` coverage lint | **Proposed** |
 | **3 — Ecosystem** | Archetype mapping, cascade visibility, surrogate flows | Playwright role-based flows (gardener / operator / evaluator / funder); vitest surrogate-path tests; indexer archetype-span checks | **Proposed** |
 | **4 — Compliance** | WCAG 2.1 AA, i18n readiness, responsive breakpoints | `@storybook/addon-a11y` (installed, not CI-gating); viewport tests at 320/768/1280; i18n-key coverage lint; `prefers-reduced-motion` vitest matcher | **Partial** — addon installed, no CI gate |
-| **Cross-cutting** | Token consistency across docs and implementation | `bun run check:design-tokens` — spec ↔ `theme.css` + `token_version` declared in `design/SKILL.md` | **Wired** |
+| **Cross-cutting** | Token consistency across docs and implementation | `bun run check:design-tokens` — spec ↔ `theme.css` (shared) + `packages/admin/src/styles/admin-m3-tokens.css` / `admin-m3-components.css` + `token_version` declared in `design/SKILL.md` | **Wired** |
 
 ### Quick wiring reference — currently runnable
 
@@ -155,7 +160,7 @@ Each lens has a manual review pass. Some lenses also have automation that runs t
 # Lens 1 — lint-enforced banned vocabulary in user-facing i18n strings
 bun run lint:vocab
 
-# Cross-cutting — Warm Earth token spec ↔ theme.css + version coupling
+# Cross-cutting — Warm Earth token spec ↔ theme.css + admin-m3-tokens.css/admin-m3-components.css + version coupling
 bun run check:design-tokens
 ```
 
@@ -176,7 +181,7 @@ A checklist agents run once per PR catches what we remember. Automated checks ca
 
 **Implementation notes**:
 - `lint:vocab` runs `scripts/design/check-vocab.sh` against `packages/*/src/i18n/*.json` and reads only `linter_enforced.terms` from `docs/docs/reference/banned-vocabulary.json`. Biome's linter is disabled repo-wide so a shell grep is the practical substitute; wire it into pre-commit + CI.
-- `check:design-tokens` runs `scripts/design/check-tokens.sh`, which verifies every spec'd Warm Earth token (springs, materials, border) exists in `theme.css` AND that `token_version` is declared in `design/SKILL.md`.
+- `check:design-tokens` runs `scripts/design/check-tokens.sh`, which verifies every spec'd Warm Earth token (springs, materials, border) exists in its source — `theme.css` for shared/client tokens; `packages/admin/src/styles/admin-m3-tokens.css` + `admin-m3-components.css` for admin M3/tone tokens — AND that `token_version` is declared in `design/SKILL.md`.
 
 ---
 

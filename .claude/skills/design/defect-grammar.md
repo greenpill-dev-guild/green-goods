@@ -33,7 +33,7 @@ Narrow candidates by:
 | "at the top" / "top bar" | `data-region="canvas-area-top"` |
 | "the main area" / "the content" | `data-region="main-scroll-area"` |
 | "the bottom nav" / "tabs at bottom" | `data-region="canvas-area-bottom"` |
-| "the card" | `data-component="AdminCard"` + visible rect |
+| "the card" | `data-component="AdminCard"` (also `HubWorkCard` / `WorkbenchCard`) + visible rect |
 | "the tabs" | `data-component="AdminTabRail"` |
 | "the search" / "search bar" | `data-component="AdminSearchToolbar"` |
 | "that button" / "the CTA" | `data-component="AdminButton"` or `AdminFab` |
@@ -44,6 +44,12 @@ Narrow candidates by:
 | "the modal" / "the dialog" | `data-component="AdminDialog"` |
 | "the tooltip" | `data-component="AdminTooltip"` |
 | "the badge" / "notification dot" | `data-component="AdminBadge"` |
+| "the toggle row" / "the setting row" | `data-component="AdminSettingRow"` |
+| "the choice chips" / "the option group" | `data-component="AdminChoiceGroup"` |
+| "the selectable card" / "the picker card" | `data-component="AdminSelectableCard"` |
+| "the inline field" | `data-component="AdminInlineField"` |
+| "the garden switcher" / "the garden pill" | `data-component="GardenChip"` (shared 36px pill in the AppBar) |
+| "the work card" | `data-component="HubWorkCard"` |
 
 ### Tier 2 — Static grep (authenticated Brave access unavailable, or page not open)
 
@@ -85,7 +91,7 @@ If the user's description can't be mapped to a canonical `Admin*` wrapper or reg
 | `responsive` | Breaks at a specific width/container size, overflow, missing truncation. | Container queries (`@[Npx]:`), Rule 11 breakpoints. |
 | `a11y` | Missing `aria-label`, role, focus trap, keyboard trap, missing `prefers-reduced-motion`. | StatusBadge + FormField + Alert components. |
 | `token-drift` | Raw color/radius/duration used where a token should be. Surfaced by `bun run check:design-tokens`; copy/vocabulary drift is a separate `lint:vocab` i18n check. | `CLAUDE.md § Design System` tokens. |
-| `surface-identity` | Admin has glass outside the admin `AppBar`, or client copy leaks into admin, or vice versa. | `prompt-contract.md § Never Use`. |
+| `surface-identity` | Admin has glass anywhere except the `NavigationBar`/FAB Controlled Chrome (the `AppBar` root is transparent by spec), or client copy leaks into admin, or vice versa. | `prompt-contract.md § Never Use`. |
 | `missing-primitive` | A composition that SHOULD use a canonical `Admin*` wrapper uses raw HTML instead. | The `Admin*` wrappers in `prompt-contract.md` (filesystem is the count of record). |
 
 ## Casual → resolved examples
@@ -95,8 +101,8 @@ The left column is what the user says. The right column is the internal statemen
 | User says | Agent's internal statement |
 |-----------|----------------------------|
 | "The card on Hub feels tight." | `AdminCard in /hub WorkSubmissions → spacing: expected p-4 (16dp) per M3 card anatomy, currently p-3 (12dp)` |
-| "The top bar looks flat on Garden." | `canvas-area-top in /garden → hierarchy: AppBar lacks elevation-3 + --blur-material-regular separation from MainSheet below` |
-| "The tabs on Community snap weirdly." | `AdminTabRail in /community → motion: sliding indicator uses ease-out 200ms instead of --spring-medium-* tokens` |
+| "The top bar on Garden feels detached from the page." | `canvas-area-top in /garden → hierarchy: AppBar reads detached from the canvas — expected transparent root over the --tone-surface-tint-color wash; check the wash gradient and sticky-header transparency` |
+| "The tabs on Community snap weirdly." | `AdminTabRail in /community → motion: hover/active text transition hardcodes ease-out 200ms instead of --spring-effects-fast (underline rail — there is no sliding indicator to animate)` |
 | "The input label looks wrong at phone width." | `AdminTextField (outlined) in AdminDialog create-garden form → responsive: floating-label notch overlaps outline below 400px container width` |
 | "The notifications panel feels like one big list." | `NotificationPanel in AdminSideSheet (AppBar bell) → hierarchy: expected "Needs attention" / "Recent activity" section grouping, currently flat` |
 | "Something's off but I can't tell what." | Tier 3 — agent asks which workspace/region to focus on, then Tier 1s again. |
