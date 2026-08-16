@@ -529,9 +529,9 @@ const CLIENT_ENTRIES: Entry[] = [
   {
     id: "fab", title: "Creation FAB", family: "chrome", covers: ["fabButton"],
     kit: `fabButton(open)`,
-    ship: "packages/shared/src/components/Canvas/NavigationBar.tsx:119",
-    shipNote: "the shared FabButton the steward cockpit's mobile shell uses; net-new to the client PWA",
-    drift: "Shipping FAB is 56px, rounded-full, and rotates its + 45° when open (packages/shared/src/components/Canvas/NavigationBar.tsx:356) — this mirror is a 52px squircle that swaps to an X and recolors.",
+    ship: "packages/admin/src/components/Shell/FabButton.tsx:23",
+    shipNote: "the steward cockpit's forked FabButton (Cockpit M3 1a, split into Shell/FabButton.tsx; the shared Canvas original is superseded for admin); net-new to the client PWA",
+    drift: "Shipping FAB is 48px (56px when floating with a label), rounded-full, tone-action filled, and rotates its + 45° when open (packages/admin/src/components/Shell/FabButton.tsx:228) — this mirror is a 52px squircle that swaps to an X and recolors.",
     rule: "Closed: one + above the AppBar. Open: the two one-word doors stack above the same spot and the FAB flips to a close affordance.",
     usedIn: /class="fabbtn/,
     specs: [
@@ -887,8 +887,8 @@ const ADMIN_ENTRIES: Entry[] = [
     id: "tab-rail", title: "AdminTabRail", family: "chrome", covers: ["tabRail"],
     kit: `tabRail(items, activeIx)`,
     ship: "packages/admin/src/components/AdminTabRail.tsx:1",
-    shipNote: "segmented card, active tab raised — never an underline",
-    rule: "Sub-views inside a workspace; counts ride the tabs and tint with the workspace tone when active.",
+    shipNote: "underline tabs (Cockpit M3 1a) — 2px workspace-accent underline on the active tab; never a raised segment",
+    rule: "Sub-views inside a workspace; counts ride the tabs and flip to the tone container pair when active.",
     usedIn: /class="tabrail/,
     specs: [
       { label: "with counts", html: kit.tabRail([{ label: "Overview" }, { label: "Commitments", count: 12 }, { label: "Claims", count: 4 }], 1), w: "l" },
@@ -898,8 +898,8 @@ const ADMIN_ENTRIES: Entry[] = [
     id: "canvas", title: "Canvas cockpit", family: "chrome", covers: ["adminCanvas", "deskWin", "navItems"],
     kit: `deskWin(url, adminCanvas(tone, nav, parts))`,
     ship: "packages/admin/src/components/Layout/CanvasLayout.tsx:62",
-    shipNote: "AppBar + gradient canvas + floating route card + glass dock (packages/shared/src/components/Canvas/NavigationBar.tsx:402)",
-    rule: "The workspace tone lives on the canvas gradient and dock highlight — never on the route card surface itself.",
+    shipNote: "AppBar + linen canvas with the faint top wash + transparent route frame + glass dock (packages/admin/src/components/Shell/NavigationBar.tsx:104)",
+    rule: "Tone shows in exactly three places (1a): the active tab/nav pill, the single filled action, and the faint canvas wash — never on card surfaces, borders, or hovers.",
     usedIn: /class="wsgrid/,
     specs: [
       { label: "garden workspace", html: adminRoute(kit.acard("Season of First Rains", `${kit.kv("Promises", "9 made · 7 kept")}${kit.kv("Runs through", "Aug 30")}`, kit.chip("Open", "ok"))), w: "l", h: 560 },
@@ -909,7 +909,7 @@ const ADMIN_ENTRIES: Entry[] = [
     id: "admin-dialog", title: "AdminDialog", family: "chrome", covers: ["adminDialogM3"],
     kit: `adminDialogM3(behind, tone, {title, body, actions})`,
     ship: "packages/admin/src/components/AdminDialog.tsx:145",
-    rule: "Confirms and small edits float over the dimmed canvas on a 28dp solid surface; destructive confirms take a reason where the act stores one.",
+    rule: "Confirms and small edits float over the dimmed canvas on a 16dp solid surface; destructive confirms take a reason where the act stores one.",
     usedIn: /class="adlg"/,
     specs: [
       { label: "reason-taking confirm", html: kit.adminDialogM3(adminRoute(kit.acard("Season of First Rains", kit.kv("Promises", "9 made · 7 kept"))), "garden", {
