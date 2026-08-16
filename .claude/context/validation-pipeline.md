@@ -27,6 +27,12 @@ Every selected check states:
 - **Stop** — which dependent checks stop after a deterministic failure and which explicitly
   independent diagnostics may continue.
 
+Receipt reuse is opt-in and off by default. Pass `--reuse-passing-receipts` to
+`node scripts/dev/ci-local.js` to skip checks whose exact fingerprint already passed. The store
+lives in `.cache/validation`, holds passes only, and any change to the command, policy, toolchain,
+validated paths, or environment profile invalidates the fingerprint. A tampered store is rejected
+rather than trusted.
+
 Never reuse failures. User cancellation is terminal: stop active validation, schedule nothing else,
 and report only evidence already collected. An unavailable browser, RPC, secret, service, or other
 capability produces `BLOCKED`, not passing; do not retry the identical check until that capability
