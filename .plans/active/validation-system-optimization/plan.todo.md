@@ -108,10 +108,34 @@ installation or upgrade, workflow rerun, GitHub setting change, deployment, broa
   timeout. Bounding workers helps a lot and is not enough, so `--parallel` must not ship until
   per-test cost falls.
 
-- The per-test cost is one call. `processEvent` costs about 1,184ms steady-state (first call
-  1,574ms), while `createTestIndexer()` costs 0.1ms and module import 696ms once per worker. At one
-  call per test that is 289s of the 606.6s suite, and most tests make several. Cost is also spread
-  rather than concentrated: 158 of 244 tests are slow enough for mocha to print a duration and the
-  slowest 30 are only 37% of the total, so there is no small set of offenders to fix. The lever is
-  `processEvent` itself, which is an Envio harness question rather than a Green Goods test-authoring
-  one.
+- The indexer cost is per *call*, not per event. Measured against the `ActionRegistered` handler,
+  one `processEvents` call costs the same whether it carries 1 event or 50:
+
+  | Events in the call | Total |
+  |---|---|
+  | 1 | 707ms |
+  | 5 | 707ms |
+  | 20 | 707ms |
+  | 50 | 705ms |
+
+  `createTestIndexer()` is 0.1ms and module import is 696ms once per worker, so the 707ms is the
+  call itself. Reading the generated harness explains it: `TestHelpers_MockDb.makeProcessEvents`
+  runs `Generated.makeGeneratedConfig()`, builds a `ChainFetcher` with a 5000-item buffer, and
+  deep-clones the mockDb on every call. Envio's `X.processEvent({event, mockDb})` and the repo's own
+  `processEvents(db, events)` wrapper cost the same for a single event (690ms vs 687ms); the wrapper
+  only wins by amortizing.
+
+  Caveat that bounds the claim: 707ms is a *floor*. The four files measured directly run at roughly
+  0.8s per call site, while the remaining files average about 4.3s, so heavier handlers add genuine
+  per-event work that the `ActionRegistered` probe does not capture. What holds regardless of
+  handler is that eliminating a call saves about 707ms.
+
+- Two levers follow, and they are independent:
+  1. Repo-side, no Envio change: merge calls. 64 adjacent call pairs already have no assertion or
+     entity read between them and are directly mergeable, worth about 45s. Concentrated in
+     `hatsModule` (10), `settlement` (10), `hypercerts` (9), `settlementReview` (9),
+     `commitmentPoolReview` (8). The newer commitment-pooling tests already use the batched style
+     (23 batched against 5 single), so the pattern to copy exists in-repo.
+  2. Upstream: the 707ms is rebuilt state that cannot change between calls within a test. Memoizing
+     the generated config and ChainFetcher would cut every test with no test edits at all. This is
+     the larger prize and belongs as an Envio issue.

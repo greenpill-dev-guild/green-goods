@@ -40,12 +40,21 @@ workflow plus at most one 20s poll. Two pre-optimization runs show the cost of t
 | `bun install` | 21.8s | 6.9s |
 | **Total** | **21.8s** | **27.6s** |
 
-Job-level setup across 40 baseline samples averaged 29.4s (median 27.5s, stdev 6.0s) versus 40.9s
-across 12 warm-cache samples. The warm run was also slower than the cold run on the same code, which
-is the opposite of a working cache. The store additionally consumed 1.02 GB of an already-over-quota
-10 GB repository cache (10.34 GB in use), evicting per-commit Foundry build caches that do pay off.
-A time-of-day runner confound cannot be excluded from the aggregate figures, but the single-job
-accounting above is internal to one log and is not affected by it.
+Confirmed by per-job log accounting across 25 jobs, which is immune to the time-of-day confound
+because restore and install are both read from inside the same job's own log:
+
+| | `bun install` | cache restore | total setup |
+|---|---|---|---|
+| No cache (n=12) | 25.7s | none | **25.7s** mean, 24.2s median |
+| Warm cache (n=13) | 8.3s | 24.6s | **33.0s** mean, 28.6s median |
+
+The cache does what it claims: install falls 17.4s. It costs 24.6s to get that, so it spends
+**1.41x what it saves**. That ratio is scale-invariant, so a slower runner day moves both terms
+together and does not rescue it. All 13 warm-cache jobs are slower than the median no-cache job, and
+the fastest warm job (27.2s) still loses to it. Net penalty is +7.3s per job.
+
+The store additionally consumed 1.02 GB of an already-over-quota 10 GB repository cache (10.34 GB in
+use), evicting per-commit Foundry build caches that do pay off.
 
 **No wall-clock gain on the critical path.** Indexer Test (610s) still sets PR duration and was not
 touched. See the deferred profiling note in `plan.todo.md`.
