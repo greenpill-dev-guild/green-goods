@@ -72,7 +72,7 @@ export interface HubWorkspaceStateInput {
 type ActionTitleLike = {
   id: string | number | bigint;
   title: string;
-  domain?: Domain;
+  domain?: Domain | null;
 };
 
 export interface HubActionSummary {
@@ -88,7 +88,7 @@ export function buildActionTitleMap(actions: ActionTitleLike[]) {
   return new Map<number, HubActionSummary>(
     actions.map((action) => {
       const summary: HubActionSummary = { title: action.title };
-      if (action.domain !== undefined) {
+      if (action.domain !== null && action.domain !== undefined) {
         summary.domain = action.domain;
       }
       return [Number(action.id), summary];

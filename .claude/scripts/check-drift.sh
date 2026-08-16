@@ -17,6 +17,11 @@ pass() {
   PASS_COUNT=$((PASS_COUNT + 1))
 }
 
+count_shared_exports() {
+  local pattern="$1"
+  { grep -rn "$pattern" packages/shared/src/ 2>/dev/null || true; } | wc -l | tr -d ' '
+}
+
 echo "Checking skill & configuration drift..."
 echo ""
 
@@ -26,7 +31,7 @@ echo "== Hooks =="
 for hook in useTimeout useDelayedInvalidation useEventListener useWindowEvent \
   useDocumentEvent useAsyncEffect useAsyncSetup useOffline \
   useServiceWorkerUpdate useDraftAutoSave useDraftResume useJobQueue; do
-  count=$(grep -rn "export.*$hook" packages/shared/src/ 2>/dev/null | wc -l | tr -d ' ')
+  count=$(count_shared_exports "export.*$hook")
   if [ "$count" -eq 0 ]; then
     drift "$hook referenced in skills but not exported from shared"
   else
@@ -42,7 +47,7 @@ echo ""
 echo "== Utilities =="
 for util in parseContractError createMutationErrorHandler mediaResourceManager \
   getStorageQuota jobQueue jobQueueEventBus logger toastService; do
-  count=$(grep -rn "export.*$util" packages/shared/src/ 2>/dev/null | wc -l | tr -d ' ')
+  count=$(count_shared_exports "export.*$util")
   if [ "$count" -eq 0 ]; then
     drift "$util referenced in skills but not exported from shared"
   else
@@ -58,7 +63,7 @@ echo ""
 echo "== Types =="
 for type in Address Garden Work Action WorkApproval GardenAssessment \
   Job JobKind WorkDraft OfflineStatus; do
-  count=$(grep -rn "export.*type.*${type}\b\|export.*interface.*${type}\b" packages/shared/src/ 2>/dev/null | wc -l | tr -d ' ')
+  count=$(count_shared_exports "export.*type.*${type}\b\|export.*interface.*${type}\b")
   if [ "$count" -eq 0 ]; then
     drift "Type $type referenced in skills but not found in shared"
   else

@@ -28,7 +28,7 @@ const STEPS: readonly LoopStep[] = [
     defaultTitle: "Do the work.",
     bodyId: "public.home.loop.workBody",
     defaultBody:
-      "Gardeners submit Work from the field with media, details, and metadata. Operators review those submissions before they become part of the public record.",
+      "Gardeners submit Work from the field as a signed record with media, details, and metadata. Operators record approval or rejection separately.",
     to: "/actions",
   },
   {
@@ -37,7 +37,7 @@ const STEPS: readonly LoopStep[] = [
     defaultTitle: "Verify impact.",
     bodyId: "public.home.loop.verifyBody",
     defaultBody:
-      "Operators bundle the approved Work into an Impact Certificate. Evaluators from many backgrounds then verify what the certificate claims, signing off on method and confidence.",
+      "Assessments define the baseline and evidence standard. Operator-approved Work can then be bundled into an Impact Certificate when that activation path is available.",
     to: "/impact",
   },
   {

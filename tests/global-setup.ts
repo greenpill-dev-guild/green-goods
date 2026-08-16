@@ -1,4 +1,5 @@
 import { chromium, type FullConfig } from "@playwright/test";
+import { resolvePlaywrightApps, shouldUsePlaywrightIndexer } from "./fixtures/playwright-services";
 
 function envFlag(name: string): boolean {
   return process.env[name]?.toLowerCase() === "true";
@@ -13,6 +14,9 @@ function envFlag(name: string): boolean {
  */
 async function globalSetup(config: FullConfig) {
   console.log("🚀 Starting global test setup...\n");
+
+  const selectedApps = resolvePlaywrightApps({ playwrightApp: process.env.PLAYWRIGHT_APP });
+  const shouldCheckIndexer = shouldUsePlaywrightIndexer();
 
   // In CI, Vite skips mkcert and runs on HTTP instead of HTTPS
   const isCI = process.env.CI === "true";
@@ -46,37 +50,40 @@ async function globalSetup(config: FullConfig) {
   try {
     console.log("📊 Checking service availability...\n");
 
-    // Check indexer
-    try {
-      const indexerResponse = await page.request.post("http://localhost:3006/v1/graphql", {
-        data: { query: `query { __schema { types { name } } }` },
-        headers: { "Content-Type": "application/json" },
-        timeout: 5000,
-      });
+    if (shouldCheckIndexer) {
+      try {
+        const indexerResponse = await page.request.post("http://localhost:3006/v1/graphql", {
+          data: { query: `query { __schema { types { name } } }` },
+          headers: { "Content-Type": "application/json" },
+          timeout: 5000,
+        });
 
-      if (indexerResponse.ok()) {
-        console.log("  ✅ Indexer (port 3006) - available");
-      } else {
-        console.log("  ⚠️  Indexer (port 3006) - responded with error");
+        if (indexerResponse.ok()) {
+          console.log("  ✅ Indexer (port 3006) - available");
+        } else {
+          console.log("  ⚠️  Indexer (port 3006) - responded with error");
+        }
+      } catch {
+        console.log("  ⚠️  Indexer (port 3006) - not available (will be started by webServer)");
       }
-    } catch {
-      console.log("  ⚠️  Indexer (port 3006) - not available (will be started by webServer)");
     }
 
-    // Check client
-    try {
-      await page.goto(`${protocol}://localhost:3001`, { timeout: 5000 });
-      console.log("  ✅ Client (port 3001) - available");
-    } catch {
-      console.log("  ⚠️  Client (port 3001) - not available (will be started by webServer)");
+    if (selectedApps.client) {
+      try {
+        await page.goto(`${protocol}://localhost:3001`, { timeout: 5000 });
+        console.log("  ✅ Client (port 3001) - available");
+      } catch {
+        console.log("  ⚠️  Client (port 3001) - not available (will be started by webServer)");
+      }
     }
 
-    // Check admin
-    try {
-      await page.goto(`${protocol}://localhost:3002`, { timeout: 5000 });
-      console.log("  ✅ Admin (port 3002) - available");
-    } catch {
-      console.log("  ⚠️  Admin (port 3002) - not available (will be started by webServer)");
+    if (selectedApps.admin) {
+      try {
+        await page.goto(`${protocol}://localhost:3002`, { timeout: 5000 });
+        console.log("  ✅ Admin (port 3002) - available");
+      } catch {
+        console.log("  ⚠️  Admin (port 3002) - not available (will be started by webServer)");
+      }
     }
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);

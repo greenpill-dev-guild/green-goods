@@ -38,7 +38,9 @@ export default function Actions() {
     if (actions.isLoading) return [];
     return buildActionsHeaderStats({
       totalCount: actions.actions.length,
-      domainsCovered: new Set(actions.actions.map((action) => action.domain)).size,
+      domainsCovered: new Set(
+        actions.actions.map((action) => action.domain).filter((domain) => domain !== null)
+      ).size,
       formatMessage: intl.formatMessage,
     });
   }, [actions.actions, actions.isLoading, intl.formatMessage]);
@@ -199,8 +201,10 @@ export default function Actions() {
             {actions.stageFilteredActions.map((action) => {
               const stage = getActionLifecycleState(action);
               const displayAction = localizeAction(action, intl.locale);
+              const domainConfig =
+                action.domain !== null ? DOMAIN_CONFIG[action.domain] : undefined;
               const domainLabel = intl.formatMessage({
-                id: DOMAIN_CONFIG[action.domain]?.labelId ?? "app.admin.nav.actions",
+                id: domainConfig?.labelId ?? "app.domain.tab.unknown",
               });
               // Name the forms of capital (up to 3 + overflow) instead of an
               // abstract "{n} capital forms" count, so cards vary by content.
@@ -247,7 +251,7 @@ export default function Actions() {
                           : "Completed",
                   })}
                   statusTone={getWorkbenchTone(action)}
-                  leadingIcon={DOMAIN_CONFIG[action.domain]?.icon ?? RiFileListLine}
+                  leadingIcon={domainConfig?.icon ?? RiFileListLine}
                   thumbnailSrc={action.media[0] ?? undefined}
                   onClick={() => actions.openActionDetail(action.id)}
                 />

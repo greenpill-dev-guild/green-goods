@@ -2,6 +2,7 @@
 // real Green Goods component (noted per function). Screens compose these and
 // wrap journey-relevant controls with hot(id, …) from html.ts.
 
+import { CYCLE, SEASON_LIVE } from "./fixtures";
 import { esc, escAttr, hot } from "./html";
 import { icon } from "./icons";
 import { PHONE_VIEWPORT_HEIGHT, PHONE_VIEWPORT_WIDTH } from "./tokens";
@@ -86,10 +87,6 @@ export function card(inner: string, opts: { cls?: string; edge?: "offer" | "requ
 
 export function banner(text: string, tone: "amber" | "stone" | "green" | "error", ic = "information-line"): string {
   return `<div class="ban ${tone}">${icon(ic, "s")}<span>${esc(text)}</span></div>`;
-}
-
-export function statTiles(items: { n: string; label: string }[]): string {
-  return `<div class="stats">${items.map((s) => `<div class="stat"><div class="n">${esc(s.n)}</div><div class="l">${esc(s.label)}</div></div>`).join("")}</div>`;
 }
 
 // ---- atoms ------------------------------------------------------------------
@@ -352,3 +349,337 @@ export function skeleton(opts: { title?: boolean; avatar?: boolean; lines?: numb
 export function emptyState(iconName: string, title: string, body: string, actions = ""): string {
   return `<div class="empty"><span class="emptyIc">${icon(iconName, "l")}</span><div class="t-title">${esc(title)}</div><div class="t-meta">${esc(body)}</div>${actions ? `<div class="brow" style="justify-content:center;width:100%">${actions}</div>` : ""}</div>`;
 }
+
+// ---- promoted screen composites (components-tab pass, 2026-08-14) -----------
+// Formerly screen-local in screens/client.ts and screens/client-wallet.ts;
+// promoted so the kit is the single component source. Fixture copy and w1.*
+// hotspot defaults ride along unchanged — these are the same casts the screens
+// draw, not parameterized abstractions.
+
+// Creator by-line — the D5 card contract (uiux Appendix B addendum 2026-08-11)
+// puts a face on every browse card: avatar + name, "for {garden}" when a
+// garden claims. Cards carry chips → title → by-line → quantity+due → real
+// progress → ONE context action or one plain reason line; notes and declared
+// value live in detail.
+export function byline(name: string, opts: { forGarden?: string } = {}): string {
+  return `<div class="byline"><span class="avatar" aria-hidden="true">${esc(name[0] ?? "")}</span><span class="t-meta">by ${esc(name)}${opts.forGarden ? ` · for ${esc(opts.forGarden)}` : ""}</span></div>`;
+}
+
+// Team strip — overlapping initial avatars (W2 people row, the funding pledge
+// row). Net-new as a primitive: the shipping client renders people via
+// ImageWithFallback letter fallbacks per view, with no avatar-stack component.
+export function teamstrip(initials: readonly string[]): string {
+  return `<span class="teamstrip">${initials.map((n) => `<span class="avatar" aria-hidden="true">${esc(n)}</span>`).join("")}</span>`;
+}
+
+// Domains get their own equal-weight row (2026-08-14 second pass, Afo): every
+// involved domain listed, none privileged as "primary" — a promise pairing
+// AGRO with EDU is both, not AGRO-with-a-footnote. No row = an evidence-only
+// service promise, and the "Support / service" kind chip up top says so in
+// words. The real build renders DomainBadge (icon + label) from DOMAIN_CONFIG.
+const DOMAIN_CLS: Record<string, string> = { AGRO: "agro", EDU: "edu", SOLAR: "solar", WASTE: "waste" };
+export function domainRow(domains: string[]): string {
+  return domains.length
+    ? `<div class="dmrow">${domains.map((d) => `<span class="dm ${DOMAIN_CLS[d] ?? "agro"}">${esc(d)}</span>`).join("")}</div>`
+    : "";
+}
+
+// Browse filter row (2026-08-14): direction chips plus the personal Mine
+// toggle — personal scope is orthogonal to direction, so it is not a fourth
+// direction pill. The exchange-pair filter (formerly "Matched") returns with
+// the exchange wave; paired cards keep their "In exchange" chip meanwhile.
+export function poolFilters(activeIx: number, opts: { mine?: boolean } = {}): string {
+  return hot(
+    "w1.filters",
+    `<div class="filters">${seg(["All", "Offers", "Requests"], activeIx)}<span class="mine${opts.mine ? " on" : ""}" role="switch" aria-checked="${opts.mine ? "true" : "false"}">Mine</span></div>`,
+  );
+}
+
+// Scoped state counts, never a cross-commitment percentage: this pool's units
+// are hours, rides, sessions and surveys, so a single "62%" would average
+// incommensurable things (uiux-spec §5.2, §12). A seeded or empty season shows
+// no counts line at all rather than a row of zeroes. The card counts promises
+// made and kept — the same pair W5, W12, W15 and W26 print for this moment
+// (PRD-760). Cycle cards follow layout option B (2026-08-14 third pass, Afo):
+// the [Season]/[Campaign] + stage chips LEAD the card, everything stacks on
+// one left axis, and counts join the stack — nothing floats right.
+export function seasonCard(opts: { made?: number; kept?: number; stage?: string } = {}): string {
+  const made = opts.made ?? SEASON_LIVE.made;
+  const kept = opts.kept ?? SEASON_LIVE.kept;
+  const counts = made === 0 && kept === 0 ? "" : `<div class="t-meta num">${made} promises · ${kept} kept</div>`;
+  return card(
+    hot(
+      "w1.season-card",
+      `<div class="grow"><div class="cardrow">${chip("Season", "plain")}${chip(opts.stage ?? "Open", "plain")}</div><div class="t-title">${CYCLE}</div><div class="t-meta">runs through Aug 30</div>${counts}</div>`,
+    ),
+  );
+}
+
+// Season + campaigns share one snap rail (2026-08-14): the Season slide leads
+// and stays wider — campaigns are peers you can reach in one swipe, not what a
+// member came for. Presentation only: slides open their cycle, and the browse
+// scope select keeps owning list scope, so swiping never silently refilters.
+export function seasonSlide(opts: { made?: number; kept?: number; stage?: string } = {}): string {
+  return `<div class="cslide lead">${seasonCard(opts)}</div>`;
+}
+export function emptySeasonSlide(): string {
+  return `<div class="cslide lead">${card(
+    `<div class="cardrow">${chip("Season", "plain")}</div><div class="t-title">No season right now</div><div class="t-meta">Stewards open the next one</div>`,
+  )}</div>`;
+}
+export function campaignSlide(hotId: string, title: string, stage: string, counts: string): string {
+  return `<div class="cslide">${card(
+    hot(hotId, `<div class="grow"><div class="cardrow">${chip("Campaign", "plain")}${chip(stage, "plain")}</div><div class="t-title">${title}</div><div class="t-meta">through Aug 18</div><div class="t-meta num">${counts}</div></div>`),
+  )}</div>`;
+}
+
+// Card grammar (2026-08-14 second pass, Afo — the shipping WorkCard grammar):
+// the WHOLE card opens the promise detail; the footer button exists only when
+// a claim act is available from browse. Navigation-only buttons are retired.
+export function offerCard(opts: {
+  queued?: boolean;
+  waiting?: boolean;
+  failed?: boolean;
+  readOnly?: boolean;
+  readOnlyNote?: string;
+  detailHot?: string;
+  team?: number;
+} = {}): string {
+  const chips = `${chip("Offer", "offer")}${opts.team ? chip(`Team of ${opts.team}`, "plain") : ""}${opts.queued ? chip("Queued", "queued") : ""}${opts.waiting ? chip("Waiting", "queued") : ""}${opts.failed ? chip("Couldn't send", "err") : ""}`;
+  const cta = opts.queued || opts.waiting || opts.failed || opts.readOnly
+    ? ""
+    : `<div class="brow">${hot("w1.take-up", btn("Take this up", { kind: "sec" }))}</div>`;
+  const note = opts.waiting
+    ? `<div class="t-meta">Waiting for your garden membership — it will send once you're welcomed in.</div>`
+    : opts.failed
+      ? `<div class="t-meta">Five send attempts used. You can retry or discard.</div><div class="brow">${hot("w1.retry-send", btn("Retry", { kind: "sec", sm: true }))}${hot("w1.discard-send", btn("Discard", { kind: "ghost", sm: true }))}</div>`
+      : opts.readOnly
+        ? `<div class="t-meta">${opts.readOnlyNote ?? "This promise remains visible, but taking it up is not available right now."}</div>`
+        : "";
+  const title = opts.waiting ? "Compost workshop" : "Prune the north beds";
+  const meta = opts.waiting ? "3 sessions · runs with the season" : "6 hours · due Aug 12";
+  // Queued/waiting/failed casts are YOUR OWN sends — no by-line on yourself
+  // (P1 row-subset rule: variants omit rows, never reorder them).
+  const own = opts.queued || opts.waiting || opts.failed;
+  const inner = `<div class="cardrow">${chips}</div><div class="t-title">${title}</div>${own ? "" : byline("Maria")}<div class="t-meta num">${meta}</div>${domainRow(["AGRO"])}${note}${cta}`;
+  if (opts.queued || opts.waiting || opts.failed) return card(inner, { edge: "offer" });
+  const openHot = opts.readOnly ? opts.detailHot : "w1.open-offer";
+  const c = card(inner, { edge: "offer", cls: openHot ? "cardlink" : undefined });
+  return openHot ? hot(openHot, c) : c;
+}
+
+export function requestCard(opts: { openClaim?: boolean; queued?: boolean; context?: string; claimHot?: string } = {}): string {
+  // Mode-helper trim (2026-08-14 night): the act's own label carries the
+  // claim mode — "I can help" is open, "Ask to take this up" is reviewed —
+  // so the separate mode line is gone from browse cards (uiux §5.2 trim note).
+  const inner = `<div class="cardrow">${chip("Request", "request")}${chip("Support / service", "plain")}${opts.queued ? chip("Queued", "queued") : ""}</div><div class="t-title">Ride to the market on Saturday</div>${byline("Ana")}<div class="t-meta num">1 ride · ${opts.context ?? "runs with the season"}</div>${
+    opts.queued
+      ? `<div class="t-meta">Saved on this device — it will send when connected.</div>`
+      : opts.openClaim
+        ? `<div class="brow">${hot(opts.claimHot ?? "w1.take-up-request", btn("I can help", { kind: "sec" }))}</div>`
+        : `<div class="brow">${hot("w1.ask-take-up", btn("Ask to take this up", { kind: "sec" }))}</div>`
+  }`;
+  if (opts.queued) return card(inner, { edge: "request" });
+  const openHot = opts.openClaim ? "w1.open-request" : "w1.open-request-gated";
+  return hot(openHot, card(inner, { edge: "request", cls: "cardlink" }));
+}
+
+// Ongoing-Offer place card — the public life of a CommitmentSeries on the pool
+// tab (D8a): "Ongoing" chip + places-left is the card's real progress; the
+// whole card opens the series detail where places are taken up (no nav button).
+export function ongoingOfferCard(): string {
+  return hot("w1.open-ongoing", card(
+    `<div class="cardrow">${chip("Offer", "offer")}${chip("Ongoing", "plain")}${chip("Support / service", "plain")}</div><div class="t-title">Saturday veggie box</div>${byline("Maria")}<div class="t-meta num">1 box each week · runs with the season</div><div class="t-meta num">2 places open</div>`,
+    { edge: "offer", cls: "cardlink" },
+  ));
+}
+
+// Team-offer card — the D5 roster indicator: a forming team is visible right
+// on the browse card; the whole card opens the promise (team view lives inside).
+// Two-domain fixture: compost restoration pairs AGRO with WASTE, both equal.
+export function teamOfferCard(): string {
+  return hot("w1.open-team-offer", card(
+    `<div class="cardrow">${chip("Offer", "offer")}${chip("Team of 3", "plain")}</div><div class="t-title">Restore the compost bays</div>${byline("Maria")}<div class="t-meta num">4 sessions · due Aug 24</div>${domainRow(["AGRO", "WASTE"])}`,
+    { edge: "offer", cls: "cardlink" },
+  ));
+}
+
+export function fundedOfferCard(): string {
+  return card(
+    `<div class="cardrow">${chip("Offer", "offer")}${chip("Support / service", "plain")}${chip("40 G$", "plain")}</div><div class="t-title">Design a market poster</div>${byline("Ben")}<div class="t-meta num">1 poster design · runs with the season</div><div class="t-meta">Your deposit instructions appear only after the funding record is ready.</div><div class="brow">${hot("w1.ask-funded", btn("Ask to fund this", { kind: "sec" }))}</div>`,
+    { edge: "offer" },
+  );
+}
+
+// Saved-Offer row (W32) — a saved detail set is reusable input to either offer
+// path, never a second product object beside the Offer. "Offered over time" is
+// the only tag that implies a pool-scoped series exists.
+export function offerRow(opts: { title: string; meta: string; tag: string; tone: ChipTone; hotId?: string }): string {
+  const row = listRow({
+    icon: "seedling-line",
+    primary: opts.title,
+    meta: opts.meta,
+    chipHtml: chip(opts.tag, opts.tone),
+    chevron: true,
+  });
+  return opts.hotId ? hot(opts.hotId, row) : row;
+}
+
+// Selection-card specimen — ActionCard/GardenCard (height "selection"):
+// tinted media strip standing in for the image/ActionBannerFallback, body
+// with title + line, selected ring.
+export function selCard(opts: { tint: string; media: string; title: string; line: string; selected?: boolean }): string {
+  return `<div class="acard${opts.selected ? " on" : ""}"><div class="amedia ${opts.tint}">${opts.media}</div><div class="abody"><div class="at">${opts.title}</div><div class="am">${opts.line}</div></div></div>`;
+}
+export function selRail(cards: string[]): string {
+  return `<div class="selrail">${cards.join("")}</div>`;
+}
+
+// Promise slide — the intro's third rail (2026-08-14, Afo: many promises must
+// not stack downward): compact cards with the pool tab's direction edge,
+// nearest due first, swipe for more. Tapping one enters the scoped flow.
+export function promiseSlide(opts: { title: string; needs: string; due: string; edge: "offer" | "request"; hotId?: string }): string {
+  const c = `<div class="card pcard edge-${opts.edge}${opts.hotId ? " cardlink" : ""}"><div class="t-title">${opts.title}</div><div class="t-meta num">${opts.needs}</div><div class="t-meta num">${opts.due}</div></div>`;
+  return opts.hotId ? hot(opts.hotId, c) : c;
+}
+
+// ---- admin dialect (relocated from screens/admin.ts, components-tab pass) ---
+// The M3 operator-cockpit builders shared by the admin, settlement, and funding
+// screen files. Journey-hot wiring (adminChromeHots, nav targets) stays in
+// screens/admin.ts — these are the drawable components only.
+
+export type Tone = "garden" | "hub" | "community" | "actions";
+export type NavId = "hub" | "garden" | "community" | "actions" | "operations";
+
+// The browser window is the outer viewer frame (S1 scales it); its body hosts
+// the full canvas (adminCanvas). deskWin stays; the invented top tab-bar does not.
+export function deskWin(url: string, body: string): string {
+  return `<div class="deskwin"><div class="winbar"><span class="dots"><i></i><i></i><i></i></span><span class="url">${url}</span></div>${body}</div>`;
+}
+
+// AdminCard — M3 elevated solid surface (head + optional trailing + body).
+export const acard = (head: string, body: string, trailing = "") =>
+  `<div class="acard"><div class="ahead"><span class="at">${head}</span>${trailing ? `<span class="ax">${trailing}</span>` : ""}</div>${body}</div>`;
+
+// Cycle/settlement stage stepper.
+export const stages = (list: string[], activeIx: number) =>
+  `<div class="stages">${list
+    .map((s, i) => `<span class="st1${i < activeIx ? " done" : i === activeIx ? " on" : ""}"><i></i>${s}</span>`)
+    .join(`<span class="sep"></span>`)}</div>`;
+
+// GardenChip — the AppBar's left pill (garden selector), never a brand logo.
+export const gardenChip = (name: string, hotId?: string) =>
+  `<button type="button" class="gchip" data-component="GardenChip"${hotId ? ` data-hot="${hotId}"` : " disabled"} aria-label="Select garden"><span class="leaf">${icon("seedling-line", "s")}<span class="dot"></span></span><span class="nm">${esc(name)}</span><span class="caret"></span></button>`;
+
+const iconBtn = (name: string, label: string) =>
+  `<button type="button" class="iconbtn" aria-label="${esc(label)} — preview only" disabled>${icon(name)}</button>`;
+
+// Transparent AppBar (h-14) — GardenChip left, search/bell/settings/profile right.
+const adminAppBar = (garden: string, hotPrefix: string, interactive: boolean) =>
+  `<header class="appbar" data-component="AppBar">${gardenChip(garden, interactive ? `${hotPrefix}.garden-selector` : undefined)}<div class="appbar-actions">${iconBtn("search-line", "Search")}${iconBtn("notification-line", "Notifications")}${iconBtn("settings-line", "Settings")}${iconBtn("user-line", "Profile")}</div></header>`;
+
+// Floating glass workspace dock (NavigationBar) — the app's only backdrop-blur.
+// Operations is appended only inside its deployer-gated workspace; it is not a
+// global fifth destination for ordinary stewards.
+const CORE_NAV_ITEMS: [NavId, string, string][] = [
+  ["hub", "Hub", "home-line"], ["garden", "Garden", "seedling-line"],
+  ["community", "Community", "group-line"], ["actions", "Actions", "leaf-line"],
+];
+const OPERATIONS_NAV_ITEM: [NavId, string, string] = ["operations", "Operations", "send-plane-line"];
+export const navItems = (active: NavId) => active === "operations" ? [...CORE_NAV_ITEMS, OPERATIONS_NAV_ITEM] : CORE_NAV_ITEMS;
+const navDock = (active: NavId, hotPrefix: string, interactive: boolean) =>
+  `<nav class="navdock" aria-label="Workspaces" data-component="NavigationBar">${navItems(active).map(
+    ([id, l, ic]) => `<button type="button" class="nditem${id === active ? " on" : ""}"${interactive ? ` data-hot="${hotPrefix}.nav-${id}"` : " disabled"} aria-label="${l} workspace"${id === active ? ' aria-current="page"' : ""}><span class="ndic">${icon(ic)}</span><span>${l}</span></button>`,
+  ).join("")}</nav>`;
+
+// PageHeader — big bold h1 (sticky under the AppBar) with slots. text/eyebrow/
+// description are plain copy (escaped); meta/actions/toolbar carry markup.
+export function pageHeader(opts: {
+  title: string; eyebrow?: string; description?: string; meta?: string; actions?: string; toolbar?: string;
+}): string {
+  const main = `<div class="ph-main">${opts.eyebrow ? `<div class="eyebrow">${esc(opts.eyebrow)}</div>` : ""}<h1>${esc(opts.title)}</h1>${
+    opts.description ? `<div class="ph-desc">${esc(opts.description)}</div>` : ""
+  }${opts.meta ? `<div class="ph-meta">${opts.meta}</div>` : ""}</div>`;
+  return `<div class="pghead" data-component="PageHeader"><div class="ph-row">${main}${
+    opts.actions ? `<div class="ph-actions">${opts.actions}</div>` : ""
+  }</div>${opts.toolbar ? `<div class="ph-toolbar">${opts.toolbar}</div>` : ""}</div>`;
+}
+
+// AdminTabRail — segmented-card sub-tabs (NOT underline). Each tab may carry a
+// count and an optional hotspot id (wired only where it maps to a real screen).
+export type RailTab = { label: string; count?: number; hot?: string };
+export function tabRail(items: RailTab[], activeIx: number): string {
+  const interactive = items.some((it) => it.hot);
+  return `<div class="tabrail" role="${interactive ? "tablist" : "group"}" aria-label="${interactive ? "View" : "Current section"}" data-component="AdminTabRail" style="grid-template-columns:repeat(${items.length},minmax(0,1fr))">${items
+    .map((it, i) => {
+      const cnt = it.count != null ? `<span class="cnt">${it.count}</span>` : "";
+      const content = `<span class="lbl">${esc(it.label)}</span>${cnt}`;
+      return it.hot
+        ? hot(it.hot, `<span class="trhit"><button type="button" role="tab" aria-selected="${i === activeIx}" class="trtab${i === activeIx ? " on" : ""}">${content}</button></span>`)
+        : `<span class="trtab${i === activeIx ? " on" : ""}"${interactive ? ` role="tab" aria-selected="${i === activeIx}" aria-disabled="true"` : ""}>${content}</span>`;
+    })
+    .join("")}</div>`;
+}
+
+// Assemble the canvas body (AppBar + route card + dock). Screen fns wrap this in
+// deskWin(url, …). tone drives the gradient + accents; nav highlights the dock.
+export function adminCanvas(
+  tone: Tone, nav: NavId,
+  parts: { screenId: string; garden: string; header: string; tabRail?: string; body: string; interactiveChrome?: boolean },
+): string {
+  const hotPrefix = parts.screenId.toLowerCase();
+  const interactiveChrome = parts.interactiveChrome !== false;
+  return `<div class="wsgrid" data-tone="${tone}" data-component="CanvasLayout">${adminAppBar(parts.garden, hotPrefix, interactiveChrome)}<main class="mainscroll"><section class="routecard">${parts.header}${
+    parts.tabRail ?? ""
+  }${parts.body}</section></main>${navDock(nav, hotPrefix, interactiveChrome)}</div>`;
+}
+
+// AdminDialog — own scrim + 28dp solid surface over the dimmed canvas. `behind`
+// is the full adminCanvas(...) so the dialog reads as floating over the route.
+export function adminDialogM3(
+  behind: string, tone: Tone, opts: { title: string; body: string; actions: string; closeHot?: string },
+): string {
+  const close = `<button type="button" class="dclose" aria-label="Close">${icon("close-line", "s")}</button>`;
+  return `<div class="dlgstage"><div class="dlg-behind" inert aria-hidden="true">${behind}</div><div class="scrimm"></div><div class="adlg" data-tone="${tone}" data-component="AdminDialog" role="dialog" aria-modal="true" aria-labelledby="admin-dialog-title"><div class="dlg-head"><span class="dt" id="admin-dialog-title">${esc(
+    opts.title,
+  )}</span>${opts.closeHot ? hot(opts.closeHot, close) : close}</div><div class="dlg-body">${opts.body}</div><div class="dlg-foot">${opts.actions}</div></div></div>`;
+}
+
+// Admin action flows are hosted in a centered flow AdminDialog wrapping
+// ActionFlowShell: pinned header, desktop step rail, centred reading column,
+// pinned footer. The footer mirrors the shipping callers (SubmitWork /
+// CreateAssessment / CreateAction): ONE leading button that morphs — Cancel on
+// the first step, Back after — beside the primary, right-aligned. Back and
+// Cancel never render together; the AdminDialog X (cancelHot) is the constant
+// exit on every step. The real footer's left slot is a progress/status slot
+// (AdminLinearProgress + message), drawn empty here because no in-flight state
+// is prototyped.
+export type FlowStep = { title: string; desc: string };
+export function flowDialog(
+  behind: string,
+  tone: Tone,
+  opts: { context: string; title: string; steps: FlowStep[]; current: number; body: string; back?: string; cancelHot: string; next: string },
+): string {
+  const rail = `<nav class="steprail" aria-label="Steps">${opts.steps
+    .map((s, i) => {
+      const cls = i === opts.current ? " on" : i < opts.current ? " done" : "";
+      return `<div class="srow${cls}"${i === opts.current ? ' aria-current="step"' : ""}><span class="sdot">${i < opts.current ? "✓" : i + 1}</span><span><span class="st">${esc(s.title)}</span><span class="sd">${esc(s.desc)}</span></span></div>`;
+    })
+    .join("")}</nav>`;
+  const leading = opts.back
+    ? hot(opts.back, btn("Back", { kind: "ghost", icon: "arrow-left-line" }))
+    : hot(opts.cancelHot, btn("Cancel", { kind: "ghost" }));
+  const close = hot(opts.cancelHot, `<button type="button" class="dclose" aria-label="Close">${icon("close-line", "s")}</button>`);
+  return `<div class="dlgstage"><div class="dlg-behind" inert aria-hidden="true">${behind}</div><div class="scrimm"></div><div class="adlg flow" data-tone="${tone}" data-component="AdminDialog" role="dialog" aria-modal="true" aria-labelledby="flow-dialog-title"><div class="dlg-head"><span class="eyebrow">${esc(
+    opts.context,
+  )}</span><span class="dt" id="flow-dialog-title">${esc(opts.title)}</span>${close}</div><div class="flowrow">${rail}<div class="dlg-body"><div class="flowform">${
+    opts.body
+  }</div></div></div><div class="dlg-foot"><span class="fprog"></span><span class="fend">${leading}${opts.next}</span></div></div></div>`;
+}
+
+// Dense data table — hairline row dividers, no cell borders, no zebra
+// (uiux-spec §12: tabular data stays a table; queues render as list-rows).
+export const dtable = (heads: string[], rows: string[][], caption: string) =>
+  `<table class="dtab"><caption class="visually-hidden">${esc(caption)}</caption><thead><tr>${heads.map((h) => `<th scope="col">${h ? esc(h) : '<span class="visually-hidden">Actions</span>'}</th>`).join("")}</tr></thead><tbody>${rows
+    .map((r) => `<tr>${r.map((c) => `<td>${c}</td>`).join("")}</tr>`)
+    .join("")}</tbody></table>`;

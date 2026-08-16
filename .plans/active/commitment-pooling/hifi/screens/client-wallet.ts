@@ -9,7 +9,7 @@ import { hot } from "../html";
 import { icon } from "../icons";
 import {
   actionBar, banner, btn, card, chip, disclosure, emptyState, field, flowHeader, formInfo, hdr, homeHeader, input, kv, listRow, meter, pagepad,
-  phoneFrame, radio, reasonChips, sectionTitle, seg, sheetOver, skeleton,
+  phoneFrame, promiseSlide, radio, reasonChips, sectionTitle, seg, selCard, selRail, sheetOver, skeleton,
 } from "../kit";
 import type { HifiDef } from "./index";
 import type { StateFacts } from "../types";
@@ -282,12 +282,8 @@ const W25_HOTS: HifiDef["hots"] = {
 // anatomy, never replace it.
 // ---------------------------------------------------------------------------
 
-// Selection-card specimen — ActionCard/GardenCard (height "selection"):
-// tinted media strip standing in for the image/ActionBannerFallback, body
-// with title + line, selected ring.
-const selCard = (opts: { tint: string; media: string; title: string; line: string; selected?: boolean }) =>
-  `<div class="acard${opts.selected ? " on" : ""}"><div class="amedia ${opts.tint}">${opts.media}</div><div class="abody"><div class="at">${opts.title}</div><div class="am">${opts.line}</div></div></div>`;
-const selRail = (cards: string[]) => `<div class="selrail">${cards.join("")}</div>`;
+// selCard/selRail/promiseSlide promoted into ../kit (components-tab pass,
+// 2026-08-14); the intro casts below keep composing them with local fixtures.
 
 // The real intro's two sections, reused by every intro cast. Scoped casts
 // swap the card sets; the anatomy never changes.
@@ -300,14 +296,6 @@ const CARD_WATER = selCard({ tint: "agro", media: "AGRO", title: "Water", line: 
 const CARD_PLANT = selCard({ tint: "agro", media: "AGRO", title: "Plant", line: "Seedlings and beds" });
 const CARD_ROCINHA = (line = "Rocinha, Rio de Janeiro") => selCard({ tint: "garden", media: "Rocinha", title: "Rocinha Community Garden", line, selected: true });
 const CARD_MUIZ = selCard({ tint: "garden", media: "Muizenberg", title: "Muizenberg", line: "Cape Town" });
-
-// Promise slide — the intro's third rail (2026-08-14, Afo: many promises must
-// not stack downward): compact cards with the pool tab's direction edge,
-// nearest due first, swipe for more. Tapping one enters the scoped flow.
-const promiseSlide = (opts: { title: string; needs: string; due: string; edge: "offer" | "request"; hotId?: string }) => {
-  const c = `<div class="card pcard edge-${opts.edge}${opts.hotId ? " cardlink" : ""}"><div class="t-title">${opts.title}</div><div class="t-meta num">${opts.needs}</div><div class="t-meta num">${opts.due}</div></div>`;
-  return opts.hotId ? hot(opts.hotId, c) : c;
-};
 
 type WflowState = "intro" | "intro-promise" | "intro-promises" | "media" | "details" | "details-linked" | "fulfills-pick" | "review" | "link-picker";
 

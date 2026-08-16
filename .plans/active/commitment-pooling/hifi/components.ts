@@ -1,0 +1,1058 @@
+// Components tab — the fourth artifact tab (component-library contract in
+// handoffs/claude-components-tab-brief.md, locked 2026-08-14). One entry per
+// kit builder / documented screen composite, grouped in the seven client-led
+// families, per-surface catalogs behind a Client / Admin / Editorial flip.
+// Shipping names lead entry titles; kit builder names ride the annotation.
+// Drift policy: flag all, redraw nothing — specimens render exactly what the
+// screens draw today, and the DRIFT line names what shipping does differently.
+//
+// Specimens are static: hotspot ids are stripped and every control renders
+// disabled (the validator re-checks both). Where-used lists derive from the
+// RENDERED screen states via class markers, so they cannot drift from the
+// screens; fixture-bound composites carry explicit ids instead.
+
+import { esc, escAttr } from "./html";
+import * as kit from "./kit";
+import { claimCardCasts } from "./screens/client";
+import { SCREENS } from "./screens/index";
+
+export type CompSurface = "client" | "admin" | "editorial";
+type FamilyId = "chips" | "cards" | "rails" | "forms" | "chrome" | "feedback" | "people";
+
+const FAMILIES: { id: FamilyId; label: string }[] = [
+  { id: "chips", label: "Chips & badges" },
+  { id: "cards", label: "Cards" },
+  { id: "rails", label: "Rails & carousels" },
+  { id: "forms", label: "Forms & inputs" },
+  { id: "chrome", label: "Chrome" },
+  { id: "feedback", label: "Feedback" },
+  { id: "people", label: "People" },
+];
+
+type SpecW = "p" | "m" | "l" | "frame";
+type Spec = { label: string; html: string; w?: SpecW; h?: number };
+type Entry = {
+  id: string;
+  title: string;
+  family: FamilyId;
+  /** kit builder names this entry documents (completeness gate in the build). */
+  covers: string[];
+  kit: string;
+  /** Shipping counterpart as path:line (verified by opening the file). */
+  ship?: string;
+  shipNote?: string;
+  netNew?: string;
+  deliberate?: string;
+  drift?: string;
+  rule: string;
+  usedIn: RegExp | string[];
+  specs: Spec[];
+};
+
+// ---- specimen plumbing ------------------------------------------------------
+
+// Strip journey hotspots and disable every control: gallery specimens are
+// reviewable drawings, not live surfaces. The validator independently fails
+// the build on any surviving data-hot or enabled button.
+const specimen = (html: string) =>
+  html
+    .replace(/\s*data-hot="[^"]*"/g, "")
+    .replace(/<button(?![^>]*\bdisabled)/g, "<button disabled")
+    .replace(/<input(?![^>]*\bdisabled)/g, "<input disabled");
+
+const usedInIds = (surface: CompSurface, usedIn: RegExp | string[]): string[] =>
+  Array.isArray(usedIn)
+    ? usedIn
+    : SCREENS.filter((s) => s.surface === surface && s.reviewVisible && s.states.some((st) => usedIn.test(st.html))).map((s) => s.id);
+
+const specCell = (surface: CompSurface, s: Spec): string => {
+  const w = s.w ?? (surface === "client" ? "p" : "m");
+  const style = s.h ? ` style="height:${s.h}px"` : "";
+  const inner = w === "frame" ? `<div class="zoomwrap">${specimen(s.html)}</div>` : specimen(s.html);
+  return `<figure class="spec w-${w}"><div class="specbox hf s-${surface}"${style}>${inner}</div><figcaption>${esc(s.label)}</figcaption></figure>`;
+};
+
+const entryHtml = (surface: CompSurface, e: Entry): { html: string; chromeText: string } => {
+  const anchor = surface === "client" ? `components/${e.id}` : `components/${e.id}@${surface}`;
+  const tags = [
+    e.netNew != null ? `<span class="ctag new">Net-new</span>` : "",
+    e.drift ? `<span class="ctag drift">Drift</span>` : "",
+    e.deliberate ? `<span class="ctag delib">Decided divergence</span>` : "",
+  ].join("");
+  const ship = e.ship
+    ? `<p class="cship">Shipping counterpart: <code>${esc(e.ship)}</code>${e.shipNote ? ` — ${esc(e.shipNote)}` : ""}</p>`
+    : `<p class="cship netnew">Net-new — no shipping counterpart yet${e.netNew ? ` · ${esc(e.netNew)}` : ""}</p>`;
+  const drift = e.drift ? `<p class="cdrift">Drift: ${esc(e.drift)}</p>` : "";
+  const delib = e.deliberate ? `<p class="cdelib">Decided divergence: ${esc(e.deliberate)}</p>` : "";
+  const ids = usedInIds(surface, e.usedIn);
+  const used = ids.length
+    ? `<p class="cused">On: ${ids.map((id) => `<a class="uchip" href="#screens/${id}">${esc(id)}</a>`).join("")}</p>`
+    : "";
+  const html = `<article class="centry" id="comp-${surface}-${e.id}" data-centry="${escAttr(e.id)}" data-comp-surface="${surface}">
+<header class="chead"><h4>${esc(e.title)}</h4>${tags}<code class="ckit">kit: ${esc(e.kit)}</code><button type="button" class="complink" data-anchor="${escAttr(anchor)}" aria-label="Copy link to ${escAttr(e.title)}">⧉</button></header>
+${ship}${delib}${drift}<p class="crule">${esc(e.rule)}</p>
+<div class="cspecs">${e.specs.map((s) => specCell(surface, s)).join("")}</div>
+${used}</article>`;
+  const chromeText = [e.title, e.kit, e.ship, e.shipNote, e.netNew, e.deliberate, e.drift, e.rule, ...e.specs.map((s) => s.label)]
+    .filter(Boolean)
+    .join(" ");
+  return { html, chromeText };
+};
+
+// ---- shared fixture snippets ------------------------------------------------
+
+const cardInner = (title: string, meta: string) => `<div class="t-title">${title}</div><div class="t-meta num">${meta}</div>`;
+const LIFECYCLE_STATES = [
+  "Offered", "Requested", "Accepted", "Active", "Evidence in", "Partly approved", "Ready to confirm", "Fulfilled",
+  "Reconciled", "Cancelled", "Expired", "Withdrawn", "Under review", "Queued", "Waiting",
+];
+
+// ---- client catalog ---------------------------------------------------------
+
+const claims = claimCardCasts();
+
+const CLIENT_ENTRIES: Entry[] = [
+  // — Chips & badges —
+  {
+    id: "chip", title: "Chip", family: "chips", covers: ["chip"],
+    kit: `chip(label, tone, {dot})`,
+    ship: "packages/shared/src/components/Badge/Badge.tsx:43",
+    shipNote: "nearest shipping anatomy; the pooling tone set itself is net-new vocabulary",
+    rule: "The workhorse label for kind, direction, and quiet status on cards and rows; never the only signal for state that matters (that is StatusBadge's job).",
+    usedIn: /class="ch[\s"]/,
+    specs: [
+      { label: "all nine tones", html: `<div class="cardrow">${kit.chip("Season", "plain")}${kit.chip("Offer", "offer")}${kit.chip("Request", "request")}${kit.chip("AGRO", "domain")}${kit.chip("Accepted", "ok")}${kit.chip("Waiting", "warn")}${kit.chip("Couldn't send", "err")}${kit.chip("Closed", "ink")}${kit.chip("Queued", "queued")}</div>` },
+      { label: "with dot", html: `<div class="cardrow">${kit.chip("Accepted", "ok", { dot: true })}${kit.chip("Waiting for steward review", "warn", { dot: true })}${kit.chip("Not this time", "plain", { dot: true })}</div>` },
+    ],
+  },
+  {
+    id: "status-badge", title: "StatusBadge", family: "chips", covers: ["statusBadge"],
+    kit: `statusBadge(label, tone, icon)`,
+    ship: "packages/shared/src/components/StatusBadge.tsx:352",
+    shipNote: "icon + colour pill, never colour alone",
+    rule: "Lifecycle state that matters gets the icon pill; client surfaces only — admin and settlement keep the flatter chips.",
+    usedIn: /class="sbadge/,
+    specs: [
+      { label: "five tones", html: `<div class="cardrow">${kit.statusBadge("Fulfilled", "success", "checkbox-circle-fill")}${kit.statusBadge("Evidence in", "warning", "image-line")}${kit.statusBadge("Couldn't send", "error", "error-warning-line")}${kit.statusBadge("Active", "info", "leaf-line")}${kit.statusBadge("Offered", "neutral", "time-line")}</div>` },
+    ],
+  },
+  {
+    id: "lifecycle-chip", title: "Lifecycle states", family: "chips", covers: ["stateChip"],
+    kit: `stateChip(state)`,
+    netNew: "the pooling lifecycle map onto StatusBadge",
+    rule: "One mapping from commitment lifecycle to badge tone + icon, so the same state never renders two ways on two screens.",
+    usedIn: /class="sbadge/,
+    specs: [
+      { label: "the full map", html: `<div class="cardrow">${LIFECYCLE_STATES.map((s) => kit.stateChip(s)).join("")}</div>` },
+    ],
+  },
+  {
+    id: "domain-row", title: "Domain row", family: "chips", covers: ["domainRow"],
+    kit: `domainRow(domains)`,
+    ship: "packages/shared/src/components/DomainBadge.tsx:12",
+    drift: "Shipping DomainBadge renders icon + label from DOMAIN_CONFIG with backdrop blur (packages/shared/src/components/DomainBadge.tsx:19) — these pills are text-only.",
+    rule: "Every involved domain listed on its own equal-weight row, none privileged as primary; no row means an evidence-only service promise.",
+    usedIn: /class="dmrow/,
+    specs: [
+      { label: "all four domains", html: kit.domainRow(["AGRO", "EDU", "SOLAR", "WASTE"]) },
+      { label: "a two-domain promise", html: kit.domainRow(["AGRO", "WASTE"]) },
+    ],
+  },
+  {
+    id: "reason-chips", title: "Reason chips", family: "chips", covers: ["reasonChips"],
+    kit: `reasonChips(options)`,
+    netNew: "tap-first reasons above a reason field",
+    rule: "Common reasons render as tappable chips above the reason field; tapping fills the field, and the field stays — it is the stored record.",
+    usedIn: /Tap a reason to fill it in/,
+    specs: [
+      { label: "three options + helper", html: kit.reasonChips(["Rains came early", "Family matter", "Materials missing"]) },
+    ],
+  },
+  // — Cards —
+  {
+    id: "card", title: "Card", family: "cards", covers: ["card"],
+    kit: `card(inner, {cls, edge})`,
+    ship: "packages/shared/src/components/Cards/CardBase.tsx:5",
+    shipNote: "rounded-2xl base surface",
+    deliberate: "Direction edges are the decided 2026-08-14 grammar: 3px inset stripes here versus WorkCard's 2px status border-left (packages/shared/src/components/Cards/WorkCard/WorkCard.tsx:104).",
+    rule: "The base surface for everything on the canvas; radius steps down by role (24 list, 20 surface, 16 inset) and direction edges belong to promises only.",
+    usedIn: /class="card[\s"]/,
+    specs: [
+      { label: "default (24px)", html: kit.card(cardInner("Prune the north beds", "6 hours · due Aug 12")) },
+      { label: "flat", html: kit.card(cardInner("Prune the north beds", "6 hours · due Aug 12"), { cls: "flat" }) },
+      { label: "surface (20px)", html: kit.card(cardInner("Prune the north beds", "6 hours · due Aug 12"), { cls: "surface" }) },
+      { label: "inset (16px)", html: kit.card(cardInner("Prune the north beds", "6 hours · due Aug 12"), { cls: "inset" }) },
+      { label: "edge-offer", html: kit.card(cardInner("Prune the north beds", "6 hours · due Aug 12"), { edge: "offer" }) },
+      { label: "edge-request", html: kit.card(cardInner("Ride to the market", "1 ride · Saturday"), { edge: "request" }) },
+    ],
+  },
+  {
+    id: "offer-card", title: "Offer card", family: "cards", covers: ["offerCard"],
+    kit: `offerCard({queued, waiting, failed, readOnly, team})`,
+    ship: "packages/shared/src/components/Cards/WorkCard/WorkCard.tsx:122",
+    shipNote: "borrows WorkCard's whole-card-opens / button-acts contract and status-edge idea",
+    deliberate: "Chips-lead anatomy without WorkCard's media block is the decided promise-card grammar (2026-08-14 addenda).",
+    rule: "Browse card for an Offer: the whole card opens the detail; a footer button appears only when a claim act is available from browse.",
+    usedIn: ["W1", "W5"],
+    specs: [
+      { label: "open for claim", html: kit.offerCard() },
+      { label: "team forming", html: kit.offerCard({ team: 3 }) },
+      { label: "queued send", html: kit.offerCard({ queued: true }) },
+      { label: "waiting for membership", html: kit.offerCard({ waiting: true }) },
+      { label: "send failed", html: kit.offerCard({ failed: true }) },
+      { label: "read-only", html: kit.offerCard({ readOnly: true }) },
+    ],
+  },
+  {
+    id: "request-card", title: "Request card", family: "cards", covers: ["requestCard"],
+    kit: `requestCard({openClaim, queued, context})`,
+    ship: "packages/shared/src/components/Cards/WorkCard/WorkCard.tsx:122",
+    shipNote: "same grammar, sky direction edge",
+    rule: "Browse card for a Request; the claim button's own label carries the mode — “I can help” is open, “Ask to take this up” is reviewed.",
+    usedIn: ["W1"],
+    specs: [
+      { label: "open claim", html: kit.requestCard({ openClaim: true }) },
+      { label: "reviewed claim", html: kit.requestCard() },
+      { label: "queued send", html: kit.requestCard({ queued: true }) },
+    ],
+  },
+  {
+    id: "ongoing-offer-card", title: "Ongoing-offer place card", family: "cards", covers: ["ongoingOfferCard"],
+    kit: `ongoingOfferCard()`,
+    netNew: "the public life of a commitment series on the pool tab",
+    rule: "An ongoing Offer shows places open as its real progress; the whole card opens the series detail where places are taken up.",
+    usedIn: ["W1", "W34"],
+    specs: [{ label: "places open", html: kit.ongoingOfferCard() }],
+  },
+  {
+    id: "team-offer-card", title: "Team-offer card", family: "cards", covers: ["teamOfferCard"],
+    kit: `teamOfferCard()`,
+    netNew: "the forming-team roster visible from browse",
+    rule: "A team Offer names its target size on the chip row; the team view itself lives inside the promise detail.",
+    usedIn: ["W1"],
+    specs: [{ label: "team of 3, two domains", html: kit.teamOfferCard() }],
+  },
+  {
+    id: "funded-offer-card", title: "Priced-offer card", family: "cards", covers: ["fundedOfferCard"],
+    kit: `fundedOfferCard()`,
+    netNew: "the member-funded priced Offer",
+    rule: "A priced Offer adds its G$ chip; deposit instructions never render before the funding record exists.",
+    usedIn: ["W1", "W36"],
+    specs: [{ label: "ask to fund", html: kit.fundedOfferCard() }],
+  },
+  {
+    id: "claim-cards", title: "Claim outcome cards", family: "cards", covers: [],
+    kit: `claimCard(state) — screen-local in screens/client.ts`,
+    netNew: "the four outcomes of asking to take a request up",
+    rule: "Pending, declined, superseded, and accepted each get their own quiet card; superseded is explicitly not a send failure.",
+    usedIn: ["W1"],
+    specs: [
+      { label: "pending review", html: claims.pending },
+      { label: "not this time", html: claims.declined },
+      { label: "superseded", html: claims.superseded },
+      { label: "accepted", html: claims.accepted },
+    ],
+  },
+  {
+    id: "kind-cards", title: "Kind cards", family: "cards", covers: ["kindCards"],
+    kit: `kindCards(options)`,
+    netNew: "the composer's equal 2-up choice",
+    rule: "Identical-size tappable cards for the composer's first choice; the selected card fills the accent tint. The same component serves both directions.",
+    usedIn: /class="kgrid/,
+    specs: [
+      { label: "work selected", html: kit.kindCards([
+        { icon: "plant-line", label: "Garden work", meta: "Hours, sessions, harvest shares", on: true },
+        { icon: "hand-heart-line", label: "Support / service", meta: "Rides, tools, meals, skills" },
+      ]) },
+    ],
+  },
+  {
+    id: "offer-row", title: "Saved-offer row", family: "cards", covers: ["offerRow"],
+    kit: `offerRow({title, meta, tag, tone})`,
+    netNew: "private saved details, reusable input to either offer path",
+    rule: "A saved detail set is input you can reuse — never a second product object beside the Offer; only “Offered over time” implies a live series.",
+    usedIn: ["W32"],
+    specs: [
+      { label: "offered over time", html: kit.offerRow({ title: "Saturday veggie box", meta: "Saved in July", tag: "Offered over time", tone: "offer" }) },
+      { label: "saved detail", html: kit.offerRow({ title: "Two hours of pruning", meta: "Saved in June", tag: "Saved", tone: "plain" }) },
+      { label: "closed", html: kit.offerRow({ title: "Compost workshop", meta: "Series ended", tag: "Closed", tone: "ink" }) },
+    ],
+  },
+  {
+    id: "kv-row", title: "Key-value row", family: "cards", covers: ["kv"],
+    kit: `kv(key, value)`,
+    ship: "packages/client/src/views/Garden/Review.tsx:152",
+    shipNote: "the review step's summary-row pattern",
+    rule: "Detail facts render as quiet key-value rows; values keep tabular numerals.",
+    usedIn: /class="kv"/,
+    specs: [
+      { label: "fact rows", html: `${kit.kv("Asked", "Jul 9")}${kit.kv("Provider", "myself")}${kit.kv("Due", "Aug 12")}` },
+    ],
+  },
+  {
+    id: "list-row", title: "List row", family: "cards", covers: ["listRow"],
+    kit: `listRow({icon, primary, meta, chipHtml, trailing, chevron})`,
+    netNew: "the generic queue/list row",
+    rule: "Queues render as list rows, not tables; the tail holds at most a chip, a value, and a chevron.",
+    usedIn: /class="lr"/,
+    specs: [
+      { label: "with chip + chevron", html: kit.listRow({ icon: "seedling-line", primary: "Prune the north beds", meta: "6 hours · due Aug 12", chipHtml: kit.chip("Offer", "offer"), chevron: true }) },
+      { label: "value tail", html: kit.listRow({ icon: "hand-heart-line", primary: "Ride to the market", meta: "Saturday", trailing: `<span class="num">1 ride</span>` }) },
+    ],
+  },
+  {
+    id: "disclosure", title: "Disclosure", family: "cards", covers: ["disclosure"],
+    kit: `disclosure(title, count, inner, {open})`,
+    netNew: "progressive disclosure on detail surfaces",
+    rule: "State and the next action stay in the viewport; timeline, evidence, and identifiers live behind disclosures with honest counts.",
+    usedIn: /class="disc"/,
+    specs: [
+      { label: "closed", html: kit.disclosure("Timeline", "4", `<div class="t-meta">…</div>`) },
+      { label: "open", html: kit.disclosure("Evidence", "2", `${kit.kv("Photos", "2")}${kit.kv("Note", "Beds cleared")}`, { open: true }) },
+    ],
+  },
+  // — Rails & carousels —
+  {
+    id: "cycle-rail", title: "Cycle rail", family: "rails", covers: ["cycleRail", "seasonCard", "seasonSlide", "emptySeasonSlide", "campaignSlide"],
+    kit: `cycleRail(slides) · seasonCard/seasonSlide/emptySeasonSlide/campaignSlide`,
+    netNew: "one snap rail — the Season slide leads wider, campaigns peek",
+    rule: "Slides open their cycle; the browse scope select keeps owning list scope, so swiping never silently refilters.",
+    usedIn: /class="crail/,
+    specs: [
+      { label: "season + campaigns", html: kit.pagepad(kit.cycleRail([kit.seasonSlide(), kit.campaignSlide("g.c1", "Market rides", "Open", "6 of 16 kept"), kit.campaignSlide("g.c2", "Tool library", "Reviewing", "8 of 8 kept")])) },
+      { label: "no season yet", html: kit.pagepad(kit.cycleRail([kit.emptySeasonSlide(), kit.campaignSlide("g.c3", "Market rides", "Open", "6 of 16 kept")])) },
+      { label: "season card alone — reviewing", html: kit.seasonCard({ stage: "Reviewing" }) },
+      { label: "season card — seeded (no counts)", html: kit.seasonCard({ made: 0, kept: 0, stage: "Seeded" }) },
+    ],
+  },
+  {
+    id: "selection-rail", title: "Selection rail", family: "rails", covers: ["selRail", "selCard"],
+    kit: `selRail(cards) · selCard({tint, media, title, line, selected})`,
+    ship: "packages/client/src/components/Cards/Action/ActionCard.tsx:32",
+    shipNote: "ActionCard/GardenCard height=selection inside Carousel (packages/client/src/components/Display/Carousel/Carousel.tsx:10)",
+    drift: "Shipping selection cards are ~full-width slides, 212px tall with 96–160px media (packages/client/src/components/Display/Carousel/Carousel.tsx:185) — these are 200px two-up compacts.",
+    rule: "The intro's action and garden pickers: tinted media strip, title + line, accent ring on the selected card.",
+    usedIn: /class="selrail/,
+    specs: [
+      { label: "action cards", html: kit.pagepad(kit.selRail([
+        kit.selCard({ tint: "agro", media: "AGRO", title: "Prune", line: "Trees and beds", selected: true }),
+        kit.selCard({ tint: "agro", media: "AGRO", title: "Water", line: "Beds and rows" }),
+        kit.selCard({ tint: "waste", media: "WASTE", title: "Compost", line: "Bays and bins" }),
+      ])) },
+      { label: "garden cards", html: kit.pagepad(kit.selRail([
+        kit.selCard({ tint: "garden", media: "Rocinha", title: "Rocinha Community Garden", line: "Rio de Janeiro", selected: true }),
+        kit.selCard({ tint: "garden", media: "Muizenberg", title: "Muizenberg", line: "Cape Town" }),
+      ])) },
+    ],
+  },
+  {
+    id: "promise-rail", title: "Promise rail", family: "rails", covers: ["promiseSlide"],
+    kit: `promiseSlide({title, needs, due, edge})`,
+    netNew: "the intro's third rail — many promises cost no vertical space",
+    rule: "Compact promise cards ride the same horizontal grammar as the pickers, nearest due first; tapping one enters the scoped flow.",
+    usedIn: /class="card pcard/,
+    specs: [
+      { label: "offer + request slides", html: kit.pagepad(kit.selRail([
+        kit.promiseSlide({ title: "Prune the north beds", needs: "needs Prune × 2", due: "due Aug 12", edge: "offer" }),
+        kit.promiseSlide({ title: "Clear the drainage channel", needs: "needs Mulch × 4", due: "due Aug 30", edge: "request" }),
+        kit.promiseSlide({ title: "Mulch the pathways", needs: "needs Mulch × 3", due: "runs with the season", edge: "offer" }),
+      ])) },
+    ],
+  },
+  // — Forms & inputs —
+  {
+    id: "button", title: "Button", family: "forms", covers: ["btn"],
+    kit: `btn(label, {kind, icon, full, sm, disabled})`,
+    ship: "packages/shared/src/components/Button.tsx:43",
+    shipNote: "gg-button — 20px squircle for primary AND secondary; hierarchy is fill vs stroke, never shape",
+    drift: "Shipping Button adds md/lg sizes and a loading spinner (packages/shared/src/components/Button.tsx:43) — only the default and sm sizes are drawn here.",
+    rule: "One primary per surface; secondary is the outlined squircle; ghost for quiet exits; danger only on destructive confirms.",
+    usedIn: /class="b /,
+    specs: [
+      { label: "kinds", html: `<div class="brow">${kit.btn("Make an offer", { kind: "pri" })}${kit.btn("Take this up", { kind: "sec" })}${kit.btn("Not now", { kind: "ghost" })}${kit.btn("Discard", { kind: "danger" })}</div>` },
+      { label: "small", html: `<div class="brow">${kit.btn("Retry", { kind: "sec", sm: true })}${kit.btn("Discard", { kind: "ghost", sm: true })}</div>` },
+      { label: "full-width primary", html: kit.btn("Send", { kind: "pri", full: true }) },
+      { label: "with icon", html: kit.btn("Add evidence", { kind: "pri", icon: "camera-line" }) },
+      { label: "disabled", html: kit.btn("Send", { kind: "pri", disabled: true }) },
+    ],
+  },
+  {
+    id: "field-input", title: "Field + input", family: "forms", covers: ["field", "input"],
+    kit: `field(label, control) · input(value, {select, textarea, icon, placeholder})`,
+    ship: "packages/client/src/views/Garden/Details.tsx:355",
+    shipNote: "labels via FormFieldWrapper grammar; the shipping FormText textarea is rows=4",
+    rule: "Every control gets a visible programmatic label through field(); multiline answers get a real textarea, never a tall single-line input.",
+    usedIn: /class="fld"/,
+    specs: [
+      { label: "text", html: kit.field("Title", kit.input("Prune the north beds")) },
+      { label: "placeholder", html: kit.field("Title", kit.input("What are you offering?", { placeholder: true })) },
+      { label: "select", html: kit.field("Season", kit.input("Season of First Rains", { select: true })) },
+      { label: "textarea", html: kit.field("Notes", kit.input("Bring gloves — the north beds are thorny.", { textarea: true })) },
+      { label: "with icon", html: kit.field("Due", kit.input("Aug 12", { icon: "calendar-line" })) },
+    ],
+  },
+  {
+    id: "radio-group", title: "Radio group", family: "forms", covers: ["radio"],
+    kit: `radio(options, {interactive})`,
+    netNew: "boxed radio rows with meta lines",
+    rule: "Choices render as boxed rows with a meta line each; the selected row fills the accent ring.",
+    usedIn: /class="radio"/,
+    specs: [
+      { label: "static", html: kit.radio([
+        { label: "Just myself", meta: "You keep this promise alone", on: true },
+        { label: "A team", meta: "Others can join before it starts" },
+      ]) },
+      { label: "interactive", html: kit.radio([
+        { label: "Once", meta: "One promise, one delivery", on: true },
+        { label: "Over time", meta: "A series with places" },
+      ], { interactive: true, name: "gallery-cadence" }) },
+    ],
+  },
+  {
+    id: "form-info", title: "FormInfo", family: "forms", covers: ["formInfo"],
+    kit: `formInfo(icon, title, info)`,
+    ship: "packages/client/src/components/Cards/Form/FormInfo.tsx:19",
+    drift: "Shipping FormInfo is 16px-radius with three tonal variants (packages/client/src/components/Cards/Form/FormInfo.tsx:13) — drawn here at 14px in the single default tone.",
+    rule: "The step-section header: filled card, 48px circular icon holder, title + one helper line. Sections start with this, not a bare heading.",
+    usedIn: /class="finfo/,
+    specs: [
+      { label: "select your action", html: kit.formInfo("leaf-line", "Select your action", "What type of work are you submitting?") },
+      { label: "select your garden", html: kit.formInfo("plant-line", "Select your garden", "Which garden are you submitting for?") },
+    ],
+  },
+  {
+    id: "form-progress", title: "FormProgress", family: "forms", covers: ["formProgress"],
+    kit: `formProgress(total, current)`,
+    ship: "packages/client/src/components/Communication/Progress/Progress.tsx:10",
+    shipNote: "numbered 20px circles, check on completion, accent ring on current",
+    rule: "Wizards render the numbered stepper, never dots; it rides the flow header's trailing slot.",
+    usedIn: /class="fprog .*fpstep|class="fpstep/,
+    specs: [
+      { label: "step 1 of 4", html: kit.formProgress(4, 0) },
+      { label: "step 3 of 4", html: kit.formProgress(4, 2) },
+      { label: "last step", html: kit.formProgress(4, 3) },
+    ],
+  },
+  // — Chrome —
+  {
+    id: "phone-frame", title: "Phone frame", family: "chrome", covers: ["phoneFrame", "pagepad"],
+    kit: `phoneFrame(body, {offline, appBar, header, overlay}) · pagepad(children)`,
+    ship: "packages/client/src/routes/AppShell.tsx:24",
+    shipNote: "the owned #app-scroll surface; AppShell-backed frames reserve the 69px AppBar",
+    rule: "Every client screen lives in the fixed 390×844 viewport with its own inner scroll; pagepad owns the 16px content gutter.",
+    usedIn: /class="phonefit/,
+    specs: [
+      { label: "installed-PWA shell (scaled)", html: kit.phoneFrame(kit.pagepad(kit.hdr("Pool"), kit.card(cardInner("Prune the north beds", "6 hours · due Aug 12"), { edge: "offer" })), {}), w: "frame" },
+    ],
+  },
+  {
+    id: "screen-header", title: "Screen header", family: "chrome", covers: ["hdr"],
+    kit: `hdr(title, {back, trailing})`,
+    ship: "packages/client/src/views/Home/Garden/Assessment.tsx:95",
+    shipNote: "client views hand-render the title-screen h1 grammar",
+    rule: "One h1 per screen; the back affordance is a 44px round hit, and the trailing slot holds at most one quiet element.",
+    usedIn: /class="hdr"/,
+    specs: [
+      { label: "with back", html: kit.hdr("Pool", { back: true }) },
+      { label: "with trailing chip", html: kit.hdr("Wallet", { trailing: kit.chip("Queued", "queued") }) },
+    ],
+  },
+  {
+    id: "flow-header", title: "Flow header", family: "chrome", covers: ["flowHeader"],
+    kit: `flowHeader(title, step, total)`,
+    ship: "packages/client/src/views/Garden/index.tsx:778",
+    shipNote: "TopNav (packages/client/src/components/Navigation/TopNav.tsx:182) + FormProgress",
+    drift: "The shipping Submit Work header carries no title — TopNav renders back + centered FormProgress only (packages/client/src/views/Garden/index.tsx:778); the h1 here is artifact-added.",
+    rule: "Close on the first step, back on every later one; the stepper rides the trailing slot.",
+    usedIn: /class="hdr fixed"/,
+    specs: [
+      { label: "step 1 — close", html: kit.flowHeader("Submit work", 0, 4) },
+      { label: "step 3 — back", html: kit.flowHeader("Submit work", 2, 4) },
+    ],
+  },
+  {
+    id: "garden-header", title: "Garden header", family: "chrome", covers: ["gardenHeader"],
+    kit: `gardenHeader(name, {location, founded})`,
+    ship: "packages/client/src/views/Home/Garden/index.tsx:375",
+    shipNote: "h-36 banner, rounded-b-3xl, overlaid back, then name + meta",
+    rule: "The garden detail owns its chrome: banner with overlaid back, then the garden name and location/founded meta; the bottom AppBar hides here.",
+    usedIn: /class="ghead/,
+    specs: [
+      { label: "banner + meta", html: kit.gardenHeader("Rocinha Community Garden", { location: "Rocinha, Rio de Janeiro", founded: "Founded 2021" }) },
+    ],
+  },
+  {
+    id: "home-header", title: "Home header", family: "chrome", covers: ["homeHeader"],
+    kit: `homeHeader()`,
+    ship: "packages/client/src/views/Home/index.tsx:237",
+    drift: "Shipping header buttons are 32px squares with an invisible enlarged tap target (packages/client/src/views/Home/index.tsx:245) — these draw the 44px floor as the visible square.",
+    rule: "Home's h4 title plus a trailing icon-button row; distinct from the garden detail's banner header.",
+    usedIn: /class="hhead/,
+    specs: [{ label: "title + actions", html: kit.homeHeader() }],
+  },
+  {
+    id: "garden-tabs", title: "Garden tabs", family: "chrome", covers: ["gardenTabs"],
+    kit: `gardenTabs(active, {hotPrefix})`,
+    ship: "packages/client/src/components/Navigation/Tabs/StandardTabs.tsx:24",
+    drift: "Shipping StandardTabs supports icons, count badges, and a loading underline (packages/client/src/components/Navigation/Tabs/StandardTabs.tsx:97) — undrawn here, and this underline is partial-width.",
+    rule: "Pool leads and is the default landing when a pool exists; a garden without a pool draws the original Work-first row with Pool absent.",
+    usedIn: /class="gtabs/,
+    specs: [
+      { label: "pool active", html: kit.gardenTabs("pool") },
+      { label: "work active", html: kit.gardenTabs("work") },
+    ],
+  },
+  {
+    id: "app-bar", title: "App bar", family: "chrome", covers: ["appBar"],
+    kit: `appBar(active, {badge})`,
+    ship: "packages/client/src/components/Layout/AppBar.tsx:15",
+    drift: "Shipping labels are 14px (packages/client/src/components/Layout/AppBar.tsx:114) — drawn 12px here.",
+    rule: "Installed-PWA chrome only; hides on garden detail routes and under drawers. The Home badge counts pending reviews.",
+    usedIn: /class="abar/,
+    specs: [
+      { label: "garden active", html: kit.appBar("garden") },
+      { label: "home + badge", html: kit.appBar("home", { badge: 3 }) },
+    ],
+  },
+  {
+    id: "action-bar", title: "Action bar", family: "chrome", covers: ["actionBar"],
+    kit: `actionBar(primary, secondary)`,
+    ship: "packages/client/src/views/Garden/index.tsx:792",
+    shipNote: "the fixed submit bar — one row, rounded top, safe-area padding",
+    rule: "One full-width primary and at most an icon/short-text secondary beside it — never two stacked full buttons; detours live in page content.",
+    usedIn: /class="fbar/,
+    specs: [
+      { label: "primary only", html: kit.actionBar(kit.btn("Send", { kind: "pri", full: true })) },
+      { label: "with secondary", html: kit.actionBar(kit.btn("Continue", { kind: "pri", full: true }), kit.btn("Save", { kind: "sec", sm: true })) },
+    ],
+  },
+  {
+    id: "fab", title: "Creation FAB", family: "chrome", covers: ["fabButton"],
+    kit: `fabButton(open)`,
+    ship: "packages/shared/src/components/Canvas/NavigationBar.tsx:119",
+    shipNote: "the shared FabButton the steward cockpit's mobile shell uses; net-new to the client PWA",
+    drift: "Shipping FAB is 56px, rounded-full, and rotates its + 45° when open (packages/shared/src/components/Canvas/NavigationBar.tsx:356) — this mirror is a 52px squircle that swaps to an X and recolors.",
+    rule: "Closed: one + above the AppBar. Open: the two one-word doors stack above the same spot and the FAB flips to a close affordance.",
+    usedIn: /class="fabbtn/,
+    specs: [
+      { label: "closed", html: kit.fabButton(false) },
+      { label: "open + doors", html: `<div style="position:relative;height:190px"><div class="fabwrap" style="position:absolute;right:14px;bottom:10px"><button type="button" class="fabdoor" disabled>Offer</button><button type="button" class="fabdoor" disabled>Request</button>${kit.fabButton(true)}</div></div>`, h: 200 },
+    ],
+  },
+  {
+    id: "pool-filters", title: "Browse filters", family: "chrome", covers: ["poolFilters", "seg"],
+    kit: `poolFilters(activeIx, {mine}) · seg(items, activeIx, {badges})`,
+    ship: "packages/client/src/components/Dialogs/ModalDrawer.tsx:139",
+    shipNote: "the count-badge idea is the WalletDrawer tab pattern (packages/client/src/views/Home/WalletDrawer/index.tsx:36); the pill segment itself is net-new",
+    rule: "Direction pills plus the personal Mine toggle — personal scope is orthogonal to direction, so it is never a fourth pill.",
+    usedIn: /class="seg"/,
+    specs: [
+      { label: "all + mine off", html: kit.poolFilters(0) },
+      { label: "offers + mine on", html: kit.poolFilters(1, { mine: true }) },
+      { label: "segment with count badge", html: kit.seg(["Open", "Kept", "Past"], 0, { badges: { 0: 3 } }) },
+    ],
+  },
+  {
+    id: "sheet", title: "Bottom sheet", family: "chrome", covers: ["sheetOver"],
+    kit: `sheetOver(behind, title, inner, {handle})`,
+    ship: "packages/shared/src/components/Dialog/PwaSheet.tsx:94",
+    shipNote: "gesture sheets show the tinted drag handle; tabbed drawers (packages/client/src/components/Dialogs/ModalDrawer.tsx:40) omit it",
+    rule: "Gesture sheets carry the drag pill; drawers dismissed by chrome pass handle:false. The context behind stays visible under the scrim.",
+    usedIn: /class="sheetstage/,
+    specs: [
+      { label: "gesture sheet", html: kit.sheetOver(kit.pagepad(kit.card(cardInner("Prune the north beds", "6 hours · due Aug 12"))), "Add evidence", `${kit.field("Note", kit.input("Beds cleared", { textarea: true }))}`), h: 420 },
+      { label: "drawer (no handle)", html: kit.sheetOver(kit.pagepad(kit.card(cardInner("Wallet", ""))), "Commitments", kit.listRow({ icon: "seedling-line", primary: "Prune the north beds", meta: "due Aug 12", chevron: true }), { handle: false }), h: 340 },
+    ],
+  },
+  {
+    id: "section-title", title: "Section title", family: "chrome", covers: ["sectionTitle"],
+    kit: `sectionTitle(title, trailing)`,
+    netNew: "the in-page section heading with a quiet trailing slot",
+    rule: "Sections inside a screen get the 16.5px title; the trailing slot holds a count or one quiet link, never an action button.",
+    usedIn: /class="t-sec/,
+    specs: [{ label: "with trailing count", html: kit.sectionTitle("Open promises", kit.chip("6", "plain")) }],
+  },
+  // — Feedback —
+  {
+    id: "banner", title: "Banner", family: "feedback", covers: ["banner"],
+    kit: `banner(text, tone, icon)`,
+    ship: "packages/shared/src/components/Alert.tsx:38",
+    drift: "Shipping Alert's tones are error / warning / info / success (packages/shared/src/components/Alert.tsx:24) — the quiet stone tone here is artifact-only and the blue info tone is undrawn.",
+    rule: "Inline context that stays with its section; amber for caution, stone for quiet notes, green for confirmation, error for failures.",
+    usedIn: /class="ban /,
+    specs: [
+      { label: "amber", html: kit.banner("Offline — this will send when connected.", "amber") },
+      { label: "stone", html: kit.banner("Only stewards can see this queue.", "stone") },
+      { label: "green", html: kit.banner("Confirmation sent to Ana.", "green", "checkbox-circle-fill") },
+      { label: "error", html: kit.banner("Five send attempts used.", "error", "error-warning-line") },
+    ],
+  },
+  {
+    id: "sync-bar", title: "Sync bar", family: "feedback", covers: ["syncBar"],
+    kit: `syncBar(text)`,
+    ship: "packages/shared/src/components/SyncStatusBar.tsx:16",
+    drift: "Shipping SyncStatusBar has three states (offline / syncing / pending) with per-state icons and a Sync All action for wallet users (packages/shared/src/components/SyncStatusBar.tsx:42) — this strip draws one queued state.",
+    rule: "The queued-jobs strip sits above the AppBar and never blocks content; counts stay honest to the queue.",
+    usedIn: /class="syncbar/,
+    specs: [{ label: "queued", html: kit.syncBar("2 items waiting to sync") }],
+  },
+  {
+    id: "skeleton", title: "Skeleton", family: "feedback", covers: ["skeleton"],
+    kit: `skeleton({title, avatar, lines})`,
+    ship: "packages/shared/src/components/Skeleton.tsx:34",
+    shipNote: "SkeletonCard/SkeletonText; the client also ships per-card skeletons",
+    rule: "Loading preserves layout: the placeholder mirrors the card it stands in for, so nothing shifts when data lands.",
+    usedIn: /class="sk[\s"]/,
+    specs: [
+      { label: "card", html: kit.skeleton() },
+      { label: "titled", html: kit.skeleton({ title: true, lines: 2 }) },
+      { label: "with avatar", html: kit.skeleton({ avatar: true, lines: 2 }) },
+    ],
+  },
+  {
+    id: "empty-state", title: "Empty state", family: "feedback", covers: ["emptyState"],
+    kit: `emptyState(icon, title, body, actions)`,
+    ship: "packages/shared/src/components/ListPrimitives.tsx:14",
+    drift: "Shipping icon circle is 64px (packages/shared/src/components/ListPrimitives.tsx:20) — drawn 52px here.",
+    rule: "Empty names the scope it is empty of; recovery states get one clear way forward, centered.",
+    usedIn: /class="empty"/,
+    specs: [
+      { label: "scope-named empty", html: kit.emptyState("seedling-line", "No open promises", "This season has no open offers or requests yet.", kit.btn("Make an offer", { kind: "pri" })) },
+      { label: "read error", html: kit.emptyState("error-warning-line", "Couldn't load the pool", "Check your connection and try again.", kit.btn("Retry", { kind: "sec" })) },
+    ],
+  },
+  {
+    id: "hero", title: "Hero moment", family: "feedback", covers: ["hero"],
+    kit: `hero(title, msg, icon)`,
+    netNew: "the client-only fulfilled celebration; the steward cockpit keeps quiet checkmarks",
+    rule: "Hero moments live in the client PWA only, at true completions — never for intermediate steps.",
+    usedIn: /class="hero"/,
+    specs: [{ label: "fulfilled", html: kit.hero("Promise kept", "Ana confirmed the ride — this one is complete.") }],
+  },
+  {
+    id: "meter", title: "Progress meter", family: "feedback", covers: ["meter"],
+    kit: `meter(pct, {left, right, tickPct})`,
+    ship: "packages/shared/src/components/Conviction/ConvictionMeter.tsx:68",
+    drift: "Shipping ConvictionMeter adds accrual-rate and time-to-threshold labels (packages/shared/src/components/Conviction/ConvictionMeter.tsx:68) — undrawn here.",
+    rule: "Real single-unit progress only — never a synthetic cross-commitment percentage; the tick marks a threshold.",
+    usedIn: /class="meter"/,
+    specs: [
+      { label: "with labels", html: kit.meter(60, { left: "3 of 5 sessions", right: "60%" }) },
+      { label: "with threshold tick", html: kit.meter(62, { tickPct: 80, left: "Conviction", right: "62 of 80" }) },
+    ],
+  },
+  {
+    id: "timeline", title: "Timeline", family: "feedback", covers: ["timeline"],
+    kit: `timeline(entries)`,
+    netNew: "the state history behind a detail disclosure",
+    rule: "The promise's history reads newest context first behind its disclosure; open dots mark the pending step, amber marks caution.",
+    usedIn: /class="tl"/,
+    specs: [
+      { label: "three entries", html: kit.timeline([
+        { label: "Offered", meta: "Jul 2" },
+        { label: "Accepted", meta: "Jul 9", note: "Taken up by João" },
+        { label: "Evidence in", meta: "Aug 1", open: true },
+      ]) },
+      { label: "with caution", html: kit.timeline([
+        { label: "Due", meta: "Aug 12", warn: true, note: "Past due — stewards can extend or expire" },
+      ]) },
+    ],
+  },
+  // — People —
+  {
+    id: "byline", title: "By-line", family: "people", covers: ["byline"],
+    kit: `byline(name, {forGarden})`,
+    netNew: "the D5 card contract puts a face on every browse card",
+    rule: "Avatar + name on every browse card that is not your own send; add “for {garden}” when a garden claims.",
+    usedIn: /class="byline/,
+    specs: [
+      { label: "person", html: kit.byline("Maria") },
+      { label: "for a garden", html: kit.byline("Ben", { forGarden: "Rocinha" }) },
+    ],
+  },
+  {
+    id: "team-strip", title: "Team strip", family: "people", covers: ["teamstrip"],
+    kit: `teamstrip(initials)`,
+    netNew: "overlapping initial avatars; shipping renders people per-view with letter fallbacks",
+    rule: "The people on a promise render as one overlapping strip beside their line — never a vertical roster on browse surfaces.",
+    usedIn: /class="teamstrip/,
+    specs: [{ label: "three people", html: `<div class="cardrow">${kit.teamstrip(["M", "J", "A"])}<span class="t-meta">Maria, João and Ana are on this promise</span></div>` }],
+  },
+];
+
+// ---- admin catalog (steward cockpit dialect) --------------------------------
+
+const adminRoute = (body: string, opts: { tone?: kit.Tone; tab?: string } = {}) =>
+  kit.deskWin("admin.greengoods.app/garden", kit.adminCanvas(opts.tone ?? "garden", "garden", {
+    screenId: "GALLERY", garden: "Rocinha Community Garden", interactiveChrome: false,
+    header: kit.pageHeader({ title: "Pool", eyebrow: "Garden", description: "Offers, requests, and the season at a glance." }),
+    tabRail: opts.tab, body,
+  }));
+
+const ADMIN_ENTRIES: Entry[] = [
+  {
+    id: "chip", title: "Chip", family: "chips", covers: [],
+    kit: `chip(label, tone, {dot}) — denser 11.5px cast`,
+    ship: "packages/shared/src/components/Badge/Badge.tsx:43",
+    shipNote: "nearest shipping anatomy; the cockpit keeps flat chips where the client shows StatusBadge pills",
+    rule: "Lifecycle and kind labels stay flat chips in the cockpit; icon pills are a client-only signal.",
+    usedIn: /class="ch[\s"]/,
+    specs: [
+      { label: "tones in the cockpit density", html: `<div class="cardrow">${kit.chip("Open", "ok")}${kit.chip("Offer", "offer")}${kit.chip("Request", "request")}${kit.chip("Due", "warn")}${kit.chip("Expired", "plain")}${kit.chip("Paused", "ink")}${kit.chip("Queued", "queued")}</div>` },
+    ],
+  },
+  {
+    id: "scope-chips", title: "Scope chips", family: "chips", covers: [],
+    kit: `route-local .scopechips markup (screens/admin.ts)`,
+    ship: "packages/admin/src/components/AdminFilterChip.tsx:33",
+    rule: "Route-local list scope — Open / Confirmed / Past — as filter chips under the summary row; the active chip fills the workspace tone.",
+    usedIn: /class="scopechips/,
+    specs: [
+      { label: "open active", html: `<div class="scopechips"><button type="button" class="sc-chip on" disabled>Open</button><button type="button" class="sc-chip" disabled>Confirmed</button><button type="button" class="sc-chip" disabled>Past</button></div>` },
+    ],
+  },
+  {
+    id: "admin-card", title: "AdminCard", family: "cards", covers: ["acard"],
+    kit: `acard(head, body, trailing)`,
+    ship: "packages/admin/src/components/AdminCard.tsx:9",
+    drift: "Shipping AdminCard also has filled and outlined variants plus a density ladder (packages/admin/src/components/AdminCard.tsx:9) — only the elevated cast is drawn.",
+    rule: "The M3 elevated solid surface a route composes from; the head row carries the title and at most a quiet trailing cluster.",
+    usedIn: /class="acard"/,
+    specs: [
+      { label: "head + body", html: kit.acard("Season of First Rains", `${kit.kv("Promises", "9 made · 7 kept")}${kit.kv("Runs through", "Aug 30")}`, kit.chip("Open", "ok")) },
+    ],
+  },
+  {
+    id: "data-table", title: "Data table", family: "cards", covers: ["dtable"],
+    kit: `dtable(heads, rows, caption)`,
+    netNew: "dense M3 table — hairline dividers, no zebra; queues stay list-rows",
+    rule: "Tabular data stays a table with hairline row dividers; queues and inboxes render as rows, never tables.",
+    usedIn: /class="dtab/,
+    specs: [
+      { label: "three columns", html: kit.dtable(["Promise", "Provider", "State"], [
+        ["Prune the north beds", "João", kit.chip("Active", "ok")],
+        ["Ride to the market", "Maria", kit.chip("Due", "warn")],
+      ], "Sample commitments"), w: "l" },
+    ],
+  },
+  {
+    id: "kv-row", title: "Key-value row", family: "cards", covers: [],
+    kit: `kv(key, value) — cockpit cast`,
+    ship: "packages/shared/src/components/Canvas/MetaStrip.tsx:23",
+    shipNote: "detail facts; MetaStrip carries the equivalent header metadata in production",
+    rule: "Detail facts on cards and dialogs; values keep tabular numerals.",
+    usedIn: /class="kv"/,
+    specs: [{ label: "facts", html: `${kit.kv("Confirmer", "Ana")}${kit.kv("Due", "Aug 12")}${kit.kv("Evidence", "2 photos")}` }],
+  },
+  {
+    id: "disclosure", title: "Disclosure", family: "cards", covers: [],
+    kit: `disclosure(title, count, inner, {open})`,
+    netNew: "progressive disclosure on console surfaces",
+    rule: "Reference detail (identifiers, raw history) folds behind disclosures so the queue keeps its density.",
+    usedIn: /class="disc"/,
+    specs: [{ label: "closed", html: kit.disclosure("Details", "5", `<div class="t-meta">…</div>`) }],
+  },
+  {
+    id: "summary-row", title: "Queue summary row", family: "feedback", covers: [],
+    kit: `route-local .sumrow markup (screens/admin.ts)`,
+    ship: "packages/shared/src/components/Canvas/MetaStrip.tsx:23",
+    shipNote: "production maps to MetaStrip + the hub header stats",
+    rule: "Each count names the queue that owns it and filters the list below on tap; no synthetic totals.",
+    usedIn: /class="sumrow/,
+    specs: [
+      { label: "three queues", html: `<div class="sumrow"><button type="button" class="sumcell" disabled><span class="n num">4</span><span class="l">open claims</span></button><button type="button" class="sumcell" disabled><span class="n num">2</span><span class="l">due this week</span></button><button type="button" class="sumcell" disabled><span class="n num">1</span><span class="l">ready to confirm</span></button></div>`, w: "l" },
+    ],
+  },
+  {
+    id: "stage-stepper", title: "Stage stepper", family: "forms", covers: ["stages"],
+    kit: `stages(list, activeIx)`,
+    netNew: "the cycle/settlement stage line",
+    rule: "The console's compact where-are-we line; done dots dim, the active stage carries ink.",
+    usedIn: /class="stages/,
+    specs: [{ label: "mid-cycle", html: kit.stages(["Open", "Reviewing", "Settling", "Closed"], 1), w: "l" }],
+  },
+  {
+    id: "step-dots", title: "Step dots", family: "forms", covers: ["stepDots"],
+    kit: `stepDots(n, current)`,
+    netNew: "the payout wizard's compact dots — client wizards render FormProgress instead",
+    rule: "Only where a numbered stepper cannot fit (dialog action rows); everywhere else use the numbered stepper.",
+    usedIn: /class="stepdots/,
+    specs: [{ label: "step 2 of 4", html: kit.stepDots(4, 1) }],
+  },
+  {
+    id: "button", title: "Button", family: "forms", covers: [],
+    kit: `btn(label, {kind, sm}) — denser cockpit cast`,
+    ship: "packages/shared/src/components/Button.tsx:43",
+    shipNote: "primary fills the workspace tone in the cockpit",
+    rule: "Primary fills the active workspace tone; secondary is the 12px-radius outline; danger only on destructive confirms.",
+    usedIn: /class="b /,
+    specs: [
+      { label: "kinds", html: `<div class="brow">${kit.btn("Open the season", { kind: "pri" })}${kit.btn("Review", { kind: "sec" })}${kit.btn("Not now", { kind: "ghost" })}${kit.btn("Cancel cycle", { kind: "danger" })}</div>`, w: "l" },
+    ],
+  },
+  {
+    id: "field-input", title: "Field + input", family: "forms", covers: [],
+    kit: `field(label, control) · input(value, {select, textarea}) — 44px cockpit density`,
+    ship: "packages/admin/src/components/AdminTextField.tsx:1",
+    rule: "Same labelled-control contract as the client at console density; helper text stays under the control.",
+    usedIn: /class="fld"/,
+    specs: [
+      { label: "text", html: kit.field("Season name", kit.input("Season of First Rains")) },
+      { label: "select", html: kit.field("Confirmer rule", kit.input("The person it was made to", { select: true })) },
+    ],
+  },
+  {
+    id: "radio-group", title: "Radio group", family: "forms", covers: [],
+    kit: `radio(options) — cockpit density`,
+    ship: "packages/admin/src/components/AdminChoiceGroup.tsx:1",
+    rule: "Boxed rows with meta lines at console density; one group per question.",
+    usedIn: /class="radio"/,
+    specs: [
+      { label: "static", html: kit.radio([
+        { label: "This season only", meta: "Ends Aug 30", on: true },
+        { label: "Every season", meta: "Renews with the cycle" },
+      ]) },
+    ],
+  },
+  {
+    id: "reason-chips", title: "Reason chips", family: "chips", covers: [],
+    kit: `reasonChips(options)`,
+    netNew: "tap-first reasons above confirm dialogs' reason field",
+    rule: "Reason-taking confirms show common reasons as chips; the field remains the stored record.",
+    usedIn: /Tap a reason to fill it in/,
+    specs: [{ label: "pause reasons", html: kit.reasonChips(["Season break", "Waiting on materials", "Charter review"]) }],
+  },
+  {
+    id: "banner", title: "Banner", family: "feedback", covers: [],
+    kit: `banner(text, tone, icon)`,
+    ship: "packages/shared/src/components/Alert.tsx:38",
+    rule: "Quiet inline context; cockpit success feedback stays checkmark-quiet, never a hero moment.",
+    usedIn: /class="ban /,
+    specs: [
+      { label: "amber caution", html: kit.banner("Two promises pass their due date this week.", "amber", "error-warning-line"), w: "l" },
+      { label: "stone note", html: kit.banner("Only stewards can see this queue.", "stone"), w: "l" },
+    ],
+  },
+  {
+    id: "quiet-ok", title: "Quiet confirmation", family: "feedback", covers: [],
+    kit: `.quietok markup (tokens.ts)`,
+    netNew: "the cockpit's quiet-checkmark success row",
+    rule: "A green check and one sentence — the cockpit's ceiling for success feedback.",
+    usedIn: /class="quietok/,
+    specs: [{ label: "saved", html: `<div class="quietok"><svg class="ic" aria-hidden="true"><use href="#i-checkbox-circle-fill"/></svg><span>Season opened.</span></div>`, w: "l" }],
+  },
+  {
+    id: "skeleton", title: "Skeleton", family: "feedback", covers: [],
+    kit: `skeleton({title, lines}) — M3 card geometry`,
+    ship: "packages/shared/src/components/Skeleton.tsx:34",
+    rule: "Loading preserves layout at console density; the admin cast drops the client border for elevation.",
+    usedIn: /class="sk[\s"]/,
+    specs: [{ label: "card", html: kit.skeleton({ title: true }) }],
+  },
+  {
+    id: "empty-state", title: "Empty state", family: "feedback", covers: [],
+    kit: `emptyState(icon, title, body, actions)`,
+    ship: "packages/shared/src/components/ListPrimitives.tsx:14",
+    rule: "Sits directly on the route card, not a bordered panel; names the queue it is empty of.",
+    usedIn: /class="empty"/,
+    specs: [{ label: "empty queue", html: kit.emptyState("sticky-note-line", "No claims waiting", "New claims land here for review.") }],
+  },
+  {
+    id: "meter", title: "Progress meter", family: "feedback", covers: [],
+    kit: `meter(pct, {left, right, tickPct})`,
+    ship: "packages/shared/src/components/Conviction/ConvictionMeter.tsx:68",
+    rule: "Single-unit progress on console cards; the tick marks a threshold.",
+    usedIn: /class="meter"/,
+    specs: [{ label: "toward threshold", html: kit.meter(62, { tickPct: 80, left: "Conviction", right: "62 of 80" }), w: "l" }],
+  },
+  {
+    id: "garden-chip", title: "GardenChip", family: "chrome", covers: ["gardenChip"],
+    kit: `gardenChip(name, hotId)`,
+    ship: "packages/shared/src/components/Canvas/GardenChip.tsx:34",
+    rule: "The AppBar's left pill declares the active garden — chrome owns that context, so routes never restate it.",
+    usedIn: /class="gchip/,
+    specs: [{ label: "selector pill", html: kit.gardenChip("Rocinha Community Garden") }],
+  },
+  {
+    id: "page-header", title: "PageHeader", family: "chrome", covers: ["pageHeader"],
+    kit: `pageHeader({title, eyebrow, description, meta, actions, toolbar})`,
+    ship: "packages/admin/src/components/Layout/PageHeader.tsx:40",
+    rule: "The route's single big h1 with slots; actions live in the header's own row, never beside the title.",
+    usedIn: /class="pghead/,
+    specs: [
+      { label: "eyebrow + description + actions", html: kit.pageHeader({ title: "Pool", eyebrow: "Garden", description: "Offers, requests, and the season at a glance.", actions: kit.btn("Open the season", { kind: "pri" }) }), w: "l" },
+    ],
+  },
+  {
+    id: "tab-rail", title: "AdminTabRail", family: "chrome", covers: ["tabRail"],
+    kit: `tabRail(items, activeIx)`,
+    ship: "packages/admin/src/components/AdminTabRail.tsx:1",
+    shipNote: "segmented card, active tab raised — never an underline",
+    rule: "Sub-views inside a workspace; counts ride the tabs and tint with the workspace tone when active.",
+    usedIn: /class="tabrail/,
+    specs: [
+      { label: "with counts", html: kit.tabRail([{ label: "Overview" }, { label: "Commitments", count: 12 }, { label: "Claims", count: 4 }], 1), w: "l" },
+    ],
+  },
+  {
+    id: "canvas", title: "Canvas cockpit", family: "chrome", covers: ["adminCanvas", "deskWin", "navItems"],
+    kit: `deskWin(url, adminCanvas(tone, nav, parts))`,
+    ship: "packages/admin/src/components/Layout/CanvasLayout.tsx:62",
+    shipNote: "AppBar + gradient canvas + floating route card + glass dock (packages/shared/src/components/Canvas/NavigationBar.tsx:402)",
+    rule: "The workspace tone lives on the canvas gradient and dock highlight — never on the route card surface itself.",
+    usedIn: /class="wsgrid/,
+    specs: [
+      { label: "garden workspace", html: adminRoute(kit.acard("Season of First Rains", `${kit.kv("Promises", "9 made · 7 kept")}${kit.kv("Runs through", "Aug 30")}`, kit.chip("Open", "ok"))), w: "l", h: 560 },
+    ],
+  },
+  {
+    id: "admin-dialog", title: "AdminDialog", family: "chrome", covers: ["adminDialogM3"],
+    kit: `adminDialogM3(behind, tone, {title, body, actions})`,
+    ship: "packages/admin/src/components/AdminDialog.tsx:145",
+    rule: "Confirms and small edits float over the dimmed canvas on a 28dp solid surface; destructive confirms take a reason where the act stores one.",
+    usedIn: /class="adlg"/,
+    specs: [
+      { label: "reason-taking confirm", html: kit.adminDialogM3(adminRoute(kit.acard("Season of First Rains", kit.kv("Promises", "9 made · 7 kept"))), "garden", {
+        title: "Pause the pool?",
+        body: `${kit.banner("Members keep their promises; new offers wait until you resume.", "amber", "error-warning-line")}${kit.reasonChips(["Season break", "Charter review"])}${kit.field("Reason", kit.input("Tell members why", { placeholder: true }))}`,
+        actions: `${kit.btn("Keep it open", { kind: "ghost" })}${kit.btn("Pause the pool", { kind: "danger" })}`,
+      }), w: "l", h: 620 },
+    ],
+  },
+  {
+    id: "flow-dialog", title: "Flow dialog", family: "chrome", covers: ["flowDialog"],
+    kit: `flowDialog(behind, tone, {context, title, steps, current, body, cancelHot, next})`,
+    ship: "packages/admin/src/components/AdminDialog.tsx:145",
+    shipNote: "the flow variant hosting ActionFlowShell — step rail, centred column, morphing Cancel/Back",
+    rule: "Multi-step creation lives in the flow dialog, never on bare route pages; Cancel morphs to Back after step one and the X stays the constant exit.",
+    usedIn: /class="adlg flow"/,
+    specs: [
+      { label: "step 2 of 3", html: kit.flowDialog(adminRoute(kit.acard("Seeding", kit.kv("Drafts", "2"))), "garden", {
+        context: "Garden · Pool", title: "Open the season",
+        steps: [{ title: "Name it", desc: "Season name and dates" }, { title: "Confirmer rule", desc: "Who confirms kept promises" }, { title: "Review", desc: "Check and open" }],
+        current: 1,
+        body: `${kit.field("Confirmer rule", kit.input("The person it was made to", { select: true }))}${kit.radio([{ label: "Green Goods team fallback on", meta: "Covers promises with no reachable confirmer", on: true }, { label: "Fallback off", meta: "Unconfirmable promises wait" }])}`,
+        back: "g.back", cancelHot: "g.cancel", next: kit.btn("Continue", { kind: "pri" }),
+      }), w: "l", h: 640 },
+    ],
+  },
+];
+
+// ---- editorial catalog ------------------------------------------------------
+
+const editorialPanel = `<div class="epanel"><span class="kicker">Promises</span>
+<h3 class="serif-h">Midway through the Season of First Rains</h3>
+<div class="estatrow"><div class="estat"><div class="serif-n">9</div><div class="l">promises made</div></div><div class="estat"><div class="serif-n">7</div><div class="l">kept so far</div></div></div>
+<hr class="erule">
+<p style="margin:0;max-width:52ch">Fulfilled promises from this cycle are anchored in the certificates below.</p>
+<button type="button" class="elink" disabled>See the gardens →</button></div>`;
+
+const EDITORIAL_ENTRIES: Entry[] = [
+  {
+    id: "site-header", title: "Site header", family: "chrome", covers: [],
+    kit: `siteHeader(active, installHot) — screens/public.ts`,
+    ship: "packages/client/src/components/Navigation/SiteHeader.tsx:68",
+    shipNote: "logo + nav + Install CTA; transparent over the hero in the real app",
+    rule: "The restrained top bar carries site context on mid-page editorial sections; Install is the one filled action.",
+    usedIn: /class="sitehdr/,
+    specs: [
+      { label: "impact active", html: `<div class="sitehdr"><span class="brand"><svg class="ic s" aria-hidden="true"><use href="#i-seedling-line"/></svg>Green Goods</span><nav><a>Gardens</a><a class="on">Impact</a><a>Fund</a><a>Actions</a></nav><button type="button" class="install" disabled>Install App</button></div>`, w: "l" },
+    ],
+  },
+  {
+    id: "web-window", title: "Web window", family: "chrome", covers: [],
+    kit: `webWin(url, body, installHot) — screens/public.ts`,
+    netNew: "the browser viewer frame for editorial screens",
+    rule: "Editorial screens present inside the browser frame with the site header; body copy owns the page below it.",
+    usedIn: /class="webwin/,
+    specs: [
+      { label: "frame + panel", html: `<div class="webwin"><div class="winbar"><span class="dots"><i></i><i></i><i></i></span><span class="url">greengoods.app/impact</span></div><div class="webbody">${editorialPanel}</div></div>`, w: "l", h: 520 },
+    ],
+  },
+  {
+    id: "editorial-panel", title: "Editorial panel", family: "cards", covers: [],
+    kit: `.epanel + .kicker + .serif-h + .estatrow + .erule + .elink — screens/public.ts`,
+    netNew: "sharp editorial panel with mono kicker, serif headline, serif numerals",
+    rule: "Aggregate-only public storytelling: counts and sentences, no rankings, no participant data; percentages only above the small-community threshold.",
+    usedIn: /class="epanel/,
+    specs: [{ label: "stats + link", html: editorialPanel, w: "l" }],
+  },
+  {
+    id: "pipeline", title: "Evidence pipeline", family: "chips", covers: [],
+    kit: `.pipe stage pills — screens/public.ts`,
+    netNew: "the five-stage evidence pipeline with the two new stages outlined green",
+    rule: "Promise and Confirmation read as the delta against the known pipeline; stages stay uppercase mono pills.",
+    usedIn: /class="pipe"/,
+    specs: [
+      { label: "five stages", html: `<div class="pipe">${["Assessment", "Promise", "Work", "Confirmation", "Certificate"].map((s) => `<span class="pstage${s === "Promise" || s === "Confirmation" ? " new" : ""}">${s}</span>`).join(`<span class="parr">→</span>`)}</div>`, w: "l" },
+    ],
+  },
+];
+
+// ---- assembly ---------------------------------------------------------------
+
+const SURFACES: { id: CompSurface; label: string; entries: Entry[] }[] = [
+  { id: "client", label: "Client PWA", entries: CLIENT_ENTRIES },
+  { id: "admin", label: "Steward console", entries: ADMIN_ENTRIES },
+  { id: "editorial", label: "Editorial website", entries: EDITORIAL_ENTRIES },
+];
+
+export const GALLERY_ERRORS: string[] = [];
+const seen = new Set<string>();
+for (const { id: surface, entries } of SURFACES) {
+  for (const e of entries) {
+    const key = `${surface}/${e.id}`;
+    if (seen.has(key)) GALLERY_ERRORS.push(`COMPONENTS: duplicate entry id ${key}`);
+    seen.add(key);
+    if (!e.specs.length) GALLERY_ERRORS.push(`COMPONENTS ${key}: no specimens`);
+    if (!e.ship && e.netNew == null) GALLERY_ERRORS.push(`COMPONENTS ${key}: neither shipping counterpart nor net-new note`);
+    const ids = usedInIds(surface, e.usedIn);
+    if (!ids.length) GALLERY_ERRORS.push(`COMPONENTS ${key}: where-used resolved to zero screens`);
+    for (const sid of ids) {
+      if (!SCREENS.some((s) => s.id === sid)) GALLERY_ERRORS.push(`COMPONENTS ${key}: unknown screen id ${sid}`);
+    }
+  }
+}
+
+/** Kit builders the gallery documents — the build asserts full kit coverage. */
+export const COVERED_KIT_BUILDERS = new Set(SURFACES.flatMap(({ entries }) => entries.flatMap((e) => e.covers)));
+
+const catalogHtml = (surface: CompSurface, entries: Entry[]): { html: string; specimens: string; chromeText: string } => {
+  const chromeParts: string[] = [];
+  const famBlocks = FAMILIES.flatMap(({ id, label }) => {
+    const fam = entries.filter((e) => e.family === id);
+    if (!fam.length) return [];
+    const rendered = fam.map((e) => entryHtml(surface, e));
+    chromeParts.push(label, ...rendered.map((r) => r.chromeText));
+    return [`<section class="cfam" id="cfam-${surface}-${id}"><h3>${esc(label)}</h3>${rendered.map((r) => r.html).join("")}</section>`];
+  });
+  const index = `<nav class="cindex" aria-label="Components in this surface">${FAMILIES.flatMap(({ id, label }) => {
+    const fam = entries.filter((e) => e.family === id);
+    if (!fam.length) return [];
+    const anchors = fam.map((e) => `<a href="#components/${e.id}${surface === "client" ? "" : `@${surface}`}">${esc(e.title)}</a>`).join("");
+    return [`<span class="cig"><b>${esc(label)}</b>${anchors}</span>`];
+  }).join("")}</nav>`;
+  const specimens = entries.flatMap((e) => e.specs.map((s) => specimen(s.html))).join("\n");
+  return { html: `${index}${famBlocks.join("")}`, specimens, chromeText: chromeParts.join(" ") };
+};
+
+const catalogs = SURFACES.map((s) => ({ ...s, ...catalogHtml(s.id, s.entries) }));
+
+/** Per-surface material for the validator: specimen HTML + annotation copy. */
+export const GALLERY_SCAN_INPUT = catalogs.map(({ id, specimens, chromeText }) => ({ surface: id, specimens, chromeText }));
+
+export const COMPONENT_COUNTS = {
+  entries: SURFACES.reduce((a, s) => a + s.entries.length, 0),
+  specimens: SURFACES.reduce((a, s) => a + s.entries.reduce((b, e) => b + e.specs.length, 0), 0),
+};
+
+export const COMPONENTS_TAB_HTML = `<div id="comps">
+  <h1>Components</h1>
+  <p class="sub">Every kit component and documented composite, one surface at a time — the three dialects are different design systems, so the flip below never mixes them. Entries lead with the shipping component name; specimens render every variant and state statically, controls disabled. Copy an entry's link with ⧉ to point at it in feedback.</p>
+  <div class="surface-tabs" role="tablist" aria-label="Component surface">${catalogs
+    .map(({ id, label }, ix) => `<button class="surface-tab${ix ? "" : " on"}" id="comp-tab-${id}" role="tab" aria-selected="${ix ? "false" : "true"}" aria-controls="comp-panel-${id}"${ix ? ' tabindex="-1"' : ""} data-comp-surface="${id}">${esc(label)}</button>`)
+    .join("")}</div>
+  ${catalogs
+    .map(({ id, html }, ix) => `<section class="catalog-panel comp-catalog" id="comp-panel-${id}" role="tabpanel" aria-labelledby="comp-tab-${id}" data-comp-surface="${id}"${ix ? " hidden" : ""}>${html}</section>`)
+    .join("")}
+</div>`;

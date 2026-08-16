@@ -18,15 +18,12 @@ fi
 
 echo "🔍 Running pre-push checks..."
 
-# Determine runner (bun preferred, npm fallback)
-if command -v bun >/dev/null 2>&1; then
-  RUNNER="bun run"
-elif command -v npm >/dev/null 2>&1; then
-  RUNNER="npm run"
-else
-  echo "Error: Neither bun nor npm found. Install bun: https://bun.sh"
+# Bun is the repository's required package manager.
+if ! command -v bun >/dev/null 2>&1; then
+  echo "Error: Bun is required. Install bun: https://bun.sh"
   exit 1
 fi
+RUNNER="bun run"
 
 # Print the recovery commands when any check fails, so users don't have to
 # remember the auto-fix path.
@@ -50,7 +47,7 @@ $RUNNER format:contracts:check
 
 # 2. Lint check (non-mutating)
 echo "🔎 Running linter..."
-$RUNNER lint:check
+$RUNNER lint
 
 trap - EXIT
 echo "✅ Pre-push checks passed!"

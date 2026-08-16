@@ -1,9 +1,9 @@
 /**
  * Typed accessor for the canonical Green Goods ontology sidecar.
  *
- * Internal for now — not exported from the package root or any public
- * subpath. Later phases (read-seam validation, the agent domain validator)
- * import from here; scripts read green-goods-ontology.json directly.
+ * The full semantic sidecar remains internal. Public consumers should use the
+ * compact read-only query seam in query.ts, which loads only the generated
+ * agent manifest.
  */
 
 import ontologyJson from "./green-goods-ontology.json";
@@ -17,3 +17,5 @@ const ontology = ontologyJson as unknown as GreenGoodsOntology;
 export function getOntology(): GreenGoodsOntology {
   return ontology;
 }
+
+export * from "./query";

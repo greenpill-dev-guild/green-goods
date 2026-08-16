@@ -92,11 +92,18 @@ const WORKFLOW_MATCHERS = new Map([
     (path) =>
       path.startsWith("packages/shared/src/") ||
       path.startsWith("packages/contracts/src/") ||
+      path.startsWith("packages/contracts/deployments/") ||
+      path.startsWith("packages/client/src/components/Public/") ||
+      path.startsWith("packages/client/src/views/Public/") ||
       [
         "packages/contracts/config/schemas.json",
+        "packages/client/src/views/Home/Garden/Assessment.tsx",
+        "packages/client/src/views/Home/Garden/Work.tsx",
         "packages/indexer/schema.graphql",
         "docs/docs/reference/glossary-community.md",
         "docs/docs/reference/ontology.generated.mdx",
+        "docs/docs/reference/ontology-human.generated.mdx",
+        "docs/docs/community/green-goods-claims.generated.mdx",
         "docs/docs/builders/integrations/entity-matrix.mdx",
         "scripts/quality/check-ontology.mjs",
         "scripts/quality/ontology-render.mjs",
@@ -104,9 +111,11 @@ const WORKFLOW_MATCHERS = new Map([
         "scripts/data/ontology-drift-baseline.json",
         ".github/workflows/ontology.yml",
         ".plans/active/commitment-pooling/contract-spec.md",
+        ".plans/active/commitment-pooling/status.json",
         ".plans/active/commitment-pooling/standing-commitments-spec.md",
         ".plans/active/commitment-credit-follow-on/spec.md",
         ".plans/active/community-interface/spec.md",
+        ".plans/active/community-interface/status.json",
         ".plans/active/commitment-pooling/settlement-spec.md",
         "docs/docs/builders/architecture/erd.mdx",
         "docs/docs/builders/specs/v1-0.mdx",

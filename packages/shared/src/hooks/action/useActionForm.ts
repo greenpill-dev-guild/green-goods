@@ -15,8 +15,10 @@ import type { ActionTranslationMap, ActionTranslationRecord, WorkInput } from ".
 // Schema
 // ---------------------------------------------------------------------------
 
-const ACTION_DOMAINS = [0, 1, 2, 3] as const;
-type ActionDomainValue = (typeof ACTION_DOMAINS)[number];
+// Named DOMAIN_ENUM_VALUES (not ACTION_DOMAINS) so the module-local numeric list
+// cannot be confused with the exported ACTION_DOMAINS string vocabulary.
+const DOMAIN_ENUM_VALUES = [0, 1, 2, 3] as const;
+type ActionDomainValue = (typeof DOMAIN_ENUM_VALUES)[number];
 
 const DOMAIN_SLUG_PREFIX: Record<ActionDomainValue, string> = {
   0: "solar",
@@ -74,7 +76,8 @@ export const createActionSchema = z
       .number()
       .int()
       .refine(
-        (value): value is ActionDomainValue => ACTION_DOMAINS.includes(value as ActionDomainValue),
+        (value): value is ActionDomainValue =>
+          DOMAIN_ENUM_VALUES.includes(value as ActionDomainValue),
         "Select a valid domain"
       ),
     startTime: z.coerce.date(),

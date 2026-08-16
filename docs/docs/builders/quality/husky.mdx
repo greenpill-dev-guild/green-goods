@@ -58,11 +58,8 @@ The pre-commit hook runs `lint-staged` to format only staged files:
 
 ```bash
 # .husky/pre-commit (simplified)
-if command -v bun >/dev/null 2>&1; then
-  bunx lint-staged
-elif command -v npm >/dev/null 2>&1; then
-  npx lint-staged
-fi
+command -v bun >/dev/null 2>&1 || exit 1
+bunx lint-staged
 ```
 
 `lint-staged` is configured in the root `package.json`:
@@ -85,12 +82,13 @@ The pre-push hook runs formatting and linting checks:
 
 ```bash
 # .husky/pre-push (simplified)
-$RUNNER format:contracts    # forge fmt
-$RUNNER format              # biome format
-$RUNNER lint                # oxlint + package linters
+$RUNNER check:foundry-version
+$RUNNER format:check
+$RUNNER format:contracts:check
+$RUNNER lint
 ```
 
-The pre-push hook auto-fixes formatting before checking lint. This ensures consistent formatting across the team without requiring developers to remember to run formatters manually.
+The pre-push hook is non-mutating. When it fails, it prints the Bun commands that format the affected files before retrying the push.
 
 ### Shell Compatibility
 
@@ -103,17 +101,11 @@ Both hooks are written for POSIX `sh` compatibility with careful handling of edg
 
 ### Package Manager Detection
 
-Hooks prefer `bun` but fall back to `npm`:
+Hooks require `bun`, matching the repository package-manager contract:
 
 ```bash
-if command -v bun >/dev/null 2>&1; then
-  RUNNER="bun run"
-elif command -v npm >/dev/null 2>&1; then
-  RUNNER="npm run"
-else
-  echo "Error: Neither bun nor npm found."
-  exit 1
-fi
+command -v bun >/dev/null 2>&1 || exit 1
+RUNNER="bun run"
 ```
 
 ## Running & Troubleshooting

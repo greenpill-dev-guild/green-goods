@@ -3,9 +3,11 @@
 // ordinary W21/W22 settlement machine instead of drawing a second value rail.
 
 import { hot } from "../html";
-import { actionBar, banner, btn, card, chip, disclosure, hdr, kv, pagepad, phoneFrame, stateChip } from "../kit";
+import {
+  acard, actionBar, adminCanvas, banner, btn, card, chip, deskWin, disclosure, hdr, kv, pagepad, pageHeader, phoneFrame, stateChip, teamstrip,
+} from "../kit";
 import type { StateFacts } from "../types";
-import { acard, adminCanvas, adminChromeHots, deskWin, pageHeader } from "./admin";
+import { adminChromeHots } from "./admin";
 import type { HifiDef } from "./index";
 
 const W36_STATES = [
@@ -32,7 +34,7 @@ const W36_LABEL: Record<W36State, string> = {
 function w36(state: W36State): string {
   const head = hdr("Design a market poster", { back: true });
   const intro = `<div class="cardrow" style="padding:0 2px">${chip("Offer", "offer")}${chip("40 G$", "plain")}${stateChip(W36_LABEL[state])}</div>
-${card(`<div class="cardrow"><span class="teamstrip"><span class="avatar" aria-hidden="true">M</span><span class="avatar" aria-hidden="true">B</span></span><span class="t-meta">Maria funds · Ben offers</span></div><div class="t-meta num">1 poster design · Season of First Rains</div>`, { cls: "flat" })}`;
+${card(`<div class="cardrow">${teamstrip(["M", "B"])}<span class="t-meta">Maria funds · Ben offers</span></div><div class="t-meta num">1 poster design · Season of First Rains</div>`, { cls: "flat" })}`;
 
   let status: string;
   switch (state) {
