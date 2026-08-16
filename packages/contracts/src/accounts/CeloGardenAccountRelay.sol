@@ -243,7 +243,7 @@ contract CeloGardenAccountRelay is CCIPReceiver, ReentrancyGuard {
     function _receiveProposal(bytes32 actionId, GardenSafeActionCodec.Action memory action) private {
         if (block.timestamp > action.deadline) revert ActionExpired();
         if (actionStatus[actionId] != GardenSafeActionCodec.ActionStatus.None) revert InvalidActionState();
-        if (action.actionNonce != nextActionNonce[action.gardenAccount]) revert InvalidActionNonce();
+        if (action.actionNonce < nextActionNonce[action.gardenAccount]) revert InvalidActionNonce();
 
         _actionDigests[actionId] = GardenSafeActionCodec.actionDigest(action);
         actionStatus[actionId] = GardenSafeActionCodec.ActionStatus.Proposed;

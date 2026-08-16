@@ -622,6 +622,120 @@ contract GardenAccountRelayTest is Test {
         relay.execute(actionId, action, GREEN_GOODS_SAFE, recoverySignature);
     }
 
+    function testRelay_acceptsNextSourceNonceAfterEarlierProposalExpiresBeforeDelivery() public {
+        bytes memory recoverySignature = hex"123456";
+        GardenSafeActionCodec.Action memory expiredAction = _action(recoverySignature);
+        expiredAction.deadline = uint64(block.timestamp + 1);
+        bytes32 expiredActionId = _propose(expiredAction);
+        bytes memory expiredProposal = sourceCcip.lastData();
+
+        vm.warp(block.timestamp + 2);
+        vm.chainId(CELO_CHAIN_ID);
+        vm.expectRevert(CeloGardenAccountRelay.ActionExpired.selector);
+        destinationCcip.deliver(
+            address(relay), bytes32(uint256(30)), ARBITRUM_SELECTOR, address(sourceRouter), expiredProposal
+        );
+        assertEq(relay.nextActionNonce(address(gardenAccount)), 0);
+
+        vm.chainId(ARBITRUM_CHAIN_ID);
+        vm.prank(address(gardenAccount));
+        sourceRouter.cancel{ value: 1 }(expiredActionId, expiredAction);
+        bytes memory absentCancellation = sourceCcip.lastData();
+
+        vm.chainId(CELO_CHAIN_ID);
+        vm.expectRevert(CeloGardenAccountRelay.InvalidActionState.selector);
+        destinationCcip.deliver(
+            address(relay), bytes32(uint256(31)), ARBITRUM_SELECTOR, address(sourceRouter), absentCancellation
+        );
+
+        GardenSafeActionCodec.Action memory nextAction = _action(recoverySignature);
+        assertEq(nextAction.actionNonce, 1);
+        bytes32 nextActionId = _propose(nextAction);
+        _deliverLatest(bytes32(uint256(32)));
+        assertEq(uint8(relay.actionStatus(nextActionId)), uint8(GardenSafeActionCodec.ActionStatus.Proposed));
+        assertEq(relay.nextActionNonce(address(gardenAccount)), 2);
+
+        GardenSafeActionCodec.Action memory staleAction = _action(recoverySignature);
+        staleAction.actionNonce = 0;
+        bytes memory staleProposal = GardenSafeActionCodec.encode(GardenSafeActionCodec.MessageKind.Proposal, staleAction);
+        vm.chainId(CELO_CHAIN_ID);
+        vm.expectRevert(CeloGardenAccountRelay.InvalidActionNonce.selector);
+        destinationCcip.deliver(
+            address(relay), bytes32(uint256(33)), ARBITRUM_SELECTOR, address(sourceRouter), staleProposal
+        );
+    }
+
+    function testRelay_rejectsUnsupportedSafeOperationAtBothEnds() public {
+        GardenSafeActionCodec.Action memory action = _action(hex"123456");
+        action.safeTransaction.operation = 2;
+
+        vm.chainId(ARBITRUM_CHAIN_ID);
+        vm.prank(address(gardenAccount));
+        vm.expectRevert(GardenActionRouter.InvalidAction.selector);
+        sourceRouter.propose{ value: 1 }(action);
+
+        bytes memory forgedProposal = GardenSafeActionCodec.encode(GardenSafeActionCodec.MessageKind.Proposal, action);
+        vm.chainId(CELO_CHAIN_ID);
+        vm.expectRevert(CeloGardenAccountRelay.InvalidAction.selector);
+        destinationCcip.deliver(
+            address(relay), bytes32(uint256(34)), ARBITRUM_SELECTOR, address(sourceRouter), forgedProposal
+        );
+    }
+
+    function testFuzz_RelayBuildSignaturesOrdersOwnersAndPadsDynamicSignature(
+        address gardenOwner,
+        address recoveryOwner,
+        bytes memory recoverySignature
+    )
+        public
+    {
+        vm.assume(gardenOwner != address(0) && recoveryOwner != address(0) && gardenOwner != recoveryOwner);
+        vm.assume(recoverySignature.length <= 512);
+
+        bytes memory signatures = relay.buildSafeSignatures(gardenOwner, recoveryOwner, recoverySignature);
+        uint256 paddingLength = (32 - (recoverySignature.length % 32)) % 32;
+        assertEq(signatures.length, 162 + recoverySignature.length + paddingLength);
+
+        address firstOwner = address(uint160(uint256(_wordAt(signatures, 0))));
+        address secondOwner = address(uint160(uint256(_wordAt(signatures, 65))));
+        assertLt(uint160(firstOwner), uint160(secondOwner));
+        _assertSignatureHeader(signatures, 0, firstOwner, gardenOwner, recoveryOwner);
+        _assertSignatureHeader(signatures, 65, secondOwner, gardenOwner, recoveryOwner);
+
+        assertEq(uint256(_wordAt(signatures, 130)), recoverySignature.length);
+        for (uint256 i; i < recoverySignature.length; ++i) {
+            assertEq(signatures[162 + i], recoverySignature[i]);
+        }
+        for (uint256 i; i < paddingLength; ++i) {
+            assertEq(signatures[162 + recoverySignature.length + i], bytes1(0));
+        }
+    }
+
+    function _assertSignatureHeader(
+        bytes memory signatures,
+        uint256 offset,
+        address owner,
+        address gardenOwner,
+        address recoveryOwner
+    )
+        private
+    {
+        assertTrue(owner == gardenOwner || owner == recoveryOwner);
+        if (owner == gardenOwner) {
+            assertEq(_wordAt(signatures, offset + 32), bytes32(0));
+            assertEq(uint8(signatures[offset + 64]), 1);
+        } else {
+            assertEq(uint256(_wordAt(signatures, offset + 32)), 130);
+            assertEq(uint8(signatures[offset + 64]), 0);
+        }
+    }
+
+    function _wordAt(bytes memory data, uint256 offset) private pure returns (bytes32 value) {
+        assembly ("memory-safe") {
+            value := mload(add(add(data, 32), offset))
+        }
+    }
+
     function _action(bytes memory recoverySignature) private view returns (GardenSafeActionCodec.Action memory action) {
         return _actionWithData(recoverySignature, abi.encodeCall(target.record, ()));
     }
@@ -697,5 +811,225 @@ contract GardenAccountRelayTest is Test {
     function _deliverLatest(bytes32 messageId) private {
         vm.chainId(CELO_CHAIN_ID);
         destinationCcip.deliver(address(relay), messageId, ARBITRUM_SELECTOR, address(sourceRouter), sourceCcip.lastData());
+    }
+}
+
+contract GardenAccountRelayInvariantHandler is Test {
+    uint64 private constant ARBITRUM_SELECTOR = 4_949_039_107_694_359_620;
+    uint64 private constant CELO_SELECTOR = 1_346_049_177_634_351_622;
+    uint256 private constant ARBITRUM_CHAIN_ID = 42_161;
+    uint256 private constant CELO_CHAIN_ID = 42_220;
+    address private constant GARDEN_TOKEN = 0xe1Da335110b1ed48e7df63209f5D424d02276593;
+    address private constant GREEN_GOODS_SAFE = 0x1B9Ac97Ea62f69521A14cbe6F45eb24aD6612C19;
+
+    GardenRelayMockCcipRouter private immutable _destinationCcip;
+    GardenRelayMockAccount private immutable _gardenAccount;
+    GardenRelayMockSafe private immutable _gardenSafe;
+    GardenRelayMockTarget private immutable _target;
+    CeloGardenAccountRelay private immutable _relay;
+    address private immutable _sourceRouter;
+
+    GardenSafeActionCodec.Action[] private _terminalActions;
+    GardenSafeActionCodec.ActionStatus[] private _terminalStatuses;
+    uint256 private _messageNonce;
+    uint256 public nonceFloor;
+
+    constructor(
+        GardenRelayMockCcipRouter destinationCcip,
+        GardenRelayMockAccount gardenAccount,
+        GardenRelayMockSafe gardenSafe,
+        GardenRelayMockTarget target,
+        CeloGardenAccountRelay relay,
+        address sourceRouter
+    ) {
+        _destinationCcip = destinationCcip;
+        _gardenAccount = gardenAccount;
+        _gardenSafe = gardenSafe;
+        _target = target;
+        _relay = relay;
+        _sourceRouter = sourceRouter;
+    }
+
+    function advance(uint8 terminalSeed) external {
+        if (_terminalActions.length >= 32) return;
+        GardenSafeActionCodec.Action memory action = _action();
+        bytes32 actionId = GardenSafeActionCodec.actionId(action);
+        _deliver(GardenSafeActionCodec.MessageKind.Proposal, action);
+        nonceFloor = _relay.nextActionNonce(address(_gardenAccount));
+
+        GardenSafeActionCodec.ActionStatus terminalStatus;
+        uint256 branch = terminalSeed % 3;
+        if (branch == 0) {
+            _deliver(GardenSafeActionCodec.MessageKind.Cancellation, action);
+            terminalStatus = GardenSafeActionCodec.ActionStatus.Cancelled;
+        } else if (branch == 1) {
+            _deliver(GardenSafeActionCodec.MessageKind.Finalization, action);
+            vm.chainId(CELO_CHAIN_ID);
+            _relay.execute(actionId, action, GREEN_GOODS_SAFE, hex"123456");
+            terminalStatus = GardenSafeActionCodec.ActionStatus.Executed;
+        } else {
+            vm.warp(action.deadline + 1);
+            vm.chainId(CELO_CHAIN_ID);
+            _relay.expire(actionId, action);
+            terminalStatus = GardenSafeActionCodec.ActionStatus.Expired;
+        }
+
+        _terminalActions.push(action);
+        _terminalStatuses.push(terminalStatus);
+    }
+
+    function replayTerminal(uint8 indexSeed) external {
+        if (_terminalActions.length == 0) return;
+        GardenSafeActionCodec.Action memory action = _terminalActions[indexSeed % _terminalActions.length];
+        try this.deliverProposalForInvariant(action) { } catch { }
+        try _relay.expire(GardenSafeActionCodec.actionId(action), action) { } catch { }
+    }
+
+    function deliverProposalForInvariant(GardenSafeActionCodec.Action calldata action) external {
+        if (msg.sender != address(this)) revert("self only");
+        GardenSafeActionCodec.Action memory actionCopy = action;
+        _deliver(GardenSafeActionCodec.MessageKind.Proposal, actionCopy);
+    }
+
+    function terminalCount() external view returns (uint256) {
+        return _terminalActions.length;
+    }
+
+    function terminalAt(uint256 index) external view returns (bytes32 actionId, GardenSafeActionCodec.ActionStatus status) {
+        return (GardenSafeActionCodec.actionId(_terminalActions[index]), _terminalStatuses[index]);
+    }
+
+    function _deliver(GardenSafeActionCodec.MessageKind kind, GardenSafeActionCodec.Action memory action) private {
+        vm.chainId(CELO_CHAIN_ID);
+        _destinationCcip.deliver(
+            address(_relay),
+            bytes32(++_messageNonce),
+            ARBITRUM_SELECTOR,
+            _sourceRouter,
+            GardenSafeActionCodec.encode(kind, action)
+        );
+    }
+
+    function _action() private view returns (GardenSafeActionCodec.Action memory action) {
+        bytes memory safeData = abi.encodeCall(_target.record, ());
+        GardenSafeActionCodec.SafeTransaction memory safeTransaction = GardenSafeActionCodec.SafeTransaction({
+            to: address(_target),
+            value: 0,
+            data: safeData,
+            operation: 0,
+            safeTxGas: 0,
+            baseGas: 0,
+            gasPrice: 0,
+            gasToken: address(0),
+            refundReceiver: address(0),
+            nonce: _gardenSafe.nonce()
+        });
+        bytes32 safeTransactionHash = _gardenSafe.getTransactionHash(
+            safeTransaction.to,
+            safeTransaction.value,
+            safeTransaction.data,
+            safeTransaction.operation,
+            safeTransaction.safeTxGas,
+            safeTransaction.baseGas,
+            safeTransaction.gasPrice,
+            safeTransaction.gasToken,
+            safeTransaction.refundReceiver,
+            safeTransaction.nonce
+        );
+        action = GardenSafeActionCodec.Action({
+            version: 1,
+            sourceEvmChainId: ARBITRUM_CHAIN_ID,
+            sourceChainSelector: ARBITRUM_SELECTOR,
+            sourceRouter: _sourceRouter,
+            gardenToken: GARDEN_TOKEN,
+            tokenId: 7,
+            gardenAccount: address(_gardenAccount),
+            destinationEvmChainId: CELO_CHAIN_ID,
+            destinationChainSelector: CELO_SELECTOR,
+            destinationRouter: address(_destinationCcip),
+            destinationRelay: address(_relay),
+            destinationSafe: address(_gardenSafe),
+            safeTransaction: safeTransaction,
+            safeTransactionHash: safeTransactionHash,
+            recoverySignatureHash: keccak256(abi.encode(GREEN_GOODS_SAFE, hex"123456")),
+            actionNonce: _relay.nextActionNonce(address(_gardenAccount)),
+            deadline: uint64(block.timestamp + 1 days)
+        });
+    }
+}
+
+contract GardenAccountRelayInvariantTest is Test {
+    uint64 private constant ARBITRUM_SELECTOR = 4_949_039_107_694_359_620;
+    uint64 private constant CELO_SELECTOR = 1_346_049_177_634_351_622;
+    uint256 private constant ARBITRUM_CHAIN_ID = 42_161;
+    uint256 private constant CELO_CHAIN_ID = 42_220;
+    address private constant IMPLEMENTATION = 0xE31cAeAc029A60AD17A49278Fdd58032eF9Cf692;
+    address private constant GARDEN_TOKEN = 0xe1Da335110b1ed48e7df63209f5D424d02276593;
+    bytes32 private constant SALT = 0x6551655165516551655165516551655165516551655165516551655165516551;
+    address private constant GREEN_GOODS_SAFE = 0x1B9Ac97Ea62f69521A14cbe6F45eb24aD6612C19;
+    address private constant DEV_GUILD_SAFE = 0x49fa954B6C2Cd14B4b3604EF1Cc17cED20a9E42C;
+
+    CeloGardenAccountRelay private _relay;
+    GardenRelayMockAccount private _gardenAccount;
+    GardenAccountRelayInvariantHandler private _handler;
+    address[] private _targetedContracts;
+
+    function targetContract(address target) internal {
+        _targetedContracts.push(target);
+    }
+
+    function targetContracts() public view returns (address[] memory) {
+        return _targetedContracts;
+    }
+
+    function setUp() public {
+        GardenRelayMockCcipRouter destinationCcip = new GardenRelayMockCcipRouter();
+        GardenRelayMockRegistry registry = new GardenRelayMockRegistry();
+        _gardenAccount = new GardenRelayMockAccount();
+        GardenRelayMockRecoverySafe recoveryImplementation = new GardenRelayMockRecoverySafe();
+        vm.etch(GREEN_GOODS_SAFE, address(recoveryImplementation).code);
+        vm.etch(DEV_GUILD_SAFE, address(recoveryImplementation).code);
+        GardenRelayMockSafe gardenSafe = new GardenRelayMockSafe(address(_gardenAccount), GREEN_GOODS_SAFE, DEV_GUILD_SAFE);
+        GardenRelayMockTarget target = new GardenRelayMockTarget();
+        address sourceRouter = address(0xA11CE);
+
+        address[] memory accounts = new address[](1);
+        accounts[0] = address(_gardenAccount);
+        address[] memory safes = new address[](1);
+        safes[0] = address(gardenSafe);
+
+        vm.chainId(CELO_CHAIN_ID);
+        _relay = new CeloGardenAccountRelay(
+            address(destinationCcip),
+            ARBITRUM_SELECTOR,
+            CELO_SELECTOR,
+            sourceRouter,
+            address(registry),
+            IMPLEMENTATION,
+            GARDEN_TOKEN,
+            GREEN_GOODS_SAFE,
+            DEV_GUILD_SAFE,
+            accounts,
+            safes
+        );
+        _gardenAccount.setRelay(address(_relay));
+        registry.setAccount(IMPLEMENTATION, SALT, ARBITRUM_CHAIN_ID, GARDEN_TOKEN, 7, address(_gardenAccount));
+
+        _handler = new GardenAccountRelayInvariantHandler(
+            destinationCcip, _gardenAccount, gardenSafe, target, _relay, sourceRouter
+        );
+        targetContract(address(_handler));
+    }
+
+    function invariant_RelayTerminalStatusesNeverChange() public {
+        uint256 count = _handler.terminalCount();
+        for (uint256 i; i < count; ++i) {
+            (bytes32 actionId, GardenSafeActionCodec.ActionStatus expected) = _handler.terminalAt(i);
+            assertEq(uint8(_relay.actionStatus(actionId)), uint8(expected));
+        }
+    }
+
+    function invariant_RelayNonceNeverDecreases() public {
+        assertGe(_relay.nextActionNonce(address(_gardenAccount)), _handler.nonceFloor());
     }
 }

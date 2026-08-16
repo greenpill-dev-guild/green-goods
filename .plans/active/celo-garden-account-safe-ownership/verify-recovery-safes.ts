@@ -10,6 +10,8 @@ import {
   keccak256,
 } from "ethers";
 
+import { assertRecoverySafeProof } from "../../../../packages/contracts/script/deploy/recovery-safe-proof";
+
 const RPC_URL = "https://forno.celo.org";
 const CHAIN_ID = 42_220;
 const CANONICAL_G_DOLLAR = "0x62B8B11039FcfE5aB0C56E502b1C372A3d2a9c7A";
@@ -110,7 +112,7 @@ async function inspectSafe(
 
   let invalidEip1271Probe: { reverted: boolean; data: string | null };
   try {
-    await provider.call(
+    const data = await provider.call(
       {
         to: safeAddress,
         data: EIP1271.encodeFunctionData("isValidSignature", [
@@ -120,7 +122,7 @@ async function inspectSafe(
       },
       blockTag,
     );
-    invalidEip1271Probe = { reverted: false, data: null };
+    invalidEip1271Probe = { reverted: false, data };
   } catch (error) {
     invalidEip1271Probe = { reverted: true, data: errorData(error) };
   }
@@ -186,6 +188,8 @@ const recoverySafes = Object.fromEntries(
     ]),
   ),
 );
+
+assertRecoverySafeProof(officialCode, recoverySafes);
 
 console.log(
   JSON.stringify(

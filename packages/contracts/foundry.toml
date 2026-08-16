@@ -24,7 +24,8 @@ via_ir = false
 sparse_mode = true       # Only recompile changed files
 broadcast = ".generated/foundry/broadcast"
 fs_permissions = [
-  { access = "read-write", path = "./" }
+  { access = "read-write", path = "./" },
+  { access = "read", path = "../../.plans/active/celo-garden-account-safe-ownership/evidence" }
 ]
 cache = true
 cache_path = ".generated/foundry/cache/default"

@@ -101,7 +101,9 @@ contract CeloGardenAccountReleaseTarget {
 /// @dev Every mutation is confined to pinned forks. No live deployment, Guardian grant, Safe transaction,
 ///      broadcast, or value movement is performed by this test.
 contract CeloGardenAccountReleaseForkTest is Test {
-    uint256 private constant ARBITRUM_BLOCK = 494_724_924;
+    uint256 private constant CELO_BLOCK_GAS_LIMIT = 30_000_000;
+    uint64 private constant SAFE_SALT_SOURCE_CHAIN_ID = 42_161;
+    uint256 private constant ARBITRUM_BLOCK = 495_035_413;
     uint256 private constant CELO_BLOCK = 74_938_820;
     uint256 private constant SOURCE_CHAIN_ID = 42_161;
     uint256 private constant CELO_CHAIN_ID = 42_220;
@@ -161,7 +163,11 @@ contract CeloGardenAccountReleaseForkTest is Test {
         CeloGardenAccountDeploymentCoordinator.DependencyDeployment[] memory dependencies = _dependencies();
         CeloGardenAccountDeploymentCoordinator.AccountInitialization[] memory accounts = _accounts();
         vm.prank(DEPLOYMENT_OPERATOR);
+        uint256 gasBefore = gasleft();
         coordinator.deployAndInitialize(dependencies, accounts);
+        uint256 deploymentGas = gasBefore - gasleft();
+        emit log_named_uint("Celo deployAndInitialize gas", deploymentGas);
+        assertLt(deploymentGas, CELO_BLOCK_GAS_LIMIT, "atomic deployment exceeds the Celo block gas limit");
         assertTrue(coordinator.completed(), "atomic coordinator did not complete");
         assertEq(IMPLEMENTATION.codehash, IMPLEMENTATION_CODE_HASH, "Celo implementation runtime differs");
 
@@ -317,7 +323,9 @@ contract CeloGardenAccountReleaseForkTest is Test {
         );
         address safe = IForkSafeFactory(SAFE_FACTORY)
             .createProxyWithNonce(
-                SAFE_SINGLETON, initializer, uint256(keccak256(abi.encode("GG_COMMITMENT_POOL_SAFE_V1", gardenAccount)))
+                SAFE_SINGLETON,
+                initializer,
+                uint256(keccak256(abi.encode("GG_COMMITMENT_POOL_SAFE_V1", SAFE_SALT_SOURCE_CHAIN_ID, gardenAccount)))
             );
         assertEq(IForkSafe(safe).getThreshold(), 2, "final Safe threshold changed");
         assertEq(IForkSafe(safe).nonce(), 0, "new final Safe nonce is not zero");
