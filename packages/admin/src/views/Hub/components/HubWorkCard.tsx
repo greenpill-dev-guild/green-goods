@@ -3,12 +3,11 @@ import {
   DOMAIN_CONFIG,
   cn,
   formatDateTime,
-  getRelativeTimeParts,
-  normalizeTimestamp,
   resolveIPFSUrl,
   stripGeneratedWorkTitleTimestamp,
   type Work,
 } from "@green-goods/shared";
+import { getRelativeTimeParts, normalizeTimestamp } from "@green-goods/shared/utils";
 import { useState, type CSSProperties } from "react";
 import { useIntl } from "react-intl";
 import { adminCardVariants } from "@/components/AdminCard";

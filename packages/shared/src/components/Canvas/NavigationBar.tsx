@@ -150,6 +150,7 @@ function FabButton({ config, mobileFloating = false }: FabButtonProps) {
   const closeSpeedDial = useCallback(() => {
     setSpeedDialOpen(false);
     setFocusedSpeedDialActionId(null);
+    fabButtonRef.current?.focus();
   }, []);
 
   const focusSpeedDialAction = useCallback((actionId: string) => {
@@ -164,12 +165,8 @@ function FabButton({ config, mobileFloating = false }: FabButtonProps) {
     (action: FabAction) => {
       if (action.disabled) return;
 
-      const actionId = action.id;
-      config.onAction(actionId);
+      config.onAction(action.id);
       closeSpeedDial();
-      // The invoked item unmounts with the dial, so focus would fall to
-      // <body>. Return it to the FAB, matching the Escape path below.
-      fabButtonRef.current?.focus();
     },
     [closeSpeedDial, config]
   );
@@ -179,7 +176,6 @@ function FabButton({ config, mobileFloating = false }: FabButtonProps) {
       if (event.key === "Escape") {
         event.preventDefault();
         closeSpeedDial();
-        fabButtonRef.current?.focus();
         return;
       }
 
@@ -344,15 +340,11 @@ function FabButton({ config, mobileFloating = false }: FabButtonProps) {
         ref={fabButtonRef}
         type="button"
         onClick={handleClick}
-        // Single-action mode renders `floatingActionLabel` as the visible
-        // label and tooltip, so the accessible name has to be that same string
-        // — speech input activates a control by what it says (WCAG 2.5.3).
+        // Name = visible label (WCAG 2.5.3); aria-expanded stays explicit when collapsed.
         aria-label={
           isSingleAction ? floatingActionLabel : formatMessage({ id: "cockpit.fab.openActions" })
         }
         aria-haspopup={isSingleAction ? undefined : "menu"}
-        // Explicit false while collapsed: a menu control that drops the
-        // attribute reads as non-expandable.
         aria-expanded={isSingleAction ? undefined : speedDialOpen}
         data-slot="fab-button"
         data-state={speedDialOpen ? "open" : "closed"}
@@ -384,7 +376,7 @@ function FabButton({ config, mobileFloating = false }: FabButtonProps) {
           type="button"
           className="fixed inset-0 z-[-1] cursor-default"
           style={{ position: "fixed", inset: 0, zIndex: -1, cursor: "default" }}
-          onClick={() => setSpeedDialOpen(false)}
+          onClick={closeSpeedDial}
           aria-hidden="true"
           tabIndex={-1}
           data-slot="speed-dial-backdrop"

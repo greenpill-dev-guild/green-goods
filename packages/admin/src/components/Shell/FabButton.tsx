@@ -53,6 +53,10 @@ export function FabButton({ config, mobileFloating = false }: FabButtonProps) {
   const closeSpeedDial = useCallback(() => {
     setSpeedDialOpen(false);
     setFocusedSpeedDialActionId(null);
+    // Every close path returns focus here: the dial's items unmount with it,
+    // so focus would otherwise fall to <body>. An action that opens a dialog
+    // moves focus again on its own.
+    fabButtonRef.current?.focus();
   }, []);
 
   const focusSpeedDialAction = useCallback((actionId: string) => {
@@ -69,10 +73,6 @@ export function FabButton({ config, mobileFloating = false }: FabButtonProps) {
 
       config.onAction(action.id);
       closeSpeedDial();
-      // The invoked item unmounts with the dial, so focus would fall to
-      // <body>. Return it to the FAB, matching the Escape path below. An
-      // action that opens a dialog moves focus again on its own.
-      fabButtonRef.current?.focus();
     },
     [closeSpeedDial, config]
   );
@@ -82,7 +82,6 @@ export function FabButton({ config, mobileFloating = false }: FabButtonProps) {
       if (event.key === "Escape") {
         event.preventDefault();
         closeSpeedDial();
-        fabButtonRef.current?.focus();
         return;
       }
 
@@ -262,7 +261,7 @@ export function FabButton({ config, mobileFloating = false }: FabButtonProps) {
         <button
           type="button"
           className="fixed inset-0 z-[-1] cursor-default"
-          onClick={() => setSpeedDialOpen(false)}
+          onClick={closeSpeedDial}
           aria-hidden="true"
           tabIndex={-1}
           data-slot="speed-dial-backdrop"
