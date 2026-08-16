@@ -23,7 +23,7 @@ function MockAccountSettingsPanel({ initialTheme, network }: MockAccountSettings
 
   return (
     <div className="flex max-w-xl flex-col gap-4">
-      <section className="space-y-4 rounded-xl bg-bg-white p-4 shadow-[var(--edge-rest),var(--elevation-1)]">
+      <section className="space-y-4 rounded-xl bg-bg-white p-4 shadow-[var(--edge-rest),var(--m3-elevation-1)]">
         <div>
           <h2 className="text-sm font-semibold text-text-strong">Theme</h2>
           <p className="mt-1 text-sm text-text-sub">
@@ -52,7 +52,7 @@ function MockAccountSettingsPanel({ initialTheme, network }: MockAccountSettings
         </div>
       </section>
 
-      <section className="space-y-3 rounded-xl bg-bg-white p-4 shadow-[var(--edge-rest),var(--elevation-1)]">
+      <section className="space-y-3 rounded-xl bg-bg-white p-4 shadow-[var(--edge-rest),var(--m3-elevation-1)]">
         <h2 className="text-sm font-semibold text-text-strong">Network</h2>
         <div className="rounded-xl bg-bg-soft px-4 py-3 text-sm font-medium text-text-strong">
           {network}

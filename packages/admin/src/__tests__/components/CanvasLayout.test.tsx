@@ -68,33 +68,69 @@ const {
   },
 }));
 
+vi.mock("@/components/Shell", () => ({
+  NavigationBar: ({
+    slots,
+    activePath,
+    onNavigate,
+  }: {
+    slots: Array<{ id: string; label: string; visible: boolean; path: string }>;
+    activePath: string;
+    onNavigate: (path: string) => void;
+  }) => {
+    mockNavigationBarProps({ slots, activePath, onNavigate });
+    return (
+      <div data-testid="navigation-bar">
+        <div data-testid="active-path">{activePath}</div>
+        <ul>
+          {slots
+            .filter((slot) => slot.visible)
+            .map((slot) => (
+              <li key={slot.id}>{slot.label}</li>
+            ))}
+        </ul>
+      </div>
+    );
+  },
+  AppBar: (props: {
+    gardenChip: React.ReactNode;
+    onOpenSearch?: () => void;
+    onOpenNotifications?: () => void;
+    onOpenSettings?: () => void;
+    onOpenProfile?: () => void;
+    profileImageSrc?: string;
+  }) => {
+    mockAppBarProps(props);
+    return (
+      <div data-testid="top-context-bar">
+        <div data-testid="top-context-garden">{props.gardenChip}</div>
+        {props.onOpenSettings ? (
+          <button type="button" onClick={props.onOpenSettings}>
+            Open Settings
+          </button>
+        ) : null}
+        {props.onOpenNotifications ? (
+          <button type="button" onClick={props.onOpenNotifications}>
+            Open Notifications
+          </button>
+        ) : null}
+        {props.onOpenProfile ? (
+          <button type="button" onClick={props.onOpenProfile}>
+            Open Profile
+          </button>
+        ) : null}
+      </div>
+    );
+  },
+  MainSheet: ({ children }: { children: React.ReactNode }) => (
+    <div data-testid="main-sheet">{children}</div>
+  ),
+}));
+
 vi.mock("@green-goods/shared", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@green-goods/shared")>();
   return {
     ...actual,
-    NavigationBar: ({
-      slots,
-      activePath,
-      onNavigate,
-    }: {
-      slots: Array<{ id: string; label: string; visible: boolean; path: string }>;
-      activePath: string;
-      onNavigate: (path: string) => void;
-    }) => {
-      mockNavigationBarProps({ slots, activePath, onNavigate });
-      return (
-        <div data-testid="navigation-bar">
-          <div data-testid="active-path">{activePath}</div>
-          <ul>
-            {slots
-              .filter((slot) => slot.visible)
-              .map((slot) => (
-                <li key={slot.id}>{slot.label}</li>
-              ))}
-          </ul>
-        </div>
-      );
-    },
     GardenChip: (props: {
       gardens: Array<{ id: string; name: string }>;
       selectedGarden: { id: string; name: string } | null;
@@ -113,36 +149,6 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
           <button type="button" onClick={() => props.onSelectGarden(null)}>
             Select All Gardens
           </button>
-        </div>
-      );
-    },
-    AppBar: (props: {
-      gardenChip: React.ReactNode;
-      onOpenSearch?: () => void;
-      onOpenNotifications?: () => void;
-      onOpenSettings?: () => void;
-      onOpenProfile?: () => void;
-      profileImageSrc?: string;
-    }) => {
-      mockAppBarProps(props);
-      return (
-        <div data-testid="top-context-bar">
-          <div data-testid="top-context-garden">{props.gardenChip}</div>
-          {props.onOpenSettings ? (
-            <button type="button" onClick={props.onOpenSettings}>
-              Open Settings
-            </button>
-          ) : null}
-          {props.onOpenNotifications ? (
-            <button type="button" onClick={props.onOpenNotifications}>
-              Open Notifications
-            </button>
-          ) : null}
-          {props.onOpenProfile ? (
-            <button type="button" onClick={props.onOpenProfile}>
-              Open Profile
-            </button>
-          ) : null}
         </div>
       );
     },

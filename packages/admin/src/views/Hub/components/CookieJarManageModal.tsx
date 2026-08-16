@@ -146,7 +146,7 @@ export function CookieJarManageModal({
                   <div className="flex items-center gap-2">
                     <p className="text-sm font-medium text-text-strong">{symbol}</p>
                     <span
-                      className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-medium ${
+                      className={`inline-flex rounded-full px-2 py-0.5 text-label-sm font-medium ${
                         jar.isPaused
                           ? "bg-warning-lighter text-warning-dark"
                           : "bg-success-lighter text-success-dark"

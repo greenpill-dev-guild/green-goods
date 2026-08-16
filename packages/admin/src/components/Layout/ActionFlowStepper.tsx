@@ -34,7 +34,7 @@ export interface ActionFlowStepperProps {
 }
 
 const DOT_BASE =
-  "flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full border text-[10px] font-semibold transition-colors duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)]";
+  "flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full border text-label-sm font-semibold transition-colors duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)]";
 
 // Tone-aware dot states. Inside a `data-tone` dialog `--tone-action` resolves to
 // the per-view hue; elsewhere it falls back to the green `--primary-action`.

@@ -443,7 +443,6 @@ export {
   formatDateRange,
   formatDateTime,
   formatDuration,
-  formatRelativeTime,
   fromDateInputValue,
   fromDateTimeLocalValue,
   getCurrentTimezone,
@@ -458,6 +457,7 @@ export {
   toSafeDate,
   toSafeInstant,
 } from "./time";
+export { formatRelativeTime, getRelativeTimeParts } from "./relativeTime";
 // ============================================================================
 // WORK
 // ============================================================================

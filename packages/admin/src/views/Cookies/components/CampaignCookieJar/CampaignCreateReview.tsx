@@ -85,7 +85,7 @@ export function CampaignCreateReview(props: CampaignCookieJarCreateFormProps) {
         </AdminCard>
       </aside>
 
-      <div className="fixed inset-x-0 bottom-[calc(80px+env(safe-area-inset-bottom))] z-sticky border-t border-[rgb(var(--m3-outline-variant))] bg-[rgb(var(--m3-surface-container-high))] p-3 shadow-[var(--m3-elevation-3)] lg:hidden">
+      <div className="fixed inset-x-0 bottom-[calc(80px+env(safe-area-inset-bottom))] z-sticky border-t border-[rgb(var(--m3-outline-variant))] bg-[rgb(var(--m3-surface-container-high))] p-3 shadow-[var(--m3-elevation-2)] lg:hidden">
         <div className="mx-auto flex max-w-[1400px] items-center justify-between gap-3">
           <div className="min-w-0">
             <p className="truncate text-label-md font-semibold text-[rgb(var(--m3-on-surface))]">

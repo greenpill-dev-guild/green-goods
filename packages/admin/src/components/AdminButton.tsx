@@ -18,8 +18,9 @@ const adminButtonVariants = tv({
     // outlined variant rendered 2px wider than filled (measured). Outlined
     // overrides only the border COLOR.
     "border border-transparent",
-    // Typography
-    "text-label-lg font-medium capitalize",
+    // Typography — sentence-case labels as authored ("Create assessment");
+    // no text-transform (1a spec).
+    "text-label-lg font-medium",
     // Motion
     "transition-all duration-[var(--spring-spatial-fast-duration)] ease-[var(--spring-spatial-fast-easing)]",
     // State layer (pseudo-element overlay defined in admin-m3-tokens.css)

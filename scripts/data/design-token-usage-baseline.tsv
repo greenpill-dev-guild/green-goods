@@ -2,11 +2,6 @@
 # Format: <raw usage hit><TAB><category><TAB><owner><TAB><expires><TAB><note>
 # The raw usage hit must exactly match scripts/design/check-tokens.sh collect_usage_hits output.
 # Expired entries, entries more than 250 days out, and duplicate hits fail check:design-tokens.
-packages/admin/src/components/AdminCheckbox.tsx "h-[18px] w-[18px] shrink-0 rounded-[2px]",	legacy-runtime	admin	2026-12-31	legacy literal tracked for migration to Warm Earth tokens
-packages/admin/src/components/AdminCheckbox.tsx * - Container: 18dp (h-[18px] w-[18px]), 2dp radius (rounded-[2px])	legacy-runtime	admin	2026-12-31	legacy literal tracked for migration to Warm Earth tokens
-packages/admin/src/views/Actions/ActionDetail.tsx <div className="h-28 rounded-[1.4rem] skeleton-shimmer" />	legacy-runtime	admin	2026-12-31	legacy literal tracked for migration to Warm Earth tokens
-packages/admin/src/views/Actions/ActionDetail.tsx <div className="h-80 rounded-[1.4rem] skeleton-shimmer" />	legacy-runtime	admin	2026-12-31	legacy literal tracked for migration to Warm Earth tokens
-packages/admin/src/views/Hub/components/HubWorkbenchSkeletonRows.tsx <div className="h-14 w-14 rounded-2xl skeleton-shimmer max-[599px]:h-11 max-[599px]:w-11 max-[599px]:rounded-[0.85rem]" />	legacy-runtime	admin	2026-12-31	legacy literal tracked for migration to Warm Earth tokens
 packages/client/src/components/Layout/Hero.tsx bgColor={isDark ? "#1a1a1a" : "#ffffff"}	legacy-runtime	client	2026-12-31	legacy literal tracked for migration to Warm Earth tokens
 packages/client/src/components/Layout/Hero.tsx fgColor={isDark ? "#ffffff" : "#000000"}	legacy-runtime	client	2026-12-31	legacy literal tracked for migration to Warm Earth tokens
 packages/client/src/config/pwa-manifest.ts backgroundColor: "#fff",	legacy-runtime	client	2026-12-31	web manifest requires serialized literal colors pending token export
@@ -137,3 +132,4 @@ packages/shared/src/components/Dialog/ImagePreviewDialog.tsx <span className="ml
 packages/shared/src/components/Dialog/ImagePreviewDialog.tsx className="btn-icon bg-bg-white-0/10 tap-feedback text-white rounded-full sm:ml-2"	legacy-runtime	shared	2026-12-31	white-on-image overlay chrome; tokens defer to image-preview palette work
 packages/shared/src/components/Dialog/ImagePreviewDialog.tsx className="btn-icon bg-bg-white-0/20 hover:bg-bg-white-0/30 tap-feedback text-white rounded-full"	legacy-runtime	shared	2026-12-31	white-on-image overlay chrome; tokens defer to image-preview palette work
 packages/shared/src/components/Dialog/ImagePreviewDialog.tsx className="hidden sm:flex btn-icon bg-bg-white-0/10 tap-feedback text-white rounded-full"	legacy-runtime	shared	2026-12-31	white-on-image overlay chrome; tokens defer to image-preview palette work
+packages/admin/src/components/AdminRevampTokens.stories.tsx "linear-gradient(180deg, var(--tone-surface-tint-color, transparent), transparent 320px), rgb(var(--m3-surface-container-low))",	storybook-fixture	admin	2026-12-31	token-gallery specimen documents the 1a canvas wash gradient

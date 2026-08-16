@@ -11,8 +11,14 @@ import { HubWorkCard } from "@/views/Hub/components/HubWorkCard";
 // Wrap in IntlProvider for formatMessage
 import { IntlProvider } from "react-intl";
 import en from "@green-goods/shared/i18n/en.json";
+import es from "@green-goods/shared/i18n/es.json";
 
-function renderCard(props: Partial<React.ComponentProps<typeof HubWorkCard>> = {}) {
+const MESSAGES: Record<string, Record<string, string>> = { en, es };
+
+function renderCard(
+  props: Partial<React.ComponentProps<typeof HubWorkCard>> = {},
+  locale: "en" | "es" = "en"
+) {
   const defaultWork: Work = {
     id: "0x123",
     title: "Planted 50 native saplings",
@@ -27,7 +33,7 @@ function renderCard(props: Partial<React.ComponentProps<typeof HubWorkCard>> = {
   };
 
   return render(
-    <IntlProvider locale="en" messages={en}>
+    <IntlProvider locale={locale} messages={MESSAGES[locale]}>
       <HubWorkCard
         work={defaultWork}
         actionDomain={Domain.AGRO}
@@ -116,7 +122,7 @@ describe("HubWorkCard", () => {
     expect(screen.queryByText("Review")).not.toBeInTheDocument();
   });
 
-  it("renders a friendly submitted date instead of an ISO timestamp", () => {
+  it("renders a friendly relative timestamp instead of an ISO timestamp", () => {
     const { container } = renderCard({
       work: {
         id: "0xdate",
@@ -127,13 +133,73 @@ describe("HubWorkCard", () => {
         feedback: "",
         metadata: "{}",
         media: [],
-        createdAt: new Date("2026-07-08T12:34:00Z").getTime() / 1000,
+        // 26 hours before "now" — the 1a meta row shows relative age ("1d ago").
+        createdAt: Date.now() / 1000 - 26 * 60 * 60,
         status: "pending",
       },
     });
 
-    expect(screen.getByText(/Submitted · Jul 8, 2026/)).toBeInTheDocument();
-    expect(container.textContent).not.toContain("2026-07-08T12:34:00.000Z");
+    expect(screen.getByText(/ago$/)).toBeInTheDocument();
+    expect(container.textContent).not.toContain("T12:34:00.000Z");
+  });
+
+  it("localizes the relative timestamp and keeps the exact time available", () => {
+    const createdAt = Date.now() / 1000 - 26 * 60 * 60;
+    const work: Work = {
+      id: "0xlocale",
+      title: "Trabajo localizado",
+      actionUID: 1,
+      gardenerAddress: "0x1234567890abcdef1234567890abcdef12345678" as `0x${string}`,
+      gardenAddress: "0xabcdefabcdefabcdefabcdefabcdefabcdefabcd" as `0x${string}`,
+      feedback: "",
+      metadata: "{}",
+      media: [],
+      createdAt,
+      status: "pending",
+    };
+
+    const { container } = renderCard({ work }, "es");
+
+    // Regression guard: the card used to render hardcoded English through the
+    // shared formatRelativeTime, so es/pt operators saw "1 day ago".
+    const time = container.querySelector("time");
+    expect(time).not.toBeNull();
+    expect(time?.textContent ?? "").not.toMatch(/ago$/);
+    expect(time?.textContent ?? "").toMatch(/hace/i);
+
+    // The relative value is lossy, so the exact submission time stays reachable
+    // as a machine-readable attribute and a hover title.
+    expect(time?.getAttribute("dateTime")).toBe(new Date(createdAt * 1000).toISOString());
+    expect(time?.getAttribute("title") ?? "").not.toBe("");
+  });
+
+  it("shows the action title when it differs from the work title", () => {
+    // The Hub queue search matches on the action title (filterPendingWorks /
+    // filterAssessmentQueue), so a hover-only title would render a search hit
+    // with no visible matching text.
+    renderCard({ actionTitle: "Compost rotation" });
+
+    expect(screen.getByText("Compost rotation")).toBeInTheDocument();
+  });
+
+  it("does not repeat the action title when the work title already carries it", () => {
+    renderCard({
+      actionTitle: "Community Cleanup",
+      work: {
+        id: "0xsame-title",
+        title: "Community Cleanup",
+        actionUID: 1,
+        gardenerAddress: "0x1234567890abcdef1234567890abcdef12345678" as `0x${string}`,
+        gardenAddress: "0xabcdefabcdefabcdefabcdefabcdefabcdefabcd" as `0x${string}`,
+        feedback: "",
+        metadata: "{}",
+        media: [],
+        createdAt: Date.now() / 1000,
+        status: "pending",
+      },
+    });
+
+    expect(screen.getAllByText("Community Cleanup")).toHaveLength(1);
   });
 
   it("strips generated ISO timestamp suffixes from legacy work titles", () => {

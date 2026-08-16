@@ -131,8 +131,8 @@ const closeButtonClasses = cn(
  * Every variant shares the Submit Work reference anatomy (the flow dialogs'
  * ActionFlowShell grammar), so standard/confirm/palette dialogs read as the
  * same product as the flows:
- * - Shape: corner-extra-large (28dp) via --m3-shape-xl; surface-container-high;
- *   elevation 3; scrim on-surface/32%
+ * - Shape: page-container radius (16dp) via --m3-shape-lg; surface-container-high;
+ *   elevation 2 over the scrim (the ladder tops out at level 2)
  * - Header: hairline-bottom bar (px-4 py-3 sm:px-6, border-stroke-soft) with
  *   an optional inline icon, text-lg semibold title, text-sm description
  * - Body: the scrollable region between header and footer (px-4 py-4 sm:px-6)
@@ -212,7 +212,7 @@ export function AdminDialog({
           className={cn(
             "fixed inset-0 z-overlay"
             // Scrim fade is driven by the [data-component="AdminDialog"][data-slot="overlay"]
-            // rules in admin-m3-overrides.css (keyed off Radix's data-state). Do NOT re-add
+            // rules in admin-m3-components.css (keyed off Radix's data-state). Do NOT re-add
             // Tailwind `animate-*`/`fade-*` classes here — the tailwindcss-animate plugin is
             // not loaded in this build, so those utilities emit no CSS (dead classes).
           )}
@@ -232,14 +232,14 @@ export function AdminDialog({
             // Mobile: standard + flow are true full-width action sheets; compact
             // surfaces (confirm + palette) keep the inset sheet. Desktop centers all.
             hasFullWidthMobileSheet ? fullWidthMobileSheetClasses : compactMobileSheetClasses,
-            "rounded-t-[var(--m3-shape-xl)] sm:rounded-[var(--m3-shape-xl)]",
+            "rounded-t-[var(--m3-shape-lg)] sm:rounded-[var(--m3-shape-lg)]",
             // Surface
             "bg-[rgb(var(--m3-surface-container-high))]",
-            // Elevation 3
-            "shadow-[var(--m3-elevation-3)]",
+            // Elevation 2
+            "shadow-[var(--m3-elevation-2)]",
             // Enter/exit motion (mobile sheet slide-up, desktop zoom) is driven by
             // the [data-component="AdminDialog"][data-slot="surface"][data-state]
-            // rules in admin-m3-overrides.css. Those keyframes animate only
+            // rules in admin-m3-components.css. Those keyframes animate only
             // `transform`; the centering uses Tailwind's independent `translate`
             // property, which composes so the surface stays centered. Do NOT re-add
             // Tailwind animate-*/slide-in-*/zoom-* classes — tailwindcss-animate is

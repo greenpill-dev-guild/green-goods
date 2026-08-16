@@ -6,26 +6,28 @@
 
 :root {
   /* --------------------------------------------------------------------------
-   * M3 Elevation Scale
-   * box-shadow values mapping to Material elevation levels 0–5
+   * M3 Elevation Scale — the ONE ladder (Cockpit M3 1a).
+   * Levels 1 and 2 only: cards and filled buttons rest at level 1 and step to
+   * level 2 on hover. Dialogs/sheets sit at level 2 over their scrim. The only
+   * other sanctioned shadow is the warm ambient chrome shadow on the floating
+   * navigation (--admin-chrome-shadow). Levels 3–5 and the parallel
+   * --elevation-* / --e* ladders are deleted — do not reintroduce them.
    * -------------------------------------------------------------------------- */
   --m3-elevation-0: none;
   --m3-elevation-1: 0 1px 2px rgba(0, 0, 0, 0.3), 0 1px 3px 1px rgba(0, 0, 0, 0.15);
   --m3-elevation-2: 0 1px 2px rgba(0, 0, 0, 0.3), 0 2px 6px 2px rgba(0, 0, 0, 0.15);
-  --m3-elevation-3: 0 1px 3px rgba(0, 0, 0, 0.3), 0 4px 8px 3px rgba(0, 0, 0, 0.15);
-  --m3-elevation-4: 0 2px 3px rgba(0, 0, 0, 0.3), 0 6px 10px 4px rgba(0, 0, 0, 0.15);
-  --m3-elevation-5: 0 4px 4px rgba(0, 0, 0, 0.3), 0 8px 12px 6px rgba(0, 0, 0, 0.15);
 
   /* --------------------------------------------------------------------------
    * M3 Shape Scale
-   * Border-radius tokens mapping to Material shape corners
+   * Border-radius tokens mapping to Material shape corners.
+   * The scale is 4 / 8 / 12 / 16 / 9999 — pills, 12px cards, 8px small
+   * controls, 16px page containers/dialogs. There is no 28px step.
    * -------------------------------------------------------------------------- */
   --m3-shape-none: 0px;
   --m3-shape-xs: 4px;
   --m3-shape-sm: 8px;
   --m3-shape-md: 12px;
   --m3-shape-lg: 16px;
-  --m3-shape-xl: 28px;
   --m3-shape-full: 9999px;
 
   /* --------------------------------------------------------------------------
@@ -50,12 +52,18 @@
   --m3-surface: var(--bg-white-0);
   --m3-surface-dim: 235 231 224;             /* oklch(93% .010 85) */
   --m3-surface-container-lowest: 255 255 255;
-  --m3-surface-container-low: 252 250 246;   /* oklch(98.5% .005 85) */
+  --m3-surface-container-low: 250 248 245;   /* #FAF8F5 — the linen canvas (DESIGN.md) */
   --m3-surface-container: 247 244 239;       /* oklch(96.8% .007 85) */
-  --m3-surface-container-high: 236 233 226;  /* oklch(93.5% .010 85) */
-  --m3-surface-container-highest: 226 222 213; /* oklch(90% .012 85) */
+  --m3-surface-container-high: 236 233 226;  /* oklch(93.5% .010 85) — chip bg */
+  --m3-surface-container-highest: 226 222 213; /* oklch(90% .012 85) — warm border step */
   --m3-on-surface: var(--text-strong-950);
   --m3-on-surface-variant: var(--text-sub-600);
+  /* Warm stone border (1a ramp): visible borders ride the 226 222 213 step —
+   * garden switcher, tab rail rule, card hairlines all share it. Declared here
+   * (unlayered) so it wins in admin; the dark flip below mirrors theme.css's
+   * dark intent because this unlayered :root value would otherwise beat
+   * theme's layered dark override. */
+  --stroke-sub-300: 226 222 213;
   /* Control-grade outline (4.8:1 on white): text-field/chip/outlined-button
    * boundaries. The old neutral-300 measured 1.49:1 — a decorative hairline
    * doing a control job. Decorative edges keep --m3-outline-variant. */
@@ -163,12 +171,12 @@
   --m3-elevation-0: none;
   --m3-elevation-1: 0 0 0 1px rgb(var(--neutral-50) / 0.06);
   --m3-elevation-2: 0 1px 2px rgb(0 0 0 / 0.5), 0 0 0 1px rgb(var(--neutral-50) / 0.09);
-  --m3-elevation-3: 0 4px 12px rgb(0 0 0 / 0.55), 0 0 0 1px rgb(var(--neutral-50) / 0.12);
-  --m3-elevation-4: 0 8px 24px rgb(0 0 0 / 0.6), 0 0 0 1px rgb(var(--neutral-50) / 0.14);
-  --m3-elevation-5: 0 16px 40px rgb(0 0 0 / 0.6), 0 0 0 1px rgb(var(--neutral-50) / 0.16);
 
   --m3-on-surface: var(--text-strong-950);
   --m3-on-surface-variant: var(--text-sub-600);
+  /* Dark pair of the unlayered :root --stroke-sub-300 remap above — restores
+   * theme.css's dark border intent (neutral-700, warm 68 64 60). */
+  --stroke-sub-300: var(--neutral-700);
   /* Control-grade outline for dark (7.7:1 vs surface, 6.1 vs dialog): the
    * remapped stroke-sub-300 (neutral-700) measured 1.89:1. */
   --m3-outline: var(--neutral-400);
@@ -262,3 +270,252 @@
   50% { transform: translateX(100%); }
   100% { transform: translateX(300%); }
 }
+
+/* --------------------------------------------------------------------------
+ * Shell chrome — Navigation dock material
+ *
+ * Geometry, typography, and states live in the forked Shell/NavigationBar.tsx
+ * JSX (admin's Tailwind scan reaches them). The translucent material + blur
+ * must stay in an approved chrome file per the Controlled Chrome contract in
+ * scripts/design/check-tokens.sh; it lives HERE (not index.css) so the shared
+ * Storybook — which imports this file but not the admin app entrypoint —
+ * renders the dock with the same material as the runtime. Active-state
+ * changes are motionless (PageTransition.test.tsx guards these rules).
+ * -------------------------------------------------------------------------- */
+.canvas-navigation-bar {
+  background: var(--admin-chrome-bg);
+  border: 1px solid var(--admin-chrome-border);
+  box-shadow: var(--admin-chrome-shadow);
+  backdrop-filter: blur(var(--admin-chrome-blur, 12px)) saturate(1.14);
+  -webkit-backdrop-filter: blur(var(--admin-chrome-blur, 12px)) saturate(1.14);
+  transition: none;
+}
+
+.canvas-navigation-bar button {
+  transition: none;
+}
+
+.canvas-navigation-bar button > span:first-child {
+  transition: none;
+}
+
+.canvas-navigation-bar button > span:last-child {
+  transition: none;
+}
+
+@media (prefers-contrast: more) {
+  .canvas-navigation-bar {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    background: rgb(var(--m3-surface-container));
+  }
+}
+
+@supports not (backdrop-filter: blur(1px)) {
+  .canvas-navigation-bar {
+    background: rgb(var(--admin-surface-0, 255 255 255));
+  }
+}
+/* Animatable workspace tint — enables color cross-dissolve between views */
+@property --tone-surface-tint-color {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: transparent;
+}
+
+/* ============================================================================
+ * WORKSPACE TONAL PALETTES — M3-style per-workspace color roles
+ * hub=blue, garden=green, community=orange, actions=red.
+ *
+ * Route color is environmental: canvas tint, focus, hairlines, and one filled
+ * action role. Dense surfaces remain solid and readable.
+ * ============================================================================ */
+
+/* Hub — Blue. `--tone-action` stays deep so filled actions keep white text. */
+[data-tone="hub"] {
+  --tone-primary: var(--blue-600);
+  --tone-on-primary: 255 255 255;
+  --tone-action: var(--blue-700);
+  --tone-action-hover: var(--blue-800);
+  --tone-on-action: 255 255 255;
+  --tone-primary-container: var(--blue-100);
+  --tone-on-primary-container: var(--blue-900);
+  /* Contrast-safe accent for tone-colored TEXT / outline / icon on light
+     surfaces (AA ≥4.5 on white). Distinct from --tone-action (filled bg w/ white
+     text) and --tone-primary (the mid fill step — too light as text, e.g.
+     green-600 ≈ 2.85:1). Consumed directly via var(); never indirected at :root. */
+  --tone-on-surface-accent: var(--blue-700);
+  --tone-surface-tint-color: rgb(var(--blue-500) / 5%);
+}
+
+/* Garden — Green. Uses a forest action tone for the cockpit's strongest CTA. */
+[data-tone="garden"] {
+  /* Dual-safe forest green (light applies the dark block's dual-use rule):
+   * green-600 failed as white-text fill (2.85) and as link text (2.85); the
+   * green-700 CTA failed AA with white (4.29). green-800 measures 5.72 both
+   * directions; hover deepens to green-900 (7.19). */
+  --tone-primary: var(--green-800);
+  --tone-on-primary: 255 255 255;
+  --tone-action: var(--green-800);
+  --tone-action-hover: var(--green-900);
+  --tone-on-action: 255 255 255;
+  --tone-primary-container: var(--green-100);
+  --tone-on-primary-container: var(--green-900);
+  --tone-on-surface-accent: var(--green-800);
+  --tone-surface-tint-color: rgb(var(--green-500) / 5%);
+}
+
+/* Community — Amber/Gold. The ambient canvas wash leans gold (oklch hue 80,
+   vs the Actions red-orange neighbor at 30) so the workspace reads clearly
+   apart (QA round 2: the earlier hue-50 wash still sat too close to red).
+   Primary stays orange-600 and action orange-700 because --tone-primary feeds
+   --m3-primary, which M3 renders as a white-text filled background (buttons,
+   FAB, date-picker selected day) — those need AA contrast, and orange-600 is
+   the lightest white-safe step in the ramp. The yellow separation therefore
+   comes from the canvas wash, surface tint, secondary, and containers, not the
+   primary accent. */
+[data-tone="community"] {
+  --tone-primary: var(--orange-600);
+  --tone-on-primary: 255 255 255;
+  --tone-action: var(--orange-700);
+  --tone-action-hover: var(--orange-800);
+  --tone-on-action: 255 255 255;
+  --tone-primary-container: var(--yellow-100);
+  --tone-on-primary-container: var(--yellow-900);
+  /* orange-800 (not -700) so tone-colored TEXT on the light community surface
+     clears AA — orange-700 measured 4.01:1 on the 14px current-step rail label. */
+  --tone-on-surface-accent: var(--orange-800);
+  --tone-surface-tint-color: rgb(var(--yellow-500) / 5%);
+}
+
+/* Actions — Red */
+[data-tone="actions"] {
+  /* red-500 (handoff 224 56 53) measured 4.39 as a white-text fill and as
+   * accent text on white — red-700 is dual-safe at 6.4 both directions. */
+  --tone-primary: var(--red-700);
+  --tone-on-primary: 255 255 255;
+  --tone-action: var(--red-700);
+  --tone-action-hover: var(--red-800);
+  --tone-on-action: 255 255 255;
+  --tone-primary-container: var(--red-100);
+  --tone-on-primary-container: var(--red-900);
+  --tone-on-surface-accent: var(--red-700);
+  --tone-surface-tint-color: rgb(var(--red-500) / 5%);
+}
+
+/* Home — Stone/Neutral (unauthenticated) */
+[data-tone="home"] {
+  /* neutral-600 (was -500): the stone accent measured 4.40 as text on the
+   * card — one step deeper clears body-text AA (5.9 card / 7.6 white). */
+  --tone-primary: 87 83 78;
+  --tone-on-primary: 255 255 255;
+  --tone-action: 68 64 60;
+  --tone-action-hover: 41 37 36;
+  --tone-on-action: 255 255 255;
+  --tone-primary-container: 231 229 228;
+  --tone-on-primary-container: 41 37 36;
+  --tone-on-surface-accent: 68 64 60;
+  --tone-surface-tint-color: rgb(120 113 108 / 5%);
+}
+
+/* Focus-ring role — the one token components use for focus indicators.
+ * Light: the deep filled-action step (≥5:1 on light surfaces). Dark: the bright
+ * on-surface accent (≥11:1) — deep fills measure 2.3–2.7 against dark surfaces,
+ * below the 3:1 non-text minimum, so the ring flips to the text-accent step.
+ * Resolves per-element via the tone indirection, exactly like --m3-primary. */
+[data-tone] {
+  --tone-focus-ring: var(--tone-action);
+}
+[data-theme="dark"][data-tone],
+[data-theme="dark"] [data-tone] {
+  --tone-focus-ring: var(--tone-on-surface-accent);
+}
+
+/* Dark mode workspace accents — deliberate, AA-verified (not a light inversion).
+ *
+ * DUAL-USE RULE (do not "fix" --tone-primary to a deep step): --tone-primary
+ * feeds --m3-primary, which admin components consume BOTH as a white-text FILL
+ * (checkbox, progress, badge) AND as on-surface TEXT/icon/link color
+ * (legacy admin overrides color:, CampaignCookieJarPanel links,
+ * CreateListingDialog icon). So --tone-primary stays LIGHT (the -200 step) to
+ * read on the dark card (≥11.6:1), paired with a dark --tone-on-primary for the
+ * tonal-fill case. Saturation lives in --tone-action (the strong filled CTA,
+ * deep + white text, ≥5.0:1) and vividness in the canvas wash + bright accent
+ * text — NOT in the primary fill, which would break the text usages above.
+ * Every block keeps --tone-on-surface-accent (gate; the bright tone-TEXT role).
+ * All ratios verified against the warm card surface (32 25 19). */
+[data-theme="dark"][data-tone="hub"],
+[data-theme="dark"] [data-tone="hub"] {
+  --tone-primary: var(--blue-200);
+  --tone-on-primary: var(--blue-900);
+  --tone-action: var(--blue-700);
+  --tone-action-hover: var(--blue-800);
+  --tone-on-action: 255 255 255;
+  --tone-primary-container: var(--blue-900);
+  --tone-on-primary-container: var(--blue-100);
+  --tone-on-surface-accent: var(--blue-200);
+  --tone-surface-tint-color: rgb(var(--blue-200) / 10%);
+}
+
+[data-theme="dark"][data-tone="garden"],
+[data-theme="dark"] [data-tone="garden"] {
+  --tone-primary: var(--green-200);
+  --tone-on-primary: var(--green-900);
+  --tone-action: var(--green-800);
+  --tone-action-hover: var(--green-900); /* deeper hover stays white-safe (green-700 fails 4.29) */
+  --tone-on-action: 255 255 255;
+  --tone-primary-container: var(--green-900);
+  --tone-on-primary-container: var(--green-100);
+  --tone-on-surface-accent: var(--green-200);
+  --tone-surface-tint-color: rgb(var(--green-200) / 10%);
+}
+
+/* Community = amber/gold. Filled action is a DEEP amber (orange-700, white-safe
+ * 5.0:1) — a brighter amber is not white-safe, so the gold identity comes from
+ * the wash, accent text, secondary and containers (the yellow family), matching
+ * the light-mode strategy. Same orange-700 fill value as light mode → no hue
+ * flip between modes. */
+[data-theme="dark"][data-tone="community"],
+[data-theme="dark"] [data-tone="community"] {
+  --tone-primary: var(--yellow-200);
+  --tone-on-primary: var(--yellow-900);
+  --tone-action: var(--orange-700);
+  --tone-action-hover: var(--orange-800);
+  --tone-on-action: 255 255 255;
+  --tone-primary-container: var(--yellow-900);
+  --tone-on-primary-container: var(--yellow-100);
+  --tone-on-surface-accent: var(--yellow-200);
+  --tone-surface-tint-color: rgb(var(--yellow-200) / 10%);
+}
+
+[data-theme="dark"][data-tone="actions"],
+[data-theme="dark"] [data-tone="actions"] {
+  --tone-primary: var(--red-200);
+  --tone-on-primary: var(--red-900);
+  --tone-action: var(--red-700);
+  --tone-action-hover: var(--red-800); /* deeper hover stays white-safe (red-600 fails 4.15) */
+  --tone-on-action: 255 255 255;
+  --tone-primary-container: var(--red-900);
+  --tone-on-primary-container: var(--red-100);
+  --tone-on-surface-accent: var(--red-200);
+  --tone-surface-tint-color: rgb(var(--red-200) / 10%);
+}
+
+[data-theme="dark"][data-tone="home"],
+[data-theme="dark"] [data-tone="home"] {
+  --tone-primary: var(--neutral-300);
+  --tone-on-primary: var(--neutral-900);
+  --tone-action: var(--neutral-600);
+  --tone-action-hover: var(--neutral-700);
+  --tone-on-action: 255 255 255;
+  --tone-primary-container: var(--neutral-700);
+  --tone-on-primary-container: var(--neutral-100);
+  --tone-on-surface-accent: var(--neutral-300);
+  --tone-surface-tint-color: rgb(var(--neutral-300) / 10%);
+}
+
+/* Workspace color cross-dissolve when switching views */
+[data-tone] {
+  transition: --tone-surface-tint-color var(--spring-effects-slow-duration) var(--spring-effects-slow-easing);
+}
+

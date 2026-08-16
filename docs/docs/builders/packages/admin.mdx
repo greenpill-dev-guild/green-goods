@@ -4,13 +4,17 @@ sidebar_label: Admin
 slug: /builders/packages/admin
 audience: developer
 owner: docs
-last_verified: 2026-05-21
+last_verified: 2026-08-15
 feature_status: Live
 source_of_truth:
   - AGENTS.md
   - packages/admin/AGENTS.md
+  - packages/admin/DESIGN.md
   - packages/admin/src/App.tsx
   - packages/admin/src/router.tsx
+  - packages/admin/src/index.css
+  - packages/admin/src/styles/admin-m3-tokens.css
+  - packages/admin/src/styles/admin-m3-components.css
   - packages/shared/.storybook/main.ts
 ---
 
@@ -49,18 +53,18 @@ The admin package is the Green Goods operator canvas. This page is the single UI
 - The shell is `AppBar + .workspace-canvas + MainSheet + NavigationBar`.
 - `AppBar` is the sticky `z-sticky h-14` context region with `GardenChip` on the left and search, notifications, settings, and profile controls on the right. The three global actions open the `AdminSideSheet`; settings and profile are desktop-only (on mobile those surfaces live in the Profile tab, and the bell remains).
 - `NavigationBar` is navigation only. The canonical items are `Hub`, `Garden`, `Community`, and `Actions` (plus the mobile-only Profile tab).
-- Controlled Chrome is the admin material boundary: subtle liquid glass is permitted on NavigationBar/FAB only. The AppBar root stays transparent so the workspace canvas tone reads behind it. Route cards, forms, tables, lists, dense content, dialogs, and the account side sheet stay solid.
+- Controlled Chrome is the admin material boundary: the NavigationBar/FAB dock is the only translucent surface — flat `rgb(var(--admin-surface-0) / 0.85)` with a 12px backdrop blur, a warm ambient shadow (`--admin-chrome-shadow`), and a 1px ink ring. The AppBar root and `MainSheet` stay transparent so content sits directly on the constant linen canvas. Route cards, forms, tables, lists, dense content, dialogs, and the account side sheet stay solid.
 - `ConnectShell` is the disconnected full-screen state with a centered connect prompt and no navigation.
-- Admin owns `CanvasLayout`, `AdminSideSheet`, `CommandPalette`, `AccountProfilePanel`, `AccountSettingsPanel`, `AccountSurface`, `ConnectShell`, and `PageHeader`.
+- Admin owns the shell forks in `packages/admin/src/components/Shell/` — `AppBar`, `NavigationBar` (with the FAB), and `MainSheet` — plus `CanvasLayout`, `AdminSideSheet`, `CommandPalette`, `AccountProfilePanel`, `AccountSettingsPanel`, `AccountSurface`, `ConnectShell`, and `PageHeader`.
 - Account panels render `AccountProfilePanel` and `AccountSettingsPanel` as separate contents of the `AdminSideSheet` account inspector (routed through the right-sheet registry). `AccountSurface` remains the route-level tabbed account surface for mobile profile navigation — tabs **Account | Settings** ("Account" is the mobile name for the desktop Profile sheet content; notifications never appear as a tab).
-- Shared owns `AppBar`, `NavigationBar`, `GardenChip`, `MainSheet`, `NotificationPanel`, and `SheetErrorBoundary`. The `LeftSheet`/`RightSheet`/`BottomSheet` renderers are deleted — every workspace overlay uses `AdminDialog` (centered on desktop, with the variant-specific mobile geometry in the dialog contract); the three global AppBar surfaces are the one `AdminSideSheet` exception.
+- Shared owns `GardenChip`, `NotificationPanel`, and `SheetErrorBoundary`; `AppBar`, `NavigationBar`, and `MainSheet` are admin-owned forks in `components/Shell/`. The `LeftSheet`/`RightSheet`/`BottomSheet` renderers are deleted — every workspace overlay uses `AdminDialog` (centered on desktop, with the variant-specific mobile geometry in the dialog contract); the three global AppBar surfaces are the one `AdminSideSheet` exception.
 
 ## Preferred Primitives
 
-- `AppBar`
-- `NavigationBar`
-- `MainSheet`
-- `GardenChip`
+- `AppBar` (admin Shell fork)
+- `NavigationBar` (admin Shell fork)
+- `MainSheet` (admin Shell fork)
+- `GardenChip` (shared)
 - `CommandPalette`
 - `AccountSettingsPanel`
 - `ConnectShell`
@@ -72,10 +76,12 @@ The admin package is the Green Goods operator canvas. This page is the single UI
 - `AdminDialog`
 - `AdminFab`
 - `AdminFilterChip`
+- `AdminInlineField`
 - `AdminLinearProgress`
 - `AdminListItem`
 - `AdminSearchToolbar`
 - `AdminSelectableCard`
+- `AdminSettingRow`
 - `AdminChoiceGroup`
 - `AdminConfirmDialog`
 - `AdminSideSheet`
@@ -99,9 +105,11 @@ The admin package is the Green Goods operator canvas. This page is the single UI
 ## Surface Primitives
 
 - `.workspace-canvas` is the default canvas workspace treatment.
+- `.canvas-route-card` is the route content frame — now transparent, so route content sits directly on the linen canvas.
 - `.surface-section` creates a rounded full-width section wrapper.
 - `.surface-inset` creates nested panels inside a section.
 - `.surface-card` creates interactive tiles.
+- `--admin-surface-0` is the white card role — solid raised surfaces (cards, dialogs, the dock base) draw from it.
 
 ## Dialog Contract
 
@@ -120,7 +128,7 @@ The admin package is the Green Goods operator canvas. This page is the single UI
 
 Every variant shares one chrome — the action-flow reference anatomy — so standard, confirm, and palette dialogs read as the same product as the flows:
 
-- **Chrome.** Header is a hairline-bottom bar (`px-4 py-3 sm:px-6`) with an optional inline icon, a `text-lg` semibold **Title Case** title, and a `text-sm` sentence-case description. The body is the scrollable region between header and footer. The `actions` slot renders as a pinned footer bar — hairline top border on `--surface-raised` (the same anatomy `SheetFooter` gives the flows). `AdminDialog` owns all of this; consumers never rebuild header or footer chrome.
+- **Chrome.** Header is a hairline-bottom bar (`px-4 py-3 sm:px-6`) with an optional inline icon, a title-large (22px/28px at weight 600) **sentence-case** title, and a `text-sm` sentence-case description. The body is the scrollable region between header and footer. The `actions` slot renders as a pinned footer bar — hairline top border on the raised white surface (the `--admin-surface-0` family), the same anatomy `SheetFooter` gives the flows. `AdminDialog` owns all of this; consumers never rebuild header or footer chrome.
 - **One header, one footer.** Interior content never repeats a heading the dialog header states (no `Card.Header` inside a dialog), and a non-flow dialog that passes `actions` must not also nest a `SheetFooter`. Both are guard-tested.
 - **Footer Cancel exits the dialog.** A footer `Cancel` runs the same guarded close as the X / scrim / Escape (confirm-before-discard when the form is dirty), and is disabled only while a write is in flight — it is not a form-reset, and is not disabled just because the form is pristine (a disabled-when-clean Cancel reads as broken). `Save` stays disabled until the form is dirty and valid.
 - **Body sections** separate with `space-y-4`/`space-y-6`; **section eyebrows** use the `label-xs`/`label-md` utilities in sentence case — no ad-hoc `uppercase tracking-wide`. A **field label** (the title that labels a control) is different: it routes through `FormField` (stacked field) or `AdminSettingRow` (inline setting row), also sentence case — never the `label-xs text-text-soft` eyebrow token, which reads smaller and greyer than the fields beside it. Label/value pairs render as one-line definition rows (label left in `text-text-soft`, value right), not stacked icon rows.
@@ -143,21 +151,21 @@ Every variant shares one chrome — the action-flow reference anatomy — so sta
 ## Canvas UI Heuristics
 
 - Admin is an operator canvas. Use utility copy and operational hierarchy over marketing language.
-- Default page sequence is `PageHeader`, then the primary workspace, then any secondary inspector (`AdminDialog`, centered on desktop).
+- Default page sequence is the `CanvasRouteFrame` + `CanvasRouteHeader` composition (`PageHeader` under the hood — views never import it directly), then the primary workspace, then any secondary inspector (`AdminDialog`, centered on desktop).
 - Start with layout and flow before introducing cards or elevated panels.
 - Cards and elevated surfaces are for discrete records, action targets, and bounded interaction zones. They are not the default page structure.
 - Prefer one dominant workspace surface per route and plain layout within it. Avoid nested stacks of rounded bordered panels.
 - Avoid hero sections, decorative promo callouts, and decorative gradients behind routine product UI.
-- Use route-tint atmosphere, transparent AppBar continuity, Controlled Chrome depth on Navigation/FAB, and high-contrast state accents to establish hierarchy without turning the UI into a promo surface.
+- Use the faint workspace wash over the constant linen canvas, transparent AppBar continuity, Controlled Chrome depth on Navigation/FAB, and high-contrast state accents to establish hierarchy without turning the UI into a promo surface.
 - Use `/hub` as the reference implementation for canvas composition and interaction density.
-- `bun run check:design-tokens` enforces the material boundary: admin source must not add glass, backdrop blur, or decorative gradients outside `packages/admin/src/index.css` and `admin-m3-overrides.css`.
+- `bun run check:design-tokens` enforces the material boundary: admin source must not add glass, backdrop blur, or decorative gradients outside `packages/admin/src/index.css`, `admin-m3-tokens.css`, and `admin-m3-components.css`. The dock material itself is defined by the Controlled Chrome contract rules in `admin-m3-tokens.css`; the dock's geometry lives in the Shell JSX.
 - Route content, canvas tone changes, FAB menus, sheets, and interaction state use the admin motion role aliases (`--admin-motion-*`) layered on top of the canonical `--spring-*` tokens.
 
 ## Unified Canvas Route Contract
 
 - Every primary route must answer one operator question, not three.
 - The first viewport must show: route title, one short scope sentence, current garden context when applicable, one control row, and the first actionable content.
-- Default page anatomy is `PageHeader` -> one dominant workspace canvas -> optional secondary inspector (`AdminDialog`, centered on desktop, or a single rail).
+- Default page anatomy is `CanvasRouteFrame` + `CanvasRouteHeader` -> one dominant workspace canvas -> optional secondary inspector (`AdminDialog`, centered on desktop, or a single rail).
 - Use one control grammar per route. Choose one of: stage tabs, view tabs, or a list toolbar. Do not stack multiple competing switchers and banners above the workspace.
 - Use at most one strong CTA in the header. If a FAB exists for the route, the header should not duplicate the same creation action.
 - View-level actions must flow through `ViewAction` + `AdminViewActions` on desktop and the same action set through `useViewActions` for tablet/mobile FAB speed dial. Do not add duplicate inline edit buttons inside route bodies for the same action; contextual row actions are allowed when the row is the only discoverable setting control.
@@ -208,9 +216,9 @@ Use this as the default assembly order for a new or refreshed primary admin rout
 
 ## Page Families
 
-- List pages: `PageHeader + ListToolbar + filters/sort + loading/empty/error + results`
-- Detail and workbench pages: `PageHeader` or garden hero plus main/rail composition
-- Operational pages: `PageHeader + stage/tabs + primary workspace + optional inspector`
+- List pages: `CanvasRouteFrame + CanvasRouteHeader + ListToolbar + filters/sort + loading/empty/error + results`
+- Detail and workbench pages: `CanvasRouteFrame + CanvasRouteHeader` (or garden hero) plus main/rail composition
+- Operational pages: `CanvasRouteFrame + CanvasRouteHeader + stage/tabs + primary workspace + optional inspector`
 
 ## Migration Rules
 

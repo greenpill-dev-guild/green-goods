@@ -109,7 +109,7 @@ export function AdminSideSheet({
           className={cn(
             "fixed inset-0 z-overlay"
             // Scrim fade is driven by the [data-component="AdminSideSheet"]
-            // [data-slot="overlay"] rules in admin-m3-overrides.css (keyed off
+            // [data-slot="overlay"] rules in admin-m3-components.css (keyed off
             // Radix's data-state) — same convention as AdminDialog.
           )}
         />
@@ -125,17 +125,17 @@ export function AdminSideSheet({
             // Mobile: compact inset bottom sheet. Desktop ≥640px:
             // right-docked below AppBar and extended to the viewport bottom.
             "fixed bottom-0 left-1/2 z-modal flex max-h-[calc(100dvh-1rem)] w-full max-w-[calc(100vw-1rem)] -translate-x-1/2 flex-col",
-            "rounded-t-[var(--m3-shape-xl)]",
+            "rounded-t-[var(--m3-shape-lg)]",
             "sm:top-[var(--admin-sheet-top)] sm:right-[var(--admin-sheet-side-inset)] sm:bottom-[var(--admin-sheet-bottom)] sm:left-auto sm:max-h-none sm:max-w-none sm:translate-x-0",
             "sm:w-[var(--admin-side-sheet-width)]",
-            "sm:rounded-[var(--m3-shape-xl)]",
-            // Solid surface + elevation 3 — dense surfaces stay solid; glass
+            "sm:rounded-[var(--m3-shape-lg)]",
+            // Solid surface + elevation 2 — dense surfaces stay solid; glass
             // remains Navigation/FAB-only.
             "bg-[rgb(var(--m3-surface-container-high))]",
-            "shadow-[var(--m3-elevation-3)]",
+            "shadow-[var(--m3-elevation-2)]",
             // Enter/exit motion (mobile slide-up, desktop slide-in-from-right)
             // is driven by the [data-component="AdminSideSheet"][data-slot="surface"]
-            // [data-state] rules in admin-m3-overrides.css.
+            // [data-state] rules in admin-m3-components.css.
             "focus:outline-none",
             // Structured regions own their padding; panels bring SheetBody /
             // SheetFooter. overflow-hidden clips them to the rounded corners.

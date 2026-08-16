@@ -31,7 +31,7 @@ export interface ActionChooserGridProps {
 
 // Warm Earth tag chip — matches the neutral chip used across admin views.
 const chipClass =
-  "inline-flex items-center gap-1 rounded-full bg-bg-soft px-2 py-0.5 text-[11px] font-medium text-text-sub";
+  "inline-flex items-center gap-1 rounded-full bg-bg-soft px-2 py-0.5 text-label-sm font-medium text-text-sub";
 
 /**
  * ActionChooserGrid — the Choose step of Submit Work.

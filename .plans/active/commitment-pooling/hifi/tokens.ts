@@ -475,47 +475,51 @@ export const HIFI_CSS = `
 .hf .hhead .hh-ic{width:44px;height:44px;border-radius:12px;border:1px solid var(--ln);background:var(--card);
   color:var(--stone);display:inline-flex;align-items:center;justify-content:center;cursor:pointer}
 
-/* ---------- admin dialect (.s-admin) — restrained M3 operator cockpit ---------- */
+/* ---------- admin dialect (.s-admin) — Cockpit M3, finished (1a) ----------
+   Re-synced 2026-08-15 to the shipped redesign (PR #713): linen canvas
+   #FAF8F5, warm stone neutrals (ink 12·10·9 / sub 87·83·78 / border
+   226·222·213 / chip 236·233·226), one 2-level elevation ladder, tone in
+   exactly three places. */
 .hf.s-admin{
-  --cv:#FAF9F7; --card:#FFFFFF; --ink:#26241F; --stone:#6E6862; --ln:#E9E4DC;
-  --ln2:#D3CCC1; --gr:#1FC16B; --gr-ink:#15803D; --act:#1A7544; --acth:#16643B;
-  --err:#C2352B; --amb:#9A6A10; --amb-bg:#F8F0DC; --sky:#2458BF; --sky-bg:#EBF1FD;
-  --gr-bg:#E9F3EC; --stone-bg:#F1EEE9; --scrim:rgba(24,22,18,.4);
+  --cv:#FAF8F5; --card:#FFFFFF; --ink:#0C0A09; --stone:#57534E; --ln:#E2DED5;
+  --ln2:#D6D3D1; --gr:#1FC16B; --gr-ink:#15803D; --act:#1A7544; --acth:#16643B;
+  --err:#C2352B; --amb:#9A6A10; --amb-bg:#F8F0DC; --sky:#2547D0; --sky-bg:#D5E2FF;
+  --sky-deep:#182F8B; --gr-bg:#E9F3EC; --stone-bg:#ECE9E2; --scrim:rgba(24,22,18,.4);
   font-family:"Plus Jakarta Sans",-apple-system,"Segoe UI",system-ui,sans-serif;
   color:var(--ink);
   -webkit-font-smoothing:antialiased;
 }
 [data-theme="dark"] .hf.s-admin{
-  --cv:#151310; --card:#201D19; --ink:#F0EEEA; --stone:#A39C93; --ln:#2E2A25;
+  --cv:#110C08; --card:#201913; --ink:#F0EEEA; --stone:#A39C93; --ln:#2E2A25;
   --ln2:#46403A; --gr:#1FC16B; --gr-ink:#4ADE80; --act:#1F8A50; --acth:#25A05E;
   --err:#F08A82; --amb:#DFAA45; --amb-bg:#2E2512; --sky:#84ABF2; --sky-bg:#182337;
-  --gr-bg:#13291B; --stone-bg:#2A2621; --scrim:rgba(0,0,0,.55);
+  --sky-deep:#C0D5FF; --gr-bg:#13291B; --stone-bg:#2A2621; --scrim:rgba(0,0,0,.55);
 }
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]) .hf.s-admin{
-    --cv:#151310; --card:#201D19; --ink:#F0EEEA; --stone:#A39C93; --ln:#2E2A25;
+    --cv:#110C08; --card:#201913; --ink:#F0EEEA; --stone:#A39C93; --ln:#2E2A25;
     --ln2:#46403A; --gr:#1FC16B; --gr-ink:#4ADE80; --act:#1F8A50; --acth:#25A05E;
     --err:#F08A82; --amb:#DFAA45; --amb-bg:#2E2512; --sky:#84ABF2; --sky-bg:#182337;
-    --gr-bg:#13291B; --stone-bg:#2A2621; --scrim:rgba(0,0,0,.55);
+    --sky-deep:#C0D5FF; --gr-bg:#13291B; --stone-bg:#2A2621; --scrim:rgba(0,0,0,.55);
   }
 }
 
 /* Derived surfaces (auto-adapt to light/dark via the per-theme tokens above):
-   card-low = M3 surface-container-low (elevated cards sit a hair off the route
-   card); surface-quiet = the segmented tab-rail well; chrome-border = the glass
-   dock hairline. */
+   card-low = a hair off white for pinned dialog footers; chrome-border = the
+   glass dock hairline. Cards themselves are WHITE on the linen canvas (1a) —
+   the old segmented tab-rail well is gone (underline tabs carry no surface). */
 .hf.s-admin{--card-low:color-mix(in srgb,var(--ink) 3.5%,var(--card));
-  --surface-quiet:var(--stone-bg);--chrome-border:color-mix(in srgb,var(--ink) 10%,transparent);
+  --chrome-border:color-mix(in srgb,var(--ink) 8%,transparent);
   --card-high:var(--card)}
-/* Per-workspace tone — mirrors packages/admin/src/index.css [data-tone].
-   --tone-fill: filled-action bg (stays deep so white text passes AA in both
-   themes) · --tone-ink: accent text / active state (adapts) · --tone-soft:
-   container tint · --canvas-a/b: the vertical gradient stops (mixed at low
-   alpha into --cv so the tint reads subtle in light AND dark). */
-.hf [data-tone="garden"]{--tone-fill:var(--act);--tone-ink:var(--gr-ink);--tone-soft:var(--gr-bg);--canvas-a:var(--gr);--canvas-b:var(--act)}
-.hf [data-tone="hub"]{--tone-fill:var(--sky);--tone-ink:var(--sky);--tone-soft:var(--sky-bg);--canvas-a:var(--sky);--canvas-b:var(--sky)}
-.hf [data-tone="community"]{--tone-fill:var(--amb);--tone-ink:var(--amb);--tone-soft:var(--amb-bg);--canvas-a:var(--amb);--canvas-b:var(--amb)}
-.hf [data-tone="actions"]{--tone-fill:var(--err);--tone-ink:var(--err);--tone-soft:color-mix(in srgb,var(--err) 13%,transparent);--canvas-a:var(--err);--canvas-b:var(--err)}
+/* Per-workspace tone — mirrors [data-tone] in admin-m3-tokens.css. Tone shows
+   in exactly three places (1a): active tab underline/label + active nav pill
+   (--tone-soft container + --tone-on-soft), the single filled action
+   (--tone-fill), and the faint top canvas wash (--canvas-a at 5%, fading out
+   by ~320px). --tone-ink is the contrast-safe accent text step. */
+.hf [data-tone="garden"]{--tone-fill:var(--act);--tone-ink:var(--gr-ink);--tone-soft:var(--gr-bg);--tone-on-soft:var(--gr-ink);--canvas-a:var(--gr)}
+.hf [data-tone="hub"]{--tone-fill:var(--sky);--tone-ink:var(--sky);--tone-soft:var(--sky-bg);--tone-on-soft:var(--sky-deep);--canvas-a:var(--sky)}
+.hf [data-tone="community"]{--tone-fill:var(--amb);--tone-ink:var(--amb);--tone-soft:var(--amb-bg);--tone-on-soft:var(--amb);--canvas-a:var(--amb)}
+.hf [data-tone="actions"]{--tone-fill:var(--err);--tone-ink:var(--err);--tone-soft:color-mix(in srgb,var(--err) 13%,transparent);--tone-on-soft:var(--err);--canvas-a:var(--err)}
 
 .device.f-desktop{border:0;background:transparent;padding:14px 0 6px;display:flex;justify-content:center}
 /* The browser window is the outer VIEWER frame (it is a web app; S1 scales it);
@@ -534,20 +538,32 @@ export const HIFI_CSS = `
    Full-viewport 2-row grid inside the window: transparent AppBar (row 1) above a
    scrolling canvas that floats an opaque route card; the glass nav dock floats
    over the window bottom. Mirrors packages/{shared,admin} Canvas/* + index.css. */
+/* Constant linen ground + the faint tone wash (1a, tone use 3 of 3): the
+   workspace hue sits at 5% over the TOP of the canvas and fades out by
+   ~320px — never a bottom-heavy atmosphere gradient. */
 .hf .wsgrid{position:relative;flex:1;min-height:0;display:grid;grid-template-rows:auto 1fr;isolation:isolate;
-  overflow:hidden;background:linear-gradient(180deg,var(--card) 0%,
-    color-mix(in srgb,var(--canvas-a,var(--gr)) 6%,var(--cv)) 55%,
-    color-mix(in srgb,var(--canvas-b,var(--act)) 11%,var(--cv)) 100%)}
+  overflow:hidden;background:linear-gradient(180deg,
+    color-mix(in srgb,var(--canvas-a,var(--act)) 5%,var(--cv)) 0,
+    var(--cv) 320px)}
+[data-theme="dark"] .hf .wsgrid{background:linear-gradient(180deg,
+  color-mix(in srgb,var(--canvas-a,var(--act)) 10%,var(--cv)) 0,
+  var(--cv) 320px)}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]) .hf .wsgrid{background:linear-gradient(180deg,
+    color-mix(in srgb,var(--canvas-a,var(--act)) 10%,var(--cv)) 0,
+    var(--cv) 320px)}
+}
 
 /* Row 1 — transparent AppBar (h-14): GardenChip left, icon buttons right. No tabs. */
 .hf .appbar{grid-row:1;display:flex;align-items:center;justify-content:space-between;height:52px;padding:0 18px;background:transparent}
-.hf .gchip{display:inline-flex;align-items:center;gap:7px;border-radius:9999px;padding:6px 12px;max-width:60%;
-  background:var(--card);border:1px solid var(--ln2);font-weight:600;font-size:13.5px;color:var(--ink)}
+.hf .gchip{display:inline-flex;align-items:center;gap:8px;border-radius:9999px;height:34px;padding:0 13px 0 7px;max-width:60%;
+  background:var(--card);border:1px solid var(--ln);font-weight:500;font-size:13.5px;color:var(--ink)}
 .hf .gchip:disabled{opacity:1;cursor:default}
-.hf .gchip .leaf{position:relative;display:inline-flex;flex:none;color:var(--tone-fill,var(--act))}
-.hf .gchip .leaf .ic{width:15px;height:15px}
-.hf .gchip .leaf .dot{position:absolute;top:-2px;right:-3px;width:7px;height:7px;border-radius:99px;
-  background:var(--tone-fill,var(--act));box-shadow:0 0 0 1.5px var(--card)}
+/* 1a switcher: a 22px round mint avatar carries the seedling — no tone dot. */
+.hf .gchip .leaf{position:relative;display:inline-flex;flex:none;align-items:center;justify-content:center;
+  width:22px;height:22px;border-radius:9999px;background:#D0FBE9;color:#0F5132}
+.hf .gchip .leaf .ic{width:13px;height:13px}
+.hf .gchip .leaf .dot{display:none}
 .hf .gchip .nm{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .hf .gchip .caret{flex:none;color:var(--stone);margin-left:1px}
 .hf .appbar-actions{display:flex;align-items:center;gap:1px;flex:none}
@@ -561,21 +577,23 @@ export const HIFI_CSS = `
 .hf .mainscroll{grid-row:2;min-height:0;overflow-y:auto;overflow-x:hidden;padding:4px 18px 96px;position:relative}
 @media (max-width:560px){.hf .mainscroll{padding:4px 12px 96px}}
 
-/* Opaque route card — solid M3 surface, radius-xl, elevation-2 (route tint lives
-   on the canvas behind it, never on this surface). */
-.hf .routecard{background:var(--card);border-radius:20px;padding:16px 18px 22px;min-height:calc(100% - 6px);
-  display:flex;flex-direction:column;gap:14px;box-shadow:0 1px 2px rgba(14,18,27,.05),0 10px 30px rgba(14,18,27,.10)}
-@media (min-width:720px){.hf .routecard{padding:20px 24px 26px}}
+/* Transparent route frame (1a) — the linen canvas IS the page ground; route
+   header, tab rail, and cards sit directly on it. White cards at elevation
+   level 1 carry the raised surfaces. */
+.hf .routecard{background:transparent;border-radius:16px;padding:10px 14px 22px;min-height:calc(100% - 6px);
+  display:flex;flex-direction:column;gap:14px}
+@media (min-width:720px){.hf .routecard{padding:12px 24px 26px}}
 
-/* PageHeader — big bold h1, sticky under the AppBar, with slots. */
-.hf .pghead{position:sticky;top:0;z-index:3;background:var(--card);display:flex;flex-direction:column;gap:7px;padding:2px 0 4px}
+/* PageHeader — title-large (22/28 @600, no display ramp), sticky under the
+   AppBar, transparent over the canvas wash. */
+.hf .pghead{position:sticky;top:0;z-index:3;background:transparent;display:flex;flex-direction:column;gap:7px;padding:2px 0 4px}
 .hf .pghead .ph-row{display:flex;align-items:flex-start;gap:12px}
 .hf .pghead .ph-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
-.hf .pghead .eyebrow{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--stone)}
+.hf .pghead .eyebrow{font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--stone)}
 /* !important defeats the artifact's own #screens/#play h1 ID rule (higher
-   specificity than any class chain) — the oversized bold title is the redesign's
-   signature and must not be clamped to the document's 21px. */
-.hf .pghead h1{margin:0 !important;font-size:clamp(25px,3.3vw,30px) !important;font-weight:700;line-height:1.13;letter-spacing:-.018em;color:var(--ink);text-wrap:balance}
+   specificity than any class chain). 1a: the route title sits on the M3 scale —
+   title-large 22/28 at weight 600, no responsive display ramp. */
+.hf .pghead h1{margin:0 !important;font-size:22px !important;font-weight:600;line-height:1.28;letter-spacing:0;color:var(--ink);text-wrap:balance}
 .hf .pghead .ph-desc{font-size:13.5px;line-height:1.45;color:var(--stone);max-width:64ch}
 .hf .pghead .ph-meta{font-size:12.5px;color:var(--stone);display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding-top:1px}
 .hf .pghead .ph-meta .num{font-variant-numeric:tabular-nums}
@@ -583,39 +601,49 @@ export const HIFI_CSS = `
 .hf .pghead .ph-toolbar{margin-top:1px;border-top:1px solid var(--ln);padding-top:9px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 .hf .pghead .ph-toolbar .grow{flex:1;min-width:0}
 
-/* AdminTabRail — segmented card (grid), surface-quiet well, 40px tabs, active
-   raised + elevation (NOT underline). Count chip greens/tints on active. */
-.hf .tabrail{display:grid;gap:6px;padding:6px;background:var(--surface-quiet);border-radius:14px}
-.hf .tabrail .trhit{height:44px;display:flex;align-items:center;min-width:0}
-.hf .tabrail .trtab{height:40px;border:0;border-radius:10px;background:transparent;color:var(--stone);
-  font:600 13.5px inherit;letter-spacing:-.005em;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;
-  gap:6px;padding:0 10px;min-width:0}
+/* AdminTabRail — underline tabs (1a): flex rail on a hairline stone bottom
+   rule; the active tab carries a 2px accent underline + weight 600 in the
+   workspace accent (tone use 1 of 3). Inactive tabs are weight 500 sub ink;
+   hover darkens text only. Count chips: neutral stone pill, flipping to the
+   tone container pair on the active tab. */
+.hf .tabrail{display:flex;gap:4px;padding:0;background:transparent;border-radius:0;
+  border-bottom:1px solid var(--ln);overflow-x:auto}
+.hf .tabrail .trhit{display:flex;align-items:stretch;min-width:0}
+.hf .tabrail .trtab{border:0;border-bottom:2px solid transparent;margin-bottom:-1px;border-radius:0;background:transparent;color:var(--stone);
+  font:500 13.5px inherit;letter-spacing:-.005em;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;
+  gap:7px;padding:9px 14px 10px;min-width:0}
 .hf .tabrail .trhit .trtab{width:100%}
 .hf .tabrail span.trtab{cursor:default}
+.hf .tabrail .trtab:hover{color:var(--ink)}
 .hf .tabrail .trtab .lbl{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.hf .tabrail .trtab.on{background:var(--card);color:var(--ink);box-shadow:0 1px 2px rgba(14,18,27,.10),0 1px 3px rgba(14,18,27,.10)}
-.hf .tabrail .trtab .cnt{flex:none;min-width:20px;height:18px;border-radius:99px;padding:0 6px;font:600 10.5px inherit;
+.hf .tabrail .trtab.on{background:transparent;box-shadow:none;font-weight:600;
+  color:var(--tone-ink,var(--act));border-bottom-color:var(--tone-ink,var(--act))}
+.hf .tabrail .trtab .cnt{flex:none;min-width:20px;height:18px;border-radius:99px;padding:0 7px;font:600 11px inherit;
   font-variant-numeric:tabular-nums;display:inline-flex;align-items:center;justify-content:center;
-  background:var(--card);color:var(--stone);border:1px solid var(--ln2)}
-.hf .tabrail .trtab.on .cnt{background:var(--tone-soft,var(--gr-bg));color:var(--tone-ink,var(--gr-ink));border-color:transparent}
+  background:var(--stone-bg);color:var(--stone);border:0}
+.hf .tabrail .trtab.on .cnt{background:var(--tone-soft,var(--gr-bg));color:var(--tone-on-soft,var(--tone-ink,var(--gr-ink)))}
 
 /* Floating glass nav dock — the app's ONLY backdrop-blur. Absolute to the
    window (position:relative deskwin), never fixed to the artifact viewport. */
-.hf .navdock{position:absolute;left:50%;bottom:16px;translate:-50% 0;z-index:6;display:flex;gap:3px;padding:5px 7px;
-  border-radius:20px;border:1px solid var(--chrome-border);
-  background:color-mix(in srgb,var(--card) 76%,transparent);
+/* 1a dock: flat 85% card + 12px blur, warm ambient shadow + 1px ink ring —
+   the only sanctioned shadow outside the 2-level ladder. Active item = tone
+   container pill (on-container icon) + weight-600 ink label; inactive items
+   have a TRANSPARENT icon well and dim to 75% on hover. */
+.hf .navdock{position:absolute;left:50%;bottom:16px;translate:-50% 0;z-index:6;display:flex;gap:2px;padding:4px 6px;
+  border-radius:9999px;border:1px solid var(--chrome-border);
+  background:color-mix(in srgb,var(--card) 85%,transparent);
   -webkit-backdrop-filter:blur(12px) saturate(1.14);backdrop-filter:blur(12px) saturate(1.14);
-  box-shadow:0 16px 40px rgba(64,52,32,.18)}
-[data-theme="dark"] .hf .navdock{box-shadow:0 16px 40px rgba(0,0,0,.5)}
+  box-shadow:0 18px 44px rgba(133,109,70,.14),0 0 0 1px rgba(0,0,0,.05)}
+[data-theme="dark"] .hf .navdock{box-shadow:0 20px 48px rgba(30,22,14,.44),0 0 0 1px rgba(240,238,234,.08)}
 .hf .navdock .nditem{display:flex;flex-direction:column;align-items:center;gap:2px;min-width:62px;border:0;background:transparent;
-  color:var(--stone);font:500 10.5px inherit;cursor:pointer;border-radius:16px;padding:5px 6px 6px}
+  color:var(--stone);font:500 10.5px inherit;cursor:pointer;border-radius:9999px;padding:4px 6px 5px}
 .hf .navdock .nditem:disabled{opacity:1;cursor:default}
-.hf .navdock .nditem .ndic{width:34px;height:34px;border-radius:99px;display:flex;align-items:center;justify-content:center;
-  background:color-mix(in srgb,var(--ink) 3%,transparent)}
-.hf .navdock .nditem .ndic .ic{width:18px;height:18px}
-.hf .navdock .nditem.on{color:var(--tone-ink,var(--act))}
-.hf .navdock .nditem.on .ndic{background:var(--tone-soft,var(--gr-bg));
-  box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--tone-fill,var(--act)) 26%,transparent)}
+.hf .navdock .nditem:hover:not(.on){opacity:.75}
+.hf .navdock .nditem .ndic{width:38px;height:26px;border-radius:9999px;display:flex;align-items:center;justify-content:center;
+  background:transparent}
+.hf .navdock .nditem .ndic .ic{width:17px;height:17px}
+.hf .navdock .nditem.on{color:var(--ink);font-weight:600}
+.hf .navdock .nditem.on .ndic{background:var(--tone-soft,var(--gr-bg));color:var(--tone-on-soft,var(--tone-ink,var(--act)))}
 
 /* Dense data table — hairline row dividers, no cell borders, no zebra. */
 .hf .visually-hidden{position:absolute!important;clip-path:inset(50%)!important;overflow:hidden!important;width:1px!important;height:1px!important;margin:-1px!important;padding:0!important;border:0!important;white-space:nowrap!important}
@@ -632,12 +660,12 @@ export const HIFI_CSS = `
 .hf.s-admin .b.pri:hover{background:var(--tone-fill,var(--act));filter:brightness(.93)}
 
 /* admin cards + tables (M3 solid, radius 12, dense) */
-/* AdminCard — M3 elevated SOLID surface (radius 12dp, elevation shadow, not a
-   1px border). Sits a hair off the white route card via --card-low. */
-.hf .acard{background:var(--card-low);border-radius:12px;padding:14px 16px;
-  display:flex;flex-direction:column;gap:9px;box-shadow:0 1px 2px rgba(14,18,27,.05),0 1px 3px rgba(14,18,27,.09)}
-/* admin skeleton = M3 card geometry (radius 12, no client border) */
-.hf.s-admin .sk{border-radius:12px;border:0;background:var(--card-low);box-shadow:0 1px 2px rgba(14,18,27,.05),0 1px 3px rgba(14,18,27,.09)}
+/* AdminCard — the WHITE card on the linen canvas (1a): radius 12dp, single
+   M3 ladder elevation level 1 (hover steps to level 2 in the app). */
+.hf .acard{background:var(--card);border-radius:12px;padding:14px 16px;
+  display:flex;flex-direction:column;gap:9px;box-shadow:0 1px 2px rgba(0,0,0,.3),0 1px 3px 1px rgba(0,0,0,.15)}
+/* admin skeleton = M3 card geometry (radius 12, level-1 shadow) */
+.hf.s-admin .sk{border-radius:12px;border:0;background:var(--card);box-shadow:0 1px 2px rgba(0,0,0,.3),0 1px 3px 1px rgba(0,0,0,.15)}
 /* admin empty/recovery state sits on the route card, not a bordered panel */
 .hf.s-admin .empty{padding:26px 18px 18px}
 /* card action row — lifecycle/dialog-trigger buttons + chips beneath a card's
@@ -678,7 +706,7 @@ export const HIFI_CSS = `
 /* admin buttons: denser */
 .hf.s-admin .b{min-height:44px;padding:7px 16px;font-size:13px}
 .hf.s-admin .b.pri{border-radius:9999px}
-.hf.s-admin .b.sec{border-radius:12px}
+.hf.s-admin .b.sec{border-radius:9999px}
 .hf.s-admin .b.ghost{min-height:44px}
 .hf.s-admin .inp{min-height:44px;padding:7px 11px;font-size:13px;border-radius:10px}
 .hf.s-admin .fld .fl{font-size:11.5px}
@@ -696,8 +724,9 @@ export const HIFI_CSS = `
 .hf .stages .st1.on i{background:var(--act)}
 .hf .stages .sep{width:14px;height:1px;background:var(--ln2)}
 
-/* AdminDialog — own scrim (on-surface/32%), 28dp corners, SOLID
-   surface-container-high, centered on desktop; header (hairline-bottom) / body
+/* AdminDialog — own scrim (on-surface/32%), 16dp corners (the 1a shape scale
+   tops at 16), SOLID surface, level-2 elevation over the scrim, centered on
+   desktop; header (hairline-bottom) / body
    (scroll) / footer (hairline-top, raised, right-aligned). Mirrors
    packages/admin/src/components/AdminDialog.tsx. */
 .hf .dlgstage{position:relative;flex:1;display:flex;flex-direction:column;min-height:0}
@@ -705,8 +734,8 @@ export const HIFI_CSS = `
 .hf .dlgstage > .dlg-behind > .wsgrid{flex:1}
 .hf .dlgstage .scrimm{position:absolute;inset:0;background:rgb(0 0 0/0.32);z-index:7}
 .hf .adlg{position:absolute;left:50%;top:50%;translate:-50% -50%;z-index:8;width:min(560px,calc(100% - 40px));
-  max-height:calc(100% - 40px);background:var(--card-high);border-radius:28px;overflow:hidden;
-  display:flex;flex-direction:column;box-shadow:0 24px 60px rgba(14,18,27,.30)}
+  max-height:calc(100% - 40px);background:var(--card-high);border-radius:16px;overflow:hidden;
+  display:flex;flex-direction:column;box-shadow:0 1px 2px rgba(0,0,0,.3),0 2px 6px 2px rgba(0,0,0,.15)}
 .hf .adlg .dlg-head{display:flex;align-items:flex-start;gap:10px;padding:15px 18px;border-bottom:1px solid var(--ln)}
 .hf .adlg .dlg-head .dt{flex:1;min-width:0;font-size:16px;font-weight:700;letter-spacing:-.01em;line-height:1.3}
 .hf .adlg .dlg-head .dclose{flex:none;width:44px;height:44px;border-radius:99px;border:0;background:transparent;
@@ -717,7 +746,7 @@ export const HIFI_CSS = `
   border-top:1px solid var(--ln);background:var(--card-low)}
 @media (max-width:639px){
   .hf .adlg{left:0;right:0;top:auto;bottom:0;translate:none;width:100%;max-height:calc(100% - 16px);
-    border-radius:28px 28px 0 0}
+    border-radius:16px 16px 0 0}
 }
 
 /* Flow dialog — ActionFlowShell inside AdminDialog variant="flow" +

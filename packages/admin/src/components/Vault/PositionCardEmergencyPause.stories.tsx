@@ -112,7 +112,7 @@ export const OpenAndCancel: Story = {
       name: new RegExp(PAUSE_TITLE, "i"),
     });
 
-    // Settle the open animation (admin-m3-overrides.css drives a zoom/opacity
+    // Settle the open animation (admin-m3-components.css drives a zoom/opacity
     // fade) so the visibility assertions below don't race the opacity fade-in.
     // `animation.finished` resolves at actual completion, independent of runner
     // load.

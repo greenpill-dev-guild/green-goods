@@ -1,9 +1,5 @@
-import {
-  NavigationBar,
-  useFabConfigValue,
-  type NavigationBarProps,
-  type ToolbarSlot,
-} from "@green-goods/shared";
+import { useFabConfigValue, type NavigationBarProps, type ToolbarSlot } from "@green-goods/shared";
+import { NavigationBar } from "@/components/Shell";
 import { useCanvasChromeProbe } from "@green-goods/shared/hooks/admin-ui/useCanvasChromeProbe";
 import { memo, useMemo } from "react";
 

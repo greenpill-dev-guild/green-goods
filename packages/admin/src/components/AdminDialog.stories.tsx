@@ -112,7 +112,7 @@ function OpenGeometryDialog({
 
 /**
  * Wait for the dialog's enter animation to finish so geometry is measured at
- * rest. The admin-owned keyframes (admin-m3-overrides.css) animate transform +
+ * rest. The admin-owned keyframes (admin-m3-components.css) animate transform +
  * opacity, so a naive measurement could land mid-flight. `getAnimations()`
  * resolves once every running CSS animation on the surface has settled.
  */

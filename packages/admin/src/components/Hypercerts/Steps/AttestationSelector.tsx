@@ -2,7 +2,6 @@ import {
   ACTION_DOMAINS,
   type ActionDomain,
   Alert,
-  Button,
   cn,
   FormInput,
   filterAttestationsByAssessment,
@@ -12,6 +11,7 @@ import {
   type HypercertAttestation,
   NativeSelect,
 } from "@green-goods/shared";
+import { AdminButton } from "@/components/AdminButton";
 import { RiCheckboxCircleLine, RiCheckboxMultipleLine, RiCloseCircleLine } from "@remixicon/react";
 import { useCallback, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
@@ -208,38 +208,26 @@ export function AttestationSelector({
       {/* Bulk selection buttons */}
       {!isLoading && !hasError && filtered.length > 0 && (
         <div className="flex flex-wrap gap-2">
-          <Button
+          <AdminButton
             type="button"
-            variant="secondary"
+            variant="outlined"
             size="sm"
             onClick={handleSelectAll}
             disabled={allFilteredSelected || selectable.length === 0}
-            className={cn(
-              "inline-flex h-auto min-w-0 items-center gap-1.5 rounded-md border px-3 py-1.5 text-xs font-medium transition",
-              allFilteredSelected || selectable.length === 0
-                ? "border-stroke-soft bg-bg-weak text-text-disabled cursor-not-allowed"
-                : "border-stroke-sub text-text-sub hover:bg-bg-weak"
-            )}
+            leadingIcon={<RiCheckboxMultipleLine />}
           >
-            <RiCheckboxMultipleLine className="h-3.5 w-3.5" />
             {formatMessage({ id: "app.hypercerts.attestations.selectAll" })}
-          </Button>
-          <Button
+          </AdminButton>
+          <AdminButton
             type="button"
-            variant="secondary"
+            variant="outlined"
             size="sm"
             onClick={handleDeselectAll}
             disabled={!someSelected}
-            className={cn(
-              "inline-flex h-auto min-w-0 items-center gap-1.5 rounded-md border px-3 py-1.5 text-xs font-medium transition",
-              !someSelected
-                ? "border-stroke-soft bg-bg-weak text-text-disabled cursor-not-allowed"
-                : "border-stroke-sub text-text-sub hover:bg-bg-weak"
-            )}
+            leadingIcon={<RiCloseCircleLine />}
           >
-            <RiCloseCircleLine className="h-3.5 w-3.5" />
             {formatMessage({ id: "app.hypercerts.attestations.deselectAll" })}
-          </Button>
+          </AdminButton>
         </div>
       )}
 
@@ -306,10 +294,11 @@ export function AttestationSelector({
               : "";
 
           return (
-            <Button
+            // Fully self-styled selectable row — a native button, not a Button
+            // variant (every visual property is declared below).
+            <button
               key={attestation.id}
               type="button"
-              variant="ghost"
               onClick={() => {
                 if (isBundled) return;
                 onToggle(attestation.id);
@@ -383,7 +372,7 @@ export function AttestationSelector({
                   </span>
                 )}
               </div>
-            </Button>
+            </button>
           );
         })}
       </div>
