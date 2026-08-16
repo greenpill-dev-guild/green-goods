@@ -1,4 +1,5 @@
 import { DEFAULT_CHAIN_ID } from "../../config";
+import { getOntologyChainMaturity } from "../../ontology/query";
 import type {
   ApprovalJobPayload,
   Job,
@@ -8,6 +9,8 @@ import type {
   WorkJobPayload,
 } from "../../types/job-queue";
 import { scheduleTask, yieldToMain } from "../../utils/scheduler";
+import { isZeroAddress } from "../../utils/blockchain/address";
+import { getNetworkContracts } from "../../utils/blockchain/contracts";
 import { addBreadcrumb } from "../app/error-tracking";
 import { logger } from "../app/logger";
 import { jobQueueDB } from "./db";
@@ -19,7 +22,14 @@ import {
   trackJobProcessingError,
   trackStorageWarning,
 } from "./job-analytics";
-import { executeApprovalJob, executeWorkJob } from "./job-executors";
+import { executeApprovalJob, executeCommitmentQueueJob, executeWorkJob } from "./job-executors";
+import {
+  COMMITMENT_JOB_KINDS,
+  prepareCommitmentJobPayload,
+  type CommitmentJobKind,
+  type CommitmentJobPayloadMap,
+} from "../commitment-pooling/jobs";
+import { selectCommitmentPoolingAvailability } from "../commitment-pooling/selectors";
 import { JobMaintenance } from "./job-maintenance";
 
 /**
@@ -87,6 +97,35 @@ import { getStorageQuota } from "../../utils/storage/quota";
 /** Maximum number of retry attempts before a job is marked as permanently failed */
 const MAX_RETRIES = 5;
 
+function commitmentJobIdentity(kind: string, payload: unknown): string | null {
+  if (!payload || typeof payload !== "object") return null;
+  const value = payload as Record<string, unknown>;
+  switch (kind) {
+    case "commitmentSeries":
+      return typeof value.clientSeriesId === "string" ? `${kind}:${value.clientSeriesId}` : null;
+    case "commitment":
+      return typeof value.clientCommitmentId === "string"
+        ? `${kind}:${value.clientCommitmentId}`
+        : null;
+    case "workLink":
+      return typeof value.operationKey === "string" ? `${kind}:${value.operationKey}` : null;
+    case "claim":
+      return `${kind}:${String(value.commitmentId)}:${String(value.kind)}:${String(value.gardenContext).toLowerCase()}`;
+    case "evidence":
+      return `${kind}:${String(value.commitmentId)}:${String(value.cid)}`;
+    case "confirmation":
+      return `${kind}:${String(value.action)}:${String(value.commitmentId)}`;
+    default:
+      return null;
+  }
+}
+
+function canonicalJobPayload(payload: unknown): string {
+  return JSON.stringify(payload, (_key, value) =>
+    typeof value === "bigint" ? { __bigint: value.toString() } : value
+  );
+}
+
 /**
  * Job queue responsible for persisting and processing offline work/approval jobs.
  */
@@ -136,13 +175,48 @@ class JobQueue {
     const chainId = (meta as { chainId?: number })?.chainId || DEFAULT_CHAIN_ID;
     const isOnline = navigator.onLine;
 
+    let persistedPayload = payload;
+    if (COMMITMENT_JOB_KINDS.includes(kind as CommitmentJobKind)) {
+      const availability = selectCommitmentPoolingAvailability(
+        getOntologyChainMaturity("entity:commitment-pool", chainId)
+      );
+      if (availability.status !== "available") {
+        throw new Error("Commitment Pooling is unavailable on this chain");
+      }
+      const moduleAddress = getNetworkContracts(chainId).commitmentPoolingModule;
+      if (isZeroAddress(moduleAddress)) {
+        throw new Error("Commitment Pooling is not deployed on this chain");
+      }
+      persistedPayload = prepareCommitmentJobPayload({
+        kind: kind as CommitmentJobKind,
+        payload: payload as CommitmentJobPayloadMap[CommitmentJobKind],
+        chainId,
+        moduleAddress,
+        userAddress: userAddress as `0x${string}`,
+      }) as JobKindMap[K];
+    }
+
+    const identity = commitmentJobIdentity(kind, persistedPayload);
+    if (identity) {
+      const existingJobs = await jobQueueDB.getJobs({ userAddress, kind: String(kind) });
+      const existing = existingJobs.find(
+        (job) => commitmentJobIdentity(job.kind, job.payload) === identity
+      );
+      if (existing) {
+        if (canonicalJobPayload(existing.payload) !== canonicalJobPayload(persistedPayload)) {
+          throw new Error(`offline_job_identity_conflict:${identity}`);
+        }
+        return existing.id;
+      }
+    }
+
     // Check storage quota before adding job (using cache to avoid per-job latency)
     const storageQuota = await this.getCachedStorageQuota();
     trackStorageWarning(kind, storageQuota, isOnline);
 
     const jobId = await jobQueueDB.addJob({
       kind,
-      payload,
+      payload: persistedPayload,
       meta: { chainId, ...meta },
       chainId,
       userAddress,
@@ -151,7 +225,7 @@ class JobQueue {
     const job: Job = {
       id: jobId,
       kind,
-      payload,
+      payload: persistedPayload,
       meta: { chainId, ...meta },
       chainId,
       userAddress,
@@ -165,11 +239,11 @@ class JobQueue {
     if (import.meta.env?.VITE_QUEUE_DEBUG === "true") {
       let mediaCount = 0;
       if (
-        payload &&
-        typeof payload === "object" &&
-        "media" in (payload as unknown as Record<string, unknown>)
+        persistedPayload &&
+        typeof persistedPayload === "object" &&
+        "media" in (persistedPayload as unknown as Record<string, unknown>)
       ) {
-        const maybeMedia = (payload as unknown as Record<string, unknown>).media;
+        const maybeMedia = (persistedPayload as unknown as Record<string, unknown>).media;
         mediaCount = Array.isArray(maybeMedia) ? maybeMedia.length : 0;
       }
       logger.debug("[JobQueue] addJob", {
@@ -270,22 +344,57 @@ class JobQueue {
     const startTime = Date.now();
 
     try {
-      let txHash: string;
+      let txHash: string | undefined;
 
       if (job.kind === "work") {
         txHash = await executeWorkJob(jobId, job as Job<WorkJobPayload>, chainId, sender);
       } else if (job.kind === "approval") {
         txHash = await executeApprovalJob(job as Job<ApprovalJobPayload>, chainId, sender);
+      } else if (COMMITMENT_JOB_KINDS.includes(job.kind as (typeof COMMITMENT_JOB_KINDS)[number])) {
+        const execution = await executeCommitmentQueueJob(jobId, job, chainId, sender);
+        if (execution.status === "waiting") {
+          return { success: false, error: execution.reason, skipped: true };
+        }
+        if (execution.status === "identity-conflict") {
+          const errorMessage = `identity_conflict:${execution.reason}`;
+          await jobQueueDB.markJobTerminalFailed(jobId, errorMessage);
+          jobQueueEventBus.emit("job:failed", { jobId, job, error: errorMessage });
+          trackJobPermanentlyFailed({ ...job, lastError: errorMessage, attempts: MAX_RETRIES });
+          return { success: false, error: errorMessage };
+        }
+        if (execution.status === "submitted") {
+          await jobQueueDB.updateJob({
+            ...job,
+            meta: { ...(job.meta ?? {}), submittedTxHash: execution.txHash },
+            lastAttemptAt: Date.now(),
+          });
+          return {
+            success: false,
+            error: "pending_materialization",
+            txHash: execution.txHash,
+            skipped: true,
+          };
+        }
+        txHash = execution.txHash;
       } else {
         throw new Error(`Unsupported job kind: ${job.kind}`);
       }
 
-      await jobQueueDB.markJobSynced(jobId, txHash);
+      const completedTxHash =
+        txHash ??
+        (typeof job.meta?.submittedTxHash === "string"
+          ? job.meta.submittedTxHash
+          : createOfflineTxHash(jobId));
+      await jobQueueDB.markJobSynced(jobId, completedTxHash);
 
       // Store clientWorkId mapping for instant deduplication
       if (job.kind === "work" && job.meta?.clientWorkId) {
         try {
-          await jobQueueDB.storeClientWorkIdMapping(job.meta.clientWorkId as string, txHash, jobId);
+          await jobQueueDB.storeClientWorkIdMapping(
+            job.meta.clientWorkId as string,
+            completedTxHash,
+            jobId
+          );
         } catch (error) {
           logger.warn("[JobQueue] Failed to store clientWorkId mapping", { error });
         }
@@ -301,13 +410,17 @@ class JobQueue {
       const completedJob: Job = {
         ...job,
         synced: true,
-        meta: { ...(job.meta || {}), txHash },
+        meta: { ...(job.meta || {}), txHash: completedTxHash },
       };
 
-      jobQueueEventBus.emit("job:completed", { jobId, job: completedJob, txHash });
+      jobQueueEventBus.emit("job:completed", {
+        jobId,
+        job: completedJob,
+        txHash: completedTxHash,
+      });
       trackJobProcessed(job.kind, Date.now() - startTime, job.attempts + 1);
 
-      return { success: true, txHash };
+      return { success: true, txHash: completedTxHash };
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Unknown error";
       const processingDuration = Date.now() - startTime;

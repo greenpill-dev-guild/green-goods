@@ -1476,7 +1476,8 @@ describe("thirdweb webhook API and public rate-limit keys", () => {
       },
     });
 
-    expect(derivePublicClientIp(request)).toBe("198.51.100.10");
+    expect(derivePublicClientIp(request)).toBe("socket");
+    expect(derivePublicClientIp(request, { allowTestSocketIp: true })).toBe("198.51.100.10");
     expect(derivePublicClientIp(request, { hops: 1 })).toBe("203.0.113.20");
     expect(
       publicRateLimitKey({ route: "subscribe", request, material: "person@example.org" })

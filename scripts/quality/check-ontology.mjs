@@ -119,6 +119,21 @@ export function parseTsNumericEnum(source, symbol) {
   return { members, values };
 }
 
+export function parseTsStringEnum(source, symbol) {
+  const match = new RegExp(`enum ${symbol}\\s*\\{([\\s\\S]*?)\\}`).exec(stripCode(source));
+  if (!match) return null;
+  const members = [];
+  for (const raw of match[1].split(",")) {
+    const entry = raw.trim();
+    if (!entry) continue;
+    const parsed = /^([A-Za-z_$][\w$]*)\s*=\s*["']([^"']+)["']$/.exec(entry);
+    if (!parsed) return { members: null, unparseable: entry };
+    if (parsed[1] !== parsed[2]) return { members: null, unparseable: entry };
+    members.push(parsed[1]);
+  }
+  return { members };
+}
+
 export function parseTsUnion(source, symbol) {
   const match = new RegExp(`type ${symbol}\\s*=([\\s\\S]*?);`).exec(stripCode(source));
   if (!match) return null;
@@ -395,6 +410,9 @@ export function collectProjectionFiles(projections) {
   const files = new Set();
   for (const capability of projections.capabilities ?? []) {
     for (const evidence of capability.evidence ?? []) files.add(evidence.file);
+    for (const chain of Object.values(capability.chains ?? {})) {
+      for (const evidence of chain.evidence ?? []) files.add(evidence.file);
+    }
   }
   for (const claim of projections.marketing_claims ?? []) {
     for (const evidence of claim.evidence ?? []) files.add(evidence.file);
@@ -460,6 +478,34 @@ export function checkProjectionIntegrity(ontology, projections, fileExists) {
       errors.push(`capability ${capability.ref}: verified_at must be YYYY-MM-DD`);
     }
     if (!capability.evidence?.length) errors.push(`capability ${capability.ref}: evidence is required`);
+
+    for (const [chainId, chain] of Object.entries(capability.chains ?? {})) {
+      const label = `capability ${capability.ref} chain ${chainId}`;
+      if (!/^\d+$/.test(chainId) || Number(chainId) <= 0) {
+        errors.push(`${label}: chain id must be a positive integer`);
+      }
+      if (!availability.has(chain.availability)) {
+        errors.push(`${label}: invalid availability "${chain.availability}"`);
+      }
+      for (const axis of ["deployment", "activation", "integration"]) {
+        if (!capabilityAxes[axis].has(chain[axis])) {
+          errors.push(`${label}: invalid ${axis} "${chain[axis]}"`);
+        }
+      }
+      if (
+        chain.availability === "available" &&
+        (chain.activation !== "active" || chain.integration !== "integrated")
+      ) {
+        errors.push(`${label}: available requires active and integrated`);
+      }
+      if (chain.availability === "deployed-not-available" && chain.deployment !== "deployed") {
+        errors.push(`${label}: deployed-not-available requires deployed`);
+      }
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(chain.verified_at)) {
+        errors.push(`${label}: verified_at must be YYYY-MM-DD`);
+      }
+      if (!chain.evidence?.length) errors.push(`${label}: evidence is required`);
+    }
   }
 
   const humanRefs = new Set(projections.human_concepts.map((item) => item.ref));
@@ -678,6 +724,13 @@ function runGuards(ontology) {
           }
           actual = parsed?.members ?? null;
           actualValues = parsed?.values ?? null;
+        } else if (rep.extract === "ts-string-enum") {
+          const parsed = parseTsStringEnum(source, rep.symbol);
+          if (parsed?.unparseable) {
+            fatal.push(`unparseable string enum entry "${parsed.unparseable}" for ${rep.symbol} in ${rep.file}`);
+            continue;
+          }
+          actual = parsed?.members ?? null;
         } else if (rep.extract === "ts-union") actual = parseTsUnion(source, rep.symbol);
         else if (rep.extract === "ts-interface-keys") actual = parseTsInterfaceKeys(source, rep.symbol);
         else if (rep.extract === "ts-object-keys") {

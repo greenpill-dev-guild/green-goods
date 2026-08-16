@@ -38,6 +38,11 @@ import {
   createSqliteProfileAvatarStore,
   createViemProfileAvatarSignatureVerifier,
 } from "./services/profile-avatars";
+import {
+  createSavedOfferCipher,
+  createSqliteSavedOfferStore,
+  MemorySavedOffersSessionStore,
+} from "./services/saved-offers";
 import { logger } from "./services/logger";
 import { rateLimiter } from "./services/rate-limiter";
 import { captureAgentException, initAgentSentry, shutdownAgentSentry } from "./services/sentry";
@@ -88,6 +93,9 @@ async function main(): Promise<void> {
     segmentId: config.resendGreenGoodsSegmentId,
     topicId: config.resendGreenGoodsTopicId,
   });
+  const savedOfferCipher = config.savedOffersEncryptionKey
+    ? createSavedOfferCipher(config.savedOffersEncryptionKey)
+    : undefined;
 
   const groupCapture = createGroupCaptureHandler(config.captureTopics);
   const bot = createTelegramBot({ token: config.telegramToken }, handleMessage, groupCapture);
@@ -122,6 +130,14 @@ async function main(): Promise<void> {
       chain: config.chain,
       rpcUrl: resolveAgentRpcUrl(config.chainId),
     }),
+    savedOfferStore: savedOfferCipher ? createSqliteSavedOfferStore(savedOfferCipher) : undefined,
+    savedOffersSessionStore: savedOfferCipher ? new MemorySavedOffersSessionStore() : undefined,
+    savedOffersSignatureVerifier: createViemProfileAvatarSignatureVerifier({
+      chain: config.chain,
+      rpcUrl: resolveAgentRpcUrl(config.chainId),
+    }),
+    savedOffersAudience: config.savedOffersAudience,
+    savedOffersChainIds: [config.chainId],
     allowedOrigins: resolveAllowedOrigins(config.publicAllowedOrigins, {
       includeDevelopmentDefaults: config.isDevelopment,
     }),

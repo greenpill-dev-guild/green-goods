@@ -23,6 +23,7 @@ import {
   parseTsObjectValues,
   parseTsPropertyUnion,
   parseTsReadonlyArray,
+  parseTsStringEnum,
   parseTsUnion,
   reconcileBaseline,
   splitTableRow,
@@ -94,6 +95,22 @@ export enum Capital {
   assert.deepEqual(parseTsNumericEnum(source, "Capital"), {
     members: ["SOCIAL", "MATERIAL", "FINANCIAL"],
     values: [0, 1, 2],
+  });
+});
+
+test("parseTsStringEnum reads identity-valued members and rejects renamed values", () => {
+  const source = `
+export enum FundingState {
+  UNKNOWN = "UNKNOWN",
+  PLEDGED = "PLEDGED",
+}
+`;
+  assert.deepEqual(parseTsStringEnum(source, "FundingState"), {
+    members: ["UNKNOWN", "PLEDGED"],
+  });
+  assert.deepEqual(parseTsStringEnum('enum Broken { FOO = "bar" }', "Broken"), {
+    members: null,
+    unparseable: 'FOO = "bar"',
   });
 });
 
@@ -664,4 +681,43 @@ test("projection integrity rejects unsupported availability", () => {
   broken.capabilities[0].integration = "not-integrated";
   const errors = checkProjectionIntegrity(miniOntology, broken, () => true);
   assert.ok(errors.includes("capability entity:garden: available requires active and integrated"));
+});
+
+test("projection integrity validates chain-scoped availability and evidence", () => {
+  const broken = structuredClone(miniProjections);
+  broken.capabilities[0].chains = {
+    "42161": {
+      deployment: "deployed",
+      activation: "inactive",
+      integration: "not-integrated",
+      availability: "available",
+      evidence: [],
+      verified_at: "16-08-2026",
+    },
+  };
+  const errors = checkProjectionIntegrity(miniOntology, broken, () => true);
+  assert.ok(
+    errors.includes(
+      "capability entity:garden chain 42161: available requires active and integrated"
+    )
+  );
+  assert.ok(errors.includes("capability entity:garden chain 42161: evidence is required"));
+  assert.ok(
+    errors.includes("capability entity:garden chain 42161: verified_at must be YYYY-MM-DD")
+  );
+});
+
+test("projection evidence collection includes chain-scoped records", () => {
+  const projections = structuredClone(miniProjections);
+  projections.capabilities[0].chains = {
+    "42161": {
+      deployment: "deployed",
+      activation: "active",
+      integration: "integrated",
+      availability: "available",
+      evidence: [{ file: "chain-readback.json", note: "Hosted read-back." }],
+      verified_at: "2026-08-16",
+    },
+  };
+  assert.ok(collectProjectionFiles(projections).has("chain-readback.json"));
 });

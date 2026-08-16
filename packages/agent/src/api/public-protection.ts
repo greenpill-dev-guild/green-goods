@@ -8,12 +8,18 @@ export type PublicRouteClass =
   | "upload_sign"
   | "profile_avatar_read"
   | "profile_avatar_mutation"
+  | "saved_offers_challenge"
+  | "saved_offers_session"
+  | "saved_offers_read"
+  | "saved_offers_mutation"
   | "webhook_pre"
   | "webhook_post";
 
 export interface TrustedProxyConfig {
   hops?: number;
   cidrs?: string[];
+  /** Test-only transport identity injection. Never enable from request or production config. */
+  allowTestSocketIp?: boolean;
 }
 
 export interface PublicRateLimitKeyInput {
@@ -41,6 +47,10 @@ export const PUBLIC_RATE_LIMIT_POLICIES = {
   upload_sign: { limit: 20, windowMs: 60 * 1000 },
   profile_avatar_read: { limit: 120, windowMs: 10 * 60 * 1000 },
   profile_avatar_mutation: { limit: 10, windowMs: 10 * 60 * 1000 },
+  saved_offers_challenge: { limit: 10, windowMs: 10 * 60 * 1000 },
+  saved_offers_session: { limit: 10, windowMs: 10 * 60 * 1000 },
+  saved_offers_read: { limit: 120, windowMs: 10 * 60 * 1000 },
+  saved_offers_mutation: { limit: 30, windowMs: 10 * 60 * 1000 },
   webhook_pre: { limit: 300, windowMs: 60 * 1000 },
   webhook_post: { limit: 300, windowMs: 60 * 1000 },
 } as const satisfies Record<PublicRouteClass, RateLimitPolicy>;
@@ -63,7 +73,9 @@ export function derivePublicClientIp(
   request: Request,
   trustedProxy: TrustedProxyConfig = {}
 ): string {
-  const directIp = request.headers.get("x-gg-test-socket-ip") ?? "socket";
+  const directIp = trustedProxy.allowTestSocketIp
+    ? (request.headers.get("x-gg-test-socket-ip") ?? "socket")
+    : "socket";
   const hops = Math.max(0, trustedProxy.hops ?? 0);
   if (hops === 0) return directIp;
 
@@ -89,10 +101,23 @@ export function publicRateLimitKey(input: PublicRateLimitKeyInput): string {
   return [input.route, origin, ip, hashedMaterial].join(":");
 }
 
+export function publicIpRateLimitKey(input: Omit<PublicRateLimitKeyInput, "material">): string {
+  const origin = normalizePublicOrigin(input.request.headers.get("origin"));
+  const ip = derivePublicClientIp(input.request, input.trustedProxy);
+  return [input.route, origin, ip, "ip"].join(":");
+}
+
 export class InMemoryPublicRateLimiter {
   private buckets = new Map<string, { count: number; resetAt: number }>();
+  private nextSweepAt = 0;
 
   check(key: string, policy: RateLimitPolicy, now: number = Date.now()): RateLimitResult {
+    if (now >= this.nextSweepAt) {
+      for (const [bucketKey, bucket] of this.buckets) {
+        if (bucket.resetAt <= now) this.buckets.delete(bucketKey);
+      }
+      this.nextSweepAt = now + 60_000;
+    }
     const existing = this.buckets.get(key);
     if (!existing || existing.resetAt <= now) {
       this.buckets.set(key, { count: 1, resetAt: now + policy.windowMs });

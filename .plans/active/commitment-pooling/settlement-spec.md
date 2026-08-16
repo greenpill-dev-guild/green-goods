@@ -1872,11 +1872,10 @@ Shared substrate additions (current lane PRD-723; extends historical PRD-674's s
 
 Envio indexes Green Goods protocol events from both the Arbitrum `SettlementModule` and Celo `CeloSettlementExecutor`. It does **not** index raw G$ transfers or arbitrary Celo token events. The Celo event slice is necessary to distinguish “executed; acknowledgment pending” from “not delivered.” New config blocks use deployment-artifact placeholders pre-broadcast.
 
-**Register #103 read-model target, documentation only.** The later indexer dispatch adds the
-`CommitmentFunding` entity and maps `Refund`; this phase does not edit `packages/indexer/`. Until
-that dispatch, the live GraphQL `DisbursementKind` representation intentionally remains at its
-existing four Solidity-backed kinds (plus `UNKNOWN`). The dated ontology drift baseline owns that
-temporary mismatch. Funding rows derive only from the four funding events plus the existing
+**Register #103 read model, implemented in source.** The merged indexer includes
+`CommitmentFunding`, maps `Refund`, and handles the four member-funding events. The hosted Envio
+deployment has not yet shipped this schema, so live GraphQL remains on the prior representation
+until the human-owned manual deploy and fresh full sync complete. Funding rows derive only from the four funding events plus the existing
 claim, commitment, payout-plan, `DisbursementQueued`, requeue/cancel, and authenticated
 acknowledgment events. Raw Celo transfers remain outside the indexer boundary.
 

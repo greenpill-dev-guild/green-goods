@@ -9,6 +9,7 @@ import type {
   CommitmentContributorRequirementIndex,
   CommitmentCounterIndex,
   CommitmentCycle,
+  CommitmentCycleCommitmentIndex,
   CommitmentEvent,
   CommitmentEvidenceAttribution,
   CommitmentEvidenceAttributionIndex,
@@ -29,7 +30,7 @@ import type {
 } from "envio";
 
 import { createPool, eventAuditId, poolingEntityId } from "./commitment-pool-projections";
-import { getTxHash, normalizeAddress } from "./shared";
+import { getTxHash, normalizeAddress, ZERO_ADDRESS } from "./shared";
 
 type EntityStore<T extends { readonly id: string }> = {
   get(id: string): Promise<T | undefined>;
@@ -47,6 +48,7 @@ export type PoolingContext = {
   CommitmentContributorRequirementIndex: EntityStore<CommitmentContributorRequirementIndex>;
   CommitmentCounterIndex: EntityStore<CommitmentCounterIndex>;
   CommitmentCycle: EntityStore<CommitmentCycle>;
+  CommitmentCycleCommitmentIndex: EntityStore<CommitmentCycleCommitmentIndex>;
   CommitmentEvent: EntityStore<CommitmentEvent>;
   CommitmentEvidenceAttribution: EntityStore<CommitmentEvidenceAttribution>;
   CommitmentEvidenceAttributionIndex: EntityStore<CommitmentEvidenceAttributionIndex>;
@@ -83,6 +85,13 @@ export function value<T>(event: RuntimeEvent, key: string): T {
 export function optionalBigint(event: RuntimeEvent, key: string): bigint | undefined {
   const candidate = event.params[key];
   return typeof candidate === "bigint" && candidate !== 0n ? candidate : undefined;
+}
+
+export function optionalAddress(event: RuntimeEvent, key: string): string | undefined {
+  const candidate = event.params[key];
+  if (typeof candidate !== "string") return undefined;
+  const normalized = normalizeAddress(candidate);
+  return normalized === ZERO_ADDRESS ? undefined : normalized;
 }
 
 export function optionalBytes32(event: RuntimeEvent, key: string): string | undefined {
@@ -136,7 +145,76 @@ const EVENT_TYPES: Readonly<Record<string, CommitmentEvent["eventType"]>> = {
   FundingWithdrawn: "FUNDING_WITHDRAWN",
 };
 
+export const COMMITMENT_POOLING_EVENT_NAMES = [
+  "PoolRegistered",
+  "PoolCharterUpdated",
+  "PoolReady",
+  "PoolOpened",
+  "PoolPaused",
+  "PoolResumed",
+  "PoolClosed",
+  "PoolComposted",
+  "PoolReopened",
+  "CycleSeeded",
+  "CycleOpened",
+  "CycleClosed",
+  "CycleComposted",
+  "CycleCancelled",
+  "CommitmentSeriesCreated",
+  "CommitmentSeriesMetadataUpdated",
+  "CommitmentSeriesRested",
+  "CommitmentSeriesResumed",
+  "CommitmentSeriesRetired",
+  "CommitmentCreated",
+  "ConsiderationDeclared",
+  "ValueDeclared",
+  "ConfirmerRuleSet",
+  "ClaimRequested",
+  "ClaimDeclined",
+  "CommitmentAccepted",
+  "ExchangeAccepted",
+  "ContributorAdded",
+  "ContributorRemoved",
+  "ContributorRequirementAssigned",
+  "ContributorRosterFrozen",
+  "WorkLinked",
+  "WorkUnlinked",
+  "ApprovedWorkCounted",
+  "ApprovedWorkReversed",
+  "EvidenceAttached",
+  "AssessmentAttached",
+  "CommitmentReadyForConfirmation",
+  "ConfirmationRecorded",
+  "CommitmentFulfilled",
+  "CommitmentCancelled",
+  "CommitmentExpired",
+  "CommitmentDisputed",
+  "DisputeResolved",
+  "ConsiderationPaid",
+  "ModuleDependencyUpdated",
+  "ModuleSchemaUIDUpdated",
+  "ModulePauseStatusChanged",
+] as const;
+
+export const COMMITMENT_REGISTRY_EVENT_NAMES = [
+  "ModuleUpdated",
+  "ClassRegistered",
+  "ProviderOpenCommitmentCapUpdated",
+  "UnitsCommitted",
+  "UnitsReleased",
+  "UnitsFulfilled",
+] as const;
+
+const KNOWN_EVENT_NAMES = new Set<string>([
+  ...COMMITMENT_POOLING_EVENT_NAMES,
+  ...COMMITMENT_REGISTRY_EVENT_NAMES,
+  ...Object.keys(EVENT_TYPES),
+]);
+
 export function eventType(eventName: string): CommitmentEvent["eventType"] {
+  if (!KNOWN_EVENT_NAMES.has(eventName)) {
+    throw new Error(`Unknown commitment event type: ${eventName}`);
+  }
   const mapped = EVENT_TYPES[eventName];
   if (mapped) return mapped;
   return eventName

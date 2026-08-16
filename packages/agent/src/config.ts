@@ -42,6 +42,8 @@ export interface Config {
 
   // Security
   encryptionSecret?: string;
+  savedOffersEncryptionKey?: string;
+  savedOffersAudience?: string;
 
   // API
   botApiToken?: string;
@@ -163,6 +165,8 @@ export function loadConfig(): Config {
 
     // Security
     encryptionSecret: process.env.ENCRYPTION_SECRET,
+    savedOffersEncryptionKey: process.env.SAVED_OFFERS_ENCRYPTION_KEY,
+    savedOffersAudience: process.env.SAVED_OFFERS_AUDIENCE,
 
     // Analytics
     posthogApiKey,
@@ -282,6 +286,7 @@ function parseCsv(value: string | undefined): string[] | undefined {
  * SECURITY: Enforces critical security requirements in production:
  * - ENCRYPTION_SECRET is required
  * - TELEGRAM_WEBHOOK_SECRET is required in webhook mode
+ * - Saved Offers encryption, audience, and proxy identity are required
  */
 export function validateConfig(config: Config): void {
   const warnings: string[] = [];
@@ -320,6 +325,20 @@ export function validateConfig(config: Config): void {
   if (config.isProduction && !config.publicAllowedOrigins?.trim()) {
     errors.push(
       "AGENT_ALLOWED_ORIGINS is required in production so public browser APIs fail closed."
+    );
+  }
+
+  if (config.isProduction && !config.savedOffersEncryptionKey?.trim()) {
+    errors.push("SAVED_OFFERS_ENCRYPTION_KEY is required in production.");
+  }
+
+  if (config.isProduction && !config.savedOffersAudience?.trim()) {
+    errors.push("SAVED_OFFERS_AUDIENCE is required in production.");
+  }
+
+  if (config.isProduction && !config.trustedProxyHops) {
+    errors.push(
+      "AGENT_TRUSTED_PROXY_HOPS is required in production so public APIs can enforce per-IP limits."
     );
   }
 

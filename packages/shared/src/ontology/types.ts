@@ -41,6 +41,7 @@ export type VocabularyExtract =
   | "solidity-enum"
   | "graphql-enum"
   | "ts-numeric-enum"
+  | "ts-string-enum"
   | "ts-union"
   | "ts-interface-keys"
   | "ts-object-keys"
@@ -244,7 +245,13 @@ export interface OntologyCapability {
   evidence: OntologyEvidence[];
   verified_at: string;
   note?: string;
+  chains?: Readonly<Record<string, OntologyChainCapability>>;
 }
+
+export type OntologyChainCapability = Pick<
+  OntologyCapability,
+  "deployment" | "activation" | "integration" | "availability" | "evidence" | "verified_at"
+> & { note?: string };
 
 export interface OntologyHumanConceptSource {
   ref: `entity:${string}` | `persona:${string}`;

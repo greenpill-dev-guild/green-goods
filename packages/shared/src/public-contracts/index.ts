@@ -41,6 +41,36 @@ export type PublicApiError = {
   params?: Record<string, string | number | boolean>;
 };
 
+export {
+  buildSavedOffersSessionMessage,
+  canonicalSavedOfferPayload,
+  createSavedOffersApi,
+  createSavedOffersSessionApi,
+  normalizeSavedOfferAddress,
+  SAVED_OFFER_MAX_BYTES,
+  SAVED_OFFER_MAX_REQUIREMENTS,
+  SAVED_OFFER_MAX_RECORDS_PER_OWNER,
+  SAVED_OFFER_MAX_SERIES_LINKS,
+  SAVED_OFFER_SCHEMA_VERSION,
+  SAVED_OFFERS_ROUTES,
+  savedOfferPersistenceAfterFailure,
+  validateSavedOfferPayload,
+  validateSavedOffersSessionRequest,
+} from "./saved-offers";
+export type {
+  SavedOfferApiError,
+  SavedOfferApiErrorCode,
+  SavedOfferPayloadV1,
+  SavedOfferPersistenceState,
+  SavedOfferRecord,
+  SavedOffersChallengeRequest,
+  SavedOffersChallengeResponse,
+  SavedOffersSessionMessageInput,
+  SavedOffersSessionRequest,
+  SavedOffersSessionResponse,
+  SavedOfferValidationResult,
+} from "./saved-offers";
+
 export type PublicSubscribeRequest = {
   email: string;
   consent: true;

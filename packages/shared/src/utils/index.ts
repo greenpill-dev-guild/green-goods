@@ -155,6 +155,8 @@ export {
 export {
   ActionRegistryABI,
   assertMarketplaceReady,
+  CommitmentPoolingModuleABI,
+  CommitmentRegistryABI,
   createClients,
   deriveMarketplaceReadiness,
   formatMarketplaceReadinessError,
@@ -165,6 +167,7 @@ export {
   getNetworkContracts,
   HatsABI,
   MARKETPLACE_READINESS_REQUIRED_FIELDS,
+  SettlementModuleABI,
 } from "./blockchain/contracts";
 export type {
   ResolveEnsAddressOptions,

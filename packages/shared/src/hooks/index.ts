@@ -114,6 +114,7 @@ export type { CreateAssessmentForm } from "./assessment/useCreateAssessmentWorkf
 // ============================================================================
 export { useCreateAssessmentWorkflow } from "./assessment/useCreateAssessmentWorkflow";
 export { useGardenAssessments } from "./assessment/useGardenAssessments";
+export * from "./commitment-pooling";
 // ============================================================================
 // AUTH
 // ============================================================================

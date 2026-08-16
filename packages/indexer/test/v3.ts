@@ -337,3 +337,34 @@ export async function serveJson(
       }),
   };
 }
+
+export async function serveJsonSequence(
+  responses: readonly { readonly body: unknown; readonly statusCode: number }[]
+): Promise<{ url: string; requestCount: () => number; close: () => Promise<void> }> {
+  let requestCount = 0;
+  const server = createServer((_request, response) => {
+    const selected = responses[Math.min(requestCount, responses.length - 1)];
+    requestCount += 1;
+    response.writeHead(selected?.statusCode ?? 500, { "content-type": "application/json" });
+    response.end(JSON.stringify(selected?.body ?? { error: "missing test response" }));
+  });
+
+  await new Promise<void>((resolve, reject) => {
+    server.once("error", reject);
+    server.listen(0, "127.0.0.1", resolve);
+  });
+
+  const address = server.address();
+  if (!address || typeof address === "string") {
+    throw new Error("Failed to resolve the local JSON test server address");
+  }
+
+  return {
+    url: `http://127.0.0.1:${address.port}/metadata.json`,
+    requestCount: () => requestCount,
+    close: () =>
+      new Promise<void>((resolve, reject) => {
+        server.close((error) => (error ? reject(error) : resolve()));
+      }),
+  };
+}

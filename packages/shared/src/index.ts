@@ -1,6 +1,8 @@
 // Main entry point: explicit @green-goods/shared exports organized by category.
 export type * from "./ontology/types";
 export * from "./ontology/query";
+export * from "./modules/commitment-pooling";
+export * from "./hooks/commitment-pooling";
 // ============================================================================
 // COMPONENTS
 // ============================================================================

@@ -226,6 +226,14 @@ class InMemoryDatabase {
 
     return {
       get(...params: unknown[]): unknown {
+        if (/FROM saved_offers/i.test(sql)) {
+          const table = self.tables.get("saved_offers");
+          if (!table) return null;
+          if (params.length === 1) {
+            return Array.from(table.values()).find((row) => row.savedOfferId === params[0]) ?? null;
+          }
+          return table.get(`${params[0]}:${params[1]}:${params[2]}`) ?? null;
+        }
         if (/FROM profile_avatars/i.test(sql)) {
           const table = self.tables.get("profile_avatars");
           if (!table) return null;
@@ -288,6 +296,19 @@ class InMemoryDatabase {
       },
 
       all(...params: unknown[]): unknown[] {
+        if (/FROM saved_offers/i.test(sql)) {
+          const table = self.tables.get("saved_offers");
+          if (!table) return [];
+          return Array.from(table.values())
+            .filter(
+              (row) => row.chainId === params[0] && row.owner === params[1] && row.deleted === 0
+            )
+            .sort(
+              (left, right) =>
+                String(right.updatedAt).localeCompare(String(left.updatedAt)) ||
+                String(left.savedOfferId).localeCompare(String(right.savedOfferId))
+            );
+        }
         const selectMatch = sql.match(self.selectRegex);
         if (selectMatch) {
           const tableName = selectMatch[1];
@@ -375,13 +396,36 @@ class InMemoryDatabase {
             funding_intents: 34,
             funding_intent_events: 6,
             profile_avatars: 5,
+            saved_offers: 7,
           };
 
           // Determine key based on table
           let key: string;
           let row: Record<string, unknown>;
 
-          if (tableName === "profile_avatars") {
+          if (tableName === "saved_offers") {
+            if (params.length !== EXPECTED_PARAMS.saved_offers) {
+              throw new Error(
+                `Mock DB: Expected ${EXPECTED_PARAMS.saved_offers} params for saved_offers, got ${params.length}`
+              );
+            }
+            key = `${params[0]}:${params[1]}:${params[2]}`;
+            if (table.has(key)) {
+              throw new Error(
+                "UNIQUE constraint failed: saved_offers.chainId, saved_offers.owner, saved_offers.savedOfferId"
+              );
+            }
+            row = {
+              chainId: params[0],
+              owner: params[1],
+              savedOfferId: params[2],
+              ciphertext: params[3],
+              nonce: params[4],
+              version: params[5],
+              updatedAt: params[6],
+              deleted: 0,
+            };
+          } else if (tableName === "profile_avatars") {
             if (params.length !== EXPECTED_PARAMS.profile_avatars) {
               throw new Error(
                 `Mock DB: Expected ${EXPECTED_PARAMS.profile_avatars} params for profile_avatars, got ${params.length}`
@@ -597,7 +641,32 @@ class InMemoryDatabase {
           const table = self.tables.get(tableName);
           if (!table) return;
 
-          if (tableName === "profile_avatars") {
+          if (tableName === "saved_offers") {
+            const tombstone = /SET ciphertext = '', nonce = ''/i.test(sql);
+            const key = tombstone
+              ? `${params[2]}:${params[3]}:${params[4]}`
+              : `${params[4]}:${params[5]}:${params[6]}`;
+            const expectedVersion = tombstone ? params[5] : params[7];
+            const existingRow = table.get(key);
+            if (!existingRow || existingRow.version !== expectedVersion) {
+              return { changes: 0, lastInsertRowid: 0 };
+            }
+            if (tombstone) {
+              existingRow.ciphertext = "";
+              existingRow.nonce = "";
+              existingRow.version = params[0];
+              existingRow.updatedAt = params[1];
+              existingRow.deleted = 1;
+            } else {
+              existingRow.ciphertext = params[0];
+              existingRow.nonce = params[1];
+              existingRow.version = params[2];
+              existingRow.updatedAt = params[3];
+              existingRow.deleted = 0;
+            }
+            table.set(key, existingRow);
+            return { changes: 1, lastInsertRowid: 0 };
+          } else if (tableName === "profile_avatars") {
             const key = `${params[3]}:${params[4]}`;
             const existingRow = table.get(key);
             if (existingRow && existingRow.version === params[5]) {

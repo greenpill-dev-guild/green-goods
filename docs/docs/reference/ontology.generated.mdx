@@ -40,12 +40,12 @@ The formal specification of the Green Goods shared vocabulary: the entities the 
 | **Hat** | canonical | available | implemented · deployed · active · integrated | A Hats Protocol role token. Determines on-chain authority — operator hats can approve Work; gardener hats can submit Work; evaluator hats can attest. | contracts · indexer (Garden) · shared · docs |
 | **Season** | canonical | planned | partial · not-applicable · not-applicable · partial | A bounded period (typically a quarter) during which a garden runs a coordinated set of Actions and Assessments. Pacing primitive — never a countdown. | docs |
 | **Need** | canonical | planned | not-implemented · not-deployed · inactive · not-integrated | A community-authored statement of a place-based problem paired with a desired outcome. A Need can gather signals, moderation, linked commitments, and verified funding attribution without becoming a commitment or payment itself. | spec |
-| **Commitment Pool** | canonical | deployed-not-available | implemented · deployed · active · not-integrated | A garden-anchored (or protocol root-garden) pool that registers, curates, and reconciles commitments under a charter. | contracts · indexer (CommitmentPool) · spec |
+| **Commitment Pool** | canonical | deployed-not-available | implemented · deployed · active · partial | A garden-anchored (or protocol root-garden) pool that registers, curates, and reconciles commitments under a charter. | contracts · indexer (CommitmentPool) · spec |
 | **Commitment Cycle** | canonical | deployed-not-available | implemented · deployed · active · not-integrated | A bounded run of a pool — a Season or Campaign — seeded with timing and an immutable six-role allocation snapshot at open. | contracts · indexer (CommitmentCycle) · spec |
 | **Commitment Series** | canonical | deployed-not-available | implemented · deployed · active · not-integrated | The internal durable, pool-scoped identity for one Offer used over time. It groups ordinary Offer instances without creating obligations automatically, merging history across pools, or becoming a separate product noun. | contracts · indexer (CommitmentSeries) · spec |
-| **Commitment Provider Exposure** | canonical | in-build | implemented · not-deployed · inactive · partial | The current count of open commitments held by one accountable lead provider in one pool, derived only from self-describing register unit events. | indexer (CommitmentProviderExposure) · spec |
-| **Commitment Unit Summary** | canonical | in-build | implemented · not-deployed · inactive · partial | Exact-label pool or cycle totals for expected, approved, fulfilled, and open commitment units; unlike label hashes are never combined. | indexer (CommitmentUnitSummary) · spec |
-| **Commitment Series Cycle Summary** | canonical | in-build | implemented · not-deployed · inactive · partial | Current lifecycle counts for the instances of one commitment series within one cycle. | indexer (CommitmentSeriesCycleSummary) · spec |
+| **Commitment Provider Exposure** | canonical | deployed-not-available | implemented · deployed · active · not-integrated | The current count of open commitments held by one accountable lead provider in one pool, derived only from self-describing register unit events. | indexer (CommitmentProviderExposure) · spec |
+| **Commitment Unit Summary** | canonical | deployed-not-available | implemented · deployed · active · not-integrated | Exact-label pool or cycle totals for expected, approved, fulfilled, and open commitment units; unlike label hashes are never combined. | indexer (CommitmentUnitSummary) · spec |
+| **Commitment Series Cycle Summary** | canonical | deployed-not-available | implemented · deployed · active · not-integrated | Current lifecycle counts for the instances of one commitment series within one cycle. | indexer (CommitmentSeriesCycleSummary) · spec |
 | **Commitment** | canonical | deployed-not-available | implemented · deployed · active · not-integrated | A module-native promise record (offer or request) with one accountable lead, an optional contributor roster, repeatable action requirements, direction-aware confirmation, unit accounting in a non-transferable register, and evidence/work linkage — deliberately not an EAS attestation. | contracts · spec |
 | **Commitment Contributor** | canonical | deployed-not-available | implemented · deployed · active · not-integrated | A person on a commitment's roster whose approved Work or confirmed evidence can earn Hypercert recognition and a contributor payout; one roster member is the accountable lead. | contracts · spec |
 | **Commitment Payout Plan** | canonical | deployed-not-available | implemented · deployed · inactive · partial | A garden-managed split of a fulfilled commitment's declared support into an explicit garden-retained amount and contributor child payouts. Its complete recognition vector is hash-bound, payment weights derive from amounts, and explicit finalization freezes it before dispatch. | contracts · indexer (CommitmentPayoutPlan) · shared · spec |
@@ -195,6 +195,17 @@ Lifecycle status of an indexed hypercert.
 | indexer | indexer | <code>packages/indexer/schema.graphql · HypercertStatus</code> | <code>ACTIVE, CLAIMED, SOLD, UNKNOWN</code> | SOLD is declared but never assigned by any handler (marketplace is outside the indexing boundary). |
 | shared | shared | <code>packages/shared/src/types/hypercerts.ts · HypercertStatus</code> | <code>active, claimed, sold, unknown</code> |  |
 
+### `hypercert-bundle-kind`
+
+Metadata discriminator separating legacy Work bundles from commitment-backed Hypercert bundles.
+
+**Canonical members:** WORK_LEGACY · COMMITMENT
+
+| Representation | Layer | Source | Expected members | Note |
+|---|---|---|---|---|
+| indexer | indexer | <code>packages/indexer/schema.graphql · HypercertBundleKind</code> | <code>WORK_LEGACY, COMMITMENT</code> |  |
+| shared | shared | <code>packages/shared/src/modules/commitment-pooling/types.ts · HypercertBundleKind</code> | <code>WORK_LEGACY, COMMITMENT</code> |  |
+
 ### `work-display-status`
 
 Canonical display status for work items across the UI — protocol states plus client-derived offline/sync states.
@@ -254,11 +265,11 @@ Action archetype tags used in hypercert metadata and filtering.
 
 Offline job-queue mutation kinds (the write-ahead ledger's vocabulary).
 
-**Canonical members:** work · approval
+**Canonical members:** work · approval · commitmentSeries · commitment · claim · evidence · workLink · confirmation
 
 | Representation | Layer | Source | Expected members | Note |
 |---|---|---|---|---|
-| shared | shared | <code>packages/shared/src/types/job-queue.ts · JobKindMap</code> | <code>work, approval</code> |  |
+| shared | shared | <code>packages/shared/src/types/job-queue.ts · JobKindMap</code> | <code>work, approval, commitmentSeries, commitment, claim, evidence, workLink, confirmation</code> |  |
 
 ### `commitment-pool-type`
 
@@ -273,6 +284,8 @@ Commitment-pooling pool anchor kind. Name-collides with the live Gardens V2 sign
 | Representation | Layer | Source | Expected members | Note |
 |---|---|---|---|---|
 | solidity | solidity | <code>packages/contracts/src/interfaces/ICommitmentPoolingModule.sol · PoolType</code> | <code>Garden, Protocol</code> |  |
+| indexer | indexer | <code>packages/indexer/schema.graphql · CommitmentPoolType</code> | <code>UNKNOWN, GARDEN, PROTOCOL</code> | UNKNOWN represents the Solidity sentinel or unexpected values. |
+| shared | shared | <code>packages/shared/src/modules/commitment-pooling/types.ts · CommitmentPoolType</code> | <code>UNKNOWN, GARDEN, PROTOCOL</code> |  |
 
 ### `pool-state`
 
@@ -283,6 +296,8 @@ Commitment pool lifecycle — every state is on-chain.
 | Representation | Layer | Source | Expected members | Note |
 |---|---|---|---|---|
 | solidity | solidity | <code>packages/contracts/src/interfaces/ICommitmentPoolingModule.sol · PoolState</code> | <code>None, NotReady, Ready, Open, Paused, Closed, Composted</code> |  |
+| indexer | indexer | <code>packages/indexer/schema.graphql · CommitmentPoolState</code> | <code>UNKNOWN, NOT_READY, READY, OPEN, PAUSED, CLOSED, COMPOSTED</code> | UNKNOWN represents the Solidity None sentinel and unexpected values. |
+| shared | shared | <code>packages/shared/src/modules/commitment-pooling/types.ts · CommitmentPoolState</code> | <code>UNKNOWN, NOT_READY, READY, OPEN, PAUSED, CLOSED, COMPOSTED</code> |  |
 
 ### `cycle-type`
 
@@ -293,6 +308,8 @@ Cycle kinds: one open Season per pool; Campaigns may overlap.
 | Representation | Layer | Source | Expected members | Note |
 |---|---|---|---|---|
 | solidity | solidity | <code>packages/contracts/src/interfaces/ICommitmentPoolingModule.sol · CycleType</code> | <code>Season, Campaign</code> |  |
+| indexer | indexer | <code>packages/indexer/schema.graphql · CommitmentCycleType</code> | <code>UNKNOWN, SEASON, CAMPAIGN</code> | UNKNOWN represents the Solidity sentinel or unexpected values. |
+| shared | shared | <code>packages/shared/src/modules/commitment-pooling/types.ts · CommitmentCycleType</code> | <code>UNKNOWN, SEASON, CAMPAIGN</code> |  |
 
 ### `cycle-state`
 
@@ -305,6 +322,8 @@ On-chain cycle states; Draft lives in app IndexedDB and InProgress/Reviewing are
 | Representation | Layer | Source | Expected members | Note |
 |---|---|---|---|---|
 | solidity | solidity | <code>packages/contracts/src/interfaces/ICommitmentPoolingModule.sol · CycleState</code> | <code>None, Seeded, Open, Reconciled, Composted, Cancelled</code> |  |
+| indexer | indexer | <code>packages/indexer/schema.graphql · CommitmentCycleState</code> | <code>UNKNOWN, SEEDED, OPEN, RECONCILED, COMPOSTED, CANCELLED</code> | UNKNOWN represents the Solidity None sentinel and unexpected values. |
+| shared | shared | <code>packages/shared/src/modules/commitment-pooling/types.ts · CommitmentCycleState</code> | <code>UNKNOWN, SEEDED, OPEN, RECONCILED, COMPOSTED, CANCELLED</code> |  |
 
 ### `commitment-direction`
 
@@ -315,6 +334,8 @@ Whether a commitment offers capacity or requests it; drives the direction-aware 
 | Representation | Layer | Source | Expected members | Note |
 |---|---|---|---|---|
 | solidity | solidity | <code>packages/contracts/src/interfaces/ICommitmentPoolingModule.sol · CommitmentDirection</code> | <code>Offer, Request</code> |  |
+| indexer | indexer | <code>packages/indexer/schema.graphql · CommitmentDirection</code> | <code>UNKNOWN, OFFER, REQUEST</code> | UNKNOWN represents the Solidity sentinel or unexpected values. |
+| shared | shared | <code>packages/shared/src/modules/commitment-pooling/types.ts · CommitmentDirection</code> | <code>UNKNOWN, OFFER, REQUEST</code> |  |
 
 ### `commitment-type`
 
@@ -325,6 +346,8 @@ Commitment archetypes; DomainImpact keeps the full Work → WorkApproval path, t
 | Representation | Layer | Source | Expected members | Note |
 |---|---|---|---|---|
 | solidity | solidity | <code>packages/contracts/src/interfaces/ICommitmentPoolingModule.sol · CommitmentType</code> | <code>DomainImpact, SupportService, SeasonCampaign, StewardCaptured</code> |  |
+| indexer | indexer | <code>packages/indexer/schema.graphql · CommitmentKind</code> | <code>UNKNOWN, DOMAIN_IMPACT, SUPPORT_SERVICE, SEASON_CAMPAIGN, STEWARD_CAPTURED</code> | UNKNOWN represents the Solidity sentinel or unexpected values. |
+| shared | shared | <code>packages/shared/src/modules/commitment-pooling/types.ts · CommitmentKind</code> | <code>UNKNOWN, DOMAIN_IMPACT, SUPPORT_SERVICE, SEASON_CAMPAIGN, STEWARD_CAPTURED</code> |  |
 
 ### `commitment-state`
 
@@ -337,6 +360,8 @@ On-chain commitment states; Draft is app-side and Active/EvidenceSubmitted/Parti
 | Representation | Layer | Source | Expected members | Note |
 |---|---|---|---|---|
 | solidity | solidity | <code>packages/contracts/src/interfaces/ICommitmentPoolingModule.sol · CommitmentState</code> | <code>None, Offered, Requested, Accepted, ReadyForConfirmation, Fulfilled, Cancelled, Expired, Disputed</code> |  |
+| indexer | indexer | <code>packages/indexer/schema.graphql · CommitmentOnchainState</code> | <code>UNKNOWN, OFFERED, REQUESTED, ACCEPTED, READY_FOR_CONFIRMATION, FULFILLED, CANCELLED, EXPIRED, DISPUTED</code> | UNKNOWN represents the Solidity None sentinel and unexpected values. |
+| shared | shared | <code>packages/shared/src/modules/commitment-pooling/types.ts · CommitmentOnchainState</code> | <code>UNKNOWN, OFFERED, REQUESTED, ACCEPTED, READY_FOR_CONFIRMATION, FULFILLED, CANCELLED, EXPIRED, DISPUTED</code> |  |
 
 ### `claim-type`
 
@@ -347,6 +372,8 @@ Immutable claimant-eligibility class set at commitment creation; runtime claim k
 | Representation | Layer | Source | Expected members | Note |
 |---|---|---|---|---|
 | solidity | solidity | <code>packages/contracts/src/interfaces/ICommitmentPoolingModule.sol · ClaimType</code> | <code>Garden, Individual</code> |  |
+| indexer | indexer | <code>packages/indexer/schema.graphql · CommitmentClaimType</code> | <code>UNKNOWN, GARDEN, INDIVIDUAL</code> | UNKNOWN represents the Solidity sentinel or unexpected values. |
+| shared | shared | <code>packages/shared/src/modules/commitment-pooling/types.ts · CommitmentClaimType</code> | <code>UNKNOWN, GARDEN, INDIVIDUAL</code> |  |
 
 ### `contributor-policy`
 
@@ -357,6 +384,8 @@ How contributor membership is established before the commitment roster freezes.
 | Representation | Layer | Source | Expected members | Note |
 |---|---|---|---|---|
 | solidity | solidity | <code>packages/contracts/src/interfaces/ICommitmentPoolingModule.sol · ContributorPolicy</code> | <code>Open, LeadManaged</code> |  |
+| indexer | indexer | <code>packages/indexer/schema.graphql · CommitmentContributorPolicy</code> | <code>UNKNOWN, OPEN, LEAD_MANAGED</code> | UNKNOWN represents the Solidity sentinel or unexpected values. |
+| shared | shared | <code>packages/shared/src/modules/commitment-pooling/types.ts · CommitmentContributorPolicy</code> | <code>UNKNOWN, OPEN, LEAD_MANAGED</code> |  |
 
 ### `claim-mode`
 
@@ -367,6 +396,8 @@ Whether claiming transitions immediately (Open) or awaits operator acceptance (A
 | Representation | Layer | Source | Expected members | Note |
 |---|---|---|---|---|
 | solidity | solidity | <code>packages/contracts/src/interfaces/ICommitmentPoolingModule.sol · ClaimMode</code> | <code>Open, ApprovalGated</code> |  |
+| indexer | indexer | <code>packages/indexer/schema.graphql · CommitmentClaimMode</code> | <code>UNKNOWN, OPEN, APPROVAL_GATED</code> | UNKNOWN represents the Solidity sentinel or unexpected values. |
+| shared | shared | <code>packages/shared/src/modules/commitment-pooling/types.ts · CommitmentClaimMode</code> | <code>UNKNOWN, OPEN, APPROVAL_GATED</code> |  |
 
 ### `dispute-resolution`
 
@@ -387,6 +418,8 @@ Consideration reference rail: ArbitrumExternal records operator-paid jar/treasur
 | Representation | Layer | Source | Expected members | Note |
 |---|---|---|---|---|
 | solidity | solidity | <code>packages/contracts/src/interfaces/ICommitmentPoolingModule.sol · ConsiderationRail</code> | <code>None, ArbitrumExternal, CeloSettlement</code> |  |
+| indexer | indexer | <code>packages/indexer/schema.graphql · CommitmentConsiderationRail</code> | <code>UNKNOWN, NONE, ARBITRUM_EXTERNAL, CELO_SETTLEMENT</code> | UNKNOWN represents the Solidity sentinel or unexpected values. |
+| shared | shared | <code>packages/shared/src/modules/commitment-pooling/types.ts · CommitmentConsiderationRail</code> | <code>UNKNOWN, NONE, ARBITRUM_EXTERNAL, CELO_SETTLEMENT</code> |  |
 
 ### `accounting-state`
 
@@ -418,6 +451,8 @@ The authority path that produced fulfillment provenance. PoolFallback is local-g
 | Representation | Layer | Source | Expected members | Note |
 |---|---|---|---|---|
 | solidity | solidity | <code>packages/contracts/src/interfaces/ICommitmentPoolingModule.sol · ConfirmationPath</code> | <code>Ordinary, PoolFallback, ProtocolFallback</code> |  |
+| indexer | indexer | <code>packages/indexer/schema.graphql · CommitmentConfirmationPath</code> | <code>UNKNOWN, ORDINARY, POOL_FALLBACK, PROTOCOL_FALLBACK</code> | UNKNOWN represents the Solidity sentinel or unexpected values. |
+| shared | shared | <code>packages/shared/src/modules/commitment-pooling/types.ts · CommitmentConfirmationPath</code> | <code>UNKNOWN, ORDINARY, POOL_FALLBACK, PROTOCOL_FALLBACK</code> |  |
 
 ### `disbursement-state`
 
@@ -440,6 +475,7 @@ Purpose of an outbound settlement entry. ContributorConsideration and GardenBene
 |---|---|---|---|---|
 | solidity | solidity | <code>packages/contracts/src/interfaces/ISettlementModule.sol · DisbursementKind</code> | <code>ContributorConsideration, Funding, LoanPrincipal, GardenBeneficiary, Refund</code> |  |
 | indexer | indexer | <code>packages/indexer/schema.graphql · DisbursementKind</code> | <code>UNKNOWN, CONTRIBUTOR_CONSIDERATION, FUNDING, LOAN_PRINCIPAL, GARDEN_BENEFICIARY, REFUND</code> | UNKNOWN is the indexer's fail-closed fallback for unmapped values. |
+| shared | shared | <code>packages/shared/src/modules/commitment-pooling/types.ts · DisbursementKind</code> | <code>UNKNOWN, CONTRIBUTOR_CONSIDERATION, FUNDING, LOAN_PRINCIPAL, GARDEN_BENEFICIARY, REFUND</code> |  |
 
 ### `funding-route`
 
@@ -461,6 +497,8 @@ Lifecycle of one member-funded priced-Offer claim. Pledged records intent; Depos
 | Representation | Layer | Source | Expected members | Note |
 |---|---|---|---|---|
 | solidity | solidity | <code>packages/contracts/src/interfaces/ISettlementModule.sol · FundingState</code> | <code>None, Pledged, DepositRecorded, Consumed, Closed, RefundQueued, Refunded, Withdrawn</code> |  |
+| indexer | indexer | <code>packages/indexer/schema.graphql · FundingState</code> | <code>UNKNOWN, PLEDGED, DEPOSIT_RECORDED, CONSUMED, CLOSED, REFUND_QUEUED, REFUNDED, WITHDRAWN</code> | UNKNOWN represents the Solidity None sentinel and unexpected values. |
+| shared | shared | <code>packages/shared/src/modules/commitment-pooling/types.ts · FundingState</code> | <code>UNKNOWN, PLEDGED, DEPOSIT_RECORDED, CONSUMED, CLOSED, REFUND_QUEUED, REFUNDED, WITHDRAWN</code> |  |
 
 ### `commitment-settlement-flow`
 
@@ -471,6 +509,7 @@ Read-model direction derived from immutable payer and provider gardens plus the 
 | Representation | Layer | Source | Expected members | Note |
 |---|---|---|---|---|
 | indexer | indexer | <code>packages/indexer/schema.graphql · CommitmentSettlementFlow</code> | <code>UNKNOWN, INTERNAL, PROTOCOL_TO_GARDEN, GARDEN_TO_PROTOCOL, GARDEN_TO_GARDEN</code> | UNKNOWN is retained until the protocol garden configuration is observed. |
+| shared | shared | <code>packages/shared/src/modules/commitment-pooling/types.ts · CommitmentSettlementFlow</code> | <code>UNKNOWN, INTERNAL, PROTOCOL_TO_GARDEN, GARDEN_TO_PROTOCOL, GARDEN_TO_GARDEN</code> |  |
 
 ### `loan-state`
 
@@ -546,6 +585,7 @@ Indexer lifecycle of a commitment claim request, including peer supersession aft
 | Representation | Layer | Source | Expected members | Note |
 |---|---|---|---|---|
 | indexer | indexer | <code>packages/indexer/schema.graphql · CommitmentClaimRequestState</code> | <code>PENDING, ACCEPTED, DECLINED, SUPERSEDED</code> |  |
+| shared | shared | <code>packages/shared/src/modules/commitment-pooling/types.ts · CommitmentClaimRequestState</code> | <code>PENDING, ACCEPTED, DECLINED, SUPERSEDED</code> |  |
 
 ### `commitment-event-type`
 
@@ -566,6 +606,7 @@ Read-model grouping boundary for exact-label commitment-unit summaries.
 | Representation | Layer | Source | Expected members | Note |
 |---|---|---|---|---|
 | indexer | indexer | <code>packages/indexer/schema.graphql · CommitmentUnitScope</code> | <code>POOL, CYCLE</code> |  |
+| shared | shared | <code>packages/shared/src/modules/commitment-pooling/types.ts · CommitmentUnitScope</code> | <code>POOL, CYCLE</code> |  |
 
 ### `commitment-series-state`
 
@@ -577,6 +618,7 @@ Lifecycle of the internal durable identity for one Offer used over time in one p
 |---|---|---|---|---|
 | solidity | solidity | <code>packages/contracts/src/interfaces/ICommitmentPoolingModule.sol · CommitmentSeriesState</code> | <code>None, Active, Resting, Retired</code> |  |
 | indexer | indexer | <code>packages/indexer/schema.graphql · CommitmentSeriesState</code> | <code>UNKNOWN, ACTIVE, RESTING, RETIRED</code> | UNKNOWN represents the Solidity None sentinel and unexpected values. |
+| shared | shared | <code>packages/shared/src/modules/commitment-pooling/types.ts · CommitmentSeriesState</code> | <code>UNKNOWN, ACTIVE, RESTING, RETIRED</code> |  |
 
 ## Specified vocabularies without an implemented source
 

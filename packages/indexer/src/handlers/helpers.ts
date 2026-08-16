@@ -277,13 +277,22 @@ export function getStringArray(value: unknown): string[] | undefined {
 export async function fetchJson(
   uri: string,
   fetchContext?: FetchJsonContext,
-  timeoutMs = 10_000
+  timeoutMs = 10_000,
+  maxAttempts = 3,
+  retryDelayMs = 250
 ): Promise<unknown | null> {
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-  try {
-    const response = await fetch(resolveIpfsUri(uri), { signal: controller.signal });
-    if (!response.ok) {
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      const response = await fetch(resolveIpfsUri(uri), { signal: controller.signal });
+      if (response.ok) return await response.json();
+
+      const retryable =
+        response.status === 408 ||
+        response.status === 425 ||
+        response.status === 429 ||
+        response.status >= 500;
       if (fetchContext) {
         fetchContext.log.warn("Metadata fetch returned non-OK status", {
           eventType: fetchContext.eventType,
@@ -292,26 +301,32 @@ export async function fetchJson(
           correlationId: fetchContext.txHash,
           uri,
           status: response.status,
+          attempt,
+          maxAttempts,
         });
       }
-      return null;
+      if (!retryable || attempt === maxAttempts) return null;
+    } catch (error) {
+      if (fetchContext) {
+        fetchContext.log.warn("Metadata fetch failed", {
+          eventType: fetchContext.eventType,
+          chainId: fetchContext.chainId,
+          blockNumber: fetchContext.blockNumber,
+          correlationId: fetchContext.txHash,
+          uri,
+          attempt,
+          maxAttempts,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+      if (attempt === maxAttempts) return null;
+    } finally {
+      clearTimeout(timeoutId);
     }
-    return await response.json();
-  } catch (error) {
-    if (fetchContext) {
-      fetchContext.log.warn("Metadata fetch failed", {
-        eventType: fetchContext.eventType,
-        chainId: fetchContext.chainId,
-        blockNumber: fetchContext.blockNumber,
-        correlationId: fetchContext.txHash,
-        uri,
-        error: error instanceof Error ? error.message : String(error),
-      });
-    }
-    return null;
-  } finally {
-    clearTimeout(timeoutId);
+
+    await new Promise((resolve) => setTimeout(resolve, retryDelayMs * attempt));
   }
+  return null;
 }
 
 export function parseHypercertMetadata(metadata: unknown): {
@@ -430,6 +445,7 @@ export function createDefaultHypercert(
     attestationCount: 0,
     attestationUIDs: [],
     bundleKind: "WORK_LEGACY",
+    metadataReconciliationRequired: false,
     commitmentIds: [],
     commitmentEntityIds: [],
     needUIDs: [],

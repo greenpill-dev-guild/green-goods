@@ -7,6 +7,25 @@ import {
 import { resolveWorkSubmissionTitle } from "../../utils/work/workTitles";
 import type { TransactionSender } from "../transactions/types";
 import { jobQueueDB } from "./db";
+import { readContract } from "@wagmi/core";
+import type { Hex } from "viem";
+import { getWagmiConfig } from "../../config/appkit";
+import {
+  executeCommitmentJob,
+  type CommitmentCreationPayload,
+  type CommitmentJob,
+  type CommitmentJobKind,
+  type CommitmentJobPayloadMap,
+  type CommitmentSeriesJobPayload,
+} from "../commitment-pooling/jobs";
+import type { Address } from "../../types/domain";
+import {
+  CommitmentPoolingModuleABI,
+  GardenAccountABI,
+  getNetworkContracts,
+} from "../../utils/blockchain/contracts";
+import { GARDEN_ROLE_FUNCTIONS } from "../../utils/blockchain/garden-roles";
+import { logger } from "../app/logger";
 
 /**
  * Execute a work attestation job: simulate, encode (includes IPFS upload), and send.
@@ -117,4 +136,243 @@ export async function executeApprovalJob(
   );
   const result = await sender.sendContractCall(contractCall);
   return result.hash;
+}
+
+export type CommitmentQueueExecution =
+  | { status: "complete"; txHash?: Hex; entityId?: bigint }
+  | { status: "submitted"; txHash: Hex }
+  | { status: "waiting"; reason: string }
+  | { status: "identity-conflict"; reason: string };
+
+function contractPayload(payload: CommitmentCreationPayload) {
+  return {
+    poolId: payload.poolId,
+    cycleId: payload.cycleId,
+    creationRequestKey: payload.creationRequestKey,
+    commitmentSeriesId: payload.commitmentSeriesId,
+    direction: payload.direction,
+    commitmentType: payload.commitmentType,
+    claimType: payload.claimType,
+    claimMode: payload.claimMode,
+    contributorPolicy: payload.contributorPolicy,
+    onBehalfOf: payload.onBehalfOf,
+    domainTags: payload.domainTags,
+    requirements: payload.requirements,
+    unitLabel: payload.unitLabel,
+    targetUnits: payload.targetUnits,
+    requiresAssessment: payload.requiresAssessment,
+    dueDate: payload.dueDate,
+    metadataCID: payload.metadataCID,
+    needUID: payload.needUID,
+    counterCommitmentId: payload.counterCommitmentId,
+    confirmers: payload.confirmers,
+    confirmationThreshold: payload.confirmationThreshold,
+    protocolFallbackEnabled: payload.protocolFallbackEnabled,
+    consideration: payload.consideration,
+    declaredUnitValue: payload.declaredUnitValue,
+    declaredValueBasis: payload.declaredValueBasis,
+  };
+}
+
+function contractCallFor(
+  kind: CommitmentJobKind,
+  payload: CommitmentJobPayloadMap[CommitmentJobKind]
+) {
+  switch (kind) {
+    case "commitmentSeries": {
+      const value = payload as CommitmentJobPayloadMap["commitmentSeries"];
+      return {
+        functionName: "createCommitmentSeries",
+        args: [value.poolId, value.creationRequestKey, value.metadataCID] as const,
+      };
+    }
+    case "commitment":
+      return {
+        functionName: "createCommitment",
+        args: [contractPayload(payload as CommitmentCreationPayload)] as const,
+      };
+    case "claim": {
+      const value = payload as CommitmentJobPayloadMap["claim"];
+      return {
+        functionName: "claimCommitment",
+        args: [value.commitmentId, value.kind, value.gardenContext] as const,
+      };
+    }
+    case "evidence": {
+      const value = payload as CommitmentJobPayloadMap["evidence"];
+      return {
+        functionName: "attachEvidence",
+        args: [value.commitmentId, value.cid, value.creditedContributors] as const,
+      };
+    }
+    case "workLink": {
+      const value = payload as CommitmentJobPayloadMap["workLink"];
+      return {
+        functionName: "linkWork",
+        args: [
+          value.commitmentId,
+          value.workUID,
+          value.requirementIndex,
+          value.operationKey,
+        ] as const,
+      };
+    }
+    case "confirmation": {
+      const value = payload as CommitmentJobPayloadMap["confirmation"];
+      return {
+        functionName: value.action === "submit" ? "submitForConfirmation" : "confirmFulfillment",
+        args: [value.commitmentId] as const,
+      };
+    }
+  }
+}
+
+async function currentGardenMember(
+  garden: Address,
+  account: Address,
+  chainId: number
+): Promise<boolean> {
+  const results = await Promise.all(
+    Object.values(GARDEN_ROLE_FUNCTIONS).map(async (functionName) => {
+      try {
+        return Boolean(
+          await readContract(getWagmiConfig(), {
+            address: garden,
+            abi: GardenAccountABI,
+            functionName,
+            args: [account],
+            chainId,
+          })
+        );
+      } catch (error) {
+        logger.warn("Garden membership probe failed closed", {
+          chainId,
+          functionName,
+          errorType: error instanceof Error ? error.name : "UnknownError",
+        });
+        return false;
+      }
+    })
+  );
+  return results.some(Boolean);
+}
+
+export async function executeCommitmentQueueJob(
+  jobId: string,
+  job: Job,
+  chainId: number,
+  sender: TransactionSender
+): Promise<CommitmentQueueExecution> {
+  const moduleAddress = getNetworkContracts(chainId).commitmentPoolingModule;
+  const commitmentJob: CommitmentJob = {
+    id: jobId,
+    kind: job.kind as CommitmentJobKind,
+    payload: job.payload as CommitmentJobPayloadMap[CommitmentJobKind],
+    chainId,
+    moduleAddress,
+    userAddress: job.userAddress,
+    ...(typeof job.meta?.submittedTxHash === "string"
+      ? { submittedTxHash: job.meta.submittedTxHash as Hex }
+      : {}),
+  };
+
+  const result = await executeCommitmentJob(commitmentJob, {
+    readSeriesId: async (holder, key) =>
+      (await readContract(getWagmiConfig(), {
+        address: moduleAddress,
+        abi: CommitmentPoolingModuleABI,
+        functionName: "getCommitmentSeriesIdByCreationRequest",
+        args: [holder, key],
+        chainId,
+      })) as bigint,
+    readSeries: async (seriesId) => {
+      const value = (await readContract(getWagmiConfig(), {
+        address: moduleAddress,
+        abi: CommitmentPoolingModuleABI,
+        functionName: "getCommitmentSeries",
+        args: [seriesId],
+        chainId,
+      })) as {
+        poolId: bigint;
+        createdBy: Address;
+        metadataCID: string;
+        creationPayloadHash: Hex;
+      };
+      return value;
+    },
+    readPoolGarden: async (poolId) => {
+      const value = (await readContract(getWagmiConfig(), {
+        address: moduleAddress,
+        abi: CommitmentPoolingModuleABI,
+        functionName: "getPool",
+        args: [poolId],
+        chainId,
+      })) as { garden: Address };
+      return value.garden;
+    },
+    readCommitmentId: async (creator, key) =>
+      (await readContract(getWagmiConfig(), {
+        address: moduleAddress,
+        abi: CommitmentPoolingModuleABI,
+        functionName: "getCommitmentIdByCreationRequest",
+        args: [creator, key],
+        chainId,
+      })) as bigint,
+    readCommitment: async (commitmentId) => {
+      const value = (await readContract(getWagmiConfig(), {
+        address: moduleAddress,
+        abi: CommitmentPoolingModuleABI,
+        functionName: "getCommitment",
+        args: [commitmentId],
+        chainId,
+      })) as { creationPayloadHash: Hex; poolId: bigint; creator: Address };
+      return value;
+    },
+    readWorkLinkPayloadHash: async (caller, key) =>
+      (await readContract(getWagmiConfig(), {
+        address: moduleAddress,
+        abi: CommitmentPoolingModuleABI,
+        functionName: "getWorkLinkOperationPayloadHash",
+        args: [caller, key],
+        chainId,
+      })) as Hex,
+    resolveSeriesId: (clientSeriesId) => jobQueueDB.getSeriesIdByClientId(clientSeriesId),
+    hasMembership: (garden, account) => currentGardenMember(garden, account, chainId),
+    send: async ({ kind, payload, moduleAddress: target, chainId: targetChain }) => {
+      const call = contractCallFor(kind, payload);
+      const sent = await sender.sendContractCall({
+        address: target,
+        abi: CommitmentPoolingModuleABI,
+        functionName: call.functionName,
+        args: call.args,
+        chainId: targetChain,
+      });
+      return sent.hash;
+    },
+  });
+
+  if (result.status === "recovered") {
+    if (result.entityId !== undefined && job.kind === "commitmentSeries") {
+      await jobQueueDB.storeClientSeriesIdMapping(
+        (job.payload as CommitmentSeriesJobPayload).clientSeriesId,
+        result.entityId,
+        jobId,
+        chainId
+      );
+    }
+    if (result.entityId !== undefined && job.kind === "commitment") {
+      await jobQueueDB.storeClientCommitmentIdMapping(
+        (job.payload as CommitmentCreationPayload).clientCommitmentId,
+        result.entityId,
+        jobId,
+        chainId
+      );
+    }
+    return { status: "complete", entityId: result.entityId };
+  }
+  return result.status === "sent"
+    ? job.kind === "commitmentSeries" || job.kind === "commitment"
+      ? { status: "submitted", txHash: result.txHash }
+      : { status: "complete", txHash: result.txHash }
+    : result;
 }

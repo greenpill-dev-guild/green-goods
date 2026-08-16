@@ -1,0 +1,5179 @@
+[
+  {
+    "type": "function",
+    "name": "MAX_CONFIRMERS",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "pure"
+  },
+  {
+    "type": "function",
+    "name": "MAX_CONTRIBUTORS_PER_COMMITMENT",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "pure"
+  },
+  {
+    "type": "function",
+    "name": "MAX_EVIDENCE_CONTRIBUTORS_PER_ATTACHMENT",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "pure"
+  },
+  {
+    "type": "function",
+    "name": "MAX_LINKED_WORKS_PER_COMMITMENT",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "pure"
+  },
+  {
+    "type": "function",
+    "name": "MAX_REQUIREMENTS",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "pure"
+  },
+  {
+    "type": "function",
+    "name": "acceptClaim",
+    "inputs": [
+      {
+        "name": "commitmentId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "claimant",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "acceptExchange",
+    "inputs": [
+      {
+        "name": "exchangeCommitmentId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "addContributor",
+    "inputs": [
+      {
+        "name": "commitmentId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "contributor",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "attachAssessment",
+    "inputs": [
+      {
+        "name": "commitmentId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "assessmentUID",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "attachEvidence",
+    "inputs": [
+      {
+        "name": "commitmentId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "cid",
+        "type": "string",
+        "internalType": "string"
+      },
+      {
+        "name": "creditedContributors",
+        "type": "address[]",
+        "internalType": "address[]"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "cancelCommitment",
+    "inputs": [
+      {
+        "name": "commitmentId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "reasonCID",
+        "type": "string",
+        "internalType": "string"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "cancelCycle",
+    "inputs": [
+      {
+        "name": "cycleId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "reasonCID",
+        "type": "string",
+        "internalType": "string"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "claimCommitment",
+    "inputs": [
+      {
+        "name": "commitmentId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "kind",
+        "type": "uint8",
+        "internalType": "enum ICommitmentPoolingModule.ClaimType"
+      },
+      {
+        "name": "gardenContext",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "closeCycle",
+    "inputs": [
+      {
+        "name": "cycleId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "closePool",
+    "inputs": [
+      {
+        "name": "poolId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "compostCycle",
+    "inputs": [
+      {
+        "name": "cycleId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "compostPool",
+    "inputs": [
+      {
+        "name": "poolId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "confirmFulfillment",
+    "inputs": [
+      {
+        "name": "commitmentId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "confirmFulfillmentAsFallback",
+    "inputs": [
+      {
+        "name": "commitmentId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "reason",
+        "type": "string",
+        "internalType": "string"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "createCommitment",
+    "inputs": [
+      {
+        "name": "params",
+        "type": "tuple",
+        "internalType": "struct ICommitmentPoolingModule.CreateCommitmentParams",
+        "components": [
+          {
+            "name": "poolId",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "cycleId",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "creationRequestKey",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "commitmentSeriesId",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "direction",
+            "type": "uint8",
+            "internalType": "enum ICommitmentPoolingModule.CommitmentDirection"
+          },
+          {
+            "name": "commitmentType",
+            "type": "uint8",
+            "internalType": "enum ICommitmentPoolingModule.CommitmentType"
+          },
+          {
+            "name": "claimType",
+            "type": "uint8",
+            "internalType": "enum ICommitmentPoolingModule.ClaimType"
+          },
+          {
+            "name": "claimMode",
+            "type": "uint8",
+            "internalType": "enum ICommitmentPoolingModule.ClaimMode"
+          },
+          {
+            "name": "contributorPolicy",
+            "type": "uint8",
+            "internalType": "enum ICommitmentPoolingModule.ContributorPolicy"
+          },
+          {
+            "name": "onBehalfOf",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "domainTags",
+            "type": "uint8[]",
+            "internalType": "uint8[]"
+          },
+          {
+            "name": "requirements",
+            "type": "tuple[]",
+            "internalType": "struct ICommitmentPoolingModule.CommitmentRequirementInput[]",
+            "components": [
+              {
+                "name": "actionUID",
+                "type": "uint256",
+                "internalType": "uint256"
+              },
+              {
+                "name": "requiredCount",
+                "type": "uint32",
+                "internalType": "uint32"
+              }
+            ]
+          },
+          {
+            "name": "unitLabel",
+            "type": "string",
+            "internalType": "string"
+          },
+          {
+            "name": "targetUnits",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "requiresAssessment",
+            "type": "bool",
+            "internalType": "bool"
+          },
+          {
+            "name": "dueDate",
+            "type": "uint64",
+            "internalType": "uint64"
+          },
+          {
+            "name": "metadataCID",
+            "type": "string",
+            "internalType": "string"
+          },
+          {
+            "name": "needUID",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "counterCommitmentId",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "confirmers",
+            "type": "address[]",
+            "internalType": "address[]"
+          },
+          {
+            "name": "confirmationThreshold",
+            "type": "uint32",
+            "internalType": "uint32"
+          },
+          {
+            "name": "protocolFallbackEnabled",
+            "type": "bool",
+            "internalType": "bool"
+          },
+          {
+            "name": "consideration",
+            "type": "tuple",
+            "internalType": "struct ICommitmentPoolingModule.DeclaredConsideration",
+            "components": [
+              {
+                "name": "rail",
+                "type": "uint8",
+                "internalType": "enum ICommitmentPoolingModule.ConsiderationRail"
+              },
+              {
+                "name": "source",
+                "type": "address",
+                "internalType": "address"
+              },
+              {
+                "name": "token",
+                "type": "address",
+                "internalType": "address"
+              },
+              {
+                "name": "amount",
+                "type": "uint256",
+                "internalType": "uint256"
+              }
+            ]
+          },
+          {
+            "name": "declaredUnitValue",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "declaredValueBasis",
+            "type": "string",
+            "internalType": "string"
+          }
+        ]
+      }
+    ],
+    "outputs": [
+      {
+        "name": "commitmentId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "createCommitmentSeries",
+    "inputs": [
+      {
+        "name": "poolId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "creationRequestKey",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      },
+      {
+        "name": "metadataCID",
+        "type": "string",
+        "internalType": "string"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "seriesId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "cyclelessRecognitionPolicy",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple",
+        "internalType": "struct ICommitmentPoolingModule.RecognitionPolicy",
+        "components": [
+          {
+            "name": "equalParticipationBps",
+            "type": "uint16",
+            "internalType": "uint16"
+          },
+          {
+            "name": "verifiedContributionBps",
+            "type": "uint16",
+            "internalType": "uint16"
+          }
+        ]
+      }
+    ],
+    "stateMutability": "pure"
+  },
+  {
+    "type": "function",
+    "name": "declineClaim",
+    "inputs": [
+      {
+        "name": "commitmentId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "claimant",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "reasonCID",
+        "type": "string",
+        "internalType": "string"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "expireCommitment",
+    "inputs": [
+      {
+        "name": "commitmentId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "getCommitment",
+    "inputs": [
+      {
+        "name": "commitmentId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple",
+        "internalType": "struct ICommitmentPoolingModule.Commitment",
+        "components": [
+          {
+            "name": "poolId",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "cycleId",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "commitmentSeriesId",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "creator",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "creationRequestKey",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "creationPayloadHash",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "counterparty",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "leadProvider",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "counterpartyKind",
+            "type": "uint8",
+            "internalType": "enum ICommitmentPoolingModule.ClaimType"
+          },
+          {
+            "name": "direction",
+            "type": "uint8",
+            "internalType": "enum ICommitmentPoolingModule.CommitmentDirection"
+          },
+          {
+            "name": "commitmentType",
+            "type": "uint8",
+            "internalType": "enum ICommitmentPoolingModule.CommitmentType"
+          },
+          {
+            "name": "state",
+            "type": "uint8",
+            "internalType": "enum ICommitmentPoolingModule.CommitmentState"
+          },
+          {
+            "name": "claimType",
+            "type": "uint8",
+            "internalType": "enum ICommitmentPoolingModule.ClaimType"
+          },
+          {
+            "name": "claimMode",
+            "type": "uint8",
+            "internalType": "enum ICommitmentPoolingModule.ClaimMode"
+          },
+          {
+            "name": "contributorPolicy",
+            "type": "uint8",
+            "internalType": "enum ICommitmentPoolingModule.ContributorPolicy"
+          },
+          {
+            "name": "domains",
+            "type": "uint8[]",
+            "internalType": "uint8[]"
+          },
+          {
+            "name": "requirements",
+            "type": "tuple[]",
+            "internalType": "struct ICommitmentPoolingModule.CommitmentRequirement[]",
+            "components": [
+              {
+                "name": "actionUID",
+                "type": "uint256",
+                "internalType": "uint256"
+              },
+              {
+                "name": "domain",
+                "type": "uint8",
+                "internalType": "uint8"
+              },
+              {
+                "name": "requiredCount",
+                "type": "uint32",
+                "internalType": "uint32"
+              },
+              {
+                "name": "approvedCount",
+                "type": "uint32",
+                "internalType": "uint32"
+              }
+            ]
+          },
+          {
+            "name": "dueDate",
+            "type": "uint64",
+            "internalType": "uint64"
+          },
+          {
+            "name": "unitLabel",
+            "type": "string",
+            "internalType": "string"
+          },
+          {
+            "name": "targetUnits",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "contributorCount",
+            "type": "uint32",
+            "internalType": "uint32"
+          },
+          {
+            "name": "eligibleContributorCount",
+            "type": "uint32",
+            "internalType": "uint32"
+          },
+          {
+            "name": "totalVerifiedCredits",
+            "type": "uint64",
+            "internalType": "uint64"
+          },
+          {
+            "name": "evidenceCount",
+            "type": "uint32",
+            "internalType": "uint32"
+          },
+          {
+            "name": "contributorsFrozen",
+            "type": "bool",
+            "internalType": "bool"
+          },
+          {
+            "name": "confirmationThreshold",
+            "type": "uint32",
+            "internalType": "uint32"
+          },
+          {
+            "name": "confirmationCount",
+            "type": "uint32",
+            "internalType": "uint32"
+          },
+          {
+            "name": "protocolFallbackEnabled",
+            "type": "bool",
+            "internalType": "bool"
+          },
+          {
+            "name": "requiresAssessment",
+            "type": "bool",
+            "internalType": "bool"
+          },
+          {
+            "name": "assessmentUID",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "needUID",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "counterCommitmentId",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "metadataCID",
+            "type": "string",
+            "internalType": "string"
+          },
+          {
+            "name": "consideration",
+            "type": "tuple",
+            "internalType": "struct ICommitmentPoolingModule.DeclaredConsideration",
+            "components": [
+              {
+                "name": "rail",
+                "type": "uint8",
+                "internalType": "enum ICommitmentPoolingModule.ConsiderationRail"
+              },
+              {
+                "name": "source",
+                "type": "address",
+                "internalType": "address"
+              },
+              {
+                "name": "token",
+                "type": "address",
+                "internalType": "address"
+              },
+              {
+                "name": "amount",
+                "type": "uint256",
+                "internalType": "uint256"
+              }
+            ]
+          },
+          {
+            "name": "declaredUnitValue",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "declaredValueBasis",
+            "type": "string",
+            "internalType": "string"
+          },
+          {
+            "name": "considerationPaid",
+            "type": "bool",
+            "internalType": "bool"
+          },
+          {
+            "name": "preDisputeState",
+            "type": "uint8",
+            "internalType": "enum ICommitmentPoolingModule.CommitmentState"
+          },
+          {
+            "name": "providerGarden",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "payerGarden",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "counterpartyPoolId",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "counterpartyGardenAccount",
+            "type": "address",
+            "internalType": "address"
+          }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getCommitmentIdByCreationRequest",
+    "inputs": [
+      {
+        "name": "creator",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "creationRequestKey",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "commitmentId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getCommitmentSeries",
+    "inputs": [
+      {
+        "name": "seriesId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple",
+        "internalType": "struct ICommitmentPoolingModule.CommitmentSeries",
+        "components": [
+          {
+            "name": "poolId",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "createdBy",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "currentHolder",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "state",
+            "type": "uint8",
+            "internalType": "enum ICommitmentPoolingModule.CommitmentSeriesState"
+          },
+          {
+            "name": "metadataCID",
+            "type": "string",
+            "internalType": "string"
+          },
+          {
+            "name": "creationPayloadHash",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getCommitmentSeriesIdByCreationRequest",
+    "inputs": [
+      {
+        "name": "holder",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "creationRequestKey",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "seriesId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getConfirmers",
+    "inputs": [
+      {
+        "name": "commitmentId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address[]",
+        "internalType": "address[]"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getContributor",
+    "inputs": [
+      {
+        "name": "commitmentId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "contributor",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple",
+        "internalType": "struct ICommitmentPoolingModule.ContributorRecord",
+        "components": [
+          {
+            "name": "active",
+            "type": "bool",
+            "internalType": "bool"
+          },
+          {
+            "name": "uncountedLinkedWorkCount",
+            "type": "uint32",
+            "internalType": "uint32"
+          },
+          {
+            "name": "approvedWorkCredits",
+            "type": "uint32",
+            "internalType": "uint32"
+          },
+          {
+            "name": "evidenceCredits",
+            "type": "uint32",
+            "internalType": "uint32"
+          }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getCycle",
+    "inputs": [
+      {
+        "name": "cycleId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple",
+        "internalType": "struct ICommitmentPoolingModule.Cycle",
+        "components": [
+          {
+            "name": "poolId",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "cycleType",
+            "type": "uint8",
+            "internalType": "enum ICommitmentPoolingModule.CycleType"
+          },
+          {
+            "name": "state",
+            "type": "uint8",
+            "internalType": "enum ICommitmentPoolingModule.CycleState"
+          },
+          {
+            "name": "startTime",
+            "type": "uint64",
+            "internalType": "uint64"
+          },
+          {
+            "name": "endTime",
+            "type": "uint64",
+            "internalType": "uint64"
+          },
+          {
+            "name": "metadataCID",
+            "type": "string",
+            "internalType": "string"
+          },
+          {
+            "name": "allocation",
+            "type": "tuple",
+            "internalType": "struct ICommitmentPoolingModule.AllocationBps",
+            "components": [
+              {
+                "name": "gardeners",
+                "type": "uint16",
+                "internalType": "uint16"
+              },
+              {
+                "name": "treasury",
+                "type": "uint16",
+                "internalType": "uint16"
+              },
+              {
+                "name": "operator",
+                "type": "uint16",
+                "internalType": "uint16"
+              },
+              {
+                "name": "evaluator",
+                "type": "uint16",
+                "internalType": "uint16"
+              },
+              {
+                "name": "community",
+                "type": "uint16",
+                "internalType": "uint16"
+              },
+              {
+                "name": "funder",
+                "type": "uint16",
+                "internalType": "uint16"
+              }
+            ]
+          },
+          {
+            "name": "recognitionPolicy",
+            "type": "tuple",
+            "internalType": "struct ICommitmentPoolingModule.RecognitionPolicy",
+            "components": [
+              {
+                "name": "equalParticipationBps",
+                "type": "uint16",
+                "internalType": "uint16"
+              },
+              {
+                "name": "verifiedContributionBps",
+                "type": "uint16",
+                "internalType": "uint16"
+              }
+            ]
+          },
+          {
+            "name": "liveCommitmentCount",
+            "type": "uint32",
+            "internalType": "uint32"
+          }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getLinkedWorkUIDs",
+    "inputs": [
+      {
+        "name": "commitmentId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bytes32[]",
+        "internalType": "bytes32[]"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getPendingClaim",
+    "inputs": [
+      {
+        "name": "commitmentId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "claimant",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple",
+        "internalType": "struct ICommitmentPoolingModule.PendingClaim",
+        "components": [
+          {
+            "name": "claimant",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "requestedBy",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "kind",
+            "type": "uint8",
+            "internalType": "enum ICommitmentPoolingModule.ClaimType"
+          },
+          {
+            "name": "gardenContext",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "requestedAt",
+            "type": "uint64",
+            "internalType": "uint64"
+          },
+          {
+            "name": "active",
+            "type": "bool",
+            "internalType": "bool"
+          }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getPool",
+    "inputs": [
+      {
+        "name": "poolId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple",
+        "internalType": "struct ICommitmentPoolingModule.Pool",
+        "components": [
+          {
+            "name": "garden",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "poolType",
+            "type": "uint8",
+            "internalType": "enum ICommitmentPoolingModule.PoolType"
+          },
+          {
+            "name": "state",
+            "type": "uint8",
+            "internalType": "enum ICommitmentPoolingModule.PoolState"
+          },
+          {
+            "name": "proofEnabled",
+            "type": "bool",
+            "internalType": "bool"
+          },
+          {
+            "name": "settlementEnabled",
+            "type": "bool",
+            "internalType": "bool"
+          },
+          {
+            "name": "charterCID",
+            "type": "string",
+            "internalType": "string"
+          },
+          {
+            "name": "openSeasonCycleId",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "settlementAdapter",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "liveCommitmentCount",
+            "type": "uint32",
+            "internalType": "uint32"
+          },
+          {
+            "name": "nonTerminalCycleCount",
+            "type": "uint32",
+            "internalType": "uint32"
+          }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getPoolByGarden",
+    "inputs": [
+      {
+        "name": "garden",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "poolId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "pool",
+        "type": "tuple",
+        "internalType": "struct ICommitmentPoolingModule.Pool",
+        "components": [
+          {
+            "name": "garden",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "poolType",
+            "type": "uint8",
+            "internalType": "enum ICommitmentPoolingModule.PoolType"
+          },
+          {
+            "name": "state",
+            "type": "uint8",
+            "internalType": "enum ICommitmentPoolingModule.PoolState"
+          },
+          {
+            "name": "proofEnabled",
+            "type": "bool",
+            "internalType": "bool"
+          },
+          {
+            "name": "settlementEnabled",
+            "type": "bool",
+            "internalType": "bool"
+          },
+          {
+            "name": "charterCID",
+            "type": "string",
+            "internalType": "string"
+          },
+          {
+            "name": "openSeasonCycleId",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "settlementAdapter",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "liveCommitmentCount",
+            "type": "uint32",
+            "internalType": "uint32"
+          },
+          {
+            "name": "nonTerminalCycleCount",
+            "type": "uint32",
+            "internalType": "uint32"
+          }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getRequirement",
+    "inputs": [
+      {
+        "name": "commitmentId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "requirementIndex",
+        "type": "uint16",
+        "internalType": "uint16"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple",
+        "internalType": "struct ICommitmentPoolingModule.CommitmentRequirement",
+        "components": [
+          {
+            "name": "actionUID",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "domain",
+            "type": "uint8",
+            "internalType": "uint8"
+          },
+          {
+            "name": "requiredCount",
+            "type": "uint32",
+            "internalType": "uint32"
+          },
+          {
+            "name": "approvedCount",
+            "type": "uint32",
+            "internalType": "uint32"
+          }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getWorkLinkOperationPayloadHash",
+    "inputs": [
+      {
+        "name": "caller",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "operationKey",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "payloadHash",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "initialize",
+    "inputs": [
+      {
+        "name": "owner_",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "rootGarden_",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "isApprovalCounted",
+    "inputs": [
+      {
+        "name": "approvalUID",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "isContributor",
+    "inputs": [
+      {
+        "name": "commitmentId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "contributor",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "isEligibleContributor",
+    "inputs": [
+      {
+        "name": "commitmentId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "contributor",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "isEvidenceAttached",
+    "inputs": [
+      {
+        "name": "commitmentId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "cidHash",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "joinCommitment",
+    "inputs": [
+      {
+        "name": "commitmentId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "leaveCommitment",
+    "inputs": [
+      {
+        "name": "commitmentId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "linkWork",
+    "inputs": [
+      {
+        "name": "commitmentId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "workUID",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      },
+      {
+        "name": "requirementIndex",
+        "type": "uint16",
+        "internalType": "uint16"
+      },
+      {
+        "name": "operationKey",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "markPoolReady",
+    "inputs": [
+      {
+        "name": "poolId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "markReadyForConfirmation",
+    "inputs": [
+      {
+        "name": "commitmentId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "reason",
+        "type": "string",
+        "internalType": "string"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "onGardenMinted",
+    "inputs": [
+      {
+        "name": "garden",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "poolId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "onWorkDecision",
+    "inputs": [
+      {
+        "name": "workUID",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      },
+      {
+        "name": "approvalUID",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      },
+      {
+        "name": "decisionSequence",
+        "type": "uint64",
+        "internalType": "uint64"
+      },
+      {
+        "name": "garden",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "approved",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "openCycle",
+    "inputs": [
+      {
+        "name": "cycleId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "allocation",
+        "type": "tuple",
+        "internalType": "struct ICommitmentPoolingModule.AllocationBps",
+        "components": [
+          {
+            "name": "gardeners",
+            "type": "uint16",
+            "internalType": "uint16"
+          },
+          {
+            "name": "treasury",
+            "type": "uint16",
+            "internalType": "uint16"
+          },
+          {
+            "name": "operator",
+            "type": "uint16",
+            "internalType": "uint16"
+          },
+          {
+            "name": "evaluator",
+            "type": "uint16",
+            "internalType": "uint16"
+          },
+          {
+            "name": "community",
+            "type": "uint16",
+            "internalType": "uint16"
+          },
+          {
+            "name": "funder",
+            "type": "uint16",
+            "internalType": "uint16"
+          }
+        ]
+      },
+      {
+        "name": "recognitionPolicy",
+        "type": "tuple",
+        "internalType": "struct ICommitmentPoolingModule.RecognitionPolicy",
+        "components": [
+          {
+            "name": "equalParticipationBps",
+            "type": "uint16",
+            "internalType": "uint16"
+          },
+          {
+            "name": "verifiedContributionBps",
+            "type": "uint16",
+            "internalType": "uint16"
+          }
+        ]
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "openPool",
+    "inputs": [
+      {
+        "name": "poolId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "pausePool",
+    "inputs": [
+      {
+        "name": "poolId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "reasonCID",
+        "type": "string",
+        "internalType": "string"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "paused",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "protocolPoolId",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "raiseDispute",
+    "inputs": [
+      {
+        "name": "commitmentId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "reasonCID",
+        "type": "string",
+        "internalType": "string"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "recordConsiderationPaid",
+    "inputs": [
+      {
+        "name": "commitmentId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "payoutRef",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "registerPool",
+    "inputs": [
+      {
+        "name": "garden",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "poolType",
+        "type": "uint8",
+        "internalType": "enum ICommitmentPoolingModule.PoolType"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "poolId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "removeContributor",
+    "inputs": [
+      {
+        "name": "commitmentId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "contributor",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "reopenPool",
+    "inputs": [
+      {
+        "name": "poolId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "toOpen",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "resolveDispute",
+    "inputs": [
+      {
+        "name": "commitmentId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "resolution",
+        "type": "uint8",
+        "internalType": "enum ICommitmentPoolingModule.DisputeResolution"
+      },
+      {
+        "name": "reasonCID",
+        "type": "string",
+        "internalType": "string"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "restCommitmentSeries",
+    "inputs": [
+      {
+        "name": "seriesId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "resumeCommitmentSeries",
+    "inputs": [
+      {
+        "name": "seriesId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "resumePool",
+    "inputs": [
+      {
+        "name": "poolId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "retireCommitmentSeries",
+    "inputs": [
+      {
+        "name": "seriesId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "rootGarden",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "seedCycle",
+    "inputs": [
+      {
+        "name": "poolId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "cycleType",
+        "type": "uint8",
+        "internalType": "enum ICommitmentPoolingModule.CycleType"
+      },
+      {
+        "name": "startTime",
+        "type": "uint64",
+        "internalType": "uint64"
+      },
+      {
+        "name": "endTime",
+        "type": "uint64",
+        "internalType": "uint64"
+      },
+      {
+        "name": "metadataCID",
+        "type": "string",
+        "internalType": "string"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "cycleId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "setActionRegistry",
+    "inputs": [
+      {
+        "name": "actionRegistry",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "setCommitmentRegistry",
+    "inputs": [
+      {
+        "name": "registry",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "setConfirmerRule",
+    "inputs": [
+      {
+        "name": "commitmentId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "confirmers",
+        "type": "address[]",
+        "internalType": "address[]"
+      },
+      {
+        "name": "threshold",
+        "type": "uint32",
+        "internalType": "uint32"
+      },
+      {
+        "name": "protocolFallbackEnabled",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "setContributorRequirement",
+    "inputs": [
+      {
+        "name": "commitmentId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "contributor",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "requirementIndex",
+        "type": "uint16",
+        "internalType": "uint16"
+      },
+      {
+        "name": "assigned",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "setDeclaredConsideration",
+    "inputs": [
+      {
+        "name": "commitmentId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "consideration",
+        "type": "tuple",
+        "internalType": "struct ICommitmentPoolingModule.DeclaredConsideration",
+        "components": [
+          {
+            "name": "rail",
+            "type": "uint8",
+            "internalType": "enum ICommitmentPoolingModule.ConsiderationRail"
+          },
+          {
+            "name": "source",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "token",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "amount",
+            "type": "uint256",
+            "internalType": "uint256"
+          }
+        ]
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "setDeclaredValue",
+    "inputs": [
+      {
+        "name": "commitmentId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "declaredUnitValue",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "declaredValueBasis",
+        "type": "string",
+        "internalType": "string"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "setEAS",
+    "inputs": [
+      {
+        "name": "eas",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "setGardenToken",
+    "inputs": [
+      {
+        "name": "gardenToken",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "setHatsModule",
+    "inputs": [
+      {
+        "name": "hatsModule",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "setPaused",
+    "inputs": [
+      {
+        "name": "paused",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "setPoolCharter",
+    "inputs": [
+      {
+        "name": "poolId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "charterCID",
+        "type": "string",
+        "internalType": "string"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "setProviderOpenCommitmentCap",
+    "inputs": [
+      {
+        "name": "poolId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "cap",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "setSchemaUIDs",
+    "inputs": [
+      {
+        "name": "workUID",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      },
+      {
+        "name": "workApprovalUID",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      },
+      {
+        "name": "legacyAssessmentUID",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      },
+      {
+        "name": "assessmentV3UID",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "setWorkApprovalResolver",
+    "inputs": [
+      {
+        "name": "resolver",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "submitForConfirmation",
+    "inputs": [
+      {
+        "name": "commitmentId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "syncWorkDecisions",
+    "inputs": [
+      {
+        "name": "commitmentId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "decisionUIDs",
+        "type": "bytes32[]",
+        "internalType": "bytes32[]"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "unlinkWork",
+    "inputs": [
+      {
+        "name": "workUID",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "updateCommitmentSeriesMetadata",
+    "inputs": [
+      {
+        "name": "seriesId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "metadataCID",
+        "type": "string",
+        "internalType": "string"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "validateRecognitionSnapshot",
+    "inputs": [
+      {
+        "name": "commitmentId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "entries",
+        "type": "tuple[]",
+        "internalType": "struct ICommitmentPoolingModule.RecognitionEntry[]",
+        "components": [
+          {
+            "name": "contributor",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "recognitionWeightBps",
+            "type": "uint16",
+            "internalType": "uint16"
+          }
+        ]
+      },
+      {
+        "name": "suppliedHash",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "canonicalHash",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "workCommitmentOf",
+    "inputs": [
+      {
+        "name": "workUID",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "commitmentId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "event",
+    "name": "ApprovedWorkCounted",
+    "inputs": [
+      {
+        "name": "commitmentId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "workUID",
+        "type": "bytes32",
+        "indexed": true,
+        "internalType": "bytes32"
+      },
+      {
+        "name": "contributor",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "approvalUID",
+        "type": "bytes32",
+        "indexed": false,
+        "internalType": "bytes32"
+      },
+      {
+        "name": "decisionSequence",
+        "type": "uint64",
+        "indexed": false,
+        "internalType": "uint64"
+      },
+      {
+        "name": "requirementIndex",
+        "type": "uint16",
+        "indexed": false,
+        "internalType": "uint16"
+      },
+      {
+        "name": "approvedWorkCount",
+        "type": "uint32",
+        "indexed": false,
+        "internalType": "uint32"
+      },
+      {
+        "name": "approvedUnits",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "newlyApprovedUnits",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "ApprovedWorkReversed",
+    "inputs": [
+      {
+        "name": "commitmentId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "workUID",
+        "type": "bytes32",
+        "indexed": true,
+        "internalType": "bytes32"
+      },
+      {
+        "name": "contributor",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "decisionUID",
+        "type": "bytes32",
+        "indexed": false,
+        "internalType": "bytes32"
+      },
+      {
+        "name": "decisionSequence",
+        "type": "uint64",
+        "indexed": false,
+        "internalType": "uint64"
+      },
+      {
+        "name": "requirementIndex",
+        "type": "uint16",
+        "indexed": false,
+        "internalType": "uint16"
+      },
+      {
+        "name": "approvedWorkCount",
+        "type": "uint32",
+        "indexed": false,
+        "internalType": "uint32"
+      },
+      {
+        "name": "approvedUnits",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "removedApprovedUnits",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "AssessmentAttached",
+    "inputs": [
+      {
+        "name": "commitmentId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "assessmentUID",
+        "type": "bytes32",
+        "indexed": true,
+        "internalType": "bytes32"
+      },
+      {
+        "name": "attacher",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "ClaimDeclined",
+    "inputs": [
+      {
+        "name": "commitmentId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "claimant",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "reasonCID",
+        "type": "string",
+        "indexed": false,
+        "internalType": "string"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "ClaimRequested",
+    "inputs": [
+      {
+        "name": "commitmentId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "claimant",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "requestedBy",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "kind",
+        "type": "uint8",
+        "indexed": false,
+        "internalType": "enum ICommitmentPoolingModule.ClaimType"
+      },
+      {
+        "name": "gardenContext",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
+      },
+      {
+        "name": "requestedAt",
+        "type": "uint64",
+        "indexed": false,
+        "internalType": "uint64"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "CommitmentAccepted",
+    "inputs": [
+      {
+        "name": "commitmentId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "claimant",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "counterparty",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "kind",
+        "type": "uint8",
+        "indexed": false,
+        "internalType": "enum ICommitmentPoolingModule.ClaimType"
+      },
+      {
+        "name": "gardenContext",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
+      },
+      {
+        "name": "leadProvider",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
+      },
+      {
+        "name": "providerGarden",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
+      },
+      {
+        "name": "payerGarden",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "CommitmentCancelled",
+    "inputs": [
+      {
+        "name": "commitmentId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "canceller",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "reasonCID",
+        "type": "string",
+        "indexed": false,
+        "internalType": "string"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "CommitmentCreated",
+    "inputs": [
+      {
+        "name": "commitmentId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "poolId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "cycleId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "commitmentSeriesId",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "creationRequestKey",
+        "type": "bytes32",
+        "indexed": false,
+        "internalType": "bytes32"
+      },
+      {
+        "name": "creationPayloadHash",
+        "type": "bytes32",
+        "indexed": false,
+        "internalType": "bytes32"
+      },
+      {
+        "name": "creator",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
+      },
+      {
+        "name": "recordedBy",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
+      },
+      {
+        "name": "direction",
+        "type": "uint8",
+        "indexed": false,
+        "internalType": "enum ICommitmentPoolingModule.CommitmentDirection"
+      },
+      {
+        "name": "commitmentType",
+        "type": "uint8",
+        "indexed": false,
+        "internalType": "enum ICommitmentPoolingModule.CommitmentType"
+      },
+      {
+        "name": "claimType",
+        "type": "uint8",
+        "indexed": false,
+        "internalType": "enum ICommitmentPoolingModule.ClaimType"
+      },
+      {
+        "name": "claimMode",
+        "type": "uint8",
+        "indexed": false,
+        "internalType": "enum ICommitmentPoolingModule.ClaimMode"
+      },
+      {
+        "name": "contributorPolicy",
+        "type": "uint8",
+        "indexed": false,
+        "internalType": "enum ICommitmentPoolingModule.ContributorPolicy"
+      },
+      {
+        "name": "domains",
+        "type": "uint8[]",
+        "indexed": false,
+        "internalType": "uint8[]"
+      },
+      {
+        "name": "requirementActionUIDs",
+        "type": "uint256[]",
+        "indexed": false,
+        "internalType": "uint256[]"
+      },
+      {
+        "name": "requirementDomains",
+        "type": "uint8[]",
+        "indexed": false,
+        "internalType": "uint8[]"
+      },
+      {
+        "name": "requirementRequiredCounts",
+        "type": "uint32[]",
+        "indexed": false,
+        "internalType": "uint32[]"
+      },
+      {
+        "name": "unitLabel",
+        "type": "string",
+        "indexed": false,
+        "internalType": "string"
+      },
+      {
+        "name": "targetUnits",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "requiresAssessment",
+        "type": "bool",
+        "indexed": false,
+        "internalType": "bool"
+      },
+      {
+        "name": "dueDate",
+        "type": "uint64",
+        "indexed": false,
+        "internalType": "uint64"
+      },
+      {
+        "name": "metadataCID",
+        "type": "string",
+        "indexed": false,
+        "internalType": "string"
+      },
+      {
+        "name": "needUID",
+        "type": "bytes32",
+        "indexed": false,
+        "internalType": "bytes32"
+      },
+      {
+        "name": "counterCommitmentId",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "declaredUnitValue",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "declaredValueBasis",
+        "type": "string",
+        "indexed": false,
+        "internalType": "string"
+      },
+      {
+        "name": "payerGarden",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "CommitmentDisputed",
+    "inputs": [
+      {
+        "name": "commitmentId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "raiser",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "previousState",
+        "type": "uint8",
+        "indexed": false,
+        "internalType": "enum ICommitmentPoolingModule.CommitmentState"
+      },
+      {
+        "name": "reasonCID",
+        "type": "string",
+        "indexed": false,
+        "internalType": "string"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "CommitmentExpired",
+    "inputs": [
+      {
+        "name": "commitmentId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "caller",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "CommitmentFulfilled",
+    "inputs": [
+      {
+        "name": "commitmentId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "confirmer",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "confirmationPath",
+        "type": "uint8",
+        "indexed": false,
+        "internalType": "enum ICommitmentPoolingModule.ConfirmationPath"
+      },
+      {
+        "name": "reason",
+        "type": "string",
+        "indexed": false,
+        "internalType": "string"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "CommitmentReadyForConfirmation",
+    "inputs": [
+      {
+        "name": "commitmentId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "overridden",
+        "type": "bool",
+        "indexed": false,
+        "internalType": "bool"
+      },
+      {
+        "name": "reason",
+        "type": "string",
+        "indexed": false,
+        "internalType": "string"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "CommitmentSeriesCreated",
+    "inputs": [
+      {
+        "name": "seriesId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "poolId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "holder",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "metadataCID",
+        "type": "string",
+        "indexed": false,
+        "internalType": "string"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "CommitmentSeriesMetadataUpdated",
+    "inputs": [
+      {
+        "name": "seriesId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "metadataCID",
+        "type": "string",
+        "indexed": false,
+        "internalType": "string"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "CommitmentSeriesRested",
+    "inputs": [
+      {
+        "name": "seriesId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "CommitmentSeriesResumed",
+    "inputs": [
+      {
+        "name": "seriesId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "CommitmentSeriesRetired",
+    "inputs": [
+      {
+        "name": "seriesId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "ConfirmationRecorded",
+    "inputs": [
+      {
+        "name": "commitmentId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "confirmer",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "confirmationCount",
+        "type": "uint32",
+        "indexed": false,
+        "internalType": "uint32"
+      },
+      {
+        "name": "threshold",
+        "type": "uint32",
+        "indexed": false,
+        "internalType": "uint32"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "ConfirmerRuleSet",
+    "inputs": [
+      {
+        "name": "commitmentId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "confirmers",
+        "type": "address[]",
+        "indexed": false,
+        "internalType": "address[]"
+      },
+      {
+        "name": "threshold",
+        "type": "uint32",
+        "indexed": false,
+        "internalType": "uint32"
+      },
+      {
+        "name": "protocolFallbackEnabled",
+        "type": "bool",
+        "indexed": false,
+        "internalType": "bool"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "ConsiderationDeclared",
+    "inputs": [
+      {
+        "name": "commitmentId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "rail",
+        "type": "uint8",
+        "indexed": false,
+        "internalType": "enum ICommitmentPoolingModule.ConsiderationRail"
+      },
+      {
+        "name": "source",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
+      },
+      {
+        "name": "token",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
+      },
+      {
+        "name": "amount",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "ConsiderationPaid",
+    "inputs": [
+      {
+        "name": "commitmentId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "source",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "recipient",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "token",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
+      },
+      {
+        "name": "amount",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "payoutRef",
+        "type": "bytes32",
+        "indexed": false,
+        "internalType": "bytes32"
+      },
+      {
+        "name": "recordedBy",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "ContributorAdded",
+    "inputs": [
+      {
+        "name": "commitmentId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "contributor",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "addedBy",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "ContributorRemoved",
+    "inputs": [
+      {
+        "name": "commitmentId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "contributor",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "removedBy",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "ContributorRequirementAssigned",
+    "inputs": [
+      {
+        "name": "commitmentId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "contributor",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "requirementIndex",
+        "type": "uint16",
+        "indexed": true,
+        "internalType": "uint16"
+      },
+      {
+        "name": "assigned",
+        "type": "bool",
+        "indexed": false,
+        "internalType": "bool"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "ContributorRosterFrozen",
+    "inputs": [
+      {
+        "name": "commitmentId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "contributorCount",
+        "type": "uint32",
+        "indexed": false,
+        "internalType": "uint32"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "CycleCancelled",
+    "inputs": [
+      {
+        "name": "cycleId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "poolId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "reasonCID",
+        "type": "string",
+        "indexed": false,
+        "internalType": "string"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "CycleClosed",
+    "inputs": [
+      {
+        "name": "cycleId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "poolId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "CycleComposted",
+    "inputs": [
+      {
+        "name": "cycleId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "poolId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "CycleOpened",
+    "inputs": [
+      {
+        "name": "cycleId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "poolId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "gardenersBps",
+        "type": "uint16",
+        "indexed": false,
+        "internalType": "uint16"
+      },
+      {
+        "name": "treasuryBps",
+        "type": "uint16",
+        "indexed": false,
+        "internalType": "uint16"
+      },
+      {
+        "name": "operatorBps",
+        "type": "uint16",
+        "indexed": false,
+        "internalType": "uint16"
+      },
+      {
+        "name": "evaluatorBps",
+        "type": "uint16",
+        "indexed": false,
+        "internalType": "uint16"
+      },
+      {
+        "name": "communityBps",
+        "type": "uint16",
+        "indexed": false,
+        "internalType": "uint16"
+      },
+      {
+        "name": "funderBps",
+        "type": "uint16",
+        "indexed": false,
+        "internalType": "uint16"
+      },
+      {
+        "name": "equalParticipationBps",
+        "type": "uint16",
+        "indexed": false,
+        "internalType": "uint16"
+      },
+      {
+        "name": "verifiedContributionBps",
+        "type": "uint16",
+        "indexed": false,
+        "internalType": "uint16"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "CycleSeeded",
+    "inputs": [
+      {
+        "name": "cycleId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "poolId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "cycleType",
+        "type": "uint8",
+        "indexed": false,
+        "internalType": "enum ICommitmentPoolingModule.CycleType"
+      },
+      {
+        "name": "startTime",
+        "type": "uint64",
+        "indexed": false,
+        "internalType": "uint64"
+      },
+      {
+        "name": "endTime",
+        "type": "uint64",
+        "indexed": false,
+        "internalType": "uint64"
+      },
+      {
+        "name": "metadataCID",
+        "type": "string",
+        "indexed": false,
+        "internalType": "string"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "DisputeResolved",
+    "inputs": [
+      {
+        "name": "commitmentId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "resolution",
+        "type": "uint8",
+        "indexed": false,
+        "internalType": "enum ICommitmentPoolingModule.DisputeResolution"
+      },
+      {
+        "name": "finalState",
+        "type": "uint8",
+        "indexed": false,
+        "internalType": "enum ICommitmentPoolingModule.CommitmentState"
+      },
+      {
+        "name": "reasonCID",
+        "type": "string",
+        "indexed": false,
+        "internalType": "string"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "EvidenceAttached",
+    "inputs": [
+      {
+        "name": "commitmentId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "cid",
+        "type": "string",
+        "indexed": false,
+        "internalType": "string"
+      },
+      {
+        "name": "attacher",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "creditedContributors",
+        "type": "address[]",
+        "indexed": false,
+        "internalType": "address[]"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "ExchangeAccepted",
+    "inputs": [
+      {
+        "name": "commitmentIdA",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "commitmentIdB",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "poolId",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "acceptorA",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "acceptorB",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "ModuleDependencyUpdated",
+    "inputs": [
+      {
+        "name": "dependency",
+        "type": "uint8",
+        "indexed": true,
+        "internalType": "enum ICommitmentPoolingModule.ModuleDependency"
+      },
+      {
+        "name": "previousAddress",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "newAddress",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "ModulePauseStatusChanged",
+    "inputs": [
+      {
+        "name": "previousPaused",
+        "type": "bool",
+        "indexed": false,
+        "internalType": "bool"
+      },
+      {
+        "name": "paused",
+        "type": "bool",
+        "indexed": false,
+        "internalType": "bool"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "ModuleSchemaUIDUpdated",
+    "inputs": [
+      {
+        "name": "schemaKind",
+        "type": "uint8",
+        "indexed": true,
+        "internalType": "enum ICommitmentPoolingModule.ModuleSchemaKind"
+      },
+      {
+        "name": "previousUID",
+        "type": "bytes32",
+        "indexed": false,
+        "internalType": "bytes32"
+      },
+      {
+        "name": "newUID",
+        "type": "bytes32",
+        "indexed": false,
+        "internalType": "bytes32"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "PoolCharterUpdated",
+    "inputs": [
+      {
+        "name": "poolId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "charterCID",
+        "type": "string",
+        "indexed": false,
+        "internalType": "string"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "PoolClosed",
+    "inputs": [
+      {
+        "name": "poolId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "PoolComposted",
+    "inputs": [
+      {
+        "name": "poolId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "PoolOpened",
+    "inputs": [
+      {
+        "name": "poolId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "PoolPaused",
+    "inputs": [
+      {
+        "name": "poolId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "reasonCID",
+        "type": "string",
+        "indexed": false,
+        "internalType": "string"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "PoolReady",
+    "inputs": [
+      {
+        "name": "poolId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "PoolRegistered",
+    "inputs": [
+      {
+        "name": "poolId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "garden",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "poolType",
+        "type": "uint8",
+        "indexed": false,
+        "internalType": "enum ICommitmentPoolingModule.PoolType"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "PoolReopened",
+    "inputs": [
+      {
+        "name": "poolId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "toOpen",
+        "type": "bool",
+        "indexed": false,
+        "internalType": "bool"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "PoolResumed",
+    "inputs": [
+      {
+        "name": "poolId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "ValueDeclared",
+    "inputs": [
+      {
+        "name": "commitmentId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "declaredUnitValue",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "declaredValueBasis",
+        "type": "string",
+        "indexed": false,
+        "internalType": "string"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "WorkLinked",
+    "inputs": [
+      {
+        "name": "commitmentId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "workUID",
+        "type": "bytes32",
+        "indexed": true,
+        "internalType": "bytes32"
+      },
+      {
+        "name": "contributor",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "requirementIndex",
+        "type": "uint16",
+        "indexed": false,
+        "internalType": "uint16"
+      },
+      {
+        "name": "linker",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
+      },
+      {
+        "name": "operationKey",
+        "type": "bytes32",
+        "indexed": false,
+        "internalType": "bytes32"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "WorkUnlinked",
+    "inputs": [
+      {
+        "name": "commitmentId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "workUID",
+        "type": "bytes32",
+        "indexed": true,
+        "internalType": "bytes32"
+      },
+      {
+        "name": "unlinker",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "error",
+    "name": "AlreadyConfirmed",
+    "inputs": [
+      {
+        "name": "confirmer",
+        "type": "address",
+        "internalType": "address"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "ApprovalAlreadyCounted",
+    "inputs": [
+      {
+        "name": "approvalUID",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "AssessmentAlreadyAttached",
+    "inputs": [
+      {
+        "name": "commitmentId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "assessmentUID",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "AssessmentRequired",
+    "inputs": [
+      {
+        "name": "commitmentId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "CharterRequired",
+    "inputs": [
+      {
+        "name": "poolId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "ClaimModeMismatch",
+    "inputs": [
+      {
+        "name": "commitmentId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "ClaimNotPending",
+    "inputs": [
+      {
+        "name": "commitmentId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "claimant",
+        "type": "address",
+        "internalType": "address"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "ClaimTypeMismatch",
+    "inputs": [
+      {
+        "name": "commitmentId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "expected",
+        "type": "uint8",
+        "internalType": "enum ICommitmentPoolingModule.ClaimType"
+      },
+      {
+        "name": "actual",
+        "type": "uint8",
+        "internalType": "enum ICommitmentPoolingModule.ClaimType"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "CommitmentCreationRequestConflict",
+    "inputs": [
+      {
+        "name": "creationRequestKey",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      },
+      {
+        "name": "existingCommitmentId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "CommitmentNotInState",
+    "inputs": [
+      {
+        "name": "commitmentId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "actual",
+        "type": "uint8",
+        "internalType": "enum ICommitmentPoolingModule.CommitmentState"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "CommitmentSeriesHolderOnly",
+    "inputs": [
+      {
+        "name": "seriesId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "caller",
+        "type": "address",
+        "internalType": "address"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "CommitmentSeriesIndividualOnly",
+    "inputs": [
+      {
+        "name": "seriesId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "CommitmentSeriesNotActive",
+    "inputs": [
+      {
+        "name": "seriesId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "CommitmentSeriesOfferOnly",
+    "inputs": [
+      {
+        "name": "seriesId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "CommitmentSeriesPoolMismatch",
+    "inputs": [
+      {
+        "name": "seriesId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "expectedPoolId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "actualPoolId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "ConfirmationThresholdUnreachable",
+    "inputs": [
+      {
+        "name": "commitmentId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "ConsiderationAlreadyRecorded",
+    "inputs": [
+      {
+        "name": "commitmentId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "ConsiderationNotDeclared",
+    "inputs": [
+      {
+        "name": "commitmentId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "ConsiderationRailMismatch",
+    "inputs": [
+      {
+        "name": "commitmentId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "expected",
+        "type": "uint8",
+        "internalType": "enum ICommitmentPoolingModule.ConsiderationRail"
+      },
+      {
+        "name": "actual",
+        "type": "uint8",
+        "internalType": "enum ICommitmentPoolingModule.ConsiderationRail"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "ContributorAlreadyActive",
+    "inputs": [
+      {
+        "name": "contributor",
+        "type": "address",
+        "internalType": "address"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "ContributorHasCredit",
+    "inputs": [
+      {
+        "name": "contributor",
+        "type": "address",
+        "internalType": "address"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "ContributorNotActive",
+    "inputs": [
+      {
+        "name": "contributor",
+        "type": "address",
+        "internalType": "address"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "ContributorPolicyMismatch",
+    "inputs": [
+      {
+        "name": "commitmentId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "CounterCommitmentPoolMismatch",
+    "inputs": [
+      {
+        "name": "poolId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "counterCommitmentId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "CycleHasLiveCommitments",
+    "inputs": [
+      {
+        "name": "cycleId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "liveCommitmentCount",
+        "type": "uint32",
+        "internalType": "uint32"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "CycleNotAcceptingCommitments",
+    "inputs": [
+      {
+        "name": "cycleId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "actual",
+        "type": "uint8",
+        "internalType": "enum ICommitmentPoolingModule.CycleState"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "CycleNotInState",
+    "inputs": [
+      {
+        "name": "cycleId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "actual",
+        "type": "uint8",
+        "internalType": "enum ICommitmentPoolingModule.CycleState"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "CyclePoolMismatch",
+    "inputs": [
+      {
+        "name": "cycleId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "expectedPoolId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "actualPoolId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "EvidenceAlreadyAttached",
+    "inputs": [
+      {
+        "name": "commitmentId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "cidHash",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "EvidenceCIDRequired",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "EvidenceContributorsRequired",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "EvidenceRequired",
+    "inputs": [
+      {
+        "name": "commitmentId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "ExchangeClaimTypeUnsupported",
+    "inputs": [
+      {
+        "name": "commitmentId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "actual",
+        "type": "uint8",
+        "internalType": "enum ICommitmentPoolingModule.ClaimType"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "ExchangeConsiderationUnsupported",
+    "inputs": [
+      {
+        "name": "commitmentId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "amount",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "ExchangeCounterpartMismatch",
+    "inputs": [
+      {
+        "name": "exchangeCommitmentId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "ExchangeCreatorConsentRequired",
+    "inputs": [
+      {
+        "name": "exchangeCommitmentId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "ExchangeDirectionInvalid",
+    "inputs": [
+      {
+        "name": "commitmentIdA",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "commitmentIdB",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "directionA",
+        "type": "uint8",
+        "internalType": "enum ICommitmentPoolingModule.CommitmentDirection"
+      },
+      {
+        "name": "directionB",
+        "type": "uint8",
+        "internalType": "enum ICommitmentPoolingModule.CommitmentDirection"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "ExchangeStateInvalid",
+    "inputs": [
+      {
+        "name": "commitmentId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "actual",
+        "type": "uint8",
+        "internalType": "enum ICommitmentPoolingModule.CommitmentState"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "GardenClaimMustBeExternal",
+    "inputs": [
+      {
+        "name": "poolId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "garden",
+        "type": "address",
+        "internalType": "address"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "GardenClaimRequiresProtocolPool",
+    "inputs": [
+      {
+        "name": "poolId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "IncompleteDecisionHistory",
+    "inputs": [
+      {
+        "name": "workUID",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      },
+      {
+        "name": "expectedSequence",
+        "type": "uint64",
+        "internalType": "uint64"
+      },
+      {
+        "name": "suppliedSequence",
+        "type": "uint64",
+        "internalType": "uint64"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "InvalidAllocation",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "InvalidApprovalAttestation",
+    "inputs": [
+      {
+        "name": "approvalUID",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "InvalidAssessmentAttestation",
+    "inputs": [
+      {
+        "name": "assessmentUID",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "InvalidCommitmentCreationRequestKey",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "InvalidCommitmentSeriesState",
+    "inputs": [
+      {
+        "name": "seriesId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "state",
+        "type": "uint8",
+        "internalType": "enum ICommitmentPoolingModule.CommitmentSeriesState"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "InvalidConfirmerRule",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "InvalidConsiderationConfiguration",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "InvalidDisputeResolution",
+    "inputs": [
+      {
+        "name": "commitmentId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "resolution",
+        "type": "uint8",
+        "internalType": "enum ICommitmentPoolingModule.DisputeResolution"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "InvalidDomains",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "InvalidRequirementAssignment",
+    "inputs": [
+      {
+        "name": "requirementIndex",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "contributor",
+        "type": "address",
+        "internalType": "address"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "InvalidRequirementCount",
+    "inputs": [
+      {
+        "name": "requirementIndex",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "InvalidSeriesCreationRequestKey",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "InvalidTimeWindow",
+    "inputs": [
+      {
+        "name": "startTime",
+        "type": "uint64",
+        "internalType": "uint64"
+      },
+      {
+        "name": "endTime",
+        "type": "uint64",
+        "internalType": "uint64"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "InvalidValueDeclaration",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "InvalidWorkAttestation",
+    "inputs": [
+      {
+        "name": "workUID",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "InvalidWorkLinkOperationKey",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "LeadContributorCannotLeave",
+    "inputs": [
+      {
+        "name": "commitmentId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "ModuleMustBePaused",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "ModuleNotReady",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "ModulePaused",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "NoEligibleContributors",
+    "inputs": [
+      {
+        "name": "commitmentId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "NotConfirmer",
+    "inputs": [
+      {
+        "name": "caller",
+        "type": "address",
+        "internalType": "address"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "NotDue",
+    "inputs": [
+      {
+        "name": "commitmentId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "NotEligibleClaimant",
+    "inputs": [
+      {
+        "name": "claimant",
+        "type": "address",
+        "internalType": "address"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "NotEligibleContributor",
+    "inputs": [
+      {
+        "name": "contributor",
+        "type": "address",
+        "internalType": "address"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "NotPoolSteward",
+    "inputs": [
+      {
+        "name": "caller",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "poolId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "OpenCommitmentCapRequired",
+    "inputs": [
+      {
+        "name": "poolId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "OrdinaryConfirmationStillReachable",
+    "inputs": [
+      {
+        "name": "commitmentId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "PoolExists",
+    "inputs": [
+      {
+        "name": "garden",
+        "type": "address",
+        "internalType": "address"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "PoolHasLiveCommitments",
+    "inputs": [
+      {
+        "name": "poolId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "liveCommitmentCount",
+        "type": "uint32",
+        "internalType": "uint32"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "PoolHasNonTerminalCycles",
+    "inputs": [
+      {
+        "name": "poolId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "nonTerminalCycleCount",
+        "type": "uint32",
+        "internalType": "uint32"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "PoolNotInState",
+    "inputs": [
+      {
+        "name": "poolId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "actual",
+        "type": "uint8",
+        "internalType": "enum ICommitmentPoolingModule.PoolState"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "PricedOfferClaimRequiresSteward",
+    "inputs": [
+      {
+        "name": "garden",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "claimant",
+        "type": "address",
+        "internalType": "address"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "ProtocolGardenMismatch",
+    "inputs": [
+      {
+        "name": "expectedRootGarden",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "suppliedGarden",
+        "type": "address",
+        "internalType": "address"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "ProviderMismatch",
+    "inputs": [
+      {
+        "name": "attester",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "providerGarden",
+        "type": "address",
+        "internalType": "address"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "ReasonRequired",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "RecognitionPolicyUnavailable",
+    "inputs": [
+      {
+        "name": "cycleId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "RootGardenRequired",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "RosterAlreadyFrozen",
+    "inputs": [
+      {
+        "name": "commitmentId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "SchemaUIDCollision",
+    "inputs": [
+      {
+        "name": "uid",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "SchemaUIDRequired",
+    "inputs": [
+      {
+        "name": "schemaKind",
+        "type": "uint8",
+        "internalType": "enum ICommitmentPoolingModule.ModuleSchemaKind"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "SeasonAlreadyOpen",
+    "inputs": [
+      {
+        "name": "poolId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "cycleId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "SelfConfirmation",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "SelfCounterCommitment",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "SelfCounterparty",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "SelfExchange",
+    "inputs": [
+      {
+        "name": "creator",
+        "type": "address",
+        "internalType": "address"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "SeriesCreationRequestConflict",
+    "inputs": [
+      {
+        "name": "creationRequestKey",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      },
+      {
+        "name": "existingSeriesId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "TargetUnitsRequired",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "TooManyConfirmers",
+    "inputs": [
+      {
+        "name": "supplied",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "maximum",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "TooManyContributors",
+    "inputs": [
+      {
+        "name": "supplied",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "maximum",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "TooManyEvidenceContributors",
+    "inputs": [
+      {
+        "name": "supplied",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "maximum",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "TooManyLinkedWorks",
+    "inputs": [
+      {
+        "name": "supplied",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "maximum",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "TooManyRequirements",
+    "inputs": [
+      {
+        "name": "supplied",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "maximum",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "UnauthorizedCaller",
+    "inputs": [
+      {
+        "name": "caller",
+        "type": "address",
+        "internalType": "address"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "UnitLabelRequired",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "UnknownAction",
+    "inputs": [
+      {
+        "name": "actionUID",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "UnknownCommitment",
+    "inputs": [
+      {
+        "name": "commitmentId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "UnknownCommitmentSeries",
+    "inputs": [
+      {
+        "name": "seriesId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "UnknownCounterCommitment",
+    "inputs": [
+      {
+        "name": "counterCommitmentId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "UnknownCycle",
+    "inputs": [
+      {
+        "name": "cycleId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "UnknownPool",
+    "inputs": [
+      {
+        "name": "poolId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "WorkActionMismatch",
+    "inputs": [
+      {
+        "name": "actionUID",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "WorkAlreadyLinked",
+    "inputs": [
+      {
+        "name": "workUID",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "WorkApprovalRequired",
+    "inputs": [
+      {
+        "name": "commitmentId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "WorkLinkOperationConflict",
+    "inputs": [
+      {
+        "name": "operationKey",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "WorkNotLinkedToCommitment",
+    "inputs": [
+      {
+        "name": "workUID",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      },
+      {
+        "name": "commitmentId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "ZeroAddress",
+    "inputs": []
+  }
+]

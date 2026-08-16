@@ -7,6 +7,7 @@ import type {
   AgentOntologyTerm,
   EntityRelationship,
   OntologyCapability,
+  OntologyChainCapability,
 } from "./types";
 
 const manifest = manifestJson as unknown as AgentOntologyManifest;
@@ -29,6 +30,13 @@ export function getOntologyRelationships(query: string): readonly EntityRelation
 
 export function getOntologyMaturity(query: string): OntologyCapability | null | undefined {
   return getOntologyTerm(query)?.maturity;
+}
+
+export function getOntologyChainMaturity(
+  query: string,
+  chainId: number
+): OntologyChainCapability | undefined {
+  return getOntologyMaturity(query)?.chains?.[String(chainId)];
 }
 
 export function getOntologySafeClaims(query: string): readonly AgentOntologyClaim[] {

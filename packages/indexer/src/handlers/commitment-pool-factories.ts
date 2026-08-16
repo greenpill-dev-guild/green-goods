@@ -188,7 +188,6 @@ export function createCommitment(
     memberHistoryOutcome: undefined,
     fulfilledContributorHistoryAccounts: [],
     fulfilledReceiverHistoryAccount: undefined,
-    contributorEntityIds: [],
     countedLifecycleStates: [],
     unitLabel: undefined,
     targetUnits: undefined,

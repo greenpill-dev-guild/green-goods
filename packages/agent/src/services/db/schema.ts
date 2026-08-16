@@ -2,6 +2,23 @@ import { Database } from "bun:sqlite";
 
 export function initSchema(db: Database): void {
   db.run(`
+      CREATE TABLE IF NOT EXISTS saved_offers (
+        chainId INTEGER NOT NULL,
+        owner TEXT NOT NULL,
+        savedOfferId TEXT NOT NULL,
+        ciphertext TEXT NOT NULL,
+        nonce TEXT NOT NULL,
+        version INTEGER NOT NULL,
+        updatedAt TEXT NOT NULL,
+        deleted INTEGER NOT NULL DEFAULT 0,
+        PRIMARY KEY (chainId, owner, savedOfferId)
+      )
+    `);
+  db.run(`
+      CREATE INDEX IF NOT EXISTS idx_saved_offers_owner_active
+      ON saved_offers(chainId, owner, deleted, updatedAt)
+    `);
+  db.run(`
       CREATE TABLE IF NOT EXISTS profile_avatars (
         chainId INTEGER NOT NULL,
         address TEXT NOT NULL,
@@ -203,7 +220,7 @@ export function initSchema(db: Database): void {
     `CREATE INDEX IF NOT EXISTS idx_funding_intent_events_intent
        ON funding_intent_events(intentId, createdAt)`
   );
-  db.run("PRAGMA user_version = 4");
+  db.run("PRAGMA user_version = 5");
 }
 
 function ensureColumn(

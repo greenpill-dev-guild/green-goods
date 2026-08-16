@@ -3,6 +3,7 @@ import type { CommitmentPool } from "envio";
 import { cursorWins, sortedUnique } from "./commitment-pool-projections";
 
 export function withCycleChild(pool: CommitmentPool, cycleEntityId: string): CommitmentPool {
+  if (pool.registrationSeen) return pool;
   return {
     ...pool,
     childCycleEntityIds: sortedUnique([...pool.childCycleEntityIds, cycleEntityId]),
@@ -13,6 +14,7 @@ export function withCommitmentChild(
   pool: CommitmentPool,
   commitmentEntityId: string
 ): CommitmentPool {
+  if (pool.registrationSeen) return pool;
   return {
     ...pool,
     childCommitmentEntityIds: sortedUnique([...pool.childCommitmentEntityIds, commitmentEntityId]),

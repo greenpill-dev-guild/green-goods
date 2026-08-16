@@ -85,6 +85,63 @@ export function cycleAllocationUnset(cycle: CommitmentCycle): boolean {
   );
 }
 
+export function computeRecognitionWeights(
+  rows: readonly {
+    readonly id: string;
+    readonly account: string;
+    readonly verifiedCredits: number;
+  }[],
+  equalParticipationBps: number,
+  verifiedContributionBps: number
+): ReadonlyMap<string, number> | undefined {
+  if (
+    equalParticipationBps < 0 ||
+    verifiedContributionBps < 0 ||
+    equalParticipationBps + verifiedContributionBps !== 10_000
+  ) {
+    return undefined;
+  }
+  if (rows.length === 0) return new Map();
+
+  const sortedRows = [...rows].sort((left, right) => compareCodeUnits(left.account, right.account));
+  const equalBase = Math.floor(equalParticipationBps / sortedRows.length);
+  const equalRemainderIds = new Set(
+    sortedRows.slice(0, equalParticipationBps % sortedRows.length).map((row) => row.id)
+  );
+  const totalCredits = sortedRows.reduce((total, row) => total + row.verifiedCredits, 0);
+  if (totalCredits <= 0) return undefined;
+
+  const verifiedRows = sortedRows.map((row) => {
+    const numerator = verifiedContributionBps * row.verifiedCredits;
+    return {
+      ...row,
+      floor: Math.floor(numerator / totalCredits),
+      remainder: numerator % totalCredits,
+    };
+  });
+  const verifiedRemainder =
+    verifiedContributionBps - verifiedRows.reduce((total, row) => total + row.floor, 0);
+  const verifiedRemainderIds = new Set(
+    [...verifiedRows]
+      .sort(
+        (left, right) =>
+          right.remainder - left.remainder || compareCodeUnits(left.account, right.account)
+      )
+      .slice(0, verifiedRemainder)
+      .map((row) => row.id)
+  );
+
+  return new Map(
+    verifiedRows.map((row) => [
+      row.id,
+      equalBase +
+        (equalRemainderIds.has(row.id) ? 1 : 0) +
+        row.floor +
+        (verifiedRemainderIds.has(row.id) ? 1 : 0),
+    ])
+  );
+}
+
 export function commitmentPoolType(value: bigint): CommitmentPool["poolType"] {
   return value === 0n ? "GARDEN" : value === 1n ? "PROTOCOL" : "UNKNOWN";
 }

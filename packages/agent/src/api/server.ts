@@ -27,6 +27,7 @@ import { registerSubscribeRoutes } from "./routes/subscribe";
 import { registerUploadSignRoutes } from "./routes/upload-sign";
 import { registerProfileAvatarRoutes } from "./routes/profile-avatars";
 import { createSqliteProfileAvatarStore } from "../services/profile-avatars";
+import { registerSavedOfferRoutes } from "./routes/saved-offers";
 
 const log = loggers.api;
 
@@ -125,6 +126,11 @@ export function createServer(deps: ServerDeps, _config?: Partial<ServerConfig>):
   registerProfileAvatarRoutes(app, {
     ...routeContext,
     profileAvatarStore: deps.profileAvatarStore ?? createSqliteProfileAvatarStore(),
+  });
+  registerSavedOfferRoutes(app, {
+    ...routeContext,
+    savedOfferStore: deps.savedOfferStore,
+    savedOffersSessionStore: deps.savedOffersSessionStore,
   });
 
   const fundingRouteContext: FundingRouteContext = {

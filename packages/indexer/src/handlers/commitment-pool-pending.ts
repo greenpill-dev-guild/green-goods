@@ -17,6 +17,7 @@ import { getCommitment } from "./commitment-pool-members";
 import {
   eventType,
   firstExplicitActor,
+  optionalAddress,
   type PoolingContext,
   type RuntimeEvent,
   value,
@@ -81,7 +82,7 @@ export async function enqueuePendingLifecycle(
         typeof event.params.kind === "bigint" ? commitmentClaimType(event.params.kind) : undefined,
       gardenContext:
         typeof event.params.gardenContext === "string"
-          ? normalizeAddress(event.params.gardenContext)
+          ? optionalAddress(event, "gardenContext")
           : undefined,
       claimant,
       counterparty:
@@ -98,7 +99,7 @@ export async function enqueuePendingLifecycle(
           : undefined,
       payerGarden:
         typeof event.params.payerGarden === "string"
-          ? normalizeAddress(event.params.payerGarden)
+          ? optionalAddress(event, "payerGarden")
           : undefined,
       confirmationCount:
         typeof event.params.confirmationCount === "bigint"
@@ -214,12 +215,15 @@ async function applyPendingProjection(
       disputeReasonCID: projection.data,
     };
   } else if (projection.eventType === "DISPUTE_RESOLVED") {
-    patch = {
-      fulfilledBy: undefined,
-      confirmationPath: undefined,
-      fallbackReason: undefined,
-      fulfilledByFallback: false,
-    };
+    patch =
+      projection.nextState === "FULFILLED"
+        ? {
+            fulfilledBy: undefined,
+            confirmationPath: undefined,
+            fallbackReason: undefined,
+            fulfilledByFallback: false,
+          }
+        : {};
   }
   if (!projection.nextState) return commitment;
   const updated = await applyLifecycleState(
