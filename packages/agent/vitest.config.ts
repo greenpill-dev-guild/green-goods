@@ -28,7 +28,7 @@ export default defineConfig({
     fileParallelism: !sqliteIntegration,
     coverage: {
       provider: "v8",
-      reporter: ["text", "json", "html"],
+      reporter: process.env.CI ? ["text", "json"] : ["text", "json", "html"],
       include: ["src/**/*.ts"],
       exclude: [
         "node_modules/",

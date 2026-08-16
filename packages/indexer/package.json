@@ -22,6 +22,7 @@
     "db:down": "docker ps -q --filter label=dev.envio.config-hash | xargs -r docker stop",
     "test": "bun run codegen && bun run mocha",
     "test:coverage": "c8 bun run mocha",
+    "test:coverage:ci": "c8 --reporter text --reporter json bun run mocha",
     "test:full": "bun run test",
     "lint": "bun --bun run oxlint src test --deny-warnings",
     "reset": "node ../../scripts/dev/node-cli.js envio stop"

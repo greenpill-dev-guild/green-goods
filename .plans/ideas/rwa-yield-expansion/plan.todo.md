@@ -63,7 +63,7 @@ This hub is now mirrored as Research issue `RESR-9` and should be framed around 
 
 ## CLAUDE.md Compliance
 
-- ✅ Never uses raw `forge` — all contract commands via `bun build` / `bun run test` / `bun run test:fork` / `bun script/deploy.ts`
+- ✅ Never uses raw `forge` — all contract commands via `bun run build` / `bun run test` / `bun run test:fork` / `bun script/deploy.ts`
 - ✅ All React hooks in `@green-goods/shared` (never in client/admin)
 - ✅ Barrel imports only (`import { x } from "@green-goods/shared"`)
 - ✅ Contract deployments read from `deployments/{chainId}-latest.json`

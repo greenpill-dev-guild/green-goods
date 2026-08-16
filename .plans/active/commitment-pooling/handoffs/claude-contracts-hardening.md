@@ -219,7 +219,7 @@ worth adding, since the bounds harness only covers worst-case bounded vectors.
 ## How to work
 
 - **Never use raw `forge`.** Bun wrappers only: `bun run test`, `bun run test --match-contract X`,
-  `bun build`, `bun run build:full`, `bun run lint:check`, `bun run check:storage-layout`,
+  `bun run build`, `bun run build:full`, `bun run lint:check`, `bun run check:storage-layout`,
   `bun run test:script`, `bun run test:fork:pooling:arbitrum`.
 - TDD mode is `required`: write failing tests first, confirm they are RED for the right reason,
   then implement.
@@ -240,6 +240,6 @@ worth adding, since the bounds harness only covers worst-case bounded vectors.
 
 ## When done
 
-Run the Ship Gate from the repo root (`bun format && bun lint && bun run test && bun build`), then
+Run the Ship Gate from the repo root (`bun format && bun lint && bun run test && bun run build`), then
 report what remains before the module could actually deploy. Dates live in Linear and are Afo's to
 re-set — surface drift rather than assuming a date.

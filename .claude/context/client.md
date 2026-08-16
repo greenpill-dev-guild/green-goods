@@ -9,7 +9,7 @@ Loaded when working in `packages/client/`. Extends CLAUDE.md.
 | Command | Purpose |
 |---------|---------|
 | `bun run test` | Run tests (vitest) |
-| `bun build` | Build (includes TypeScript check) |
+| `bun run build` | Build (includes TypeScript check) |
 | `bun lint` | Lint with oxlint |
 | `bun dev` | Start dev server (via PM2 from root) |
 

@@ -46,7 +46,7 @@ This plan closes that gap with a minimal, focused public surface — not a redes
 
 - A community member visiting `/impact` (or `/gardens`) from their phone can see what's allocatable, see current conviction state, and allocate signal — wallet connection prompted only at allocation.
 - Existing admin Community surfaces continue to work unchanged.
-- `bun run lint && bun run lint:vocab && bun run test && bun build` pass.
+- `bun run lint && bun run lint:vocab && bun run test && bun run build` pass.
 
 ## Out of scope
 

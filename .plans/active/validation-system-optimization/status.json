@@ -1,0 +1,167 @@
+{
+  "version": 2,
+  "feature": {
+    "slug": "validation-system-optimization",
+    "title": "Validation System Optimization",
+    "kind": "feature",
+    "stage": "active"
+  },
+  "workflow": {
+    "overall_status": "active",
+    "priority": "p1",
+    "created_at": "2026-08-15",
+    "updated_at": "2026-08-16T07:42:37.042Z"
+  },
+  "links": {
+    "brief": "brief.md",
+    "spec": "spec.md",
+    "plan": "plan.todo.md",
+    "eval": "eval.md"
+  },
+  "linear": {
+    "parentIssue": null,
+    "project": null,
+    "initiative": null,
+    "syncDirection": "plans_to_linear_visibility",
+    "laneSyncMode": "parent_only",
+    "lastSyncedAt": null,
+    "lanes": {}
+  },
+  "taxonomy": {
+    "initiative": "engineering-quality",
+    "tracks": ["ops", "contracts", "shared", "indexer", "client", "admin", "agent", "docs"],
+    "work_types": ["implementation", "qa"],
+    "surfaces": [
+      ".github/workflows",
+      "scripts/dev",
+      "scripts/quality",
+      "scripts/data",
+      "package.json",
+      ".claude",
+      "CLAUDE.md",
+      "AGENTS.md"
+    ],
+    "depends_on_features": []
+  },
+  "notes": [
+    "Coverage thresholds and critical, deployment, auth, mutation, security, and release gates remain strict.",
+    "No dependency install or upgrade is authorized by this hub.",
+    "The implementation branch is perf/ci-speed-optimization.",
+    "The agent-team readiness endpoint was unavailable, so implementation uses disjoint local subagents.",
+    "The checksum-verified Bun 1.3.14 binary is activated from /private/tmp for certification because the managed host blocks writes to the mise install directory.",
+    "The durable bun run validation:plan caller re-enters through scripts/dev/node-cli.js so Bun cannot substitute its Node-compatibility runtime for pinned Node 22.22.1."
+  ],
+  "lanes": {
+    "ui": {
+      "owner": "codex",
+      "status": "in_progress",
+      "branch": "perf/ci-speed-optimization",
+      "depends_on": [],
+      "handoff": "handoffs/guidance.md",
+      "tdd": {
+        "mode": "not_applicable",
+        "status": "green_recorded",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "node scripts/quality/check-codex-docs.js && node scripts/quality/check-guidance-links.mjs && node scripts/design/check-guidance-examples.mjs && node scripts/check-browser-verification-policy.mjs",
+          "evidence": "All four guidance checks passed on the working copy on 2026-08-16."
+        },
+        "note": "Guidance and toolchain parity only; no product UI behavior changed, so TDD and browser proof are not applicable."
+      },
+      "skill_tags": ["guidance", "tooling"]
+    },
+    "state_api": {
+      "owner": "codex",
+      "status": "in_progress",
+      "branch": "perf/ci-speed-optimization",
+      "depends_on": [],
+      "handoff": "handoffs/selector-local.md",
+      "tdd": {
+        "mode": "required",
+        "status": "green_recorded",
+        "red": {
+          "command": "node --test scripts/quality/select-validation.test.mjs",
+          "evidence": "Durable Bun caller fixture failed because package.json invoked the selector under Bun's Node-compatibility runtime."
+        },
+        "green": {
+          "command": "node --test scripts/quality/select-validation.test.mjs scripts/dev/ci-local.test.mjs",
+          "evidence": "Selector and local-runner fixtures pass, including toolchain, fail-fast, cancellation, blocked-environment, fingerprint, and receipt behavior."
+        },
+        "note": "Recorded selector/local-runner RED-GREEN proof"
+      },
+      "skill_tags": ["tooling", "testing"]
+    },
+    "contracts": {
+      "owner": "codex",
+      "status": "in_progress",
+      "branch": "perf/ci-speed-optimization",
+      "depends_on": [],
+      "handoff": "handoffs/ci-workflows.md",
+      "tdd": {
+        "mode": "required",
+        "status": "green_recorded",
+        "red": {
+          "command": "node --test scripts/quality/ci-gate.test.mjs scripts/quality/workflow-performance-parity.test.mjs",
+          "evidence": "Initial fixtures exposed delayed aggregate failure and selector-to-live-trigger mismatches."
+        },
+        "green": {
+          "command": "node --test scripts/quality/ci-gate.test.mjs scripts/quality/workflow-performance-parity.test.mjs",
+          "evidence": "CI Gate failure/rerun/timeout and workflow setup, routing, cache, coverage, and formatting parity fixtures pass."
+        },
+        "note": "Recorded CI Gate/workflow RED-GREEN proof"
+      },
+      "skill_tags": ["ci", "testing"]
+    },
+    "qa_pass_1": {
+      "owner": "codex",
+      "status": "blocked",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": false,
+      "branch": "perf/ci-speed-optimization",
+      "depends_on": ["ui", "state_api", "contracts"],
+      "handoff": "handoffs/qa-pass-1.md",
+      "skill_tags": ["review", "testing"]
+    },
+    "qa_pass_2": {
+      "owner": "codex",
+      "status": "blocked",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": false,
+      "branch": "perf/ci-speed-optimization",
+      "depends_on": ["qa_pass_1"],
+      "handoff": "handoffs/qa-pass-2.md",
+      "skill_tags": ["review", "testing"]
+    }
+  },
+  "history": [
+    {
+      "at": "2026-08-15",
+      "event": "scope_locked",
+      "note": "User accepted all audit findings and all four implementation phases."
+    },
+    {
+      "at": "2026-08-16",
+      "event": "implementation_checkpoint",
+      "note": "Selector, local runner, CI Gate, workflow setup/routing, and guidance changes are integrated; focused proof is green and full Repo Quick/Ship certification is in progress."
+    },
+    {
+      "timestamp": "2026-08-16T07:42:36.412Z",
+      "actor": "codex",
+      "lane": "contracts",
+      "status": "tdd_recorded",
+      "branch": "perf/ci-speed-optimization",
+      "note": "Recorded CI Gate/workflow RED-GREEN proof"
+    },
+    {
+      "timestamp": "2026-08-16T07:42:37.043Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "tdd_recorded",
+      "branch": "perf/ci-speed-optimization",
+      "note": "Recorded selector/local-runner RED-GREEN proof"
+    }
+  ]
+}

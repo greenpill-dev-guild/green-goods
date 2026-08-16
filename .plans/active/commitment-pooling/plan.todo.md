@@ -1341,7 +1341,7 @@ Per the Validation Intent Ladder: lane work uses targeted proof; the coordinator
 
 - [ ] Lane-targeted: lane handoff Validation sections name the commands for each Afo-dispatched work unit
 - [ ] Checkpoint: `node scripts/dev/ci-local.js --quick` after multi-lane merges
-- [ ] Ship Gate before release: `bun format && bun lint && bun run test && bun build` + `bun run lint:vocab` + `bun run agentic:check` + `bun run check:design-md` + `bun run check:design-generated` + `bun run check:design-tokens` + `bun run --filter @green-goods/shared check:stories` and `check:story-quality` where Storybook-covered surfaces changed
+- [ ] Ship Gate before release: `bun format && bun lint && bun run test && bun run build` + `bun run lint:vocab` + `bun run agentic:check` + `bun run check:design-md` + `bun run check:design-generated` + `bun run check:design-tokens` + `bun run --filter @green-goods/shared check:stories` and `check:story-quality` where Storybook-covered surfaces changed
 - [ ] Full-local dogfood before cycle 1: `bun run dev` + `bun run dev:smoke:full`
 
 ## Follow-ups from the 2026-07-18 audit response (Linear MCP was unauthenticated this session — file these when it reconnects)

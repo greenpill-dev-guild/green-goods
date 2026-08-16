@@ -7,9 +7,15 @@ user-invocable: true
 
 # Review
 
-One command for the standing request: **"review this — ensure no regressions, no remaining gaps, and production quality."** Three passes over one resolved scope, then a verdict. Read-only unless `--fix` is explicitly requested.
+One command for change review. Three passes over one resolved scope, then a verdict. Read-only unless
+`--fix` is explicitly requested. Evidence/diagnosis review is targeted by default; full production
+readiness is a separate, explicit intent.
 
-It answers three questions with fresh evidence: **regression safety** (Pass 1), **requirement closure** (Pass 2), **production readiness** (Pass 3). `APPROVE` is a bounded, evidence-backed readiness verdict for the reviewed scope — not a claim that unrelated repository or production failures are impossible.
+It answers three questions with fresh evidence: **regression safety** (Pass 1), **requirement closure**
+(Pass 2), and the user's requested **evidence or readiness level** (Pass 3). `APPROVE` is reserved for
+an explicit production-quality, approval, PR/merge-readiness, or equivalent request whose full
+non-mutating readiness gate passed. It is a bounded verdict for the reviewed scope, not a claim that
+unrelated repository or production failures are impossible.
 
 ## Scoping
 
@@ -23,6 +29,22 @@ Valid package scopes map to `packages/<name>/**` (contracts, indexer, shared, cl
 
 - `--scope cross-package` — verify blast radius in dependency order (contracts → shared → indexer → apps → agent); only cross-boundary findings.
 - `--scope design-system` — delegate to [`design/system-alignment-review.md`](../design/system-alignment-review.md), read-only; return its sections directly, don't mix into diff findings. Fires only on explicit invocation, on DESIGN.md-dialect + theme/tokens co-changes, or when a change touches ≥2 visual surfaces at once.
+
+### Review intent
+
+Resolve intent separately from code scope:
+
+- **Evidence review / diagnosis** — ordinary "review this", regression investigation, gap analysis,
+  audit evidence, or a specific question. Inspect first and run only the non-mutating checks needed
+  to prove findings. A clean targeted review returns `COMMENT_ONLY`, not a readiness approval.
+- **Production readiness** — explicit requests for production quality, approval, PR/merge readiness,
+  or whether the branch is ready. Run the full Production Review Readiness Gate.
+
+Render the planned checks with `bun run validation:plan -- --intent review`. For explicit production
+readiness, use `--intent readiness` so the plan remains non-mutating while criticality can only add
+checks. Execute the returned plan. If the selector is unavailable or fails, follow CLAUDE.md's
+intent ladder and the shared validation
+pipeline directly, report the selector problem, and preserve every hard gate.
 
 ### Authoritative requirements
 
@@ -83,9 +105,18 @@ Then sweep for the repo's recurring gap shapes:
 
 Report gaps in their own section — a gap is not a defect; it's unfinished intent.
 
-## Pass 3 — Production Quality
+## Pass 3 — Evidence or Production Quality
 
-Plain review runs the non-mutating **Review Readiness Gate** defined in [`.claude/context/validation-pipeline.md`](../../context/validation-pipeline.md) (`format:check`, lint, tests, pinned `VITE_CHAIN_ID=11155111` build, plus its scope-conditional additions). Run every required stage fresh in this invocation — never reuse stale evidence. A required stage that fails → `REQUEST_CHANGES`; a required stage that cannot run → `COMMENT_ONLY`, never silently downgraded or substituted.
+Evidence review runs only the selector-chosen, non-mutating checks needed to prove or disprove its
+findings. Do not add full tests or builds merely to make the command count look comprehensive. A
+clean evidence review is not production certification and returns `COMMENT_ONLY`.
+
+Explicit production-readiness review runs the non-mutating **Production Review Readiness Gate**
+defined in [`.claude/context/validation-pipeline.md`](../../context/validation-pipeline.md)
+(`format:check`, lint, tests, pinned `VITE_CHAIN_ID=11155111` root build, plus scope-conditional
+additions including Agent or Docs builds). Run every selected stage fresh unless an exact matching
+receipt satisfies the shared freshness contract. A required stage that fails → `REQUEST_CHANGES`; a
+required stage that cannot run → `COMMENT_ONLY`, never silently downgraded or substituted.
 
 For narrower explicit intents, pick the lightest honest rung per CLAUDE.md § Validation Intent Ladder:
 
@@ -93,6 +124,7 @@ For narrower explicit intents, pick the lightest honest rung per CLAUDE.md § Va
 - cross-package or shared-surface impact → Repo Quick Gate
 - explicit ship/merge readiness → full Ship Gate + conditional design/vocab/story gates when those surfaces moved
 
+For every selected check, name its risk, expected signal, freshness rule, and stopping condition.
 State what ran with real output. Record the tested commit SHA, UTC timestamp, exact command, and
 summarized result. Write green, passed, or merge-ready claims only after those commands finish in the
 current review and an empty
@@ -102,8 +134,10 @@ path-scoped `git diff --exit-code <tested>..HEAD -- <validated paths>` proving a
 implementation, dependency, configuration, and validation-entrypoint surfaces are unchanged, plus
 an empty `git status --porcelain=v1 --untracked-files=all -- <validated paths>` proving no staged,
 unstaged, or untracked path changes exist. If a
-rung can't run here (env-gated, needs authenticated browser), say
-"unverified: X" instead of hedging. Visible-UI claims need rendered proof via the authenticated Brave
+rung can't run here (env-gated, needs authenticated browser), mark it `BLOCKED`, name the unavailable
+capability, and do not retry until that capability changes. User cancellation is terminal: stop
+active validation, schedule no further checks, and report evidence already collected. Visible-UI
+claims need rendered proof via the authenticated Brave
 QA path or are reported as blocked (CLAUDE.md § Agentic Modern Web Standard). Dated reports under
 `.plans/**/reports/` are immutable audit inputs; put corrections or closure evidence in a new report.
 
@@ -144,7 +178,7 @@ Lead with findings, keep the list actionable:
 3. **Remaining Gaps** — unfinished intent, each with the smallest completing step
 4. **Human Call-Outs** — dependencies, auth/permissions, migrations, contract deploys, trust-boundary changes (never auto-fix these)
 5. **Verification** — what ran, real results, what remains unverified
-6. **Verdict** — `APPROVE` | `REQUEST_CHANGES` | `COMMENT_ONLY`. Rules: any `MISSING` requirement or failed required check → `REQUEST_CHANGES`; any `BLOCKED` requirement/check, or no authoritative requirements available → `COMMENT_ONLY`; `APPROVE` only when every requirement is `SATISFIED`/`OUT_OF_SCOPE` and the readiness gate passed fresh.
+6. **Verdict** — `APPROVE` | `REQUEST_CHANGES` | `COMMENT_ONLY`. Rules: any `MISSING` requirement or failed required check → `REQUEST_CHANGES`; any `BLOCKED` requirement/check, no authoritative requirements, or evidence-review-only intent → `COMMENT_ONLY`; `APPROVE` only for explicit production-readiness intent when every requirement is `SATISFIED`/`OUT_OF_SCOPE` and the full readiness gate passed under the freshness contract.
 
 Finding format: `[Title] — severity · type · file:line · why it matters · next step`.
 

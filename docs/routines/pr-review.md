@@ -62,7 +62,7 @@ Ethereum addresses must use the `Address` type from `@green-goods/shared`, not `
 
 ### 4. No raw forge commands
 
-Contracts workflows must use `bun build`, `bun build:changed`, `bun build:target`, or `bun build:full`. Flag any raw `forge build`, `forge test`, or `forge script` in scripts or docs.
+Contracts workflows must use `bun run build`, `bun run build:changed`, `bun run build:target`, or `bun run build:full`. Flag any raw `forge build`, `forge test`, or `forge script` in scripts or docs.
 
 ### 5. Deployment artifacts
 

@@ -75,7 +75,7 @@
 - ✅ Query keys via `queryKeys.*` helpers (add `queryKeys.badges(address)`)
 - ✅ Indexer boundary respected — no EAS / Unlock re-indexing; shared hook queries EAS directly
 - ✅ `bun run test` (never `bun test`) for agent, shared, admin, client
-- ✅ `bun build` respects dependency order (contracts → shared → agent → admin/client)
+- ✅ `bun run build` respects dependency order (contracts → shared → agent → admin/client)
 - ✅ Intent Priorities: #2 Security — trusted attester key managed via deployment artifact + rotation runbook; #3 UX — auto-issuance removes friction
 
 ## Phase 0 — Locks, Schemas, Scaffolding (2026-04-17 → 2026-04-25)
