@@ -235,7 +235,7 @@ export function AdminDialog({
             "rounded-t-[var(--m3-shape-lg)] sm:rounded-[var(--m3-shape-lg)]",
             // Surface
             "bg-[rgb(var(--m3-surface-container-high))]",
-            // Elevation 3
+            // Elevation 2
             "shadow-[var(--m3-elevation-2)]",
             // Enter/exit motion (mobile sheet slide-up, desktop zoom) is driven by
             // the [data-component="AdminDialog"][data-slot="surface"][data-state]

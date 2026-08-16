@@ -1,5 +1,6 @@
 import { cn } from "@green-goods/shared";
 import { type ComponentType, type KeyboardEvent, type ReactNode, useCallback, useRef } from "react";
+import { useIntl } from "react-intl";
 
 // ============================================================================
 // Types
@@ -46,6 +47,7 @@ export function AdminTabRail({
   idBase,
   className,
 }: AdminTabRailProps) {
+  const { formatMessage } = useIntl();
   const tabRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
   const enabledTabs = tabs.filter((tab) => !tab.disabled);
 
@@ -144,18 +146,27 @@ export function AdminTabRail({
             </span>
 
             {tab.count !== undefined && tab.count > 0 ? (
-              <span
-                aria-label={`${tab.count} items`}
-                className={cn(
-                  "pointer-events-none inline-flex shrink-0 select-none items-center justify-center rounded-full px-2 py-px",
-                  "text-label-md font-semibold leading-4 tabular-nums",
-                  active
-                    ? "bg-[rgb(var(--tone-primary-container,var(--m3-secondary-container)))] text-[rgb(var(--tone-on-primary-container,var(--m3-on-secondary-container)))]"
-                    : "bg-[rgb(var(--m3-surface-container-high))] text-[rgb(var(--m3-on-surface-variant))]"
-                )}
-              >
-                {tab.count > 99 ? "99+" : tab.count}
-              </span>
+              <>
+                {/* The badge is decorative to assistive tech: `aria-label` on a
+                    role-less span is not reliably exposed, and the bare number
+                    announces without units. The count reaches the tab's
+                    accessible name through the visually hidden span below. */}
+                <span
+                  aria-hidden="true"
+                  className={cn(
+                    "pointer-events-none inline-flex shrink-0 select-none items-center justify-center rounded-full px-2 py-px",
+                    "text-label-md font-semibold leading-4 tabular-nums",
+                    active
+                      ? "bg-[rgb(var(--tone-primary-container,var(--m3-secondary-container)))] text-[rgb(var(--tone-on-primary-container,var(--m3-on-secondary-container)))]"
+                      : "bg-[rgb(var(--m3-surface-container-high))] text-[rgb(var(--m3-on-surface-variant))]"
+                  )}
+                >
+                  {tab.count > 99 ? "99+" : tab.count}
+                </span>
+                <span className="sr-only">
+                  {formatMessage({ id: "cockpit.tabRail.itemCount" }, { count: tab.count })}
+                </span>
+              </>
             ) : null}
           </button>
         );

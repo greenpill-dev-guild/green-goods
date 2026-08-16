@@ -199,6 +199,16 @@ function expectDarkCanvasWash(
   const wash = window.getComputedStyle(root).getPropertyValue("--tone-surface-tint-color").trim();
   expect(wash).not.toBe("");
   expect(wash).not.toBe("transparent");
+
+  // --tone-surface-tint-color is an @property custom property that cross-fades
+  // between workspaces, while data-tone flips synchronously on click. A sample
+  // taken the instant the attribute lands can still be the outgoing tone's
+  // color. Reject a value another tone already claimed so waitFor keeps
+  // polling until the transition has actually settled on this tone.
+  for (const [recordedTone, recordedWash] of washes) {
+    if (recordedTone !== tone) expect(wash).not.toBe(recordedWash);
+  }
+
   washes.set(tone, wash);
 }
 
@@ -338,6 +348,8 @@ export const DarkRouteToneContract: Story = {
       }
 
       // Four workspaces, four distinct washes — tone identity survives dark.
+      // expectDarkCanvasWash already rejects a wash another tone claimed, so
+      // this also proves every route was actually recorded.
       expect(new Set(washes.values()).size).toBe(4);
     });
   },

@@ -123,7 +123,7 @@ function FabButton({ config, mobileFloating = false }: FabButtonProps) {
   const fabButtonRef = useRef<HTMLButtonElement>(null);
   const speedDialActionRefs = useRef(new Map<string, HTMLButtonElement>());
   const speedDialShadow =
-    "var(--admin-speed-dial-shadow, var(--elevation-3, 0 12px 28px rgb(15 23 42 / 0.16)))";
+    "var(--admin-speed-dial-shadow, var(--m3-elevation-2, 0 12px 28px rgb(15 23 42 / 0.16)))";
   const isSingleAction = config.actions.length <= 1;
   const enabledSpeedDialActions = useMemo(
     () => config.actions.filter((action) => !action.disabled),
@@ -167,6 +167,9 @@ function FabButton({ config, mobileFloating = false }: FabButtonProps) {
       const actionId = action.id;
       config.onAction(actionId);
       closeSpeedDial();
+      // The invoked item unmounts with the dial, so focus would fall to
+      // <body>. Return it to the FAB, matching the Escape path below.
+      fabButtonRef.current?.focus();
     },
     [closeSpeedDial, config]
   );
@@ -341,11 +344,16 @@ function FabButton({ config, mobileFloating = false }: FabButtonProps) {
         ref={fabButtonRef}
         type="button"
         onClick={handleClick}
+        // Single-action mode renders `floatingActionLabel` as the visible
+        // label and tooltip, so the accessible name has to be that same string
+        // — speech input activates a control by what it says (WCAG 2.5.3).
         aria-label={
-          isSingleAction ? config.label : formatMessage({ id: "cockpit.fab.openActions" })
+          isSingleAction ? floatingActionLabel : formatMessage({ id: "cockpit.fab.openActions" })
         }
         aria-haspopup={isSingleAction ? undefined : "menu"}
-        aria-expanded={speedDialOpen || undefined}
+        // Explicit false while collapsed: a menu control that drops the
+        // attribute reads as non-expandable.
+        aria-expanded={isSingleAction ? undefined : speedDialOpen}
         data-slot="fab-button"
         data-state={speedDialOpen ? "open" : "closed"}
         style={{

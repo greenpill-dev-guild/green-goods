@@ -13,11 +13,11 @@ foundations.
 - Read `/Users/afo/Code/greenpill/green-goods/docs/docs/builders/packages/admin.mdx` before changing routes, layouts, or page structure.
 - The canonical shell is `CanvasLayout`.
 - The Wave 3 shell is `AppBar + .workspace-canvas + MainSheet + NavigationBar`, with every workspace overlay rendering as a centered `AdminDialog` (the `LeftSheet`/`RightSheet`/`BottomSheet` renderers are deleted). The three global AppBar surfaces (Profile, Settings, Notifications) render in `AdminSideSheet` — right-docked within the canvas chrome bounds on desktop, bottom sheet on mobile.
-- In admin docs, `AppBar` means the shared Canvas top context bar: sticky `z-sticky h-14`, `GardenChip` on the left, and search plus the notifications / settings / profile icon actions on the right (settings and profile are desktop-only; mobile keeps the bell).
+- In admin docs, `AppBar` means the admin-owned Canvas top context bar in `packages/admin/src/components/Shell/`: sticky `z-sticky h-14`, `GardenChip` on the left, and search plus the notifications / settings / profile icon actions on the right (settings and profile are desktop-only; mobile keeps the bell).
 - `NavigationBar` is pure navigation only. Use the canonical items `Hub`, `Garden`, `Community`, and `Actions`; do not add leading or trailing slots.
 - Do not use the client/PWA `AppBar` pattern for admin. Keep admin workspace navigation on `NavigationBar`.
 - `ConnectShell` is the disconnected full-screen state with a centered connect prompt and no navigation.
-- Shared owns `AppBar`, `NavigationBar`, `GardenChip`, `MainSheet`, `NotificationPanel`, and `SheetErrorBoundary`. Admin owns `CanvasLayout`, `AdminDialog`, `AdminSideSheet`, the left-inspector channel (`components/Layout/leftSheetChannel.tsx`), `AccountProfilePanel`, `AccountSettingsPanel`, `AccountSurface`, `ConnectShell`, `CommandPalette`, and `PageHeader`.
+- Shared owns `GardenChip`, `NotificationPanel`, and `SheetErrorBoundary`. Admin owns the forked shell — `AppBar`, `NavigationBar`, `MainSheet`, and `FabButton` in `components/Shell/` (styling in JSX, per the Tailwind gotcha below) — plus `CanvasLayout`, `CanvasRouteFrame`, `CanvasRouteHeader`, `AdminDialog`, `AdminSideSheet`, the left-inspector channel (`components/Layout/leftSheetChannel.tsx`), `AccountProfilePanel`, `AccountSettingsPanel`, `AccountSurface`, `ConnectShell`, `CommandPalette`, and `PageHeader`. The shared `Canvas/NavigationBar` still exists for non-admin surfaces; a behavior or accessibility fix to one shell has to be applied to both.
 - Treat `DashboardLayout`, `Sidebar`, and `Header` as legacy migration code for new admin work.
 - Prefer the primitives below before composing raw `rounded border bg shadow` layouts.
 - Treat `packages/admin/src/components/Admin*.tsx` as the admin wrapper inventory; use those wrappers before local control styling.
@@ -27,7 +27,7 @@ foundations.
 ## Cockpit UI Mode
 
 - Admin is an operator cockpit, not a marketing surface. Default to utility copy, not brand or campaign copy.
-- Default route composition is `PageHeader` -> primary workspace -> optional secondary inspector (a centered `AdminDialog`).
+- Default route composition is `CanvasRouteFrame` + `CanvasRouteHeader` (`PageHeader` under the hood — routes no longer import it directly) -> primary workspace -> optional secondary inspector (a centered `AdminDialog`).
 - Start from task flow and information hierarchy, not from `Card`.
 - Use cards or elevated surfaces only when they represent a discrete record, action target, or bounded interactive unit.
 - Prefer one dominant workspace surface per route. Avoid nested stacks of bordered panels that turn the page into a card mosaic.

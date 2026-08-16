@@ -132,7 +132,7 @@ Sheet shell tokens: `--radius-sheet: 24px` (client sheet shells, e.g. `PwaSheet`
 
 ## Tone Consumption Rule
 
-**Budget: tone appears in exactly 3 places** — (1) the active tab underline/label and active nav pill (`--tone-primary-container` / `--tone-on-primary-container`), (2) the single filled header action (`--tone-action`), (3) the faint canvas wash (`--tone-surface-tint-color`). Any other `--tone-*` consumer is drift; the canvas itself stays constant linen.
+**Budget: tone appears in exactly 4 places** — (1) the active tab underline/label and active nav pill (`--tone-primary-container` / `--tone-on-primary-container`), (2) the single filled header action (`--tone-action`), (3) the faint canvas wash (`--tone-surface-tint-color`), (4) the nav-shell FAB fill (`Shell/FabButton`, `--tone-action`). Any other `--tone-*` consumer is drift; the canvas itself stays constant linen.
 
 `var(--tone-action, var(--green-800))` — `--tone-action` is a **raw RGB triplet** inside admin's `[data-tone]` scopes (e.g. `51 92 255` for Hub). The fallback must also be a raw triplet so `rgb(var(...) / alpha)` alpha-blending stays valid:
 

@@ -126,16 +126,17 @@ changes, FAB menus, dialogs, and interaction state ride the admin motion role al
 
 Each workspace carries an accent hue — Hub=blue, Garden=green, Community=orange, Actions=red —
 but the canvas itself never tints: it stays constant linen (`--m3-surface-container-low`) in
-light and m3 surface in dark. Tone spends a **3-use budget**: (1) the active tab underline/label
+light and m3 surface in dark. Tone spends a **4-use budget**: (1) the active tab underline/label
 and active nav pill (`--tone-primary-container` / `--tone-on-primary-container`), (2) the single
 filled header action (`--tone-action`), (3) the faint canvas wash (`--tone-surface-tint-color`,
-5% light / 10% dark, fading to transparent by 320px). The mechanism is a `[data-tone]` attribute
+5% light / 10% dark, fading to transparent by 320px), (4) the nav-shell FAB fill
+(`Shell/FabButton`) — the one tone-filled control in the floating chrome. The mechanism is a `[data-tone]` attribute
 on the CanvasLayout root that sets the surviving `--tone-*` roles — `--tone-action`,
 `--tone-on-surface-accent`, `--tone-primary-container` / `--tone-on-primary-container`, and
 `--tone-surface-tint-color` (workspace palettes live in `admin-m3-tokens.css`); components read
 `var(--tone-action, var(--m3-primary))` so they fall back to the M3 accent when unscoped.
 **Portals escape the scope** — anything portaled to `<body>` (dialogs, poppers) must re-establish
-tone via the `tone` prop or it silently falls back. Anything beyond the three sanctioned uses is
+tone via the `tone` prop or it silently falls back. Anything beyond the four sanctioned uses is
 drift — never content surfaces, never extra washes.
 
 ### Never rename `--color-primary`

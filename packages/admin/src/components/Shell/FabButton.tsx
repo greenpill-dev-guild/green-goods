@@ -69,6 +69,10 @@ export function FabButton({ config, mobileFloating = false }: FabButtonProps) {
 
       config.onAction(action.id);
       closeSpeedDial();
+      // The invoked item unmounts with the dial, so focus would fall to
+      // <body>. Return it to the FAB, matching the Escape path below. An
+      // action that opens a dialog moves focus again on its own.
+      fabButtonRef.current?.focus();
     },
     [closeSpeedDial, config]
   );
@@ -220,11 +224,16 @@ export function FabButton({ config, mobileFloating = false }: FabButtonProps) {
         ref={fabButtonRef}
         type="button"
         onClick={handleClick}
+        // Single-action mode renders `floatingActionLabel` as the visible
+        // label and tooltip, so the accessible name has to be that same string
+        // — speech input activates a control by what it says (WCAG 2.5.3).
         aria-label={
-          isSingleAction ? config.label : formatMessage({ id: "cockpit.fab.openActions" })
+          isSingleAction ? floatingActionLabel : formatMessage({ id: "cockpit.fab.openActions" })
         }
         aria-haspopup={isSingleAction ? undefined : "menu"}
-        aria-expanded={speedDialOpen || undefined}
+        // Explicit false while collapsed: a menu control that drops the
+        // attribute reads as non-expandable.
+        aria-expanded={isSingleAction ? undefined : speedDialOpen}
         data-slot="fab-button"
         data-state={speedDialOpen ? "open" : "closed"}
         className={cn(

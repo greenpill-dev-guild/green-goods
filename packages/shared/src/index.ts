@@ -1344,6 +1344,7 @@ export {
   getNetworkContracts,
   getOctantVaultRedeemCallShape,
   getOpenInBrowserUrl,
+  getRelativeTimeParts,
   getReviewedActionTranslation,
   getRoleColorClasses,
   getRoleLabel,
@@ -1384,6 +1385,7 @@ export {
   normalizeCampaignAddress,
   normalizeCampaignMetadataUrl,
   normalizeDecimalInput,
+  normalizeTimestamp,
   // Form normalizers
   normalizeTimeSpentMinutes,
   normalizeToFile,

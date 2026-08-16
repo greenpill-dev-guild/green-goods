@@ -216,6 +216,23 @@ export const CountStates: Story = {
     };
     return <Demo />;
   },
+  tags: ["storybook-ci"],
+  /**
+   * The badge count reaches assistive tech through translated, visually hidden
+   * text — not an `aria-label` on a role-less span, which is not reliably
+   * exposed and announces a bare number without units. The visible badge also
+   * collapses past 99, so the accessible name must carry the true count.
+   */
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+
+    await expect(canvas.getByRole("tab", { name: "Single 1 item" })).toBeVisible();
+    await expect(canvas.getByRole("tab", { name: "Many 99 items" })).toBeVisible();
+    // Visible badge reads "99+"; the accessible name keeps the real number.
+    await expect(canvas.getByRole("tab", { name: "Overflow 1,234 items" })).toBeVisible();
+    // A zero count renders no badge at all.
+    await expect(canvas.getByRole("tab", { name: "None" })).toBeVisible();
+  },
 };
 
 // --- tone matrix -----------------------------------------------------------

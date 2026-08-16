@@ -2,7 +2,9 @@ import {
   type Domain,
   DOMAIN_CONFIG,
   cn,
-  formatRelativeTime,
+  formatDateTime,
+  getRelativeTimeParts,
+  normalizeTimestamp,
   resolveIPFSUrl,
   stripGeneratedWorkTitleTimestamp,
   type Work,
@@ -125,10 +127,25 @@ export function HubWorkCard({
   eagerImages,
   onClick,
 }: HubWorkCardProps) {
-  const { formatMessage } = useIntl();
+  const { formatMessage, formatRelativeTime } = useIntl();
   const mediaUrls = work.media ?? [];
   const totalMedia = mediaUrls.length;
-  const submittedAgoText = formatRelativeTime(work.createdAt);
+
+  // Relative age through react-intl so es/pt operators don't get English.
+  // `numeric: "always"` keeps "1 day ago" rather than "yesterday" — the queue
+  // reads as a uniform age column, not prose.
+  const submittedAgeParts = getRelativeTimeParts(work.createdAt);
+  const submittedAgoText = submittedAgeParts
+    ? formatRelativeTime(submittedAgeParts.value, submittedAgeParts.unit, { numeric: "always" })
+    : formatMessage({ id: "cockpit.hub.workCard.justNow", defaultMessage: "just now" });
+  const submittedAtMs = normalizeTimestamp(work.createdAt);
+  const submittedAtIso = Number.isNaN(submittedAtMs)
+    ? undefined
+    : new Date(submittedAtMs).toISOString();
+  const submittedAtExact = formatDateTime(work.createdAt, {
+    dateStyle: "medium",
+    timeStyle: "short",
+  });
   const resolvedStatusLabel =
     statusLabel ??
     (work.status === "approved"
@@ -142,6 +159,10 @@ export function HubWorkCard({
     work.title ||
     formatMessage({ id: "app.admin.work.untitledWork", defaultMessage: "Untitled Work" });
   const title = stripGeneratedWorkTitleTimestamp(rawTitle, actionTitle) || rawTitle;
+  const visibleActionTitle =
+    actionTitle && actionTitle.trim().toLowerCase() !== title.trim().toLowerCase()
+      ? actionTitle
+      : undefined;
 
   return (
     <button
@@ -250,6 +271,16 @@ export function HubWorkCard({
           </span>
         </div>
 
+        {/* Action title — the queue search matches on it (filterPendingWorks /
+            filterAssessmentQueue), so it has to stay visible or a hit renders a
+            card with no matching text. Suppressed when the work title already
+            carries it, which is the common generated-title case. */}
+        {visibleActionTitle && (
+          <p className="truncate text-label-md text-text-sub" title={visibleActionTitle}>
+            {visibleActionTitle}
+          </p>
+        )}
+
         {/* Meta row — gardener (500, sub ink) · relative timestamp (soft ink).
             Garden name lives in the hover title only; chrome declares garden
             context (Frontend Rule 17). */}
@@ -257,7 +288,13 @@ export function HubWorkCard({
           <p className="min-w-0 truncate font-medium text-text-sub" title={gardenerDisplayName}>
             {gardenerDisplayName}
           </p>
-          <p className="shrink-0 text-text-soft">{submittedAgoText}</p>
+          <time
+            className="shrink-0 text-text-soft"
+            dateTime={submittedAtIso}
+            title={submittedAtExact}
+          >
+            {submittedAgoText}
+          </time>
         </div>
       </div>
     </button>

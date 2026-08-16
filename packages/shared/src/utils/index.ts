@@ -448,6 +448,7 @@ export {
   fromDateTimeLocalValue,
   getCurrentTimezone,
   getDurationMs,
+  getRelativeTimeParts,
   getStartOfDayUTC,
   getTimeCutoff,
   isTemporalSupported,

@@ -55,12 +55,19 @@ export const SpeedDial: Story = {
     const canvas = within(canvasElement);
     const fab = canvas.getByRole("button", { name: /open/i });
     await expect(fab).toHaveAttribute("data-state", "closed");
+    // A menu control stays expandable while collapsed — dropping the attribute
+    // reads to assistive tech as a control that cannot open.
+    await expect(fab).toHaveAttribute("aria-expanded", "false");
     await userEvent.click(fab);
     await expect(fab).toHaveAttribute("data-state", "open");
+    await expect(fab).toHaveAttribute("aria-expanded", "true");
     const items = await canvas.findAllByRole("menuitem");
     await expect(items.length).toBe(2);
     await userEvent.click(items[0]);
     await expect(args.config.onAction).toHaveBeenCalled();
+    // The chosen item unmounts with the dial; focus returns to the FAB rather
+    // than falling to <body>.
+    await expect(fab).toHaveFocus();
   },
 };
 
@@ -86,5 +93,42 @@ export const SingleAction: Story = {
     const fab = canvas.getByRole("button", { name: /create assessment/i });
     await userEvent.click(fab);
     await expect(args.config.onAction).toHaveBeenCalledWith("assessment");
+    // Single-action mode is a direct-fire button, not a menu.
+    await expect(fab).not.toHaveAttribute("aria-expanded");
+  },
+};
+
+/**
+ * Regression guard for WCAG 2.5.3 (Label in Name): the accessible name has to
+ * be the visible label. The FAB renders the *translated action* label, so a
+ * config whose own `label` differs must not leak into `aria-label` — speech
+ * input activates a control by what it says.
+ */
+export const SingleActionLabelMismatch: Story = {
+  args: {
+    config: {
+      icon: RiCheckboxCircleLine,
+      // Deliberately different from the translated action label below.
+      label: "Create",
+      actions: [
+        {
+          id: "assessment",
+          icon: RiCheckboxCircleLine,
+          label: "Create assessment",
+          labelId: "cockpit.hub.fab.createAssessment",
+        },
+      ],
+      onAction: fn(),
+    },
+    mobileFloating: true,
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    // Resolving the button by that exact name proves the accessible name is the
+    // translated action label, not config.label ("Create").
+    const fab = canvas.getByRole("button", { name: "Create assessment" });
+    // The same string is the label rendered inside the button. The hover
+    // tooltip carries it too, so scope to the button rather than the canvas.
+    await expect(within(fab).getByText("Create assessment")).toBeInTheDocument();
   },
 };

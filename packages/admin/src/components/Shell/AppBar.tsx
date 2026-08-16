@@ -151,7 +151,7 @@ export function AppBar({
               <button
                 type="button"
                 onClick={sheetContext.onBack}
-                aria-label={formatMessage({ id: "cockpit.topBar.back" })}
+                aria-label={formatMessage({ id: "cockpit.topBar.back", defaultMessage: "Back" })}
                 className={ICON_BTN}
                 data-component="AppBar"
                 data-slot="back-button"

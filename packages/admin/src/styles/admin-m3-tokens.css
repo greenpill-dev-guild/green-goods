@@ -426,6 +426,7 @@
 [data-tone] {
   --tone-focus-ring: var(--tone-action);
 }
+[data-theme="dark"][data-tone],
 [data-theme="dark"] [data-tone] {
   --tone-focus-ring: var(--tone-on-surface-accent);
 }
@@ -443,6 +444,7 @@
  * text — NOT in the primary fill, which would break the text usages above.
  * Every block keeps --tone-on-surface-accent (gate; the bright tone-TEXT role).
  * All ratios verified against the warm card surface (32 25 19). */
+[data-theme="dark"][data-tone="hub"],
 [data-theme="dark"] [data-tone="hub"] {
   --tone-primary: var(--blue-200);
   --tone-on-primary: var(--blue-900);
@@ -455,6 +457,7 @@
   --tone-surface-tint-color: rgb(var(--blue-200) / 10%);
 }
 
+[data-theme="dark"][data-tone="garden"],
 [data-theme="dark"] [data-tone="garden"] {
   --tone-primary: var(--green-200);
   --tone-on-primary: var(--green-900);
@@ -472,6 +475,7 @@
  * the wash, accent text, secondary and containers (the yellow family), matching
  * the light-mode strategy. Same orange-700 fill value as light mode → no hue
  * flip between modes. */
+[data-theme="dark"][data-tone="community"],
 [data-theme="dark"] [data-tone="community"] {
   --tone-primary: var(--yellow-200);
   --tone-on-primary: var(--yellow-900);
@@ -484,6 +488,7 @@
   --tone-surface-tint-color: rgb(var(--yellow-200) / 10%);
 }
 
+[data-theme="dark"][data-tone="actions"],
 [data-theme="dark"] [data-tone="actions"] {
   --tone-primary: var(--red-200);
   --tone-on-primary: var(--red-900);
@@ -496,6 +501,7 @@
   --tone-surface-tint-color: rgb(var(--red-200) / 10%);
 }
 
+[data-theme="dark"][data-tone="home"],
 [data-theme="dark"] [data-tone="home"] {
   --tone-primary: var(--neutral-300);
   --tone-on-primary: var(--neutral-900);

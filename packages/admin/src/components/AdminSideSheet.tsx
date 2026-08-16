@@ -129,7 +129,7 @@ export function AdminSideSheet({
             "sm:top-[var(--admin-sheet-top)] sm:right-[var(--admin-sheet-side-inset)] sm:bottom-[var(--admin-sheet-bottom)] sm:left-auto sm:max-h-none sm:max-w-none sm:translate-x-0",
             "sm:w-[var(--admin-side-sheet-width)]",
             "sm:rounded-[var(--m3-shape-lg)]",
-            // Solid surface + elevation 3 — dense surfaces stay solid; glass
+            // Solid surface + elevation 2 — dense surfaces stay solid; glass
             // remains Navigation/FAB-only.
             "bg-[rgb(var(--m3-surface-container-high))]",
             "shadow-[var(--m3-elevation-2)]",

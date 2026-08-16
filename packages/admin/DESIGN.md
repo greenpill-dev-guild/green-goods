@@ -154,7 +154,7 @@ Admin dashboard modals use AdminDialog or AdminConfirmDialog. Desktop renders as
 
 - **Single elevation ladder** — `--m3-elevation-0/1/2` plus `--admin-chrome-shadow` for floating nav/FAB chrome; nothing else casts shadow.
 - **Radius set** — 4/8/12/16/9999px only; no 20/24/28px shapes anywhere in admin.
-- **Three-use tone budget** — workspace tone appears only in the active tab, the active nav pill, and one filled header action (plus the faint canvas wash).
+- **Four-use tone budget** — workspace tone appears only in the active tab, the active nav pill, one filled header action, and the nav-shell FAB fill (plus the faint canvas wash).
 - **Hover rule** — hovers are an elevation step-up or the neutral ink layer `rgb(var(--m3-on-surface) / 0.08)`; never translate/scale lifts or hue shifts.
 - **AdminButton only** — pill-shaped, sentence case; the shared `Button` (`gg-button`) does not appear in admin.
 

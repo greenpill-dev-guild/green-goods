@@ -441,10 +441,24 @@ fi
 #     also fails if it reappears.
 check_dark_elevation() {
   dark_levels="$(awk -v tok="$2" '
-    /^[^{}]*\{/ { in_dark = ($0 ~ /\[data-theme="dark"\]/) }
-    /\}/        { in_dark = 0 }
-    in_dark && $0 ~ (tok "-[1-2]:") { n++ }
-    END { print n + 0 }
+    # A dark block opens on the line carrying both the selector and the brace,
+    # so a multi-line selector list latches on its final line.
+    !in_dark && $0 ~ /\[data-theme="dark"\]/ && $0 ~ /\{/ { in_dark = 1; depth = 0 }
+    in_dark {
+      rest = $0
+      # Every declaration on the line — a single-line rule holds more than one.
+      while (match(rest, tok "-[1-2]:")) {
+        seen[substr(rest, RSTART + length(tok) + 1, 1)] = 1
+        rest = substr(rest, RSTART + RLENGTH)
+      }
+      # Close on brace balance so a nested @media or selector cannot end the
+      # block early and silently drop the declarations that follow it.
+      depth += gsub(/\{/, "{") - gsub(/\}/, "}")
+      if (depth <= 0) in_dark = 0
+    }
+    # Distinct levels, not matching lines: two --m3-elevation-1 declarations and
+    # no --m3-elevation-2 is a real gap, not a pass.
+    END { levels = 0; for (level in seen) levels++; print levels + 0 }
   ' "$1")"
   if [[ "$dark_levels" -lt 2 ]]; then
     echo "❌ Dark elevation gap: ${2}-[1-2] has only ${dark_levels}/2 [data-theme=\"dark\"] overrides in ${1}."

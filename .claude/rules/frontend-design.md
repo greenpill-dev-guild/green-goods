@@ -219,7 +219,7 @@ The five enforceable invariants of the admin cockpit finish — treat violations
 
 - **Single elevation ladder** — `--m3-elevation-0/1/2` plus `--admin-chrome-shadow` (floating nav/FAB chrome) are the only shadows.
 - **Admin radius set** — 4/8/12/16/9999px only; no 20/24/28px radii (`rounded-xl`/`rounded-2xl` remap to 16px in admin).
-- **Three-use tone budget** — workspace tone appears only in the active tab underline/label, the active nav pill, and one filled `--tone-action` header action (plus the faint canvas wash).
+- **Four-use tone budget** — workspace tone appears only in the active tab underline/label, the active nav pill, one filled `--tone-action` header action, and the nav-shell FAB fill (plus the faint canvas wash).
 - **Hover rule** — hovers are an elevation step-up or the neutral ink layer `rgb(var(--m3-on-surface) / 0.08)`; never translate/scale lifts or hue shifts.
 - **AdminButton only** — pill shape, sentence case; the shared `Button` (`gg-button`) must not appear in admin.
 
