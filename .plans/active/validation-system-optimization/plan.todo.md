@@ -95,18 +95,44 @@ installation or upgrade, workflow rerun, GitHub setting change, deployment, broa
 - Indexer suite profiling (requirement 7) was carried out and produced no shipped change.
   Measurements on an idle 10-core host, full suite unless noted:
 
-  | Configuration | Wall | Passing | Failing |
-  |---|---|---|---|
-  | serial (baseline) | 606.6s | 244 | 0 |
-  | `--parallel`, default 9 workers | 442.6s | 197 | 47 |
-  | `--parallel --jobs 4` | 401.3s | 242 | 2 |
+  **Corrected measurements.** The first round of these numbers was invalid and is recorded here so
+  the error is not repeated. A serial baseline of 606.6s was measured immediately after a parallel
+  run that had saturated all ten cores; re-measuring the identical code on a quiet machine gives
+  245.1s, so that figure was inflated about 2.5x. Every parallel-versus-serial comparison scored
+  against it was therefore wrong, and in the flattering direction for parallelism.
 
-  Every one of those 49 failures is `Timeout of 30000ms exceeded`; not one is an assertion failure,
-  so the suite is logically parallel-safe and c8 coverage is byte-identical between serial and
-  parallel runs (24.7 / 97.1 / 17.58 / 24.7 on a two-file probe). What blocks parallelism is
-  headroom: the slowest test already takes 20.3s serially on an idle machine against a 30000ms
-  timeout. Bounding workers helps a lot and is not enough, so `--parallel` must not ship until
-  per-test cost falls.
+  | Configuration | Wall | Passing | Timeouts |
+  |---|---|---|---|
+  | serial, pre-sweep | 245.1s | 244 | 0 |
+  | serial, post-sweep | 194.4s | 244 | 0 |
+  | `--parallel` 9 workers, post-sweep | 96.3s | 244 | 0 |
+
+  The 47 timeouts seen earlier came from machine contention plus per-call cost that the batching
+  sweep has since removed. On a quiet machine with the sweep applied, parallel mocha is twice as
+  fast as serial and completely green. c8 coverage is byte-identical between serial and parallel
+  (24.7 / 97.1 / 17.58 / 24.7 on a two-file probe).
+
+  Measurement discipline this cost us: never compare a run against a baseline captured right after a
+  saturating run, and re-measure a baseline on the machine state that the comparison run will see.
+
+  Parallel mocha still must not ship. A second 9-worker run on the same code minutes later took
+  180.3s with one timeout against the first run's 96.3s with none, so the result does not reproduce
+  on this host. `--parallel --jobs 3`, which matches CI's four-core runner, was green at 151.1s but
+  has a single sample. The slowest test under parallel is 15.3s against a 30000ms timeout, roughly
+  2x headroom, which is consistent with timeouts appearing intermittently. Certifying parallelism
+  needs a controlled environment; a dedicated CI runner is a better one than this laptop.
+
+- CI-verified results at `9f23920e7`, which are the trustworthy numbers because they come from
+  dedicated runners rather than a developer machine:
+
+  | Measure | Before | After |
+  |---|---|---|
+  | Pull request wall clock, 13 workflows | 651s | **553s** |
+  | Indexer `Run indexer tests with coverage` | 559s | **492s** |
+  | Shared JS setup per job | 42s | **33s** |
+
+  That is 98s off every pull request. The indexer gain comes from the batching sweep and the setup
+  gain from removing the dependency cache.
 
 - The indexer cost is per *call*, not per event. Measured against the `ActionRegistered` handler,
   one `processEvents` call costs the same whether it carries 1 event or 50:
