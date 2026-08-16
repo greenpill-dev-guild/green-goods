@@ -1,0 +1,144 @@
+{
+  "schemaVersion": 1,
+  "kind": "GARDEN_SAFE_FINAL_BINDINGS",
+  "factory": "0x4e1DCf7AD4e460CfD30791CCC4F9c8a4f820ec67",
+  "singleton": "0x29fcB43b46531BcA003ddC8FCB67FFE91900C762",
+  "proxyCreationCodeHash": "0x1856e0ee08399d74e0ea0b03adca210aeade6f748969ac023cdcb4dd62dcaf5f",
+  "greenGoodsRecoverySafe": "0x1B9Ac97Ea62f69521A14cbe6F45eb24aD6612C19",
+  "devGuildRecoverySafe": "0x49fa954B6C2Cd14B4b3604EF1Cc17cED20a9E42C",
+  "derivation": "Safe v1.4.1 createProxyWithNonce using the direct final 2-of-3 initializer and GG_COMMITMENT_POOL_SAFE_V1 salt domain",
+  "proxyCreationCodeSource": "Official SafeProxyFactory v1.4.1 proxyCreationCode(); release-time plan must reread and hash the live Celo factory result",
+  "entries": [
+    {
+      "tokenId": 0,
+      "garden": "0xf401f34378384713222d1d21f63359cc4E8a858a",
+      "safe": "0xe41a1e446644034f24a4B2E1bfB28Fd414dBc66d",
+      "initializerHash": "0x25ed4387097ff39ee813da8318c4ac33218f03cec963c40ceb5608dfdbc6ad8e",
+      "saltNonce": "38318504459598625934576255025098196894826548459580038394552891589886020319285"
+    },
+    {
+      "tokenId": 1,
+      "garden": "0xF7b892886998DAe960D64a9db488336684F137A0",
+      "safe": "0xa23716F7B0DBBB0387Fb1274f1Ae8247670dCC37",
+      "initializerHash": "0xa8f4f37fb8610c8fdbaf8d421ebeabb6c52071a07da98ebe4efbfc3ffc856d03",
+      "saltNonce": "34126794214082644595230899571363318323466964981885504203424311676768832919929"
+    },
+    {
+      "tokenId": 2,
+      "garden": "0xA2DF8Eb73444A3f3cf9b8E3749313C7471d7D5E3",
+      "safe": "0x67828f64f6D33522679F40D9f1BE1F53c9eb71cB",
+      "initializerHash": "0xf8d34f9e5cd93b6a4b0eed0625a5ca2a6ed59fef99006a91fb050c9eef546a9d",
+      "saltNonce": "11553009438069564612316984403900659244270557216046360836068167738795662061522"
+    },
+    {
+      "tokenId": 3,
+      "garden": "0x4055530dB392FB2B56037065A512c5b283D90A10",
+      "safe": "0xCFfADc80904b760F1588D0Ebfd53f4c307691A86",
+      "initializerHash": "0x17b176cf9439d385f518ccb0697d4b6ccd581c2b46f85b5bb20d9d5c491cf661",
+      "saltNonce": "114396751053536228365231216012144370902988083985836600047060031552325832334296"
+    },
+    {
+      "tokenId": 4,
+      "garden": "0x51499A44BB7793647e67ed827bd17367d7e55314",
+      "safe": "0xC9D5bF40a49a0a5A60E1677aAA06342655025c94",
+      "initializerHash": "0x36791856e8b960d8f74f8c42248b880153d6da99d1159c8a8c4ece085119a1e2",
+      "saltNonce": "5645564048363170156005176377367505000374854959661224240962453906369026285478"
+    },
+    {
+      "tokenId": 5,
+      "garden": "0xbcCE994513615988690aBCA373B1368218E4957C",
+      "safe": "0x6640D2809aA4989192F1caaF6D9614BaD9aA5518",
+      "initializerHash": "0x436da1c7ed6b95cb4ee874212ed1f52794c15d338a859fba25a51f7ca8a9bb33",
+      "saltNonce": "19283925497556931253293892777625179326971969859327358381904267052035480023100"
+    },
+    {
+      "tokenId": 6,
+      "garden": "0xFDa72CE1D75b735d6595E5814DDF23b97516caEf",
+      "safe": "0x6e64e6bB9977BF1d5db40f71bCBb194269cE503B",
+      "initializerHash": "0x2bb28d3caaade23238509b3c42abf535e8c6b9fecd5c8a265bbec21c04aaa20f",
+      "saltNonce": "34629138046940926405766185467516987573291265588181315324296560953329268341300"
+    },
+    {
+      "tokenId": 7,
+      "garden": "0xD1F8e787a325F91F5d4Be2D30ea1E67B19e28b30",
+      "safe": "0x0092904e7c33e04EcAc35E2e45cD6D1D1571EE81",
+      "initializerHash": "0x64ad472c17d29deaaee44aef60ebbf12ec6b632d819a1fed507e90a70fcdc1c1",
+      "saltNonce": "59703693945776757008031120794623855529389655999392002700913403969378837860863"
+    },
+    {
+      "tokenId": 8,
+      "garden": "0x4f11FB4c255D3eDC7C44a461ab45fBC421Aacb09",
+      "safe": "0x1295E5F1D78e0f1904A78798bA494d2Bb996E23b",
+      "initializerHash": "0x92e0e96f1e3fdfe009e02ca5c397dda0e56c4146e91fd8ad5d25e775e1692189",
+      "saltNonce": "7675601301243008798551791977800343304849363627447815724562109579152340274692"
+    },
+    {
+      "tokenId": 9,
+      "garden": "0x636962584b1F492B06151Fee87810281372879b6",
+      "safe": "0x3EB95Adb3B603945C3a422fe564aAAB605d27a4b",
+      "initializerHash": "0x0786641a51c85bfa4fb23ed50930442553d69db29fa08bdbbc9ff43851f58a4b",
+      "saltNonce": "11211226256232310913990533802581178336808861100054617074395981669273614113313"
+    },
+    {
+      "tokenId": 10,
+      "garden": "0x1121218D5e017B57c6DF3B5a001a991BDB910338",
+      "safe": "0x94706E563B94980EDe33bd7A538B3D24a53ef010",
+      "initializerHash": "0xe9d9bc478cf7a9e70b9e57f13718e55cd7852f7f82b31b2e32e37cc1d43bb833",
+      "saltNonce": "97468360116953320242162608548801414663519533273698118328057863196186010504056"
+    },
+    {
+      "tokenId": 11,
+      "garden": "0x3f0f1551C7E08a2cf6800BD7D72aBfE23E3E32a0",
+      "safe": "0x7Cf45A3205CE3FFC3e552bc0b49B3bF3aA090241",
+      "initializerHash": "0xc64dc6192b0fc027c202efdbec1413dc91f68d98bb20a383f1da8d68169645c0",
+      "saltNonce": "16280421176878069623454566306767730455188173113006417069667926397157847777700"
+    },
+    {
+      "tokenId": 12,
+      "garden": "0x3F22568aE0deAA24dA7b8c669AfDcBD72A6A7fd8",
+      "safe": "0x8d759c89f82A8eCE6e45164Ba9cDD32fE498f2D9",
+      "initializerHash": "0x4cc8a11e8408109804768a1e93b214b5a831cdab1528fded58dc7b05881a1bcd",
+      "saltNonce": "95075211134527877753252829871314404600840777338914491522334136079281699496140"
+    },
+    {
+      "tokenId": 13,
+      "garden": "0x26c32E54F23af9F9fcC757414c76E56e3fB176E2",
+      "safe": "0x15F104203570BC53B5349EE888e02B0DB100E4F7",
+      "initializerHash": "0xc5b0611d2d3a5c7e61a58985869664cd375ce697895074252c1ea333c0139b5e",
+      "saltNonce": "13162135356468680738952980483924857078997085894812565574958601653301164822688"
+    },
+    {
+      "tokenId": 14,
+      "garden": "0x35077CaF6fBef1d5677d318a198C9c47C61bb976",
+      "safe": "0x14094635AdA852bCd740AdF546D2ef0dd79Ad4DB",
+      "initializerHash": "0x55553cb6663187079ea0a431c7640539861273817b6495a1fd4c9c6ec8e8c548",
+      "saltNonce": "9708672042085108689421067020213783525119609448568076879737646840061434870728"
+    },
+    {
+      "tokenId": 15,
+      "garden": "0x7bE6eAeb2FB5842Da06A34Af4fAe418347427cd1",
+      "safe": "0x82EFf72CB9A33fC6F74422146Ae04F8629097db9",
+      "initializerHash": "0x874daa4acb9ae7b713f2f1733f7a6c2104f4cc09fa77635c6eb562b5c46e9ebc",
+      "saltNonce": "65496979447084321758747520049176454777489620568093926620134671361645024804782"
+    },
+    {
+      "tokenId": 16,
+      "garden": "0x35722eEdf3F7566A23FA871f0a04267AEe78E0dB",
+      "safe": "0x6516E0051D95b6C6B3a8Fa051b1bF51821e9697c",
+      "initializerHash": "0xab37c1e88a0d2aded99fe2413feeb7dc2a23195a9e2964cdd36b3a75f3169177",
+      "saltNonce": "108501710021976015373399866123231890334387930440575795611845698506866980463469"
+    },
+    {
+      "tokenId": 17,
+      "garden": "0x749F84CA070cD2F98d9353F49eCE77C1A3fED532",
+      "safe": "0xB2C312402dbaabBe0cDB91aD387A4b46689f35B5",
+      "initializerHash": "0x3039be2963376d9a55d5c5204ce7ba4b3da5c392d01d772b7234314a63298a5c",
+      "saltNonce": "86147391709328155343823632018852372387347162280248143216131113084984168542429"
+    }
+  ],
+  "limitations": [
+    "Every address is counterfactual until the reviewed factory transaction is mined.",
+    "Live nonce, balance, module, guard, token inventory, and code-absence checks remain mandatory in the release-time Garden Safe plan.",
+    "Arbitrary ERC-20, ERC-721, and ERC-1155 inventory absence is not proven by this derivation."
+  ]
+}

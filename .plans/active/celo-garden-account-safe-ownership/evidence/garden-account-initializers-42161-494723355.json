@@ -1,0 +1,482 @@
+{
+  "snapshot": {
+    "chainId": 42161,
+    "blockNumber": 494723355,
+    "blockHash": "0xa8742380f0f81521afc93d2a42ac07281da303d3df9a7edabe74280fab057e1e",
+    "timestamp": 1786778427
+  },
+  "implementation": "0xE31cAeAc029A60AD17A49278Fdd58032eF9Cf692",
+  "registry": "0x000000006551c19487814612e58FE06813775758",
+  "salt": "0x6551655165516551655165516551655165516551655165516551655165516551",
+  "gardenToken": "0xe1Da335110b1ed48e7df63209f5D424d02276593",
+  "entries": [
+    {
+      "tokenId": 0,
+      "account": "0xf401f34378384713222d1d21f63359cc4E8a858a",
+      "tokenTuple": [
+        "42161",
+        "0xe1Da335110b1ed48e7df63209f5D424d02276593",
+        "0"
+      ],
+      "owner": "0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6",
+      "runtimeCodeHash": "0xd3048eedc80a76ebecd7f6e79522c6a22547fe3ff34d25ee51fb104f9272a6fa",
+      "runtimeCodeBytes": 173,
+      "initializerHash": "0xe6f82e595108509c769b3d069259400aa54afdab380ceee308f2c24a8e2f4269",
+      "initializerBytes": 900,
+      "initialization": {
+        "communityToken": "0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1",
+        "name": "Green Goods Community Garden",
+        "slug": "community",
+        "description": "The global community garden for all Green Goods participants. This is the root garden that serves as the entry point for new users and community activities. All participants start here and can join specialized gardens as they engage with the platform.",
+        "location": "Mama Earth",
+        "bannerImage": "https://www.greengoods.app/icon.png",
+        "metadata": "",
+        "openJoining": true
+      },
+      "maxGardeners": "0",
+      "gardenMemberCount": "28"
+    },
+    {
+      "tokenId": 1,
+      "account": "0xF7b892886998DAe960D64a9db488336684F137A0",
+      "tokenTuple": [
+        "42161",
+        "0xe1Da335110b1ed48e7df63209f5D424d02276593",
+        "1"
+      ],
+      "owner": "0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6",
+      "runtimeCodeHash": "0x642ab5f18a75370fe2602f1ff394ef4ba660bf4a5f9c575ff66f624b47cbf106",
+      "runtimeCodeBytes": 173,
+      "initializerHash": "0xb2e9c76c2ef6abe20ef1a5c9116a3b5856c5eb2f205d1513538f1068fd4b57cb",
+      "initializerBytes": 868,
+      "initialization": {
+        "communityToken": "0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1",
+        "name": "Aiyeloja Family Garden",
+        "slug": "aiyeloja-family-garden",
+        "description": "The family garden operated by the Aiyeloja family growing flowers, vegetables an herbs on a yearly basis. Some of our favorite crops are squash, basil, tomatoes and peppers.",
+        "location": "Loma Linda",
+        "bannerImage": "https://w3s.link/ipfs/bafkreif5qap5jpmlbd5gq5gg45nquzo7zfzxdk2xdfua7tvxz7ujtu3nne",
+        "metadata": "",
+        "openJoining": false
+      },
+      "maxGardeners": "0",
+      "gardenMemberCount": "0"
+    },
+    {
+      "tokenId": 2,
+      "account": "0xA2DF8Eb73444A3f3cf9b8E3749313C7471d7D5E3",
+      "tokenTuple": [
+        "42161",
+        "0xe1Da335110b1ed48e7df63209f5D424d02276593",
+        "2"
+      ],
+      "owner": "0x6855B23D93f57851d30a324B00f17f9baf34Ac02",
+      "runtimeCodeHash": "0x2adc1b2fd6b22076539ad0c7a265e57e2b49a60ac06f62395fb481391484b5e3",
+      "runtimeCodeBytes": 173,
+      "initializerHash": "0x07ec83818ae67d9b774f8f8ecc5add2401ffe622fbc31747afc633bab7985bbc",
+      "initializerBytes": 772,
+      "initialization": {
+        "communityToken": "0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1",
+        "name": "TAS HUB",
+        "slug": "tas-hub",
+        "description": "Powering Nigeria's next innovators and builders with constant light and internet",
+        "location": "Awka, Nigeria",
+        "bannerImage": "https://w3s.link/ipfs/bafkreicyicoqfgcj4hdrk2tjfi6gpbzf5fwkawztnoytxcgspplibbb65q",
+        "metadata": "",
+        "openJoining": false
+      },
+      "maxGardeners": "0",
+      "gardenMemberCount": "0"
+    },
+    {
+      "tokenId": 3,
+      "account": "0x4055530dB392FB2B56037065A512c5b283D90A10",
+      "tokenTuple": [
+        "42161",
+        "0xe1Da335110b1ed48e7df63209f5D424d02276593",
+        "3"
+      ],
+      "owner": "0x3C41f941098681bfDb14ed423709CC7C29c1e5e6",
+      "runtimeCodeHash": "0x1f3ed4e302beb6c193b9702c709837ee107269383d521322e71e3767df9fe6e8",
+      "runtimeCodeBytes": 173,
+      "initializerHash": "0xcac25dce8e2a0dd72439f3c27dfb7dbaceb4a8cf8e90904de0e60989c51695d5",
+      "initializerBytes": 964,
+      "initialization": {
+        "communityToken": "0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1",
+        "name": "Greenpill London",
+        "slug": "greenpill-london",
+        "description": "A community network in London, Ontario focused on making neighbour-to-neighbour care and solidarity visible. We're piloting ways to document community impact on-chain - education happens through doing. Participants learn about Ethereum hands-on: setting up wallets, signing transactions, and seeing their community contributions live on-chain. Learning by building, not by lectures.",
+        "location": "London, Ontario, Canada",
+        "bannerImage": "",
+        "metadata": "",
+        "openJoining": false
+      },
+      "maxGardeners": "0",
+      "gardenMemberCount": "0"
+    },
+    {
+      "tokenId": 4,
+      "account": "0x51499A44BB7793647e67ed827bd17367d7e55314",
+      "tokenTuple": [
+        "42161",
+        "0xe1Da335110b1ed48e7df63209f5D424d02276593",
+        "4"
+      ],
+      "owner": "0x13126B6859FB72D3956797d94c99078B40294679",
+      "runtimeCodeHash": "0x0ba0eae197970fd69cada5a65d2d781d5cfc7da788189491427f296844e67c35",
+      "runtimeCodeBytes": 173,
+      "initializerHash": "0x65eda20ba341b13d9d0cb2611dfc02f3271b4f3e33663b913c661c1e129a4972",
+      "initializerBytes": 1348,
+      "initialization": {
+        "communityToken": "0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1",
+        "name": "GreenSofa",
+        "slug": "greensofa",
+        "description": "As one team under FAB DAO, Green Sofa aims to explore the possiblity of collaboration wtih GreenPill international and FAB DAO.\n\nWe aim to bring more people into regenerative web3 world, aligning with vision of Green Pill Network (GreenPill) and Formosa Art Bank DAO (FAB DAO).\n\nFAB DAO focuses on minting and selling non-profit NFT, creating artist and collector communities, building blockchain experiences and designing blockchain education for the public.\n\nWith goodness and eternity as our starting point, we are building a connected Web3 metaverse. We will apply the good features of blockchain to take the real actions in the real world.",
+        "location": "Taiwan",
+        "bannerImage": "https://pbs.twimg.com/profile_banners/1722965526626861056/1766404363/1500x500",
+        "metadata": "",
+        "openJoining": false
+      },
+      "maxGardeners": "0",
+      "gardenMemberCount": "0"
+    },
+    {
+      "tokenId": 5,
+      "account": "0xbcCE994513615988690aBCA373B1368218E4957C",
+      "tokenTuple": [
+        "42161",
+        "0xe1Da335110b1ed48e7df63209f5D424d02276593",
+        "5"
+      ],
+      "owner": "0x4E9dD8389F25f2797Dfc3E0aFE761A1F2D638b7E",
+      "runtimeCodeHash": "0x286f5c63b1050b31adeb81a45166e5beb9b83709b018e1af72b2c8c904c61f90",
+      "runtimeCodeBytes": 173,
+      "initializerHash": "0x7cf179a6a007b0031696ff9a65ef241492cde5a9c16d82b005c4940005e6d8e7",
+      "initializerBytes": 740,
+      "initialization": {
+        "communityToken": "0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1",
+        "name": "Muizenberg Community Garden",
+        "slug": "muizenberg-community-garden",
+        "description": "The Muizenberg Community Garden aims to convert organic waste into compost to plant and harvest food for community use.",
+        "location": "Muizenberg, Cape Town, South Africa",
+        "bannerImage": "",
+        "metadata": "",
+        "openJoining": false
+      },
+      "maxGardeners": "0",
+      "gardenMemberCount": "0"
+    },
+    {
+      "tokenId": 6,
+      "account": "0xFDa72CE1D75b735d6595E5814DDF23b97516caEf",
+      "tokenTuple": [
+        "42161",
+        "0xe1Da335110b1ed48e7df63209f5D424d02276593",
+        "6"
+      ],
+      "owner": "0x7E6cfcA6edc4a20Bd84146825c78dff5962D8D4f",
+      "runtimeCodeHash": "0xeebbfa77c11a7955fc2853854d0cd856621b4330280af28e7805e3cb1a4e6316",
+      "runtimeCodeBytes": 173,
+      "initializerHash": "0xe893b14c200fcb2dc1972624a638222054dcd7ae33264a7af278c403a8c2c4b6",
+      "initializerBytes": 836,
+      "initialization": {
+        "communityToken": "0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1",
+        "name": "Rifai Sicilia",
+        "slug": "rifai-sicilia",
+        "description": "Regenerating the Mediterranean Bioregion with an ecologically restorative onchain economy and commons governance in through a networkof projects in Sicily.",
+        "location": "Sicily",
+        "bannerImage": "https://w3s.link/ipfs/bafkreifuih6bn66fb5apasgpw7bubnxiy7fq3ayoayv52uhqkpnrlvzp4i",
+        "metadata": "",
+        "openJoining": false
+      },
+      "maxGardeners": "0",
+      "gardenMemberCount": "0"
+    },
+    {
+      "tokenId": 7,
+      "account": "0xD1F8e787a325F91F5d4Be2D30ea1E67B19e28b30",
+      "tokenTuple": [
+        "42161",
+        "0xe1Da335110b1ed48e7df63209f5D424d02276593",
+        "7"
+      ],
+      "owner": "0xAcD59e854adf632d2322404198624F757C868C97",
+      "runtimeCodeHash": "0x20789f0f6e1fb0b65cb0f5a4cc1e321918f8808a72fab6c1f0b336499a5886c6",
+      "runtimeCodeBytes": 173,
+      "initializerHash": "0x19d92170367af0ef6e4847cfed3e57e005ac96ec9086ce1544228bf6f2c6ea9a",
+      "initializerBytes": 804,
+      "initialization": {
+        "communityToken": "0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1",
+        "name": "Growecosystems",
+        "slug": "growecosystems",
+        "description": "Urban Hub with a 12 years urban agroforestry, with fruits, vegetables, bees, mushrooms and love!",
+        "location": "Rio Claro, São Paulo - Brasil",
+        "bannerImage": "https://greengoods.mypinata.cloud/ipfs/bafkreifuooqoi6xjxyxutdu6vwq3k4w22hr4i4v6btsijevhy6dodjlucq",
+        "metadata": "",
+        "openJoining": false
+      },
+      "maxGardeners": "0",
+      "gardenMemberCount": "0"
+    },
+    {
+      "tokenId": 8,
+      "account": "0x4f11FB4c255D3eDC7C44a461ab45fBC421Aacb09",
+      "tokenTuple": [
+        "42161",
+        "0xe1Da335110b1ed48e7df63209f5D424d02276593",
+        "8"
+      ],
+      "owner": "0xF3Ad97364bcCC3eA0582Ede58C363888f8C4ec85",
+      "runtimeCodeHash": "0x2f0535dbfea833820bd26cf4498acb8896f09fcb8690d353d0d062dd045b71c5",
+      "runtimeCodeBytes": 173,
+      "initializerHash": "0x5ca15282752e2f49fd6bba1cb12ab3d02e905f574ce79fb8a697ec62f8cde5bb",
+      "initializerBytes": 868,
+      "initialization": {
+        "communityToken": "0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1",
+        "name": "AgroforestDAO",
+        "slug": "agroforestdao",
+        "description": "Nós estamos espalhando a cultura agroflorestal através de atividades educacionais sazonais \n\nWe are spreading agroforestry culture through educational seasonal activities",
+        "location": "Lima Duarte, Minas Gerais",
+        "bannerImage": "https://w3s.link/ipfs/bafkreiczzsusl4nqyvgfcro7qs26gl6aoc5xuludzcs6gvy3no6sdlknhi",
+        "metadata": "",
+        "openJoining": false
+      },
+      "maxGardeners": "0",
+      "gardenMemberCount": "0"
+    },
+    {
+      "tokenId": 9,
+      "account": "0x636962584b1F492B06151Fee87810281372879b6",
+      "tokenTuple": [
+        "42161",
+        "0xe1Da335110b1ed48e7df63209f5D424d02276593",
+        "9"
+      ],
+      "owner": "0xd30CAa4260A16994510d5858A2f4ce7Bb506a294",
+      "runtimeCodeHash": "0xb97f32c18e43c92fd4aa9771d237fa29474fbcd2f400560ee3e457a11fca8556",
+      "runtimeCodeBytes": 173,
+      "initializerHash": "0xa6875d7485404b35ab8a4ec1222495550454b6abf8e7ef5e5312cf8aff95bfca",
+      "initializerBytes": 804,
+      "initialization": {
+        "communityToken": "0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1",
+        "name": "ReFi Barcelona",
+        "slug": "refi-bcn",
+        "description": "ReFi BCN is a hub where ideas meet collective action. By weaving connections between projects, technologies, and communities, we cultivate the infrastructure that makes systemic change possible.",
+        "location": "Barcelona",
+        "bannerImage": "",
+        "metadata": "",
+        "openJoining": false
+      },
+      "maxGardeners": "0",
+      "gardenMemberCount": "0"
+    },
+    {
+      "tokenId": 10,
+      "account": "0x1121218D5e017B57c6DF3B5a001a991BDB910338",
+      "tokenTuple": [
+        "42161",
+        "0xe1Da335110b1ed48e7df63209f5D424d02276593",
+        "10"
+      ],
+      "owner": "0x7D85fCbB505D48E6176483733b62b51704e0bF95",
+      "runtimeCodeHash": "0xb902117449da37c87fdd51c939e58bb189bf6cd4c487fda9c15e098932e138af",
+      "runtimeCodeBytes": 173,
+      "initializerHash": "0xb47a467cb4d66b5c2b051ca56971579c071ffa0eb89c7a83efc9dcd658ef6539",
+      "initializerBytes": 900,
+      "initialization": {
+        "communityToken": "0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1",
+        "name": "DeCleanup Network Action garden",
+        "slug": "decleanup-network-action-garden",
+        "description": "Verified waste cleanup actions from a local community. DeCleanup Network operates this garden as part of its open DMRV infrastructure - submissions are pre-screened before attestation, keeping data quality high.",
+        "location": "Koh Phangan, Thailand",
+        "bannerImage": "https://w3s.link/ipfs/bafkreiap6vcqqhzojbxxknnzqujejny32dabne5o2lyinqjrtask6uszca",
+        "metadata": "",
+        "openJoining": true
+      },
+      "maxGardeners": "0",
+      "gardenMemberCount": "6"
+    },
+    {
+      "tokenId": 11,
+      "account": "0x3f0f1551C7E08a2cf6800BD7D72aBfE23E3E32a0",
+      "tokenTuple": [
+        "42161",
+        "0xe1Da335110b1ed48e7df63209f5D424d02276593",
+        "11"
+      ],
+      "owner": "0x44770D93e1a426DDAf5923a738eaCe3D2FB65BC1",
+      "runtimeCodeHash": "0xcbb18714eb7eb3ea71d986a3b9a83debfb19c62781299778dd9ac713748c5c9e",
+      "runtimeCodeBytes": 173,
+      "initializerHash": "0xa7bed7df92dfafdc1ac6db2725dc26af6630e632bedd944f25e41e3a3abfde7d",
+      "initializerBytes": 740,
+      "initialization": {
+        "communityToken": "0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1",
+        "name": "Greenpill Kenya",
+        "slug": "greenpill-kenya",
+        "description": "Our mission, build robust public goods program, Opportunity Experiment;- positive initiatives that enhance both the individual and community Sustainability",
+        "location": "Kenya",
+        "bannerImage": "",
+        "metadata": "",
+        "openJoining": true
+      },
+      "maxGardeners": "0",
+      "gardenMemberCount": "2"
+    },
+    {
+      "tokenId": 12,
+      "account": "0x3F22568aE0deAA24dA7b8c669AfDcBD72A6A7fd8",
+      "tokenTuple": [
+        "42161",
+        "0xe1Da335110b1ed48e7df63209f5D424d02276593",
+        "12"
+      ],
+      "owner": "0x099e47B757cf7224C863b637Aa04485c79669621",
+      "runtimeCodeHash": "0x3e4d76dea8f364d38d5e767194fb2c4faf3273aaf530f69ce1e2a61d97a482c8",
+      "runtimeCodeBytes": 173,
+      "initializerHash": "0x0da151376195cc0d4e8fffe124f13e1317df394b1b1b7cb33f7f1263c8a64f26",
+      "initializerBytes": 516,
+      "initialization": {
+        "communityToken": "0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1",
+        "name": "Live Garden Coop",
+        "slug": "",
+        "description": "",
+        "location": "",
+        "bannerImage": "",
+        "metadata": "",
+        "openJoining": false
+      },
+      "maxGardeners": "0",
+      "gardenMemberCount": "0"
+    },
+    {
+      "tokenId": 13,
+      "account": "0x26c32E54F23af9F9fcC757414c76E56e3fB176E2",
+      "tokenTuple": [
+        "42161",
+        "0xe1Da335110b1ed48e7df63209f5D424d02276593",
+        "13"
+      ],
+      "owner": "0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6",
+      "runtimeCodeHash": "0xc7e137d2a270b5f4e0f3eb8df951f3060c5e1bc5e9d91348136aac9d6fc83b9c",
+      "runtimeCodeBytes": 173,
+      "initializerHash": "0xd6ec68a992165814571de5d2880ff94cd533a67fafe55908195e9e96230e1240",
+      "initializerBytes": 1860,
+      "initialization": {
+        "communityToken": "0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1",
+        "name": "Vida Verde",
+        "slug": "vida-verde",
+        "description": "🌱 Vida Verde is a regenerative project born in Venezuela that integrates environmental education, art, community, and technology Web3 to build a more conscious and sustainable way of life. Based in natural environments, Vida Verde functions as a living laboratory for social transformation, where educational experiences, creative processes, and ecological practices are developed to reconnect people with nature. Its approach combines different lines of action:\n\n• 🌿 Environmental regeneration: initiatives  more vibrant, resilient, and collaborative futures.\n• 🏡 Sustainable infrastructure: development of spaces such as eco-friendly houses and living classrooms (e.g., school gardens), designed for hands-on learning.\n• 🎨 Art and culture: use of art as a tool for transformation, identity, and community connection.\n• 🧠 Regenerative education: workshops, training programs, and experiences that integrate well-being, movement, bioconstruction, and environmental awareness.\n• 🌐 Innovation and Web 3.0: exploration of new forms of financing, collaboration, and community through decentralized technologies.",
+        "location": "El Hatillo Venezuela",
+        "bannerImage": "https://greengoods.mypinata.cloud/ipfs/bafkreihwqyxtwe7m75swzzpxec2rdjmoqvc5o7jgjysnp3zvdiivrl4mnu",
+        "metadata": "",
+        "openJoining": false
+      },
+      "maxGardeners": "0",
+      "gardenMemberCount": "0"
+    },
+    {
+      "tokenId": 14,
+      "account": "0x35077CaF6fBef1d5677d318a198C9c47C61bb976",
+      "tokenTuple": [
+        "42161",
+        "0xe1Da335110b1ed48e7df63209f5D424d02276593",
+        "14"
+      ],
+      "owner": "0x5c79d252F458b3720f7f230f8490fd1eE81d32FB",
+      "runtimeCodeHash": "0x8bc52d1cb55f270d8f90c5a0132d1b9102ba142ef4908e4f614624afefb2c342",
+      "runtimeCodeBytes": 173,
+      "initializerHash": "0x7322d30ce9b0d79a151fff9c4deb85b8dba31dbdd04f3076480b96dc7b3fe470",
+      "initializerBytes": 964,
+      "initialization": {
+        "communityToken": "0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1",
+        "name": "Mama Gardens",
+        "slug": "mama-gardens",
+        "description": "A nature and wellness first family gardening. The world thrives because of nature, and by planting, growing, and encouraging our neighbors to do the same, we help preserve nature, promote wellness, support local gardening and food production.",
+        "location": "Africa - Abuja, Nigeria",
+        "bannerImage": "https://greengoods.mypinata.cloud/ipfs/bafkreihrjaf7xlmanapope7ftl6wk3mnxf7oqq27a7n2225gttbmtbxr24",
+        "metadata": "",
+        "openJoining": false
+      },
+      "maxGardeners": "0",
+      "gardenMemberCount": "0"
+    },
+    {
+      "tokenId": 15,
+      "account": "0x7bE6eAeb2FB5842Da06A34Af4fAe418347427cd1",
+      "tokenTuple": [
+        "42161",
+        "0xe1Da335110b1ed48e7df63209f5D424d02276593",
+        "15"
+      ],
+      "owner": "0xF4e43840cB77aCe48Bb4DB33409C8AFA84D88888",
+      "runtimeCodeHash": "0x63612cdf0a2f19f7e25ec12ccf497a17eff78dd0fb8694a6b6e438399ce7dc9b",
+      "runtimeCodeBytes": 173,
+      "initializerHash": "0x57697d6d052decb6ddabd31cdad5be03c6899d214891cc1a2f0084be0036f388",
+      "initializerBytes": 1732,
+      "initialization": {
+        "communityToken": "0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1",
+        "name": "La Ligne Verte",
+        "slug": "la-ligne-verte",
+        "description": "La Ligne Verte est l'infrastructure citoyenne de GreenPill Côte d'Ivoire pour la régénération environnementale. Son slogan : Rends ton quartier zo et prends tes points.\n\nAvec Green Goods, La Ligne Verte permet à chaque participant de contribuer à l'amélioration de son cadre de vie. Il documente les points critiques de pollution, participe aux actions environnementales dans sa zone (nettoyage, collecte de déchets, reboisement, amélioration du cadre de vie) et contribue à la cartographie environnementale de son quartier, en échange de points “Himpact” vérifiés et attestés onchain.\n\nChaque participation génère des données d'impact mesurables (kg collectés, zones restaurées, nettoyées ou reboisées, signalements géolocalisés) qui alimentent la mise en place de solutions concrètes.\n\nContribuez à un cadre de vie plus sain, construisez votre réputation d'impact vérifiable, et participez à une économie régénérative où chaque geste compte et est récompensé.",
+        "location": "Grand-Bassam, Côte d`ivoire",
+        "bannerImage": "https://greengoods.mypinata.cloud/ipfs/bafkreia7n2xwtgfj6z7pbyqiqqh5jedfyvu5c6iqjdg5z3hr4grbin4tmy",
+        "metadata": "",
+        "openJoining": false
+      },
+      "maxGardeners": "0",
+      "gardenMemberCount": "0"
+    },
+    {
+      "tokenId": 16,
+      "account": "0x35722eEdf3F7566A23FA871f0a04267AEe78E0dB",
+      "tokenTuple": [
+        "42161",
+        "0xe1Da335110b1ed48e7df63209f5D424d02276593",
+        "16"
+      ],
+      "owner": "0x5Edc7e2ad462e670f1f9faCe7b25987800267dd2",
+      "runtimeCodeHash": "0xf673e657539edbcfbc82c12bd488745773f4e15e4935051be5ecd9fe99344dd0",
+      "runtimeCodeBytes": 173,
+      "initializerHash": "0x0b3b701e09a9969589036bb1e7de102c254bc7a5f0e9766bec45a73e321788d3",
+      "initializerBytes": 1092,
+      "initialization": {
+        "communityToken": "0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1",
+        "name": "Greenpill Nigeria",
+        "slug": "greenpill-nigeria",
+        "description": "Greenpill Nigeria is a dynamic local chapter of the Greenpill Network, dedicated to driving environmental sustainability, climate action, and infrastructural development across Nigeria.\nThrough clean-ups, climate education, regenerative projects, and tech-powered solutions like solar initiatives, we empower youth and communities to create real, lasting impact.\nImpact = Profit.",
+        "location": "Nigeria",
+        "bannerImage": "https://greengoods.mypinata.cloud/ipfs/bafkreihmzsvnxy32kofmyoyksib67a442jxkyrxdowytjm4yxnme2sceem",
+        "metadata": "",
+        "openJoining": true
+      },
+      "maxGardeners": "0",
+      "gardenMemberCount": "2"
+    },
+    {
+      "tokenId": 17,
+      "account": "0x749F84CA070cD2F98d9353F49eCE77C1A3fED532",
+      "tokenTuple": [
+        "42161",
+        "0xe1Da335110b1ed48e7df63209f5D424d02276593",
+        "17"
+      ],
+      "owner": "0xAcD59e854adf632d2322404198624F757C868C97",
+      "runtimeCodeHash": "0x5ba3ac5a471139f96c8105e6ec1fcd3d5db2d88ad4463fb66d1465df34d19362",
+      "runtimeCodeBytes": 173,
+      "initializerHash": "0xdd63b149db5130d61f196c6e6130128053bf0569afc0d70117a4c742d0cd71e2",
+      "initializerBytes": 1956,
+      "initialization": {
+        "communityToken": "0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1",
+        "name": "Ilhas de Abundância",
+        "slug": "abundance-islands",
+        "description": "São Paulo não precisa apenas de mais árvores plantadas de forma isolada, mas de uma política viva de regeneração urbana, capaz de integrar solo, água, arborização, alimento, microclima e organização popular.  A proposta das Ilhas de Abundância aponta justamente para isso: criar canteiros e núcleos de agrofloresta urbana inspirados nos processos da floresta, usando matéria orgânica, madeira em decomposição, microbiologia do solo e manejo coletivo para produzir mais frescor, mais fertilidade, mais infiltração de água e mais vínculo comunitário. Não se trata de depender de insumos externos, mas de ativar processos vivos no território.  A Avançar Resoluto quer uma cidade que trate o solo como infraestrutura da vida, e não como superfície morta; que compreenda a arborização urbana junto da regeneração de processos vitais; que fortaleça a _autonomia alimentar, hídrica e energética_ dos bairros; e que reconheça que sem regenerar o _solo social_ também não se sustenta nenhuma transformação duradoura.  Por isso, convidamos quem quiser somar nessa construção a chegar junto. Mais do que um plantio, queremos fortalecer uma cultura territorial de cuidado, participação e regeneração.",
+        "location": "São Paulo, Brasil",
+        "bannerImage": "https://greengoods.mypinata.cloud/ipfs/bafkreie6qqqxf2grn76ridpkhul5eghfx6etnjrwqvi5q5dlsusjvwbcvq",
+        "metadata": "",
+        "openJoining": false
+      },
+      "maxGardeners": "0",
+      "gardenMemberCount": "0"
+    }
+  ]
+}

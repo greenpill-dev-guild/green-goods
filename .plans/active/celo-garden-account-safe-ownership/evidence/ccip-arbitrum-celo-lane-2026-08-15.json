@@ -1,0 +1,30 @@
+{
+  "arbitrum": {
+    "chainId": 42161,
+    "selector": "4949039107694359620",
+    "router": "0x141fa059441E0ca23ce184B6A78bafD2A517DdE8",
+    "blockNumber": 494724924,
+    "blockHash": "0x6400733b0ea17776b2236587561242553a9b3a196dca6ca7b5cd3d81d0cc661c",
+    "routerCodeBytes": 11130,
+    "routerCodeHash": "0x0eec2ce1cfdadb0003ee4f17f58e99c95f5581d1651372b1178ce3fd0712aabb",
+    "typeAndVersion": "Router 1.2.0",
+    "outboundOnRampForRemote": "0x68647D235262873Be5a30fceaA6CAA318a750773",
+    "inboundOffRampsForRemote": [
+      "0x0eA1070B08757Da69a0762ae38D037cdd08C5e98"
+    ]
+  },
+  "celo": {
+    "chainId": 42220,
+    "selector": "1346049177634351622",
+    "router": "0xfB48f15480926A4ADf9116Dca468bDd2EE6C5F62",
+    "blockNumber": 74878058,
+    "blockHash": "0x10b06bf8f96d92ad7eba75f6069ea20a8b0738a1672c752c566a296f4635671e",
+    "routerCodeBytes": 11130,
+    "routerCodeHash": "0xdaa1f3643912dc7775a2348bca8ce0a7740d7f25ee347442164fe469d86312cf",
+    "typeAndVersion": "Router 1.2.0",
+    "outboundOnRampForRemote": "0xf27b5D3205fEa8aD6Ce8Fbe3b6178867428E5732",
+    "inboundOffRampsForRemote": [
+      "0x3980b6e3d2f23AF4D700d12C42af1B92AB8ea933"
+    ]
+  }
+}
