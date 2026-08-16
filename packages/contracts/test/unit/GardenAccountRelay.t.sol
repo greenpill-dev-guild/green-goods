@@ -64,12 +64,12 @@ contract GardenRelayMockCcipRouter {
         ICcipReceiverLike(receiver)
             .ccipReceive(
                 Client.Any2EVMMessage({
-                    messageId: messageId,
-                    sourceChainSelector: sourceSelector,
-                    sender: abi.encode(sender),
-                    data: data,
-                    destTokenAmounts: noTokens
-                })
+                messageId: messageId,
+                sourceChainSelector: sourceSelector,
+                sender: abi.encode(sender),
+                data: data,
+                destTokenAmounts: noTokens
+            })
             );
     }
 
@@ -87,12 +87,12 @@ contract GardenRelayMockCcipRouter {
         ICcipReceiverLike(receiver)
             .ccipReceive(
                 Client.Any2EVMMessage({
-                    messageId: messageId,
-                    sourceChainSelector: sourceSelector,
-                    sender: abi.encode(sender),
-                    data: data,
-                    destTokenAmounts: tokens
-                })
+                messageId: messageId,
+                sourceChainSelector: sourceSelector,
+                sender: abi.encode(sender),
+                data: data,
+                destTokenAmounts: tokens
+            })
             );
     }
 }
@@ -222,18 +222,8 @@ contract GardenRelayMockSafe {
     {
         require(msg.sender == gardenAccount, "garden caller");
         require(operation == 0, "operation");
-        bytes32 transactionHash = this.getTransactionHash(
-            to,
-            value,
-            data,
-            operation,
-            0,
-            0,
-            0,
-            address(0),
-            address(0),
-            nonce
-        );
+        bytes32 transactionHash =
+            this.getTransactionHash(to, value, data, operation, 0, 0, 0, address(0), address(0), nonce);
         _checkSignatures(transactionHash, signatures);
         lastSignatures = signatures;
         nonce++;
@@ -491,8 +481,7 @@ contract GardenAccountRelayTest is Test {
         vm.expectRevert(GardenActionRouter.InvalidAction.selector);
         sourceRouter.propose{ value: 1 }(action);
 
-        bytes memory forgedMessage =
-            GardenSafeActionCodec.encode(GardenSafeActionCodec.MessageKind.Proposal, action);
+        bytes memory forgedMessage = GardenSafeActionCodec.encode(GardenSafeActionCodec.MessageKind.Proposal, action);
         vm.chainId(CELO_CHAIN_ID);
         vm.expectRevert(CeloGardenAccountRelay.InvalidAction.selector);
         destinationCcip.deliver(
@@ -601,8 +590,7 @@ contract GardenAccountRelayTest is Test {
 
     function testRelay_failedSafeActionRollsBackRelayAndSafeState() public {
         bytes memory recoverySignature = hex"123456";
-        GardenSafeActionCodec.Action memory action =
-            _actionWithData(recoverySignature, abi.encodeCall(target.fail, ()));
+        GardenSafeActionCodec.Action memory action = _actionWithData(recoverySignature, abi.encodeCall(target.fail, ()));
         bytes32 actionId = _proposeAndFinalize(action);
 
         vm.chainId(CELO_CHAIN_ID);
@@ -634,11 +622,7 @@ contract GardenAccountRelayTest is Test {
         relay.execute(actionId, action, GREEN_GOODS_SAFE, recoverySignature);
     }
 
-    function _action(bytes memory recoverySignature)
-        private
-        view
-        returns (GardenSafeActionCodec.Action memory action)
-    {
+    function _action(bytes memory recoverySignature) private view returns (GardenSafeActionCodec.Action memory action) {
         return _actionWithData(recoverySignature, abi.encodeCall(target.record, ()));
     }
 
@@ -712,8 +696,6 @@ contract GardenAccountRelayTest is Test {
 
     function _deliverLatest(bytes32 messageId) private {
         vm.chainId(CELO_CHAIN_ID);
-        destinationCcip.deliver(
-            address(relay), messageId, ARBITRUM_SELECTOR, address(sourceRouter), sourceCcip.lastData()
-        );
+        destinationCcip.deliver(address(relay), messageId, ARBITRUM_SELECTOR, address(sourceRouter), sourceCcip.lastData());
     }
 }

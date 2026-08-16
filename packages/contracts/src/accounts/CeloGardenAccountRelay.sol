@@ -6,58 +6,9 @@ import { Client } from "@chainlink/contracts-ccip/contracts/libraries/Client.sol
 import { ReentrancyGuard } from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
 import { IERC6551Registry } from "../interfaces/IERC6551Registry.sol";
+import { IGardenAccountExecutor, ISafeV141 } from "../interfaces/IGardenAccountRelayDependencies.sol";
 import { GardenSafeActionCodec } from "../libraries/GardenSafeActionCodec.sol";
-
-interface IGardenAccountExecutor {
-    function execute(
-        address to,
-        uint256 value,
-        bytes calldata data,
-        uint8 operation
-    )
-        external
-        payable
-        returns (bytes memory result);
-}
-
-interface ISafeV141 {
-    function getOwners() external view returns (address[] memory);
-    function isOwner(address owner) external view returns (bool);
-    function getThreshold() external view returns (uint256);
-    function nonce() external view returns (uint256);
-
-    function getTransactionHash(
-        address to,
-        uint256 value,
-        bytes calldata data,
-        uint8 operation,
-        uint256 safeTxGas,
-        uint256 baseGas,
-        uint256 gasPrice,
-        address gasToken,
-        address refundReceiver,
-        uint256 safeNonce
-    )
-        external
-        view
-        returns (bytes32);
-
-    function execTransaction(
-        address to,
-        uint256 value,
-        bytes calldata data,
-        uint8 operation,
-        uint256 safeTxGas,
-        uint256 baseGas,
-        uint256 gasPrice,
-        address gasToken,
-        address payable refundReceiver,
-        bytes calldata signatures
-    )
-        external
-        payable
-        returns (bool success);
-}
+import { GardenSafeExecution } from "../libraries/GardenSafeExecution.sol";
 
 /// @title CeloGardenAccountRelay
 /// @notice Executes only a fully committed Garden Safe transaction after authenticated CCIP
@@ -101,11 +52,10 @@ contract CeloGardenAccountRelay is CCIPReceiver, ReentrancyGuard {
     );
 
     uint8 public constant PROTOCOL_VERSION = 1;
-    uint256 public constant MAX_SAFE_CALLDATA_BYTES = 4_096;
+    uint256 public constant MAX_SAFE_CALLDATA_BYTES = 4096;
     uint256 public constant SOURCE_EVM_CHAIN_ID = 42_161;
     uint256 public constant DESTINATION_EVM_CHAIN_ID = 42_220;
-    bytes32 public constant ACCOUNT_SALT =
-        0x6551655165516551655165516551655165516551655165516551655165516551;
+    bytes32 public constant ACCOUNT_SALT = 0x6551655165516551655165516551655165516551655165516551655165516551;
 
     uint64 public immutable SOURCE_CHAIN_SELECTOR;
     uint64 public immutable DESTINATION_CHAIN_SELECTOR;
@@ -140,8 +90,8 @@ contract CeloGardenAccountRelay is CCIPReceiver, ReentrancyGuard {
     {
         if (
             ccipRouter == address(0) || sourceRouter == address(0) || erc6551Registry == address(0)
-                || accountImplementation == address(0) || gardenToken == address(0)
-                || greenGoodsRecoverySafe == address(0) || devGuildRecoverySafe == address(0)
+                || accountImplementation == address(0) || gardenToken == address(0) || greenGoodsRecoverySafe == address(0)
+                || devGuildRecoverySafe == address(0)
         ) {
             revert ZeroAddress();
         }
@@ -184,10 +134,8 @@ contract CeloGardenAccountRelay is CCIPReceiver, ReentrancyGuard {
 
     function expire(bytes32 actionId, GardenSafeActionCodec.Action calldata action) external {
         GardenSafeActionCodec.ActionStatus status = actionStatus[actionId];
-        if (
-            status != GardenSafeActionCodec.ActionStatus.Proposed
-                && status != GardenSafeActionCodec.ActionStatus.Finalized
-        ) {
+        if (status != GardenSafeActionCodec.ActionStatus.Proposed && status != GardenSafeActionCodec.ActionStatus.Finalized)
+        {
             revert InvalidActionState();
         }
         GardenSafeActionCodec.Action memory actionCopy = action;
@@ -222,10 +170,11 @@ contract CeloGardenAccountRelay is CCIPReceiver, ReentrancyGuard {
         _requireFinalSafeTopology(destinationSafe, actionCopy.gardenAccount);
         if (destinationSafe.nonce() != actionCopy.safeTransaction.nonce) revert InvalidSafeNonce();
 
-        bytes32 liveSafeTransactionHash = _safeTransactionHash(destinationSafe, actionCopy.safeTransaction);
+        bytes32 liveSafeTransactionHash = GardenSafeExecution.transactionHash(destinationSafe, actionCopy.safeTransaction);
         if (liveSafeTransactionHash != actionCopy.safeTransactionHash) revert InvalidSafeTransactionHash();
 
-        bytes memory signatures = _buildSafeSignatures(actionCopy.gardenAccount, recoverySafe, recoverySignature);
+        bytes memory signatures =
+            GardenSafeExecution.buildSignatures(actionCopy.gardenAccount, recoverySafe, recoverySignature);
         bytes memory safeCall = abi.encodeCall(
             ISafeV141.execTransaction,
             (
@@ -248,11 +197,7 @@ contract CeloGardenAccountRelay is CCIPReceiver, ReentrancyGuard {
         if (safeResult.length < 32 || !abi.decode(safeResult, (bool))) revert SafeExecutionFailed();
 
         emit ActionExecuted(
-            actionId,
-            actionCopy.gardenAccount,
-            actionCopy.destinationSafe,
-            recoverySafe,
-            actionCopy.safeTransactionHash
+            actionId, actionCopy.gardenAccount, actionCopy.destinationSafe, recoverySafe, actionCopy.safeTransactionHash
         );
     }
 
@@ -265,7 +210,7 @@ contract CeloGardenAccountRelay is CCIPReceiver, ReentrancyGuard {
         pure
         returns (bytes memory)
     {
-        return _buildSafeSignatures(gardenAccount, recoverySafe, recoverySignature);
+        return GardenSafeExecution.buildSignatures(gardenAccount, recoverySafe, recoverySignature);
     }
 
     function _ccipReceive(Client.Any2EVMMessage memory message) internal override {
@@ -324,10 +269,9 @@ contract CeloGardenAccountRelay is CCIPReceiver, ReentrancyGuard {
                 || action.sourceChainSelector != SOURCE_CHAIN_SELECTOR || action.sourceRouter != SOURCE_ROUTER
                 || action.gardenToken != GARDEN_TOKEN || action.gardenAccount == address(0)
                 || action.destinationEvmChainId != DESTINATION_EVM_CHAIN_ID
-                || action.destinationChainSelector != DESTINATION_CHAIN_SELECTOR
-                || action.destinationRouter != getRouter() || action.destinationRelay != address(this)
-                || action.destinationSafe != safeForGarden[action.gardenAccount] || action.safeTransaction.to == address(0)
-                || action.safeTransaction.operation > 1
+                || action.destinationChainSelector != DESTINATION_CHAIN_SELECTOR || action.destinationRouter != getRouter()
+                || action.destinationRelay != address(this) || action.destinationSafe != safeForGarden[action.gardenAccount]
+                || action.safeTransaction.to == address(0) || action.safeTransaction.operation > 1
                 || action.safeTransaction.data.length > MAX_SAFE_CALLDATA_BYTES || action.safeTransactionHash == bytes32(0)
                 || action.recoverySignatureHash == bytes32(0) || action.deadline == 0
         ) {
@@ -363,54 +307,5 @@ contract CeloGardenAccountRelay is CCIPReceiver, ReentrancyGuard {
             else revert InvalidSafeTopology();
         }
         if (!hasGarden || !hasGreenGoods || !hasDevGuild) revert InvalidSafeTopology();
-    }
-
-    function _safeTransactionHash(
-        ISafeV141 destinationSafe,
-        GardenSafeActionCodec.SafeTransaction memory safeTransaction
-    )
-        private
-        view
-        returns (bytes32)
-    {
-        return destinationSafe.getTransactionHash(
-            safeTransaction.to,
-            safeTransaction.value,
-            safeTransaction.data,
-            safeTransaction.operation,
-            safeTransaction.safeTxGas,
-            safeTransaction.baseGas,
-            safeTransaction.gasPrice,
-            safeTransaction.gasToken,
-            safeTransaction.refundReceiver,
-            safeTransaction.nonce
-        );
-    }
-
-    function _buildSafeSignatures(
-        address gardenAccount,
-        address recoverySafe,
-        bytes memory recoverySignature
-    )
-        private
-        pure
-        returns (bytes memory)
-    {
-        if (gardenAccount == address(0) || recoverySafe == address(0) || gardenAccount == recoverySafe) {
-            revert InvalidRecoveryOwner();
-        }
-
-        bytes memory gardenHeader =
-            abi.encodePacked(bytes32(uint256(uint160(gardenAccount))), bytes32(0), uint8(1));
-        bytes memory recoveryHeader =
-            abi.encodePacked(bytes32(uint256(uint160(recoverySafe))), bytes32(uint256(130)), uint8(0));
-        uint256 paddingLength = (32 - (recoverySignature.length % 32)) % 32;
-        bytes memory dynamicSignature =
-            abi.encodePacked(uint256(recoverySignature.length), recoverySignature, new bytes(paddingLength));
-
-        if (gardenAccount < recoverySafe) {
-            return abi.encodePacked(gardenHeader, recoveryHeader, dynamicSignature);
-        }
-        return abi.encodePacked(recoveryHeader, gardenHeader, dynamicSignature);
     }
 }

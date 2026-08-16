@@ -37,11 +37,10 @@ contract GardenActionRouter {
     );
 
     uint8 public constant PROTOCOL_VERSION = 1;
-    uint256 public constant MAX_SAFE_CALLDATA_BYTES = 4_096;
+    uint256 public constant MAX_SAFE_CALLDATA_BYTES = 4096;
     uint256 public constant SOURCE_EVM_CHAIN_ID = 42_161;
     uint256 public constant DESTINATION_EVM_CHAIN_ID = 42_220;
-    bytes32 public constant ACCOUNT_SALT =
-        0x6551655165516551655165516551655165516551655165516551655165516551;
+    bytes32 public constant ACCOUNT_SALT = 0x6551655165516551655165516551655165516551655165516551655165516551;
 
     address public immutable CCIP_ROUTER;
     uint64 public immutable SOURCE_CHAIN_SELECTOR;
@@ -176,9 +175,9 @@ contract GardenActionRouter {
                 || action.destinationChainSelector != DESTINATION_CHAIN_SELECTOR
                 || action.destinationRouter != DESTINATION_ROUTER || action.destinationRelay != destinationRelay
                 || action.destinationSafe != safeForGarden[action.gardenAccount] || action.safeTransaction.to == address(0)
-                || action.safeTransaction.operation > 1
-                || action.safeTransaction.data.length > MAX_SAFE_CALLDATA_BYTES || action.safeTransactionHash == bytes32(0)
-                || action.recoverySignatureHash == bytes32(0) || action.deadline == 0
+                || action.safeTransaction.operation > 1 || action.safeTransaction.data.length > MAX_SAFE_CALLDATA_BYTES
+                || action.safeTransactionHash == bytes32(0) || action.recoverySignatureHash == bytes32(0)
+                || action.deadline == 0
         ) {
             revert InvalidAction();
         }
