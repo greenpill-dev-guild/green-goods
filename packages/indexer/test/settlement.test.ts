@@ -18,7 +18,7 @@ function mockEvent(timestamp: number, logIndex = 0) {
   return {
     chainId: CHAIN_ID,
     block: { timestamp, number: 0 },
-    srcAddress: addr(90),
+    srcAddress: undefined,
     transaction: { hash: txHash(timestamp) },
     logIndex,
   };

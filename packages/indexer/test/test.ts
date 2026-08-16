@@ -27,9 +27,9 @@ function mockEvent(
   return {
     chainId,
     block: { timestamp, number: opts.blockNumber ?? 0 },
-    srcAddress: opts.srcAddress ?? addr(99),
+    srcAddress: opts.srcAddress,
     transaction: { hash: opts.txHash ?? txHash(timestamp) },
-    logIndex: opts.logIndex ?? 0,
+    logIndex: opts.logIndex,
   };
 }
 
@@ -98,7 +98,7 @@ describe("GardenToken retained surface", () => {
       location: "Earth",
       bannerImage: "ipfs://bafk-banner",
       openJoining: true,
-      mockEventData: mockEvent(CHAIN_ID, 3_000, { srcAddress: addr(11) }),
+      mockEventData: mockEvent(CHAIN_ID, 3_000),
     });
 
     const result = await GardenToken.GardenMinted.processEvent({ event, mockDb });

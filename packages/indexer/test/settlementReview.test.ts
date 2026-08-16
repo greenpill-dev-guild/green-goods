@@ -18,7 +18,7 @@ function eventData(timestamp: number) {
   return {
     chainId: CHAIN_ID,
     block: { timestamp, number: timestamp },
-    srcAddress: address(90),
+    srcAddress: undefined,
     transaction: { hash: hash(timestamp) },
     logIndex: 0,
   };

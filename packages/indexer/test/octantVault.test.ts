@@ -19,9 +19,9 @@ function mockEvent(
   return {
     chainId,
     block: { timestamp, number: opts.blockNumber ?? 0 },
-    srcAddress: opts.srcAddress ?? addr(99),
+    srcAddress: opts.srcAddress,
     transaction: { hash: opts.txHash ?? txHash(timestamp) },
-    logIndex: opts.logIndex ?? 0,
+    logIndex: opts.logIndex,
   };
 }
 
@@ -294,9 +294,13 @@ describe("OctantVault.Deposit", () => {
       }),
     });
 
-    const result = await OctantVault.Deposit.processEvent({ event, mockDb });
-    // Should not throw, just skip
-    assert.equal(await result.GardenVault.get(vaultId()), undefined);
+    // Envio rejects an event whose address is not indexed rather than silently
+    // skipping it, so the guarantee is now enforced before the handler runs.
+    await assert.rejects(
+      () => OctantVault.Deposit.processEvent({ event, mockDb }),
+      /never reached a handler/
+    );
+    assert.equal(await mockDb.GardenVault.get(vaultId()), undefined);
   });
 });
 
