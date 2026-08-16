@@ -48,9 +48,7 @@
     "creationCodeBytes": 1339,
     "constructorArgsHash": "0x8a5e9eec6c99a6bba345aa76be1d89df2fcf361c9c34dea669a17ef4035c7641",
     "constructorArgsBytes": 32,
-    "constructorArgs": [
-      "0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6"
-    ]
+    "constructorArgs": ["0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6"]
   },
   "workApprovalResolverProxy": {
     "target": "0x166732eD81Ab200A099215cF33F6A712309B69F7",

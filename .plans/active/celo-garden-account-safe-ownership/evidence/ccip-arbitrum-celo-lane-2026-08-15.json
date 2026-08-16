@@ -9,9 +9,7 @@
     "routerCodeHash": "0x0eec2ce1cfdadb0003ee4f17f58e99c95f5581d1651372b1178ce3fd0712aabb",
     "typeAndVersion": "Router 1.2.0",
     "outboundOnRampForRemote": "0x68647D235262873Be5a30fceaA6CAA318a750773",
-    "inboundOffRampsForRemote": [
-      "0x0eA1070B08757Da69a0762ae38D037cdd08C5e98"
-    ]
+    "inboundOffRampsForRemote": ["0x0eA1070B08757Da69a0762ae38D037cdd08C5e98"]
   },
   "celo": {
     "chainId": 42220,
@@ -23,8 +21,6 @@
     "routerCodeHash": "0xdaa1f3643912dc7775a2348bca8ce0a7740d7f25ee347442164fe469d86312cf",
     "typeAndVersion": "Router 1.2.0",
     "outboundOnRampForRemote": "0xf27b5D3205fEa8aD6Ce8Fbe3b6178867428E5732",
-    "inboundOffRampsForRemote": [
-      "0x3980b6e3d2f23AF4D700d12C42af1B92AB8ea933"
-    ]
+    "inboundOffRampsForRemote": ["0x3980b6e3d2f23AF4D700d12C42af1B92AB8ea933"]
   }
 }
