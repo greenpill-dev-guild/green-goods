@@ -8,13 +8,10 @@ import { createInterface } from "node:readline/promises";
 import * as dotenv from "dotenv";
 import { getAddress, keccak256, toUtf8Bytes } from "ethers";
 import {
-  type BootstrapPlan,
-  buildBootstrapDeploymentArtifact,
-  buildSwappedDeploymentArtifact,
+  buildFinalDeploymentArtifact,
   type Checkpoint,
-  type SwapPlan,
-  validateBootstrapPlan,
-  validateSwapPlan,
+  type FinalSafePlan,
+  validateFinalSafePlan,
 } from "./deploy/garden-safe-owners";
 import { buildReleaseLock, loadReleaseManifest, type ReleaseLock, type ReleaseStage } from "./utils/release-manifest";
 
@@ -31,8 +28,8 @@ const GARDEN_SAFE_ARTIFACT_MUTATIONS = new Set([GARDEN_SAFE_ARTIFACT_PATH]);
 const INTERACTIVE_ARTIFACT_MUTATIONS = new Set([...RELEASE_ARTIFACT_MUTATIONS, ...GARDEN_SAFE_ARTIFACT_MUTATIONS]);
 
 export const RELEASE_OPERATOR_COMMANDS = new Map<string, string>([
-  ["settlement:garden-safes:deploy:celo", "one native/G$-clear Garden Safe bootstrap boundary"],
-  ["settlement:garden-safes:swap:celo", "one deployer-to-reviewed-owner Garden Safe swap boundary"],
+  ["settlement:garden-accounts:deploy:celo", "one exact GardenAccount coordinator boundary"],
+  ["settlement:garden-safes:deploy:celo", "one final native/G$-clear 2-of-3 Garden Safe boundary"],
 ] as const);
 
 const FORBIDDEN_ARGUMENTS = new Set([
@@ -47,8 +44,8 @@ const FORBIDDEN_ARGUMENTS = new Set([
 ]);
 
 const RELEASE_OPERATOR_ARGUMENTS = new Map<string, ReadonlySet<string>>([
+  ["settlement:garden-accounts:deploy:celo", new Set(["--plan", "--step", "--receipt"])],
   ["settlement:garden-safes:deploy:celo", new Set(["--plan", "--inventory", "--step", "--receipt"])],
-  ["settlement:garden-safes:swap:celo", new Set(["--plan", "--inventory", "--replacements", "--step", "--receipt"])],
 ]);
 
 export interface SessionOptions {
@@ -283,7 +280,7 @@ function artifactDirtyPaths(repositoryRoot: string): string[] {
     .filter((filePath): filePath is string => filePath !== undefined);
 }
 
-function requireCompleteGardenSafeCheckpoint(planPath: string, plan: BootstrapPlan | SwapPlan): Checkpoint {
+function requireCompleteGardenSafeCheckpoint(planPath: string, plan: FinalSafePlan): Checkpoint {
   const checkpointPath = defaultCheckpointPath(planPath);
   if (!fs.existsSync(planPath) || !fs.existsSync(checkpointPath)) {
     throw new Error(`Garden Safe artifact is missing its reviewed plan/checkpoint: ${planPath}`);
@@ -324,28 +321,16 @@ export function assertVerifiedGardenSafePromotion(
   const contractsRoot = path.join(repositoryRoot, "packages/contracts");
   const runtimeRoot = path.join(contractsRoot, ".generated/runtime");
   const inventoryPath = path.join(runtimeRoot, "42161-pool-backfill.json");
-  const bootstrapPath = path.join(runtimeRoot, "42220-garden-safe-bootstrap.json");
-  const swapPath = path.join(runtimeRoot, "42220-garden-safe-owner-swap.json");
-  const replacementsPath = path.join(runtimeRoot, "42220-garden-safe-replacements.json");
+  const planPath = path.join(runtimeRoot, "42220-garden-safe-final.json");
   const artifactPath = path.join(repositoryRoot, GARDEN_SAFE_ARTIFACT_PATH);
-  if (!fs.existsSync(artifactPath) || !fs.existsSync(bootstrapPath)) {
-    throw new Error("Garden Safe promotion is missing its canonical artifact or bootstrap plan");
+  if (!fs.existsSync(artifactPath) || !fs.existsSync(planPath)) {
+    throw new Error("Garden Safe promotion is missing its canonical artifact or final plan");
   }
 
-  const bootstrap = readJson<BootstrapPlan>(bootstrapPath);
-  validateBootstrapPlan(bootstrap, inventoryPath);
-  const bootstrapCheckpoint = requireCompleteGardenSafeCheckpoint(bootstrapPath, bootstrap);
-  let expected = buildBootstrapDeploymentArtifact(bootstrap, bootstrapCheckpoint);
-
-  if (fs.existsSync(swapPath) && fs.existsSync(defaultCheckpointPath(swapPath))) {
-    const swap = readJson<SwapPlan>(swapPath);
-    const swapCheckpoint = readJson<Checkpoint>(defaultCheckpointPath(swapPath));
-    if (swapCheckpoint.completed.length === swap.entries.length) {
-      validateSwapPlan(swap, bootstrapPath, inventoryPath, replacementsPath);
-      const completeSwapCheckpoint = requireCompleteGardenSafeCheckpoint(swapPath, swap);
-      expected = buildSwappedDeploymentArtifact(swap, bootstrap, bootstrapCheckpoint, completeSwapCheckpoint);
-    }
-  }
+  const plan = readJson<FinalSafePlan>(planPath);
+  validateFinalSafePlan(plan, inventoryPath);
+  const checkpoint = requireCompleteGardenSafeCheckpoint(planPath, plan);
+  const expected = buildFinalDeploymentArtifact(plan, checkpoint);
 
   const current = readJson<unknown>(artifactPath);
   const changedPaths = changedPromotionLeafPaths(expected, current).filter(Boolean);
@@ -675,6 +660,7 @@ async function runSession(candidateCommit: string): Promise<void> {
             APP_ENV: "development",
             ETH_PASSWORD: lease.filePath,
             FOUNDRY_KEYSTORE_ACCOUNT: manifest.ownership.deploymentKeystore,
+            GG_RELEASE_OPERATOR_SESSION: candidateCommit,
             PINATA_GATEWAY: "",
             PINATA_JWT: "",
             PINATA_JWT_OP_REF: "",
