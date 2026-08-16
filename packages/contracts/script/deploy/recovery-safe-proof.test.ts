@@ -46,4 +46,17 @@ describe("recovery Safe proof validation", () => {
       ),
     ).toThrow("failed live state check: version141");
   });
+
+  it("fails closed when the proof carries no evidence to validate", () => {
+    expect(() => assertRecoverySafeProof({}, {})).toThrow("Recovery Safe proof received no official code checks");
+    expect(() => assertRecoverySafeProof({}, { protocol: validSafe() })).toThrow(
+      "Recovery Safe proof received no official code checks",
+    );
+    expect(() => assertRecoverySafeProof({ safeL2: { matches: true } }, {})).toThrow(
+      "Recovery Safe proof received no recovery Safes",
+    );
+    expect(() =>
+      assertRecoverySafeProof({ safeL2: { matches: true } }, { protocol: { ...validSafe(), liveStateChecks: {} } }),
+    ).toThrow("protocol reported no live state checks");
+  });
 });

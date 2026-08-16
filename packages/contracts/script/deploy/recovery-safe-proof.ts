@@ -25,6 +25,13 @@ export function assertRecoverySafeProof(
   officialCode: Record<string, OfficialCodeCheck>,
   recoverySafes: Record<string, RecoverySafeCheck>,
 ): void {
+  if (Object.keys(officialCode).length === 0) {
+    throw new Error("Recovery Safe proof received no official code checks");
+  }
+  if (Object.keys(recoverySafes).length === 0) {
+    throw new Error("Recovery Safe proof received no recovery Safes");
+  }
+
   for (const [name, check] of Object.entries(officialCode)) {
     if (!check.matches) throw new Error(`Official ${name} code identity does not match`);
   }
@@ -32,6 +39,9 @@ export function assertRecoverySafeProof(
   for (const [name, safe] of Object.entries(recoverySafes)) {
     if (!safe.proxyRuntimeHashMatchesOfficialFactory) {
       throw new Error(`${name} proxy runtime does not match the official Safe factory`);
+    }
+    if (Object.keys(safe.liveStateChecks).length === 0) {
+      throw new Error(`${name} reported no live state checks`);
     }
     for (const [checkName, passed] of Object.entries(safe.liveStateChecks)) {
       if (!passed) throw new Error(`${name} failed live state check: ${checkName}`);
