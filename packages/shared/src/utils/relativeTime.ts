@@ -13,9 +13,9 @@ import { normalizeTimestamp } from "./time";
  * expressed in — the shape `Intl.RelativeTimeFormat` and react-intl's
  * `formatRelativeTime` consume directly.
  *
- * Returns `null` when the timestamp is invalid, in the future, or younger than
- * the 10-second "just now" floor. Callers supply their own localized string for
- * that case; there is no unit that expresses it.
+ * Returns `null` when the timestamp is invalid, in the future, or 10 seconds
+ * old or younger — the "just now" floor. Callers supply their own localized
+ * string for that case; there is no unit that expresses it.
  */
 export function getRelativeTimeParts(
   timestamp: number | string | Date

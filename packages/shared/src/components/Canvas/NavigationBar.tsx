@@ -122,8 +122,7 @@ function FabButton({ config, mobileFloating = false }: FabButtonProps) {
   const [focusedSpeedDialActionId, setFocusedSpeedDialActionId] = useState<string | null>(null);
   const fabButtonRef = useRef<HTMLButtonElement>(null);
   const speedDialActionRefs = useRef(new Map<string, HTMLButtonElement>());
-  const speedDialShadow =
-    "var(--admin-speed-dial-shadow, var(--m3-elevation-2, 0 12px 28px rgb(15 23 42 / 0.16)))";
+  const speedDialShadow = "var(--admin-speed-dial-shadow, var(--m3-elevation-2))";
   const isSingleAction = config.actions.length <= 1;
   const enabledSpeedDialActions = useMemo(
     () => config.actions.filter((action) => !action.disabled),
