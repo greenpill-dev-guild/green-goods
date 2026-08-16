@@ -1,6 +1,6 @@
 import assert from "assert";
 
-import { Addresses, createTestIndexer, SettlementModule } from "./v3";
+import { Addresses, createTestIndexer, SettlementModule, processEvents } from "./v3";
 
 const CHAIN_ID = 42161;
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
@@ -73,11 +73,7 @@ describe("SettlementModule read model", () => {
       recordedBy: addr(7),
       mockEventData: mockEvent(1),
     });
-    mockDb = await SettlementModule.DisbursementQueued.processEvent({ event: refund, mockDb });
-    mockDb = await SettlementModule.DisbursementQueued.processEvent({ event: refund, mockDb });
-    mockDb = await SettlementModule.FundingDepositRecorded.processEvent({ event: deposit, mockDb });
-    mockDb = await SettlementModule.FundingPledged.processEvent({ event: pledge, mockDb });
-    mockDb = await SettlementModule.FundingPledged.processEvent({ event: pledge, mockDb });
+    mockDb = await processEvents(mockDb, [refund, refund, deposit, pledge, pledge]);
 
     let funding = await mockDb.CommitmentFunding.get(`${CHAIN_ID}-${fundingId}`);
     const fundingIndex = await mockDb.CommitmentFundingIndex.get(

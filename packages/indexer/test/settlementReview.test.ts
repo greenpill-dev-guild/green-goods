@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 
-import { Addresses, createTestIndexer, SettlementModule } from "./v3";
+import { Addresses, createTestIndexer, processEvents, SettlementModule } from "./v3";
 
 const CHAIN_ID = 42161;
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
@@ -140,9 +140,7 @@ describe("Settlement review regressions", () => {
     const withdrawn = fundingWithdrawn(60n, 50n, 2);
 
     let db = createTestIndexer();
-    db = await SettlementModule.FundingPledged.processEvent({ event: pledge, mockDb: db });
-    db = await SettlementModule.FundingWithdrawn.processEvent({ event: withdrawn, mockDb: db });
-    db = await SettlementModule.FundingWithdrawn.processEvent({ event: withdrawn, mockDb: db });
+    db = await processEvents(db, [pledge, withdrawn, withdrawn]);
     let funding = await db.CommitmentFunding.get(`${CHAIN_ID}-60`);
     const pledgeAudit = (await db.CommitmentEvent.getAll()).find(
       (row) => row.eventType === "FUNDING_PLEDGED"
@@ -153,8 +151,7 @@ describe("Settlement review regressions", () => {
     assert.equal(pledgeAudit?.actor, address(7).toLowerCase());
 
     db = createTestIndexer();
-    db = await SettlementModule.FundingWithdrawn.processEvent({ event: withdrawn, mockDb: db });
-    db = await SettlementModule.FundingPledged.processEvent({ event: pledge, mockDb: db });
+    db = await processEvents(db, [withdrawn, pledge]);
     funding = await db.CommitmentFunding.get(`${CHAIN_ID}-60`);
     assert.equal(funding?.state, "WITHDRAWN");
     assert.equal(funding?.garden, address(2).toLowerCase());
