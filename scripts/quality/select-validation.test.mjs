@@ -38,9 +38,32 @@ test("docs-only QA stays on the docs surface", () => {
   assert.deepEqual(ids(plan), ["format", "docs-build"]);
   assert.equal(
     plan.checks[0].command,
-    "bunx @biomejs/biome format 'docs/docs/builders/getting-started.mdx'",
+    "bunx @biomejs/biome format --no-errors-on-unmatched 'docs/docs/builders/getting-started.mdx'",
   );
   assert.equal(plan.budget.withinTarget, true);
+});
+
+// Regression: Biome exits non-zero when it handles none of the supplied paths.
+// A Markdown-, Solidity-, or YAML-only change is exactly that case, so without
+// the flag the scoped format check failed and fail-fast killed the whole plan
+// on the most common lightweight edit in this repository.
+test("scoped format tolerates paths Biome does not handle", () => {
+  for (const changedPath of [
+    "docs/docs/reference/glossary-community.md",
+    "packages/contracts/src/Garden.sol",
+    ".github/workflows/client.yml",
+  ]) {
+    for (const intent of ["diagnose", "review", "qa"]) {
+      const plan = selectValidation({ intent, changedPaths: [changedPath] });
+      const format = plan.checks.find((check) => check.id === "format");
+      if (!format) continue;
+      assert.match(
+        format.command,
+        /--no-errors-on-unmatched/,
+        `${intent} on ${changedPath} must not fail on an unmatched path`,
+      );
+    }
+  }
 });
 
 test("a clean checkpoint is an explicit no-op", () => {

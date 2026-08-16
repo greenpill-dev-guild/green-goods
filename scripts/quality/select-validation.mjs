@@ -363,7 +363,10 @@ function materializeCheck(check, environment, mandatory, testPaths, context) {
     ["diagnose", "review", "qa"].includes(context.intent) &&
     context.changedPaths.length > 0
   ) {
-    command = `bunx @biomejs/biome format ${context.changedPaths.map(shellQuote).join(" ")}`;
+    // Biome exits non-zero when every supplied path is one it does not handle,
+    // which a Markdown-only or Solidity-only change always is. Without this the
+    // scoped format check fails and fail-fast stops the rest of the plan.
+    command = `bunx @biomejs/biome format --no-errors-on-unmatched ${context.changedPaths.map(shellQuote).join(" ")}`;
   }
   if (check.id === "lint" && context.intent === "qa") {
     const sourcePaths = context.changedPaths.filter((path) =>
