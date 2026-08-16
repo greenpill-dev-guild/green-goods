@@ -156,7 +156,30 @@ installation or upgrade, workflow rerun, GitHub setting change, deployment, broa
   per-event work that the `ActionRegistered` probe does not capture. What holds regardless of
   handler is that eliminating a call saves about 707ms.
 
-- Two levers follow, and they are independent:
+- **Envio 3.6.1 removes the per-call cost almost entirely.** Probed by installing 3.6.1 in the
+  worktree, measuring, and restoring 3.2.1:
+
+  | | 3.2.1 | 3.6.1 |
+  |---|---|---|
+  | fixed cost per call | 707ms | **12ms** |
+  | 5 separate `processEvent` calls | 3,489ms | **53ms** |
+  | 1 call carrying 5 events | 700ms | **11ms** |
+
+  Entities were verified materialized on both versions (5/5 on both the separate-call and batched
+  paths), so this compares real handler work rather than a no-op. `bun run codegen` succeeds
+  unchanged against the current `config.yaml`, so the config schema is compatible.
+
+  The migration is real but mechanical. 154 of 244 tests fail on 3.6.1 with `simulate: item never
+  reached a handler`: 3.6.1 requires a mock event's `srcAddress` to be an address actually indexed
+  for that contract, where 3.2.1 accepted any address. The repo's tests use a per-file `mockEvent()`
+  helper defaulting to `addr(99)`, so the fix is centralised in those helpers rather than spread
+  across 154 test bodies. Routing a probe at the real ActionRegistry address
+  (`0xA514eA2730b9eD401875693793BEfA9e2D51C0b4`) made it pass and produced the numbers above.
+
+  Since essentially all of CI's 492s indexer step is per-call overhead, this upgrade is the largest
+  remaining lever by a wide margin and would likely stop Indexer being the critical path at all.
+
+- Two further levers, independent of the upgrade:
   1. Repo-side, no Envio change: merge calls. 64 adjacent call pairs already have no assertion or
      entity read between them and are directly mergeable, worth about 45s. Concentrated in
      `hatsModule` (10), `settlement` (10), `hypercerts` (9), `settlementReview` (9),
