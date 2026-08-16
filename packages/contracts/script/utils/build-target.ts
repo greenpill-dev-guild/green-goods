@@ -45,7 +45,12 @@ async function runForgeBuild(targets: string[]): Promise<number> {
   args.push(...targets);
 
   log(args.join(" "));
-  const proc = Bun.spawn(args, { cwd: contractsDir, stdout: "inherit", stderr: "inherit" });
+  const proc = Bun.spawn(args, {
+    cwd: contractsDir,
+    stdout: "inherit",
+    stderr: "inherit",
+    env: process.env,
+  });
   return await proc.exited;
 }
 

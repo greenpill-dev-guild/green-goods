@@ -1,0 +1,269 @@
+{
+  "version": 2,
+  "feature": {
+    "slug": "celo-garden-account-safe-ownership",
+    "title": "Celo GardenAccount Safe Ownership",
+    "kind": "feature",
+    "stage": "active"
+  },
+  "workflow": {
+    "overall_status": "active",
+    "priority": "p1",
+    "created_at": "2026-08-15T06:08:14.457Z",
+    "updated_at": "2026-08-16T01:09:00.000Z"
+  },
+  "links": {
+    "brief": "brief.md",
+    "spec": "spec.md",
+    "plan": "plan.todo.md",
+    "eval": "eval.md",
+    "contracts_handoff": "handoffs/codex-contracts.md",
+    "qa_pass_1_handoff": "handoffs/claude-qa-pass-1.md",
+    "qa_pass_2_handoff": "handoffs/codex-qa-pass-2.md",
+    "parent_spike": "../commitment-pooling/erc6551-garden-safe-owner-spike.md",
+    "parent_settlement_spec": "../commitment-pooling/settlement-spec.md",
+    "address_code_ledger": "evidence/address-code-derivation-2026-08-15.md",
+    "deterministic_deployments": "evidence/deterministic-deployments-42161-2026-02-19.json",
+    "garden_initializers": "evidence/garden-account-initializers-42161-494723355.json",
+    "celo_absence": "evidence/celo-account-absence-42220-74877942.json",
+    "ccip_lane": "evidence/ccip-arbitrum-celo-lane-2026-08-15.json",
+    "historical_rebuild": "evidence/historical-garden-account-rebuild-2026-08-15.json",
+    "dependency_init_code": "evidence/celo-dependency-init-code-2026-08-15.json",
+    "recovery_safes_live": "evidence/celo-recovery-safes-live-2026-08-15.json",
+    "relay_unit_gas": "evidence/relay-unit-gas-2026-08-15.json",
+    "celo_post_safe_upgrade_block": "evidence/celo-post-safe-upgrade-block-2026-08-15.json",
+    "final_safe_bindings": "evidence/garden-safe-final-bindings-2026-08-15.json"
+  },
+  "linear": {
+    "parentIssue": "PRD-821",
+    "project": "Commitment Pooling",
+    "projectId": "fa1b7a04-6eee-4f43-a861-07d8205aa0bf",
+    "initiative": "Sustainability & Monetization",
+    "syncDirection": "plans_to_linear_visibility",
+    "laneSyncMode": "parent_only",
+    "lastSyncedAt": "2026-08-15T21:11:39.833Z",
+    "lanes": {}
+  },
+  "taxonomy": {
+    "initiative": "protocol-readiness",
+    "tracks": ["contracts", "ops"],
+    "work_types": ["implementation", "qa"],
+    "surfaces": [
+      "packages/contracts/src",
+      "packages/contracts/script/deploy",
+      "packages/contracts/test",
+      "packages/contracts/deployments"
+    ],
+    "depends_on_features": ["commitment-pooling"]
+  },
+  "notes": [
+    "The same ERC-6551 address is mathematically proven for all 18 Gardens. Original CREATE2 inputs and the deterministic dependency chain are recovered; exact target dependencies and all 18 accounts remain absent on Celo.",
+    "The exact implementation deployment and all 18 account initializations must share one coordinator transaction so the permissionless ERC-6551 creation path cannot expose a separate initialization window.",
+    "Historical source, compiler, and tokenbound submodule rebuild proof is closed: repository commit 175469f2fc699712a9fa8016d6aa25390282989d reproduces the exact creation code, constructor arguments, init code, factory input, and CREATE2 address.",
+    "Direct final Safe setup supersedes the temporary deployment-EOA bootstrap for this ownership implementation. No deployment EOA may be a Garden Safe owner.",
+    "Live official Safe Wallet reads show both recovery Safes are v1.4.1+L2 with unique owners, no modules, no guard, and the v1.4.1 compatibility fallback handler. The exact pinned-fork test is authored, but its nested EIP-1271 and singleton/runtime proof still requires an RPC-capable execution environment; this workspace's RPC domains are blocked and its focused compile was stopped after five minutes without output.",
+    "The Garden-bound relay is separate from Settlement and cannot satisfy Safe threshold two alone, become a Safe owner/module/guard/Zodiac member, or receive value authority.",
+    "Implementation, review, release, guardian trust, Safe deployment, and value activation remain separate authorization boundaries.",
+    "Use Bun wrappers only; never raw Forge."
+  ],
+  "lanes": {
+    "ui": {
+      "owner": "claude",
+      "status": "n/a",
+      "branch": null,
+      "depends_on": [],
+      "handoff": "handoffs/claude-ui.md",
+      "tdd": {
+        "mode": "not_applicable",
+        "status": "pending",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
+        "note": "No UI work is part of the GardenAccount identity, relay, or Safe custody plan."
+      },
+      "skill_tags": ["ui"]
+    },
+    "state_api": {
+      "owner": "codex",
+      "status": "n/a",
+      "branch": null,
+      "depends_on": [],
+      "handoff": "handoffs/codex-state-api.md",
+      "tdd": {
+        "mode": "not_applicable",
+        "status": "pending",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
+        "note": "No shared hooks, application state, indexer, or API work is part of this plan."
+      },
+      "skill_tags": ["data-layer"]
+    },
+    "contracts": {
+      "owner": "codex",
+      "status": "in_progress",
+      "branch": null,
+      "depends_on": [],
+      "handoff": "handoffs/codex-contracts.md",
+      "linear_issues": ["PRD-821"],
+      "tdd": {
+        "mode": "required",
+        "status": "green_recorded",
+        "red": {
+          "command": "bun run --cwd packages/contracts test:match -- test/unit/GardenAccountRelay.t.sol -vv",
+          "evidence": "Initial run exposed a stack-too-deep test helper and two incorrect mock expectations; corrected before acceptance."
+        },
+        "green": {
+          "command": "bun run --cwd packages/contracts test:match -- test/unit/GardenAccountRelay.t.sol -vv",
+          "evidence": "11 passed, 0 failed; 4096-byte proposal/finalization destination gas measured at 124677/55580 below the fixed 500000 limit."
+        },
+        "note": "Bun-wrapped relay unit proof passes. Both recovery Safes pass live v1.4.1 UI checks. Exact final Safe bindings and the four-step router/relay/Guardian plan are frozen; executable pinned-fork nested EIP-1271/code proof remains open."
+      },
+      "skill_tags": ["contracts", "security", "cross-chain", "safe"]
+    },
+    "qa_pass_1": {
+      "owner": "claude",
+      "status": "blocked",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": false,
+      "branch": null,
+      "depends_on": ["ui", "state_api", "contracts"],
+      "handoff": "handoffs/claude-qa-pass-1.md",
+      "skill_tags": ["testing", "review", "contracts-security"]
+    },
+    "qa_pass_2": {
+      "owner": "codex",
+      "status": "blocked",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": false,
+      "branch": null,
+      "depends_on": ["qa_pass_1"],
+      "handoff": "handoffs/codex-qa-pass-2.md",
+      "skill_tags": ["testing", "review", "contracts-security"]
+    }
+  },
+  "history": [
+    {
+      "timestamp": "2026-08-15T06:08:14.480Z",
+      "actor": "human",
+      "lane": "system",
+      "status": "scaffolded",
+      "branch": null,
+      "note": "Scaffolded feature hub in active"
+    },
+    {
+      "timestamp": "2026-08-15T06:08:14.481Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "architecture_locked",
+      "branch": null,
+      "note": "Adopted same-address Celo GardenAccounts, a dedicated Garden-bound relay, and direct final 2-of-3 Garden Safes; no deployment-EOA owner path."
+    },
+    {
+      "timestamp": "2026-08-15T06:23:43.427Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "linear_recorded",
+      "branch": null,
+      "note": "Recorded Linear parent/lane issue identifiers"
+    },
+    {
+      "timestamp": "2026-08-15T07:29:49.000Z",
+      "actor": "codex",
+      "lane": "contracts",
+      "status": "evidence_locked_blocked",
+      "branch": null,
+      "note": "Recovered exact CREATE2 and 18-account initialization ledgers plus current CCIP lane proof; implementation remains blocked by missing PRD-733 recovery Safe identities and historical-source rebuild proof."
+    },
+    {
+      "timestamp": "2026-08-15T08:04:07.000Z",
+      "actor": "codex",
+      "lane": "contracts",
+      "status": "historical_rebuild_passed_blocked",
+      "branch": null,
+      "note": "Independent production-profile rebuild from repository commit 175469f2fc699712a9fa8016d6aa25390282989d and tokenbound commit 2bd70ff3fb5f1c0e562425b4d5312f619d9f2720 exactly matched the recovered GardenAccount creation code, constructor arguments, init code, factory input, and CREATE2 address. Implementation remains blocked only by the two exact PRD-733 Celo recovery Safe identities."
+    },
+    {
+      "timestamp": "2026-08-15T08:07:57.978Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "linear_recorded",
+      "branch": null,
+      "note": "Mirrored the closed historical rebuild gate and the remaining two-address PRD-733 blocker to PRD-821 without changing issue status or creating lane issues."
+    },
+    {
+      "timestamp": "2026-08-15T18:38:38.000Z",
+      "actor": "human",
+      "lane": "contracts",
+      "status": "recovery_safe_identities_designated_verification_pending",
+      "branch": null,
+      "note": "Afo designated 0x1B9Ac97Ea62f69521A14cbe6F45eb24aD6612C19 as the Celo Green Goods protocol recovery Safe and 0x49fa954B6C2Cd14B4b3604EF1Cc17cED20a9E42C as the Celo Greenpill Dev Guild recovery Safe. Live Safe state, nested EIP-1271 behavior, and House of Alignment receiving-address evidence remain open; no authority or broadcast was granted."
+    },
+    {
+      "timestamp": "2026-08-15T19:02:00.000Z",
+      "actor": "codex",
+      "lane": "contracts",
+      "status": "in_progress",
+      "branch": null,
+      "note": "Afo directed implementation to continue after freezing both recovery identities. RED-first deterministic work may proceed; live Celo Safe state, nested EIP-1271 proof, House of Alignment receiving-address evidence, exact feature-branch creation, and all fork/review gates remain mandatory before spec closure or broadcast readiness."
+    },
+    {
+      "timestamp": "2026-08-15T19:52:00.000Z",
+      "actor": "codex",
+      "lane": "contracts",
+      "status": "implementation_checkpoint_blocked_on_external_proof",
+      "branch": null,
+      "note": "Implemented direct final Safe tooling, exact-hash atomic GardenAccount coordinator/operator, and the dedicated Garden-bound CCIP relay with focused unit fixtures. TypeScript and script tests pass except three Git-spawn environment fixtures; Foundry execution, raw CREATE2 bytes, live PRD-733 evidence, and branch creation remain open. No broadcast or authority mutation occurred."
+    },
+    {
+      "timestamp": "2026-08-15T21:04:51.000Z",
+      "actor": "codex",
+      "lane": "contracts",
+      "status": "operator_boundary_hardened_validation_refreshed",
+      "branch": null,
+      "note": "Hardened the two-step Celo GardenAccount operator to bind the exact zero-value step-1 receipt and revalidate the coordinator runtime before step 2. TypeScript passes, 23 focused tests pass, three Git-fixture tests remain sandbox-blocked, the offline plan stops only on the missing raw CREATE2 bundle and production artifact, and all 42 plan hubs validate. No broadcast or authority mutation occurred."
+    },
+    {
+      "timestamp": "2026-08-15T21:09:14.000Z",
+      "actor": "codex",
+      "lane": "contracts",
+      "status": "relay_deployment_cycle_removed",
+      "branch": null,
+      "note": "Removed the circular constructor dependency between the Arbitrum router and Celo relay. The source router now deploys inert, permits one reviewed destination binding, rejects every action before binding, and exposes no reconfiguration path afterward. Static parsing and source Solhint pass; executable Foundry proof remains environment-blocked. No broadcast or authority mutation occurred."
+    },
+    {
+      "timestamp": "2026-08-15T23:45:00.000Z",
+      "actor": "codex",
+      "lane": "contracts",
+      "status": "unit_proof_passed_external_gates_blocked",
+      "branch": null,
+      "note": "Recovered the exact dependency init-code bundle, built the production coordinator artifact, and passed the Bun-wrapped relay unit/gas suite 11/11. Live Safe Wallet proof found the Dev Guild recovery Safe is v1.3.0 rather than the required v1.4.1. Pinned fork/EIP-1271, singleton/code-hash, House of Alignment, Git branch, and independent review gates remain open. No broadcast or authority mutation occurred."
+    },
+    {
+      "timestamp": "2026-08-15T23:52:00.000Z",
+      "actor": "human",
+      "lane": "contracts",
+      "status": "dev_guild_safe_upgraded_live_verification_passed",
+      "branch": null,
+      "note": "Afo upgraded the Dev Guild recovery Safe. A fresh official Safe Wallet read verifies v1.4.1+L2, nonce 1, the same three unique owners, threshold 2, no modules, no guard, and the v1.4.1 compatibility fallback handler. No Codex broadcast or authority mutation occurred."
+    },
+    {
+      "timestamp": "2026-08-16T00:20:00.000Z",
+      "actor": "human",
+      "lane": "contracts",
+      "status": "broadcast_gate_narrowed",
+      "branch": null,
+      "note": "Afo narrowed this readiness pass to pinned fork proof and deterministic router/relay plus Guardian transaction planning. House of Alignment evidence is not required because those funds are sent to the designated Green Goods Safe on Celo. The human will open the PR; no deployment or broadcast was authorized."
+    }
+  ]
+}

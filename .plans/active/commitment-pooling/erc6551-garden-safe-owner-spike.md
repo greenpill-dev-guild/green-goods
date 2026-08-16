@@ -2,10 +2,12 @@
 
 Date: 2026-08-12
 
-Status: fork proof complete; temporary EOA bootstrap authorized; production owner-set decision
-remains open.
+Status: fork proof complete; same-address implementation direction accepted into the active
+`../celo-garden-account-safe-ownership/` plan; production deployment remains unproven and
+unauthorized.
 
-Linear: [PRD-819](https://linear.app/greenpill-dev-guild/issue/PRD-819/deploy-celo-garden-safes-and-bounded-settlement-authority)
+Linear: [PRD-821](https://linear.app/greenpill-dev-guild/issue/PRD-821/give-each-celo-garden-safe-its-exact-arbitrum-gardenaccount-owner)
+owns the same-address implementation. PRD-819 remains the later Safe/Zodiac release lane.
 
 ## Question
 
@@ -66,16 +68,17 @@ mechanics. That result is not same-address deployment evidence and must be repor
 
 ## Decision gate after the spike
 
-Adopt the Garden account owner only after a follow-on design closes both missing production
-pieces:
+The 2026-08-14 decision adopts the Garden account owner as the target topology and promotes the
+two missing production pieces into the active
+`../celo-garden-account-safe-ownership/` implementation plan:
 
 1. a reproducible deployment of the reviewed GardenAccount implementation at the exact same
    address on Celo, with matching runtime and immutable dependencies; and
 2. an authenticated, replay-safe, Garden-bound cross-chain executor whose authority is narrower
    than the recovery threshold and whose failure cannot strand the two-recovery-owner path.
 
-If either gate remains open, the current settlement specification wins: protocol recovery, Dev
-Guild recovery, and one named Garden recovery delegate remain the three Safe owners.
+If either gate remains open, implementation stops. It must not silently restore the deployment
+EOA or substitute a separate Celo account representing the Garden.
 
 ## Result
 
@@ -89,16 +92,17 @@ Safe transaction, both nested recovery Safes retain an independent EIP-1271 reco
 owner alone fails, a different Garden account cannot substitute, an untrusted caller fails, and
 the Safe nonce rejects replay.
 
-The production path is not ready. The exact Arbitrum Garden account address still has no code on
-Celo, the deployed Celo implementation derives a different account address, the foreign account
-has no local NFT owner, and guardian trust alone does not authenticate an Arbitrum Garden action.
-Recommendation: keep the current three-recovery-owner configuration for the first Garden Safe
-deployment and treat same-address implementation deployment plus a bounded Garden-owner relay as
-a follow-on security design, not release ceremony configuration.
+The production path was not ready at this spike snapshot. The exact Arbitrum Garden account
+address still had no code on Celo, the deployed Celo implementation derives a different account
+address, the foreign account has no local NFT owner, and guardian trust alone does not authenticate
+an Arbitrum Garden action.
+The active plan now makes exact implementation reconstruction, atomic account initialization, and
+a bounded Garden-owner relay prerequisites to direct final 2-of-3 Safe deployment. This changes
+the target design, not the historical fork evidence, and authorizes no live mutation.
 
-## Temporary address bootstrap
+## Historical temporary address bootstrap
 
-Afo authorized a narrower staging path on 2026-08-12. Each Garden Safe may be deployed as a
+Afo authorized a narrower staging path on 2026-08-12. Each Garden Safe could be deployed as a
 native/G$-clear 1-of-2 with the deployment EOA and the existing Celo Garden recovery Safe, which
 was live-read as a module-free 2-of-3 Safe. The EOA is a placeholder only. A Bun-wrapped script
 later swaps it for an exact reviewed per-Garden owner in one Safe transaction per Garden. Generic
@@ -111,3 +115,8 @@ removed and the final owner and authorization gates are reviewed. The bootstrap 
 availability and avoids a multi-signer ceremony while the Safes are empty; it does not weaken the
 activation standard. A separately reviewed asset-inventory check remains required before value
 authority is enabled.
+
+**Superseded 2026-08-14**: register #112 and the active same-address plan replace this living
+bootstrap route before any Garden Safe deployment. New Garden Safes are planned directly with the
+exact GardenAccount plus the protocol and Dev Guild recovery Safes at threshold two. The historical
+authorization remains recorded here as provenance but is not the current implementation path.

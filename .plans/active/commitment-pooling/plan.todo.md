@@ -1004,6 +1004,25 @@ Known mis-resolutions fixed in place: `contract-spec.md` §Grassroots-Economics-
     release increment, while no agent or artifact waives any still-open ownership or value-
     activation gate.
 
+112. Exact same-address GardenAccounts and direct final Garden Safe ownership replace the
+    temporary deployment-EOA bootstrap as the living path (2026-08-14, Afo decision; supersedes
+    register #108 and the fallback owner set in #107 without rewriting their historical record).
+    Before any Garden Safe deploys, the implementation must reproduce the reviewed Arbitrum
+    GardenAccount implementation and every immutable dependency at the same Celo addresses,
+    create and initialize each ERC-6551 account atomically from the immutable `(42161, Arbitrum
+    GardenToken, tokenId)` tuple, and prove a dedicated authenticated Garden-bound relay. The
+    relay binds the source chain/router/sender, Garden/token/account, destination Safe, exact Safe
+    call and operation, nonce/action ID, deadline, replay state, and honest pre-finalization
+    cancellation; it never reuses the Settlement executor and cannot satisfy Safe threshold two
+    alone. Each new Garden Safe is predicted and deployed directly with the exact GardenAccount,
+    Green Goods protocol recovery Safe `0x1B9Ac97Ea62f69521A14cbe6F45eb24aD6612C19`, and Greenpill
+    Dev Guild recovery Safe `0x49fa954B6C2Cd14B4b3604EF1Cc17cED20a9E42C` at threshold two. No deployment EOA,
+    threshold-one state, `swapOwner`, or `changeThreshold` ceremony remains in the accepted path.
+    The active implementation truth is
+    `../celo-garden-account-safe-ownership/`. Its proof authorizes no contract deployment,
+    guardian mutation, Safe creation, role/allowance/peer configuration, value movement, canary,
+    or other broadcast; every live boundary remains separately human-authorized.
+
 **Final recursive certification clarification (2026-07-25; no new decision-register entry):**
 the published `42161`↔`42220` production lane is the only required fully paired
 `SettlementConfiguration`. Arbitrum Sepolia `421614` and Celo Sepolia `11142220` remain
@@ -1055,6 +1074,7 @@ The **Lane** column below names execution sub-lanes for planning clarity. The ha
 | Editorial: GardenDialog pool story + /impact aggregates | `editorial` | [PRD-726](https://linear.app/greenpill-dev-guild/issue/PRD-726) (historical PRD-678) | ⏳ |
 | Hypercert cut-over: fulfilled-commitment bundling + allocation presets (split ownership: shared metadata composer + selectors = `state_api`; `bundleKind`/`commitmentIds`/`needUIDs` entity fields = `indexer`; allocation step UI = `ui_admin`) | `state_api` + `indexer` + `ui_admin` | [PRD-722](https://linear.app/greenpill-dev-guild/issue/PRD-722), [PRD-723](https://linear.app/greenpill-dev-guild/issue/PRD-723), [PRD-725](https://linear.app/greenpill-dev-guild/issue/PRD-725) (historical PRD-679 split) | ⏳ |
 | G$ split-state settlement: SettlementModule + Celo Safes + multi-chain app | `settlement` | [PRD-686](https://linear.app/greenpill-dev-guild/issue/PRD-686) | ⏳ |
+| Exact same-address GardenAccount deployment, dedicated Garden-bound relay, and direct final 2-of-3 Celo Garden Safes | `contracts` + `release_ops` | [PRD-821](https://linear.app/greenpill-dev-guild/issue/PRD-821/give-each-celo-garden-safe-its-exact-arbitrum-gardenaccount-owner) | 🚧 active plan; exact bytecode/dependency and PRD-733 recovery-owner gates open |
 | Post-QA documentation polish: glossary, architecture, data boundaries, rollout language, operator/gardener task guides, screenshots, and recovery states | `docs` | [PRD-727](https://linear.app/greenpill-dev-guild/issue/PRD-727) (historical PRD-680/681 scope consolidated after QA Pass 1) | ⏳ |
 | Design-only PRD-651 exchange architecture brief and later evidence/partner-gate reconciliation | `docs` | [PRD-651](https://linear.app/greenpill-dev-guild/issue/PRD-651) | design exists · implementation gated |
 | Additive full-pool Story images and six-tab Google Doc reconciliation after PRD-796 review | `docs` | [PRD-796](https://linear.app/greenpill-dev-guild/issue/PRD-796) + [PRD-727](https://linear.app/greenpill-dev-guild/issue/PRD-727) | ✅ Google Doc prose accepted + re-read 2026-08-04 · gallery republication and image placement remain manual |
@@ -1356,7 +1376,11 @@ Per the Validation Intent Ladder: lane work uses targeted proof; the coordinator
 1. **App-wide Operator → Steward rename**: community glossary (`docs/docs/reference/glossary-community.md`), docs site, i18n keys ×3 locales, admin/client UI copy, vocab-lint update. CP specs/visuals already use steward (mapping note: steward = operator/owner Hats).
 2. **PRD-727 docs-promotion appendix refresh** (historical PRD-680): diagrams.md §Appendix already lists the ship-time docs edits; re-check after the audit-response restructure (D10 acts, D4 matrix, CommitmentRequirement entity).
 3. ~~**Linear re-apply pass**~~ — ✅ **DONE 2026-07-19.** The corrected wording was applied live to PRD-686, the project description, RESR-57, RESR-58 and the Pool Identity companion; the archived packs keep their original text as provenance (they are frozen records of what was applied on 2026-07-11, not current guidance). **Closed out 2026-07-22 (live re-read):** the canonical synthesis's two sentence-edits (see #9) are moot — Linear Doc 2 is archived and the corrected model is verified in the Google Doc. The G$-on-Arbitrum correction to PRD-649 + the Lifecycle companion (`reports/corrections-log.md` §9e) was verified **already clean** in live Linear: neither PRD-649's body nor the [Lifecycle And Aggregator Semantics](https://linear.app/greenpill-dev-guild/document/commitment-pooling-lifecycle-and-aggregator-semantics-bfdd633951d6) doc carries any "G$ on Arbitrum / partner-confirmed" claim (the word "Arbitrum" does not appear in either), and the [Pool Identity + Capability Architecture](https://linear.app/greenpill-dev-guild/document/commitment-pooling-pool-identity-capability-architecture-d6b7e5c22324) companion carries the corrected split-state topology explicitly. No Linear write was needed.
-4. **Ops confirmation before the first garden Safe deploys**: designate the Dev Guild recovery multisig's concrete Celo address independently of the retired working-capital Safe, and record the HoA stream's receiving-address evidence (GG protocol Safe) in the settlement handoff (milestone M1, settlement-spec §8).
+4. **Ops confirmation before the first garden Safe deploys**: the Dev Guild recovery multisig is
+   now designated as `0x49fa954B6C2Cd14B4b3604EF1Cc17cED20a9E42C`, independently of the
+   retired working-capital Safe. Live Celo Safe-state/EIP-1271 proof and the HoA stream's
+   receiving-address evidence for the GG protocol Safe remain open (milestone M1,
+   settlement-spec §8).
 5. **Optional hi-fi design pass** (Stitch / Claude Design) over the revised client pool surfaces (W1/W2/W25) once these wireframes settle.
 6. **~~Confirm the G$-for-protocol-services return leg with GoodDollar~~ — CLOSED 2026-08-08.** GoodDollar confirmed the arrangement and said they want to see circulation, closing the external half of Decision Log #45; the internal half was already settled. The "awaiting confirmation" label is retired from `settlement-spec.md` §11.10, the conflicts note, the gallery, and partner-facing claim rules. Decision Log #56 goes further and makes the leg a modelled, indexed path: a garden claiming a protocol-pool Offer records itself as `payerGarden`, so its payment is an ordinary commitment-bound `ContributorConsideration` from its own Safe. What still gates partner claims is evidence that circulation happened (`pilot-evidence-spec.md`), not the mandate reading.
 7. **Linear archive candidates — only ONE of six is clean.** A 2026-07-18 pre-archive confirmation pass grep-proved each candidate against every repo spec and the canonical synthesis. **The specs carry the WHAT; these docs carry the WHY, and the WHY is almost never reproduced.**

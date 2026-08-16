@@ -84,7 +84,7 @@ describe("release operator session", () => {
     ).toThrow(/concurrent checkout drift/);
   });
 
-  it("allows only the three receipt-backed deployment artifacts to differ from the candidate", () => {
+  it("allows only explicitly receipt-backed deployment artifacts to differ from the candidate", () => {
     const { repository, candidate } = createCandidateRepository();
     const allowed = new Set(["reviewed.txt"]);
     fs.appendFileSync(path.join(repository, "reviewed.txt"), "promotion\n");
@@ -109,29 +109,37 @@ describe("release operator session", () => {
     ]);
   });
 
-  it("allowlists only one explicit Garden Safe boundary per command", () => {
+  it("allowlists only one explicit GardenAccount or Garden Safe boundary per command", () => {
     const receipt = `0x${"cd".repeat(32)}`;
     expect([...RELEASE_OPERATOR_COMMANDS.keys()]).toEqual([
+      "settlement:garden-accounts:deploy:celo",
       "settlement:garden-safes:deploy:celo",
-      "settlement:garden-safes:swap:celo",
     ]);
     expect(
       assertAllowedOperatorCommand(
         tokenizeOperatorCommand(
-          `run settlement:garden-safes:deploy:celo --plan .generated/runtime/bootstrap.json --step 1 --receipt ${receipt}`,
+          `run settlement:garden-accounts:deploy:celo --plan .generated/runtime/accounts.json --step 2 --receipt ${receipt}`,
+        ),
+      ),
+    ).toEqual({
+      script: "settlement:garden-accounts:deploy:celo",
+      args: ["--plan", ".generated/runtime/accounts.json", "--step", "2", "--receipt", receipt],
+    });
+    expect(
+      assertAllowedOperatorCommand(
+        tokenizeOperatorCommand(
+          `run settlement:garden-safes:deploy:celo --plan .generated/runtime/final.json --step 1 --receipt ${receipt}`,
         ),
       ),
     ).toEqual({
       script: "settlement:garden-safes:deploy:celo",
-      args: ["--plan", ".generated/runtime/bootstrap.json", "--step", "1", "--receipt", receipt],
+      args: ["--plan", ".generated/runtime/final.json", "--step", "1", "--receipt", receipt],
     });
     expect(() =>
       assertAllowedOperatorCommand(
-        tokenizeOperatorCommand(
-          "run settlement:garden-safes:swap:celo --plan .generated/runtime/swap.json --replacements .generated/runtime/replacements.json",
-        ),
+        tokenizeOperatorCommand("run settlement:garden-safes:swap:celo --plan .generated/runtime/swap.json --step 1"),
       ),
-    ).toThrow(/requires one explicit --step/);
+    ).toThrow(/not allowlisted/);
     expect(() =>
       assertAllowedOperatorCommand(
         tokenizeOperatorCommand("run settlement:garden-safes:deploy:celo --step 1 --step 2"),
@@ -139,7 +147,9 @@ describe("release operator session", () => {
     ).toThrow(/duplicated/);
     expect(() =>
       assertAllowedOperatorCommand(
-        tokenizeOperatorCommand("run settlement:garden-safes:swap:celo --step 1 --rpc-url https://unreviewed.invalid"),
+        tokenizeOperatorCommand(
+          "run settlement:garden-safes:deploy:celo --step 1 --rpc-url https://unreviewed.invalid",
+        ),
       ),
     ).toThrow(/controlled by the frozen release session/);
     expect(() => assertAllowedOperatorCommand(tokenizeOperatorCommand("run pooling:deploy:arbitrum --step 1"))).toThrow(
