@@ -179,6 +179,16 @@ installation or upgrade, workflow rerun, GitHub setting change, deployment, broa
   Since essentially all of CI's 492s indexer step is per-call overhead, this upgrade is the largest
   remaining lever by a wide margin and would likely stop Indexer being the critical path at all.
 
+  **Shipped.** The upgrade landed with the suite green at 244 passing, unchanged in count, and the
+  local suite fell from 194s to 3s. `test/v3.ts` resolves indexed addresses from `config.yaml` and
+  defaults `srcAddress` where every mock event is built, so the tests cannot drift from the indexed
+  set; helpers omit `logIndex` so Envio auto-increments within a block. Two latent test bugs
+  surfaced and were fixed rather than papered over: garden mint events claimed an arbitrary token
+  address and so never registered the GardenAccount they were meant to, and the settlement executor
+  lane ran under Arbitrum's chain id while `CeloSettlementExecutor` is only indexed on Celo. One
+  behaviour genuinely changed — an event at an unindexed address is rejected rather than silently
+  skipped — so the OctantVault case asserts the rejection.
+
 - Two further levers, independent of the upgrade:
   1. Repo-side, no Envio change: merge calls. 64 adjacent call pairs already have no assertion or
      entity read between them and are directly mergeable, worth about 45s. Concentrated in
