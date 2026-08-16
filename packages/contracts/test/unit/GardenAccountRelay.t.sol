@@ -682,7 +682,7 @@ contract GardenAccountRelayTest is Test {
         );
     }
 
-    function testFuzz_RelayBuildSignaturesOrdersOwnersAndPadsDynamicSignature(
+    function testFuzz_GardenSafeExecution_buildSignaturesOrdersOwnersAndPadsDynamicSignature(
         address gardenOwner,
         address recoveryOwner,
         bytes memory recoverySignature
@@ -1021,7 +1021,7 @@ contract GardenAccountRelayInvariantTest is Test {
         targetContract(address(_handler));
     }
 
-    function invariant_RelayTerminalStatusesNeverChange() public {
+    function invariant_CeloGardenAccountRelay_terminalStatusesNeverChange() public {
         uint256 count = _handler.terminalCount();
         for (uint256 i; i < count; ++i) {
             (bytes32 actionId, GardenSafeActionCodec.ActionStatus expected) = _handler.terminalAt(i);
@@ -1029,7 +1029,7 @@ contract GardenAccountRelayInvariantTest is Test {
         }
     }
 
-    function invariant_RelayNonceNeverDecreases() public {
+    function invariant_CeloGardenAccountRelay_nonceNeverDecreases() public {
         assertGe(_relay.nextActionNonce(address(_gardenAccount)), _handler.nonceFloor());
     }
 }
