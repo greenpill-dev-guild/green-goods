@@ -5,12 +5,20 @@
 - Machine lane: state_api
 - Execution sub-lane: indexer
 - Owner: Codex
-- Branch signal: codex/indexer/commitment-pooling
-- Current state: specification-ready, dependency-blocked; corrected-and-merged PR #649 and its
-  Envio `3.2.1` proof come first, then core pooling indexing waits for implemented/frozen PRD-721
-  events. Decision #44's event and read-model shapes are no longer an open architecture question.
-  Settlement indexing separately waits for frozen settlement events.
+- Branch signal: feature/commitment-pooling-indexer
+- Current state: in progress from live PR #705 head `9948bd7507ac00d0b07f4efd30f6001dd92d84ab`.
+  PRD-557 and PRD-721 are Done, Envio `3.2.1` is merged, and the deployed release artifacts are
+  present. The frozen inventory is 58 ABI events and 28 indexed records: the original 54-event,
+  26-record pooling inventory plus four member-funding events, `CommitmentFunding`, and the
+  bounded `CommitmentFundingIndex` required by reverse-delivered Refund events.
 - Linear context: PRD-722 (indexer lane) under parent PRD-650; PRD-673 is historical context
+- Implementation receipt (2026-08-13): all six exact indexer commands in the validation section
+  pass; each named test-file command ran the 216-test package suite successfully. Architecture
+  closure, ontology, and Plan Hub validation also pass. After refreshing to the current PR #705
+  head, codegen, the indexing boundary, package lint, and the indexer build were rerun successfully.
+  The root Ship Gate stops at `bun lint` because the inherited PR #705 contract tree fails
+  `forge fmt --check`; this indexer lane changes no contract files, so that upstream formatting
+  baseline remains an explicit merge-readiness blocker rather than an in-scope edit.
 
 Concurrent agents share this repository. Stay inside this lane's named indexer/spec paths,
 preserve unrelated working-tree changes, and do not switch the primary tree's branch.
@@ -64,6 +72,15 @@ preserve unrelated working-tree changes, and do not switch the primary tree's br
   Contract-spec §8.3's handler rules bind reverse-index append/idempotency, atomic-marker
   treatment, lifecycle projection, late-fact reconciliation, signed commutative register deltas,
   and deterministic relationship ordering.
+- The deployed settlement increment adds `CommitmentFunding` and `CommitmentFundingIndex` as the
+  twenty-seventh and twenty-eighth PRD-722 records.
+  `FundingPledged`, `FundingDepositRecorded`, `FundingConsumed`, and `FundingWithdrawn` own its
+  immutable identity and independent nullable fact cursors. `DisbursementKind.Refund` is appended
+  after the four existing kinds, and a funding row retains at most one stable refund child.
+  `DisbursementQueued(kind=Refund)` carries commitment/funder identity but no `fundingId`, so the
+  index row persists the only bounded `(chainId, commitmentId, normalized funder)` join and may
+  temporarily retain the Refund child until `FundingPledged` supplies the funding ID. No timeout,
+  RPC read, database scan, or delivery order may synthesize a funding outcome.
 - `ExchangeAccepted` creates one `CommitmentExchange` marker keyed
   `chainId-EXCHANGE-poolId-idA-idB`, using the event's non-indexed `poolId` without an RPC read or
   prior commitment row. Entity existence proves atomic acceptance. The two ordinary
@@ -280,6 +297,9 @@ preserve unrelated working-tree changes, and do not switch the primary tree's br
   never infers an actor from `transaction.from`.
 - Pool/cycle entities retain state counts and expose no raw-unit aggregate fields; no handler or query adds unlike label hashes.
 - Queued, Dispatched, Celo executed/acknowledgment-pending, Confirmed, authenticated execution Failed, transport-delayed, same-key command retry, acknowledgment retry, and per-member recovery remain distinguishable.
+- Member-funding fixtures deliver pledge, deposit, consume, and withdraw in normal and reverse
+  order with duplicates, and deliver the Refund child before every funding fact. Every order
+  converges to one chain-scoped funding row and one persistent refund-child relationship.
 - `DisbursementCancelled` persists whether an individual cancellation came from an unbatched Queued item or from an authenticated Failed result; a failed member is never made to look like a pre-dispatch withdrawal.
 - `BatchCancelled(uint256 indexed batchId,address indexed actor,string reasonCID)` atomically marks the still-Queued batch and every immutable member Cancelled-from-Queued in one replay-idempotent handler. No indexed state can present a partially cancelled Queued batch.
 - `SettlementExecutionStored` records the bounded Celo executor transaction, exact authenticated acknowledgment receiver, decoded `isBatch`, settlement ID, and attempt, and derives acknowledgment-pending without waiting for an Arbitrum join. `AcknowledgmentDeferred` stores the bounded quote/reserve/send deferral code; only Arbitrum `SettlementAcknowledged(success=true)` makes canonical state Confirmed.
@@ -303,24 +323,24 @@ preserve unrelated working-tree changes, and do not switch the primary tree's br
 
 ## RED / GREEN
 
-- RED: `test/commitmentPool.test.ts`, `test/settlement.test.ts`, and `test/gardenIdentityCompatibility.test.ts` are explicit to-be-created first-failing deliverables; focused handler/compatibility/preservation fixtures, including pool/cycle opposing-state reverse-delivery permutations, fail before schema, config, helper, and handler changes.
-- GREEN: the same fixtures pass after codegen; generated operations expose every entity; setup-generated, boundary, tests, and build pass.
-- Generated ReScript setup runs through the exact pnpm `10.33.2` Corepack pin declared by
-  `packages/indexer/package.json`. The root monorepo remains `bun@1.3.14`; no generated-workspace
-  command may walk up to or replace that root package-manager declaration.
+- RED: create `test/commitmentPool.test.ts` and `test/gardenIdentityCompatibility.test.ts` first,
+  and extend the existing `test/settlement.test.ts` with funding/Refund coverage. The focused
+  handler, compatibility, and preservation fixtures fail before schema, config, helper, and
+  handler changes.
+- GREEN: the same fixtures pass after Envio v3 codegen; generated operations expose every entity;
+  boundary, tests, and build pass. Envio v3 has no separate generated-ReScript install step.
 
 ## Exact Bun commands
 
 - bun run --filter @green-goods/indexer codegen
-- bun run --filter @green-goods/indexer setup-generated
 - bun run --filter @green-goods/indexer check:indexing-boundary
 - bun run --filter @green-goods/indexer test -- test/commitmentPool.test.ts
 - bun run --filter @green-goods/indexer test -- test/settlement.test.ts
 - bun run --filter @green-goods/indexer test -- test/gardenIdentityCompatibility.test.ts
 - bun run --filter @green-goods/indexer build
 
-The three named test files do not exist yet; they are intentional RED-first deliverables of this
-lane and must be created before their commands can pass.
+The pooling and Garden-identity files are intentional RED-first deliverables. The existing
+settlement file receives the member-funding and Refund regression cases before implementation.
 
 ## Out of scope
 

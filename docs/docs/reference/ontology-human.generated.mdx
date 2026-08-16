@@ -315,6 +315,66 @@ Use these cards when explaining Green Goods to a teammate, community, partner, o
 
 **Evidence:** `packages/contracts/src/interfaces/ICommitmentPoolingModule.sol` — Series struct and lifecycle interface are implemented in the deployed pooling boundary. (verified 2026-08-15)
 
+## Commitment Provider Exposure
+
+**In plain language:** A lead provider's current open load
+
+**Why it matters:** It lets a Garden apply its coordination limits without rewriting prior commitment history.
+
+**Who touches it:** Operator · Gardener
+
+**Example:** A lead provider currently holds two open commitments in one pool.
+
+**Relationships:** aggregated-in commitment-pool
+
+**Also called:** provider exposure
+
+**Do not confuse with:** Commitment Contributor
+
+**Current maturity:** in-build — implementation implemented; deployment not-deployed; activation inactive; integration partial.
+
+**Evidence:** `packages/indexer/schema.graphql` — The indexer schema defines per-pool lead-provider exposure derived from commitment unit events. (verified 2026-08-15)
+
+## Commitment Unit Summary
+
+**In plain language:** Commitment totals for one exact unit label
+
+**Why it matters:** It keeps expected, approved, fulfilled, and open quantities comparable without combining unlike units.
+
+**Who touches it:** Operator · Gardener · Community Member
+
+**Example:** A cycle reports ride commitments separately from hours of work.
+
+**Relationships:** grouped-in commitment-pool · optionally-grouped-in commitment-cycle
+
+**Also called:** unit summary
+
+**Do not confuse with:** Commitment Series Cycle Summary
+
+**Current maturity:** in-build — implementation implemented; deployment not-deployed; activation inactive; integration partial.
+
+**Evidence:** `packages/indexer/schema.graphql` — The indexer schema defines exact-label commitment unit summaries for pools and cycles. (verified 2026-08-15)
+
+## Commitment Series Cycle Summary
+
+**In plain language:** A recurring offer's lifecycle totals for one cycle
+
+**Why it matters:** It shows how instances of one recurring offer progressed during a bounded coordination period.
+
+**Who touches it:** Operator · Gardener
+
+**Example:** A weekly transport series has three fulfilled and one cancelled instance this cycle.
+
+**Relationships:** summarizes commitment-series · scoped-to commitment-cycle
+
+**Also called:** series cycle summary
+
+**Do not confuse with:** Commitment Unit Summary
+
+**Current maturity:** in-build — implementation implemented; deployment not-deployed; activation inactive; integration partial.
+
+**Evidence:** `packages/indexer/schema.graphql` — The indexer schema defines per-cycle lifecycle summaries for commitment series. (verified 2026-08-15)
+
 ## Commitment
 
 **In plain language:** A bounded promise to offer or request support

@@ -63,10 +63,9 @@ function allocateBlock(mockDb: TestIndexer, event: MockEvent, chainId: Supported
   }
 
   const nextBlock = nextBlockByChain.get(chainId) ?? CHAIN_START_BLOCK[chainId];
-  const requestedBlock =
+  const blockNumber =
     event.block.number >= CHAIN_START_BLOCK[chainId] ? event.block.number : nextBlock;
-  const blockNumber = Math.max(nextBlock, requestedBlock);
-  nextBlockByChain.set(chainId, blockNumber + 1);
+  nextBlockByChain.set(chainId, Math.max(nextBlock, blockNumber + 1));
   return blockNumber;
 }
 
@@ -196,6 +195,10 @@ export const YieldSplitter = createContract("YieldSplitter", ["YieldSplit"] as c
 export const SettlementModule = createContract("SettlementModule", [
   "SettlementDeploymentPinned",
   "FundingConfigurationLocked",
+  "FundingPledged",
+  "FundingDepositRecorded",
+  "FundingConsumed",
+  "FundingWithdrawn",
   "SettlementAccountRegistered",
   "SettlementRecoveryUpdated",
   "SettlementAccountStatusChanged",
@@ -226,6 +229,64 @@ export const SettlementModule = createContract("SettlementModule", [
   "BatchCancelled",
   "FeeReserveFunded",
   "ExcessFeesWithdrawn",
+] as const);
+export const CommitmentPoolingModule = createContract("CommitmentPoolingModule", [
+  "PoolRegistered",
+  "PoolCharterUpdated",
+  "PoolReady",
+  "PoolOpened",
+  "PoolPaused",
+  "PoolResumed",
+  "PoolClosed",
+  "PoolComposted",
+  "PoolReopened",
+  "CycleSeeded",
+  "CycleOpened",
+  "CycleClosed",
+  "CycleComposted",
+  "CycleCancelled",
+  "CommitmentSeriesCreated",
+  "CommitmentSeriesMetadataUpdated",
+  "CommitmentSeriesRested",
+  "CommitmentSeriesResumed",
+  "CommitmentSeriesRetired",
+  "CommitmentCreated",
+  "ConsiderationDeclared",
+  "ValueDeclared",
+  "ConfirmerRuleSet",
+  "ClaimRequested",
+  "ClaimDeclined",
+  "CommitmentAccepted",
+  "ExchangeAccepted",
+  "ContributorAdded",
+  "ContributorRemoved",
+  "ContributorRequirementAssigned",
+  "ContributorRosterFrozen",
+  "WorkLinked",
+  "WorkUnlinked",
+  "ApprovedWorkCounted",
+  "ApprovedWorkReversed",
+  "EvidenceAttached",
+  "AssessmentAttached",
+  "CommitmentReadyForConfirmation",
+  "ConfirmationRecorded",
+  "CommitmentFulfilled",
+  "CommitmentCancelled",
+  "CommitmentExpired",
+  "CommitmentDisputed",
+  "DisputeResolved",
+  "ConsiderationPaid",
+  "ModuleDependencyUpdated",
+  "ModuleSchemaUIDUpdated",
+  "ModulePauseStatusChanged",
+] as const);
+export const CommitmentRegistry = createContract("CommitmentRegistry", [
+  "ModuleUpdated",
+  "ClassRegistered",
+  "ProviderOpenCommitmentCapUpdated",
+  "UnitsCommitted",
+  "UnitsReleased",
+  "UnitsFulfilled",
 ] as const);
 export const CeloSettlementExecutor = createContract("CeloSettlementExecutor", [
   "ExecutorDeploymentPinned",

@@ -240,6 +240,51 @@
       "verified_at": "2026-08-15"
     },
     {
+      "ref": "entity:commitment-provider-exposure",
+      "implementation": "implemented",
+      "deployment": "not-deployed",
+      "activation": "inactive",
+      "integration": "partial",
+      "availability": "in-build",
+      "evidence": [
+        {
+          "file": "packages/indexer/schema.graphql",
+          "note": "The indexer schema defines per-pool lead-provider exposure derived from commitment unit events."
+        }
+      ],
+      "verified_at": "2026-08-15"
+    },
+    {
+      "ref": "entity:commitment-unit-summary",
+      "implementation": "implemented",
+      "deployment": "not-deployed",
+      "activation": "inactive",
+      "integration": "partial",
+      "availability": "in-build",
+      "evidence": [
+        {
+          "file": "packages/indexer/schema.graphql",
+          "note": "The indexer schema defines exact-label commitment unit summaries for pools and cycles."
+        }
+      ],
+      "verified_at": "2026-08-15"
+    },
+    {
+      "ref": "entity:commitment-series-cycle-summary",
+      "implementation": "implemented",
+      "deployment": "not-deployed",
+      "activation": "inactive",
+      "integration": "partial",
+      "availability": "in-build",
+      "evidence": [
+        {
+          "file": "packages/indexer/schema.graphql",
+          "note": "The indexer schema defines per-cycle lifecycle summaries for commitment series."
+        }
+      ],
+      "verified_at": "2026-08-15"
+    },
+    {
       "ref": "entity:commitment",
       "implementation": "implemented",
       "deployment": "deployed",
@@ -411,6 +456,33 @@
       "example": "A weekly transport Offer represented by separate commitments over time.",
       "aliases": ["series"],
       "not_confused_with": ["Commitment Cycle"]
+    },
+    {
+      "ref": "entity:commitment-provider-exposure",
+      "plain_name": "A lead provider's current open load",
+      "why_it_matters": "It lets a Garden apply its coordination limits without rewriting prior commitment history.",
+      "who_touches_it": ["Operator", "Gardener"],
+      "example": "A lead provider currently holds two open commitments in one pool.",
+      "aliases": ["provider exposure"],
+      "not_confused_with": ["Commitment Contributor"]
+    },
+    {
+      "ref": "entity:commitment-unit-summary",
+      "plain_name": "Commitment totals for one exact unit label",
+      "why_it_matters": "It keeps expected, approved, fulfilled, and open quantities comparable without combining unlike units.",
+      "who_touches_it": ["Operator", "Gardener", "Community Member"],
+      "example": "A cycle reports ride commitments separately from hours of work.",
+      "aliases": ["unit summary"],
+      "not_confused_with": ["Commitment Series Cycle Summary"]
+    },
+    {
+      "ref": "entity:commitment-series-cycle-summary",
+      "plain_name": "A recurring offer's lifecycle totals for one cycle",
+      "why_it_matters": "It shows how instances of one recurring offer progressed during a bounded coordination period.",
+      "who_touches_it": ["Operator", "Gardener"],
+      "example": "A weekly transport series has three fulfilled and one cancelled instance this cycle.",
+      "aliases": ["series cycle summary"],
+      "not_confused_with": ["Commitment Unit Summary"]
     },
     {
       "ref": "entity:commitment",

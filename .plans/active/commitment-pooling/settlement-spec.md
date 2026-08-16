@@ -1957,22 +1957,47 @@ type CommitmentFunding {
   id: ID! # chainId-fundingId
   chainId: Int!
   fundingId: BigInt!
-  commitmentId: BigInt!
-  commitmentEntityId: String!
-  funder: String!
-  garden: String!
-  gardenId: String!
-  refundAccount: String!
-  expectedAmount: BigInt!
+  pledgeSeen: Boolean!
+  commitmentId: BigInt
+  commitmentEntityId: String
+  funder: String
+  garden: String
+  gardenId: String
+  refundAccount: String
+  expectedAmount: BigInt
   depositedAmount: BigInt!
   depositReference: String
   state: FundingState!
   refundDisbursementId: BigInt
   refundDisbursementEntityId: String
-  pledgedAt: Int!
+  pledgeBlockNumber: BigInt
+  pledgeLogIndex: Int
+  depositBlockNumber: BigInt
+  depositLogIndex: Int
+  consumeBlockNumber: BigInt
+  consumeLogIndex: Int
+  withdrawBlockNumber: BigInt
+  withdrawLogIndex: Int
+  pledgedAt: Int
   depositRecordedAt: Int
   consumedAt: Int
+  withdrawnAt: Int
   closedAt: Int
+  updatedAt: Int!
+}
+
+# Bounded replay join. Refund disbursements carry commitmentId + funder but no fundingId;
+# the index may therefore exist before FundingPledged and retain one stable Refund child.
+type CommitmentFundingIndex {
+  id: ID! # chainId-commitmentId-lowercaseFunder
+  chainId: Int!
+  commitmentId: BigInt!
+  commitmentEntityId: String!
+  funder: String!
+  fundingId: BigInt
+  fundingEntityId: String
+  refundDisbursementId: BigInt
+  refundDisbursementEntityId: String
   updatedAt: Int!
 }
 type Disbursement {

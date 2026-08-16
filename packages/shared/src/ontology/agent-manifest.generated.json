@@ -579,6 +579,107 @@
       "safe_claims": []
     },
     {
+      "ref": "entity:commitment-provider-exposure",
+      "id": "commitment-provider-exposure",
+      "kind": "entity",
+      "canonical": "Commitment Provider Exposure",
+      "definition": "The current count of open commitments held by one accountable lead provider in one pool, derived only from self-describing register unit events.",
+      "semantic_status": "canonical",
+      "aliases": ["provider exposure"],
+      "relationships": [
+        {
+          "to": "commitment-pool",
+          "kind": "aggregated-in"
+        }
+      ],
+      "maturity": {
+        "ref": "entity:commitment-provider-exposure",
+        "implementation": "implemented",
+        "deployment": "not-deployed",
+        "activation": "inactive",
+        "integration": "partial",
+        "availability": "in-build",
+        "evidence": [
+          {
+            "file": "packages/indexer/schema.graphql",
+            "note": "The indexer schema defines per-pool lead-provider exposure derived from commitment unit events."
+          }
+        ],
+        "verified_at": "2026-08-15"
+      },
+      "safe_claims": []
+    },
+    {
+      "ref": "entity:commitment-unit-summary",
+      "id": "commitment-unit-summary",
+      "kind": "entity",
+      "canonical": "Commitment Unit Summary",
+      "definition": "Exact-label pool or cycle totals for expected, approved, fulfilled, and open commitment units; unlike label hashes are never combined.",
+      "semantic_status": "canonical",
+      "aliases": ["unit summary"],
+      "relationships": [
+        {
+          "to": "commitment-pool",
+          "kind": "grouped-in"
+        },
+        {
+          "to": "commitment-cycle",
+          "kind": "optionally-grouped-in"
+        }
+      ],
+      "maturity": {
+        "ref": "entity:commitment-unit-summary",
+        "implementation": "implemented",
+        "deployment": "not-deployed",
+        "activation": "inactive",
+        "integration": "partial",
+        "availability": "in-build",
+        "evidence": [
+          {
+            "file": "packages/indexer/schema.graphql",
+            "note": "The indexer schema defines exact-label commitment unit summaries for pools and cycles."
+          }
+        ],
+        "verified_at": "2026-08-15"
+      },
+      "safe_claims": []
+    },
+    {
+      "ref": "entity:commitment-series-cycle-summary",
+      "id": "commitment-series-cycle-summary",
+      "kind": "entity",
+      "canonical": "Commitment Series Cycle Summary",
+      "definition": "Current lifecycle counts for the instances of one commitment series within one cycle.",
+      "semantic_status": "canonical",
+      "aliases": ["series cycle summary"],
+      "relationships": [
+        {
+          "to": "commitment-series",
+          "kind": "summarizes"
+        },
+        {
+          "to": "commitment-cycle",
+          "kind": "scoped-to"
+        }
+      ],
+      "maturity": {
+        "ref": "entity:commitment-series-cycle-summary",
+        "implementation": "implemented",
+        "deployment": "not-deployed",
+        "activation": "inactive",
+        "integration": "partial",
+        "availability": "in-build",
+        "evidence": [
+          {
+            "file": "packages/indexer/schema.graphql",
+            "note": "The indexer schema defines per-cycle lifecycle summaries for commitment series."
+          }
+        ],
+        "verified_at": "2026-08-15"
+      },
+      "safe_claims": []
+    },
+    {
       "ref": "entity:commitment",
       "id": "commitment",
       "kind": "entity",

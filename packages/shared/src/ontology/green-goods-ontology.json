@@ -292,7 +292,8 @@
       "definition": "A garden-anchored (or protocol root-garden) pool that registers, curates, and reconciles commitments under a charter.",
       "spec_source": ".plans/active/commitment-pooling/contract-spec.md",
       "layers": {
-        "solidity": ["packages/contracts/src/interfaces/ICommitmentPoolingModule.sol"]
+        "solidity": ["packages/contracts/src/interfaces/ICommitmentPoolingModule.sol"],
+        "indexer": { "file": "packages/indexer/schema.graphql", "type": "CommitmentPool" }
       },
       "relationships": [
         {
@@ -308,7 +309,8 @@
       "definition": "A bounded run of a pool — a Season or Campaign — seeded with timing and an immutable six-role allocation snapshot at open.",
       "spec_source": ".plans/active/commitment-pooling/contract-spec.md",
       "layers": {
-        "solidity": ["packages/contracts/src/interfaces/ICommitmentPoolingModule.sol"]
+        "solidity": ["packages/contracts/src/interfaces/ICommitmentPoolingModule.sol"],
+        "indexer": { "file": "packages/indexer/schema.graphql", "type": "CommitmentCycle" }
       },
       "relationships": [
         {
@@ -324,7 +326,8 @@
       "definition": "The internal durable, pool-scoped identity for one Offer used over time. It groups ordinary Offer instances without creating obligations automatically, merging history across pools, or becoming a separate product noun.",
       "spec_source": ".plans/active/commitment-pooling/standing-commitments-spec.md",
       "layers": {
-        "solidity": ["packages/contracts/src/interfaces/ICommitmentPoolingModule.sol"]
+        "solidity": ["packages/contracts/src/interfaces/ICommitmentPoolingModule.sol"],
+        "indexer": { "file": "packages/indexer/schema.graphql", "type": "CommitmentSeries" }
       },
       "relationships": [
         {
@@ -338,6 +341,51 @@
         }
       ],
       "semantic_status": "canonical"
+    },
+    {
+      "id": "commitment-provider-exposure",
+      "display": "Commitment Provider Exposure",
+      "semantic_status": "canonical",
+      "definition": "The current count of open commitments held by one accountable lead provider in one pool, derived only from self-describing register unit events.",
+      "spec_source": ".plans/active/commitment-pooling/contract-spec.md",
+      "layers": {
+        "indexer": {
+          "file": "packages/indexer/schema.graphql",
+          "type": "CommitmentProviderExposure"
+        }
+      },
+      "relationships": [{ "to": "commitment-pool", "kind": "aggregated-in" }]
+    },
+    {
+      "id": "commitment-unit-summary",
+      "display": "Commitment Unit Summary",
+      "semantic_status": "canonical",
+      "definition": "Exact-label pool or cycle totals for expected, approved, fulfilled, and open commitment units; unlike label hashes are never combined.",
+      "spec_source": ".plans/active/commitment-pooling/contract-spec.md",
+      "layers": {
+        "indexer": { "file": "packages/indexer/schema.graphql", "type": "CommitmentUnitSummary" }
+      },
+      "relationships": [
+        { "to": "commitment-pool", "kind": "grouped-in" },
+        { "to": "commitment-cycle", "kind": "optionally-grouped-in" }
+      ]
+    },
+    {
+      "id": "commitment-series-cycle-summary",
+      "display": "Commitment Series Cycle Summary",
+      "semantic_status": "canonical",
+      "definition": "Current lifecycle counts for the instances of one commitment series within one cycle.",
+      "spec_source": ".plans/active/commitment-pooling/standing-commitments-spec.md",
+      "layers": {
+        "indexer": {
+          "file": "packages/indexer/schema.graphql",
+          "type": "CommitmentSeriesCycleSummary"
+        }
+      },
+      "relationships": [
+        { "to": "commitment-series", "kind": "summarizes" },
+        { "to": "commitment-cycle", "kind": "scoped-to" }
+      ]
     },
     {
       "id": "commitment",
@@ -1616,7 +1664,7 @@
             "GARDEN_BENEFICIARY",
             "REFUND"
           ],
-          "note": "UNKNOWN is the indexer's fail-closed fallback for unmapped values. REFUND is ABI-live in the reopened release and is temporarily baselined until the later indexer dispatch lands."
+          "note": "UNKNOWN is the indexer's fail-closed fallback for unmapped values."
         }
       ],
       "mappings": [],
@@ -1880,13 +1928,19 @@
         "value_scheme": "index",
         "members": ["None", "Success", "Failed"]
       },
-      "planned_anchor": {
-        "file": "packages/contracts/src/interfaces/ISettlementExecutor.sol",
-        "symbol": "ResultStatus"
-      },
-      "representations": [],
+      "representations": [
+        {
+          "id": "executor-solidity",
+          "layer": "solidity",
+          "file": "packages/contracts/src/interfaces/ICeloSettlementExecutor.sol",
+          "symbol": "ResultStatus",
+          "extract": "solidity-enum",
+          "ordered": true,
+          "members": ["None", "Success", "Failed"]
+        }
+      ],
       "mappings": [],
-      "source_status": "specified"
+      "source_status": "implemented"
     },
     {
       "id": "acknowledgment-deferral-code",
@@ -1897,13 +1951,19 @@
         "value_scheme": "index",
         "members": ["None", "QuoteFailed", "FeeReserveLow", "SendFailed"]
       },
-      "planned_anchor": {
-        "file": "packages/contracts/src/interfaces/ISettlementExecutor.sol",
-        "symbol": "AcknowledgmentDeferralCode"
-      },
-      "representations": [],
+      "representations": [
+        {
+          "id": "executor-solidity",
+          "layer": "solidity",
+          "file": "packages/contracts/src/interfaces/ICeloSettlementExecutor.sol",
+          "symbol": "AcknowledgmentDeferralCode",
+          "extract": "solidity-enum",
+          "ordered": true,
+          "members": ["None", "QuoteFailed", "FeeReserveLow", "SendFailed"]
+        }
+      ],
       "mappings": [],
-      "source_status": "specified"
+      "source_status": "implemented"
     },
     {
       "id": "settlement-execution-status",
@@ -1937,13 +1997,19 @@
         "value_scheme": "none",
         "members": ["PENDING", "ACCEPTED", "DECLINED", "SUPERSEDED"]
       },
-      "planned_anchor": {
-        "file": "packages/indexer/schema.graphql",
-        "symbol": "CommitmentClaimRequestState"
-      },
-      "representations": [],
+      "representations": [
+        {
+          "id": "indexer",
+          "layer": "indexer",
+          "file": "packages/indexer/schema.graphql",
+          "symbol": "CommitmentClaimRequestState",
+          "extract": "graphql-enum",
+          "ordered": true,
+          "members": ["PENDING", "ACCEPTED", "DECLINED", "SUPERSEDED"]
+        }
+      ],
       "mappings": [],
-      "source_status": "specified"
+      "source_status": "implemented"
     },
     {
       "id": "commitment-event-type",
@@ -2006,16 +2072,85 @@
           "CONSIDERATION_PAID",
           "UNITS_COMMITTED",
           "UNITS_RELEASED",
-          "UNITS_FULFILLED"
+          "UNITS_FULFILLED",
+          "FUNDING_PLEDGED",
+          "FUNDING_DEPOSIT_RECORDED",
+          "FUNDING_CONSUMED",
+          "FUNDING_WITHDRAWN"
         ]
       },
-      "planned_anchor": {
-        "file": "packages/indexer/schema.graphql",
-        "symbol": "CommitmentEventType"
-      },
-      "representations": [],
+      "representations": [
+        {
+          "id": "indexer",
+          "layer": "indexer",
+          "file": "packages/indexer/schema.graphql",
+          "symbol": "CommitmentEventType",
+          "extract": "graphql-enum",
+          "ordered": false,
+          "members": [
+            "MODULE_UPDATED",
+            "MODULE_DEPENDENCY_UPDATED",
+            "MODULE_SCHEMA_UID_UPDATED",
+            "MODULE_PAUSE_STATUS_CHANGED",
+            "POOL_REGISTERED",
+            "POOL_CHARTER_UPDATED",
+            "POOL_READY",
+            "POOL_OPENED",
+            "POOL_PAUSED",
+            "POOL_RESUMED",
+            "POOL_CLOSED",
+            "POOL_COMPOSTED",
+            "POOL_REOPENED",
+            "CLASS_REGISTERED",
+            "PROVIDER_OPEN_COMMITMENT_CAP_UPDATED",
+            "CYCLE_SEEDED",
+            "CYCLE_OPENED",
+            "CYCLE_CLOSED",
+            "CYCLE_COMPOSTED",
+            "CYCLE_CANCELLED",
+            "CREATED",
+            "CONSIDERATION_DECLARED",
+            "VALUE_DECLARED",
+            "CONFIRMER_RULE_SET",
+            "CLAIM_REQUESTED",
+            "CLAIM_DECLINED",
+            "ACCEPTED",
+            "EXCHANGE_ACCEPTED",
+            "COMMITMENT_SERIES_CREATED",
+            "COMMITMENT_SERIES_METADATA_UPDATED",
+            "COMMITMENT_SERIES_RESTED",
+            "COMMITMENT_SERIES_RESUMED",
+            "COMMITMENT_SERIES_RETIRED",
+            "CONTRIBUTOR_ADDED",
+            "CONTRIBUTOR_REMOVED",
+            "CONTRIBUTOR_REQUIREMENT_ASSIGNED",
+            "CONTRIBUTOR_ROSTER_FROZEN",
+            "WORK_LINKED",
+            "WORK_UNLINKED",
+            "APPROVED_WORK_COUNTED",
+            "APPROVED_WORK_REVERSED",
+            "EVIDENCE_ATTACHED",
+            "ASSESSMENT_ATTACHED",
+            "READY_FOR_CONFIRMATION",
+            "CONFIRMATION_RECORDED",
+            "FULFILLED",
+            "CANCELLED",
+            "EXPIRED",
+            "DISPUTED",
+            "DISPUTE_RESOLVED",
+            "CONSIDERATION_PAID",
+            "UNITS_COMMITTED",
+            "UNITS_RELEASED",
+            "UNITS_FULFILLED",
+            "FUNDING_PLEDGED",
+            "FUNDING_DEPOSIT_RECORDED",
+            "FUNDING_CONSUMED",
+            "FUNDING_WITHDRAWN"
+          ]
+        }
+      ],
       "mappings": [],
-      "source_status": "specified"
+      "source_status": "implemented"
     },
     {
       "id": "commitment-unit-scope",
@@ -2026,13 +2161,19 @@
         "value_scheme": "none",
         "members": ["POOL", "CYCLE"]
       },
-      "planned_anchor": {
-        "file": "packages/indexer/schema.graphql",
-        "symbol": "CommitmentUnitScope"
-      },
-      "representations": [],
+      "representations": [
+        {
+          "id": "indexer",
+          "layer": "indexer",
+          "file": "packages/indexer/schema.graphql",
+          "symbol": "CommitmentUnitScope",
+          "extract": "graphql-enum",
+          "ordered": false,
+          "members": ["POOL", "CYCLE"]
+        }
+      ],
       "mappings": [],
-      "source_status": "specified"
+      "source_status": "implemented"
     },
     {
       "id": "commitment-series-state",
@@ -2052,6 +2193,16 @@
           "extract": "solidity-enum",
           "ordered": true,
           "members": ["None", "Active", "Resting", "Retired"]
+        },
+        {
+          "id": "indexer",
+          "layer": "indexer",
+          "file": "packages/indexer/schema.graphql",
+          "symbol": "CommitmentSeriesState",
+          "extract": "graphql-enum",
+          "ordered": true,
+          "members": ["UNKNOWN", "ACTIVE", "RESTING", "RETIRED"],
+          "note": "UNKNOWN represents the Solidity None sentinel and unexpected values."
         }
       ],
       "mappings": [],
@@ -3242,39 +3393,11 @@
       "note": "Prevents unknown or unrecognized indexer domains from regressing to an implicit Domain.SOLAR fallback."
     },
     {
-      "id": "commitment-provider-exposure-arrival",
-      "file": "packages/indexer/schema.graphql",
-      "pattern": "type\\s+CommitmentProviderExposure\\b",
-      "expect": "absent",
-      "note": "When the CommitmentProviderExposure read model lands, add its canonical ontology entity/mapping in the same change."
-    },
-    {
-      "id": "commitment-unit-summary-arrival",
-      "file": "packages/indexer/schema.graphql",
-      "pattern": "type\\s+CommitmentUnitSummary\\b",
-      "expect": "absent",
-      "note": "When the exact-label CommitmentUnitSummary read model lands, add its canonical ontology entity/mapping in the same change."
-    },
-    {
       "id": "promise-kept-rate-arrival",
       "file": "packages/indexer/schema.graphql",
       "pattern": "\\bpromiseKeptRate\\s*:",
       "expect": "absent",
       "note": "When promiseKeptRate lands, add the commitmentsFulfilled/commitmentsDue metric definition to the ontology in the same change."
-    },
-    {
-      "id": "commitment-series-arrival",
-      "file": "packages/indexer/schema.graphql",
-      "pattern": "type\\s+CommitmentSeries\\b",
-      "expect": "absent",
-      "note": "The spec entity and Solidity-spelled lifecycle are canonical now. When CommitmentSeries lands, add its live indexer/shared representations and the explicit GraphQL uppercase mapping in the same change."
-    },
-    {
-      "id": "commitment-series-cycle-summary-arrival",
-      "file": "packages/indexer/schema.graphql",
-      "pattern": "type\\s+CommitmentSeriesCycleSummary\\b",
-      "expect": "absent",
-      "note": "When the per-cycle series Story summary lands, add its canonical entity mapping and exact count definitions in the same change."
     }
   ],
   "known_issues": [

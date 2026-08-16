@@ -227,6 +227,7 @@
       "version": "1.2.0",
       "dependencies": {
         "envio": "3.2.1",
+        "viem": "2.55.0",
       },
       "devDependencies": {
         "@types/mocha": "^10.0.10",

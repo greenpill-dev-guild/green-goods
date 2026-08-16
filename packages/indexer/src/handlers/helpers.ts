@@ -321,6 +321,9 @@ export function parseHypercertMetadata(metadata: unknown): {
   workScopes?: string[];
   gardenId?: string;
   attestationUIDs?: string[];
+  bundleKind?: "WORK_LEGACY" | "COMMITMENT";
+  commitmentIds?: bigint[];
+  needUIDs?: string[];
 } {
   if (!isRecord(metadata)) return {};
 
@@ -351,6 +354,47 @@ export function parseHypercertMetadata(metadata: unknown): {
     }
   }
 
+  const bundleSource = hidden ?? metadata;
+  const rawBundleKind = getString(bundleSource.bundleKind) ?? getString(metadata.bundleKind);
+  const bundleKind = rawBundleKind === "COMMITMENT" ? "COMMITMENT" : "WORK_LEGACY";
+  const rawCommitmentIds = Array.isArray(bundleSource.commitmentIds)
+    ? bundleSource.commitmentIds
+    : Array.isArray(metadata.commitmentIds)
+      ? metadata.commitmentIds
+      : [];
+  const commitmentIds = [
+    ...new Set(
+      rawCommitmentIds
+        .map((candidate) => {
+          try {
+            return typeof candidate === "bigint"
+              ? candidate
+              : typeof candidate === "number" && Number.isSafeInteger(candidate)
+                ? BigInt(candidate)
+                : typeof candidate === "string" && /^\d+$/.test(candidate)
+                  ? BigInt(candidate)
+                  : undefined;
+          } catch {
+            return undefined;
+          }
+        })
+        .filter((candidate): candidate is bigint => candidate !== undefined && candidate > 0n)
+    ),
+  ].sort((left, right) => (left < right ? -1 : left > right ? 1 : 0));
+  const rawNeedUIDs = Array.isArray(bundleSource.needUIDs)
+    ? bundleSource.needUIDs
+    : Array.isArray(metadata.needUIDs)
+      ? metadata.needUIDs
+      : [];
+  const needUIDs = [
+    ...new Set(
+      rawNeedUIDs
+        .filter((candidate): candidate is string => typeof candidate === "string")
+        .map((candidate) => candidate.toLowerCase())
+        .filter((candidate) => !/^0x0{64}$/i.test(candidate))
+    ),
+  ].sort();
+
   return {
     title,
     description,
@@ -358,6 +402,9 @@ export function parseHypercertMetadata(metadata: unknown): {
     workScopes,
     gardenId,
     attestationUIDs,
+    bundleKind,
+    commitmentIds,
+    needUIDs,
   };
 }
 
@@ -382,6 +429,10 @@ export function createDefaultHypercert(
     claimedUnits: 0n,
     attestationCount: 0,
     attestationUIDs: [],
+    bundleKind: "WORK_LEGACY",
+    commitmentIds: [],
+    commitmentEntityIds: [],
+    needUIDs: [],
     status: "ACTIVE" as HypercertStatus,
     createdAt: timestamp,
     updatedAt: timestamp,
