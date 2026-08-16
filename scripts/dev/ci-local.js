@@ -347,7 +347,7 @@ async function runAbiArtifactCheck() {
   return { ok: problems.length === 0, exitCode: problems.length === 0 ? 0 : 1, details: problems };
 }
 
-export async function runCommandCheck(check, { signal } = {}) {
+export async function runCommandCheck(check, { signal, captureOutput = false } = {}) {
   const start = Date.now();
   if (check.builtin === "abiArtifacts") {
     const result = await runAbiArtifactCheck();
@@ -371,10 +371,21 @@ export async function runCommandCheck(check, { signal } = {}) {
     const child = spawn(check.command, {
       cwd: resolve(projectRoot, check.cwd ?? "."),
       shell: true,
-      stdio: "inherit",
+      // A check running on its own streams live. Checks running concurrently
+      // capture instead, so their logs replay in plan order rather than
+      // interleaving into noise.
+      stdio: captureOutput ? ["ignore", "pipe", "pipe"] : "inherit",
       env: { ...process.env, ...envForCheck(check) },
       detached: process.platform !== "win32",
     });
+    let output = "";
+    if (captureOutput) {
+      const collect = (chunk) => {
+        output += chunk.toString();
+      };
+      child.stdout?.on("data", collect);
+      child.stderr?.on("data", collect);
+    }
     let cancelled = false;
     const abort = () => {
       cancelled = true;
@@ -389,6 +400,7 @@ export async function runCommandCheck(check, { signal } = {}) {
         cancelled,
         exitCode: cancelled ? 130 : (code ?? 1),
         durationSeconds: elapsedSeconds(start),
+        ...(captureOutput ? { output } : {}),
       });
     });
     child.once("error", (error) => {
@@ -412,28 +424,49 @@ export async function executePlan(plan, options = {}) {
   const blocked = [];
   const receiptStore = options.receiptStore ?? new Map();
   const reusePassingReceipts = options.reusePassingReceipts === true;
+  const concurrency = options.concurrency !== false;
 
   if (plan.status === "cancelled" || signal?.aborted) {
     return { status: "cancelled", exitCode: 130, results, blocked };
   }
 
-  for (const check of plan.checks) {
+  const recordPass = (receiptInputs) => {
+    if (!reusePassingReceipts) return;
+    receiptStore.set(receiptInputs.fingerprint, {
+      status: "passed",
+      passedAt: new Date().toISOString(),
+      receiptInputs,
+    });
+  };
+  const reusableReceipt = (check) => {
+    const receiptInputs = buildReceiptInputs(plan, check);
+    const cached = reusePassingReceipts ? receiptStore.get(receiptInputs.fingerprint) : null;
+    const reusable =
+      cached?.status === "passed" &&
+      cached.receiptInputs?.fingerprint === receiptInputs.fingerprint;
+    return { receiptInputs, reusable };
+  };
+  const runnableNow = (check) =>
+    check.state !== "blocked" && !(check.manual && !check.command) && !reusableReceipt(check).reusable;
+
+  let index = 0;
+  while (index < plan.checks.length) {
     if (signal?.aborted) return { status: "cancelled", exitCode: 130, results, blocked };
+    const check = plan.checks[index];
+
     if (check.state === "blocked") {
       blocked.push({ id: check.id, blockedBy: [...check.blockedBy] });
+      index += 1;
       continue;
     }
     if (check.manual && !check.command) {
       blocked.push({ id: check.id, blockedBy: ["manual-proof-required"] });
+      index += 1;
       continue;
     }
 
-    const receiptInputs = buildReceiptInputs(plan, check);
-    const cached = reusePassingReceipts ? receiptStore.get(receiptInputs.fingerprint) : null;
-    if (
-      cached?.status === "passed" &&
-      cached.receiptInputs?.fingerprint === receiptInputs.fingerprint
-    ) {
+    const { receiptInputs, reusable } = reusableReceipt(check);
+    if (reusable) {
       const evidence = {
         id: check.id,
         ok: true,
@@ -444,32 +477,69 @@ export async function executePlan(plan, options = {}) {
       };
       results.push(evidence);
       options.onCheckReuse?.(check, evidence);
+      index += 1;
       continue;
     }
 
-    options.onCheckStart?.(check);
-    const result = await runCheck(check, { signal });
-    const evidence = {
-      id: check.id,
-      ...result,
-      receiptInputs,
-    };
-    results.push(evidence);
-    options.onCheckComplete?.(check, evidence);
+    // Independent package suites declare a concurrency group in the policy and
+    // run together, mirroring the grouping the root `test` script already uses.
+    // Only checks adjacent in plan order join a batch, so execution order and
+    // the stop rule stay exactly as the plan printed them.
+    const batch = [check];
+    if (concurrency && check.concurrencyGroup) {
+      for (let look = index + 1; look < plan.checks.length; look += 1) {
+        const next = plan.checks[look];
+        if (next.concurrencyGroup !== check.concurrencyGroup) break;
+        if (!runnableNow(next)) break;
+        batch.push(next);
+      }
+    }
 
-    if (result.cancelled || signal?.aborted) {
+    if (batch.length === 1) {
+      options.onCheckStart?.(check);
+      const result = await runCheck(check, { signal });
+      const evidence = { id: check.id, ...result, receiptInputs };
+      results.push(evidence);
+      options.onCheckComplete?.(check, evidence);
+
+      if (result.cancelled || signal?.aborted) {
+        return { status: "cancelled", exitCode: 130, results, blocked };
+      }
+      if (!result.ok && failFast) {
+        return { status: "failed", exitCode: result.exitCode || 1, results, blocked };
+      }
+      if (result.ok) recordPass(receiptInputs);
+      index += 1;
+      continue;
+    }
+
+    options.onBatchStart?.(batch);
+    const settled = await Promise.all(
+      batch.map((member) => runCheck(member, { signal, captureOutput: true })),
+    );
+    for (const [position, member] of batch.entries()) {
+      const evidence = {
+        id: member.id,
+        ...settled[position],
+        receiptInputs: buildReceiptInputs(plan, member),
+      };
+      results.push(evidence);
+      options.onCheckComplete?.(member, evidence);
+    }
+
+    // The whole batch is already in flight, so let every member report before
+    // stopping. Fail-fast still prevents anything after the batch from starting.
+    if (settled.some((result) => result.cancelled) || signal?.aborted) {
       return { status: "cancelled", exitCode: 130, results, blocked };
     }
-    if (!result.ok && failFast) {
-      return { status: "failed", exitCode: result.exitCode || 1, results, blocked };
+    const failure = settled.find((result) => !result.ok);
+    if (failure && failFast) {
+      return { status: "failed", exitCode: failure.exitCode || 1, results, blocked };
     }
-    if (result.ok && reusePassingReceipts) {
-      receiptStore.set(receiptInputs.fingerprint, {
-        status: "passed",
-        passedAt: new Date().toISOString(),
-        receiptInputs,
-      });
+    for (const [position, member] of batch.entries()) {
+      if (settled[position].ok) recordPass(buildReceiptInputs(plan, member));
     }
+    index += batch.length;
   }
 
   if (results.some((result) => !result.ok)) return { status: "failed", exitCode: 1, results, blocked };
@@ -588,8 +658,20 @@ async function main() {
     onCheckStart(check) {
       console.log(`\n${colors.blue}Running ${check.id}:${colors.reset} ${check.command ?? check.builtin}`);
     },
+    onBatchStart(batch) {
+      console.log(
+        `\n${colors.blue}Running ${batch.length} checks concurrently:${colors.reset} ${batch
+          .map((check) => check.id)
+          .join(", ")}`,
+      );
+      for (const check of batch) console.log(`  ${check.id}: ${check.command ?? check.builtin}`);
+    },
     onCheckComplete(check, result) {
       const color = result.ok ? colors.green : colors.red;
+      if (result.output) {
+        console.log(`\n${colors.blue}── ${check.id} output ──${colors.reset}`);
+        process.stdout.write(result.output.endsWith("\n") ? result.output : `${result.output}\n`);
+      }
       console.log(
         `${color}${result.ok ? "✓" : "✗"} ${check.id} (${result.durationSeconds ?? 0}s)${colors.reset}`,
       );

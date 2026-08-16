@@ -191,6 +191,7 @@
       "freshness": "exact-inputs-and-toolchain",
       "budgetSeconds": 90,
       "stopRule": "stop-dependent-checks",
+      "concurrencyGroup": "package-tests-core",
       "capabilities": ["dependencies"]
     },
     {
@@ -213,6 +214,7 @@
       "freshness": "exact-inputs-and-toolchain",
       "budgetSeconds": 90,
       "stopRule": "stop-dependent-checks",
+      "concurrencyGroup": "package-tests-surface",
       "capabilities": ["dependencies"]
     },
     {
@@ -235,6 +237,7 @@
       "freshness": "exact-inputs-and-toolchain",
       "budgetSeconds": 180,
       "stopRule": "stop-dependent-checks",
+      "concurrencyGroup": "package-tests-surface",
       "capabilities": ["dependencies"]
     },
     {
@@ -246,6 +249,7 @@
       "freshness": "exact-inputs-and-toolchain",
       "budgetSeconds": 90,
       "stopRule": "stop-dependent-checks",
+      "concurrencyGroup": "package-tests-surface",
       "capabilities": ["dependencies"]
     },
     {
@@ -279,6 +283,7 @@
       "freshness": "exact-inputs-toolchain-and-environment",
       "budgetSeconds": 90,
       "stopRule": "stop-dependent-checks",
+      "concurrencyGroup": "package-tests-surface",
       "capabilities": ["dependencies"]
     },
     {
@@ -355,6 +360,7 @@
       "freshness": "exact-inputs-and-toolchain",
       "budgetSeconds": 45,
       "stopRule": "stop-dependent-checks",
+      "concurrencyGroup": "package-tests-core",
       "capabilities": ["dependencies"]
     },
     {

@@ -180,3 +180,137 @@ test("legacy and selector arguments remain parseable", () => {
   assert.equal(parsed.planJson, true);
   assert.deepEqual(parsed.testPaths.client, ["src/foo.test.tsx"]);
 });
+
+// Independent package suites declare a concurrency group in the policy. Only
+// checks adjacent in plan order may batch, so printed order and the stop rule
+// survive untouched.
+function groupedPlan(specs) {
+  const base = plan(specs.map((spec) => spec.id));
+  base.checks = base.checks.map((check, index) => ({
+    ...check,
+    ...(specs[index].group ? { concurrencyGroup: specs[index].group } : {}),
+    ...(specs[index].blocked ? { state: "blocked", blockedBy: ["toolchain.node"] } : {}),
+  }));
+  return base;
+}
+
+function overlapTracker() {
+  const state = { active: 0, peak: 0, captured: new Map(), order: [] };
+  const runCheck = async (check, options = {}) => {
+    state.order.push(check.id);
+    state.captured.set(check.id, options.captureOutput === true);
+    state.active += 1;
+    state.peak = Math.max(state.peak, state.active);
+    await new Promise((resolve) => setTimeout(resolve, 15));
+    state.active -= 1;
+    return { ok: true, exitCode: 0, durationSeconds: 0.01 };
+  };
+  return { state, runCheck };
+}
+
+test("adjacent checks sharing a concurrency group run together", async () => {
+  const { state, runCheck } = overlapTracker();
+  const result = await executePlan(
+    groupedPlan([
+      { id: "client-test", group: "package-tests-surface" },
+      { id: "admin-test", group: "package-tests-surface" },
+    ]),
+    { runCheck },
+  );
+
+  assert.equal(result.status, "passed");
+  assert.equal(state.peak, 2);
+  assert.equal(state.captured.get("client-test"), true);
+  assert.equal(state.captured.get("admin-test"), true);
+});
+
+test("different groups, ungrouped checks, and blocked members never batch", async () => {
+  for (const specs of [
+    [
+      { id: "shared-test", group: "package-tests-core" },
+      { id: "client-test", group: "package-tests-surface" },
+    ],
+    [{ id: "format" }, { id: "client-test", group: "package-tests-surface" }],
+    [
+      { id: "client-test", group: "package-tests-surface" },
+      { id: "admin-test", group: "package-tests-surface", blocked: true },
+    ],
+  ]) {
+    const { state, runCheck } = overlapTracker();
+    await executePlan(groupedPlan(specs), { runCheck });
+    assert.equal(state.peak, 1, JSON.stringify(specs));
+  }
+});
+
+test("a check running alone still streams instead of capturing", async () => {
+  const { state, runCheck } = overlapTracker();
+  await executePlan(groupedPlan([{ id: "format" }]), { runCheck });
+  assert.equal(state.captured.get("format"), false);
+});
+
+test("a failing batch reports every member and stops the checks after it", async () => {
+  const started = [];
+  const result = await executePlan(
+    groupedPlan([
+      { id: "client-test", group: "package-tests-surface" },
+      { id: "admin-test", group: "package-tests-surface" },
+      { id: "docs-build" },
+    ]),
+    {
+      runCheck: async (check) => {
+        started.push(check.id);
+        const ok = check.id !== "client-test";
+        return { ok, exitCode: ok ? 0 : 3, durationSeconds: 0.01 };
+      },
+    },
+  );
+
+  assert.equal(result.status, "failed");
+  assert.equal(result.exitCode, 3);
+  // both in-flight members report, and nothing after the batch starts
+  assert.deepEqual([...started].sort(), ["admin-test", "client-test"]);
+  assert.deepEqual(
+    result.results.map((entry) => entry.id),
+    ["client-test", "admin-test"],
+  );
+});
+
+test("concurrency can be turned off without changing results", async () => {
+  const { state, runCheck } = overlapTracker();
+  const result = await executePlan(
+    groupedPlan([
+      { id: "client-test", group: "package-tests-surface" },
+      { id: "admin-test", group: "package-tests-surface" },
+    ]),
+    { runCheck, concurrency: false },
+  );
+
+  assert.equal(result.status, "passed");
+  assert.equal(state.peak, 1);
+  assert.deepEqual(state.order, ["client-test", "admin-test"]);
+});
+
+test("a reusable receipt keeps its member out of the batch", async () => {
+  const receiptStore = new Map();
+  const grouped = groupedPlan([
+    { id: "client-test", group: "package-tests-surface" },
+    { id: "admin-test", group: "package-tests-surface" },
+  ]);
+
+  await executePlan(grouped, {
+    reusePassingReceipts: true,
+    receiptStore,
+    runCheck: async () => ({ ok: true, exitCode: 0, durationSeconds: 0.01 }),
+  });
+
+  const { state, runCheck } = overlapTracker();
+  const second = await executePlan(grouped, {
+    reusePassingReceipts: true,
+    receiptStore,
+    runCheck,
+  });
+
+  assert.equal(second.status, "passed");
+  assert.equal(state.peak, 0);
+  assert.ok(second.results.every((entry) => entry.reused === true));
+});
