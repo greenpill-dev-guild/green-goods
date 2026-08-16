@@ -14,8 +14,11 @@
 
 ## Remaining
 
-- Record the clean tested commit SHA after the validation-system files are staged and committed.
+None. The clean tested SHA is `fb835410`.
 
 ## Validation Receipt
 
-Pending. This handoff does not claim merge readiness from a dirty working tree.
+Recorded at `fb835410` with a clean working tree. Live GitHub Actions is green for every expected
+workflow and the selector/CI-Gate/local-runner fixtures pass under the exact pinned toolchain. See
+`qa-pass-2.md` for the local checkpoint's one environment-blocked check and for the post-
+certification cache removal.

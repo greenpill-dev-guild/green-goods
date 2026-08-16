@@ -23,14 +23,14 @@
 
 | Requirement | Lane | Planned Step | Status |
 |---|---|---|---|
-| Machine-readable selector and fixtures | `state_api` | 1 | implemented; terminal receipt pending |
-| CI Gate immediate failure | `contracts` | 2 | implemented; terminal receipt pending |
-| Change-aware fail-fast local runner | `state_api` | 3 | implemented; terminal receipt pending |
-| Toolchain and guidance parity | `ui` | 4 | implemented; terminal receipt pending |
-| Shared setup/cache and CI reporters | `contracts` | 5 | implemented; terminal receipt pending |
-| Changed-impact workflow graph | `contracts` | 6 | implemented; terminal receipt pending |
+| Machine-readable selector and fixtures | `state_api` | 1 | complete; certified at `fb835410` |
+| CI Gate immediate failure | `contracts` | 2 | complete; certified at `fb835410` |
+| Change-aware fail-fast local runner | `state_api` | 3 | complete; certified at `fb835410` |
+| Toolchain and guidance parity | `ui` | 4 | complete; certified at `fb835410` |
+| Shared setup and CI reporters | `contracts` | 5 | complete; dependency cache measured as a net loss and removed |
+| Changed-impact workflow graph | `contracts` | 6 | complete; certified at `fb835410` |
 | Indexer/Admin/Storybook profiling and safe improvements | `state_api` | 7 | partial: Contracts Realism optimized; deeper suite profiling deferred to measured follow-up |
-| Acceptance and timing proof | `qa_pass_1`, `qa_pass_2` | 8 | in progress |
+| Acceptance and timing proof | `qa_pass_1`, `qa_pass_2` | 8 | complete; measured evidence below |
 
 ## TDD / Proof Order
 
@@ -77,3 +77,13 @@ installation or upgrade, workflow rerun, GitHub setting change, deployment, broa
 - The integrated local pass measured Indexer tests at 227.9 seconds and Admin tests at 95.3 seconds;
   these remain the largest local package costs and keep a broad all-surface checkpoint above the
   ordinary three-minute target.
+- Certification run (2026-08-16, `fb835410`): the Bun dependency cache was measured and found to be
+  a net loss (20.7s restore against 14.9s of install saved, on an already-over-quota repository
+  cache) and was removed from `.github/actions/setup-js`. This is the one accepted optimization that
+  the evidence rejected.
+- The local runner executes checks sequentially. `parallel groups` was listed as a passing AC-3
+  behavior but no grouping exists in `scripts/dev/ci-local.js`; the acceptance row has been
+  corrected and the measured opportunity recorded in `eval.md`.
+- `--reuse-passing-receipts` is implemented and fixture-tested but is reachable only as a raw flag:
+  no package script, workflow, or guidance names it, so the receipt-reuse saving is currently
+  undiscoverable in practice.

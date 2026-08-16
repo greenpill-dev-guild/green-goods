@@ -1,5 +1,5 @@
 name: Setup Green Goods JavaScript
-description: Pin Node and Bun, restore Bun's download cache, and install the frozen lockfile
+description: Pin Node and Bun, then install the frozen lockfile
 
 runs:
   using: composite
@@ -14,16 +14,13 @@ runs:
       with:
         bun-version: "1.3.14"
 
-    # Cache only Bun's content-addressed download store. node_modules, generated
-    # files, coverage, and build output are always reconstructed from the lockfile.
-    - name: Cache Bun dependency downloads
-      uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
-      with:
-        path: ~/.bun/install/cache
-        key: bun-js-${{ runner.os }}-${{ runner.arch }}-node-22.22.1-bun-1.3.14-${{ hashFiles('bun.lock') }}
-        restore-keys: |
-          bun-js-${{ runner.os }}-${{ runner.arch }}-node-22.22.1-bun-1.3.14-
-
+    # Deliberately uncached. Measured on this repository (PR #719, run
+    # 31963610888): restoring the ~878 MB Bun download store cost 20.7s
+    # (4s transfer, 16.6s extraction) to make `bun install` 21.8s -> 6.9s,
+    # a net loss of ~6s per job. The store also consumed 1.02 GB of an
+    # already-over-quota 10 GB repository cache, evicting the per-commit
+    # Foundry build caches that do pay for themselves. Reintroduce only with
+    # fresh before/after evidence that restore cost is below install savings.
     - name: Install dependencies from frozen lockfile
       shell: bash
       run: bun install --frozen-lockfile

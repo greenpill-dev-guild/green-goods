@@ -17,21 +17,29 @@ function workflowSources() {
     .map((file) => [file, read(`.github/workflows/${file}`)]);
 }
 
-test("shared JS setup pins the toolchain and caches only Bun downloads", () => {
+test("shared JS setup pins the toolchain and installs from the frozen lockfile", () => {
   const action = read(".github/actions/setup-js/action.yml");
 
   assert.match(action, /node-version:\s*["']22\.22\.1["']/);
   assert.match(action, /bun-version:\s*["']1\.3\.14["']/);
   assert.match(action, /uses:\s*actions\/setup-node@[0-9a-f]{40}/);
   assert.match(action, /uses:\s*oven-sh\/setup-bun@[0-9a-f]{40}/);
-  assert.match(action, /uses:\s*actions\/cache@[0-9a-f]{40}/);
-  assert.match(action, /~\/.bun\/install\/cache/);
-  assert.match(action, /hashFiles\('bun\.lock'\)/);
   assert.match(action, /bun install --frozen-lockfile/);
+});
+
+// Measured regression guard, not a style preference. Restoring the Bun download
+// store cost more than the install it replaced and evicted the Foundry caches
+// that do pay off, so the shared setup stays cacheless until new evidence says
+// otherwise. See the rationale comment in the action itself.
+test("shared JS setup does not restore a dependency cache without fresh evidence", () => {
+  const action = read(".github/actions/setup-js/action.yml");
+
+  assert.doesNotMatch(action, /uses:\s*actions\/cache@/);
+  assert.doesNotMatch(action, /~\/\.bun\/install\/cache/);
   const cachedPaths = [...action.matchAll(/^\s*path:\s*(.+)$/gm)].map(
     (match) => match[1],
   );
-  assert.deepEqual(cachedPaths, ["~/.bun/install/cache"]);
+  assert.deepEqual(cachedPaths, []);
 });
 
 test("dependency-installing workflow jobs use shared JS setup", () => {
