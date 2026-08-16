@@ -541,7 +541,7 @@ describe("HypercertMinter.ClaimStored", () => {
     }
   });
 
-  it("handles non-OK HTTP response gracefully", async () => {
+  it("fails before persistence on a non-OK metadata response so the event can retry", async () => {
     const metadataServer = await serveJson({ error: "not found" }, 404);
 
     try {
@@ -554,13 +554,8 @@ describe("HypercertMinter.ClaimStored", () => {
         mockEventData: mockEvent(CHAIN_ID, 5000, { txHash: txHash(100), logIndex: 1 }),
       });
 
-      const result = await HypercertMinter.ClaimStored.processEvent({ event, mockDb });
-      const hc = await result.Hypercert.get(`${CHAIN_ID}-42`);
-
-      assert.ok(hc);
-      assert.equal(hc.metadataUri, metadataServer.url);
-      assert.equal(hc.totalUnits, 500n);
-      assert.equal(hc.garden, "");
+      await assert.rejects(HypercertMinter.ClaimStored.processEvent({ event, mockDb }));
+      assert.equal(await mockDb.Hypercert.get(`${CHAIN_ID}-42`), undefined);
     } finally {
       await metadataServer.close();
     }
