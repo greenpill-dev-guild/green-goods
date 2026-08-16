@@ -8,7 +8,9 @@
  * Some type assertions are used to work around strict viem typing.
  */
 
+import { readFileSync } from "node:fs";
 import {
+  type Abi,
   encodeAbiParameters,
   getContract,
   type Log,
@@ -17,9 +19,14 @@ import {
   parseAbiParameters,
   type WalletClient,
 } from "viem";
-import GardenAccountABI from "../../packages/contracts/abis/GardenAccount.json";
-import GardenTokenABI from "../../packages/contracts/abis/GardenToken.json";
 import type { AnvilForkContext, DeploymentArtifact, TestAccountWithSigner } from "./anvil-fork";
+
+function loadAbi(relativePath: string): Abi {
+  return JSON.parse(readFileSync(new URL(relativePath, import.meta.url), "utf8")) as Abi;
+}
+
+const GardenAccountABI = loadAbi("../../packages/contracts/abis/GardenAccount.json");
+const GardenTokenABI = loadAbi("../../packages/contracts/abis/GardenToken.json");
 
 // Type helper for log with topics
 type LogWithTopics = Log & { topics: readonly `0x${string}`[] };

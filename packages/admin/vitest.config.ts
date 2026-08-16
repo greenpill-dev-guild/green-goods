@@ -111,14 +111,15 @@ export default defineConfig({
     setupFiles: ["./src/__tests__/setup.ts"],
     exclude: [
       "**/node_modules/**",
-      "src/__tests__/components/WithdrawModal.test.tsx",
     ],
     coverage: {
       provider: "v8",
       reporter: ["text", "json", "html"],
+      include: ["src/**/*.{ts,tsx}"],
       exclude: [
         "node_modules/**",
         "src/__tests__/**",
+        "src/**/*.stories.{ts,tsx}",
         "**/*.d.ts",
         "**/*.config.*",
         "**/index.ts",

@@ -157,7 +157,7 @@ test.describe("Work Submission Flows", () => {
             .catch(() => false);
 
           // Either file input or upload button should be available
-          expect(isFileInputAccessible || isUploadButtonVisible || true).toBeTruthy();
+          expect(isFileInputAccessible || isUploadButtonVisible).toBeTruthy();
           // Note: Actual file upload testing requires a test image file
         }
       }
@@ -313,22 +313,25 @@ test.describe("Work Submission Flows", () => {
         const retryButton = page.getByRole("button", { name: /retry/i });
         if (await retryButton.isVisible({ timeout: 5000 })) {
           await retryButton.click();
-          await page.waitForTimeout(2000);
 
           // Retry should trigger - look for loading state or success
           const loadingIndicator = page.locator(".animate-spin, .loading");
           const successMessage = page.getByText(/retry|processing|syncing|success/i);
 
-          const isLoading = await loadingIndicator
-            .first()
-            .isVisible({ timeout: 2000 })
-            .catch(() => false);
-          const isSuccess = await successMessage.isVisible({ timeout: 3000 }).catch(() => false);
-
-          expect(isLoading || isSuccess || true).toBeTruthy(); // Retry was clicked successfully
+          await expect
+            .poll(async () => {
+              const isLoading = await loadingIndicator
+                .first()
+                .isVisible()
+                .catch(() => false);
+              const isSuccess = await successMessage.isVisible().catch(() => false);
+              const isDisabled = await retryButton.isDisabled().catch(() => false);
+              return isLoading || isSuccess || isDisabled;
+            })
+            .toBe(true);
         } else {
-          // No failed work to retry - test passes
-          expect(true).toBeTruthy();
+          // SKIP: #338 owner:afo expiry:2026-09-15 — requires a failed queued submission fixture
+          test.skip(true, "No failed work is available to exercise retry");
         }
       }
     });
@@ -353,6 +356,16 @@ test.describe("Work Submission Flows", () => {
         if (await actionCard.isVisible({ timeout: 5000 })) {
           await actionCard.click();
           await page.waitForTimeout(500);
+
+          const imageRequirement = page.getByText(
+            /image.*required|photo.*required|required.*image|required.*photo/i
+          );
+          const requiresImage = await imageRequirement
+            .first()
+            .isVisible({ timeout: 2000 })
+            .catch(() => false);
+          // SKIP: #338 owner:afo expiry:2026-09-15 — selected action must declare image evidence
+          test.skip(!requiresImage, "Selected action does not require image evidence");
 
           // Submit without title
           const submitButton = page.getByRole("button", { name: /submit/i });
@@ -426,8 +439,7 @@ test.describe("Work Submission Flows", () => {
               .isVisible({ timeout: 3000 })
               .catch(() => false);
 
-            // Image requirement may vary by action - if no error, images aren't required
-            expect(isImageErrorVisible || true).toBeTruthy();
+            expect(isImageErrorVisible || (await submitButton.isDisabled())).toBeTruthy();
           }
         }
       }
