@@ -402,7 +402,7 @@ const Work: React.FC = () => {
     const action: Action = translatedAction || {
       id: `${chainId}-${actionUID ?? 0}`,
       slug: "",
-      domain: selectedDomain ?? 0,
+      domain: selectedDomain,
       startTime: Date.now(),
       endTime: Date.now(),
       title: intl.formatMessage({ id: "app.action.selected", defaultMessage: "Selected Action" }),

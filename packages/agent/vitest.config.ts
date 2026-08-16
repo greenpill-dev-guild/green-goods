@@ -1,15 +1,20 @@
 import { defineConfig } from "vitest/config";
 import path from "path";
 
+const sqliteIntegration = process.env.AGENT_SQLITE_INTEGRATION === "true";
+
 export default defineConfig({
   test: {
     globals: true,
     environment: "node",
-    setupFiles: ["./src/__tests__/setup.ts"],
-    include: ["src/__tests__/**/*.test.ts"],
+    setupFiles: sqliteIntegration ? [] : ["./src/__tests__/setup.ts"],
+    include: sqliteIntegration
+      ? ["src/__tests__/storage.sqlite.test.ts"]
+      : ["src/__tests__/**/*.test.ts"],
     exclude: [
       "node_modules/",
       "**/*.test.skip.ts",
+      ...(sqliteIntegration ? [] : ["**/*.sqlite.test.ts"]),
     ],
     // Set test environment variables at config level
     env: {
@@ -18,8 +23,9 @@ export default defineConfig({
       TELEGRAM_BOT_TOKEN: "123456:ABC-TEST-TOKEN",
       VITE_RPC_URL_11155111: "http://localhost:3009",
     },
-    // Run tests sequentially to avoid env variable issues
-    fileParallelism: false,
+    // Each unit-test file runs in an isolated worker. The real SQLite lane stays
+    // serial so it owns one on-disk database lifecycle at a time.
+    fileParallelism: !sqliteIntegration,
     coverage: {
       provider: "v8",
       reporter: ["text", "json", "html"],

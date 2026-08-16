@@ -34,11 +34,16 @@ interface DeploymentData {
   gardensModule?: string;
   yieldSplitter?: string;
   cookieJarModule?: string;
+  cookieJarFactory?: string;
   hypercertMinter?: string;
   marketplaceAdapter?: string;
   unifiedPowerRegistry?: string;
   greenGoodsENS?: string;
   greenWill?: string;
+  commitmentPoolingModule?: string;
+  commitmentRegistry?: string;
+  settlementModule?: string;
+  celoSettlementExecutor?: string;
   [key: string]: string | undefined;
 }
 
@@ -70,9 +75,15 @@ const INDEXER_MANAGED_CONTRACT_ORDER = [
   "UnifiedPowerRegistry",
   "GreenGoodsENS",
   "GreenWill",
+  "CookieJarFactory",
+  "CommitmentPoolingModule",
+  "CommitmentRegistry",
+  "SettlementModule",
+  "CeloSettlementExecutor",
 ] as const;
 
-const INDEXER_MANAGED_CONTRACTS = new Set<string>(INDEXER_MANAGED_CONTRACT_ORDER);
+const CELO_CHAIN_ID = 42220;
+const CELO_INDEXER_MANAGED_CONTRACT_ORDER = ["CeloSettlementExecutor"] as const;
 
 /**
  * Contracts Envio discovers at runtime through `indexer.contractRegister`. Their config entries
@@ -108,6 +119,9 @@ export function applyDeploymentToEnvioChains({
   const nextChains = [...chains];
   const chainIndex = nextChains.findIndex((chain) => chain.id === chainId);
   const existingChain = chainIndex >= 0 ? nextChains[chainIndex] : undefined;
+  const managedContractOrder =
+    chainId === CELO_CHAIN_ID ? CELO_INDEXER_MANAGED_CONTRACT_ORDER : INDEXER_MANAGED_CONTRACT_ORDER;
+  const managedContracts = new Set<string>(managedContractOrder);
 
   // Never move an already-configured start block: rewinding it would force a full replay,
   // and advancing it would silently skip history.
@@ -115,7 +129,7 @@ export function applyDeploymentToEnvioChains({
 
   const contractsByName = new Map<string, EnvioContract>();
   for (const contract of existingChain?.contracts ?? []) {
-    if (!INDEXER_MANAGED_CONTRACTS.has(contract.name)) continue;
+    if (!managedContracts.has(contract.name)) continue;
     // Preserve address-less dynamic entries verbatim; String(undefined) would write "undefined".
     contractsByName.set(
       contract.name,
@@ -135,7 +149,9 @@ export function applyDeploymentToEnvioChains({
   // configured chain would omit OctantVault entirely, so OctantModule.VaultCreated would have
   // nothing to register against and vault events would never be indexed on that chain.
   for (const name of DYNAMICALLY_REGISTERED_CONTRACTS) {
-    if (!contractsByName.has(name)) contractsByName.set(name, { name });
+    if (managedContracts.has(name) && !contractsByName.has(name)) {
+      contractsByName.set(name, { name });
+    }
   }
 
   upsertContract("ActionRegistry", deployment.actionRegistry);
@@ -151,6 +167,11 @@ export function applyDeploymentToEnvioChains({
   upsertContract("UnifiedPowerRegistry", deployment.unifiedPowerRegistry);
   upsertContract("GreenGoodsENS", deployment.greenGoodsENS);
   upsertContract("GreenWill", deployment.greenWill);
+  upsertContract("CookieJarFactory", deployment.cookieJarFactory);
+  upsertContract("CommitmentPoolingModule", deployment.commitmentPoolingModule);
+  upsertContract("CommitmentRegistry", deployment.commitmentRegistry);
+  upsertContract("SettlementModule", deployment.settlementModule);
+  upsertContract("CeloSettlementExecutor", deployment.celoSettlementExecutor);
   // Some contracts may be absent in deployment JSON for specific chains.
   // In that case, we preserve existing config entries (including placeholders).
   upsertContract("YieldSplitter", deployment.yieldSplitter);
@@ -159,7 +180,7 @@ export function applyDeploymentToEnvioChains({
   // EAS attestation data is queried from EAS GraphQL (easscan.org), not indexed by Envio.
 
   const orderedContracts: EnvioContract[] = [];
-  for (const name of INDEXER_MANAGED_CONTRACT_ORDER) {
+  for (const name of managedContractOrder) {
     const contract = contractsByName.get(name);
     if (contract) orderedContracts.push(contract);
   }

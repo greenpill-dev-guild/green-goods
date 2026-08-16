@@ -35,6 +35,134 @@ async function seedProtocolGarden(protocolGarden: string) {
 }
 
 describe("SettlementModule read model", () => {
+  it("converges funding facts delivered before the pledge and links one Refund child", async () => {
+    let mockDb = createTestIndexer();
+    const fundingId = 4n;
+    const commitmentId = 88n;
+    const funder = addr(6);
+    const refundId = 45n;
+    const refund = SettlementModule.DisbursementQueued.createMockEvent({
+      disbursementId: refundId,
+      commitmentId,
+      garden: addr(2),
+      payoutPlanId: 0n,
+      contributor: funder,
+      executorGarden: addr(2),
+      kind: 4n,
+      fundingRoute: 0n,
+      source: addr(4),
+      recipient: addr(8),
+      token: addr(91),
+      amount: 500n,
+      mockEventData: mockEvent(2),
+    });
+    const deposit = SettlementModule.FundingDepositRecorded.createMockEvent({
+      fundingId,
+      depositReference: txHash(77),
+      amount: 500n,
+      recordedBy: addr(7),
+      mockEventData: mockEvent(3),
+    });
+    const pledge = SettlementModule.FundingPledged.createMockEvent({
+      fundingId,
+      commitmentId,
+      funder,
+      garden: addr(2),
+      refundAccount: addr(8),
+      expectedAmount: 500n,
+      recordedBy: addr(7),
+      mockEventData: mockEvent(1),
+    });
+    mockDb = await SettlementModule.DisbursementQueued.processEvent({ event: refund, mockDb });
+    mockDb = await SettlementModule.DisbursementQueued.processEvent({ event: refund, mockDb });
+    mockDb = await SettlementModule.FundingDepositRecorded.processEvent({ event: deposit, mockDb });
+    mockDb = await SettlementModule.FundingPledged.processEvent({ event: pledge, mockDb });
+    mockDb = await SettlementModule.FundingPledged.processEvent({ event: pledge, mockDb });
+
+    let funding = await mockDb.CommitmentFunding.get(`${CHAIN_ID}-${fundingId}`);
+    const fundingIndex = await mockDb.CommitmentFundingIndex.get(
+      `${CHAIN_ID}-${commitmentId}-${funder.toLowerCase()}`
+    );
+    const refundRow = await mockDb.Disbursement.get(`${CHAIN_ID}-${refundId}`);
+    assert.ok(funding);
+    assert.equal(funding.pledgeSeen, true);
+    assert.equal(funding.depositReference, txHash(77));
+    assert.equal(funding.state, "REFUND_QUEUED");
+    assert.equal(funding.refundDisbursementId, refundId);
+    assert.equal(fundingIndex?.fundingId, fundingId);
+    assert.equal(refundRow?.fundingId, fundingId);
+
+    const acknowledgment = SettlementModule.SettlementAcknowledged.createMockEvent({
+      executionKey: txHash(80),
+      acknowledgmentMessageId: txHash(81),
+      originatingCommandMessageId: txHash(82),
+      isBatch: false,
+      subjectId: refundId,
+      success: true,
+      failureCode: 0n,
+      mockEventData: mockEvent(4),
+    });
+    mockDb = await SettlementModule.SettlementAcknowledged.processEvent({
+      event: acknowledgment,
+      mockDb,
+    });
+    funding = await mockDb.CommitmentFunding.get(`${CHAIN_ID}-${fundingId}`);
+    assert.equal(funding?.state, "REFUNDED");
+    assert.equal(funding?.closedAt, 4);
+  });
+
+  it("reconciles an acknowledged Refund that arrives before its funding pledge", async () => {
+    let mockDb = createTestIndexer();
+    const fundingId = 5n;
+    const commitmentId = 89n;
+    const funder = addr(9);
+    const refundId = 46n;
+    const refund = SettlementModule.DisbursementQueued.createMockEvent({
+      disbursementId: refundId,
+      commitmentId,
+      garden: addr(2),
+      payoutPlanId: 0n,
+      contributor: funder,
+      executorGarden: addr(2),
+      kind: 4n,
+      fundingRoute: 0n,
+      source: addr(4),
+      recipient: addr(8),
+      token: addr(91),
+      amount: 500n,
+      mockEventData: mockEvent(5),
+    });
+    const acknowledgment = SettlementModule.SettlementAcknowledged.createMockEvent({
+      executionKey: txHash(83),
+      acknowledgmentMessageId: txHash(84),
+      originatingCommandMessageId: txHash(85),
+      isBatch: false,
+      subjectId: refundId,
+      success: true,
+      failureCode: 0n,
+      mockEventData: mockEvent(6),
+    });
+    const pledge = SettlementModule.FundingPledged.createMockEvent({
+      fundingId,
+      commitmentId,
+      funder,
+      garden: addr(2),
+      refundAccount: addr(8),
+      expectedAmount: 500n,
+      recordedBy: addr(7),
+      mockEventData: mockEvent(4),
+    });
+    mockDb = await SettlementModule.DisbursementQueued.processEvent({ event: refund, mockDb });
+    mockDb = await SettlementModule.SettlementAcknowledged.processEvent({
+      event: acknowledgment,
+      mockDb,
+    });
+    mockDb = await SettlementModule.FundingPledged.processEvent({ event: pledge, mockDb });
+    const funding = await mockDb.CommitmentFunding.get(`${CHAIN_ID}-${fundingId}`);
+    assert.ok(funding);
+    assert.equal(funding.state, "REFUNDED");
+    assert.equal(funding.closedAt, 6);
+  });
   it("reconciles settlement flow when the protocol configuration arrives after the plan", async () => {
     const protocolGarden = addr(1);
     const providerGarden = addr(2);

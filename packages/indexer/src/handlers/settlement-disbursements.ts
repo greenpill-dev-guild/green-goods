@@ -12,13 +12,16 @@ import {
   settlementCommandIndexId,
   settlementSubjectId,
 } from "./settlement-projections";
+import { fundingIndexId, poolingEntityId } from "./commitment-pool-projections";
 import { normalizeAddress } from "./shared";
+import { linkPayoutPlanToCommitment } from "./settlement-funding-reconciliation";
 
 indexer.onEvent(
   { contract: "SettlementModule", event: "DisbursementQueued" },
   async ({ event, context }) => {
     const kind = disbursementKind(event.params.kind);
     const entityId = disbursementId(event.chainId, event.params.disbursementId);
+    if (await context.Disbursement.get(entityId)) return;
     const planEntityId =
       event.params.payoutPlanId === 0n
         ? undefined
@@ -27,6 +30,13 @@ indexer.onEvent(
     const garden = normalizeAddress(event.params.garden);
     const executorGarden = normalizeAddress(event.params.executorGarden);
     const contributor = optionalAddress(event.params.contributor);
+    const commitmentId = event.params.commitmentId === 0n ? undefined : event.params.commitmentId;
+    const fundingIndex =
+      kind === "REFUND" && commitmentId !== undefined && contributor !== undefined
+        ? await context.CommitmentFundingIndex.get(
+            fundingIndexId(event.chainId, commitmentId, contributor)
+          )
+        : undefined;
     const membership = await context.SettlementBatchMembership.get(entityId);
     const loanRelationship = await context.LoanPrincipalRelationship.get(entityId);
     let entity: Disbursement = {
@@ -37,7 +47,7 @@ indexer.onEvent(
       gardenId: garden,
       executorGarden,
       executorGardenId: executorGarden,
-      commitmentId: event.params.commitmentId === 0n ? undefined : event.params.commitmentId,
+      commitmentId,
       commitmentEntityId:
         event.params.commitmentId === 0n
           ? undefined
@@ -46,6 +56,8 @@ indexer.onEvent(
       payoutPlanEntityId: planEntityId,
       contributor,
       contributorEntityId: contributor,
+      fundingId: fundingIndex?.fundingId,
+      fundingEntityId: fundingIndex?.fundingEntityId,
       creditRegistry: loanRelationship?.creditRegistry,
       loanId: loanRelationship?.loanId,
       settlementFlow: plan?.settlementFlow,
@@ -81,6 +93,39 @@ indexer.onEvent(
     if (subject) entity = applySubjectStateToDisbursement(entity, subject);
     context.Disbursement.set(entity);
 
+    if (kind === "REFUND" && commitmentId !== undefined && contributor !== undefined) {
+      const indexId = fundingIndexId(event.chainId, commitmentId, contributor);
+      const retainedRefundId = fundingIndex?.refundDisbursementId ?? event.params.disbursementId;
+      const retainedRefundEntityId = fundingIndex?.refundDisbursementEntityId ?? entityId;
+      context.CommitmentFundingIndex.set({
+        id: indexId,
+        chainId: event.chainId,
+        commitmentId,
+        commitmentEntityId: poolingEntityId(event.chainId, commitmentId),
+        funder: contributor,
+        fundingId: fundingIndex?.fundingId,
+        fundingEntityId: fundingIndex?.fundingEntityId,
+        refundDisbursementId: retainedRefundId,
+        refundDisbursementEntityId: retainedRefundEntityId,
+        updatedAt: Math.max(fundingIndex?.updatedAt ?? 0, event.block.timestamp),
+      });
+      if (fundingIndex?.fundingEntityId) {
+        const funding = await context.CommitmentFunding.get(fundingIndex.fundingEntityId);
+        if (funding) {
+          const refunded = entity.state === "CONFIRMED";
+          context.CommitmentFunding.set({
+            ...funding,
+            refundDisbursementId: funding.refundDisbursementId ?? retainedRefundId,
+            refundDisbursementEntityId:
+              funding.refundDisbursementEntityId ?? retainedRefundEntityId,
+            state: funding.state === "REFUNDED" || refunded ? "REFUNDED" : "REFUND_QUEUED",
+            closedAt: refunded ? (entity.confirmedAt ?? entity.updatedAt) : funding.closedAt,
+            updatedAt: Math.max(funding.updatedAt, event.block.timestamp),
+          });
+        }
+      }
+    }
+
     if (plan && contributor) {
       const contributorEntityId = contributorPayoutId(
         event.chainId,
@@ -113,10 +158,12 @@ indexer.onEvent(
         disbursementEntityIds: [...plan.disbursementEntityIds, entityId],
         updatedAt: event.block.timestamp,
       };
-      context.CommitmentPayoutPlan.set({
+      const updatedPlan = {
         ...nextBase,
         status: payoutStatus(nextBase),
-      });
+      };
+      context.CommitmentPayoutPlan.set(updatedPlan);
+      await linkPayoutPlanToCommitment(context, updatedPlan);
     }
   }
 );

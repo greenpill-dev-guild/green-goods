@@ -1,44 +1,20 @@
 /**
- * Storage Tests
+ * Fast Storage Unit Tests
  *
- * Tests for the SQLite storage with real database operations.
+ * Exercises storage behavior against the suite's in-memory bun:sqlite emulator.
+ * Real SQLite lifecycle and constraint coverage lives in storage.sqlite.test.ts.
  */
 
-import fs from "fs";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-// We'll use direct DB access instead of the adapter pattern
 import { closeDB, getDB, initDB } from "../services/db";
 import type { CreateUserInput, NewChatMessageInput, Session, WorkDraftData } from "../types";
 
-// Test database path
-const TEST_DB_DIR = "data/test";
-const TEST_DB_PATH = `${TEST_DB_DIR}/test-storage-vitest-${process.pid}-${Date.now()}.db`;
-
 beforeAll(() => {
-  // Ensure test directory exists
-  if (!fs.existsSync(TEST_DB_DIR)) {
-    fs.mkdirSync(TEST_DB_DIR, { recursive: true });
-  }
-
-  // Remove old test database
-  if (fs.existsSync(TEST_DB_PATH)) {
-    fs.unlinkSync(TEST_DB_PATH);
-  }
-
-  // Initialize DB
-  initDB(TEST_DB_PATH);
+  initDB("unit-storage.db");
 });
 
 afterAll(async () => {
   await closeDB();
-
-  // Remove main database and companion WAL/SHM files
-  const filesToRemove = [TEST_DB_PATH, `${TEST_DB_PATH}-wal`, `${TEST_DB_PATH}-shm`];
-  for (const file of filesToRemove) {
-    if (fs.existsSync(file)) {
-      fs.unlinkSync(file);
-    }
-  }
 });
 
 // ============================================================================

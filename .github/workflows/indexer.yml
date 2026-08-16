@@ -61,16 +61,9 @@ jobs:
         working-directory: packages/indexer
         run: bun run codegen
 
-      - name: Run indexer tests
-        working-directory: packages/indexer
-        run: bun run test
-        env:
-          CI: true
-
-      - name: Generate coverage report
+      - name: Run indexer tests with coverage
         working-directory: packages/indexer
         run: bun run test:coverage
-        continue-on-error: true
         env:
           CI: true
 
@@ -104,10 +97,6 @@ jobs:
       - name: Check indexing boundary
         working-directory: packages/indexer
         run: bun run check:indexing-boundary
-
-      - name: Generate indexer code
-        working-directory: packages/indexer
-        run: bun run codegen
 
       - name: Run indexer lint
         working-directory: packages/indexer

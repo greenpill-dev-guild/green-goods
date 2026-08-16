@@ -8,7 +8,7 @@
  * admin to respond, runs Playwright, and stops the stack on exit.
  *
  * Usage:
- *   node scripts/dev/test-e2e.js          # all Playwright tests
+ *   node scripts/dev/test-e2e.js          # each desktop spec once
  *   node scripts/dev/test-e2e.js smoke    # smoke specs only
  */
 
@@ -104,6 +104,10 @@ async function main() {
   devProcess = spawn("bun", ["run", "dev:web"], {
     stdio: ["ignore", "pipe", "pipe"],
     detached: false,
+    env: {
+      ...process.env,
+      VITE_ENABLE_SW_DEV: "true",
+    },
   });
   devProcess.stdout.pipe(logStream);
   devProcess.stderr.pipe(logStream);
@@ -135,15 +139,24 @@ async function main() {
   log.step("Running Playwright tests...");
   console.log("");
 
+  // The config retains focused/mobile/integration projects for explicit runs.
+  // The root wrapper selects non-overlapping desktop projects so its default
+  // does not execute the same smoke and CI specs across several projects.
   const testArgs =
     testMode === "smoke"
       ? [
           "test",
           "tests/specs/client.smoke.spec.ts",
           "tests/specs/admin.smoke.spec.ts",
-          "--project=chromium",
+          "--project=client-ci",
+          "--project=admin-ci",
         ]
-      : ["test"];
+      : [
+          "test",
+          "--project=client-full",
+          "--project=chromium",
+          "--project=performance",
+        ];
 
   // Invoke Playwright via system Node directly. Going through `npx playwright`
   // resolves Node via the parent's PATH, which `bun run` populates with a

@@ -34,11 +34,13 @@ export default defineConfig({
     coverage: {
       provider: "v8",
       reporter: ["text", "html", "json"],
+      include: ["src/**/*.{ts,tsx}"],
       exclude: [
-        "node_modules/",
-        "src/__tests__/",
-        "src/__mocks__/",
-        "src/test-utils/",
+        "node_modules/**",
+        "src/__tests__/**",
+        "src/__mocks__/**",
+        "src/test-utils/**",
+        "src/**/*.stories.{ts,tsx}",
         "**/*.d.ts",
         "**/*.config.*",
         "**/dist/**",

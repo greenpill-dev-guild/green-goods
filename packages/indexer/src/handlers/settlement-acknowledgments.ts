@@ -10,8 +10,19 @@ import {
   settlementSubjectId,
 } from "./settlement-projections";
 import { normalizeAddress } from "./shared";
+import { linkPayoutPlanToCommitment } from "./settlement-funding-reconciliation";
 
 const SOURCE_STRANDED_FAILURE_CODE = 12;
+
+function acknowledgmentWins(
+  attempt: number,
+  nextState: "CONFIRMED" | "FAILED",
+  currentAttempt: number,
+  currentState: Disbursement["state"]
+): boolean {
+  if (attempt !== currentAttempt) return attempt > currentAttempt;
+  return currentState !== "CONFIRMED" || nextState === "CONFIRMED";
+}
 
 indexer.onEvent(
   { contract: "SettlementModule", event: "SettlementAcknowledged" },
@@ -31,22 +42,27 @@ indexer.onEvent(
       context.SettlementConfiguration.get(configurationId(event.chainId)),
     ]);
     const attempt = commandIndex?.attempt ?? currentSubject?.attempt ?? 0;
-    context.SettlementSubjectState.set({
-      id: subjectEntityId,
-      chainId: event.chainId,
-      isBatch: event.params.isBatch,
-      subjectId: event.params.subjectId,
-      state: nextState,
-      attempt,
-      executionKey,
-      commandMessageId: originatingCommandMessageId,
-      acknowledgmentMessageId,
-      failureCode: Number(event.params.failureCode),
-      dispatchedAt: currentSubject?.dispatchedAt,
-      confirmedAt: event.params.success ? event.block.timestamp : undefined,
-      reasonCID: currentSubject?.reasonCID,
-      updatedAt: event.block.timestamp,
-    });
+    if (
+      !currentSubject ||
+      acknowledgmentWins(attempt, nextState, currentSubject.attempt, currentSubject.state)
+    ) {
+      context.SettlementSubjectState.set({
+        id: subjectEntityId,
+        chainId: event.chainId,
+        isBatch: event.params.isBatch,
+        subjectId: event.params.subjectId,
+        state: nextState,
+        attempt,
+        executionKey,
+        commandMessageId: originatingCommandMessageId,
+        acknowledgmentMessageId,
+        failureCode: Number(event.params.failureCode),
+        dispatchedAt: currentSubject?.dispatchedAt,
+        confirmedAt: event.params.success ? event.block.timestamp : undefined,
+        reasonCID: currentSubject?.reasonCID,
+        updatedAt: Math.max(currentSubject?.updatedAt ?? 0, event.block.timestamp),
+      });
+    }
     if (commandIndex) {
       context.SettlementCommandIndex.set({
         ...commandIndex,
@@ -86,7 +102,8 @@ indexer.onEvent(
     }
 
     const planDeltas = new Map<string, { confirmed: number; failed: number }>();
-    const updateChild = (existing: Disbursement) => {
+    const updateChild = async (existing: Disbursement) => {
+      if (!acknowledgmentWins(attempt, nextState, existing.attempt, existing.state)) return;
       const current = planDeltas.get(existing.payoutPlanEntityId ?? "") ?? {
         confirmed: 0,
         failed: 0,
@@ -108,13 +125,24 @@ indexer.onEvent(
         confirmedAt: event.params.success ? event.block.timestamp : undefined,
         updatedAt: event.block.timestamp,
       });
+      if (existing.kind === "REFUND" && existing.fundingEntityId) {
+        const funding = await context.CommitmentFunding.get(existing.fundingEntityId);
+        if (funding) {
+          context.CommitmentFunding.set({
+            ...funding,
+            state: event.params.success ? "REFUNDED" : "REFUND_QUEUED",
+            closedAt: event.params.success ? event.block.timestamp : funding.closedAt,
+            updatedAt: Math.max(funding.updatedAt, event.block.timestamp),
+          });
+        }
+      }
     };
 
     if (event.params.isBatch) {
       const batch = await context.SettlementBatch.get(
         settlementBatchId(event.chainId, event.params.subjectId)
       );
-      if (batch) {
+      if (batch && acknowledgmentWins(attempt, nextState, batch.attempt, batch.state)) {
         context.SettlementBatch.set({
           ...batch,
           state: nextState,
@@ -128,14 +156,14 @@ indexer.onEvent(
         });
         for (const childEntityId of batch.disbursementEntityIds) {
           const child = await context.Disbursement.get(childEntityId);
-          if (child) updateChild(child);
+          if (child) await updateChild(child);
         }
       }
     } else {
       const child = await context.Disbursement.get(
         disbursementId(event.chainId, event.params.subjectId)
       );
-      if (child) updateChild(child);
+      if (child) await updateChild(child);
     }
 
     for (const [planEntityId, delta] of planDeltas) {
@@ -147,10 +175,12 @@ indexer.onEvent(
         failedPayoutCount: Math.max(0, plan.failedPayoutCount + delta.failed),
         updatedAt: event.block.timestamp,
       };
-      context.CommitmentPayoutPlan.set({
+      const updatedPlan = {
         ...updatedPlanBase,
         status: payoutStatus(updatedPlanBase),
-      });
+      };
+      context.CommitmentPayoutPlan.set(updatedPlan);
+      await linkPayoutPlanToCommitment(context, updatedPlan);
     }
   }
 );

@@ -43,14 +43,14 @@ const DOMAIN_MAP: Record<string, number> = {
   waste: 3,
 };
 
-function assessmentTypeToDomain(assessmentType: string): number {
+function assessmentTypeToDomain(assessmentType: string): number | null {
   const lower = assessmentType.toLowerCase();
   // Support both "solar" and "domain-0" formats
   if (lower.startsWith("domain-")) {
     const num = Number.parseInt(lower.replace("domain-", ""), 10);
-    return num >= 0 && num <= 3 ? num : 0;
+    return Number.isInteger(num) && num >= 0 && num <= 3 ? num : null;
   }
-  return DOMAIN_MAP[lower] ?? 0;
+  return DOMAIN_MAP[lower] ?? null;
 }
 
 export interface UseCreateAssessmentWorkflowOptions {
@@ -145,6 +145,16 @@ export function useCreateAssessmentWorkflow(options: UseCreateAssessmentWorkflow
               }
 
               await ensureAppKitWalletChain(currentChainId);
+
+              // Resolve the on-chain domain before any IPFS upload so an
+              // unrecognized assessment type fails before user data is
+              // published to IPFS without an attestation referencing it.
+              const domain = params.domain ?? assessmentTypeToDomain(params.assessmentType);
+              if (domain === null) {
+                throw new Error(
+                  `Unrecognized assessment domain "${params.assessmentType}" — refusing to encode a fabricated domain`
+                );
+              }
 
               trackAdminAssessmentCreateStarted({
                 gardenId: params.gardenId,
@@ -261,8 +271,8 @@ export function useCreateAssessmentWorkflow(options: UseCreateAssessmentWorkflow
                 const configUpload = await uploadJSONToIPFS(assessmentConfig);
                 const assessmentConfigCID = configUpload.cid;
 
-                // Map assessmentType to domain enum (0=SOLAR, 1=AGRO, 2=EDU, 3=WASTE)
-                const domain = params.domain ?? assessmentTypeToDomain(params.assessmentType);
+                // Domain (0=SOLAR, 1=AGRO, 2=EDU, 3=WASTE) was resolved and
+                // validated at the top of the mutation, before any upload.
 
                 const toUnixSeconds = (value?: string | number | null) => {
                   if (!value) return 0;

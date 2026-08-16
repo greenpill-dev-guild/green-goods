@@ -1,9 +1,9 @@
 import type { Meta, StoryObj } from "@storybook/react";
+import type { AccountSheetTab } from "@green-goods/shared";
 import { useState } from "react";
 import { STORYBOOK_ADMIN_SHELL_SEEDS } from "../../../../shared/.storybook/adminFixtures";
 import { withAdminIdentity, withSeededQueryClient } from "../../../../shared/.storybook/decorators";
 import { AccountSurface } from "./AccountSurface";
-import type { AccountSheetTab } from "./accountSheet.events";
 
 interface AccountSurfaceStoryArgs {
   initialTab: AccountSheetTab;

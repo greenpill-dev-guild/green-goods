@@ -66,6 +66,7 @@ const RETIRED_PATTERNS = [
 ];
 
 const LINK_RE = /\]\(([^)#\s]+?\.mdx?)(#[^)]*)?\)/g;
+const ROOT_CODE_PATH_RE = /`((?:docs|packages|scripts|\.claude)\/[^`\s]+?\.mdx?)`/g;
 const RUN_RES = [
   /`bun run (?!-)([a-z0-9:._-]+)[^`]*`/g,
   /(?:^|\n)\s*(?:bun|npm) run (?!-)([a-z0-9:._-]+)/g,
@@ -121,6 +122,15 @@ export function findUntaggedFenceOpenings(text, relativePath, changedLines) {
     if (!match[2].trim() && (!changedLines || changedLines.has(index + 1))) {
       failures.push(`${relativePath}:${index + 1}: fenced code block is missing a language tag`);
     }
+  }
+  return failures;
+}
+
+export function findBrokenRootCodePaths(text, relativePath, exists) {
+  const failures = [];
+  for (const match of text.matchAll(ROOT_CODE_PATH_RE)) {
+    if (/[?*<>]/.test(match[1])) continue;
+    if (!exists(match[1])) failures.push(`${relativePath}: broken code path -> ${match[1]}`);
   }
   return failures;
 }
@@ -395,6 +405,11 @@ function main() {
       const resolved = path.normalize(path.join(path.dirname(file), target));
       if (!fs.existsSync(resolved)) failures.push(`${relativePath}: broken link -> ${target}`);
     }
+    failures.push(
+      ...findBrokenRootCodePaths(text, relativePath, (target) =>
+        fs.existsSync(path.join(repoRoot, target))
+      )
+    );
 
     const seenScripts = new Set();
     for (const regex of RUN_RES) {

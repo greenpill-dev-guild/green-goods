@@ -343,8 +343,8 @@ Jobs sync automatically on:
 
 Read these docs pages when you need user journey context or error diagnostics:
 
-- Gardener common errors (error-to-fix lookup): `docs/docs/gardener/common-errors.mdx`
-- Evidence capture workflow: `docs/docs/gardener/capture-evidence.mdx`
-- Work submission flow: `docs/docs/gardener/submit-work.mdx`
-- Gardener getting started: `docs/docs/gardener/getting-started.mdx`
-- Impact model and action domains: `docs/docs/concepts/impact-model.mdx`
+- Gardener common errors (error-to-fix lookup): `docs/docs/community/gardener-guide/common-errors.mdx`
+- Evidence capture workflow: `docs/docs/community/gardener-guide/uploading-your-work.mdx`
+- Work submission flow: `docs/docs/community/gardener-guide/uploading-your-work.mdx`
+- Gardener getting started: `docs/docs/community/gardener-guide/index.mdx`
+- Impact model and action domains: `docs/docs/community/how-it-works.mdx`

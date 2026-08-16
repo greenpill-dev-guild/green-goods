@@ -127,7 +127,7 @@
     "Staged Commitment Pooling narrative lock 2026-08-01 (plan Decision Log #40 / register #74, amended 2026-08-02): commitment coordination names the first functional layer, never a replacement product. The August initial-deploy architecture now includes module-native internal series for Offers used over time and honest Offer capacity; rotation and reserve framing remain app/read-model work; succession, garden-to-garden routing, transferable exchange execution, relative-pricing enforcement, and protocol-consumed standing remain later-roadmap seams.",
     "Bilateral-exchange amendment 2026-08-01 (plan Decision Log #41 / register #75, accounting effects amended by #82): Offer-by-Offer acceptance is atomic and emits two ordinary CommitmentAccepted events, one creator-lead ContributorAdded event per side, plus the marker. Both exact-label classes and provider slots are already committed from Offer creation, so acceptExchange performs no second registry commit, slot increment, or provider-cap headroom check. Later cap reductions constrain only new reservations. It creates no lifecycle coupling after acceptance. Multilateral and transferable exchange remains reserved.",
     "Review hardening 2026-08-03 supersedes narrower exchange/root/index-ID wording in lane acceptance strings: Offer B may enter atomic exchange only through its direct creator, never StewardCaptured/onBehalfOf; createCommitment atomically revalidates A as an Offered Individual same-pool distinct-creator Offer with its exact reservation before any B mutation; each CommitmentAccepted sweep supersedes all other Pending request rows even without a matching accepted request. CommitmentPoolingModule initializes with a non-zero canonical rootGarden, wrong-root Protocol registration fails before any pool/protocol ID write, and the storage target is 38 named plus __gap[12], including sender-safe Commitment and Work-link replay identities. The initial indexer permits exactly one canonical UUPS pooling module/register proxy pair per chain; duplicate/replacement blocks require a future versioned namespace and full-replay migration. Saved Offer moduleAddress is fail-closed link identity, not multi-module indexing authorization.",
-    "Architecture closure 2026-08-03 is governed by architecture-closure-matrices.md and its executable validator: all 54 indexed events, 26 entities, all 86 ICommitmentPoolingModule functions, eight sparse-event materialization cases, 56 executable calls, six offline job kinds, six saved-Offer persistence states, and seven lifecycle/wind-down subjects must remain covered. Ordinary place creation reuses one persisted creator key; Work links reuse one caller operation key; late claims, contributor membership, assignments, Work linkage, pool fields, rewards, and register deltas converge under reverse delivery; pool close requires zero live commitments and zero non-terminal cycles.",
+    "Architecture closure 2026-08-13 is governed by architecture-closure-matrices.md and its executable validator: all 58 indexed events, 28 entities, all 86 ICommitmentPoolingModule functions, eight sparse-event materialization cases, 62 executable calls, six offline job kinds, six saved-Offer persistence states, and eight lifecycle/wind-down subjects must remain covered. Ordinary place creation reuses one persisted creator key; Work links reuse one caller operation key; late claims, contributor membership, assignments, Work linkage, pool fields, rewards, register deltas, and member funding converge under reverse delivery; pool close requires zero live commitments and zero non-terminal cycles.",
     "Final architecture-closure correction 2026-08-03: ClaimDeclined materializes a claimant-keyed terminal request placeholder even when its older ClaimRequested payload has not arrived, and the late payload fill cannot revive Pending. Pool, cycle, series, commitment, contributor, Work attribution, and claim placeholders use explicit base-event seen flags with nullable base-only fields and independently nullable series cursor pairs. The August admin path now submits expireCommitment from W7@due-live and reaches the post-expiry queue only after indexed success; W10 also realizes the Offered/Requested setDeclaredValue editor. The prototype registry validates 377 states, 518 hotspots, 44 flows, and 366 scenes.",
     "Review hardening 2026-08-03, replay/backfill/UI closure: commitment lifecycle events that require immutable creation facts are stored in typed, event-keyed pending projections while creationSeen is false; they consume no lifecycle cursor or state-derived delta until CommitmentCreated atomically drains the commitment-keyed index in block/log order. Reverse-delivered terminal state must converge for cycle live count, series outcome, PoolMemberHistory, attribution confirmation, and Need lineage. The 13-garden backfill registers the root Protocol pool once, records that normalized address as SKIPPED_PROTOCOL_ROOT, and submits Garden registrations only for the 12 non-root gardens. Rest/Resume preserves the two existing Offered places, and a claimed service place renders Accepted until WorkLinked or EvidenceAttached lands.",
     "August app-lane amendment 2026-08-01 (plan Decision Log #43 / register #77): exchange-pair UX, a content/config-only Offer-template library, and the noun-reduction/plain-language pass are approved against uiux-spec.md Appendix E and wireframes W28-W31. They add no chain state and authorize no implementation dispatch by themselves.",
@@ -222,14 +222,14 @@
       "linear_issues": ["PRD-650"],
       "tdd": {
         "mode": "required",
-        "status": "pending",
+        "status": "green_recorded",
         "red": {
-          "command": "",
-          "evidence": ""
+          "command": "bun run --filter @green-goods/indexer test -- test/commitmentPool.test.ts",
+          "evidence": "RED: pooling, Garden identity, and funding fixtures failed before the frozen 58-event config, 28-entity schema, and handlers existed."
         },
         "green": {
-          "command": "",
-          "evidence": ""
+          "command": "bun run --filter @green-goods/indexer test -- --grep \"Commitment Pooling read model\"",
+          "evidence": "GREEN: six focused pooling projections passed, plus five ClaimStored tests covering legacy and commitment-bundle Hypercert reads."
         },
         "note": ""
       },
@@ -352,11 +352,11 @@
     "indexer": {
       "machine_lane": "state_api",
       "owner": "codex",
-      "status": "blocked",
-      "ready_when_dependencies_met": false,
-      "manual_blocked": true,
-      "blocked_reason": "Two-phase gate: pooling-core handlers start only after the CommitmentSeries module events and capacity effects freeze, live Linear/document convergence is re-read, and the contracts lane is GREEN. Settlement handlers still wait for settlement events. Full GREEN requires both slices, generated query freeze, and Garden-ID replay/cutover/rollback proof.",
-      "branch": "codex/indexer/commitment-pooling",
+      "status": "in_progress",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": false,
+      "blocked_reason": null,
+      "branch": "feature/commitment-pooling-indexer",
       "depends_on": ["contracts"],
       "handoff": "handoffs/codex-indexer.md",
       "linear": {
@@ -366,6 +366,7 @@
         "milestone": "build"
       },
       "linear_issues": ["PRD-722", "PRD-650"],
+      "release_increment_2026_08_13": "PRD-721, PRD-557, and the deployer-owned PR #705 release baseline are complete. The canonical PRD-722 inventory is 58 ABI events and 28 indexed records: the original 54-event/26-record pooling inventory plus FundingPledged, FundingDepositRecorded, FundingConsumed, FundingWithdrawn, CommitmentFunding, and the bounded CommitmentFundingIndex required to join a reverse-delivered Refund event whose ABI omits fundingId. DisbursementKind.Refund and the full PoolState.Paused freeze are binding. Implementation runs on feature/commitment-pooling-indexer from live PR #705 head 9948bd7507ac00d0b07f4efd30f6001dd92d84ab.",
       "payer_settlement_slice_2026_08_08": "The core settlement projection is implemented and tested: SettlementConfiguration, CommitmentPayoutPlan, and Disbursement carry payerGarden/payerGardenId, beneficiary fields, ContributorConsideration/GardenBeneficiary, and derived INTERNAL/PROTOCOL_TO_GARDEN/GARDEN_TO_PROTOCOL/GARDEN_TO_GARDEN intent. Reverse delivery is reconciled when the write-once protocol garden arrives after a plan. This is a bounded source-chain slice, not full PRD-722 GREEN: the complete pooling event/entity surface, full executor/Celo observability, query freeze, replay/cutover, and state/API consumers remain open.",
       "acceptance_amendment_2026_08_05": "Closes readiness-review P1-1 on the indexer side. Commitment.creationRequestKey and Commitment.creationPayloadHash are both emitted CommitmentCreated parameters and are assigned verbatim from event.params. No handler recomputes, derives, nulls, or RPC-backfills the hash; the required field and the no-RPC rule are consistent only because the event carries it.",
       "acceptance_amendment_2026_08_02": "Add CommitmentSeries and CommitmentSeriesCycleSummary, nullable Commitment series relationships, cursor-ordered current-outcome deltas, exact unique non-zero fulfilled-cycle IDs, and replay proof. Availability derives only from capacity-backed Offered instances. Never derive a score, rate, rank, participant count, cross-pool grouping, or mixed-label unit total.",
@@ -1169,6 +1170,14 @@
       "status": "scope_corrected",
       "branch": "feature/commitment-pooling-contracts-deployment",
       "note": "Afo deferred every Arbitrum/Celo ownership transfer from the current deployment. The current ceremony ends paused and deployment-sender owned; the approved 18-garden/root-token-0 backfill and core unpause move with ownership to a separately reviewed Product issue. The protocol Safe remains the approved future owner. Current operator commands exclude ownership and backfill, receipt recovery remains available for current deployer-signed boundaries, and no EOA-specific backfill path is added. The paused-registration increment is no longer a blocker for the paused deployment candidate but remains a prerequisite for the later backfill issue. No external mutation or Linear write occurred."
+    },
+    {
+      "timestamp": "2026-08-13T07:35:11.478Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "tdd_recorded",
+      "branch": "codex/state-api/commitment-pooling",
+      "note": "Recorded RED/GREEN TDD proof"
     }
   ]
 }

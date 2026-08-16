@@ -49,7 +49,8 @@ vi.mock("../../modules/data/graphql", () => ({
   greenGoodsGraphQL: vi.fn((query) => query),
 }));
 
-import { getActions, getGardens } from "../../modules/data/greengoods";
+import { getActions, getGardens, parseIndexerDomain } from "../../modules/data/greengoods";
+import { Domain } from "../../types/domain";
 import { instructionTemplates } from "../../utils/action/templates";
 
 describe("modules/data/greengoods", () => {
@@ -231,6 +232,12 @@ describe("modules/data/greengoods", () => {
   });
 
   describe("getActions", () => {
+    it("surfaces missing or unknown indexer domains instead of coercing them to solar", () => {
+      expect(parseIndexerDomain("SOLAR")).toBe(Domain.SOLAR);
+      expect(parseIndexerDomain("UNKNOWN")).toBeNull();
+      expect(parseIndexerDomain(undefined)).toBeNull();
+    });
+
     it("returns parsed action list on success", async () => {
       const mockActions = [
         {
@@ -258,6 +265,33 @@ describe("modules/data/greengoods", () => {
       expect(Array.isArray(result)).toBe(true);
       expect(result.length).toBe(1);
       expect(result[0].title).toBe("Planting Trees");
+    });
+
+    it("surfaces unrecognized indexer domains as null instead of coercing to SOLAR", async () => {
+      const mockActions = [
+        {
+          id: "42161-9",
+          chainId: 42161,
+          startTime: "1700000000",
+          endTime: "1800000000",
+          title: "Future Domain Action",
+          slug: "future.new_thing",
+          instructions: null,
+          capitals: [],
+          media: [],
+          domain: "UNKNOWN", // the indexer's forward-compat sentinel
+          createdAt: "1700000000",
+        },
+      ];
+
+      mockQuery.mockResolvedValue({
+        data: { Action: mockActions },
+      });
+
+      const result = await getActions();
+
+      expect(result).toHaveLength(1);
+      expect(result[0].domain).toBeNull();
     });
 
     it("handles indexer unavailable gracefully", async () => {

@@ -9,7 +9,31 @@
  * agent domain validator) can import one canonical shape.
  */
 
-export type OntologyStatus = "live" | "spec";
+/** Whether a term is accepted Green Goods language, independent of release maturity. */
+export type OntologySemanticStatus = "canonical" | "proposed";
+
+/** Whether a vocabulary, schema, constraint, or machine has an executable source. */
+export type OntologySourceStatus = "implemented" | "specified";
+
+export type OntologyImplementationStatus =
+  | "implemented"
+  | "partial"
+  | "not-implemented"
+  | "not-applicable";
+
+export type OntologyDeploymentStatus = "deployed" | "not-deployed" | "not-applicable";
+export type OntologyActivationStatus = "active" | "inactive" | "not-applicable";
+export type OntologyIntegrationStatus =
+  | "integrated"
+  | "partial"
+  | "not-integrated"
+  | "not-applicable";
+export type OntologyAvailability =
+  | "available"
+  | "deployed-not-available"
+  | "in-build"
+  | "planned"
+  | "vision";
 
 export type OntologyLayer = "solidity" | "indexer" | "shared" | "docs";
 
@@ -46,7 +70,7 @@ export interface EntityRelationship {
 export interface OntologyEntity {
   id: string;
   display: string;
-  status: OntologyStatus;
+  semantic_status: OntologySemanticStatus;
   definition: string;
   layers?: EntityLayerAnchors;
   spec_source?: string;
@@ -101,7 +125,7 @@ export interface VocabularyMapping {
 
 export interface OntologyVocabulary {
   id: string;
-  status: OntologyStatus;
+  source_status: OntologySourceStatus;
   definition: string;
   spec_source?: string;
   canonical: VocabularyCanonical;
@@ -117,7 +141,7 @@ export interface OntologySchemaField {
 }
 
 export interface OntologySchema {
-  status: OntologyStatus;
+  source_status: OntologySourceStatus;
   source?: string;
   spec_source?: string;
   check?: "existence-only";
@@ -149,7 +173,7 @@ export interface ConstraintHole {
 export interface OntologyConstraint {
   id: string;
   kind: ConstraintKind;
-  status: OntologyStatus;
+  source_status: OntologySourceStatus;
   statement: string;
   enforced_at: OntologyAnchor[];
   holes: ConstraintHole[];
@@ -161,15 +185,16 @@ export interface StateMachineState {
 }
 
 export interface StateMachineTransition {
-  from: string;
-  to: string;
+  from: string[];
+  to: string[];
   layer: "on-chain" | "derived" | "off-chain";
   mechanism: string;
 }
 
 export interface OntologyStateMachine {
   id: string;
-  status: OntologyStatus;
+  source_status: OntologySourceStatus;
+  kind: "executable" | "narrative";
   vocabulary: string;
   spec_source?: string;
   note?: string;
@@ -202,6 +227,77 @@ export interface OntologyKnownIssue {
   id: string;
   statement: string;
   anchors: string[];
+}
+
+export interface OntologyEvidence {
+  file: string;
+  note: string;
+}
+
+export interface OntologyCapability {
+  ref: `entity:${string}`;
+  implementation: OntologyImplementationStatus;
+  deployment: OntologyDeploymentStatus;
+  activation: OntologyActivationStatus;
+  integration: OntologyIntegrationStatus;
+  availability: OntologyAvailability;
+  evidence: OntologyEvidence[];
+  verified_at: string;
+  note?: string;
+}
+
+export interface OntologyHumanConceptSource {
+  ref: `entity:${string}` | `persona:${string}`;
+  plain_name: string;
+  why_it_matters: string;
+  who_touches_it: string[];
+  example: string;
+  aliases: string[];
+  not_confused_with: string[];
+}
+
+export interface OntologyMarketingClaim {
+  id: string;
+  claim: string;
+  audience: string[];
+  maturity: OntologyAvailability;
+  term_refs: Array<`entity:${string}` | `persona:${string}`>;
+  evidence: OntologyEvidence[];
+  safe_wording: string;
+  verified_at: string;
+}
+
+export interface GreenGoodsOntologyProjections {
+  version: number;
+  capabilities: OntologyCapability[];
+  human_concepts: OntologyHumanConceptSource[];
+  marketing_claims: OntologyMarketingClaim[];
+}
+
+export interface AgentOntologyClaim {
+  id: string;
+  maturity: OntologyAvailability;
+  safe_wording: string;
+  verified_at: string;
+}
+
+export interface AgentOntologyTerm {
+  ref: `entity:${string}` | `persona:${string}`;
+  id: string;
+  kind: "entity" | "persona";
+  canonical: string;
+  definition: string;
+  semantic_status: OntologySemanticStatus;
+  aliases: string[];
+  relationships: EntityRelationship[];
+  maturity: OntologyCapability | null;
+  safe_claims: AgentOntologyClaim[];
+}
+
+export interface AgentOntologyManifest {
+  version: number;
+  verified_at: string;
+  terms: AgentOntologyTerm[];
 }
 
 export interface GreenGoodsOntology {

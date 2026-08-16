@@ -68,10 +68,10 @@ function renderVocabulary(vocabulary) {
     lines.push("");
     lines.push(`**Derived states (never stored):** ${vocabulary.derived_members.join(" · ")}`);
   }
-  if (vocabulary.status === "spec" && vocabulary.planned_anchor) {
+  if (vocabulary.source_status === "specified" && vocabulary.planned_anchor) {
     lines.push("");
     lines.push(
-      `_Spec-only — planned anchor \`${vocabulary.planned_anchor.file}\` · \`${vocabulary.planned_anchor.symbol}\`. The drift gate flags arrival so the status flips to live with declared representations._`
+      `_Specified source — planned anchor \`${vocabulary.planned_anchor.file}\` · \`${vocabulary.planned_anchor.symbol}\`. The drift gate flags arrival so the source status becomes implemented with declared representations._`
     );
   }
   if (vocabulary.representations.length > 0) {
@@ -135,14 +135,19 @@ function renderStateMachine(machine, headingLevel) {
     lines.push("| From | To | Layer | Mechanism |");
     lines.push("|---|---|---|---|");
     for (const t of machine.transitions) {
-      lines.push(`| ${esc(t.from)} | ${esc(t.to)} | ${esc(t.layer)} | ${esc(t.mechanism)} |`);
+      lines.push(
+        `| ${esc(t.from.join(" · "))} | ${esc(t.to.join(" · "))} | ${esc(t.layer)} | ${esc(t.mechanism)} |`
+      );
     }
   }
   lines.push("");
   return lines.join("\n");
 }
 
-export function renderOntologyMdx(ontology) {
+export function renderOntologyMdx(ontology, projections) {
+  const capabilityByRef = new Map(
+    projections.capabilities.map((capability) => [capability.ref, capability])
+  );
   const lines = [];
   lines.push("---");
   lines.push("title: Green Goods Ontology");
@@ -155,6 +160,7 @@ export function renderOntologyMdx(ontology) {
   lines.push("feature_status: Live");
   lines.push("source_of_truth:");
   lines.push("  - packages/shared/src/ontology/green-goods-ontology.json");
+  lines.push("  - packages/shared/src/ontology/green-goods-projections.json");
   lines.push("  - scripts/quality/check-ontology.mjs");
   lines.push("keywords:");
   lines.push("  - ontology");
@@ -177,9 +183,10 @@ export function renderOntologyMdx(ontology) {
 
   lines.push("## Entities");
   lines.push("");
-  lines.push("| Entity | Status | Definition | Layers |");
-  lines.push("|---|---|---|---|");
+  lines.push("| Entity | Semantic status | Availability | Capability | Definition | Layers |");
+  lines.push("|---|---|---|---|---|---|");
   for (const entity of ontology.entities) {
+    const capability = capabilityByRef.get(`entity:${entity.id}`);
     const layers = [];
     if (entity.layers?.solidity?.length) layers.push("contracts");
     if (entity.layers?.indexer) layers.push(`indexer (${entity.layers.indexer.type})`);
@@ -187,7 +194,7 @@ export function renderOntologyMdx(ontology) {
     if (entity.layers?.docs) layers.push("docs");
     if (entity.spec_source) layers.push("spec");
     lines.push(
-      `| **${esc(entity.display)}** | ${esc(entity.status)} | ${esc(entity.definition)} | ${esc(layers.join(" · "))} |`
+      `| **${esc(entity.display)}** | ${esc(entity.semantic_status)} | ${esc(capability.availability)} | ${esc(`${capability.implementation} · ${capability.deployment} · ${capability.activation} · ${capability.integration}`)} | ${esc(entity.definition)} | ${esc(layers.join(" · "))} |`
     );
   }
   lines.push("");
@@ -203,8 +210,12 @@ export function renderOntologyMdx(ontology) {
   lines.push(prose(ontology.personas_note));
   lines.push("");
 
-  const liveVocabularies = ontology.vocabularies.filter((v) => v.status === "live");
-  const specVocabularies = ontology.vocabularies.filter((v) => v.status === "spec");
+  const implementedVocabularies = ontology.vocabularies.filter(
+    (v) => v.source_status === "implemented"
+  );
+  const specifiedVocabularies = ontology.vocabularies.filter(
+    (v) => v.source_status === "specified"
+  );
 
   lines.push("## Vocabularies");
   lines.push("");
@@ -212,17 +223,17 @@ export function renderOntologyMdx(ontology) {
     "Each vocabulary has one canonical member list and a declared expected spelling per layer. The drift gate compares every representation against its source file; deviations are either declared here (layer conventions like the indexer's `UNKNOWN` sentinel) or recorded in the burn-down baseline."
   );
   lines.push("");
-  for (const vocabulary of liveVocabularies) {
+  for (const vocabulary of implementedVocabularies) {
     lines.push(renderVocabulary(vocabulary));
   }
 
-  lines.push("## Commitment Pooling Vocabularies (spec — not deployed)");
+  lines.push("## Specified vocabularies without an implemented source");
   lines.push("");
   lines.push(
-    "Locked vocabulary from the commitment-pooling contract spec, encoded ahead of implementation so the August lanes consume one canonical definition. No code cross-checks run until the planned anchors land; the gate then forces each entry to flip to live."
+    "These vocabularies are canonical specifications whose declared implementation anchor has not arrived. The gate watches each anchor and requires the source status and representations to be updated when it lands."
   );
   lines.push("");
-  for (const vocabulary of specVocabularies) {
+  for (const vocabulary of specifiedVocabularies) {
     lines.push(renderVocabulary(vocabulary));
   }
 
@@ -232,11 +243,11 @@ export function renderOntologyMdx(ontology) {
     lines.push(`### \`${key}\` — ${schema.name}`);
     lines.push("");
     const meta = [
-      `status: ${schema.status}`,
+      `source: ${schema.source_status}`,
       `revocable: ${schema.revocable}`,
       schema.resolver
         ? `resolver: \`${schema.resolver}\``
-        : schema.status === "spec" && schema.planned_resolver
+        : schema.source_status === "specified" && schema.planned_resolver
           ? `planned resolver: \`${schema.planned_resolver}\``
           : "resolver: none",
     ].join(" · ");
@@ -262,7 +273,7 @@ export function renderOntologyMdx(ontology) {
   lines.push("");
   for (const constraint of ontology.constraints) {
     lines.push(
-      `- **\`${constraint.id}\`** · ${constraint.kind} · ${constraint.status} — ${prose(constraint.statement)} _(enforced at: ${anchorList(constraint.enforced_at)})_`
+      `- **\`${constraint.id}\`** · ${constraint.kind} · ${constraint.source_status} — ${prose(constraint.statement)} _(enforced at: ${anchorList(constraint.enforced_at)})_`
     );
     for (const hole of constraint.holes) {
       lines.push(`  - ⚠️ Hole: ${prose(hole.statement)} _(${anchorList(hole.anchors)})_`);
@@ -272,18 +283,43 @@ export function renderOntologyMdx(ontology) {
 
   lines.push("## State Machines");
   lines.push("");
-  for (const machine of ontology.state_machines.filter((m) => m.status === "live")) {
+  for (const machine of ontology.state_machines.filter((m) => m.source_status === "implemented")) {
     lines.push(renderStateMachine(machine, 3));
   }
-  lines.push("### Commitment pooling (spec — not deployed)");
+  lines.push("### Specified machines without an implemented source");
   lines.push("");
   lines.push(
-    'Transcribed from the locked contract spec: "on-chain" means a named module function performs the transition and emits the listed event; "derived" means the indexer/app computes the state from events and the chain never stores it.'
+    '"On-chain" means a named function performs the transition; "derived" means a reader computes it. These machines remain specified until their declared runtime source arrives.'
   );
   lines.push("");
-  for (const machine of ontology.state_machines.filter((m) => m.status === "spec")) {
+  for (const machine of ontology.state_machines.filter((m) => m.source_status === "specified")) {
     lines.push(renderStateMachine(machine, 4));
   }
+
+  lines.push("## Agent query seam");
+  lines.push("");
+  lines.push(
+    "Agents and application code should use the compact read-only query API exported by `@green-goods/shared`. It resolves canonical ids, typed refs, display names, and declared aliases without importing the full semantic sidecar."
+  );
+  lines.push("");
+  lines.push("```ts");
+  lines.push("import {");
+  lines.push("  getOntologyMaturity,");
+  lines.push("  getOntologyRelationships,");
+  lines.push("  getOntologySafeClaims,");
+  lines.push("  getOntologyTerm,");
+  lines.push("} from \"@green-goods/shared\";");
+  lines.push("");
+  lines.push('const term = getOntologyTerm("Commitment");');
+  lines.push('const maturity = getOntologyMaturity("entity:commitment");');
+  lines.push('const relationships = getOntologyRelationships("Commitment");');
+  lines.push('const claims = getOntologySafeClaims("Commitment");');
+  lines.push("```");
+  lines.push("");
+  lines.push(
+    "Use `maturity.availability` and the returned evidence before making a release claim. A canonical term can still be planned or deployed without being available to users."
+  );
+  lines.push("");
 
   lines.push("## Known Issues");
   lines.push("");
@@ -304,7 +340,7 @@ export function renderOntologyMdx(ontology) {
   lines.push("## How this page stays honest");
   lines.push("");
   lines.push(
-    "`bun run check:ontology` cross-checks the sidecar against the Solidity enums, the indexer GraphQL schema, the shared TypeScript vocabularies, the EAS schema config, and the glossary tables on every relevant change. Known drift lives in `scripts/data/ontology-drift-baseline.json` with an owner, an expiry, and a note — new drift fails CI immediately, and fixed drift fails until its baseline entry is deleted. To change the ontology, edit the sidecar and run `bun run ontology:generate`."
+    "`bun run check:ontology` cross-checks semantic sources, evidence-backed capability and claim projections, executable state endpoints, Solidity and GraphQL enums, shared TypeScript vocabularies, EAS schemas, and glossary tables. Known drift stays bidirectional in `scripts/data/ontology-drift-baseline.json`. To change the ontology, edit its semantic or projection source and run `bun run ontology:generate`."
   );
   lines.push("");
 
@@ -350,22 +386,35 @@ export function renderEntityMatrixMdx(ontology) {
   lines.push("");
   lines.push("## How to read this table");
   lines.push("");
-  lines.push("- **Rows** are Green Goods domain entities (the canonical vocabulary used in code and docs).");
+  lines.push("- **Rows** are grouped as entities, schemas, personas, or integration-facing concepts.");
   lines.push("- **Columns** are partner protocols. Each cell shows the equivalent concept in that protocol.");
   lines.push("- **Empty cells** (`—`) mean no mapping exists — the protocol does not have an equivalent concept.");
   lines.push(
     "- **Role entities** (Garden Operator through Data Scientist/Researcher) map to protocol-specific role or permission types."
   );
   lines.push("");
-  lines.push("## Full Entity Matrix");
+  lines.push("## Integration Matrix");
   lines.push("");
-  lines.push(`| Green Goods | ${protocols.join(" | ")} |`);
-  lines.push(`|${Array(protocols.length + 1).fill("---").join("|")}|`);
-  for (const row of rows) {
-    const cells = protocols.map((protocol) => (row.cells[protocol] ? esc(row.cells[protocol]) : "—"));
-    lines.push(`| ${esc(row.label)} | ${cells.join(" | ")} |`);
+  for (const [kind, heading] of [
+    ["entity", "Entities"],
+    ["schema", "Schemas"],
+    ["persona", "Personas"],
+    ["concept", "Integration-facing concepts"],
+  ]) {
+    const groupedRows = rows.filter((row) => row.ref.startsWith(`${kind}:`));
+    if (groupedRows.length === 0) continue;
+    lines.push(`### ${heading}`);
+    lines.push("");
+    lines.push(`| Green Goods | ${protocols.join(" | ")} |`);
+    lines.push(`|${Array(protocols.length + 1).fill("---").join("|")}|`);
+    for (const row of groupedRows) {
+      const cells = protocols.map((protocol) =>
+        row.cells[protocol] ? esc(row.cells[protocol]) : "—"
+      );
+      lines.push(`| ${esc(row.label)} | ${cells.join(" | ")} |`);
+    }
+    lines.push("");
   }
-  lines.push("");
   lines.push("## Protocol integration notes");
   lines.push("");
   lines.push("### Active integrations");
@@ -431,4 +480,199 @@ export function renderEntityMatrixMdx(ontology) {
   lines.push("");
 
   return lines.join("\n");
+}
+
+function renderEvidenceList(evidence) {
+  return evidence.map((item) => `\`${esc(item.file)}\` — ${prose(item.note)}`).join("<br />");
+}
+
+export function renderHumanOntologyMdx(ontology, projections) {
+  const entities = new Map(ontology.entities.map((item) => [`entity:${item.id}`, item]));
+  const personas = new Map(ontology.personas.map((item) => [`persona:${item.id}`, item]));
+  const capabilities = new Map(projections.capabilities.map((item) => [item.ref, item]));
+  const claimsByRef = new Map();
+  for (const claim of projections.marketing_claims) {
+    for (const ref of claim.term_refs) {
+      if (!claimsByRef.has(ref)) claimsByRef.set(ref, []);
+      claimsByRef.get(ref).push(claim);
+    }
+  }
+  const lines = [
+    "---",
+    "title: Green Goods in Human Terms",
+    'sidebar_label: "Ontology: Human Lens"',
+    "slug: /reference/ontology-human.generated",
+    "audience: all",
+    "owner: docs",
+    `last_verified: ${ontology.meta.last_verified}`,
+    "feature_status: Live",
+    "source_of_truth:",
+    "  - packages/shared/src/ontology/green-goods-ontology.json",
+    "  - packages/shared/src/ontology/green-goods-projections.json",
+    "---",
+    "",
+    "<!-- AUTO-GENERATED by bun run ontology:generate. Do not edit directly. -->",
+    "",
+    "# Green Goods in Human Terms",
+    "",
+    "Use these cards when explaining Green Goods to a teammate, community, partner, or agent. Meaning and maturity are shown separately so a well-defined or deployed concept is never mistaken for an available product flow.",
+    "",
+  ];
+  for (const source of projections.human_concepts) {
+    const term = entities.get(source.ref) ?? personas.get(source.ref);
+    const capability = capabilities.get(source.ref);
+    const relationships = term.relationships?.length
+      ? term.relationships.map((item) => `${item.kind} ${item.to}`).join(" · ")
+      : "—";
+    const claims = claimsByRef.get(source.ref) ?? [];
+    lines.push(`## ${term.display}`);
+    lines.push("");
+    lines.push(`**In plain language:** ${prose(source.plain_name)}`);
+    lines.push("");
+    lines.push(`**Why it matters:** ${prose(source.why_it_matters)}`);
+    lines.push("");
+    lines.push(`**Who touches it:** ${source.who_touches_it.map(prose).join(" · ")}`);
+    lines.push("");
+    lines.push(`**Example:** ${prose(source.example)}`);
+    lines.push("");
+    lines.push(`**Relationships:** ${prose(relationships)}`);
+    lines.push("");
+    lines.push(`**Also called:** ${source.aliases.length ? source.aliases.map(prose).join(" · ") : "—"}`);
+    lines.push("");
+    lines.push(`**Do not confuse with:** ${source.not_confused_with.map(prose).join(" · ")}`);
+    lines.push("");
+    if (capability) {
+      lines.push(
+        `**Current maturity:** ${capability.availability} — implementation ${capability.implementation}; deployment ${capability.deployment}; activation ${capability.activation}; integration ${capability.integration}.`
+      );
+      lines.push("");
+      lines.push(`**Evidence:** ${renderEvidenceList(capability.evidence)} (verified ${capability.verified_at})`);
+      lines.push("");
+    } else {
+      lines.push("**Current maturity:** persona, not a product capability.");
+      lines.push("");
+    }
+    if (claims.length) {
+      lines.push(`**Public-safe wording:** ${claims.map((claim) => prose(claim.safe_wording)).join(" ")}`);
+      lines.push("");
+    }
+  }
+  return lines.join("\n");
+}
+
+export function renderMarketingClaimsMdx(projections) {
+  const verified = projections.marketing_claims
+    .map((claim) => claim.verified_at)
+    .sort()
+    .at(-1);
+  const lines = [
+    "---",
+    "title: What Green Goods Can Honestly Claim",
+    "sidebar_label: Capability & Claims",
+    "slug: /community/green-goods-claims.generated",
+    "audience: all",
+    "owner: docs",
+    `last_verified: ${verified}`,
+    "feature_status: Live",
+    "source_of_truth:",
+    "  - packages/shared/src/ontology/green-goods-projections.json",
+    "---",
+    "",
+    "<!-- AUTO-GENERATED by bun run ontology:generate. Do not edit directly. -->",
+    "",
+    "# What Green Goods Can Honestly Claim",
+    "",
+    "This ledger separates what people can use now from deployed protocol capability, work in progress, plans, and longer-term vision. Marketing and partnership language should reuse the safe wording below.",
+    "",
+  ];
+  for (const maturity of ["available", "deployed-not-available", "in-build", "planned", "vision"]) {
+    const claims = projections.marketing_claims.filter((claim) => claim.maturity === maturity);
+    if (!claims.length) continue;
+    lines.push(`## ${maturity}`);
+    lines.push("");
+    for (const claim of claims) {
+      lines.push(`### ${prose(claim.safe_wording)}`);
+      lines.push("");
+      lines.push(`**Internal claim:** ${prose(claim.claim)}`);
+      lines.push("");
+      lines.push(`**Audience:** ${claim.audience.map(prose).join(" · ")}`);
+      lines.push("");
+      lines.push(`**Evidence:** ${renderEvidenceList(claim.evidence)} (verified ${claim.verified_at})`);
+      lines.push("");
+    }
+  }
+  return lines.join("\n");
+}
+
+export function renderAgentManifest(ontology, projections) {
+  const capabilityByRef = new Map(projections.capabilities.map((item) => [item.ref, item]));
+  const humanByRef = new Map(projections.human_concepts.map((item) => [item.ref, item]));
+  const claimsByRef = new Map();
+  for (const claim of projections.marketing_claims) {
+    for (const ref of claim.term_refs) {
+      if (!claimsByRef.has(ref)) claimsByRef.set(ref, []);
+      claimsByRef.get(ref).push({
+        id: claim.id,
+        maturity: claim.maturity,
+        safe_wording: claim.safe_wording,
+        verified_at: claim.verified_at,
+      });
+    }
+  }
+  const terms = [];
+  for (const entity of ontology.entities) {
+    const ref = `entity:${entity.id}`;
+    terms.push({
+      ref,
+      id: entity.id,
+      kind: "entity",
+      canonical: entity.display,
+      definition: entity.definition,
+      semantic_status: entity.semantic_status,
+      aliases: humanByRef.get(ref)?.aliases ?? [],
+      relationships: entity.relationships ?? [],
+      maturity: capabilityByRef.get(ref),
+      safe_claims: claimsByRef.get(ref) ?? [],
+    });
+  }
+  for (const persona of ontology.personas) {
+    const ref = `persona:${persona.id}`;
+    terms.push({
+      ref,
+      id: persona.id,
+      kind: "persona",
+      canonical: persona.display,
+      definition: persona.definition,
+      semantic_status: "canonical",
+      aliases: humanByRef.get(ref)?.aliases ?? [],
+      relationships: [],
+      maturity: null,
+      safe_claims: claimsByRef.get(ref) ?? [],
+    });
+  }
+  const pretty = JSON.stringify({ version: 1, verified_at: ontology.meta.last_verified, terms }, null, 2);
+  const lines = pretty.split("\n");
+  const compact = [];
+  for (let index = 0; index < lines.length; index += 1) {
+    const opening = /^(\s*)("[^"]+": )\[$/.exec(lines[index]);
+    if (!opening) {
+      compact.push(lines[index]);
+      continue;
+    }
+    const values = [];
+    let cursor = index + 1;
+    while (/^\s+"(?:[^"\\]|\\.)*",?$/.test(lines[cursor] ?? "")) {
+      values.push(lines[cursor].trim().replace(/,$/, ""));
+      cursor += 1;
+    }
+    const closing = /^(\s*)\](,?)$/.exec(lines[cursor] ?? "");
+    const candidate = `${opening[1]}${opening[2]}[${values.join(", ")}]${closing?.[2] ?? ""}`;
+    if (values.length > 0 && closing && candidate.length <= 100) {
+      compact.push(candidate);
+      index = cursor;
+    } else {
+      compact.push(lines[index]);
+    }
+  }
+  return `${compact.join("\n")}\n`;
 }

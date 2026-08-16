@@ -10,6 +10,7 @@ import {
   sourceConfiguration,
 } from "./settlement-projections";
 import { tryPublishContributorSnapshot } from "./settlement-snapshots";
+import { linkPayoutPlanToCommitment } from "./settlement-funding-reconciliation";
 import { normalizeAddress } from "./shared";
 
 indexer.onEvent(
@@ -101,6 +102,7 @@ indexer.onEvent(
       updatedAt: event.block.timestamp,
     };
     context.CommitmentPayoutPlan.set(plan);
+    await linkPayoutPlanToCommitment(context, plan);
     if (flow === "UNKNOWN") {
       const sourceConfig = sourceConfiguration(
         event.chainId,
@@ -147,5 +149,6 @@ indexer.onEvent(
       updatedAt: event.block.timestamp,
     };
     context.CommitmentPayoutPlan.set(next);
+    await linkPayoutPlanToCommitment(context, next);
   }
 );

@@ -2,7 +2,7 @@
   "version": 1,
   "description": "Machine-readable Green Goods ontology: canonical entities, controlled vocabularies with per-layer representations, EAS schemas, cross-layer constraints, and lifecycle state machines. scripts/quality/check-ontology.mjs (bun run check:ontology) drift-gates every section against the code and docs anchors declared inline; bun run ontology:generate renders docs/docs/reference/ontology.generated.mdx and docs/docs/builders/integrations/entity-matrix.mdx from it. Entity and persona prose stays human-canonical in docs/docs/reference/glossary-community.md — this file mirrors it and the checker locks the two together.",
   "meta": {
-    "last_verified": "2026-08-02",
+    "last_verified": "2026-08-15",
     "excluded_from_v1": [
       "Impact-axes taxonomy — canon is maintained outside the repo; this public file carries only the four production action domains.",
       "ModuleDependency and ModuleSchemaKind from the commitment-pooling spec — module wiring plumbing, not domain vocabulary."
@@ -38,7 +38,6 @@
     {
       "id": "garden",
       "display": "Garden",
-      "status": "live",
       "definition": "A community of gardeners rooted in a place, represented on-chain as an ERC-721 garden token whose ERC-6551 token-bound account holds the garden's treasury, role Hats, and metadata.",
       "layers": {
         "solidity": [
@@ -63,12 +62,12 @@
           "kind": "has-tree",
           "note": "one six-role hat tree per garden"
         }
-      ]
+      ],
+      "semantic_status": "canonical"
     },
     {
       "id": "action",
       "display": "Action",
-      "status": "live",
       "definition": "A documented activity a gardener can perform — the unit of work template (e.g. \"Plant native species\", \"Remove invasive growth\").",
       "layers": {
         "solidity": ["packages/contracts/src/registries/Action.sol"],
@@ -85,12 +84,12 @@
           "kind": "enabled-by-domain-mask",
           "note": "gardens enable action domains via bitmask"
         }
-      ]
+      ],
+      "semantic_status": "canonical"
     },
     {
       "id": "work",
       "display": "Work",
-      "status": "live",
       "definition": "One documented instance of an Action performed by a gardener — media, notes, and metadata submitted as an EAS Work attestation for operator review; approval records a separate Work Approval attestation.",
       "layers": {
         "solidity": ["packages/contracts/src/resolvers/Work.sol"],
@@ -108,12 +107,12 @@
           "kind": "performed-in",
           "note": "attestation recipient is the garden account"
         }
-      ]
+      ],
+      "semantic_status": "canonical"
     },
     {
       "id": "assessment",
       "display": "Assessment",
-      "status": "live",
       "definition": "An up-front baseline and strategy for a garden — domain, diagnosis, SMART outcome targets, selected Actions, reporting period — authored by an evaluator or operator before work begins, mirrored to a Karma GAP milestone when that module is active; explicitly not a review of submitted Work (that is Work Approval).",
       "layers": {
         "solidity": ["packages/contracts/src/resolvers/Assessment.sol"],
@@ -127,12 +126,12 @@
           "kind": "frames",
           "note": "sets the targets later Work is measured against"
         }
-      ]
+      ],
+      "semantic_status": "canonical"
     },
     {
       "id": "hypercert",
       "display": "Hypercert",
-      "status": "live",
       "definition": "An on-chain claim of impact bundling approved Work into a fractional impact certificate. Funders hold fractions; gardeners hold contribution credit.",
       "layers": {
         "solidity": ["packages/contracts/src/modules/Hypercerts.sol"],
@@ -153,12 +152,12 @@
           "to": "garden",
           "kind": "minted-for"
         }
-      ]
+      ],
+      "semantic_status": "canonical"
     },
     {
       "id": "vault",
       "display": "Vault",
-      "status": "live",
       "definition": "The garden's treasury. Funders deposit; the garden's Tokenbound Account holds; yield splits flow to operators / gardeners / community per configured ratios.",
       "layers": {
         "solidity": ["packages/contracts/src/modules/Octant.sol"],
@@ -174,12 +173,12 @@
           "to": "garden",
           "kind": "treasury-of"
         }
-      ]
+      ],
+      "semantic_status": "canonical"
     },
     {
       "id": "cookie-jar",
       "display": "Cookie Jar",
-      "status": "live",
       "definition": "A garden-scoped emergency or discretionary fund with rate-limited withdrawals. Allowlisted members can claim within the configured cap.",
       "layers": {
         "solidity": ["packages/contracts/src/modules/CookieJar.sol"],
@@ -196,12 +195,12 @@
           "to": "garden",
           "kind": "discretionary-fund-of"
         }
-      ]
+      ],
+      "semantic_status": "canonical"
     },
     {
       "id": "attestation",
       "display": "Attestation",
-      "status": "live",
       "definition": "An EAS (Ethereum Attestation Service) record. Used for Work submissions, Assessment outcomes, and other off-chain-verifiable claims.",
       "layers": {
         "solidity": ["packages/contracts/src/Schemas.sol"],
@@ -218,12 +217,12 @@
           "to": "assessment",
           "kind": "records"
         }
-      ]
+      ],
+      "semantic_status": "canonical"
     },
     {
       "id": "hat",
       "display": "Hat",
-      "status": "live",
       "definition": "A Hats Protocol role token. Determines on-chain authority — operator hats can approve Work; gardener hats can submit Work; evaluator hats can attest.",
       "layers": {
         "solidity": [
@@ -243,12 +242,12 @@
           "to": "garden",
           "kind": "authority-in"
         }
-      ]
+      ],
+      "semantic_status": "canonical"
     },
     {
       "id": "season",
       "display": "Season",
-      "status": "live",
       "definition": "A bounded period (typically a quarter) during which a garden runs a coordinated set of Actions and Assessments. Pacing primitive — never a countdown.",
       "layers": {
         "docs": "docs/docs/reference/glossary-community.md"
@@ -258,42 +257,78 @@
         {
           "to": "commitment-cycle",
           "kind": "formalized-by",
-          "note": "spec"
+          "note": "implemented in Commitment Pooling; not yet integrated into the product surface"
         }
-      ]
+      ],
+      "semantic_status": "canonical"
+    },
+    {
+      "id": "need",
+      "display": "Need",
+      "definition": "A community-authored statement of a place-based problem paired with a desired outcome. A Need can gather signals, moderation, linked commitments, and verified funding attribution without becoming a commitment or payment itself.",
+      "spec_source": ".plans/active/community-interface/spec.md",
+      "relationships": [
+        {
+          "to": "garden",
+          "kind": "raised-in",
+          "note": "the EAS recipient is the canonical garden"
+        },
+        {
+          "to": "commitment",
+          "kind": "addressed-by",
+          "note": "a commitment may carry the Need UID; implementation is planned"
+        },
+        {
+          "to": "attestation",
+          "kind": "recorded-as",
+          "note": "planned Need, NeedSignal, NeedStatus, and FundingAttribution schemas"
+        }
+      ],
+      "semantic_status": "canonical"
     },
     {
       "id": "commitment-pool",
       "display": "Commitment Pool",
-      "status": "spec",
       "definition": "A garden-anchored (or protocol root-garden) pool that registers, curates, and reconciles commitments under a charter.",
       "spec_source": ".plans/active/commitment-pooling/contract-spec.md",
+      "layers": {
+        "solidity": ["packages/contracts/src/interfaces/ICommitmentPoolingModule.sol"],
+        "indexer": { "file": "packages/indexer/schema.graphql", "type": "CommitmentPool" }
+      },
       "relationships": [
         {
           "to": "garden",
           "kind": "anchored-to"
         }
-      ]
+      ],
+      "semantic_status": "canonical"
     },
     {
       "id": "commitment-cycle",
       "display": "Commitment Cycle",
-      "status": "spec",
       "definition": "A bounded run of a pool — a Season or Campaign — seeded with timing and an immutable six-role allocation snapshot at open.",
       "spec_source": ".plans/active/commitment-pooling/contract-spec.md",
+      "layers": {
+        "solidity": ["packages/contracts/src/interfaces/ICommitmentPoolingModule.sol"],
+        "indexer": { "file": "packages/indexer/schema.graphql", "type": "CommitmentCycle" }
+      },
       "relationships": [
         {
           "to": "commitment-pool",
           "kind": "run-of"
         }
-      ]
+      ],
+      "semantic_status": "canonical"
     },
     {
       "id": "commitment-series",
       "display": "Commitment Series",
-      "status": "spec",
       "definition": "The internal durable, pool-scoped identity for one Offer used over time. It groups ordinary Offer instances without creating obligations automatically, merging history across pools, or becoming a separate product noun.",
       "spec_source": ".plans/active/commitment-pooling/standing-commitments-spec.md",
+      "layers": {
+        "solidity": ["packages/contracts/src/interfaces/ICommitmentPoolingModule.sol"],
+        "indexer": { "file": "packages/indexer/schema.graphql", "type": "CommitmentSeries" }
+      },
       "relationships": [
         {
           "to": "commitment-pool",
@@ -304,14 +339,62 @@
           "kind": "groups-offer-instances",
           "note": "only explicit non-zero commitmentSeriesId links; Offer once uses zero"
         }
+      ],
+      "semantic_status": "canonical"
+    },
+    {
+      "id": "commitment-provider-exposure",
+      "display": "Commitment Provider Exposure",
+      "semantic_status": "canonical",
+      "definition": "The current count of open commitments held by one accountable lead provider in one pool, derived only from self-describing register unit events.",
+      "spec_source": ".plans/active/commitment-pooling/contract-spec.md",
+      "layers": {
+        "indexer": {
+          "file": "packages/indexer/schema.graphql",
+          "type": "CommitmentProviderExposure"
+        }
+      },
+      "relationships": [{ "to": "commitment-pool", "kind": "aggregated-in" }]
+    },
+    {
+      "id": "commitment-unit-summary",
+      "display": "Commitment Unit Summary",
+      "semantic_status": "canonical",
+      "definition": "Exact-label pool or cycle totals for expected, approved, fulfilled, and open commitment units; unlike label hashes are never combined.",
+      "spec_source": ".plans/active/commitment-pooling/contract-spec.md",
+      "layers": {
+        "indexer": { "file": "packages/indexer/schema.graphql", "type": "CommitmentUnitSummary" }
+      },
+      "relationships": [
+        { "to": "commitment-pool", "kind": "grouped-in" },
+        { "to": "commitment-cycle", "kind": "optionally-grouped-in" }
+      ]
+    },
+    {
+      "id": "commitment-series-cycle-summary",
+      "display": "Commitment Series Cycle Summary",
+      "semantic_status": "canonical",
+      "definition": "Current lifecycle counts for the instances of one commitment series within one cycle.",
+      "spec_source": ".plans/active/commitment-pooling/standing-commitments-spec.md",
+      "layers": {
+        "indexer": {
+          "file": "packages/indexer/schema.graphql",
+          "type": "CommitmentSeriesCycleSummary"
+        }
+      },
+      "relationships": [
+        { "to": "commitment-series", "kind": "summarizes" },
+        { "to": "commitment-cycle", "kind": "scoped-to" }
       ]
     },
     {
       "id": "commitment",
       "display": "Commitment",
-      "status": "spec",
       "definition": "A module-native promise record (offer or request) with one accountable lead, an optional contributor roster, repeatable action requirements, direction-aware confirmation, unit accounting in a non-transferable register, and evidence/work linkage — deliberately not an EAS attestation.",
       "spec_source": ".plans/active/commitment-pooling/contract-spec.md",
+      "layers": {
+        "solidity": ["packages/contracts/src/interfaces/ICommitmentPoolingModule.sol"]
+      },
       "relationships": [
         {
           "to": "commitment-pool",
@@ -339,14 +422,17 @@
           "to": "commitment-payout-plan",
           "kind": "optionally-paid-through"
         }
-      ]
+      ],
+      "semantic_status": "canonical"
     },
     {
       "id": "commitment-contributor",
       "display": "Commitment Contributor",
-      "status": "spec",
       "definition": "A person on a commitment's roster whose approved Work or confirmed evidence can earn Hypercert recognition and a contributor payout; one roster member is the accountable lead.",
       "spec_source": ".plans/active/commitment-pooling/contract-spec.md",
+      "layers": {
+        "solidity": ["packages/contracts/src/interfaces/ICommitmentPoolingModule.sol"]
+      },
       "relationships": [
         {
           "to": "commitment",
@@ -360,14 +446,22 @@
           "to": "hypercert",
           "kind": "recognized-in"
         }
-      ]
+      ],
+      "semantic_status": "canonical"
     },
     {
       "id": "commitment-payout-plan",
       "display": "Commitment Payout Plan",
-      "status": "spec",
       "definition": "A garden-managed split of a fulfilled commitment's declared support into an explicit garden-retained amount and contributor child payouts. Its complete recognition vector is hash-bound, payment weights derive from amounts, and explicit finalization freezes it before dispatch.",
       "spec_source": ".plans/active/commitment-pooling/settlement-spec.md",
+      "layers": {
+        "solidity": ["packages/contracts/src/interfaces/ISettlementModule.sol"],
+        "indexer": {
+          "file": "packages/indexer/schema.graphql",
+          "type": "CommitmentPayoutPlan"
+        },
+        "shared": ["packages/shared/src/types/indexer-responses.ts"]
+      },
       "relationships": [
         {
           "to": "commitment",
@@ -381,7 +475,8 @@
           "to": "commitment-contributor",
           "kind": "pays"
         }
-      ]
+      ],
+      "semantic_status": "canonical"
     }
   ],
   "personas": [
@@ -401,7 +496,7 @@
       "id": "evaluator",
       "display": "Evaluator",
       "hat": "evaluator",
-      "definition": "A person who verifies submitted Work, makes Assessments, and attests impact. Often domain experts (botanists, soil scientists, community elders)."
+      "definition": "A person who authors or strengthens Assessments and attests impact methodology or outcomes. Evaluators do not approve or reject submitted Work; that authority belongs to Operators."
     },
     {
       "id": "funder",
@@ -420,7 +515,6 @@
   "vocabularies": [
     {
       "id": "capital",
-      "status": "live",
       "definition": "Eight Forms of Capital used to tag actions and assessments by the kind of value they create.",
       "canonical": {
         "ordered": true,
@@ -535,11 +629,11 @@
           "code_anchor": null,
           "note": "No runtime mapping function exists yet — see known_issues.missing-capital-mapping-fn."
         }
-      ]
+      ],
+      "source_status": "implemented"
     },
     {
       "id": "domain",
-      "status": "live",
       "definition": "Category of regenerative work — where the work happens. Four production domains; a domain is neither an outcome nor a capital.",
       "canonical": {
         "ordered": true,
@@ -623,11 +717,11 @@
           "unmapped_from": ["mutual_credit"],
           "note": "The two lowercase spellings of the same domain must converge on one word per member; agroforestry/education vs agro/edu currently diverge — baselined."
         }
-      ]
+      ],
+      "source_status": "implemented"
     },
     {
       "id": "garden-role",
-      "status": "live",
       "definition": "The six per-garden Hats roles that gate every protocol permission.",
       "canonical": {
         "ordered": true,
@@ -656,11 +750,11 @@
           "note": "Key order and numeric ids must track the Solidity enum exactly — these ids go into contract calls."
         }
       ],
-      "mappings": []
+      "mappings": [],
+      "source_status": "implemented"
     },
     {
       "id": "transfer-restriction",
-      "status": "live",
       "definition": "Garden NFT transfer mode.",
       "canonical": {
         "ordered": true,
@@ -678,11 +772,11 @@
           "members": ["Unrestricted", "OwnerOnly", "Locked"]
         }
       ],
-      "mappings": []
+      "mappings": [],
+      "source_status": "implemented"
     },
     {
       "id": "badge-rule",
-      "status": "live",
       "definition": "GreenWill badge eligibility rule kinds, proven from on-chain state at claim time.",
       "canonical": {
         "ordered": true,
@@ -700,11 +794,11 @@
           "members": ["None", "Hat", "WorkAttestation", "VaultShares"]
         }
       ],
-      "mappings": []
+      "mappings": [],
+      "source_status": "implemented"
     },
     {
       "id": "ens-name-type",
-      "status": "live",
       "definition": "Kind of *.greengoods.eth subname being registered.",
       "canonical": {
         "ordered": true,
@@ -722,11 +816,11 @@
           "members": ["Gardener", "Garden"]
         }
       ],
-      "mappings": []
+      "mappings": [],
+      "source_status": "implemented"
     },
     {
       "id": "weight-scheme",
-      "status": "live",
       "definition": "Conviction-voting weight scheme selected immutably at garden mint.",
       "canonical": {
         "ordered": true,
@@ -764,11 +858,11 @@
           "note": "Genuine raw uint8 decode path (Number(weightSchemeRaw) as WeightScheme) — ordering is load-bearing and correct."
         }
       ],
-      "mappings": []
+      "mappings": [],
+      "source_status": "implemented"
     },
     {
       "id": "signal-pool-type",
-      "status": "live",
       "definition": "Kind of Gardens V2 conviction signal pool attached to a garden. Distinct from the commitment-pooling PoolType (Garden/Protocol) — same Solidity identifier, different vocabulary; never merge them.",
       "canonical": {
         "ordered": true,
@@ -807,11 +901,11 @@
           "note": "Currently {Hypercert = 0, Action = 1} — inverted vs chain. Verified latent, not live: pool types are assigned by address identity (annotateGardenSignalPools), never decoded from a raw uint8. Baselined with a mandatory blast-radius re-check before burn-down."
         }
       ],
-      "mappings": []
+      "mappings": [],
+      "source_status": "implemented"
     },
     {
       "id": "vault-event-type",
-      "status": "live",
       "definition": "Vault history event kinds recorded by the indexer.",
       "canonical": {
         "ordered": true,
@@ -838,11 +932,11 @@
           "members": ["DEPOSIT", "WITHDRAW", "HARVEST", "EMERGENCY_PAUSED"]
         }
       ],
-      "mappings": []
+      "mappings": [],
+      "source_status": "implemented"
     },
     {
       "id": "hypercert-status",
-      "status": "live",
       "definition": "Lifecycle status of an indexed hypercert.",
       "canonical": {
         "ordered": true,
@@ -870,11 +964,11 @@
           "members": ["active", "claimed", "sold", "unknown"]
         }
       ],
-      "mappings": []
+      "mappings": [],
+      "source_status": "implemented"
     },
     {
       "id": "work-display-status",
-      "status": "live",
       "definition": "Canonical display status for work items across the UI — protocol states plus client-derived offline/sync states.",
       "canonical": {
         "ordered": false,
@@ -964,11 +1058,11 @@
           "note": "Declared as the canonical union; the current file carries a divergent four-value sync list — baselined pending status-union consolidation."
         }
       ],
-      "mappings": []
+      "mappings": [],
+      "source_status": "implemented"
     },
     {
       "id": "cynefin-phase",
-      "status": "live",
       "definition": "Cynefin complexity phase classifying an assessment's operating environment.",
       "canonical": {
         "ordered": true,
@@ -987,11 +1081,11 @@
           "values": [0, 1, 2, 3]
         }
       ],
-      "mappings": []
+      "mappings": [],
+      "source_status": "implemented"
     },
     {
       "id": "confidence",
-      "status": "live",
       "definition": "Four-value verification confidence carried on work approvals (on-chain uint8, bounded to 3).",
       "canonical": {
         "ordered": true,
@@ -1010,11 +1104,11 @@
           "values": [0, 1, 2, 3]
         }
       ],
-      "mappings": []
+      "mappings": [],
+      "source_status": "implemented"
     },
     {
       "id": "verification-method",
-      "status": "live",
       "definition": "Verification method bitmask flags on work approvals (uint8, bounded to 15).",
       "canonical": {
         "ordered": true,
@@ -1034,11 +1128,11 @@
           "note": "Bitmask members declared with shift expressions (1 << n) in source; the extractor evaluates them."
         }
       ],
-      "mappings": []
+      "mappings": [],
+      "source_status": "implemented"
     },
     {
       "id": "action-type",
-      "status": "live",
       "definition": "Action archetype tags used in hypercert metadata and filtering.",
       "canonical": {
         "ordered": false,
@@ -1084,11 +1178,11 @@
           ]
         }
       ],
-      "mappings": []
+      "mappings": [],
+      "source_status": "implemented"
     },
     {
       "id": "job-kind",
-      "status": "live",
       "definition": "Offline job-queue mutation kinds (the write-ahead ledger's vocabulary).",
       "canonical": {
         "ordered": false,
@@ -1106,11 +1200,11 @@
           "members": ["work", "approval"]
         }
       ],
-      "mappings": []
+      "mappings": [],
+      "source_status": "implemented"
     },
     {
       "id": "commitment-pool-type",
-      "status": "live",
       "definition": "Commitment-pooling pool anchor kind. Name-collides with the live Gardens V2 signal-pool PoolType — the sidecar keeps them as separate vocabularies on purpose.",
       "spec_source": ".plans/active/commitment-pooling/contract-spec.md",
       "canonical": {
@@ -1129,11 +1223,11 @@
           "members": ["Garden", "Protocol"]
         }
       ],
-      "mappings": []
+      "mappings": [],
+      "source_status": "implemented"
     },
     {
       "id": "pool-state",
-      "status": "live",
       "definition": "Commitment pool lifecycle — every state is on-chain.",
       "spec_source": ".plans/active/commitment-pooling/contract-spec.md",
       "canonical": {
@@ -1152,11 +1246,11 @@
           "members": ["None", "NotReady", "Ready", "Open", "Paused", "Closed", "Composted"]
         }
       ],
-      "mappings": []
+      "mappings": [],
+      "source_status": "implemented"
     },
     {
       "id": "cycle-type",
-      "status": "live",
       "definition": "Cycle kinds: one open Season per pool; Campaigns may overlap.",
       "spec_source": ".plans/active/commitment-pooling/contract-spec.md",
       "canonical": {
@@ -1175,11 +1269,11 @@
           "members": ["Season", "Campaign"]
         }
       ],
-      "mappings": []
+      "mappings": [],
+      "source_status": "implemented"
     },
     {
       "id": "cycle-state",
-      "status": "live",
       "definition": "On-chain cycle states; Draft lives in app IndexedDB and InProgress/Reviewing are derived from events.",
       "spec_source": ".plans/active/commitment-pooling/contract-spec.md",
       "canonical": {
@@ -1199,11 +1293,11 @@
           "members": ["None", "Seeded", "Open", "Reconciled", "Composted", "Cancelled"]
         }
       ],
-      "mappings": []
+      "mappings": [],
+      "source_status": "implemented"
     },
     {
       "id": "commitment-direction",
-      "status": "live",
       "definition": "Whether a commitment offers capacity or requests it; drives the direction-aware default confirmer.",
       "spec_source": ".plans/active/commitment-pooling/contract-spec.md",
       "canonical": {
@@ -1222,11 +1316,11 @@
           "members": ["Offer", "Request"]
         }
       ],
-      "mappings": []
+      "mappings": [],
+      "source_status": "implemented"
     },
     {
       "id": "commitment-type",
-      "status": "live",
       "definition": "Commitment archetypes; DomainImpact keeps the full Work → WorkApproval path, the others confirm via counterparty.",
       "spec_source": ".plans/active/commitment-pooling/contract-spec.md",
       "canonical": {
@@ -1245,11 +1339,11 @@
           "members": ["DomainImpact", "SupportService", "SeasonCampaign", "StewardCaptured"]
         }
       ],
-      "mappings": []
+      "mappings": [],
+      "source_status": "implemented"
     },
     {
       "id": "commitment-state",
-      "status": "live",
       "definition": "On-chain commitment states; Draft is app-side and Active/EvidenceSubmitted/PartiallyApproved/Reconciled are derived from module events.",
       "spec_source": ".plans/active/commitment-pooling/contract-spec.md",
       "canonical": {
@@ -1295,11 +1389,11 @@
           ]
         }
       ],
-      "mappings": []
+      "mappings": [],
+      "source_status": "implemented"
     },
     {
       "id": "claim-type",
-      "status": "live",
       "definition": "Immutable claimant-eligibility class set at commitment creation; runtime claim kind must equal it.",
       "spec_source": ".plans/active/commitment-pooling/contract-spec.md",
       "canonical": {
@@ -1318,11 +1412,11 @@
           "members": ["Garden", "Individual"]
         }
       ],
-      "mappings": []
+      "mappings": [],
+      "source_status": "implemented"
     },
     {
       "id": "contributor-policy",
-      "status": "live",
       "definition": "How contributor membership is established before the commitment roster freezes.",
       "spec_source": ".plans/active/commitment-pooling/contract-spec.md",
       "canonical": {
@@ -1341,11 +1435,11 @@
           "members": ["Open", "LeadManaged"]
         }
       ],
-      "mappings": []
+      "mappings": [],
+      "source_status": "implemented"
     },
     {
       "id": "claim-mode",
-      "status": "live",
       "definition": "Whether claiming transitions immediately (Open) or awaits operator acceptance (ApprovalGated).",
       "spec_source": ".plans/active/commitment-pooling/contract-spec.md",
       "canonical": {
@@ -1364,11 +1458,11 @@
           "members": ["Open", "ApprovalGated"]
         }
       ],
-      "mappings": []
+      "mappings": [],
+      "source_status": "implemented"
     },
     {
       "id": "dispute-resolution",
-      "status": "live",
       "definition": "Steward-only dispute outcomes; RestorePrevious replays the stored pre-dispute state.",
       "spec_source": ".plans/active/commitment-pooling/contract-spec.md",
       "canonical": {
@@ -1387,11 +1481,11 @@
           "members": ["RestorePrevious", "Fulfilled", "Cancelled", "Expired"]
         }
       ],
-      "mappings": []
+      "mappings": [],
+      "source_status": "implemented"
     },
     {
       "id": "consideration-rail",
-      "status": "live",
       "definition": "Consideration reference rail: ArbitrumExternal records operator-paid jar/treasury payments; CeloSettlement is consumed only by the SettlementModule. Direction is carried by Commitment.payerGarden, not by the rail.",
       "spec_source": ".plans/active/commitment-pooling/contract-spec.md",
       "canonical": {
@@ -1410,11 +1504,11 @@
           "members": ["None", "ArbitrumExternal", "CeloSettlement"]
         }
       ],
-      "mappings": []
+      "mappings": [],
+      "source_status": "implemented"
     },
     {
       "id": "accounting-state",
-      "status": "live",
       "definition": "CommitmentRegistry unit-class accounting states (non-transferable, ERC-1155-style).",
       "spec_source": ".plans/active/commitment-pooling/contract-spec.md",
       "canonical": {
@@ -1433,11 +1527,11 @@
           "members": ["Registered", "Committed", "Released", "Fulfilled"]
         }
       ],
-      "mappings": []
+      "mappings": [],
+      "source_status": "implemented"
     },
     {
       "id": "commitment-payout-plan-status",
-      "status": "live",
       "definition": "Derived progress of a frozen commitment payout plan across its contributor child disbursements.",
       "spec_source": ".plans/active/commitment-pooling/settlement-spec.md",
       "canonical": {
@@ -1465,11 +1559,11 @@
           "members": ["DRAFT", "PENDING", "PARTIAL", "COMPLETE", "FAILED"]
         }
       ],
-      "mappings": []
+      "mappings": [],
+      "source_status": "implemented"
     },
     {
       "id": "confirmation-path",
-      "status": "live",
       "definition": "The authority path that produced fulfillment provenance. PoolFallback is local-garden authority; ProtocolFallback is an explicitly selected Green Goods protocol-garden authority.",
       "spec_source": ".plans/active/commitment-pooling/contract-spec.md",
       "canonical": {
@@ -1488,11 +1582,11 @@
           "members": ["Ordinary", "PoolFallback", "ProtocolFallback"]
         }
       ],
-      "mappings": []
+      "mappings": [],
+      "source_status": "implemented"
     },
     {
       "id": "disbursement-state",
-      "status": "live",
       "definition": "Settlement disbursement lifecycle. The GraphQL mirror prepends UNKNOWN and otherwise preserves the Solidity states.",
       "spec_source": ".plans/active/commitment-pooling/settlement-spec.md",
       "canonical": {
@@ -1521,11 +1615,11 @@
           "note": "UNKNOWN represents the Solidity None sentinel and unexpected values."
         }
       ],
-      "mappings": []
+      "mappings": [],
+      "source_status": "implemented"
     },
     {
       "id": "disbursement-kind",
-      "status": "live",
       "definition": "Purpose of an outbound settlement entry. ContributorConsideration and GardenBeneficiary are the two immutable provider-payment shapes; LoanPrincipal is the records-only Commitment Credit companion shape; Refund returns a steward-confirmed member deposit from the garden Safe through the ordinary settlement rail.",
       "spec_source": ".plans/active/commitment-pooling/settlement-spec.md",
       "canonical": {
@@ -1570,14 +1664,14 @@
             "GARDEN_BENEFICIARY",
             "REFUND"
           ],
-          "note": "UNKNOWN is the indexer's fail-closed fallback for unmapped values. REFUND is ABI-live in the reopened release and is temporarily baselined until the later indexer dispatch lands."
+          "note": "UNKNOWN is the indexer's fail-closed fallback for unmapped values."
         }
       ],
-      "mappings": []
+      "mappings": [],
+      "source_status": "implemented"
     },
     {
       "id": "funding-route",
-      "status": "live",
       "definition": "Typed funding route for non-commitment settlement entries; ProtocolToGarden is the only initial route.",
       "spec_source": ".plans/active/commitment-pooling/settlement-spec.md",
       "canonical": {
@@ -1606,11 +1700,11 @@
           "note": "UNKNOWN is the indexer's fail-closed fallback for unmapped values."
         }
       ],
-      "mappings": []
+      "mappings": [],
+      "source_status": "implemented"
     },
     {
       "id": "funding-state",
-      "status": "live",
       "definition": "Lifecycle of one member-funded priced-Offer claim. Pledged records intent; DepositRecorded records the full steward-confirmed Safe deposit; Consumed binds it to the accepted claimant; Closed follows completed delivery; RefundQueued and Refunded reuse one persistent settlement child; Withdrawn means no recorded deposit was owed.",
       "spec_source": ".plans/active/commitment-pooling/settlement-spec.md",
       "canonical": {
@@ -1647,11 +1741,11 @@
           ]
         }
       ],
-      "mappings": []
+      "mappings": [],
+      "source_status": "implemented"
     },
     {
       "id": "commitment-settlement-flow",
-      "status": "live",
       "definition": "Read-model direction derived from immutable payer and provider gardens plus the write-once protocol garden. It describes Green Goods settlement intent, not observation of later Celo token circulation.",
       "spec_source": ".plans/active/commitment-pooling/settlement-spec.md",
       "canonical": {
@@ -1677,12 +1771,12 @@
           "note": "UNKNOWN is retained until the protocol garden configuration is observed."
         }
       ],
-      "mappings": []
+      "mappings": [],
+      "source_status": "implemented"
     },
     {
       "id": "loan-state",
-      "status": "live",
-      "definition": "Records-only pool-credit loan lifecycle: Requested \u2192 Approved \u2192 Disbursed \u2192 Repaid, with recoverable Defaulted and pre-disbursement Cancelled. Default is not terminal \u2014 later repayment records LoanRepaid(recoveredFromDefault). The Repaying overlay is derived by consumers from RepaymentRecorded while repayment sits between zero and principal + feeAmount and is never stored. No indexer representation exists yet; the credit spec \u00a76 defines the planned GraphQL mirror.",
+      "definition": "Records-only pool-credit loan lifecycle: Requested → Approved → Disbursed → Repaid, with recoverable Defaulted and pre-disbursement Cancelled. Default is not terminal — later repayment records LoanRepaid(recoveredFromDefault). The Repaying overlay is derived by consumers from RepaymentRecorded while repayment sits between zero and principal + feeAmount and is never stored. No indexer representation exists yet; the credit spec §6 defines the planned GraphQL mirror.",
       "spec_source": ".plans/active/commitment-credit-follow-on/spec.md",
       "canonical": {
         "ordered": true,
@@ -1716,12 +1810,12 @@
           ]
         }
       ],
-      "mappings": []
+      "mappings": [],
+      "source_status": "implemented"
     },
     {
       "id": "loan-rail",
-      "status": "live",
-      "definition": "Disbursement rail recorded on a loan. Jar and Treasury are steward-attested Arbitrum-side records; GDollarSettlement binds the loan to its one Confirmed SettlementModule LoanPrincipal child. Repayment recording is Jar/Treasury only \u2014 the G$ rail reverts GDollarRepaymentDisabled until a bounded authenticated receipt policy clears its gates. No indexer representation exists yet.",
+      "definition": "Disbursement rail recorded on a loan. Jar and Treasury are steward-attested Arbitrum-side records; GDollarSettlement binds the loan to its one Confirmed SettlementModule LoanPrincipal child. Repayment recording is Jar/Treasury only — the G$ rail reverts GDollarRepaymentDisabled until a bounded authenticated receipt policy clears its gates. No indexer representation exists yet.",
       "spec_source": ".plans/active/commitment-credit-follow-on/spec.md",
       "canonical": {
         "ordered": true,
@@ -1739,11 +1833,11 @@
           "members": ["None", "Jar", "Treasury", "GDollarSettlement"]
         }
       ],
-      "mappings": []
+      "mappings": [],
+      "source_status": "implemented"
     },
     {
       "id": "failure-code",
-      "status": "live",
       "definition": "Stored settlement failure taxonomy used for deterministic recovery and operator rendering.",
       "spec_source": ".plans/active/commitment-pooling/settlement-spec.md",
       "canonical": {
@@ -1822,11 +1916,11 @@
           "unmapped_to": ["SourceStranded"],
           "note": "SourceStranded is a source-only recovery disposition and is never accepted from the executor over CCIP."
         }
-      ]
+      ],
+      "source_status": "implemented"
     },
     {
       "id": "result-status",
-      "status": "spec",
       "definition": "Celo executor result stored in Solidity; GraphQL exposes the same outcomes as SettlementExecutionStatus with an UNKNOWN sentinel.",
       "spec_source": ".plans/active/commitment-pooling/settlement-spec.md",
       "canonical": {
@@ -1834,16 +1928,22 @@
         "value_scheme": "index",
         "members": ["None", "Success", "Failed"]
       },
-      "planned_anchor": {
-        "file": "packages/contracts/src/interfaces/ISettlementExecutor.sol",
-        "symbol": "ResultStatus"
-      },
-      "representations": [],
-      "mappings": []
+      "representations": [
+        {
+          "id": "executor-solidity",
+          "layer": "solidity",
+          "file": "packages/contracts/src/interfaces/ICeloSettlementExecutor.sol",
+          "symbol": "ResultStatus",
+          "extract": "solidity-enum",
+          "ordered": true,
+          "members": ["None", "Success", "Failed"]
+        }
+      ],
+      "mappings": [],
+      "source_status": "implemented"
     },
     {
       "id": "acknowledgment-deferral-code",
-      "status": "spec",
       "definition": "Why an executor acknowledgment could not be sent immediately without changing the stored execution result.",
       "spec_source": ".plans/active/commitment-pooling/settlement-spec.md",
       "canonical": {
@@ -1851,16 +1951,22 @@
         "value_scheme": "index",
         "members": ["None", "QuoteFailed", "FeeReserveLow", "SendFailed"]
       },
-      "planned_anchor": {
-        "file": "packages/contracts/src/interfaces/ISettlementExecutor.sol",
-        "symbol": "AcknowledgmentDeferralCode"
-      },
-      "representations": [],
-      "mappings": []
+      "representations": [
+        {
+          "id": "executor-solidity",
+          "layer": "solidity",
+          "file": "packages/contracts/src/interfaces/ICeloSettlementExecutor.sol",
+          "symbol": "AcknowledgmentDeferralCode",
+          "extract": "solidity-enum",
+          "ordered": true,
+          "members": ["None", "QuoteFailed", "FeeReserveLow", "SendFailed"]
+        }
+      ],
+      "mappings": [],
+      "source_status": "implemented"
     },
     {
       "id": "settlement-execution-status",
-      "status": "live",
       "definition": "GraphQL execution-result mirror with an explicit UNKNOWN sentinel.",
       "spec_source": ".plans/active/commitment-pooling/settlement-spec.md",
       "canonical": {
@@ -1879,11 +1985,11 @@
           "members": ["UNKNOWN", "SUCCESS", "FAILED"]
         }
       ],
-      "mappings": []
+      "mappings": [],
+      "source_status": "implemented"
     },
     {
       "id": "commitment-claim-request-state",
-      "status": "spec",
       "definition": "Indexer lifecycle of a commitment claim request, including peer supersession after one request is accepted.",
       "spec_source": ".plans/active/commitment-pooling/contract-spec.md",
       "canonical": {
@@ -1891,16 +1997,22 @@
         "value_scheme": "none",
         "members": ["PENDING", "ACCEPTED", "DECLINED", "SUPERSEDED"]
       },
-      "planned_anchor": {
-        "file": "packages/indexer/schema.graphql",
-        "symbol": "CommitmentClaimRequestState"
-      },
-      "representations": [],
-      "mappings": []
+      "representations": [
+        {
+          "id": "indexer",
+          "layer": "indexer",
+          "file": "packages/indexer/schema.graphql",
+          "symbol": "CommitmentClaimRequestState",
+          "extract": "graphql-enum",
+          "ordered": true,
+          "members": ["PENDING", "ACCEPTED", "DECLINED", "SUPERSEDED"]
+        }
+      ],
+      "mappings": [],
+      "source_status": "implemented"
     },
     {
       "id": "commitment-event-type",
-      "status": "spec",
       "definition": "Normalized event vocabulary for commitment-pooling history and read-model aggregation.",
       "spec_source": ".plans/active/commitment-pooling/contract-spec.md",
       "canonical": {
@@ -1960,19 +2072,88 @@
           "CONSIDERATION_PAID",
           "UNITS_COMMITTED",
           "UNITS_RELEASED",
-          "UNITS_FULFILLED"
+          "UNITS_FULFILLED",
+          "FUNDING_PLEDGED",
+          "FUNDING_DEPOSIT_RECORDED",
+          "FUNDING_CONSUMED",
+          "FUNDING_WITHDRAWN"
         ]
       },
-      "planned_anchor": {
-        "file": "packages/indexer/schema.graphql",
-        "symbol": "CommitmentEventType"
-      },
-      "representations": [],
-      "mappings": []
+      "representations": [
+        {
+          "id": "indexer",
+          "layer": "indexer",
+          "file": "packages/indexer/schema.graphql",
+          "symbol": "CommitmentEventType",
+          "extract": "graphql-enum",
+          "ordered": false,
+          "members": [
+            "MODULE_UPDATED",
+            "MODULE_DEPENDENCY_UPDATED",
+            "MODULE_SCHEMA_UID_UPDATED",
+            "MODULE_PAUSE_STATUS_CHANGED",
+            "POOL_REGISTERED",
+            "POOL_CHARTER_UPDATED",
+            "POOL_READY",
+            "POOL_OPENED",
+            "POOL_PAUSED",
+            "POOL_RESUMED",
+            "POOL_CLOSED",
+            "POOL_COMPOSTED",
+            "POOL_REOPENED",
+            "CLASS_REGISTERED",
+            "PROVIDER_OPEN_COMMITMENT_CAP_UPDATED",
+            "CYCLE_SEEDED",
+            "CYCLE_OPENED",
+            "CYCLE_CLOSED",
+            "CYCLE_COMPOSTED",
+            "CYCLE_CANCELLED",
+            "CREATED",
+            "CONSIDERATION_DECLARED",
+            "VALUE_DECLARED",
+            "CONFIRMER_RULE_SET",
+            "CLAIM_REQUESTED",
+            "CLAIM_DECLINED",
+            "ACCEPTED",
+            "EXCHANGE_ACCEPTED",
+            "COMMITMENT_SERIES_CREATED",
+            "COMMITMENT_SERIES_METADATA_UPDATED",
+            "COMMITMENT_SERIES_RESTED",
+            "COMMITMENT_SERIES_RESUMED",
+            "COMMITMENT_SERIES_RETIRED",
+            "CONTRIBUTOR_ADDED",
+            "CONTRIBUTOR_REMOVED",
+            "CONTRIBUTOR_REQUIREMENT_ASSIGNED",
+            "CONTRIBUTOR_ROSTER_FROZEN",
+            "WORK_LINKED",
+            "WORK_UNLINKED",
+            "APPROVED_WORK_COUNTED",
+            "APPROVED_WORK_REVERSED",
+            "EVIDENCE_ATTACHED",
+            "ASSESSMENT_ATTACHED",
+            "READY_FOR_CONFIRMATION",
+            "CONFIRMATION_RECORDED",
+            "FULFILLED",
+            "CANCELLED",
+            "EXPIRED",
+            "DISPUTED",
+            "DISPUTE_RESOLVED",
+            "CONSIDERATION_PAID",
+            "UNITS_COMMITTED",
+            "UNITS_RELEASED",
+            "UNITS_FULFILLED",
+            "FUNDING_PLEDGED",
+            "FUNDING_DEPOSIT_RECORDED",
+            "FUNDING_CONSUMED",
+            "FUNDING_WITHDRAWN"
+          ]
+        }
+      ],
+      "mappings": [],
+      "source_status": "implemented"
     },
     {
       "id": "commitment-unit-scope",
-      "status": "spec",
       "definition": "Read-model grouping boundary for exact-label commitment-unit summaries.",
       "spec_source": ".plans/active/commitment-pooling/contract-spec.md",
       "canonical": {
@@ -1980,16 +2161,22 @@
         "value_scheme": "none",
         "members": ["POOL", "CYCLE"]
       },
-      "planned_anchor": {
-        "file": "packages/indexer/schema.graphql",
-        "symbol": "CommitmentUnitScope"
-      },
-      "representations": [],
-      "mappings": []
+      "representations": [
+        {
+          "id": "indexer",
+          "layer": "indexer",
+          "file": "packages/indexer/schema.graphql",
+          "symbol": "CommitmentUnitScope",
+          "extract": "graphql-enum",
+          "ordered": false,
+          "members": ["POOL", "CYCLE"]
+        }
+      ],
+      "mappings": [],
+      "source_status": "implemented"
     },
     {
       "id": "commitment-series-state",
-      "status": "live",
       "definition": "Lifecycle of the internal durable identity for one Offer used over time in one pool. Retired is terminal; instance lifecycles remain independent.",
       "spec_source": ".plans/active/commitment-pooling/standing-commitments-spec.md",
       "canonical": {
@@ -2006,14 +2193,24 @@
           "extract": "solidity-enum",
           "ordered": true,
           "members": ["None", "Active", "Resting", "Retired"]
+        },
+        {
+          "id": "indexer",
+          "layer": "indexer",
+          "file": "packages/indexer/schema.graphql",
+          "symbol": "CommitmentSeriesState",
+          "extract": "graphql-enum",
+          "ordered": true,
+          "members": ["UNKNOWN", "ACTIVE", "RESTING", "RETIRED"],
+          "note": "UNKNOWN represents the Solidity None sentinel and unexpected values."
         }
       ],
-      "mappings": []
+      "mappings": [],
+      "source_status": "implemented"
     }
   ],
   "schemas": {
     "assessment": {
-      "status": "live",
       "source": "packages/contracts/config/schemas.json",
       "name": "Green Goods Assessment v2",
       "revocable": false,
@@ -2047,10 +2244,10 @@
           "name": "location",
           "type": "string"
         }
-      ]
+      ],
+      "source_status": "implemented"
     },
     "work": {
-      "status": "live",
       "source": "packages/contracts/config/schemas.json",
       "name": "Green Goods Work Submission",
       "revocable": false,
@@ -2076,10 +2273,10 @@
           "name": "media",
           "type": "string[]"
         }
-      ]
+      ],
+      "source_status": "implemented"
     },
     "workApproval": {
-      "status": "live",
       "source": "packages/contracts/config/schemas.json",
       "name": "Green Goods Work Approval",
       "revocable": false,
@@ -2113,10 +2310,10 @@
           "name": "reviewNotesCID",
           "type": "string"
         }
-      ]
+      ],
+      "source_status": "implemented"
     },
     "badge": {
-      "status": "live",
       "check": "existence-only",
       "source": "packages/contracts/script/DeployBadgeSchema.s.sol",
       "source_symbol": "GREEN_GOODS_BADGE_SCHEMA",
@@ -2145,10 +2342,10 @@
           "name": "tier",
           "type": "uint8"
         }
-      ]
+      ],
+      "source_status": "implemented"
     },
     "assessmentV3": {
-      "status": "live",
       "spec_source": ".plans/active/commitment-pooling/contract-spec.md",
       "name": "Green Goods Assessment v3",
       "revocable": false,
@@ -2195,10 +2392,10 @@
           "type": "bytes32"
         }
       ],
-      "source": "packages/contracts/config/schemas.json"
+      "source": "packages/contracts/config/schemas.json",
+      "source_status": "implemented"
     },
     "communityTestimony": {
-      "status": "live",
       "spec_source": ".plans/active/commitment-pooling/contract-spec.md",
       "name": "Green Goods Community Testimony",
       "revocable": false,
@@ -2217,10 +2414,10 @@
           "type": "string"
         }
       ],
-      "source": "packages/contracts/config/schemas.json"
+      "source": "packages/contracts/config/schemas.json",
+      "source_status": "implemented"
     },
     "need": {
-      "status": "spec",
       "spec_source": ".plans/active/community-interface/spec.md",
       "name": "Green Goods Need",
       "revocable": true,
@@ -2243,10 +2440,10 @@
           "name": "mediaCID",
           "type": "string"
         }
-      ]
+      ],
+      "source_status": "specified"
     },
     "needSignal": {
-      "status": "spec",
       "spec_source": ".plans/active/community-interface/spec.md",
       "name": "Green Goods Need Signal",
       "revocable": true,
@@ -2257,10 +2454,10 @@
           "name": "support",
           "type": "bool"
         }
-      ]
+      ],
+      "source_status": "specified"
     },
     "needStatus": {
-      "status": "spec",
       "spec_source": ".plans/active/community-interface/spec.md",
       "name": "Green Goods Need Status",
       "revocable": false,
@@ -2283,10 +2480,10 @@
           "name": "noteCID",
           "type": "string"
         }
-      ]
+      ],
+      "source_status": "specified"
     },
     "fundingAttribution": {
-      "status": "spec",
       "spec_source": ".plans/active/community-interface/spec.md",
       "name": "Green Goods Funding Attribution",
       "revocable": false,
@@ -2313,14 +2510,14 @@
           "name": "rail",
           "type": "uint8"
         }
-      ]
+      ],
+      "source_status": "specified"
     }
   },
   "constraints": [
     {
       "id": "domain-closed-set",
       "kind": "closed-set",
-      "status": "live",
       "statement": "Action domains form a closed four-member set; resolvers reject domain values above 3 and garden domain masks are validated as 4-bit.",
       "enforced_at": [
         {
@@ -2332,12 +2529,12 @@
           "lines": "134-136"
         }
       ],
-      "holes": []
+      "holes": [],
+      "source_status": "implemented"
     },
     {
       "id": "work-attester-role",
       "kind": "domain-range",
-      "status": "live",
       "statement": "A Work attestation's attester must be a gardener or operator of the recipient garden, and the referenced action must exist, be started, not be expired, and belong to a domain enabled on that garden.",
       "enforced_at": [
         {
@@ -2345,12 +2542,12 @@
           "lines": "87-139"
         }
       ],
-      "holes": []
+      "holes": [],
+      "source_status": "implemented"
     },
     {
       "id": "approval-operator-only",
       "kind": "domain-range",
-      "status": "live",
       "statement": "Only an operator of the garden may attest a Work Approval, and the approval's actionUID and recipient must match the referenced Work attestation.",
       "enforced_at": [
         {
@@ -2358,12 +2555,12 @@
           "lines": "115-177"
         }
       ],
-      "holes": []
+      "holes": [],
+      "source_status": "implemented"
     },
     {
       "id": "approval-no-self-attestation",
       "kind": "disjoint",
-      "status": "live",
       "statement": "The approver and the work attester must be different accounts — self-approval reverts.",
       "enforced_at": [
         {
@@ -2371,12 +2568,12 @@
           "lines": "153-156"
         }
       ],
-      "holes": []
+      "holes": [],
+      "source_status": "implemented"
     },
     {
       "id": "assessment-author-role",
       "kind": "domain-range",
-      "status": "live",
       "statement": "An Assessment attester must be an evaluator or operator of the recipient garden.",
       "enforced_at": [
         {
@@ -2384,12 +2581,12 @@
           "lines": "118-122"
         }
       ],
-      "holes": []
+      "holes": [],
+      "source_status": "implemented"
     },
     {
       "id": "yield-split-sum",
       "kind": "sum",
-      "status": "live",
       "statement": "The three-way yield split (CookieJar / Hypercert fractions / Juicebox) must sum to exactly 10000 bps.",
       "enforced_at": [
         {
@@ -2397,12 +2594,12 @@
           "lines": "107,373"
         }
       ],
-      "holes": []
+      "holes": [],
+      "source_status": "implemented"
     },
     {
       "id": "garden-nft-transfer-restriction",
       "kind": "non-transferable",
-      "status": "live",
       "statement": "Garden NFT transfers obey the TransferRestriction mode (Unrestricted / OwnerOnly / Locked); minting is always allowed.",
       "enforced_at": [
         {
@@ -2410,12 +2607,12 @@
           "lines": "43-48,513-518"
         }
       ],
-      "holes": []
+      "holes": [],
+      "source_status": "implemented"
     },
     {
       "id": "resolver-schema-pinning",
       "kind": "existence",
-      "status": "live",
       "statement": "Each core resolver validates that incoming attestations use its pinned schema UID.",
       "enforced_at": [
         {
@@ -2449,133 +2646,140 @@
             }
           ]
         }
-      ]
+      ],
+      "source_status": "implemented"
     },
     {
       "id": "pooling-allocation-bps-sum",
       "kind": "sum",
-      "status": "spec",
       "statement": "The six-role allocation snapshot stored at cycle open must sum to exactly 10000 bps and is immutable for the cycle.",
       "enforced_at": [
         {
-          "file": ".plans/active/commitment-pooling/contract-spec.md"
+          "file": "packages/contracts/src/lib/CommitmentPooling/CyclesLib.sol",
+          "lines": "67-85"
         }
       ],
-      "holes": []
+      "holes": [],
+      "source_status": "implemented"
     },
     {
       "id": "pooling-provider-confirmation-disjoint",
       "kind": "disjoint",
-      "status": "spec",
       "statement": "Every member of a commitment's accountable lead/contributor team is excluded from every fulfillment-confirmation path, including the steward fallback; confirmation defaults are direction-aware (Offer → recipient, Request → creator).",
       "enforced_at": [
         {
-          "file": ".plans/active/commitment-pooling/contract-spec.md"
+          "file": "packages/contracts/src/lib/CommitmentPooling/ConfirmLib.sol",
+          "lines": "101-195"
         }
       ],
-      "holes": []
+      "holes": [],
+      "source_status": "implemented"
     },
     {
       "id": "pooling-recognition-allocation-sum",
       "kind": "sum",
-      "status": "spec",
       "statement": "The gardener-class recognition budget is fully allocated only after every fulfilled commitment has an eligible contributor: equal budget per fulfilled commitment, then the immutable cycle-open RecognitionPolicy allocates its equal-participation and verified-contribution components through separate deterministic remainder passes before the row results are added. The protocol default and immutable cycle-less preset are 20% equal / 80% verified, but an opened cycle may select any two values summing to 10000 bps. Zero eligible contributors block certificate expansion; there is no lead fallback.",
       "enforced_at": [
         {
-          "file": ".plans/active/commitment-pooling/contract-spec.md"
+          "file": "packages/contracts/src/lib/CommitmentPooling/RecognitionLib.sol",
+          "lines": "58-147"
         }
       ],
-      "holes": []
+      "holes": [],
+      "source_status": "implemented"
     },
     {
       "id": "pooling-payout-plan-conservation",
       "kind": "sum",
-      "status": "spec",
       "statement": "An explicitly finalized commitment payout plan conserves the declared support amount exactly: garden-retained amount plus all contributor child amounts equals the parent amount. A zero-child all-retained plan completes at finalization without a transfer.",
       "enforced_at": [
         {
-          "file": ".plans/active/commitment-pooling/settlement-spec.md"
+          "file": "packages/contracts/src/lib/Settlement/PlanLib.sol",
+          "lines": "240-289, 562-586"
         }
       ],
-      "holes": []
+      "holes": [],
+      "source_status": "implemented"
     },
     {
       "id": "pooling-payout-plan-integrity",
       "kind": "functional",
-      "status": "spec",
       "statement": "Each fulfilled commitment has at most one stable payout-plan pointer. The complete recognition vector matches its snapshot hash, payment weights derive from the atomic amount vector, finalization precedes dispatch, and child or batch cancellation never clears the parent pointer.",
       "enforced_at": [
         {
-          "file": ".plans/active/commitment-pooling/settlement-spec.md"
+          "file": "packages/contracts/src/lib/Settlement/PlanLib.sol",
+          "lines": "148-200, 240-337, 545-616"
         }
       ],
-      "holes": []
+      "holes": [],
+      "source_status": "implemented"
     },
     {
       "id": "pooling-one-open-season",
       "kind": "functional",
-      "status": "spec",
       "statement": "A pool may have at most one open Season at a time (O(1) openSeasonCycleId guard); Campaigns may overlap freely.",
       "enforced_at": [
         {
-          "file": ".plans/active/commitment-pooling/contract-spec.md"
+          "file": "packages/contracts/src/lib/CommitmentPooling/CyclesLib.sol",
+          "lines": "73-88, 177-193"
         }
       ],
-      "holes": []
+      "holes": [],
+      "source_status": "implemented"
     },
     {
       "id": "commitment-register-non-transferable",
       "kind": "non-transferable",
-      "status": "spec",
       "statement": "CommitmentRegistry unit classes are non-transferable by construction — no transfer, approval, or custody surface; balances move only via the module.",
       "enforced_at": [
         {
-          "file": ".plans/active/commitment-pooling/contract-spec.md"
+          "file": "packages/contracts/src/registries/Commitment.sol",
+          "lines": "11-159"
         }
       ],
-      "holes": []
+      "holes": [],
+      "source_status": "implemented"
     },
     {
       "id": "needs-eas-envelope-reference",
       "kind": "domain-range",
-      "status": "spec",
       "statement": "All four Needs schemas use EAS recipient as the canonical garden and expirationTime zero; a Need is a root with refUID zero, while NeedSignal, NeedStatus, and FundingAttribution use refUID to reference an exact live same-garden Need.",
       "enforced_at": [
         {
           "file": ".plans/active/community-interface/spec.md"
         }
       ],
-      "holes": []
+      "holes": [],
+      "source_status": "specified"
     },
     {
       "id": "need-signal-latest-winner",
       "kind": "functional",
-      "status": "spec",
       "statement": "For each Need and attester, readers first select the greatest unsigned (timeCreated, uid) NeedSignal tuple and then apply revocation and expiry; a revoked or expired winner clears the signal without restoring an older record, and support and non-support remain separate counts.",
       "enforced_at": [
         {
           "file": ".plans/active/community-interface/spec.md"
         }
       ],
-      "holes": []
+      "holes": [],
+      "source_status": "specified"
     },
     {
       "id": "needs-resolver-trust-boundaries",
       "kind": "closed-set",
-      "status": "spec",
       "statement": "Exactly four Needs schemas route through two resolvers: NeedsResolver accepts only Need, NeedSignal, and NeedStatus with schema-specific Community or Operator authorization, while the ungated FundingAttribution schema routes through FundingAttributionResolver; unknown schema branches fail closed.",
       "enforced_at": [
         {
           "file": ".plans/active/community-interface/spec.md"
         }
       ],
-      "holes": []
+      "holes": [],
+      "source_status": "specified"
     }
   ],
   "state_machines": [
     {
       "id": "work-display-status",
-      "status": "live",
       "vocabulary": "work-display-status",
       "note": "The union in types/domain.ts documents itself as the single source of truth: pending/approved/rejected reflect protocol state; syncing/uploading/sync_failed/offline are client-derived from the offline job queue.",
       "states": [
@@ -2608,15 +2812,51 @@
           "storage": "client-derived"
         }
       ],
-      "transitions": []
+      "transitions": [
+        {
+          "from": ["offline", "sync_failed"],
+          "to": ["syncing"],
+          "layer": "off-chain",
+          "mechanism": "the offline job queue starts or retries the Work submission"
+        },
+        {
+          "from": ["syncing"],
+          "to": ["uploading"],
+          "layer": "off-chain",
+          "mechanism": "queued media begins uploading before the attestation is submitted"
+        },
+        {
+          "from": ["syncing", "uploading"],
+          "to": ["sync_failed"],
+          "layer": "off-chain",
+          "mechanism": "a recoverable queue or upload failure preserves the job for retry"
+        },
+        {
+          "from": ["uploading"],
+          "to": ["pending"],
+          "layer": "on-chain",
+          "mechanism": "successful EAS Work attestation submission creates the pending public record"
+        },
+        {
+          "from": ["pending"],
+          "to": ["approved", "rejected"],
+          "layer": "on-chain",
+          "mechanism": "an Operator records a separate Work Approval attestation"
+        }
+      ],
+      "source_status": "implemented",
+      "kind": "executable"
     },
     {
       "id": "commitment-pool",
-      "status": "spec",
       "vocabulary": "pool-state",
       "spec_source": ".plans/active/commitment-pooling/contract-spec.md",
       "note": "Every pool state is on-chain; transitions are rare operator-console actions.",
       "states": [
+        {
+          "name": "None",
+          "storage": "on-chain"
+        },
         {
           "name": "NotReady",
           "storage": "on-chain"
@@ -2644,59 +2884,60 @@
       ],
       "transitions": [
         {
-          "from": "(create)",
-          "to": "NotReady",
+          "from": ["None"],
+          "to": ["NotReady"],
           "layer": "on-chain",
           "mechanism": "onGardenMinted (GardenToken-only, idempotent) or registerPool → PoolRegistered"
         },
         {
-          "from": "NotReady",
-          "to": "Ready",
+          "from": ["NotReady"],
+          "to": ["Ready"],
           "layer": "on-chain",
           "mechanism": "markPoolReady — requires non-empty charter CID and a non-zero provider open-commitment cap → PoolReady"
         },
         {
-          "from": "Ready",
-          "to": "Open",
+          "from": ["Ready"],
+          "to": ["Open"],
           "layer": "on-chain",
           "mechanism": "openPool → PoolOpened"
         },
         {
-          "from": "Open",
-          "to": "Paused",
+          "from": ["Open"],
+          "to": ["Paused"],
           "layer": "on-chain",
           "mechanism": "pausePool with mandatory reasonCID → PoolPaused; resumePool returns to Open"
         },
         {
-          "from": "Open | Paused",
-          "to": "Closed",
+          "from": ["Open", "Paused"],
+          "to": ["Closed"],
           "layer": "on-chain",
           "mechanism": "closePool → PoolClosed"
         },
         {
-          "from": "Closed",
-          "to": "Composted",
+          "from": ["Closed"],
+          "to": ["Composted"],
           "layer": "on-chain",
           "mechanism": "compostPool → PoolComposted"
         },
         {
-          "from": "Composted",
-          "to": "Ready | Open",
+          "from": ["Composted"],
+          "to": ["Ready", "Open"],
           "layer": "on-chain",
           "mechanism": "reopenPool(toOpen) → PoolReopened"
         }
-      ]
+      ],
+      "source_status": "implemented",
+      "kind": "executable"
     },
     {
       "id": "commitment-cycle",
-      "status": "spec",
       "vocabulary": "cycle-state",
       "spec_source": ".plans/active/commitment-pooling/contract-spec.md",
       "note": "One open Season per pool (openSeasonCycleId guard); Campaigns overlap freely. Succession between cycles is derived by pool ordering — no on-chain predecessor pointer.",
       "states": [
         {
-          "name": "Draft",
-          "storage": "off-chain"
+          "name": "None",
+          "storage": "on-chain"
         },
         {
           "name": "Seeded",
@@ -2729,59 +2970,60 @@
       ],
       "transitions": [
         {
-          "from": "Draft",
-          "to": "Seeded",
+          "from": ["None"],
+          "to": ["Seeded"],
           "layer": "on-chain",
           "mechanism": "seedCycle(poolId, cycleType, startTime, endTime, metadataCID) → CycleSeeded; no allocation stored yet"
         },
         {
-          "from": "Seeded",
-          "to": "Open",
+          "from": ["Seeded"],
+          "to": ["Open"],
           "layer": "on-chain",
           "mechanism": "openCycle(cycleId, allocation, recognitionPolicy) — six-role allocation bps and two-part recognition bps each sum to 10000, both store immutably → CycleOpened"
         },
         {
-          "from": "Open",
-          "to": "InProgress",
+          "from": ["Open"],
+          "to": ["InProgress"],
           "layer": "derived",
           "mechanism": "first CommitmentAccepted for the cycle OR block time ≥ startTime"
         },
         {
-          "from": "InProgress",
-          "to": "Reviewing",
+          "from": ["InProgress"],
+          "to": ["Reviewing"],
           "layer": "derived",
           "mechanism": "block time > endTime, OR all cycle commitments terminal or ReadyForConfirmation; new evidence/work flips back"
         },
         {
-          "from": "Reviewing",
-          "to": "Reconciled",
+          "from": ["Reviewing"],
+          "to": ["Reconciled"],
           "layer": "on-chain",
           "mechanism": "closeCycle (the reconcile act) requires liveCommitmentCount = 0 → CycleClosed; commitment-level Reconciled derives from this event"
         },
         {
-          "from": "Reconciled",
-          "to": "Composted",
+          "from": ["Reconciled"],
+          "to": ["Composted"],
           "layer": "on-chain",
           "mechanism": "compostCycle → CycleComposted"
         },
         {
-          "from": "Seeded | Open",
-          "to": "Cancelled",
+          "from": ["Seeded", "Open"],
+          "to": ["Cancelled"],
           "layer": "on-chain",
           "mechanism": "cancelCycle(reasonCID) requires liveCommitmentCount = 0 → CycleCancelled; Draft is discarded off-chain"
         }
-      ]
+      ],
+      "source_status": "implemented",
+      "kind": "executable"
     },
     {
       "id": "commitment",
-      "status": "spec",
       "vocabulary": "commitment-state",
       "spec_source": ".plans/active/commitment-pooling/contract-spec.md",
       "note": "Direction-aware fulfillment: the party receiving the team's work confirms by default (Offer → receiver, Request → creator), or a named group may be set before acceptance. A current local-garden steward/owner may use PoolFallback. When explicitly selected before acceptance and no ordinary/local confirmer is reachable, a current steward/owner of the registered Green Goods protocol garden may use ProtocolFallback. The authority paths are not time-based; module ownership alone grants neither fallback; every lead/contributor is excluded. Evidence/Work credit records only while Accepted and unfrozen; the contributor roster and credit ledger freeze atomically on the transition to ReadyForConfirmation or before a direct Fulfilled dispute resolution; Ready requires pre-freeze totalVerifiedCredits > 0 and a structurally reachable confirmer, while recognition additionally requires Fulfilled plus an opened cycle policy or the immutable cycle-less 20/80 default; disputes restore an explicitly stored prior state.",
       "states": [
         {
-          "name": "Draft",
-          "storage": "off-chain"
+          "name": "None",
+          "storage": "on-chain"
         },
         {
           "name": "Offered",
@@ -2834,144 +3076,172 @@
       ],
       "transitions": [
         {
-          "from": "Draft",
-          "to": "Offered | Requested",
+          "from": ["None"],
+          "to": ["Offered", "Requested"],
           "layer": "on-chain",
           "mechanism": "createCommitment → CommitmentCreated (direction sets the initial state)"
         },
         {
-          "from": "Offered | Requested",
-          "to": "Accepted",
+          "from": ["Offered", "Requested"],
+          "to": ["Accepted"],
           "layer": "on-chain",
           "mechanism": "claimCommitment (runtime kind must equal immutable claimType; Open mode transitions immediately, ApprovalGated waits for operator acceptClaim) → CommitmentAccepted; register records committed units"
         },
         {
-          "from": "Accepted",
-          "to": "Active",
+          "from": ["Accepted"],
+          "to": ["Active"],
           "layer": "derived",
           "mechanism": "first WorkLinked or EvidenceAttached after acceptance"
         },
         {
-          "from": "Active",
-          "to": "EvidenceSubmitted",
+          "from": ["Active"],
+          "to": ["EvidenceSubmitted"],
           "layer": "derived",
           "mechanism": "any EvidenceAttached or WorkLinked event"
         },
         {
-          "from": "EvidenceSubmitted",
-          "to": "PartiallyApproved",
+          "from": ["EvidenceSubmitted"],
+          "to": ["PartiallyApproved"],
           "layer": "derived",
           "mechanism": "ApprovedWorkCounted with some requirement counters below their required counts"
         },
         {
-          "from": "…",
-          "to": "ReadyForConfirmation",
+          "from": ["Accepted", "Active", "EvidenceSubmitted", "PartiallyApproved"],
+          "to": ["ReadyForConfirmation"],
           "layer": "on-chain",
           "mechanism": "automatic once every repeatable action requirement is met and any declared assessment attached; submitForConfirmation for evidence-only types requires evidenceCount ≥ 1; steward markReadyForConfirmation with reason; every path requires an Open cycle when scoped or the immutable cycle-less 20/80 policy, pre-freeze totalVerifiedCredits > 0, and either a reachable ordinary named/default confirmer threshold or an explicitly selected registered protocol-garden fallback; local-garden authority is confirmation-time PoolFallback provenance only and does not independently satisfy Ready reachability; contributor roster and credit ledger freeze atomically before the ready event"
         },
         {
-          "from": "ReadyForConfirmation",
-          "to": "Fulfilled",
+          "from": ["ReadyForConfirmation"],
+          "to": ["Fulfilled"],
           "layer": "on-chain",
           "mechanism": "confirmFulfillment by named confirmer or direction-aware default, or confirmFulfillmentAsFallback with reason by current local-garden authority (PoolFallback) or explicitly selected registered protocol-garden authority (ProtocolFallback); local authority wins for dual-role callers; threshold N → CommitmentFulfilled with actor/path/reason; register converts units; every lead/contributor on the already-frozen roster is excluded from every confirmation path"
         },
         {
-          "from": "Fulfilled",
-          "to": "Reconciled",
+          "from": ["Fulfilled"],
+          "to": ["Reconciled"],
           "layer": "derived",
           "mechanism": "CycleClosed for the commitment's cycle (or PoolClosed when cycle-less)"
         },
         {
-          "from": "…",
-          "to": "Cancelled",
+          "from": ["Offered", "Requested", "Accepted"],
+          "to": ["Cancelled"],
           "layer": "on-chain",
           "mechanism": "cancelCommitment(reasonCID) — creator or steward pre-acceptance, steward-only after; Accepted releases committed units"
         },
         {
-          "from": "…",
-          "to": "Expired",
+          "from": ["Offered", "Requested", "Accepted", "ReadyForConfirmation"],
+          "to": ["Expired"],
           "layer": "on-chain",
           "mechanism": "expireCommitment — permissionless once past dueDate (or cycle endTime); releases still-committed units"
         },
         {
-          "from": "Accepted | ReadyForConfirmation | Expired",
-          "to": "Disputed",
+          "from": ["Accepted", "ReadyForConfirmation", "Expired"],
+          "to": ["Disputed"],
           "layer": "on-chain",
           "mechanism": "raiseDispute(reasonCID) — module stores the exact prior state in preDisputeState → CommitmentDisputed"
         },
         {
-          "from": "Disputed",
-          "to": "previous | Fulfilled | Cancelled | Expired",
+          "from": ["Disputed"],
+          "to": ["Accepted", "ReadyForConfirmation", "Fulfilled", "Cancelled", "Expired"],
           "layer": "on-chain",
           "mechanism": "resolveDispute steward-only; RestorePrevious replays preDisputeState; an Expired prior state can never resolve Fulfilled; a direct Fulfilled resolution requires an available recognition policy and verified contributor, then freezes an unfrozen roster before DisputeResolved"
         }
-      ]
+      ],
+      "source_status": "implemented",
+      "kind": "executable"
     },
     {
       "id": "commitment-loan",
-      "status": "spec",
       "vocabulary": "loan-state",
       "spec_source": ".plans/active/commitment-credit-follow-on/spec.md",
-      "note": "Records-only pool credit (CreditRegistry). Default is not terminal \u2014 a defaulted loan can still be repaid, recorded as LoanRepaid(recoveredFromDefault = true). Registry pause blocks every mutation except markDefaulted and cancelLoan (wind-down). The G$ leg binds the loan to exactly one Confirmed DisbursementKind.LoanPrincipal settlement child; nothing in this machine moves value. Drawn as D30 in the commitment-pooling gallery.",
+      "note": "Records-only pool credit (CreditRegistry). Default is not terminal — a defaulted loan can still be repaid, recorded as LoanRepaid(recoveredFromDefault = true). Registry pause blocks every mutation except markDefaulted and cancelLoan (wind-down). The G$ leg binds the loan to exactly one Confirmed DisbursementKind.LoanPrincipal settlement child; nothing in this machine moves value. Drawn as D30 in the commitment-pooling gallery.",
       "states": [
-        { "name": "Requested", "storage": "on-chain" },
-        { "name": "Approved", "storage": "on-chain" },
-        { "name": "Disbursed", "storage": "on-chain" },
-        { "name": "Repaid", "storage": "on-chain" },
-        { "name": "Defaulted", "storage": "on-chain" },
-        { "name": "Cancelled", "storage": "on-chain" },
-        { "name": "Repaying", "storage": "derived" }
+        {
+          "name": "None",
+          "storage": "on-chain"
+        },
+        {
+          "name": "Requested",
+          "storage": "on-chain"
+        },
+        {
+          "name": "Approved",
+          "storage": "on-chain"
+        },
+        {
+          "name": "Disbursed",
+          "storage": "on-chain"
+        },
+        {
+          "name": "Repaid",
+          "storage": "on-chain"
+        },
+        {
+          "name": "Defaulted",
+          "storage": "on-chain"
+        },
+        {
+          "name": "Cancelled",
+          "storage": "on-chain"
+        },
+        {
+          "name": "Repaying",
+          "storage": "derived"
+        }
       ],
       "transitions": [
         {
-          "from": "None",
-          "to": "Requested",
+          "from": ["None"],
+          "to": ["Requested"],
           "layer": "on-chain",
-          "mechanism": "requestLoan(params) \u2192 LoanRequested; pool member for self or steward onBehalfOf; pool Open + credit enabled; principal within remaining borrowerCap"
+          "mechanism": "requestLoan(params) → LoanRequested; pool member for self or steward onBehalfOf; pool Open + credit enabled; principal within remaining borrowerCap"
         },
         {
-          "from": "Requested",
-          "to": "Approved",
+          "from": ["Requested"],
+          "to": ["Approved"],
           "layer": "on-chain",
-          "mechanism": "approveLoan(loanId) \u2192 LoanApproved; steward, never the borrower (SelfApproval); re-checks authority and reserves cap exposure"
+          "mechanism": "approveLoan(loanId) → LoanApproved; steward, never the borrower (SelfApproval); re-checks authority and reserves cap exposure"
         },
         {
-          "from": "Requested",
-          "to": "Cancelled",
+          "from": ["Requested"],
+          "to": ["Cancelled"],
           "layer": "on-chain",
-          "mechanism": "cancelLoan(loanId, reasonCID) \u2192 LoanCancelled; borrower or steward"
+          "mechanism": "cancelLoan(loanId, reasonCID) → LoanCancelled; borrower or steward"
         },
         {
-          "from": "Approved",
-          "to": "Disbursed",
+          "from": ["Approved"],
+          "to": ["Disbursed"],
           "layer": "on-chain",
-          "mechanism": "recordDisbursed(loanId, rail, executionRef) \u2192 LoanDisbursed; steward or pool executor; reservation becomes outstanding; the G$ rail requires the one field-matched Confirmed LoanPrincipal child"
+          "mechanism": "recordDisbursed(loanId, rail, executionRef) → LoanDisbursed; steward or pool executor; reservation becomes outstanding; the G$ rail requires the one field-matched Confirmed LoanPrincipal child"
         },
         {
-          "from": "Approved",
-          "to": "Cancelled",
+          "from": ["Approved"],
+          "to": ["Cancelled"],
           "layer": "on-chain",
-          "mechanism": "cancelLoan(loanId, reasonCID) \u2192 LoanCancelled; steward; any settlement child must already be Cancelled; releases the cap reservation"
+          "mechanism": "cancelLoan(loanId, reasonCID) → LoanCancelled; steward; any settlement child must already be Cancelled; releases the cap reservation"
         },
         {
-          "from": "Disbursed",
-          "to": "Repaid",
+          "from": ["Disbursed"],
+          "to": ["Repaid"],
           "layer": "on-chain",
-          "mechanism": "recordRepayment(loanId, amount, executionRef) clearing principal + fee \u2192 RepaymentRecorded + LoanRepaid; steward or executor, never the borrower; Jar/Treasury only"
+          "mechanism": "recordRepayment(loanId, amount, executionRef) clearing principal + fee → RepaymentRecorded + LoanRepaid; steward or executor, never the borrower; Jar/Treasury only"
         },
         {
-          "from": "Disbursed",
-          "to": "Defaulted",
+          "from": ["Disbursed"],
+          "to": ["Defaulted"],
           "layer": "on-chain",
-          "mechanism": "markDefaulted(loanId, reasonCID) \u2192 LoanDefaulted; steward; past dueDate only (NotDue); callable while paused"
+          "mechanism": "markDefaulted(loanId, reasonCID) → LoanDefaulted; steward; past dueDate only (NotDue); callable while paused"
         },
         {
-          "from": "Defaulted",
-          "to": "Repaid",
+          "from": ["Defaulted"],
+          "to": ["Repaid"],
           "layer": "on-chain",
-          "mechanism": "recordRepayment clearing the balance \u2192 LoanRepaid(recoveredFromDefault = true); default is not terminal"
+          "mechanism": "recordRepayment clearing the balance → LoanRepaid(recoveredFromDefault = true); default is not terminal"
         }
-      ]
+      ],
+      "source_status": "specified",
+      "kind": "executable"
     }
   ],
   "integration_matrix": {
@@ -3120,21 +3390,7 @@
       "file": "packages/shared/src/modules/data/greengoods.ts",
       "pattern": "\\?\\?\\s*Domain\\.SOLAR",
       "expect": "absent",
-      "note": "parseDomain silently coerces UNKNOWN/unrecognized indexer domains into Domain.SOLAR; unknown values must surface instead of masquerading as SOLAR."
-    },
-    {
-      "id": "commitment-provider-exposure-arrival",
-      "file": "packages/indexer/schema.graphql",
-      "pattern": "type\\s+CommitmentProviderExposure\\b",
-      "expect": "absent",
-      "note": "When the CommitmentProviderExposure read model lands, add its canonical ontology entity/mapping in the same change."
-    },
-    {
-      "id": "commitment-unit-summary-arrival",
-      "file": "packages/indexer/schema.graphql",
-      "pattern": "type\\s+CommitmentUnitSummary\\b",
-      "expect": "absent",
-      "note": "When the exact-label CommitmentUnitSummary read model lands, add its canonical ontology entity/mapping in the same change."
+      "note": "Prevents unknown or unrecognized indexer domains from regressing to an implicit Domain.SOLAR fallback."
     },
     {
       "id": "promise-kept-rate-arrival",
@@ -3142,20 +3398,6 @@
       "pattern": "\\bpromiseKeptRate\\s*:",
       "expect": "absent",
       "note": "When promiseKeptRate lands, add the commitmentsFulfilled/commitmentsDue metric definition to the ontology in the same change."
-    },
-    {
-      "id": "commitment-series-arrival",
-      "file": "packages/indexer/schema.graphql",
-      "pattern": "type\\s+CommitmentSeries\\b",
-      "expect": "absent",
-      "note": "The spec entity and Solidity-spelled lifecycle are canonical now. When CommitmentSeries lands, add its live indexer/shared representations and the explicit GraphQL uppercase mapping in the same change."
-    },
-    {
-      "id": "commitment-series-cycle-summary-arrival",
-      "file": "packages/indexer/schema.graphql",
-      "pattern": "type\\s+CommitmentSeriesCycleSummary\\b",
-      "expect": "absent",
-      "note": "When the per-cycle series Story summary lands, add its canonical entity mapping and exact count definitions in the same change."
     }
   ],
   "known_issues": [
