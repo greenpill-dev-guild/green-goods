@@ -103,6 +103,71 @@ function hasSpecificExpectRevertAssertion(inner) {
     );
 }
 
+function sanitizeSolidityForDeclarationScan(source) {
+    let sanitized = '';
+    let state = 'code';
+    let quote = null;
+
+    for (let i = 0; i < source.length; i++) {
+        const current = source[i];
+        const next = source[i + 1];
+
+        if (state === 'code') {
+            if (current === '/' && next === '/') {
+                sanitized += '  ';
+                state = 'line-comment';
+                i += 1;
+            } else if (current === '/' && next === '*') {
+                sanitized += '  ';
+                state = 'block-comment';
+                i += 1;
+            } else if (current === '"' || current === "'") {
+                sanitized += ' ';
+                quote = current;
+                state = 'string';
+            } else {
+                sanitized += current;
+            }
+            continue;
+        }
+
+        if (state === 'line-comment') {
+            if (current === '\n') {
+                sanitized += current;
+                state = 'code';
+            } else {
+                sanitized += ' ';
+            }
+            continue;
+        }
+
+        if (state === 'block-comment') {
+            if (current === '*' && next === '/') {
+                sanitized += '  ';
+                state = 'code';
+                i += 1;
+            } else {
+                sanitized += current === '\n' ? '\n' : ' ';
+            }
+            continue;
+        }
+
+        if (current === '\\' && next !== undefined) {
+            sanitized += ' ';
+            sanitized += next === '\n' ? '\n' : ' ';
+            i += 1;
+        } else if (current === quote) {
+            sanitized += ' ';
+            quote = null;
+            state = 'code';
+        } else {
+            sanitized += current === '\n' ? '\n' : ' ';
+        }
+    }
+
+    return sanitized;
+}
+
 const forkDir = path.join(rootDir, 'packages/contracts/test/fork');
 const contractsTestDir = path.join(rootDir, 'packages/contracts/test');
 
@@ -137,13 +202,16 @@ const metrics = {
 for (const file of targetFiles) {
     const text = fs.readFileSync(file, 'utf8');
     const lines = text.split(/\r?\n/);
+    const declarationLines = sanitizeSolidityForDeclarationScan(text).split(/\r?\n/);
     const relativeFile = rel(file);
     let sourceSelector = '<file>';
 
     for (let i = 0; i < lines.length; i++) {
         const line = lines[i];
         const lineNo = i + 1;
-        const functionMatch = line.match(/\bfunction\s+([A-Za-z_][A-Za-z0-9_]*)\s*\(/);
+        const functionMatch = declarationLines[i].match(
+            /\bfunction\s+([A-Za-z_][A-Za-z0-9_]*)\s*\(/
+        );
         if (functionMatch) sourceSelector = functionMatch[1];
 
         if (/import\s+[^;]*src\/mocks\//.test(line)) {

@@ -134,6 +134,14 @@ test.describe("Offline Sync CI Tests", () => {
     });
 
     test("reloads the authenticated app shell while offline", async ({ page, context }) => {
+      // SKIP: #338 owner:afo expiry:2026-09-15 — Vite dev SW has no precached navigation shell.
+      test.skip(
+        process.env.PLAYWRIGHT_PWA_PREVIEW !== "true",
+        "Offline reload requires a production PWA preview with a precached /home app shell; " +
+          "the default CI Vite dev worker registers but does not precache index.html. " +
+          "Set PLAYWRIGHT_PWA_PREVIEW=true only when serving a production preview."
+      );
+
       await page.addInitScript(() => {
         const key = "__gg_e2e_navigation_count";
         const nextCount = Number(window.sessionStorage.getItem(key) ?? "0") + 1;
@@ -149,14 +157,6 @@ test.describe("Offline Sync CI Tests", () => {
       await waitForActiveServiceWorker(page);
       await ensureServiceWorkerControlsPage(page);
       await expect(appMarker).toBeVisible({ timeout: 10000 });
-
-      // SKIP: #338 owner:afo expiry:2026-09-15 — Vite dev SW has no precached navigation shell.
-      test.skip(
-        process.env.PLAYWRIGHT_PWA_PREVIEW !== "true",
-        "Offline reload requires a production PWA preview with a precached /home app shell; " +
-          "the default CI Vite dev worker registers but does not precache index.html. " +
-          "Set PLAYWRIGHT_PWA_PREVIEW=true only when serving a production preview."
-      );
 
       const navigationCountBeforeOfflineReload = await page.evaluate(() =>
         Number(window.sessionStorage.getItem("__gg_e2e_navigation_count"))
