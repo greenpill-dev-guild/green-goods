@@ -9,6 +9,8 @@ import {
   parseHypercertMetadata,
   ZERO_ADDRESS,
 } from "./shared";
+import { poolingEntityId } from "./commitment-pool-projections";
+import { indexCommitmentHypercert } from "./hypercert-allocations";
 
 // ============================================================================
 // HYPERCERT EVENT HANDLERS
@@ -143,14 +145,24 @@ indexer.onEvent(
       txHash: getTxHash(event.transaction),
       log: context.log,
     });
+    if (metadata === null) {
+      throw new Error(`Hypercert metadata unavailable for ${hypercertId}`);
+    }
 
-    const parsedMetadata = metadata ? parseHypercertMetadata(metadata) : {};
+    const parsedMetadata = parseHypercertMetadata(metadata);
     const parsedAttestationUIDs = parsedMetadata.attestationUIDs;
+    const bundleKind = parsedMetadata.bundleKind ?? "WORK_LEGACY";
+    const commitmentIds = bundleKind === "COMMITMENT" ? (parsedMetadata.commitmentIds ?? []) : [];
+    const needUIDs = bundleKind === "COMMITMENT" ? (parsedMetadata.needUIDs ?? []) : [];
 
     const updatedHypercert: Hypercert = {
       ...baseHypercert,
       metadataUri: event.params.uri,
       totalUnits: event.params.totalUnits,
+      bundleKind,
+      commitmentIds,
+      commitmentEntityIds: commitmentIds.map((id) => poolingEntityId(event.chainId, id)),
+      needUIDs,
       updatedAt: timestamp,
       ...(parsedMetadata.gardenId ? { garden: parsedMetadata.gardenId } : {}),
       ...(parsedAttestationUIDs
@@ -162,6 +174,9 @@ indexer.onEvent(
     };
 
     context.Hypercert.set(updatedHypercert);
+    if (bundleKind === "COMMITMENT") {
+      await indexCommitmentHypercert(context, updatedHypercert, timestamp);
+    }
 
     context.log.info("Hypercert claim stored", {
       hypercertId,

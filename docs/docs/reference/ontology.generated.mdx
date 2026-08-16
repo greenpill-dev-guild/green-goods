@@ -40,9 +40,12 @@ The formal specification of the Green Goods shared vocabulary: the entities the 
 | **Hat** | canonical | available | implemented · deployed · active · integrated | A Hats Protocol role token. Determines on-chain authority — operator hats can approve Work; gardener hats can submit Work; evaluator hats can attest. | contracts · indexer (Garden) · shared · docs |
 | **Season** | canonical | planned | partial · not-applicable · not-applicable · partial | A bounded period (typically a quarter) during which a garden runs a coordinated set of Actions and Assessments. Pacing primitive — never a countdown. | docs |
 | **Need** | canonical | planned | not-implemented · not-deployed · inactive · not-integrated | A community-authored statement of a place-based problem paired with a desired outcome. A Need can gather signals, moderation, linked commitments, and verified funding attribution without becoming a commitment or payment itself. | spec |
-| **Commitment Pool** | canonical | deployed-not-available | implemented · deployed · active · not-integrated | A garden-anchored (or protocol root-garden) pool that registers, curates, and reconciles commitments under a charter. | contracts · spec |
-| **Commitment Cycle** | canonical | deployed-not-available | implemented · deployed · active · not-integrated | A bounded run of a pool — a Season or Campaign — seeded with timing and an immutable six-role allocation snapshot at open. | contracts · spec |
-| **Commitment Series** | canonical | deployed-not-available | implemented · deployed · active · not-integrated | The internal durable, pool-scoped identity for one Offer used over time. It groups ordinary Offer instances without creating obligations automatically, merging history across pools, or becoming a separate product noun. | contracts · spec |
+| **Commitment Pool** | canonical | deployed-not-available | implemented · deployed · active · not-integrated | A garden-anchored (or protocol root-garden) pool that registers, curates, and reconciles commitments under a charter. | contracts · indexer (CommitmentPool) · spec |
+| **Commitment Cycle** | canonical | deployed-not-available | implemented · deployed · active · not-integrated | A bounded run of a pool — a Season or Campaign — seeded with timing and an immutable six-role allocation snapshot at open. | contracts · indexer (CommitmentCycle) · spec |
+| **Commitment Series** | canonical | deployed-not-available | implemented · deployed · active · not-integrated | The internal durable, pool-scoped identity for one Offer used over time. It groups ordinary Offer instances without creating obligations automatically, merging history across pools, or becoming a separate product noun. | contracts · indexer (CommitmentSeries) · spec |
+| **Commitment Provider Exposure** | canonical | in-build | implemented · not-deployed · inactive · partial | The current count of open commitments held by one accountable lead provider in one pool, derived only from self-describing register unit events. | indexer (CommitmentProviderExposure) · spec |
+| **Commitment Unit Summary** | canonical | in-build | implemented · not-deployed · inactive · partial | Exact-label pool or cycle totals for expected, approved, fulfilled, and open commitment units; unlike label hashes are never combined. | indexer (CommitmentUnitSummary) · spec |
+| **Commitment Series Cycle Summary** | canonical | in-build | implemented · not-deployed · inactive · partial | Current lifecycle counts for the instances of one commitment series within one cycle. | indexer (CommitmentSeriesCycleSummary) · spec |
 | **Commitment** | canonical | deployed-not-available | implemented · deployed · active · not-integrated | A module-native promise record (offer or request) with one accountable lead, an optional contributor roster, repeatable action requirements, direction-aware confirmation, unit accounting in a non-transferable register, and evidence/work linkage — deliberately not an EAS attestation. | contracts · spec |
 | **Commitment Contributor** | canonical | deployed-not-available | implemented · deployed · active · not-integrated | A person on a commitment's roster whose approved Work or confirmed evidence can earn Hypercert recognition and a contributor payout; one roster member is the accountable lead. | contracts · spec |
 | **Commitment Payout Plan** | canonical | deployed-not-available | implemented · deployed · inactive · partial | A garden-managed split of a fulfilled commitment's declared support into an explicit garden-retained amount and contributor child payouts. Its complete recognition vector is hash-bound, payment weights derive from amounts, and explicit finalization freezes it before dispatch. | contracts · indexer (CommitmentPayoutPlan) · shared · spec |
@@ -436,7 +439,7 @@ Purpose of an outbound settlement entry. ContributorConsideration and GardenBene
 | Representation | Layer | Source | Expected members | Note |
 |---|---|---|---|---|
 | solidity | solidity | <code>packages/contracts/src/interfaces/ISettlementModule.sol · DisbursementKind</code> | <code>ContributorConsideration, Funding, LoanPrincipal, GardenBeneficiary, Refund</code> |  |
-| indexer | indexer | <code>packages/indexer/schema.graphql · DisbursementKind</code> | <code>UNKNOWN, CONTRIBUTOR_CONSIDERATION, FUNDING, LOAN_PRINCIPAL, GARDEN_BENEFICIARY, REFUND</code> | UNKNOWN is the indexer's fail-closed fallback for unmapped values. REFUND is ABI-live in the reopened release and is temporarily baselined until the later indexer dispatch lands. |
+| indexer | indexer | <code>packages/indexer/schema.graphql · DisbursementKind</code> | <code>UNKNOWN, CONTRIBUTOR_CONSIDERATION, FUNDING, LOAN_PRINCIPAL, GARDEN_BENEFICIARY, REFUND</code> | UNKNOWN is the indexer's fail-closed fallback for unmapped values. |
 
 ### `funding-route`
 
@@ -504,6 +507,26 @@ Stored settlement failure taxonomy used for deterministic recovery and operator 
   - Code anchor: none — no runtime mapping function exists yet.
   - SourceStranded is a source-only recovery disposition and is never accepted from the executor over CCIP.
 
+### `result-status`
+
+Celo executor result stored in Solidity; GraphQL exposes the same outcomes as SettlementExecutionStatus with an UNKNOWN sentinel.
+
+**Canonical members:** None (0) · Success (1) · Failed (2)
+
+| Representation | Layer | Source | Expected members | Note |
+|---|---|---|---|---|
+| executor-solidity | solidity | <code>packages/contracts/src/interfaces/ICeloSettlementExecutor.sol · ResultStatus</code> | <code>None, Success, Failed</code> |  |
+
+### `acknowledgment-deferral-code`
+
+Why an executor acknowledgment could not be sent immediately without changing the stored execution result.
+
+**Canonical members:** None (0) · QuoteFailed (1) · FeeReserveLow (2) · SendFailed (3)
+
+| Representation | Layer | Source | Expected members | Note |
+|---|---|---|---|---|
+| executor-solidity | solidity | <code>packages/contracts/src/interfaces/ICeloSettlementExecutor.sol · AcknowledgmentDeferralCode</code> | <code>None, QuoteFailed, FeeReserveLow, SendFailed</code> |  |
+
 ### `settlement-execution-status`
 
 GraphQL execution-result mirror with an explicit UNKNOWN sentinel.
@@ -514,6 +537,36 @@ GraphQL execution-result mirror with an explicit UNKNOWN sentinel.
 |---|---|---|---|---|
 | indexer | indexer | <code>packages/indexer/schema.graphql · SettlementExecutionStatus</code> | <code>UNKNOWN, SUCCESS, FAILED</code> |  |
 
+### `commitment-claim-request-state`
+
+Indexer lifecycle of a commitment claim request, including peer supersession after one request is accepted.
+
+**Canonical members:** PENDING · ACCEPTED · DECLINED · SUPERSEDED
+
+| Representation | Layer | Source | Expected members | Note |
+|---|---|---|---|---|
+| indexer | indexer | <code>packages/indexer/schema.graphql · CommitmentClaimRequestState</code> | <code>PENDING, ACCEPTED, DECLINED, SUPERSEDED</code> |  |
+
+### `commitment-event-type`
+
+Normalized event vocabulary for commitment-pooling history and read-model aggregation.
+
+**Canonical members:** MODULE_UPDATED · MODULE_DEPENDENCY_UPDATED · MODULE_SCHEMA_UID_UPDATED · MODULE_PAUSE_STATUS_CHANGED · POOL_REGISTERED · POOL_CHARTER_UPDATED · POOL_READY · POOL_OPENED · POOL_PAUSED · POOL_RESUMED · POOL_CLOSED · POOL_COMPOSTED · POOL_REOPENED · CLASS_REGISTERED · PROVIDER_OPEN_COMMITMENT_CAP_UPDATED · CYCLE_SEEDED · CYCLE_OPENED · CYCLE_CLOSED · CYCLE_COMPOSTED · CYCLE_CANCELLED · CREATED · CONSIDERATION_DECLARED · VALUE_DECLARED · CONFIRMER_RULE_SET · CLAIM_REQUESTED · CLAIM_DECLINED · ACCEPTED · EXCHANGE_ACCEPTED · COMMITMENT_SERIES_CREATED · COMMITMENT_SERIES_METADATA_UPDATED · COMMITMENT_SERIES_RESTED · COMMITMENT_SERIES_RESUMED · COMMITMENT_SERIES_RETIRED · CONTRIBUTOR_ADDED · CONTRIBUTOR_REMOVED · CONTRIBUTOR_REQUIREMENT_ASSIGNED · CONTRIBUTOR_ROSTER_FROZEN · WORK_LINKED · WORK_UNLINKED · APPROVED_WORK_COUNTED · APPROVED_WORK_REVERSED · EVIDENCE_ATTACHED · ASSESSMENT_ATTACHED · READY_FOR_CONFIRMATION · CONFIRMATION_RECORDED · FULFILLED · CANCELLED · EXPIRED · DISPUTED · DISPUTE_RESOLVED · CONSIDERATION_PAID · UNITS_COMMITTED · UNITS_RELEASED · UNITS_FULFILLED · FUNDING_PLEDGED · FUNDING_DEPOSIT_RECORDED · FUNDING_CONSUMED · FUNDING_WITHDRAWN
+
+| Representation | Layer | Source | Expected members | Note |
+|---|---|---|---|---|
+| indexer | indexer | <code>packages/indexer/schema.graphql · CommitmentEventType</code> | <code>MODULE_UPDATED, MODULE_DEPENDENCY_UPDATED, MODULE_SCHEMA_UID_UPDATED, MODULE_PAUSE_STATUS_CHANGED, POOL_REGISTERED, POOL_CHARTER_UPDATED, POOL_READY, POOL_OPENED, POOL_PAUSED, POOL_RESUMED, POOL_CLOSED, POOL_COMPOSTED, POOL_REOPENED, CLASS_REGISTERED, PROVIDER_OPEN_COMMITMENT_CAP_UPDATED, CYCLE_SEEDED, CYCLE_OPENED, CYCLE_CLOSED, CYCLE_COMPOSTED, CYCLE_CANCELLED, CREATED, CONSIDERATION_DECLARED, VALUE_DECLARED, CONFIRMER_RULE_SET, CLAIM_REQUESTED, CLAIM_DECLINED, ACCEPTED, EXCHANGE_ACCEPTED, COMMITMENT_SERIES_CREATED, COMMITMENT_SERIES_METADATA_UPDATED, COMMITMENT_SERIES_RESTED, COMMITMENT_SERIES_RESUMED, COMMITMENT_SERIES_RETIRED, CONTRIBUTOR_ADDED, CONTRIBUTOR_REMOVED, CONTRIBUTOR_REQUIREMENT_ASSIGNED, CONTRIBUTOR_ROSTER_FROZEN, WORK_LINKED, WORK_UNLINKED, APPROVED_WORK_COUNTED, APPROVED_WORK_REVERSED, EVIDENCE_ATTACHED, ASSESSMENT_ATTACHED, READY_FOR_CONFIRMATION, CONFIRMATION_RECORDED, FULFILLED, CANCELLED, EXPIRED, DISPUTED, DISPUTE_RESOLVED, CONSIDERATION_PAID, UNITS_COMMITTED, UNITS_RELEASED, UNITS_FULFILLED, FUNDING_PLEDGED, FUNDING_DEPOSIT_RECORDED, FUNDING_CONSUMED, FUNDING_WITHDRAWN</code> |  |
+
+### `commitment-unit-scope`
+
+Read-model grouping boundary for exact-label commitment-unit summaries.
+
+**Canonical members:** POOL · CYCLE
+
+| Representation | Layer | Source | Expected members | Note |
+|---|---|---|---|---|
+| indexer | indexer | <code>packages/indexer/schema.graphql · CommitmentUnitScope</code> | <code>POOL, CYCLE</code> |  |
+
 ### `commitment-series-state`
 
 Lifecycle of the internal durable identity for one Offer used over time in one pool. Retired is terminal; instance lifecycles remain independent.
@@ -523,50 +576,11 @@ Lifecycle of the internal durable identity for one Offer used over time in one p
 | Representation | Layer | Source | Expected members | Note |
 |---|---|---|---|---|
 | solidity | solidity | <code>packages/contracts/src/interfaces/ICommitmentPoolingModule.sol · CommitmentSeriesState</code> | <code>None, Active, Resting, Retired</code> |  |
+| indexer | indexer | <code>packages/indexer/schema.graphql · CommitmentSeriesState</code> | <code>UNKNOWN, ACTIVE, RESTING, RETIRED</code> | UNKNOWN represents the Solidity None sentinel and unexpected values. |
 
 ## Specified vocabularies without an implemented source
 
 These vocabularies are canonical specifications whose declared implementation anchor has not arrived. The gate watches each anchor and requires the source status and representations to be updated when it lands.
-
-### `result-status`
-
-Celo executor result stored in Solidity; GraphQL exposes the same outcomes as SettlementExecutionStatus with an UNKNOWN sentinel.
-
-**Canonical members:** None (0) · Success (1) · Failed (2)
-
-_Specified source — planned anchor `packages/contracts/src/interfaces/ISettlementExecutor.sol` · `ResultStatus`. The drift gate flags arrival so the source status becomes implemented with declared representations._
-
-### `acknowledgment-deferral-code`
-
-Why an executor acknowledgment could not be sent immediately without changing the stored execution result.
-
-**Canonical members:** None (0) · QuoteFailed (1) · FeeReserveLow (2) · SendFailed (3)
-
-_Specified source — planned anchor `packages/contracts/src/interfaces/ISettlementExecutor.sol` · `AcknowledgmentDeferralCode`. The drift gate flags arrival so the source status becomes implemented with declared representations._
-
-### `commitment-claim-request-state`
-
-Indexer lifecycle of a commitment claim request, including peer supersession after one request is accepted.
-
-**Canonical members:** PENDING · ACCEPTED · DECLINED · SUPERSEDED
-
-_Specified source — planned anchor `packages/indexer/schema.graphql` · `CommitmentClaimRequestState`. The drift gate flags arrival so the source status becomes implemented with declared representations._
-
-### `commitment-event-type`
-
-Normalized event vocabulary for commitment-pooling history and read-model aggregation.
-
-**Canonical members:** MODULE_UPDATED · MODULE_DEPENDENCY_UPDATED · MODULE_SCHEMA_UID_UPDATED · MODULE_PAUSE_STATUS_CHANGED · POOL_REGISTERED · POOL_CHARTER_UPDATED · POOL_READY · POOL_OPENED · POOL_PAUSED · POOL_RESUMED · POOL_CLOSED · POOL_COMPOSTED · POOL_REOPENED · CLASS_REGISTERED · PROVIDER_OPEN_COMMITMENT_CAP_UPDATED · CYCLE_SEEDED · CYCLE_OPENED · CYCLE_CLOSED · CYCLE_COMPOSTED · CYCLE_CANCELLED · CREATED · CONSIDERATION_DECLARED · VALUE_DECLARED · CONFIRMER_RULE_SET · CLAIM_REQUESTED · CLAIM_DECLINED · ACCEPTED · EXCHANGE_ACCEPTED · COMMITMENT_SERIES_CREATED · COMMITMENT_SERIES_METADATA_UPDATED · COMMITMENT_SERIES_RESTED · COMMITMENT_SERIES_RESUMED · COMMITMENT_SERIES_RETIRED · CONTRIBUTOR_ADDED · CONTRIBUTOR_REMOVED · CONTRIBUTOR_REQUIREMENT_ASSIGNED · CONTRIBUTOR_ROSTER_FROZEN · WORK_LINKED · WORK_UNLINKED · APPROVED_WORK_COUNTED · APPROVED_WORK_REVERSED · EVIDENCE_ATTACHED · ASSESSMENT_ATTACHED · READY_FOR_CONFIRMATION · CONFIRMATION_RECORDED · FULFILLED · CANCELLED · EXPIRED · DISPUTED · DISPUTE_RESOLVED · CONSIDERATION_PAID · UNITS_COMMITTED · UNITS_RELEASED · UNITS_FULFILLED
-
-_Specified source — planned anchor `packages/indexer/schema.graphql` · `CommitmentEventType`. The drift gate flags arrival so the source status becomes implemented with declared representations._
-
-### `commitment-unit-scope`
-
-Read-model grouping boundary for exact-label commitment-unit summaries.
-
-**Canonical members:** POOL · CYCLE
-
-_Specified source — planned anchor `packages/indexer/schema.graphql` · `CommitmentUnitScope`. The drift gate flags arrival so the source status becomes implemented with declared representations._
 
 ## EAS Schemas
 

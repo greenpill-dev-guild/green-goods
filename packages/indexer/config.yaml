@@ -64,11 +64,75 @@ contracts:
     events:
       - event: JarCreated(address indexed jarAddress, address indexed creator)
       - event: MetadataUpdated(address indexed jarAddress, string metadata)
+  - name: CommitmentPoolingModule
+    handler: src/EventHandlers.ts
+    events:
+      - event: PoolRegistered(uint256 indexed poolId, address indexed garden, uint8 poolType)
+      - event: PoolCharterUpdated(uint256 indexed poolId, string charterCID)
+      - event: PoolReady(uint256 indexed poolId)
+      - event: PoolOpened(uint256 indexed poolId)
+      - event: PoolPaused(uint256 indexed poolId, string reasonCID)
+      - event: PoolResumed(uint256 indexed poolId)
+      - event: PoolClosed(uint256 indexed poolId)
+      - event: PoolComposted(uint256 indexed poolId)
+      - event: PoolReopened(uint256 indexed poolId, bool toOpen)
+      - event: CycleSeeded(uint256 indexed cycleId, uint256 indexed poolId, uint8 cycleType, uint64 startTime, uint64 endTime, string metadataCID)
+      - event: CycleOpened(uint256 indexed cycleId, uint256 indexed poolId, uint16 gardenersBps, uint16 treasuryBps, uint16 operatorBps, uint16 evaluatorBps, uint16 communityBps, uint16 funderBps, uint16 equalParticipationBps, uint16 verifiedContributionBps)
+      - event: CycleClosed(uint256 indexed cycleId, uint256 indexed poolId)
+      - event: CycleComposted(uint256 indexed cycleId, uint256 indexed poolId)
+      - event: CycleCancelled(uint256 indexed cycleId, uint256 indexed poolId, string reasonCID)
+      - event: CommitmentSeriesCreated(uint256 indexed seriesId, uint256 indexed poolId, address indexed holder, string metadataCID)
+      - event: CommitmentSeriesMetadataUpdated(uint256 indexed seriesId, string metadataCID)
+      - event: CommitmentSeriesRested(uint256 indexed seriesId)
+      - event: CommitmentSeriesResumed(uint256 indexed seriesId)
+      - event: CommitmentSeriesRetired(uint256 indexed seriesId)
+      - event: CommitmentCreated(uint256 indexed commitmentId, uint256 indexed poolId, uint256 indexed cycleId, uint256 commitmentSeriesId, bytes32 creationRequestKey, bytes32 creationPayloadHash, address creator, address recordedBy, uint8 direction, uint8 commitmentType, uint8 claimType, uint8 claimMode, uint8 contributorPolicy, uint8[] domains, uint256[] requirementActionUIDs, uint8[] requirementDomains, uint32[] requirementRequiredCounts, string unitLabel, uint256 targetUnits, bool requiresAssessment, uint64 dueDate, string metadataCID, bytes32 needUID, uint256 counterCommitmentId, uint256 declaredUnitValue, string declaredValueBasis, address payerGarden)
+      - event: ConsiderationDeclared(uint256 indexed commitmentId, uint8 rail, address source, address token, uint256 amount)
+      - event: ValueDeclared(uint256 indexed commitmentId, uint256 declaredUnitValue, string declaredValueBasis)
+      - event: ConfirmerRuleSet(uint256 indexed commitmentId, address[] confirmers, uint32 threshold, bool protocolFallbackEnabled)
+      - event: ClaimRequested(uint256 indexed commitmentId, address indexed claimant, address indexed requestedBy, uint8 kind, address gardenContext, uint64 requestedAt)
+      - event: ClaimDeclined(uint256 indexed commitmentId, address indexed claimant, string reasonCID)
+      - event: CommitmentAccepted(uint256 indexed commitmentId, address indexed claimant, address indexed counterparty, uint8 kind, address gardenContext, address leadProvider, address providerGarden, address payerGarden)
+      - event: ExchangeAccepted(uint256 indexed commitmentIdA, uint256 indexed commitmentIdB, uint256 poolId, address indexed acceptorA, address acceptorB)
+      - event: ContributorAdded(uint256 indexed commitmentId, address indexed contributor, address indexed addedBy)
+      - event: ContributorRemoved(uint256 indexed commitmentId, address indexed contributor, address indexed removedBy)
+      - event: ContributorRequirementAssigned(uint256 indexed commitmentId, address indexed contributor, uint16 indexed requirementIndex, bool assigned)
+      - event: ContributorRosterFrozen(uint256 indexed commitmentId, uint32 contributorCount)
+      - event: WorkLinked(uint256 indexed commitmentId, bytes32 indexed workUID, address indexed contributor, uint16 requirementIndex, address linker, bytes32 operationKey)
+      - event: WorkUnlinked(uint256 indexed commitmentId, bytes32 indexed workUID, address unlinker)
+      - event: ApprovedWorkCounted(uint256 indexed commitmentId, bytes32 indexed workUID, address indexed contributor, bytes32 approvalUID, uint64 decisionSequence, uint16 requirementIndex, uint32 approvedWorkCount, uint256 approvedUnits, uint256 newlyApprovedUnits)
+      - event: ApprovedWorkReversed(uint256 indexed commitmentId, bytes32 indexed workUID, address indexed contributor, bytes32 decisionUID, uint64 decisionSequence, uint16 requirementIndex, uint32 approvedWorkCount, uint256 approvedUnits, uint256 removedApprovedUnits)
+      - event: EvidenceAttached(uint256 indexed commitmentId, string cid, address indexed attacher, address[] creditedContributors)
+      - event: AssessmentAttached(uint256 indexed commitmentId, bytes32 indexed assessmentUID, address attacher)
+      - event: CommitmentReadyForConfirmation(uint256 indexed commitmentId, bool overridden, string reason)
+      - event: ConfirmationRecorded(uint256 indexed commitmentId, address indexed confirmer, uint32 confirmationCount, uint32 threshold)
+      - event: CommitmentFulfilled(uint256 indexed commitmentId, address indexed confirmer, uint8 confirmationPath, string reason)
+      - event: CommitmentCancelled(uint256 indexed commitmentId, address indexed canceller, string reasonCID)
+      - event: CommitmentExpired(uint256 indexed commitmentId, address indexed caller)
+      - event: CommitmentDisputed(uint256 indexed commitmentId, address indexed raiser, uint8 previousState, string reasonCID)
+      - event: DisputeResolved(uint256 indexed commitmentId, uint8 resolution, uint8 finalState, string reasonCID)
+      - event: ConsiderationPaid(uint256 indexed commitmentId, address indexed source, address indexed recipient, address token, uint256 amount, bytes32 payoutRef, address recordedBy)
+      - event: ModuleDependencyUpdated(uint8 indexed dependency, address indexed previousAddress, address indexed newAddress)
+      - event: ModuleSchemaUIDUpdated(uint8 indexed schemaKind, bytes32 previousUID, bytes32 newUID)
+      - event: ModulePauseStatusChanged(bool previousPaused, bool paused)
+  - name: CommitmentRegistry
+    handler: src/EventHandlers.ts
+    events:
+      - event: ModuleUpdated(address indexed oldModule, address indexed newModule)
+      - event: ProviderOpenCommitmentCapUpdated(uint256 indexed poolId, uint256 cap)
+      - event: ClassRegistered(uint256 indexed classId, uint256 indexed poolId, uint256 cycleId, string unitLabel, uint256 quota)
+      - event: UnitsCommitted(uint256 indexed classId, uint256 indexed poolId, address indexed account, uint256 cycleId, string unitLabel, uint256 units, uint256 totalCommitted)
+      - event: UnitsReleased(uint256 indexed classId, uint256 indexed poolId, address indexed account, uint256 cycleId, string unitLabel, uint256 units, uint256 totalCommitted)
+      - event: UnitsFulfilled(uint256 indexed classId, uint256 indexed poolId, address indexed account, uint256 cycleId, string unitLabel, uint256 units, uint256 totalFulfilled)
   - name: SettlementModule
     handler: src/EventHandlers.ts
     events:
       - event: SettlementDeploymentPinned(address indexed ccipRouter, uint64 indexed localChainSelector, uint64 indexed remoteEvmChainId)
       - event: FundingConfigurationLocked(address indexed protocolGarden, address indexed gDollarToken)
+      - event: FundingPledged(uint256 indexed fundingId, uint256 indexed commitmentId, address indexed funder, address garden, address refundAccount, uint256 expectedAmount, address recordedBy)
+      - event: FundingDepositRecorded(uint256 indexed fundingId, bytes32 indexed depositReference, uint256 amount, address indexed recordedBy)
+      - event: FundingConsumed(uint256 indexed fundingId, uint256 indexed commitmentId, address indexed funder, uint256 depositedAmount, address consumedBy)
+      - event: FundingWithdrawn(uint256 indexed fundingId, uint256 indexed commitmentId, address indexed funder, address withdrawnBy)
       - event: SettlementAccountRegistered(address indexed garden, uint64 chainId, address indexed account, address[3] recoveryOwners, address rolesModifier, bytes32 roleKey, bytes32 allowanceKey, bytes32 permissionsConfigHash, bytes32 recoveryConfigHash, uint8 recoveryThreshold)
       - event: SettlementRecoveryUpdated(address indexed garden, address[3] recoveryOwners, bytes32 recoveryConfigHash)
       - event: SettlementAccountStatusChanged(address indexed garden, bool active)
@@ -99,7 +163,7 @@ contracts:
       - event: BatchCancelled(uint256 indexed batchId, address indexed actor, string reasonCID)
       - event: FeeReserveFunded(address indexed funder, uint256 amount)
       - event: ExcessFeesWithdrawn(address indexed recipient, uint256 amount)
-  # Code-level Celo read model only. No chain block/address is registered until release authorization.
+  # Celo executor read model; production block/address are pinned below from the authorized release.
   - name: CeloSettlementExecutor
     handler: src/EventHandlers.ts
     events:
@@ -142,8 +206,12 @@ chains:
         address: "0x6e6895580b386eB3aB9efe228f79cdBe5B61F5e7"
       - name: CookieJarFactory
         address: "0x294d222eDE6DF6625B43544F1C634322467528Da"
-      # Pre-broadcast: handlers and ABI are generated, but no address is registered.
+      - name: CommitmentPoolingModule
+        address: "0x6BB5b0fd70b6771B0E955Fef37f8Bd2ce911470a"
+      - name: CommitmentRegistry
+        address: "0x66300dA4d3749bFc9F7326DB94e0DEb47A7a3959"
       - name: SettlementModule
+        address: "0x15c8F6CF25abA2161cc04719b4C4a93c4146935D"
   - id: 11155111
     start_block: 10243363
     contracts:
@@ -166,3 +234,8 @@ chains:
       # GreenWill is not deployed on Sepolia, so it is omitted on this chain.
       - name: CookieJarFactory
         address: "0x021368bf9958f4D535d39d571Bc45f74d20e4666"
+  - id: 42220
+    start_block: 74691430
+    contracts:
+      - name: CeloSettlementExecutor
+        address: "0xB8a7F3c3DfA407c45e05b7B2381233101938a84F"

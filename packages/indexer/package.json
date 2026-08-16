@@ -34,7 +34,8 @@
     "typescript": "~7.0.2"
   },
   "dependencies": {
-    "envio": "3.2.1"
+    "envio": "3.2.1",
+    "viem": "2.55.0"
   },
   "engines": {
     "node": ">=22.12.0 <23"

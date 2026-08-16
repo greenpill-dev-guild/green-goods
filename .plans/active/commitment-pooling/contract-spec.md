@@ -2848,6 +2848,7 @@ enum CommitmentUnitScope { POOL CYCLE }
   ASSESSMENT_ATTACHED READY_FOR_CONFIRMATION CONFIRMATION_RECORDED FULFILLED
   CANCELLED EXPIRED DISPUTED DISPUTE_RESOLVED CONSIDERATION_PAID
   UNITS_COMMITTED UNITS_RELEASED UNITS_FULFILLED
+  FUNDING_PLEDGED FUNDING_DEPOSIT_RECORDED FUNDING_CONSUMED FUNDING_WITHDRAWN
 }
 
 type CommitmentPool {
@@ -3327,6 +3328,7 @@ type CommitmentPendingLifecycleProjection {
   counterparty: String
   leadProvider: String
   providerGarden: String
+  payerGarden: String
   confirmationCount: Int
   confirmationThreshold: Int
   overridden: Boolean

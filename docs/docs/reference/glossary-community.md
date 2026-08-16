@@ -29,7 +29,7 @@ The canonical vocabulary for Green Goods. Every other doc, prompt contract, and 
 
 This glossary captures four kinds of vocabulary:
 
-1. **Domain entities** — 17 canonical concepts, each with an explicit maturity.
+1. **Domain entities** — 20 canonical concepts, each with an explicit maturity.
 2. **Personas** — the 5 people the system serves.
 3. **Surfaces** — the 4 places people interact with the system.
 4. **Banned vocabulary** — terms that violate the regenerative-design lens, partitioned into lint-enforced (cross-surface) and AI-prompt-only (admin-only / client-only).
@@ -42,7 +42,7 @@ The machine-readable companion (consumed by `bun run lint:vocab`) is [`docs/docs
 
 ## Domain Entities
 
-The 17 canonical concepts Green Goods uses across code, plans, product copy, and agent prompts. A canonical definition does not imply that its product surface is available; the maturity column keeps those facts separate.
+The 20 canonical concepts Green Goods uses across code, plans, product copy, and agent prompts. A canonical definition does not imply that its product surface is available; the maturity column keeps those facts separate.
 
 | Term | Type | Maturity | Allowed surfaces | Definition |
 |------|------|----------|------------------|------------|
@@ -60,6 +60,9 @@ The 17 canonical concepts Green Goods uses across code, plans, product copy, and
 | **Commitment Pool** | entity | deployed, not available | admin · client · docs | A garden-anchored (or protocol root-garden) pool that registers, curates, and reconciles commitments under a charter. |
 | **Commitment Cycle** | entity | deployed, not available | admin · client · docs | A bounded run of a pool — a Season or Campaign — seeded with timing and an immutable six-role allocation snapshot at open. |
 | **Commitment Series** | entity | deployed, not available | admin · client · docs | The internal durable, pool-scoped identity for one Offer used over time. It groups ordinary Offer instances without creating obligations automatically, merging history across pools, or becoming a separate product noun. |
+| **Commitment Provider Exposure** | entity | in build | admin · client · docs | The current count of open commitments held by one accountable lead provider in one pool, derived only from self-describing register unit events. |
+| **Commitment Unit Summary** | entity | in build | admin · client · docs | Exact-label pool or cycle totals for expected, approved, fulfilled, and open commitment units; unlike label hashes are never combined. |
+| **Commitment Series Cycle Summary** | entity | in build | admin · client · docs | Current lifecycle counts for the instances of one commitment series within one cycle. |
 | **Commitment** | entity | deployed, not available | admin · client · community · docs | A module-native promise record (offer or request) with one accountable lead, an optional contributor roster, repeatable action requirements, direction-aware confirmation, unit accounting in a non-transferable register, and evidence/work linkage — deliberately not an EAS attestation. |
 | **Commitment Contributor** | entity | deployed, not available | admin · client · community · docs | A person on a commitment's roster whose approved Work or confirmed evidence can earn Hypercert recognition and a contributor payout; one roster member is the accountable lead. |
 | **Commitment Payout Plan** | entity | deployed, not available | admin · client · docs | A garden-managed split of a fulfilled commitment's declared support into an explicit garden-retained amount and contributor child payouts. Its complete recognition vector is hash-bound, payment weights derive from amounts, and explicit finalization freezes it before dispatch. |
