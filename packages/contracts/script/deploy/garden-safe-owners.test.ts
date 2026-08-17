@@ -171,6 +171,33 @@ describe("Garden Safe final owner tooling", () => {
     ).toThrow(/Safe v1.4.1/);
   });
 
+  it("keeps the 2-of-N recovery floor by default and lowers it only when a caller declares one", () => {
+    const singleSignature = safeInspection({
+      threshold: "1",
+      owners: [
+        "0x2aa64E6d80390F5C017F0313cB908051BE2FD35e",
+        "0x5c79d252F458b3720f7f230f8490fd1eE81d32FB",
+        "0x6166E1964447E0959bC7c8d543DB3ab82dB65044",
+        "0xa9d20b435A85fAAa002f32d66F7D21564130E9cf",
+      ].map(getAddress),
+    });
+
+    // The default keeps every other caller on the reviewed 2-of-N policy.
+    expect(() => assertRecoverySafeConfiguration(singleSignature, SINGLETON, HANDLER)).toThrow(/Safe v1.4.1/);
+    // The Green Goods recovery Safe is accepted at its declared threshold of one.
+    expect(() => assertRecoverySafeConfiguration(singleSignature, SINGLETON, HANDLER, 1)).not.toThrow();
+    // A declared floor never drops below one, and never waives the remaining conditions.
+    expect(() =>
+      assertRecoverySafeConfiguration({ ...singleSignature, threshold: "0" }, SINGLETON, HANDLER, 0),
+    ).toThrow(/Safe v1.4.1/);
+    expect(() =>
+      assertRecoverySafeConfiguration({ ...singleSignature, guard: GARDEN_ACCOUNT }, SINGLETON, HANDLER, 1),
+    ).toThrow(/Safe v1.4.1/);
+    expect(() =>
+      assertRecoverySafeConfiguration({ ...singleSignature, owners: [GARDEN_ACCOUNT] }, SINGLETON, HANDLER, 1),
+    ).toThrow(/Safe v1.4.1/);
+  });
+
   it("rejects a reviewed recovery Safe whose owner set changes", () => {
     const reviewed = safeInspection({
       owners: [
