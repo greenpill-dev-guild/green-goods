@@ -14,7 +14,7 @@
     "dev:docker:logs": "docker compose -f docker-compose.indexer.yaml logs -f indexer",
     "dev:docker:down": "docker compose -f docker-compose.indexer.yaml down",
     "dev:manual": "bun --env-file=../../.env ../../scripts/dev/node-cli.js envio dev",
-    "start": "bun --env-file=../../.env ../../scripts/dev/node-cli.js envio start",
+    "start": "node --env-file-if-exists=../../.env ./node_modules/envio/bin.mjs start",
     "stop": "docker ps -q --filter label=dev.envio.config-hash | xargs -r docker stop",
     "doctor": "node ../../scripts/dev/doctor.js --profile full",
     "check:indexing-boundary": "node --test scripts/check-indexing-boundary.test.mjs && node scripts/check-indexing-boundary.mjs",

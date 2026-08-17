@@ -21,13 +21,6 @@ export async function executeCommitmentJob<K extends CommitmentJobKind>(
   job: CommitmentJob<K>,
   dependencies: CommitmentJobExecutionDependencies
 ): Promise<CommitmentJobExecutionResult> {
-  if (dependencies.hasMembership) {
-    const garden = "gardenAddress" in job.payload ? job.payload.gardenAddress : undefined;
-    if (garden && (await dependencies.hasMembership(garden, job.userAddress)) !== true) {
-      return { status: "waiting", reason: "membership-unavailable" };
-    }
-  }
-
   if (job.kind === "commitmentSeries") {
     const payload = job.payload as CommitmentSeriesJobPayload;
     const existingId = await dependencies.readSeriesId(job.userAddress, payload.creationRequestKey);
@@ -85,6 +78,13 @@ export async function executeCommitmentJob<K extends CommitmentJobKind>(
         hashWorkLinkPayload(payload.commitmentId, payload.workUID, payload.requirementIndex)
         ? { status: "recovered" }
         : { status: "identity-conflict", reason: "work-link-payload-mismatch" };
+    }
+  }
+
+  if (dependencies.hasMembership) {
+    const garden = "gardenAddress" in job.payload ? job.payload.gardenAddress : undefined;
+    if (garden && (await dependencies.hasMembership(garden, job.userAddress)) !== true) {
+      return { status: "waiting", reason: "membership-unavailable" };
     }
   }
 

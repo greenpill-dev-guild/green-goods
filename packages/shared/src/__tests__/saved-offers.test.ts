@@ -60,6 +60,54 @@ describe("saved offer shared protocol", () => {
     ).toBe(false);
   });
 
+  it.each([
+    ["unknown payload fields", { ...OFFER, extra: true }],
+    ["schema version drift", { ...OFFER, schemaVersion: 2 }],
+    ["non-canonical UUIDs", { ...OFFER, savedOfferId: "not-a-uuid" }],
+    ["empty titles", { ...OFFER, title: "" }],
+    ["untrimmed descriptions", { ...OFFER, description: " trailing " }],
+    ["unknown commitment kinds", { ...OFFER, commitmentKind: "Other" }],
+    ["empty unit labels", { ...OFFER, unitLabel: "" }],
+    ["non-canonical uint text", { ...OFFER, targetUnits: "01" }],
+    ["uint256 overflow", { ...OFFER, targetUnits: (1n << 256n).toString() }],
+    ["unknown claim modes", { ...OFFER, claimMode: "Private" }],
+    ["non-array domain tags", { ...OFFER, domainTags: "water" }],
+    ["empty domain tags", { ...OFFER, domainTags: [""] }],
+    ["non-array requirements", { ...OFFER, requirements: null }],
+    [
+      "extra requirement fields",
+      { ...OFFER, requirements: [{ actionId: "1", requiredCount: 1, extra: true }] },
+    ],
+    ["zero requirement counts", { ...OFFER, requirements: [{ actionId: "1", requiredCount: 0 }] }],
+    [
+      "non-canonical requirement notes",
+      { ...OFFER, requirements: [{ actionId: "1", requiredCount: 1, note: " note " }] },
+    ],
+    ["non-array series links", { ...OFFER, seriesLinks: null }],
+    [
+      "mixed-case module addresses",
+      {
+        ...OFFER,
+        seriesLinks: [
+          { ...OFFER.seriesLinks[0], moduleAddress: "0x6BB5b0fd70b6771B0E955Fef37f8Bd2ce911470a" },
+        ],
+      },
+    ],
+    [
+      "non-positive chain ids",
+      { ...OFFER, seriesLinks: [{ ...OFFER.seriesLinks[0], chainId: 0 }] },
+    ],
+    [
+      "duplicate series identities",
+      { ...OFFER, seriesLinks: [OFFER.seriesLinks[0], OFFER.seriesLinks[0]] },
+    ],
+  ])("rejects %s at the shared API boundary", (_label, candidate) => {
+    expect(validateSavedOfferPayload(candidate)).toMatchObject({
+      ok: false,
+      error: { errorCode: "invalid_request" },
+    });
+  });
+
   it("builds a deterministic owner-bound session message", () => {
     expect(
       buildSavedOffersSessionMessage({
@@ -127,6 +175,100 @@ describe("saved offer shared protocol", () => {
     expect(savedOfferPersistenceAfterFailure({ online: false })).toBe("OFFLINE_LOCAL");
   });
 
+  it("validates writes before transport and maps abort and non-JSON HTTP failures", async () => {
+    const neverCalled = vi.fn<typeof fetch>();
+    const validatingApi = createSavedOffersApi({
+      baseUrl: "https://agent.example",
+      token: "secret",
+      fetch: neverCalled,
+    });
+    await expect(
+      validatingApi.put(OFFER.savedOfferId, { ...OFFER, title: " invalid " }, 0)
+    ).rejects.toMatchObject({ errorCode: "invalid_request" });
+    expect(neverCalled).not.toHaveBeenCalled();
+
+    const aborted = createSavedOffersApi({
+      baseUrl: "https://agent.example",
+      token: "secret",
+      fetch: vi.fn<typeof fetch>().mockRejectedValue(new DOMException("aborted", "AbortError")),
+    });
+    await expect(aborted.list()).rejects.toMatchObject({ errorCode: "provider_unavailable" });
+
+    const unauthenticated = createSavedOffersApi({
+      baseUrl: "https://agent.example",
+      token: "expired",
+      fetch: vi.fn<typeof fetch>().mockResolvedValue(new Response("not json", { status: 401 })),
+    });
+    await expect(unauthenticated.get(OFFER.savedOfferId)).rejects.toMatchObject({
+      errorCode: "authentication_required",
+    });
+  });
+
+  it("preserves structured conflicts and encodes record identity and version bodies", async () => {
+    const record = {
+      savedOfferId: OFFER.savedOfferId,
+      payload: OFFER,
+      version: 2,
+      updatedAt: "2026-08-16T00:00:00.000Z",
+    };
+    const fetcher = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ ok: true, record }), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        })
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ ok: true, record }), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        })
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ ok: true, version: 3 }), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        })
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            ok: false,
+            errorCode: "version_conflict",
+            message: "stale version",
+            currentVersion: 3,
+          }),
+          { status: 409, headers: { "content-type": "application/json" } }
+        )
+      );
+    const api = createSavedOffersApi({
+      baseUrl: "https://agent.example/",
+      token: "secret",
+      fetch: fetcher,
+    });
+
+    await expect(api.get("offer/with spaces")).resolves.toEqual(record);
+    await expect(api.put(OFFER.savedOfferId, OFFER, 1)).resolves.toEqual(record);
+    await expect(api.delete(OFFER.savedOfferId, 2)).resolves.toBe(3);
+    await expect(api.delete(OFFER.savedOfferId, 2)).rejects.toMatchObject({
+      errorCode: "version_conflict",
+      currentVersion: 3,
+    });
+
+    expect(fetcher.mock.calls[0]?.[0]).toBe(
+      "https://agent.example/public/saved-offers/offer%2Fwith%20spaces"
+    );
+    expect(fetcher.mock.calls[1]?.[1]).toMatchObject({
+      method: "PUT",
+      body: JSON.stringify({ payload: OFFER, expectedVersion: 1 }),
+    });
+    expect(fetcher.mock.calls[2]?.[1]).toMatchObject({
+      method: "DELETE",
+      body: JSON.stringify({ expectedVersion: 2 }),
+    });
+  });
+
   it("uses the canonical challenge and session routes without putting an owner in read URLs", async () => {
     const fetcher = vi
       .fn<typeof fetch>()
@@ -155,6 +297,25 @@ describe("saved offer shared protocol", () => {
       "https://agent.example/public/saved-offers/session/challenge",
       "https://agent.example/public/saved-offers/session",
     ]);
+  });
+
+  it("rejects malformed challenge and session requests before transport", async () => {
+    const fetcher = vi.fn<typeof fetch>();
+    const api = createSavedOffersSessionApi({ baseUrl: "https://agent.example", fetch: fetcher });
+
+    await expect(api.challenge({ chainId: 0, owner: OWNER })).rejects.toMatchObject({
+      errorCode: "invalid_request",
+    });
+    await expect(
+      api.createSession({
+        chainId: 42161,
+        owner: OWNER,
+        nonce: "short",
+        issuedAt: 1,
+        signature: "0x1234",
+      })
+    ).rejects.toMatchObject({ errorCode: "invalid_request" });
+    expect(fetcher).not.toHaveBeenCalled();
   });
 
   it("strips long trailing-slash inputs in linear time for both API clients", async () => {
