@@ -268,10 +268,12 @@ export function applyCompatibilityFilters(plan, options) {
     return false;
   };
   const checks = plan.checks.filter(keep);
-  const status =
-    checks.some((check) => check.state === "blocked") || plan.environmentBlockers?.length > 0
-      ? "blocked"
-      : plan.status;
+  // Recompute rather than inheriting plan.status: when the only blocked checks
+  // are the ones a compatibility filter just dropped, the remaining plan is
+  // runnable and must not keep reporting blocked.
+  const stillBlocked =
+    checks.some((check) => check.state === "blocked") || plan.environmentBlockers?.length > 0;
+  const status = stillBlocked ? "blocked" : plan.status === "blocked" ? "ready" : plan.status;
   const automatedSeconds = checks
     .filter((check) => !check.manual)
     .reduce((total, check) => total + check.budgetSeconds, 0);

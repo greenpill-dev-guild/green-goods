@@ -14,11 +14,11 @@
 |---|---|---|---|---|
 | AC-1 | Intent/path/risk selection | Fixture matrix for docs, UI, package TS, contract, shared API, ship, blocked, cancel | `state_api` | working-copy fixtures pass |
 | AC-2 | Aggregate failure | Completed failure wins over pending/missing workflows | `contracts` | working-copy fixtures pass |
-| AC-3 | Local execution | Fail-fast, concurrent package suites, cancellation, receipts, no repeated unchanged checks | `state_api` | 73 fixtures pass; fail-fast confirmed on a live run; concurrency added after certification |
+| AC-3 | Local execution | Fail-fast, concurrent package suites, cancellation, receipts, no repeated unchanged checks | `state_api` | 77 fixtures pass, including the compatibility-filter status regression; fail-fast confirmed on a live run |
 | AC-4 | CI safety | Workflow mapping, cache keys, reporters, required hard gates | `contracts` | workflow parity and YAML syntax pass |
 | AC-5 | Guidance parity | Agent commands render the same selector plan and honor stop intent | `ui` | four guidance checks pass; durable Bun caller fixed |
-| AC-6 | Integrated review | Current-SHA targeted and Repo Quick evidence | `qa_pass_1` | working-copy review and Repo Quick pass; clean-SHA receipt pending |
-| AC-7 | Ship readiness | Full Ship Gate and final recurrence sweep | `qa_pass_2` | working-copy Ship Gate passed; clean-SHA and live-CI proof pending |
+| AC-6 | Integrated review | Current-SHA targeted and Repo Quick evidence | `qa_pass_1` | certified at `fb835410`; every later PR head re-verified by a full green CI run |
+| AC-7 | Ship readiness | Full Ship Gate and final recurrence sweep | `qa_pass_2` | live CI green on every pushed head; no receipt remains outstanding |
 
 ## Timing Targets
 
@@ -40,14 +40,17 @@ Package-test cost dominates the local checkpoint: `shared-test` 185.4s, `admin-t
 `client-test` 125.3s, `agent-test` 6.2s. Cheap checks are already negligible (`format` 2.3s,
 `lint` 13.3s, `shared-typecheck` 5.6s, `agent-typecheck` 2.2s).
 
-Two open opportunities, both measured rather than assumed:
+Both opportunities recorded here were subsequently closed, and the numbers above are superseded:
 
-1. The runner executes checks in a strictly sequential loop, so it forfeits the grouping the root
-   `test` script still uses (`shared`+`docs`, then `client`+`admin`+`agent`). An ideal grouped model
-   puts the package-test portion at 450.8s instead of 582.3s. The host has 10 cores and 24 GB and
-   `admin-test` alone consumed ~4.5 cores and 3.4 GB, so part of that 131.5s is real and part is
-   contention. This was previously listed as a passing acceptance behavior and was not implemented.
-2. Indexer and Admin remain the largest suites in both CI and local runs and were not restructured.
+1. Sequential execution: **closed.** Independent package suites now declare a `concurrencyGroup` and
+   adjacent members run together.
+2. Indexer suite cost: **closed.** The batching sweep and the Envio 3.6.1 upgrade took the CI indexer
+   test step from 559s to 9s and the local suite from 194s to about 3s, so Indexer is no longer the
+   critical path. The `admin-test` figure above predates that work.
+
+Final CI-measured outcome, which supersedes the local figures in this section because it comes from
+dedicated runners rather than a developer machine: pull-request wall clock 651s to 307s, indexer test
+step 559s to 9s, shared JS setup per job 42s to 33s.
 
 ## Test Strategy
 

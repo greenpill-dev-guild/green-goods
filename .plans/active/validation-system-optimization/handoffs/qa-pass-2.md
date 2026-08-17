@@ -12,22 +12,25 @@
 Agent, Client, Contracts, CodeQL, Design, Docs, Indexer, Ontology, Shared, Supply Chain, and the CI
 Gate itself. `mergeStateStatus` is CLEAN. This satisfies the live-CI proof that was outstanding.
 
-**Fixtures: 66/66 pass** via `bun run test:validation-system` under the exact pinned toolchain
-(Node 22.22.1, Bun 1.3.14, Foundry 1.7.1), including the new guard that keeps the shared JS setup
-cacheless.
+**Fixtures pass** via `bun run test:validation-system` under the exact pinned toolchain
+(Node 22.22.1, Bun 1.3.14, Foundry 1.7.1). The count grew with the branch — 66 at this run, 77 once
+the concurrency, scoped-format, and compatibility-filter guards were added — so treat the current
+suite result rather than the number recorded here as authoritative.
 
 **Local checkpoint: partial, and honestly so.** A broad 66-path `checkpoint` run passed `format`,
 `lint`, `shared-typecheck`, `shared-test`, `client-test`, `admin-test`, `agent-typecheck`, and
 `agent-test`, then stopped at `indexer-test`. The stop is correct fail-fast behavior and the failure
-is local-environment only: this worktree has `envio` 2.32.12 installed from July while the package
-declares 3.2.1, and 2.x rejects the 3.x `chains:` config key. CI installs from the frozen lockfile
+is local-environment only: this worktree had `envio` 2.32.12 installed from July while the package
+declared 3.2.1 at the time, and 2.x rejects the 3.x `chains:` config key. The package and lockfile
+now declare 3.6.1; 3.2.1 and 2.32.12 are both historical. CI installs from the frozen lockfile
 and its Indexer Test passed at this same SHA. No dependency install was performed, per this hub's
 boundary. `contracts-test`, `docs-test`, `docs-build`, `source-structure`, `design-guardrails`, and
 `supply-chain` therefore have CI proof at this SHA but no local receipt from this run.
 
-**Post-certification change.** Removing the Bun dependency cache from `.github/actions/setup-js`
-lands after the green run above, so it carries fixture proof only. Its live sample arrives with the
-next push.
+**Post-certification changes now carry live proof.** The cache removal, the local-runner
+concurrency, the indexer batching sweep, and the Envio 3.6.1 upgrade all landed after the run above,
+and each pushed head has since completed a full green CI run. No change on this branch rests on
+fixture proof alone.
 
 ## Recurrence Sweep
 

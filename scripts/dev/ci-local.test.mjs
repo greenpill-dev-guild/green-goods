@@ -5,6 +5,7 @@ import { join } from "node:path";
 import test from "node:test";
 
 import {
+  applyCompatibilityFilters,
   executePlan,
   loadPassingReceiptStore,
   parseArguments,
@@ -313,4 +314,66 @@ test("a reusable receipt keeps its member out of the batch", async () => {
   assert.equal(second.status, "passed");
   assert.equal(state.peak, 0);
   assert.ok(second.results.every((entry) => entry.reused === true));
+});
+
+// Regression: the plan inherited its blocked status even after the compatibility
+// filter removed the only blocked check, so a run whose remaining checks all
+// passed still reported blocked and exited 2.
+function filterablePlan(checks) {
+  return {
+    status: checks.some((c) => c.state === "blocked") ? "blocked" : "ready",
+    environmentBlockers: [],
+    budget: { targetSeconds: 180, automatedSeconds: 0, manualSeconds: 0 },
+    checks,
+  };
+}
+
+test("dropping the only blocked check unblocks the plan", () => {
+  const plan = filterablePlan([
+    { id: "format", state: "pending", mandatory: false, budgetSeconds: 5 },
+    { id: "indexer-test", state: "blocked", mandatory: false, budgetSeconds: 60 },
+  ]);
+  assert.equal(plan.status, "blocked");
+
+  const filtered = applyCompatibilityFilters(plan, { skipIndexer: true });
+
+  assert.deepEqual(
+    filtered.checks.map((check) => check.id),
+    ["format"],
+  );
+  assert.equal(filtered.status, "ready");
+});
+
+test("a blocked check that survives the filter keeps the plan blocked", () => {
+  const plan = filterablePlan([
+    { id: "format", state: "pending", mandatory: false, budgetSeconds: 5 },
+    { id: "indexer-test", state: "blocked", mandatory: false, budgetSeconds: 60 },
+  ]);
+
+  const filtered = applyCompatibilityFilters(plan, { skipDocs: true });
+
+  assert.equal(filtered.status, "blocked");
+});
+
+test("a mandatory blocked check is never dropped by a compatibility filter", () => {
+  const plan = filterablePlan([
+    { id: "indexer-test", state: "blocked", mandatory: true, budgetSeconds: 60 },
+  ]);
+
+  const filtered = applyCompatibilityFilters(plan, { skipIndexer: true });
+
+  assert.deepEqual(
+    filtered.checks.map((check) => check.id),
+    ["indexer-test"],
+  );
+  assert.equal(filtered.status, "blocked");
+});
+
+test("environment blockers keep the plan blocked even with no blocked checks", () => {
+  const plan = filterablePlan([
+    { id: "format", state: "pending", mandatory: false, budgetSeconds: 5 },
+  ]);
+  plan.environmentBlockers = ["toolchain.bun"];
+
+  assert.equal(applyCompatibilityFilters(plan, {}).status, "blocked");
 });

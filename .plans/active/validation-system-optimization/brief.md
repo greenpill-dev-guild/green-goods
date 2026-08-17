@@ -28,5 +28,6 @@ CI still gives slow or misleading failure signals.
 ## Success Signal
 
 Fixture tests prove the same selector drives CI, local, and agent plans; the supplied failure class
-turns the aggregate red immediately; routine quick plans stay under their budget without suppressing
-any critical gate.
+turns the aggregate red immediately; routine quick plans select a check set within their budget
+without suppressing any critical gate. The budget figure is a selection-time projection, not a
+measured wall-clock result.

@@ -134,7 +134,7 @@ path-scoped `git diff --exit-code <tested>..HEAD -- <validated paths>` proving a
 implementation, dependency, configuration, and validation-entrypoint surfaces are unchanged, plus
 an empty `git status --porcelain=v1 --untracked-files=all -- <validated paths>` proving no staged,
 unstaged, or untracked path changes exist. If a
-rung can't run here (env-gated, needs authenticated browser), mark it `BLOCKED`, name the unavailable
+rung can't run here (env-gated, or it requires an authenticated browser), mark it `BLOCKED`, name the unavailable
 capability, and do not retry until that capability changes. User cancellation is terminal: stop
 active validation, schedule no further checks, and report evidence already collected. Visible-UI
 claims need rendered proof via the authenticated Brave

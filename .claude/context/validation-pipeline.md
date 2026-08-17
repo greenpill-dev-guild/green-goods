@@ -116,7 +116,7 @@ node scripts/dev/ci-local.js --quick
 Targeted proof for an isolated fix — the package-local test file or command
 that proves the touched behavior (see the intent ladder). Common shapes:
 
-- Style only: `bunx @biomejs/biome format <changed-files...>` and, for changed JavaScript or
+- Style only: `bunx @biomejs/biome format --no-errors-on-unmatched <changed-files...>` and, for changed JavaScript or
   TypeScript, `bunx oxlint <changed-source-files...> --deny-warnings`. Both commands are
   path-scoped and non-mutating. Do not use workspace-mutating `bun format` or broad `bun lint` for
   isolated style-only QA.

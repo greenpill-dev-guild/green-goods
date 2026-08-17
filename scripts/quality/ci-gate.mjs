@@ -59,7 +59,10 @@ export async function runGate(
     repository,
     pullNumber,
     headSha,
-    maxAttempts = 110,
+    // 96 * 20s = 32 minutes of polling. ci-gate.yml sets timeout-minutes: 40, so
+    // this leaves ~8 minutes for checkout, setup, and the fixture test step and
+    // the gate still reports its own timeout error instead of being cancelled.
+    maxAttempts = 96,
     intervalMs = 20_000,
   },
   dependencies = {},

@@ -59,12 +59,17 @@
 - [x] Targeted local-runner tests prove fail-fast, cancellation, blocked environment, and receipt invalidation.
 - [x] Coverage threshold and local-report equivalence is fixture-protected for every affected package.
 - [x] `node scripts/dev/ci-local.js --quick` passes with the exact activated toolchain.
-- [x] The selector-driven Ship Gate passes on the working copy; clean-SHA and live-CI receipts remain pending.
+- [x] The selector-driven Ship Gate passes, and every pushed head has a full green CI run; no receipt is outstanding.
 
 ## Boundary
 
-No test deletion, coverage-threshold reduction, contract source/deployment mutation, package dependency
-installation or upgrade, workflow rerun, GitHub setting change, deployment, broadcast, or Linear write.
+No test deletion, coverage-threshold reduction, contract source/deployment mutation, workflow rerun,
+GitHub setting change, deployment, broadcast, or Linear write.
+
+Dependency changes are limited to validation-time package operations, which stay prohibited: no
+installing or upgrading a package to make a check pass. The Envio 3.6.1 upgrade is a deliberate,
+separately authorized exception recorded in the implementation notes, because it removes the
+per-call cost that dominates the indexer suite rather than papering over a failing check.
 
 ## Implementation Notes
 

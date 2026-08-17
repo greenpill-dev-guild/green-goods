@@ -1,5 +1,5 @@
 import assert from "assert";
-import { Addresses, createTestIndexer, GardenToken, HatsModule, processEvents } from "./v3";
+import { Addresses, createTestIndexer, HatsModule, processEvents } from "./v3";
 
 const CHAIN_ID = 42161;
 

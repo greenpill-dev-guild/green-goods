@@ -40,9 +40,9 @@ type EventTestApi = {
 // every test, resolve them from config.yaml so they cannot drift from the
 // indexed set. Tests that need a specific address (a dynamically registered
 // garden, say) still pass srcAddress explicitly and that always wins.
-const CONFIGURED_ADDRESSES: ReadonlyMap<string, string> = (() => {
+const CONFIGURED_ADDRESSES: ReadonlyMap<string, Address> = (() => {
   const source = readFileSync(resolvePath(import.meta.dirname, "../config.yaml"), "utf8");
-  const byChainAndContract = new Map<string, string>();
+  const byChainAndContract = new Map<string, Address>();
   let chainId: string | null = null;
   let contract: string | null = null;
 
@@ -61,19 +61,21 @@ const CONFIGURED_ADDRESSES: ReadonlyMap<string, string> = (() => {
     const address = line.match(/^\s+address:\s*"(0x[0-9a-fA-F]{40})"\s*$/)?.[1];
     if (address && chainId && contract) {
       const key = `${chainId}:${contract}`;
-      if (!byChainAndContract.has(key)) byChainAndContract.set(key, address);
+      // The regex above proves the 0x-prefixed 40-hex shape, so this is a
+      // validated narrowing rather than a blind assertion.
+      if (!byChainAndContract.has(key)) byChainAndContract.set(key, address as Address);
       contract = null;
     }
   }
   return byChainAndContract;
 })();
 
-function configuredAddress(contract: string, chainId: number): string | undefined {
+function configuredAddress(contract: string, chainId: number): Address | undefined {
   return CONFIGURED_ADDRESSES.get(`${chainId}:${contract}`);
 }
 
 /** The address a contract is indexed at, for tests that assert on it. */
-export function indexedAddress(contract: string, chainId: number): string {
+export function indexedAddress(contract: string, chainId: number): Address {
   const address = configuredAddress(contract, chainId);
   if (!address) {
     throw new Error(`No indexed address configured for ${contract} on chain ${chainId}`);
