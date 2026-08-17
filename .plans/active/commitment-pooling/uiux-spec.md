@@ -1452,6 +1452,231 @@ now says how credit is shared — 35% equally, 65% by verified contribution — 
 `W2b` was also the last client screen with no `FormInfo` step cards and no fixed action
 bar; it has both now.
 
+### C.15 The review IS a WorkView (2026-08-17, round 16, CORRECTS C.10 and C.12)
+
+**C.10 and C.12 described the review wrongly, and both reviews were built on that
+description.** They said `views/Garden/Review.tsx` is "FormInfo over ONE flat card of
+rows". It is not. Line 192 renders **`<WorkView>`** — the same component the commitment
+view uses — and WorkView is `FormInfo`, then an `h6` per section (Garden, Media,
+Details), with **one `FormCard` per detail** beneath the last of them
+(`WorkView.tsx:140-176`, `FormCard.tsx:19`). The earlier passes read the prototype's own
+WFLOW cast rather than the shipped file.
+
+Every review in the feature — six in creation, five in evidence — now draws that anatomy.
+The consequence worth having is that reviewing a commitment and reading one afterwards
+look alike, because they are the same component.
+
+**Four changes land with it (Afo, reviewing the flows):**
+
+- **Team moved to the details step.** Who is on a commitment is a detail of it the same
+  way its photos and notes are; it had been reachable only by going forward to review and
+  then sideways into Advanced. The Advanced detour keeps confirmation alone.
+- **The action picker is a rail, not a grid.** A 2×2 grid caps at four actions before it
+  grows downward; the rail is the same `selCard` carousel the Submit Work intro uses to
+  choose an action, so choosing one here reads as the same act.
+- **Counts are anchored at each card's foot.** A description that wrapped to two lines
+  pushed its count down, so a row of cards showed quantities at different heights. The
+  description now has a fixed two-line box. Verified: five cards, one of them deliberately
+  wrapping, all counts at the same offset.
+- **Every adder sits in the fixed bar.** Link and note were labelled buttons in the
+  content while camera, gallery and mic were in the bar — two rows of adders on one step
+  for a single kind of act. The bar now carries all five.
+
+**A dead computation surfaced.** `W2`'s `chips` — the commitment's kind, its state, and
+its impact domains — was built on every render and **never rendered**. So the one screen
+whose job is to say what a commitment *is* showed none of those. It was invisible because
+`domainRow`'s only other consumer was the review markup this round replaced; retiring that
+markup left the builder with zero screens and the gallery's coverage gate caught it. The
+row now sits above the fold beside the people.
+
+### C.16 A season is a place you can go (2026-08-17, round 17)
+
+The pool tab answers *what is live*. Nothing answered *what is this season* — a finished
+one rendered as `W1@cycle-summary`, a pool-tab **state** showing a summary card, so a
+garden's memory was a mode of the current screen rather than somewhere to navigate. That
+state retires into **`W1C`**, reached by tapping any cycle card.
+
+**The pool tab keeps its scope and widens its list.** It shows cycles that are running or
+being planned, and every commitment belonging to them **whatever state it reached** — a
+kept commitment is part of the live season's record, not something that vanishes from it.
+Ended cycles trail the live ones in the carousel, so swiping right walks back through the
+garden's memory, with an **All seasons** card after them once the history outgrows the
+rail. The list keeps the filter row it already had rather than gaining a second axis:
+`All` means everything in scope, open and finished alike.
+
+**`W1C` is details on top, then three tabs.** The head names the cycle, its dates and its
+stage; beneath it sits what the season holds — or grew — per unit basis, plus the reserve.
+
+- **Commitments** — the cycle's list, the same records the pool tab shows under a
+  different scope.
+- **People** — who took part and the role they played here. **D.3 bounds this precisely:**
+  the roster and the role are public garden membership, but a per-person record — kept,
+  lapsed, received — renders only for a steward or for that member themself, and never as
+  a percentage, a grade, or a comparison. The tab says so in its own words: shared memory,
+  context, not a score.
+- **Insights** — the assessments lead it. What a season changed is read from the
+  assessment that opened it against the one that closed it, and the tab names the markers
+  that moved *and the one that did not*. Figures beneath are aggregate and per unit basis;
+  hours, rides and sessions never add up to a total (Appendix D.1), and nothing here is
+  attributed to a person.
+
+### C.17 The console's cycle view (2026-08-17, round 18)
+
+`W7C` is the steward half of C.16's `W1C`: the same three questions — this cycle's
+commitments, who took part, what it changed — in the console dialect. The season card's
+header becomes a door, while the acts in its header row keep acting on the season in
+place.
+
+**What the dialect changes.** The two-column workspace split, with the cycle's own
+holdings and its acts in the right rail rather than after the answer; `AdminCard` heads in
+Title Case; dotted status chips; `Close Season…` and `Start Campaign` reachable from the
+cycle they act on rather than from the pool tab two levels up. No hero anywhere — a
+finished season is a quiet status chip, not a celebration (register #27).
+
+**One deliberate divergence, and it is D.3 doing exactly what it was written for.** The
+console's People tab carries a **Pool History** card — "Maria · 4 kept · 1 lapsed · 2
+received · carrying 1 open" — which the client's People tab does not. That is D.3's
+steward placement verbatim: sourced from counts only, never a percentage, never a grade,
+never one member ranked against another, and visible to a steward or to that member
+themself. The client tab shows who took part and their role; the console adds the history
+a steward needs to steward with. Neither is ever published.
+
+### C.18 The details step, and one section-title style (2026-08-17, round 19)
+
+**Team over media.** Who is on a commitment is a decision; what you attach to it is a
+list. The step leads with the decision. An empty team is a **full-width button** — the one
+thing to do on that half of the screen — and once anyone is on it the roster becomes a
+**carousel** with the add demoted to a plus in the section title, so the roster can never
+push the media list off the step. New kit builders: `memberTile`, `memberTrail`.
+
+**The dashed tap-to-add surface retires.** It was a second way to do what the fixed bar
+already does, and it sat where the attached items should be. An empty list is answered by
+the bar, not by a placeholder in the canvas.
+
+**The primary loses its label.** Five adders plus a labelled Continue squeezed the word to
+nothing. The button keeps its end position and its accent; only the text goes.
+
+**One section-title style.** The flow's early steps used `.t-sec` — 16.5px sentence case —
+while its later steps and every read surface used `.h6s`, the 11px uppercase label that
+mirrors `WorkView`'s `<h6>`. Two styles for one job, four steps apart. The shipped
+component decides it: inside the client dialect `.t-sec` takes the `.h6s` metric, so
+*What you're offering*, *How much*, *Add details* and *Review & commit* all label their
+sections the same way. Verified across all four steps at 11px / uppercase / 600. Admin
+keeps its own `.t-sec`, where it is a genuine card heading rather than a section label.
+
+### C.19 Submit Work, drawn as it actually is (2026-08-17, round 20)
+
+The prototype's `WFLOW` is meant to be a faithful drawing of the **shipped** work flow, and
+it was wrong in three places. The flow does not change; its drawing does.
+
+**Media** (`views/Garden/Media.tsx:500-556`) is `FormInfo`, a self-start **count badge**,
+then the **Needed** and **Optional** pill groups the chosen action declares, then the
+uploaded images as a **tile grid** with audio notes beneath. The prototype drew a dashed
+capture card over a list of rows — neither exists in the shipped step.
+
+**Details** (`views/Garden/Details.tsx:113-180`) is `FormInfo`, **Time Spent** as a default
+field, then **the inputs the chosen action declares**, then feedback. The prototype drew a
+"Fulfills a commitment" row instead of the action's inputs. That row asked a question the
+intro had already settled — the commitment is chosen there — and pushed the step's actual
+content out of view. It retires, and `WFLOW@fulfills-pick` and `WFLOW@details-linked`
+retire with it: a picker for a choice already made, and a twin distinguished only by
+carrying it.
+
+**Review** was the last review in the feature still drawing a single flat card of rows.
+It takes the `WorkView` anatomy C.15 established: `FormInfo`, an `h6` per section, one
+`FormCard` per detail. The fulfills line survives here as one card — a review states what
+was chosen, which is different from asking again.
+
+Verified rendered: media shows the Needed and Optional groups over two image tiles;
+details carries the action's own inputs and no fulfills row; review stacks six FormCards
+under Garden, Media and Details.
+
+### C.20 The commitment's identity card (2026-08-17, round 21)
+
+The top of the commitment view was four bare rows stacked on the canvas — header, a
+chips row, a lone domain row, a dense people line — each with its own ad-hoc padding and
+no grouping. It is one card now: the card someone tapped in the pool, expanded.
+
+**Terms are deliberately NOT in it.** Amount, due and cycle stay in Details. What the
+card carries instead is the thing that exists nowhere else on the screen: where this
+commitment stands and what has been done.
+
+**The progress block is where the two readiness paths become legible**, and this is the
+substantive part. `attachEvidence` carries **no kind gate** — a garden-work commitment
+can hold evidence, and every credited contributor earns a recognition credit from it. But
+`submitForConfirmation` **rejects DomainImpact**, so on garden work evidence never
+advances readiness; only approved work reaching every requirement count does. The
+opposite holds for a service, which has no requirement rows and whose evidence *is* its
+readiness path.
+
+The block says that structurally rather than in prose:
+
+- **Requirement counts carry bars.** A bar means this gates readiness.
+- **Everything below the hairline carries no bar** — the evidence tally, the assessment
+  line. The absence of a bar is the signal.
+- **The explaining line appears only where both are present** — a garden-work commitment
+  with evidence attached, the one case where the distinction genuinely confuses. A
+  service, or garden work with no evidence yet, needs no explanation.
+- **A browse view omits the block entirely.** Nothing has been done, and that screen is
+  about deciding whether to take the commitment up rather than tracking it.
+
+This also settles what the status band is for. Progress is structural and lives in the
+card; the band keeps what is transient — an evidence job queued on this device, who is
+acting right now, why a confirmation is blocked. The `Work approvals · 1 of 2` meter
+moves into the card, where it is always in the same place.
+
+**A regression found and fixed.** Round 15's `memberRow` took the `.mrow` class the
+`meter` builder already used, so since then every meter caption — "approved works · 1 of
+2" — had been rendering inside a bordered, padded, rounded card. Renamed to `.mbrow`.
+
+### C.21 Actions by state and by seat (2026-08-17, round 22)
+
+Roles flip between the two directions, which is why the same state shows different acts to
+different people: on an **Offer** the creator is the provider and whoever takes it up
+confirms; on a **Request** the creator confirms and whoever takes it up provides. The two
+seats that matter are therefore **provider** and **confirmer**, never "creator" — and the
+contract keeps them apart, excluding every contributor from every confirmation path.
+
+Measured before the change: **22 of 75 states carried an action; 53 were read surfaces.**
+That ratio is the design — most of the time there is nothing for you to do, and the screen
+says so rather than offering a button you cannot use. Four corrections:
+
+**Garden work takes both.** `attachEvidence` has no kind gate, so a DomainImpact
+commitment can carry evidence as well as approved work. The bar offers `Submit work` as
+the primary and `Add evidence` beside it, weighted so the emphasis matches what the
+progress block establishes: work advances readiness, evidence credits the people who
+helped.
+
+**A contributor's seat exists, and it is wider than first drawn.** `W2@contributor` shows
+someone on the team who is not the lead. The first pass gave them evidence only, on a guess
+that submitting work against someone else's commitment was the lead's act. The contract says
+otherwise: `linkWork`'s permitted callers are *"active contributor, lead provider, or
+steward"*, and it **verifies the Work attester is an active contributor** — so a
+contributor's own approved work is exactly what counts toward the requirement rows, and
+`setContributorRequirement` exists to point them at one. The rule is therefore simple: **a
+contributor does everything the provider does except send and confirm.** `submitForConfirmation`
+stays the lead's, and confirmation excludes every contributor absolutely.
+
+**The active stage splits by viewer.** `ready` already had `ready-pending` for the
+provider waiting and `ready-confirmer` for the person who can act. `active` had neither —
+one state carrying the provider's button, so a confirmer reading an in-progress commitment
+was offered `Submit work`. `W2@active-waiting` is the confirmer's read of that stage.
+
+**Sending names what it does.** `submitForConfirmation` is the act a service needs because
+it has no approver — garden work reaches readiness automatically when the last approval
+lands, a service cannot. It also **freezes the contributor roster and credit accounting**,
+emitting `ContributorRosterFrozen`, so nobody can join and no further evidence counts
+afterwards. That is now a confirmation step naming the consequence, not a single tap.
+Submitting is still not confirming; the lead stays blocked from every confirmation path.
+
+**How it can end is now a term, stated on the screen.** `Withdraw` sits on `offered` and
+`requested` only; after acceptance, cancellation is a steward act in the console. Rather
+than leave that silent, Details carries the rule alongside the other terms and changes with
+the state: *"If you change your mind — you can withdraw it while nobody has taken it up"*
+before acceptance, *"If it needs to end — now that it's been taken up, a steward cancels
+it, ask in the garden"* after. The provider learns where the exit is without being given a
+control they do not have.
+
 ### C.7 PROPOSAL — reciprocity from the claim side (2026-08-16, register #103, NOT LOCKED)
 
 **Status: proposed, awaiting Afo. Nothing in this section is drawn as shipped design, and no

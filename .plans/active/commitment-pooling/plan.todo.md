@@ -1140,6 +1140,120 @@ Known mis-resolutions fixed in place: `contract-spec.md` §Grassroots-Economics-
     `W2b` gained FormInfo step cards and a fixed action bar; it was the last client screen
     without them. Full text: `uiux-spec.md` C.14.
 
+119. The review IS a WorkView, correcting C.10 and C.12 (2026-08-17, round 16, Afo's
+    review feedback). Both earlier rounds described `views/Garden/Review.tsx` as "FormInfo
+    over ONE flat card of rows" and built eleven reviews on that. It renders `<WorkView>`
+    (Review.tsx:192) — FormInfo, an h6 per section, and ONE FormCard per detail
+    (WorkView.tsx:140-176, FormCard.tsx:19). New kit builder `formCard`. Reviewing a
+    commitment and reading one afterwards are now the same anatomy. Landing with it:
+    **(a)** team moves from the Advanced detour to the details step — who is on this is a
+    detail like the photos are; **(b)** the action picker becomes the `selCard` rail the
+    Submit Work intro uses, instead of a 2×2 grid that caps at four; **(c)** counts anchor
+    at each card's foot over a fixed two-line description box, so a wrapping description
+    no longer misaligns the quantities (verified: five cards, one wrapping, all counts at
+    the same offset); **(d)** every adder moves into the fixed bar — link and note had been
+    labelled buttons in the content while camera/gallery/mic were pinned, two rows of
+    adders for one kind of act. ALSO FOUND: `W2`'s `chips` — kind, state and impact
+    domains — was computed on every render and never rendered, so the commitment view
+    showed none of them; the gallery coverage gate caught it when `domainRow` lost its only
+    other consumer. Full text: `uiux-spec.md` C.15.
+
+120. A season is a place you can go (2026-08-17, round 17, Afo). New screen `W1C`:
+    a cycle's details on top, then Commitments / People / Insights. Cycle cards in the
+    carousel become doors; ended cycles trail the live ones so swiping right walks back
+    through the garden's memory, with an All-seasons card after them. `W1@cycle-summary`
+    RETIRES into it — a finished season had been a MODE of the pool tab, so a garden's
+    memory was a state of the current screen rather than somewhere to navigate; the MF10
+    alias and sb9c's branch repoint to `W1C@season-ended`. The pool tab keeps its scope
+    (live cycles) and widens its list to every commitment belonging to them whatever state
+    it reached, and keeps the filter row it already had rather than gaining a second axis
+    (Afo: "we have a filter selection on the title level we should use that"). People
+    names who took part and their role — what D.3 permits — while each person's own
+    kept/lapsed record stays between them and their stewards. Insights leads with the
+    assessments bracketing the cycle and the shift between them, naming the markers that
+    moved and the one that did not, then aggregate figures per unit basis, never
+    per-person (Afo: core metrics and the assessments, without leaning on the people
+    aspects). STILL TO DO: the admin equivalent, which Afo approved in the same round.
+    Full text: `uiux-spec.md` C.16.
+
+121. The console's cycle view (2026-08-17, round 18, closing decision 120's "still to
+    do"). `W7C` gives a steward the same three questions `W1C` gives a gardener, in the
+    console dialect: two-column workspace split with the cycle's holdings and acts in the
+    right rail, Title Case AdminCard heads, dotted status chips, no hero. The season card's
+    header is a door (`objectCard` gains `hotId`); its header acts keep acting in place.
+    `Close Season…` and `Start Campaign` are reachable from the cycle they act on rather
+    than from the pool tab two levels up. ONE deliberate divergence from the client view,
+    and it is D.3 working as written: the console's People tab adds a Pool History card
+    ("4 kept · 1 lapsed · 2 received · carrying 1 open") that the client's does not —
+    counts only, never a percentage or a grade or a ranking, visible to a steward or to
+    that member themself, never published. Full text: `uiux-spec.md` C.17.
+
+122. The details step, and one section-title style (2026-08-17, round 19, Afo). **(a)** The
+    dashed tap-to-add surface retires — a second way to do what the fixed bar already does,
+    sitting where the attached items should be. **(b)** The step becomes Team over Media:
+    an empty team is a full-width button, a populated one a carousel with the add demoted
+    to a plus in the section title, so the roster can never push the media list off the
+    step. New builders `memberTile` / `memberTrail`. **(c)** The primary loses its label to
+    an icon — five adders plus a word squeezed it to nothing — keeping its end position and
+    accent. **(d)** ONE section-title style across the client: the early steps used `.t-sec`
+    at 16.5px sentence case while later steps and every read surface used `.h6s`, the 11px
+    uppercase label mirroring WorkView's `<h6>`. The shipped component decides it; `.t-sec`
+    takes the `.h6s` metric inside the client dialect. Verified across all four creation
+    steps at 11px / uppercase / 600. Admin keeps its own `.t-sec`, a genuine card heading
+    there. Full text: `uiux-spec.md` C.18.
+
+123. Submit Work, drawn as it actually is (2026-08-17, round 20, Afo). The prototype's
+    WFLOW is a drawing of the SHIPPED flow and was wrong in three places; the flow does not
+    change, its drawing does. **(a)** Media mirrors Media.tsx:500-556 — FormInfo, a
+    self-start count badge, the Needed and Optional pill groups the chosen action declares,
+    then image TILES with audio notes beneath. The dashed capture card over a row list
+    existed nowhere in the shipped step. **(b)** Details mirrors Details.tsx:113-180 —
+    FormInfo, Time Spent, then THE INPUTS THE CHOSEN ACTION DECLARES, then feedback. The
+    "Fulfills a commitment" row asked a question the intro had already settled and pushed
+    the step's real content out of view; it retires, and `WFLOW@fulfills-pick` and
+    `WFLOW@details-linked` retire with it — a picker for a settled choice, and a twin
+    distinguished only by carrying it. **(c)** Review was the last review still drawing a
+    flat card of rows; it takes the WorkView anatomy from C.15, keeping the fulfills line as
+    one FormCard, because stating what was chosen differs from asking again. Full text:
+    `uiux-spec.md` C.19.
+
+124. The commitment's identity card (2026-08-17, round 21, Afo's four calls). The top of
+    the commitment view was four bare canvas rows with ad-hoc padding and no grouping; it
+    is ONE card now — the card tapped in the pool, expanded. Terms stay in Details rather
+    than repeating (Afo: "we don't want to repeat too much information"); what the card
+    carries is where this stands and what has been done. THE SUBSTANTIVE PART: the progress
+    block makes the two readiness paths legible. `attachEvidence` has NO kind gate, so a
+    garden-work commitment can hold evidence and credit contributors with it — but
+    `submitForConfirmation` REJECTS DomainImpact, so that evidence never advances readiness;
+    only approved work reaching every requirement count does. A service is the opposite: no
+    requirement rows, evidence IS its path. The block says this structurally — requirement
+    counts carry bars, everything below the hairline carries none, and the absence of a bar
+    is the signal. The explainer appears only where both are present. Browse views omit the
+    block. This also settles the band: progress is structural and lives in the card, the
+    band keeps what is transient. ALSO FIXED: round 15's `memberRow` took the `.mrow` class
+    `meter` already used, so every meter caption had been rendering inside a bordered card
+    since then. Full text: `uiux-spec.md` C.20.
+
+125. Actions by state and by seat (2026-08-17, round 22, Afo's four calls). Measured
+    first: 22 of 75 W2 states carried an action, 53 were read surfaces. Roles FLIP between
+    directions — on an Offer the creator provides and the taker-up confirms; on a Request
+    the creator confirms and the taker-up provides — so the seats are provider and
+    confirmer, never "creator". **(a)** Garden work takes BOTH `Submit work` (primary) and
+    `Add evidence` (secondary) in one row, since attachEvidence has no kind gate; the
+    weighting carries what the progress block establishes. **(b)** `W2@contributor` gives a
+    non-lead teammate a seat for the first time. CORRECTED against the contract in the same
+    round (Afo asked the right question): `linkWork` admits an active contributor as caller
+    AND verifies the Work attester is one, so a contributor's own approved work counts
+    toward the requirement rows — they get `Submit work` as well as `Add evidence`. The rule
+    is that a contributor does everything the provider does EXCEPT send and confirm. **(c)** `W2@active-waiting` splits the active stage by viewer the way
+    `ready` already did; a confirmer had been offered the provider's button. **(d)**
+    `Send for confirmation` gains a confirmation step naming its consequence:
+    submitForConfirmation freezes the contributor roster and credit accounting, so nobody
+    can join and no further evidence counts after it. **(e)** How a commitment can end is now a term in Details, changing with the state:
+    withdraw while nobody has taken it up, a steward cancels it afterwards — so the provider
+    learns where the exit is without being handed a control they do not have.
+    Full text: `uiux-spec.md` C.21.
+
 **Final recursive certification clarification (2026-07-25; no new decision-register entry):**
 the published `42161`↔`42220` production lane is the only required fully paired
 `SettlementConfiguration`. Arbitrum Sepolia `421614` and Celo Sepolia `11142220` remain

@@ -224,6 +224,7 @@ ${commitmentRow({
   // The card's HEADER IS THE SEASON (2026-08-16 round 6) — one title bar, not a
   // generic card title with the season stacked beneath it as a second header.
   return objectCard({
+    hotId: "w7.open-season",
     title: "Season of First Rains",
     chips: `${chip("Season", "ink")}${seasonChip}`,
     meta: `${SEASON_LIVE.made} commitments · ${SEASON_LIVE.kept} kept · runs through Aug 30`,
@@ -530,6 +531,161 @@ const W7_DESC: Record<W7State, string> = {
 
 // Dimmed pool route behind a W7 confirmation. Hotspot-free for the same reason
 // W10's is: foreign ids here would break bidirectional hotspot integrity.
+// ---------------------------------------------------------------------------
+// W7C — the console's cycle view: one season or campaign (2026-08-17 round 18)
+//
+// The steward half of W1C. Same three questions — its commitments, who took
+// part, what it changed — in the console dialect: the two-column workspace
+// split, quiet status chips, Title Case acts, no hero anywhere (register #27).
+// The right rail carries what a steward needs beside the answer rather than
+// after it: the cycle's own status and the acts that belong to it.
+//
+// A steward reaches it the way a gardener does: the season card's header and
+// each campaign peer row are doors. The difference is what sits in the rail.
+// ---------------------------------------------------------------------------
+
+const W7C_STATES = [
+  ["season", "Season · open"], ["season-finished", "Season · finished"],
+  ["campaign", "Campaign · open"],
+  ["people", "People"], ["insights", "Insights"], ["insights-finished", "Insights · finished season"],
+  ["loading", "Loading"], ["read-error", "Read error"],
+] as const;
+type W7CState = (typeof W7C_STATES)[number][0];
+
+const w7cRail = (finished: boolean) =>
+  `${acard(
+    finished ? "What This Season Grew" : "What This Season Holds",
+    finished
+      ? `${kv("Hours", "48 kept")}${kv("Rides", "12 kept")}${kv("Sessions", "6 kept")}${kv("Reserve", "90 G$ · went to 7 gardeners")}`
+      : `${kv("Hours", "27 open · 12 kept")}${kv("Rides", "7 open · 6 kept")}${kv("Sessions", "4 open · 1 kept")}${kv("Reserve", "120 G$ · held for 3")}`,
+    chip(finished ? "Finished" : "Open", finished ? "plain" : "ok", { dot: true }),
+  )}${acard(
+    "Quick Actions",
+    `<div class="actrow">${
+      finished
+        ? `${hot("w7c.report", btn("Open Report", { kind: "sec", sm: true }))}`
+        : `${hot("w7c.close-season", btn("Close Season…", { kind: "sec", sm: true }))}${hot("w7c.start-campaign", btn("Start Campaign", { kind: "sec", sm: true }))}`
+    }</div>`,
+  )}`;
+
+const w7cTabs = (ix: 0 | 1 | 2, finished: boolean) =>
+  tabRail(
+    [
+      { label: "Commitments", hot: ix === 0 ? undefined : finished ? "w7c.tab-commitments-finished" : "w7c.tab-commitments" },
+      { label: "People", hot: ix === 1 ? undefined : "w7c.tab-people" },
+      { label: "Insights", hot: ix === 2 ? undefined : finished ? "w7c.tab-insights-finished" : "w7c.tab-insights" },
+    ],
+    ix,
+  );
+
+function w7c(state: W7CState): string {
+  const finished = state === "season-finished" || state === "insights-finished";
+  const campaign = state === "campaign";
+  const title = campaign ? "Market rides" : finished ? "Season of Long Dry" : "Season of First Rains";
+  const desc = campaign
+    ? "A campaign inside this pool. Its commitments and people are its own; the pool's limits still apply."
+    : finished
+      ? "A finished season. Its commitments, the people who took part, and what its assessments recorded stay readable here."
+      : "The season running now. Everything below belongs to it.";
+  const shell = (tabs: string, main: string) =>
+    deskWin(
+      "admin.greengoods.app/garden/pool/season",
+      adminCanvas("garden", "garden", {
+        screenId: "W7C",
+        garden: "Rocinha",
+        header: pageHeader({ title, description: desc }),
+        tabRail: tabs,
+        body: `<div class="wsrow"><div class="wsmain">${main}</div><aside class="wsrail">${w7cRail(finished)}</aside></div>`,
+      }),
+    );
+
+  if (state === "loading")
+    return deskWin(
+      "admin.greengoods.app/garden/pool/season",
+      adminCanvas("garden", "garden", {
+        screenId: "W7C", garden: "Rocinha",
+        header: pageHeader({ title: "Season", description: "Loading this season." }),
+        body: `<div class="wsrow"><div class="wsmain">${skeleton({ title: true, lines: 2 })}${skeleton({ lines: 3 })}</div><aside class="wsrail">${skeleton({ lines: 3 })}</aside></div>`,
+      }),
+    );
+  if (state === "read-error")
+    return deskWin(
+      "admin.greengoods.app/garden/pool/season",
+      adminCanvas("garden", "garden", {
+        screenId: "W7C", garden: "Rocinha",
+        header: pageHeader({ title: "Season", description: "This season could not be loaded." }),
+        body: `<div class="wsrow"><div class="wsmain">${emptyState("wifi-off-line", "Couldn't load this season", "Something went wrong reaching the indexer. Nothing about the season has changed.", hot("w7c.retry", btn("Try Again", { kind: "pri", icon: "refresh-line" })))}</div><aside class="wsrail">${skeleton({ lines: 3 })}</aside></div>`,
+      }),
+    );
+
+  if (state === "people")
+    return shell(
+      w7cTabs(1, false),
+      `${acard(
+        "Who Took Part · 6",
+        `${commitmentRow({ title: "Maria", chips: `${chip("Lead ×3", "ink")}`, meta: "maria.eth · joined Mar 2025" })}
+${commitmentRow({ title: "Ana", chips: `${chip("Contributor", "plain")}`, meta: "ana.eth · joined Mar 2025" })}
+${commitmentRow({ title: "João", chips: `${chip("Confirmed ×4", "plain")}`, meta: "joao.eth · joined Jan 2025" })}
+${commitmentRow({ title: "Kwame", chips: `${chip("Contributor", "plain")}`, meta: "kwame.eth · joined Jun 2025" })}`,
+      )}
+${acard(
+        "Pool History",
+        // D.3's steward placement: a steward reviewing this cycle may see each
+        // member's own counts, sourced from counts only — never a percentage,
+        // never a grade, never one member ranked against another.
+        `${kv("Maria", "4 kept · 0 lapsed · 2 received · carrying 1 open")}${kv("Ana", "3 kept · 1 lapsed · 1 received")}${kv("João", "2 kept · 0 lapsed · 4 received")}`,
+      )}
+${banner("Shared memory of this pool's give and take — context for stewarding, not a score. These per-member rows are visible to you as a steward and to each member themself; they are never published.", "stone", "shield-check-line")}`,
+    );
+
+  if (state === "insights" || state === "insights-finished")
+    return shell(
+      w7cTabs(2, finished),
+      `${acard(
+        "What The Assessments Show",
+        finished
+          ? `${kv("Opened on", "Baseline · Mar 1 — soil carbon low, canopy thin on the north side")}${kv("Closed on", "Follow-up · Mar 30 — canopy measurably thicker, beds holding water")}${kv("The shift", "Two of four markers moved. The drainage marker did not.")}`
+          : `${kv("Opened on", "Baseline · Aug 1 — soil carbon low, canopy thin on the north side")}${kv("Closes with", "A follow-up assessment when the season closes")}${kv("The shift", "Read at close, against the baseline")}`,
+        chip(finished ? "Both in" : "Baseline in", finished ? "ok" : "warn", { dot: true }),
+      )}
+${acard("How It Went", `${kv("Commitments", finished ? "26 made · 22 kept" : "9 made · 7 kept so far")}${kv("Gardeners taking part", finished ? "9" : "6")}${kv("Domains", "AGRO · WASTE")}`)}
+${acard("By Unit", `${kv("Hours", finished ? "48 kept" : "27 open · 12 kept")}${kv("Rides", finished ? "12 kept" : "7 open · 6 kept")}${kv("Sessions", finished ? "6 kept" : "4 open · 1 kept")}`)}
+${acard("Recognition Policy", `${kv("Shared equally", "35% among eligible contributors")}${kv("By verified contribution", "65% — approved work and evidence")}`)}
+${banner("Figures cover this cycle alone and are never merged with another pool's. Units stay in their own bases — hours, rides and sessions do not add together.", "stone", "information-line")}`,
+    );
+
+  const rows = finished
+    ? `${hot("w7c.open-commitment", commitmentRow({ title: "Fix the shed roof", chips: `${chip("Offer", "offer")}${chip("Kept", "ok", { dot: true })}`, meta: "Maria · 8 hours · confirmed Mar 22" }))}
+${commitmentRow({ title: "Weekly market rides", chips: `${chip("Offer", "offer")}${chip("Kept", "ok", { dot: true })}`, meta: "João · 12 rides · confirmed Mar 28" })}
+${commitmentRow({ title: "Compost workshop", chips: `${chip("Offer", "offer")}${chip("Lapsed", "plain", { dot: true })}`, meta: "Kwame · 3 sessions · expired Mar 30" })}
+${commitmentRow({ title: "Clear the drainage channel", chips: `${chip("Request", "request")}${chip("Kept", "ok", { dot: true })}`, meta: "Ana asked · 8 hours · confirmed Mar 19" })}`
+    : `${hot("w7c.open-commitment", commitmentRow({ title: "Prune the north beds", chips: `${chip("Offer", "offer")}${chip("Open", "ok", { dot: true })}`, meta: "Maria · 6 hours · due Aug 30" }))}
+${commitmentRow({ title: "Ride to the market", chips: `${chip("Request", "request")}${chip("Kept", "ok", { dot: true })}`, meta: "Ana asked · 1 ride · confirmed Aug 12" })}
+${commitmentRow({ title: "Repair tool handles", chips: `${chip("Offer", "offer")}${chip("Active", "warn", { dot: true })}`, meta: "Maria · 1 session · due Aug 30" })}`;
+  return shell(
+    w7cTabs(0, finished),
+    acard(
+      finished ? "Commitments · 26 made · 22 kept" : "Commitments · 9 made · 7 kept",
+      rows,
+      hot("w7c.filters", btn("All", { kind: "sec", sm: true })),
+    ),
+  );
+}
+
+const W7C_HOTS: HifiDef["hots"] = {
+  "w7c.tab-commitments": { l: "Commitments tab", to: "screen:W7C@season", info: "Every commitment belonging to this cycle whatever state it reached — the steward reads the season's whole record, not only what is still open." },
+  "w7c.tab-commitments-finished": { l: "Commitments tab", to: "screen:W7C@season-finished", info: "The finished season's commitments." },
+  "w7c.tab-people": { l: "People tab", to: "screen:W7C@people", info: "Who took part and the role they played. A steward additionally sees each member's own pool history — counts only, per D.3's steward placement: never a percentage, never a grade, never one member ranked against another." },
+  "w7c.tab-insights": { l: "Insights tab", to: "screen:W7C@insights", info: "The assessments bracketing the cycle lead it; aggregate figures follow, per unit basis and never per person." },
+  "w7c.tab-insights-finished": { l: "Insights tab", to: "screen:W7C@insights-finished", info: "The finished season's figures, including the shift between its opening and closing assessments." },
+  "w7c.open-commitment": { l: "Open a commitment", to: "screen:W10", info: "The console's commitment review — a cycle's list is a scope over the same records." },
+  "w7c.filters": { l: "Scope", info: "The same scope control the pool tab carries. All means everything in this cycle, open and finished alike." },
+  "w7c.close-season": { l: "Close Season…", to: "screen:W26", info: "The season-closing flow, reached from the cycle it acts on rather than from the pool tab two levels up." },
+  "w7c.start-campaign": { l: "Start Campaign", to: "screen:W37", info: "A campaign is a peer of the season; starting one from here carries the pool context." },
+  "w7c.report": { l: "Open Report", to: "screen:W26@review", info: "The finished season's reconciliation report." },
+  "w7c.retry": { l: "Try Again", info: "Read-surface recovery — loading and read-error, never a silent empty console (AM:12)." },
+};
+
 export const w7Behind = (state: "open" | "ready" | "paused" | "closed" | "composted" = "open") =>
   adminCanvas("garden", "garden", {
     screenId: "W7",
@@ -934,6 +1090,7 @@ const W7_HOTS: HifiDef["hots"] = {
   "w7.close-season": { l: "Close season", to: "screen:W26", info: "Opens the close wizard while the cycle remains Reviewing/Open on-chain. Once every commitment is terminal and liveCommitmentCount is zero, the first write closes the cycle before shares or mint." },
   "w7.close-season-paused": { l: "Close paused season", to: "screen:W26@paused-review", info: "Opens the same close wizard without resuming the Paused pool; a terminal zero-live-count cycle closes before certificate composition." },
   "w7.seed-cycle": { l: "Start a season", to: "screen:W11@details", info: "The season door, on the card that owns the season — opens the ONE start-a-season flow (details → allocation → open) in its final shell from step one; one open Season at a time (CS:566 · UX:66)." },
+  "w7.open-season": { l: "Open the season", to: "screen:W7C@season", info: "The season card's header is a door (2026-08-17, round 18): the steward's cycle view answers what this season is — its commitments whatever state they reached, who took part, and what its assessments recorded. The acts in the header row keep acting on the season in place." },
   "w7.start-campaign": { l: "Start a campaign", to: "screen:W11@campaign-details", info: "The campaign door, on the card's Campaigns section — the same three-step flow with Campaign preselected; any number of campaigns may run beside the one open Season (UX:66)." },
   "w7.open-season-flow": { l: "Open this season to the garden", to: "screen:W11@presets", info: "A prepared Season is Seeded and holds nothing: createCommitment rejects any cycle that is not Open (CreationChecksLib.sol:72). Opening runs the remaining §6.10 steps — the split, then openCycle — and is the moment neighbors can start promising." },
   "w7.accept-claim": { l: "Accept claim", to: "screen:W7@claim-outcomes", info: "Consumes the stored request terms; other pending rows become Superseded (CS:733).", calls: ["acceptClaim"] },
@@ -2310,6 +2467,8 @@ const w8Facts = (_state: W8State): StateFacts => ({ pool: "Open", cycle: "Open" 
 export const ADMIN_DEFS: HifiDef[] = [
   { screen: { id: "W7", title: "W7 · Garden Pool tab (admin)", surface: "admin", frame: "desktop", group: "Admin console",
     states: groupStates(W7_STATES.map(([id, label]) => ({ id, label, group: w7Group(id), facts: w7Facts(id), html: w7(id) }))) }, hots: { ...adminChromeHots("w7", "garden"), ...W7_HOTS } },
+  { screen: { id: "W7C", title: "W7c · Season or campaign (admin)", surface: "admin", frame: "desktop", group: "Admin console",
+    states: W7C_STATES.map(([id, label]) => ({ id, label, facts: { pool: "Open", cycle: id.includes("finished") ? "Composted" : "Open" } satisfies StateFacts, html: w7c(id) })) }, hots: { ...adminChromeHots("w7c", "garden"), ...W7C_HOTS } },
   { screen: { id: "W7M", title: "W7m · Garden Pool tab — phone (admin)", surface: "admin", frame: "phone", group: "Admin console",
     states: W7M_STATES.map(([id, label]) => ({ id, label, facts: { pool: "Open", cycle: "Open" } satisfies StateFacts, html: w7m(id) })) }, hots: W7M_HOTS },
   { screen: { id: "W8", title: "W8 · Seeding console", surface: "admin", frame: "desktop", group: "Admin console",

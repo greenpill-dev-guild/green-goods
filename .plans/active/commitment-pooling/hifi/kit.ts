@@ -140,7 +140,7 @@ export function btn(
 
 export function meter(pct: number, opts: { left?: string; right?: string; tickPct?: number } = {}): string {
   const tick = opts.tickPct != null ? `<span class="tick" style="left:${opts.tickPct}%"></span>` : "";
-  const row = opts.left || opts.right ? `<div class="mrow"><span>${esc(opts.left ?? "")}</span><span class="num">${esc(opts.right ?? "")}</span></div>` : "";
+  const row = opts.left || opts.right ? `<div class="mtrow"><span>${esc(opts.left ?? "")}</span><span class="num">${esc(opts.right ?? "")}</span></div>` : "";
   return `<div class="meter"><div class="tr"><div class="fi" style="width:${pct}%"></div>${tick}</div>${row}</div>`;
 }
 
@@ -212,6 +212,87 @@ export function formInfo(ic: string, title: string, info: string): string {
 // The label stays OUTSIDE the card because that is where the work view puts it;
 // carding the label too would box the whole page and lose the scannable rhythm
 // of heading, content, heading, content.
+// The commitment's identity card (2026-08-17 round 21, Afo). The top of the
+// commitment view had been four bare rows stacked on the canvas — header, chips,
+// a lone domain row, a dense people line — each with its own ad-hoc padding and
+// no grouping. This is one object: the card someone tapped in the pool, expanded.
+//
+// Terms deliberately stay OUT of it and remain in Details (Afo: "we don't want to
+// repeat too much information"). What the card carries instead is the thing that
+// exists nowhere else — where this stands and what has been done.
+export function identityCard(opts: {
+  title: string;
+  chips: string;
+  domains?: string[];
+  people: { initial: string; line: string }[];
+  teamRow?: string;
+  progress?: string;
+}): string {
+  const peopleRows = opts.people
+    .map((p) => `<div class="idp"><span class="avatar">${esc(p.initial)}</span><span>${esc(p.line)}</span></div>`)
+    .join("");
+  return `<div class="card idcard"><div class="idt">${esc(opts.title)}</div><div class="cardrow">${opts.chips}${
+    opts.domains ? domainRow(opts.domains) : ""
+  }</div><div class="idrule"></div>${peopleRows}${opts.teamRow ?? ""}${
+    opts.progress ? `<div class="idrule"></div>${opts.progress}` : ""
+  }</div>`;
+}
+
+// "What's been done" — the completion picture, and the one place the difference
+// between the two readiness paths is legible. Requirement counts carry BARS
+// because approved work is what advances a DomainImpact commitment; evidence
+// sits below a hairline with NO bar, because on garden work it credits the
+// people who helped without moving readiness at all (contract-spec: attachEvidence
+// has no kind gate, but submitForConfirmation rejects DomainImpact). On a service
+// the evidence line IS the readiness path, so it stands alone.
+export function progressBlock(opts: {
+  rows?: { label: string; done: number; of: number }[];
+  evidence?: string;
+  assessment?: string;
+  note?: string;
+}): string {
+  const bars = (opts.rows ?? [])
+    .map((r) => {
+      const pct = r.of === 0 ? 0 : Math.round((r.done / r.of) * 100);
+      return `<div class="prow">${meter(pct, { left: r.label, right: `${r.done} of ${r.of}` })}${
+        r.done >= r.of ? `<span class="pdone">${icon("check-line", "s")}</span>` : ""
+      }</div>`;
+    })
+    .join("");
+  const tail = [
+    opts.evidence ? `<div class="pflat">${icon("image-line", "s")}<span>${esc(opts.evidence)}</span></div>` : "",
+    opts.assessment ? `<div class="pflat">${icon("shield-check-line", "s")}<span>${esc(opts.assessment)}</span></div>` : "",
+  ].join("");
+  return `<div class="h6s">What's been done</div>${bars}${
+    tail ? `${bars ? `<div class="phair"></div>` : ""}${tail}` : ""
+  }${opts.note ? `<div class="t-meta">${esc(opts.note)}</div>` : ""}`;
+}
+
+// MemberTile — the compact form of the Gardeners row, for the details step's
+// added-team carousel (2026-08-17, Afo: "when you add we place in a carousel in
+// the top half"). Avatar over name; the same name-then-address rule the row
+// follows, so someone with nothing on file shows their address.
+export function memberTile(opts: { name: string; sub?: string; hotId?: string }): string {
+  const initial = /^0x/i.test(opts.name) ? "" : esc(opts.name.trim().charAt(0).toUpperCase());
+  const tile = `<div class="mtile"><span class="avatar">${initial}</span><div class="mtn">${esc(opts.name)}</div>${
+    opts.sub ? `<div class="mts">${esc(opts.sub)}</div>` : ""
+  }</div>`;
+  return opts.hotId ? hot(opts.hotId, tile) : tile;
+}
+export function memberTrail(tiles: string[]): string {
+  return `<div class="mtrail" role="group" aria-label="On the team">${tiles.join("")}</div>`;
+}
+
+// FormCard — the shipped review's detail card, one per detail
+// (packages/client/src/components/Cards/Form/FormCard.tsx:19): a card whose head
+// is an icon plus the label above a rule, with the value beneath it. WorkView
+// stacks these under an h6 "Details"; Submit Work's review IS a WorkView, so
+// every review in this feature stacks them too (2026-08-17, Afo: "the review
+// view needs to follow the form cards we use in work submission").
+export function formCard(ic: string, label: string, value: string): string {
+  return `<div class="fcard"><div class="fch">${icon(ic)}<span>${esc(label)}</span></div><div class="fcv">${esc(value)}</div></div>`;
+}
+
 export function sectionCard(label: string, inner: string, opts: { flush?: boolean } = {}): string {
   return `<div class="h6s">${esc(label)}</div><div class="card sect${opts.flush ? " flush" : ""}">${inner}</div>`;
 }
@@ -473,7 +554,7 @@ export function memberRow(opts: {
 }): string {
   const initial = /^0x/i.test(opts.name) ? "" : esc(opts.name.trim().charAt(0).toUpperCase());
   const sel = opts.select ? `<span class="msel${opts.select === "on" ? " on" : ""}" aria-hidden="true"></span>` : "";
-  const row = `<div class="mrow${opts.select === "on" ? " picked" : ""}">
+  const row = `<div class="mbrow${opts.select === "on" ? " picked" : ""}">
 <span class="avatar">${initial}</span>
 <div class="grow"><div class="mn${/^0x/i.test(opts.name) ? " addr" : ""}">${esc(opts.name)}</div>${
     opts.sub ? `<div class="ms">${esc(opts.sub)}</div>` : ""
@@ -729,8 +810,14 @@ export function offerRow(opts: { title: string; meta: string; tag: string; tone:
 // Selection-card specimen — ActionCard/GardenCard (height "selection"):
 // tinted media strip standing in for the image/ActionBannerFallback, body
 // with title + line, selected ring.
-export function selCard(opts: { tint: string; media: string; title: string; line: string; selected?: boolean }): string {
-  return `<div class="acard${opts.selected ? " on" : ""}"><div class="amedia ${opts.tint}">${opts.media}</div><div class="abody"><div class="at">${opts.title}</div><div class="am">${opts.line}</div></div></div>`;
+export function selCard(opts: { tint: string; media: string; title: string; line: string; selected?: boolean; count?: string }): string {
+  // The count sits in its own row at the card's foot rather than after the
+  // description (2026-08-17, Afo: "some actions description wrap so the
+  // quantities are not aligned"). A two-line description used to push the count
+  // down, so a rail of cards showed its quantities at three different heights.
+  // The description now has a fixed two-line box and the count is anchored.
+  const foot = opts.count ? `<div class="acount${opts.count === "tap to add" ? " off" : ""}">${esc(opts.count)}</div>` : "";
+  return `<div class="acard${opts.selected ? " on" : ""}"><div class="amedia ${opts.tint}">${esc(opts.media)}</div><div class="abody"><div class="at">${esc(opts.title)}</div><div class="am">${esc(opts.line)}</div>${foot}</div></div>`;
 }
 export function selRail(cards: string[]): string {
   return `<div class="selrail">${cards.join("")}</div>`;
@@ -836,10 +923,16 @@ export function objectCard(opts: {
   meta?: string;
   acts?: string;
   body?: string;
+  // A cycle's card is a door to its own view (2026-08-17): the header opens it,
+  // while the acts inside the header row keep acting on it in place.
+  hotId?: string;
 }): string {
-  return `<div class="acard objcard"><div class="objhead"><div class="objtitle"><div class="ptop"><b>${esc(
-    opts.title,
-  )}</b>${opts.chips ?? ""}</div>${opts.meta ? `<div class="pmeta num">${esc(opts.meta)}</div>` : ""}</div>${
+  const wrapTitle = (h: string) => (opts.hotId ? hot(opts.hotId, h) : h);
+  return `<div class="acard objcard${opts.hotId ? " cardlink" : ""}"><div class="objhead">${wrapTitle(
+    `<div class="objtitle"><div class="ptop"><b>${esc(opts.title)}</b>${opts.chips ?? ""}</div>${
+      opts.meta ? `<div class="pmeta num">${esc(opts.meta)}</div>` : ""
+    }</div>`,
+  )}${
     opts.acts ? `<span class="objacts">${opts.acts}</span>` : ""
   }</div>${opts.body ?? ""}</div>`;
 }

@@ -7,7 +7,7 @@
 import { hot } from "../html";
 import { icon } from "../icons";
 import {
-  actionBar, banner, btn, card, chip, disclosure, emptyState, field, flowHeader, formInfo, hdr, homeHeader, input, kv, listRow, meter, pagepad,
+  actionBar, banner, btn, card, chip, disclosure, emptyState, field, flowHeader, formCard, formInfo, hdr, homeHeader, input, kv, listRow, mediaStrip, meter, pagepad,
   filterChips, phoneFrame, commitmentCard, commitmentSlide, radio, reasonChips, sectionCard, sectionTitle, seg, selCard, selRail, sheetOver, skeleton,
 } from "../kit";
 import type { HifiDef } from "./index";
@@ -344,7 +344,7 @@ const CARD_PLANT = selCard({ tint: "agro", media: "AGRO", title: "Plant", line: 
 const CARD_ROCINHA = (line = "Rocinha, Rio de Janeiro") => selCard({ tint: "garden", media: "Rocinha", title: "Rocinha Community Garden", line, selected: true });
 const CARD_MUIZ = selCard({ tint: "garden", media: "Muizenberg", title: "Muizenberg", line: "Cape Town" });
 
-type WflowState = "intro" | "intro-promise" | "intro-promises" | "media" | "details" | "details-linked" | "fulfills-pick" | "review" | "link-picker";
+type WflowState = "intro" | "intro-promise" | "intro-promises" | "media" | "details" | "review" | "link-picker";
 
 // Iteration 2: the real Submit Work TopNav — close on step 1, back after,
 // FormProgress numbered circles (kit.flowHeader). The link-picker keeps a
@@ -362,79 +362,59 @@ function wflow(state: WflowState): string {
   switch (state) {
     case "media":
       head = wfHead(1);
+      // Mirrors views/Garden/Media.tsx:500-556 (2026-08-17, Afo: "upload media
+      // could be a bare mirror of what our current work submission shows"). The
+      // real step is FormInfo, a self-start count badge, the Needed and Optional
+      // pill groups the ACTION declares, then the uploaded images as a tile grid
+      // with audio notes listed under them. The prototype had a dashed capture
+      // card and a row list instead — neither exists in the shipped step.
       content = pagepad(
-        formInfo("camera-line", "Upload Media", "Photos, video, or a voice note — evidence of the work"),
-        `<div class="cardrow">${chip("2 added · 1 needed", "ok")}</div>`,
-        hot("wflow.tap-add", `<div class="card flat" style="border-style:dashed;align-items:center;text-align:center;padding:22px 14px">${icon("camera-line", "l")}<div class="t-title">Tap to add photos or video</div><div class="t-meta">or use the buttons below — voice notes record from the mic</div></div>`),
-        card(
-          listRow({ icon: "image-line", primary: "Pruning — before", meta: "Photo · just now" }) +
-            listRow({ icon: "image-line", primary: "Pruning — after", meta: "Photo · just now" }) +
-            listRow({ icon: "mic-line", primary: "Voice note", meta: "0:41 · tap to play" }),
-          { cls: "flat" },
-        ),
+        formInfo("image-line", "Upload Media", "Photos, video, or a voice note — evidence of the work"),
+        `<div class="cardrow">${chip("2/1 media (max 6) ✓", "ok")}</div>`,
+        `<div class="h6s">Needed</div><div style="display:flex;flex-wrap:wrap;gap:6px">${chip("Before", "ok")}${chip("After", "ok")}</div>`,
+        `<div class="h6s">Optional</div><div style="display:flex;flex-wrap:wrap;gap:6px">${chip("Wide shot")}${chip("Close up")}${chip("Voice note")}</div>`,
+        mediaStrip([{ label: "before", tint: "agro" }, { label: "after", tint: "agro" }]),
+        card(listRow({ icon: "mic-line", primary: "Voice note", meta: "0:41 · tap to play" }), { cls: "flat" }),
         banner("Photos and voice notes stay on this device until the work sends.", "stone", "wifi-off-line"),
       );
       secondary = `${hot("wflow.capture-camera", btn("", { kind: "sec", sm: true, icon: "camera-line", ariaLabel: "Take a photo" }))}${hot("wflow.capture-gallery", btn("", { kind: "sec", sm: true, icon: "image-line", ariaLabel: "Choose from your library" }))}${hot("wflow.capture-audio", btn("", { kind: "sec", sm: true, icon: "mic-line", ariaLabel: "Record a voice note" }))}`;
       actions = hot("wflow.media-continue", btn("Continue", { kind: "pri", full: true }));
       break;
     case "details":
-      // The real details step (views/Garden/Details.tsx): FormInfo header,
-      // Time Spent always, per-action inputs, feedback textarea — the action
-      // itself was chosen on the intro and never re-appears as a field here.
+      // views/Garden/Details.tsx:113-180 — FormInfo, Time Spent as a default
+      // field, then the inputs the CHOSEN ACTION declares, then feedback. The
+      // "Fulfills a commitment" row this step used to carry is gone (2026-08-17,
+      // Afo): the commitment is chosen at the intro now, so asking again here
+      // asked a settled question and pushed the action's own inputs out of the
+      // step. Its picker and the linked twin retire with it.
       head = wfHead(2);
       content = pagepad(
         formInfo("file-copy-line", "Work details", "Provide detailed information and feedback"),
         field("Time spent", input("2 hours", { select: true })),
-        hot("wflow.fulfills-field", listRow({ icon: "hand-heart-line", primary: "Fulfills a commitment", meta: "None yet · tap to choose", chevron: true })),
-        `<div class="t-meta">Started from a commitment? It arrives here already chosen. Plain garden work stays plain unless you pick one.</div>`,
+        `<div class="t-meta">The details below are the ones this action asks for — they change with the action you chose.</div>`,
+        field("Trees pruned", input("4")),
+        field("Method", input("Hand tools — loppers and a pruning saw", { select: true })),
         field("Feedback", input("Provide feedback or any observations", { placeholder: true, textarea: true })),
       );
       actions = hot("wflow.details-continue", btn("Continue", { kind: "pri", full: true }));
-      break;
-    // The linked twin (PR #710 review): reached by choosing a commitment in the
-    // picker or by commitment-first entry. Plain work never passes through here,
-    // so the guided plain path cannot silently attach a commitment.
-    case "details-linked":
-      head = wfHead(2);
-      content = pagepad(
-        formInfo("file-copy-line", "Work details", "Provide detailed information and feedback"),
-        field("Time spent", input("2 hours", { select: true })),
-        hot("wflow.fulfills-field", listRow({ icon: "hand-heart-line", primary: "Fulfills a commitment", meta: "Prune the north beds · tap to change", chevron: true })),
-        `<div class="t-meta">Approved work will count toward this commitment's Prune requirement.</div>`,
-        field("Feedback", input("Provide feedback or any observations", { placeholder: true, textarea: true })),
-      );
-      actions = hot("wflow.details-continue", btn("Continue", { kind: "pri", full: true }));
-      break;
-    case "fulfills-pick":
-      head = wfHead(2);
-      content = pagepad(
-        sectionTitle("Fulfills a commitment"),
-        `<div class="t-meta">Your open garden-work commitments in this garden. Approved work counts toward the one you pick.</div>`,
-        card(
-          hot("wflow.pick-promise", listRow({ icon: "hand-heart-line", primary: "Prune the north beds", meta: "Your offer · needs Prune × 2 · Plant × 12", chipHtml: chip("Chosen", "ok") })) +
-            listRow({ icon: "hand-heart-line", primary: "Clear the drainage channel", meta: "Ana's ask · needs Weed × 2 · Mulch × 4" }) +
-            listRow({ icon: "close-line", primary: "None", meta: "just garden work — link one later if you like" }),
-          { cls: "flat" },
-        ),
-      );
-      actions = hot("wflow.pick-done", btn("Use this commitment", { kind: "pri", full: true }));
       break;
     case "review":
-      // The real review (views/Garden/Review.tsx): FormInfo("Review Work" /
-      // "Check if the information is correct") + summary rows. The fulfills
-      // row is the one net-new line.
       head = wfHead(3);
+      // views/Garden/Review.tsx:192 renders <WorkView>: FormInfo, then an h6 per
+      // section — Garden, Media, Details — with one FormCard per detail. This
+      // step had been drawing a single flat card of rows: a different component,
+      // and the last review in the feature still doing it.
       content = pagepad(
         formInfo("check-line", "Review Work", "Check if the information is correct"),
-        card(
-          listRow({ icon: "leaf-line", primary: "Prune", meta: "Rocinha Community Garden" }) +
-            `${kv("Time spent", "2 hours")}${kv("Description", "Cleared the north beds")}` +
-            listRow({ icon: "image-line", primary: "2 photos", meta: "pruning session" }) +
-            listRow({ icon: "mic-line", primary: "Audio note", meta: "0:41" }) +
-            hot("wflow.fulfills", listRow({ icon: "hand-heart-line", primary: "Fulfills: Prune the north beds", meta: "Offer · AGRO", chipHtml: chip("Commitment", "offer") })),
-          { cls: "flat" },
-        ),
-        `<div class="t-meta">Everything here is the existing work submission — the fulfills row is the commitment link.</div>`,
+        sectionCard("Garden", listRow({ icon: "plant-line", primary: "Rocinha Community Garden", meta: "Rio de Janeiro · 23 gardeners" })),
+        sectionCard("Media", mediaStrip([{ label: "before", tint: "agro" }, { label: "after", tint: "agro" }, { label: "note", note: true }]), { flush: true }),
+        `<div class="h6s">Details</div>`,
+        formCard("leaf-line", "Action", "Prune"),
+        formCard("time-line", "Time spent", "2 hours"),
+        formCard("file-copy-line", "Trees pruned", "4"),
+        formCard("file-copy-line", "Method", "Hand tools — loppers and a pruning saw"),
+        formCard("sticky-note-line", "Description", "Cleared the north beds and took the deadwood out of the two older trees."),
+        hot("wflow.fulfills", formCard("hand-heart-line", "Fulfills", "Prune the north beds — chosen at the start, tap to review it")),
       );
       actions = hot("wflow.submit", btn("Submit work", { kind: "pri", full: true }));
       break;
@@ -500,14 +480,10 @@ const WFLOW_HOTS: HifiDef["hots"] = {
   "wflow.intro-continue": { l: "Continue to media", to: "screen:WFLOW@media", info: "The shipping intro step — FormInfo sections, the ActionCard carousel, the GardenCard carousel (views/Garden/Intro.tsx; domain StandardTabs render only when a garden spans domains) — continues to media capture. Identical from the scoped and commitment-holder casts." },
   "wflow.fulfill-strip": { l: "Fulfilling strip", info: "Commitment-first scoping (2026-08-14 workflows round): the strip names the commitment and its still-needed rows; the action grid below shows only the commitment's requirement actions (pre-chosen when there is one) and the garden is the commitment's. Media → details → review are untouched — the tie is pure metadata." },
   "wflow.promise-row": { l: "Work toward this commitment", to: "screen:WFLOW@intro-promise", info: "Standing attribution (2026-08-14): the rail exists from first paint whenever the member holds work-needing commitments — keyed to who they are, never to what they just tapped, so nothing pops up mid-flow. A horizontal rail like the action and garden rails below it: holding many commitments costs swipes, never vertical space. Nearest due first; tapping a card enters the scoped flow. Work never requires a commitment (policy 2026-08-14: free + led + recoverable — linkWork attaches existing work later, ProofLib.sol), and the details-step picker stays the mid-flow catch-all." },
-  "wflow.tap-add": { l: "Tap to add photos or video", info: "The shipping capture area — tapping the surface opens the picker; the evidence flow mirrors this exactly (iteration 2)." },
   "wflow.capture-camera": { l: "Take a photo", info: "The shipping media step's one-tap capture from the fixed bar; the pooling evidence flow mirrors this interaction (uiux §5.5 addendum 2026-08-11)." },
   "wflow.capture-gallery": { l: "Choose from your library", info: "Gallery pick, multiple allowed, with HEIC conversion and compression." },
   "wflow.capture-audio": { l: "Record a voice note", info: "Audio notes record from the bar and play back inline — the shipping interaction." },
   "wflow.media-continue": { l: "Continue to details", to: "screen:WFLOW@details", info: "Media → details, exactly as shipped." },
-  "wflow.fulfills-field": { l: "Fulfills a commitment (NEW)", to: "screen:WFLOW@fulfills-pick", info: "The work-first direction (2026-08-11 D6, uiux §5.7 addendum): pickable when the flow was entered from the Garden tab; prefilled and locked when deep-linked from a commitment. Writes the same meta.commitmentId + dependent workLink path." },
-  "wflow.pick-promise": { l: "Choose this commitment", info: "Lists the gardener's Accepted/Active garden-work commitments in the selected garden; choosing none submits ordinary work." },
-  "wflow.pick-done": { l: "Use this commitment", to: "screen:WFLOW@details-linked", info: "Returns to details with the chosen commitment shown in the fulfills field (PR #710 review: the default details cast stays unlinked, so plain work never silently carries a commitment)." },
   "wflow.details-continue": { l: "Continue to review", to: "screen:WFLOW@review", info: "Details → review, exactly as shipped." },
   "wflow.fulfills": { l: "Fulfills row", info: "The locked read-only commitment-context row on review (MF-7, UX:174) — it repeats the details-step choice and never re-opens the picker here." },
   "wflow.submit": { l: "Submit work", to: "screen:W2@active", info: "Existing work job + meta.commitmentId; the queue auto-links after sync (UX:220)." },

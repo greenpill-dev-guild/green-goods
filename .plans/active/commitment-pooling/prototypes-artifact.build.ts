@@ -273,8 +273,8 @@ assertBuild(
 // exchange/template screens (W28–W31, register #97) + the member and steward
 // funded-claim checkpoints (W36/W37, register #103) + the phone-presentation
 // pool tab (W7M, 2026-08-16 admin review).
-assertBuild(visibleScreens.length === 35, `expected 35 visible screens, found ${visibleScreens.length}`);
-assertBuild(screenCounts.client === 18 && screenCounts.admin === 15 && screenCounts.editorial === 2, `screen grouping must be 18 client / 15 admin / 2 editorial`);
+assertBuild(visibleScreens.length === 37, `expected 37 visible screens, found ${visibleScreens.length}`);
+assertBuild(screenCounts.client === 19 && screenCounts.admin === 16 && screenCounts.editorial === 2, `screen grouping must be 19 client / 16 admin / 2 editorial`);
 const presentationCatalogs = flowCatalog + screenCards;
 const presentationRuntimeCopy = [
   presentationCatalogs,

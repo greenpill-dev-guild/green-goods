@@ -321,7 +321,7 @@ export const HIFI_CSS = `
 .hf .meter .tr{height:6px;border-radius:99px;background:var(--stone-bg);position:relative;overflow:visible}
 .hf .meter .fi{height:100%;border-radius:99px;background:var(--gr);transition:width var(--spring-effects-slow)}
 .hf .meter .tick{position:absolute;top:-3px;width:2px;height:12px;background:var(--ink);opacity:.55;border-radius:1px}
-.hf .meter .mrow{display:flex;justify-content:space-between;font-size:12.5px;color:var(--stone)}
+.hf .meter .mtrow{display:flex;justify-content:space-between;font-size:12.5px;color:var(--stone)}
 
 /* state timeline (StateTimeline grammar) */
 .hf .tl{display:flex;flex-direction:column}
@@ -397,28 +397,94 @@ export const HIFI_CSS = `
    the card is the navigation, footer buttons are reserved for claim acts. */
 .hf [data-hot].cardlink{cursor:pointer}
 
+/* ONE section-title style in the client (2026-08-17, Afo: "we need the section
+   title style match across what you're offering, the how much, add details,
+   review and commit"). The flow's early steps used .t-sec — 16.5px sentence
+   case — while its later steps and every read surface used .h6s, the 11px
+   uppercase label that mirrors WorkView's <h6>. The shipped component decides
+   it: .t-sec takes the h6 metric inside the client dialect. Admin keeps its own,
+   where .t-sec is a genuine card heading rather than a section label. */
+.hf.s-client .t-sec{font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;
+  color:var(--stone);margin:10px 0 -2px}
+.hf.s-client .t-sec .hx{margin-left:auto;text-transform:none;letter-spacing:0}
+
+/* The commitment's identity card (2026-08-17 round 21) — one object where the
+   top of the screen used to be four ungrouped rows. */
+.hf .card.idcard{gap:8px;padding:14px 16px}
+.hf .idcard .idt{font-size:19px;font-weight:650;line-height:1.25;letter-spacing:-.01em;color:var(--ink)}
+.hf .idcard .idrule{height:1px;background:var(--ln);margin:2px -16px}
+.hf .idcard .idp{display:flex;align-items:center;gap:9px;font-size:13.5px;color:var(--ink)}
+.hf .idcard .idp .avatar{width:26px;height:26px;border-radius:50%;background:var(--act);color:var(--on-act);
+  display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;flex:none}
+.hf .idcard .idteam{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--act);padding-left:35px}
+.hf .idcard .idteam .ic{flex:none}
+/* Requirement rows carry bars because approved work is what advances readiness.
+   Everything under the hairline does not, and has no bar — that absence is the
+   signal, per the 2026-08-17 alignment. */
+.hf .idcard .prow{display:flex;align-items:center;gap:8px}
+.hf .idcard .prow .meter{flex:1;min-width:0}
+.hf .idcard .prow .pdone{color:var(--gr-ink);flex:none}
+.hf .idcard .phair{height:1px;background:var(--ln);margin:4px 0 2px}
+.hf .idcard .pflat{display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--stone)}
+.hf .idcard .pflat .ic{color:var(--stone);flex:none}
+
+/* Member tile — the added-team carousel on the details step. A compact form of
+   the Gardeners row: avatar over name, tapped to open. */
+.hf .mtrail{display:flex;gap:8px;overflow-x:auto;margin:0 -16px;padding:2px 16px 4px;scrollbar-width:none}
+.hf .mtrail::-webkit-scrollbar{display:none}
+.hf .mtile{flex:0 0 96px;border:1px solid var(--ln);border-radius:14px;background:var(--card);
+  padding:10px 8px;display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center}
+.hf .mtile .avatar{width:40px;height:40px;border-radius:50%;background:var(--act);color:var(--on-act);
+  display:inline-flex;align-items:center;justify-content:center;font-size:15px;font-weight:600;flex:none}
+.hf .mtile .mtn{font-weight:600;font-size:12.5px;color:var(--ink);max-width:100%;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hf .mtile .mts{font-size:11px;color:var(--stone);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* The add tile closes the rail rather than sitting apart from it. */
+.hf .mtile.addtile{border-style:dashed;justify-content:center;color:var(--act)}
+.hf .mtile.addtile .ic{color:var(--act)}
+
+/* FormCard — the shipped review's per-detail card (FormCard.tsx:19): an icon +
+   label head above a rule, the value beneath. Stacked one per detail under an
+   h6, which is what WorkView does and therefore what every review here does. */
+.hf .fcard{border:1px solid var(--ln);border-radius:14px;background:var(--card);overflow:hidden}
+.hf .fcard+.fcard{margin-top:8px}
+.hf .fcard .fch{display:flex;align-items:center;gap:8px;padding:11px 12px;border-bottom:1px solid var(--ln)}
+.hf .fcard .fch .ic{color:var(--act);flex:none}
+.hf .fcard .fch span{font-weight:600;font-size:13.5px;color:var(--ink)}
+.hf .fcard .fcv{padding:8px 12px 12px 16px;font-size:13px;color:var(--stone);line-height:1.45}
+
+/* The action rail's count row: anchored at the card's foot with the description
+   held to a fixed two-line box above it, so a rail of cards shows every quantity
+   at the same height (2026-08-17). */
+.hf.s-client .selrail .acard .abody{min-height:96px}
+.hf.s-client .selrail .acard .abody .am{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;
+  overflow:hidden;min-height:calc(2 * 1.4em)}
+.hf.s-client .selrail .acard .acount{margin-top:auto;align-self:flex-start;border-radius:8px;padding:2.5px 8px;
+  font-weight:600;font-size:12px;background:var(--gr-bg);color:var(--gr-ink)}
+.hf.s-client .selrail .acard .acount.off{background:var(--stone-bg);color:var(--stone)}
+
 /* MemberRow — mirrors the shipped garden Gardeners item (Gardeners.tsx:74):
    full-width tappable row, 40px avatar, name over subline over a registered
    line, badge pinned top-right. The select dot replaces that component's
    navigation affordance when the row is being picked rather than opened. */
-.hf .mrow{position:relative;display:flex;align-items:center;gap:12px;width:100%;text-align:left;
+.hf .mbrow{position:relative;display:flex;align-items:center;gap:12px;width:100%;text-align:left;
   border:1px solid var(--ln);border-radius:14px;background:var(--card);padding:8px;
   box-shadow:0 1px 2px color-mix(in srgb,var(--ink) 6%,transparent)}
-.hf .mrow+.mrow{margin-top:8px}
-.hf .mrow.picked{border-color:var(--act);box-shadow:inset 0 0 0 1px var(--act)}
-.hf .mrow .avatar{width:40px;height:40px;border-radius:50%;background:var(--act);color:var(--on-act);
+.hf .mbrow+.mbrow{margin-top:8px}
+.hf .mbrow.picked{border-color:var(--act);box-shadow:inset 0 0 0 1px var(--act)}
+.hf .mbrow .avatar{width:40px;height:40px;border-radius:50%;background:var(--act);color:var(--on-act);
   display:inline-flex;align-items:center;justify-content:center;font-size:15px;font-weight:600;flex:none}
-.hf .mrow .mn{font-weight:600;font-size:14.5px;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hf .mbrow .mn{font-weight:600;font-size:14.5px;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 /* A wallet address stands in for the name only when nothing better is on file,
    so it reads as an identifier rather than as a person's name. */
-.hf .mrow .mn.addr{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px}
-.hf .mrow .ms{font-size:12px;color:var(--stone);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.hf .mrow .mj{display:flex;align-items:center;gap:4px;font-size:11.5px;color:var(--stone);margin-top:1px}
-.hf .mrow .mj .ic{color:var(--act);flex:none}
-.hf .mrow .mbadge{position:absolute;top:8px;right:8px;border-radius:99px;padding:2.5px 8px;
+.hf .mbrow .mn.addr{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px}
+.hf .mbrow .ms{font-size:12px;color:var(--stone);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hf .mbrow .mj{display:flex;align-items:center;gap:4px;font-size:11.5px;color:var(--stone);margin-top:1px}
+.hf .mbrow .mj .ic{color:var(--act);flex:none}
+.hf .mbrow .mbadge{position:absolute;top:8px;right:8px;border-radius:99px;padding:2.5px 8px;
   font-weight:600;font-size:12px;background:var(--stone-bg);color:var(--stone)}
-.hf .mrow .msel{width:20px;height:20px;border-radius:50%;border:1.5px solid var(--ln2);flex:none;align-self:center}
-.hf .mrow .msel.on{border-color:var(--act);background:var(--act);
+.hf .mbrow .msel{width:20px;height:20px;border-radius:50%;border:1.5px solid var(--ln2);flex:none;align-self:center}
+.hf .mbrow .msel.on{border-color:var(--act);background:var(--act);
   box-shadow:inset 0 0 0 3px var(--card),inset 0 0 0 20px var(--act)}
 
 /* browse filter row (2026-08-14) — direction chips + the personal Mine toggle */
