@@ -1041,8 +1041,10 @@ Known mis-resolutions fixed in place: `contract-spec.md` §Grassroots-Economics-
     fills at opening instead. Naming defect recorded, not fixed: the `support-` state prefix
     covers both a service offer's lifecycle and the G$ transport chain.
 
-114. PROPOSED, not locked — reciprocity from the claim side (2026-08-16, register #103; awaiting
-    Afo). Register #102(d) parked exchange until it got its own design session; this is a proposal
+114. PARKED 2026-08-17 (Afo: "park it for now and we stabilize and polish the UI") — reciprocity
+    from the claim side (2026-08-16, register #103). The proposal stands as written and needs no
+    rework when picked up; it is parked because it is the only new capability while every other
+    lane stabilises, not because anything in it was found wanting. Register #102(d) parked exchange until it got its own design session; this is a proposal
     for that session, narrower than what was parked. Taking up someone's offer would, in the same
     skippable step, ask what you can bring and create your offer as part of the claim — so no
     double coincidence of wants is needed. It requires **no contract change**: E.1's picker and
@@ -1253,6 +1255,22 @@ Known mis-resolutions fixed in place: `contract-spec.md` §Grassroots-Economics-
     withdraw while nobody has taken it up, a steward cancels it afterwards — so the provider
     learns where the exit is without being handed a control they do not have.
     Full text: `uiux-spec.md` C.21.
+
+126. Four open items closed (2026-08-17, Afo's calls on the outstanding list).
+    **(a) Two-send: KEEP TWO, make the pending act unmissable.** The asymmetry is
+    structural — garden work has approvers, a service does not — so the fix is signal, not
+    surgery: sending names the roster freeze it causes, and the evidence-attached states now
+    read "Not sent yet — this is waiting on you." **(b) Double quantification: they are two
+    different questions and now say so.** `unitLabel`/`targetUnits` is what is put in and
+    what the pool counts; requirement rows are what stewards approve. Naming fixed, not
+    structure — the rows are titled "What has to be approved" and state outright that they
+    are a different measure. **(c) unitLabel: NO contract work** (Afo); the guard moves to
+    the render, where it has to be anyway since a direct writer can store any length —
+    `unitLabel(raw)` truncates past 24 and keeps the full text in `title`, independent of
+    the composer so a future contract bound needs no code change. Drawn in `W1C` with a long
+    fixture plus three gallery specimens. **(d) C.7 claim-side reciprocity: PARKED** while
+    the UI stabilises; the proposal stands as written and needs no rework. Full text:
+    `uiux-spec.md` C.10, C.12, C.21, C.22 and the C.7 parking note.
 
 **Final recursive certification clarification (2026-07-25; no new decision-register entry):**
 the published `42161`↔`42220` production lane is the only required fully paired

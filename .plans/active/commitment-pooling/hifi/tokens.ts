@@ -408,6 +408,9 @@ export const HIFI_CSS = `
   color:var(--stone);margin:10px 0 -2px}
 .hf.s-client .t-sec .hx{margin-left:auto;text-transform:none;letter-spacing:0}
 
+/* A truncated unit label keeps its full text in its title attribute — cut, never lost. */
+.hf .ulab{border-bottom:1px dotted var(--ln2);cursor:help}
+
 /* The commitment's identity card (2026-08-17 round 21) — one object where the
    top of the screen used to be four ungrouped rows. */
 .hf .card.idcard{gap:8px;padding:14px 16px}

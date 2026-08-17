@@ -212,6 +212,26 @@ export function formInfo(ic: string, title: string, info: string): string {
 // The label stays OUTSIDE the card because that is where the work view puts it;
 // carding the label too would box the whole page and lose the scannable rhythm
 // of heading, content, heading, content.
+// unitLabel is an UNBOUNDED on-chain string, and no contract bound is being
+// added for now (2026-08-17, Afo: "avoid contract work for now and make sure the
+// UI has a good guard that will work with future contract deployments"). So the
+// guard cannot live on the write path alone — anything writing directly to the
+// module can store a label of any length, and every surface that renders one has
+// to survive it.
+//
+// This is the render-side guard: a label longer than the cap is cut with an
+// ellipsis and keeps its full text in `title`, so nothing overflows and nothing
+// is silently lost. It is deliberately independent of whatever the composer
+// allows, so it keeps working unchanged if a contract bound lands later — a
+// bound only makes the truncation stop firing.
+export const UNIT_LABEL_CAP = 24;
+export function unitLabel(raw: string): string {
+  const clean = raw.trim();
+  return clean.length <= UNIT_LABEL_CAP
+    ? esc(clean)
+    : `<span class="ulab" title="${escAttr(clean)}">${esc(clean.slice(0, UNIT_LABEL_CAP - 1))}…</span>`;
+}
+
 // The commitment's identity card (2026-08-17 round 21, Afo). The top of the
 // commitment view had been four bare rows stacked on the canvas — header, chips,
 // a lone domain row, a dense people line — each with its own ad-hoc padding and
@@ -974,7 +994,7 @@ export function poolHoldings(opts: {
   const unitRows = opts.units
     .map(({ label, open, people }) =>
       commitmentRow({
-        title: `${open} ${label}`,
+        title: `${open} ${unitLabel(label)}`,
         meta: `${people} ${people === 1 ? who.one : who.many} offering`,
       }),
     )

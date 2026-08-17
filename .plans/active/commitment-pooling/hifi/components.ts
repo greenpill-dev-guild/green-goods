@@ -197,6 +197,18 @@ const CLIENT_ENTRIES: Entry[] = [
     ],
   },
   {
+    id: "unit-label", title: "Unit label guard", family: "chips", covers: ["unitLabel"],
+    kit: `unitLabel(raw)`,
+    netNew: "A render-side guard, not an input rule. `unitLabel` is an unbounded on-chain string and no contract bound is planned for now, so anything writing directly to the module can store a label of any length.",
+    rule: "Longer than 24 characters is cut with an ellipsis and keeps its full text in `title` — cut, never silently lost. Independent of whatever the composer allows, so it keeps working unchanged if a contract bound lands later; a bound only stops the truncation firing.",
+    usedIn: /class="ulab"|holdlist/,
+    specs: [
+      { label: "an ordinary label", html: `<div class="t-body">27 ${kit.unitLabel("hours")} open</div>` },
+      { label: "at the cap", html: `<div class="t-body">4 ${kit.unitLabel("two-hour work sessions")} open</div>` },
+      { label: "past the cap — cut, full text in title", html: `<div class="t-body">2 ${kit.unitLabel("full-day accompanied market transport runs")} open</div>` },
+    ],
+  },
+  {
     id: "identity-card", title: "Identity card", family: "cards", covers: ["identityCard"],
     kit: `identityCard({title, chips, domains, people, teamRow, progress})`,
     netNew: "The commitment view's top half. It replaced four bare canvas rows — header, chips, a lone domain row, a dense people line — each with its own ad-hoc padding and no grouping.",

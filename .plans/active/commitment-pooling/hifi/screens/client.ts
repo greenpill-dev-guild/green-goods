@@ -15,7 +15,7 @@ import { icon } from "../icons";
 import {
   actionBar, appBar, banner, btn, campaignSlide, card, chip, cycleCard, cycleRail, detailRow, disclosure, domainRow, emptySeasonSlide, emptyState, fabButton, field,
   flowHeader, formInfo, fundedOfferCard, gardenHeader, gardenTabs, hdr, hero, input, kindCards, kv, listRow, meter, offerCard, offerRow, ongoingOfferCard,
-  formCard, identityCard, mediaStrip, memberRow, memberTile, memberTrail, pagepad, progressBlock, phoneFrame, seg, selCard, selRail, tabRail, poolFilters, commitmentCard, radio, reasonChips, requestCard, seasonCard, seasonSlide, sectionCard, sectionTitle, sheetOver, skeleton, stateChip, syncBar,
+  formCard, identityCard, mediaStrip, memberRow, memberTile, memberTrail, pagepad, progressBlock, phoneFrame, seg, selCard, selRail, tabRail, unitLabel, poolFilters, commitmentCard, radio, reasonChips, requestCard, seasonCard, seasonSlide, sectionCard, sectionTitle, sheetOver, skeleton, stateChip, syncBar,
   teamOfferCard, teamstrip, timeline,
 } from "../kit";
 import type { HifiDef } from "./index";
@@ -532,9 +532,15 @@ const w1cHead = (opts: { title: string; kind: string; stage: string; dates: stri
 
 // Counts stay per unit basis — three bases, three numbers, never a total
 // (Appendix D.1).
+// Unit labels come straight from indexed data and are unbounded on chain, so the
+// rows that render them run through the guard. One fixture is deliberately long —
+// a garden really can name a unit "full-day accompanied market transport runs" —
+// so the truncation is visible in a drawn state rather than only in the gallery.
 const W1C_HOLDS_OPEN =
-  sectionCard("What this season holds", `${detailRow("27 hours", "open · 6 gardeners")}${detailRow("7 rides", "open · 3 gardeners")}${detailRow("4 sessions", "open · 2 gardeners")}`) +
-  sectionCard("The reserve", detailRow("120 G$", "held for 3 commitments"));
+  sectionCard(
+    "What this season holds",
+    `${detailRow(`27 ${unitLabel("hours")}`, "open · 6 gardeners")}${detailRow(`7 ${unitLabel("rides")}`, "open · 3 gardeners")}${detailRow(`4 ${unitLabel("two-hour work sessions")}`, "open · 2 gardeners")}${detailRow(`2 ${unitLabel("full-day accompanied market transport runs")}`, "open · 1 gardener")}`,
+  ) + sectionCard("The reserve", detailRow("120 G$", "held for 3 commitments"));
 const W1C_HOLDS_ENDED =
   sectionCard("What this season grew", `${detailRow("48 hours", "kept · 9 gardeners")}${detailRow("12 rides", "kept · 4 gardeners")}${detailRow("6 sessions", "kept · 3 gardeners")}${detailRow("22 of 26 commitments", "kept")}`) +
   sectionCard("The reserve", detailRow("90 G$", "went to 7 gardeners"));
@@ -1427,7 +1433,7 @@ function w2(state: W2State): string {
       break;
     case "request-evidence-submitted":
       band = bandCard(
-        `<div class="t-title">Evidence attached: 1 · no work required</div><div class="t-meta">Ana asked for this help, so Ana confirms it arrived.</div>`,
+        `<div class="t-title">Not sent yet — this is waiting on you</div><div class="t-meta">Your evidence is attached, but Ana cannot confirm the help arrived until you send it. Sending also fixes the team and stops further evidence counting.</div>`,
       );
       break;
     case "request-ready-pending":
@@ -1472,7 +1478,7 @@ function w2(state: W2State): string {
       break;
     case "support-evidence-submitted":
       band = bandCard(
-        `<div class="t-title">Evidence attached: 1 · no work required</div><div class="t-meta">João is named to confirm the repair.</div>`,
+        `<div class="t-title">Not sent yet — this is waiting on you</div><div class="t-meta">Your evidence is attached, but João cannot confirm the repair until you send it. Sending also fixes the team and stops further evidence counting.</div>`,
       );
       break;
     case "support-ready-pending":
@@ -2342,11 +2348,11 @@ function w3(state: W3State): string {
         `<div style="display:flex;flex-wrap:wrap;gap:6px">${chip("hours", "ok")}${chip("tasks")}${chip("meals")}${chip("rides")}${chip("plants")}${chip("other…")}</div>`,
         sectionTitle("How many"),
         `<div style="display:flex;flex-wrap:wrap;gap:6px">${chip("1")}${chip("2")}${chip("6", "ok")}${chip("12")}${chip("custom…")}</div>`,
-        `<div class="t-meta">Tap what fits — a custom unit or amount opens the keyboard only when you ask for it.</div>`,
+        `<div class="t-meta">Tap what fits — a custom unit or amount opens the keyboard only when you ask for it. This is what you are putting in, and it is what the pool counts in its hours.</div>`,
         w3Due("Runs with the season · through Aug 30"),
         w3Proof({
-          title: "What work does this include?",
-          note: "Tap the garden actions this commitment includes. Each carries its own count, and approved work is the proof.",
+          title: "What has to be approved",
+          note: "The garden actions this commitment includes. These are a different measure from the amount above: the amount is what you are putting in, these are what stewards must approve before it counts as kept.",
           cells: [
             w3ActionCell("agro", "Prune", "Trees and beds — the long-handled loppers live in the shed", "× 2"),
             w3ActionCell("agro", "Plant", "Seedlings and starts", "× 12"),
@@ -2376,11 +2382,11 @@ function w3(state: W3State): string {
           lead: { icon: "leaf-line", primary: "Prune the north beds", meta: "garden work" },
           media: mediaStrip([{ label: "photo", tint: "agro" }, { label: "note", note: true }]),
           details: [
-            { icon: "leaf-line", label: "How much", value: "6 hours" },
+            { icon: "leaf-line", label: "How much is put in", value: "6 hours — this is what the pool counts" },
             { icon: "calendar-line", label: "Due", value: "Aug 30 — runs with the season" },
             { icon: "seedling-line", label: "Where it runs", value: "Season of First Rains" },
             { icon: "refresh-line", label: "How often", value: "Just once" },
-            { icon: "shield-check-line", label: "Work it needs", value: "Prune × 2 · Plant × 12 — AGRO" },
+            { icon: "shield-check-line", label: "What has to be approved", value: "Prune × 2 · Plant × 12 — AGRO. A different measure from the amount: that is what is put in, this is what stewards approve." },
             { icon: "group-line", label: "Team", value: "Open — anyone eligible may join, 2 invited" },
           ],
           advanced: { hot: "w3.advanced", label: "Who confirms", value: "The person you help. If nobody local is eligible, the Green Goods team can step in — tap to change." },
@@ -2576,8 +2582,8 @@ function w3(state: W3State): string {
         `<div class="t-meta">Tap what fits — the keyboard opens only for a custom unit or amount.</div>`,
         w3Due("Runs with the season · through Aug 30"),
         w3Proof({
-          title: "What work does this ask need?",
-          note: "Tap the garden actions this ask includes. Approved work is the proof — the person you asked never self-confirms.",
+          title: "What has to be approved",
+          note: "The garden actions this ask includes — a different measure from the amount above. The person you asked never self-confirms; stewards approve the work first.",
           cells: [
             w3ActionCell("agro", "Weed", "Beds and paths — clear back to the channel edge", "× 2"),
             w3ActionCell("agro", "Mulch", "Barrows spread", "× 4"),
@@ -2598,10 +2604,10 @@ function w3(state: W3State): string {
           lead: { icon: "leaf-line", primary: "Clear the drainage channel", meta: "garden work" },
           media: mediaStrip([{ label: "photo", tint: "agro" }]),
           details: [
-            { icon: "leaf-line", label: "How much", value: "8 hours" },
+            { icon: "leaf-line", label: "How much is asked for", value: "8 hours — this is what the pool counts" },
             { icon: "calendar-line", label: "Due", value: "Aug 30 — runs with the season" },
             { icon: "seedling-line", label: "Where it runs", value: "Season of First Rains" },
-            { icon: "shield-check-line", label: "Work it needs", value: "Weed × 2 · Mulch × 4 — AGRO" },
+            { icon: "shield-check-line", label: "What has to be approved", value: "Weed × 2 · Mulch × 4 — AGRO. A different measure from the amount: that is what is asked for, this is what stewards approve." },
             { icon: "user-line", label: "Who can take it up", value: "Open to anyone here" },
           ],
           advanced: { hot: "w3.advanced-work", label: "Who confirms", value: "You — it was your request. Whoever takes it up submits work, the stewards approve it, then you confirm." },

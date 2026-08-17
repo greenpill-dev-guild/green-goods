@@ -1291,7 +1291,17 @@ there were two places to write a note. The *Start from a template* row became th
 title suggestions: chips and the template picker were two mechanisms for one intent, and the row
 made the first screen heavier for it. `W31` keeps its inbound link from that chip.
 
-**Open, not assumed.** A garden-work promise is still quantified twice — `6 hours` on step 2 *and*
+**RESOLVED 2026-08-17 (Afo): they are two different questions, so they say so.** Both
+figures are real on chain and neither derives from the other — `unitLabel`/`targetUnits` is
+what the member puts in and is what the pool counts in its holdings; the requirement rows
+are what stewards must approve before it counts as kept. The fix is therefore naming, not
+structure: step 2's amount says it is "what you are putting in, and what the pool counts in
+its hours", the rows are titled **"What has to be approved"** and say outright that they are
+a different measure from the amount above, and the review carries both under labels that
+distinguish them. The progress block already separated them structurally — bars gate, no
+bar credits (C.20) — so the copy now matches the layout. Original framing follows.
+
+**The question as first posed.** A garden-work promise is quantified twice — `6 hours` on step 2 *and*
 `Prune × 2 · Plant × 12` beneath it. Both are real on chain (`unitLabel`/`amount` and the
 requirement rows are separate fields), but a member is measuring one promise in two incommensurable
 ways, and folding proof into step 2 puts them side by side where the redundancy is visible. This is
@@ -1360,7 +1370,16 @@ What evidence owed was the **grammar**, not the step count, and this round pays 
 Creation and evidence now share one `captureBody` and one `captureBar`; the
 shared body is why the adders and the banner arrived together.
 
-**Still open, carried from C.10's sibling question.** Proving with work ends in
+**RESOLVED 2026-08-17 (Afo): keep two acts, make the pending one unmissable.** The
+asymmetry is structural, not sloppy — garden work has stewards whose approvals flip the
+state, a service has no approver, so somebody must declare it done. Two things closed the
+risk rather than a structural change: `Send for confirmation` now opens a confirmation
+step naming the roster freeze it causes (C.21), and the evidence-attached states say
+plainly whose move it is — *"Not sent yet — this is waiting on you. Your evidence is
+attached, but João cannot confirm until you send it."* A provider can no longer attach
+evidence and believe they are finished. Original framing follows.
+
+**The question as first posed.** Proving with work ends in
 one act (`Submit work`); proving a service ends in two — `Attach evidence`, then
 `Send for confirmation` from the promise's bar. The cause is real: work has
 steward approvals to advance it, and a service has no approver, so the provider
@@ -1677,7 +1696,36 @@ before acceptance, *"If it needs to end — now that it's been taken up, a stewa
 it, ask in the garden"* after. The provider learns where the exit is without being given a
 control they do not have.
 
-### C.7 PROPOSAL — reciprocity from the claim side (2026-08-16, register #103, NOT LOCKED)
+### C.22 The unitLabel guard lives in the render (2026-08-17)
+
+`unitLabel` is an **unbounded on-chain string**, and no contract bound is being added for
+now (Afo: *"avoid contract work for now and make sure the UI has a good guard that will
+work with future contract deployments"*).
+
+That decision moves where the guard has to live. A cap on the composer's input is not a
+cap: anything writing directly to the module can store a label of any length, and every
+surface that renders one has to survive it. So the guard is **render-side** —
+`unitLabel(raw)` cuts past 24 characters with an ellipsis and keeps the full text in the
+element's title, so nothing overflows and nothing is silently lost.
+
+It is deliberately independent of whatever the composer allows, which is what makes it
+future-proof: if a contract bound lands later, the truncation simply stops firing and no
+code changes. The composer's own 24-character limit stays as a courtesy to the person
+typing, not as the thing being relied on.
+
+Drawn rather than only asserted: `W1C`'s "What this season holds" runs its rows through the
+guard and carries a deliberately long fixture — a garden really can name a unit "full-day
+accompanied market transport runs" — so the truncation is visible in a drawn state, with
+three gallery specimens covering short, at-cap and past-cap.
+
+### C.7 PARKED — reciprocity from the claim side (2026-08-16, register #103)
+
+> **Parked 2026-08-17 (Afo): "park it for now and we stabilize and polish the UI."** The
+> proposal below stands as written and needs no rework when it is picked up — it requires
+> no contract change, and `validateCounterCommitment` already implements the pair. It is
+> parked because it is the only genuinely NEW capability in the backlog while every other
+> lane is stabilising, not because anything in it was found wanting. Nothing in the
+> prototype draws it; register #102(d)'s exchange parking is unchanged.
 
 **Status: proposed, awaiting Afo. Nothing in this section is drawn as shipped design, and no
 screen implements it.** Register #102(d) parked exchange "until exchange gets its own design
