@@ -118,6 +118,7 @@
     "test:shared": "cd packages/shared && bun run test",
     "test:shared:live": "cd packages/shared && bun run test:live",
     "test:indexer": "cd packages/indexer && bun run test",
+    "test:indexer:contract-events": "bun run --cwd packages/indexer test:contract-events",
     "test:contracts": "cd packages/contracts && bun run test",
     "anvil:start": "anvil --fork-url ${SEPOLIA_RPC_URL:-https://ethereum-sepolia-rpc.publicnode.com} --port ${ANVIL_PORT:-3009}",
     "anvil:start:block": "anvil --fork-url ${SEPOLIA_RPC_URL:-https://ethereum-sepolia-rpc.publicnode.com} --fork-block-number ${ANVIL_FORK_BLOCK} --port ${ANVIL_PORT:-3009}",

@@ -21,6 +21,7 @@
     "db:up": "node ../../scripts/dev/node-cli.js envio local docker up",
     "db:down": "docker ps -q --filter label=dev.envio.config-hash | xargs -r docker stop",
     "test": "bun run codegen && bun run mocha",
+    "test:contract-events": "GG_RUN_LOCAL_CONTRACT_EVENT_INTEGRATION=1 node ../../scripts/dev/node-cli.js mocha --require tsx --timeout 240000 \"test/contractEventsLocal.test.ts\"",
     "test:coverage": "c8 bun run mocha",
     "test:coverage:ci": "c8 --reporter text --reporter json bun run mocha",
     "test:full": "bun run test",
