@@ -495,6 +495,11 @@ export function assertRecoverySafeConfiguration(
 ): void {
   const owners = normalizedOwners(inspection.owners);
   const threshold = Number(inspection.threshold);
+  // A non-integer floor would make every threshold comparison below false and silently disable
+  // this check, so reject it rather than clamping it into something that looks valid.
+  if (!Number.isSafeInteger(minimumThreshold)) {
+    throw new Error("Recovery Safe minimum threshold must be a safe integer");
+  }
   const floor = Math.max(1, minimumThreshold);
   if (
     !inspection.codePresent ||

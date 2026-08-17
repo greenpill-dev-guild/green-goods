@@ -186,6 +186,17 @@ describe("Garden Safe final owner tooling", () => {
     expect(() => assertRecoverySafeConfiguration(singleSignature, SINGLETON, HANDLER)).toThrow(/Safe v1.4.1/);
     // The Green Goods recovery Safe is accepted at its declared threshold of one.
     expect(() => assertRecoverySafeConfiguration(singleSignature, SINGLETON, HANDLER, 1)).not.toThrow();
+    // A non-integer floor must fail closed. NaN would make every threshold comparison false and
+    // silently accept any Safe, including the 2-of-N callers this default is meant to protect.
+    expect(() => assertRecoverySafeConfiguration(singleSignature, SINGLETON, HANDLER, Number.NaN)).toThrow(
+      /minimum threshold must be a safe integer/,
+    );
+    expect(() =>
+      assertRecoverySafeConfiguration(singleSignature, SINGLETON, HANDLER, Number.POSITIVE_INFINITY),
+    ).toThrow(/minimum threshold must be a safe integer/);
+    expect(() => assertRecoverySafeConfiguration(singleSignature, SINGLETON, HANDLER, 1.5)).toThrow(
+      /minimum threshold must be a safe integer/,
+    );
     // A declared floor never drops below one, and never waives the remaining conditions.
     expect(() =>
       assertRecoverySafeConfiguration({ ...singleSignature, threshold: "0" }, SINGLETON, HANDLER, 0),

@@ -34,13 +34,16 @@
 - [x] Garden-bound relay threat model and cancellation boundary defined in `spec.md`.
 - [x] Temporary deployment-EOA path explicitly superseded for this implementation.
 - [x] Recover the exact implementation creation transaction, init-code hash, constructor tuple, deterministic dependency chain, and all 18 initialization hashes.
-- [ ] Close the designated recovery Safe gate. Pinned-fork nested EIP-1271 proof and
-  singleton/runtime code hashes are now closed by `evidence/celo-release-readiness-2026-08-17.json`.
+- [x] Close the designated recovery Safe gate. Pinned-fork nested EIP-1271 proof and
+  singleton/runtime code hashes are closed by `evidence/celo-release-readiness-2026-08-17.json`.
   The Dev Guild recovery Safe passes every reviewed condition live. The Green Goods protocol
-  recovery Safe `0x1B9Ac97Ea62f69521A14cbe6F45eb24aD6612C19` does not: live threshold is 1 against
-  the hard floor of 2, and its live 4-owner set is a strict subset of the 6 owners frozen in
-  `config/commitment-pooling-release.json`. Resolving this requires a human-executed Safe
-  transaction and is the only remaining blocker in this lane.
+  recovery Safe `0x1B9Ac97Ea62f69521A14cbe6F45eb24aD6612C19` is live as 1-of-4 over a strict subset
+  of the 6 owners frozen in `config/commitment-pooling-release.json`, which never matched on-chain
+  state. Afo accepted that configuration for this release on 2026-08-17 and intends to raise the
+  threshold separately, so it is no longer a blocker. The accepted configuration is recorded as
+  `GREEN_GOODS_ACCEPTED_RECOVERY_CONFIGURATION` in `script/deploy/garden-safe-owners.ts` and final
+  Garden Safe planning returns zero blockers across all 18 boundaries. Accepted risk: one of those
+  four signers reaches the Garden Safe threshold of two combined with any other owner.
 - [x] Reverify official CCIP router identities, selectors, code, and both Arbitrum/Celo lane directions at the research snapshot.
 - [x] Rebuild the historical source/compiler/submodule snapshot and match the recovered creation-code hashes.
 
@@ -49,10 +52,10 @@
 | Requirement | Lane | Planned step | Status |
 |---|---|---|---|
 | Exact implementation and dependency address/code ledger | `contracts` | Step 1 | Exact on-chain recovery and historical-source rebuild complete |
-| RED proof for address, initialization, relay, Safe, and replay boundaries | `contracts` | Step 2 | Bun-wrapped relay unit suite passes 11/11; fork proof remains open |
+| RED proof for address, initialization, relay, Safe, and replay boundaries | `contracts` | Step 2 | Complete — Bun-wrapped relay unit suite passes 11/11 and the pinned fork proof passes |
 | Atomic same-address account deployment and initialization | `contracts` | Step 3 | Complete — live Celo plan returns zero blockers and the pinned fork proof passes |
-| Garden-bound authenticated relay with honest cancellation | `contracts` | Step 4 | Source/destination contracts compile and the 11-test unit suite passes; fork proof pending |
-| Direct final 2-of-3 Safe prediction/deployment/verifier tooling | `contracts` | Step 5 | Implemented with focused script proof; PRD-733 live proof remains a closure gate |
+| Garden-bound authenticated relay with honest cancellation | `contracts` | Step 4 | Source/destination contracts compile, the 11-test unit suite passes, and the pinned fork proof passes. Live relay deployment belongs to the later PRD-819 lane |
+| Direct final 2-of-3 Safe prediction/deployment/verifier tooling | `contracts` | Step 5 | Complete — PRD-733 live state is verified for both recovery Safes and planning returns zero blockers under the accepted 1-of-4 Green Goods configuration |
 | Arbitrum/Celo fork and invariant proof | `contracts` | Step 6 | Passing — exact 18-account, Safe-code, Guardian, and nested EIP-1271 pinned fork test executes green on 2026-08-17 |
 | Deterministic router/relay and Guardian transaction plan | `contracts` | Step 7 | Four zero-value, receipt-ordered transactions implemented in plan/verify-only tooling; live release-time artifact pending RPC |
 | Exact candidate security review and evidence closure | `qa_pass_1`, `qa_pass_2` | Step 8 | Human-owned PR/review phase after readiness proof |
