@@ -23,7 +23,7 @@ function eventData(blockNumber: number, logIndex: number, transactionIndex = log
   return {
     chainId: CHAIN_ID,
     block: { timestamp: blockNumber, number: blockNumber },
-    srcAddress: address(90),
+    srcAddress: undefined,
     transaction: { hash: hash(transactionIndex) },
     logIndex,
   };
@@ -432,7 +432,7 @@ describe("Commitment Pooling read model", () => {
       unitLabel: "hours",
       units: 2n,
       totalCommitted: 2n,
-      mockEventData: eventData(START_BLOCK + 1, 0, 31),
+      mockEventData: eventData(START_BLOCK + 1, 1, 31),
     });
     const distinctLabel = CommitmentRegistry.UnitsCommitted.createMockEvent({
       classId: 12n,
@@ -444,7 +444,18 @@ describe("Commitment Pooling read model", () => {
       totalCommitted: 3n,
       mockEventData: eventData(START_BLOCK + 3, 0, 32),
     });
-    db = await processEvents(db, [released, released, committed, committed, distinctLabel]);
+    // The duplicates carry a distinct logIndex: Envio rejects two items sharing a
+    // (block, logIndex) in one batch, and it will not accept an older block in a
+    // later batch either, so the redelivery has to sit alongside the original.
+    const releasedReplay = { ...released, logIndex: 1 };
+    const committedReplay = { ...committed, logIndex: 2 };
+    db = await processEvents(db, [
+      released,
+      releasedReplay,
+      committed,
+      committedReplay,
+      distinctLabel,
+    ]);
 
     const summaries = await db.CommitmentUnitSummary.getAll();
     const poolHours = summaries.find((row) => row.scope === "POOL" && row.unitLabel === "hours");

@@ -41,7 +41,8 @@ scripts/
 | `open-urls.sh` | `ecosystem.config.cjs` (PM2 app) | Wait on dev ports, open Brave to localhost URLs |
 | `test-e2e.js` | `bun run test:e2e[:smoke]` | Boot the web stack (client + admin + docs + storybook) via `bun run dev:web`, wait on health, run Playwright, stop the PM2 stack via `bun run dev:stack:stop` |
 | `seed-test-data.ts` | `bun run seed:test` / `seed:anvil` | Seed local/anvil chain with test fixtures |
-| `ci-local.js` | `bun run ci:local` | Local mirror of the CI gates |
+| `ci-local.js` | `bun run ci:local` | Selector-driven local executor with change-aware plans, fail-fast stopping, explicit blocked/cancelled results, and opt-in exact passing receipts |
+| `ci-local.test.mjs` | `bun run test:validation-system`, CI Gate | Fixture coverage for local fail-fast, cancellation, blocking, and exact passing-receipt behavior |
 
 ### `mcp/` — project-scoped MCP server launchers
 | Script | Caller | Purpose |
@@ -68,8 +69,11 @@ scripts/
 | `check-react-patterns.js` | `bun run lint:rules`, root `bun lint` | Blocks high-confidence state/import violations; `--report` exposes noisier cleanup heuristics without flooding normal lint |
 | `check-browser-verification-policy.mjs` | `bun run check:browser-verification-policy`, `bun run agentic:check` | Verify authenticated Brave QA guidance across canonical agent docs, reject stale local isolated-browser guidance, and enforce browser-proof guard wiring |
 | `require-authenticated-browser-qa.mjs` | `bun run browser-proof:routes` via `agentic:browser-proof` | Block local isolated browser-proof runs unless `CI=true`, so clean-room proof cannot be reported as authenticated local QA |
-| `ci-gate.mjs` | `.github/workflows/ci-gate.yml` | Fail-closed PR gate that derives expected path-filtered workflows from changed files and waits for every expected workflow run to register and succeed |
-| `ci-gate.test.mjs` | `.github/workflows/ci-gate.yml` | Fixture coverage for CI Gate path-to-workflow expectations |
+| `select-validation.mjs` | `bun run validation:plan`, `bun run ci:local`, CI Gate | Shared intent/path/dependency/risk selector for agent plans, local execution, and expected PR workflows |
+| `select-validation.test.mjs` | `bun run test:validation-system`, CI Gate | Fixture matrix for validation intent, risk overrides, dirty-tree freshness, toolchain blocking, budgets, and workflow routing |
+| `ci-gate.mjs` | `.github/workflows/ci-gate.yml` | Fail-closed PR aggregate that consumes the shared selector, fails immediately on terminal non-success, and keeps strict missing-workflow protection |
+| `ci-gate.test.mjs` | `bun run test:validation-system`, `.github/workflows/ci-gate.yml` | Fixture coverage for selector parity, immediate failure, missing registration, terminal conclusions, and stale reruns |
+| `workflow-performance-parity.test.mjs` | `bun run test:validation-system`, Supply Chain Guardrails | Static guard for exact JS pins, cache scope, workflow routing, CI-only coverage reporters, and Contracts Realism setup equivalence |
 | `check-ontology.mjs` | `bun run check:ontology` / `ontology:generate`, `ontology.yml`, `drift-check.mjs` (ontology scope), `agentic:check` | Ontology drift gate: cross-checks the sidecar (`packages/shared/src/ontology/`) against Solidity enums, indexer GraphQL, shared TS vocabularies, EAS schema config, and glossary tables, with a burn-down baseline; `--generate` renders the two docs artifacts |
 | `ontology-render.mjs` | `check-ontology.mjs` | Pure MDX renderers for the generated ontology reference page and entity matrix |
 | `check-ontology.test.mjs` | `node --test scripts/quality/check-ontology.test.mjs`, `ontology.yml` | Fixture tests for ontology extractors, baseline reconciliation, and renderers |
@@ -139,6 +143,7 @@ scripts/
 - `git-guardrails.mjs` — shared Git/base-ref resolution for diff-aware quality and contracts checks, including invalid CI base fallback.
 
 ### `data/`
+- `validation-policy.json` — versioned check catalog, hard overrides, timing budgets, surface impact, and workflow routing consumed by the shared validation selector.
 - `design-token-usage-baseline.tsv` — audited baseline of legacy token references; consumed by `design/check-tokens.sh`.
 - `css-custom-property-baseline.tsv` — audited baseline of unresolved legacy CSS custom properties; consumed by `design/check-css-custom-properties.mjs`.
 - `ontology-drift-baseline.json` — audited burn-down baseline of known ontology drift (owner/expires/note per entry); consumed by `quality/check-ontology.mjs`.

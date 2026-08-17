@@ -40,7 +40,7 @@ function eventData(blockNumber: number, logIndex = 0) {
   return {
     chainId: CHAIN_ID,
     block: { timestamp: blockNumber, number: blockNumber },
-    srcAddress: address(90),
+    srcAddress: undefined,
     transaction: { hash: hash(blockNumber * 10 + logIndex) },
     logIndex,
   };

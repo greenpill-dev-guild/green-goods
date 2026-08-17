@@ -400,7 +400,7 @@ deployments/
 
 ```bash
 bun run test                                              # >= 80% pass (testnet), 100% (mainnet)
-bun build                                                 # Clean compilation, no errors
+bun run build                                             # Clean compilation, no errors
 bun script/deploy.ts core --network sepolia               # Dry run (omit --broadcast)
 ```
 

@@ -172,7 +172,7 @@ bun run test:e2e:celo       # Fork and test Celo mainnet
 bun run test:e2e:arbitrum   # Fork and test Arbitrum mainnet
 
 # 🔧 DEVELOPMENT
-bun build               # Adaptive compile (changed Solidity targets)
+bun run build           # Adaptive compile (changed Solidity targets)
 bun build:changed       # Compile changed Solidity in src/test/script
 bun build:target -- src/registries/ENS.sol  # Compile a specific Solidity target
 bun build:fast          # Compile src only (skip Foundry test/script)
@@ -545,7 +545,7 @@ See the [Contracts Handbook](https://docs.greengoods.app/builders/deployments/co
 bun install
 
 # Build contracts with IR optimization
-bun build
+bun run build
 
 # Run comprehensive test suite
 bun run test
