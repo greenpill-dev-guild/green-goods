@@ -680,7 +680,9 @@ test("projection integrity rejects unsupported availability", () => {
   broken.capabilities[0].activation = "inactive";
   broken.capabilities[0].integration = "not-integrated";
   const errors = checkProjectionIntegrity(miniOntology, broken, () => true);
-  assert.ok(errors.includes("capability entity:garden: available requires active and integrated"));
+  assert.ok(
+    errors.includes("capability entity:garden: available requires deployed, active, and integrated")
+  );
 });
 
 test("projection integrity validates chain-scoped availability and evidence", () => {
@@ -698,12 +700,36 @@ test("projection integrity validates chain-scoped availability and evidence", ()
   const errors = checkProjectionIntegrity(miniOntology, broken, () => true);
   assert.ok(
     errors.includes(
-      "capability entity:garden chain 42161: available requires active and integrated"
+      "capability entity:garden chain 42161: available requires deployed, active, and integrated"
     )
   );
   assert.ok(errors.includes("capability entity:garden chain 42161: evidence is required"));
   assert.ok(
     errors.includes("capability entity:garden chain 42161: verified_at must be YYYY-MM-DD")
+  );
+});
+
+test("projection integrity rejects available capabilities without deployment", () => {
+  const broken = structuredClone(miniProjections);
+  broken.capabilities[0].deployment = "not-deployed";
+  broken.capabilities[0].chains = {
+    "42161": {
+      deployment: "not-deployed",
+      activation: "active",
+      integration: "integrated",
+      availability: "available",
+      evidence: [{ file: "chain-readback.json", note: "Hosted read-back." }],
+      verified_at: "2026-08-16",
+    },
+  };
+  const errors = checkProjectionIntegrity(miniOntology, broken, () => true);
+  assert.ok(
+    errors.includes("capability entity:garden: available requires deployed, active, and integrated")
+  );
+  assert.ok(
+    errors.includes(
+      "capability entity:garden chain 42161: available requires deployed, active, and integrated"
+    )
   );
 });
 

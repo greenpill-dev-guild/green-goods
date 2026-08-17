@@ -1,3 +1,4 @@
+import { readFileSync, readdirSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 import { queryKeys } from "../config/query-keys";
@@ -68,6 +69,21 @@ describe("commitment pooling identity", () => {
   });
 });
 
+describe("commitment pooling public query boundary", () => {
+  it("never binds internal replay entities or the removed commitment contributor array", () => {
+    const directory = "src/modules/commitment-pooling";
+    const source = readdirSync(directory)
+      .filter((file) => file === "data.ts" || file.startsWith("data-"))
+      .map((file) => readFileSync(`${directory}/${file}`, "utf8"))
+      .join("\n");
+    expect(source).not.toMatch(/\bCommitmentPendingLifecycleProjection\b/);
+    expect(source).not.toMatch(/\bCommitmentPendingLifecycleProjectionIndex\b/);
+    const commitmentFields = source.match(/const COMMITMENT_FIELDS[\s\S]*?`([\s\S]*?)`;/)?.[1];
+    expect(commitmentFields).toBeDefined();
+    expect(commitmentFields).not.toMatch(/\bcontributorEntityIds\b/);
+  });
+});
+
 describe("commitment pooling availability", () => {
   const capability = {
     deployment: "deployed" as const,
@@ -120,20 +136,27 @@ describe("pool promise rate", () => {
 });
 
 describe("commitment read selectors", () => {
-  const commitment = (overrides: Partial<CommitmentReadModel> = {}): CommitmentReadModel => ({
-    id: "42161-1",
-    chainId: 42161,
-    commitmentId: 1n,
-    creationSeen: true,
-    state: "ACCEPTED",
-    approvedUnits: 0n,
-    evidenceCount: 0,
-    cycleId: null,
-    declaredUnitValue: null,
-    declaredValueBasis: null,
-    targetUnits: 1n,
-    ...overrides,
-  });
+  const commitment = (overrides: Partial<CommitmentReadModel> = {}): CommitmentReadModel => {
+    const onchainState = overrides.onchainState ?? overrides.state ?? "ACCEPTED";
+    return {
+      id: "42161-1",
+      chainId: 42161,
+      commitmentId: 1n,
+      creationSeen: true,
+      onchainState,
+      derivedState: "ACTIVE",
+      state: onchainState,
+      approvedUnits: 0n,
+      evidenceCount: 0,
+      cycleId: null,
+      declaredUnitValue: null,
+      declaredValueBasis: null,
+      targetUnits: 1n,
+      ...overrides,
+      onchainState,
+      state: onchainState,
+    };
+  };
 
   it("never returns unseen placeholders in ordinary lists", () => {
     expect(
@@ -156,6 +179,9 @@ describe("commitment read selectors", () => {
     expect(deriveCommitmentState(commitment({ state: "FULFILLED", cycleId: 4n }), "OPEN")).toBe(
       "FULFILLED"
     );
+    expect(
+      deriveCommitmentState(commitment({ state: "FULFILLED", cycleId: 0n }), "RECONCILED")
+    ).toBe("FULFILLED");
   });
 
   it("groups declared values by exact basis bytes and omits undeclared pairs", () => {

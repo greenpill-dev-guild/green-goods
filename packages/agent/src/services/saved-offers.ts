@@ -1,6 +1,7 @@
-import { createCipheriv, createDecipheriv, createHash, randomBytes } from "node:crypto";
+import { createCipheriv, createDecipheriv, randomBytes } from "node:crypto";
 import {
   SAVED_OFFER_MAX_RECORDS_PER_OWNER,
+  SAVED_OFFER_MAX_TOMBSTONES_PER_OWNER,
   type SavedOfferPayloadV1,
   type SavedOfferRecord,
 } from "@green-goods/shared/public-contracts";
@@ -163,6 +164,15 @@ export class MemorySavedOfferStore implements SavedOfferStore {
       updatedAt: input.updatedAt,
       deleted: true,
     });
+    const ownerPrefix = `${input.chainId}:${input.owner.toLowerCase()}:`;
+    const staleTombstones = [...this.records.entries()]
+      .filter(([recordKey, record]) => recordKey.startsWith(ownerPrefix) && record.deleted)
+      .sort(
+        ([leftKey, left], [rightKey, right]) =>
+          right.updatedAt.localeCompare(left.updatedAt) || rightKey.localeCompare(leftKey)
+      )
+      .slice(SAVED_OFFER_MAX_TOMBSTONES_PER_OWNER);
+    for (const [staleKey] of staleTombstones) this.records.delete(staleKey);
     return { ok: true, version };
   }
 
@@ -185,104 +195,11 @@ export function createSqliteSavedOfferStore(cipher: SavedOfferCipher): SavedOffe
   };
 }
 
-export type SavedOffersOwnerSession = { chainId: number; owner: Address; expiresAt: number };
-export type SavedOffersSessionStore = {
-  issueChallenge(input: {
-    chainId: number;
-    owner: Address;
-    audience: string;
-  }): Promise<{ nonce: string; expiresAt: number }>;
-  consumeChallenge(input: {
-    chainId: number;
-    owner: Address;
-    audience: string;
-    nonce: string;
-  }): Promise<"valid" | "expired" | "invalid">;
-  createSession(input: {
-    chainId: number;
-    owner: Address;
-  }): Promise<{ token: string; expiresAt: number }>;
-  authenticate(token: string): Promise<SavedOffersOwnerSession | undefined>;
-};
-
-export class MemorySavedOffersSessionStore implements SavedOffersSessionStore {
-  private readonly challenges = new Map<
-    string,
-    { chainId: number; owner: Address; audience: string; expiresAt: number }
-  >();
-  private readonly sessions = new Map<string, SavedOffersOwnerSession>();
-  private readonly now: () => number;
-
-  constructor(options: { now?: () => number } = {}) {
-    this.now = options.now ?? Date.now;
-  }
-
-  async issueChallenge(input: { chainId: number; owner: Address; audience: string }) {
-    this.sweepExpired();
-    const nonce = randomBytes(32).toString("hex");
-    const expiresAt = Math.floor(this.now() / 1000) + 5 * 60;
-    this.challenges.set(challengeHash(nonce), {
-      ...input,
-      owner: input.owner.toLowerCase() as Address,
-      expiresAt,
-    });
-    return { nonce, expiresAt };
-  }
-
-  async consumeChallenge(input: {
-    chainId: number;
-    owner: Address;
-    audience: string;
-    nonce: string;
-  }): Promise<"valid" | "expired" | "invalid"> {
-    const key = challengeHash(input.nonce);
-    const challenge = this.challenges.get(key);
-    this.challenges.delete(key);
-    if (!challenge) return "invalid";
-    if (challenge.expiresAt < Math.floor(this.now() / 1000)) return "expired";
-    if (
-      challenge.chainId !== input.chainId ||
-      challenge.owner !== input.owner.toLowerCase() ||
-      challenge.audience !== input.audience
-    )
-      return "invalid";
-    return "valid";
-  }
-
-  async createSession(input: { chainId: number; owner: Address }) {
-    this.sweepExpired();
-    const token = randomBytes(32).toString("hex");
-    const expiresAt = Math.floor(this.now() / 1000) + 15 * 60;
-    this.sessions.set(sessionHash(token), {
-      chainId: input.chainId,
-      owner: input.owner.toLowerCase() as Address,
-      expiresAt,
-    });
-    return { token, expiresAt };
-  }
-
-  async authenticate(token: string): Promise<SavedOffersOwnerSession | undefined> {
-    this.sweepExpired();
-    const key = sessionHash(token);
-    const session = this.sessions.get(key);
-    if (!session) return undefined;
-    if (session.expiresAt < Math.floor(this.now() / 1000)) {
-      this.sessions.delete(key);
-      return undefined;
-    }
-    return session;
-  }
-
-  private sweepExpired(): void {
-    const now = Math.floor(this.now() / 1000);
-    for (const [key, challenge] of this.challenges) {
-      if (challenge.expiresAt < now) this.challenges.delete(key);
-    }
-    for (const [key, session] of this.sessions) {
-      if (session.expiresAt < now) this.sessions.delete(key);
-    }
-  }
-}
+export {
+  MemorySavedOffersSessionStore,
+  type SavedOffersOwnerSession,
+  type SavedOffersSessionStore,
+} from "./saved-offers-sessions";
 
 function parseEncryptionKey(secret: string): Buffer {
   if (/^[0-9a-fA-F]{64}$/.test(secret)) return Buffer.from(secret, "hex");
@@ -297,12 +214,4 @@ function parseEncryptionKey(secret: string): Buffer {
 
 function savedOfferKey(chainId: number, owner: Address, savedOfferId: string): string {
   return `${chainId}:${owner.toLowerCase()}:${savedOfferId}`;
-}
-
-function challengeHash(nonce: string): string {
-  return createHash("sha256").update(`saved-offer-challenge:${nonce}`).digest("hex");
-}
-
-function sessionHash(token: string): string {
-  return createHash("sha256").update(`saved-offer-session:${token}`).digest("hex");
 }

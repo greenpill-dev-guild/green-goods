@@ -93,6 +93,7 @@ const WORKFLOW_MATCHERS = new Map([
       path.startsWith("packages/shared/src/") ||
       path.startsWith("packages/contracts/src/") ||
       path.startsWith("packages/contracts/deployments/") ||
+      path.startsWith("packages/indexer/src/handlers/") ||
       path.startsWith("packages/client/src/components/Public/") ||
       path.startsWith("packages/client/src/views/Public/") ||
       [

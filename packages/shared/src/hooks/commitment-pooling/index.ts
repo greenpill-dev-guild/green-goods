@@ -4,23 +4,25 @@ export {
   useCommitmentClaimRequests,
   useCommitmentCycle,
   useCommitmentPool,
-  useCommitmentPoolingAvailability,
   useCommitmentPools,
   useCommitmentCycles,
   useCommitmentExchange,
   useCommitmentFunding,
   useCommitmentHypercertBundle,
-  useCommitmentPayoutPlan,
   useCommitments,
   useCommitmentSeries,
   useCommitmentSeriesDetail,
   useNeedCommitments,
-  useSettlementConfigurations,
-  useSettlementAccount,
-  useSettlementSubject,
   usePoolMemberHistory,
   usePoolParticipationSummary,
 } from "./useCommitmentPooling";
+export { useCommitmentPoolingAvailability } from "./useCommitmentPoolingAvailability";
+export {
+  useCommitmentPayoutPlan,
+  useSettlementAccount,
+  useSettlementConfigurations,
+  useSettlementSubject,
+} from "./useSettlementQueries";
 export type {
   CommitmentMutationInput,
   CommitmentOnlineAction,

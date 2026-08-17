@@ -95,7 +95,7 @@ export async function enqueuePendingLifecycle(
           : undefined,
       providerGarden:
         typeof event.params.providerGarden === "string"
-          ? normalizeAddress(event.params.providerGarden)
+          ? optionalAddress(event, "providerGarden")
           : undefined,
       payerGarden:
         typeof event.params.payerGarden === "string"

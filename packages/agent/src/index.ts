@@ -131,7 +131,9 @@ async function main(): Promise<void> {
       rpcUrl: resolveAgentRpcUrl(config.chainId),
     }),
     savedOfferStore: savedOfferCipher ? createSqliteSavedOfferStore(savedOfferCipher) : undefined,
-    savedOffersSessionStore: savedOfferCipher ? new MemorySavedOffersSessionStore() : undefined,
+    savedOffersSessionStore: savedOfferCipher
+      ? new MemorySavedOffersSessionStore({ tokenSecret: config.savedOffersEncryptionKey })
+      : undefined,
     savedOffersSignatureVerifier: createViemProfileAvatarSignatureVerifier({
       chain: config.chain,
       rpcUrl: resolveAgentRpcUrl(config.chainId),

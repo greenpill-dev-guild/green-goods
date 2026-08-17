@@ -3,6 +3,7 @@ import {
   buildSavedOffersSessionMessage,
   canonicalSavedOfferPayload,
   SAVED_OFFER_MAX_RECORDS_PER_OWNER,
+  SAVED_OFFER_MAX_TOMBSTONES_PER_OWNER,
   type SavedOfferPayloadV1,
 } from "@green-goods/shared/public-contracts";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -18,6 +19,7 @@ import {
   compareAndSwapSavedOffer,
   getSavedOffer,
   listSavedOffers,
+  tombstoneSavedOffer,
 } from "../services/db/saved-offers";
 import { initSchema } from "../services/db/schema";
 
@@ -57,9 +59,14 @@ function payload(overrides: Partial<SavedOfferPayloadV1> = {}): SavedOfferPayloa
   };
 }
 
-function createApp(options: { verify?: ReturnType<typeof vi.fn> } = {}) {
+function createApp(
+  options: {
+    verify?: ReturnType<typeof vi.fn>;
+    trustedProxy?: { hops?: number; cidrs?: string[]; allowTestSocketIp?: boolean };
+  } = {}
+) {
   const store = new MemorySavedOfferStore(createSavedOfferCipher(KEY));
-  const sessions = new MemorySavedOffersSessionStore({ now: () => NOW });
+  const sessions = new MemorySavedOffersSessionStore({ now: () => NOW, tokenSecret: KEY });
   const verify =
     options.verify ??
     vi.fn(async (input: { address: string; message: string; signature: `0x${string}` }) => {
@@ -81,6 +88,7 @@ function createApp(options: { verify?: ReturnType<typeof vi.fn> } = {}) {
     savedOffersChainIds: [CHAIN_ID],
     savedOffersSignatureVerifier: verify,
     now: () => NOW,
+    trustedProxy: options.trustedProxy,
   });
   return { app, store, sessions, verify };
 }
@@ -135,7 +143,7 @@ describe("saved offers public API", () => {
       token: string;
       expiresAt: number;
     };
-    expect(sessionBody.token).toHaveLength(64);
+    expect(sessionBody.token).toContain(".");
     expect(sessionBody.expiresAt).toBe(Math.floor(NOW / 1000) + 15 * 60);
 
     const replay = await app.request("/public/saved-offers/session", {
@@ -158,7 +166,7 @@ describe("saved offers public API", () => {
   });
 
   it("enforces an IP bucket independently of rotating owner addresses", async () => {
-    const { app } = createApp();
+    const { app } = createApp({ trustedProxy: { allowTestSocketIp: true } });
     const statuses: number[] = [];
     for (let index = 1; index <= 11; index += 1) {
       const owner = `0x${index.toString(16).padStart(40, "0")}`;
@@ -167,13 +175,66 @@ describe("saved offers public API", () => {
         headers: {
           origin: ORIGIN,
           "content-type": "application/json",
-          "x-gg-test-socket-ip": `198.51.100.${index}`,
+          "x-gg-test-socket-ip": "198.51.100.7",
         },
         body: JSON.stringify({ chainId: CHAIN_ID, owner }),
       });
       statuses.push(response.status);
     }
 
+    expect(statuses.slice(0, 10)).toEqual(Array(10).fill(200));
+    expect(statuses[10]).toBe(429);
+  });
+
+  it("separates trusted forwarded clients and ignores forwarded headers from untrusted peers", async () => {
+    const trusted = createApp({
+      trustedProxy: {
+        allowTestSocketIp: true,
+        hops: 1,
+        cidrs: ["198.51.100.0/24"],
+      },
+    }).app;
+    for (let index = 0; index < 11; index += 1) {
+      const response = await trusted.request("/public/saved-offers/session/challenge", {
+        method: "POST",
+        headers: {
+          origin: ORIGIN,
+          "content-type": "application/json",
+          "x-gg-test-socket-ip": "198.51.100.7",
+          "x-forwarded-for": `203.0.113.${index + 1}`,
+        },
+        body: JSON.stringify({
+          chainId: CHAIN_ID,
+          owner: `0x${(index + 1).toString(16).padStart(40, "0")}`,
+        }),
+      });
+      expect(response.status).toBe(200);
+    }
+
+    const untrusted = createApp({
+      trustedProxy: {
+        allowTestSocketIp: true,
+        hops: 1,
+        cidrs: ["192.0.2.0/24"],
+      },
+    }).app;
+    const statuses: number[] = [];
+    for (let index = 0; index < 11; index += 1) {
+      const response = await untrusted.request("/public/saved-offers/session/challenge", {
+        method: "POST",
+        headers: {
+          origin: ORIGIN,
+          "content-type": "application/json",
+          "x-gg-test-socket-ip": "198.51.100.7",
+          "x-forwarded-for": `203.0.113.${index + 1}`,
+        },
+        body: JSON.stringify({
+          chainId: CHAIN_ID,
+          owner: `0x${(index + 1).toString(16).padStart(40, "0")}`,
+        }),
+      });
+      statuses.push(response.status);
+    }
     expect(statuses.slice(0, 10)).toEqual(Array(10).fill(200));
     expect(statuses[10]).toBe(429);
   });
@@ -216,6 +277,23 @@ describe("saved offers public API", () => {
     });
     now += 15 * 60 * 1000 + 1_000;
     await expect(sessions.authenticate(session.token)).resolves.toBeUndefined();
+  });
+
+  it("accepts a signed owner session across replicas sharing the production secret", async () => {
+    const firstReplica = new MemorySavedOffersSessionStore({
+      now: () => NOW,
+      tokenSecret: KEY,
+    });
+    const secondReplica = new MemorySavedOffersSessionStore({
+      now: () => NOW,
+      tokenSecret: KEY,
+    });
+    const session = await firstReplica.createSession({ chainId: CHAIN_ID, owner: account.address });
+    await expect(secondReplica.authenticate(session.token)).resolves.toMatchObject({
+      chainId: CHAIN_ID,
+      owner: account.address.toLowerCase(),
+    });
+    await expect(secondReplica.authenticate(`${session.token}x`)).resolves.toBeUndefined();
   });
 
   it("uses the shared fail-closed verifier for deployed and counterfactual smart accounts", async () => {
@@ -455,6 +533,42 @@ describe("saved offers public API", () => {
         version: 2,
       });
       expect(listSavedOffers(database, cipher, CHAIN_ID, other.address)).toEqual([]);
+    } finally {
+      database.close();
+    }
+  });
+
+  it("bounds retained tombstones per owner", () => {
+    const database = new Database(":memory:");
+    initSchema(database);
+    const cipher = createSavedOfferCipher(KEY);
+    try {
+      for (let index = 0; index <= SAVED_OFFER_MAX_TOMBSTONES_PER_OWNER; index += 1) {
+        const savedOfferId = `deleted-${index.toString().padStart(3, "0")}`;
+        const updatedAt = new Date(NOW + index * 1_000).toISOString();
+        expect(
+          compareAndSwapSavedOffer(database, cipher, {
+            chainId: CHAIN_ID,
+            owner: account.address,
+            savedOfferId,
+            payload: canonicalSavedOfferPayload(payload({ savedOfferId })),
+            expectedVersion: 0,
+            updatedAt,
+          }).ok
+        ).toBe(true);
+        expect(
+          tombstoneSavedOffer(database, {
+            chainId: CHAIN_ID,
+            owner: account.address,
+            savedOfferId,
+            expectedVersion: 1,
+            updatedAt,
+          }).ok
+        ).toBe(true);
+      }
+
+      const rows = database.query("SELECT savedOfferId FROM saved_offers WHERE deleted = 1").all();
+      expect(rows).toHaveLength(SAVED_OFFER_MAX_TOMBSTONES_PER_OWNER);
     } finally {
       database.close();
     }

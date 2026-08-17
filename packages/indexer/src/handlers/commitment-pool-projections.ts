@@ -198,7 +198,11 @@ export function commitmentState(value: bigint): Commitment["state"] {
     "EXPIRED",
     "DISPUTED",
   ] as const;
-  return values[Number(value)] ?? "UNKNOWN";
+  const state = values[Number(value)];
+  if (!state || state === "UNKNOWN") {
+    throw new Error(`Unknown commitment state: ${value}`);
+  }
+  return state;
 }
 
 export {

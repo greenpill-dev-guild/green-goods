@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 
 import { queryKeys, STALE_TIME_MEDIUM } from "../../config/query-keys";
 import {
@@ -51,22 +51,25 @@ export function useSavedOfferPersistence(input: {
 }) {
   const queryClient = useQueryClient();
   const [state, setState] = useState<SavedOfferPersistenceState>("LOCAL_DRAFT");
+  const latestOperation = useRef(0);
   const isOnline = input.isOnline ?? (() => typeof navigator === "undefined" || navigator.onLine);
 
   const saveMutation = useMutation({
+    onMutate: () => {
+      const operationId = ++latestOperation.current;
+      setState("SAVING_REMOTE");
+      return { operationId };
+    },
     mutationFn: async (request: { payload: SavedOfferPayloadV1; expectedVersion: number }) => {
       if (!isOnline()) {
-        setState("OFFLINE_LOCAL");
         throw savedOfferFailure("provider_unavailable", "No network connection is available.");
       }
       if (!input.api) {
-        setState("SAVE_FAILED");
         throw savedOfferFailure("provider_unavailable", "Saved Offers are unavailable.");
       }
-      setState("SAVING_REMOTE");
       return input.api.put(request.payload.savedOfferId, request.payload, request.expectedVersion);
     },
-    onSuccess: (record) => {
+    onSuccess: (record, _request, context) => {
       queryClient.setQueryData(
         queryKeys.savedOffers.record(input.chainId, record.savedOfferId),
         record
@@ -74,54 +77,63 @@ export function useSavedOfferPersistence(input: {
       void queryClient.invalidateQueries({
         queryKey: queryKeys.savedOffers.list(input.chainId),
       });
-      setState("SAVED_REMOTE");
+      if (context.operationId === latestOperation.current) setState("SAVED_REMOTE");
     },
-    onError: (error) => {
+    onError: (error, _request, context) => {
       const apiError = error as Partial<SavedOfferApiError>;
-      setState(
-        savedOfferPersistenceAfterFailure({
-          online: isOnline(),
-          errorCode: apiError.errorCode,
-        })
-      );
+      if (context?.operationId === latestOperation.current) {
+        setState(
+          savedOfferPersistenceAfterFailure({
+            online: isOnline(),
+            errorCode: apiError.errorCode,
+          })
+        );
+      }
     },
   });
 
   const deleteMutation = useMutation({
+    onMutate: () => {
+      const operationId = ++latestOperation.current;
+      setState("SAVING_REMOTE");
+      return { operationId };
+    },
     mutationFn: async (request: { savedOfferId: string; expectedVersion: number }) => {
       if (!isOnline()) {
-        setState("OFFLINE_LOCAL");
         throw savedOfferFailure("provider_unavailable", "No network connection is available.");
       }
       if (!input.api) {
-        setState("SAVE_FAILED");
         throw savedOfferFailure("provider_unavailable", "Saved Offers are unavailable.");
       }
-      setState("SAVING_REMOTE");
       const version = await input.api.delete(request.savedOfferId, request.expectedVersion);
       return { ...request, version };
     },
-    onSuccess: ({ savedOfferId }) => {
+    onSuccess: ({ savedOfferId }, _request, context) => {
       queryClient.removeQueries({
         queryKey: queryKeys.savedOffers.record(input.chainId, savedOfferId),
       });
       void queryClient.invalidateQueries({
         queryKey: queryKeys.savedOffers.list(input.chainId),
       });
-      setState("LOCAL_DRAFT");
+      if (context.operationId === latestOperation.current) setState("LOCAL_DRAFT");
     },
-    onError: (error) => {
+    onError: (error, _request, context) => {
       const apiError = error as Partial<SavedOfferApiError>;
-      setState(
-        savedOfferPersistenceAfterFailure({
-          online: isOnline(),
-          errorCode: apiError.errorCode,
-        })
-      );
+      if (context?.operationId === latestOperation.current) {
+        setState(
+          savedOfferPersistenceAfterFailure({
+            online: isOnline(),
+            errorCode: apiError.errorCode,
+          })
+        );
+      }
     },
   });
 
-  const markLocalDraft = useCallback(() => setState("LOCAL_DRAFT"), []);
+  const markLocalDraft = useCallback(() => {
+    latestOperation.current += 1;
+    setState("LOCAL_DRAFT");
+  }, []);
   return { state, markLocalDraft, saveMutation, deleteMutation };
 }
 

@@ -1,5 +1,6 @@
 import {
   SAVED_OFFER_MAX_RECORDS_PER_OWNER,
+  SAVED_OFFER_MAX_TOMBSTONES_PER_OWNER,
   type SavedOfferPayloadV1,
   type SavedOfferRecord,
 } from "@green-goods/shared/public-contracts";
@@ -168,6 +169,22 @@ export function tombstoneSavedOffer(
       input.savedOfferId,
       currentVersion
     );
+    const staleTombstones = (
+      db
+        .query(
+          `SELECT savedOfferId FROM saved_offers
+           WHERE chainId = ? AND owner = ? AND deleted = 1
+           ORDER BY updatedAt DESC, savedOfferId DESC`
+        )
+        .all(input.chainId, input.owner.toLowerCase()) as Array<{ savedOfferId: string }>
+    ).slice(SAVED_OFFER_MAX_TOMBSTONES_PER_OWNER);
+    const deleteTombstone = db.query(
+      `DELETE FROM saved_offers
+       WHERE chainId = ? AND owner = ? AND savedOfferId = ? AND deleted = 1`
+    );
+    for (const tombstone of staleTombstones) {
+      deleteTombstone.run(input.chainId, input.owner.toLowerCase(), tombstone.savedOfferId);
+    }
     db.run("COMMIT");
     return { ok: true, version };
   } catch (error) {

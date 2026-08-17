@@ -28,16 +28,44 @@ describe("settlement smart-account profiles", () => {
 
   it("never lets testnet evidence or nullable flags enable gardener delivery", () => {
     expect(
-      isGardenerDeliveryEnabled({ chainId: 421614, indexed: true, mainnetEvidenceReady: true })
+      isGardenerDeliveryEnabled({
+        sourceChainId: 421614,
+        chainId: 11142220,
+        indexed: true,
+        mainnetEvidenceReady: true,
+      })
     ).toBe(false);
     expect(
-      isGardenerDeliveryEnabled({ chainId: 42220, indexed: null, mainnetEvidenceReady: true })
+      isGardenerDeliveryEnabled({
+        sourceChainId: 42161,
+        chainId: 42220,
+        indexed: null,
+        mainnetEvidenceReady: true,
+      })
     ).toBe(false);
     expect(
-      isGardenerDeliveryEnabled({ chainId: 42220, indexed: true, mainnetEvidenceReady: false })
+      isGardenerDeliveryEnabled({
+        sourceChainId: 42161,
+        chainId: 42220,
+        indexed: true,
+        mainnetEvidenceReady: false,
+      })
     ).toBe(false);
     expect(
-      isGardenerDeliveryEnabled({ chainId: 42220, indexed: true, mainnetEvidenceReady: true })
+      isGardenerDeliveryEnabled({
+        sourceChainId: 42161,
+        chainId: 42220,
+        indexed: true,
+        mainnetEvidenceReady: true,
+      })
     ).toBe(true);
+    expect(
+      isGardenerDeliveryEnabled({
+        sourceChainId: 421614,
+        chainId: 42220,
+        indexed: true,
+        mainnetEvidenceReady: true,
+      })
+    ).toBe(false);
   });
 });

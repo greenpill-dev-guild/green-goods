@@ -72,7 +72,10 @@ export async function handleClaimEvent(
     : existing?.gardenContext;
   const newerDecline = !requested && rowWins;
   const settledState =
-    !newerDecline && (existing?.state === "ACCEPTED" || existing?.state === "SUPERSEDED")
+    !newerDecline &&
+    (existing?.state === "ACCEPTED" ||
+      existing?.state === "SUPERSEDED" ||
+      (!rowWins && existing?.state === "DECLINED"))
       ? existing.state
       : undefined;
   const nextState: CommitmentClaimRequest["state"] = settledState
@@ -275,7 +278,7 @@ export async function handleAccepted(event: RuntimeEvent, context: PoolingContex
   const commitmentId = value<bigint>(event, "commitmentId");
   const commitment = await getCommitment(event, context, commitmentId);
   const claimant = normalizeAddress(value<string>(event, "claimant"));
-  const providerGarden = normalizeAddress(value<string>(event, "providerGarden"));
+  const providerGarden = optionalAddress(event, "providerGarden");
   const payerGarden = optionalAddress(event, "payerGarden");
   let accepted = await applyLifecycleState(
     context,

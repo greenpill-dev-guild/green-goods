@@ -232,6 +232,7 @@ describe("production Saved Offers configuration", () => {
     "SAVED_OFFERS_ENCRYPTION_KEY",
     "SAVED_OFFERS_AUDIENCE",
     "AGENT_TRUSTED_PROXY_HOPS",
+    "AGENT_TRUSTED_PROXY_CIDRS",
   ] as const;
   const original = new Map(ENV_KEYS.map((key) => [key, process.env[key]]));
 
@@ -245,6 +246,7 @@ describe("production Saved Offers configuration", () => {
     process.env.SAVED_OFFERS_ENCRYPTION_KEY = "b".repeat(64);
     process.env.SAVED_OFFERS_AUDIENCE = "agent.greengoods.app";
     process.env.AGENT_TRUSTED_PROXY_HOPS = "1";
+    process.env.AGENT_TRUSTED_PROXY_CIDRS = "10.0.0.0/8";
   });
 
   afterEach(() => {
@@ -258,6 +260,7 @@ describe("production Saved Offers configuration", () => {
     ["SAVED_OFFERS_ENCRYPTION_KEY", "SAVED_OFFERS_ENCRYPTION_KEY"],
     ["SAVED_OFFERS_AUDIENCE", "SAVED_OFFERS_AUDIENCE"],
     ["AGENT_TRUSTED_PROXY_HOPS", "AGENT_TRUSTED_PROXY_HOPS"],
+    ["AGENT_TRUSTED_PROXY_CIDRS", "AGENT_TRUSTED_PROXY_CIDRS"],
   ] as const)("fails startup when %s is missing", (envKey, message) => {
     delete process.env[envKey];
     expect(() => validateConfig(loadConfig())).toThrow(message);

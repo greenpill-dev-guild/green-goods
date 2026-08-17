@@ -184,7 +184,7 @@ class InMemoryDatabase {
   private insertRegex = /INSERT(?: OR REPLACE| OR IGNORE)? INTO (\w+)/i;
   private selectRegex = /SELECT (?:\*|id) FROM (\w+)(?:\s+WHERE|\s+ORDER|\s+LIMIT|\s*$)/i;
   private updateRegex = /UPDATE\s+(\w+)\s+SET/i;
-  private deleteRegex = /DELETE FROM (\w+) WHERE/i;
+  private deleteRegex = /DELETE FROM\s+(\w+)\s+WHERE/i;
   private createIndexRegex = /CREATE INDEX/i;
 
   constructor(_path?: string) {
@@ -299,9 +299,12 @@ class InMemoryDatabase {
         if (/FROM saved_offers/i.test(sql)) {
           const table = self.tables.get("saved_offers");
           if (!table) return [];
+          const expectedDeleted = /deleted\s*=\s*1/i.test(sql) ? 1 : 0;
           return Array.from(table.values())
             .filter(
-              (row) => row.chainId === params[0] && row.owner === params[1] && row.deleted === 0
+              (row) =>
+                (params.length < 2 || (row.chainId === params[0] && row.owner === params[1])) &&
+                row.deleted === expectedDeleted
             )
             .sort(
               (left, right) =>
@@ -759,6 +762,16 @@ class InMemoryDatabase {
           const tableName = deleteMatch[1];
           const table = self.tables.get(tableName);
           if (!table) return { changes: 0, lastInsertRowid: 0 };
+
+          if (tableName === "saved_offers") {
+            const key = `${params[0]}:${params[1]}:${params[2]}`;
+            const row = table.get(key);
+            if (row?.deleted === 1) {
+              table.delete(key);
+              return { changes: 1, lastInsertRowid: 0 };
+            }
+            return { changes: 0, lastInsertRowid: 0 };
+          }
 
           // DELETE FROM chat_messages WHERE status IN ('triaged', 'rejected') AND postedAt < ?
           if (

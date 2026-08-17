@@ -50,6 +50,7 @@ import {
   trackAuthSessionRestored,
 } from "../modules/app/analytics-events";
 import { logger } from "../modules/app/logger";
+import { getSettlementAccountProfile } from "../modules/commitment-pooling/account-profiles";
 import {
   clearSignedOutSentinel,
   getAuthMode,
@@ -342,6 +343,12 @@ async function buildSmartAccountFromCredential(
   credential: P256Credential,
   chainId: number
 ): Promise<{ client: SmartAccountClient; address: Hex }> {
+  const settlementProfile = getSettlementAccountProfile(chainId);
+  if (settlementProfile && settlementProfile.kernelVersion !== "0.3.1") {
+    throw new Error(
+      `Kernel ${settlementProfile.kernelVersion} is an evidence-only settlement profile and is unavailable through the primary passkey auth flow.`
+    );
+  }
   const chain = getChain(chainId);
   const publicClient = createPublicClientForChain(chainId);
   const pimlicoClient = createPimlicoClientForChain(chainId);

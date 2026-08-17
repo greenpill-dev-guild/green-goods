@@ -156,4 +156,23 @@ describe("saved offer shared protocol", () => {
       "https://agent.example/public/saved-offers/session",
     ]);
   });
+
+  it("strips long trailing-slash inputs in linear time for both API clients", async () => {
+    const baseUrl = `https://agent.example${"/".repeat(50_000)}`;
+    const fetcher = vi.fn<typeof fetch>().mockResolvedValue(
+      new Response(JSON.stringify({ ok: true, records: [], nonce: "abc123", expiresAt: 2 }), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      })
+    );
+    await createSavedOffersApi({ baseUrl, token: "secret", fetch: fetcher }).list();
+    await createSavedOffersSessionApi({ baseUrl, fetch: fetcher }).challenge({
+      chainId: 42161,
+      owner: OWNER,
+    });
+    expect(fetcher.mock.calls.map(([url]) => url)).toEqual([
+      "https://agent.example/public/saved-offers",
+      "https://agent.example/public/saved-offers/session/challenge",
+    ]);
+  });
 });

@@ -75,11 +75,19 @@ export function assertMatchingAccountProfile(
 }
 
 export function isGardenerDeliveryEnabled(input: {
+  sourceChainId: number;
   chainId: number;
   indexed: boolean | null;
   mainnetEvidenceReady: boolean;
 }): boolean {
+  const sourceProfile = getSettlementAccountProfile(input.sourceChainId);
   const profile = getSettlementAccountProfile(input.chainId);
+  if (!sourceProfile || !profile) return false;
+  try {
+    assertMatchingAccountProfile(sourceProfile, profile);
+  } catch {
+    return false;
+  }
   return Boolean(
     profile?.production && input.indexed === true && input.mainnetEvidenceReady === true
   );

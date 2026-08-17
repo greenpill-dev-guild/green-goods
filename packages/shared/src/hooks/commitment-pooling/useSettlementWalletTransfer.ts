@@ -32,6 +32,7 @@ export interface SettlementWalletTransferInput {
  * Kernel 0.3.1 mainnet evidence are both true.
  */
 export function useSettlementWalletTransfer(options: {
+  primaryChainId: number;
   chainId: number;
   indexedGardenerDeliveryEnabled: boolean | null;
   mainnetEvidenceReady: boolean;
@@ -39,6 +40,7 @@ export function useSettlementWalletTransfer(options: {
   const sender = useTransactionSender();
   const queryClient = useQueryClient();
   const enabled = isGardenerDeliveryEnabled({
+    sourceChainId: options.primaryChainId,
     chainId: options.chainId,
     indexed: options.indexedGardenerDeliveryEnabled,
     mainnetEvidenceReady: options.mainnetEvidenceReady,

@@ -1,13 +1,9 @@
 import { type IDBPDatabase, openDB } from "idb";
-import type { CachedWork, Job, JobQueueDBImage, SerializedFileData } from "../../types/job-queue";
-import { normalizeToFile } from "../../utils/app/normalizeToFile";
-import {
-  buildFileMetadata,
-  deserializeFile,
-  serializeFile,
-} from "../../utils/storage/file-serialization";
-import { addBreadcrumb } from "../app/error-tracking";
+import type { CachedWork, Job, JobQueueDBImage } from "../../types/job-queue";
+import { deserializeFile } from "../../utils/storage/file-serialization";
 import { createLogger } from "../app/logger";
+import { serializeJobMedia } from "./db-media";
+import { loadFailedDeleteIds, saveFailedDeleteIds } from "./failed-delete-storage";
 import { trackPrivateQueueEvent } from "./job-analytics";
 import { mediaResourceManager } from "./media-resource-manager";
 
@@ -188,70 +184,7 @@ class JobQueueDatabase {
       synced: false,
     } as Job<T>;
 
-    // Normalize media up-front so we never persist a job partially.
-    const normalizedMediaFiles: File[] = [];
-
-    // Store images separately if present in payload
-    if (job.payload && typeof job.payload === "object" && "media" in job.payload) {
-      const media = (job.payload as { media?: File[] }).media;
-      if (Array.isArray(media)) {
-        for (let index = 0; index < media.length; index++) {
-          const input = media[index] as unknown;
-          const file = normalizeToFile(input, { fallbackName: `work-${id}-${index}.jpg` });
-
-          if (!file) {
-            // Avoid silently dropping images — it's better to fail fast than
-            // attest partially. This also keeps on-chain "media" consistent
-            // with what the user selected.
-            throw new Error(`Invalid work media at index ${index}`);
-          }
-
-          normalizedMediaFiles.push(file);
-        }
-      }
-    }
-
-    // Also serialize audio notes if present in payload
-    if (job.payload && typeof job.payload === "object" && "audioNotes" in job.payload) {
-      const audioNotes = (job.payload as { audioNotes?: File[] }).audioNotes;
-      if (Array.isArray(audioNotes)) {
-        for (let index = 0; index < audioNotes.length; index++) {
-          const input = audioNotes[index] as unknown;
-          const file = normalizeToFile(input, {
-            fallbackName: `audio-note-${id}-${index}.webm`,
-          });
-
-          if (file) {
-            normalizedMediaFiles.push(file);
-          }
-          // Audio notes are optional — don't fail if normalization fails
-        }
-      }
-    }
-
-    // Serialize all files BEFORE starting the transaction.
-    // This is important because:
-    // 1. arrayBuffer() is async and can't be called inside a transaction
-    // 2. iOS Safari fails to store File objects directly (DOMException: UnknownError)
-    const serializedFiles: Array<{ file: File; fileData: SerializedFileData }> = [];
-    for (const file of normalizedMediaFiles) {
-      try {
-        const fileData = await serializeFile(file);
-        serializedFiles.push({ file, fileData });
-      } catch (serializeError) {
-        trackPrivateQueueEvent("job_queue_file_serialization_failed", {
-          ...buildFileMetadata(file),
-          job_kind: job.kind,
-        });
-        throw serializeError;
-      }
-    }
-
-    // Add breadcrumb for debugging
-    addBreadcrumb("job_files_serialized", {
-      file_count: serializedFiles.length,
-      total_size: serializedFiles.reduce((sum, f) => sum + f.file.size, 0),
-    });
+    const serializedFiles = await serializeJobMedia(id, job as Pick<Job, "kind" | "payload">);
 
     // Atomically persist job + images.
     // If anything fails, we cleanup any created object URLs and nothing is committed.
@@ -580,37 +513,19 @@ class JobQueueDatabase {
     await this.cleanupOldMappings();
   }
 
-  // Key for storing failed delete IDs in localStorage (lightweight persistence)
-  private readonly FAILED_DELETE_IDS_KEY = "gg_failed_delete_job_ids";
-
   /**
    * Load failed delete job IDs from localStorage.
    * Uses localStorage instead of IndexedDB for simplicity since this is just a small array.
    */
   async loadFailedDeleteIds(): Promise<string[]> {
-    try {
-      const stored = localStorage.getItem(this.FAILED_DELETE_IDS_KEY);
-      if (!stored) return [];
-      const parsed = JSON.parse(stored);
-      return Array.isArray(parsed) ? parsed : [];
-    } catch {
-      return [];
-    }
+    return loadFailedDeleteIds();
   }
 
   /**
    * Save failed delete job IDs to localStorage.
    */
   async saveFailedDeleteIds(ids: string[]): Promise<void> {
-    try {
-      if (ids.length === 0) {
-        localStorage.removeItem(this.FAILED_DELETE_IDS_KEY);
-      } else {
-        localStorage.setItem(this.FAILED_DELETE_IDS_KEY, JSON.stringify(ids));
-      }
-    } catch {
-      // Ignore storage errors - this is just cleanup optimization
-    }
+    saveFailedDeleteIds(ids);
   }
 }
 

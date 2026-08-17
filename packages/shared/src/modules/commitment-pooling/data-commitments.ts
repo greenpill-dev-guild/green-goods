@@ -1,0 +1,263 @@
+import type { Address } from "../../types/domain";
+import { greenGoodsIndexer } from "../data/graphql-client";
+import { getCommitmentCycleId, getCommitmentId } from "./ids";
+import { deriveCommitmentState } from "./selectors";
+import type {
+  CommitmentClaimRequestRecord,
+  CommitmentContributorRecord,
+  CommitmentDetail,
+  CommitmentReadModel,
+  CommitmentRequirementRecord,
+} from "./types";
+import {
+  CLAIM_FIELDS,
+  COMMITMENT_FIELDS,
+  type RawRow,
+  address,
+  integer,
+  mapCommitment,
+  number,
+  optionalNumber,
+  queryRows,
+  string,
+  strings,
+} from "./data-core";
+
+export async function getCommitments(input: {
+  chainId: number;
+  poolId?: bigint;
+  cycleId?: bigint;
+  seriesId?: bigint;
+  state?: string;
+  account?: Address;
+}): Promise<CommitmentReadModel[]> {
+  const clauses = ["chainId: { _eq: $chainId }", "creationSeen: { _eq: true }"];
+  const declarations = ["$chainId: Int!"];
+  const variables: Record<string, unknown> = { chainId: input.chainId };
+  for (const [field, value] of [
+    ["poolId", input.poolId],
+    ["cycleId", input.cycleId],
+    ["commitmentSeriesId", input.seriesId],
+  ] as const) {
+    if (value !== undefined) {
+      declarations.push(`$${field}: numeric!`);
+      clauses.push(`${field}: { _eq: $${field} }`);
+      variables[field] = value.toString();
+    }
+  }
+  if (input.state) {
+    declarations.push("$state: CommitmentOnchainState!");
+    clauses.push("state: { _eq: $state }");
+    variables.state = input.state;
+  }
+  let allowedIds: string[] | undefined;
+  if (input.account) {
+    const contributorQuery = `query CommitmentMembership($chainId: Int!, $account: String!) { CommitmentContributor(where: { chainId: { _eq: $chainId }, contributor: { _eq: $account }, additionSeen: { _eq: true }, active: { _eq: true } }) { commitmentEntityId } }`;
+    allowedIds = (
+      await queryRows(
+        contributorQuery,
+        { chainId: input.chainId, account: input.account.toLowerCase() },
+        "CommitmentContributor",
+        "getCommitmentMembership"
+      )
+    ).map((row) => String(row.commitmentEntityId));
+    if (allowedIds.length === 0) return [];
+    declarations.push("$ids: [String!]!");
+    clauses.push("id: { _in: $ids }");
+    variables.ids = allowedIds;
+  }
+  const query = `query Commitments(${declarations.join(", ")}) { Commitment(where: { ${clauses.join(", ")} }, order_by: { commitmentId: desc }) { ${COMMITMENT_FIELDS} } }`;
+  return (
+    await mapCommitmentsWithCycleState(
+      await queryRows(query, variables, "Commitment", "getCommitments")
+    )
+  ).filter((row) => row.creationSeen);
+}
+
+export async function rowsByIds(entity: string, fields: string, ids: string[]): Promise<RawRow[]> {
+  if (ids.length === 0) return [];
+  const query = `query ${entity}ByIds($ids: [String!]!) { ${entity}(where: { id: { _in: $ids } }) { ${fields} } }`;
+  return queryRows(query, { ids }, entity, `${entity}ByIds`);
+}
+
+export async function mapCommitmentsWithCycleState(rows: RawRow[]): Promise<CommitmentReadModel[]> {
+  const commitments = rows.map(mapCommitment);
+  const cycleEntityIds = [
+    ...new Set(
+      commitments
+        .filter(
+          (commitment) =>
+            commitment.onchainState === "FULFILLED" &&
+            commitment.cycleId !== null &&
+            commitment.cycleId !== 0n
+        )
+        .map((commitment) => getCommitmentCycleId(commitment.chainId, commitment.cycleId!))
+    ),
+  ];
+  const cycles = await rowsByIds("CommitmentCycle", "id state", cycleEntityIds);
+  const cycleStates = new Map(cycles.map((cycle) => [String(cycle.id), String(cycle.state)]));
+  return commitments.map((commitment) => ({
+    ...commitment,
+    derivedState: deriveCommitmentState(
+      commitment,
+      commitment.cycleId === null || commitment.cycleId === 0n
+        ? null
+        : cycleStates.get(getCommitmentCycleId(commitment.chainId, commitment.cycleId))
+    ),
+  }));
+}
+
+export async function getCommitmentDetail(
+  chainId: number,
+  commitmentId: bigint
+): Promise<CommitmentDetail | null> {
+  const id = getCommitmentId(chainId, commitmentId);
+  const query = `query CommitmentDetailIndex($id: String!, $chainId: Int!, $commitmentId: numeric!) {
+    Commitment(where: { id: { _eq: $id }, creationSeen: { _eq: true } }, limit: 1) { ${COMMITMENT_FIELDS} }
+    CommitmentRequirement(where: { chainId: { _eq: $chainId }, commitmentId: { _eq: $commitmentId }, creationSeen: { _eq: true } }, order_by: { requirementIndex: asc }) { id chainId commitmentId requirementIndex creationSeen domain actionUID requiredCount approvedCount createdAt updatedAt }
+    CommitmentContributorIndex(where: { id: { _eq: $id } }, limit: 1) { contributorEntityIds }
+    CommitmentContributorRequirementIndex(where: { id: { _eq: $id } }, limit: 1) { assignmentEntityIds }
+    CommitmentEvidenceAttributionIndex(where: { id: { _eq: $id } }, limit: 1) { attributionEntityIds }
+    CommitmentClaimRequestIndex(where: { id: { _eq: $id } }, limit: 1) { requestIds }
+    CommitmentCounterIndex(where: { id: { _eq: $id } }, limit: 1) { referencingCommitmentEntityIds }
+    CommitmentWorkAttribution(where: { chainId: { _eq: $chainId }, commitmentId: { _eq: $commitmentId }, linkSeen: { _eq: true } }, order_by: { workUID: asc }) { id chainId workUID commitmentId linkSeen contributor requirementIndex operationKey linked creditActive latestDecisionSequence latestDecisionUID linkedBy linkedAt unlinkedBy unlinkedAt updatedAt }
+  }`;
+  const result = await greenGoodsIndexer.query<Record<string, RawRow[]>>(
+    query,
+    { id, chainId, commitmentId: commitmentId.toString() },
+    "getCommitmentDetail"
+  );
+  if (result.error) throw result.error;
+  const commitmentRow = result.data?.Commitment?.[0];
+  if (!commitmentRow) return null;
+  const contributorIds = strings(
+    result.data?.CommitmentContributorIndex?.[0]?.contributorEntityIds
+  );
+  const assignmentIds = strings(
+    result.data?.CommitmentContributorRequirementIndex?.[0]?.assignmentEntityIds
+  );
+  const evidenceIds = strings(
+    result.data?.CommitmentEvidenceAttributionIndex?.[0]?.attributionEntityIds
+  );
+  const requestIds = strings(result.data?.CommitmentClaimRequestIndex?.[0]?.requestIds);
+  const counterIndexIds = strings(
+    result.data?.CommitmentCounterIndex?.[0]?.referencingCommitmentEntityIds
+  );
+  const directCounterId = string(commitmentRow.counterCommitmentEntityId);
+  const [contributors, assignments, evidence, claims, counterparts] = await Promise.all([
+    rowsByIds(
+      "CommitmentContributor",
+      "id chainId commitmentId contributor additionSeen active isLead approvedWorkCredits evidenceCredits uncountedLinkedWorkCount requirementIndexes recognitionWeightBps addedBy addedAt removedBy removedAt updatedAt",
+      contributorIds
+    ),
+    rowsByIds(
+      "CommitmentContributorRequirementAssignment",
+      "id chainId commitmentId contributor requirementIndex assigned lifecycleBlockNumber lifecycleLogIndex updatedAt",
+      assignmentIds
+    ),
+    rowsByIds(
+      "CommitmentEvidenceAttribution",
+      "id chainId commitmentId cid contributor attacher confirmed createdAt updatedAt",
+      evidenceIds
+    ),
+    rowsByIds("CommitmentClaimRequest", CLAIM_FIELDS, requestIds),
+    rowsByIds("Commitment", COMMITMENT_FIELDS, [
+      ...counterIndexIds,
+      ...(directCounterId ? [directCounterId] : []),
+    ]),
+  ]);
+  const mappedCommitments = await mapCommitmentsWithCycleState([commitmentRow, ...counterparts]);
+  return {
+    commitment: mappedCommitments[0],
+    requirements: (result.data?.CommitmentRequirement ?? []).map(
+      (row): CommitmentRequirementRecord => ({
+        id: String(row.id),
+        chainId: number(row.chainId),
+        commitmentId: integer(row.commitmentId),
+        requirementIndex: number(row.requirementIndex),
+        creationSeen: true,
+        domain: optionalNumber(row.domain),
+        actionUID: integer(row.actionUID),
+        requiredCount: number(row.requiredCount),
+        approvedCount: number(row.approvedCount),
+        createdAt: number(row.createdAt),
+        updatedAt: number(row.updatedAt),
+      })
+    ),
+    contributors: contributors
+      .filter((row) => row.additionSeen === true)
+      .map(
+        (row): CommitmentContributorRecord => ({
+          id: String(row.id),
+          chainId: number(row.chainId),
+          commitmentId: integer(row.commitmentId),
+          contributor: address(row.contributor)!,
+          additionSeen: true,
+          active: row.active === true,
+          isLead: row.isLead === true,
+          approvedWorkCredits: number(row.approvedWorkCredits),
+          evidenceCredits: number(row.evidenceCredits),
+          uncountedLinkedWorkCount: number(row.uncountedLinkedWorkCount),
+          requirementIndexes: Array.isArray(row.requirementIndexes)
+            ? row.requirementIndexes.map(number)
+            : [],
+          recognitionWeightBps: optionalNumber(row.recognitionWeightBps),
+          addedBy: address(row.addedBy),
+          addedAt: optionalNumber(row.addedAt),
+          removedBy: address(row.removedBy),
+          removedAt: optionalNumber(row.removedAt),
+          updatedAt: number(row.updatedAt),
+        })
+      ),
+    assignments,
+    workAttributions: (result.data?.CommitmentWorkAttribution ?? []).filter(
+      (row) => row.linkSeen === true
+    ),
+    evidenceAttributions: evidence,
+    claimRequests: claims.filter((row) => row.requestSeen === true).map(mapClaim),
+    counterpartCommitments: mappedCommitments.slice(1).filter((row) => row.creationSeen),
+  };
+}
+
+export function mapClaim(row: RawRow): CommitmentClaimRequestRecord {
+  if (row.requestSeen !== true) throw new Error("unseen claim request placeholder");
+  return {
+    id: String(row.id),
+    chainId: number(row.chainId),
+    commitmentId: integer(row.commitmentId),
+    claimant: address(row.claimant)!,
+    requestSeen: true,
+    requestedBy: address(row.requestedBy)!,
+    claimType: String(row.claimType ?? "UNKNOWN") as CommitmentClaimRequestRecord["claimType"],
+    gardenContext: address(row.gardenContext),
+    state: String(row.state) as CommitmentClaimRequestRecord["state"],
+    reasonCID: string(row.reasonCID),
+    resolutionCode: string(row.resolutionCode),
+    requestedAt: number(row.requestedAt),
+    resolvedAt: optionalNumber(row.resolvedAt),
+    updatedAt: number(row.updatedAt),
+  };
+}
+
+export async function getCommitmentClaimRequests(
+  chainId: number,
+  commitmentId: bigint,
+  state?: string
+): Promise<CommitmentClaimRequestRecord[]> {
+  const declarations = ["$chainId: Int!", "$commitmentId: numeric!"];
+  const clauses = [
+    "chainId: { _eq: $chainId }",
+    "commitmentId: { _eq: $commitmentId }",
+    "requestSeen: { _eq: true }",
+  ];
+  const variables: Record<string, unknown> = { chainId, commitmentId: commitmentId.toString() };
+  if (state) {
+    declarations.push("$state: CommitmentClaimRequestState!");
+    clauses.push("state: { _eq: $state }");
+    variables.state = state;
+  }
+  const query = `query CommitmentClaimRequests(${declarations.join(", ")}) { CommitmentClaimRequest(where: { ${clauses.join(", ")} }, order_by: [{ updatedAt: desc }, { id: asc }]) { ${CLAIM_FIELDS} } }`;
+  return (
+    await queryRows(query, variables, "CommitmentClaimRequest", "getCommitmentClaimRequests")
+  ).map(mapClaim);
+}

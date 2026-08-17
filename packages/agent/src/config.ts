@@ -342,6 +342,18 @@ export function validateConfig(config: Config): void {
     );
   }
 
+  if (config.isProduction && !config.trustedProxyCidrs?.trim()) {
+    errors.push(
+      "AGENT_TRUSTED_PROXY_CIDRS is required in production so forwarded client IPs are accepted only from trusted peers."
+    );
+  }
+
+  if (Boolean(config.trustedProxyHops) !== Boolean(config.trustedProxyCidrs?.trim())) {
+    errors.push(
+      "AGENT_TRUSTED_PROXY_HOPS and AGENT_TRUSTED_PROXY_CIDRS must be configured together."
+    );
+  }
+
   if (config.isProduction && !config.posthogApiKey) {
     warnings.push("POSTHOG_AGENT_KEY not set. Analytics will be disabled.");
   }

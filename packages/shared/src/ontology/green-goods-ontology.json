@@ -988,7 +988,7 @@
         {
           "id": "shared",
           "layer": "shared",
-          "file": "packages/shared/src/modules/commitment-pooling/types.ts",
+          "file": "packages/shared/src/modules/commitment-pooling/types-vocabulary.ts",
           "symbol": "HypercertBundleKind",
           "extract": "ts-string-enum",
           "ordered": true,
@@ -1284,7 +1284,7 @@
         {
           "id": "shared",
           "layer": "shared",
-          "file": "packages/shared/src/modules/commitment-pooling/types.ts",
+          "file": "packages/shared/src/modules/commitment-pooling/types-vocabulary.ts",
           "symbol": "CommitmentPoolType",
           "extract": "ts-string-enum",
           "ordered": true,
@@ -1326,7 +1326,7 @@
         {
           "id": "shared",
           "layer": "shared",
-          "file": "packages/shared/src/modules/commitment-pooling/types.ts",
+          "file": "packages/shared/src/modules/commitment-pooling/types-vocabulary.ts",
           "symbol": "CommitmentPoolState",
           "extract": "ts-string-enum",
           "ordered": true,
@@ -1368,7 +1368,7 @@
         {
           "id": "shared",
           "layer": "shared",
-          "file": "packages/shared/src/modules/commitment-pooling/types.ts",
+          "file": "packages/shared/src/modules/commitment-pooling/types-vocabulary.ts",
           "symbol": "CommitmentCycleType",
           "extract": "ts-string-enum",
           "ordered": true,
@@ -1411,7 +1411,7 @@
         {
           "id": "shared",
           "layer": "shared",
-          "file": "packages/shared/src/modules/commitment-pooling/types.ts",
+          "file": "packages/shared/src/modules/commitment-pooling/types-vocabulary.ts",
           "symbol": "CommitmentCycleState",
           "extract": "ts-string-enum",
           "ordered": true,
@@ -1453,7 +1453,7 @@
         {
           "id": "shared",
           "layer": "shared",
-          "file": "packages/shared/src/modules/commitment-pooling/types.ts",
+          "file": "packages/shared/src/modules/commitment-pooling/types-vocabulary.ts",
           "symbol": "CommitmentDirection",
           "extract": "ts-string-enum",
           "ordered": true,
@@ -1501,7 +1501,7 @@
         {
           "id": "shared",
           "layer": "shared",
-          "file": "packages/shared/src/modules/commitment-pooling/types.ts",
+          "file": "packages/shared/src/modules/commitment-pooling/types-vocabulary.ts",
           "symbol": "CommitmentKind",
           "extract": "ts-string-enum",
           "ordered": true,
@@ -1586,7 +1586,7 @@
         {
           "id": "shared",
           "layer": "shared",
-          "file": "packages/shared/src/modules/commitment-pooling/types.ts",
+          "file": "packages/shared/src/modules/commitment-pooling/types-vocabulary.ts",
           "symbol": "CommitmentOnchainState",
           "extract": "ts-string-enum",
           "ordered": true,
@@ -1638,7 +1638,7 @@
         {
           "id": "shared",
           "layer": "shared",
-          "file": "packages/shared/src/modules/commitment-pooling/types.ts",
+          "file": "packages/shared/src/modules/commitment-pooling/types-vocabulary.ts",
           "symbol": "CommitmentClaimType",
           "extract": "ts-string-enum",
           "ordered": true,
@@ -1680,7 +1680,7 @@
         {
           "id": "shared",
           "layer": "shared",
-          "file": "packages/shared/src/modules/commitment-pooling/types.ts",
+          "file": "packages/shared/src/modules/commitment-pooling/types-vocabulary.ts",
           "symbol": "CommitmentContributorPolicy",
           "extract": "ts-string-enum",
           "ordered": true,
@@ -1722,7 +1722,7 @@
         {
           "id": "shared",
           "layer": "shared",
-          "file": "packages/shared/src/modules/commitment-pooling/types.ts",
+          "file": "packages/shared/src/modules/commitment-pooling/types-vocabulary.ts",
           "symbol": "CommitmentClaimMode",
           "extract": "ts-string-enum",
           "ordered": true,
@@ -1787,7 +1787,7 @@
         {
           "id": "shared",
           "layer": "shared",
-          "file": "packages/shared/src/modules/commitment-pooling/types.ts",
+          "file": "packages/shared/src/modules/commitment-pooling/types-vocabulary.ts",
           "symbol": "CommitmentConsiderationRail",
           "extract": "ts-string-enum",
           "ordered": true,
@@ -1884,7 +1884,7 @@
         {
           "id": "shared",
           "layer": "shared",
-          "file": "packages/shared/src/modules/commitment-pooling/types.ts",
+          "file": "packages/shared/src/modules/commitment-pooling/types-vocabulary.ts",
           "symbol": "CommitmentConfirmationPath",
           "extract": "ts-string-enum",
           "ordered": true,
@@ -1978,7 +1978,7 @@
         {
           "id": "shared",
           "layer": "shared",
-          "file": "packages/shared/src/modules/commitment-pooling/types.ts",
+          "file": "packages/shared/src/modules/commitment-pooling/types-vocabulary.ts",
           "symbol": "DisbursementKind",
           "extract": "ts-string-enum",
           "ordered": true,
@@ -2087,7 +2087,7 @@
         {
           "id": "shared",
           "layer": "shared",
-          "file": "packages/shared/src/modules/commitment-pooling/types.ts",
+          "file": "packages/shared/src/modules/commitment-pooling/types-vocabulary.ts",
           "symbol": "FundingState",
           "extract": "ts-string-enum",
           "ordered": true,
@@ -2135,7 +2135,7 @@
         {
           "id": "shared",
           "layer": "shared",
-          "file": "packages/shared/src/modules/commitment-pooling/types.ts",
+          "file": "packages/shared/src/modules/commitment-pooling/types-vocabulary.ts",
           "symbol": "CommitmentSettlementFlow",
           "extract": "ts-string-enum",
           "ordered": false,
@@ -2387,7 +2387,7 @@
         {
           "id": "shared",
           "layer": "shared",
-          "file": "packages/shared/src/modules/commitment-pooling/types.ts",
+          "file": "packages/shared/src/modules/commitment-pooling/types-vocabulary.ts",
           "symbol": "CommitmentClaimRequestState",
           "extract": "ts-string-enum",
           "ordered": true,
@@ -2560,7 +2560,7 @@
         {
           "id": "shared",
           "layer": "shared",
-          "file": "packages/shared/src/modules/commitment-pooling/types.ts",
+          "file": "packages/shared/src/modules/commitment-pooling/types-vocabulary.ts",
           "symbol": "CommitmentUnitScope",
           "extract": "ts-string-enum",
           "ordered": false,
@@ -2602,7 +2602,7 @@
         {
           "id": "shared",
           "layer": "shared",
-          "file": "packages/shared/src/modules/commitment-pooling/types.ts",
+          "file": "packages/shared/src/modules/commitment-pooling/types-vocabulary.ts",
           "symbol": "CommitmentSeriesState",
           "extract": "ts-string-enum",
           "ordered": true,

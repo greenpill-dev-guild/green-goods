@@ -51,7 +51,7 @@
     "check:design-guidance": "node scripts/design/check-guidance-examples.mjs",
     "check:design-md": "design.md lint --format json DESIGN.md && design.md lint --format json packages/admin/DESIGN.md && design.md lint --format json packages/client/DESIGN.pwa.md && design.md lint --format json packages/client/DESIGN.browser.md && design.md lint --format json docs/DESIGN.md",
     "check:docs-design-parity": "node scripts/quality/check-docs-design-parity.mjs",
-    "check:ontology": "node scripts/quality/check-ontology.mjs",
+    "check:ontology": "node scripts/dev/node-cli.js node --test scripts/quality/check-ontology.test.mjs && node scripts/quality/check-ontology.mjs",
     "ontology:generate": "node scripts/quality/check-ontology.mjs --generate",
     "check:source-structure": "node scripts/quality/check-source-structure.js",
     "check:test-quality": "bash scripts/quality/check-test-quality.sh",

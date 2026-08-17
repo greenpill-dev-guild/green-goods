@@ -31,42 +31,22 @@ import {
 } from "../commitment-pooling/jobs";
 import { selectCommitmentPoolingAvailability } from "../commitment-pooling/selectors";
 import { JobMaintenance } from "./job-maintenance";
-
-/**
- * Create a synthetic transaction hash for offline-queued jobs.
- *
- * The Completed.tsx view expects a `0x${string}` txHash for navigation
- * and display. When a work is submitted offline (before chain sync),
- * no real txHash exists yet. This function produces a deterministic
- * placeholder that:
- *
- * 1. Satisfies the `0x${string}` type constraint
- * 2. Embeds the job ID for traceability (UUIDs with dashes stripped)
- * 3. Is distinguishable from real hashes via the "offline_" prefix
- *
- * **Consumers must never submit this hash to an RPC or block explorer.**
- * Use {@link isOfflineTxHash} to guard against that.
- *
- * @param jobId - UUID from the job queue (e.g. "a1b2c3d4-e5f6-...")
- * @returns A 0x-prefixed string like `0xoffline_00000000a1b2c3d4e5f6...`
- */
-export function createOfflineTxHash(jobId: string): `0x${string}` {
-  const paddedId = jobId.replace(/-/g, "").substring(0, 56).padStart(56, "0");
-  return `0xoffline_${paddedId}` as `0x${string}`;
-}
-
-/**
- * Check whether a transaction hash is a synthetic offline placeholder.
- *
- * Use this guard before submitting a txHash to an RPC provider,
- * block explorer link, or any on-chain verification flow.
- *
- * @param txHash - The transaction hash to check
- * @returns `true` if the hash was created by {@link createOfflineTxHash}
- */
-export function isOfflineTxHash(txHash: string): boolean {
-  return txHash.startsWith("0xoffline_");
-}
+import {
+  canonicalJobPayload,
+  commitmentJobIdentity,
+  createOfflineTxHash,
+  MAX_RETRIES,
+  isTerminallyFailedJob,
+  isWaitingReprobeThrottled,
+} from "./queue-policy";
+import {
+  getPendingQueueCount,
+  getQueueJobs,
+  getQueueJobsWithImages,
+  getQueueStats,
+  hasPendingQueueJobs,
+  subscribeToQueue,
+} from "./queue-readers";
 
 interface ProcessJobContext {
   transactionSender: TransactionSender | null;
@@ -93,38 +73,6 @@ export interface FlushResult {
 
 import type { TransactionSender } from "../transactions/types";
 import { getStorageQuota } from "../../utils/storage/quota";
-
-/** Maximum number of retry attempts before a job is marked as permanently failed */
-const MAX_RETRIES = 5;
-
-function commitmentJobIdentity(kind: string, payload: unknown): string | null {
-  if (!payload || typeof payload !== "object") return null;
-  const value = payload as Record<string, unknown>;
-  switch (kind) {
-    case "commitmentSeries":
-      return typeof value.clientSeriesId === "string" ? `${kind}:${value.clientSeriesId}` : null;
-    case "commitment":
-      return typeof value.clientCommitmentId === "string"
-        ? `${kind}:${value.clientCommitmentId}`
-        : null;
-    case "workLink":
-      return typeof value.operationKey === "string" ? `${kind}:${value.operationKey}` : null;
-    case "claim":
-      return `${kind}:${String(value.commitmentId)}:${String(value.kind)}:${String(value.gardenContext).toLowerCase()}`;
-    case "evidence":
-      return `${kind}:${String(value.commitmentId)}:${String(value.cid)}`;
-    case "confirmation":
-      return `${kind}:${String(value.action)}:${String(value.commitmentId)}`;
-    default:
-      return null;
-  }
-}
-
-function canonicalJobPayload(payload: unknown): string {
-  return JSON.stringify(payload, (_key, value) =>
-    typeof value === "bigint" ? { __bigint: value.toString() } : value
-  );
-}
 
 /**
  * Job queue responsible for persisting and processing offline work/approval jobs.
@@ -200,7 +148,8 @@ class JobQueue {
     if (identity) {
       const existingJobs = await jobQueueDB.getJobs({ userAddress, kind: String(kind) });
       const existing = existingJobs.find(
-        (job) => commitmentJobIdentity(job.kind, job.payload) === identity
+        (job) =>
+          !isTerminallyFailedJob(job) && commitmentJobIdentity(job.kind, job.payload) === identity
       );
       if (existing) {
         if (canonicalJobPayload(existing.payload) !== canonicalJobPayload(persistedPayload)) {
@@ -280,6 +229,7 @@ class JobQueue {
    * Check if a job is within its backoff window
    */
   private isWithinBackoffWindow(job: Job): boolean {
+    if (isWaitingReprobeThrottled(job)) return true;
     if (!job.lastAttemptAt || job.attempts === 0) {
       return false;
     }
@@ -353,6 +303,11 @@ class JobQueue {
       } else if (COMMITMENT_JOB_KINDS.includes(job.kind as (typeof COMMITMENT_JOB_KINDS)[number])) {
         const execution = await executeCommitmentQueueJob(jobId, job, chainId, sender);
         if (execution.status === "waiting") {
+          await jobQueueDB.updateJob({
+            ...job,
+            meta: { ...(job.meta ?? {}), waitingForDependency: true },
+            lastAttemptAt: Date.now(),
+          });
           return { success: false, error: execution.reason, skipped: true };
         }
         if (execution.status === "identity-conflict") {
@@ -365,7 +320,11 @@ class JobQueue {
         if (execution.status === "submitted") {
           await jobQueueDB.updateJob({
             ...job,
-            meta: { ...(job.meta ?? {}), submittedTxHash: execution.txHash },
+            meta: {
+              ...(job.meta ?? {}),
+              waitingForDependency: false,
+              submittedTxHash: execution.txHash,
+            },
             lastAttemptAt: Date.now(),
           });
           return {
@@ -509,113 +468,28 @@ class JobQueue {
     return result;
   }
 
-  /**
-   * Get job statistics for a specific user
-   * @param userAddress - User address to scope statistics
-   */
   async getStats(userAddress: string): Promise<QueueStats> {
-    if (!userAddress) {
-      throw new Error("userAddress is required when getting stats");
-    }
-    return await jobQueueDB.getStats(userAddress);
+    return getQueueStats(userAddress);
   }
 
-  /**
-   * Get jobs for a specific user with optional filtering
-   * @param userAddress - User address (required)
-   * @param filter - Optional filters for kind and synced status
-   */
   async getJobs(userAddress: string, filter?: { kind?: string; synced?: boolean }): Promise<Job[]> {
-    if (!userAddress) {
-      throw new Error("userAddress is required when getting jobs");
-    }
-    return await jobQueueDB.getJobs({ userAddress, ...filter });
+    return getQueueJobs(userAddress, filter);
   }
 
-  /**
-   * Get pending work jobs with hydrated image files for a specific user.
-   * Useful for batch wallet sync where media files must be uploaded before attest.
-   */
-  async getJobsWithImages(
-    userAddress: string
-  ): Promise<
-    Array<{ job: Job<WorkJobPayload>; images: Array<{ id: string; file: File; url: string }> }>
-  > {
-    if (!userAddress) {
-      throw new Error("userAddress is required when getting jobs with images");
-    }
-
-    const jobs = (await jobQueueDB.getJobs({
-      userAddress,
-      kind: "work",
-      synced: false,
-    })) as Job<WorkJobPayload>[];
-
-    return await Promise.all(
-      jobs.map(async (job) => ({
-        job,
-        images: await jobQueueDB.getImagesForJob(job.id),
-      }))
-    );
+  async getJobsWithImages(userAddress: string): ReturnType<typeof getQueueJobsWithImages> {
+    return getQueueJobsWithImages(userAddress);
   }
 
-  /**
-   * Check if there are pending jobs for a specific user
-   * @param userAddress - User address to check
-   */
   async hasPendingJobs(userAddress: string): Promise<boolean> {
-    if (!userAddress) {
-      throw new Error("userAddress is required when checking pending jobs");
-    }
-    const jobs = await jobQueueDB.getJobs({ userAddress, synced: false });
-    return jobs.length > 0;
+    return hasPendingQueueJobs(userAddress);
   }
 
-  /**
-   * Get pending jobs count for a specific user
-   * @param userAddress - User address to count
-   */
   async getPendingCount(userAddress: string): Promise<number> {
-    if (!userAddress) {
-      throw new Error("userAddress is required when getting pending count");
-    }
-    const jobs = await jobQueueDB.getJobs({ userAddress, synced: false });
-    return jobs.length;
+    return getPendingQueueCount(userAddress);
   }
 
-  /**
-   * Subscribe to queue events (for backward compatibility)
-   */
   subscribe(listener: (event: QueueEvent) => void): () => void {
-    const unsubscribeFunctions: (() => void)[] = [];
-
-    unsubscribeFunctions.push(
-      jobQueueEventBus.on("job:added", ({ jobId, job }) => {
-        listener({ type: "job_added", jobId, job });
-      })
-    );
-
-    unsubscribeFunctions.push(
-      jobQueueEventBus.on("job:processing", ({ jobId, job }) => {
-        listener({ type: "job_processing", jobId, job });
-      })
-    );
-
-    unsubscribeFunctions.push(
-      jobQueueEventBus.on("job:completed", ({ jobId, job, txHash }) => {
-        listener({ type: "job_completed", jobId, job, txHash });
-      })
-    );
-
-    unsubscribeFunctions.push(
-      jobQueueEventBus.on("job:failed", ({ jobId, job, error }) => {
-        listener({ type: "job_failed", jobId, job, error });
-      })
-    );
-
-    return () => {
-      unsubscribeFunctions.forEach((unsub) => unsub());
-    };
+    return subscribeToQueue(listener);
   }
 
   /**
@@ -654,3 +528,10 @@ export { jobQueueDB } from "./db";
 export { computeFirstIncompleteStep, draftDB } from "./draft-db";
 export { jobQueueEventBus, useJobQueueEvents } from "./event-bus";
 export { mediaResourceManager } from "./media-resource-manager";
+export {
+  COMMITMENT_WAITING_REPROBE_MS,
+  createOfflineTxHash,
+  isOfflineTxHash,
+  isTerminallyFailedJob,
+  isWaitingReprobeThrottled,
+} from "./queue-policy";

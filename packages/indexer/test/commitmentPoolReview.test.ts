@@ -8,6 +8,7 @@ import {
 import { handleContributorEvent } from "../src/handlers/commitment-pool-contributors";
 import { handleLifecycle } from "../src/handlers/commitment-pool-lifecycle";
 import { sortedUnique } from "../src/handlers/commitment-pool-projections";
+import { commitmentState } from "../src/handlers/commitment-pool-projections";
 import {
   eventType,
   firstExplicitActor,
@@ -132,6 +133,7 @@ describe("Commitment Pooling review regressions", () => {
     assert.deepEqual(sortedUnique(["a", "B", "_", "-"]), ["-", "B", "_", "a"]);
     assert.equal(eventType("ModuleSchemaUIDUpdated"), "MODULE_SCHEMA_UID_UPDATED");
     assert.throws(() => eventType("UnregisteredPoolingEvent"), /Unknown commitment event type/);
+    assert.throws(() => commitmentState(255n), /Unknown commitment state/);
   });
 
   it("attributes steward-recorded creation to the explicit recorder", async () => {
@@ -1171,7 +1173,7 @@ describe("Commitment Pooling review regressions", () => {
         kind: 1n,
         gardenContext: ZERO_ADDRESS,
         leadProvider: address(2),
-        providerGarden: address(1),
+        providerGarden: ZERO_ADDRESS,
         payerGarden: ZERO_ADDRESS,
         mockEventData: eventData(START_BLOCK + 4),
       }),
@@ -1181,6 +1183,8 @@ describe("Commitment Pooling review regressions", () => {
     const claim = await db.CommitmentClaimRequest.get(`${CHAIN_ID}-50-${address(3).toLowerCase()}`);
     assert.equal(commitment?.payerGarden, undefined);
     assert.equal(commitment?.payerGardenId, undefined);
+    assert.equal(commitment?.providerGarden, undefined);
+    assert.equal(commitment?.providerGardenId, undefined);
     assert.equal(claim?.gardenContext, undefined);
     assert.equal(claim?.gardenContextId, undefined);
   });
@@ -1313,6 +1317,126 @@ describe("Commitment Pooling review regressions", () => {
     assert.equal(claim?.reasonCID, "ipfs://reverse-terminal-decline");
     assert.equal(claim?.resolutionCode, "CLAIM_DECLINED");
     assert.equal(claim?.resolvedAt, START_BLOCK + 4);
+  });
+
+  it("fills an older request payload without reviving a decline-first placeholder", async () => {
+    const db = await processEvents(createTestIndexer(), [
+      poolRegistered(START_BLOCK),
+      cycleSeeded(START_BLOCK + 1),
+      commitmentCreated(55n, START_BLOCK + 2, 1n),
+    ]);
+    const claimId = `${CHAIN_ID}-55-${address(5).toLowerCase()}`;
+    await handleClaimEvent(
+      runtimeEvent(
+        CommitmentPoolingModule.ClaimDeclined.createMockEvent({
+          commitmentId: 55n,
+          claimant: address(5),
+          reasonCID: "ipfs://decline-first",
+          mockEventData: eventData(START_BLOCK + 4),
+        }),
+        "ClaimDeclined"
+      ),
+      db as unknown as PoolingContext
+    );
+    assert.equal((await db.CommitmentClaimRequest.get(claimId))?.requestSeen, false);
+
+    await handleClaimEvent(
+      runtimeEvent(
+        CommitmentPoolingModule.ClaimRequested.createMockEvent({
+          commitmentId: 55n,
+          claimant: address(5),
+          requestedBy: address(6),
+          kind: 1n,
+          gardenContext: address(7),
+          requestedAt: 100n,
+          mockEventData: eventData(START_BLOCK + 3),
+        }),
+        "ClaimRequested"
+      ),
+      db as unknown as PoolingContext
+    );
+
+    const claim = await db.CommitmentClaimRequest.get(claimId);
+    assert.equal(claim?.requestSeen, true);
+    assert.equal(claim?.requestedBy, address(6).toLowerCase());
+    assert.equal(claim?.gardenContext, address(7).toLowerCase());
+    assert.equal(claim?.state, "DECLINED");
+    assert.equal(claim?.reasonCID, "ipfs://decline-first");
+    assert.equal(claim?.resolutionCode, "CLAIM_DECLINED");
+    assert.equal(claim?.lifecycleBlockNumber, BigInt(START_BLOCK + 4));
+  });
+
+  it("does not let an older request overwrite a decline after a newer acceptance", async () => {
+    const db = await processEvents(createTestIndexer(), [
+      poolRegistered(START_BLOCK),
+      cycleSeeded(START_BLOCK + 1),
+      commitmentCreated(56n, START_BLOCK + 2, 1n),
+    ]);
+    await handleClaimEvent(
+      runtimeEvent(
+        CommitmentPoolingModule.ClaimDeclined.createMockEvent({
+          commitmentId: 56n,
+          claimant: address(5),
+          reasonCID: "ipfs://declined-before-acceptance",
+          mockEventData: eventData(START_BLOCK + 4),
+        }),
+        "ClaimDeclined"
+      ),
+      db as unknown as PoolingContext
+    );
+    await handleAccepted(
+      runtimeEvent(accepted(56n, START_BLOCK + 5), "CommitmentAccepted"),
+      db as unknown as PoolingContext
+    );
+    await handleClaimEvent(
+      runtimeEvent(
+        CommitmentPoolingModule.ClaimRequested.createMockEvent({
+          commitmentId: 56n,
+          claimant: address(5),
+          requestedBy: address(5),
+          kind: 1n,
+          gardenContext: address(6),
+          requestedAt: 100n,
+          mockEventData: eventData(START_BLOCK + 3),
+        }),
+        "ClaimRequested"
+      ),
+      db as unknown as PoolingContext
+    );
+
+    const claim = await db.CommitmentClaimRequest.get(`${CHAIN_ID}-56-${address(5).toLowerCase()}`);
+    assert.equal(claim?.requestSeen, true);
+    assert.equal(claim?.state, "DECLINED");
+    assert.equal(claim?.reasonCID, "ipfs://declined-before-acceptance");
+    assert.equal(claim?.resolutionCode, "CLAIM_DECLINED");
+  });
+
+  it("allows a genuinely newer request to reopen a declined claim", async () => {
+    const db = await processEvents(createTestIndexer(), [
+      poolRegistered(START_BLOCK),
+      cycleSeeded(START_BLOCK + 1),
+      commitmentCreated(57n, START_BLOCK + 2, 1n),
+      CommitmentPoolingModule.ClaimDeclined.createMockEvent({
+        commitmentId: 57n,
+        claimant: address(5),
+        reasonCID: "ipfs://declined",
+        mockEventData: eventData(START_BLOCK + 3),
+      }),
+      CommitmentPoolingModule.ClaimRequested.createMockEvent({
+        commitmentId: 57n,
+        claimant: address(5),
+        requestedBy: address(5),
+        kind: 1n,
+        gardenContext: address(6),
+        requestedAt: 101n,
+        mockEventData: eventData(START_BLOCK + 4),
+      }),
+    ]);
+    const claim = await db.CommitmentClaimRequest.get(`${CHAIN_ID}-57-${address(5).toLowerCase()}`);
+    assert.equal(claim?.requestSeen, true);
+    assert.equal(claim?.state, "PENDING");
+    assert.equal(claim?.reasonCID, undefined);
+    assert.equal(claim?.resolutionCode, undefined);
   });
 
   it("lets a newer on-chain decline supersede an acceptance sweep for another claimant", async () => {

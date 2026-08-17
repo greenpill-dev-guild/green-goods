@@ -467,9 +467,11 @@ export function checkProjectionIntegrity(ontology, projections, fileExists) {
     }
     if (
       capability.availability === "available" &&
-      (capability.activation !== "active" || capability.integration !== "integrated")
+      (capability.deployment !== "deployed" ||
+        capability.activation !== "active" ||
+        capability.integration !== "integrated")
     ) {
-      errors.push(`capability ${capability.ref}: available requires active and integrated`);
+      errors.push(`capability ${capability.ref}: available requires deployed, active, and integrated`);
     }
     if (capability.availability === "deployed-not-available" && capability.deployment !== "deployed") {
       errors.push(`capability ${capability.ref}: deployed-not-available requires deployed`);
@@ -494,9 +496,11 @@ export function checkProjectionIntegrity(ontology, projections, fileExists) {
       }
       if (
         chain.availability === "available" &&
-        (chain.activation !== "active" || chain.integration !== "integrated")
+        (chain.deployment !== "deployed" ||
+          chain.activation !== "active" ||
+          chain.integration !== "integrated")
       ) {
-        errors.push(`${label}: available requires active and integrated`);
+        errors.push(`${label}: available requires deployed, active, and integrated`);
       }
       if (chain.availability === "deployed-not-available" && chain.deployment !== "deployed") {
         errors.push(`${label}: deployed-not-available requires deployed`);

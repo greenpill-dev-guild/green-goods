@@ -460,7 +460,7 @@ describe("Commitment Pooling read model", () => {
     assert.ok(exposure);
     assert.ok(pool);
     assert.equal(poolHours.openUnits, 0n);
-    assert.equal(cycleHours.expectedUnits, 0n);
+    assert.equal(cycleHours.expectedUnits, 2n);
     assert.equal(capitalHours.openUnits, 3n);
     assert.notEqual(poolHours.unitLabelHash, capitalHours.unitLabelHash);
     assert.equal(exposure.openCommitmentCount, 1n);

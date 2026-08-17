@@ -67,6 +67,7 @@ describe("pool member disclosure", () => {
         account: MEMBER,
         history,
         isCurrentSteward: false,
+        wasSteward: true,
       })
     ).toEqual({ status: "hidden" });
   });
