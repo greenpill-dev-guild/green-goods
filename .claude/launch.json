@@ -12,6 +12,12 @@
       "runtimeExecutable": "bun",
       "runtimeArgs": ["run", "--filter", "@green-goods/admin", "dev"],
       "port": 3002
+    },
+    {
+      "name": "proto",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": ["-m", "http.server", "4601", "-d", "/tmp/gg-proto"],
+      "port": 4601
     }
   ]
 }
