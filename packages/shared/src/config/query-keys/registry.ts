@@ -1,4 +1,5 @@
 import { actionsKeys, assessmentsKeys, gardensKeys, platformKeys } from "./garden";
+import { commitmentPoolingKeys } from "./commitment-pooling";
 import { greenWillKeys } from "./greenwill";
 import { convictionKeys, hypercertsKeys, marketplaceKeys } from "./hypercert";
 import {
@@ -11,6 +12,7 @@ import {
 } from "./identity";
 import { draftsKeys, mediaKeys, offlineKeys, queueKeys } from "./misc";
 import { publicKeys } from "./public";
+import { savedOffersKeys } from "./saved-offers";
 import { tokensKeys } from "./tokens";
 import { cookieJarKeys, vaultsKeys, yieldKeys } from "./vault";
 import { approvalsKeys, operatorWorksKeys, workApprovalsKeys, worksKeys } from "./work";
@@ -44,4 +46,6 @@ export const queryKeys = {
   marketplace: marketplaceKeys,
   greenWill: greenWillKeys,
   tokens: tokensKeys,
+  commitmentPooling: commitmentPoolingKeys,
+  savedOffers: savedOffersKeys,
 } as const;

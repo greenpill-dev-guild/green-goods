@@ -1,6 +1,4 @@
-// Framework-free public route, state, and validation contracts for the browser read side.
-// This subpath must stay dependency-light: no UI frameworks, browser globals, styles,
-// providers, hooks, or package-root imports.
+// Dependency-light public route contracts: no UI frameworks, browser globals, or package-root imports.
 
 export {
   PUBLIC_UPLOAD_SIGN_ALLOWED_CATEGORIES,
@@ -40,6 +38,8 @@ export type PublicApiError = {
   fieldErrors?: Record<string, string>;
   params?: Record<string, string | number | boolean>;
 };
+
+export * from "./saved-offers";
 
 export type PublicSubscribeRequest = {
   email: string;

@@ -13,6 +13,14 @@
 import type { SmartAccountClient } from "permissionless";
 
 import type { Address, WorkDisplayStatus } from "./domain";
+import type {
+  ClaimJobPayload,
+  CommitmentCreationPayload,
+  CommitmentSeriesJobPayload,
+  ConfirmationJobPayload,
+  EvidenceJobPayload,
+  WorkLinkJobPayload,
+} from "../modules/commitment-pooling/jobs";
 
 // ============================================
 // Core Job Types
@@ -89,6 +97,12 @@ export interface ApprovalJobPayload {
 export interface JobKindMap {
   work: WorkJobPayload;
   approval: ApprovalJobPayload;
+  commitmentSeries: CommitmentSeriesJobPayload;
+  commitment: CommitmentCreationPayload;
+  claim: ClaimJobPayload;
+  evidence: EvidenceJobPayload;
+  workLink: WorkLinkJobPayload;
+  confirmation: ConfirmationJobPayload;
 }
 
 export type JobKind = keyof JobKindMap;

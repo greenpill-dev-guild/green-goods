@@ -100,6 +100,12 @@ type MutableChainConfig = {
 };
 
 const nextBlockByIndexer = new WeakMap<TestIndexer, Map<SupportedChainId, number>>();
+const executedEvents = new Set<string>();
+const executedEventsByIndexer = new WeakMap<TestIndexer, Set<string>>();
+
+export function executedMockEventNames(mockDb?: TestIndexer): ReadonlySet<string> {
+  return new Set(mockDb ? (executedEventsByIndexer.get(mockDb) ?? []) : executedEvents);
+}
 
 function normalizeChainId(chainId: number): SupportedChainId {
   if (chainId !== 42161 && chainId !== 11155111 && chainId !== 42220) {
@@ -172,6 +178,16 @@ export async function processEvents(
   };
 
   await mockDb.process(processConfig);
+  let indexerEvents = executedEventsByIndexer.get(mockDb);
+  if (!indexerEvents) {
+    indexerEvents = new Set();
+    executedEventsByIndexer.set(mockDb, indexerEvents);
+  }
+  for (const event of events) {
+    const eventName = `${event.contract}.${event.event}`;
+    executedEvents.add(eventName);
+    indexerEvents.add(eventName);
+  }
   return mockDb;
 }
 
@@ -387,6 +403,37 @@ export async function serveJson(
 
   return {
     url: `http://127.0.0.1:${address.port}/metadata.json`,
+    close: () =>
+      new Promise<void>((resolve, reject) => {
+        server.close((error) => (error ? reject(error) : resolve()));
+      }),
+  };
+}
+
+export async function serveJsonSequence(
+  responses: readonly { readonly body: unknown; readonly statusCode: number }[]
+): Promise<{ url: string; requestCount: () => number; close: () => Promise<void> }> {
+  let requestCount = 0;
+  const server = createServer((_request, response) => {
+    const selected = responses[Math.min(requestCount, responses.length - 1)];
+    requestCount += 1;
+    response.writeHead(selected?.statusCode ?? 500, { "content-type": "application/json" });
+    response.end(JSON.stringify(selected?.body ?? { error: "missing test response" }));
+  });
+
+  await new Promise<void>((resolve, reject) => {
+    server.once("error", reject);
+    server.listen(0, "127.0.0.1", resolve);
+  });
+
+  const address = server.address();
+  if (!address || typeof address === "string") {
+    throw new Error("Failed to resolve the local JSON test server address");
+  }
+
+  return {
+    url: `http://127.0.0.1:${address.port}/metadata.json`,
+    requestCount: () => requestCount,
     close: () =>
       new Promise<void>((resolve, reject) => {
         server.close((error) => (error ? reject(error) : resolve()));

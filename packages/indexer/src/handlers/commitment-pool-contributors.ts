@@ -139,7 +139,6 @@ export async function handleContributorEvent(
     await addContributorToIndex(event, context, commitmentId, id);
     context.Commitment.set({
       ...commitment,
-      contributorEntityIds: sortedUnique([...commitment.contributorEntityIds, id]),
       updatedAt: Math.max(commitment.updatedAt, event.block.timestamp),
     });
     return;
@@ -167,7 +166,6 @@ export async function handleContributorEvent(
   const updatedCommitment = {
     ...commitment,
     contributorCount: Math.max(0, commitment.contributorCount + activeDelta),
-    contributorEntityIds: sortedUnique([...commitment.contributorEntityIds, id]),
     updatedAt: Math.max(commitment.updatedAt, event.block.timestamp),
   } satisfies Commitment;
   context.Commitment.set(updatedCommitment);

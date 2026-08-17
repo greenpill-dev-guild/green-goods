@@ -18,6 +18,11 @@ import type {
   ProfileAvatarSignatureVerifier,
   ProfileAvatarStore,
 } from "../../services/profile-avatars";
+import type {
+  SavedOfferStore,
+  SavedOffersSessionStore,
+  SavedOffersSignatureVerifier,
+} from "../../services/saved-offers";
 
 export interface ServerConfig {
   port: number;
@@ -74,6 +79,11 @@ export interface ServerDeps {
   profileAvatarStore?: ProfileAvatarStore;
   profileAvatarChainId?: number;
   profileAvatarSignatureVerifier?: ProfileAvatarSignatureVerifier;
+  savedOfferStore?: SavedOfferStore;
+  savedOffersSessionStore?: SavedOffersSessionStore;
+  savedOffersSignatureVerifier?: SavedOffersSignatureVerifier;
+  savedOffersAudience?: string;
+  savedOffersChainIds?: readonly number[];
   now?: () => number;
 }
 

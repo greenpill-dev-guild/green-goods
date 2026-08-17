@@ -647,6 +647,7 @@
         "packages/shared/src/",
         "packages/contracts/src/",
         "packages/contracts/deployments/",
+        "packages/indexer/src/handlers/",
         "packages/client/src/components/Public/",
         "packages/client/src/views/Public/"
       ]

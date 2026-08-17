@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p1",
     "created_at": "2026-07-03",
-    "updated_at": "2026-08-14T23:08:14.481-07:00"
+    "updated_at": "2026-08-16T13:10:00-07:00"
   },
   "links": {
     "brief": "external-brief.md",
@@ -212,26 +212,26 @@
     },
     "state_api": {
       "owner": "codex",
-      "status": "blocked",
-      "branch": "codex/state-api/commitment-pooling",
+      "status": "passed",
+      "branch": "feature/commitment-pooling-api-modules",
       "depends_on": ["contracts"],
-      "manual_blocked": true,
-      "blocked_reason": "Two-phase gate: interface-independent shared core may start after the pooling ABI freezes; settlement selectors wait for the settlement ABI; final GREEN requires the agreed indexer entity/query contract plus codegen/build proof.",
+      "manual_blocked": false,
+      "blocked_reason": null,
       "handoff": "handoffs/codex-state-api.md",
-      "handoff_note": "Machine lane aggregates indexer plus shared state/API. Core-start and full-GREEN gates are distinct in codex-state-api.md; GREEN includes evidence/v3/dispute/Hypercert outputs and settlement capability reads.",
+      "handoff_note": "PRD-722 source gap closure and PRD-723 shared/Agent source implementation are complete and locally GREEN. Runtime availability remains independently fail-closed in the capability ledger until the human-owned hosted Envio deployment, full sync, and live read-back; production Saved Offers additionally require human-owned root environment configuration.",
       "linear_issues": ["PRD-650"],
       "tdd": {
         "mode": "required",
         "status": "green_recorded",
         "red": {
-          "command": "bun run --filter @green-goods/indexer test -- test/commitmentPool.test.ts",
-          "evidence": "RED: pooling, Garden identity, and funding fixtures failed before the frozen 58-event config, 28-entity schema, and handlers existed."
+          "command": "git cat-file -e HEAD:packages/shared/src/modules/commitment-pooling/index.ts; git cat-file -e HEAD:packages/agent/src/api/routes/saved-offers.ts",
+          "evidence": "RED: the shared commitment-pooling module, focused tests, and Agent Saved Offer route/tests were absent from the branch base (each git object lookup exited 128). The handoff recorded the selector, disclosure, retry-identity, settlement, and persistence test contracts before implementation."
         },
         "green": {
-          "command": "bun run --filter @green-goods/indexer test -- --grep \"Commitment Pooling read model\"",
-          "evidence": "GREEN: six focused pooling projections passed, plus five ClaimStored tests covering legacy and commitment-bundle Hypercert reads."
+          "command": "Run the exact Phase 1 commands plus the focused shared and Agent commands recorded in handoffs/codex-state-api.md.",
+          "evidence": "GREEN 2026-08-16: all 255 indexer tests pass with codegen, the 14-contract/3-chain boundary, build, and ontology guards; the full shared lane passes 3,502 tests with one governed skip plus typecheck and Storybook guards; Agent passes 259 unit/API tests with one governed skip, 5 real-SQLite tests, build, and typecheck. The canonical repository suite and deterministic Sepolia build pass."
         },
-        "note": ""
+        "note": "Source GREEN does not claim hosted Envio availability, production Saved Offer configuration, a live Celo canary, deployment, or broadcast."
       },
       "skill_tags": ["indexer", "react", "tanstack-query", "data-layer"]
     },
@@ -352,11 +352,11 @@
     "indexer": {
       "machine_lane": "state_api",
       "owner": "codex",
-      "status": "in_progress",
+      "status": "passed",
       "ready_when_dependencies_met": true,
       "manual_blocked": false,
       "blocked_reason": null,
-      "branch": "feature/commitment-pooling-indexer",
+      "branch": "feature/commitment-pooling-api-modules",
       "depends_on": ["contracts"],
       "handoff": "handoffs/codex-indexer.md",
       "linear": {
@@ -366,6 +366,7 @@
         "milestone": "build"
       },
       "linear_issues": ["PRD-722", "PRD-650"],
+      "source_completion_2026_08_16": "All five reachable read-model defects, the requested structural hardening, scale-posture schema change, ontology representation work, and plan hygiene are complete before the first hosted pooling deployment. Codegen, the 14-contract/3-chain boundary check, 46 touched tests, build, and ontology guards pass. Hosted Envio deployment, full sync, cutover, and read-back remain human-owned and were not performed.",
       "release_increment_2026_08_13": "PRD-721, PRD-557, and the deployer-owned PR #705 release baseline are complete. The canonical PRD-722 inventory is 58 ABI events and 28 indexed records: the original 54-event/26-record pooling inventory plus FundingPledged, FundingDepositRecorded, FundingConsumed, FundingWithdrawn, CommitmentFunding, and the bounded CommitmentFundingIndex required to join a reverse-delivered Refund event whose ABI omits fundingId. DisbursementKind.Refund and the full PoolState.Paused freeze are binding. Implementation runs on feature/commitment-pooling-indexer from live PR #705 head 9948bd7507ac00d0b07f4efd30f6001dd92d84ab.",
       "payer_settlement_slice_2026_08_08": "The core settlement projection is implemented and tested: SettlementConfiguration, CommitmentPayoutPlan, and Disbursement carry payerGarden/payerGardenId, beneficiary fields, ContributorConsideration/GardenBeneficiary, and derived INTERNAL/PROTOCOL_TO_GARDEN/GARDEN_TO_PROTOCOL/GARDEN_TO_GARDEN intent. Reverse delivery is reconciled when the write-once protocol garden arrives after a plan. This is a bounded source-chain slice, not full PRD-722 GREEN: the complete pooling event/entity surface, full executor/Celo observability, query freeze, replay/cutover, and state/API consumers remain open.",
       "acceptance_amendment_2026_08_05": "Closes readiness-review P1-1 on the indexer side. Commitment.creationRequestKey and Commitment.creationPayloadHash are both emitted CommitmentCreated parameters and are assigned verbatim from event.params. No handler recomputes, derives, nulls, or RPC-backfills the hash; the required field and the no-RPC rule are consistent only because the event carries it.",
@@ -375,11 +376,11 @@
     "state_api": {
       "machine_lane": "state_api",
       "owner": "codex",
-      "status": "blocked",
-      "ready_when_dependencies_met": false,
-      "manual_blocked": true,
-      "blocked_reason": "Interface-independent shared work may start only after the saved-Offer persistence and queue-dependency contract is frozen. Full GREEN waits for the amended pooling ABI, series/indexer entity/query/codegen proof, and settlement ABI where applicable.",
-      "branch": "codex/state-api/commitment-pooling",
+      "status": "passed",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": false,
+      "blocked_reason": null,
+      "branch": "feature/commitment-pooling-api-modules",
       "depends_on": ["contracts", "indexer"],
       "handoff": "handoffs/codex-state-api.md",
       "linear": {
@@ -389,6 +390,7 @@
         "milestone": "build"
       },
       "linear_issues": ["PRD-723", "PRD-650"],
+      "source_completion_2026_08_16": "The user accepted the query contract by directing completion. Shared core and settlement reads/mutations, the six offline job kinds, account-profile and online-transfer gates, disclosure selectors, and encrypted owner-scoped Saved Offer persistence are implemented and locally GREEN. The capability ledger deliberately keeps Arbitrum reads and writes unavailable until hosted Envio deployment/full-sync/read-back. Production Saved Offers require root-environment encryption-key and audience configuration; live deployment and canary proof remain human release work.",
       "payer_settlement_boundary_2026_08_08": "The settlement ABI and shared read-model types now exist, so the older ABI-wait clause is retired. PRD-723 remains blocked on the full indexer/query freeze and on implementing the state/API consumers; this checkpoint did not add hooks, mutations, jobs, or UI runtime behavior.",
       "acceptance_amendment_2026_08_05": "Closes readiness-review P1-2. PoolMemberHistory disclosure is now a lane-completion contract rather than a prose input. usePoolMemberHistory is the only sanctioned consumer of the entity; it takes an explicit viewer and returns visible / hidden / unauthenticated, with hidden for a former (non-current) pool steward. usePoolParticipationSummary is the separate aggregate-only editorial selector. Core GREEN requires the five disclosure cases plus a boundary test proving no packages/client/src or packages/admin/src file binds the raw entity, query, or type, and an aggregation test proving declared-value sums stay within one exact declaredValueBasis and never produce a per-person figure. New RED-first file: packages/shared/src/__tests__/pool-member-history-disclosure.test.ts.",
       "acceptance_amendment_2026_08_02": "Supersedes five-job references below: add the sixth commitmentSeries job, stable clientSeriesId dependency materialization without retry consumption, signed offchain private-by-default saved-Offer persistence, Offer once/over-time selection, series query/mutation/selectors, exact Story counts, and capacity-backed availability. Unsaved drafts alone may remain device-local.",
@@ -1176,8 +1178,16 @@
       "actor": "codex",
       "lane": "state_api",
       "status": "tdd_recorded",
-      "branch": "codex/state-api/commitment-pooling",
+      "branch": "feature/commitment-pooling-api-modules",
       "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-08-16T19:31:04Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "passed",
+      "branch": "feature/commitment-pooling-api-modules",
+      "note": "PRD-722 gap closure and PRD-723 shared/Agent source implementation passed local source validation. Hosted Envio deployment/read-back, production Saved Offer root-environment configuration, and live Celo canary remain human-owned release evidence and were not performed."
     }
   ]
 }

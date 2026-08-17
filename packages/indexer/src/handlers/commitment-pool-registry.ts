@@ -102,12 +102,7 @@ export async function handleRegistryEvent(
     unitLabel,
     event.block.timestamp,
     {
-      expected:
-        event.eventName === "UnitsCommitted"
-          ? units
-          : event.eventName === "UnitsReleased"
-            ? -units
-            : 0n,
+      expected: event.eventName === "UnitsCommitted" ? units : 0n,
       fulfilled: event.eventName === "UnitsFulfilled" ? units : 0n,
       open: event.eventName === "UnitsCommitted" ? units : -units,
     }

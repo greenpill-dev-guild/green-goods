@@ -13,9 +13,10 @@ import {
   type ThirdwebCheckoutClient,
 } from "../api/server";
 import {
+  bindPublicRequestPeerIp,
+  derivePublicClientIp,
   InMemoryPublicRateLimiter,
   publicRateLimitKey,
-  derivePublicClientIp,
 } from "../api/public-protection";
 import type { FundingConfirmationResult, TransactionConfirmation } from "../services/blockchain";
 import { type FundingIntentRecord, MemoryFundingIntentStore } from "../services/funding-intents";
@@ -1476,11 +1477,31 @@ describe("thirdweb webhook API and public rate-limit keys", () => {
       },
     });
 
-    expect(derivePublicClientIp(request)).toBe("198.51.100.10");
-    expect(derivePublicClientIp(request, { hops: 1 })).toBe("203.0.113.20");
+    expect(derivePublicClientIp(request)).toBe("unresolved-peer");
+    expect(derivePublicClientIp(request, { allowTestSocketIp: true })).toBe("198.51.100.10");
+    expect(
+      derivePublicClientIp(request, {
+        allowTestSocketIp: true,
+        hops: 1,
+        cidrs: ["198.51.100.0/24"],
+      })
+    ).toBe("203.0.113.20");
+    expect(
+      derivePublicClientIp(request, {
+        allowTestSocketIp: true,
+        hops: 1,
+        cidrs: ["192.0.2.0/24"],
+      })
+    ).toBe("198.51.100.10");
     expect(
       publicRateLimitKey({ route: "subscribe", request, material: "person@example.org" })
     ).not.toContain("person@example.org");
+  });
+
+  it("uses the Bun transport peer for direct traffic", () => {
+    const request = new Request("https://api.example/public/subscribe");
+    bindPublicRequestPeerIp(request, "2001:db8::7");
+    expect(derivePublicClientIp(request)).toBe("2001:db8::7");
   });
 
   it("verifies raw body signatures before normalizing thirdweb events", async () => {
