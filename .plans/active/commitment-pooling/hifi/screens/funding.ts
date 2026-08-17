@@ -40,9 +40,9 @@ const W36_LABEL: Record<W36Loaded, string> = {
 };
 
 // Status (icon · what happened · what it means) and the facts that matter in
-// that state. Rebuilt 2026-08-16 round 10 on the promise view's anatomy: this
+// that state. Rebuilt 2026-08-16 round 10 on the commitment view's anatomy: this
 // screen previously hid the garden Safe, the refund account, the funding record
-// and the promise reference behind a "Funding details" drawer — on EVERY one of
+// and the commitment reference behind a "Funding details" drawer — on EVERY one of
 // its seven states. Money identifiers are the last thing that should need a tap,
 // and this was the highest disclosure-per-state screen in the prototype.
 const W36_VIEW: Record<W36Loaded, { ic: string; title: string; info: string; rows: [string, string][] }> = {
@@ -55,7 +55,7 @@ const W36_VIEW: Record<W36Loaded, { ic: string; title: string; info: string; row
   "deposit-instructions": {
     ic: "shield-check-line",
     title: "Ready to deposit",
-    info: "Send 40 G$ to the garden's recoverable Safe. The garden holds it for this promise until Ben delivers or the refund path opens.",
+    info: "Send 40 G$ to the garden's recoverable Safe. The garden holds it for this commitment until Ben delivers or the refund path opens.",
     rows: [["Send", "40 G$"], ["To", "Rocinha garden Safe · 0x8a…2d"], ["Reference", "F-204 · keep with the transfer"]],
   },
   "deposit-sent": {
@@ -73,13 +73,13 @@ const W36_VIEW: Record<W36Loaded, { ic: string; title: string; info: string; row
   funded: {
     ic: "checkbox-circle-fill",
     title: "Funded claim accepted",
-    info: "Ben can now deliver the poster; the funding record stays attached to this promise.",
+    info: "Ben can now deliver the poster; the funding record stays attached to this commitment.",
     rows: [["Held by", "Rocinha garden Safe"], ["Funded by", "Maria · 40 G$"], ["Next", "Ben delivers · Maria confirms"]],
   },
   "refund-queued": {
     ic: "refresh-line",
     title: "Returning to you",
-    info: "This promise ended without delivery. The garden has queued the recorded 40 G$ back to your refund account.",
+    info: "This commitment ended without delivery. The garden has queued the recorded 40 G$ back to your refund account.",
     rows: [["Amount", "40 G$"], ["Status", "Returning · arrival not confirmed yet"]],
   },
   refunded: {
@@ -93,7 +93,7 @@ const W36_VIEW: Record<W36Loaded, { ic: string; title: string; info: string; row
 function w36(state: W36State): string {
   const head = hdr("Design a market poster", { back: true });
   // Read-surface recovery short-circuits before any funding fact is touched —
-  // same shape as the promise view's (client.ts): a pushed read surface, so no
+  // same shape as the commitment view's (client.ts): a pushed read surface, so no
   // bottom nav and no action bar.
   const readWrap = (inner: string) => phoneFrame(`${head}${inner}<div style="flex:1"></div>`, { appBar: false });
   if (state === "loading")
@@ -107,7 +107,7 @@ function w36(state: W36State): string {
       pagepad(emptyState("wifi-off-line", "Couldn't load this claim", "Something went wrong reaching the network. Nothing has moved — your deposit and refund account are unaffected.", hot("w36.retry", btn("Try again", { kind: "pri", icon: "refresh-line" })))),
     );
   const v = W36_VIEW[state];
-  // People above the fold, the way the promise view does it — the chips row and
+  // People above the fold, the way the commitment view does it — the chips row and
   // the separate identity card collapsed into one line plus the tag row below.
   const people = `<div class="cardrow" style="padding:2px 2px 0">${teamstrip(["M", "B"])}<span class="t-meta">Maria funds · Ben offers</span>${chip("40 G$", "plain")}${stateChip(W36_LABEL[state])}</div>`;
   const status = `<div class="finfo"><span class="fic">${icon(v.ic)}</span><div class="grow"><div class="ft">${v.title}</div><div class="fi">${v.info}</div></div></div>`;
@@ -119,7 +119,7 @@ function w36(state: W36State): string {
     // a funder checking a Safe address should never have to hunt for it.
     sectionCard(
       "Funding record",
-      `${detailRow("Garden Safe", "0x8a…2d")}${detailRow("Refund account", "0x12…9a")}${detailRow("Record", "F-204")}${detailRow("Promise", "0x8c…41f2")}`,
+      `${detailRow("Garden Safe", "0x8a…2d")}${detailRow("Refund account", "0x12…9a")}${detailRow("Record", "F-204")}${detailRow("Commitment", "0x8c…41f2")}`,
     ),
   );
   const bar = state === "deposit-instructions"
@@ -195,14 +195,14 @@ ${kv("Deposit", "40 G$ · reference 0x7b…21")}${kv("Expected", "40 G$")}${kv("
     case "consumed":
       body = acard(
         "Funded claim accepted",
-        `${banner("Ben's Offer is Accepted and F-204 is Consumed. The funding fact stays attached while the promise follows its ordinary evidence and confirmation path.", "stone", "checkbox-circle-fill")}
+        `${banner("Ben's Offer is Accepted and F-204 is Consumed. The funding fact stays attached while the commitment follows its ordinary evidence and confirmation path.", "stone", "checkbox-circle-fill")}
 ${kv("Provider", "Ben")}${kv("Funder", "Maria · 40 G$")}${kv("Custody", "Rocinha garden Safe")}${kv("If delivered", "Provider payout plan")}`,
       );
       break;
     case "refund-eligible":
       body = acard(
-        "Promise ended without delivery",
-        `${banner("The Cancelled promise makes this recorded deposit mechanically eligible. Queueing creates one Refund child to Maria's recorded account; an exact repeat returns the same child.", "amber", "error-warning-line")}
+        "Commitment ended without delivery",
+        `${banner("The Cancelled commitment makes this recorded deposit mechanically eligible. Queueing creates one Refund child to Maria's recorded account; an exact repeat returns the same child.", "amber", "error-warning-line")}
 ${kv("Funding", "F-204 · Consumed")}${kv("Terminal state", "Cancelled")}${kv("Refund", "40 G$ → Maria · 0x12…9a")}${kv("Garden Safe", "Accounting earmark · not a token lock")}
 <div class="actrow" style="justify-content:flex-end">${hot("w37.queue-refund", btn("Queue Refund", { kind: "pri", sm: true }))}</div>`,
       );

@@ -15,7 +15,7 @@ import { icon } from "../icons";
 import {
   actionBar, appBar, banner, btn, campaignSlide, card, chip, cycleCard, cycleRail, detailRow, disclosure, domainRow, emptySeasonSlide, emptyState, fabButton, field,
   flowHeader, formInfo, fundedOfferCard, gardenHeader, gardenTabs, hdr, hero, input, kindCards, kv, listRow, meter, offerCard, offerRow, ongoingOfferCard,
-  mediaStrip, pagepad, phoneFrame, poolFilters, promiseCard, radio, reasonChips, requestCard, seasonCard, seasonSlide, sectionCard, sectionTitle, sheetOver, skeleton, stateChip, syncBar,
+  mediaStrip, memberRow, pagepad, phoneFrame, poolFilters, commitmentCard, radio, reasonChips, requestCard, seasonCard, seasonSlide, sectionCard, sectionTitle, sheetOver, skeleton, stateChip, syncBar,
   teamOfferCard, teamstrip, timeline,
 } from "../kit";
 import type { HifiDef } from "./index";
@@ -26,7 +26,7 @@ import type { StateFacts } from "../types";
 // ---------------------------------------------------------------------------
 // Frames, same rule as W2 (2026-08-16 round 7): 33 states, nine frames. The six
 // send states are one frame — "saved on this device" is a single idea whatever
-// kind of promise is waiting — and the four claim outcomes are one answer with
+// kind of commitment is waiting — and the four claim outcomes are one answer with
 // four results, not four screens.
 
 const W1_STATES = [
@@ -62,7 +62,7 @@ const cycleCarousel = (opts: { season?: { made?: number; kept?: number; stage?: 
   cycleRail([opts.emptySeason ? emptySeasonSlide() : seasonSlide(opts.season), ...campaignSlides()]);
 
 // What the pool holds, member-side (2026-08-16 round 7). A gardener opening the
-// Pool tab used to meet a cycle carousel and a list of other people's promises
+// Pool tab used to meet a cycle carousel and a list of other people's commitments
 // with nothing saying what the pool itself IS. This is the answer, and it sits
 // above everything else because it is the reason to scroll.
 //
@@ -83,7 +83,7 @@ const w1Group = (id: W1State): string => {
   if (id.startsWith("claim-")) return "After you ask to take something up";
   if (id.startsWith("campaign-")) return "Campaigns";
   if (W1_SEASON_CHANGED.has(id)) return "When the season changes";
-  if (W1_BEFORE_OPEN.has(id)) return "Before promises open";
+  if (W1_BEFORE_OPEN.has(id)) return "Before commitments open";
   if (id === "funded-offer" || id === "request-open" || id === "request-work-open") return "What you can take up";
   return "The pool, open";
 };
@@ -92,46 +92,46 @@ const w1Group = (id: W1State): string => {
 // both lived here briefly (round 7) and both are gone (round 8, Afo).
 //
 // The holdings card cost 236px of a 700px phone and put a summary between a
-// member and the promises they came for; its unit groups now ride the
+// member and the commitments they came for; its unit groups now ride the
 // season/campaign slides, at each cycle's own scope, where they cost no extra
 // height. The roster was repeating something already true by construction — the
 // gardeners in a garden ARE its pool — so it told a member nothing new; if
 // gardener detail needs improving, the Gardeners tab is where that belongs, not
 // a fourth card on the Pool tab.
 //
-// The tab's shape is the one that was already right: carousel, then promises.
+// The tab's shape is the one that was already right: carousel, then commitments.
 
-// Claim outcomes speak the promise card's anatomy too (2026-08-16 round 9) —
+// Claim outcomes speak the commitment card's anatomy too (2026-08-16 round 9) —
 // they were the last four cards on this screen still drawing the retired
 // chips-lead shape. The outcome leads the tag row, and the recovery acts sit
 // under the card as the screen's, not inside it.
 const claimCard = (state: W1State) => {
   if (state === "claim-pending")
-    return promiseCard({
+    return commitmentCard({
       title: "Ride to the market on Saturday",
       meta: "Ana · 1 ride · asked Jul 9",
       tags: [{ label: "Waiting for steward review", tone: "warn" }, { label: "You'd provide" }],
       note: "The request stays open to others while stewards review.",
     });
   if (state === "claim-declined")
-    return `${promiseCard({
+    return `${commitmentCard({
       title: "Ride to the market on Saturday",
       meta: "Ana · 1 ride · asked Jul 9",
       tags: [{ label: "Not this time" }],
       note: "Your steward left a note: “provider context — see charter”.",
     })}<div class="brow">${hot("w1.ask-again", btn("Ask again", { kind: "sec" }))}${hot("w1.back-browse", btn("Back to browsing", { kind: "ghost" }))}</div>`;
   if (state === "claim-superseded")
-    return `${promiseCard({
+    return `${commitmentCard({
       title: "Ride to the market on Saturday",
       meta: "Ana · 1 ride · asked Jul 9",
       tags: [{ label: "Taken up by another provider" }],
       note: "No longer available — this is not a send failure.",
     })}<div class="brow">${hot("w1.back-browse", btn("Back to browsing", { kind: "ghost" }))}</div>`;
-  return `${promiseCard({
+  return `${commitmentCard({
     title: "Ride to the market on Saturday",
     meta: "Ana asked · you provide · 1 ride",
     tags: [{ label: "Accepted", tone: "ok" }],
-  })}<div class="brow">${hot("w1.open-commitment", btn("Open the promise", { kind: "pri" }))}</div>`;
+  })}<div class="brow">${hot("w1.open-commitment", btn("Open the commitment", { kind: "pri" }))}</div>`;
 };
 
 // Gallery casts for the Components tab — the four claim outcomes W1 renders.
@@ -168,7 +168,7 @@ function w1(state: W1State): string {
   switch (state) {
     case "ready":
       content = pagepad(
-        banner("The pool is set up — promises open when your steward opens it.", "stone"),
+        banner("The pool is set up — commitments open when your steward opens it.", "stone"),
         // The card that used to sit here was titled "What this pool holds" and
         // then listed the charter and the assessment — configuration under a
         // contents heading. A pool that hasn't opened holds nothing, so the
@@ -178,11 +178,11 @@ function w1(state: W1State): string {
       break;
     case "paused":
       content = pagepad(
-        banner("Paused by your stewards — “seasonal flooding, back after the rains”. Nothing is lost; promises resume when the pool does.", "amber", "error-warning-line"),
+        banner("Paused by your stewards — “seasonal flooding, back after the rains”. Nothing is lost; commitments resume when the pool does.", "amber", "error-warning-line"),
         seasonCard({ stage: "Paused" }),
         offerCard({
           readOnly: true,
-          readOnlyNote: "New participation is paused. Evidence, linked work, and recovery remain available inside the promise.",
+          readOnlyNote: "New participation is paused. Evidence, linked work, and recovery remain available inside the commitment.",
           detailHot: "w1.open-paused-promise",
         }),
       );
@@ -190,27 +190,27 @@ function w1(state: W1State): string {
     case "closed":
       content = pagepad(
         banner("This pool has closed. Its history stays with the garden.", "stone"),
-        card(`<div class="t-title">What this pool grew</div><div class="t-meta num">${POOL_LIFETIME.made} promises made · ${POOL_LIFETIME.kept} kept</div>`),
+        card(`<div class="t-title">What this pool grew</div><div class="t-meta num">${POOL_LIFETIME.made} commitments made · ${POOL_LIFETIME.kept} kept</div>`),
       );
       break;
     case "composted":
       content = pagepad(
         banner("This pool is composted for now. Its history stays readable, and the garden's stewards may reopen it for another season.", "stone", "leaf-line"),
-        card(`<div class="t-title">What this pool grew</div><div class="t-meta num">${POOL_LIFETIME.made} promises made · ${POOL_LIFETIME.kept} kept</div>`),
+        card(`<div class="t-title">What this pool grew</div><div class="t-meta num">${POOL_LIFETIME.made} commitments made · ${POOL_LIFETIME.kept} kept</div>`),
         card(`<div class="t-title">Participation is unavailable right now</div><div class="t-meta">Members cannot add or take up places while the pool is composted. Reopening is a steward action and preserves this history.</div>`),
       );
       break;
     case "no-season":
       content = pagepad(
         cycleCarousel({ emptySeason: true }),
-        card(`<div class="t-title">New season offers are paused</div><div class="t-meta">Seasons and campaigns are opened by stewards. Open a campaign to see its promises, or wait for your steward to seed the next season.</div>`, { cls: "inset" }),
+        card(`<div class="t-title">New season offers are paused</div><div class="t-meta">Seasons and campaigns are opened by stewards. Open a campaign to see its commitments, or wait for your steward to seed the next season.</div>`, { cls: "inset" }),
       );
       break;
     case "campaign-market":
       content = pagepad(
         banner("No Season is open. This campaign remains available on its own.", "stone"),
         cycleCard({ title: "Market rides", units: "10 rides", counts: "6 of 16 kept · through Aug 18", kind: "Campaign", stage: "Open" }),
-        sectionTitle("Campaign promises"),
+        sectionTitle("Campaign commitments"),
         requestCard({ openClaim: true, context: "Market rides campaign" }),
         hot("w1.campaigns-back", btn("Back to campaigns", { kind: "ghost", full: true })),
       );
@@ -219,20 +219,20 @@ function w1(state: W1State): string {
       content = pagepad(
         banner("Tool library is under review. Evidence and confirmations stay available.", "stone", "eye-line"),
         cycleCard({ title: "Tool library", units: "", counts: "8 of 8 kept · through Aug 18", kind: "Campaign", stage: "Reviewing" }),
-        promiseCard({ title: "Repair tool handles", meta: "Maria · 1 repair session · Tool library campaign", tags: [{ label: "Offer", tone: "offer" }, { label: "Support / service" }], note: "This promise is ready for confirmation.", hotId: "w1.open-tools-promise" }),
+        commitmentCard({ title: "Repair tool handles", meta: "Maria · 1 repair session · Tool library campaign", tags: [{ label: "Offer", tone: "offer" }, { label: "Support / service" }], note: "This commitment is ready for confirmation.", hotId: "w1.open-tools-promise" }),
         hot("w1.campaigns-back", btn("Back to campaigns", { kind: "ghost", full: true })),
       );
       break;
     case "empty-open":
       content = pagepad(
         seasonCard({ made: 0, kept: 0 }),
-        card(`<div class="t-title">No promises yet</div><div class="t-meta">Start the first one — offer something you can give, or ask for help you need.</div>`),
+        card(`<div class="t-title">No commitments yet</div><div class="t-meta">Start the first one — offer something you can give, or ask for help you need.</div>`),
         `<div class="brow">${hot("w1.offer", btn("Offer", { kind: "pri" }))}${hot("w1.request", btn("Request", { kind: "sec" }))}</div>`,
       );
       break;
     case "funded-offer":
       // The ask used to be a button inside the card. Cards carry no acts now
-      // (2026-08-16), and this screen is about one promise, so the act is the
+      // (2026-08-16), and this screen is about one commitment, so the act is the
       // screen's — placed after the terms a member needs to have read.
       content = pagepad(
         cycleCarousel(),
@@ -245,7 +245,7 @@ function w1(state: W1State): string {
     case "cycle-summary":
       content = pagepad(
         card(
-          `${hero(`${CYCLE} — closed`, `${SEASON_CLOSED.kept} of ${SEASON_CLOSED.made} promises kept`, "seedling-line")}${kv("Promises kept", `${SEASON_CLOSED.kept} of ${SEASON_CLOSED.made}`)}${kv("Hours", `${SEASON_CLOSED.hours.done} of ${SEASON_CLOSED.hours.of}`)}${kv("Rides", `${SEASON_CLOSED.rides.done} of ${SEASON_CLOSED.rides.of}`)}<div class="t-meta" style="text-align:center">Ready for the next season.</div>`,
+          `${hero(`${CYCLE} — closed`, `${SEASON_CLOSED.kept} of ${SEASON_CLOSED.made} commitments kept`, "seedling-line")}${kv("Commitments kept", `${SEASON_CLOSED.kept} of ${SEASON_CLOSED.made}`)}${kv("Hours", `${SEASON_CLOSED.hours.done} of ${SEASON_CLOSED.hours.of}`)}${kv("Rides", `${SEASON_CLOSED.rides.done} of ${SEASON_CLOSED.rides.of}`)}<div class="t-meta" style="text-align:center">Ready for the next season.</div>`,
         ),
         cycleRail(campaignSlides()),
       );
@@ -269,7 +269,7 @@ function w1(state: W1State): string {
       // the card as the note line; the act is the screen's, below it.
       content = pagepad(
         cycleCarousel(),
-        promiseCard({
+        commitmentCard({
           title: "Clear the drainage channel",
           meta: "Ana · 8 hours · due Aug 30",
           tags: [{ label: "Request", tone: "request" }, { label: "Garden work" }, { label: "AGRO" }],
@@ -284,7 +284,7 @@ function w1(state: W1State): string {
       content = pagepad(
         cycleCarousel(),
         banner("Your offer in exchange is saved on this device and will send when connected.", "stone", "wifi-off-line"),
-        hot("w1.queued-card", promiseCard({
+        hot("w1.queued-card", commitmentCard({
           title: "Repair the shared water pump",
           meta: "1 repair · runs with the season",
           tags: [{ label: "Offer", tone: "offer" }, { label: "In exchange" }, { label: "Queued", tone: "queued" }],
@@ -296,7 +296,7 @@ function w1(state: W1State): string {
       content = pagepad(
         cycleCarousel(),
         banner("Your ask is saved on this device and will send when connected.", "stone", "wifi-off-line"),
-        hot("w1.queued-card", promiseCard({
+        hot("w1.queued-card", commitmentCard({
           title: "Clear the drainage channel",
           meta: "8 hours · runs with the season",
           tags: [{ label: "Request", tone: "request" }, { label: "Queued", tone: "queued" }, { label: "AGRO" }],
@@ -309,7 +309,7 @@ function w1(state: W1State): string {
         cycleCarousel(),
         poolFilters(0, { mine: true }),
         hot("w1.queued-card", offerCard({ queued: true })),
-        disclosure("Browse other promises", "pool stays open", requestCard()),
+        disclosure("Browse other commitments", "pool stays open", requestCard()),
       );
       break;
     case "waiting-membership":
@@ -323,9 +323,9 @@ function w1(state: W1State): string {
     case "sync-failed":
       content = pagepad(
         cycleCarousel(),
-        banner("This promise did not send after five attempts. Retry it, or discard the local copy.", "amber", "error-warning-line"),
+        banner("This commitment did not send after five attempts. Retry it, or discard the local copy.", "amber", "error-warning-line"),
         hot("w1.queued-card", offerCard({ failed: true })),
-        disclosure("Browse other promises", "pool stays open", requestCard()),
+        disclosure("Browse other commitments", "pool stays open", requestCard()),
       );
       break;
     case "claim-pending":
@@ -341,7 +341,7 @@ function w1(state: W1State): string {
       // list that cannot exist. What a member can do is know when it starts and
       // decide what to bring, so the screen says that instead.
       content = pagepad(
-        banner("Opens Aug 1 — the season is written and waiting. Nobody has promised anything yet, including your stewards.", "amber", "time-line"),
+        banner("Opens Aug 1 — the season is written and waiting. Nobody has committed to anything yet, including your stewards.", "amber", "time-line"),
         seasonCard({ made: 0, kept: 0, stage: "Opens soon" }),
         card(
           `<div class="t-title">Think about what you can bring</div><div class="t-meta">When the season opens, everyone offers at once — that first day is what fills the pool. An hour of your time, a lift to the market, seedlings you've grown: whatever you can do is worth offering.</div>`,
@@ -351,11 +351,11 @@ function w1(state: W1State): string {
       break;
     case "reviewing":
       content = pagepad(
-        banner("Your stewards are reviewing this season. You can still add evidence and confirm promises.", "stone", "eye-line"),
+        banner("Your stewards are reviewing this season. You can still add evidence and confirm commitments.", "stone", "eye-line"),
         seasonCard({ stage: "Reviewing" }),
         offerCard({
           readOnly: true,
-          readOnlyNote: "This promise is ready for your confirmation. Other promises still accept evidence while the season is reviewed.",
+          readOnlyNote: "This commitment is ready for your confirmation. Other commitments still accept evidence while the season is reviewed.",
           detailHot: "w1.open-reviewing-promise",
         }),
       );
@@ -363,13 +363,13 @@ function w1(state: W1State): string {
     case "cancelled-cycle":
       content = pagepad(
         banner("This season was cancelled — “funding fell through for the rains”. Its history stays with the garden.", "stone", "information-line"),
-        cycleCard({ title: CYCLE, units: "", counts: `${SEASON_LIVE.made} promises made · ${SEASON_LIVE.kept} kept`, kind: "Season", stage: "Cancelled" }),
+        cycleCard({ title: CYCLE, units: "", counts: `${SEASON_LIVE.made} commitments made · ${SEASON_LIVE.kept} kept`, kind: "Season", stage: "Cancelled" }),
       );
       break;
     case "paused-cancelled-cycle":
       content = pagepad(
         banner("The pool remains paused — “seasonal flooding, back after the rains”. This season was cancelled, and its history stays with the garden.", "amber", "error-warning-line"),
-        cycleCard({ title: CYCLE, units: "", counts: `${SEASON_LIVE.made} promises made · ${SEASON_LIVE.kept} kept`, kind: "Season", stage: "Cancelled" }),
+        cycleCard({ title: CYCLE, units: "", counts: `${SEASON_LIVE.made} commitments made · ${SEASON_LIVE.kept} kept`, kind: "Season", stage: "Cancelled" }),
       );
       break;
     case "support-queued":
@@ -378,7 +378,7 @@ function w1(state: W1State): string {
         banner("Your service offer is saved on this device and will send when connected.", "stone", "wifi-off-line"),
         hot(
           "w1.queued-card",
-          promiseCard({
+          commitmentCard({
             title: "Repair tool handles",
             meta: "1 repair session · Tool library campaign",
             tags: [{ label: "Offer", tone: "offer" }, { label: "Support / service" }, { label: "Queued", tone: "queued" }],
@@ -401,14 +401,14 @@ function w1(state: W1State): string {
       );
       break;
     default: // open — create-open shares this cast behind the doors overlay
-      // The tab's whole shape: the carousel, then the promises. Nothing between
+      // The tab's whole shape: the carousel, then the commitments. Nothing between
       // them (round 8, Afo).
       content = pagepad(
         cycleCarousel(),
         // The browse section owns its own header, and the scope control rides
         // in it as a labelled select. Creation left this header for the
         // floating entry (2026-08-14), so one chip row sits before the cards.
-        sectionTitle("Open promises", hot("w1.scope", input("All current", { select: true, ariaLabel: "Scope" }))),
+        sectionTitle("Open commitments", hot("w1.scope", input("All current", { select: true, ariaLabel: "Scope" }))),
         poolFilters(0),
         offerCard(),
         ongoingOfferCard(),
@@ -423,7 +423,7 @@ function w1(state: W1State): string {
     state === "queued" || state === "support-queued" || state === "request-queued" ||
     state === "request-work-queued" || state === "exchange-queued";
   const sync = queuedState
-    ? syncBar("1 promise waiting to send")
+    ? syncBar("1 commitment waiting to send")
     : state === "sync-failed"
       ? syncBar("1 item needs attention")
       : "";
@@ -459,28 +459,28 @@ const W1_HOTS: HifiDef["hots"] = {
   "w1.create-cancel": { l: "Close the doors", to: "screen:W1", info: "Closes the creation doors without starting anything." },
   "w1.offer": { l: "Offer", to: "screen:W3@step-what", info: "Enters the composer with direction fixed = offer (2026-08-11 Appendix B addendum: no in-form Direction control). The door is one word (Afo, D3): the wizard it opens is titled Make an offer, so the button need not repeat the verb. Since 2026-08-14 the door stacks above the floating create entry (inline only on an empty pool). Templates are a prefill layer reached from step 1, no longer a gate before the form." },
   "w1.request": { l: "Request", to: "screen:W3@request-what", info: "Enters the composer with direction fixed = request; the paired one-word door (Afo, D3), opening the Make a request wizard. Since 2026-08-14 it stacks above the floating create entry (inline only on an empty pool). Step 1 chooses the kind (help or a service vs garden work) as plain words (2026-08-11 Appendix B addendum)." },
-  "w1.open-offer": { l: "Open the offer", to: "screen:W2@browse-offered", info: "Whole-card tap opens the pre-claim browse detail (2026-08-14 workflows round — the shipping WorkCard grammar): only the creator is on the promise, and the one act in the fixed bar is the same open-mode claim as the card button. Keyboard note: in this static artifact the inner act button is the tab stop (the player never nests focusables); the shipping build renders the whole card as the WorkCard button wrapper, which owns the real keyboard path." },
+  "w1.open-offer": { l: "Open the offer", to: "screen:W2@browse-offered", info: "Whole-card tap opens the pre-claim browse detail (2026-08-14 workflows round — the shipping WorkCard grammar): only the creator is on the commitment, and the one act in the fixed bar is the same open-mode claim as the card button. Keyboard note: in this static artifact the inner act button is the tab stop (the player never nests focusables); the shipping build renders the whole card as the WorkCard button wrapper, which owns the real keyboard path." },
   "w1.open-request": { l: "Open the request", to: "screen:W2@browse-requested", info: "Whole-card tap opens the pre-claim request detail; I-can-help is the one act, in the card footer and the detail's fixed bar alike. Same keyboard note as the offer card." },
   "w1.open-request-gated": { l: "Open the steward-reviewed request", to: "screen:W2@browse-requested-gated", info: "Whole-card tap on a steward-reviewed request opens the gated browse cast (PR #710 review): the detail names the review mode and its one act is Ask to take this up — opening a card never changes the modeled claim mode." },
   "w1.open-work-request": { l: "Open the work request", to: "screen:W2@request-work-active", info: "Whole-card tap opens the garden-work request detail; taking it up stays on the button. A dedicated work-request browse cast can follow the two drawn ones (browse-offered / browse-requested)." },
   "w1.open-ongoing": { l: "Open the ongoing Offer", to: "screen:W34@claimant-view", info: "The whole card opens the series detail (2026-08-14 second pass — the See-open-places nav button retired), where each open place is an ordinary Offered commitment that can be taken up (Appendix F.2). Places-left stays on the card as its real progress." },
-  "w1.open-team-offer": { l: "Open the team promise", to: "screen:W2", info: "The whole card opens the promise DETAIL first (iteration 2 — jumping straight into the team view skipped the promise itself): the team strip sits above the fold and opens the team view from there. Nav button retired 2026-08-14; the card is the tap target." },
+  "w1.open-team-offer": { l: "Open the team commitment", to: "screen:W2", info: "The whole card opens the commitment DETAIL first (iteration 2 — jumping straight into the team view skipped the commitment itself): the team strip sits above the fold and opens the team view from there. Nav button retired 2026-08-14; the card is the tap target." },
   "w1.take-up-work-request": { l: "I can help", to: "screen:W2@request-work-active", info: "Open-claim on a DomainImpact Request: claimCommitment → CommitmentAccepted with provider = claimant and confirmer = Ana, the asker. The ask then rides the ordinary Work-approval rails (CS:133 · register #97a).", calls: ["claimCommitment"], facts: { commitment: "Requested", kind: "DomainImpact" } },
-  "w1.open-paused-promise": { l: "Open promise while paused", to: "screen:W2@active", info: "Whole-card tap. Pause blocks new participation and confirmation, not browsing, evidence, linkage, cancellation, expiry, or dispute recovery (UX:60)." },
-  "w1.open-reviewing-promise": { l: "Open the ready promise", to: "screen:W2@ready-confirmer", info: "Whole-card tap; the confirm act lives in the detail. Reviewing keeps evidence and confirmation available; this selected promise is already ReadyForConfirmation (UX:74)." },
+  "w1.open-paused-promise": { l: "Open commitment while paused", to: "screen:W2@active", info: "Whole-card tap. Pause blocks new participation and confirmation, not browsing, evidence, linkage, cancellation, expiry, or dispute recovery (UX:60)." },
+  "w1.open-reviewing-promise": { l: "Open the ready commitment", to: "screen:W2@ready-confirmer", info: "Whole-card tap; the confirm act lives in the detail. Reviewing keeps evidence and confirmation available; this selected commitment is already ReadyForConfirmation (UX:74)." },
   "w1.campaign-market": { l: "Open Market rides campaign", to: "screen:W1@campaign-market", info: "Campaigns remain independently usable when no Season is open (UX:127)." },
   "w1.campaign-tools": { l: "Open Tool library campaign", to: "screen:W1@campaign-tools", info: "A Reviewing campaign stays independently browseable and keeps evidence and confirmation available (UX:74,127)." },
   "w1.campaigns-back": { l: "Back to campaigns", to: "screen:W1@no-season", info: "Returns to the no-Season pool home with both Campaigns available." },
-  "w1.open-tools-promise": { l: "Open the Tool library promise", to: "screen:W2@support-ready-confirmer", info: "Whole-card tap (nav button retired 2026-08-14; PR #710 review closed the W4 shortcut). Opens the SupportService promise detail, ready to confirm — the confirmation act lives in the detail's fixed bar, per the card grammar." },
+  "w1.open-tools-promise": { l: "Open the Tool library commitment", to: "screen:W2@support-ready-confirmer", info: "Whole-card tap (nav button retired 2026-08-14; PR #710 review closed the W4 shortcut). Opens the SupportService commitment detail, ready to confirm — the confirmation act lives in the detail's fixed bar, per the card grammar." },
   "w1.ask-again": { l: "Ask again", to: "screen:W1@claim-pending", info: "Creates a FRESH request while the commitment is claimable — never retries the declined row (UX:105).", calls: ["claimCommitment"], facts: { commitment: "Requested", kind: "SupportService" } },
   "w1.back-browse": { l: "Back to browsing", to: "screen:W1", info: "Declined/superseded exits return to browse." },
-  "w1.open-commitment": { l: "Open the promise", to: "screen:W2@request-active", info: "Acceptance opens the same request record with the accepted claimant as provider (UX:104)." },
+  "w1.open-commitment": { l: "Open the commitment", to: "screen:W2@request-active", info: "Acceptance opens the same request record with the accepted claimant as provider (UX:104)." },
   "w1.scope": { l: "Scope control", info: "Filters the list; every aggregate names its scope — Season and Campaigns never blur (UX:127)." },
   "w1.filters": { l: "Filter row", info: "Direction chips All · Offers · Requests plus the personal Mine toggle (2026-08-14) — personal scope is orthogonal to direction, so it is a toggle, not a fourth pill. Client-local (admin AdminFilterChip is admin-only). The exchange-pair filter (formerly “Matched”) returns with the exchange wave; paired cards keep their In-exchange chip meanwhile." },
   "w1.season-card": { l: "Cycle card", info: "Season vs Campaign is always named; derived InProgress/Reviewing overlays follow activity (CS:115-117). Calm dates, never timers. Leads the season+campaigns rail (2026-08-14) — swiping the rail never changes list scope; the browse select owns that." },
-  "w1.queued-card": { l: "Queued promise card", info: "Offline-queued job chrome; syncs when connected (UX:237). waiting_for_hat variant consumes no send attempts (register #34c)." },
-  "w1.retry-send": { l: "Retry queued send", to: "screen:W1@queued", info: "Resets the failed job to pending and retries without dropping the local promise (UX:218)." },
-  "w1.discard-send": { l: "Discard failed send", to: "screen:W1", info: "Removes only the exhausted local job after an explicit member choice; no remote promise exists yet (UX:218)." },
+  "w1.queued-card": { l: "Queued commitment card", info: "Offline-queued job chrome; syncs when connected (UX:237). waiting_for_hat variant consumes no send attempts (register #34c)." },
+  "w1.retry-send": { l: "Retry queued send", to: "screen:W1@queued", info: "Resets the failed job to pending and retries without dropping the local commitment (UX:218)." },
+  "w1.discard-send": { l: "Discard failed send", to: "screen:W1", info: "Removes only the exhausted local job after an explicit member choice; no remote commitment exists yet (UX:218)." },
   "w1.retry": { l: "Try again", info: "Read-surface recovery — retries the read. None/UNKNOWN sentinels render loading / not-found / recovery chrome, never a “None” state chip (UX:51-52 · AM:12)." },
   "w1.tab-work": { l: "Work tab", info: "The existing garden Work tab — submissions, approvals, assessments (UX:116). Pool leads the row since 2026-08-14; Work is the landing only while a garden has no pool." },
   "w1.tab-insights": { l: "Insights tab", info: "The existing garden Insights tab — unchanged by pooling." },
@@ -582,8 +582,8 @@ const w2StateChip: Record<W2ChipState, string> = {
 };
 
 // FRAME CLASSIFICATION (2026-08-16 round 7). W2's 75 states are not 75 screens:
-// they are ONE promise lifecycle — offered → accepted → evidence → ready →
-// confirmed — replayed across six kinds of promise, plus the money-transport
+// they are ONE commitment lifecycle — offered → accepted → evidence → ready →
+// confirmed — replayed across six kinds of commitment, plus the money-transport
 // chain and a few endings. Grouping them says so; the states themselves all
 // stay, because prototypes.md §17 accounts for every one and the registry
 // validator enforces it. Presentations merge, the ledger doesn't move.
@@ -607,11 +607,11 @@ const W2_YOUR_GARDEN = new Set<string>(["garden-provider", "garden-support-arriv
 
 const w2Group = (id: W2State): string => {
   if (id === "loading" || id === "not-found" || id === "read-error") return "Loading and problems";
-  if (id.startsWith("browse-")) return "Someone else's promise";
+  if (id.startsWith("browse-")) return "Someone else's commitment";
   if (id === "captured" || id.startsWith("captured-")) return "Recorded for you";
   if (W2_MONEY_MOVING.has(id)) return "Money on its way";
   if (W2_SERVICE_OFFER.has(id)) return "A service offer";
-  if (W2_YOUR_GARDEN.has(id)) return "Your garden's promise";
+  if (W2_YOUR_GARDEN.has(id)) return "Your garden's commitment";
   if (W2_ENDINGS.has(id)) return "How it ended";
   if (id.startsWith("campaign-request-")) return "A campaign request";
   if (id.startsWith("request-work-")) return "A request for work";
@@ -655,8 +655,8 @@ const W2_REQUEST_WORK = new Set<string>([
   "request-work-confirmation-pending", "request-work-fulfilled",
 ]);
 const W2_GARDEN = new Set<string>(["garden-provider", "garden-support-arrived"]);
-type PromiseCast = "offer" | "request" | "request-work" | "campaign-request" | "support" | "captured" | "garden";
-const w2Cast = (state: W2State): PromiseCast =>
+type CommitmentCast = "offer" | "request" | "request-work" | "campaign-request" | "support" | "captured" | "garden";
+const w2Cast = (state: W2State): CommitmentCast =>
   W2_GARDEN.has(state) ? "garden"
   : W2_REQUEST_WORK.has(state) ? "request-work"
   : W2_CAMPAIGN_REQUEST.has(state) ? "campaign-request"
@@ -667,7 +667,7 @@ const w2Cast = (state: W2State): PromiseCast =>
 // Domain propagation (2026-08-14 workflows round): domains left the chip row
 // for the equal-weight domain row on cards — the detail header follows, so
 // the amber .ch.domain chip retires from W2 and `domains` renders as a dmrow.
-const W2_IDENTITY: Record<PromiseCast, { title: string; meta: string; chips: string; domains?: string[] }> = {
+const W2_IDENTITY: Record<CommitmentCast, { title: string; meta: string; chips: string; domains?: string[] }> = {
   offer: {
     title: "Prune the north beds",
     meta: "6 hours · due Aug 12 · Season of First Rains",
@@ -730,7 +730,7 @@ function w2RewardRow(state: W2State): string {
     );
   switch (state) {
     case "garden-provider":
-      return line("Support goes to the providing garden, not to an individual — it is queued once the promise is confirmed.", "Pending", "warn");
+      return line("Support goes to the providing garden, not to an individual — it is queued once the commitment is confirmed.", "Pending", "warn");
     case "garden-support-arrived":
       return line("It reached the garden's own reserve ↗ — the reference is in Details.", "Arrived", "ok");
     case "reward-released":
@@ -740,7 +740,7 @@ function w2RewardRow(state: W2State): string {
     case "support-en-route":
       return line("Support on its way (G$).", "On its way");
     case "support-delayed":
-      return line("Support on its way — delivery delayed. Your promise remains recorded.", "Delayed", "warn");
+      return line("Support on its way — delivery delayed. Your commitment remains recorded.", "Delayed", "warn");
     case "support-executed":
       return line("Support on its way (G$).", "On its way");
     case "support-confirming":
@@ -748,11 +748,11 @@ function w2RewardRow(state: W2State): string {
     case "support-arrived":
       return line("Support arrived ↗ — reference in Details.", "Arrived", "ok");
     case "support-failed":
-      return line("Support is being rearranged — your promise is recorded and stays kept.", "Being rearranged", "warn");
+      return line("Support is being rearranged — your commitment is recorded and stays kept.", "Being rearranged", "warn");
     case "support-cancelled-queued":
-      return line("This support was withdrawn before it was sent — your promise and its record stay intact.", "Withdrawn", "warn");
+      return line("This support was withdrawn before it was sent — your commitment and its record stay intact.", "Withdrawn", "warn");
     case "support-cancelled-failed":
-      return line("This support was closed after delivery could not complete — your promise and its record stay intact.", "Closed", "warn");
+      return line("This support was closed after delivery could not complete — your commitment and its record stay intact.", "Closed", "warn");
     default:
       return line("Reference only — no value is held by the app.", "Pending");
   }
@@ -760,7 +760,7 @@ function w2RewardRow(state: W2State): string {
 
 // Settlement-bearing outcomes: the commitment is Fulfilled and the only news
 // left is where the support is. Kept as one set so the state chip, the lead
-// band, and the timeline can never disagree about whether the promise is done.
+// band, and the timeline can never disagree about whether the commitment is done.
 const W2_SETTLED = new Set<W2State>([
   "reward-released", "support-queued", "support-en-route", "support-delayed",
   "support-executed", "support-confirming", "support-arrived", "support-failed",
@@ -769,9 +769,9 @@ const W2_SETTLED = new Set<W2State>([
 
 type Moment = { label: string; meta?: string; open?: boolean; warn?: boolean; note?: string };
 
-// The timeline is a function of where the promise actually is. A single shared
+// The timeline is a function of where the commitment actually is. A single shared
 // body made pre-acceptance states show an "Accepted" moment before anyone had
-// claimed, and made @cancelled promise a reason the timeline never carried.
+// claimed, and made @cancelled commitment a reason the timeline never carried.
 function w2Moments(state: W2State, overrideNote: boolean): Moment[] {
   if (state === "offered" || state === "withdraw-confirm" || state === "browse-offered")
     return [{ label: "Offered", meta: "Maria · Jul 2 — waiting for someone to take it up", open: true }];
@@ -799,7 +799,7 @@ function w2Moments(state: W2State, overrideNote: boolean): Moment[] {
       return [...campaignAsked, { label: "Evidence in", meta: "photo from the market · Jul 6" }, { label: "Confirmation queued", meta: "Ana · saved on this device", open: true }];
     if (state === "campaign-request-disputed")
       return [...campaignAsked, { label: "Under steward review", meta: "Ana recorded what still needs doing", open: true }];
-    return [...campaignAsked, { label: "Evidence in", meta: "photo from the market · Jul 6" }, { label: "Promise kept", meta: "confirmed by Ana · Jul 6", open: true }];
+    return [...campaignAsked, { label: "Evidence in", meta: "photo from the market · Jul 6" }, { label: "Commitment kept", meta: "confirmed by Ana · Jul 6", open: true }];
   }
   if (W2_REQUEST_WORK.has(state)) {
     const askedWork: Moment[] = [
@@ -832,7 +832,7 @@ function w2Moments(state: W2State, overrideNote: boolean): Moment[] {
       return [...asked, { label: "Evidence in", meta: "photo from the market · Jul 6" }, { label: "Confirmation queued", meta: "Ana · saved on this device", open: true }];
     if (state === "request-disputed")
       return [...asked, { label: "Under steward review", meta: "Ana recorded what still needs doing", open: true }];
-    return [...asked, { label: "Evidence in", meta: "photo from the market · Jul 6" }, { label: "Promise kept", meta: "confirmed by Ana · Jul 6", open: true }];
+    return [...asked, { label: "Evidence in", meta: "photo from the market · Jul 6" }, { label: "Commitment kept", meta: "confirmed by Ana · Jul 6", open: true }];
   }
   if (W2_SUPPORT.has(state)) {
     if (state === "support-offered")
@@ -856,7 +856,7 @@ function w2Moments(state: W2State, overrideNote: boolean): Moment[] {
       return [...offered, { label: "Cancelled", meta: "steward · Jul 9", note: "“withdrawn by agreement at the gathering”", warn: true, open: true }];
     if (state === "support-disputed")
       return [...offered, { label: "Under steward review", meta: "João recorded what still needs doing", open: true }];
-    return [...offered, { label: "Evidence in", meta: "photo of repaired handles · Jul 6" }, { label: "Promise kept", meta: "confirmed by João · Jul 6", open: true }];
+    return [...offered, { label: "Evidence in", meta: "photo of repaired handles · Jul 6" }, { label: "Commitment kept", meta: "confirmed by João · Jul 6", open: true }];
   }
   if (W2_CAPTURED.has(state)) {
     const recorded: Moment[] = [
@@ -877,7 +877,7 @@ function w2Moments(state: W2State, overrideNote: boolean): Moment[] {
       return [...recorded, { label: "Evidence in", meta: "workshop photo · Jul 6" }, { label: "Confirmation queued", meta: "Ana · saved on this device", open: true }];
     if (state === "captured-disputed")
       return [...recorded, { label: "Under steward review", meta: "Ana recorded what still needs doing", open: true }];
-    return [...recorded, { label: "Evidence in", meta: "workshop photo · Jul 6" }, { label: "Promise kept", meta: "confirmed by João · Jul 6", open: true }];
+    return [...recorded, { label: "Evidence in", meta: "workshop photo · Jul 6" }, { label: "Commitment kept", meta: "confirmed by João · Jul 6", open: true }];
   }
   if (state === "garden-provider")
     return [
@@ -889,7 +889,7 @@ function w2Moments(state: W2State, overrideNote: boolean): Moment[] {
       { label: "Requested", meta: "protocol pool · Jul 2" },
       { label: "Accepted", meta: "Awka Hub took this up · Jul 5" },
       { label: "Evidence in", meta: "survey sheet · Jul 10" },
-      { label: "Promise kept", meta: "confirmed by Sofia · ordinary named confirmation · Jul 12", open: true },
+      { label: "Commitment kept", meta: "confirmed by Sofia · ordinary named confirmation · Jul 12", open: true },
     ];
   const opened: Moment[] = [
     { label: "Offered", meta: "Maria · Jul 2" },
@@ -917,11 +917,11 @@ function w2Moments(state: W2State, overrideNote: boolean): Moment[] {
     ? { label: "Ready", meta: "steward note", note: "“confirmed on site visit” (steward record)", warn: true }
     : { label: "Ready to confirm", meta: "waiting on João", open: true };
   if (state === "fulfilled-pool-fallback")
-    return [...worked, { ...ready, open: false }, { label: "Promise kept", meta: "confirmed by garden steward — fallback · David · Jul 12", note: "“confirmed at the field gathering”", open: true }];
+    return [...worked, { ...ready, open: false }, { label: "Commitment kept", meta: "confirmed by garden steward — fallback · David · Jul 12", note: "“confirmed at the field gathering”", open: true }];
   if (state === "fulfilled-protocol-fallback")
-    return [...worked, { ...ready, open: false }, { label: "Promise kept", meta: "confirmed by Green Goods team — fallback · Sofia · Jul 12", note: "“no eligible local confirmer”", open: true }];
+    return [...worked, { ...ready, open: false }, { label: "Commitment kept", meta: "confirmed by Green Goods team — fallback · Sofia · Jul 12", note: "“no eligible local confirmer”", open: true }];
   if (state === "fulfilled" || state === "reconciled" || W2_SETTLED.has(state))
-    return [...worked, { ...ready, open: false }, { label: "Promise kept", meta: "confirmed by João · Jul 12", open: true }];
+    return [...worked, { ...ready, open: false }, { label: "Commitment kept", meta: "confirmed by João · Jul 12", open: true }];
   return [...worked, ready];
 }
 
@@ -936,7 +936,7 @@ const w2Disclosures = (state: W2State, opts: { work?: boolean; overrideNote?: bo
     state === "reconciled" ||
     W2_SETTLED.has(state);
   const teamHot = rosterFrozen ? "w2.open-team-frozen" : "w2.open-team-forming";
-  // Nothing has been done yet on an unclaimed promise — no evidence, no work.
+  // Nothing has been done yet on an unclaimed commitment — no evidence, no work.
   const preAcceptance =
     state === "offered" || state === "requested" || state === "support-offered" ||
     state === "withdraw-confirm" || state === "withdrawn" ||
@@ -984,7 +984,7 @@ const w2Disclosures = (state: W2State, opts: { work?: boolean; overrideNote?: bo
     : detailRow("Season", "First Rains");
   // FLAT SECTIONS, not a stack of drawers (2026-08-16 round 10, Afo). This
   // screen used to open with five closed disclosures — Timeline, People,
-  // Evidence, Work, Details — so nothing about the promise was legible without
+  // Evidence, Work, Details — so nothing about the commitment was legible without
   // tapping. The shipped work view (WorkView.tsx) never does that: it renders
   // an h6 label then its content, open, one section after another. This is that
   // anatomy, with the same content.
@@ -1003,7 +1003,7 @@ const w2Disclosures = (state: W2State, opts: { work?: boolean; overrideNote?: bo
       : cast === "request-work"
         ? `${listRow({ icon: "user-line", primary: "João", meta: "Provider — took up the ask" })}${listRow({ icon: "user-line", primary: "Ana", meta: "Asked for this · confirms when it's ready" })}`
         : `${listRow({ icon: "user-line", primary: "Maria", meta: "Accountable lead" })}${listRow({ icon: "group-line", primary: "Ana · Kwame", meta: "Contributors · credited from approved work" })}`;
-  // Work-for-this-promise stops being its own drawer and becomes a Details row,
+  // Work-for-this-commitment stops being its own drawer and becomes a Details row,
   // except where there is something to DO about it — an unlinked approval is a
   // recovery act, so it keeps its rows and buttons.
   const workRow =
@@ -1017,7 +1017,7 @@ const w2Disclosures = (state: W2State, opts: { work?: boolean; overrideNote?: bo
   const unlinkedWork =
     state === "accepted"
       ? sectionCard(
-          "Work for this promise",
+          "Work for this commitment",
           `${listRow({ icon: "check-line", primary: "Pruning session", meta: "Approved · Jul 8 — not yet linked", chipHtml: chip("Not linked", "warn") })}<div class="brow" style="padding:0 12px 10px">${hot("w2.unlinked-work", btn("Link it", { kind: "sec", sm: true }))}${hot("w2.link-work", btn("Link other work", { kind: "ghost", sm: true }))}</div>`,
         )
       : "";
@@ -1049,11 +1049,11 @@ const w2Disclosures = (state: W2State, opts: { work?: boolean; overrideNote?: bo
   );
 };
 
-// The promise's STATUS card, in the shipped FormInfo anatomy — circular icon
+// The commitment's STATUS card, in the shipped FormInfo anatomy — circular icon
 // badge, title, meaning (2026-08-16 round 10). WorkViewSection's own FormInfo
 // carries exactly this: getTitle()/getInfo() return "Saved on your device",
 // "Evaluate Work", "Work Approved" — the record's state and what it means, never
-// its name. The promise's name is the screen header and is not repeated here.
+// its name. The commitment's name is the screen header and is not repeated here.
 const bandCard = (inner: string, ic = "information-line") =>
   `<div class="finfo"><span class="fic">${icon(ic)}</span><div class="grow">${inner}</div></div>`;
 
@@ -1068,13 +1068,13 @@ const W2_BAND_ICON: Record<string, string> = {
 };
 
 function w2(state: W2State): string {
-  // Sample identity follows the promise, not the fixture. A request is a
-  // different promise from the offer — different title, unit and cast — and the
+  // Sample identity follows the commitment, not the fixture. A request is a
+  // different commitment from the offer — different title, unit and cast — and the
   // header is the first thing that has to say so.
   const ident = W2_IDENTITY[w2Cast(state)];
   const head = hdr(ident.title, { back: true });
   // Read-surface recovery states short-circuit before the state chip is computed.
-  // appBar:false matches the loaded return below (and withdraw-confirm): promise
+  // appBar:false matches the loaded return below (and withdraw-confirm): commitment
   // detail is a pushed read surface, so loading/not-found/read-error must not
   // grow a bottom nav the loaded screen doesn't have (PRD-760).
   const readWrap = (inner: string) =>
@@ -1082,23 +1082,23 @@ function w2(state: W2State): string {
   if (state === "loading")
     return readWrap(pagepad(skeleton({ title: true, lines: 1 }), skeleton({ avatar: true, lines: 3 }), skeleton({ lines: 2 })));
   if (state === "not-found")
-    return readWrap(pagepad(emptyState("search-line", "Promise not found", "We couldn't find this promise. It may have been withdrawn, or it hasn't synced to this device yet.", hot("w2.retry", btn("Try again", { kind: "sec", icon: "refresh-line" })))));
+    return readWrap(pagepad(emptyState("search-line", "Commitment not found", "We couldn't find this commitment. It may have been withdrawn, or it hasn't synced to this device yet.", hot("w2.retry", btn("Try again", { kind: "sec", icon: "refresh-line" })))));
   if (state === "read-error")
-    return readWrap(pagepad(emptyState("wifi-off-line", "Couldn't load this promise", "Something went wrong reaching the network. Check your connection and try again.", hot("w2.retry", btn("Try again", { kind: "pri", icon: "refresh-line" })))));
+    return readWrap(pagepad(emptyState("wifi-off-line", "Couldn't load this commitment", "Something went wrong reaching the network. Check your connection and try again.", hot("w2.retry", btn("Try again", { kind: "pri", icon: "refresh-line" })))));
   const chips = `<div class="cardrow">${ident.chips}${stateChip(w2StateChip[state])}</div>${ident.domains ? `<div style="padding:0 0 2px">${domainRow(ident.domains)}</div>` : ""}`;
   // E5 anatomy (iteration 2): the people are above the fold — avatars for
   // creator → counterparty, plus the team strip when a roster exists.
   const cast = w2Cast(state);
-  const W2_PEOPLE: Record<PromiseCast, { initials: string[]; line: string; team?: boolean }> = {
+  const W2_PEOPLE: Record<CommitmentCast, { initials: string[]; line: string; team?: boolean }> = {
     offer: { initials: ["M", "J"], line: "Maria offers · João takes it up", team: true },
     request: { initials: ["A", "J"], line: "Ana requested · João provides" },
     "request-work": { initials: ["A", "J"], line: "Ana requested · João provides · Ana confirms" },
     "campaign-request": { initials: ["A", "J"], line: "Ana requested · Market rides campaign" },
     support: { initials: ["M", "J"], line: "Maria provides · João confirms" },
-    captured: { initials: ["K", "D"], line: "Kwame's promise · recorded by David" },
+    captured: { initials: ["K", "D"], line: "Kwame's commitment · recorded by David" },
     garden: { initials: ["A", "S"], line: "Awka Hub provides · protocol stewards confirm" },
   };
-  // Browse casts are pre-claim: only the creator is on the promise yet.
+  // Browse casts are pre-claim: only the creator is on the commitment yet.
   const pp =
     state === "browse-offered"
       ? { initials: ["M"], line: "Maria offers — no one has taken it up yet" }
@@ -1136,13 +1136,13 @@ function w2(state: W2State): string {
     "browse-offered": hot("w2.take-up-browse", btn("Take this up", { kind: "pri", full: true })),
     "browse-requested": hot("w2.help-browse", btn("I can help", { kind: "pri", full: true })),
     "browse-requested-gated": hot("w2.ask-browse", btn("Ask to take this up", { kind: "pri", full: true })),
-    "ready-confirmer": hot("w2.confirm", btn("Confirm: promise kept", { kind: "pri", full: true })),
+    "ready-confirmer": hot("w2.confirm", btn("Confirm: commitment kept", { kind: "pri", full: true })),
     expired: hot("w2.offer-again", btn("Offer it again", { kind: "pri", full: true })),
   };
 
   const capturedChip =
     W2_CAPTURED.has(state)
-      ? hot("w2.captured-chip", banner("Recorded by your steward on your behalf. The promise stays yours.", "stone", "hand-heart-line"))
+      ? hot("w2.captured-chip", banner("Recorded by your steward on your behalf. The commitment stays yours.", "stone", "hand-heart-line"))
       : "";
 
   let band: string;
@@ -1151,7 +1151,7 @@ function w2(state: W2State): string {
   // state chip and the reward row, and §5.3 gates evidence attach to
   // Active / EvidenceSubmitted / PartiallyApproved anyway.
   if (W2_SETTLED.has(state))
-    band = bandCard(`<div class="t-title">Promise kept</div><div class="t-meta">Confirmed by João · Jul 12 — the season's count already grew.</div>`);
+    band = bandCard(`<div class="t-title">Commitment kept</div><div class="t-meta">Confirmed by João · Jul 12 — the season's count already grew.</div>`);
   else switch (state) {
     case "evidence-queued":
       band = bandCard(
@@ -1203,7 +1203,7 @@ function w2(state: W2State): string {
       break;
     case "campaign-request-ready-pending":
       band = bandCard(
-        `<div class="t-title">Campaign readiness saved on this device</div><div class="t-meta">The promise stays Evidence in until this sends. Its Campaign binding does not change.</div>`,
+        `<div class="t-title">Campaign readiness saved on this device</div><div class="t-meta">The commitment stays Evidence in until this sends. Its Campaign binding does not change.</div>`,
       );
       break;
     case "campaign-request-ready-confirmer":
@@ -1256,12 +1256,12 @@ function w2(state: W2State): string {
       break;
     case "support-accepted":
       band = bandCard(
-        `<div class="t-title">Repair accepted</div><div class="t-meta">João took up this place. It remains Accepted until Maria links Work or evidence reaches the promise.</div>`,
+        `<div class="t-title">Repair accepted</div><div class="t-meta">João took up this place. It remains Accepted until Maria links Work or evidence reaches the commitment.</div>`,
       );
       break;
     case "support-evidence-queued":
       band = bandCard(
-        `<div class="t-title">Evidence saved on this device</div><div class="t-meta">It will send when connected. Confirmation stays unavailable until the evidence reaches the promise.</div>${listRow({
+        `<div class="t-title">Evidence saved on this device</div><div class="t-meta">It will send when connected. Confirmation stays unavailable until the evidence reaches the commitment.</div>${listRow({
           icon: "image-line",
           primary: "Tool handles after repair",
           meta: "Photo · waiting to send",
@@ -1290,21 +1290,21 @@ function w2(state: W2State): string {
       );
       break;
     case "support-fulfilled":
-      band = bandCard(hero("Promise kept", "Confirmed by João · the campaign's count just grew", "checkbox-circle-fill"));
+      band = bandCard(hero("Commitment kept", "Confirmed by João · the campaign's count just grew", "checkbox-circle-fill"));
       break;
     case "captured":
       band = bandCard(
-        `<div class="t-title">Workshop underway</div><div class="t-meta">This recorded-for-Kwame promise is evidence-only. Add evidence without introducing a garden-work approval requirement.</div>`,
+        `<div class="t-title">Workshop underway</div><div class="t-meta">This recorded-for-Kwame commitment is evidence-only. Add evidence without introducing a garden-work approval requirement.</div>`,
       );
       break;
     case "captured-evidence-queued":
       band = bandCard(
-        `<div class="t-title">Evidence saved on this device</div><div class="t-meta">It will send when connected. The recorded promise keeps its StewardCaptured path.</div>`,
+        `<div class="t-title">Evidence saved on this device</div><div class="t-meta">It will send when connected. The recorded commitment keeps its StewardCaptured path.</div>`,
       );
       break;
     case "captured-evidence-submitted":
       band = bandCard(
-        `<div class="t-title">Evidence attached: 1 · no work required</div><div class="t-meta">The named counterparty confirms this recorded promise.</div>`,
+        `<div class="t-title">Evidence attached: 1 · no work required</div><div class="t-meta">The named counterparty confirms this recorded commitment.</div>`,
       );
       break;
     case "captured-ready-pending":
@@ -1314,16 +1314,16 @@ function w2(state: W2State): string {
       break;
     case "captured-ready-confirmer":
       band = bandCard(
-        `<div class="t-title">Ready to confirm</div><div class="t-meta">The lead provider remains excluded. The named counterparty reviews the captured promise.</div>`,
+        `<div class="t-title">Ready to confirm</div><div class="t-meta">The lead provider remains excluded. The named counterparty reviews the captured commitment.</div>`,
       );
       break;
     case "captured-confirmation-pending":
       band = bandCard(
-        `<div class="t-title">Confirmation waiting to send</div><div class="t-meta">The saved confirmation stays with Kwame's recorded promise and cannot be submitted twice while it syncs.</div>`,
+        `<div class="t-title">Confirmation waiting to send</div><div class="t-meta">The saved confirmation stays with Kwame's recorded commitment and cannot be submitted twice while it syncs.</div>`,
       );
       break;
     case "captured-fulfilled":
-      band = bandCard(hero("Promise kept", "The captured promise was confirmed after its evidence synced", "checkbox-circle-fill"));
+      band = bandCard(hero("Commitment kept", "The captured commitment was confirmed after its evidence synced", "checkbox-circle-fill"));
       break;
     case "garden-provider":
       band = bandCard(
@@ -1332,7 +1332,7 @@ function w2(state: W2State): string {
       break;
     case "garden-support-arrived":
       band = bandCard(
-        `<div class="t-title">Promise kept — your garden provided it</div><div class="t-meta">Confirmed by Sofia through ordinary named confirmation on Jul 12. The support went to the garden's own account.</div>`,
+        `<div class="t-title">Commitment kept — your garden provided it</div><div class="t-meta">Confirmed by Sofia through ordinary named confirmation on Jul 12. The support went to the garden's own account.</div>`,
       );
       break;
     case "withdrawn":
@@ -1346,7 +1346,7 @@ function w2(state: W2State): string {
       break;
     case "browse-offered":
       band =
-        card(`<div class="t-title">Open to take up</div><div class="t-meta">Take it up and this becomes your promise to keep — approved Prune and Plant work is its proof.</div>`);
+        card(`<div class="t-title">Open to take up</div><div class="t-meta">Take it up and this becomes your commitment to keep — approved Prune and Plant work is its proof.</div>`);
       break;
     case "browse-requested":
       band =
@@ -1362,34 +1362,34 @@ function w2(state: W2State): string {
       break;
     case "evidence-submitted":
       band = bandCard(
-        `<div class="t-title">Evidence attached: 1</div><div class="t-meta">This is garden work, so approved linked work and its assessment move the promise toward confirmation.</div>`,
+        `<div class="t-title">Evidence attached: 1</div><div class="t-meta">This is garden work, so approved linked work and its assessment move the commitment toward confirmation.</div>`,
       );
       break;
     case "partially-approved":
-      band = bandCard(`<div class="t-title">Work approvals</div>${meter(50, { left: "approved works", right: "1 of 2" })}<div class="t-meta">One more approval — then the qualifying assessment — and this promise is ready to confirm.</div>`);
+      band = bandCard(`<div class="t-title">Work approvals</div>${meter(50, { left: "approved works", right: "1 of 2" })}<div class="t-meta">One more approval — then the qualifying assessment — and this commitment is ready to confirm.</div>`);
       break;
     case "ready-confirmer":
       band = bandCard(
-        `<div class="t-title">Ready to confirm</div><div class="t-meta">You were named to confirm this promise. Maria, who made it, cannot.</div>`,
+        `<div class="t-title">Ready to confirm</div><div class="t-meta">You were named to confirm this commitment. Maria, who made it, cannot.</div>`,
       );
       break;
     case "confirmation-pending":
       band = bandCard(
-        `<div class="t-title">Confirmation waiting to send</div><div class="t-meta">Your saved confirmation is queued. This promise stays ready and cannot be confirmed twice while it syncs.</div>`,
+        `<div class="t-title">Confirmation waiting to send</div><div class="t-meta">Your saved confirmation is queued. This commitment stays ready and cannot be confirmed twice while it syncs.</div>`,
       );
       break;
     case "fulfilled":
-      band = bandCard(hero("Promise kept", "Confirmed by João · the season's count just grew", "checkbox-circle-fill"));
+      band = bandCard(hero("Commitment kept", "Confirmed by João · the season's count just grew", "checkbox-circle-fill"));
       break;
     case "fulfilled-pool-fallback":
-      band = bandCard(hero("Promise kept", "Confirmed by garden steward — fallback · the reason is in the timeline", "checkbox-circle-fill"));
+      band = bandCard(hero("Commitment kept", "Confirmed by garden steward — fallback · the reason is in the timeline", "checkbox-circle-fill"));
       break;
     case "fulfilled-protocol-fallback":
-      band = bandCard(hero("Promise kept", "Confirmed by Green Goods team — fallback · the reason is in the timeline", "checkbox-circle-fill"));
+      band = bandCard(hero("Commitment kept", "Confirmed by Green Goods team — fallback · the reason is in the timeline", "checkbox-circle-fill"));
       break;
     case "expired":
       band = bandCard(
-        `<div class="t-title">This promise ran through Aug 12</div><div class="t-meta">The season moved on — you can offer it again.</div>`,
+        `<div class="t-title">This commitment ran through Aug 12</div><div class="t-meta">The season moved on — you can offer it again.</div>`,
       );
       break;
     case "disputed":
@@ -1403,14 +1403,14 @@ function w2(state: W2State): string {
       band = banner("Cancelled — the reason is recorded in the timeline.", "stone");
       break;
     case "support-cancelled":
-      band = banner("This service promise was cancelled by a steward. The recorded reason stays in the timeline.", "stone");
+      band = banner("This service commitment was cancelled by a steward. The recorded reason stays in the timeline.", "stone");
       break;
     case "reconciled":
-      band = banner("This season closed. The promise rolled into the season summary.", "stone", "seedling-line");
+      band = banner("This season closed. The commitment rolled into the season summary.", "stone", "seedling-line");
       break;
     default:
       band = bandCard(
-        `<div class="t-title">Keep the promise moving</div><div class="t-meta">Add evidence as you go. Work that fulfills this promise links from the work section below.</div>`,
+        `<div class="t-title">Keep the commitment moving</div><div class="t-meta">Add evidence as you go. Work that fulfills this commitment links from the work section below.</div>`,
       );
   }
 
@@ -1455,7 +1455,7 @@ function w2(state: W2State): string {
   );
 
   // Withdrawing is the member's own irreversible act, so it confirms over the
-  // promise it affects and takes the reason the contract stores (CS:145).
+  // commitment it affects and takes the reason the contract stores (CS:145).
   if (state === "withdraw-confirm")
     return phoneFrame(
       sheetOver(
@@ -1497,37 +1497,37 @@ ${hot("w2.withdraw-send", btn("Withdraw this offer", { kind: "danger", full: tru
 
 const W2_HOTS: HifiDef["hots"] = {
   "w2.take-up-support": { l: "Take up this service offer", to: "screen:W2@support-accepted", info: "Open claim mode accepts João as the recipient/counterparty; Maria remains the provider. The commitment stays Accepted until WorkLinked or EvidenceAttached lands.", calls: ["claimCommitment"], facts: { commitment: "Offered", kind: "SupportService" } },
-  "w2.team-strip": { l: "Open team — join in", to: "screen:W2b@open-eligible", info: "The team strip above the fold (iteration 2, E5/E8): the promise's people are visible on open, and the strip opens the team view where eligible open-team members join." },
+  "w2.team-strip": { l: "Open team — join in", to: "screen:W2b@open-eligible", info: "The team strip above the fold (iteration 2, E5/E8): the commitment's people are visible on open, and the strip opens the team view where eligible open-team members join." },
   "w2.open-team-forming": { l: "See editable team and contributions", to: "screen:W2b@forming", info: "Before readiness, the accountable lead can add, remove, and assign contributors through online contract actions." },
   "w2.open-team-frozen": { l: "See frozen team and contributions", to: "screen:W2b@frozen", info: "After readiness, opens the frozen contributor roster and contribution record without implying that every participant receives an equal share." },
   "w2.add-evidence": { l: "Add evidence", to: "screen:W2a@media", info: "W2a attach sheet: photo / link / note → one evidence job per submit; fully offline (UX:164)." },
   "w2.add-evidence-request": { l: "Add request evidence", to: "screen:W2a@media", info: "Keeps Ana's request and João's provider role intact while opening the shared evidence composer." },
   "w2.add-evidence-campaign-request": { l: "Add campaign-request evidence", to: "screen:W2a@media", info: "Keeps the Market rides Campaign binding while opening the shared evidence composer." },
   "w2.add-evidence-support": { l: "Add service evidence", to: "screen:W2a@media", info: "Evidence-only SupportService offer: photo / link / note → one offline evidence job (UX:164)." },
-  "w2.add-evidence-captured": { l: "Add captured-promise evidence", to: "screen:W2a@media", info: "Keeps the StewardCaptured kind and the member as promise source while opening the evidence composer." },
+  "w2.add-evidence-captured": { l: "Add captured-commitment evidence", to: "screen:W2a@media", info: "Keeps the StewardCaptured kind and the member as commitment source while opening the evidence composer." },
   "w2.take-up-browse": { l: "Take this up", to: "screen:W2", info: "The browse detail's one act (2026-08-14 workflows round — card-taps land here pre-claim): the same open-mode claim as the card button. Claim job → optimistic Accepted (UX:129).", calls: ["claimCommitment"], facts: { commitment: "Offered", kind: "DomainImpact" } },
   "w2.help-browse": { l: "I can help", to: "screen:W2@request-active", info: "The request browse detail's one act: open-mode claim — the claimant becomes the provider and Ana, the asker, remains the confirmer (UX:104).", calls: ["claimCommitment"], facts: { commitment: "Requested", kind: "SupportService" } },
   "w2.ask-browse": { l: "Ask to take this up", to: "screen:W1@claim-pending", info: "The gated browse detail's one act (PR #710 review): approval-gated claim request with stored terms — the commitment stays available to others while stewards review (UX:99), and W1's pending/declined/superseded grammar takes over.", calls: ["claimCommitment"], facts: { commitment: "Requested", kind: "SupportService" } },
-  "w2.submit-work": { l: "Submit work for this promise", to: "screen:WFLOW@intro-promise", info: "Deep-links the existing Garden-tab work flow with commitment context (UX:174). Promise-first entry scopes the intro (2026-08-14 workflows round): a fulfilling strip on top, the action grid filtered to the promise's requirement rows, the garden locked. DomainImpact only." },
-  "w2.submit-work-request-detail": { l: "Submit work for this ask", to: "screen:WFLOW@intro-promise", info: "A DomainImpact Request rides the same Work rails as an offer: submitted work carries meta.commitmentId, approvals count toward the ask's requirements, and the asker confirms (register #97). Lands on the scoped promise-first intro (the drawn cast uses the offer fixture)." },
+  "w2.submit-work": { l: "Submit work for this commitment", to: "screen:WFLOW@intro-promise", info: "Deep-links the existing Garden-tab work flow with commitment context (UX:174). Commitment-first entry scopes the intro (2026-08-14 workflows round): a fulfilling strip on top, the action grid filtered to the commitment's requirement rows, the garden locked. DomainImpact only." },
+  "w2.submit-work-request-detail": { l: "Submit work for this ask", to: "screen:WFLOW@intro-promise", info: "A DomainImpact Request rides the same Work rails as an offer: submitted work carries meta.commitmentId, approvals count toward the ask's requirements, and the asker confirms (register #97). Lands on the scoped commitment-first intro (the drawn cast uses the offer fixture)." },
   "w2.link-work": { l: "Link existing work", to: "screen:WFLOW@link-picker", info: "Client work-picker (2026-08-11 D6 — this control previously mis-targeted the admin work console): selects one of the gardener's approved/pending Works plus one exact requirement row → workLink job carries requirementIndex (UX:140). Repeated action UIDs never use first-match behavior.", calls: ["linkWork"] },
   "w2.unlinked-work": { l: "Link it", to: "screen:WFLOW@link-picker", info: "The recovery layer of standing attribution (2026-08-14): whenever the member has approved work matching a requirement row that is not yet linked, this row stands in the work section — missed attribution is recoverable, never silently lost. Same linkWork path and exact-row rule as the picker.", calls: ["linkWork"] },
-  "w2.confirm": { l: "Confirm: promise kept", to: "screen:W4", info: "Visible only to eligible confirmers while ReadyForConfirmation — the provider never sees it (UX:142)." },
+  "w2.confirm": { l: "Confirm: commitment kept", to: "screen:W4", info: "Visible only to eligible confirmers while ReadyForConfirmation — the provider never sees it (UX:142)." },
   "w2.send-confirmation": { l: "Send for confirmation", to: "screen:W2@support-ready-pending", info: "Queues the evidence-only readiness transition; DomainImpact is rejected on-chain (CS:138b).", calls: ["submitForConfirmation"], pendingSync: true },
-  "w2.confirm-support-detail": { l: "Review service confirmation", to: "screen:W4@confirm-support", info: "Opens the named recipient's confirmation view for this SupportService promise." },
+  "w2.confirm-support-detail": { l: "Review service confirmation", to: "screen:W4@confirm-support", info: "Opens the named recipient's confirmation view for this SupportService commitment." },
   "w2.send-confirmation-request": { l: "Send request for confirmation", to: "screen:W2@request-ready-pending", info: "Queues submitForConfirmation while keeping Ana as default confirmer and João as provider.", calls: ["submitForConfirmation"], pendingSync: true },
   "w2.confirm-request-work-detail": { l: "Review confirmation", to: "screen:W4@confirm-request-work", info: "Opens the garden-work ask's confirmation sheet — approved Work is the proof shown there, not evidence (register #97a)." },
   "w2.confirm-request-detail": { l: "Review request confirmation", to: "screen:W4@confirm-request", info: "Opens only after the request readiness update has synced." },
   "w2.send-confirmation-campaign-request": { l: "Send campaign request for confirmation", to: "screen:W2@campaign-request-ready-pending", info: "Queues readiness without losing the Market rides Campaign binding.", calls: ["submitForConfirmation"], pendingSync: true },
   "w2.confirm-campaign-request-detail": { l: "Review campaign-request confirmation", to: "screen:W4@confirm-campaign-request", info: "Opens the named request creator's confirmation while preserving Campaign scope." },
-  "w2.send-confirmation-captured": { l: "Send captured promise for confirmation", to: "screen:W2@captured-ready-pending", info: "StewardCaptured is evidence-only and may call submitForConfirmation without linked work.", calls: ["submitForConfirmation"], pendingSync: true },
-  "w2.confirm-captured-detail": { l: "Review captured-promise confirmation", to: "screen:W4@confirm-captured", info: "Opens the named counterparty's confirmation without changing the captured member source." },
+  "w2.send-confirmation-captured": { l: "Send captured commitment for confirmation", to: "screen:W2@captured-ready-pending", info: "StewardCaptured is evidence-only and may call submitForConfirmation without linked work.", calls: ["submitForConfirmation"], pendingSync: true },
+  "w2.confirm-captured-detail": { l: "Review captured-commitment confirmation", to: "screen:W4@confirm-captured", info: "Opens the named counterparty's confirmation without changing the captured member source." },
   "w2.offer-again": { l: "Offer it again", to: "screen:W3", info: "Per-cycle renewal — a fresh commitment, prefilled (UX:94). Adopted MF-3." },
   "w2.withdraw": { l: "Withdraw (pre-acceptance)", to: "screen:W2@withdraw-confirm", info: "Member pre-acceptance withdraw, adopted MF-2a (register #34b). Steward cancellation remains a separate recorded action with its own outcome state." },
   "w2.withdraw-send": { l: "Withdraw (confirm)", to: "screen:W2@withdrawn", info: "cancelCommitment(commitmentId, reasonCID) on this Offered-Offer creator path releases its already-committed units and provider slot exactly once. An unaccepted Request has no registry release (CS §5.3).", calls: ["cancelCommitment"] },
   "w2.withdraw-keep": { l: "Keep the offer open", to: "screen:W2@offered", info: "Closes the confirmation with the offer still live." },
   "w2.reward-row": { l: "Reward / settlement row", info: "Reference only — no custody. When an integrated G$ settlement exists, it replaces the pending line; “Arrived” requires an authenticated CCIP success acknowledgment, never dispatch or Celo execution alone." },
-  "w2.captured-chip": { l: "Recorded-for-you chip", info: "Analog capture: the steward is only the recorder; the promise stays the member's (UX:437)." },
+  "w2.captured-chip": { l: "Recorded-for-you chip", info: "Analog capture: the steward is only the recorder; the commitment stays the member's (UX:437)." },
   "w2.retry": { l: "Try again", info: "Read-surface recovery — retries the commitment read (loading/not-found/read-error; never a “None” chip) (UX:51-52 · AM:12)." },
 };
 
@@ -1536,84 +1536,211 @@ const W2_HOTS: HifiDef["hots"] = {
 // ---------------------------------------------------------------------------
 
 const W2B_STATES = [
-  ["forming", "Team forming"], ["add-contributor", "Add contributor"],
-  ["remove-contributor", "Remove contributor"], ["assign-requirement", "Assign responsibility"],
-  ["open-eligible", "Open team · eligible"], ["join-submitted", "Open team · join submitted"],
+  ["setup", "Before anyone accepts"],
+  ["forming", "The team"], ["forming-service", "The team · a service"],
+  ["add-sheet", "Add people"],
+  ["remove-contributor", "Remove someone"], ["assign-requirement", "Assign work"],
+  ["open-eligible", "Open team · not joined"], ["join-submitted", "Open team · joining"],
   ["open-member", "Open team · joined"],
-  ["frozen", "Roster frozen"], ["recognition", "Recognition preview"],
+  ["frozen", "Roster frozen"], ["recognition", "How credit is shared"],
 ] as const;
 type W2bState = (typeof W2B_STATES)[number][0];
 
+// ONE team surface (2026-08-17, Afo). Team used to live in two places that never
+// referenced each other: creation's Advanced detour owned the policy and the
+// invite list, and this screen owned the roster afterwards. It is one screen with
+// two lifecycle states now, which is also what the contract allows — the Open /
+// LeadManaged policy is immutable once someone accepts, and a roster exists only
+// after acceptance.
+//
+// The kind gate is fixed here too. Every drawn contributor action used to declare
+// kind: "DomainImpact", so a service commitment could choose a team policy at
+// creation and then had nowhere to see or manage that team. contract-spec: "Every
+// accepted commitment stores one accountable leadProvider and an event-indexed
+// contributor roster." Only assigning WORK stays garden-work-only, because
+// requirement rows exist nowhere else.
+const W2B_ROSTER = (opts: { frozen?: boolean } = {}) =>
+  memberRow({ name: "Maria", sub: "maria.eth", joined: "Joined Mar 2025", badge: "Lead" }) +
+  memberRow({ name: "Ana", sub: "ana.eth", joined: "Joined Mar 2025", badge: "Credited" }) +
+  memberRow({ name: "Kwame", sub: "kwame.eth", joined: "Joined Jun 2025", badge: opts.frozen ? "Credited" : "Planned" });
+
+// The policy, never a per-person split (2026-08-17, Afo). This section used to
+// rank teammates by percentage — "Maria 40% · Ana 35% · Kwame 25%" — on a member
+// surface, against D.3's copy rule ("never percentages, never a grade, never a
+// comparison against another member") and the round-7 no-per-person-rates rule.
+// It states how credit is shared and stops there.
+const W2B_POLICY = sectionCard(
+  "How credit is shared",
+  `${detailRow("Shared equally", "35% among everyone on the team")}${detailRow("By verified contribution", "65% — approved work and evidence")}${hot("w2b.preview", btn("What counts as verified", { kind: "ghost", sm: true, icon: "information-line" }))}`,
+);
+
 function w2b(state: W2bState): string {
-  const frozen = state === "frozen" || state === "recognition";
-  const body = state === "add-contributor"
-    ? `${banner("This is a Lead-managed team. Its lead or steward may add eligible garden members; Open teams use self-join instead. Team updates are online-only contract actions and are never queued offline.", "stone", "wifi-off-line")}
-${field("Garden member", input("Sofia · 0x74…c2"))}
-${banner("Adding a contributor never changes the accountable lead or grants recognition credit by itself.", "stone")}
-<div class="actrow">${hot("w2b.add-cancel", btn("Cancel", { kind: "ghost" }))}${hot("w2b.add-confirm", btn("Add contributor", { kind: "pri" }))}</div>`
-    : state === "remove-contributor"
-    ? `${banner("Remove Kwame from this Lead-managed promise?", "amber", "user-line")}
-${card(`${kv("Contributor", "Kwame · 0x5b…19")}${kv("Verified credit", "None")}`)}
-${banner("Lead or steward removal exists only for Lead-managed rosters. Open-team members self-leave before credit and freeze. Only a non-lead contributor with no approved Work, pending linked Work, or evidence credit can be removed.", "stone")}
-<div class="actrow">${hot("w2b.remove-cancel", btn("Keep contributor", { kind: "ghost" }))}${hot("w2b.remove-confirm", btn("Remove Kwame", { kind: "danger" }))}</div>`
-    : state === "assign-requirement"
-    ? `${banner("Planned responsibility coordinates the team. It does not award recognition credit.", "stone", "information-line")}
-${field("Contributor", input("Kwame · 0x5b…19", { select: true }))}
-${field("Planned responsibility", input("Beds survey · requirement row 3", { select: true }))}
-<div class="actrow">${hot("w2b.assign-cancel", btn("Cancel", { kind: "ghost" }))}${hot("w2b.assign-confirm", btn("Save responsibility", { kind: "pri" }))}</div>`
-    : state === "open-eligible"
-    ? `${banner("This team is open to eligible garden members. Joining is an online contract action and does not award credit by itself.", "stone")}
-${card(`${kv("Accountable lead", "Maria")}${kv("Your status", "Not on this team")}`)}
-${hot("w2b.join", btn("Join this promise", { kind: "pri", full: true }))}`
-    : state === "join-submitted"
-    ? `${banner("Join submitted. Your wallet transaction is confirmed, and this screen is waiting for the indexed contributor roster before showing you as a member. A missing or stale roster result stays here.", "stone", "loader4-line")}
-${card(`${kv("Your status", "Waiting for roster confirmation")}${kv("Indexed predicate", "Pending · connected account not present in the fresh roster")}${kv("Recognition credit", "None · joining alone does not award credit")}`)}
-${hot("w2b.join-indexed", btn("Check roster", { kind: "sec", full: true }))}`
-    : state === "open-member"
-    ? `${banner("Roster confirmed. You joined this open team.", "stone", "checkbox-circle-fill")}
-${card(`${kv("Your status", "Contributor · no verified credit")}${kv("Indexed predicate", "Pass · fresh roster contains the connected account")}${kv("Leave rule", "Before credit and before roster freeze")}`)}
-${hot("w2b.leave", btn("Leave this promise", { kind: "sec", full: true }))}`
-    : state === "recognition"
-    ? `${banner("Each fulfilled commitment receives an equal budget. This cycle's immutable policy shares 35% equally among eligible contributors and 65% by verified contribution.", "stone", "information-line")}
-${card(`${kv("Cycle policy", "35% equal participation · 65% verified contribution")}${kv("Maria · lead", "40% · approved work + coordination")}${kv("Ana", "35% · approved pruning work")}${kv("Kwame", "25% · evidence + follow-through")}`)}
-${banner("This is the gardener-share recognition preview. New protocol state cannot reach fulfillment with zero eligible contributors; W26 blocks inconsistent legacy/indexed data rather than awarding the lead automatically. Payment starts from this hash-bound vector, but the garden may retain an explicit amount and correct contributor amounts with a reason. Certificate eligibility additionally requires a non-zero cycle with its six-role allocation; a cycle-less promise is recognition/payment-only.", "amber")}`
-    : `${card(
-        `${listRow({ icon: "user-line", primary: "Maria", meta: "Accountable lead · accepted the commitment", chipHtml: chip("Lead", "offer") })}
-${listRow({ icon: "user-line", primary: "Ana", meta: "Contributor · approved pruning work", chipHtml: chip("Credited", "ok") })}
-${listRow({ icon: "user-line", primary: "Kwame", meta: frozen ? "Contributor · evidence and delivery follow-through" : "Contributor · no verified credit yet", chipHtml: frozen ? chip("Credited", "ok") : chip("Planned", "plain") })}`,
-        { cls: "flat" },
-      )}
-${frozen
-  ? banner("Roster frozen atomically when the commitment entered Ready for confirmation. Roster edits are unavailable after freeze.", "stone", "shield-check-line")
-  : `${banner("Lead-managed team · one person stays accountable. The lead or steward may add or remove eligible uncredited collaborators; Open teams use self-join and self-leave instead.", "stone")}
-<div class="actrow">${hot("w2b.add", btn("Add contributor", { kind: "sec", icon: "add-line" }))}${hot("w2b.assign", btn("Assign Kwame", { kind: "ghost" }))}</div>
-${hot("w2b.remove", btn("Remove Kwame from this promise", { kind: "ghost", full: true }))}`}
-${hot("w2b.preview", btn("Preview recognition", { kind: "pri", full: true }))}`;
-  return phoneFrame(`${hdr("Team and contributions", { back: true })}${pagepad(body)}<div style="flex:1"></div>`, { appBar: false });
+  const head = hdr("Team", { back: true });
+  let body: string;
+  let actions = "";
+  switch (state) {
+    // Before anyone accepts: the two things that can still be decided.
+    case "setup":
+      body =
+        formInfo("group-line", "Who can work on this", "Choose how people join, and invite anyone you already know") +
+        sectionCard(
+          "How people join",
+          radio([
+            { label: "Open team", meta: "eligible gardeners may join it themselves", on: true },
+            { label: "Lead-managed", meta: "you or a steward manage who is on it" },
+          ], { interactive: true, name: "team-policy" }),
+        ) +
+        banner("This is fixed when someone accepts — it cannot change afterwards.", "stone", "shield-check-line") +
+        sectionCard(
+          "Invited so far",
+          `${memberRow({ name: "João", sub: "joao.eth", joined: "Joined Jan 2025" })}${memberRow({ name: "Luz", sub: "luz.eth", joined: "Joined Feb 2025" })}<div class="brow" style="padding:0 12px 10px">${hot("w2b.add", btn("Add people", { kind: "sec", sm: true, icon: "add-line" }))}</div>`,
+          { flush: true },
+        ) +
+        banner("Inviting someone does not give them credit. Approved work and evidence do.", "stone", "information-line");
+      actions = hot("w2b.setup-done", btn("Save and go back", { kind: "pri", full: true }));
+      break;
+    // The picker sheet, mirroring the shipped garden Gardeners list: scroll, tap
+    // to select, one primary act. It replaces the old single-address text field.
+    case "add-sheet":
+      return phoneFrame(
+        sheetOver(
+          head + pagepad(formInfo("group-line", "The team", "Rocinha Community Garden · 3 on the team") + sectionCard("On the team", W2B_ROSTER(), { flush: true })),
+          "Add to the team",
+          `<div class="t-meta">Everyone in Rocinha who can join this commitment.</div>` +
+            memberRow({ name: "Sofia", sub: "sofia.eth", joined: "Joined Mar 2025", select: "off" }) +
+            hot("w2b.pick", memberRow({ name: "João", sub: "joao.eth", joined: "Joined Jan 2025", badge: "Steward", select: "on" })) +
+            memberRow({ name: "Luz", sub: "luz.eth", joined: "Joined Feb 2025", select: "off" }) +
+            memberRow({ name: "0x74…c2", joined: "Joined Aug 2025", select: "off" }) +
+            memberRow({ name: "Tomás", sub: "tomas.eth", joined: "Joined Jul 2025", select: "off" }) +
+            memberRow({ name: "Beatriz", sub: "bea.eth", joined: "Joined Apr 2025", select: "off" }) +
+            memberRow({ name: "Chidi", sub: "chidi.eth", joined: "Joined May 2025", badge: "Steward", select: "off" }) +
+            memberRow({ name: "0x1f…9a", joined: "Joined Aug 2025", select: "off" }) +
+            memberRow({ name: "Leila", sub: "leila.eth", joined: "Joined Feb 2025", select: "off" }) +
+            `<div class="t-meta">Rocinha has 23 gardeners — scroll for the rest. Someone with no name on file shows their wallet address instead.</div>` +
+            hot("w2b.add-confirm", btn("Add 1 to the team", { kind: "pri", full: true })),
+        ),
+        { appBar: false },
+      );
+    case "remove-contributor":
+      body =
+        formInfo("user-line", "Remove Kwame?", "Only someone with no approved work, pending work, or evidence credit can be removed") +
+        sectionCard("Who this is", memberRow({ name: "Kwame", sub: "kwame.eth", joined: "Joined Jun 2025", badge: "Planned" }), { flush: true }) +
+        banner("Lead-managed rosters only. On an Open team people leave themselves, before credit and before the roster freezes.", "stone", "information-line");
+      actions = `<div class="brow">${hot("w2b.remove-cancel", btn("Keep them", { kind: "ghost" }))}${hot("w2b.remove-confirm", btn("Remove Kwame", { kind: "danger" }))}</div>`;
+      break;
+    // Garden work only: requirement rows exist nowhere else, which is the ONE
+    // action the kind gate legitimately applies to.
+    case "assign-requirement":
+      body =
+        formInfo("shield-check-line", "Assign work", "Planned responsibility helps the team coordinate — it does not award credit") +
+        sectionCard(
+          "Who and what",
+          `${field("Who", input("Kwame", { select: true }))}${field("Which work", input("Beds survey · Weed × 2", { select: true }))}`,
+        ) +
+        banner("Only garden work can be assigned this way — a service names no actions to point at.", "stone", "leaf-line");
+      actions = `<div class="brow">${hot("w2b.assign-cancel", btn("Cancel", { kind: "ghost" }))}${hot("w2b.assign-confirm", btn("Save", { kind: "pri" }))}</div>`;
+      break;
+    case "open-eligible":
+      body =
+        formInfo("group-line", "The team", "Rocinha Community Garden · 2 on the team") +
+        sectionCard("How people join", detailRow("Open team", "Eligible gardeners may join it themselves"), { flush: true }) +
+        sectionCard("On the team", memberRow({ name: "Maria", sub: "maria.eth", joined: "Joined Mar 2025", badge: "Lead" }) + memberRow({ name: "Ana", sub: "ana.eth", joined: "Joined Mar 2025", badge: "Credited" }), { flush: true }) +
+        W2B_POLICY +
+        banner("Joining is an online action and does not give you credit by itself.", "stone", "information-line");
+      actions = hot("w2b.join", btn("Join this commitment", { kind: "pri", full: true }));
+      break;
+    case "join-submitted":
+      body =
+        formInfo("loader4-line", "Joining…", "Your transaction went through — waiting for the roster to catch up") +
+        sectionCard("Where this is", `${detailRow("Your place", "Waiting for roster confirmation")}${detailRow("Credit", "None — joining alone never awards credit")}`) +
+        banner("This screen shows you as a member only once the indexed roster contains your account. A missing or stale result stays here.", "stone", "time-line");
+      actions = hot("w2b.join-indexed", btn("Check again", { kind: "sec", full: true }));
+      break;
+    case "open-member":
+      body =
+        formInfo("group-line", "The team", "Rocinha Community Garden · 3 on the team") +
+        sectionCard("On the team", W2B_ROSTER(), { flush: true }) +
+        W2B_POLICY +
+        banner("You can leave before you have any credit and before the roster freezes.", "stone", "information-line");
+      actions = hot("w2b.leave", btn("Leave this commitment", { kind: "ghost", full: true }));
+      break;
+    case "frozen":
+      body =
+        formInfo("shield-check-line", "The team", "Roster frozen · 3 on the team") +
+        sectionCard("On the team", W2B_ROSTER({ frozen: true }), { flush: true }) +
+        W2B_POLICY +
+        banner("The roster froze when this became ready to confirm. It cannot change now.", "stone", "shield-check-line");
+      break;
+    case "recognition":
+      body =
+        formInfo("information-line", "What counts as verified", "How the 65% share is worked out") +
+        sectionCard(
+          "Verified contribution",
+          `${detailRow("Approved work", "Work a steward approved, counted against this commitment")}${detailRow("Evidence", "Photos, notes and follow-through attached to it")}${detailRow("Coordination", "Carrying the commitment as its accountable lead")}`,
+        ) +
+        banner("Each fulfilled commitment receives an equal budget; this cycle's policy shares 35% equally and 65% by verified contribution. A garden may later correct amounts with a recorded reason.", "stone", "information-line");
+      break;
+    // A service commitment's team — the same screen, proving the kind gate is
+    // gone. Assign work is absent because a service names no actions.
+    case "forming-service":
+      body =
+        formInfo("group-line", "The team", "Repair tool handles · 2 on the team") +
+        sectionCard("How people join", detailRow("Lead-managed", "Maria or a steward manages who is on it"), { flush: true }) +
+        sectionCard(
+          "On the team",
+          `${memberRow({ name: "Maria", sub: "maria.eth", joined: "Joined Mar 2025", badge: "Lead" })}${memberRow({ name: "Tomás", sub: "tomas.eth", joined: "Joined Jul 2025", badge: "Planned" })}<div class="brow" style="padding:0 12px 10px">${hot("w2b.add", btn("Add people", { kind: "sec", sm: true, icon: "add-line" }))}</div>`,
+          { flush: true },
+        ) +
+        W2B_POLICY +
+        banner("A service has a team like any other commitment. Only garden work can assign someone to a named action.", "stone", "hand-heart-line");
+      actions = hot("w2b.add", btn("Add people", { kind: "pri", full: true }));
+      break;
+    default: // forming
+      body =
+        formInfo("group-line", "The team", "Prune the north beds · 3 on the team") +
+        sectionCard("How people join", detailRow("Lead-managed", "Maria or a steward manages who is on it"), { flush: true }) +
+        sectionCard(
+          "On the team",
+          `${W2B_ROSTER()}<div class="brow" style="padding:0 12px 10px">${hot("w2b.add", btn("Add people", { kind: "sec", sm: true, icon: "add-line" }))}${hot("w2b.assign", btn("Assign work", { kind: "ghost", sm: true }))}${hot("w2b.remove", btn("Remove someone", { kind: "ghost", sm: true }))}</div>`,
+          { flush: true },
+        ) +
+        W2B_POLICY;
+      actions = hot("w2b.add", btn("Add people", { kind: "pri", full: true }));
+  }
+  return phoneFrame(head + pagepad(body), { appBar: actions ? actionBar(actions) : undefined });
 }
 
 const W2B_HOTS: HifiDef["hots"] = {
-  "w2b.add": { l: "Add contributor", to: "screen:W2b@add-contributor", info: "LeadManaged only: opens the online-only eligible garden-member picker. Open teams use joinCommitment; roster updates never enter the offline field queue." },
-  "w2b.add-cancel": { l: "Cancel add contributor", to: "screen:W2b@forming", info: "Closes the picker without changing the roster." },
-  "w2b.add-confirm": { l: "Confirm add contributor", to: "screen:W2b@forming", info: "Calls addContributor for the selected garden member; wallet rejection or a roster-cap/freeze error leaves the selection visible for retry.", calls: ["addContributor"], facts: { commitment: "Accepted", kind: "DomainImpact" } },
-  "w2b.remove": { l: "Remove Kwame from this promise", to: "screen:W2b@remove-contributor", info: "LeadManaged only: opens a named confirmation for an uncredited non-lead contributor with no pending linked Work. Open-team members self-leave; managed expulsion is unavailable." },
-  "w2b.remove-cancel": { l: "Keep contributor", to: "screen:W2b@forming", info: "Returns without changing the roster." },
-  "w2b.remove-confirm": { l: "Remove Kwame", to: "screen:W2b@forming", info: "Calls removeContributor online for this LeadManaged roster. The indexed roster changes only after confirmation; an Open policy, freeze, lead, pending-Work, or credit error keeps this confirmation available.", calls: ["removeContributor"], facts: { commitment: "Accepted", kind: "DomainImpact" } },
-  "w2b.assign": { l: "Assign planned responsibility to Kwame", to: "screen:W2b@assign-requirement", info: "Opens the requirement-row assignment editor without treating planning as recognition credit." },
-  "w2b.assign-cancel": { l: "Cancel responsibility assignment", to: "screen:W2b@forming", info: "Returns without changing the assignment." },
-  "w2b.assign-confirm": { l: "Save planned responsibility", to: "screen:W2b@forming", info: "Calls setContributorRequirement for the selected contributor and exact requirement row. Wallet failure keeps both selections available for retry.", calls: ["setContributorRequirement"], facts: { commitment: "Accepted", kind: "DomainImpact" } },
-  "w2b.join": { l: "Join this promise", to: "screen:W2b@join-submitted", info: "Calls joinCommitment for an eligible Open-team garden member. A successful wallet submission lands in a pending state; membership renders only after indexed roster confirmation and never creates recognition credit.", calls: ["joinCommitment"], facts: { commitment: "Accepted", kind: "DomainImpact" } },
-  "w2b.join-indexed": { l: "Check indexed roster", to: "screen:W2b@join-submitted", info: "Refreshes the read model. A missing or stale result, or a fresh roster without the connected account, remains pending. The reactive screen enters open-member only after a fresh indexed contributor roster contains that exact account; this control has no unconditional success route." },
-  "w2b.leave": { l: "Leave this promise", to: "screen:W2b@open-eligible", info: "Calls leaveCommitment only for an active non-lead Open-team member with zero Work/evidence credit before freeze.", calls: ["leaveCommitment"], facts: { commitment: "Accepted", kind: "DomainImpact" } },
-  "w2b.preview": { l: "Preview recognition", to: "screen:W2b@recognition", info: "Reads the selected cycle's immutable equal/verified policy and previews its resulting contributor weights, impossible-state blocker, and relationship to the later payment default." },
+  // The kind gate is gone from every action but one (2026-08-17). contract-spec:
+  // "Every accepted commitment stores one accountable leadProvider and an
+  // event-indexed contributor roster" — so add/remove/join/leave are not
+  // DomainImpact-only, and a service commitment that chose a team policy at
+  // creation finally has somewhere to manage it.
+  "w2b.add": { l: "Add people", to: "screen:W2b@add-sheet", info: "Opens the picker sheet — the shipped garden Gardeners list, scrolled and tapped rather than one address typed into a field (Gardeners.tsx:74). Roster writes are online-only contract actions and never enter the offline field queue." },
+  "w2b.pick": { l: "Select a person", info: "Tap to select. The sheet mirrors the shipped member row: avatar, name, subline, joined date, badge — and a wallet address stands in as the name only when nothing better is on file, which is that component's own resolution order." },
+  "w2b.add-confirm": { l: "Add to the team", to: "screen:W2b@forming", info: "Calls addContributor for each selected garden member. Available on every accepted commitment, not just garden work; wallet rejection or a roster-cap/freeze error leaves the selection visible for retry.", calls: ["addContributor"], facts: { commitment: "Accepted" } },
+  "w2b.remove": { l: "Remove someone", to: "screen:W2b@remove-contributor", info: "Lead-managed rosters only: a named confirmation for an uncredited non-lead contributor with no pending linked work. Open-team members leave themselves." },
+  "w2b.remove-cancel": { l: "Keep them", to: "screen:W2b@forming", info: "Returns without changing the roster." },
+  "w2b.remove-confirm": { l: "Remove Kwame", to: "screen:W2b@forming", info: "Calls removeContributor online. The indexed roster changes only after confirmation; an Open policy, freeze, lead, pending-work or credit error keeps this confirmation available.", calls: ["removeContributor"], facts: { commitment: "Accepted" } },
+  "w2b.assign": { l: "Assign work", to: "screen:W2b@assign-requirement", info: "The ONE action that stays garden-work-only: requirement rows exist nowhere else, so a service has no named action to point someone at. Planning is not credit." },
+  "w2b.assign-cancel": { l: "Cancel", to: "screen:W2b@forming", info: "Returns without changing the assignment." },
+  "w2b.assign-confirm": { l: "Save the assignment", to: "screen:W2b@forming", info: "Calls setContributorRequirement for the chosen contributor and requirement row. Wallet failure keeps both selections available for retry.", calls: ["setContributorRequirement"], facts: { commitment: "Accepted", kind: "DomainImpact" } },
+  "w2b.join": { l: "Join this commitment", to: "screen:W2b@join-submitted", info: "Calls joinCommitment for an eligible Open-team gardener. A successful wallet submission lands pending; membership renders only after indexed roster confirmation, and joining never creates credit.", calls: ["joinCommitment"], facts: { commitment: "Accepted" } },
+  "w2b.join-indexed": { l: "Check again", to: "screen:W2b@join-submitted", info: "Refreshes the read model. A missing or stale result, or a fresh roster without the connected account, stays pending — this control has no unconditional success route." },
+  "w2b.leave": { l: "Leave this commitment", to: "screen:W2b@open-eligible", info: "Calls leaveCommitment for an active non-lead Open-team member with zero work or evidence credit, before the roster freezes.", calls: ["leaveCommitment"], facts: { commitment: "Accepted" } },
+  "w2b.preview": { l: "What counts as verified", to: "screen:W2b@recognition", info: "Explains how the 65% verified share is worked out. It states the POLICY and never a per-person split: ranking teammates by percentage on a member surface is what D.3's copy rule forbids — counts, never percentages, never a grade, never a comparison against another member." },
+  "w2b.setup-done": { l: "Save and go back", to: "screen:W3@step-review", info: "Returns to the creation review with the team policy and invite list carried. Nothing is written until the commitment itself is submitted." },
 };
+
 
 // ---------------------------------------------------------------------------
 // W2a — evidence attach sheet (uiux-spec §5.5)
 // ---------------------------------------------------------------------------
 
-const w2aBehind = (promise: PromiseCast = "offer") =>
-  `${hdr(W2_IDENTITY[promise].title, { back: true })}<div class="hsub num">${W2_IDENTITY[promise].meta}</div>`;
+const w2aOutcomeHead = `<div class="hdr fixed"><button type="button" class="hback" aria-label="Back — preview only" disabled>${icon("arrow-left-line", "l")}</button><h1>Add evidence</h1></div>`;
+
+const w2aBehind = (commitment: CommitmentCast = "offer") =>
+  `${hdr(W2_IDENTITY[commitment].title, { back: true })}<div class="hsub num">${W2_IDENTITY[commitment].meta}</div>`;
 
 type W2aState =
   | "media" | "details" | "review" | "review-request" | "review-campaign-request"
@@ -1635,11 +1762,46 @@ type W2aState =
 // carry their own banner and would otherwise say the same thing twice.
 const stepCard = (ic: string, title: string, info: string) => formInfo(ic, title, info);
 
+// The capture step body, shared by creation's Details step and evidence's Media
+// step (2026-08-17, Afo: "buttons everywhere"). Both are the shipped Submit Work
+// media step — the dashed tap-to-add surface, the item list, the link and note
+// adders, the offline banner. The point of sharing it is that EVERYTHING a
+// member attaches composes into ONE list: a photo, a voice note, a link and a
+// written note are all evidence items. Evidence used to split them, keeping
+// photos in a list on step 1 and note/link as two form fields on step 2, so the
+// same act had two shapes depending on what you were attaching.
+const captureBody = (prefix: string, items: string, bannerText: string) =>
+  hot(
+    `${prefix}.tap-add`,
+    `<div class="card flat" style="border-style:dashed;align-items:center;text-align:center;padding:22px 14px">${icon("camera-line", "l")}<div class="t-title">Tap to add photos or video</div><div class="t-meta">or use the buttons below — voice notes record from the mic</div></div>`,
+  ) +
+  items +
+  `<div class="brow">${hot(`${prefix}.add-link`, btn("Add a link", { kind: "sec", sm: true, icon: "link-m" }))}${hot(`${prefix}.add-note`, btn("Write a note", { kind: "sec", sm: true, icon: "sticky-note-line" }))}</div>` +
+  banner(bannerText, "stone", "wifi-off-line");
+
+// The capture bar — one-tap camera / gallery / mic, the interaction every
+// pooling capture mirrors. Per-flow because the hotspot ids differ.
+const captureBar = (prefix: string) =>
+  `${hot(`${prefix}.capture-camera`, btn("", { kind: "sec", sm: true, icon: "camera-line", ariaLabel: "Take a photo" }))}${hot(`${prefix}.capture-gallery`, btn("", { kind: "sec", sm: true, icon: "image-line", ariaLabel: "Choose from your library" }))}${hot(`${prefix}.capture-audio`, btn("", { kind: "sec", sm: true, icon: "mic-line", ariaLabel: "Record a voice note" }))}`;
+
 const w2aStepCard = (state: W2aState): string => {
-  if (state === "media") return stepCard("camera-line", "Add media", "Photos, video, or a voice note — proof of what happened");
-  if (state === "details") return stepCard("file-copy-line", "Evidence details", "Credit the people who helped, and add a note if it needs one");
+  if (state === "media") return stepCard("camera-line", "Add media", "Photos, video, a voice note, a link — proof of what happened");
+  if (state === "details") return stepCard("group-line", "Who helped", "Credit the teammates who share this evidence");
   if (state.startsWith("review")) return stepCard("check-line", "Review evidence", "Check if the information is correct");
   return "";
+};
+
+// The commitment each evidence cast is proving, for the review's lead row.
+const W2A_CAST: Record<string, CommitmentCast> = {
+  "review-request": "request",
+  "review-campaign-request": "campaign-request",
+  "review-support": "support",
+  "review-captured": "captured",
+  review: "offer",
+};
+const W2A_LEAD_ICON: Record<CommitmentCast, string> = {
+  offer: "leaf-line", request: "hand-heart-line", "campaign-request": "hand-heart-line",
+  "request-work": "leaf-line", support: "hand-heart-line", captured: "seedling-line", garden: "file-copy-line",
 };
 
 function w2a(state: W2aState): string {
@@ -1648,14 +1810,17 @@ function w2a(state: W2aState): string {
   let actions: string;
   let secondary = "";
   switch (state) {
+    // Step 2 asks ONE thing now (2026-08-17, Afo). It used to carry contributor
+    // credit plus a Note field plus a Link field, which split "what I am
+    // attaching" across two steps and two shapes — a list on step 1, form
+    // fields here. Note and link became items on step 1 with the rest, so what
+    // is left is the question only this step can answer.
     case "details":
       head = flowHeader("Add evidence", 1, 3);
       content = pagepad(
-        sectionTitle("Credit contributors"),
-        `<div style="display:flex;flex-wrap:wrap;gap:6px">${chip("Maria", "ok")}${chip("Ana", "ok")}${chip("Kwame")}</div><div class="t-meta">Tap the teammates who share this evidence — no typing, just the roster.</div>`,
-        field("Note", input("optional — a few words from the field", { placeholder: true })),
-        field("Link", input("optional — a page that shows the work", { placeholder: true })),
-        banner("The selected active contributors are saved with each item and reused exactly on retry.", "stone", "user-line"),
+        `<div style="display:flex;flex-wrap:wrap;gap:6px">${chip("Maria", "ok")}${chip("Ana", "ok")}${chip("Kwame")}</div>`,
+        `<div class="t-meta">Tap the teammates who share this evidence — no typing, just the roster.</div>`,
+        banner("The selected contributors are saved with each item and reused exactly on retry.", "stone", "user-line"),
       );
       actions = hot("w2a.details-continue", btn("Continue", { kind: "pri", full: true }));
       break;
@@ -1671,17 +1836,34 @@ function w2a(state: W2aState): string {
         : state === "review-request" ? "w2a.attach-request"
         : state === "review-captured" ? "w2a.attach-captured"
         : "w2a.attach";
+      // ONE flat card, opening with the commitment being proved (2026-08-17, Afo).
+      // This review drew three separate cards with their own section headers —
+      // the anatomy retired from creation's six reviews — and nothing on the
+      // screen said WHICH commitment the evidence belonged to. It is now the
+      // shipped views/Garden/Review.tsx anatomy, the same one creation and work
+      // submission draw: FormInfo over a single flat card led by its subject.
+      const cast = W2A_CAST[state] ?? "offer";
+      const ident = W2_IDENTITY[cast];
       content = pagepad(
-        card(`<div class="t-sec" style="margin:0 0 4px">Media</div>` + listRow({ icon: "image-line", primary: "North beds after", meta: "Photo" }) + listRow({ icon: "mic-line", primary: "Voice note", meta: "0:38" })),
-        card(`<div class="t-sec" style="margin:0 0 4px">Credited</div><div style="display:flex;flex-wrap:wrap;gap:6px">${chip("Maria", "ok")}${chip("Ana", "ok")}</div>`),
-        card(`<div class="t-sec" style="margin:0 0 4px">Note</div><div class="t-body">“Two beds left for next week.”</div>`),
+        card(
+          listRow({ icon: W2A_LEAD_ICON[cast], primary: ident.title, meta: ident.meta }) +
+            listRow({ icon: "image-line", primary: "North beds after", meta: "Photo" }) +
+            listRow({ icon: "mic-line", primary: "Voice note", meta: "0:38" }) +
+            listRow({ icon: "sticky-note-line", primary: "“Two beds left for next week”", meta: "Note" }) +
+            kv("Credited", "Maria · Ana"),
+          { cls: "flat" },
+        ),
         banner("Saved on this device until it sends — evidence works fully offline.", "stone", "wifi-off-line"),
       );
       actions = hot(attachHot, btn("Attach evidence", { kind: "pri", full: true }));
       break;
     }
+    // Outcomes are not steps (2026-08-17, Afo): queued and failed used to render
+    // the review step's progress bar, which said "you are on step 3" about a
+    // screen you cannot advance from. They keep a plain back header, the way
+    // every other flow's outcome states do.
     case "queued":
-      head = flowHeader("Add evidence", 2, 3);
+      head = w2aOutcomeHead;
       content = pagepad(
         card(
           listRow({ icon: "image-line", primary: "North beds after", meta: "Photo · credits Maria, Ana · just now", chipHtml: chip("Queued", "queued") }) +
@@ -1693,7 +1875,7 @@ function w2a(state: W2aState): string {
       actions = hot("w2a.done", btn("Done", { kind: "sec", full: true }));
       break;
     case "failed":
-      head = flowHeader("Add evidence", 2, 3);
+      head = w2aOutcomeHead;
       content = pagepad(
         card(
           listRow({ icon: "image-line", primary: "North beds after", meta: "Photo · credits Maria, Ana · couldn't send", chipHtml: chip("Couldn't send", "err"), trailing: hot("w2a.retry-row", btn("Retry", { kind: "sec", sm: true, icon: "refresh-line" })) }) +
@@ -1706,14 +1888,18 @@ function w2a(state: W2aState): string {
       break;
     default: // media
       content = pagepad(
-        hot("w2a.tap-add", `<div class="card flat" style="border-style:dashed;align-items:center;text-align:center;padding:22px 14px">${icon("camera-line", "l")}<div class="t-title">Tap to add photos or video</div><div class="t-meta">or use the buttons below — voice notes record from the mic</div></div>`),
-        card(
-          listRow({ icon: "image-line", primary: "North beds after", meta: "Photo · just now", trailing: hot("w2a.remove-item", btn("Remove", { kind: "ghost", sm: true, icon: "close-line", ariaLabel: "Remove this photo" })) }) +
-            listRow({ icon: "mic-line", primary: "Voice note", meta: "0:38 · tap to play" }),
-          { cls: "flat" },
+        captureBody(
+          "w2a",
+          card(
+            listRow({ icon: "image-line", primary: "North beds after", meta: "Photo · just now", trailing: hot("w2a.remove-item", btn("Remove", { kind: "ghost", sm: true, icon: "close-line", ariaLabel: "Remove this photo" })) }) +
+              listRow({ icon: "mic-line", primary: "Voice note", meta: "0:38 · tap to play" }) +
+              listRow({ icon: "sticky-note-line", primary: "“Two beds left for next week”", meta: "Note · just now" }),
+            { cls: "flat" },
+          ),
+          "Photos, voice notes and written notes stay on this device until the evidence sends.",
         ),
       );
-      secondary = `${hot("w2a.capture-camera", btn("", { kind: "sec", sm: true, icon: "camera-line", ariaLabel: "Take a photo" }))}${hot("w2a.capture-gallery", btn("", { kind: "sec", sm: true, icon: "image-line", ariaLabel: "Choose from your library" }))}${hot("w2a.capture-audio", btn("", { kind: "sec", sm: true, icon: "mic-line", ariaLabel: "Record a voice note" }))}`;
+      secondary = captureBar("w2a");
       actions = hot("w2a.media-continue", btn("Continue", { kind: "pri", full: true }));
   }
   return phoneFrame(content.replace('<div class="pagepad">', `<div class="pagepad">${w2aStepCard(state)}`), {
@@ -1724,20 +1910,22 @@ function w2a(state: W2aState): string {
 }
 
 const W2A_HOTS: HifiDef["hots"] = {
+  "w2a.add-link": { l: "Add a link", info: "A link is an evidence item like any other (2026-08-17): it joins the list beside photos and voice notes instead of sitting in its own form field on the next step." },
+  "w2a.add-note": { l: "Write a note", info: "A written note is an evidence item like any other (2026-08-17) — the same adder creation uses, so everything a member attaches composes into one list." },
   "w2a.tap-add": { l: "Tap to add photos or video", info: "The Submit Work capture area — tapping the surface opens the picker, exactly like the shipping media step (iteration 2)." },
   "w2a.capture-camera": { l: "Take a photo", info: "One-tap capture from the fixed bar — the Submit Work media interaction (uiux §5.5 addendum 2026-08-11)." },
   "w2a.capture-gallery": { l: "Choose from your library", info: "Gallery pick, multiple allowed; HEIC conversion and compression follow the work flow's media pipeline." },
   "w2a.capture-audio": { l: "Record a voice note", info: "Audio evidence serializes like work-flow voice notes (SerializedFileData) and rides the same offline queue." },
   "w2a.media-continue": { l: "Continue to details", to: "screen:W2a@details", info: "Media → details, the Submit Work rhythm: contributors and an optional note live on the details step." },
-  "w2a.details-continue": { l: "Continue to review", to: "screen:W2a@review", info: "Details → review. The canonical destination is the garden-work review; cast walks land on their identity-preserving review variant of the same screen (request / campaign / service / recorded-promise)." },
+  "w2a.details-continue": { l: "Continue to review", to: "screen:W2a@review", info: "Details → review. The canonical destination is the garden-work review; cast walks land on their identity-preserving review variant of the same screen (request / campaign / service / recorded-commitment)." },
   "w2a.remove-item": { l: "Remove this item", info: "Items can be removed until they are attached; nothing uploads before then." },
   "w2a.attach": { l: "Attach evidence", to: "screen:W2@evidence-queued", info: "Enqueues media plus the explicit creditedContributors vector; after upload the executor calls attachEvidence with those same addresses (CS §6.1).", calls: ["attachEvidence"], pendingSync: true },
   "w2a.attach-request": { l: "Attach request evidence", to: "screen:W2@request-evidence-queued", info: "Queues evidence and its explicit credited-contributor vector for Ana's request without changing its direction, provider, or confirmer.", calls: ["attachEvidence"], pendingSync: true },
   "w2a.attach-campaign-request": { l: "Attach campaign-request evidence", to: "screen:W2@campaign-request-evidence-queued", info: "Queues evidence and its explicit credited-contributor vector without losing the Market rides Campaign binding.", calls: ["attachEvidence"], pendingSync: true },
   "w2a.attach-support": { l: "Attach service evidence", to: "screen:W2@support-evidence-queued", info: "Enqueues evidence plus explicit attribution for a SupportService offer; the queued row appears before EvidenceAttached syncs, and no linked-work requirement is introduced (UX:218 · CS §6.1).", calls: ["attachEvidence"], pendingSync: true },
-  "w2a.attach-captured": { l: "Attach captured-promise evidence", to: "screen:W2@captured-evidence-queued", info: "Queues evidence and its explicit credited-contributor vector while preserving StewardCaptured and the member's source identity.", calls: ["attachEvidence"], pendingSync: true },
+  "w2a.attach-captured": { l: "Attach captured-commitment evidence", to: "screen:W2@captured-evidence-queued", info: "Queues evidence and its explicit credited-contributor vector while preserving StewardCaptured and the member's source identity.", calls: ["attachEvidence"], pendingSync: true },
   "w2a.retry-row": { l: "Retry this upload", to: "screen:W2a@queued", info: "Per-row retry — a failed evidence job stays visible with a retry (up to MAX_RETRIES=5); media is never silently dropped (UX:218)." },
-  "w2a.done": { l: "Done", to: "screen:W2@evidence-submitted", info: "Returns to the promise with the queued or sent evidence row still visible." },
+  "w2a.done": { l: "Done", to: "screen:W2@evidence-submitted", info: "Returns to the commitment with the queued or sent evidence row still visible." },
 };
 
 // ---------------------------------------------------------------------------
@@ -1756,7 +1944,7 @@ const W3_STATES = [
   // a real review step (what → how much → who-can-take-it → review).
   ["step-what", "1 · What"],
   ["step-howmuch", "2 · How much"], ["step-details", "3 · Details"],
-  ["step-review", "4 · Review & promise"],
+  ["step-review", "4 · Review & commit"],
   ["support-howmuch", "Service · 2 · How much"],
   ["support-details", "Service · 3 · Details"],
   ["support-howmuch-ongoing", "Service · 2 · How much — Ongoing"],
@@ -1768,14 +1956,12 @@ const W3_STATES = [
   ["step-advanced-no-protocol", "Advanced · no protocol pool"],
   ["step-confirmers", "Advanced · named confirmer group"],
   ["step-confirmers-work", "Advanced · named group (garden-work ask)"],
-  ["step-invite", "Advanced · invite contributors"],
   ["request-what", "Request · 1 · What"], ["request-howmuch", "Request · 2 · How much"],
   ["request-details", "Request · 3 · Details"],
   ["request-howmuch-steward", "Request · 2 · How much (steward)"],
-  ["request-support", "Request · 3 · Support (steward)"],
-  ["request-details-steward", "Request · 4 · Details (steward)"],
+  ["request-details-steward", "Request · 3 · Details (steward)"],
   ["request-review", "Request · 4 · Review & ask"],
-  ["request-review-steward", "Request · 5 · Review (steward)"],
+  ["request-review-steward", "Request · 4 · Review (steward)"],
   ["request-work-what", "Request · 1 · What (garden work)"],
   ["request-work-howmuch", "Request · 2 · How much (garden work)"],
   ["request-work-details", "Request · 3 · Details (garden work)"],
@@ -1788,7 +1974,7 @@ const W3_STATES = [
 type W3State = (typeof W3_STATES)[number][0];
 
 // `total` is a parameter because the request path skips action anchors: a
-// support/service ask is three steps, and showing four dots promises a step
+// support/service ask is three steps, and showing four dots commitments a step
 // that never arrives (UX:605 · WF:251). Iteration 2: the header is the real
 // Submit Work TopNav — close on step 1, BACK on later steps, FormProgress
 // numbered circles instead of dots (kit.flowHeader).
@@ -1802,15 +1988,14 @@ const w3StepCard = (state: W3State): string => {
     return asking
       ? stepCard("seedling-line", "What you're asking for", "Name it in your own words — a neighbour reads this first")
       : stepCard("seedling-line", "What you're offering", "Name it in your own words — a neighbour reads this first");
-  if (state.includes("details")) return stepCard("camera-line", "Add details", "Photos, a voice note, or a link — all optional, and they stay with the promise");
+  if (state.includes("details")) return stepCard("camera-line", "Add details", "Photos, a voice note, or a link — all optional, and they stay with the commitment");
   if (state.includes("howmuch")) return stepCard("leaf-line", "How much", "The unit, the amount, when it's due — and the terms it's kept on");
-  if (state === "request-support") return stepCard("hand-heart-line", "Support", "Declare G$ support for whoever takes this up");
   if (state.includes("confirmers") || state.includes("invite") || state.includes("advanced"))
-    return stepCard("settings-line", "Advanced", "Named confirmers, the team policy, and who may join — most promises need none of it");
+    return stepCard("settings-line", "Advanced", "Named confirmers, the team policy, and who may join — most commitments need none of it");
   if (state.includes("review"))
     return asking
       ? stepCard("check-line", "Review & ask", "Check if the information is correct")
-      : stepCard("check-line", "Review & promise", "Check if the information is correct");
+      : stepCard("check-line", "Review & commit", "Check if the information is correct");
   if (state === "saved-offer-edit") return stepCard("sticky-note-line", "Edit saved details", "Reusable input for either offer path — private to you until you offer it");
   return "";
 };
@@ -1826,7 +2011,7 @@ const w3StepCard = (state: W3State): string => {
 //     for ongoing — one thing under three names in two places, which is why
 //     "we have people select season and then campaign in another view". It is
 //     now one step-1 field on every path, and it says what it is: seasons and
-//     campaigns are both cycles, and you pick which one holds the promise.
+//     campaigns are both cycles, and you pick which one holds the commitment.
 //  2. The protection step folds into step 2. Proof rows (garden work) and
 //     who-can-take-it (service asks) were the same step-3 slot in different
 //     clothes; both answer step 2's question — on what terms is this kept?
@@ -1838,7 +2023,7 @@ const w3StepCard = (state: W3State): string => {
 // choice rather than a bound value dressed as one.
 const w3Scope = (value: string) =>
   field("Where it runs", hot("w3.cycle", input(value, { select: true }))) +
-  `<div class="t-meta">Seasons and campaigns both hold promises. This one runs in the season unless you pick a campaign.</div>`;
+  `<div class="t-meta">Seasons and campaigns both hold commitments. This one runs in the season unless you pick a campaign.</div>`;
 
 // Step 1's How-often control, moved up from the bottom of step 2 (Afo's call):
 // as a step-2 field it was discovered after everything had been filled in for a
@@ -1868,23 +2053,17 @@ const w3Proof = (opts: { title: string; note: string; cells: string[]; pickIx: n
 // adders, and the offline banner. Drawn per path because each continues to its
 // own review; the body itself never varies.
 const w3DetailsBody = (items: string) =>
-  hot(
-    "w3.tap-add",
-    `<div class="card flat" style="border-style:dashed;align-items:center;text-align:center;padding:22px 14px">${icon("camera-line", "l")}<div class="t-title">Tap to add photos or video</div><div class="t-meta">or use the buttons below — voice notes record from the mic</div></div>`,
-  ) +
-  items +
-  `<div class="brow">${hot("w3.add-link", btn("Add a link", { kind: "sec", sm: true, icon: "link-m" }))}${hot("w3.add-note", btn("Write a note", { kind: "sec", sm: true, icon: "sticky-note-line" }))}</div>` +
-  banner("Saved on this device with your draft — details upload when the promise sends.", "stone", "wifi-off-line");
+  captureBody("w3", items, "Saved on this device with your draft — details upload when the commitment sends.");
 const W3_DETAIL_ITEMS = card(
   listRow({ icon: "image-line", primary: "North beds — before", meta: "Photo · just now", trailing: hot("w3.remove-detail", btn("Remove", { kind: "ghost", sm: true, icon: "close-line", ariaLabel: "Remove this photo" })) }) +
     listRow({ icon: "mic-line", primary: "Voice note", meta: "0:38 · tap to play" }),
   { cls: "flat" },
 );
-const W3_CAPTURE_BAR = `${hot("w3.capture-camera", btn("", { kind: "sec", sm: true, icon: "camera-line", ariaLabel: "Take a photo" }))}${hot("w3.capture-gallery", btn("", { kind: "sec", sm: true, icon: "image-line", ariaLabel: "Choose from your library" }))}${hot("w3.capture-audio", btn("", { kind: "sec", sm: true, icon: "mic-line", ariaLabel: "Record a voice note" }))}`;
+const W3_CAPTURE_BAR = captureBar("w3");
 
 // The review step. views/Garden/Review.tsx is FormInfo plus ONE flat card of
 // rows, with a single hot row where there is somewhere else to go (its
-// "Fulfills a promise" line). Creation used to draw four separate cards, each
+// "Fulfills a commitment" line). Creation used to draw four separate cards, each
 // with its own header row and ghost Edit button — a different component
 // entirely. Following the shipped review literally (Afo's call) means the back
 // arrow is the edit path and the Advanced detour is the one interactive row,
@@ -1932,7 +2111,7 @@ function w3(state: W3State): string {
         w3Due("Runs with the season · through Aug 30"),
         w3Proof({
           title: "What work does this include?",
-          note: "Tap the garden actions this promise includes. Each carries its own count, and approved work is the proof.",
+          note: "Tap the garden actions this commitment includes. Each carries its own count, and approved work is the proof.",
           cells: [
             w3ActionCell("leaf-line", "Prune", "AGRO · trees and beds", "× 2"),
             w3ActionCell("plant-line", "Plant", "AGRO · seedlings and starts", "× 12"),
@@ -1959,28 +2138,25 @@ function w3(state: W3State): string {
           media: W3_REVIEW_MEDIA,
           advanced: { hot: "w3.advanced", primary: "The person you help confirms", meta: "Team open · the Green Goods team can step in — tap to change" },
         }),
-        `<div class="t-meta">Submitting queues the promise on this device and returns you to the pool — it sends when connected.</div>`,
+        `<div class="t-meta">Submitting queues the commitment on this device and returns you to the pool — it sends when connected.</div>`,
       );
       actions = hot("w3.submit", btn("Make this offer", { kind: "pri", full: true }));
       break;
     case "step-advanced":
       head = w3Head("Make an offer", 3);
+      // Team left this detour (2026-08-17, Afo: "no advanced section you can
+      // trigger the team adding component easily"). Policy and invites live on
+      // the one team surface now; what stays here is confirmation.
       content = pagepad(
         sectionTitle("Who confirms"),
         card(`${kv("Ordinary confirmation", "Offer recipient confirms")}${kv("Limit", "Choose up to the current confirmer limit — read from MAX_CONFIRMERS on the deployed module, never a number drawn here")}`),
         hot("w3.confirmer-group", field("Named group", input("None — add people to require more than one confirmation", { select: true }))),
         hot("w3.protocol-fallback", `<label class="arow" style="align-items:flex-start"><input type="checkbox" aria-label="Let the Green Goods team confirm if nobody local is eligible" checked style="margin-top:4px"><span class="grow"><b>Let the Green Goods team confirm if nobody local is eligible</b><span class="t-meta" style="display:block">On for this pilot. Usable only while nobody local can confirm, always with a recorded reason — and never by a contributor.</span></span></label>`),
-        sectionTitle("Team options"),
-        hot("w3.contributor-policy", field("Contributor policy", radio([{ label: "Open team", meta: "eligible garden members may join", on: true }, { label: "Lead-managed team", meta: "the lead or steward manages the roster" }], { interactive: true, name: "contributor-policy" }))),
-        hot("w3.invite", listRow({ icon: "group-line", primary: "Invite contributors", meta: "lead-managed teams can add people from creation", chevron: true })),
+        hot("w3.team", listRow({ icon: "group-line", primary: "Team", meta: "Open team · 2 invited", chevron: true })),
         field("Needs an assessment", radio([{ label: "No", meta: "evidence and confirmation carry the proof", on: true }, { label: "Yes", meta: "an evaluator attaches a qualifying assessment" }], { interactive: true, name: "requires-assessment" })),
       );
       actions = hot("w3.advanced-done", btn("Back to review", { kind: "pri", full: true }));
       break;
-    // Garden-work asks get their claim mode HERE, not as a fifth step
-    // (2026-08-14 workflows round): step 3 stays the protection step — proof
-    // rows for work asks, who-can-take-it for service asks — and the rare
-    // "vet who starts" need lives in the same detour as who-confirms.
     case "advanced-work-ask":
       head = w3Head("Make a request", 3);
       content = pagepad(
@@ -2006,7 +2182,7 @@ function w3(state: W3State): string {
         card(`${kv("Ordinary confirmation", "Offer recipient confirms")}${kv("Limit", "Choose up to the current confirmer limit — read from MAX_CONFIRMERS on the deployed module")}`),
         hot("w3.confirmer-group", field("Named group", input("None — add people to require more than one confirmation", { select: true }))),
         `<label class="arow" style="align-items:flex-start;opacity:.55"><input type="checkbox" aria-label="Let the Green Goods team confirm if nobody local is eligible" disabled style="margin-top:4px"><span class="grow"><b>Let the Green Goods team confirm if nobody local is eligible</b><span class="t-meta" style="display:block">Unavailable on this deployment: no Green Goods protocol pool is registered yet. Name a local confirmer group instead.</span></span></label>`,
-        banner("Because the team fallback is unavailable here, this promise stores it off and the review will block until the ordinary confirmer rule can be met locally.", "amber", "error-warning-line"),
+        banner("Because the team fallback is unavailable here, this commitment stores it off and the review will block until the ordinary confirmer rule can be met locally.", "amber", "error-warning-line"),
         sectionTitle("Team options"),
         hot("w3.contributor-policy", field("Contributor policy", radio([{ label: "Open team", meta: "eligible garden members may join", on: true }, { label: "Lead-managed team", meta: "the lead or steward manages the roster" }], { interactive: true, name: "contributor-policy-noproto" }))),
       );
@@ -2016,7 +2192,7 @@ function w3(state: W3State): string {
       head = w3Head("Make an offer", 3);
       content = pagepad(
         sectionTitle("Named confirmer group"),
-        `<div class="t-meta">Any one of the people you name may confirm. Contributors and the accountable lead never appear here — they cannot confirm their own promise.</div>`,
+        `<div class="t-meta">Any one of the people you name may confirm. Contributors and the accountable lead never appear here — they cannot confirm their own commitment.</div>`,
         card(
           `<label class="arow"><input type="checkbox" checked aria-label="João"><span class="grow"><b>João</b><span class="t-meta" style="display:block">Neighbour · not a contributor</span></span></label>` +
             `<label class="arow"><input type="checkbox" checked aria-label="Luz"><span class="grow"><b>Luz</b><span class="t-meta" style="display:block">Garden member · not a contributor</span></span></label>` +
@@ -2083,7 +2259,7 @@ function w3(state: W3State): string {
         `<div style="display:flex;flex-wrap:wrap;gap:6px">${chip("1", "ok")}${chip("2")}${chip("custom…")}</div>`,
         sectionTitle("Open places to start"),
         `<div style="display:flex;flex-wrap:wrap;gap:6px">${chip("1")}${chip("2", "ok")}${chip("4")}${chip("custom…")}</div>`,
-        `<div class="t-meta">Each place is one ordinary promise, taken up on its own. Rest, resume, or retire it later from Things I can offer.</div>`,
+        `<div class="t-meta">Each place is one ordinary commitment, taken up on its own. Rest, resume, or retire it later from Things I can offer.</div>`,
       );
       actions = hot("w3.continue-support-howmuch-ongoing", btn("Continue", { kind: "pri", full: true }));
       break;
@@ -2239,7 +2415,7 @@ function w3(state: W3State): string {
       actions = hot("w3.continue-request-details", btn("Continue", { kind: "pri", full: true }));
       break;
     case "request-details-steward":
-      head = w3Head("Make a request", 3, 5);
+      head = w3Head("Make a request", 2);
       content = pagepad(w3DetailsBody(card(listRow({ icon: "sticky-note-line", primary: "“The stall closes at noon”", meta: "Note · just now" }), { cls: "flat" })));
       secondary = W3_CAPTURE_BAR;
       actions = hot("w3.continue-request-details-steward", btn("Continue", { kind: "pri", full: true }));
@@ -2264,7 +2440,12 @@ function w3(state: W3State): string {
       actions = hot("w3.submit-ongoing", btn("Start this ongoing offer", { kind: "pri", full: true }));
       break;
     case "request-howmuch-steward":
-      head = w3Head("Make a request", 1, 5);
+      // Support folded in (2026-08-17, Afo). It was step 3 of five, which made a
+      // steward's ask the only creation path that did not run Submit Work's four
+      // beats. Declaring G$ is a term the ask is kept on, like who-can-take-it
+      // beside it — so it belongs to the same question, and every path is four
+      // steps again.
+      head = w3Head("Make a request", 1);
       content = pagepad(
         sectionTitle("Unit"),
         `<div style="display:flex;flex-wrap:wrap;gap:6px">${chip("rides", "ok")}${chip("hours")}${chip("meals")}${chip("other…")}</div>`,
@@ -2275,7 +2456,10 @@ function w3(state: W3State): string {
           { label: "Open to anyone here", meta: "the first neighbor to say “I can help” becomes the provider", on: true },
           { label: "Stewards review who takes it", meta: "people ask first; your stewards choose" },
         ], { interactive: true, name: "request-claim-mode-steward" })),
-        banner("You're a steward here, so a Support step follows — gardeners' requests skip it and keep four steps.", "stone", "information-line"),
+        sectionTitle("Add G$ support", chip("Stewards only", "plain")),
+        `<div style="display:flex;flex-wrap:wrap;gap:6px">${chip("20 G$", "ok")}${chip("50 G$")}${chip("100 G$")}${chip("custom…")}${chip("none")}</div>`,
+        card(`${kv("Where it goes", "The person who helps")}${kv("Paid from", "The garden's account")}${kv("When", "After the commitment is confirmed kept")}`),
+        banner("Declaring support records it with the request — nothing moves until the commitment is kept and confirmed.", "stone", "hand-heart-line"),
       );
       actions = hot("w3.request-continue-support", btn("Continue", { kind: "pri", full: true }));
       break;
@@ -2286,13 +2470,13 @@ function w3(state: W3State): string {
         `<div class="t-meta">Declare G$ that arrives when this request is kept and confirmed. Only stewards see this step.</div>`,
         sectionTitle("How much"),
         `<div style="display:flex;flex-wrap:wrap;gap:6px">${chip("20 G$", "ok")}${chip("50 G$")}${chip("100 G$")}${chip("custom…")}${chip("none")}</div>`,
-        card(`${kv("Where it goes", "The person who helps")}${kv("Paid from", "The garden's account")}${kv("When", "After the promise is confirmed kept")}`),
-        banner("Declaring support records it with the request — nothing moves until the promise is kept and confirmed.", "stone", "hand-heart-line"),
+        card(`${kv("Where it goes", "The person who helps")}${kv("Paid from", "The garden's account")}${kv("When", "After the commitment is confirmed kept")}`),
+        banner("Declaring support records it with the request — nothing moves until the commitment is kept and confirmed.", "stone", "hand-heart-line"),
       );
       actions = hot("w3.request-support-continue", btn("Continue", { kind: "pri", full: true }));
       break;
     case "request-review-steward":
-      head = w3Head("Make a request", 4, 5);
+      head = w3Head("Make a request", 3);
       content = pagepad(
         w3Review({
           lead: { icon: "hand-heart-line", primary: "Ride to the market on Saturday", meta: "Rocinha Community Garden · help or a service" },
@@ -2303,26 +2487,11 @@ function w3(state: W3State): string {
       );
       actions = hot("w3.submit-request", btn("Make this request", { kind: "pri", full: true }));
       break;
-    case "step-invite":
-      head = w3Head("Make an offer", 3);
-      content = pagepad(
-        sectionTitle("Invite contributors"),
-        `<div class="t-meta">Lead-managed teams add people from creation; open teams let eligible members join on their own. Invites become roster actions once the promise is accepted.</div>`,
-        card(
-          `<label class="arow"><input type="checkbox" checked aria-label="João"><span class="grow"><b>João</b><span class="t-meta" style="display:block">Garden member</span></span></label>` +
-            `<label class="arow"><input type="checkbox" aria-label="Luz"><span class="grow"><b>Luz</b><span class="t-meta" style="display:block">Garden member</span></span></label>` +
-            `<label class="arow"><input type="checkbox" aria-label="Kwame"><span class="grow"><b>Kwame</b><span class="t-meta" style="display:block">Garden member</span></span></label>`,
-          { cls: "flat" },
-        ),
-        banner("Contributors help keep the promise and share recognition — they never confirm it.", "stone", "user-line"),
-      );
-      actions = hot("w3.invite-done", btn("Add to the team", { kind: "pri", full: true }));
-      break;
     case "validation":
       head = w3Head("Make an offer", 2);
       content = pagepad(
         banner("Add at least one action, and give each a count of 1 or more, before you continue. Your entries are kept.", "amber", "error-warning-line"),
-        sectionTitle("This promise needs", chip("2 actions")),
+        sectionTitle("This commitment needs", chip("2 actions")),
         card(
           listRow({ icon: "leaf-line", primary: "Prune × 1", meta: "AGRO · trees and beds", chipHtml: chip("OK", "ok") }) +
             listRow({ icon: "error-warning-line", primary: "Plant × 0", meta: "needs a count of at least 1", chipHtml: chip("Fix", "err") }) +
@@ -2369,10 +2538,11 @@ const W3_HOTS: HifiDef["hots"] = {
   // Direction is entry-fixed (2026-08-11 correction pass): the old w3.direction
   // in-form control is deleted — season/campaign seeding and on-behalf capture
   // remain console-seeded only (UX:154).
+  "w3.team": { l: "Team", to: "screen:W2b@setup", info: "One row where the Advanced detour used to carry a contributor-policy radio and a separate invite step (2026-08-17, Afo). Team is one surface now — policy and invites before anyone accepts, roster afterwards — reachable from here and from the commitment's People section." },
   "w3.contributor-policy": { l: "Contributor policy", info: "Chooses the immutable Open or LeadManaged roster policy before creation; the final review repeats the selected join rule." },
   "w3.choose-support": { l: "Choose Support / service", to: "screen:W3@support-howmuch", info: "Chooses the evidence-only SupportService offer path. It keeps the amount step and skips only DomainImpact action anchors (UX:156)." },
   "w3.continue-support-howmuch": { l: "Continue to details", to: "screen:W3@support-details", info: "Carries the chip-picked service unit and quantity straight into review; due defaults to the campaign end, and the confirmer default and pilot fallback are already set (UX §5.4, amended 2026-08-10; tap-first register #95)." },
-  "w3.cycle": { l: "Where it runs", info: "Every promise names its cycle. One field on step 1 of every path since 2026-08-16 (round 12, Afo): it used to be field(\"Season\") on step 1 for garden work, field(\"Campaign\") on step 2 for services and field(\"Scope\") on step 2 for ongoing — one thing under three names in two places. Seasons and campaigns are both cycles, and this pool runs both, so the choice is real rather than a bound value dressed as one (UX:127, amended 2026-08-10)." },
+  "w3.cycle": { l: "Where it runs", info: "Every commitment names its cycle. One field on step 1 of every path since 2026-08-16 (round 12, Afo): it used to be field(\"Season\") on step 1 for garden work, field(\"Campaign\") on step 2 for services and field(\"Scope\") on step 2 for ongoing — one thing under three names in two places. Seasons and campaigns are both cycles, and this pool runs both, so the choice is real rather than a bound value dressed as one (UX:127, amended 2026-08-10)." },
   // The details step's forward edges — one per path, because each continues to
   // its own review. The step itself is drawn from one shared body (w3DetailsBody),
   // so the five states differ only in their fixture and their next.
@@ -2385,8 +2555,8 @@ const W3_HOTS: HifiDef["hots"] = {
   "w3.tap-add": { l: "Tap to add photos or video", info: "The Submit Work capture surface (wflow@media): tapping the dashed area opens the picker, exactly like the shipping media step. Creation's details step borrows that anatomy verbatim (2026-08-16 round 12)." },
   "w3.continue-what": { l: "Continue to amount", to: "screen:W3@step-howmuch", info: "What + cycle scope → amount (UX:154-155)." },
   "w3.continue-howmuch": { l: "Continue to details", to: "screen:W3@step-details", info: "Amount → details. Step 2 now carries the action requirements too (2026-08-16 round 12): proof was its own step-3 slot, but it answers the same question as the amount — on what terms is this kept — so folding it holds every path to Submit Work's four beats. Unit and amount stay chip picks with a custom escape; due defaults to the season end (tap-first register #95, UX:150-153)." },
-  "w3.protocol-fallback": { l: "Green Goods team fallback", info: "Writes protocolFallbackEnabled — ON by default for the pilot (decision 2026-08-10, supersedes the 2026-08-02 off-by-default closure). The runtime guard is unchanged: usable only while the ordinary path is unreachable, always with a recorded reason, never by a contributor. Turn it off here per promise." },
-  "w3.advanced": { l: "Edit who confirms & team", to: "screen:W3@step-advanced", info: "The Advanced detour is a content affordance on every review's Who-confirms section — never a second bar button (one-row rule, 2026-08-11): named confirmer groups, the pilot-default Green Goods fallback with its per-promise opt-out, contributor policy, contributor invites, and assessment requirement live here so the default path stays four quick steps. Drawn once in the offer cast." },
+  "w3.protocol-fallback": { l: "Green Goods team fallback", info: "Writes protocolFallbackEnabled — ON by default for the pilot (decision 2026-08-10, supersedes the 2026-08-02 off-by-default closure). The runtime guard is unchanged: usable only while the ordinary path is unreachable, always with a recorded reason, never by a contributor. Turn it off here per commitment." },
+  "w3.advanced": { l: "Edit who confirms & team", to: "screen:W3@step-advanced", info: "The Advanced detour is a content affordance on every review's Who-confirms section — never a second bar button (one-row rule, 2026-08-11): named confirmer groups, the pilot-default Green Goods fallback with its per-commitment opt-out, contributor policy, contributor invites, and assessment requirement live here so the default path stays four quick steps. Drawn once in the offer cast." },
   "w3.advanced-work": { l: "Edit who confirms, team & who can take it", to: "screen:W3@advanced-work-ask", info: "The garden-work ask's Advanced detour (2026-08-14 workflows round) additionally carries the claim mode — step 3 stays the protection step (proof rows), and the rare vet-who-starts need lives here rather than as a fifth step." },
   "w3.claim-mode": { l: "Who can take this up", info: "Gardener-set claim mode for garden-work asks (2026-08-14, amending §5.4's context-default rule): defaults open because the Work-approval rails are the ordinary gate; steward-reviewed remains available for asks that need vetting before someone starts. Service asks keep their step-3 choice; steward seeding (W8) retains fuller control (register #19)." },
   "w3.advanced-work-done": { l: "Back to review", to: "screen:W3@request-work-review", info: "Returns to the garden-work ask's review with the detour's choices summarized in its Who-confirms section." },
@@ -2398,13 +2568,12 @@ const W3_HOTS: HifiDef["hots"] = {
   "w3.submit": { l: "Make this offer", to: "screen:W1@queued", info: "Enqueues the commitment job; returns to the pool tab with an optimistic queued card (UX:212).", calls: ["createCommitment"], pendingSync: true },
   "w3.submit-support": { l: "Make this service offer", to: "screen:W1@support-queued", info: "Enqueues the SupportService offer and returns to the pool with its optimistic queued card; a recipient may take it up only after sync.", calls: ["createCommitment"], pendingSync: true },
   "w3.request-continue-what": { l: "Continue to amount", to: "screen:W3@request-howmuch-steward", info: "Season bound, title suggested — continues to chip-picked unit and amount. The drawn walk is the steward cast (5 steps, Support included); gardeners land on the 4-step variant in the library (iteration 2)." },
-  "w3.request-continue-support": { l: "Continue to support", to: "screen:W3@request-support", info: "Steward-only: the Support step follows How much; gardeners' requests skip straight to who-can-take-it." },
-  "w3.request-support-continue": { l: "Continue to details", to: "screen:W3@request-details-steward", info: "Declared G$ support travels with the request record; nothing moves until the promise is confirmed kept (existing declared-consideration semantics, no chain change)." },
+  "w3.request-continue-support": { l: "Continue to details", to: "screen:W3@request-details-steward", info: "The steward ask's step 2 carries declared G$ support alongside the amount and who-can-take-it (2026-08-17, Afo): support is a term the ask is kept on, so folding it holds every creation path to Submit Work's four beats. Declared support travels with the request record; nothing moves until the commitment is confirmed kept — existing declared-consideration semantics, no chain change." },
   "w3.request-choose-work": { l: "Choose Garden work", to: "screen:W3@request-work-what", info: "A DomainImpact Request — kind and direction are orthogonal on-chain (register #97). Choosing it re-renders the wizard as the four-step garden-work cast (register #97a): the ask gains action requirements and rides the Work-approval rails; the asker remains the confirmer." },
   "w3.request-work-continue-what": { l: "Continue to amount", to: "screen:W3@request-work-howmuch", info: "The garden-work ask's what — title suggested from the garden's actions — continues to chip-picked unit and amount; the dot row reads four steps from the first screen (register #97a)." },
   "w3.request-continue-work": { l: "Continue to details", to: "screen:W3@request-work-details", info: "The garden-work ask's action requirements now sit on step 2 beside the amount (2026-08-16 round 12), so this continues to details (register #97)." },
   "w3.submit-work-request": { l: "Ask for this work", to: "screen:W1@request-work-queued", info: "Enqueues the DomainImpact Request with its requirement rows — same commitment job, request direction (register #97) — and returns to the pool tab with the optimistic queued card until CommitmentCreated syncs.", calls: ["createCommitment"], pendingSync: true },
-  "w3.request-continue-howmuch": { l: "Continue to details", to: "screen:W3@request-details", info: "Chip-picked unit and amount continue to details. Who-can-take-it used to be its own step 3; it folded into step 2 alongside the amount (2026-08-16 round 12) because it is the same slot garden work used for proof, and both are terms the promise is kept on." },
+  "w3.request-continue-howmuch": { l: "Continue to details", to: "screen:W3@request-details", info: "Chip-picked unit and amount continue to details. Who-can-take-it used to be its own step 3; it folded into step 2 alongside the amount (2026-08-16 round 12) because it is the same slot garden work used for proof, and both are terms the commitment is kept on." },
   "w3.submit-request": { l: "Make this request", to: "screen:W1@request-queued", info: "Enqueues the request job and returns to the same request cast while it syncs.", calls: ["createCommitment"], pendingSync: true },
   "w3.review-saved-offer": { l: "Review this offer", to: "screen:W3@saved-offer-review", info: "Carries the saved workshop details into the ordinary one-time Offer review without replacing them with the generic Garden work example." },
   "w3.edit-saved-offer": { l: "Edit this offer", to: "screen:W3@saved-offer-edit", info: "Returns to the fully editable prefilled fields. The private saved details remain unchanged unless the member separately saves them again." },
@@ -2419,15 +2588,13 @@ const W3_HOTS: HifiDef["hots"] = {
   "w3.capture-audio": { l: "Record a voice note", info: "Audio notes serialize like work-flow voice notes (SerializedFileData) and ride the same offline queue." },
   "w3.add-link": { l: "Add a link", info: "A page that shows the work or its context; stored in the metadata document's links array." },
   "w3.add-note": { l: "Write a note", info: "A few words from the field; stored in the metadata document's note field." },
-  "w3.remove-detail": { l: "Remove this item", info: "Items can be removed until the promise sends; nothing uploads before then." },
-  "w3.template": { l: "More suggestions", to: "screen:W31", info: "Prefill layer (Appendix E.2 as amended 2026-08-11): choosing a template only prefills these fields and returns here — the picker is no longer a gate before the form and never says “create a promise”. Since 2026-08-16 it is the tail chip of the title suggestions rather than its own row: the chips and the picker were two mechanisms for one intent, and the row made step 1 heavier for it." },
+  "w3.remove-detail": { l: "Remove this item", info: "Items can be removed until the commitment sends; nothing uploads before then." },
+  "w3.template": { l: "More suggestions", to: "screen:W31", info: "Prefill layer (Appendix E.2 as amended 2026-08-11): choosing a template only prefills these fields and returns here — the picker is no longer a gate before the form and never says “create a commitment”. Since 2026-08-16 it is the tail chip of the title suggestions rather than its own row: the chips and the picker were two mechanisms for one intent, and the row made step 1 heavier for it." },
   "w3.pick-action": { l: "Add this action", info: "Tap-first action cards from the garden's own registry: tapping adds the action with count 1; tapping a chosen card changes its count — 1 · 2 · 4 · custom (2026-08-11 correction pass)." },
   "w3.request-choose-service": { l: "Choose help or a service", to: "screen:W3@request-what", info: "Switches the ask back to the evidence-confirmed service cast; entered values are kept." },
   "w3.choose-ongoing": { l: "Choose Ongoing", to: "screen:W3@support-howmuch-ongoing", info: "How often moved to step 1 beside the kind cards (2026-08-16 round 12, Afo): as a field at the BOTTOM of step 2 the fork was discovered only after everything had been filled in for a one-off. Choosing Ongoing carries the places block into step 2; one submission later runs the series creation plus its first place creations as an ordered queue sequence. Drawn in the service cast, which is where the ongoing fixture lives." },
   "w3.continue-support-howmuch-ongoing": { l: "Continue to details", to: "screen:W3@support-details-ongoing", info: "Amount + places → the ongoing review, whose Places section repeats what will open." },
   "w3.submit-ongoing": { l: "Start this ongoing offer", to: "screen:W32@series-queued", info: "One ordered queue sequence: createCommitmentSeries, then the first place creations. The ongoing Offer appears pending in Things I can offer; places count as available only after their own creations sync and reserve capacity (Appendix F.2 as amended 2026-08-11).", calls: ["createCommitmentSeries", "createCommitment"], facts: { pool: "Open" }, pendingSync: true },
-  "w3.invite": { l: "Invite contributors", to: "screen:W3@step-invite", info: "LeadManaged rosters can add people from creation; the picker mirrors addContributor semantics and becomes roster actions once the promise is accepted (D9, 2026-08-11). Open teams skip this — members join on their own." },
-  "w3.invite-done": { l: "Add to the team", to: "screen:W3@step-advanced", info: "Returns to Advanced with the invited contributors carried; review repeats them under Who confirms & team." },
 };
 
 // ---------------------------------------------------------------------------
@@ -2440,27 +2607,27 @@ const W4_STATES = [
   ["confirmed-pending-request-work", "Work ask · confirmation queued"],
   ["confirmed-request-work", "Work ask · confirmed"],
   ["confirm-campaign-request", "A Campaign request"],
-  ["confirm-captured", "A recorded promise"],
+  ["confirm-captured", "A recorded commitment"],
   ["not-yet", "Not yet — garden work"], ["not-yet-support", "Not yet — service"],
   ["not-yet-request", "Not yet — request"], ["not-yet-campaign-request", "Not yet — Campaign request"],
-  ["not-yet-captured", "Not yet — recorded promise"],
+  ["not-yet-captured", "Not yet — recorded commitment"],
   ["provider-view", "Provider view"],
   ["confirmed-pending", "Ready — confirmation pending"], ["confirmed", "Fulfilled — synced"],
   ["confirmed-pending-support", "Support — confirmation pending"], ["confirmed-support", "Support — fulfilled"],
   ["confirmed-pending-request", "Request — pending sync"], ["confirmed-request", "Request — synced"],
   ["confirmed-pending-campaign-request", "Campaign request — pending sync"],
   ["confirmed-campaign-request", "Campaign request — synced"],
-  ["confirmed-pending-captured", "Recorded promise — pending sync"],
-  ["confirmed-captured", "Recorded promise — synced"],
+  ["confirmed-pending-captured", "Recorded commitment — pending sync"],
+  ["confirmed-captured", "Recorded commitment — synced"],
   ["not-yet-failed", "Not yet — garden work send failed"],
   ["not-yet-failed-support", "Not yet — service send failed"],
   ["not-yet-failed-request", "Not yet — request send failed"],
   ["not-yet-failed-campaign-request", "Not yet — Campaign request send failed"],
-  ["not-yet-failed-captured", "Not yet — recorded promise send failed"],
+  ["not-yet-failed-captured", "Not yet — recorded commitment send failed"],
 ] as const;
 type W4State = (typeof W4_STATES)[number][0];
 
-const w4Behind = (cast: PromiseCast = "offer") =>
+const w4Behind = (cast: CommitmentCast = "offer") =>
   `${hdr(W2_IDENTITY[cast].title, { back: true })}<div class="hsub num">${W2_IDENTITY[cast].meta}</div>`;
 
 function w4(state: W4State): string {
@@ -2471,7 +2638,7 @@ function w4(state: W4State): string {
   const request = state.includes("request") && !campaignRequest && !requestWork;
   const support = state.includes("support");
   const captured = state.includes("captured");
-  const cast: PromiseCast = campaignRequest ? "campaign-request" : requestWork ? "request-work" : request ? "request" : support ? "support" : captured ? "captured" : "offer";
+  const cast: CommitmentCast = campaignRequest ? "campaign-request" : requestWork ? "request-work" : request ? "request" : support ? "support" : captured ? "captured" : "offer";
   const evidenceOnly = request || campaignRequest || support || captured;
   const summary =
     cast === "request"
@@ -2503,7 +2670,7 @@ function w4(state: W4State): string {
   );
 
   let inner: string;
-  let title = "Promise kept?";
+  let title = "Commitment kept?";
   switch (state) {
     case "confirm-request":
       title = "Did the help arrive?";
@@ -2518,10 +2685,10 @@ function w4(state: W4State): string {
       inner = `${summary}${listRow({ icon: "image-line", primary: "Evidence", meta: "1 item · photo from the market" })}${meter(0, { left: "confirmations", right: "0 of 1" })}${exclusion}${hot("w4.confirm-campaign-request", btn("Confirm — help arrived", { kind: "pri", full: true }))}${hot("w4.not-yet-campaign-request", btn("Not yet — tell the stewards why", { kind: "sec", full: true }))}`;
       break;
     case "confirm-support":
-      inner = `${summary}${listRow({ icon: "image-line", primary: "Evidence", meta: "1 item · repaired handles" })}${meter(0, { left: "confirmations", right: "0 of 1" })}${exclusion}${hot("w4.confirm-support", btn("Confirm — promise kept", { kind: "pri", full: true }))}${hot("w4.not-yet-support", btn("Not yet — tell the stewards why", { kind: "sec", full: true }))}`;
+      inner = `${summary}${listRow({ icon: "image-line", primary: "Evidence", meta: "1 item · repaired handles" })}${meter(0, { left: "confirmations", right: "0 of 1" })}${exclusion}${hot("w4.confirm-support", btn("Confirm — commitment kept", { kind: "pri", full: true }))}${hot("w4.not-yet-support", btn("Not yet — tell the stewards why", { kind: "sec", full: true }))}`;
       break;
     case "confirm-captured":
-      inner = `${summary}${listRow({ icon: "image-line", primary: "Evidence", meta: "1 item · workshop photo" })}${meter(0, { left: "confirmations", right: "0 of 1" })}${exclusion}${hot("w4.confirm-captured", btn("Confirm — promise kept", { kind: "pri", full: true }))}${hot("w4.not-yet-captured", btn("Not yet — tell the stewards why", { kind: "sec", full: true }))}`;
+      inner = `${summary}${listRow({ icon: "image-line", primary: "Evidence", meta: "1 item · workshop photo" })}${meter(0, { left: "confirmations", right: "0 of 1" })}${exclusion}${hot("w4.confirm-captured", btn("Confirm — commitment kept", { kind: "pri", full: true }))}${hot("w4.not-yet-captured", btn("Not yet — tell the stewards why", { kind: "sec", full: true }))}`;
       break;
     case "not-yet":
     case "not-yet-support":
@@ -2540,7 +2707,7 @@ function w4(state: W4State): string {
         : captured ? "The workshop has not happened yet…"
         : "The far bed is still overgrown…",
         { placeholder: false },
-      ))}${banner("This never cancels the promise — stewards review and every outcome shows its reason.", "stone")}${hot(
+      ))}${banner("This never cancels the commitment — stewards review and every outcome shows its reason.", "stone")}${hot(
         campaignRequest ? "w4.not-yet-send-campaign-request"
         : request ? "w4.not-yet-send-request"
         : support ? "w4.not-yet-send-support"
@@ -2572,8 +2739,8 @@ function w4(state: W4State): string {
     case "confirmed-request-work":
     case "confirmed-campaign-request":
     case "confirmed-captured":
-      title = "Promise kept";
-      inner = `${hero(request || campaignRequest ? "Help arrived" : "Promise kept", support || campaignRequest ? "Confirmed · the Campaign's count just grew" : captured ? "Confirmed · the recorded promise is fulfilled" : "Confirmed · the season's count just grew", "checkbox-circle-fill")}${hot(
+      title = "Commitment kept";
+      inner = `${hero(request || campaignRequest ? "Help arrived" : "Commitment kept", support || campaignRequest ? "Confirmed · the Campaign's count just grew" : captured ? "Confirmed · the recorded commitment is fulfilled" : "Confirmed · the season's count just grew", "checkbox-circle-fill")}${hot(
         campaignRequest ? "w4.done-campaign-request"
         : requestWork ? "w4.done-request-work"
         : request ? "w4.done-request"
@@ -2595,7 +2762,7 @@ function w4(state: W4State): string {
         : captured ? "The workshop has not happened yet…"
         : "The far bed is still overgrown…",
         { placeholder: false },
-      ))}${banner("Couldn't reach the stewards just now. Your note is kept and this promise stays ready to confirm — try again when you're back online.", "amber", "error-warning-line")}${hot(
+      ))}${banner("Couldn't reach the stewards just now. Your note is kept and this commitment stays ready to confirm — try again when you're back online.", "amber", "error-warning-line")}${hot(
         campaignRequest ? "w4.not-yet-retry-campaign-request"
         : request ? "w4.not-yet-retry-request"
         : support ? "w4.not-yet-retry-support"
@@ -2611,15 +2778,15 @@ function w4(state: W4State): string {
       inner = `${summary}${confirmMeter}${exclusion}<div class="t-meta">Waiting on João and Ana. You'll see it here the moment they confirm.</div>`;
       break;
     default:
-      inner = `${summary}${listRow({ icon: "check-line", primary: "Linked work", meta: "1 approved · evidence: 2 items" })}${confirmMeter}${exclusion}${hot("w4.confirm", btn("Confirm — promise kept", { kind: "pri", full: true }))}${hot("w4.not-yet", btn("Not yet — tell the stewards why", { kind: "sec", full: true }))}`;
+      inner = `${summary}${listRow({ icon: "check-line", primary: "Linked work", meta: "1 approved · evidence: 2 items" })}${confirmMeter}${exclusion}${hot("w4.confirm", btn("Confirm — commitment kept", { kind: "pri", full: true }))}${hot("w4.not-yet", btn("Not yet — tell the stewards why", { kind: "sec", full: true }))}`;
   }
   // The confirmation sheet joins the flow grammar through its HEADER rather
   // than a FormInfo card, because a sheet already owns its title (round 11).
   const sheetInfo: { ic: string; info: string } =
     state.startsWith("not-yet-failed")
-      ? { ic: "error-warning-line", info: "Your note is kept on this device. The promise stays ready to confirm." }
+      ? { ic: "error-warning-line", info: "Your note is kept on this device. The commitment stays ready to confirm." }
       : state.startsWith("not-yet")
-        ? { ic: "time-line", info: "Say what still needs doing. This does not break the promise — it tells the stewards where it is." }
+        ? { ic: "time-line", info: "Say what still needs doing. This does not break the commitment — it tells the stewards where it is." }
         : state === "provider-view"
           ? { ic: "eye-line", info: "You provided this, so you cannot confirm it. You'll see it here the moment they do." }
           : state.includes("pending")
@@ -2631,23 +2798,23 @@ function w4(state: W4State): string {
 }
 
 const W4_HOTS: HifiDef["hots"] = {
-  "w4.confirm": { l: "Confirm — promise kept", to: "screen:W4@confirmed-pending", info: "Positive-only confirmation job; the Nth confirmation flips Fulfilled after the queued confirmation syncs (CS:139).", calls: ["confirmFulfillment"], pendingSync: true },
-  "w4.confirm-support": { l: "Confirm — promise kept", to: "screen:W4@confirmed-pending-support", info: "The recipient confirms the evidence-only service promise; fulfillment appears only after sync.", calls: ["confirmFulfillment"], pendingSync: true },
+  "w4.confirm": { l: "Confirm — commitment kept", to: "screen:W4@confirmed-pending", info: "Positive-only confirmation job; the Nth confirmation flips Fulfilled after the queued confirmation syncs (CS:139).", calls: ["confirmFulfillment"], pendingSync: true },
+  "w4.confirm-support": { l: "Confirm — commitment kept", to: "screen:W4@confirmed-pending-support", info: "The recipient confirms the evidence-only service commitment; fulfillment appears only after sync.", calls: ["confirmFulfillment"], pendingSync: true },
   "w4.confirm-request": { l: "Confirm — help arrived", to: "screen:W4@confirmed-pending-request", info: "The request creator confirms the claimant's help; fulfillment appears only after sync.", calls: ["confirmFulfillment"], pendingSync: true },
   "w4.confirm-request-work": { l: "Confirm — the work was done", to: "screen:W4@confirmed-pending-request-work", info: "The asker confirms a DomainImpact Request whose proof was approved Work, not evidence; fulfillment appears only after sync (register #97a).", calls: ["confirmFulfillment"], pendingSync: true },
   "w4.not-yet-request-work": { l: "Not yet", to: "screen:W4@not-yet-request", info: "The same reason-required steward review as every other Not yet. The drawn landing reuses the evidence-only request fixture per the declared dispute-variant convention (prototypes-coverage §Presentation coverage) — the raiseDispute call and the ask's DomainImpact kind are unchanged in the app; only the drawn fixture is shared." },
   "w4.confirm-campaign-request": { l: "Confirm — Campaign help arrived", to: "screen:W4@confirmed-pending-campaign-request", info: "The request creator confirms the Campaign-scoped request without losing that Campaign binding.", calls: ["confirmFulfillment"], pendingSync: true },
-  "w4.confirm-captured": { l: "Confirm — recorded promise kept", to: "screen:W4@confirmed-pending-captured", info: "The named counterparty confirms the evidence-only StewardCaptured promise.", calls: ["confirmFulfillment"], pendingSync: true },
-  "w4.not-yet": { l: "Not yet", to: "screen:W4@not-yet", info: "Requires a reason → online steward review. It never cancels the promise (UX:167)." },
+  "w4.confirm-captured": { l: "Confirm — recorded commitment kept", to: "screen:W4@confirmed-pending-captured", info: "The named counterparty confirms the evidence-only StewardCaptured commitment.", calls: ["confirmFulfillment"], pendingSync: true },
+  "w4.not-yet": { l: "Not yet", to: "screen:W4@not-yet", info: "Requires a reason → online steward review. It never cancels the commitment (UX:167)." },
   "w4.not-yet-support": { l: "Not yet — service", to: "screen:W4@not-yet-support", info: "Keeps the service-offer cast while collecting the required dispute reason." },
   "w4.not-yet-request": { l: "Not yet — request", to: "screen:W4@not-yet-request", info: "Keeps the request cast while collecting the required dispute reason." },
   "w4.not-yet-campaign-request": { l: "Not yet — Campaign request", to: "screen:W4@not-yet-campaign-request", info: "Keeps the Campaign request binding while collecting the required dispute reason." },
-  "w4.not-yet-captured": { l: "Not yet — recorded promise", to: "screen:W4@not-yet-captured", info: "Keeps the StewardCaptured cast while collecting the required dispute reason." },
-  "w4.not-yet-send": { l: "Send to the stewards", to: "screen:W2@disputed", info: "Online-only raiseDispute with the reason; the promise freezes at “under review by stewards” (CS:143 · UX:426).", calls: ["raiseDispute"] },
+  "w4.not-yet-captured": { l: "Not yet — recorded commitment", to: "screen:W4@not-yet-captured", info: "Keeps the StewardCaptured cast while collecting the required dispute reason." },
+  "w4.not-yet-send": { l: "Send to the stewards", to: "screen:W2@disputed", info: "Online-only raiseDispute with the reason; the commitment freezes at “under review by stewards” (CS:143 · UX:426).", calls: ["raiseDispute"] },
   "w4.not-yet-send-support": { l: "Send service dispute to stewards", to: "screen:W2@support-disputed", info: "raiseDispute preserves the service offer's exact pre-dispute state and cast.", calls: ["raiseDispute"] },
   "w4.not-yet-send-request": { l: "Send request dispute to stewards", to: "screen:W2@request-disputed", info: "raiseDispute preserves the request's exact pre-dispute state and cast.", calls: ["raiseDispute"] },
   "w4.not-yet-send-campaign-request": { l: "Send Campaign request dispute to stewards", to: "screen:W2@campaign-request-disputed", info: "raiseDispute preserves the Campaign request's exact pre-dispute state and scope.", calls: ["raiseDispute"] },
-  "w4.not-yet-send-captured": { l: "Send recorded-promise dispute to stewards", to: "screen:W2@captured-disputed", info: "raiseDispute preserves the StewardCaptured kind and member source.", calls: ["raiseDispute"] },
+  "w4.not-yet-send-captured": { l: "Send recorded-commitment dispute to stewards", to: "screen:W2@captured-disputed", info: "raiseDispute preserves the StewardCaptured kind and member source.", calls: ["raiseDispute"] },
   "w4.meter": { l: "N-of-group meter", info: "Named any-N confirmation group; every frozen team member is excluded before threshold validation (UX:280 · Appendix C)." },
   "w4.provider-note": { l: "Provider exclusion", info: "Provider self-confirmation is blocked everywhere, including steward fallback (UX:32)." },
   "w4.done": { l: "Back to the pool", to: "screen:W2@fulfilled", info: "The Commitment Fulfilled hero (High) fires on sync completion, not enqueue; reduced-motion shows a static celebratory frame (UX:169,201,204)." },
@@ -2657,16 +2824,16 @@ const W4_HOTS: HifiDef["hots"] = {
   "w4.pending-request-work-done": { l: "Done", to: "screen:W2@request-work-confirmation-pending", info: "Returns to the garden-work ask with its queued confirmation visible and no duplicate submission action." },
   "w4.done-campaign-request": { l: "Back to the pool", to: "screen:W2@campaign-request-fulfilled", info: "Returns to the same Campaign request record after its fulfillment syncs." },
   "w4.done-captured": { l: "Back to the pool", to: "screen:W2@captured-fulfilled", info: "Returns to the same StewardCaptured record after its fulfillment syncs." },
-  "w4.pending-done": { l: "Done", to: "screen:W2@confirmation-pending", info: "Returns to the same promise with its queued confirmation visible and no duplicate confirmation act." },
-  "w4.pending-support-done": { l: "Done", to: "screen:W2@support-confirmation-pending", info: "Returns to the service promise with its queued confirmation visible and no duplicate submission act." },
+  "w4.pending-done": { l: "Done", to: "screen:W2@confirmation-pending", info: "Returns to the same commitment with its queued confirmation visible and no duplicate confirmation act." },
+  "w4.pending-support-done": { l: "Done", to: "screen:W2@support-confirmation-pending", info: "Returns to the service commitment with its queued confirmation visible and no duplicate submission act." },
   "w4.pending-request-done": { l: "Done", to: "screen:W2@request-confirmation-pending", info: "Returns to the request with its queued confirmation visible and no duplicate submission act." },
   "w4.pending-campaign-request-done": { l: "Done", to: "screen:W2@campaign-request-confirmation-pending", info: "Returns to the Campaign request with its scope and queued confirmation intact." },
-  "w4.pending-captured-done": { l: "Done", to: "screen:W2@captured-confirmation-pending", info: "Returns to the StewardCaptured promise with its queued confirmation visible." },
+  "w4.pending-captured-done": { l: "Done", to: "screen:W2@captured-confirmation-pending", info: "Returns to the StewardCaptured commitment with its queued confirmation visible." },
   "w4.not-yet-retry": { l: "Try again", to: "screen:W2@disputed", info: "“Not yet” is online-only — dispute creation is not an offline queue kind. Failure leaves ReadyForConfirmation and exposes inline retry; success invalidates to under review by stewards (UX:169,221).", calls: ["raiseDispute"] },
-  "w4.not-yet-retry-support": { l: "Try service dispute again", to: "screen:W2@support-disputed", info: "Retries the kept reason against the same service promise.", calls: ["raiseDispute"] },
+  "w4.not-yet-retry-support": { l: "Try service dispute again", to: "screen:W2@support-disputed", info: "Retries the kept reason against the same service commitment.", calls: ["raiseDispute"] },
   "w4.not-yet-retry-request": { l: "Try request dispute again", to: "screen:W2@request-disputed", info: "Retries the kept reason against the same request.", calls: ["raiseDispute"] },
   "w4.not-yet-retry-campaign-request": { l: "Try Campaign request dispute again", to: "screen:W2@campaign-request-disputed", info: "Retries the kept reason without dropping Campaign scope.", calls: ["raiseDispute"] },
-  "w4.not-yet-retry-captured": { l: "Try recorded-promise dispute again", to: "screen:W2@captured-disputed", info: "Retries the kept reason against the same StewardCaptured promise.", calls: ["raiseDispute"] },
+  "w4.not-yet-retry-captured": { l: "Try recorded-commitment dispute again", to: "screen:W2@captured-disputed", info: "Retries the kept reason against the same StewardCaptured commitment.", calls: ["raiseDispute"] },
 };
 
 // ---------------------------------------------------------------------------
@@ -2800,7 +2967,7 @@ function w32(state: W32State): string {
   // Drawn home (2026-08-11 D8a, uiux §5.8 addendum): this surface is a section
   // of the WalletDrawer's Commitments tab — the pool tab shows only the public
   // life of ongoing Offers.
-  const intro = `<div class="t-meta">A section of your wallet's Commitments tab — private to you. Details you can reuse; nothing here is a promise until you offer it in a garden.</div>`;
+  const intro = `<div class="t-meta">A section of your wallet's Commitments tab — private to you. Details you can reuse; nothing here is a commitment until you offer it in a garden.</div>`;
   let body: string;
   switch (state) {
     case "empty":
@@ -2829,7 +2996,7 @@ function w32(state: W32State): string {
         "Hosting climate workshops",
         `<div class="t-meta">How would you like to offer this?</div>` +
           hot("w32.offer-once", card(
-            `<div class="t-title">Offer it once</div><div class="t-meta">One promise, this time only — the ordinary offer, prefilled.</div>`,
+            `<div class="t-title">Offer it once</div><div class="t-meta">One commitment, this time only — the ordinary offer, prefilled.</div>`,
             { cls: "flat" },
           )) +
           hot("w32.offer-over-time", card(
@@ -2901,7 +3068,7 @@ function w32(state: W32State): string {
         card(
           `${kv("Saved privately", "Kept with your account. It follows you to a new phone.")}` +
             `${kv("Draft on this device", "Stays in this browser only. Clearing the app loses it.")}` +
-            `${kv("Offered in a garden", "The garden's pool holds the promise. Your saved details stay private.")}`,
+            `${kv("Offered in a garden", "The garden's pool holds the commitment. Your saved details stay private.")}`,
         ) +
           `<div class="t-meta">Saved details are private until you choose a garden. Offering one never publishes the rest of your list.</div>` +
           hot("w32.persistence-done", btn("Got it", { kind: "pri", full: true })),
@@ -3063,7 +3230,7 @@ const W34_CLAIMANT_PUBLIC_DATA: Record<W34ClaimantField, string> = {
   availablePlaces: "2",
   placeTerms: "Season of First Rains · 2 hours",
   claimExplanation:
-    "Taking up a place opens that promise. The other place stays available for someone else.",
+    "Taking up a place opens that commitment. The other place stays available for someone else.",
 };
 const claimantField = (fieldName: W34ClaimantField, html: string) =>
   `<div data-claimant-field="${fieldName}">${html}</div>`;
@@ -3076,7 +3243,7 @@ const w34Head = (opts: { state: string; tone: "offer" | "plain" | "ink" }) =>
 const w34Places = (n: number) => {
   if (n === 0) {
     return card(
-      `<div class="t-title">No places available right now</div><div class="t-meta">Nothing is open for anyone to take up. Adding a place creates a real promise that reserves your capacity straight away.</div>` +
+      `<div class="t-title">No places available right now</div><div class="t-meta">Nothing is open for anyone to take up. Adding a place creates a real commitment that reserves your capacity straight away.</div>` +
         hot("w34.add-places", btn("Add places", { kind: "pri", full: true, icon: "add-line" })),
     );
   }
@@ -3090,7 +3257,7 @@ const w34Places = (n: number) => {
     }),
   ).join("");
   return card(
-    `<div class="cardrow"><div class="grow"><div class="t-title num">${n} ${n === 1 ? "place" : "places"} available now</div><div class="t-meta">Each one is a real promise waiting to be taken up.</div></div></div>${rows}` +
+    `<div class="cardrow"><div class="grow"><div class="t-title num">${n} ${n === 1 ? "place" : "places"} available now</div><div class="t-meta">Each one is a real commitment waiting to be taken up.</div></div></div>${rows}` +
       hot("w34.add-places", btn("Add places", { kind: "ghost", full: true, icon: "add-line" })),
   );
 };
@@ -3213,7 +3380,7 @@ function w34(state: W34State): string {
       break;
     case "story":
       body = `${w34Head({ state: "Active", tone: "offer" })}${pagepad(
-        card(`<div class="t-title num">Kept 12 times across 5 cycles</div><div class="t-meta">Every entry below is its own promise, with its own evidence and confirmation. Nothing here is a rating.</div>`),
+        card(`<div class="t-title num">Kept 12 times across 5 cycles</div><div class="t-meta">Every entry below is its own commitment, with its own evidence and confirmation. Nothing here is a rating.</div>`),
         sectionTitle("This offer's story"),
         card(w34StoryTimeline(), { cls: "flat" }),
         hot("w34.story-row", btn("Open the July session", { kind: "ghost", full: true })),
@@ -3226,8 +3393,8 @@ function w34(state: W34State): string {
         sectionCard("Details", `${detailRow("Kept", "12 times across 5 cycles")}${detailRow("Withdrawn or ran out", "2")}${detailRow("Reported participants", "31 · from evidence notes")}`),
         `<div class="t-meta">One offer, in this garden, over time.</div>`,
         sectionTitle("Your part in this pool"),
-        sectionCard("Details", `${detailRow("Kept", "18 promises")}${detailRow("Taken up from others", "7")}${detailRow("Confirmations you gave", "23")}`),
-        `<div class="t-meta">Everything you have offered or received here, across every promise — not only this one offer. Visible to you and this garden's stewards.</div>`,
+        sectionCard("Details", `${detailRow("Kept", "18 commitments")}${detailRow("Taken up from others", "7")}${detailRow("Confirmations you gave", "23")}`),
+        `<div class="t-meta">Everything you have offered or received here, across every commitment — not only this one offer. Visible to you and this garden's stewards.</div>`,
         banner("These are two different views. Neither is a score, and neither is compared with anyone else.", "stone", "information-line"),
       )}`;
       break;
@@ -3270,7 +3437,7 @@ function w34(state: W34State): string {
       break;
     case "pool-paused":
       body = `${w34Head({ state: "Active · pool paused", tone: "plain" })}${pagepad(
-        banner("This pool is paused. Existing promises and the offer's story are unchanged.", "amber", "pause-line"),
+        banner("This pool is paused. Existing commitments and the offer's story are unchanged.", "amber", "pause-line"),
         card(
           `<div class="t-title">2 existing places are held, but cannot be taken up while paused</div>` +
             listRow({ icon: "calendar-line", primary: "Workshop session 1", meta: "Season of First Rains · unavailable while pool paused", chipHtml: chip("Paused", "queued") }) +
@@ -3295,7 +3462,7 @@ function w34(state: W34State): string {
     case "pool-composted":
       body = `${w34Head({ state: "Active · pool composted", tone: "ink" })}${pagepad(
         banner("This pool is composted for now. Its history remains readable, and its stewards may reopen it for another season.", "stone", "leaf-line"),
-        card(`<div class="t-title num">Kept 12 times across 5 cycles</div><div class="t-meta">Past promises and evidence remain exactly as recorded. No place can be added or taken up.</div>`),
+        card(`<div class="t-title num">Kept 12 times across 5 cycles</div><div class="t-meta">Past commitments and evidence remain exactly as recorded. No place can be added or taken up.</div>`),
         hot("w34.open-story", btn("See the whole story", { kind: "ghost", full: true })),
         hot("w34.open-composted-pool", btn("View the composted pool", { kind: "ghost", full: true })),
       )}`;
@@ -3338,7 +3505,7 @@ function w34(state: W34State): string {
         "Retire this ongoing Offer?",
         `<div class="t-meta">Retiring is final. You will not be able to add places or start it again.</div>` +
           card(
-            `${kv("Promises already made", "Keep their state and their history")}${kv("This offer's story", "Stays exactly as it is")}${kv("Your saved details", "Stay saved privately to you")}`,
+            `${kv("Commitments already made", "Keep their state and their history")}${kv("This offer's story", "Stays exactly as it is")}${kv("Your saved details", "Stay saved privately to you")}`,
           ) +
           `<div class="brow">${hot("w34.retire-confirm", btn("Retire it", { kind: "danger" }))}${hot("w34.retire-cancel", btn("Keep it", { kind: "ghost" }))}</div>`,
       );
@@ -3360,7 +3527,7 @@ function w34(state: W34State): string {
         "Retire this ongoing Offer?",
         `<div class="t-meta">Retiring is final. You do not need to resume or add a place first.</div>` +
           card(
-            `${kv("Promises already made", "Keep their state and their history")}${kv("This offer's story", "Stays exactly as it is")}${kv("Your saved details", "Stay saved privately to you")}`,
+            `${kv("Commitments already made", "Keep their state and their history")}${kv("This offer's story", "Stays exactly as it is")}${kv("Your saved details", "Stay saved privately to you")}`,
           ) +
           `<div class="brow">${hot("w34.retire-confirm-resting", btn("Retire it", { kind: "danger" }))}${hot("w34.retire-cancel-resting", btn("Keep it resting", { kind: "ghost" }))}</div>`,
       );
@@ -3408,14 +3575,14 @@ function w34(state: W34State): string {
             hot("w34.open-retired-place", btn("View an open place", { kind: "ghost", full: true })),
           { cls: "flat" },
         ),
-        card(`<div class="t-title num">Kept 12 times across 5 cycles</div><div class="t-meta">The story stays here. Nothing that was already promised or kept has changed.</div>`),
+        card(`<div class="t-title num">Kept 12 times across 5 cycles</div><div class="t-meta">The story stays here. Nothing that was already committed or kept has changed.</div>`),
         card(w34StoryTimeline(), { cls: "flat" }),
         `<div class="t-meta">Your saved details are still there. You can offer it in a garden again whenever you want to.</div>`,
       )}`;
       break;
     case "retired-none":
       body = `${w34Head({ state: "Retired · no places", tone: "ink" })}${pagepad(
-        banner("Retired without opening a place. No capacity-reserving promise was required to end this ongoing Offer.", "stone", "information-line"),
+        banner("Retired without opening a place. No capacity-reserving commitment was required to end this ongoing Offer.", "stone", "information-line"),
         card(`<div class="t-title num">Kept 12 times across 5 cycles</div><div class="t-meta">The story and privately saved details remain available. No new place can be added to this retired ongoing Offer.</div>`),
       )}`;
       break;
@@ -3436,7 +3603,7 @@ function w34(state: W34State): string {
             `${kv("Let someone start their own", "A new ongoing Offer that says where it grew from")}` +
             `${kv("Let the garden hold it", "The garden stewards it and each session names its own lead")}`,
         ),
-        `<div class="t-meta">None of these can be done yet. Every one of them will need both people to agree, and none of them moves a promise you have already made.</div>`,
+        `<div class="t-meta">None of these can be done yet. Every one of them will need both people to agree, and none of them moves a commitment you have already made.</div>`,
         `<div class="t-meta">What you can do today: add places, rest, or retire.</div>`,
       )}`;
       break;
@@ -3468,7 +3635,7 @@ const W34_HOTS: HifiDef["hots"] = {
   "w34.add-places": { l: "Add places", to: "screen:W35@compose", info: "Opens the finite-batch place flow. Each place becomes one ordinary Offer instance that reserves provider capacity at creation." },
   "w34.open-story": { l: "See the whole story", to: "screen:W34@story", info: "Exact linked-instance history and absolute counts. Never a rate, rank, or comparison." },
   "w34.open-story-resting": { l: "See the story", to: "screen:W34@story", info: "Resting hides nothing: the story stays fully readable." },
-  "w34.story-row": { l: "Open one kept promise", to: "screen:W2@fulfilled", info: "Every story row is an ordinary immutable Commitment with its own evidence and confirmation." },
+  "w34.story-row": { l: "Open one kept commitment", to: "screen:W2@fulfilled", info: "Every story row is an ordinary immutable Commitment with its own evidence and confirmation." },
   "w34.claim": { l: "Take up one place", to: "screen:W2@support-accepted", info: "Accepts one already-created Offered service instance. No new place is created, no second provider slot is consumed, and the instance stays Accepted until Work or evidence lands.", calls: ["claimCommitment"] },
   "w34.open-paused-pool": { l: "View the paused pool", to: "screen:W1@paused", info: "Shows the pool-level pause reason and steward-owned resume path. The series and existing instances remain intact, but Add and claim stay disabled." },
   "w34.open-closed-pool": { l: "View the closed pool", to: "screen:W1@closed", info: "Shows the closed pool state. Reopening is a steward action; the ongoing Offer detail does not fabricate a gardener write." },
@@ -3488,7 +3655,7 @@ const W34_HOTS: HifiDef["hots"] = {
   "w34.save-edit-resting": { l: "Save resting offer details", to: "screen:W34@resting", info: "Calls updateCommitmentSeriesMetadata while Resting. It does not resume the series or rewrite an instance.", calls: ["updateCommitmentSeriesMetadata"] },
   "w34.save-edit-resting-none": { l: "Save resting offer details with no places", to: "screen:W34@resting-none", info: "Calls updateCommitmentSeriesMetadata while preserving Resting and zero availability.", calls: ["updateCommitmentSeriesMetadata"] },
   "w34.save-edit-resting-ready": { l: "Save resting offer details in a Ready pool", to: "screen:W34@resting-ready", info: "Calls updateCommitmentSeriesMetadata while preserving Resting + Ready and every existing snapshot.", calls: ["updateCommitmentSeriesMetadata"] },
-  "w34.rest": { l: "Rest it for now", to: "screen:W34@resting", info: "Blocks new places. Existing Offered and Accepted promises and the whole story are untouched.", calls: ["restCommitmentSeries"] },
+  "w34.rest": { l: "Rest it for now", to: "screen:W34@resting", info: "Blocks new places. Existing Offered and Accepted commitments and the whole story are untouched.", calls: ["restCommitmentSeries"] },
   "w34.rest-none": { l: "Rest the no-place offer", to: "screen:W34@resting-none", info: "Active may become Resting independently of instance count; no createCommitment or capacity reservation occurs.", calls: ["restCommitmentSeries"] },
   "w34.rest-ready": { l: "Rest it for now in a Ready pool", to: "screen:W34@resting-ready", info: "Resting is independent of place count and pool opening. No capacity-reserving commitment is required first.", calls: ["restCommitmentSeries"] },
   "w34.resume": { l: "Start offering again", to: "screen:W34@active-two", info: "Returns the ongoing Offer to Active without changing its two existing Offered places or creating another one.", calls: ["resumeCommitmentSeries"] },
@@ -3513,7 +3680,7 @@ const W34_HOTS: HifiDef["hots"] = {
   "w34.retire-cancel-ready": { l: "Keep it in the Ready pool", to: "screen:W34@pool-ready", info: "Dismisses the confirmation while preserving Active + Ready." },
   "w34.retire-cancel-resting-ready": { l: "Keep it resting in the Ready pool", to: "screen:W34@resting-ready", info: "Dismisses the confirmation and preserves Resting + Ready." },
   "w34.open-retired-place": { l: "View an open place", to: "screen:W2@support-offered", info: "Opens one surviving Offered instance. Retirement blocks only new series instances; ordinary claimant discovery and claim remain available while the pool is Open." },
-  "w34.ask-again-yes": { l: "Add places", to: "screen:W35@compose", info: "Current consent before any new promise. The protocol never creates a place on a schedule." },
+  "w34.ask-again-yes": { l: "Add places", to: "screen:W35@compose", info: "Current consent before any new commitment. The protocol never creates a place on a schedule." },
   "w34.ask-again-not-now": { l: "Not this season", to: "screen:W34@active-none", info: "Declining creates nothing and changes neither this offer nor its story." },
   "w34.succession": { l: "Sharing and handing on — later", to: "screen:W34@succession", info: "Labelled horizon only. The initial contract exposes rest, resume, and retire and nothing else." },
   "w34.retry": { l: "Try again", to: "screen:W34@active-two", info: "Re-reads the indexed ongoing Offer after a failed read." },
@@ -3570,7 +3737,7 @@ function w35(state: W35State): string {
       body = `${head}${pagepad(
         card(`${kv("Offer", "Hosting climate workshops")}${kv("Garden", "Rocinha Community Garden")}`),
         field("How many places", input("2")),
-        `<div class="t-meta">Each place becomes its own promise with these terms. Someone takes up one place at a time.</div>`,
+        `<div class="t-meta">Each place becomes its own commitment with these terms. Someone takes up one place at a time.</div>`,
         field("When", radio([
           { label: "Season of First Rains", meta: "runs through Aug 30", on: true },
           { label: "No season", meta: "stands on its own" },
@@ -3654,7 +3821,7 @@ export const CLIENT_DEFS: HifiDef[] = [
     ["media", "1 · Media"], ["details", "2 · Details"],
     ["review", "3 · Review — garden work"], ["review-request", "3 · Review — a request"],
     ["review-campaign-request", "3 · Review — Campaign request"],
-    ["review-support", "3 · Review — service offer"], ["review-captured", "3 · Review — recorded promise"],
+    ["review-support", "3 · Review — service offer"], ["review-captured", "3 · Review — recorded commitment"],
     ["queued", "Queued"], ["failed", "Upload failed"],
   ] as const, w2a, w2aFacts), hots: W2A_HOTS },
   { ...mk("W3", "W3 · Offer/request creation", W3_STATES, w3, w3Facts), hots: W3_HOTS },

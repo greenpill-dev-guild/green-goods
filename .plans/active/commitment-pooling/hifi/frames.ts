@@ -2,8 +2,8 @@
 //
 // W2 carried 75 states, W1 33, W7 31, and the switcher drew them as one flat row
 // of chips — which is what made the surface feel impossible to hold in a head.
-// They are not that many screens. They are one promise lifecycle replayed across
-// six kinds of promise, one setup ladder a pool climbs once, and a row of
+// They are not that many screens. They are one commitment lifecycle replayed across
+// six kinds of commitment, one setup ladder a pool climbs once, and a row of
 // confirmations. Grouping the chips by FRAME says so.
 //
 // The states themselves never move: prototypes.md §17 is a coverage appendix

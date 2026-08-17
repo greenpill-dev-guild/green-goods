@@ -442,7 +442,7 @@ export const PLAYER_JS = `(function(){
       // States are grouped by FRAME where a screen declares one. Seventy-five
       // chips in a flat row read as seventy-five screens; the same chips under
       // eight headings read as what they are — one lifecycle, six kinds of
-      // promise, and a handful of endings.
+      // commitment, and a handful of endings.
       var lastGroup = null;
       scr.states.forEach(function(s2){
         if (s2.group && s2.group !== lastGroup) {

@@ -29,16 +29,16 @@ export const CHAPTERS: Record<ReviewGroup, readonly { id: string; label: string;
     // "Requests" was the odd one out: every other chapter names the act, so the
     // two creation doors now read as the matched pair they are (Afo, D3).
     { id: "ask", label: "Make a request" },
-    { id: "take-up", label: "Take up a promise" },
+    { id: "take-up", label: "Take up a commitment" },
     { id: "keep", label: "Prove it" },
     { id: "confirm", label: "Confirm & resolve" },
-    { id: "team", label: "The team behind a promise" },
+    { id: "team", label: "The team behind a commitment" },
     { id: "money", label: "Money & wallet" },
     { id: "change", label: "Change of plans" },
   ],
   admin: [
     { id: "season", label: "Run the season" },
-    { id: "promises", label: "Decide on promises" },
+    { id: "commitments", label: "Decide on commitments" },
     { id: "work", label: "Work review" },
     { id: "assess", label: "Assessments" },
     { id: "behalf", label: "On a member's behalf" },
@@ -196,7 +196,7 @@ export type ScreenState = {
   // The FRAME this state belongs to (2026-08-16 round 7). W2 carries 75 states
   // and rendered them as 75 flat chips, which is what made the surface feel
   // unholdable — but they are one lifecycle repeated across six kinds of
-  // promise, not 75 different screens. Grouping shows that: same frame,
+  // commitment, not 75 different screens. Grouping shows that: same frame,
   // different data. States keep their own entry (the coverage ledger in
   // prototypes.md §17 accounts for every one); only the presentation collapses.
   group?: string;

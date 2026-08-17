@@ -1315,6 +1315,143 @@ stay public on the pool tab; the parent is what only the member rests, resumes o
 why the wallet holds it. `W32` remains the drawn destination for the private half, and its §5.8
 claim to be "a section of your wallet's Commitments tab" stays true.
 
+### C.12 Three wizards, one grammar (2026-08-17, round 13)
+
+The client has exactly **three** wizards. Everything else a member does is a tap
+or a read. Naming them settles the recurring "how many steps should this be"
+question, because the answer is a property of the wizard, not of the flow.
+
+| Wizard | Steps | Flows it serves |
+|---|---|---|
+| `WFLOW` — work submission (shipped) | Intro · Media · Details · Review | prove it with work |
+| `W3` — creation | What · How much · Details · Review | make an offer · offer a service · make an ongoing offer · make a request · request garden work |
+| `W2a` — evidence | Media · Details · Review | provide a service with evidence · help with what was requested |
+
+**Creation is four steps on every path, with no exception left.** The steward's
+ask was the last one at five: declaring G$ support had its own step. Support is a
+term the ask is kept on, exactly like who-can-take-it beside it, so it folds into
+step 2 and `request-support` retires. A steward's ask now runs the same four
+beats as a gardener's; the difference is the content of step 2, not its shape.
+
+**Evidence is three steps, and that is correct, not a shortfall.** Work
+submission's step 1 exists to pick an action and a garden. Evidence is entered
+from a promise that already fixed both, so a step 1 there would confirm a choice
+already made. Padding it to four to match a number would be worse than the
+asymmetry.
+
+What evidence owed was the **grammar**, not the step count, and this round pays it:
+
+- Its review drew **three carded sections** with their own headers — the anatomy
+  retired from creation's six reviews in C.10 — and named no subject, so nothing
+  on screen said which promise the evidence belonged to. It is now one flat card
+  led by the promise, the shipped `views/Garden/Review.tsx` shape.
+- **Note and link stopped being form fields.** They were two inputs on step 2
+  while photos and voice notes were a list on step 1, so the same act had two
+  shapes depending on what you attached. They are items in the step-1 list now,
+  added by the same adders creation uses: everything attached composes into ONE
+  set.
+- That leaves step 2 asking a single question, so it is **named for it** — "Who
+  helped" rather than "Evidence details".
+- The **queued and failed outcomes** stopped rendering the review step's progress
+  bar. They are outcomes, not steps; a progress bar on a screen you cannot
+  advance from is a false promise.
+- The capture step gained the **offline banner** its two siblings carry.
+
+Creation and evidence now share one `captureBody` and one `captureBar`; the
+shared body is why the adders and the banner arrived together.
+
+**Still open, carried from C.10's sibling question.** Proving with work ends in
+one act (`Submit work`); proving a service ends in two — `Attach evidence`, then
+`Send for confirmation` from the promise's bar. The cause is real: work has
+steward approvals to advance it, and a service has no approver, so the provider
+must declare it done. Whether that declaration should be the default outcome of
+the evidence wizard or stay its own decision is undecided, and nothing here
+presumes an answer.
+
+### C.13 The record is a Commitment (2026-08-17, AMENDS §3)
+
+**This supersedes §3's "Promise names the record" for every surface.** §3 (2026-08-11,
+correction pass D3) chose "promise" as the community-facing name for the record and
+"commitment" as the technical one. The canonical glossary says the opposite:
+
+> **Commitment** | entity | audiences: **admin · client · community · docs** |
+> *"A module-native promise record (offer or request) with one accountable lead, an
+> optional contributor roster…"*
+
+`Commitment` is the entity name, addressed to the client among its four audiences;
+"promise" survives there only as the plain-language gloss inside the definition. §3
+introduced a second name for the same thing on the surface that most needed the first
+one, in a feature called commitment pooling. This corrects that drift rather than
+overturning a considered call: **the record is a Commitment everywhere.**
+
+**What did NOT change.** §3's other half stands unamended: the *acts* are direction
+verbs — "Offer support", "Ask for help", "Make this offer", "Ask for this help". No
+creation surface may read "Create a commitment" any more than it could read "Create a
+promise". None of those strings contain the swept word.
+
+**The verb is "commit", not "commitment".** Three rendered strings had used "promise"
+as a verb and needed the verb form, not the noun: "nobody can **commit** until then",
+"Nobody has **committed** to anything yet", and the review step card "Review & **commit**".
+A blind noun sweep produces "nobody can commitment", which is how this was caught.
+
+**Scope.** 843 replacements across the prototype source plus five builder renames
+(`commitmentCard`, `commitmentRow`, `commitmentSlide`, `CommitmentCast`, `w7Commitments`).
+Zero occurrences of "promise" remain in rendered artifact text. Deliberately untouched:
+`promiseKeptRate`, which is a contract and indexer field name carried by contract-spec
+and the ontology; and the seven hotspot ids plus two state keys that contain the old
+word, which are stable deep-link addresses rather than copy.
+
+**A latent validator bug surfaced by the sweep.** The Appendix D.1 tripwire read
+`/promised units|% of promised/i` — a phrasing no surface had ever rendered, because
+every surface already said "committed units". The rule was **blind from the day it was
+written**. Making the guarded phrase real exposed two hits on `W10`, both legitimate:
+a single commitment's own reserved units are one basis, so "cancelling releases the
+committed units" is not an aggregation. The tripwire now guards the invariant's two
+real rendered shapes — a percentage over units (`% of committed`) and a bare
+cross-commitment total (`N units committed`) — and keeps the historical spellings so a
+reintroduced old phrasing still trips.
+
+### C.14 Team is one surface (2026-08-17, round 15)
+
+Team lived in two places that never referenced each other: creation's Advanced detour
+owned the **policy** (Open vs Lead-managed) and an invite step, and `W2b` owned the
+**roster** afterwards. It is one screen now, with two lifecycle states that match what
+the contract allows — the policy is immutable once someone accepts, and a roster exists
+only after acceptance. Creation reaches it from a single `Team` row; the commitment
+reaches it from its People section. `W3@step-invite` retires.
+
+**Adding people is a sheet over the team, built from the shipped garden Gardeners list**
+(`packages/client/src/components/Features/Garden/Gardeners.tsx:74`): a full-width tappable
+row with a 40px avatar, name, subline, a joined line with a calendar glyph, and a badge
+pinned top-right — scrolled and tapped, not one address typed into a field. The new kit
+builder is `memberRow`.
+
+**Names, then addresses.** That component resolves its display name as `username || email
+|| phone || formatAddress(…)`, so a wallet address becomes the primary line exactly when
+nothing better is on file. The prototype now follows the same order and renders the
+address case in monospace, so it reads as an identifier rather than as a person's name.
+`W2b` previously showed `Kwame · 0x5b…19` beside every roster entry.
+
+**The kind gate was wrong.** Every drawn contributor action declared
+`kind: "DomainImpact"`, so a service commitment could choose a team policy at creation
+and then had nowhere to see or manage that team. contract-spec: *"Every accepted
+commitment stores one accountable `leadProvider` and an event-indexed contributor roster
+governed by an immutable Open or LeadManaged policy."* `addContributor`,
+`removeContributor`, `joinCommitment` and `leaveCommitment` are now available on every
+accepted commitment; **only `setContributorRequirement` stays garden-work-only**, because
+requirement rows exist nowhere else. `W2b@forming-service` draws the case that had no
+surface at all.
+
+**Recognition states the policy, never a per-person split.** The old preview ranked
+teammates — "Maria 40% · Ana 35% · Kwame 25%" — on a member surface. That is what D.3's
+copy rule forbids ("counts, never percentages, never a grade, never a comparison against
+another member") and what the round-7 no-per-person-rates rule forbids. The team screen
+now says how credit is shared — 35% equally, 65% by verified contribution — and
+`W2b@recognition` explains what "verified" means rather than scoring anyone.
+
+`W2b` was also the last client screen with no `FormInfo` step cards and no fixed action
+bar; it has both now.
+
 ### C.7 PROPOSAL — reciprocity from the claim side (2026-08-16, register #103, NOT LOCKED)
 
 **Status: proposed, awaiting Afo. Nothing in this section is drawn as shipped design, and no

@@ -1,9 +1,9 @@
 // Editorial hi-fi screens — W15 garden pool story (/gardens/:id), W16 /impact
-// promises band. Public-website dialect (.s-public): Fraunces-stack serif
+// commitments band. Public-website dialect (.s-public): Fraunces-stack serif
 // headlines, mono uppercase kickers, sharp editorial panels. Boundaries per
 // uiux-spec §7.4: read-only, aggregate-only — no rankings, no participant
 // data, no addresses; percentage rates only at ≥5 due commitments and ≥3
-// distinct promisers, counts-only sentences below that (§7.2).
+// distinct commitmentrs, counts-only sentences below that (§7.2).
 
 import { CYCLE, SEASON_LIVE, SEASON_LIVE_KEPT_RATE } from "../fixtures";
 import { hot } from "../html";
@@ -39,61 +39,61 @@ function w15(state: W15State): string {
   let panel: string;
   switch (state) {
     case "above-threshold":
-      panel = `<span class="kicker">Promises</span>
+      panel = `<span class="kicker">Commitments</span>
 <h3 class="serif-h">Midway through the ${CYCLE}</h3>
-<div class="estatrow"><div class="estat"><div class="serif-n">${SEASON_LIVE.made}</div><div class="l">promises made</div></div><div class="estat"><div class="serif-n">${SEASON_LIVE.kept}</div><div class="l">kept so far</div></div><div class="estat">${hot("w15.units", `<div class="eunits"><div class="erow"><span>Hours</span><span class="num">${SEASON_LIVE.units.hours.done} of ${SEASON_LIVE.units.hours.of}</span></div><div class="erow"><span>Rides</span><span class="num">${SEASON_LIVE.units.rides.done} of ${SEASON_LIVE.units.rides.of}</span></div></div>`)}
+<div class="estatrow"><div class="estat"><div class="serif-n">${SEASON_LIVE.made}</div><div class="l">commitments made</div></div><div class="estat"><div class="serif-n">${SEASON_LIVE.kept}</div><div class="l">kept so far</div></div><div class="estat">${hot("w15.units", `<div class="eunits"><div class="erow"><span>Hours</span><span class="num">${SEASON_LIVE.units.hours.done} of ${SEASON_LIVE.units.hours.of}</span></div><div class="erow"><span>Rides</span><span class="num">${SEASON_LIVE.units.rides.done} of ${SEASON_LIVE.units.rides.of}</span></div></div>`)}
 ${hot("w15.rate", `<div><div class="serif-n">${SEASON_LIVE_KEPT_RATE}%</div><div class="l">kept rate</div></div>`)}</div></div>
-<p style="margin:0;max-width:52ch">Fulfilled promises from this cycle are anchored in the certificates below.</p>`;
+<p style="margin:0;max-width:52ch">Fulfilled commitments from this cycle are anchored in the certificates below.</p>`;
       break;
     case "pre-launch":
-      panel = `<span class="kicker">Promises</span>
+      panel = `<span class="kicker">Commitments</span>
 <h3 class="serif-h">This garden is preparing its pool</h3>
 <p style="margin:0;max-width:52ch">Offers and requests between neighbors open with the coming season. The charter and baseline are in place.</p>`;
       break;
     default:
-      panel = `<span class="kicker">Promises</span>
+      panel = `<span class="kicker">Commitments</span>
 <h3 class="serif-h">Midway through the ${CYCLE}</h3>
-${hot("w15.counts", `<p style="margin:0;max-width:52ch;font-size:16.5px">${SEASON_LIVE.made} promises made, ${SEASON_LIVE.kept} kept so far — running through Aug 30.</p>`)}
-<p style="margin:0;max-width:52ch;color:var(--stone)">Fulfilled promises from this cycle are anchored in the certificates below.</p>`;
+${hot("w15.counts", `<p style="margin:0;max-width:52ch;font-size:16.5px">${SEASON_LIVE.made} commitments made, ${SEASON_LIVE.kept} kept so far — running through Aug 30.</p>`)}
+<p style="margin:0;max-width:52ch;color:var(--stone)">Fulfilled commitments from this cycle are anchored in the certificates below.</p>`;
   }
   return webWin("greengoods.app/gardens/rocinha", `${context}<div class="epanel">${panel}</div>${after}`, "w15.install");
 }
 
 const W15_HOTS: HifiDef["hots"] = {
   "w15.install": { l: "Install App", info: "Opens the installed-PWA prompt from the public garden page." },
-  "w15.counts": { l: "Counts-only sentence", info: "Percentages render publicly only at ≥5 due commitments and ≥3 promisers; below that, counts-only sentences (UX:350)." },
+  "w15.counts": { l: "Counts-only sentence", info: "Percentages render publicly only at ≥5 due commitments and ≥3 commitmentrs; below that, counts-only sentences (UX:350)." },
   "w15.units": { l: "Exact-label unit rows", info: "Each unit keeps its own label and total (§7.1). Hours and rides are never summed or averaged into a single figure — that is the mixed-unit percentage the spec forbids." },
-  "w15.rate": { l: "Kept rate", info: "Rendered only above the small-community threshold; cancelled and under-review promises never appear individually in public (UX:350)." },
+  "w15.rate": { l: "Kept rate", info: "Rendered only above the small-community threshold; cancelled and under-review commitments never appear individually in public (UX:350)." },
 };
 
 // ---------------------------------------------------------------------------
-// W16 — /impact promises band + evidence pipeline delta (uiux-spec §7.3)
+// W16 — /impact commitments band + evidence pipeline delta (uiux-spec §7.3)
 // ---------------------------------------------------------------------------
 
-const W16_STATES = [["band", "Promises band"], ["pipeline-delta", "Evidence pipeline"]] as const;
+const W16_STATES = [["band", "Commitments band"], ["pipeline-delta", "Evidence pipeline"]] as const;
 type W16State = (typeof W16_STATES)[number][0];
 
 function w16(state: W16State): string {
   if (state === "pipeline-delta") {
-    const stages = ["Assessment", "Promise", "Work", "Confirmation", "Certificate"]
-      .map((s2) => `<span class="pstage${s2 === "Promise" || s2 === "Confirmation" ? " new" : ""}">${s2}</span>`)
+    const stages = ["Assessment", "Commitment", "Work", "Confirmation", "Certificate"]
+      .map((s2) => `<span class="pstage${s2 === "Commitment" || s2 === "Confirmation" ? " new" : ""}">${s2}</span>`)
       .join(`<span class="parr">→</span>`);
     return webWin(
       "greengoods.app/impact",
       `<span class="kicker">How evidence becomes impact</span>
 <h3 class="serif-h">From baseline to certificate</h3>
 ${hot("w16.pipeline", `<div class="pipe">${stages}</div>`)}
-<p style="margin:0;max-width:56ch;color:var(--stone)">Promise and Confirmation are the two new stages: work begins as a promise to someone, and the person it was made to confirms it was kept.</p>`,
+<p style="margin:0;max-width:56ch;color:var(--stone)">Commitment and Confirmation are the two new stages: work begins as a commitment to someone, and the person it was made to confirms it was kept.</p>`,
       "w16.install",
     );
   }
   return webWin(
     "greengoods.app/impact",
     `<div class="epanel">
-<span class="kicker">Promises</span>
-<h3 class="serif-h">Work that starts as a promise kept</h3>
-<div class="estatrow"><div class="estat"><div class="serif-n">11</div><div class="l">gardens with live pools</div></div><div class="estat"><div class="serif-n">43</div><div class="l">promises fulfilled this season</div></div>${hot("w16.gsupport", `<div class="estat"><div class="serif-n">312 G$</div><div class="l">support arrived</div></div>`)}</div>
-<p style="margin:0;max-width:56ch">A promise is offered, taken up, worked, witnessed, and confirmed by the person it was made to.</p>
+<span class="kicker">Commitments</span>
+<h3 class="serif-h">Work that starts as a commitment kept</h3>
+<div class="estatrow"><div class="estat"><div class="serif-n">11</div><div class="l">gardens with live pools</div></div><div class="estat"><div class="serif-n">43</div><div class="l">commitments fulfilled this season</div></div>${hot("w16.gsupport", `<div class="estat"><div class="serif-n">312 G$</div><div class="l">support arrived</div></div>`)}</div>
+<p style="margin:0;max-width:56ch">A commitment is offered, taken up, worked, witnessed, and confirmed by the person it was made to.</p>
 ${hot("w16.see-gardens", `<button type="button" class="elink">See the gardens →</button>`)}
 </div>`,
     "w16.install",
@@ -104,7 +104,7 @@ const W16_HOTS: HifiDef["hots"] = {
   "w16.install": { l: "Install App", to: "screen:W1", info: "Opens the installed-PWA prompt from the public impact page." },
   "w16.gsupport": { l: "Support arrived", info: "Counts only deliveries whose authenticated acknowledgment landed (§7.3) — queued and dispatched support is never published as arrived." },
   "w16.see-gardens": { l: "See the gardens", to: "screen:W15", info: "Links to /gardens; no per-garden table on /impact — comparison drifts toward ranking (UX:354)." },
-  "w16.pipeline": { l: "Evidence pipeline delta", info: "PublicEvidencePipeline gains the Promise and Confirmation stages (UX:345)." },
+  "w16.pipeline": { l: "Evidence pipeline delta", info: "PublicEvidencePipeline gains the Commitment and Confirmation stages (UX:345)." },
 };
 
 // ---------------------------------------------------------------------------
@@ -112,6 +112,6 @@ const W16_HOTS: HifiDef["hots"] = {
 export const PUBLIC_DEFS: HifiDef[] = [
   { screen: { id: "W15", title: "W15 · Garden pool story (public)", surface: "editorial", frame: "browser", group: "Editorial website",
     states: W15_STATES.map(([id, label]) => ({ id, label, html: w15(id) })) }, hots: W15_HOTS },
-  { screen: { id: "W16", title: "W16 · /impact promises (public)", surface: "editorial", frame: "browser", group: "Editorial website",
+  { screen: { id: "W16", title: "W16 · /impact commitments (public)", surface: "editorial", frame: "browser", group: "Editorial website",
     states: W16_STATES.map(([id, label]) => ({ id, label, html: w16(id) })) }, hots: W16_HOTS },
 ];

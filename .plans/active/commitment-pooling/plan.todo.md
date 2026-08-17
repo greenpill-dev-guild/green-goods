@@ -1077,6 +1077,69 @@ Known mis-resolutions fixed in place: `contract-spec.md` §Grassroots-Economics-
     twice (`6 hours` and `Prune × 2 · Plant × 12`), which folding proof into step 2 makes more
     visible. Full text: `uiux-spec.md` C.10 and C.11.
 
+116. Three wizards, one grammar (2026-08-17, round 13, Afo's calls). The client has
+    exactly three wizards — `WFLOW` (work submission, 4 steps), `W3` (creation, 4),
+    `W2a` (evidence, 3); everything else is a tap or a read. **(a)** The steward
+    ask's Support step folds into step 2 beside the amount and who-can-take-it,
+    retiring `request-support` and taking the last five-step path down to four, so
+    creation is four beats everywhere without exception. **(b)** Evidence STAYS at
+    three steps (Afo's call): work submission's step 1 picks an action and a garden,
+    and evidence arrives from a promise that already fixed both, so a fourth step
+    would confirm a choice already made. **(c)** What evidence owed was grammar, not
+    step count — its review became one flat card led by the promise being proved
+    (it drew three carded sections and never named its subject); note and link
+    stopped being step-2 form fields and became items in the step-1 list, so
+    everything attached composes into one set ("buttons everywhere"); step 2 is
+    renamed "Who helped" for the single question it now asks; queued and failed
+    stopped rendering the review step's progress bar; and the capture step gained
+    its offline banner. **(d)** The work flow's "2 of 1 needed" chip reads
+    "2 added · 1 needed". Creation and evidence now share one `captureBody` and one
+    `captureBar`. STILL OPEN, deliberately: proving with work ends in one act,
+    proving a service in two (`Attach evidence`, then `Send for confirmation`) —
+    the cause is that a service has no approver to advance it, so the provider must
+    declare it done. Whether that declaration belongs at the end of the evidence
+    wizard is undecided. Full text: `uiux-spec.md` C.12.
+
+117. The record is a Commitment, amending §3 (2026-08-17, Afo: "we say promises but we
+    should be saying commitment to be consistent in our framing"). §3 had locked
+    "promise" as the community-facing record name; the canonical glossary lists
+    `Commitment` as the entity with audiences admin · client · community · docs, so the
+    client was carrying a second name for the same thing inside a feature called
+    commitment pooling. Swept everywhere: 843 replacements plus five builder renames;
+    zero "promise" left in rendered artifact text. §3's OTHER half is unamended — the
+    acts stay direction verbs, and no surface may read "Create a commitment". The verb
+    is "commit": three rendered strings needed the verb form, which a blind noun sweep
+    mangles into "nobody can commitment". NOT touched: `promiseKeptRate` (a contract and
+    indexer field name) and the hotspot ids / state keys containing the old word, which
+    are deep-link addresses, not copy. Surfaced a latent bug: the Appendix D.1 tripwire
+    guarded "promised units", a phrasing no surface had ever rendered, so the rule was
+    blind from the day it was written; it now guards the invariant's two real shapes and
+    no longer fires on a single commitment's own reserved units. ALSO SETTLED this round:
+    the shipped work-submission flow does NOT change (Afo) — a commitment needing work
+    actions runs it as designed with the commitment chosen at the start, and
+    evidence-based submission not tied to an action is free to differ; the four proposed
+    alignment fixes are therefore dropped. Full text: `uiux-spec.md` C.13.
+
+118. Team is one surface (2026-08-17, round 15, Afo's six calls). Policy, invites and
+    roster were split between creation's Advanced detour and `W2b`, which never
+    referenced each other. One screen now, two lifecycle states matching the contract:
+    policy is immutable once accepted, and a roster exists only after acceptance.
+    `W3@step-invite` retires; creation reaches team from one row. **(a)** Adding people
+    is a SHEET over the team surface, built from the shipped garden Gardeners item
+    (Gardeners.tsx:74) — avatar, name, subline, joined line, badge; scroll and tap to
+    select. New kit builder `memberRow`. **(b)** Names first, wallet address only when
+    nothing better is on file, in monospace — the same resolution order the shipped
+    component already uses. **(c)** The kind gate was a defect: every contributor action
+    declared `kind: "DomainImpact"`, so a service commitment could pick a team policy and
+    then had nowhere to manage it, against contract-spec's "every accepted commitment
+    stores … an event-indexed contributor roster". add/remove/join/leave now work on
+    every accepted commitment; only `setContributorRequirement` stays garden-work-only,
+    since requirement rows exist nowhere else. **(d)** Recognition states the POLICY and
+    never a per-person split — the old preview ranked teammates by percentage on a member
+    surface, against D.3's copy rule and the round-7 no-per-person-rates rule. **(e)**
+    `W2b` gained FormInfo step cards and a fixed action bar; it was the last client screen
+    without them. Full text: `uiux-spec.md` C.14.
+
 **Final recursive certification clarification (2026-07-25; no new decision-register entry):**
 the published `42161`↔`42220` production lane is the only required fully paired
 `SettlementConfiguration`. Arbitrum Sepolia `421614` and Celo Sepolia `11142220` remain

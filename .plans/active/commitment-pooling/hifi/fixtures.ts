@@ -1,7 +1,7 @@
 // Single source for the Rocinha / Season of First Rains demo data (PRD-760).
 //
 // Before this module the same season's totals were typed literally into six
-// files and had drifted apart: the pool's lifetime read 23 promises while the
+// files and had drifted apart: the pool's lifetime read 23 commitments while the
 // only season it contained read 14, and the cancel branch read 8 where the live
 // season read 9. A reviewer moving between two screens saw two different
 // gardens. Every screen that prints a total for this garden now reads it from
@@ -27,7 +27,7 @@ export const SEASON_LIVE = {
 
 /**
  * Kept rate for the live season, rendered publicly only above the disclosure
- * threshold (≥5 due commitments and ≥3 promisers, UX:350). Derived so it can
+ * threshold (≥5 due commitments and ≥3 commitmentrs, UX:350). Derived so it can
  * never contradict the counts printed beside it.
  */
 export const SEASON_LIVE_KEPT_RATE = Math.round((SEASON_LIVE.kept / SEASON_LIVE.made) * 100);
@@ -87,7 +87,7 @@ export const POOL_HOLDINGS = {
   reserve: { amount: "120 G$", plans: 1 },
 } as const;
 
-// The closed season's outcomes must account for every promise made. Checked on
+// The closed season's outcomes must account for every commitment made. Checked on
 // import so an edit that breaks the arithmetic fails the artifact build rather
 // than shipping a season whose parts don't sum to its total.
 const { made, kept, expired, cancelled } = SEASON_CLOSED;

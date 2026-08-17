@@ -159,11 +159,11 @@ export const HIFI_CSS = `
 .hf .card.flat{box-shadow:none}
 .hf .card.surface{border-radius:20px}
 .hf .card.inset{border-radius:16px}
-/* promise-direction edge (2026-08-14) — inset stripe: offers green, requests
+/* commitment-direction edge (2026-08-14) — inset stripe: offers green, requests
    sky. Direction reads at scroll speed; the chip stays the labelled signal. */
 /* Direction edges (3px inset stripes) retired 2026-08-16 — the Offer/Request
    chip already says the direction in words, and the stripe gave otherwise
-   identical promise cards two silhouettes. */
+   identical commitment cards two silhouettes. */
 
 /* Read-surface sections (2026-08-16 round 10) — the shipped work view's shape:
    a quiet label on the canvas, its content in a card beneath. */
@@ -185,7 +185,7 @@ export const HIFI_CSS = `
 .hf.s-client .mtile.garden,.hf.s-client .mtile.quiet{background:var(--stone-bg);color:var(--stone)}
 .hf.s-client .mtile.note{background:var(--card);border:1px dashed var(--ln2);color:var(--stone)}
 
-/* PROMISE CARD (option E, 2026-08-16 round 9). Text column left, square right.
+/* COMMITMENT CARD (option E, 2026-08-16 round 9). Text column left, square right.
    The square is sized in px rather than stretched: align-self:stretch with
    aspect-ratio:1 makes the media's width follow its height while its height
    follows the card's — a loop the browser resolves by inflating both (it drew
@@ -205,7 +205,7 @@ export const HIFI_CSS = `
 .hf .pcbody .t-title{font-size:13.5px;font-weight:600;letter-spacing:-.005em;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .hf .pcbody .t-meta{font-size:11.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-/* Square, and exactly the height of the text beside it — 50px for the promise
+/* Square, and exactly the height of the text beside it — 50px for the commitment
    card's three rows, 66px for the cycle card's four. Explicit px rather than
    aspect-ratio + stretch, which loops (height from the row, width from the
    ratio, row from the width) and inflated the square to 275px. Centred, so a
@@ -214,16 +214,16 @@ export const HIFI_CSS = `
 .hf .pmedia{flex:none;align-self:stretch;aspect-ratio:1;width:auto;max-width:96px;border-radius:8px;
   display:flex;align-items:center;justify-content:center;font-size:10px;letter-spacing:.02em}
 /* No image: the slot still occupies its column, so nothing on the left shifts
-   between a promise with a photo and one without (2026-08-16, Afo). */
+   between a commitment with a photo and one without (2026-08-16, Afo). */
 .hf .pmedia.none{background:transparent}
 /* Media tints reuse the existing domain palette rather than inventing a second
-   one — a promise's picture and its domain tag should not disagree on colour. */
+   one — a commitment's picture and its domain tag should not disagree on colour. */
 .hf.s-client .pmedia.agro{background:#EAEFE2;color:#3E5532}
 .hf.s-client .pmedia.waste{background:#F4E8E2;color:#9B3C2D}
 .hf.s-client .pmedia.garden{background:var(--stone-bg);color:var(--stone)}
 .hf.s-client .pmedia.quiet{background:var(--stone-bg);color:var(--stone)}
 /* One line, always. Priority order decides what survives; the overflow count
-   is the release valve so a promise carrying eight tags still draws one row. */
+   is the release valve so a commitment carrying eight tags still draws one row. */
 /* Clipping is the backstop, not the plan — the priority cap does the real work.
    The fade makes a clipped tail read as "there is more" rather than as a chip
    that got cut in half, which matters in narrow columns (the gallery) where a
@@ -397,6 +397,30 @@ export const HIFI_CSS = `
    the card is the navigation, footer buttons are reserved for claim acts. */
 .hf [data-hot].cardlink{cursor:pointer}
 
+/* MemberRow — mirrors the shipped garden Gardeners item (Gardeners.tsx:74):
+   full-width tappable row, 40px avatar, name over subline over a registered
+   line, badge pinned top-right. The select dot replaces that component's
+   navigation affordance when the row is being picked rather than opened. */
+.hf .mrow{position:relative;display:flex;align-items:center;gap:12px;width:100%;text-align:left;
+  border:1px solid var(--ln);border-radius:14px;background:var(--card);padding:8px;
+  box-shadow:0 1px 2px color-mix(in srgb,var(--ink) 6%,transparent)}
+.hf .mrow+.mrow{margin-top:8px}
+.hf .mrow.picked{border-color:var(--act);box-shadow:inset 0 0 0 1px var(--act)}
+.hf .mrow .avatar{width:40px;height:40px;border-radius:50%;background:var(--act);color:var(--on-act);
+  display:inline-flex;align-items:center;justify-content:center;font-size:15px;font-weight:600;flex:none}
+.hf .mrow .mn{font-weight:600;font-size:14.5px;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* A wallet address stands in for the name only when nothing better is on file,
+   so it reads as an identifier rather than as a person's name. */
+.hf .mrow .mn.addr{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px}
+.hf .mrow .ms{font-size:12px;color:var(--stone);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hf .mrow .mj{display:flex;align-items:center;gap:4px;font-size:11.5px;color:var(--stone);margin-top:1px}
+.hf .mrow .mj .ic{color:var(--act);flex:none}
+.hf .mrow .mbadge{position:absolute;top:8px;right:8px;border-radius:99px;padding:2.5px 8px;
+  font-weight:600;font-size:12px;background:var(--stone-bg);color:var(--stone)}
+.hf .mrow .msel{width:20px;height:20px;border-radius:50%;border:1.5px solid var(--ln2);flex:none;align-self:center}
+.hf .mrow .msel.on{border-color:var(--act);background:var(--act);
+  box-shadow:inset 0 0 0 3px var(--card),inset 0 0 0 20px var(--act)}
+
 /* browse filter row (2026-08-14) — direction chips + the personal Mine toggle */
 .hf .filters{display:flex;align-items:center;gap:8px}
 .hf .filters .seg{flex:1 1 auto;min-width:0}
@@ -440,9 +464,9 @@ export const HIFI_CSS = `
 .hf.s-client .amedia.garden{background:#5C6E4E}
 .hf.s-client .inp.ta{height:auto}
 .hf.s-client .inp.ta textarea{resize:none;background:none;border:0;font:inherit;color:inherit;width:100%}
-/* promise slides — the intro's third rail (2026-08-14): compact promise
+/* commitment slides — the intro's third rail (2026-08-14): compact commitment
    cards riding the same horizontal grammar as the action/garden rails, so
-   holding many promises costs no extra vertical space. */
+   holding many commitments costs no extra vertical space. */
 .hf .pcard{flex:0 0 218px;border-radius:14px;padding:11px 12px;gap:3px}
 .hf .pcard .t-title{font-size:14px;line-height:1.3}
 
@@ -812,7 +836,7 @@ export const HIFI_CSS = `
    rail never shows three ragged widths (2026-08-16 round 4). */
 .hf .actstack{display:flex;flex-direction:column;gap:8px;margin-top:3px}
 .hf .actstack .b{width:100%;justify-content:center}
-/* Promise/queue row — ONE anatomy everywhere (interaction-patterns §5):
+/* Commitment/queue row — ONE anatomy everywhere (interaction-patterns §5):
    line 1 title + chips, line 2 calm meta, ONE trailing act. Two lines keep a
    busy row from wrapping its buttons in the narrower main column. */
 .hf .prow{display:flex;align-items:center;gap:10px;padding:9px 2px;border-bottom:1px solid var(--ln);min-height:52px}

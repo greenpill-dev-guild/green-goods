@@ -19,7 +19,7 @@ W1: `┌────────────────────────
 │ ┌──────────────────────────────────────────┐ │
 │ │ Season of First Rains        (season)    │ │
 │ │ Seeded ─ ◉Open ─ In progress ─ Reviewing │ │
-│ │ ▓▓▓▓▓▓▓▓▓░░░░░  62% of promised units    │ │
+│ │ ▓▓▓▓▓▓▓▓▓░░░░░  62% of committed units    │ │
 │ │ runs through Aug 30                      │ │
 │ └──────────────────────────────────────────┘ │
 │ Campaigns (2 open)                           │
@@ -82,13 +82,13 @@ W2: `┌────────────────────────
 │ ≡ photo — north beds after (Jul 8)           │
 │ ≡ note — "two beds left for next week"       │
 ├──────────────────────────────────────────────┤
-│ Work for this promise                        │
+│ Work for this commitment                        │
 │ ≡ Pruning session       (Approved)           │
-│ [ Submit work for this promise ]             │
+│ [ Submit work for this commitment ]             │
 │ [ Link existing work ]                       │
 ├──────────────────────────────────────────────┤
 │ ┌──────────────────────────────────────────┐ │
-│ │ [ Confirm: promise kept ]                │ │
+│ │ [ Confirm: commitment kept ]                │ │
 │ └──────────────────────────────────────────┘ │
 │ Reward: 20 DAI from the garden jar · pending │
 │ recorded on Arbitrum                         │
@@ -108,7 +108,7 @@ W3: `┌────────────────────────
 ├──────────────────────────────────────────────┤   action cards: ◉Prune ○Plant
 │                        [ Continue ]          │
 └──────────────────────────────────────────────┘
-Step 4 — Review and promise
+Step 4 — Review and commitment
 ┌──────────────────────────────────────────────┐
 │ summary card (all fields)                    │
 │ [ Make this offer ]                          │
@@ -116,7 +116,7 @@ Step 4 — Review and promise
 │    pool tab with optimistic card + queued    │
 └──────────────────────────────────────────────┘`,
 W4: `┌──────────────────────────────────────────────┐
-│ Promise kept?                                │
+│ Commitment kept?                                │
 │ Prune the north beds — Maria · 6 hours       │
 │ Offer · provider Maria · recipient confirms  │
 │ evidence: 2 items · linked work: 1 approved  │
@@ -125,7 +125,7 @@ W4: `┌────────────────────────
 │ ≡ João ✓        ≡ Ana ✓       ≡ you ○        │
 │ Provider Maria cannot confirm this delivery. │
 ├──────────────────────────────────────────────┤
-│ [ Confirm — promise kept ]                   │
+│ [ Confirm — commitment kept ]                   │
 │ [ Not yet — tell the stewards why ]          │
 └──────────────────────────────────────────────┘`,
 W5: `┌──────────────────────────────────────────────┐
@@ -203,7 +203,7 @@ W8: `┌── Seed a commitment ── ● ● ● ○ ────────
 └──────────────────────────────────────────────────────────┘`,
 W9: `┌── Record on a member's behalf ───────────────────────────┐
 │ "Recorded by {steward} on your behalf.                   │
-│  The promise stays yours."                               │
+│  The commitment stays yours."                               │
 ├──────────────────────────────────────────────────────────┤
 │ Step 0 — Who and what kind                               │
 │ member   [ search members… ▾ ]                           │
@@ -265,21 +265,21 @@ W14: `┌── Create assessment — step 1 additions ────────�
 └──────────────────────────────────────────────────────────┘`,
 W15: `│ … field notes (existing, untouched) …        │
 ├──────────────────────────────────────────────┤
-│ PROMISES                                     │
+│ COMMITMENTS                                   │
 │ This garden is midway through its Season     │
 │ of First Rains.                              │
 │ ▓▓▓▓▓▓▓▓▓░░░░  runs through Aug 30           │
-│ ${SEASON_LIVE.made} promises made, ${SEASON_LIVE.kept} kept so far               │
-│ Fulfilled promises from this cycle are       │
+│ ${SEASON_LIVE.made} commitments made, ${SEASON_LIVE.kept} kept so far               │
+│ Fulfilled commitments from this cycle are       │
 │ anchored in the certificates below.          │
 ├──────────────────────────────────────────────┤
 │ … impact certificates (existing) …           │`,
 W16: `├──────────────────────────────────────────────┤
-│ PROMISES                                     │
-│ Work that starts as a promise kept           │
-│ 11 gardens with live pools · 43 promises     │
+│ COMMITMENTS                                   │
+│ Work that starts as a commitment kept           │
+│ 11 gardens with live pools · 43 commitments     │
 │ fulfilled this season                        │
-│ A promise is offered, taken up, worked,      │
+│ A commitment is offered, taken up, worked,      │
 │ witnessed, and confirmed by the person it    │
 │ was made to.                                 │
 │ [ See the gardens ▸ ]                        │
@@ -358,19 +358,19 @@ W25: `┌───────────────────────�
 │ [ Ask to take this up ]                      │
 ├──────────────────────────────────────────────┤
 │ → (waiting for review) chip                  │
-│ → accepted: deliver like any promise         │
+│ → accepted: deliver like any commitment         │
 │   work + evidence anchor to YOUR garden      │
 │ → confirm via W4 when ready                  │
 └──────────────────────────────────────────────┘`,
 W26: `┌── Close cycle: Season of First Rains ── ● ● ● ○ ─────────┐
-│ Step 1 — Review        ${SEASON_LIVE.made} promises · ${SEASON_LIVE.kept} kept · 62% units   │
+│ Step 1 — Review        ${SEASON_LIVE.made} commitments · ${SEASON_LIVE.kept} kept · 62% units   │
 │   unresolved first: 1 expired [ Re-seed… ]               │
 │                     1 disputed [ Resolve… ]              │
 │ Step 2 — Shares (read-only; locked at open, W11)         │
 │   gardeners 60% · treasury 15% · steward 10%             │
 │   evaluator 5% · community 5% · funder 5%                │
 │ Step 3 — Impact certificate                              │
-│   bundle: 7 fulfilled promises + their work, evidence,   │
+│   bundle: 7 fulfilled commitments + their work, evidence,   │
 │   and need lineage → allowlist from the shares above     │
 │   [ Mint impact certificate ]                            │
 │ Step 4 — Rest the cycle    [ Reconcile + compost ]       │
@@ -384,7 +384,7 @@ MF1: `┌─ Pool ────────────────────�
 │ [ Close pool… ]  after all cycles end and pool live count = 0      │
 └────────────────────────────────────────────────────────────────────┘`,
 MF3: `┌──────────────────────────────────────────────┐
-│ (Expired)  This promise ran through Aug 12.  │
+│ (Expired)  This commitment ran through Aug 12.  │
 │ The season moved on — you can offer it again.│
 │ [ Offer again ]                              │
 └──────────────────────────────────────────────┘`,
@@ -398,7 +398,7 @@ MF5: `│ ≡ ··waiting·· Compost workshop   (Offered)   │
 MF6: `┌──────────────────────────────────────────────┐
 │ Evidence attached: 1 · no work required      │
 │ [ Send for confirmation ]                    │
-│ the person this promise was made to          │
+│ the person this commitment was made to          │
 │ confirms it was kept                         │
 └──────────────────────────────────────────────┘`,
 MF8: `┌──────────────────────────────────────────────┐
@@ -406,17 +406,17 @@ MF8: `┌───────────────────────�
 │ ◉ as myself                                  │
 │ ○ for Awka Hub (you steward this garden)     │
 │ Working for the garden: its account makes    │
-│ the promise; you remain the requester.       │
+│ the commitment; you remain the requester.       │
 │ [ Continue ]                      [ Cancel ] │
 └──────────────────────────────────────────────┘`,
 MF9: `┌── Season of First Rains — report ────────────────────────────────┐
-│ ${SEASON_CLOSED.made} promises · ${SEASON_CLOSED.kept} kept · ${SEASON_CLOSED.expired} expired · ${SEASON_CLOSED.cancelled} cancelled                  │
-│ units: 61 of 74 promised                                         │
+│ ${SEASON_CLOSED.made} commitments · ${SEASON_CLOSED.kept} kept · ${SEASON_CLOSED.expired} expired · ${SEASON_CLOSED.cancelled} cancelled                  │
+│ units: 61 of 74 committed                                         │
 │ [ Compost this season ]                    [ Export… flagged ]   │
 └──────────────────────────────────────────────────────────────────┘`,
 MF10: `┌──────────────────────────────────────────────┐
 │ Season of First Rains — season closed        │
-│ ${SEASON_CLOSED.kept} of ${SEASON_CLOSED.made} promises kept · ${SEASON_CLOSED.units} units            │
+│ ${SEASON_CLOSED.kept} of ${SEASON_CLOSED.made} commitments kept · ${SEASON_CLOSED.units} units            │
 │ ready for the next season                    │
 └──────────────────────────────────────────────┘`,
 MF13: `┌── Attach assessment ─────────────────────────┐
@@ -444,7 +444,7 @@ HUBWORK: `┌──────────────────────�
 existing Work stage — approval rails untouched (UX:285)`,
 C1: `┌──────────────────────────────────────────────┐
 │ Rocinha Community Garden                    │
-│ This season · promises and progress         │
+│ This season · commitments and progress         │
 ├──────────────────────────────────────────────┤
 │ Needs                             [Explore] │
 │ [All] [Open] [Committed] [In progress]      │
@@ -497,7 +497,7 @@ C5: `┌────────────────────────
 ├──────────────────────────────────────────────┤
 │ What followed                                │
 │ ✓ Need acknowledged                         │
-│ ✓ Promise: 16 market rides this season      │
+│ ✓ Commitment: 16 market rides this season      │
 │ ● Work: 6 rides approved                    │
 │ ○ Assessment and eligible confirmation      │
 │ ○ Fulfillment and community testimony       │
@@ -561,7 +561,7 @@ export const FT: Record<string, string> = {
   W2: "W2 · Commitment detail", W3: "W3 · Offer/request creation", W4: "W4 · Confirmation sheet", W5: "W5 · WalletDrawer pools panel",
   W6: "W6 · retired → W5 compatibility alias", W7: "W7 · Garden Pool tab (admin)", W7X: "W7 · claim outcomes", W8: "W8 · Seeding console",
   W9: "W9 · Analog capture", W10: "W10 · Commitment dialog (admin)", W11: "W11 · Open-cycle allocation", W12: "W12 · Community → Pools",
-  W13: "W13 · Hub Confirm stage", W14: "W14 · Assessment v3 additions", W15: "W15 · Garden pool story (public)", W16: "W16 · /impact promises (public)",
+  W13: "W13 · Hub Confirm stage", W14: "W14 · Assessment v3 additions", W15: "W15 · Garden pool story (public)", W16: "W16 · /impact commitments (public)",
   W21: "W21 · Settlement section (admin)", W22: "W22 · CCIP command/ack console", W23: "W23 · Wallet G$ + send", W23G: "W23 · delivery blocked",
   MF1: "MF-1 · Pool lifecycle actions (realized)", MF3: "MF-3 · Expired band (realized)", MF4: "MF-4 · Expiry queue (realized)",
   MF5: "MF-5 · Membership-wait chrome (realized)", MF6: "MF-6 · Send for confirmation (realized)", MF8: "MF-8 · Provider-context chooser (realized)",
@@ -581,7 +581,7 @@ W1: [
   { m: "[ Ask to take this up ]", l: "Ask to take this up (steward-reviewed)", to: "frame:W1P", info: "Approval-gated: creates a claim request with stored terms; the commitment stays available to others (UX:99). Walked in SB-3." },
   { m: "Scope: [All current] [Season] [Market rides]", l: "Scope control", info: "Filters the list; every aggregate names its scope — Season and Campaigns never blur (UX:127)." },
   { m: "(All)(Offers)(Requests)(Matched)(Mine)", l: "Filter chips", info: "Client-local filter chips (admin AdminFilterChip is admin-only)." },
-  { m: "My commitments", l: "My commitments strip", to: "frame:W5", info: "Your own promises across gardens live in the WalletDrawer pools panel (UX:186)." },
+  { m: "My commitments", l: "My commitments strip", to: "frame:W5", info: "Your own commitments across gardens live in the WalletDrawer pools panel (UX:186)." },
   { m: "Home         Garden         Profile", l: "AppBar", info: "Unchanged three-tab AppBar; the Garden tab is the existing work-submission flow (UX:116)." },
 ],
 W1P: [
@@ -594,9 +594,9 @@ W1S: [
 ],
 W2: [
   { m: "[ + Add ]", l: "Add evidence", info: "W2a attach sheet: photo / link / note → one evidence job per submit; fully offline (UX:159)." },
-  { m: "[ Submit work for this promise ]", l: "Submit work for this promise", to: "frame:WFLOW", info: "Deep-links the existing Garden-tab work flow with commitment context (UX:174). DomainImpact only." },
+  { m: "[ Submit work for this commitment ]", l: "Submit work for this commitment", to: "frame:WFLOW", info: "Deep-links the existing Garden-tab work flow with commitment context (UX:174). DomainImpact only." },
   { m: "[ Link existing work ]", l: "Link existing work", info: "Picker of your approved/pending works → workLink job (UX:140)." },
-  { m: "[ Confirm: promise kept ]", l: "Confirm", to: "frame:W4", info: "Visible only to eligible confirmers while ReadyForConfirmation — the provider never sees it (UX:142)." },
+  { m: "[ Confirm: commitment kept ]", l: "Confirm", to: "frame:W4", info: "Visible only to eligible confirmers while ReadyForConfirmation — the provider never sees it (UX:142)." },
   { m: "Reward: 20 DAI from the garden jar · pending", l: "Declared reward row", info: "Reference only — no custody. When a G$ disbursement exists, settlement status replaces this line (SS §7)." },
   { m: "recorded on Arbitrum", l: "Chain phrasing", info: "Chain vocabulary lives on the detail engage layer only — never on browse cards (UX:436)." },
 ],
@@ -605,12 +605,12 @@ W3: [
   { m: "[ Make this offer ]", l: "Make this offer", to: "frame:W1", info: "Enqueues the commitment job; returns to the pool tab with an optimistic queued card (UX:212)." },
 ],
 W4: [
-  { m: "[ Confirm — promise kept ]", l: "Confirm — promise kept", to: "frame:W2", info: "Positive-only confirmation job; the Nth confirmation flips Fulfilled (CS:139)." },
-  { m: "[ Not yet — tell the stewards why ]", l: "Not yet", to: "frame:W10", info: "Requires a reason → online raiseDispute. It never cancels the promise (UX:167)." },
+  { m: "[ Confirm — commitment kept ]", l: "Confirm — commitment kept", to: "frame:W2", info: "Positive-only confirmation job; the Nth confirmation flips Fulfilled (CS:139)." },
+  { m: "[ Not yet — tell the stewards why ]", l: "Not yet", to: "frame:W10", info: "Requires a reason → online raiseDispute. It never cancels the commitment (UX:167)." },
   { m: "Provider Maria cannot confirm this delivery.", l: "Provider exclusion", info: "Provider self-confirmation is blocked everywhere, including steward fallback (UX:32)." },
 ],
 W5: [
-  { m: "Maria — Prune the north beds   (Rocinha) ▸", l: "Pending confirmation", to: "frame:W4", info: "Inbox of promises waiting on YOUR confirmation, across gardens (UX:185)." },
+  { m: "Maria — Prune the north beds   (Rocinha) ▸", l: "Pending confirmation", to: "frame:W4", info: "Inbox of commitments waiting on YOUR confirmation, across gardens (UX:185)." },
   { m: "Ride to market", l: "My commitment", to: "frame:W2" },
   { m: "··queued··", l: "Queued row", info: "Offline-queued job chrome; syncs when connected (UX:237)." },
 ],
@@ -658,13 +658,13 @@ W12: [
   { m: "alphabetical, never ranked", l: "No-ranking invariant", info: "Cross-garden rows sort alphabetically; no rank column ever (UX:314)." },
 ],
 W13: [
-  { m: "Maria — Prune the north beds", l: "Confirm queue row", to: "frame:W10", info: "Queue of promises where you are named or fallback-eligible (UX:318)." },
+  { m: "Maria — Prune the north beds", l: "Confirm queue row", to: "frame:W10", info: "Queue of commitments where you are named or fallback-eligible (UX:318)." },
 ],
 W14: [
   { m: "◉ Baseline   ○ Re-assessment (delta)", l: "Assessment kind", info: "Baseline: evaluator or steward. Delta: Evaluator Hat only (CS:760-761)." },
 ],
 W15: [
-  { m: `${SEASON_LIVE.made} promises made, ${SEASON_LIVE.kept} kept so far`, l: "Counts-only sentence", info: "Percentages render publicly only at ≥5 due commitments and ≥3 promisers (UX:350)." },
+  { m: `${SEASON_LIVE.made} commitments made, ${SEASON_LIVE.kept} kept so far`, l: "Counts-only sentence", info: "Percentages render publicly only at ≥5 due commitments and ≥3 commitmentrs (UX:350)." },
 ],
 W16: [
   { m: "[ See the gardens ▸ ]", l: "See the gardens", info: "Links to /gardens; no per-garden table on /impact — comparison drifts toward ranking (UX:354)." },
@@ -706,9 +706,9 @@ W25: [
   { m: "[ Ask to take this up ]", l: "Ask to take this up", to: "frame:W1P", info: "Protocol pool defaults steward-reviewed (register #19); W1's pending/declined/superseded grammar applies unchanged (WF:671)." },
 ],
 W26: [
-  { m: "[ Re-seed… ]", l: "Re-seed expired", to: "frame:W8", info: "Unresolved-first: lapsed seeded promises re-enter the seeding console prefilled (UX:94)." },
+  { m: "[ Re-seed… ]", l: "Re-seed expired", to: "frame:W8", info: "Unresolved-first: lapsed seeded commitments re-enter the seeding console prefilled (UX:94)." },
   { m: "[ Resolve… ]", l: "Resolve disputed", to: "frame:W10", info: "Cycle close sequences unresolved commitments before reconcile (WF:691)." },
-  { m: "[ Mint impact certificate ]", l: "Mint impact certificate", info: "Existing Hypercert pipeline; bundle = fulfilled promises + work, evidence, need lineage; allowlist from the six-role shares (CS §9)." },
+  { m: "[ Mint impact certificate ]", l: "Mint impact certificate", info: "Existing Hypercert pipeline; bundle = fulfilled commitments + work, evidence, need lineage; allowlist from the six-role shares (CS §9)." },
   { m: "[ Reconcile + compost ]", l: "Reconcile + compost", info: "closeCycle → certificate mint → compostCycle as one ritual; aggregates roll into pool history (WF:714)." },
 ],
 MF1: [
@@ -716,7 +716,7 @@ MF1: [
   { m: "[ Close pool… ]", l: "Close pool", info: "Only after every cycle is Cancelled/Composted and pool live commitments are zero (CS:102); then Compost/Reopen per §4.1." },
 ],
 MF3: [{ m: "[ Offer again ]", l: "Offer again", to: "frame:W3", info: "Per-cycle renewal — a fresh commitment, prefilled (UX:94)." }],
-MF4: [{ m: "[ Re-seed… ]", l: "Re-seed", to: "frame:W8", info: "Lapsed seeded promises re-enter the seeding console prefilled (UX:94)." }],
+MF4: [{ m: "[ Re-seed… ]", l: "Re-seed", to: "frame:W8", info: "Lapsed seeded commitments re-enter the seeding console prefilled (UX:94)." }],
 MF5: [{ m: "··waiting··", l: "Membership wait", info: "waiting_for_hat — no retries consumed; resumes when the hat lands (register #34c). The join-request approval (register #35) is the trigger." }],
 MF6: [{ m: "[ Send for confirmation ]", l: "Send for confirmation", to: "frame:W4", info: "Evidence-only kinds; DomainImpact is rejected on-chain (CS:138b)." }],
 MF8: [

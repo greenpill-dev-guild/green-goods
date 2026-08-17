@@ -152,11 +152,11 @@ const CLIENT_ENTRIES: Entry[] = [
     kit: `domainRow(domains)`,
     ship: "packages/shared/src/components/DomainBadge.tsx:12",
     drift: "Shipping DomainBadge renders icon + label from DOMAIN_CONFIG with backdrop blur (packages/shared/src/components/DomainBadge.tsx:19) — these pills are text-only.",
-    rule: "Every involved domain listed on its own equal-weight row, none privileged as primary; no row means an evidence-only service promise.",
+    rule: "Every involved domain listed on its own equal-weight row, none privileged as primary; no row means an evidence-only service commitment.",
     usedIn: /class="dmrow/,
     specs: [
       { label: "all four domains", html: kit.domainRow(["AGRO", "EDU", "SOLAR", "WASTE"]) },
-      { label: "a two-domain promise", html: kit.domainRow(["AGRO", "WASTE"]) },
+      { label: "a two-domain commitment", html: kit.domainRow(["AGRO", "WASTE"]) },
     ],
   },
   {
@@ -185,24 +185,38 @@ const CLIENT_ENTRIES: Entry[] = [
     ],
   },
   {
-    id: "promise-card", title: "Promise Card", family: "cards", covers: ["promiseCard"],
-    kit: `promiseCard({title, meta, tags, media, note, hotId})`,
+    id: "member-row", title: "Member row", family: "cards", covers: ["memberRow"],
+    kit: `memberRow({name, sub, joined, badge, select, hotId})`,
+    ship: "packages/client/src/components/Features/Garden/Gardeners.tsx:74",
+    rule: "The shipped garden Gardeners item, reused wherever this feature shows or picks a person. The name follows that component's own resolution order — username, then email or phone, and only then a formatted address — so a wallet address appears as the primary line exactly when nothing better is on file.",
+    usedIn: /class="mrow/,
+    specs: [
+      { label: "a gardener with a name", html: kit.memberRow({ name: "Sofia", sub: "sofia.eth", joined: "Joined Mar 2025" }) },
+      { label: "carrying a role badge", html: kit.memberRow({ name: "Maria", sub: "maria.eth", joined: "Joined Mar 2025", badge: "Lead" }) },
+      { label: "no name on file", html: kit.memberRow({ name: "0x74…c2", joined: "Joined Aug 2025" }) },
+      { label: "selected in the picker", html: kit.memberRow({ name: "João", sub: "joao.eth", joined: "Joined Jan 2025", badge: "Steward", select: "on" }) },
+      { label: "unselected in the picker", html: kit.memberRow({ name: "Luz", sub: "luz.eth", joined: "Joined Feb 2025", select: "off" }) },
+    ],
+  },
+  {
+    id: "commitment-card", title: "Commitment Card", family: "cards", covers: ["commitmentCard"],
+    kit: `commitmentCard({title, meta, tags, media, note, hotId})`,
     ship: "packages/shared/src/components/Cards/WorkCard/WorkCard.tsx:122",
     shipNote: "media-right variant of WorkCard's square media block",
-    rule: "ONE anatomy for every promise on every surface — title, one meta line, one tag row, and a reserved 1:1 square on the right. No acts on cards: taking something up happens in the promise view, where the terms are readable first. The tag row never wraps — fixed priority (what it is, then what is unusual, then domains), hard cap, then a +N count. The image slot is always reserved, so a promise without a photo shifts nothing beside it.",
+    rule: "ONE anatomy for every commitment on every surface — title, one meta line, one tag row, and a reserved 1:1 square on the right. No acts on cards: taking something up happens in the commitment view, where the terms are readable first. The tag row never wraps — fixed priority (what it is, then what is unusual, then domains), hard cap, then a +N count. The image slot is always reserved, so a commitment without a photo shifts nothing beside it.",
     usedIn: /class="card pcard2/,
     specs: [
-      { label: "with photo", html: kit.promiseCard({ title: "Prune the north beds", meta: "Maria · 6 hours · due Aug 12", tags: [{ label: "Offer", tone: "offer" }, { label: "AGRO" }], media: { label: "photo", tint: "agro" } }) },
-      { label: "no photo — slot reserved, nothing shifts", html: kit.promiseCard({ title: "Ride to the market on Saturday", meta: "Ana · 1 ride · Saturday", tags: [{ label: "Request", tone: "request" }] }) },
-      { label: "eight tags — row still one line", html: kit.promiseCard({ title: "Restore the compost bays", meta: "Maria · 4 sessions · due Aug 24", tags: [{ label: "Offer", tone: "offer" }, { label: "Ongoing" }, { label: "Team of 3" }, { label: "In exchange" }, { label: "40 G$" }, { label: "AGRO" }, { label: "WASTE" }, { label: "Support / service" }], media: { label: "photo", tint: "waste" } }) },
-      { label: "wallet cast — garden replaces creator, state leads", html: kit.promiseCard({ title: "Beach cleanup Saturday", meta: "Muizenberg · 2 hours", tags: [{ label: "Kept", tone: "ok" }] }) },
+      { label: "with photo", html: kit.commitmentCard({ title: "Prune the north beds", meta: "Maria · 6 hours · due Aug 12", tags: [{ label: "Offer", tone: "offer" }, { label: "AGRO" }], media: { label: "photo", tint: "agro" } }) },
+      { label: "no photo — slot reserved, nothing shifts", html: kit.commitmentCard({ title: "Ride to the market on Saturday", meta: "Ana · 1 ride · Saturday", tags: [{ label: "Request", tone: "request" }] }) },
+      { label: "eight tags — row still one line", html: kit.commitmentCard({ title: "Restore the compost bays", meta: "Maria · 4 sessions · due Aug 24", tags: [{ label: "Offer", tone: "offer" }, { label: "Ongoing" }, { label: "Team of 3" }, { label: "In exchange" }, { label: "40 G$" }, { label: "AGRO" }, { label: "WASTE" }, { label: "Support / service" }], media: { label: "photo", tint: "waste" } }) },
+      { label: "wallet cast — garden replaces creator, state leads", html: kit.commitmentCard({ title: "Beach cleanup Saturday", meta: "Muizenberg · 2 hours", tags: [{ label: "Kept", tone: "ok" }] }) },
     ],
   },
   {
     id: "offer-card", title: "Offer card", family: "cards", covers: ["offerCard"],
     kit: `offerCard({queued, waiting, failed, readOnly, team})`,
     ship: "packages/shared/src/components/Cards/WorkCard/WorkCard.tsx:122",
-    shipNote: "the W1 browse casts of promiseCard",
+    shipNote: "the W1 browse casts of commitmentCard",
     rule: "Browse card for an Offer: the whole card opens the detail. Its own-send casts (queued, waiting, failed) keep recovery controls, which are device-state acts rather than claim acts.",
     usedIn: ["W1", "W5"],
     specs: [
@@ -239,7 +253,7 @@ const CLIENT_ENTRIES: Entry[] = [
     id: "team-offer-card", title: "Team-offer card", family: "cards", covers: ["teamOfferCard"],
     kit: `teamOfferCard()`,
     netNew: "the forming-team roster visible from browse",
-    rule: "A team Offer names its target size on the chip row; the team view itself lives inside the promise detail.",
+    rule: "A team Offer names its target size on the chip row; the team view itself lives inside the commitment detail.",
     usedIn: ["W1"],
     specs: [{ label: "team of 3, two domains", html: kit.teamOfferCard() }],
   },
@@ -316,7 +330,7 @@ const CLIENT_ENTRIES: Entry[] = [
     kit: `sectionCard(label, inner, {flush}) · detailRow(label, value) · mediaStrip(items)`,
     ship: "packages/client/src/components/Features/Work/WorkView.tsx:78",
     shipNote: "h6 label on the canvas, content in a card — the shipped work view's anatomy",
-    rule: "A read surface is sections, not drawers: a quiet label on the canvas with its content OPEN in a card beneath. The promise view used to stack five closed disclosures, so nothing about a promise was legible without tapping. Media renders as real tiles rather than text rows with an image icon. Only a genuinely long, secondary, read-once section (the timeline) stays folded.",
+    rule: "A read surface is sections, not drawers: a quiet label on the canvas with its content OPEN in a card beneath. The commitment view used to stack five closed disclosures, so nothing about a commitment was legible without tapping. Media renders as real tiles rather than text rows with an image icon. Only a genuinely long, secondary, read-once section (the timeline) stays folded.",
     usedIn: /class="card sect/,
     specs: [
       { label: "details", html: kit.sectionCard("Details", `${kit.detailRow("Amount", "6 hours · due Aug 12")}${kit.detailRow("Season", "First Rains")}${kit.detailRow("Kind", "AGRO")}`), w: "m" },
@@ -339,7 +353,7 @@ const CLIENT_ENTRIES: Entry[] = [
     id: "cycle-rail", title: "Cycle rail", family: "rails", covers: ["cycleRail", "cycleCard", "seasonCard", "seasonSlide", "emptySeasonSlide", "campaignSlide"],
     kit: `cycleRail(slides) · cycleCard · seasonCard/seasonSlide/emptySeasonSlide/campaignSlide`,
     netNew: "one snap rail of equal-width slides, each carrying what is open in its own cycle",
-    rule: "Season and campaigns are peers, so every slide is the same width and the same card — the season used to lead wider, which made siblings look like a parent and its children. Cycle cards speak the promise card's language (title, meta, tags, square) with one extra meta line, because a cycle carries both what is open in it and how it has gone. Units are per-cycle and never summed across labels.",
+    rule: "Season and campaigns are peers, so every slide is the same width and the same card — the season used to lead wider, which made siblings look like a parent and its children. Cycle cards speak the commitment card's language (title, meta, tags, square) with one extra meta line, because a cycle carries both what is open in it and how it has gone. Units are per-cycle and never summed across labels.",
     usedIn: /class="crail/,
     specs: [
       { label: "season + campaigns", html: kit.pagepad(kit.cycleRail([kit.seasonSlide(), kit.campaignSlide("g.c1", "Market rides", "Open", "6 of 16 kept"), kit.campaignSlide("g.c2", "Tool library", "Reviewing", "8 of 8 kept")])) },
@@ -369,16 +383,16 @@ const CLIENT_ENTRIES: Entry[] = [
     ],
   },
   {
-    id: "promise-rail", title: "Promise rail", family: "rails", covers: ["promiseSlide"],
-    kit: `promiseSlide({title, needs, due})`,
-    netNew: "the intro's third rail — many promises cost no vertical space",
-    rule: "Compact promise cards ride the same horizontal grammar as the pickers, nearest due first; tapping one enters the scoped flow.",
+    id: "commitment-rail", title: "Commitment rail", family: "rails", covers: ["commitmentSlide"],
+    kit: `commitmentSlide({title, needs, due})`,
+    netNew: "the intro's third rail — many commitments cost no vertical space",
+    rule: "Compact commitment cards ride the same horizontal grammar as the pickers, nearest due first; tapping one enters the scoped flow.",
     usedIn: /class="card pcard/,
     specs: [
       { label: "offer + request slides", html: kit.pagepad(kit.selRail([
-        kit.promiseSlide({ title: "Prune the north beds", needs: "needs Prune × 2", due: "due Aug 12" }),
-        kit.promiseSlide({ title: "Clear the drainage channel", needs: "needs Mulch × 4", due: "due Aug 30" }),
-        kit.promiseSlide({ title: "Mulch the pathways", needs: "needs Mulch × 3", due: "runs with the season" }),
+        kit.commitmentSlide({ title: "Prune the north beds", needs: "needs Prune × 2", due: "due Aug 12" }),
+        kit.commitmentSlide({ title: "Clear the drainage channel", needs: "needs Mulch × 4", due: "due Aug 30" }),
+        kit.commitmentSlide({ title: "Mulch the pathways", needs: "needs Mulch × 3", due: "runs with the season" }),
       ])) },
     ],
   },
@@ -422,11 +436,11 @@ const CLIENT_ENTRIES: Entry[] = [
     usedIn: /class="radio"/,
     specs: [
       { label: "static", html: kit.radio([
-        { label: "Just myself", meta: "You keep this promise alone", on: true },
+        { label: "Just myself", meta: "You keep this commitment alone", on: true },
         { label: "A team", meta: "Others can join before it starts" },
       ]) },
       { label: "interactive", html: kit.radio([
-        { label: "Once", meta: "One promise, one delivery", on: true },
+        { label: "Once", meta: "One commitment, one delivery", on: true },
         { label: "Over time", meta: "A series with places" },
       ], { interactive: true, name: "gallery-cadence" }) },
     ],
@@ -593,7 +607,7 @@ const CLIENT_ENTRIES: Entry[] = [
     netNew: "the in-page section heading with a quiet trailing slot",
     rule: "Sections inside a screen get the 16.5px title; the trailing slot holds a count or one quiet link, never an action button.",
     usedIn: /class="t-sec/,
-    specs: [{ label: "with trailing count", html: kit.sectionTitle("Open promises", kit.chip("6", "plain")) }],
+    specs: [{ label: "with trailing count", html: kit.sectionTitle("Open commitments", kit.chip("6", "plain")) }],
   },
   // — Feedback —
   {
@@ -640,7 +654,7 @@ const CLIENT_ENTRIES: Entry[] = [
     rule: "Empty names the scope it is empty of; recovery states get one clear way forward, centered.",
     usedIn: /class="empty"/,
     specs: [
-      { label: "scope-named empty", html: kit.emptyState("seedling-line", "No open promises", "This season has no open offers or requests yet.", kit.btn("Make an offer", { kind: "pri" })) },
+      { label: "scope-named empty", html: kit.emptyState("seedling-line", "No open commitments", "This season has no open offers or requests yet.", kit.btn("Make an offer", { kind: "pri" })) },
       { label: "read error", html: kit.emptyState("error-warning-line", "Couldn't load the pool", "Check your connection and try again.", kit.btn("Retry", { kind: "sec" })) },
     ],
   },
@@ -650,7 +664,7 @@ const CLIENT_ENTRIES: Entry[] = [
     netNew: "the client-only fulfilled celebration; the steward cockpit keeps quiet checkmarks",
     rule: "Hero moments live in the client PWA only, at true completions — never for intermediate steps.",
     usedIn: /class="hero"/,
-    specs: [{ label: "fulfilled", html: kit.hero("Promise kept", "Ana confirmed the ride — this one is complete.") }],
+    specs: [{ label: "fulfilled", html: kit.hero("Commitment kept", "Ana confirmed the ride — this one is complete.") }],
   },
   {
     id: "meter", title: "Progress meter", family: "feedback", covers: ["meter"],
@@ -668,7 +682,7 @@ const CLIENT_ENTRIES: Entry[] = [
     id: "timeline", title: "Timeline", family: "feedback", covers: ["timeline"],
     kit: `timeline(entries)`,
     netNew: "the state history behind a detail disclosure",
-    rule: "The promise's history reads newest context first behind its disclosure; open dots mark the pending step, amber marks caution.",
+    rule: "The commitment's history reads newest context first behind its disclosure; open dots mark the pending step, amber marks caution.",
     usedIn: /class="tl"/,
     specs: [
       { label: "three entries", html: kit.timeline([
@@ -686,9 +700,9 @@ const CLIENT_ENTRIES: Entry[] = [
     id: "team-strip", title: "Team strip", family: "people", covers: ["teamstrip"],
     kit: `teamstrip(initials)`,
     netNew: "overlapping initial avatars; shipping renders people per-view with letter fallbacks",
-    rule: "The people on a promise render as one overlapping strip beside their line — never a vertical roster on browse surfaces.",
+    rule: "The people on a commitment render as one overlapping strip beside their line — never a vertical roster on browse surfaces.",
     usedIn: /class="teamstrip/,
-    specs: [{ label: "three people", html: `<div class="cardrow">${kit.teamstrip(["M", "J", "A"])}<span class="t-meta">Maria, João and Ana are on this promise</span></div>` }],
+    specs: [{ label: "three people", html: `<div class="cardrow">${kit.teamstrip(["M", "J", "A"])}<span class="t-meta">Maria, João and Ana are on this commitment</span></div>` }],
   },
 ];
 
@@ -731,7 +745,7 @@ const ADMIN_ENTRIES: Entry[] = [
     rule: "The M3 elevated solid surface a route composes from; the head row carries the title and at most a quiet trailing cluster.",
     usedIn: /class="acard"/,
     specs: [
-      { label: "head + body", html: kit.acard("Season of First Rains", `${kit.kv("Promises", "9 made · 7 kept")}${kit.kv("Runs through", "Aug 30")}`, kit.chip("Open", "ok")) },
+      { label: "head + body", html: kit.acard("Season of First Rains", `${kit.kv("Commitments", "9 made · 7 kept")}${kit.kv("Runs through", "Aug 30")}`, kit.chip("Open", "ok")) },
     ],
   },
   {
@@ -741,7 +755,7 @@ const ADMIN_ENTRIES: Entry[] = [
     rule: "Tabular data stays a table with hairline row dividers; queues and inboxes render as rows, never tables.",
     usedIn: /class="dtab/,
     specs: [
-      { label: "three columns", html: kit.dtable(["Promise", "Provider", "State"], [
+      { label: "three columns", html: kit.dtable(["Commitment", "Provider", "State"], [
         ["Prune the north beds", "João", kit.chip("Active", "ok")],
         ["Ride to the market", "Maria", kit.chip("Due", "warn")],
       ], "Sample commitments"), w: "l" },
@@ -822,7 +836,7 @@ const ADMIN_ENTRIES: Entry[] = [
     rule: "Quiet inline context; cockpit success feedback stays checkmark-quiet, never a hero moment.",
     usedIn: /class="ban /,
     specs: [
-      { label: "amber caution", html: kit.banner("Two promises pass their due date this week.", "amber", "error-warning-line"), w: "l" },
+      { label: "amber caution", html: kit.banner("Two commitments pass their due date this week.", "amber", "error-warning-line"), w: "l" },
       { label: "stone note", html: kit.banner("Only stewards can see this queue.", "stone"), w: "l" },
     ],
   },
@@ -887,7 +901,7 @@ const ADMIN_ENTRIES: Entry[] = [
     rule: "Tone shows in exactly three places (1a): the active tab/nav pill, the single filled action, and the faint canvas wash — never on card surfaces, borders, or hovers.",
     usedIn: /class="wsgrid/,
     specs: [
-      { label: "garden workspace", html: adminRoute(kit.acard("Season of First Rains", `${kit.kv("Promises", "9 made · 7 kept")}${kit.kv("Runs through", "Aug 30")}`, kit.chip("Open", "ok"))), w: "l", h: 560 },
+      { label: "garden workspace", html: adminRoute(kit.acard("Season of First Rains", `${kit.kv("Commitments", "9 made · 7 kept")}${kit.kv("Runs through", "Aug 30")}`, kit.chip("Open", "ok"))), w: "l", h: 560 },
     ],
   },
   {
@@ -897,9 +911,9 @@ const ADMIN_ENTRIES: Entry[] = [
     rule: "Confirms and small edits float over the dimmed canvas on a 16dp solid surface; destructive confirms take a reason where the act stores one.",
     usedIn: /class="adlg"/,
     specs: [
-      { label: "reason-taking confirm", html: kit.adminDialogM3(adminRoute(kit.acard("Season of First Rains", kit.kv("Promises", "9 made · 7 kept"))), "garden", {
+      { label: "reason-taking confirm", html: kit.adminDialogM3(adminRoute(kit.acard("Season of First Rains", kit.kv("Commitments", "9 made · 7 kept"))), "garden", {
         title: "Pause the pool?",
-        body: `${kit.banner("Members keep their promises; new offers wait until you resume.", "amber", "error-warning-line")}${kit.reasonChips(["Season break", "Charter review"])}${kit.field("Reason", kit.input("Tell members why", { placeholder: true }))}`,
+        body: `${kit.banner("Members keep their commitments; new offers wait until you resume.", "amber", "error-warning-line")}${kit.reasonChips(["Season break", "Charter review"])}${kit.field("Reason", kit.input("Tell members why", { placeholder: true }))}`,
         actions: `${kit.btn("Keep it open", { kind: "ghost" })}${kit.btn("Pause the pool", { kind: "danger" })}`,
       }), w: "l", h: 620 },
     ],
@@ -914,9 +928,9 @@ const ADMIN_ENTRIES: Entry[] = [
     specs: [
       { label: "step 2 of 3", html: kit.flowDialog(adminRoute(kit.acard("Seeding", kit.kv("Drafts", "2"))), "garden", {
         context: "Garden · Pool", title: "Open the season",
-        steps: [{ title: "Name it", desc: "Season name and dates" }, { title: "Confirmer rule", desc: "Who confirms kept promises" }, { title: "Review", desc: "Check and open" }],
+        steps: [{ title: "Name it", desc: "Season name and dates" }, { title: "Confirmer rule", desc: "Who confirms kept commitments" }, { title: "Review", desc: "Check and open" }],
         current: 1,
-        body: `${kit.field("Confirmer rule", kit.input("The person it was made to", { select: true }))}${kit.radio([{ label: "Green Goods team fallback on", meta: "Covers promises with no reachable confirmer", on: true }, { label: "Fallback off", meta: "Unconfirmable promises wait" }])}`,
+        body: `${kit.field("Confirmer rule", kit.input("The person it was made to", { select: true }))}${kit.radio([{ label: "Green Goods team fallback on", meta: "Covers commitments with no reachable confirmer", on: true }, { label: "Fallback off", meta: "Unconfirmable commitments wait" }])}`,
         back: "g.back", cancelHot: "g.cancel", next: kit.btn("Continue", { kind: "pri" }),
       }), w: "l", h: 640 },
     ],
@@ -940,7 +954,7 @@ const ADMIN_ENTRIES: Entry[] = [
     shipNote: "below 1024px the view's action set rides this dial; primary sits nearest the trigger",
     rule: "One action set, two presentations: the header row on desktop, the speed dial on the phone. The dial never carries actions the header lacks.",
     usedIn: ["W7M"],
-    specs: [{ label: "open dial · primary nearest trigger", html: `<div style="display:flex;flex-direction:column;align-items:flex-end;gap:10px;padding:6px">${`<button type="button" class="fabdoor">View public</button><button type="button" class="fabdoor">Edit garden</button><button type="button" class="fabdoor">Seed a promise</button>`}${kit.fabButton(true)}</div>`, w: "p" }],
+    specs: [{ label: "open dial · primary nearest trigger", html: `<div style="display:flex;flex-direction:column;align-items:flex-end;gap:10px;padding:6px">${`<button type="button" class="fabdoor">View public</button><button type="button" class="fabdoor">Edit garden</button><button type="button" class="fabdoor">Seed a commitment</button>`}${kit.fabButton(true)}</div>`, w: "p" }],
   },
   {
     id: "admin-side-sheet", title: "AdminSideSheet", family: "chrome", covers: [],
@@ -957,19 +971,19 @@ const ADMIN_ENTRIES: Entry[] = [
     ship: "packages/admin/src/components/AdminSearchToolbar.tsx:1",
     shipNote: "the route header's toolbar row; sorting is AdminSortSelect beside it",
     rule: "Search and sort live together in one toolbar row; active filters stay visible and clearable, never hidden behind an icon.",
-    usedIn: /aria-label="Search promises"/,
-    specs: [{ label: "search + sort", html: `<div style="display:flex;gap:8px;align-items:center">${kit.input("Search promises…", { placeholder: true, icon: "search-line", ariaLabel: "Search promises" })}${kit.input("Newest first", { select: true, ariaLabel: "Sort promises" })}</div>`, w: "m" }],
+    usedIn: /aria-label="Search commitments"/,
+    specs: [{ label: "search + sort", html: `<div style="display:flex;gap:8px;align-items:center">${kit.input("Search commitments…", { placeholder: true, icon: "search-line", ariaLabel: "Search commitments" })}${kit.input("Newest first", { select: true, ariaLabel: "Sort commitments" })}</div>`, w: "m" }],
   },
   {
-    id: "admin-list-item", title: "Record Row", family: "cards", covers: ["promiseRow"],
-    kit: `promiseRow({title, chips, meta, act, menu, hotId, chevron})`,
+    id: "admin-list-item", title: "Record Row", family: "cards", covers: ["commitmentRow"],
+    kit: `commitmentRow({title, chips, meta, act, menu, hotId, chevron})`,
     ship: "packages/admin/src/components/AdminListItem.tsx:1",
     shipNote: "state lives in the chip vocabulary with text, never color alone; banners never repeat per-row state",
-    rule: "Every promise and queue row shares ONE anatomy: title + kind/state chips on line one, calm meta on line two, one trailing act or a chevron. Two lines keep a busy row from wrapping its buttons in a narrow column.",
+    rule: "Every commitment and queue row shares ONE anatomy: title + kind/state chips on line one, calm meta on line two, one trailing act or a chevron. Two lines keep a busy row from wrapping its buttons in a narrow column.",
     usedIn: /class="prow"/,
     specs: [
-      { label: "opens the promise", html: kit.promiseRow({ title: "Prune the north beds", chips: `${kit.chip("Offer", "offer")}${kit.chip("Accepted", "request", { dot: true })}`, meta: "Maria → João · 6 hours · due Aug 12", chevron: true }), w: "l" },
-      { label: "one trailing act", html: kit.promiseRow({ title: "Market rides", chips: `${kit.chip("Campaign", "request")}${kit.chip("Past due", "warn", { dot: true })}`, meta: "due Jul 2 · still accepted", act: kit.btn("Expire now", { kind: "danger", sm: true }) }), w: "l" },
+      { label: "opens the commitment", html: kit.commitmentRow({ title: "Prune the north beds", chips: `${kit.chip("Offer", "offer")}${kit.chip("Accepted", "request", { dot: true })}`, meta: "Maria → João · 6 hours · due Aug 12", chevron: true }), w: "l" },
+      { label: "one trailing act", html: kit.commitmentRow({ title: "Market rides", chips: `${kit.chip("Campaign", "request")}${kit.chip("Past due", "warn", { dot: true })}`, meta: "due Jul 2 · still accepted", act: kit.btn("Expire now", { kind: "danger", sm: true }) }), w: "l" },
     ],
   },
   {
@@ -991,7 +1005,7 @@ const ADMIN_ENTRIES: Entry[] = [
     rule: "When a card is ABOUT one object, that object heads the card — title, chips, counts, and its one act in the header — instead of a generic title with the object stacked beneath it as a second header. Peers list below under cardSection, whose own act creates more of them.",
     usedIn: /class="acard objcard"/,
     specs: [
-      { label: "season heads the card, campaigns follow", html: kit.objectCard({ title: "Season of First Rains", chips: `${kit.chip("Season", "ink")}${kit.chip("Open", "ok", { dot: true })}`, meta: "9 promises · 7 kept · runs through Aug 30", acts: kit.btn("Close Season…", { kind: "sec", sm: true }), body: `${kit.stages(["Seeded", "Open", "In Progress", "Reviewing", "Reconciled", "Finished"], 1)}${kit.cardSection("Campaigns · 2 open", kit.btn("Start Campaign", { kind: "sec", sm: true }))}${kit.promiseRow({ title: "Market rides", chips: `${kit.chip("Campaign", "request")}${kit.chip("Open", "ok", { dot: true })}`, meta: "16 promises · 6 kept · runs through Sep 15" })}` }), w: "l" },
+      { label: "season heads the card, campaigns follow", html: kit.objectCard({ title: "Season of First Rains", chips: `${kit.chip("Season", "ink")}${kit.chip("Open", "ok", { dot: true })}`, meta: "9 commitments · 7 kept · runs through Aug 30", acts: kit.btn("Close Season…", { kind: "sec", sm: true }), body: `${kit.stages(["Seeded", "Open", "In Progress", "Reviewing", "Reconciled", "Finished"], 1)}${kit.cardSection("Campaigns · 2 open", kit.btn("Start Campaign", { kind: "sec", sm: true }))}${kit.commitmentRow({ title: "Market rides", chips: `${kit.chip("Campaign", "request")}${kit.chip("Open", "ok", { dot: true })}`, meta: "16 commitments · 6 kept · runs through Sep 15" })}` }), w: "l" },
     ],
   },
   {
@@ -1001,7 +1015,7 @@ const ADMIN_ENTRIES: Entry[] = [
     rule: "Unit groups are rendered by EXACT LABEL and never summed. 40 hours and 12 rides share no denominator, so a total could only exist by inventing a price (Appendix D.1) — and \"hours\" and \"Hours\" stay separate rows because identity is the hash of the stored bytes. The reserve is the second, quieter part: what members can do for each other does not depend on it, and a reserve of nothing is a working pool.",
     usedIn: /class="holdlist"/,
     specs: [
-      { label: "garden pool — capacity and reserve", html: kit.poolHoldings({ units: POOL_HOLDINGS.units, reserve: POOL_HOLDINGS.reserve, capacityNote: "Promises open now, grouped by what they're measured in.", reserveNote: "What neighbors can do for each other doesn't depend on this." }), w: "l" },
+      { label: "garden pool — capacity and reserve", html: kit.poolHoldings({ units: POOL_HOLDINGS.units, reserve: POOL_HOLDINGS.reserve, capacityNote: "Commitments open now, grouped by what they're measured in.", reserveNote: "What neighbors can do for each other doesn't depend on this." }), w: "l" },
       { label: "protocol pool — members are gardens", html: kit.poolHoldings({ units: [{ label: "surveys", open: 3, people: 2 }, { label: "methodology reviews", open: 2, people: 2 }], who: { one: "garden", many: "gardens" } }), w: "l" },
     ],
   },
@@ -1010,10 +1024,10 @@ const ADMIN_ENTRIES: Entry[] = [
     kit: `filterChips([{label, on, hotId}], ariaLabel)`,
     ship: "packages/admin/src/components/AdminFilterChip.tsx:1",
     shipNote: "one group per dimension — state, kind, direction",
-    rule: "A list gets scopes, not sibling cards. Past-due, lapsed, ongoing, and confirmed are FILTERS of the promise list; giving each its own card is what made six differently-designed queues out of one.",
+    rule: "A list gets scopes, not sibling cards. Past-due, lapsed, ongoing, and confirmed are FILTERS of the commitment list; giving each its own card is what made six differently-designed queues out of one.",
     usedIn: /class="scopechips"/,
     specs: [
-      { label: "promise scopes", html: kit.filterChips([{ label: "Open", on: true }, { label: "Past due" }, { label: "Lapsed" }, { label: "Ongoing" }, { label: "Confirmed" }], "Promise scope"), w: "l" },
+      { label: "commitment scopes", html: kit.filterChips([{ label: "Open", on: true }, { label: "Past due" }, { label: "Lapsed" }, { label: "Ongoing" }, { label: "Confirmed" }], "Commitment scope"), w: "l" },
     ],
   },
   {
@@ -1038,7 +1052,7 @@ const ADMIN_ENTRIES: Entry[] = [
     // a "Cycles" card and a rail card titled "Pool — the container", both gone
     // from every screen. A gallery that documents a shape nothing renders is
     // worse than no gallery, so it now mirrors the shipped W7 split.
-    specs: [{ label: "left objects · right rail", html: `<div class="wsrow"><div class="wsmain">${kit.objectCard({ title: "Season of First Rains", chips: `${kit.chip("Season", "ink")}${kit.chip("Open", "ok", { dot: true })}`, meta: "9 promises · 7 kept · runs through Aug 30", acts: kit.btn("Close Season…", { kind: "sec", sm: true }) })}</div><aside class="wsrail">${kit.acard("What This Pool Holds", kit.poolHoldings({ units: POOL_HOLDINGS.units.slice(0, 2), who: { one: "neighbor", many: "neighbors" } }))}${kit.acard("Pool Status", `<div class="t-meta">The container your seasons and campaigns run in.</div>${kit.kv("Promise limit", "24 per person at once")}`, kit.chip("Open", "ok", { dot: true }))}</aside></div>`, w: "l" }],
+    specs: [{ label: "left objects · right rail", html: `<div class="wsrow"><div class="wsmain">${kit.objectCard({ title: "Season of First Rains", chips: `${kit.chip("Season", "ink")}${kit.chip("Open", "ok", { dot: true })}`, meta: "9 commitments · 7 kept · runs through Aug 30", acts: kit.btn("Close Season…", { kind: "sec", sm: true }) })}</div><aside class="wsrail">${kit.acard("What This Pool Holds", kit.poolHoldings({ units: POOL_HOLDINGS.units.slice(0, 2), who: { one: "neighbor", many: "neighbors" } }))}${kit.acard("Pool Status", `<div class="t-meta">The container your seasons and campaigns run in.</div>${kit.kv("Commitment limit", "24 per person at once")}`, kit.chip("Open", "ok", { dot: true }))}</aside></div>`, w: "l" }],
   },
   {
     id: "meta-strip", title: "MetaStrip", family: "chrome", covers: [],
@@ -1047,7 +1061,7 @@ const ADMIN_ENTRIES: Entry[] = [
     shipNote: "the route header's inline metadata (member count, certified impact) — data, never actions",
     rule: "Header metadata is a quiet inline strip of labelled numbers; it never carries controls and never becomes a card grid.",
     usedIn: ["W7"],
-    specs: [{ label: "garden header stats", html: `<div style="display:flex;gap:14px" class="t-meta"><span><b class="num">23</b> members</span><span><b class="num">4</b> certified impacts</span><span><b class="num">7</b> promises live</span></div>`, w: "m" }],
+    specs: [{ label: "garden header stats", html: `<div style="display:flex;gap:14px" class="t-meta"><span><b class="num">23</b> members</span><span><b class="num">4</b> certified impacts</span><span><b class="num">7</b> commitments live</span></div>`, w: "m" }],
   },
   {
     id: "admin-checkbox", title: "AdminCheckbox", family: "forms", covers: [],
@@ -1090,17 +1104,17 @@ const ADMIN_ENTRIES: Entry[] = [
     shipNote: "single-action FABs and icon buttons carry their name in a tooltip",
     rule: "Tooltips name controls that show only an icon; they never hold information that exists nowhere else.",
     usedIn: ["W7M"],
-    specs: [{ label: "icon-button name", html: `<span style="display:inline-flex;align-items:center;gap:8px"><span class="ch">Seed a promise</span><span class="t-meta">shown on hover beside the single-action FAB</span></span>`, w: "m" }],
+    specs: [{ label: "icon-button name", html: `<span style="display:inline-flex;align-items:center;gap:8px"><span class="ch">Seed a commitment</span><span class="t-meta">shown on hover beside the single-action FAB</span></span>`, w: "m" }],
   },
 ];
 
 // ---- editorial catalog ------------------------------------------------------
 
-const editorialPanel = `<div class="epanel"><span class="kicker">Promises</span>
+const editorialPanel = `<div class="epanel"><span class="kicker">Commitments</span>
 <h3 class="serif-h">Midway through the Season of First Rains</h3>
-<div class="estatrow"><div class="estat"><div class="serif-n">9</div><div class="l">promises made</div></div><div class="estat"><div class="serif-n">7</div><div class="l">kept so far</div></div></div>
+<div class="estatrow"><div class="estat"><div class="serif-n">9</div><div class="l">commitments made</div></div><div class="estat"><div class="serif-n">7</div><div class="l">kept so far</div></div></div>
 <hr class="erule">
-<p style="margin:0;max-width:52ch">Fulfilled promises from this cycle are anchored in the certificates below.</p>
+<p style="margin:0;max-width:52ch">Fulfilled commitments from this cycle are anchored in the certificates below.</p>
 <button type="button" class="elink" disabled>See the gardens →</button></div>`;
 
 const EDITORIAL_ENTRIES: Entry[] = [
@@ -1137,10 +1151,10 @@ const EDITORIAL_ENTRIES: Entry[] = [
     id: "pipeline", title: "Evidence pipeline", family: "chips", covers: [],
     kit: `.pipe stage pills — screens/public.ts`,
     netNew: "the five-stage evidence pipeline with the two new stages outlined green",
-    rule: "Promise and Confirmation read as the delta against the known pipeline; stages stay uppercase mono pills.",
+    rule: "Commitment and Confirmation read as the delta against the known pipeline; stages stay uppercase mono pills.",
     usedIn: /class="pipe"/,
     specs: [
-      { label: "five stages", html: `<div class="pipe">${["Assessment", "Promise", "Work", "Confirmation", "Certificate"].map((s) => `<span class="pstage${s === "Promise" || s === "Confirmation" ? " new" : ""}">${s}</span>`).join(`<span class="parr">→</span>`)}</div>`, w: "l" },
+      { label: "five stages", html: `<div class="pipe">${["Assessment", "Commitment", "Work", "Confirmation", "Certificate"].map((s) => `<span class="pstage${s === "Commitment" || s === "Confirmation" ? " new" : ""}">${s}</span>`).join(`<span class="parr">→</span>`)}</div>`, w: "l" },
     ],
   },
 ];

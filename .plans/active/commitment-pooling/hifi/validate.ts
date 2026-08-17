@@ -397,7 +397,7 @@ function domTokens(html: string) {
   return { hots, marks };
 }
 
-// Enabled buttons are promises of interaction. A button is valid when it owns
+// Enabled buttons are commitments of interaction. A button is valid when it owns
 // a hotspot or sits inside one; preview-only chrome must be honestly disabled.
 // This small stack parser keeps the artifact build dependency-free.
 function scanEnabledButtons(screenId: string, stateId: string, html: string, sink = err) {
@@ -449,7 +449,16 @@ export function scanGalleryHtml(surface: "client" | "admin" | "editorial", html:
   scanEverywhere(where, text, sink);
   const cite = text.match(/\b(?:CS|UX|AM|SS|WF|DG|LAP|CI-WF|CI-SPEC):\s?\d+|register #\d+|\bMF-\d+\b/);
   if (cite) sink.push(`META ${where}: spec citation "${cite[0]}" rendered as gallery copy`);
-  const pct = text.match(/promised units|% of promised/i);
+  // The invariant is Appendix D.1 — never aggregate incommensurable unit bases.
+  // The tripwire guards its two RENDERED shapes: a percentage over units
+  // ("62% of committed units") and a bare cross-commitment total ("18 units
+  // committed"). A single commitment's own reserved units are one basis, so
+  // "cancelling releases the committed units" is legitimate and must not trip —
+  // it did, once the 2026-08-17 vocabulary sweep made the guarded phrasing real.
+  // Before that sweep this rule was BLIND: it looked for "promised units", which
+  // no surface had ever rendered. Historical spellings stay in the pattern so a
+  // reintroduced old phrasing is still caught.
+  const pct = text.match(/%\s*of\s+(?:committed|promised)|\d+\s+units\s+(?:committed|promised)/i);
   if (pct) sink.push(`AGGREGATE ${where}: "${pct[0]}" is a mixed-unit percentage`);
   if (surface === "client" || surface === "editorial") {
     for (const [re, name] of BANNED_CLIENT_PUBLIC) if (re.test(text)) sink.push(`VOCAB ${where}: "${name}"`);
@@ -535,7 +544,16 @@ function scanState(screen: Screen, stateId: string, html: string, sept: boolean)
   // (uiux-spec §5.2/§12) — it guards these exact phrasings, not the invariant;
   // a rephrased mixed-unit rate ("62% of units") still needs a reviewer's eye.
   // promiseKeptRate is the one sanctioned rate and reads as "N of M kept".
-  const pct = text.match(/promised units|% of promised/i);
+  // The invariant is Appendix D.1 — never aggregate incommensurable unit bases.
+  // The tripwire guards its two RENDERED shapes: a percentage over units
+  // ("62% of committed units") and a bare cross-commitment total ("18 units
+  // committed"). A single commitment's own reserved units are one basis, so
+  // "cancelling releases the committed units" is legitimate and must not trip —
+  // it did, once the 2026-08-17 vocabulary sweep made the guarded phrasing real.
+  // Before that sweep this rule was BLIND: it looked for "promised units", which
+  // no surface had ever rendered. Historical spellings stay in the pattern so a
+  // reintroduced old phrasing is still caught.
+  const pct = text.match(/%\s*of\s+(?:committed|promised)|\d+\s+units\s+(?:committed|promised)/i);
   if (pct) err.push(`AGGREGATE ${where}: "${pct[0]}" is a mixed-unit percentage`);
 
   if (sept) return; // another spec owns the remaining dialect-specific copy
@@ -846,7 +864,7 @@ export function normalizeAndValidate(raw: RawSB[], ctx: Ctx): { sbs: ShippedSB[]
           err.push(`RAIL ${s.id}@${st.id}: flow "${title}" renders steps [${labels}] but @${seen.state} renders [${seen.labels}] — a flow's rail never changes mid-flow`);
       }
     }
-    // A promise whose state chip reads Fulfilled is done; offering evidence
+    // A commitment whose state chip reads Fulfilled is done; offering evidence
     // attach there contradicts both the chip and §5.3, which gates attach to
     // Active / EvidenceSubmitted / PartiallyApproved. Scoped to the CHIP
     // markup (kit chip(), tone ok) so a greyed future "Fulfilled" stage label
@@ -854,7 +872,7 @@ export function normalizeAndValidate(raw: RawSB[], ctx: Ctx): { sbs: ShippedSB[]
     for (const st of s.states) {
       if (!domTokens(st.html).hots.has("w2.add-evidence")) continue;
       if (/class="ch ok(?: dot)?"[^>]*>Fulfilled</.test(st.html))
-        err.push(`STATE ${s.id}@${st.id}: evidence attach offered on a Fulfilled promise`);
+        err.push(`STATE ${s.id}@${st.id}: evidence attach offered on a Fulfilled commitment`);
     }
     for (const st of s.states) {
       const text = stripTags(st.html);

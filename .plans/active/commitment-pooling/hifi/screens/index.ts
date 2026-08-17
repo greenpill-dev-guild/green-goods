@@ -37,7 +37,7 @@ const GROUP_DEFS: { name: string; surface: Surface; ids: string[] }[] = [
 // surface's chapters exactly cover its GROUP_DEFS ids, never names or counts.
 const SCREEN_CHAPTERS: Record<string, { label: string; ids: string[] }[]> = {
   client: [
-    { label: "The pool & its promises", ids: ["W1", "W2", "W4", "W25", "W36"] },
+    { label: "The pool & its commitments", ids: ["W1", "W2", "W4", "W25", "W36"] },
     { label: "Create & prove", ids: ["W3", "W2a", "W2b", "WFLOW"] },
     { label: "Ongoing Offers", ids: ["W32", "W34", "W35"] },
     { label: "Exchange & templates", ids: ["W28", "W29", "W30", "W31"] },

@@ -9,7 +9,7 @@ import { CYCLE, POOL_HOLDINGS, SEASON_LIVE } from "../fixtures";
 import { hot } from "../html";
 import { icon } from "../icons";
 import {
-  acard, adminCanvas, adminDialogM3, banner, btn, chip, decisionRow, deskWin, disclosure, dtable, field, flowDialog, input, kv, pageHeader, poolHoldings, promiseRow, radio,
+  acard, adminCanvas, adminDialogM3, banner, btn, chip, decisionRow, deskWin, disclosure, dtable, field, flowDialog, input, kv, pageHeader, poolHoldings, commitmentRow, radio,
   reasonChips, stages, tabRail,
 } from "../kit";
 import type { FlowStep } from "../kit";
@@ -21,7 +21,7 @@ import type { StateFacts } from "../types";
 // W12 — Community workspace, Pools mode (uiux-spec §6.8, rescoped 2026-07-18)
 // ---------------------------------------------------------------------------
 
-const W12_STATES = [["protocol", "Protocol pool"], ["current-garden", "This garden"], ["seed-protocol", "Seed a protocol promise"]] as const;
+const W12_STATES = [["protocol", "Protocol pool"], ["current-garden", "This garden"], ["seed-protocol", "Seed a protocol commitment"]] as const;
 type W12State = (typeof W12_STATES)[number][0];
 
 function w12(state: W12State): string {
@@ -48,7 +48,7 @@ function w12(state: W12State): string {
         { label: "surveys", open: 3, people: 2 },
         { label: "methodology reviews", open: 2, people: 2 },
       ],
-      capacityNote: "Open promises, grouped by what they're measured in.",
+      capacityNote: "Open commitments, grouped by what they're measured in.",
       who: { one: "garden", many: "gardens" },
     }),
   );
@@ -59,7 +59,7 @@ function w12(state: W12State): string {
           `<div class="arow"><div class="grow"><b>Season of First Rains</b> <span class="t-meta">Open · 2 campaigns</span></div><span class="t-meta num">kept ${SEASON_LIVE.kept}/${SEASON_LIVE.made}</span></div>
 ${poolHoldings({
             units: POOL_HOLDINGS.units,
-            capacityNote: "Open promises, grouped by what they're measured in.",
+            capacityNote: "Open commitments, grouped by what they're measured in.",
           })}
 <div class="actrow">${hot("w12.open-garden-pool", btn("Open Garden Pool", { kind: "pri", sm: true }))}</div>
 ${hot("w12.no-ranking", banner("This workspace shows the Protocol pool and Rocinha only. All-garden oversight lives in capability-gated Operations.", "stone"))}`,
@@ -75,7 +75,7 @@ ${hot("w12.no-ranking", banner("This workspace shows the Protocol pool and Rocin
           }),
         )}${acard(
           "Confirm Queue",
-          promiseRow({
+          commitmentRow({
             title: "Methodology survey",
             chips: `${chip("Request", "request")}${chip("Ready", "warn", { dot: true })}`,
             meta: "Awka Hub → the protocol pool · 1 of 2 confirmed",
@@ -87,10 +87,10 @@ ${hot("w12.no-ranking", banner("This workspace shows the Protocol pool and Rocin
           // "Pool — the container" named the container twice on a tab already
           // called Pools, and diverged from the identical card on W7. Same
           // concept, same component, same title (interaction-patterns §5).
-          `<div class="t-meta">The container the protocol pool's promises run in.</div>${kv("Scope", "Green Goods protocol pool")}${kv("Member delivery gate", "")}
+          `<div class="t-meta">The container the protocol pool's commitments run in.</div>${kv("Scope", "Green Goods protocol pool")}${kv("Member delivery gate", "")}
 <div class="arow">${hot("w12.gate-status", `<div class="grow"><b>Enabled</b> <span class="t-meta">changed by Dana · Aug 2 · evidence ref 0x91…4c</span></div>`)}${chip("read only", "plain")}</div>
 ${hot("w12.no-ranking", banner("This workspace shows the Protocol pool and Rocinha only. All-garden oversight lives in capability-gated Operations.", "stone"))}
-<div class="actrow">${hot("w12.seed", btn("Seed Promise", { kind: "sec", sm: true }))}</div>
+<div class="actrow">${hot("w12.seed", btn("Seed Commitment", { kind: "sec", sm: true }))}</div>
 <div class="t-meta">Prefilled from protocol templates · steward-reviewed by default.</div>`,
           chip("Open", "ok", { dot: true }),
         )}${acard(
@@ -124,10 +124,10 @@ ${hot("w12.no-ranking", banner("This workspace shows the Protocol pool and Rocin
     return deskWin(
       "admin.greengoods.app/community/pools",
       adminDialogM3(behind, "community", {
-        title: "Seed a protocol promise",
+        title: "Seed a protocol commitment",
         body: `${kv("Kind", "Protocol request · gardens provide")}${kv("Direction", "The pool requests")}${kv("Title", "Methodology survey · dry-season round")}${kv("Unit · target", "surveys · 3")}${kv("Claim mode", "Steward-reviewed · protocol default")}${kv("Confirmers", "2 of 2 protocol stewards")}
 ${banner("Everything arrives prefilled from the protocol templates — published to eligible garden stewards, who claim it for their gardens through steward-reviewed acceptance.", "stone", "information-line")}`,
-        actions: `${hot("w12.seed-cancel", btn("Cancel", { kind: "ghost" }))}${hot("w12.seed-confirm", btn("Seed This Promise", { kind: "pri" }))}`,
+        actions: `${hot("w12.seed-cancel", btn("Cancel", { kind: "ghost" }))}${hot("w12.seed-confirm", btn("Seed This Commitment", { kind: "pri" }))}`,
         closeHot: "w12.seed-cancel",
       }),
     );
@@ -147,9 +147,9 @@ const W12_HOTS: HifiDef["hots"] = {
   "w12.confirm-row": { l: "Confirmations queue", to: "screen:W10@garden-ready", info: "Protocol confirmations queue mirrors the Hub Confirm grammar (WF:417)." },
   "w12.no-ranking": { l: "Garden scope boundary", info: "No other-garden rows or command/ack controls render here; all-garden operations live in W24 (UX:314)." },
   "w12.gate-status": { l: "Member delivery gate status", info: "Register #34f: the read-only gate row — enabled/disabled, changed by, date, evidence ref — mirrored from W21@gate-status so the Community workspace answers the delivery-readiness question without leaving it. No toggle renders here; changing the gate is an Operations act." },
-  "w12.seed": { l: "Seed a protocol promise", to: "screen:W12@seed-protocol", info: "The protocol pool makes its own asks and offers to gardens — seeding starts here in the Community workspace, prefilled from protocol templates (register #96)." },
+  "w12.seed": { l: "Seed a protocol commitment", to: "screen:W12@seed-protocol", info: "The protocol pool makes its own asks and offers to gardens — seeding starts here in the Community workspace, prefilled from protocol templates (register #96)." },
   "w12.seed-cancel": { l: "Cancel protocol seeding", to: "screen:W12", info: "Returns to the protocol pool without creating anything." },
-  "w12.seed-confirm": { l: "Seed this protocol promise", to: "screen:W12", info: "Console seeding into the protocol pool: createCommitment with the protocol context — steward-reviewed claim mode by default (register #19), protocol stewards as ordinary confirmers.", calls: ["createCommitment"], facts: { pool: "Open" } },
+  "w12.seed-confirm": { l: "Seed this protocol commitment", to: "screen:W12", info: "Console seeding into the protocol pool: createCommitment with the protocol context — steward-reviewed claim mode by default (register #19), protocol stewards as ordinary confirmers.", calls: ["createCommitment"], facts: { pool: "Open" } },
 };
 
 // ---------------------------------------------------------------------------
@@ -880,7 +880,7 @@ ${banner(canQueueFunding ? "Commitment-earned support follows the provider garde
 ${field("Garden", radio([{ label: "Awka Hub", meta: "registered Celo Safe", on: true }, { label: "Muizenberg", meta: "registered Celo Safe" }], { interactive: true, name: "funding-garden" }))}
 ${field("Amount", input("500 G$"))}
 ${kv("Source", "GG protocol Safe · Celo")}${kv("Recipient", "Selected garden's registered Celo Safe")}
-${banner("Treasury support outside a commitment. This does not fulfill, reward, or alter a promise; fulfilled commitments use the provider garden's contributor payout plan.", "stone")}
+${banner("Treasury support outside a commitment. This does not fulfill, reward, or alter a commitment; fulfilled commitments use the provider garden's contributor payout plan.", "stone")}
 <div class="actrow" style="justify-content:flex-end">${hot("w24.cancel-funding", btn("Cancel", { kind: "ghost" }))}${hot("w24.queue-funding-confirm", btn("Queue Seed or Top Up", { kind: "pri" }))}</div>`,
       );
       break;
@@ -989,18 +989,18 @@ ${banner("Read-only — the six-role snapshot locked when this cycle opened.", "
       next = hot(h("continue-certificate"), btn("Continue", { kind: "pri" }));
       break;
     case "certificate":
-      inner = `${kv("Bundle", "7 fulfilled promises + their work, evidence, and need lineage")}${kv("Allowlist", "from the shares above")}${kv("Holder", "the garden account")}
-<div class="arow" style="opacity:.55"><div class="grow"><b>Repair tool handles</b> <span class="t-meta">cycle-less promise</span></div>${chip("No cycle allocation · not certificate eligible", "plain")}</div>
-${banner("Uses the garden's existing impact-certificate pipeline. A cycle-less promise is recognition/payment-only — it cannot join a certificate bundle (UX §6.10).", "stone")}`;
+      inner = `${kv("Bundle", "7 fulfilled commitments + their work, evidence, and need lineage")}${kv("Allowlist", "from the shares above")}${kv("Holder", "the garden account")}
+<div class="arow" style="opacity:.55"><div class="grow"><b>Repair tool handles</b> <span class="t-meta">cycle-less commitment</span></div>${chip("No cycle allocation · not certificate eligible", "plain")}</div>
+${banner("Uses the garden's existing impact-certificate pipeline. A cycle-less commitment is recognition/payment-only — it cannot join a certificate bundle (UX §6.10).", "stone")}`;
       next = hot(h("mint"), btn("Mint Impact Certificate", { kind: "pri" }));
       break;
     case "rest":
       inner = `${kv("Aggregates", "roll into pool history")}${kv("Next season", "starts fresh on this pool")}
-<div class="quietok">${icon("check-line")}Certificate minted · 7 promises bundled.</div>`;
+<div class="quietok">${icon("check-line")}Certificate minted · 7 commitments bundled.</div>`;
       next = hot(h("compost"), btn("Archive Season", { kind: "pri" }));
       break;
     default:
-      inner = `${kv(CYCLE, `${SEASON_LIVE.made} promises · ${SEASON_LIVE.kept} kept`)}
+      inner = `${kv(CYCLE, `${SEASON_LIVE.made} commitments · ${SEASON_LIVE.kept} kept`)}
 ${kv("Terminal set", "7 fulfilled · 1 expired · 1 cancelled after steward review")}
 ${banner("Every commitment is terminal and nothing is live. Closing now locks this exact bundle before shares are read or the certificate is minted.", "stone")}
 <div class="arow"><div class="grow"><b>Ending it without a report?</b> <span class="t-meta">Cancelling records a reason members read and closes the season without shares or a certificate.</span></div>${hot(
@@ -1026,14 +1026,14 @@ ${banner("Every commitment is terminal and nothing is live. Closing now locks th
 }
 
 const W26_HOTS: HifiDef["hots"] = {
-  "w7.cancel-cycle": { l: "Cancel season instead", to: "screen:W7@cancel-cycle-confirm", info: "The alternative ENDING, offered where the season's state is already on screen rather than behind a row overflow (2026-08-16 round 6). cancelCycle and closeCycle are legal at the same moment — both need zero live promises — so the choice belongs here." },
+  "w7.cancel-cycle": { l: "Cancel season instead", to: "screen:W7@cancel-cycle-confirm", info: "The alternative ENDING, offered where the season's state is already on screen rather than behind a row overflow (2026-08-16 round 6). cancelCycle and closeCycle are legal at the same moment — both need zero live commitments — so the choice belongs here." },
   "w7.cancel-cycle-paused": { l: "Cancel season instead", to: "screen:W7@paused-cancel-cycle-confirm", info: "Same alternative ending while the pool stays paused; cancelling never implies a resume." },
   "w26.recognition-blocked-back": { l: "Back to review", to: "screen:W26", info: "Leaves certificate expansion blocked and returns to the terminal-set review; no metadata-only action can mutate canonical recognition credit." },
   "w26.exit": { l: "Leave the close wizard", to: "screen:W7", info: "Leaving keeps the cycle exactly where it is — Open before the first write, Reconciled after — and the wizard resumes from the pool workspace. No back edges: each step's write has already landed." },
   "w26.paused-exit": { l: "Leave the close wizard (pool paused)", to: "screen:W7@paused", info: "Leaving keeps the Paused pool and the cycle's current lifecycle state; the wizard resumes from the paused pool workspace." },
   "w26.continue-certificate": { l: "Continue to certificate", to: "screen:W26@certificate", info: "Moves from the allocation snapshot to the existing impact-certificate pipeline." },
   "w26.continue-shares": { l: "Close cycle and continue to shares", to: "screen:W26@shares", info: "With every commitment terminal and liveCommitmentCount zero, closeCycle locks the exact fulfilled bundle before any share review or certificate mint.", calls: ["closeCycle"] },
-  "w26.mint": { l: "Mint impact certificate", to: "screen:W26@rest", info: "Existing Hypercert pipeline; bundle = fulfilled promises + work, evidence, need lineage; allowlist from the six-role shares (CS §9)." },
+  "w26.mint": { l: "Mint impact certificate", to: "screen:W26@rest", info: "Existing Hypercert pipeline; bundle = fulfilled commitments + work, evidence, need lineage; allowlist from the six-role shares (CS §9)." },
   "w26.compost": { l: "Compost closed cycle", to: "screen:W7@cycle-composted", info: "The certificate already uses the Reconciled cycle's locked bundle; compostCycle now archives it without another close call.", calls: ["compostCycle"] },
   "w26.paused-continue-shares": { l: "Close cycle and continue while pool paused", to: "screen:W26@paused-shares", info: "With every commitment terminal and liveCommitmentCount zero, closeCycle locks the exact bundle while leaving the pool Paused.", calls: ["closeCycle"] },
   "w26.paused-continue-certificate": { l: "Continue to certificate while pool paused", to: "screen:W26@paused-certificate", info: "Keeps the pool Paused while reading the cycle's locked allocation snapshot." },

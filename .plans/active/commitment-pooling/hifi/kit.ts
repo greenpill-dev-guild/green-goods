@@ -207,7 +207,7 @@ export function formInfo(ic: string, title: string, info: string): string {
 // with its content in a card beneath (2026-08-16 round 10). This is the shipped
 // work view's anatomy verbatim — WorkView.tsx renders `<h6>Garden</h6>` then a
 // GardenCard, `<h6>Media</h6>` then a Carousel, `<h6>Details</h6>` then
-// FormCards — and it is what replaced the promise view's stack of disclosures.
+// FormCards — and it is what replaced the commitment view's stack of disclosures.
 //
 // The label stays OUTSIDE the card because that is where the work view puts it;
 // carding the label too would box the whole page and lose the scannable rhythm
@@ -217,7 +217,7 @@ export function sectionCard(label: string, inner: string, opts: { flush?: boolea
 }
 
 // A label/value row inside a section card. WorkView stacks one FormCard per
-// detail, but it carries two; a promise carries six, and six cards each with
+// detail, but it carries two; a commitment carries six, and six cards each with
 // their own bordered header would be exactly the card-itis the design contract
 // warns about. One card, six rows.
 export function detailRow(label: string, value: string): string {
@@ -225,7 +225,7 @@ export function detailRow(label: string, value: string): string {
 }
 
 // Media strip — the work view's Carousel of ImageWithFallback tiles. Evidence
-// on the promise view used to be text rows with an image icon; showing the
+// on the commitment view used to be text rows with an image icon; showing the
 // actual thumbnails is the single biggest reason to flatten this screen.
 export function mediaStrip(items: { label: string; tint?: "agro" | "waste" | "garden" | "quiet"; note?: boolean }[]): string {
   return `<div class="mstrip">${items
@@ -419,7 +419,7 @@ export function emptyState(iconName: string, title: string, body: string, action
 // puts a face on every browse card: avatar + name, "for {garden}" when a
 // garden claims. Cards carry chips → title → by-line → quantity+due → real
 // progress → ONE context action or one plain reason line; notes and declared
-// byline (avatar + "by Maria") retired 2026-08-16: the promise card carries the
+// byline (avatar + "by Maria") retired 2026-08-16: the commitment card carries the
 // creator as the first field of its meta line, so nothing rendered it any more.
 
 // Team strip — overlapping initial avatars (W2 people row, the funding pledge
@@ -430,9 +430,9 @@ export function teamstrip(initials: readonly string[]): string {
 }
 
 // Domains get their own equal-weight row (2026-08-14 second pass, Afo): every
-// involved domain listed, none privileged as "primary" — a promise pairing
+// involved domain listed, none privileged as "primary" — a commitment pairing
 // AGRO with EDU is both, not AGRO-with-a-footnote. No row = an evidence-only
-// service promise, and the "Support / service" kind chip up top says so in
+// service commitment, and the "Support / service" kind chip up top says so in
 // words. The real build renders DomainBadge (icon + label) from DOMAIN_CONFIG.
 const DOMAIN_CLS: Record<string, string> = { AGRO: "agro", EDU: "edu", SOLAR: "solar", WASTE: "waste" };
 export function domainRow(domains: string[]): string {
@@ -452,10 +452,40 @@ export function poolFilters(activeIx: number, opts: { mine?: boolean } = {}): st
   );
 }
 
+// MemberRow — the shipped garden Gardeners item, reused wherever this feature
+// needs to show or pick a person (2026-08-17, Afo: "take some styling and look
+// from the gardeners list we have in the garden view"). Anatomy read from
+// packages/client/src/components/Features/Garden/Gardeners.tsx:74 — a full-width
+// tappable row, 40px avatar, name, subline, a registered line with a calendar
+// glyph, and an optional badge pinned top-right.
+//
+// The name follows that component's own resolution order: username, then email
+// or phone, and only THEN a formatted address. So a wallet address appears as
+// the primary line exactly when nothing better is on file — which is the rule
+// Afo asked for, and which shipped code already implements.
+export function memberRow(opts: {
+  name: string;
+  sub?: string;
+  joined?: string;
+  badge?: string;
+  select?: "on" | "off";
+  hotId?: string;
+}): string {
+  const initial = /^0x/i.test(opts.name) ? "" : esc(opts.name.trim().charAt(0).toUpperCase());
+  const sel = opts.select ? `<span class="msel${opts.select === "on" ? " on" : ""}" aria-hidden="true"></span>` : "";
+  const row = `<div class="mrow${opts.select === "on" ? " picked" : ""}">
+<span class="avatar">${initial}</span>
+<div class="grow"><div class="mn${/^0x/i.test(opts.name) ? " addr" : ""}">${esc(opts.name)}</div>${
+    opts.sub ? `<div class="ms">${esc(opts.sub)}</div>` : ""
+  }${opts.joined ? `<div class="mj">${icon("calendar-line", "s")}${esc(opts.joined)}</div>` : ""}</div>
+${opts.badge ? `<span class="mbadge">${esc(opts.badge)}</span>` : ""}${sel}</div>`;
+  return opts.hotId ? hot(opts.hotId, row) : row;
+}
+
 // Scoped state counts, never a cross-commitment percentage: this pool's units
 // are hours, rides, sessions and surveys, so a single "62%" would average
 // incommensurable things (uiux-spec §5.2, §12). A seeded or empty season shows
-// no counts line at all rather than a row of zeroes. The card counts promises
+// no counts line at all rather than a row of zeroes. The card counts commitments
 // made and kept — the same pair W5, W12, W15 and W26 print for this moment
 // (PRD-760). Cycle cards follow layout option B (2026-08-14 third pass, Afo):
 // the [Season]/[Campaign] + stage chips LEAD the card, everything stacks on
@@ -463,7 +493,7 @@ export function poolFilters(activeIx: number, opts: { mine?: boolean } = {}): st
 // What is still open in this cycle, by exact unit label (2026-08-16 round 8,
 // Afo). This is where pool capacity belongs on the client: on the cycle card
 // that already owns the scope, not in a separate "what this pool holds" card
-// above it — that card cost 236px of a 700px phone and pushed every promise
+// above it — that card cost 236px of a 700px phone and pushed every commitment
 // below the fold.
 //
 // Scope is the CYCLE, not the pool, which is also more correct than the block
@@ -476,7 +506,7 @@ const seasonOpenUnits = () =>
     .map(([label, { done, of }]) => `${of - done} ${label}`)
     .join(" · ");
 
-// Cycle card — the promise card's anatomy with one extra meta line, because a
+// Cycle card — the commitment card's anatomy with one extra meta line, because a
 // cycle carries both what is open in it and how it has gone (2026-08-16 round
 // 9). Title first, tags last, square reserved on the right at the card's full
 // content height.
@@ -504,7 +534,7 @@ export function seasonCard(opts: { made?: number; kept?: number; stage?: string;
   return cycleCard({
     title: CYCLE,
     units: opts.units ?? seasonOpenUnits(),
-    counts: made === 0 && kept === 0 ? "no promises yet · through Aug 30" : `${made} promises · ${kept} kept · through Aug 30`,
+    counts: made === 0 && kept === 0 ? "no commitments yet · through Aug 30" : `${made} commitments · ${kept} kept · through Aug 30`,
     kind: "Season",
     stage: opts.stage ?? "Open",
     media: { label: "photo", tint: "garden" },
@@ -540,28 +570,28 @@ export function campaignSlide(hotId: string, title: string, stage: string, count
   })}</div>`;
 }
 
-// PROMISE CARD, option E (2026-08-16 round 9, Afo). One anatomy for every
-// promise on every surface: title, one meta line, one tag row, and a reserved
-// square on the right that holds the promise's image when it has one.
+// COMMITMENT CARD, option E (2026-08-16 round 9, Afo). One anatomy for every
+// commitment on every surface: title, one meta line, one tag row, and a reserved
+// square on the right that holds the commitment's image when it has one.
 //
 // Three rules make every card the same height, which is what the old family of
 // five hand-built variants could not do:
 //
-//  1. NO ACTIONS ON CARDS. Taking something up happens in the promise view,
+//  1. NO ACTIONS ON CARDS. Taking something up happens in the commitment view,
 //     where a member can read the whole thing first — the card's job is to be
 //     legible, not to be a control. This also removes the row that varied most.
 //  2. THE TAG ROW NEVER WRAPS. Fixed priority, hard cap, then a count. What
 //     survives is always: what it is, then what is unusual about it. Domains
 //     roll into the count first because the filter row above the list already
 //     filters by domain.
-//  3. THE IMAGE SLOT IS ALWAYS RESERVED. A promise with no photo shows nothing
+//  3. THE IMAGE SLOT IS ALWAYS RESERVED. A commitment with no photo shows nothing
 //     there and nothing shifts, so titles in a mixed list share one wrap point.
 //     The square is 1:1 at the card's full content height (the shipping
 //     WorkCard's media grammar), and never drives the height — three text rows
 //     already exceed it.
 const TAG_CAP = 3;
 
-export function promiseCard(opts: {
+export function commitmentCard(opts: {
   title: string;
   meta: string;
   // Ordered by priority. The first is the kind chip and is never dropped.
@@ -587,10 +617,10 @@ export function promiseCard(opts: {
 }
 
 // Legacy card grammar (2026-08-14). Retained only until every call site moves
-// to promiseCard above.
+// to commitmentCard above.
 // Every browse cast of an Offer. The queued/waiting/failed casts are the
 // member's OWN sends, so they carry no creator name and keep their recovery
-// controls — those are device-state acts on a promise that has not left the
+// controls — those are device-state acts on a commitment that has not left the
 // phone, not claim acts, so they are the one exception to "no actions on cards".
 export function offerCard(opts: {
   queued?: boolean;
@@ -615,9 +645,9 @@ export function offerCard(opts: {
     : opts.failed
       ? "Five send attempts used. You can retry or discard."
       : opts.readOnly
-        ? (opts.readOnlyNote ?? "This promise remains visible, but taking it up is not available right now.")
+        ? (opts.readOnlyNote ?? "This commitment remains visible, but taking it up is not available right now.")
         : undefined;
-  return promiseCard({
+  return commitmentCard({
     title,
     meta: own ? amount : `Maria · ${amount}`,
     tags,
@@ -633,12 +663,12 @@ export function offerCard(opts: {
 export function requestCard(opts: { openClaim?: boolean; queued?: boolean; context?: string; claimHot?: string } = {}): string {
   // The claim mode used to be carried by the card button's own label ("I can
   // help" open, "Ask to take this up" reviewed). With acts moved into the
-  // promise view, the card no longer says which it is — the view does, where
+  // commitment view, the card no longer says which it is — the view does, where
   // the member can read the terms before deciding.
   const tags: { label: string; tone?: ChipTone }[] = [{ label: "Request", tone: "request" }];
   if (opts.queued) tags.push({ label: "Queued", tone: "queued" });
   tags.push({ label: "Support / service" });
-  return promiseCard({
+  return commitmentCard({
     title: "Ride to the market on Saturday",
     meta: opts.queued ? `1 ride · ${opts.context ?? "runs with the season"}` : `Ana · 1 ride · ${opts.context ?? "runs with the season"}`,
     tags,
@@ -651,7 +681,7 @@ export function requestCard(opts: { openClaim?: boolean; queued?: boolean; conte
 // tab (D8a): the "Ongoing" tag plus places-left is the card's real progress,
 // and the whole card opens the series detail where places are taken up.
 export function ongoingOfferCard(): string {
-  return promiseCard({
+  return commitmentCard({
     title: "Saturday veggie box",
     meta: "Maria · 1 box each week · 2 places open",
     tags: [{ label: "Offer", tone: "offer" }, { label: "Ongoing" }, { label: "Support / service" }],
@@ -660,11 +690,11 @@ export function ongoingOfferCard(): string {
 }
 
 // Team-offer card — the D5 roster indicator: a forming team is visible right on
-// the browse card; the whole card opens the promise, where joining happens.
+// the browse card; the whole card opens the commitment, where joining happens.
 // Two domains here, which is exactly the case that used to need a second row —
 // now the tag cap absorbs it and WASTE rolls into the count.
 export function teamOfferCard(): string {
-  return promiseCard({
+  return commitmentCard({
     title: "Restore the compost bays",
     meta: "Maria · 4 sessions · due Aug 24",
     tags: [{ label: "Offer", tone: "offer" }, { label: "Team of 3" }, { label: "AGRO" }, { label: "WASTE" }],
@@ -674,7 +704,7 @@ export function teamOfferCard(): string {
 }
 
 export function fundedOfferCard(): string {
-  return promiseCard({
+  return commitmentCard({
     title: "Design a market poster",
     meta: "Ben · 1 poster design · runs with the season",
     tags: [{ label: "Offer", tone: "offer" }, { label: "40 G$" }, { label: "Support / service" }],
@@ -706,10 +736,10 @@ export function selRail(cards: string[]): string {
   return `<div class="selrail">${cards.join("")}</div>`;
 }
 
-// Promise slide — the intro's third rail (2026-08-14, Afo: many promises must
+// Commitment slide — the intro's third rail (2026-08-14, Afo: many commitments must
 // not stack downward): compact cards, nearest due first, swipe for more.
 // Tapping one enters the scoped flow.
-export function promiseSlide(opts: { title: string; needs: string; due: string; hotId?: string }): string {
+export function commitmentSlide(opts: { title: string; needs: string; due: string; hotId?: string }): string {
   const c = `<div class="card pcard${opts.hotId ? " cardlink" : ""}"><div class="t-title">${opts.title}</div><div class="t-meta num">${opts.needs}</div><div class="t-meta num">${opts.due}</div></div>`;
   return opts.hotId ? hot(opts.hotId, c) : c;
 }
@@ -756,9 +786,9 @@ export function statRow(
 // ---- the two row variants (interaction-patterns §5) -------------------------
 // RECORD ROW — a thing you look at: title + kind/state chips on line one, calm
 // meta (who · how much · when) on line two, and ONE trailing act, or a chevron
-// when the row simply opens. Used for promises, campaigns, activity, queues you
+// when the row simply opens. Used for commitments, campaigns, activity, queues you
 // browse.
-export function promiseRow(opts: {
+export function commitmentRow(opts: {
   title: string;
   chips?: string;
   meta?: string;
@@ -850,7 +880,7 @@ export function poolHoldings(opts: {
   const who = opts.who ?? { one: "neighbor", many: "neighbors" };
   const unitRows = opts.units
     .map(({ label, open, people }) =>
-      promiseRow({
+      commitmentRow({
         title: `${open} ${label}`,
         meta: `${people} ${people === 1 ? who.one : who.many} offering`,
       }),
@@ -872,7 +902,7 @@ export function poolHoldings(opts: {
   // pool rather than an empty one.
   const reserve = `${cardSection("What's in the reserve")}${
     opts.reserveNote ? `<div class="t-meta">${esc(opts.reserveNote)}</div>` : ""
-  }<div class="holdlist">${promiseRow({ title: opts.reserve.amount, meta: plans })}</div>`;
+  }<div class="holdlist">${commitmentRow({ title: opts.reserve.amount, meta: plans })}</div>`;
   return `${capacity}${reserve}`;
 }
 
