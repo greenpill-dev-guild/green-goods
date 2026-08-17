@@ -1,0 +1,711 @@
+{
+  "version": 1,
+  "toolchain": {
+    "bun": "1.3.14",
+    "node": "22.22.1",
+    "foundry": "1.7.1"
+  },
+  "environmentProfiles": {
+    "validation": { "VITE_CHAIN_ID": "11155111" }
+  },
+  "intentOrder": [
+    "diagnose",
+    "qa",
+    "review",
+    "checkpoint",
+    "readiness",
+    "push",
+    "ship",
+    "merge",
+    "release"
+  ],
+  "riskOrder": ["routine", "sensitive", "critical"],
+  "riskRules": [
+    {
+      "risk": "sensitive",
+      "prefixes": [
+        ".github/",
+        ".claude/",
+        ".codex/",
+        ".plans/",
+        "scripts/dev/",
+        "scripts/harness/",
+        "scripts/quality/",
+        "packages/agent/src/",
+        "packages/indexer/src/"
+      ]
+    }
+  ],
+  "surfaceRules": [
+    { "surface": "docs", "prefixes": ["docs/"] },
+    { "surface": "client", "prefixes": ["packages/client/"] },
+    { "surface": "admin", "prefixes": ["packages/admin/"] },
+    { "surface": "agent", "prefixes": ["packages/agent/"] },
+    { "surface": "indexer", "prefixes": ["packages/indexer/"] },
+    { "surface": "contracts", "prefixes": ["packages/contracts/", "scripts/contracts/"] },
+    {
+      "surface": "shared",
+      "prefixes": [
+        "packages/shared/",
+        "packages/contracts/abis/",
+        "packages/contracts/deployments/"
+      ]
+    },
+    {
+      "surface": "client",
+      "prefixes": [
+        "packages/shared/",
+        "packages/contracts/abis/",
+        "packages/contracts/deployments/"
+      ]
+    },
+    {
+      "surface": "admin",
+      "prefixes": [
+        "packages/shared/",
+        "packages/contracts/abis/",
+        "packages/contracts/deployments/"
+      ]
+    },
+    { "surface": "agent", "prefixes": ["packages/shared/"] },
+    {
+      "surface": "indexer",
+      "prefixes": ["packages/contracts/abis/", "packages/contracts/deployments/"]
+    },
+    {
+      "surface": "all",
+      "exact": [
+        "package.json",
+        "bun.lock",
+        "biome.json",
+        ".env.schema",
+        "tsconfig.json",
+        "tsconfig.base.json"
+      ]
+    }
+  ],
+  "conditionalRules": [
+    {
+      "check": "source-structure",
+      "match": "all",
+      "prefixes": ["packages/"],
+      "contains": ["/src/"]
+    },
+    {
+      "check": "design-guardrails",
+      "exact": ["DESIGN.md", "docs/DESIGN.md"],
+      "prefixes": [
+        "packages/client/src/",
+        "packages/admin/src/",
+        "packages/shared/src/",
+        ".claude/skills/design/",
+        "scripts/design/"
+      ]
+    },
+    {
+      "check": "ontology",
+      "prefixes": [
+        "packages/contracts/src/",
+        "packages/contracts/deployments/",
+        "packages/shared/src/ontology/",
+        "packages/client/src/components/Public/",
+        "packages/client/src/views/Public/"
+      ]
+    },
+    {
+      "check": "supply-chain",
+      "exact": [
+        "package.json",
+        "bun.lock",
+        "bun.lockb",
+        ".npmrc",
+        "bunfig.toml",
+        "AGENTS.md",
+        "CLAUDE.md"
+      ],
+      "prefixes": [
+        ".github/workflows/",
+        ".codex/",
+        ".claude/",
+        ".plans/",
+        "scripts/quality/",
+        "scripts/harness/"
+      ]
+    },
+    {
+      "check": "browser-proof",
+      "match": "all",
+      "prefixes": ["packages/client/src/", "packages/admin/src/"],
+      "extensions": [".jsx", ".tsx", ".css", ".scss"]
+    }
+  ],
+  "checks": [
+    {
+      "id": "format",
+      "command": "bun run format:check",
+      "risk": "unformatted tracked files produce misleading package failures",
+      "expectedSignal": "repository formatting is unchanged",
+      "freshness": "exact-inputs",
+      "budgetSeconds": 15,
+      "stopRule": "stop-dependent-checks",
+      "capabilities": ["dependencies"]
+    },
+    {
+      "id": "lint",
+      "command": "bun run lint",
+      "risk": "static defects cross package boundaries",
+      "expectedSignal": "repository lint rules pass",
+      "freshness": "exact-inputs",
+      "budgetSeconds": 45,
+      "stopRule": "stop-dependent-checks",
+      "capabilities": ["dependencies"]
+    },
+    {
+      "id": "abi-artifacts",
+      "command": null,
+      "builtin": "abiArtifacts",
+      "risk": "committed ABI exports are missing or stale",
+      "expectedSignal": "shared contract ABI imports resolve to current committed artifacts",
+      "freshness": "exact-inputs-and-generated-artifacts",
+      "budgetSeconds": 10,
+      "stopRule": "stop-dependent-checks",
+      "capabilities": []
+    },
+    {
+      "id": "shared-typecheck",
+      "command": "node ../../scripts/dev/node-cli.js tsc --noEmit",
+      "cwd": "packages/shared",
+      "risk": "shared type contracts no longer compile",
+      "expectedSignal": "shared TypeScript graph has no errors",
+      "freshness": "exact-inputs-and-toolchain",
+      "budgetSeconds": 45,
+      "stopRule": "stop-dependent-checks",
+      "capabilities": ["dependencies"]
+    },
+    {
+      "id": "shared-test",
+      "command": "bun run test",
+      "cwd": "packages/shared",
+      "risk": "shared behavior regresses direct consumers",
+      "expectedSignal": "shared unit and integration tests pass",
+      "freshness": "exact-inputs-and-toolchain",
+      "budgetSeconds": 90,
+      "stopRule": "stop-dependent-checks",
+      "concurrencyGroup": "package-tests-core",
+      "capabilities": ["dependencies"]
+    },
+    {
+      "id": "shared-build",
+      "command": "bun run build",
+      "cwd": "packages/shared",
+      "risk": "shared exports or emitted declarations are invalid",
+      "expectedSignal": "shared package builds successfully",
+      "freshness": "exact-inputs-and-toolchain",
+      "budgetSeconds": 60,
+      "stopRule": "stop-dependent-checks",
+      "capabilities": ["dependencies"]
+    },
+    {
+      "id": "client-test",
+      "command": "bun run test",
+      "cwd": "packages/client",
+      "risk": "client behavior regresses",
+      "expectedSignal": "client tests pass",
+      "freshness": "exact-inputs-and-toolchain",
+      "budgetSeconds": 90,
+      "stopRule": "stop-dependent-checks",
+      "concurrencyGroup": "package-tests-surface",
+      "capabilities": ["dependencies"]
+    },
+    {
+      "id": "client-build",
+      "command": "bun run build",
+      "cwd": "packages/client",
+      "risk": "client routing, exports, or runtime wiring do not bundle",
+      "expectedSignal": "client production bundle succeeds",
+      "freshness": "exact-inputs-toolchain-and-environment",
+      "budgetSeconds": 75,
+      "stopRule": "stop-dependent-checks",
+      "capabilities": ["dependencies"]
+    },
+    {
+      "id": "admin-test",
+      "command": "bun run test",
+      "cwd": "packages/admin",
+      "risk": "admin behavior regresses",
+      "expectedSignal": "admin tests pass",
+      "freshness": "exact-inputs-and-toolchain",
+      "budgetSeconds": 180,
+      "stopRule": "stop-dependent-checks",
+      "concurrencyGroup": "package-tests-surface",
+      "capabilities": ["dependencies"]
+    },
+    {
+      "id": "admin-hub-test",
+      "command": "bun run test:hub",
+      "cwd": "packages/admin",
+      "risk": "admin Hub checkpoint behavior regresses",
+      "expectedSignal": "focused admin Hub tests pass",
+      "freshness": "exact-inputs-and-toolchain",
+      "budgetSeconds": 90,
+      "stopRule": "stop-dependent-checks",
+      "concurrencyGroup": "package-tests-surface",
+      "capabilities": ["dependencies"]
+    },
+    {
+      "id": "admin-build",
+      "command": "bun run build",
+      "cwd": "packages/admin",
+      "risk": "admin routing, exports, or runtime wiring do not bundle",
+      "expectedSignal": "admin production bundle succeeds",
+      "freshness": "exact-inputs-toolchain-and-environment",
+      "budgetSeconds": 75,
+      "stopRule": "stop-dependent-checks",
+      "capabilities": ["dependencies"]
+    },
+    {
+      "id": "agent-typecheck",
+      "command": "bun run typecheck",
+      "cwd": "packages/agent",
+      "risk": "agent runtime types no longer compile",
+      "expectedSignal": "agent TypeScript graph has no errors",
+      "freshness": "exact-inputs-and-toolchain",
+      "budgetSeconds": 45,
+      "stopRule": "stop-dependent-checks",
+      "capabilities": ["dependencies"]
+    },
+    {
+      "id": "agent-test",
+      "command": "bun run test",
+      "cwd": "packages/agent",
+      "risk": "agent or SQLite behavior regresses",
+      "expectedSignal": "agent test lanes pass",
+      "freshness": "exact-inputs-toolchain-and-environment",
+      "budgetSeconds": 90,
+      "stopRule": "stop-dependent-checks",
+      "concurrencyGroup": "package-tests-surface",
+      "capabilities": ["dependencies"]
+    },
+    {
+      "id": "agent-build",
+      "command": "bun run build",
+      "cwd": "packages/agent",
+      "risk": "agent runtime does not build",
+      "expectedSignal": "agent production build succeeds",
+      "freshness": "exact-inputs-toolchain-and-environment",
+      "budgetSeconds": 60,
+      "stopRule": "stop-dependent-checks",
+      "capabilities": ["dependencies"]
+    },
+    {
+      "id": "indexer-test",
+      "command": "bun run test",
+      "cwd": "packages/indexer",
+      "risk": "event projection or generated handlers regress",
+      "expectedSignal": "indexer codegen and tests pass",
+      "freshness": "exact-inputs-and-toolchain",
+      "budgetSeconds": 600,
+      "stopRule": "stop-dependent-checks",
+      "capabilities": ["dependencies", "indexerCodegen"]
+    },
+    {
+      "id": "indexer-build",
+      "command": "bun run build",
+      "cwd": "packages/indexer",
+      "risk": "indexer code generation or build fails",
+      "expectedSignal": "indexer builds from current schema and ABIs",
+      "freshness": "exact-inputs-and-toolchain",
+      "budgetSeconds": 90,
+      "stopRule": "stop-dependent-checks",
+      "capabilities": ["dependencies", "indexerCodegen"]
+    },
+    {
+      "id": "contracts-build",
+      "command": "bun run build",
+      "cwd": "packages/contracts",
+      "risk": "contract sources or ABI artifacts do not compile",
+      "expectedSignal": "contract Bun build wrapper succeeds",
+      "freshness": "exact-inputs-and-toolchain",
+      "budgetSeconds": 90,
+      "stopRule": "stop-dependent-checks",
+      "capabilities": ["dependencies", "foundry"]
+    },
+    {
+      "id": "contracts-test",
+      "command": "bun run test",
+      "cwd": "packages/contracts",
+      "risk": "protocol invariants or access control regress",
+      "expectedSignal": "contract unit tests pass through the Bun wrapper",
+      "freshness": "exact-inputs-and-toolchain",
+      "budgetSeconds": 180,
+      "stopRule": "stop-dependent-checks",
+      "capabilities": ["dependencies", "foundry"]
+    },
+    {
+      "id": "contracts-verify-fast",
+      "command": "bun run verify:contracts:fast",
+      "risk": "contract size, storage, artifact, or deployment path safety regresses",
+      "expectedSignal": "fast contract verification suite passes",
+      "freshness": "exact-inputs-and-toolchain",
+      "budgetSeconds": 180,
+      "stopRule": "stop-dependent-checks",
+      "capabilities": ["dependencies", "foundry"]
+    },
+    {
+      "id": "docs-test",
+      "command": "bun run test",
+      "cwd": "docs",
+      "risk": "documentation behavior or generated references regress",
+      "expectedSignal": "docs tests pass",
+      "freshness": "exact-inputs-and-toolchain",
+      "budgetSeconds": 45,
+      "stopRule": "stop-dependent-checks",
+      "concurrencyGroup": "package-tests-core",
+      "capabilities": ["dependencies"]
+    },
+    {
+      "id": "docs-build",
+      "command": "bun run build",
+      "cwd": "docs",
+      "risk": "MDX, links, or documentation navigation do not build",
+      "expectedSignal": "documentation site builds successfully",
+      "freshness": "exact-inputs-and-toolchain",
+      "budgetSeconds": 75,
+      "stopRule": "stop-dependent-checks",
+      "capabilities": ["dependencies"]
+    },
+    {
+      "id": "source-structure",
+      "command": "bun run check:source-structure",
+      "risk": "changed package source violates repository structure policy",
+      "expectedSignal": "changed source structure is accepted",
+      "freshness": "exact-inputs",
+      "budgetSeconds": 20,
+      "stopRule": "stop-dependent-checks",
+      "capabilities": ["dependencies"]
+    },
+    {
+      "id": "design-guardrails",
+      "command": "bun run check:design-md && bun run check:design-generated && bun run check:design-tokens && bun run lint:vocab",
+      "risk": "frontend design tokens, generated artifacts, or vocabulary drift",
+      "expectedSignal": "design and vocabulary guardrails pass",
+      "freshness": "exact-inputs-and-toolchain",
+      "budgetSeconds": 60,
+      "stopRule": "stop-dependent-checks",
+      "capabilities": ["dependencies"]
+    },
+    {
+      "id": "ontology",
+      "command": "bun run check:ontology",
+      "risk": "domain ontology and generated references diverge",
+      "expectedSignal": "ontology source and projections agree",
+      "freshness": "exact-inputs",
+      "budgetSeconds": 20,
+      "stopRule": "stop-dependent-checks",
+      "capabilities": []
+    },
+    {
+      "id": "supply-chain",
+      "command": "bun run check:codex-guidance && bun run check:guidance-links && bun run check:immutable-plan-reports && bun run check:test-quality && node scripts/harness/plan-hub.mjs validate && node --test scripts/harness/plan-hub.test.mjs",
+      "risk": "dependency or repository guidance integrity regresses",
+      "expectedSignal": "supply-chain and guidance guardrails pass",
+      "freshness": "exact-inputs-and-toolchain",
+      "budgetSeconds": 60,
+      "stopRule": "stop-dependent-checks",
+      "capabilities": ["dependencies"]
+    },
+    {
+      "id": "browser-proof",
+      "command": null,
+      "risk": "visible UI behavior differs from unit and build evidence",
+      "expectedSignal": "authenticated Brave rendered proof is recorded",
+      "freshness": "exact-inputs-toolchain-and-authenticated-session",
+      "budgetSeconds": 90,
+      "stopRule": "block-readiness",
+      "capabilities": ["authenticatedBrave"],
+      "manual": true
+    },
+    {
+      "id": "lighthouse-client",
+      "command": "bunx lhci autorun",
+      "cwd": "packages/client",
+      "risk": "client performance budgets regress",
+      "expectedSignal": "client Lighthouse assertions pass",
+      "freshness": "exact-build-and-toolchain",
+      "budgetSeconds": 180,
+      "stopRule": "report-advisory-failure",
+      "capabilities": ["dependencies", "browser"]
+    },
+    {
+      "id": "lighthouse-admin",
+      "command": "bunx lhci autorun",
+      "cwd": "packages/admin",
+      "risk": "admin performance budgets regress",
+      "expectedSignal": "admin Lighthouse assertions pass",
+      "freshness": "exact-build-and-toolchain",
+      "budgetSeconds": 180,
+      "stopRule": "report-advisory-failure",
+      "capabilities": ["dependencies", "browser"]
+    }
+  ],
+  "criticalOverrides": [
+    {
+      "prefixes": ["packages/contracts/src/", "packages/contracts/script/", "scripts/contracts/"],
+      "risk": "critical",
+      "checks": ["abi-artifacts", "contracts-build", "contracts-test", "contracts-verify-fast"]
+    },
+    {
+      "prefixes": [
+        "packages/shared/src/providers/Auth.tsx",
+        "packages/shared/src/providers/JobQueue.tsx",
+        "packages/shared/src/providers/Work.tsx",
+        "packages/shared/src/modules/auth/",
+        "packages/shared/src/modules/job-queue/",
+        "packages/shared/src/modules/work/",
+        "packages/shared/src/workflows/",
+        "packages/shared/src/hooks/assessment/",
+        "packages/shared/src/hooks/auth/",
+        "packages/shared/src/hooks/conviction/",
+        "packages/shared/src/hooks/ens/",
+        "packages/shared/src/hooks/garden/",
+        "packages/shared/src/hooks/greenwill/",
+        "packages/shared/src/hooks/work/",
+        "packages/shared/src/hooks/vault/",
+        "packages/shared/src/hooks/blockchain/"
+      ],
+      "risk": "critical",
+      "checks": ["shared-typecheck", "shared-test", "client-test", "admin-test", "agent-test"]
+    },
+    {
+      "contains": ["deploy", "upgrade", "migration", "release", "storage-layout"],
+      "match": "all",
+      "prefixes": ["packages/contracts/", "scripts/contracts/"],
+      "risk": "critical",
+      "checks": ["abi-artifacts", "contracts-build", "contracts-test", "contracts-verify-fast"]
+    }
+  ],
+  "workflowRules": {
+    "Admin": {
+      "exact": [
+        "package.json",
+        "bun.lock",
+        "biome.json",
+        ".env.schema",
+        "playwright.config.ts",
+        "scripts/ops/upload-sourcemaps.js",
+        "scripts/lib/env-schema.mjs",
+        "scripts/lib/env-schema.test.mjs",
+        "scripts/lib/env-parity.mjs",
+        "scripts/lib/env-parity.d.mts",
+        "scripts/dev/env-check.js",
+        "scripts/quality/check-source-structure.js",
+        ".github/actions/setup-js/action.yml",
+        ".github/workflows/admin.yml"
+      ],
+      "prefixes": [
+        "packages/admin/",
+        "packages/shared/",
+        "tests/",
+        "packages/contracts/abis/",
+        "packages/contracts/deployments/"
+      ]
+    },
+    "Agent": {
+      "exact": [
+        "package.json",
+        "bun.lock",
+        "biome.json",
+        ".env.schema",
+        "scripts/quality/check-source-structure.js",
+        ".github/actions/setup-js/action.yml",
+        ".github/workflows/agent.yml"
+      ],
+      "prefixes": ["packages/agent/", "packages/shared/"]
+    },
+    "Client": {
+      "exact": [
+        "package.json",
+        "bun.lock",
+        "biome.json",
+        ".env.schema",
+        "playwright.config.ts",
+        "scripts/ops/upload-sourcemaps.js",
+        "scripts/lib/env-schema.mjs",
+        "scripts/lib/env-schema.test.mjs",
+        "scripts/lib/env-parity.mjs",
+        "scripts/lib/env-parity.d.mts",
+        "scripts/dev/env-check.js",
+        "scripts/quality/check-source-structure.js",
+        ".github/actions/setup-js/action.yml",
+        ".github/workflows/client.yml"
+      ],
+      "prefixes": [
+        "packages/client/",
+        "packages/shared/",
+        "tests/",
+        "packages/contracts/abis/",
+        "packages/contracts/deployments/"
+      ]
+    },
+    "Contracts": {
+      "exact": [
+        "package.json",
+        "bun.lock",
+        ".env.schema",
+        "scripts/lib/git-guardrails.mjs",
+        "scripts/quality/check-source-structure.js",
+        ".github/actions/setup-js/action.yml",
+        ".github/workflows/contracts.yml"
+      ],
+      "prefixes": ["packages/contracts/", "scripts/contracts/"]
+    },
+    "Design": {
+      "exact": [
+        "AGENTS.md",
+        "CLAUDE.md",
+        "DESIGN.md",
+        "package.json",
+        "bun.lock",
+        "docs/DESIGN.md",
+        "docs/docs/builders/packages/admin.mdx",
+        "docs/docs/builders/testing/storybook.mdx",
+        "docs/docs/reference/banned-vocabulary.json",
+        "packages/admin/AGENTS.md",
+        "packages/admin/DESIGN.md",
+        "packages/shared/AGENTS.md",
+        "packages/shared/package.json",
+        "packages/shared/vitest.storybook.config.ts",
+        "scripts/data/design-token-usage-baseline.tsv",
+        "scripts/quality/check-story-coverage.ts",
+        "scripts/quality/check-story-quality.ts",
+        "vercel.json",
+        ".github/actions/setup-js/action.yml",
+        ".github/workflows/design.yml"
+      ],
+      "prefixes": [
+        ".claude/skills/design/",
+        "packages/admin/src/",
+        "packages/client/DESIGN",
+        "packages/client/src/",
+        "packages/shared/.storybook/",
+        "packages/shared/src/",
+        "scripts/design/"
+      ]
+    },
+    "Docs": {
+      "exact": [
+        "package.json",
+        "bun.lock",
+        ".github/actions/setup-js/action.yml",
+        ".github/workflows/docs.yml"
+      ],
+      "prefixes": ["docs/"]
+    },
+    "Indexer": {
+      "exact": [
+        "package.json",
+        "bun.lock",
+        ".env.schema",
+        "scripts/quality/check-source-structure.js",
+        ".github/actions/setup-js/action.yml",
+        ".github/workflows/indexer.yml"
+      ],
+      "prefixes": [
+        "packages/indexer/",
+        "packages/contracts/abis/",
+        "packages/contracts/deployments/"
+      ]
+    },
+    "Ontology": {
+      "exact": [
+        "packages/contracts/config/schemas.json",
+        "packages/client/src/views/Home/Garden/Assessment.tsx",
+        "packages/client/src/views/Home/Garden/Work.tsx",
+        "packages/indexer/schema.graphql",
+        "docs/docs/reference/glossary-community.md",
+        "docs/docs/reference/ontology.generated.mdx",
+        "docs/docs/reference/ontology-human.generated.mdx",
+        "docs/docs/community/green-goods-claims.generated.mdx",
+        "docs/docs/builders/integrations/entity-matrix.mdx",
+        "scripts/quality/check-ontology.mjs",
+        "scripts/quality/ontology-render.mjs",
+        "scripts/quality/check-ontology.test.mjs",
+        "scripts/data/ontology-drift-baseline.json",
+        ".github/workflows/ontology.yml",
+        ".plans/active/commitment-pooling/contract-spec.md",
+        ".plans/active/commitment-pooling/status.json",
+        ".plans/active/commitment-pooling/standing-commitments-spec.md",
+        ".plans/active/community-interface/spec.md",
+        ".plans/active/community-interface/status.json",
+        ".plans/active/commitment-pooling/settlement-spec.md",
+        ".plans/active/commitment-credit-follow-on/spec.md",
+        "docs/docs/builders/architecture/erd.mdx",
+        "docs/docs/builders/specs/v1-0.mdx",
+        "packages/contracts/script/DeployBadgeSchema.s.sol"
+      ],
+      "prefixes": [
+        "packages/shared/src/",
+        "packages/contracts/src/",
+        "packages/contracts/deployments/",
+        "packages/client/src/components/Public/",
+        "packages/client/src/views/Public/"
+      ]
+    },
+    "Shared": {
+      "exact": [
+        "package.json",
+        "bun.lock",
+        "biome.json",
+        ".env.schema",
+        "scripts/quality/check-source-structure.js",
+        ".github/actions/setup-js/action.yml",
+        ".github/workflows/shared.yml"
+      ],
+      "prefixes": [
+        "packages/shared/",
+        "packages/contracts/abis/",
+        "packages/contracts/deployments/"
+      ]
+    },
+    "Supply Chain Guardrails": {
+      "exact": [
+        "package.json",
+        "bun.lock",
+        "bun.lockb",
+        "bunfig.toml",
+        ".npmrc",
+        ".mise.toml",
+        "AGENTS.md",
+        "CLAUDE.md",
+        ".github/actions/setup-js/action.yml",
+        ".github/workflows/supply-chain-guardrails.yml"
+      ],
+      "prefixes": [
+        ".github/workflows/",
+        ".codex/",
+        ".claude/",
+        ".plans/",
+        "docs/routines/",
+        "scripts/quality/",
+        "scripts/harness/"
+      ],
+      "extensions": [
+        ".css",
+        ".scss",
+        ".js",
+        ".json",
+        ".jsx",
+        ".mjs",
+        ".cjs",
+        ".md",
+        ".mdx",
+        ".sh",
+        ".sol",
+        ".ts",
+        ".tsx",
+        ".yaml",
+        ".yml"
+      ]
+    }
+  }
+}

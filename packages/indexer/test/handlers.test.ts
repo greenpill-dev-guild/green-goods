@@ -8,6 +8,7 @@ import {
   GardenAccount,
   HypercertMinter,
   serveJson,
+  indexedAddress,
   YieldSplitter,
 } from "./v3";
 
@@ -105,9 +106,9 @@ function mockEvent(
   return {
     chainId,
     block: { timestamp, number: opts.blockNumber ?? 0 },
-    srcAddress: opts.srcAddress ?? addr(99),
+    srcAddress: opts.srcAddress,
     transaction: { hash: opts.txHash ?? txHash(timestamp), input: opts.txInput },
-    logIndex: opts.logIndex ?? 0,
+    logIndex: opts.logIndex,
   };
 }
 
@@ -158,7 +159,7 @@ function createCookieJarInput(metadata: string): string {
 describe("retained garden + role handlers", () => {
   it("creates a default garden on GardenAccount.NameUpdated", async () => {
     const mockDb = createTestIndexer();
-    const gardenAddress = addr(10);
+    const gardenAddress = indexedAddress("GardenAccount", CHAIN_ID);
 
     const event = GardenAccount.NameUpdated.createMockEvent({
       updater: addr(1),
@@ -303,7 +304,6 @@ describe("campaign cookie jar factory handlers", () => {
       jarAddress,
       creator,
       mockEventData: mockEvent(CHAIN_ID, 40_000, {
-        srcAddress: addr(52),
         txHash: txHash(400),
         txInput: createCookieJarInput(metadata),
       }),
@@ -334,7 +334,6 @@ describe("campaign cookie jar factory handlers", () => {
       jarAddress,
       creator,
       mockEventData: mockEvent(CHAIN_ID, 40_000, {
-        srcAddress: addr(52),
         txHash: txHash(400),
       }),
     });
@@ -371,7 +370,6 @@ describe("campaign cookie jar factory handlers", () => {
       jarAddress,
       metadata,
       mockEventData: mockEvent(CHAIN_ID, 41_000, {
-        srcAddress: addr(52),
         txHash: txHash(410),
       }),
     });
@@ -401,7 +399,6 @@ describe("campaign cookie jar factory handlers", () => {
       jarAddress,
       metadata: JSON.stringify({ kind: "other", version: 1, slug: "test", title: "Test" }),
       mockEventData: mockEvent(CHAIN_ID, 42_000, {
-        srcAddress: addr(52),
         txHash: txHash(420),
       }),
     });

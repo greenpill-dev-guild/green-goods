@@ -113,14 +113,37 @@ This repo runs multiple concurrent Codex/Claude sessions on the same tree and `d
 
 Before reporting that a fix works, a setting takes effect, or a behavior holds, produce evidence in the same turn — the command output, the passing test, the rendered DOM, the re-read file showing the change. "Should work", "probably fixed", and unrun commands are not evidence. If a CLI flag is unfamiliar, read `--help` or the source before invoking it; do not invent flags. If you cannot verify (no test, no live DOM, no observable signal), say "I can't verify this without X" and stop rather than declaring success. Untested fixes and hallucinated commands have produced more reverts in this repo than any other failure mode.
 
+## Validation Selection Contract
+
+Before executing validation, render the repository-owned plan with
+`bun run validation:plan -- --intent <intent>`. The selector combines user intent, changed paths,
+dependency impact, and criticality. Execute the returned plan instead of inventing a broader command
+set. If the selector command is unavailable or fails, use the Validation Intent Ladder below
+directly and report the selector problem; selector failure is never permission to omit a required
+check or critical override.
+
+Every check you execute must have a named **risk**, **expected signal**, **freshness rule**, and
+**stopping condition**. A passing receipt is reusable only when its source inputs, validation
+entrypoint, policy, toolchain, environment profile, and validated paths still match. Never reuse a
+failure. Stop dependent work on the first deterministic failure. Independent diagnostics continue
+only when the rendered plan explicitly keeps them independent.
+
+User cancellation is terminal: stop running validation, schedule no further checks, and report only
+the evidence already collected. An environment-blocked check is `BLOCKED`, not passing; do not retry
+the same command until the named environment capability changes. Time budgets warn and profile but
+never skip contracts, deployment/release tooling, authentication, JobQueue, Work providers, mutation
+hooks, security, ontology, supply-chain guidance, or release gates. Contracts always use Bun wrappers, never
+raw Forge.
+
 ## Validation Intent Ladder
 
 Use the lightest honest proof for the current intent. Do not collapse QA fixes,
 checkpoint validation, and merge readiness into one default command.
 
-- **QA Speed Mode** — default when the user says "QA mode", "quick fix", "get this to staging", or asks for a small visible/content/control fix. Run the targeted test file(s) or package-local command that covers the touched behavior. Add package-local typecheck/build only when the change affects route wiring, render/build output, exported types, or runtime contracts. For visible UI, capture rendered proof through authenticated Brave when available; if the required Brave path is unavailable, report browser QA as blocked instead of substituting isolated Playwright. Do not run full `bun run test`, full `bun build`, or `ci-local --quick` just to finish an isolated QA fix.
+- **Diagnosis / evidence review** — inspect existing evidence first and run only the checks needed to prove or disprove a finding. Keep commands non-mutating. Do not turn a diagnosis request into readiness certification; an explicit production-readiness review uses the full non-mutating Production Review Readiness Gate in `.claude/context/validation-pipeline.md`.
+- **QA Speed Mode** — default when the user says "QA mode", "quick fix", "get this to staging", or asks for a small visible/content/control fix. Run the targeted test file(s) or package-local command that covers the touched behavior. Add package-local typecheck/build only when the change affects route wiring, render/build output, exported types, or runtime contracts. Style-only proof is path-scoped and non-mutating; never run workspace-mutating `bun format` for it. For visible UI, capture rendered proof through authenticated Brave when available; if the required Brave path is unavailable, report browser QA as blocked instead of substituting isolated Playwright. Do not run full `bun run test`, full `bun run build`, or `ci-local --quick` just to finish an isolated QA fix.
 - **Repo Quick Gate** — use `node scripts/dev/ci-local.js --quick` for cross-package/shared-impact changes, checkpoint validation after several QA fixes, or when touched shared exports, hook signatures, provider contracts, data shapes, or mutation flows can affect multiple apps. This is broader than QA Speed Mode and is not the default for every small fix.
-- **Ship Gate** — use the full ship pipeline (`bun format && bun lint && bun run test && bun build`, plus conditional design/vocab/contract checks) only for explicit ship/PR/commit/merge/release readiness, critical surfaces, or when the user asks to prove the branch is ready. Keep this gate strict; do not use QA Speed Mode to claim merge or release readiness.
+- **Ship Gate** — use the full ship pipeline (`bun format && bun lint && bun run test && bun run build`) plus every conditional check that the touched surface requires. `.claude/context/validation-pipeline.md` is the canonical list of those conditional gates; consult it rather than relying on this summary, which is deliberately not exhaustive. Use it only for explicit ship/PR/commit/merge/release readiness, critical surfaces, or when the user asks to prove the branch is ready. Keep this gate strict; do not use QA Speed Mode to claim merge or release readiness.
 - **Multiple agents in QA mode** — each agent runs targeted proof for its own lane and reports blockers. A coordinator or final checkpoint runs Repo Quick Gate or Ship Gate before merge/release instead of every agent duplicating broad validation.
 
 ## User-Observed UI Regression Debugging
@@ -203,7 +226,7 @@ When you see a layout bug that "looks like" a missing class, first check: was th
 - Lint check: `bun run format:check && bun lint`
 - Lint fix: `bun format && bun lint`
 - Full tests: `bun run test`
-- Full build: `VITE_CHAIN_ID=11155111 bun run build` _(Sepolia is the deterministic validation chain — overrides local environment files so the build is reproducible across machines without requiring Arbitrum-specific deployment artifacts)_
+- Root application build: `VITE_CHAIN_ID=11155111 bun run build` _(contracts, shared, indexer, client, and admin; Agent and Docs use `bun run build:agent` / `bun run build:docs`. Sepolia is the deterministic validation chain — overrides local environment files so the build is reproducible across machines without requiring Arbitrum-specific deployment artifacts)_
 
 ## Test Suite Speed Follow-Up
 

@@ -86,7 +86,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
         with:
-          node-version: "22"
+          node-version: "22.22.1"
 
       # No dependency install on purpose: check-ontology.mjs uses only the Node
       # standard library, which keeps this gate sub-minute and lets the ci-gate

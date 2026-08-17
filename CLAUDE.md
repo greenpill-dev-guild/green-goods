@@ -15,32 +15,48 @@ bun run dev:prod             # Start local browser surfaces against production A
 bun run dev:prod:health      # Check prerequisites for hosted production-backed local mode
 bun run dev:prod:smoke       # Read-only prod smoke: local surfaces, RPC, bytecode, agent, indexer lag
 bun run dev:stop             # Stop repo-owned Green Goods dev services
-bun format && bun lint       # Format and lint workspace
+bun format && bun lint       # Mutating workspace format + lint (ship/fix intent only)
 bun run check:source-structure # Check changed non-test package source structure
 bun run test                 # Run all tests (CRITICAL: not `bun test`)
 bun run test:fast            # Same scope, cache-aware via Turborepo (skips packages with unchanged inputs)
 bun run test:fast:force      # Same as test:fast but bypasses cache (use when debugging a stale cache hit)
 bun run eval:skills          # On-demand skill description-routing eval (run after trigger edits)
-bun build                    # Build everything (respects dependency order)
+bun run build                # Build contracts, shared, indexer, client, and admin in dependency order
+bun run build:agent          # Build the Agent package when its surface changed
+bun run build:docs           # Build Docs when its surface changed
 ```
 
 > **`bun test` vs `bun run test`**: `bun test` uses bun's built-in runner (ignores vitest config). `bun run test` runs the package.json script (vitest with proper environment). Always use `bun run test`.
 
-> **`test` vs `test:fast`**: `bun run test` always runs every package via `bun --filter`. `bun run test:fast` runs the same scope through Turborepo, which caches passing test runs by input hash. Cache invalidates automatically when a package's source, its workspace dependencies' source (shared/contracts), `.env`, `biome.json`, or root tsconfigs change. **Failing tests are never cached** — fix the test, not the cache. To force a fresh run, use `bun run test:fast:force` or `rm -rf .turbo`.
+> **`test` vs `test:fast`**: `bun run test` follows the root dependency-ordered script: Contracts; Shared + Docs in parallel; Indexer; then Client + Admin + Agent in parallel. `bun run test:fast` covers the same package test scripts through Turborepo, which caches passing test runs by input hash. Cache invalidates automatically when a package's source, its workspace dependencies' source (shared/contracts), `.env`, `biome.json`, or root tsconfigs change. **Failing tests are never cached** — fix the test, not the cache. To force a fresh run, use `bun run test:fast:force` or `rm -rf .turbo`.
 
-Per-package: `bun run test`, `bun build`, `bun lint` (check each package.json for available scripts). Secondary dev commands (`dev:web`, `dev:full`, `dev:prod:mirror`, PM2 fallbacks) are catalogued in [`scripts/README.md`](scripts/README.md).
+Per-package: `bun run test`, `bun run build`, `bun lint` (check each package.json for available scripts). Secondary dev commands (`dev:web`, `dev:full`, `dev:prod:mirror`, PM2 fallbacks) are catalogued in [`scripts/README.md`](scripts/README.md).
 
-**Contracts** (never use raw `forge` commands): `bun build` (adaptive changed-target compile), `bun build:changed` (changed Solidity only), `bun build:target -- src/...` (single-target compile), `bun build:full` (CI/deploy only), `bun run test:fork` (needs RPC URLs), `bun run check:sizes` (EIP-170 deployed-bytecode gate — Foundry tests don't enforce the 24,576-byte limit; CI runs this, and pooling behavior must land in `src/lib/CommitmentPooling/` per `.plans/active/commitment-pooling/contract-spec.md` §6.1). Use `script/deploy.ts` for initial deployments and `script/upgrade.ts` for named UUPS upgrades; do not use `deploy.ts --force` as an upgrade or rollback path. For Arbitrum deploy/upgrade operations, use the named root `contracts:*` scripts; they set `FOUNDRY_KEYSTORE_ACCOUNT=green-goods-deployer`, clear unrelated Pinata upload secret resolution, and encode the current proxy-owner sender where required.
+**Contracts** (never use raw `forge` commands): `bun run build` (adaptive changed-target compile), `bun run build:changed` (changed Solidity only), `bun run build:target -- src/...` (single-target compile), `bun run build:full` (CI/deploy only), `bun run test:fork` (needs RPC URLs), `bun run check:sizes` (EIP-170 deployed-bytecode gate — Foundry tests don't enforce the 24,576-byte limit; CI runs this, and pooling behavior must land in `src/lib/CommitmentPooling/` per `.plans/active/commitment-pooling/contract-spec.md` §6.1). Use `script/deploy.ts` for initial deployments and `script/upgrade.ts` for named UUPS upgrades; do not use `deploy.ts --force` as an upgrade or rollback path. For Arbitrum deploy/upgrade operations, use the named root `contracts:*` scripts; they set `FOUNDRY_KEYSTORE_ACCOUNT=green-goods-deployer`, clear unrelated Pinata upload secret resolution, and encode the current proxy-owner sender where required.
 
 ## Validation Intent Ladder
 
 Use the lightest honest proof for the user's intent. QA fixes, checkpoint
 validation, and merge readiness are different modes.
 
-- **QA Speed Mode**: default for "QA mode", "quick fix", "get this to staging", and small visible/content/control fixes. Run targeted test file(s) or the package-local command that proves the touched behavior. Add package-local typecheck/build only when route wiring, render/build output, exported types, or runtime contracts move. For visible UI, use authenticated Brave rendered proof when available; if that path is unavailable, report browser QA as blocked rather than replacing it with isolated Playwright. Do not run full `bun run test`, full `bun build`, or `ci-local --quick` just to close an isolated QA fix.
+First render the repository-owned plan with `bun run validation:plan -- --intent <intent>` and execute
+that plan. If the selector is unavailable or fails, apply this ladder directly and report the
+selector problem; never weaken a gate because the selector could not run. Every selected check names
+the risk it covers, expected signal, freshness rule, and stopping condition. Passing evidence is
+reusable only while source inputs, validated paths, policy, command, toolchain, and environment still
+match. A deterministic failure stops dependent checks.
+
+- **Diagnosis / evidence review**: inspect evidence first and run only the non-mutating checks needed to prove or disprove a finding. This is not production-readiness certification. An explicit production-quality, approval, or merge-readiness review runs the full non-mutating Production Review Readiness Gate.
+- **QA Speed Mode**: default for "QA mode", "quick fix", "get this to staging", and small visible/content/control fixes. Run targeted test file(s) or the package-local command that proves the touched behavior. Add package-local typecheck/build only when route wiring, render/build output, exported types, or runtime contracts move. Style-only proof is path-scoped and non-mutating; do not run workspace-mutating `bun format`. For visible UI, use authenticated Brave rendered proof when available; if that path is unavailable, report browser QA as blocked rather than replacing it with isolated Playwright. Do not run full `bun run test`, full `bun run build`, or `ci-local --quick` just to close an isolated QA fix.
 - **Repo Quick Gate**: run `node scripts/dev/ci-local.js --quick` for cross-package/shared-impact changes, after several QA fixes as a coordinator checkpoint, or when shared exports, hook signatures, provider contracts, data shapes, or mutation flows move.
-- **Ship Gate**: run `bun format && bun lint && bun run test && bun build` plus conditional design/vocab/contract checks only for explicit ship/PR/commit/merge/release readiness, critical surfaces, or when asked to prove the branch is ready.
+- **Ship Gate**: run `bun format && bun lint && bun run test && bun run build` plus conditional design/vocab/contract checks only for explicit ship/PR/commit/merge/release readiness, critical surfaces, or when asked to prove the branch is ready.
 - **Multiple agents in QA mode**: each agent runs targeted proof for its own lane; one coordinator runs Repo Quick Gate or Ship Gate at checkpoints before merge/release.
+
+User cancellation is terminal: stop active validation, start nothing else, and report the evidence
+already collected. An environment-blocked check is `BLOCKED`, not passing; retry only after the
+named capability changes. Time budgets never suppress contract, deployment/release, authentication,
+JobQueue, Work-provider, mutation-hook, security, ontology, supply-chain, or release gates. Contracts use Bun
+wrappers only, never raw Forge.
 
 Command definitions for every rung: [`.claude/context/validation-pipeline.md`](.claude/context/validation-pipeline.md).
 
@@ -261,7 +277,7 @@ This repo runs multiple concurrent Claude/Codex sessions on the same tree and `d
 - Types: feat, fix, refactor, chore, docs, test, perf, ci
 - Scopes: contracts, indexer, shared, client, admin, agent, claude
 
-**Validation before committing**: `bun format && bun lint && bun run test && bun build`. This is the Ship Gate, not the default loop for every QA-speed fix.
+**Validation before committing**: `bun format && bun lint && bun run test && bun run build`. This is the Ship Gate, not the default loop for every QA-speed fix.
 
 ## Codex Dispatch
 

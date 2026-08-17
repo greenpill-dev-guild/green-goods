@@ -128,10 +128,10 @@ cd packages/contracts && bun run test:e2e:celo
 
 ### Build System
 
-The adaptive build system (`bun build`) defaults to fast mode (~2s cached) and only triggers a full build when necessary. For CI and deployments, use `bun build:full` which compiles with `--skip test --skip script`.
+The adaptive build system (`bun run build`) defaults to fast mode (~2s cached) and only triggers a full build when necessary. For CI and deployments, use `bun run build:full` which compiles with `--skip test --skip script`.
 
 ```bash
-bun build                 # Adaptive (fast by default)
+bun run build             # Adaptive (fast by default)
 bun build:fast            # Force fast mode
 bun build:full            # Full build (CI/deploy)
 bun build:target -- src/registries/Action.sol  # Single target

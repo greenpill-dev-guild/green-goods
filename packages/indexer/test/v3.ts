@@ -4,16 +4,20 @@ import {
   type Address,
   type TestIndexer,
 } from "envio";
+import { readFileSync } from "node:fs";
 import { createServer } from "node:http";
+import { resolve as resolvePath } from "node:path";
 
 import "../src/EventHandlers";
 
 type MockEventData = {
   chainId: number;
   block: { timestamp: number; number: number };
-  srcAddress: string;
+  /** Omit to route the event at the address the contract is indexed at. */
+  srcAddress?: string;
   transaction: { hash: string; input?: string };
-  logIndex: number;
+  /** Omit so Envio auto-increments within a block. */
+  logIndex?: number;
 };
 
 type MockEvent = MockEventData & {
@@ -31,9 +35,58 @@ type EventTestApi = {
   processEvent: (args: { event: MockEvent; mockDb: TestIndexer }) => Promise<TestIndexer>;
 };
 
+// Envio routes a simulated event to a handler only when its srcAddress is one
+// the contract is actually indexed at. Rather than repeat those addresses in
+// every test, resolve them from config.yaml so they cannot drift from the
+// indexed set. Tests that need a specific address (a dynamically registered
+// garden, say) still pass srcAddress explicitly and that always wins.
+const CONFIGURED_ADDRESSES: ReadonlyMap<string, Address> = (() => {
+  const source = readFileSync(resolvePath(import.meta.dirname, "../config.yaml"), "utf8");
+  const byChainAndContract = new Map<string, Address>();
+  let chainId: string | null = null;
+  let contract: string | null = null;
+
+  for (const line of source.split("\n")) {
+    const chain = line.match(/^\s{2}- id:\s*(\d+)\s*$/)?.[1];
+    if (chain) {
+      chainId = chain;
+      contract = null;
+      continue;
+    }
+    const named = line.match(/^\s+- name:\s*(\w+)\s*$/)?.[1];
+    if (named) {
+      contract = named;
+      continue;
+    }
+    const address = line.match(/^\s+address:\s*"(0x[0-9a-fA-F]{40})"\s*$/)?.[1];
+    if (address && chainId && contract) {
+      const key = `${chainId}:${contract}`;
+      // The regex above proves the 0x-prefixed 40-hex shape, so this is a
+      // validated narrowing rather than a blind assertion.
+      if (!byChainAndContract.has(key)) byChainAndContract.set(key, address as Address);
+      contract = null;
+    }
+  }
+  return byChainAndContract;
+})();
+
+function configuredAddress(contract: string, chainId: number): Address | undefined {
+  return CONFIGURED_ADDRESSES.get(`${chainId}:${contract}`);
+}
+
+/** The address a contract is indexed at, for tests that assert on it. */
+export function indexedAddress(contract: string, chainId: number): Address {
+  const address = configuredAddress(contract, chainId);
+  if (!address) {
+    throw new Error(`No indexed address configured for ${contract} on chain ${chainId}`);
+  }
+  return address;
+}
+
 const CHAIN_START_BLOCK = {
   42161: 433_713_812,
   11155111: 10_243_363,
+  42220: 74_691_430,
 } as const;
 type SupportedChainId = keyof typeof CHAIN_START_BLOCK;
 type ProcessConfig = Parameters<TestIndexer["process"]>[0];
@@ -49,7 +102,7 @@ type MutableChainConfig = {
 const nextBlockByIndexer = new WeakMap<TestIndexer, Map<SupportedChainId, number>>();
 
 function normalizeChainId(chainId: number): SupportedChainId {
-  if (chainId !== 42161 && chainId !== 11155111) {
+  if (chainId !== 42161 && chainId !== 11155111 && chainId !== 42220) {
     throw new Error(`Unsupported Green Goods test chain: ${chainId}`);
   }
   return chainId;
@@ -114,6 +167,7 @@ export async function processEvents(
     chains: {
       ...(chainConfigs[42161] ? { 42161: chainConfigs[42161] } : {}),
       ...(chainConfigs[11155111] ? { 11155111: chainConfigs[11155111] } : {}),
+      ...(chainConfigs[42220] ? { 42220: chainConfigs[42220] } : {}),
     },
   };
 
@@ -137,8 +191,10 @@ function createContract<const Events extends readonly string[]>(
         return {
           createMockEvent(args: EventArguments): MockEvent {
             const { mockEventData, ...params } = args;
+            const indexed = configuredAddress(contract, mockEventData.chainId);
             return {
               ...mockEventData,
+              srcAddress: mockEventData.srcAddress ?? indexed ?? mockEventData.srcAddress,
               contract,
               event,
               params,

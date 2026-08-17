@@ -79,7 +79,7 @@ describe("commitment hypercert allocation reconciliation", () => {
         mockEventData: {
           chainId: CHAIN_ID,
           block: { timestamp: 3, number: 3 },
-          srcAddress: address(90),
+          srcAddress: undefined,
           transaction: { hash: `0x${"3".padStart(64, "0")}` },
           logIndex: 0,
         },

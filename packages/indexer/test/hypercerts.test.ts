@@ -27,9 +27,9 @@ function mockEvent(
   return {
     chainId,
     block: { timestamp, number: opts.blockNumber ?? 0 },
-    srcAddress: opts.srcAddress ?? addr(99),
+    srcAddress: opts.srcAddress,
     transaction: { hash: opts.txHash ?? txHash(timestamp) },
-    logIndex: opts.logIndex ?? 0,
+    logIndex: opts.logIndex,
   };
 }
 
@@ -98,8 +98,6 @@ describe("HypercertMinter.TransferSingle — mints", () => {
         totalUnits: 1000n,
         mockEventData: mockEvent(CHAIN_ID, 4000, { txHash: tx1, logIndex: 1 }),
       });
-      mockDb = await HypercertMinter.ClaimStored.processEvent({ event: claimStored, mockDb });
-
       // TransferSingle mint
       const transferEvent = HypercertMinter.TransferSingle.createMockEvent({
         operator: addr(1),
@@ -109,7 +107,7 @@ describe("HypercertMinter.TransferSingle — mints", () => {
         value: 1000n,
         mockEventData: mockEvent(CHAIN_ID, 5000, { txHash: tx2, logIndex: 1 }),
       });
-      mockDb = await HypercertMinter.TransferSingle.processEvent({ event: transferEvent, mockDb });
+      mockDb = await processEvents(mockDb, [claimStored, transferEvent]);
 
       const hc = await mockDb.Hypercert.get(`${CHAIN_ID}-42`);
       assert.ok(hc);
@@ -165,8 +163,6 @@ describe("HypercertMinter.TransferSingle — claims", () => {
       value: 1000n,
       mockEventData: mockEvent(CHAIN_ID, 5000, { txHash: tx1, logIndex: 1 }),
     });
-    mockDb = await HypercertMinter.TransferSingle.processEvent({ event: mint, mockDb });
-
     // Subsequent mint (claim)
     const claim = HypercertMinter.TransferSingle.createMockEvent({
       operator: addr(1),
@@ -176,7 +172,7 @@ describe("HypercertMinter.TransferSingle — claims", () => {
       value: 300n,
       mockEventData: mockEvent(CHAIN_ID, 6000, { txHash: tx2, logIndex: 1 }),
     });
-    mockDb = await HypercertMinter.TransferSingle.processEvent({ event: claim, mockDb });
+    mockDb = await processEvents(mockDb, [mint, claim]);
 
     const hc = await mockDb.Hypercert.get(`${CHAIN_ID}-42`);
     assert.ok(hc);
@@ -203,8 +199,6 @@ describe("HypercertMinter.TransferSingle — claims", () => {
       value: 1000n,
       mockEventData: mockEvent(CHAIN_ID, 5000, { txHash: tx1, logIndex: 1 }),
     });
-    mockDb = await HypercertMinter.TransferSingle.processEvent({ event: mint, mockDb });
-
     // Claim all 1000 units
     const claim = HypercertMinter.TransferSingle.createMockEvent({
       operator: addr(1),
@@ -214,7 +208,7 @@ describe("HypercertMinter.TransferSingle — claims", () => {
       value: 1000n,
       mockEventData: mockEvent(CHAIN_ID, 6000, { txHash: tx2, logIndex: 1 }),
     });
-    mockDb = await HypercertMinter.TransferSingle.processEvent({ event: claim, mockDb });
+    mockDb = await processEvents(mockDb, [mint, claim]);
 
     const hc = await mockDb.Hypercert.get(`${CHAIN_ID}-42`);
     assert.ok(hc);
@@ -235,8 +229,6 @@ describe("HypercertMinter.TransferSingle — claims", () => {
       value: 1000n,
       mockEventData: mockEvent(CHAIN_ID, 5000, { txHash: tx1, logIndex: 1 }),
     });
-    mockDb = await HypercertMinter.TransferSingle.processEvent({ event: mint, mockDb });
-
     const claim = HypercertMinter.TransferSingle.createMockEvent({
       operator: addr(1),
       from: ZERO_ADDRESS,
@@ -245,7 +237,7 @@ describe("HypercertMinter.TransferSingle — claims", () => {
       value: 500n,
       mockEventData: mockEvent(CHAIN_ID, 6000, { txHash: tx2, logIndex: 1 }),
     });
-    mockDb = await HypercertMinter.TransferSingle.processEvent({ event: claim, mockDb });
+    mockDb = await processEvents(mockDb, [mint, claim]);
 
     const hc = await mockDb.Hypercert.get(`${CHAIN_ID}-42`);
     assert.ok(hc);
@@ -266,8 +258,6 @@ describe("HypercertMinter.TransferSingle — claims", () => {
       value: 1000n,
       mockEventData: mockEvent(CHAIN_ID, 5000, { txHash: tx1, logIndex: 1 }),
     });
-    mockDb = await HypercertMinter.TransferSingle.processEvent({ event: mint, mockDb });
-
     // First claim
     const claim1 = HypercertMinter.TransferSingle.createMockEvent({
       operator: addr(1),
@@ -277,8 +267,6 @@ describe("HypercertMinter.TransferSingle — claims", () => {
       value: 300n,
       mockEventData: mockEvent(CHAIN_ID, 6000, { txHash: tx2, logIndex: 1 }),
     });
-    mockDb = await HypercertMinter.TransferSingle.processEvent({ event: claim1, mockDb });
-
     // Same claim again (same claimant)
     const claim2 = HypercertMinter.TransferSingle.createMockEvent({
       operator: addr(1),
@@ -288,7 +276,7 @@ describe("HypercertMinter.TransferSingle — claims", () => {
       value: 300n,
       mockEventData: mockEvent(CHAIN_ID, 7000, { txHash: txHash(300), logIndex: 1 }),
     });
-    mockDb = await HypercertMinter.TransferSingle.processEvent({ event: claim2, mockDb });
+    mockDb = await processEvents(mockDb, [mint, claim1, claim2]);
 
     const hc = await mockDb.Hypercert.get(`${CHAIN_ID}-42`);
     assert.ok(hc);
@@ -520,8 +508,6 @@ describe("HypercertMinter.ClaimStored", () => {
         value: 1000n,
         mockEventData: mockEvent(CHAIN_ID, 5000, { txHash: tx1, logIndex: 1 }),
       });
-      mockDb = await HypercertMinter.TransferSingle.processEvent({ event: mint, mockDb });
-
       // ClaimStored second
       const claimStored = HypercertMinter.ClaimStored.createMockEvent({
         claimID: 42n,
@@ -529,7 +515,7 @@ describe("HypercertMinter.ClaimStored", () => {
         totalUnits: 1000n,
         mockEventData: mockEvent(CHAIN_ID, 5001, { txHash: tx2, logIndex: 1 }),
       });
-      mockDb = await HypercertMinter.ClaimStored.processEvent({ event: claimStored, mockDb });
+      mockDb = await processEvents(mockDb, [mint, claimStored]);
 
       const hc = await mockDb.Hypercert.get(`${CHAIN_ID}-42`);
       assert.ok(hc);

@@ -146,7 +146,7 @@ Per the Validation Intent Ladder: lane work uses targeted proof; the coordinator
 
 - [ ] Lane-targeted: each `.plans` lane handoff names its exact commands; parent-only Linear trackers point to these handoffs rather than duplicating lane validation
 - [ ] Checkpoint: `node scripts/dev/ci-local.js --quick` after multi-lane merges
-- [ ] Ship Gate before release: `bun format && bun lint && bun run test && bun build` + `bun run lint:vocab` + `bun run check:design-tokens` + story gates where stories changed
+- [ ] Ship Gate before release: `bun format && bun lint && bun run test && bun run build` + `bun run lint:vocab` + `bun run check:design-tokens` + story gates where stories changed
 - [ ] Dogfood: the PRD-691 QA/dogfood handoff runs the end-to-end loop on the fork, then staging (historical PRD-694 is not dispatchable)
 
 ## Boundary

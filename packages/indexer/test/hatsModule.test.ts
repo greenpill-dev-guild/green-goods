@@ -1,5 +1,5 @@
 import assert from "assert";
-import { Addresses, createTestIndexer, GardenToken, HatsModule } from "./v3";
+import { Addresses, createTestIndexer, HatsModule, processEvents } from "./v3";
 
 const CHAIN_ID = 42161;
 
@@ -19,9 +19,9 @@ function mockEvent(
   return {
     chainId,
     block: { timestamp, number: opts.blockNumber ?? 0 },
-    srcAddress: opts.srcAddress ?? addr(99),
+    srcAddress: opts.srcAddress,
     transaction: { hash: opts.txHash ?? txHash(timestamp) },
-    logIndex: opts.logIndex ?? 0,
+    logIndex: opts.logIndex,
   };
 }
 
@@ -174,8 +174,6 @@ describe("HatsModule.RoleGranted", () => {
       mockEventData: mockEvent(CHAIN_ID, 2000),
     });
 
-    mockDb = await HatsModule.RoleGranted.processEvent({ event: event1, mockDb });
-
     // Grant same role again
     const event2 = HatsModule.RoleGranted.createMockEvent({
       garden: addr(10),
@@ -184,7 +182,7 @@ describe("HatsModule.RoleGranted", () => {
       mockEventData: mockEvent(CHAIN_ID, 3000),
     });
 
-    mockDb = await HatsModule.RoleGranted.processEvent({ event: event2, mockDb });
+    mockDb = await processEvents(mockDb, [event1, event2]);
     const garden = await mockDb.Garden.get(addr(10));
 
     assert.ok(garden);
@@ -277,8 +275,6 @@ describe("HatsModule.RoleGranted — Gardener entity", () => {
       role: 0n,
       mockEventData: mockEvent(CHAIN_ID, 2000),
     });
-    mockDb = await HatsModule.RoleGranted.processEvent({ event: event1, mockDb });
-
     // Grant gardener role for second garden
     const event2 = HatsModule.RoleGranted.createMockEvent({
       garden: addr(11),
@@ -286,7 +282,7 @@ describe("HatsModule.RoleGranted — Gardener entity", () => {
       role: 0n,
       mockEventData: mockEvent(CHAIN_ID, 3000),
     });
-    mockDb = await HatsModule.RoleGranted.processEvent({ event: event2, mockDb });
+    mockDb = await processEvents(mockDb, [event1, event2]);
 
     const gardener = await mockDb.Gardener.get(gardenerId);
     assert.ok(gardener);
@@ -307,8 +303,6 @@ describe("HatsModule.RoleGranted — Gardener entity", () => {
       role: 0n,
       mockEventData: mockEvent(CHAIN_ID, 2000),
     });
-    mockDb = await HatsModule.RoleGranted.processEvent({ event: event1, mockDb });
-
     // Grant again to same garden
     const event2 = HatsModule.RoleGranted.createMockEvent({
       garden: addr(10),
@@ -316,7 +310,7 @@ describe("HatsModule.RoleGranted — Gardener entity", () => {
       role: 0n,
       mockEventData: mockEvent(CHAIN_ID, 3000),
     });
-    mockDb = await HatsModule.RoleGranted.processEvent({ event: event2, mockDb });
+    mockDb = await processEvents(mockDb, [event1, event2]);
 
     const gardener = await mockDb.Gardener.get(gardenerId);
     assert.ok(gardener);
@@ -357,8 +351,6 @@ describe("HatsModule.RoleRevoked", () => {
       role: 0n,
       mockEventData: mockEvent(CHAIN_ID, 2000),
     });
-    mockDb = await HatsModule.RoleGranted.processEvent({ event: grantEvent, mockDb });
-
     // Revoke
     const revokeEvent = HatsModule.RoleRevoked.createMockEvent({
       garden: addr(10),
@@ -366,7 +358,7 @@ describe("HatsModule.RoleRevoked", () => {
       role: 0n,
       mockEventData: mockEvent(CHAIN_ID, 3000),
     });
-    mockDb = await HatsModule.RoleRevoked.processEvent({ event: revokeEvent, mockDb });
+    mockDb = await processEvents(mockDb, [grantEvent, revokeEvent]);
 
     const garden = await mockDb.Garden.get(addr(10));
     assert.ok(garden);
@@ -383,15 +375,13 @@ describe("HatsModule.RoleRevoked", () => {
       role: 1n,
       mockEventData: mockEvent(CHAIN_ID, 2000),
     });
-    mockDb = await HatsModule.RoleGranted.processEvent({ event: grantEvent, mockDb });
-
     const revokeEvent = HatsModule.RoleRevoked.createMockEvent({
       garden: addr(10),
       account,
       role: 1n,
       mockEventData: mockEvent(CHAIN_ID, 3000),
     });
-    mockDb = await HatsModule.RoleRevoked.processEvent({ event: revokeEvent, mockDb });
+    mockDb = await processEvents(mockDb, [grantEvent, revokeEvent]);
 
     const garden = await mockDb.Garden.get(addr(10));
     assert.ok(garden);
@@ -408,15 +398,13 @@ describe("HatsModule.RoleRevoked", () => {
       role: 3n,
       mockEventData: mockEvent(CHAIN_ID, 2000),
     });
-    mockDb = await HatsModule.RoleGranted.processEvent({ event: grantEvent, mockDb });
-
     const revokeEvent = HatsModule.RoleRevoked.createMockEvent({
       garden: addr(10),
       account,
       role: 3n,
       mockEventData: mockEvent(CHAIN_ID, 3000),
     });
-    mockDb = await HatsModule.RoleRevoked.processEvent({ event: revokeEvent, mockDb });
+    mockDb = await processEvents(mockDb, [grantEvent, revokeEvent]);
 
     const garden = await mockDb.Garden.get(addr(10));
     assert.ok(garden);
@@ -433,15 +421,13 @@ describe("HatsModule.RoleRevoked", () => {
       role: 4n,
       mockEventData: mockEvent(CHAIN_ID, 2000),
     });
-    mockDb = await HatsModule.RoleGranted.processEvent({ event: grantEvent, mockDb });
-
     const revokeEvent = HatsModule.RoleRevoked.createMockEvent({
       garden: addr(10),
       account,
       role: 4n,
       mockEventData: mockEvent(CHAIN_ID, 3000),
     });
-    mockDb = await HatsModule.RoleRevoked.processEvent({ event: revokeEvent, mockDb });
+    mockDb = await processEvents(mockDb, [grantEvent, revokeEvent]);
 
     const garden = await mockDb.Garden.get(addr(10));
     assert.ok(garden);
@@ -458,15 +444,13 @@ describe("HatsModule.RoleRevoked", () => {
       role: 5n,
       mockEventData: mockEvent(CHAIN_ID, 2000),
     });
-    mockDb = await HatsModule.RoleGranted.processEvent({ event: grantEvent, mockDb });
-
     const revokeEvent = HatsModule.RoleRevoked.createMockEvent({
       garden: addr(10),
       account,
       role: 5n,
       mockEventData: mockEvent(CHAIN_ID, 3000),
     });
-    mockDb = await HatsModule.RoleRevoked.processEvent({ event: revokeEvent, mockDb });
+    mockDb = await processEvents(mockDb, [grantEvent, revokeEvent]);
 
     const garden = await mockDb.Garden.get(addr(10));
     assert.ok(garden);
@@ -502,16 +486,12 @@ describe("HatsModule.RoleRevoked", () => {
       role: 0n,
       mockEventData: mockEvent(CHAIN_ID, 2000),
     });
-    mockDb = await HatsModule.RoleGranted.processEvent({ event: grant1, mockDb });
-
     const grant2 = HatsModule.RoleGranted.createMockEvent({
       garden: addr(11),
       account,
       role: 0n,
       mockEventData: mockEvent(CHAIN_ID, 2500),
     });
-    mockDb = await HatsModule.RoleGranted.processEvent({ event: grant2, mockDb });
-
     // Revoke from first garden
     const revokeEvent = HatsModule.RoleRevoked.createMockEvent({
       garden: addr(10),
@@ -519,7 +499,7 @@ describe("HatsModule.RoleRevoked", () => {
       role: 0n,
       mockEventData: mockEvent(CHAIN_ID, 3000),
     });
-    mockDb = await HatsModule.RoleRevoked.processEvent({ event: revokeEvent, mockDb });
+    mockDb = await processEvents(mockDb, [grant1, grant2, revokeEvent]);
 
     const gardener = await mockDb.Gardener.get(gardenerId);
     assert.ok(gardener);

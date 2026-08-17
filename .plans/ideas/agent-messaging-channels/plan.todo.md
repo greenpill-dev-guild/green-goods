@@ -61,7 +61,7 @@ Afo deferred this out of the current active product-development push. Keep it in
 - ✅ All React hooks in `@green-goods/shared` (`usePhoneLinking` lives there, NOT in client)
 - ✅ Barrel imports only (`import { usePhoneLinking, sessionKeys } from "@green-goods/shared"`)
 - ✅ Agent package tests via `bun run test` (Vitest), contracts via `bun run test` (Forge) — never `bun test`
-- ✅ Never raw `forge` — all contract commands via `bun build` / `bun run test` / `bun script/deploy.ts`
+- ✅ Never raw `forge` — all contract commands via `bun run build` / `bun run test` / `bun script/deploy.ts`
 - ✅ `SessionKeyValidator.sol` frozen for audit 2026-05-30, bundled with RWA epic
 - ✅ Logger from `@green-goods/shared` (no `console.log`)
 - ✅ Error handling: `parseContractError()` + `USER_FRIENDLY_ERRORS` for contract errors; `createMutationErrorHandler()` in shared mutation hooks

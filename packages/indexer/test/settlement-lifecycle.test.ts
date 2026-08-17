@@ -11,6 +11,8 @@ import {
 import { executorConfiguration, sourceConfiguration } from "../src/handlers/settlement-projections";
 
 const CHAIN_ID = 42161;
+// The executor contract is indexed on Celo; Arbitrum is its remote lane.
+const EXECUTOR_CHAIN_ID = 42220;
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 const ZERO_BYTES32 = `0x${"0".repeat(64)}`;
 const SNAPSHOT_PARAMETERS = parseAbiParameters(
@@ -25,11 +27,15 @@ function bytes32(index: number): string {
   return `0x${index.toString(16).padStart(64, "0")}`;
 }
 
+function celoEvent(timestamp: number, logIndex = 0) {
+  return { ...mockEvent(timestamp, logIndex), chainId: EXECUTOR_CHAIN_ID };
+}
+
 function mockEvent(timestamp: number, logIndex = 0) {
   return {
     chainId: CHAIN_ID,
     block: { timestamp, number: 0 },
-    srcAddress: addr(90),
+    srcAddress: undefined,
     transaction: { hash: bytes32(timestamp) },
     logIndex,
   };
@@ -47,7 +53,7 @@ function seedSourceLane(mockDb: ReturnType<typeof createTestIndexer>): void {
 
 function seedExecutorLane(mockDb: ReturnType<typeof createTestIndexer>): void {
   mockDb.SettlementConfiguration.set({
-    ...executorConfiguration(CHAIN_ID, addr(90), 0),
+    ...executorConfiguration(EXECUTOR_CHAIN_ID, addr(90), 0),
     gDollarToken: addr(91),
     localRouter: addr(92),
     localChainSelector: 16_688_752_181_858_512n,
@@ -677,33 +683,33 @@ describe("settlement lifecycle projections", () => {
         previousSourceSettlementModule: addr(69),
         previousPeerExpiresAt: 100n,
         protocolVersion: 1n,
-        mockEventData: mockEvent(1),
+        mockEventData: celoEvent(1),
       }),
       CeloSettlementExecutor.CapsUpdated.createMockEvent({
         maxBatchSize: 12n,
         maxTransferAmount: 1_000n,
         maxBatchAmount: 5_000n,
-        mockEventData: mockEvent(2),
+        mockEventData: celoEvent(2),
       }),
       CeloSettlementExecutor.FeePolicyUpdated.createMockEvent({
         maxFeeBps: 100n,
         maxFeeAmount: 25n,
-        mockEventData: mockEvent(3),
+        mockEventData: celoEvent(3),
       }),
       CeloSettlementExecutor.PeriodicCapUpdated.createMockEvent({
         periodDuration: 86_400n,
         maxPeriodAmount: 10_000n,
-        mockEventData: mockEvent(4),
+        mockEventData: celoEvent(4),
       }),
       CeloSettlementExecutor.AcknowledgmentFeeReserveMinimumUpdated.createMockEvent({
         previousMinimum: 0n,
         minimum: 10n,
-        mockEventData: mockEvent(5),
+        mockEventData: celoEvent(5),
       }),
       CeloSettlementExecutor.AcknowledgmentFeeReserveFunded.createMockEvent({
         funder: addr(71),
         amount: 100n,
-        mockEventData: mockEvent(6),
+        mockEventData: celoEvent(6),
       }),
       CeloSettlementExecutor.GardenRouteConfigured.createMockEvent({
         garden: addr(1),
@@ -712,12 +718,12 @@ describe("settlement lifecycle projections", () => {
         roleKey: bytes32(310),
         allowanceKey: bytes32(311),
         permissionsConfigHash: bytes32(312),
-        mockEventData: mockEvent(7),
+        mockEventData: celoEvent(7),
       }),
       CeloSettlementExecutor.GardenRouteStatusChanged.createMockEvent({
         garden: addr(1),
         active: false,
-        mockEventData: mockEvent(8),
+        mockEventData: celoEvent(8),
       }),
       CeloSettlementExecutor.SettlementExecutionStored.createMockEvent({
         executionKey,
@@ -730,13 +736,13 @@ describe("settlement lifecycle projections", () => {
         attempt: 0n,
         status: 1n,
         failureCode: 0n,
-        mockEventData: mockEvent(9),
+        mockEventData: celoEvent(9),
       }),
       CeloSettlementExecutor.AcknowledgmentDeferred.createMockEvent({
         executionKey,
         commandMessageId,
         reasonCode: 2n,
-        mockEventData: mockEvent(10),
+        mockEventData: celoEvent(10),
       }),
       CeloSettlementExecutor.AcknowledgmentSent.createMockEvent({
         executionKey,
@@ -744,27 +750,31 @@ describe("settlement lifecycle projections", () => {
         acknowledgmentMessageId,
         fee: 5n,
         reserveFunded: true,
-        mockEventData: mockEvent(11),
+        mockEventData: celoEvent(11),
       }),
       CeloSettlementExecutor.DuplicateSettlementMessage.createMockEvent({
         executionKey,
         commandMessageId: bytes32(303),
-        mockEventData: mockEvent(12),
+        mockEventData: celoEvent(12),
       }),
       CeloSettlementExecutor.ExcessAcknowledgmentFeesWithdrawn.createMockEvent({
         recipient: addr(74),
         amount: 15n,
-        mockEventData: mockEvent(13),
+        mockEventData: celoEvent(13),
       }),
       CeloSettlementExecutor.PausedSet.createMockEvent({
         paused: false,
-        mockEventData: mockEvent(14),
+        mockEventData: celoEvent(14),
       }),
     ]);
 
-    const config = await mockDb.SettlementConfiguration.get(`${CHAIN_ID}-settlement-config`);
-    const route = await mockDb.SettlementGardenRoute.get(`${CHAIN_ID}-${addr(1).toLowerCase()}`);
-    const execution = await mockDb.SettlementExecution.get(`${CHAIN_ID}-${executionKey}`);
+    const config = await mockDb.SettlementConfiguration.get(
+      `${EXECUTOR_CHAIN_ID}-settlement-config`
+    );
+    const route = await mockDb.SettlementGardenRoute.get(
+      `${EXECUTOR_CHAIN_ID}-${addr(1).toLowerCase()}`
+    );
+    const execution = await mockDb.SettlementExecution.get(`${EXECUTOR_CHAIN_ID}-${executionKey}`);
     assert.equal(config?.role, "EXECUTOR");
     assert.equal(config?.batchSizeLimit, 12);
     assert.equal(config?.nativeFeeBalance, 80n);
@@ -775,7 +785,8 @@ describe("settlement lifecycle projections", () => {
     assert.equal(execution?.acknowledgmentDeferralCode, "NONE");
     assert.deepEqual(execution?.duplicateMessageIds, [bytes32(303)]);
     assert.equal(
-      (await mockDb.SettlementMessage.get(`${CHAIN_ID}-${acknowledgmentMessageId}`))?.reserveFunded,
+      (await mockDb.SettlementMessage.get(`${EXECUTOR_CHAIN_ID}-${acknowledgmentMessageId}`))
+        ?.reserveFunded,
       true
     );
   });
@@ -813,11 +824,13 @@ describe("settlement lifecycle projections", () => {
       remoteChainSelector: 4_949_039_107_694_359_620n,
       localChainSelector: 1_346_049_177_634_351_622n,
       sourceEvmChainId: 42_161n,
-      mockEventData: mockEvent(1_000),
+      mockEventData: celoEvent(1_000),
     });
     const after = await processEvents(mockDb, [pinned]);
 
-    const config = await after.SettlementConfiguration.get(`${CHAIN_ID}-settlement-config`);
+    const config = await after.SettlementConfiguration.get(
+      `${EXECUTOR_CHAIN_ID}-settlement-config`
+    );
     assert.equal(config?.role, "EXECUTOR");
     assert.equal(config?.localChainSelector, 1_346_049_177_634_351_622n);
     assert.equal(config?.remoteEvmChainId, 42_161);

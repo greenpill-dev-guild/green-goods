@@ -8,7 +8,7 @@ Loaded when working in `packages/contracts/`. Extends CLAUDE.md.
 |---------|---------|
 | `bun run test` | Run unit tests (skips E2E) |
 | `bun run test:gas` | Tests with gas report |
-| `bun build` | Adaptive build (changed Solidity targets with shared-file fallback to `src`) |
+| `bun run build` | Adaptive build (changed Solidity targets with shared-file fallback to `src`) |
 | `bun build:changed` | Build changed Solidity under `src/test/script` only |
 | `bun build:target -- <path...>` | Build explicit Solidity target(s) only |
 | `bun build:fast` | Explicit fast mode (`src` only, skips Foundry test/script) |

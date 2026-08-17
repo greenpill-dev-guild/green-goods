@@ -20,7 +20,7 @@ Moved from the debug SKILL.md body — load on demand, not on every activation.
 
 ```bash
 # Compile and check artifacts
-cd packages/contracts && bun build
+cd packages/contracts && bun run build
 
 # Inspect deployment addresses
 cat deployments/11155111-latest.json | jq '.gardenToken'
@@ -76,7 +76,7 @@ cd packages/shared && npx tsc --noEmit
 cd packages/client && npx tsc --noEmit
 
 # Vite build with verbose output
-cd packages/client && DEBUG=vite:* bun build
+cd packages/client && DEBUG=vite:* bun run build
 
 # Check bundle analysis
 cd packages/client && npx vite-bundle-visualizer

@@ -62,7 +62,7 @@ export default defineConfig({
     },
     coverage: {
       provider: "v8",
-      reporter: ["text", "html", "json"],
+      reporter: process.env.CI ? ["text", "json"] : ["text", "json", "html"],
       include: ["src/**/*.{ts,tsx}"],
       exclude: [
         "node_modules/",
