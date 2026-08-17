@@ -5,9 +5,9 @@
 - Machine lane: state_api
 - Owner: Codex
 - Execution branch: feature/commitment-pooling-credit-api-state
-- Current state: in progress after review-requested changes
-- Tested source commit: `c070d20822a862ee09df486e5769c7966e86418f` at `2026-08-17T21:05:38Z`
-- Linear context: PRD-786 returned to In Progress after a read-only production review requested changes. PRD-785 remains Done and PRD-787 remains the untouched UI boundary.
+- Current state: passed after review remediation
+- Tested source commit: `c5add7efaf65e72cfe17ece0726f18a11500da6b` at `2026-08-17T22:26:46Z`
+- Linear context: PRD-786 source remediation and fresh proof are complete and ready to return to In Review. PRD-785 remains Done and PRD-787 remains the untouched UI boundary.
 
 ## Review remediation matrix
 
@@ -56,15 +56,16 @@ Loan and standing rows derive from public onchain events and may be discoverable
 
 ## RED / GREEN
 
-- RED recorded before production implementation on 2026-08-17 at approximately 20:39 UTC:
-  - `cd packages/indexer && node ../../scripts/dev/node-cli.js mocha --require tsx --timeout 30000 test/credit-registry.test.ts` failed because `./v3` did not export `CreditRegistry`.
-  - `cd packages/shared && bun run test -- src/__tests__/credit-register.test.ts` failed because `config/query-keys/credit` and the Credit hook/module exports did not exist.
-  - The tests already covered lifecycle, replay/order convergence, default recovery, installment accumulation, aggregate accounting, disclosure, editorial aggregation, query isolation/invalidation, error handling, and online/offline separation.
-- GREEN at `c070d20822a862ee09df486e5769c7966e86418f`:
-  - CreditRegistry focused projection suite passed 4/4.
-  - Shared Credit register suite passed 10/10.
-  - Full indexer passed 281 with 1 governed pending integration test.
-  - The selected checkpoint passed full shared (3,635 passed, 1 skipped), client (658), admin (568), agent (270 across both lanes, 1 skipped), indexer (281, 1 pending), docs (28 plus build), and every selected repository guard.
+- Original implementation RED is documented in the earlier receipt and same-day commit timeline, but was not committed as an intermediate tests-only snapshot. The review correctly classified that original provenance as documented rather than independently reconstructable.
+- Fresh review-remediation RED was observed before remediation source edits:
+  - `bun run --filter @green-goods/shared test -- src/__tests__/credit-register.test.ts src/__tests__/credit-hooks.test.tsx` failed 4 hook-boundary assertions because the returned TanStack object still exposed raw personal `data`; 14 adjacent Credit assertions passed.
+  - `cd packages/indexer && node ../../scripts/dev/node-cli.js mocha --require tsx --timeout 30000 test/credit-registry.test.ts` failed the late-pool configuration replay assertion; the other 4 Credit projection tests passed.
+- GREEN at `c5add7efaf65e72cfe17ece0726f18a11500da6b`:
+  - Focused shared Credit unit/provider-integration suites passed 21/21.
+  - Full indexer passed 282 with 1 governed pending test; the focused CreditRegistry suite passed 5/5.
+  - The governed real-contract E2E passed 10/10 after mining a CreditRegistry `PausedSet` log on a disposable Arbitrum fork and reading `CreditRegistryConfiguration` plus `LoanEvent` through local Envio/Hasura.
+  - The selected 15-check checkpoint executed and passed format, lint, shared/client/admin/agent/indexer/docs tests, docs build, source structure, design/vocabulary, ontology, and supply-chain/Plan Hub checks.
+  - The validation-runner suite passed 18/18, including zero executed checks + fully blocked => exit code 2.
 
 ## Frozen behavior matrix
 
@@ -80,44 +81,44 @@ Loan and standing rows derive from public onchain events and may be discoverable
 | Settlement relationship | relationship before/after disbursement, absent relationship | Join when present in either order; absence stays explicit and never changes loan or consideration status. |
 | Unsupported repayment | G$ repayment attempt | Shared API exposes an unavailable action and never treats a typed hash as authenticated proof, enqueues a transfer, or submits value. |
 
-## Exact Bun commands
+## Exact validation commands and summarized results
 
-- `bun run --filter @green-goods/shared test -- src/__tests__/credit-register.test.ts`
-- `bun run --filter @green-goods/shared typecheck`
-- `bun run --filter @green-goods/shared check:stories`
-- `bun run --filter @green-goods/shared check:story-quality`
+- `bun run validation:plan -- --intent checkpoint` — READY, sensitive, 38 changed paths, 15 checks.
+- `bun run --filter @green-goods/shared test -- src/__tests__/credit-register.test.ts src/__tests__/credit-hooks.test.tsx` — 21/21 passed across 2 files.
+- `bun run --filter @green-goods/shared typecheck` — passed.
+- `bun run --filter @green-goods/shared check:stories` — 205/205 required surfaces covered.
+- `bun run --filter @green-goods/shared check:story-quality` — 177 story files passed.
 
 Indexer:
 
-- `bun run --filter @green-goods/indexer codegen`
-- `bun run --filter @green-goods/indexer check:indexing-boundary`
-- `bun run --filter @green-goods/indexer test`
-- `bun run --filter @green-goods/indexer build`
+- `bun run --filter @green-goods/indexer codegen` — passed.
+- `bun run --filter @green-goods/indexer check:indexing-boundary` — 3/3 checks; 15 contracts on 3 chains.
+- `bun run --filter @green-goods/indexer test` — 282 passed, 1 governed pending E2E in the default suite.
+- `bun run --filter @green-goods/indexer build` — passed.
+- `bun run --filter @green-goods/indexer test:contract-events` — 10/10 passed, including the real local-fork Credit pause projection through Envio.
 
 Cross-package and plan closure:
 
-- `bun run validation:plan -- --intent checkpoint` — selected a sensitive 15-check plan for the 30 committed source paths.
-- `node scripts/dev/ci-local.js --quick` — passed format, lint, shared/client/admin/agent/indexer/docs tests, docs build, source structure, design, ontology, and supply-chain checks.
-- `bun run check:ontology` — 47 checker tests and all ontology guards passed; Solidity, GraphQL, and shared Credit vocabularies agree.
-- `bun run lint:vocab` — passed for en, es, and pt.
-- `node scripts/harness/plan-hub.mjs validate --feature commitment-credit-follow-on --json` — validated all 43 feature hubs.
+- `node scripts/dev/ci-local.js --quick` — executed all selected stages and passed; full shared 3,646/1 skipped and client 658, plus the remaining app/package/guard stages.
+- `node --test scripts/dev/ci-local.test.mjs` — 18/18 passed; fully blocked zero-check plans exit 2.
+- `bun run check:ontology` — 47 checker tests and all ontology guards passed; 7 existing baselines remained valid.
+- `bun run lint:vocab` — passed for en, es, and pt as part of the checkpoint design guard.
+- `node scripts/harness/plan-hub.mjs validate --feature commitment-credit-follow-on --json` — rerun after receipt closure; passed.
 - `node scripts/harness/plan-hub.mjs record-tdd --help` — the harness returned `Missing required flag: --feature`; top-level help and the command source were read before the supported flags were used.
 
 ## Actual files changed
 
-- Plan state: `handoffs/codex-state-api.md`, `../status.json`, and `../plan.todo.md`.
-- Indexer registration/schema: `packages/indexer/config.yaml`, `packages/indexer/schema.graphql`, and `packages/indexer/scripts/check-indexing-boundary.mjs`.
-- Indexer handlers: `packages/indexer/src/EventHandlers.ts`, `packages/indexer/src/handlers/credit-registry.ts`, `packages/indexer/src/handlers/settlement-disbursements.ts`, and `packages/indexer/src/handlers/settlement-source-configuration.ts`.
-- Indexer tests: `packages/indexer/test/credit-registry.test.ts` and `packages/indexer/test/v3.ts`.
-- Shared Credit API: `packages/shared/src/modules/commitment-pooling/{credit,data-credit,types-credit}.ts`, their three barrel files, `packages/shared/src/config/query-keys/credit.ts`, both query-key barrels, `packages/shared/src/hooks/commitment-pooling/useCredit.ts`, and both hook barrels.
-- Shared public surface/proof: `packages/shared/src/index.ts`, `packages/shared/src/__tests__/credit-register.test.ts`, and `packages/shared/src/i18n/{en,es,pt}.json`.
-- Ontology: `packages/shared/src/ontology/green-goods-ontology.json` and generated `docs/docs/reference/ontology.generated.mdx`.
+- Plan/release guidance: `.plans/active/commitment-credit-follow-on/{handoffs/codex-state-api.md,plan.todo.md,status.json}` and `.plans/active/commitment-pooling/handoffs/human-release-ops.md`.
+- Indexer schema/config/handlers: `packages/indexer/{config.yaml,schema.graphql}`, `src/handlers/credit-registry.ts`, and new bounded helper modules `credit-registry-configuration.ts` plus `credit-registry-projections.ts`.
+- Indexer proof: `packages/indexer/test/credit-registry.test.ts`, `test/contractEventsLocal.test.ts`, and `test/helpers/local-contract-events.ts`.
+- Shared API/proof: `packages/shared/src/hooks/commitment-pooling/useCredit.ts`, `modules/commitment-pooling/{credit.ts,types-credit.ts}`, `__tests__/credit-register.test.ts`, and new provider-backed `__tests__/credit-hooks.test.tsx`.
+- Validation regression: `scripts/dev/ci-local.test.mjs` only; production runner behavior already returned blocked/exit 2 and required no source change.
 
 ## Known proof limits
 
-- No deployed CreditRegistry address exists in the indexer configuration yet. Registration is prepared through the existing SettlementModule relationship event; live-chain replay and post-deploy address pinning remain release work.
-- Proof is codegen, unit/integration simulation, package build, and cross-package checkpoint evidence. It is not deployment, broadcast, live-chain transaction, or authenticated UI proof.
-- The full indexer suite retains one governed pending real-contract integration test unrelated to the Credit projection; all 281 executable tests passed.
+- Static CreditRegistry address/start-block activation remains release work. Dynamic registration begins at the binding block and cannot recover initialization-era events, so release must pin at or before deployment before reindex/cutover.
+- Proof includes unit tests, provider-backed shared integration tests, codegen/build, a full cross-package checkpoint, and a disposable-fork/Docker/Envio E2E. It is not deployment, broadcast, hosted-indexer replay, live-chain transaction, or authenticated UI proof.
+- The default full indexer suite keeps the governed E2E skipped unless explicitly enabled; all 282 default executable tests and all 10 explicitly enabled E2E tests passed.
 - Public onchain loan events remain publicly discoverable. Viewer-aware selectors are a product-disclosure boundary, not a confidentiality guarantee.
 - G$ repayment remains unavailable under `GDollarRepaymentDisabled`; no authenticated receipt policy was introduced.
 
@@ -130,6 +131,6 @@ No UI, deployment, broadcast, G$ repayment, custody, bridge, Safe/Zodiac, enviro
 ## Unblock evidence
 
 - PRD-785 is Done; `bff3b274d` is an ancestor of the current branch and the frozen interface is present.
-- The existing settlement `LoanPrincipalRelationship` seam passed in the fresh 277-test indexer run; this lane supplies the missing canonical CreditRegistry projection.
-- Viewer-aware selector RED proof is recorded before implementation.
+- The existing settlement `LoanPrincipalRelationship` seam and canonical CreditRegistry projection both pass in the fresh 282-test indexer run and the real local-fork E2E.
+- Viewer-aware hook-boundary and late-pool replay RED proof is recorded before remediation source edits.
 - `status.json` records GREEN TDD proof and `state_api.status = passed`; UI, QA, deployment, and release boundaries remain unchanged.

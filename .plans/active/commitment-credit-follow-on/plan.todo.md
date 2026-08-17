@@ -50,17 +50,17 @@ proxy initialization abort and indexer helper drift are no longer active Ship Ga
 5. [x] Prove the source snapshot at `c070d20822a862ee09df486e5769c7966e86418f`: focused Credit
    suites, full indexer, package builds/typechecks/story guards, the complete checkpoint, ontology,
    vocabulary, and Plan Hub validation are GREEN.
-6. [ ] Close the review-requested disclosure boundary so personal hook returns expose only the
+6. [x] Close the review-requested disclosure boundary so personal hook returns expose only the
    viewer-gated `loan`/`loans` fields and never TanStack's raw `data` payload.
-7. [ ] Add discriminating Credit coverage: every frozen event handler, hard-state and installment/time
+7. [x] Add discriminating Credit coverage: every frozen event handler, hard-state and installment/time
    boundaries, paused/non-open read availability, viewer-role transitions, zero-address mutation
    rejection, relationship queries, cache invalidation, and blocked validation semantics.
-8. [ ] Record whether a real-contract/Envio E2E is applicable and run it when the local fork, Docker,
+8. [x] Record whether a real-contract/Envio E2E is applicable and run it when the local fork, Docker,
    deployed Credit address, and required authority facts are available; never replace missing release
    authority with fabricated production state.
-9. [ ] Document that static CreditRegistry pinning must start at or before its deployment block because
+9. [x] Document that static CreditRegistry pinning must start at or before its deployment block because
    dynamic SettlementModule registration cannot recover initialization-era events.
-10. [ ] Refresh package, cross-package, ontology, vocabulary, Plan Hub, and TDD receipts at the tested
+10. [x] Refresh package, cross-package, ontology, vocabulary, Plan Hub, and TDD receipts at the tested
     remediation commit before returning PRD-786 to In Review.
 11. [ ] PRD-787 owns all client/admin UI. No UI source was changed in this lane.
 12. [ ] Deployment, address pinning, broadcast, post-deploy replay, QA, and release operations remain
