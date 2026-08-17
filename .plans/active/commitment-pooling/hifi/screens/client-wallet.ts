@@ -373,7 +373,7 @@ function wflow(state: WflowState): string {
         `<div class="cardrow">${chip("2/1 media (max 6) ✓", "ok")}</div>`,
         `<div class="h6s">Needed</div><div style="display:flex;flex-wrap:wrap;gap:6px">${chip("Before", "ok")}${chip("After", "ok")}</div>`,
         `<div class="h6s">Optional</div><div style="display:flex;flex-wrap:wrap;gap:6px">${chip("Wide shot")}${chip("Close up")}${chip("Voice note")}</div>`,
-        mediaStrip([{ label: "before", tint: "agro" }, { label: "after", tint: "agro" }]),
+        mediaStrip([{ label: "North beds — before", photo: 0 }, { label: "North beds — after", photo: 2 }]),
         card(listRow({ icon: "mic-line", primary: "Voice note", meta: "0:41 · tap to play" }), { cls: "flat" }),
         banner("Photos and voice notes stay on this device until the work sends.", "stone", "wifi-off-line"),
       );
@@ -407,7 +407,7 @@ function wflow(state: WflowState): string {
       content = pagepad(
         formInfo("check-line", "Review Work", "Check if the information is correct"),
         sectionCard("Garden", listRow({ icon: "plant-line", primary: "Rocinha Community Garden", meta: "Rio de Janeiro · 23 gardeners" })),
-        sectionCard("Media", mediaStrip([{ label: "before", tint: "agro" }, { label: "after", tint: "agro" }, { label: "note", note: true }]), { flush: true }),
+        sectionCard("Media", mediaStrip([{ label: "North beds — before", photo: 0 }, { label: "North beds — after", photo: 2 }, { label: "Voice note", kind: "audio" }]), { flush: true }),
         `<div class="h6s">Details</div>`,
         formCard("leaf-line", "Action", "Prune"),
         formCard("time-line", "Time spent", "2 hours"),

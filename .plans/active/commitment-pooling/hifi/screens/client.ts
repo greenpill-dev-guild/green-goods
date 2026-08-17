@@ -15,7 +15,7 @@ import { icon } from "../icons";
 import {
   actionBar, appBar, banner, btn, campaignSlide, card, chip, cycleCard, cycleRail, detailRow, disclosure, domainRow, emptySeasonSlide, emptyState, fabButton, field,
   flowHeader, formInfo, fundedOfferCard, gardenHeader, gardenTabs, hdr, hero, input, kindCards, kv, listRow, meter, offerCard, offerRow, ongoingOfferCard,
-  formCard, identityCard, mediaStrip, memberRow, memberTile, memberTrail, pagepad, progressBlock, phoneFrame, seg, selCard, selRail, tabRail, unitLabel, poolFilters, commitmentCard, radio, reasonChips, requestCard, seasonCard, seasonSlide, sectionCard, sectionTitle, sheetOver, skeleton, stateChip, syncBar,
+  formCard, identityCard, imagePreview, mediaStrip, memberCard, memberRow, memberTrail, pagepad, progressBlock, phoneFrame, seg, selCard, selRail, tabRail, unitLabel, poolFilters, commitmentCard, radio, reasonChips, requestCard, seasonCard, seasonSlide, sectionCard, sectionTitle, sheetOver, skeleton, stateChip, syncBar,
   teamOfferCard, teamstrip, timeline,
 } from "../kit";
 import type { HifiDef } from "./index";
@@ -640,7 +640,8 @@ const W2_STATES = [
   ["browse-requested-gated", "Requested — browse view (steward-reviewed)"],
   ["active", "Active — yours to work"], ["active-waiting", "Active — waiting on them"],
   ["contributor", "Active — you're on the team"], ["send-confirm", "Send for confirmation — confirm"], ["evidence-queued", "Evidence queued"],
-  ["evidence-submitted", "Evidence in"], ["partially-approved", "Partly approved"],
+  ["evidence-submitted", "Evidence in"], ["evidence-preview", "Evidence in — image preview"],
+  ["partially-approved", "Partly approved"],
   ["ready-confirmer", "Ready — confirmer view"], ["confirmation-pending", "Confirmation queued"],
   ["fulfilled", "Fulfilled"], ["fulfilled-pool-fallback", "Fulfilled — garden fallback"],
   ["fulfilled-protocol-fallback", "Fulfilled — Green Goods team fallback"],
@@ -690,7 +691,8 @@ const w2StateChip: Record<W2ChipState, string> = {
   accepted: "Accepted", offered: "Offered", requested: "Requested", active: "Active",
   "active-waiting": "Active", contributor: "Active", "send-confirm": "Evidence in",
   "browse-offered": "Offered", "browse-requested": "Requested", "browse-requested-gated": "Requested",
-  "evidence-queued": "Active", "evidence-submitted": "Evidence in", "partially-approved": "Partly approved",
+  "evidence-queued": "Active", "evidence-submitted": "Evidence in", "evidence-preview": "Evidence in",
+  "partially-approved": "Partly approved",
   "ready-confirmer": "Ready to confirm", "confirmation-pending": "Ready to confirm",
   fulfilled: "Fulfilled", "fulfilled-pool-fallback": "Fulfilled",
   "fulfilled-protocol-fallback": "Fulfilled", "reward-released": "Fulfilled",
@@ -1135,11 +1137,20 @@ const w2Disclosures = (state: W2State, opts: { work?: boolean; overrideNote?: bo
   //
   // Evidence becomes real media tiles instead of text rows carrying an image
   // icon, which is the single biggest gain — the proof is now visible.
+  // Tiles are real thumbnails and they open (2026-08-17, Afo). A neighbour
+  // deciding whether to take up an offer, and a confirmer deciding whether it
+  // was kept, are both looking at the photograph — so it has to be a photograph,
+  // and it has to open large enough to read.
   const mediaFor = () => {
-    if (cast === "garden") return mediaStrip([{ label: "survey", note: true }]);
-    if (cast === "offer") return mediaStrip([{ label: "photo", tint: "agro" }, { label: "photo", tint: "agro" }, { label: "note", note: true }]);
-    if (cast === "support") return mediaStrip([{ label: "photo", tint: "waste" }]);
-    return mediaStrip([{ label: "photo", tint: "agro" }]);
+    if (cast === "garden") return mediaStrip([{ label: "Site survey", kind: "note" }]);
+    if (cast === "offer")
+      return mediaStrip([
+        { label: "North beds — before", photo: 0, hotId: "w2.preview" },
+        { label: "North beds — after", photo: 2, hotId: "w2.preview" },
+        { label: "Voice note", kind: "audio" },
+      ]);
+    if (cast === "support") return mediaStrip([{ label: "The bins, cleared", photo: 3, hotId: "w2.preview" }]);
+    return mediaStrip([{ label: "The beds", photo: 0, hotId: "w2.preview" }]);
   };
   const peopleRows =
     cast === "garden"
@@ -1215,7 +1226,13 @@ const W2_BAND_ICON: Record<string, string> = {
   "Under review": "eye-line",
 };
 
-function w2(state: W2State): string {
+function w2(stateIn: W2State): string {
+  // The image preview is a DIALOG over the commitment, not a state of it: the
+  // commitment underneath is unchanged, which is why `evidence-preview` renders
+  // `evidence-submitted` verbatim and only adds an overlay. Treating it as its
+  // own state would have meant duplicating a screen to change nothing about it.
+  const previewing = stateIn === "evidence-preview";
+  const state: W2State = previewing ? "evidence-submitted" : stateIn;
   // Sample identity follows the commitment, not the fixture. A request is a
   // different commitment from the offer — different title, unit and cast — and the
   // header is the first thing that has to say so.
@@ -1699,6 +1716,9 @@ ${hot("w2.withdraw-send", btn("Withdraw this offer", { kind: "danger", full: tru
   return phoneFrame(`${head}${meta}${content}<div style="flex:1"></div>${sync}`, {
     appBar: bar ? actionBar(bar) : false,
     offline: evidenceQueued || readinessQueued || confirmationQueued,
+    overlay: previewing
+      ? imagePreview({ ix: 1, of: 2, photo: 0, closeHotId: "w2.preview-close", downloadHotId: "w2.preview-save", nextHotId: "w2.preview-next" })
+      : undefined,
   });
 }
 
@@ -1707,6 +1727,10 @@ const W2_HOTS: HifiDef["hots"] = {
   "w2.team-strip": { l: "Open team — join in", to: "screen:W2b@open-eligible", info: "The team strip above the fold (iteration 2, E5/E8): the commitment's people are visible on open, and the strip opens the team view where eligible open-team members join." },
   "w2.open-team-forming": { l: "See editable team and contributions", to: "screen:W2b@forming", info: "Before readiness, the accountable lead can add, remove, and assign contributors through online contract actions." },
   "w2.open-team-frozen": { l: "See frozen team and contributions", to: "screen:W2b@frozen", info: "After readiness, opens the frozen contributor roster and contribution record without implying that every participant receives an equal share." },
+  "w2.preview": { l: "Open the photo", to: "screen:W2@evidence-preview", info: "The commitment's evidence tiles open ImagePreviewDialog. This is what the tiles are FOR: whoever is deciding — a neighbour weighing an offer, a confirmer weighing whether it was kept — is deciding on the photograph, and a 60px tile is too small to decide on." },
+  "w2.preview-close": { l: "Close the preview", to: "screen:W2@evidence-submitted", info: "Returns to the commitment unchanged. The preview is a dialog, so nothing about the commitment's state moved while it was open." },
+  "w2.preview-save": { l: "Download image", info: "Saves the photo to the device. The shipped dialog offers this on every viewport — a gardener who attached evidence from one phone often needs the file on another." },
+  "w2.preview-next": { l: "Next photo", info: "Steps to the next attached photo. The voice note in the same section is skipped — only images are in the sequence (Media.tsx:165)." },
   "w2.add-evidence": { l: "Add evidence", to: "screen:W2a@media", info: "W2a attach sheet: photo / link / note → one evidence job per submit; fully offline (UX:164)." },
   "w2.add-evidence-request": { l: "Add request evidence", to: "screen:W2a@media", info: "Keeps Ana's request and João's provider role intact while opening the shared evidence composer." },
   "w2.add-evidence-campaign-request": { l: "Add campaign-request evidence", to: "screen:W2a@media", info: "Keeps the Market rides Campaign binding while opening the shared evidence composer." },
@@ -1952,7 +1976,7 @@ const w2aBehind = (commitment: CommitmentCast = "offer") =>
   `${hdr(W2_IDENTITY[commitment].title, { back: true })}<div class="hsub num">${W2_IDENTITY[commitment].meta}</div>`;
 
 type W2aState =
-  | "media" | "details" | "review" | "review-request" | "review-campaign-request"
+  | "media" | "media-preview" | "details" | "review" | "review-request" | "review-campaign-request"
   | "review-support" | "review-captured" | "queued" | "failed";
 
 // Evidence is an MDR VARIANT (iteration 2, Afo direction): the same Submit
@@ -2021,6 +2045,7 @@ function w2a(state: W2aState): string {
   let content: string;
   let actions: string;
   let secondary = "";
+  let overlay = "";
   switch (state) {
     // Step 2 asks ONE thing now (2026-08-17, Afo). It used to carry contributor
     // credit plus a Note field plus a Link field, which split "what I am
@@ -2058,7 +2083,7 @@ function w2a(state: W2aState): string {
       const ident = W2_IDENTITY[cast];
       content = pagepad(
         sectionCard("Garden", listRow({ icon: "plant-line", primary: "Rocinha Community Garden", meta: "Rio de Janeiro · 23 gardeners" })) +
-          sectionCard("Media", mediaStrip([{ label: "photo", tint: "agro" }, { label: "note", note: true }]), { flush: true }) +
+          sectionCard("Media", mediaStrip([{ label: "North beds — before", photo: 0 }, { label: "Voice note", kind: "audio" }]), { flush: true }) +
           `<div class="h6s">Details</div>` +
           formCard(W2A_LEAD_ICON[cast], "What this proves", `${ident.title} — ${ident.meta}`) +
           formCard("image-line", "What you're showing", "1 photo · 1 voice note · 1 written note") +
@@ -2097,12 +2122,17 @@ function w2a(state: W2aState): string {
       );
       actions = hot("w2a.done", btn("Done", { kind: "ghost", full: true }));
       break;
-    default: // media
+    // The evidence list keeps one list for everything attached, and the photo
+    // rows carry the picture (2026-08-17, Afo). Evidence is the surface where
+    // this matters most: a confirmer decides on what they can see, and a row
+    // reading "Photo · just now" beside a generic glyph shows them nothing.
+    case "media":
+    case "media-preview":
       content = pagepad(
         captureBody(
           "w2a",
           card(
-            listRow({ icon: "image-line", primary: "North beds after", meta: "Photo · just now", trailing: hot("w2a.remove-item", btn("Remove", { kind: "ghost", sm: true, icon: "close-line", ariaLabel: "Remove this photo" })) }) +
+            listRow({ thumb: 2, thumbHotId: "w2a.preview", primary: "North beds after", meta: "Photo · just now", trailing: hot("w2a.remove-item", btn("Remove", { kind: "ghost", sm: true, icon: "close-line", ariaLabel: "Remove this photo" })) }) +
               listRow({ icon: "mic-line", primary: "Voice note", meta: "0:38 · tap to play" }) +
               listRow({ icon: "sticky-note-line", primary: "“Two beds left for next week”", meta: "Note · just now" }),
             { cls: "flat" },
@@ -2112,11 +2142,21 @@ function w2a(state: W2aState): string {
       );
       secondary = captureBar("w2a");
       actions = hot("w2a.media-continue", btn("Continue", { kind: "pri", full: true }));
+      // One photo attached, so the counter reads 1 / 1 and neither arrow is
+      // drawn — the shipped dialog only renders an arrow when there IS a
+      // neighbour (ImagePreviewDialog, `images.length > 1`).
+      if (state === "media-preview")
+        overlay = imagePreview({ ix: 1, of: 1, photo: 2, closeHotId: "w2a.preview-close", downloadHotId: "w2a.preview-save" });
+      break;
+    default:
+      content = pagepad(emptyState("information-line", "Nothing here", "This cast has no drawn body."));
+      actions = "";
   }
   return phoneFrame(content.replace('<div class="pagepad">', `<div class="pagepad">${w2aStepCard(state)}`), {
     header: head,
     appBar: actionBar(actions, secondary || undefined),
     offline: state === "queued" || state === "failed",
+    overlay: overlay || undefined,
   });
 }
 
@@ -2129,6 +2169,9 @@ const W2A_HOTS: HifiDef["hots"] = {
   "w2a.media-continue": { l: "Continue to details", to: "screen:W2a@details", info: "Media → details, the Submit Work rhythm: contributors and an optional note live on the details step." },
   "w2a.details-continue": { l: "Continue to review", to: "screen:W2a@review", info: "Details → review. The canonical destination is the garden-work review; cast walks land on their identity-preserving review variant of the same screen (request / campaign / service / recorded-commitment)." },
   "w2a.remove-item": { l: "Remove this item", info: "Items can be removed until they are attached; nothing uploads before then." },
+  "w2a.preview": { l: "Open the photo", to: "screen:W2a@media-preview", info: "The evidence thumbnail opens ImagePreviewDialog — the same dialog Submit Work opens from its media grid (Media.tsx:820). Confirmers decide on what they can see, so a photo has to be legible before it is sent, not only after." },
+  "w2a.preview-save": { l: "Download image", info: "Saves the photo to the device. The shipped dialog offers this on every viewport — a gardener who attached evidence from one phone often needs the file on another." },
+  "w2a.preview-close": { l: "Close the preview", to: "screen:W2a@media", info: "Returns to the media step unchanged. Closing never removes the photo; that is the Remove control on the row." },
   "w2a.attach": { l: "Attach evidence", to: "screen:W2@evidence-queued", info: "Enqueues media plus the explicit creditedContributors vector; after upload the executor calls attachEvidence with those same addresses (CS §6.1).", calls: ["attachEvidence"], pendingSync: true },
   "w2a.attach-request": { l: "Attach request evidence", to: "screen:W2@request-evidence-queued", info: "Queues evidence and its explicit credited-contributor vector for Ana's request without changing its direction, provider, or confirmer.", calls: ["attachEvidence"], pendingSync: true },
   "w2a.attach-campaign-request": { l: "Attach campaign-request evidence", to: "screen:W2@campaign-request-evidence-queued", info: "Queues evidence and its explicit credited-contributor vector without losing the Market rides Campaign binding.", calls: ["attachEvidence"], pendingSync: true },
@@ -2154,6 +2197,7 @@ const W3_STATES = [
   // a real review step (what → how much → who-can-take-it → review).
   ["step-what", "1 · What"],
   ["step-howmuch", "2 · How much"], ["step-details", "3 · Details"],
+  ["details-preview", "3 · Details — image preview"],
   ["step-review", "4 · Review & commit"],
   ["support-howmuch", "Service · 2 · How much"],
   ["support-details", "Service · 3 · Details"],
@@ -2271,23 +2315,46 @@ const w3Proof = (opts: { title: string; note: string; cells: string[]; pickIx: n
 // team is a full-width button in the canvas — the one thing to do on that half
 // of the screen — and once anyone is on it the roster becomes a carousel with
 // the add demoted to a plus in the section title.
-const w3TeamSection = (members: { name: string; sub?: string }[]) =>
+// The filled state was a 96px tile carrying an initial and two truncated lines,
+// and — because it shared `.mtile` with the media tile, which outweighs it on
+// client screens — it actually drew a 60px green square with the letter alone:
+// "they don't give any context as to who you added or anything" (2026-08-17,
+// Afo). The carousel was never the problem; what it held was. Each card is now
+// GardenMemberItem's layout at 216px — photo, name, account, role — with the
+// remove control absolutely placed so the text column keeps its width.
+//
+// The first person on a commitment is its leadProvider: one accountable party,
+// frozen when the commitment reaches readiness. Naming that here is the last
+// cheap moment to change which one it is.
+type W3Member = { name: string; sub?: string; photo?: number };
+const w3TeamSection = (members: W3Member[]) =>
   members.length === 0
     ? sectionTitle("Team") +
       `<div class="t-meta">Nobody yet. A commitment can be kept alone, or with the people you bring in.</div>` +
       hot("w3.team", btn("Add people", { kind: "sec", full: true, icon: "group-line" }))
     : sectionTitle("Team", hot("w3.team", btn("", { kind: "ghost", sm: true, icon: "add-line", ariaLabel: "Add people to the team" }))) +
       memberTrail([
-        ...members.map((m) => memberTile({ ...m, hotId: undefined })),
-        hot("w3.team", `<div class="mtile addtile">${icon("add-line", "l")}<div class="mtn">Add</div></div>`),
-      ]);
+        ...members.map((m, i) =>
+          memberCard({ ...m, role: i === 0 ? "Lead" : "Contributor", lead: i === 0, removeHotId: `w3.team-remove` }),
+        ),
+        hot("w3.team", `<div class="mcard addtile">${icon("add-line", "l")}<div class="mtn">Add</div></div>`),
+      ]) +
+      `<div class="t-meta">The lead is accountable for this commitment. Everyone here can add evidence and submit work; only the lead can send it for confirmation.</div>`;
 
-const w3DetailsBody = (items: string, members: { name: string; sub?: string }[] = []) =>
+const w3DetailsBody = (items: string, members: W3Member[] = []) =>
   w3TeamSection(members) +
   captureBody("w3", items, "Saved on this device with your draft — details upload when the commitment sends.");
 
+// Media stays ONE list — a photo, a voice note, a link and a written note are
+// all things you attached — but the photo rows carry the PICTURE now, not an
+// image-line icon (2026-08-17, Afo: "if you add an image, it shows the image
+// and you have an image preview. Not just a card"). The shipped media step
+// renders every photo as an <img> at aspect-4/3 and opens ImagePreviewDialog on
+// tap (Media.tsx:756-775); a row that says "Photo · just now" beside a generic
+// glyph is the one thing that step never does.
 const W3_DETAIL_ITEMS = card(
-  listRow({ icon: "image-line", primary: "North beds — before", meta: "Photo · just now", trailing: hot("w3.remove-detail", btn("Remove", { kind: "ghost", sm: true, icon: "close-line", ariaLabel: "Remove this photo" })) }) +
+  listRow({ thumb: 0, thumbHotId: "w3.preview", primary: "North beds — before", meta: "Photo · just now", trailing: hot("w3.remove-detail", btn("Remove", { kind: "ghost", sm: true, icon: "close-line", ariaLabel: "Remove this photo" })) }) +
+    listRow({ thumb: 2, thumbHotId: "w3.preview", primary: "North beds — after", meta: "Photo · just now", trailing: hot("w3.remove-detail", btn("Remove", { kind: "ghost", sm: true, icon: "close-line", ariaLabel: "Remove this photo" })) }) +
     listRow({ icon: "mic-line", primary: "Voice note", meta: "0:38 · tap to play" }),
   { cls: "flat" },
 );
@@ -2340,6 +2407,7 @@ function w3(state: W3State): string {
   let content: string;
   let actions: string;
   let secondary = "";
+  let overlay = "";
   switch (state) {
     case "step-howmuch":
       head = w3Head("Make an offer", 1);
@@ -2366,9 +2434,18 @@ function w3(state: W3State): string {
       actions = hot("w3.continue-howmuch", btn("Continue", { kind: "pri", full: true }));
       break;
     case "step-details":
+    // Tapping a thumbnail opens ImagePreviewDialog over the step you are on —
+    // the step keeps its scroll position underneath, because the preview is a
+    // dialog and not a route (Media.tsx:820). Two photos are attached, so the
+    // counter reads 1 / 2 and only the next arrow is drawn; the voice note in
+    // the same list is not in the sequence, since the dialog is fed
+    // photoOnlyData (Media.tsx:165).
+    case "details-preview":
       head = w3Head("Make an offer", 2);
-      content = pagepad(w3DetailsBody(W3_DETAIL_ITEMS, [{ name: "João", sub: "joao.eth" }, { name: "Luz", sub: "luz.eth" }]));
+      content = pagepad(w3DetailsBody(W3_DETAIL_ITEMS, [{ name: "João", sub: "joao.eth", photo: 1 }, { name: "Luz", sub: "luz.eth", photo: 4 }, { name: "0x74…c2" }]));
       secondary = W3_CAPTURE_BAR;
+      if (state === "details-preview")
+        overlay = imagePreview({ ix: 1, of: 2, photo: 0, closeHotId: "w3.preview-close", downloadHotId: "w3.preview-save", nextHotId: "w3.preview-next" });
       // An icon Continue (2026-08-17, Afo): five adders plus a labelled primary
       // squeezed the label to nothing. The primary keeps the bar's end position
       // and its accent; only the word goes.
@@ -2380,7 +2457,7 @@ function w3(state: W3State): string {
         w3Review({
           garden: "Rocinha Community Garden", gardenMeta: "Rio de Janeiro · 23 gardeners",
           lead: { icon: "leaf-line", primary: "Prune the north beds", meta: "garden work" },
-          media: mediaStrip([{ label: "photo", tint: "agro" }, { label: "note", note: true }]),
+          media: mediaStrip([{ label: "North beds — before", photo: 0 }, { label: "Voice note", kind: "audio" }]),
           details: [
             { icon: "leaf-line", label: "How much is put in", value: "6 hours — this is what the pool counts" },
             { icon: "calendar-line", label: "Due", value: "Aug 30 — runs with the season" },
@@ -2480,7 +2557,7 @@ function w3(state: W3State): string {
         w3Review({
           garden: "Rocinha Community Garden", gardenMeta: "Rio de Janeiro · 23 gardeners",
           lead: { icon: "hand-heart-line", primary: "Repair tool handles", meta: "a service" },
-          media: mediaStrip([{ label: "photo", tint: "waste" }]),
+          media: mediaStrip([{ label: "The bins, cleared", photo: 3 }]),
           details: [
             { icon: "hand-heart-line", label: "How much", value: "1 repair session" },
             { icon: "calendar-line", label: "Due", value: "Aug 30 — runs with the campaign" },
@@ -2602,7 +2679,7 @@ function w3(state: W3State): string {
         w3Review({
           garden: "Rocinha Community Garden", gardenMeta: "Rio de Janeiro · 23 gardeners",
           lead: { icon: "leaf-line", primary: "Clear the drainage channel", meta: "garden work" },
-          media: mediaStrip([{ label: "photo", tint: "agro" }]),
+          media: mediaStrip([{ label: "The beds", photo: 0 }]),
           details: [
             { icon: "leaf-line", label: "How much is asked for", value: "8 hours — this is what the pool counts" },
             { icon: "calendar-line", label: "Due", value: "Aug 30 — runs with the season" },
@@ -2622,7 +2699,7 @@ function w3(state: W3State): string {
         w3Review({
           garden: "Rocinha Community Garden", gardenMeta: "Rio de Janeiro · 23 gardeners",
           lead: { icon: "hand-heart-line", primary: "Ride to the market on Saturday", meta: "help or a service" },
-          media: mediaStrip([{ label: "note", note: true }]),
+          media: mediaStrip([{ label: "Written note", kind: "note" }]),
           details: [
             { icon: "hand-heart-line", label: "How much", value: "1 ride" },
             { icon: "calendar-line", label: "Due", value: "Aug 30 — runs with the season" },
@@ -2671,13 +2748,13 @@ function w3(state: W3State): string {
       break;
     case "support-details":
       head = w3Head("Make an offer", 2);
-      content = pagepad(w3DetailsBody(card(listRow({ icon: "image-line", primary: "The tool bench", meta: "Photo · just now" }), { cls: "flat" })));
+      content = pagepad(w3DetailsBody(card(listRow({ thumb: 5, thumbHotId: "w3.preview", primary: "The tool bench", meta: "Photo · just now" }), { cls: "flat" })));
       secondary = W3_CAPTURE_BAR;
       actions = hot("w3.continue-support-details", btn("", { kind: "pri", icon: "arrow-right-s-line", ariaLabel: "Continue to review" }));
       break;
     case "support-details-ongoing":
       head = w3Head("Make an offer", 2);
-      content = pagepad(w3DetailsBody(card(listRow({ icon: "image-line", primary: "Last season's workshop", meta: "Photo · just now" }), { cls: "flat" })));
+      content = pagepad(w3DetailsBody(card(listRow({ thumb: 4, thumbHotId: "w3.preview", primary: "Last season's workshop", meta: "Photo · just now" }), { cls: "flat" })));
       secondary = W3_CAPTURE_BAR;
       actions = hot("w3.continue-support-details-ongoing", btn("", { kind: "pri", icon: "arrow-right-s-line", ariaLabel: "Continue to review" }));
       break;
@@ -2695,7 +2772,7 @@ function w3(state: W3State): string {
       break;
     case "request-work-details":
       head = w3Head("Make a request", 2);
-      content = pagepad(w3DetailsBody(card(listRow({ icon: "image-line", primary: "The blocked channel", meta: "Photo · just now" }), { cls: "flat" })));
+      content = pagepad(w3DetailsBody(card(listRow({ thumb: 1, thumbHotId: "w3.preview", primary: "The blocked channel", meta: "Photo · just now" }), { cls: "flat" })));
       secondary = W3_CAPTURE_BAR;
       actions = hot("w3.continue-request-work-details", btn("", { kind: "pri", icon: "arrow-right-s-line", ariaLabel: "Continue to review" }));
       break;
@@ -2705,7 +2782,7 @@ function w3(state: W3State): string {
         w3Review({
           garden: "Rocinha Community Garden", gardenMeta: "Rio de Janeiro · 23 gardeners",
           lead: { icon: "hand-heart-line", primary: "Hosting climate workshops", meta: "a service, offered over time" },
-          media: mediaStrip([{ label: "photo", tint: "agro" }]),
+          media: mediaStrip([{ label: "The beds", photo: 0 }]),
           details: [
             { icon: "hand-heart-line", label: "Each place", value: "1 workshop session" },
             { icon: "seedling-line", label: "Where it runs", value: "Season of First Rains" },
@@ -2761,7 +2838,7 @@ function w3(state: W3State): string {
         w3Review({
           garden: "Rocinha Community Garden", gardenMeta: "Rio de Janeiro · 23 gardeners",
           lead: { icon: "hand-heart-line", primary: "Ride to the market on Saturday", meta: "help or a service" },
-          media: mediaStrip([{ label: "note", note: true }]),
+          media: mediaStrip([{ label: "Written note", kind: "note" }]),
           details: [
             { icon: "hand-heart-line", label: "How much", value: "1 ride" },
             { icon: "calendar-line", label: "Due", value: "Aug 30 — runs with the season" },
@@ -2818,6 +2895,7 @@ function w3(state: W3State): string {
     header: head,
     appBar: actionBar(actions, secondary || undefined),
     offline: state === "saved-offer-queued",
+    overlay: overlay || undefined,
   });
 }
 
@@ -2826,6 +2904,11 @@ const W3_HOTS: HifiDef["hots"] = {
   // in-form control is deleted — season/campaign seeding and on-behalf capture
   // remain console-seeded only (UX:154).
   "w3.team": { l: "Team", to: "screen:W2b@setup", info: "One row where the Advanced detour used to carry a contributor-policy radio and a separate invite step (2026-08-17, Afo). Team is one surface now — policy and invites before anyone accepts, roster afterwards — reachable from here and from the commitment's People section." },
+  "w3.team-remove": { l: "Remove from the team", info: "Takes someone off the team before the commitment exists — nothing on chain has happened yet, so this is a local edit to the draft. After creation the roster is managed from the team surface, and once any readiness path fires it freezes (ContributorRosterFrozen) and nobody can be added or removed." },
+  "w3.preview": { l: "Open the photo", to: "screen:W3@details-preview", info: "Taps the thumbnail into ImagePreviewDialog, the same dialog the shipped media step opens (Media.tsx:820). A dialog, not a route: the step keeps its scroll underneath. Only photos are in the sequence — a voice note in the same list is skipped, because the dialog is fed photoOnlyData (Media.tsx:165)." },
+  "w3.preview-close": { l: "Close the preview", to: "screen:W3@step-details", info: "Returns to the details step with nothing changed. Closing a preview never removes the photo — that is the Remove control on the row." },
+  "w3.preview-save": { l: "Download image", info: "Saves the photo to the device. The shipped dialog offers this on every viewport — a gardener who attached evidence from one phone often needs the file on another." },
+  "w3.preview-next": { l: "Next photo", info: "Steps to the second attached photo. Drawn as a static arrow here; the shipped dialog also swipes, and arrows appear only when there IS a next." },
   "w3.contributor-policy": { l: "Contributor policy", info: "Chooses the immutable Open or LeadManaged roster policy before creation; the final review repeats the selected join rule." },
   "w3.choose-support": { l: "Choose Support / service", to: "screen:W3@support-howmuch", info: "Chooses the evidence-only SupportService offer path. It keeps the amount step and skips only DomainImpact action anchors (UX:156)." },
   "w3.continue-support-howmuch": { l: "Continue to details", to: "screen:W3@support-details", info: "Carries the chip-picked service unit and quantity straight into review; due defaults to the campaign end, and the confirmer default and pilot fallback are already set (UX §5.4, amended 2026-08-10; tap-first register #95)." },
@@ -4107,7 +4190,7 @@ export const CLIENT_DEFS: HifiDef[] = [
   { ...mk("W2", "W2 · Commitment detail", W2_STATES, w2, w2Facts, new Set(), w2Group), hots: W2_HOTS },
   { ...mk("W2b", "W2b · Team and contributions", W2B_STATES, w2b), hots: W2B_HOTS },
   { ...mk("W2a", "W2a · Evidence (Media → Details → Review)", [
-    ["media", "1 · Media"], ["details", "2 · Details"],
+    ["media", "1 · Media"], ["media-preview", "1 · Media — image preview"], ["details", "2 · Details"],
     ["review", "3 · Review — garden work"], ["review-request", "3 · Review — a request"],
     ["review-campaign-request", "3 · Review — Campaign request"],
     ["review-support", "3 · Review — service offer"], ["review-captured", "3 · Review — recorded commitment"],

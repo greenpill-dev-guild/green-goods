@@ -153,9 +153,30 @@ export function timeline(entries: { label: string; meta?: string; open?: boolean
     .join("")}</div>`;
 }
 
-export function listRow(opts: { icon?: string; primary: string; meta?: string; chipHtml?: string; trailing?: string; chevron?: boolean }): string {
+// `thumb` swaps the leading glyph for a real 44px thumbnail (2026-08-17, Afo:
+// media stays ONE list, and the photo rows carry the picture rather than an
+// image-line icon). 44px is the shipped minimum touch target — Media.tsx sizes
+// its remove control `min-h-11 min-w-11` — so the thumbnail is tappable into
+// the preview at the size a finger already expects. `thumbHotId` makes it so.
+export function listRow(opts: {
+  icon?: string;
+  thumb?: number;
+  thumbHotId?: string;
+  primary: string;
+  meta?: string;
+  chipHtml?: string;
+  trailing?: string;
+  chevron?: boolean;
+}): string {
   const tail = `${opts.chipHtml ?? ""}${opts.trailing ?? ""}${opts.chevron ? icon("arrow-right-s-line") : ""}`;
-  return `<div class="lr">${opts.icon ? icon(opts.icon) : ""}<div class="grow"><div class="lp">${esc(opts.primary)}</div>${opts.meta ? `<div class="lm">${esc(opts.meta)}</div>` : ""}</div>${tail ? `<div class="tail">${tail}</div>` : ""}</div>`;
+  let lead = "";
+  if (opts.thumb !== undefined) {
+    const t = `<span class="lthumb" role="img" aria-label="${escAttr(opts.primary)}" style="background-image:${photoFill(opts.thumb)}"><span class="zoom">${icon("search-line", "s")}</span></span>`;
+    lead = opts.thumbHotId ? hot(opts.thumbHotId, t) : t;
+  } else if (opts.icon) {
+    lead = icon(opts.icon);
+  }
+  return `<div class="lr">${lead}<div class="grow"><div class="lp">${esc(opts.primary)}</div>${opts.meta ? `<div class="lm">${esc(opts.meta)}</div>` : ""}</div>${tail ? `<div class="tail">${tail}</div>` : ""}</div>`;
 }
 
 // opts.badges — per-pill count badges (index → count), the WalletDrawer tab
@@ -288,19 +309,51 @@ export function progressBlock(opts: {
   }${opts.note ? `<div class="t-meta">${esc(opts.note)}</div>` : ""}`;
 }
 
-// MemberTile — the compact form of the Gardeners row, for the details step's
-// added-team carousel (2026-08-17, Afo: "when you add we place in a carousel in
-// the top half"). Avatar over name; the same name-then-address rule the row
-// follows, so someone with nothing on file shows their address.
-export function memberTile(opts: { name: string; sub?: string; hotId?: string }): string {
-  const initial = /^0x/i.test(opts.name) ? "" : esc(opts.name.trim().charAt(0).toUpperCase());
-  const tile = `<div class="mtile"><span class="avatar">${initial}</span><div class="mtn">${esc(opts.name)}</div>${
-    opts.sub ? `<div class="mts">${esc(opts.sub)}</div>` : ""
-  }</div>`;
-  return opts.hotId ? hot(opts.hotId, tile) : tile;
+// MemberCard — the details step's added-team carousel. The carousel is Afo's
+// call from round 15 ("when you add we place in a carousel in the top half"),
+// and it is the right call for SPACE: a vertical roster pushes the media list
+// off a 700px phone as soon as three people are on it.
+//
+// What it held was wrong. A 96px tile carried an initial, a truncated name and
+// a truncated address, and — because of the `.mtile` collision — rendered as a
+// 60px green square showing only the letter: "they don't give any context as to
+// who you added or anything" (2026-08-17, Afo). So the carousel stays and the
+// CARD grows up: 216px laid out as GardenMemberItem is laid out — 40px avatar
+// left, name and account stacked beside it, role beneath — with the remove
+// control absolutely positioned so it costs the text column no width.
+//
+// Registered-date is deliberately NOT carried. Gardeners.tsx shows it because
+// that list is a membership record; this list is a team you are assembling, and
+// when someone joined the garden has no bearing on whether they should be on
+// this commitment. Role does: exactly one person is the accountable
+// leadProvider, and this is the last cheap moment to correct which one.
+export function memberCard(opts: {
+  name: string;
+  sub?: string;
+  photo?: number;
+  role?: string;
+  lead?: boolean;
+  removeHotId?: string;
+  hotId?: string;
+}): string {
+  const remove = opts.removeHotId
+    ? hot(
+        opts.removeHotId,
+        // Media.tsx's remove control: a bordered surface square holding the
+        // close glyph, not a bare glyph. The button itself stays transparent so
+        // the 44px minimum touch target does not inflate the visible box.
+        `<button class="mcx" type="button" aria-label="${escAttr(`Remove ${opts.name} from the team`)}"><span class="mcxb">${icon("close-line", "s")}</span></button>`,
+      )
+    : "";
+  const card = `<div class="mcard">${remove}${avatar({ name: opts.name, photo: opts.photo })}<div class="grow"><div class="mn${
+    /^0x/i.test(opts.name) ? " addr" : ""
+  }" title="${escAttr(opts.name)}">${esc(opts.name)}</div>${
+    opts.sub ? `<div class="ms" title="${escAttr(opts.sub)}">${esc(opts.sub)}</div>` : ""
+  }${opts.role ? `<div class="mrole${opts.lead ? " lead" : ""}">${esc(opts.role)}</div>` : ""}</div></div>`;
+  return opts.hotId ? hot(opts.hotId, card) : card;
 }
-export function memberTrail(tiles: string[]): string {
-  return `<div class="mtrail" role="group" aria-label="On the team">${tiles.join("")}</div>`;
+export function memberTrail(cards: string[]): string {
+  return `<div class="mtrail" role="group" aria-label="On the team">${cards.join("")}</div>`;
 }
 
 // FormCard — the shipped review's detail card, one per detail
@@ -325,16 +378,107 @@ export function detailRow(label: string, value: string): string {
   return `<div class="drow"><span class="dk">${esc(label)}</span><span class="dv">${esc(value)}</span></div>`;
 }
 
+// ---- photographs ------------------------------------------------------------
+//
+// A photograph, drawn (2026-08-17, Afo: "if you add an image, it shows the image
+// and you have an image preview. Not just a card"). The artifact is one
+// self-contained file with no external requests, so a real JPEG is not on the
+// table — but a word in a tinted box is not a photograph either, and every
+// media surface in this feature was drawing one. Each fill is a layered
+// gradient with the anatomy a cropped garden photo has at 44–96px: a soft
+// highlight where light falls, a mid body, a darker foot. Deterministic by
+// index, so an item draws the same picture on every render and across screens.
+// Each fill layers a bright source, a shadowed corner and a body ramp. Two
+// layers alone read as a colour swatch at 44px — a photograph has light coming
+// from somewhere and dark somewhere else, and that contrast is what makes a
+// thumbnail legible as a picture rather than a tint.
+const PHOTO_FILLS = [
+  "radial-gradient(58% 46% at 24% 14%, rgba(255,252,224,.72), transparent 70%), radial-gradient(72% 64% at 88% 96%, rgba(12,26,10,.62), transparent 66%), linear-gradient(158deg,#A6C177 0%,#5C7C3F 44%,#24361C 100%)",
+  "radial-gradient(54% 44% at 76% 18%, rgba(255,246,214,.68), transparent 68%), radial-gradient(70% 62% at 14% 92%, rgba(30,16,6,.60), transparent 64%), linear-gradient(196deg,#D8B584 0%,#8A6B45 50%,#3B2A18 100%)",
+  "radial-gradient(60% 48% at 34% 82%, rgba(248,255,232,.62), transparent 70%), radial-gradient(66% 58% at 82% 10%, rgba(16,32,14,.58), transparent 62%), linear-gradient(142deg,#BFD495 0%,#6E8C4C 42%,#2C3F21 100%)",
+  "radial-gradient(56% 46% at 62% 20%, rgba(255,240,226,.70), transparent 66%), radial-gradient(72% 60% at 10% 94%, rgba(40,14,8,.58), transparent 64%), linear-gradient(172deg,#E4B79E 0%,#A2694F 48%,#4A2A1D 100%)",
+  "radial-gradient(58% 44% at 20% 26%, rgba(240,255,246,.62), transparent 68%), radial-gradient(68% 62% at 90% 88%, rgba(8,28,22,.60), transparent 64%), linear-gradient(150deg,#A3C6AE 0%,#527A63 42%,#1F352A 100%)",
+  "radial-gradient(56% 48% at 70% 72%, rgba(255,253,226,.66), transparent 68%), radial-gradient(66% 56% at 16% 12%, rgba(26,28,10,.56), transparent 62%), linear-gradient(184deg,#CBD199 0%,#7E8A52 46%,#343A1E 100%)",
+];
+export function photoFill(ix: number): string {
+  return PHOTO_FILLS[((ix % PHOTO_FILLS.length) + PHOTO_FILLS.length) % PHOTO_FILLS.length];
+}
+
+// Avatar — Gardeners.tsx:72 resolves `member.avatar || ensAvatar ||
+// "/images/avatar.png"`, so a gardener is a PHOTOGRAPH in the product, and the
+// generic person image when nothing is on file. It is never a letter; the
+// letter-initial discs this kit used were an invention with no shipped analog,
+// which is how a member card could collapse to "one letter" and still look
+// deliberate. Pass `photo` when the person has one, omit it for the default.
+export function avatar(opts: { name: string; photo?: number; cls?: string }): string {
+  const cls = `avatar${opts.cls ? ` ${opts.cls}` : ""}`;
+  if (opts.photo === undefined)
+    return `<span class="${cls} nopic" role="img" aria-label="${escAttr(`${opts.name} — no photo on file`)}">${icon("user-fill")}</span>`;
+  return `<span class="${cls}" role="img" aria-label="${escAttr(opts.name)}" style="background-image:${photoFill(opts.photo)}"></span>`;
+}
+
 // Media strip — the work view's Carousel of ImageWithFallback tiles. Evidence
 // on the commitment view used to be text rows with an image icon; showing the
 // actual thumbnails is the single biggest reason to flatten this screen.
-export function mediaStrip(items: { label: string; tint?: "agro" | "waste" | "garden" | "quiet"; note?: boolean }[]): string {
+//
+// The tiles are real thumbnails as of 2026-08-17 (Afo, read views). A photo
+// draws its picture; a voice note, a link and a written note have no image to
+// draw, so they keep the dashed tile and carry their KIND as a glyph rather
+// than the word "note" — WorkView's media section only ever holds images, so
+// the non-image kinds are this feature's own addition and should not pretend
+// to be pictures. Class is `.mthumb`, not `.mtile`: the member tile also
+// claimed `.mtile`, and on client screens `.hf.s-client .mtile` outweighed
+// `.hf .mtile`, so every member card rendered at the media tile's 60×78 with
+// its name box computing to 2px.
+export function mediaStrip(
+  items: { label: string; photo?: number; kind?: "audio" | "link" | "note"; hotId?: string }[],
+): string {
+  const KIND_IC = { audio: "mic-line", link: "link-m", note: "sticky-note-line" } as const;
   return `<div class="mstrip">${items
-    .map(
-      (m) =>
-        `<div class="mtile ${m.note ? "note" : (m.tint ?? "quiet")}">${esc(m.label)}</div>`,
-    )
+    .map((m) => {
+      const tile =
+        m.photo === undefined
+          ? `<div class="mthumb kind"><span class="ic-wrap">${icon(KIND_IC[m.kind ?? "note"])}</span><span class="mtl">${esc(m.label)}</span></div>`
+          : `<div class="mthumb" role="img" aria-label="${escAttr(m.label)}" style="background-image:${photoFill(m.photo)}"><span class="zoom">${icon("search-line", "s")}</span></div>`;
+      return m.hotId ? hot(m.hotId, tile) : tile;
+    })
     .join("")}</div>`;
+}
+
+// ImagePreview — ImagePreviewDialog (shared/components/Dialog), the thing a
+// thumbnail opens into. Its header is a counter on the left and a control
+// cluster on the right, over a black-to-transparent gradient; the image is
+// object-contain inside a rounded, hairline-bordered viewport; prev/next arrows
+// appear only when there IS a prev or next. The zoom trio is `hidden sm:flex`
+// in the shipped component — pinch is native on touch — so a phone frame draws
+// download and close only, which is what makes room for the close button at
+// 375px. Photos only: the dialog is fed `photoOnlyData`, so a voice note or a
+// link in the same list is not part of the sequence and the counter never
+// counts it (Media.tsx:165).
+export function imagePreview(opts: {
+  ix: number;
+  of: number;
+  photo: number;
+  closeHotId: string;
+  downloadHotId: string;
+  prevHotId?: string;
+  nextHotId?: string;
+}): string {
+  const iconBtn = (id: string | undefined, ic: string, label: string, cls: string) => {
+    const b = `<button class="ipb ${cls}" type="button" aria-label="${escAttr(label)}">${icon(ic)}</button>`;
+    return id ? hot(id, b) : b;
+  };
+  return `<div class="ipv" role="dialog" aria-label="Image preview" aria-modal="true">
+<div class="iph"><span class="ipc">${opts.ix} / ${opts.of}</span><span class="ipa">${iconBtn(
+    opts.downloadHotId,
+    "external-link-line",
+    "Download image",
+    "",
+  )}<span class="ipsep">${iconBtn(opts.closeHotId, "close-line", "Close preview", "solid")}</span></span></div>
+<div class="ipi" style="background-image:${photoFill(opts.photo)}"></div>
+${opts.prevHotId ? iconBtn(opts.prevHotId, "arrow-left-s-line", "Previous image", "nav prev") : ""}
+${opts.nextHotId ? iconBtn(opts.nextHotId, "arrow-right-s-line", "Next image", "nav next") : ""}
+</div>`;
 }
 
 // ---- forms (W3 / sheets) ----------------------------------------------------
@@ -569,13 +713,13 @@ export function memberRow(opts: {
   sub?: string;
   joined?: string;
   badge?: string;
+  photo?: number;
   select?: "on" | "off";
   hotId?: string;
 }): string {
-  const initial = /^0x/i.test(opts.name) ? "" : esc(opts.name.trim().charAt(0).toUpperCase());
   const sel = opts.select ? `<span class="msel${opts.select === "on" ? " on" : ""}" aria-hidden="true"></span>` : "";
   const row = `<div class="mbrow${opts.select === "on" ? " picked" : ""}">
-<span class="avatar">${initial}</span>
+${avatar({ name: opts.name, photo: opts.photo })}
 <div class="grow"><div class="mn${/^0x/i.test(opts.name) ? " addr" : ""}">${esc(opts.name)}</div>${
     opts.sub ? `<div class="ms">${esc(opts.sub)}</div>` : ""
   }${opts.joined ? `<div class="mj">${icon("calendar-line", "s")}${esc(opts.joined)}</div>` : ""}</div>

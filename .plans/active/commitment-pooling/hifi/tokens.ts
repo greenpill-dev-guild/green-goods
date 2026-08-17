@@ -176,14 +176,33 @@ export const HIFI_CSS = `
 .hf.s-client .drow:last-child{border-bottom:0}
 .hf.s-client .drow .dk{color:var(--stone);flex:none}
 .hf.s-client .drow .dv{font-weight:600;text-align:right;min-width:0;overflow-wrap:anywhere}
-/* Evidence as real thumbnails rather than text rows with an image icon. */
-.hf.s-client .mstrip{display:flex;gap:7px;overflow-x:auto;padding:10px;scrollbar-width:none}
-.hf.s-client .mstrip::-webkit-scrollbar{display:none}
-.hf.s-client .mtile{width:60px;height:78px;border-radius:10px;flex:none;display:flex;
-  align-items:center;justify-content:center;font-size:10px;background:#EAEFE2;color:#3E5532}
-.hf.s-client .mtile.waste{background:#F4E8E2;color:#9B3C2D}
-.hf.s-client .mtile.garden,.hf.s-client .mtile.quiet{background:var(--stone-bg);color:var(--stone)}
-.hf.s-client .mtile.note{background:var(--card);border:1px dashed var(--ln2);color:var(--stone)}
+/* Evidence as real thumbnails rather than text rows with an image icon. These
+   used to be .mtile — the same class the member tile claimed — and because
+   .hf.s-client .mtile outweighs .hf .mtile, every member card on a client
+   screen rendered at 60×78 with its name box computing to 2px tall. Renamed
+   .mthumb; the two components no longer share a selector.
+   A photo draws its picture. A voice note, link or written note has no picture,
+   so it keeps the dashed tile and shows its KIND as a glyph — the shipped
+   WorkView media section only ever holds images, and pretending otherwise is
+   what produced a box with the word "photo" in it. */
+.hf .mstrip{display:flex;gap:7px;overflow-x:auto;padding:10px;scrollbar-width:none}
+.hf .mstrip::-webkit-scrollbar{display:none}
+.hf .mthumb{width:60px;height:78px;border-radius:10px;flex:none;position:relative;overflow:hidden;
+  background-size:cover;background-position:center;background-repeat:no-repeat}
+.hf .mthumb.kind{background:var(--card);border:1px dashed var(--ln2);color:var(--stone);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px}
+.hf .mthumb.kind .ic{width:18px;height:18px;color:var(--stone)}
+.hf .mthumb .mtl{font-size:10px;line-height:1.1;text-align:center;padding:0 4px;
+  max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* The zoom affordance Media.tsx puts over a photo (RiZoomInLine on the hover
+   overlay). On touch there is no hover, so it sits permanently at low weight. */
+.hf .mthumb .zoom,.hf .lthumb .zoom{position:absolute;right:3px;bottom:3px;width:16px;height:16px;
+  border-radius:50%;background:rgba(0,0,0,.42);display:flex;align-items:center;justify-content:center}
+.hf .mthumb .zoom .ic,.hf .lthumb .zoom .ic{width:10px;height:10px;color:#fff}
+/* List-row thumbnail — 44px, the shipped minimum touch target, so tapping the
+   picture to preview it lands on a target a finger already expects. */
+.hf .lthumb{width:44px;height:44px;border-radius:10px;flex:none;position:relative;overflow:hidden;
+  background-size:cover;background-position:center;background-repeat:no-repeat;display:block}
 
 /* COMMITMENT CARD (option E, 2026-08-16 round 9). Text column left, square right.
    The square is sized in px rather than stretched: align-self:stretch with
@@ -431,20 +450,40 @@ export const HIFI_CSS = `
 .hf .idcard .pflat{display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--stone)}
 .hf .idcard .pflat .ic{color:var(--stone);flex:none}
 
-/* Member tile — the added-team carousel on the details step. A compact form of
-   the Gardeners row: avatar over name, tapped to open. */
-.hf .mtrail{display:flex;gap:8px;overflow-x:auto;margin:0 -16px;padding:2px 16px 4px;scrollbar-width:none}
+/* Member card — the added-team carousel on the details step. GardenMemberItem's
+   own layout at a fixed width: 40px avatar left, name and account stacked
+   beside it, role beneath. 216px shows one and a half cards on a 375px phone,
+   which is the peek that says "this scrolls". The remove control is absolutely
+   positioned so it costs the text column nothing — the column is 142px, enough
+   for "Contributor" and for most names before the ellipsis. */
+.hf .mtrail{display:flex;gap:8px;overflow-x:auto;margin:0 -16px;padding:2px 16px 6px;scrollbar-width:none}
 .hf .mtrail::-webkit-scrollbar{display:none}
-.hf .mtile{flex:0 0 96px;border:1px solid var(--ln);border-radius:14px;background:var(--card);
-  padding:10px 8px;display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center}
-.hf .mtile .avatar{width:40px;height:40px;border-radius:50%;background:var(--act);color:var(--on-act);
-  display:inline-flex;align-items:center;justify-content:center;font-size:15px;font-weight:600;flex:none}
-.hf .mtile .mtn{font-weight:600;font-size:12.5px;color:var(--ink);max-width:100%;
-  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.hf .mtile .mts{font-size:11px;color:var(--stone);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-/* The add tile closes the rail rather than sitting apart from it. */
-.hf .mtile.addtile{border-style:dashed;justify-content:center;color:var(--act)}
-.hf .mtile.addtile .ic{color:var(--act)}
+.hf .mcard{flex:0 0 216px;position:relative;border:1px solid var(--ln);border-radius:14px;
+  background:var(--card);padding:12px;display:flex;align-items:center;gap:10px;min-width:0}
+/* The text column clears the absolutely-placed remove control, exactly as
+   GardenMemberItem pads its own column (pr-14) to clear the Operator badge
+   pinned at top-2 right-2. Without it the 44px touch target — the global
+   minimum, larger than the 28px glyph box — lands on top of the name. */
+.hf .mcard .grow{min-width:0;padding-right:34px}
+.hf .mcard .mn{font-weight:600;font-size:13.5px;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hf .mcard .mn.addr{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px}
+.hf .mcard .ms{font-size:11.5px;color:var(--stone);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* Role reads as a quiet line, not a badge — every card carries one, and five
+   filled pills in a row would out-shout the names they describe. The lead is
+   the exception: exactly one person is accountable, so that one gets weight. */
+.hf .mcard .mrole{margin-top:3px;font-size:11px;color:var(--stone);text-transform:uppercase;letter-spacing:.04em}
+.hf .mcard .mrole.lead{color:var(--act);font-weight:700}
+.hf .mcard .mcx{position:absolute;top:0;right:0;border:0;background:none;padding:0;
+  display:flex;align-items:center;justify-content:center;cursor:pointer}
+.hf .mcard .mcxb{width:26px;height:26px;border:1px solid var(--ln2);border-radius:9px;
+  background:var(--card);color:var(--stone);display:flex;align-items:center;justify-content:center}
+.hf .mcard .mcx .ic{width:13px;height:13px}
+/* The add card closes the rail rather than sitting apart from it. Narrower than
+   a member — it holds one word, not three lines. */
+.hf .mcard.addtile{flex:0 0 104px;border-style:dashed;flex-direction:column;justify-content:center;
+  gap:6px;color:var(--act)}
+.hf .mcard.addtile .ic{color:var(--act)}
+.hf .mcard.addtile .mtn{font-weight:600;font-size:12.5px;color:var(--act)}
 
 /* FormCard — the shipped review's per-detail card (FormCard.tsx:19): an icon +
    label head above a rule, the value beneath. Stacked one per detail under an
@@ -475,8 +514,14 @@ export const HIFI_CSS = `
   box-shadow:0 1px 2px color-mix(in srgb,var(--ink) 6%,transparent)}
 .hf .mbrow+.mbrow{margin-top:8px}
 .hf .mbrow.picked{border-color:var(--act);box-shadow:inset 0 0 0 1px var(--act)}
-.hf .mbrow .avatar{width:40px;height:40px;border-radius:50%;background:var(--act);color:var(--on-act);
-  display:inline-flex;align-items:center;justify-content:center;font-size:15px;font-weight:600;flex:none}
+/* A gardener is a PHOTOGRAPH — Gardeners.tsx:72 resolves
+   member.avatar, then ensAvatar, then /images/avatar.png, and AvatarFallback is
+   an empty muted disc, never a letter. The 40px avatar on the member row and the
+   member card both draw one; .nopic is the generic-person case. */
+.hf .mbrow .avatar,.hf .mcard .avatar{width:40px;height:40px;border-radius:50%;flex:none;
+  display:inline-flex;align-items:center;justify-content:center;overflow:hidden;
+  background-color:var(--stone-bg);background-size:cover;background-position:center}
+.hf .mbrow .avatar.nopic .ic,.hf .mcard .avatar.nopic .ic{width:22px;height:22px;color:var(--stone)}
 .hf .mbrow .mn{font-weight:600;font-size:14.5px;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 /* A wallet address stands in for the name only when nothing better is on file,
    so it reads as an identifier rather than as a person's name. */
@@ -573,6 +618,38 @@ export const HIFI_CSS = `
 .hf .kv{display:flex;justify-content:space-between;gap:12px;font-size:13.5px;padding:3px 0}
 .hf .kv .k{color:var(--stone)}
 .hf .kv .v{font-weight:550;text-align:right;font-variant-numeric:tabular-nums}
+
+/* Image preview — ImagePreviewDialog. Fills the phone the way a fullscreen
+   viewer does, so the device status bar goes light-on-dark over it rather than
+   staying a white strip; :has() binds that to the preview's presence instead of
+   a hardcoded status-bar height that would drift. The zoom trio is hidden below
+   the sm breakpoint in the shipped component (pinch is native on touch), so a
+   phone draws download and close only — which is what keeps close on-screen at
+   375px. */
+.hf .ipv{position:absolute;inset:0;z-index:9;background:rgba(0,0,0,.93);
+  display:flex;align-items:center;justify-content:center;border-radius:32px}
+.hf .scr:has(.ipv) .statusbar{background:transparent;color:#fff;z-index:10;position:relative}
+.hf .scr:has(.ipv) .sb-sig i{background:#fff}
+.hf .scr:has(.ipv) .sb-batt{border-color:#fff}
+.hf .scr:has(.ipv) .statusbar .ic{color:#fff}
+.hf .iph{position:absolute;top:34px;left:0;right:0;z-index:2;display:flex;align-items:center;
+  justify-content:space-between;padding:10px 12px 18px;
+  background:linear-gradient(to bottom,rgba(0,0,0,.5),rgba(0,0,0,0))}
+.hf .ipc{font-size:13px;font-weight:600;color:#fff;font-variant-numeric:tabular-nums}
+.hf .ipa{display:flex;align-items:center}
+.hf .ipb{width:36px;height:36px;border-radius:50%;border:0;padding:0;cursor:pointer;
+  background:rgba(255,255,255,.10);display:flex;align-items:center;justify-content:center}
+.hf .ipb .ic{width:18px;height:18px;color:#fff}
+.hf .ipb.solid{background:rgba(255,255,255,.20)}
+/* Close is separated from the download cluster by a rule, as it is in the
+   shipped header — it is the one control that ends the preview. */
+.hf .ipsep{margin-left:12px;padding-left:12px;border-left:1px solid rgba(255,255,255,.2);display:flex}
+/* object-contain: the photo is shown whole at its own aspect, not cropped. */
+.hf .ipi{width:calc(100% - 32px);aspect-ratio:4/3;max-height:62%;border-radius:14px;
+  border:1px solid rgba(255,255,255,.12);background-size:cover;background-position:center}
+.hf .ipb.nav{position:absolute;top:50%;translate:0 -50%;z-index:2}
+.hf .ipb.nav.prev{left:14px}
+.hf .ipb.nav.next{right:14px}
 
 /* in-phone bottom sheet (W2a / W4) */
 .hf .sheetstage{position:relative;flex:1;display:flex;flex-direction:column;min-height:0}

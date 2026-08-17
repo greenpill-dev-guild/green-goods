@@ -1271,6 +1271,26 @@ Known mis-resolutions fixed in place: `contract-spec.md` §Grassroots-Economics-
     fixture plus three gallery specimens. **(d) C.7 claim-side reciprocity: PARKED** while
     the UI stabilises; the proposal stands as written and needs no rework. Full text:
     `uiux-spec.md` C.10, C.12, C.21, C.22 and the C.7 parking note.
+127. A person is a photograph, and so is a photo (2026-08-17, round 23, Afo). Two
+    surfaces drew a *description of* a thing where the thing belongs. **(a) The team card
+    was a CSS collision, not a taste call.** `memberTile` and `mediaStrip` both emitted
+    `class="mtile"`; `.hf.s-client .mtile` outweighs `.hf .mtile`, so every member card on a
+    client screen rendered at the media tile's 60×78 with its name and account boxes
+    computing to 2px — "just one letter". Media's class is `.mthumb` now and the two no
+    longer share a selector. **(b) The carousel stays; the card grows up.** Option C:
+    GardenMemberItem's layout at 216px — photo, name, account, role — remove control
+    absolutely placed with the text column padded to clear it, the same move shipped makes
+    with `pr-14`. Registered-date dropped (a team being assembled, not a membership record);
+    role kept, because exactly one member is the accountable `leadProvider` and this is the
+    last cheap moment to change which. **(c) Avatars are photographs** —
+    `member.avatar || ensAvatar || /images/avatar.png`, never an initial; the letter discs
+    had no shipped analog. **(d) Media stays ONE list** (Afo, against the shipped two-zone
+    grid) **with the picture on the photo rows** — 44px, the shipped minimum touch target,
+    tappable into `ImagePreviewDialog`. Read-only strips carry real thumbnails everywhere;
+    non-image kinds keep a dashed tile with their kind as a glyph, since WorkView's media
+    section only ever holds images. The preview is a **dialog, not a route**: it renders the
+    state underneath verbatim and adds an overlay, counts photos only (`photoOnlyData`), and
+    draws an arrow only where there is a neighbour. Full text: `uiux-spec.md` C.23.
 
 **Final recursive certification clarification (2026-07-25; no new decision-register entry):**
 the published `42161`↔`42220` production lane is the only required fully paired

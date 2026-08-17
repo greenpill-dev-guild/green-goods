@@ -1718,6 +1718,67 @@ guard and carries a deliberately long fixture — a garden really can name a uni
 accompanied market transport runs" — so the truncation is visible in a drawn state, with
 three gallery specimens covering short, at-cap and past-cap.
 
+### C.23 A person is a photograph, and so is a photo (2026-08-17, round 23)
+
+Two surfaces were drawing a *description of* a thing where the thing itself belongs.
+
+**The team card.** The added-team carousel held a 96px tile carrying an initial and two
+truncated lines. It never even drew that: `memberTile` and `mediaStrip` both emitted
+`class="mtile"`, and because `.hf.s-client .mtile` (three classes) outweighs `.hf .mtile`
+(two), every member card on a client screen rendered at the *media tile's* 60×78 in the
+media tile's green — 40px avatar plus 20px padding plus gaps consuming 72 of 78px, leaving
+the name and account boxes computing to **2px tall each**. What reached the screen was a
+green square with one letter in it (Afo: *"they don't give any context as to who you added
+or anything"*).
+
+The carousel was never the problem — it is the right call for space, since a vertical roster
+pushes the media list off a 700px phone at three people. What it held was. Each card is now
+**GardenMemberItem's own layout at 216px**: photo, name, account, role, with the remove
+control absolutely placed and the text column padded to clear it — the same move
+`GardenMemberItem` makes with `pr-14` to clear its Operator badge. 216px shows one and a
+half cards, which is the peek that says *this scrolls*.
+
+Registered-date is deliberately dropped. Gardeners.tsx carries it because that list is a
+membership record; this list is a team being assembled, and when someone joined the garden
+has no bearing on whether they belong on this commitment. **Role does**: exactly one member
+is the accountable `leadProvider`, the roster freezes at readiness, and this is the last
+cheap moment to correct which one it is. Lead carries weight; Contributor is a quiet line,
+because five filled pills in a row would out-shout the names they describe.
+
+**The avatar.** `Gardeners.tsx:72` resolves `member.avatar`, then `ensAvatar`, then
+`/images/avatar.png`, and `AvatarFallback` is an empty muted disc. A gardener is a
+**photograph** in the product and never an initial; the letter discs in this kit were an
+invention with no shipped analog, which is how a member card could collapse to one letter
+and still look deliberate. `avatar()` draws a photo, or the generic-person glyph when
+nothing is on file.
+
+**Media.** The capture step drew text rows — *"North beds — before · Photo · just now"* —
+beside a generic `image-line` glyph, and `mediaStrip` put the **word** "photo" inside a
+tinted box. No image appeared anywhere in the feature. `Media.tsx:688-818` renders every
+photo as an `<img>` at `aspect-4/3`, opens `ImagePreviewDialog` on tap, and puts its remove
+control in a 44px target at `top-2 right-2`.
+
+Media stays **one list** — a photo, a voice note, a link and a written note are all things
+you attached (Afo, against the shipped two-zone grid) — and the photo rows carry the
+picture: a 44px thumbnail, the shipped minimum touch target, tappable into the preview. The
+read-only strip carries real thumbnails too, on every review and on the commitment view,
+because whoever is deciding — a neighbour weighing an offer, a confirmer weighing whether it
+was kept — is deciding on the photograph. A voice note, link or written note has no picture
+to draw, so it keeps a dashed tile carrying its **kind as a glyph** rather than pretending to
+be one.
+
+**The preview is a dialog, not a route.** `W2@evidence-preview` renders `evidence-submitted`
+verbatim and adds an overlay; the surface underneath keeps its scroll and its state. Only
+photos are in the sequence, because the dialog is fed `photoOnlyData` (`Media.tsx:165`) — a
+voice note in the same list is skipped and the counter never counts it. Arrows appear only
+where there IS a neighbour, and the zoom trio is hidden below the `sm` breakpoint in the
+shipped component (pinch is native on touch), which is what keeps close on-screen at 375px.
+
+The photographs themselves are layered gradients: the artifact is one self-contained file
+and cannot fetch an image. Each fill carries a bright source, a shadowed corner and a body
+ramp, because two flat layers read as a colour swatch at 44px and a photograph has light
+coming from somewhere.
+
 ### C.7 PARKED — reciprocity from the claim side (2026-08-16, register #103)
 
 > **Parked 2026-08-17 (Afo): "park it for now and we stabilize and polish the UI."** The
