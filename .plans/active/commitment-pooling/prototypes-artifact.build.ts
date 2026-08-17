@@ -809,8 +809,8 @@ const claimantAllowedFields = [
   "provider",
   "terms",
   "garden",
-  "availablePlaces",
-  "placeTerms",
+  "openNow",
+  "openTerms",
   "claimExplanation",
 ];
 const claimantRenderedFields = [...claimantView.matchAll(/data-claimant-field="([^"]+)"/g)].map(
@@ -834,7 +834,15 @@ for (const [screenId, stateId] of [["W3", "support-review-ongoing"], ["W34", "ac
 }
 const requiredTargets: [string, string][] = [
   ["w32.offer-once", "screen:W3@saved-offer-edit"],
-  ["w32.offer-over-time", "screen:W3@support-howmuch-ongoing"],
+  // Was `support-howmuch-ongoing` — this assertion locked the decision that the
+  // separate ongoing wizard retires INTO the composer, and that still holds.
+  // What changed (2026-08-17, Afo) is where in the composer it lands: jumping
+  // straight to the amount step made this the one entry that never picked a
+  // cycle, and an ongoing offer has to name where it runs, because every
+  // commitment it opens carries that cycle.
+  // Normalized to the bare screen id: step-what is W3's first state, and
+  // validate.ts strips "@<first state>" from every target.
+  ["w32.offer-over-time", "screen:W3"],
   ["w3.submit-ongoing", "screen:W32@series-queued"],
   ["w35.queued-done", "screen:W34@places-queued"],
 ];

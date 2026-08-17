@@ -91,10 +91,46 @@ export function banner(text: string, tone: "amber" | "stone" | "green" | "error"
 
 // ---- atoms ------------------------------------------------------------------
 
-export type ChipTone = "plain" | "offer" | "request" | "domain" | "ok" | "warn" | "err" | "ink" | "queued";
+// `season` and `campaign` are ONE hue at two weights (2026-08-17, Afo: "the
+// season/campaign tag should be color coded"). They needed their own, because a
+// cycle is a different CLASS of tag from the three that existed: offer/request
+// is direction, domain is subject matter, and a cycle is the container both sit
+// in. Admin had been drawing `chip("Campaign", "request")` — the Request tone
+// exactly — so a campaign tag and a request tag were the same colour, and the
+// client drew no chip at all, carrying the cycle as prose in the meta line.
+// Filled season, outlined campaign: the season is the pool's ground rhythm and
+// campaigns run on top of it, any number at a time.
+export type ChipTone =
+  | "plain" | "offer" | "request" | "domain" | "ok" | "warn" | "err" | "ink" | "queued"
+  | "season" | "campaign";
 export function chip(label: string, tone: ChipTone = "plain", opts: { dot?: boolean } = {}): string {
   const t = tone === "plain" ? "" : ` ${tone}`;
   return `<span class="ch${t}${opts.dot ? " dot" : ""}">${esc(label)}</span>`;
+}
+
+// Tap-first PICKERS are not chips-as-labels, even though they were built from
+// the same function (2026-08-17, Afo: "the unit, how many each one and open
+// places to start … can be slightly bigger so easier to select"). A label on a
+// card describes; a picker is a control, and `.ch`'s box reset at tokens.ts
+// deliberately defeats the 44px minimum — correct for the label, an
+// accessibility defect for the control. `pickRow` is the control form: same
+// shape, real target, one row.
+export function pickRow(
+  items: { label: string; on?: boolean; hotId?: string }[],
+  opts: { ariaLabel?: string } = {},
+): string {
+  const label = opts.ariaLabel ? ` aria-label="${escAttr(opts.ariaLabel)}"` : "";
+  return `<div class="pickrow" role="group"${label}>${items
+    .map((it) => {
+      // Preview-only pickers are honestly disabled — the selected value is a
+      // fixture, not a live control (validate.ts's enabled-button rule). Only a
+      // picker that actually goes somewhere carries a hotspot.
+      const b = `<button type="button" class="pick${it.on ? " on" : ""}"${
+        it.on ? ' aria-pressed="true"' : ' aria-pressed="false"'
+      }${it.hotId ? "" : " disabled"}>${esc(it.label)}</button>`;
+      return it.hotId ? hot(it.hotId, b) : b;
+    })
+    .join("")}</div>`;
 }
 
 // Tap-first reasons (register #95): the common reasons for an act render as
@@ -766,7 +802,7 @@ export function cycleCard(opts: {
 }): string {
   const inner = `<div class="pcbody"><div class="t-title">${esc(opts.title)}</div><div class="t-meta num">${
     opts.units ? `${esc(opts.units)} open` : "nothing open"
-  }</div><div class="t-meta num">${esc(opts.counts)}</div><div class="ptags">${chip(opts.kind)}${chip(opts.stage)}</div></div>${
+  }</div><div class="t-meta num">${esc(opts.counts)}</div><div class="ptags">${chip(opts.kind, opts.kind === "Season" ? "season" : opts.kind === "Campaign" ? "campaign" : "plain")}${chip(opts.stage)}</div></div>${
     opts.media ? `<div class="pmedia tall ${opts.media.tint ?? "quiet"}">${esc(opts.media.label)}</div>` : `<div class="pmedia tall none"></div>`
   }`;
   const c = card(inner, { cls: `pcard2 cyc${opts.hotId ? " cardlink" : ""}` });
@@ -841,6 +877,14 @@ export function commitmentCard(opts: {
   meta: string;
   // Ordered by priority. The first is the kind chip and is never dropped.
   tags: { label: string; tone?: ChipTone }[];
+  // The cycle gets its OWN slot rather than competing for the three tag places
+  // (2026-08-17, Afo). It had been prose in the meta line — "Tool library
+  // campaign", "runs with the season" — so the client had no cycle tag to
+  // colour at all. It is justified on the card despite the carousel above it
+  // naming a cycle, because the pool list MIXES cycles: the season and its
+  // campaigns appear together under "All current", and a row in a mixed list
+  // has to name its own container (frontend-design Rule 17's stated exception).
+  cycle?: { label: string; kind: "season" | "campaign" };
   media?: { label: string; tint?: "agro" | "waste" | "garden" | "quiet" };
   hotId?: string;
   note?: string;
@@ -850,7 +894,7 @@ export function commitmentCard(opts: {
   const hidden = opts.tags.length - shown.length;
   const tagRow = `<div class="ptags">${shown.map((t) => chip(t.label, t.tone ?? "plain")).join("")}${
     hidden > 0 ? `<span class="ch more">+${hidden}</span>` : ""
-  }</div>`;
+  }${opts.cycle ? chip(opts.cycle.label, opts.cycle.kind) : ""}</div>`;
   const media = opts.media
     ? `<div class="pmedia ${opts.media.tint ?? "quiet"}">${esc(opts.media.label)}</div>`
     : `<div class="pmedia none"></div>`;
@@ -884,7 +928,7 @@ export function offerCard(opts: {
   if (opts.failed) tags.push({ label: "Couldn't send", tone: "err" });
   tags.push({ label: "AGRO" });
   const title = opts.waiting ? "Compost workshop" : "Prune the north beds";
-  const amount = opts.waiting ? "3 sessions · runs with the season" : "6 hours · due Aug 12";
+  const amount = opts.waiting ? "3 sessions" : "6 hours · due Aug 12";
   const note = opts.waiting
     ? "Waiting for your garden membership — it will send once you're welcomed in."
     : opts.failed
@@ -896,6 +940,7 @@ export function offerCard(opts: {
     title,
     meta: own ? amount : `Maria · ${amount}`,
     tags,
+    cycle: { label: "First Rains", kind: "season" },
     media: opts.waiting ? undefined : { label: "photo", tint: "agro" },
     note,
     acts: opts.failed
@@ -915,21 +960,25 @@ export function requestCard(opts: { openClaim?: boolean; queued?: boolean; conte
   tags.push({ label: "Support / service" });
   return commitmentCard({
     title: "Ride to the market on Saturday",
-    meta: opts.queued ? `1 ride · ${opts.context ?? "runs with the season"}` : `Ana · 1 ride · ${opts.context ?? "runs with the season"}`,
+    meta: opts.queued ? "1 ride" : "Ana · 1 ride",
     tags,
+    cycle: opts.context
+      ? { label: opts.context.replace(/ campaign$/, ""), kind: "campaign" as const }
+      : { label: "First Rains", kind: "season" as const },
     note: opts.queued ? "Saved on this device — it will send when connected." : undefined,
     hotId: opts.queued ? undefined : opts.openClaim ? "w1.open-request" : "w1.open-request-gated",
   });
 }
 
 // Ongoing-Offer place card — the public life of a CommitmentSeries on the pool
-// tab (D8a): the "Ongoing" tag plus places-left is the card's real progress,
+// tab (D8a): the "Ongoing" tag plus how many are left is the card's real progress,
 // and the whole card opens the series detail where places are taken up.
 export function ongoingOfferCard(): string {
   return commitmentCard({
     title: "Saturday veggie box",
-    meta: "Maria · 1 box each week · 2 places open",
+    meta: "Maria · 1 box each week · 2 open open",
     tags: [{ label: "Offer", tone: "offer" }, { label: "Ongoing" }, { label: "Support / service" }],
+    cycle: { label: "First Rains", kind: "season" },
     hotId: "w1.open-ongoing",
   });
 }

@@ -1779,6 +1779,77 @@ and cannot fetch an image. Each fill carries a bright source, a shadowed corner 
 ramp, because two flat layers read as a colour swatch at 44px and a photograph has light
 coming from somewhere.
 
+### C.24 The three Offer flows (2026-08-17, round 24)
+
+Afo reviewed all three Offer paths and named eight things. Six were confirmed; two were
+worse than reported.
+
+**Cycles had no tag on the client and the wrong one in admin.** The client carried the
+cycle as prose in the meta line — *"Tool library campaign"*, *"runs with the season"* — so
+there was nothing to colour. Admin drew `chip("Campaign", "request")`, the Request tone
+exactly, which made a campaign tag and a request tag the same colour. Cycles now have their
+own hue at two weights: **season filled, campaign outlined**, because the season is the
+pool's ground rhythm and campaigns run on top of it, any number at a time. They needed their
+own class because a cycle is a different KIND of tag from the ones that existed —
+offer/request is direction, domain is subject matter, and a cycle is the container both sit
+in. The chip gets a dedicated slot on the card rather than competing for the three tag
+places, and it is justified beside a carousel that already names a cycle because **the pool
+list mixes cycles**: the season and its campaigns appear together under "All current", which
+is frontend-design Rule 17's stated exception.
+
+**Who confirms moved into step 3.** It had been the last card of the review, reachable only
+through the Advanced detour — so the one question about another person, and the one thing
+that decides whether a commitment can ever be closed, was discovered after scrolling past
+six details you had already answered. Step 3 now asks three things in order: **who confirms,
+the team, the media** (Afo). The review follows, and the rule that makes it follow is worth
+stating on its own: **the review reads in the order you filled it in** — Garden and Details
+carry steps 1–2, then step 3's three sections in step 3's order. Team appears in a review
+for the first time; it had been chosen on step 3 and never shown again before sending.
+
+**Five queued outcomes had five compositions.** `queued` had filters but no section header
+and grew a disclosure drawer that exists in no other pool state; `support-queued` swapped the
+carousel for a bare `seasonCard` and dropped the filters entirely; three carried an offline
+banner and two did not. They are one screen now — the pool tab you were already on, with the
+commitment you just made at the top of it. The banner is gone **everywhere** rather than
+added everywhere: the card carries a dashed Queued chip, the status bar carries the offline
+glyph, and the card's own note says what happens next, so it was a third statement of one
+fact costing ~60px above the fold. Landing back where the thing lives, with the thing
+visible, is the confirmation.
+
+**Pickers are controls, not chips.** `.ch`'s box reset deliberately defeats the 44px
+minimum — right for a chip that labels a card, an accessibility defect for the unit, amount
+and count pickers on the how-much step, which were built from the same function and rendered
+at a 24px box. `pickRow` is the control form: same shape and rhythm, a real target, a pressed
+state a label has no use for, and honestly disabled when it is preview-only.
+
+**"Places" is retired.** The word was a second name for something that already had one:
+`standing-commitments-spec.md:224` says *"two available workshop places are two ordinary
+Offer instances"*, and it appears in neither the community glossary nor the contract, which
+knows only `Commitment` and `CommitmentSeries`. It was also introduced before it was defined —
+step 2 read *Unit · How many each place · Open places to start*, with the sentence explaining
+what a place is arriving after all three. The noun is gone; the verb is **open**, which is
+what the act does. State keys and hotspot ids keep the old word, as they did through the
+promise→commitment rename: they are deep-link addresses, not prose.
+
+**An ongoing offer lives with the season, and that needs no contract change.**
+`CommitmentSeries` is `{poolId, createdBy, currentHolder, state, metadataCID,
+creationPayloadHash}` — pool-scoped, with **no `cycleId`**. But `Commitment` carries both
+`cycleId` and `commitmentSeriesId`, so **every commitment the series opens already names a
+cycle on chain**. "This offer runs in the Season of First Rains" is therefore a true
+statement about all of them, made with fields that exist today. Two consequences follow and
+are now drawn: the Things-I-can-offer entry, which jumped straight to the amount step and was
+the one path that never picked a cycle, enters at step 1 like every other; and when a season
+ends the offer stays yours — the commitments it opened finish where they are, and it opens
+nothing new until the next cycle starts. The honest limit: the series record itself stores no
+cycle, so a series spanning two seasons will have commitments naming different ones, which is
+also the correct behaviour.
+
+**The ongoing offer is a commitment view.** W34 had its own header, its own sections and its
+own vocabulary across 35 states, while each thing it opens is an ordinary commitment that
+opens W2. A series is a container of commitments, so it reads as one: the same identity card
+W2 leads with — title, kind/state/**cycle** chips, the provider — then the completion picture,
+then sections. That identity card is also where the season binding becomes visible.
+
 ### C.7 PARKED — reciprocity from the claim side (2026-08-16, register #103)
 
 > **Parked 2026-08-17 (Afo): "park it for now and we stabilize and polish the UI."** The

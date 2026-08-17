@@ -39,6 +39,7 @@ export const HIFI_CSS = `
   --ln2:#D6D3D1; --gr:#1FC16B; --gr-ink:#15803D; --act:#1A7544; --acth:#16643B;
   --err:#E11D2E; --amb:#B45309; --amb-bg:#FBF3E4; --sky:#2563EB; --sky-bg:#EBF1FD;
   --gr-bg:#E9F5EC; --stone-bg:#F3F1EE; --scrim:rgba(12,10,9,.34);
+  --cyc:#6B4A7A; --cyc-bg:#F4EEF6;
   font-family:Inter,-apple-system,"SF Pro Text","Segoe UI",system-ui,sans-serif;
   color:var(--ink);
   -webkit-font-smoothing:antialiased;
@@ -48,6 +49,7 @@ export const HIFI_CSS = `
   --ln2:#44403C; --gr:#1FC16B; --gr-ink:#4ADE80; --act:#25A05E; --acth:#2DBF70;
   --err:#F87171; --amb:#E7A93F; --amb-bg:#2E2412; --sky:#7CA9F9; --sky-bg:#182337;
   --gr-bg:#12291A; --stone-bg:#262320; --scrim:rgba(0,0,0,.5);--on-act:#04290F;
+  --cyc:#C9A8D8; --cyc-bg:#251C2A;
 }
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]) .hf.s-client{
@@ -55,6 +57,7 @@ export const HIFI_CSS = `
     --ln2:#44403C; --gr:#1FC16B; --gr-ink:#4ADE80; --act:#25A05E; --acth:#2DBF70;
     --err:#F87171; --amb:#E7A93F; --amb-bg:#2E2412; --sky:#7CA9F9; --sky-bg:#182337;
     --gr-bg:#12291A; --stone-bg:#262320; --scrim:rgba(0,0,0,.5);--on-act:#04290F;
+    --cyc:#C9A8D8; --cyc-bg:#251C2A;
   }
 }
 
@@ -171,6 +174,9 @@ export const HIFI_CSS = `
   color:var(--stone);margin:14px 0 6px}
 .hf.s-client .card.sect{padding:0;overflow:hidden;gap:0}
 .hf.s-client .card.sect.flush{padding:10px}
+/* An empty section says what is missing inside its own card rather than
+   replacing the card with a different component. */
+.hf.s-client .cempty{padding:6px 4px 10px;display:flex;flex-direction:column;gap:4px}
 .hf.s-client .drow{display:flex;justify-content:space-between;gap:12px;padding:9px 12px;
   border-bottom:1px solid var(--ln);font-size:12.5px}
 .hf.s-client .drow:last-child{border-bottom:0}
@@ -304,6 +310,14 @@ export const HIFI_CSS = `
 .hf .ch.err{background:transparent;color:var(--err);box-shadow:inset 0 0 0 1px var(--err)}
 .hf .ch.ink{background:var(--ink);color:var(--cv)}
 .hf .ch.queued{background:transparent;color:var(--stone);box-shadow:inset 0 0 0 1px var(--ln2);border-style:dashed}
+/* Cycles — one hue, two weights. A cycle is a different CLASS of tag from the
+   three that existed (direction, subject matter, container), and admin had been
+   drawing Campaign in the Request tone, so the two were indistinguishable.
+   Season is filled because it is the pool's ground rhythm, one at a time;
+   campaigns are outlined because any number of them run on top of it. */
+.hf .ch.season{background:var(--cyc-bg);color:var(--cyc)}
+.hf .ch.campaign{background:transparent;color:var(--cyc);
+  box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--cyc) 38%,transparent)}
 .hf .ch.dot::before{content:"";width:6px;height:6px;border-radius:99px;background:currentColor}
 
 /* buttons — shared skeleton; per-dialect anatomy below (admin keeps its pill) */
@@ -1031,6 +1045,18 @@ export const HIFI_CSS = `
    original patch fixed width only, so the symptom moved instead of leaving).
    Reset the whole box the chrome rule touches, not one property of it. */
 .hf .ch{width:auto;height:auto;min-width:0;min-height:0;padding:2.5px 8px;border-radius:8px}
+/* …but a PICKER is not a label. The reset above is right for a chip that
+   describes a card and wrong for the tap-first controls on the how-much step,
+   which were built from the same function and inherited a 24px box (2026-08-17,
+   Afo). .pick is the control form: same shape and rhythm, a real 44px target,
+   and a pressed state the label form has no need for. */
+.hf .pickrow{display:flex;flex-wrap:wrap;gap:8px}
+.hf .pick{min-height:44px;padding:0 15px;border-radius:12px;border:1px solid var(--ln2);
+  background:var(--card);color:var(--ink);font:inherit;font-size:14px;font-weight:550;
+  display:inline-flex;align-items:center;white-space:nowrap;opacity:1}
+.hf .pick.on{background:var(--gr-bg);color:var(--gr-ink);border-color:var(--act);
+  box-shadow:inset 0 0 0 1px var(--act);font-weight:650}
+.hf .pick:hover{border-color:var(--stone)}
 /* flow form column — a step form sits directly on the route card (no card-on-card) */
 .hf .flowform{max-width:640px;display:flex;flex-direction:column;gap:11px}
 .hf .acard .ahead{display:flex;align-items:center;gap:10px;flex-wrap:wrap}

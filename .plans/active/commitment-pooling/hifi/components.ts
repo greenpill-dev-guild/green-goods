@@ -122,7 +122,7 @@ const CLIENT_ENTRIES: Entry[] = [
     rule: "The workhorse label for kind, direction, and quiet status on cards and rows; never the only signal for state that matters (that is StatusBadge's job).",
     usedIn: /class="ch[\s"]/,
     specs: [
-      { label: "all nine tones", html: `<div class="cardrow">${kit.chip("Season", "plain")}${kit.chip("Offer", "offer")}${kit.chip("Request", "request")}${kit.chip("AGRO", "domain")}${kit.chip("Accepted", "ok")}${kit.chip("Waiting", "warn")}${kit.chip("Couldn't send", "err")}${kit.chip("Closed", "ink")}${kit.chip("Queued", "queued")}</div>` },
+      { label: "all nine tones", html: `<div class="cardrow">${kit.chip("Season of First Rains", "season")}${kit.chip("Market rides", "campaign")}${kit.chip("Offer", "offer")}${kit.chip("Request", "request")}${kit.chip("AGRO", "domain")}${kit.chip("Accepted", "ok")}${kit.chip("Waiting", "warn")}${kit.chip("Couldn't send", "err")}${kit.chip("Closed", "ink")}${kit.chip("Queued", "queued")}</div>` },
       { label: "with dot", html: `<div class="cardrow">${kit.chip("Accepted", "ok", { dot: true })}${kit.chip("Waiting for steward review", "warn", { dot: true })}${kit.chip("Not this time", "plain", { dot: true })}</div>` },
     ],
   },
@@ -387,6 +387,17 @@ const CLIENT_ENTRIES: Entry[] = [
       { label: "value tail", html: kit.listRow({ icon: "hand-heart-line", primary: "Ride to the market", meta: "Saturday", trailing: `<span class="num">1 ride</span>` }) },
       { label: "a photo — thumbnail, tappable to preview", html: kit.listRow({ thumb: 0, primary: "North beds — before", meta: "Photo · just now", trailing: kit.btn("Remove", { kind: "ghost", sm: true, icon: "close-line", ariaLabel: "Remove this photo" }) }) },
       { label: "a voice note in the same list — no picture to draw", html: kit.listRow({ icon: "mic-line", primary: "Voice note", meta: "0:38 · tap to play" }) },
+    ],
+  },
+  {
+    id: "pick-row", title: "Picker row", family: "forms", covers: ["pickRow"],
+    kit: `pickRow([{label, on, hotId}], {ariaLabel})`,
+    netNew: "the tap-first value picker",
+    rule: "A picker is a CONTROL, not a chip. The two were built from the same function, and `.ch`'s box reset deliberately defeats the 44px minimum — right for a label that describes a card, an accessibility defect for the unit, amount and count pickers on the how-much step, which rendered at a 24px box. Same shape and rhythm as a chip, real touch target, and a pressed state a label has no use for. A picker with nowhere to go is honestly disabled rather than pretending to be live.",
+    usedIn: /class="pickrow"/,
+    specs: [
+      { label: "unit — one chosen", html: kit.pickRow([{ label: "hours", on: true }, { label: "tasks" }, { label: "meals" }, { label: "rides" }, { label: "other…" }]) },
+      { label: "amount, with a custom escape", html: kit.pickRow([{ label: "1" }, { label: "2" }, { label: "6", on: true }, { label: "12" }, { label: "custom…" }]) },
     ],
   },
   {
@@ -716,7 +727,7 @@ const CLIENT_ENTRIES: Entry[] = [
     kit: `skeleton({title, avatar, lines})`,
     ship: "packages/shared/src/components/Skeleton.tsx:34",
     shipNote: "SkeletonCard/SkeletonText; the client also ships per-card skeletons",
-    rule: "Loading preserves layout: the placeholder mirrors the card it stands in for, so nothing shifts when data lands.",
+    rule: "Loading preserves layout: the commitmentholder mirrors the card it stands in for, so nothing shifts when data lands.",
     usedIn: /class="sk[\s"]/,
     specs: [
       { label: "card", html: kit.skeleton() },
@@ -1061,7 +1072,7 @@ const ADMIN_ENTRIES: Entry[] = [
     usedIn: /class="prow"/,
     specs: [
       { label: "opens the commitment", html: kit.commitmentRow({ title: "Prune the north beds", chips: `${kit.chip("Offer", "offer")}${kit.chip("Accepted", "request", { dot: true })}`, meta: "Maria → João · 6 hours · due Aug 12", chevron: true }), w: "l" },
-      { label: "one trailing act", html: kit.commitmentRow({ title: "Market rides", chips: `${kit.chip("Campaign", "request")}${kit.chip("Past due", "warn", { dot: true })}`, meta: "due Jul 2 · still accepted", act: kit.btn("Expire now", { kind: "danger", sm: true }) }), w: "l" },
+      { label: "one trailing act", html: kit.commitmentRow({ title: "Market rides", chips: `${kit.chip("Campaign", "campaign")}${kit.chip("Past due", "warn", { dot: true })}`, meta: "due Jul 2 · still accepted", act: kit.btn("Expire now", { kind: "danger", sm: true }) }), w: "l" },
     ],
   },
   {
@@ -1083,7 +1094,7 @@ const ADMIN_ENTRIES: Entry[] = [
     rule: "When a card is ABOUT one object, that object heads the card — title, chips, counts, and its one act in the header — instead of a generic title with the object stacked beneath it as a second header. Peers list below under cardSection, whose own act creates more of them.",
     usedIn: /class="acard objcard"/,
     specs: [
-      { label: "season heads the card, campaigns follow", html: kit.objectCard({ title: "Season of First Rains", chips: `${kit.chip("Season", "ink")}${kit.chip("Open", "ok", { dot: true })}`, meta: "9 commitments · 7 kept · runs through Aug 30", acts: kit.btn("Close Season…", { kind: "sec", sm: true }), body: `${kit.stages(["Seeded", "Open", "In Progress", "Reviewing", "Reconciled", "Finished"], 1)}${kit.cardSection("Campaigns · 2 open", kit.btn("Start Campaign", { kind: "sec", sm: true }))}${kit.commitmentRow({ title: "Market rides", chips: `${kit.chip("Campaign", "request")}${kit.chip("Open", "ok", { dot: true })}`, meta: "16 commitments · 6 kept · runs through Sep 15" })}` }), w: "l" },
+      { label: "season heads the card, campaigns follow", html: kit.objectCard({ title: "Season of First Rains", chips: `${kit.chip("Season", "season")}${kit.chip("Open", "ok", { dot: true })}`, meta: "9 commitments · 7 kept · runs through Aug 30", acts: kit.btn("Close Season…", { kind: "sec", sm: true }), body: `${kit.stages(["Seeded", "Open", "In Progress", "Reviewing", "Reconciled", "Finished"], 1)}${kit.cardSection("Campaigns · 2 open", kit.btn("Start Campaign", { kind: "sec", sm: true }))}${kit.commitmentRow({ title: "Market rides", chips: `${kit.chip("Campaign", "campaign")}${kit.chip("Open", "ok", { dot: true })}`, meta: "16 commitments · 6 kept · runs through Sep 15" })}` }), w: "l" },
     ],
   },
   {
@@ -1130,7 +1141,7 @@ const ADMIN_ENTRIES: Entry[] = [
     // a "Cycles" card and a rail card titled "Pool — the container", both gone
     // from every screen. A gallery that documents a shape nothing renders is
     // worse than no gallery, so it now mirrors the shipped W7 split.
-    specs: [{ label: "left objects · right rail", html: `<div class="wsrow"><div class="wsmain">${kit.objectCard({ title: "Season of First Rains", chips: `${kit.chip("Season", "ink")}${kit.chip("Open", "ok", { dot: true })}`, meta: "9 commitments · 7 kept · runs through Aug 30", acts: kit.btn("Close Season…", { kind: "sec", sm: true }) })}</div><aside class="wsrail">${kit.acard("What This Pool Holds", kit.poolHoldings({ units: POOL_HOLDINGS.units.slice(0, 2), who: { one: "neighbor", many: "neighbors" } }))}${kit.acard("Pool Status", `<div class="t-meta">The container your seasons and campaigns run in.</div>${kit.kv("Commitment limit", "24 per person at once")}`, kit.chip("Open", "ok", { dot: true }))}</aside></div>`, w: "l" }],
+    specs: [{ label: "left objects · right rail", html: `<div class="wsrow"><div class="wsmain">${kit.objectCard({ title: "Season of First Rains", chips: `${kit.chip("Season", "season")}${kit.chip("Open", "ok", { dot: true })}`, meta: "9 commitments · 7 kept · runs through Aug 30", acts: kit.btn("Close Season…", { kind: "sec", sm: true }) })}</div><aside class="wsrail">${kit.acard("What This Pool Holds", kit.poolHoldings({ units: POOL_HOLDINGS.units.slice(0, 2), who: { one: "neighbor", many: "neighbors" } }))}${kit.acard("Pool Status", `<div class="t-meta">The container your seasons and campaigns run in.</div>${kit.kv("Commitment limit", "24 per person at once")}`, kit.chip("Open", "ok", { dot: true }))}</aside></div>`, w: "l" }],
   },
   {
     id: "meta-strip", title: "MetaStrip", family: "chrome", covers: [],

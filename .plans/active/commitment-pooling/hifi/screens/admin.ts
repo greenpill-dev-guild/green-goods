@@ -204,14 +204,14 @@ const w7Cycles = (state: W7State) => {
   // Campaigns are PEERS of the season, listed under the card's own section
   // divider — never nested under it, never a second card.
   const campaignRows = composted
-    ? `${commitmentRow({ title: "Market rides", chips: `${chip("Campaign", "request")}${chip("Finished", "plain", { dot: true })}`, meta: "16 commitments · 14 kept · ended Aug 30" })}
-${commitmentRow({ title: "Tool library", chips: `${chip("Campaign", "request")}${chip("Finished", "plain", { dot: true })}`, meta: "8 commitments · 8 kept · ended Aug 30" })}
-${commitmentRow({ title: "Seedling swap", chips: `${chip("Campaign", "request")}${chip("Finished", "plain", { dot: true })}`, meta: "6 commitments · 5 kept · ended Aug 30" })}`
-    : `${commitmentRow({ title: "Market rides", chips: `${chip("Campaign", "request")}${chip("Open", "ok", { dot: true })}`, meta: "16 commitments · 6 kept · runs through Sep 15" })}
-${commitmentRow({ title: "Tool library", chips: `${chip("Campaign", "request")}${chip("Reviewing", "warn", { dot: true })}`, meta: "8 commitments · 8 kept · closed Aug 12" })}
+    ? `${commitmentRow({ title: "Market rides", chips: `${chip("Campaign", "campaign")}${chip("Finished", "plain", { dot: true })}`, meta: "16 commitments · 14 kept · ended Aug 30" })}
+${commitmentRow({ title: "Tool library", chips: `${chip("Campaign", "campaign")}${chip("Finished", "plain", { dot: true })}`, meta: "8 commitments · 8 kept · ended Aug 30" })}
+${commitmentRow({ title: "Seedling swap", chips: `${chip("Campaign", "campaign")}${chip("Finished", "plain", { dot: true })}`, meta: "6 commitments · 5 kept · ended Aug 30" })}`
+    : `${commitmentRow({ title: "Market rides", chips: `${chip("Campaign", "campaign")}${chip("Open", "ok", { dot: true })}`, meta: "16 commitments · 6 kept · runs through Sep 15" })}
+${commitmentRow({ title: "Tool library", chips: `${chip("Campaign", "campaign")}${chip("Reviewing", "warn", { dot: true })}`, meta: "8 commitments · 8 kept · closed Aug 12" })}
 ${commitmentRow({
         title: "Seedling swap",
-        chips: `${chip("Campaign", "request")}${chip("Not open yet", "plain", { dot: true })}`,
+        chips: `${chip("Campaign", "campaign")}${chip("Not open yet", "plain", { dot: true })}`,
         meta: "0 commitments · 0 kept · runs through Sep 30",
         act: paused
           ? btn("Open", { kind: "sec", sm: true, disabled: true })
@@ -226,7 +226,7 @@ ${commitmentRow({
   return objectCard({
     hotId: "w7.open-season",
     title: "Season of First Rains",
-    chips: `${chip("Season", "ink")}${seasonChip}`,
+    chips: `${chip("Season", "season")}${seasonChip}`,
     meta: `${SEASON_LIVE.made} commitments · ${SEASON_LIVE.kept} kept · runs through Aug 30`,
     acts: seasonAct,
     body: `${stages(["Seeded", "Open", "In Progress", "Reviewing", "Reconciled", "Finished"], stageIx)}
@@ -241,7 +241,7 @@ ${campaignRows}`,
 const w7NoSeason = (canStart: boolean) =>
   objectCard({
     title: "No season running",
-    chips: chip("Season", "ink"),
+    chips: chip("Season", "season"),
     meta: "A season is the pool's main rhythm — one at a time, campaigns beside it",
     acts: canStart
       ? hot("w7.seed-cycle", btn("Start Season", { kind: "pri", sm: true }))
@@ -352,7 +352,7 @@ ${commitmentRow({
   })}`,
   "past-due": `${commitmentRow({
     title: "Market rides",
-    chips: `${chip("Campaign", "request")}${chip("Accepted", "request", { dot: true })}${chip("Past Due", "err")}`,
+    chips: `${chip("Campaign", "campaign")}${chip("Accepted", "request", { dot: true })}${chip("Past Due", "err")}`,
     meta: "João · 16 rides · was due Jul 2",
     act: hot("w7.expire-commitment", btn("Expire Now", { kind: "danger", sm: true })),
   })}
@@ -365,7 +365,7 @@ ${commitmentRow({
   })}`,
   lapsed: `${commitmentRow({
     title: "Market rides",
-    chips: `${chip("Campaign", "request")}${chip("Expired", "plain", { dot: true })}`,
+    chips: `${chip("Campaign", "campaign")}${chip("Expired", "plain", { dot: true })}`,
     meta: "João · 16 rides · lapsed Jul 2 · 0 kept",
     act: hot("w7.reseed", btn("Re-seed…", { kind: "sec", sm: true })),
   })}`,
@@ -392,7 +392,7 @@ ${commitmentRow({
   })}`,
   blocking: `${commitmentRow({
     title: "Market rides",
-    chips: `${chip("Campaign", "request")}${chip("Accepted", "request", { dot: true })}${chip("Past Due", "err")}`,
+    chips: `${chip("Campaign", "campaign")}${chip("Accepted", "request", { dot: true })}${chip("Past Due", "err")}`,
     meta: "João · 16 rides · was due Jul 2",
     act: hot("w7.filter-due", btn("Review", { kind: "sec", sm: true })),
   })}
@@ -970,7 +970,7 @@ ${activityRow("w7.activity-work", "Pruning session approved for Prune the north 
     body = page(
       objectCard({
         title: "Season of First Rains",
-        chips: `${chip("Season", "ink")}${chip("Prepared — not open yet", "warn", { dot: true })}`,
+        chips: `${chip("Season", "season")}${chip("Prepared — not open yet", "warn", { dot: true })}`,
         meta: "Runs Aug 1 – Aug 30 · terms written · nobody can commitment yet",
         acts: hot("w7.open-season-flow", btn("Open to the Garden", { kind: "pri", sm: true })),
         body: `${stages(["Seeded", "Open", "In Progress", "Reviewing", "Reconciled", "Finished"], 0)}
@@ -2288,11 +2288,11 @@ ${statRow([
   ])}
 ${objectCard({
     title: "Season of First Rains",
-    chips: `${chip("Season", "ink")}${chip("Open", "ok", { dot: true })}`,
+    chips: `${chip("Season", "season")}${chip("Open", "ok", { dot: true })}`,
     meta: `${SEASON_LIVE.made} commitments · ${SEASON_LIVE.kept} kept`,
     body: `${cardSection("Campaigns · 2 open")}
-${commitmentRow({ title: "Market rides", chips: `${chip("Campaign", "request")}${chip("Open", "ok", { dot: true })}`, meta: "16 commitments · 6 kept" })}
-${commitmentRow({ title: "Tool library", chips: `${chip("Campaign", "request")}${chip("Reviewing", "warn", { dot: true })}`, meta: "8 commitments · 8 kept" })}`,
+${commitmentRow({ title: "Market rides", chips: `${chip("Campaign", "campaign")}${chip("Open", "ok", { dot: true })}`, meta: "16 commitments · 6 kept" })}
+${commitmentRow({ title: "Tool library", chips: `${chip("Campaign", "campaign")}${chip("Reviewing", "warn", { dot: true })}`, meta: "8 commitments · 8 kept" })}`,
   })}
 ${acard(
     "Commitments",

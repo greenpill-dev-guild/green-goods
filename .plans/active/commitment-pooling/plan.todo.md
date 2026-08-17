@@ -1291,6 +1291,27 @@ Known mis-resolutions fixed in place: `contract-spec.md` §Grassroots-Economics-
     section only ever holds images. The preview is a **dialog, not a route**: it renders the
     state underneath verbatim and adds an overlay, counts photos only (`photoOnlyData`), and
     draws an arrow only where there is a neighbour. Full text: `uiux-spec.md` C.23.
+128. The three Offer flows (2026-08-17, round 24, Afo's eight-item review). **(a) Cycles
+    had no tag on the client and the WRONG one in admin** — `chip("Campaign", "request")`
+    used the Request tone exactly, so a campaign tag and a request tag were the same colour,
+    while the client carried the cycle as prose in the meta line. New tone pair, one hue at
+    two weights: season filled, campaign outlined. Its own card slot, not one of the three
+    tag places. **(b) Who confirms moved into step 3**, which now asks who confirms · team ·
+    media; the review follows it, under a rule worth keeping — the review reads in the order
+    you filled it in. Team appears in a review for the first time. **(c) Five queued outcomes
+    had five compositions**; they are one screen now, the pool tab with your new card at the
+    top, and the banner is gone everywhere rather than added everywhere (the Queued chip, the
+    status-bar glyph and the card note already said it). **(d) Pickers are controls** —
+    `.ch`'s box reset defeats the 44px minimum, right for a label and an a11y defect for the
+    how-much step's pickers; `pickRow` is the control form. **(e) "Places" is retired** — a
+    second name for a thing that already had one (`standing-commitments-spec.md:224`), absent
+    from the glossary and the contract, and introduced before it was defined. State keys and
+    hotspot ids keep it, as deep-link addresses. **(f) An ongoing offer lives with the season
+    with NO contract change**: `CommitmentSeries` has no `cycleId`, but every `Commitment` it
+    opens does, so the season is a true statement about all of them. The Things-I-can-offer
+    entry — the one path that never picked a cycle — now enters at step 1. **(g) W34 is a
+    commitment view**: W2's identity card, carrying the cycle, then the completion picture,
+    then sections. Full text: `uiux-spec.md` C.24.
 
 **Final recursive certification clarification (2026-07-25; no new decision-register entry):**
 the published `42161`↔`42220` production lane is the only required fully paired
