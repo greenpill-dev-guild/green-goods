@@ -48,8 +48,36 @@ const RELEASE_OPERATOR_ARGUMENTS = new Map<string, ReadonlySet<string>>([
   ["settlement:garden-safes:deploy:celo", new Set(["--plan", "--inventory", "--step", "--receipt"])],
 ]);
 
+/**
+ * A ceremony stage is the complete, ordered boundary set for one release lane. Running a stage
+ * keeps the single-boundary safety properties — the checkout is reasserted before and after every
+ * boundary, and the first failure stops the run — while charging the operator one password entry
+ * for the lane instead of one per boundary.
+ */
+export type CeremonyStage = "garden-accounts" | "garden-safes";
+
+export const CEREMONY_STAGES = new Map<CeremonyStage, { script: string; boundaries: number; label: string }>([
+  [
+    "garden-accounts",
+    {
+      script: "settlement:garden-accounts:deploy:celo",
+      boundaries: 2,
+      label: "exact Celo GardenAccount coordinator and atomic initialization",
+    },
+  ],
+  [
+    "garden-safes",
+    {
+      script: "settlement:garden-safes:deploy:celo",
+      boundaries: 18,
+      label: "final 2-of-3 Garden Safes",
+    },
+  ],
+]);
+
 export interface SessionOptions {
   commit?: string;
+  stage?: CeremonyStage;
   help: boolean;
 }
 
@@ -70,6 +98,18 @@ export function parseSessionOptions(args: string[]): SessionOptions {
       const value = args[index + 1];
       if (!value || value.startsWith("-")) throw new Error("--commit requires an exact 40-character commit");
       options.commit = value;
+      index += 1;
+      continue;
+    }
+    if (argument === "--stage") {
+      const value = args[index + 1];
+      if (!value || value.startsWith("-")) {
+        throw new Error(`--stage requires one of: ${[...CEREMONY_STAGES.keys()].join(", ")}`);
+      }
+      if (!CEREMONY_STAGES.has(value as CeremonyStage)) {
+        throw new Error(`Unknown release ceremony stage: ${value}`);
+      }
+      options.stage = value as CeremonyStage;
       index += 1;
       continue;
     }
@@ -184,6 +224,7 @@ Green Goods release operator session
 
 Usage:
   bun run release:operator -- --commit <exact-40-character-candidate>
+  bun run release:operator -- --commit <candidate> --stage <ceremony-stage>
 
 The session verifies the exact candidate plus any receipt-backed deployment artifacts, prompts for
 the Foundry keystore password, verifies that it unlocks the frozen deployment sender, and accepts
@@ -194,6 +235,17 @@ Inside the session:
   help
   run <package-script> [reviewed arguments]
   exit
+
+Stage mode runs one lane's complete ordered boundary set from a single password entry. The exact
+candidate checkout is still reasserted before and after every boundary and the first failure stops
+the run, so the per-boundary safety properties are unchanged; only the number of password prompts
+differs. The Garden Safe stage resumes from its checkpoint rather than replaying a mined boundary.
+The GardenAccount stage always runs both boundaries and binds step 2 to the captured step-1 receipt;
+if step 1 already broadcast, recover through the interactive mode with an explicit --receipt.
+
+Ceremony stages:
+  garden-accounts                          2 boundaries
+  garden-safes                             18 boundaries
 
 Unlocking the session is not broadcast authorization. Run only the exact stage and transaction
 boundary separately authorized by the release owner. The credential session closes after that
@@ -618,7 +670,101 @@ function verifyDeployerPassword(passwordFile: string): string {
     throw new Error(`Keystore unlock resolved ${unlocked}, expected frozen sender ${expected}`);
   return unlocked;
 }
-async function runSession(candidateCommit: string): Promise<void> {
+const GARDEN_SAFE_PLAN_PATH = path.join(CONTRACTS_ROOT, ".generated/runtime/42220-garden-safe-final.json");
+
+/**
+ * Resolves which boundaries a stage still has to run. Kept pure and separate from execution so the
+ * resume arithmetic is provable without a credential session: an over-counted checkpoint is a
+ * corrupted ledger rather than a reason to skip work, and a complete stage yields no boundaries
+ * instead of replaying a mined transaction.
+ */
+export function plannedStageBoundaries(stage: CeremonyStage, completed: number): number[] {
+  const definition = CEREMONY_STAGES.get(stage);
+  if (!definition) throw new Error(`Unknown release ceremony stage: ${stage}`);
+  if (!Number.isSafeInteger(completed) || completed < 0) {
+    throw new Error(`Checkpointed boundary count must be a non-negative integer: ${completed}`);
+  }
+  if (completed > definition.boundaries) {
+    throw new Error(
+      `Stage ${stage} reports ${completed} checkpointed boundaries but its plan defines ${definition.boundaries}`,
+    );
+  }
+  const boundaries: number[] = [];
+  for (let boundary = completed + 1; boundary <= definition.boundaries; boundary += 1) boundaries.push(boundary);
+  return boundaries;
+}
+
+export function transactionHashFromBoundaryOutput(output: string, boundary: number): string {
+  const hash = output.match(/0x[0-9a-fA-F]{64}/gu)?.at(-1);
+  if (!hash) throw new Error(`Boundary ${boundary} did not report a verified transaction hash`);
+  return hash;
+}
+
+/**
+ * Runs one boundary with the same drift assertions the interactive loop applies: the exact
+ * candidate checkout is reasserted immediately before and after the wrapper, and any non-zero exit
+ * aborts the stage with the credential session still scoped to this process.
+ */
+function runStageBoundary(
+  script: string,
+  args: string[],
+  environment: NodeJS.ProcessEnv,
+  candidateCommit: string,
+  capture: boolean,
+): string {
+  console.log(`Running Bun wrapper: ${script} ${args.join(" ")}`.trim());
+  assertInteractiveSessionStart(candidateCommit);
+  const result = spawnSync("bun", ["run", script, ...args], {
+    cwd: CONTRACTS_ROOT,
+    encoding: "utf8",
+    env: environment,
+    stdio: capture ? ["inherit", "pipe", "inherit"] : "inherit",
+  });
+  const output = capture ? (result.stdout ?? "") : "";
+  if (capture) process.stdout.write(output);
+  if (result.status !== 0) {
+    throw new Error(`Bun wrapper ${script} failed at this boundary; the credential session is closed`);
+  }
+  assertInteractiveSessionStart(candidateCommit);
+  return output;
+}
+
+async function runCeremonyStage(
+  stage: CeremonyStage,
+  candidateCommit: string,
+  environment: NodeJS.ProcessEnv,
+): Promise<void> {
+  const definition = CEREMONY_STAGES.get(stage);
+  if (!definition) throw new Error(`Unknown release ceremony stage: ${stage}`);
+
+  if (stage === "garden-accounts") {
+    // Step 2 must bind the exact step-1 receipt. Capturing step 1 keeps that binding automatic
+    // rather than asking the operator to copy a hash between two password-gated sessions.
+    const firstOutput = runStageBoundary(definition.script, ["--step", "1"], environment, candidateCommit, true);
+    const receipt = transactionHashFromBoundaryOutput(firstOutput, 1);
+    console.log(`Binding step-2 to the verified step-1 receipt ${receipt}.`);
+    runStageBoundary(definition.script, ["--step", "2", "--receipt", receipt], environment, candidateCommit, false);
+    console.log(`Stage ${stage} completed both boundaries.`);
+    return;
+  }
+
+  // The Safe wrapper checkpoints every boundary, so a resumed stage continues from the first
+  // uncheckpointed boundary instead of replaying a mined Safe deployment.
+  const completed = completedBoundaries(GARDEN_SAFE_PLAN_PATH);
+  const boundaries = plannedStageBoundaries(stage, completed);
+  if (boundaries.length === 0) {
+    console.log(`Stage ${stage} is already complete with ${completed} checkpointed boundaries.`);
+    return;
+  }
+  if (completed > 0) console.log(`Resuming stage ${stage} after ${completed} checkpointed boundaries.`);
+  for (const boundary of boundaries) {
+    console.log(`--- boundary ${boundary} of ${definition.boundaries} ---`);
+    runStageBoundary(definition.script, ["--step", String(boundary)], environment, candidateCommit, false);
+  }
+  console.log(`Stage ${stage} completed all ${definition.boundaries} boundaries.`);
+}
+
+async function runSession(candidateCommit: string, stage?: CeremonyStage): Promise<void> {
   assertInteractiveSessionStart(candidateCommit);
   const manifest = loadReleaseManifest();
   const password = await readHiddenPassword();
@@ -638,6 +784,22 @@ async function runSession(candidateCommit: string): Promise<void> {
   try {
     const signer = verifyDeployerPassword(lease.filePath);
     console.log(`Unlocked frozen deployment sender ${signer} for this process only.`);
+    const boundaryEnvironment: NodeJS.ProcessEnv = {
+      ...process.env,
+      APP_ENV: "development",
+      ETH_PASSWORD: lease.filePath,
+      FOUNDRY_KEYSTORE_ACCOUNT: manifest.ownership.deploymentKeystore,
+      GG_RELEASE_OPERATOR_SESSION: candidateCommit,
+      PINATA_GATEWAY: "",
+      PINATA_JWT: "",
+      PINATA_JWT_OP_REF: "",
+    };
+    if (stage) {
+      const definition = CEREMONY_STAGES.get(stage);
+      console.log(`Running the ${definition?.label} stage; the credential session closes when it finishes.`);
+      await runCeremonyStage(stage, candidateCommit, boundaryEnvironment);
+      return;
+    }
     console.log("Type help for the allowlist. The session closes after one verified boundary.");
     const terminal = createInterface({ input: process.stdin, output: process.stdout, terminal: true });
     try {
@@ -655,16 +817,7 @@ async function runSession(candidateCommit: string): Promise<void> {
         const result = spawnSync("bun", ["run", command.script, ...command.args], {
           cwd: CONTRACTS_ROOT,
           stdio: "inherit",
-          env: {
-            ...process.env,
-            APP_ENV: "development",
-            ETH_PASSWORD: lease.filePath,
-            FOUNDRY_KEYSTORE_ACCOUNT: manifest.ownership.deploymentKeystore,
-            GG_RELEASE_OPERATOR_SESSION: candidateCommit,
-            PINATA_GATEWAY: "",
-            PINATA_JWT: "",
-            PINATA_JWT_OP_REF: "",
-          },
+          env: boundaryEnvironment,
         });
         if (result.status !== 0) {
           throw new Error(`Bun wrapper ${command.script} failed; the credential session is closed`);
@@ -690,7 +843,7 @@ if (import.meta.main) {
   try {
     const options = parseSessionOptions(process.argv.slice(2));
     if (options.help) showHelp();
-    else if (options.commit) await runSession(options.commit);
+    else if (options.commit) await runSession(options.commit, options.stage);
     else throw new Error("Release operator candidate commit was not resolved");
   } catch (error) {
     console.error(error instanceof Error ? error.message : String(error));

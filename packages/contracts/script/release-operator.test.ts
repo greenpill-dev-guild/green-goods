@@ -8,12 +8,15 @@ import {
   assertArtifactCheckout,
   assertInteractiveSessionStart,
   assertPinnedCheckout,
+  CEREMONY_STAGES,
   changedPromotionLeafPaths,
   completedBoundaries,
   createPasswordLease,
   parseSessionOptions,
+  plannedStageBoundaries,
   RELEASE_OPERATOR_COMMANDS,
   tokenizeOperatorCommand,
+  transactionHashFromBoundaryOutput,
 } from "./release-operator";
 
 const temporaryDirectories: string[] = [];
@@ -49,6 +52,61 @@ describe("release operator session", () => {
       expect(() => parseSessionOptions(["--commit", candidate, retired])).toThrow(/Unknown release operator option/);
     }
     expect(parseSessionOptions(["--help"])).toEqual({ help: true });
+  });
+
+  it("accepts only the reviewed ceremony stages and still pins the candidate", () => {
+    const candidate = "a".repeat(40);
+
+    expect(parseSessionOptions(["--commit", candidate, "--stage", "garden-accounts"])).toEqual({
+      commit: candidate,
+      stage: "garden-accounts",
+      help: false,
+    });
+    expect(parseSessionOptions(["--commit", candidate, "--stage", "garden-safes"]).stage).toBe("garden-safes");
+    expect(() => parseSessionOptions(["--commit", candidate, "--stage", "garden-relay"])).toThrow(
+      /Unknown release ceremony stage/,
+    );
+    expect(() => parseSessionOptions(["--commit", candidate, "--stage"])).toThrow(/--stage requires one of/);
+    // A stage never substitutes for the pinned candidate.
+    expect(() => parseSessionOptions(["--stage", "garden-safes"])).toThrow(/requires --commit/);
+    // Every stage must map to an allowlisted boundary script.
+    for (const [, definition] of CEREMONY_STAGES) {
+      expect(RELEASE_OPERATOR_COMMANDS.has(definition.script)).toBe(true);
+    }
+    expect(CEREMONY_STAGES.get("garden-accounts")?.boundaries).toBe(2);
+    expect(CEREMONY_STAGES.get("garden-safes")?.boundaries).toBe(18);
+  });
+
+  it("resumes a staged lane after its checkpoint without replaying a mined boundary", () => {
+    // A fresh lane runs every boundary in order.
+    expect(plannedStageBoundaries("garden-accounts", 0)).toEqual([1, 2]);
+    expect(plannedStageBoundaries("garden-safes", 0)).toEqual(Array.from({ length: 18 }, (_, index) => index + 1));
+    // A resumed lane starts at the first uncheckpointed boundary.
+    expect(plannedStageBoundaries("garden-safes", 5)).toEqual(Array.from({ length: 13 }, (_, index) => index + 6));
+    expect(plannedStageBoundaries("garden-safes", 17)).toEqual([18]);
+    // A complete lane runs nothing rather than redeploying a mined Safe.
+    expect(plannedStageBoundaries("garden-safes", 18)).toEqual([]);
+    // A ledger claiming more boundaries than the plan defines is corruption, not a completed lane.
+    expect(() => plannedStageBoundaries("garden-safes", 19)).toThrow(/but its plan defines 18/);
+    expect(() => plannedStageBoundaries("garden-safes", -1)).toThrow(/non-negative integer/);
+    expect(() => plannedStageBoundaries("garden-safes", 1.5)).toThrow(/non-negative integer/);
+  });
+
+  it("binds a staged step 2 to the transaction hash its step 1 actually verified", () => {
+    const output = `DEPLOY_COORDINATOR verified as 0x${"1".repeat(64)}; close the credential session.\n`;
+
+    expect(transactionHashFromBoundaryOutput(output, 1)).toBe(`0x${"1".repeat(64)}`);
+    // Boundary output that mentions the plan before its receipt still resolves the receipt.
+    expect(transactionHashFromBoundaryOutput(`plan 0x${"a".repeat(64)}\nverified as 0x${"b".repeat(64)};`, 1)).toBe(
+      `0x${"b".repeat(64)}`,
+    );
+    expect(() => transactionHashFromBoundaryOutput("no receipt here", 1)).toThrow(
+      /did not report a verified transaction hash/,
+    );
+    // A truncated hash is not a receipt.
+    expect(() => transactionHashFromBoundaryOutput(`verified as 0x${"c".repeat(63)}`, 1)).toThrow(
+      /did not report a verified transaction hash/,
+    );
   });
 
   it("accepts both receipt-backed release and Garden Safe artifact promotions", () => {
