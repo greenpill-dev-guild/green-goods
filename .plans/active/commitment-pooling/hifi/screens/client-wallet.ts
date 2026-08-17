@@ -4,12 +4,11 @@
 // Dissolved lo-fi variants: W23G → W23@delivery-blocked, MF8 → W25@context-chooser.
 // W6's retired home summary card lives on as the W5 header line (Decision Log #28f).
 
-import { GARDEN, SEASON_LIVE } from "../fixtures";
 import { hot } from "../html";
 import { icon } from "../icons";
 import {
   actionBar, banner, btn, card, chip, disclosure, emptyState, field, flowHeader, formInfo, hdr, homeHeader, input, kv, listRow, meter, pagepad,
-  phoneFrame, promiseSlide, radio, reasonChips, sectionTitle, seg, selCard, selRail, sheetOver, skeleton,
+  filterChips, phoneFrame, promiseCard, promiseSlide, radio, reasonChips, sectionCard, sectionTitle, seg, selCard, selRail, sheetOver, skeleton,
 } from "../kit";
 import type { HifiDef } from "./index";
 import type { StateFacts } from "../types";
@@ -45,8 +44,7 @@ function w5(state: W5State): string {
   let inner: string;
   switch (state) {
     case "queued":
-      inner = `${hot("w5.summary", `<div class="t-meta num">${SEASON_LIVE.kept} of ${SEASON_LIVE.made} promises kept this cycle in ${GARDEN}</div>`)}
-${sectionTitle("My commitments")}
+      inner = `${sectionTitle("My commitments")}
 ${card(
         listRow({ icon: "seedling-line", primary: "Compost workshop", meta: "Rocinha · Offered", chipHtml: chip("Queued", "queued") }) +
           listRow({ icon: "seedling-line", primary: "Ride to market", meta: "Rocinha · Accepted", chevron: true }),
@@ -87,31 +85,76 @@ ${banner("This promise did not send after five attempts. Retry it, or discard th
       inner = emptyState("wifi-off-line", "Couldn't load your promises", "Something went wrong reaching the network. Your last view is saved on this device.", hot("w5.retry", btn("Try again", { kind: "pri", icon: "refresh-line" })));
       break;
     default:
-      inner = `${hot("w5.summary", `<div class="t-meta num">${SEASON_LIVE.kept} of ${SEASON_LIVE.made} promises kept this cycle in ${GARDEN}</div>`)}
-${sectionTitle("Waiting on you")}
-${card(
-        hot("w5.inbox-row", listRow({ icon: "hand-heart-line", primary: "Maria — Prune the north beds", meta: "Rocinha · confirm when kept", chevron: true })) +
-          listRow({ icon: "hand-heart-line", primary: "TAS Hub — Field survey ride", meta: "Awka · confirm when kept", chevron: true }) +
-          hot("w5.accepted-row", listRow({ icon: "seedling-line", primary: "Your ask was taken up — Ride to market", meta: "Rocinha · João is on it — open the promise", chevron: true })) +
-          hot("w5.needs-work-row", listRow({ icon: "leaf-line", primary: "Mulch the pathways — your promise", meta: "Rocinha · 0 of 3 Mulch approved · add work", chevron: true })),
+      // The wallet now draws the SAME promise card as the pool tab (2026-08-16
+      // round 9, Afo — "right now they're too different"). Two swaps carry the
+      // change of scope: the garden name takes the slot the creator held, since
+      // in your own ledger you already know it is yours and what you need is
+      // where; and the lifecycle state leads the tag row.
+      //
+      // The "N of M promises kept this cycle in <garden>" line above this list
+      // is gone. It read as though a member belonged to one garden, and sat
+      // directly above a disclosure that said "3 across 2 gardens".
+      // ONE ledger with scopes, not an attention inbox above a "My commitments"
+      // drawer (2026-08-16 round 10, Afo). The two overlapped — Ride to market
+      // and Mulch the pathways appeared in both — which the drawer hid. Each
+      // promise now appears exactly once, in its garden, and "Waiting on you"
+      // becomes a filter over the same list rather than a second copy of part
+      // of it. Same grammar as the pool tab's promise scopes.
+      //
+      // "Things I can offer" is split by what its two halves actually are
+      // (2026-08-16 round 12, Afo). It used to be a fourth section card below
+      // three gardens, which read as a fourth garden, held a single nav row
+      // rather than content, and sat outside the scope chips' jurisdiction
+      // while merging two unlike things: a PRIVATE saved draft (nothing on
+      // chain, invisible to anyone) and an ONGOING Offer (createCommitmentSeries,
+      // live places in a real pool). The draft is not a promise, so it becomes
+      // a tool row above the ledger; the ongoing Offer has a garden, so its
+      // parent card stands in that garden's section like everything else.
+      inner = `${card(
+        hot("w5.things", listRow({ icon: "sticky-note-line", primary: "Things I can offer", meta: "1 saved detail — private until you offer it", chevron: true })),
         { cls: "flat" },
       )}
-${disclosure(
-        "My commitments",
-        "3 across 2 gardens",
-        card(
-          `<div class="t-meta">Rocinha Community Garden</div>` +
-            hot("w5.mine-row", listRow({ icon: "seedling-line", primary: "Ride to market", meta: "Accepted", chevron: true })) +
-            listRow({ icon: "seedling-line", primary: "Mulch the pathways", meta: "Accepted · needs your work" }) +
-            `<div class="t-meta" style="margin-top:6px">Muizenberg</div>` +
-            listRow({ icon: "seedling-line", primary: "Beach cleanup Saturday", meta: "Fulfilled", chipHtml: chip("Kept", "ok") }),
-          { cls: "flat" },
-        ),
+${filterChips(
+        [
+          { label: "All", on: true, hotId: "w5.scope-all" },
+          { label: "Waiting on you", hotId: "w5.scope-waiting" },
+          { label: "Active", hotId: "w5.scope-active" },
+          { label: "Kept", hotId: "w5.scope-kept" },
+        ],
+        "Promise scope",
       )}
-${sectionTitle("Things I can offer")}
-${card(
-        hot("w5.things", listRow({ icon: "sticky-note-line", primary: "Saved details & ongoing offers", meta: "1 saved · 1 ongoing — private to you", chevron: true })),
-        { cls: "flat" },
+${sectionCard(
+        "Rocinha Community Garden",
+        `${hot("w5.inbox-row", promiseCard({ title: "Prune the north beds", meta: "Maria · 6 hours · confirm when kept", tags: [{ label: "Ready to confirm", tone: "warn" }], media: { label: "photo", tint: "agro" } }))}${hot(
+          "w5.accepted-row",
+          promiseCard({ title: "Ride to market", meta: "João is on it · 1 ride", tags: [{ label: "Accepted", tone: "request" }, { label: "Your ask" }] }),
+        )}${hot(
+          "w5.needs-work-row",
+          promiseCard({ title: "Mulch the pathways", meta: "0 of 3 Mulch approved", tags: [{ label: "Active" }, { label: "Needs your work", tone: "warn" }], media: { label: "photo", tint: "agro" } }),
+        )}${hot(
+          // The member's own service promise, picked back up days after offering
+          // it (sb56) — the wallet is where you return to something you promised.
+          "w5.mine-row",
+          promiseCard({ title: "Repair tool handles", meta: "1 repair session · yours", tags: [{ label: "Accepted", tone: "request" }, { label: "Support / service" }] }),
+        )}${hot(
+          // The ongoing Offer's PARENT, standing in the garden it runs in. Its
+          // places are public and live on the pool tab; the parent is the thing
+          // only you rest, resume, or retire, so the wallet is its home. Counts
+          // are places — one basis, so no cross-basis sum (Appendix D.1).
+          "w5.ongoing-row",
+          promiseCard({ title: "Hosting climate workshops", meta: "2 places open · 1 taken up", tags: [{ label: "Ongoing" }, { label: "Support / service" }] }),
+        )}`,
+        { flush: true },
+      )}
+${sectionCard(
+        "Awka Hub",
+        promiseCard({ title: "Field survey ride", meta: "TAS Hub · confirm when kept", tags: [{ label: "Ready to confirm", tone: "warn" }] }),
+        { flush: true },
+      )}
+${sectionCard(
+        "Muizenberg",
+        promiseCard({ title: "Beach cleanup Saturday", meta: "2 hours · Jul 12", tags: [{ label: "Kept", tone: "ok" }], media: { label: "photo", tint: "waste" } }),
+        { flush: true },
       )}`;
   }
   // The shipping AppBar hides while any drawer is open (AppBar.tsx:33).
@@ -123,15 +166,19 @@ ${card(
 }
 
 const W5_HOTS: HifiDef["hots"] = {
+  "w5.scope-all": { l: "All promises", info: "Every promise you hold, grouped by garden. Scopes filter this one list rather than drawing a second copy of part of it (2026-08-16)." },
+  "w5.scope-waiting": { l: "Waiting on you", info: "The promises needing an act from you — a confirmation, evidence, or work. This was a separate section above the ledger; the same rows appeared twice." },
+  "w5.scope-active": { l: "Active", info: "Accepted and in progress, across every garden." },
+  "w5.scope-kept": { l: "Kept", info: "Promises confirmed kept. Counts stay per-garden; unlike cycles never aggregate." },
   "w5.seg": { l: "Wallet tabs", info: "The shipping WalletDrawer's three tabs — Cookies · Tokens · Commitments. Commitments is the cross-garden promises home (UX:186); G$ balances stay in Tokens. Since 2026-08-14 the Commitments pill carries its §5.8 count badge (the cookie-jar tab pattern), counting the attention inbox so it reads from any tab." },
-  "w5.summary": { l: "Cycle summary line", info: "W6's retired Home card lives on as this header line (Decision Log #28f); absolute numbers below the small-community threshold (UX:191). The counts belong to one garden's open cycle and say so — the panel below spans gardens, but no cross-garden total is derived, because unlike cycles never aggregate." },
   "w5.inbox-row": { l: "Pending confirmation", to: "screen:W4", info: "Inbox of promises waiting on YOUR confirmation, across gardens (UX:185)." },
   "w5.accepted-row": { l: "Accepted ask", to: "screen:W2@request-active", info: "The attention inbox widened past confirmations (2026-08-14): a newly accepted ask surfaces here so the asker opens it without hunting the ledger below. Queued and failed sends keep their §5.8 item-4 chrome at the top of their own group." },
   "w5.needs-work-row": { l: "Your promise needs work", to: "screen:W2@active", info: "The ambient layer of standing attribution (2026-08-14): a promise needing your work is a waiting-on-you item — arguably the biggest — so it stands in the inbox and counts in the Commitments badge. Opens the promise, whose bar act is Submit work (the scoped intro)." },
   "w5.retry-send": { l: "Retry failed send", to: "screen:W5@queued", info: "Wallet-side recovery (2026-08-14 second pass): resets the exhausted job to pending and retries without dropping the local promise — the same UX:218 contract as the pool tab, reachable from any garden." },
   "w5.discard-send": { l: "Discard failed send", to: "screen:W5", info: "Removes only the exhausted local job after an explicit member choice; no remote promise exists yet (UX:218)." },
   "w5.mine-row": { l: "My commitment", to: "screen:W2", info: "Your own promises grouped by garden." },
-  "w5.things": { l: "Things I can offer", to: "screen:W32@saved-with-ongoing", info: "The drawn entry for W32 (2026-08-11 D8a, uiux §5.8 addendum): private saved details plus your ongoing Offers with rest / resume / retire. The pool tab shows only their public places." },
+  "w5.things": { l: "Things I can offer", to: "screen:W32@saved-with-ongoing", info: "The drawn entry for W32 (2026-08-11 D8a, uiux §5.8 addendum), now scoped to what is genuinely private: saved details you can reuse, nothing on chain, invisible to anyone else. Since 2026-08-16 it sits ABOVE the ledger as a tool row rather than below it as a fourth section card — it is not a garden, and the scope chips do not reach it. Ongoing Offers moved into their own garden's section." },
+  "w5.ongoing-row": { l: "Your ongoing Offer", to: "screen:W34@active-two", info: "The ongoing Offer's parent, standing in the garden it runs in (2026-08-16 round 12, Afo). Its places are public and live on the pool tab; the parent is what only you rest, resume, or retire, so the wallet holds it. The card counts places — one basis, never a unit sum (Appendix D.1)." },
   "w5.retry": { l: "Try again", info: "Read-surface recovery for the cross-garden pools panel — loading / not-found / read-error, never a “None” chip (UX:51-52 · AM:12)." },
 };
 
@@ -429,9 +476,9 @@ function wflow(state: WflowState): string {
       content = pagepad(
         formInfo("hand-heart-line", "Work toward a promise", "Swipe your open promises — tap one to work toward it"),
         selRail([
-          promiseSlide({ title: "Prune the north beds", needs: "needs Prune × 2", due: "due Aug 12", edge: "offer", hotId: "wflow.promise-row" }),
-          promiseSlide({ title: "Clear the drainage channel", needs: "needs Mulch × 4", due: "due Aug 30", edge: "request", hotId: "wflow.promise-row" }),
-          promiseSlide({ title: "Mulch the pathways", needs: "needs Mulch × 3", due: "runs with the season", edge: "offer", hotId: "wflow.promise-row" }),
+          promiseSlide({ title: "Prune the north beds", needs: "needs Prune × 2", due: "due Aug 12", hotId: "wflow.promise-row" }),
+          promiseSlide({ title: "Clear the drainage channel", needs: "needs Mulch × 4", due: "due Aug 30", hotId: "wflow.promise-row" }),
+          promiseSlide({ title: "Mulch the pathways", needs: "needs Mulch × 3", due: "runs with the season", hotId: "wflow.promise-row" }),
         ]),
         `<div class="t-meta">Or choose plain garden work below — work never requires a promise.</div>`,
         introActionSection([CARD_PRUNE(true), CARD_WATER]),
@@ -452,7 +499,7 @@ function wflow(state: WflowState): string {
 const WFLOW_HOTS: HifiDef["hots"] = {
   "wflow.intro-continue": { l: "Continue to media", to: "screen:WFLOW@media", info: "The shipping intro step — FormInfo sections, the ActionCard carousel, the GardenCard carousel (views/Garden/Intro.tsx; domain StandardTabs render only when a garden spans domains) — continues to media capture. Identical from the scoped and promise-holder casts." },
   "wflow.fulfill-strip": { l: "Fulfilling strip", info: "Promise-first scoping (2026-08-14 workflows round): the strip names the promise and its still-needed rows; the action grid below shows only the promise's requirement actions (pre-chosen when there is one) and the garden is the promise's. Media → details → review are untouched — the tie is pure metadata." },
-  "wflow.promise-row": { l: "Work toward this promise", to: "screen:WFLOW@intro-promise", info: "Standing attribution (2026-08-14): the rail exists from first paint whenever the member holds work-needing promises — keyed to who they are, never to what they just tapped, so nothing pops up mid-flow. A horizontal rail like the action and garden rails below it: holding many promises costs swipes, never vertical space. Nearest due first, direction edges carried over from the pool tab; tapping a card enters the scoped flow. Work never requires a promise (policy 2026-08-14: free + led + recoverable — linkWork attaches existing work later, ProofLib.sol), and the details-step picker stays the mid-flow catch-all." },
+  "wflow.promise-row": { l: "Work toward this promise", to: "screen:WFLOW@intro-promise", info: "Standing attribution (2026-08-14): the rail exists from first paint whenever the member holds work-needing promises — keyed to who they are, never to what they just tapped, so nothing pops up mid-flow. A horizontal rail like the action and garden rails below it: holding many promises costs swipes, never vertical space. Nearest due first; tapping a card enters the scoped flow. Work never requires a promise (policy 2026-08-14: free + led + recoverable — linkWork attaches existing work later, ProofLib.sol), and the details-step picker stays the mid-flow catch-all." },
   "wflow.tap-add": { l: "Tap to add photos or video", info: "The shipping capture area — tapping the surface opens the picker; the evidence flow mirrors this exactly (iteration 2)." },
   "wflow.capture-camera": { l: "Take a photo", info: "The shipping media step's one-tap capture from the fixed bar; the pooling evidence flow mirrors this interaction (uiux §5.5 addendum 2026-08-11)." },
   "wflow.capture-gallery": { l: "Choose from your library", info: "Gallery pick, multiple allowed, with HEIC conversion and compression." },

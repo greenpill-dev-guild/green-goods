@@ -77,7 +77,7 @@ export const HIFI_CSS = `
   width:${PHONE_VIEWPORT_WIDTH}px;height:${PHONE_VIEWPORT_HEIGHT}px;min-height:0;overflow:hidden;
   position:relative;font-size:15px;line-height:1.45}
 .hf .statusbar{display:flex;justify-content:space-between;align-items:center;
-  padding:14px 24px 6px;font:600 13px/1 inherit;color:var(--ink);
+  padding:14px 24px 6px;font-weight:600;font-size:13px;line-height:1;color:var(--ink);
   flex:none;z-index:3;background:var(--cv)}
 .hf .statusbar .sbr{display:flex;gap:5px;align-items:center}
 .hf .sb-sig{display:flex;gap:2px;align-items:flex-end}
@@ -105,7 +105,7 @@ export const HIFI_CSS = `
 .hf .byline .avatar{width:20px;height:20px;border-radius:50%;background:var(--act);color:var(--on-act);display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;flex:none}
 .hf .hdr.fixed h1{font-size:17px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .hf .fprog{display:flex;align-items:center;gap:3px;color:var(--stone);flex:none}
-.hf .fprog .fpstep{width:18px;height:18px;border-radius:99px;border:1px solid var(--ln2);display:inline-flex;align-items:center;justify-content:center;font:600 10.5px inherit;color:var(--stone);flex:none;background:var(--card)}
+.hf .fprog .fpstep{width:18px;height:18px;border-radius:99px;border:1px solid var(--ln2);display:inline-flex;align-items:center;justify-content:center;font-weight:600;font-size:10.5px;color:var(--stone);flex:none;background:var(--card)}
 .hf .fprog .fpstep.done{background:var(--gr-bg);border-color:transparent;color:var(--gr-ink)}
 .hf .fprog .fpstep.cur{border-color:var(--act);color:var(--act);box-shadow:0 0 0 3px color-mix(in srgb,var(--act) 20%,transparent)}
 .hf .fprog .fpline{width:8px;height:1px;background:var(--ln2);flex:none}
@@ -115,7 +115,7 @@ export const HIFI_CSS = `
 .hf .kcard{border:1px solid var(--ln);border-radius:16px;background:var(--card);padding:14px 12px;display:flex;flex-direction:column;gap:4px;min-height:108px;cursor:pointer}
 .hf .kcard.on{background:var(--gr-bg);border-color:var(--act);box-shadow:inset 0 0 0 1px var(--act)}
 .hf .kcard .ic{color:var(--act)}
-.hf .kcard .kl{font:600 15px inherit;color:var(--ink)}
+.hf .kcard .kl{font-weight:600;font-size:15px;color:var(--ink)}
 .hf .kcard .km{font-size:12.5px;color:var(--stone);line-height:1.35}
 .hf .teamstrip{display:flex;align-items:center;gap:8px;padding:2px 0}
 .hf .teamstrip .avatar{width:24px;height:24px;border-radius:50%;background:var(--act);color:var(--on-act);display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;flex:none;box-shadow:0 0 0 2px var(--card)}
@@ -129,7 +129,7 @@ export const HIFI_CSS = `
 
 /* garden detail tab row */
 .hf .gtabs{display:flex;gap:2px;padding:2px 12px 0;border-bottom:1px solid var(--ln)}
-.hf .gtab{min-height:44px;padding:9px 12px 10px;font:600 14px inherit;color:var(--stone);border:0;background:none;
+.hf .gtab{min-height:44px;padding:9px 12px 10px;font-weight:600;font-size:14px;color:var(--stone);border:0;background:none;
   cursor:pointer;position:relative;border-radius:8px 8px 0 0}
 .hf .gtab.on{color:var(--ink)}
 .hf .gtab.on::after{content:"";position:absolute;left:10px;right:10px;bottom:-1px;height:2.5px;
@@ -139,11 +139,11 @@ export const HIFI_CSS = `
 .hf .abar{flex:none;background:var(--card);border-top:1px solid var(--ln);border-radius:16px 16px 0 0;
   display:flex;justify-content:space-evenly;align-items:center;height:69px;padding:7px 0 2px}
 .hf .abar .atab{display:flex;flex-direction:column;align-items:center;gap:3px;border:0;background:none;
-  color:var(--stone);font:500 12px inherit;cursor:pointer;padding:2px 14px;position:relative;min-height:44px}
+  color:var(--stone);font-weight:500;font-size:12px;cursor:pointer;padding:2px 14px;position:relative;min-height:44px}
 .hf .abar .atab.on{color:var(--gr)}
 .hf .abar .atab .ic{width:24px;height:24px}
 .hf .abar .badge{position:absolute;top:-2px;right:8px;min-width:16px;height:16px;border-radius:99px;
-  background:var(--gr);color:var(--on-accent);font:700 10px/16px inherit;text-align:center;padding:0 4px}
+  background:var(--gr);color:var(--on-accent);font-weight:700;font-size:10px;line-height:16px;text-align:center;padding:0 4px}
 .hf .syncbar{margin:0 16px 8px;border:1px dashed var(--ln2);background:var(--stone-bg);color:var(--stone);
   border-radius:12px;padding:7px 12px;font-size:12.5px;display:flex;gap:8px;align-items:center}
 
@@ -161,8 +161,83 @@ export const HIFI_CSS = `
 .hf .card.inset{border-radius:16px}
 /* promise-direction edge (2026-08-14) — inset stripe: offers green, requests
    sky. Direction reads at scroll speed; the chip stays the labelled signal. */
-.hf .card.edge-offer{box-shadow:inset 3px 0 0 var(--gr-ink),0 1px 3px rgba(14,18,27,.04)}
-.hf .card.edge-request{box-shadow:inset 3px 0 0 var(--sky),0 1px 3px rgba(14,18,27,.04)}
+/* Direction edges (3px inset stripes) retired 2026-08-16 — the Offer/Request
+   chip already says the direction in words, and the stripe gave otherwise
+   identical promise cards two silhouettes. */
+
+/* Read-surface sections (2026-08-16 round 10) — the shipped work view's shape:
+   a quiet label on the canvas, its content in a card beneath. */
+.hf.s-client .h6s{font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;
+  color:var(--stone);margin:14px 0 6px}
+.hf.s-client .card.sect{padding:0;overflow:hidden;gap:0}
+.hf.s-client .card.sect.flush{padding:10px}
+.hf.s-client .drow{display:flex;justify-content:space-between;gap:12px;padding:9px 12px;
+  border-bottom:1px solid var(--ln);font-size:12.5px}
+.hf.s-client .drow:last-child{border-bottom:0}
+.hf.s-client .drow .dk{color:var(--stone);flex:none}
+.hf.s-client .drow .dv{font-weight:600;text-align:right;min-width:0;overflow-wrap:anywhere}
+/* Evidence as real thumbnails rather than text rows with an image icon. */
+.hf.s-client .mstrip{display:flex;gap:7px;overflow-x:auto;padding:10px;scrollbar-width:none}
+.hf.s-client .mstrip::-webkit-scrollbar{display:none}
+.hf.s-client .mtile{width:60px;height:78px;border-radius:10px;flex:none;display:flex;
+  align-items:center;justify-content:center;font-size:10px;background:#EAEFE2;color:#3E5532}
+.hf.s-client .mtile.waste{background:#F4E8E2;color:#9B3C2D}
+.hf.s-client .mtile.garden,.hf.s-client .mtile.quiet{background:var(--stone-bg);color:var(--stone)}
+.hf.s-client .mtile.note{background:var(--card);border:1px dashed var(--ln2);color:var(--stone)}
+
+/* PROMISE CARD (option E, 2026-08-16 round 9). Text column left, square right.
+   The square is sized in px rather than stretched: align-self:stretch with
+   aspect-ratio:1 makes the media's width follow its height while its height
+   follows the card's — a loop the browser resolves by inflating both (it drew
+   275px squares). A definite size is predictable, and 56px is the height of the
+   three text rows beside it, so the square still reads as full-bleed. */
+/* flex-direction:row is explicit — the base .card is a column, so without it
+   the square stacks under the text instead of sitting beside it.
+   The card carries a DEFINITE min-height per variant, which is what lets the
+   square below use align-self:stretch + aspect-ratio:1 without the sizing loop
+   that inflated it to 275px: the height resolves from the card, the width from
+   the ratio. Compact by design — this is the chat mockup's geometry. */
+.hf .card.pcard2{display:flex;flex-direction:row;gap:10px;align-items:stretch;
+  padding:9px 10px;min-height:74px}
+.hf .card.pcard2.cyc{min-height:92px}
+.hf .pcbody{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;
+  gap:3px;justify-content:center}
+.hf .pcbody .t-title{font-size:13.5px;font-weight:600;letter-spacing:-.005em;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hf .pcbody .t-meta{font-size:11.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* Square, and exactly the height of the text beside it — 50px for the promise
+   card's three rows, 66px for the cycle card's four. Explicit px rather than
+   aspect-ratio + stretch, which loops (height from the row, width from the
+   ratio, row from the width) and inflated the square to 275px. Centred, so a
+   card carrying a note keeps the square in the middle rather than jammed to
+   the top. */
+.hf .pmedia{flex:none;align-self:stretch;aspect-ratio:1;width:auto;max-width:96px;border-radius:8px;
+  display:flex;align-items:center;justify-content:center;font-size:10px;letter-spacing:.02em}
+/* No image: the slot still occupies its column, so nothing on the left shifts
+   between a promise with a photo and one without (2026-08-16, Afo). */
+.hf .pmedia.none{background:transparent}
+/* Media tints reuse the existing domain palette rather than inventing a second
+   one — a promise's picture and its domain tag should not disagree on colour. */
+.hf.s-client .pmedia.agro{background:#EAEFE2;color:#3E5532}
+.hf.s-client .pmedia.waste{background:#F4E8E2;color:#9B3C2D}
+.hf.s-client .pmedia.garden{background:var(--stone-bg);color:var(--stone)}
+.hf.s-client .pmedia.quiet{background:var(--stone-bg);color:var(--stone)}
+/* One line, always. Priority order decides what survives; the overflow count
+   is the release valve so a promise carrying eight tags still draws one row. */
+/* Clipping is the backstop, not the plan — the priority cap does the real work.
+   The fade makes a clipped tail read as "there is more" rather than as a chip
+   that got cut in half, which matters in narrow columns (the gallery) where a
+   capped row can still outrun its container. */
+/* Card tags run one step smaller than the dense admin chip — they are a label
+   on a thing you are scanning, not a control. */
+.hf .ptags .ch{font-size:10.5px;padding:1.5px 7px;border-radius:7px}
+.hf .ptags{display:flex;gap:4px;flex-wrap:nowrap;overflow:hidden;margin-top:1px;
+  mask-image:linear-gradient(to right,#000 calc(100% - 16px),transparent);
+  -webkit-mask-image:linear-gradient(to right,#000 calc(100% - 16px),transparent)}
+.hf .ptags .ch{flex:none}
+/* The overflow count is a chip like any other — a border here would make it 2px
+   taller than its neighbours and put two heights back into the list. */
+.hf .ptags .ch.more{background:var(--stone-bg);color:var(--stone)}
 
 /* skeleton — "loading preserves layout": card-shaped placeholders with a sheen */
 .hf .sk{background:var(--card);border:1px solid var(--ln);border-radius:24px;padding:14px;
@@ -201,7 +276,7 @@ export const HIFI_CSS = `
 
 /* chips */
 .hf .ch{display:inline-flex;align-items:center;gap:4px;border-radius:8px;padding:2.5px 8px;
-  font:600 12px inherit;background:var(--stone-bg);color:var(--stone);white-space:nowrap}
+  font-weight:600;font-size:12px;background:var(--stone-bg);color:var(--stone);white-space:nowrap}
 .hf .ch.offer{background:var(--gr-bg);color:var(--gr-ink)}
 .hf .ch.request{background:var(--sky-bg);color:var(--sky)}
 .hf .ch.domain{background:var(--amb-bg);color:var(--amb)}
@@ -214,7 +289,7 @@ export const HIFI_CSS = `
 
 /* buttons — shared skeleton; per-dialect anatomy below (admin keeps its pill) */
 .hf .b{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:0;cursor:pointer;
-  font:600 15px inherit;min-height:44px;padding:10px 20px;border-radius:9999px;color:var(--ink);
+  font-weight:600;font-size:15px;min-height:44px;padding:10px 20px;border-radius:9999px;color:var(--ink);
   background:transparent;transition:transform var(--spring-spatial-fast),background var(--spring-effects-fast)}
 .hf .b:active{transform:scale(.985)}
 .hf .b.pri{background:var(--act);color:var(--on-act)}
@@ -280,18 +355,21 @@ export const HIFI_CSS = `
 /* segmented filter chips */
 .hf .seg{display:flex;gap:6px;overflow-x:auto;padding:2px 0;scrollbar-width:none}
 .hf .seg .sg{border:0;background:var(--stone-bg);color:var(--stone);border-radius:99px;padding:6px 13px;
-  font:600 13px inherit;white-space:nowrap;min-height:44px;display:inline-flex;align-items:center}
+  font-weight:600;font-size:13px;white-space:nowrap;min-height:44px;display:inline-flex;align-items:center}
 .hf .seg .sg.on{background:var(--ink);color:var(--cv)}
 .hf .seg .sg[disabled],.hf .gtab[disabled],.hf .tabrail .trtab[disabled]{opacity:1;cursor:default}
 .hf .sg .nbadge{margin-left:6px;min-width:16px;height:16px;border-radius:99px;background:var(--act);color:var(--on-act);
-  font:700 10.5px/16px inherit;display:inline-block;text-align:center;padding:0 4px;vertical-align:1px}
+  font-weight:700;font-size:10.5px;line-height:16px;display:inline-block;text-align:center;padding:0 4px;vertical-align:1px}
 
 /* season + campaigns rail (2026-08-14) — bleeds to the screen edge inside
    .pagepad so the next slide peeks; the Season slide leads wider. */
 .hf .crail{display:flex;gap:10px;overflow-x:auto;scroll-snap-type:x mandatory;margin:0 -16px;padding:2px 16px 4px;scrollbar-width:none}
 .hf .crail::-webkit-scrollbar{display:none}
-.hf .crail .cslide{flex:0 0 74%;scroll-snap-align:start;display:flex}
-.hf .crail .cslide.lead{flex-basis:84%}
+/* Every slide is the same width (2026-08-16, Afo). The season used to be wider
+   than the campaigns beside it, which made peers look like a parent and a pair
+   of children. Wider slides also mean the next card bleeds in less — enough
+   edge to say "swipe", not enough to read as a half-shown card. */
+.hf .crail .cslide{flex:0 0 88%;scroll-snap-align:start;display:flex}
 .hf .crail .cslide > .card{flex:1;min-width:0}
 
 /* domain row (2026-08-14 second pass) — domains leave the top chip row for
@@ -299,7 +377,7 @@ export const HIFI_CSS = `
    Tints mirror theme.css --domain-*-rgb (agro moss, edu harbour, solar amber,
    waste terracotta); the real build renders DomainBadge with its icons. */
 .hf .dmrow{display:flex;flex-wrap:wrap;gap:6px}
-.hf .dm{border-radius:99px;padding:2.5px 9px;font:600 11.5px/1.4 inherit;letter-spacing:.01em}
+.hf .dm{border-radius:99px;padding:2.5px 9px;font-weight:600;font-size:11.5px;line-height:1.4;letter-spacing:.01em}
 .hf.s-client .dm.agro{background:#EAEFE2;color:#3E5532}
 .hf.s-client .dm.edu{background:#E2EAF0;color:#2E4F6B}
 .hf.s-client .dm.solar{background:#F8EDE0;color:#7A5A13}
@@ -322,9 +400,18 @@ export const HIFI_CSS = `
 /* browse filter row (2026-08-14) — direction chips + the personal Mine toggle */
 .hf .filters{display:flex;align-items:center;gap:8px}
 .hf .filters .seg{flex:1 1 auto;min-width:0}
-.hf .filters .mine{flex:none;border:1px solid var(--ln2);background:none;color:var(--stone);border-radius:99px;
-  padding:5px 12px;font:600 12.5px/1.2 inherit}
-.hf .filters .mine.on{border-color:var(--ink);background:var(--ink);color:var(--cv)}
+/* One chip metric across the whole row (2026-08-16, Afo). The direction pills
+   inherited the tab-sized .seg .sg metric — 13px type in a 44px box — and sat
+   next to a 12.5px Mine toggle, so the row rendered two chip heights side by
+   side. Both now take the Mine metric. The outline is an inset shadow rather
+   than a border so it adds no height, and the tap target is restored by a
+   transparent ::after rather than by growing the pill. */
+.hf .filters .seg .sg,.hf .filters .mine{position:relative;flex:none;border:0;border-radius:99px;
+  padding:6px 12px;min-height:0;font-weight:600;font-size:12.5px;line-height:1.2;
+  display:inline-flex;align-items:center;white-space:nowrap}
+.hf .filters .seg .sg::after,.hf .filters .mine::after{content:"";position:absolute;inset:-9px 0}
+.hf .filters .mine{background:none;color:var(--stone);box-shadow:inset 0 0 0 1px var(--ln2)}
+.hf .filters .mine.on{background:var(--ink);color:var(--cv);box-shadow:none}
 
 /* Submit Work grounding (2026-08-14) — mirrors the shipping flow's anatomy:
    FormInfo section headers (client FormInfo.tsx) and the image-topped
@@ -333,7 +420,7 @@ export const HIFI_CSS = `
 .hf.s-client .finfo{display:flex;gap:12px;align-items:center;background:var(--stone-bg);border:1px solid var(--ln);border-radius:14px;padding:12px 14px}
 .hf.s-client .finfo .fic{width:48px;height:48px;border-radius:99px;background:var(--card);border:1px solid var(--ln2);display:inline-flex;align-items:center;justify-content:center;flex:none}
 .hf.s-client .finfo .ic{color:var(--act)}
-.hf.s-client .finfo .ft{font:650 15px inherit}
+.hf.s-client .finfo .ft{font-weight:650;font-size:15px}
 .hf.s-client .finfo .fi{font-size:12.5px;color:var(--stone)}
 .hf.s-client .selrail{display:flex;gap:10px;overflow-x:auto;margin:0 -16px;padding:2px 16px 4px;scrollbar-width:none}
 .hf.s-client .selrail::-webkit-scrollbar{display:none}
@@ -341,9 +428,9 @@ export const HIFI_CSS = `
    overridden by the later admin .acard rule, whose --card-low does not exist
    in .s-client. */
 .hf.s-client .selrail .acard{flex:0 0 200px;border:1px solid var(--ln);border-radius:14px;overflow:hidden;background:var(--card);padding:0;gap:0;box-shadow:none;display:flex;flex-direction:column}
-.hf.s-client .selrail .acard .amedia{height:80px;display:flex;align-items:flex-end;padding:8px 11px;color:#FFF;font:650 13px inherit;letter-spacing:.01em}
+.hf.s-client .selrail .acard .amedia{height:80px;display:flex;align-items:flex-end;padding:8px 11px;color:#FFF;font-weight:650;font-size:13px;letter-spacing:.01em}
 .hf.s-client .selrail .acard .abody{padding:10px 12px;display:flex;flex-direction:column;gap:3px}
-.hf.s-client .selrail .acard .abody .at{font:650 14px inherit}
+.hf.s-client .selrail .acard .abody .at{font-weight:650;font-size:14px}
 .hf.s-client .selrail .acard .abody .am{font-size:12px;color:var(--stone);line-height:1.4}
 .hf.s-client .selrail .acard.on{border-color:var(--act);box-shadow:inset 0 0 0 1.5px var(--act)}
 .hf.s-client .amedia.agro{background:#3E5532}
@@ -366,15 +453,15 @@ export const HIFI_CSS = `
 .hf .fabbtn .ic{width:24px;height:24px}
 .hf .fabbtn.x{background:var(--card);color:var(--ink);border:1px solid var(--ln2)}
 .hf .fabscrim{position:absolute;inset:0;background:var(--scrim);z-index:4;border-radius:inherit}
-.hf .fabdoor{border:0;border-radius:99px;padding:11px 20px;font:600 14.5px/1.2 inherit;background:var(--card);color:var(--ink);
+.hf .fabdoor{border:0;border-radius:99px;padding:11px 20px;font-weight:600;font-size:14.5px;line-height:1.2;background:var(--card);color:var(--ink);
   box-shadow:0 4px 14px rgba(14,18,27,.2);cursor:pointer}
 
 /* forms (W3 grammar) */
 .hf .fld{display:flex;flex-direction:column;gap:5px}
 .hf fieldset.fld{border:0;padding:0;margin:0;min-width:0}
-.hf .fld .fl{font:600 14px/1.35 inherit;color:var(--ink);letter-spacing:0}
+.hf .fld .fl{font-weight:600;font-size:14px;line-height:1.35;color:var(--ink);letter-spacing:0}
 .hf .inp{border:1px solid var(--ln2);background:var(--card);border-radius:12px;min-height:46px;
-  padding:11px 13px;font:500 15px inherit;color:var(--ink);display:flex;align-items:center;gap:8px}
+  padding:11px 13px;font-weight:500;font-size:15px;color:var(--ink);display:flex;align-items:center;gap:8px}
 .hf .inp input,.hf .inp select{appearance:none;border:0;outline:0;background:transparent;color:inherit;font:inherit;
   min-width:0;width:100%;padding:0;margin:0}
 .hf .inp input::placeholder{color:var(--stone);font-weight:400;opacity:1}
@@ -388,10 +475,6 @@ export const HIFI_CSS = `
 .hf .ro.on .rdot,.hf .ro .rdot:checked{box-shadow:inset 0 0 0 6px var(--act)}
 .hf .ro .rl{display:block;font-size:14.5px;font-weight:550}
 .hf .ro .rm{display:block;font-size:12.5px;color:var(--stone)}
-.hf .stepdots{display:flex;gap:6px;align-items:center}
-.hf .stepdots i{width:7px;height:7px;border-radius:99px;background:var(--ln2);display:block}
-.hf .stepdots i.on{background:var(--act)}
-.hf .stepdots i.done{background:color-mix(in srgb,var(--act) 45%,var(--ln2))}
 
 /* key-value stat rows */
 .hf .kv{display:flex;justify-content:space-between;gap:12px;font-size:13.5px;padding:3px 0}
@@ -403,17 +486,36 @@ export const HIFI_CSS = `
 .hf .sheetstage .behind{filter:saturate(.9);opacity:.9;pointer-events:none;flex:1;display:flex;flex-direction:column}
 .hf .sheetstage .scrimm{position:absolute;inset:0;background:var(--scrim);border-radius:0}
 .hf .sheet{position:absolute;left:0;right:0;bottom:0;background:var(--card);border-radius:16px 16px 0 0;
-  border-bottom:0;padding:8px 16px 14px;display:flex;flex-direction:column;gap:10px;
+  border-bottom:0;padding:8px 16px 14px;display:flex;flex-direction:column;gap:10px;min-height:0;
+  max-height:88%;
   box-shadow:0 -12px 40px rgba(14,18,27,.20),0 -2px 8px rgba(14,18,27,.10)}
+/* Tabbed drawers are a fixed panel: moving between Cookies / Tokens /
+   Commitments must not resize the surface under the reader's thumb. */
+.hf .sheet.drawer{height:88%}
+/* Only the body scrolls — the handle and title stay put. The negative margin
+   puts the scrollbar at the sheet's edge rather than inside its padding. */
+.hf .sheet .sh-body{flex:1 1 auto;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;
+  display:flex;flex-direction:column;gap:10px;margin:0 -16px;padding:0 16px 2px;scrollbar-width:none}
+.hf .sheet .sh-body::-webkit-scrollbar{display:none}
+/* Children must NOT shrink. A column flex container compresses its items by
+   default, so tall content silently squashed to fit instead of overflowing —
+   which is why the sheet could never scroll, only clip. */
+.hf .sheet .sh-body > *{flex:0 0 auto}
 /* drag handle only on gesture sheets (PwaSheet); tinted tone-primary/32%.
    Tabbed drawers (ModalDrawer / WalletDrawer) omit .drag entirely. */
 .hf .sheet .drag{width:36px;height:5px;border-radius:99px;background:color-mix(in srgb,var(--act) 32%,transparent);margin:2px auto 4px}
 .hf .sheet .sh-t{font-size:18px;font-weight:650;letter-spacing:-.01em;text-wrap:balance}
+/* FormInfo anatomy for a sheet header — badge, title, meaning. */
+.hf.s-client .sheet .sh-head{display:flex;gap:12px;align-items:center}
+.hf.s-client .sheet .sh-head .fic{width:44px;height:44px;border-radius:99px;background:var(--stone-bg);
+  border:1px solid var(--ln);display:inline-flex;align-items:center;justify-content:center;flex:none}
+.hf.s-client .sheet .sh-head .ic{color:var(--act)}
+.hf.s-client .sheet .sh-head .fi{font-size:12.5px;color:var(--stone);line-height:1.35;margin-top:2px}
 
 /* disclosure (progressive disclosure on W2) */
 .hf details.disc{border:1px solid var(--ln);border-radius:14px;background:var(--card)}
 .hf details.disc summary{list-style:none;display:flex;align-items:center;gap:8px;cursor:pointer;
-  padding:11px 13px;font:600 14px inherit;min-height:44px}
+  padding:11px 13px;font-weight:600;font-size:14px;min-height:44px}
 .hf details.disc summary::-webkit-details-marker{display:none}
 .hf details.disc summary .cnt{color:var(--stone);font-weight:500;font-size:12.5px}
 .hf details.disc summary .caret{margin-left:auto;transition:rotate var(--spring-spatial-fast);color:var(--stone)}
@@ -610,7 +712,7 @@ export const HIFI_CSS = `
   border-bottom:1px solid var(--ln);overflow-x:auto}
 .hf .tabrail .trhit{display:flex;align-items:stretch;min-width:0}
 .hf .tabrail .trtab{border:0;border-bottom:2px solid transparent;margin-bottom:-1px;border-radius:0;background:transparent;color:var(--stone);
-  font:500 13.5px inherit;letter-spacing:-.005em;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;
+  font-weight:500;font-size:13.5px;letter-spacing:-.005em;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;
   gap:7px;padding:9px 14px 10px;min-width:0}
 .hf .tabrail .trhit .trtab{width:100%}
 .hf .tabrail span.trtab{cursor:default}
@@ -618,7 +720,7 @@ export const HIFI_CSS = `
 .hf .tabrail .trtab .lbl{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .hf .tabrail .trtab.on{background:transparent;box-shadow:none;font-weight:600;
   color:var(--tone-ink,var(--act));border-bottom-color:var(--tone-ink,var(--act))}
-.hf .tabrail .trtab .cnt{flex:none;min-width:20px;height:18px;border-radius:99px;padding:0 7px;font:600 11px inherit;
+.hf .tabrail .trtab .cnt{flex:none;min-width:20px;height:18px;border-radius:99px;padding:0 7px;font-weight:600;font-size:11px;
   font-variant-numeric:tabular-nums;display:inline-flex;align-items:center;justify-content:center;
   background:var(--stone-bg);color:var(--stone);border:0}
 .hf .tabrail .trtab.on .cnt{background:var(--tone-soft,var(--gr-bg));color:var(--tone-on-soft,var(--tone-ink,var(--gr-ink)))}
@@ -636,7 +738,7 @@ export const HIFI_CSS = `
   box-shadow:0 18px 44px rgba(133,109,70,.14),0 0 0 1px rgba(0,0,0,.05)}
 [data-theme="dark"] .hf .navdock{box-shadow:0 20px 48px rgba(30,22,14,.44),0 0 0 1px rgba(240,238,234,.08)}
 .hf .navdock .nditem{display:flex;flex-direction:column;align-items:center;gap:2px;min-width:62px;border:0;background:transparent;
-  color:var(--stone);font:500 10.5px inherit;cursor:pointer;border-radius:9999px;padding:4px 6px 5px}
+  color:var(--stone);font-weight:500;font-size:10.5px;cursor:pointer;border-radius:9999px;padding:4px 6px 5px}
 .hf .navdock .nditem:disabled{opacity:1;cursor:default}
 .hf .navdock .nditem:hover:not(.on){opacity:.75}
 .hf .navdock .nditem .ndic{width:38px;height:26px;border-radius:9999px;display:flex;align-items:center;justify-content:center;
@@ -671,18 +773,81 @@ export const HIFI_CSS = `
 /* card action row — lifecycle/dialog-trigger buttons + chips beneath a card's
    meta. Children stay content-sized (mirrors .arow > *) so nowrap chips never
    flex-shrink below their text. */
-.hf .actrow{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:3px}
-/* Triage summary row (uiux-spec §6.2 layout addendum). Production maps to
-   MetaStrip + buildHubHeaderStats; each count names the queue that owns it. */
-.hf .sumrow{display:flex;gap:8px;margin:0 0 12px;flex-wrap:wrap}
-.hf .sumcell{display:flex;align-items:baseline;gap:7px;border:0;cursor:pointer;font:inherit;color:var(--ink);
-  background:var(--card);box-shadow:inset 0 0 0 1px var(--ln);border-radius:14px;padding:9px 13px;min-height:44px}
-.hf .sumcell .n{font-weight:700;font-size:15px}
-.hf .sumcell .l{color:var(--stone);font-size:12px}
+/* Action clusters are END-ALIGNED, always (interaction-patterns §1 — header
+   rows, dialog footers, card acts, sheet footers all share the rule). */
+.hf .actrow{display:flex;gap:8px;flex-wrap:wrap;align-items:center;justify-content:flex-end;margin-top:3px}
+/* Workspace-tab two-column split (2026-08-16 decision 2): left = focused
+   objects and acts, right rail = container status + quick actions + activity.
+   Collapses to one column below 900px; rail content stacks after the main
+   column — nothing disappears (admin-ux-brief responsive rules). */
+.hf .wsrow{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:12px;align-items:start}
+.hf .wsmain,.hf .wsrail{display:flex;flex-direction:column;gap:12px;min-width:0}
+@media (max-width:900px){.hf .wsrow{grid-template-columns:minmax(0,1fr)}}
+.hf.f-phone .wsrow{grid-template-columns:minmax(0,1fr)}
+/* Triage stats (uiux-spec §6.2 layout addendum; redesigned 2026-08-16 round 4).
+   These are STATS, not buttons: one card, hairline-separated columns, the
+   number leading in tabular figures with its label beneath. They stay
+   keyboard-operable because each one jumps to the queue that owns it — the
+   affordance is the hover/focus treatment, not button chrome. */
+.hf .sumrow{display:flex;margin:0;background:var(--card);border-radius:12px;padding:2px;
+  box-shadow:0 1px 2px rgba(0,0,0,.3),0 1px 3px 1px rgba(0,0,0,.15);flex-wrap:wrap}
+/* Stacked is the default — number over label, which stays legible when the
+   label is two or three words (the inline cast wrapped "Awaiting Confirmation"
+   into the number's line, 2026-08-16 round 6). Inline remains available where a
+   strip must cost one line. */
+.hf .sumcell{flex:1 1 0;min-width:118px;display:flex;flex-direction:column;align-items:flex-start;gap:1px;
+  border:0;background:transparent;cursor:pointer;font:inherit;color:var(--ink);text-align:left;
+  padding:10px 14px;border-radius:10px;position:relative}
+.hf .sumcell + .sumcell::before{content:"";position:absolute;left:0;top:9px;bottom:9px;width:1px;background:var(--ln)}
+.hf .sumcell .n{font-weight:700;font-size:22px;line-height:1.12;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.hf .sumcell .l{color:var(--stone);font-size:12px;line-height:1.3}
+.hf .sumrow.inline .sumcell{flex-direction:row;align-items:baseline;gap:7px;padding:9px 14px}
+.hf .sumrow.inline .sumcell .n{font-size:19px}
+.hf .sumcell.static{cursor:default}
+.hf .sumcell:not(.static):hover{background:var(--stone-bg)}
+.hf .sumcell:not(.static):hover .l{color:var(--ink)}
+/* Zero is calm — a count of nothing must not read as an alert. */
+.hf .sumcell.zero .n{color:var(--stone);font-weight:600}
+/* Rail action stacks: quick actions are equal-width, full-bleed buttons so the
+   rail never shows three ragged widths (2026-08-16 round 4). */
+.hf .actstack{display:flex;flex-direction:column;gap:8px;margin-top:3px}
+.hf .actstack .b{width:100%;justify-content:center}
+/* Promise/queue row — ONE anatomy everywhere (interaction-patterns §5):
+   line 1 title + chips, line 2 calm meta, ONE trailing act. Two lines keep a
+   busy row from wrapping its buttons in the narrower main column. */
+.hf .prow{display:flex;align-items:center;gap:10px;padding:9px 2px;border-bottom:1px solid var(--ln);min-height:52px}
+.hf .prow:last-child{border-bottom:0}
+.hf .prow > .pmain{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:3px}
+.hf .prow .ptop{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.hf .prow .ptop b{font-size:13.5px}
+.hf .prow .pmeta{font-size:12px;color:var(--stone);line-height:1.35}
+.hf .prow > .pact{flex:none;display:flex;gap:6px;align-items:center}
+/* A card whose HEADER IS ITS OBJECT (2026-08-16 round 6). The season names the
+   card instead of sitting inside it as a second header — so there is one title
+   bar, not two stacked ones. */
+.hf .objcard .objhead{display:flex;align-items:flex-start;gap:10px;padding-bottom:2px}
+.hf .objcard .objtitle{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:4px}
+.hf .objcard .objtitle .ptop{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.hf .objcard .objtitle .ptop b{font-size:15px;letter-spacing:-.01em}
+.hf .objcard .objacts{flex:none;display:flex;gap:6px;align-items:center}
+/* Section divider inside a card: quiet label left, optional section act right. */
+.hf .cardsub{display:flex;align-items:center;gap:10px;font-weight:600;font-size:12px;color:var(--stone);
+  padding-top:9px;margin-top:2px;border-top:1px solid var(--ln)}
+.hf .cardsub .subact{margin-left:auto;display:flex;gap:6px;align-items:center}
+/* What the pool holds. The quantity IS the row title, so it takes tabular
+   figures and a touch more weight — a column of holdings should be readable as
+   a column of amounts. Each row is one exact unit label; they are never summed,
+   so nothing here draws a total line. */
+.hf .holdlist .prow .ptop b{font-size:15px;font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+.hf .holdlist .prow{min-height:44px;padding:7px 2px}
+/* Setup checklist lines — a statement with its state, not a label/value pair
+   ("How it works: agreed ✓" read as a data row about nothing). */
+.hf .checkline{display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--ink);padding:1px 0}
+.hf .checkline .ic{width:14px;height:14px;flex:none;color:var(--stone)}
 /* Route-local scope chips for the commitments list — Open · Confirmed · Past
    (uiux-spec §6.2 addendum, Garden OverviewTab precedent). Maps to AdminFilterChip. */
 .hf .scopechips{display:flex;gap:6px;flex-wrap:wrap}
-.hf .scopechips .sc-chip{border:0;cursor:pointer;font:600 12px inherit;color:var(--stone);border-radius:99px;
+.hf .scopechips .sc-chip{border:0;cursor:pointer;font-weight:600;font-size:12px;color:var(--stone);border-radius:99px;
   padding:7px 12px;min-height:36px;background:transparent;box-shadow:inset 0 0 0 1px var(--ln)}
 .hf .scopechips .sc-chip.on{color:var(--tone-ink,var(--act));background:var(--tone-soft,var(--gr-bg));box-shadow:none}
 .hf .actrow > *{flex:none}
@@ -691,7 +856,11 @@ export const HIFI_CSS = `
    label overflows and the next chip lands on top of it. Surface-agnostic on
    purpose: this was scoped to two surfaces, so renaming one silently dropped the
    fix, and the client surface never had it at all. */
-.hf .ch{width:auto}
+/* …and the SAME collision sets height:44px, which made every dotted state chip
+   twice the height of the plain kind chip beside it (2026-08-16 round 5: the
+   original patch fixed width only, so the symptom moved instead of leaving).
+   Reset the whole box the chrome rule touches, not one property of it. */
+.hf .ch{width:auto;height:auto;min-width:0;min-height:0;padding:2.5px 8px;border-radius:8px}
 /* flow form column — a step form sits directly on the route card (no card-on-card) */
 .hf .flowform{max-width:640px;display:flex;flex-direction:column;gap:11px}
 .hf .acard .ahead{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
@@ -760,7 +929,7 @@ export const HIFI_CSS = `
    form with no way back and no way out. */
 .hf .adlg.flow{width:min(880px,calc(100% - 40px));height:85%;max-height:85%}
 .hf .adlg.flow .dlg-head{flex-direction:column;align-items:stretch;gap:1px;position:relative;padding-right:62px}
-.hf .adlg.flow .dlg-head .eyebrow{font:600 11px inherit;letter-spacing:.08em;text-transform:uppercase;color:var(--stone)}
+.hf .adlg.flow .dlg-head .eyebrow{font-weight:600;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--stone)}
 .hf .adlg.flow .dlg-head .dclose{position:absolute;right:12px;top:12px}
 .hf .flowrow{flex:1;min-height:0;display:flex}
 .hf .steprail{flex:0 0 210px;border-right:1px solid var(--ln);padding:14px 12px;display:flex;
@@ -768,10 +937,10 @@ export const HIFI_CSS = `
 .hf .steprail .srow{display:flex;gap:10px;align-items:flex-start;padding:8px 7px;border-radius:12px}
 .hf .steprail .srow.on{background:var(--tone-soft,var(--gr-bg))}
 .hf .steprail .sdot{flex:none;width:20px;height:20px;border-radius:99px;border:1px solid var(--ln2);
-  display:flex;align-items:center;justify-content:center;font:600 10px inherit;color:var(--stone);margin-top:1px}
+  display:flex;align-items:center;justify-content:center;font-weight:600;font-size:10px;color:var(--stone);margin-top:1px}
 .hf .steprail .srow.on .sdot,.hf .steprail .srow.done .sdot{background:var(--tone-action,var(--act));
   border-color:transparent;color:var(--on-act)}
-.hf .steprail .st{display:block;font:600 12.5px inherit;color:var(--ink);line-height:1.35}
+.hf .steprail .st{display:block;font-weight:600;font-size:12.5px;color:var(--ink);line-height:1.35}
 .hf .steprail .sd{display:block;font:12px inherit;color:var(--stone);line-height:1.35}
 .hf .adlg.flow .dlg-body{flex:1;padding:18px 22px}
 .hf .adlg.flow .dlg-body > .flowform{max-width:640px;width:100%;margin:0 auto}
@@ -825,7 +994,7 @@ export const HIFI_CSS = `
 .hf .sitehdr nav a{padding:6px 11px;border-radius:8px;color:var(--stone);text-decoration:none;font-size:14px;font-weight:500;cursor:pointer;min-height:44px;display:inline-flex;align-items:center}
 .hf .sitehdr nav a.on{color:var(--ink)}
 .hf .sitehdr nav a:hover{color:var(--ink)}
-.hf .sitehdr .install{flex:none;background:var(--act);color:var(--on-act);border:0;border-radius:9999px;padding:8px 15px;font:600 13px inherit;cursor:pointer;min-height:44px}
+.hf .sitehdr .install{flex:none;background:var(--act);color:var(--on-act);border:0;border-radius:9999px;padding:8px 15px;font-weight:600;font-size:13px;cursor:pointer;min-height:44px}
 .hf .sitehdr .install:hover{background:var(--acth)}
 .hf .webbody{flex:1;min-height:0;overflow-y:auto;padding:34px clamp(24px,6vw,64px) 44px;display:flex;flex-direction:column;gap:18px}
 .hf .kicker{font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--stone)}
@@ -838,7 +1007,7 @@ export const HIFI_CSS = `
 .hf .estatrow{display:flex;gap:28px;flex-wrap:wrap}
 .hf .estat .l{font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--stone);margin-top:4px}
 .hf .elink{color:var(--gr-ink);font-weight:600;text-decoration:none;border-bottom:1px solid color-mix(in srgb,var(--gr-ink) 40%,transparent);
-  display:inline-flex;gap:6px;align-items:center;cursor:pointer;background:none;border-top:0;border-left:0;border-right:0;font:600 15px inherit;padding:0;min-height:44px}
+  display:inline-flex;gap:6px;align-items:center;cursor:pointer;background:none;border-top:0;border-left:0;border-right:0;font-weight:600;font-size:15px;padding:0;min-height:44px}
 .hf .pipe{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .hf .pipe .pstage{border:1px solid var(--ln2);border-radius:2px;padding:7px 13px;font-family:var(--mono);
   font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink);background:var(--card)}

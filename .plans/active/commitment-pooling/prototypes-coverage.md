@@ -1,14 +1,48 @@
 # Commitment Pooling Prototype Coverage
 
-Updated 2026-08-14 (components-tab round on top of the pool-tab polish + card grammar + workflows rounds: the artifact gains its fourth tab — the full component gallery per the locked component-library contract — with kit consolidation (screen composites + steward-console builders promoted into `hifi/kit.ts`, statTiles dropped) and two pre-existing artifact fixes (the empty Screen-library key label; the editorial dialect's `.s-public` CSS never matching the `editorial` surface class). This is the human-readable screen-by-state audit for the self-contained hi-fi artifact. The executable registry in `hifi/screens/index.ts` remains authoritative; `hifi/validate.ts` fails the build for empty states, invalid journey references, orphaned hotspots, invalid navigation targets, echo scenes that carry an advancing control, missing chapter/role assignments, flow cards with a missing or over-long description, contract calls that are illegal for a state's declared pool/cycle/commitment/funding/settlement facts, action bars stacking two full-width buttons (one-row rule), review-visible flows whose first scene is not a drawn home surface, and — for the Components tab — gallery specimens that carry hotspots or enabled controls, gallery copy violating the same vocabulary/citation ceilings, and any kit builder missing its gallery entry (the coverage gate).
+Updated 2026-08-16, round 12 (creation-flow round, after Afo's client review: the W3 composer
+runs the shipped Submit Work rhythm on every path — What · How much · Details · Review. Scope
+stopped wandering (it was `field("Season")` on step 1 for garden work, `field("Campaign")` on
+step 2 for services, `field("Scope")` on step 2 for ongoing — one thing under three names in two
+places); the protection step folded into step 2 (`step-anchors`, `request-anchors`,
+`request-variant`, `request-variant-steward` retired — proof rows and who-can-take-it were the
+same slot in different clothes, and both answer step 2's question); details became a real
+numbered step on all five paths (`step-details` renumbered plus `support-details`,
+`support-details-ongoing`, `request-details`, `request-details-steward`, `request-work-details`)
+instead of an unnumbered detour that highlighted step 1's dot while you were on it; How often
+moved to step 1 beside the kind cards; and every review adopted `views/Garden/Review.tsx`
+literally — FormInfo over ONE flat card, the back arrow as the edit path, one hot row for the
+Advanced detour, and the thirteen per-section `w3.edit-*` links retired. Step 1 went from seven
+blocks to three. In the wallet, "Things I can offer" split by what its halves are: the private
+saved draft became a tool row above the ledger, and the ongoing Offer's parent moved into its own
+garden's section. The W1 filter row took one chip metric — the direction pills were rendering at
+13px/44px next to a 12.5px Mine toggle.) Previous round 2026-08-16, round 2 (admin design-contract round, after Afo's second review + the
+canonical admin UX brief: the design skill gained `admin-ux-brief.md` + `interaction-patterns.md`
+and this round applies them — the Garden view header carries the SHIPPED stable action trio (View
+public · Seed · Edit garden) on every state; the pool tab is a two-column split (left: triage +
+Season/Campaign peers + promise rows; right rail: the Pool container card, Quick actions with the
+two cycle doors, activity feed); action clusters are end-aligned by CSS everywhere; "Start a
+season/campaign" is ONE three-step flow dialog (details → allocation → open) with seedCycle on
+the details step — the small-dialog→wizard shell change is gone, as is the capture flow's jump to
+W10 (the fallback confirmation completes in-shell); W8 is the client composer's cast (What → How
+much → Proof & confirmation with the reward as its Advanced detour → sectioned Review); journey
+entries tightened to true console homes (W8/W9/W10/W14 left ALLOWED_ENTRY; sb47 enters from the
+Hub queue's new under-review row, sb17/sb33 from pool promise rows, sb8/sb8b through Seed → the
+capture kind); sb57 retired per the assessments-stay-Hub-side decision; W12's protocol pool
+adopted the same pool-tab anatomy with seeding as a dialog; the components tab reached shipped-
+palette parity — 12 new entries (AdminViewActions, FabButton, AdminSideSheet, AdminSearchToolbar
++ AdminSortSelect, AdminListItem row anatomy, workspace split, MetaStrip, AdminCheckbox,
+AdminSettingRow, AdminSelectableCard, AdminLinearProgress, AdminTooltip) and shipped names now
+lead retitled entries.) Round 1 earlier the same day: W7 pool tab restructured — right-aligned header actions with the two cycle doors "Start a season"/"Start a campaign", peer Season/Campaign rows, pool lifecycle demoted to a Pool settings dialog; W11's recognition detour keeps the stable two-step rail (new RAIL validator rule); W26 converted from the lone full-page wizard to the flow-dialog shell and the 17-scene end-season ribbon split at its act seams into sb9c/sb9d/sb9e; HUBWORK grew the full approve/reject decision arc; W14 rebuilt timing-first with all three steps rendered; W9 gained the steward-fallback confirmation path, the not-a-member empty state, and the who's-who block (journey sb8b); W7M added as the phone presentation (FabButton speed dial → bottom sheet, journey sb60); PWA echoes trimmed to the consequence-only rule; stepDots retired with its W26 consumer.) Previous round 2026-08-14 (components-tab round on top of the pool-tab polish + card grammar + workflows rounds: the artifact gains its fourth tab — the full component gallery per the locked component-library contract — with kit consolidation (screen composites + steward-console builders promoted into `hifi/kit.ts`, statTiles dropped) and two pre-existing artifact fixes (the empty Screen-library key label; the editorial dialect's `.s-public` CSS never matching the `editorial` surface class). This is the human-readable screen-by-state audit for the self-contained hi-fi artifact. The executable registry in `hifi/screens/index.ts` remains authoritative; `hifi/validate.ts` fails the build for empty states, invalid journey references, orphaned hotspots, invalid navigation targets, echo scenes that carry an advancing control, missing chapter/role assignments, flow cards with a missing or over-long description, contract calls that are illegal for a state's declared pool/cycle/commitment/funding/settlement facts, action bars stacking two full-width buttons (one-row rule), review-visible flows whose first scene is not a drawn home surface, and — for the Components tab — gallery specimens that carry hotspots or enabled controls, gallery copy violating the same vocabulary/citation ceilings, and any kit builder missing its gallery entry (the coverage gate).
 
 ## Build snapshot
 
-- 41 registered screens / 441 rendered states in the full source registry
-- 34 presentation-visible hi-fi screens / 434 states: 18 Client PWA (289 states), 14 Admin console (140 states), 2 Editorial website (5 states)
-- 627 registered hotspots
-- 50 validated source flows / 306 scenes; 49 presentation-visible flows / 297 scenes: 20 Client PWA, 27 Admin console, 2 Editorial website
-- 74 component entries / 131 static specimens on the Components tab (46 Client PWA · 24 Steward console · 4 Editorial), every entry anchored at `#components/<id>[@surface]` with shipping citation or net-new note; 14 DRIFT tags, 27 NET-NEW tags
+- 42 registered screens / 463 rendered states in the full source registry
+- 35 presentation-visible hi-fi screens / 456 states: 18 Client PWA (293 states), 15 Admin console (158 states), 2 Editorial website (5 states)
+- 667 registered hotspots
+- 53 validated source flows / 318 scenes; 52 presentation-visible flows / 309 scenes: 20 Client PWA, 30 Admin console, 2 Editorial website
+- 89 component entries / 151 static specimens on the Components tab (46 Client PWA · 38 Steward console · 4 Editorial), every entry anchored at `#components/<id>[@surface]` with shipping citation or net-new note; shipped-palette parity: shipping names lead admin entry titles
+- States are grouped by **frame** in the switcher (2026-08-16 round 7): W2 75 states → 11 frames, W1 33 → 9, W7 31 → 8. Frames are a presentation grouping only — every state keeps its registry entry and §17 accounting, and each screen's default state is unchanged
 - 0 build warnings
 
 The build prints this snapshot on every run; when it disagrees with the numbers
@@ -307,7 +341,7 @@ field, a reason-less act must not invent one). Each control whose label ends in
 | W2 | Client PWA | 75 | accepted, offered, requested, browse-offered, browse-requested, browse-requested-gated, active, evidence-queued, evidence-submitted, partially-approved, ready-confirmer, confirmation-pending, fulfilled, fulfilled-pool-fallback, fulfilled-protocol-fallback, reward-released, support-queued, support-en-route, support-delayed, support-executed, support-confirming, support-arrived, support-failed, support-cancelled-queued, support-cancelled-failed, reconciled, cancelled, expired, disputed, captured, captured-evidence-queued, captured-evidence-submitted, captured-ready-pending, captured-ready-confirmer, captured-confirmation-pending, captured-fulfilled, captured-disputed, withdraw-confirm, withdrawn, garden-provider, garden-support-arrived, request-active, campaign-request-active, campaign-request-evidence-queued, campaign-request-evidence-submitted, campaign-request-ready-pending, campaign-request-ready-confirmer, campaign-request-confirmation-pending, campaign-request-fulfilled, campaign-request-disputed, request-evidence-queued, request-evidence-submitted, request-ready-pending, request-ready-confirmer, request-confirmation-pending, request-fulfilled, request-disputed, support-offered, support-accepted, support-evidence-queued, support-evidence-submitted, support-ready-pending, support-ready-confirmer, support-confirmation-pending, support-fulfilled, support-cancelled, support-disputed, loading, not-found, read-error, request-work-active, request-work-partially-approved, request-work-ready-confirmer, request-work-confirmation-pending, request-work-fulfilled |
 | W2a | Client PWA | 9 | media, details, review, review-request, review-campaign-request, review-support, review-captured, queued, failed |
 | W2b | Client PWA | 9 | forming, add-contributor, remove-contributor, assign-requirement, open-eligible, join-submitted, open-member, frozen, recognition |
-| W3 | Client PWA | 32 | step-what, step-details, step-howmuch, step-anchors, step-review, support-howmuch, support-howmuch-ongoing, support-review, support-review-ongoing, step-advanced, advanced-work-ask, step-advanced-no-protocol, step-confirmers, step-confirmers-work, step-invite, request-what, request-howmuch, request-howmuch-steward, request-support, request-variant, request-variant-steward, request-review, request-review-steward, request-work-what, request-work-howmuch, request-anchors, request-work-review, saved-offer-edit, saved-offer-review, saved-offer-queued, draft-resume, validation |
+| W3 | Client PWA | 33 | step-what, step-howmuch, step-details, step-review, support-howmuch, support-details, support-howmuch-ongoing, support-details-ongoing, support-review, support-review-ongoing, step-advanced, advanced-work-ask, step-advanced-no-protocol, step-confirmers, step-confirmers-work, step-invite, request-what, request-howmuch, request-details, request-howmuch-steward, request-support, request-details-steward, request-review, request-review-steward, request-work-what, request-work-howmuch, request-work-details, request-work-review, saved-offer-edit, saved-offer-review, saved-offer-queued, draft-resume, validation |
 | W4 | Client PWA | 29 | confirm-domain, confirm-support, confirm-request, confirm-request-work, confirmed-pending-request-work, confirmed-request-work, confirm-campaign-request, confirm-captured, not-yet, not-yet-support, not-yet-request, not-yet-campaign-request, not-yet-captured, provider-view, confirmed-pending, confirmed, confirmed-pending-support, confirmed-support, confirmed-pending-request, confirmed-request, confirmed-pending-campaign-request, confirmed-campaign-request, confirmed-pending-captured, confirmed-captured, not-yet-failed, not-yet-failed-support, not-yet-failed-request, not-yet-failed-campaign-request, not-yet-failed-captured |
 | W36 | Client PWA | 7 | waiting-pledge, deposit-instructions, deposit-sent, pending-acceptance, funded, refund-queued, refunded |
 | W5 | Client PWA | 8 | default, queued, waiting-membership, send-failed, empty, loading, not-found, read-error |

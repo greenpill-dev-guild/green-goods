@@ -115,24 +115,22 @@ const visibleScreens = SCREENS.filter((screen) => screen.reviewVisible);
 // derived, not transcribed, so a re-split can never leave a stale hint.
 const roleLabel = new Map<string, string>(ROLES.map((role) => [role.id, role.label]));
 const sbTitle = new Map(sbs.map((sb) => [sb.id, sb.title]));
-const flowCardHtml = (sb: (typeof visibleSbs)[number]) => {
-  const roleChips = sb.roles.map((role) => `<span class="role-chip">${esc(roleLabel.get(role) ?? role)}</span>`).join("");
-  const lastSteps = sb.steps.slice(-2);
-  const continuesIn = [...new Set(lastSteps.flatMap((step) => (step.br ?? [])
-    .map((branch) => branch.to.match(/^(sb[a-z0-9]+):/)?.[1])
-    // Only true self-links drop out: the split siblings (sb4a→sb4b, sb3a→sb3b)
-    // are exactly the actor-seam handoffs the card must advertise.
-    .filter((target): target is string => !!target && target !== sb.id),
-  ))];
-  // Card anatomy is title → description → tags (Afo, D3). The persona line the
-  // description replaced still shows on the stage pill and in the Reference
-  // tab. Continues-in is a tag too — a muted one, so the acting roles read
-  // first — and all tags pin to the bottom edge, sharing one row position.
-  const nextChips = continuesIn
-    .map((target) => `<span class="next-chip">↳ ${esc(sbTitle.get(target) ?? target)}</span>`)
-    .join("");
-  return `<button class="sbcard" data-sb="${sb.id}"><span class="sbt">${esc(sb.title)}</span><span class="sbd">${esc(sb.desc)}</span><span class="cardchips">${roleChips}${nextChips}</span></button>`;
-};
+// Card anatomy is title → description → role tags (Afo, D3). The persona line
+// the description replaced still shows on the stage pill and in the Reference
+// tab.
+//
+// The continues-in tag is GONE (2026-08-16, Afo — the text below the role tags,
+// not just its arrow). It repeated titles the reader meets in the catalog
+// anyway, it was the only ragged thing left on an otherwise uniform grid, and
+// putting a second kind of tag beside the roles muddied the one thing a reader
+// scans this row for. Where a flow hands off is still shown at the end of the
+// flow itself, as branch links — where it can actually be followed.
+const flowCardHtml = (sb: (typeof visibleSbs)[number]) =>
+  `<button class="sbcard" data-sb="${sb.id}"><span class="sbt">${esc(sb.title)}</span><span class="sbd">${esc(
+    sb.desc,
+  )}</span><span class="cardchips">${sb.roles
+    .map((role) => `<span class="role-chip">${esc(roleLabel.get(role) ?? role)}</span>`)
+    .join("")}</span></button>`;
 const flowCatalog = FLOW_GROUPS.map(({ id, label }, groupIx) => {
   const groupSbs = visibleSbs.filter((sb) => sb.reviewGroup === id);
   const chapterBlocks = (CHAPTERS[id] ?? []).flatMap((chapter) => {
@@ -270,12 +268,13 @@ assertBuild(
   visibleSbs.some((sb) => sb.steps.some((step) => step.echo)),
   "no echo scenes — the cross-surface mechanic vanished",
 );
-// 34 = the 25-screen August set + three standing-commitment screens (W32/W34/
+// 35 = the 25-screen August set + three standing-commitment screens (W32/W34/
 // W35 — W33 folded into the composer 2026-08-11, D2) + the four
 // exchange/template screens (W28–W31, register #97) + the member and steward
-// funded-claim checkpoints (W36/W37, register #103).
-assertBuild(visibleScreens.length === 34, `expected 34 visible screens, found ${visibleScreens.length}`);
-assertBuild(screenCounts.client === 18 && screenCounts.admin === 14 && screenCounts.editorial === 2, `screen grouping must be 18 client / 14 admin / 2 editorial`);
+// funded-claim checkpoints (W36/W37, register #103) + the phone-presentation
+// pool tab (W7M, 2026-08-16 admin review).
+assertBuild(visibleScreens.length === 35, `expected 35 visible screens, found ${visibleScreens.length}`);
+assertBuild(screenCounts.client === 18 && screenCounts.admin === 15 && screenCounts.editorial === 2, `screen grouping must be 18 client / 15 admin / 2 editorial`);
 const presentationCatalogs = flowCatalog + screenCards;
 const presentationRuntimeCopy = [
   presentationCatalogs,
@@ -354,13 +353,13 @@ body{margin:0;background:var(--canvas);color:var(--ink);
   position:sticky;top:0;background:var(--canvas);z-index:5;align-items:center;flex-wrap:wrap}
 .tabs .tt{font-weight:700;font-size:13px;margin-right:12px}
 .tab{border:1px solid var(--line);background:var(--panel);color:var(--stone);border-radius:8px;
-  padding:5px 14px;font:600 13px inherit;cursor:pointer;min-height:44px}
+  padding:5px 14px;font-weight:600;font-size:13px;cursor:pointer;min-height:44px}
 .tab.on{background:var(--accent);border-color:var(--accent);color:var(--canvas)}
 /* Chrome-level toggle. The dialect tokens already ship both theme signals
    ([data-theme="dark"] and the prefers-color-scheme twin), so pinning the
    attribute is all that is needed to review dark on a light machine. */
 .chromebtn{margin-left:auto;border:1px solid var(--line);background:var(--panel);color:var(--stone);
-  border-radius:8px;padding:5px 12px;font:600 12.5px inherit;cursor:pointer;min-height:44px}
+  border-radius:8px;padding:5px 12px;font-weight:600;font-size:12.5px;cursor:pointer;min-height:44px}
 .chromebtn:hover{color:var(--ink)}
 .chromebtn[aria-pressed="true"]{border-color:var(--accent-ink);color:var(--ink)}
 .chromebtn .tb{display:none;align-items:center;gap:7px}
@@ -417,10 +416,16 @@ body{margin:0;background:var(--canvas);color:var(--ink);
 .uchip:hover{border-color:var(--accent-ink)}
 
 #play,#screens{max-width:1080px;margin:0 auto;padding:26px 20px 44px}
-#play h1,#screens h1{font-size:21px;margin:0 0 4px;text-wrap:balance}
+/* Scoped away from the phone frames (2026-08-16 round 12). This is the artifact
+   SHELL's page heading, but as a bare ID selector it also matched every <h1>
+   inside a rendered screen — an ID beats .hf .hdr.fixed h1 on specificity, so
+   the flow header's 17px nowrap treatment had never applied in the Screen
+   library or Guided flows panes. Every wizard title rendered at 21px and was
+   free to wrap: "Make a request" broke across two lines inside fixed chrome. */
+#play h1:not(.hf h1),#screens h1:not(.hf h1){font-size:21px;margin:0 0 4px;text-wrap:balance}
 #play .sub,#screens .sub{color:var(--stone);font-size:13px;margin:0 0 18px;max-width:78ch}
 .surface-tabs{display:flex;gap:6px;flex-wrap:wrap;margin:14px 0 18px;padding:4px;width:max-content;max-width:100%;border:1px solid var(--line);border-radius:12px;background:var(--panel)}
-.surface-tab{border:0;background:transparent;color:var(--stone);border-radius:8px;padding:7px 13px;font:650 12.5px inherit;cursor:pointer;min-height:44px}
+.surface-tab{border:0;background:transparent;color:var(--stone);border-radius:8px;padding:7px 13px;font-weight:650;font-size:12.5px;cursor:pointer;min-height:44px}
 .surface-tab.on{background:var(--canvas);color:var(--ink);box-shadow:0 1px 3px color-mix(in srgb,var(--ink) 12%,transparent)}
 .catalog-panel[hidden]{display:none}
 .catalog-panel h2{margin:0 0 9px;font-size:15px}
@@ -433,7 +438,17 @@ body{margin:0;background:var(--canvas);color:var(--ink);
 .tick{color:var(--accent-ink);font-weight:700}
 .sbt{font-weight:650;font-size:14px}
 .sbm{font-size:11.5px;color:var(--stone)} /* screen-library cards: one-line state count */
-.sbd{font-size:11.5px;line-height:1.45;color:var(--stone);margin-top:1px} /* flow cards: wrapping description */
+/* Flow cards are a grid of peers, so they are all ONE height (2026-08-16, Afo):
+   ragged cards read as a ragged catalog. Title and description each get a fixed
+   line box — two and four lines — so neither a long name nor a long description
+   changes the card's size. The four-line box is deliberately roomier than the
+   median description, which is the "space to be longer where needed"; anything
+   past it ellipsises rather than pushing the card taller. */
+.sbt{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
+  min-height:calc(2 * 1.3em);line-height:1.3}
+.sbd{font-size:11.5px;line-height:1.45;color:var(--stone);margin-top:1px;
+  display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden;
+  min-height:calc(4 * 1.45em)} /* flow cards: fixed four-line description box */
 .chapter-h{margin:20px 0 8px;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--stone)}
 .catalog-panel .chapter-h:first-of-type{margin-top:6px}
 .chapter-cols{display:grid;grid-template-columns:1fr;gap:0 28px;align-items:start;position:relative}
@@ -448,9 +463,22 @@ body{margin:0;background:var(--canvas);color:var(--ink);
 .chapter-block{min-width:0}
 .chapter-block .chapter-h{margin-top:14px}
 .chapter-cols .grid{grid-template-columns:repeat(auto-fill,minmax(210px,1fr))}
-.cardchips{display:flex;flex-wrap:wrap;gap:4px;margin-top:auto;padding-top:7px}
-.role-chip{border:1px solid color-mix(in srgb,var(--accent) 55%,transparent);border-radius:99px;padding:1px 8px;font-size:10.5px;font-weight:650;color:var(--accent-ink)}
-.next-chip{border:1px dashed var(--line);border-radius:99px;padding:1px 8px;font-size:10.5px;color:var(--stone)}
+/* The tag row is the last thing that could still make cards ragged: one to
+   three wrapped rows depending on how many roles act in a flow and how long
+   the flows it continues into are named. Fixed at two rows — roles come first
+   and are short, so what ellipsises is the tail of a continues-in title, which
+   the flow itself shows in full. */
+/* One row of role tags is all that sits here now, and roles are short, so the
+   box is a single row tall. */
+.cardchips{display:flex;flex-wrap:wrap;gap:4px;margin-top:auto;padding-top:7px;
+  min-height:calc(7px + 20px)}
+/* Tags share ONE metric across the artifact (2026-08-16, Afo): same radius,
+   padding, size and weight as the .ch tag on a promise card, so a tag reads as
+   a tag whether it sits on a flow card or inside a rendered screen. Role tags
+   keep only their accent colour. */
+.role-chip{border-radius:8px;padding:2.5px 8px;font-weight:600;font-size:12px;
+  background:var(--bg-accent-soft,color-mix(in srgb,var(--accent) 14%,transparent));
+  color:var(--accent-ink);white-space:nowrap}
 .chapter-fold{border:1px dashed var(--line);border-radius:10px;padding:2px 12px 8px;margin:20px 0 8px}
 .chapter-fold summary{cursor:pointer;display:flex;align-items:center;gap:10px;min-height:44px;list-style:revert}
 .chapter-fold summary .chapter-h{margin:0}
@@ -461,7 +489,7 @@ body{margin:0;background:var(--canvas);color:var(--ink);
 #stage.on,#expstage.on{display:block}
 .stagebar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 12px}
 .stagebar .back{border:1px solid var(--line);background:var(--panel);color:var(--ink);
-  border-radius:8px;padding:4px 12px;cursor:pointer;font:600 12.5px inherit;min-height:44px}
+  border-radius:8px;padding:4px 12px;cursor:pointer;font-weight:600;font-size:12.5px;min-height:44px}
 .stagebar .ti{font-weight:700;font-size:15px}
 .pill{font-size:11px;border:1px solid var(--line);border-radius:99px;padding:1px 9px;color:var(--stone)}
 .pill.sur{border-color:var(--accent-ink);color:var(--accent-ink)}
@@ -474,13 +502,13 @@ body{margin:0;background:var(--canvas);color:var(--ink);
    top-LEFT so it never collides with the proposed tag's top-right corner. */
 .device.echo{outline:2px dashed color-mix(in srgb,var(--stone) 45%,transparent);outline-offset:3px}
 .device .echotag{position:absolute;top:0;left:0;z-index:2;background:var(--panel);color:var(--stone);
-  font:700 10px inherit;letter-spacing:.08em;text-transform:uppercase;padding:3px 10px;
+  font-weight:700;font-size:10px;letter-spacing:.08em;text-transform:uppercase;padding:3px 10px;
   border-radius:13px 0 8px 0;border-right:1px solid var(--line);border-bottom:1px solid var(--line)}
 .pill.echo{border-style:dashed;color:var(--stone)}
 /* lo-fi ascii frames have no inner scroll surface — cap + scroll the panel itself */
 .device.f-ascii{max-height:var(--dev-cap);overflow:auto}
 .device .mftag{position:absolute;top:0;right:0;background:var(--amber-bg);color:var(--amber);
-  font:700 10px inherit;letter-spacing:.08em;text-transform:uppercase;padding:3px 10px;border-radius:0 13px 0 8px}
+  font-weight:700;font-size:10px;letter-spacing:.08em;text-transform:uppercase;padding:3px 10px;border-radius:0 13px 0 8px}
 .device pre.ascii{margin:0;padding:0;border:0;background:transparent;overflow:visible;
   font:12px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--ink)}
 .hspot{display:inline-flex;align-items:center;justify-content:center;min-width:44px;min-height:44px;
@@ -510,10 +538,15 @@ body{margin:0;background:var(--canvas);color:var(--ink);
 .marked{background:color-mix(in srgb, var(--amber) 22%, transparent);border-radius:3px}
 .stchips{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 10px}
 .vchip{border:1px solid var(--line);background:var(--panel);color:var(--stone);border-radius:99px;
-  padding:3px 12px;font:600 12px inherit;cursor:pointer;min-height:44px}
+  padding:3px 12px;font-weight:600;font-size:12px;cursor:pointer;min-height:44px}
 .vchip.on{background:var(--accent);border-color:var(--accent);color:var(--canvas)}
 .vchip.prop{border-style:dashed;border-color:var(--amber);color:var(--amber)}
 .vchip.prop.on{background:var(--amber);border-color:var(--amber);color:var(--canvas)}
+/* Frame heading in the state switcher. Forces a line break so each frame's
+   states sit together — the collapse is only legible if the groups are. */
+.vgroup{flex:0 0 100%;margin:8px 0 -2px;font-weight:600;font-size:11px;letter-spacing:.04em;
+  text-transform:uppercase;color:var(--stone);opacity:.75}
+.vgroup:first-child{margin-top:0}
 .hint{margin:10px 0 0;font-size:12.5px;color:var(--accent-ink);font-weight:600}
 .hint .kbd{color:var(--stone);font-weight:400}
 #insp{margin:10px 0 0;border:1px solid var(--line);border-left:3px solid var(--accent-ink);
@@ -522,12 +555,12 @@ body{margin:0;background:var(--canvas);color:var(--ink);
 #insp b{display:block;margin-bottom:2px}
 #insp .ia{margin-top:6px;display:flex;gap:6px;flex-wrap:wrap}
 #insp .ia button{border:1px solid var(--accent-ink);background:transparent;color:var(--accent-ink);
-  border-radius:7px;padding:2px 10px;font:600 12px inherit;cursor:pointer;min-height:44px}
+  border-radius:7px;padding:2px 10px;font-weight:600;font-size:12px;cursor:pointer;min-height:44px}
 .insp{margin:10px 0 0}
 .insp.on{border:1px solid var(--line);border-left:3px solid var(--accent-ink);background:var(--panel);
   border-radius:8px;padding:8px 12px;font-size:12.5px}
 .insp .walkbtn{margin-left:8px;border:1px solid var(--accent-ink);background:transparent;color:var(--accent-ink);
-  border-radius:7px;padding:2px 10px;font:600 12px inherit;cursor:pointer;min-height:44px}
+  border-radius:7px;padding:2px 10px;font-weight:600;font-size:12px;cursor:pointer;min-height:44px}
 .meta{margin:12px 0 0;display:flex;flex-direction:column;gap:6px;font-size:13px}
 .impl-notes{margin:10px 0 0;border-top:1px solid var(--line);font-size:13px}
 .impl-notes>summary{display:flex;align-items:center;min-height:44px;cursor:pointer;color:var(--stone);font-weight:650}
@@ -540,7 +573,7 @@ body{margin:0;background:var(--canvas);color:var(--ink);
 .note{font-size:12.5px;color:var(--stone);border-left:3px solid var(--line);padding-left:10px}
 .brs{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
 .br{border:1px solid var(--amber);background:var(--amber-bg);color:var(--amber);border-radius:8px;
-  padding:3px 10px;font:600 12px inherit;cursor:pointer;min-height:44px}
+  padding:3px 10px;font-weight:600;font-size:12px;cursor:pointer;min-height:44px}
 .br.info{cursor:default}
 /* Journey stage: the device is flanked by large prev/next arrows that stay in
    view. Phones scale uniformly; every frame scrolls its own content. */

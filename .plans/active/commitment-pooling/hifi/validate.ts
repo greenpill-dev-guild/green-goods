@@ -773,9 +773,12 @@ export function normalizeAndValidate(raw: RawSB[], ctx: Ctx): { sbs: ShippedSB[]
   // allowed sets are the drawn home surfaces per group: the client enters via
   // the pool tab, the wallet drawer, or the Garden-tab work flow; admin flows
   // enter at their consoles; editorial at its public pages.
+  // Admin tightened 2026-08-16 (interaction-patterns §3): flows enter at TRUE
+  // console homes — workspace routes — never inside a dialog or wizard (W8, W9,
+  // W10, and W14 are flow/dialog surfaces and left the set).
   const ALLOWED_ENTRY: Record<string, readonly string[]> = {
     client: ["W1", "W5", "WFLOW"],
-    admin: ["W7", "W8", "W9", "W10", "W12", "W13", "W14", "W21", "W22", "W24", "HUBWORK"],
+    admin: ["W7", "W7M", "W12", "W13", "W21", "W22", "W24", "HUBWORK"],
     editorial: ["W15", "W16"],
   };
   for (const sb of sbs) {
@@ -824,6 +827,24 @@ export function normalizeAndValidate(raw: RawSB[], ctx: Ctx): { sbs: ShippedSB[]
     }
     for (const h of ctx.screenHots[s.id] ?? []) {
       if (!s.states.some((st) => domTokens(st.html).hots.has(h))) err.push(`ORPHAN hotspot ${h}: registered on ${s.id} but emitted in no state`);
+    }
+    // Rail stability (2026-08-16, admin prototype review): a flow dialog's
+    // step rail is declared once per flow and never changes mid-flow. Flows
+    // are grouped by their dialog title within a screen (W8 legitimately
+    // hosts both the seed and capture flows); every state sharing a title
+    // must render the identical ordered step-label list. W11 once swapped a
+    // one-item "Policy" rail into the same chrome — the regression this locks.
+    {
+      const railsByFlow = new Map<string, { labels: string; state: string }>();
+      for (const st of s.states) {
+        const title = st.html.match(/id="flow-dialog-title">([^<]*)</)?.[1];
+        if (!title) continue;
+        const labels = [...st.html.matchAll(/<span class="st">([^<]*)<\/span>/g)].map((m) => m[1]).join(" · ");
+        const seen = railsByFlow.get(title);
+        if (!seen) railsByFlow.set(title, { labels, state: st.id });
+        else if (seen.labels !== labels)
+          err.push(`RAIL ${s.id}@${st.id}: flow "${title}" renders steps [${labels}] but @${seen.state} renders [${seen.labels}] — a flow's rail never changes mid-flow`);
+      }
     }
     // A promise whose state chip reads Fulfilled is done; offering evidence
     // attach there contradicts both the chip and §5.3, which gates attach to

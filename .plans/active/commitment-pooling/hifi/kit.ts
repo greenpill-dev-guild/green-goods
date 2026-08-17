@@ -77,12 +77,12 @@ export function syncBar(text: string): string {
 
 // ---- surfaces ---------------------------------------------------------------
 
-// opts.edge — the promise-direction edge (2026-08-14): a 3px inset stripe,
-// green for offers, sky for requests, so a browse list reads direction at
-// scroll speed without recoloring whole cards (volume hierarchy stays).
-export function card(inner: string, opts: { cls?: string; edge?: "offer" | "request" } = {}): string {
-  const cls = `${opts.cls ? " " + opts.cls : ""}${opts.edge ? ` edge-${opts.edge}` : ""}`;
-  return `<div class="card${cls}">${inner}</div>`;
+// The direction edge — a 3px inset stripe, green for offers, sky for requests —
+// was retired 2026-08-16 (round 8, Afo). Direction is already carried by the
+// Offer/Request chip in text, so the stripe was a second encoding of the same
+// fact, and it gave otherwise identical cards two different silhouettes.
+export function card(inner: string, opts: { cls?: string } = {}): string {
+  return `<div class="card${opts.cls ? ` ${opts.cls}` : ""}">${inner}</div>`;
 }
 
 export function banner(text: string, tone: "amber" | "stone" | "green" | "error", ic = "information-line"): string {
@@ -203,6 +203,39 @@ export function formInfo(ic: string, title: string, info: string): string {
   return `<div class="finfo"><span class="fic">${icon(ic)}</span><div class="grow"><div class="ft">${esc(title)}</div><div class="fi">${esc(info)}</div></div></div>`;
 }
 
+// A titled section on a read surface: a quiet h6 label sitting on the canvas
+// with its content in a card beneath (2026-08-16 round 10). This is the shipped
+// work view's anatomy verbatim — WorkView.tsx renders `<h6>Garden</h6>` then a
+// GardenCard, `<h6>Media</h6>` then a Carousel, `<h6>Details</h6>` then
+// FormCards — and it is what replaced the promise view's stack of disclosures.
+//
+// The label stays OUTSIDE the card because that is where the work view puts it;
+// carding the label too would box the whole page and lose the scannable rhythm
+// of heading, content, heading, content.
+export function sectionCard(label: string, inner: string, opts: { flush?: boolean } = {}): string {
+  return `<div class="h6s">${esc(label)}</div><div class="card sect${opts.flush ? " flush" : ""}">${inner}</div>`;
+}
+
+// A label/value row inside a section card. WorkView stacks one FormCard per
+// detail, but it carries two; a promise carries six, and six cards each with
+// their own bordered header would be exactly the card-itis the design contract
+// warns about. One card, six rows.
+export function detailRow(label: string, value: string): string {
+  return `<div class="drow"><span class="dk">${esc(label)}</span><span class="dv">${esc(value)}</span></div>`;
+}
+
+// Media strip — the work view's Carousel of ImageWithFallback tiles. Evidence
+// on the promise view used to be text rows with an image icon; showing the
+// actual thumbnails is the single biggest reason to flatten this screen.
+export function mediaStrip(items: { label: string; tint?: "agro" | "waste" | "garden" | "quiet"; note?: boolean }[]): string {
+  return `<div class="mstrip">${items
+    .map(
+      (m) =>
+        `<div class="mtile ${m.note ? "note" : (m.tint ?? "quiet")}">${esc(m.label)}</div>`,
+    )
+    .join("")}</div>`;
+}
+
 // ---- forms (W3 / sheets) ----------------------------------------------------
 
 let fieldSeq = 0;
@@ -255,9 +288,8 @@ export function radio(
     .join("")}</div>`;
 }
 
-export function stepDots(n: number, current: number): string {
-  return `<div class="stepdots" role="img" aria-label="Step ${current + 1} of ${n}">${Array.from({ length: n }, (_, i) => `<i aria-hidden="true" class="${i < current ? "done" : i === current ? "on" : ""}"></i>`).join("")}</div>`;
-}
+// stepDots retired 2026-08-16: its one consumer (the W26 full-page wizard)
+// converted to the flow dialog's step rail; client wizards render FormProgress.
 
 // FormProgress — mirrors the shipping stepper (packages/client/src/components/
 // Communication/Progress/Progress.tsx): numbered 20px circles, a check when a
@@ -300,9 +332,36 @@ export function kindCards(options: { icon: string; label: string; meta: string; 
 // In-phone bottom sheet over dimmed context. Gesture sheets (PwaSheet) show the
 // tinted drag handle; tabbed drawers (ModalDrawer / WalletDrawer) pass
 // handle:false — they dismiss via chrome, not a drag pill.
-export function sheetOver(behind: string, title: string, inner: string, opts: { handle?: boolean } = {}): string {
-  const handle = opts.handle === false ? "" : `<div class="drag"></div>`;
-  return `<div class="sheetstage"><div class="behind">${behind}</div><div class="scrimm"></div><div class="sheet">${handle}<div class="sh-t">${esc(title)}</div>${inner}</div></div>`;
+// The handle distinguishes the two shipped shells, and they size differently
+// (2026-08-16 round 11): a gesture sheet (PwaSheet, with the drag handle) is as
+// tall as its content up to a ceiling; a tabbed drawer (ModalDrawer /
+// WalletDrawer, no handle) is a FIXED tall panel, because its tabs must not
+// make the whole surface jump height as you move between them.
+//
+// The body scrolls; the handle and title stay pinned. Neither was true before —
+// the sheet had no max-height and no overflow at all, so long content simply
+// grew past the top of the phone with no way to reach it.
+export function sheetOver(
+  behind: string,
+  title: string,
+  inner: string,
+  opts: { handle?: boolean; ic?: string; info?: string } = {},
+): string {
+  const drawer = opts.handle === false;
+  const handle = drawer ? "" : `<div class="drag"></div>`;
+  // With an icon and info, the sheet header takes FormInfo's anatomy — badge,
+  // title, meaning (2026-08-16 round 11). A sheet already owns a title, so a
+  // FormInfo card *inside* it would state the same thing twice; giving the
+  // header the same shape is how a sheet joins the flow grammar without
+  // repeating itself.
+  const head = opts.info
+    ? `<div class="sh-head"><span class="fic">${icon(opts.ic ?? "information-line")}</span><div class="grow"><div class="sh-t">${esc(
+        title,
+      )}</div><div class="fi">${esc(opts.info)}</div></div></div>`
+    : `<div class="sh-t">${esc(title)}</div>`;
+  return `<div class="sheetstage"><div class="behind">${behind}</div><div class="scrimm"></div><div class="sheet${
+    drawer ? " drawer" : ""
+  }">${handle}${head}<div class="sh-body">${inner}</div></div></div>`;
 }
 
 // Garden-detail header (views/Home/Garden/index.tsx): fixed image banner (h-36,
@@ -360,10 +419,8 @@ export function emptyState(iconName: string, title: string, body: string, action
 // puts a face on every browse card: avatar + name, "for {garden}" when a
 // garden claims. Cards carry chips → title → by-line → quantity+due → real
 // progress → ONE context action or one plain reason line; notes and declared
-// value live in detail.
-export function byline(name: string, opts: { forGarden?: string } = {}): string {
-  return `<div class="byline"><span class="avatar" aria-hidden="true">${esc(name[0] ?? "")}</span><span class="t-meta">by ${esc(name)}${opts.forGarden ? ` · for ${esc(opts.forGarden)}` : ""}</span></div>`;
-}
+// byline (avatar + "by Maria") retired 2026-08-16: the promise card carries the
+// creator as the first field of its meta line, so nothing rendered it any more.
 
 // Team strip — overlapping initial avatars (W2 people row, the funding pledge
 // row). Net-new as a primitive: the shipping client renders people via
@@ -403,16 +460,56 @@ export function poolFilters(activeIx: number, opts: { mine?: boolean } = {}): st
 // (PRD-760). Cycle cards follow layout option B (2026-08-14 third pass, Afo):
 // the [Season]/[Campaign] + stage chips LEAD the card, everything stacks on
 // one left axis, and counts join the stack — nothing floats right.
-export function seasonCard(opts: { made?: number; kept?: number; stage?: string } = {}): string {
+// What is still open in this cycle, by exact unit label (2026-08-16 round 8,
+// Afo). This is where pool capacity belongs on the client: on the cycle card
+// that already owns the scope, not in a separate "what this pool holds" card
+// above it — that card cost 236px of a 700px phone and pushed every promise
+// below the fold.
+//
+// Scope is the CYCLE, not the pool, which is also more correct than the block
+// it replaces: a season card showing pool-wide units would be describing a
+// different thing than its own counts. Derived from SEASON_LIVE so the units
+// and the kept counts on the same card cannot drift apart. Never summed —
+// "27 hours" and "7 rides" share no denominator (Appendix D.1).
+const seasonOpenUnits = () =>
+  Object.entries(SEASON_LIVE.units)
+    .map(([label, { done, of }]) => `${of - done} ${label}`)
+    .join(" · ");
+
+// Cycle card — the promise card's anatomy with one extra meta line, because a
+// cycle carries both what is open in it and how it has gone (2026-08-16 round
+// 9). Title first, tags last, square reserved on the right at the card's full
+// content height.
+export function cycleCard(opts: {
+  title: string;
+  units: string;
+  counts: string;
+  kind: string;
+  stage: string;
+  media?: { label: string; tint?: "agro" | "waste" | "garden" | "quiet" };
+  hotId?: string;
+}): string {
+  const inner = `<div class="pcbody"><div class="t-title">${esc(opts.title)}</div><div class="t-meta num">${
+    opts.units ? `${esc(opts.units)} open` : "nothing open"
+  }</div><div class="t-meta num">${esc(opts.counts)}</div><div class="ptags">${chip(opts.kind)}${chip(opts.stage)}</div></div>${
+    opts.media ? `<div class="pmedia tall ${opts.media.tint ?? "quiet"}">${esc(opts.media.label)}</div>` : `<div class="pmedia tall none"></div>`
+  }`;
+  const c = card(inner, { cls: `pcard2 cyc${opts.hotId ? " cardlink" : ""}` });
+  return opts.hotId ? hot(opts.hotId, c) : c;
+}
+
+export function seasonCard(opts: { made?: number; kept?: number; stage?: string; units?: string } = {}): string {
   const made = opts.made ?? SEASON_LIVE.made;
   const kept = opts.kept ?? SEASON_LIVE.kept;
-  const counts = made === 0 && kept === 0 ? "" : `<div class="t-meta num">${made} promises · ${kept} kept</div>`;
-  return card(
-    hot(
-      "w1.season-card",
-      `<div class="grow"><div class="cardrow">${chip("Season", "plain")}${chip(opts.stage ?? "Open", "plain")}</div><div class="t-title">${CYCLE}</div><div class="t-meta">runs through Aug 30</div>${counts}</div>`,
-    ),
-  );
+  return cycleCard({
+    title: CYCLE,
+    units: opts.units ?? seasonOpenUnits(),
+    counts: made === 0 && kept === 0 ? "no promises yet · through Aug 30" : `${made} promises · ${kept} kept · through Aug 30`,
+    kind: "Season",
+    stage: opts.stage ?? "Open",
+    media: { label: "photo", tint: "garden" },
+    hotId: "w1.season-card",
+  });
 }
 
 // Season + campaigns share one snap rail (2026-08-14): the Season slide leads
@@ -420,22 +517,81 @@ export function seasonCard(opts: { made?: number; kept?: number; stage?: string 
 // member came for. Presentation only: slides open their cycle, and the browse
 // scope select keeps owning list scope, so swiping never silently refilters.
 export function seasonSlide(opts: { made?: number; kept?: number; stage?: string } = {}): string {
-  return `<div class="cslide lead">${seasonCard(opts)}</div>`;
+  return `<div class="cslide">${seasonCard(opts)}</div>`;
 }
 export function emptySeasonSlide(): string {
-  return `<div class="cslide lead">${card(
-    `<div class="cardrow">${chip("Season", "plain")}</div><div class="t-title">No season right now</div><div class="t-meta">Stewards open the next one</div>`,
-  )}</div>`;
+  return `<div class="cslide">${cycleCard({
+    title: "No season right now",
+    units: "",
+    counts: "Stewards open the next one",
+    kind: "Season",
+    stage: "None open",
+  })}</div>`;
 }
-export function campaignSlide(hotId: string, title: string, stage: string, counts: string): string {
-  return `<div class="cslide">${card(
-    hot(hotId, `<div class="grow"><div class="cardrow">${chip("Campaign", "plain")}${chip(stage, "plain")}</div><div class="t-title">${title}</div><div class="t-meta">through Aug 18</div><div class="t-meta num">${counts}</div></div>`),
-  )}</div>`;
+// Same anatomy as the season slide, so the rail has one card height.
+export function campaignSlide(hotId: string, title: string, stage: string, counts: string, units = ""): string {
+  return `<div class="cslide">${cycleCard({
+    title,
+    units,
+    counts: `${counts} · through Aug 18`,
+    kind: "Campaign",
+    stage,
+    hotId,
+  })}</div>`;
 }
 
-// Card grammar (2026-08-14 second pass, Afo — the shipping WorkCard grammar):
-// the WHOLE card opens the promise detail; the footer button exists only when
-// a claim act is available from browse. Navigation-only buttons are retired.
+// PROMISE CARD, option E (2026-08-16 round 9, Afo). One anatomy for every
+// promise on every surface: title, one meta line, one tag row, and a reserved
+// square on the right that holds the promise's image when it has one.
+//
+// Three rules make every card the same height, which is what the old family of
+// five hand-built variants could not do:
+//
+//  1. NO ACTIONS ON CARDS. Taking something up happens in the promise view,
+//     where a member can read the whole thing first — the card's job is to be
+//     legible, not to be a control. This also removes the row that varied most.
+//  2. THE TAG ROW NEVER WRAPS. Fixed priority, hard cap, then a count. What
+//     survives is always: what it is, then what is unusual about it. Domains
+//     roll into the count first because the filter row above the list already
+//     filters by domain.
+//  3. THE IMAGE SLOT IS ALWAYS RESERVED. A promise with no photo shows nothing
+//     there and nothing shifts, so titles in a mixed list share one wrap point.
+//     The square is 1:1 at the card's full content height (the shipping
+//     WorkCard's media grammar), and never drives the height — three text rows
+//     already exceed it.
+const TAG_CAP = 3;
+
+export function promiseCard(opts: {
+  title: string;
+  meta: string;
+  // Ordered by priority. The first is the kind chip and is never dropped.
+  tags: { label: string; tone?: ChipTone }[];
+  media?: { label: string; tint?: "agro" | "waste" | "garden" | "quiet" };
+  hotId?: string;
+  note?: string;
+  acts?: string;
+}): string {
+  const shown = opts.tags.slice(0, TAG_CAP);
+  const hidden = opts.tags.length - shown.length;
+  const tagRow = `<div class="ptags">${shown.map((t) => chip(t.label, t.tone ?? "plain")).join("")}${
+    hidden > 0 ? `<span class="ch more">+${hidden}</span>` : ""
+  }</div>`;
+  const media = opts.media
+    ? `<div class="pmedia ${opts.media.tint ?? "quiet"}">${esc(opts.media.label)}</div>`
+    : `<div class="pmedia none"></div>`;
+  const inner = `<div class="pcbody"><div class="t-title">${esc(opts.title)}</div><div class="t-meta num">${esc(opts.meta)}</div>${tagRow}${
+    opts.note ? `<div class="t-meta">${esc(opts.note)}</div>` : ""
+  }${opts.acts ?? ""}</div>${media}`;
+  const c = card(inner, { cls: `pcard2${opts.hotId ? " cardlink" : ""}` });
+  return opts.hotId ? hot(opts.hotId, c) : c;
+}
+
+// Legacy card grammar (2026-08-14). Retained only until every call site moves
+// to promiseCard above.
+// Every browse cast of an Offer. The queued/waiting/failed casts are the
+// member's OWN sends, so they carry no creator name and keep their recovery
+// controls — those are device-state acts on a promise that has not left the
+// phone, not claim acts, so they are the one exception to "no actions on cards".
 export function offerCard(opts: {
   queued?: boolean;
   waiting?: boolean;
@@ -445,70 +601,85 @@ export function offerCard(opts: {
   detailHot?: string;
   team?: number;
 } = {}): string {
-  const chips = `${chip("Offer", "offer")}${opts.team ? chip(`Team of ${opts.team}`, "plain") : ""}${opts.queued ? chip("Queued", "queued") : ""}${opts.waiting ? chip("Waiting", "queued") : ""}${opts.failed ? chip("Couldn't send", "err") : ""}`;
-  const cta = opts.queued || opts.waiting || opts.failed || opts.readOnly
-    ? ""
-    : `<div class="brow">${hot("w1.take-up", btn("Take this up", { kind: "sec" }))}</div>`;
-  const note = opts.waiting
-    ? `<div class="t-meta">Waiting for your garden membership — it will send once you're welcomed in.</div>`
-    : opts.failed
-      ? `<div class="t-meta">Five send attempts used. You can retry or discard.</div><div class="brow">${hot("w1.retry-send", btn("Retry", { kind: "sec", sm: true }))}${hot("w1.discard-send", btn("Discard", { kind: "ghost", sm: true }))}</div>`
-      : opts.readOnly
-        ? `<div class="t-meta">${opts.readOnlyNote ?? "This promise remains visible, but taking it up is not available right now."}</div>`
-        : "";
-  const title = opts.waiting ? "Compost workshop" : "Prune the north beds";
-  const meta = opts.waiting ? "3 sessions · runs with the season" : "6 hours · due Aug 12";
-  // Queued/waiting/failed casts are YOUR OWN sends — no by-line on yourself
-  // (P1 row-subset rule: variants omit rows, never reorder them).
   const own = opts.queued || opts.waiting || opts.failed;
-  const inner = `<div class="cardrow">${chips}</div><div class="t-title">${title}</div>${own ? "" : byline("Maria")}<div class="t-meta num">${meta}</div>${domainRow(["AGRO"])}${note}${cta}`;
-  if (opts.queued || opts.waiting || opts.failed) return card(inner, { edge: "offer" });
-  const openHot = opts.readOnly ? opts.detailHot : "w1.open-offer";
-  const c = card(inner, { edge: "offer", cls: openHot ? "cardlink" : undefined });
-  return openHot ? hot(openHot, c) : c;
+  const tags: { label: string; tone?: ChipTone }[] = [{ label: "Offer", tone: "offer" }];
+  if (opts.team) tags.push({ label: `Team of ${opts.team}` });
+  if (opts.queued) tags.push({ label: "Queued", tone: "queued" });
+  if (opts.waiting) tags.push({ label: "Waiting", tone: "queued" });
+  if (opts.failed) tags.push({ label: "Couldn't send", tone: "err" });
+  tags.push({ label: "AGRO" });
+  const title = opts.waiting ? "Compost workshop" : "Prune the north beds";
+  const amount = opts.waiting ? "3 sessions · runs with the season" : "6 hours · due Aug 12";
+  const note = opts.waiting
+    ? "Waiting for your garden membership — it will send once you're welcomed in."
+    : opts.failed
+      ? "Five send attempts used. You can retry or discard."
+      : opts.readOnly
+        ? (opts.readOnlyNote ?? "This promise remains visible, but taking it up is not available right now.")
+        : undefined;
+  return promiseCard({
+    title,
+    meta: own ? amount : `Maria · ${amount}`,
+    tags,
+    media: opts.waiting ? undefined : { label: "photo", tint: "agro" },
+    note,
+    acts: opts.failed
+      ? `<div class="brow">${hot("w1.retry-send", btn("Retry", { kind: "sec", sm: true }))}${hot("w1.discard-send", btn("Discard", { kind: "ghost", sm: true }))}</div>`
+      : undefined,
+    hotId: own ? undefined : opts.readOnly ? opts.detailHot : "w1.open-offer",
+  });
 }
 
 export function requestCard(opts: { openClaim?: boolean; queued?: boolean; context?: string; claimHot?: string } = {}): string {
-  // Mode-helper trim (2026-08-14 night): the act's own label carries the
-  // claim mode — "I can help" is open, "Ask to take this up" is reviewed —
-  // so the separate mode line is gone from browse cards (uiux §5.2 trim note).
-  const inner = `<div class="cardrow">${chip("Request", "request")}${chip("Support / service", "plain")}${opts.queued ? chip("Queued", "queued") : ""}</div><div class="t-title">Ride to the market on Saturday</div>${byline("Ana")}<div class="t-meta num">1 ride · ${opts.context ?? "runs with the season"}</div>${
-    opts.queued
-      ? `<div class="t-meta">Saved on this device — it will send when connected.</div>`
-      : opts.openClaim
-        ? `<div class="brow">${hot(opts.claimHot ?? "w1.take-up-request", btn("I can help", { kind: "sec" }))}</div>`
-        : `<div class="brow">${hot("w1.ask-take-up", btn("Ask to take this up", { kind: "sec" }))}</div>`
-  }`;
-  if (opts.queued) return card(inner, { edge: "request" });
-  const openHot = opts.openClaim ? "w1.open-request" : "w1.open-request-gated";
-  return hot(openHot, card(inner, { edge: "request", cls: "cardlink" }));
+  // The claim mode used to be carried by the card button's own label ("I can
+  // help" open, "Ask to take this up" reviewed). With acts moved into the
+  // promise view, the card no longer says which it is — the view does, where
+  // the member can read the terms before deciding.
+  const tags: { label: string; tone?: ChipTone }[] = [{ label: "Request", tone: "request" }];
+  if (opts.queued) tags.push({ label: "Queued", tone: "queued" });
+  tags.push({ label: "Support / service" });
+  return promiseCard({
+    title: "Ride to the market on Saturday",
+    meta: opts.queued ? `1 ride · ${opts.context ?? "runs with the season"}` : `Ana · 1 ride · ${opts.context ?? "runs with the season"}`,
+    tags,
+    note: opts.queued ? "Saved on this device — it will send when connected." : undefined,
+    hotId: opts.queued ? undefined : opts.openClaim ? "w1.open-request" : "w1.open-request-gated",
+  });
 }
 
 // Ongoing-Offer place card — the public life of a CommitmentSeries on the pool
-// tab (D8a): "Ongoing" chip + places-left is the card's real progress; the
-// whole card opens the series detail where places are taken up (no nav button).
+// tab (D8a): the "Ongoing" tag plus places-left is the card's real progress,
+// and the whole card opens the series detail where places are taken up.
 export function ongoingOfferCard(): string {
-  return hot("w1.open-ongoing", card(
-    `<div class="cardrow">${chip("Offer", "offer")}${chip("Ongoing", "plain")}${chip("Support / service", "plain")}</div><div class="t-title">Saturday veggie box</div>${byline("Maria")}<div class="t-meta num">1 box each week · runs with the season</div><div class="t-meta num">2 places open</div>`,
-    { edge: "offer", cls: "cardlink" },
-  ));
+  return promiseCard({
+    title: "Saturday veggie box",
+    meta: "Maria · 1 box each week · 2 places open",
+    tags: [{ label: "Offer", tone: "offer" }, { label: "Ongoing" }, { label: "Support / service" }],
+    hotId: "w1.open-ongoing",
+  });
 }
 
-// Team-offer card — the D5 roster indicator: a forming team is visible right
-// on the browse card; the whole card opens the promise (team view lives inside).
-// Two-domain fixture: compost restoration pairs AGRO with WASTE, both equal.
+// Team-offer card — the D5 roster indicator: a forming team is visible right on
+// the browse card; the whole card opens the promise, where joining happens.
+// Two domains here, which is exactly the case that used to need a second row —
+// now the tag cap absorbs it and WASTE rolls into the count.
 export function teamOfferCard(): string {
-  return hot("w1.open-team-offer", card(
-    `<div class="cardrow">${chip("Offer", "offer")}${chip("Team of 3", "plain")}</div><div class="t-title">Restore the compost bays</div>${byline("Maria")}<div class="t-meta num">4 sessions · due Aug 24</div>${domainRow(["AGRO", "WASTE"])}`,
-    { edge: "offer", cls: "cardlink" },
-  ));
+  return promiseCard({
+    title: "Restore the compost bays",
+    meta: "Maria · 4 sessions · due Aug 24",
+    tags: [{ label: "Offer", tone: "offer" }, { label: "Team of 3" }, { label: "AGRO" }, { label: "WASTE" }],
+    media: { label: "photo", tint: "waste" },
+    hotId: "w1.open-team-offer",
+  });
 }
 
 export function fundedOfferCard(): string {
-  return card(
-    `<div class="cardrow">${chip("Offer", "offer")}${chip("Support / service", "plain")}${chip("40 G$", "plain")}</div><div class="t-title">Design a market poster</div>${byline("Ben")}<div class="t-meta num">1 poster design · runs with the season</div><div class="t-meta">Your deposit instructions appear only after the funding record is ready.</div><div class="brow">${hot("w1.ask-funded", btn("Ask to fund this", { kind: "sec" }))}</div>`,
-    { edge: "offer" },
-  );
+  return promiseCard({
+    title: "Design a market poster",
+    meta: "Ben · 1 poster design · runs with the season",
+    tags: [{ label: "Offer", tone: "offer" }, { label: "40 G$" }, { label: "Support / service" }],
+    note: "Your deposit instructions appear only after the funding record is ready.",
+  });
 }
 
 // Saved-Offer row (W32) — a saved detail set is reusable input to either offer
@@ -536,10 +707,10 @@ export function selRail(cards: string[]): string {
 }
 
 // Promise slide — the intro's third rail (2026-08-14, Afo: many promises must
-// not stack downward): compact cards with the pool tab's direction edge,
-// nearest due first, swipe for more. Tapping one enters the scoped flow.
-export function promiseSlide(opts: { title: string; needs: string; due: string; edge: "offer" | "request"; hotId?: string }): string {
-  const c = `<div class="card pcard edge-${opts.edge}${opts.hotId ? " cardlink" : ""}"><div class="t-title">${opts.title}</div><div class="t-meta num">${opts.needs}</div><div class="t-meta num">${opts.due}</div></div>`;
+// not stack downward): compact cards, nearest due first, swipe for more.
+// Tapping one enters the scoped flow.
+export function promiseSlide(opts: { title: string; needs: string; due: string; hotId?: string }): string {
+  const c = `<div class="card pcard${opts.hotId ? " cardlink" : ""}"><div class="t-title">${opts.title}</div><div class="t-meta num">${opts.needs}</div><div class="t-meta num">${opts.due}</div></div>`;
   return opts.hotId ? hot(opts.hotId, c) : c;
 }
 
@@ -560,6 +731,161 @@ export function deskWin(url: string, body: string): string {
 // AdminCard — M3 elevated solid surface (head + optional trailing + body).
 export const acard = (head: string, body: string, trailing = "") =>
   `<div class="acard"><div class="ahead"><span class="at">${head}</span>${trailing ? `<span class="ax">${trailing}</span>` : ""}</div>${body}</div>`;
+
+// Triage stats (AdminCard + MetaStrip anatomy): number leads, label beneath,
+// hairline columns. Each cell jumps to the queue that owns it; a zero count
+// renders calm rather than alarming. Redesigned 2026-08-16 — these read as
+// stats, never as a row of buttons.
+export function statRow(
+  items: { n: string; label: string; hotId?: string }[],
+  opts: { layout?: "inline" | "stacked" } = {},
+): string {
+  return `<div class="sumrow${opts.layout === "inline" ? " inline" : ""}" role="group" aria-label="Queue counts">${items
+    .map(({ n, label, hotId }) => {
+      const inner = `<span class="n num">${esc(n)}</span><span class="l">${esc(label)}</span>`;
+      const cls = `sumcell${n === "0" ? " zero" : ""}`;
+      // A stat that navigates is a button; one that only reports is not. Never
+      // dress a read-only number as a control.
+      return hotId
+        ? hot(hotId, `<button type="button" class="${cls}">${inner}</button>`)
+        : `<span class="${cls} static">${inner}</span>`;
+    })
+    .join("")}</div>`;
+}
+
+// ---- the two row variants (interaction-patterns §5) -------------------------
+// RECORD ROW — a thing you look at: title + kind/state chips on line one, calm
+// meta (who · how much · when) on line two, and ONE trailing act, or a chevron
+// when the row simply opens. Used for promises, campaigns, activity, queues you
+// browse.
+export function promiseRow(opts: {
+  title: string;
+  chips?: string;
+  meta?: string;
+  act?: string;
+  hotId?: string;
+  chevron?: boolean;
+}): string {
+  const main = `<div class="pmain"><div class="ptop"><b>${esc(opts.title)}</b>${opts.chips ?? ""}</div>${
+    opts.meta ? `<div class="pmeta num">${esc(opts.meta)}</div>` : ""
+  }</div>`;
+  const trailing = `${opts.act ?? ""}${opts.chevron ? icon("arrow-right-s-line", "s") : ""}`;
+  const body = opts.hotId ? hot(opts.hotId, main) : main;
+  return `<div class="prow">${body}${trailing ? `<span class="pact">${trailing}</span>` : ""}</div>`;
+}
+
+// DECISION ROW — a thing you answer: same anatomy, but TWO acts, because
+// accept/decline and approve/reject are paired opposites and hiding one behind
+// an overflow would be worse than showing both. Affirmative rightmost; the
+// declining act sits left of it in the quieter weight. When the decision is
+// already made, `outcome` replaces the pair with the state it produced.
+export function decisionRow(opts: {
+  title: string;
+  chips?: string;
+  meta?: string;
+  affirm?: string;
+  decline?: string;
+  outcome?: string;
+  hotId?: string;
+}): string {
+  const main = `<div class="pmain"><div class="ptop"><b>${esc(opts.title)}</b>${opts.chips ?? ""}</div>${
+    opts.meta ? `<div class="pmeta num">${esc(opts.meta)}</div>` : ""
+  }</div>`;
+  const trailing = opts.outcome ?? `${opts.decline ?? ""}${opts.affirm ?? ""}`;
+  const body = opts.hotId ? hot(opts.hotId, main) : main;
+  return `<div class="prow">${body}${trailing ? `<span class="pact">${trailing}</span>` : ""}</div>`;
+}
+
+// A card whose HEADER IS ITS OBJECT — the open season heading the Season &
+// Campaigns card, rather than a generic title with the season bolted beneath as
+// a second header. Title + chips + counts + its one act live in the head; the
+// stepper and any peer list follow in the body.
+export function objectCard(opts: {
+  title: string;
+  chips?: string;
+  meta?: string;
+  acts?: string;
+  body?: string;
+}): string {
+  return `<div class="acard objcard"><div class="objhead"><div class="objtitle"><div class="ptop"><b>${esc(
+    opts.title,
+  )}</b>${opts.chips ?? ""}</div>${opts.meta ? `<div class="pmeta num">${esc(opts.meta)}</div>` : ""}</div>${
+    opts.acts ? `<span class="objacts">${opts.acts}</span>` : ""
+  }</div>${opts.body ?? ""}</div>`;
+}
+
+// A card's section divider: a quiet subheading with an optional section act
+// (AdminCard's internal grouping — "Campaigns · 2 open" with Start Campaign).
+export function cardSection(label: string, act = ""): string {
+  return `<div class="cardsub">${esc(label)}${act ? `<span class="subact">${act}</span>` : ""}</div>`;
+}
+
+// WHAT THE POOL HOLDS — the pool's contents, which the console never showed.
+// Before this, every pool surface described how the pool was CONFIGURED
+// (charter, cap, assessment) and nothing described what was in it, so neither a
+// steward nor a member could answer "what can our pool actually do right now?".
+//
+// Two parts, because a pool holds two different kinds of thing: what members
+// can do for each other, and what sits in the reserve. They are never added
+// together and never converted into each other.
+//
+// The unit rows are exact-label groups straight off CommitmentUnitSummary. They
+// are deliberately NOT summed: 40 hours and 12 rides have no shared denominator,
+// and inventing one would be inventing a price (Appendix D.1). Rendering the
+// groups is the honest version of the single-figure ring in the source model.
+//
+// Composes Record Rows inside the caller's own card, so admin wraps it in
+// `acard` and the client in `card` without either surface borrowing the other's
+// chrome.
+export function poolHoldings(opts: {
+  units: readonly { label: string; open: number; people: number }[];
+  reserve?: { amount: string; plans: number };
+  capacityNote?: string;
+  reserveNote?: string;
+  // Who stands behind the units. A garden pool's members are neighbors; the
+  // protocol pool's members are gardens, and calling them neighbors there would
+  // be a small lie in the one place the block exists to be truthful.
+  who?: { one: string; many: string };
+}): string {
+  const who = opts.who ?? { one: "neighbor", many: "neighbors" };
+  const unitRows = opts.units
+    .map(({ label, open, people }) =>
+      promiseRow({
+        title: `${open} ${label}`,
+        meta: `${people} ${people === 1 ? who.one : who.many} offering`,
+      }),
+    )
+    .join("");
+  // The note goes ABOVE the rows: it says what the numbers ARE, and "40 hours"
+  // read before that caption is ambiguous between promised, available, and
+  // already given.
+  const capacity = `${cardSection("What we can do for each other")}${
+    opts.capacityNote ? `<div class="t-meta">${esc(opts.capacityNote)}</div>` : ""
+  }<div class="holdlist">${unitRows}</div>`;
+  if (!opts.reserve) return capacity;
+  const plans =
+    opts.reserve.plans === 0
+      ? "nothing planned to go out"
+      : `${opts.reserve.plans} payout${opts.reserve.plans === 1 ? "" : "s"} planned`;
+  // The reserve is one row, quieter than the capacity above it — the pool works
+  // whether or not anything is in here, and a reserve of nothing is a normal
+  // pool rather than an empty one.
+  const reserve = `${cardSection("What's in the reserve")}${
+    opts.reserveNote ? `<div class="t-meta">${esc(opts.reserveNote)}</div>` : ""
+  }<div class="holdlist">${promiseRow({ title: opts.reserve.amount, meta: plans })}</div>`;
+  return `${capacity}${reserve}`;
+}
+
+// Scope filters for a list card — AdminFilterChip. One group per dimension
+// (state, kind, direction); the active chip carries aria-current.
+export function filterChips(chips: { label: string; on?: boolean; hotId?: string }[], ariaLabel: string): string {
+  return `<div class="scopechips" role="group" aria-label="${escAttr(ariaLabel)}">${chips
+    .map(({ label, on, hotId }) => {
+      const c = `<button type="button" class="sc-chip${on ? " on" : ""}"${on ? ' aria-current="true"' : ""}>${esc(label)}</button>`;
+      return hotId ? hot(hotId, c) : c;
+    })
+    .join("")}</div>`;
+}
 
 // Cycle/settlement stage stepper.
 export const stages = (list: string[], activeIx: number) =>

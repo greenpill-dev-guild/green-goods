@@ -84,15 +84,15 @@ subtree is only honest if that index actually enumerates the tree (this failed r
 
 | List | Range | What it is |
 |---|---|---|
-| **Decision Log** (the table below) | 1–61 | Curated current-state decisions spanning the whole feature, newest last |
+| **Decision Log** (the table below) | 1–67 | Curated current-state decisions spanning the whole feature, newest last |
 | **Full decision register** (further below) | 1–97 | The 2026-07-03 alignment session verbatim, plus dated addenda 28–97 |
 
-- **Every `#1`–`#61` citation is potentially ambiguous** because both lists now occupy that range. Always write “Decision Log #N” or “register #N”.
+- **Every `#1`–`#67` citation is potentially ambiguous** because both lists now occupy that range. Always write “Decision Log #N” or “register #N”.
 - **`#62`–`#97` are unambiguous register numbers**, but naming the list is still preferred.
 - **`#39`–`#40` became ambiguous on 2026-08-01**, when the Decision Log gained its CPP-alignment scope lock and staged-product narrative while the full register already carried different entries at those numbers. Name the list explicitly for both.
 - **`#30`–`#38` became ambiguous on 2026-07-28 and 2026-07-30**, when the Decision Log grew its own entries 30–36 (the group-commitment/recognition/payout amendments), 37 (protocol-pool settlement parity), and 38 (pre-build review closure). The guidance here previously said `#30`–`#60` were always the register, which stopped being true the moment Decision Log `#30` was written; **`#34` is the worst case — it is cited ~71× and now resolves to two different decisions.** Every bare `#30`–`#38` citation predating 2026-07-28 means the register; name the list explicitly from now on.
 - **`#29` became ambiguous on 2026-07-18** when the Decision Log gained its own `#29` (fourth garden not selected). Register `#29` is a different decision entirely. Always name the list for this number.
-- **`#1`–`#61` must be resolved by reading both.** They diverge from `#8` onward: Decision Log `#17` = "app becomes multi-chain"; register `#17` = "clean room, GE paper only". Decision Log `#28` = the visual-asset audit; register `#28` = the needs-layer EAS schemas.
+- **`#1`–`#67` must be resolved by reading both.** They diverge from `#8` onward: Decision Log `#17` = "app becomes multi-chain"; register `#17` = "clean room, GE paper only". Decision Log `#28` = the visual-asset audit; register `#28` = the needs-layer EAS schemas.
 - **Sub-letters do not disambiguate** — both `#28` (Decision Log, a–f) and `#34` (register, a–h) carry them.
 - **When writing a new citation, name the list**: "Decision Log #17" or "register #17", never a bare `#17`.
 
@@ -171,6 +171,8 @@ Known mis-resolutions fixed in place: `contract-spec.md` §Grassroots-Economics-
 | 64 | **Prototype UI reuses the shipping app's components and rhythms — never a parallel pattern.** Wizards render the real FormProgress chrome with back buttons; evidence is an MDR variant of Submit Work; the kind choice is equal cards; the promise detail carries people + team above the fold and one bar-held primary; ongoing is an inline expansion of the composer, not a detour; exchange is parked until it gets its own design session; "Request" is the single asking word; stewards declare G$ support in a real wizard step on the phone. | Afo's iteration-2 review, 2026-08-11: the correction pass fixed structure but not look-and-feel — flows still invented patterns the app already solves (dots vs FormProgress, sheet evidence vs MDR, X-only headers), the ongoing entry stayed invisible, and steward G$ had no phone surface at all. Register #102. |
 | 65 | **PRD-722 indexes the deployed 58-event surface into 28 new records.** The old 54-event/26-record wording predates four member-funding events and `CommitmentFunding`. A twenty-eighth bounded `CommitmentFundingIndex` is required because `DisbursementQueued(kind=Refund)` emits `commitmentId` and the contributor/funder but not `fundingId`; it is the event-owned `(chain, commitment, funder)` join that lets Refund-before-pledge and pledge-before-Refund delivery converge without RPC reads or database scans. | Frozen-ABI reconciliation on 2026-08-13 against live PR #705 head `9948bd7507ac00d0b07f4efd30f6001dd92d84ab`. The extra record is a read-model necessity, not a contract or product-scope expansion. |
 | 63 | **The client prototype catalog is a two-tier product: canonical journeys plus an exhaustive state library.** Seventeen client journeys each start at a drawn home surface, one person, one sitting; every offline/failure/cycle-state variant stays reviewable in the Screen library. The composer is entry-fixed with a details capture, and the ongoing and exchange paths folded in as choices; evidence and work capture share the shipping Submit-Work interaction; the work↔promise bridge is drawn in both directions; browse cards carry the D5 contract. Two new validator rules (entry-surface, one-row bars) keep both regressions impossible. | Afo decisions D1–D10, 2026-08-11 interactive plan session, after the deep client-PWA audit found the registry's state-coverage instrument being presented as UX journeys: wizard repetition across eight flows, mid-app starts, promise/offer vocabulary drift, unused MDR patterns, and a work-link mis-wired to the admin console. Register #101; admin findings recorded, not fixed, in `reports/admin-prototype-follow-up-2026-08-11.md`. |
+| 66 | **The admin prototype set follows the shipping console contract, and four product framings are locked.** (1) View actions in the right-aligned header row with one fixed primary, consequential acts in `AdminDialog`, mobile = the same set on the `FabButton` speed dial with dialogs presenting as sheets — drawn by the restructured W7, the W7M phone set, and journey sb60. (2) Steward vocabulary: the two doors "Start a season" / "Start a campaign" replace "Open cycle"/"Seed a cycle"; pool lifecycle demotes to a Pool settings dialog; Season and Campaign render as peers everywhere ("cycle" stays docs-side umbrella vocabulary). (3) Season↔campaign attribution stays exclusive per the single `cycleId` binding; season reporting may add a clearly-labeled time-window roll-up of overlapping campaigns at the read layer only. (4) Assessments present timing-first ("For [cycle / this garden overall] · at the start / at the close") with wire kind + `baselineUID` derived and the existing schema untouched. Supporting fixes shipped in the same wave: the W11 recognition detour keeps its rail (new RAIL validator rule), W26 joins the flow-dialog shell and sb9c splits at act seams (sb9c/sb9d/sb9e), HUBWORK draws the complete approve/reject arc, W14 renders all three steps, W9 gains the steward-fallback confirmation path + not-a-member empty state + who's-who block (sb8b), and admin PWA echoes trim to the consequence-only rule. | Afo's admin prototype review, aligned interactively 2026-08-16. Of the 2026-08-11 admin follow-up findings this closes 3 (the sb9c split) and moves 5's substance (view-level acts no longer stack in content; dialog footers are the kit's right-aligned row) — a dialog action-row validator rule, plus findings 1, 2, 4, 6, and 7, remain open for the next admin pass. The four framings were explicit user decisions; the conformance work implements the already-locked AdminViewActions / AdminDialog / FabButton contracts. uiux-spec §6 addendum 2026-08-16 carries the full text; contract-spec §12 gains the address-less-member open question surfaced by the device-free walk. |
+| 67 | **The admin design contract is codified and binding, and round 2 re-lands the prototypes under it.** The design skill gains `admin-ux-brief.md` (Afo's canonical brief: NN/g heuristics, GOV.UK, USWDS, Laws of UX, web.dev responsive, Refactoring UI — principles extracted, branding never copied) and `interaction-patterns.md` (the codified contract, each rule cited to shipped code: end-aligned action clusters everywhere; ONE stable view action set across tabs with availability-by-disabling; dialog taxonomy with NO shell change mid-flow; flows enter from drawn console homes; single-column MainSheet with the two-column workspace-tab split where earned; row anatomy who·what·state-chips·meta·one-act with banners teaching once; compose only from the shipped palette). review-checklist Lens 5 makes the contract a mandatory pass before any admin round publishes. Four product answers locked: Garden header = shipped trio + Seed, stable everywhere; pool tab = left objects / right rail (container card · quick actions · activity), pool stays a managed container distinct from cycles; start-season/campaign = one three-step flow shell; assessments stay Hub/evaluator-side for v1 (sb57 retired, state library-only). | Afo's second admin review 2026-08-16 — round 1 was validator-green yet violated the contract (left-aligned card actions, tab-varying header actions against garden.utils.ts's tab-ignoring stable set, details-dialog→wizard shell hop, mid-dialog journey entries) because the guidance stack encoded visual identity but not the interaction layer, and nothing gated design quality. uiux-spec §6 admin round 2 addendum (i)–(o) carries the full text. |
 
 ### Full decision register (2026-07-03 alignment session, entries 1–27; dated addenda 28–103)
 
@@ -1022,6 +1024,58 @@ Known mis-resolutions fixed in place: `contract-spec.md` §Grassroots-Economics-
     `../celo-garden-account-safe-ownership/`. Its proof authorizes no contract deployment,
     guardian mutation, Safe creation, role/allowance/peer configuration, value movement, canary,
     or other broadcast; every live boundary remains separately human-authorized.
+
+113. Source-model coherence pass on the pool prototypes (2026-08-16, Afo direction; adds to the
+    locked UX record without superseding any entry). Reviewed the specs against Will Ruddick /
+    Grassroots Economics' Chama-pool model. The values translated; the central object did not —
+    every pool surface described how the pool was *configured* and none described what it *held*.
+    Four additions ship, recorded in `uiux-spec.md` C.6: a **holdings block** on `W7`/`W12`/`W1`
+    rendering exact-label unit groups plus the reserve, never summed and never converted (D.1
+    binds; two existing cross-basis sums were removed); a **Seeded state** on `W7` with opening as
+    the event; a **"who's in this pool" roster** on `W7` and `W1` under unchanged D.3 privacy; and
+    **frame grouping** of the state switcher (`W2` 75→11, `W1` 33→9, `W7` 31→8) that merges
+    presentations while leaving the §17 coverage ledger and every default state untouched.
+    Contract finding that shaped the second item: `createCommitment` rejects any cycle that is not
+    `Open` (`CreationChecksLib.sol:72`), so a Seeded cycle holds no promises from anyone — the
+    "members fill the pool during the seeded window" reading is not implementable, and the pool
+    fills at opening instead. Naming defect recorded, not fixed: the `support-` state prefix
+    covers both a service offer's lifecycle and the G$ transport chain.
+
+114. PROPOSED, not locked — reciprocity from the claim side (2026-08-16, register #103; awaiting
+    Afo). Register #102(d) parked exchange until it got its own design session; this is a proposal
+    for that session, narrower than what was parked. Taking up someone's offer would, in the same
+    skippable step, ask what you can bring and create your offer as part of the claim — so no
+    double coincidence of wants is needed. It requires **no contract change**: E.1's picker and
+    `validateCounterCommitment` already implement the pair, and this adds only the claim-side
+    entry over the same two calls. The design content is ordering — `CreationChecksLib.sol:137`
+    requires the counter offer to still be `Offered`, so `createCommitment(B, counter = A)` must
+    be enqueued **before** `claimCommitment(A)` and the queue must hold that order across retries.
+    Vocabulary ("in exchange for"), the banned-token scan, decision 17 lifecycle independence, and
+    the steward-consent exclusion all bind unchanged. Nothing is drawn as shipped design; no
+    screen implements it. Full text: `uiux-spec.md` C.7.
+
+115. Creation runs Submit Work's four beats, and the wallet's "Things I can offer" splits by
+    what its halves are (2026-08-16, round 12, Afo's four calls). **(a)** `W3` runs What · How
+    much · Details · Review on every path. Scope becomes ONE step-1 field on every path
+    ("Where it runs") — it had been `field("Season")` on step 1 for garden work,
+    `field("Campaign")` on step 2 for a service and `field("Scope")` on step 2 for ongoing.
+    **(b)** The protection step folds into step 2, retiring `step-anchors`, `request-anchors`,
+    `request-variant` and `request-variant-steward` — proof rows and who-can-take-it were the same
+    step-3 slot in different clothes, and both answer step 2's question. **(c)** Details becomes a
+    real numbered step on all five paths, from one shared body that is the shipped media step
+    verbatim; it had been an unnumbered detour drawn with `w3Head(…, 0)`, so the progress bar lit
+    step 1 while the member was on it. **(d)** How often moves to step 1 beside the kind cards —
+    at the bottom of step 2 the fork was found only after everything was filled in for a one-off.
+    **(e)** Every review follows `views/Garden/Review.tsx` LITERALLY (Afo's call over the
+    tappable-rows option): FormInfo over one flat card, one hot row for the Advanced detour
+    mirroring `wflow.fulfills`, thirteen `w3.edit-*` links retired, back arrow as the edit path.
+    Step 1 goes from seven blocks to three. **(f)** In the wallet, the private saved draft becomes
+    a tool row above the ledger and the ongoing Offer's parent moves into its own garden's
+    section — the fourth section card was a category error beside three gardens, held one nav row
+    instead of content, sat outside the scope chips' jurisdiction, and merged a thing that is not
+    on chain with one that is. Raised, NOT acted on: a garden-work promise is still quantified
+    twice (`6 hours` and `Prune × 2 · Plant × 12`), which folding proof into step 2 makes more
+    visible. Full text: `uiux-spec.md` C.10 and C.11.
 
 **Final recursive certification clarification (2026-07-25; no new decision-register entry):**
 the published `42161`↔`42220` production lane is the only required fully paired

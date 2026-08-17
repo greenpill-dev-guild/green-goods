@@ -27,7 +27,7 @@ const GROUP_DEFS: { name: string; surface: Surface; ids: string[] }[] = [
   // Story). They stay inside the one client panel: the Screens tab keys its
   // tabpanel by surface, so a second client group would collide on that id.
   { name: "Client PWA", surface: "client", ids: ["W1", "W2", "W2a", "W2b", "W3", "W4", "W36", "W5", "W23", "W25", "WFLOW", "W28", "W29", "W30", "W31", "W32", "W34", "W35"] },
-  { name: "Admin console", surface: "admin", ids: ["W7", "W8", "W9", "W10", "W11", "W12", "W13", "W14", "W37", "W21", "W22", "W24", "W26", "HUBWORK"] },
+  { name: "Admin console", surface: "admin", ids: ["W7", "W7M", "W8", "W9", "W10", "W11", "W12", "W13", "W14", "W37", "W21", "W22", "W24", "W26", "HUBWORK"] },
   { name: "Editorial website", surface: "editorial", ids: ["W15", "W16"] },
   { name: "Community PWA — September preview (lo-fi)", surface: "community", ids: ["C1", "C3", "C4", "C5", "C6", "C9", "C10"] },
 ];
@@ -44,7 +44,7 @@ const SCREEN_CHAPTERS: Record<string, { label: string; ids: string[] }[]> = {
     { label: "Wallet", ids: ["W5", "W23"] },
   ],
   admin: [
-    { label: "Pool & seasons", ids: ["W7", "W11", "W26"] },
+    { label: "Pool & seasons", ids: ["W7", "W7M", "W11", "W26"] },
     { label: "Seed & capture", ids: ["W8", "W9"] },
     { label: "Review & decisions", ids: ["W10", "W13", "W14", "W37", "HUBWORK"] },
     { label: "Community & operations", ids: ["W12", "W24"] },

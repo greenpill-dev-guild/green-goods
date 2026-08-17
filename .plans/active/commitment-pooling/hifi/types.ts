@@ -193,6 +193,13 @@ export type ScreenState = {
   label: string; // chip label in the state switcher
   proposed?: boolean; // amber tag reserved for genuinely unlocked review states
   facts?: StateFacts;
+  // The FRAME this state belongs to (2026-08-16 round 7). W2 carries 75 states
+  // and rendered them as 75 flat chips, which is what made the surface feel
+  // unholdable — but they are one lifecycle repeated across six kinds of
+  // promise, not 75 different screens. Grouping shows that: same frame,
+  // different data. States keep their own entry (the coverage ledger in
+  // prototypes.md §17 accounts for every one); only the presentation collapses.
+  group?: string;
   html: string; // pre-rendered screen body (device inner HTML)
 };
 

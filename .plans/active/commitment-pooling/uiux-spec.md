@@ -861,7 +861,118 @@ here, completing the card grammar.
 Proof sections carry the §5.2 equal-weight domain row; the amber domain chip
 retires from W2's chip row (the chip row keeps direction + state).
 
-## Appendix C: group commitments, recognition, and payout plans (2026-07-28)
+**§6.2/§6.3/§6.5/§6.6/§6.9/§6.10 admin console round (2026-08-16 — Afo's
+prototype review, four decisions aligned in session).**
+(a) **Admin action placement follows the shipping console contract**: view
+actions live in the page header's right-aligned action row (one fixed primary
+rightmost — Seed on the pool tab); consequential acts open `AdminDialog`;
+below 1024px the same `ViewAction` set rides the `FabButton` speed dial and
+dialogs present as bottom sheets below 620px. Prototypes must not embed
+view-level actions in tab content; per-row acts keep the row anatomy (who ·
+what · state · one primary act).
+(b) **Two doors replace steward-visible "Open cycle" / "Seed a cycle"
+vocabulary**: header actions **"Start a season"** ("the pool's main rhythm —
+one at a time") and **"Start a campaign"** ("a focused push — any number may
+run beside the season"), the same `seedCycle` → allocation → open flow with
+the cycle type preselected. "Cycle" remains umbrella vocabulary for docs and
+the glossary only. The season door renders only while no Season is open —
+teaching the one-open-Season invariant by construction.
+(c) **Pool lifecycle demotes to a settings-style dialog** ("Pool settings",
+a header action): the pool tab itself leads with triage, then the Season
+slot and its **peer** Campaign rows (never a disclosure nested under the
+Season — the §5.2 snap-rail decision's admin analog), then the commitment
+list.
+(d) **Season↔campaign attribution stays exclusive** (a commitment binds to
+one cycle); the season's story includes overlapping campaigns as a
+**time-window roll-up at the reporting layer only**, clearly labeled. No
+contract change; Decision Log #11/#32 stand.
+(e) **Assessments present timing-first**: the capture form asks "For
+[season / campaign cycle / this garden overall]" and "at the start / at the
+close"; the wire kind (Baseline / Delta) and the `baselineUID` comparison
+pointer **derive** underneath (first measurement per garden+domain →
+Baseline; later → Delta with the pointer auto-picked), and the existing
+`cycleId` field is populated and read. Authorship still rides on the derived
+kind (Decision 8); the schema is untouched. "Baseline / re-assessment"
+leaves steward-facing surfaces except as derived fine print.
+(f) **Flow-dialog rail stability is a validator rule**: a flow's step rail is
+declared once and never changes mid-flow (detours render inside their step);
+the close-season wizard joins the flow-dialog shell (it was the lone
+full-page wizard), and the end-season journey splits at its act seams (end
+the season / close-and-compost the pool / cancel a season).
+(g) **Prototype echo rule**: admin journeys interleave a client frame only
+where the admin act's meaning completes on the member surface (device-free
+capture and confirmation, dispute recovery, claim decline). Lifecycle
+confirmations link the member view as a branch instead of walking it.
+(h) **Steward-fallback capture is labeled as the steward's own act**: the
+analog-capture third kind reads "a confirmation of their promise — recorded
+as your own steward fallback", routes into the standard fallback dialog, and
+the capture review names who the record names (source / recorded by /
+confirmer). The member picker's empty state says plainly that capture needs
+membership first — a phone never. The address-less-member gap is logged as a
+contract-spec §12 open question.
+
+**§6 admin round 2 (2026-08-16 late — Afo's second review + the canonical
+admin UX brief; Decision Log #67).** The design skill gained
+`admin-ux-brief.md` (NN/g · GOV.UK · USWDS · Laws of UX · web.dev responsive
+· Refactoring UI, applied not copied) and `interaction-patterns.md` (the
+codified admin contract, every rule cited to shipped code); review-checklist
+Lens 5 makes the contract a mandatory pass on every admin design round.
+Amendments over round 1:
+(i) **The Garden view header carries the SHIPPED stable trio on every tab and
+state** — View public (ghost) · Seed (secondary; disabled when the pool
+can't take a promise) · Edit garden (primary) — availability by disabling,
+never by removing (garden.utils.ts ignores the active tab). Round 1's
+state-dependent header doors are superseded.
+(j) **The pool tab is a two-column split**: left column = triage summary, the
+Season and its peer Campaign rows, the promise list (row anatomy: who · what
+· state chips · calm meta · one trailing act — state in chips, banners teach
+once); right rail = the "Pool — the container" card (status, charter,
+lifecycle; destructive close separated), Quick actions (the two cycle
+doors), and the activity feed. Collapses to one column narrow. The pool
+STAYS a visible container with its lifecycle managed on its card — clearly
+separated from the cycles, never dissolved (decision 3).
+(k) **One flow, one shell**: "Start a season / Start a campaign" is a single
+three-step flow dialog (Details → Allocation → Open) with seedCycle on the
+details advance; round 1's small-details-dialog→wizard hop is retired, and
+the capture flow's fallback confirmation completes inside the capture shell.
+Journey entries tightened to true console homes (W8/W9/W10/W14 out of the
+allowed entry set; every flow shows the surface and control that opened it).
+(l) **The seeding console is the client composer's cast** (What → How much →
+Proof & confirmation with the declared reward as its Advanced detour →
+sectioned Review) — same steps as the PWA, denser fields.
+(m) **The protocol pool wears the garden pool's anatomy** — same two-column
+split scoped to the protocol garden; protocol seeding is a dialog, never an
+in-content form card.
+(n) **Assessments stay Hub/evaluator-side for v1** (decision 4): the
+attach-an-assessment steward journey is retired; the per-promise gate's
+state stays in the Screen library for on-chain coverage only.
+(o) **Component parity**: the artifact's Components tab lists the shipped
+admin palette 1:1 (shipping names lead titles, `packages/…` citations
+attached); prototypes compose only from that inventory.
+
+**§6.2/§6.10 first-run setup (2026-08-16 round 3 — Afo: "ready the pool and
+open a season is still convoluted").** Getting a garden to its first season is
+**one flow, four steps, one write moment** — not four console acts in
+state-machine vocabulary. The pool's on-chain readiness sequence
+(`setPoolCharter` → `setProviderOpenCommitmentCap` → `markPoolReady` →
+`seedCycle` → `openPool` → `openCycle`) is submitted in order by the flow's
+final step; the steward never performs, names, or waits on an intermediate
+pool state. Retired from steward-facing surfaces: "Edit readiness", "Mark pool
+ready", "Open pool" as a separate act, "readiness checklist", "preflight",
+"charter", "provider open-commitment cap", "qualifying baseline", and the
+NotReady/Ready state names.
+Their replacements: the tab reads **"This garden isn't taking promises yet"**
+with ONE primary, **"Set up promises"**; the flow's steps are **How it works ·
+The season · The split · Open**; the pool card states **Not taking promises
+yet / Taking promises / Set up — no season yet / Paused**; the agreement is
+**"What this pool is for"**, the cap is **"How many promises one person can
+hold at once"** defaulted to 24 behind Advanced, and the baseline is **"the
+garden's starting assessment"**. A missing starting assessment is named on
+step one with its route out, never discovered at submit (error prevention
+before error messaging). Nothing is recorded until the last step, and its
+banner says in plain words what opens. Subsequent seasons use the shorter
+three-step flow (The season · The split · Open), which is a separate flow with
+its own stable rail.
 
 This appendix supersedes every singular-provider, max-four requirement, and single-beneficiary
 placement in §§5–6 while preserving their route and component anchors.
@@ -986,6 +1097,266 @@ placement in §§5–6 while preserving their route and component anchors.
   Settlement dispatch/edit remains an online steward operation.
 - Public/editorial copy may show the lead and contributor count, but individual recognition or
   payment details follow the existing privacy threshold and consent rules.
+
+### C.6 The pool's contents, its opening, and who is in it (2026-08-16, round 7)
+
+Source-model coherence pass against Will Ruddick / Grassroots Economics' Chama pools. The values
+translated; the central object did not. Four additions, all inside locked decisions — no decision
+above is superseded.
+
+**1. What the pool holds (`W7` rail, `W12` both scopes, `W1` top).** Every pool surface described
+how the pool was *configured* — charter, provider cap, Baseline assessment — and none described
+what was *in* it, so neither a steward nor a member could answer "what can our pool actually do
+right now?". A holdings block now leads each pool surface in two parts: **what we can do for each
+other** (exact-label unit groups off `CommitmentUnitSummary`) and **what's in the reserve** (the
+settlement side, D.5's framing).
+
+Unit groups are **never summed and never converted**. D.1 bans cross-basis aggregation, and the
+`CommitmentUnitSummary` identity is keccak256 of the stored UTF-8 `unitLabel` bytes, so "hours"
+and "Hours" stay separate rows by construction. The source model's single-figure ring is a
+price-like abstraction this system deliberately does not have; rendering the groups is the honest
+form of it. The phone variant keeps every unit group and demotes the reserve to one line — at
+375px the full block filled the entire first screen and pushed every promise below the fold. A
+reserve reading zero renders calm: a pool whose members can do a great deal for each other while
+holding no money is the normal case, not a broken one.
+
+Two cross-basis sums were removed on the way: `W12`'s "18 units promised" added hours to rides,
+and W1's `@ready` card was titled "What this pool holds" while listing the charter and the
+assessment.
+
+**2. Opening is the event, not seeding.** The source model's founding ritual is a collective
+seeding day. In this system that moment cannot sit where it first appears to: `createCommitment`
+rejects any cycle that is not `Open` (`CreationChecksLib.sol:72`), and `cancelCycle`'s zero-live
+guard assumes the same, so **a Seeded cycle holds no promises at all** — not the steward's, not a
+member's. The pool fills the instant the season opens.
+
+So `W7` gains the Seeded state it never had (prepared season, honest empty holdings, one act:
+**Open to the Garden**), the `W11` final step leads with what opening means for the garden rather
+than with the allocation percentages it commits, and `W1@seeded` stops promising a preview of
+promises that cannot exist and instead tells a member when it starts and invites them to decide
+what to bring. Discarding the start flow after step 1 now lands on that Seeded season rather than
+on a running pool — step 1 calls `seedCycle`, so the season is real. Admin gets a quiet activity
+row ("Ana offered 4 hours of weeding"), which is what the feed was missing; hero moments stay
+client-only (register #27).
+
+**3. Who's in this pool (`W7` list, `W1` list).** The entire member-facing relational surface was
+one D.3 history line inside the steward claims queue, which answered neither "who else offers what
+I need" nor "who have I given to and received from". Both surfaces now carry a roster: the people
+and what each currently offers. D.3 and decision #21 bind unchanged and the two surfaces differ
+because of them — the steward's rows carry the give-and-take counts, the member's list shows only
+what neighbours offer plus the signed-in member's own counts. Counts never percentages, no grade,
+no rank, no comparison, no cross-pool merge; `promiseKeptRate` stays pool-level. Deliberately a
+list, not a network graph: the graph is the source author's medium, and a list answers the same
+question without decoration. The roster names how many members it is not showing, so four rows
+never read as a 23-gardener pool.
+
+**4. Frames, not states.** `W2` carries 75 states, `W1` 33, `W7` 31, and the prototype drew them
+as one flat row of chips — which is what made the surface feel unholdable. They are one promise
+lifecycle replayed across six kinds of promise, one setup ladder a pool climbs once, and a row of
+confirmations. States are now grouped by **frame**: 75 → 11, 33 → 9, 31 → 8. Presentations merge;
+**the ledger does not move** — every state keeps its entry, §17 coverage still accounts for all of
+them, and each screen's default state is unchanged. The `support-` prefix was found to cover two
+unrelated things (a service offer's lifecycle and the G$ transport chain); the grouping uses
+explicit sets rather than the prefix, and the collision is recorded here as a naming defect rather
+than worked around silently. Three member-visible lines that named the paying Celo account now
+read "the pool's reserve" per D.5.
+
+### C.8 Read surfaces are sections, and text has limits (2026-08-16, round 10)
+
+**Sections, not drawers.** The promise detail (§5.3) opened with five closed disclosures — Timeline,
+People, Evidence, Work, Details — so nothing about a promise was legible without tapping. The
+shipped work view never does this: `WorkView.tsx:78` renders `FormInfo`, then `<h6>` + content,
+open, section after section. The promise view now follows it exactly: a quiet label on the canvas
+with its content in a card beneath, for Garden · Media · Details · Support · Work · People. Only
+Timeline stays folded — long, secondary, read once — and it is a card now rather than a bare
+disclosure. Evidence renders as real media tiles instead of text rows carrying an image icon.
+
+**The status card is `FormInfo`, and it does not carry the title.** `WorkViewSection.getTitle()`
+returns "Saved on your device", "Evaluate Work", "Work Approved" — the record's *state* and what it
+means, never its name. The promise's name is the screen header (`hdr`, with the back control) and
+is not repeated. The amount line left the header when Details gained its Amount row; saying it in
+both was the clearest symptom of a screen carrying a header and a drawer for the same facts.
+
+**Text limits (net-new — none existed).** `title` is not in `CreateCommitmentParams`; it lives in
+the metadata JSON, so no contract bound applies. `unitLabel` **is** an on-chain `string` with no
+length guard. Nothing in this spec, and no `maxLength` in the shipping client, bounded either.
+Adopted: **title 60 characters, unit label 24, note 280**, enforced at the client composer and the
+admin seeding form. Measured against the promise card, a title ellipsises at roughly 34 characters,
+so 60 leaves room for a real sentence while degrading predictably.
+
+The `unitLabel` bound is app-side only and therefore **incomplete**: a direct contract call can
+still store an arbitrarily long label, which the indexer keys a `CommitmentUnitSummary` row on and
+every holdings block renders. Gas makes it self-limiting in practice. A real bound requires a
+contract-side check and is raised here as a proposal, not an assumed change.
+
+**Where else the same treatment applied.** Measured by disclosures per state across every screen,
+not chosen by eye. `W36` (member-funded claim) was the worst in the prototype at **1.00** — all
+seven states hid the garden Safe, refund account, funding record and promise reference behind a
+"Funding details" drawer, which is the last place money identifiers belong; it is now a status card
+plus Details and Funding record sections. `W5` (wallet commitments) hid the member's entire
+cross-garden ledger behind "My commitments · 3 across 2 gardens" while the attention inbox above it
+sat open — and the two overlapped, listing the same promises twice, which the drawer concealed. It
+is now one ledger grouped by garden with **scope filters** (All · Waiting on you · Active · Kept),
+so each promise appears exactly once and "waiting on you" is a filter rather than a second copy.
+
+Deliberately left folded: `W22`'s route datasheet (its own note records why — every state used to
+open with four rows of route data above the answer), `W1`'s secondary browse affordance, and the
+Advanced detours inside the `W8`/`W11` wizards, which are the flow pattern working as intended.
+
+### C.9 Every flow step opens the same way; sheets are bounded (2026-08-16, round 11)
+
+**One step grammar.** Each step of the shipped Submit Work flow opens with a `FormInfo` card naming
+the step and why it exists — `formInfo("camera-line", "Upload Media", "Photos, video, or a voice
+note")`. The creation, evidence and confirmation flows opened with a bare `sectionTitle` instead:
+the same job in two grammars, across 70 states. Measured before the change, `FormInfo` appeared
+**11 times in WFLOW and zero times in W3 (32 states), W2a (9) and W4 (29)**.
+
+All three now carry it, derived from the step *kind* rather than enumerated per state — the way
+WFLOW writes one card per step and reuses it across casts. States that are not steps (draft resume,
+validation, queued outcomes) get none: they carry their own banner and would otherwise say the same
+thing twice.
+
+**The confirmation sheet joins through its header, not a card.** `W4` is a sheet and already owns a
+title, so a `FormInfo` card inside it would state the title twice. `sheetOver` instead takes an
+optional icon and info line and renders its header in FormInfo's anatomy — badge, title, meaning.
+A sheet joins the flow grammar without repeating itself.
+
+**Sheets are bounded and scroll.** `.sheet` had no `max-height` and no overflow, so it was
+content-sized (never a consistent height) and long content grew past the top of the frame with no
+way to reach it. Worse, `.sh-body` is a column flex container, so its children were **compressed**
+rather than overflowing — the wallet's natural 965px of content was being squashed into 634px, not
+merely clipped. Fixed with `flex: 0 0 auto` on the children, a `max-height`, and a scrolling body
+with the handle and title pinned.
+
+The two shells now size differently, matching what they are: a **tabbed drawer** (`ModalDrawer` /
+`WalletDrawer`, no handle) is a fixed 88% panel, because moving between its tabs must not resize the
+surface under the reader's thumb; a **gesture sheet** (`PwaSheet`, with the handle) stays
+content-sized under the same ceiling.
+
+**Recovery-state parity (round 12).** `W36` was the only client read surface without loading /
+not-found / read-error, while `W1`, `W2`, `W5`, `W28`, `W32` and `W34` all carried the three — so a
+member opening a funding claim on a bad connection got a blank page. It now carries them in the
+promise view's shape (skeleton; `search-line` not-found; `wifi-off-line` read-error), with copy that
+says what a funder needs to hear: nothing has moved, and the deposit and refund account are
+unaffected.
+
+**`W34` detail cards (round 12).** The Ongoing Offer detail carried 22 bare cards holding nothing
+but `kv` stacks — the same shape the promise view replaced. They are Details sections now, plus one
+status message moved to a `FormInfo` card. `W32` was reviewed and deliberately left alone: it is a
+sheet of rows, not a read surface, it already carries its three recovery states, and its single card
+holds content rather than hidden detail.
+
+### C.10 Creation runs Submit Work's four beats (2026-08-16, round 12)
+
+Round 11 gave every flow step the same opening card. This round gives creation the same *shape* as
+the flow it borrows that card from. `W3` now runs **What · How much · Details · Review** on every
+path — the beats of `views/Garden/` — and three structural moves get it there.
+
+**1. Scope stops wandering.** One promise names one cycle, but the control that named it moved
+between paths: `field("Season")` on step 1 for garden work, `field("Campaign")` on step 2 for a
+service, `field("Scope")` on step 2 for an ongoing offer. One thing, three names, two locations —
+which is what "we have people select season and then campaign in another view" describes. It is now
+one step-1 field on every path, labelled **Where it runs**, with the copy saying what is true: this
+pool runs a season *and* campaigns, both hold promises, and the choice is real rather than a bound
+value dressed as a select.
+
+**2. The protection step folds into step 2.** Step 3 was the protection slot expressed differently
+per path — action requirements for garden work (`step-anchors`, `request-anchors`), who-can-take-it
+for a service ask (`request-variant`, `request-variant-steward`). Both answer step 2's question:
+*on what terms is this kept?* All four states are retired and their content sits under the amount.
+Step 2 for a garden-work offer runs 842px against a 659px viewport — one thumb-scroll, which the
+step scrolls exactly as the phone does.
+
+**3. Details becomes a numbered step.** It was an unnumbered detour reached from a row on step 1,
+drawn with `w3Head(…, 0)` — so the progress bar highlighted **step 1** while you were on it, the
+flow never promised the step, and it was easy to miss that evidence was possible at all. It is step
+3 of four now, drawn per path (`step-details`, `support-details`, `support-details-ongoing`,
+`request-details`, `request-details-steward`, `request-work-details`) because each continues to its
+own review, from one shared body that is the shipped media step verbatim: the dashed tap-to-add
+surface, the item list, the link/note adders, the camera / gallery / mic bar.
+
+**How often moved to step 1.** As a field at the bottom of step 2, the once-or-ongoing fork was
+discovered only after everything had been filled in for a one-off. It sits beside the kind cards as
+tap-first chips — both are shape questions.
+
+**Review follows `views/Garden/Review.tsx` literally.** The shipped review is `FormInfo` over
+**one flat card of rows**, with a single hot row where there is somewhere else to go (its "Fulfills
+a promise" line). Creation drew **four separate cards**, each with a header row and a ghost `Edit`
+button — a different component. All six reviews now draw the shipped anatomy, the thirteen
+`w3.edit-*` links are retired, and **the back arrow is the edit path**. The one interactive row is
+the Advanced detour, mirroring `wflow.fulfills` exactly.
+
+**What step 1 lost.** Seven blocks became three. The `Note` field moved into the details step —
+there were two places to write a note. The *Start from a template* row became the tail chip of the
+title suggestions: chips and the template picker were two mechanisms for one intent, and the row
+made the first screen heavier for it. `W31` keeps its inbound link from that chip.
+
+**Open, not assumed.** A garden-work promise is still quantified twice — `6 hours` on step 2 *and*
+`Prune × 2 · Plant × 12` beneath it. Both are real on chain (`unitLabel`/`amount` and the
+requirement rows are separate fields), but a member is measuring one promise in two incommensurable
+ways, and folding proof into step 2 puts them side by side where the redundancy is visible. This is
+a spec question, not prototype polish; it is raised here and not acted on.
+
+### C.11 "Things I can offer" splits by what its halves are (2026-08-16, round 12)
+
+The wallet's Commitments tab held four section cards: three gardens and *Things I can offer*. That
+fourth section was a category error — the three above it are places, it is a personal noun-phrase —
+and it held a single nav row where every other section holds content. It also sat outside the scope
+chips' jurisdiction (*All · Waiting on you · Active · Kept* filter promises; saved details are not
+promises), and it merged two unlike things behind one row reading "1 saved · 1 ongoing":
+
+- a **private saved draft** — nothing on chain, invisible to anyone, not a promise;
+- an **ongoing Offer** — `createCommitmentSeries`, with live places in a real pool.
+
+They split by what they are. The draft is a tool, so it is a quiet row **above** the ledger. The
+ongoing Offer has a garden, so its **parent card stands in that garden's section** like everything
+else, tagged `Ongoing` and counting places (one basis — never a unit sum, Appendix D.1). Its places
+stay public on the pool tab; the parent is what only the member rests, resumes or retires, which is
+why the wallet holds it. `W32` remains the drawn destination for the private half, and its §5.8
+claim to be "a section of your wallet's Commitments tab" stays true.
+
+### C.7 PROPOSAL — reciprocity from the claim side (2026-08-16, register #103, NOT LOCKED)
+
+**Status: proposed, awaiting Afo. Nothing in this section is drawn as shipped design, and no
+screen implements it.** Register #102(d) parked exchange "until exchange gets its own design
+session"; this is a proposal for that session, deliberately narrower than what was parked.
+
+**The problem.** Appendix E.1 exchange is bilateral: A↔B, same-pool Offer picker, A's creator must
+accept, both start together. That needs a double coincidence of wants — the exact thing pooling
+exists to remove. Taken with the fact that a claim is a request to one named promise, what is
+built today is a commitment registry with bilateral matching, and "pool" is doing work the
+mechanism does not yet do.
+
+**What is missing, expressed non-transferably.** When you take up someone's offer, the same step
+asks what you can bring, and creates your offer as part of the claim. You draw on what the pool
+holds and put your own capacity back in; no matching partner is required.
+
+**Why this is small.** The primitive already exists and needs **no contract change**. E.1's "Offer
+this in exchange for…" picker sets `counterCommitmentId` on creation, and
+`validateCounterCommitment` already enforces the pair predicates. The proposal only adds the
+*other entry point* — the claim flow — over the same two existing calls.
+
+**The ordering constraint, which is the real design content.**
+`CreationChecksLib.sol:137-139` requires the counter offer to be `direction == Offer` **and**
+`state == Offered`. Claiming A moves it out of `Offered`. So the combined step must enqueue
+`createCommitment(B, counterCommitmentId = A)` **before** `claimCommitment(A)`, never after, and
+the job queue must preserve that order across a retry. A naive "claim, then ask what you bring"
+reads better as a sentence and cannot work.
+
+**Surfaces.** Client-primary: one added, **skippable** step in the claim flow (`W25`, and the claim
+paths off `W1`/`W2`). Admin: claims-queue rows on `W7@claims` show what the claimant is bringing
+beside the existing claimant / requestedBy / gardenContext fields. It links two commitments and
+moves no bearer instrument, so it stays inside the non-transferable-first staging.
+
+**Bindings that do not move.** Vocabulary stays "in exchange for" — `swap`, `trade`, `traded`, and
+`price` are banned in member copy (D.1, E.1) and the artifact build scans rendered text for them.
+No ratio, chart, rate, or relative-advantage rendering (E.1). Lifecycle independence per decision
+17: a lapsed counterpart never acts on its pair. Steward-captured and non-zero-`onBehalfOf`
+creation is excluded, because a steward cannot consent for the represented gardener.
+
+**If the answer is no**, the alternative is to drop pooled-liquidity implications from member copy
+and let "in exchange for" read plainly as two people linking two promises — which is what it is
+today.
 
 ## Appendix D: CPP-alignment additions (2026-08-01, plan registers #71–#74)
 

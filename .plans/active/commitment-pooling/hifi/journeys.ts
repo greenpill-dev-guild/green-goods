@@ -63,24 +63,26 @@ export const SBS: SB[] = [
 { id: "sb1", n: 1, title: "Make an offer", desc: "Maria offers to prune the north beds — four composer steps, then the promise sits queued on her phone until it syncs.", persona: "Gardener (Maria)", scen: "S1 · TAS workshop", reviewVisible: true, reviewGroup: "client", chapter: "make", roles: ["gardener"], steps: [
   { f: "W1", hot: { h: "w1.create", l: "Offer or request" }, st: "Pool open", ev: "the one floating create entry stays reachable however far the list scrolls — it opens the doors, it is not a form", cite: "uiux §5.2 addendum 2026-08-14" },
   { f: "W1@create-open", hot: { h: "w1.offer", l: "Offer" }, st: "Doors open", ev: "the two entry verbs are the only creation doors — direction is fixed by the door and never re-asked inside", cite: "uiux Appendix B §5.4 addendum 2026-08-11" },
-  { f: "W3@step-what", hot: { h: "w3.continue-what" }, alts: [{ h: "w3.add-details", to: "screen:W3@step-details" }, { h: "w3.template", to: "screen:W31" }], st: "1 · What", ev: "kind words, the template prefill, and optional photos / voice note / links replace the old Direction radio", cite: "contract-spec metadata schema v1 addendum" },
-  { f: "W3@step-howmuch", hot: { h: "w3.continue-howmuch" }, alts: [{ h: "w3.choose-ongoing", to: "screen:W3@support-howmuch-ongoing" }], st: "2 · How much", ev: "chip-picked unit and amount — and How often lives right here: Just once or Ongoing, equal choices on every offer" },
-  { f: "W3@step-anchors", hot: { h: "w3.continue-anchors" }, st: "3 · Proof", ev: "the garden's own actions as tappable cards with counts — the Work-intro grammar, not an abstract requirement editor" },
-  { f: "W3@step-review", hot: { h: "w3.submit", l: "Make this offer" }, alts: [{ h: "w3.advanced", to: "screen:W3@step-advanced" }, { h: "w3.edit-what", to: "screen:W3@step-what" }], st: "4 · Review", ev: "sectioned Submit-Work review anatomy with per-section edit links · one full-width primary in a one-row bar · commitment job queued", cite: "UX:212" },
+  { f: "W3@step-what", hot: { h: "w3.continue-what" }, alts: [{ h: "w3.choose-ongoing", to: "screen:W3@support-howmuch-ongoing" }, { h: "w3.template", to: "screen:W31" }], st: "1 · What", ev: "three blocks, not seven: the kind, how often, where it runs, and a title the garden's own actions suggest", cite: "contract-spec metadata schema v1 addendum" },
+  { f: "W3@step-howmuch", hot: { h: "w3.continue-howmuch" }, st: "2 · How much", ev: "chip-picked unit and amount, one due row — and the actions this promise includes, folded in from what used to be its own proof step" },
+  { f: "W3@step-details", hot: { h: "w3.continue-details" }, st: "3 · Details", ev: "a real numbered step now, drawn from the shipped Submit Work media step: the dashed capture surface, the item list, and the camera / gallery / mic bar" },
+  { f: "W3@step-review", hot: { h: "w3.submit", l: "Make this offer" }, alts: [{ h: "w3.advanced", to: "screen:W3@step-advanced" }], st: "4 · Review", ev: "the shipped Review Work anatomy exactly — FormInfo over one flat card of rows, the back arrow as the edit path, and a single hot row for the Advanced detour · commitment job queued", cite: "UX:212" },
   { f: "W1@queued", hot: null, marks: ["w1.queued-card"], st: "Queued", ev: "offline truth on the pool tab: the optimistic card names its queue state and the sync bar counts it — Maria's sitting ends here, with the offer live for a neighbour to take up", br: [{ l: "Take up an offer", to: "sb55:0" }, { l: "Offline lanes — send failed & membership wait", to: "screen:W1@sync-failed" }] },
 ]},
 // The other half of the old sb1: the neighbour's act, and the mirror the
 // "Take up a promise" chapter was missing — it held the request side only.
 { id: "sb55", n: 7, title: "Take up an offer", desc: "João takes up Maria's open offer from the pool tab; one tap turns a by-lined card into a promise with a face on both sides.", persona: "Neighbour (João)", scen: "S1 · receiving side", reviewVisible: true, reviewGroup: "client", chapter: "take-up", roles: ["gardener"], steps: [
-  { f: "W1", hot: { h: "w1.take-up", l: "Take this up" }, st: "Pool open", ev: "an open offer accepts the first neighbour; the card said who is offering and what they are offering before the tap", cite: "UX:129" },
+  { f: "W1", hot: { h: "w1.open-offer", l: "Prune the north beds" }, st: "Pool open", ev: "the card carries no act of its own (2026-08-16): tapping it opens the promise, so a neighbour reads the whole thing before deciding", cite: "UX:129" },
+  { f: "W2@browse-offered", hot: { h: "w2.take-up-browse", l: "Take this up" }, st: "Offered", ev: "the one act sits in the fixed bottom bar, after the terms, the people and the evidence rules are on screen" },
   { f: "W2@accepted", hot: null, st: "Accepted", ev: "the promise now has both people on it — and the next acts belong to them in turn: Maria proves it, João confirms it", br: [{ l: "Prove it with work", to: "sb4a:0" }, { l: "Confirm a promise kept", to: "sb42:0" }, { l: "Steward-reviewed offers wait for a decision", to: "screen:W1@claim-pending" }] },
 ]},
 { id: "sb29", n: 2, title: "Offer a service", desc: "Maria offers to host climate workshops — the same composer with a service kind, which names evidence rather than garden work as its proof.", persona: "Gardener (Maria)", scen: "S1 · SupportService offer", reviewVisible: true, reviewGroup: "client", chapter: "make", roles: ["gardener"], steps: [
   { f: "W1", hot: { h: "w1.create", l: "Offer or request" }, st: "Pool open", ev: "the same floating door for every kind of promise" },
   { f: "W1@create-open", hot: { h: "w1.offer", l: "Offer" }, st: "Doors open", ev: "a service is a kind inside the same composer — not another flow with its own screens" },
-  { f: "W3@step-what", hot: { h: "w3.choose-support", l: "Kind: a service or support" }, st: "1 · What", ev: "the kind choice swaps the proof step for evidence — the dots promise three steps and keep it" },
-  { f: "W3@support-howmuch", hot: { h: "w3.continue-support-howmuch" }, alts: [{ h: "w3.choose-ongoing", to: "screen:W3@support-howmuch-ongoing" }], st: "2 · How much", ev: "How often lives here too — Just once or Ongoing, equal choices; choosing Ongoing expands this same step" },
-  { f: "W3@support-review", hot: { h: "w3.submit-support", l: "Make this offer" }, st: "3 · Review", ev: "the same sectioned review anatomy; service offers name evidence as their proof" },
+  { f: "W3@step-what", hot: { h: "w3.choose-support", l: "Kind: a service or support" }, st: "1 · What", ev: "the kind choice drops the garden-action rows from step 2 and leaves evidence as the proof — the dots promise four steps on every path and keep it" },
+  { f: "W3@support-howmuch", hot: { h: "w3.continue-support-howmuch" }, st: "2 · How much", ev: "chip-picked unit and amount over one due row; a service names no garden actions, so step 2 stays short" },
+  { f: "W3@support-details", hot: { h: "w3.continue-support-details" }, st: "3 · Details", ev: "the same details step every path runs — one shared body, this path's fixture" },
+  { f: "W3@support-review", hot: { h: "w3.submit-support", l: "Make this offer" }, st: "4 · Review", ev: "the shipped Review Work anatomy; service offers name evidence and the person helped as their proof" },
   { f: "W1@support-queued", hot: null, marks: ["w1.queued-card"], st: "Queued", ev: "the service offer queues like everything else — offline first; showing what she did is a later sitting, once someone has taken it up", br: [{ l: "Prove a service with evidence", to: "sb56:0" }, { l: "Make an ongoing offer instead", to: "sb37:2" }] },
 ]},
 // Exchange is PARKED (iteration 2, Afo decision): no client journey walks it
@@ -88,27 +90,28 @@ export const SBS: SB[] = [
 { id: "sb2", n: 4, title: "Make a request", desc: "David asks the garden for a hand and declares G$ support right on the phone — the one extra step stewards get and gardeners never see.", persona: "Steward (David) — gardeners' requests skip the Support step", scen: "S2 · evidence-only request", reviewVisible: true, reviewGroup: "client", chapter: "ask", roles: ["steward", "gardener"], steps: [
   { f: "W1", hot: { h: "w1.create", l: "Offer or request" }, st: "Pool open", ev: "requests start at the same floating door as offers" },
   { f: "W1@create-open", hot: { h: "w1.request", l: "Request" }, st: "Doors open", ev: "the request door mirrors the offer door — direction fixed, never re-asked" },
-  { f: "W3@request-what", hot: { h: "w3.request-continue-what" }, alts: [{ h: "w3.request-choose-work", to: "screen:W3@request-work-what" }, { h: "w3.add-details", to: "screen:W3@step-details" }], st: "1 · What", ev: "help-or-a-service vs garden work as equal cards; details (photo, voice note, links) attach here too" },
-  { f: "W3@request-howmuch-steward", hot: { h: "w3.request-continue-support" }, st: "2 · How much", ev: "chip-picked unit and amount; because David is a steward, a Support step follows — gardeners keep four steps" },
+  { f: "W3@request-what", hot: { h: "w3.request-continue-what" }, alts: [{ h: "w3.request-choose-work", to: "screen:W3@request-work-what" }], st: "1 · What", ev: "help-or-a-service vs garden work as equal cards, then where it runs and a title the garden suggests" },
+  { f: "W3@request-howmuch-steward", hot: { h: "w3.request-continue-support" }, st: "2 · How much", ev: "chip-picked unit and amount, and who can take it up — folded in from what used to be its own step; because David is a steward, a Support step follows", cite: "UX:99" },
   { f: "W3@request-support", hot: { h: "w3.request-support-continue" }, st: "3 · Support", ev: "the missing piece: a steward declares G$ support right on the phone — amount presets, where it goes, nothing moves until confirmed kept" },
-  { f: "W3@request-variant-steward", hot: { h: "w3.request-continue-variant-steward" }, st: "4 · Who can take it", ev: "open to anyone vs steward-reviewed — chosen exactly once, here", cite: "UX:99" },
-  { f: "W3@request-review-steward", hot: { h: "w3.submit-request", l: "Make this request" }, st: "5 · Review", ev: "sectioned review with the declared G$ support in its own section" },
+  { f: "W3@request-details-steward", hot: { h: "w3.continue-request-details-steward" }, st: "4 · Details", ev: "an ask has nothing done yet, so what attaches here is context for whoever takes it up — the evidence arrives with the work" },
+  { f: "W3@request-review-steward", hot: { h: "w3.submit-request", l: "Make this request" }, st: "5 · Review", ev: "one flat card of rows carrying the declared G$ support, in the shipped Review Work anatomy" },
   { f: "W1@request-queued", hot: null, marks: ["w1.queued-card"], st: "Queued", ev: "saved on this device; sends when connected" },
   { f: "W1@request-open", hot: null, st: "Open", ev: "the request is live — João can say “I can help”, and the declared support travels with it", br: [{ l: "João's side: help with what was requested", to: "sb43:0" }, { l: "When help arrives: confirm it", to: "sb42:0" }] },
 ]},
 { id: "sb51", n: 5, title: "Request garden work", desc: "Ana asks for garden work: the request names the garden's own actions as its proof and rides the ordinary Work rails.", persona: "Gardener (Ana)", scen: "S2 · DomainImpact request", reviewVisible: true, reviewGroup: "client", chapter: "ask", roles: ["gardener"], steps: [
   { f: "W1", hot: { h: "w1.create", l: "Offer or request" }, st: "Pool open", ev: "a garden-work request starts at the same floating door as any promise" },
   { f: "W1@create-open", hot: { h: "w1.request", l: "Request" }, st: "Doors open", ev: "a garden-work request starts at the same door as any request" },
-  { f: "W3@request-what", hot: { h: "w3.request-choose-work", l: "Kind: garden work" }, st: "1 · What", ev: "garden work is an equal kind card — choosing it adds a proof step and the request rides the Work rails" },
+  { f: "W3@request-what", hot: { h: "w3.request-choose-work", l: "Kind: garden work" }, st: "1 · What", ev: "garden work is an equal kind card — choosing it names the garden's actions on step 2 and the request rides the Work rails" },
   { f: "W3@request-work-what", hot: { h: "w3.request-work-continue-what" }, st: "1 · What (garden work)", ev: "titles are suggested from the garden's own actions" },
-  { f: "W3@request-work-howmuch", hot: { h: "w3.request-continue-work" }, st: "2 · How much", ev: "chip-picked unit and amount, due defaults to the season" },
-  { f: "W3@request-anchors", hot: { h: "w3.request-continue-anchors" }, st: "3 · Proof", ev: "tappable action cards with counts — the same picker offers use; approved work is the proof" },
-  { f: "W3@request-work-review", hot: { h: "w3.submit-work-request", l: "Request this work" }, st: "4 · Review", ev: "sectioned review; whoever takes it up submits work, stewards approve, you confirm" },
+  { f: "W3@request-work-howmuch", hot: { h: "w3.request-continue-work" }, st: "2 · How much", ev: "chip-picked unit and amount over one due row, then the actions this ask needs — tappable cards with counts, the same picker offers use" },
+  { f: "W3@request-work-details", hot: { h: "w3.continue-request-work-details" }, st: "3 · Details", ev: "a photo of the blocked channel is context for whoever takes it up; the proof arrives later as approved work" },
+  { f: "W3@request-work-review", hot: { h: "w3.submit-work-request", l: "Request this work" }, st: "4 · Review", ev: "the shipped Review Work anatomy; whoever takes it up submits work, stewards approve, you confirm" },
   { f: "W1@request-work-queued", hot: null, marks: ["w1.queued-card"], st: "Queued", ev: "the request queues with its requirement rows intact" },
   { f: "W1@request-work-open", hot: null, st: "Open", ev: "live on the pool tab with the needed work named on the card", br: [{ l: "A helper takes it up and submits work", to: "sb43:0" }, { l: "Approvals land, then you confirm", to: "sb42:0" }] },
 ]},
 { id: "sb43", n: 6, title: "Help with what was requested", desc: "João takes up Ana's open request, does it, attaches evidence, and sends it back for her confirmation.", persona: "Helper (João)", scen: "S2 · providing side", reviewVisible: true, reviewGroup: "client", chapter: "take-up", roles: ["gardener"], steps: [
-  { f: "W1@request-open", hot: { h: "w1.take-up-request", l: "I can help" }, st: "Requested → Accepted", ev: "open requests accept the first neighbor; the card said exactly what taking it up means", br: [{ l: "Steward-reviewed requests wait for a decision", to: "screen:W1@claim-pending" }, { l: "Ongoing offers: take up one open place", to: "screen:W34@claimant-view" }, { l: "Campaign requests work the same way", to: "screen:W1@campaign-market" }] },
+  { f: "W1@request-open", hot: { h: "w1.open-request", l: "Ride to the market on Saturday" }, st: "Requested", ev: "the card opens the request rather than accepting it — what taking it up means is read on the promise, not guessed from a button" },
+  { f: "W2@browse-requested", hot: { h: "w2.help-browse", l: "I can help" }, st: "Requested → Accepted", ev: "open requests accept the first neighbor, from the detail's fixed bar", br: [{ l: "Steward-reviewed requests wait for a decision", to: "screen:W1@claim-pending" }, { l: "Ongoing offers: take up one open place", to: "screen:W34@claimant-view" }, { l: "Campaign requests work the same way", to: "screen:W1@campaign-market" }] },
   { f: "W2@request-active", hot: { h: "w2.add-evidence-request", l: "Add evidence" }, st: "Accepted", ev: "the one next act sits in the promise's fixed bottom bar" },
   { f: "W2a@media", hot: { h: "w2a.media-continue" }, st: "1 · Media", ev: "the Submit-Work capture: tap the area to add, voice notes from the bar" },
   { f: "W2a@details", hot: { h: "w2a.details-continue" }, skipTargetReason: "cast walks land on their identity-preserving review variant of the canonical review destination", st: "2 · Details", ev: "contributor chips and an optional note — the details step" },
@@ -134,7 +137,7 @@ export const SBS: SB[] = [
 // The proving half of the old sb29 (D3): a service is shown with evidence
 // rather than approved work, so it is the sibling of "Prove it with work" —
 // same chapter, same rhythm, different proof.
-{ id: "sb56", n: 26, title: "Prove a service with evidence", desc: "Maria picks her accepted service promise back up from the wallet, attaches photos and credits the people who helped, then sends it for confirmation.", persona: "Gardener (Maria)", scen: "S1 · SupportService evidence", reviewVisible: true, reviewGroup: "client", chapter: "keep", roles: ["gardener"], steps: [
+{ id: "sb56", n: 26, title: "Prove a service with evidence", desc: "Maria picks her accepted service promise up from the wallet, attaches photos, credits who helped, and sends it for confirmation.", persona: "Gardener (Maria)", scen: "S1 · SupportService evidence", reviewVisible: true, reviewGroup: "client", chapter: "keep", roles: ["gardener"], steps: [
   { f: "W5", hot: { h: "w5.mine-row", l: "Open your service promise" }, skipTargetReason: "the wallet's My commitments row opens the member's own promise; a service offer opens on its own accepted state of that screen", st: "Wallet", ev: "showing what you did is its own sitting, days after the offer — and your own promises are picked back up from the wallet, grouped by garden", cite: "UX:186" },
   { f: "W2@support-accepted", hot: { h: "w2.add-evidence-support", l: "Add evidence" }, st: "Accepted", ev: "João took it up; the one next act sits in the promise's fixed bottom bar" },
   { f: "W2a@media", hot: { h: "w2a.media-continue" }, st: "1 · Media", ev: "evidence IS the work-submission rhythm: tap the area to add photos or video, voice notes from the bar", cite: "uiux §5.5 addendum · iteration 2" },
@@ -177,10 +180,10 @@ export const SBS: SB[] = [
 { id: "sb37", n: 3, title: "Make an ongoing offer", desc: "Maria offers the same service over time: How often becomes Ongoing, and one submission creates the series and its first open places.", persona: "Gardener (Maria)", scen: "S15 · ongoing Offer", reviewVisible: true, reviewGroup: "client", chapter: "make", roles: ["gardener"], steps: [
   { f: "W1", hot: { h: "w1.create", l: "Offer or request" }, st: "Pool open", ev: "ongoing starts at the same floating door as everything else" },
   { f: "W1@create-open", hot: { h: "w1.offer", l: "Offer" }, st: "Doors open", ev: "it is a way of making an offer, not a separate section" },
-  { f: "W3@step-what", hot: { h: "w3.choose-support", l: "Kind: a service" }, st: "1 · What", ev: "an ongoing offer is a service offered over time — same composer, equal kind cards" },
-  { f: "W3@support-howmuch", hot: { h: "w3.choose-ongoing", l: "How often: Ongoing" }, st: "2 · How much", ev: "How often sits beside the amount — equal-sized choices; picking Ongoing expands this same step", cite: "iteration 2 E1" },
-  { f: "W3@support-howmuch-ongoing", hot: { h: "w3.continue-support-howmuch-ongoing" }, st: "2 · How much — expanded", ev: "no detour wizard: places-to-start and scope appear inline under the choice" },
-  { f: "W3@support-review-ongoing", hot: { h: "w3.submit-ongoing", l: "Start this ongoing offer" }, st: "3 · Review", ev: "the review gains a Places section; one submission runs the series creation and its first places as an ordered queue sequence" },
+  { f: "W3@step-what", hot: { h: "w3.choose-ongoing", l: "How often: Ongoing" }, st: "1 · What", ev: "How often sits beside the kind cards on step 1 — at the bottom of step 2 the fork was found only after everything had been filled in for a one-off", cite: "iteration 2 E1" },
+  { f: "W3@support-howmuch-ongoing", hot: { h: "w3.continue-support-howmuch-ongoing" }, st: "2 · How much", ev: "no detour wizard: how many each place, and places-to-start, on the ordinary amount step" },
+  { f: "W3@support-details-ongoing", hot: { h: "w3.continue-support-details-ongoing" }, st: "3 · Details", ev: "the same details step every path runs" },
+  { f: "W3@support-review-ongoing", hot: { h: "w3.submit-ongoing", l: "Start this ongoing offer" }, st: "4 · Review", ev: "one flat card carrying each place and what opens; one submission runs the series creation and its first places as an ordered queue sequence" },
   { f: "W32@series-queued", hot: null, st: "Queued", ev: "it waits visibly in Things I can offer — your wallet's private section; places count only after they sync", br: [{ l: "Where ongoing offers live — the wallet entry", to: "screen:W32@saved-with-ongoing" }, { l: "Offline: draft kept, dependent places wait", to: "screen:W32@offline-local" }] },
   { f: "W34@active-two", hot: { h: "w34.open-story", l: "See the whole story" }, st: "Active · 2 places", ev: "the public card on the pool tab shows Ongoing + places left; this is its home" },
   { f: "W34@story", hot: null, st: "Story", ev: "what the ongoing offer has become — kept promises, people, no scores", br: [{ l: "Rest it without erasure", to: "screen:W34@resting" }, { l: "Retire it — the story stays readable", to: "screen:W34@retired" }, { l: "Take up one open place (recipient side)", to: "screen:W34@claimant-view" }] },
@@ -225,7 +228,7 @@ export const SBS: SB[] = [
   { f: "W2@expired", hot: { h: "w2.offer-again", l: "Offer it again" }, st: "Expired", ev: "a lapsed promise can be offered again — a fresh record, the old one stays honest" },
   { f: "W3", hot: null, st: "1 · What", ev: "the composer opens prefilled from the lapsed promise", br: [{ l: "Make an offer — the full walk", to: "sb1:1" }] },
 ]},
-{ id: "sb58", n: 28, title: "Fund a priced Offer", desc: "Maria asks to fund Ben's 40 G$ Offer, sends the deposit only after the garden records the pledge, and sees the funded claim after acceptance.", persona: "Gardener (Maria)", scen: "Member-funded priced Offer", reviewVisible: true, reviewGroup: "client", chapter: "money", roles: ["gardener"], steps: [
+{ id: "sb58", n: 28, title: "Fund a priced Offer", desc: "Maria asks to fund Ben's 40 G$ Offer, deposits only after the garden records the pledge, then sees the funded claim.", persona: "Gardener (Maria)", scen: "Member-funded priced Offer", reviewVisible: true, reviewGroup: "client", chapter: "money", roles: ["gardener"], steps: [
   { f: "W1@funded-offer", hot: { h: "w1.ask-funded", l: "Ask to fund this" }, st: "Priced Offer", ev: "Maria files the approval-gated claim herself; the request moves no G$ and does not accept Ben's Offer" },
   { f: "W36@waiting-pledge", hot: null, st: "Claim sent", ev: "the claim waits for a Garden Steward to freeze the funder, price, garden Safe, and refund account" },
   { f: "W36@deposit-instructions", hot: { h: "w36.send-deposit", l: "Open wallet and send 40 G$" }, st: "Funding pledged", ev: "the exact garden Safe and amount appear only after the funding record exists; Maria chooses the ordinary Celo transfer" },
@@ -236,7 +239,7 @@ export const SBS: SB[] = [
 // sb3 was one 13-scene arc crossing PWA and admin. Split at the surface seam:
 // the member's asking-and-hearing-back is its own story, and so is the
 // steward's decision. Each keeps the other side as condensed echoes.
-{ id: "sb3b", n: 3, title: "Decide who takes up a promise", desc: "Two neighbours asked for the same scarce place: David declines one with a reason, accepts the other, and the rest are superseded.", persona: "Steward (David)", scen: "S3 · scarce crew slots", reviewVisible: true, reviewGroup: "admin", chapter: "promises", roles: ["steward"], steps: [
+{ id: "sb3b", n: 3, title: "Decide who takes up a promise", desc: "Two neighbors asked for the same scarce place: David declines one with a reason, accepts the other, and the rest are superseded.", persona: "Steward (David)", scen: "S3 · scarce crew slots", reviewVisible: true, reviewGroup: "admin", chapter: "promises", roles: ["steward"], steps: [
   { f: "W7@claims", hot: { h: "w7.decline-claim", l: "Decline Maria's row (reason)" }, alts: [{ h: "w7.accept-claim", l: "or accept João now", to: "sb3b:4" }], who: "David", ev: "declineClaim + reason → ClaimDeclined — only Maria's row changes; João stays Pending", cite: "CS:734 · UX:105" },
   { f: "W7@decline-claim-confirm", hot: { h: "w7.decline-claim-confirm", l: "Decline request" }, who: "David", ev: "the confirmation takes the required reason and names what it does not touch — João's request stays pending", cite: "CS:734" },
   { f: "W7@claim-declined", hot: null, who: "David", st: "Maria declined", ev: "the console shows Maria declined while João remains pending", cite: "CS:734" },
@@ -247,53 +250,71 @@ export const SBS: SB[] = [
 ]},
 // Split at the actor seam 2026-08-10 (register #96): the steward approves
 // work; the evaluator's attestation is sb50's story.
-{ id: "sb4b", n: 4, title: "Approve the work", desc: "The steward approves submitted work against the promise's requirements — the assessment gate stays with the evaluator.", persona: "Steward", scen: "S4 · AGRO+EDU", reviewVisible: true, reviewGroup: "admin", chapter: "work", roles: ["steward"], steps: [
-  { f: "HUBWORK", hot: { h: "hub.approve", l: "Approve (existing rails)" }, who: "steward", st: "PartiallyApproved 1 of 2", ev: "WorkApproval decision → onWorkDecision → ApprovedWorkCounted; a newer pre-freeze rejection reverses the same credit", cite: "CS:737" },
-  { f: "HUBWORK", hot: null, who: "steward", st: "Approved work counted · 2 of 2", ev: "the second approval reaches requiredApprovedWorkCount — the assessment gate remains, and the evaluator carries it from here", cite: "CS:737 · CS:138a", br: [{ l: "Attest a re-assessment", to: "sb50:0" }] },
+{ id: "sb4b", n: 4, title: "Approve the work", desc: "The steward decides both queue rows on the existing rails: one approval counted toward the promise, one rejection with its recorded reason.", persona: "Steward", scen: "S4 · AGRO+EDU", reviewVisible: true, reviewGroup: "admin", chapter: "work", roles: ["steward"], steps: [
+  { f: "HUBWORK", hot: { h: "hub.approve", l: "Approve João's session" }, who: "steward", st: "Queue — 2 waiting", ev: "the existing WorkApproval rails decide; the row carries who, what, and its one primary act", cite: "CS:737" },
+  { f: "HUBWORK@approve-confirm", hot: { h: "hub.approve-confirm", l: "Approve work" }, who: "steward", st: "Approve — confirm", ev: "the confirmation names the promise the work fulfils; approval stores no reason and counts once while the commitment stays unfrozen", cite: "CS:737" },
+  { f: "HUBWORK@approved", hot: { h: "hub.reject", l: "Reject Ana's work (reason)" }, who: "steward", st: "Approved · 1 of 2 counted", ev: "onWorkDecision → ApprovedWorkCounted ticks the promise's requirement on the queue row; the second submission still waits", cite: "CS:737 · CS:138a", br: [{ l: "Attest a re-assessment", to: "sb50:0" }] },
+  { f: "HUBWORK@reject-reason", hot: { h: "hub.reject-confirm", l: "Reject work" }, who: "steward", st: "Reject — reason required", ev: "rejection takes the reason the record stores; a newer rejection replacing active pre-freeze credit emits ApprovedWorkReversed", cite: "CS:737" },
+  { f: "HUBWORK@rejected", hot: null, who: "steward", st: "Both decided", ev: "the outcome set stays on the queue — approved counted, rejected with its reason — and the assessment gate remains the evaluator's from here", cite: "CS:737 · CS:138a" },
 ]},
 // The evaluator's side of readiness, split from sb4b (register #96), then split
 // again at its own actor seam 2026-08-11 (D3 round 2, Afo): attesting is the
 // Evaluator-hat holder's act inside the Create Assessment flow, and attaching
 // the result to a promise is a steward's act on a different screen. The fused
 // title was the tell — one card, two people, two workspaces.
-{ id: "sb50", n: 50, title: "Attest a re-assessment", desc: "Dr. Chen records a delta assessment from the Hub's Assess stage — the re-assessment only an Evaluator-hat holder can attest.", persona: "Evaluator (Dr. Chen)", scen: "S4 · AGRO+EDU", reviewVisible: true, reviewGroup: "admin", chapter: "assess", roles: ["evaluator"], steps: [
-  { f: "W13@assess", hot: { h: "w13.new-assessment", l: "Create assessment" }, skipTargetReason: "the delta cast opens the Evaluator-hat variant of the same Create Assessment flow the Baseline walk enters", who: "Dr. Chen", st: "Assess stage", ev: "the existing Hub stage opens the assessment flow — §6.6 extends it rather than forking it", cite: "UX:257" },
-  { f: "W14@delta", hot: null, who: "Dr. Chen", marks: ["w14.kind"], st: "Delta", ev: "delta assessment attested — extends Create Assessment; delta renders only for Evaluator-hat holders, and attaching it to a promise is a separate steward act", cite: "WF:447-455", br: [{ l: "Attach an assessment to a promise", to: "sb57:0" }, { l: "The pool's starting record instead", to: "sb22:0" }] },
+{ id: "sb50", n: 50, title: "Attest a closing assessment", desc: "Dr. Chen records the season's closing assessment end to end — attributed to the cycle, compared with its starting record, and attested.", persona: "Evaluator (Dr. Chen)", scen: "S4 · AGRO+EDU", reviewVisible: true, reviewGroup: "admin", chapter: "assess", roles: ["evaluator"], steps: [
+  { f: "W13@assess", hot: { h: "w13.new-assessment", l: "Create assessment" }, skipTargetReason: "the closing cast opens the Evaluator-hat variant of the same Create Assessment flow the starting-record walk enters", who: "Dr. Chen", st: "Assess stage", ev: "the existing Hub stage opens the assessment flow — §6.6 extends it rather than forking it", cite: "UX:257" },
+  { f: "W14@delta", hot: { h: "w14.continue", l: "Continue" }, who: "Dr. Chen", marks: ["w14.kind"], st: "For the season · at the close", ev: "the form speaks timing and attribution — for the Season, at the close — and derives the wire kind underneath: a delta compared with the starting record, Evaluator Hat only", cite: "WF:447-455" },
+  { f: "W14@kernel", hot: { h: "w14.continue-kernel", l: "Continue" }, who: "Dr. Chen", st: "Strategy Kernel", ev: "the existing step continues unchanged — diagnosis, outcomes, complexity", cite: "UX:257" },
+  { f: "W14@harvest", hot: { h: "w14.attest", l: "Attest assessment" }, who: "Dr. Chen", st: "Actions & Harvest", ev: "actions and the reporting period close the form; attesting records the assessment with its cycle reference and derived comparison pointer", cite: "UX:257" },
+  { f: "W13@assess", hot: null, who: "Dr. Chen", st: "Attested", ev: "the closing assessment lands back on the Assess stage; the per-promise assessment gate stays Hub-side for v1 (decision 4), its state drawn in the library", cite: "UX:257", br: [{ l: "The library's attach-assessment state", to: "screen:W10@attach-assessment" }, { l: "The pool's starting record instead", to: "sb22:0" }] },
 ]},
-// The steward's half of the old sb50: the attach is what re-runs readiness, and
-// it happens on the promise, not inside the assessment flow.
-{ id: "sb57", n: 27, title: "Attach an assessment to a promise", desc: "A steward attaches the attested assessment to the promise it belongs to, which re-runs readiness and hands it to its named confirmers.", persona: "Steward (or evaluator)", scen: "S4 · AGRO+EDU", reviewVisible: true, reviewGroup: "admin", chapter: "assess", roles: ["steward", "evaluator"], steps: [
-  { f: "W10@attach-assessment", hot: { h: "w10.attach", l: "Attach assessment" }, who: "steward or evaluator", st: "Assessment picker", ev: "attachAssessment → auto-Ready re-run → CommitmentReadyForConfirmation", cite: "CS:235 · UX:287", mf: true },
-  { f: "W2@ready-confirmer", hot: null, surface: "pwa", echo: true, st: "ReadyForConfirmation", ev: "the member's promise is now ready for its named confirmers", cite: "UX:287", br: [{ l: "Open the confirmation flow", to: "sb42:0" }] },
-]},
+// sb57 ("Attach an assessment to a promise") retired 2026-08-16, decision 4:
+// the per-promise assessment gate stays Hub/evaluator-side for v1, so no
+// steward journey walks it. The on-chain call and its W10@attach-assessment
+// state remain in the Screen library for state coverage (ICommitmentPoolingModule:930).
 // The confirmation act itself, extracted from sb1 (2026-08-10) so the recipient
 // has one short flow of their own — and so sb4a/sb4b can hand off cleanly
 // instead of jumping into the middle of a 22-scene ribbon.
 // The steward's side of a “not yet”, split out 2026-08-10: the member flow
 // ends at “under review”, and this short admin flow owns the resolution act.
-{ id: "sb47", n: 47, title: "Resolve a “not yet”", desc: "David resolves a promise under review by restoring exactly the state it held before, with his reason visible on the member's timeline.", persona: "Steward (David)", scen: "S5", reviewVisible: true, reviewGroup: "admin", chapter: "promises", roles: ["steward"], steps: [
-  { f: "W10@resolve-dispute", hot: { h: "w10.resolve", l: "Resolve (eligible outcomes + reason)" }, who: "David", st: "Disputed", ev: "David is also a contributor, so Fulfilled is hidden by the SelfConfirmation guard; this fixture resolves RestorePrevious while Cancelled and Expired remain available", cite: "CS:144" },
+{ id: "sb47", n: 47, title: "Resolve a “not yet”", desc: "From the Hub's queue, David resolves a promise under review by restoring the exact state it held before, with his reason on the timeline.", persona: "Steward (David)", scen: "S5", reviewVisible: true, reviewGroup: "admin", chapter: "promises", roles: ["steward"], steps: [
+  { f: "W13", hot: { h: "w13.disputed-row", l: "Open the under-review row" }, who: "David", st: "Confirm queue", ev: "a promise frozen for review waits in the Hub's queue beside the fallback rows — the flow starts where the steward actually finds it", cite: "UX §6.9" },
+  { f: "W10@resolve-dispute", hot: { h: "w10.resolve", l: "Resolve (eligible outcomes + reason)" }, who: "David", st: "Under review", ev: "David is also a contributor, so Fulfilled is hidden by the SelfConfirmation guard; this fixture resolves RestorePrevious while Cancelled and Expired remain available", cite: "CS:144" },
   { f: "W2@ready-confirmer", hot: null, surface: "pwa", echo: true, st: "ReadyForConfirmation restored", ev: "RestorePrevious returns the exact stored pre-dispute state — no unit movement — and every resolution reason renders in the member timeline", cite: "LAP:186 · UX:300", note: "This fixture entered dispute from ReadyForConfirmation, so RestorePrevious must return there rather than Accepted." },
 ]},
 { id: "sb6b", n: 6, title: "Re-seed a promise that lapsed", desc: "David expires a past-due seeded promise and re-seeds it through the prefilled wizard.", persona: "Steward (David)", scen: "S1/S5 edge", reviewVisible: true, reviewGroup: "admin", chapter: "promises", roles: ["steward"], steps: [
   { f: "W7@due-live", hot: { h: "w7.expire-commitment", l: "Expire now" }, who: "David", st: "Accepted · past due", ev: "permissionless expireCommitment → Expired; releases the reservation once, supersedes pending claims, and decrements pool/cycle live counts", cite: "CS:746 · UX:94", mf: true },
   { f: "W7@expiry-queue", hot: { h: "w7.reseed", l: "Re-seed" }, who: "David", ev: "lapsed seeded promise re-enters W8 prefilled", cite: "UX:94", mf: true },
-  { f: "W8@step1", hot: { h: "w8.continue-scope", l: "Continue" }, who: "David", ev: "checks the seeded promise's type and cycle scope", cite: "UX:94" },
-  { f: "W8@step2", hot: { h: "w8.continue-requirements", l: "Continue" }, who: "David", ev: "checks units, target, action requirements, and due rule", cite: "UX:94" },
-  { f: "W8@step3", hot: { h: "w8.continue-rule", l: "Continue" }, who: "David", ev: "checks ordinary reachability, the pilot-default Green Goods team fallback, threshold, and claim mode", cite: "UX §6.3" },
-  { f: "W8@step4", hot: { h: "w8.continue-reward", l: "Continue" }, who: "David", ev: "checks the declared reward rail and its reference", cite: "UX:94" },
-  { f: "W8@step5", hot: { h: "w8.seed", l: "Seed this commitment" }, who: "David", ev: "creates a fresh seeded commitment", cite: "UX:94" },
+  { f: "W8@step1", hot: { h: "w8.continue-scope", l: "Continue" }, who: "David", ev: "checks the seeded promise's kind, direction, cycle, and words — the composer's What step", cite: "UX:94" },
+  { f: "W8@step2", hot: { h: "w8.continue-requirements", l: "Continue" }, who: "David", ev: "checks units, target, due, and the contributor policy — How much", cite: "UX:94" },
+  { f: "W8@step3", hot: { h: "w8.continue-rule", l: "Continue" }, who: "David", ev: "the protection step: ordinary reachability, the pilot-default Green Goods team fallback, threshold, claim mode — with the declared reward as its Advanced detour", cite: "UX §6.3" },
+  { f: "W8@step4", hot: { h: "w8.seed", l: "Seed this promise" }, who: "David", ev: "the sectioned review repeats every choice by the step that captured it, then creates the fresh seeded commitment", cite: "UX:94" },
   { f: "W7", hot: null, who: "David", st: "Open", ev: "the reseeded promise returns to the pool workspace", cite: "UX:94" },
 ]},
 // Condensed from 12 scenes: the member's ordinary evidence-and-confirmation
 // path is sb1/sb2's job, so this flow keeps only what capture changes — who
 // records the promise, and how a steward confirms when the member cannot.
-{ id: "sb8", n: 8, title: "Record a promise for a device-free member", desc: "Kwame has no phone, so David records his promise for him in four taps — it stays Kwame's promise on his side.", persona: "Steward (David)", scen: "S7 · device-free member", reviewVisible: true, reviewGroup: "admin", chapter: "behalf", roles: ["steward", "member"], steps: [
+{ id: "sb8", n: 8, title: "Record a promise for a device-free member", desc: "Kwame has no phone, so David records his promise for him from the console's Seed door — it stays Kwame's promise.", persona: "Steward (David)", scen: "S7 · device-free member", reviewVisible: true, reviewGroup: "admin", chapter: "behalf", roles: ["steward", "member"], steps: [
+  { f: "W7", hot: { h: "w7.seed", l: "Seed" }, who: "David", st: "Open", ev: "capture starts where every steward creation starts — the view's Seed action", cite: "UX:154" },
+  { f: "W8@step1", hot: { h: "w8.kind-capture", l: "Capture for a member" }, who: "David", ev: "the What step's fourth kind routes into the capture flow — same entry, different scribe", cite: "UX:323" },
   { f: "W9", hot: { h: "w9.choose", l: "Choose Kwame" }, who: "David", ev: "select the member whose promise is being recorded", cite: "WF:354-357" },
   { f: "W9@capture-kind", hot: { h: "w9.continue", l: "Continue to captured promise" }, who: "David", ev: "capturedFor and capture kind are reviewed; captured confirmations always carry a reason", cite: "WF:354-357" },
   { f: "W8@captured-for", hot: { h: "w8.record", l: "Record it" }, who: "David", ev: "commitment job (StewardCaptured, onBehalfOf) → CommitmentCreated(creator = member, recordedBy = steward)", cite: "CS:730 · DG:236" },
   { f: "W7", hot: null, who: "David", st: "Open", ev: "the captured promise appears in the admin pool workspace — recording done, four taps total", cite: "UX:437" },
   { f: "W2@captured", hot: null, surface: "pwa", echo: true, marks: ["w2.captured-chip"], st: "Accepted", ev: "the recorded promise appears as Kwame's own, ready for evidence and confirmation on the member side", cite: "WF:138 · UX:437", br: [{ l: "The member's side — evidence to confirmation (recorded-promise cast)", to: "screen:W2@captured" }] },
+]},
+// The confirmation half of the device-free story (2026-08-16 review): the
+// capture door's third kind is the steward's OWN fallback confirmation — never
+// signed as the member — and it was drawn nowhere. This walk shows who is
+// named on-chain at each moment.
+{ id: "sb8b", n: 8, title: "Confirm a device-free member's promise", desc: "Kwame kept his promise but has no phone to confirm from, so David records a fallback confirmation in his own name.", persona: "Steward (David)", scen: "S7 · device-free member", reviewVisible: true, reviewGroup: "admin", chapter: "behalf", roles: ["steward", "member"], steps: [
+  { f: "W7", hot: { h: "w7.seed", l: "Seed" }, who: "David", st: "Open", ev: "the same console entry as every capture — the view's Seed action", cite: "UX:154" },
+  { f: "W8@step1", hot: { h: "w8.kind-capture", l: "Capture for a member" }, who: "David", ev: "the What step's fourth kind routes into the capture flow", cite: "UX:323" },
+  { f: "W9", hot: { h: "w9.choose", l: "Choose Kwame" }, who: "David", ev: "select the member whose promise the confirmation concerns", cite: "WF:354-357" },
+  { f: "W9@capture-kind", hot: { h: "w9.kind-confirmation", l: "A confirmation of their promise" }, who: "David", ev: "the third capture kind is the steward's own act, not the member's — the label says whose it is", cite: "UX:323" },
+  { f: "W9@capture-fallback", hot: { h: "w9.record-confirmation", l: "Confirm as garden fallback" }, who: "David", st: "Record — reason required", ev: "the fallback confirmation completes inside the capture flow's own shell: confirmFulfillmentAsFallback names the caller, the PoolFallback path, and the reason — “Recipient has no device” is a canned chip", cite: "CS §6.1 · UX:323" },
+  { f: "W2@captured-fulfilled", hot: null, surface: "pwa", echo: true, st: "Fulfilled — steward fallback", ev: "the member timeline reads “confirmed by garden steward — fallback” with the reason; the promise stays Kwame's, the confirmation stays David's", cite: "UX:519" },
 ]},
 // The member's side of a steward-recorded promise, split from sb8 (2026-08-10):
 // evidence, readiness, and the counterparty's confirmation on the client PWA.
@@ -306,53 +327,55 @@ export const SBS: SB[] = [
 // covers one stewardship task end to end; the original concatenated readiness,
 // seeding, allocation, pause/resume, close, compost and cancel, so a reviewer
 // parachuted mid-flow had no chapter to orient against.
-{ id: "sb9a", n: 9, title: "Ready the pool and open the season", desc: "The readiness checklist, a seeded cycle, the six-role split, and the one guarded step that opens pool and season together.", persona: "Steward (David)", scen: "S5/S13 admin side", reviewVisible: true, reviewGroup: "admin", chapter: "season", roles: ["steward"], steps: [
-  { f: "W7@not-ready", hot: null, st: "NotReady", ev: "checklist: charter · provider open-commitment cap · qualifying Baseline", cite: "UX:57,269" },
-  { f: "W7@not-ready", hot: { h: "w7.edit-charter", l: "Edit charter + set cap" }, ev: "setPoolCharter · setProviderOpenCommitmentCap (required before Ready)", cite: "CS:723,751" },
-  { f: "W7@preflight-complete", hot: { h: "w7.mark-ready", l: "Mark pool ready" }, st: "Ready", ev: "markPoolReady records NotReady → Ready; Baseline is the app preflight, charter + non-zero cap are enforced onchain", cite: "CS:724 · UX:298" },
-  { f: "W7@ready", hot: null, st: "Ready", ev: "the admin result separates readiness from opening or seeding a commitment", cite: "UX:58", br: [{ l: "The member's view of Ready", to: "screen:W1@ready" }] },
-  { f: "W7@ready", hot: { h: "w7.seed-cycle", l: "Seed a cycle" }, alts: [{ h: "w7.open-pool", l: "or open the pool first — the card action (register #34a)", to: "screen:W7" }], st: "Ready", ev: "seeding a cycle is legal while the pool is Ready (CS:566); the flow's open step then carries the Ready-pool guard, which opens the pool with the cycle — the deadlock fix register #34a adopted onto the card", cite: "CS:566 · CS:100", mf: true },
-  { f: "W7@seed-cycle", hot: { h: "w7.seed-cycle-confirm", l: "Seed this cycle" }, who: "David", ev: "seedCycle(poolId, cycleType, startTime, endTime, metadataCID) → CycleSeeded — the Season is recorded but not yet open, and no reason is stored", cite: "CS:566", skipTargetReason: "the member's opens-soon preview is linked as a branch rather than walked; the steward continues straight to the allocation step", br: [{ l: "The member's opens-soon preview", to: "screen:W1@seeded" }] },
-  { f: "W11", hot: { h: "w11.continue", l: "Continue" }, st: "Allocation set", ev: "the standard split arrives already applied — adjusting a share is the exception; the snapshot must total 100%", cite: "CS:114 · UX:322" },
-  { f: "W11@guard", hot: { h: "w11.open-cycle", l: "Open pool and cycle" }, st: "Cycle Open", ev: "the Ready-pool guard submits openPool first, then openCycle with the stored allocation", cite: "CS:100 · CS:114 · CS:727" },
-  { f: "W7", hot: null, who: "David", st: "Cycle Open", ev: "the active cycle returns to the pool workspace", cite: "CS:114" },
-  { f: "W1", hot: null, surface: "pwa", echo: true, marks: ["w1.season-card"], ev: "members see the Season card go live · derived InProgress/Reviewing overlays follow activity", cite: "CS:115-117" },
+{ id: "sb9a", n: 9, title: "Set up promises and open the first season", desc: "One setup pass: what the pool is for, the season, the split — then a single step opens the pool and its first season together.", persona: "Steward (David)", scen: "S5/S13 admin side", reviewVisible: true, reviewGroup: "admin", chapter: "season", roles: ["steward"], steps: [
+  { f: "W7@preflight-complete", hot: { h: "w7.setup", l: "Set up promises" }, who: "David", st: "Not taking promises yet", ev: "the garden's starting assessment is recorded, so the tab offers exactly one way forward — the pool's on-chain readiness states are never a steward's job", cite: "UX:298", br: [{ l: "Before the assessment exists", to: "screen:W7@not-ready" }] },
+  { f: "W11@setup-how", hot: { h: "w11.setup-continue-how", l: "Continue" }, who: "David", st: "Nothing recorded yet", ev: "plain language for what the contract calls the charter, with the provider open-commitment cap defaulted behind Advanced; the blocked cast names a missing starting assessment instead of failing at submit", cite: "CS:723,751", br: [{ l: "When the starting assessment is missing", to: "screen:W11@setup-how-blocked" }] },
+  { f: "W11@setup-season", hot: { h: "w11.setup-continue-season", l: "Continue" }, who: "David", st: "Season named", ev: "one season runs at a time; campaigns come later and run beside it", cite: "UX:66" },
+  { f: "W11@setup-split", hot: { h: "w11.setup-continue-split", l: "Continue" }, who: "David", st: "Standard split applied", ev: "the six-role split arrives already applied and must total 100%; gardener sharing takes its standard 35/65 for the first season", cite: "CS:114 · UX:322" },
+  { f: "W11@setup-open", hot: { h: "w11.setup-open-all", l: "Open the season" }, who: "David", st: "One write moment", ev: "the final step submits the whole ordered sequence — setPoolCharter, setProviderOpenCommitmentCap, markPoolReady, seedCycle, openPool, openCycle — and names in plain words what opens", cite: "CS:724 · CS:100 · CS:114 · CS:727", mf: true },
+  { f: "W7", hot: null, who: "David", st: "Taking promises · season live", ev: "the pool workspace returns with the season live beside its (still empty) campaign row — six scenes, one flow, no state-machine vocabulary", cite: "CS:114", br: [{ l: "Members see the Season card go live", to: "screen:W1" }, { l: "The member's opens-soon preview", to: "screen:W1@seeded" }] },
 ]},
 { id: "sb9b", n: 9, title: "Pause and resume the pool", desc: "David pauses the pool with a reason members read, then resumes it — recovery paths stay open the whole time.", persona: "Steward (David)", scen: "S5/S13 admin side", reviewVisible: true, reviewGroup: "admin", chapter: "season", roles: ["steward"], steps: [
-  { f: "W7@manage", hot: { h: "w7.pause", l: "Pause (reason)" }, st: "Paused", ev: "pausePool(reason) — member banner; create/claim/Ready-submit/confirm disabled, recovery stays available", cite: "UX:60" },
+  { f: "W7", hot: { h: "w7.pause", l: "Pause… (Pool card)" }, who: "David", st: "Open", ev: "the container's lifecycle lives on the Pool card in the rail — pausePool takes a reason members read; create/claim/Ready-submit/confirm wait while recovery stays available", cite: "UX:60 · UX:299" },
   { f: "W7@pause-confirm", hot: { h: "w7.pause-confirm", l: "Pause pool" }, st: "Pause — confirm", ev: "the blast radius (23 members, 7 open promises) and the stored reason are both named before anything pauses", cite: "UX:60 · CS:725" },
-  { f: "W7@paused", hot: null, who: "David", st: "Paused", ev: "the admin card holds the indexed pause reason and recovery action", cite: "UX:60" },
-  { f: "W1@paused", hot: null, surface: "pwa", echo: true, st: "Paused", ev: "members get a quiet reason banner; creation and confirmation wait while recovery stays available", cite: "UX:60" },
-  { f: "W7@paused", hot: { h: "w7.resume", l: "Resume" }, st: "Open", ev: "resumePool clears the indexed reason", cite: "CS:725" },
-  { f: "W7", hot: null, who: "David", st: "Open", ev: "the cleared pause state returns to the open pool", cite: "CS:725" },
+  { f: "W7@paused", hot: { h: "w7.resume", l: "Resume" }, who: "David", st: "Paused", ev: "the Pool card holds the indexed pause reason and the recovery action; members read the same reason in a quiet banner", cite: "UX:60", br: [{ l: "The member's paused banner", to: "screen:W1@paused" }] },
+  { f: "W7", hot: null, who: "David", st: "Open", ev: "resumePool clears the indexed reason and the pool returns open", cite: "CS:725" },
 ]},
-{ id: "sb9c", n: 9, title: "End a season — close, compost, or cancel", desc: "The close wizard end to end — reconcile, read the shares, mint the certificate, compost — plus the pool coda and the cancel variant.", persona: "Steward (David)", scen: "S5/S13 admin side", reviewVisible: true, reviewGroup: "admin", chapter: "season", roles: ["steward"], steps: [
-  { f: "W7@manage", hot: { h: "w7.close-season", l: "Close Season" }, st: "Reviewing", ev: "opens the close wizard without reconciling early; the cycle stays Open on-chain while outstanding items are reviewed", cite: "UX:338 · CS:118", br: [{ l: "Variant: cancel the season instead", to: "sb9c:13" }] },
+// Split at the act seams 2026-08-16 (admin prototype review, Afo): the old
+// sb9c concatenated five acts — end the season, close the pool, compost it,
+// reopen it, and the cancel variant — into one 17-scene ribbon. Ending a
+// season (sb9c), retiring the pool (sb9d), and cancelling a season (sb9e) are
+// three sittings with three outcomes.
+{ id: "sb9c", n: 9, title: "End the season", desc: "The close wizard end to end — close the exact bundle, read the shares, mint the certificate, and compost the season.", persona: "Steward (David)", scen: "S5/S13 admin side", reviewVisible: true, reviewGroup: "admin", chapter: "season", roles: ["steward"], steps: [
+  { f: "W7", hot: { h: "w7.close-season", l: "Close season… (Season row)" }, who: "David", st: "Reviewing", ev: "the season's own acts live on its row in the Cycles card; opening the close wizard reconciles nothing early — the cycle stays Open on-chain while outstanding items are reviewed", cite: "UX:338 · CS:118", br: [{ l: "Variant: cancel the season instead", to: "sb9e:0" }] },
   { f: "W26@review", hot: { h: "w26.continue-shares", l: "Close cycle and continue" }, st: "Terminal set · live count zero", ev: "closeCycle runs before any share review or mint, locking the exact fulfilled commitment bundle as Reconciled", cite: "UX:75 · CS:118", mf: true },
   { f: "W26@shares", hot: { h: "w26.continue-certificate", l: "Continue to certificate" }, st: "Reconciled · allocation snapshot", ev: "reads back the six-role share snapshot against the now-closed commitment set", cite: "UX:75" },
   { f: "W26@certificate", hot: { h: "w26.mint", l: "Mint impact certificate" }, st: "Reconciled · certificate", ev: "bundles the closed cycle's fulfilled promises with their work, evidence, and lineage", cite: "CS §9" },
   { f: "W26@rest", hot: { h: "w26.compost", l: "Compost closed cycle" }, st: "Reconciled · certificate minted", ev: "compostCycle archives the already-closed cycle; it does not repeat closeCycle", cite: "UX:338 · CS:118", mf: true },
-  { f: "W7@cycle-composted", hot: null, who: "David", st: "Composted", ev: "the cycle returns to the console only after both lifecycle writes succeed", cite: "CS:118-119", br: [{ l: "The member's season summary and hero", to: "screen:W1@cycle-summary" }] },
-  { f: "W7@cycle-composted", hot: { h: "w7.close-pool", l: "Close pool" }, who: "David", st: "All cycles composted", ev: "every cycle — the Season and all three Campaigns — has composted, which is the condition that makes Close pool appear at all (uiux §6.2); seeding the next cycle stays available beside it", cite: "CS:102" },
+  { f: "W7@cycle-composted", hot: null, who: "David", st: "Composted", ev: "the season returns to the console only after both lifecycle writes succeed; the next season's door and the pool coda are their own sittings", cite: "CS:118-119", br: [{ l: "The member's season summary and hero", to: "screen:W1@cycle-summary" }, { l: "Close and compost the pool", to: "sb9d:0" }] },
+]},
+{ id: "sb9d", n: 9, title: "Close and compost the pool", desc: "After the last cycle composts: participation ends, the pool archives, and the explicit reopen path brings the next era back to Ready.", persona: "Steward (David)", scen: "S5/S13 admin side", reviewVisible: true, reviewGroup: "admin", chapter: "season", roles: ["steward"], steps: [
+  { f: "W7@cycle-composted", hot: { h: "w7.close-pool", l: "Close pool" }, who: "David", st: "All cycles composted", ev: "every cycle — the Season and all three Campaigns — has composted, which is the condition that makes Close pool appear at all (uiux §6.2); the next season's door stays available beside it", cite: "CS:102" },
   { f: "W7@close-pool-confirm", hot: { h: "w7.close-pool-confirm", l: "Close pool" }, who: "David", st: "Close — confirm", ev: "closing ends participation for the pool's 23 members; the confirmation names that blast radius — closePool stores no reason (CS:556)", cite: "CS:102 · CS:556" },
-  { f: "W7@pool-closed", hot: null, who: "David", st: "Closed", ev: "the pool closes for members too — its history stays with the garden", cite: "CS:102", br: [{ l: "The member's closed view", to: "screen:W1@closed" }] },
-  { f: "W7@pool-closed", hot: { h: "w7.compost-pool", l: "Compost pool" }, who: "David", st: "Closed", ev: "the archive action opens a confirmation before compostPool runs", cite: "CS:103" },
+  { f: "W7@pool-closed", hot: { h: "w7.compost-pool", l: "Compost pool" }, who: "David", st: "Closed", ev: "the pool closes for members too — its history stays with the garden; the archive action opens a confirmation before compostPool runs", cite: "CS:102-103", br: [{ l: "The member's closed view", to: "screen:W1@closed" }] },
   { f: "W7@compost-pool-confirm", hot: { h: "w7.compost-confirm", l: "Compost pool" }, who: "David", st: "Closed · confirm archive", ev: "the confirmation names archival without inventing a stored reason or wider blast radius", cite: "CS:103" },
   { f: "W7@pool-composted", hot: { h: "w7.reopen-pool", l: "Reopen pool" }, who: "David", st: "Composted", ev: "the archived pool offers the explicit reopen path", cite: "UX:62 · CS:104" },
   { f: "W7@reopen-confirm", hot: { h: "w7.reopen-confirm", l: "Reopen to Ready" }, who: "David", st: "Reopen — confirm", ev: "reopenPool(poolId, false) preserves history and returns the pool to Ready", cite: "CS:104" },
   { f: "W7@ready", hot: null, who: "David", st: "Ready", ev: "the reopened pool is prepared but member participation stays closed until openPool", cite: "UX:58" },
-  { f: "W7@manage", hot: { h: "w7.cancel-cycle", l: "variant: Cancel a cycle (reason)" }, ev: "cancelCycle → quiet member banner with reason · pool coda: close → compost → reopen (register #34a)", cite: "UX:77 · CS:104", note: "The variant rewinds to the open season — cancelCycle is legal only from Seeded or Open (CS:117), never after compost or close." },
-  { f: "W7@cancel-cycle-confirm", hot: { h: "w7.cancel-cycle-confirm", l: "Cancel season" }, st: "Cancel — confirm", ev: `the season's own counts (${SEASON_LIVE.made} promises, ${SEASON_LIVE.kept} kept) are named before the cancel, alongside the reason members will read`, cite: "UX:77" },
-  { f: "W1@cancelled-cycle", hot: null, surface: "pwa", echo: true, st: "Cycle cancelled", ev: "members read the reason without it implying the whole pool failed", cite: "UX:77" },
 ]},
-{ id: "sb10", n: 10, title: "Declare a reward and record its payout", desc: "A reward declared as a reference only: David confirms on the garden fallback path, then records the payout executed elsewhere.", persona: "Steward (David) + gardener", scen: "S13 · July's only rail", reviewVisible: true, reviewGroup: "admin", chapter: "recognition", roles: ["steward"], steps: [
-  { f: "W8@step4", hot: null, marks: ["w8.reward"], who: "David", ev: "the external payout record is selected; the declared reward is a reference only and the module never custodies funds", cite: "WF:339 · UX:280", br: [{ l: "The member's pending reward row", to: "screen:W2" }] },
-  { f: "W13", hot: { h: "w13.row", l: "open the garden-fallback row" }, alts: [{ h: "w13.protocol-row", l: "or an opted-in Green Goods team row", to: "screen:W10@protocol-fallback-confirm" }], who: "David", st: "ReadyForConfirmation", ev: "Hub Confirm stage labels ordinary, garden fallback, and Green Goods team fallback eligibility distinctly", cite: "UX §6.9" },
+{ id: "sb9e", n: 9, title: "Cancel a season with a reason", desc: "cancelCycle ends the season for everyone in it; members read the recorded reason, and the pool stays open for the next one.", persona: "Steward (David)", scen: "S5/S13 admin side", reviewVisible: true, reviewGroup: "admin", chapter: "season", roles: ["steward"], steps: [
+  { f: "W7", hot: { h: "w7.close-season", l: "Close Season…" }, who: "David", st: "Open", ev: "both endings start here: closing and cancelling are legal at the same moment — each needs zero live promises — so the season carries ONE act and the flow presents the choice", cite: "UX:77 · CS:117" },
+  { f: "W26@review", hot: { h: "w7.cancel-cycle", l: "Cancel Season Instead…" }, who: "David", st: "Terminal set · nothing live", ev: "the close flow's first step offers the alternative ending in place, with the season's own counts already on screen", cite: "UX:77 · CS:104", note: "cancelCycle is legal only from Seeded or Open (CS:117), never after compost or close." },
+  { f: "W7@cancel-cycle-confirm", hot: { h: "w7.cancel-cycle-confirm", l: "Cancel season" }, st: "Cancel — confirm", ev: `the season's own counts (${SEASON_LIVE.made} promises, ${SEASON_LIVE.kept} kept) are named before the cancel, alongside the reason members will read`, cite: "UX:77" },
+  { f: "W7@open-no-cycle", hot: null, who: "David", st: "Cycle cancelled · pool open", ev: "only the season ended — the pool stays open without an active cycle, and the next season starts from Quick actions", cite: "CS:104", br: [{ l: "The member's quiet reason banner", to: "screen:W1@cancelled-cycle" }] },
+]},
+{ id: "sb10", n: 10, title: "Confirm on the fallback path and record the payout", desc: "A reward declared as a reference only: David confirms on the garden fallback path, then records the payout executed elsewhere.", persona: "Steward (David) + gardener", scen: "S13 · July's only rail", reviewVisible: true, reviewGroup: "admin", chapter: "recognition", roles: ["steward"], steps: [
+  { f: "W13", hot: { h: "w13.row", l: "open the garden-fallback row" }, alts: [{ h: "w13.protocol-row", l: "or an opted-in Green Goods team row", to: "screen:W10@protocol-fallback-confirm" }], who: "David", st: "ReadyForConfirmation", ev: "Hub Confirm stage labels ordinary, garden fallback, and Green Goods team fallback eligibility distinctly; the reward was declared at seeding as the composer's Advanced detour", cite: "UX §6.9", br: [{ l: "Where the reward rail was declared", to: "screen:W8@step3" }] },
   { f: "W10@detail-fallback-eligible", hot: null, st: "ReadyForConfirmation · ordinary path unreachable", ev: "the indexed eligibility result exposes garden fallback only after the ordinary named/default path can no longer reach threshold", cite: "CS §6.1" },
   { f: "W10@external-fulfilled", hot: null, st: "Fulfilled", ev: "confirmFulfillmentAsFallback records the non-contributor garden steward and required reason; the reward is now recordable", cite: "CS §6.1" },
   { f: "W10@external-fulfilled", hot: { h: "w10.record-payout", l: "Record payout" }, ev: "ArbitrumExternal permits AdminConfirmDialog to capture the rail reference → recordConsiderationPaid → ConsiderationPaid", cite: "CS:749", note: "register #34h — the dry run runs this with a real minimal Cookie Jar withdrawal" },
   { f: "W10@record-payout", hot: { h: "w10.payout-confirm", l: "Record payout" }, st: "Payout confirmation", ev: "the steward reviews the declared reward and records the executed rail reference", cite: "UX:302" },
-  { f: "W2@reward-released", hot: null, surface: "pwa", echo: true, marks: ["w2.reward-row"], ev: "the member row flips to 'reward released' — quiet admin confirmation only, celebration already fired client-side", cite: "UX:143,202" },
+  { f: "W7", hot: null, who: "David", st: "Payment recorded", ev: "recordConsiderationPaid closes the loop in the workspace; the member's row reads reward released on their side", cite: "UX:143,202", br: [{ l: "The member's reward row", to: "screen:W2@reward-released" }] },
 ]},
 { id: "sb12", n: 12, title: "Dispatch queued support and close the loop", desc: "Three payouts prepared, batched, and dispatched to Celo — including what happens to the one that comes back failed.", persona: "Steward + protocol executor", scen: "S8/S9 · pre-broadcast proof", reviewVisible: true, reviewGroup: "admin", chapter: "ggops", roles: ["green-goods-team"], steps: [
   { f: "W21@payout-finalized", hot: { h: "w21.prepare-payout", l: "Prepare Maria payout" }, st: "Finalized · 0 of 3 prepared", ev: "the steward materializes exactly one immutable queued child from Maria's frozen row", cite: "SS §3" },
@@ -374,8 +397,7 @@ export const SBS: SB[] = [
 // The Green Goods stewards' side of a garden claim, split from sb13
 // (2026-08-10): acceptance and verification live where that team acts.
 { id: "sb46", n: 46, title: "Accept a garden's claim", desc: "The Green Goods stewards accept Awka Hub as the provider, then verify the promise the providing garden may never confirm itself.", persona: "Protocol steward", scen: "S14", reviewVisible: true, reviewGroup: "admin", chapter: "ggops", roles: ["green-goods-team"], steps: [
-  { f: "W12", hot: { h: "w12.accept", l: "Accept" }, who: "protocol steward", ev: "accept consumes the stored terms → providerGarden derived · other pending rows Superseded", cite: "CS:733" },
-  { f: "W25@accepted", hot: null, surface: "pwa", echo: true, st: "Accepted", ev: "Leila sees Awka Hub accepted as the provider — her garden made the promise", cite: "CS:577-589" },
+  { f: "W12", hot: { h: "w12.accept", l: "Accept" }, who: "protocol steward", ev: "accept consumes the stored terms → providerGarden derived · other pending rows Superseded", cite: "CS:733", skipTargetReason: "the claimant garden's accepted view is linked as a branch; the protocol steward continues in the confirmations queue", br: [{ l: "Leila's garden sees the claim accepted", to: "screen:W25@accepted" }] },
   { f: "W12", hot: { h: "w12.confirm-row", l: "confirmations queue" }, ev: "the protocol confirmations queue mirrors the Hub Confirm grammar", cite: "WF:417" },
   { f: "W10@garden-ready", hot: null, st: "ReadyForConfirmation", ev: "the protocol stewards verify it — the providing garden is excluded from confirming its own promise", cite: "UX:318 · CS:743", br: [{ l: "Where the G$ goes next", to: "sb19:0" }] },
 ]},
@@ -402,11 +424,10 @@ export const SBS: SB[] = [
   { f: "W21@payout-partial", hot: null, st: "Partial", ev: "one contributor arrived, one remains pending, and one failed; the stable parent pointer, successful child, and recognition record remain final", cite: "SS §3.1" },
   { f: "W24@flows", hot: { h: "w24.queue-funding", l: "Seed / top up" }, st: "Independent funding route", ev: "the cross-garden board keeps discretionary GG protocol Safe → garden Safe funding separate from contributor payout plans", cite: "SS §3" },
   { f: "W24@funding", hot: { h: "w24.queue-funding-confirm", l: "Queue seed / top up" }, st: "Authorized treasury action", ev: "only a protocol steward or SettlementModule owner may submit; deployer status alone is insufficient", cite: "SS §3.1.3" },
-  { f: "W21@protocol-funding-queued", hot: null, st: "Funding · ProtocolToGarden · Queued", ev: "the emitted row has no commitment ID and cannot be mistaken for an earned contributor reward", cite: "SS §3.1.3" },
-  { f: "W2@garden-support-arrived", hot: null, surface: "pwa", echo: true, marks: ["w2.reward-row"], st: "Partial / Complete", ev: "each member sees their own recognition and payout child while the garden-retained amount stays explicit", cite: "SS §5" },
+  { f: "W21@protocol-funding-queued", hot: null, st: "Funding · ProtocolToGarden · Queued", ev: "the emitted row has no commitment ID and cannot be mistaken for an earned contributor reward", cite: "SS §3.1.3", br: [{ l: "What each member sees arrive", to: "screen:W2@garden-support-arrived" }] },
 ]},
-{ id: "sb59", n: 29, title: "Accept a funded claim and return it if needed", desc: "A Garden Steward records Maria's deposit, accepts the funded claim, and later queues the same recorded amount back when the promise ends without delivery.", persona: "Garden Steward", scen: "Member-funded priced Offer · settlement", reviewVisible: true, reviewGroup: "admin", chapter: "settlement", roles: ["steward"], steps: [
-  { f: "W7@funded-claim", hot: { h: "w7.open-funded-claim", l: "Review funding" }, st: "Claim waiting", ev: "the priced Offer claim is a separate checkpoint; no deposit or acceptance is inferred from Maria's request" },
+{ id: "sb59", n: 29, title: "Accept a funded claim and return it if needed", desc: "A Garden Steward records Maria's deposit, accepts the funded claim, then queues the same amount back when the promise ends without delivery.", persona: "Garden Steward", scen: "Member-funded priced Offer · settlement", reviewVisible: true, reviewGroup: "admin", chapter: "settlement", roles: ["steward"], steps: [
+  { f: "W7@claims", hot: { h: "w7.open-funded-claim", l: "Review Funding" }, st: "Claim waiting", ev: "the priced Offer claim is a separate checkpoint; no deposit or acceptance is inferred from Maria's request" },
   { f: "W37@claim", hot: { h: "w37.record-funding", l: "Create funding record" }, st: "Funding not pledged", ev: "recordFunding freezes Maria, the 40 G$ price, the Rocinha Safe, and her refund account; an exact retry returns the same record" },
   { f: "W37@pledged", hot: { h: "w37.record-deposit", l: "Record checked deposit" }, st: "Pledged", ev: "the steward checks the Safe transfer and its unique reference before recording the full deposit" },
   { f: "W37@deposit-recorded", hot: { h: "w37.accept-funded", l: "Accept funded claim" }, st: "Deposit recorded", ev: "acceptClaim and consumeFunding bind the recorded deposit to Ben's Accepted Offer; the spendable display subtracts open earmarks" },
@@ -414,8 +435,7 @@ export const SBS: SB[] = [
   { f: "W37@refund-eligible", hot: { h: "w37.queue-refund", l: "Queue refund" }, st: "Cancelled · refund eligible", ev: "terminal non-delivery is read from pooling; one Refund child is created for Maria's complete recorded deposit" },
   { f: "W21@refund-queued", hot: { h: "w21.dispatch-refund", l: "Dispatch refund" }, st: "Refund queued", ev: "the child uses the ordinary settlement machine and the frozen garden Safe, account, token, and amount; dispatch is not arrival" },
   { f: "W22@refund-dispatched", hot: null, st: "Dispatched", ev: "the command has one execution key and may be retried without moving G$ twice" },
-  { f: "W22@refund-confirmed", hot: null, st: "Confirmed", ev: "only the authenticated acknowledgment closes F-204 as Refunded" },
-  { f: "W36@refunded", hot: null, surface: "pwa", echo: true, st: "Returned", ev: "Maria sees the full 40 G$ returned to the refund account recorded before her deposit" },
+  { f: "W22@refund-confirmed", hot: null, st: "Confirmed", ev: "only the authenticated acknowledgment closes F-204 as Refunded", br: [{ l: "Maria sees the full 40 G$ returned", to: "screen:W36@refunded" }] },
 ]},
 // The public surface has its own reader: a neighbour or funder who never signs
 // in. This flow walks what they can see as a pool matures — and the moment the
@@ -434,7 +454,8 @@ export const SBS: SB[] = [
   { f: "W1", hot: null, surface: "pwa", echo: true, ev: "the same pool, now joinable — the public story and the member surface are one system", cite: "UX:120" },
 ]},
 { id: "sb17", n: 17, title: "Recover a promise that stalled", desc: "Evidence is in but the recipient cannot confirm — David's three exits are mark ready, cancel, and send it for steward review.", persona: "Steward (David)", scen: "S5 · steward recovery", reviewVisible: true, reviewGroup: "admin", chapter: "promises", roles: ["steward"], steps: [
-  { f: "W10@accepted", hot: { h: "w10.mark-override", l: "Mark ready…" }, who: "David", st: "Accepted · evidence in", ev: "evidence is in but the recipient cannot confirm — override, cancel, and send-for-confirmation are the three exits, each with its own consequence", cite: "UX:294" },
+  { f: "W7", hot: { h: "w7.stalled-row", l: "Open the stalled promise" }, who: "David", st: "Open", ev: "the stalled promise sits in the pool's own list — evidence in, recipient can't confirm — and its row opens the detail", cite: "UX:294" },
+  { f: "W10@accepted", hot: { h: "w10.mark-override", l: "Mark ready…" }, who: "David", st: "Accepted · evidence in", ev: "override, cancel, and send-for-confirmation are the three exits, each with its own consequence", cite: "UX:294" },
   { f: "W10@mark-ready-override", hot: { h: "w10.override-confirm", l: "Mark ready" }, who: "David", st: "Reason required", ev: "markReadyForConfirmation(commitmentId, reason) — steward-only, separate from Send for confirmation, and the reason is stored", cite: "UX:294" },
   { f: "W2@support-ready-confirmer", hot: null, surface: "pwa", echo: true, st: "ReadyForConfirmation", ev: "the member sees the same service promise move to Ready with the steward's record visible in the timeline", cite: "UX:301" },
   { f: "W10@cancel", hot: { h: "w10.cancel-confirm", l: "Cancel promise" }, who: "David", st: "Cancel — confirm", ev: "variant: cancelCommitment on an Accepted promise — steward-only, reason required, and the committed units release", cite: "CS:745" },
@@ -443,11 +464,20 @@ export const SBS: SB[] = [
   { f: "W10@raise-dispute", hot: { h: "w10.dispute-confirm", l: "Raise dispute" }, who: "David", st: "Reason required", ev: "raiseDispute stores preDisputeState so any resolution can restore it exactly", cite: "CS:143" },
   { f: "W2@disputed", hot: null, surface: "pwa", echo: true, st: "Disputed", ev: "the member ceiling is “under review by stewards” — the word dispute never reaches them", cite: "UX:95", br: [{ l: "How it resolves", to: "sb5:3" }] },
 ]},
-{ id: "sb20", n: 20, title: "Open a campaign beside the season", desc: "David opens a Campaign alongside the running Season, with its own allocation and without touching the pool.", persona: "Steward (David)", scen: "S5 · concurrent campaign", reviewVisible: true, reviewGroup: "admin", chapter: "season", roles: ["steward"], steps: [
-  { f: "W7@manage", hot: { h: "w7.open-cycle-flow", l: "Open cycle" }, st: "Pool Open · campaign Seeded", ev: "the lifecycle view opens the campaign-specific allocation path", cite: "UX:66 · CS:114" },
+{ id: "sb20", n: 20, title: "Start a campaign beside the season", desc: "David starts a Campaign alongside the running Season — one flow in one shell, its own allocation, nothing touching the pool or the Season.", persona: "Steward (David)", scen: "S5 · concurrent campaign", reviewVisible: true, reviewGroup: "admin", chapter: "season", roles: ["steward"], steps: [
+  { f: "W7", hot: { h: "w7.start-campaign", l: "Start a campaign (Quick actions)" }, st: "Season live", ev: "the campaign door sits in the rail's Quick actions while the Season runs — one open Season, any number of campaigns", cite: "UX:66" },
+  { f: "W11@campaign-details", hot: { h: "w11.campaign-details-continue", l: "Continue" }, st: "Campaign details", ev: "seedCycle with Campaign preselected records the campaign on the already-open pool; the flow continues in the same shell", cite: "CS:566 · CS:114" },
   { f: "W11@campaign-allocation", hot: { h: "w11.campaign-continue", l: "Continue" }, st: "Allocation set", ev: "the six-class campaign allocation totals exactly 100%", cite: "UX:322-330" },
-  { f: "W11@campaign-open", hot: { h: "w11.campaign-open-cycle", l: "Open campaign" }, st: "Pool already Open", ev: "openCycle starts only Seedling swap; it does not reopen or otherwise mutate the pool", cite: "CS:114" },
-  { f: "W7", hot: null, st: "Campaign Open", ev: "the campaign returns alongside the still-open Season", cite: "UX:66" },
+  { f: "W11@campaign-open", hot: { h: "w11.campaign-open-cycle", l: "Open the campaign" }, st: "Pool already Open", ev: "openCycle starts only Seedling swap; it does not reopen or otherwise mutate the pool", cite: "CS:114" },
+  { f: "W7", hot: null, st: "Campaign Open", ev: "the campaign returns as a peer row beside the still-open Season", cite: "UX:66" },
+]},
+// The phone presentation of the same console (2026-08-16 review): below
+// 1024px the header action row hides and the ViewAction set rides the
+// FabButton speed dial; AdminDialog presents as a bottom sheet below 620px.
+{ id: "sb60", n: 60, title: "Run the pool from a phone", desc: "The same console on a phone: the speed dial carries the view's actions, and the seed dialog presents as a bottom sheet.", persona: "Steward (David)", scen: "Admin mobile presentation", reviewVisible: true, reviewGroup: "admin", chapter: "season", roles: ["steward"], steps: [
+  { f: "W7M", hot: { h: "w7m.fab", l: "Workspace actions (FAB)" }, who: "David", st: "Pool tab — phone", ev: "below 1024px the header's action row hides; the FabButton floats above the workspace dock, right-aligned", cite: "UX:299" },
+  { f: "W7M@fab-open", hot: { h: "w7m.dial-seed", l: "Seed a promise" }, who: "David", st: "Speed dial", ev: "more than one view action opens the speed dial — the primary sits nearest the trigger, mirroring the desktop row's primary-rightmost emphasis", cite: "UX:299" },
+  { f: "W7M@seed-sheet", hot: null, who: "David", st: "Seed — bottom sheet", ev: "the same seed dialog, presented as a bottom sheet on the phone — one action set, one dialog, two presentations", cite: "UX:299" },
 ]},
 { id: "sb21", n: 21, title: "Move from Community to this garden's pool", desc: "The Community workspace narrows from protocol scope to one garden, then hands off to that garden's full Pool workspace.", persona: "Protocol steward", scen: "S14 · workspace handoff", reviewVisible: true, reviewGroup: "admin", chapter: "ggops", roles: ["green-goods-team"], steps: [
   { f: "W12", hot: { h: "w12.tab-garden", l: "This garden" }, st: "Protocol pool", ev: "the Community workspace narrows from protocol scope to the selected garden", cite: "UX:314" },
@@ -457,10 +487,12 @@ export const SBS: SB[] = [
 // Regrown 2026-08-10 (register #96): the baseline is the pool's starting
 // record — its own assessment story, ending at the readiness checklist it
 // satisfies, not folded into work approval.
-{ id: "sb22", n: 22, title: "Record the pool's baseline", desc: "The pool's starting record: an evaluator's Baseline assessment, made before any promise, completing the readiness checklist.", persona: "Evaluator + steward", scen: "S4 · assessment entry", reviewVisible: true, reviewGroup: "admin", chapter: "assess", roles: ["evaluator", "steward"], steps: [
+{ id: "sb22", n: 22, title: "Record the garden's starting assessment", desc: "The pool's starting record end to end: attributed to the garden, made before any promise, attested, and completing the checklist.", persona: "Evaluator + steward", scen: "S4 · assessment entry", reviewVisible: true, reviewGroup: "admin", chapter: "assess", roles: ["evaluator", "steward"], steps: [
   { f: "W13@assess", hot: { h: "w13.new-assessment", l: "Create assessment" }, st: "Assess stage", ev: "the existing Hub stage opens the extended assessment flow", cite: "UX:257" },
-  { f: "W14@baseline", hot: null, marks: ["w14.kind"], st: "Baseline", ev: "cycle and assessment kind are explicit — the Baseline is the pool's starting record, made before any promise, and the evidence and scoring steps continue on the existing rails", cite: "CS:760-761" },
-  { f: "W7@preflight-complete", hot: null, st: "Readiness · baseline satisfied", ev: "the qualifying baseline completes the pool's readiness checklist beside the charter and provider cap", cite: "UX:298", br: [{ l: "Mark the pool ready and open the season", to: "sb9a:2" }] },
+  { f: "W14@baseline", hot: { h: "w14.continue", l: "Continue" }, marks: ["w14.kind"], st: "For the garden · at the start", ev: "attributed to the garden overall, at the start — the first measurement for this garden and domain derives the wire Baseline, which an evaluator or steward may attest", cite: "CS:760-761" },
+  { f: "W14@kernel", hot: { h: "w14.continue-kernel", l: "Continue" }, st: "Strategy Kernel", ev: "the existing step continues unchanged — diagnosis, outcomes, complexity", cite: "UX:257" },
+  { f: "W14@harvest", hot: { h: "w14.attest", l: "Attest assessment" }, st: "Actions & Harvest", ev: "actions and the reporting period close the form; attesting records the starting assessment", cite: "UX:257", skipTargetReason: "the starting-record walk lands on the readiness checklist its attestation satisfies; the Assess stage remains the flow's canonical exit" },
+  { f: "W7@preflight-complete", hot: null, st: "Readiness · starting record satisfied", ev: "the qualifying starting assessment completes the pool's readiness checklist beside the charter and provider cap", cite: "UX:298", br: [{ l: "Mark the pool ready and open the season", to: "sb9a:2" }] },
 ]},
 { id: "sb23", n: 23, title: "Register an existing garden settlement account", desc: "The settlement steward registers an already-deployed Celo Safe, which is what opens the garden's disbursement queue.", persona: "Settlement steward", scen: "S8 · account setup", reviewVisible: true, reviewGroup: "admin", chapter: "settlement", roles: ["steward"], steps: [
   { f: "W21@unregistered", hot: { h: "w21.setup", l: "Register existing account" }, st: "Unregistered", ev: "the empty settlement section leads with the one available next action", cite: "SS:169" },
@@ -492,26 +524,26 @@ export const SBS: SB[] = [
   { f: "W21@batch-cancelled", hot: null, st: "Cancelled from Queued", ev: "the result preserves the two-member snapshot and recorded reason", cite: "SS §3.1.3" },
 ]},
 { id: "sb32", n: 32, title: "Wind down a season while its pool stays paused", desc: "The close wizard runs through to composted without resuming participation — plus the cancel variant from the same paused season.", persona: "Steward (David)", scen: "S5 · paused wind-down", reviewVisible: true, reviewGroup: "admin", chapter: "season", roles: ["steward"], steps: [
-  { f: "W7@paused", hot: { h: "w7.close-season-paused", l: "Close season" }, alts: [{ h: "w7.cancel-cycle-paused", l: "or cancel with a reason", to: "sb32:6" }], st: "Pool Paused · cycle Reviewing", ev: "opens the close wizard without resuming participation or reconciling before review", cite: "CS:111,128" },
+  { f: "W7@paused", hot: { h: "w7.close-season-paused", l: "Close Season…" }, st: "Pool Paused · cycle Reviewing", ev: "opens the close wizard without resuming participation or reconciling before review; the cancel ending waits inside it", cite: "CS:111,128" },
   { f: "W26@paused-review", hot: { h: "w26.paused-continue-shares", l: "Close cycle and continue" }, st: "Pool Paused · terminal set", ev: "closeCycle locks the exact bundle as Reconciled while the pool remains Paused", cite: "UX:60,75" },
   { f: "W26@paused-shares", hot: { h: "w26.paused-continue-certificate", l: "Continue to certificate" }, st: "Pool Paused · cycle Reconciled", ev: "the locked six-role allocation is read without reopening participation", cite: "UX:75" },
   { f: "W26@paused-certificate", hot: { h: "w26.paused-mint", l: "Mint impact certificate" }, st: "Pool Paused · cycle Reconciled", ev: "certificate minting uses the closed commitment set and changes no lifecycle state", cite: "CS §9" },
   { f: "W26@paused-rest", hot: { h: "w26.paused-compost", l: "Compost closed cycle" }, st: "Pool Paused · cycle Reconciled", ev: "compostCycle advances only the already-closed cycle to Composted", cite: "CS:128-129" },
   { f: "W7@paused-cycle-composted", hot: null, st: "Pool Paused · cycle Composted", ev: "the result offers only legal pool-level next acts: resume or close", cite: "CS:111-112" },
-  { f: "W7@paused", hot: { h: "w7.cancel-cycle-paused", l: "Cancel season…" }, st: "Variant rewind · Pool Paused · cycle Open", ev: "the cancel variant starts from the same paused open season and does not imply a resume", cite: "CS:130", note: "This variant rewinds to the paused open season shown at the start of the chapter." },
+  { f: "W26@paused-review", hot: { h: "w7.cancel-cycle-paused", l: "Cancel Season Instead…" }, st: "Variant · Pool Paused · cycle Open", ev: "the same close flow offers cancelling as the alternative ending; neither implies a resume", cite: "CS:130" },
   { f: "W7@paused-cancel-cycle-confirm", hot: { h: "w7.cancel-cycle-paused-confirm", l: "Cancel season" }, st: "Pool Paused · reason required", ev: "cancelCycle changes only the cycle and stores the member-visible reason", cite: "CS:130 · UX:77" },
-  { f: "W1@paused-cancelled-cycle", hot: null, surface: "pwa", echo: true, st: "Pool Paused · cycle Cancelled", ev: "members see both truths together: the season was cancelled and the pool remains paused", cite: "UX:60,77" },
+  { f: "W7@paused-cycle-cancelled", hot: null, st: "Pool Paused · cycle Cancelled", ev: "both truths hold together: the season was cancelled and the pool remains paused; members read the reason on their side", cite: "UX:60,77", br: [{ l: "The member's paused-and-cancelled banner", to: "screen:W1@paused-cancelled-cycle" }] },
 ]},
 { id: "sb33", n: 33, title: "Recognize and pay a commitment team", desc: "A group promise is kept: recognition stays as recorded while payment is planned, finalized, and dispatched per contributor.", persona: "Steward (David)", scen: "S1 · group commitment", reviewVisible: true, reviewGroup: "admin", chapter: "recognition", roles: ["steward"], steps: [
-  { f: "W10@fulfilled", hot: { h: "w10.allocate-contributors", l: "Set recognition and payment" }, st: "Fulfilled · payment unplanned", ev: "the group promise is kept — roster frozen, recognition previewed on the member side; the steward opens payment planning without changing the recognition record", cite: "SS group-settlement amendment", br: [{ l: "How the team formed", to: "sb45:0" }] },
+  { f: "W7", hot: { h: "w7.fulfilled-row", l: "Open the kept team promise" }, who: "David", st: "Open", ev: "the kept group promise sits in the pool's list with payment still unplanned — its row opens the detail", cite: "SS group-settlement amendment" },
+  { f: "W10@fulfilled", hot: { h: "w10.allocate-contributors", l: "Set recognition and payment" }, st: "Fulfilled · payment unplanned", ev: "roster frozen, recognition previewed on the member side; the steward opens payment planning without changing the recognition record", cite: "SS group-settlement amendment", br: [{ l: "How the team formed", to: "sb45:0" }] },
   { f: "W10@contributor-allocation", hot: { h: "w10.save-contributor-allocation", l: "Create draft" }, st: "Draft payout plan", ev: "createCommitmentPayoutPlan persists the stable canonical default, then opens the separate recoverable amount edit", cite: "SS §3" },
   { f: "W21@payout-plan-edit", hot: { h: "w21.edit-save", l: "Save complete draft" }, st: "Draft parent plan · edited", ev: "setContributorPayouts publishes a replacement Draft snapshot against the stable parent pointer", cite: "SS §3" },
   { f: "W21@payout-plan", hot: { h: "w21.finalize-plan", l: "Finalize payout plan" }, st: "Draft parent plan", ev: "the steward verifies recognition/payment hashes and retained-plus-payout conservation before freezing the plan", cite: "SS §3" },
   { f: "W21@payout-finalized", hot: { h: "w21.prepare-payout", l: "Prepare one child payout" }, st: "Finalized parent plan · no children", ev: "the steward materializes one immutable queued child from a frozen non-zero row; finalization itself created none", cite: "SS §3" },
   { f: "W21@payout-prepared", hot: { h: "w21.dispatch-plan", l: "Dispatch one child payout" }, st: "Prepared child · Queued", ev: "the garden Safe can now dispatch this contributor's separate child delivery while the parent pointer remains stable", cite: "SS §3" },
   { f: "W22@individual-dispatched", hot: null, st: "Individual · dispatched", ev: "the contributor command carries only the finalized child facts and retries through retryCommand; the parent pointer remains stable", cite: "SS §3" },
-  { f: "W21@payout-partial", hot: null, st: "Partial · 2 of 3 arrived", ev: "one failed child never reverses fulfillment, recognition, or successful contributor receipts", cite: "SS §3" },
-  { f: "W23@contributor-receipt", hot: null, surface: "pwa", echo: true, st: "Contributor payout arrived", ev: "the member receipt distinguishes Hypercert recognition from the garden-funded payment", cite: "UX Appendix C" },
+  { f: "W21@payout-partial", hot: null, st: "Partial · 2 of 3 arrived", ev: "one failed child never reverses fulfillment, recognition, or successful contributor receipts", cite: "SS §3", br: [{ l: "The contributor's receipt on their side", to: "screen:W23@contributor-receipt" }] },
 ]},
 // The team's own story, split from sb33 (2026-08-10): joining an open team,
 // the freeze, and the recognition preview — all on the member surface.
@@ -577,7 +609,8 @@ export const SB_ROUTE_ALIASES: Record<string, string> = {
   // route wins over a redirect. Old links land one branch-click from the same
   // destination (the end-beats link to sb55/sb56).
   // D3 — "Offer a service and prove it with evidence": the proving half moved whole.
-  "sb29/6": "sb56/2",
+  // "sb29/6" retired 2026-08-16: the service walk gained its details step, so
+  // scene 6 is live and a real route must win over a redirect.
   "sb29/7": "sb56/3",
   "sb29/8": "sb56/4",
   "sb29/9": "sb56/5",
@@ -586,6 +619,19 @@ export const SB_ROUTE_ALIASES: Record<string, string> = {
   // D3 round 2 — the member's "not yet" no longer replays the stewards' restore;
   // that moment is sb47's own echo of it.
   "sb5/4": "sb47/1",
-  // D3 round 2 — attaching an assessment became the steward's own flow.
-  "sb50/2": "sb57/1",
+  // D3 round 2's "sb50/2" → "sb57/1" retired 2026-08-16: the full assessment
+  // walk regrew that scene index, and a real route wins over a redirect (the
+  // end-beat links to sb57).
+  // 2026-08-16 act-seam split: the old 17-scene sb9c's pool coda moved whole
+  // into sb9d, and its cancel variant into sb9e (old step 9 merged into 8).
+  "sb9c/7": "sb9d/0",
+  "sb9c/8": "sb9d/1",
+  "sb9c/9": "sb9d/2",
+  "sb9c/10": "sb9d/2",
+  "sb9c/11": "sb9d/3",
+  "sb9c/12": "sb9d/4",
+  "sb9c/13": "sb9d/5",
+  "sb9c/14": "sb9e/1",
+  "sb9c/15": "sb9e/2",
+  "sb9c/16": "sb9e/2",
 };
