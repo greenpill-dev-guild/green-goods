@@ -17,7 +17,24 @@ import {
 import { handleSeriesEvent } from "./commitment-pool-series";
 import { handleEvidence, handleWorkEvent } from "./commitment-pool-work";
 
-async function routeEvent(event: RuntimeEvent, context: PoolingContext): Promise<void> {
+const MODULE_EVENT_NAMES = new Set<string>(COMMITMENT_POOLING_EVENT_NAMES);
+const REGISTRY_EVENT_NAMES = new Set<string>(COMMITMENT_REGISTRY_EVENT_NAMES);
+const AUDIT_ONLY_MODULE_EVENTS = new Set([
+  "ModuleDependencyUpdated",
+  "ModuleSchemaUIDUpdated",
+  "ModulePauseStatusChanged",
+]);
+
+export async function routeEvent(event: RuntimeEvent, context: PoolingContext): Promise<void> {
+  const registeredEvents =
+    event.contractName === "CommitmentPoolingModule"
+      ? MODULE_EVENT_NAMES
+      : event.contractName === "CommitmentRegistry"
+        ? REGISTRY_EVENT_NAMES
+        : undefined;
+  if (!registeredEvents?.has(event.eventName)) {
+    throw new Error(`Unrouted commitment pooling event: ${event.contractName}.${event.eventName}`);
+  }
   if (!(await putAudit(event, context))) return;
   if (event.contractName === "CommitmentRegistry") {
     await handleRegistryEvent(event, context);
@@ -94,7 +111,10 @@ async function routeEvent(event: RuntimeEvent, context: PoolingContext): Promise
     ].includes(event.eventName)
   ) {
     await handleMiscCommitment(event, context);
+    return;
   }
+  if (AUDIT_ONLY_MODULE_EVENTS.has(event.eventName)) return;
+  throw new Error(`Unrouted commitment pooling event: ${event.contractName}.${event.eventName}`);
 }
 
 for (const eventName of COMMITMENT_POOLING_EVENT_NAMES) {

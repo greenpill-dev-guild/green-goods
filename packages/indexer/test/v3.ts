@@ -100,6 +100,12 @@ type MutableChainConfig = {
 };
 
 const nextBlockByIndexer = new WeakMap<TestIndexer, Map<SupportedChainId, number>>();
+const executedEvents = new Set<string>();
+const executedEventsByIndexer = new WeakMap<TestIndexer, Set<string>>();
+
+export function executedMockEventNames(mockDb?: TestIndexer): ReadonlySet<string> {
+  return new Set(mockDb ? (executedEventsByIndexer.get(mockDb) ?? []) : executedEvents);
+}
 
 function normalizeChainId(chainId: number): SupportedChainId {
   if (chainId !== 42161 && chainId !== 11155111 && chainId !== 42220) {
@@ -172,6 +178,16 @@ export async function processEvents(
   };
 
   await mockDb.process(processConfig);
+  let indexerEvents = executedEventsByIndexer.get(mockDb);
+  if (!indexerEvents) {
+    indexerEvents = new Set();
+    executedEventsByIndexer.set(mockDb, indexerEvents);
+  }
+  for (const event of events) {
+    const eventName = `${event.contract}.${event.event}`;
+    executedEvents.add(eventName);
+    indexerEvents.add(eventName);
+  }
   return mockDb;
 }
 

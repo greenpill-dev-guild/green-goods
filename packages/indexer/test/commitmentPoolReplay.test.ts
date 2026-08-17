@@ -1,12 +1,8 @@
 import assert from "node:assert/strict";
 
-import {
-  Addresses,
-  CommitmentPoolingModule,
-  CommitmentRegistry,
-  createTestIndexer,
-  processEvents,
-} from "./v3";
+import { routeEvent } from "../src/handlers/commitmentPool";
+import type { PoolingContext, RuntimeEvent } from "../src/handlers/commitment-pool-runtime";
+import { Addresses, CommitmentPoolingModule, CommitmentRegistry, createTestIndexer } from "./v3";
 
 const CHAIN_ID = 42161;
 const START_BLOCK = 433_715_000;
@@ -110,6 +106,14 @@ function goldenLifecycleEvents() {
       payerGarden: address(1),
       mockEventData: eventData(7),
     }),
+    CommitmentRegistry.ClassRegistered.createMockEvent({
+      classId: 31n,
+      poolId: 7n,
+      cycleId: 9n,
+      unitLabel: "hours",
+      quota: 2n,
+      mockEventData: eventData(8),
+    }),
     CommitmentRegistry.UnitsCommitted.createMockEvent({
       classId: 31n,
       poolId: 7n,
@@ -118,7 +122,7 @@ function goldenLifecycleEvents() {
       unitLabel: "hours",
       units: 2n,
       totalCommitted: 2n,
-      mockEventData: eventData(8),
+      mockEventData: eventData(9),
     }),
     CommitmentPoolingModule.ConsiderationDeclared.createMockEvent({
       commitmentId: 21n,
@@ -126,33 +130,33 @@ function goldenLifecycleEvents() {
       source: address(1),
       token: address(8),
       amount: 50n,
-      mockEventData: eventData(9),
+      mockEventData: eventData(10),
     }),
     CommitmentPoolingModule.ValueDeclared.createMockEvent({
       commitmentId: 21n,
       declaredUnitValue: 30n,
       declaredValueBasis: "G$/hour",
-      mockEventData: eventData(10),
+      mockEventData: eventData(11),
     }),
     CommitmentPoolingModule.ConfirmerRuleSet.createMockEvent({
       commitmentId: 21n,
       confirmers: [address(3)],
       threshold: 1n,
       protocolFallbackEnabled: false,
-      mockEventData: eventData(11),
+      mockEventData: eventData(12),
     }),
     CommitmentPoolingModule.ContributorAdded.createMockEvent({
       commitmentId: 21n,
       contributor: address(2),
       addedBy: address(2),
-      mockEventData: eventData(12),
+      mockEventData: eventData(13),
     }),
     CommitmentPoolingModule.ContributorRequirementAssigned.createMockEvent({
       commitmentId: 21n,
       contributor: address(2),
       requirementIndex: 0n,
       assigned: true,
-      mockEventData: eventData(13),
+      mockEventData: eventData(14),
     }),
     CommitmentPoolingModule.WorkLinked.createMockEvent({
       commitmentId: 21n,
@@ -161,7 +165,7 @@ function goldenLifecycleEvents() {
       requirementIndex: 0n,
       linker: address(2),
       operationKey: hash(805),
-      mockEventData: eventData(14),
+      mockEventData: eventData(15),
     }),
     CommitmentPoolingModule.ApprovedWorkCounted.createMockEvent({
       commitmentId: 21n,
@@ -173,25 +177,25 @@ function goldenLifecycleEvents() {
       approvedWorkCount: 2n,
       approvedUnits: 2n,
       newlyApprovedUnits: 2n,
-      mockEventData: eventData(15),
+      mockEventData: eventData(16),
     }),
     CommitmentPoolingModule.EvidenceAttached.createMockEvent({
       commitmentId: 21n,
       cid: "ipfs://golden-evidence",
       attacher: address(2),
       creditedContributors: [address(2)],
-      mockEventData: eventData(16),
+      mockEventData: eventData(17),
     }),
     CommitmentPoolingModule.AssessmentAttached.createMockEvent({
       commitmentId: 21n,
       assessmentUID: hash(807),
       attacher: address(4),
-      mockEventData: eventData(17),
+      mockEventData: eventData(18),
     }),
     CommitmentPoolingModule.ContributorRosterFrozen.createMockEvent({
       commitmentId: 21n,
       contributorCount: 1n,
-      mockEventData: eventData(18),
+      mockEventData: eventData(19),
     }),
     CommitmentPoolingModule.ClaimRequested.createMockEvent({
       commitmentId: 21n,
@@ -200,7 +204,7 @@ function goldenLifecycleEvents() {
       kind: 1n,
       gardenContext: address(4),
       requestedAt: 123n,
-      mockEventData: eventData(19),
+      mockEventData: eventData(20),
     }),
     CommitmentPoolingModule.CommitmentAccepted.createMockEvent({
       commitmentId: 21n,
@@ -211,27 +215,27 @@ function goldenLifecycleEvents() {
       leadProvider: address(2),
       providerGarden: address(1),
       payerGarden: address(4),
-      mockEventData: eventData(20),
+      mockEventData: eventData(21),
     }),
     CommitmentPoolingModule.CommitmentReadyForConfirmation.createMockEvent({
       commitmentId: 21n,
       overridden: false,
       reason: "requirements-complete",
-      mockEventData: eventData(21),
+      mockEventData: eventData(22),
     }),
     CommitmentPoolingModule.ConfirmationRecorded.createMockEvent({
       commitmentId: 21n,
       confirmer: address(3),
       confirmationCount: 1n,
       threshold: 1n,
-      mockEventData: eventData(22),
+      mockEventData: eventData(23),
     }),
     CommitmentPoolingModule.CommitmentFulfilled.createMockEvent({
       commitmentId: 21n,
       confirmer: address(3),
       confirmationPath: 0n,
       reason: "confirmed",
-      mockEventData: eventData(23),
+      mockEventData: eventData(24),
     }),
     CommitmentRegistry.UnitsFulfilled.createMockEvent({
       classId: 31n,
@@ -241,30 +245,30 @@ function goldenLifecycleEvents() {
       unitLabel: "hours",
       units: 2n,
       totalFulfilled: 2n,
-      mockEventData: eventData(24),
+      mockEventData: eventData(25),
     }),
     CommitmentPoolingModule.CycleClosed.createMockEvent({
       cycleId: 9n,
       poolId: 7n,
-      mockEventData: eventData(25),
+      mockEventData: eventData(26),
     }),
     CommitmentPoolingModule.CycleComposted.createMockEvent({
       cycleId: 9n,
       poolId: 7n,
-      mockEventData: eventData(26),
+      mockEventData: eventData(27),
     }),
     CommitmentPoolingModule.PoolClosed.createMockEvent({
       poolId: 7n,
-      mockEventData: eventData(27),
+      mockEventData: eventData(28),
     }),
     CommitmentPoolingModule.PoolComposted.createMockEvent({
       poolId: 7n,
-      mockEventData: eventData(28),
+      mockEventData: eventData(29),
     }),
   ];
 }
 
-const POOLING_ENTITY_STORES = [
+const POPULATED_CONVERGENCE_STORES = [
   "CommitmentPool",
   "CommitmentCycle",
   "CommitmentCycleCommitmentIndex",
@@ -280,39 +284,58 @@ const POOLING_ENTITY_STORES = [
   "CommitmentWorkAttribution",
   "CommitmentEvidenceAttribution",
   "CommitmentClaimRequest",
-  "CommitmentExchange",
   "PoolMemberHistory",
-  "CommitmentFunding",
-  "HypercertCommitmentContributorAllocation",
   "CommitmentContributorIndex",
   "CommitmentContributorRequirementIndex",
   "CommitmentEvidenceAttributionIndex",
   "CommitmentClaimRequestIndex",
   "NeedCommitmentIndex",
-  "CommitmentCounterIndex",
-  "CommitmentFundingIndex",
   "CommitmentEvent",
-  "CommitmentPendingLifecycleProjection",
-  "CommitmentPendingLifecycleProjectionIndex",
 ] as const;
 
 async function poolingSnapshot(
   indexer: ReturnType<typeof createTestIndexer>
 ): Promise<Record<string, unknown[]>> {
   const snapshot: Record<string, unknown[]> = {};
-  for (const entityStore of POOLING_ENTITY_STORES) {
-    snapshot[entityStore] = (await indexer[entityStore].getAll()).sort((a, b) =>
-      a.id.localeCompare(b.id)
-    );
+  for (const entityStore of POPULATED_CONVERGENCE_STORES) {
+    const rows = (await indexer[entityStore].getAll()).sort((a, b) => a.id.localeCompare(b.id));
+    assert.ok(rows.length > 0, `${entityStore} must be populated by the golden lifecycle`);
+    snapshot[entityStore] = rows;
   }
   return snapshot;
 }
 
+type GoldenEvent = ReturnType<typeof goldenLifecycleEvents>[number];
+
+function runtimeEvent(event: GoldenEvent): RuntimeEvent {
+  return {
+    ...event,
+    contractName: event.contract,
+    eventName: event.event,
+  } as unknown as RuntimeEvent;
+}
+
+async function processInDeliveryOrder(events: readonly GoldenEvent[]) {
+  const indexer = createTestIndexer();
+  for (const event of events) {
+    await routeEvent(runtimeEvent(event), indexer as unknown as PoolingContext);
+  }
+  return indexer;
+}
+
 describe("Commitment Pooling golden lifecycle replay", () => {
-  it("converges to the same complete read model in canonical and reverse delivery order", async () => {
+  it("converges populated consumer projections in canonical and reverse delivery order", async () => {
     const events = goldenLifecycleEvents();
-    const canonical = await processEvents(createTestIndexer(), events);
-    const reversed = await processEvents(createTestIndexer(), [...events].reverse());
+    const canonical = await processInDeliveryOrder(events);
+    const reversed = await processInDeliveryOrder([...events].reverse());
+
+    assert.ok(
+      (await reversed.CommitmentPendingLifecycleProjection.getAll()).some(
+        (projection) => projection.applied
+      ),
+      "reverse delivery must exercise the pending lifecycle buffer"
+    );
+    assert.equal((await canonical.CommitmentPendingLifecycleProjection.getAll()).length, 0);
 
     const canonicalSnapshot = await poolingSnapshot(canonical);
     const reversedSnapshot = await poolingSnapshot(reversed);
