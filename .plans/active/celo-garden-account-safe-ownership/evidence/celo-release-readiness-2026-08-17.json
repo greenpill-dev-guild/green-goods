@@ -1,0 +1,185 @@
+{
+  "schemaVersion": 1,
+  "kind": "CELO_GARDEN_ACCOUNT_RELEASE_READINESS",
+  "recordedAt": "2026-08-17T00:55:00.000Z",
+  "recordedBy": "claude",
+  "worktreeCommit": "4d45703a16009f150c17249360e37c86e685ace0",
+  "worktreeBranch": "claude/garden-celo-deployment-0d18ef",
+  "releaseSourceCommit": "fab5daef2eebbe83c1d444f6c148c682e122f1c3",
+  "environment": {
+    "note": "The gates recorded as environment-blocked on 2026-08-15 were blocked by RPC configuration, not by the implementation.",
+    "foundry": "forge 1.7.1 (4072e48705af9d93e3c0f6e29e93b5e9a40caed8)",
+    "bun": "1.3.10",
+    "rootEnvRpcState": "ARBITRUM_RPC_URL and CELO_RPC_URL are empty in the root .env, so repo scripts fall back to the public non-archive endpoints in script/utils/run-garden-account-release.ts",
+    "archiveProbe": {
+      "arbitrumPublic": "https://arb1.arbitrum.io/rpc — FAIL at block 494723355 (metadata is not found)",
+      "arbitrumAlchemy": "arb-mainnet.g.alchemy.com — OK at block 494723355",
+      "celoPublic": "https://forno.celo.org — FAIL at block 74938820 (historical state is not available)",
+      "celoAlchemy": "celo-mainnet.g.alchemy.com — OK at block 74938820"
+    },
+    "resolution": "Runs used Alchemy archive endpoints supplied per-process from the existing ALCHEMY_API_KEY. No .env file was modified."
+  },
+  "gatesClosed": {
+    "pinnedForkProof": {
+      "command": "bun run test:fork:garden-account-release",
+      "test": "test/fork/CeloGardenAccountRelease.t.sol:CeloGardenAccountReleaseForkTest",
+      "case": "testFork_exactDependenciesAllAccountsAndNestedSafeThresholds()",
+      "result": "PASS — 1 passed, 0 failed, 0 skipped",
+      "gasUsed": 22192101,
+      "measuredDeployAndInitializeGas": 15133908,
+      "celoBlockGasLimit": 30000000,
+      "note": "Covers exact dependency and implementation deployment, all 18 account proxies, runtime equality, and nested EIP-1271 Safe threshold execution on pinned forks."
+    },
+    "operatorScriptSuite": {
+      "command": "bun run --cwd packages/contracts test:script",
+      "result": "PASS — 19 test files, 211 tests, 0 failed",
+      "note": "The three release-operator git-spawn fixtures that were sandbox-blocked on 2026-08-15 now execute and pass."
+    },
+    "celoGardenAccountPlan": {
+      "command": "bun script/deploy/celo-garden-accounts.ts plan",
+      "result": "blockers: [] (previously stopped on the raw CREATE2 bundle and the production coordinator artifact)",
+      "planPath": "packages/contracts/.generated/runtime/42220-celo-garden-accounts.json",
+      "coordinator": "0x2Da043fB1A07764aF759F6C583c0aCee3e033E09",
+      "coordinatorSalt": "0x3e9f6d6308a2f184b9e883e039c8fff13c5764754d1d1c04ba6e208895c82234",
+      "coordinatorCreationCodeHash": "0x44fecdc124cd9ba22efc8ed3fb9ee4a1fc7cb6352084274ac4d4ec3af393bf03",
+      "coordinatorRuntimeCodeHash": "0xaea91dd0eb61b72c830ee4db9d6257891880b6c4e3e2ba02e29f45e1d269064e",
+      "transactions": [
+        {
+          "kind": "DEPLOY_COORDINATOR",
+          "to": "0x4e59b44847b379578588920cA78FbF26c0B4956C",
+          "value": "0"
+        },
+        {
+          "kind": "ATOMIC_DEPLOY_AND_INITIALIZE",
+          "to": "0x2Da043fB1A07764aF759F6C583c0aCee3e033E09",
+          "value": "0"
+        }
+      ],
+      "authorityEnabled": false
+    }
+  },
+  "openBlocker": {
+    "id": "PRD-733",
+    "summary": "The Green Goods protocol recovery Safe live state does not match its frozen manifest configuration and violates the hard threshold floor.",
+    "safe": "0x1B9Ac97Ea62f69521A14cbe6F45eb24aD6612C19",
+    "observedAtCeloBlock": 75026626,
+    "planBlockerText": "Green Goods recovery Safe: Recovery owner is not the reviewed module-free Safe v1.4.1 configuration",
+    "live": {
+      "singleton": "0x29fcB43b46531BcA003ddC8FCB67FFE91900C762",
+      "version": "1.4.1",
+      "threshold": 1,
+      "ownerCount": 4,
+      "owners": [
+        "0xa9d20b435A85fAAa002f32d66F7D21564130E9cf",
+        "0x2aa64E6d80390F5C017F0313cB908051BE2FD35e",
+        "0x5c79d252F458b3720f7f230f8490fd1eE81d32FB",
+        "0x6166E1964447E0959bC7c8d543DB3ab82dB65044"
+      ],
+      "modules": 0,
+      "guard": "0x0000000000000000000000000000000000000000",
+      "fallbackHandler": "0xfd0732Dc9E303f09fCEf3a7388Ad10A83459Ec99",
+      "nonce": 3
+    },
+    "expectedFromManifest": {
+      "source": "packages/contracts/config/commitment-pooling-release.json → ownership.protocolSafeConfiguration",
+      "threshold": "2",
+      "ownerDecisionDate": "2026-08-11",
+      "ownerCount": 6,
+      "ownersMissingOnChain": [
+        "0xbaD8bcc9Eb5749829cF12189fDD5c1230D6C85e8",
+        "0xAcD59e854adf632d2322404198624F757C868C97"
+      ],
+      "ownersPresentButNotInManifest": []
+    },
+    "failingConditions": [
+      "threshold >= 2 (assertRecoverySafeConfiguration, garden-safe-owners.ts:469) — live threshold is 1",
+      "sameOwnerSet against the frozen manifest owner set (assertExpectedRecoverySafe, garden-safe-owners.ts:489) — live has 4 of the 6 manifest owners"
+    ],
+    "passingConditions": [
+      "code present",
+      "singleton == Safe v1.4.1",
+      "VERSION() == 1.4.1",
+      "owners.length >= 3",
+      "owners unique",
+      "modules.length == 0",
+      "guard == zero",
+      "fallbackHandler == v1.4.1 compatibility handler"
+    ],
+    "resolutionRequiresHuman": true,
+    "humanDecision2026_08_17": "Afo accepted the live 1-of-4 configuration for this release and directed that it is not a blocker. The accepted configuration is recorded in code as GREEN_GOODS_ACCEPTED_RECOVERY_CONFIGURATION in script/deploy/garden-safe-owners.ts, alongside the existing DEV_GUILD_REVIEWED_OWNERS constant, and the final Garden Safe plan now returns zero blockers.",
+    "manifestLeftUnmodified": "config/commitment-pooling-release.json still freezes this Safe as 2-of-6. Editing it was attempted and reverted: its hash is the release lock for commitment-pooling-settlement-credit-v1, and the Arbitrum pool-backfill lane has already broadcast all 19 of its boundaries bound to that hash. requireCompleteCheckpoint compares completed-lane checkpoints against the live manifest lock, so changing the manifest would retroactively invalidate mined work and stop the release operator from starting.",
+    "acceptedRisk": "A single one of the four Green Goods signers reaches the Garden Safe threshold of two when combined with any other owner. Every other reviewed condition is still asserted.",
+    "note": "Both resolutions require a live Safe transaction on 0x1B9A… that only its owners can execute. Because the Garden Safe initializer binds only the three owner addresses (garden-safe-owners.ts:300-319), changing this Safe's internal threshold or owner set does not move any of the 18 predicted Garden Safe addresses."
+  },
+  "devGuildRecoverySafe": {
+    "safe": "0x49fa954B6C2Cd14B4b3604EF1Cc17cED20a9E42C",
+    "observedAtCeloBlock": 75026626,
+    "verdict": "PASS — all reviewed conditions satisfied",
+    "singleton": "0x29fcB43b46531BcA003ddC8FCB67FFE91900C762",
+    "version": "1.4.1",
+    "threshold": 2,
+    "owners": [
+      "0x04D60647836bcA09c37B379550038BdaaFD82503",
+      "0x2aa64E6d80390F5C017F0313cB908051BE2FD35e",
+      "0xD2838aCb302F40E06f3FDC05f5b357034113262E"
+    ],
+    "modules": 0,
+    "guard": "0x0000000000000000000000000000000000000000",
+    "fallbackHandler": "0xfd0732Dc9E303f09fCEf3a7388Ad10A83459Ec99",
+    "nonce": 1
+  },
+  "finalGardenSafePlan": {
+    "command": "bun script/deploy/garden-safe-owners.ts plan",
+    "planPath": "packages/contracts/.generated/runtime/42220-garden-safe-final.json",
+    "entries": 18,
+    "blockers": 0,
+    "celoFinalizedBlock": 75026535,
+    "expectedSenderNonce": 118,
+    "predictedSafesWithCode": 0,
+    "legacyBootstrapSafesWithCode": 0,
+    "note": "Green after the accepted 1-of-4 recovery configuration was recorded. All 18 boundaries are computed and no predicted Safe or legacy 1-of-2 prediction has code."
+  },
+  "relayPlan": {
+    "command": "bun script/deploy/garden-account-relay.ts plan",
+    "result": "STOPPED — owner() returned empty data because the source router is not deployed",
+    "note": "The relay is a later lane. It is not in RELEASE_OPERATOR_COMMANDS and is outside this broadcast; it belongs to PRD-819."
+  },
+  "singlePasswordCeremonyStages": {
+    "problem": "The release operator closed its credential session after exactly one boundary, so the 20-boundary broadcast required 20 separate keystore password entries.",
+    "change": "Added a --stage mode to script/release-operator.ts plus two package scripts: settlement:garden-accounts:release:celo and settlement:garden-safes:release:celo.",
+    "preservedProperties": [
+      "assertInteractiveSessionStart runs before and after every boundary, so concurrent checkout drift still aborts the run",
+      "the first non-zero wrapper exit stops the stage",
+      "the password never leaves the 0600 lease file and the lease is still shredded on exit, SIGINT, and SIGTERM",
+      "no private key, RPC, network, sender, or raw Forge override is accepted",
+      "the Garden Safe stage resumes from its checkpoint instead of replaying a mined boundary"
+    ],
+    "accountsReceiptBinding": "Step 1 stdout is captured and its verified transaction hash is bound to step 2 automatically, replacing a manual hash copy between two password-gated sessions."
+  },
+  "testScopeGapFixed": {
+    "problem": "packages/contracts test:script ran vitest with an unquoted script/**/*.test.ts glob. sh expands ** as a single level, so the two top-level files were silently excluded from the gate.",
+    "excludedFiles": ["script/release-operator.test.ts", "script/release-verify.test.ts"],
+    "fix": "test:script now runs vitest with --dir script.",
+    "before": "19 files, 212 tests",
+    "after": "21 files, 225 tests, all passing",
+    "note": "The 13 newly included tests all pass, so no latent failure was being hidden — the release credential harness and release verifier simply had no gate coverage."
+  },
+  "broadcastPosition": {
+    "deploymentSender": "0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6",
+    "celoBalance": "29.943742253099428009 CELO",
+    "senderNonce": 118,
+    "coordinatorCodePresent": false,
+    "celoGasPriceWei": "200001000000",
+    "note": "Funding is sufficient for the two account transactions and the 18 Safe deployments at the observed gas price."
+  },
+  "notAuthorizedByThisRecord": [
+    "deployment",
+    "broadcast",
+    "Safe creation",
+    "Safe transaction execution",
+    "Guardian trust mutation",
+    "Zodiac role installation",
+    "settlement authority activation",
+    "value movement"
+  ]
+}

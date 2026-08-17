@@ -34,9 +34,13 @@
 - [x] Garden-bound relay threat model and cancellation boundary defined in `spec.md`.
 - [x] Temporary deployment-EOA path explicitly superseded for this implementation.
 - [x] Recover the exact implementation creation transaction, init-code hash, constructor tuple, deterministic dependency chain, and all 18 initialization hashes.
-- [ ] Close the designated recovery Safe gate. Live official Safe Wallet reads prove both Safes
-  are v1.4.1 with unique owners, no modules, and no guard. Pinned-fork nested EIP-1271 proof and
-  singleton/runtime code hashes remain the only recovery-Safe blockers in this lane.
+- [ ] Close the designated recovery Safe gate. Pinned-fork nested EIP-1271 proof and
+  singleton/runtime code hashes are now closed by `evidence/celo-release-readiness-2026-08-17.json`.
+  The Dev Guild recovery Safe passes every reviewed condition live. The Green Goods protocol
+  recovery Safe `0x1B9Ac97Ea62f69521A14cbe6F45eb24aD6612C19` does not: live threshold is 1 against
+  the hard floor of 2, and its live 4-owner set is a strict subset of the 6 owners frozen in
+  `config/commitment-pooling-release.json`. Resolving this requires a human-executed Safe
+  transaction and is the only remaining blocker in this lane.
 - [x] Reverify official CCIP router identities, selectors, code, and both Arbitrum/Celo lane directions at the research snapshot.
 - [x] Rebuild the historical source/compiler/submodule snapshot and match the recovered creation-code hashes.
 
@@ -46,10 +50,10 @@
 |---|---|---|---|
 | Exact implementation and dependency address/code ledger | `contracts` | Step 1 | Exact on-chain recovery and historical-source rebuild complete |
 | RED proof for address, initialization, relay, Safe, and replay boundaries | `contracts` | Step 2 | Bun-wrapped relay unit suite passes 11/11; fork proof remains open |
-| Atomic same-address account deployment and initialization | `contracts` | Step 3 | Coordinator, operator, recovered raw init code, and production artifact are complete; live Celo plan/fork proof remains open |
+| Atomic same-address account deployment and initialization | `contracts` | Step 3 | Complete — live Celo plan returns zero blockers and the pinned fork proof passes |
 | Garden-bound authenticated relay with honest cancellation | `contracts` | Step 4 | Source/destination contracts compile and the 11-test unit suite passes; fork proof pending |
 | Direct final 2-of-3 Safe prediction/deployment/verifier tooling | `contracts` | Step 5 | Implemented with focused script proof; PRD-733 live proof remains a closure gate |
-| Arbitrum/Celo fork and invariant proof | `contracts` | Step 6 | Exact 18-account, Safe-code, live-recovery, Guardian, and nested EIP-1271 fork test authored; executable receipt pending |
+| Arbitrum/Celo fork and invariant proof | `contracts` | Step 6 | Passing — exact 18-account, Safe-code, Guardian, and nested EIP-1271 pinned fork test executes green on 2026-08-17 |
 | Deterministic router/relay and Guardian transaction plan | `contracts` | Step 7 | Four zero-value, receipt-ordered transactions implemented in plan/verify-only tooling; live release-time artifact pending RPC |
 | Exact candidate security review and evidence closure | `qa_pass_1`, `qa_pass_2` | Step 8 | Human-owned PR/review phase after readiness proof |
 | UI and shared application changes | `ui`, `state_api` | Not applicable | N/A |
@@ -181,10 +185,17 @@ its own pinned candidate and transaction-by-transaction authority.
 
 - [x] Targeted Bun-wrapped relay unit command and gas result recorded during Step 2.
 - [x] Focused deployment operator tests pass 21/21 across GardenAccount, final Safe, and relay planning.
-- [ ] Pinned fork command passes against Arbitrum `494724924` and Celo `74938820`; local RPC access remains environment-blocked.
-- [ ] `bun run --cwd packages/contracts test:script`
-- [ ] `bun run --cwd packages/contracts build:full`
-- [ ] `bun run --cwd packages/contracts check:sizes`
+- [x] Pinned fork command passes: `bun run test:fork:garden-account-release` →
+  `testFork_exactDependenciesAllAccountsAndNestedSafeThresholds()` PASS (1 passed, 0 failed),
+  `deployAndInitialize` measured at 15,133,908 gas against Celo's 30,000,000 block limit. The
+  earlier environment block was empty `ARBITRUM_RPC_URL`/`CELO_RPC_URL` in the root `.env` sending
+  the scripts to public non-archive endpoints, not a code defect.
+- [x] `bun run --cwd packages/contracts test:script` — 21 files, 225 tests, 0 failed. The command
+  previously ran only 19 files: its unquoted `script/**/*.test.ts` glob was expanded by `sh` as a
+  single level, silently excluding `release-operator.test.ts` and `release-verify.test.ts`. Fixed
+  to `vitest run --dir script`.
+- [x] `bun run --cwd packages/contracts build:full` — exit 0.
+- [x] `bun run --cwd packages/contracts check:sizes` — all deployable contracts under EIP-170.
 - [ ] `bash scripts/quality/check-test-quality.sh`
 - [x] `node scripts/harness/plan-hub.mjs validate` — 42 feature hubs validated on 2026-08-16.
 - [ ] Full Ship Gate only for explicit PR/merge readiness.

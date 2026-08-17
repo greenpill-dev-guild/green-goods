@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p1",
     "created_at": "2026-08-15T06:08:14.457Z",
-    "updated_at": "2026-08-16T01:09:00.000Z"
+    "updated_at": "2026-08-17T00:55:00.000Z"
   },
   "links": {
     "brief": "brief.md",
@@ -32,7 +32,8 @@
     "recovery_safes_live": "evidence/celo-recovery-safes-live-2026-08-15.json",
     "relay_unit_gas": "evidence/relay-unit-gas-2026-08-15.json",
     "celo_post_safe_upgrade_block": "evidence/celo-post-safe-upgrade-block-2026-08-15.json",
-    "final_safe_bindings": "evidence/garden-safe-final-bindings-2026-08-15.json"
+    "final_safe_bindings": "evidence/garden-safe-final-bindings-2026-08-15.json",
+    "release_readiness": "evidence/celo-release-readiness-2026-08-17.json"
   },
   "linear": {
     "parentIssue": "PRD-821",
@@ -61,7 +62,9 @@
     "The exact implementation deployment and all 18 account initializations must share one coordinator transaction so the permissionless ERC-6551 creation path cannot expose a separate initialization window.",
     "Historical source, compiler, and tokenbound submodule rebuild proof is closed: repository commit 175469f2fc699712a9fa8016d6aa25390282989d reproduces the exact creation code, constructor arguments, init code, factory input, and CREATE2 address.",
     "Direct final Safe setup supersedes the temporary deployment-EOA bootstrap for this ownership implementation. No deployment EOA may be a Garden Safe owner.",
-    "Live official Safe Wallet reads show both recovery Safes are v1.4.1+L2 with unique owners, no modules, no guard, and the v1.4.1 compatibility fallback handler. The exact pinned-fork test is authored, but its nested EIP-1271 and singleton/runtime proof still requires an RPC-capable execution environment; this workspace's RPC domains are blocked and its focused compile was stopped after five minutes without output.",
+    "The pinned Arbitrum/Celo fork proof now executes green: testFork_exactDependenciesAllAccountsAndNestedSafeThresholds passes and measures deployAndInitialize at 15,133,908 gas against Celo's 30,000,000 block limit. The earlier environment block was empty ARBITRUM_RPC_URL/CELO_RPC_URL in the root .env sending scripts to public non-archive endpoints, not a code defect.",
+    "The Dev Guild recovery Safe passes every reviewed live condition. The Green Goods protocol recovery Safe 0x1B9Ac97Ea62f69521A14cbe6F45eb24aD6612C19 does not: live threshold is 1 against the hard floor of 2, and its live 4-owner set is a strict subset of the 6 owners frozen in config/commitment-pooling-release.json. This is the only remaining blocker and it needs a human-executed Safe transaction.",
+    "Changing that recovery Safe's threshold or owner set does not move any of the 18 predicted Garden Safe addresses, because the Garden Safe initializer binds only the three owner addresses.",
     "The Garden-bound relay is separate from Settlement and cannot satisfy Safe threshold two alone, become a Safe owner/module/guard/Zodiac member, or receive value authority.",
     "Implementation, review, release, guardian trust, Safe deployment, and value activation remain separate authorization boundaries.",
     "Use Bun wrappers only; never raw Forge."
@@ -264,6 +267,38 @@
       "status": "broadcast_gate_narrowed",
       "branch": null,
       "note": "Afo narrowed this readiness pass to pinned fork proof and deterministic router/relay plus Guardian transaction planning. House of Alignment evidence is not required because those funds are sent to the designated Green Goods Safe on Celo. The human will open the PR; no deployment or broadcast was authorized."
+    },
+    {
+      "timestamp": "2026-08-17T00:55:00.000Z",
+      "actor": "claude",
+      "lane": "contracts",
+      "status": "fork_proof_passed_single_recovery_safe_blocker",
+      "branch": "claude/garden-celo-deployment-0d18ef",
+      "note": "Ran the previously environment-blocked gates against archive RPC endpoints. The pinned fork proof passes, the script suite passes 211/211, and the Celo GardenAccount plan returns zero blockers. The only remaining blocker is the Green Goods protocol recovery Safe: live threshold 1 against the hard floor of 2, and a live 4-owner set against the frozen 6-owner manifest configuration. Resolving it requires a human-executed Safe transaction. No deployment, broadcast, Safe creation, Guardian mutation, or value movement occurred."
+    },
+    {
+      "timestamp": "2026-08-17T01:05:00.000Z",
+      "actor": "human",
+      "lane": "contracts",
+      "status": "recovery_safe_change_deferred",
+      "branch": "claude/garden-celo-deployment-0d18ef",
+      "note": "Afo reviewed the Green Goods recovery Safe finding and chose to leave the Safe as it stands for now, updating it later. The release manifest was deliberately left unmodified. Broadcast stays blocked: the threshold floor of 2 is a hard guard in assertRecoverySafeConfiguration and no manifest edit can satisfy it while the live Safe is 1-of-4. When the threshold is raised, keeping the current four owners will also require ownership.protocolSafeConfiguration.owners to be narrowed to those four."
+    },
+    {
+      "timestamp": "2026-08-17T01:30:00.000Z",
+      "actor": "human",
+      "lane": "contracts",
+      "status": "one_of_four_recovery_accepted_broadcast_unblocked",
+      "branch": "claude/garden-celo-deployment-0d18ef",
+      "note": "Afo accepted the live 1-of-4 Green Goods recovery Safe for this release and directed that it is not a blocker. The accepted configuration is recorded as GREEN_GOODS_ACCEPTED_RECOVERY_CONFIGURATION in script/deploy/garden-safe-owners.ts next to the existing DEV_GUILD_REVIEWED_OWNERS constant, and assertRecoverySafeConfiguration now takes a caller-declared minimum threshold that still defaults to the reviewed 2-of-N policy. The release manifest stays unmodified because its hash is the release lock for an already-broadcast Arbitrum pool-backfill lane. The final Garden Safe plan returns zero blockers across all 18 boundaries. Accepted risk: one of the four Green Goods signers plus any other owner reaches the Garden Safe threshold of two."
+    },
+    {
+      "timestamp": "2026-08-17T01:35:00.000Z",
+      "actor": "claude",
+      "lane": "contracts",
+      "status": "single_password_stages_and_test_scope_fix",
+      "branch": "claude/garden-celo-deployment-0d18ef",
+      "note": "Added release-operator --stage mode so each lane needs one keystore password entry instead of one per boundary, with the per-boundary checkout-drift assertions, fail-fast behavior, and credential shredding unchanged. Also fixed packages/contracts test:script, whose unquoted script/**/*.test.ts glob was expanded by sh as a single level and silently excluded release-operator.test.ts and release-verify.test.ts from the gate; coverage went from 19 files/212 tests to 21 files/225 tests, all passing."
     }
   ]
 }
