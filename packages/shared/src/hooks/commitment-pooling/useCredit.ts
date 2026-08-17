@@ -237,7 +237,7 @@ export function useCreditLoan(input: {
   viewer?: Address;
   isCurrentSteward: boolean;
 }) {
-  const query = useQuery({
+  const { data: rawLoan, ...query } = useQuery({
     queryKey: queryKeys.credit.loan(input.chainId, input.loanId),
     queryFn: () => getCreditLoan(input.chainId, input.loanId),
     enabled: Boolean(input.viewer),
@@ -245,7 +245,7 @@ export function useCreditLoan(input: {
   });
   const disclosure = resolveCreditLoanDisclosure({
     viewer: input.viewer,
-    loan: query.data,
+    loan: rawLoan,
     isCurrentSteward: input.isCurrentSteward,
   });
   return { ...query, disclosure, loan: disclosure.status === "visible" ? disclosure.loan : null };
@@ -261,14 +261,14 @@ export function useCreditSubjectLoans(input: {
   const viewerIsSubject = input.viewer?.toLowerCase() === input.subject.toLowerCase();
   const authorized = Boolean(input.viewer && (viewerIsSubject || input.isCurrentSteward));
   const viewer = input.viewer ?? ZERO_ADDRESS;
-  const query = useQuery({
+  const { data: rawLoans, ...query } = useQuery({
     queryKey: queryKeys.credit.subjectLoans(input.chainId, input.poolId, input.subject, viewer),
     queryFn: () => getCreditLoansForSubject(input.chainId, input.poolId, input.subject),
     enabled: authorized,
     staleTime: STALE_TIME_MEDIUM,
   });
   const loans = authorized
-    ? (query.data ?? []).filter(
+    ? (rawLoans ?? []).filter(
         (loan): loan is Loan =>
           resolveCreditLoanDisclosure({
             viewer: input.viewer,
@@ -340,14 +340,12 @@ export function useCreditMutation(options: { creditRegistry: Address; chainId?: 
       return result.hash;
     },
     onSuccess: async (_hash, input) => {
-      const viewer = "borrower" in input ? input.borrower : undefined;
       for (const queryKey of creditInvalidationKeys({
         chainId,
         ...("loanId" in input ? { loanId: input.loanId } : {}),
         ...(input.action !== "setPaused" && "poolId" in input && input.poolId !== undefined
           ? { poolId: input.poolId }
           : {}),
-        ...(viewer ? { borrower: viewer, viewer } : {}),
       })) {
         await queryClient.invalidateQueries({ queryKey });
       }

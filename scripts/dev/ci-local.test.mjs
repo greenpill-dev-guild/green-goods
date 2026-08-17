@@ -98,6 +98,27 @@ test("blocked checks remain explicit while runnable evidence is collected", asyn
   assert.deepEqual(result.blocked, [{ id: "contracts-test", blockedBy: ["foundry"] }]);
 });
 
+test("a fully blocked plan runs zero checks and exits non-zero", async () => {
+  const input = plan(["format", "shared-test"], "blocked");
+  for (const check of input.checks) {
+    check.state = "blocked";
+    check.blockedBy = ["toolchain.node", "toolchain.bun"];
+  }
+  const calls = [];
+  const result = await executePlan(input, {
+    runCheck: async (check) => {
+      calls.push(check.id);
+      return { ok: true, exitCode: 0 };
+    },
+  });
+
+  assert.equal(result.status, "blocked");
+  assert.equal(result.exitCode, 2);
+  assert.deepEqual(calls, []);
+  assert.deepEqual(result.results, []);
+  assert.equal(result.blocked.length, 2);
+});
+
 test("passing receipt reuse is opt-in, exact, and never stores failures", async () => {
   const receiptStore = new Map();
   let calls = 0;

@@ -58,6 +58,7 @@ const counterAbi = parseAbi([
   "function nextPoolId() view returns (uint256)",
   "function nextCycleId() view returns (uint256)",
   "function nextCommitmentId() view returns (uint256)",
+  "function setPaused(bool paused_)",
 ]);
 
 const indexerRoot = dirname(dirname(dirname(fileURLToPath(import.meta.url))));
@@ -79,6 +80,7 @@ interface LocalConfigInput {
 export interface PoolingContracts {
   commitmentPoolingModule: Address;
   commitmentRegistry: Address;
+  creditRegistry: Address;
 }
 
 interface LifecycleProof {
@@ -92,6 +94,9 @@ interface LifecycleProof {
   activeCommitmentId: bigint;
   rawLogCount: number;
   transactionHashes: `0x${string}`[];
+  creditPaused: boolean;
+  creditRegistry: Address;
+  creditTransactionHash: `0x${string}`;
 }
 
 interface PoolProof {
@@ -151,6 +156,8 @@ interface GraphqlProof {
     poolId: string | null;
     commitmentId: string | null;
   }>;
+  CreditRegistryConfiguration: Array<{ registry: string; paused: boolean }>;
+  LoanEvent: Array<{ eventType: string; txHash: string }>;
 }
 
 interface ManagedProcess {
@@ -213,7 +220,9 @@ function requiredAddress(value: unknown, field: string): Address {
   return getAddress(value);
 }
 
-function configuredPoolingContracts(baseConfig: string): PoolingContracts {
+function configuredPoolingContracts(
+  baseConfig: string
+): Pick<PoolingContracts, "commitmentPoolingModule" | "commitmentRegistry"> {
   const document = yaml.load(baseConfig) as {
     chains?: Array<{
       id?: unknown;
@@ -250,6 +259,7 @@ export function resolvePoolingContracts(
       deployment.commitmentRegistry,
       "deployment commitmentRegistry"
     ),
+    creditRegistry: requiredAddress(deployment.creditRegistry, "deployment creditRegistry"),
   };
   const configured = configuredPoolingContracts(baseConfig);
   assert.deepEqual(
@@ -294,6 +304,8 @@ chains:
         address: "${input.contracts.commitmentPoolingModule}"
       - name: CommitmentRegistry
         address: "${input.contracts.commitmentRegistry}"
+      - name: CreditRegistry
+        address: "${input.contracts.creditRegistry}"
 `;
 }
 
@@ -517,9 +529,10 @@ async function assertForkBoundary(
   throwIfAborted(signal);
   assert.equal(await publicClient.getChainId(), CHAIN_ID, "local RPC must be the Arbitrum fork");
   throwIfAborted(signal);
-  const [moduleCode, registryCode] = await Promise.all([
+  const [moduleCode, registryCode, creditCode] = await Promise.all([
     publicClient.getBytecode({ address: contracts.commitmentPoolingModule }),
     publicClient.getBytecode({ address: contracts.commitmentRegistry }),
+    publicClient.getBytecode({ address: contracts.creditRegistry }),
   ]);
   assert.ok(
     moduleCode && moduleCode !== "0x",
@@ -529,6 +542,10 @@ async function assertForkBoundary(
     registryCode && registryCode !== "0x",
     "production CommitmentRegistry bytecode is absent on the fork"
   );
+  assert.ok(
+    creditCode && creditCode !== "0x",
+    "production CreditRegistry bytecode is absent on the fork"
+  );
   throwIfAborted(signal);
   const owner = await publicClient.readContract({
     address: contracts.commitmentPoolingModule,
@@ -536,6 +553,16 @@ async function assertForkBoundary(
     functionName: "owner",
   });
   assert.equal(owner.toLowerCase(), MODULE_OWNER.toLowerCase(), "unexpected pooling module owner");
+  const creditOwner = await publicClient.readContract({
+    address: contracts.creditRegistry,
+    abi: counterAbi,
+    functionName: "owner",
+  });
+  assert.equal(
+    creditOwner.toLowerCase(),
+    MODULE_OWNER.toLowerCase(),
+    "unexpected credit registry owner"
+  );
   assert.equal(
     await publicClient.readContract({
       address: contracts.commitmentPoolingModule,
@@ -698,7 +725,7 @@ async function mineLifecycle(
     },
     { equalParticipationBps: 2_000, verifiedContributionBps: 8_000 },
   ]);
-  const endBlock = await write("createCommitment", [
+  await write("createCommitment", [
     requestCommitmentParams(
       activePoolId,
       activeCycleId,
@@ -706,11 +733,35 @@ async function mineLifecycle(
       5n
     ),
   ]);
+  const creditPaused = (await publicClient.readContract({
+    address: contracts.creditRegistry,
+    abi: counterAbi,
+    functionName: "paused",
+  })) as boolean;
+  throwIfAborted(signal);
+  const creditTransactionHash = await walletClient.writeContract({
+    address: contracts.creditRegistry,
+    abi: counterAbi,
+    functionName: "setPaused",
+    args: [creditPaused],
+  });
+  const creditReceipt = await publicClient.waitForTransactionReceipt({
+    hash: creditTransactionHash,
+    timeout: TRANSACTION_RECEIPT_TIMEOUT_MS,
+  });
+  assert.equal(creditReceipt.status, "success", "CreditRegistry setPaused transaction reverted");
+  const endBlock = creditReceipt.blockNumber;
   const rawLogs = await publicClient.getLogs({
     address: [contracts.commitmentPoolingModule, contracts.commitmentRegistry],
     fromBlock: startBlock,
     toBlock: endBlock,
   });
+  const creditLogs = await publicClient.getLogs({
+    address: contracts.creditRegistry,
+    fromBlock: creditReceipt.blockNumber,
+    toBlock: creditReceipt.blockNumber,
+  });
+  assert.equal(creditLogs.length, 1, "expected exactly one CreditRegistry PausedSet log");
   assert.ok(
     rawLogs.length >= transactionHashes.length,
     `expected at least one raw contract log per transaction, received ${rawLogs.length} logs for ${transactionHashes.length} transactions`
@@ -727,6 +778,9 @@ async function mineLifecycle(
     activeCommitmentId,
     rawLogCount: rawLogs.length,
     transactionHashes,
+    creditPaused,
+    creditRegistry: contracts.creditRegistry,
+    creditTransactionHash,
   };
 }
 
@@ -776,6 +830,10 @@ async function pollForIndexedProof(
     CommitmentEvent(where: { chainId: { _eq: ${CHAIN_ID} } }) {
       eventType txHash poolId commitmentId
     }
+    CreditRegistryConfiguration(
+      where: { id: { _eq: "${CHAIN_ID}-${proof.creditRegistry.toLowerCase()}" } }
+    ) { registry paused }
+    LoanEvent(where: { txHash: { _eq: "${proof.creditTransactionHash}" } }) { eventType txHash }
   }`;
 
   return waitFor(
@@ -810,6 +868,8 @@ async function pollForIndexedProof(
         body.data.ActiveCommitment.length === 1 &&
         body.data.CommitmentClass.length === 1 &&
         body.data.CommitmentEvent.length === proof.rawLogCount &&
+        body.data.CreditRegistryConfiguration.length === 1 &&
+        body.data.LoanEvent.length === 1 &&
         [...EXPECTED_AUDIT_TYPES].every((eventType) => types.has(eventType))
       ) {
         return body.data;
@@ -837,7 +897,19 @@ function assertIndexedProof(indexed: GraphqlProof, proof: LifecycleProof): void 
   const commitment = indexed.TerminalCommitment[0];
   const activeCommitment = indexed.ActiveCommitment[0];
   const class_ = indexed.CommitmentClass[0];
-  assert.ok(pool && activePool && cycle && activeCycle && commitment && activeCommitment && class_);
+  const creditConfiguration = indexed.CreditRegistryConfiguration[0];
+  const creditEvent = indexed.LoanEvent[0];
+  assert.ok(
+    pool &&
+      activePool &&
+      cycle &&
+      activeCycle &&
+      commitment &&
+      activeCommitment &&
+      class_ &&
+      creditConfiguration &&
+      creditEvent
+  );
 
   assert.deepEqual(pool, {
     registrationSeen: true,
@@ -887,6 +959,14 @@ function assertIndexedProof(indexed: GraphqlProof, proof: LifecycleProof): void 
     creationSeen: true,
     state: "REQUESTED",
     direction: "REQUEST",
+  });
+  assert.deepEqual(creditConfiguration, {
+    registry: proof.creditRegistry.toLowerCase(),
+    paused: proof.creditPaused,
+  });
+  assert.deepEqual(creditEvent, {
+    eventType: "PAUSED_SET",
+    txHash: proof.creditTransactionHash.toLowerCase(),
   });
 
   assert.equal(indexed.CommitmentEvent.length, proof.rawLogCount);

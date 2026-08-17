@@ -5,7 +5,6 @@ import {
   CommitmentPoolingModule,
   CreditRegistry,
   createTestIndexer,
-  executedMockEventNames,
   processEvents,
   SettlementModule,
 } from "./v3";
@@ -44,12 +43,16 @@ async function registerCreditRegistry() {
   return SettlementModule.CreditRegistryUpdated.processEvent({ event, mockDb });
 }
 
-async function seedPool(mockDb: Awaited<ReturnType<typeof registerCreditRegistry>>, poolId = 7n) {
+async function seedPool(
+  mockDb: Awaited<ReturnType<typeof registerCreditRegistry>>,
+  poolId = 7n,
+  sequence = 2
+) {
   const event = CommitmentPoolingModule.PoolRegistered.createMockEvent({
     poolId,
     garden: addr(2),
     poolType: 0n,
-    mockEventData: { ...mockEvent(2), srcAddress: undefined },
+    mockEventData: { ...mockEvent(sequence), srcAddress: undefined },
   });
   return CommitmentPoolingModule.PoolRegistered.processEvent({ event, mockDb });
 }
@@ -288,7 +291,7 @@ describe("CreditRegistry read model", () => {
         newModule: addr(19),
         mockEventData: mockEvent(35),
       }),
-      CreditRegistry.PausedSet.createMockEvent({ paused: true, mockEventData: mockEvent(36) }),
+      CreditRegistry.PausedSet.createMockEvent({ paused: false, mockEventData: mockEvent(36) }),
       CreditRegistry.LoanRequested.createMockEvent({
         loanId: 31n,
         poolId: 7n,
@@ -308,6 +311,63 @@ describe("CreditRegistry read model", () => {
         cancelledBy: addr(3),
         mockEventData: mockEvent(38),
       }),
+      ...Object.values(loanLifecycle(32n)),
+      CreditRegistry.LoanRequested.createMockEvent({
+        loanId: 33n,
+        poolId: 7n,
+        borrower: addr(3),
+        requestedBy: addr(3),
+        commitmentId: 0n,
+        token: addr(4),
+        principal: 25n,
+        dueDate: 1_800_000_000n,
+        installmentsTotal: 1n,
+        termsCID: "ipfs://approved",
+        mockEventData: mockEvent(39),
+      }),
+      CreditRegistry.LoanApproved.createMockEvent({
+        loanId: 33n,
+        approvedBy: addr(5),
+        mockEventData: mockEvent(40),
+      }),
+      CreditRegistry.LoanRequested.createMockEvent({
+        loanId: 34n,
+        poolId: 7n,
+        borrower: addr(3),
+        requestedBy: addr(3),
+        commitmentId: 0n,
+        token: addr(4),
+        principal: 100n,
+        dueDate: 1_800_000_000n,
+        installmentsTotal: 2n,
+        termsCID: "ipfs://partial",
+        mockEventData: mockEvent(41),
+      }),
+      CreditRegistry.LoanApproved.createMockEvent({
+        loanId: 34n,
+        approvedBy: addr(5),
+        mockEventData: mockEvent(42),
+      }),
+      CreditRegistry.LoanDisbursed.createMockEvent({
+        loanId: 34n,
+        rail: 1n,
+        token: addr(4),
+        amount: 100n,
+        disbursementId: 0n,
+        executionRef: txHash(340),
+        recordedBy: addr(5),
+        mockEventData: mockEvent(43),
+      }),
+      CreditRegistry.RepaymentRecorded.createMockEvent({
+        loanId: 34n,
+        amount: 40n,
+        repaidAmount: 40n,
+        newOutstanding: 60n,
+        installmentsPaid: 1n,
+        executionRef: txHash(341),
+        recordedBy: addr(5),
+        mockEventData: mockEvent(44),
+      }),
     ];
     mockDb = await processEvents(mockDb, events);
 
@@ -316,45 +376,82 @@ describe("CreditRegistry read model", () => {
     );
     const stats = await mockDb.CreditPoolStats.get(`${CHAIN_ID}-7`);
     const executor = await mockDb.CreditPoolExecutor.get(`${CHAIN_ID}-7-${addr(6).toLowerCase()}`);
+    assert.equal(configuration?.owner, addr(1).toLowerCase());
+    assert.equal(configuration?.initializedAt, 1_700_000_030);
     assert.equal(configuration?.hatsModule, addr(17).toLowerCase());
     assert.equal(configuration?.commitmentPoolingModule, addr(18).toLowerCase());
     assert.equal(configuration?.settlementModule, addr(19).toLowerCase());
-    assert.equal(configuration?.paused, true);
+    assert.equal(configuration?.paused, false);
     assert.equal(stats?.borrowerCap, 1_000n);
     assert.equal(stats?.enabled, true);
     assert.equal(executor?.enabled, true);
     assert.equal((await mockDb.Loan.get(`${CHAIN_ID}-31`))?.state, "CANCELLED");
+    assert.equal((await mockDb.Loan.get(`${CHAIN_ID}-33`))?.state, "APPROVED");
+    assert.deepEqual(
+      {
+        state: (await mockDb.Loan.get(`${CHAIN_ID}-34`))?.state,
+        repaidAmount: (await mockDb.Loan.get(`${CHAIN_ID}-34`))?.repaidAmount,
+        outstanding: (await mockDb.Loan.get(`${CHAIN_ID}-34`))?.outstanding,
+        installmentsPaid: (await mockDb.Loan.get(`${CHAIN_ID}-34`))?.installmentsPaid,
+      },
+      { state: "DISBURSED", repaidAmount: 40n, outstanding: 60n, installmentsPaid: 1 }
+    );
 
-    const covered = executedMockEventNames(mockDb);
-    for (const event of [
-      "CreditRegistryInitialized",
-      "PoolCreditConfigured",
-      "ExecutorUpdated",
-      "LoanRequested",
-      "LoanApproved",
-      "LoanDisbursed",
-      "RepaymentRecorded",
-      "LoanRepaid",
-      "LoanDefaulted",
-      "LoanCancelled",
-      "HatsModuleUpdated",
-      "CommitmentPoolingModuleUpdated",
-      "SettlementModuleUpdated",
-      "PausedSet",
-    ]) {
-      const name = `CreditRegistry.${event}`;
-      if (
-        !covered.has(name) &&
-        ![
-          "LoanApproved",
-          "LoanDisbursed",
-          "RepaymentRecorded",
-          "LoanRepaid",
-          "LoanDefaulted",
-        ].includes(event)
-      ) {
-        assert.fail(`missing frozen event coverage: ${name}`);
-      }
-    }
+    assert.deepEqual(
+      new Set((await mockDb.LoanEvent.getAll()).map((event) => event.eventType)),
+      new Set([
+        "CREDIT_REGISTRY_INITIALIZED",
+        "POOL_CREDIT_CONFIGURED",
+        "EXECUTOR_UPDATED",
+        "LOAN_REQUESTED",
+        "LOAN_APPROVED",
+        "LOAN_DISBURSED",
+        "REPAYMENT_RECORDED",
+        "LOAN_REPAID",
+        "LOAN_DEFAULTED",
+        "LOAN_CANCELLED",
+        "HATS_MODULE_UPDATED",
+        "COMMITMENT_POOLING_MODULE_UPDATED",
+        "SETTLEMENT_MODULE_UPDATED",
+        "PAUSED_SET",
+      ])
+    );
+  });
+
+  it("retries pool configuration materialization when the pool arrives after the audit event", async () => {
+    let mockDb = await registerCreditRegistry();
+    const configured = CreditRegistry.PoolCreditConfigured.createMockEvent({
+      poolId: 77n,
+      token: addr(4),
+      previousBorrowerCap: 0n,
+      borrowerCap: 500n,
+      previouslyEnabled: false,
+      enabled: true,
+      configuredBy: addr(5),
+      mockEventData: mockEvent(50),
+    });
+
+    mockDb = await processEvents(mockDb, [configured]);
+    assert.equal(await mockDb.CreditPoolStats.get(`${CHAIN_ID}-77`), undefined);
+    mockDb = await seedPool(mockDb, 77n, 51);
+    const replayed = {
+      ...configured,
+      ...mockEvent(52),
+      transaction: configured.transaction,
+      logIndex: configured.logIndex,
+      params: { ...configured.params },
+    };
+    mockDb = await processEvents(mockDb, [replayed]);
+
+    const materialized = await mockDb.CreditPoolStats.get(`${CHAIN_ID}-77`);
+    assert.equal(materialized?.token, addr(4).toLowerCase());
+    assert.equal(materialized?.borrowerCap, 500n);
+    assert.equal(materialized?.enabled, true);
+    assert.equal(
+      (await mockDb.LoanEvent.getAll()).filter(
+        (event) => event.eventType === "POOL_CREDIT_CONFIGURED"
+      ).length,
+      1
+    );
   });
 });

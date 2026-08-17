@@ -490,8 +490,9 @@ type LoanEvent {
   timestamp: Int!
 }
 
-# Internal event-fact projection. It lets reverse and stale delivery converge before LoanRequested
-# materializes the public Loan row, and carries only deltas needed for O(1) pool accounting.
+# Event-fact projection used internally by handlers, but still publicly queryable through Envio.
+# It lets reverse and stale delivery converge before LoanRequested materializes the Loan row and
+# carries only the deltas needed for O(1) pool accounting; this label is not an access-control claim.
 type CreditLoanProjection {
   id: ID! # chainId-loanId
   chainId: Int!

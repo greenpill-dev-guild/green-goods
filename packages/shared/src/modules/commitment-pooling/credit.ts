@@ -28,7 +28,6 @@ export function resolveCreditLoanDisclosure(input: {
   viewer?: Address;
   loan?: Loan | null;
   isCurrentSteward: boolean;
-  wasSteward?: boolean;
 }): CreditLoanDisclosure {
   if (!input.viewer) return { status: "unauthenticated" };
   if (!input.loan) return { status: "hidden" };

@@ -229,7 +229,8 @@ chains:
         address: "0x66300dA4d3749bFc9F7326DB94e0DEb47A7a3959"
       - name: SettlementModule
         address: "0x15c8F6CF25abA2161cc04719b4C4a93c4146935D"
-      # No address before release; dynamically registered from SettlementModule.CreditRegistryUpdated.
+      # Dynamic registration is fallback-only and starts at the binding block. Release activation must
+      # statically pin CreditRegistry with a start block at or before its deployment to retain initialize logs.
       - name: CreditRegistry
   - id: 11155111
     start_block: 10243363
@@ -253,7 +254,8 @@ chains:
       # GreenWill is not deployed on Sepolia, so it is omitted on this chain.
       - name: CookieJarFactory
         address: "0x021368bf9958f4D535d39d571Bc45f74d20e4666"
-      # No address before release; retained as the Sepolia CreditRegistry contract slot.
+      # Inert until a Sepolia address is statically pinned at or before its deployment block; this chain
+      # has no SettlementModule registration source and cannot rely on dynamic discovery.
       - name: CreditRegistry
   - id: 42220
     start_block: 74691430

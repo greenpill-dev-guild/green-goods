@@ -17,6 +17,7 @@ import {
 const TEST_CONTRACTS = {
   commitmentPoolingModule: "0x6BB5b0fd70b6771B0E955Fef37f8Bd2ce911470a",
   commitmentRegistry: "0x66300dA4d3749bFc9F7326DB94e0DEb47A7a3959",
+  creditRegistry: "0xcfF1fdC12Bf130897dB0C9c74fB094C956196A34",
 } as const;
 
 describe("local contract event indexer config", () => {
@@ -39,6 +40,7 @@ describe("local contract event indexer config", () => {
     assert.match(config, /contracts:\n  - name: CommitmentPoolingModule\n    events: \[\]/);
     assert.match(config, new RegExp(`address: "${TEST_CONTRACTS.commitmentPoolingModule}"`));
     assert.match(config, new RegExp(`address: "${TEST_CONTRACTS.commitmentRegistry}"`));
+    assert.match(config, new RegExp(`address: "${TEST_CONTRACTS.creditRegistry}"`));
     assert.doesNotMatch(config, /id: 11155111/);
   });
 
@@ -75,6 +77,7 @@ describe("local contract event indexer config", () => {
     assert.match(generated, /event: CommitmentCreated\(/);
     assert.match(generated, new RegExp(`address: "${contracts.commitmentPoolingModule}"`));
     assert.match(generated, new RegExp(`address: "${contracts.commitmentRegistry}"`));
+    assert.match(generated, new RegExp(`address: "${contracts.creditRegistry}"`));
   });
 
   it("fails closed when indexer config and deployment addresses drift", async () => {
@@ -157,8 +160,8 @@ describe("local contract event indexer config", () => {
 const describeIntegration =
   process.env.GG_RUN_LOCAL_CONTRACT_EVENT_INTEGRATION === "1" ? describe : describe.skip;
 
-describeIntegration("real Commitment Pooling contract logs through local Envio", () => {
-  it("indexes the mined pool, cycle, commitment, registry, and audit projections", async function () {
+describeIntegration("real Commitment Pooling and CreditRegistry logs through local Envio", () => {
+  it("indexes the mined pooling and Credit pause projections", async function () {
     this.timeout(LOCAL_CONTRACT_EVENT_MOCHA_TIMEOUT_MS);
     await runLocalContractEventIntegration();
   });

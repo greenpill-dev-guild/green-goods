@@ -1,359 +1,18 @@
+import { indexer } from "envio";
+
+import { cursorWins } from "./commitment-pool-projections";
+import { registryConfiguration, updateRegistryAddress } from "./credit-registry-configuration";
 import {
-  indexer,
-  type CreditLoanProjection,
-  type CreditPoolStats,
-  type CreditRegistryConfiguration,
-  type Loan,
-} from "envio";
-
-import { cursorWins, poolingEntityId } from "./commitment-pool-projections";
-import { getTxHash, normalizeAddress } from "./shared";
-
-type CreditContext = Parameters<Parameters<typeof indexer.onEvent>[1]>[0]["context"];
-type CreditEvent = {
-  chainId: number;
-  srcAddress: string;
-  block: { number: number; timestamp: number };
-  transaction: unknown;
-  logIndex: number;
-};
-
-function loanId(chainId: number, value: bigint): string {
-  return `${chainId}-${value}`;
-}
-
-function poolStatsId(chainId: number, poolId: bigint): string {
-  return `${chainId}-${poolId}`;
-}
-
-function registryConfigurationId(chainId: number, registry: string): string {
-  return `${chainId}-${normalizeAddress(registry)}`;
-}
-
-function executorId(chainId: number, poolId: bigint, executor: string): string {
-  return `${chainId}-${poolId}-${normalizeAddress(executor)}`;
-}
-
-function eventId(event: CreditEvent): string {
-  return `${event.chainId}-${getTxHash(event.transaction)}-${event.logIndex}`;
-}
-
-function eventData(value: Record<string, unknown>): string {
-  return JSON.stringify(value, (_key, item) => (typeof item === "bigint" ? item.toString() : item));
-}
-
-function loanRail(value: bigint): Loan["rail"] {
-  const values = ["NONE", "JAR", "TREASURY", "GDOLLAR_SETTLEMENT"] as const;
-  return values[Number(value)] ?? "NONE";
-}
-
-function emptyProjection(event: CreditEvent, value: bigint): CreditLoanProjection {
-  return {
-    id: loanId(event.chainId, value),
-    chainId: event.chainId,
-    loanId: value,
-    creditRegistry: normalizeAddress(event.srcAddress),
-    requestSeen: false,
-    poolId: undefined,
-    borrower: undefined,
-    requestedBy: undefined,
-    commitmentId: undefined,
-    token: undefined,
-    principal: 0n,
-    feeAmount: 0n,
-    dueDate: 0n,
-    installmentsTotal: 0,
-    termsCID: undefined,
-    createdAt: undefined,
-    state: undefined,
-    lifecycleBlockNumber: undefined,
-    lifecycleLogIndex: undefined,
-    recordedBy: undefined,
-    actorBlockNumber: undefined,
-    actorLogIndex: undefined,
-    rail: undefined,
-    disbursementId: undefined,
-    issuedAmount: 0n,
-    attempts: undefined,
-    executionRef: undefined,
-    disbursementBlockNumber: undefined,
-    disbursementLogIndex: undefined,
-    repaidAmount: 0n,
-    outstanding: 0n,
-    installmentsPaid: 0,
-    repaymentBlockNumber: undefined,
-    repaymentLogIndex: undefined,
-    reasonCID: undefined,
-    defaultReasonCID: undefined,
-    defaultedAt: undefined,
-    defaultBlockNumber: undefined,
-    defaultLogIndex: undefined,
-    recoveredFromDefault: false,
-    settlementRelationshipEntityId: undefined,
-    appliedIssued: 0n,
-    appliedRepaid: 0n,
-    appliedDefaultCount: 0n,
-    appliedLoanCount: 0n,
-    updatedAt: event.block.timestamp,
-  };
-}
-
-async function projection(
-  context: CreditContext,
-  event: CreditEvent,
-  value: bigint
-): Promise<CreditLoanProjection> {
-  return (
-    (await context.CreditLoanProjection.get(loanId(event.chainId, value))) ??
-    emptyProjection(event, value)
-  );
-}
-
-function actorUpdate(
-  current: CreditLoanProjection,
-  event: CreditEvent,
-  actor: string
-): CreditLoanProjection {
-  if (
-    !cursorWins(event.block.number, event.logIndex, current.actorBlockNumber, current.actorLogIndex)
-  ) {
-    return current;
-  }
-  return {
-    ...current,
-    recordedBy: normalizeAddress(actor),
-    actorBlockNumber: BigInt(event.block.number),
-    actorLogIndex: event.logIndex,
-  };
-}
-
-function lifecycleUpdate(
-  current: CreditLoanProjection,
-  event: CreditEvent,
-  state: Loan["state"]
-): CreditLoanProjection {
-  if (
-    !cursorWins(
-      event.block.number,
-      event.logIndex,
-      current.lifecycleBlockNumber,
-      current.lifecycleLogIndex
-    )
-  ) {
-    return current;
-  }
-  return {
-    ...current,
-    state,
-    lifecycleBlockNumber: BigInt(event.block.number),
-    lifecycleLogIndex: event.logIndex,
-  };
-}
-
-async function putLoanEvent(
-  context: CreditContext,
-  event: CreditEvent,
-  input: {
-    eventType: string;
-    poolId?: bigint;
-    loanId?: bigint;
-    actor?: string;
-    amount?: bigint;
-    data?: Record<string, unknown>;
-  }
-): Promise<boolean> {
-  const id = eventId(event);
-  if (await context.LoanEvent.get(id)) return false;
-  context.LoanEvent.set({
-    id,
-    chainId: event.chainId,
-    poolId: input.poolId,
-    loanId: input.loanId,
-    eventType: input.eventType,
-    actor: input.actor ? normalizeAddress(input.actor) : undefined,
-    amount: input.amount,
-    data: input.data ? eventData(input.data) : undefined,
-    txHash: getTxHash(event.transaction),
-    blockNumber: BigInt(event.block.number),
-    logIndex: event.logIndex,
-    timestamp: event.block.timestamp,
-  });
-  return true;
-}
-
-async function ensurePoolStats(
-  context: CreditContext,
-  chainId: number,
-  poolId: bigint,
-  timestamp: number
-): Promise<CreditPoolStats | undefined> {
-  const id = poolStatsId(chainId, poolId);
-  const existing = await context.CreditPoolStats.get(id);
-  if (existing) return existing;
-  const pool = await context.CommitmentPool.get(poolingEntityId(chainId, poolId));
-  if (!pool?.registrationSeen || !pool.garden || !pool.gardenId) return undefined;
-  return {
-    id,
-    chainId,
-    poolId,
-    garden: pool.garden,
-    gardenId: pool.gardenId,
-    token: undefined,
-    borrowerCap: 0n,
-    enabled: false,
-    creditIssued: 0n,
-    creditRepaid: 0n,
-    creditOutstanding: 0n,
-    repaymentRateNumerator: 0n,
-    repaymentRateDenominator: 0n,
-    defaultRateNumerator: 0n,
-    defaultRateDenominator: 0n,
-    configurationBlockNumber: undefined,
-    configurationLogIndex: undefined,
-    updatedAt: timestamp,
-  };
-}
-
-async function reconcileProjection(
-  context: CreditContext,
-  current: CreditLoanProjection
-): Promise<void> {
-  if (
-    !current.requestSeen ||
-    current.poolId === undefined ||
-    !current.borrower ||
-    !current.requestedBy ||
-    !current.token ||
-    !current.termsCID ||
-    current.createdAt === undefined ||
-    !current.state
-  ) {
-    context.CreditLoanProjection.set(current);
-    return;
-  }
-
-  const pool = await context.CommitmentPool.get(poolingEntityId(current.chainId, current.poolId));
-  if (!pool?.registrationSeen || !pool.garden || !pool.gardenId) {
-    context.CreditLoanProjection.set(current);
-    return;
-  }
-
-  let attempts = current.attempts;
-  let relationshipEntityId = current.settlementRelationshipEntityId;
-  if (current.disbursementId !== undefined && current.disbursementId !== 0n) {
-    const relationshipId = `${current.chainId}-${current.disbursementId}`;
-    const relationship = await context.LoanPrincipalRelationship.get(relationshipId);
-    if (
-      relationship?.loanId === current.loanId &&
-      relationship.creditRegistry === current.creditRegistry
-    ) {
-      relationshipEntityId = relationshipId;
-      const disbursement = await context.Disbursement.get(relationshipId);
-      attempts = disbursement?.attempt ?? attempts;
-    }
-  }
-
-  const stats = await ensurePoolStats(context, current.chainId, current.poolId, current.updatedAt);
-  let nextProjection = {
-    ...current,
-    attempts,
-    settlementRelationshipEntityId: relationshipEntityId,
-  };
-  if (stats) {
-    const desiredIssued = current.disbursementBlockNumber ? current.issuedAmount : 0n;
-    const desiredRepaid = current.repaidAmount;
-    const desiredDefaultCount = current.defaultBlockNumber ? 1n : 0n;
-    const desiredLoanCount = current.disbursementBlockNumber ? 1n : 0n;
-    const issuedDelta = desiredIssued - current.appliedIssued;
-    const repaidDelta = desiredRepaid - current.appliedRepaid;
-    context.CreditPoolStats.set({
-      ...stats,
-      creditIssued: stats.creditIssued + issuedDelta,
-      creditRepaid: stats.creditRepaid + repaidDelta,
-      creditOutstanding: stats.creditOutstanding + issuedDelta - repaidDelta,
-      repaymentRateNumerator: stats.repaymentRateNumerator + repaidDelta,
-      repaymentRateDenominator: stats.repaymentRateDenominator + issuedDelta,
-      defaultRateNumerator:
-        stats.defaultRateNumerator + desiredDefaultCount - current.appliedDefaultCount,
-      defaultRateDenominator:
-        stats.defaultRateDenominator + desiredLoanCount - current.appliedLoanCount,
-      updatedAt: Math.max(stats.updatedAt, current.updatedAt),
-    });
-    nextProjection = {
-      ...nextProjection,
-      appliedIssued: desiredIssued,
-      appliedRepaid: desiredRepaid,
-      appliedDefaultCount: desiredDefaultCount,
-      appliedLoanCount: desiredLoanCount,
-    };
-  }
-
-  const row: Loan = {
-    id: current.id,
-    chainId: current.chainId,
-    loanId: current.loanId,
-    creditRegistry: current.creditRegistry,
-    poolId: current.poolId,
-    garden: pool.garden,
-    gardenId: pool.gardenId,
-    borrower: current.borrower,
-    requestedBy: current.requestedBy,
-    recordedBy: current.recordedBy ?? current.requestedBy,
-    commitmentId: current.commitmentId,
-    token: current.token,
-    principal: current.principal,
-    repaidAmount: current.repaidAmount,
-    outstanding: current.outstanding,
-    feeAmount: current.feeAmount,
-    rail: current.rail ?? "NONE",
-    disbursementId: current.disbursementId,
-    state: current.state,
-    dueDate: current.dueDate,
-    installmentsTotal: current.installmentsTotal,
-    installmentsPaid: current.installmentsPaid,
-    attempts,
-    executionRef: current.executionRef,
-    termsCID: current.termsCID,
-    reasonCID: current.reasonCID,
-    defaultReasonCID: current.defaultReasonCID,
-    recoveredFromDefault: current.recoveredFromDefault,
-    defaultedAt: current.defaultedAt,
-    settlementRelationshipEntityId: relationshipEntityId,
-    createdAt: current.createdAt,
-    updatedAt: current.updatedAt,
-  };
-  context.Loan.set(row);
-  context.CreditLoanProjection.set(nextProjection);
-}
-
-async function registryConfiguration(
-  context: CreditContext,
-  event: CreditEvent
-): Promise<CreditRegistryConfiguration> {
-  const id = registryConfigurationId(event.chainId, event.srcAddress);
-  return (
-    (await context.CreditRegistryConfiguration.get(id)) ?? {
-      id,
-      chainId: event.chainId,
-      registry: normalizeAddress(event.srcAddress),
-      owner: undefined,
-      hatsModule: undefined,
-      commitmentPoolingModule: undefined,
-      settlementModule: undefined,
-      paused: true,
-      initializedAt: undefined,
-      hatsUpdateBlockNumber: undefined,
-      hatsUpdateLogIndex: undefined,
-      poolingUpdateBlockNumber: undefined,
-      poolingUpdateLogIndex: undefined,
-      settlementUpdateBlockNumber: undefined,
-      settlementUpdateLogIndex: undefined,
-      pauseUpdateBlockNumber: undefined,
-      pauseUpdateLogIndex: undefined,
-      updatedAt: event.block.timestamp,
-    }
-  );
-}
+  actorUpdate,
+  ensurePoolStats,
+  executorId,
+  lifecycleUpdate,
+  loanRail,
+  projection,
+  putLoanEvent,
+  reconcileProjection,
+} from "./credit-registry-projections";
+import { normalizeAddress } from "./shared";
 
 indexer.onEvent(
   { contract: "CreditRegistry", event: "CreditRegistryInitialized" },
@@ -407,21 +66,20 @@ indexer.onEvent(
 indexer.onEvent(
   { contract: "CreditRegistry", event: "PoolCreditConfigured" },
   async ({ event, context }) => {
-    if (
-      !(await putLoanEvent(context, event, {
-        eventType: "POOL_CREDIT_CONFIGURED",
-        poolId: event.params.poolId,
-        actor: event.params.configuredBy,
-        data: {
-          token: event.params.token,
-          previousBorrowerCap: event.params.previousBorrowerCap,
-          borrowerCap: event.params.borrowerCap,
-          previouslyEnabled: event.params.previouslyEnabled,
-          enabled: event.params.enabled,
-        },
-      }))
-    )
-      return;
+    // The pool can arrive after this audit fact during reverse delivery. Keep the
+    // audit row idempotent, but retry materialization once the dependency exists.
+    await putLoanEvent(context, event, {
+      eventType: "POOL_CREDIT_CONFIGURED",
+      poolId: event.params.poolId,
+      actor: event.params.configuredBy,
+      data: {
+        token: event.params.token,
+        previousBorrowerCap: event.params.previousBorrowerCap,
+        borrowerCap: event.params.borrowerCap,
+        previouslyEnabled: event.params.previouslyEnabled,
+        enabled: event.params.enabled,
+      },
+    });
     const stats = await ensurePoolStats(
       context,
       event.chainId,
@@ -737,47 +395,6 @@ indexer.onEvent(
     });
   }
 );
-
-async function updateRegistryAddress(
-  context: CreditContext,
-  event: CreditEvent,
-  input: {
-    eventType: string;
-    field: "hatsModule" | "commitmentPoolingModule" | "settlementModule";
-    blockField:
-      | "hatsUpdateBlockNumber"
-      | "poolingUpdateBlockNumber"
-      | "settlementUpdateBlockNumber";
-    logField: "hatsUpdateLogIndex" | "poolingUpdateLogIndex" | "settlementUpdateLogIndex";
-    previousModule: string;
-    newModule: string;
-  }
-): Promise<void> {
-  if (
-    !(await putLoanEvent(context, event, {
-      eventType: input.eventType,
-      data: { previousModule: input.previousModule, newModule: input.newModule },
-    }))
-  )
-    return;
-  const current = await registryConfiguration(context, event);
-  if (
-    !cursorWins(
-      event.block.number,
-      event.logIndex,
-      current[input.blockField],
-      current[input.logField]
-    )
-  )
-    return;
-  context.CreditRegistryConfiguration.set({
-    ...current,
-    [input.field]: normalizeAddress(input.newModule),
-    [input.blockField]: BigInt(event.block.number),
-    [input.logField]: event.logIndex,
-    updatedAt: Math.max(current.updatedAt, event.block.timestamp),
-  });
-}
 
 indexer.onEvent(
   { contract: "CreditRegistry", event: "HatsModuleUpdated" },

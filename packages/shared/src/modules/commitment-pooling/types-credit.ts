@@ -33,6 +33,7 @@ export interface Loan {
   principal: bigint;
   repaidAmount: bigint;
   outstanding: bigint;
+  /** Reserved contract seam; frozen CreditRegistry events currently project this as zero. */
   feeAmount: bigint;
   rail: LoanRail;
   disbursementId: bigint | null;

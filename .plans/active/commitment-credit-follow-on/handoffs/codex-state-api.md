@@ -5,9 +5,26 @@
 - Machine lane: state_api
 - Owner: Codex
 - Execution branch: feature/commitment-pooling-credit-api-state
-- Current state: passed
+- Current state: in progress after review-requested changes
 - Tested source commit: `c070d20822a862ee09df486e5769c7966e86418f` at `2026-08-17T21:05:38Z`
-- Linear context: PRD-786 is the state/API lane issue under PRD-697; source proof is complete and ready for In Review. PRD-785 remains Done and PRD-787 remains the UI boundary.
+- Linear context: PRD-786 returned to In Progress after a read-only production review requested changes. PRD-785 remains Done and PRD-787 remains the untouched UI boundary.
+
+## Review remediation matrix
+
+| Finding | RED boundary | Expected closure |
+|---|---|---|
+| Personal hook return leaks raw TanStack `data` | Provider-backed hook tests for unrelated, former-steward, self, and current-steward viewers | `useCreditLoan` and `useCreditSubjectLoans` expose only gated `loan`/`loans`; raw personal `data` is absent. |
+| Frozen-event coverage records submitted events instead of observed effects | Handler-specific indexer assertions for initialization, Approved, Disbursed partial repayment, and pause false | Removing any frozen handler makes at least one focused assertion fail; no exemption list remains. |
+| Shared read hooks lack integration proof | Provider-backed tests for all four hooks, chain isolation, role changes, inactive pool reads, zero relationship IDs, and errors | Hook return contracts, query enablement, disclosure, and cache behavior are pinned at the public API boundary. |
+| Due-date and pause/pool rows were claimed without direct proof | Before/at/after due-date unit cases plus paused/non-open read cases | Shared reads never invent on-chain transitions or disappear solely because writes would be contract-gated. |
+| Dynamic registration misses initialization-era events | Config/release-handoff assertions and documentation | Release operators must statically pin CreditRegistry at or before its deployment block; dynamic registration is fallback-only. |
+| Fully blocked validation was reported as a vacuous success | Direct CLI reproduction plus a fully-blocked executor regression when missing | A plan that executes zero checks because every check is blocked exits non-zero and reports `blocked`. |
+
+Review-remediation RED was recorded before production edits on 2026-08-17:
+
+- `bun run --filter @green-goods/shared test -- src/__tests__/credit-register.test.ts src/__tests__/credit-hooks.test.tsx` failed 4 hook-return assertions because raw TanStack `data` remained present; 14 adjacent Credit assertions passed.
+- `cd packages/indexer && node ../../scripts/dev/node-cli.js mocha --require tsx --timeout 30000 test/credit-registry.test.ts` failed only the replay-after-late-pool materialization assertion; the other 4 Credit read-model tests passed.
+- `node --test scripts/dev/ci-local.test.mjs` passed 18/18, including the new fully-blocked-plan assertion with zero executed checks and exit code 2. The review's exit-0 observation is not reproducible in the current runner implementation and does not justify a production runner change.
 
 ## Inputs
 

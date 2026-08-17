@@ -128,6 +128,20 @@ describe("Credit loan selectors", () => {
     ).toBe("REPAID");
   });
 
+  it("does not invent a default transition before, at, or after the immutable due date", () => {
+    for (const dueDate of [1_699_999_999n, 1_700_000_000n, 1_700_000_001n]) {
+      expect(deriveLoanDisplayState({ ...loan, dueDate })).toBe("REPAYING");
+      expect(
+        deriveLoanDisplayState({
+          ...loan,
+          dueDate,
+          repaidAmount: 0n,
+          outstanding: 100n,
+        })
+      ).toBe(LoanState.DISBURSED);
+    }
+  });
+
   it("fails closed for unauthenticated, unrelated, and former-steward viewers", () => {
     expect(
       resolveCreditLoanDisclosure({ viewer: undefined, loan, isCurrentSteward: false })
@@ -140,7 +154,6 @@ describe("Credit loan selectors", () => {
         viewer: VIEWER,
         loan,
         isCurrentSteward: false,
-        wasSteward: true,
       })
     ).toEqual({ status: "hidden" });
   });
@@ -245,6 +258,130 @@ describe("Credit query and mutation boundaries", () => {
     expect(mocks.mutationErrorHandler).toHaveBeenCalled();
   });
 
+  it("maps every supported online action to the frozen CreditRegistry call", async () => {
+    const cases: Array<{ input: CreditMutationInput; args: readonly unknown[] }> = [
+      {
+        input: {
+          action: "configurePoolCredit",
+          poolId: 7n,
+          token: TOKEN,
+          borrowerCap: 1_000n,
+          enabled: true,
+        },
+        args: [7n, TOKEN, 1_000n, true],
+      },
+      { input: { action: "addExecutor", poolId: 7n, executor: VIEWER }, args: [7n, VIEWER] },
+      { input: { action: "removeExecutor", poolId: 7n, executor: VIEWER }, args: [7n, VIEWER] },
+      {
+        input: {
+          action: "requestLoan",
+          poolId: 7n,
+          borrower: BORROWER,
+          commitmentId: 99n,
+          token: TOKEN,
+          principal: 100n,
+          dueDate: 1_800_000_000n,
+          installmentsTotal: 2,
+          termsCID: "ipfs://terms",
+          onBehalfOf: BORROWER,
+        },
+        args: [
+          {
+            poolId: 7n,
+            commitmentId: 99n,
+            token: TOKEN,
+            principal: 100n,
+            dueDate: 1_800_000_000n,
+            installmentsTotal: 2,
+            termsCID: "ipfs://terms",
+            onBehalfOf: BORROWER,
+          },
+        ],
+      },
+      { input: { action: "approveLoan", loanId: 11n }, args: [11n] },
+      {
+        input: {
+          action: "recordDisbursed",
+          loanId: 11n,
+          rail: LoanRail.JAR,
+          executionRef: "0x1234",
+        },
+        args: [11n, 1, "0x1234"],
+      },
+      {
+        input: {
+          action: "recordRepayment",
+          loanId: 11n,
+          rail: LoanRail.TREASURY,
+          amount: 10n,
+          executionRef: "0x1234",
+        },
+        args: [11n, 10n, "0x1234"],
+      },
+      {
+        input: { action: "markDefaulted", loanId: 11n, reasonCID: "ipfs://late" },
+        args: [11n, "ipfs://late"],
+      },
+      {
+        input: { action: "cancelLoan", loanId: 11n, reasonCID: "ipfs://cancel" },
+        args: [11n, "ipfs://cancel"],
+      },
+      { input: { action: "setPaused", paused: true }, args: [true] },
+    ];
+    const { result } = renderHookWithProviders(() =>
+      useCreditMutation({ chainId: 42161, creditRegistry: CREDIT_REGISTRY })
+    );
+
+    for (const testCase of cases) {
+      await act(async () => {
+        await result.current.mutateAsync(testCase.input);
+      });
+      expect(mocks.sender.sendContractCall).toHaveBeenLastCalledWith({
+        address: CREDIT_REGISTRY,
+        abi: expect.any(Array),
+        functionName: testCase.input.action,
+        args: testCase.args,
+        chainId: 42161,
+      });
+      expect(mocks.sender.sendContractCall.mock.lastCall?.[0]).not.toHaveProperty("value");
+    }
+  });
+
+  it.each([
+    {
+      name: "missing transaction sender",
+      registry: CREDIT_REGISTRY,
+      configure: () => {
+        mocks.senderAvailable = false;
+      },
+      message: "Transaction sender is unavailable",
+    },
+    {
+      name: "zero CreditRegistry address",
+      registry: "0x0000000000000000000000000000000000000000",
+      configure: () => undefined,
+      message: "Credit Registry is not deployed on this chain",
+    },
+  ])("fails closed for $name and reports mutation context", async ({
+    registry,
+    configure,
+    message,
+  }) => {
+    configure();
+    const { result } = renderHookWithProviders(() =>
+      useCreditMutation({ chainId: 42161, creditRegistry: registry as typeof CREDIT_REGISTRY })
+    );
+    const input = { action: "approveLoan", loanId: 11n } as const;
+
+    await act(async () => {
+      await expect(result.current.mutateAsync(input)).rejects.toThrow(message);
+    });
+    expect(mocks.sender.sendContractCall).not.toHaveBeenCalled();
+    expect(mocks.mutationErrorHandler).toHaveBeenCalledWith(expect.any(Error), {
+      metadata: { action: "approveLoan", chainId: 42161, parsedErrorName: "MockCreditError" },
+    });
+  });
+
   it("sends supported records through the online transaction sender and invalidates Credit only", async () => {
     const queryClient = createTestQueryClient();
     const invalidate = vi.spyOn(queryClient, "invalidateQueries");
@@ -275,13 +412,16 @@ describe("Credit query and mutation boundaries", () => {
     );
     expect(invalidate).toHaveBeenCalledWith({ queryKey: queryKeys.credit.all(42161) });
     expect(invalidate).not.toHaveBeenCalledWith({
+      queryKey: queryKeys.credit.subjectLoans(42161, 7n, BORROWER, BORROWER),
+    });
+    expect(invalidate).not.toHaveBeenCalledWith({
       queryKey: queryKeys.commitmentPooling.all(42161),
     });
   });
 
   it("keeps raw borrower entities and generated indexer types out of client/admin", () => {
     const rawBinding =
-      /@green-goods\/indexer|packages\/indexer\/\.envio|\bLoanEvent\b|\bgetCreditLoansForSubject\b|\bLoan\s*\(\s*where:/;
+      /@green-goods\/indexer|packages\/indexer\/\.envio|modules\/commitment-pooling\/data-credit|\b(?:CreditLoanProjection|LoanEvent|getCreditLoan|getCreditLoansForSubject)\b|\bLoan\s*\(\s*(?:where|limit|order_by)/;
     for (const packageName of ["client", "admin"]) {
       expect(sourceContains(resolve(process.cwd(), `../${packageName}/src`), rawBinding)).toBe(
         false
