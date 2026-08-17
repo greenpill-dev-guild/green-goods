@@ -52,6 +52,15 @@ export function getSettlementAccountProfile(chainId: number): SettlementAccountP
   return SETTLEMENT_ACCOUNT_PROFILES[chainId];
 }
 
+export function assertPrimaryPasskeyProfile(chainId: number): void {
+  const profile = getSettlementAccountProfile(chainId);
+  if (profile && profile.kernelVersion !== "0.3.1") {
+    throw new Error(
+      `Kernel ${profile.kernelVersion} is an evidence-only settlement profile and is unavailable through the primary passkey auth flow.`
+    );
+  }
+}
+
 export function assertMatchingAccountProfile(
   source: SettlementAccountProfile,
   destination: SettlementAccountProfile

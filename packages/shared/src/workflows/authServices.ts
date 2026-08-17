@@ -50,7 +50,7 @@ import {
   trackAuthSessionRestored,
 } from "../modules/app/analytics-events";
 import { logger } from "../modules/app/logger";
-import { getSettlementAccountProfile } from "../modules/commitment-pooling/account-profiles";
+import { assertPrimaryPasskeyProfile } from "../modules/commitment-pooling/account-profiles";
 import {
   clearSignedOutSentinel,
   getAuthMode,
@@ -82,10 +82,7 @@ interface RestoreInput {
 
 const DEFAULT_SPONSORSHIP_POLICY_ID = "sp_next_monster_badoon";
 
-type PasskeyServerCredential = {
-  id: string;
-  publicKey: Hex;
-};
+type PasskeyServerCredential = { id: string; publicKey: Hex };
 
 type PasskeyServerAuthenticationOptions = {
   challenge: Hex | Uint8Array | ArrayBuffer;
@@ -343,12 +340,7 @@ async function buildSmartAccountFromCredential(
   credential: P256Credential,
   chainId: number
 ): Promise<{ client: SmartAccountClient; address: Hex }> {
-  const settlementProfile = getSettlementAccountProfile(chainId);
-  if (settlementProfile && settlementProfile.kernelVersion !== "0.3.1") {
-    throw new Error(
-      `Kernel ${settlementProfile.kernelVersion} is an evidence-only settlement profile and is unavailable through the primary passkey auth flow.`
-    );
-  }
+  assertPrimaryPasskeyProfile(chainId);
   const chain = getChain(chainId);
   const publicClient = createPublicClientForChain(chainId);
   const pimlicoClient = createPimlicoClientForChain(chainId);
