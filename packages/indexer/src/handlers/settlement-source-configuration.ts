@@ -254,6 +254,15 @@ indexer.onEvent(
   }
 );
 
+indexer.contractRegister(
+  { contract: "SettlementModule", event: "CreditRegistryUpdated" },
+  async ({ event, context }) => {
+    if (event.params.newRegistry !== ZERO_ADDRESS) {
+      context.chain.CreditRegistry.add(event.params.newRegistry);
+    }
+  }
+);
+
 indexer.onEvent(
   { contract: "SettlementModule", event: "PausedSet" },
   async ({ event, context }) => {

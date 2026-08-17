@@ -110,6 +110,22 @@ enum SettlementMessageStatus {
   DEFERRED
 }
 
+enum LoanState {
+  REQUESTED
+  APPROVED
+  DISBURSED
+  REPAID
+  DEFAULTED
+  CANCELLED
+}
+
+enum LoanRail {
+  NONE
+  JAR
+  TREASURY
+  GDOLLAR_SETTLEMENT
+}
+
 type SettlementConfiguration {
   id: ID!
   chainId: Int!
@@ -367,6 +383,161 @@ type LoanPrincipalRelationship {
   disbursementId: BigInt!
   creditRegistry: String!
   loanId: BigInt!
+  updatedAt: Int!
+}
+
+type CreditRegistryConfiguration {
+  id: ID! # chainId-lowercaseRegistry
+  chainId: Int!
+  registry: String!
+  owner: String
+  hatsModule: String
+  commitmentPoolingModule: String
+  settlementModule: String
+  paused: Boolean!
+  initializedAt: Int
+  hatsUpdateBlockNumber: BigInt
+  hatsUpdateLogIndex: Int
+  poolingUpdateBlockNumber: BigInt
+  poolingUpdateLogIndex: Int
+  settlementUpdateBlockNumber: BigInt
+  settlementUpdateLogIndex: Int
+  pauseUpdateBlockNumber: BigInt
+  pauseUpdateLogIndex: Int
+  updatedAt: Int!
+}
+
+type CreditPoolStats {
+  id: ID! # chainId-poolId
+  chainId: Int!
+  poolId: BigInt!
+  garden: String!
+  gardenId: String!
+  token: String
+  borrowerCap: BigInt!
+  enabled: Boolean!
+  creditIssued: BigInt!
+  creditRepaid: BigInt!
+  creditOutstanding: BigInt!
+  repaymentRateNumerator: BigInt!
+  repaymentRateDenominator: BigInt!
+  defaultRateNumerator: BigInt!
+  defaultRateDenominator: BigInt!
+  configurationBlockNumber: BigInt
+  configurationLogIndex: Int
+  updatedAt: Int!
+}
+
+type CreditPoolExecutor {
+  id: ID! # chainId-poolId-lowercaseExecutor
+  chainId: Int!
+  poolId: BigInt!
+  executor: String!
+  enabled: Boolean!
+  updatedBy: String!
+  updateBlockNumber: BigInt!
+  updateLogIndex: Int!
+  updatedAt: Int!
+}
+
+type Loan {
+  id: ID! # chainId-loanId
+  chainId: Int!
+  loanId: BigInt!
+  creditRegistry: String!
+  poolId: BigInt!
+  garden: String!
+  gardenId: String!
+  borrower: String!
+  requestedBy: String!
+  recordedBy: String!
+  commitmentId: BigInt
+  token: String!
+  principal: BigInt!
+  repaidAmount: BigInt!
+  outstanding: BigInt!
+  feeAmount: BigInt!
+  rail: LoanRail!
+  disbursementId: BigInt
+  state: LoanState!
+  dueDate: BigInt!
+  installmentsTotal: Int!
+  installmentsPaid: Int!
+  attempts: Int
+  executionRef: String
+  termsCID: String!
+  reasonCID: String
+  defaultReasonCID: String
+  recoveredFromDefault: Boolean!
+  defaultedAt: Int
+  settlementRelationshipEntityId: String
+  createdAt: Int!
+  updatedAt: Int!
+}
+
+type LoanEvent {
+  id: ID! # chainId-txHash-logIndex
+  chainId: Int!
+  poolId: BigInt
+  loanId: BigInt
+  eventType: String!
+  actor: String
+  amount: BigInt
+  data: String
+  txHash: String!
+  blockNumber: BigInt!
+  logIndex: Int!
+  timestamp: Int!
+}
+
+# Internal event-fact projection. It lets reverse and stale delivery converge before LoanRequested
+# materializes the public Loan row, and carries only deltas needed for O(1) pool accounting.
+type CreditLoanProjection {
+  id: ID! # chainId-loanId
+  chainId: Int!
+  loanId: BigInt!
+  creditRegistry: String!
+  requestSeen: Boolean!
+  poolId: BigInt
+  borrower: String
+  requestedBy: String
+  commitmentId: BigInt
+  token: String
+  principal: BigInt!
+  feeAmount: BigInt!
+  dueDate: BigInt!
+  installmentsTotal: Int!
+  termsCID: String
+  createdAt: Int
+  state: LoanState
+  lifecycleBlockNumber: BigInt
+  lifecycleLogIndex: Int
+  recordedBy: String
+  actorBlockNumber: BigInt
+  actorLogIndex: Int
+  rail: LoanRail
+  disbursementId: BigInt
+  issuedAmount: BigInt!
+  attempts: Int
+  executionRef: String
+  disbursementBlockNumber: BigInt
+  disbursementLogIndex: Int
+  repaidAmount: BigInt!
+  outstanding: BigInt!
+  installmentsPaid: Int!
+  repaymentBlockNumber: BigInt
+  repaymentLogIndex: Int
+  reasonCID: String
+  defaultReasonCID: String
+  defaultedAt: Int
+  defaultBlockNumber: BigInt
+  defaultLogIndex: Int
+  recoveredFromDefault: Boolean!
+  settlementRelationshipEntityId: String
+  appliedIssued: BigInt!
+  appliedRepaid: BigInt!
+  appliedDefaultCount: BigInt!
+  appliedLoanCount: BigInt!
   updatedAt: Int!
 }
 

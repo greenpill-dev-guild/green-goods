@@ -2,6 +2,7 @@ export * from "./ids";
 export * from "./jobs";
 export * from "./account-profiles";
 export * from "./disclosure";
+export * from "./credit";
 export * from "./selectors";
 export * from "./settlement";
 export * from "./types";

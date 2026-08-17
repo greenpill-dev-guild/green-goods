@@ -3079,6 +3079,8 @@
   "cockpit.workspace.noGardens": "No gardens yet",
   "cockpit.workspace.noGardensDescription": "Create your first garden to start using the canvas workspaces.",
   "cockpit.workspace.openGarden": "Open {garden}",
+  "credit.mutation.onlineOnly": "Credit records require a live connection and cannot be queued for later.",
+  "credit.repayment.gDollarUnavailable": "G$ repayment recording is unavailable until an authenticated receipt policy is approved.",
   "ens.status.active": "{name} is live",
   "ens.status.registering": "Registering {name}...",
   "ens.status.timedOut": "Registration is taking longer than usual",

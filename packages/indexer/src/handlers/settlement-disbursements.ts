@@ -181,6 +181,27 @@ indexer.onEvent(
       loanId: event.params.loanId,
       updatedAt: event.block.timestamp,
     });
+    const loanEntityId = `${event.chainId}-${event.params.loanId}`;
+    const loan = await context.Loan.get(loanEntityId);
+    if (loan && loan.creditRegistry === creditRegistry) {
+      const disbursement = await context.Disbursement.get(entityId);
+      context.Loan.set({
+        ...loan,
+        settlementRelationshipEntityId: entityId,
+        attempts: disbursement?.attempt ?? loan.attempts,
+        updatedAt: Math.max(loan.updatedAt, event.block.timestamp),
+      });
+    }
+    const creditProjection = await context.CreditLoanProjection.get(loanEntityId);
+    if (creditProjection && creditProjection.creditRegistry === creditRegistry) {
+      const disbursement = await context.Disbursement.get(entityId);
+      context.CreditLoanProjection.set({
+        ...creditProjection,
+        settlementRelationshipEntityId: entityId,
+        attempts: disbursement?.attempt ?? creditProjection.attempts,
+        updatedAt: Math.max(creditProjection.updatedAt, event.block.timestamp),
+      });
+    }
     const existing = await context.Disbursement.get(entityId);
     if (!existing) return;
     context.Disbursement.set({

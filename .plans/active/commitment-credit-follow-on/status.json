@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p1",
     "created_at": "2026-07-19T21:59:29.102Z",
-    "updated_at": "2026-08-11T00:00:00.000-07:00"
+    "updated_at": "2026-08-17T20:30:52Z"
   },
   "links": {
     "brief": "brief.md",
@@ -76,24 +76,24 @@
       "handoff": "handoffs/claude-ui.md",
       "tdd": {
         "mode": "required",
-        "status": "pending",
+        "status": "red_recorded",
         "red": {
-          "command": "",
-          "evidence": ""
+          "command": "cd packages/indexer && node ../../scripts/dev/node-cli.js mocha --require tsx --timeout 30000 test/credit-registry.test.ts; cd packages/shared && bun run test -- src/__tests__/credit-register.test.ts",
+          "evidence": "Fresh pre-implementation RED at 2026-08-17T20:39Z: indexer failed because ./v3 exported no CreditRegistry test surface; shared failed because config/query-keys/credit and the Credit hook/module exports did not exist. Both failures occurred after the behavior matrix and focused tests were written, before production implementation."
         },
         "green": {
           "command": "",
           "evidence": ""
         },
-        "note": ""
+        "note": "RED provenance is recorded before implementation. GREEN remains pending."
       },
       "skill_tags": ["ui", "frontend-design", "react"],
       "blocked_reason": "Admin credit console + PWA wallet row follow the shared substrate per spec.md section 8 order."
     },
     "state_api": {
       "owner": "codex",
-      "status": "blocked",
-      "branch": "codex/state-api/commitment-credit-follow-on",
+      "status": "in_progress",
+      "branch": "feature/commitment-pooling-credit-api-state",
       "depends_on": ["contracts"],
       "handoff": "handoffs/codex-state-api.md",
       "tdd": {
@@ -109,8 +109,8 @@
         },
         "note": ""
       },
-      "skill_tags": ["react", "tanstack-query", "data-layer"],
-      "blocked_reason": "Follows the contracts lane per spec.md section 8 order."
+      "skill_tags": ["react", "tanstack-query", "data-layer", "indexer"],
+      "note": "PRD-785 is Done and bff3b274d is an ancestor of the current branch. This lane now owns the missing canonical CreditRegistry indexer projection plus the shared Credit API; the existing LoanPrincipalRelationship settlement seam is an input, not the complete read model."
     },
     "contracts": {
       "owner": "codex",
@@ -286,6 +286,22 @@
       "status": "merged",
       "branch": "feature/commitment-pooling-contracts-deployment",
       "note": "Reconciled stage 2 to PR #695 merge bff3b274d, an ancestor of Phase A base 7a9c7ee. Live PRD-785 was re-read as Done. Phase A release engineering now owns deployment and recovery tooling; no Linear write or external transaction was performed."
+    },
+    {
+      "timestamp": "2026-08-17T20:30:52Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "in_progress",
+      "branch": "feature/commitment-pooling-credit-api-state",
+      "note": "PRD-785 and the settlement loan-principal relationship foundation were revalidated. Scope was corrected so this lane owns both the canonical CreditRegistry indexer read model and the shared viewer-aware Credit API."
+    },
+    {
+      "timestamp": "2026-08-17T20:39:00Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "red_recorded",
+      "branch": "feature/commitment-pooling-credit-api-state",
+      "note": "Recorded focused pre-implementation RED failures for the missing CreditRegistry indexer projection and shared Credit API surfaces."
     }
   ]
 }

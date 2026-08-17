@@ -2153,7 +2153,7 @@
     },
     {
       "id": "loan-state",
-      "definition": "Records-only pool-credit loan lifecycle: Requested → Approved → Disbursed → Repaid, with recoverable Defaulted and pre-disbursement Cancelled. Default is not terminal — later repayment records LoanRepaid(recoveredFromDefault). The Repaying overlay is derived by consumers from RepaymentRecorded while repayment sits between zero and principal + feeAmount and is never stored. No indexer representation exists yet; the credit spec §6 defines the planned GraphQL mirror.",
+      "definition": "Records-only pool-credit loan lifecycle: Requested → Approved → Disbursed → Repaid, with recoverable Defaulted and pre-disbursement Cancelled. Default is not terminal — later repayment records LoanRepaid(recoveredFromDefault). The Repaying overlay is derived by shared consumers from indexed repayment amounts while repayment sits between zero and principal + feeAmount and is never stored as a contract or indexer hard state.",
       "spec_source": ".plans/active/commitment-credit-follow-on/spec.md",
       "canonical": {
         "ordered": true,
@@ -2185,6 +2185,24 @@
             "Defaulted",
             "Cancelled"
           ]
+        },
+        {
+          "id": "indexer",
+          "layer": "indexer",
+          "file": "packages/indexer/schema.graphql",
+          "symbol": "LoanState",
+          "extract": "graphql-enum",
+          "ordered": true,
+          "members": ["REQUESTED", "APPROVED", "DISBURSED", "REPAID", "DEFAULTED", "CANCELLED"]
+        },
+        {
+          "id": "shared",
+          "layer": "shared",
+          "file": "packages/shared/src/modules/commitment-pooling/types-credit.ts",
+          "symbol": "LoanState",
+          "extract": "ts-string-enum",
+          "ordered": true,
+          "members": ["REQUESTED", "APPROVED", "DISBURSED", "REPAID", "DEFAULTED", "CANCELLED"]
         }
       ],
       "mappings": [],
@@ -2192,7 +2210,7 @@
     },
     {
       "id": "loan-rail",
-      "definition": "Disbursement rail recorded on a loan. Jar and Treasury are steward-attested Arbitrum-side records; GDollarSettlement binds the loan to its one Confirmed SettlementModule LoanPrincipal child. Repayment recording is Jar/Treasury only — the G$ rail reverts GDollarRepaymentDisabled until a bounded authenticated receipt policy clears its gates. No indexer representation exists yet.",
+      "definition": "Disbursement rail recorded on a loan and projected by the CreditRegistry indexer read model. Jar and Treasury are steward-attested Arbitrum-side records; GDollarSettlement binds the loan to its one Confirmed SettlementModule LoanPrincipal child. Repayment recording is Jar/Treasury only — the G$ rail reverts GDollarRepaymentDisabled until a bounded authenticated receipt policy clears its gates.",
       "spec_source": ".plans/active/commitment-credit-follow-on/spec.md",
       "canonical": {
         "ordered": true,
@@ -2208,6 +2226,24 @@
           "extract": "solidity-enum",
           "ordered": true,
           "members": ["None", "Jar", "Treasury", "GDollarSettlement"]
+        },
+        {
+          "id": "indexer",
+          "layer": "indexer",
+          "file": "packages/indexer/schema.graphql",
+          "symbol": "LoanRail",
+          "extract": "graphql-enum",
+          "ordered": true,
+          "members": ["NONE", "JAR", "TREASURY", "GDOLLAR_SETTLEMENT"]
+        },
+        {
+          "id": "shared",
+          "layer": "shared",
+          "file": "packages/shared/src/modules/commitment-pooling/types-credit.ts",
+          "symbol": "LoanRail",
+          "extract": "ts-string-enum",
+          "ordered": true,
+          "members": ["NONE", "JAR", "TREASURY", "GDOLLAR_SETTLEMENT"]
         }
       ],
       "mappings": [],
