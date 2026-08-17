@@ -43,11 +43,16 @@ describe("commitment hypercert allocation reconciliation", () => {
       active: true,
       approvedWorkCredits: 3,
     };
-    db.CommitmentPool.set({
-      ...createPool(CHAIN_ID, 7n, 1),
-      childCommitmentEntityIds: [commitment.id],
-    });
+    db.CommitmentPool.set(createPool(CHAIN_ID, 7n, 1));
     db.CommitmentCycle.set(createCycle(CHAIN_ID, 9n, 7n, 1));
+    db.CommitmentCycleCommitmentIndex.set({
+      id: `${CHAIN_ID}-9`,
+      chainId: CHAIN_ID,
+      cycleId: 9n,
+      cycleEntityId: `${CHAIN_ID}-9`,
+      commitmentEntityIds: [commitment.id],
+      updatedAt: 1,
+    });
     db.Commitment.set(commitment);
     db.CommitmentContributor.set(first);
     db.CommitmentContributor.set(second);

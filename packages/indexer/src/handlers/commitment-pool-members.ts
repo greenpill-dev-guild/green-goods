@@ -2,6 +2,7 @@ import type { Commitment, CommitmentContributor, PoolMemberHistory } from "envio
 
 import {
   compareCodeUnits,
+  computeRecognitionWeights,
   createCommitment,
   poolMemberId,
   poolingEntityId,
@@ -260,32 +261,16 @@ export async function reconcileRecognitionWeights(
     verifiedBps = cycle.verifiedContributionBps;
   }
 
-  const equalBase = Math.floor(equalBps / eligible.length);
-  const equalRemainder = equalBps % eligible.length;
-  const totalCredits = eligible.reduce(
-    (total, row) => total + row.approvedWorkCredits + row.evidenceCredits,
-    0
-  );
-  const verified = eligible.map((row) => {
-    const numerator = verifiedBps * (row.approvedWorkCredits + row.evidenceCredits);
-    return {
+  const weights = computeRecognitionWeights(
+    eligible.map((row) => ({
       id: row.id,
-      floor: Math.floor(numerator / totalCredits),
-      remainder: numerator % totalCredits,
       account: row.contributor,
-    };
-  });
-  const verifiedRemainder = verifiedBps - verified.reduce((total, row) => total + row.floor, 0);
-  const verifiedRemainderIds = new Set(
-    [...verified]
-      .sort(
-        (left, right) =>
-          right.remainder - left.remainder || compareCodeUnits(left.account, right.account)
-      )
-      .slice(0, verifiedRemainder)
-      .map((row) => row.id)
+      verifiedCredits: row.approvedWorkCredits + row.evidenceCredits,
+    })),
+    equalBps,
+    verifiedBps
   );
-  const equalRemainderIds = new Set(eligible.slice(0, equalRemainder).map((row) => row.id));
+  if (!weights) return;
   const eligibleIds = new Set(eligible.map((row) => row.id));
   for (const row of contributors) {
     if (!eligibleIds.has(row.id)) {
@@ -298,12 +283,8 @@ export async function reconcileRecognitionWeights(
       }
       continue;
     }
-    const verifiedRow = verified.find((candidate) => candidate.id === row.id);
-    const weight =
-      equalBase +
-      (equalRemainderIds.has(row.id) ? 1 : 0) +
-      (verifiedRow?.floor ?? 0) +
-      (verifiedRemainderIds.has(row.id) ? 1 : 0);
+    const weight = weights.get(row.id);
+    if (weight === undefined) continue;
     context.CommitmentContributor.set({
       ...row,
       recognitionWeightBps: weight,

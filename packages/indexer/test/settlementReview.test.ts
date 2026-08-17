@@ -336,4 +336,100 @@ describe("Settlement review regressions", () => {
     assert.equal(subject?.state, "CONFIRMED");
     assert.equal(subject?.attempt, 1);
   });
+
+  it("keeps cancelled disbursements terminal when an acknowledgment arrives later", async () => {
+    let db = createTestIndexer();
+    const queued = SettlementModule.DisbursementQueued.createMockEvent({
+      disbursementId: 95n,
+      commitmentId: 55n,
+      garden: address(2),
+      payoutPlanId: 0n,
+      contributor: address(6),
+      executorGarden: address(2),
+      kind: 0n,
+      fundingRoute: 0n,
+      source: address(4),
+      recipient: address(8),
+      token: address(91),
+      amount: 100n,
+      mockEventData: eventData(1),
+    });
+    const cancelled = SettlementModule.DisbursementCancelled.createMockEvent({
+      disbursementId: 95n,
+      actor: address(7),
+      cancelledFromState: 1n,
+      reasonCID: "ipfs://cancelled",
+      mockEventData: eventData(2),
+    });
+    const acknowledgment = settlementAcknowledged(hash(950), hash(951), hash(952), 95n, true, 3);
+    db = await SettlementModule.DisbursementQueued.processEvent({ event: queued, mockDb: db });
+    db = await SettlementModule.DisbursementCancelled.processEvent({
+      event: cancelled,
+      mockDb: db,
+    });
+    db = await SettlementModule.SettlementAcknowledged.processEvent({
+      event: acknowledgment,
+      mockDb: db,
+    });
+
+    assert.equal((await db.Disbursement.get(`${CHAIN_ID}-95`))?.state, "CANCELLED");
+    assert.equal((await db.SettlementSubjectState.get(`${CHAIN_ID}-D-95`))?.state, "CANCELLED");
+  });
+
+  it("does not let stranded-subject failure regress confirmed children", async () => {
+    let db = createTestIndexer();
+    const executionKey = hash(960);
+    const commandMessageId = hash(961);
+    const queued = SettlementModule.DisbursementQueued.createMockEvent({
+      disbursementId: 96n,
+      commitmentId: 56n,
+      garden: address(2),
+      payoutPlanId: 0n,
+      contributor: address(6),
+      executorGarden: address(2),
+      kind: 0n,
+      fundingRoute: 0n,
+      source: address(4),
+      recipient: address(8),
+      token: address(91),
+      amount: 100n,
+      mockEventData: eventData(1),
+    });
+    const dispatched = settlementCommand(
+      "SettlementCommandDispatched",
+      executionKey,
+      commandMessageId,
+      96n,
+      0n,
+      2
+    );
+    const confirmed = settlementAcknowledged(
+      executionKey,
+      hash(962),
+      commandMessageId,
+      96n,
+      true,
+      3
+    );
+    const stranded = SettlementModule.StrandedSubjectFailed.createMockEvent({
+      executionKey,
+      isBatch: false,
+      subjectId: 96n,
+      retiredExecutor: address(80),
+      mockEventData: eventData(4),
+    });
+    db = await SettlementModule.DisbursementQueued.processEvent({ event: queued, mockDb: db });
+    db = await SettlementModule.SettlementCommandDispatched.processEvent({
+      event: dispatched,
+      mockDb: db,
+    });
+    db = await SettlementModule.SettlementAcknowledged.processEvent({
+      event: confirmed,
+      mockDb: db,
+    });
+    db = await SettlementModule.StrandedSubjectFailed.processEvent({ event: stranded, mockDb: db });
+
+    assert.equal((await db.Disbursement.get(`${CHAIN_ID}-96`))?.state, "CONFIRMED");
+    assert.equal((await db.SettlementSubjectState.get(`${CHAIN_ID}-D-96`))?.state, "CONFIRMED");
+  });
 });

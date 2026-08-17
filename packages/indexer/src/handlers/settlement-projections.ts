@@ -1,5 +1,6 @@
 import type {
   CommitmentPayoutPlan,
+  CommitmentFunding,
   Disbursement,
   SettlementConfiguration,
   SettlementExecution,
@@ -74,6 +75,17 @@ export function settlementGardenRouteId(chainId: number, garden: string): string
 export function optionalAddress(value: string): string | undefined {
   const normalized = normalizeAddress(value);
   return normalized === ZERO_ADDRESS ? undefined : normalized;
+}
+
+export function derivedFundingState(funding: CommitmentFunding): CommitmentFunding["state"] {
+  if (funding.state === "REFUNDED") return "REFUNDED";
+  if (funding.withdrawBlockNumber !== undefined) return "WITHDRAWN";
+  if (funding.refundDisbursementId !== undefined) return "REFUND_QUEUED";
+  if (funding.closedAt !== undefined) return "CLOSED";
+  if (funding.consumeBlockNumber !== undefined) return "CONSUMED";
+  if (funding.depositBlockNumber !== undefined) return "DEPOSIT_RECORDED";
+  if (funding.pledgeSeen) return "PLEDGED";
+  return "UNKNOWN";
 }
 
 export function disbursementKind(kind: bigint): Disbursement["kind"] {

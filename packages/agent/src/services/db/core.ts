@@ -24,12 +24,14 @@ import * as idempotency from "./idempotency";
 import { type ClaimIdempotencyInput, type IdempotencyRecord } from "./idempotency";
 import * as pendingWork from "./pending-work";
 import * as profileAvatars from "./profile-avatars";
+import * as savedOffers from "./saved-offers";
 import { initSchema } from "./schema";
 import * as sessions from "./sessions";
 import * as users from "./users";
 import type { FundingIntentRecord } from "../funding-intents";
 import type { ProfileAvatarRecord } from "@green-goods/shared/profile-avatar/protocol";
 import type { Address } from "@green-goods/shared/types";
+import type { SavedOfferCipher } from "../saved-offers";
 
 // ============================================================================
 // DATABASE CLASS
@@ -223,6 +225,31 @@ class DB {
   }
 
   // ===========================================================================
+  // SAVED OFFERS
+  // ===========================================================================
+
+  async listSavedOffers(cipher: SavedOfferCipher, chainId: number, owner: Address) {
+    return savedOffers.listSavedOffers(this.db, cipher, chainId, owner);
+  }
+
+  async getSavedOffer(
+    cipher: SavedOfferCipher,
+    chainId: number,
+    owner: Address,
+    savedOfferId: string
+  ) {
+    return savedOffers.getSavedOffer(this.db, cipher, chainId, owner, savedOfferId);
+  }
+
+  async compareAndSwapSavedOffer(cipher: SavedOfferCipher, input: savedOffers.SavedOfferCasInput) {
+    return savedOffers.compareAndSwapSavedOffer(this.db, cipher, input);
+  }
+
+  async tombstoneSavedOffer(input: Parameters<typeof savedOffers.tombstoneSavedOffer>[1]) {
+    return savedOffers.tombstoneSavedOffer(this.db, input);
+  }
+
+  // ===========================================================================
   // LIFECYCLE
   // ===========================================================================
 
@@ -323,6 +350,21 @@ export const compareAndSwapProfileAvatar = (input: {
   expectedVersion: number;
   updatedAt: string;
 }) => getDB().compareAndSwapProfileAvatar(input);
+
+export const listSavedOffers = (cipher: SavedOfferCipher, chainId: number, owner: Address) =>
+  getDB().listSavedOffers(cipher, chainId, owner);
+export const getSavedOffer = (
+  cipher: SavedOfferCipher,
+  chainId: number,
+  owner: Address,
+  savedOfferId: string
+) => getDB().getSavedOffer(cipher, chainId, owner, savedOfferId);
+export const compareAndSwapSavedOffer = (
+  cipher: SavedOfferCipher,
+  input: savedOffers.SavedOfferCasInput
+) => getDB().compareAndSwapSavedOffer(cipher, input);
+export const tombstoneSavedOffer = (input: Parameters<typeof savedOffers.tombstoneSavedOffer>[1]) =>
+  getDB().tombstoneSavedOffer(input);
 
 export const closeDB = async () => {
   if (!_db) return;

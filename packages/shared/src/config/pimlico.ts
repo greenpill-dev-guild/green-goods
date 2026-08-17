@@ -12,7 +12,23 @@ const PIMLICO_API_ENDPOINTS = {
   11155111: "https://api.pimlico.io/v2/11155111/rpc", // Sepolia
   42161: "https://api.pimlico.io/v2/42161/rpc", // Arbitrum
   42220: "https://api.pimlico.io/v2/42220/rpc", // Celo
+  421614: "https://api.pimlico.io/v2/421614/rpc", // Arbitrum Sepolia mechanics profile
+  11142220: "https://api.pimlico.io/v2/11142220/rpc", // Celo Sepolia mechanics profile
 } as const;
+
+const arbitrumSepoliaProfileChain = {
+  id: 421614,
+  name: "Arbitrum Sepolia",
+  nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
+  rpcUrls: { default: { http: [PIMLICO_API_ENDPOINTS[421614]] } },
+} as const satisfies Chain;
+
+const celoSepoliaProfileChain = {
+  id: 11142220,
+  name: "Celo Sepolia",
+  nativeCurrency: { name: "CELO", symbol: "CELO", decimals: 18 },
+  rpcUrls: { default: { http: [PIMLICO_API_ENDPOINTS[11142220]] } },
+} as const satisfies Chain;
 
 export function getPimlicoApiKey(): string {
   const apiKey = ENV.VITE_PIMLICO_API_KEY;
@@ -51,6 +67,10 @@ function getPimlicoChain(chainId: number): Chain {
       return mainnet;
     case 11155111:
       return sepolia;
+    case 421614:
+      return arbitrumSepoliaProfileChain;
+    case 11142220:
+      return celoSepoliaProfileChain;
     default:
       throw new Error(`Unsupported chain ID for Pimlico: ${chainId}`);
   }
@@ -72,7 +92,10 @@ export function createPimlicoClientForChain(chainId: number) {
 
 export function createPublicClientForChain(chainId: number) {
   const chain = getPimlicoChain(chainId);
-  const rpcUrl = getRpcUrl(chainId, ENV.VITE_ALCHEMY_API_KEY);
+  const rpcUrl =
+    chainId === 421614 || chainId === 11142220
+      ? getPimlicoBundlerUrl(chainId)
+      : getRpcUrl(chainId, ENV.VITE_ALCHEMY_API_KEY);
 
   return createPublicClient({
     transport: http(rpcUrl),

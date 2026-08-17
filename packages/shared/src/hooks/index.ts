@@ -114,11 +114,11 @@ export type { CreateAssessmentForm } from "./assessment/useCreateAssessmentWorkf
 // ============================================================================
 export { useCreateAssessmentWorkflow } from "./assessment/useCreateAssessmentWorkflow";
 export { useGardenAssessments } from "./assessment/useGardenAssessments";
+export * from "./commitment-pooling";
 // ============================================================================
 // AUTH
 // ============================================================================
 export type { AuthActionsValue, AuthContextType, AuthMode, AuthStateValue } from "./auth/useAuth";
-// Compatibility exports
 // Prefer useAuthState/useAuthActions in new code.
 export { useAuth, useAuthActions, useAuthContext, useAuthState } from "./auth/useAuth";
 export { getPrimaryAddress, usePrimaryAddress } from "./auth/usePrimaryAddress";

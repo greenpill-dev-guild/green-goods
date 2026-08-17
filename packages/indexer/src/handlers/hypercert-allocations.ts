@@ -3,7 +3,6 @@ import type {
   CommitmentContributor,
   CommitmentContributorIndex,
   CommitmentCycle,
-  CommitmentPool,
   Hypercert,
   HypercertCommitmentContributorAllocation,
   NeedCommitmentIndex,
@@ -11,6 +10,7 @@ import type {
 
 import {
   compareCodeUnits,
+  computeRecognitionWeights,
   createCommitment,
   poolingEntityId,
   sortedUnique,
@@ -69,47 +69,17 @@ async function contributorWeights(
   if (active.length !== commitment.frozenContributorCount) return undefined;
   const eligible = active.filter((row) => row.approvedWorkCredits + row.evidenceCredits > 0);
   if (eligible.length === 0) return [];
-  const equalBps =
-    cycle.equalParticipationBps + cycle.verifiedContributionBps === 10_000
-      ? cycle.equalParticipationBps
-      : 2_000;
-  const verifiedBps = 10_000 - equalBps;
-  const equalBase = Math.floor(equalBps / eligible.length);
-  const equalRemainderIds = new Set(
-    eligible.slice(0, equalBps % eligible.length).map((row) => row.id)
-  );
-  const totalCredits = eligible.reduce(
-    (total, row) => total + row.approvedWorkCredits + row.evidenceCredits,
-    0
-  );
-  const verified = eligible.map((row) => {
-    const numerator = verifiedBps * (row.approvedWorkCredits + row.evidenceCredits);
-    return {
+  const weights = computeRecognitionWeights(
+    eligible.map((row) => ({
       id: row.id,
       account: row.contributor,
-      floor: Math.floor(numerator / totalCredits),
-      remainder: numerator % totalCredits,
-    };
-  });
-  const verifiedRemainder = verifiedBps - verified.reduce((total, row) => total + row.floor, 0);
-  const verifiedRemainderIds = new Set(
-    [...verified]
-      .sort(
-        (left, right) =>
-          right.remainder - left.remainder || compareCodeUnits(left.account, right.account)
-      )
-      .slice(0, verifiedRemainder)
-      .map((row) => row.id)
+      verifiedCredits: row.approvedWorkCredits + row.evidenceCredits,
+    })),
+    cycle.equalParticipationBps,
+    cycle.verifiedContributionBps
   );
-  return eligible.map((row) => {
-    const verifiedRow = verified.find((candidate) => candidate.id === row.id);
-    const weight =
-      equalBase +
-      (equalRemainderIds.has(row.id) ? 1 : 0) +
-      (verifiedRow?.floor ?? 0) +
-      (verifiedRemainderIds.has(row.id) ? 1 : 0);
-    return { row, weight };
-  });
+  if (!weights) return undefined;
+  return eligible.map((row) => ({ row, weight: weights.get(row.id) ?? 0 }));
 }
 
 async function expandCommitmentAllocations(
@@ -247,14 +217,11 @@ export async function reconcileCommitmentHypercerts(
 
 export async function reconcilePoolCommitmentHypercerts(
   context: HypercertAllocationContext,
-  pool: CommitmentPool,
-  cycleId: bigint,
+  commitmentEntityIds: readonly string[],
   timestamp: number
 ): Promise<void> {
-  for (const commitmentEntityId of pool.childCommitmentEntityIds) {
+  for (const commitmentEntityId of commitmentEntityIds) {
     const commitment = await context.Commitment.get(commitmentEntityId);
-    if (commitment?.cycleId === cycleId) {
-      await reconcileCommitmentHypercerts(context, commitment, timestamp);
-    }
+    if (commitment) await reconcileCommitmentHypercerts(context, commitment, timestamp);
   }
 }

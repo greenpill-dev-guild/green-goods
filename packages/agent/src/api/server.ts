@@ -27,6 +27,8 @@ import { registerSubscribeRoutes } from "./routes/subscribe";
 import { registerUploadSignRoutes } from "./routes/upload-sign";
 import { registerProfileAvatarRoutes } from "./routes/profile-avatars";
 import { createSqliteProfileAvatarStore } from "../services/profile-avatars";
+import { registerSavedOfferRoutes } from "./routes/saved-offers";
+import { bindPublicRequestPeerIp } from "./public-protection";
 
 const log = loggers.api;
 
@@ -126,6 +128,11 @@ export function createServer(deps: ServerDeps, _config?: Partial<ServerConfig>):
     ...routeContext,
     profileAvatarStore: deps.profileAvatarStore ?? createSqliteProfileAvatarStore(),
   });
+  registerSavedOfferRoutes(app, {
+    ...routeContext,
+    savedOfferStore: deps.savedOfferStore,
+    savedOffersSessionStore: deps.savedOffersSessionStore,
+  });
 
   const fundingRouteContext: FundingRouteContext = {
     deps,
@@ -149,7 +156,11 @@ export async function startServer(app: AgentServer, config: ServerConfig): Promi
     const server = Bun.serve({
       port: config.port,
       hostname: config.host || "0.0.0.0",
-      fetch: app.fetch,
+      fetch(request, bunServer) {
+        const peerIp = bunServer.requestIP(request)?.address;
+        if (peerIp) bindPublicRequestPeerIp(request, peerIp);
+        return app.fetch(request);
+      },
     });
     runningServers.set(app, server);
     log.info({ port: config.port, host: config.host }, "Server listening");

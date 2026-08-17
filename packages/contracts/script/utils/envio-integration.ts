@@ -93,6 +93,7 @@ const CELO_INDEXER_MANAGED_CONTRACT_ORDER = ["CeloSettlementExecutor"] as const;
 const DYNAMICALLY_REGISTERED_CONTRACTS = new Set<string>(["OctantVault"]);
 
 const ZERO_ADDRESS_LITERAL = "0x0000000000000000000000000000000000000000";
+const PINNED_POOLING_CONTRACTS = new Set<string>(["CommitmentPoolingModule", "CommitmentRegistry"]);
 
 export interface ApplyDeploymentToChainParams {
   chains: EnvioChain[];
@@ -122,6 +123,27 @@ export function applyDeploymentToEnvioChains({
   const managedContractOrder =
     chainId === CELO_CHAIN_ID ? CELO_INDEXER_MANAGED_CONTRACT_ORDER : INDEXER_MANAGED_CONTRACT_ORDER;
   const managedContracts = new Set<string>(managedContractOrder);
+
+  for (const name of PINNED_POOLING_CONTRACTS) {
+    const existingMatches = (existingChain?.contracts ?? []).filter((contract) => contract.name === name);
+    if (existingMatches.length > 1) {
+      throw new Error(`Chain ${chainId} contains duplicate ${name} entries`);
+    }
+
+    const deploymentAddress =
+      name === "CommitmentPoolingModule" ? deployment.commitmentPoolingModule : deployment.commitmentRegistry;
+    const existingAddress = existingMatches[0]?.address;
+    if (
+      deploymentAddress &&
+      deploymentAddress !== ZERO_ADDRESS_LITERAL &&
+      existingAddress &&
+      existingAddress.toLowerCase() !== deploymentAddress.toLowerCase()
+    ) {
+      throw new Error(
+        `Chain ${chainId} refuses ${name} address replacement: ${existingAddress} -> ${deploymentAddress}`,
+      );
+    }
+  }
 
   // Never move an already-configured start block: rewinding it would force a full replay,
   // and advancing it would silently skip history.

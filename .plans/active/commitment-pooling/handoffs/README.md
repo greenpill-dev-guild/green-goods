@@ -4,7 +4,7 @@ These files are the lane-level dispatch surfaces for .plans/active/commitment-po
 
 ## File index
 
-All 23 files in this directory. The plan hub's document map points here for the enumeration, so
+All 24 files in this directory. The plan hub's document map points here for the enumeration, so
 **a new handoff must get a row below in the same change** — this file previously described source
 order only, and a reader following the map could miss an active dispatch surface entirely.
 
@@ -12,8 +12,9 @@ order only, and a reader following the map could miss an active dispatch surface
 |---|---|---|---|
 | `README.md` | This index, the required handoff contract, the Linear boundary, and the shared safety rules that bind every lane | — | Always in force |
 | `codex-contracts.md` | Pooling module + register + resolver/schema contract work (PRD-721) | Codex | Backend lane 1 — the other two wait on it |
-| `codex-indexer.md` | Envio entities, handlers, replay/reverse-delivery fixtures (PRD-722) | Codex | Depends on frozen pooling events |
-| `codex-state-api.md` | Shared domain types, selectors, hooks, mutations, six offline job kinds (PRD-723) | Codex | Depends on core indexer GREEN |
+| `codex-indexer.md` | Envio entities, handlers, replay/reverse-delivery fixtures (PRD-722) | Codex | Source GREEN; hosted deployment/read-back remains human-owned |
+| `codex-state-api.md` | Shared domain types, selectors, hooks, mutations, six offline job kinds (PRD-723) | Codex | Source GREEN; runtime capability remains fail-closed pending hosted read-back |
+| `commitment-pooling-query-contract.md` | PRD-723 entity/query contract, selector inventory, availability gate, and settlement extension | Codex | Accepted and implemented in source |
 | `codex-settlement.md` | G$ split-state settlement: CCIP command module, Celo executor, acknowledgment | Codex | Separate later slice; not a core-pooling dependency |
 | `codex-release-engineering.md` | Phase A manifest, deployment/recovery tooling, courier, and verification | Codex | Active; no broadcast or Linear writes |
 | `fable-phase-a-release-review.md` | Final combined Phase A committed-range adversarial review | Fable 5 | Dispatched against `de7863391`; refresh required after candidate changes |

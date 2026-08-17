@@ -1,7 +1,8 @@
-import { indexer, type Disbursement } from "envio";
+import { indexer, type CommitmentFunding, type Disbursement } from "envio";
 
 import {
   configurationId,
+  derivedFundingState,
   disbursementId,
   payoutStatus,
   settlementBatchId,
@@ -20,6 +21,7 @@ function acknowledgmentWins(
   currentAttempt: number,
   currentState: Disbursement["state"]
 ): boolean {
+  if (currentState === "CANCELLED") return false;
   if (attempt !== currentAttempt) return attempt > currentAttempt;
   return currentState !== "CONFIRMED" || nextState === "CONFIRMED";
 }
@@ -42,10 +44,10 @@ indexer.onEvent(
       context.SettlementConfiguration.get(configurationId(event.chainId)),
     ]);
     const attempt = commandIndex?.attempt ?? currentSubject?.attempt ?? 0;
-    if (
+    const subjectWins =
       !currentSubject ||
-      acknowledgmentWins(attempt, nextState, currentSubject.attempt, currentSubject.state)
-    ) {
+      acknowledgmentWins(attempt, nextState, currentSubject.attempt, currentSubject.state);
+    if (subjectWins) {
       context.SettlementSubjectState.set({
         id: subjectEntityId,
         chainId: event.chainId,
@@ -63,7 +65,10 @@ indexer.onEvent(
         updatedAt: Math.max(currentSubject?.updatedAt ?? 0, event.block.timestamp),
       });
     }
-    if (commandIndex) {
+    if (
+      commandIndex &&
+      acknowledgmentWins(attempt, nextState, commandIndex.attempt, commandIndex.state)
+    ) {
       context.SettlementCommandIndex.set({
         ...commandIndex,
         state: nextState,
@@ -128,11 +133,14 @@ indexer.onEvent(
       if (existing.kind === "REFUND" && existing.fundingEntityId) {
         const funding = await context.CommitmentFunding.get(existing.fundingEntityId);
         if (funding) {
-          context.CommitmentFunding.set({
+          const nextFunding = {
             ...funding,
-            state: event.params.success ? "REFUNDED" : "REFUND_QUEUED",
             closedAt: event.params.success ? event.block.timestamp : funding.closedAt,
             updatedAt: Math.max(funding.updatedAt, event.block.timestamp),
+          } satisfies CommitmentFunding;
+          context.CommitmentFunding.set({
+            ...nextFunding,
+            state: event.params.success ? "REFUNDED" : derivedFundingState(nextFunding),
           });
         }
       }
@@ -257,6 +265,12 @@ indexer.onEvent(
     ]);
     const attempt = commandIndex?.attempt ?? currentSubject?.attempt ?? 0;
     const commandMessageId = commandIndex?.commandMessageId ?? currentSubject?.commandMessageId;
+    if (
+      currentSubject &&
+      !acknowledgmentWins(attempt, "FAILED", currentSubject.attempt, currentSubject.state)
+    ) {
+      return;
+    }
     context.SettlementSubjectState.set({
       id: subjectEntityId,
       chainId: event.chainId,
@@ -286,6 +300,7 @@ indexer.onEvent(
 
     const planDeltas = new Map<string, { confirmed: number; failed: number }>();
     const failChild = (existing: Disbursement) => {
+      if (!acknowledgmentWins(attempt, "FAILED", existing.attempt, existing.state)) return;
       if (existing.payoutPlanEntityId) {
         const current = planDeltas.get(existing.payoutPlanEntityId) ?? { confirmed: 0, failed: 0 };
         current.confirmed -= existing.state === "CONFIRMED" ? 1 : 0;
@@ -309,7 +324,7 @@ indexer.onEvent(
       const batch = await context.SettlementBatch.get(
         settlementBatchId(event.chainId, event.params.subjectId)
       );
-      if (batch) {
+      if (batch && acknowledgmentWins(attempt, "FAILED", batch.attempt, batch.state)) {
         context.SettlementBatch.set({
           ...batch,
           state: "FAILED",

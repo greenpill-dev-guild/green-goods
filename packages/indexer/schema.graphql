@@ -563,8 +563,8 @@ type CommitmentPool {
   openSeasonLogIndex: Int # nullable cursor partner for the singleton open Season relationship
   openCampaignIds: [BigInt!]! # event-derived raw identifiers; never enumerated on-chain
   openCampaignEntityIds: [String!]! # relationship IDs in matching order
-  childCycleEntityIds: [String!]! # bounded reverse join for late PoolRegistered garden hydration
-  childCommitmentEntityIds: [String!]! # bounded reverse join for late PoolRegistered garden hydration
+  childCycleEntityIds: [String!]! # temporary reverse join for late PoolRegistered garden hydration; cleared at registration
+  childCommitmentEntityIds: [String!]! # temporary reverse join for late PoolRegistered garden hydration; cleared at registration
   providerOpenCommitmentCap: BigInt!
   liveCommitmentCount: BigInt! # every non-terminal pool commitment, including cycle-less
   nonTerminalCycleCount: BigInt! # Seeded/Open/Reconciled cycles; zero before pool close
@@ -632,6 +632,17 @@ type CommitmentCycle {
   commitmentsDue: BigInt!
   openCommitmentCount: BigInt!
   createdAt: Int # CycleSeeded timestamp; null until seedSeen
+  updatedAt: Int!
+}
+
+# Handler-internal lookup companion. Cycle-wide reconciliation reads this
+# cycle-scoped set instead of scanning every commitment ever created in the pool.
+type CommitmentCycleCommitmentIndex {
+  id: ID! # chainId-cycleId
+  chainId: Int!
+  cycleId: BigInt!
+  cycleEntityId: String!
+  commitmentEntityIds: [String!]! # unique IDs in numeric commitment order
   updatedAt: Int!
 }
 
@@ -771,7 +782,6 @@ type Commitment {
   memberHistoryOutcome: CommitmentOnchainState # nullable lead terminal bucket currently applied
   fulfilledContributorHistoryAccounts: [String!]! # reversible participant-history set currently applied
   fulfilledReceiverHistoryAccount: String # reversible receivedFulfilled account currently applied
-  contributorEntityIds: [String!]!
   countedLifecycleStates: [CommitmentOnchainState!]! # lifetime pool/cycle counters applied once per milestone
   unitLabel: String # null until creationSeen
   targetUnits: BigInt # null until creationSeen
@@ -1322,6 +1332,7 @@ type Hypercert {
   attestationCount: Int!
   attestationUIDs: [String!]! # EAS attestation UIDs bundled into this hypercert
   bundleKind: HypercertBundleKind!
+  metadataReconciliationRequired: Boolean! # true when ClaimStored metadata could not be fetched after bounded retries
   commitmentIds: [BigInt!]!
   commitmentEntityIds: [String!]!
   needUIDs: [String!]!

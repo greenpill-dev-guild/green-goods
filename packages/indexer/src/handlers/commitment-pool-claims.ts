@@ -14,7 +14,12 @@ import {
   type MemberHistoryCounter,
   reconcileMemberHistory,
 } from "./commitment-pool-members";
-import { type PoolingContext, type RuntimeEvent, value } from "./commitment-pool-runtime";
+import {
+  optionalAddress,
+  type PoolingContext,
+  type RuntimeEvent,
+  value,
+} from "./commitment-pool-runtime";
 import { applyLifecycleState } from "./commitment-pool-state";
 import { getTxHash, normalizeAddress } from "./shared";
 
@@ -63,10 +68,16 @@ export async function handleClaimEvent(
   const requested = event.eventName === "ClaimRequested";
   const requestPayloadWins = requested && (rowWins || !(existing?.requestSeen ?? false));
   const gardenContext = requestPayloadWins
-    ? normalizeAddress(value<string>(event, "gardenContext"))
+    ? optionalAddress(event, "gardenContext")
     : existing?.gardenContext;
+  const newerDecline = !requested && rowWins;
   const settledState =
-    existing?.state === "ACCEPTED" || existing?.state === "SUPERSEDED" ? existing.state : undefined;
+    !newerDecline &&
+    (existing?.state === "ACCEPTED" ||
+      existing?.state === "SUPERSEDED" ||
+      (!rowWins && existing?.state === "DECLINED"))
+      ? existing.state
+      : undefined;
   const nextState: CommitmentClaimRequest["state"] = settledState
     ? settledState
     : requested
@@ -80,11 +91,15 @@ export async function handleClaimEvent(
             ? "PENDING"
             : (existing?.state ?? "PENDING")
       : acceptanceIsNewer
-        ? commitment.counterparty === claimant
-          ? "ACCEPTED"
-          : "SUPERSEDED"
+        ? rowWins
+          ? "DECLINED"
+          : commitment.counterparty === claimant
+            ? "ACCEPTED"
+            : "SUPERSEDED"
         : terminalIsNewer
-          ? "SUPERSEDED"
+          ? rowWins
+            ? "DECLINED"
+            : "SUPERSEDED"
           : rowWins
             ? "DECLINED"
             : (existing?.state ?? "DECLINED");
@@ -128,17 +143,19 @@ export async function handleClaimEvent(
     resolvedAt:
       nextState === "PENDING"
         ? undefined
-        : (existing?.resolvedAt ??
-          (nextState === "ACCEPTED"
-            ? commitment.acceptanceAt
-            : nextState === "SUPERSEDED"
-              ? terminalIsNewer
-                ? terminalResolutionCode === "COMMITMENT_CANCELLED"
-                  ? commitment.cancelledAt
-                  : commitment.expiredAt
-                : commitment.acceptanceAt
-              : undefined) ??
-          event.block.timestamp),
+        : nextState === "DECLINED" && newerDecline
+          ? event.block.timestamp
+          : (existing?.resolvedAt ??
+            (nextState === "ACCEPTED"
+              ? commitment.acceptanceAt
+              : nextState === "SUPERSEDED"
+                ? terminalIsNewer
+                  ? terminalResolutionCode === "COMMITMENT_CANCELLED"
+                    ? commitment.cancelledAt
+                    : commitment.expiredAt
+                  : commitment.acceptanceAt
+                : undefined) ??
+            event.block.timestamp),
     updatedAt: Math.max(existing?.updatedAt ?? 0, event.block.timestamp),
   };
   context.CommitmentClaimRequest.set(request);
@@ -261,8 +278,8 @@ export async function handleAccepted(event: RuntimeEvent, context: PoolingContex
   const commitmentId = value<bigint>(event, "commitmentId");
   const commitment = await getCommitment(event, context, commitmentId);
   const claimant = normalizeAddress(value<string>(event, "claimant"));
-  const providerGarden = normalizeAddress(value<string>(event, "providerGarden"));
-  const payerGarden = normalizeAddress(value<string>(event, "payerGarden"));
+  const providerGarden = optionalAddress(event, "providerGarden");
+  const payerGarden = optionalAddress(event, "payerGarden");
   let accepted = await applyLifecycleState(
     context,
     commitment,

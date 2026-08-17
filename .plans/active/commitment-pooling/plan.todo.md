@@ -2,9 +2,9 @@
 
 **Feature Slug**: `commitment-pooling`
 **Stage**: `active`
-**Status**: `ACTIVE: Offer once/over-time architecture remains the initial implementation scope, and the full Commitment Pooling compatibility boundary is now frozen pre-code: promise instance, ongoing Offer series, and future voucher class stay distinct; fulfilled backing precedes capacity backing; one bounded pool precedes federation; G$ support remains separate from redemption. The canonical six-tab Google Doc prose reconciliation is complete, accepted, and verified after reload. Live gallery republication and every image replacement/insertion remain manual publication steps. Contracts (PRD-721, dispatched 2026-08-05) and settlement (dispatched 2026-08-08) are in progress per status.json, with the pooling module and settlement contracts merged to develop — the 2026-08-10 audit verified all prototype-declared calls exist on-chain under exact names (58 including register #97's `acceptExchange`). Indexer carries the settlement/payout half only (no core pooling entities yet); state-api, ui-client, ui-admin, and editorial remain unstarted. Value release, Safe authority, audit, canary, and external evidence remain separately blocked`
+**Status**: `ACTIVE: Pooling contracts and the complete pooling indexer read model are merged to develop. PRD-723 source implementation and local proof are complete. The hosted indexer still requires a manual Envio deploy, fresh full sync, and read-back before pooling queries become available; settlement/Celo selectors, client, admin, and editorial implementation remain gated. Value release, Safe authority, audit, canary, and external evidence remain separately blocked.`
 **Created**: `2026-07-03`
-**Last Updated**: `2026-08-13`
+**Last Updated**: `2026-08-16`
 
 Linear mirror: project [Commitment Pooling](https://linear.app/greenpill-dev-guild/project/commitment-pooling-4bc53572f354). Native phases: **Scope and Design** (2026-07-22), **Build** (2026-07-31), **Release** (2026-08-12), and **Follow On / Hardening** (2026-09-30). Operational checkpoints are separate: July dry run (2026-07-31) and Community plus settlement-evidence delivery (2026-09-30). **The full document map is the next section.** Community-specific diagrams, wireframes, journeys, and research operations live in `.plans/active/community-interface/`. The 2026-07-10/11 reconciliation, PRD-686/RESR-57 predicate, and null PRD-651/697 dates were live-verified historical state; current Linear convergence must be reread before any write. **Fourth-garden policy (Decision Log #29, 2026-07-18 — supersedes Decision Log #25 and Decision Log #27): no fourth garden is selected.** The slot is open, candidates are under consideration, and **no artifact names one**. The three named gardens cover all four action domains on their own. The earlier Decision Log #25→Decision Log #26→Decision Log #27 naming sequence is closed history; do not re-apply it.
 
@@ -14,8 +14,8 @@ Linear mirror: project [Commitment Pooling](https://linear.app/greenpill-dev-gui
 
 ## Document map
 
-Every file in this hub, by role — **161 files**: 25 at the hub root, 42 under `artifacts/`,
-23 under `handoffs/`, 19 under `hifi/`, 20 under `operations/`, and 32 under `reports/`.
+Every file in this hub, by role — **162 files**: 25 at the hub root, 42 under `artifacts/`,
+24 under `handoffs/`, 19 under `hifi/`, 20 under `operations/`, and 32 under `reports/`.
 **This list is the index — if you add a document here, add its row.** Root files each get their own
 row; the five subtrees get one row apiece naming their own in-tree index, because the row for a
 subtree is only honest if that index actually enumerates the tree (this failed review on
@@ -66,7 +66,7 @@ subtree is only honest if that index actually enumerates the tree (this failed r
 | `reports/phase-a-release-scope-correction-2026-08-11.md` | Owner-approved Safe-policy/indexer-scope correction, one-password operator ceremony, fresh evidence, and remaining final-base blockers | **Dated correction record; grants no broadcast authority** |
 | `reports/phase-a-ownership-deferral-2026-08-11.md` | Owner-approved paused/deployer-owned endpoint, current operator enforcement, and later ownership/backfill/unpause issue acceptance | **Dated correction record; grants no broadcast authority** |
 | `status.json` | Machine state for the plan harness | Machine lanes |
-| `handoffs/` (23 files) | Per-lane dispatch files. **`handoffs/README.md` § File index enumerates all 23**; `fable-phase-a-release-review.md` owns the final pre-Phase-B independent review prompt, `claude-full-pooling-visual-docs.md` owns the additive hand-drawn Story and canonical Google Doc pass, `human-release-ops.md` owns broadcast/cutover authorization, and `human-settlement-evidence.md` owns the September operational-assignment gate | Per-lane dispatch |
+| `handoffs/` (24 files) | Per-lane dispatch files. **`handoffs/README.md` § File index enumerates all 24**; `commitment-pooling-query-contract.md` owns the PRD-723 scope-lock proposal, `fable-phase-a-release-review.md` owns the final pre-Phase-B independent review prompt, `claude-full-pooling-visual-docs.md` owns the additive hand-drawn Story and canonical Google Doc pass, `human-release-ops.md` owns broadcast/cutover authorization, and `human-settlement-evidence.md` owns the September operational-assignment gate | Per-lane dispatch |
 | `artifacts/visuals/` (42 files) | The 21 hand-crafted SVG assets and their 2x PNG upload companions. **`visual-assets.md` is the per-asset index** — it names every file, its Google Doc placement, and what it must show. Nothing here is generated by a build script; each pair is authored | Published audience graphics |
 | `hifi/` (19 files) | Executable hi-fi screen registry consumed by `prototypes-artifact.build.ts`: `screens/{client,client-wallet,admin,settlement,exchange,funding,public,index}.ts` plus `journeys.ts`, `validate.ts`, `types.ts`, `fixtures.ts`, `tokens.ts`, `player.ts`, `html.ts`, `ascii.ts`, `icons.ts`, `kit.ts`, `legacy.ts`. The closure validator asserts directly against `screens/client.ts`, `screens/admin.ts`, `screens/settlement.ts`, `journeys.ts`, `types.ts`, and `validate.ts` | **Executable state/journey truth for the prototypes** |
 | `operations/` (20 files) | Live-chain operational evidence, one directory per operation. `steward-hat-relabel/` holds the PRD-748 Steward relabel: `README.md` (its own index), the `prepare.ts` / `relabel.ts` / `refresh-direct-plan.ts` scripts, dated `preflight-*` / `steward-upgrade-baseline-*` / `direct-admin-plan-*` / `execution-partitions-*` JSON captures keyed by chain and block, plus `preflight-findings.md`, `upgrade-plan-review.md`, and `post-execution-evidence.md` | **Dated operational evidence — captures are immutable** |
@@ -1063,16 +1063,16 @@ The **Lane** column below names execution sub-lanes for planning clarity. The ha
 | CommitmentPoolingModule + CommitmentRegistry + GardenToken wiring + deploy | `contracts` | [PRD-721](https://linear.app/greenpill-dev-guild/issue/PRD-721) (historical PRD-672) | ⏳ |
 | Module-native `CommitmentSeries`, validated instance reference, direct-holder lifecycle, and honest Offer-capacity reservation | `contracts` | [PRD-788](https://linear.app/greenpill-dev-guild/issue/PRD-788) + [PRD-721](https://linear.app/greenpill-dev-guild/issue/PRD-721) | 🚧 architecture convergence |
 | Atomic bilateral Offer×Offer acceptance through `acceptExchange` with two ordinary acceptances, two already-reserved classes/slots, no second registry commit, and one marker event | `contracts` | [PRD-721](https://linear.app/greenpill-dev-guild/issue/PRD-721) + [PRD-649](https://linear.app/greenpill-dev-guild/issue/PRD-649) | ⏳ |
-| Indexer entities, handlers, four locked stats, bundleKind | `indexer` | [PRD-722](https://linear.app/greenpill-dev-guild/issue/PRD-722) (historical PRD-673) | ⏳ |
-| Series entities, per-cycle summaries, cursor-ordered Story counts, and nullable Commitment relationship | `indexer` | [PRD-788](https://linear.app/greenpill-dev-guild/issue/PRD-788) + [PRD-722](https://linear.app/greenpill-dev-guild/issue/PRD-722) | 🚧 architecture convergence |
-| Shared substrate: types, hooks, queryKeys.pools, six offline queue kinds including `commitmentSeries`, signed saved-Offer persistence, typed Kernel `0.2.4` testnet/`0.3.1` production account profiles and Sepolia Pimlico endpoints, AA-gated online wallet transfer, lightweight evidence, v3 workflow, settlement selectors | `state_api` | [PRD-723](https://linear.app/greenpill-dev-guild/issue/PRD-723) (historical PRD-674/679 shared half) | ⏳ |
+| Indexer entities, handlers, four locked stats, bundleKind | `indexer` | [PRD-722](https://linear.app/greenpill-dev-guild/issue/PRD-722) (historical PRD-673) | ✅ source complete; hosted deployment/read-back remains human-owned |
+| Series entities, per-cycle summaries, cursor-ordered Story counts, and nullable Commitment relationship | `indexer` | [PRD-788](https://linear.app/greenpill-dev-guild/issue/PRD-788) + [PRD-722](https://linear.app/greenpill-dev-guild/issue/PRD-722) | ✅ source complete |
+| Shared substrate: types, hooks, queryKeys.pools, six offline queue kinds including `commitmentSeries`, signed saved-Offer persistence, typed Kernel `0.2.4` testnet/`0.3.1` production account profiles and Sepolia Pimlico endpoints, AA-gated online wallet transfer, lightweight evidence, v3 workflow, settlement selectors | `state_api` | [PRD-723](https://linear.app/greenpill-dev-guild/issue/PRD-723) (historical PRD-674/679 shared half) | ✅ source complete; capability ledger remains fail-closed pending hosted read-back |
 | Client PWA: Garden tab pool flows, WalletDrawer panel, hero moments | `ui_client` | [PRD-724](https://linear.app/greenpill-dev-guild/issue/PRD-724) (historical PRD-675) | ⏳ |
 | Client PWA: exchange-pair picker/detail/feed/confirmation states, Offer-first template picker, and plain-language first-exposure copy (`uiux-spec.md` Appendix E; W28–W31) | `ui_client` | [PRD-724](https://linear.app/greenpill-dev-guild/issue/PRD-724) + [PRD-650](https://linear.app/greenpill-dev-guild/issue/PRD-650) | ⏳ |
 | Canonical Offer once/over-time prototype and visual-gallery pass: saved Offer metadata, finite availability, claim, Story, ask-again, rest/resume/retire, later-succession preview | `ui_client` + `ui_admin` + `editorial` | [PRD-789](https://linear.app/greenpill-dev-guild/issue/PRD-789) (Claude Code) | ✅ corrected, verified, and published 2026-08-02 |
 | Admin: Garden workspace pool console (cycles, seeding, claims, analog capture, assessment v3) | `ui_admin` | [PRD-725](https://linear.app/greenpill-dev-guild/issue/PRD-725) (historical PRD-676) | ⏳ |
 | Admin: Community workspace Pools mode + Hub confirmation queue | `ui_admin` | [PRD-725](https://linear.app/greenpill-dev-guild/issue/PRD-725) (historical PRD-677) | ⏳ |
 | Editorial: GardenDialog pool story + /impact aggregates | `editorial` | [PRD-726](https://linear.app/greenpill-dev-guild/issue/PRD-726) (historical PRD-678) | ⏳ |
-| Hypercert cut-over: fulfilled-commitment bundling + allocation presets (split ownership: shared metadata composer + selectors = `state_api`; `bundleKind`/`commitmentIds`/`needUIDs` entity fields = `indexer`; allocation step UI = `ui_admin`) | `state_api` + `indexer` + `ui_admin` | [PRD-722](https://linear.app/greenpill-dev-guild/issue/PRD-722), [PRD-723](https://linear.app/greenpill-dev-guild/issue/PRD-723), [PRD-725](https://linear.app/greenpill-dev-guild/issue/PRD-725) (historical PRD-679 split) | ⏳ |
+| Hypercert cut-over: fulfilled-commitment bundling + allocation presets (split ownership: shared metadata composer + selectors = `state_api`; `bundleKind`/`commitmentIds`/`needUIDs` entity fields = `indexer`; allocation step UI = `ui_admin`) | `state_api` + `indexer` + `ui_admin` | [PRD-722](https://linear.app/greenpill-dev-guild/issue/PRD-722), [PRD-723](https://linear.app/greenpill-dev-guild/issue/PRD-723), [PRD-725](https://linear.app/greenpill-dev-guild/issue/PRD-725) (historical PRD-679 split) | 🚧 backend complete; admin UI pending |
 | G$ split-state settlement: SettlementModule + Celo Safes + multi-chain app | `settlement` | [PRD-686](https://linear.app/greenpill-dev-guild/issue/PRD-686) | ⏳ |
 | Exact same-address GardenAccount deployment, dedicated Garden-bound relay, and direct final 2-of-3 Celo Garden Safes | `contracts` + `release_ops` | [PRD-821](https://linear.app/greenpill-dev-guild/issue/PRD-821/give-each-celo-garden-safe-its-exact-arbitrum-gardenaccount-owner) | 🚧 active plan; exact bytecode/dependency and PRD-733 recovery-owner gates open |
 | Post-QA documentation polish: glossary, architecture, data boundaries, rollout language, operator/gardener task guides, screenshots, and recovery states | `docs` | [PRD-727](https://linear.app/greenpill-dev-guild/issue/PRD-727) (historical PRD-680/681 scope consolidated after QA Pass 1) | ⏳ |
@@ -1127,9 +1127,9 @@ does not begin against moving contracts or indexer queries.
    model; Codex independently approved the published artifacts on 2026-08-02. PRD-721 remains Todo
    and manually undispatched until the corrected sources merge to `develop` and Afo explicitly
    starts contract implementation.
-5. [ ] **Build the contracts backend first (PRD-721):** execute the three contract PR chains against the frozen PRD-649 architecture. No client, admin, or editorial implementation begins in this stage.
-6. [ ] **Build the indexer backend second (PRD-722):** implement and prove the indexed read model against PRD-721's frozen events, including generation, replay/cutover, block preservation, and query-boundary evidence.
-7. [ ] **Build the state/API backend third (PRD-723):** complete the shared state/API layer against the proven PRD-721 contracts and PRD-722 generated queries. PRD-723 must close before PRD-724, PRD-725, or PRD-726 begins.
+5. [x] **Build the contracts backend first (PRD-721):** execute the three contract PR chains against the frozen PRD-649 architecture. No client, admin, or editorial implementation begins in this stage. *(Merged through PR #705.)*
+6. [x] **Build the indexer backend second (PRD-722):** implement and prove the indexed read model against PRD-721's frozen events, including generation, replay/cutover, block preservation, and query-boundary evidence. *(Merged through PR #706; the 2026-08-16 pre-deploy gap-closure pass corrected the read model before its first hosted pooling sync. Manual Envio deployment and live read-back remain human-owned.)*
+7. [x] **Build the state/API backend third (PRD-723):** complete the shared state/API layer against the proven PRD-721 contracts and PRD-722 generated queries. *(Source implementation and local proof completed 2026-08-16. Runtime availability remains fail-closed until the human-owned hosted Envio deployment/full-sync/read-back; production Saved Offers require root-environment configuration.)*
 8. [ ] **Human-authorized core activation:** pass local/fork, storage, deploy-dry-run, and post-deploy
    gates plus the risk tier in register #109. The non-value module/register/schema tier may activate
    as tier 2 only while it remains non-custodial and non-transferable, every value dependency is
@@ -1222,52 +1222,52 @@ Machine-lane ownership mirrors `status.json`: Codex owns `contracts`, `state_api
   fee, indexer, and dual-chain evidence gates passed the local independent correction review.
   Live Linear/source-document convergence remains required before implementation dispatch.
 
-### Indexer (`codex/indexer/commitment-pooling`): PRD-722 (historical label PRD-673)
+### Indexer (`feature/commitment-pooling-indexer`): PRD-722 (historical label PRD-673)
 
-- [ ] Entities, handlers, stats per the spec's fenced definitions; Envio regeneration preserves all new blocks; the existing normalized bare-address `Garden.id` and its foreign keys remain unchanged while new pooling entities use their own chain-scoped composite IDs; generic audit actor stays nullable unless explicit; `bun codegen` clean
-- [ ] Add `CommitmentSeries` and `CommitmentSeriesCycleSummary`, nullable Commitment relationships,
+- [x] Entities, handlers, stats per the spec's fenced definitions; Envio regeneration preserves all new blocks; the existing normalized bare-address `Garden.id` and its foreign keys remain unchanged while new pooling entities use their own chain-scoped composite IDs; generic audit actor stays nullable unless explicit; `bun codegen` clean
+- [x] Add `CommitmentSeries` and `CommitmentSeriesCycleSummary`, nullable Commitment relationships,
   independent latest-wins pool/cycle/series/commitment lifecycle cursors, an independent latest-wins
   `ConfirmerRuleSet` block/log cursor, exact fulfilled-cycle IDs, and reverse-delivery replay
   fixtures; derive no score, rate, rank, participant count, or cross-pool grouping
-- [ ] Implement all 26 matrix entities and their independent replay policies: pool charter/cap,
+- [x] Implement all 28 consumer-contract entities and their independent replay policies, plus the handler-internal per-cycle commitment index: pool charter/cap,
   reward, acceptance, claim row, contributor membership/assignment, Work link, deterministic
   relationship arrays, and signed commutative register deltas. Add reverse-delivery fixtures for
   every Matrix A row and all eight Matrix A3 sparse-event cases. Use `registrationSeen`,
   `seedSeen`, both `creationSeen` flags, `requestSeen`, `additionSeen`, and `linkSeen` with nullable
   base-only facts and independent nullable series cursors. Include ClaimDeclined-before-
   ClaimRequested, proving the older request fills payload without reviving Pending.
-- [ ] Record RED/GREEN proof (scripted event-sequence test) before marking complete
+- [x] Record RED/GREEN proof (scripted event-sequence test) before marking complete
 - [x] Write `handoffs/codex-indexer.md`
-- [ ] Dispatch core indexing when pooling events freeze; hold only settlement handlers for settlement event freeze. Record snapshot, switch criterion, rollback package, and Afolabi Aiyeloja as accountable live-cutover owner
+- [x] Dispatch core indexing when pooling events freeze; hold only settlement handlers for settlement event freeze. Record snapshot, switch criterion, rollback package, and Afolabi Aiyeloja as accountable live-cutover owner. *(Source implementation is complete; manual hosted deployment, fresh sync, and live read-back remain with the accountable human owner.)*
 - [x] Rehearsal target settled 2026-08-06: Arbitrum One fork, not `421614`. Hats has no Arbitrum
       Sepolia deployment; `test/fork/ArbitrumCommitmentPooling.t.sol` runs the full runbook against
       live Hats/EAS/WorkApprovalResolver and passes 7/7.
-- [ ] Planning readiness: self-describing unit events, `421614` placement (since withdrawn 2026-08-06 — Arbitrum One fork rehearsal), canonical settlement
+- [x] Planning readiness: self-describing unit events, `421614` placement (since withdrawn 2026-08-06 — Arbitrum One fork rehearsal), canonical settlement
   ERD, the Envio `3.2.1` multichain/replay behavior proven by merged PR #649 (`8fd89e660` on
   `develop`), first-event seeds, and Celo RPC mode are frozen locally;
-  mirror convergence and event freeze still gate dispatch.
+  mirror convergence and event freeze were satisfied for source implementation. Hosted Envio activation remains a separate manual release step.
 
-### State / API (`codex/state-api/commitment-pooling`): PRD-723 (historical labels PRD-674/679 shared half)
+### State / API (`feature/commitment-pooling-api-modules`): PRD-723 (historical labels PRD-674/679 shared half)
 
-- [ ] Hooks, stores, query keys, six offline queue kinds (`commitmentSeries`, `commitment`, `claim`, `evidence`, `workLink`, `confirmation`) plus an online-only wallet `transfer` capability that remains disabled unless the AA gate passes; hooks stay in shared
-- [ ] Add signed offchain saved-Offer persistence, private-by-default use/linking, stable
+- [x] Hooks, stores, query keys, six offline queue kinds (`commitmentSeries`, `commitment`, `claim`, `evidence`, `workLink`, `confirmation`) plus an online-only wallet `transfer` capability that remains disabled unless the AA gate passes; hooks stay in shared
+- [x] Add signed offchain saved-Offer persistence, private-by-default use/linking, stable
   `clientSeriesId` dependency materialization, series mutations/selectors, and truthful Story/
   availability derivations. Implement `LOCAL_DRAFT`, `SAVING_REMOTE`, `SAVED_REMOTE`,
   `SAVE_FAILED`, `OFFLINE_LOCAL`, and `VERSION_CONFLICT`; only confirmed remote persistence may
   claim Saved.
-- [ ] Add `clientCommitmentId` + creator-scoped creation-key recovery for every ordinary
+- [x] Add `clientCommitmentId` + creator-scoped creation-key recovery for every ordinary
   Commitment/place and caller-scoped operation-key recovery for Work links. Same-button retry
   reuses the same key and validates the complete immutable payload before binding.
-- [ ] Add typed exchange-pair state, `CommitmentExchange` queries, `acceptExchange` mutation,
+- [x] Add typed exchange-pair state, `CommitmentExchange` queries, `acceptExchange` mutation,
   proposed/matched/counterpart-lapsed derivation, and template/config types without adding an
   offline job kind or a new persistence system
-- [ ] Add explicit `421614`/`11142220` Pimlico endpoints and a typed account-profile registry:
+- [x] Add explicit `421614`/`11142220` Pimlico endpoints and a typed account-profile registry:
       Kernel `0.2.4` on both testnets for same-address mechanics evidence, Kernel `0.3.1` on
       Arbitrum One/Celo Mainnet for production, fail-closed profile selection, and focused
       `settlement-aa-profile.test.ts` proof that testnet evidence cannot enable gardener delivery
-- [ ] Dispatch core state/API after pooling interfaces and core indexer codegen/build; hold settlement selectors until settlement indexer GREEN. Do not record aggregate full `state-api` GREEN while the settlement phase is outstanding
-- [ ] Record RED/GREEN proof before marking complete
-- [ ] Write `handoffs/codex-state-api.md`
+- [x] Dispatch core state/API after pooling interfaces and core indexer codegen/build; settlement selectors followed only after the settlement interfaces and indexer lane were GREEN
+- [x] Record RED/GREEN proof before marking complete; branch-base absence and the 2026-08-16 focused validation receipt are recorded in `status.json` and `handoffs/codex-state-api.md`
+- [x] Write `handoffs/codex-state-api.md` and the first-deliverable entity/query contract in `handoffs/commitment-pooling-query-contract.md`
 
 ### Credit (`codex/credit/commitment-pooling`): UNBLOCKED into the August wave (register #73; PRD-697 moved to Todo with the dispatch gates recorded, 2026-08-01)
 

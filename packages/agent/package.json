@@ -10,7 +10,7 @@
     "build": "node ../../scripts/dev/node-cli.js tsc",
     "start": "APP_ENV=production bun --env-file=../../.env dist/index.js",
     "lint": "bun --bun run oxlint src --deny-warnings",
-    "test": "APP_ENV=test node ../../scripts/dev/node-cli.js vitest run && bun run test:sqlite",
+    "test": "node scripts/run-tests.mjs",
     "test:sqlite": "APP_ENV=test AGENT_SQLITE_INTEGRATION=true bun --bun run vitest run",
     "test:watch": "APP_ENV=test node ../../scripts/dev/node-cli.js vitest",
     "test:coverage": "APP_ENV=test bun scripts/run-coverage.mjs",

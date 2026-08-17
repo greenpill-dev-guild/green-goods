@@ -146,6 +146,50 @@ describe("applyDeploymentToEnvioChains", () => {
     expect(findContract(chains, "SettlementModule")?.address).toBe(ADDRESS.settlementModule);
   });
 
+  it.each([
+    "CommitmentPoolingModule",
+    "CommitmentRegistry",
+  ] as const)("rejects duplicate %s entries instead of silently collapsing them", (name) => {
+    const existing = existingArbitrumChain();
+    const canonical = existing.contracts.find((contract) => contract.name === name);
+    expect(canonical).toBeDefined();
+    existing.contracts.push({ ...canonical! });
+
+    expect(() =>
+      applyDeploymentToEnvioChains({
+        chains: [existing],
+        chainId: ARBITRUM,
+        deployment: {
+          actionRegistry: ADDRESS.actionRegistry,
+          gardenToken: ADDRESS.gardenToken,
+          commitmentPoolingModule: ADDRESS.commitmentPoolingModule,
+          commitmentRegistry: ADDRESS.commitmentRegistry,
+        },
+        gardenAccountAddress: ADDRESS.gardenAccount,
+        fallbackStartBlock: ARBITRUM_START_BLOCK,
+      }),
+    ).toThrow(`Chain ${ARBITRUM} contains duplicate ${name} entries`);
+  });
+
+  it.each([
+    ["CommitmentPoolingModule", "commitmentPoolingModule"],
+    ["CommitmentRegistry", "commitmentRegistry"],
+  ] as const)("rejects a pinned %s address replacement", (name, deploymentKey) => {
+    expect(() =>
+      applyDeploymentToEnvioChains({
+        chains: [existingArbitrumChain()],
+        chainId: ARBITRUM,
+        deployment: {
+          actionRegistry: ADDRESS.actionRegistry,
+          gardenToken: ADDRESS.gardenToken,
+          [deploymentKey]: "0x9999999999999999999999999999999999999999",
+        },
+        gardenAccountAddress: ADDRESS.gardenAccount,
+        fallbackStartBlock: ARBITRUM_START_BLOCK,
+      }),
+    ).toThrow(`Chain ${ARBITRUM} refuses ${name} address replacement`);
+  });
+
   it("keeps deployment-driven Celo updates executor-only", () => {
     const celoChain = {
       id: 42220,

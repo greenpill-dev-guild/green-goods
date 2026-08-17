@@ -528,6 +528,10 @@ test("workflow mapping preserves exact live and intended trigger parity", () => 
     ["packages/contracts/config/schemas.json", ["Contracts", "Ontology", "Supply Chain Guardrails"]],
     ["packages/client/src/views/Home/Garden/Assessment.tsx", ["Client", "Design", "Ontology", "Supply Chain Guardrails"]],
     ["packages/indexer/schema.graphql", ["Indexer", "Ontology"]],
+    [
+      "packages/indexer/src/handlers/commitment-pool-claims.ts",
+      ["Indexer", "Ontology", "Supply Chain Guardrails"],
+    ],
     ["docs/docs/reference/ontology.generated.mdx", ["Docs", "Ontology", "Supply Chain Guardrails"]],
     ["scripts/quality/ontology-render.mjs", ["Ontology", "Supply Chain Guardrails"]],
     ["scripts/data/ontology-drift-baseline.json", ["Ontology", "Supply Chain Guardrails"]],

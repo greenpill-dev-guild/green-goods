@@ -128,4 +128,4 @@ volumes:
 
 networks:
   indexer-network:
-    name: green_goods_indexer_network
+    name: ${INDEXER_NETWORK_NAME:-green_goods_indexer_network}

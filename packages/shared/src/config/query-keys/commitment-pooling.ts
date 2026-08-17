@@ -1,0 +1,116 @@
+import type { Address } from "../../types/domain";
+
+type CommitmentFilters = Readonly<Record<string, unknown>>;
+
+function normalizeAddress(value: Address | string | undefined): string | undefined {
+  return value?.toLowerCase();
+}
+
+function stableFilters(filters: CommitmentFilters = {}): string {
+  return JSON.stringify(
+    Object.fromEntries(
+      Object.entries(filters)
+        .filter(([, value]) => value !== undefined)
+        .map(([key, value]): [string, unknown] => [
+          key,
+          typeof value === "bigint"
+            ? value.toString()
+            : typeof value === "string" && value.startsWith("0x")
+              ? value.toLowerCase()
+              : value,
+        ])
+        .sort(([left], [right]) => left.localeCompare(right))
+    )
+  );
+}
+
+export const commitmentPoolingKeys = {
+  all: (chainId: number) => ["greengoods", "commitment-pooling", chainId] as const,
+  availability: (chainId: number) =>
+    [...commitmentPoolingKeys.all(chainId), "availability"] as const,
+  pools: (chainId: number, garden?: Address | string) =>
+    [...commitmentPoolingKeys.all(chainId), "pools", normalizeAddress(garden)] as const,
+  pool: (chainId: number, poolId: bigint | string | number) =>
+    [...commitmentPoolingKeys.all(chainId), "pool", String(poolId)] as const,
+  cycles: (chainId: number, poolId: bigint | string | number, filters: CommitmentFilters = {}) =>
+    [
+      ...commitmentPoolingKeys.all(chainId),
+      "cycles",
+      String(poolId),
+      stableFilters(filters),
+    ] as const,
+  cycle: (chainId: number, cycleId: bigint | string | number) =>
+    [...commitmentPoolingKeys.all(chainId), "cycle", String(cycleId)] as const,
+  commitments: (chainId: number, filters: CommitmentFilters = {}) =>
+    [...commitmentPoolingKeys.all(chainId), "commitments", stableFilters(filters)] as const,
+  commitment: (chainId: number, commitmentId: bigint | string | number) =>
+    [...commitmentPoolingKeys.all(chainId), "commitment", String(commitmentId)] as const,
+  requirements: (chainId: number, commitmentId: bigint | string | number) =>
+    [...commitmentPoolingKeys.all(chainId), "requirements", String(commitmentId)] as const,
+  contributors: (chainId: number, commitmentId: bigint | string | number) =>
+    [...commitmentPoolingKeys.all(chainId), "contributors", String(commitmentId)] as const,
+  claims: (chainId: number, commitmentId: bigint | string | number, state?: string) =>
+    [...commitmentPoolingKeys.all(chainId), "claims", String(commitmentId), state] as const,
+  seriesList: (chainId: number, filters: CommitmentFilters = {}) =>
+    [...commitmentPoolingKeys.all(chainId), "series-list", stableFilters(filters)] as const,
+  series: (chainId: number, seriesId: bigint | string | number) =>
+    [...commitmentPoolingKeys.all(chainId), "series", String(seriesId)] as const,
+  need: (chainId: number, needUID: string) =>
+    [...commitmentPoolingKeys.all(chainId), "need", needUID.toLowerCase()] as const,
+  exchange: (
+    chainId: number,
+    poolId: bigint | string | number,
+    commitmentIdA: bigint | string | number,
+    commitmentIdB: bigint | string | number
+  ) =>
+    [
+      ...commitmentPoolingKeys.all(chainId),
+      "exchange",
+      String(poolId),
+      String(commitmentIdA),
+      String(commitmentIdB),
+    ] as const,
+  hypercertBundle: (chainId: number, hypercertId: bigint | string | number) =>
+    [...commitmentPoolingKeys.all(chainId), "hypercert-bundle", String(hypercertId)] as const,
+  funding: (chainId: number, commitmentId: bigint | string | number, funder?: Address | string) =>
+    [
+      ...commitmentPoolingKeys.all(chainId),
+      "funding",
+      String(commitmentId),
+      normalizeAddress(funder),
+    ] as const,
+  settlementConfiguration: (chainId: number) =>
+    [...commitmentPoolingKeys.all(chainId), "settlement-configuration"] as const,
+  settlementAccount: (chainId: number, garden: Address | string) =>
+    [
+      ...commitmentPoolingKeys.all(chainId),
+      "settlement-account",
+      normalizeAddress(garden),
+    ] as const,
+  settlementSubject: (chainId: number, isBatch: boolean, subjectId: bigint | string | number) =>
+    [
+      ...commitmentPoolingKeys.all(chainId),
+      "settlement-subject",
+      isBatch ? "batch" : "disbursement",
+      String(subjectId),
+    ] as const,
+  payoutPlan: (chainId: number, payoutPlanId: bigint | string | number) =>
+    [...commitmentPoolingKeys.all(chainId), "payout-plan", String(payoutPlanId)] as const,
+  memberHistory: (
+    chainId: number,
+    poolId: bigint | string | number,
+    account: Address | string,
+    viewer?: Address | string
+  ) =>
+    [
+      ...commitmentPoolingKeys.all(chainId),
+      "member-history",
+      String(poolId),
+      normalizeAddress(account),
+      normalizeAddress(viewer),
+    ] as const,
+  participationSummary: (chainId: number, poolId: bigint | string | number) =>
+    [...commitmentPoolingKeys.all(chainId), "participation-summary", String(poolId)] as const,
+  activity: (chainId: number, filters: CommitmentFilters = {}) =>
+    [...commitmentPoolingKeys.all(chainId), "activity", stableFilters(filters)] as const,
+} as const;

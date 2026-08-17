@@ -6,7 +6,9 @@ import {
   HypercertMinter,
   processEvents,
   serveJson,
+  serveJsonSequence,
 } from "./v3";
+import { fetchJson } from "../src/handlers/shared";
 
 const CHAIN_ID = 42161;
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
@@ -290,6 +292,36 @@ describe("HypercertMinter.TransferSingle — claims", () => {
 // ============================================================================
 
 describe("HypercertMinter.ClaimStored", () => {
+  it("retries transient metadata failures within the configured bound", async () => {
+    const metadataServer = await serveJsonSequence([
+      { statusCode: 503, body: { error: "temporarily unavailable" } },
+      { statusCode: 503, body: { error: "temporarily unavailable" } },
+      { statusCode: 200, body: { hidden_properties: { gardenId: "0xgarden" } } },
+    ]);
+
+    try {
+      const metadata = await fetchJson(
+        metadataServer.url,
+        {
+          eventType: "ClaimStored",
+          chainId: CHAIN_ID,
+          blockNumber: 5000,
+          txHash: txHash(99),
+          log: { warn: () => undefined },
+        },
+        1_000,
+        3,
+        0
+      );
+      assert.deepEqual(metadata, {
+        hidden_properties: { gardenId: "0xgarden" },
+      });
+      assert.equal(metadataServer.requestCount(), 3);
+    } finally {
+      await metadataServer.close();
+    }
+  });
+
   it("creates new hypercert with metadata from URI", async () => {
     const metadataServer = await serveJson({
       name: "Test Hypercert",
@@ -472,21 +504,66 @@ describe("HypercertMinter.ClaimStored", () => {
     }
   });
 
-  it("fails before persistence when metadata is unavailable so the event can retry", async () => {
-    const closedServer = await serveJson({});
-    const unreachableUrl = closedServer.url;
-    await closedServer.close();
-    const mockDb = createTestIndexer();
+  it("persists a reconciliation marker after transient retries are exhausted", async () => {
+    const metadataServer = await serveJson({ error: "temporarily unavailable" }, 503);
 
-    const event = HypercertMinter.ClaimStored.createMockEvent({
-      claimID: 42n,
-      uri: unreachableUrl,
-      totalUnits: 1000n,
-      mockEventData: mockEvent(CHAIN_ID, 5000, { txHash: txHash(100), logIndex: 1 }),
+    try {
+      const mockDb = createTestIndexer();
+      const event = HypercertMinter.ClaimStored.createMockEvent({
+        claimID: 42n,
+        uri: metadataServer.url,
+        totalUnits: 1000n,
+        mockEventData: mockEvent(CHAIN_ID, 5000, { txHash: txHash(100), logIndex: 1 }),
+      });
+
+      const result = await HypercertMinter.ClaimStored.processEvent({ event, mockDb });
+      const hypercert = await result.Hypercert.get(`${CHAIN_ID}-42`);
+      assert.ok(hypercert);
+      assert.equal(hypercert.bundleKind, "WORK_LEGACY");
+      assert.equal(hypercert.metadataReconciliationRequired, true);
+    } finally {
+      await metadataServer.close();
+    }
+  });
+
+  it("preserves an existing commitment bundle when metadata redelivery cannot be fetched", async () => {
+    const metadataServer = await serveJson({
+      bundleKind: "COMMITMENT",
+      commitmentIds: [11],
+      needUIDs: [txHash(50)],
     });
+    let serverClosed = false;
 
-    await assert.rejects(HypercertMinter.ClaimStored.processEvent({ event, mockDb }));
-    assert.equal(await mockDb.Hypercert.get(`${CHAIN_ID}-42`), undefined);
+    try {
+      let mockDb = createTestIndexer();
+      const firstEvent = HypercertMinter.ClaimStored.createMockEvent({
+        claimID: 42n,
+        uri: metadataServer.url,
+        totalUnits: 1000n,
+        mockEventData: mockEvent(CHAIN_ID, 5000, { txHash: txHash(100), logIndex: 1 }),
+      });
+      mockDb = await HypercertMinter.ClaimStored.processEvent({ event: firstEvent, mockDb });
+      await metadataServer.close();
+      serverClosed = true;
+
+      const redelivery = HypercertMinter.ClaimStored.createMockEvent({
+        claimID: 42n,
+        uri: metadataServer.url,
+        totalUnits: 1000n,
+        mockEventData: mockEvent(CHAIN_ID, 5001, { txHash: txHash(101), logIndex: 1 }),
+      });
+      mockDb = await HypercertMinter.ClaimStored.processEvent({ event: redelivery, mockDb });
+
+      const hypercert = await mockDb.Hypercert.get(`${CHAIN_ID}-42`);
+      assert.ok(hypercert);
+      assert.equal(hypercert.bundleKind, "COMMITMENT");
+      assert.deepEqual(hypercert.commitmentIds, [11n]);
+      assert.deepEqual(hypercert.commitmentEntityIds, [`${CHAIN_ID}-11`]);
+      assert.deepEqual(hypercert.needUIDs, [txHash(50)]);
+      assert.equal(hypercert.metadataReconciliationRequired, true);
+    } finally {
+      if (!serverClosed) await metadataServer.close();
+    }
   });
 
   it("updates existing hypercert when TransferSingle arrives first", async () => {
@@ -527,7 +604,7 @@ describe("HypercertMinter.ClaimStored", () => {
     }
   });
 
-  it("fails before persistence on a non-OK metadata response so the event can retry", async () => {
+  it("persists a reconciliation marker instead of halting on unavailable metadata", async () => {
     const metadataServer = await serveJson({ error: "not found" }, 404);
 
     try {
@@ -540,8 +617,13 @@ describe("HypercertMinter.ClaimStored", () => {
         mockEventData: mockEvent(CHAIN_ID, 5000, { txHash: txHash(100), logIndex: 1 }),
       });
 
-      await assert.rejects(HypercertMinter.ClaimStored.processEvent({ event, mockDb }));
-      assert.equal(await mockDb.Hypercert.get(`${CHAIN_ID}-42`), undefined);
+      const result = await HypercertMinter.ClaimStored.processEvent({ event, mockDb });
+      const hypercert = await result.Hypercert.get(`${CHAIN_ID}-42`);
+      assert.ok(hypercert);
+      assert.equal(hypercert.metadataUri, metadataServer.url);
+      assert.equal(hypercert.bundleKind, "WORK_LEGACY");
+      assert.equal(hypercert.metadataReconciliationRequired, true);
+      assert.deepEqual(hypercert.commitmentIds, []);
     } finally {
       await metadataServer.close();
     }

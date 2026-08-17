@@ -8,6 +8,7 @@ import {
   cursorWins,
   poolingEntityId,
   sortedUnique,
+  sortedUniqueByNumericSuffix,
 } from "./commitment-pool-projections";
 import {
   reconcilePendingPoolClose,
@@ -57,6 +58,11 @@ export async function handlePoolEvent(event: RuntimeEvent, context: PoolingConte
         });
       }
     }
+    context.CommitmentPool.set({
+      ...registered,
+      childCycleEntityIds: [],
+      childCommitmentEntityIds: [],
+    });
     return;
   }
   if (event.eventName === "PoolCharterUpdated") {
@@ -213,7 +219,7 @@ export async function handleCycleEvent(
             : pool.openCampaignIds,
         openCampaignEntityIds:
           seeded.state === "OPEN" && seeded.cycleType === "CAMPAIGN"
-            ? sortedUnique([...pool.openCampaignEntityIds, seeded.id])
+            ? sortedUniqueByNumericSuffix([...pool.openCampaignEntityIds, seeded.id])
             : pool.openCampaignEntityIds,
         updatedAt: Math.max(pool.updatedAt, event.block.timestamp),
       });
@@ -283,15 +289,18 @@ export async function handleCycleEvent(
     updatedAt: Math.max(cycle.updatedAt, event.block.timestamp),
   } satisfies CommitmentCycle;
   context.CommitmentCycle.set(nextCycle);
+  const cycleCommitments = await context.CommitmentCycleCommitmentIndex.get(nextCycle.id);
   if (isOpen && allocationUnset) {
-    for (const commitmentEntityId of pool.childCommitmentEntityIds) {
+    for (const commitmentEntityId of cycleCommitments?.commitmentEntityIds ?? []) {
       const commitment = await context.Commitment.get(commitmentEntityId);
-      if (commitment?.cycleId === cycleId) {
-        await reconcileRecognitionWeights(context, commitment, event.block.timestamp);
-      }
+      if (commitment) await reconcileRecognitionWeights(context, commitment, event.block.timestamp);
     }
   }
-  await reconcilePoolCommitmentHypercerts(context, pool, cycleId, event.block.timestamp);
+  await reconcilePoolCommitmentHypercerts(
+    context,
+    cycleCommitments?.commitmentEntityIds ?? [],
+    event.block.timestamp
+  );
   if (!lifecycleWins || !cycle.seedSeen) return;
   const wasTerminal = cycle.state === "COMPOSTED" || cycle.state === "CANCELLED";
   const isTerminalCycle = nextState === "COMPOSTED" || nextState === "CANCELLED";
@@ -338,7 +347,7 @@ export async function handleCycleEvent(
         openCampaignEntityIds:
           cycle.cycleType === "CAMPAIGN"
             ? nextState === "OPEN"
-              ? sortedUnique([...pool.openCampaignEntityIds, entityId])
+              ? sortedUniqueByNumericSuffix([...pool.openCampaignEntityIds, entityId])
               : pool.openCampaignEntityIds.filter((candidate) => candidate !== entityId)
             : pool.openCampaignEntityIds,
         updatedAt: Math.max(pool.updatedAt, event.block.timestamp),

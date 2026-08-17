@@ -1,5 +1,7 @@
 // Modules — EXPLICIT EXPORTS for tree-shaking
 
+export * from "./commitment-pooling";
+
 export {
   ANALYTICS_EVENTS,
   trackAdminActionCreateFailed,

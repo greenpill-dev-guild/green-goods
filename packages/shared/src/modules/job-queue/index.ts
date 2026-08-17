@@ -1,4 +1,5 @@
 import { DEFAULT_CHAIN_ID } from "../../config";
+import { getOntologyChainMaturity } from "../../ontology/query";
 import type {
   ApprovalJobPayload,
   Job,
@@ -8,6 +9,8 @@ import type {
   WorkJobPayload,
 } from "../../types/job-queue";
 import { scheduleTask, yieldToMain } from "../../utils/scheduler";
+import { isZeroAddress } from "../../utils/blockchain/address";
+import { getNetworkContracts } from "../../utils/blockchain/contracts";
 import { addBreadcrumb } from "../app/error-tracking";
 import { logger } from "../app/logger";
 import { jobQueueDB } from "./db";
@@ -19,44 +22,31 @@ import {
   trackJobProcessingError,
   trackStorageWarning,
 } from "./job-analytics";
-import { executeApprovalJob, executeWorkJob } from "./job-executors";
+import { executeApprovalJob, executeCommitmentQueueJob, executeWorkJob } from "./job-executors";
+import {
+  COMMITMENT_JOB_KINDS,
+  prepareCommitmentJobPayload,
+  type CommitmentJobKind,
+  type CommitmentJobPayloadMap,
+} from "../commitment-pooling/jobs";
+import { selectCommitmentPoolingAvailability } from "../commitment-pooling/selectors";
 import { JobMaintenance } from "./job-maintenance";
-
-/**
- * Create a synthetic transaction hash for offline-queued jobs.
- *
- * The Completed.tsx view expects a `0x${string}` txHash for navigation
- * and display. When a work is submitted offline (before chain sync),
- * no real txHash exists yet. This function produces a deterministic
- * placeholder that:
- *
- * 1. Satisfies the `0x${string}` type constraint
- * 2. Embeds the job ID for traceability (UUIDs with dashes stripped)
- * 3. Is distinguishable from real hashes via the "offline_" prefix
- *
- * **Consumers must never submit this hash to an RPC or block explorer.**
- * Use {@link isOfflineTxHash} to guard against that.
- *
- * @param jobId - UUID from the job queue (e.g. "a1b2c3d4-e5f6-...")
- * @returns A 0x-prefixed string like `0xoffline_00000000a1b2c3d4e5f6...`
- */
-export function createOfflineTxHash(jobId: string): `0x${string}` {
-  const paddedId = jobId.replace(/-/g, "").substring(0, 56).padStart(56, "0");
-  return `0xoffline_${paddedId}` as `0x${string}`;
-}
-
-/**
- * Check whether a transaction hash is a synthetic offline placeholder.
- *
- * Use this guard before submitting a txHash to an RPC provider,
- * block explorer link, or any on-chain verification flow.
- *
- * @param txHash - The transaction hash to check
- * @returns `true` if the hash was created by {@link createOfflineTxHash}
- */
-export function isOfflineTxHash(txHash: string): boolean {
-  return txHash.startsWith("0xoffline_");
-}
+import {
+  canonicalJobPayload,
+  commitmentJobIdentity,
+  createOfflineTxHash,
+  MAX_RETRIES,
+  isTerminallyFailedJob,
+  isWaitingReprobeThrottled,
+} from "./queue-policy";
+import {
+  getPendingQueueCount,
+  getQueueJobs,
+  getQueueJobsWithImages,
+  getQueueStats,
+  hasPendingQueueJobs,
+  subscribeToQueue,
+} from "./queue-readers";
 
 interface ProcessJobContext {
   transactionSender: TransactionSender | null;
@@ -83,9 +73,6 @@ export interface FlushResult {
 
 import type { TransactionSender } from "../transactions/types";
 import { getStorageQuota } from "../../utils/storage/quota";
-
-/** Maximum number of retry attempts before a job is marked as permanently failed */
-const MAX_RETRIES = 5;
 
 /**
  * Job queue responsible for persisting and processing offline work/approval jobs.
@@ -136,13 +123,49 @@ class JobQueue {
     const chainId = (meta as { chainId?: number })?.chainId || DEFAULT_CHAIN_ID;
     const isOnline = navigator.onLine;
 
+    let persistedPayload = payload;
+    if (COMMITMENT_JOB_KINDS.includes(kind as CommitmentJobKind)) {
+      const availability = selectCommitmentPoolingAvailability(
+        getOntologyChainMaturity("entity:commitment-pool", chainId)
+      );
+      if (availability.status !== "available") {
+        throw new Error("Commitment Pooling is unavailable on this chain");
+      }
+      const moduleAddress = getNetworkContracts(chainId).commitmentPoolingModule;
+      if (isZeroAddress(moduleAddress)) {
+        throw new Error("Commitment Pooling is not deployed on this chain");
+      }
+      persistedPayload = prepareCommitmentJobPayload({
+        kind: kind as CommitmentJobKind,
+        payload: payload as CommitmentJobPayloadMap[CommitmentJobKind],
+        chainId,
+        moduleAddress,
+        userAddress: userAddress as `0x${string}`,
+      }) as JobKindMap[K];
+    }
+
+    const identity = commitmentJobIdentity(kind, persistedPayload);
+    if (identity) {
+      const existingJobs = await jobQueueDB.getJobs({ userAddress, kind: String(kind) });
+      const existing = existingJobs.find(
+        (job) =>
+          !isTerminallyFailedJob(job) && commitmentJobIdentity(job.kind, job.payload) === identity
+      );
+      if (existing) {
+        if (canonicalJobPayload(existing.payload) !== canonicalJobPayload(persistedPayload)) {
+          throw new Error(`offline_job_identity_conflict:${identity}`);
+        }
+        return existing.id;
+      }
+    }
+
     // Check storage quota before adding job (using cache to avoid per-job latency)
     const storageQuota = await this.getCachedStorageQuota();
     trackStorageWarning(kind, storageQuota, isOnline);
 
     const jobId = await jobQueueDB.addJob({
       kind,
-      payload,
+      payload: persistedPayload,
       meta: { chainId, ...meta },
       chainId,
       userAddress,
@@ -151,7 +174,7 @@ class JobQueue {
     const job: Job = {
       id: jobId,
       kind,
-      payload,
+      payload: persistedPayload,
       meta: { chainId, ...meta },
       chainId,
       userAddress,
@@ -165,11 +188,11 @@ class JobQueue {
     if (import.meta.env?.VITE_QUEUE_DEBUG === "true") {
       let mediaCount = 0;
       if (
-        payload &&
-        typeof payload === "object" &&
-        "media" in (payload as unknown as Record<string, unknown>)
+        persistedPayload &&
+        typeof persistedPayload === "object" &&
+        "media" in (persistedPayload as unknown as Record<string, unknown>)
       ) {
-        const maybeMedia = (payload as unknown as Record<string, unknown>).media;
+        const maybeMedia = (persistedPayload as unknown as Record<string, unknown>).media;
         mediaCount = Array.isArray(maybeMedia) ? maybeMedia.length : 0;
       }
       logger.debug("[JobQueue] addJob", {
@@ -206,6 +229,7 @@ class JobQueue {
    * Check if a job is within its backoff window
    */
   private isWithinBackoffWindow(job: Job): boolean {
+    if (isWaitingReprobeThrottled(job)) return true;
     if (!job.lastAttemptAt || job.attempts === 0) {
       return false;
     }
@@ -270,22 +294,66 @@ class JobQueue {
     const startTime = Date.now();
 
     try {
-      let txHash: string;
+      let txHash: string | undefined;
 
       if (job.kind === "work") {
         txHash = await executeWorkJob(jobId, job as Job<WorkJobPayload>, chainId, sender);
       } else if (job.kind === "approval") {
         txHash = await executeApprovalJob(job as Job<ApprovalJobPayload>, chainId, sender);
+      } else if (COMMITMENT_JOB_KINDS.includes(job.kind as (typeof COMMITMENT_JOB_KINDS)[number])) {
+        const execution = await executeCommitmentQueueJob(jobId, job, chainId, sender);
+        if (execution.status === "waiting") {
+          await jobQueueDB.updateJob({
+            ...job,
+            meta: { ...(job.meta ?? {}), waitingForDependency: true },
+            lastAttemptAt: Date.now(),
+          });
+          return { success: false, error: execution.reason, skipped: true };
+        }
+        if (execution.status === "identity-conflict") {
+          const errorMessage = `identity_conflict:${execution.reason}`;
+          await jobQueueDB.markJobTerminalFailed(jobId, errorMessage);
+          jobQueueEventBus.emit("job:failed", { jobId, job, error: errorMessage });
+          trackJobPermanentlyFailed({ ...job, lastError: errorMessage, attempts: MAX_RETRIES });
+          return { success: false, error: errorMessage };
+        }
+        if (execution.status === "submitted") {
+          await jobQueueDB.updateJob({
+            ...job,
+            meta: {
+              ...(job.meta ?? {}),
+              waitingForDependency: false,
+              submittedTxHash: execution.txHash,
+            },
+            lastAttemptAt: Date.now(),
+          });
+          return {
+            success: false,
+            error: "pending_materialization",
+            txHash: execution.txHash,
+            skipped: true,
+          };
+        }
+        txHash = execution.txHash;
       } else {
         throw new Error(`Unsupported job kind: ${job.kind}`);
       }
 
-      await jobQueueDB.markJobSynced(jobId, txHash);
+      const completedTxHash =
+        txHash ??
+        (typeof job.meta?.submittedTxHash === "string"
+          ? job.meta.submittedTxHash
+          : createOfflineTxHash(jobId));
+      await jobQueueDB.markJobSynced(jobId, completedTxHash);
 
       // Store clientWorkId mapping for instant deduplication
       if (job.kind === "work" && job.meta?.clientWorkId) {
         try {
-          await jobQueueDB.storeClientWorkIdMapping(job.meta.clientWorkId as string, txHash, jobId);
+          await jobQueueDB.storeClientWorkIdMapping(
+            job.meta.clientWorkId as string,
+            completedTxHash,
+            jobId
+          );
         } catch (error) {
           logger.warn("[JobQueue] Failed to store clientWorkId mapping", { error });
         }
@@ -301,13 +369,17 @@ class JobQueue {
       const completedJob: Job = {
         ...job,
         synced: true,
-        meta: { ...(job.meta || {}), txHash },
+        meta: { ...(job.meta || {}), txHash: completedTxHash },
       };
 
-      jobQueueEventBus.emit("job:completed", { jobId, job: completedJob, txHash });
+      jobQueueEventBus.emit("job:completed", {
+        jobId,
+        job: completedJob,
+        txHash: completedTxHash,
+      });
       trackJobProcessed(job.kind, Date.now() - startTime, job.attempts + 1);
 
-      return { success: true, txHash };
+      return { success: true, txHash: completedTxHash };
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Unknown error";
       const processingDuration = Date.now() - startTime;
@@ -396,113 +468,28 @@ class JobQueue {
     return result;
   }
 
-  /**
-   * Get job statistics for a specific user
-   * @param userAddress - User address to scope statistics
-   */
   async getStats(userAddress: string): Promise<QueueStats> {
-    if (!userAddress) {
-      throw new Error("userAddress is required when getting stats");
-    }
-    return await jobQueueDB.getStats(userAddress);
+    return getQueueStats(userAddress);
   }
 
-  /**
-   * Get jobs for a specific user with optional filtering
-   * @param userAddress - User address (required)
-   * @param filter - Optional filters for kind and synced status
-   */
   async getJobs(userAddress: string, filter?: { kind?: string; synced?: boolean }): Promise<Job[]> {
-    if (!userAddress) {
-      throw new Error("userAddress is required when getting jobs");
-    }
-    return await jobQueueDB.getJobs({ userAddress, ...filter });
+    return getQueueJobs(userAddress, filter);
   }
 
-  /**
-   * Get pending work jobs with hydrated image files for a specific user.
-   * Useful for batch wallet sync where media files must be uploaded before attest.
-   */
-  async getJobsWithImages(
-    userAddress: string
-  ): Promise<
-    Array<{ job: Job<WorkJobPayload>; images: Array<{ id: string; file: File; url: string }> }>
-  > {
-    if (!userAddress) {
-      throw new Error("userAddress is required when getting jobs with images");
-    }
-
-    const jobs = (await jobQueueDB.getJobs({
-      userAddress,
-      kind: "work",
-      synced: false,
-    })) as Job<WorkJobPayload>[];
-
-    return await Promise.all(
-      jobs.map(async (job) => ({
-        job,
-        images: await jobQueueDB.getImagesForJob(job.id),
-      }))
-    );
+  async getJobsWithImages(userAddress: string): ReturnType<typeof getQueueJobsWithImages> {
+    return getQueueJobsWithImages(userAddress);
   }
 
-  /**
-   * Check if there are pending jobs for a specific user
-   * @param userAddress - User address to check
-   */
   async hasPendingJobs(userAddress: string): Promise<boolean> {
-    if (!userAddress) {
-      throw new Error("userAddress is required when checking pending jobs");
-    }
-    const jobs = await jobQueueDB.getJobs({ userAddress, synced: false });
-    return jobs.length > 0;
+    return hasPendingQueueJobs(userAddress);
   }
 
-  /**
-   * Get pending jobs count for a specific user
-   * @param userAddress - User address to count
-   */
   async getPendingCount(userAddress: string): Promise<number> {
-    if (!userAddress) {
-      throw new Error("userAddress is required when getting pending count");
-    }
-    const jobs = await jobQueueDB.getJobs({ userAddress, synced: false });
-    return jobs.length;
+    return getPendingQueueCount(userAddress);
   }
 
-  /**
-   * Subscribe to queue events (for backward compatibility)
-   */
   subscribe(listener: (event: QueueEvent) => void): () => void {
-    const unsubscribeFunctions: (() => void)[] = [];
-
-    unsubscribeFunctions.push(
-      jobQueueEventBus.on("job:added", ({ jobId, job }) => {
-        listener({ type: "job_added", jobId, job });
-      })
-    );
-
-    unsubscribeFunctions.push(
-      jobQueueEventBus.on("job:processing", ({ jobId, job }) => {
-        listener({ type: "job_processing", jobId, job });
-      })
-    );
-
-    unsubscribeFunctions.push(
-      jobQueueEventBus.on("job:completed", ({ jobId, job, txHash }) => {
-        listener({ type: "job_completed", jobId, job, txHash });
-      })
-    );
-
-    unsubscribeFunctions.push(
-      jobQueueEventBus.on("job:failed", ({ jobId, job, error }) => {
-        listener({ type: "job_failed", jobId, job, error });
-      })
-    );
-
-    return () => {
-      unsubscribeFunctions.forEach((unsub) => unsub());
-    };
+    return subscribeToQueue(listener);
   }
 
   /**
@@ -541,3 +528,10 @@ export { jobQueueDB } from "./db";
 export { computeFirstIncompleteStep, draftDB } from "./draft-db";
 export { jobQueueEventBus, useJobQueueEvents } from "./event-bus";
 export { mediaResourceManager } from "./media-resource-manager";
+export {
+  COMMITMENT_WAITING_REPROBE_MS,
+  createOfflineTxHash,
+  isOfflineTxHash,
+  isTerminallyFailedJob,
+  isWaitingReprobeThrottled,
+} from "./queue-policy";

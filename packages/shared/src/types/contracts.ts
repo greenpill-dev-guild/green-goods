@@ -30,6 +30,10 @@ export interface NetworkContracts {
   strategyHypercertFractionOffer: Address;
   // GreenWill
   greenWill: Address;
+  commitmentPoolingModule: Address;
+  commitmentRegistry: Address;
+  settlementModule: Address;
+  celoSettlementExecutor: Address;
 }
 
 export type MarketplaceReadinessField =
