@@ -2,8 +2,8 @@
 
 **Feature Slug**: `commitment-credit-follow-on`
 **Stage**: `active`
-**Status**: `CONTRACTS MERGED — PHASE A RELEASE ENGINEERING IN PROGRESS`
-**Last Updated**: `2026-08-11`
+**Status**: `STATE/API PASSED — UI AND RELEASE OPERATIONS REMAIN`
+**Last Updated**: `2026-08-17`
 
 ## Promotion record and remaining dispatch gates
 
@@ -36,6 +36,23 @@ lint, all 203 indexer tests, code generation, and TypeScript build locally, and 
 Indexer Lint And Build job is green. The root `bun run test` target was then rerun outside the
 restricted sandbox so Foundry could read macOS proxy state; it passed across the monorepo. The prior
 proxy initialization abort and indexer helper drift are no longer active Ship Gate gaps.
+
+## State/API implementation
+
+1. [x] Freeze the Credit lifecycle, viewer, rail, pause/pool, installment/time, delivery-order,
+   recovery, settlement-relationship, and unsupported-G$ behavior matrix before production code.
+2. [x] Record focused RED for the missing Envio `CreditRegistry` surface and shared Credit API.
+3. [x] Implement the canonical chain-scoped `Loan`, `LoanEvent`, and `CreditPoolStats` projections,
+   dynamic registry relationship, settlement join, replay/order convergence, and O(1) integer
+   aggregate accounting.
+4. [x] Implement and publicly export shared Credit types, centralized query keys, chain-scoped
+   queries, viewer-aware and aggregate-only selectors, invalidation, and online-only mutations.
+5. [x] Prove the source snapshot at `c070d20822a862ee09df486e5769c7966e86418f`: focused Credit
+   suites, full indexer, package builds/typechecks/story guards, the complete checkpoint, ontology,
+   vocabulary, and Plan Hub validation are GREEN.
+6. [ ] PRD-787 owns all client/admin UI. No UI source was changed in this lane.
+7. [ ] Deployment, address pinning, broadcast, post-deploy replay, QA, and release operations remain
+   outside PRD-786.
 
 ## Stage-3 boundary
 
