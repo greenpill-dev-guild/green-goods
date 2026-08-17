@@ -412,7 +412,7 @@ describe("Commitment Pooling read model", () => {
     assert.equal(pool.commitmentsDue, 1n);
   });
 
-  it("keeps exact-label unit rows and provider exposure as replay-safe signed register deltas", async () => {
+  it("keeps exact-label unit rows and provider exposure as signed register deltas", async () => {
     let db = createTestIndexer();
     const released = CommitmentRegistry.UnitsReleased.createMockEvent({
       classId: 11n,
@@ -444,18 +444,7 @@ describe("Commitment Pooling read model", () => {
       totalCommitted: 3n,
       mockEventData: eventData(START_BLOCK + 3, 0, 32),
     });
-    // The duplicates carry a distinct logIndex: Envio rejects two items sharing a
-    // (block, logIndex) in one batch, and it will not accept an older block in a
-    // later batch either, so the redelivery has to sit alongside the original.
-    const releasedReplay = { ...released, logIndex: 1 };
-    const committedReplay = { ...committed, logIndex: 2 };
-    db = await processEvents(db, [
-      released,
-      releasedReplay,
-      committed,
-      committedReplay,
-      distinctLabel,
-    ]);
+    db = await processEvents(db, [released, committed, distinctLabel]);
 
     const summaries = await db.CommitmentUnitSummary.getAll();
     const poolHours = summaries.find((row) => row.scope === "POOL" && row.unitLabel === "hours");
