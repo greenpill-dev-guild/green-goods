@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p1",
     "created_at": "2026-08-15T06:08:14.457Z",
-    "updated_at": "2026-08-17T00:55:00.000Z"
+    "updated_at": "2026-08-18T00:15:00.000Z"
   },
   "links": {
     "brief": "brief.md",
@@ -33,7 +33,8 @@
     "relay_unit_gas": "evidence/relay-unit-gas-2026-08-15.json",
     "celo_post_safe_upgrade_block": "evidence/celo-post-safe-upgrade-block-2026-08-15.json",
     "final_safe_bindings": "evidence/garden-safe-final-bindings-2026-08-15.json",
-    "release_readiness": "evidence/celo-release-readiness-2026-08-17.json"
+    "release_readiness": "evidence/celo-release-readiness-2026-08-17.json",
+    "garden_safe_deployment_artifact": "../../../packages/contracts/deployments/42220-settlement-safes.json"
   },
   "linear": {
     "parentIssue": "PRD-821",
@@ -67,7 +68,9 @@
     "Changing that recovery Safe's threshold or owner set does not move any of the 18 predicted Garden Safe addresses, because the Garden Safe initializer binds only the three owner addresses.",
     "The Garden-bound relay is separate from Settlement and cannot satisfy Safe threshold two alone, become a Safe owner/module/guard/Zodiac member, or receive value authority.",
     "Implementation, review, release, guardian trust, Safe deployment, and value activation remain separate authorization boundaries.",
-    "Use Bun wrappers only; never raw Forge."
+    "Use Bun wrappers only; never raw Forge.",
+    "Broadcast is complete. All 18 Celo GardenAccounts and all 18 final 2-of-3 Garden Safes are live and independently verified; deployments/42220-settlement-safes.json holds the receipt-backed record for every Safe boundary. authorityEnabled is false: no Zodiac Roles module, allowance, peer binding, or value authority was configured, and the relay remains undeployed. The bounded settlement authority half of PRD-819 is still unbuilt and has no operator stage.",
+    "The release operator's broadcast gate was unsatisfiable until PR 724. Both Celo wrappers compared GG_RELEASE_OPERATOR_SESSION against the release manifest sourceCommit while release-operator.ts pinned git HEAD to that same session value, so broadcast required a commit containing its own hash. The wrappers now check the session against the checked-out candidate; release identity is still asserted separately where the plan is validated. The Arbitrum lane never used this variable."
   ],
   "lanes": {
     "ui": {
@@ -114,8 +117,8 @@
     },
     "contracts": {
       "owner": "codex",
-      "status": "in_progress",
-      "branch": null,
+      "status": "completed",
+      "branch": "fix/celo-release-operator-session-gate",
       "depends_on": [],
       "handoff": "handoffs/codex-contracts.md",
       "linear_issues": ["PRD-821"],
@@ -132,11 +135,12 @@
         },
         "note": "Bun-wrapped relay unit proof passes. Both recovery Safes pass live v1.4.1 UI checks. Exact final Safe bindings and the four-step router/relay/Guardian plan are frozen; executable pinned-fork nested EIP-1271/code proof remains open."
       },
-      "skill_tags": ["contracts", "security", "cross-chain", "safe"]
+      "skill_tags": ["contracts", "security", "cross-chain", "safe"],
+      "manual_blocked": false
     },
     "qa_pass_1": {
       "owner": "claude",
-      "status": "blocked",
+      "status": "ready",
       "ready_when_dependencies_met": true,
       "manual_blocked": false,
       "branch": null,
@@ -299,6 +303,14 @@
       "status": "single_password_stages_and_test_scope_fix",
       "branch": "claude/garden-celo-deployment-0d18ef",
       "note": "Added release-operator --stage mode so each lane needs one keystore password entry instead of one per boundary, with the per-boundary checkout-drift assertions, fail-fast behavior, and credential shredding unchanged. Also fixed packages/contracts test:script, whose unquoted script/**/*.test.ts glob was expanded by sh as a single level and silently excluded release-operator.test.ts and release-verify.test.ts from the gate; coverage went from 19 files/212 tests to 21 files/225 tests, all passing."
+    },
+    {
+      "timestamp": "2026-08-18T07:07:46.330Z",
+      "actor": "human",
+      "lane": "contracts",
+      "status": "completed",
+      "branch": "fix/celo-release-operator-session-gate",
+      "note": "Broadcast complete and verified on Celo from candidate 7949a62964e4ff813dd9842b0997277a8f87c186. Stage one deployed the coordinator (0xf31e5bcc…6ad85) and atomically deployed the implementation plus all 18 accounts (0x2526b382…5211e6, 15,773,672 gas against the 30,000,000 limit); the GardenAccount runtime at 0x710cBFB9a29920B4577692eD495972fcd27286b4 is byte-identical across Celo and Arbitrum and all 18 accounts hold code at their predicted addresses. Stage two deployed all 18 final Safes in blocks 75135556-75135804, each 2-of-3 on Safe v1.4.1 with the v1.4.1 compatibility fallback handler, nonce zero, zero native and zero G$, no modules and no guard. Sender nonce moved 118 to 138 for exactly 20 boundaries at 4.53 CELO. Broadcast was initially impossible: both wrappers compared GG_RELEASE_OPERATOR_SESSION to the manifest sourceCommit while the operator pinned git HEAD to that same value, which required a commit naming its own hash; PR 724 moved the check to the checked-out candidate. authorityEnabled remains false and no Zodiac Roles, allowance, peer, or value authority was configured."
     }
   ]
 }
