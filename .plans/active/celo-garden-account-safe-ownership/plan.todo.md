@@ -6,7 +6,7 @@
 **Feature Slug**: `celo-garden-account-safe-ownership`  
 **Status**: ACTIVE  
 **Created**: 2026-08-14  
-**Last Updated**: 2026-08-15
+**Last Updated**: 2026-08-18
 
 ## Decision Log
 
@@ -201,12 +201,45 @@ its own pinned candidate and transaction-by-transaction authority.
 - [x] `bun run --cwd packages/contracts check:sizes` — all deployable contracts under EIP-170.
 - [ ] `bash scripts/quality/check-test-quality.sh`
 - [x] `node scripts/harness/plan-hub.mjs validate` — 42 feature hubs validated on 2026-08-16.
+- [x] Broadcast gate fix proved before use: `bun run --cwd packages/contracts test:script` — 22
+  files, 236 tests, 0 failed; typecheck clean; positive and negative session checks exercised
+  against both wrappers without broadcasting.
+- [x] Post-broadcast verification: `settlement:garden-accounts:verify:celo` and
+  `settlement:garden-safes:verify:celo` both pass with zero blockers, independently confirmed by
+  direct chain reads of all 18 accounts and all 18 Safes.
 - [ ] Full Ship Gate only for explicit PR/merge readiness.
 - [ ] Fresh validation receipts in every terminal lane handoff.
 
+## Release Record
+
+Broadcast was separately authorized by Afo and executed on 2026-08-18 from candidate
+`7949a62964e4ff813dd9842b0997277a8f87c186`, twenty boundaries in two stages, sender nonce 118 to
+138 at 4.53 CELO.
+
+| Boundary | Result |
+|---|---|
+| Coordinator deploy | `0xf31e5bcc…6ad85`, block 75,135,173, 1,375,262 gas |
+| Atomic 18-account deploy and initialize | `0x2526b382…5211e6`, block 75,135,181, 15,773,672 gas against the 30,000,000 limit |
+| 18 final Garden Safes | blocks 75,135,556–75,135,804, receipts in `deployments/42220-settlement-safes.json` |
+
+Verified independently of the release tooling: the GardenAccount runtime at
+`0x710cBFB9a29920B4577692eD495972fcd27286b4` is byte-identical on Celo and Arbitrum, all 18
+accounts hold code at their predicted addresses, and every Safe is 2-of-3 on Safe v1.4.1 with the
+v1.4.1 compatibility fallback handler, nonce zero, zero native and zero G$, no modules, no guard.
+
+The ceremony could not run at first. Both wrappers compared `GG_RELEASE_OPERATOR_SESSION` against
+the release manifest `sourceCommit` while `release-operator.ts` pinned `git HEAD` to that same
+session value, so broadcast required a commit naming its own hash. PR 724 moved the check to the
+checked-out candidate and left release identity asserted where the plan is validated.
+
+`authorityEnabled` stays false. No Zodiac Roles module, allowance, peer binding, ownership
+transfer, or value authority was configured, and the Garden-bound relay remains undeployed. The
+bounded settlement authority half of PRD-819 has no operator stage yet and remains open work.
+
 ## Boundaries
 
-This active plan authorizes planning and later scoped implementation only. It does not authorize
+This active plan authorized planning and scoped implementation; the 2026-08-18 broadcast above ran
+under separate human authorization. It does not authorize
 dependency installation, production deployment, broadcast, guardian trust mutation, Safe
 creation, Safe transaction execution, role/allowance/peer configuration, ownership transfer,
 value movement, canary, unpause, commit, push, or merge by itself.
