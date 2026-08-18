@@ -5,9 +5,58 @@
 - Machine lane: state_api
 - Owner: Codex
 - Execution branch: feature/commitment-pooling-credit-api-state
-- Current state: passed after review remediation
+- Current state: in progress after the latest review follow-up
 - Tested source commit: `c5add7efaf65e72cfe17ece0726f18a11500da6b` at `2026-08-17T22:26:46Z`
 - Linear context: PRD-786 source remediation and fresh proof are complete and ready to return to In Review. PRD-785 remains Done and PRD-787 remains the untouched UI boundary.
+
+## Latest review follow-up — 2026-08-18
+
+The two remaining P2 coverage gaps are implemented in the current uncommitted worktree:
+
+- `packages/shared/src/__tests__/credit-read-boundary.test.ts` calls the four real Credit data
+  functions through a mocked low-level GraphQL client. It asserts chain/pool/borrower predicates,
+  chain-scoped composite IDs, normalized variables, and scalar-to-domain mapping.
+- `packages/indexer/test/helpers/local-contract-events.ts` now treats deployed-but-unpinned
+  CreditRegistry configuration as a temporary PRD-722-owned allowance expiring 2026-08-31. An
+  expired allowance or configured/deployed address mismatch fails closed.
+- `packages/indexer/schema.graphql` now documents that both public `feeAmount` fields are reserved
+  seams projected as zero by the frozen CreditRegistry events.
+
+Latest RED/GREEN provenance:
+
+- Characterization-only shared coverage passed 2/2 before source changes because the existing
+  queries and mappers were correct.
+- Before the indexer guard implementation, `contractEventsLocal.test.ts` had 9 adjacent passes,
+  1 governed pending E2E, and 2 failures for missing pin-expiry and address-drift enforcement.
+- After implementation, the focused config suite passed 11/11 with 1 governed pending E2E; the
+  combined Credit shared suites passed 23/23; the full indexer passed 284 with 1 governed pending.
+
+Current closure limits:
+
+- The explicit local-fork Envio E2E could not start because this sandbox blocks
+  `arb1.arbitrum.io`, including after the required escalation attempt. The earlier 10/10 receipt at
+  `c5add7efaf65e72cfe17ece0726f18a11500da6b` is historical and is not claimed as fresh proof for
+  this worktree.
+- `node scripts/dev/ci-local.js --quick` passed format, lint, shared typecheck, full shared
+  3,648/1 skipped, and client 658/658, then stopped on one unrelated admin assessment-dialog test.
+  That exact admin test passed immediately in isolation (1/1), so the checkpoint is not GREEN but
+  the failure is not reproduced in the Credit scope.
+- `bun run check:test-quality` fails on 28 expired `2026-08-17` Playwright skip annotations in
+  `tests/specs/**`. None touch indexer/shared Credit files; renewing or repairing them is separate
+  browser-test governance work and was not folded into PRD-786.
+
+Disposition of the review's P3 notes:
+
+- The GraphQL `feeAmount` documentation gap is fixed.
+- Credit i18n consumption remains explicitly deferred to PRD-787 because no UI is implemented here.
+- The exported optional borrower/viewer invalidation parameters remain backward-compatible public
+  API; removing them for lack of an internal caller would be a breaking cleanup, not a defect fix.
+- The earlier RED count remains recorded as the four assertions observed at that snapshot. The
+  fifth invalidation assertion was added later and is not retroactively claimed as part of that RED.
+
+No commit-attributed GREEN receipt is recorded for this follow-up while these closure gates remain
+unresolved. No UI, deploy, broadcast, G$ repayment, custody, bridge, environment, or value operation
+was performed.
 
 ## Review remediation matrix
 

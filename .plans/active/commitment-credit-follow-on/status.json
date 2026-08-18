@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p1",
     "created_at": "2026-07-19T21:59:29.102Z",
-    "updated_at": "2026-08-17T22:28:06.996Z"
+    "updated_at": "2026-08-18T01:19:25Z"
   },
   "links": {
     "brief": "brief.md",
@@ -92,25 +92,25 @@
     },
     "state_api": {
       "owner": "codex",
-      "status": "passed",
+      "status": "in_progress",
       "branch": "feature/commitment-pooling-credit-api-state",
       "depends_on": ["contracts"],
       "handoff": "handoffs/codex-state-api.md",
       "tdd": {
         "mode": "required",
-        "status": "green_recorded",
+        "status": "red_recorded",
         "red": {
-          "command": "bun run --filter @green-goods/shared test -- src/__tests__/credit-register.test.ts src/__tests__/credit-hooks.test.tsx; cd packages/indexer && node ../../scripts/dev/node-cli.js mocha --require tsx --timeout 30000 test/credit-registry.test.ts",
-          "evidence": "Review-remediation RED before source edits: shared failed 4 raw-data hook-boundary assertions with 14 adjacent passes; indexer failed late-pool configuration replay with 4 adjacent passes."
+          "command": "cd packages/indexer && node ../../scripts/dev/node-cli.js mocha --require tsx --timeout 30000 test/contractEventsLocal.test.ts",
+          "evidence": "Latest review follow-up RED before the pin-guard implementation: 9 adjacent config tests passed, 1 E2E remained governed pending, and 2 new assertions failed because deployed CreditRegistry pin expiry and configured-address drift were not enforced. The shared read-boundary addition is characterization coverage for already-correct scoping and passed 2/2 before source changes."
         },
         "green": {
-          "command": "bun run --filter @green-goods/shared test -- src/__tests__/credit-register.test.ts src/__tests__/credit-hooks.test.tsx; bun run --filter @green-goods/indexer test; bun run --filter @green-goods/indexer test:contract-events; node scripts/dev/ci-local.js --quick",
-          "evidence": "At c5add7efaf65e72cfe17ece0726f18a11500da6b: shared focused 21/21; indexer 282 passed with 1 governed pending; explicit local-fork Envio E2E 10/10; 15-check checkpoint passed with full shared 3646/1 skipped, client 658, and all remaining selected package and policy gates."
+          "command": "",
+          "evidence": ""
         },
-        "note": "Review remediation is GREEN. UI, hosted deployment, broadcast, G$ repayment, and value operations remain excluded."
+        "note": "Latest review follow-up is in progress. UI, hosted deployment, broadcast, G$ repayment, and value operations remain excluded."
       },
       "skill_tags": ["react", "tanstack-query", "data-layer", "indexer"],
-      "note": "PRD-785 is Done and bff3b274d is an ancestor of the current branch. Review remediation passed at c5add7efaf65e72cfe17ece0726f18a11500da6b with the hook disclosure boundary, discriminating Credit event/read-hook coverage, and release-registration documentation complete; PRD-787 and release execution remain outside this lane.",
+      "note": "PRD-785 remains Done and bff3b274d remains an ancestor of the current branch. The latest review follow-up is adding the missing shared GraphQL read-boundary characterization and an expiring CreditRegistry release-pin guard; PRD-787 and release execution remain outside this lane.",
       "manual_blocked": false
     },
     "contracts": {
@@ -351,6 +351,22 @@
       "status": "passed",
       "branch": "feature/commitment-pooling-credit-api-state",
       "note": "Review findings closed at c5add7efaf65e72cfe17ece0726f18a11500da6b with 21 focused shared tests, 282 indexer tests, 10 local-fork Envio E2E checks, and the complete 15-check checkpoint GREEN; PRD-787 UI and release operations remain out of scope."
+    },
+    {
+      "timestamp": "2026-08-18T01:04:58Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "in_progress",
+      "branch": "feature/commitment-pooling-credit-api-state",
+      "note": "Reopened for the latest review follow-up: the shared Credit GraphQL read boundary needs direct characterization and deployed CreditRegistry pinning needs an expiring release-owned drift guard. PRD-787 and release execution remain unchanged."
+    },
+    {
+      "timestamp": "2026-08-18T01:04:58Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "red_recorded",
+      "branch": "feature/commitment-pooling-credit-api-state",
+      "note": "Recorded two failing CreditRegistry config assertions before implementing the expiry and address-drift guard; the shared read-boundary characterization passed against the already-correct query and mapping behavior."
     }
   ]
 }

@@ -456,6 +456,7 @@ type Loan {
   principal: BigInt!
   repaidAmount: BigInt!
   outstanding: BigInt!
+  # Reserved contract seam; frozen CreditRegistry events currently project this as zero.
   feeAmount: BigInt!
   rail: LoanRail!
   disbursementId: BigInt
@@ -505,6 +506,7 @@ type CreditLoanProjection {
   commitmentId: BigInt
   token: String
   principal: BigInt!
+  # Reserved contract seam; frozen CreditRegistry events currently project this as zero.
   feeAmount: BigInt!
   dueDate: BigInt!
   installmentsTotal: Int!

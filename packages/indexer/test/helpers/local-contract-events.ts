@@ -28,6 +28,11 @@ export const LOCAL_ARBITRUM_RPC_URL = "http://127.0.0.1:3009";
 export const LOCAL_CONTRACT_EVENT_OPERATION_TIMEOUT_MS = 300_000;
 export const LOCAL_CONTRACT_EVENT_CLEANUP_BUDGET_MS = 120_000;
 export const LOCAL_CONTRACT_EVENT_MOCHA_TIMEOUT_MS = 480_000;
+export const CREDIT_REGISTRY_STATIC_PIN_ALLOWANCE = {
+  owner: "PRD-722",
+  expires: "2026-08-31",
+  reason: "CreditRegistry production indexer activation is pending release-owned address pinning",
+} as const;
 
 const CHAIN_ID = 42161;
 const MODULE_OWNER: Address = "0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6";
@@ -220,9 +225,11 @@ function requiredAddress(value: unknown, field: string): Address {
   return getAddress(value);
 }
 
-function configuredPoolingContracts(
-  baseConfig: string
-): Pick<PoolingContracts, "commitmentPoolingModule" | "commitmentRegistry"> {
+function configuredPoolingContracts(baseConfig: string): {
+  commitmentPoolingModule: Address;
+  commitmentRegistry: Address;
+  creditRegistry: Address | null;
+} {
   const document = yaml.load(baseConfig) as {
     chains?: Array<{
       id?: unknown;
@@ -242,12 +249,37 @@ function configuredPoolingContracts(
       configuredAddress("CommitmentRegistry"),
       "config CommitmentRegistry"
     ),
+    creditRegistry:
+      configuredAddress("CreditRegistry") === undefined
+        ? null
+        : requiredAddress(configuredAddress("CreditRegistry"), "config CreditRegistry"),
   };
+}
+
+function assertCreditRegistryPin(configured: Address | null, deployed: Address, now: Date): void {
+  if (configured) {
+    assert.equal(
+      configured.toLowerCase(),
+      deployed.toLowerCase(),
+      "Arbitrum CreditRegistry address drifted between config.yaml and the deployment artifact"
+    );
+    return;
+  }
+
+  const expiresAt = new Date(`${CREDIT_REGISTRY_STATIC_PIN_ALLOWANCE.expires}T23:59:59.999Z`);
+  if (Number.isNaN(now.getTime())) throw new Error("CreditRegistry pin allowance clock is invalid");
+  if (now.getTime() > expiresAt.getTime()) {
+    throw new Error(
+      `CreditRegistry static pin allowance expired on ${CREDIT_REGISTRY_STATIC_PIN_ALLOWANCE.expires}; ` +
+        `${CREDIT_REGISTRY_STATIC_PIN_ALLOWANCE.owner} must pin the deployed address before indexing`
+    );
+  }
 }
 
 export function resolvePoolingContracts(
   baseConfig: string,
-  deploymentJson: string
+  deploymentJson: string,
+  options: { now?: Date } = {}
 ): PoolingContracts {
   const deployment = JSON.parse(deploymentJson) as Record<string, unknown>;
   const deployed = {
@@ -272,6 +304,11 @@ export function resolvePoolingContracts(
       commitmentRegistry: deployed.commitmentRegistry.toLowerCase(),
     },
     "Arbitrum pooling addresses drifted between config.yaml and the deployment artifact"
+  );
+  assertCreditRegistryPin(
+    configured.creditRegistry,
+    deployed.creditRegistry,
+    options.now ?? new Date()
   );
   return deployed;
 }

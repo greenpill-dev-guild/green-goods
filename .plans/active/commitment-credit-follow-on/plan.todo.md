@@ -2,8 +2,8 @@
 
 **Feature Slug**: `commitment-credit-follow-on`
 **Stage**: `active`
-**Status**: `STATE/API PASSED — UI AND RELEASE OPERATIONS REMAIN`
-**Last Updated**: `2026-08-17`
+**Status**: `STATE/API REVIEW FOLLOW-UP IN PROGRESS — UI AND RELEASE OPERATIONS REMAIN`
+**Last Updated**: `2026-08-18`
 
 ## Promotion record and remaining dispatch gates
 
@@ -65,6 +65,14 @@ proxy initialization abort and indexer helper drift are no longer active Ship Ga
 11. [ ] PRD-787 owns all client/admin UI. No UI source was changed in this lane.
 12. [ ] Deployment, address pinning, broadcast, post-deploy replay, QA, and release operations remain
    outside PRD-786.
+13. [x] Add direct shared read-boundary characterization for all four Credit GraphQL queries,
+    including chain/pool/borrower predicates and scalar-to-domain mapping.
+14. [x] Add an explicit PRD-722-owned CreditRegistry static-pin allowance that expires 2026-08-31
+    and fails on expiry or configured/deployed address drift.
+15. [ ] Refresh the complete checkpoint receipt. Focused Credit proof is GREEN, but the current
+    local-fork E2E is sandbox-blocked, the checkpoint stopped on one unrelated admin test that
+    passed in isolation, and the branch-wide test-quality guard reports 28 pre-existing expired
+    Playwright skip dates.
 
 ## Stage-3 boundary
 

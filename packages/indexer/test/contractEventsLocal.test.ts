@@ -94,6 +94,44 @@ describe("local contract event indexer config", () => {
     );
   });
 
+  it("fails closed after the deployed CreditRegistry pin allowance expires", async () => {
+    const config = `chains:
+  - id: 42161
+    contracts:
+      - name: CommitmentPoolingModule
+        address: '${TEST_CONTRACTS.commitmentPoolingModule}'
+      - name: CommitmentRegistry
+        address: '${TEST_CONTRACTS.commitmentRegistry}'
+      - name: CreditRegistry
+`;
+
+    assert.throws(
+      () =>
+        resolvePoolingContracts(config, JSON.stringify(TEST_CONTRACTS), {
+          now: new Date("2026-09-01T00:00:00Z"),
+        }),
+      /CreditRegistry static pin allowance expired on 2026-08-31/
+    );
+  });
+
+  it("fails closed when a configured CreditRegistry drifts from deployment", () => {
+    const config = `chains:
+  - id: 42161
+    contracts:
+      - name: CommitmentPoolingModule
+        address: '${TEST_CONTRACTS.commitmentPoolingModule}'
+      - name: CommitmentRegistry
+        address: '${TEST_CONTRACTS.commitmentRegistry}'
+      - name: CreditRegistry
+        address: '0x0000000000000000000000000000000000000001'
+`;
+
+    assert.throws(
+      () => resolvePoolingContracts(config, JSON.stringify(TEST_CONTRACTS)),
+      /CreditRegistry address drifted/
+    );
+  });
+
   it("resolves canonical contracts across legal YAML indentation and quoting changes", () => {
     const config = `chains:
     - id: 42161
