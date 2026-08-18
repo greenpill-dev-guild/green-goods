@@ -170,8 +170,15 @@ export const HIFI_CSS = `
 
 /* Read-surface sections (2026-08-16 round 10) — the shipped work view's shape:
    a quiet label on the canvas, its content in a card beneath. */
-.hf.s-client .h6s{font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;
-  color:var(--stone);margin:14px 0 6px}
+/* Section labels are a real heading, not a caption (2026-08-17, Afo: "some
+   titles are bold and bigger which I like and others are more smaller and
+   grey"). This is a DELIBERATE divergence from shipped: WorkView renders an h6
+   and Media.tsx labels its Needed/Optional groups with text-xs uppercase, so
+   the pooling flows will read differently from the shipped work flow until
+   shipped follows. It does not compete with the step card's own heading, which
+   is the same size but sits inside a filled card behind a 48px icon badge. */
+.hf.s-client .h6s{font-size:15px;font-weight:650;letter-spacing:-.01em;
+  color:var(--ink);margin:16px 0 6px}
 .hf.s-client .card.sect{padding:0;overflow:hidden;gap:0}
 .hf.s-client .card.sect.flush{padding:10px}
 /* An empty section says what is missing inside its own card rather than
@@ -443,8 +450,8 @@ export const HIFI_CSS = `
    uppercase label that mirrors WorkView's <h6>. The shipped component decides
    it: .t-sec takes the h6 metric inside the client dialect. Admin keeps its own,
    where .t-sec is a genuine card heading rather than a section label. */
-.hf.s-client .t-sec{font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;
-  color:var(--stone);margin:10px 0 -2px}
+.hf.s-client .t-sec{font-size:15px;font-weight:650;letter-spacing:-.01em;
+  color:var(--ink);margin:16px 0 6px;display:flex;align-items:center;gap:8px}
 .hf.s-client .t-sec .hx{margin-left:auto;text-transform:none;letter-spacing:0}
 
 /* A truncated unit label keeps its full text in its title attribute — cut, never lost. */

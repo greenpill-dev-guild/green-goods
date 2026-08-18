@@ -1350,6 +1350,13 @@ Known mis-resolutions fixed in place: `contract-spec.md` §Grassroots-Economics-
     plus what only a repeating offer has — the record, what is open now, how it repeats, and
     who has taken it up. Also: CLAUDE.md gained an Output Style section (answer first, plain
     language, no em-dashes where a full stop works). Full text: `uiux-spec.md` C.28.
+132. Section labels are headings (2026-08-17, round 29, Afo). Measured first: client section
+    titles were already uniform at 11px uppercase grey across ten screens, so the reported
+    inconsistency was actually the step card's heading sitting above them. Sections take the
+    heading style — 15px, 650, sentence case, ink. **Deliberate divergence from shipped**:
+    WorkView uses an h6 and Media.tsx uses text-xs uppercase, which is what round 19 unified
+    down to, so the pooling flows read differently from the shipped work flow until shipped
+    follows. Full text: `uiux-spec.md` C.29.
 
 **Final recursive certification clarification (2026-07-25; no new decision-register entry):**
 the published `42161`↔`42220` production lane is the only required fully paired

@@ -1990,6 +1990,22 @@ what is open now, **how it repeats** (how much in each, how many at a time, whic
 happens at season end — previously scattered through Details), and **who has taken it up**, as
 people rather than a count.
 
+### C.29 Section labels are headings (2026-08-17, round 29)
+
+Measured first: client section titles were already uniform at 11px, 600, uppercase, grey,
+across ten screens. There was no drift. What read as inconsistent was two different things
+sharing a screen — the step card's heading (15px, 650, sentence case, inside a filled card
+behind a 48px icon badge) and the section labels beneath it.
+
+Afo prefers the heading style, so sections take it: **15px, 650, sentence case, ink**.
+
+**This is a deliberate divergence from shipped**, recorded as such. `WorkView` renders an
+`<h6>` for its sections and `Media.tsx:527` labels its Needed and Optional groups with
+`text-xs uppercase`, which is why round 19 unified the client down to that metric in the first
+place. The pooling flows will read differently from the shipped work flow until shipped
+follows. The step card does not compete at the same size, because it is inside a filled card
+and the sections sit on the canvas.
+
 ### C.7 PARKED — reciprocity from the claim side (2026-08-16, register #103)
 
 > **Parked 2026-08-17 (Afo): "park it for now and we stabilize and polish the UI."** The
