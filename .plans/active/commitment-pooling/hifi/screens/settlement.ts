@@ -126,7 +126,7 @@ ${hot("w12.no-ranking", banner("This workspace shows the Protocol pool and Rocin
       adminDialogM3(behind, "community", {
         title: "Seed a protocol commitment",
         body: `${kv("Kind", "Protocol request · gardens provide")}${kv("Direction", "The pool requests")}${kv("Title", "Methodology survey · dry-season round")}${kv("Unit · target", "surveys · 3")}${kv("Claim mode", "Steward-reviewed · protocol default")}${kv("Confirmers", "2 of 2 protocol stewards")}
-${banner("Everything arrives prefilled from the protocol templates — published to eligible garden stewards, who claim it for their gardens through steward-reviewed acceptance.", "stone", "information-line")}`,
+${banner("Everything arrives prefilled from the protocol templates, published to eligible garden stewards, who claim it for their gardens through steward-reviewed acceptance.", "stone", "information-line")}`,
         actions: `${hot("w12.seed-cancel", btn("Cancel", { kind: "ghost" }))}${hot("w12.seed-confirm", btn("Seed This Commitment", { kind: "pri" }))}`,
         closeHot: "w12.seed-cancel",
       }),
@@ -187,7 +187,7 @@ const w21Rows = () =>
     ["Settlement · attempt", "Recipient", "Kind", "Amount", "State", ""],
     [
       ["104 · attempt 0", "Maria", "Contributor payout", `<span class="num">160 G$</span>`, chip("Queued", "plain", { dot: true }), `${hot("w21.dispatch", btn("Dispatch", { kind: "sec", sm: true }))}${hot("w21.cancel-disb", btn("Cancel", { kind: "ghost", sm: true }))}`],
-      ["103 · attempt 1", "Kwame", "Contributor payout", `<span class="num">100 G$</span>`, chip("Failed — route rejected", "err"), `${hot("w21.requeue", btn("Source Follow-Up", { kind: "sec", sm: true }))}${hot("w21.cancel-failed", btn("Close Delivery", { kind: "ghost", sm: true }))}`],
+      ["103 · attempt 1", "Kwame", "Contributor payout", `<span class="num">100 G$</span>`, chip("Failed, route rejected", "err"), `${hot("w21.requeue", btn("Source Follow-Up", { kind: "sec", sm: true }))}${hot("w21.cancel-failed", btn("Close Delivery", { kind: "ghost", sm: true }))}`],
       ["102 · attempt 0", "Ana", "Contributor payout", `<span class="num">140 G$</span>`, chip("Confirming arrival", "warn", { dot: true }), hot("w21.request-details", btn("Ack Details", { kind: "ghost", sm: true }))],
       ["101 · attempt 0", "Kwame", "Contributor payout", `<span class="num">18 G$</span>`, chip("Confirmed ↗", "ok", { dot: true }), ""],
     ],
@@ -201,14 +201,14 @@ const w21Behind = (state: "failed" | "queued" | "unregistered" = "failed") =>
     screenId: "W21",
     garden: "Rocinha",
     interactiveChrome: false,
-    header: pageHeader({ title: "Settlement", eyebrow: "Garden · Celo", description: "The garden's Celo settlement account — disbursement queue, batches, and delivery gate." }),
+    header: pageHeader({ title: "Settlement", eyebrow: "Garden · Celo", description: "The garden's Celo settlement account, disbursement queue, batches, and delivery gate." }),
     body: acard(
       "Settlement (Celo)",
       state === "unregistered"
         ? `<div class="t-meta">No registered settlement account.</div>`
         : state === "queued"
           ? `${kv("Settlement 104 / attempt 0", "Queued · unbatched")}`
-          : `${kv("Settlement 103 / attempt 1", "Failed — route rejected")}`,
+          : `${kv("Settlement 103 / attempt 1", "Failed, route rejected")}`,
     ),
   });
 
@@ -282,7 +282,7 @@ ${kv("Settlement 104 · Maria", "160 G$ · eligible")}${kv("Settlement 99 · Lei
         title: "Close this delivery",
         body:
           banner(
-            "Settlement 103 failed with an authenticated route rejection. Closing ends this delivery for good — the failed attempt and its bounded failure code stay visible, and no new execution key is created.",
+            "Settlement 103 failed with an authenticated route rejection. Closing ends this delivery for good. The failed attempt and its bounded failure code stay visible, and no new execution key is created.",
             "amber",
             "error-warning-line",
           ) + reasonChips(["Account cannot receive", "Handled off-platform", "Recipient unreachable"]) + field("Reason (required)", input("recipient account cannot receive; handled off-platform")),
@@ -297,7 +297,7 @@ ${kv("Settlement 104 · Maria", "160 G$ · eligible")}${kv("Settlement 99 · Lei
     const rows = dtable(
       ["Settlement · attempt", "Recipient", "Kind", "Amount", "State", ""],
       [
-        ["105 · attempt 0", "Awka Hub — garden Safe", "Funding · ProtocolToGarden", `<span class="num">25 G$</span>`, chip("Queued", "plain", { dot: true }), hot("w21.dispatch-garden", btn("Dispatch", { kind: "sec", sm: true }))],
+        ["105 · attempt 0", "Awka Hub. Garden Safe", "Funding · ProtocolToGarden", `<span class="num">25 G$</span>`, chip("Queued", "plain", { dot: true }), hot("w21.dispatch-garden", btn("Dispatch", { kind: "sec", sm: true }))],
         ["98 · attempt 0", "Leila", "Contributor payout", `<span class="num">10 G$</span>`, chip("Confirmed ↗", "ok", { dot: true }), ""],
       ],
       "Protocol pool settlement queue",
@@ -305,7 +305,7 @@ ${kv("Settlement 104 · Maria", "160 G$ · eligible")}${kv("Settlement 99 · Lei
     const header = pageHeader({
       title: "Settlement",
       eyebrow: "Protocol · Celo",
-      description: "The protocol pool's Celo settlement account — garden funding and contributor payouts remain distinct rails.",
+      description: "The protocol pool's Celo settlement account. Garden funding and contributor payouts remain distinct rails.",
     });
     return deskWin(
       "admin.greengoods.app/community/pools/settlement",
@@ -313,7 +313,7 @@ ${kv("Settlement 104 · Maria", "160 G$ · eligible")}${kv("Settlement 99 · Lei
         screenId: "W21",
         garden: "Rocinha",
         header,
-        body: acard("Settlement (Celo) — protocol pool", `${rows}${banner("Settlement 105 was created by queueFunding. Its kind is Funding and its immutable route is ProtocolToGarden; it is not tied to commitment fulfillment or a payout plan.", "stone")}`),
+        body: acard("Settlement (Celo), protocol pool", `${rows}${banner("Settlement 105 was created by queueFunding. Its kind is Funding and its immutable route is ProtocolToGarden; it is not tied to a commitment being fulfilled or a payout plan.", "stone")}`),
       }),
     );
   }
@@ -323,7 +323,7 @@ ${kv("Settlement 104 · Maria", "160 G$ · eligible")}${kv("Settlement 99 · Lei
       [
         [
           "106 · attempt 0",
-          "Awka Hub — registered garden Safe",
+          "Awka Hub, registered garden Safe",
           "Funding",
           "ProtocolToGarden",
           `<span class="num">500 G$</span>`,
@@ -375,7 +375,7 @@ ${banner("Payment uses the recognition weights without correction. The full vect
     case "payout-plan-edit":
       inner = acard(
         "Edit payout draft",
-        `${banner("Prefilled from recognition — change only what needs correcting. Saving replaces the Draft snapshot atomically; it does not create a second plan or finalize this one.", "stone", "information-line")}
+        `${banner("Prefilled from recognition, change only what needs correcting. Saving replaces the Draft snapshot atomically; it does not create a second plan or finalize this one.", "stone", "information-line")}
 ${field("Garden retains", input("100 G$"))}${field("Maria · lead", input("160 G$"))}${field("Ana", input("140 G$"))}${field("Kwame", input("100 G$"))}${field("Reason (required while retaining support)", input("Garden operations and follow-up costs"))}
 ${kv("Conservation", "100 + 160 + 140 + 100 = 500 G$ · valid")}
 <div class="actrow" style="justify-content:flex-end">${hot("w21.edit-cancel", btn("Cancel", { kind: "ghost", sm: true }))}${hot("w21.edit-save", btn("Save Complete Draft", { kind: "pri", sm: true }))}</div>`,
@@ -471,7 +471,7 @@ ${dtable(
   [
     ["Maria · lead", "160 G$", chip("Confirmed ↗", "ok", { dot: true })],
     ["Ana", "140 G$", chip("Confirmed ↗", "ok", { dot: true })],
-    ["Kwame", "100 G$", chip("Failed — recoverable", "err")],
+    ["Kwame", "100 G$", chip("Failed, recoverable", "err")],
   ],
   "Contributor payout progress",
 )}
@@ -528,9 +528,9 @@ ${banner("The commitment stays Fulfilled. One failed child delivery never rewrit
       break;
     case "gate-status":
       inner = acard(
-        "Member delivery gate — read-only status",
+        "Member delivery gate. Read-only status",
         `${kv("Member delivery", "enabled")}${kv("Changed by", "0x9a…4f (owner)")}${kv("Date", "Jul 30")}${kv("Evidence", "round-trip check ↗")}
-${banner("The flip itself is owner-only ops — this row keeps the gate legible to every steward.", "stone")}`,
+${banner("The flip itself is owner-only ops. This row keeps the gate legible to every steward.", "stone")}`,
       );
       break;
     case "failed-recovery":
@@ -560,7 +560,7 @@ ${disclosure(
   const header = pageHeader({
     title: "Settlement",
     eyebrow: "Garden · Celo",
-    description: "The garden's Celo settlement account — disbursement queue, batches, and delivery gate.",
+    description: "The garden's Celo settlement account. Disbursement queue, batches, and delivery gate.",
   });
   return deskWin(
     "admin.greengoods.app/garden/settlement",
@@ -679,7 +679,7 @@ ${kv("Funding", `F-204 · ${confirmed ? "Refunded" : "RefundQueued"}`)}${kv("Rec
         title: "Cancel this batch",
         body:
           banner(
-            "Cancelling closes all 2 members of batch #12 at once — Maria (160 G$) and Leila (10 G$). Queued batch membership is immutable, so there is no partial cancellation and no member can be kept.",
+            "Cancelling closes all 2 members of batch #12 at once. Maria (160 G$) and Leila (10 G$). Queued batch membership is immutable, so there is no partial cancellation and no member can be kept.",
             "amber",
             "error-warning-line",
           ) + reasonChips(["Garden withdrew the request", "Wrong amounts in the batch", "Superseded by a new batch"]) + field("Reason (required)", input("garden withdrew the request before dispatch")),
@@ -703,7 +703,7 @@ ${kv("Funding", `F-204 · ${confirmed ? "Refunded" : "RefundQueued"}`)}${kv("Rec
         body: acard(
           "Command",
           `${stages(["Queued", "Dispatched", "Celo executed", "Confirmed"], 1)}
-${banner("Funding/ProtocolToGarden was queued independently through queueFunding, then dispatched with its immutable execution key. The Celo executor moves 25 G$ from the GG protocol Safe to Awka Hub's Safe, stores the outcome, then acknowledges — arrival is not proven until that acknowledgment lands.", "stone")}
+${banner("Funding/ProtocolToGarden was queued independently through queueFunding, then dispatched with its immutable execution key. The Celo executor moves 25 G$ from the GG protocol Safe to Awka Hub's Safe, stores the outcome, then acknowledges, arrival is not proven until that acknowledgment lands.", "stone")}
 ${kv("Disbursement kind", "Funding")}${kv("Funding route", "ProtocolToGarden")}${kv("Command message", "0xbd…07 · CCIP Explorer ↗")}${kv("Payer", "GG protocol Safe · Celo")}${kv("Recipient", "Awka Hub · garden Safe on Celo")}${kv("Amount", "25 G$ · canonical")}
 <div class="actrow" style="justify-content:flex-end">${hot("w22.garden-open-ops", btn("Open Operations", { kind: "sec", icon: "external-link-line" }))}</div>`,
         ),
@@ -740,7 +740,7 @@ ${kv("Recipient", "Maria · 0x12…9a")}${kv("Amount", "160 G$")}${kv("Command m
   const routeDetails = disclosure(
     "Route details",
     "payer · route · batch",
-    `${kv("Settlement 104 — attempt 0", "message-only command · no token amounts")}${kv("Payer", "Rocinha garden Safe · Celo")}${kv("Plan", "Prune the north beds · contributor payout")}${kv("Route snapshot", "Celo selector · executor 0x5e…91 · v1 · 240,000 gas")}${kv("Batch #12", "2 immutable child payouts · limit 8 · ceiling 24")}`,
+    `${kv("Settlement 104, attempt 0", "message-only command · no token amounts")}${kv("Payer", "Rocinha garden Safe · Celo")}${kv("Plan", "Prune the north beds · contributor payout")}${kv("Route snapshot", "Celo selector · executor 0x5e…91 · v1 · 240,000 gas")}${kv("Batch #12", "2 immutable child payouts · limit 8 · ceiling 24")}`,
   );
   let inner: string;
   const stage = (n: number) => stages(["Queued", "Dispatched", "Celo executed", "Confirmed"], n);
@@ -869,7 +869,7 @@ ${banner("Manual execution is guidance, not a Green Goods state change. Show it 
 ${hot(canQueueFunding ? "w24.queue-funding" : "w24.queue-funding-unavailable", `<div class="arow"><div class="grow">GG protocol Safe → garden Safes</div><span class="t-meta num">discretionary treasury funding</span>${btn(canQueueFunding ? "Seed / top up" : "Funding unavailable", { kind: "sec", sm: true })}</div>`)}
 <div class="arow"><div class="grow">Garden Safes → members</div><span class="t-meta num">source integration gate</span></div>
 ${hot("w24.gardens", `<div class="arow"><div class="grow">Gardens: Awka kept 8/9 · Muizenberg kept 5/6</div>${chip("alphabetical", "plain")}</div>`)}
-${banner(canQueueFunding ? "Commitment-earned support follows the provider garden's payout-plan actions. Seed / top up is a separate protocol-steward/module-owner treasury action. Inflow is a Celo balance read — no upstream hop is recorded." : "This account can inspect Operations through another capability, but it cannot queue garden funding. Inflow remains a Celo balance read — no upstream hop is recorded.", "stone")}`,
+${banner(canQueueFunding ? "Commitment-earned support follows the provider garden's payout-plan actions. Seed / top up is a separate protocol-steward/module-owner treasury action. Inflow is a Celo balance read, no upstream hop is recorded." : "This account can inspect Operations through another capability, but it cannot queue garden funding. Inflow remains a Celo balance read, no upstream hop is recorded.", "stone")}`,
       );
       break;
     }
@@ -894,7 +894,7 @@ ${kv("Required capability", "Protocol steward or SettlementModule owner")}${kv("
       break;
     default:
       inner = acard(
-        "Queue — all gardens",
+        "Queue, all gardens",
         dtable(
           ["Garden", "Item", "State", ""],
           [
@@ -909,7 +909,7 @@ ${kv("Required capability", "Protocol steward or SettlementModule owner")}${kv("
   const header = pageHeader({
     title: "Operations",
     eyebrow: "Protocol execution · capability-gated",
-    description: "Every garden's command queue, CCIP health, and cross-chain funds — one execution home.",
+    description: "Every garden's command queue, CCIP health, and cross-chain funds. One execution home.",
   });
   return deskWin(
     "admin.greengoods.app/operations",
@@ -985,13 +985,13 @@ ${banner("New commitments cannot reach Ready or resolve as Fulfilled without an 
   switch (phase) {
     case "shares":
       inner = `${kv("Gardeners", "60%")}${kv("Treasury", "15%")}${kv("Steward", "10%")}${kv("Evaluator", "5%")}${kv("Community", "5%")}${kv("Funder", "5%")}
-${banner("Read-only — the six-role snapshot locked when this cycle opened.", "stone")}`;
+${banner("Read-only. The six-role snapshot locked when this cycle opened.", "stone")}`;
       next = hot(h("continue-certificate"), btn("Continue", { kind: "pri" }));
       break;
     case "certificate":
       inner = `${kv("Bundle", "7 fulfilled commitments + their work, evidence, and need lineage")}${kv("Allowlist", "from the shares above")}${kv("Holder", "the garden account")}
 <div class="arow" style="opacity:.55"><div class="grow"><b>Repair tool handles</b> <span class="t-meta">cycle-less commitment</span></div>${chip("No cycle allocation · not certificate eligible", "plain")}</div>
-${banner("Uses the garden's existing impact-certificate pipeline. A cycle-less commitment is recognition/payment-only — it cannot join a certificate bundle (UX §6.10).", "stone")}`;
+${banner("Uses the garden's existing impact-certificate pipeline. A cycle-less commitment is recognition/payment-only. It cannot join a certificate bundle (UX §6.10).", "stone")}`;
       next = hot(h("mint"), btn("Mint Impact Certificate", { kind: "pri" }));
       break;
     case "rest":

@@ -1426,6 +1426,18 @@ Known mis-resolutions fixed in place: `contract-spec.md` §Grassroots-Economics-
     American spelling so the holdings block rendered it in both dialects. **71 em-dashes**
     rewritten by C.32's rule. Verified across twelve screens: zero of each. Full text:
     `uiux-spec.md` C.36.
+140. The retired-vocabulary gate (2026-08-17, round 37, Afo). Every vocabulary decision in
+    this feature leaked a dialect, and the promise→commitment one was **recorded as done**
+    while broken copy stood in the console for three weeks. `RETIRED_VOCABULARY` in
+    `validate.ts` guards the retired SENSE rather than the word, so "in place" and "an open
+    request" stay legal; each entry names the decision that retired it. It runs on rendered
+    states, the gallery, journeys and hotspot notes, and errors everywhere including ascii. A
+    companion `DASH` rule keeps em-dashes out of product copy, with journey and hotspot prose
+    exempt per C.32 and named exceptions listed rather than matched. **First run found 338**,
+    including thirteen leaks no manual pass had reached and two forms my sweeps had
+    structurally missed (dashes before a digit or a quote). Reports per occurrence, not per
+    surface. Verified by reintroducing three retired words and watching the build fail. Full
+    text: `uiux-spec.md` C.37.
 
 **Final recursive certification clarification (2026-07-25; no new decision-register entry):**
 the published `42161`↔`42220` production lane is the only required fully paired

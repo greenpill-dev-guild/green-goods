@@ -24,7 +24,7 @@ const W28_STATES = [
 ] as const;
 type W28State = (typeof W28_STATES)[number][0];
 
-const w28Head = `<div class="hdr fixed"><button type="button" class="hback" aria-label="Close — preview only" disabled>${icon("close-line", "l")}</button><h1>Offer in exchange</h1></div>`;
+const w28Head = `<div class="hdr fixed"><button type="button" class="hback" aria-label="Close, preview only" disabled>${icon("close-line", "l")}</button><h1>Offer in exchange</h1></div>`;
 
 const w28Rows = () => card(
   listRow({ icon: "seedling-line", primary: "Seedling delivery · 12 trays", meta: "Offer · by Ana · Apr 18" }) +
@@ -47,14 +47,14 @@ function w28(state: W28State): string {
         field("Due", input("Runs with the season · through Aug 30", { select: true })),
         `<div class="t-meta">Every field the template filled stays editable until you make the offer.</div>`,
         card(`${kv("You receive", "Childcare during the work party · 6 hours")}${kv("Pair rule", "Both commitments start together; each is kept on its own")}`),
-        `<div class="t-meta">The exchange reference travels with your Offer. Ana still chooses to start both — nothing is committed for her here.</div>`,
+        `<div class="t-meta">The exchange reference travels with your Offer. Ana still chooses to start both. Nothing is committed for her here.</div>`,
         `<div class="brow">${hot("w28.clear", btn("Clear the selection", { kind: "ghost", sm: true }))}</div>`,
       );
       actions = hot("w28.submit", btn("Make this offer in exchange", { kind: "pri", full: true }));
       break;
     case "selection-invalid":
       content = pagepad(
-        banner("Ana's Offer changed before yours was recorded — no commitment was created. Clear the selection or choose another Offer.", "amber", "error-warning-line"),
+        banner("Ana's Offer changed before yours was recorded, no commitment was created. Clear the selection or choose another Offer.", "amber", "error-warning-line"),
         w28Rows(),
       );
       actions = `${hot("w28.clear", btn("Clear and choose again", { kind: "pri", full: true }))}`;
@@ -70,15 +70,15 @@ function w28(state: W28State): string {
       actions = btn("Use this offer", { kind: "pri", full: true, disabled: true });
       break;
     case "read-error":
-      content = pagepad(banner("Could not load this pool's Offers. Your draft is kept — retry when connected.", "amber", "error-warning-line"));
+      content = pagepad(banner("Could not load this pool's Offers. Your draft is kept, retry when connected.", "amber", "error-warning-line"));
       actions = hot("w28.retry", btn("Retry", { kind: "pri", full: true }));
       break;
     default:
       content = pagepad(
-        `<div class="t-meta">Offer this in exchange for an existing Offer in this pool. Only eligible rows appear: still open, individually claimable, capacity-backed, made by someone else, and free — a priced Offer cannot start an exchange.</div>`,
+        `<div class="t-meta">Offer this in exchange for an existing Offer in this pool. Only eligible rows appear: still open, individually claimable, capacity-backed, made by someone else, and free, a priced Offer cannot start an exchange.</div>`,
         card(input("Search offers in this pool…", { placeholder: true, ariaLabel: "Search offers in this pool" }), { cls: "inset" }),
         w28Rows(),
-        `<div class="t-meta">Tap an Offer to review the pair — the action below stays off until one is chosen.</div>`,
+        `<div class="t-meta">Tap an Offer to review the pair. The action below stays off until one is chosen.</div>`,
         `<div class="brow">${hot("w28.clear", btn("Clear", { kind: "ghost", sm: true }))}</div>`,
       );
       actions = btn("Use this offer", { kind: "pri", full: true, disabled: true });
@@ -120,7 +120,7 @@ function w29(state: W29State): string {
   const body = pagepad(
     card(`<div class="cardrow"><div class="grow"><div class="t-title">Exchange pair</div><div class="t-meta">${pairLine}</div></div>${pairChip}</div>`),
     card(`${kv("Maria gives", `Repair the shared water pump · 1 repair · ${stateB}`)}${kv("Ana gives", `Childcare during the work party · 6 hours · ${stateA}`)}`),
-    banner("Each commitment is kept on its own — the pair context never replaces a commitment's ordinary state.", "stone", "information-line"),
+    banner("Each commitment is kept on its own. The pair context never replaces a commitment's ordinary state.", "stone", "information-line"),
     feed,
   );
   // The pair's primary action lives in the fixed bar, never inline in scroll
@@ -149,12 +149,12 @@ function w30(state: W30State): string {
   const base = `${hdr("Repair the shared water pump", { back: true })}${pagepad(card(`${kv("Pair", "Proposed in exchange")}`))}`;
   if (state === "submitting")
     return phoneFrame(
-      sheetOver(base, "Starting both commitments…", `${banner("One acceptExchange call runs every predicate on both commitments. There is no partial optimistic state — the pair either starts together or not at all.", "stone", "loader4-line")}`),
+      sheetOver(base, "Starting both commitments…", `${banner("One acceptExchange call runs every predicate on both commitments. There is no partial optimistic state. The pair either starts together or not at all.", "stone", "loader4-line")}`),
       { appBar: false },
     );
   if (state === "contract-error")
     return phoneFrame(
-      sheetOver(base, "That didn't go through", `${banner("Ana's Offer is no longer open, so the pair cannot start — nothing changed on either side. Maria can clear or replace the exchange reference; your Offer is untouched.", "amber", "error-warning-line")}${banner("Every failure here arrives as its own named message: it says which side changed and who acts next, and none offers a retry.", "stone", "information-line")}${hot("w30.back", btn("Back to the pair", { kind: "pri", full: true }))}`),
+      sheetOver(base, "That didn't go through", `${banner("Ana's Offer is no longer open, so the pair cannot start. Nothing changed on either side. Maria can clear or replace the exchange reference; your Offer is untouched.", "amber", "error-warning-line")}${banner("Every failure here arrives as its own named message: it says which side changed and who acts next, and none offers a retry.", "stone", "information-line")}${hot("w30.back", btn("Back to the pair", { kind: "pri", full: true }))}`),
       { appBar: false },
     );
   return phoneFrame(

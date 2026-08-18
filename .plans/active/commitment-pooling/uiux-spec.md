@@ -2192,6 +2192,45 @@ colon: *"Units stay in their own bases: hours, rides and sessions"*.
 
 Verified across all twelve screens: zero em-dashes, zero stale vocabulary, one title metric.
 
+### C.37 The retired-vocabulary gate (2026-08-17, round 37)
+
+Every vocabulary decision in this feature leaked a dialect. Places was retired in the client
+and survived in the console. The promise→commitment rename was **recorded as done** and left
+*"nobody can commitment yet"* standing for three weeks. Neighbour was fixed in the client
+while `poolHoldings` kept defaulting to the American spelling, so both dialects rendered it.
+The build gates catch structure well and copy not at all. This closes that.
+
+`RETIRED_VOCABULARY` in `validate.ts` guards the retired SENSE, not the word, so *"in place"*
+and *"an open request"* stay legal:
+
+| guarded | decision |
+|---|---|
+| `promise` as the record | C.14 |
+| `commitment` used as a verb, and `commitmentd`/`commitmenting` | C.14 |
+| `place` as a countable commitment | C.23 |
+| `open more` / `open another` as the act | C.35 |
+| `neighbor` | C.36 |
+| `rest`/`retire` on an ongoing offer | C.27 |
+
+Each entry names the decision that retired it, so whoever trips the gate reads the reason
+rather than guessing. It runs on every rendered state, the components gallery, journey prose
+and hotspot notes, and it is an error everywhere including the ascii frames: a word a decision
+removed is removed everywhere, or it is not removed.
+
+A second rule, `DASH`, keeps em-dashes out of **product** copy. Hotspot notes and journey prose
+are exempt by C.32's own boundary, and names that use a dash rather than punctuation are
+listed rather than pattern-matched, so adding one is deliberate.
+
+**The gate found 338 on its first run**, including thirteen vocabulary leaks in screens no
+manual pass had reached: `promised` and `promising` in hotspot notes, `open more` on the
+wallet's series row, `Resting`/`Retired` still on W7's ongoing rows, `to commitment` in a
+journey and in W21, and four surviving *places*. Two forms my sweeps had structurally missed
+also surfaced: dashes followed by a digit or a quote, which a letter-only pattern skipped.
+
+Reporting is per occurrence rather than per surface, because one-at-a-time reporting turns a
+copy sweep into a dozen rebuild cycles. Verified by reintroducing all three retired words at
+once and watching the build fail with the decision named beside each.
+
 ### C.7 PARKED — reciprocity from the claim side (2026-08-16, register #103)
 
 > **Parked 2026-08-17 (Afo): "park it for now and we stabilize and polish the UI."** The

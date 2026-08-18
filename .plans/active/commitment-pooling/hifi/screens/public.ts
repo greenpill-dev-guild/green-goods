@@ -53,7 +53,7 @@ ${hot("w15.rate", `<div><div class="serif-n">${SEASON_LIVE_KEPT_RATE}%</div><div
     default:
       panel = `<span class="kicker">Commitments</span>
 <h3 class="serif-h">Midway through the ${CYCLE}</h3>
-${hot("w15.counts", `<p style="margin:0;max-width:52ch;font-size:16.5px">${SEASON_LIVE.made} commitments made, ${SEASON_LIVE.kept} kept so far — running through Aug 30.</p>`)}
+${hot("w15.counts", `<p style="margin:0;max-width:52ch;font-size:16.5px">${SEASON_LIVE.made} commitments made, ${SEASON_LIVE.kept} kept so far, running through Aug 30.</p>`)}
 <p style="margin:0;max-width:52ch;color:var(--stone)">Fulfilled commitments from this cycle are anchored in the certificates below.</p>`;
   }
   return webWin("greengoods.app/gardens/rocinha", `${context}<div class="epanel">${panel}</div>${after}`, "w15.install");

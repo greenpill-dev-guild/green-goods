@@ -378,14 +378,14 @@ ${commitmentRow({
   })}
 ${commitmentRow({
     title: "Saturday tool repair",
-    chips: `${chip("Ongoing Offer", "offer")}${chip("Resting", "plain", { dot: true })}`,
+    chips: `${chip("Ongoing Offer", "offer")}${chip("Stopped", "plain", { dot: true })}`,
     meta: "Rui · 5 offered · none open while stopped",
     hotId: "w7.series-row-resting",
     chevron: true,
   })}
 ${commitmentRow({
     title: "Seedling starter kits",
-    chips: `${chip("Ongoing Offer", "offer")}${chip("Retired", "plain", { dot: true })}`,
+    chips: `${chip("Ongoing Offer", "offer")}${chip("Stopped", "plain", { dot: true })}`,
     meta: "stopped May 30 · 8 offered · 8 kept",
     hotId: "w7.series-row-retired",
     chevron: true,
@@ -407,7 +407,7 @@ ${commitmentRow({
 
 const W7_COMMITMENT_NOTE: Partial<Record<CommitmentScope, string>> = {
   ongoing: banner(
-    "State and context only — the console never edits a member's ongoing Offer. Resting, resuming, and retiring stay with its holder.",
+    "State and context only. The console never edits a member's ongoing Offer. Resting, resuming, and retiring stay with its holder.",
     "stone",
     "information-line",
   ),
@@ -498,34 +498,34 @@ ${W7_COMMITMENT_ROWS[scope]}${W7_COMMITMENT_NOTE[scope] ?? ""}`,
 
 const W7_DESC: Record<W7State, string> = {
   open: "Season of First Rains is live. Offers and requests between neighbours.",
-  "open-no-cycle": "No season is running — start one, or a campaign beside it.",
+  "open-no-cycle": "No season is running. Start one, or a campaign beside it.",
   "not-ready": "This garden isn't taking commitments yet.",
-  "preflight-complete": "The starting assessment is in — set up commitments next.",
+  "preflight-complete": "The starting assessment is in, set up commitments next.",
   ready: "Set up and waiting for its first season.",
-  paused: "Paused for the season — evidence and recovery stay open.",
+  paused: "Paused for the season. Evidence and recovery stay open.",
   "paused-cycle-composted": "The season has composted; the pool remains paused.",
-  reconciled: "The season is reconciled — commitments settled; compost comes next.",
-  "cycle-composted": "Every cycle has composted — seed the next one, or close the pool.",
+  reconciled: "The season is reconciled. Commitments settled; compost comes next.",
+  "cycle-composted": "Every cycle has composted, seed the next one, or close the pool.",
   "close-blocked-live": "Two live commitments still need a safe outcome before the pool can close.",
-  "pool-closed": "The pool is closed — its history stays with the garden.",
-  "compost-pool-confirm": "The pool is closed — confirm before archiving it.",
-  "pool-composted": "The pool is composted — reopen it to begin a new era.",
-  "reopen-confirm": "The pool is composted — reopen it to begin a new era.",
+  "pool-closed": "The pool is closed. Its history stays with the garden.",
+  "compost-pool-confirm": "The pool is closed, confirm before archiving it.",
+  "pool-composted": "The pool is composted. Reopen it to begin a new era.",
+  "reopen-confirm": "The pool is composted. Reopen it to begin a new era.",
   "paused-cycle-cancelled": "The season is cancelled; the pool remains paused.",
   "edit-pool": "Season of First Rains is live. Offers and requests between neighbours.",
   "claim-declined": "Maria's request is declined; João's stays pending.",
   "claim-outcomes": "How this cycle's steward-reviewed claims resolved.",
   claims: "Requests waiting for a steward decision in this cycle.",
-  "expiry-queue": "Commitments that lapsed this cycle — offer them again.",
+  "expiry-queue": "Commitments that lapsed this cycle, offer them again.",
   "due-live": "Past-due commitments remain live until someone submits the permissionless expiry action.",
-  "series-view": "Ongoing Offers grouped by series — read-only state and context.",
+  "series-view": "Ongoing Offers grouped by series. Read-only state and context.",
   loading: "Loading the pool…",
   empty: "The pool is open and waiting for its first commitment.",
   "pause-confirm": "Season of First Rains is live. Offers and requests between neighbours.",
   "close-pool-confirm": "Season of First Rains is live. Offers and requests between neighbours.",
   "paused-close-pool-confirm": "The season has composted; the pool remains paused.",
   "cancel-cycle-confirm": "Season of First Rains is live. Offers and requests between neighbours.",
-  "paused-cancel-cycle-confirm": "Paused for the season — evidence and recovery stay open.",
+  "paused-cancel-cycle-confirm": "Paused for the season. Evidence and recovery stay open.",
   "decline-claim-confirm": "Season of First Rains is live. Offers and requests between neighbours.",
 };
 
@@ -796,8 +796,8 @@ const W7_CONFIRMS: Partial<Record<W7State, { title: string; body: string; action
   "decline-claim-confirm": {
     title: "Decline Maria's request",
     body: w7Confirm(
-      "Only Maria's request is declined — João's stays pending and the commitment stays claimable. Maria sees your reason and may ask again.",
-      "provider context — see charter",
+      "Only Maria's request is declined, João's stays pending and the commitment stays claimable. Maria sees your reason and may ask again.",
+      "provider context, see charter",
       ["Crew is full", "Needs more experience", "Asked after another was chosen"],
     ),
     actions: `${hot("w7.decline-dismiss", btn("Keep Pending", { kind: "ghost" }))}${hot("w7.decline-claim-confirm", btn("Decline Request", { kind: "pri" }))}`,
@@ -897,7 +897,7 @@ ${activityRow("w7.activity-work", "Pruning session approved for Prune the north 
       empty
         ? `<div class="t-meta">${
             state === "seeded"
-              ? "Nothing yet — a prepared season holds no commitments. Opening it is what lets neighbours start filling this."
+              ? "Nothing yet, a prepared season holds no commitments. Opening it is what lets neighbours start filling this."
               : "Nothing yet. As neighbours offer help and ask for it, what this pool can do for its members shows up here."
           }</div>`
         : poolHoldings({
@@ -953,7 +953,7 @@ ${activityRow("w7.activity-work", "Pruning session approved for Prune the north 
         : emptyState(
             "seedling-line",
             "Ready to set up",
-            "Setting up writes how this pool works and opens its first season — one pass, four short steps.",
+            "Setting up writes how this pool works and opens its first season. One pass, four short steps.",
             hot("w7.setup", btn("Set Up Commitments", { kind: "pri", sm: true })),
           ),
     );
@@ -985,7 +985,7 @@ ${cardSection("Campaigns · none yet", hot("w7.start-campaign", btn("Start Campa
     body = acard(
       "Pool Status",
       `${kv("History", `${POOL_LIFETIME.seasons} season · ${POOL_LIFETIME.made} commitments · ${POOL_LIFETIME.kept} kept`)}${banner(
-        "The pool is closed — its history stays with the garden. Archiving it keeps that history; reopening starts the next era.",
+        "The pool is closed. Its history stays with the garden. Archiving it keeps that history; reopening starts the next era.",
         "stone",
       )}<div class="actrow">${hot("w7.compost-pool", btn("Archive Pool…", { kind: "sec", sm: true }))}</div>`,
       chip("Closed", "plain", { dot: true }),
@@ -1056,8 +1056,8 @@ const W7_HOTS: HifiDef["hots"] = {
     info: "Opens the priced-Offer funding checkpoint without accepting the claim or recording a deposit.",
   },
   "w7.series-row": { l: "Active ongoing Offer", info: "Series context is read-only in the console (register #97): instances group under their series, and the available count equals current Offered instances. Lifecycle acts (rest/resume/retire) stay with the holder in the client." },
-  "w7.series-row-resting": { l: "Resting ongoing Offer", info: "Stopping blocks offering another. An existing open commitment stays claimable, so availability derives from current Offered instances, never from series state. Kept history remains visible." },
-  "w7.series-row-retired": { l: "Retired ongoing Offer", info: "Read-only terminal context — retirement never erases the series' kept instances." },
+  "w7.series-row-resting": { l: "Stopped ongoing offer", info: "Stopping blocks offering another. An existing open commitment stays claimable, so availability derives from current Offered instances, never from series state. Kept history remains visible." },
+  "w7.series-row-retired": { l: "Stopped ongoing offer", info: "Read-only terminal context — retirement never erases the series' kept instances." },
   "w7.pause": { l: "Pause pool (reason)", to: "screen:W7@pause-confirm", info: "pausePool with mandatory reason CID; members keep evidence/linkage + recovery (UX:60)." },
   "w7.confirm-dismiss": { l: "Keep as it is", to: "screen:W7", info: "Closes the confirmation without applying the act." },
   "w7.pause-confirm": { l: "Pause pool (confirm)", to: "screen:W7@paused", info: "pausePool(reason) — the stored reason renders in the member banner (UX:60 · CS:725).", calls: ["pausePool"] },
@@ -1092,7 +1092,7 @@ const W7_HOTS: HifiDef["hots"] = {
   "w7.seed-cycle": { l: "Start a season", to: "screen:W11@details", info: "The season door, on the card that owns the season — opens the ONE start-a-season flow (details → allocation → open) in its final shell from step one; one open Season at a time (CS:566 · UX:66)." },
   "w7.open-season": { l: "Open the season", to: "screen:W7C@season", info: "The season card's header is a door (2026-08-17, round 18): the steward's cycle view answers what this season is — its commitments whatever state they reached, who took part, and what its assessments recorded. The acts in the header row keep acting on the season itself." },
   "w7.start-campaign": { l: "Start a campaign", to: "screen:W11@campaign-details", info: "The campaign door, on the card's Campaigns section — the same three-step flow with Campaign preselected; any number of campaigns may run beside the one open Season (UX:66)." },
-  "w7.open-season-flow": { l: "Open this season to the garden", to: "screen:W11@presets", info: "A prepared Season is Seeded and holds nothing: createCommitment rejects any cycle that is not Open (CreationChecksLib.sol:72). Opening runs the remaining §6.10 steps — the split, then openCycle — and is the moment neighbours can start promising." },
+  "w7.open-season-flow": { l: "Open this season to the garden", to: "screen:W11@presets", info: "A prepared Season is Seeded and holds nothing: createCommitment rejects any cycle that is not Open (CreationChecksLib.sol:72). Opening runs the remaining §6.10 steps — the split, then openCycle — and is the moment neighbours can start committing." },
   "w7.accept-claim": { l: "Accept claim", to: "screen:W7@claim-outcomes", info: "Consumes the stored request terms; other pending rows become Superseded (CS:733).", calls: ["acceptClaim"] },
   "w7.decline-claim": { l: "Decline claim (reason)", to: "screen:W7@decline-claim-confirm", info: "Clears exactly one request; the claimant may ask again (CS:734)." },
   "w7.reseed": { l: "Re-seed", to: "screen:W8", info: "Lapsed seeded commitments re-enter the seeding console prefilled (UX:94). Adopted MF-4." },
@@ -1219,7 +1219,7 @@ ${banner("Choose up to the current confirmer limit. The console reads MAX_CONFIR
 ${hot("w8.protocol-fallback", `<label class="arow" style="align-items:flex-start"><input type="checkbox" aria-label="Let the Green Goods team confirm if nobody local is eligible" checked style="margin-top:4px"><span class="grow"><b>Let the Green Goods team confirm if nobody local is eligible</b><span class="t-meta" style="display:block">On for this pilot · usable only while nobody local can confirm, always with a recorded reason · every contributor remains excluded.</span></span></label>`)}
 ${hot("w8.claim-mode", field("Claim mode", radio([{ label: "Open", meta: "anyone in the garden may take it up", on: true }, { label: "Steward-reviewed", meta: "requests wait for review" }], { interactive: true, name: "claim-mode" })))}
 ${disclosure(
-        "Advanced — declared reward",
+        "Advanced, declared reward",
         "External payout record",
         `${hot("w8.reward", field("Reward rail", radio([
   { label: "None", meta: "no declared reward" },
@@ -1326,7 +1326,7 @@ function w9(state: W9State): string {
 ${emptyState(
         "user-line",
         "Not a member yet",
-        "Every recorded commitment belongs to a member address holding a garden role — capture needs membership first, a phone never. Invite them to the garden, then record.",
+        "Every recorded commitment belongs to a member address holding a garden role, capture needs membership first, a phone never. Invite them to the garden, then record.",
         hot("w9.invite", btn("Invite to the Garden", { kind: "sec", sm: true })),
       )}`
       : pick
@@ -1720,7 +1720,7 @@ ${banner("Opening records how this pool works, then opens the pool and its first
       back = "w11.setup-back-split";
       next = hot("w11.setup-open-all", btn("Open Season", { kind: "pri" }));
     } else {
-      inner = `${field("What this pool is for", input("Neighbours in Rocinha offer help and ask for it — rides, tools, workshops, and garden work. Commitments are kept in the open and confirmed by the person they were made to.", { textarea: true }))}
+      inner = `${field("What this pool is for", input("Neighbours in Rocinha offer help and ask for it, rides, tools, workshops, and garden work. Commitments are kept in the open and confirmed by the person they were made to.", { textarea: true }))}
 ${
         blocked
           ? `${banner("This garden needs its starting assessment before commitments can open. An evaluator records it from the Hub. You can come back to this in one step.", "amber", "error-warning-line")}<div class="actrow">${hot("w11.setup-goto-assess", btn("Go to Assessments", { kind: "sec", sm: true }))}</div>`
@@ -1782,7 +1782,7 @@ ${banner("Nothing is recorded yet. The last step shows exactly what opens.", "st
         )}${field("Name", input(campaign ? "Seedling swap" : "Season of First Rains"))}${field("Runs through", input(campaign ? "Sep 15" : "Aug 30"))}${banner(
           campaign
             ? "Campaigns run beside the season and never replace it. Continuing records the campaign; allocation and opening follow in the next steps."
-            : "Continuing records the season first — seedCycle stores no reason. Allocation and opening follow in the next steps.",
+            : "Continuing records the season first, seedCycle stores no reason. Allocation and opening follow in the next steps.",
           "stone",
         )}`,
         cancelHot: campaign ? "w11.campaign-cancel" : "w11.cancel",
@@ -2124,7 +2124,7 @@ ${banner("Attesting records the assessment with its cycle reference and timing; 
     );
     const compare =
       state === "delta"
-        ? field("Compared with", input("Starting record — AGRO — Jul 2", { select: true }))
+        ? field("Compared with", input("Starting record, AGRO, Jul 2", { select: true }))
         : banner("One starting record per garden, cycle, and domain, a duplicate attempt points at the existing one.", "stone");
     inner = `${field("Domain", input("AGRO", { select: true }))}${field("Title", input("Rains-season soil recovery"))}${forField}${whenRadio}${derived}${compare}`;
   }
@@ -2197,7 +2197,7 @@ function hubworkQueue(state: "pending" | "approved" | "rejected"): string {
       ? banner("The existing Work stage, approval rails untouched. Work rows name the commitment they fulfil.", "stone")
       : state === "approved"
         ? `<div class="quietok">${icon("check-line")}Approved work counted · 1 of 2 toward the commitment's requirement.</div>`
-        : `<div class="quietok">${icon("check-line")}Both decided — only approved work counts toward the commitment.</div>`;
+        : `<div class="quietok">${icon("check-line")}Both decided, only approved work counts toward the commitment.</div>`;
   return acard("Work Queue", `${joao}${ana}${note}`);
 }
 
@@ -2311,7 +2311,7 @@ const w7mDock = () =>
   `<nav class="navdock" aria-label="Workspaces">${navItems("garden")
     .map(
       ([id, l, ic]) =>
-        `<button type="button" class="nditem${id === "garden" ? " on" : ""}" disabled aria-label="${l} workspace — preview only"${id === "garden" ? ' aria-current="page"' : ""}><span class="ndic">${icon(ic)}</span><span>${l}</span></button>`,
+        `<button type="button" class="nditem${id === "garden" ? " on" : ""}" disabled aria-label="${l} workspace, preview only"${id === "garden" ? ' aria-current="page"' : ""}><span class="ndic">${icon(ic)}</span><span>${l}</span></button>`,
     )
     .join("")}</nav>`;
 

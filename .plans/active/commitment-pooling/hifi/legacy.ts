@@ -72,15 +72,15 @@ W2: `┌────────────────────────
 │ (recorded by your steward on your behalf)    │
 ├──────────────────────────────────────────────┤
 │ Timeline                                     │
-│ ● Offered      — Maria · Jul 2               │
-│ ● Accepted     — João took this up · Jul 3   │
-│ ● Work linked  — pruning session · Jul 8     │
-│ ● Ready        — steward note: "confirmed    │
+│ ● Offered     . Maria · Jul 2               │
+│ ● Accepted    , João took this up · Jul 3   │
+│ ● Work linked , pruning session · Jul 8     │
+│ ● Ready       . Steward note: "confirmed    │
 │                  on site visit" (override)   │
 ├──────────────────────────────────────────────┤
 │ Evidence                          [ + Add ]  │
-│ ≡ photo — north beds after (Jul 8)           │
-│ ≡ note — "two beds left for next week"       │
+│ ≡ photo, north beds after (Jul 8)           │
+│ ≡ note · "two beds left for next week"       │
 ├──────────────────────────────────────────────┤
 │ Work for this commitment                        │
 │ ≡ Pruning session       (Approved)           │
@@ -93,22 +93,22 @@ W2: `┌────────────────────────
 │ Reward: 20 DAI from the garden jar · pending │
 │ recorded on Arbitrum                         │
 └──────────────────────────────────────────────┘`,
-W3: `┌──────────────────────────────────────────────┐   Step 2 — How much
+W3: `┌──────────────────────────────────────────────┐   Step 2, How much
 │ ✕  Make an offer              ● ● ○ ○        │   ┌────────────────────────┐
 ├──────────────────────────────────────────────┤   │ Unit  [ hours        ▾ ]│
-│ Step 1 — What                                │   │ suggestions: hours,     │
+│ Step 1, What                                │   │ suggestions: hours,     │
 │ direction   ◉ Offer support  ○ Request help  │   │ tasks, meals, rides,    │
 │ type        ◉ Garden work (impact)           │   │ plants                  │
 │             ○ Support / service              │   │ How many  [ 6 ]         │
 │   (season/campaign + on-behalf capture are   │   │ Due  {DatePicker}       │
-│    console-seeded only — not shown here)     │   │  or ◉ selected deadline │
+│    console-seeded only, not shown here)     │   │  or ◉ selected deadline │
 │ cycle scope [Season: First Rains ▾]          │   └────────────────────────┘
-│ title  [ Prune the north beds            ]   │   Step 3 — Anchors
+│ title  [ Prune the north beds            ]   │   Step 3, Anchors
 │ note   [ optional                        ]   │   (DomainImpact only)
 ├──────────────────────────────────────────────┤   action cards: ◉Prune ○Plant
 │                        [ Continue ]          │
 └──────────────────────────────────────────────┘
-Step 4 — Review and commitment
+Step 4, Review and commitment
 ┌──────────────────────────────────────────────┐
 │ summary card (all fields)                    │
 │ [ Make this offer ]                          │
@@ -117,7 +117,7 @@ Step 4 — Review and commitment
 └──────────────────────────────────────────────┘`,
 W4: `┌──────────────────────────────────────────────┐
 │ Commitment kept?                                │
-│ Prune the north beds — Maria · 6 hours       │
+│ Prune the north beds. Maria · 6 hours       │
 │ Offer · provider Maria · recipient confirms  │
 │ evidence: 2 items · linked work: 1 approved  │
 ├──────────────────────────────────────────────┤
@@ -125,15 +125,15 @@ W4: `┌────────────────────────
 │ ≡ João ✓        ≡ Ana ✓       ≡ you ○        │
 │ Provider Maria cannot confirm this delivery. │
 ├──────────────────────────────────────────────┤
-│ [ Confirm — commitment kept ]                   │
-│ [ Not yet — tell the stewards why ]          │
+│ [ Confirm. Commitment kept ]                   │
+│ [ Not yet, tell the stewards why ]          │
 └──────────────────────────────────────────────┘`,
 W5: `┌──────────────────────────────────────────────┐
 │ Wallet            ○ jar  ○ vault  ◉ pools +2 │
 ├──────────────────────────────────────────────┤
 │ Waiting on you                               │
-│ ≡ Maria — Prune the north beds   (Rocinha) ▸ │
-│ ≡ TAS Hub — Field survey ride    (Awka)    ▸ │
+│ ≡ Maria, Prune the north beds   (Rocinha) ▸ │
+│ ≡ TAS Hub, Field survey ride    (Awka)    ▸ │
 ├──────────────────────────────────────────────┤
 │ My commitments                               │
 │ Rocinha Community Garden                     │
@@ -143,7 +143,7 @@ W5: `┌────────────────────────
 │ ≡ Beach cleanup Saturday         (Fulfilled)▸│
 └──────────────────────────────────────────────┘`,
 W6: `┌──────────────────────────────────────────────┐
-│ Retired frame — compatibility redirect       │
+│ Retired frame, compatibility redirect       │
 │ W6 deep links resolve to WalletDrawer W5  ▸  │
 └──────────────────────────────────────────────┘`,
 W7: `┌────────────────────────────────────────────────────────────────────────┐
@@ -159,7 +159,7 @@ W7: `┌────────────────────────
 │ │ CAMPAIGNS (2 open)                                  [ New Campaign ]│ │
 │ │ ≡ Market rides · Open · 6/16                [ Close ] [ Cancel… ] │ │
 │ │ ≡ Tool library · Reviewing · 8/8            [ Review ] [ Cancel… ]│ │
-│ │ History: ≡ Winter campaign (Reconciled) — scoped report ▸          │ │
+│ │ History: ≡ Winter campaign (Reconciled), scoped report ▸          │ │
 │ └────────────────────────────────────────────────────────────────────┘ │
 │ ┌─ Commitments ──────────────────────────────────────────────────────┐ │
 │ │ [search………] (state ▾)(type ▾)(direction ▾)  sort: newest ▾         │ │
@@ -181,31 +181,31 @@ W7X: `DECLINE A                            ACCEPT B
 └──────────────────────────────┘     │ other pending · Superseded    │
                                      └────────────────────────────────┘`,
 W8: `┌── Seed a commitment ── ● ● ● ○ ──────────────────────────┐
-│ Step 1 — Type and scope                                  │
+│ Step 1, Type and scope                                  │
 │ type   ◉ Season/campaign  ○ Support  ○ Impact  ○ Capture │
 │ direction  ◉ the pool offers   ○ the pool requests       │
 │ cycle  [ Season: First Rains ▾ ]                         │
 │ title  [                              ]  note [        ] │
 ├──────────────────────────────────────────────────────────┤
-│ Step 2 — Requirements                                    │
+│ Step 2, Requirements                                    │
 │ unit [ hours ▾ ]  target [ 12 ]  approved works [ 2 ]    │
 │ assessment required  ○ yes ◉ no   due [ cycle deadline ] │
 ├──────────────────────────────────────────────────────────┤
-│ Step 3 — Confirmation rule and reward                    │
+│ Step 3, Confirmation rule and reward                    │
 │ confirmers  [ + add address ]  ≡ Maria ✕  ≡ João ✕       │
 │ threshold   N = [ 2 ] of 2                               │
 │ claim mode  ◉ open   ○ steward-reviewed                  │
 │ rail        ○ none  ◉ external payout  ○ Celo G$         │
 │ external    source [ garden jar ▾ ] token [DAI] amt [20] │
 ├──────────────────────────────────────────────────────────┤
-│ Step 4 — Review · ArbitrumExternal                       │
+│ Step 4, Review · ArbitrumExternal                       │
 │                              [ Seed this commitment ]    │
 └──────────────────────────────────────────────────────────┘`,
 W9: `┌── Record on a member's behalf ───────────────────────────┐
 │ "Recorded by {steward} on your behalf.                   │
 │  The commitment stays yours."                               │
 ├──────────────────────────────────────────────────────────┤
-│ Step 0 — Who and what kind                               │
+│ Step 0, Who and what kind                               │
 │ member   [ search members… ▾ ]                           │
 │ capture  ◉ their offer  ○ their request  ○ confirmation  │
 │          (captured confirmations always carry a reason)  │
@@ -244,23 +244,23 @@ W12: `┌───────────────────────�
 │ ├─ Claims across gardens ────────────────────────────────────────────┤ │
 │ │ ≡ Awka Hub (garden claim) → Methodology survey    [ Accept ]       │ │
 │ ├─ Confirmations queue ──────────────────────────────────────────────┤ │
-│ │ ≡ Field survey — 1 of 2 confirmed                              ▸   │ │
+│ │ ≡ Field survey · 1 of 2 confirmed                              ▸   │ │
 │ └────────────────────────────────────────────────────────────────────┘ │
-│ GARDENS tab: one row per garden — alphabetical, never ranked           │
+│ GARDENS tab: one row per garden, alphabetical, never ranked           │
 │ ≡ Awka Hub   Season: InProgress · 2 campaigns   kept 8/9  exposure 14  │
 └────────────────────────────────────────────────────────────────────────┘`,
 W13: `┌────────────────────────────────────────────────────────────────────────┐
 │ Hub      work (3) · assess (1) · certify (2) · ◉confirm (2) · history  │
 ├────────────────────────────────────────────────────────────────────────┤
-│ Ready for confirmation — where you are named or fallback-eligible      │
-│ ≡ Maria — Prune the north beds   (Rocinha)   ▓▓▓░░ 2 of 3          ▸   │
-│ ≡ TAS — Field survey ride        (Awka)      ░░░░░ 0 of 1          ▸   │
+│ Ready for confirmation, where you are named or fallback-eligible      │
+│ ≡ Maria, Prune the north beds   (Rocinha)   ▓▓▓░░ 2 of 3          ▸   │
+│ ≡ TAS, Field survey ride        (Awka)      ░░░░░ 0 of 1          ▸   │
 └────────────────────────────────────────────────────────────────────────┘`,
-W14: `┌── Create assessment — step 1 additions ──────────────────┐
+W14: `┌── Create assessment, step 1 additions ──────────────────┐
 │ cycle    [ Season of First Rains ▾ ]        NET-NEW      │
 │ kind     ◉ Baseline   ○ Re-assessment (delta)            │
 │ baseline [ pick prior baseline… ▾ ]   (delta only)       │
-│ ⚠ one baseline per garden/cycle/domain — duplicate       │
+│ ⚠ one baseline per garden/cycle/domain, duplicate       │
 │   attempts point at the existing record                  │
 └──────────────────────────────────────────────────────────┘`,
 W15: `│ … field notes (existing, untouched) …        │
@@ -287,7 +287,7 @@ W16: `├───────────────────────�
 W21: `┌─ Settlement (Celo) ────────────────────────────────────────────────────┐
 │ no settlement account yet   [ Review registration requirements ]       │
 │                                                                        │
-│  — once registered —                                                   │
+│ , once registered —                                                   │
 │ Safe celo:0x9a…4f (active) · balance 1,240 G$ · allowance 500 G$/wk    │
 │ member delivery: enabled · changed by 0x9a…4f · Jul 30 · evidence ↗    │
 │ CCIP: peers configured · native reserves funded · last ack 4m ago      │
@@ -298,11 +298,11 @@ W21: `┌─ Settlement (Celo) ────────────────�
 │ ≡ settlement 101 / attempt 0   (Confirmed ↗ Celo tx)                   │
 │ [ Create batch (2) ]                                                   │
 └────────────────────────────────────────────────────────────────────────┘`,
-	W22: `┌── Settlement 104 / attempt 0 — Rocinha ───────────────────────────┐
+	W22: `┌── Settlement 104 / attempt 0, Rocinha ───────────────────────────┐
 │ 2 of configured 8 · hard ceiling 24 · 35 G$ · no G$ in CCIP │
 │ payer Rocinha pool Safe · Celo peer/version/gas snapshot     │
-│ ≡ Maria — 20 G$ → 0x12…9a                                │
-│ ≡ João — 15 G$ → 0x77…3c                                 │
+│ ≡ Maria · 20 G$ → 0x12…9a                                │
+│ ≡ João · 15 G$ → 0x77…3c                                 │
 │ [ Dispatch command ]                                     │
 │ command 0xab…11 ↗ CCIP Explorer · Dispatched             │
 │ destination 0xce…42 ↗ Celoscan · outcome stored          │
@@ -310,13 +310,13 @@ W21: `┌─ Settlement (Celo) ────────────────�
 ├──────────────────────────────────────────────────────────┤
 │ delivery delay is derived, never manually marked         │
 │ [ Manual-execution guidance ] [ Retry same command ]     │
-│ [ Retry acknowledgment ] — never moves G$ twice          │
+│ [ Retry acknowledgment ], never moves G$ twice          │
 │ authenticated failure: [ Requeue member ]                │
 │ queued only: [ Cancel whole batch ] · no partial member  │
 └──────────────────────────────────────────────────────────┘`,
 W23: `├──────────────────────────────────────────────┤
 │ Support received (G$ · Celo)          128 G$ │
-│ ≡ +20 G$ — Prune the north beds  (arrived ↗) │
+│ ≡ +20 G$, Prune the north beds  (arrived ↗) │
 │ [ Send G$ ]                                  │
 ├──────────────────────────────────────────────┤
 │ Send G$                                      │
@@ -336,16 +336,16 @@ W23G: `┌─ G$ member delivery ───────────────�
 W24: `┌────────────────────────────────────────────────────────────────────────┐
 │ Operations        ◉ queue (4) · CCIP · flows                           │
 ├────────────────────────────────────────────────────────────────────────┤
-│ QUEUE — all gardens                                                    │
+│ QUEUE, all gardens                                                    │
 │ ≡ Rocinha  batch #12 · 2 members · 35 G$             (Queued)    [ Execute ▸ ]  │
-│ ≡ Awka     Maria — 20 G$                    (Failed ▸)  [ Requeue ]    │
+│ ≡ Awka     Maria · 20 G$                    (Failed ▸)  [ Requeue ]    │
 │ ≡ protocol funding → Muizenberg · 200 G$    (Queued)    [ Execute ▸ ]  │
 ├────────────────────────────────────────────────────────────────────────┤
-│ CCIP — command / execution / acknowledgment health                     │
+│ CCIP, command / execution / acknowledgment health                     │
 │ Arbitrum reserve ✓ · Celo reserve ✓ · peers ✓ · 0 deferrals           │
 │ ≡ settlement 102 · execution stored · acknowledgment pending              ▸   │
 ├────────────────────────────────────────────────────────────────────────┤
-│ FLOWS — cross-chain funds board                                        │
+│ FLOWS, cross-chain funds board                                        │
 │ GoodDollar pool → GG protocol Safe    balance 4,120 G$  (Celo read)    │
 │ GG protocol Safe → garden Safes       3 confirmed · 1 dispatched       │
 │ garden Safes → members                42 confirmed · 2 failed          │
@@ -363,29 +363,29 @@ W25: `┌───────────────────────�
 │ → confirm via W4 when ready                  │
 └──────────────────────────────────────────────┘`,
 W26: `┌── Close cycle: Season of First Rains ── ● ● ● ○ ─────────┐
-│ Step 1 — Review        ${SEASON_LIVE.made} commitments · ${SEASON_LIVE.kept} kept · 62% units   │
+│ Step 1, Review        ${SEASON_LIVE.made} commitments · ${SEASON_LIVE.kept} kept · 62% units   │
 │   unresolved first: 1 expired [ Re-seed… ]               │
 │                     1 disputed [ Resolve… ]              │
-│ Step 2 — Shares (read-only; locked at open, W11)         │
+│ Step 2, Shares (read-only; locked at open, W11)         │
 │   gardeners 60% · treasury 15% · steward 10%             │
 │   evaluator 5% · community 5% · funder 5%                │
-│ Step 3 — Impact certificate                              │
+│ Step 3, Impact certificate                              │
 │   bundle: 7 fulfilled commitments + their work, evidence,   │
 │   and need lineage → allowlist from the shares above     │
 │   [ Mint impact certificate ]                            │
-│ Step 4 — Rest the cycle    [ Reconcile + compost ]       │
+│ Step 4, Rest the cycle    [ Reconcile + compost ]       │
 │   aggregates roll into pool history; the next season     │
 │   seeds fresh on this pool (D9)                          │
 └──────────────────────────────────────────────────────────┘`,
 MF1: `┌─ Pool ─────────────────────────────────────────────────────────────┐
 │ (Ready) charter ✓ baseline ✓ cap 24                                │
 │ [ Open pool ]                    [ Edit charter ] [ Pause… ]       │
-│  — once Open —                                                     │
+│ , once Open —                                                     │
 │ [ Close pool… ]  after all cycles end and pool live count = 0      │
 └────────────────────────────────────────────────────────────────────┘`,
 MF3: `┌──────────────────────────────────────────────┐
 │ (Expired)  This commitment ran through Aug 12.  │
-│ The season moved on — you can offer it again.│
+│ The season moved on. You can offer it again.│
 │ [ Offer again ]                              │
 └──────────────────────────────────────────────┘`,
 MF4: `┌─ Lapsed this cycle ────────────────────────────────────────────────────┐
@@ -409,20 +409,20 @@ MF8: `┌───────────────────────�
 │ the commitment; you remain the requester.       │
 │ [ Continue ]                      [ Cancel ] │
 └──────────────────────────────────────────────┘`,
-MF9: `┌── Season of First Rains — report ────────────────────────────────┐
+MF9: `┌── Season of First Rains, report ────────────────────────────────┐
 │ ${SEASON_CLOSED.made} commitments · ${SEASON_CLOSED.kept} kept · ${SEASON_CLOSED.expired} expired · ${SEASON_CLOSED.cancelled} cancelled                  │
 │ units: 61 of 74 committed                                         │
 │ [ Compost this season ]                    [ Export… flagged ]   │
 └──────────────────────────────────────────────────────────────────┘`,
 MF10: `┌──────────────────────────────────────────────┐
-│ Season of First Rains — season closed        │
+│ Season of First Rains. Season closed        │
 │ ${SEASON_CLOSED.kept} of ${SEASON_CLOSED.made} commitments kept · ${SEASON_CLOSED.units} units            │
 │ ready for the next season                    │
 └──────────────────────────────────────────────┘`,
 MF13: `┌── Attach assessment ─────────────────────────┐
 │ provider garden: AgroforestDAO               │
-│ ◉ Baseline — AGRO — Jul 2   (v3)             │
-│ ○ Delta — AGRO+EDU — Jul 9  (v3)             │
+│ ◉ Baseline, AGRO, Jul 2   (v3)             │
+│ ○ Delta, AGRO+EDU, Jul 9  (v3)             │
 │ [ Attach ]                        [ Cancel ] │
 └──────────────────────────────────────────────┘`,
 WFLOW: `┌──────────────────────────────────────────────┐
@@ -433,15 +433,15 @@ WFLOW: `┌───────────────────────
 │ fulfills: Plant 200 seedlings (Offer · AGRO) │
 │ [ Submit work ]                              │
 └──────────────────────────────────────────────┘
-existing Garden-tab work flow — only the
+existing Garden-tab work flow, only the
 "fulfills:" row is new (MF-7, UX:174)`,
 HUBWORK: `┌──────────────────────────────────────────────────────────┐
 │ Hub   ◉work (3) · assess · certify · confirm · history   │
 ├──────────────────────────────────────────────────────────┤
-│ ≡ Pruning session — Plant 200 seedlings                  │
+│ ≡ Pruning session, Plant 200 seedlings                  │
 │   [ Approve ]  [ Reject ]                                │
 └──────────────────────────────────────────────────────────┘
-existing Work stage — approval rails untouched (UX:285)`,
+existing Work stage, approval rails untouched (UX:285)`,
 C1: `┌──────────────────────────────────────────────┐
 │ Rocinha Community Garden                    │
 │ This season · commitments and progress         │
@@ -568,7 +568,7 @@ export const FT: Record<string, string> = {
   MF9: "MF-9 · Reconciliation report (realized)", MF10: "MF-10 · Cycle summary card (realized)", MF13: "MF-13 · Attach-assessment picker (realized)",
   W24: "W24 · Operations workspace (admin)", W25: "W25 · Protocol-pool claim (client)", W26: "W26 · Cycle-close wizard (admin)",
   WFLOW: "Existing work flow (+ fulfills row)", HUBWORK: "Existing Hub Work stage",
-  C1: "CI-W1 · Needs board (Sept)", C3: "CI-W3 · Create — intent + words (Sept)", C4: "CI-W4 · Review + queue state (Sept)",
+  C1: "CI-W1 · Needs board (Sept)", C3: "CI-W3 · Create, intent + words (Sept)", C4: "CI-W4 · Review + queue state (Sept)",
   C5: "CI-W5 · Need detail (Sept)", C6: "CI-W6 · Profile (Sept)", C9: "CI-W9 · Gathering + triage (Sept)", C10: "CI-W10 · Seed from Need (Sept)",
 };
 
@@ -653,7 +653,7 @@ W11: [
 ],
 W12: [
   { m: "[ Accept ]", l: "Accept a garden claim", info: "Protocol steward accepts stored terms; providerGarden derives (CS:733). Walked in SB-13." },
-  { m: "Field survey — 1 of 2 confirmed", l: "Confirmations queue", to: "frame:W10" },
+  { m: "Field survey · 1 of 2 confirmed", l: "Confirmations queue", to: "frame:W10" },
   { m: "20 DAI · protocol treasury", l: "Funding view", info: "Reward references only; co-funded entries name the owning garden (UX:313). Route queueing control is MF-11 (undrawn)." },
   { m: "alphabetical, never ranked", l: "No-ranking invariant", info: "Cross-garden rows sort alphabetically; no rank column ever (UX:314)." },
 ],

@@ -29,7 +29,7 @@ const GROUP_DEFS: { name: string; surface: Surface; ids: string[] }[] = [
   { name: "Client PWA", surface: "client", ids: ["W1", "W1C", "W2", "W2a", "W2b", "W3", "W4", "W36", "W5", "W23", "W25", "WFLOW", "W28", "W29", "W30", "W31", "W32", "W34", "W35"] },
   { name: "Admin console", surface: "admin", ids: ["W7", "W7C", "W7M", "W8", "W9", "W10", "W11", "W12", "W13", "W14", "W37", "W21", "W22", "W24", "W26", "HUBWORK"] },
   { name: "Editorial website", surface: "editorial", ids: ["W15", "W16"] },
-  { name: "Community PWA — September preview (lo-fi)", surface: "community", ids: ["C1", "C3", "C4", "C5", "C6", "C9", "C10"] },
+  { name: "Community PWA, September preview (lo-fi)", surface: "community", ids: ["C1", "C3", "C4", "C5", "C6", "C9", "C10"] },
 ];
 
 // Screen-library chapters (2026-08-10): the same clustered treatment the

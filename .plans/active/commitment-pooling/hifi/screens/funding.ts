@@ -104,7 +104,7 @@ function w36(state: W36State): string {
     );
   if (state === "read-error")
     return readWrap(
-      pagepad(emptyState("wifi-off-line", "Couldn't load this claim", "Something went wrong reaching the network. Nothing has moved — your deposit and refund account are unaffected.", hot("w36.retry", btn("Try again", { kind: "pri", icon: "refresh-line" })))),
+      pagepad(emptyState("wifi-off-line", "Couldn't load this claim", "Something went wrong reaching the network. Nothing has moved. Your deposit and refund account are unaffected.", hot("w36.retry", btn("Try again", { kind: "pri", icon: "refresh-line" })))),
     );
   const v = W36_VIEW[state];
   // People above the fold, the way the commitment view does it — the chips row and

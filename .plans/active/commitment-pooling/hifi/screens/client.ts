@@ -354,7 +354,7 @@ function w1(state: W1State): string {
     case "seeded":
       // A prepared season holds nothing yet — createCommitment rejects any cycle
       // that is not Open (CreationChecksLib.sol:72), so there is genuinely
-      // nothing to preview and the old "browse what's coming" copy promised a
+      // nothing to preview and the old "browse what's coming" copy committed a
       // list that cannot exist. What a member can do is know when it starts and
       // decide what to bring, so the screen says that instead.
       content = pagepad(
@@ -2813,7 +2813,7 @@ function w3(state: W3State): string {
       head = w3Head("Offer it once", 1, 2);
       content = pagepad(
         card(`${kv("Direction", "Offer")}${kv("Kind", "Support / service")}${kv("Garden", "Rocinha Community Garden")}${kv("Cycle", "Season of First Rains")}${kv("Title", "Hosting climate workshops")}${kv("What people receive", "A two-hour session on local climate work")}${kv("How much", "1 workshop session")}${kv("Who confirms", "Recipient")}`),
-        banner("This makes one ordinary Offer. It will not repeat, create an ongoing Offer, or open another later.", "stone", "information-line"),
+        banner("This makes one ordinary Offer. It will not repeat, create an ongoing Offer, or offer another later.", "stone", "information-line"),
       );
       actions = `<div class="brow">${hot("w3.edit-saved-offer", btn("Edit", { kind: "ghost" }))}${hot("w3.submit-saved-offer", btn("Make This Offer", { kind: "pri" }))}</div>`;
       break;
@@ -3023,7 +3023,7 @@ const W3_HOTS: HifiDef["hots"] = {
   // The details step's forward edges — one per path, because each continues to
   // its own review. The step itself is drawn from one shared body (w3DetailsBody),
   // so the five states differ only in their fixture and their next.
-  "w3.continue-details": { l: "Continue to review", to: "screen:W3@step-review", info: "Details → review. Adding photos, a voice note or a link is step 3 of four on every path since 2026-08-16 (round 12, Afo): it used to be an unnumbered detour off step 1 that highlighted step 1's dot while you were on it, so the flow never promised the step and it was easy to miss that evidence was possible at all. Payload → commitment-metadata JSON v1 → metadataCID; creation metadata is write-once, anything added later rides evidence." },
+  "w3.continue-details": { l: "Continue to review", to: "screen:W3@step-review", info: "Details → review. Adding photos, a voice note or a link is step 3 of four on every path since 2026-08-16 (round 12, Afo): it used to be an unnumbered detour off step 1 that highlighted step 1's dot while you were on it, so the flow never committed the step and it was easy to miss that evidence was possible at all. Payload → commitment-metadata JSON v1 → metadataCID; creation metadata is write-once, anything added later rides evidence." },
   "w3.continue-support-details": { l: "Continue to review", to: "screen:W3@support-review", info: "The service offer's details step → its review. Same body as the garden-work step; only the fixture differs." },
   "w3.continue-support-details-ongoing": { l: "Continue to review", to: "screen:W3@support-review-ongoing", info: "The ongoing offer's details step → the review that starts the series and its first commitments together." },
   "w3.continue-request-details": { l: "Continue to review", to: "screen:W3@request-review", info: "The ask's details step → its review. An ask has nothing done yet, so what attaches here is context for whoever takes it up — the evidence arrives with the work." },
@@ -3263,13 +3263,13 @@ function w4(state: W4State): string {
     state.startsWith("not-yet-failed")
       ? { ic: "error-warning-line", info: "Your note is kept on this device. The commitment stays ready to confirm." }
       : state.startsWith("not-yet")
-        ? { ic: "time-line", info: "Say what still needs doing. This does not break the commitment — it tells the stewards where it is." }
+        ? { ic: "time-line", info: "Say what still needs doing. This does not break the commitment. It tells the stewards where it is." }
         : state === "provider-view"
           ? { ic: "eye-line", info: "You provided this, so you cannot confirm it. You'll see it here the moment they do." }
           : state.includes("pending")
             ? { ic: "time-line", info: "Saved on this device and waiting to send. It cannot be confirmed twice while it syncs." }
             : state.startsWith("confirmed")
-              ? { ic: "checkbox-circle-fill", info: "Confirmed and counted — the season's total just grew." }
+              ? { ic: "checkbox-circle-fill", info: "Confirmed and counted. The season's total just grew." }
               : { ic: "hand-heart-line", info: "Only the person it was made to can confirm it. Everyone who contributed is excluded." };
   return phoneFrame(sheetOver(w4Behind(cast), title, inner, sheetInfo), { appBar: false });
 }
@@ -3639,7 +3639,7 @@ function w32(state: W32State): string {
           { cls: "flat" },
         ),
         hot("w32.add", btn("Save Offer Details", { kind: "ghost", full: true, icon: "add-line" })),
-        `<div class="t-meta">Saved privately to your account. No garden, pool, ongoing Offer, or available place exists yet.</div>`,
+        `<div class="t-meta">Saved privately to your account. No garden, pool, ongoing Offer, or open commitment exists yet.</div>`,
       )}`;
   }
   return phoneFrame(`${body}<div style="flex:1"></div>`, {
@@ -3666,7 +3666,7 @@ const W32_HOTS: HifiDef["hots"] = {
   "w32.offer-once": { l: "Offer it once", to: "screen:W3@saved-offer-edit", info: "Enters a prefilled ordinary creation flow that preserves the saved workshop details and produces one Offer with commitmentSeriesId == 0. Nothing durable is created." },
   "w32.offer-over-time": { l: "Offer it over time", to: "screen:W3@step-what", info: "Enters the composer at step 1 with Ongoing already chosen and these saved details prefilled. It used to jump straight to the amount step, which was the one entry that never picked a cycle — and an ongoing offer has to name where it runs, because every commitment it opens carries that cycle (2026-08-17, Afo). The separate ongoing wizard stays retired; one submission still runs the series creation plus its first commitment creations." },
   "w32.open-series": { l: "Open the ongoing offer", to: "screen:W34@active-two", info: "Opens the ongoing Offer — internally the pool-scoped CommitmentSeries — for an offer already made over time." },
-  "w32.open-series-ready": { l: "Open the ongoing offer in a Ready pool", to: "screen:W34@pool-ready", info: "Preserves the selected Ready pool state after series sync. The detail exposes holder metadata/lifecycle controls but no way to open more until the pool opens." },
+  "w32.open-series-ready": { l: "Open the ongoing offer in a Ready pool", to: "screen:W34@pool-ready", info: "Preserves the selected Ready pool state after series sync. The detail exposes holder metadata and lifecycle controls, but nothing can be offered until the pool opens." },
   "w32.retry": { l: "Try again", to: "screen:W32@saved", info: "Re-reads signed offchain storage; nothing was lost by the failed read." },
 };
 
@@ -3982,7 +3982,7 @@ function w34(state: W34State): string {
             `<div class="brow">${hot("w34.ask-again-yes", btn("Offer Another", { kind: "pri", icon: "add-line" }))}${hot("w34.ask-again-not-now", btn("Not This Season", { kind: "ghost" }))}</div>`,
         ),
         `<div class="t-meta">Nothing is created until you choose. Saying no changes nothing about this offer or its story.</div>`,
-        sectionCard("Details", `${detailRow("Kept", "12 times across 5 cycles")}${detailRow("Places available", "None")}`),
+        sectionCard("Details", `${detailRow("Kept", "12 times across 5 cycles")}${detailRow("Open now", "None")}`),
       )}`;
       break;
     case "claimant-view":

@@ -142,7 +142,7 @@ ${sectionCard(
           // only you rest, resume, or retire, so the wallet is its home. Counts
           // are places — one basis, so no cross-basis sum (Appendix D.1).
           "w5.ongoing-row",
-          commitmentCard({ title: "Hosting climate workshops", meta: "2 places open · 1 taken up", tags: [{ label: "Ongoing" }, { label: "Support / service" }] }),
+          commitmentCard({ title: "Hosting climate workshops", meta: "2 open · 1 taken up", tags: [{ label: "Ongoing" }, { label: "Support / service" }] }),
         )}`,
         { flush: true },
       )}

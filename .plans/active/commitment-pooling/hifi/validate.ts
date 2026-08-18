@@ -486,6 +486,40 @@ const BANNED_EVERYWHERE: [RegExp, string][] = [
   [/\bowes?d?\b/i, "owe/owed"],
   [/\boperators?\b/i, "operator (steward rule, Decision Log #28c)"],
 ];
+// RETIRED VOCABULARY — words a decision took out of the product, guarded so a
+// later edit cannot quietly bring one back.
+//
+// This exists because every vocabulary decision in this feature leaked a
+// dialect. The promise→commitment rename was recorded as done and left "nobody
+// can commitment yet" standing in the console for three weeks. "Places" was
+// retired in the client and survived in W7's ongoing rows. "neighbour" was
+// fixed in the client while `poolHoldings` kept defaulting to the American
+// spelling, so BOTH dialects rendered it. The build gates catch structure well
+// and copy not at all; this closes that.
+//
+// Each entry names the decision that retired it, so whoever trips the gate can
+// read why rather than guess. Patterns are deliberately narrow: they guard the
+// RETIRED SENSE, not the word. "in place", "takes place" and "an open request"
+// are all legitimate and must not trip.
+const RETIRED_VOCABULARY: [RegExp, string][] = [
+  // C.14 (round 14): the record is a Commitment everywhere.
+  [/\bpromis(?:e|es|ed|ing)\b/i, 'promise — the record is a "commitment" (C.14)'],
+  // …and the verb is "commit". This exact breakage shipped twice, from a noun
+  // sweep that rewrote verbs it should have left alone.
+  [/\b(?:can|cannot|could|would|will|must|may|to)\s+commitment\b/i, 'commitment used as a VERB — say "commit" (C.14)'],
+  [/\bcommitmentd\b|\bcommitmenting\b/i, 'a verb mangled into "commitment" (C.14)'],
+  // C.23 (round 30) + C.35: a "place" was a second name for a commitment, and
+  // the act of making another is OFFERING, not opening.
+  [/\b\d+\s+places?\b|\bplaces?\s+(?:made|available|to start|left)\b|\b(?:open|add|each|new|existing|available)\s+places?\b/i,
+    'place — each one is a "commitment" (C.23)'],
+  [/\bopen (?:more|another)\b/i, 'open as the ACT — say "offer another" (C.35)'],
+  // C.36: the client says neighbour; poolHoldings defaulted to the other.
+  [/\bneighbor(?!u)/i, 'neighbor — the client spells it "neighbour" (C.36)'],
+  // C.27: rest and retire collapsed into one act.
+  [/\b(?:rest it|resting|retire it|retired)\b(?=[^.]*\boffer\b)/i,
+    'rest/retire — an ongoing offer is "stopped" (C.27)'],
+];
+
 const BANNED_CLIENT_PUBLIC: [RegExp, string][] = [
   [/\bdisputes?d?\b/i, 'dispute ("under review by stewards" is the ceiling)'],
   [/\blegal\b/i, "legal"],
@@ -510,8 +544,27 @@ const REASON_CONFIRMS = new Set([
   "withdraw-confirm", // cancelCommitment(commitmentId, reasonCID) — creator path
 ]);
 
-function scanEverywhere(where: string, text: string, sink = err) {
+function scanEverywhere(where: string, text: string, sink = err, opts: { docs?: boolean } = {}) {
   for (const [re, name] of BANNED_EVERYWHERE) if (re.test(text)) sink.push(`VOCAB ${where}: "${name}"`);
+  // Retired vocabulary is an error on every surface, including the ascii
+  // frames: a word a decision removed is removed everywhere or it is not
+  // removed. The match is quoted back so the fix is obvious from the message.
+  for (const [re, why] of RETIRED_VOCABULARY) {
+    const hit = text.match(re);
+    if (hit) sink.push(`RETIRED ${where}: "${hit[0].trim()}" — ${why}`);
+  }
+  // Em-dashes leave PRODUCT copy: plainer punctuation translates (C.32, C.36).
+  // Hotspot notes and journey prose are exempt by that same decision — they are
+  // written for whoever is reading the artifact, a different register from the
+  // UI — so `docs` skips this while still enforcing retired vocabulary above.
+  // A dash that NAMES a variant is not punctuation, so those are listed rather
+  // than pattern-matched: adding one is a deliberate act.
+  if (opts.docs) return;
+  // Every occurrence, not the first: one-at-a-time reporting turns a copy sweep
+  // into a dozen rebuild cycles.
+  const cleaned = text.replace(/North beds — (?:before|after)/g, "");
+  for (const d of new Set([...cleaned.matchAll(/[^\n]{0,30}—[^\n]{0,30}/g)].map((m) => m[0].trim())))
+    sink.push(`DASH ${where}: "${d}" needs a full stop or a comma (C.32)`);
 }
 
 function scanState(screen: Screen, stateId: string, html: string, sept: boolean) {
@@ -692,9 +745,10 @@ export function normalizeAndValidate(raw: RawSB[], ctx: Ctx): { sbs: ShippedSB[]
       ...(sc.alts ?? []).map((a) => a.l),
       ...(sc.br ?? []).map((b) => b.l),
     ])].filter(Boolean).join(" ");
-    scanEverywhere(`JOURNEY ${sb.id}`, text);
+    scanEverywhere(`JOURNEY ${sb.id}`, text, err, { docs: true });
   }
-  for (const [hid, meta] of Object.entries(ctx.hots)) scanEverywhere(`HOT ${hid}`, [meta.l, meta.info].filter(Boolean).join(" "));
+  for (const [hid, meta] of Object.entries(ctx.hots))
+    scanEverywhere(`HOT ${hid}`, [meta.l, meta.info].filter(Boolean).join(" "), err, { docs: true });
 
   // hotspot meta targets
   for (const [hid, meta] of Object.entries(ctx.hots)) {
