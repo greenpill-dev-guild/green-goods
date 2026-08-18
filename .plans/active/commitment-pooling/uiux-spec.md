@@ -2105,11 +2105,13 @@ same flow's review said *"You, because it was your request"*. On a request YOU c
 reads *"You confirm it, because you asked"*, and on a garden-work ask *"You confirm it once
 the stewards have approved the work"*.
 
-**Open: the Team section on a request.** It shows your card marked Lead and says *"Anyone you
-add can add evidence and submit work"*. On a request you will not add evidence or submit work,
-and `leadProvider` for an Individual Request is the **counterparty**, not the requester
-(contract-spec:520). The section is currently describing an offer.
-
+**A request has no team.** The section showed your card marked Lead and said *"Anyone you add
+can add evidence and submit work"*, neither of which is true when you are asking. `leadProvider`
+for an Individual Request is the **counterparty** (contract-spec:520), and whoever takes it up
+brings their own people, on their side, after acceptance. The three request details steps are
+**Who confirms** and **Media**, and their step card names two things rather than three. The
+ask composer is now shorter than the offer composer, which is honest: you are asking for less
+setup, not doing less.
 ### C.7 PARKED — reciprocity from the claim side (2026-08-16, register #103)
 
 > **Parked 2026-08-17 (Afo): "park it for now and we stabilize and polish the UI."** The

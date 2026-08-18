@@ -1393,9 +1393,10 @@ Known mis-resolutions fixed in place: `contract-spec.md` §Grassroots-Economics-
     step contradicted its own review**: the decision-135 sweep set the confirm default
     everywhere, so a request said "Whoever takes it up confirms it" while its review said "You,
     because it was your request"; it now reads "You confirm it, because you asked". Two of the
-    three were mine, from applying offer-shaped changes globally. **Open**: the Team section on
-    a request still shows your card as Lead, but leadProvider for an Individual Request is the
-    counterparty, not the requester. Full text: `uiux-spec.md` C.33.
+    three were mine, from applying offer-shaped changes globally. **A request has no team** (Afo): the section claimed you would add
+    evidence and submit work, which is what the counterparty does. The three request details
+    steps are Who confirms and Media, and the ask composer is now shorter than the offer
+    composer, which is honest. Full text: `uiux-spec.md` C.33.
 
 **Final recursive certification clarification (2026-07-25; no new decision-register entry):**
 the published `42161`↔`42220` production lane is the only required fully paired

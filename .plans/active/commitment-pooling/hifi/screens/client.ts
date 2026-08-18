@@ -2266,7 +2266,12 @@ const w3StepCard = (state: W3State): string => {
     return asking
       ? stepCard("seedling-line", "What you're asking for", "Name it in your own words. A neighbour reads this first")
       : stepCard("seedling-line", "What you're offering", "Name it in your own words. A neighbour reads this first");
-  if (state.includes("details")) return stepCard("group-line", "Who and what", "Say who confirms it, bring in anyone helping, and add anything that shows what you mean. All of it is optional.");
+  if (state.includes("details"))
+    // An ask has no team to bring, so its card names two things rather than
+    // three (2026-08-17, Afo).
+    return asking
+      ? stepCard("group-line", "Who and what", "Say who confirms it, and add anything that shows what you need. Both are optional.")
+      : stepCard("group-line", "Who and what", "Say who confirms it, bring in anyone helping, and add anything that shows what you mean. All of it is optional.");
   if (state.includes("howmuch")) return stepCard("leaf-line", "How much", "The unit, the amount, when it's due, and the terms it's kept on");
   if (state.includes("confirmers") || state.includes("invite") || state.includes("advanced"))
     return stepCard("settings-line", "Advanced", "Named confirmers, the team policy, and who may join. Most commitments need none of it");
@@ -2391,10 +2396,11 @@ const w3DetailsBody = (
   items: string,
   members: W3Member[] = [],
   confirm: { value: string; hot: string } = { value: "Whoever takes it up confirms it", hot: "w3.advanced" },
+  opts: { team?: boolean } = {},
 ) =>
   w3ConfirmSection(confirm) +
-  w3TeamSection(members) +
-  captureBody("w3", items, "Saved on this device with your draft, details upload when the commitment sends.");
+  (opts.team === false ? "" : w3TeamSection(members)) +
+  captureBody("w3", items, "Saved on this device with your draft, and details upload when the commitment sends.");
 
 // Media stays ONE list — a photo, a voice note, a link and a written note are
 // all things you attached — but the photo rows carry the PICTURE now, not an
@@ -2834,19 +2840,19 @@ function w3(state: W3State): string {
       break;
     case "request-details":
       head = w3Head("Make a request", 2);
-      content = pagepad(w3DetailsBody(card(listRow({ icon: "sticky-note-line", primary: "“The stall closes at noon”", meta: "Note · just now" }), { cls: "flat" }), [], { value: "You confirm it, because you asked", hot: "w3.advanced" }));
+      content = pagepad(w3DetailsBody(card(listRow({ icon: "sticky-note-line", primary: "“The stall closes at noon”", meta: "Note · just now" }), { cls: "flat" }), [], { value: "You confirm it, because you asked", hot: "w3.advanced" }, { team: false }));
       secondary = W3_CAPTURE_BAR;
       actions = hot("w3.continue-request-details", btn("", { kind: "pri", icon: "arrow-right-s-line", ariaLabel: "Continue to review" }));
       break;
     case "request-details-steward":
       head = w3Head("Make a request", 2);
-      content = pagepad(w3DetailsBody(card(listRow({ icon: "sticky-note-line", primary: "“The stall closes at noon”", meta: "Note · just now" }), { cls: "flat" }), [], { value: "You confirm it, because you asked", hot: "w3.advanced" }));
+      content = pagepad(w3DetailsBody(card(listRow({ icon: "sticky-note-line", primary: "“The stall closes at noon”", meta: "Note · just now" }), { cls: "flat" }), [], { value: "You confirm it, because you asked", hot: "w3.advanced" }, { team: false }));
       secondary = W3_CAPTURE_BAR;
       actions = hot("w3.continue-request-details-steward", btn("", { kind: "pri", icon: "arrow-right-s-line", ariaLabel: "Continue to review" }));
       break;
     case "request-work-details":
       head = w3Head("Make a request", 2);
-      content = pagepad(w3DetailsBody(card(listRow({ thumb: 1, thumbHotId: "w3.preview", primary: "The blocked channel", meta: "Photo · just now" }), { cls: "flat" }), [], { value: "You confirm it once the stewards have approved the work", hot: "w3.advanced" }));
+      content = pagepad(w3DetailsBody(card(listRow({ thumb: 1, thumbHotId: "w3.preview", primary: "The blocked channel", meta: "Photo · just now" }), { cls: "flat" }), [], { value: "You confirm it once the stewards have approved the work", hot: "w3.advanced" }, { team: false }));
       secondary = W3_CAPTURE_BAR;
       actions = hot("w3.continue-request-work-details", btn("", { kind: "pri", icon: "arrow-right-s-line", ariaLabel: "Continue to review" }));
       break;
