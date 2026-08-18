@@ -1890,6 +1890,51 @@ composer, its outcomes and the ongoing screens are done, 35 strings; the rest of
 is a follow-up pass and is not claimed as finished. Titles and labels that use a dash as a
 name rather than as punctuation ("North beds — before") keep it.
 
+### C.26 Value over time, and the denominator rule (2026-08-17, round 26)
+
+Afo, asked what Maria is making when she offers workshops all season: *"one thing she's able
+to offer multiple times, and the key reason is how do we show the value of a commitment over
+time. This is a tension I feel we need to solve well."*
+
+**The two units are different objects, and that is the whole problem.** A commitment is the
+unit of ACCOUNTABILITY: it opens, someone takes it up, evidence lands, it is confirmed, it
+ends. Atomic and complete. An ongoing offer is the unit of VALUE, and its worth is the
+pattern — twelve sessions across five seasons — which no single commitment can express. The
+prototype had been treating the accountability unit as the star and the value unit as a
+settings screen, which is why W34 read as a management console and why an earlier proposal to
+shrink it to "saved terms plus Open more" would have deleted the point of the object.
+
+**The denominator is what makes a record dangerous, not the record.** Appendix D.3 forbids
+per-person rates, grades and comparisons on public surfaces. What enables all three is a
+total: "4 kept · 1 lapsed" lets anyone compute 80%, while "12 sessions given" cannot be
+turned into a score however it is arranged. So the public record counts only things that
+HAPPENED and never states a total —
+
+> Running since March · 12 sessions given · 9 neighbours took one up
+
+Every figure is a numerator. The cost is deliberate and was accepted: this never
+distinguishes twelve of twelve from twelve of thirty. The full kept-and-lapsed record stays
+where D.3 puts it, with the member and their stewards. Pool-level figures such as a cycle's
+"22 of 26 kept" are untouched: D.3 permits aggregates and only forbids the per-person case.
+
+**Something I had introduced a round earlier was exactly the forbidden shape.** W34's
+identity card carried `progressBlock({ rows: [{ label: "Taken up", done: 12, of: 14 }] })` —
+a per-person denominator with a progress bar, on the offer's own screen. It is gone.
+
+**The record leads the screen and rides the card.** W34 is now identity, then *What this
+offer has given*, then what is open, then manage; the story stopped being a sub-screen you
+reached from a ghost button at the bottom. The compact form sits on the pool card, because
+that is where the decision is made: a neighbour scanning the pool sees this has been running
+and giving before they tap, which is also the first visible reason an ongoing offer is worth
+more than the same twelve offers made separately.
+
+**A repeat can become a practice, but history cannot be back-filled.** `commitmentSeriesId`
+is set at creation and commitments are immutable, so past one-offs can never be pulled into a
+series. `W3@repeat-noticed` is the honest version: the composer recognises a title you have
+offered before and asks whether to make it ongoing from here on, saying plainly that the ones
+already made stay as they are. Without it, accumulating a record depends on a choice made at
+step 1 before you knew it mattered.
+
 ### C.7 PARKED — reciprocity from the claim side (2026-08-16, register #103)
 
 > **Parked 2026-08-17 (Afo): "park it for now and we stabilize and polish the UI."** The

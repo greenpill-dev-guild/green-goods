@@ -414,6 +414,37 @@ export function detailRow(label: string, value: string): string {
   return `<div class="drow"><span class="dk">${esc(label)}</span><span class="dv">${esc(value)}</span></div>`;
 }
 
+// OfferRecord — what an ongoing offer has given, over time (2026-08-17, Afo:
+// "one thing she's able to offer multiple times, and the key reason is how do
+// we show the value of a commitment over time").
+//
+// This is the whole reason an ongoing offer exists. A commitment is the unit of
+// ACCOUNTABILITY — it opens, is taken up, is confirmed, and ends. An ongoing
+// offer is the unit of VALUE, and its worth is the pattern: twelve sessions
+// across five seasons, which no single commitment can express.
+//
+// Every figure here is a NUMERATOR. That is the rule, not a style choice.
+// Appendix D.3 forbids per-person rates, grades and comparisons on public
+// surfaces, and what makes those possible is a denominator: "4 kept · 1 lapsed"
+// lets anyone compute 80%, while "12 sessions given" cannot be turned into a
+// score however you arrange it. So the public record counts things that
+// HAPPENED and never states a total. The cost is deliberate and was accepted:
+// this never distinguishes twelve of twelve from twelve of thirty. The full
+// kept-and-lapsed record stays where D.3 puts it, with the member and their
+// stewards.
+export function offerRecord(opts: {
+  since: string;
+  given: string;
+  people?: string;
+  compact?: boolean;
+}): string {
+  const parts = [`Running since ${esc(opts.since)}`, esc(opts.given), opts.people ? esc(opts.people) : ""].filter(Boolean);
+  if (opts.compact) return `<div class="orec compact">${parts.join(" · ")}</div>`;
+  return `<div class="orec">${parts
+    .map((p, i) => `<div class="orow"${i === 0 ? "" : ""}>${icon(i === 0 ? "time-line" : i === 1 ? "hand-heart-line" : "group-line", "s")}<span>${p}</span></div>`)
+    .join("")}</div>`;
+}
+
 // ---- photographs ------------------------------------------------------------
 //
 // A photograph, drawn (2026-08-17, Afo: "if you add an image, it shows the image
@@ -885,6 +916,10 @@ export function commitmentCard(opts: {
   // campaigns appear together under "All current", and a row in a mixed list
   // has to name its own container (frontend-design Rule 17's stated exception).
   cycle?: { label: string; kind: "season" | "campaign" };
+  // The value-over-time line, for an ongoing offer. It sits on the CARD because
+  // that is where the decision happens: a neighbour scanning the pool sees that
+  // this has been running and giving before they tap (2026-08-17, Afo).
+  record?: string;
   media?: { label: string; tint?: "agro" | "waste" | "garden" | "quiet"; photo?: number };
   hotId?: string;
   note?: string;
@@ -901,7 +936,7 @@ export function commitmentCard(opts: {
   const media = opts.media
     ? `<div class="pmedia" role="img" aria-label="${escAttr(opts.media.label)}" style="background-image:${photoFill(opts.media.photo ?? 0)}"></div>`
     : "";
-  const inner = `<div class="pcbody"><div class="t-title">${esc(opts.title)}</div><div class="t-meta num">${esc(opts.meta)}</div>${tagRow}${
+  const inner = `<div class="pcbody"><div class="t-title">${esc(opts.title)}</div><div class="t-meta num">${esc(opts.meta)}</div>${opts.record ?? ""}${tagRow}${
     opts.note ? `<div class="t-meta">${esc(opts.note)}</div>` : ""
   }${opts.acts ?? ""}</div>${media}`;
   const c = card(inner, { cls: `pcard2${opts.hotId ? " cardlink" : ""}` });
@@ -979,9 +1014,10 @@ export function requestCard(opts: { openClaim?: boolean; queued?: boolean; conte
 export function ongoingOfferCard(): string {
   return commitmentCard({
     title: "Saturday veggie box",
-    meta: "Maria · 1 box each week · 2 open open",
+    meta: "Maria · 1 box each week · 2 open now",
     tags: [{ label: "Offer", tone: "offer" }, { label: "Ongoing" }, { label: "Support / service" }],
     cycle: { label: "First Rains", kind: "season" },
+    record: offerRecord({ since: "March", given: "18 boxes given", people: "11 neighbours", compact: true }),
     hotId: "w1.open-ongoing",
   });
 }

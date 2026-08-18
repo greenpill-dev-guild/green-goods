@@ -1312,6 +1312,21 @@ Known mis-resolutions fixed in place: `contract-spec.md` §Grassroots-Economics-
     entry — the one path that never picked a cycle — now enters at step 1. **(g) W34 is a
     commitment view**: W2's identity card, carrying the cycle, then the completion picture,
     then sections. Full text: `uiux-spec.md` C.24.
+129. Value over time, and the denominator rule (2026-08-17, round 26, Afo). Asked what Maria
+    is making: "one thing she's able to offer multiple times, and the key reason is how do we
+    show the value of a commitment over time." **The two units are different objects** — a
+    commitment is the unit of accountability and ends; an ongoing offer is the unit of value,
+    and its worth is the pattern no single commitment can express. **The public record is
+    numerator-only**, and that is a rule rather than a style: D.3 forbids per-person rates and
+    what enables them is a denominator, so "12 sessions given" is publishable where "4 kept ·
+    1 lapsed" is not. Accepted cost: twelve of twelve and twelve of thirty look the same in
+    public. Pool-level aggregates ("22 of 26 kept" on a cycle) are untouched. **Caught in my
+    own work**: W34's identity card carried a per-person denominator with a progress bar,
+    added one round earlier; removed. **The record leads W34 and rides the pool card**, since
+    the card is where the decision happens. **`W3@repeat-noticed`** lets a repeat become a
+    practice from here on, and says plainly that past one-offs cannot be gathered up, because
+    commitmentSeriesId is set at creation and commitments are immutable. Full text:
+    `uiux-spec.md` C.26 (and C.25 for the offer-flow corrections).
 
 **Final recursive certification clarification (2026-07-25; no new decision-register entry):**
 the published `42161`↔`42220` production lane is the only required fully paired

@@ -15,7 +15,7 @@ import { icon } from "../icons";
 import {
   actionBar, appBar, banner, btn, campaignSlide, card, chip, cycleCard, cycleRail, detailRow, disclosure, domainRow, emptySeasonSlide, emptyState, fabButton, field,
   flowHeader, formInfo, fundedOfferCard, gardenHeader, gardenTabs, hdr, hero, input, kindCards, kv, listRow, meter, offerCard, offerRow, ongoingOfferCard,
-  formCard, identityCard, imagePreview, mediaStrip, memberCard, memberRow, memberTrail, pagepad, pickRow, progressBlock, phoneFrame, seg, selCard, selRail, tabRail, unitLabel, poolFilters, commitmentCard, radio, reasonChips, requestCard, seasonCard, seasonSlide, sectionCard, sectionTitle, sheetOver, skeleton, stateChip, syncBar,
+  formCard, identityCard, imagePreview, mediaStrip, offerRecord, memberCard, memberRow, memberTrail, pagepad, pickRow, progressBlock, phoneFrame, seg, selCard, selRail, tabRail, unitLabel, poolFilters, commitmentCard, radio, reasonChips, requestCard, seasonCard, seasonSlide, sectionCard, sectionTitle, sheetOver, skeleton, stateChip, syncBar,
   teamOfferCard, teamstrip, timeline,
 } from "../kit";
 import type { HifiDef } from "./index";
@@ -2219,7 +2219,7 @@ const W3_STATES = [
   // the former W33 wizard) and the exchange detour; every review renders
   // sectioned Submit Work anatomy with per-section edit links; requests gained
   // a real review step (what → how much → who-can-take-it → review).
-  ["step-what", "1 · What"],
+  ["step-what", "1 · What"], ["repeat-noticed", "1 · What — you have offered this before"],
   ["step-howmuch", "2 · How much"], ["step-details", "3 · Details"],
   ["details-preview", "3 · Details — image preview"],
   ["step-review", "4 · Review & commit"],
@@ -2924,6 +2924,29 @@ function w3(state: W3State): string {
       );
       actions = hot("w3.submit-request", btn("Make this request", { kind: "pri", full: true }));
       break;
+    // The composer recognises a repeat and offers to make it count (2026-08-17,
+    // Afo). This is the only way a record can start after step 1, because
+    // commitmentSeriesId is set at creation and commitments are immutable, so
+    // the three she already made can never be pulled in. The screen says that
+    // plainly rather than implying history will be gathered up.
+    case "repeat-noticed":
+      head = w3Head("Make an offer", 0);
+      content = pagepad(
+        sectionTitle("What kind?"),
+        kindCards([
+          { icon: "leaf-line", label: "Garden work", meta: "counts toward the garden's actions" },
+          { icon: "hand-heart-line", label: "A service", meta: "rides, meals, repairs, confirmed by evidence", on: true },
+        ]),
+        field("What you're offering", input("Hosting climate workshops")),
+        card(
+          `<div class="t-title">You have offered this three times</div><div class="t-meta">Made ongoing, what you give from now counts together, and neighbours can see it has been running. The three you already made stay as they are; they cannot be gathered up.</div>` +
+            `<div class="brow">${hot("w3.repeat-make-ongoing", btn("Make it ongoing", { kind: "pri" }))}${hot("w3.repeat-keep-once", btn("Keep it a one-off", { kind: "ghost" }))}</div>`,
+          { cls: "inset" },
+        ),
+        w3Scope("Season of First Rains"),
+      );
+      actions = btn("Continue", { kind: "pri", full: true, disabled: true });
+      break;
     case "validation":
       head = w3Head("Make an offer", 2);
       content = pagepad(
@@ -2955,6 +2978,7 @@ function w3(state: W3State): string {
         ]),
         w3HowOften(),
         w3Scope("Season of First Rains"),
+        `<div class="t-meta">${hot("w3.repeat-noticed", btn("Offered this before? See what changes", { kind: "ghost", sm: true, icon: "refresh-line" }))}</div>`,
         field("Title", input("Prune the north beds")),
         pickRow([{ label: "Prune the north beds", on: true }, { label: "Water the seedlings" }, { label: "Plant out the starts" }, { label: "More…", hotId: "w3.template" }]),
         `<div class="t-meta">Suggestions come from the garden's own actions — tap one to start, then make it yours.</div>`,
@@ -2977,6 +3001,9 @@ const W3_HOTS: HifiDef["hots"] = {
   // in-form control is deleted — season/campaign seeding and on-behalf capture
   // remain console-seeded only (UX:154).
   "w3.team": { l: "Team", to: "screen:W2b@setup", info: "One row where the Advanced detour used to carry a contributor-policy radio and a separate invite step (2026-08-17, Afo). Team is one surface now — policy and invites before anyone accepts, roster afterwards — reachable from here and from the commitment's People section." },
+  "w3.repeat-noticed": { l: "You have offered this before", to: "screen:W3@repeat-noticed", info: "The composer recognises a title you have offered before and asks whether to make it ongoing from here on (2026-08-17, Afo). Without this, accumulating a record depends on a choice made at step 1 before you knew it mattered, and someone who made twelve separate workshop offers has twelve unrelated commitments forever. Past ones stay separate either way: commitmentSeriesId is set at creation and commitments are immutable, so history cannot be back-filled." },
+  "w3.repeat-keep-once": { l: "Keep it a one-off", to: "screen:W3@step-howmuch", info: "Continues as a single commitment. Nothing accumulates, which is the right answer when the repeat was a coincidence rather than a practice." },
+  "w3.repeat-make-ongoing": { l: "Make it ongoing", to: "screen:W3@support-howmuch-ongoing", info: "Turns this into an ongoing offer from here on, so what you give from now counts together. The three you already made stay as they are." },
   "w3.team-remove": { l: "Remove from the team", info: "Takes someone off the team before the commitment exists — nothing on chain has happened yet, so this is a local edit to the draft. After creation the roster is managed from the team surface, and once any readiness path fires it freezes (ContributorRosterFrozen) and nobody can be added or removed." },
   "w3.preview": { l: "Open the photo", to: "screen:W3@details-preview", info: "Taps the thumbnail into ImagePreviewDialog, the same dialog the shipped media step opens (Media.tsx:820). A dialog, not a route: the step keeps its scroll underneath. Only photos are in the sequence — a voice note in the same list is skipped, because the dialog is fed photoOnlyData (Media.tsx:165)." },
   "w3.preview-close": { l: "Close the preview", to: "screen:W3@step-details", info: "Returns to the details step with nothing changed. Closing a preview never removes the photo — that is the Remove control on the row." },
@@ -3705,28 +3732,26 @@ const w34Identity = (opts: {
       opts.cycle === false ? "" : chip("First Rains", "season")
     }`,
     people: [{ initial: "M", line: "Maria · offering this, Rocinha Community Garden" }],
-    progress:
-      opts.openNow === undefined
-        ? undefined
-        : progressBlock({
-            rows: [{ label: "Taken up", done: 12, of: 12 + opts.openNow }],
-            note:
-              opts.openNow === 0
-                ? "Nothing is open at the moment. Opening one creates a real commitment and holds your capacity for it straight away."
-                : "Twelve kept across five cycles. What is open now sits below — each one an ordinary commitment someone can take up.",
-          }),
   });
 
-// Availability is never decorative: every place is an existing Offered
-// instance whose provider slot was reserved when it was created.
-// "Places" is retired (2026-08-17, Afo: "the one thing that still confuses me is
-// when we say places. What does places mean?"). It was a second name for
-// something that already had one — standing-commitments-spec.md:224 says it
-// outright, "two available workshop places are two ordinary Offer instances" —
-// and it appears in neither the community glossary nor the contract, which
-// knows only Commitment and CommitmentSeries. So the section says what these
-// are: open commitments, each one takeable, each opening the ordinary
-// commitment view. The verb is "open", which is also what the act does.
+// The record LEADS this screen (2026-08-17, Afo). It used to be a separate
+// screen you reached from a ghost button at the bottom, while the top of the
+// screen carried a progress bar reading "Taken up 12 of 14" — a per-person
+// denominator, which is exactly what Appendix D.3 exists to prevent, and which
+// I had added a round earlier. It is gone. What replaces it counts only what
+// happened.
+const w34Record = (opts: { rows?: boolean } = {}) =>
+  sectionCard(
+    "What this offer has given",
+    offerRecord({ since: "March", given: "12 sessions given", people: "9 neighbours took one up" }) +
+      (opts.rows === false
+        ? ""
+        : listRow({ icon: "checkbox-circle-fill", primary: "Market-day session", meta: "Jul 12 · Season of First Rains", chevron: true }) +
+          listRow({ icon: "checkbox-circle-fill", primary: "School visit", meta: "Jun 28 · Season of First Rains", chevron: true })) +
+      hot("w34.open-story", btn("See every one", { kind: "ghost", full: true })),
+    { flush: true },
+  );
+
 const w34Places = (n: number) =>
   n === 0
     ? sectionCard(
@@ -3789,6 +3814,7 @@ function w34(state: W34State): string {
     case "active-none":
       body = `${w34Head()}${pagepad(
         w34Identity({ state: "Active", tone: "offer", openNow: 0 }),
+        w34Record(),
         w34Places(0),
         sectionCard("Details", `${detailRow("Kept", "12 times across 5 cycles")}${detailRow("Unit", "workshop sessions")}`),
         hot("w34.open-story", btn("See the whole story", { kind: "ghost", full: true })),
@@ -3798,6 +3824,7 @@ function w34(state: W34State): string {
     case "active-one":
       body = `${w34Head()}${pagepad(
         w34Identity({ state: "Active", tone: "offer", openNow: 1 }),
+        w34Record(),
         banner("One is open now. It is already an ordinary Offer with reserved capacity.", "green", "hand-heart-line"),
         w34Places(1),
         sectionCard("Details", `${detailRow("Kept", "12 times across 5 cycles")}${detailRow("Available now", "1 open")}`),
@@ -3835,6 +3862,7 @@ function w34(state: W34State): string {
     case "places-queued":
       body = `${w34Head()}${pagepad(
         w34Identity({ state: "Active", tone: "offer" }),
+        w34Record(),
         banner("Two are waiting to send. They are not open yet.", "amber", "time-line"),
         card(
           `<div class="t-title">Nothing open right now</div><div class="t-meta">Nobody can take up either place until each creation has sent and reserved your capacity.</div>` +
@@ -3847,6 +3875,7 @@ function w34(state: W34State): string {
     case "places-partial":
       body = `${w34Head()}${pagepad(
         w34Identity({ state: "Active", tone: "offer" }),
+        w34Record(),
         banner("One is open. The other is still waiting to send.", "amber", "time-line"),
         card(
           listRow({ icon: "calendar-line", primary: "Workshop session 1", meta: "Season of First Rains · 2 hours", chipHtml: stateChip("Offered") }) +
@@ -3860,6 +3889,7 @@ function w34(state: W34State): string {
     case "places-partial-failed":
       body = `${w34Head()}${pagepad(
         w34Identity({ state: "Active", tone: "offer" }),
+        w34Record(),
         banner("One is open. The other could not be sent.", "error", "error-warning-line"),
         card(
           listRow({ icon: "calendar-line", primary: "Workshop session 1", meta: "Season of First Rains · 2 hours", chipHtml: stateChip("Offered") }) +
@@ -3873,6 +3903,7 @@ function w34(state: W34State): string {
     case "story":
       body = `${w34Head()}${pagepad(
         w34Identity({ state: "Active", tone: "offer" }),
+        w34Record(),
         card(`<div class="t-title num">Kept 12 times across 5 cycles</div><div class="t-meta">Every entry below is its own commitment, with its own evidence and confirmation. Nothing here is a rating.</div>`),
         sectionTitle("This offer's story"),
         card(w34StoryTimeline(), { cls: "flat" }),
@@ -3883,6 +3914,7 @@ function w34(state: W34State): string {
     case "participation":
       body = `${w34Head()}${pagepad(
         w34Identity({ state: "Active", tone: "offer" }),
+        w34Record(),
         sectionTitle("This offer's story"),
         sectionCard("Details", `${detailRow("Kept", "12 times across 5 cycles")}${detailRow("Withdrawn or ran out", "2")}${detailRow("Reported participants", "31 · from evidence notes")}`),
         `<div class="t-meta">One offer, in this garden, over time.</div>`,
@@ -3895,6 +3927,7 @@ function w34(state: W34State): string {
     case "ask-again":
       body = `${w34Head()}${pagepad(
         w34Identity({ state: "Active", tone: "offer" }),
+        w34Record(),
         card(
           `<div class="t-title">A new season is open</div><div class="t-meta">Season of Long Rains started on Sep 1. Would you like to offer workshop sessions again?</div>` +
             `<div class="brow">${hot("w34.ask-again-yes", btn("Open more", { kind: "pri", icon: "add-line" }))}${hot("w34.ask-again-not-now", btn("Not this season", { kind: "ghost" }))}</div>`,
@@ -3906,6 +3939,7 @@ function w34(state: W34State): string {
     case "claimant-view":
       body = `${w34Head()}${pagepad(
         w34Identity({ state: "Active", tone: "offer" }),
+        w34Record(),
         `<div data-privacy-contract="ongoing-offer-claimant-v1">` +
           card(
             claimantField("provider", kv("Offered by", W34_CLAIMANT_PUBLIC_DATA.provider)) +
@@ -3969,6 +4003,7 @@ function w34(state: W34State): string {
     case "resting":
       body = `${w34Head()}${pagepad(
         w34Identity({ state: "Resting", tone: "plain" }),
+        w34Record(),
         banner("Resting since Aug 2. Nothing new can be opened while it rests.", "stone", "pause-line"),
         card(
           `<div class="t-title">2 open commitments remain</div><div class="t-meta">Resting blocks only new places. These already-reserved Offers can still be taken up.</div>` +
@@ -4004,7 +4039,8 @@ function w34(state: W34State): string {
     case "retire-confirm":
       body = sheetOver(
         w34Head() + pagepad(
-        w34Identity({ state: "Active", tone: "offer" }),sectionCard("Details", `${detailRow("Kept", "12 times across 5 cycles")}`)),
+        w34Identity({ state: "Active", tone: "offer" }),
+        w34Record(),sectionCard("Details", `${detailRow("Kept", "12 times across 5 cycles")}`)),
         "Retire this ongoing Offer?",
         `<div class="t-meta">Retiring is final. You will not be able to add places or start it again.</div>` +
           card(
@@ -4028,7 +4064,8 @@ function w34(state: W34State): string {
     case "retire-confirm-resting":
       body = sheetOver(
         w34Head() + pagepad(
-        w34Identity({ state: "Resting", tone: "plain" }),sectionCard("Details", `${detailRow("Kept", "12 times across 5 cycles")}${detailRow("Series", "Resting")}`)),
+        w34Identity({ state: "Resting", tone: "plain" }),
+        w34Record(),sectionCard("Details", `${detailRow("Kept", "12 times across 5 cycles")}${detailRow("Series", "Resting")}`)),
         "Retire this ongoing Offer?",
         `<div class="t-meta">Retiring is final. You do not need to resume or add a place first.</div>` +
           card(
@@ -4106,6 +4143,7 @@ function w34(state: W34State): string {
     case "succession":
       body = `${w34Head()}${pagepad(
         w34Identity({ state: "Active", tone: "offer" }),
+        w34Record(),
         banner("Not built yet — this is what we are working towards.", "amber", "eye-line"),
         sectionTitle("Later: sharing and handing on"),
         card(
@@ -4137,6 +4175,7 @@ function w34(state: W34State): string {
     default:
       body = `${w34Head()}${pagepad(
         w34Identity({ state: "Active", tone: "offer", openNow: 2 }),
+        w34Record(),
         w34Places(2),
         sectionCard("Details", `${detailRow("Kept", "12 times across 5 cycles")}${detailRow("Unit", "workshop sessions")}${detailRow("Next cycle", "Ask me again next cycle")}`),
         hot("w34.open-story", btn("See the whole story", { kind: "ghost", full: true })),

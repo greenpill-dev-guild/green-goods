@@ -639,6 +639,14 @@ export const HIFI_CSS = `
 .hf .kv .k{color:var(--stone)}
 .hf .kv .v{font-weight:550;text-align:right;font-variant-numeric:tabular-nums}
 
+/* Offer record — what an ongoing offer has given over time. Every figure is a
+   numerator; see kit.offerRecord for why the absence of a denominator is the
+   rule rather than a style choice. */
+.hf .orec{display:flex;flex-direction:column;gap:6px;padding:2px 0}
+.hf .orec .orow{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink)}
+.hf .orec .orow .ic{width:14px;height:14px;color:var(--act);flex:none}
+.hf .orec.compact{flex-direction:row;flex-wrap:wrap;gap:0;font-size:11.5px;color:var(--stone);padding:0}
+
 /* Image preview — ImagePreviewDialog. Fills the phone the way a fullscreen
    viewer does, so the device status bar goes light-on-dark over it rather than
    staying a white strip; :has() binds that to the preview's presence instead of

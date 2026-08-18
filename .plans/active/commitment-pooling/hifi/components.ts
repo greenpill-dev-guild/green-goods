@@ -390,6 +390,18 @@ const CLIENT_ENTRIES: Entry[] = [
     ],
   },
   {
+    id: "offer-record", title: "Offer record", family: "cards", covers: ["offerRecord"],
+    kit: `offerRecord({since, given, people, compact})`,
+    netNew: "value over time, for an ongoing offer",
+    rule: "A commitment is the unit of accountability and ends; an ongoing offer is the unit of VALUE, and its worth is the pattern no single commitment can express. Every figure is a NUMERATOR, and that is a rule rather than a style choice: Appendix D.3 forbids per-person rates, grades and comparisons on public surfaces, and what makes those possible is a denominator. '4 kept · 1 lapsed' lets anyone compute 80%; '12 sessions given' cannot be turned into a score however it is arranged. The cost is deliberate and was accepted — this never distinguishes twelve of twelve from twelve of thirty, and the full kept-and-lapsed record stays with the member and their stewards where D.3 puts it.",
+    usedIn: /class="orec/,
+    specs: [
+      { label: "on the offer's own screen", html: kit.offerRecord({ since: "March", given: "12 sessions given", people: "9 neighbours took one up" }) },
+      { label: "compact, on the pool card", html: kit.offerRecord({ since: "March", given: "18 boxes given", people: "11 neighbours", compact: true }) },
+      { label: "new, with nothing given yet", html: kit.offerRecord({ since: "this week", given: "nothing given yet" }) },
+    ],
+  },
+  {
     id: "pick-row", title: "Picker row", family: "forms", covers: ["pickRow"],
     kit: `pickRow([{label, on, hotId}], {ariaLabel})`,
     netNew: "the tap-first value picker",
