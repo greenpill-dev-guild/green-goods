@@ -3055,7 +3055,7 @@ const W3_HOTS: HifiDef["hots"] = {
   "w3.review-saved-offer": { l: "Review this offer", to: "screen:W3@saved-offer-review", info: "Carries the saved workshop details into the ordinary one-time Offer review without replacing them with the generic Garden work example." },
   "w3.edit-saved-offer": { l: "Edit this offer", to: "screen:W3@saved-offer-edit", info: "Returns to the fully editable prefilled fields. The private saved details remain unchanged unless the member separately saves them again." },
   "w3.submit-saved-offer": { l: "Make this offer", to: "screen:W3@saved-offer-queued", info: "Queues exactly one ordinary SupportService Offer with commitmentSeriesId == 0. No durable series is created, and nothing opens later.", calls: ["createCommitment"], pendingSync: true },
-  "w3.saved-offer-done": { l: "Back to my offers", to: "screen:W32@saved", info: "Returns to the private saved-details list without changing the separate queued one-time Offer job." },
+  "w3.saved-offer-done": { l: "Back to my offers", to: "screen:W5@saved", info: "Returns to the private saved-details list — the commitments sheet's Saved tab since round 40 — without changing the separate queued one-time Offer job." },
   "w3.resume": { l: "Resume draft", to: "screen:W3@step-what", info: "Drafts persist locally (WorkDraftRecord semantics); re-entry offers resume (UX:160)." },
   "w3.start-fresh": { l: "Start fresh", to: "screen:W3@step-what", info: "Explicitly discards the saved local draft and starts from the first creation step." },
   "w3.add-action": { l: "Add an action", info: "Repeatable DomainImpact requirements: each row binds a registered action to a count ≥ 1, and domains are derived tags that may repeat. Four rows are visible initially; Add action continues to the measured MAX_REQUIREMENTS. Failed submits keep entered data and focus a concise error summary (UX:156 · WF:251 · UX:439)." },
@@ -3426,15 +3426,20 @@ const w2aFacts = (state: W2aState): StateFacts | undefined => {
 // therefore always a count of real, already-reserved instances.
 // ---------------------------------------------------------------------------
 
+// W32 is the SAVING flow, not the list (2026-08-17 round 40, Afo). The list it
+// used to draw — saved details, ongoing Offers, their queued casts and their
+// read recovery — moved into the commitments sheet's Saved and Ongoing tabs,
+// where it is content on a plane of its own rather than a screen reached by a
+// nav row. Keeping both would have left two surfaces drawing one list, which
+// is the duplication the tabs exist to end. What stays here is everything the
+// list cannot do: composing details, saving them, and the honest difference
+// between a signed saved copy and an unsaved device draft.
 const W32_STATES = [
-  ["saved", "Saved details"], ["saved-with-ongoing", "Saved details and ongoing Offer"],
-  ["saved-with-ongoing-ready", "Ongoing Offer · pool Ready"],
-  ["series-queued", "Ongoing Offer queued"], ["series-queued-place-waiting", "Ongoing Offer and first commitment queued"],
-  ["empty", "Nothing yet"], ["compose", "Save offer details"],
+  ["compose", "Save offer details"],
   ["choose-path", "Once or over time"], ["draft-unsaved", "Unsaved draft"],
   ["saving", "Saving privately"], ["save-failed", "Save failed"],
   ["offline-local", "No signal — local only"], ["version-conflict", "Newer saved version"],
-  ["persistence", "How saving works"], ["loading", "Loading"], ["read-error", "Read error"],
+  ["persistence", "How saving works"],
 ] as const;
 type W32State = (typeof W32_STATES)[number][0];
 
@@ -3442,23 +3447,13 @@ type W32State = (typeof W32_STATES)[number][0];
 // the browse-card family (components-tab pass, 2026-08-14).
 
 function w32(state: W32State): string {
-  const head = hdr("Things I can offer", { back: true });
-  // Drawn home (2026-08-11 D8a, uiux §5.8 addendum): this surface is a section
-  // of the WalletDrawer's Commitments tab — the pool tab shows only the public
-  // life of ongoing Offers.
-  const intro = `<div class="t-meta">A section of your wallet's Commitments tab, private to you. Details you can reuse; nothing here is a commitment until you offer it in a garden.</div>`;
+  const head = hdr("Offer details", { back: true });
+  // Reached from the commitments sheet's Saved tab, which holds the list. This
+  // screen is the act: writing details down, saving them, and saying plainly
+  // whether a copy is signed to your account or only on this phone.
+  const intro = `<div class="t-meta">Private to you. Details you can reuse; nothing here is a commitment until you offer it in a garden.</div>`;
   let body: string;
   switch (state) {
-    case "empty":
-      body = `${head}${pagepad(
-        emptyState(
-          "seedling-line",
-          "Nothing here yet",
-          "Save the details of something you can offer, so you do not have to write them again. Only you can see this until you offer it in a garden.",
-          hot("w32.add-first", btn("Save Offer Details", { kind: "pri", icon: "add-line" })),
-        ),
-      )}`;
-      break;
     case "compose":
       body = sheetOver(
         head + pagepad(intro),
@@ -3540,7 +3535,7 @@ function w32(state: W32State): string {
         hot("w32.overwrite-current", btn("Replace the Saved Version…", { kind: "danger", full: true })),
       )}`;
       break;
-    case "persistence":
+    default:
       body = sheetOver(
         head + pagepad(intro),
         "How saving works",
@@ -3553,121 +3548,27 @@ function w32(state: W32State): string {
           hot("w32.persistence-done", btn("Got It", { kind: "pri", full: true })),
       );
       break;
-    case "loading":
-      body = `${head}${pagepad(skeleton({ title: true, lines: 2 }), skeleton({ lines: 2 }), skeleton({ lines: 2 }))}`;
-      break;
-    case "read-error":
-      body = `${head}${pagepad(
-        emptyState(
-          "wifi-off-line",
-          "Cannot load your saved offers",
-          "Everything you saved is safe. This device could not reach it just now.",
-          hot("w32.retry", btn("Try Again", { kind: "pri", icon: "refresh-line" })),
-        ),
-      )}`;
-      break;
-    case "saved-with-ongoing":
-      body = `${head}${pagepad(
-        intro,
-        sectionTitle("Offered over time", chip("1", "plain")),
-        card(offerRow({
-          title: "Hosting climate workshops",
-          meta: "Rocinha Community Garden · 2 open right now",
-          tag: "Ongoing",
-          tone: "offer",
-          hotId: "w32.open-series",
-        }), { cls: "flat" }),
-        sectionTitle("Saved details", chip("2", "plain")),
-        card(
-          offerRow({ title: "Visual and communication design", meta: "Posters, guides, and story materials", tag: "Ready to offer", tone: "plain", hotId: "w32.use-saved" }) +
-            offerRow({ title: "Environmental action days", meta: "Clean-ups, planting days, shared repairs", tag: "Ready to offer", tone: "plain" }),
-          { cls: "flat" },
-        ),
-        hot("w32.add", btn("Save Offer Details", { kind: "ghost", full: true, icon: "add-line" })),
-        `<div class="t-meta">Saved privately to your account. Offering one in a garden is a separate, explicit step.</div>`,
-      )}`;
-      break;
-    case "saved-with-ongoing-ready":
-      body = `${head}${pagepad(
-        intro,
-        sectionTitle("Offered over time", chip("1", "plain")),
-        card(offerRow({
-          title: "Hosting climate workshops",
-          meta: "Muizenberg Deep South · pool ready · nothing open",
-          tag: "Ongoing",
-          tone: "offer",
-          hotId: "w32.open-series-ready",
-        }), { cls: "flat" }),
-        banner("The ongoing Offer is active, but this pool has not opened. You can revise, rest, or retire it; nothing can open until stewards open the pool.", "stone", "information-line"),
-        sectionTitle("Saved details", chip("1", "plain")),
-        card(offerRow({ title: "Hosting climate workshops", meta: "A two-hour session on local climate work", tag: "Saved privately", tone: "plain", hotId: "w32.use-saved" }), { cls: "flat" }),
-      )}`;
-      break;
-    case "series-queued":
-      body = `${head}${pagepad(
-        intro,
-        sectionTitle("Waiting to send", chip("1", "plain")),
-        card(
-          offerRow({ title: "Hosting climate workshops", meta: "Rocinha Community Garden · nothing open", tag: "Queued", tone: "plain" }),
-          { cls: "flat" },
-        ),
-        banner("This ongoing Offer is queued. It is not Active and nobody can take anything up yet.", "amber", "time-line"),
-        sectionTitle("Saved details", chip("1", "plain")),
-        card(offerRow({ title: "Hosting climate workshops", meta: "A two-hour session on local climate work", tag: "Saved privately", tone: "plain", hotId: "w32.use-saved" }), { cls: "flat" }),
-      )}${syncBar("1 waiting to send")}`;
-      break;
-    case "series-queued-place-waiting":
-      body = `${head}${pagepad(
-        intro,
-        sectionTitle("Waiting to send", chip("2", "plain")),
-        card(
-          offerRow({ title: "Hosting climate workshops", meta: "Rocinha Community Garden · ongoing Offer", tag: "Queued", tone: "plain" }) +
-            offerRow({ title: "1 workshop session", meta: "Waiting for the ongoing Offer to send first", tag: "Waiting", tone: "plain" }),
-          { cls: "flat" },
-        ),
-        banner("No availability is shown until the ongoing Offer and its first commitment have both sent in order.", "amber", "time-line"),
-        sectionTitle("Saved details", chip("1", "plain")),
-        card(offerRow({ title: "Hosting climate workshops", meta: "A two-hour session on local climate work", tag: "Saved privately", tone: "plain", hotId: "w32.use-saved" }), { cls: "flat" }),
-      )}${syncBar("2 waiting to send")}`;
-      break;
-    default:
-      body = `${head}${pagepad(
-        intro,
-        sectionTitle("Saved details", chip("1", "plain")),
-        card(
-          offerRow({ title: "Hosting climate workshops", meta: "A two-hour session on local climate work", tag: "Ready to offer", tone: "plain", hotId: "w32.use-saved" }),
-          { cls: "flat" },
-        ),
-        hot("w32.add", btn("Save Offer Details", { kind: "ghost", full: true, icon: "add-line" })),
-        `<div class="t-meta">Saved privately to your account. No garden, pool, ongoing Offer, or open commitment exists yet.</div>`,
-      )}`;
   }
   return phoneFrame(`${body}<div style="flex:1"></div>`, {
-    offline: state === "draft-unsaved" || state === "offline-local" || state === "series-queued" || state === "series-queued-place-waiting",
+    offline: state === "draft-unsaved" || state === "offline-local",
     appBar: appBar("profile"),
   });
 }
 
 const W32_HOTS: HifiDef["hots"] = {
-  "w32.add": { l: "Save offer details", to: "screen:W32@compose", info: "Saved Offer details are signed offchain profile data and reusable input to either path. Saving writes no pool, series, or commitment state." },
-  "w32.add-first": { l: "Save offer details", to: "screen:W32@compose", info: "Empty-state entry into the same compose sheet." },
   "w32.save": { l: "Save privately", to: "screen:W32@saving", info: "Begins the authenticated remote write while retaining the local draft. Only the confirmed service response may enter Saved." },
   "w32.save-draft": { l: "Save privately", to: "screen:W32@saving", info: "Begins remote persistence. Until a confirmed response arrives, the draft cannot survive a device change." },
   "w32.retry-save": { l: "Try saving again", to: "screen:W32@saving", info: "Retries the owner-authenticated write from the retained local draft; it does not claim success optimistically." },
   "w32.retry-save-online": { l: "Try when connected", to: "screen:W32@saving", info: "Connectivity is rechecked before entering the remote-saving state." },
   "w32.use-local-offline": { l: "Use this draft", to: "screen:W32@choose-path", info: "Uses the local metadata without relabeling it Saved. A later series/commitment queue is separate from remote saved-Offer persistence." },
   "w32.keep-editing": { l: "Keep editing", to: "screen:W32@draft-unsaved", info: "Returns to the retained local draft without claiming it is saved." },
-  "w32.reload-remote": { l: "Use saved version", to: "screen:W32@saved", info: "Loads the newer confirmed remote version and preserves no false merge claim." },
+  "w32.reload-remote": { l: "Use saved version", to: "screen:W5@saved", info: "Loads the newer confirmed remote version and preserves no false merge claim." },
   "w32.keep-local-copy": { l: "Keep a local copy", to: "screen:W32@draft-unsaved", info: "Keeps these edits as a visibly unsaved device draft." },
   "w32.overwrite-current": { l: "Replace saved version", to: "screen:W32@saving", info: "Starts an explicit compare-and-swap write against the current remote version; success is still not assumed." },
   "w32.persistence": { l: "How saving works", to: "screen:W32@persistence", info: "Explains the honest difference between signed saved details and an unsaved local draft." },
   "w32.persistence-done": { l: "Got it", to: "screen:W32@draft-unsaved", info: "Dismisses the explanation and returns to the unsaved draft." },
-  "w32.use-saved": { l: "Use these details", to: "screen:W32@choose-path", info: "Opens the once-or-over-time choice. Saved details are input to either path, never a separate product object." },
   "w32.offer-once": { l: "Offer it once", to: "screen:W3@saved-offer-edit", info: "Enters a prefilled ordinary creation flow that preserves the saved workshop details and produces one Offer with commitmentSeriesId == 0. Nothing durable is created." },
   "w32.offer-over-time": { l: "Offer it over time", to: "screen:W3@step-what", info: "Enters the composer at step 1 with Ongoing already chosen and these saved details prefilled. It used to jump straight to the amount step, which was the one entry that never picked a cycle — and an ongoing offer has to name where it runs, because every commitment it opens carries that cycle (2026-08-17, Afo). The separate ongoing wizard stays retired; one submission still runs the series creation plus its first commitment creations." },
-  "w32.open-series": { l: "Open the ongoing offer", to: "screen:W34@active-two", info: "Opens the ongoing Offer — internally the pool-scoped CommitmentSeries — for an offer already made over time." },
-  "w32.open-series-ready": { l: "Open the ongoing offer in a Ready pool", to: "screen:W34@pool-ready", info: "Preserves the selected Ready pool state after series sync. The detail exposes holder metadata and lifecycle controls, but nothing can be offered until the pool opens." },
-  "w32.retry": { l: "Try again", to: "screen:W32@saved", info: "Re-reads signed offchain storage; nothing was lost by the failed read." },
 };
 
 
@@ -4314,7 +4215,7 @@ export const CLIENT_DEFS: HifiDef[] = [
   ] as const, w2a, w2aFacts), hots: W2A_HOTS },
   { ...mk("W3", "W3 · Offer/request creation", W3_STATES, w3, w3Facts), hots: W3_HOTS },
   { ...mk("W4", "W4 · Confirmation sheet", W4_STATES, w4, w4Facts), hots: W4_HOTS },
-  { ...mk("W32", "W32 · Things I can offer", W32_STATES, w32, w32Facts), hots: W32_HOTS },
+  { ...mk("W32", "W32 · Saving offer details", W32_STATES, w32, w32Facts), hots: W32_HOTS },
   { ...mk("W34", "W34 · Ongoing Offer detail", W34_STATES, w34, w34Facts), hots: W34_HOTS },
   { ...mk("W35", "W35 · Offer another", W35_STATES, w35, w35Facts), hots: W35_HOTS },
 ];

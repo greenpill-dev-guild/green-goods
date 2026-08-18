@@ -1463,6 +1463,19 @@ Known mis-resolutions fixed in place: `contract-spec.md` §Grassroots-Economics-
     was the round-23 work under it. Lesson: two surfaces showing the same object are not
     necessarily the same component, and "mirrors the shipped step" needs the file open rather
     than a memory of having read it. Full text: `uiux-spec.md` C.39.
+143. Commitments get their own sheet (2026-08-17, round 40, Afo). The wallet's other two tabs
+    are BALANCES — one fungible number each, no lifecycle — while a commitment is a relationship
+    that needs scopes, per-garden grouping, an attention count and retry/discard recovery, so W5
+    was a screen wearing a tab. It becomes its own `ModalDrawer` opened from a fourth Home header
+    control, the only badged one: `WalletDrawer/Icon.tsx` carries no count, so four things needing
+    an act from you were invisible until you opened the drawer. Cheap because the shipping
+    Commitments tab is a `ComingSoonStub`. Its three tabs are the three OBJECTS a member holds,
+    not three filters over one: Commitments (the ledger, scope chips still inside it), Ongoing
+    (`CommitmentSeries`), Saved (private details). Making the scopes the tabs was rejected —
+    round 10 settled that scopes filter one list rather than drawing copies of part of it. Both
+    round-12 workarounds retire (the tool row above the ledger, the series parent parked in a
+    garden section), and W32 drops to the saving flow it always was, 16 states to 8, with eight
+    state aliases keeping old deep links alive. Full text: `uiux-spec.md` C.40.
 
 **Final recursive certification clarification (2026-07-25; no new decision-register entry):**
 the published `42161`↔`42220` production lane is the only required fully paired

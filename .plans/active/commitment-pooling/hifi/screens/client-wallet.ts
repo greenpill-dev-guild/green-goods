@@ -7,7 +7,7 @@
 import { hot } from "../html";
 import { icon } from "../icons";
 import {
-  actionBar, banner, btn, card, chip, disclosure, emptyState, field, flowHeader, formCard, formInfo, hdr, homeHeader, input, kv, listRow, mediaStack, mediaStrip, meter, pagepad,
+  actionBar, banner, btn, card, chip, disclosure, emptyState, field, flowHeader, formCard, formInfo, hdr, homeHeader, input, kv, listRow, mediaStack, mediaStrip, meter, offerRow, pagepad,
   filterChips, phoneFrame, commitmentCard, commitmentSlide, radio, reasonChips, sectionCard, sectionTitle, seg, selCard, selRail, sheetOver, skeleton,
 } from "../kit";
 import type { HifiDef } from "./index";
@@ -18,24 +18,63 @@ import type { StateFacts } from "../types";
 // ---------------------------------------------------------------------------
 
 const W5_STATES = [
-  ["default", "Pools"], ["queued", "Queued rows"], ["waiting-membership", "Waiting rows"], ["send-failed", "Send failed"],
+  ["default", "Commitments"], ["queued", "Queued rows"], ["waiting-membership", "Waiting rows"], ["send-failed", "Send failed"],
   ["empty", "Empty"], ["loading", "Loading"], ["not-found", "Not found"], ["read-error", "Read error"],
+  ["ongoing", "Ongoing Offers"], ["ongoing-empty", "Ongoing · none yet"], ["ongoing-ready", "Ongoing · pool ready"],
+  ["ongoing-queued", "Ongoing · queued"], ["ongoing-queued-waiting", "Ongoing · queued with first commitment"],
+  ["saved", "Saved details"], ["saved-empty", "Saved · none yet"],
 ] as const;
 type W5State = (typeof W5_STATES)[number][0];
 
-// The shipping WalletDrawer is a 3-tab ModalDrawer opened from the Home header
-// — Cookies · Tokens · Commitments (views/Home/WalletDrawer/index.tsx:31-47) —
-// not a four-segment surface under Profile, and there is no Vault tab. G$ lives
-// in the existing Tokens tab. §5.8 lands the pools panel in this drawer and
-// ships no Profile change. The Commitments pill carries its promised count
-// badge (§5.8 item 2, the cookie-jar tab pattern) — drawn since 2026-08-14: it
-// counts the attention inbox, so it shows from every tab, not just this one.
-const walletShell = (inner: string, active: 0 | 1 | 2, opts: { segHot?: string; badge?: number } = {}) => {
-  const rail = seg(["Cookies", "Tokens", "Commitments"], active, opts.badge ? { badges: { 2: opts.badge } } : {});
-  return sheetOver(
-    homeHeader(),
+// How many things need an act from you right now: 2 confirmations + 1 accepted
+// ask + 1 commitment needing work. It badges the Home header control and the
+// Commitments tab pill, so the two always agree.
+const WAITING_ON_YOU = 4;
+
+// The shipping WalletDrawer was a 3-tab ModalDrawer opened from the Home header
+// — Cookies · Tokens · Commitments (views/Home/WalletDrawer/index.tsx:31-47).
+//
+// Commitments is no longer one of them (2026-08-17 round 40, Afo). Its two
+// siblings are BALANCES: one fungible number each, no lifecycle, nothing
+// waiting on you. A commitment is a relationship with a lifecycle — it needs
+// scopes, per-garden grouping, an attention count, retry and discard recovery,
+// and somewhere to keep the ongoing Offers and saved details that produce it.
+// That was a screen wearing a tab, so it left for its own sheet and the wallet
+// kept the two things that really are balances. Nothing shipped had to move:
+// the Commitments tab renders ComingSoonStub today
+// (views/Home/WalletDrawer/index.tsx:69).
+const walletShell = (inner: string, active: 0 | 1) =>
+  sheetOver(
+    homeHeader({ commitments: WAITING_ON_YOU }),
     "Wallet",
-    `<div class="t-meta">Your jars, tokens, and commitments across gardens.</div>${opts.segHot ? hot(opts.segHot, rail) : rail}${inner}`,
+    `<div class="t-meta">Your jars and tokens.</div>${seg(["Cookies", "Tokens"], active)}${inner}`,
+    { handle: false },
+  );
+
+// The commitments sheet — same ModalDrawer anatomy as the wallet, opened from
+// its own Home header control. Its tabs are the three OBJECTS a member holds,
+// not three filters over one of them (2026-08-17 round 40, Afo):
+//
+//   Commitments — the individual commitments you hold, grouped by garden.
+//                 Scope chips stay INSIDE this tab, filtering one list, which
+//                 is where round 10 put them.
+//   Ongoing     — the CommitmentSeries you run. A series is the machine; the
+//                 commitments it opens are the things, and they stay in tab 1
+//                 under their garden. This retires the round-12 workaround
+//                 that parked the series parent card inside a garden section
+//                 because there was no second plane to put it on.
+//   Saved       — private reusable details. Nothing on chain, invisible to
+//                 anyone else, not a commitment until you offer it.
+const commitmentsShell = (
+  inner: string,
+  active: 0 | 1 | 2,
+  opts: { segHot?: string; badge?: number } = {},
+) => {
+  const rail = seg(["Commitments", "Ongoing", "Saved"], active, opts.badge ? { badges: { 0: opts.badge } } : {});
+  return sheetOver(
+    homeHeader({ commitments: opts.badge }),
+    "Commitments",
+    `<div class="t-meta">What you've offered and taken up across gardens.</div>${opts.segHot ? hot(opts.segHot, rail) : rail}${inner}`,
     { handle: false },
   );
 };
@@ -72,8 +111,84 @@ ${card(
       )}
 ${banner("This commitment did not send after five attempts. Retry it, or discard the local copy. Nothing else is affected.", "amber", "error-warning-line")}`;
       break;
+    // ---- Ongoing tab ----------------------------------------------------
+    // The CommitmentSeries you run, across gardens. Each row opens W34. The
+    // meta leads with the garden because a series is pool-scoped and that is
+    // the thing you cannot tell from the title.
+    case "ongoing":
+      inner = `${sectionTitle("Offered over time", chip("2", "plain"))}
+${card(
+        offerRow({ title: "Hosting climate workshops", meta: "Rocinha Community Garden · 2 open · 1 taken up", tag: "Active", tone: "offer", hotId: "w5.open-series" }) +
+          offerRow({ title: "Weekly tool repair", meta: "Awka Hub · stopped · nothing open", tag: "Stopped", tone: "plain", hotId: "w5.open-series-stopped" }),
+        { cls: "flat" },
+      )}
+${banner("An ongoing Offer keeps opening commitments for you, cycle after cycle. Stop one and it opens no more; anything already taken up carries on.", "stone", "information-line")}`;
+      break;
+    case "ongoing-empty":
+      inner = emptyState(
+        "seedling-line",
+        "Nothing offered over time yet",
+        "When you offer something over time, it keeps opening commitments for you cycle after cycle, and its history stays together here.",
+        hot("w5.saved-tab", btn("See What You Can Offer", { kind: "sec" })),
+      );
+      break;
+    case "ongoing-ready":
+      inner = `${sectionTitle("Offered over time", chip("1", "plain"))}
+${card(
+        offerRow({ title: "Hosting climate workshops", meta: "Muizenberg Deep South · pool ready · nothing open", tag: "Active", tone: "offer", hotId: "w5.open-series-ready" }),
+        { cls: "flat" },
+      )}
+${banner("The ongoing Offer is active, but this pool has not opened. You can edit it or stop offering; nothing can open until stewards open the pool.", "stone", "information-line")}`;
+      break;
+    case "ongoing-queued":
+      inner = `${sectionTitle("Waiting to send", chip("1", "plain"))}
+${card(
+        offerRow({ title: "Hosting climate workshops", meta: "Rocinha Community Garden · nothing open", tag: "Queued", tone: "plain" }),
+        { cls: "flat" },
+      )}
+${banner("This ongoing Offer is queued. It is not Active and nobody can take anything up yet.", "amber", "time-line")}`;
+      break;
+    case "ongoing-queued-waiting":
+      inner = `${sectionTitle("Waiting to send", chip("2", "plain"))}
+${card(
+        offerRow({ title: "Hosting climate workshops", meta: "Rocinha Community Garden · ongoing Offer", tag: "Queued", tone: "plain" }) +
+          offerRow({ title: "1 workshop session", meta: "Waiting for the ongoing Offer to send first", tag: "Waiting", tone: "plain" }),
+        { cls: "flat" },
+      )}
+${banner("Nothing is available to take up until the ongoing Offer and its first commitment have both sent, in that order.", "amber", "time-line")}`;
+      break;
+    // ---- Saved tab ------------------------------------------------------
+    // Genuinely private: signed offchain details, no garden, no pool, no
+    // commitment. It was a tool row above the ledger because there was no
+    // other plane for it; now it has one.
+    case "saved":
+      inner = `${sectionTitle("Saved details", chip("1", "plain"))}
+${card(
+        offerRow({ title: "Hosting climate workshops", meta: "A two-hour session on local climate work", tag: "Ready to offer", tone: "plain", hotId: "w5.use-saved" }),
+        { cls: "flat" },
+      )}
+${hot("w5.save-details", btn("Save Offer Details", { kind: "ghost", full: true, icon: "add-line" }))}
+<div class="t-meta">Saved privately to your account. No garden, pool, ongoing Offer, or open commitment exists yet.</div>`;
+      break;
+    case "saved-empty":
+      inner = emptyState(
+        "sticky-note-line",
+        "Nothing saved yet",
+        "Save the details of something you can offer, so you do not have to write them again. Only you can see this until you offer it in a garden.",
+        hot("w5.save-details-first", btn("Save Offer Details", { kind: "pri", icon: "add-line" })),
+      );
+      break;
+    // ---- Commitments tab, recovery casts --------------------------------
+    // The icon is always in the Home header, so this empty state is also the
+    // first thing a member of a garden with no pooling sees. It has to read
+    // as an invitation rather than as a failure.
     case "empty":
-      inner = `${card(`<div class="t-title">No commitments yet</div><div class="t-meta">When you offer support or take something up in a garden pool, it shows here.</div>`)}`;
+      inner = emptyState(
+        "hand-heart-line",
+        "No commitments yet",
+        "A commitment is something you offer a garden, or something you take up that another member offered. When you make your first one, it shows here.",
+        hot("w5.browse-gardens", btn("Browse Gardens", { kind: "sec" })),
+      );
       break;
     case "loading":
       inner = `${skeleton({ title: true, lines: 1, cls: "flat" })}${skeleton({ avatar: true, lines: 2 })}${skeleton({ avatar: true, lines: 2 })}`;
@@ -101,20 +216,16 @@ ${banner("This commitment did not send after five attempts. Retry it, or discard
       // becomes a filter over the same list rather than a second copy of part
       // of it. Same grammar as the pool tab's commitment scopes.
       //
-      // "Things I can offer" is split by what its two halves actually are
-      // (2026-08-16 round 12, Afo). It used to be a fourth section card below
-      // three gardens, which read as a fourth garden, held a single nav row
-      // rather than content, and sat outside the scope chips' jurisdiction
-      // while merging two unlike things: a PRIVATE saved draft (nothing on
-      // chain, invisible to anyone) and an ONGOING Offer (createCommitmentSeries,
-      // live places in a real pool). The draft is not a commitment, so it becomes
-      // a tool row above the ledger; the ongoing Offer has a garden, so its
-      // parent card stands in that garden's section like everything else.
-      inner = `${card(
-        hot("w5.things", listRow({ icon: "sticky-note-line", primary: "Things I can offer", meta: "1 saved detail, private until you offer it", chevron: true })),
-        { cls: "flat" },
-      )}
-${filterChips(
+      // Round 12 split "Things I can offer" into a tool row above the ledger
+      // (the private draft) and a parent card inside a garden section (the
+      // ongoing Offer). Both were workarounds for a surface with one plane,
+      // and both are retired now that the sheet has tabs (2026-08-17 round 40,
+      // Afo). The draft moved to the Saved tab, where it is content rather
+      // than a nav row; the series moved to the Ongoing tab, because a series
+      // is a different object from a commitment even though it has a garden.
+      // What stays here is exactly one kind of thing: commitments you hold,
+      // each appearing once, under the garden it belongs to.
+      inner = `${filterChips(
         [
           { label: "All", on: true, hotId: "w5.scope-all" },
           { label: "Waiting on you", hotId: "w5.scope-waiting" },
@@ -136,13 +247,6 @@ ${sectionCard(
           // it (sb56) — the wallet is where you return to something you promised.
           "w5.mine-row",
           commitmentCard({ title: "Repair tool handles", meta: "1 repair session · yours", tags: [{ label: "Accepted", tone: "request" }, { label: "Support / service" }] }),
-        )}${hot(
-          // The ongoing Offer's PARENT, standing in the garden it runs in. Its
-          // places are public and live on the pool tab; the parent is the thing
-          // only you rest, resume, or retire, so the wallet is its home. Counts
-          // are places — one basis, so no cross-basis sum (Appendix D.1).
-          "w5.ongoing-row",
-          commitmentCard({ title: "Hosting climate workshops", meta: "2 open · 1 taken up", tags: [{ label: "Ongoing" }, { label: "Support / service" }] }),
         )}`,
         { flush: true },
       )}
@@ -158,11 +262,20 @@ ${sectionCard(
       )}`;
   }
   // The shipping AppBar hides while any drawer is open (AppBar.tsx:33).
-  // The Commitments badge counts the attention inbox (2 confirmations + 1
-  // accepted ask + 1 commitment needing work); read-recovery and empty casts
-  // draw no count.
-  const badge = state === "empty" || state === "loading" || state === "not-found" || state === "read-error" ? undefined : 4;
-  return phoneFrame(walletShell(inner, 2, { segHot: "w5.seg", badge }), { offline: state === "queued" || state === "send-failed" || state === "read-error", appBar: false });
+  // The badge counts the attention inbox (2 confirmations + 1 accepted ask +
+  // 1 commitment needing work) and rides both the Home header control and the
+  // Commitments pill, so the two never disagree. Read-recovery and empty casts
+  // draw no count on either.
+  const quiet = state === "empty" || state === "loading" || state === "not-found" || state === "read-error";
+  const badge = quiet ? undefined : WAITING_ON_YOU;
+  const tab =
+    state === "ongoing" || state === "ongoing-empty" || state === "ongoing-ready" || state === "ongoing-queued" || state === "ongoing-queued-waiting" ? 1
+    : state === "saved" || state === "saved-empty" ? 2
+    : 0;
+  return phoneFrame(commitmentsShell(inner, tab, { segHot: "w5.seg", badge }), {
+    offline: state === "queued" || state === "send-failed" || state === "read-error" || state === "ongoing-queued" || state === "ongoing-queued-waiting",
+    appBar: false,
+  });
 }
 
 const W5_HOTS: HifiDef["hots"] = {
@@ -170,16 +283,22 @@ const W5_HOTS: HifiDef["hots"] = {
   "w5.scope-waiting": { l: "Waiting on you", info: "The commitments needing an act from you — a confirmation, evidence, or work. This was a separate section above the ledger; the same rows appeared twice." },
   "w5.scope-active": { l: "Active", info: "Accepted and in progress, across every garden." },
   "w5.scope-kept": { l: "Kept", info: "Commitments confirmed kept. Counts stay per-garden; unlike cycles never aggregate." },
-  "w5.seg": { l: "Wallet tabs", info: "The shipping WalletDrawer's three tabs — Cookies · Tokens · Commitments. Commitments is the cross-garden commitments home (UX:186); G$ balances stay in Tokens. Since 2026-08-14 the Commitments pill carries its §5.8 count badge (the cookie-jar tab pattern), counting the attention inbox so it reads from any tab." },
+  "w5.seg": { l: "Commitments tabs", info: "Three tabs for the three objects a member holds: the commitments themselves, the ongoing Offers that keep opening them, and the private saved details that are not yet either. They are objects rather than filters, which is why the scope chips stay inside the first tab. Commitments left the wallet in round 40 (2026-08-17, Afo): its siblings there were balances, and a commitment is a relationship with a lifecycle. G$ balances stay in the wallet's Tokens tab." },
   "w5.inbox-row": { l: "Pending confirmation", to: "screen:W4", info: "Inbox of commitments waiting on YOUR confirmation, across gardens (UX:185)." },
   "w5.accepted-row": { l: "Accepted ask", to: "screen:W2@request-active", info: "The attention inbox widened past confirmations (2026-08-14): a newly accepted ask surfaces here so the asker opens it without hunting the ledger below. Queued and failed sends keep their §5.8 item-4 chrome at the top of their own group." },
   "w5.needs-work-row": { l: "Your commitment needs work", to: "screen:W2@active", info: "The ambient layer of standing attribution (2026-08-14): a commitment needing your work is a waiting-on-you item — arguably the biggest — so it stands in the inbox and counts in the Commitments badge. Opens the commitment, whose bar act is Submit work (the scoped intro)." },
   "w5.retry-send": { l: "Retry failed send", to: "screen:W5@queued", info: "Wallet-side recovery (2026-08-14 second pass): resets the exhausted job to pending and retries without dropping the local commitment — the same UX:218 contract as the pool tab, reachable from any garden." },
   "w5.discard-send": { l: "Discard failed send", to: "screen:W5", info: "Removes only the exhausted local job after an explicit member choice; no remote commitment exists yet (UX:218)." },
   "w5.mine-row": { l: "My commitment", to: "screen:W2", info: "Your own commitments grouped by garden." },
-  "w5.things": { l: "Things I can offer", to: "screen:W32@saved-with-ongoing", info: "The drawn entry for W32 (2026-08-11 D8a, uiux §5.8 addendum), now scoped to what is genuinely private: saved details you can reuse, nothing on chain, invisible to anyone else. Since 2026-08-16 it sits ABOVE the ledger as a tool row rather than below it as a fourth section card — it is not a garden, and the scope chips do not reach it. Ongoing Offers moved into their own garden's section." },
-  "w5.ongoing-row": { l: "Your ongoing Offer", to: "screen:W34@active-two", info: "The ongoing Offer's parent, standing in the garden it runs in (2026-08-16 round 12, Afo). Its places are public and live on the pool tab; the parent is what only you rest, resume, or retire, so the wallet holds it. The card counts places — one basis, never a unit sum (Appendix D.1)." },
-  "w5.retry": { l: "Try again", info: "Read-surface recovery for the cross-garden pools panel — loading / not-found / read-error, never a “None” chip (UX:51-52 · AM:12)." },
+  "w5.open-series": { l: "Open the ongoing Offer", to: "screen:W34@active-two", info: "The ongoing Offer's parent — internally the pool-scoped CommitmentSeries. What it opens is public and lives on the pool tab; the parent is what only you edit or stop. It used to sit inside a garden section of the ledger, which put a series among commitments (2026-08-16 round 12); the Ongoing tab now holds it, because a series is a different object. The row counts commitments — one basis, never a unit sum (Appendix D.1)." },
+  "w5.open-series-stopped": { l: "Open a stopped ongoing Offer", to: "screen:W34@active-none", info: "Stopping a series means it opens nothing more. Whatever members already took up carries on untouched, which is why this is a control on the parent and never a change to its children (C.27: one control, not two)." },
+  "w5.open-series-ready": { l: "Open the ongoing Offer in a Ready pool", to: "screen:W34@pool-ready", info: "A series can be Active while its pool has not opened. The parent's controls all work; nothing can be taken up until stewards open the pool." },
+  "w5.use-saved": { l: "Use these details", to: "screen:W32@choose-path", info: "Opens the once-or-over-time choice. Saved details are input to either path, never a separate product object." },
+  "w5.save-details": { l: "Save offer details", to: "screen:W32@compose", info: "Saved Offer details are signed offchain profile data and reusable input to either path. Saving writes no pool, series, or commitment state." },
+  "w5.save-details-first": { l: "Save offer details", to: "screen:W32@compose", info: "Empty-state entry into the same compose sheet." },
+  "w5.saved-tab": { l: "See what you can offer", to: "screen:W5@saved", info: "An ongoing Offer usually starts from details you already saved, so the empty Ongoing tab points at the Saved tab rather than at a creation flow." },
+  "w5.browse-gardens": { l: "Browse gardens", to: "screen:W1", info: "The commitments control is always in the Home header, so this empty state is also what a member of a garden without pooling sees. It has to offer a way in rather than only explain the absence." },
+  "w5.retry": { l: "Try again", info: "Read-surface recovery for the cross-garden commitments sheet — loading / not-found / read-error, never a “None” chip (UX:51-52 · AM:12)." },
 };
 
 // ---------------------------------------------------------------------------
@@ -238,7 +357,7 @@ ${hot("w23.send", btn("Send G$", { kind: "pri", full: true, icon: "send-plane-li
   // G$ is a token balance, so it belongs to the drawer's existing Tokens tab —
   // not a second surface claiming the Commitments panel W5 already owns. The
   // Commitments count badge stays visible from here — that is its point.
-  return phoneFrame(walletShell(inner, 1, { badge: 4 }), { appBar: false });
+  return phoneFrame(walletShell(inner, 1), { appBar: false });
 }
 
 const W23_HOTS: HifiDef["hots"] = {
@@ -512,7 +631,7 @@ const WFLOW_HOTS: HifiDef["hots"] = {
 
 export const WALLET_DEFS: HifiDef[] = [
   {
-    screen: { id: "W5", title: "W5 · WalletDrawer pools panel", surface: "client", frame: "phone", group: "Client PWA",
+    screen: { id: "W5", title: "W5 · Commitments sheet", surface: "client", frame: "phone", group: "Client PWA",
       states: W5_STATES.map(([id, label]) => ({ id, label, html: w5(id) })) },
     hots: W5_HOTS,
   },

@@ -722,8 +722,29 @@ export function gardenHeader(name: string, meta: { location: string; founded: st
 
 // Home header (views/Home/index.tsx): h4 title + a trailing icon-button row
 // (filter / wallet / work). Distinct from garden-detail's banner header.
-export function homeHeader(): string {
-  return `<div class="hhead"><h4 class="hh-title">Home</h4><div class="hh-actions"><button type="button" class="hh-ic" aria-label="Filter, preview only" disabled>${icon("search-line", "s")}</button><button type="button" class="hh-ic" aria-label="Wallet, preview only" disabled>${icon("wallet-line", "s")}</button><button type="button" class="hh-ic" aria-label="Work, preview only" disabled>${icon("plant-line", "s")}</button></div></div>`;
+// Home header (views/Home/index.tsx:236-270): h4 title + a trailing icon row.
+//
+// The commitments entry is the fourth control (2026-08-17 round 40, Afo).
+// Commitments left the wallet for their own sheet, so they need their own
+// door. It sits between Wallet and Work so the two surfaces that carry an
+// attention count are adjacent, and it is the only one of the four that is
+// badged: the shipping WalletDrawerIcon carries no count at all
+// (views/Home/WalletDrawer/Icon.tsx), so the things needing an act from you
+// were invisible until you opened the drawer and read a pill. The shipped
+// WorkDashboardIcon already badges a header control this way.
+//
+// The glyph is hand-heart rather than the shipped tab's hand-coin: the sprite
+// carries no hand-coin, and the two leaf glyphs (seedling, plant) would read
+// as a second Garden control next to Work.
+export function homeHeader(opts: { commitments?: number } = {}): string {
+  const n = opts.commitments;
+  const badge = n ? `<span class="hh-badge">${n > 9 ? "9+" : n}</span>` : "";
+  const ic = (name: string, label: string, extra = "") =>
+    `<button type="button" class="hh-ic" aria-label="${esc(label)}, preview only" disabled>${icon(name, "s")}${extra}</button>`;
+  return `<div class="hhead"><h4 class="hh-title">Home</h4><div class="hh-actions">${ic("search-line", "Filter")}${ic(
+    "wallet-line",
+    "Wallet",
+  )}${ic("hand-heart-line", n ? `Commitments, ${n} waiting on you` : "Commitments", badge)}${ic("plant-line", "Work")}</div></div>`;
 }
 
 export function pagepad(...children: string[]): string {

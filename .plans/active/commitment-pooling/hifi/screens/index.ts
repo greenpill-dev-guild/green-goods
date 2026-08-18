@@ -39,9 +39,12 @@ const SCREEN_CHAPTERS: Record<string, { label: string; ids: string[] }[]> = {
   client: [
     { label: "The pool & its commitments", ids: ["W1", "W1C", "W2", "W4", "W25", "W36"] },
     { label: "Create & prove", ids: ["W3", "W2a", "W2b", "WFLOW"] },
-    { label: "Ongoing Offers", ids: ["W32", "W34", "W35"] },
+    // The commitments sheet leads, then the three screens it opens: the
+    // ongoing Offer's detail, offering another, and saving details. W5 left
+    // the Wallet chapter with round 40 — it is no longer a wallet tab.
+    { label: "Your commitments", ids: ["W5", "W34", "W35", "W32"] },
     { label: "Exchange & templates", ids: ["W28", "W29", "W30", "W31"] },
-    { label: "Wallet", ids: ["W5", "W23"] },
+    { label: "Wallet", ids: ["W23"] },
   ],
   admin: [
     { label: "Pool & seasons", ids: ["W7", "W7C", "W7M", "W11", "W26"] },
@@ -57,6 +60,16 @@ const SCREEN_CHAPTERS: Record<string, { label: string; ids: string[] }[]> = {
 // variant frames dissolve into states of their parent screens.
 export const ALIASES: Record<string, string> = {
   W6: "W5",
+  // W32's list states moved into the commitments sheet's tabs (round 40).
+  // W32 keeps the saving flow; these keep old deep links resolving.
+  "W32@saved": "W5@saved",
+  "W32@empty": "W5@saved-empty",
+  "W32@saved-with-ongoing": "W5@ongoing",
+  "W32@saved-with-ongoing-ready": "W5@ongoing-ready",
+  "W32@series-queued": "W5@ongoing-queued",
+  "W32@series-queued-place-waiting": "W5@ongoing-queued-waiting",
+  "W32@loading": "W5@loading",
+  "W32@read-error": "W5@read-error",
   W1P: "W1@claim-pending",
   W1S: "W1@claim-superseded",
   MF3: "W2@expired",

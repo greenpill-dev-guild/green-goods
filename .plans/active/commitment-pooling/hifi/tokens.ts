@@ -819,7 +819,13 @@ export const HIFI_CSS = `
 .hf .hhead .hh-title{margin:0;flex:1;font-size:19px;font-weight:650;letter-spacing:-.01em}
 .hf .hhead .hh-actions{display:flex;align-items:center;gap:8px}
 .hf .hhead .hh-ic{width:44px;height:44px;border-radius:12px;border:1px solid var(--ln);background:var(--card);
-  color:var(--stone);display:inline-flex;align-items:center;justify-content:center;cursor:pointer}
+  color:var(--stone);display:inline-flex;align-items:center;justify-content:center;cursor:pointer;position:relative}
+/* Attention count on a header control (2026-08-17) — the shipped
+   WorkDashboardIcon pattern: a small pill pinned to the icon's top-right
+   corner, not a dot, because the number is the point. */
+.hf .hhead .hh-badge{position:absolute;top:4px;right:4px;min-width:16px;height:16px;padding:0 4px;
+  border-radius:99px;background:var(--act);color:var(--on-act);font-size:10.5px;font-weight:700;
+  line-height:16px;text-align:center;border:2px solid var(--card);box-sizing:content-box}
 
 /* ---------- admin dialect (.s-admin) — Cockpit M3, finished (1a) ----------
    Re-synced 2026-08-15 to the shipped redesign (PR #713): linen canvas

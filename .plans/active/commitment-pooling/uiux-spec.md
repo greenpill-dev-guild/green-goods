@@ -2690,3 +2690,54 @@ The artifact must not invent a separate `Practice` object, claim-spawned instanc
 saved Offer metadata, unreserved
 availability, indexed participant counts, automatic renewal, cross-pool reputation, or a personal
 score.
+
+### C.40 Commitments get their own sheet (2026-08-17, round 40)
+
+Afo: *"I would like to explore giving commitments for a user it's own sheet and remove it as a
+tab from wallet and add to the header enabling us to have tabs specific to commitments."*
+
+**What made this cheap.** The shipping Commitments tab renders `ComingSoonStub`
+(`views/Home/WalletDrawer/index.tsx:69`). Nothing had to be migrated, and `ModalDrawer` already
+takes a header, tabs, per-tab counts and a 95vh max height, so the new sheet is the same
+component with different children.
+
+**Why a tab was the wrong container.** The wallet's other two tabs are BALANCES: one fungible
+number each, no lifecycle, nothing waiting on you. A commitment is a relationship with a
+lifecycle. W5 already carried scope chips, per-garden sections, an attention inbox, retry and
+discard recovery, and a nav row into private drafts. It was a screen wearing a tab, and the
+wallet now holds the two things that really are balances.
+
+**The header control, and why it is badged.** `WalletDrawer/Icon.tsx` carries no count at all,
+so four things needing an act from you were invisible until you opened the drawer and read a
+pill. `WorkDashboard/Icon.tsx:73` already badges a header control, so the pattern is shipped.
+The commitments control sits between Wallet and Work, which puts the two badged surfaces
+adjacent. Four 44px controls plus `gap-2` take 200px of the 358px content row, leaving 158px for
+the title — measured, not assumed. The glyph is `hand-heart-line`: the sprite has no
+`hand-coin-line`, and seedling or plant next to Work would read as a second Garden control.
+
+**Tabs are the three objects, not three filters.**
+
+| tab | object | why it is its own plane |
+|---|---|---|
+| Commitments | `Commitment` | the ledger, grouped by garden; scope chips stay INSIDE it |
+| Ongoing | `CommitmentSeries` | the machine that opens commitments, not one of them |
+| Saved | signed offchain details | no garden, no pool, not a commitment until offered |
+
+Making the SCOPES the tabs was the alternative and was rejected: round 10 settled that scopes
+filter one list rather than drawing separate copies of part of it, and tabs would reverse that.
+
+**Two round-12 workarounds retire.** Round 12 split "Things I can offer" into a tool row above
+the ledger (the private draft) and a parent card inside a garden section (the ongoing Offer).
+Both existed because the surface had one plane. The draft is now content on the Saved tab; the
+series is on the Ongoing tab, because a series is a different object from a commitment even
+though it has a garden. The ledger holds exactly one kind of thing again.
+
+**W32 becomes the saving flow it always was.** Its list states moved into the tabs, taking it
+from 16 states to 8: compose, choose-path, draft-unsaved, saving, save-failed, offline-local,
+version-conflict, persistence. Keeping both would have left two surfaces drawing one list, which
+is the duplication the tabs exist to end. Eight state-level aliases keep the old deep links
+resolving.
+
+**The empty state changed job.** The control is always in the Home header, so `W5@empty` is now
+also the first thing a member of a garden without pooling sees. It has to read as an invitation
+with a way in, not as a report of absence.
