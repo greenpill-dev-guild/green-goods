@@ -1327,6 +1327,17 @@ Known mis-resolutions fixed in place: `contract-spec.md` §Grassroots-Economics-
     practice from here on, and says plainly that past one-offs cannot be gathered up, because
     commitmentSeriesId is set at creation and commitments are immutable. Full text:
     `uiux-spec.md` C.26 (and C.25 for the offer-flow corrections).
+130. Stopping is one act (2026-08-17, round 27, Afo: "they just stop, make rest and retire
+    one control for now"). Sixteen W34 states served a two-verb lifecycle nobody uses; four
+    remain, and the screen fell from 35 states to 23. **The control calls
+    `restCommitmentSeries`, not `retireCommitmentSeries`** — stopping should destroy nothing,
+    which matters more since decision 129 put the record at the centre of the screen, because
+    retiring would force anyone returning next season to start a new series with an empty
+    one. `retireCommitmentSeries` stays in the contract, unused by the UI, so a terminal state
+    is not foreclosed. Facts still say `Resting`: the on-chain state is unchanged, only the
+    vocabulary and the control count collapsed. Also caught: the stopped chip read "Withdrawn"
+    (the identity card had no branch for the new word), and four states carried two buttons to
+    the same story. Full text: `uiux-spec.md` C.27.
 
 **Final recursive certification clarification (2026-07-25; no new decision-register entry):**
 the published `42161`↔`42220` production lane is the only required fully paired

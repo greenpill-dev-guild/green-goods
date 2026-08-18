@@ -1935,6 +1935,34 @@ offered before and asks whether to make it ongoing from here on, saying plainly 
 already made stay as they are. Without it, accumulating a record depends on a choice made at
 step 1 before you knew it mattered.
 
+### C.27 Stopping is one act (2026-08-17, round 27)
+
+Afo, on whether operators rest and resume an ongoing offer or just stop: *"They just stop,
+make rest and retire one control for now."*
+
+**Sixteen of W34's states served a two-verb lifecycle nobody uses** — three Resting, three
+Retired, six retire confirmations, three Resting edits, and a succession preview whose entry
+point had already been deleted. Four remain: `stopped`, `stopped-none`, `stop-confirm`,
+`edit-stopped`. The screen went from 35 states to 23, and W34 stopped being the largest
+screen in the feature.
+
+**The control calls `restCommitmentSeries`, not `retireCommitmentSeries`.** "They just stop"
+describes what people do, not a demand for irreversibility, and rest is the call that
+destroys nothing. This matters more since C.26: the record is now the centre of this screen,
+and retiring would force anyone returning next season to start a new series with an empty
+one. Stopping blocks new commitments, leaves open ones takeable, and keeps the record whole.
+`retireCommitmentSeries` stays in the contract, unused by the UI for now, so nothing is
+foreclosed if a real need for a terminal state appears.
+
+The facts still say `Resting`, because the on-chain state is unchanged — only the vocabulary
+and the number of controls collapsed. `resumeCommitmentSeries` therefore stays legal from a
+stopped offer, which is what makes *Start offering again* honest.
+
+Two smaller corrections found while verifying: the stopped state's chip read **Withdrawn**,
+because the identity card's mapping had no branch for the new word and fell through to its
+default; and the record block's *See every one* left the old *See the whole story* button
+beneath it on four states, two paths to one screen.
+
 ### C.7 PARKED — reciprocity from the claim side (2026-08-16, register #103)
 
 > **Parked 2026-08-17 (Afo): "park it for now and we stabilize and polish the UI."** The

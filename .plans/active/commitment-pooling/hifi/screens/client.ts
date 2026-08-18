@@ -3673,14 +3673,13 @@ const W34_STATES = [
   ["pool-composted", "Active · pool composted"],
   ["edit-active", "Edit · Active"], ["edit-active-none", "Edit · Active with nothing open"],
   ["edit-active-ready", "Edit · Active in Ready pool"],
-  ["edit-resting", "Edit · Resting"], ["edit-resting-none", "Edit · Resting with nothing open"],
-  ["edit-resting-ready", "Edit · Resting in Ready pool"],
-  ["resting", "Resting"], ["resting-none", "Resting · nothing open"], ["resting-ready", "Resting · pool ready"],
-  ["retire-confirm", "Retire — confirm"], ["retire-confirm-none", "Retire offer with nothing open — confirm"],
-  ["retire-confirm-resting", "Retire Resting — confirm"], ["retire-confirm-resting-none", "Retire resting offer with nothing open — confirm"],
-  ["retire-confirm-ready", "Retire — confirm · pool ready"], ["retire-confirm-resting-ready", "Retire Resting — confirm · pool ready"],
-  ["retired", "Retired"], ["retired-none", "Retired · nothing open"], ["retired-ready", "Retired · pool ready"],
-  ["succession", "Later: sharing and handing on"],
+  // Rest and Retire are ONE control (2026-08-17, Afo: "they just stop"). Sixteen
+  // states served a two-verb lifecycle nobody uses: three Resting, three
+  // Retired, six retire confirmations, three Resting edits, and a succession
+  // preview whose entry point had already been deleted. Four remain.
+  ["edit-stopped", "Edit · Stopped"],
+  ["stopped", "Stopped · commitments still open"], ["stopped-none", "Stopped · nothing open"],
+  ["stop-confirm", "Stop offering — confirm"],
   ["loading", "Loading"], ["read-error", "Read error"],
 ] as const;
 type W34State = (typeof W34_STATES)[number][0];
@@ -3728,7 +3727,7 @@ const w34Identity = (opts: {
 }) =>
   identityCard({
     title: "Hosting climate workshops",
-    chips: `${chip("Offer", "offer")}${chip("Ongoing")}${stateChip(opts.state.startsWith("Active") ? "Active" : opts.state.startsWith("Resting") ? "Offered" : "Withdrawn")}${
+    chips: `${chip("Offer", "offer")}${chip("Ongoing")}${stateChip(opts.state.startsWith("Active") ? "Active" : "Offered")}${
       opts.cycle === false ? "" : chip("First Rains", "season")
     }`,
     people: [{ initial: "M", line: "Maria · offering this, Rocinha Community Garden" }],
@@ -3778,10 +3777,10 @@ const w34ActiveManagement = (pool: "Open" | "Ready", availability: "existing" | 
   const noPlaces = availability === "none";
   return `${sectionTitle("Looking after this offer")}
 ${hot(ready ? "w34.edit-active-ready" : noPlaces ? "w34.edit-active-none" : "w34.edit-active", btn("Edit offer details", { kind: "ghost", full: true, icon: "sticky-note-line" }))}
-<div class="brow">${hot(ready ? "w34.rest-ready" : noPlaces ? "w34.rest-none" : "w34.rest", btn("Rest it for now", { kind: "ghost", icon: "pause-line" }))}${hot(ready ? "w34.retire-ready" : noPlaces ? "w34.retire-none" : "w34.retire", btn("Retire it", { kind: "ghost" }))}</div>`;
+${hot("w34.stop", btn("Stop offering this", { kind: "ghost", full: true, icon: "pause-line" }))}`;
 };
 
-const w34MetadataEditor = (state: "Active" | "Resting", pool: "Open" | "Ready", availability: "existing" | "none" = "existing") =>
+const w34MetadataEditor = (state: "Active" | "Stopped", pool: "Open" | "Ready", availability: "existing" | "none" = "existing") =>
   sheetOver(
     w34Head() +
       pagepad(
@@ -3793,7 +3792,7 @@ const w34MetadataEditor = (state: "Active" | "Resting", pool: "Open" | "Ready", 
       hot(
         state === "Active"
           ? pool === "Ready" ? "w34.save-edit-active-ready" : availability === "none" ? "w34.save-edit-active-none" : "w34.save-edit-active"
-          : pool === "Ready" ? "w34.save-edit-resting-ready" : availability === "none" ? "w34.save-edit-resting-none" : "w34.save-edit-resting",
+          : pool === "Ready" ? "w34.save-edit-stopped" : availability === "none" ? "w34.save-edit-stopped" : "w34.save-edit-stopped",
         btn("Save changes", { kind: "pri", full: true }),
       ),
   );
@@ -3817,7 +3816,6 @@ function w34(state: W34State): string {
         w34Record(),
         w34Places(0),
         sectionCard("Details", `${detailRow("Kept", "12 times across 5 cycles")}${detailRow("Unit", "workshop sessions")}`),
-        hot("w34.open-story", btn("See the whole story", { kind: "ghost", full: true })),
         w34ActiveManagement("Open", "none"),
       )}`;
       break;
@@ -3837,7 +3835,6 @@ function w34(state: W34State): string {
         banner("This pool is ready but not open. Your ongoing Offer is active, while opening or taking anything up stays unavailable until stewards open participation.", "stone", "information-line"),
         formInfo("time-line", "Nothing open right now", "Opening the pool is a steward action. Nothing can be queued from here."),
         sectionCard("Details", `${detailRow("Kept", "12 times across 5 cycles")}${detailRow("Unit", "workshop sessions")}${detailRow("Pool", "Ready")}`),
-        hot("w34.open-story", btn("See the whole story", { kind: "ghost", full: true })),
         w34ActiveManagement("Ready"),
       )}`;
       break;
@@ -3849,15 +3846,6 @@ function w34(state: W34State): string {
       break;
     case "edit-active-ready":
       body = w34MetadataEditor("Active", "Ready");
-      break;
-    case "edit-resting":
-      body = w34MetadataEditor("Resting", "Open");
-      break;
-    case "edit-resting-none":
-      body = w34MetadataEditor("Resting", "Open", "none");
-      break;
-    case "edit-resting-ready":
-      body = w34MetadataEditor("Resting", "Ready");
       break;
     case "places-queued":
       body = `${w34Head()}${pagepad(
@@ -3996,166 +3984,52 @@ function w34(state: W34State): string {
         w34Identity({ state: "Active · pool composted", tone: "ink" }),
         banner("This pool is composted for now. Its history remains readable, and its stewards may reopen it for another season.", "stone", "leaf-line"),
         card(`<div class="t-title num">Kept 12 times across 5 cycles</div><div class="t-meta">Past commitments and evidence remain exactly as recorded. Nothing can be opened or taken up.</div>`),
-        hot("w34.open-story", btn("See the whole story", { kind: "ghost", full: true })),
         hot("w34.open-composted-pool", btn("View the composted pool", { kind: "ghost", full: true })),
       )}`;
       break;
-    case "resting":
+    // ONE control, and it calls restCommitmentSeries rather than
+    // retireCommitmentSeries. "They just stop" describes the intent, not a
+    // demand for irreversibility, and rest is the call that destroys nothing:
+    // the record we just made the centre of this screen survives, and someone
+    // who comes back next season keeps their history instead of starting a new
+    // series with an empty one. retireCommitmentSeries stays in the contract,
+    // unused by the UI for now.
+    case "stopped":
       body = `${w34Head()}${pagepad(
-        w34Identity({ state: "Resting", tone: "plain" }),
+        w34Identity({ state: "Stopped", tone: "plain" }),
         w34Record(),
-        banner("Resting since Aug 2. Nothing new can be opened while it rests.", "stone", "pause-line"),
-        card(
-          `<div class="t-title">2 open commitments remain</div><div class="t-meta">Resting blocks only new places. These already-reserved Offers can still be taken up.</div>` +
-            listRow({ icon: "calendar-line", primary: "Workshop session 1", meta: "Season of First Rains · 2 hours", chipHtml: stateChip("Offered") }) +
+        banner("Stopped on Aug 2. Nothing new opens, and what is already open can still be taken up.", "stone", "pause-line"),
+        sectionCard(
+          "Still open",
+          listRow({ icon: "calendar-line", primary: "Workshop session 1", meta: "Season of First Rains · 2 hours", chipHtml: stateChip("Offered") }) +
             listRow({ icon: "calendar-line", primary: "Workshop session 2", meta: "Season of First Rains · 2 hours", chipHtml: stateChip("Offered") }),
         ),
-        sectionCard("Details", `${detailRow("Kept", "12 times across 5 cycles")}${detailRow("Available now", "2 open")}${detailRow("Open more", "Paused while resting")}`),
-        `<div class="brow">${hot("w34.resume", btn("Start offering again", { kind: "pri" }))}${hot("w34.open-story-resting", btn("See the story", { kind: "ghost" }))}</div>`,
-        hot("w34.edit-resting", btn("Edit offer details", { kind: "ghost", full: true, icon: "sticky-note-line" })),
-        hot("w34.retire-resting", btn("Retire it", { kind: "ghost", full: true })),
+        sectionCard("Details", `${detailRow("Unit", "workshop sessions")}${detailRow("Where it ran", "Season of First Rains")}`),
+        `<div class="brow">${hot("w34.start-again", btn("Start offering again", { kind: "pri" }))}${hot("w34.edit-stopped", btn("Edit details", { kind: "ghost" }))}</div>`,
       )}`;
       break;
-    case "resting-none":
+    case "stopped-none":
       body = `${w34Head()}${pagepad(
-        w34Identity({ state: "Resting · nothing open", tone: "plain" }),
-        banner("This ongoing Offer is resting. Nothing was open before it rested, and nothing was created to make this lifecycle change.", "stone", "pause-line"),
-        sectionCard("Details", `${detailRow("Kept", "12 times across 5 cycles")}${detailRow("Available now", "None")}${detailRow("Open more", "Paused while resting")}`),
-        `<div class="brow">${hot("w34.resume-none", btn("Start offering again", { kind: "pri" }))}${hot("w34.open-story-resting", btn("See the story", { kind: "ghost" }))}</div>`,
-        hot("w34.edit-resting-none", btn("Edit offer details", { kind: "ghost", full: true, icon: "sticky-note-line" })),
-        hot("w34.retire-resting-none", btn("Retire it", { kind: "ghost", full: true })),
-      )}`;
-      break;
-    case "resting-ready":
-      body = `${w34Head()}${pagepad(
-        w34Identity({ state: "Resting · pool ready", tone: "plain", cycle: false }),
-        banner("This ongoing Offer is resting in a pool that is Ready but not Open. Nothing is open, and nothing can be opened until both the series resumes and the pool opens.", "stone", "pause-line"),
-        sectionCard("Details", `${detailRow("Kept", "12 times across 5 cycles")}${detailRow("Available now", "None")}${detailRow("Pool", "Ready")}`),
-        `<div class="brow">${hot("w34.resume-ready", btn("Start offering again", { kind: "pri" }))}${hot("w34.open-story-resting", btn("See the story", { kind: "ghost" }))}</div>`,
-        hot("w34.edit-resting-ready", btn("Edit offer details", { kind: "ghost", full: true, icon: "sticky-note-line" })),
-        hot("w34.retire-resting-ready", btn("Retire it", { kind: "ghost", full: true })),
-      )}`;
-      break;
-    case "retire-confirm":
-      body = sheetOver(
-        w34Head() + pagepad(
-        w34Identity({ state: "Active", tone: "offer" }),
-        w34Record(),sectionCard("Details", `${detailRow("Kept", "12 times across 5 cycles")}`)),
-        "Retire this ongoing Offer?",
-        `<div class="t-meta">Retiring is final. You will not be able to add places or start it again.</div>` +
-          card(
-            `${kv("Commitments already made", "Keep their state and their history")}${kv("This offer's story", "Stays exactly as it is")}${kv("Your saved details", "Stay saved privately to you")}`,
-          ) +
-          `<div class="brow">${hot("w34.retire-confirm", btn("Retire it", { kind: "danger" }))}${hot("w34.retire-cancel", btn("Keep it", { kind: "ghost" }))}</div>`,
-      );
-      break;
-    case "retire-confirm-none":
-      body = sheetOver(
-        w34Head() + pagepad(
-        w34Identity({ state: "Active · nothing open", tone: "offer" }),sectionCard("Details", `${detailRow("Kept", "12 times across 5 cycles")}${detailRow("Open now", "None")}`)),
-        "Retire this ongoing Offer?",
-        `<div class="t-meta">Retiring is final. You do not need to create a place first.</div>` +
-          card(
-            `${kv("Places", "None were created")}${kv("This offer's story", "Stays exactly as it is")}${kv("Your saved details", "Stay saved privately to you")}`,
-          ) +
-          `<div class="brow">${hot("w34.retire-confirm-none", btn("Retire it", { kind: "danger" }))}${hot("w34.retire-cancel-none", btn("Keep it", { kind: "ghost" }))}</div>`,
-      );
-      break;
-    case "retire-confirm-resting":
-      body = sheetOver(
-        w34Head() + pagepad(
-        w34Identity({ state: "Resting", tone: "plain" }),
-        w34Record(),sectionCard("Details", `${detailRow("Kept", "12 times across 5 cycles")}${detailRow("Series", "Resting")}`)),
-        "Retire this ongoing Offer?",
-        `<div class="t-meta">Retiring is final. You do not need to resume or add a place first.</div>` +
-          card(
-            `${kv("Commitments already made", "Keep their state and their history")}${kv("This offer's story", "Stays exactly as it is")}${kv("Your saved details", "Stay saved privately to you")}`,
-          ) +
-          `<div class="brow">${hot("w34.retire-confirm-resting", btn("Retire it", { kind: "danger" }))}${hot("w34.retire-cancel-resting", btn("Keep it resting", { kind: "ghost" }))}</div>`,
-      );
-      break;
-    case "retire-confirm-resting-none":
-      body = sheetOver(
-        w34Head() + pagepad(
-        w34Identity({ state: "Resting · nothing open", tone: "plain" }),sectionCard("Details", `${detailRow("Kept", "12 times across 5 cycles")}${detailRow("Open now", "None")}${detailRow("Series", "Resting")}`)),
-        "Retire this ongoing Offer?",
-        `<div class="t-meta">Retiring is final. You do not need to resume or create a place first.</div>` +
-          card(
-            `${kv("Places", "None were created")}${kv("This offer's story", "Stays exactly as it is")}${kv("Your saved details", "Stay saved privately to you")}`,
-          ) +
-          `<div class="brow">${hot("w34.retire-confirm-resting-none", btn("Retire it", { kind: "danger" }))}${hot("w34.retire-cancel-resting-none", btn("Keep it resting", { kind: "ghost" }))}</div>`,
-      );
-      break;
-    case "retire-confirm-ready":
-      body = sheetOver(
-        w34Head() + pagepad(
-        w34Identity({ state: "Active · pool ready", tone: "plain", cycle: false }),sectionCard("Details", `${detailRow("Kept", "12 times across 5 cycles")}${detailRow("Pool", "Ready")}`)),
-        "Retire this ongoing Offer?",
-        `<div class="t-meta">Retiring is final. Opening the pool later will not restart this ongoing Offer.</div>` +
-          card(
-            `${kv("Places", "None were created")}${kv("This offer's story", "Stays exactly as it is")}${kv("Your saved details", "Stay saved privately to you")}`,
-          ) +
-          `<div class="brow">${hot("w34.retire-confirm-ready", btn("Retire it", { kind: "danger" }))}${hot("w34.retire-cancel-ready", btn("Keep it", { kind: "ghost" }))}</div>`,
-      );
-      break;
-    case "retire-confirm-resting-ready":
-      body = sheetOver(
-        w34Head() + pagepad(
-        w34Identity({ state: "Resting · pool ready", tone: "plain", cycle: false }),sectionCard("Details", `${detailRow("Kept", "12 times across 5 cycles")}${detailRow("Pool", "Ready")}${detailRow("Series", "Resting")}`)),
-        "Retire this ongoing Offer?",
-        `<div class="t-meta">Retiring is final. You do not need to resume it or wait for the pool to open.</div>` +
-          card(
-            `${kv("Places", "None were created")}${kv("This offer's story", "Stays exactly as it is")}${kv("Your saved details", "Stay saved privately to you")}`,
-          ) +
-          `<div class="brow">${hot("w34.retire-confirm-resting-ready", btn("Retire it", { kind: "danger" }))}${hot("w34.retire-cancel-resting-ready", btn("Keep it resting", { kind: "ghost" }))}</div>`,
-      );
-      break;
-    case "retired":
-      body = `${w34Head()}${pagepad(
-        w34Identity({ state: "Retired", tone: "ink" }),
-        banner("Retired on Aug 2. You cannot open anything new or start this ongoing offer again.", "stone", "information-line"),
-        card(
-          `<div class="t-title">2 open commitments remain</div><div class="t-meta">Retirement changes only the ongoing Offer. These already-reserved Offers stay discoverable and claimable until each one is accepted, cancelled, or expires.</div>` +
-            listRow({ icon: "calendar-line", primary: "Workshop session 1", meta: "Season of First Rains · 2 hours", chipHtml: stateChip("Offered") }) +
-            listRow({ icon: "calendar-line", primary: "Workshop session 2", meta: "Season of First Rains · 2 hours", chipHtml: stateChip("Offered") }) +
-            hot("w34.open-retired-place", btn("View an open commitment", { kind: "ghost", full: true })),
-          { cls: "flat" },
-        ),
-        card(`<div class="t-title num">Kept 12 times across 5 cycles</div><div class="t-meta">The story stays here. Nothing that was already committed or kept has changed.</div>`),
-        card(w34StoryTimeline(), { cls: "flat" }),
-        `<div class="t-meta">Your saved details are still there. You can offer it in a garden again whenever you want to.</div>`,
-      )}`;
-      break;
-    case "retired-none":
-      body = `${w34Head()}${pagepad(
-        w34Identity({ state: "Retired · nothing open", tone: "ink" }),
-        banner("Retired without opening anything. No capacity-reserving commitment was required to end this ongoing Offer.", "stone", "information-line"),
-        card(`<div class="t-title num">Kept 12 times across 5 cycles</div><div class="t-meta">The story and privately saved details remain available. No new place can be added to this retired ongoing Offer.</div>`),
-      )}`;
-      break;
-    case "retired-ready":
-      body = `${w34Head()}${pagepad(
-        w34Identity({ state: "Retired · pool ready", tone: "ink" }),
-        banner("This ongoing Offer is retired. It will not open anything if the pool opens later.", "stone", "information-line"),
-        card(`<div class="t-title num">Kept 12 times across 5 cycles</div><div class="t-meta">Its story remains readable, and your privately saved details can still seed a separate Offer in the future.</div>`),
-      )}`;
-      break;
-    case "succession":
-      body = `${w34Head()}${pagepad(
-        w34Identity({ state: "Active", tone: "offer" }),
+        w34Identity({ state: "Stopped", tone: "plain" }),
         w34Record(),
-        banner("Not built yet — this is what we are working towards.", "amber", "eye-line"),
-        sectionTitle("Later: sharing and handing on"),
-        card(
-          `${kv("Share it with someone", "Two people hold the same ongoing Offer, with both saying yes")}` +
-            `${kv("Teach someone alongside you", "They are credited for the sessions they help with")}` +
-            `${kv("Hand it on", "You offer, they accept, and the story keeps its history")}` +
-            `${kv("Let someone start their own", "A new ongoing Offer that says where it grew from")}` +
-            `${kv("Let the garden hold it", "The garden stewards it and each session names its own lead")}`,
-        ),
-        `<div class="t-meta">None of these can be done yet. Every one of them will need both people to agree, and none of them moves a commitment you have already made.</div>`,
-        `<div class="t-meta">What you can do today: add places, rest, or retire.</div>`,
+        banner("Stopped on Aug 2. Nothing is open, and nothing new opens until you start it again.", "stone", "pause-line"),
+        sectionCard("Details", `${detailRow("Unit", "workshop sessions")}${detailRow("Where it ran", "Season of First Rains")}`),
+        `<div class="brow">${hot("w34.start-again-none", btn("Start offering again", { kind: "pri" }))}${hot("w34.edit-stopped", btn("Edit details", { kind: "ghost" }))}</div>`,
       )}`;
+      break;
+    case "stop-confirm":
+      body = sheetOver(
+        w34Head() + pagepad(w34Identity({ state: "Active", tone: "offer" }), w34Record({ rows: false })),
+        "Stop offering this?",
+        `<div class="t-meta">Nothing new will open. You can start it again whenever you want to.</div>` +
+          card(
+            `${kv("What is already open", "Stays open and can still be taken up")}${kv("What you have given", "Stays exactly as it is")}${kv("Your saved details", "Stay saved privately to you")}`,
+          ) +
+          `<div class="brow">${hot("w34.stop-confirm", btn("Stop offering", { kind: "pri" }))}${hot("w34.stop-cancel", btn("Keep offering", { kind: "ghost" }))}</div>`,
+      );
+      break;
+    case "edit-stopped":
+      body = w34MetadataEditor("Stopped", "Open");
       break;
     case "loading":
       body = `${w34Head()}${pagepad(
@@ -4178,7 +4052,6 @@ function w34(state: W34State): string {
         w34Record(),
         w34Places(2),
         sectionCard("Details", `${detailRow("Kept", "12 times across 5 cycles")}${detailRow("Unit", "workshop sessions")}${detailRow("Next cycle", "Ask me again next cycle")}`),
-        hot("w34.open-story", btn("See the whole story", { kind: "ghost", full: true })),
         w34ActiveManagement("Open"),
       )}`;
   }
@@ -4186,9 +4059,15 @@ function w34(state: W34State): string {
 }
 
 const W34_HOTS: HifiDef["hots"] = {
+  "w34.stop": { l: "Stop offering this", to: "screen:W34@stop-confirm", info: "Rest and Retire became ONE control (2026-08-17, Afo: \"they just stop\"). Sixteen states served a two-verb lifecycle nobody uses. This calls restCommitmentSeries rather than retireCommitmentSeries: stopping should destroy nothing, so the record survives and someone who comes back next season keeps their history instead of starting a new series with an empty one. retireCommitmentSeries stays in the contract, unused by the UI for now." },
+  "w34.stop-confirm": { l: "Stop offering", to: "screen:W34@stopped", info: "Blocks anything new from opening. Commitments already open stay open and can still be taken up, and the record is untouched.", calls: ["restCommitmentSeries"] },
+  "w34.stop-cancel": { l: "Keep offering", to: "screen:W34@active-two", info: "Dismisses the confirmation with nothing changed." },
+  "w34.start-again": { l: "Start offering again", to: "screen:W34@active-two", info: "Returns the offer to Active without opening anything by itself. The record continues where it left off, which is the reason stopping uses rest rather than retire.", calls: ["resumeCommitmentSeries"] },
+  "w34.start-again-none": { l: "Start offering again", to: "screen:W34@active-none", info: "Returns the offer to Active with nothing open. Starting again never opens a commitment by itself; that is still a separate act.", calls: ["resumeCommitmentSeries"] },
+  "w34.edit-stopped": { l: "Edit details while stopped", to: "screen:W34@edit-stopped", info: "A holder may revise the prospective details while stopped; commitments already made keep their own snapshots." },
+  "w34.save-edit-stopped": { l: "Save details", to: "screen:W34@stopped", info: "Calls updateCommitmentSeriesMetadata. It does not start the offer again or rewrite anything already open.", calls: ["updateCommitmentSeriesMetadata"] },
   "w34.add-places": { l: "Open more", to: "screen:W35@compose", info: "Opens the finite-batch flow. Each one becomes one ordinary Offer instance that reserves provider capacity at creation." },
   "w34.open-story": { l: "See the whole story", to: "screen:W34@story", info: "Exact linked-instance history and absolute counts. Never a rate, rank, or comparison." },
-  "w34.open-story-resting": { l: "See the story", to: "screen:W34@story", info: "Resting hides nothing: the story stays fully readable." },
   "w34.story-row": { l: "Open one kept commitment", to: "screen:W2@fulfilled", info: "Every story row is an ordinary immutable Commitment with its own evidence and confirmation." },
   "w34.claim": { l: "Take one up", to: "screen:W2@support-accepted", info: "Accepts one already-created Offered service instance. No new commitment is created, no second provider slot is consumed, and the instance stays Accepted until Work or evidence lands.", calls: ["claimCommitment"] },
   "w34.open-paused-pool": { l: "View the paused pool", to: "screen:W1@paused", info: "Shows the pool-level pause reason and steward-owned resume path. The series and existing instances remain intact, but Add and claim stay disabled." },
@@ -4203,37 +4082,6 @@ const W34_HOTS: HifiDef["hots"] = {
   "w34.save-edit-active": { l: "Save active offer details", to: "screen:W34@active-two", info: "Calls updateCommitmentSeriesMetadata. Only the current series description changes; every open commitment retains its creation snapshot.", calls: ["updateCommitmentSeriesMetadata"] },
   "w34.save-edit-active-none": { l: "Save active offer details with nothing open", to: "screen:W34@active-none", info: "Calls updateCommitmentSeriesMetadata without opening a commitment or changing availability.", calls: ["updateCommitmentSeriesMetadata"] },
   "w34.save-edit-active-ready": { l: "Save active offer details in a Ready pool", to: "screen:W34@pool-ready", info: "Calls updateCommitmentSeriesMetadata without opening the pool or opening a commitment. The Ready state and historical snapshots remain unchanged.", calls: ["updateCommitmentSeriesMetadata"] },
-  "w34.edit-resting": { l: "Edit resting offer details", to: "screen:W34@edit-resting", info: "A current holder may revise prospective metadata while Resting; existing instances keep their snapshots." },
-  "w34.edit-resting-none": { l: "Edit resting offer details with nothing open", to: "screen:W34@edit-resting-none", info: "Prospective metadata remains editable while Resting even when the series has no instances." },
-  "w34.edit-resting-ready": { l: "Edit resting offer details in a Ready pool", to: "screen:W34@edit-resting-ready", info: "Preserves both Resting series state and Ready pool state during the holder-only edit." },
-  "w34.save-edit-resting": { l: "Save resting offer details", to: "screen:W34@resting", info: "Calls updateCommitmentSeriesMetadata while Resting. It does not resume the series or rewrite an instance.", calls: ["updateCommitmentSeriesMetadata"] },
-  "w34.save-edit-resting-none": { l: "Save resting offer details with nothing open", to: "screen:W34@resting-none", info: "Calls updateCommitmentSeriesMetadata while preserving Resting and zero availability.", calls: ["updateCommitmentSeriesMetadata"] },
-  "w34.save-edit-resting-ready": { l: "Save resting offer details in a Ready pool", to: "screen:W34@resting-ready", info: "Calls updateCommitmentSeriesMetadata while preserving Resting + Ready and every existing snapshot.", calls: ["updateCommitmentSeriesMetadata"] },
-  "w34.rest": { l: "Rest it for now", to: "screen:W34@resting", info: "Blocks opening anything new. Existing Offered and Accepted commitments and the whole story are untouched.", calls: ["restCommitmentSeries"] },
-  "w34.rest-none": { l: "Rest it with nothing open", to: "screen:W34@resting-none", info: "Active may become Resting independently of instance count; no createCommitment or capacity reservation occurs.", calls: ["restCommitmentSeries"] },
-  "w34.rest-ready": { l: "Rest it for now in a Ready pool", to: "screen:W34@resting-ready", info: "Resting is independent of how many are open and pool opening. No capacity-reserving commitment is required first.", calls: ["restCommitmentSeries"] },
-  "w34.resume": { l: "Start offering again", to: "screen:W34@active-two", info: "Returns the ongoing Offer to Active without changing its two open Offered commitments or creating another one.", calls: ["resumeCommitmentSeries"] },
-  "w34.resume-none": { l: "Resume it with nothing open", to: "screen:W34@active-none", info: "Returns the series to Active with nothing open; resume creates no availability.", calls: ["resumeCommitmentSeries"] },
-  "w34.resume-ready": { l: "Start offering again in a Ready pool", to: "screen:W34@pool-ready", info: "Returns the series to Active while the pool remains Ready. Open more stays unavailable until the pool opens.", calls: ["resumeCommitmentSeries"] },
-  "w34.retire": { l: "Retire it", to: "screen:W34@retire-confirm", info: "Opens the terminal confirmation. Retiring takes no reason in the initial contract, so no reason field is drawn." },
-  "w34.retire-none": { l: "Retire it with nothing open", to: "screen:W34@retire-confirm-none", info: "Opens the terminal confirmation without requiring a capacity-reserving commitment first." },
-  "w34.retire-resting": { l: "Retire the resting offer", to: "screen:W34@retire-confirm-resting", info: "Resting may transition directly to Retired; no resume, and nothing new need be opened." },
-  "w34.retire-resting-none": { l: "Retire it, resting with nothing open", to: "screen:W34@retire-confirm-resting-none", info: "Resting with zero instances may transition directly to Retired; no open commitment is required." },
-  "w34.retire-ready": { l: "Retire it in a Ready pool", to: "screen:W34@retire-confirm-ready", info: "Opens the Ready-preserving terminal confirmation without creating capacity." },
-  "w34.retire-resting-ready": { l: "Retire the resting offer in a Ready pool", to: "screen:W34@retire-confirm-resting-ready", info: "Resting may transition directly to Retired while the pool remains Ready." },
-  "w34.retire-confirm": { l: "Retire it", to: "screen:W34@retired", info: "Terminal. Existing instances keep their state and history; the saved details stay privately stored.", calls: ["retireCommitmentSeries"] },
-  "w34.retire-confirm-none": { l: "Retire it with nothing open", to: "screen:W34@retired-none", info: "Terminal series transition with zero instances and no capacity reservation.", calls: ["retireCommitmentSeries"] },
-  "w34.retire-confirm-resting": { l: "Retire the resting offer", to: "screen:W34@retired", info: "Calls retireCommitmentSeries from Resting. No resume or capacity-reserving commitment occurs.", calls: ["retireCommitmentSeries"] },
-  "w34.retire-confirm-resting-none": { l: "Retire it, resting with nothing open", to: "screen:W34@retired-none", info: "Calls retireCommitmentSeries from Resting with zero instances and no capacity reservation.", calls: ["retireCommitmentSeries"] },
-  "w34.retire-confirm-ready": { l: "Retire it in a Ready pool", to: "screen:W34@retired-ready", info: "Terminal series transition with nothing opened and no pool-state change.", calls: ["retireCommitmentSeries"] },
-  "w34.retire-confirm-resting-ready": { l: "Retire the resting offer in a Ready pool", to: "screen:W34@retired-ready", info: "Calls retireCommitmentSeries from Resting while preserving the Ready pool state.", calls: ["retireCommitmentSeries"] },
-  "w34.retire-cancel": { l: "Keep it", to: "screen:W34@active-two", info: "Dismisses the confirmation with no state change." },
-  "w34.retire-cancel-none": { l: "Keep it with nothing open", to: "screen:W34@active-none", info: "Dismisses the confirmation and preserves Active with nothing open." },
-  "w34.retire-cancel-resting": { l: "Keep it resting", to: "screen:W34@resting", info: "Dismisses the confirmation and preserves Resting." },
-  "w34.retire-cancel-resting-none": { l: "Keep it resting with nothing open", to: "screen:W34@resting-none", info: "Dismisses the confirmation and preserves Resting with nothing open." },
-  "w34.retire-cancel-ready": { l: "Keep it in the Ready pool", to: "screen:W34@pool-ready", info: "Dismisses the confirmation while preserving Active + Ready." },
-  "w34.retire-cancel-resting-ready": { l: "Keep it resting in the Ready pool", to: "screen:W34@resting-ready", info: "Dismisses the confirmation and preserves Resting + Ready." },
-  "w34.open-retired-place": { l: "View an open commitment", to: "screen:W2@support-offered", info: "Opens one surviving Offered instance. Retirement blocks only new series instances; ordinary claimant discovery and claim remain available while the pool is Open." },
   "w34.ask-again-yes": { l: "Open more", to: "screen:W35@compose", info: "Current consent before any new commitment. The protocol never opens a commitment on a schedule." },
   "w34.ask-again-not-now": { l: "Not this season", to: "screen:W34@active-none", info: "Declining creates nothing and changes neither this offer nor its story." },
   "w34.retry": { l: "Try again", to: "screen:W34@active-two", info: "Re-reads the indexed ongoing Offer after a failed read." },
@@ -4317,19 +4165,18 @@ const w32Facts = (state: W32State): StateFacts | undefined =>
 
 const w34Facts = (state: W34State): StateFacts | undefined => {
   if (state === "loading" || state === "read-error") return undefined;
-  if (state === "resting-none" || state === "edit-resting-none" || state === "retire-confirm-resting-none")
-    return { pool: "Open", series: "Resting" };
-  if (state === "resting" || state === "edit-resting" || state === "retire-confirm-resting")
+  // Stopped IS Resting on chain. The UI collapsed the two verbs into one
+  // control (2026-08-17, Afo), but the contract state it produces is unchanged,
+  // so the facts keep saying Resting and resumeCommitmentSeries stays legal
+  // from here. "Stopped · nothing open" still carries the open Offer facts,
+  // because stopping blocks NEW commitments and leaves existing ones takeable.
+  if (state === "stopped-none") return { pool: "Open", series: "Resting" };
+  if (state === "stopped" || state === "edit-stopped")
     return { pool: "Open", cycle: "Open", series: "Resting", commitment: "Offered", kind: "SupportService" };
-  if (state === "resting-ready" || state === "edit-resting-ready" || state === "retire-confirm-resting-ready")
-    return { pool: "Ready", series: "Resting" };
-  if (state === "retired") return { pool: "Open", cycle: "Open", series: "Retired", commitment: "Offered", kind: "SupportService" };
-  if (state === "retired-none") return { pool: "Open", series: "Retired" };
-  if (state === "retired-ready") return { pool: "Ready", series: "Retired" };
-  if (state === "retire-confirm") return { pool: "Open", cycle: "Open", series: "Active", commitment: "Offered", kind: "SupportService" };
-  if (state === "edit-active-none" || state === "retire-confirm-none")
-    return { pool: "Open", series: "Active" };
-  if (state === "pool-ready" || state === "edit-active-ready" || state === "retire-confirm-ready")
+  if (state === "stop-confirm")
+    return { pool: "Open", cycle: "Open", series: "Active", commitment: "Offered", kind: "SupportService" };
+  if (state === "edit-active-none") return { pool: "Open", series: "Active" };
+  if (state === "pool-ready" || state === "edit-active-ready")
     return { pool: "Ready", series: "Active" };
   if (state === "edit-active")
     return { pool: "Open", cycle: "Open", series: "Active", commitment: "Offered", kind: "SupportService" };
