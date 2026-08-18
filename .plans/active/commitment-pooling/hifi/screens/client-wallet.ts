@@ -58,7 +58,7 @@ ${card(
         listRow({ icon: "seedling-line", primary: "Compost workshop", meta: "Rocinha · Offered", chipHtml: chip("Waiting", "queued") }),
         { cls: "flat" },
       )}
-${banner("Waiting for your garden membership — it will send once you're welcomed in, without using any attempts.", "stone", "time-line")}`;
+${banner("Waiting for your garden membership. It will send once you are welcomed in, without using any attempts.", "stone", "time-line")}`;
       break;
     case "send-failed":
       // Failed sends are actionable from the wallet too (2026-08-14 second
@@ -70,7 +70,7 @@ ${card(
           `<div class="brow">${hot("w5.retry-send", btn("Retry", { kind: "sec", sm: true }))}${hot("w5.discard-send", btn("Discard", { kind: "ghost", sm: true }))}</div>`,
         { cls: "flat" },
       )}
-${banner("This commitment did not send after five attempts. Retry it, or discard the local copy — nothing else is affected.", "amber", "error-warning-line")}`;
+${banner("This commitment did not send after five attempts. Retry it, or discard the local copy. Nothing else is affected.", "amber", "error-warning-line")}`;
       break;
     case "empty":
       inner = `${card(`<div class="t-title">No commitments yet</div><div class="t-meta">When you offer support or take something up in a garden pool, it shows here.</div>`)}`;
@@ -79,7 +79,7 @@ ${banner("This commitment did not send after five attempts. Retry it, or discard
       inner = `${skeleton({ title: true, lines: 1, cls: "flat" })}${skeleton({ avatar: true, lines: 2 })}${skeleton({ avatar: true, lines: 2 })}`;
       break;
     case "not-found":
-      inner = emptyState("search-line", "No commitments found", "We couldn't find your commitments across gardens. They may still be syncing to this device — try again in a moment.", hot("w5.retry", btn("Try Again", { kind: "sec", icon: "refresh-line" })));
+      inner = emptyState("search-line", "No commitments found", "We couldn't find your commitments across gardens. They may still be syncing to this device. Try again in a moment.", hot("w5.retry", btn("Try Again", { kind: "sec", icon: "refresh-line" })));
       break;
     case "read-error":
       inner = emptyState("wifi-off-line", "Couldn't load your commitments", "Something went wrong reaching the network. Your last view is saved on this device.", hot("w5.retry", btn("Try Again", { kind: "pri", icon: "refresh-line" })));
@@ -111,7 +111,7 @@ ${banner("This commitment did not send after five attempts. Retry it, or discard
       // a tool row above the ledger; the ongoing Offer has a garden, so its
       // parent card stands in that garden's section like everything else.
       inner = `${card(
-        hot("w5.things", listRow({ icon: "sticky-note-line", primary: "Things I can offer", meta: "1 saved detail — private until you offer it", chevron: true })),
+        hot("w5.things", listRow({ icon: "sticky-note-line", primary: "Things I can offer", meta: "1 saved detail, private until you offer it", chevron: true })),
         { cls: "flat" },
       )}
 ${filterChips(
@@ -213,12 +213,12 @@ ${hot("w23.send-submit", btn("Send", { kind: "pri", full: true }))}`;
       break;
     case "send-pending":
       inner = `${listRow({ icon: "send-plane-line", primary: "20 G$ → Ana", meta: "Sending…", chipHtml: chip("Wallet pending", "queued") })}
-${banner("Waiting for the wallet to confirm. If it fails, it retries inline — nothing is lost.", "stone")}`;
+${banner("Waiting for the wallet to confirm. If it fails, it retries inline and nothing is lost.", "stone")}`;
       break;
     case "send-failed":
       inner = `${field("To", input("Ana · 0x71…4c2", { icon: "user-line" }))}
 ${field("Amount", input("20 G$"))}
-${banner("The wallet didn't confirm this send. Your recipient and amount are still here — try again when you're ready.", "amber", "error-warning-line")}
+${banner("The wallet didn't confirm this send. Your recipient and amount are still here. Try again when you are ready.", "amber", "error-warning-line")}
 ${hot("w23.send-retry", btn("Try Again", { kind: "pri", full: true, icon: "refresh-line" }))}`;
       break;
     case "delivery-blocked":
@@ -229,8 +229,8 @@ ${hot("w23.send-retry", btn("Try Again", { kind: "pri", full: true, icon: "refre
     default:
       inner = `${card(
         `<div class="cardrow"><div class="grow"><div class="t-title">Support received</div><div class="t-meta">G$ · Celo</div></div><div class="t-title num">128 G$</div></div>` +
-          hot("w23.arrived-row", listRow({ icon: "checkbox-circle-fill", primary: "+140 G$ — Prune the north beds", meta: "Contributor payout arrived · receipt ↗", chipHtml: chip("Arrived", "ok") })) +
-          listRow({ icon: "time-line", primary: "+15 G$ — Market rides", meta: "On its way" }),
+          hot("w23.arrived-row", listRow({ icon: "checkbox-circle-fill", primary: "+140 G$ for Prune the north beds", meta: "Contributor payout arrived · receipt ↗", chipHtml: chip("Arrived", "ok") })) +
+          listRow({ icon: "time-line", primary: "+15 G$ for Market rides", meta: "On its way" }),
         { cls: "flat" },
       )}
 ${hot("w23.send", btn("Send G$", { kind: "pri", full: true, icon: "send-plane-line" }))}`;
@@ -294,12 +294,12 @@ ${hot("w25.continue", btn("Continue", { kind: "pri", full: true }))}${hot("w25.c
     return phoneFrame(
       `${head}${pagepad(
         card(
-          `<div class="cardrow">${chip("Accepted", "ok", { dot: true })}${chip("Protocol", "ink")}</div><div class="t-title">Methodology survey</div>${kv("Provider", "Awka Hub — your garden")}${kv("Asked by", "you")}<div class="t-meta">Your garden made this commitment. Work and evidence from Awka gardeners anchor to it, and the support that follows goes to the garden.</div><div class="brow">${hot("w25.open-promise", btn("Open the Commitment", { kind: "pri", full: true }))}</div>`,
+          `<div class="cardrow">${chip("Accepted", "ok", { dot: true })}${chip("Protocol", "ink")}</div><div class="t-title">Methodology survey</div>${kv("Provider", "Awka Hub, your garden")}${kv("Asked by", "you")}<div class="t-meta">Your garden made this commitment. Work and evidence from Awka gardeners anchor to it, and the support that follows goes to the garden.</div><div class="brow">${hot("w25.open-promise", btn("Open the Commitment", { kind: "pri", full: true }))}</div>`,
         ),
       )}<div style="flex:1"></div>`,
       { appBar: false },
     );
-  return phoneFrame(`${head}${pagepad(banner("From the protocol pool — surveys and activations any garden can take up.", "stone", "information-line"), protocolCard)}<div style="flex:1"></div>`, { appBar: false });
+  return phoneFrame(`${head}${pagepad(banner("From the protocol pool. Surveys and activations any garden can take up.", "stone", "information-line"), protocolCard)}<div style="flex:1"></div>`, { appBar: false });
 }
 
 const W25_HOTS: HifiDef["hots"] = {
@@ -351,7 +351,7 @@ type WflowState = "intro" | "intro-promise" | "intro-promises" | "media" | "deta
 // plain back header with no progress (it is a picker, not a step).
 const wfHead = (step: number | null, title = "Submit work") =>
   step == null
-    ? `<div class="hdr fixed"><button type="button" class="hback" aria-label="Back — preview only" disabled>${icon("arrow-left-line", "l")}</button><h1>${title}</h1></div>`
+    ? `<div class="hdr fixed"><button type="button" class="hback" aria-label="Back, preview only" disabled>${icon("arrow-left-line", "l")}</button><h1>${title}</h1></div>`
     : flowHeader(title, step, 4);
 
 function wflow(state: WflowState): string {
@@ -369,7 +369,7 @@ function wflow(state: WflowState): string {
       // with audio notes listed under them. The prototype had a dashed capture
       // card and a row list instead — neither exists in the shipped step.
       content = pagepad(
-        formInfo("image-line", "Upload Media", "Photos, video, or a voice note — evidence of the work"),
+        formInfo("image-line", "Upload Media", "Photos, video or a voice note, as evidence of the work"),
         `<div class="cardrow">${chip("2/1 media (max 6) ✓", "ok")}</div>`,
         `<div class="h6s">Needed</div><div style="display:flex;flex-wrap:wrap;gap:6px">${chip("Before", "ok")}${chip("After", "ok")}</div>`,
         `<div class="h6s">Optional</div><div style="display:flex;flex-wrap:wrap;gap:6px">${chip("Wide shot")}${chip("Close up")}${chip("Voice note")}</div>`,
@@ -391,9 +391,9 @@ function wflow(state: WflowState): string {
       content = pagepad(
         formInfo("file-copy-line", "Work details", "Provide detailed information and feedback"),
         field("Time spent", input("2 hours", { select: true })),
-        `<div class="t-meta">The details below are the ones this action asks for — they change with the action you chose.</div>`,
+        `<div class="t-meta">The details below are the ones this action asks for. They change with the action you chose.</div>`,
         field("Trees pruned", input("4")),
-        field("Method", input("Hand tools — loppers and a pruning saw", { select: true })),
+        field("Method", input("Hand tools, loppers and a pruning saw", { select: true })),
         field("Feedback", input("Provide feedback or any observations", { placeholder: true, textarea: true })),
       );
       actions = hot("wflow.details-continue", btn("Continue", { kind: "pri", full: true }));
@@ -412,9 +412,9 @@ function wflow(state: WflowState): string {
         formCard("leaf-line", "Action", "Prune"),
         formCard("time-line", "Time spent", "2 hours"),
         formCard("file-copy-line", "Trees pruned", "4"),
-        formCard("file-copy-line", "Method", "Hand tools — loppers and a pruning saw"),
+        formCard("file-copy-line", "Method", "Hand tools, loppers and a pruning saw"),
         formCard("sticky-note-line", "Description", "Cleared the north beds and took the deadwood out of the two older trees."),
-        hot("wflow.fulfills", formCard("hand-heart-line", "Fulfills", "Prune the north beds — chosen at the start, tap to review it")),
+        hot("wflow.fulfills", formCard("hand-heart-line", "Fulfills", "Prune the north beds, chosen at the start, tap to review it")),
       );
       actions = hot("wflow.submit", btn("Submit Work", { kind: "pri", full: true }));
       break;
@@ -431,7 +431,7 @@ function wflow(state: WflowState): string {
           { label: "Prune × 2", meta: "1 of 2 approved so far", on: true },
           { label: "Plant × 12", meta: "8 of 12 approved so far" },
         ], { interactive: true, name: "wflow-link-requirement" })),
-        `<div class="t-meta">Repeated actions never guess — you name the exact requirement row.</div>`,
+        `<div class="t-meta">Repeated actions never guess. You name the exact requirement row.</div>`,
       );
       actions = hot("wflow.link-confirm", btn("Link This Work", { kind: "pri", full: true }));
       break;
@@ -442,7 +442,7 @@ function wflow(state: WflowState): string {
     // card sets.
     case "intro-promise":
       content = pagepad(
-        hot("wflow.fulfill-strip", banner("Fulfilling: Prune the north beds — needs Prune × 2 · Plant × 12", "stone", "hand-heart-line")),
+        hot("wflow.fulfill-strip", banner("Fulfilling Prune the north beds, which needs Prune × 2 · Plant × 12", "stone", "hand-heart-line")),
         introActionSection([CARD_PRUNE(true), CARD_PLANT], "Only this commitment's actions are shown"),
         introGardenSection([CARD_ROCINHA("The commitment's garden")], "Set by the commitment"),
       );
@@ -454,19 +454,19 @@ function wflow(state: WflowState): string {
     // just tapped. Below it, the shipping intro continues untouched.
     case "intro-promises":
       content = pagepad(
-        formInfo("hand-heart-line", "Work toward a commitment", "Swipe your open commitments — tap one to work toward it"),
+        formInfo("hand-heart-line", "Work toward a commitment", "Swipe your open commitments, then tap one to work toward it"),
         selRail([
           commitmentSlide({ title: "Prune the north beds", needs: "needs Prune × 2", due: "due Aug 12", hotId: "wflow.promise-row" }),
           commitmentSlide({ title: "Clear the drainage channel", needs: "needs Mulch × 4", due: "due Aug 30", hotId: "wflow.promise-row" }),
           commitmentSlide({ title: "Mulch the pathways", needs: "needs Mulch × 3", due: "runs with the season", hotId: "wflow.promise-row" }),
         ]),
-        `<div class="t-meta">Or choose plain garden work below — work never requires a commitment.</div>`,
+        `<div class="t-meta">Or choose plain garden work below, work never requires a commitment.</div>`,
         introActionSection([CARD_PRUNE(true), CARD_WATER]),
         introGardenSection([CARD_ROCINHA(), CARD_MUIZ]),
       );
       actions = hot("wflow.intro-continue", btn("Continue", { kind: "pri", full: true }));
       break;
-    default: // intro — the shipping anatomy verbatim (Intro.tsx)
+    default: // intro. The shipping anatomy verbatim (Intro.tsx)
       content = pagepad(
         introActionSection([CARD_PRUNE(true), CARD_WATER]),
         introGardenSection([CARD_ROCINHA(), CARD_MUIZ]),
@@ -521,14 +521,14 @@ export const WALLET_DEFS: HifiDef[] = [
     screen: { id: "WFLOW", title: "Submit Work flow (+ commitment link)", surface: "client", frame: "phone", group: "Client PWA",
       states: [
         { id: "intro", label: "1 · Intro", html: wflow("intro") },
-        { id: "intro-promise", label: "1 · Intro — from a commitment", html: wflow("intro-promise") },
-        { id: "intro-promises", label: "1 · Intro — you hold commitments", html: wflow("intro-promises") },
+        { id: "intro-promise", label: "1 · Intro, from a commitment", html: wflow("intro-promise") },
+        { id: "intro-promises", label: "1 · Intro. You hold commitments", html: wflow("intro-promises") },
         { id: "media", label: "2 · Media", html: wflow("media") },
         { id: "details", label: "3 · Details (+ fulfills field)", html: wflow("details") },
-        { id: "details-linked", label: "3 · Details — commitment chosen", html: wflow("details-linked") },
-        { id: "fulfills-pick", label: "Fulfills a commitment — picker", html: wflow("fulfills-pick") },
+        { id: "details-linked", label: "3 · Details, commitment chosen", html: wflow("details-linked") },
+        { id: "fulfills-pick", label: "Fulfills a commitment, picker", html: wflow("fulfills-pick") },
         { id: "review", label: "4 · Review (+ fulfills row)", html: wflow("review") },
-        { id: "link-picker", label: "Link existing work — picker", facts: { pool: "Open", cycle: "Open", commitment: "Active", kind: "DomainImpact" } satisfies StateFacts, html: wflow("link-picker") },
+        { id: "link-picker", label: "Link existing work, picker", facts: { pool: "Open", cycle: "Open", commitment: "Active", kind: "DomainImpact" } satisfies StateFacts, html: wflow("link-picker") },
       ] },
     hots: WFLOW_HOTS,
   },

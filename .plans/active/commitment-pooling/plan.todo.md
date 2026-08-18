@@ -1378,6 +1378,14 @@ Known mis-resolutions fixed in place: `contract-spec.md` §Grassroots-Economics-
     view's own order. Three defects of mine fixed: heading margin stacked on flex gap (18px),
     the action bar's secondary row was never a row (primary wrapped at 70px), and a solo team
     card did not fill the width. Full text: `uiux-spec.md` C.31.
+135. The em-dash sweep, finished (2026-08-17, round 32). Roughly 160 more strings across
+    `client.ts`, `client-wallet.ts` and `kit.ts`, on top of the offer flows' 35. Rule: a full
+    stop where an independent clause follows, a comma where a trailing phrase does, applied by
+    pattern and read back, since the two are not mechanically separable. One hand correction
+    where a proper noun opened the second clause. Keeps its dash: photo names ("North beds —
+    before" names a variant), screen-library state labels (the prototype's index), and
+    prototype documentation (a different register from the UI). Verified by walking 22 client
+    states and reading the rendered text: zero in product copy. Full text: `uiux-spec.md` C.32.
 
 **Final recursive certification clarification (2026-07-25; no new decision-register entry):**
 the published `42161`↔`42220` production lane is the only required fully paired

@@ -2062,6 +2062,28 @@ heading; the action bar's "secondary row" was never a row, so three labelled but
 one 390px line and the primary wrapped two lines tall at 70px wide; and a solo team card sat
 at 216px with dead space beside it instead of filling the width.
 
+### C.32 The em-dash sweep, finished (2026-08-17, round 32)
+
+The remaining client copy, on top of the 35 strings the offer flows got in C.25. Roughly 160
+more across `client.ts`, `client-wallet.ts` and `kit.ts`.
+
+The rule: a full stop where an independent clause follows, a comma where a trailing phrase
+does. Applied by pattern and then read back, because the two cases are not mechanically
+separable. One result needed correcting by hand, where a proper noun opened the second clause
+and the pattern took it for a phrase: *"Add evidence as it happens, Ana asked for this"*
+became *"Add evidence as it happens. Ana asked for this."*
+
+**What keeps its dash**, deliberately:
+
+- **Photo names.** *"North beds — before"* uses the dash to name a variant, not to punctuate.
+- **Screen-library state labels.** *"1 · Intro — from a commitment"* is the prototype's own
+  index, not product copy.
+- **Prototype documentation.** Flow descriptions, scene notes and component-gallery rules are
+  written for whoever is reading the artifact, and they are a different register from the UI.
+
+Verified by walking 22 client states in the browser and reading the rendered text: zero
+em-dashes in product copy.
+
 ### C.7 PARKED — reciprocity from the claim side (2026-08-16, register #103)
 
 > **Parked 2026-08-17 (Afo): "park it for now and we stabilize and polish the UI."** The

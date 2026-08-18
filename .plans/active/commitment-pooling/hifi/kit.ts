@@ -35,7 +35,7 @@ export function actionBar(primary: string, secondary?: string): string {
 
 // Screen header — client views hand-render h1 (.title-screen grammar).
 export function hdr(title: string, opts: { back?: boolean; trailing?: string } = {}): string {
-  return `<div class="hdr">${opts.back ? `<button type="button" class="hback" aria-label="Back — preview only" disabled>${icon("arrow-left-line", "l")}</button>` : ""}<h1>${esc(title)}</h1>${opts.trailing ? `<span class="hx">${opts.trailing}</span>` : ""}</div>`;
+  return `<div class="hdr">${opts.back ? `<button type="button" class="hback" aria-label="Back, preview only" disabled>${icon("arrow-left-line", "l")}</button>` : ""}<h1>${esc(title)}</h1>${opts.trailing ? `<span class="hx">${opts.trailing}</span>` : ""}</div>`;
 }
 
 // Garden detail tab row — the net-new GardenTab "Pool" leads and is the
@@ -138,7 +138,7 @@ export function pickRow(
 // is the stored record and REASON_CONFIRMS still requires it. Chips carry no
 // hotspot: the acting control of these dialogs remains the confirm button.
 export function reasonChips(options: string[]): string {
-  return `<div style="display:flex;flex-wrap:wrap;gap:6px;margin:2px 0">${options.map((o) => chip(o)).join("")}</div><div class="t-meta">Tap a reason to fill it in — or say it your own way.</div>`;
+  return `<div style="display:flex;flex-wrap:wrap;gap:6px;margin:2px 0">${options.map((o) => chip(o)).join("")}</div><div class="t-meta">Tap a reason to fill it in, or say it your own way.</div>`;
 }
 
 // StatusBadge (shared/components/StatusBadge.tsx) — icon + colour, never colour
@@ -184,7 +184,7 @@ export function timeline(entries: { label: string; meta?: string; open?: boolean
   return `<div class="tl">${entries
     .map(
       (e) =>
-        `<div class="te${e.open ? " open" : ""}${e.warn ? " warn" : ""}"><span class="td"></span><div class="tb"><b>${esc(e.label)}</b>${e.meta ? ` <span class="tm">— ${esc(e.meta)}</span>` : ""}${e.note ? `<div class="tm">${esc(e.note)}</div>` : ""}</div></div>`,
+        `<div class="te${e.open ? " open" : ""}${e.warn ? " warn" : ""}"><span class="td"></span><div class="tb"><b>${esc(e.label)}</b>${e.meta ? ` <span class="tm">· ${esc(e.meta)}</span>` : ""}${e.note ? `<div class="tm">${esc(e.note)}</div>` : ""}</div></div>`,
     )
     .join("")}</div>`;
 }
@@ -480,7 +480,7 @@ export function photoFill(ix: number): string {
 export function avatar(opts: { name: string; photo?: number; cls?: string }): string {
   const cls = `avatar${opts.cls ? ` ${opts.cls}` : ""}`;
   if (opts.photo === undefined)
-    return `<span class="${cls} nopic" role="img" aria-label="${escAttr(`${opts.name} — no photo on file`)}">${icon("user-fill")}</span>`;
+    return `<span class="${cls} nopic" role="img" aria-label="${escAttr(`${opts.name}, no photo on file`)}">${icon("user-fill")}</span>`;
   return `<span class="${cls}" role="img" aria-label="${escAttr(opts.name)}" style="background-image:${photoFill(opts.photo)}"></span>`;
 }
 
@@ -623,8 +623,8 @@ export function formProgress(total: number, current: number): string {
 // FormProgress trailing.
 export function flowHeader(title: string, step: number, total: number): string {
   const leading = step === 0
-    ? `<button type="button" class="hback" aria-label="Close — preview only" disabled>${icon("close-line", "l")}</button>`
-    : `<button type="button" class="hback" aria-label="Back — preview only" disabled>${icon("arrow-left-line", "l")}</button>`;
+    ? `<button type="button" class="hback" aria-label="Close, preview only" disabled>${icon("close-line", "l")}</button>`
+    : `<button type="button" class="hback" aria-label="Back, preview only" disabled>${icon("arrow-left-line", "l")}</button>`;
   return `<div class="hdr fixed">${leading}<h1>${esc(title)}</h1><span class="hx">${formProgress(total, step)}</span></div>`;
 }
 
@@ -680,13 +680,13 @@ export function sheetOver(
 // rounded-b-3xl) with an overlaid back control, then the garden name +
 // location/founded meta. The bottom AppBar is hidden here — this is the chrome.
 export function gardenHeader(name: string, meta: { location: string; founded: string }): string {
-  return `<div class="ghead"><div class="gbanner"><button type="button" class="gback" aria-label="Back — preview only" disabled>${icon("arrow-left-line", "l")}</button></div><div class="gtitle"><h1 class="title-section">${esc(name)}</h1><div class="gmeta"><span class="gm">${icon("home-line", "s")}${esc(meta.location)}</span><span class="gsep">•</span><span class="gm">${icon("calendar-line", "s")}${esc(meta.founded)}</span></div></div></div>`;
+  return `<div class="ghead"><div class="gbanner"><button type="button" class="gback" aria-label="Back, preview only" disabled>${icon("arrow-left-line", "l")}</button></div><div class="gtitle"><h1 class="title-section">${esc(name)}</h1><div class="gmeta"><span class="gm">${icon("home-line", "s")}${esc(meta.location)}</span><span class="gsep">•</span><span class="gm">${icon("calendar-line", "s")}${esc(meta.founded)}</span></div></div></div>`;
 }
 
 // Home header (views/Home/index.tsx): h4 title + a trailing icon-button row
 // (filter / wallet / work). Distinct from garden-detail's banner header.
 export function homeHeader(): string {
-  return `<div class="hhead"><h4 class="hh-title">Home</h4><div class="hh-actions"><button type="button" class="hh-ic" aria-label="Filter — preview only" disabled>${icon("search-line", "s")}</button><button type="button" class="hh-ic" aria-label="Wallet — preview only" disabled>${icon("wallet-line", "s")}</button><button type="button" class="hh-ic" aria-label="Work — preview only" disabled>${icon("plant-line", "s")}</button></div></div>`;
+  return `<div class="hhead"><h4 class="hh-title">Home</h4><div class="hh-actions"><button type="button" class="hh-ic" aria-label="Filter, preview only" disabled>${icon("search-line", "s")}</button><button type="button" class="hh-ic" aria-label="Wallet, preview only" disabled>${icon("wallet-line", "s")}</button><button type="button" class="hh-ic" aria-label="Work, preview only" disabled>${icon("plant-line", "s")}</button></div></div>`;
 }
 
 export function pagepad(...children: string[]): string {
@@ -968,7 +968,7 @@ export function offerCard(opts: {
   const title = opts.waiting ? "Compost workshop" : "Prune the north beds";
   const amount = opts.waiting ? "3 sessions" : "6 hours · due Aug 12";
   const note = opts.waiting
-    ? "Waiting for your garden membership — it will send once you're welcomed in."
+    ? "Waiting for your garden membership. It will send once you're welcomed in."
     : opts.failed
       ? "Five send attempts used. You can retry or discard."
       : opts.readOnly
@@ -1003,7 +1003,7 @@ export function requestCard(opts: { openClaim?: boolean; queued?: boolean; conte
     cycle: opts.context
       ? { label: opts.context.replace(/ campaign$/, ""), kind: "campaign" as const }
       : { label: "First Rains", kind: "season" as const },
-    note: opts.queued ? "Saved on this device — it will send when connected." : undefined,
+    note: opts.queued ? "Saved on this device. It will send when connected." : undefined,
     hotId: opts.queued ? undefined : opts.openClaim ? "w1.open-request" : "w1.open-request-gated",
   });
 }
@@ -1273,7 +1273,7 @@ export const gardenChip = (name: string, hotId?: string) =>
   `<button type="button" class="gchip" data-component="GardenChip"${hotId ? ` data-hot="${hotId}"` : " disabled"} aria-label="Select garden"><span class="leaf">${icon("seedling-line", "s")}<span class="dot"></span></span><span class="nm">${esc(name)}</span><span class="caret"></span></button>`;
 
 const iconBtn = (name: string, label: string) =>
-  `<button type="button" class="iconbtn" aria-label="${esc(label)} — preview only" disabled>${icon(name)}</button>`;
+  `<button type="button" class="iconbtn" aria-label="${esc(label)}, preview only" disabled>${icon(name)}</button>`;
 
 // Transparent AppBar (h-14) — GardenChip left, search/bell/settings/profile right.
 const adminAppBar = (garden: string, hotPrefix: string, interactive: boolean) =>
