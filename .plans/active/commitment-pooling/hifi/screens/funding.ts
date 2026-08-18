@@ -195,7 +195,7 @@ ${kv("Deposit", "40 G$ · reference 0x7b…21")}${kv("Expected", "40 G$")}${kv("
     case "consumed":
       body = acard(
         "Funded claim accepted",
-        `${banner("Ben's Offer is Accepted and F-204 is Consumed. The funding fact stays attached while the commitment follows its ordinary evidence and confirmation path.", "stone", "checkbox-circle-fill")}
+        `${banner("Ben's Offer is Accepted and F-204 is Consumed. The funding fact stays attached while the commitment follows its ordinary proof and confirmation path.", "stone", "checkbox-circle-fill")}
 ${kv("Provider", "Ben")}${kv("Funder", "Maria · 40 G$")}${kv("Custody", "Rocinha garden Safe")}${kv("If delivered", "Provider payout plan")}`,
       );
       break;

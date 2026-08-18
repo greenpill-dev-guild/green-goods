@@ -1438,6 +1438,20 @@ Known mis-resolutions fixed in place: `contract-spec.md` §Grassroots-Economics-
     structurally missed (dashes before a digit or a quote). Reports per occurrence, not per
     surface. Verified by reintroducing three retired words and watching the build fail. Full
     text: `uiux-spec.md` C.37.
+141. Proof, equal halves, one radius (2026-08-17, round 38, Afo). **Evidence becomes proof**
+    in gardener-facing copy: the word borrows from legal register and implies you are answering
+    a doubt. `attachEvidence`/`EvidenceAttached` stay as contract identifiers, and the gate
+    learned it as a PRODUCT-COPY-ONLY entry so hotspot notes naming the call do not trip. The
+    sweep also nearly renamed 104 hotspot ids, state ids and journey targets, which are
+    deep-link addresses; the build's own rules caught every one. **Two acts in a bar are equal
+    halves** (`barPair`, 16 bars, 131/124 → 174/174). **A review is one radius**: 24px is the
+    browse-card radius and a review is a list of facts, so the stack is 14px through a `.revw`
+    wrapper rather than a global change. **Work can be untied at review** from the Fulfills row.
+    Recorded as contract facts, not choices: Take This Up is separate because `claimCommitment`
+    is what records the provider and reserves a one-person offer, and proof asks who helped
+    because `creditedContributors` is an argument to the call. Push-back accepted: Submit Work's
+    media step already mirrors Media.tsx; it is the POOLING proof step that differs. Full text:
+    `uiux-spec.md` C.38.
 
 **Final recursive certification clarification (2026-07-25; no new decision-register entry):**
 the published `42161`↔`42220` production lane is the only required fully paired

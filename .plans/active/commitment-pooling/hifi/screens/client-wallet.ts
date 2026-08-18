@@ -284,7 +284,7 @@ ${hot("w25.continue", btn("Continue", { kind: "pri", full: true }))}${hot("w25.c
     return phoneFrame(
       `${head}${pagepad(
         card(
-          `<div class="cardrow">${chip("Waiting for review", "warn", { dot: true })}${chip("Protocol", "ink")}</div><div class="t-title">Methodology survey</div>${kv("Claimant", "Awka Hub (garden)")}${kv("Asked by", "you")}<div class="t-meta">Work and evidence will anchor to your garden; the commitment stays with the protocol pool.</div>`,
+          `<div class="cardrow">${chip("Waiting for review", "warn", { dot: true })}${chip("Protocol", "ink")}</div><div class="t-title">Methodology survey</div>${kv("Claimant", "Awka Hub (garden)")}${kv("Asked by", "you")}<div class="t-meta">Work and proof will anchor to your garden; the commitment stays with the protocol pool.</div>`,
         ),
       )}<div style="flex:1"></div>`,
       { appBar: false },
@@ -294,7 +294,7 @@ ${hot("w25.continue", btn("Continue", { kind: "pri", full: true }))}${hot("w25.c
     return phoneFrame(
       `${head}${pagepad(
         card(
-          `<div class="cardrow">${chip("Accepted", "ok", { dot: true })}${chip("Protocol", "ink")}</div><div class="t-title">Methodology survey</div>${kv("Provider", "Awka Hub, your garden")}${kv("Asked by", "you")}<div class="t-meta">Your garden made this commitment. Work and evidence from Awka gardeners anchor to it, and the support that follows goes to the garden.</div><div class="brow">${hot("w25.open-promise", btn("Open the Commitment", { kind: "pri", full: true }))}</div>`,
+          `<div class="cardrow">${chip("Accepted", "ok", { dot: true })}${chip("Protocol", "ink")}</div><div class="t-title">Methodology survey</div>${kv("Provider", "Awka Hub, your garden")}${kv("Asked by", "you")}<div class="t-meta">Your garden made this commitment. Work and proof from Awka gardeners anchor to it, and the support that follows goes to the garden.</div><div class="brow">${hot("w25.open-promise", btn("Open the Commitment", { kind: "pri", full: true }))}</div>`,
         ),
       )}<div style="flex:1"></div>`,
       { appBar: false },
@@ -369,7 +369,7 @@ function wflow(state: WflowState): string {
       // with audio notes listed under them. The prototype had a dashed capture
       // card and a row list instead — neither exists in the shipped step.
       content = pagepad(
-        formInfo("image-line", "Upload Media", "Photos, video or a voice note, as evidence of the work"),
+        formInfo("image-line", "Upload Media", "Photos, video or a voice note, as proof of the work"),
         `<div class="cardrow">${chip("2/1 media (max 6) ✓", "ok")}</div>`,
         `<div class="h6s">Needed</div><div style="display:flex;flex-wrap:wrap;gap:6px">${chip("Before", "ok")}${chip("After", "ok")}</div>`,
         `<div class="h6s">Optional</div><div style="display:flex;flex-wrap:wrap;gap:6px">${chip("Wide shot")}${chip("Close up")}${chip("Voice note")}</div>`,
@@ -406,15 +406,24 @@ function wflow(state: WflowState): string {
       // and the last review in the feature still doing it.
       content = pagepad(
         formInfo("check-line", "Review Work", "Check if the information is correct"),
-        sectionCard("Garden", listRow({ icon: "plant-line", primary: "Rocinha Community Garden", meta: "Rio de Janeiro · 23 gardeners" })),
-        sectionCard("Media", mediaStrip([{ label: "North beds — before", photo: 0 }, { label: "North beds — after", photo: 2 }, { label: "Voice note", kind: "audio" }]), { flush: true }),
+        // One radius down the stack (2026-08-17, Afo): 24px section cards above
+        // 14px FormCards made the review rounder at the top than the bottom.
+        `<div class="revw">`,
         `<div class="h6s">Details</div>`,
+        formCard("plant-line", "Garden", "Rocinha Community Garden · Rio de Janeiro"),
         formCard("leaf-line", "Action", "Prune"),
         formCard("time-line", "Time spent", "2 hours"),
         formCard("file-copy-line", "Trees pruned", "4"),
         formCard("file-copy-line", "Method", "Hand tools, loppers and a pruning saw"),
         formCard("sticky-note-line", "Description", "Cleared the north beds and took the deadwood out of the two older trees."),
+        // The commitment row can be cleared here (2026-08-17, Afo). Work never
+        // requires a commitment, and nothing on chain has happened yet, so the
+        // reviewer can decide this is just a piece of work without walking back
+        // to the intro to find out the choice was reversible.
         hot("wflow.fulfills", formCard("hand-heart-line", "Fulfills", "Prune the north beds, chosen at the start, tap to review it")),
+        `<div class="brow" style="padding:0 2px">${hot("wflow.untie", btn("Not for a Commitment", { kind: "ghost", sm: true, icon: "close-line" }))}</div>`,
+        sectionCard("Media", mediaStrip([{ label: "North beds — before", photo: 0 }, { label: "North beds — after", photo: 2 }, { label: "Voice note", kind: "audio" }]), { flush: true }),
+        `</div>`,
       );
       actions = hot("wflow.submit", btn("Submit Work", { kind: "pri", full: true }));
       break;
@@ -485,6 +494,7 @@ const WFLOW_HOTS: HifiDef["hots"] = {
   "wflow.capture-audio": { l: "Record a voice note", info: "Audio notes record from the bar and play back inline — the shipping interaction." },
   "wflow.media-continue": { l: "Continue to details", to: "screen:WFLOW@details", info: "Media → details, exactly as shipped." },
   "wflow.details-continue": { l: "Continue to review", to: "screen:WFLOW@review", info: "Details → review, exactly as shipped." },
+  "wflow.untie": { l: "Not for a commitment", to: "screen:WFLOW@review", info: "Clears the commitment this work was going to count toward, so it submits as ordinary garden work. Work never requires a commitment, and nothing on chain has happened yet, so this is a local edit to the draft (2026-08-17, Afo). Going back to the intro did the same thing, but nothing told the reviewer the choice was reversible." },
   "wflow.fulfills": { l: "Fulfills row", info: "The locked read-only commitment-context row on review (MF-7, UX:174) — it repeats the details-step choice and never re-opens the picker here." },
   "wflow.submit": { l: "Submit work", to: "screen:W2@active", info: "Existing work job + meta.commitmentId; the queue auto-links after sync (UX:220)." },
   "wflow.link-work-row": { l: "Choose this work", info: "One of the gardener's approved or pending works; approval status is shown, never guessed." },

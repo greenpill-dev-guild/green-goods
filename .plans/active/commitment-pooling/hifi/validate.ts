@@ -519,6 +519,12 @@ const RETIRED_VOCABULARY: [RegExp, string][] = [
   [/\b(?:rest it|resting|retire it|retired)\b(?=[^.]*\boffer\b)/i,
     'rest/retire — an ongoing offer is "stopped" (C.27)'],
 ];
+// Retired only in PRODUCT copy. `attachEvidence` and `EvidenceAttached` are
+// contract identifiers and belong in hotspot notes, the same way leadProvider
+// does; it is the gardener-facing noun that changed (C.38).
+const RETIRED_IN_UI: [RegExp, string][] = [
+  [/\bevidence\b/i, 'evidence — gardeners see "proof" (C.38)'],
+];
 
 const BANNED_CLIENT_PUBLIC: [RegExp, string][] = [
   [/\bdisputes?d?\b/i, 'dispute ("under review by stewards" is the ceiling)'],
@@ -560,6 +566,10 @@ function scanEverywhere(where: string, text: string, sink = err, opts: { docs?: 
   // A dash that NAMES a variant is not punctuation, so those are listed rather
   // than pattern-matched: adding one is a deliberate act.
   if (opts.docs) return;
+  for (const [re, why] of RETIRED_IN_UI) {
+    const hit = text.match(re);
+    if (hit) sink.push(`RETIRED ${where}: "${hit[0].trim()}" — ${why}`);
+  }
   // Every occurrence, not the first: one-at-a-time reporting turns a copy sweep
   // into a dozen rebuild cycles.
   const cleaned = text.replace(/North beds — (?:before|after)/g, "");

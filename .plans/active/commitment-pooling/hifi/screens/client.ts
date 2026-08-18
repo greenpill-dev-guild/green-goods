@@ -15,7 +15,7 @@ import { icon } from "../icons";
 import {
   actionBar, appBar, banner, btn, campaignSlide, card, chip, cycleCard, cycleRail, detailRow, disclosure, domainRow, emptySeasonSlide, emptyState, fabButton, field,
   flowHeader, formInfo, fundedOfferCard, gardenHeader, gardenTabs, hdr, hero, input, kindCards, kv, listRow, meter, offerCard, offerRow, ongoingOfferCard,
-  formCard, identityCard, imagePreview, mediaStrip, offerRecord, memberCard, memberRow, memberTrail, pagepad, pickRow, progressBlock, phoneFrame, seg, selCard, selRail, tabRail, unitLabel, poolFilters, commitmentCard, radio, reasonChips, requestCard, seasonCard, seasonSlide, sectionCard, sectionTitle, sheetOver, skeleton, stateChip, syncBar,
+  barPair, formCard, identityCard, imagePreview, mediaStrip, offerRecord, memberCard, memberRow, memberTrail, pagepad, pickRow, progressBlock, phoneFrame, seg, selCard, selRail, tabRail, unitLabel, poolFilters, commitmentCard, radio, reasonChips, requestCard, seasonCard, seasonSlide, sectionCard, sectionTitle, sheetOver, skeleton, stateChip, syncBar,
   teamOfferCard, teamstrip, timeline,
 } from "../kit";
 import type { HifiDef } from "./index";
@@ -238,7 +238,7 @@ function w1(state: W1State): string {
         seasonCard({ stage: "Paused" }),
         offerCard({
           readOnly: true,
-          readOnlyNote: "New participation is paused. Evidence, linked work, and recovery remain available inside the commitment.",
+          readOnlyNote: "New participation is paused. Proof, linked work, and recovery remain available inside the commitment.",
           detailHot: "w1.open-paused-promise",
         }),
       );
@@ -273,7 +273,7 @@ function w1(state: W1State): string {
       break;
     case "campaign-tools":
       content = pagepad(
-        banner("Tool library is under review. Evidence and confirmations stay available.", "stone", "eye-line"),
+        banner("Tool library is under review. Proof and confirmations stay available.", "stone", "eye-line"),
         cycleCard({ title: "Tool library", units: "", counts: "8 of 8 kept · through Aug 18", kind: "Campaign", stage: "Reviewing" }),
         commitmentCard({ title: "Repair tool handles", meta: "Maria · 1 repair session", tags: [{ label: "Offer", tone: "offer" }, { label: "Support / service" }], cycle: { label: "Tool library", kind: "campaign" }, note: "This commitment is ready for confirmation.", hotId: "w1.open-tools-promise" }),
         hot("w1.campaigns-back", btn("Back to Campaigns", { kind: "ghost", full: true })),
@@ -283,7 +283,7 @@ function w1(state: W1State): string {
       content = pagepad(
         seasonCard({ made: 0, kept: 0 }),
         card(`<div class="t-title">No commitments yet</div><div class="t-meta">Start the first one, offer something you can give, or ask for help you need.</div>`),
-        `<div class="brow">${hot("w1.offer", btn("Offer", { kind: "pri" }))}${hot("w1.request", btn("Request", { kind: "sec" }))}</div>`,
+        barPair(hot("w1.offer", btn("Offer", { kind: "pri" })), hot("w1.request", btn("Request", { kind: "sec" }))),
       );
       break;
     case "funded-offer":
@@ -368,11 +368,11 @@ function w1(state: W1State): string {
       break;
     case "reviewing":
       content = pagepad(
-        banner("Your stewards are reviewing this season. You can still add evidence and confirm commitments.", "stone", "eye-line"),
+        banner("Your stewards are reviewing this season. You can still add proof and confirm commitments.", "stone", "eye-line"),
         seasonCard({ stage: "Reviewing" }),
         offerCard({
           readOnly: true,
-          readOnlyNote: "This commitment is ready for your confirmation. Other commitments still accept evidence while the season is reviewed.",
+          readOnlyNote: "This commitment is ready for your confirmation. Other commitments still accept proof while the season is reviewed.",
           detailHot: "w1.open-reviewing-promise",
         }),
       );
@@ -497,9 +497,9 @@ const W1_HOTS: HifiDef["hots"] = {
   "w1.open-ongoing": { l: "Open the ongoing Offer", to: "screen:W34@claimant-view", info: "The whole card opens the series detail (2026-08-14 second pass — the See-open-places nav button retired), where each open commitment is an ordinary Offered one that can be taken up (Appendix F.2). How many are left stays on the card as its real progress." },
   "w1.open-team-offer": { l: "Open the team commitment", to: "screen:W2", info: "The whole card opens the commitment DETAIL first (iteration 2 — jumping straight into the team view skipped the commitment itself): the team strip sits above the fold and opens the team view from there. Nav button retired 2026-08-14; the card is the tap target." },
   "w1.open-paused-promise": { l: "Open commitment while paused", to: "screen:W2@active", info: "Whole-card tap. Pause blocks new participation and confirmation, not browsing, evidence, linkage, cancellation, expiry, or dispute recovery (UX:60)." },
-  "w1.open-reviewing-promise": { l: "Open the ready commitment", to: "screen:W2@ready-confirmer", info: "Whole-card tap; the confirm act lives in the detail. Reviewing keeps evidence and confirmation available; this selected commitment is already ReadyForConfirmation (UX:74)." },
+  "w1.open-reviewing-promise": { l: "Open the ready commitment", to: "screen:W2@ready-confirmer", info: "Whole-card tap; the confirm act lives in the detail. Reviewing keeps proof and confirmation available; this selected commitment is already ReadyForConfirmation (UX:74)." },
   "w1.campaign-market": { l: "Open Market rides campaign", to: "screen:W1@campaign-market", info: "Campaigns remain independently usable when no Season is open (UX:127)." },
-  "w1.campaign-tools": { l: "Open Tool library campaign", to: "screen:W1@campaign-tools", info: "A Reviewing campaign stays independently browseable and keeps evidence and confirmation available (UX:74,127)." },
+  "w1.campaign-tools": { l: "Open Tool library campaign", to: "screen:W1@campaign-tools", info: "A Reviewing campaign stays independently browseable and keeps proof and confirmation available (UX:74,127)." },
   "w1.campaigns-back": { l: "Back to campaigns", to: "screen:W1@no-season", info: "Returns to the no-Season pool home with both Campaigns available." },
   "w1.open-tools-promise": { l: "Open the Tool library commitment", to: "screen:W2@support-ready-confirmer", info: "Whole-card tap (nav button retired 2026-08-14; PR #710 review closed the W4 shortcut). Opens the SupportService commitment detail, ready to confirm — the confirmation act lives in the detail's fixed bar, per the card grammar." },
   "w1.ask-again": { l: "Ask again", to: "screen:W1@claim-pending", info: "Creates a FRESH request while the commitment is claimable — never retries the declined row (UX:105).", calls: ["claimCommitment"], facts: { commitment: "Requested", kind: "SupportService" } },
@@ -631,7 +631,7 @@ function w1c(state: W1CState): string {
             ? `${detailRow("Opened on", "Baseline · Mar 1 · soil carbon low, canopy thin on the north side")}${detailRow("Closed on", "Follow-up · Mar 30 · canopy measurably thicker, beds holding water")}${detailRow("The shift", "Two of four markers moved. The drainage marker did not.")}`
             : `${detailRow("Opened on", "Baseline · Aug 1 · soil carbon low, canopy thin on the north side")}${detailRow("Closes with", "A follow-up assessment when the season ends")}${detailRow("The shift", "Read at the end, against the baseline")}`,
         ),
-        sectionCard("How credit is shared", `${detailRow("Shared equally", "35% among everyone who took part")}${detailRow("By verified contribution", "65% from approved work and evidence")}`),
+        sectionCard("How credit is shared", `${detailRow("Shared equally", "35% among everyone who took part")}${detailRow("By verified contribution", "65% from approved work and proof")}`),
         banner("Figures are for this season alone and are never merged with another pool's.", "stone", "shield-check-line"),
       )}`,
       { appBar: false },
@@ -669,8 +669,8 @@ const W2_STATES = [
   ["browse-offered", "Offered — browse view"], ["browse-requested", "Requested — browse view"],
   ["browse-requested-gated", "Requested — browse view (steward-reviewed)"],
   ["active", "Active — yours to work"], ["active-waiting", "Active — waiting on them"],
-  ["contributor", "Active — you're on the team"], ["send-confirm", "Send for confirmation — confirm"], ["evidence-queued", "Evidence queued"],
-  ["evidence-submitted", "Evidence in"], ["evidence-preview", "Evidence in — image preview"],
+  ["contributor", "Active — you're on the team"], ["send-confirm", "Send for confirmation — confirm"], ["evidence-queued", "Proof queued"],
+  ["evidence-submitted", "Proof in"], ["evidence-preview", "Proof in — image preview"],
   ["partially-approved", "Partly approved"],
   ["ready-confirmer", "Ready — confirmer view"], ["confirmation-pending", "Confirmation queued"],
   ["fulfilled", "Fulfilled"], ["fulfilled-pool-fallback", "Fulfilled — garden fallback"],
@@ -682,8 +682,8 @@ const W2_STATES = [
   ["support-cancelled-queued", "Support withdrawn"], ["support-cancelled-failed", "Support closed after failed delivery"],
   ["reconciled", "Reconciled"], ["cancelled", "Cancelled"], ["expired", "Expired"],
   ["disputed", "Under review"], ["captured", "Recorded for you"],
-  ["captured-evidence-queued", "Recorded — evidence queued"],
-  ["captured-evidence-submitted", "Recorded — evidence in"],
+  ["captured-evidence-queued", "Recorded — proof queued"],
+  ["captured-evidence-submitted", "Recorded — proof in"],
   ["captured-ready-pending", "Recorded — readiness queued"],
   ["captured-ready-confirmer", "Recorded — ready"], ["captured-confirmation-pending", "Recorded — confirmation queued"],
   ["captured-fulfilled", "Recorded — fulfilled"],
@@ -695,19 +695,19 @@ const W2_STATES = [
   ["request-work-ready-confirmer", "Work request — ready to confirm"],
   ["request-work-confirmation-pending", "Work request — confirmation queued"],
   ["request-work-fulfilled", "Work request — done"],
-  ["campaign-request-evidence-queued", "Campaign request — evidence queued"],
-  ["campaign-request-evidence-submitted", "Campaign request — evidence in"],
+  ["campaign-request-evidence-queued", "Campaign request — proof queued"],
+  ["campaign-request-evidence-submitted", "Campaign request — proof in"],
   ["campaign-request-ready-pending", "Campaign request — readiness queued"],
   ["campaign-request-ready-confirmer", "Campaign request — ready"],
   ["campaign-request-confirmation-pending", "Campaign request — confirmation queued"],
   ["campaign-request-fulfilled", "Campaign request — fulfilled"], ["campaign-request-disputed", "Campaign request — review"],
-  ["request-evidence-queued", "Request — evidence queued"], ["request-evidence-submitted", "Request — evidence in"],
+  ["request-evidence-queued", "Request — proof queued"], ["request-evidence-submitted", "Request — proof in"],
   ["request-ready-pending", "Request — readiness queued"], ["request-ready-confirmer", "Request — ready"],
   ["request-confirmation-pending", "Request — confirmation queued"],
   ["request-fulfilled", "Request — help arrived"], ["request-disputed", "Request — steward review"],
   ["support-offered", "Service offer — open"], ["support-accepted", "Service offer — accepted"],
-  ["support-evidence-queued", "Service offer — evidence queued"],
-  ["support-evidence-submitted", "Service offer — evidence in"], ["support-ready-pending", "Service offer — readiness queued"],
+  ["support-evidence-queued", "Service offer — proof queued"],
+  ["support-evidence-submitted", "Service offer — proof in"], ["support-ready-pending", "Service offer — readiness queued"],
   ["support-ready-confirmer", "Service offer — ready"],
   ["support-confirmation-pending", "Service offer — confirmation queued"],
   ["support-fulfilled", "Service offer — fulfilled"], ["support-cancelled", "Service offer — cancelled"],
@@ -719,9 +719,9 @@ type W2ChipState = Exclude<W2State, "loading" | "not-found" | "read-error">;
 
 const w2StateChip: Record<W2ChipState, string> = {
   accepted: "Accepted", offered: "Offered", requested: "Requested", active: "Active",
-  "active-waiting": "Active", contributor: "Active", "send-confirm": "Evidence in",
+  "active-waiting": "Active", contributor: "Active", "send-confirm": "Proof in",
   "browse-offered": "Offered", "browse-requested": "Requested", "browse-requested-gated": "Requested",
-  "evidence-queued": "Active", "evidence-submitted": "Evidence in", "evidence-preview": "Evidence in",
+  "evidence-queued": "Active", "evidence-submitted": "Proof in", "evidence-preview": "Proof in",
   "partially-approved": "Partly approved",
   "ready-confirmer": "Ready to confirm", "confirmation-pending": "Ready to confirm",
   fulfilled: "Fulfilled", "fulfilled-pool-fallback": "Fulfilled",
@@ -731,8 +731,8 @@ const w2StateChip: Record<W2ChipState, string> = {
   "support-failed": "Fulfilled", "support-cancelled-queued": "Fulfilled", "support-cancelled-failed": "Fulfilled",
   reconciled: "Reconciled",
   cancelled: "Cancelled", expired: "Expired", disputed: "Under review", captured: "Accepted",
-  "captured-evidence-queued": "Active", "captured-evidence-submitted": "Evidence in",
-  "captured-ready-pending": "Evidence in", "captured-ready-confirmer": "Ready to confirm",
+  "captured-evidence-queued": "Active", "captured-evidence-submitted": "Proof in",
+  "captured-ready-pending": "Proof in", "captured-ready-confirmer": "Ready to confirm",
   "captured-confirmation-pending": "Ready to confirm",
   "captured-fulfilled": "Fulfilled", "captured-disputed": "Under review",
   "withdraw-confirm": "Offered", withdrawn: "Withdrawn",
@@ -742,16 +742,16 @@ const w2StateChip: Record<W2ChipState, string> = {
   "request-work-ready-confirmer": "Ready to confirm",
   "request-work-confirmation-pending": "Ready to confirm",
   "request-work-fulfilled": "Fulfilled",
-  "campaign-request-evidence-queued": "Active", "campaign-request-evidence-submitted": "Evidence in",
-  "campaign-request-ready-pending": "Evidence in", "campaign-request-ready-confirmer": "Ready to confirm",
+  "campaign-request-evidence-queued": "Active", "campaign-request-evidence-submitted": "Proof in",
+  "campaign-request-ready-pending": "Proof in", "campaign-request-ready-confirmer": "Ready to confirm",
   "campaign-request-confirmation-pending": "Ready to confirm",
   "campaign-request-fulfilled": "Fulfilled", "campaign-request-disputed": "Under review",
   "request-evidence-queued": "Active",
-  "request-evidence-submitted": "Evidence in", "request-ready-pending": "Evidence in",
+  "request-evidence-submitted": "Proof in", "request-ready-pending": "Proof in",
   "request-ready-confirmer": "Ready to confirm", "request-confirmation-pending": "Ready to confirm",
   "request-fulfilled": "Fulfilled", "request-disputed": "Under review",
   "support-offered": "Offered", "support-accepted": "Accepted", "support-evidence-queued": "Accepted",
-  "support-evidence-submitted": "Evidence in", "support-ready-pending": "Evidence in",
+  "support-evidence-submitted": "Proof in", "support-ready-pending": "Proof in",
   "support-ready-confirmer": "Ready to confirm", "support-confirmation-pending": "Ready to confirm",
   "support-fulfilled": "Fulfilled", "support-cancelled": "Cancelled",
   "support-disputed": "Under review",
@@ -964,18 +964,18 @@ function w2Moments(state: W2State, overrideNote: boolean): Moment[] {
     if (state === "campaign-request-active")
       return [...campaignAsked, { label: "Getting it done", meta: "waiting on the ride", open: true }];
     if (state === "campaign-request-evidence-queued")
-      return [...campaignAsked, { label: "Evidence queued", meta: "saved on this device · waiting to send", open: true }];
+      return [...campaignAsked, { label: "Proof queued", meta: "saved on this device · waiting to send", open: true }];
     if (state === "campaign-request-evidence-submitted")
-      return [...campaignAsked, { label: "Evidence in", meta: "photo from the market · Jul 6", open: true }];
+      return [...campaignAsked, { label: "Proof in", meta: "photo from the market · Jul 6", open: true }];
     if (state === "campaign-request-ready-pending")
-      return [...campaignAsked, { label: "Evidence in", meta: "photo from the market · Jul 6" }, { label: "Readiness queued", meta: "saved on this device · waiting to send", open: true }];
+      return [...campaignAsked, { label: "Proof in", meta: "photo from the market · Jul 6" }, { label: "Readiness queued", meta: "saved on this device · waiting to send", open: true }];
     if (state === "campaign-request-ready-confirmer")
-      return [...campaignAsked, { label: "Evidence in", meta: "photo from the market · Jul 6" }, { label: "Ready to confirm", meta: "waiting on Ana", open: true }];
+      return [...campaignAsked, { label: "Proof in", meta: "photo from the market · Jul 6" }, { label: "Ready to confirm", meta: "waiting on Ana", open: true }];
     if (state === "campaign-request-confirmation-pending")
-      return [...campaignAsked, { label: "Evidence in", meta: "photo from the market · Jul 6" }, { label: "Confirmation queued", meta: "Ana · saved on this device", open: true }];
+      return [...campaignAsked, { label: "Proof in", meta: "photo from the market · Jul 6" }, { label: "Confirmation queued", meta: "Ana · saved on this device", open: true }];
     if (state === "campaign-request-disputed")
       return [...campaignAsked, { label: "Under steward review", meta: "Ana recorded what still needs doing", open: true }];
-    return [...campaignAsked, { label: "Evidence in", meta: "photo from the market · Jul 6" }, { label: "Commitment kept", meta: "confirmed by Ana · Jul 6", open: true }];
+    return [...campaignAsked, { label: "Proof in", meta: "photo from the market · Jul 6" }, { label: "Commitment kept", meta: "confirmed by Ana · Jul 6", open: true }];
   }
   if (W2_REQUEST_WORK.has(state)) {
     const askedWork: Moment[] = [
@@ -997,18 +997,18 @@ function w2Moments(state: W2State, overrideNote: boolean): Moment[] {
     ];
     if (state === "request-active") return [...asked, { label: "Getting it done", meta: "waiting on the ride", open: true }];
     if (state === "request-evidence-queued")
-      return [...asked, { label: "Evidence queued", meta: "saved on this device · waiting to send", open: true }];
+      return [...asked, { label: "Proof queued", meta: "saved on this device · waiting to send", open: true }];
     if (state === "request-evidence-submitted")
-      return [...asked, { label: "Evidence in", meta: "photo from the market · Jul 6", open: true }];
+      return [...asked, { label: "Proof in", meta: "photo from the market · Jul 6", open: true }];
     if (state === "request-ready-pending")
-      return [...asked, { label: "Evidence in", meta: "photo from the market · Jul 6" }, { label: "Readiness queued", meta: "saved on this device · waiting to send", open: true }];
+      return [...asked, { label: "Proof in", meta: "photo from the market · Jul 6" }, { label: "Readiness queued", meta: "saved on this device · waiting to send", open: true }];
     if (state === "request-ready-confirmer")
-      return [...asked, { label: "Evidence in", meta: "photo from the market · Jul 6" }, { label: "Ready to confirm", meta: "waiting on Ana", open: true }];
+      return [...asked, { label: "Proof in", meta: "photo from the market · Jul 6" }, { label: "Ready to confirm", meta: "waiting on Ana", open: true }];
     if (state === "request-confirmation-pending")
-      return [...asked, { label: "Evidence in", meta: "photo from the market · Jul 6" }, { label: "Confirmation queued", meta: "Ana · saved on this device", open: true }];
+      return [...asked, { label: "Proof in", meta: "photo from the market · Jul 6" }, { label: "Confirmation queued", meta: "Ana · saved on this device", open: true }];
     if (state === "request-disputed")
       return [...asked, { label: "Under steward review", meta: "Ana recorded what still needs doing", open: true }];
-    return [...asked, { label: "Evidence in", meta: "photo from the market · Jul 6" }, { label: "Commitment kept", meta: "confirmed by Ana · Jul 6", open: true }];
+    return [...asked, { label: "Proof in", meta: "photo from the market · Jul 6" }, { label: "Commitment kept", meta: "confirmed by Ana · Jul 6", open: true }];
   }
   if (W2_SUPPORT.has(state)) {
     if (state === "support-offered")
@@ -1019,20 +1019,20 @@ function w2Moments(state: W2State, overrideNote: boolean): Moment[] {
     ];
     if (state === "support-accepted") return offered;
     if (state === "support-evidence-queued")
-      return [...offered, { label: "Evidence queued", meta: "saved on this device · waiting to send", open: true }];
+      return [...offered, { label: "Proof queued", meta: "saved on this device · waiting to send", open: true }];
     if (state === "support-evidence-submitted")
-      return [...offered, { label: "Evidence in", meta: "photo of repaired handles · Jul 6", open: true }];
+      return [...offered, { label: "Proof in", meta: "photo of repaired handles · Jul 6", open: true }];
     if (state === "support-ready-pending")
-      return [...offered, { label: "Evidence in", meta: "photo of repaired handles · Jul 6" }, { label: "Readiness queued", meta: "saved on this device · waiting to send", open: true }];
+      return [...offered, { label: "Proof in", meta: "photo of repaired handles · Jul 6" }, { label: "Readiness queued", meta: "saved on this device · waiting to send", open: true }];
     if (state === "support-ready-confirmer")
-      return [...offered, { label: "Evidence in", meta: "photo of repaired handles · Jul 6" }, { label: "Ready to confirm", meta: "waiting on João", open: true }];
+      return [...offered, { label: "Proof in", meta: "photo of repaired handles · Jul 6" }, { label: "Ready to confirm", meta: "waiting on João", open: true }];
     if (state === "support-confirmation-pending")
-      return [...offered, { label: "Evidence in", meta: "photo of repaired handles · Jul 6" }, { label: "Confirmation queued", meta: "João · saved on this device", open: true }];
+      return [...offered, { label: "Proof in", meta: "photo of repaired handles · Jul 6" }, { label: "Confirmation queued", meta: "João · saved on this device", open: true }];
     if (state === "support-cancelled")
       return [...offered, { label: "Cancelled", meta: "steward · Jul 9", note: "“withdrawn by agreement at the gathering”", warn: true, open: true }];
     if (state === "support-disputed")
       return [...offered, { label: "Under steward review", meta: "João recorded what still needs doing", open: true }];
-    return [...offered, { label: "Evidence in", meta: "photo of repaired handles · Jul 6" }, { label: "Commitment kept", meta: "confirmed by João · Jul 6", open: true }];
+    return [...offered, { label: "Proof in", meta: "photo of repaired handles · Jul 6" }, { label: "Commitment kept", meta: "confirmed by João · Jul 6", open: true }];
   }
   if (W2_CAPTURED.has(state)) {
     const recorded: Moment[] = [
@@ -1042,18 +1042,18 @@ function w2Moments(state: W2State, overrideNote: boolean): Moment[] {
     if (state === "captured")
       return [...recorded, { label: "Getting it done", meta: "waiting on the workshop", open: true }];
     if (state === "captured-evidence-queued")
-      return [...recorded, { label: "Evidence queued", meta: "saved on this device · waiting to send", open: true }];
+      return [...recorded, { label: "Proof queued", meta: "saved on this device · waiting to send", open: true }];
     if (state === "captured-evidence-submitted")
-      return [...recorded, { label: "Evidence in", meta: "workshop photo · Jul 6", open: true }];
+      return [...recorded, { label: "Proof in", meta: "workshop photo · Jul 6", open: true }];
     if (state === "captured-ready-pending")
-      return [...recorded, { label: "Evidence in", meta: "workshop photo · Jul 6" }, { label: "Readiness queued", meta: "saved on this device · waiting to send", open: true }];
+      return [...recorded, { label: "Proof in", meta: "workshop photo · Jul 6" }, { label: "Readiness queued", meta: "saved on this device · waiting to send", open: true }];
     if (state === "captured-ready-confirmer")
-      return [...recorded, { label: "Evidence in", meta: "workshop photo · Jul 6" }, { label: "Ready to confirm", meta: "waiting on João", open: true }];
+      return [...recorded, { label: "Proof in", meta: "workshop photo · Jul 6" }, { label: "Ready to confirm", meta: "waiting on João", open: true }];
     if (state === "captured-confirmation-pending")
-      return [...recorded, { label: "Evidence in", meta: "workshop photo · Jul 6" }, { label: "Confirmation queued", meta: "Ana · saved on this device", open: true }];
+      return [...recorded, { label: "Proof in", meta: "workshop photo · Jul 6" }, { label: "Confirmation queued", meta: "Ana · saved on this device", open: true }];
     if (state === "captured-disputed")
       return [...recorded, { label: "Under steward review", meta: "Ana recorded what still needs doing", open: true }];
-    return [...recorded, { label: "Evidence in", meta: "workshop photo · Jul 6" }, { label: "Commitment kept", meta: "confirmed by João · Jul 6", open: true }];
+    return [...recorded, { label: "Proof in", meta: "workshop photo · Jul 6" }, { label: "Commitment kept", meta: "confirmed by João · Jul 6", open: true }];
   }
   if (state === "garden-provider")
     return [
@@ -1064,7 +1064,7 @@ function w2Moments(state: W2State, overrideNote: boolean): Moment[] {
     return [
       { label: "Requested", meta: "protocol pool · Jul 2" },
       { label: "Accepted", meta: "Awka Hub took this up · Jul 5" },
-      { label: "Evidence in", meta: "survey sheet · Jul 10" },
+      { label: "Proof in", meta: "survey sheet · Jul 10" },
       { label: "Commitment kept", meta: "confirmed by Sofia · ordinary named confirmation · Jul 12", open: true },
     ];
   const opened: Moment[] = [
@@ -1072,7 +1072,7 @@ function w2Moments(state: W2State, overrideNote: boolean): Moment[] {
     { label: "Accepted", meta: "João took this up · Jul 3" },
   ];
   if (state === "evidence-queued")
-    return [...opened, { label: "Evidence queued", meta: "saved on this device · waiting to send", open: true }];
+    return [...opened, { label: "Proof queued", meta: "saved on this device · waiting to send", open: true }];
   if (state === "withdrawn")
     return [
       { label: "Offered", meta: "you · Jul 2" },
@@ -1112,7 +1112,7 @@ const w2Disclosures = (state: W2State, opts: { work?: boolean; overrideNote?: bo
     state === "reconciled" ||
     W2_SETTLED.has(state);
   const teamHot = rosterFrozen ? "w2.open-team-frozen" : "w2.open-team-forming";
-  // Nothing has been done yet on an unclaimed commitment — no evidence, no work.
+  // Nothing has been done yet on an unclaimed commitment — no proof, no work.
   const preAcceptance =
     state === "offered" || state === "requested" || state === "support-offered" ||
     state === "withdraw-confirm" || state === "withdrawn" ||
@@ -1120,7 +1120,7 @@ const w2Disclosures = (state: W2State, opts: { work?: boolean; overrideNote?: bo
   const evidenceQueued =
     state === "evidence-queued" || state === "support-evidence-queued" || state === "request-evidence-queued" ||
     state === "campaign-request-evidence-queued" || state === "captured-evidence-queued";
-  const evidence =
+  const proof =
     cast === "support"
       ? listRow({
           icon: "image-line",
@@ -1249,7 +1249,7 @@ const bandCard = (inner: string, ic = "information-line") =>
 // Icon follows the lifecycle so the badge means something at a glance.
 const W2_BAND_ICON: Record<string, string> = {
   Fulfilled: "checkbox-circle-fill", Reconciled: "seedling-line",
-  "Ready to confirm": "time-line", "Evidence in": "image-line",
+  "Ready to confirm": "time-line", "Proof in": "image-line",
   "Partly approved": "time-line", Active: "leaf-line", Accepted: "hand-heart-line",
   Offered: "seedling-line", Requested: "hand-heart-line",
   Cancelled: "close-line", Expired: "time-line", Withdrawn: "close-line",
@@ -1310,12 +1310,12 @@ function w2(stateIn: W2State): string {
           rows: cast === "request-work"
             ? [{ label: "Weed", done: 2, of: 2 }, { label: "Mulch", done: 3, of: 4 }]
             : [{ label: "Prune", done: 2, of: 2 }, { label: "Plant", done: 8, of: 12 }],
-          evidence: hasEvidence ? "3 items · credits Maria, Ana" : undefined,
+          proof: hasEvidence ? "3 items · credits Maria, Ana" : undefined,
           // The explainer earns its place only where the distinction actually
           // confuses: garden work carrying evidence that does not advance it.
-          note: hasEvidence ? "Approved work is what moves this forward. Evidence credits the people who helped." : undefined,
+          note: hasEvidence ? "Approved work is what moves this forward. Proof credits the people who helped." : undefined,
         })
-      : progressBlock({ evidence: "2 items · credits Maria", note: "Evidence is what moves this forward. A service names no garden actions." });
+      : progressBlock({ proof: "2 items · credits Maria", note: "Proof is what moves this forward. A service names no garden actions." });
   const meta = pagepad(
     identityCard({
       title: ident.title,
@@ -1333,9 +1333,9 @@ function w2(stateIn: W2State): string {
     // Garden work takes BOTH (2026-08-17, Afo). attachEvidence has no kind gate,
     // so a garden-work commitment can carry evidence as well as approved work.
     // The weighting carries the difference the progress block establishes:
-    // submitted work advances readiness, evidence credits the people who helped.
-    accepted: `<div class="brow">${hot("w2.add-evidence", btn("Add Evidence", { kind: "sec" }))}${hot("w2.submit-work", btn("Submit Work", { kind: "pri" }))}</div>`,
-    active: `<div class="brow">${hot("w2.add-evidence", btn("Add Evidence", { kind: "sec" }))}${hot("w2.submit-work", btn("Submit Work", { kind: "pri" }))}</div>`,
+    // submitted work advances readiness, proof credits the people who helped.
+    accepted: barPair(hot("w2.add-evidence", btn("Add Proof", { kind: "sec" })), hot("w2.submit-work", btn("Submit Work", { kind: "pri" }))),
+    active: barPair(hot("w2.add-evidence", btn("Add Proof", { kind: "sec" })), hot("w2.submit-work", btn("Submit Work", { kind: "pri" }))),
     // The confirmer's view of the same stage. `ready` already splits into
     // ready-pending and ready-confirmer; `active` did not, so a confirmer was
     // being offered the provider's button (2026-08-17, Afo).
@@ -1347,26 +1347,26 @@ function w2(stateIn: W2State): string {
     // setContributorRequirement exists to point them at a specific row. What
     // stays the lead's is submitForConfirmation, and confirmation excludes every
     // contributor absolutely.
-    contributor: `<div class="brow">${hot("w2.add-evidence", btn("Add Evidence", { kind: "sec" }))}${hot("w2.submit-work", btn("Submit Work", { kind: "pri" }))}</div>`,
+    contributor: barPair(hot("w2.add-evidence", btn("Add Proof", { kind: "sec" })), hot("w2.submit-work", btn("Submit Work", { kind: "pri" }))),
     // Sending names its blast radius first (2026-08-17, Afo), as every other
     // consequential act here does. The freeze is the part worth naming:
     // submitForConfirmation emits ContributorRosterFrozen, so after it nobody
-    // can join the team and no further evidence counts toward the commitment.
-    "send-confirm": `<div class="brow">${hot("w2.send-cancel", btn("Not Yet", { kind: "ghost" }))}${hot("w2.send-confirm-go", btn("Send It", { kind: "pri" }))}</div>`,
-    "request-active": hot("w2.add-evidence-request", btn("Add Evidence", { kind: "pri", full: true, icon: "camera-line" })),
+    // can join the team and no further proof counts toward the commitment.
+    "send-confirm": barPair(hot("w2.send-cancel", btn("Not Yet", { kind: "ghost" })), hot("w2.send-confirm-go", btn("Send It", { kind: "pri" }))),
+    "request-active": hot("w2.add-evidence-request", btn("Add Proof", { kind: "pri", full: true, icon: "camera-line" })),
     "request-evidence-submitted": hot("w2.send-confirmation-request", btn("Send for Confirmation", { kind: "pri", full: true })),
     "request-ready-confirmer": hot("w2.confirm-request-detail", btn("Review Confirmation", { kind: "pri", full: true })),
     "request-work-ready-confirmer": hot("w2.confirm-request-work-detail", btn("Review Confirmation", { kind: "pri", full: true })),
-    "campaign-request-active": hot("w2.add-evidence-campaign-request", btn("Add Evidence", { kind: "pri", full: true, icon: "camera-line" })),
+    "campaign-request-active": hot("w2.add-evidence-campaign-request", btn("Add Proof", { kind: "pri", full: true, icon: "camera-line" })),
     "campaign-request-evidence-submitted": hot("w2.send-confirmation-campaign-request", btn("Send for Confirmation", { kind: "pri", full: true })),
     "campaign-request-ready-confirmer": hot("w2.confirm-campaign-request-detail", btn("Review Confirmation", { kind: "pri", full: true })),
-    "support-accepted": hot("w2.add-evidence-support", btn("Add Evidence", { kind: "pri", full: true, icon: "camera-line" })),
+    "support-accepted": hot("w2.add-evidence-support", btn("Add Proof", { kind: "pri", full: true, icon: "camera-line" })),
     "support-evidence-submitted": hot("w2.send-confirmation", btn("Send for Confirmation", { kind: "pri", full: true })),
     "support-ready-confirmer": hot("w2.confirm-support-detail", btn("Review Confirmation", { kind: "pri", full: true })),
-    captured: hot("w2.add-evidence-captured", btn("Add Evidence", { kind: "pri", full: true, icon: "camera-line" })),
+    captured: hot("w2.add-evidence-captured", btn("Add Proof", { kind: "pri", full: true, icon: "camera-line" })),
     "captured-evidence-submitted": hot("w2.send-confirmation-captured", btn("Send for Confirmation", { kind: "pri", full: true })),
     "captured-ready-confirmer": hot("w2.confirm-captured-detail", btn("Review Confirmation", { kind: "pri", full: true })),
-    "garden-provider": hot("w2.add-evidence", btn("Add Evidence", { kind: "pri", full: true, icon: "camera-line" })),
+    "garden-provider": hot("w2.add-evidence", btn("Add Proof", { kind: "pri", full: true, icon: "camera-line" })),
     offered: hot("w2.withdraw", btn("Withdraw This Offer…", { kind: "danger", full: true })),
     requested: hot("w2.withdraw", btn("Withdraw This Request…", { kind: "danger", full: true })),
     "browse-offered": hot("w2.take-up-browse", btn("Take This Up", { kind: "pri", full: true })),
@@ -1387,10 +1387,10 @@ function w2(stateIn: W2State): string {
           )
         : state === "contributor"
           ? bandCard(
-              `<div class="t-title">You're on the team</div><div class="t-meta">Your approved work counts toward this commitment and your evidence credits you. Maria leads it and sends it for confirmation when it's done, and a contributor never confirms their own commitment.</div>`,
+              `<div class="t-title">You're on the team</div><div class="t-meta">Your approved work counts toward this commitment and your proof credits you. Maria leads it and sends it for confirmation when it's done, and a contributor never confirms their own commitment.</div>`,
               "group-line",
             )
-          : `${banner("Sending tells João it is ready for their confirmation. From that moment the team is fixed: nobody else can join, and further evidence no longer counts toward it.", "amber", "shield-check-line")}${card(`${detailRow("What you're sending", "1 photo · 1 voice note · credits Maria, Ana")}${detailRow("Who confirms", "João, the person you helped")}${detailRow("After this", "You can still read everything; you cannot add to it")}`)}`;
+          : `${banner("Sending tells João it is ready for their confirmation. From that moment the team is fixed: nobody else can join, and further proof no longer counts toward it.", "amber", "shield-check-line")}${card(`${detailRow("What you're sending", "1 photo · 1 voice note · credits Maria, Ana")}${detailRow("Who confirms", "João, the person you helped")}${detailRow("After this", "You can still read everything; you cannot add to it")}`)}`;
     const b = W2_BARS[state];
     return phoneFrame(`${head}${meta}${pagepad(body)}<div style="flex:1"></div>`, { appBar: b ? actionBar(b) : false });
   }
@@ -1401,7 +1401,7 @@ function w2(stateIn: W2State): string {
 
   let band: string;
   // Every settlement-bearing state is already Fulfilled — the live question is
-  // where the support is. Offering "Add evidence" here contradicted both the
+  // where the support is. Offering "Add proof" here contradicted both the
   // state chip and the reward row, and §5.3 gates evidence attach to
   // Active / EvidenceSubmitted / PartiallyApproved anyway.
   if (W2_SETTLED.has(state))
@@ -1409,12 +1409,12 @@ function w2(stateIn: W2State): string {
   else switch (state) {
     case "evidence-queued":
       band = bandCard(
-        `<div class="t-title">Evidence saved on this device</div><div class="t-meta">It will send when connected. The credited-contributor vector stays attached to this queued item, and Work progress does not change until sync.</div>`,
+        `<div class="t-title">Proof saved on this device</div><div class="t-meta">It will send when connected. The credited-contributor vector stays attached to this queued item, and Work progress does not change until sync.</div>`,
       );
       break;
     case "request-active":
       band = bandCard(
-        `<div class="t-title">João is helping</div><div class="t-meta">Add evidence as it happens. Ana asked for this, so Ana confirms it was done.</div>`,
+        `<div class="t-title">João is helping</div><div class="t-meta">Add proof as it happens. Ana asked for this, so Ana confirms it was done.</div>`,
       );
       break;
     case "request-work-active":
@@ -1442,22 +1442,22 @@ function w2(stateIn: W2State): string {
       break;
     case "campaign-request-active":
       band = bandCard(
-        `<div class="t-title">João is helping with this Campaign request</div><div class="t-meta">The Market rides Campaign remains the scope. Add evidence as the ride happens.</div>`,
+        `<div class="t-title">João is helping with this Campaign request</div><div class="t-meta">The Market rides Campaign remains the scope. Add proof as the ride happens.</div>`,
       );
       break;
     case "campaign-request-evidence-queued":
       band = bandCard(
-        `<div class="t-title">Campaign evidence saved on this device</div><div class="t-meta">It will send when connected. The Market rides Campaign remains the scope.</div>`,
+        `<div class="t-title">Campaign proof saved on this device</div><div class="t-meta">It will send when connected. The Market rides Campaign remains the scope.</div>`,
       );
       break;
     case "campaign-request-evidence-submitted":
       band = bandCard(
-        `<div class="t-title">Evidence attached: 1 · no work required</div><div class="t-meta">Ana confirms this Market rides Campaign request.</div>`,
+        `<div class="t-title">Proof attached: 1 · no work required</div><div class="t-meta">Ana confirms this Market rides Campaign request.</div>`,
       );
       break;
     case "campaign-request-ready-pending":
       band = bandCard(
-        `<div class="t-title">Campaign readiness saved on this device</div><div class="t-meta">The commitment stays Evidence in until this sends. Its Campaign binding does not change.</div>`,
+        `<div class="t-title">Campaign readiness saved on this device</div><div class="t-meta">The commitment stays Proof in until this sends. Its Campaign binding does not change.</div>`,
       );
       break;
     case "campaign-request-ready-confirmer":
@@ -1475,17 +1475,17 @@ function w2(stateIn: W2State): string {
       break;
     case "request-evidence-queued":
       band = bandCard(
-        `<div class="t-title">Evidence saved on this device</div><div class="t-meta">It will send when connected. Readiness stays unavailable until the evidence reaches Ana's request.</div>`,
+        `<div class="t-title">Proof saved on this device</div><div class="t-meta">It will send when connected. Readiness stays unavailable until the proof reaches Ana's request.</div>`,
       );
       break;
     case "request-evidence-submitted":
       band = bandCard(
-        `<div class="t-title">Not sent yet. This is waiting on you</div><div class="t-meta">Your evidence is attached, but Ana cannot confirm the help arrived until you send it. Sending also fixes the team and stops further evidence counting.</div>`,
+        `<div class="t-title">Not sent yet. This is waiting on you</div><div class="t-meta">Your proof is attached, but Ana cannot confirm the help arrived until you send it. Sending also fixes the team and stops further proof counting.</div>`,
       );
       break;
     case "request-ready-pending":
       band = bandCard(
-        `<div class="t-title">Readiness saved on this device</div><div class="t-meta">The request remains Evidence in until this sends. Ana cannot confirm it twice or before the readiness transition lands.</div>`,
+        `<div class="t-title">Readiness saved on this device</div><div class="t-meta">The request remains Proof in until this sends. Ana cannot confirm it twice or before the readiness transition lands.</div>`,
       );
       break;
     case "request-ready-confirmer":
@@ -1505,17 +1505,17 @@ function w2(stateIn: W2State): string {
       break;
     case "support-offered":
       band = bandCard(
-        `<div class="t-title">Maria's service offer is open</div><div class="t-meta">João can take up the repair before Maria starts attaching evidence.</div><div class="brow">${hot("w2.take-up-support", btn("Take This Up", { kind: "pri" }))}</div>`,
+        `<div class="t-title">Maria's service offer is open</div><div class="t-meta">João can take up the repair before Maria starts attaching proof.</div><div class="brow">${hot("w2.take-up-support", btn("Take This Up", { kind: "pri" }))}</div>`,
       );
       break;
     case "support-accepted":
       band = bandCard(
-        `<div class="t-title">Repair accepted</div><div class="t-meta">João took up this place. It remains Accepted until Maria links Work or evidence reaches the commitment.</div>`,
+        `<div class="t-title">Repair accepted</div><div class="t-meta">João took up this place. It remains Accepted until Maria links Work or proof reaches the commitment.</div>`,
       );
       break;
     case "support-evidence-queued":
       band = bandCard(
-        `<div class="t-title">Evidence saved on this device</div><div class="t-meta">It will send when connected. Confirmation stays unavailable until the evidence reaches the commitment.</div>${listRow({
+        `<div class="t-title">Proof saved on this device</div><div class="t-meta">It will send when connected. Confirmation stays unavailable until the proof reaches the commitment.</div>${listRow({
           icon: "image-line",
           primary: "Tool handles after repair",
           meta: "Photo · waiting to send",
@@ -1525,12 +1525,12 @@ function w2(stateIn: W2State): string {
       break;
     case "support-evidence-submitted":
       band = bandCard(
-        `<div class="t-title">Not sent yet. This is waiting on you</div><div class="t-meta">Your evidence is attached, but João cannot confirm the repair until you send it. Sending also fixes the team and stops further evidence counting.</div>`,
+        `<div class="t-title">Not sent yet. This is waiting on you</div><div class="t-meta">Your proof is attached, but João cannot confirm the repair until you send it. Sending also fixes the team and stops further proof counting.</div>`,
       );
       break;
     case "support-ready-pending":
       band = bandCard(
-        `<div class="t-title">Readiness saved on this device</div><div class="t-meta">The service remains Evidence in until this sends. João's confirmation opens after the readiness transition lands.</div>`,
+        `<div class="t-title">Readiness saved on this device</div><div class="t-meta">The service remains Proof in until this sends. João's confirmation opens after the readiness transition lands.</div>`,
       );
       break;
     case "support-ready-confirmer":
@@ -1548,22 +1548,22 @@ function w2(stateIn: W2State): string {
       break;
     case "captured":
       band = bandCard(
-        `<div class="t-title">Workshop underway</div><div class="t-meta">This recorded-for-Kwame commitment is evidence-only. Add evidence without introducing a garden-work approval requirement.</div>`,
+        `<div class="t-title">Workshop underway</div><div class="t-meta">This recorded-for-Kwame commitment is proof-only. Add proof without introducing a garden-work approval requirement.</div>`,
       );
       break;
     case "captured-evidence-queued":
       band = bandCard(
-        `<div class="t-title">Evidence saved on this device</div><div class="t-meta">It will send when connected. The recorded commitment keeps its StewardCaptured path.</div>`,
+        `<div class="t-title">Proof saved on this device</div><div class="t-meta">It will send when connected. The recorded commitment keeps its StewardCaptured path.</div>`,
       );
       break;
     case "captured-evidence-submitted":
       band = bandCard(
-        `<div class="t-title">Evidence attached: 1 · no work required</div><div class="t-meta">The named counterparty confirms this recorded commitment.</div>`,
+        `<div class="t-title">Proof attached: 1 · no work required</div><div class="t-meta">The named counterparty confirms this recorded commitment.</div>`,
       );
       break;
     case "captured-ready-pending":
       band = bandCard(
-        `<div class="t-title">Readiness saved on this device</div><div class="t-meta">The record remains Evidence in until this sends; confirmation stays unavailable meanwhile.</div>`,
+        `<div class="t-title">Readiness saved on this device</div><div class="t-meta">The record remains Proof in until this sends; confirmation stays unavailable meanwhile.</div>`,
       );
       break;
     case "captured-ready-confirmer":
@@ -1577,11 +1577,11 @@ function w2(stateIn: W2State): string {
       );
       break;
     case "captured-fulfilled":
-      band = bandCard(hero("Commitment kept", "The captured commitment was confirmed after its evidence synced", "checkbox-circle-fill"));
+      band = bandCard(hero("Commitment kept", "The captured commitment was confirmed after its proof synced", "checkbox-circle-fill"));
       break;
     case "garden-provider":
       band = bandCard(
-        `<div class="t-title">Your garden is providing this</div><div class="t-meta">Add evidence as Awka gardeners run the survey. The named confirmer, Sofia, confirms it when it is done.</div>`,
+        `<div class="t-title">Your garden is providing this</div><div class="t-meta">Add proof as Awka gardeners run the survey. The named confirmer, Sofia, confirms it when it is done.</div>`,
       );
       break;
     case "garden-support-arrived":
@@ -1604,7 +1604,7 @@ function w2(stateIn: W2State): string {
       break;
     case "browse-requested":
       band =
-        card(`<div class="t-title">Open to help</div><div class="t-meta">Anyone here can help. You provide, attach evidence, and Ana, who asked, confirms it was kept.</div>`);
+        card(`<div class="t-title">Open to help</div><div class="t-meta">Anyone here can help. You provide, submit proof, and Ana, who asked, confirms it was kept.</div>`);
       break;
     case "browse-requested-gated":
       band =
@@ -1616,7 +1616,7 @@ function w2(stateIn: W2State): string {
       break;
     case "evidence-submitted":
       band = bandCard(
-        `<div class="t-title">Evidence attached: 1</div><div class="t-meta">This is garden work, so approved linked work and its assessment move the commitment toward confirmation.</div>`,
+        `<div class="t-title">Proof attached: 1</div><div class="t-meta">This is garden work, so approved linked work and its assessment move the commitment toward confirmation.</div>`,
       );
       break;
     case "partially-approved":
@@ -1664,7 +1664,7 @@ function w2(stateIn: W2State): string {
       break;
     default:
       band = bandCard(
-        `<div class="t-title">Keep the commitment moving</div><div class="t-meta">Add evidence as you go. Work that fulfills this commitment links from the work section below.</div>`,
+        `<div class="t-title">Keep the commitment moving</div><div class="t-meta">Add proof as you go. Work that fulfills this commitment links from the work section below.</div>`,
       );
   }
 
@@ -1736,7 +1736,7 @@ ${hot("w2.withdraw-send", btn("Withdraw This Offer", { kind: "danger", full: tru
     state === "campaign-request-confirmation-pending" ||
     state === "captured-confirmation-pending";
   const sync = evidenceQueued
-    ? syncBar("1 evidence item waiting to send")
+    ? syncBar("1 proof item waiting to send")
     : readinessQueued
       ? syncBar("1 readiness update waiting to send")
       : confirmationQueued
@@ -1761,11 +1761,11 @@ const W2_HOTS: HifiDef["hots"] = {
   "w2.preview-close": { l: "Close the preview", to: "screen:W2@evidence-submitted", info: "Returns to the commitment unchanged. The preview is a dialog, so nothing about the commitment's state moved while it was open." },
   "w2.preview-save": { l: "Download image", info: "Saves the photo to the device. The shipped dialog offers this on every viewport — a gardener who attached evidence from one phone often needs the file on another." },
   "w2.preview-next": { l: "Next photo", info: "Steps to the next attached photo. The voice note in the same section is skipped — only images are in the sequence (Media.tsx:165)." },
-  "w2.add-evidence": { l: "Add evidence", to: "screen:W2a@media", info: "W2a attach sheet: photo / link / note → one evidence job per submit; fully offline (UX:164)." },
+  "w2.add-evidence": { l: "Add proof", to: "screen:W2a@media", info: "W2a attach sheet: photo / link / note → one proof job per submit; fully offline (UX:164)." },
   "w2.add-evidence-request": { l: "Add request evidence", to: "screen:W2a@media", info: "Keeps Ana's request and João's provider role intact while opening the shared evidence composer." },
   "w2.add-evidence-campaign-request": { l: "Add campaign-request evidence", to: "screen:W2a@media", info: "Keeps the Market rides Campaign binding while opening the shared evidence composer." },
-  "w2.add-evidence-support": { l: "Add service evidence", to: "screen:W2a@media", info: "Evidence-only SupportService offer: photo / link / note → one offline evidence job (UX:164)." },
-  "w2.add-evidence-captured": { l: "Add captured-commitment evidence", to: "screen:W2a@media", info: "Keeps the StewardCaptured kind and the member as commitment source while opening the evidence composer." },
+  "w2.add-evidence-support": { l: "Add service evidence", to: "screen:W2a@media", info: "Evidence-only SupportService offer: photo / link / note → one offline proof job (UX:164)." },
+  "w2.add-evidence-captured": { l: "Add captured-commitment evidence", to: "screen:W2a@media", info: "Keeps the StewardCaptured kind and the member as commitment source while opening the proof composer." },
   "w2.take-up-browse": { l: "Take this up", to: "screen:W2", info: "The browse detail's one act (2026-08-14 workflows round — card-taps land here pre-claim): the same open-mode claim as the card button. Claim job → optimistic Accepted (UX:129).", calls: ["claimCommitment"], facts: { commitment: "Offered", kind: "DomainImpact" } },
   "w2.help-browse": { l: "I can help", to: "screen:W2@request-active", info: "The request browse detail's one act: open-mode claim — the claimant becomes the provider and Ana, the asker, remains the confirmer (UX:104).", calls: ["claimCommitment"], facts: { commitment: "Requested", kind: "SupportService" } },
   "w2.ask-browse": { l: "Ask to take this up", to: "screen:W1@claim-pending", info: "The gated browse detail's one act (PR #710 review): approval-gated claim request with stored terms — the commitment stays available to others while stewards review (UX:99), and W1's pending/declined/superseded grammar takes over.", calls: ["claimCommitment"], facts: { commitment: "Requested", kind: "SupportService" } },
@@ -1775,8 +1775,8 @@ const W2_HOTS: HifiDef["hots"] = {
   "w2.unlinked-work": { l: "Link it", to: "screen:WFLOW@link-picker", info: "The recovery layer of standing attribution (2026-08-14): whenever the member has approved work matching a requirement row that is not yet linked, this row stands in the work section — missed attribution is recoverable, never silently lost. Same linkWork path and exact-row rule as the picker.", calls: ["linkWork"] },
   "w2.confirm": { l: "Confirm Commitment Kept", to: "screen:W4", info: "Visible only to eligible confirmers while ReadyForConfirmation — the provider never sees it (UX:142)." },
   "w2.send-confirmation": { l: "Send for confirmation", to: "screen:W2@send-confirm", info: "Opens the confirmation step rather than sending straight away (2026-08-17, Afo): submitForConfirmation freezes the contributor roster and credit accounting, so the act is named before it happens. Drawn once here; the request, Campaign-request and recorded casts take the same step." },
-  "w2.send-cancel": { l: "Not yet", to: "screen:W2@support-evidence-submitted", info: "Returns without sending. The evidence stays attached and the team stays open." },
-  "w2.send-confirm-go": { l: "Send it", to: "screen:W2@support-ready-pending", info: "Queues the evidence-only readiness transition — submitForConfirmation, which freezes the roster and credit accounting and emits ContributorRosterFrozen before CommitmentReadyForConfirmation. DomainImpact is rejected on-chain (CS:138b); submitting is not confirming, and the lead stays blocked from every confirmation path.", calls: ["submitForConfirmation"], pendingSync: true },
+  "w2.send-cancel": { l: "Not yet", to: "screen:W2@support-evidence-submitted", info: "Returns without sending. The proof stays attached and the team stays open." },
+  "w2.send-confirm-go": { l: "Send it", to: "screen:W2@support-ready-pending", info: "Queues the proof-only readiness transition — submitForConfirmation, which freezes the roster and credit accounting and emits ContributorRosterFrozen before CommitmentReadyForConfirmation. DomainImpact is rejected on-chain (CS:138b); submitting is not confirming, and the lead stays blocked from every confirmation path.", calls: ["submitForConfirmation"], pendingSync: true },
   "w2.confirm-support-detail": { l: "Review service confirmation", to: "screen:W4@confirm-support", info: "Opens the named recipient's confirmation view for this SupportService commitment." },
   "w2.send-confirmation-request": { l: "Send request for confirmation", to: "screen:W2@request-ready-pending", info: "Queues submitForConfirmation while keeping Ana as default confirmer and João as provider.", calls: ["submitForConfirmation"], pendingSync: true },
   "w2.confirm-request-work-detail": { l: "Review confirmation", to: "screen:W4@confirm-request-work", info: "Opens the garden-work ask's confirmation sheet — approved Work is the proof shown there, not evidence (register #97a)." },
@@ -1834,7 +1834,7 @@ const W2B_ROSTER = (opts: { frozen?: boolean } = {}) =>
 // It states how credit is shared and stops there.
 const W2B_POLICY = sectionCard(
   "How credit is shared",
-  `${detailRow("Shared equally", "35% among everyone on the team")}${detailRow("By verified contribution", "65% from approved work and evidence")}${hot("w2b.preview", btn("What Counts as Verified", { kind: "ghost", sm: true, icon: "information-line" }))}`,
+  `${detailRow("Shared equally", "35% among everyone on the team")}${detailRow("By verified contribution", "65% from approved work and proof")}${hot("w2b.preview", btn("What Counts as Verified", { kind: "ghost", sm: true, icon: "information-line" }))}`,
 );
 
 function w2b(state: W2bState): string {
@@ -1859,7 +1859,7 @@ function w2b(state: W2bState): string {
           `${memberRow({ name: "João", sub: "joao.eth", joined: "Joined Jan 2025" })}${memberRow({ name: "Luz", sub: "luz.eth", joined: "Joined Feb 2025" })}<div class="brow" style="padding:0 12px 10px">${hot("w2b.add", btn("Add People", { kind: "sec", sm: true, icon: "add-line" }))}</div>`,
           { flush: true },
         ) +
-        banner("Inviting someone does not give them credit. Approved work and evidence do.", "stone", "information-line");
+        banner("Inviting someone does not give them credit. Approved work and proof do.", "stone", "information-line");
       actions = hot("w2b.setup-done", btn("Save and Go Back", { kind: "pri", full: true }));
       break;
     // The picker sheet, mirroring the shipped garden Gardeners list: scroll, tap
@@ -1886,10 +1886,10 @@ function w2b(state: W2bState): string {
       );
     case "remove-contributor":
       body =
-        formInfo("user-line", "Remove Kwame?", "Only someone with no approved work, pending work, or evidence credit can be removed") +
+        formInfo("user-line", "Remove Kwame?", "Only someone with no approved work, pending work, or proof credit can be removed") +
         sectionCard("Who this is", memberRow({ name: "Kwame", sub: "kwame.eth", joined: "Joined Jun 2025", badge: "Planned" }), { flush: true }) +
         banner("Lead-managed rosters only. On an Open team people leave themselves, before credit and before the roster freezes.", "stone", "information-line");
-      actions = `<div class="brow">${hot("w2b.remove-cancel", btn("Keep Them", { kind: "ghost" }))}${hot("w2b.remove-confirm", btn("Remove Kwame", { kind: "danger" }))}</div>`;
+      actions = barPair(hot("w2b.remove-cancel", btn("Keep Them", { kind: "ghost" })), hot("w2b.remove-confirm", btn("Remove Kwame", { kind: "danger" })));
       break;
     // Garden work only: requirement rows exist nowhere else, which is the ONE
     // action the kind gate legitimately applies to.
@@ -1901,7 +1901,7 @@ function w2b(state: W2bState): string {
           `${field("Who", input("Kwame", { select: true }))}${field("Which work", input("Beds survey · Weed × 2", { select: true }))}`,
         ) +
         banner("Only garden work can be assigned this way. A service names no actions to point at.", "stone", "leaf-line");
-      actions = `<div class="brow">${hot("w2b.assign-cancel", btn("Cancel", { kind: "ghost" }))}${hot("w2b.assign-confirm", btn("Save", { kind: "pri" }))}</div>`;
+      actions = barPair(hot("w2b.assign-cancel", btn("Cancel", { kind: "ghost" })), hot("w2b.assign-confirm", btn("Save", { kind: "pri" })));
       break;
     case "open-eligible":
       body =
@@ -1939,7 +1939,7 @@ function w2b(state: W2bState): string {
         formInfo("information-line", "What counts as verified", "How the 65% share is worked out") +
         sectionCard(
           "Verified contribution",
-          `${detailRow("Approved work", "Work a steward approved, counted against this commitment")}${detailRow("Evidence", "Photos, notes and follow-through attached to it")}${detailRow("Coordination", "Carrying the commitment as its accountable lead")}`,
+          `${detailRow("Approved work", "Work a steward approved, counted against this commitment")}${detailRow("Proof", "Photos, notes and follow-through attached to it")}${detailRow("Coordination", "Carrying the commitment as its accountable lead")}`,
         ) +
         banner("Each fulfilled commitment receives an equal budget; this cycle's policy shares 35% equally and 65% by verified contribution. A garden may later correct amounts with a recorded reason.", "stone", "information-line");
       break;
@@ -2000,7 +2000,7 @@ const W2B_HOTS: HifiDef["hots"] = {
 // W2a — evidence attach sheet (uiux-spec §5.5)
 // ---------------------------------------------------------------------------
 
-const w2aOutcomeHead = `<div class="hdr fixed"><button type="button" class="hback" aria-label="Back, preview only" disabled>${icon("arrow-left-line", "l")}</button><h1>Add evidence</h1></div>`;
+const w2aOutcomeHead = `<div class="hdr fixed"><button type="button" class="hback" aria-label="Back, preview only" disabled>${icon("arrow-left-line", "l")}</button><h1>Add proof</h1></div>`;
 
 const w2aBehind = (commitment: CommitmentCast = "offer") =>
   `${hdr(W2_IDENTITY[commitment].title, { back: true })}<div class="hsub num">${W2_IDENTITY[commitment].meta}</div>`;
@@ -2009,14 +2009,14 @@ type W2aState =
   | "media" | "media-preview" | "details" | "review" | "review-request" | "review-campaign-request"
   | "review-support" | "review-captured" | "queued" | "failed";
 
-// Evidence is an MDR VARIANT (iteration 2, Afo direction): the same Submit
+// Proof is an MDR VARIANT (iteration 2, Afo direction): the same Submit
 // Work rhythm — Media → Details → Review — reusing the flow chrome, the
 // tap-to-add capture area, and the fixed one-row bar, so adding evidence feels
 // exactly like the work submission every gardener already knows.
 // STEP CARDS (2026-08-16 round 11, Afo). Every step of the shipped Submit Work
 // flow opens with a FormInfo card naming the step and why it exists —
 // formInfo("camera-line", "Upload Media", "Photos, video, or a voice note").
-// The creation, evidence and confirmation flows opened with a bare
+// The creation, proof and confirmation flows opened with a bare
 // sectionTitle instead: same job, two grammars, 70 states apart.
 //
 // Derived from the step KIND rather than enumerated per state, the way WFLOW
@@ -2030,7 +2030,7 @@ const stepCard = (ic: string, title: string, info: string) => formInfo(ic, title
 // media step — the dashed tap-to-add surface, the item list, the link and note
 // adders, the offline banner. The point of sharing it is that EVERYTHING a
 // member attaches composes into ONE list: a photo, a voice note, a link and a
-// written note are all evidence items. Evidence used to split them, keeping
+// written note are all proof items. Evidence used to split them, keeping
 // photos in a list on step 1 and note/link as two form fields on step 2, so the
 // same act had two shapes depending on what you were attaching.
 const captureBody = (prefix: string, items: string, bannerText: string) =>
@@ -2052,8 +2052,8 @@ const captureBar = (prefix: string) =>
 
 const w2aStepCard = (state: W2aState): string => {
   if (state === "media") return stepCard("camera-line", "Add media", "Photos, video, a voice note or a link, as proof of what happened");
-  if (state === "details") return stepCard("group-line", "Who helped", "Credit the teammates who share this evidence");
-  if (state.startsWith("review")) return stepCard("check-line", "Review evidence", "Check if the information is correct");
+  if (state === "details") return stepCard("group-line", "Who helped", "Credit the teammates who share this proof");
+  if (state.startsWith("review")) return stepCard("check-line", "Review proof", "Check if the information is correct");
   return "";
 };
 
@@ -2071,7 +2071,7 @@ const W2A_LEAD_ICON: Record<CommitmentCast, string> = {
 };
 
 function w2a(state: W2aState): string {
-  let head = flowHeader("Add evidence", 0, 3);
+  let head = flowHeader("Add proof", 0, 3);
   let content: string;
   let actions: string;
   let secondary = "";
@@ -2083,10 +2083,10 @@ function w2a(state: W2aState): string {
     // fields here. Note and link became items on step 1 with the rest, so what
     // is left is the question only this step can answer.
     case "details":
-      head = flowHeader("Add evidence", 1, 3);
+      head = flowHeader("Add proof", 1, 3);
       content = pagepad(
         pickRow([{ label: "Maria", on: true }, { label: "Ana", on: true }, { label: "Kwame" }]),
-        `<div class="t-meta">Tap the teammates who share this evidence, no typing, just the roster.</div>`,
+        `<div class="t-meta">Tap the teammates who share this proof, no typing, just the roster.</div>`,
         banner("The selected contributors are saved with each item and reused exactly on retry.", "stone", "user-line"),
       );
       actions = hot("w2a.details-continue", btn("Continue", { kind: "pri", full: true }));
@@ -2096,7 +2096,7 @@ function w2a(state: W2aState): string {
     case "review-campaign-request":
     case "review-support":
     case "review-captured": {
-      head = flowHeader("Add evidence", 2, 3);
+      head = flowHeader("Add proof", 2, 3);
       const attachHot =
         state === "review-support" ? "w2a.attach-support"
         : state === "review-campaign-request" ? "w2a.attach-campaign-request"
@@ -2106,7 +2106,7 @@ function w2a(state: W2aState): string {
       // ONE flat card, opening with the commitment being proved (2026-08-17, Afo).
       // This review drew three separate cards with their own section headers —
       // the anatomy retired from creation's six reviews — and nothing on the
-      // screen said WHICH commitment the evidence belonged to. It is now the
+      // screen said WHICH commitment the proof belonged to. It is now the
       // shipped views/Garden/Review.tsx anatomy, the same one creation and work
       // submission draw: FormInfo over a single flat card led by its subject.
       const cast = W2A_CAST[state] ?? "offer";
@@ -2119,9 +2119,9 @@ function w2a(state: W2aState): string {
           formCard("image-line", "What you're showing", "1 photo · 1 voice note · 1 written note") +
           formCard("group-line", "Who helped", "Maria · Ana") +
           formCard("sticky-note-line", "Your note", "“Two beds left for next week.”"),
-        banner("Saved on this device until it sends. Evidence works fully offline.", "stone", "wifi-off-line"),
+        banner("Saved on this device until it sends. Proof works fully offline.", "stone", "wifi-off-line"),
       );
-      actions = hot(attachHot, btn("Attach Evidence", { kind: "pri", full: true }));
+      actions = hot(attachHot, btn("Submit Proof", { kind: "pri", full: true }));
       break;
     }
     // Outcomes are not steps (2026-08-17, Afo): queued and failed used to render
@@ -2148,12 +2148,12 @@ function w2a(state: W2aState): string {
             listRow({ icon: "sticky-note-line", primary: "“Two beds left for next week”", meta: "Note · sent", chipHtml: chip("Sent", "ok") }),
           { cls: "flat" },
         ),
-        banner("Your evidence is held on this device and nothing is dropped. Retry the one that didn't send whenever you're ready.", "stone", "wifi-off-line"),
+        banner("Your proof is held on this device and nothing is dropped. Retry the one that didn't send whenever you're ready.", "stone", "wifi-off-line"),
       );
       actions = hot("w2a.done", btn("Done", { kind: "ghost", full: true }));
       break;
-    // The evidence list keeps one list for everything attached, and the photo
-    // rows carry the picture (2026-08-17, Afo). Evidence is the surface where
+    // The proof list keeps one list for everything attached, and the photo
+    // rows carry the picture (2026-08-17, Afo). Proof is the surface where
     // this matters most: a confirmer decides on what they can see, and a row
     // reading "Photo · just now" beside a generic glyph shows them nothing.
     case "media":
@@ -2167,7 +2167,7 @@ function w2a(state: W2aState): string {
               listRow({ icon: "sticky-note-line", primary: "“Two beds left for next week”", meta: "Note · just now" }),
             { cls: "flat" },
           ),
-          "Photos, voice notes and written notes stay on this device until the evidence sends.",
+          "Photos, voice notes and written notes stay on this device until the proof sends.",
         ),
       );
       secondary = captureBar("w2a");
@@ -2191,24 +2191,24 @@ function w2a(state: W2aState): string {
 }
 
 const W2A_HOTS: HifiDef["hots"] = {
-  "w2a.add-link": { l: "Add a link", info: "A link is an evidence item like any other (2026-08-17): it joins the list beside photos and voice notes instead of sitting in its own form field on the next step." },
-  "w2a.add-note": { l: "Write a note", info: "A written note is an evidence item like any other (2026-08-17) — the same adder creation uses, so everything a member attaches composes into one list." },
+  "w2a.add-link": { l: "Add a link", info: "A link is an proof item like any other (2026-08-17): it joins the list beside photos and voice notes instead of sitting in its own form field on the next step." },
+  "w2a.add-note": { l: "Write a note", info: "A written note is an proof item like any other (2026-08-17) — the same adder creation uses, so everything a member attaches composes into one list." },
   "w2a.capture-camera": { l: "Take a photo", info: "One-tap capture from the fixed bar — the Submit Work media interaction (uiux §5.5 addendum 2026-08-11)." },
   "w2a.capture-gallery": { l: "Choose from your library", info: "Gallery pick, multiple allowed; HEIC conversion and compression follow the work flow's media pipeline." },
   "w2a.capture-audio": { l: "Record a voice note", info: "Audio evidence serializes like work-flow voice notes (SerializedFileData) and rides the same offline queue." },
   "w2a.media-continue": { l: "Continue to details", to: "screen:W2a@details", info: "Media → details, the Submit Work rhythm: contributors and an optional note live on the details step." },
   "w2a.details-continue": { l: "Continue to review", to: "screen:W2a@review", info: "Details → review. The canonical destination is the garden-work review; cast walks land on their identity-preserving review variant of the same screen (request / campaign / service / recorded-commitment)." },
   "w2a.remove-item": { l: "Remove this item", info: "Items can be removed until they are attached; nothing uploads before then." },
-  "w2a.preview": { l: "Open the photo", to: "screen:W2a@media-preview", info: "The evidence thumbnail opens ImagePreviewDialog — the same dialog Submit Work opens from its media grid (Media.tsx:820). Confirmers decide on what they can see, so a photo has to be legible before it is sent, not only after." },
+  "w2a.preview": { l: "Open the photo", to: "screen:W2a@media-preview", info: "The proof thumbnail opens ImagePreviewDialog — the same dialog Submit Work opens from its media grid (Media.tsx:820). Confirmers decide on what they can see, so a photo has to be legible before it is sent, not only after." },
   "w2a.preview-save": { l: "Download image", info: "Saves the photo to the device. The shipped dialog offers this on every viewport — a gardener who attached evidence from one phone often needs the file on another." },
   "w2a.preview-close": { l: "Close the preview", to: "screen:W2a@media", info: "Returns to the media step unchanged. Closing never removes the photo; that is the Remove control on the row." },
-  "w2a.attach": { l: "Attach evidence", to: "screen:W2@evidence-queued", info: "Enqueues media plus the explicit creditedContributors vector; after upload the executor calls attachEvidence with those same addresses (CS §6.1).", calls: ["attachEvidence"], pendingSync: true },
-  "w2a.attach-request": { l: "Attach request evidence", to: "screen:W2@request-evidence-queued", info: "Queues evidence and its explicit credited-contributor vector for Ana's request without changing its direction, provider, or confirmer.", calls: ["attachEvidence"], pendingSync: true },
-  "w2a.attach-campaign-request": { l: "Attach campaign-request evidence", to: "screen:W2@campaign-request-evidence-queued", info: "Queues evidence and its explicit credited-contributor vector without losing the Market rides Campaign binding.", calls: ["attachEvidence"], pendingSync: true },
+  "w2a.attach": { l: "Submit proof", to: "screen:W2@evidence-queued", info: "Enqueues media plus the explicit creditedContributors vector; after upload the executor calls attachEvidence with those same addresses (CS §6.1).", calls: ["attachEvidence"], pendingSync: true },
+  "w2a.attach-request": { l: "Attach request evidence", to: "screen:W2@request-evidence-queued", info: "Queues proof and its explicit credited-contributor vector for Ana's request without changing its direction, provider, or confirmer.", calls: ["attachEvidence"], pendingSync: true },
+  "w2a.attach-campaign-request": { l: "Attach campaign-request evidence", to: "screen:W2@campaign-request-evidence-queued", info: "Queues proof and its explicit credited-contributor vector without losing the Market rides Campaign binding.", calls: ["attachEvidence"], pendingSync: true },
   "w2a.attach-support": { l: "Attach service evidence", to: "screen:W2@support-evidence-queued", info: "Enqueues evidence plus explicit attribution for a SupportService offer; the queued row appears before EvidenceAttached syncs, and no linked-work requirement is introduced (UX:218 · CS §6.1).", calls: ["attachEvidence"], pendingSync: true },
-  "w2a.attach-captured": { l: "Attach captured-commitment evidence", to: "screen:W2@captured-evidence-queued", info: "Queues evidence and its explicit credited-contributor vector while preserving StewardCaptured and the member's source identity.", calls: ["attachEvidence"], pendingSync: true },
-  "w2a.retry-row": { l: "Retry this upload", to: "screen:W2a@queued", info: "Per-row retry — a failed evidence job stays visible with a retry (up to MAX_RETRIES=5); media is never silently dropped (UX:218)." },
-  "w2a.done": { l: "Done", to: "screen:W2@evidence-submitted", info: "Returns to the commitment with the queued or sent evidence row still visible." },
+  "w2a.attach-captured": { l: "Attach captured-commitment evidence", to: "screen:W2@captured-evidence-queued", info: "Queues proof and its explicit credited-contributor vector while preserving StewardCaptured and the member's source identity.", calls: ["attachEvidence"], pendingSync: true },
+  "w2a.retry-row": { l: "Retry this upload", to: "screen:W2a@queued", info: "Per-row retry — a failed proof job stays visible with a retry (up to MAX_RETRIES=5); media is never silently dropped (UX:218)." },
+  "w2a.done": { l: "Done", to: "screen:W2@evidence-submitted", info: "Returns to the commitment with the queued or sent proof row still visible." },
 };
 
 // ---------------------------------------------------------------------------
@@ -2368,7 +2368,7 @@ type W3Member = { name: string; sub?: string; photo?: number };
 // paragraph jumped as soon as you added someone).
 const w3TeamSection = (members: W3Member[]) =>
   sectionTitle("Team", hot("w3.team", btn("", { kind: "ghost", sm: true, icon: "add-line", ariaLabel: "Add people to the team" }))) +
-  `<div class="t-meta">Anyone you add can add evidence and submit work.</div>` +
+  `<div class="t-meta">Anyone you add can add proof and submit work.</div>` +
   memberTrail([
     memberCard({ name: "Maria", sub: "maria.eth", photo: 3, role: "Lead", lead: true }),
     ...members.map((m) => memberCard({ ...m, role: "Contributor", removeHotId: "w3.team-remove" })),
@@ -2457,13 +2457,15 @@ const w3Review = (opts: {
   team?: string;
   advanced: { hot: string; label: string; value: string };
 }) =>
+  `<div class="revw">` +
   `<div class="h6s">Details</div>` +
   formCard("plant-line", "Garden", `${opts.garden} · ${opts.gardenMeta}`) +
   formCard(opts.lead.icon, opts.asking ? "What you're asking for" : "What you're committing to", `${opts.lead.primary} · ${opts.lead.meta}`) +
   opts.details.map((d) => formCard(d.icon, d.label, d.value)).join("") +
   hot(opts.advanced.hot, formCard("shield-check-line", opts.advanced.label, opts.advanced.value)) +
   (opts.team ? sectionCard("Team", opts.team, { flush: true }) : "") +
-  (opts.media ? sectionCard("Media", opts.media, { flush: true }) : "");
+  (opts.media ? sectionCard("Media", opts.media, { flush: true }) : "") +
+  `</div>`;
 
 
 function w3(state: W3State): string {
@@ -2565,7 +2567,7 @@ function w3(state: W3State): string {
         card(`${kv("Ordinary confirmation", "Offer recipient confirms")}${kv("Limit", "Choose up to the current confirmer limit, read from MAX_CONFIRMERS on the deployed module rather than a number drawn here")}`),
         hot("w3.confirmer-group", field("Named group", input("None, add people to require more than one confirmation", { select: true }))),
         hot("w3.protocol-fallback", `<label class="arow" style="align-items:flex-start"><input type="checkbox" aria-label="Let the Green Goods team confirm if nobody local is eligible" checked style="margin-top:4px"><span class="grow"><b>Let the Green Goods team confirm if nobody local is eligible</b><span class="t-meta" style="display:block">On for this pilot. Usable only while nobody local can confirm, always with a recorded reason, and never by a contributor.</span></span></label>`),
-        field("Needs an assessment", radio([{ label: "No", meta: "evidence and confirmation carry the proof", on: true }, { label: "Yes", meta: "an evaluator attaches a qualifying assessment" }], { interactive: true, name: "requires-assessment" })),
+        field("Needs an assessment", radio([{ label: "No", meta: "proof and confirmation carry the proof", on: true }, { label: "Yes", meta: "an evaluator attaches a qualifying assessment" }], { interactive: true, name: "requires-assessment" })),
       );
       actions = hot("w3.advanced-done", btn("Back to Review", { kind: "pri", full: true }));
       break;
@@ -2648,9 +2650,9 @@ function w3(state: W3State): string {
             { icon: "refresh-line", label: "How often", value: "Just once" },
             { icon: "group-line", label: "Team", value: "Open to anyone eligible" },
           ],
-          advanced: { hot: "w3.advanced", label: "Who confirms", value: "Whoever takes it up confirms it. A service names no garden actions, so evidence and that person carry the proof." },
+          advanced: { hot: "w3.advanced", label: "Who confirms", value: "Whoever takes it up confirms it. A service names no garden actions, so proof and that person carry the proof." },
         }),
-        `<div class="t-meta">Service offers name no garden actions. Evidence and the person you help carry the proof.</div>`,
+        `<div class="t-meta">Service offers name no garden actions. Proof and the person you help carry the proof.</div>`,
       );
       actions = hot("w3.submit-support", btn("Make This Offer", { kind: "pri", full: true }));
       break;
@@ -2663,7 +2665,7 @@ function w3(state: W3State): string {
         pickRow([{ label: "1", on: true }, { label: "2" }, { label: "3" }, { label: "4" }, { label: "6" }, { label: "custom…" }]),
         `<div class="t-meta">Tap what fits. The keyboard opens only for a custom unit or amount.</div>`,
         w3Due("Runs with the campaign · through Aug 30"),
-        banner("A service offer names no garden actions. Evidence and the person you help carry the proof.", "stone", "shield-check-line"),
+        banner("A service offer names no garden actions. Proof and the person you help carry the proof.", "stone", "shield-check-line"),
       );
       actions = hot("w3.continue-support-howmuch", btn("Continue", { kind: "pri", full: true }));
       break;
@@ -2685,7 +2687,7 @@ function w3(state: W3State): string {
       content = pagepad(
         sectionTitle("What kind?"),
         kindCards([
-          { icon: "hand-heart-line", label: "Help or a service", meta: "rides, meals, repairs, confirmed by evidence", on: true },
+          { icon: "hand-heart-line", label: "Help or a service", meta: "rides, meals, repairs, confirmed by proof", on: true },
           { icon: "leaf-line", label: "Garden work", meta: "counts toward the garden's actions", hot: "w3.request-choose-work" },
         ]),
         w3Scope("Season of First Rains"),
@@ -2719,7 +2721,7 @@ function w3(state: W3State): string {
       content = pagepad(
         sectionTitle("What kind?"),
         kindCards([
-          { icon: "hand-heart-line", label: "Help or a service", meta: "rides, meals, repairs, confirmed by evidence", hot: "w3.request-choose-service" },
+          { icon: "hand-heart-line", label: "Help or a service", meta: "rides, meals, repairs, confirmed by proof", hot: "w3.request-choose-service" },
           { icon: "leaf-line", label: "Garden work", meta: "counts toward the garden's actions", on: true },
         ]),
         `<div class="t-meta">Garden work names the actions it needs. They appear on the next step, beside the amount.</div>`,
@@ -2788,9 +2790,9 @@ function w3(state: W3State): string {
             { icon: "seedling-line", label: "Where it runs", value: "Season of First Rains" },
             { icon: "user-line", label: "Who can take it up", value: "Open to anyone here. The first neighbour to say “I can help” takes it" },
           ],
-          advanced: { hot: "w3.advanced", label: "Who confirms", value: "You, because it was your request. Evidence and you carry the proof." },
+          advanced: { hot: "w3.advanced", label: "Who confirms", value: "You, because it was your request. Proof and you carry the proof." },
         }),
-        `<div class="t-meta">A service request names no garden actions, evidence and you, the requester, carry the proof.</div>`,
+        `<div class="t-meta">A service request names no garden actions, proof and you, the requester, carry the proof.</div>`,
       );
       actions = hot("w3.submit-request", btn("Make This Request", { kind: "pri", full: true }));
       break;
@@ -2815,7 +2817,7 @@ function w3(state: W3State): string {
         card(`${kv("Direction", "Offer")}${kv("Kind", "Support / service")}${kv("Garden", "Rocinha Community Garden")}${kv("Cycle", "Season of First Rains")}${kv("Title", "Hosting climate workshops")}${kv("What people receive", "A two-hour session on local climate work")}${kv("How much", "1 workshop session")}${kv("Who confirms", "Recipient")}`),
         banner("This makes one ordinary Offer. It will not repeat, create an ongoing Offer, or offer another later.", "stone", "information-line"),
       );
-      actions = `<div class="brow">${hot("w3.edit-saved-offer", btn("Edit", { kind: "ghost" }))}${hot("w3.submit-saved-offer", btn("Make This Offer", { kind: "pri" }))}</div>`;
+      actions = barPair(hot("w3.edit-saved-offer", btn("Edit", { kind: "ghost" })), hot("w3.submit-saved-offer", btn("Make This Offer", { kind: "pri" })));
       break;
     case "saved-offer-queued":
       head = w3Head("Offer it once", 2, 2);
@@ -2943,12 +2945,12 @@ function w3(state: W3State): string {
         sectionTitle("What kind?"),
         kindCards([
           { icon: "leaf-line", label: "Garden work", meta: "counts toward the garden's actions" },
-          { icon: "hand-heart-line", label: "A service", meta: "rides, meals, repairs, confirmed by evidence", on: true },
+          { icon: "hand-heart-line", label: "A service", meta: "rides, meals, repairs, confirmed by proof", on: true },
         ]),
         field("What you're offering", input("Hosting climate workshops")),
         card(
           `<div class="t-title">You have offered this three times</div><div class="t-meta">Made ongoing, what you give from now counts together, and neighbours can see it has been running. The three you already made stay as they are; they cannot be gathered up.</div>` +
-            `<div class="brow">${hot("w3.repeat-make-ongoing", btn("Make it Ongoing", { kind: "pri" }))}${hot("w3.repeat-keep-once", btn("Keep it a One-off", { kind: "ghost" }))}</div>`,
+            barPair(hot("w3.repeat-make-ongoing", btn("Make it Ongoing", { kind: "pri" })), hot("w3.repeat-keep-once", btn("Keep it a One-off", { kind: "ghost" }))),
           { cls: "inset" },
         ),
         w3Scope("Season of First Rains"),
@@ -2982,7 +2984,7 @@ function w3(state: W3State): string {
         sectionTitle("What kind?"),
         kindCards([
           { icon: "leaf-line", label: "Garden work", meta: "counts toward the garden's actions", on: true },
-          { icon: "hand-heart-line", label: "A service", meta: "rides, meals, repairs, confirmed by evidence", hot: "w3.choose-support" },
+          { icon: "hand-heart-line", label: "A service", meta: "rides, meals, repairs, confirmed by proof", hot: "w3.choose-support" },
         ]),
         w3HowOften(),
         w3Scope("Season of First Rains"),
@@ -3017,7 +3019,7 @@ const W3_HOTS: HifiDef["hots"] = {
   "w3.preview-save": { l: "Download image", info: "Saves the photo to the device. The shipped dialog offers this on every viewport — a gardener who attached evidence from one phone often needs the file on another." },
   "w3.preview-next": { l: "Next photo", info: "Steps to the second attached photo. Drawn as a static arrow here; the shipped dialog also swipes, and arrows appear only when there IS a next." },
   "w3.contributor-policy": { l: "Contributor policy", info: "Chooses the immutable Open or LeadManaged roster policy before creation; the final review repeats the selected join rule." },
-  "w3.choose-support": { l: "Choose Support / service", to: "screen:W3@support-howmuch", info: "Chooses the evidence-only SupportService offer path. It keeps the amount step and skips only DomainImpact action anchors (UX:156)." },
+  "w3.choose-support": { l: "Choose Support / service", to: "screen:W3@support-howmuch", info: "Chooses the proof-only SupportService offer path. It keeps the amount step and skips only DomainImpact action anchors (UX:156)." },
   "w3.continue-support-howmuch": { l: "Continue to details", to: "screen:W3@support-details", info: "Carries the chip-picked service unit and quantity straight into review; due defaults to the campaign end, and the confirmer default and pilot fallback are already set (UX §5.4, amended 2026-08-10; tap-first register #95)." },
   "w3.cycle": { l: "Where it runs", info: "Every commitment names its cycle. One field on step 1 of every path since 2026-08-16 (round 12, Afo): it used to be field(\"Season\") on step 1 for garden work, field(\"Campaign\") on step 2 for services and field(\"Scope\") on step 2 for ongoing — one thing under three names in two places. Seasons and campaigns are both cycles, and this pool runs both, so the choice is real rather than a bound value dressed as one (UX:127, amended 2026-08-10)." },
   // The details step's forward edges — one per path, because each continues to
@@ -3026,7 +3028,7 @@ const W3_HOTS: HifiDef["hots"] = {
   "w3.continue-details": { l: "Continue to review", to: "screen:W3@step-review", info: "Details → review. Adding photos, a voice note or a link is step 3 of four on every path since 2026-08-16 (round 12, Afo): it used to be an unnumbered detour off step 1 that highlighted step 1's dot while you were on it, so the flow never committed the step and it was easy to miss that evidence was possible at all. Payload → commitment-metadata JSON v1 → metadataCID; creation metadata is write-once, anything added later rides evidence." },
   "w3.continue-support-details": { l: "Continue to review", to: "screen:W3@support-review", info: "The service offer's details step → its review. Same body as the garden-work step; only the fixture differs." },
   "w3.continue-support-details-ongoing": { l: "Continue to review", to: "screen:W3@support-review-ongoing", info: "The ongoing offer's details step → the review that starts the series and its first commitments together." },
-  "w3.continue-request-details": { l: "Continue to review", to: "screen:W3@request-review", info: "The ask's details step → its review. An ask has nothing done yet, so what attaches here is context for whoever takes it up — the evidence arrives with the work." },
+  "w3.continue-request-details": { l: "Continue to review", to: "screen:W3@request-review", info: "The ask's details step → its review. An ask has nothing done yet, so what attaches here is context for whoever takes it up — the proof arrives with the work." },
   "w3.continue-request-details-steward": { l: "Continue to review", to: "screen:W3@request-review-steward", info: "The steward ask's details step → the five-step review carrying declared G$ support." },
   "w3.continue-request-work-details": { l: "Continue to review", to: "screen:W3@request-work-review", info: "The garden-work ask's details step → its review." },
   "w3.continue-what": { l: "Continue to amount", to: "screen:W3@step-howmuch", info: "What + cycle scope → amount (UX:154-155)." },
@@ -3068,7 +3070,7 @@ const W3_HOTS: HifiDef["hots"] = {
   "w3.remove-detail": { l: "Remove this item", info: "Items can be removed until the commitment sends; nothing uploads before then." },
   "w3.template": { l: "More suggestions", to: "screen:W31", info: "Prefill layer (Appendix E.2 as amended 2026-08-11): choosing a template only prefills these fields and returns here — the picker is no longer a gate before the form and never says “create a commitment”. Since 2026-08-16 it is the tail chip of the title suggestions rather than its own row: the chips and the picker were two mechanisms for one intent, and the row made step 1 heavier for it." },
   "w3.pick-action": { l: "Add this action", info: "Tap-first action cards from the garden's own registry: tapping adds the action with count 1; tapping a chosen card changes its count — 1 · 2 · 4 · custom (2026-08-11 correction pass)." },
-  "w3.request-choose-service": { l: "Choose help or a service", to: "screen:W3@request-what", info: "Switches the ask back to the evidence-confirmed service cast; entered values are kept." },
+  "w3.request-choose-service": { l: "Choose help or a service", to: "screen:W3@request-what", info: "Switches the ask back to the proof-confirmed service cast; entered values are kept." },
   "w3.choose-ongoing": { l: "Choose Ongoing", to: "screen:W3@support-howmuch-ongoing", info: "How often moved to step 1 beside the kind cards (2026-08-16 round 12, Afo): as a field at the BOTTOM of step 2 the fork was discovered only after everything had been filled in for a one-off. Choosing Ongoing carries the how-many block into step 2; one submission later runs the series creation plus its first commitment creations as an ordered queue sequence. Drawn in the service cast, which is where the ongoing fixture lives." },
   "w3.continue-support-howmuch-ongoing": { l: "Continue to details", to: "screen:W3@support-details-ongoing", info: "Amount + how many → the ongoing review, whose open-commitments section repeats what will open." },
   "w3.submit-ongoing": { l: "Start this ongoing offer", to: "screen:W1@ongoing-queued", info: "One ordered queue sequence: createCommitmentSeries, then the first commitment creations. The ongoing Offer appears pending in Things I can offer; they count as available only after their own creations sync and reserve capacity (Appendix F.2 as amended 2026-08-11).", calls: ["createCommitmentSeries", "createCommitment"], facts: { pool: "Open" }, pendingSync: true },
@@ -3151,7 +3153,7 @@ function w4(state: W4State): string {
   switch (state) {
     case "confirm-request":
       title = "Did the help arrive?";
-      inner = `${summary}${listRow({ icon: "image-line", primary: "Evidence", meta: "1 item · photo from the market" })}${meter(0, { left: "confirmations", right: "0 of 1" })}${exclusion}${hot("w4.confirm-request", btn("Confirm Help Arrived", { kind: "pri", full: true }))}${hot("w4.not-yet-request", btn("Tell the Stewards Why", { kind: "sec", full: true }))}`;
+      inner = `${summary}${listRow({ icon: "image-line", primary: "Proof", meta: "1 item · photo from the market" })}${meter(0, { left: "confirmations", right: "0 of 1" })}${exclusion}${hot("w4.confirm-request", btn("Confirm Help Arrived", { kind: "pri", full: true }))}${hot("w4.not-yet-request", btn("Tell the Stewards Why", { kind: "sec", full: true }))}`;
       break;
     case "confirm-request-work":
       title = "Was the work you asked for done?";
@@ -3159,13 +3161,13 @@ function w4(state: W4State): string {
       break;
     case "confirm-campaign-request":
       title = "Did the Campaign help arrive?";
-      inner = `${summary}${listRow({ icon: "image-line", primary: "Evidence", meta: "1 item · photo from the market" })}${meter(0, { left: "confirmations", right: "0 of 1" })}${exclusion}${hot("w4.confirm-campaign-request", btn("Confirm Help Arrived", { kind: "pri", full: true }))}${hot("w4.not-yet-campaign-request", btn("Tell the Stewards Why", { kind: "sec", full: true }))}`;
+      inner = `${summary}${listRow({ icon: "image-line", primary: "Proof", meta: "1 item · photo from the market" })}${meter(0, { left: "confirmations", right: "0 of 1" })}${exclusion}${hot("w4.confirm-campaign-request", btn("Confirm Help Arrived", { kind: "pri", full: true }))}${hot("w4.not-yet-campaign-request", btn("Tell the Stewards Why", { kind: "sec", full: true }))}`;
       break;
     case "confirm-support":
-      inner = `${summary}${listRow({ icon: "image-line", primary: "Evidence", meta: "1 item · repaired handles" })}${meter(0, { left: "confirmations", right: "0 of 1" })}${exclusion}${hot("w4.confirm-support", btn("Confirm Commitment Kept", { kind: "pri", full: true }))}${hot("w4.not-yet-support", btn("Tell the Stewards Why", { kind: "sec", full: true }))}`;
+      inner = `${summary}${listRow({ icon: "image-line", primary: "Proof", meta: "1 item · repaired handles" })}${meter(0, { left: "confirmations", right: "0 of 1" })}${exclusion}${hot("w4.confirm-support", btn("Confirm Commitment Kept", { kind: "pri", full: true }))}${hot("w4.not-yet-support", btn("Tell the Stewards Why", { kind: "sec", full: true }))}`;
       break;
     case "confirm-captured":
-      inner = `${summary}${listRow({ icon: "image-line", primary: "Evidence", meta: "1 item · workshop photo" })}${meter(0, { left: "confirmations", right: "0 of 1" })}${exclusion}${hot("w4.confirm-captured", btn("Confirm Commitment Kept", { kind: "pri", full: true }))}${hot("w4.not-yet-captured", btn("Tell the Stewards Why", { kind: "sec", full: true }))}`;
+      inner = `${summary}${listRow({ icon: "image-line", primary: "Proof", meta: "1 item · workshop photo" })}${meter(0, { left: "confirmations", right: "0 of 1" })}${exclusion}${hot("w4.confirm-captured", btn("Confirm Commitment Kept", { kind: "pri", full: true }))}${hot("w4.not-yet-captured", btn("Tell the Stewards Why", { kind: "sec", full: true }))}`;
       break;
     case "not-yet":
     case "not-yet-support":
@@ -3255,7 +3257,7 @@ function w4(state: W4State): string {
       inner = `${summary}${confirmMeter}${exclusion}<div class="t-meta">Waiting on João and Ana. You'll see it here the moment they confirm.</div>`;
       break;
     default:
-      inner = `${summary}${listRow({ icon: "check-line", primary: "Linked work", meta: "1 approved · evidence: 2 items" })}${confirmMeter}${exclusion}${hot("w4.confirm", btn("Confirm Commitment Kept", { kind: "pri", full: true }))}${hot("w4.not-yet", btn("Tell the Stewards Why", { kind: "sec", full: true }))}`;
+      inner = `${summary}${listRow({ icon: "check-line", primary: "Linked work", meta: "1 approved · proof: 2 items" })}${confirmMeter}${exclusion}${hot("w4.confirm", btn("Confirm Commitment Kept", { kind: "pri", full: true }))}${hot("w4.not-yet", btn("Tell the Stewards Why", { kind: "sec", full: true }))}`;
   }
   // The confirmation sheet joins the flow grammar through its HEADER rather
   // than a FormInfo card, because a sheet already owns its title (round 11).
@@ -3276,12 +3278,12 @@ function w4(state: W4State): string {
 
 const W4_HOTS: HifiDef["hots"] = {
   "w4.confirm": { l: "Confirm — commitment kept", to: "screen:W4@confirmed-pending", info: "Positive-only confirmation job; the Nth confirmation flips Fulfilled after the queued confirmation syncs (CS:139).", calls: ["confirmFulfillment"], pendingSync: true },
-  "w4.confirm-support": { l: "Confirm — commitment kept", to: "screen:W4@confirmed-pending-support", info: "The recipient confirms the evidence-only service commitment; fulfillment appears only after sync.", calls: ["confirmFulfillment"], pendingSync: true },
+  "w4.confirm-support": { l: "Confirm — commitment kept", to: "screen:W4@confirmed-pending-support", info: "The recipient confirms the proof-only service commitment; fulfillment appears only after sync.", calls: ["confirmFulfillment"], pendingSync: true },
   "w4.confirm-request": { l: "Confirm — help arrived", to: "screen:W4@confirmed-pending-request", info: "The request creator confirms the claimant's help; fulfillment appears only after sync.", calls: ["confirmFulfillment"], pendingSync: true },
   "w4.confirm-request-work": { l: "Confirm — the work was done", to: "screen:W4@confirmed-pending-request-work", info: "The asker confirms a DomainImpact Request whose proof was approved Work, not evidence; fulfillment appears only after sync (register #97a).", calls: ["confirmFulfillment"], pendingSync: true },
-  "w4.not-yet-request-work": { l: "Not yet", to: "screen:W4@not-yet-request", info: "The same reason-required steward review as every other Not yet. The drawn landing reuses the evidence-only request fixture per the declared dispute-variant convention (prototypes-coverage §Presentation coverage) — the raiseDispute call and the ask's DomainImpact kind are unchanged in the app; only the drawn fixture is shared." },
+  "w4.not-yet-request-work": { l: "Not yet", to: "screen:W4@not-yet-request", info: "The same reason-required steward review as every other Not yet. The drawn landing reuses the proof-only request fixture per the declared dispute-variant convention (prototypes-coverage §Presentation coverage) — the raiseDispute call and the ask's DomainImpact kind are unchanged in the app; only the drawn fixture is shared." },
   "w4.confirm-campaign-request": { l: "Confirm — Campaign help arrived", to: "screen:W4@confirmed-pending-campaign-request", info: "The request creator confirms the Campaign-scoped request without losing that Campaign binding.", calls: ["confirmFulfillment"], pendingSync: true },
-  "w4.confirm-captured": { l: "Confirm — recorded commitment kept", to: "screen:W4@confirmed-pending-captured", info: "The named counterparty confirms the evidence-only StewardCaptured commitment.", calls: ["confirmFulfillment"], pendingSync: true },
+  "w4.confirm-captured": { l: "Confirm — recorded commitment kept", to: "screen:W4@confirmed-pending-captured", info: "The named counterparty confirms the proof-only StewardCaptured commitment.", calls: ["confirmFulfillment"], pendingSync: true },
   "w4.not-yet": { l: "Not yet", to: "screen:W4@not-yet", info: "Requires a reason → online steward review. It never cancels the commitment (UX:167)." },
   "w4.not-yet-support": { l: "Not yet — service", to: "screen:W4@not-yet-support", info: "Keeps the service-offer cast while collecting the required dispute reason." },
   "w4.not-yet-request": { l: "Not yet — request", to: "screen:W4@not-yet-request", info: "Keeps the request cast while collecting the required dispute reason." },
@@ -3516,7 +3518,7 @@ function w32(state: W32State): string {
           listRow({ icon: "sticky-note-line", primary: "Hosting climate workshops", meta: "Draft retained · nothing lost", chipHtml: chip("Not saved", "err") }),
           { cls: "flat" },
         ),
-        `<div class="brow">${hot("w32.retry-save", btn("Try Saving Again", { kind: "pri", icon: "refresh-line" }))}${hot("w32.keep-editing", btn("Keep Editing", { kind: "ghost" }))}</div>`,
+        barPair(hot("w32.retry-save", btn("Try Saving Again", { kind: "pri", icon: "refresh-line" })), hot("w32.keep-editing", btn("Keep Editing", { kind: "ghost" }))),
       )}`;
       break;
     case "offline-local":
@@ -3528,7 +3530,7 @@ function w32(state: W32State): string {
           { cls: "flat" },
         ),
         hot("w32.use-local-offline", btn("Use This Draft", { kind: "pri", full: true })),
-        `<div class="brow">${hot("w32.retry-save-online", btn("Try When Connected", { kind: "sec", icon: "refresh-line" }))}${hot("w32.keep-editing", btn("Keep Editing", { kind: "ghost" }))}</div>`,
+        barPair(hot("w32.retry-save-online", btn("Try When Connected", { kind: "sec", icon: "refresh-line" })), hot("w32.keep-editing", btn("Keep Editing", { kind: "ghost" }))),
       )}`;
       break;
     case "version-conflict":
@@ -3536,7 +3538,7 @@ function w32(state: W32State): string {
         intro,
         banner("A newer saved version exists. Your local edits are still on this device.", "amber", "refresh-line"),
         card(`${kv("Saved account copy", "newer")}${kv("This device", "local edits retained")}`, { cls: "flat" }),
-        `<div class="brow">${hot("w32.reload-remote", btn("Use Saved Version", { kind: "pri" }))}${hot("w32.keep-local-copy", btn("Keep a Local Copy", { kind: "ghost" }))}</div>`,
+        barPair(hot("w32.reload-remote", btn("Use Saved Version", { kind: "pri" })), hot("w32.keep-local-copy", btn("Keep a Local Copy", { kind: "ghost" }))),
         hot("w32.overwrite-current", btn("Replace the Saved Version…", { kind: "danger", full: true })),
       )}`;
       break;
@@ -3946,18 +3948,18 @@ function w34(state: W34State): string {
           { cls: "flat" },
         ),
         sectionCard("Details", `${detailRow("Available now", "1 open")}${detailRow("Needs attention", "1 open")}`),
-        `<div class="brow">${hot("w34.retry-failed-place", btn("Try the Failed One Again", { kind: "pri", icon: "refresh-line" }))}${hot("w34.discard-failed-place", btn("Discard the Failed One", { kind: "ghost" }))}</div>`,
+        barPair(hot("w34.retry-failed-place", btn("Try the Failed One Again", { kind: "pri", icon: "refresh-line" })), hot("w34.discard-failed-place", btn("Discard the Failed One", { kind: "ghost" }))),
       )}`;
       break;
     case "story":
       body = `${w34Head()}${pagepad(
         w34Identity({ state: "Active", tone: "offer" }),
         w34Record(),
-        card(`<div class="t-title num">Kept 12 times across 5 cycles</div><div class="t-meta">Every entry below is its own commitment, with its own evidence and confirmation. Nothing here is a rating.</div>`),
+        card(`<div class="t-title num">Kept 12 times across 5 cycles</div><div class="t-meta">Every entry below is its own commitment, with its own proof and confirmation. Nothing here is a rating.</div>`),
         sectionTitle("This offer's story"),
         card(w34StoryTimeline(), { cls: "flat" }),
         hot("w34.story-row", btn("Open the July Session", { kind: "ghost", full: true })),
-        `<div class="t-meta">Reported participants come from what people wrote in their evidence, not from the record itself.</div>`,
+        `<div class="t-meta">Reported participants come from what people wrote in their proof, not from the record itself.</div>`,
       )}`;
       break;
     case "participation":
@@ -3965,7 +3967,7 @@ function w34(state: W34State): string {
         w34Identity({ state: "Active", tone: "offer" }),
         w34Record(),
         sectionTitle("This offer's story"),
-        sectionCard("Details", `${detailRow("Kept", "12 times across 5 cycles")}${detailRow("Withdrawn or ran out", "2")}${detailRow("Reported participants", "31 · from evidence notes")}`),
+        sectionCard("Details", `${detailRow("Kept", "12 times across 5 cycles")}${detailRow("Withdrawn or ran out", "2")}${detailRow("Reported participants", "31 · from proof notes")}`),
         `<div class="t-meta">One offer, in this garden, over time.</div>`,
         sectionTitle("Your part in this pool"),
         sectionCard("Details", `${detailRow("Kept", "18 commitments")}${detailRow("Taken up from others", "7")}${detailRow("Confirmations you gave", "23")}`),
@@ -3979,7 +3981,7 @@ function w34(state: W34State): string {
         w34Record(),
         card(
           `<div class="t-title">A new season is open</div><div class="t-meta">Season of Long Rains started on Sep 1. Would you like to offer workshop sessions again?</div>` +
-            `<div class="brow">${hot("w34.ask-again-yes", btn("Offer Another", { kind: "pri", icon: "add-line" }))}${hot("w34.ask-again-not-now", btn("Not This Season", { kind: "ghost" }))}</div>`,
+            barPair(hot("w34.ask-again-yes", btn("Offer Another", { kind: "pri", icon: "add-line" })), hot("w34.ask-again-not-now", btn("Not This Season", { kind: "ghost" }))),
         ),
         `<div class="t-meta">Nothing is created until you choose. Saying no changes nothing about this offer or its story.</div>`,
         sectionCard("Details", `${detailRow("Kept", "12 times across 5 cycles")}${detailRow("Open now", "None")}`),
@@ -4043,7 +4045,7 @@ function w34(state: W34State): string {
       body = `${w34Head()}${pagepad(
         w34Identity({ state: "Active · pool composted", tone: "ink" }),
         banner("This pool is composted for now. Its history remains readable, and its stewards may reopen it for another season.", "stone", "leaf-line"),
-        card(`<div class="t-title num">Kept 12 times across 5 cycles</div><div class="t-meta">Past commitments and evidence remain exactly as recorded. Nothing can be opened or taken up.</div>`),
+        card(`<div class="t-title num">Kept 12 times across 5 cycles</div><div class="t-meta">Past commitments and proof remain exactly as recorded. Nothing can be opened or taken up.</div>`),
         hot("w34.open-composted-pool", btn("View the Composted Pool", { kind: "ghost", full: true })),
       )}`;
       break;
@@ -4085,7 +4087,7 @@ function w34(state: W34State): string {
           card(
             `${kv("What is already open", "Stays open and can still be taken up")}${kv("What you have given", "Stays exactly as it is")}${kv("Your saved details", "Stay saved privately to you")}`,
           ) +
-          `<div class="brow">${hot("w34.stop-confirm", btn("Stop Offering", { kind: "pri" }))}${hot("w34.stop-cancel", btn("Keep Offering", { kind: "ghost" }))}</div>`,
+          barPair(hot("w34.stop-confirm", btn("Stop Offering", { kind: "pri" })), hot("w34.stop-cancel", btn("Keep Offering", { kind: "ghost" }))),
       );
       break;
     case "edit-stopped":
@@ -4155,7 +4157,7 @@ const W34_HOTS: HifiDef["hots"] = {
   "w34.save-edit-stopped": { l: "Save details", to: "screen:W34@stopped", info: "Calls updateCommitmentSeriesMetadata. It does not start the offer again or rewrite anything already open.", calls: ["updateCommitmentSeriesMetadata"] },
   "w34.add-places": { l: "Offer another", to: "screen:W35@compose", info: "Makes another commitment under this ongoing offer, with the same terms. The series itself is never takeable; only the commitments it produces are, and creating one reserves your provider capacity straight away, which is why this is a real act rather than a display toggle. \"Open\" was borrowed from the retired places vocabulary and never explained itself (2026-08-17, Afo)." },
   "w34.open-story": { l: "See the whole story", to: "screen:W34@story", info: "Exact linked-instance history and absolute counts. Never a rate, rank, or comparison." },
-  "w34.story-row": { l: "Open one kept commitment", to: "screen:W2@fulfilled", info: "Every story row is an ordinary immutable Commitment with its own evidence and confirmation." },
+  "w34.story-row": { l: "Open one kept commitment", to: "screen:W2@fulfilled", info: "Every story row is an ordinary immutable Commitment with its own proof and confirmation." },
   "w34.claim": { l: "Take one up", to: "screen:W2@support-accepted", info: "Accepts one already-created Offered service instance. No new commitment is created, no second provider slot is consumed, and the instance stays Accepted until Work or evidence lands.", calls: ["claimCommitment"] },
   "w34.open-paused-pool": { l: "View the paused pool", to: "screen:W1@paused", info: "Shows the pool-level pause reason and steward-owned resume path. The series and existing instances remain intact, but Add and claim stay disabled." },
   "w34.open-closed-pool": { l: "View the closed pool", to: "screen:W1@closed", info: "Shows the closed pool state. Reopening is a steward action; the ongoing Offer detail does not fabricate a gardener write." },
@@ -4217,7 +4219,7 @@ function w35(state: W35State): string {
           { cls: "flat" },
         ),
         card(`${kv("Available now", "1 open")}${kv("Needs attention", "1 open")}`),
-        `<div class="brow">${hot("w35.retry-failed", btn("Try the Failed One Again", { kind: "pri", icon: "refresh-line" }))}${hot("w35.discard-failed", btn("Discard the Failed One", { kind: "ghost" }))}</div>`,
+        barPair(hot("w35.retry-failed", btn("Try the Failed One Again", { kind: "pri", icon: "refresh-line" })), hot("w35.discard-failed", btn("Discard the Failed One", { kind: "ghost" }))),
         hot("w35.mixed-failed-done", btn("Back to This Offer", { kind: "ghost", full: true })),
       )}`;
       break;
@@ -4305,7 +4307,7 @@ export const CLIENT_DEFS: HifiDef[] = [
   { ...mk("W1C", "W1C · Season or campaign", W1C_STATES, w1c), hots: W1C_HOTS },
   { ...mk("W2", "W2 · Commitment detail", W2_STATES, w2, w2Facts, new Set(), w2Group), hots: W2_HOTS },
   { ...mk("W2b", "W2b · Team and contributions", W2B_STATES, w2b), hots: W2B_HOTS },
-  { ...mk("W2a", "W2a · Evidence (Media → Details → Review)", [
+  { ...mk("W2a", "W2a · Proof (Media → Details → Review)", [
     ["media", "1 · Media"], ["media-preview", "1 · Media — image preview"], ["details", "2 · Details"],
     ["review", "3 · Review — garden work"], ["review-request", "3 · Review — a request"],
     ["review-campaign-request", "3 · Review — Campaign request"],

@@ -29,6 +29,15 @@ ${opts.overlay ?? ""}${bottomBar}
 // never two stacked full buttons; detour affordances belong in page content).
 // validate.ts rejects a bar carrying two full-width buttons. Pass the result
 // as phoneFrame's appBar so it sits between the scroll and homebar.
+// Two acts in a bar are equal halves (2026-08-17, Afo). Sized to their text they
+// came out at 131 and 124 in a 358px bar, so the pair looked ragged and the
+// target position moved from screen to screen. This wraps them as ONE element,
+// which also keeps the capture bar's icon run out of the rule: that is a run,
+// not a pair.
+export function barPair(a: string, b: string): string {
+  return `<div class="fpair">${a}${b}</div>`;
+}
+
 export function actionBar(primary: string, secondary?: string): string {
   return `<div class="fbar">${secondary ?? ""}${primary}</div>`;
 }
@@ -155,7 +164,7 @@ export function stateChip(state: string): string {
   const map: Record<string, [SbTone, string]> = {
     Offered: ["neutral", "time-line"], Requested: ["neutral", "time-line"],
     Accepted: ["info", "hand-heart-line"], Active: ["info", "leaf-line"],
-    "Evidence in": ["warning", "image-line"], "Partly approved": ["warning", "time-line"],
+    "Proof in": ["warning", "image-line"], "Partly approved": ["warning", "time-line"],
     "Ready to confirm": ["warning", "time-line"], Fulfilled: ["success", "checkbox-circle-fill"],
     Reconciled: ["neutral", "seedling-line"], Cancelled: ["neutral", "close-line"], Expired: ["neutral", "time-line"],
     Withdrawn: ["neutral", "close-line"],
@@ -321,10 +330,10 @@ export function identityCard(opts: {
 // sits below a hairline with NO bar, because on garden work it credits the
 // people who helped without moving readiness at all (contract-spec: attachEvidence
 // has no kind gate, but submitForConfirmation rejects DomainImpact). On a service
-// the evidence line IS the readiness path, so it stands alone.
+// the proof line IS the readiness path, so it stands alone.
 export function progressBlock(opts: {
   rows?: { label: string; done: number; of: number }[];
-  evidence?: string;
+  proof?: string;
   assessment?: string;
   note?: string;
 }): string {
@@ -337,7 +346,7 @@ export function progressBlock(opts: {
     })
     .join("");
   const tail = [
-    opts.evidence ? `<div class="pflat">${icon("image-line", "s")}<span>${esc(opts.evidence)}</span></div>` : "",
+    opts.proof ? `<div class="pflat">${icon("image-line", "s")}<span>${esc(opts.proof)}</span></div>` : "",
     opts.assessment ? `<div class="pflat">${icon("shield-check-line", "s")}<span>${esc(opts.assessment)}</span></div>` : "",
   ].join("");
   return `<div class="h6s">What's been done</div>${bars}${

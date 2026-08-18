@@ -70,7 +70,7 @@ const W15_HOTS: HifiDef["hots"] = {
 // W16 — /impact commitments band + evidence pipeline delta (uiux-spec §7.3)
 // ---------------------------------------------------------------------------
 
-const W16_STATES = [["band", "Commitments band"], ["pipeline-delta", "Evidence pipeline"]] as const;
+const W16_STATES = [["band", "Commitments band"], ["pipeline-delta", "Proof pipeline"]] as const;
 type W16State = (typeof W16_STATES)[number][0];
 
 function w16(state: W16State): string {
@@ -80,7 +80,7 @@ function w16(state: W16State): string {
       .join(`<span class="parr">→</span>`);
     return webWin(
       "greengoods.app/impact",
-      `<span class="kicker">How evidence becomes impact</span>
+      `<span class="kicker">How proof becomes impact</span>
 <h3 class="serif-h">From baseline to certificate</h3>
 ${hot("w16.pipeline", `<div class="pipe">${stages}</div>`)}
 <p style="margin:0;max-width:56ch;color:var(--stone)">Commitment and Confirmation are the two new stages: work begins as a commitment to someone, and the person it was made to confirms it was kept.</p>`,

@@ -102,6 +102,13 @@ export const HIFI_CSS = `
    phoneFrame's header slot sits above the scroll; .fbar sits below it. */
 .hf .hdr.fixed{flex:none;background:var(--cv);border-bottom:1px solid var(--ln);padding-bottom:8px}
 .hf .fbar{flex:none;background:var(--cv);border-top:1px solid var(--ln);padding:10px 16px 12px;display:flex;flex-direction:row;align-items:center;gap:10px}
+.hf .fpair{display:flex;gap:10px;flex:1}
+.hf .fpair > *{flex:1;min-width:0}
+.hf .fpair .b{width:100%}
+/* A review is one stack of facts, so it is one radius. 24px is the BROWSE card
+   radius, which is why a 24px section above a 14px FormCard looked wrong: the
+   review is not a set of cards you tap (2026-08-17, Afo). */
+.hf .revw .card{border-radius:14px}
 .hf .fbar .brow{margin:0}
 /* A secondary row of LABELLED buttons cannot share the primary's line: three
    of them in 390px squeezed Open More to 70px and wrapped it two lines tall. */

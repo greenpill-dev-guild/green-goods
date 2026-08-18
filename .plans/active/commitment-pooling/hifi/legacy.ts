@@ -78,7 +78,7 @@ W2: `┌────────────────────────
 │ ● Ready       . Steward note: "confirmed    │
 │                  on site visit" (override)   │
 ├──────────────────────────────────────────────┤
-│ Evidence                          [ + Add ]  │
+│ Proof                          [ + Add ]  │
 │ ≡ photo, north beds after (Jul 8)           │
 │ ≡ note · "two beds left for next week"       │
 ├──────────────────────────────────────────────┤
@@ -119,7 +119,7 @@ W4: `┌────────────────────────
 │ Commitment kept?                                │
 │ Prune the north beds. Maria · 6 hours       │
 │ Offer · provider Maria · recipient confirms  │
-│ evidence: 2 items · linked work: 1 approved  │
+│ proof: 2 items · linked work: 1 approved  │
 ├──────────────────────────────────────────────┤
 │ Confirmations   ▓▓▓▓▓▓▓░░░  2 of 3           │
 │ ≡ João ✓        ≡ Ana ✓       ≡ you ○        │
@@ -215,7 +215,7 @@ W9: `┌── Record on a member's behalf ────────────�
 W10: `┌── Prune the north beds ──────────────── (Offer)(Ready) ──┐
 │ Maria → João · 6 hours · due Aug 12 · open claim         │
 │ Timeline: Offered → Accepted → Work linked → Ready       │
-│ Evidence (2)  ≡ photo  ≡ note                            │
+│ Proof (2)  ≡ photo  ≡ note                            │
 │ Linked work (1)  ≡ Pruning session (Approved)            │
 │ Provider: Maria (cannot confirm)                          │
 │ Eligible: João ✓ · Ana ○ · you ○   (1 of 2 required)     │
@@ -289,7 +289,7 @@ W21: `┌─ Settlement (Celo) ────────────────�
 │                                                                        │
 │ , once registered —                                                   │
 │ Safe celo:0x9a…4f (active) · balance 1,240 G$ · allowance 500 G$/wk    │
-│ member delivery: enabled · changed by 0x9a…4f · Jul 30 · evidence ↗    │
+│ member delivery: enabled · changed by 0x9a…4f · Jul 30 · proof ↗    │
 │ CCIP: peers configured · native reserves funded · last ack 4m ago      │
 │ Disbursements                                                          │
 │ ≡ settlement 104 / attempt 0   (Queued)             [ dispatch ]       │
@@ -359,7 +359,7 @@ W25: `┌───────────────────────�
 ├──────────────────────────────────────────────┤
 │ → (waiting for review) chip                  │
 │ → accepted: deliver like any commitment         │
-│   work + evidence anchor to YOUR garden      │
+│   work + proof anchor to YOUR garden      │
 │ → confirm via W4 when ready                  │
 └──────────────────────────────────────────────┘`,
 W26: `┌── Close cycle: Season of First Rains ── ● ● ● ○ ─────────┐
@@ -370,7 +370,7 @@ W26: `┌── Close cycle: Season of First Rains ── ● ● ● ○ ──
 │   gardeners 60% · treasury 15% · steward 10%             │
 │   evaluator 5% · community 5% · funder 5%                │
 │ Step 3, Impact certificate                              │
-│   bundle: 7 fulfilled commitments + their work, evidence,   │
+│   bundle: 7 fulfilled commitments + their work, proof,   │
 │   and need lineage → allowlist from the shares above     │
 │   [ Mint impact certificate ]                            │
 │ Step 4, Rest the cycle    [ Reconcile + compost ]       │
@@ -396,7 +396,7 @@ MF5: `│ ≡ ··waiting·· Compost workshop   (Offered)   │
 │   waiting for your garden membership —       │
 │   will send once you're welcomed in          │`,
 MF6: `┌──────────────────────────────────────────────┐
-│ Evidence attached: 1 · no work required      │
+│ Proof attached: 1 · no work required      │
 │ [ Send for confirmation ]                    │
 │ the person this commitment was made to          │
 │ confirms it was kept                         │
@@ -524,7 +524,7 @@ C6: `┌────────────────────────
 │ Needs your confirmation                      │
 │ Market rides · work is ready to review      │
 │ You are the eligible Request creator        │
-│ [Review evidence] [Confirm fulfillment]     │
+│ [Review proof] [Confirm fulfillment]        │
 └──────────────────────────────────────────────┘`,
 C9: `┌──────────────────────────────────────────────────────────────┐
 │ Community / For the gathering                               │
@@ -762,7 +762,7 @@ C5: [
   { m: "[▶ audio]", l: "Play audio", info: "The neighbour's own words stay primary; protocol evidence renders separately (CI-WF:162)." },
 ],
 C6: [
-  { m: "[Review evidence] [Confirm fulfillment]", l: "Eligible confirmation", info: "Author-confirm consumes the shared confirmation primitive; a provider never sees a self-confirm CTA (CI-WF:222)." },
+  { m: "[Review proof] [Confirm fulfillment]", l: "Eligible confirmation", info: "Author-confirm consumes the shared confirmation primitive; a provider never sees a self-confirm CTA (CI-WF:222)." },
   { m: "[Cancel request]*", l: "Cancel request", info: "Shown only after RESR-64 locks a transport with a defined cancellation API (CI-WF:222)." },
 ],
 C9: [

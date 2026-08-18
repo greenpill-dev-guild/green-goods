@@ -88,7 +88,7 @@ ${hot("w12.no-ranking", banner("This workspace shows the Protocol pool and Rocin
           // called Pools, and diverged from the identical card on W7. Same
           // concept, same component, same title (interaction-patterns §5).
           `<div class="t-meta">The container the protocol pool's commitments run in.</div>${kv("Scope", "Green Goods protocol pool")}${kv("Member delivery gate", "")}
-<div class="arow">${hot("w12.gate-status", `<div class="grow"><b>Enabled</b> <span class="t-meta">changed by Dana · Aug 2 · evidence ref 0x91…4c</span></div>`)}${chip("read only", "plain")}</div>
+<div class="arow">${hot("w12.gate-status", `<div class="grow"><b>Enabled</b> <span class="t-meta">changed by Dana · Aug 2 · proof ref 0x91…4c</span></div>`)}${chip("read only", "plain")}</div>
 ${hot("w12.no-ranking", banner("This workspace shows the Protocol pool and Rocinha only. All-garden oversight lives in capability-gated Operations.", "stone"))}
 <div class="actrow">${hot("w12.seed", btn("Seed Commitment", { kind: "sec", sm: true }))}</div>
 <div class="t-meta">Prefilled from protocol templates · steward-reviewed by default.</div>`,
@@ -529,7 +529,7 @@ ${banner("The commitment stays Fulfilled. One failed child delivery never rewrit
     case "gate-status":
       inner = acard(
         "Member delivery gate. Read-only status",
-        `${kv("Member delivery", "enabled")}${kv("Changed by", "0x9a…4f (owner)")}${kv("Date", "Jul 30")}${kv("Evidence", "round-trip check ↗")}
+        `${kv("Member delivery", "enabled")}${kv("Changed by", "0x9a…4f (owner)")}${kv("Date", "Jul 30")}${kv("Proof", "round-trip check ↗")}
 ${banner("The flip itself is owner-only ops. This row keeps the gate legible to every steward.", "stone")}`,
       );
       break;
@@ -551,7 +551,7 @@ ${disclosure(
           "Account status",
           "source · reserves · gate",
           `${kv("Source", "canonical pooling interface pending")}${kv("Fee reserve", "native ETH / CELO monitored")}
-<div class="arow">${hot("w21.gate-row", `<div class="grow">Member delivery: <b>enabled</b> <span class="t-meta">· changed by 0x9a…4f · Jul 30 · evidence ↗</span></div>`)}</div>
+<div class="arow">${hot("w21.gate-row", `<div class="grow">Member delivery: <b>enabled</b> <span class="t-meta">· changed by 0x9a…4f · Jul 30 · proof ↗</span></div>`)}</div>
 <div class="arow"><div class="grow">CCIP: peers configured · command/ack fee reserves monitored</div></div>`,
         )}`,
         hot("w21.create-batch", btn("Create Batch", { kind: "pri", sm: true })),
@@ -989,7 +989,7 @@ ${banner("Read-only. The six-role snapshot locked when this cycle opened.", "sto
       next = hot(h("continue-certificate"), btn("Continue", { kind: "pri" }));
       break;
     case "certificate":
-      inner = `${kv("Bundle", "7 fulfilled commitments + their work, evidence, and need lineage")}${kv("Allowlist", "from the shares above")}${kv("Holder", "the garden account")}
+      inner = `${kv("Bundle", "7 fulfilled commitments + their work, proof, and need lineage")}${kv("Allowlist", "from the shares above")}${kv("Holder", "the garden account")}
 <div class="arow" style="opacity:.55"><div class="grow"><b>Repair tool handles</b> <span class="t-meta">cycle-less commitment</span></div>${chip("No cycle allocation · not certificate eligible", "plain")}</div>
 ${banner("Uses the garden's existing impact-certificate pipeline. A cycle-less commitment is recognition/payment-only. It cannot join a certificate bundle (UX §6.10).", "stone")}`;
       next = hot(h("mint"), btn("Mint Impact Certificate", { kind: "pri" }));

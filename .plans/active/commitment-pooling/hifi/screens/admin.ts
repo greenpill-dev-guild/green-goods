@@ -149,7 +149,7 @@ const w7PoolCard = (state: W7State) => {
                 : state === "paused-cycle-composted"
                   ? banner("The season has finished and the pool is still paused. Resume to prepare another, or close it while keeping the history.", "amber", "error-warning-line")
                   : state === "paused"
-                    ? banner("Paused: “seasonal flooding, back after the rains”. Members keep adding evidence and recovering commitments; making, claiming, and confirming wait.", "amber", "error-warning-line")
+                    ? banner("Paused: “seasonal flooding, back after the rains”. Members keep adding proof and recovering commitments; making, claiming, and confirming wait.", "amber", "error-warning-line")
                     : "";
   // The pool is the CONTAINER — this card is its one home, in the tab's right
   // rail (2026-08-16 decisions 2/3): status, setup facts, lifecycle — clearly
@@ -324,7 +324,7 @@ const W7_COMMITMENT_ROWS: Record<CommitmentScope, string> = {
   })}
 ${commitmentRow({
     title: "Repair tool handles",
-    chips: `${chip("Support", "ink")}${chip("Evidence In", "warn", { dot: true })}${chip("Needs You", "err")}`,
+    chips: `${chip("Support", "ink")}${chip("Proof In", "warn", { dot: true })}${chip("Needs You", "err")}`,
     meta: "Maria → João · 1 session · due Aug 12",
     hotId: "w7.stalled-row",
     chevron: true,
@@ -502,7 +502,7 @@ const W7_DESC: Record<W7State, string> = {
   "not-ready": "This garden isn't taking commitments yet.",
   "preflight-complete": "The starting assessment is in, set up commitments next.",
   ready: "Set up and waiting for its first season.",
-  paused: "Paused for the season. Evidence and recovery stay open.",
+  paused: "Paused for the season. Proof and recovery stay open.",
   "paused-cycle-composted": "The season has composted; the pool remains paused.",
   reconciled: "The season is reconciled. Commitments settled; compost comes next.",
   "cycle-composted": "Every cycle has composted, seed the next one, or close the pool.",
@@ -525,7 +525,7 @@ const W7_DESC: Record<W7State, string> = {
   "close-pool-confirm": "Season of First Rains is live. Offers and requests between neighbours.",
   "paused-close-pool-confirm": "The season has composted; the pool remains paused.",
   "cancel-cycle-confirm": "Season of First Rains is live. Offers and requests between neighbours.",
-  "paused-cancel-cycle-confirm": "Paused for the season. Evidence and recovery stay open.",
+  "paused-cancel-cycle-confirm": "Paused for the season. Proof and recovery stay open.",
   "decline-claim-confirm": "Season of First Rains is live. Offers and requests between neighbours.",
 };
 
@@ -650,7 +650,7 @@ ${banner("Shared memory of this pool's give and take, context for stewarding, no
       )}
 ${acard("How It Went", `${kv("Commitments", finished ? "26 made · 22 kept" : "9 made · 7 kept so far")}${kv("Gardeners taking part", finished ? "9" : "6")}${kv("Domains", "AGRO · WASTE")}`)}
 ${acard("By Unit", `${kv("Hours", finished ? "48 kept" : "27 open · 12 kept")}${kv("Rides", finished ? "12 kept" : "7 open · 6 kept")}${kv("Sessions", finished ? "6 kept" : "4 open · 1 kept")}`)}
-${acard("Recognition Policy", `${kv("Shared equally", "35% among eligible contributors")}${kv("By verified contribution", "65%. Approved work and evidence")}`)}
+${acard("Recognition Policy", `${kv("Shared equally", "35% among eligible contributors")}${kv("By verified contribution", "65%. Approved work and proof")}`)}
 ${banner("Figures cover this cycle alone and are never merged with another pool's. Units stay in their own bases: hours, rides and sessions do not add together.", "stone", "information-line")}`,
     );
 
@@ -733,7 +733,7 @@ const W7_CONFIRMS: Partial<Record<W7State, { title: string; body: string; action
   "pause-confirm": {
     title: "Pause this pool",
     body: w7Confirm(
-      "Pausing stops new commitments, claims, and confirmations for 23 members across 7 open commitments. Evidence, work linkage, and recovery stay open; resuming clears this reason.",
+      "Pausing stops new commitments, claims, and confirmations for 23 members across 7 open commitments. Proof, work linkage, and recovery stay open; resuming clears this reason.",
       "seasonal flooding, back after the rains",
       ["Weather or season", "Group is regrouping", "Safety first"],
     ),
@@ -883,7 +883,7 @@ function w7(state: W7State): string {
     "Activity",
     `${activityRow("w7.activity-offer", "Ana offered 4 hours of weeding", "40 minutes ago")}
 ${activityRow("w7.activity-claim", "João's ride request accepted", "2 hours ago")}
-${activityRow("w7.activity-evidence", "Maria added evidence to Prune the north beds", "6 hours ago")}
+${activityRow("w7.activity-evidence", "Maria added proof to Prune the north beds", "6 hours ago")}
 ${activityRow("w7.activity-work", "Pruning session approved for Prune the north beds", "Jul 8")}`,
   );
   // WHAT THE POOL HOLDS — the pool's contents, which no surface showed before
@@ -1119,7 +1119,7 @@ const W7_HOTS: HifiDef["hots"] = {
   "w7.view-public": { l: "View public", info: "The Garden view's stable action set (garden.utils.ts): opens the garden's public client page in a new tab — a separate context, so a new tab on purpose." },
   "w7.edit-garden": { l: "Edit garden", info: "The Garden view's stable primary (garden.utils.ts): opens the shipped garden settings dialog — name, banner, membership. The pool container's own settings stay on the Pool card in the rail." },
   "w7.commitment-row": { l: "Commitment row", to: "screen:W10", info: "Opens the commitment dialog." },
-  "w7.stalled-row": { l: "Stalled commitment row", to: "screen:W10@accepted", info: "Evidence is in but the recipient cannot confirm — opens the detail whose three exits are mark ready, cancel, and send for confirmation (UX:294)." },
+  "w7.stalled-row": { l: "Stalled commitment row", to: "screen:W10@accepted", info: "Proof is in but the recipient cannot confirm — opens the detail whose three exits are mark ready, cancel, and send for confirmation (UX:294)." },
   "w7.fulfilled-row": { l: "Fulfilled team commitment row", to: "screen:W10@fulfilled", info: "A kept group commitment whose payment is still unplanned — opens the detail where recognition and payment planning begin (SS group-settlement amendment)." },
   "w7.value-row": { l: "Pre-acceptance commitment terms", to: "screen:W10@edit-declared-value", info: "Opens the steward-only records term editor while the Request is still unaccepted." },
   "w7.jump-recovery": { l: "Commitments needing recovery", to: "screen:W7@due-live", info: "Opens the commitment list filtered to the ones stalled or past due — the work only a steward can unstick." },
@@ -1134,7 +1134,7 @@ const W7_HOTS: HifiDef["hots"] = {
   "w7.activity-offer": { l: "Ana's new offer", to: "screen:W10", info: "A commitment arriving is the pool filling up — the feed's most common line once a season opens, and the one it never showed. Opens the offer itself." },
   "w7.all-members": { l: "See everyone in this pool", info: "The roster shows the most active members; the full list is the same rows, paged. Preview-only here — the point is that four rows never read as the whole pool when the header says 23 gardeners." },
   "w7.activity-claim": { l: "João's accepted request", to: "screen:W7@claim-outcomes", info: "Activity lines open what they describe — this one lands on the claim outcomes for that request (2026-08-16 round 5: an update you can't act on is a notification, not a workspace)." },
-  "w7.activity-evidence": { l: "Maria's evidence", to: "screen:W10", info: "Opens the commitment the evidence was added to, with its evidence list and the acts available on it." },
+  "w7.activity-evidence": { l: "Maria's evidence", to: "screen:W10", info: "Opens the commitment the proof was added to, with its proof list and the acts available on it." },
   "w7.activity-work": { l: "Approved pruning session", to: "screen:HUBWORK@approved", info: "Opens the Hub's work queue at the decision that counted toward this commitment." },
   "w7.report-row": { l: "Cycle report", to: "screen:W26@review", info: "Reconciliation report (UX:75)." },
   "w7.seed": { l: "Seed a commitment", to: "screen:W8", info: "Console seeding — SeasonCampaign and steward-captured kinds exist only here (UX:154). Desktop puts creation in the header actions; below 1024px the same action rides the FabButton speed dial (W7M)." },
@@ -1209,7 +1209,7 @@ function w8(state: W8State): string {
   let next: string;
   switch (state) {
     case "step2":
-      inner = `${field("Unit", input("rides", { select: true }))}${field("Target", input("16"))}${field("Due", input("cycle deadline", { select: true }))}${hot("w8.contributor-policy", field("Contributor policy", radio([{ label: "Open team", meta: "eligible garden members may join" }, { label: "Lead-managed team", meta: "the lead or steward manages the roster", on: true }], { interactive: true, name: "seed-contributor-policy" })))}${banner("This campaign commitment is evidence-confirmed, so it has no garden-work action requirements or assessment gate.", "stone")}`;
+      inner = `${field("Unit", input("rides", { select: true }))}${field("Target", input("16"))}${field("Due", input("cycle deadline", { select: true }))}${hot("w8.contributor-policy", field("Contributor policy", radio([{ label: "Open team", meta: "eligible garden members may join" }, { label: "Lead-managed team", meta: "the lead or steward manages the roster", on: true }], { interactive: true, name: "seed-contributor-policy" })))}${banner("This campaign commitment is confirmed by proof, so it has no garden-work action requirements or assessment gate.", "stone")}`;
       next = hot("w8.continue-requirements", btn("Continue", { kind: "pri" }));
       break;
     case "step3":
@@ -1245,7 +1245,7 @@ ${hot("w8.claim-mode", field("Claim mode", radio([{ label: "Open", meta: "anyone
       // #63), grouped by the step that captured each fact.
       inner = `<div class="t-title">What</div>${kv("Kind", "Campaign commitment · the pool offers")}${kv("Title", "Market rides")}${kv("Cycle", "Season of First Rains")}
 <div class="t-title">How much</div>${kv("Unit · target", "rides · 16")}${kv("Due", "cycle deadline")}${kv("Contributor policy", "Lead-managed team · lead or steward manages the roster")}
-<div class="t-title">Proof & confirmation</div>${kv("Requirements", "evidence-confirmed")}${kv("Confirmers", "named group · 2 of 2")}${kv("Green Goods team fallback", "on (pilot default) · reason required if used")}${kv("Claim mode", "steward-reviewed")}
+<div class="t-title">Proof & confirmation</div>${kv("Requirements", "confirmed by proof")}${kv("Confirmers", "named group · 2 of 2")}${kv("Green Goods team fallback", "on (pilot default) · reason required if used")}${kv("Claim mode", "steward-reviewed")}
 <div class="t-title">Declared reward</div>${kv("Rail", "External payout record")}${kv("Reward", "20 DAI · garden jar · reference only")}`;
       next = hot("w8.seed", btn("Seed This Commitment", { kind: "pri" }));
       break;
@@ -1393,7 +1393,7 @@ const W10_STATES = [
   ["fallback-confirm", "Garden fallback confirm"],
   ["protocol-fallback-confirm", "Green Goods team fallback confirm"],
   ["raise-dispute", "Raise dispute"], ["resolve-dispute", "Resolve dispute"], ["attach-assessment", "Attach assessment"],
-  ["accepted", "Accepted — evidence in"], ["mark-ready-override", "Mark ready (override)"],
+  ["accepted", "Accepted — proof in"], ["mark-ready-override", "Mark ready (override)"],
   ["cancel", "Cancel commitment"], ["not-found", "Not found"],
   ["garden-ready", "Garden-provided — ready"], ["garden-fulfilled", "Garden-provided — fulfilled"],
   ["queue-settlement-garden", "Queue G$ to the garden"],
@@ -1495,11 +1495,11 @@ ${banner("This rail records a jar or treasury payment that happens outside the a
       // them: an irreversible cancel must never occupy the left footer slot,
       // which means "close this dialog" in every other W10 state — and the
       // sentence that separates the three used to sit below the fold.
-      body = `${cmChips(chip("Offer", "offer"), chip("Accepted", "request", { dot: true }), chip("Evidence in", "warn", { dot: true }))}
-${banner("Evidence is in. Send it to the recipient, who confirms the commitment was kept.", "stone")}
+      body = `${cmChips(chip("Offer", "offer"), chip("Accepted", "request", { dot: true }), chip("Proof in", "warn", { dot: true }))}
+${banner("Proof is in. Send it to the recipient, who confirms the commitment was kept.", "stone")}
 ${kv("Maria → João", "1 repair session · due Aug 12")}
-${stages(["Offered", "Accepted", "Evidence in", "Ready", "Fulfilled"], 2)}
-${kv("Kind", "Support · evidence-only")}${kv("Evidence", "2 items · photo, note")}${kv("Provider", "Maria, cannot confirm")}
+${stages(["Offered", "Accepted", "Proof in", "Ready", "Fulfilled"], 2)}
+${kv("Kind", "Support · proof-only")}${kv("Proof", "2 items · photo, note")}${kv("Provider", "Maria, cannot confirm")}
 <div class="arow"><div class="grow"><b>Recipient can't confirm?</b> <span class="t-meta">A steward can mark it ready with a recorded reason.</span></div>${hot("w10.mark-override", btn("Mark Ready…", { kind: "sec", sm: true }))}</div>
 <div class="arow"><div class="grow"><b>Called off?</b> <span class="t-meta">Cancelling releases the committed units and records why.</span></div>${hot("w10.cancel", btn("Cancel Commitment…", { kind: "danger", sm: true }))}</div>`;
       actions = `${dismiss()}${hot("w10.send-confirmation", btn("Send for Confirmation", { kind: "pri" }))}`;
@@ -1517,15 +1517,15 @@ ${kv("Kind", "Support · evidence-only")}${kv("Evidence", "2 items · photo, not
       // the provider-exclusion rule applies to the garden, not to a person.
       body = `${cmChips(chip("Protocol", "ink"), chip("Request", "request"), chip("Ready", "warn", { dot: true }))}
 ${kv("Protocol pool → Awka Hub", "1 survey · due Aug 12")}
-${stages(["Requested", "Accepted", "Evidence in", "Ready", "Fulfilled"], 3)}
-${kv("Evidence", "2 items · survey sheet, note")}${kv("Provider", "Awka Hub (garden), cannot confirm")}${kv("Eligible", "you ○ · Dana ○ (2 of 2 protocol stewards)")}
+${stages(["Requested", "Accepted", "Proof in", "Ready", "Fulfilled"], 3)}
+${kv("Proof", "2 items · survey sheet, note")}${kv("Provider", "Awka Hub (garden), cannot confirm")}${kv("Eligible", "you ○ · Dana ○ (2 of 2 protocol stewards)")}
 ${kv("Reward rail", "Celo G$ settlement")}${kv("Support", "25 G$ · payer-garden payout plan · unqueued")}`;
       actions = `${dismiss("Close")}${hot("w10.garden-confirm", btn("Confirm, Commitment Kept", { kind: "pri" }))}`;
       break;
     case "garden-fulfilled":
       body = `${cmChips(chip("Protocol", "ink"), chip("Fulfilled", "ok", { dot: true }))}
 ${kv("Protocol pool → Awka Hub", "1 survey")}
-${stages(["Requested", "Accepted", "Evidence in", "Ready", "Fulfilled"], 4)}
+${stages(["Requested", "Accepted", "Proof in", "Ready", "Fulfilled"], 4)}
 ${kv("Confirmed", "2 of 2 protocol stewards · Jul 12")}${kv("Provider garden", "Awka Hub. Its gardeners worked and proved it")}
 ${kv("Reward rail", "Celo G$ settlement")}${kv("Support", "25 G$ · contributor allocation required")}
 ${banner("Recognition stays attached to Awka Hub's delivery team. Its provider-garden Safe retains the declared garden amount and pays contributors; any protocol-to-garden funding is a separate route.", "stone")}`;
@@ -1551,7 +1551,7 @@ ${banner("Recognition stays attached to Awka Hub's delivery team. Its provider-g
       body = `${cmChips(chip("Offer", "offer"), chip("Ready", "warn", { dot: true }))}
 ${kv("Maria → João", "6 hours · due Aug 12 · open claim")}
 ${stages(["Offered", "Accepted", "Work linked", "Ready", "Fulfilled"], 3)}
-${kv("Evidence", "2 items · photo, note")}${kv("Linked work", "Pruning session (approved)")}${kv("Provider", "Maria, cannot confirm")}${kv("Ordinary path", "Unreachable · no eligible named/default confirmer remains")}
+${kv("Proof", "2 items · photo, note")}${kv("Linked work", "Pruning session (approved)")}${kv("Provider", "Maria, cannot confirm")}${kv("Ordinary path", "Unreachable · no eligible named/default confirmer remains")}
 ${banner("The indexed eligibility check found that the ordinary path cannot reach its threshold. A current non-contributor garden steward may use fallback with a required reason.", "amber", "shield-check-line")}
 ${kv("Reward rail", "External payout record")}${kv("Reward", "20 DAI · garden jar · unpaid, recordable once confirmed")}`;
       actions = `${dismiss("Close")}${hot("w10.fallback", btn("Confirm as garden fallback…", { kind: "sec" }))}${hot("w10.raise", btn("Raise Dispute…", { kind: "sec" }))}`;
@@ -1573,7 +1573,7 @@ ${banner("The garden receives the commitment support, retains an explicit amount
       body = `${cmChips(chip("Offer", "offer"), chip("Ready", "warn", { dot: true }))}
 ${kv("Maria → João", "6 hours · due Aug 12 · open claim")}
 ${stages(["Offered", "Accepted", "Work linked", "Ready", "Fulfilled"], 3)}
-${kv("Evidence", "2 items · photo, note")}${kv("Linked work", "Pruning session (approved)")}${kv("Provider", "Maria, cannot confirm")}${kv("Eligible", "João ✓ · Ana ○ · you ○ (1 of 2 required)")}
+${kv("Proof", "2 items · photo, note")}${kv("Linked work", "Pruning session (approved)")}${kv("Provider", "Maria, cannot confirm")}${kv("Eligible", "João ✓ · Ana ○ · you ○ (1 of 2 required)")}
 ${kv("Reward rail", "External payout record")}${kv("Reward", "20 DAI · garden jar · unpaid, recordable once confirmed")}`;
       // An inspection state legitimately has no dominant act, but it still needs
       // a way out that is not the X: both remaining controls open further

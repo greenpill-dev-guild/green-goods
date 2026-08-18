@@ -2231,6 +2231,49 @@ Reporting is per occurrence rather than per surface, because one-at-a-time repor
 copy sweep into a dozen rebuild cycles. Verified by reintroducing all three retired words at
 once and watching the build fail with the decision named beside each.
 
+### C.38 Proof, equal halves, one radius (2026-08-17, round 38)
+
+**Evidence becomes proof** in everything a gardener reads. The word borrows from legal and
+forensic register and implies you are answering a doubt, which is the opposite of what a
+mutual-aid pool is. `attachEvidence` and `EvidenceAttached` stay: they are contract
+identifiers, and hotspot notes name them the same way `leadProvider` renders as "Lead". 375
+strings changed. The gate learned it as `RETIRED_IN_UI`, a **product-copy-only** list, so a
+note that names the contract call does not trip.
+
+That rename is also where hotspot ids, state ids and journey targets nearly went with it: a
+blind sweep renamed `w2.add-evidence` and `W2@support-evidence-queued`, which are deep-link
+addresses. The build caught all 104 through its own EMITTED/ORPHAN/DESTINATION rules, and the
+lo-fi frame's `[Review evidence]` marker had to move together with the frame text it matches.
+
+**Two acts in a bar are equal halves.** Sized to their own text they came out at 131 and 124
+in a 358px bar, so the pair looked ragged and the target position moved between screens.
+`barPair` makes them one element, which is also what keeps the capture bar's icon run out of
+the rule: that is a run, not a pair. 16 bars converted; both now measure 174.
+
+**A review is one radius.** 24px section cards sat above 14px FormCards, so every review was
+rounder at the top than the bottom. 24px is the BROWSE card radius, and a review is a list of
+facts rather than a set of cards you tap, so the review stack is 14px throughout. Applied
+through a `.revw` wrapper rather than by changing `sectionCard` globally, since read surfaces
+keep the browse radius.
+
+**Work can be untied at review.** The Fulfills row gains *Not for a Commitment*, which clears
+the tie so the work submits as ordinary garden work. Nothing on chain has happened yet, so it
+is a local edit to the draft. Going back to the intro already did this; nothing told the
+reviewer the choice was reversible.
+
+**Two answers, recorded because they are contract facts rather than design choices.** Take
+This Up is a separate act because `claimCommitment` moves Offered → Accepted and is what
+records you as the provider — `linkWork` verifies the attester is the lead or an active
+contributor, so there is nobody to submit work as before it lands, and an open offer is
+takeable by one person, so taking it up reserves it. And proof asks who helped because
+`creditedContributors` is an **argument to the call**, written on chain with the proof: the
+roster says who may participate, the credit vector says who actually did on this occasion.
+
+**One push-back accepted.** The Submit Work media step already mirrors `Media.tsx` — count
+badge, Needed and Optional pill groups, real thumbnails, the on-device line. The inconsistency
+is that the POOLING proof step draws one list instead, so the same act has two shapes. Not
+changed this round.
+
 ### C.7 PARKED — reciprocity from the claim side (2026-08-16, register #103)
 
 > **Parked 2026-08-17 (Afo): "park it for now and we stabilize and polish the UI."** The

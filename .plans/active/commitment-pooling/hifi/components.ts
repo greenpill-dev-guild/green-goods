@@ -104,7 +104,7 @@ ${used}</article>`;
 
 const cardInner = (title: string, meta: string) => `<div class="t-title">${title}</div><div class="t-meta num">${meta}</div>`;
 const LIFECYCLE_STATES = [
-  "Offered", "Requested", "Accepted", "Active", "Evidence in", "Partly approved", "Ready to confirm", "Fulfilled",
+  "Offered", "Requested", "Accepted", "Active", "Proof in", "Partly approved", "Ready to confirm", "Fulfilled",
   "Reconciled", "Cancelled", "Expired", "Withdrawn", "Under review", "Queued", "Waiting",
 ];
 
@@ -134,7 +134,7 @@ const CLIENT_ENTRIES: Entry[] = [
     rule: "Lifecycle state that matters gets the icon pill; client surfaces only. Admin and settlement keep the flatter chips.",
     usedIn: /class="sbadge/,
     specs: [
-      { label: "five tones", html: `<div class="cardrow">${kit.statusBadge("Fulfilled", "success", "checkbox-circle-fill")}${kit.statusBadge("Evidence in", "warning", "image-line")}${kit.statusBadge("Couldn't send", "error", "error-warning-line")}${kit.statusBadge("Active", "info", "leaf-line")}${kit.statusBadge("Offered", "neutral", "time-line")}</div>` },
+      { label: "five tones", html: `<div class="cardrow">${kit.statusBadge("Fulfilled", "success", "checkbox-circle-fill")}${kit.statusBadge("Proof in", "warning", "image-line")}${kit.statusBadge("Couldn't send", "error", "error-warning-line")}${kit.statusBadge("Active", "info", "leaf-line")}${kit.statusBadge("Offered", "neutral", "time-line")}</div>` },
     ],
   },
   {
@@ -152,7 +152,7 @@ const CLIENT_ENTRIES: Entry[] = [
     kit: `domainRow(domains)`,
     ship: "packages/shared/src/components/DomainBadge.tsx:12",
     drift: "Shipping DomainBadge renders icon + label from DOMAIN_CONFIG with backdrop blur (packages/shared/src/components/DomainBadge.tsx:19). These pills are text-only.",
-    rule: "Every involved domain listed on its own equal-weight row, none privileged as primary; no row means an evidence-only service commitment.",
+    rule: "Every involved domain listed on its own equal-weight row, none privileged as primary; no row means an proof-only service commitment.",
     usedIn: /class="dmrow/,
     specs: [
       { label: "all four domains", html: kit.domainRow(["AGRO", "EDU", "SOLAR", "WASTE"]) },
@@ -222,14 +222,14 @@ const CLIENT_ENTRIES: Entry[] = [
   },
   {
     id: "progress-block", title: "What's been done", family: "cards", covers: ["progressBlock"],
-    kit: `progressBlock({rows, evidence, assessment, note})`,
+    kit: `progressBlock({rows, proof, assessment, note})`,
     netNew: "The completion picture, and the one place the difference between the two readiness paths is legible.",
-    rule: "Requirement counts carry BARS. Approved work is what advances a DomainImpact commitment. Everything under the hairline carries NO bar, because on garden work evidence credits the people who helped without moving readiness (attachEvidence has no kind gate; submitForConfirmation rejects DomainImpact). On a service the evidence line IS the readiness path and stands alone. The explaining line appears only where both are present.",
+    rule: "Requirement counts carry BARS. Approved work is what advances a DomainImpact commitment. Everything under the hairline carries NO bar, because on garden work proof credits the people who helped without moving readiness (attachEvidence has no kind gate; submitForConfirmation rejects DomainImpact). On a service the proof line IS the readiness path and stands alone. The explaining line appears only where both are present.",
     usedIn: /class="prow"|class="pflat"/,
     specs: [
-      { label: "garden work, with evidence", html: `<div class="card idcard">${kit.progressBlock({ rows: [{ label: "Prune", done: 2, of: 2 }, { label: "Plant", done: 8, of: 12 }], evidence: "3 items · credits Maria, Ana", note: "Approved work is what moves this forward. Evidence credits the people who helped." })}</div>` },
-      { label: "a service. Evidence is the path", html: `<div class="card idcard">${kit.progressBlock({ evidence: "2 items · credits Maria", note: "Evidence is what moves this forward, a service names no garden actions." })}</div>` },
-      { label: "with a declared assessment", html: `<div class="card idcard">${kit.progressBlock({ rows: [{ label: "Weed", done: 2, of: 2 }], evidence: "1 item · credits João", assessment: "Attached · Baseline Aug 1" })}</div>` },
+      { label: "garden work, with proof", html: `<div class="card idcard">${kit.progressBlock({ rows: [{ label: "Prune", done: 2, of: 2 }, { label: "Plant", done: 8, of: 12 }], proof: "3 items · credits Maria, Ana", note: "Approved work is what moves this forward. Proof credits the people who helped." })}</div>` },
+      { label: "a service. Proof is the path", html: `<div class="card idcard">${kit.progressBlock({ proof: "2 items · credits Maria", note: "Proof is what moves this forward, a service names no garden actions." })}</div>` },
+      { label: "with a declared assessment", html: `<div class="card idcard">${kit.progressBlock({ rows: [{ label: "Weed", done: 2, of: 2 }], proof: "1 item · credits João", assessment: "Attached · Baseline Aug 1" })}</div>` },
     ],
   },
   {
@@ -402,6 +402,17 @@ const CLIENT_ENTRIES: Entry[] = [
     ],
   },
   {
+    id: "bar-pair", title: "Action pair", family: "forms", covers: ["barPair"],
+    kit: `actionBar(barPair(a, b))`,
+    netNew: "the two-act bottom bar",
+    rule: "Two acts in a bar are equal halves. Sized to their own text they came out at 131 and 124 in a 358px bar, so the pair looked ragged and the target position moved from screen to screen. The pair is ONE element, which is also what keeps the capture bar's icon run out of the rule: that is a run, not a pair.",
+    usedIn: /class="fpair"/,
+    specs: [
+      { label: "a choice of two acts", html: `<div class="fbar" style="position:static">${kit.barPair(kit.btn("Add Proof", { kind: "sec" }), kit.btn("Submit Work", { kind: "pri" }))}</div>`, w: "m" },
+      { label: "a confirmation", html: `<div class="fbar" style="position:static">${kit.barPair(kit.btn("Not Yet", { kind: "ghost" }), kit.btn("Send It", { kind: "pri" }))}</div>`, w: "m" },
+    ],
+  },
+  {
     id: "pick-row", title: "Picker row", family: "forms", covers: ["pickRow"],
     kit: `pickRow([{label, on, hotId}], {ariaLabel})`,
     netNew: "the tap-first value picker",
@@ -446,7 +457,7 @@ const CLIENT_ENTRIES: Entry[] = [
     usedIn: /class="disc"/,
     specs: [
       { label: "closed", html: kit.disclosure("Timeline", "4", `<div class="t-meta">…</div>`) },
-      { label: "open", html: kit.disclosure("Evidence", "2", `${kit.kv("Photos", "2")}${kit.kv("Note", "Beds cleared")}`, { open: true }) },
+      { label: "open", html: kit.disclosure("Proof", "2", `${kit.kv("Photos", "2")}${kit.kv("Note", "Beds cleared")}`, { open: true }) },
     ],
   },
   // — Rails & carousels —
@@ -510,7 +521,7 @@ const CLIENT_ENTRIES: Entry[] = [
       { label: "kinds", html: `<div class="brow">${kit.btn("Make an offer", { kind: "pri" })}${kit.btn("Take this up", { kind: "sec" })}${kit.btn("Not now", { kind: "ghost" })}${kit.btn("Discard", { kind: "danger" })}</div>` },
       { label: "small", html: `<div class="brow">${kit.btn("Retry", { kind: "sec", sm: true })}${kit.btn("Discard", { kind: "ghost", sm: true })}</div>` },
       { label: "full-width primary", html: kit.btn("Send", { kind: "pri", full: true }) },
-      { label: "with icon", html: kit.btn("Add evidence", { kind: "pri", icon: "camera-line" }) },
+      { label: "with icon", html: kit.btn("Add proof", { kind: "pri", icon: "camera-line" }) },
       { label: "disabled", html: kit.btn("Send", { kind: "pri", disabled: true }) },
     ],
   },
@@ -698,7 +709,7 @@ const CLIENT_ENTRIES: Entry[] = [
     rule: "Gesture sheets carry the drag pill; drawers dismissed by chrome pass handle:false. The context behind stays visible under the scrim.",
     usedIn: /class="sheetstage/,
     specs: [
-      { label: "gesture sheet", html: kit.sheetOver(kit.pagepad(kit.card(cardInner("Prune the north beds", "6 hours · due Aug 12"))), "Add evidence", `${kit.field("Note", kit.input("Beds cleared", { textarea: true }))}`), h: 420 },
+      { label: "gesture sheet", html: kit.sheetOver(kit.pagepad(kit.card(cardInner("Prune the north beds", "6 hours · due Aug 12"))), "Add proof", `${kit.field("Note", kit.input("Beds cleared", { textarea: true }))}`), h: 420 },
       { label: "drawer (no handle)", html: kit.sheetOver(kit.pagepad(kit.card(cardInner("Wallet", ""))), "Commitments", kit.listRow({ icon: "seedling-line", primary: "Prune the north beds", meta: "due Aug 12", chevron: true }), { handle: false }), h: 340 },
     ],
   },
@@ -789,7 +800,7 @@ const CLIENT_ENTRIES: Entry[] = [
       { label: "three entries", html: kit.timeline([
         { label: "Offered", meta: "Jul 2" },
         { label: "Accepted", meta: "Jul 9", note: "Taken up by João" },
-        { label: "Evidence in", meta: "Aug 1", open: true },
+        { label: "Proof in", meta: "Aug 1", open: true },
       ]) },
       { label: "with caution", html: kit.timeline([
         { label: "Due", meta: "Aug 12", warn: true, note: "Past due. Stewards can extend or expire" },
@@ -869,7 +880,7 @@ const ADMIN_ENTRIES: Entry[] = [
     shipNote: "detail facts; MetaStrip carries the equivalent header metadata in production",
     rule: "Detail facts on cards and dialogs; values keep tabular numerals.",
     usedIn: /class="kv"/,
-    specs: [{ label: "facts", html: `${kit.kv("Confirmer", "Ana")}${kit.kv("Due", "Aug 12")}${kit.kv("Evidence", "2 photos")}` }],
+    specs: [{ label: "facts", html: `${kit.kv("Confirmer", "Ana")}${kit.kv("Due", "Aug 12")}${kit.kv("Proof", "2 photos")}` }],
   },
   {
     id: "disclosure", title: "Disclosure", family: "cards", covers: [],
@@ -1064,7 +1075,7 @@ const ADMIN_ENTRIES: Entry[] = [
     shipNote: "the three global surfaces (profile, settings, notifications), never workspace actions",
     rule: "Global chrome surfaces slide in from the right edge; workspace acts use dialogs and flows instead. Mounted once by the canvas layout on every route.",
     usedIn: ["W7", "W13"],
-    specs: [{ label: "notifications surface", html: `<div style="display:flex;justify-content:flex-end;min-height:220px;background:var(--stone-bg);border-radius:12px;overflow:hidden"><aside style="width:250px;background:var(--card);border-left:1px solid var(--ln);padding:14px;display:flex;flex-direction:column;gap:8px"><div class="t-title">Notifications</div><div class="arow"><div class="grow">Maria added evidence <span class="t-meta num">6 h</span></div></div><div class="arow"><div class="grow">João's request accepted <span class="t-meta num">2 h</span></div></div></aside></div>`, w: "m" }],
+    specs: [{ label: "notifications surface", html: `<div style="display:flex;justify-content:flex-end;min-height:220px;background:var(--stone-bg);border-radius:12px;overflow:hidden"><aside style="width:250px;background:var(--card);border-left:1px solid var(--ln);padding:14px;display:flex;flex-direction:column;gap:8px"><div class="t-title">Notifications</div><div class="arow"><div class="grow">Maria added proof <span class="t-meta num">6 h</span></div></div><div class="arow"><div class="grow">João's request accepted <span class="t-meta num">2 h</span></div></div></aside></div>`, w: "m" }],
   },
   {
     id: "admin-search-toolbar", title: "AdminSearchToolbar + AdminSortSelect", family: "forms", covers: [],
@@ -1249,9 +1260,9 @@ const EDITORIAL_ENTRIES: Entry[] = [
     specs: [{ label: "stats + link", html: editorialPanel, w: "l" }],
   },
   {
-    id: "pipeline", title: "Evidence pipeline", family: "chips", covers: [],
+    id: "pipeline", title: "Proof pipeline", family: "chips", covers: [],
     kit: `.pipe stage pills. Screens/public.ts`,
-    netNew: "the five-stage evidence pipeline with the two new stages outlined green",
+    netNew: "the five-stage proof pipeline with the two new stages outlined green",
     rule: "Commitment and Confirmation read as the delta against the known pipeline; stages stay uppercase mono pills.",
     usedIn: /class="pipe"/,
     specs: [
