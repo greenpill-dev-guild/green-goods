@@ -987,7 +987,8 @@ const W24_HOTS: HifiDef["hots"] = {
 const W26_STATES = [
   ["review", "1 · Review"], ["recognition-blocked", "Recognition blocked"], ["shares", "2 · Shares"], ["certificate", "3 · Certificate"], ["rest", "4 · Compost the cycle"],
   ["paused-review", "Paused · 1 · Review"], ["paused-shares", "Paused · 2 · Shares"],
-  ["paused-certificate", "Paused · 3 · Certificate"], ["paused-rest", "Paused · 4 · Rest the cycle"],
+  ["paused-certificate", "Paused · 3 · Certificate"], ["paused-rest", "Paused · 4 · Compost the cycle"],
+  ["close-failed", "1 · Closing failed"], ["mint-failed", "3 · Mint failed"], ["compost-failed", "4 · Composting failed"],
 ] as const;
 type W26State = (typeof W26_STATES)[number][0];
 type W26Phase = "review" | "shares" | "certificate" | "rest";
@@ -1024,7 +1025,16 @@ ${banner("New commitments cannot reach Ready or resolve as Fulfilled without an 
       }),
     );
   const paused = state.startsWith("paused-");
-  const phase = (paused ? state.slice("paused-".length) : state) as W26Phase;
+  // Closing a season is a CHAIN of writes, not one signature, so a failure has
+  // to say which links already landed (2026-08-18 round 49, Afo). The flow had
+  // no failure cast at all, on the most consequential act in the product: it
+  // closes a cycle, mints an irreversible certificate, then composts. A generic
+  // "it failed" would leave a steward guessing whether the certificate exists.
+  const failed = state.endsWith("-failed") ? (state.split("-")[0] as "close" | "mint" | "compost") : undefined;
+  const phase = (
+    failed === "close" ? "review" : failed === "mint" ? "certificate" : failed === "compost" ? "rest"
+    : paused ? state.slice("paused-".length) : state
+  ) as W26Phase;
   const stepIx = phase === "review" ? 0 : phase === "shares" ? 1 : phase === "certificate" ? 2 : 3;
   const h = (name: "continue-shares" | "continue-certificate" | "mint" | "compost") =>
     `w26.${paused ? "paused-" : ""}${name}`;
@@ -1039,23 +1049,48 @@ ${banner("Read-only. The six-role snapshot locked when this cycle opened.", "sto
     case "certificate":
       inner = `${kv("Bundle", "7 fulfilled commitments + their work, proof, and need lineage")}${kv("Allowlist", "from the shares above")}${kv("Holder", "the garden account")}
 <div class="arow" style="opacity:.55"><div class="grow"><b>Repair tool handles</b> <span class="t-meta">cycle-less commitment</span></div>${chip("No cycle allocation · not certificate eligible", "plain")}</div>
-${banner("Uses the garden's existing impact-certificate pipeline. A cycle-less commitment is recognition/payment-only. It cannot join a certificate bundle (UX §6.10).", "stone")}`;
-      next = hot(h("mint"), btn("Mint Impact Certificate", { kind: "pri" }));
+${
+        failed === "mint"
+          // The one link that already landed is the one that matters: the cycle
+          // is Reconciled, so its bundle is locked and cannot be re-opened.
+          ? banner("The certificate was not minted. The season is already closed and its bundle is locked at Reconciled, so nothing needs closing again. No certificate exists yet and no allowlist was written.", "error", "error-warning-line")
+          : banner("Uses the garden's existing impact-certificate pipeline. A cycle-less commitment is recognition/payment-only. It cannot join a certificate bundle (UX §6.10).", "stone")
+      }`;
+      next = failed === "mint"
+        ? hot("w26.mint-retry", btn("Try Minting Again", { kind: "pri", icon: "refresh-line" }))
+        : hot(h("mint"), btn("Mint Impact Certificate", { kind: "pri" }));
       break;
     case "rest":
       inner = `${kv("Aggregates", "roll into pool history")}${kv("Next season", "starts fresh on this pool")}
-<div class="quietok">${icon("check-line")}Certificate minted · 7 commitments bundled.</div>`;
-      next = hot(h("compost"), btn("Archive Season", { kind: "pri" }));
+${
+        failed === "compost"
+          // Both earlier links landed, and one of them is irreversible.
+          ? banner("The season did not compost. It stays closed at Reconciled and its impact certificate is already minted, so neither step needs repeating. Composting is the only one left.", "error", "error-warning-line")
+          : `<div class="quietok">${icon("check-line")}Certificate minted · 7 commitments bundled.</div>`
+      }`;
+      // The step rail said Compost and its act said Archive (round 46 renamed
+      // the step and left the button behind). One word for one act, and the
+      // contract's own: compostCycle (CS:206).
+      next = failed === "compost"
+        ? hot("w26.compost-retry", btn("Try Composting Again", { kind: "pri", icon: "refresh-line" }))
+        : hot(h("compost"), btn("Compost the Season", { kind: "pri" }));
       break;
     default:
       inner = `${kv(CYCLE, `${SEASON_LIVE.made} commitments · ${SEASON_LIVE.kept} kept`)}
 ${kv("Terminal set", "7 fulfilled · 1 expired · 1 cancelled after steward review")}
-${banner("Every commitment is terminal and nothing is live. Closing now locks this exact bundle before shares are read or the certificate is minted.", "stone")}
+${
+        failed === "close"
+          // Nothing landed, which is the reassuring case and worth saying.
+          ? banner("The season did not close. Nothing changed: it is still open, no bundle was locked, and every commitment sits exactly where it did.", "error", "error-warning-line")
+          : banner("Every commitment is terminal and nothing is live. Closing now locks this exact bundle before shares are read or the certificate is minted.", "stone")
+      }
 <div class="arow"><div class="grow"><b>Ending it without a report?</b> <span class="t-meta">Cancelling records a reason members read and closes the season without shares or a certificate.</span></div>${hot(
         paused ? "w7.cancel-cycle-paused" : "w7.cancel-cycle",
         btn("Cancel Season Instead…", { kind: "sec", sm: true }),
       )}</div>`;
-      next = hot(h("continue-shares"), btn("Close Season and Continue", { kind: "pri" }));
+      next = failed === "close"
+        ? hot("w26.close-retry", btn("Try Closing Again", { kind: "pri", icon: "refresh-line" }))
+        : hot(h("continue-shares"), btn("Close Season and Continue", { kind: "pri" }));
   }
   if (paused)
     inner = `${banner("The pool remains paused throughout this cycle close. Step 1 closes the cycle to Reconciled; the final step composts it.", "amber", "error-warning-line")}${inner}`;
@@ -1082,6 +1117,9 @@ const W26_HOTS: HifiDef["hots"] = {
   "w26.continue-certificate": { l: "Continue to certificate", to: "screen:W26@certificate", info: "Moves from the allocation snapshot to the existing impact-certificate pipeline." },
   "w26.continue-shares": { l: "Close cycle and continue to shares", to: "screen:W26@shares", info: "With every commitment terminal and liveCommitmentCount zero, closeCycle locks the exact fulfilled bundle before any share review or certificate mint.", calls: ["closeCycle"] },
   "w26.mint": { l: "Mint impact certificate", to: "screen:W26@rest", info: "Existing Hypercert pipeline; bundle = fulfilled commitments + work, evidence, need lineage; allowlist from the six-role shares (CS §9)." },
+  "w26.close-retry": { l: "Try closing again", to: "screen:W26@shares", info: "closeCycle did not land, so nothing changed and the same call repeats. The reassuring half of a chain failure is worth stating: a steward needs to know the bundle was not half-locked (round 49)." },
+  "w26.mint-retry": { l: "Try minting again", to: "screen:W26@rest", info: "The cycle is already Reconciled and its bundle locked, so only the certificate mint repeats. Retrying must never re-run closeCycle." },
+  "w26.compost-retry": { l: "Try composting again", to: "screen:W7@cycle-composted", info: "Close and mint both landed, and the mint is irreversible, so only compostCycle repeats. This is why the close flow needs per-step failures rather than one generic cast." },
   "w26.compost": { l: "Compost closed cycle", to: "screen:W7@cycle-composted", info: "The certificate already uses the Reconciled cycle's locked bundle; compostCycle now archives it without another close call.", calls: ["compostCycle"] },
   "w26.paused-continue-shares": { l: "Close cycle and continue while pool paused", to: "screen:W26@paused-shares", info: "With every commitment terminal and liveCommitmentCount zero, closeCycle locks the exact bundle while leaving the pool Paused.", calls: ["closeCycle"] },
   "w26.paused-continue-certificate": { l: "Continue to certificate while pool paused", to: "screen:W26@paused-certificate", info: "Keeps the pool Paused while reading the cycle's locked allocation snapshot." },

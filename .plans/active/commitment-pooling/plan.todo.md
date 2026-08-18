@@ -1583,6 +1583,23 @@ Known mis-resolutions fixed in place: `contract-spec.md` §Grassroots-Economics-
     the evaluator. New kit affordance: `radio()` takes `disabled` per option. Full text:
     `uiux-spec.md` C.50.
 
+154. The run-the-season review (2026-08-18, round 49, Afo). The best-built area in the
+    prototype: three things I went looking for were not there — W11's gates already disable
+    Continue on both blocked states, reason capture matches the contract signatures exactly
+    (pausePool takes a reasonCID, closePool and compostPool do not), and W26's paused variants
+    each carry what staying paused means rather than duplicating. What was missing is per-step
+    FAILURE. Closing a season is closeCycle then an irreversible certificate mint then
+    compostCycle; opening one is openPool then openCycle; first-run setup submits six writes in
+    order. None had a failure cast, though W21 beside them has two. Five states now name exactly
+    what landed and what did not, and each retry repeats only the unlanded call, because a retry
+    that re-ran the earlier writes would revert or double-record. w11Facts was corrected with
+    them: it declared every setup-* state pool NotReady, which stops being true once five writes
+    land. Two round-46 leftovers fixed — the close wizard's step said Compost while its button
+    said "Archive Season", and the paused twin's label still read "Rest the cycle" because the
+    rename matched only the unpaused string and state labels are exempt from the vocabulary gate.
+    Plus W7@read-error, since the garden's main read surface had loading but no error while its
+    own child carried both. Full text: `uiux-spec.md` C.51.
+
 **Final recursive certification clarification (2026-07-25; no new decision-register entry):**
 the published `42161`↔`42220` production lane is the only required fully paired
 `SettlementConfiguration`. Arbitrum Sepolia `421614` and Celo Sepolia `11142220` remain

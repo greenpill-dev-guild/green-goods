@@ -83,7 +83,7 @@ const W7_STATES = [
   ["cancel-cycle-confirm", "Cancel season — confirm"], ["paused-cancel-cycle-confirm", "Cancel paused season — confirm"],
   ["paused-cycle-cancelled", "Paused · season cancelled"],
   ["decline-claim-confirm", "Decline claim — confirm"],
-  ["loading", "Loading"], ["empty", "No commitments yet"],
+  ["loading", "Loading"], ["read-error", "Read error"], ["empty", "No commitments yet"],
 ] as const;
 type W7State = (typeof W7_STATES)[number][0];
 
@@ -927,7 +927,16 @@ ${activityRow("w7.activity-work", "Pruning session approved for Prune the north 
       : left;
 
   let body: string;
-  if (state === "loading") {
+  // The pool tab is the garden's main read surface and had loading but no
+  // read-error, while its own child W7C carries both (2026-08-18 round 49).
+  if (state === "read-error") {
+    body = emptyState(
+      "wifi-off-line",
+      "Couldn't load this pool",
+      "Something went wrong reaching the indexer. Nothing about the pool, its seasons, or its commitments has changed.",
+      hot("w7.retry", btn("Try Again", { kind: "pri", icon: "refresh-line" })),
+    );
+  } else if (state === "loading") {
     body = `<div class="wsrow"><div class="wsmain">${skeleton({ title: true, lines: 2 })}${skeleton({ lines: 3 })}</div><aside class="wsrail">${skeleton({ lines: 3 })}${skeleton({ lines: 2 })}${skeleton({ lines: 2 })}</aside></div>`;
   } else if (state === "empty") {
     body = page(
@@ -1050,6 +1059,7 @@ ${cardSection("Campaigns · none yet", hot("w7.start-campaign", btn("Start Campa
 }
 
 const W7_HOTS: HifiDef["hots"] = {
+  "w7.retry": { l: "Try again", info: "Read recovery for the pool workspace, added round 49. It had loading but no read-error while its own child, the cycle view, carried both — so a failed read on the garden's main surface had nowhere to land." },
   "w7.open-funded-claim": {
     l: "Review funded claim",
     to: "screen:W37@claim",
@@ -1647,6 +1657,7 @@ const W11_STATES = [
   ["recognition-policy", "How gardeners share their part"],
   ["campaign-details", "1 · The campaign"], ["campaign-allocation", "Campaign · the split"], ["campaign-open", "Campaign · open"],
   ["discard", "Discard changes?"], ["campaign-discard", "Campaign · discard changes?"],
+  ["setup-failed", "Set up · opening failed"], ["open-failed", "3 · Opening failed"],
 ] as const;
 type W11State = (typeof W11_STATES)[number][0];
 
@@ -1698,7 +1709,7 @@ function w11(state: W11State): string {
     );
   if (state.startsWith("setup-")) {
     const blocked = state === "setup-how-blocked";
-    const stepIx = state === "setup-season" ? 1 : state === "setup-split" ? 2 : state === "setup-open" ? 3 : 0;
+    const stepIx = state === "setup-season" ? 1 : state === "setup-split" ? 2 : state === "setup-open" || state === "setup-failed" ? 3 : 0;
     let inner: string;
     let next: string;
     let back: string | undefined;
@@ -1715,13 +1726,26 @@ ${kv("Gardeners' part", "shared 35% for taking part · 65% for proven contributi
 ${banner("The standard sharing applies to this first season. You can adjust it when you start the next one.", "stone")}`;
       back = "w11.setup-back-season";
       next = hot("w11.setup-continue-split", btn("Continue", { kind: "pri" }));
-    } else if (state === "setup-open") {
+    } else if (state === "setup-open" || state === "setup-failed") {
       inner = `<div class="t-title">How it works</div>${kv("What this pool is for", "neighbourly help in Rocinha, rides, tools, workshops, garden work")}${kv("Commitment limit", "24 at once per person")}${kv("Starting assessment", "recorded ✓")}
 <div class="t-title">The season</div>${kv("Name", "Season of First Rains")}${kv("Runs through", "Aug 30")}
 <div class="t-title">The split</div>${kv("Six roles", "Gardeners 60 · Treasury 15 · Steward 10 · Evaluator 5 · Community 5 · Funder 5")}${kv("Gardeners' part", "35% taking part · 65% proven contribution")}
-${banner("Opening records how this pool works, then opens the pool and its first season together. Neighbours can make and take up commitments straight away.", "stone", "information-line")}`;
+${
+        state === "setup-failed"
+          // Six writes go out in order (setPoolCharter, cap, markPoolReady,
+          // seedCycle, openPool, openCycle), so this is the flow in the whole
+          // prototype with the most to land partially — naming the boundary is
+          // the entire value of the state (2026-08-18 round 49, Afo).
+          ? `${banner("The season did not open. The pool is set up and open, and the season exists as a draft, but its allocation never landed so nobody can make a commitment in it yet.", "error", "error-warning-line")}
+${kv("Landed", "Charter · commitment cap · pool marked ready · pool opened · season seeded")}
+${kv("Did not", "The season's shares and opening")}
+${banner("Retrying repeats only the last step. Nothing already recorded is written twice.", "stone", "shield-check-line")}`
+          : banner("Opening records how this pool works, then opens the pool and its first season together. Neighbours can make and take up commitments straight away.", "stone", "information-line")
+      }`;
       back = "w11.setup-back-split";
-      next = hot("w11.setup-open-all", btn("Open Season", { kind: "pri" }));
+      next = state === "setup-failed"
+        ? hot("w11.setup-retry", btn("Try Opening the Season Again", { kind: "pri", icon: "refresh-line" }))
+        : hot("w11.setup-open-all", btn("Open Season", { kind: "pri" }));
     } else {
       inner = `${field("What this pool is for", input("Neighbours in Rocinha offer help and ask for it, rides, tools, workshops, and garden work. Commitments are kept in the open and confirmed by the person they were made to.", { textarea: true }))}
 ${
@@ -1795,7 +1819,7 @@ ${banner("Nothing is recorded yet. The last step shows exactly what opens.", "st
       }),
     );
   }
-  if (state === "guard" || state === "campaign-open") {
+  if (state === "guard" || state === "campaign-open" || state === "open-failed") {
     const campaign = state === "campaign-open";
     const body = campaign
       ? `${banner("The pool is already open, so opening this campaign only starts the campaign. It runs alongside the open Season.", "stone", "information-line")}${kv("Pool", "Open")}${kv("Cycle", "Seedling swap · Campaign")}${kv("Runs alongside", "Season of First Rains")}${kv("Allocation", "Gardeners 60 · Treasury 15 · Steward 10 · Evaluator 5 · Community 5 · Funder 5")}${kv("Recognition policy", "35% equal participation · 65% verified contribution")}`
@@ -1804,9 +1828,18 @@ ${banner("Nothing is recorded yet. The last step shows exactly what opens.", "st
       // happens is that the garden gets a season it can commit into, so that
       // is what it says first; the policy stays right below it, unchanged.
       : `${banner("Opening tells the whole garden the season has begun. From that moment neighbours can offer help, ask for it, and take each other up. Nobody can commit until then.", "stone", "seedling-line")}${kv("What opens", "Season of First Rains · runs Aug 1 – Aug 30")}${kv("Who it opens to", "23 gardeners in Rocinha")}${kv("Pool", "Ready, opens with the season")}${kv("Allocation", "Gardeners 60 · Treasury 15 · Steward 10 · Evaluator 5 · Community 5 · Funder 5")}${kv("Recognition policy", "35% equal participation · 65% verified contribution")}`;
-    const orderedCalls = campaign
-      ? ""
-      : banner("This confirmation submits two ordered writes: openPool(poolId), then openCycle(cycleId, allocation, recognitionPolicy).", "stone");
+    // Two ordered writes means a boundary a steward can land on (round 49):
+    // openPool can succeed while openCycle reverts, leaving an open pool whose
+    // season never started. Saying which one landed is the whole point.
+    const orderedCalls =
+      state === "open-failed"
+        ? `${banner("The season did not open. The pool is open, but the season never started, so nobody can make a commitment in it yet.", "error", "error-warning-line")}
+${kv("Landed", "The pool opened")}
+${kv("Did not", "The season's allocation and opening")}
+${banner("Retrying repeats only openCycle. The pool is not opened twice.", "stone", "shield-check-line")}`
+        : campaign
+          ? ""
+          : banner("This confirmation submits two ordered writes: openPool(poolId), then openCycle(cycleId, allocation, recognitionPolicy).", "stone");
     return deskWin(
       "admin.greengoods.app/garden/pool/open-cycle",
       flowDialog(w7Behind(campaign ? "open" : "ready"), "garden", {
@@ -1819,7 +1852,9 @@ ${banner("Nothing is recorded yet. The last step shows exactly what opens.", "st
         cancelHot: campaign ? "w11.campaign-cancel" : "w11.cancel",
         next: campaign
           ? hot("w11.campaign-open-cycle", btn("Open Campaign", { kind: "pri" }))
-          : hot("w11.open-cycle", btn("Open to the Garden", { kind: "pri" })),
+          : state === "open-failed"
+            ? hot("w11.open-retry", btn("Try Opening Again", { kind: "pri", icon: "refresh-line" }))
+            : hot("w11.open-cycle", btn("Open to the Garden", { kind: "pri" })),
       }),
     );
   }
@@ -1899,6 +1934,8 @@ const W11_HOTS: HifiDef["hots"] = {
     info: "The one write moment: setPoolCharter, setProviderOpenCommitmentCap, markPoolReady, seedCycle, openPool, openCycle — submitted in that order. Every intermediate pool state the steward used to click through (NotReady → Ready → Open) is carried by the flow instead (CS:723,751,724,566,100,114).",
     calls: ["setPoolCharter", "setProviderOpenCommitmentCap", "markPoolReady", "seedCycle", "openPool", "openCycle"],
   },
+  "w11.setup-retry": { l: "Try opening the season again", to: "screen:W7", info: "Five of the six setup writes landed, so only openCycle repeats. Charter, cap, ready-mark, pool open and seedCycle are not re-submitted — a retry that re-ran them would either revert or double-record (round 49)." },
+  "w11.open-retry": { l: "Try opening again", to: "screen:W7@open", info: "openPool landed and openCycle did not, so only openCycle repeats. The pool is not opened twice." },
   "w11.setup-cancel": { l: "Cancel setup", to: "screen:W11@setup-discard", info: "A dirty flow confirms before discarding — the shared useDirtyClose / DiscardChangesDialog guard, scoped to this flow." },
   "w11.setup-keep-editing": { l: "Keep editing", to: "screen:W11@setup-how", info: "Returns to setup with everything entered intact." },
   "w11.setup-discard-confirm": { l: "Discard", to: "screen:W7@preflight-complete", info: "Leaves setup; nothing was recorded, so the pool is exactly as it was." },
@@ -2608,7 +2645,14 @@ const w10Facts = (state: W10State): StateFacts | undefined => {
 const w11Facts = (state: W11State): StateFacts =>
   // The setup flow runs entirely before any write: the pool is still NotReady
   // on every one of its steps, and its last step submits the whole sequence.
-  state.startsWith("setup-")
+  // Except after a partial failure, where five of the six writes landed — the
+  // pool is Open with a Seeded cycle, and saying NotReady there would be a lie
+  // the validator's call-legality checks would then reason from (round 49).
+  state === "setup-failed"
+    ? { pool: "Open", cycle: "Seeded" }
+  : state === "open-failed"
+    ? { pool: "Open", cycle: "Seeded" }
+  : state.startsWith("setup-")
     ? { pool: "NotReady" }
     : state === "details" || state === "campaign-details"
       ? { pool: w11IsCampaign(state) ? "Open" : "Ready" }

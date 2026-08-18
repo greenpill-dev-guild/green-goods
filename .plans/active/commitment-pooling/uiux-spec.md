@@ -3047,3 +3047,49 @@ a starting record is legitimate and unblocked.
 New kit affordance: `radio()` takes `disabled` per option, rendering `.ro.off` — legible label,
 inert dot. **An option someone cannot use should still be visible**, so they can see what exists,
 why it is closed to them, and who can open it.
+
+### C.51 The run-the-season review (2026-08-18, round 49)
+
+**This is the best-built area in the prototype, and three things I went looking for were not
+there.** Worth recording, because each was a plausible claim I would have been wrong to make:
+W11's gates already disable Continue on both `invalid-sum` and `setup-how-blocked`, so neither
+can be walked past; reason capture matches the contract signatures exactly, with inputs on
+`pause-confirm` and `cancel-cycle-confirm` and none on close, compost or reopen, because
+`pausePool` takes a `reasonCID` and `closePool`/`compostPool` do not; and W26's four paused
+variants are not duplicates, each carrying what staying paused means for that step. Coverage is
+31 pool states with a confirm on every destructive act, and seven guided flows from opening the
+first season through cancelling one to composting the pool.
+
+**A chain of writes needs per-step failure, and there was none.** Closing a season is
+`closeCycle` → mint an **irreversible** certificate → `compostCycle`. Opening one is
+`openPool` then `openCycle`. First-run setup submits **six writes in order**: `setPoolCharter`,
+`setProviderOpenCommitmentCap`, `markPoolReady`, `seedCycle`, `openPool`, `openCycle`. Not one of
+these flows had a failure cast, while W21 beside them carries two and W14 gained one in round 47.
+
+A generic "it failed" is useless on a chain — the steward's question is *what already landed*.
+Five states, each answering it:
+
+| state | what landed | what did not |
+|---|---|---|
+| `W26@close-failed` | nothing; the season is still open | the close |
+| `W26@mint-failed` | the season is closed, bundle locked at Reconciled | the certificate |
+| `W26@compost-failed` | closed **and** the certificate is minted | composting |
+| `W11@setup-failed` | charter, cap, ready-mark, pool open, season seeded | the season's shares and opening |
+| `W11@open-failed` | the pool opened | the season's allocation and opening |
+
+Each retry repeats **only the unlanded call** and says so, because a retry that re-ran the earlier
+writes would either revert or double-record.
+
+**`w11Facts` had to be corrected with them.** It declared every `setup-*` state `pool: NotReady`,
+which is true right up until five writes land — `setup-failed` and `open-failed` are `pool: Open,
+cycle: Seeded`. Leaving that wrong would have fed a false fact to the validator's call-legality
+checks.
+
+**Two round-46 leftovers.** The close wizard's step 4 was renamed to **Compost** but its button
+still said *"Archive Season"* — one word for one act now, the contract's own. And the paused twin's
+label still read *"Paused · 4 · Rest the cycle"*: the round-46 rename matched only the unpaused
+string, and the vocabulary gate did not catch it because screen-library state labels are exempt
+from the product-copy scan.
+
+**`W7@read-error`.** The pool tab is the garden's main read surface and had loading but no read
+error, while its own child `W7C` carried both.
