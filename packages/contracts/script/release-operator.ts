@@ -52,7 +52,7 @@ const FORBIDDEN_ARGUMENTS = new Set([
 const RELEASE_OPERATOR_ARGUMENTS = new Map<string, ReadonlySet<string>>([
   ["settlement:garden-accounts:deploy:celo", new Set(["--plan", "--step", "--receipt"])],
   ["settlement:garden-safes:deploy:celo", new Set(["--plan", "--inventory", "--step", "--receipt"])],
-  ["settlement:garden-relay:deploy", new Set(["--plan", "--safe-plan", "--broadcast", "--step", "--receipt"])],
+  ["settlement:garden-relay:deploy", new Set(["--plan", "--safe-plan", "--step", "--receipt"])],
 ]);
 
 /**
@@ -779,7 +779,7 @@ async function runCeremonyStage(
     let receipt: string | undefined;
     for (const boundary of boundaries) {
       console.log(`--- boundary ${boundary} of ${definition.boundaries} ---`);
-      const args = ["--broadcast", "--step", String(boundary)];
+      const args = ["--step", String(boundary)];
       if (receipt) args.push("--receipt", receipt);
       const output = runStageBoundary(definition.script, args, environment, candidateCommit, true);
       receipt = transactionHashFromBoundaryOutput(output, boundary);
