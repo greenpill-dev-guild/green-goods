@@ -1,0 +1,42 @@
+name: Setup Playwright Chromium
+description: Install Playwright's Chromium browser and system dependencies with bounded, retried network access
+
+runs:
+  using: composite
+  steps:
+    # `playwright install --with-deps` shells out to `apt-get update`, which has
+    # no default overall timeout. On 2026-08-18 (admin run 32097509859) the Azure
+    # regional mirror returned Ign for every noble index, apt failed over to
+    # archive.ubuntu.com, then stalled after the last InRelease fetch with zero
+    # output for 28m47s until the 30-minute job timeout killed it. The same step
+    # normally finishes in ~22s. Bounding the transfer turns a silent 30-minute
+    # hang into a fast failure that the retry below usually recovers on its own.
+    - name: Bound apt network access
+      shell: bash
+      run: |
+        sudo tee /etc/apt/apt.conf.d/99-green-goods-timeouts >/dev/null <<'EOF'
+        Acquire::http::Timeout "20";
+        Acquire::https::Timeout "20";
+        Acquire::Retries "2";
+        EOF
+
+    # Split from the browser download so the log names which half stalled: the
+    # apt leg (system libraries) or the CDN leg (Chromium itself).
+    - name: Install Playwright Chromium and system dependencies
+      shell: bash
+      run: |
+        retry() {
+          label="$1"
+          shift
+          for attempt in 1 2; do
+            if timeout --kill-after=30s 180s "$@"; then
+              return 0
+            fi
+            echo "::warning::${label} attempt ${attempt} failed or timed out after 180s; retrying"
+            sleep 30
+          done
+          echo "::error::${label} failed after 2 attempts"
+          return 1
+        }
+        retry "playwright install-deps" bunx playwright install-deps chromium
+        retry "playwright install chromium" bunx playwright install chromium
