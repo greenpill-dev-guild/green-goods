@@ -103,6 +103,11 @@ export const HIFI_CSS = `
 .hf .hdr.fixed{flex:none;background:var(--cv);border-bottom:1px solid var(--ln);padding-bottom:8px}
 .hf .fbar{flex:none;background:var(--cv);border-top:1px solid var(--ln);padding:10px 16px 12px;display:flex;flex-direction:row;align-items:center;gap:10px}
 .hf .fbar .brow{margin:0}
+/* A secondary row of LABELLED buttons cannot share the primary's line: three
+   of them in 390px squeezed Open More to 70px and wrapped it two lines tall. */
+.hf .fbar:has(.fbrow){flex-direction:column;align-items:stretch}
+.hf .fbrow{display:flex;gap:8px}
+.hf .fbrow .b{flex:1}
 .hf .fbar .b.full{width:auto;flex:1}
 .hf .byline{display:flex;align-items:center;gap:6px;margin:2px 0}
 .hf .byline .avatar{width:20px;height:20px;border-radius:50%;background:var(--act);color:var(--on-act);display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;flex:none}
@@ -178,7 +183,7 @@ export const HIFI_CSS = `
    shipped follows. It does not compete with the step card's own heading, which
    is the same size but sits inside a filled card behind a 48px icon badge. */
 .hf.s-client .h6s{font-size:15px;font-weight:650;letter-spacing:-.01em;
-  color:var(--ink);margin:16px 0 6px}
+  color:var(--ink);margin:8px 0 -2px}
 .hf.s-client .card.sect{padding:0;overflow:hidden;gap:0}
 .hf.s-client .card.sect.flush{padding:10px}
 /* An empty section says what is missing inside its own card rather than
@@ -451,7 +456,7 @@ export const HIFI_CSS = `
    it: .t-sec takes the h6 metric inside the client dialect. Admin keeps its own,
    where .t-sec is a genuine card heading rather than a section label. */
 .hf.s-client .t-sec{font-size:15px;font-weight:650;letter-spacing:-.01em;
-  color:var(--ink);margin:16px 0 6px;display:flex;align-items:center;gap:8px}
+  color:var(--ink);margin:8px 0 -6px;display:flex;align-items:center;gap:8px}
 .hf.s-client .t-sec .hx{margin-left:auto;text-transform:none;letter-spacing:0}
 
 /* A truncated unit label keeps its full text in its title attribute — cut, never lost. */
@@ -485,6 +490,9 @@ export const HIFI_CSS = `
    for "Contributor" and for most names before the ellipsis. */
 .hf .mtrail{display:flex;gap:8px;overflow-x:auto;margin:0 -16px;padding:2px 16px 6px;scrollbar-width:none}
 .hf .mtrail::-webkit-scrollbar{display:none}
+/* A solo team is one full-width card. 216px leaves dead space beside it and
+   reads like the rail is missing something. */
+.hf .mtrail .mcard:only-child{flex:1 1 auto}
 .hf .mcard{flex:0 0 216px;position:relative;border:1px solid var(--ln);border-radius:14px;
   background:var(--card);padding:12px;display:flex;align-items:center;gap:10px;min-width:0}
 /* The text column clears the absolutely-placed remove control, exactly as

@@ -2024,6 +2024,44 @@ commitment view does not, and its acts sat at the end of the content. It now has
 fixed bar: the primary act per state, with Edit Details and Stop Offering in the bar's
 secondary row.
 
+### C.31 Units, one number, and a real extension (2026-08-17, round 31)
+
+**Garden work does not choose a unit. It is hours.** Afo asked how one unit encapsulates work
+spanning domains, and the answer is that it is not meant to: `requirements[]` carries what is
+done and which domains, `unitLabel`/`targetUnits` carries how much of you went in. The UI was
+still asking users to pick, and none of *beds / plants / barrows* fits a two-domain
+commitment. There is also a systems argument: unit groups are keccak256 buckets that are
+never summed and never converted (uiux-spec:1113), so a free choice fragments *what this pool
+holds* into rows nobody can compare. Fixed to hours, the pool can say "48 hours of garden
+work" and mean it.
+
+Service offers keep the choice, because a ride genuinely is not an hour: **hours · sessions ·
+rides · meals · repairs · other**, six chips that fill the row and belong to a service rather
+than to a garden bed.
+
+**One number, not two.** *How much in each* and *How many to open now* asked about a structure
+the user had not been shown; "each" had no antecedent at that point in the flow. The composer
+asks only how big one is and opens a single commitment. Opening more happens on the offer
+screen, where the act has an obvious meaning because you can see what is already open. Six
+amount options rather than three, so the row fills.
+
+**The confirmer is whoever takes it up.** *"Whoever you help says it was done"* was
+semantically right and read badly; *"whoever helps"* would have been the opposite of right,
+because on an offer YOU are the helper and self-confirmation is forbidden. It reads
+**"Whoever takes it up confirms it"**, and becomes their name and photo once someone does.
+
+**The ongoing view is now actually an extension.** Last round it shared exactly one section
+with the commitment view and I still described it as building on it. It renders the ongoing
+blocks first, so the repeating nature is clear immediately, then the standard sections in the
+commitment view's own order: Garden, Media, Details, People, Timeline. *Who has taken it up*
+folded into People rather than duplicating it.
+
+**Three defects, all introduced by me:** the section title's 6px bottom margin stacked on the
+pagepad's 12px flex gap, which does not collapse with margins, giving an 18px gap under every
+heading; the action bar's "secondary row" was never a row, so three labelled buttons shared
+one 390px line and the primary wrapped two lines tall at 70px wide; and a solo team card sat
+at 216px with dead space beside it instead of filling the width.
+
 ### C.7 PARKED — reciprocity from the claim side (2026-08-16, register #103)
 
 > **Parked 2026-08-17 (Afo): "park it for now and we stabilize and polish the UI."** The

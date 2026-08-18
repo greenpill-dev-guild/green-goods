@@ -2390,7 +2390,7 @@ const w3ConfirmSection = (opts: { value: string; sub?: string; hot: string; phot
 const w3DetailsBody = (
   items: string,
   members: W3Member[] = [],
-  confirm: { value: string; hot: string } = { value: "Whoever you help says it was done", hot: "w3.advanced" },
+  confirm: { value: string; hot: string } = { value: "Whoever takes it up confirms it", hot: "w3.advanced" },
 ) =>
   w3ConfirmSection(confirm) +
   w3TeamSection(members) +
@@ -2478,9 +2478,8 @@ function w3(state: W3State): string {
     case "step-howmuch":
       head = w3Head("Make an offer", 1);
       content = pagepad(
-        sectionTitle("Unit"),
-        pickRow([{ label: "hours", on: true }, { label: "tasks" }, { label: "meals" }, { label: "rides" }, { label: "plants" }, { label: "other…" }]),
-        sectionTitle("How many"),
+        sectionTitle("How many hours"),
+        `<div class="t-meta">Garden work is counted in hours. What you actually do is the actions below, which stewards approve.</div>`,
         pickRow([{ label: "1" }, { label: "2" }, { label: "6", on: true }, { label: "12" }, { label: "custom…" }]),
         `<div class="t-meta">Tap what fits — a custom unit or amount opens the keyboard only when you ask for it. This is what you are putting in, and it is what the pool counts in its hours.</div>`,
         w3Due("Runs with the season · through Aug 30"),
@@ -2508,7 +2507,7 @@ function w3(state: W3State): string {
     // photoOnlyData (Media.tsx:165).
     case "details-preview":
       head = w3Head("Make an offer", 2);
-      content = pagepad(w3DetailsBody(W3_DETAIL_ITEMS, [{ name: "João", sub: "joao.eth", photo: 1 }, { name: "Luz", sub: "luz.eth", photo: 4 }, { name: "0x74…c2" }], { value: "Whoever you help says it was done", hot: "w3.advanced" }));
+      content = pagepad(w3DetailsBody(W3_DETAIL_ITEMS, [{ name: "João", sub: "joao.eth", photo: 1 }, { name: "Luz", sub: "luz.eth", photo: 4 }, { name: "0x74…c2" }], { value: "Whoever takes it up confirms it", hot: "w3.advanced" }));
       secondary = W3_CAPTURE_BAR;
       if (state === "details-preview")
         overlay = imagePreview({ ix: 1, of: 2, photo: 0, closeHotId: "w3.preview-close", downloadHotId: "w3.preview-save", nextHotId: "w3.preview-next" });
@@ -2537,7 +2536,7 @@ function w3(state: W3State): string {
             { icon: "group-line", label: "Team", value: "Open to anyone eligible. 2 invited" },
           ],
           team: memberRow({ name: "João", sub: "joao.eth", joined: "Joined Jan 2025", badge: "Lead", photo: 1 }) + memberRow({ name: "Luz", sub: "luz.eth", joined: "Joined Feb 2025", badge: "Contributor", photo: 4 }) + memberRow({ name: "0x74…c2", joined: "Joined Aug 2025", badge: "Contributor" }),
-          advanced: { hot: "w3.advanced", label: "Who confirms", value: "Whoever you help says it was done. If nobody local is eligible, the Green Goods team can step in." },
+          advanced: { hot: "w3.advanced", label: "Who confirms", value: "Whoever takes it up confirms it. If nobody local is eligible, the Green Goods team can step in." },
         }),
         `<div class="t-meta">Submitting queues the commitment on this device and returns you to the pool — it sends when connected.</div>`,
       );
@@ -2640,7 +2639,7 @@ function w3(state: W3State): string {
             { icon: "refresh-line", label: "How often", value: "Just once" },
             { icon: "group-line", label: "Team", value: "Open to anyone eligible" },
           ],
-          advanced: { hot: "w3.advanced", label: "Who confirms", value: "Whoever you help says it was done. A service names no garden actions, so evidence and that person carry the proof." },
+          advanced: { hot: "w3.advanced", label: "Who confirms", value: "Whoever takes it up confirms it. A service names no garden actions, so evidence and that person carry the proof." },
         }),
         `<div class="t-meta">Service offers name no garden actions. Evidence and the person you help carry the proof.</div>`,
       );
@@ -2650,7 +2649,7 @@ function w3(state: W3State): string {
       head = w3Head("Make an offer", 1);
       content = pagepad(
         sectionTitle("Unit"),
-        pickRow([{ label: "repair sessions", on: true }, { label: "rides" }, { label: "meals" }, { label: "workshops" }, { label: "other…" }]),
+        pickRow([{ label: "hours" }, { label: "sessions", on: true }, { label: "rides" }, { label: "meals" }, { label: "repairs" }, { label: "other…" }]),
         sectionTitle("How many"),
         pickRow([{ label: "1", on: true }, { label: "2" }, { label: "4" }, { label: "custom…" }]),
         `<div class="t-meta">Tap what fits — the keyboard opens only for a custom unit or amount.</div>`,
@@ -2665,12 +2664,10 @@ function w3(state: W3State): string {
       head = w3Head("Make an offer", 1);
       content = pagepad(
         sectionTitle("Unit"),
-        pickRow([{ label: "workshop sessions", on: true }, { label: "rides" }, { label: "meals" }, { label: "other…" }]),
-        sectionTitle("How much in each"),
-        pickRow([{ label: "1", on: true }, { label: "2" }, { label: "custom…" }]),
-        sectionTitle("How many to open now"),
-        pickRow([{ label: "1" }, { label: "2", on: true }, { label: "4" }, { label: "custom…" }]),
-        `<div class="t-meta">Each one is an ordinary commitment, taken up on its own. Rest, resume, or retire it later from Things I can offer.</div>`,
+        pickRow([{ label: "hours" }, { label: "sessions", on: true }, { label: "rides" }, { label: "meals" }, { label: "repairs" }, { label: "other…" }]),
+        sectionTitle("How many in one"),
+        pickRow([{ label: "1", on: true }, { label: "2" }, { label: "3" }, { label: "4" }, { label: "6" }, { label: "custom…" }]),
+        `<div class="t-meta">This opens one commitment now. When someone takes it up you can open another, from the offer itself.</div>`,
       );
       actions = hot("w3.continue-support-howmuch-ongoing", btn("Continue", { kind: "pri", full: true }));
       break;
@@ -2693,7 +2690,7 @@ function w3(state: W3State): string {
       head = w3Head("Make a request", 1);
       content = pagepad(
         sectionTitle("Unit"),
-        pickRow([{ label: "rides", on: true }, { label: "hours" }, { label: "meals" }, { label: "other…" }]),
+        pickRow([{ label: "hours" }, { label: "sessions" }, { label: "rides", on: true }, { label: "meals" }, { label: "repairs" }, { label: "other…" }]),
         sectionTitle("How many"),
         pickRow([{ label: "1", on: true }, { label: "2" }, { label: "4" }, { label: "custom…" }]),
         `<div class="t-meta">Tap what fits — the keyboard opens only for a custom unit or amount.</div>`,
@@ -2861,13 +2858,13 @@ function w3(state: W3State): string {
           details: [
             { icon: "hand-heart-line", label: "Each one", value: "1 workshop session" },
             { icon: "seedling-line", label: "Where it runs", value: "Season of First Rains" },
-            { icon: "refresh-line", label: "Places to start", value: "2 open at a time. Each one is an ordinary commitment, taken up on its own" },
+            { icon: "refresh-line", label: "To start", value: "One commitment opens now. Open another whenever you want to" },
             { icon: "time-line", label: "Next cycle", value: "Ask me again next cycle" },
             { icon: "group-line", label: "Team", value: "Open to garden members" },
           ],
-          advanced: { hot: "w3.advanced", label: "Who confirms", value: "Whoever you help says it was done, on each one separately." },
+          advanced: { hot: "w3.advanced", label: "Who confirms", value: "Whoever takes it up confirms it, on each one separately." },
         }),
-        banner("Sending this opens the offer and its first two commitments at once. They become takeable once they send. Nothing new opens unless you open it, and when the season ends the offer stays yours.", "stone", "information-line"),
+        banner("Sending this opens the offer and its first commitment. It becomes takeable once it sends. Nothing else opens unless you open it, and when the season ends the offer stays yours.", "stone", "information-line"),
       );
       actions = hot("w3.submit-ongoing", btn("Start This Ongoing Offer", { kind: "pri", full: true }));
       break;
@@ -2880,7 +2877,7 @@ function w3(state: W3State): string {
       head = w3Head("Make a request", 1);
       content = pagepad(
         sectionTitle("Unit"),
-        pickRow([{ label: "rides", on: true }, { label: "hours" }, { label: "meals" }, { label: "other…" }]),
+        pickRow([{ label: "hours" }, { label: "sessions" }, { label: "rides", on: true }, { label: "meals" }, { label: "repairs" }, { label: "other…" }]),
         sectionTitle("How many"),
         pickRow([{ label: "1", on: true }, { label: "2" }, { label: "4" }, { label: "custom…" }]),
         w3Due("Runs with the season · through Aug 30"),
@@ -3681,7 +3678,7 @@ const W34_STATES = [
   // preview whose entry point had already been deleted. Four remain.
   ["edit-stopped", "Edit · Stopped"],
   ["stopped", "Stopped · commitments still open"], ["stopped-none", "Stopped · nothing open"],
-  ["stop-confirm", "Stop offering — confirm"],
+  ["stop-confirm", "Stop offering — confirm"], ["preview", "Image preview"],
   ["loading", "Loading"], ["read-error", "Read error"],
 ] as const;
 type W34State = (typeof W34_STATES)[number][0];
@@ -3771,6 +3768,29 @@ const w34TakenUpBy = () =>
     { flush: true },
   );
 
+// The sections every commitment has, in the order the commitment view puts
+// them (2026-08-17, Afo: "show all the consistent sections that you would see
+// across normal" commitments). The ongoing-only blocks sit ABOVE these so it is
+// clear straight away that this repeats; below the fold it reads like any
+// commitment. Who has taken it up IS this screen's People section, so it does
+// not appear twice.
+const w34Standard = () =>
+  sectionCard("Garden", listRow({ icon: "plant-line", primary: "Rocinha Community Garden", meta: "Rio de Janeiro · 23 gardeners" })) +
+  sectionCard("Media", mediaStrip([{ label: "Last session's beds", photo: 2, hotId: "w34.preview" }, { label: "Voice note", kind: "audio" }]), { flush: true }) +
+  sectionCard(
+    "Details",
+    `${detailRow("Unit", "workshop sessions")}${detailRow("Kind", "A service")}${detailRow("Who confirms", "Whoever takes it up")}${detailRow("Next cycle", "Ask me again next cycle")}`,
+  ) +
+  sectionCard(
+    "People",
+    memberRow({ name: "Maria", sub: "maria.eth", joined: "Offering this", badge: "Lead", photo: 3 }) +
+      memberRow({ name: "João", sub: "joao.eth", joined: "3 taken up", photo: 1 }) +
+      memberRow({ name: "Luz", sub: "luz.eth", joined: "2 taken up", photo: 4 }),
+    { flush: true },
+  ) +
+  `<div class="h6s">Timeline</div>` +
+  disclosure("Everything that has happened", "12 kept · 5 cycles", card(w34StoryTimeline(), { cls: "flat" }));
+
 const w34Places = (n: number) =>
   n === 0
     ? sectionCard(
@@ -3794,7 +3814,7 @@ const w34Places = (n: number) =>
 const w34ActiveManagement = (pool: "Open" | "Ready", availability: "existing" | "none" = "existing") => {
   const ready = pool === "Ready";
   const noPlaces = availability === "none";
-  return `${hot(ready ? "w34.edit-active-ready" : noPlaces ? "w34.edit-active-none" : "w34.edit-active", btn("Edit Details", { kind: "sec", sm: true, icon: "sticky-note-line" }))}${hot("w34.stop", btn("Stop Offering", { kind: "sec", sm: true, icon: "pause-line" }))}`;
+  return `<div class="fbrow">${hot(ready ? "w34.edit-active-ready" : noPlaces ? "w34.edit-active-none" : "w34.edit-active", btn("Edit Details", { kind: "sec", sm: true, icon: "sticky-note-line" }))}${hot("w34.stop", btn("Stop Offering", { kind: "sec", sm: true, icon: "pause-line" }))}</div>`;
 };
 
 const w34MetadataEditor = (state: "Active" | "Stopped", pool: "Open" | "Ready", availability: "existing" | "none" = "existing") =>
@@ -3841,6 +3861,7 @@ const W34_BARS: Partial<Record<W34State, string>> = {
 
 function w34(state: W34State): string {
   let body: string;
+  let overlay = "";
   switch (state) {
     case "active-none":
       body = `${w34Head()}${pagepad(
@@ -3848,7 +3869,7 @@ function w34(state: W34State): string {
         w34Record(),
         w34Places(0),
         w34Repeats(),
-        w34TakenUpBy(),
+        w34Standard(),
       )}`;
       break;
     case "active-one":
@@ -3858,7 +3879,7 @@ function w34(state: W34State): string {
         banner("One is open now. It is already an ordinary Offer with reserved capacity.", "green", "hand-heart-line"),
         w34Places(1),
         w34Repeats(),
-        w34TakenUpBy(),
+        w34Standard(),
       )}`;
       break;
     case "pool-ready":
@@ -4035,7 +4056,7 @@ function w34(state: W34State): string {
             listRow({ icon: "calendar-line", primary: "Workshop session 2", meta: "Season of First Rains · 2 hours", chipHtml: stateChip("Offered") }),
         ),
         w34Repeats(),
-        w34TakenUpBy(),
+        w34Standard(),
       )}`;
       break;
     case "stopped-none":
@@ -4044,7 +4065,7 @@ function w34(state: W34State): string {
         w34Record(),
         banner("Stopped on Aug 2. Nothing is open, and nothing new opens until you start it again.", "stone", "pause-line"),
         w34Repeats(),
-        w34TakenUpBy(),
+        w34Standard(),
       )}`;
       break;
     case "stop-confirm":
@@ -4060,6 +4081,16 @@ function w34(state: W34State): string {
       break;
     case "edit-stopped":
       body = w34MetadataEditor("Stopped", "Open");
+      break;
+    case "preview":
+      body = `${w34Head()}${pagepad(
+        w34Identity({ state: "Active", tone: "offer", openNow: 2 }),
+        w34Record(),
+        w34Places(2),
+        w34Repeats(),
+        w34Standard(),
+      )}`;
+      overlay = imagePreview({ ix: 1, of: 1, photo: 2, closeHotId: "w34.preview-close", downloadHotId: "w34.preview-save" });
       break;
     case "loading":
       body = `${w34Head()}${pagepad(
@@ -4082,20 +4113,20 @@ function w34(state: W34State): string {
         w34Record(),
         w34Places(2),
         w34Repeats(),
-        w34TakenUpBy(),
-        sectionCard("Details", `${detailRow("Next cycle", "Ask me again next cycle")}`),
+        w34Standard(),
       )}`;
   }
   const bar = W34_BARS[state];
   return phoneFrame(`${body}<div style="flex:1"></div>`, {
     offline: state === "places-queued",
+    overlay: overlay || undefined,
     appBar: bar
       ? actionBar(
           bar,
           W34_MANAGE.has(state)
             ? w34ActiveManagement("Open", state === "active-none" ? "none" : "existing")
             : state === "stopped" || state === "stopped-none"
-              ? hot("w34.edit-stopped", btn("Edit Details", { kind: "sec", sm: true, icon: "sticky-note-line" }))
+              ? `<div class="fbrow">${hot("w34.edit-stopped", btn("Edit Details", { kind: "sec", sm: true, icon: "sticky-note-line" }))}</div>`
               : undefined,
         )
       : false,
@@ -4103,6 +4134,9 @@ function w34(state: W34State): string {
 }
 
 const W34_HOTS: HifiDef["hots"] = {
+  "w34.preview": { l: "Open the photo", to: "screen:W34@preview", info: "The ongoing offer's media opens the same ImagePreviewDialog every other surface does." },
+  "w34.preview-close": { l: "Close the preview", to: "screen:W34@active-two", info: "Returns to the offer unchanged." },
+  "w34.preview-save": { l: "Download image", info: "Saves the photo to the device, as the shipped dialog offers on every viewport." },
   "w34.stop": { l: "Stop offering this", to: "screen:W34@stop-confirm", info: "Rest and Retire became ONE control (2026-08-17, Afo: \"they just stop\"). Sixteen states served a two-verb lifecycle nobody uses. This calls restCommitmentSeries rather than retireCommitmentSeries: stopping should destroy nothing, so the record survives and someone who comes back next season keeps their history instead of starting a new series with an empty one. retireCommitmentSeries stays in the contract, unused by the UI for now." },
   "w34.stop-confirm": { l: "Stop offering", to: "screen:W34@stopped", info: "Blocks anything new from opening. Commitments already open stay open and can still be taken up, and the record is untouched.", calls: ["restCommitmentSeries"] },
   "w34.stop-cancel": { l: "Keep offering", to: "screen:W34@active-two", info: "Dismisses the confirmation with nothing changed." },

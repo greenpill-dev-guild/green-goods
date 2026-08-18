@@ -1365,6 +1365,19 @@ Known mis-resolutions fixed in place: `contract-spec.md` §Grassroots-Economics-
     Case acts. **The ongoing view is a full-screen read surface** with no bottom nav and a
     fixed bar carrying the primary act, with Edit Details and Stop Offering in the secondary
     row. Full text: `uiux-spec.md` C.30.
+134. Units, one number, and a real extension (2026-08-17, round 31, Afo). **Garden work is
+    always hours** — requirements carry what is done and which domains, unitLabel carries how
+    much of you went in, and unit groups are keccak256 buckets that never sum, so a free
+    choice fragments what the pool holds. Services keep six chips: hours, sessions, rides,
+    meals, repairs, other. **One number, not two**: "How much in each" and "How many to open
+    now" asked about a structure the user had not been shown, so the composer asks only how
+    big one is and opening more happens on the offer screen. **"Whoever takes it up confirms
+    it"** — the old line read badly and Afo's proposed fix would have meant self-confirmation,
+    which the contract forbids. **The ongoing view actually extends the commitment view now**:
+    ongoing blocks first, then Garden, Media, Details, People, Timeline in the commitment
+    view's own order. Three defects of mine fixed: heading margin stacked on flex gap (18px),
+    the action bar's secondary row was never a row (primary wrapped at 70px), and a solo team
+    card did not fill the width. Full text: `uiux-spec.md` C.31.
 
 **Final recursive certification clarification (2026-07-25; no new decision-register entry):**
 the published `42161`↔`42220` production lane is the only required fully paired
