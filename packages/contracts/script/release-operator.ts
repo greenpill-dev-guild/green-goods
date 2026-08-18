@@ -686,6 +686,7 @@ function verifyDeployerPassword(passwordFile: string): string {
   return unlocked;
 }
 const GARDEN_SAFE_PLAN_PATH = path.join(CONTRACTS_ROOT, ".generated/runtime/42220-garden-safe-final.json");
+const RELAY_PLAN_PATH = path.join(CONTRACTS_ROOT, ".generated/runtime/garden-account-relay.json");
 
 /**
  * Resolves which boundaries a stage still has to run. Kept pure and separate from execution so the
@@ -766,8 +767,17 @@ async function runCeremonyStage(
   if (stage === "relay") {
     // Every relay boundary depends on the previous one's receipt, and consecutive boundaries sit on
     // different chains, so each hash is captured and handed to the next rather than copied by hand.
+    // A resumed lane starts at the first uncheckpointed boundary and lets the wrapper recover that
+    // boundary's prerequisite from its own checkpoint instead of replaying a mined transaction.
+    const completed = completedBoundaries(RELAY_PLAN_PATH);
+    const boundaries = plannedStageBoundaries(stage, completed);
+    if (boundaries.length === 0) {
+      console.log(`Stage ${stage} is already complete with ${completed} checkpointed boundaries.`);
+      return;
+    }
+    if (completed > 0) console.log(`Resuming stage ${stage} after ${completed} checkpointed boundaries.`);
     let receipt: string | undefined;
-    for (let boundary = 1; boundary <= definition.boundaries; boundary += 1) {
+    for (const boundary of boundaries) {
       console.log(`--- boundary ${boundary} of ${definition.boundaries} ---`);
       const args = ["--broadcast", "--step", String(boundary)];
       if (receipt) args.push("--receipt", receipt);

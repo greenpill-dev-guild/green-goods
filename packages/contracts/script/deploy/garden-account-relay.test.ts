@@ -1,5 +1,46 @@
-import { describe, expect, it } from "vitest";
-import { buildDeterministicRelayPlan, parseArguments } from "./garden-account-relay";
+import * as fs from "node:fs";
+import * as os from "node:os";
+import * as path from "node:path";
+import { keccak256, toUtf8Bytes } from "ethers";
+import { afterEach, describe, expect, it } from "vitest";
+import {
+  assertNextRelayBoundary,
+  buildDeterministicRelayPlan,
+  loadRelayCheckpoint,
+  parseArguments,
+} from "./garden-account-relay";
+
+const temporaryDirectories: string[] = [];
+
+afterEach(() => {
+  for (const directory of temporaryDirectories.splice(0)) fs.rmSync(directory, { recursive: true, force: true });
+});
+
+function checkpointFixture(completed: number, planBody = '{"kind":"relay"}'): string {
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), "relay-checkpoint-"));
+  temporaryDirectories.push(directory);
+  const planPath = path.join(directory, "garden-account-relay.json");
+  fs.writeFileSync(planPath, planBody);
+  if (completed > 0) {
+    fs.writeFileSync(
+      path.join(directory, "garden-account-relay.checkpoint.json"),
+      JSON.stringify({
+        schemaVersion: 1,
+        planHash: keccak256(toUtf8Bytes(planBody)),
+        completed: Array.from({ length: completed }, (_, index) => ({
+          step: index + 1,
+          kind: "BOUNDARY",
+          chainId: 42161,
+          transactionHash: `0x${String(index + 1)
+            .repeat(64)
+            .slice(0, 64)}`,
+          blockNumber: 100 + index,
+        })),
+      }),
+    );
+  }
+  return planPath;
+}
 
 const gardens = Array.from({ length: 18 }, (_, index) => `0x${(index + 1).toString(16).padStart(40, "0")}`);
 const safes = Array.from({ length: 18 }, (_, index) => `0x${(index + 101).toString(16).padStart(40, "0")}`);
@@ -43,7 +84,9 @@ describe("GardenAccount relay release plan", () => {
 
     expect(() => parseArguments(["deploy", "--step", "1"])).toThrow(/requires --broadcast/);
     expect(() => parseArguments(["deploy", "--broadcast"])).toThrow(/one explicit --step boundary/);
-    expect(() => parseArguments(["deploy", "--broadcast", "--step", "2"])).toThrow(/step-1 receipt/);
+    // A resumed lane recovers the prior receipt from its checkpoint, so the flag is not required
+    // at parse time; the binding itself is enforced when the boundary executes.
+    expect(parseArguments(["deploy", "--broadcast", "--step", "2"]).receipt).toBeUndefined();
     expect(() => parseArguments(["deploy", "--broadcast", "--step", "1", "--receipt", receipt])).toThrow(
       /no prerequisite receipt/,
     );
@@ -77,5 +120,37 @@ describe("GardenAccount relay release plan", () => {
   it("rejects duplicate or incomplete Garden/Safe bindings", () => {
     expect(() => buildDeterministicRelayPlan({ ...fixture(), gardens: gardens.slice(0, 17) })).toThrow(/18 unique/);
     expect(() => buildDeterministicRelayPlan({ ...fixture(), safes: safes.map(() => safes[0]) })).toThrow(/18 unique/);
+  });
+});
+
+describe("relay boundary checkpointing", () => {
+  it("resumes at the first uncheckpointed boundary and refuses to replay or skip", () => {
+    expect(assertNextRelayBoundary(1, 0)).toBe(1);
+    expect(assertNextRelayBoundary(3, 2)).toBe(3);
+    // Replaying a mined boundary and jumping over an unmined one both fail closed.
+    expect(() => assertNextRelayBoundary(2, 2)).toThrow(/next uncheckpointed boundary 3/);
+    expect(() => assertNextRelayBoundary(4, 2)).toThrow(/next uncheckpointed boundary 3/);
+    expect(() => assertNextRelayBoundary(1, 4)).toThrow(/next uncheckpointed boundary 5/);
+  });
+
+  it("reads a contiguous checkpoint and binds it to the exact reviewed plan", () => {
+    expect(loadRelayCheckpoint(checkpointFixture(0)).completed).toEqual([]);
+
+    const resumed = loadRelayCheckpoint(checkpointFixture(2));
+    expect(resumed.completed.map((entry) => entry.step)).toEqual([1, 2]);
+
+    // Regenerating the plan after a mined boundary must stop the lane, not silently resume.
+    const planPath = checkpointFixture(2);
+    fs.writeFileSync(planPath, '{"kind":"relay","regenerated":true}');
+    expect(() => loadRelayCheckpoint(planPath)).toThrow(/does not belong to the exact reviewed relay plan/);
+  });
+
+  it("rejects a checkpoint whose boundaries are not a contiguous prefix", () => {
+    const planPath = checkpointFixture(2);
+    const checkpointPath = planPath.replace(/\.json$/u, ".checkpoint.json");
+    const checkpoint = JSON.parse(fs.readFileSync(checkpointPath, "utf8"));
+    checkpoint.completed[1].step = 3;
+    fs.writeFileSync(checkpointPath, JSON.stringify(checkpoint));
+    expect(() => loadRelayCheckpoint(planPath)).toThrow(/contiguous boundary prefix/);
   });
 });

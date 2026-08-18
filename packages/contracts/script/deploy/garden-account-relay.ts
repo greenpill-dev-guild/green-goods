@@ -266,8 +266,6 @@ export function parseArguments(args: string[]): RelayCliOptions {
   if (command === "deploy") {
     if (!broadcast) throw new Error("deploy requires --broadcast");
     if (step === undefined) throw new Error("deploy requires one explicit --step boundary");
-    if (step > 1 && !receipt)
-      throw new Error(`Step ${step} requires the reviewed step-${step - 1} receipt via --receipt`);
     if (step === 1 && receipt) throw new Error("Step 1 has no prerequisite receipt");
   } else {
     if (broadcast) throw new Error(`${command} does not accept --broadcast`);
@@ -667,6 +665,54 @@ async function relayDeploymentStarted(plan: GardenAccountRelayPlan): Promise<boo
   return (await providerFor(SOURCE_CHAIN_ID, manager).getCode(plan.router.address, "latest")) !== "0x";
 }
 
+export interface RelayCheckpointEntry {
+  step: number;
+  kind: string;
+  chainId: number;
+  transactionHash: string;
+  blockNumber: number;
+}
+
+export interface RelayCheckpoint {
+  schemaVersion: 1;
+  planHash: string;
+  completed: RelayCheckpointEntry[];
+}
+
+function checkpointPath(planPath: string): string {
+  return planPath.replace(/\.json$/u, ".checkpoint.json");
+}
+
+function hashFileContent(filePath: string): string {
+  return keccak256(toUtf8Bytes(fs.readFileSync(filePath, "utf8")));
+}
+
+/**
+ * The checkpoint is bound to the exact reviewed plan. Regenerating the plan after a mined boundary
+ * must stop the lane rather than silently resume against different addresses or nonces.
+ */
+export function loadRelayCheckpoint(planPath: string): RelayCheckpoint {
+  const filePath = checkpointPath(planPath);
+  const planHash = hashFileContent(planPath);
+  if (!fs.existsSync(filePath)) return { schemaVersion: 1, planHash, completed: [] };
+  const checkpoint = readJson<RelayCheckpoint>(filePath);
+  if (checkpoint.schemaVersion !== 1 || checkpoint.planHash !== planHash) {
+    throw new Error("Checkpoint does not belong to the exact reviewed relay plan");
+  }
+  for (const [offset, entry] of checkpoint.completed.entries()) {
+    if (entry.step !== offset + 1) throw new Error("Checkpoint must be a contiguous boundary prefix");
+  }
+  return checkpoint;
+}
+
+export function assertNextRelayBoundary(selected: number, completed: number): number {
+  const nextBoundary = completed + 1;
+  if (selected !== nextBoundary) {
+    throw new Error(`Relay deploy must target the next uncheckpointed boundary ${nextBoundary}`);
+  }
+  return selected;
+}
+
 function recordBoundary(
   plan: GardenAccountRelayPlan,
   step: number,
@@ -701,6 +747,7 @@ function recordBoundary(
 export async function executeRelayBoundary(
   plan: GardenAccountRelayPlan,
   step: number,
+  planPath: string,
   priorReceipt?: string,
 ): Promise<void> {
   if (plan.transactions.length !== RELAY_BOUNDARIES) {
@@ -708,15 +755,24 @@ export async function executeRelayBoundary(
   }
   const transaction = plan.transactions[step - 1];
   if (!transaction || transaction.step !== step) throw new Error(`Reviewed plan has no boundary ${step}`);
+  const checkpoint = loadRelayCheckpoint(planPath);
+  assertNextRelayBoundary(step, checkpoint.completed.length);
   const manager = new NetworkManager();
   const provider = providerFor(transaction.chainId, manager);
 
   if (step > 1) {
     const prior = plan.transactions[step - 2];
+    // A resumed lane has no captured hash from this run, so the checkpointed receipt stands in.
+    const recorded = checkpoint.completed[step - 2]?.transactionHash;
+    const priorHash = priorReceipt ?? recorded;
+    if (!priorHash) throw new Error(`Step ${step} requires the reviewed step-${step - 1} receipt`);
+    if (recorded && priorReceipt && recorded !== priorReceipt) {
+      throw new Error(`Step-${step - 1} receipt differs from the checkpointed boundary`);
+    }
     // The prior boundary can live on the other chain, so its receipt is read there, not here.
     await assertReceiptMatchesBoundary(
       providerFor(prior.chainId, manager),
-      priorReceipt as string,
+      priorHash,
       plan.sender,
       prior,
       `Step-${step - 1} receipt`,
@@ -741,6 +797,14 @@ export async function executeRelayBoundary(
     `${transaction.kind} receipt`,
   );
   await assertBoundaryPostcondition(plan, step, manager);
+  checkpoint.completed.push({
+    step,
+    kind: transaction.kind,
+    chainId: transaction.chainId,
+    transactionHash,
+    blockNumber: receipt.blockNumber,
+  });
+  atomicWrite(checkpointPath(planPath), checkpoint);
   recordBoundary(plan, step, transactionHash, receipt.blockNumber);
   process.stdout.write(`${transaction.kind} verified as ${transactionHash}; close the credential session.\n`);
 }
@@ -769,6 +833,7 @@ export async function main(args = process.argv.slice(2)): Promise<void> {
     await executeRelayBoundary(
       readJson<GardenAccountRelayPlan>(options.planPath),
       options.step as number,
+      options.planPath,
       options.receipt,
     );
     return;
