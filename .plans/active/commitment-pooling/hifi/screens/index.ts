@@ -38,11 +38,12 @@ const GROUP_DEFS: { name: string; surface: Surface; ids: string[] }[] = [
 const SCREEN_CHAPTERS: Record<string, { label: string; ids: string[] }[]> = {
   client: [
     { label: "The pool & its commitments", ids: ["W1", "W1C", "W2", "W4", "W25", "W36"] },
-    { label: "Create & prove", ids: ["W3", "W2a", "W2b", "WFLOW"] },
-    // The commitments sheet leads, then the three screens it opens: the
-    // ongoing Offer's detail, offering another, and saving details. W5 left
-    // the Wallet chapter with round 40 — it is no longer a wallet tab.
-    { label: "Your commitments", ids: ["W5", "W34", "W35", "W32"] },
+    // W32 joined creation in round 42: saving offer details is entered from
+    // the composer's step 1, which is the only place they are used.
+    { label: "Create & prove", ids: ["W3", "W32", "W2a", "W2b", "WFLOW"] },
+    // The commitments sheet leads, then the two screens it opens from Over
+    // time. W5 left the Wallet chapter with round 40 — it is no longer a tab.
+    { label: "Your commitments", ids: ["W5", "W34", "W35"] },
     { label: "Exchange & templates", ids: ["W28", "W29", "W30", "W31"] },
     { label: "Wallet", ids: ["W23"] },
   ],
@@ -60,16 +61,28 @@ const SCREEN_CHAPTERS: Record<string, { label: string; ids: string[] }[]> = {
 // variant frames dissolve into states of their parent screens.
 export const ALIASES: Record<string, string> = {
   W6: "W5",
-  // W32's list states moved into the commitments sheet's tabs (round 40).
-  // W32 keeps the saving flow; these keep old deep links resolving.
-  "W32@saved": "W5@saved",
-  "W32@empty": "W5@saved-empty",
-  "W32@saved-with-ongoing": "W5@ongoing",
-  "W32@saved-with-ongoing-ready": "W5@ongoing-ready",
-  "W32@series-queued": "W5@ongoing-queued",
-  "W32@series-queued-place-waiting": "W5@ongoing-queued-waiting",
-  "W32@loading": "W5@loading",
-  "W32@read-error": "W5@read-error",
+  // W32's list states dissolved twice: round 40 moved them into the
+  // commitments sheet's tabs, and round 42's tense split re-homed them again —
+  // saved details into the composer's step 1, series casts onto Over time.
+  // W32 keeps only the saving flow; these keep old deep links resolving.
+  "W32@saved": "W3@step-what",
+  "W32@empty": "W3@step-what",
+  "W32@loading": "W3@step-what",
+  "W32@read-error": "W3@step-what",
+  "W32@saved-with-ongoing": "W5@overtime",
+  "W32@saved-with-ongoing-ready": "W5@overtime-ready",
+  "W32@series-queued": "W5@overtime-queued",
+  "W32@series-queued-place-waiting": "W5@overtime-queued-waiting",
+  // Round 40/41's own W5 state ids, renamed by the round-42 tense split.
+  "W5@ongoing": "W5@overtime",
+  "W5@ongoing-empty": "W5@overtime-empty",
+  "W5@ongoing-ready": "W5@overtime-ready",
+  "W5@ongoing-queued": "W5@overtime-queued",
+  "W5@ongoing-queued-waiting": "W5@overtime-queued-waiting",
+  "W5@ongoing-loading": "W5@overtime-loading",
+  "W5@ongoing-read-error": "W5@overtime-read-error",
+  "W5@saved": "W3@step-what",
+  "W5@saved-empty": "W3@step-what",
   W1P: "W1@claim-pending",
   W1S: "W1@claim-superseded",
   MF3: "W2@expired",

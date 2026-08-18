@@ -2826,7 +2826,7 @@ function w3(state: W3State): string {
         banner("Saved on this phone. It sends when you are connected.", "amber", "time-line"),
         `<div class="t-meta">This is one ordinary Offer. Your saved details remain reusable, but this offer will not repeat or become ongoing.</div>`,
       ) + syncBar("1 waiting to send");
-      actions = hot("w3.saved-offer-done", btn("Back to My Offers", { kind: "ghost", full: true }));
+      actions = hot("w3.saved-offer-done", btn("See It in the Pool", { kind: "ghost", full: true }));
       break;
     case "support-details":
       head = w3Head("Make an offer", 2);
@@ -2989,6 +2989,16 @@ function w3(state: W3State): string {
         field("Title", hot("w3.repeat-noticed", input("Prune the north beds"))),
         pickRow([{ label: "Prune the north beds", on: true }, { label: "Water the seedlings" }, { label: "Plant out the starts" }, { label: "More…", hotId: "w3.template" }]),
         `<div class="t-meta">Suggestions come from the garden's own actions. Tap one to start, then make it yours.</div>`,
+        // Saved details live in creation now (2026-08-17 round 42, Afo): they
+        // are input material rather than a record, which is why no tab name
+        // ever fit them. Starting from one is a step-1 choice, exactly where
+        // the template chips already sit; saving new details keeps its W32
+        // flow, entered from here.
+        card(
+          hot("w3.start-from-saved", listRow({ icon: "sticky-note-line", primary: "Hosting climate workshops", meta: "Start from your saved details · private to you", chevron: true })) +
+            `<div class="brow">${hot("w3.save-new-details", btn("Save New Details", { kind: "ghost", sm: true, icon: "add-line" }))}</div>`,
+          { cls: "flat" },
+        ),
       );
       actions = hot("w3.continue-what", btn("Continue", { kind: "pri", full: true }));
   }
@@ -3055,7 +3065,7 @@ const W3_HOTS: HifiDef["hots"] = {
   "w3.review-saved-offer": { l: "Review this offer", to: "screen:W3@saved-offer-review", info: "Carries the saved workshop details into the ordinary one-time Offer review without replacing them with the generic Garden work example." },
   "w3.edit-saved-offer": { l: "Edit this offer", to: "screen:W3@saved-offer-edit", info: "Returns to the fully editable prefilled fields. The private saved details remain unchanged unless the member separately saves them again." },
   "w3.submit-saved-offer": { l: "Make this offer", to: "screen:W3@saved-offer-queued", info: "Queues exactly one ordinary SupportService Offer with commitmentSeriesId == 0. No durable series is created, and nothing opens later.", calls: ["createCommitment"], pendingSync: true },
-  "w3.saved-offer-done": { l: "Back to my offers", to: "screen:W5@saved", info: "Returns to the private saved-details list — the commitments sheet's Saved tab since round 40 — without changing the separate queued one-time Offer job." },
+  "w3.saved-offer-done": { l: "See it in the pool", to: "screen:W1@queued", info: "A one-time offer from saved details lands where every other creation lands since round 24: the pool tab with your queued card at the top. It used to return to the saved-details list, which round 42 folded into creation." },
   "w3.resume": { l: "Resume draft", to: "screen:W3@step-what", info: "Drafts persist locally (WorkDraftRecord semantics); re-entry offers resume (UX:160)." },
   "w3.start-fresh": { l: "Start fresh", to: "screen:W3@step-what", info: "Explicitly discards the saved local draft and starts from the first creation step." },
   "w3.add-action": { l: "Add an action", info: "Repeatable DomainImpact requirements: each row binds a registered action to a count ≥ 1, and domains are derived tags that may repeat. Four rows are visible initially; Add action continues to the measured MAX_REQUIREMENTS. Failed submits keep entered data and focus a concise error summary (UX:156 · WF:251 · UX:439)." },
@@ -3067,6 +3077,8 @@ const W3_HOTS: HifiDef["hots"] = {
   "w3.add-note": { l: "Write a note", info: "A few words from the field; stored in the metadata document's note field." },
   "w3.remove-detail": { l: "Remove this item", info: "Items can be removed until the commitment sends; nothing uploads before then." },
   "w3.template": { l: "More suggestions", to: "screen:W31", info: "Prefill layer (Appendix E.2 as amended 2026-08-11): choosing a template only prefills these fields and returns here — the picker is no longer a gate before the form and never says “create a commitment”. Since 2026-08-16 it is the tail chip of the title suggestions rather than its own row: the chips and the picker were two mechanisms for one intent, and the row made step 1 heavier for it." },
+  "w3.start-from-saved": { l: "Start from something saved", to: "screen:W32@choose-path", info: "Saved details moved into creation with round 42: they are input material, not a record, so their home is the step that consumes them. Opens the once-or-over-time choice; either path returns prefilled." },
+  "w3.save-new-details": { l: "Save new details", to: "screen:W32@compose", info: "The one remaining door into the private save flow. Saving writes no pool, series, or commitment state — signed offchain details only, following you to a new device once confirmed." },
   "w3.pick-action": { l: "Add this action", info: "Tap-first action cards from the garden's own registry: tapping adds the action with count 1; tapping a chosen card changes its count — 1 · 2 · 4 · custom (2026-08-11 correction pass)." },
   "w3.request-choose-service": { l: "Choose help or a service", to: "screen:W3@request-what", info: "Switches the ask back to the proof-confirmed service cast; entered values are kept." },
   "w3.choose-ongoing": { l: "Choose Ongoing", to: "screen:W3@support-howmuch-ongoing", info: "How often moved to step 1 beside the kind cards (2026-08-16 round 12, Afo): as a field at the BOTTOM of step 2 the fork was discovered only after everything had been filled in for a one-off. Choosing Ongoing carries the how-many block into step 2; one submission later runs the series creation plus its first commitment creations as an ordered queue sequence. Drawn in the service cast, which is where the ongoing fixture lives." },
@@ -3562,7 +3574,7 @@ const W32_HOTS: HifiDef["hots"] = {
   "w32.retry-save-online": { l: "Try when connected", to: "screen:W32@saving", info: "Connectivity is rechecked before entering the remote-saving state." },
   "w32.use-local-offline": { l: "Use this draft", to: "screen:W32@choose-path", info: "Uses the local metadata without relabeling it Saved. A later series/commitment queue is separate from remote saved-Offer persistence." },
   "w32.keep-editing": { l: "Keep editing", to: "screen:W32@draft-unsaved", info: "Returns to the retained local draft without claiming it is saved." },
-  "w32.reload-remote": { l: "Use saved version", to: "screen:W5@saved", info: "Loads the newer confirmed remote version and preserves no false merge claim." },
+  "w32.reload-remote": { l: "Use saved version", to: "screen:W32@choose-path", info: "Loads the newer confirmed remote version and preserves no false merge claim. Lands on the once-or-over-time choice, since a saved detail's only use is starting an offer." },
   "w32.keep-local-copy": { l: "Keep a local copy", to: "screen:W32@draft-unsaved", info: "Keeps these edits as a visibly unsaved device draft." },
   "w32.overwrite-current": { l: "Replace saved version", to: "screen:W32@saving", info: "Starts an explicit compare-and-swap write against the current remote version; success is still not assumed." },
   "w32.persistence": { l: "How saving works", to: "screen:W32@persistence", info: "Explains the honest difference between signed saved details and an unsaved local draft." },

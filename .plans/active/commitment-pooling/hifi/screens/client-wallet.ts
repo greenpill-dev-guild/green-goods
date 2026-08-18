@@ -18,11 +18,13 @@ import type { StateFacts } from "../types";
 // ---------------------------------------------------------------------------
 
 const W5_STATES = [
-  ["default", "Commitments"], ["queued", "Queued rows"], ["waiting-membership", "Waiting rows"], ["send-failed", "Send failed"],
-  ["empty", "Empty"], ["loading", "Loading"], ["not-found", "Not found"], ["read-error", "Read error"],
-  ["ongoing", "Ongoing Offers"], ["ongoing-empty", "Ongoing · none yet"], ["ongoing-ready", "Ongoing · pool ready"],
-  ["ongoing-queued", "Ongoing · queued"], ["ongoing-queued-waiting", "Ongoing · queued with first commitment"],
-  ["saved", "Saved details"], ["saved-empty", "Saved · none yet"],
+  ["default", "Live"], ["queued", "Live · queued rows"], ["waiting-membership", "Live · waiting rows"], ["send-failed", "Live · send failed"],
+  ["empty", "Live · empty"], ["loading", "Live · loading"], ["not-found", "Live · not found"], ["read-error", "Live · read error"],
+  ["overtime", "Over time"], ["overtime-empty", "Over time · nothing yet"], ["overtime-ready", "Over time · pool ready"],
+  ["overtime-queued", "Over time · series queued"], ["overtime-queued-waiting", "Over time · series and first commitment queued"],
+  ["overtime-loading", "Over time · loading"], ["overtime-read-error", "Over time · read error"],
+  ["toconfirm", "To confirm (steward)"], ["toconfirm-empty", "To confirm · nothing waiting"],
+  ["toconfirm-loading", "To confirm · loading"], ["toconfirm-read-error", "To confirm · read error"],
 ] as const;
 type W5State = (typeof W5_STATES)[number][0];
 
@@ -52,29 +54,52 @@ const walletShell = (inner: string, active: 0 | 1) =>
   );
 
 // The commitments sheet — same ModalDrawer anatomy as the wallet, opened from
-// its own Home header control. Its tabs are the three OBJECTS a member holds,
-// not three filters over one of them (2026-08-17 round 40, Afo):
+// its own Home header control. Round 40's tabs were the three objects a
+// member holds; round 42 (2026-08-17, Afo) re-split them by TENSE, because
+// tab 1's only truthful name was "Commitments", which echoed the sheet title
+// — the wallet's own rule is that the container word and the object words are
+// never the same ("Wallet" holds Cookies · Tokens):
 //
-//   Commitments — the individual commitments you hold, grouped by garden.
-//                 Scope chips stay INSIDE this tab, filtering one list, which
-//                 is where round 10 put them.
-//   Ongoing     — the CommitmentSeries you run. A series is the machine; the
-//                 commitments it opens are the things, and they stay in tab 1
-//                 under their garden. This retires the round-12 workaround
-//                 that parked the series parent card inside a garden section
-//                 because there was no second plane to put it on.
-//   Saved       — private reusable details. Nothing on chain, invisible to
-//                 anyone else, not a commitment until you offer it.
+//   Live       — everything still moving: in motion, queued, disputed,
+//                waiting on someone. Grouped by garden. The chips inside are
+//                DIRECTION (All · Offers · Requests), the pool tab's own
+//                filter words, so the two surfaces are one grammar at two
+//                scopes; what needs you leads the sort and drives the badge.
+//                "Live" was rejected in round 39 because the tab held Kept;
+//                the tense split removes Kept, and the objection with it.
+//   Over time  — what is settled and standing: your record across gardens,
+//                the series you keep offering ("Offered over time", the
+//                composer's own phrase), and kept history. Not a list — the
+//                standing view purpose 3 never had.
+//   To confirm — steward Hats only, AUTHORITY confirmations only: garden
+//                claims where the garden is the counterparty, and reasoned
+//                fallbacks. Those reach you through your Hat and were never
+//                in your personal ledger, so this tab creates no second copy
+//                of anything (round 10 intact). Your own counterparty
+//                confirmations stay in Live. This is the phone twin of the
+//                admin Hub's confirm stage (uiux §6.9) for a field-first
+//                product. Saved details left the sheet entirely — they are
+//                input material, not a record, and live in creation now.
+//
+// Badges follow ONE rule so the two places a count appears can never
+// disagree: a tab pill counts what needs an act ON THAT TAB, and the Home
+// header control carries their sum (2026-08-17 round 41, Afo). Never an
+// inventory count — that is engagement counting, which the regenerative lens
+// rules out (review-checklist Lens 1.5).
+type TabBadges = Partial<Record<0 | 1 | 2, number>>;
+
 const commitmentsShell = (
   inner: string,
   active: 0 | 1 | 2,
-  opts: { segHot?: string; badge?: number } = {},
+  opts: { segHot?: string; badges?: TabBadges; steward?: boolean } = {},
 ) => {
-  const rail = seg(["Commitments", "Ongoing", "Saved"], active, opts.badge ? { badges: { 0: opts.badge } } : {});
+  const badges = opts.badges ?? {};
+  const total = (badges[0] ?? 0) + (badges[1] ?? 0) + (badges[2] ?? 0);
+  const rail = seg(opts.steward ? ["Live", "Over time", "To confirm"] : ["Live", "Over time"], active, { badges });
   return sheetOver(
-    homeHeader({ commitments: opts.badge }),
+    homeHeader({ commitments: total || undefined }),
     "Commitments",
-    `<div class="t-meta">What you've offered and taken up across gardens.</div>${opts.segHot ? hot(opts.segHot, rail) : rail}${inner}`,
+    `<div class="t-meta">What you've offered, asked for, and taken up across gardens.</div>${opts.segHot ? hot(opts.segHot, rail) : rail}${inner}`,
     { handle: false },
   );
 };
@@ -111,28 +136,49 @@ ${card(
       )}
 ${banner("This commitment did not send after five attempts. Retry it, or discard the local copy. Nothing else is affected.", "amber", "error-warning-line")}`;
       break;
-    // ---- Ongoing tab ----------------------------------------------------
-    // The CommitmentSeries you run, across gardens. Each row opens W34. The
-    // meta leads with the garden because a series is pool-scoped and that is
-    // the thing you cannot tell from the title.
-    case "ongoing":
-      inner = `${sectionTitle("Offered over time", chip("2", "plain"))}
+    // ---- Over time tab --------------------------------------------------
+    // Not a list — the standing view (round 42). It opens with your record,
+    // then the series you keep offering, then kept history. The record is
+    // numerator-only in C.26's sense, per garden and per unit basis, never a
+    // cross-basis sum (Appendix D.1); your own lapsed count is visible here
+    // because D.3 scopes per-person rows to steward and self, and this is
+    // self.
+    case "overtime":
+      inner = `${card(
+        `<div class="t-title">Your record</div><div class="t-meta">Since March, across 3 gardens.</div>` +
+          kv("Rocinha Community Garden", "5 kept · 1 lapsed · 12 hours given") +
+          kv("Awka Hub", "3 kept · 4 rides") +
+          kv("Muizenberg", "1 kept · 2 hours"),
+      )}
+<div class="t-meta">Counts stay in their own units. Lapsed counts show only to you and your stewards.</div>
+${sectionTitle("Offered over time", chip("2", "plain"))}
 ${card(
         offerRow({ title: "Hosting climate workshops", meta: "Rocinha Community Garden · 2 open · 1 taken up", tag: "Active", tone: "offer", hotId: "w5.open-series" }) +
           offerRow({ title: "Weekly tool repair", meta: "Awka Hub · stopped · nothing open", tag: "Stopped", tone: "plain", hotId: "w5.open-series-stopped" }),
         { cls: "flat" },
       )}
-${banner("An ongoing Offer keeps opening commitments for you, cycle after cycle. Stop one and it opens no more; anything already taken up carries on.", "stone", "information-line")}`;
+${hot("w5.offer-over-time", btn("Offer Something Over Time", { kind: "ghost", full: true, icon: "add-line" }))}
+${sectionTitle("Kept", chip("Recent", "plain"))}
+${sectionCard(
+        "Muizenberg",
+        hot("w5.kept-row", commitmentCard({ title: "Beach cleanup Saturday", meta: "2 hours · Jul 12", tags: [{ label: "Kept", tone: "ok" }], media: { label: "photo", tint: "waste", photo: 3 } })),
+        { flush: true },
+      )}
+${sectionCard(
+        "Rocinha Community Garden",
+        commitmentCard({ title: "Compost workshop", meta: "3 hours · Jun 28", tags: [{ label: "Kept", tone: "ok" }] }),
+        { flush: true },
+      )}`;
       break;
-    case "ongoing-empty":
+    case "overtime-empty":
       inner = emptyState(
         "seedling-line",
-        "Nothing offered over time yet",
-        "When you offer something over time, it keeps opening commitments for you cycle after cycle, and its history stays together here.",
-        hot("w5.saved-tab", btn("See What You Can Offer", { kind: "sec" })),
+        "Nothing here yet",
+        "When your commitments are kept, your record grows here. Offer something over time and its whole story stays together too.",
+        hot("w5.offer-over-time", btn("Offer Something Over Time", { kind: "sec", icon: "add-line" })),
       );
       break;
-    case "ongoing-ready":
+    case "overtime-ready":
       inner = `${sectionTitle("Offered over time", chip("1", "plain"))}
 ${card(
         offerRow({ title: "Hosting climate workshops", meta: "Muizenberg Deep South · pool ready · nothing open", tag: "Active", tone: "offer", hotId: "w5.open-series-ready" }),
@@ -140,7 +186,10 @@ ${card(
       )}
 ${banner("The ongoing Offer is active, but this pool has not opened. You can edit it or stop offering; nothing can open until stewards open the pool.", "stone", "information-line")}`;
       break;
-    case "ongoing-queued":
+    // A queued series is still the standing thing's home state, not a Live
+    // row: its home is this tab whatever its sync state, and the tab's pill
+    // carries the count per the round-41 badge rule.
+    case "overtime-queued":
       inner = `${sectionTitle("Waiting to send", chip("1", "plain"))}
 ${card(
         offerRow({ title: "Hosting climate workshops", meta: "Rocinha Community Garden · nothing open", tag: "Queued", tone: "plain" }),
@@ -148,7 +197,7 @@ ${card(
       )}
 ${banner("This ongoing Offer is queued. It is not Active and nobody can take anything up yet.", "amber", "time-line")}`;
       break;
-    case "ongoing-queued-waiting":
+    case "overtime-queued-waiting":
       inner = `${sectionTitle("Waiting to send", chip("2", "plain"))}
 ${card(
         offerRow({ title: "Hosting climate workshops", meta: "Rocinha Community Garden · ongoing Offer", tag: "Queued", tone: "plain" }) +
@@ -157,25 +206,62 @@ ${card(
       )}
 ${banner("Nothing is available to take up until the ongoing Offer and its first commitment have both sent, in that order.", "amber", "time-line")}`;
       break;
-    // ---- Saved tab ------------------------------------------------------
-    // Genuinely private: signed offchain details, no garden, no pool, no
-    // commitment. It was a tool row above the ledger because there was no
-    // other plane for it; now it has one.
-    case "saved":
-      inner = `${sectionTitle("Saved details", chip("1", "plain"))}
-${card(
-        offerRow({ title: "Hosting climate workshops", meta: "A two-hour session on local climate work", tag: "Ready to offer", tone: "plain", hotId: "w5.use-saved" }),
-        { cls: "flat" },
-      )}
-${hot("w5.save-details", btn("Save Offer Details", { kind: "ghost", full: true, icon: "add-line" }))}
-<div class="t-meta">Saved privately to your account. No garden, pool, ongoing Offer, or open commitment exists yet.</div>`;
+    // Each tab reads from its own source, so each carries its own recovery in
+    // its own words (2026-08-17 round 41, Afo). Sharing tab 0's cast is what
+    // the round-40 aliases accidentally did: a deep link to one tab's read
+    // error rendered "Couldn't load your commitments" over the ledger.
+    case "overtime-loading":
+      inner = `${skeleton({ title: true, lines: 2 })}${skeleton({ title: true, lines: 1, cls: "flat" })}${skeleton({ avatar: true, lines: 2 })}`;
       break;
-    case "saved-empty":
+    case "overtime-read-error":
       inner = emptyState(
-        "sticky-note-line",
-        "Nothing saved yet",
-        "Save the details of something you can offer, so you do not have to write them again. Only you can see this until you offer it in a garden.",
-        hot("w5.save-details-first", btn("Save Offer Details", { kind: "pri", icon: "add-line" })),
+        "wifi-off-line",
+        "Couldn't load your record",
+        "Your record, your ongoing Offers, and everything kept are safe. This device could not reach them just now.",
+        hot("w5.retry-overtime", btn("Try Again", { kind: "pri", icon: "refresh-line" })),
+      );
+      break;
+    // ---- To confirm tab (steward Hats only) ------------------------------
+    // Authority confirmations only: garden claims where the garden is the
+    // counterparty (its steward/owner Hat wearers are the ordinary confirmers,
+    // CS:1421) and reasoned fallbacks. These reach you through your Hat and
+    // were never in your personal ledger, so nothing here duplicates a Live
+    // row (round 10 intact). Counterparty confirmations stay in Live. This is
+    // the admin Hub confirm stage's phone twin (uiux §6.9) — the field case,
+    // where the steward is standing in the garden.
+    case "toconfirm":
+      inner = `<div class="t-meta">These reach you as a steward of your gardens, not as a counterparty. Confirmations on your own commitments stay in Live.</div>
+${sectionCard(
+        "Rocinha Community Garden",
+        `${hot("w5.confirm-claim", commitmentCard({ title: "Compost delivery to the beds", meta: "Rosa took this up · the garden confirms", tags: [{ label: "Ready to confirm", tone: "warn" }, { label: "Garden claim" }], media: { label: "photo", tint: "agro", photo: 0 } }))}${hot(
+          "w5.confirm-captured",
+          commitmentCard({ title: "Field day recorded for Tunde", meta: "Recorded on Tunde's behalf", tags: [{ label: "Ready to confirm", tone: "warn" }, { label: "Recorded" }] }),
+        )}`,
+        { flush: true },
+      )}
+${sectionCard(
+        "Awka Hub",
+        hot("w5.confirm-fallback", commitmentCard({ title: "Path repair", meta: "Maria offered · nobody else can confirm", tags: [{ label: "Needs a reason", tone: "warn" }, { label: "Steward fallback" }] })),
+        { flush: true },
+      )}
+${banner("A fallback confirmation always records a reason, and nobody can confirm their own work, stewards included.", "stone", "shield-check-line")}`;
+      break;
+    case "toconfirm-empty":
+      inner = emptyState(
+        "shield-check-line",
+        "Nothing waiting for the garden",
+        "When a member takes up something the garden offered, or a commitment needs a steward to step in, it shows here.",
+      );
+      break;
+    case "toconfirm-loading":
+      inner = `${skeleton({ title: true, lines: 1, cls: "flat" })}${skeleton({ avatar: true, lines: 2 })}`;
+      break;
+    case "toconfirm-read-error":
+      inner = emptyState(
+        "wifi-off-line",
+        "Couldn't load the garden's queue",
+        "Nothing waiting was lost. This device could not reach the network just now, and confirming needs a connection anyway.",
+        hot("w5.retry-toconfirm", btn("Try Again", { kind: "pri", icon: "refresh-line" })),
       );
       break;
     // ---- Commitments tab, recovery casts --------------------------------
@@ -216,23 +302,21 @@ ${hot("w5.save-details", btn("Save Offer Details", { kind: "ghost", full: true, 
       // becomes a filter over the same list rather than a second copy of part
       // of it. Same grammar as the pool tab's commitment scopes.
       //
-      // Round 12 split "Things I can offer" into a tool row above the ledger
-      // (the private draft) and a parent card inside a garden section (the
-      // ongoing Offer). Both were workarounds for a surface with one plane,
-      // and both are retired now that the sheet has tabs (2026-08-17 round 40,
-      // Afo). The draft moved to the Saved tab, where it is content rather
-      // than a nav row; the series moved to the Ongoing tab, because a series
-      // is a different object from a commitment even though it has a garden.
-      // What stays here is exactly one kind of thing: commitments you hold,
-      // each appearing once, under the garden it belongs to.
+      // Live holds exactly one kind of thing: commitments still moving, each
+      // appearing once, under the garden it belongs to. Kept and lapsed left
+      // for Over time with the round-42 tense split, which collapsed the
+      // lifecycle chips (All · Waiting on you · Active · Kept) down to
+      // DIRECTION — the pool tab's own filter words (client.ts:644), so the
+      // garden surface and the personal sheet are one grammar at two scopes.
+      // What needs you is not a chip: it leads the sort inside each garden,
+      // carries the warn chips, and drives the tab's badge.
       inner = `${filterChips(
         [
-          { label: "All", on: true, hotId: "w5.scope-all" },
-          { label: "Waiting on you", hotId: "w5.scope-waiting" },
-          { label: "Active", hotId: "w5.scope-active" },
-          { label: "Kept", hotId: "w5.scope-kept" },
+          { label: "All", on: true, hotId: "w5.dir-all" },
+          { label: "Offers", hotId: "w5.dir-offers" },
+          { label: "Requests", hotId: "w5.dir-requests" },
         ],
-        "Commitment scope",
+        "Direction",
       )}
 ${sectionCard(
         "Rocinha Community Garden",
@@ -254,11 +338,6 @@ ${sectionCard(
         "Awka Hub",
         commitmentCard({ title: "Field survey ride", meta: "TAS Hub · confirm when kept", tags: [{ label: "Ready to confirm", tone: "warn" }] }),
         { flush: true },
-      )}
-${sectionCard(
-        "Muizenberg",
-        commitmentCard({ title: "Beach cleanup Saturday", meta: "2 hours · Jul 12", tags: [{ label: "Kept", tone: "ok" }], media: { label: "photo", tint: "waste" , photo: 3 } }),
-        { flush: true },
       )}`;
   }
   // The shipping AppBar hides while any drawer is open (AppBar.tsx:33).
@@ -266,39 +345,49 @@ ${sectionCard(
   // 1 commitment needing work) and rides both the Home header control and the
   // Commitments pill, so the two never disagree. Read-recovery and empty casts
   // draw no count on either.
+  const tab: 0 | 1 | 2 = state.startsWith("overtime") ? 1 : state.startsWith("toconfirm") ? 2 : 0;
+  // Live's pill counts the attention inbox, and goes quiet in the casts where
+  // the ledger itself could not be read or holds nothing.
   const quiet = state === "empty" || state === "loading" || state === "not-found" || state === "read-error";
-  const badge = quiet ? undefined : WAITING_ON_YOU;
-  const tab =
-    state === "ongoing" || state === "ongoing-empty" || state === "ongoing-ready" || state === "ongoing-queued" || state === "ongoing-queued-waiting" ? 1
-    : state === "saved" || state === "saved-empty" ? 2
-    : 0;
-  return phoneFrame(commitmentsShell(inner, tab, { segHot: "w5.seg", badge }), {
-    offline: state === "queued" || state === "send-failed" || state === "read-error" || state === "ongoing-queued" || state === "ongoing-queued-waiting",
+  const badges: TabBadges = { 0: quiet ? undefined : WAITING_ON_YOU };
+  if (state === "overtime-queued") badges[1] = 1;
+  if (state === "overtime-queued-waiting") badges[1] = 2;
+  if (state === "toconfirm") badges[2] = 3;
+  // The To confirm tab exists only for steward Hat wearers; every other state
+  // renders the member chrome, so the two shapes of the sheet are both drawn.
+  const steward = tab === 2;
+  return phoneFrame(commitmentsShell(inner, tab, { segHot: "w5.seg", badges, steward }), {
+    offline:
+      state === "queued" || state === "send-failed" || state === "read-error" ||
+      state === "overtime-queued" || state === "overtime-queued-waiting" || state === "overtime-read-error" ||
+      state === "toconfirm-read-error",
     appBar: false,
   });
 }
 
 const W5_HOTS: HifiDef["hots"] = {
-  "w5.scope-all": { l: "All commitments", info: "Every commitment you hold, grouped by garden. Scopes filter this one list rather than drawing a second copy of part of it (2026-08-16)." },
-  "w5.scope-waiting": { l: "Waiting on you", info: "The commitments needing an act from you — a confirmation, evidence, or work. This was a separate section above the ledger; the same rows appeared twice." },
-  "w5.scope-active": { l: "Active", info: "Accepted and in progress, across every garden." },
-  "w5.scope-kept": { l: "Kept", info: "Commitments confirmed kept. Counts stay per-garden; unlike cycles never aggregate." },
-  "w5.seg": { l: "Commitments tabs", info: "Three tabs for the three objects a member holds: the commitments themselves, the ongoing Offers that keep opening them, and the private saved details that are not yet either. They are objects rather than filters, which is why the scope chips stay inside the first tab. Commitments left the wallet in round 40 (2026-08-17, Afo): its siblings there were balances, and a commitment is a relationship with a lifecycle. G$ balances stay in the wallet's Tokens tab." },
+  "w5.dir-all": { l: "All directions", info: "Every live commitment, grouped by garden. Filters filter this one list rather than drawing a second copy of part of it (round 10). What needs you is not a chip: it leads the sort and drives the badge." },
+  "w5.dir-offers": { l: "Offers", info: "Live commitments where you are giving — the pool tab's own filter word (client.ts:644), so the garden surface and this sheet share one grammar at two scopes. The direction split was Afo's instinct in round 41; it belonged at chip level, not tab level, because a confirmation duty can sit on either direction." },
+  "w5.dir-requests": { l: "Requests", info: "Live commitments where you asked. Same pool-tab grammar." },
+  "w5.seg": { l: "Commitments tabs", info: "The round-42 tense split: Live holds everything still moving, Over time holds what is settled and standing. Both names are truthful and neither echoes the sheet title — the wallet's own rule, where the container word (Wallet) never repeats an object word (Cookies · Tokens). Steward Hat wearers see a third tab, To confirm, holding only the duties that reach them through the Hat. Commitments left the wallet in round 40: its siblings there were balances, and a commitment is a relationship with a lifecycle." },
   "w5.inbox-row": { l: "Pending confirmation", to: "screen:W4", info: "Inbox of commitments waiting on YOUR confirmation, across gardens (UX:185)." },
   "w5.accepted-row": { l: "Accepted ask", to: "screen:W2@request-active", info: "The attention inbox widened past confirmations (2026-08-14): a newly accepted ask surfaces here so the asker opens it without hunting the ledger below. Queued and failed sends keep their §5.8 item-4 chrome at the top of their own group." },
   "w5.needs-work-row": { l: "Your commitment needs work", to: "screen:W2@active", info: "The ambient layer of standing attribution (2026-08-14): a commitment needing your work is a waiting-on-you item — arguably the biggest — so it stands in the inbox and counts in the Commitments badge. Opens the commitment, whose bar act is Submit work (the scoped intro)." },
   "w5.retry-send": { l: "Retry failed send", to: "screen:W5@queued", info: "Wallet-side recovery (2026-08-14 second pass): resets the exhausted job to pending and retries without dropping the local commitment — the same UX:218 contract as the pool tab, reachable from any garden." },
   "w5.discard-send": { l: "Discard failed send", to: "screen:W5", info: "Removes only the exhausted local job after an explicit member choice; no remote commitment exists yet (UX:218)." },
   "w5.mine-row": { l: "My commitment", to: "screen:W2", info: "Your own commitments grouped by garden." },
-  "w5.open-series": { l: "Open the ongoing Offer", to: "screen:W34@active-two", info: "The ongoing Offer's parent — internally the pool-scoped CommitmentSeries. What it opens is public and lives on the pool tab; the parent is what only you edit or stop. It used to sit inside a garden section of the ledger, which put a series among commitments (2026-08-16 round 12); the Ongoing tab now holds it, because a series is a different object. The row counts commitments — one basis, never a unit sum (Appendix D.1)." },
+  "w5.open-series": { l: "Open the ongoing Offer", to: "screen:W34@active-two", info: "The ongoing Offer's parent — internally the pool-scoped CommitmentSeries. What it opens is public and lives on the pool tab; the parent is what only you edit or stop. The row counts commitments — one basis, never a unit sum (Appendix D.1)." },
   "w5.open-series-stopped": { l: "Open a stopped ongoing Offer", to: "screen:W34@active-none", info: "Stopping a series means it opens nothing more. Whatever members already took up carries on untouched, which is why this is a control on the parent and never a change to its children (C.27: one control, not two)." },
   "w5.open-series-ready": { l: "Open the ongoing Offer in a Ready pool", to: "screen:W34@pool-ready", info: "A series can be Active while its pool has not opened. The parent's controls all work; nothing can be taken up until stewards open the pool." },
-  "w5.use-saved": { l: "Use these details", to: "screen:W32@choose-path", info: "Opens the once-or-over-time choice. Saved details are input to either path, never a separate product object." },
-  "w5.save-details": { l: "Save offer details", to: "screen:W32@compose", info: "Saved Offer details are signed offchain profile data and reusable input to either path. Saving writes no pool, series, or commitment state." },
-  "w5.save-details-first": { l: "Save offer details", to: "screen:W32@compose", info: "Empty-state entry into the same compose sheet." },
-  "w5.saved-tab": { l: "See what you can offer", to: "screen:W5@saved", info: "An ongoing Offer usually starts from details you already saved, so the empty Ongoing tab points at the Saved tab rather than at a creation flow." },
+  "w5.kept-row": { l: "A kept commitment", to: "screen:W2@fulfilled", info: "Kept history lives on Over time with the round-42 tense split: a finished commitment is part of your record, not something still moving. Each item appears once — the split is a partition, never a second copy (round 10)." },
   "w5.browse-gardens": { l: "Browse gardens", to: "screen:W1", info: "The commitments control is always in the Home header, so this empty state is also what a member of a garden without pooling sees. It has to offer a way in rather than only explain the absence." },
-  "w5.retry": { l: "Try again", info: "Read-surface recovery for the cross-garden commitments sheet — loading / not-found / read-error, never a “None” chip (UX:51-52 · AM:12)." },
+  "w5.offer-over-time": { l: "Offer something over time", to: "screen:W3@step-what", info: "Over time's own act, present whether or not the tab already holds a series (2026-08-17 round 41, Afo) — it used to appear only in the empty cast, so the tab stopped helping the moment you had one. Enters the composer at step 1 with Ongoing chosen, since an ongoing Offer has to name the cycle it runs in. Saved details live in that same composer step now, so starting from one is the step's first choice rather than a separate surface." },
+  "w5.retry-overtime": { l: "Try again", info: "Read recovery for Over time, in its own words. Round 40's aliases had pointed one tab's read error at another's cast, so the copy named the wrong thing; each tab carries its own since round 41." },
+  "w5.confirm-claim": { l: "Confirm a garden claim", to: "screen:W4@confirm-support", info: "The garden is this commitment's counterparty, so its steward and owner Hat wearers are the ORDINARY confirmers (CS:1421) — no fallback language. This duty reaches you through your Hat and was never in your personal ledger, which is why the tab creates no second copy of a Live row." },
+  "w5.confirm-captured": { l: "Confirm a recorded commitment", to: "screen:W4@confirm-captured", info: "A commitment a steward recorded on a member's behalf, reaching its confirmation. Same sheet the counterparty path uses; the record names the member as the source and the steward as metadata (uiux §5.9)." },
+  "w5.confirm-fallback": { l: "Step in as steward", to: "screen:W2@ready-confirmer", info: "The reasoned fallback: available only while the ordinary path is unreachable after contributor exclusion, always with a required reason, and never for a commitment where the steward is a contributor (CS:1422). The timeline will say “confirmed by garden steward — fallback”, not an ordinary confirmation." },
+  "w5.retry-toconfirm": { l: "Try again", info: "Read recovery for the steward queue. Confirming itself stays online-only (uiux §5.9), so this cast says so rather than implying an offline path exists." },
+  "w5.retry": { l: "Try again", info: "Read-surface recovery for the Live ledger — loading / not-found / read-error, never a “None” chip (UX:51-52 · AM:12). Each tab carries its own since round 41." },
 };
 
 // ---------------------------------------------------------------------------

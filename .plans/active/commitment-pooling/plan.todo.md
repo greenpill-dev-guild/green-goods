@@ -1477,6 +1477,27 @@ Known mis-resolutions fixed in place: `contract-spec.md` §Grassroots-Economics-
     garden section), and W32 drops to the saving flow it always was, 16 states to 8, with eight
     state aliases keeping old deep links alive. Full text: `uiux-spec.md` C.40.
 
+144. Recovery per tab, and the badge sum rule (2026-08-17, round 41, Afo). Round 40's aliases
+    pointed W32's loading/read-error at `W5@loading`/`W5@read-error`, which compute tab 0, so a
+    saved-details deep link read "Couldn't load your commitments" over the ledger. Each tab now
+    carries its own recovery in its own words. Badges follow ONE rule: a pill counts what needs
+    an act on that tab, the header control carries their sum, and no pill ever counts inventory
+    (Lens 1.5). Full text: `uiux-spec.md` C.41.
+145. The tense split, and the steward's third tab (2026-08-17, round 42, Afo: "A and B titles
+    are repeating the name of the sheet"). The wallet's own rule is that the container word
+    never repeats an object word — "Wallet" holds Cookies · Tokens — and round 40 broke it. No
+    synonym fixed it, because the truthful name for that content WAS "Commitments"; the fix was
+    to change what the tab holds. Split by tense: **Live** (still moving) · **Over time**
+    (settled and standing) · **To confirm** (steward Hats only). Kept leaving Live collapsed the
+    lifecycle chips, and the freed row took `All · Offers · Requests` — the pool tab's own words
+    (client.ts:644), so direction landed at chip level where a confirmation duty's direction
+    cannot scatter it. Over time stops being a list and opens with your record. The steward tab
+    holds ONLY authority confirmations — garden claims where the garden is the counterparty and
+    its Hat wearers are the ordinary confirmers (CS:1421), plus reasoned fallbacks — which were
+    never in the personal ledger, so nothing duplicates and round 10 stands. Saved details left
+    the sheet for composer step 1: input material, not a record, which is why no name ever fit.
+    Full text: `uiux-spec.md` C.42.
+
 **Final recursive certification clarification (2026-07-25; no new decision-register entry):**
 the published `42161`↔`42220` production lane is the only required fully paired
 `SettlementConfiguration`. Arbitrum Sepolia `421614` and Celo Sepolia `11142220` remain

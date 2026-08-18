@@ -2741,3 +2741,70 @@ resolving.
 **The empty state changed job.** The control is always in the Home header, so `W5@empty` is now
 also the first thing a member of a garden without pooling sees. It has to read as an invitation
 with a way in, not as a report of absence.
+
+### C.41 Recovery per tab, and the badge sum rule (2026-08-17, round 41)
+
+Round 40's aliases pointed `W32@loading` and `W32@read-error` at `W5@loading` /
+`W5@read-error`, which compute tab 0 — so a saved-details deep link rendered "Couldn't load
+your commitments" over the ledger. **Each tab reads from its own source, so each carries its
+own recovery in its own words.**
+
+**Badges follow one rule.** A tab pill counts what needs an act *on that tab*; the Home header
+control carries their **sum**. The two can never disagree because one is derived from the other.
+A pill never counts inventory — "2 ongoing", "1 saved" is engagement counting, which the
+regenerative lens rules out (review-checklist Lens 1.5).
+
+The Ongoing tab also gained its creation act in the populated cast, not only the empty one. A
+tab that stops helping the moment it holds something is a tab that only works once.
+
+### C.42 The tense split, and the steward's third tab (2026-08-17, round 42)
+
+Afo: *"A and B titles are repeating the name of the sheet."*
+
+**The rule the wallet already states.** "Wallet" is a place; "Cookies · Tokens" are things. The
+container word and the object words are never the same. Round 40 broke it: the sheet and its
+first tab were both **Commitments**.
+
+**Renaming could not fix it.** Every synonym failed a truth test — "Live" contained Kept,
+"One-time" contained series-opened instances, "Agreements" was a second dialect for one object.
+The truthful name for that content *was* "Commitments". So the fix was to change what the tab
+holds until a different name became true.
+
+**Split by tense, not by object.** Everything is either still moving or it is settled:
+
+| tab | holds | why |
+|---|---|---|
+| **Live** | in motion, queued, disputed, waiting on someone | Kept leaves, so "Live" is finally true |
+| **Over time** | your record, the series you run, kept history | the composer's own phrase (`Offer it over time`) |
+| **To confirm** | steward Hats only — authority confirmations | see below |
+
+**Kept leaving Live collapsed the lifecycle chips**, and the freed row took **All · Offers ·
+Requests** — the pool tab's own filter words (`client.ts:644`). Direction was Afo's instinct in
+round 41; it belonged at chip level, not tab level, because a confirmation duty can sit on
+either direction. The garden surface and the personal sheet are now one grammar at two scopes.
+What needs you is not a chip: it leads the sort, carries the warn chips, and drives the badge.
+
+**Over time stops being a list.** It opens with your record across gardens — numerator-first,
+per garden, per unit basis, never a cross-basis sum (Appendix D.1). Your own lapsed count is
+visible because D.3 scopes per-person rows to steward and self, and this is self. That is the
+standing purpose, which had no home in any previous arrangement.
+
+**The steward tab, and why it is not a duplicate.** There are two kinds of confirmation duty,
+and only one of them is new:
+
+- **Counterparty confirmations** — you asked, someone delivered. That commitment is *already in
+  your ledger*. It stays in **Live**; pulling it out would duplicate it or teleport it mid-life.
+- **Authority confirmations** — garden claims where the garden itself is the counterparty (its
+  steward/owner Hat wearers are the **ordinary** confirmers, `contract-spec.md:1421`), plus
+  reasoned fallbacks. These reach you through your **Hat** and were never in your personal
+  ledger.
+
+Only the second kind is on **To confirm**, so the tab creates no second copy of anything and
+round 10 stands. Its conditional presence is honest because the *content* is role-conditional,
+not the chrome. It is the phone twin of the admin Hub's confirm stage (§6.9) for a field-first
+product; the Hub stays the desk tool.
+
+**Saved details left the sheet.** They are input material, not a record, which is why no tab
+name ever fit them. They live at composer step 1 now — "start from something saved" beside the
+template chips, with the save flow (W32) entered from the same row. The sheet's subtitle also
+gained the missing third relationship: you *ask for* things here too, not only offer and take up.
