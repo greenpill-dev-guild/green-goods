@@ -2863,7 +2863,7 @@
   "cockpit.community.coordination.proposalCount": "{count, plural, one {# propuesta} other {# propuestas}}",
   "cockpit.community.coordination.proposals": "Propuestas registradas",
   "cockpit.community.coordination.proposalsDescription": "Hypercerts registrados en el pool de señales con soporte actual y controles de asignación.",
-  "cockpit.community.coordination.status": "Estado del pool",
+  "cockpit.community.coordination.status": "Estado de la pool",
   "cockpit.community.coordination.support": "Soporte",
   "cockpit.community.coordination.supporters": "{count, plural, one {# aportante} other {# aportantes}}",
   "cockpit.community.coordination.weightSummary": "Pesos: comunidad {community}x · jardineros {gardener}x · operadores {operator}x",
