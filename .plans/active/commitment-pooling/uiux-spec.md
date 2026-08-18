@@ -1963,6 +1963,33 @@ because the identity card's mapping had no branch for the new word and fell thro
 default; and the record block's *See every one* left the old *See the whole story* button
 beneath it on four states, two paths to one screen.
 
+### C.28 The lead is already on the team (2026-08-17, round 28)
+
+**`leadProvider` is the offer creator** (contract-spec:520), and solo is a one-contributor
+roster. So you are on the team from the moment the commitment exists, and the section's
+"Nobody yet" empty state said the opposite. It starts with your card, marked Lead, beside the
+add tile. There is no empty state, because there is never an empty team, and you cannot
+remove yourself: someone has to be accountable.
+
+The helper line drops to one fact tied to the act you are about to take —
+*"Anyone you add can add evidence and submit work."* The lead rule moved onto the lead's own
+card, where it is shown rather than explained, and the sending rule waits until sending
+matters.
+
+**Who confirms names the act, not the role.** *"The person you help"* described a category and
+never said what confirming does. It reads *"Whoever you help says it was done"*, so the field
+teaches the concept.
+
+**Reviews gate on reading.** The act arrives disabled with its reason and enables at the end
+of the scroll. Drawn as two states on the offer review, because the artifact is static and
+both need to be visible; the rule is the same on all six.
+
+**The ongoing view extends the offer view.** It was reading as a second product. It now runs
+the commitment view's anatomy and adds only what a repeating offer has: what it has given,
+what is open now, **how it repeats** (how much in each, how many at a time, which cycle, what
+happens at season end — previously scattered through Details), and **who has taken it up**, as
+people rather than a count.
+
 ### C.7 PARKED — reciprocity from the claim side (2026-08-16, register #103)
 
 > **Parked 2026-08-17 (Afo): "park it for now and we stabilize and polish the UI."** The

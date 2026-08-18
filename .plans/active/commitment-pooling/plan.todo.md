@@ -1338,6 +1338,18 @@ Known mis-resolutions fixed in place: `contract-spec.md` §Grassroots-Economics-
     vocabulary and the control count collapsed. Also caught: the stopped chip read "Withdrawn"
     (the identity card had no branch for the new word), and four states carried two buttons to
     the same story. Full text: `uiux-spec.md` C.27.
+131. The lead is already on the team (2026-08-17, round 28, Afo). **`leadProvider` is the
+    offer creator** and solo is a one-contributor roster, so the team is never empty and the
+    "Nobody yet" state was wrong. It opens with your card marked Lead; you cannot remove
+    yourself. Helper line cut to one fact about the act: "Anyone you add can add evidence and
+    submit work." **Who confirms names the act** — "Whoever you help says it was done" — since
+    "the person you help" described a category and never said what confirming does.
+    **Reviews gate on reading**: the act arrives disabled with its reason and enables at the
+    end of the scroll, drawn as two states because the artifact is static. **The ongoing view
+    extends the offer view** rather than being a second product: the commitment view's anatomy
+    plus what only a repeating offer has — the record, what is open now, how it repeats, and
+    who has taken it up. Also: CLAUDE.md gained an Output Style section (answer first, plain
+    language, no em-dashes where a full stop works). Full text: `uiux-spec.md` C.28.
 
 **Final recursive certification clarification (2026-07-25; no new decision-register entry):**
 the published `42161`↔`42220` production lane is the only required fully paired

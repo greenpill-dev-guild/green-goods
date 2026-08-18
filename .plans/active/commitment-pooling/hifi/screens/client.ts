@@ -2356,18 +2356,13 @@ type W3Member = { name: string; sub?: string; photo?: number };
 // been above the button when empty and below the cards when filled, so the
 // paragraph jumped as soon as you added someone).
 const w3TeamSection = (members: W3Member[]) =>
-  members.length === 0
-    ? sectionTitle("Team") +
-      `<div class="t-meta">You can keep this on your own, or bring in people who will help. Anyone you add can add evidence and submit work.</div>` +
-      hot("w3.team", btn("Add people", { kind: "sec", full: true, icon: "group-line" }))
-    : sectionTitle("Team", hot("w3.team", btn("", { kind: "ghost", sm: true, icon: "add-line", ariaLabel: "Add people to the team" }))) +
-      `<div class="t-meta">The lead is accountable for this one. Everyone here can add evidence and submit work, and only the lead sends it.</div>` +
-      memberTrail([
-        ...members.map((m, i) =>
-          memberCard({ ...m, role: i === 0 ? "Lead" : "Contributor", lead: i === 0, removeHotId: `w3.team-remove` }),
-        ),
-        hot("w3.team", `<div class="mcard addtile">${icon("add-line", "l")}<div class="mtn">Add</div></div>`),
-      ]);
+  sectionTitle("Team", hot("w3.team", btn("", { kind: "ghost", sm: true, icon: "add-line", ariaLabel: "Add people to the team" }))) +
+  `<div class="t-meta">Anyone you add can add evidence and submit work.</div>` +
+  memberTrail([
+    memberCard({ name: "Maria", sub: "maria.eth", photo: 3, role: "Lead", lead: true }),
+    ...members.map((m) => memberCard({ ...m, role: "Contributor", removeHotId: "w3.team-remove" })),
+    hot("w3.team", `<div class="mcard addtile">${icon("add-line", "l")}<div class="mtn">Add</div></div>`),
+  ]);
 
 // Who confirms leads step 3 (2026-08-17, Afo: "who confirmed should sit in the
 // detail step where it's above the team and media. So now we have three things
@@ -2396,7 +2391,7 @@ const w3ConfirmSection = (opts: { value: string; sub?: string; hot: string; phot
 const w3DetailsBody = (
   items: string,
   members: W3Member[] = [],
-  confirm: { value: string; hot: string } = { value: "The person you help", hot: "w3.advanced" },
+  confirm: { value: string; hot: string } = { value: "Whoever you help says it was done", hot: "w3.advanced" },
 ) =>
   w3ConfirmSection(confirm) +
   w3TeamSection(members) +
@@ -2514,7 +2509,7 @@ function w3(state: W3State): string {
     // photoOnlyData (Media.tsx:165).
     case "details-preview":
       head = w3Head("Make an offer", 2);
-      content = pagepad(w3DetailsBody(W3_DETAIL_ITEMS, [{ name: "João", sub: "joao.eth", photo: 1 }, { name: "Luz", sub: "luz.eth", photo: 4 }, { name: "0x74…c2" }], { value: "The person you help", hot: "w3.advanced" }));
+      content = pagepad(w3DetailsBody(W3_DETAIL_ITEMS, [{ name: "João", sub: "joao.eth", photo: 1 }, { name: "Luz", sub: "luz.eth", photo: 4 }, { name: "0x74…c2" }], { value: "Whoever you help says it was done", hot: "w3.advanced" }));
       secondary = W3_CAPTURE_BAR;
       if (state === "details-preview")
         overlay = imagePreview({ ix: 1, of: 2, photo: 0, closeHotId: "w3.preview-close", downloadHotId: "w3.preview-save", nextHotId: "w3.preview-next" });
@@ -2543,7 +2538,7 @@ function w3(state: W3State): string {
             { icon: "group-line", label: "Team", value: "Open to anyone eligible. 2 invited" },
           ],
           team: memberRow({ name: "João", sub: "joao.eth", joined: "Joined Jan 2025", badge: "Lead", photo: 1 }) + memberRow({ name: "Luz", sub: "luz.eth", joined: "Joined Feb 2025", badge: "Contributor", photo: 4 }) + memberRow({ name: "0x74…c2", joined: "Joined Aug 2025", badge: "Contributor" }),
-          advanced: { hot: "w3.advanced", label: "Who confirms", value: "The person you help. If nobody local is eligible, the Green Goods team can step in." },
+          advanced: { hot: "w3.advanced", label: "Who confirms", value: "Whoever you help says it was done. If nobody local is eligible, the Green Goods team can step in." },
         }),
         `<div class="t-meta">Submitting queues the commitment on this device and returns you to the pool — it sends when connected.</div>`,
       );
@@ -2646,7 +2641,7 @@ function w3(state: W3State): string {
             { icon: "refresh-line", label: "How often", value: "Just once" },
             { icon: "group-line", label: "Team", value: "Open to anyone eligible" },
           ],
-          advanced: { hot: "w3.advanced", label: "Who confirms", value: "The person you help. A service names no garden actions, so evidence and that person carry the proof." },
+          advanced: { hot: "w3.advanced", label: "Who confirms", value: "Whoever you help says it was done. A service names no garden actions, so evidence and that person carry the proof." },
         }),
         `<div class="t-meta">Service offers name no garden actions. Evidence and the person you help carry the proof.</div>`,
       );
@@ -2871,7 +2866,7 @@ function w3(state: W3State): string {
             { icon: "time-line", label: "Next cycle", value: "Ask me again next cycle" },
             { icon: "group-line", label: "Team", value: "Open to garden members" },
           ],
-          advanced: { hot: "w3.advanced", label: "Who confirms", value: "The person you help, on each one separately." },
+          advanced: { hot: "w3.advanced", label: "Who confirms", value: "Whoever you help says it was done, on each one separately." },
         }),
         banner("Sending this opens the offer and its first two commitments at once. They become takeable once they send. Nothing new opens unless you open it, and when the season ends the offer stays yours.", "stone", "information-line"),
       );
@@ -3760,6 +3755,24 @@ const w34Record = (opts: { rows?: boolean } = {}) =>
     { flush: true },
   );
 
+// The two sections that make the ongoing view an EXTENSION of the offer view
+// rather than a different screen (2026-08-17, Afo). Everything above them is
+// the commitment view's own anatomy; these are what only a repeating offer has.
+const w34Repeats = () =>
+  sectionCard(
+    "How it repeats",
+    `${detailRow("How much in each", "1 workshop session")}${detailRow("How many at a time", "2")}${detailRow("Where it runs", "Season of First Rains")}${detailRow("When the season ends", "It stays yours and opens nothing new")}`,
+  );
+
+const w34TakenUpBy = () =>
+  sectionCard(
+    "Who has taken it up",
+    memberRow({ name: "João", sub: "joao.eth", joined: "3 sessions", photo: 1 }) +
+      memberRow({ name: "Luz", sub: "luz.eth", joined: "2 sessions", photo: 4 }) +
+      memberRow({ name: "0x74…c2", joined: "1 session" }),
+    { flush: true },
+  );
+
 const w34Places = (n: number) =>
   n === 0
     ? sectionCard(
@@ -3824,7 +3837,8 @@ function w34(state: W34State): string {
         w34Identity({ state: "Active", tone: "offer", openNow: 0 }),
         w34Record(),
         w34Places(0),
-        sectionCard("Details", `${detailRow("Kept", "12 times across 5 cycles")}${detailRow("Unit", "workshop sessions")}`),
+        w34Repeats(),
+        w34TakenUpBy(),
         w34ActiveManagement("Open", "none"),
       )}`;
       break;
@@ -3834,7 +3848,8 @@ function w34(state: W34State): string {
         w34Record(),
         banner("One is open now. It is already an ordinary Offer with reserved capacity.", "green", "hand-heart-line"),
         w34Places(1),
-        sectionCard("Details", `${detailRow("Kept", "12 times across 5 cycles")}${detailRow("Available now", "1 open")}`),
+        w34Repeats(),
+        w34TakenUpBy(),
         w34ActiveManagement("Open"),
       )}`;
       break;
@@ -4013,7 +4028,8 @@ function w34(state: W34State): string {
           listRow({ icon: "calendar-line", primary: "Workshop session 1", meta: "Season of First Rains · 2 hours", chipHtml: stateChip("Offered") }) +
             listRow({ icon: "calendar-line", primary: "Workshop session 2", meta: "Season of First Rains · 2 hours", chipHtml: stateChip("Offered") }),
         ),
-        sectionCard("Details", `${detailRow("Unit", "workshop sessions")}${detailRow("Where it ran", "Season of First Rains")}`),
+        w34Repeats(),
+        w34TakenUpBy(),
         `<div class="brow">${hot("w34.start-again", btn("Start offering again", { kind: "pri" }))}${hot("w34.edit-stopped", btn("Edit details", { kind: "ghost" }))}</div>`,
       )}`;
       break;
@@ -4022,7 +4038,8 @@ function w34(state: W34State): string {
         w34Identity({ state: "Stopped", tone: "plain" }),
         w34Record(),
         banner("Stopped on Aug 2. Nothing is open, and nothing new opens until you start it again.", "stone", "pause-line"),
-        sectionCard("Details", `${detailRow("Unit", "workshop sessions")}${detailRow("Where it ran", "Season of First Rains")}`),
+        w34Repeats(),
+        w34TakenUpBy(),
         `<div class="brow">${hot("w34.start-again-none", btn("Start offering again", { kind: "pri" }))}${hot("w34.edit-stopped", btn("Edit details", { kind: "ghost" }))}</div>`,
       )}`;
       break;
@@ -4060,7 +4077,9 @@ function w34(state: W34State): string {
         w34Identity({ state: "Active", tone: "offer", openNow: 2 }),
         w34Record(),
         w34Places(2),
-        sectionCard("Details", `${detailRow("Kept", "12 times across 5 cycles")}${detailRow("Unit", "workshop sessions")}${detailRow("Next cycle", "Ask me again next cycle")}`),
+        w34Repeats(),
+        w34TakenUpBy(),
+        sectionCard("Details", `${detailRow("Next cycle", "Ask me again next cycle")}`),
         w34ActiveManagement("Open"),
       )}`;
   }
