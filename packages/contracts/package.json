@@ -139,6 +139,7 @@
     "settlement:garden-safes:verify:celo": "bun script/deploy/garden-safe-owners.ts verify",
     "settlement:garden-safes:deploy:celo": "bun script/deploy/garden-safe-owners.ts deploy --broadcast",
     "settlement:garden-safes:release:celo": "bun script/release-operator.ts --stage garden-safes",
+    "settlement:garden-roles:plan": "bun script/deploy/garden-roles.ts plan",
     "settlement:garden-relay:plan": "bun script/deploy/garden-account-relay.ts plan",
     "settlement:garden-relay:verify": "bun script/deploy/garden-account-relay.ts verify",
     "settlement:garden-relay:deploy": "bun script/deploy/garden-account-relay.ts deploy --broadcast",
