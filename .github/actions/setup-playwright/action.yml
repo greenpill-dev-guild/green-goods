@@ -22,20 +22,35 @@ runs:
 
     # Split from the browser download so the log names which half stalled: the
     # apt leg (system libraries) or the CDN leg (Chromium itself).
+    #
+    # Retry budget must stay under the caller's `timeout-minutes`, which covers
+    # this whole action. `--kill-after` extends each attempt, so one attempt costs
+    # up to ATTEMPT_TIMEOUT + KILL_GRACE. Worst case is one leg nearly exhausting
+    # its budget before succeeding, then the other failing outright:
+    #   (180 + 30 + 149) + (2*180 + 30) = 749s, against a 900s cap.
+    # Keep that inequality true if any value here or `timeout-minutes` changes.
     - name: Install Playwright Chromium and system dependencies
       shell: bash
+      env:
+        ATTEMPT_TIMEOUT: 150s
+        KILL_GRACE: 30s
+        RETRY_BACKOFF: 30
+        MAX_ATTEMPTS: 2
       run: |
         retry() {
           label="$1"
           shift
-          for attempt in 1 2; do
-            if timeout --kill-after=30s 180s "$@"; then
+          for attempt in $(seq 1 "$MAX_ATTEMPTS"); do
+            if timeout --kill-after="$KILL_GRACE" "$ATTEMPT_TIMEOUT" "$@"; then
               return 0
             fi
-            echo "::warning::${label} attempt ${attempt} failed or timed out after 180s; retrying"
-            sleep 30
+            # Only back off when another attempt actually follows.
+            if [ "$attempt" -lt "$MAX_ATTEMPTS" ]; then
+              echo "::warning::${label} attempt ${attempt} failed or timed out after ${ATTEMPT_TIMEOUT}; retrying"
+              sleep "$RETRY_BACKOFF"
+            fi
           done
-          echo "::error::${label} failed after 2 attempts"
+          echo "::error::${label} failed after ${MAX_ATTEMPTS} attempts"
           return 1
         }
         retry "playwright install-deps" bunx playwright install-deps chromium
