@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p1",
     "created_at": "2026-08-15T06:08:14.457Z",
-    "updated_at": "2026-08-18T00:15:00.000Z"
+    "updated_at": "2026-08-18T19:05:00.000Z"
   },
   "links": {
     "brief": "brief.md",
@@ -34,7 +34,8 @@
     "celo_post_safe_upgrade_block": "evidence/celo-post-safe-upgrade-block-2026-08-15.json",
     "final_safe_bindings": "evidence/garden-safe-final-bindings-2026-08-15.json",
     "release_readiness": "evidence/celo-release-readiness-2026-08-17.json",
-    "garden_safe_deployment_artifact": "../../../packages/contracts/deployments/42220-settlement-safes.json"
+    "garden_safe_deployment_artifact": "../../../packages/contracts/deployments/42220-settlement-safes.json",
+    "relay_deployment_artifact": "../../../packages/contracts/deployments/garden-account-relay.json"
   },
   "linear": {
     "parentIssue": "PRD-821",
@@ -69,8 +70,10 @@
     "The Garden-bound relay is separate from Settlement and cannot satisfy Safe threshold two alone, become a Safe owner/module/guard/Zodiac member, or receive value authority.",
     "Implementation, review, release, guardian trust, Safe deployment, and value activation remain separate authorization boundaries.",
     "Use Bun wrappers only; never raw Forge.",
-    "Broadcast is complete. All 18 Celo GardenAccounts and all 18 final 2-of-3 Garden Safes are live and independently verified; deployments/42220-settlement-safes.json holds the receipt-backed record for every Safe boundary. authorityEnabled is false: no Zodiac Roles module, allowance, peer binding, or value authority was configured, and the relay remains undeployed. The bounded settlement authority half of PRD-819 is still unbuilt and has no operator stage.",
-    "The release operator's broadcast gate was unsatisfiable until PR 724. Both Celo wrappers compared GG_RELEASE_OPERATOR_SESSION against the release manifest sourceCommit while release-operator.ts pinned git HEAD to that same session value, so broadcast required a commit containing its own hash. The wrappers now check the session against the checked-out candidate; release identity is still asserted separately where the plan is validated. The Arbitrum lane never used this variable."
+    "Broadcast is complete. All 18 Celo GardenAccounts and all 18 final 2-of-3 Garden Safes are live and independently verified; deployments/42220-settlement-safes.json holds the receipt-backed record for every Safe boundary. authorityEnabled is false: no Zodiac Roles module, allowance, peer binding, or value authority was configured. The bounded settlement authority half of PRD-819 is still unbuilt and has no operator stage.",
+    "The release operator's broadcast gate was unsatisfiable until PR 724. Both Celo wrappers compared GG_RELEASE_OPERATOR_SESSION against the release manifest sourceCommit while release-operator.ts pinned git HEAD to that same session value, so broadcast required a commit containing its own hash. The wrappers now check the session against the checked-out candidate; release identity is still asserted separately where the plan is validated. The Arbitrum lane never used this variable.",
+    "The Garden-bound relay is deployed and verified: source router 0xDBF71edb4902cB43260f8A3e4460072e2028E627 on Arbitrum, Celo relay 0x21E4594760454D3c5A7085e3D48F1E60c6AeD1C9, destination bound once, and the Guardian trusting that exact relay. Across all 18 Garden Safes the relay is not an owner, not a module, no guard is set, and it holds no value. It still cannot reach threshold two alone; one recovery-owner signature remains required for every Safe execution.",
+    "Comparing a deployed runtime hash to the artifact's deployedBytecode is wrong for any contract with immutables, which Solidity writes at construction. The router differs from its artifact in 416 bytes, all inside its nine declared immutable spans. Verification masks the declared spans and relies on the CREATE2 address to bind the init code. A boundary that mines before a failing postcondition is recovered with the adopt command rather than replayed against a consumed nonce."
   ],
   "lanes": {
     "ui": {
@@ -311,6 +314,14 @@
       "status": "completed",
       "branch": "fix/celo-release-operator-session-gate",
       "note": "Broadcast complete and verified on Celo from candidate 7949a62964e4ff813dd9842b0997277a8f87c186. Stage one deployed the coordinator (0xf31e5bcc…6ad85) and atomically deployed the implementation plus all 18 accounts (0x2526b382…5211e6, 15,773,672 gas against the 30,000,000 limit); the GardenAccount runtime at 0x710cBFB9a29920B4577692eD495972fcd27286b4 is byte-identical across Celo and Arbitrum and all 18 accounts hold code at their predicted addresses. Stage two deployed all 18 final Safes in blocks 75135556-75135804, each 2-of-3 on Safe v1.4.1 with the v1.4.1 compatibility fallback handler, nonce zero, zero native and zero G$, no modules and no guard. Sender nonce moved 118 to 138 for exactly 20 boundaries at 4.53 CELO. Broadcast was initially impossible: both wrappers compared GG_RELEASE_OPERATOR_SESSION to the manifest sourceCommit while the operator pinned git HEAD to that same value, which required a commit naming its own hash; PR 724 moved the check to the checked-out candidate. authorityEnabled remains false and no Zodiac Roles, allowance, peer, or value authority was configured."
+    },
+    {
+      "timestamp": "2026-08-18T19:05:00.000Z",
+      "actor": "human",
+      "lane": "contracts",
+      "status": "relay_broadcast_complete",
+      "branch": "fix/relay-immutable-runtime-verification",
+      "note": "Afo authorized and executed the four-boundary Garden-bound relay ceremony on 2026-08-18. Source router and destination binding landed on Arbitrum, the relay and Guardian trust on Celo; receipts are in deployments/garden-account-relay.json. Boundary 1 mined and then failed a postcondition that compared the deployed runtime hash to the artifact's deployedBytecode, which cannot hold for a contract with immutables; PR 729 masks the declared immutable spans and adds an adopt command for the mined-but-uncheckpointed state. No value authority was granted and the relay holds no Safe role on any of the 18 boundaries."
     }
   ]
 }

@@ -232,9 +232,39 @@ the release manifest `sourceCommit` while `release-operator.ts` pinned `git HEAD
 session value, so broadcast required a commit naming its own hash. PR 724 moved the check to the
 checked-out candidate and left release identity asserted where the plan is validated.
 
+### Garden-bound relay, 2026-08-18
+
+The relay lane ran separately, four boundaries alternating chains, receipts in
+`deployments/garden-account-relay.json`.
+
+| Boundary | Result |
+|---|---|
+| Deploy source router (Arbitrum) | `0x9507f131…9ebb1`, block 495,913,526 |
+| Deploy Celo relay | `0x52d8115e…38c7d`, block 75,178,382, 2,882,880 gas |
+| Bind destination (Arbitrum) | `0xcb483669…88f06`, block 495,916,953, 45,465 gas |
+| Trust relay in Guardian (Celo) | `0xf5c48940…4712f`, block 75,178,393, 47,672 gas |
+
+Router `0xDBF71edb4902cB43260f8A3e4460072e2028E627` and relay
+`0x21E4594760454D3c5A7085e3D48F1E60c6AeD1C9`; the router's `destinationRelay` is the reviewed relay
+and the Guardian trusts it. The custody boundary was verified across all 18 Safes: the relay is not
+an owner, not a module, no guard is set, and it holds zero native and zero G$. Total relay spend was
+about 0.00006 ETH and 0.586 CELO, sender nonce 971 to 973 on Arbitrum and 138 to 140 on Celo.
+
+Boundary 1 broadcast correctly and then failed its own postcondition, which compared the deployed
+runtime hash against the artifact's `deployedBytecode`. Solidity writes immutables at construction,
+so those can never be equal: the router declares nine immutable references over 960 bytes, and the
+deployed code differs from the artifact in exactly 416 bytes, every one inside a declared span. The
+CREATE2 address already binds the init code and therefore those values, so PR 729 masks the
+declared spans, compares the remaining bytes, and cross-checks the artifact against the hash frozen
+in the plan. Because the postcondition threw before the checkpoint was written, the mined boundary
+was unrecoverable by re-running against a consumed nonce; PR 729 also added an `adopt` command that
+verifies the same receipt and postcondition and records the boundary without signing.
+
 `authorityEnabled` stays false. No Zodiac Roles module, allowance, peer binding, ownership
-transfer, or value authority was configured, and the Garden-bound relay remains undeployed. The
-bounded settlement authority half of PRD-819 has no operator stage yet and remains open work.
+transfer, or value authority was configured. The bounded settlement authority half of PRD-819 has
+no operator stage yet and remains open work. The relay does not by itself let a Garden act alone:
+it requires one recovery-owner signature for every Safe execution, so Garden-plus-one-recovery now
+reaches threshold two where both recovery organisations were previously needed.
 
 ## Boundaries
 
