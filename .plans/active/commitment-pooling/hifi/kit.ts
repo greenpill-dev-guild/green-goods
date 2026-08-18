@@ -1447,9 +1447,16 @@ export function adminCanvas(
 ): string {
   const hotPrefix = parts.screenId.toLowerCase();
   const interactiveChrome = parts.interactiveChrome !== false;
-  return `<div class="wsgrid" data-tone="${tone}" data-component="CanvasLayout">${adminAppBar(parts.garden, hotPrefix, interactiveChrome)}<main class="mainscroll"><section class="routecard">${parts.header}${
-    parts.tabRail ?? ""
-  }${parts.body}</section></main>${navDock(nav, hotPrefix, interactiveChrome)}</div>`;
+  // The route header and its tab rail pin together as ONE band (2026-08-18
+  // round 46, Afo). The header was already sticky and the rail was not, so
+  // scrolling a queue 300px moved the header 12px and took Work · Assess ·
+  // Certify · Confirm · History off the screen entirely — the stage navigation
+  // vanished exactly when a long queue made it useful. Shipped pins its rail
+  // (views/Hub/index.tsx:102 passes `sticky`). Pinning them as one band also
+  // fixes the header's transparent background, which would otherwise let rows
+  // scroll visibly through the title once content reached it.
+  const top = `<div class="routetop">${parts.header}${parts.tabRail ?? ""}</div>`;
+  return `<div class="wsgrid" data-tone="${tone}" data-component="CanvasLayout">${adminAppBar(parts.garden, hotPrefix, interactiveChrome)}<main class="mainscroll"><section class="routecard">${top}${parts.body}</section></main>${navDock(nav, hotPrefix, interactiveChrome)}</div>`;
 }
 
 // AdminDialog — own scrim + 28dp solid surface over the dimmed canvas. `behind`

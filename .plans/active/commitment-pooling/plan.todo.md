@@ -1539,6 +1539,21 @@ Known mis-resolutions fixed in place: `contract-spec.md` §Grassroots-Economics-
     scroller, per round 43's rule. Three casts: full roster, 2 of 23 matching, no match — the
     last naming the real remedy and dropping the footer. Full text: `uiux-spec.md` C.47.
 
+151. The admin-console structural review (2026-08-18, round 46, Afo). Round 36 swept admin for
+    vocabulary; this ran the lenses that found the client's defects. Most of it held — admin
+    dialogs already have the four-region anatomy the client sheet lacked, with zero duplicate
+    titles, zero empty footers and zero stranded inline actions, and W10 is the strongest screen
+    in the prototype. Four fixes: the route header and tab rail pin as ONE band (the header was
+    sticky, the rail was not, so 300px of scroll took the stage navigation off screen while
+    shipped pins it at Hub/index.tsx:102); W13's rows gained the confirm / Not yet actions §6.9
+    specifies, both opening dialogs because each takes a mandatory reason, with the disputed row
+    carrying Resolve instead since a frozen commitment is not confirmable; nine recovery states
+    across W13/W12/HUBWORK/W24, which had none, so a failed read rendered as an empty queue; and
+    the two casing outliers moved to Title Case, leaving the sentence-case question (Lens 4.15)
+    recorded and deferred. Separately "Rest the cycle" became "Compost", the contract's own word
+    (compostCycle, CS:206), with a second gate rule guarding rest as a lifecycle verb. Full text:
+    `uiux-spec.md` C.48.
+
 **Final recursive certification clarification (2026-07-25; no new decision-register entry):**
 the published `42161`↔`42220` production lane is the only required fully paired
 `SettlementConfiguration`. Arbitrum Sepolia `421614` and Celo Sepolia `11142220` remain

@@ -9,8 +9,8 @@ import { CYCLE, POOL_HOLDINGS, SEASON_LIVE } from "../fixtures";
 import { hot } from "../html";
 import { icon } from "../icons";
 import {
-  acard, adminCanvas, adminDialogM3, banner, btn, chip, decisionRow, deskWin, disclosure, dtable, field, flowDialog, input, kv, pageHeader, poolHoldings, commitmentRow, radio,
-  reasonChips, stages, tabRail,
+  acard, adminCanvas, adminDialogM3, banner, btn, chip, decisionRow, deskWin, disclosure, dtable, emptyState, field, flowDialog, input, kv, pageHeader, poolHoldings, commitmentRow, radio,
+  reasonChips, skeleton, stages, tabRail,
 } from "../kit";
 import type { FlowStep } from "../kit";
 import { adminChromeHots, w7Behind } from "./admin";
@@ -21,7 +21,10 @@ import type { StateFacts } from "../types";
 // W12 — Community workspace, Pools mode (uiux-spec §6.8, rescoped 2026-07-18)
 // ---------------------------------------------------------------------------
 
-const W12_STATES = [["protocol", "Protocol pool"], ["current-garden", "This garden"], ["seed-protocol", "Seed a protocol commitment"]] as const;
+const W12_STATES = [
+  ["protocol", "Protocol pool"], ["current-garden", "This garden"], ["seed-protocol", "Seed a protocol commitment"],
+  ["loading", "Loading"], ["read-error", "Read error"],
+] as const;
 type W12State = (typeof W12_STATES)[number][0];
 
 function w12(state: W12State): string {
@@ -132,6 +135,24 @@ ${banner("Everything arrives prefilled from the protocol templates, published to
       }),
     );
   }
+  // The protocol workspace reads across gardens, so it has the most to fail on
+  // (2026-08-18 round 46, Afo). It previously had no read casts at all.
+  if (state === "loading" || state === "read-error")
+    return deskWin(
+      "admin.greengoods.app/community/pools",
+      adminCanvas("community", "community", {
+        screenId: "W12", garden: "Rocinha", header, tabRail: rail,
+        body:
+          state === "loading"
+            ? `${skeleton({ title: true, lines: 2 })}${skeleton({ lines: 3 })}`
+            : emptyState(
+                "wifi-off-line",
+                "Couldn't load the protocol pool",
+                "Something went wrong reaching the indexer. No claim, confirmation, or funding record has changed.",
+                hot("w12.retry", btn("Try Again", { kind: "pri", icon: "refresh-line" })),
+              ),
+      }),
+    );
   return deskWin(
     "admin.greengoods.app/community/pools",
     adminCanvas("community", "community", { screenId: "W12", garden: "Rocinha", header, tabRail: rail, body: inner }),
@@ -139,6 +160,7 @@ ${banner("Everything arrives prefilled from the protocol templates, published to
 }
 
 const W12_HOTS: HifiDef["hots"] = {
+  "w12.retry": { l: "Try again", info: "Read recovery for the protocol workspace, added round 46. It reads across gardens, so it has the most to fail on, and it had no read casts at all." },
   "w12.tab-protocol": { l: "Protocol pool tab", to: "screen:W12@protocol", info: "The root protocol pool view." },
   "w12.tab-garden": { l: "This garden tab", to: "screen:W12@current-garden", info: "This garden's pool scope only." },
   "w12.open-garden-pool": { l: "Open garden pool", to: "screen:W7", info: "One-tap handoff from the Community summary to the selected garden's full Pool workspace." },
@@ -835,6 +857,7 @@ const W24_STATES = [
   ["flows-funding-unavailable", "Flows · funding unavailable"],
   ["funding", "Seed / top up"],
   ["funding-unauthorized", "Funding unavailable"],
+  ["loading", "Loading"], ["read-error", "Read error"],
 ] as const;
 type W24State = (typeof W24_STATES)[number][0];
 
@@ -911,6 +934,24 @@ ${kv("Required capability", "Protocol steward or SettlementModule owner")}${kv("
     eyebrow: "Protocol execution · capability-gated",
     description: "Every garden's command queue, CCIP health, and cross-chain funds. One execution home.",
   });
+  // Operations drives settlement, so an unreadable queue must never be mistaken
+  // for an empty one — a steward would read "nothing to dispatch" (round 46).
+  if (state === "loading" || state === "read-error")
+    return deskWin(
+      "admin.greengoods.app/operations",
+      adminCanvas("actions", "operations", {
+        screenId: "W24", garden: "Rocinha", header, tabRail: rail,
+        body:
+          state === "loading"
+            ? `${skeleton({ title: true, lines: 2 })}${skeleton({ lines: 3 })}`
+            : emptyState(
+                "wifi-off-line",
+                "Couldn't load the operations queue",
+                "Something went wrong reaching the indexer. Nothing was dispatched, cancelled, or refunded while this was unreachable.",
+                hot("w24.retry", btn("Try Again", { kind: "pri", icon: "refresh-line" })),
+              ),
+      }),
+    );
   return deskWin(
     "admin.greengoods.app/operations",
     adminCanvas("actions", "operations", { screenId: "W24", garden: "Rocinha", header, tabRail: rail, body: inner }),
@@ -918,6 +959,7 @@ ${kv("Required capability", "Protocol steward or SettlementModule owner")}${kv("
 }
 
 const W24_HOTS: HifiDef["hots"] = {
+  "w24.retry": { l: "Try again", info: "Read recovery for the operations queue, added round 46. Operations drives settlement, so an unreadable queue must never render like an empty one — a steward would read it as “nothing to dispatch”." },
   "w24.tab-queue": { l: "Queue tab", to: "screen:W24@queue", info: "Cross-garden execution queue." },
   "w24.tab-ccip": { l: "CCIP tab", to: "screen:W24@ccip", info: "Command/ack peer, native fee reserve, and acknowledgment-delay health." },
   "w24.tab-flows": { l: "Flows tab", to: "screen:W24@flows", info: "Cross-chain funds board with transport state, not raw G$ indexing." },
@@ -943,7 +985,7 @@ const W24_HOTS: HifiDef["hots"] = {
 // ---------------------------------------------------------------------------
 
 const W26_STATES = [
-  ["review", "1 · Review"], ["recognition-blocked", "Recognition blocked"], ["shares", "2 · Shares"], ["certificate", "3 · Certificate"], ["rest", "4 · Rest the cycle"],
+  ["review", "1 · Review"], ["recognition-blocked", "Recognition blocked"], ["shares", "2 · Shares"], ["certificate", "3 · Certificate"], ["rest", "4 · Compost the cycle"],
   ["paused-review", "Paused · 1 · Review"], ["paused-shares", "Paused · 2 · Shares"],
   ["paused-certificate", "Paused · 3 · Certificate"], ["paused-rest", "Paused · 4 · Rest the cycle"],
 ] as const;
@@ -959,7 +1001,13 @@ const CLOSE_STEPS: FlowStep[] = [
   { title: "Review", desc: "close the cycle's exact bundle" },
   { title: "Shares", desc: "the six-role snapshot, locked at open" },
   { title: "Certificate", desc: "mint the impact record" },
-  { title: "Rest", desc: "compost and archive" },
+  // "Rest" retired here too (2026-08-18 round 46, Afo). C.27 retired it on the
+  // client, where an ongoing Offer stops; carrying it on the cycle-close wizard
+  // left one word meaning two different things across two surfaces. The honest
+  // word was already in the contract: the cycle's terminal transition is
+  // Reconciled → Composted via compostCycle(cycleId) (CS:206), and compost is
+  // established Green Goods vocabulary for an ending that feeds what follows.
+  { title: "Compost", desc: "roll the cycle up into pool history" },
 ];
 
 function w26(state: W26State): string {

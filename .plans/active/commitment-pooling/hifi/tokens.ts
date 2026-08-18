@@ -979,7 +979,16 @@ export const HIFI_CSS = `
 
 /* PageHeader — title-large (22/28 @600, no display ramp), sticky under the
    AppBar, transparent over the canvas wash. */
-.hf .pghead{position:sticky;top:0;z-index:3;background:transparent;display:flex;flex-direction:column;gap:7px;padding:2px 0 4px}
+/* The header and its tab rail pin as ONE band (round 46). Sticky moves here
+   from .pghead: the header stuck while the rail scrolled away, so the stage
+   navigation left the screen exactly when a long queue made it useful. The
+   band carries the canvas ground, because a transparent sticky element lets
+   rows scroll visibly through the title. The negative inline margin lets that
+   ground reach the routecard's padding edge. */
+.hf .routetop{position:sticky;top:0;z-index:3;background:var(--cv);display:flex;flex-direction:column;gap:14px;
+  margin:0 -14px;padding:0 14px}
+@media (min-width:720px){.hf .routetop{margin:0 -24px;padding:0 24px}}
+.hf .pghead{z-index:3;background:transparent;display:flex;flex-direction:column;gap:7px;padding:2px 0 4px}
 .hf .pghead .ph-row{display:flex;align-items:flex-start;gap:12px}
 .hf .pghead .ph-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
 .hf .pghead .eyebrow{font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--stone)}

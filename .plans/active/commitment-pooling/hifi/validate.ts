@@ -518,6 +518,12 @@ const RETIRED_VOCABULARY: [RegExp, string][] = [
   // C.27: rest and retire collapsed into one act.
   [/\b(?:rest it|resting|retire it|retired)\b(?=[^.]*\boffer\b)/i,
     'rest/retire — an ongoing offer is "stopped" (C.27)'],
+  // The same word survived on the admin cycle-close wizard, where step 4 was
+  // "Rest the cycle" (round 46). The C.27 rule missed it because that pattern
+  // requires "offer" nearby. This one guards rest as a LIFECYCLE VERB against
+  // the four things that have one, so "the rest of the list" stays legal.
+  [/\brest(?:ing)?\s+(?:the\s+|this\s+)?(?:cycle|season|campaign|pool)\b/i,
+    'rest — a cycle is composted (compostCycle, CS:206); an ongoing offer is stopped (C.27 · C.48)'],
 ];
 // Retired only in PRODUCT copy. `attachEvidence` and `EvidenceAttached` are
 // contract identifiers and belong in hotspot notes, the same way leadProvider

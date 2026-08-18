@@ -2920,3 +2920,52 @@ Three casts: the full roster, a query matching two of twenty-three, and no match
 state names the real remedy rather than dead-ending — only garden members can join, so someone
 missing has to be welcomed into the garden first — and it drops the footer, because there is
 nothing to add.
+
+### C.48 The admin-console review (2026-08-18, round 46)
+
+Round 36 swept admin for vocabulary. This is the structural pass, run with the lenses that found
+the client's defects.
+
+**Most of it held.** Admin dialogs already have the four-region anatomy the client sheet was
+missing — `dlg-head` fixed, `dlg-body` the only scroller, `dlg-foot` a pinned action row. Zero
+duplicate dialog titles, zero empty footers, zero full-width buttons stranded in a dialog body.
+W10 is the strongest screen in the prototype: 19 states, every one with a proper footer. W12
+matches §6.360 in full. **The client sheet was the outlier, not admin.**
+
+**The route header and tab rail now pin as one band.** The header was `position:sticky`; the rail
+was not. Scrolling a queue 300px moved the header 12px and took Work · Assess · Certify · Confirm
+· History off the screen — the stage navigation vanished exactly when a long queue made it useful.
+Shipped pins its rail (`views/Hub/index.tsx:102`). Pinning them together also fixes the header's
+`background:transparent`, which would have let rows scroll visibly through the title. Measured
+after: the rail moves 12px at 400px of scroll, with zero content bleeding through.
+
+**The confirm queue can now confirm.** §6.9 specifies the row as *"promiser, commitment title,
+garden, N-of-group progress, a visible eligibility badge, and confirm / Not yet actions opening
+the AdminDialog detail."* W13 had the badge and the progress; the two actions were missing, so
+the whole row was a single hotspot into W10 and a steward triaging thirty rows had to open every
+one. The Work stage beside it already used `decisionRow`; the Confirm stage never adopted it.
+
+Both acts open a dialog rather than firing: a fallback confirmation takes a mandatory reason
+(`contract-spec.md:1422`) and Not yet calls `raiseDispute` with its own, so neither can be a
+one-tap act from a list. The disputed row carries **Resolve** instead — a frozen commitment is
+not confirmable, and offering Confirm on it would be a dead control.
+
+**Nine recovery states across the four queue surfaces.** W13, W12, HUBWORK and W24 read from the
+indexer and had no loading or read-error cast between them, so a failed read rendered as an empty
+stage — a steward would read "nothing waiting on you", which is the opposite of the truth. The
+client's equivalents have carried these since round 41.
+
+**Two casing outliers fixed, one question recorded.** Admin footers were 55 Title Case against 2
+sentence, with two footers mixing both: `W10@cancel` read *"Keep commitment | Cancel Commitment"*,
+and the garden-fallback act appeared in both casings. Admin has effectively committed to Title
+Case, so the two outliers moved to match. **Open**: review-checklist Lens 4.15 says admin buttons
+should be *sentence* case, which would make it 55 wrong rather than 2, and shipped admin is itself
+inconsistent ("Add Input" beside "Add members"), so it cannot settle the question. Deferred to
+when admin UI is built.
+
+**"Rest the cycle" retired.** C.27 retired "rest" on the client, where an ongoing Offer stops.
+Carrying it on the cycle-close wizard left one word meaning two things across two surfaces. The
+honest word was already in the contract: a cycle's terminal transition is Reconciled → Composted
+via `compostCycle(cycleId)` (`contract-spec.md:206`). Step 4 is **Compost**. The C.27 gate missed
+this because its pattern requires "offer" nearby; a second rule now guards rest as a lifecycle
+verb against cycle, season, campaign and pool, leaving "the rest of the list" legal.

@@ -1510,7 +1510,7 @@ ${kv("Kind", "Support · proof-only")}${kv("Proof", "2 items · photo, note")}${
       break;
     case "cancel":
       body = `${reasonChips(["Withdrawn by agreement", "No longer needed", "Duplicate commitment"])}${field("Reason (required)", input("withdrawn by agreement at the gathering"))}${banner("Steward cancel, Accepted becomes Cancelled with a recorded reason. Committed units release; the member sees the reason, never “cancelled” alone.", "stone", "error-warning-line")}`;
-      actions = `${dismiss("Keep commitment")}${hot("w10.cancel-confirm", btn("Cancel Commitment", { kind: "danger" }))}`;
+      actions = `${dismiss("Keep Commitment")}${hot("w10.cancel-confirm", btn("Cancel Commitment", { kind: "danger" }))}`;
       break;
     case "garden-ready":
       // A garden-claimed protocol commitment: the PROVIDER is a GardenAccount, so
@@ -1554,7 +1554,7 @@ ${stages(["Offered", "Accepted", "Work linked", "Ready", "Fulfilled"], 3)}
 ${kv("Proof", "2 items · photo, note")}${kv("Linked work", "Pruning session (approved)")}${kv("Provider", "Maria, cannot confirm")}${kv("Ordinary path", "Unreachable · no eligible named/default confirmer remains")}
 ${banner("The indexed eligibility check found that the ordinary path cannot reach its threshold. A current non-contributor garden steward may use fallback with a required reason.", "amber", "shield-check-line")}
 ${kv("Reward rail", "External payout record")}${kv("Reward", "20 DAI · garden jar · unpaid, recordable once confirmed")}`;
-      actions = `${dismiss("Close")}${hot("w10.fallback", btn("Confirm as garden fallback…", { kind: "sec" }))}${hot("w10.raise", btn("Raise Dispute…", { kind: "sec" }))}`;
+      actions = `${dismiss("Close")}${hot("w10.fallback", btn("Confirm as Garden Fallback…", { kind: "sec" }))}${hot("w10.raise", btn("Raise Dispute…", { kind: "sec" }))}`;
       break;
     case "fulfilled":
       // Recording a payout is a Fulfilled-only act (uiux-spec §6.7). Giving it
@@ -1930,6 +1930,7 @@ const W11_HOTS: HifiDef["hots"] = {
 
 const W13_STATES = [
   ["queue", "Confirm Queue"], ["context-chip", "Work card chip (W13b)"], ["assess", "Assess stage"], ["empty", "Nothing to confirm"],
+  ["loading", "Loading"], ["read-error", "Read error"],
 ] as const;
 type W13State = (typeof W13_STATES)[number][0];
 
@@ -1983,6 +1984,20 @@ ${commitmentRow({
       "Nothing waiting for confirmation",
       "Named, local-fallback, and explicitly opted-in Green Goods team rows land here when you're eligible.",
     );
+  // A queue reads from the indexer, so it can be mid-read or fail to read
+  // (2026-08-18 round 46, Afo). The client's equivalents have carried loading
+  // and read-error since round 41; the admin queues had neither, so a steward
+  // whose queue failed saw an empty stage and no way to tell the difference
+  // between "nothing waiting" and "we could not look".
+  } else if (state === "loading") {
+    inner = acard("Confirm Queue", `${skeleton({ lines: 2 })}${skeleton({ lines: 2 })}${skeleton({ lines: 2 })}`);
+  } else if (state === "read-error") {
+    inner = emptyState(
+      "wifi-off-line",
+      "Couldn't load the confirmation queue",
+      "Something went wrong reaching the indexer. Nothing waiting on you was lost, and confirming needs a connection anyway.",
+      hot("w13.retry", btn("Try Again", { kind: "pri", icon: "refresh-line" })),
+    );
   } else if (state === "context-chip") {
     inner = acard(
       "Work Queue",
@@ -1998,27 +2013,42 @@ ${banner("Work cards name the commitment they fulfil; the approval rails themsel
   } else {
     inner = acard(
       "Confirm Queue",
+      // A queue you can decide from (2026-08-18 round 46, Afo). §6.9 specifies
+      // the row as "promiser, commitment title, garden, N-of-group progress, a
+      // visible eligibility badge, and confirm / Not yet actions opening the
+      // AdminDialog detail" — the badge and progress were here, the two actions
+      // were not, so the whole row was one hotspot into W10 and a steward
+      // triaging thirty rows had to open every one. The Work stage beside it
+      // already uses decisionRow; the Confirm stage never adopted it.
+      //
+      // Both acts open a dialog rather than firing: a fallback confirmation
+      // takes a mandatory reason (CS:1422) and Not yet calls raiseDispute with
+      // its own, so neither can be a one-tap act from a list.
       `<div class="t-meta">Each row names the authority that lets you act; a protocol row never grants wider access to that garden.</div>
-${commitmentRow({
+${decisionRow({
         title: "Prune the north beds",
         chips: `${chip("Offer", "offer")}${chip("Ready", "warn", { dot: true })}${chip("Garden Fallback", "err")}`,
-        meta: "Maria → João · Rocinha · nobody local can confirm",
+        meta: "Maria → João · Rocinha · 0 of 1 confirmed · nobody local can confirm",
         hotId: "w13.row",
-        chevron: true,
+        decline: hot("w13.not-yet", btn("Not Yet…", { kind: "sec", sm: true })),
+        affirm: hot("w13.confirm-fallback", btn("Confirm…", { kind: "pri", sm: true })),
       })}
-${commitmentRow({
+${decisionRow({
         title: "Field survey ride",
         chips: `${chip("Request", "request")}${chip("Ready", "warn", { dot: true })}${chip("Team Fallback", "ink")}`,
         meta: "TAS → Awka Hub · Awka · 0 of 1 confirmed",
         hotId: "w13.protocol-row",
-        chevron: true,
+        decline: hot("w13.not-yet", btn("Not Yet…", { kind: "sec", sm: true })),
+        affirm: hot("w13.confirm-protocol", btn("Confirm…", { kind: "pri", sm: true })),
       })}
-${commitmentRow({
+${decisionRow({
+        // A frozen commitment is not confirmable, so this row carries the one
+        // act it actually has. Offering Confirm here would be a dead control.
         title: "Repair the tool handles",
         chips: `${chip("Support", "ink")}${chip("Under Review", "warn", { dot: true })}${chip("Needs You", "err")}`,
         meta: "Maria → João · Rocinha · frozen until resolved",
         hotId: "w13.disputed-row",
-        chevron: true,
+        affirm: hot("w13.resolve", btn("Resolve…", { kind: "sec", sm: true })),
       })}`,
     );
   }
@@ -2033,6 +2063,11 @@ const W13_HOTS: HifiDef["hots"] = {
   "w13.row": { l: "Garden fallback row", to: "screen:W10@detail-fallback-eligible", info: "The row is present only after indexed eligibility proves the ordinary path cannot reach threshold. The detail keeps the mandatory reason and PoolFallback provenance visible." },
   "w13.protocol-row": { l: "Green Goods team fallback row", to: "screen:W10@protocol-fallback-confirm", info: "Cross-garden row appears only because the commitment carries protocolFallbackEnabled (the pilot default) and this account currently wears a protocol-pool steward/owner Hat." },
   "w13.disputed-row": { l: "Under-review row", to: "screen:W10@resolve-dispute", info: "A commitment frozen for steward review lands in this queue; opening it offers the eligible resolution outcomes with their required reason (CS:144). Members only ever read “under review by stewards”." },
+  "w13.confirm-fallback": { l: "Confirm as garden fallback", to: "screen:W10@fallback-confirm", info: "The row's own act, added round 46 per §6.9. It opens the dialog rather than firing, because a fallback confirmation takes a mandatory reason (CS:1422) and the timeline records it as “confirmed by garden steward, fallback” rather than an ordinary confirmation." },
+  "w13.confirm-protocol": { l: "Confirm for the Green Goods team", to: "screen:W10@protocol-fallback-confirm", info: "The protocol path, available only because the commitment carries protocolFallbackEnabled and this account currently wears a protocol-pool Hat. Same reason requirement, different recorded provenance." },
+  "w13.not-yet": { l: "Not yet", to: "screen:W10@raise-dispute", info: "The queue's decline half, matching the client's own word for this decision (C.45). It calls raiseDispute with its own separate reason, so it opens the dialog rather than acting from the list." },
+  "w13.resolve": { l: "Resolve the review", to: "screen:W10@resolve-dispute", info: "A frozen commitment is not confirmable, so its row carries resolution instead of confirm / Not yet. Offering Confirm on it would be a dead control." },
+  "w13.retry": { l: "Try again", info: "Read recovery for the confirmation queue, added round 46. A steward whose queue failed to load previously saw an empty stage, which reads as “nothing waiting on you” — the opposite of the truth." },
   "w13.chip": { l: "Commitment-context chip (W13b)", info: "Work cards show which commitment they fulfill; approval rails untouched (UX:285)." },
   "w13.new-assessment": { l: "Create assessment", to: "screen:W14", info: "Opens the existing Create Assessment flow, which §6.6 extends rather than forks." },
   "w13.approve": { l: "Approve work", info: "Uses the existing WorkApproval rail; the context chip only links this work back to its commitment." },
@@ -2170,6 +2205,7 @@ const HUBWORK_STATES = [
   ["approved", "Approved — 1 of 2 counted"],
   ["reject-reason", "Reject — reason"],
   ["rejected", "Both decided"],
+  ["empty", "Nothing to review"], ["loading", "Loading"], ["read-error", "Read error"],
 ] as const;
 type HubworkState = (typeof HUBWORK_STATES)[number][0];
 
@@ -2246,14 +2282,25 @@ function hubwork(state: HubworkState): string {
         closeHot: "hub.reject-dismiss",
       }),
     );
+  // Same three casts as the Confirm stage beside it (round 46): a queue can be
+  // empty, mid-read, or unreadable, and those are three different messages.
+  const body =
+    state === "empty"
+      ? emptyState("checkbox-circle-fill", "Nothing waiting to review", "Work submitted across your gardens lands here for approval. Everything sent so far has been decided.")
+      : state === "loading"
+        ? acard("Work Queue", `${skeleton({ lines: 2 })}${skeleton({ lines: 2 })}`)
+        : state === "read-error"
+          ? emptyState("wifi-off-line", "Couldn't load the work queue", "Something went wrong reaching the indexer. No submission was lost, and nothing has been decided in the meantime.", hot("hub.retry", btn("Try Again", { kind: "pri", icon: "refresh-line" })))
+          : hubworkQueue(state);
   const header = pageHeader({ title: "Hub", description: "Review and triage work submitted across your gardens." });
   return deskWin(
     "admin.greengoods.app/hub",
-    adminCanvas("hub", "hub", { screenId: "HUBWORK", garden: "Rocinha", header, tabRail: hubRail(0, "hubwork"), body: hubworkQueue(state) }),
+    adminCanvas("hub", "hub", { screenId: "HUBWORK", garden: "Rocinha", header, tabRail: hubRail(0, "hubwork"), body }),
   );
 }
 
 const HUBWORK_HOTS: HifiDef["hots"] = {
+  "hub.retry": { l: "Try again", info: "Read recovery for the work queue, added round 46 alongside the Confirm stage's. An unreadable queue and an empty one are different facts and must not render the same." },
   "hub.approve": { l: "Approve João's session", to: "screen:HUBWORK@approve-confirm", info: "Existing WorkApproval rails → onWorkDecision → ApprovedWorkCounted while the linked commitment is Accepted and unfrozen." },
   "hub.approve-dismiss": { l: "Not yet", to: "screen:HUBWORK", info: "Closes the confirmation; the submission stays in the queue undecided." },
   "hub.approve-confirm": { l: "Approve work (confirm)", to: "screen:HUBWORK@approved", info: "The approval decision reaches onWorkDecision and the counted credit appears on the queue row — no reason is stored for an approval." },
