@@ -23,11 +23,34 @@ function fixture() {
 }
 
 describe("GardenAccount relay release plan", () => {
-  it("accepts only inert planning and verification commands", () => {
+  it("keeps planning and verification inert and fails closed on unknown commands", () => {
     expect(parseArguments(["plan"]).command).toBe("plan");
     expect(parseArguments(["verify"]).command).toBe("verify");
-    expect(() => parseArguments(["deploy", "--broadcast"])).toThrow(/plan\|verify/);
-    expect(() => parseArguments(["plan", "--broadcast"])).toThrow(/requires a value/);
+    expect(parseArguments(["plan"]).broadcast).toBe(false);
+    expect(() => parseArguments(["enable"])).toThrow(/plan\|verify\|deploy/);
+    expect(() => parseArguments(["plan", "--broadcast"])).toThrow(/does not accept --broadcast/);
+    expect(() => parseArguments(["verify", "--step", "1"])).toThrow(/does not accept --step/);
+  });
+
+  it("binds every broadcast boundary to one step and its prior receipt", () => {
+    const receipt = `0x${"ab".repeat(32)}`;
+    expect(parseArguments(["deploy", "--broadcast", "--step", "1"])).toMatchObject({
+      command: "deploy",
+      broadcast: true,
+      step: 1,
+    });
+    expect(parseArguments(["deploy", "--broadcast", "--step", "4", "--receipt", receipt]).receipt).toBe(receipt);
+
+    expect(() => parseArguments(["deploy", "--step", "1"])).toThrow(/requires --broadcast/);
+    expect(() => parseArguments(["deploy", "--broadcast"])).toThrow(/one explicit --step boundary/);
+    expect(() => parseArguments(["deploy", "--broadcast", "--step", "2"])).toThrow(/step-1 receipt/);
+    expect(() => parseArguments(["deploy", "--broadcast", "--step", "1", "--receipt", receipt])).toThrow(
+      /no prerequisite receipt/,
+    );
+    expect(() => parseArguments(["deploy", "--broadcast", "--step", "5", "--receipt", receipt])).toThrow(
+      /--step must be between 1 and 4/,
+    );
+    expect(() => parseArguments(["deploy", "--broadcast", "--step", "0"])).toThrow(/--step must be between 1 and 4/);
   });
 
   it("derives one deterministic four-step cross-chain plan", () => {

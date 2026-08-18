@@ -75,6 +75,10 @@ describe("release operator session", () => {
     }
     expect(CEREMONY_STAGES.get("garden-accounts")?.boundaries).toBe(2);
     expect(CEREMONY_STAGES.get("garden-safes")?.boundaries).toBe(18);
+    // The relay lane spans both chains, so its four boundaries are one reviewed stage.
+    expect(parseSessionOptions(["--commit", candidate, "--stage", "relay"]).stage).toBe("relay");
+    expect(CEREMONY_STAGES.get("relay")?.boundaries).toBe(4);
+    expect(plannedStageBoundaries("relay", 0)).toEqual([1, 2, 3, 4]);
   });
 
   it("resumes a staged lane after its checkpoint without replaying a mined boundary", () => {
@@ -172,6 +176,7 @@ describe("release operator session", () => {
     expect([...RELEASE_OPERATOR_COMMANDS.keys()]).toEqual([
       "settlement:garden-accounts:deploy:celo",
       "settlement:garden-safes:deploy:celo",
+      "settlement:garden-relay:deploy",
     ]);
     expect(
       assertAllowedOperatorCommand(
