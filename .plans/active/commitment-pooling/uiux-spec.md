@@ -2274,6 +2274,37 @@ badge, Needed and Optional pill groups, real thumbnails, the on-device line. The
 is that the POOLING proof step draws one list instead, so the same act has two shapes. Not
 changed this round.
 
+### C.39 The composer and the read surface are different (2026-08-17, round 39)
+
+Afo: *"go take a look at the actual client code for submit work media step. And we are not
+using a grid."* Correct, and my C.25 note claiming the step already mirrored `Media.tsx` was
+wrong. So was the round-23 work under it.
+
+**`Media.tsx:690` is `flex flex-col gap-3`.** The two-column grid is `md:` only, and the
+prototype's phone frame is 390px, so the grid **never applies**. What a gardener actually sees
+is full-width photos at `aspect-4/3`, stacked vertically, each large enough to check before
+sending, with a remove control pinned over the image at `top-2 right-2`.
+
+**The read surface is a different component.** `WorkView.tsx:102` renders a `Carousel` of
+`max-w-40 aspect-3/4 rounded-2xl` items: narrow, portrait, scrolled sideways. Composing you
+manage the photos; reading you glance at them.
+
+I had built ONE builder for both and got both wrong: 60×78 landscape tiles at a 10px radius,
+which is neither shape.
+
+| | shipped | was | now |
+|---|---|---|---|
+| composer | 358 × 268, 4:3, stacked | 60 × 78 strip | `mediaStack`, **358 × 269, 4:3** |
+| read surface | ~160 wide, 3:4, 16px radius | 60 × 78, 10px | `mediaStrip`, **150 × 200, 3:4, 16px** |
+
+Applied to all three composer steps: Submit Work's media step, the proof flow's, and
+creation's details step. A voice note, link or written note stays a row in the stack, because
+it has no picture to draw.
+
+**The lesson is the one worth keeping.** Two surfaces showing the same object are not
+necessarily the same component, and "mirrors the shipped step" is a claim that needs the file
+open, not a memory of having read it. I made that claim twice about this step.
+
 ### C.7 PARKED — reciprocity from the claim side (2026-08-16, register #103)
 
 > **Parked 2026-08-17 (Afo): "park it for now and we stabilize and polish the UI."** The

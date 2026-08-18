@@ -15,7 +15,7 @@ import { icon } from "../icons";
 import {
   actionBar, appBar, banner, btn, campaignSlide, card, chip, cycleCard, cycleRail, detailRow, disclosure, domainRow, emptySeasonSlide, emptyState, fabButton, field,
   flowHeader, formInfo, fundedOfferCard, gardenHeader, gardenTabs, hdr, hero, input, kindCards, kv, listRow, meter, offerCard, offerRow, ongoingOfferCard,
-  barPair, formCard, identityCard, imagePreview, mediaStrip, offerRecord, memberCard, memberRow, memberTrail, pagepad, pickRow, progressBlock, phoneFrame, seg, selCard, selRail, tabRail, unitLabel, poolFilters, commitmentCard, radio, reasonChips, requestCard, seasonCard, seasonSlide, sectionCard, sectionTitle, sheetOver, skeleton, stateChip, syncBar,
+  barPair, formCard, identityCard, imagePreview, mediaStack, mediaStrip, offerRecord, memberCard, memberRow, memberTrail, pagepad, pickRow, progressBlock, phoneFrame, seg, selCard, selRail, tabRail, unitLabel, poolFilters, commitmentCard, radio, reasonChips, requestCard, seasonCard, seasonSlide, sectionCard, sectionTitle, sheetOver, skeleton, stateChip, syncBar,
   teamOfferCard, teamstrip, timeline,
 } from "../kit";
 import type { HifiDef } from "./index";
@@ -2161,12 +2161,11 @@ function w2a(state: W2aState): string {
       content = pagepad(
         captureBody(
           "w2a",
-          card(
-            listRow({ thumb: 2, thumbHotId: "w2a.preview", primary: "North beds after", meta: "Photo · just now", trailing: hot("w2a.remove-item", btn("Remove", { kind: "ghost", sm: true, icon: "close-line", ariaLabel: "Remove this photo" })) }) +
-              listRow({ icon: "mic-line", primary: "Voice note", meta: "0:38 · tap to play" }) +
-              listRow({ icon: "sticky-note-line", primary: "“Two beds left for next week”", meta: "Note · just now" }),
-            { cls: "flat" },
-          ),
+          mediaStack([
+            { label: "North beds after", photo: 2, hotId: "w2a.preview", removeHotId: "w2a.remove-item" },
+            { label: "Voice note · 0:38", kind: "audio", removeHotId: "w2a.remove-item" },
+            { label: "“Two beds left for next week”", kind: "note", removeHotId: "w2a.remove-item" },
+          ]),
           "Photos, voice notes and written notes stay on this device until the proof sends.",
         ),
       );
@@ -2415,12 +2414,11 @@ const w3DetailsBody = (
 // renders every photo as an <img> at aspect-4/3 and opens ImagePreviewDialog on
 // tap (Media.tsx:756-775); a row that says "Photo · just now" beside a generic
 // glyph is the one thing that step never does.
-const W3_DETAIL_ITEMS = card(
-  listRow({ thumb: 0, thumbHotId: "w3.preview", primary: "North beds — before", meta: "Photo · just now", trailing: hot("w3.remove-detail", btn("Remove", { kind: "ghost", sm: true, icon: "close-line", ariaLabel: "Remove this photo" })) }) +
-    listRow({ thumb: 2, thumbHotId: "w3.preview", primary: "North beds — after", meta: "Photo · just now", trailing: hot("w3.remove-detail", btn("Remove", { kind: "ghost", sm: true, icon: "close-line", ariaLabel: "Remove this photo" })) }) +
-    listRow({ icon: "mic-line", primary: "Voice note", meta: "0:38 · tap to play" }),
-  { cls: "flat" },
-);
+const W3_DETAIL_ITEMS = mediaStack([
+  { label: "North beds — before", photo: 0, hotId: "w3.preview", removeHotId: "w3.remove-detail" },
+  { label: "North beds — after", photo: 2, hotId: "w3.preview", removeHotId: "w3.remove-detail" },
+  { label: "Voice note · 0:38", kind: "audio", removeHotId: "w3.remove-detail" },
+]);
 const W3_CAPTURE_BAR = captureBar("w3");
 
 // The review step. views/Garden/Review.tsx is FormInfo plus ONE flat card of
@@ -2832,31 +2830,31 @@ function w3(state: W3State): string {
       break;
     case "support-details":
       head = w3Head("Make an offer", 2);
-      content = pagepad(w3DetailsBody(card(listRow({ thumb: 5, thumbHotId: "w3.preview", primary: "The tool bench", meta: "Photo · just now" }), { cls: "flat" })));
+      content = pagepad(w3DetailsBody(mediaStack([{ label: "The tool bench", photo: 5, hotId: "w3.preview", removeHotId: "w3.remove-detail" }])));
       secondary = W3_CAPTURE_BAR;
       actions = hot("w3.continue-support-details", btn("", { kind: "pri", icon: "arrow-right-s-line", ariaLabel: "Continue to review" }));
       break;
     case "support-details-ongoing":
       head = w3Head("Make an offer", 2);
-      content = pagepad(w3DetailsBody(card(listRow({ thumb: 4, thumbHotId: "w3.preview", primary: "Last season's workshop", meta: "Photo · just now" }), { cls: "flat" })));
+      content = pagepad(w3DetailsBody(mediaStack([{ label: "Last season's workshop", photo: 4, hotId: "w3.preview", removeHotId: "w3.remove-detail" }])));
       secondary = W3_CAPTURE_BAR;
       actions = hot("w3.continue-support-details-ongoing", btn("", { kind: "pri", icon: "arrow-right-s-line", ariaLabel: "Continue to review" }));
       break;
     case "request-details":
       head = w3Head("Make a request", 2);
-      content = pagepad(w3DetailsBody(card(listRow({ icon: "sticky-note-line", primary: "“The stall closes at noon”", meta: "Note · just now" }), { cls: "flat" }), [], { value: "You confirm it, because you asked", hot: "w3.advanced" }, { team: false }));
+      content = pagepad(w3DetailsBody(mediaStack([{ label: "“The stall closes at noon”", kind: "note", removeHotId: "w3.remove-detail" }]), [], { value: "You confirm it, because you asked", hot: "w3.advanced" }, { team: false }));
       secondary = W3_CAPTURE_BAR;
       actions = hot("w3.continue-request-details", btn("", { kind: "pri", icon: "arrow-right-s-line", ariaLabel: "Continue to review" }));
       break;
     case "request-details-steward":
       head = w3Head("Make a request", 2);
-      content = pagepad(w3DetailsBody(card(listRow({ icon: "sticky-note-line", primary: "“The stall closes at noon”", meta: "Note · just now" }), { cls: "flat" }), [], { value: "You confirm it, because you asked", hot: "w3.advanced" }, { team: false }));
+      content = pagepad(w3DetailsBody(mediaStack([{ label: "“The stall closes at noon”", kind: "note", removeHotId: "w3.remove-detail" }]), [], { value: "You confirm it, because you asked", hot: "w3.advanced" }, { team: false }));
       secondary = W3_CAPTURE_BAR;
       actions = hot("w3.continue-request-details-steward", btn("", { kind: "pri", icon: "arrow-right-s-line", ariaLabel: "Continue to review" }));
       break;
     case "request-work-details":
       head = w3Head("Make a request", 2);
-      content = pagepad(w3DetailsBody(card(listRow({ thumb: 1, thumbHotId: "w3.preview", primary: "The blocked channel", meta: "Photo · just now" }), { cls: "flat" }), [], { value: "You confirm it once the stewards have approved the work", hot: "w3.advanced" }, { team: false }));
+      content = pagepad(w3DetailsBody(mediaStack([{ label: "The blocked channel", photo: 1, hotId: "w3.preview", removeHotId: "w3.remove-detail" }]), [], { value: "You confirm it once the stewards have approved the work", hot: "w3.advanced" }, { team: false }));
       secondary = W3_CAPTURE_BAR;
       actions = hot("w3.continue-request-work-details", btn("", { kind: "pri", icon: "arrow-right-s-line", ariaLabel: "Continue to review" }));
       break;

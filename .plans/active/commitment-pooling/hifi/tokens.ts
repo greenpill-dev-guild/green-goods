@@ -212,7 +212,10 @@ export const HIFI_CSS = `
    what produced a box with the word "photo" in it. */
 .hf .mstrip{display:flex;gap:7px;overflow-x:auto;padding:10px;scrollbar-width:none}
 .hf .mstrip::-webkit-scrollbar{display:none}
-.hf .mthumb{width:60px;height:78px;border-radius:10px;flex:none;position:relative;overflow:hidden;
+/* The READ surface's strip is WorkView's Carousel: max-w-40 (160px) items at
+   aspect-3/4 with a 16px radius, scrolled horizontally. It had been drawn at
+   60×78 with a 10px radius, which is neither the shipped size nor its ratio. */
+.hf .mthumb{width:150px;aspect-ratio:3/4;border-radius:16px;flex:none;position:relative;overflow:hidden;
   background-size:cover;background-position:center;background-repeat:no-repeat}
 .hf .mthumb.kind{background:var(--card);border:1px dashed var(--ln2);color:var(--stone);
   display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px}
@@ -669,6 +672,27 @@ export const HIFI_CSS = `
 .hf .orec .orow .ic{width:14px;height:14px;color:var(--act);flex:none}
 .hf .orec.compact{flex-direction:row;flex-wrap:wrap;gap:0;font-size:11.5px;color:var(--stone);padding:0}
 
+
+/* The COMPOSER's stack: Media.tsx is flex-col on mobile and only grids at md:,
+   which a 390px phone never reaches. Full-width photos at aspect-4/3, stacked,
+   each big enough to check before sending. */
+.hf .mstack{display:flex;flex-direction:column;gap:12px}
+.hf .mwrap{position:relative}
+.hf .mshot{width:100%;aspect-ratio:4/3;border-radius:12px;overflow:hidden;position:relative;
+  background-size:cover;background-position:center}
+.hf .mstack .mrow{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--ln);
+  border-radius:12px;background:var(--card)}
+.hf .mstack .mrow .ic{color:var(--stone);flex:none}
+.hf .mstack .mrow .lp{font-size:13.5px;font-weight:600;color:var(--ink)}
+.hf .mx{min-width:44px;min-height:44px;border:0;background:none;padding:0;display:flex;
+  align-items:center;justify-content:center;cursor:pointer;color:var(--stone)}
+/* Media.tsx pins its remove control at top-2 right-2 over the photo, on a
+   bordered surface square so it reads against any image. */
+.hf .mx.over{position:absolute;top:8px;right:8px;background:var(--card);border:1px solid var(--ln2);
+  border-radius:10px;min-width:38px;min-height:38px;color:var(--ink)}
+.hf .mshot .zoom{position:absolute;right:8px;bottom:8px;width:22px;height:22px;border-radius:50%;
+  background:rgba(0,0,0,.42);display:flex;align-items:center;justify-content:center}
+.hf .mshot .zoom .ic{width:12px;height:12px;color:#fff}
 /* Image preview — ImagePreviewDialog. Fills the phone the way a fullscreen
    viewer does, so the device status bar goes light-on-dark over it rather than
    staying a white strip; :has() binds that to the preview's presence instead of

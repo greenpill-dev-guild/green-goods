@@ -7,7 +7,7 @@
 import { hot } from "../html";
 import { icon } from "../icons";
 import {
-  actionBar, banner, btn, card, chip, disclosure, emptyState, field, flowHeader, formCard, formInfo, hdr, homeHeader, input, kv, listRow, mediaStrip, meter, pagepad,
+  actionBar, banner, btn, card, chip, disclosure, emptyState, field, flowHeader, formCard, formInfo, hdr, homeHeader, input, kv, listRow, mediaStack, mediaStrip, meter, pagepad,
   filterChips, phoneFrame, commitmentCard, commitmentSlide, radio, reasonChips, sectionCard, sectionTitle, seg, selCard, selRail, sheetOver, skeleton,
 } from "../kit";
 import type { HifiDef } from "./index";
@@ -365,16 +365,21 @@ function wflow(state: WflowState): string {
       // Mirrors views/Garden/Media.tsx:500-556 (2026-08-17, Afo: "upload media
       // could be a bare mirror of what our current work submission shows"). The
       // real step is FormInfo, a self-start count badge, the Needed and Optional
-      // pill groups the ACTION declares, then the uploaded images as a tile grid
-      // with audio notes listed under them. The prototype had a dashed capture
-      // card and a row list instead — neither exists in the shipped step.
+      // pill groups the ACTION declares, then the uploaded media. That last part
+      // was drawn as a tile strip, and it is not one: Media.tsx:690 is
+      // `flex flex-col gap-3` and only becomes a grid at md:, which a 390px
+      // phone never reaches. A gardener sees full-width photos at aspect-4/3,
+      // stacked (2026-08-17, Afo: "we are not using a grid").
       content = pagepad(
         formInfo("image-line", "Upload Media", "Photos, video or a voice note, as proof of the work"),
         `<div class="cardrow">${chip("2/1 media (max 6) ✓", "ok")}</div>`,
         `<div class="h6s">Needed</div><div style="display:flex;flex-wrap:wrap;gap:6px">${chip("Before", "ok")}${chip("After", "ok")}</div>`,
         `<div class="h6s">Optional</div><div style="display:flex;flex-wrap:wrap;gap:6px">${chip("Wide shot")}${chip("Close up")}${chip("Voice note")}</div>`,
-        mediaStrip([{ label: "North beds — before", photo: 0 }, { label: "North beds — after", photo: 2 }]),
-        card(listRow({ icon: "mic-line", primary: "Voice note", meta: "0:41 · tap to play" }), { cls: "flat" }),
+        mediaStack([
+          { label: "North beds — before", photo: 0, hotId: "wflow.preview", removeHotId: "wflow.remove-media" },
+          { label: "North beds — after", photo: 2, hotId: "wflow.preview", removeHotId: "wflow.remove-media" },
+          { label: "Voice note · 0:41", kind: "audio", removeHotId: "wflow.remove-media" },
+        ]),
         banner("Photos and voice notes stay on this device until the work sends.", "stone", "wifi-off-line"),
       );
       secondary = `${hot("wflow.capture-camera", btn("", { kind: "sec", sm: true, icon: "camera-line", ariaLabel: "Take a photo" }))}${hot("wflow.capture-gallery", btn("", { kind: "sec", sm: true, icon: "image-line", ariaLabel: "Choose from your library" }))}${hot("wflow.capture-audio", btn("", { kind: "sec", sm: true, icon: "mic-line", ariaLabel: "Record a voice note" }))}`;
@@ -494,6 +499,8 @@ const WFLOW_HOTS: HifiDef["hots"] = {
   "wflow.capture-audio": { l: "Record a voice note", info: "Audio notes record from the bar and play back inline — the shipping interaction." },
   "wflow.media-continue": { l: "Continue to details", to: "screen:WFLOW@details", info: "Media → details, exactly as shipped." },
   "wflow.details-continue": { l: "Continue to review", to: "screen:WFLOW@review", info: "Details → review, exactly as shipped." },
+  "wflow.preview": { l: "Open the photo", info: "Media.tsx opens ImagePreviewDialog from the photo itself; the composer's stack is what you tap." },
+  "wflow.remove-media": { l: "Remove this", info: "Media.tsx pins a 44px remove control over each photo at top-2 right-2, so removing never means opening the item first." },
   "wflow.untie": { l: "Not for a commitment", to: "screen:WFLOW@review", info: "Clears the commitment this work was going to count toward, so it submits as ordinary garden work. Work never requires a commitment, and nothing on chain has happened yet, so this is a local edit to the draft (2026-08-17, Afo). Going back to the intro did the same thing, but nothing told the reviewer the choice was reversible." },
   "wflow.fulfills": { l: "Fulfills row", info: "The locked read-only commitment-context row on review (MF-7, UX:174) — it repeats the details-step choice and never re-opens the picker here." },
   "wflow.submit": { l: "Submit work", to: "screen:W2@active", info: "Existing work job + meta.commitmentId; the queue auto-links after sync (UX:220)." },

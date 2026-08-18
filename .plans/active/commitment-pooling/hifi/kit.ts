@@ -493,6 +493,34 @@ export function avatar(opts: { name: string; photo?: number; cls?: string }): st
   return `<span class="${cls}" role="img" aria-label="${escAttr(opts.name)}" style="background-image:${photoFill(opts.photo)}"></span>`;
 }
 
+// The COMPOSER treatment. Media.tsx is `flex flex-col gap-3` on mobile and only
+// becomes a grid at md:, which a 390px phone never reaches — so what a gardener
+// actually sees is full-width photos at aspect-4/3, stacked, each big enough to
+// check before sending, with the remove control pinned over the image
+// (2026-08-17, Afo: "go take a look at the actual client code … we are not
+// using a grid"). The READ surface is a different treatment; see mediaStrip.
+export function mediaStack(
+  items: { label: string; photo?: number; kind?: "audio" | "link" | "note"; removeHotId?: string; hotId?: string }[],
+): string {
+  const KIND_IC = { audio: "mic-line", link: "link-m", note: "sticky-note-line" } as const;
+  return `<div class="mstack">${items
+    .map((m) => {
+      if (m.photo === undefined)
+        return `<div class="mrow">${icon(KIND_IC[m.kind ?? "note"])}<div class="grow"><div class="lp">${esc(m.label)}</div></div>${
+          m.removeHotId
+            ? hot(m.removeHotId, `<button class="mx" type="button" aria-label="${escAttr(`Remove ${m.label}`)}">${icon("close-line", "s")}</button>`)
+            : ""
+        }</div>`;
+      const shot = `<div class="mshot" role="img" aria-label="${escAttr(m.label)}" style="background-image:${photoFill(m.photo)}"><span class="zoom">${icon("search-line", "s")}</span></div>`;
+      return `<div class="mwrap">${m.hotId ? hot(m.hotId, shot) : shot}${
+        m.removeHotId
+          ? hot(m.removeHotId, `<button class="mx over" type="button" aria-label="${escAttr(`Remove ${m.label}`)}">${icon("close-line", "s")}</button>`)
+          : ""
+      }</div>`;
+    })
+    .join("")}</div>`;
+}
+
 // Media strip — the work view's Carousel of ImageWithFallback tiles. Evidence
 // on the commitment view used to be text rows with an image icon; showing the
 // actual thumbnails is the single biggest reason to flatten this screen.

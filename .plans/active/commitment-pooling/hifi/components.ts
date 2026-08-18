@@ -402,6 +402,18 @@ const CLIENT_ENTRIES: Entry[] = [
     ],
   },
   {
+    id: "media-stack", title: "Media stack", family: "cards", covers: ["mediaStack"],
+    kit: `mediaStack([{label, photo | kind, hotId, removeHotId}])`,
+    ship: "packages/client/src/views/Garden/Media.tsx:690",
+    shipNote: "flex flex-col on mobile; the 2-col grid is md: only, which a 390px phone never reaches",
+    rule: "The COMPOSER and the READ surface are different treatments, and collapsing them into one is how both came out wrong. Composing, you get full-width photos at aspect-4/3, stacked, each big enough to check before sending, with the remove control pinned over the image. Reading, you get WorkView's Carousel of narrow portrait items. A voice note, link or written note has no picture, so it is a row rather than a pretend photo.",
+    usedIn: /class="mstack"/,
+    specs: [
+      { label: "two photos and a voice note", html: kit.mediaStack([{ label: "North beds — before", photo: 0, removeHotId: "gallery.noop" }, { label: "Voice note · 0:41", kind: "audio", removeHotId: "gallery.noop" }]) },
+      { label: "nothing but a written note", html: kit.mediaStack([{ label: "“Two beds left for next week”", kind: "note", removeHotId: "gallery.noop" }]) },
+    ],
+  },
+  {
     id: "bar-pair", title: "Action pair", family: "forms", covers: ["barPair"],
     kit: `actionBar(barPair(a, b))`,
     netNew: "the two-act bottom bar",

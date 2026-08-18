@@ -1452,6 +1452,17 @@ Known mis-resolutions fixed in place: `contract-spec.md` §Grassroots-Economics-
     because `creditedContributors` is an argument to the call. Push-back accepted: Submit Work's
     media step already mirrors Media.tsx; it is the POOLING proof step that differs. Full text:
     `uiux-spec.md` C.38.
+142. The composer and the read surface are different (2026-08-17, round 39, Afo: "we are not
+    using a grid"). **`Media.tsx:690` is `flex flex-col gap-3`** and only grids at `md:`, which
+    a 390px phone never reaches, so a gardener sees full-width photos at aspect-4/3, stacked,
+    with the remove control pinned over the image. **`WorkView.tsx:102` is a different
+    component**: a Carousel of max-w-40 aspect-3/4 rounded-2xl items. I had built ONE builder
+    for both and got both wrong at 60×78 with a 10px radius. New `mediaStack` for the three
+    composer steps (358×269, 4:3); `mediaStrip` corrected to the read metric (150×200, 3:4,
+    16px). My C.25 note claiming the step already mirrored the shipped file was wrong, and so
+    was the round-23 work under it. Lesson: two surfaces showing the same object are not
+    necessarily the same component, and "mirrors the shipped step" needs the file open rather
+    than a memory of having read it. Full text: `uiux-spec.md` C.39.
 
 **Final recursive certification clarification (2026-07-25; no new decision-register entry):**
 the published `42161`↔`42220` production lane is the only required fully paired
