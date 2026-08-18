@@ -2436,6 +2436,7 @@ const W3_CAPTURE_BAR = captureBar("w3");
 // decision its place in the summary follows. Team appears here for the first
 // time — it was chosen on step 3 and then never shown again before you sent.
 const w3Review = (opts: {
+  asking?: boolean;
   garden: string;
   gardenMeta: string;
   lead: { icon: string; primary: string; meta: string };
@@ -2446,7 +2447,7 @@ const w3Review = (opts: {
 }) =>
   sectionCard("Garden", listRow({ icon: "plant-line", primary: opts.garden, meta: opts.gardenMeta })) +
   `<div class="h6s">Details</div>` +
-  formCard(opts.lead.icon, "What you're committing to", `${opts.lead.primary} · ${opts.lead.meta}`) +
+  formCard(opts.lead.icon, opts.asking ? "What you're asking for" : "What you're committing to", `${opts.lead.primary} · ${opts.lead.meta}`) +
   opts.details.map((d) => formCard(d.icon, d.label, d.value)).join("") +
   sectionCard(
     opts.advanced.label,
@@ -2724,9 +2725,8 @@ function w3(state: W3State): string {
     case "request-work-howmuch":
       head = w3Head("Make a request", 1);
       content = pagepad(
-        sectionTitle("Unit"),
-        pickRow([{ label: "hours", on: true }, { label: "sessions" }, { label: "beds" }, { label: "other…" }]),
-        sectionTitle("How many"),
+        sectionTitle("How many hours"),
+        `<div class="t-meta">Garden work is counted in hours. What has to be done is the actions below, which stewards approve.</div>`,
         pickRow([{ label: "4" }, { label: "8", on: true }, { label: "12" }, { label: "custom…" }]),
         `<div class="t-meta">Tap what fits. The keyboard opens only for a custom unit or amount.</div>`,
         w3Due("Runs with the season · through Aug 30"),
@@ -2749,6 +2749,7 @@ function w3(state: W3State): string {
       head = w3Head("Make a request", 3);
       content = pagepad(
         w3Review({
+          asking: true,
           garden: "Rocinha Community Garden", gardenMeta: "Rio de Janeiro · 23 gardeners",
           lead: { icon: "leaf-line", primary: "Clear the drainage channel", meta: "garden work" },
           media: mediaStrip([{ label: "The beds", photo: 0 }]),
@@ -2769,6 +2770,7 @@ function w3(state: W3State): string {
       head = w3Head("Make a request", 3);
       content = pagepad(
         w3Review({
+          asking: true,
           garden: "Rocinha Community Garden", gardenMeta: "Rio de Janeiro · 23 gardeners",
           lead: { icon: "hand-heart-line", primary: "Ride to the market on Saturday", meta: "help or a service" },
           media: mediaStrip([{ label: "Written note", kind: "note" }]),
@@ -2832,19 +2834,19 @@ function w3(state: W3State): string {
       break;
     case "request-details":
       head = w3Head("Make a request", 2);
-      content = pagepad(w3DetailsBody(card(listRow({ icon: "sticky-note-line", primary: "“The stall closes at noon”", meta: "Note · just now" }), { cls: "flat" })));
+      content = pagepad(w3DetailsBody(card(listRow({ icon: "sticky-note-line", primary: "“The stall closes at noon”", meta: "Note · just now" }), { cls: "flat" }), [], { value: "You confirm it, because you asked", hot: "w3.advanced" }));
       secondary = W3_CAPTURE_BAR;
       actions = hot("w3.continue-request-details", btn("", { kind: "pri", icon: "arrow-right-s-line", ariaLabel: "Continue to review" }));
       break;
     case "request-details-steward":
       head = w3Head("Make a request", 2);
-      content = pagepad(w3DetailsBody(card(listRow({ icon: "sticky-note-line", primary: "“The stall closes at noon”", meta: "Note · just now" }), { cls: "flat" })));
+      content = pagepad(w3DetailsBody(card(listRow({ icon: "sticky-note-line", primary: "“The stall closes at noon”", meta: "Note · just now" }), { cls: "flat" }), [], { value: "You confirm it, because you asked", hot: "w3.advanced" }));
       secondary = W3_CAPTURE_BAR;
       actions = hot("w3.continue-request-details-steward", btn("", { kind: "pri", icon: "arrow-right-s-line", ariaLabel: "Continue to review" }));
       break;
     case "request-work-details":
       head = w3Head("Make a request", 2);
-      content = pagepad(w3DetailsBody(card(listRow({ thumb: 1, thumbHotId: "w3.preview", primary: "The blocked channel", meta: "Photo · just now" }), { cls: "flat" })));
+      content = pagepad(w3DetailsBody(card(listRow({ thumb: 1, thumbHotId: "w3.preview", primary: "The blocked channel", meta: "Photo · just now" }), { cls: "flat" }), [], { value: "You confirm it once the stewards have approved the work", hot: "w3.advanced" }));
       secondary = W3_CAPTURE_BAR;
       actions = hot("w3.continue-request-work-details", btn("", { kind: "pri", icon: "arrow-right-s-line", ariaLabel: "Continue to review" }));
       break;
@@ -2908,6 +2910,7 @@ function w3(state: W3State): string {
       head = w3Head("Make a request", 3);
       content = pagepad(
         w3Review({
+          asking: true,
           garden: "Rocinha Community Garden", gardenMeta: "Rio de Janeiro · 23 gardeners",
           lead: { icon: "hand-heart-line", primary: "Ride to the market on Saturday", meta: "help or a service" },
           media: mediaStrip([{ label: "Written note", kind: "note" }]),

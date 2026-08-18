@@ -1386,6 +1386,16 @@ Known mis-resolutions fixed in place: `contract-spec.md` §Grassroots-Economics-
     before" names a variant), screen-library state labels (the prototype's index), and
     prototype documentation (a different register from the UI). Verified by walking 22 client
     states and reading the rendered text: zero in product copy. Full text: `uiux-spec.md` C.32.
+136. The request-flow pass (2026-08-17, round 33). Walked all eleven request states. **A
+    garden-work ask still picked a unit** while the equivalent offer path was fixed to hours in
+    decision 134; same commitment kind, same counting. **Every review said "What you're
+    committing to"** — on a request you are asking, so `w3Review` gained `asking`. **The details
+    step contradicted its own review**: the decision-135 sweep set the confirm default
+    everywhere, so a request said "Whoever takes it up confirms it" while its review said "You,
+    because it was your request"; it now reads "You confirm it, because you asked". Two of the
+    three were mine, from applying offer-shaped changes globally. **Open**: the Team section on
+    a request still shows your card as Lead, but leadProvider for an Individual Request is the
+    counterparty, not the requester. Full text: `uiux-spec.md` C.33.
 
 **Final recursive certification clarification (2026-07-25; no new decision-register entry):**
 the published `42161`↔`42220` production lane is the only required fully paired

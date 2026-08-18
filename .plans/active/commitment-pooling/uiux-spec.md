@@ -2084,6 +2084,32 @@ became *"Add evidence as it happens. Ana asked for this."*
 Verified by walking 22 client states in the browser and reading the rendered text: zero
 em-dashes in product copy.
 
+### C.33 The request-flow pass (2026-08-17, round 33)
+
+The same walk the three Offer flows got, across all eleven request states. Three defects, and
+two of the three were mine: changes made for offers had been applied globally without asking
+whether a request works the same way.
+
+**A garden-work ASK still picked a unit.** `request-work-howmuch` offered *hours · sessions ·
+beds · other*, while the equivalent offer path had been fixed to hours-only in C.31. It is the
+same commitment kind, so it is counted the same way. The picker is gone and the step reads
+*How many hours*.
+
+**Every review said "What you're committing to".** On a request you are asking, not
+committing. `w3Review` had one label for all six casts; it now takes `asking` and the three
+request reviews say *What you're asking for*.
+
+**The details step contradicted its own review.** The C.31 sweep replaced the confirm default
+everywhere, so a request's details step said *"Whoever takes it up confirms it"* while the
+same flow's review said *"You, because it was your request"*. On a request YOU confirm: it now
+reads *"You confirm it, because you asked"*, and on a garden-work ask *"You confirm it once
+the stewards have approved the work"*.
+
+**Open: the Team section on a request.** It shows your card marked Lead and says *"Anyone you
+add can add evidence and submit work"*. On a request you will not add evidence or submit work,
+and `leadProvider` for an Individual Request is the **counterparty**, not the requester
+(contract-spec:520). The section is currently describing an offer.
+
 ### C.7 PARKED — reciprocity from the claim side (2026-08-16, register #103)
 
 > **Parked 2026-08-17 (Afo): "park it for now and we stabilize and polish the UI."** The
