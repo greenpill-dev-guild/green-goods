@@ -306,8 +306,18 @@ export function unitLabel(raw: string): string {
 // Terms deliberately stay OUT of it and remain in Details (Afo: "we don't want to
 // repeat too much information"). What the card carries instead is the thing that
 // exists nowhere else — where this stands and what has been done.
+//
+// It carries NO title by default (2026-08-17 round 44, Afo). Both call sites had
+// been printing the screen's own name a second time, W34 hardcoding the same
+// string twice. The shipped surface settles it: WorkView opens with a FormInfo
+// whose title is never the work's name but a state phrase — "Work Approved",
+// "Evaluate Work", "Saved on your device" (WorkViewSection.tsx:197-246) — so
+// identity belongs to the header and the first card says where the thing stands.
+// The chips lead instead, which is the same rhythm: an unlabelled first card,
+// then the h6-labelled sections. `title` stays available for a surface that has
+// no header of its own.
 export function identityCard(opts: {
-  title: string;
+  title?: string;
   chips: string;
   domains?: string[];
   people: { initial: string; line: string }[];
@@ -317,7 +327,7 @@ export function identityCard(opts: {
   const peopleRows = opts.people
     .map((p) => `<div class="idp"><span class="avatar">${esc(p.initial)}</span><span>${esc(p.line)}</span></div>`)
     .join("");
-  return `<div class="card idcard"><div class="idt">${esc(opts.title)}</div><div class="cardrow">${opts.chips}${
+  return `<div class="card idcard">${opts.title ? `<div class="idt">${esc(opts.title)}</div>` : ""}<div class="cardrow">${opts.chips}${
     opts.domains ? domainRow(opts.domains) : ""
   }</div><div class="idrule"></div>${peopleRows}${opts.teamRow ?? ""}${
     opts.progress ? `<div class="idrule"></div>${opts.progress}` : ""

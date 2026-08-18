@@ -1519,6 +1519,15 @@ Known mis-resolutions fixed in place: `contract-spec.md` §Grassroots-Economics-
     "Not Yet", which three of five states and the admin Hub already used. Full text:
     `uiux-spec.md` C.45.
 
+149. The identity card carries no title (2026-08-17, round 44, Afo). The commitment view printed
+    its name twice, once in `hdr` and once as the card's `.idt`; W34 hardcoded the same literal
+    in both places. The shipped surface settles which one goes: WorkView's FormInfo title is
+    never the work's name but a state phrase — "Work Approved", "Evaluate Work", "Saved on your
+    device" (WorkViewSection.tsx:197-246) — so identity belongs to the header and the first card
+    says where the thing stands, which is what round 43's status move had already set up. The
+    chips lead the card now. `title` stays optional for a surface with no header of its own.
+    Full text: `uiux-spec.md` C.46.
+
 **Final recursive certification clarification (2026-07-25; no new decision-register entry):**
 the published `42161`↔`42220` production lane is the only required fully paired
 `SettlementConfiguration`. Arbitrum Sepolia `421614` and Celo Sepolia `11142220` remain

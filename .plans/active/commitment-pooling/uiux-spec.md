@@ -2872,3 +2872,24 @@ is also the admin Hub's own word for this decision (§6.9).
 the identity card. And the team picker lists nine rows then says *"Rocinha has 23 gardeners,
 scroll for the rest"* with no search; the shipped `Gardeners.tsx` has no search either, so adding
 one would be invention rather than mirroring.
+
+### C.46 The identity card carries no title (2026-08-17, round 44)
+
+The commitment view printed its name twice — once in `hdr`, once as the identity card's `.idt`.
+W34 was worse: `w34Head()` and `w34Identity()` each hardcoded the same literal string.
+
+**The shipped surface settles which one goes.** `WorkView` opens with a `FormInfo`, and that
+FormInfo's title is **never the work's name**. `WorkViewSection.tsx:197-246` returns a state
+phrase for it: *"Work Approved"*, *"Evaluate Work"*, *"Your Work Submission"*, *"Saved on your
+device"*, *"Sending didn't work"*. So identity belongs to the screen header, and the first card
+says where the thing stands.
+
+The prototype already had that shape after round 43 moved status above the identity card. The
+title on the card was the only thing left duplicating. It is gone, and the chips lead instead —
+which is the same rhythm as shipped: an unlabelled first card, then the `h6`-labelled sections.
+
+`title` stays an optional parameter for any surface that has no header of its own.
+
+Reading order at the top of `W2@fulfilled` is now: **Prune the north beds** → *Commitment kept ·
+Confirmed by João* → `Offer · Fulfilled · AGRO` → the people → what's been done. Name, then
+where it stands, then its facts, each said once.

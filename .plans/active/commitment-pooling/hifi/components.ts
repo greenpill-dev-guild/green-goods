@@ -210,14 +210,14 @@ const CLIENT_ENTRIES: Entry[] = [
   },
   {
     id: "identity-card", title: "Identity card", family: "cards", covers: ["identityCard"],
-    kit: `identityCard({title, chips, domains, people, teamRow, progress})`,
+    kit: `identityCard({chips, domains, people, teamRow, progress, title?})`,
     netNew: "The commitment view's top half. It replaced four bare canvas rows, header, chips, a lone domain row, a dense people line. Each with its own ad-hoc padding and no grouping.",
-    rule: "The card someone tapped in the pool, expanded. Terms stay in Details rather than repeating here; what the card carries is what exists nowhere else, where this stands and who is on it.",
+    rule: "The card someone tapped in the pool, expanded. It carries NO title: the screen header above it already names the thing, and the shipped WorkView proves the pattern, since its FormInfo title is a state phrase and never the work's name. Terms stay in Details rather than repeating here; what the card carries is what exists nowhere else, where this stands and who is on it.",
     usedIn: /class="card idcard/,
     specs: [
-      { label: "an offer with an open team", html: kit.identityCard({ title: "Prune the north beds", chips: `${kit.chip("Offer", "offer")}${kit.stateChip("Active")}`, domains: ["AGRO"], people: [{ initial: "M", line: "Maria offers" }, { initial: "J", line: "João takes it up" }], teamRow: `<div class="idteam">Open team. Anyone eligible may join</div>` }) },
-      { label: "a request, three people", html: kit.identityCard({ title: "Clear the drainage channel", chips: `${kit.chip("Request", "request")}${kit.stateChip("Active")}`, domains: ["AGRO"], people: [{ initial: "A", line: "Ana asked for this" }, { initial: "J", line: "João provides" }, { initial: "A", line: "Ana confirms" }] }) },
-      { label: "browse. Nobody has taken it up", html: kit.identityCard({ title: "Ride to the market", chips: `${kit.chip("Request", "request")}${kit.stateChip("Offered")}`, people: [{ initial: "A", line: "Ana asked. Nobody has taken it up yet" }] }) },
+      { label: "an offer with an open team", html: kit.identityCard({ chips: `${kit.chip("Offer", "offer")}${kit.stateChip("Active")}`, domains: ["AGRO"], people: [{ initial: "M", line: "Maria offers" }, { initial: "J", line: "João takes it up" }], teamRow: `<div class="idteam">Open team. Anyone eligible may join</div>` }) },
+      { label: "a request, three people", html: kit.identityCard({ chips: `${kit.chip("Request", "request")}${kit.stateChip("Active")}`, domains: ["AGRO"], people: [{ initial: "A", line: "Ana asked for this" }, { initial: "J", line: "João provides" }, { initial: "A", line: "Ana confirms" }] }) },
+      { label: "titled, for a surface with no header of its own", html: kit.identityCard({ title: "Ride to the market", chips: `${kit.chip("Request", "request")}${kit.stateChip("Offered")}`, people: [{ initial: "A", line: "Ana asked. Nobody has taken it up yet" }] }) },
     ],
   },
   {

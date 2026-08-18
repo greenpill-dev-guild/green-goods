@@ -1318,7 +1318,7 @@ function w2(stateIn: W2State): string {
       : progressBlock({ proof: "2 items · credits Maria", note: "Proof is what moves this forward. A service names no garden actions." });
   const meta = pagepad(
     identityCard({
-      title: ident.title,
+      // No title: the header two rows up already carries it (round 44).
       chips: `${ident.chips}${stateChip(w2StateChip[state])}`,
       domains: ident.domains,
       people: pp.people,
@@ -3698,7 +3698,7 @@ const w34Identity = (opts: {
   cycle?: boolean;
 }) =>
   identityCard({
-    title: "Hosting climate workshops",
+    // w34Head() prints this same string directly above; it was hardcoded twice.
     chips: `${chip("Offer", "offer")}${chip("Ongoing")}${stateChip(opts.state.startsWith("Active") ? "Active" : "Offered")}${
       opts.cycle === false ? "" : chip("First Rains", "season")
     }`,
