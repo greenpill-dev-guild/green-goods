@@ -141,6 +141,22 @@ const ALLOWED_CONTRACT_EVENTS = {
     "FeeReserveFunded",
     "ExcessFeesWithdrawn",
   ]),
+  CreditRegistry: new Set([
+    "CreditRegistryInitialized",
+    "PoolCreditConfigured",
+    "ExecutorUpdated",
+    "LoanRequested",
+    "LoanApproved",
+    "LoanDisbursed",
+    "RepaymentRecorded",
+    "LoanRepaid",
+    "LoanDefaulted",
+    "LoanCancelled",
+    "HatsModuleUpdated",
+    "CommitmentPoolingModuleUpdated",
+    "SettlementModuleUpdated",
+    "PausedSet",
+  ]),
   // Executor protocol events describe Green Goods command execution and acknowledgment state.
   // The production Celo deployment is pinned in the 42220 chain block below.
   CeloSettlementExecutor: new Set([
@@ -180,6 +196,7 @@ const ALLOWED_CONTRACTS_BY_CHAIN = new Map([
       "CommitmentPoolingModule",
       "CommitmentRegistry",
       "SettlementModule",
+      "CreditRegistry",
     ]),
   ],
   [
@@ -194,6 +211,7 @@ const ALLOWED_CONTRACTS_BY_CHAIN = new Map([
       "YieldSplitter",
       "HypercertMinter",
       "CookieJarFactory",
+      "CreditRegistry",
     ]),
   ],
   [42220, new Set(["CeloSettlementExecutor"])],

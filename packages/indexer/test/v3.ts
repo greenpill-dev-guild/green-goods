@@ -302,6 +302,22 @@ export const SettlementModule = createContract("SettlementModule", [
   "FeeReserveFunded",
   "ExcessFeesWithdrawn",
 ] as const);
+export const CreditRegistry = createContract("CreditRegistry", [
+  "CreditRegistryInitialized",
+  "PoolCreditConfigured",
+  "ExecutorUpdated",
+  "LoanRequested",
+  "LoanApproved",
+  "LoanDisbursed",
+  "RepaymentRecorded",
+  "LoanRepaid",
+  "LoanDefaulted",
+  "LoanCancelled",
+  "HatsModuleUpdated",
+  "CommitmentPoolingModuleUpdated",
+  "SettlementModuleUpdated",
+  "PausedSet",
+] as const);
 export const CommitmentPoolingModule = createContract("CommitmentPoolingModule", [
   "PoolRegistered",
   "PoolCharterUpdated",

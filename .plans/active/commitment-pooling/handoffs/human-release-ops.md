@@ -353,6 +353,12 @@ CeloSettlementExecutor address/start-block diff. The hosted production indexer i
 unchanged. Live PRD-722 is the active indexer lane and owns codegen, configuration, reindex,
 deployment, cutover/rollback, and read-back; this handoff contains no hosted deployment command.
 
+CreditRegistry activation has an additional history constraint: dynamic registration from
+`SettlementModule.CreditRegistryUpdated` begins at the binding block and cannot recover the earlier
+`CreditRegistryInitialized` or dependency-initialization logs. The indexer release owner must pin the
+verified CreditRegistry proxy address with a `start_block` at or before its deployment block before
+reindex/cutover. Dynamic registration is a pre-pin fallback, not the canonical history source.
+
 For this ceremony, both post-deploy verifiers use the default `deployment` owner phase. Do not run
 the `release:verify:safe:*` variants; those belong to the later ownership-transfer issue.
 

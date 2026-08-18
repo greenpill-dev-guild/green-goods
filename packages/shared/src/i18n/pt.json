@@ -3079,6 +3079,8 @@
   "cockpit.workspace.noGardens": "Ainda não há jardins",
   "cockpit.workspace.noGardensDescription": "Crie seu primeiro jardim para começar a usar os espaços de trabalho do canvas.",
   "cockpit.workspace.openGarden": "Abrir {garden}",
+  "credit.mutation.onlineOnly": "Os registros de crédito exigem uma conexão ativa e não podem ser colocados na fila para depois.",
+  "credit.repayment.gDollarUnavailable": "O registro de reembolso em G$ não está disponível até que uma política de recibos autenticados seja aprovada.",
   "ens.status.active": "{name} está ativo",
   "ens.status.registering": "Registrando {name}...",
   "ens.status.timedOut": "O registro está demorando mais que o normal",

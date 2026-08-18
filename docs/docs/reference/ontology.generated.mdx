@@ -513,23 +513,27 @@ Read-model direction derived from immutable payer and provider gardens plus the 
 
 ### `loan-state`
 
-Records-only pool-credit loan lifecycle: Requested → Approved → Disbursed → Repaid, with recoverable Defaulted and pre-disbursement Cancelled. Default is not terminal — later repayment records LoanRepaid(recoveredFromDefault). The Repaying overlay is derived by consumers from RepaymentRecorded while repayment sits between zero and principal + feeAmount and is never stored. No indexer representation exists yet; the credit spec §6 defines the planned GraphQL mirror.
+Records-only pool-credit loan lifecycle: Requested → Approved → Disbursed → Repaid, with recoverable Defaulted and pre-disbursement Cancelled. Default is not terminal — later repayment records LoanRepaid(recoveredFromDefault). The Repaying overlay is derived by shared consumers from indexed repayment amounts while repayment sits between zero and principal + feeAmount and is never stored as a contract or indexer hard state.
 
 **Canonical members:** None (0) · Requested (1) · Approved (2) · Disbursed (3) · Repaid (4) · Defaulted (5) · Cancelled (6)
 
 | Representation | Layer | Source | Expected members | Note |
 |---|---|---|---|---|
 | solidity | solidity | <code>packages/contracts/src/interfaces/ICreditRegistry.sol · LoanState</code> | <code>None, Requested, Approved, Disbursed, Repaid, Defaulted, Cancelled</code> |  |
+| indexer | indexer | <code>packages/indexer/schema.graphql · LoanState</code> | <code>REQUESTED, APPROVED, DISBURSED, REPAID, DEFAULTED, CANCELLED</code> |  |
+| shared | shared | <code>packages/shared/src/modules/commitment-pooling/types-credit.ts · LoanState</code> | <code>REQUESTED, APPROVED, DISBURSED, REPAID, DEFAULTED, CANCELLED</code> |  |
 
 ### `loan-rail`
 
-Disbursement rail recorded on a loan. Jar and Treasury are steward-attested Arbitrum-side records; GDollarSettlement binds the loan to its one Confirmed SettlementModule LoanPrincipal child. Repayment recording is Jar/Treasury only — the G$ rail reverts GDollarRepaymentDisabled until a bounded authenticated receipt policy clears its gates. No indexer representation exists yet.
+Disbursement rail recorded on a loan and projected by the CreditRegistry indexer read model. Jar and Treasury are steward-attested Arbitrum-side records; GDollarSettlement binds the loan to its one Confirmed SettlementModule LoanPrincipal child. Repayment recording is Jar/Treasury only — the G$ rail reverts GDollarRepaymentDisabled until a bounded authenticated receipt policy clears its gates.
 
 **Canonical members:** None (0) · Jar (1) · Treasury (2) · GDollarSettlement (3)
 
 | Representation | Layer | Source | Expected members | Note |
 |---|---|---|---|---|
 | solidity | solidity | <code>packages/contracts/src/interfaces/ICreditRegistry.sol · LoanRail</code> | <code>None, Jar, Treasury, GDollarSettlement</code> |  |
+| indexer | indexer | <code>packages/indexer/schema.graphql · LoanRail</code> | <code>NONE, JAR, TREASURY, GDOLLAR_SETTLEMENT</code> |  |
+| shared | shared | <code>packages/shared/src/modules/commitment-pooling/types-credit.ts · LoanRail</code> | <code>NONE, JAR, TREASURY, GDOLLAR_SETTLEMENT</code> |  |
 
 ### `failure-code`
 

@@ -1,5 +1,6 @@
 import { actionsKeys, assessmentsKeys, gardensKeys, platformKeys } from "./garden";
 import { commitmentPoolingKeys } from "./commitment-pooling";
+import { creditKeys } from "./credit";
 import { greenWillKeys } from "./greenwill";
 import { convictionKeys, hypercertsKeys, marketplaceKeys } from "./hypercert";
 import {
@@ -47,5 +48,6 @@ export const queryKeys = {
   greenWill: greenWillKeys,
   tokens: tokensKeys,
   commitmentPooling: commitmentPoolingKeys,
+  credit: creditKeys,
   savedOffers: savedOffersKeys,
 } as const;

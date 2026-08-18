@@ -206,7 +206,6 @@ export {
   WorkbenchRow,
   WorkCard as WorkCardComponent,
 } from "./components/index";
-
 // ============================================================================
 // CONFIG
 // ============================================================================
@@ -412,6 +411,7 @@ export {
   createDefaultAssessmentForm,
   createDefaultAssessmentFormData,
   createDefaultGardenForm,
+  creditInvalidationKeys,
   // Garden hooks
   createGardenSchema,
   // Query constants

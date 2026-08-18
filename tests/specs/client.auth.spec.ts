@@ -22,7 +22,7 @@ test.describe("Client Authentication Flows", () => {
   test.use({ baseURL: CLIENT_URL });
 
   test.describe("Passkey Registration", () => {
-    // SKIP: #338 owner:afo expiry:2026-08-17 — needs real Pimlico API
+    // SKIP: #338 owner:afo expiry:2026-09-17 — needs real Pimlico API
     test.skip(!RUN_REAL_PASSKEY_E2E, "Set RUN_REAL_PASSKEY_E2E=true to run against real Pimlico.");
 
     test.fixme(
@@ -201,7 +201,7 @@ test.describe("Client Authentication Flows", () => {
 
   test.describe("Auth State Persistence", () => {
     test.describe("Passkey", () => {
-      // SKIP: #338 owner:afo expiry:2026-08-17 — needs real Pimlico API
+      // SKIP: #338 owner:afo expiry:2026-09-17 — needs real Pimlico API
       test.skip(
         !RUN_REAL_PASSKEY_E2E,
         "Set RUN_REAL_PASSKEY_E2E=true to run against real Pimlico."
@@ -240,7 +240,7 @@ test.describe("Client Authentication Flows", () => {
 
   test.describe("Sign Out", () => {
     test.describe("Passkey", () => {
-      // SKIP: #338 owner:afo expiry:2026-08-17 — needs real Pimlico API
+      // SKIP: #338 owner:afo expiry:2026-09-17 — needs real Pimlico API
       test.skip(
         !RUN_REAL_PASSKEY_E2E,
         "Set RUN_REAL_PASSKEY_E2E=true to run against real Pimlico."

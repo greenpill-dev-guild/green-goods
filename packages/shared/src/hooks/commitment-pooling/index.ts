@@ -17,6 +17,15 @@ export {
   usePoolParticipationSummary,
 } from "./useCommitmentPooling";
 export { useCommitmentPoolingAvailability } from "./useCommitmentPoolingAvailability";
+export type { CreditMutationInput } from "./useCredit";
+export {
+  CreditRegistryABI,
+  useCreditLoan,
+  useCreditMutation,
+  useCreditPoolStats,
+  useCreditSubjectLoans,
+  useLoanPrincipalRelationship,
+} from "./useCredit";
 export {
   useCommitmentPayoutPlan,
   useSettlementAccount,

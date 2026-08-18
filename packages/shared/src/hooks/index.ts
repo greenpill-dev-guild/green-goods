@@ -1,5 +1,4 @@
 // Hooks — EXPLICIT EXPORTS for tree-shaking
-
 // ============================================================================
 // QUERY KEYS
 // ============================================================================
@@ -10,6 +9,7 @@ export type { QueryKey, QueueQueryKey, WorksQueryKey } from "../config/query-key
 export {
   DEFAULT_RETRY_COUNT,
   DEFAULT_RETRY_DELAY,
+  creditInvalidationKeys,
   INDEXER_LAG_SCHEDULE_MS,
   queryInvalidation,
   queryKeys,

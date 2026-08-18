@@ -163,6 +163,23 @@ contracts:
       - event: BatchCancelled(uint256 indexed batchId, address indexed actor, string reasonCID)
       - event: FeeReserveFunded(address indexed funder, uint256 amount)
       - event: ExcessFeesWithdrawn(address indexed recipient, uint256 amount)
+  - name: CreditRegistry
+    handler: src/EventHandlers.ts
+    events:
+      - event: CreditRegistryInitialized(address indexed owner, address indexed hatsModule, address indexed commitmentPoolingModule, address settlementModule)
+      - event: PoolCreditConfigured(uint256 indexed poolId, address indexed token, uint256 previousBorrowerCap, uint256 borrowerCap, bool previouslyEnabled, bool enabled, address indexed configuredBy)
+      - event: ExecutorUpdated(uint256 indexed poolId, address indexed executor, bool enabled, address indexed updatedBy)
+      - event: LoanRequested(uint256 indexed loanId, uint256 indexed poolId, address indexed borrower, address requestedBy, uint256 commitmentId, address token, uint256 principal, uint64 dueDate, uint32 installmentsTotal, string termsCID)
+      - event: LoanApproved(uint256 indexed loanId, address indexed approvedBy)
+      - event: LoanDisbursed(uint256 indexed loanId, uint8 rail, address indexed token, uint256 amount, uint256 disbursementId, bytes32 indexed executionRef, address recordedBy)
+      - event: RepaymentRecorded(uint256 indexed loanId, uint256 amount, uint256 repaidAmount, uint256 newOutstanding, uint32 installmentsPaid, bytes32 indexed executionRef, address indexed recordedBy)
+      - event: LoanRepaid(uint256 indexed loanId, bool recoveredFromDefault, address indexed recordedBy)
+      - event: LoanDefaulted(uint256 indexed loanId, string reasonCID, address indexed markedBy)
+      - event: LoanCancelled(uint256 indexed loanId, string reasonCID, address indexed cancelledBy)
+      - event: HatsModuleUpdated(address indexed previousModule, address indexed newModule)
+      - event: CommitmentPoolingModuleUpdated(address indexed previousModule, address indexed newModule)
+      - event: SettlementModuleUpdated(address indexed previousModule, address indexed newModule)
+      - event: PausedSet(bool paused)
   # Celo executor read model; production block/address are pinned below from the authorized release.
   - name: CeloSettlementExecutor
     handler: src/EventHandlers.ts
@@ -212,6 +229,9 @@ chains:
         address: "0x66300dA4d3749bFc9F7326DB94e0DEb47A7a3959"
       - name: SettlementModule
         address: "0x15c8F6CF25abA2161cc04719b4C4a93c4146935D"
+      # Dynamic registration is fallback-only and starts at the binding block. Release activation must
+      # statically pin CreditRegistry with a start block at or before its deployment to retain initialize logs.
+      - name: CreditRegistry
   - id: 11155111
     start_block: 10243363
     contracts:
@@ -234,6 +254,9 @@ chains:
       # GreenWill is not deployed on Sepolia, so it is omitted on this chain.
       - name: CookieJarFactory
         address: "0x021368bf9958f4D535d39d571Bc45f74d20e4666"
+      # Inert until a Sepolia address is statically pinned at or before its deployment block; this chain
+      # has no SettlementModule registration source and cannot rely on dynamic discovery.
+      - name: CreditRegistry
   - id: 42220
     start_block: 74691430
     contracts:
