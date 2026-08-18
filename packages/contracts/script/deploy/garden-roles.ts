@@ -141,6 +141,7 @@ export interface GardenRolesPlan {
   allowance: { balance: string; maxRefill: string; refill: string; period: string };
   recipientAllowlist: string[];
   conditions: ConditionFlat[];
+  conditionsEncoded: string;
   boundaries: RolesBoundary[];
   recoveryApprovals: Array<{ recoverySafe: string; multiSendTo: string; multiSendData: string }>;
   blockers: string[];
@@ -256,6 +257,14 @@ export function buildTransferConditions(recipients: readonly string[]): Conditio
   return conditions;
 }
 
+/** The exact ConditionFlat[] payload scopeFunction receives, so proofs can execute these bytes. */
+export function encodeConditions(conditions: readonly ConditionFlat[]): string {
+  return AbiCoder.defaultAbiCoder().encode(
+    ["tuple(uint8 parent, uint8 paramType, uint8 operator, bytes compValue)[]"],
+    [conditions.map((condition) => [condition.parent, condition.paramType, condition.operator, condition.compValue])],
+  );
+}
+
 /**
  * Commits the immutable half of the permission: Safe, modifier, both keys, canonical G$, the exact
  * selector, and the condition-tree shape. Mutable caps, fee policy, and live allowance balances are
@@ -346,12 +355,14 @@ async function buildPlan(safePlanPath: string): Promise<GardenRolesPlan> {
     ),
   }));
 
-  // The encoding is derived from the pinned Roles 2.1.0 Types.sol but has not yet been executed
-  // against a live modifier, and Roles validates tree integrity inside scopeFunction. Until that
-  // runs on a fork or through an eth_call against a deployed modifier, the tree is unproven.
+  // Tree integrity is proven: test/fork/CeloGardenRolesPermission.t.sol deploys a modifier on a
+  // pinned Celo fork, installs these exact encoded conditions through scopeFunction, and shows a
+  // registered recipient settling while an unregistered one, an over-allowance amount, a foreign
+  // selector, and an unscoped target all revert. What remains is that this planner deliberately
+  // exposes no execution path.
   blockers.push(
-    "Condition-tree integrity is unproven: scopeFunction has not been executed against a deployed " +
-      "Roles modifier, so no modifier may be configured or enabled from this plan.",
+    "This lane is plan-only: deploy, configure, ownership-transfer, and enable stages are not " +
+      "implemented, and enabling still sits behind the value-tier audit gate.",
   );
 
   return {
@@ -376,6 +387,7 @@ async function buildPlan(safePlanPath: string): Promise<GardenRolesPlan> {
     },
     recipientAllowlist,
     conditions,
+    conditionsEncoded: encodeConditions(conditions),
     boundaries,
     recoveryApprovals,
     blockers,

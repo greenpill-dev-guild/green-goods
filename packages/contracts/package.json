@@ -58,6 +58,7 @@
     "test:fork:ethereum:ci": "bun script/utils/fork-shards.mjs run ethereum",
     "test:fork:gardens:ci": "bun script/utils/fork-shards.mjs run gardens",
     "test:fork:garden-account-release": "bun script/utils/run-garden-account-release.ts",
+    "test:fork:garden-roles": "bun script/utils/run-garden-roles-proof.ts",
     "test:fork:octant:ci": "bun script/utils/fork-shards.mjs run octant",
     "test:fork:shards:ci": "bun script/utils/fork-shards.mjs run all",
     "test:fork:shards:check": "bun script/utils/fork-shards.mjs check",
