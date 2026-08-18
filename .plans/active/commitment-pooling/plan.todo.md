@@ -1570,6 +1570,19 @@ Known mis-resolutions fixed in place: `contract-spec.md` §Grassroots-Economics-
     Left open and recorded: the duplicate-baseline rule and the Evaluator-hat gate are prose, not
     states. Full text: `uiux-spec.md` C.49.
 
+153. The two assessment rules, drawn (2026-08-18, round 48, Afo). C.49 left both as prose.
+    `W14@duplicate` stops claiming a kind ("Records as: Nothing yet"), names the collision, and
+    shows the existing record as a row that OPENS — the C.49 read view is what makes §6.6's
+    "points duplicates at the existing record" mean anything — with no Continue, since there is
+    nothing to record, and a remedy that leads into the delta path because measuring the same
+    domain again is what a re-assessment is for. `W14@no-hat` renders "At the close" DISABLED
+    rather than hidden: §6.6 says delta "renders only for Evaluator-hat holders", but that was
+    written when a steward picked the KIND, and the flow is timing-first now, so hiding a timing
+    choice for an authorship reason would remove a legitimate option and teach nothing. The
+    option carries its reason, a banner names which hat the reader holds, and a Who-can row names
+    the evaluator. New kit affordance: `radio()` takes `disabled` per option. Full text:
+    `uiux-spec.md` C.50.
+
 **Final recursive certification clarification (2026-07-25; no new decision-register entry):**
 the published `42161`↔`42220` production lane is the only required fully paired
 `SettlementConfiguration`. Arbitrum Sepolia `421614` and Celo Sepolia `11142220` remain

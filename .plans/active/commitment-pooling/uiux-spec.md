@@ -3014,3 +3014,36 @@ baseline per (garden, cycle, domain) and *points duplicates at the existing reco
 describes that and no state shows it fire. Delta renders only for Evaluator-hat holders per
 `contract-spec.md:760-761`, but the When radio is fully interactive, so a steward without the hat
 can walk to step 3 before being refused. W11 draws both of these correctly for its own rules.
+
+### C.50 The two assessment rules, drawn (2026-08-18, round 48)
+
+C.49 left both recorded as prose. They are states now.
+
+**`W14@duplicate` — a starting record already exists.** §6.6: the form *"validates one baseline
+per (garden, cycle, domain) and points duplicates at the existing record."* The derived line stops
+claiming a kind — *"Records as: Nothing yet"* — an error banner names the collision, and the
+existing record appears as a row that **opens** (the read view from C.49 is what makes "points at"
+mean anything). Step 1 offers no Continue, because there is nothing it could record.
+
+Its remedy is the delta path: **Measure Again at the Close**. Someone hitting this wanted to
+measure the same domain again, and that is exactly what a re-assessment is for, so the block ends
+in the flow they actually needed rather than a dead end.
+
+**`W14@no-hat` — the Evaluator gate.** §6.6 and `contract-spec.md:760-761`: baseline allows
+evaluator or operator; delta is Evaluator-hat only.
+
+The spec says delta *"renders only for Evaluator-hat holders"*, which read literally means hiding
+it. **The timing-first rebuild makes that reading wrong.** That rule was written when a steward
+picked the *kind* directly; the flow now asks for *timing* and derives the kind. Hiding a timing
+choice for an authorship reason would remove a legitimate option with no explanation, and the
+person would never learn the rule.
+
+So "At the close" renders **disabled**, carrying the reason in its own meta — *"records as a
+re-assessment, which only an Evaluator Hat can attest"* — with a banner naming which hat the
+reader holds and a **Who can** row naming the evaluator who can. The resolver still enforces it;
+this only changes what the steward is told. Step 1 keeps its Continue, because a steward recording
+a starting record is legitimate and unblocked.
+
+New kit affordance: `radio()` takes `disabled` per option, rendering `.ro.off` — legible label,
+inert dot. **An option someone cannot use should still be visible**, so they can see what exists,
+why it is closed to them, and who can open it.

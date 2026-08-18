@@ -655,6 +655,12 @@ export const HIFI_CSS = `
   padding:11px 13px;cursor:pointer;background:var(--card);min-height:44px}
 .hf .ro .rdot{appearance:none;width:20px;height:20px;border:0;border-radius:99px;box-shadow:inset 0 0 0 2px var(--ln2);flex:none;margin-top:1px;background:transparent;opacity:1}
 .hf .ro.on,.hf .ro:has(.rdot:checked){border-color:var(--act);box-shadow:inset 0 0 0 1px var(--act)}
+/* An option present but not available to this reader (round 48). The label
+   stays legible — the point is that they can see what exists and why it is
+   closed — while the dot and the row read as inert. */
+.hf .ro.off{background:var(--stone-bg);cursor:not-allowed}
+.hf .ro.off .rl{color:var(--stone)}
+.hf .ro.off .rdot{box-shadow:inset 0 0 0 2px var(--ln);opacity:.6}
 .hf .ro.on .rdot,.hf .ro .rdot:checked{box-shadow:inset 0 0 0 6px var(--act)}
 .hf .ro .rl{display:block;font-size:14.5px;font-weight:550}
 .hf .ro .rm{display:block;font-size:12.5px;color:var(--stone)}

@@ -2090,6 +2090,7 @@ const W14_STATES = [
   ["baseline", "For the garden — starting record"], ["delta", "For the season — at the close"],
   ["kernel", "2 · Strategy Kernel"], ["harvest", "3 · Actions & Harvest"],
   ["offline", "1 · No signal"], ["attest-failed", "3 · Attest failed"],
+  ["duplicate", "1 · A starting record exists"], ["no-hat", "1 · Evaluator hat needed"],
   ["record", "A recorded assessment"],
   ["discard", "Discard changes?"],
 ] as const;
@@ -2198,24 +2199,41 @@ ${kv("What happens to this", "Nothing is kept. This form is not a draft.")}`;
     next = hot("w14.offline-retry", btn("Check Again", { kind: "sec", icon: "refresh-line" }));
   } else {
     current = 0;
+    // Two rules that §6.6 states and the prototype had only ever described in
+    // prose are drawn as states now (2026-08-18 round 48, Afo).
+    const dup = state === "duplicate";
+    const noHat = state === "no-hat";
     const forField = hot(
       "w14.for",
       state === "delta"
         ? field("For", input("Season of First Rains", { select: true }))
         : field("For", input("This garden overall", { select: true })),
     );
+    // §6.6: "delta/re-assessment renders only for Evaluator-hat holders". Read
+    // literally that hides the option, but the flow is timing-first since the
+    // rebuild — the rule was written when a steward picked the KIND directly,
+    // and hiding a TIMING choice for an authorship reason would remove a
+    // legitimate option with no explanation. It renders disabled instead, with
+    // the reason and the person who can. The resolver still enforces it.
     const whenRadio = hot(
       "w14.when",
       field("When", radio([
-        { label: "At the start", meta: state === "baseline" ? "before the first season opens" : "as a cycle opens", on: state === "baseline" },
-        { label: "At the close", meta: "as the cycle winds down", on: state === "delta" },
+        { label: "At the start", meta: state === "baseline" || dup ? "before the first season opens" : "as a cycle opens", on: state === "baseline" || dup || noHat },
+        {
+          label: "At the close",
+          meta: noHat ? "records as a re-assessment, which only an Evaluator Hat can attest" : "as the cycle winds down",
+          on: state === "delta",
+          disabled: noHat,
+        },
       ], { interactive: true, name: "assessment-when" })),
     );
     const derived = hot(
       "w14.kind",
       state === "delta"
         ? kv("Records as", "Re-assessment (delta), compared with the starting record · AGRO · Jul 2 · Evaluator Hat attests")
-        : kv("Records as", "Starting record (baseline). The first measurement for this garden and domain · evaluator or steward attests"),
+        : dup
+          ? kv("Records as", "Nothing yet. A starting record already exists for this garden, cycle, and domain")
+          : kv("Records as", "Starting record (baseline). The first measurement for this garden and domain · evaluator or steward attests"),
     );
     const compare =
       state === "delta"
@@ -2224,8 +2242,22 @@ ${kv("What happens to this", "Nothing is kept. This form is not a draft.")}`;
         // a record they have not seen.
         ? field("Compared with", input("Starting record, AGRO, Jul 2", { select: true })) +
           `<div class="brow">${hot("w14.open-record", btn("Read the Starting Record", { kind: "ghost", sm: true, icon: "eye-line" }))}</div>`
-        : banner("One starting record per garden, cycle, and domain, a duplicate attempt points at the existing one.", "stone");
+        : dup
+          // §6.6: the form "validates one baseline per (garden, cycle, domain)
+          // and POINTS DUPLICATES AT THE EXISTING RECORD". Pointing means the
+          // record is reachable, which it is since round 47 — and the natural
+          // remedy is the delta path, because wanting to measure again IS what
+          // a re-assessment is for.
+          ? `${banner("Rocinha already has a starting record for AGRO. There is one per garden, cycle, and domain, so this cannot be recorded as another.", "error", "error-warning-line")}
+${commitmentRow({ title: "Rocinha · starting record", chips: `${chip("AGRO", "domain")}${chip("The existing one", "ok", { dot: true })}`, meta: "Dr. Chen · Evaluator Hat · recorded Jul 2", hotId: "w14.open-record", chevron: true })}
+<div class="brow">${hot("w14.dup-to-delta", btn("Measure Again at the Close", { kind: "pri", sm: true }))}</div>`
+          : noHat
+            ? `${banner("You hold the Steward Hat, which can record a starting record. A re-assessment is attested under the Evaluator Hat, so at-the-close is closed to you.", "amber", "shield-check-line")}
+${kv("Who can", "Dr. Chen · Evaluator Hat · Rocinha")}`
+            : banner("One starting record per garden, cycle, and domain, a duplicate attempt points at the existing one.", "stone");
     inner = `${field("Domain", input("AGRO", { select: true }))}${field("Title", input("Rains-season soil recovery"))}${forField}${whenRadio}${derived}${compare}`;
+    // A blocked step-1 offers no advance — nothing it could record.
+    if (dup) next = hot("w14.dup-to-delta", btn("Measure Again at the Close", { kind: "pri" }));
   }
   return deskWin(
     "admin.greengoods.app/hub/assess",
@@ -2259,6 +2291,7 @@ const W14_HOTS: HifiDef["hots"] = {
   "w14.record-close": { l: "Close", to: "screen:W13@assess", info: "Returns to the Assess stage. A recorded assessment is read-only; a correction is a new assessment referencing this one." },
   "w14.record-compare": { l: "Write a re-assessment", to: "screen:W14@delta", info: "Opens the creation flow with this record already chosen as the comparison. Reading the baseline and writing its delta belong together, which is why the read view offers the act." },
   "w14.open-record": { l: "Open the recorded assessment", to: "screen:W14@record", info: "The read view, added round 47. Every surface that referenced an assessment offered only a bare label — you were asked to compare against a record you could not open." },
+  "w14.dup-to-delta": { l: "Measure again at the close", to: "screen:W14@delta", info: "The duplicate state's remedy (round 48). §6.6 says the form validates one baseline per (garden, cycle, domain) and points duplicates at the existing record; pointing is only useful if it leads somewhere, and wanting to measure the same domain again is exactly what a re-assessment is for. Carries the existing record forward as the comparison." },
   "w14.cancel": { l: "Cancel assessment", to: "screen:W14@discard", info: "A dirty flow confirms before discarding — the shared useDirtyClose / DiscardChangesDialog guard, scoped to this flow." },
   "w14.keep-editing": { l: "Keep editing", to: "screen:W14", info: "Returns to the assessment flow with the entered values intact." },
   "w14.discard-confirm": { l: "Discard", to: "screen:W13@assess", info: "Leaves the assessment flow and returns to the Hub Assess stage the flow opened over — not the Confirm stage." },
