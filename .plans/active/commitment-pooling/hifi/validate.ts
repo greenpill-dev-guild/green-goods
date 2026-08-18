@@ -259,6 +259,11 @@ const CALL_RULES: Record<ContractCall, CallRule> = {
   retryAcknowledgment: { key: "disbursement", allowed: ["Dispatched"] },
   cancelBatch: { key: "disbursement", allowed: ["Queued"], next: "Cancelled" },
   requeue: { key: "disbursement", allowed: ["Failed"], next: "Queued" },
+  // Decision Log #60's owner-only exit. The ONLY call that may fail a Dispatched
+  // subject — an authenticated failure acknowledgment is the other road to
+  // Failed, and it is not a call the console makes. It can never produce
+  // Confirmed, which is why Failed is its only `next` (settlement-spec §3.1.2).
+  failStrandedSubject: { key: "disbursement", allowed: ["Dispatched"], next: "Failed" },
   cancelDisbursement: { key: "disbursement", allowed: ["Queued", "Failed"], next: "Cancelled" },
 };
 

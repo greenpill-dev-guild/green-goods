@@ -1600,6 +1600,24 @@ Known mis-resolutions fixed in place: `contract-spec.md` §Grassroots-Economics-
     Plus W7@read-error, since the garden's main read surface had loading but no error while its
     own child carried both. Full text: `uiux-spec.md` C.51.
 
+155. The Green Goods operations review (2026-08-18, round 50, Afo). The money path holds its own
+    invariants better than anything else in the prototype: requeue is gated on an authenticated
+    failure, delivery-delayed refuses to be one, acknowledgment-pending states that a late ack
+    never re-invokes the Safe route, and outcome states that duplicate terminal acks never mutate
+    settled source state. What did not exist anywhere in 44 screens is the OTHER road to Failed:
+    the owner-only failStrandedSubject disposition (FailureCode.SourceStranded), which Decision
+    Log #60 added precisely because requeue needs Failed and cancelDisbursement takes only
+    Queued|Failed, so a Dispatched child is otherwise unrecoverable. The prototype had drawn that
+    decision's security half and not its liveness half. W24 gains the arc, as a CHOICE rather than
+    an outcome — extend the bounded grace after re-verification, or escalate — because grace is a
+    liveness window and the module never acts merely because it elapsed. Two build catches worth
+    keeping: the CONFIRM allow-list rejected the reason field I first drew, which surfaced a spec
+    gap (failStrandedSubject is named in §3.1.2 and the FailureCode enum but is absent from that
+    spec's own permission matrix, so its signature is unsettled and the artifact draws it bare and
+    says so); and CALL_RULES had no entry, so the validator crashed rather than waving it through.
+    Left open and recorded: W21 and W22 still have no loading or read-error, and W37 has no
+    recovery while its client twin W36 has all three. Full text: `uiux-spec.md` C.52.
+
 **Final recursive certification clarification (2026-07-25; no new decision-register entry):**
 the published `42161`↔`42220` production lane is the only required fully paired
 `SettlementConfiguration`. Arbitrum Sepolia `421614` and Celo Sepolia `11142220` remain

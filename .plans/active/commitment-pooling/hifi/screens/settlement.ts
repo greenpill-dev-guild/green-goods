@@ -858,12 +858,28 @@ const W24_STATES = [
   ["funding", "Seed / top up"],
   ["funding-unauthorized", "Funding unavailable"],
   ["loading", "Loading"], ["read-error", "Read error"],
+  ["stranded", "CCIP · a stranded command"], ["strand-confirm", "Mark it failed — confirm"], ["stranded-failed", "Marked failed — recoverable"],
 ] as const;
 type W24State = (typeof W24_STATES)[number][0];
 
+// Dimmed Operations canvas behind the stranded-disposition dialog (round 50).
+const w24Behind = () =>
+  adminCanvas("actions", "operations", {
+    screenId: "W24",
+    garden: "Rocinha",
+    interactiveChrome: false,
+    header: pageHeader({ title: "Operations", eyebrow: "All gardens", description: "One execution home for every garden's settlement, transport, and funding." }),
+    body: acard(
+      "CCIP command/ack health",
+      `${kv("Retired peer", "0x9c…f2 · grace expired Aug 17")}${kv("Unresolved", "Settlement 106 · Dispatched")}`,
+    ),
+  });
+
 function w24(state: W24State): string {
   // The rail tabs ARE this screen's states — wire each inactive tab to navigate.
-  const stateIx = state === "queue" ? 0 : state === "ccip" ? 1 : 2;
+  // The stranded casts live on the CCIP tab — it is the command/ack health
+  // surface, and a stranded subject is a transport fact rather than a queue one.
+  const stateIx = state === "queue" ? 0 : state === "ccip" || state.includes("strand") ? 1 : 2;
   const rail = tabRail(
     [
       { label: "Queue", count: 3, hot: "w24.tab-queue" },
@@ -881,6 +897,54 @@ function w24(state: W24State): string {
 <div class="arow"><div class="grow"><b>Settlement 104</b> · command 0xab…11 · destination pending</div><span class="t-meta">CCIP Explorer ↗</span></div>
 <div class="arow"><div class="grow"><b>Settlement 102</b> · destination 0xce…42 · acknowledgment 0xac…09 pending</div><span class="t-meta">Explorer ↗</span></div>
 ${banner("Manual execution is guidance, not a Green Goods state change. Show it only when CCIP Explorer marks a command eligible; a destination transaction alone never means support arrived.", "stone")}`,
+      );
+      break;
+    // Decision Log #60's liveness half, drawn (2026-08-18 round 50, Afo). The
+    // settlement machine reaches Failed two ways: an authenticated failure
+    // acknowledgment, or this. The first was drawn everywhere and the second
+    // existed nowhere, so a Dispatched subject whose executor peer retired past
+    // its grace window had no exit at all — and requeue needs Failed while
+    // cancelDisbursement takes only Queued|Failed, which is exactly why the
+    // decision calls such a child "unrecoverable" without it.
+    //
+    // Grace is "a liveness window, not a timeout-based failure oracle"
+    // (settlement-spec §3.1.2), and the module "never silently requeues,
+    // cancels, overwrites, or pays a replacement command merely because grace
+    // elapsed". So this screen offers a CHOICE, never an automatic outcome:
+    // extend grace after re-verification, or escalate to the disposition.
+    case "stranded":
+      inner = acard(
+        "CCIP command/ack health",
+        `${banner("The value lane is paused. A retired executor peer still holds one unresolved command, and its grace window has expired.", "amber", "error-warning-line")}
+${kv("Retired peer", "0x9c…f2 · replaced Aug 4 · grace expired Aug 17")}
+${kv("Unresolved", "Settlement 106 · attempt 0 · Dispatched Aug 12")}
+${kv("Why it is stuck", "Requeue needs Failed, and cancel takes only Queued or Failed. A Dispatched subject can be neither until it is dispositioned.")}
+${banner("Grace expiring proves nothing about the payment. Nothing is requeued, cancelled, or paid because a window closed, so this is a decision rather than an outcome.", "stone", "shield-check-line")}
+<div class="actrow">${hot("w24.extend-grace", btn("Extend Grace After Re-verification", { kind: "sec", sm: true }))}${hot("w24.strand", btn("Mark It Failed…", { kind: "danger", sm: true }))}</div>`,
+      );
+      break;
+    case "strand-confirm":
+      return deskWin(
+        "admin.greengoods.app/operations",
+        adminDialogM3(w24Behind(), "actions", {
+          title: "Mark Settlement 106 failed?",
+          body:
+            `${kv("Subject", "Settlement 106 · attempt 0 · Dispatched")}${kv("Recorded as", "Failed · SourceStranded")}${kv("Authority", "Module owner only. An executor can never send this code.")}
+${banner("This moves no G$ and can never record the payment as Confirmed. It says only that this attempt is over, so the subject can be requeued or cancelled.", "stone", "shield-check-line")}
+${kv("Retired peer", "0x9c…f2 · replaced Aug 4")}${kv("Grace expired", "Aug 17 · re-verification not taken")}
+${banner("No typed reason: unlike cancelDisbursement and cancelBatch, this disposition is not specified to take a reasonCID, so the record is the event and the route facts above. Settling that signature is a spec gap, not a UI choice.", "stone", "information-line")}`,
+          actions: `${hot("w24.strand-cancel", btn("Keep Waiting", { kind: "ghost" }))}${hot("w24.strand-confirm", btn("Mark It Failed", { kind: "danger" }))}`,
+          closeHot: "w24.strand-cancel",
+        }),
+      );
+    case "stranded-failed":
+      inner = acard(
+        "CCIP command/ack health",
+        `<div class="quietok">${icon("check-line")}Settlement 106 · Failed · SourceStranded · event recorded.</div>
+${kv("What changed", "The attempt is over. No G$ moved and nothing was confirmed.")}
+${kv("Now possible", "Requeue as attempt 1, or cancel it outright.")}
+${banner("A later acknowledgment from the retired peer for this subject is ignored and stays observable. A source-side disposition is never overwritten by a message.", "stone", "shield-check-line")}
+<div class="actrow">${hot("w24.strand-requeue", btn("Requeue as Attempt 1", { kind: "pri", sm: true }))}${hot("w24.strand-cancel-subject", btn("Cancel It Instead…", { kind: "sec", sm: true }))}</div>`,
       );
       break;
     case "flows-funding-unavailable":
@@ -959,6 +1023,12 @@ ${kv("Required capability", "Protocol steward or SettlementModule owner")}${kv("
 }
 
 const W24_HOTS: HifiDef["hots"] = {
+  "w24.extend-grace": { l: "Extend grace after re-verification", to: "screen:W24@ccip", info: "The other half of the choice (settlement-spec §3.1.2): the owner may extend the bounded grace after re-verifying the retiring peer, rather than dispositioning. Grace is a liveness window, not a failure oracle, so nothing is failed merely because it elapsed." },
+  "w24.strand": { l: "Mark a stranded subject failed", to: "screen:W24@strand-confirm", info: "Decision Log #60's liveness exit, owner-only. Authentication requires the snapshotted executor to still be the active peer or inside its grace, which strands anything genuinely in flight at a cutover — and requeue needs Failed while cancelDisbursement takes only Queued|Failed, so a Dispatched child is otherwise unrecoverable." },
+  "w24.strand-cancel": { l: "Keep waiting", to: "screen:W24@stranded", info: "Leaves the subject Dispatched and the value lane paused. The disposition is never automatic." },
+  "w24.strand-confirm": { l: "Mark it failed (confirm)", to: "screen:W24@stranded-failed", info: "Writes FailureCode.SourceStranded — a source-side code never accepted from an executor over CCIP, and one that can never produce Confirmed. It moves no G$; it only ends the attempt so recovery becomes legal.", calls: ["failStrandedSubject"] },
+  "w24.strand-requeue": { l: "Requeue as attempt 1", to: "screen:W24@queue", info: "Now legal because the subject is Failed. Requeue preserves attempt 0 and creates a fresh queued attempt against the live route." },
+  "w24.strand-cancel-subject": { l: "Cancel it instead", to: "screen:W21@cancel-queued-confirm", info: "The terminal alternative to requeueing, taking cancelDisbursement's own required reason — which this disposition does not have." },
   "w24.retry": { l: "Try again", info: "Read recovery for the operations queue, added round 46. Operations drives settlement, so an unreadable queue must never render like an empty one — a steward would read it as “nothing to dispatch”." },
   "w24.tab-queue": { l: "Queue tab", to: "screen:W24@queue", info: "Cross-garden execution queue." },
   "w24.tab-ccip": { l: "CCIP tab", to: "screen:W24@ccip", info: "Command/ack peer, native fee reserve, and acknowledgment-delay health." },
@@ -1190,6 +1260,14 @@ const w22Facts = (state: W22State): StateFacts | undefined => {
 };
 
 const w24Facts = (state: W24State): StateFacts | undefined => {
+  // The stranded arc is the one place a Dispatched subject is acted on, so it
+  // declares that fact and the validator can check the disposition is legal
+  // from it (round 50). After the disposition it is Failed, which is what makes
+  // requeue and cancel legal on the following state.
+  if (state === "stranded" || state === "strand-confirm")
+    return { disbursement: "Dispatched", disbursementKind: "Funding", disbursementRoute: "ProtocolToGarden", settlementAccount: "Active", beneficiarySettlementAccount: "Active" };
+  if (state === "stranded-failed")
+    return { disbursement: "Failed", disbursementKind: "Funding", disbursementRoute: "ProtocolToGarden", settlementAccount: "Active", beneficiarySettlementAccount: "Active" };
   if (state === "queue")
     return {
       disbursement: "Queued",

@@ -3093,3 +3093,51 @@ from the product-copy scan.
 
 **`W7@read-error`.** The pool tab is the garden's main read surface and had loading but no read
 error, while its own child `W7C` carried both.
+
+### C.52 The Green Goods operations review (2026-08-18, round 50)
+
+**The money path holds its own invariants better than anything else in the prototype.** `requeue`
+is gated on an authenticated failure — `W21@failed-recovery` states it: *"An authenticated route
+failure permits an explicit next attempt. Delivery delay alone never does."* `delivery-delayed`
+refuses to be a failure, calling itself *"a derived operational condition, not a contract mutation
+or payment failure"*. `acknowledgment-pending` carries *"A delayed acknowledgment never invokes
+the Safe route again."* `outcome` states that duplicate terminal acknowledgments *"are emitted,
+ignored, and remain observable; they never mutate the settled source state."* W24's two capability
+gates are both drawn.
+
+**And the one exit for stuck money did not exist.** The settlement machine reaches `Failed` two
+ways: an authenticated failure acknowledgment, or the owner-only `failStrandedSubject`
+(`FailureCode.SourceStranded == 12`). The first was drawn everywhere. The second appeared nowhere
+in 44 screens — no mention of stranded, the grace window, or the retired peer.
+
+Decision Log #60 exists because without it the funds are trapped: *"requeue requires `Failed` and
+`cancelDisbursement` accepts only `Queued|Failed`, so a `Dispatched` child would be
+unrecoverable."* The prototype had drawn the security half of that decision (authentication
+against the live peer) and not the liveness half.
+
+**It is a choice, never an outcome.** Grace is *"a liveness window, not a timeout-based failure
+oracle"*, and the module *"never silently requeues, cancels, overwrites, or pays a replacement
+command merely because grace elapsed"* (settlement-spec §3.1.2). So `W24@stranded` presents both
+of the owner's roads — extend the bounded grace after re-verification, or escalate the disposition
+— and says outright that grace expiring proves nothing about the payment.
+`W24@stranded-failed` then shows what it bought: the attempt is over, no G$ moved, nothing was
+confirmed, and requeue or cancel is finally legal.
+
+**Two things the build caught while it went in, both worth keeping.**
+
+The CONFIRM rule rejected the reason field I first drew: `REASON_CONFIRMS` is an allow-list built
+from the contract, and inventing a reason teaches a signature that does not exist. Checking it
+surfaced a **spec gap** — `failStrandedSubject` is named in §3.1.2 and in the `FailureCode` enum
+but has **no entry in that spec's own permission matrix**, where every other source-side call is
+listed with its signature and caller. Every reason-taking call declares `reasonCID` explicitly, so
+the artifact draws this one bare and says so on the surface. The signature needs settling in the
+spec, not in the prototype.
+
+Then `CALL_RULES` had no entry for it and the validator crashed rather than passing it through —
+the right failure. It is now `{ key: "disbursement", allowed: ["Dispatched"], next: "Failed" }`:
+the only call that may fail a Dispatched subject, and one that can never produce Confirmed.
+
+**Not taken this round** (recorded, still open): W21 and W22 have no loading or read-error, though
+they are the two biggest queue surfaces and round 46 gave those casts to every other queue. And
+W37 has no recovery at all while its client twin W36 carries loading, not-found and read-error for
+the same object.

@@ -164,7 +164,13 @@ export type ContractCall =
   | "prepareContributorPayout" | "prepareGardenBeneficiaryPayout" | "queueFunding"
   | "recordFunding" | "recordFundingDeposit" | "consumeFunding" | "queueFundingRefund"
   | "createBatch" | "dispatchDisbursement" | "dispatchBatch" | "retryCommand" | "retryBatchCommand"
-  | "retryAcknowledgment" | "cancelBatch" | "cancelDisbursement";
+  | "retryAcknowledgment" | "cancelBatch" | "cancelDisbursement"
+  // Decision Log #60: the owner-only source-side disposition for a Dispatched
+  // subject whose executor peer retired past its grace window. Named in
+  // settlement-spec §3.1.2 and in FailureCode.SourceStranded, but absent from
+  // that spec's own permission matrix, so its signature is unsettled — the
+  // artifact draws it with no reasonCID, matching every other bare call.
+  | "failStrandedSubject";
 
 // Metadata for one registered hotspot (a tappable control on a screen).
 // `to` targets: "screen:W2" | "screen:W2@disputed" | "sb5:0".
