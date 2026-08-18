@@ -1618,6 +1618,19 @@ Known mis-resolutions fixed in place: `contract-spec.md` §Grassroots-Economics-
     Left open and recorded: W21 and W22 still have no loading or read-error, and W37 has no
     recovery while its client twin W36 has all three. Full text: `uiux-spec.md` C.52.
 
+156. Recovery on the money surfaces (2026-08-18, round 51, Afo). The three C.52 left open. W21's
+    settlement queue and W22's transport console had no read casts, and W37 had none while its
+    client twin W36 carried all three for the same object. Seven states close them, and every
+    admin read surface now has its casts. Each is worded for what a misread would cost: W21 says
+    nothing was queued, dispatched, cancelled or paid while it was unreachable; W22 — the one
+    where a steward learns whether a command is in flight — says an unreadable console means
+    neither "nothing dispatched" nor "failed", and warns against requeueing or cancelling from it,
+    since a new attempt is legal only after an authenticated failure acknowledgment the screen
+    cannot currently show; W37 says any pledge, deposit or refund already recorded is safe. Facts
+    stay undefined on every read cast, because a screen drawing no record asserts no lifecycle
+    position. Two vocabulary catches from hotspot prose: "owed" is banned and "operator" is the
+    retired word from the steward rename. Full text: `uiux-spec.md` C.53.
+
 **Final recursive certification clarification (2026-07-25; no new decision-register entry):**
 the published `42161`↔`42220` production lane is the only required fully paired
 `SettlementConfiguration`. Arbitrum Sepolia `421614` and Celo Sepolia `11142220` remain

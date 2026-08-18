@@ -198,6 +198,7 @@ const W21_STATES = [
   ["protocol-queue", "Protocol queue — garden funding"],
   ["protocol-funding-queued", "Garden funding — queued"],
   ["refund-queued", "Member refund — queued"],
+  ["loading", "Loading"], ["read-error", "Read error"],
 ] as const;
 type W21State = (typeof W21_STATES)[number][0];
 
@@ -235,6 +236,25 @@ const w21Behind = (state: "failed" | "queued" | "unregistered" = "failed") =>
   });
 
 function w21(state: W21State): string {
+  // The garden's money queue had no read casts (2026-08-18 round 51, Afo).
+  // An unreadable settlement queue must never render like an empty one: a
+  // steward would read "nothing owed, nothing dispatched" and act on it.
+  if (state === "loading" || state === "read-error")
+    return deskWin(
+      "admin.greengoods.app/garden/settlement",
+      adminCanvas("garden", "garden", {
+        screenId: "W21", garden: "Rocinha",
+        header: pageHeader({ title: "Settlement", eyebrow: "Garden · Celo", description: state === "loading" ? "Loading this garden's settlement." : "This garden's settlement could not be loaded." }),
+        body: state === "loading"
+          ? `${skeleton({ title: true, lines: 2 })}${skeleton({ lines: 4 })}`
+          : emptyState(
+              "wifi-off-line",
+              "Couldn't load the settlement queue",
+              "Something went wrong reaching the indexer. Nothing was queued, dispatched, cancelled, or paid while this was unreachable, and every recorded attempt is unchanged.",
+              hot("w21.retry", btn("Try Again", { kind: "pri", icon: "refresh-line" })),
+            ),
+      }),
+    );
   if (state === "refund-queued") {
     const header = pageHeader({
       title: "Member refund queued",
@@ -591,6 +611,7 @@ ${disclosure(
 }
 
 const W21_HOTS: HifiDef["hots"] = {
+  "w21.retry": { l: "Try again", info: "Read recovery for the garden settlement queue, added round 51. An unreadable money queue must never render like an empty one — a steward would read it as nothing waiting and nothing dispatched." },
   "w21.dispatch-refund": {
     l: "Dispatch refund",
     to: "screen:W22@refund-dispatched",
@@ -652,6 +673,7 @@ const W22_STATES = [
   ["cancel-batch-confirm", "Cancel batch — confirm"], ["garden-command", "Protocol-to-garden funding command"],
   ["individual-dispatched", "Contributor payout — dispatched"],
   ["refund-dispatched", "Member refund — dispatched"], ["refund-confirmed", "Member refund — confirmed"],
+  ["loading", "Loading"], ["read-error", "Read error"],
 ] as const;
 type W22State = (typeof W22_STATES)[number][0];
 
@@ -672,6 +694,27 @@ const w22Behind = () =>
   });
 
 function w22(state: W22State): string {
+  // The transport console is the most dangerous surface to misread (round 51):
+  // it is where a steward learns whether a command is in flight. An
+  // unreadable console says nothing about the payment in either direction, and
+  // has to say so — silence here is not "nothing dispatched" and not "failed".
+  if (state === "loading" || state === "read-error")
+    return deskWin(
+      "admin.greengoods.app/garden/settlement/command",
+      adminCanvas("garden", "garden", {
+        screenId: "W22", garden: "Rocinha",
+        header: pageHeader({ title: "Command / acknowledgment", eyebrow: "Garden · Celo", description: state === "loading" ? "Loading transport state." : "Transport state could not be loaded." }),
+        body: state === "loading"
+          ? `${skeleton({ title: true, lines: 2 })}${skeleton({ lines: 3 })}`
+          : `${emptyState(
+              "wifi-off-line",
+              "Couldn't load the command state",
+              "Something went wrong reaching the indexer. This says nothing about the payment: a command already dispatched is still in flight, and no acknowledgment is lost by a failed read.",
+              hot("w22.retry", btn("Try Again", { kind: "pri", icon: "refresh-line" })),
+            )}
+${banner("Do not requeue or cancel on an unreadable console. A new attempt is legal only after an authenticated failure acknowledgment, which this screen cannot currently show you.", "amber", "shield-check-line")}`,
+      }),
+    );
   if (state === "refund-dispatched" || state === "refund-confirmed") {
     const confirmed = state === "refund-confirmed";
     const header = pageHeader({
@@ -830,6 +873,7 @@ ${w22Members}${routeDetails}`;
 }
 
 const W22_HOTS: HifiDef["hots"] = {
+  "w22.retry": { l: "Try again", info: "Read recovery for the transport console, added round 51. This is where a steward learns whether a command is in flight, so an unreadable console has to say it means neither \u201cnothing dispatched\u201d nor \u201cfailed\u201d." },
   "w22.garden-open-ops": { l: "Open Operations", to: "screen:W24@flows", info: "The capability-gated cross-garden funds board separates contributor payout-plan delivery from discretionary ProtocolToGarden funding." },
   "w22.route-gate": { l: "Open route gate", to: "screen:W22@role-guard", info: "The production typed Safe/Zodiac route is a release gate, not an implemented adapter." },
   "w22.cancel-batch": { l: "Cancel whole queued batch", to: "screen:W22@cancel-batch-confirm", info: "Requires a reason and blast-radius confirmation. `cancelBatch` atomically marks the Queued batch and every immutable member Cancelled-from-Queued; partial cancellation is impossible." },

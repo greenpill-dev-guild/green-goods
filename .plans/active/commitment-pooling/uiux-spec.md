@@ -3141,3 +3141,35 @@ the only call that may fail a Dispatched subject, and one that can never produce
 they are the two biggest queue surfaces and round 46 gave those casts to every other queue. And
 W37 has no recovery at all while its client twin W36 carries loading, not-found and read-error for
 the same object.
+
+### C.53 Recovery on the money surfaces (2026-08-18, round 51)
+
+C.52 left these recorded. Seven states close them, and every admin read surface now carries its
+casts: W7, W7C, W12, W13, W21, W22, W24, W37 and HUBWORK.
+
+**W21 — the garden's settlement queue.** An unreadable money queue must never render like an
+empty one; a steward would read *"nothing waiting, nothing dispatched"* and act on it. The error
+says what did **not** happen: *"Nothing was queued, dispatched, cancelled, or paid while this was
+unreachable, and every recorded attempt is unchanged."*
+
+**W22 — the transport console, and the most dangerous of the three to misread.** This is where a
+steward learns whether a command is in flight, so silence here means neither "nothing dispatched"
+nor "failed". It says so directly — *"a command already dispatched is still in flight, and no
+acknowledgment is lost by a failed read"* — and carries a second warning that follows from the
+settlement machine's own rule: **do not requeue or cancel from an unreadable console**, because a
+new attempt is legal only after an authenticated failure acknowledgment, which is exactly what
+this screen currently cannot show.
+
+**W37 — parity with its own twin.** W36 has carried loading, not-found and read-error for a
+member-funded claim; W37 is the steward's side of the same object and had none. Its error states
+that any pledge, deposit or refund already recorded is safe, and that nothing can be accepted or
+refunded until it reads.
+
+**Facts stay undefined on every read cast.** A screen that draws no record asserts no funding,
+commitment or disbursement state — `w37Facts` returns `undefined` for its three, rather than
+claiming a lifecycle position for a record it could not load.
+
+**Two vocabulary catches on the way in**, both from hotspot prose rather than screen copy: *owed*
+is banned, and *operator* is the word the steward rename retired (Decision Log #28c). The gate
+scans hotspot `info` for banned vocabulary even though it exempts them from the dash and
+product-copy rules, which is why these surfaced at all.

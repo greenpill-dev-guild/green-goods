@@ -162,12 +162,36 @@ const W37_STATES = [
   ["deposit-recorded", "Deposit recorded"],
   ["consumed", "Claim accepted"],
   ["refund-eligible", "Refund eligible"],
+  ["loading", "Loading"], ["not-found", "Not found"], ["read-error", "Read error"],
 ] as const;
 type W37State = (typeof W37_STATES)[number][0];
 
 function w37(state: W37State): string {
   let body: string;
   switch (state) {
+    // The steward's side of a member-funded claim had no read casts at all,
+    // while W36 — the gardener's view of the SAME object — carried all three
+    // (2026-08-18 round 51, Afo). Money is on the other side of this screen, so
+    // an unreadable checkpoint must never look like a claim with nothing on it.
+    case "loading":
+      body = acard("Funded claim", `${skeleton({ title: true, lines: 2 })}${skeleton({ lines: 3 })}`);
+      break;
+    case "not-found":
+      body = emptyState(
+        "search-line",
+        "This funded claim could not be found",
+        "It may have been withdrawn, or the link may be stale. Nothing was recorded against it and no deposit was touched.",
+        hot("w37.retry", btn("Try Again", { kind: "sec", icon: "refresh-line" })),
+      );
+      break;
+    case "read-error":
+      body = emptyState(
+        "wifi-off-line",
+        "Couldn't load this funded claim",
+        "Something went wrong reaching the indexer. Any pledge, deposit, or refund already recorded is safe and unchanged, and nothing can be accepted or refunded until this reads.",
+        hot("w37.retry", btn("Try Again", { kind: "pri", icon: "refresh-line" })),
+      );
+      break;
     case "claim":
       body = acard(
         "Maria's claim · funding not yet pledged",
@@ -238,6 +262,7 @@ const W37_HOTS: HifiDef["hots"] = {
     info: "The steward accepts the pending priced-Offer claim, then consumeFunding binds the already-recorded deposit to that accepted commitment.",
     calls: ["acceptClaim", "consumeFunding"],
   },
+  "w37.retry": { l: "Try again", info: "Read recovery for the steward's funded-claim checkpoint, added round 51. Its client twin W36 has carried loading, not-found and read-error for the same object; this side had none, so an unreadable checkpoint looked like a claim with nothing on it." },
   "w37.queue-refund": {
     l: "Queue refund",
     to: "screen:W21@refund-queued",
@@ -247,7 +272,11 @@ const W37_HOTS: HifiDef["hots"] = {
   },
 };
 
-const w37Facts = (state: W37State): StateFacts => ({
+const w37Facts = (state: W37State): StateFacts | undefined =>
+  // A read cast draws no record, so it asserts no funding or commitment fact.
+  state === "loading" || state === "not-found" || state === "read-error"
+    ? undefined
+    : ({
   pool: "Open",
   commitment:
     state === "consumed" ? "Accepted"
@@ -260,7 +289,7 @@ const w37Facts = (state: W37State): StateFacts => ({
     : state === "deposit-recorded" ? "DepositRecorded"
     : "Consumed",
   settlementAccount: "Active",
-});
+    });
 
 export const FUNDING_DEFS: HifiDef[] = [
   {
