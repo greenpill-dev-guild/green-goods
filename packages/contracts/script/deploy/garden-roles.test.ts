@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   ALLOWANCE_KEY,
+  buildRolesTransactions,
   buildTransferConditions,
   encodeMultiSend,
   modifierSaltNonce,
@@ -110,5 +111,55 @@ describe("G$ transfer permission tree", () => {
     // So is any change to the reviewed tree.
     const widened = buildTransferConditions([...SAFES.slice(0, 17), SAFE_B]);
     expect(permissionsConfigHash(SAFE_A, modifier, widened)).not.toEqual(base);
+  });
+});
+
+describe("EOA configuration boundaries", () => {
+  const boundaries = SAFES.map((safe, index) => ({
+    tokenId: index,
+    garden: safe,
+    safe,
+    modifier: `0x${(index + 200).toString(16).padStart(40, "0")}`,
+    saltNonce: "1",
+    initializerHash: `0x${"11".repeat(32)}`,
+    enableModuleData: "0x610b5925",
+    safeTxHash: `0x${"22".repeat(32)}`,
+    safeNonce: 0,
+    permissionsConfigHash: `0x${"33".repeat(32)}`,
+  }));
+  const executor = "0xB8a7F3c3DfA407c45e05b7B2381233101938a84F";
+
+  it("orders six unsigned boundaries per Safe and transfers ownership last", () => {
+    const transactions = buildRolesTransactions(boundaries, buildTransferConditions(SAFES), executor);
+
+    expect(transactions).toHaveLength(SAFES.length * 6);
+    expect(transactions.map((transaction) => transaction.step)).toEqual(
+      Array.from({ length: transactions.length }, (_, index) => index + 1),
+    );
+    expect(transactions.slice(0, 6).map((transaction) => transaction.kind)).toEqual([
+      "DEPLOY_MODIFIER",
+      "SCOPE_TARGET",
+      "SCOPE_FUNCTION",
+      "SET_ALLOWANCE",
+      "ASSIGN_EXECUTOR",
+      "TRANSFER_OWNERSHIP",
+    ]);
+    // Ownership must leave the operator only after the role is fully scoped.
+    for (let safeIndex = 0; safeIndex < SAFES.length; safeIndex += 1) {
+      const perSafe = transactions.slice(safeIndex * 6, safeIndex * 6 + 6);
+      expect(perSafe.every((transaction) => transaction.safe === boundaries[safeIndex].safe)).toBe(true);
+      expect(perSafe.at(-1)?.kind).toBe("TRANSFER_OWNERSHIP");
+    }
+  });
+
+  it("moves no value and touches only the factory or that Safe's own modifier", () => {
+    const transactions = buildRolesTransactions(boundaries, buildTransferConditions(SAFES), executor);
+
+    expect(transactions.every((transaction) => transaction.value === "0")).toBe(true);
+    for (const transaction of transactions) {
+      const expected =
+        transaction.kind === "DEPLOY_MODIFIER" ? "0x000000000000aDdB49795b0f9bA5BC298cDda236" : transaction.modifier;
+      expect(transaction.to.toLowerCase()).toEqual(expected.toLowerCase());
+    }
   });
 });

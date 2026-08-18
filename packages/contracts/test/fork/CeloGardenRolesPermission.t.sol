@@ -93,7 +93,7 @@ contract CeloGardenRolesPermissionForkTest is Test {
 
     function setUp() public {
         vm.createSelectFork(vm.envString("CELO_RPC_URL"));
-        plan = vm.readFile("./.generated/runtime/42220-garden-roles.json");
+        plan = vm.readFile("./.generated/runtime/42220-garden-roles-proof.json");
 
         deploymentOperator = plan.readAddress(".modifierOwnerAtDeployment");
         canonicalToken = plan.readAddress(".canonicalTarget");

@@ -40,6 +40,7 @@ const REPOSITORY_ROOT = path.join(CONTRACTS_ROOT, "../..");
 const RUNTIME_ROOT = path.join(CONTRACTS_ROOT, ".generated/runtime");
 const DEFAULT_SAFE_PLAN = path.join(RUNTIME_ROOT, "42220-garden-safe-final.json");
 const DEFAULT_PLAN = path.join(RUNTIME_ROOT, "42220-garden-roles.json");
+const PROOF_FIXTURE = path.join(RUNTIME_ROOT, "42220-garden-roles-proof.json");
 
 const CELO_CHAIN_ID = 42_220;
 const EXPECTED_GARDEN_COUNT = 18;
@@ -49,6 +50,7 @@ const ROLES_MASTERCOPY = "0x9646fDAD06d3e24444381f44362a3B0eB343D337";
 const MODULE_PROXY_FACTORY = "0x000000000000aDdB49795b0f9bA5BC298cDda236";
 const MULTI_SEND_CALL_ONLY = "0x9641d764fc13c8B624c04430C7356C1C7C8102e2";
 const DEPLOYMENT_OPERATOR = "0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6";
+const CELO_SETTLEMENT_EXECUTOR = "0xB8a7F3c3DfA407c45e05b7B2381233101938a84F";
 const GREEN_GOODS_RECOVERY_SAFE = "0x1B9Ac97Ea62f69521A14cbe6F45eb24aD6612C19";
 const DEV_GUILD_RECOVERY_SAFE = "0x49fa954B6C2Cd14B4b3604EF1Cc17cED20a9E42C";
 
@@ -79,6 +81,14 @@ const OPERATOR = { Or: 2, Matches: 5, EqualTo: 16, WithinAllowance: 28 } as cons
 
 const FACTORY_INTERFACE = new Interface([
   "function deployModule(address masterCopy, bytes initializer, uint256 saltNonce) returns (address)",
+]);
+const ROLES_CONFIG_INTERFACE = new Interface([
+  "function scopeTarget(bytes32 roleKey, address targetAddress)",
+  "function scopeFunction(bytes32 roleKey, address targetAddress, bytes4 selector, tuple(uint8 parent, uint8 paramType, uint8 operator, bytes compValue)[] conditions, uint8 options)",
+  "function setAllowance(bytes32 key, uint128 balance, uint128 maxRefill, uint128 refill, uint64 period, uint64 timestamp)",
+  "function assignRoles(address module, bytes32[] roleKeys, bool[] memberOf)",
+  "function transferOwnership(address newOwner)",
+  "function owner() view returns (address)",
 ]);
 const ROLES_INTERFACE = new Interface(["function setUp(bytes initParams)"]);
 const SAFE_INTERFACE = new Interface([
@@ -124,6 +134,31 @@ export interface RolesBoundary {
   permissionsConfigHash: string;
 }
 
+/**
+ * The EOA half of the ceremony, flattened in execution order. Every Roles config function is
+ * onlyOwner and reads msg.sender directly, so these cannot be batched through MultiSend — each is
+ * its own boundary. None of them is signed, and none has authority over a Safe: the modifier stays
+ * inert until a later stage enables it.
+ */
+export type RolesTransactionKind =
+  | "DEPLOY_MODIFIER"
+  | "SCOPE_TARGET"
+  | "SCOPE_FUNCTION"
+  | "SET_ALLOWANCE"
+  | "ASSIGN_EXECUTOR"
+  | "TRANSFER_OWNERSHIP";
+
+export interface PlannedRolesTransaction {
+  step: number;
+  tokenId: number;
+  safe: string;
+  modifier: string;
+  kind: RolesTransactionKind;
+  to: string;
+  value: "0";
+  data: string;
+}
+
 export interface GardenRolesPlan {
   schemaVersion: 1;
   kind: "GARDEN_ROLES_MODIFIER_PLAN";
@@ -143,6 +178,7 @@ export interface GardenRolesPlan {
   conditions: ConditionFlat[];
   conditionsEncoded: string;
   boundaries: RolesBoundary[];
+  transactions: PlannedRolesTransaction[];
   recoveryApprovals: Array<{ recoverySafe: string; multiSendTo: string; multiSendData: string }>;
   blockers: string[];
 }
@@ -290,6 +326,93 @@ export function permissionsConfigHash(
   return keccak256(encoded);
 }
 
+/** Six ordered boundaries per Safe, in the order the frozen ownership model requires. */
+export function buildRolesTransactions(
+  boundaries: readonly RolesBoundary[],
+  conditions: readonly ConditionFlat[],
+  executor: string,
+): PlannedRolesTransaction[] {
+  const encodedConditions = conditions.map((condition) => [
+    condition.parent,
+    condition.paramType,
+    condition.operator,
+    condition.compValue,
+  ]);
+  const transactions: PlannedRolesTransaction[] = [];
+  let step = 0;
+  const push = (boundary: RolesBoundary, kind: RolesTransactionKind, to: string, data: string): void => {
+    step += 1;
+    transactions.push({
+      step,
+      tokenId: boundary.tokenId,
+      safe: boundary.safe,
+      modifier: boundary.modifier,
+      kind,
+      to: getAddress(to),
+      value: "0",
+      data,
+    });
+  };
+
+  for (const boundary of boundaries) {
+    push(
+      boundary,
+      "DEPLOY_MODIFIER",
+      MODULE_PROXY_FACTORY,
+      FACTORY_INTERFACE.encodeFunctionData("deployModule", [
+        ROLES_MASTERCOPY,
+        rolesInitializer(DEPLOYMENT_OPERATOR, boundary.safe),
+        BigInt(boundary.saltNonce),
+      ]),
+    );
+    push(
+      boundary,
+      "SCOPE_TARGET",
+      boundary.modifier,
+      ROLES_CONFIG_INTERFACE.encodeFunctionData("scopeTarget", [ROLE_KEY, CANONICAL_TOKEN]),
+    );
+    push(
+      boundary,
+      "SCOPE_FUNCTION",
+      boundary.modifier,
+      ROLES_CONFIG_INTERFACE.encodeFunctionData("scopeFunction", [
+        ROLE_KEY,
+        CANONICAL_TOKEN,
+        TRANSFER_SELECTOR,
+        encodedConditions,
+        0,
+      ]),
+    );
+    push(
+      boundary,
+      "SET_ALLOWANCE",
+      boundary.modifier,
+      ROLES_CONFIG_INTERFACE.encodeFunctionData("setAllowance", [
+        ALLOWANCE_KEY,
+        MAX_PERIOD_AMOUNT,
+        MAX_PERIOD_AMOUNT,
+        MAX_PERIOD_AMOUNT,
+        PERIOD_DURATION,
+        0n,
+      ]),
+    );
+    push(
+      boundary,
+      "ASSIGN_EXECUTOR",
+      boundary.modifier,
+      ROLES_CONFIG_INTERFACE.encodeFunctionData("assignRoles", [executor, [ROLE_KEY], [true]]),
+    );
+    // Ownership leaves the operator before the modifier can ever gain authority.
+    push(
+      boundary,
+      "TRANSFER_OWNERSHIP",
+      boundary.modifier,
+      ROLES_CONFIG_INTERFACE.encodeFunctionData("transferOwnership", [boundary.safe]),
+    );
+  }
+  return transactions;
+}
+
 async function buildPlan(safePlanPath: string): Promise<GardenRolesPlan> {
   const safePlan = readJson<{ entries: SafePlanEntry[] }>(safePlanPath);
   const blockers: string[] = [];
@@ -389,6 +512,7 @@ async function buildPlan(safePlanPath: string): Promise<GardenRolesPlan> {
     conditions,
     conditionsEncoded: encodeConditions(conditions),
     boundaries,
+    transactions: buildRolesTransactions(boundaries, conditions, CELO_SETTLEMENT_EXECUTOR),
     recoveryApprovals,
     blockers,
   };
@@ -410,6 +534,22 @@ export async function main(args = process.argv.slice(2)): Promise<void> {
 
   const plan = await buildPlan(safePlanPath);
   atomicWrite(planPath, plan);
+  // The fork proof reads its fixture inside the EVM, where the full plan's 108 calldata payloads
+  // exhaust the test gas budget. This carries only what the proof executes.
+  atomicWrite(PROOF_FIXTURE, {
+    modifierOwnerAtDeployment: plan.modifierOwnerAtDeployment,
+    canonicalTarget: plan.canonicalTarget,
+    canonicalSelector: plan.canonicalSelector,
+    roleKey: plan.roleKey,
+    allowanceKey: plan.allowanceKey,
+    allowance: plan.allowance,
+    conditionsEncoded: plan.conditionsEncoded,
+    boundaries: plan.boundaries.slice(0, 2).map((boundary) => ({
+      safe: boundary.safe,
+      modifier: boundary.modifier,
+      saltNonce: boundary.saltNonce,
+    })),
+  });
   console.log(
     JSON.stringify(
       {
