@@ -2893,3 +2893,30 @@ which is the same rhythm as shipped: an unlabelled first card, then the `h6`-lab
 Reading order at the top of `W2@fulfilled` is now: **Prune the north beds** → *Commitment kept ·
 Confirmed by João* → `Offer · Fulfilled · AGRO` → the people → what's been done. Name, then
 where it stands, then its facts, each said once.
+
+### C.47 Search in the team picker (2026-08-17, round 45)
+
+I had flagged this as invention, since the shipped `Gardeners.tsx` has no search. It isn't:
+`RecipientPicker.tsx` is a person-picker inside the wallet drawer and it has one.
+
+**The control mirrors it** — a plain full-width text input above the results
+(`RecipientPicker.tsx:96-103`). The one deliberate difference is a leading glyph: that picker
+doubles as a paste-an-address and ENS field, so a magnifier would mislabel it; ours only ever
+searches.
+
+**It searches names, which that picker cannot.** `RecipientPicker.tsx:54-56` records why: *"person-name
+search is limited to the ENS input path — resolving every member is too costly."* That cost is
+a function of its scope, which is every member of every garden. This list is **one garden's
+roster**, already rendered with names on screen, so matching them costs nothing more. Address
+matching stays, because a member with no name on file *is* an address, and searching "to" should
+find Tomás and `0x74…c2` alike — you rarely know which form a person appears in.
+
+**It rides the sheet's fixed chrome**, not the scroller — the same rule round 43 applied to the
+tab rail. A control that filters a list must not leave the screen while you read the list it
+filters. `sheetOver` gained a `chrome` slot for this; RecipientPicker leaves its input in flow,
+which is defensible for its short list and wrong for twenty-three names.
+
+Three casts: the full roster, a query matching two of twenty-three, and no match. The no-match
+state names the real remedy rather than dead-ending — only garden members can join, so someone
+missing has to be welcomed into the garden first — and it drops the footer, because there is
+nothing to add.

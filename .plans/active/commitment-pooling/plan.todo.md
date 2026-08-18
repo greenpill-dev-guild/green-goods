@@ -1528,6 +1528,17 @@ Known mis-resolutions fixed in place: `contract-spec.md` §Grassroots-Economics-
     chips lead the card now. `title` stays optional for a surface with no header of its own.
     Full text: `uiux-spec.md` C.46.
 
+150. Search in the team picker (2026-08-17, round 45, Afo). I had flagged this as invention
+    because `Gardeners.tsx` has no search; it is not, because `RecipientPicker.tsx` is a person
+    picker in the wallet drawer that has one. The control mirrors its plain full-width input,
+    with a leading glyph added since that picker doubles as a paste-an-address field and ours
+    only searches. It matches NAMES, which RecipientPicker cannot: it notes at :54 that
+    resolving every member across every garden is too costly, and this is one garden's roster
+    already rendering those names. Address matching stays, since a member with no name on file
+    IS an address. The field rides the sheet's fixed chrome (new `chrome` slot) rather than the
+    scroller, per round 43's rule. Three casts: full roster, 2 of 23 matching, no match — the
+    last naming the real remedy and dropping the footer. Full text: `uiux-spec.md` C.47.
+
 **Final recursive certification clarification (2026-07-25; no new decision-register entry):**
 the published `42161`↔`42220` production lane is the only required fully paired
 `SettlementConfiguration`. Arbitrum Sepolia `421614` and Celo Sepolia `11142220` remain

@@ -730,7 +730,7 @@ export function sheetOver(
   inner: string,
   opts: {
     handle?: boolean; ic?: string; info?: string;
-    sub?: string; tabs?: string; footer?: string; close?: boolean;
+    sub?: string; tabs?: string; chrome?: string; footer?: string; close?: boolean;
   } = {},
 ): string {
   const drawer = opts.handle === false;
@@ -754,7 +754,22 @@ export function sheetOver(
   const foot = opts.footer ? `<div class="sh-foot">${opts.footer}</div>` : "";
   return `<div class="sheetstage"><div class="behind">${behind}</div><div class="scrimm"></div><div class="sheet${
     drawer ? " drawer" : ""
-  }">${handle}${head}${opts.tabs ?? ""}<div class="sh-body">${inner}</div>${foot}</div></div>`;
+  }">${handle}${head}${opts.tabs ?? ""}${
+    opts.chrome ? `<div class="sh-chrome">${opts.chrome}</div>` : ""
+  }<div class="sh-body">${inner}</div>${foot}</div></div>`;
+}
+
+// A search field over a long picker list (2026-08-17 round 45, Afo). Mirrors the
+// shipped RecipientPicker's control — a plain full-width text input above the
+// results, no leading glyph (RecipientPicker.tsx:96-103) — and rides the sheet's
+// FIXED chrome rather than the scroller, because a control that filters a list
+// should not leave the screen while you read the list it filters. That is the
+// same rule round 43 applied to the tab rail.
+export function searchField(placeholder: string, opts: { value?: string; hotId?: string } = {}): string {
+  const field = `<span class="srch">${icon("search-line", "s")}<input type="text" aria-label="${escAttr(placeholder)}"${
+    opts.value ? ` value="${escAttr(opts.value)}"` : ` placeholder="${escAttr(placeholder)}"`
+  } readonly></span>`;
+  return opts.hotId ? hot(opts.hotId, field) : field;
 }
 
 // Garden-detail header (views/Home/Garden/index.tsx): fixed image banner (h-36,

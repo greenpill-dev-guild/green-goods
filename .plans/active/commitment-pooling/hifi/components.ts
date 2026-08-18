@@ -553,6 +553,18 @@ const CLIENT_ENTRIES: Entry[] = [
     ],
   },
   {
+    id: "search-field", title: "Search field", family: "forms", covers: ["searchField"],
+    kit: `searchField(placeholder, {value, hotId})`,
+    ship: "packages/client/src/views/Home/WalletDrawer/Send/RecipientPicker.tsx:96",
+    shipNote: "the shipped picker is a plain full-width input with no leading glyph, because it doubles as a paste-an-address field; ours only ever searches, so it carries one",
+    rule: "Rides the sheet's fixed chrome, never the scroller. A control that filters a list must not leave the screen while you read the list. Searches names as well as addresses: the shipped picker cannot, since resolving members across every garden is too costly, but a single garden's roster already renders its names.",
+    usedIn: /class="srch"/,
+    specs: [
+      { label: "empty", html: kit.searchField("Search by name or address") },
+      { label: "with a query", html: kit.searchField("Search by name or address", { value: "to" }) },
+    ],
+  },
+  {
     id: "radio-group", title: "AdminChoiceGroup (radio)", family: "forms", covers: ["radio"],
     kit: `radio(options, {interactive})`,
     netNew: "boxed radio rows with meta lines",

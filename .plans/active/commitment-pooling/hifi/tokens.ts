@@ -758,6 +758,19 @@ export const HIFI_CSS = `
 .hf .sheet .shtab .nbadge{min-width:16px;height:16px;border-radius:99px;background:var(--act);color:var(--on-act);
   font-weight:700;font-size:10.5px;line-height:16px;text-align:center;padding:0 4px;flex:none}
 .hf .sheet .shtab.on .nbadge{background:var(--act);color:var(--on-act)}
+/* Fixed chrome below the header — a search field or any control that governs
+   the list beneath it. Same reasoning as the tab rail: it must not leave the
+   screen while you read what it filters (round 45). */
+.hf .sheet .sh-chrome{flex:0 0 auto;padding:8px 0 2px}
+/* Search field — the shipped RecipientPicker's control (RecipientPicker.tsx:96),
+   a plain full-width input. The leading glyph is ours: that picker doubles as a
+   paste-an-address field, and this one only ever searches. */
+.hf .srch{border:1px solid var(--ln2);background:var(--card);border-radius:12px;min-height:44px;
+  padding:10px 13px;font-size:14.5px;color:var(--ink);display:flex;align-items:center;gap:8px}
+.hf .srch .ic{color:var(--stone);flex:none}
+.hf .srch input{appearance:none;border:0;outline:0;background:transparent;color:inherit;font:inherit;
+  min-width:0;width:100%;padding:0;margin:0}
+.hf .srch input::placeholder{color:var(--stone);font-weight:400;opacity:1}
 /* Fixed footer — the acts live here, never inline at the end of the content
    (ModalDrawer.tsx:191 · pwaDrawerStyles.footer). Bleeds to the panel edge so
    the rule spans it, and restores its own padding inside. */

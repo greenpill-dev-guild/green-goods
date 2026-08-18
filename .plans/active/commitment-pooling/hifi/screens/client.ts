@@ -15,7 +15,7 @@ import { icon } from "../icons";
 import {
   actionBar, appBar, banner, btn, campaignSlide, card, chip, cycleCard, cycleRail, detailRow, disclosure, domainRow, emptySeasonSlide, emptyState, fabButton, field,
   flowHeader, formInfo, fundedOfferCard, gardenHeader, gardenTabs, hdr, hero, input, kindCards, kv, listRow, meter, offerCard, offerRow, ongoingOfferCard,
-  barPair, formCard, identityCard, imagePreview, mediaStack, mediaStrip, offerRecord, memberCard, memberRow, memberTrail, pagepad, pickRow, progressBlock, phoneFrame, seg, selCard, selRail, tabRail, unitLabel, poolFilters, commitmentCard, radio, reasonChips, requestCard, seasonCard, seasonSlide, sectionCard, sectionTitle, sheetOver, skeleton, stateChip, syncBar,
+  barPair, formCard, identityCard, imagePreview, mediaStack, mediaStrip, offerRecord, memberCard, memberRow, memberTrail, pagepad, pickRow, progressBlock, phoneFrame, seg, selCard, selRail, tabRail, unitLabel, poolFilters, commitmentCard, radio, reasonChips, requestCard, seasonCard, seasonSlide, searchField, sectionCard, sectionTitle, sheetOver, skeleton, stateChip, syncBar,
   teamOfferCard, teamstrip, timeline,
 } from "../kit";
 import type { HifiDef } from "./index";
@@ -1814,7 +1814,7 @@ const W2_HOTS: HifiDef["hots"] = {
 const W2B_STATES = [
   ["setup", "Before anyone accepts"],
   ["forming", "The team"], ["forming-service", "The team · a service"],
-  ["add-sheet", "Add people"],
+  ["add-sheet", "Add people"], ["add-sheet-search", "Add people · searching"], ["add-sheet-no-match", "Add people · nobody matches"],
   ["remove-contributor", "Remove someone"], ["assign-requirement", "Assign work"],
   ["open-eligible", "Open team · not joined"], ["join-submitted", "Open team · joining"],
   ["open-member", "Open team · joined"],
@@ -1880,26 +1880,65 @@ function w2b(state: W2bState): string {
       break;
     // The picker sheet, mirroring the shipped garden Gardeners list: scroll, tap
     // to select, one primary act. It replaces the old single-address text field.
+    // The picker gained search (2026-08-17 round 45, Afo). It had listed nine
+    // rows and then said "Rocinha has 23 gardeners, scroll for the rest",
+    // which is a lot of thumb for one name. The control mirrors the shipped
+    // RecipientPicker's plain full-width input (RecipientPicker.tsx:96-103) and
+    // rides the sheet's FIXED chrome, so it stays put while the list moves.
+    //
+    // It searches NAMES here, which that picker cannot: it notes at :54 that
+    // name search is limited to the ENS path because resolving every member
+    // across every garden is too costly. This list is one garden's roster, and
+    // it is already rendering those names, so matching them costs nothing more.
+    // Address matching stays, since a member with no name on file IS an address.
     case "add-sheet":
+    case "add-sheet-search":
+    case "add-sheet-no-match": {
+      const searching = state !== "add-sheet";
+      const matched = state === "add-sheet-search";
+      const rows = matched
+        // "to" matches Tomás by name and 0x74…c2 by address, which is the point
+        // of searching both: you rarely know which one a person shows up as.
+        ? hot("w2b.pick", memberRow({ name: "Tomás", sub: "tomas.eth", joined: "Joined Jul 2025", select: "on" })) +
+          memberRow({ name: "0x74…c2", joined: "Joined Aug 2025", select: "off" })
+        : memberRow({ name: "Sofia", sub: "sofia.eth", joined: "Joined Mar 2025", select: "off" }) +
+          hot("w2b.pick", memberRow({ name: "João", sub: "joao.eth", joined: "Joined Jan 2025", badge: "Steward", select: "on" })) +
+          memberRow({ name: "Luz", sub: "luz.eth", joined: "Joined Feb 2025", select: "off" }) +
+          memberRow({ name: "0x74…c2", joined: "Joined Aug 2025", select: "off" }) +
+          memberRow({ name: "Tomás", sub: "tomas.eth", joined: "Joined Jul 2025", select: "off" }) +
+          memberRow({ name: "Beatriz", sub: "bea.eth", joined: "Joined Apr 2025", select: "off" }) +
+          memberRow({ name: "Chidi", sub: "chidi.eth", joined: "Joined May 2025", badge: "Steward", select: "off" }) +
+          memberRow({ name: "0x1f…9a", joined: "Joined Aug 2025", select: "off" }) +
+          memberRow({ name: "Leila", sub: "leila.eth", joined: "Joined Feb 2025", select: "off" });
+      const body =
+        state === "add-sheet-no-match"
+          ? emptyState(
+              "search-line",
+              "Nobody here by that name",
+              "Only gardeners of Rocinha can join this commitment. If someone is missing, they need to be welcomed into the garden first.",
+              hot("w2b.search-clear", btn("Clear the Search", { kind: "sec" })),
+            )
+          : `<div class="t-meta">${
+              matched ? "2 of 23 gardeners match." : "Everyone in Rocinha who can join this commitment."
+            }</div>${rows}${
+              matched ? "" : `<div class="t-meta">Rocinha has 23 gardeners. Search by name or wallet address to narrow the list.</div>`
+            }`;
       return phoneFrame(
         sheetOver(
           head + pagepad(formInfo("group-line", "The team", "Rocinha Community Garden · 3 on the team") + sectionCard("On the team", W2B_ROSTER(), { flush: true })),
           "Add to the team",
-          `<div class="t-meta">Everyone in Rocinha who can join this commitment.</div>` +
-            memberRow({ name: "Sofia", sub: "sofia.eth", joined: "Joined Mar 2025", select: "off" }) +
-            hot("w2b.pick", memberRow({ name: "João", sub: "joao.eth", joined: "Joined Jan 2025", badge: "Steward", select: "on" })) +
-            memberRow({ name: "Luz", sub: "luz.eth", joined: "Joined Feb 2025", select: "off" }) +
-            memberRow({ name: "0x74…c2", joined: "Joined Aug 2025", select: "off" }) +
-            memberRow({ name: "Tomás", sub: "tomas.eth", joined: "Joined Jul 2025", select: "off" }) +
-            memberRow({ name: "Beatriz", sub: "bea.eth", joined: "Joined Apr 2025", select: "off" }) +
-            memberRow({ name: "Chidi", sub: "chidi.eth", joined: "Joined May 2025", badge: "Steward", select: "off" }) +
-            memberRow({ name: "0x1f…9a", joined: "Joined Aug 2025", select: "off" }) +
-            memberRow({ name: "Leila", sub: "leila.eth", joined: "Joined Feb 2025", select: "off" }) +
-            `<div class="t-meta">Rocinha has 23 gardeners, scroll for the rest. Someone with no name on file shows their wallet address instead.</div>` +
-            hot("w2b.add-confirm", btn("Add 1 to the Team", { kind: "pri", full: true })),
+          body,
+          {
+            chrome: searchField("Search by name or address", {
+              value: searching ? (matched ? "to" : "zzz") : undefined,
+              hotId: "w2b.search",
+            }),
+            footer: state === "add-sheet-no-match" ? undefined : hot("w2b.add-confirm", btn("Add 1 to the Team", { kind: "pri", full: true })),
+          },
         ),
         { appBar: false },
       );
+    }
     case "remove-contributor":
       body =
         formInfo("user-line", "Remove Kwame?", "Only someone with no approved work, pending work, or proof credit can be removed") +
@@ -2007,6 +2046,8 @@ const W2B_HOTS: HifiDef["hots"] = {
   // DomainImpact-only, and a service commitment that chose a team policy at
   // creation finally has somewhere to manage it.
   "w2b.add": { l: "Add people", to: "screen:W2b@add-sheet", info: "Opens the picker sheet — the shipped garden Gardeners list, scrolled and tapped rather than one address typed into a field (Gardeners.tsx:74). Roster writes are online-only contract actions and never enter the offline field queue." },
+  "w2b.search": { l: "Search the garden", to: "screen:W2b@add-sheet-search", info: "Matches name AND wallet address. The shipped RecipientPicker searches address or garden name only, noting at :54 that resolving every member's name across every garden is too costly — this list is one garden's roster and already renders those names, so matching them costs nothing more. Address matching stays because a member with no name on file IS an address. The field rides the sheet's fixed chrome, so it does not scroll away from the list it filters (round 45)." },
+  "w2b.search-clear": { l: "Clear the search", to: "screen:W2b@add-sheet", info: "Returns the full roster. The no-match state offers this rather than leaving a dead end, and it names the real remedy: only garden members can join, so someone missing has to be welcomed into the garden first." },
   "w2b.pick": { l: "Select a person", info: "Tap to select. The sheet mirrors the shipped member row: avatar, name, subline, joined date, badge — and a wallet address stands in as the name only when nothing better is on file, which is that component's own resolution order." },
   "w2b.add-confirm": { l: "Add to the team", to: "screen:W2b@forming", info: "Calls addContributor for each selected garden member. Available on every accepted commitment, not just garden work; wallet rejection or a roster-cap/freeze error leaves the selection visible for retry.", calls: ["addContributor"], facts: { commitment: "Accepted" } },
   "w2b.remove": { l: "Remove someone", to: "screen:W2b@remove-contributor", info: "Lead-managed rosters only: a named confirmation for an uncredited non-lead contributor with no pending linked work. Open-team members leave themselves." },
