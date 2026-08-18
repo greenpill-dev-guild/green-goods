@@ -15,6 +15,36 @@ import {
 import { fundingIndexId, poolingEntityId } from "./commitment-pool-projections";
 import { normalizeAddress } from "./shared";
 import { linkPayoutPlanToCommitment } from "./settlement-funding-reconciliation";
+import type { CreditContext } from "./credit-registry-projections";
+
+async function syncLinkedLoanAttempt(
+  context: CreditContext,
+  chainId: number,
+  relationshipEntityId: string,
+  relationship: { creditRegistry: string; loanId: bigint },
+  attempt: number,
+  timestamp: number
+): Promise<void> {
+  const loanEntityId = `${chainId}-${relationship.loanId}`;
+  const loan = await context.Loan.get(loanEntityId);
+  if (loan && loan.creditRegistry === relationship.creditRegistry) {
+    context.Loan.set({
+      ...loan,
+      settlementRelationshipEntityId: relationshipEntityId,
+      attempts: attempt,
+      updatedAt: Math.max(loan.updatedAt, timestamp),
+    });
+  }
+  const creditProjection = await context.CreditLoanProjection.get(loanEntityId);
+  if (creditProjection && creditProjection.creditRegistry === relationship.creditRegistry) {
+    context.CreditLoanProjection.set({
+      ...creditProjection,
+      settlementRelationshipEntityId: relationshipEntityId,
+      attempts: attempt,
+      updatedAt: Math.max(creditProjection.updatedAt, timestamp),
+    });
+  }
+}
 
 indexer.onEvent(
   { contract: "SettlementModule", event: "DisbursementQueued" },
@@ -173,36 +203,26 @@ indexer.onEvent(
   async ({ event, context }) => {
     const entityId = disbursementId(event.chainId, event.params.disbursementId);
     const creditRegistry = normalizeAddress(event.params.creditRegistry);
-    context.LoanPrincipalRelationship.set({
+    const relationship = {
       id: entityId,
       chainId: event.chainId,
       disbursementId: event.params.disbursementId,
       creditRegistry,
       loanId: event.params.loanId,
       updatedAt: event.block.timestamp,
-    });
-    const loanEntityId = `${event.chainId}-${event.params.loanId}`;
-    const loan = await context.Loan.get(loanEntityId);
-    if (loan && loan.creditRegistry === creditRegistry) {
-      const disbursement = await context.Disbursement.get(entityId);
-      context.Loan.set({
-        ...loan,
-        settlementRelationshipEntityId: entityId,
-        attempts: disbursement?.attempt ?? loan.attempts,
-        updatedAt: Math.max(loan.updatedAt, event.block.timestamp),
-      });
-    }
-    const creditProjection = await context.CreditLoanProjection.get(loanEntityId);
-    if (creditProjection && creditProjection.creditRegistry === creditRegistry) {
-      const disbursement = await context.Disbursement.get(entityId);
-      context.CreditLoanProjection.set({
-        ...creditProjection,
-        settlementRelationshipEntityId: entityId,
-        attempts: disbursement?.attempt ?? creditProjection.attempts,
-        updatedAt: Math.max(creditProjection.updatedAt, event.block.timestamp),
-      });
-    }
+    };
+    context.LoanPrincipalRelationship.set(relationship);
     const existing = await context.Disbursement.get(entityId);
+    if (existing) {
+      await syncLinkedLoanAttempt(
+        context,
+        event.chainId,
+        entityId,
+        relationship,
+        existing.attempt,
+        event.block.timestamp
+      );
+    }
     if (!existing) return;
     context.Disbursement.set({
       ...existing,
@@ -247,6 +267,17 @@ indexer.onEvent(
       reasonCID: existing.reasonCID,
       updatedAt: event.block.timestamp,
     });
+    const relationship = await context.LoanPrincipalRelationship.get(entityId);
+    if (relationship) {
+      await syncLinkedLoanAttempt(
+        context,
+        event.chainId,
+        entityId,
+        relationship,
+        Number(event.params.attempt),
+        event.block.timestamp
+      );
+    }
     if (!existing.payoutPlanEntityId) return;
     const plan = await context.CommitmentPayoutPlan.get(existing.payoutPlanEntityId);
     if (!plan) return;

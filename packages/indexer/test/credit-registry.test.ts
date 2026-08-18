@@ -1,4 +1,5 @@
 import assert from "assert";
+import type { Address } from "viem";
 
 import {
   Addresses,
@@ -11,12 +12,11 @@ import {
 
 const CHAIN_ID = 42161;
 const START_BLOCK = 433_713_812;
-const CREDIT_REGISTRY = "0x8080808080808080808080808080808080808080";
-const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
-const ZERO_BYTES32 = `0x${"0".repeat(64)}`;
+const CREDIT_REGISTRY: Address = "0x8080808080808080808080808080808080808080";
+const ZERO_ADDRESS: Address = "0x0000000000000000000000000000000000000000";
 
-function addr(index: number): string {
-  return Addresses.mockAddresses[index] || `0x${index.toString(16).padStart(40, "0")}`;
+function addr(index: number): Address {
+  return (Addresses.mockAddresses[index] || `0x${index.toString(16).padStart(40, "0")}`) as Address;
 }
 
 function txHash(index: number): string {
@@ -246,6 +246,61 @@ describe("CreditRegistry read model", () => {
       (await mockDb.Loan.get(`${CHAIN_ID}-23`))?.settlementRelationshipEntityId,
       undefined
     );
+  });
+
+  it("keeps linked loan attempts synchronized when a disbursement is requeued", async () => {
+    const loanId = 24n;
+    const disbursementId = 503n;
+    const events = loanLifecycle(loanId);
+    events.disbursed = CreditRegistry.LoanDisbursed.createMockEvent({
+      loanId,
+      rail: 3n,
+      token: addr(4),
+      amount: 100n,
+      disbursementId,
+      executionRef: txHash(Number(disbursementId)),
+      recordedBy: addr(5),
+      mockEventData: mockEvent(42),
+    });
+    const queued = SettlementModule.DisbursementQueued.createMockEvent({
+      disbursementId,
+      commitmentId: 0n,
+      garden: addr(2),
+      payoutPlanId: 0n,
+      contributor: ZERO_ADDRESS,
+      executorGarden: addr(2),
+      kind: 2n,
+      fundingRoute: 0n,
+      source: addr(5),
+      recipient: addr(3),
+      token: addr(4),
+      amount: 100n,
+      mockEventData: { ...mockEvent(40), srcAddress: undefined },
+    });
+    const relationship = SettlementModule.LoanPrincipalQueued.createMockEvent({
+      disbursementId,
+      creditRegistry: CREDIT_REGISTRY,
+      loanId,
+      mockEventData: { ...mockEvent(43), srcAddress: undefined },
+    });
+    const requeued = SettlementModule.DisbursementRequeued.createMockEvent({
+      disbursementId,
+      attempt: 2n,
+      mockEventData: { ...mockEvent(44), srcAddress: undefined },
+    });
+
+    const mockDb = await project([
+      events.requested,
+      events.approved,
+      events.disbursed,
+      queued,
+      relationship,
+      requeued,
+    ]);
+
+    assert.equal((await mockDb.Disbursement.get(`${CHAIN_ID}-${disbursementId}`))?.attempt, 2);
+    assert.equal((await mockDb.Loan.get(`${CHAIN_ID}-${loanId}`))?.attempts, 2);
+    assert.equal((await mockDb.CreditLoanProjection.get(`${CHAIN_ID}-${loanId}`))?.attempts, 2);
   });
 
   it("covers the frozen configuration, executor, pause, cancellation, and dependency events", async () => {

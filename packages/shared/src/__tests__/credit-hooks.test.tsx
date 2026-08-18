@@ -149,7 +149,22 @@ describe("Credit query hooks", () => {
     expect(result.current).not.toHaveProperty("data");
   });
 
-  it("keeps subject lists idle for unrelated viewers and clears cached rows after steward loss", async () => {
+  it("refetches a personal loan when the viewer identity changes", async () => {
+    const { result, rerender } = renderHookWithProviders(
+      ({ viewer }: { viewer: typeof VIEWER | typeof BORROWER }) =>
+        useCreditLoan({ chainId: 42161, loanId: 11n, viewer, isCurrentSteward: false }),
+      { initialProps: { viewer: VIEWER } }
+    );
+
+    await waitFor(() => expect(result.current.disclosure).toEqual({ status: "hidden" }));
+    expect(mocks.getCreditLoan).toHaveBeenCalledTimes(1);
+
+    rerender({ viewer: BORROWER });
+    await waitFor(() => expect(result.current.loan).toEqual(loan));
+    expect(mocks.getCreditLoan).toHaveBeenCalledTimes(2);
+  });
+
+  it("keeps subject lists idle for unrelated viewers and hides rows after steward loss", async () => {
     const unrelated = renderHookWithProviders(() =>
       useCreditSubjectLoans({
         chainId: 42161,

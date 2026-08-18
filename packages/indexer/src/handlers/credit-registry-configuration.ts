@@ -1,10 +1,8 @@
-import { indexer, type CreditRegistryConfiguration } from "envio";
+import type { CreditRegistryConfiguration } from "envio";
 
 import { cursorWins } from "./commitment-pool-projections";
-import { putLoanEvent, type CreditEvent } from "./credit-registry-projections";
+import { putLoanEvent, type CreditContext, type CreditEvent } from "./credit-registry-projections";
 import { normalizeAddress } from "./shared";
-
-type CreditContext = Parameters<Parameters<typeof indexer.onEvent>[1]>[0]["context"];
 
 function configurationId(chainId: number, registry: string): string {
   return `${chainId}-${normalizeAddress(registry)}`;

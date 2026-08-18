@@ -1,18 +1,20 @@
 import type { Address } from "../../types/domain";
 
-function normalizeAddress(value: Address | string): string {
+function normalizeAddress(value: Address): string {
   return value.toLowerCase();
 }
 
 export const creditKeys = {
   all: (chainId: number) => ["greengoods", "credit", chainId] as const,
-  loan: (chainId: number, loanId: bigint | string | number) =>
+  loanPrefix: (chainId: number, loanId: bigint | string | number) =>
     [...creditKeys.all(chainId), "loan", String(loanId)] as const,
+  loan: (chainId: number, loanId: bigint | string | number, viewer: Address) =>
+    [...creditKeys.loanPrefix(chainId, loanId), normalizeAddress(viewer)] as const,
   subjectLoans: (
     chainId: number,
     poolId: bigint | string | number,
-    subject: Address | string,
-    viewer: Address | string
+    subject: Address,
+    viewer: Address
   ) =>
     [
       ...creditKeys.all(chainId),
@@ -35,7 +37,7 @@ export function creditInvalidationKeys(input: {
   viewer?: Address;
 }) {
   const keys: ReadonlyArray<unknown>[] = [creditKeys.all(input.chainId)];
-  if (input.loanId !== undefined) keys.push(creditKeys.loan(input.chainId, input.loanId));
+  if (input.loanId !== undefined) keys.push(creditKeys.loanPrefix(input.chainId, input.loanId));
   if (input.poolId !== undefined) keys.push(creditKeys.poolStats(input.chainId, input.poolId));
   if (input.poolId !== undefined && input.borrower && input.viewer) {
     keys.push(creditKeys.subjectLoans(input.chainId, input.poolId, input.borrower, input.viewer));

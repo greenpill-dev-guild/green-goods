@@ -195,13 +195,16 @@ describe("Credit query and mutation boundaries", () => {
   it("isolates every Credit query key by chain and viewer", () => {
     const prefix = queryKeys.credit.all(42161);
     const keys = [
-      queryKeys.credit.loan(42161, 11n),
+      queryKeys.credit.loan(42161, 11n, BORROWER),
       queryKeys.credit.subjectLoans(42161, 7n, BORROWER, BORROWER),
       queryKeys.credit.poolStats(42161, 7n),
       queryKeys.credit.settlementRelationship(42161, 501n),
     ];
     for (const key of keys) expect(key.slice(0, prefix.length)).toEqual(prefix);
     expect(queryKeys.credit.all(42161)).not.toEqual(queryKeys.credit.all(42220));
+    expect(queryKeys.credit.loan(42161, 11n, BORROWER)).not.toEqual(
+      queryKeys.credit.loan(42161, 11n, VIEWER)
+    );
     expect(queryKeys.credit.subjectLoans(42161, 7n, BORROWER, BORROWER)).not.toEqual(
       queryKeys.credit.subjectLoans(42161, 7n, BORROWER, VIEWER)
     );
@@ -218,7 +221,7 @@ describe("Credit query and mutation boundaries", () => {
       })
     ).toEqual([
       queryKeys.credit.all(42161),
-      queryKeys.credit.loan(42161, 11n),
+      queryKeys.credit.loanPrefix(42161, 11n),
       queryKeys.credit.poolStats(42161, 7n),
       queryKeys.credit.subjectLoans(42161, 7n, BORROWER, BORROWER),
     ]);
