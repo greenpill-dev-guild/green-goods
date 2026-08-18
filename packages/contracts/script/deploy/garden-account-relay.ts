@@ -93,16 +93,21 @@ const GUARDIAN_INTERFACE = new Interface([
   "function setTrustedExecutor(address executor,bool trusted)",
 ]);
 
-type Command = "plan" | "verify" | "deploy";
+type Command = "plan" | "verify" | "deploy" | "adopt";
 
 /** Boundaries alternate chains, so every live read resolves its network from the plan, never a flag. */
 const NETWORK_BY_CHAIN: Readonly<Record<number, string>> = { [SOURCE_CHAIN_ID]: "arbitrum", [CELO_CHAIN_ID]: "celo" };
 const RELAY_BOUNDARIES = 4;
 const DEPLOYMENT_ARTIFACT = path.join(CONTRACTS_ROOT, "deployments/garden-account-relay.json");
 
+interface ImmutableSpan {
+  start: number;
+  length: number;
+}
+
 interface FoundryArtifact {
   bytecode?: { object?: string } | string;
-  deployedBytecode?: { object?: string } | string;
+  deployedBytecode?: { object?: string; immutableReferences?: Record<string, ImmutableSpan[]> } | string;
 }
 
 interface SafePlanEntry {
@@ -233,9 +238,9 @@ export interface RelayCliOptions {
 
 export function parseArguments(args: string[]): RelayCliOptions {
   const command = args[0] as Command | undefined;
-  if (!command || !["plan", "verify", "deploy"].includes(command)) {
+  if (!command || !["plan", "verify", "deploy", "adopt"].includes(command)) {
     throw new Error(
-      "Use: garden-account-relay.ts plan|verify|deploy [--safe-plan <runtime path>] [--plan <runtime path>]" +
+      "Use: garden-account-relay.ts plan|verify|deploy|adopt [--safe-plan <runtime path>] [--plan <runtime path>]" +
         " [--broadcast --step <1-4> [--receipt <prior boundary hash>]]",
     );
   }
@@ -267,6 +272,10 @@ export function parseArguments(args: string[]): RelayCliOptions {
     if (!broadcast) throw new Error("deploy requires --broadcast");
     if (step === undefined) throw new Error("deploy requires one explicit --step boundary");
     if (step === 1 && receipt) throw new Error("Step 1 has no prerequisite receipt");
+  } else if (command === "adopt") {
+    // Recovery only: a boundary that already mined but was never checkpointed.
+    if (broadcast) throw new Error("adopt never broadcasts and does not accept --broadcast");
+    if (step === undefined || !receipt) throw new Error("adopt requires --step and the mined --receipt for it");
   } else {
     if (broadcast) throw new Error(`${command} does not accept --broadcast`);
     if (step !== undefined || receipt !== undefined) throw new Error(`${command} does not accept --step or --receipt`);
@@ -582,8 +591,65 @@ async function relayTrusted(plan: GardenAccountRelayPlan, manager: NetworkManage
   return (await guardian.isTrustedExecutor(plan.relay.address)) as boolean;
 }
 
-async function runtimeHash(provider: JsonRpcProvider, address: string): Promise<string> {
-  return keccak256(await provider.getCode(address, "latest"));
+function immutableSpans(artifact: FoundryArtifact): ImmutableSpan[] {
+  const deployed = artifact.deployedBytecode;
+  if (typeof deployed === "string" || !deployed?.immutableReferences) return [];
+  return Object.values(deployed.immutableReferences).flat();
+}
+
+export function maskImmutables(runtimeHex: string, spans: readonly ImmutableSpan[]): string {
+  const bytes = Buffer.from(runtimeHex.slice(2), "hex");
+  for (const span of spans) bytes.fill(0, span.start, span.start + span.length);
+  return bytes.toString("hex");
+}
+
+/**
+ * Solidity writes immutables into the runtime at construction, so deployed code never equals the
+ * artifact's `deployedBytecode` byte for byte. The CREATE2 address already binds the exact init
+ * code, and therefore those immutable values; this proves the remaining bytes are the reviewed
+ * runtime and that the artifact has not drifted from the plan since it was reviewed.
+ */
+async function assertReviewedRuntime(
+  provider: JsonRpcProvider,
+  address: string,
+  artifactPath: string,
+  expectedArtifactHash: string,
+  label: string,
+): Promise<void> {
+  const artifact = readJson<FoundryArtifact>(artifactPath);
+  const reviewed = artifactHex(artifact.deployedBytecode, `${label} runtime code`);
+  if (keccak256(reviewed) !== expectedArtifactHash) {
+    throw new Error(`${label} artifact drifted from the reviewed plan`);
+  }
+  const onchain = await provider.getCode(address, "latest");
+  if (onchain === "0x") throw new Error(`${label} has no code at its deterministic address`);
+  if (onchain.length !== reviewed.length) {
+    throw new Error(`${label} runtime length differs from the reviewed artifact`);
+  }
+  const spans = immutableSpans(artifact);
+  if (maskImmutables(onchain, spans) !== maskImmutables(reviewed, spans)) {
+    throw new Error(`${label} runtime differs from the reviewed artifact outside its immutables`);
+  }
+}
+
+async function assertRouterRuntime(plan: GardenAccountRelayPlan, manager: NetworkManager): Promise<void> {
+  await assertReviewedRuntime(
+    providerFor(SOURCE_CHAIN_ID, manager),
+    plan.router.address,
+    ROUTER_ARTIFACT,
+    plan.router.runtimeCodeHash,
+    "Source router",
+  );
+}
+
+async function assertRelayRuntime(plan: GardenAccountRelayPlan, manager: NetworkManager): Promise<void> {
+  await assertReviewedRuntime(
+    providerFor(CELO_CHAIN_ID, manager),
+    plan.relay.address,
+    RELAY_ARTIFACT,
+    plan.relay.runtimeCodeHash,
+    "Celo relay",
+  );
 }
 
 /**
@@ -604,18 +670,14 @@ async function assertBoundaryPrecondition(
     }
     return;
   }
-  if ((await runtimeHash(source, plan.router.address)) !== plan.router.runtimeCodeHash) {
-    throw new Error("Source router runtime does not match the reviewed plan");
-  }
+  await assertRouterRuntime(plan, manager);
   if (step === 2) {
     if ((await celo.getCode(plan.relay.address, "latest")) !== "0x") {
       throw new Error("Celo relay already has code at its deterministic address");
     }
     return;
   }
-  if ((await runtimeHash(celo, plan.relay.address)) !== plan.relay.runtimeCodeHash) {
-    throw new Error("Celo relay runtime does not match the reviewed plan");
-  }
+  await assertRelayRuntime(plan, manager);
   const bound = await routerBinding(plan, manager);
   if (step === 3) {
     if (bound !== getAddress(ZeroAddress)) throw new Error("Source router destination is already bound");
@@ -633,17 +695,11 @@ async function assertBoundaryPostcondition(
   manager: NetworkManager,
 ): Promise<void> {
   if (step === 1) {
-    if (
-      (await runtimeHash(providerFor(SOURCE_CHAIN_ID, manager), plan.router.address)) !== plan.router.runtimeCodeHash
-    ) {
-      throw new Error("Source router deployment did not produce the reviewed runtime");
-    }
+    await assertRouterRuntime(plan, manager);
     return;
   }
   if (step === 2) {
-    if ((await runtimeHash(providerFor(CELO_CHAIN_ID, manager), plan.relay.address)) !== plan.relay.runtimeCodeHash) {
-      throw new Error("Celo relay deployment did not produce the reviewed runtime");
-    }
+    await assertRelayRuntime(plan, manager);
     return;
   }
   if (step === 3) {
@@ -744,6 +800,39 @@ function recordBoundary(
   });
 }
 
+/**
+ * Adopts a boundary that broadcast successfully but was never checkpointed, so a lane interrupted
+ * after a mined transaction can continue instead of trying to replay a consumed nonce. It verifies
+ * the same receipt and postcondition the executing path would have, and never signs anything.
+ */
+export async function adoptRelayBoundary(
+  plan: GardenAccountRelayPlan,
+  step: number,
+  minedReceipt: string,
+  planPath: string,
+): Promise<void> {
+  const transaction = plan.transactions[step - 1];
+  if (!transaction || transaction.step !== step) throw new Error(`Reviewed plan has no boundary ${step}`);
+  const checkpoint = loadRelayCheckpoint(planPath);
+  assertNextRelayBoundary(step, checkpoint.completed.length);
+  const manager = new NetworkManager();
+  const provider = providerFor(transaction.chainId, manager);
+  await assertReceiptMatchesBoundary(provider, minedReceipt, plan.sender, transaction, `${transaction.kind} receipt`);
+  await assertBoundaryPostcondition(plan, step, manager);
+  const receipt = await provider.getTransactionReceipt(minedReceipt);
+  if (!receipt) throw new Error(`${transaction.kind} receipt is not available`);
+  checkpoint.completed.push({
+    step,
+    kind: transaction.kind,
+    chainId: transaction.chainId,
+    transactionHash: minedReceipt,
+    blockNumber: receipt.blockNumber,
+  });
+  atomicWrite(checkpointPath(planPath), checkpoint);
+  recordBoundary(plan, step, minedReceipt, receipt.blockNumber);
+  process.stdout.write(`${transaction.kind} adopted as ${minedReceipt}; no transaction was signed or broadcast.\n`);
+}
+
 export async function executeRelayBoundary(
   plan: GardenAccountRelayPlan,
   step: number,
@@ -827,6 +916,17 @@ async function assertPlannedState(plan: GardenAccountRelayPlan): Promise<void> {
 
 export async function main(args = process.argv.slice(2)): Promise<void> {
   const options = parseArguments(args);
+
+  if (options.command === "adopt") {
+    if (!fs.existsSync(options.planPath)) throw new Error(`Reviewed plan is missing: ${options.planPath}`);
+    await adoptRelayBoundary(
+      readJson<GardenAccountRelayPlan>(options.planPath),
+      options.step as number,
+      options.receipt as string,
+      options.planPath,
+    );
+    return;
+  }
 
   if (options.command === "deploy") {
     if (!fs.existsSync(options.planPath)) throw new Error(`Reviewed plan is missing: ${options.planPath}`);

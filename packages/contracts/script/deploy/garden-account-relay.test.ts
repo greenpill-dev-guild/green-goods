@@ -7,6 +7,7 @@ import {
   assertNextRelayBoundary,
   buildDeterministicRelayPlan,
   loadRelayCheckpoint,
+  maskImmutables,
   parseArguments,
 } from "./garden-account-relay";
 
@@ -152,5 +153,43 @@ describe("relay boundary checkpointing", () => {
     checkpoint.completed[1].step = 3;
     fs.writeFileSync(checkpointPath, JSON.stringify(checkpoint));
     expect(() => loadRelayCheckpoint(planPath)).toThrow(/contiguous boundary prefix/);
+  });
+});
+
+describe("deployed runtime verification", () => {
+  /**
+   * Solidity writes immutables into the runtime at construction, so deployed code never equals the
+   * artifact byte for byte. Comparing raw hashes made every deployment look wrong.
+   */
+  it("ignores immutable spans and nothing else when comparing runtimes", () => {
+    const artifact = `0x${"aa".repeat(8)}${"00".repeat(4)}${"bb".repeat(8)}`;
+    const deployed = `0x${"aa".repeat(8)}${"cd".repeat(4)}${"bb".repeat(8)}`;
+    const spans = [{ start: 8, length: 4 }];
+
+    // Raw equality is what the broken check used, and it fails on a correct deployment.
+    expect(deployed).not.toEqual(artifact);
+    expect(maskImmutables(deployed, spans)).toEqual(maskImmutables(artifact, spans));
+
+    // A byte that differs outside the immutable span is still a real mismatch.
+    const tampered = `0x${"aa".repeat(7)}ff${"cd".repeat(4)}${"bb".repeat(8)}`;
+    expect(maskImmutables(tampered, spans)).not.toEqual(maskImmutables(artifact, spans));
+
+    // With no immutables declared the comparison stays exact.
+    expect(maskImmutables(deployed, [])).not.toEqual(maskImmutables(artifact, []));
+  });
+
+  it("requires an explicit step and mined receipt to adopt, and never broadcasts", () => {
+    const receipt = `0x${"ef".repeat(32)}`;
+    expect(parseArguments(["adopt", "--step", "1", "--receipt", receipt])).toMatchObject({
+      command: "adopt",
+      broadcast: false,
+      step: 1,
+      receipt,
+    });
+    expect(() => parseArguments(["adopt", "--step", "1"])).toThrow(/requires --step and the mined --receipt/);
+    expect(() => parseArguments(["adopt", "--receipt", receipt])).toThrow(/requires --step and the mined --receipt/);
+    expect(() => parseArguments(["adopt", "--broadcast", "--step", "1", "--receipt", receipt])).toThrow(
+      /never broadcasts/,
+    );
   });
 });
