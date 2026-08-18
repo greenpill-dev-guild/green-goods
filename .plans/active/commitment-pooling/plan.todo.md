@@ -1554,6 +1554,22 @@ Known mis-resolutions fixed in place: `contract-spec.md` §Grassroots-Economics-
     (compostCycle, CS:206), with a second gate rule guarding rest as a lifecycle verb. Full text:
     `uiux-spec.md` C.48.
 
+152. The assessment review (2026-08-18, round 47, Afo). The timing-first rebuild holds — step 1
+    derives the wire kind from attribution plus history rather than asking for it. Three gaps
+    closed. §6.6 keeps assessment a DIRECT attest with no offline queue, which makes failure the
+    only thing that can happen to it, and it was the only creation flow in the prototype with no
+    failure cast: `W14@attest-failed` keeps the entered values and says there is no queue holding
+    the attempt, and `W14@offline` says so at step 1 rather than after three steps of work,
+    because this form is not a draft. And no assessment could be READ anywhere across 44 screens
+    — the Assess stage listed rows that did not open, and writing a delta meant comparing against
+    a baseline you could not open. `W14@record` is the read view, an AdminDialog per the cockpit's
+    detail-flow rule, reached from the Assess row, the delta comparison, and W10's attach picker,
+    offering "Write a Re-assessment" since reading a baseline and writing its delta belong
+    together. Found while building it: w14's return named the two states allowed to set their own
+    advance, so any state added later silently rendered "Continue" and dropped its own button.
+    Left open and recorded: the duplicate-baseline rule and the Evaluator-hat gate are prose, not
+    states. Full text: `uiux-spec.md` C.49.
+
 **Final recursive certification clarification (2026-07-25; no new decision-register entry):**
 the published `42161`↔`42220` production lane is the only required fully paired
 `SettlementConfiguration`. Arbitrum Sepolia `421614` and Celo Sepolia `11142220` remain

@@ -1206,7 +1206,7 @@ function w8(state: W8State): string {
   // step 3's slot so the progress row and back-navigation stay valid.
   const stepIx = order.indexOf(state === "step3-no-protocol" ? "step3" : state);
   let inner: string;
-  let next: string;
+  let next = "";
   switch (state) {
     case "step2":
       inner = `${field("Unit", input("rides", { select: true }))}${field("Target", input("16"))}${field("Due", input("cycle deadline", { select: true }))}${hot("w8.contributor-policy", field("Contributor policy", radio([{ label: "Open team", meta: "eligible garden members may join" }, { label: "Lead-managed team", meta: "the lead or steward manages the roster", on: true }], { interactive: true, name: "seed-contributor-policy" })))}${banner("This campaign commitment is confirmed by proof, so it has no garden-work action requirements or assessment gate.", "stone")}`;
@@ -1484,7 +1484,9 @@ ${banner("This rail records a jar or treasury payment that happens outside the a
       actions = `${dismiss()}${hot("w10.resolve", btn("Resolve", { kind: "pri" }))}`;
       break;
     case "attach-assessment":
-      body = `${field("Assessment", hot("w10.assessment-pick", radio([{ label: "Baseline, AGRO, Jul 2", meta: "v3 · provider garden", on: true }, { label: "Delta, AGRO+EDU, Jul 9", meta: "v3" }], { interactive: true, name: "assessment" })))}${banner("Only current assessments recorded for the provider garden appear here.", "stone")}`;
+      // Attaching an assessment to a commitment means vouching that it applies,
+      // which you cannot judge from "Baseline, AGRO, Jul 2" alone (round 47).
+      body = `${field("Assessment", hot("w10.assessment-pick", radio([{ label: "Baseline, AGRO, Jul 2", meta: "v3 · provider garden", on: true }, { label: "Delta, AGRO+EDU, Jul 9", meta: "v3" }], { interactive: true, name: "assessment" })))}<div class="brow">${hot("w10.read-assessment", btn("Read This Assessment", { kind: "ghost", sm: true, icon: "eye-line" }))}</div>${banner("Only current assessments recorded for the provider garden appear here.", "stone")}`;
       actions = `${dismiss()}${hot("w10.attach", btn("Attach", { kind: "pri" }))}`;
       break;
     case "accepted":
@@ -1612,6 +1614,7 @@ const W10_HOTS: HifiDef["hots"] = {
   "w10.resolve-options": { l: "Resolution outcomes", info: "This contributor-steward fixture exposes RestorePrevious / Cancelled / Expired only. Fulfilled is hidden because the on-chain SelfConfirmation guard would reject this actor; eligible non-contributor stewards receive the separately gated Fulfilled option (CS:144)." },
   "w10.resolve": { l: "Resolve", to: "screen:W2@ready-confirmer", info: "This fixture selects RestorePrevious, returning the exact stored ReadyForConfirmation state with no unit movement (LAP:186).", calls: ["resolveDispute"], resultFacts: { commitment: "ReadyForConfirmation" } },
   "w10.assessment-pick": { l: "Assessment picker", info: "Attach re-runs the auto-Ready check → CommitmentReadyForConfirmation (CS:235)." },
+  "w10.read-assessment": { l: "Read this assessment", to: "screen:W14@record", info: "Attaching an assessment to a commitment vouches that it applies, which nobody can judge from a one-line label. The read view arrived round 47." },
   "w10.attach": { l: "Attach assessment", to: "screen:W2@ready-confirmer", info: "attachAssessment → auto-Ready re-run (UX:287). Library-only state (2026-08-16 decision 4): the per-commitment assessment gate stays Hub/evaluator-side for v1, so no steward journey walks this — drawn for on-chain state coverage (the module call exists, ICommitmentPoolingModule:930).", calls: ["attachAssessment"] },
   "w10.send-confirmation": { l: "Send for confirmation", to: "screen:W2@support-ready-confirmer", info: "Evidence-only records expose Send for confirmation to eligible creator/counterparty/steward; the member result keeps the SupportService cast (UX:294).", calls: ["submitForConfirmation"] },
   "w10.mark-override": { l: "Mark ready with override", to: "screen:W10@mark-ready-override", info: "Steward-only, separate from Send for confirmation; requires a visible reason (UX:294)." },
@@ -1966,10 +1969,14 @@ function w13(state: W13State): string {
     // leaving that flow has a real place to land instead of the Confirm tab.
     inner = acard(
       "Assessments",
+      // Recorded rows open (round 47). They had listed assessments you could
+      // not read, on the one stage whose whole subject is assessments.
       `${commitmentRow({
         title: "Rocinha · starting record",
         chips: `${chip("AGRO", "domain")}${chip("Recorded", "ok", { dot: true })}`,
         meta: "Dr. Chen · for the garden · recorded Jul 2",
+        hotId: "w13.open-assessment",
+        chevron: true,
       })}
 ${commitmentRow({
         title: "Awka Hub · season close",
@@ -2070,6 +2077,7 @@ const W13_HOTS: HifiDef["hots"] = {
   "w13.retry": { l: "Try again", info: "Read recovery for the confirmation queue, added round 46. A steward whose queue failed to load previously saw an empty stage, which reads as “nothing waiting on you” — the opposite of the truth." },
   "w13.chip": { l: "Commitment-context chip (W13b)", info: "Work cards show which commitment they fulfill; approval rails untouched (UX:285)." },
   "w13.new-assessment": { l: "Create assessment", to: "screen:W14", info: "Opens the existing Create Assessment flow, which §6.6 extends rather than forks." },
+  "w13.open-assessment": { l: "Read a recorded assessment", to: "screen:W14@record", info: "The Assess stage had listed assessments that did not open, on the one stage whose whole subject is assessments (round 47)." },
   "w13.approve": { l: "Approve work", info: "Uses the existing WorkApproval rail; the context chip only links this work back to its commitment." },
   "w13.reject": { l: "Reject work", info: "Uses the existing work-rejection rail with its normal reason capture." },
 };
@@ -2081,6 +2089,8 @@ const W13_HOTS: HifiDef["hots"] = {
 const W14_STATES = [
   ["baseline", "For the garden — starting record"], ["delta", "For the season — at the close"],
   ["kernel", "2 · Strategy Kernel"], ["harvest", "3 · Actions & Harvest"],
+  ["offline", "1 · No signal"], ["attest-failed", "3 · Attest failed"],
+  ["record", "A recorded assessment"],
   ["discard", "Discard changes?"],
 ] as const;
 type W14State = (typeof W14_STATES)[number][0];
@@ -2117,6 +2127,35 @@ function w14(state: W14State): string {
       "admin.greengoods.app/hub/assess",
       discardDialog(hubBehind(), "hub", "w14.keep-editing", "w14.discard-confirm", "This assessment hasn't been recorded yet"),
     );
+  // The recorded assessment, readable at last (2026-08-18 round 47, Afo). Every
+  // surface that referenced one offered a bare label — the Assess stage listed
+  // rows that did not open, the delta step asked you to compare against
+  // "Starting record, AGRO, Jul 2" without letting you read it, and W10's
+  // attach picker offered the same. Writing a delta means comparing against a
+  // baseline, so being unable to open the baseline was the sharpest of them.
+  // A dialog rather than a route: the cockpit hosts every detail and inspection
+  // flow in a centered AdminDialog (prompt-contract § Overlays).
+  if (state === "record")
+    return deskWin(
+      "admin.greengoods.app/hub/assess",
+      adminDialogM3(hubBehind(), "hub", {
+        title: "Rocinha · starting record",
+        body:
+          `<div class="crow">${chip("AGRO", "domain")}${chip("Baseline", "ok", { dot: true })}${chip("v3", "ink")}</div>` +
+          kv("Attested by", "Dr. Chen · Evaluator Hat · Jul 2") +
+          kv("For", "This garden overall · before the first season opened") +
+          kv("Reporting period", "Jun 1 – Aug 30") +
+          `<div class="t-sec">Strategy kernel</div>` +
+          kv("Diagnosis", "Compacted beds after the first rains") +
+          kv("Outcomes sought", "Soil structure recovers before planting") +
+          kv("Complexity", "Simple") +
+          `<div class="t-sec">Actions &amp; harvest</div>` +
+          kv("Actions", "Pruning sessions · Composting") +
+          banner("This is the record a re-assessment compares against. Nothing here can be edited; a correction is a new assessment that references this one.", "stone", "shield-check-line"),
+        actions: `${hot("w14.record-close", btn("Close", { kind: "ghost" }))}${hot("w14.record-compare", btn("Write a Re-assessment", { kind: "pri" }))}`,
+        closeHot: "w14.record-close",
+      }),
+    );
   let inner: string;
   let current: number;
   let next: string;
@@ -2129,13 +2168,34 @@ ${field("Complexity", radio([{ label: "Simple", on: true }, { label: "Complicate
 ${banner("The existing Create Assessment steps continue unchanged from here. Nothing on this step is new to v3.", "stone")}`;
     back = "w14.back-kernel";
     next = hot("w14.continue-kernel", btn("Continue", { kind: "pri" }));
-  } else if (state === "harvest") {
+  } else if (state === "harvest" || state === "attest-failed") {
     current = 2;
+    const failed = state === "attest-failed";
     inner = `${field("Actions", `<div class="arow"><div class="grow">Pruning sessions</div>${chip("Selected", "ok", { dot: true })}</div><div class="arow"><div class="grow">Composting</div>${chip("Selected", "ok", { dot: true })}</div>`)}
 ${field("Reporting period", `<div class="arow"><div class="grow">${input("Jun 1", { ariaLabel: "Reporting period start" })}</div><div class="grow">${input("Aug 30", { ariaLabel: "Reporting period end" })}</div></div>`)}
-${banner("Attesting records the assessment with its cycle reference and timing; the KarmaGAP milestone mirrors it.", "stone")}`;
+${
+      failed
+        // §6.6: "Remains a direct attest (no offline queue); failure surfaces
+        // inline per the existing flow." This flow was the ONLY creation path
+        // that cannot fall back to a queue, and the only one with no failure
+        // cast at all (round 47) — so the one thing that can happen to it was
+        // the one thing never drawn. Everything entered stays on the step.
+        ? banner("The attestation didn't go through. Nothing was recorded, and everything you entered is still here. Attesting is a direct signature, so there is no queue holding it.", "error", "error-warning-line")
+        : banner("Attesting records the assessment with its cycle reference and timing; the KarmaGAP milestone mirrors it.", "stone")
+    }`;
     back = "w14.back-harvest";
-    next = hot("w14.attest", btn("Attest Assessment", { kind: "pri" }));
+    next = failed
+      ? hot("w14.attest-retry", btn("Try Attesting Again", { kind: "pri", icon: "refresh-line" }))
+      : hot("w14.attest", btn("Attest Assessment", { kind: "pri" }));
+  } else if (state === "offline") {
+    // Said BEFORE the three steps, not after them. Every other creation flow
+    // queues when there is no signal; this one cannot, so the honest move is to
+    // stop someone filling a form they will not be able to submit (round 47).
+    current = 0;
+    inner = `${banner("No signal. An assessment is attested directly, so it cannot be saved to send later the way work and commitments can. Come back to this when you are connected.", "amber", "wifi-off-line")}
+${field("Domain", input("AGRO", { select: true }))}${field("Title", input("Rains-season soil recovery"))}
+${kv("What happens to this", "Nothing is kept. This form is not a draft.")}`;
+    next = hot("w14.offline-retry", btn("Check Again", { kind: "sec", icon: "refresh-line" }));
   } else {
     current = 0;
     const forField = hot(
@@ -2159,7 +2219,11 @@ ${banner("Attesting records the assessment with its cycle reference and timing; 
     );
     const compare =
       state === "delta"
-        ? field("Compared with", input("Starting record, AGRO, Jul 2", { select: true }))
+        // The comparison is readable now (round 47). Picking a baseline from a
+        // dropdown you cannot open is asking someone to write a delta against
+        // a record they have not seen.
+        ? field("Compared with", input("Starting record, AGRO, Jul 2", { select: true })) +
+          `<div class="brow">${hot("w14.open-record", btn("Read the Starting Record", { kind: "ghost", sm: true, icon: "eye-line" }))}</div>`
         : banner("One starting record per garden, cycle, and domain, a duplicate attempt points at the existing one.", "stone");
     inner = `${field("Domain", input("AGRO", { select: true }))}${field("Title", input("Rains-season soil recovery"))}${forField}${whenRadio}${derived}${compare}`;
   }
@@ -2173,7 +2237,10 @@ ${banner("Attesting records the assessment with its cycle reference and timing; 
       body: inner,
       back,
       cancelHot: "w14.cancel",
-      next: state === "kernel" || state === "harvest" ? next! : hot("w14.continue", btn("Continue", { kind: "pri" })),
+      // Whatever the branch set, or Continue. This had named the two states
+      // allowed to set their own advance, so every later state silently
+      // rendered "Continue" and dropped the button it had built (round 47).
+      next: next || hot("w14.continue", btn("Continue", { kind: "pri" })),
     }),
   );
 }
@@ -2187,6 +2254,11 @@ const W14_HOTS: HifiDef["hots"] = {
   "w14.continue-kernel": { l: "Continue to Actions & Harvest", to: "screen:W14@harvest", info: "Strategy Kernel → the existing Actions & Harvest step." },
   "w14.back-harvest": { l: "Back to Strategy Kernel", to: "screen:W14@kernel", info: "Steps back with everything entered so far retained." },
   "w14.attest": { l: "Attest assessment", to: "screen:W13@assess", info: "Records the EAS attestation with its derived kind, comparison pointer, cycle reference, and reporting period, then returns to the Hub Assess stage." },
+  "w14.attest-retry": { l: "Try attesting again", to: "screen:W13@assess", info: "Re-signs from the same entered values. §6.6 keeps this a direct attest with no offline queue, so a failure leaves nothing pending — there is no job to resume, only a signature to repeat (round 47)." },
+  "w14.offline-retry": { l: "Check again", to: "screen:W14", info: "Rechecks connectivity before letting anyone fill a form they cannot submit. Assessment is the only creation flow that cannot queue, so it warns first rather than failing last." },
+  "w14.record-close": { l: "Close", to: "screen:W13@assess", info: "Returns to the Assess stage. A recorded assessment is read-only; a correction is a new assessment referencing this one." },
+  "w14.record-compare": { l: "Write a re-assessment", to: "screen:W14@delta", info: "Opens the creation flow with this record already chosen as the comparison. Reading the baseline and writing its delta belong together, which is why the read view offers the act." },
+  "w14.open-record": { l: "Open the recorded assessment", to: "screen:W14@record", info: "The read view, added round 47. Every surface that referenced an assessment offered only a bare label — you were asked to compare against a record you could not open." },
   "w14.cancel": { l: "Cancel assessment", to: "screen:W14@discard", info: "A dirty flow confirms before discarding — the shared useDirtyClose / DiscardChangesDialog guard, scoped to this flow." },
   "w14.keep-editing": { l: "Keep editing", to: "screen:W14", info: "Returns to the assessment flow with the entered values intact." },
   "w14.discard-confirm": { l: "Discard", to: "screen:W13@assess", info: "Leaves the assessment flow and returns to the Hub Assess stage the flow opened over — not the Confirm stage." },

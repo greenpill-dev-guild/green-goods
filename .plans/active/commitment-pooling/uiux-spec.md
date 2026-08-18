@@ -2969,3 +2969,48 @@ honest word was already in the contract: a cycle's terminal transition is Reconc
 via `compostCycle(cycleId)` (`contract-spec.md:206`). Step 4 is **Compost**. The C.27 gate missed
 this because its pattern requires "offer" nearby; a second rule now guards rest as a lifecycle
 verb against cycle, season, campaign and pool, leaving "the rest of the list" legal.
+
+### C.49 The assessment review (2026-08-18, round 47)
+
+The timing-first rebuild holds: step 1 asks what the assessment is *for* and *when*, and derives
+the wire kind from attribution plus history rather than making a steward pick "baseline vs delta".
+The rail draws the three shipped steps, honouring §6.6's "extend, not fork". Three gaps.
+
+**The one flow that cannot queue had no failure state.** §6.6: *"Remains a direct attest (no
+offline queue); failure surfaces inline per the existing flow."* Every sibling creation flow has
+its failure cast — `W32@save-failed`, `W2a@failed`, `W4@not-yet-failed`, W3's queued and failed —
+and assessment, the only one that *cannot* fall back to a queue, had none. Failure is therefore
+the only thing that can happen to it, and it was the only thing never drawn.
+`W14@attest-failed` keeps everything entered on the step and says plainly that there is no queue
+holding the attempt.
+
+**And no offline state.** Same root, opposite end: `W14@offline` says so at **step 1**, before
+three steps of work, because this form is not a draft and nothing is kept. Every other flow can
+promise to send later; this one has to be honest that it cannot.
+
+**No assessment could be read, anywhere.** Across all 44 screens no state rendered a recorded
+assessment's contents. The Assess stage listed rows that did not open — on the one stage whose
+whole subject is assessments. The sharpest consequence sat inside the flow itself: **writing a
+delta means comparing against a baseline, and the baseline could not be opened.** Step 1 asked
+you to pick *"Compared with: Starting record, AGRO, Jul 2"* from a dropdown with no way to read
+what it said, and W10's attach picker offered the same bare labels while asking you to vouch that
+an assessment applies to a commitment.
+
+`W14@record` is that view — domain, kind, who attested and under which hat, what it was for,
+reporting period, the strategy kernel, and the actions. Read-only, because a correction is a new
+assessment referencing this one. It is an `AdminDialog`, per the cockpit rule that every detail
+and inspection flow is a centered dialog, and it is reached from all three places that referenced
+an assessment: the Assess stage row, the delta step's comparison, and W10's attach picker. It
+offers **Write a Re-assessment**, since reading a baseline and writing its delta belong together.
+
+**A latent trap found while building it.** `w14`'s return read
+`next: state === "kernel" || state === "harvest" ? next! : hot("w14.continue", …)` — it named the
+two states allowed to set their own advance, so any state added later silently rendered "Continue"
+and dropped the button it had built. Both new states hit it. It is `next || <default>` now.
+
+**Not taken this round** (recorded, still open): the duplicate-baseline rule and the
+Evaluator-hat gate are both described in prose but never drawn. §6.6 says the form *validates* one
+baseline per (garden, cycle, domain) and *points duplicates at the existing record*; today a banner
+describes that and no state shows it fire. Delta renders only for Evaluator-hat holders per
+`contract-spec.md:760-761`, but the When radio is fully interactive, so a steward without the hat
+can walk to step 3 before being refused. W11 draws both of these correctly for its own rules.
