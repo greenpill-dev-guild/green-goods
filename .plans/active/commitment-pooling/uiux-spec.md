@@ -2808,3 +2808,67 @@ product; the Hub stays the desk tool.
 name ever fit them. They live at composer step 1 now — "start from something saved" beside the
 template chips, with the save flow (W32) entered from the same row. The sheet's subtitle also
 gained the missing third relationship: you *ask for* things here too, not only offer and take up.
+
+### C.43 The sheet is four regions, and acts live in the footer (2026-08-17, round 43)
+
+Afo: *"I'm not able to scroll on the different tabs and the whole tabs right now are scrolling
+when they should be fixed."*
+
+**One root cause under three complaints.** The shipped `ModalDrawer` is a four-part panel; the
+prototype had collapsed it into two.
+
+| shipped (`ModalDrawer.tsx:113-193`) | | prototype before |
+|---|---|---|
+| `panel` — `h-modal`, **height 85dvh** | fixed size | `max-height:88%`, content-sized |
+| `header` — `flex-shrink-0` | fixed | `.sh-t` title only |
+| `tabs` — `flex-shrink-0` | fixed | **inside the scroll body** |
+| `content` — `flex-1 min-h-0` | the only scroller | held subtitle + tabs + content |
+| `footer` — `flex-shrink-0`, safe-area | fixed | **absent** |
+
+So the tabs scrolled because `commitmentsShell` passed the subtitle and rail as part of `inner`;
+the confirmation sheet was a different height because `.sheet` is a max-height while
+`.sheet.drawer` is a height; and with no footer, W4 stacked two full-width buttons inline at the
+end of its content. That last one is the shape the validator's one-row rule forbids — it escaped
+the check only by not being inside an `actionBar` at all.
+
+`sheetOver` now takes `sub`, `tabs`, `footer` and `close`. Only the content scrolls, verified:
+body 585px clipped to 542px with the rail moving **0px**. Both sheets measure **574px**.
+
+**The tab rail adopts the shipped anatomy** — full-width equal segments with a 2px indicator and
+a rule beneath, not the pill segment control — plus the close button the prototype's sheet never
+had. The direction chips stay in the scroller, with the list they filter, which is where the
+pool tab already puts them.
+
+### C.44 A hero is a moment, not a state (2026-08-17, round 43)
+
+Measured on `W2@fulfilled` at 390px: the identity card ran **272 → 1318px**, and the status band
+sat at **1318px** — two screens below the fold, on *every* state, not just kept. Nothing about a
+status message wants to be read after the people and the progress bars.
+
+Status now sits above the identity card (**272px**), and `W2@fulfilled` draws a compact kept row
+rather than a hero. `W4@confirmed` keeps the full celebration, because that is when it happens.
+Re-firing a hero every time someone opens a finished commitment stops it meaning anything. The
+settled states already drew the compact form, so this makes `fulfilled` consistent with them.
+
+### C.45 Every act in the bar, and the sheet's two answers (2026-08-17, round 43)
+
+**Team.** `W2b@forming` rendered **"Add People" twice from the same hotspot** — secondary inside
+the roster card, primary in the bar — alongside "Assign Work" and "Remove Someone" also embedded
+in the card. That drifted back from round 19's every-adder-in-the-bar rule. All three are in the
+bar now, using round 31's `.fbrow` shape: primary on its own row, the two rarer acts on a second
+row. Three buttons sharing one line is what failed in round 31; two rows is not that.
+
+`setup`'s primary was **"Save and Go Back"**, which named the navigation rather than the act —
+now "Save Team Settings". `recognition` is an explainer that had no way out but the back chevron,
+and now dismisses itself.
+
+**The not-yet label.** These sheets ask a question — *"Commitment kept?"*, *"Did the help
+arrive?"* — so the two buttons should be its two answers. "Confirm Help Arrived" is an answer;
+**"Tell the Stewards Why" named the next screen**. The label was already inconsistent: three
+states said it while `not-yet-request-work` said "Not Yet". Standardized on **"Not Yet"**, which
+is also the admin Hub's own word for this decision (§6.9).
+
+**Not changed, flagged.** The commitment view renders its title twice — once in `hdr`, once in
+the identity card. And the team picker lists nine rows then says *"Rocinha has 23 gardeners,
+scroll for the rest"* with no search; the shipped `Gardeners.tsx` has no search either, so adding
+one would be invention rather than mirroring.

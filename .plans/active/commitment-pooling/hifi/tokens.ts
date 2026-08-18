@@ -734,8 +734,36 @@ export const HIFI_CSS = `
   max-height:88%;
   box-shadow:0 -12px 40px rgba(14,18,27,.20),0 -2px 8px rgba(14,18,27,.10)}
 /* Tabbed drawers are a fixed panel: moving between Cookies / Tokens /
-   Commitments must not resize the surface under the reader's thumb. */
+   Commitments must not resize the surface under the reader's thumb.
+   Shipped is h-modal — height:85dvh, a HEIGHT and not a max-height
+   (utilities.css:345). Any sheet in the commitments arc takes it, so
+   confirming something does not resize the surface it opened from
+   (2026-08-17 round 43, Afo). */
 .hf .sheet.drawer{height:88%}
+/* Fixed header row: title block + the shipped close control. */
+.hf .sheet .sh-hd{display:flex;align-items:flex-start;gap:8px;flex:0 0 auto}
+.hf .sheet .sh-hd .grow{min-width:0;flex:1}
+.hf .sheet .sh-sub{font-size:12.5px;color:var(--stone);line-height:1.35;margin-top:2px}
+.hf .sheet .sh-x{width:36px;height:36px;border-radius:99px;border:1px solid var(--ln);background:var(--card);
+  color:var(--stone);display:inline-flex;align-items:center;justify-content:center;flex:none;margin-top:-2px}
+/* Fixed tab rail — shipped anatomy: equal full-width segments, a rule beneath,
+   a 2px indicator under the active one. Bleeds to the sheet's edge like the
+   scroll body does, so the rule spans the panel. */
+.hf .sheet .sh-tabs{display:flex;flex:0 0 auto;margin:2px -16px 0;border-bottom:1px solid var(--ln);background:var(--stone-bg)}
+.hf .sheet .shtab{flex:1 1 0;min-width:0;min-height:44px;position:relative;border:0;background:transparent;
+  color:var(--stone);font-size:12.5px;font-weight:600;padding:8px 6px;display:inline-flex;align-items:center;
+  justify-content:center;gap:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;opacity:1}
+.hf .sheet .shtab.on{color:var(--act);background:var(--card)}
+.hf .sheet .shtab .shind{position:absolute;left:0;right:0;bottom:0;height:2px;background:var(--act)}
+.hf .sheet .shtab .nbadge{min-width:16px;height:16px;border-radius:99px;background:var(--act);color:var(--on-act);
+  font-weight:700;font-size:10.5px;line-height:16px;text-align:center;padding:0 4px;flex:none}
+.hf .sheet .shtab.on .nbadge{background:var(--act);color:var(--on-act)}
+/* Fixed footer — the acts live here, never inline at the end of the content
+   (ModalDrawer.tsx:191 · pwaDrawerStyles.footer). Bleeds to the panel edge so
+   the rule spans it, and restores its own padding inside. */
+.hf .sheet .sh-foot{flex:0 0 auto;margin:0 -16px -14px;padding:12px 16px 14px;border-top:1px solid var(--ln);
+  background:var(--card)}
+.hf .sheet .sh-foot .fbar{position:static;padding:0;border:0;background:transparent}
 /* Only the body scrolls — the handle and title stay put. The negative margin
    puts the scrollbar at the sheet's edge rather than inside its padding. */
 .hf .sheet .sh-body{flex:1 1 auto;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;

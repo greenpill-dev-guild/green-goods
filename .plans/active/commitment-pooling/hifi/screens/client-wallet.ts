@@ -8,7 +8,7 @@ import { hot } from "../html";
 import { icon } from "../icons";
 import {
   actionBar, banner, btn, card, chip, disclosure, emptyState, field, flowHeader, formCard, formInfo, hdr, homeHeader, input, kv, listRow, mediaStack, mediaStrip, meter, offerRow, pagepad,
-  filterChips, phoneFrame, commitmentCard, commitmentSlide, radio, reasonChips, sectionCard, sectionTitle, seg, selCard, selRail, sheetOver, skeleton,
+  filterChips, phoneFrame, commitmentCard, commitmentSlide, radio, reasonChips, sectionCard, sectionTitle, seg, selCard, selRail, sheetOver, sheetTabs, skeleton,
 } from "../kit";
 import type { HifiDef } from "./index";
 import type { StateFacts } from "../types";
@@ -46,12 +46,12 @@ const WAITING_ON_YOU = 4;
 // the Commitments tab renders ComingSoonStub today
 // (views/Home/WalletDrawer/index.tsx:69).
 const walletShell = (inner: string, active: 0 | 1) =>
-  sheetOver(
-    homeHeader({ commitments: WAITING_ON_YOU }),
-    "Wallet",
-    `<div class="t-meta">Your jars and tokens.</div>${seg(["Cookies", "Tokens"], active)}${inner}`,
-    { handle: false },
-  );
+  sheetOver(homeHeader({ commitments: WAITING_ON_YOU }), "Wallet", inner, {
+    handle: false,
+    close: true,
+    sub: "Your jars and tokens.",
+    tabs: sheetTabs(["Cookies", "Tokens"], active),
+  });
 
 // The commitments sheet — same ModalDrawer anatomy as the wallet, opened from
 // its own Home header control. Round 40's tabs were the three objects a
@@ -95,13 +95,16 @@ const commitmentsShell = (
 ) => {
   const badges = opts.badges ?? {};
   const total = (badges[0] ?? 0) + (badges[1] ?? 0) + (badges[2] ?? 0);
-  const rail = seg(opts.steward ? ["Live", "Over time", "To confirm"] : ["Live", "Over time"], active, { badges });
-  return sheetOver(
-    homeHeader({ commitments: total || undefined }),
-    "Commitments",
-    `<div class="t-meta">What you've offered, asked for, and taken up across gardens.</div>${opts.segHot ? hot(opts.segHot, rail) : rail}${inner}`,
-    { handle: false },
-  );
+  const rail = sheetTabs(opts.steward ? ["Live", "Over time", "To confirm"] : ["Live", "Over time"], active, { badges });
+  // Title, subtitle and rail are FIXED chrome; only the list below them moves
+  // (2026-08-17 round 43, Afo). The direction chips scroll with the list they
+  // filter, which is where the pool tab already puts them.
+  return sheetOver(homeHeader({ commitments: total || undefined }), "Commitments", inner, {
+    handle: false,
+    close: true,
+    sub: "What you've offered, asked for, and taken up across gardens.",
+    tabs: opts.segHot ? hot(opts.segHot, rail) : rail,
+  });
 };
 
 function w5(state: W5State): string {

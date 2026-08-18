@@ -1632,14 +1632,20 @@ function w2(stateIn: W2State): string {
         `<div class="t-title">Confirmation waiting to send</div><div class="t-meta">Your saved confirmation is queued. This commitment stays ready and cannot be confirmed twice while it syncs.</div>`,
       );
       break;
+    // A hero is a MOMENT, not a state (2026-08-17 round 43, Afo). W4@confirmed
+    // keeps the full celebration, because that is when it happens. Coming back
+    // to a finished commitment days later gets a compact kept row instead —
+    // re-firing a hero on every visit stops it meaning anything, and measured
+    // at 390px the band sat 1318px down, below a ~1046px identity card, so the
+    // celebration was two screens past the fold anyway.
     case "fulfilled":
-      band = bandCard(hero("Commitment kept", "Confirmed by João · the season's count just grew", "checkbox-circle-fill"));
+      band = bandCard(`<div class="t-title">Commitment kept</div><div class="t-meta">Confirmed by João · Jul 12 · the season's count just grew</div>`);
       break;
     case "fulfilled-pool-fallback":
-      band = bandCard(hero("Commitment kept", "Confirmed by garden steward, fallback · the reason is in the timeline", "checkbox-circle-fill"));
+      band = bandCard(`<div class="t-title">Commitment kept</div><div class="t-meta">Confirmed by garden steward, fallback · the reason is in the timeline</div>`);
       break;
     case "fulfilled-protocol-fallback":
-      band = bandCard(hero("Commitment kept", "Confirmed by Green Goods team, fallback · the reason is in the timeline", "checkbox-circle-fill"));
+      band = bandCard(`<div class="t-title">Commitment kept</div><div class="t-meta">Confirmed by Green Goods team, fallback · the reason is in the timeline</div>`);
       break;
     case "expired":
       band = bandCard(
@@ -1693,7 +1699,12 @@ function w2(stateIn: W2State): string {
   // The state chip row is gone: the status card directly beneath it said the
   // same thing in words, and the kind and domain moved into Details as rows.
   // One statement of state per screen (2026-08-16 round 10).
-  const content = pagepad(
+  // Status sits ABOVE the identity card (2026-08-17 round 43, Afo). The band is
+  // scan-layer status — where this commitment is right now — and it was landing
+  // at 1318px on a 390px frame, under a ~1046px identity card, so on every
+  // state it was two screens past the fold. Nothing about a status message
+  // wants to be read after the people and the progress bars.
+  const status = pagepad(
     capturedChip,
     // bandCard emits its default badge; the lifecycle icon is swapped in here,
     // where the state is known, rather than threading it through 48 call sites.
@@ -1701,6 +1712,8 @@ function w2(stateIn: W2State): string {
       /<span class="fic"><svg[\s\S]*?<\/svg><\/span>/,
       `<span class="fic">${icon(W2_BAND_ICON[w2StateChip[state]] ?? "information-line")}</span>`,
     ),
+  );
+  const content = pagepad(
     w2Disclosures(state, {
       overrideNote: state === "captured" || state === "fulfilled",
       work: W2_WORK.has(state),
@@ -1713,7 +1726,7 @@ function w2(stateIn: W2State): string {
   if (state === "withdraw-confirm")
     return phoneFrame(
       sheetOver(
-        `${head}${meta}${content}`,
+        `${head}${status}${meta}${content}`,
         "Withdraw this offer?",
         `${banner("No one has taken this up yet. Withdrawing removes it from the pool; the record and your reason stay in the timeline.", "stone")}
 ${reasonChips(["Plans changed", "Already handled", "Made by mistake"])}
@@ -1743,7 +1756,7 @@ ${hot("w2.withdraw-send", btn("Withdraw This Offer", { kind: "danger", full: tru
         ? syncBar("1 confirmation waiting to send")
       : "";
   const bar = W2_BARS[state];
-  return phoneFrame(`${head}${meta}${content}<div style="flex:1"></div>${sync}`, {
+  return phoneFrame(`${head}${status}${meta}${content}<div style="flex:1"></div>${sync}`, {
     appBar: bar ? actionBar(bar) : false,
     offline: evidenceQueued || readinessQueued || confirmationQueued,
     overlay: previewing
@@ -1841,6 +1854,7 @@ function w2b(state: W2bState): string {
   const head = hdr("Team", { back: true });
   let body: string;
   let actions = "";
+  let secondary = "";
   switch (state) {
     // Before anyone accepts: the two things that can still be decided.
     case "setup":
@@ -1856,11 +1870,13 @@ function w2b(state: W2bState): string {
         banner("This is fixed when someone accepts. It cannot change afterwards.", "stone", "shield-check-line") +
         sectionCard(
           "Invited so far",
-          `${memberRow({ name: "João", sub: "joao.eth", joined: "Joined Jan 2025" })}${memberRow({ name: "Luz", sub: "luz.eth", joined: "Joined Feb 2025" })}<div class="brow" style="padding:0 12px 10px">${hot("w2b.add", btn("Add People", { kind: "sec", sm: true, icon: "add-line" }))}</div>`,
+          `${memberRow({ name: "João", sub: "joao.eth", joined: "Joined Jan 2025" })}${memberRow({ name: "Luz", sub: "luz.eth", joined: "Joined Feb 2025" })}`,
           { flush: true },
         ) +
         banner("Inviting someone does not give them credit. Approved work and proof do.", "stone", "information-line");
-      actions = hot("w2b.setup-done", btn("Save and Go Back", { kind: "pri", full: true }));
+      // "Save and Go Back" named the navigation rather than the act.
+      actions = hot("w2b.setup-done", btn("Save Team Settings", { kind: "pri", full: true }));
+      secondary = `<div class="fbrow">${hot("w2b.add", btn("Invite People", { kind: "ghost", sm: true, icon: "add-line" }))}</div>`;
       break;
     // The picker sheet, mirroring the shipped garden Gardeners list: scroll, tap
     // to select, one primary act. It replaces the old single-address text field.
@@ -1942,6 +1958,9 @@ function w2b(state: W2bState): string {
           `${detailRow("Approved work", "Work a steward approved, counted against this commitment")}${detailRow("Proof", "Photos, notes and follow-through attached to it")}${detailRow("Coordination", "Carrying the commitment as its accountable lead")}`,
         ) +
         banner("Each fulfilled commitment receives an equal budget; this cycle's policy shares 35% equally and 65% by verified contribution. A garden may later correct amounts with a recorded reason.", "stone", "information-line");
+      // An explainer with no way out but the back chevron; the persistence sheet
+      // already sets the pattern of dismissing itself (round 43).
+      actions = hot("w2b.recognition-done", btn("Got It", { kind: "pri", full: true }));
       break;
     // A service commitment's team — the same screen, proving the kind gate is
     // gone. Assign work is absent because a service names no actions.
@@ -1951,26 +1970,34 @@ function w2b(state: W2bState): string {
         sectionCard("How people join", detailRow("Lead-managed", "Maria or a steward manages who is on it"), { flush: true }) +
         sectionCard(
           "On the team",
-          `${memberRow({ name: "Maria", sub: "maria.eth", joined: "Joined Mar 2025", badge: "Lead" })}${memberRow({ name: "Tomás", sub: "tomas.eth", joined: "Joined Jul 2025", badge: "Planned" })}<div class="brow" style="padding:0 12px 10px">${hot("w2b.add", btn("Add People", { kind: "sec", sm: true, icon: "add-line" }))}</div>`,
+          `${memberRow({ name: "Maria", sub: "maria.eth", joined: "Joined Mar 2025", badge: "Lead" })}${memberRow({ name: "Tomás", sub: "tomas.eth", joined: "Joined Jul 2025", badge: "Planned" })}`,
           { flush: true },
         ) +
         W2B_POLICY +
         banner("A service has a team like any other commitment. Only garden work can assign someone to a named action.", "stone", "hand-heart-line");
+      // No Assign Work here: a service names no actions to point at, so the bar
+      // carries one act and needs no second row.
       actions = hot("w2b.add", btn("Add People", { kind: "pri", full: true }));
+      secondary = `<div class="fbrow">${hot("w2b.remove", btn("Remove Someone", { kind: "ghost", sm: true }))}</div>`;
       break;
     default: // forming
       body =
         formInfo("group-line", "The team", "Prune the north beds · 3 on the team") +
         sectionCard("How people join", detailRow("Lead-managed", "Maria or a steward manages who is on it"), { flush: true }) +
-        sectionCard(
-          "On the team",
-          `${W2B_ROSTER()}<div class="brow" style="padding:0 12px 10px">${hot("w2b.add", btn("Add People", { kind: "sec", sm: true, icon: "add-line" }))}${hot("w2b.assign", btn("Assign Work", { kind: "ghost", sm: true }))}${hot("w2b.remove", btn("Remove Someone", { kind: "ghost", sm: true }))}</div>`,
-          { flush: true },
-        ) +
+        sectionCard("On the team", W2B_ROSTER(), { flush: true }) +
         W2B_POLICY;
+      // Every act is in the bar, none embedded in the card (2026-08-17 round 43,
+      // Afo: "we're having actions be embedded in the view of a team when they
+      // should be in the action bar and we're repeating things like add people
+      // shows up in two places"). Add People had been rendered twice from the
+      // SAME hotspot — secondary inside the roster and primary in the bar —
+      // which also drifted back from round 19's every-adder-in-the-bar rule.
+      // The bar stacks: primary on its own row, the two rarer acts beneath it,
+      // which is round 31's .fbrow shape rather than three buttons on one line.
       actions = hot("w2b.add", btn("Add People", { kind: "pri", full: true }));
+      secondary = `<div class="fbrow">${hot("w2b.assign", btn("Assign Work", { kind: "ghost", sm: true }))}${hot("w2b.remove", btn("Remove Someone", { kind: "ghost", sm: true }))}</div>`;
   }
-  return phoneFrame(head + pagepad(body), { appBar: actions ? actionBar(actions) : undefined });
+  return phoneFrame(head + pagepad(body), { appBar: actions ? actionBar(actions, secondary || undefined) : undefined });
 }
 
 const W2B_HOTS: HifiDef["hots"] = {
@@ -1985,7 +2012,8 @@ const W2B_HOTS: HifiDef["hots"] = {
   "w2b.remove": { l: "Remove someone", to: "screen:W2b@remove-contributor", info: "Lead-managed rosters only: a named confirmation for an uncredited non-lead contributor with no pending linked work. Open-team members leave themselves." },
   "w2b.remove-cancel": { l: "Keep them", to: "screen:W2b@forming", info: "Returns without changing the roster." },
   "w2b.remove-confirm": { l: "Remove Kwame", to: "screen:W2b@forming", info: "Calls removeContributor online. The indexed roster changes only after confirmation; an Open policy, freeze, lead, pending-work or credit error keeps this confirmation available.", calls: ["removeContributor"], facts: { commitment: "Accepted" } },
-  "w2b.assign": { l: "Assign work", to: "screen:W2b@assign-requirement", info: "The ONE action that stays garden-work-only: requirement rows exist nowhere else, so a service has no named action to point someone at. Planning is not credit." },
+  "w2b.recognition-done": { l: "Got it", to: "screen:W2b@forming", info: "Dismisses the explainer. It had no way out but the back chevron (round 43)." },
+  "w2b.assign": { l: "Assign work", to: "screen:W2b@assign-requirement", info: "The ONE action that stays garden-work-only: requirement rows exist nowhere else, so a service has no named action to point someone at. Planning is not credit. It rides the bar's secondary row rather than sitting inside the roster card (round 43)." },
   "w2b.assign-cancel": { l: "Cancel", to: "screen:W2b@forming", info: "Returns without changing the assignment." },
   "w2b.assign-confirm": { l: "Save the assignment", to: "screen:W2b@forming", info: "Calls setContributorRequirement for the chosen contributor and requirement row. Wallet failure keeps both selections available for retry.", calls: ["setContributorRequirement"], facts: { commitment: "Accepted", kind: "DomainImpact" } },
   "w2b.join": { l: "Join this commitment", to: "screen:W2b@join-submitted", info: "Calls joinCommitment for an eligible Open-team gardener. A successful wallet submission lands pending; membership renders only after indexed roster confirmation, and joining never creates credit.", calls: ["joinCommitment"], facts: { commitment: "Accepted" } },
@@ -3159,25 +3187,39 @@ function w4(state: W4State): string {
   );
 
   let inner: string;
+  // The acts live in the sheet's fixed footer, never inline at the end of the
+  // scrolling content (2026-08-17 round 43, Afo). Stacking a full-width primary
+  // over a full-width secondary is the shape the one-row rule forbids inside an
+  // actionBar; being outside one is how it escaped the check. Two acts are equal
+  // halves (C.38), and the sheet asks a question, so the two buttons are its two
+  // answers: Confirm, or Not Yet. "Tell the Stewards Why" named the next screen
+  // rather than the act, and three of five states already said "Not Yet" — which
+  // is also the admin Hub's own word for this decision (uiux §6.9).
+  let bar = "";
   let title = "Commitment kept?";
   switch (state) {
     case "confirm-request":
       title = "Did the help arrive?";
-      inner = `${summary}${listRow({ icon: "image-line", primary: "Proof", meta: "1 item · photo from the market" })}${meter(0, { left: "confirmations", right: "0 of 1" })}${exclusion}${hot("w4.confirm-request", btn("Confirm Help Arrived", { kind: "pri", full: true }))}${hot("w4.not-yet-request", btn("Tell the Stewards Why", { kind: "sec", full: true }))}`;
+      inner = `${summary}${listRow({ icon: "image-line", primary: "Proof", meta: "1 item · photo from the market" })}${meter(0, { left: "confirmations", right: "0 of 1" })}${exclusion}`;
+      bar = barPair(hot("w4.confirm-request", btn("Confirm Help Arrived", { kind: "pri" })), hot("w4.not-yet-request", btn("Not Yet", { kind: "ghost" })));
       break;
     case "confirm-request-work":
       title = "Was the work you asked for done?";
-      inner = `${summary}${listRow({ icon: "check-line", primary: "Approved work", meta: "Weed × 2 · Mulch × 4, all approved by the stewards" })}${meter(0, { left: "confirmations", right: "0 of 1" })}${exclusion}${hot("w4.confirm-request-work", btn("Confirm the Work Was Done", { kind: "pri", full: true }))}${hot("w4.not-yet-request-work", btn("Not Yet", { kind: "sec", full: true }))}`;
+      inner = `${summary}${listRow({ icon: "check-line", primary: "Approved work", meta: "Weed × 2 · Mulch × 4, all approved by the stewards" })}${meter(0, { left: "confirmations", right: "0 of 1" })}${exclusion}`;
+      bar = barPair(hot("w4.confirm-request-work", btn("Confirm the Work Was Done", { kind: "pri" })), hot("w4.not-yet-request-work", btn("Not Yet", { kind: "ghost" })));
       break;
     case "confirm-campaign-request":
       title = "Did the Campaign help arrive?";
-      inner = `${summary}${listRow({ icon: "image-line", primary: "Proof", meta: "1 item · photo from the market" })}${meter(0, { left: "confirmations", right: "0 of 1" })}${exclusion}${hot("w4.confirm-campaign-request", btn("Confirm Help Arrived", { kind: "pri", full: true }))}${hot("w4.not-yet-campaign-request", btn("Tell the Stewards Why", { kind: "sec", full: true }))}`;
+      inner = `${summary}${listRow({ icon: "image-line", primary: "Proof", meta: "1 item · photo from the market" })}${meter(0, { left: "confirmations", right: "0 of 1" })}${exclusion}`;
+      bar = barPair(hot("w4.confirm-campaign-request", btn("Confirm Help Arrived", { kind: "pri" })), hot("w4.not-yet-campaign-request", btn("Not Yet", { kind: "ghost" })));
       break;
     case "confirm-support":
-      inner = `${summary}${listRow({ icon: "image-line", primary: "Proof", meta: "1 item · repaired handles" })}${meter(0, { left: "confirmations", right: "0 of 1" })}${exclusion}${hot("w4.confirm-support", btn("Confirm Commitment Kept", { kind: "pri", full: true }))}${hot("w4.not-yet-support", btn("Tell the Stewards Why", { kind: "sec", full: true }))}`;
+      inner = `${summary}${listRow({ icon: "image-line", primary: "Proof", meta: "1 item · repaired handles" })}${meter(0, { left: "confirmations", right: "0 of 1" })}${exclusion}`;
+      bar = barPair(hot("w4.confirm-support", btn("Confirm Commitment Kept", { kind: "pri" })), hot("w4.not-yet-support", btn("Not Yet", { kind: "ghost" })));
       break;
     case "confirm-captured":
-      inner = `${summary}${listRow({ icon: "image-line", primary: "Proof", meta: "1 item · workshop photo" })}${meter(0, { left: "confirmations", right: "0 of 1" })}${exclusion}${hot("w4.confirm-captured", btn("Confirm Commitment Kept", { kind: "pri", full: true }))}${hot("w4.not-yet-captured", btn("Tell the Stewards Why", { kind: "sec", full: true }))}`;
+      inner = `${summary}${listRow({ icon: "image-line", primary: "Proof", meta: "1 item · workshop photo" })}${meter(0, { left: "confirmations", right: "0 of 1" })}${exclusion}`;
+      bar = barPair(hot("w4.confirm-captured", btn("Confirm Commitment Kept", { kind: "pri" })), hot("w4.not-yet-captured", btn("Not Yet", { kind: "ghost" })));
       break;
     case "not-yet":
     case "not-yet-support":
@@ -3196,14 +3238,15 @@ function w4(state: W4State): string {
         : captured ? "The workshop has not happened yet…"
         : "The far bed is still overgrown…",
         { placeholder: false },
-      ))}${banner("This never cancels the commitment. Stewards review it, and every outcome shows its reason.", "stone")}${hot(
+      ))}${banner("This never cancels the commitment. Stewards review it, and every outcome shows its reason.", "stone")}`;
+      bar = hot(
         campaignRequest ? "w4.not-yet-send-campaign-request"
         : request ? "w4.not-yet-send-request"
         : support ? "w4.not-yet-send-support"
         : captured ? "w4.not-yet-send-captured"
         : "w4.not-yet-send",
         btn("Send to the Stewards", { kind: "pri", full: true }),
-      )}`;
+      );
       break;
     case "confirmed-pending":
     case "confirmed-pending-support":
@@ -3212,7 +3255,8 @@ function w4(state: W4State): string {
     case "confirmed-pending-campaign-request":
     case "confirmed-pending-captured":
       title = "Confirmation saved";
-      inner = `${meter(100, { left: "including this device", right: evidenceOnly ? "1 of 1 saved" : "3 of 3 saved" })}${listRow({ icon: "time-line", primary: "Your confirmation", chipHtml: chip("Waiting to send", "queued") })}${banner("Your confirmation is counted on this device. Fulfillment appears only after it syncs on-chain.", "stone", "wifi-off-line")}${hot(
+      inner = `${meter(100, { left: "including this device", right: evidenceOnly ? "1 of 1 saved" : "3 of 3 saved" })}${listRow({ icon: "time-line", primary: "Your confirmation", chipHtml: chip("Waiting to send", "queued") })}${banner("Your confirmation is counted on this device. Fulfillment appears only after it syncs on-chain.", "stone", "wifi-off-line")}`;
+      bar = hot(
         campaignRequest ? "w4.pending-campaign-request-done"
         : requestWork ? "w4.pending-request-work-done"
         : request ? "w4.pending-request-done"
@@ -3220,7 +3264,7 @@ function w4(state: W4State): string {
         : captured ? "w4.pending-captured-done"
         : "w4.pending-done",
         btn("Done", { kind: "sec", full: true }),
-      )}`;
+      );
       break;
     case "confirmed":
     case "confirmed-support":
@@ -3229,7 +3273,8 @@ function w4(state: W4State): string {
     case "confirmed-campaign-request":
     case "confirmed-captured":
       title = "Commitment kept";
-      inner = `${hero(request || campaignRequest ? "Help arrived" : "Commitment kept", support || campaignRequest ? "Confirmed · the Campaign's count just grew" : captured ? "Confirmed · the recorded commitment is fulfilled" : "Confirmed · the season's count just grew", "checkbox-circle-fill")}${hot(
+      inner = `${hero(request || campaignRequest ? "Help arrived" : "Commitment kept", support || campaignRequest ? "Confirmed · the Campaign's count just grew" : captured ? "Confirmed · the recorded commitment is fulfilled" : "Confirmed · the season's count just grew", "checkbox-circle-fill")}`;
+      bar = hot(
         campaignRequest ? "w4.done-campaign-request"
         : requestWork ? "w4.done-request-work"
         : request ? "w4.done-request"
@@ -3237,7 +3282,7 @@ function w4(state: W4State): string {
         : captured ? "w4.done-captured"
         : "w4.done",
         btn("Back to the Pool", { kind: "pri", full: true }),
-      )}`;
+      );
       break;
     case "not-yet-failed":
     case "not-yet-failed-support":
@@ -3251,14 +3296,15 @@ function w4(state: W4State): string {
         : captured ? "The workshop has not happened yet…"
         : "The far bed is still overgrown…",
         { placeholder: false },
-      ))}${banner("Couldn't reach the stewards just now. Your note is kept and this commitment stays ready to confirm. Try again when you are back online.", "amber", "error-warning-line")}${hot(
+      ))}${banner("Couldn't reach the stewards just now. Your note is kept and this commitment stays ready to confirm. Try again when you are back online.", "amber", "error-warning-line")}`;
+      bar = hot(
         campaignRequest ? "w4.not-yet-retry-campaign-request"
         : request ? "w4.not-yet-retry-request"
         : support ? "w4.not-yet-retry-support"
         : captured ? "w4.not-yet-retry-captured"
         : "w4.not-yet-retry",
         btn("Try Again", { kind: "pri", full: true, icon: "refresh-line" }),
-      )}`;
+      );
       break;
     case "provider-view":
       // The provider's question is "where has this got to?", not "may I
@@ -3267,7 +3313,8 @@ function w4(state: W4State): string {
       inner = `${summary}${confirmMeter}${exclusion}<div class="t-meta">Waiting on João and Ana. You'll see it here the moment they confirm.</div>`;
       break;
     default:
-      inner = `${summary}${listRow({ icon: "check-line", primary: "Linked work", meta: "1 approved · proof: 2 items" })}${confirmMeter}${exclusion}${hot("w4.confirm", btn("Confirm Commitment Kept", { kind: "pri", full: true }))}${hot("w4.not-yet", btn("Tell the Stewards Why", { kind: "sec", full: true }))}`;
+      inner = `${summary}${listRow({ icon: "check-line", primary: "Linked work", meta: "1 approved · proof: 2 items" })}${confirmMeter}${exclusion}`;
+      bar = barPair(hot("w4.confirm", btn("Confirm Commitment Kept", { kind: "pri" })), hot("w4.not-yet", btn("Not Yet", { kind: "ghost" })));
   }
   // The confirmation sheet joins the flow grammar through its HEADER rather
   // than a FormInfo card, because a sheet already owns its title (round 11).
@@ -3283,7 +3330,11 @@ function w4(state: W4State): string {
             : state.startsWith("confirmed")
               ? { ic: "checkbox-circle-fill", info: "Confirmed and counted. The season's total just grew." }
               : { ic: "hand-heart-line", info: "Only the person it was made to can confirm it. Everyone who contributed is excluded." };
-  return phoneFrame(sheetOver(w4Behind(cast), title, inner, sheetInfo), { appBar: false });
+  // handle:false makes this a fixed-height drawer like the commitments sheet,
+  // so confirming something never resizes the surface it opened from (round 43).
+  return phoneFrame(sheetOver(w4Behind(cast), title, inner, { ...sheetInfo, handle: false, close: true, footer: bar || undefined }), {
+    appBar: false,
+  });
 }
 
 const W4_HOTS: HifiDef["hots"] = {

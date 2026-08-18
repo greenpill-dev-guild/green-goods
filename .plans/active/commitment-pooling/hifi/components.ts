@@ -714,15 +714,20 @@ const CLIENT_ENTRIES: Entry[] = [
     ],
   },
   {
-    id: "sheet", title: "Bottom sheet", family: "chrome", covers: ["sheetOver"],
-    kit: `sheetOver(behind, title, inner, {handle})`,
-    ship: "packages/shared/src/components/Dialog/PwaSheet.tsx:94",
-    shipNote: "gesture sheets show the tinted drag handle; tabbed drawers (packages/client/src/components/Dialogs/ModalDrawer.tsx:40) omit it",
-    rule: "Gesture sheets carry the drag pill; drawers dismissed by chrome pass handle:false. The context behind stays visible under the scrim.",
+    id: "sheet", title: "Bottom sheet", family: "chrome", covers: ["sheetOver", "sheetTabs"],
+    kit: `sheetOver(behind, title, inner, {handle, sub, tabs, footer, close})`,
+    ship: "packages/client/src/components/Dialogs/ModalDrawer.tsx:113-193",
+    shipNote: "four fixed-or-scrolling regions: header (flex-shrink-0), tabs (flex-shrink-0), content (flex-1 min-h-0, the only scroller), footer (flex-shrink-0, safe-area padded). Gesture sheets are PwaSheet.tsx:94 and show the drag handle instead",
+    rule: "Only the content scrolls. Title, subtitle, tab rail and footer are fixed chrome, and tabbed drawers take a fixed height (h-modal, 85dvh) so switching tabs never resizes the panel. Acts belong in the footer, never inline at the end of the content.",
     usedIn: /class="sheetstage/,
     specs: [
       { label: "gesture sheet", html: kit.sheetOver(kit.pagepad(kit.card(cardInner("Prune the north beds", "6 hours · due Aug 12"))), "Add proof", `${kit.field("Note", kit.input("Beds cleared", { textarea: true }))}`), h: 420 },
-      { label: "drawer (no handle)", html: kit.sheetOver(kit.pagepad(kit.card(cardInner("Wallet", ""))), "Commitments", kit.listRow({ icon: "seedling-line", primary: "Prune the north beds", meta: "due Aug 12", chevron: true }), { handle: false }), h: 340 },
+      { label: "drawer: fixed chrome + footer", html: kit.sheetOver(
+        kit.pagepad(kit.card(cardInner("Home", ""))),
+        "Commitments",
+        kit.listRow({ icon: "seedling-line", primary: "Prune the north beds", meta: "due Aug 12", chevron: true }),
+        { handle: false, close: true, sub: "What you've offered, asked for, and taken up.", tabs: kit.sheetTabs(["Live", "Over time"], 0, { badges: { 0: 4 } }), footer: kit.btn("Confirm Commitment Kept", { kind: "pri", full: true }) },
+      ), h: 400 },
     ],
   },
   {

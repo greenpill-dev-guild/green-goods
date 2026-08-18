@@ -1498,6 +1498,27 @@ Known mis-resolutions fixed in place: `contract-spec.md` §Grassroots-Economics-
     the sheet for composer step 1: input material, not a record, which is why no name ever fit.
     Full text: `uiux-spec.md` C.42.
 
+146. The sheet is four regions (2026-08-17, round 43, Afo: "the whole tabs right now are
+    scrolling when they should be fixed"). One root cause under three complaints: the shipped
+    ModalDrawer is a four-part panel — fixed header, fixed tabs, one scrolling content region,
+    fixed footer at h-modal 85dvh — and the prototype had collapsed it into two, passing the
+    subtitle and rail as part of the scroller's content. `sheetOver` now takes sub/tabs/footer/
+    close. Verified: body 585px clipped to 542px with the rail moving 0px, both sheets at 574px.
+    The rail also adopts the shipped anatomy (full-width segments + 2px indicator) over pills.
+    Full text: `uiux-spec.md` C.43.
+147. A hero is a moment, not a state (2026-08-17, round 43, Afo). Measured at 390px, W2's
+    identity card ran 272→1318px and the status band sat at 1318px — two screens below the fold
+    on EVERY state. Status moved above the identity card (272px), and `fulfilled` draws a
+    compact kept row while `W4@confirmed` keeps the celebration, because that is when it
+    happens. Full text: `uiux-spec.md` C.44.
+148. Every act in the bar, and the sheet's two answers (2026-08-17, round 43, Afo). W2b rendered
+    "Add People" twice from the same hotspot plus two more acts embedded in the roster card, a
+    drift back from round 19; all three moved to the bar in round 31's .fbrow shape. "Save and
+    Go Back" named navigation, not the act. And the confirmation sheets ask a question, so their
+    buttons are its two answers: "Tell the Stewards Why" named the next screen and became
+    "Not Yet", which three of five states and the admin Hub already used. Full text:
+    `uiux-spec.md` C.45.
+
 **Final recursive certification clarification (2026-07-25; no new decision-register entry):**
 the published `42161`↔`42220` production lane is the only required fully paired
 `SettlementConfiguration`. Arbitrum Sepolia `421614` and Celo Sepolia `11142220` remain

@@ -690,11 +690,38 @@ export function kindCards(options: { icon: string; label: string; meta: string; 
 // The body scrolls; the handle and title stay pinned. Neither was true before —
 // the sheet had no max-height and no overflow at all, so long content simply
 // grew past the top of the phone with no way to reach it.
+// Sheet tab rail — the SHIPPED ModalDrawer anatomy (2026-08-17 round 43, Afo),
+// not the pill segment control the prototype had been drawing. Shipped tabs are
+// full-width equal segments (`flex-1`) with a 2px bottom indicator on the active
+// one and a border under the rail (ModalDrawer.tsx:137-180 · pwaDrawerStyles
+// `tabs`/`tabTrigger`/`tabIndicator`). Counts ride the pill as before.
+export function sheetTabs(items: string[], activeIx: number, opts: { badges?: Partial<Record<number, number>> } = {}): string {
+  return `<div class="sh-tabs" role="tablist">${items
+    .map((l, i) => {
+      const n = opts.badges?.[i];
+      const badge = n ? `<span class="nbadge num">${n}</span>` : "";
+      const on = i === activeIx;
+      return `<button type="button" class="shtab${on ? " on" : ""}" role="tab" aria-selected="${on}" disabled>${esc(l)}${badge}${on ? `<span class="shind"></span>` : ""}</button>`;
+    })
+    .join("")}</div>`;
+}
+
+// A sheet is a FOUR-part panel, matching the shipped ModalDrawer: a fixed
+// header, a fixed tab rail, the one scrolling region, and a fixed footer that
+// holds the acts (2026-08-17 round 43, Afo — "the whole tabs right now are
+// scrolling when they should be fixed"). The prototype had been passing the
+// subtitle and the rail as part of `inner`, so both lived in the scroller and
+// slid away under the thumb; and with no footer slot, confirmation sheets
+// stacked two full-width buttons inline at the end of their content, which is
+// exactly the shape the one-row rule forbids inside an actionBar.
 export function sheetOver(
   behind: string,
   title: string,
   inner: string,
-  opts: { handle?: boolean; ic?: string; info?: string } = {},
+  opts: {
+    handle?: boolean; ic?: string; info?: string;
+    sub?: string; tabs?: string; footer?: string; close?: boolean;
+  } = {},
 ): string {
   const drawer = opts.handle === false;
   const handle = drawer ? "" : `<div class="drag"></div>`;
@@ -703,14 +730,21 @@ export function sheetOver(
   // FormInfo card *inside* it would state the same thing twice; giving the
   // header the same shape is how a sheet joins the flow grammar without
   // repeating itself.
-  const head = opts.info
+  const titleBlock = opts.info
     ? `<div class="sh-head"><span class="fic">${icon(opts.ic ?? "information-line")}</span><div class="grow"><div class="sh-t">${esc(
         title,
       )}</div><div class="fi">${esc(opts.info)}</div></div></div>`
-    : `<div class="sh-t">${esc(title)}</div>`;
+    : `<div class="sh-t">${esc(title)}</div>${opts.sub ? `<div class="sh-sub">${esc(opts.sub)}</div>` : ""}`;
+  // The shipped header carries a close control the prototype's sheet never had
+  // (ModalDrawer.tsx:124-133). Preview-only, so it is honestly disabled.
+  const closeBtn = opts.close
+    ? `<button type="button" class="sh-x" aria-label="Close, preview only" disabled>${icon("close-line", "s")}</button>`
+    : "";
+  const head = `<div class="sh-hd"><div class="grow">${titleBlock}</div>${closeBtn}</div>`;
+  const foot = opts.footer ? `<div class="sh-foot">${opts.footer}</div>` : "";
   return `<div class="sheetstage"><div class="behind">${behind}</div><div class="scrimm"></div><div class="sheet${
     drawer ? " drawer" : ""
-  }">${handle}${head}<div class="sh-body">${inner}</div></div></div>`;
+  }">${handle}${head}${opts.tabs ?? ""}<div class="sh-body">${inner}</div>${foot}</div></div>`;
 }
 
 // Garden-detail header (views/Home/Garden/index.tsx): fixed image banner (h-36,
