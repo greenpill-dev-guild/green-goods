@@ -2006,6 +2006,24 @@ place. The pooling flows will read differently from the shipped work flow until 
 follows. The step card does not compete at the same size, because it is inside a filled card
 and the sections sit on the canvas.
 
+### C.30 Four corrections (2026-08-17, round 30)
+
+**The repeat explainer is gone.** *"Offered this before? See what changes"* was a prototype
+navigation affordance dressed as product copy. In the app the composer recognises the title
+itself, so the title field carries the hotspot and no button asks the question.
+
+**One plus on the team, not two.** The section title's plus and the rail's Add tile both did
+the same job. The title keeps it, which is where Afo asked for it in round 19.
+
+**Button labels are Title Case** on the client, 153 of them. Small words stay lower unless
+they lead or close the label: *Read to the End*, *Make This Offer*, *Start Offering Again*.
+Admin already used Title Case acts, so this is the client catching up rather than a new rule.
+
+**The ongoing view is a full-screen read surface.** It carried the bottom nav while the
+commitment view does not, and its acts sat at the end of the content. It now has no nav and a
+fixed bar: the primary act per state, with Edit Details and Stop Offering in the bar's
+secondary row.
+
 ### C.7 PARKED — reciprocity from the claim side (2026-08-16, register #103)
 
 > **Parked 2026-08-17 (Afo): "park it for now and we stabilize and polish the UI."** The

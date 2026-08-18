@@ -79,10 +79,10 @@ ${banner("This commitment did not send after five attempts. Retry it, or discard
       inner = `${skeleton({ title: true, lines: 1, cls: "flat" })}${skeleton({ avatar: true, lines: 2 })}${skeleton({ avatar: true, lines: 2 })}`;
       break;
     case "not-found":
-      inner = emptyState("search-line", "No commitments found", "We couldn't find your commitments across gardens. They may still be syncing to this device — try again in a moment.", hot("w5.retry", btn("Try again", { kind: "sec", icon: "refresh-line" })));
+      inner = emptyState("search-line", "No commitments found", "We couldn't find your commitments across gardens. They may still be syncing to this device — try again in a moment.", hot("w5.retry", btn("Try Again", { kind: "sec", icon: "refresh-line" })));
       break;
     case "read-error":
-      inner = emptyState("wifi-off-line", "Couldn't load your commitments", "Something went wrong reaching the network. Your last view is saved on this device.", hot("w5.retry", btn("Try again", { kind: "pri", icon: "refresh-line" })));
+      inner = emptyState("wifi-off-line", "Couldn't load your commitments", "Something went wrong reaching the network. Your last view is saved on this device.", hot("w5.retry", btn("Try Again", { kind: "pri", icon: "refresh-line" })));
       break;
     default:
       // The wallet now draws the SAME commitment card as the pool tab (2026-08-16
@@ -219,11 +219,11 @@ ${banner("Waiting for the wallet to confirm. If it fails, it retries inline — 
       inner = `${field("To", input("Ana · 0x71…4c2", { icon: "user-line" }))}
 ${field("Amount", input("20 G$"))}
 ${banner("The wallet didn't confirm this send. Your recipient and amount are still here — try again when you're ready.", "amber", "error-warning-line")}
-${hot("w23.send-retry", btn("Try again", { kind: "pri", full: true, icon: "refresh-line" }))}`;
+${hot("w23.send-retry", btn("Try Again", { kind: "pri", full: true, icon: "refresh-line" }))}`;
       break;
     case "delivery-blocked":
       inner = `${card(
-        `<div class="cardrow">${chip("Planned", "queued")}<div class="t-title">Member delivery isn't on yet</div></div><div class="t-meta">The Celo account and sponsored-send path hasn't passed its round-trip check. Garden-to-garden funding continues; personal balances and Send wait.</div>${hot("w23.tech-status", btn("View technical status", { kind: "ghost" }))}`,
+        `<div class="cardrow">${chip("Planned", "queued")}<div class="t-title">Member delivery isn't on yet</div></div><div class="t-meta">The Celo account and sponsored-send path hasn't passed its round-trip check. Garden-to-garden funding continues; personal balances and Send wait.</div>${hot("w23.tech-status", btn("View Technical Status", { kind: "ghost" }))}`,
       )}`;
       break;
     default:
@@ -263,7 +263,7 @@ function w25(state: W25State): string {
   // MF-8). Asking it on the card too meant the same question twice — with
   // opposite defaults — so the card carries only the claim entry point.
   const protocolCard = card(
-    `<div class="cardrow">${chip("Protocol", "ink")}${chip("Request", "request")}</div><div class="t-title">Methodology survey</div><div class="t-meta num">1 survey · stewards review who takes this up</div>${hot("w25.ask", btn("Ask to take this up", { kind: "pri", full: true }))}`,
+    `<div class="cardrow">${chip("Protocol", "ink")}${chip("Request", "request")}</div><div class="t-title">Methodology survey</div><div class="t-meta num">1 survey · stewards review who takes this up</div>${hot("w25.ask", btn("Ask to Take This Up", { kind: "pri", full: true }))}`,
   );
   const head = hdr("Awka Hub", { back: true });
 
@@ -294,7 +294,7 @@ ${hot("w25.continue", btn("Continue", { kind: "pri", full: true }))}${hot("w25.c
     return phoneFrame(
       `${head}${pagepad(
         card(
-          `<div class="cardrow">${chip("Accepted", "ok", { dot: true })}${chip("Protocol", "ink")}</div><div class="t-title">Methodology survey</div>${kv("Provider", "Awka Hub — your garden")}${kv("Asked by", "you")}<div class="t-meta">Your garden made this commitment. Work and evidence from Awka gardeners anchor to it, and the support that follows goes to the garden.</div><div class="brow">${hot("w25.open-promise", btn("Open the commitment", { kind: "pri", full: true }))}</div>`,
+          `<div class="cardrow">${chip("Accepted", "ok", { dot: true })}${chip("Protocol", "ink")}</div><div class="t-title">Methodology survey</div>${kv("Provider", "Awka Hub — your garden")}${kv("Asked by", "you")}<div class="t-meta">Your garden made this commitment. Work and evidence from Awka gardeners anchor to it, and the support that follows goes to the garden.</div><div class="brow">${hot("w25.open-promise", btn("Open the Commitment", { kind: "pri", full: true }))}</div>`,
         ),
       )}<div style="flex:1"></div>`,
       { appBar: false },
@@ -416,7 +416,7 @@ function wflow(state: WflowState): string {
         formCard("sticky-note-line", "Description", "Cleared the north beds and took the deadwood out of the two older trees."),
         hot("wflow.fulfills", formCard("hand-heart-line", "Fulfills", "Prune the north beds — chosen at the start, tap to review it")),
       );
-      actions = hot("wflow.submit", btn("Submit work", { kind: "pri", full: true }));
+      actions = hot("wflow.submit", btn("Submit Work", { kind: "pri", full: true }));
       break;
     case "link-picker":
       head = wfHead(null, "Link existing work");
@@ -433,7 +433,7 @@ function wflow(state: WflowState): string {
         ], { interactive: true, name: "wflow-link-requirement" })),
         `<div class="t-meta">Repeated actions never guess — you name the exact requirement row.</div>`,
       );
-      actions = hot("wflow.link-confirm", btn("Link this work", { kind: "pri", full: true }));
+      actions = hot("wflow.link-confirm", btn("Link This Work", { kind: "pri", full: true }));
       break;
     // Commitment-first entry (2026-08-14 workflows round): the commitment already
     // names its proof, so the REAL intro is scoped by it — fulfilling strip

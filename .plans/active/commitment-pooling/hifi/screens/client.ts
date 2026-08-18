@@ -128,19 +128,19 @@ const claimCard = (state: W1State) => {
       meta: "Ana · 1 ride · asked Jul 9",
       tags: [{ label: "Not this time" }],
       note: "Your steward left a note: “provider context — see charter”.",
-    })}<div class="brow">${hot("w1.ask-again", btn("Ask again", { kind: "sec" }))}${hot("w1.back-browse", btn("Back to browsing", { kind: "ghost" }))}</div>`;
+    })}<div class="brow">${hot("w1.ask-again", btn("Ask Again", { kind: "sec" }))}${hot("w1.back-browse", btn("Back to Browsing", { kind: "ghost" }))}</div>`;
   if (state === "claim-superseded")
     return `${commitmentCard({
       title: "Ride to the market on Saturday",
       meta: "Ana · 1 ride · asked Jul 9",
       tags: [{ label: "Taken up by another provider" }],
       note: "No longer available — this is not a send failure.",
-    })}<div class="brow">${hot("w1.back-browse", btn("Back to browsing", { kind: "ghost" }))}</div>`;
+    })}<div class="brow">${hot("w1.back-browse", btn("Back to Browsing", { kind: "ghost" }))}</div>`;
   return `${commitmentCard({
     title: "Ride to the market on Saturday",
     meta: "Ana asked · you provide · 1 ride",
     tags: [{ label: "Accepted", tone: "ok" }],
-  })}<div class="brow">${hot("w1.open-commitment", btn("Open the commitment", { kind: "pri" }))}</div>`;
+  })}<div class="brow">${hot("w1.open-commitment", btn("Open the Commitment", { kind: "pri" }))}</div>`;
 };
 
 // Gallery casts for the Components tab — the four claim outcomes W1 renders.
@@ -268,7 +268,7 @@ function w1(state: W1State): string {
         cycleCard({ title: "Market rides", units: "10 rides", counts: "6 of 16 kept · through Aug 18", kind: "Campaign", stage: "Open" }),
         sectionTitle("Campaign commitments"),
         requestCard({ openClaim: true, context: "Market rides campaign" }),
-        hot("w1.campaigns-back", btn("Back to campaigns", { kind: "ghost", full: true })),
+        hot("w1.campaigns-back", btn("Back to Campaigns", { kind: "ghost", full: true })),
       );
       break;
     case "campaign-tools":
@@ -276,7 +276,7 @@ function w1(state: W1State): string {
         banner("Tool library is under review. Evidence and confirmations stay available.", "stone", "eye-line"),
         cycleCard({ title: "Tool library", units: "", counts: "8 of 8 kept · through Aug 18", kind: "Campaign", stage: "Reviewing" }),
         commitmentCard({ title: "Repair tool handles", meta: "Maria · 1 repair session", tags: [{ label: "Offer", tone: "offer" }, { label: "Support / service" }], cycle: { label: "Tool library", kind: "campaign" }, note: "This commitment is ready for confirmation.", hotId: "w1.open-tools-promise" }),
-        hot("w1.campaigns-back", btn("Back to campaigns", { kind: "ghost", full: true })),
+        hot("w1.campaigns-back", btn("Back to Campaigns", { kind: "ghost", full: true })),
       );
       break;
     case "empty-open":
@@ -295,7 +295,7 @@ function w1(state: W1State): string {
         sectionTitle("Priced Offer"),
         fundedOfferCard(),
         banner("Claiming sends a request first. Nothing moves until you choose to deposit to the garden's recoverable Safe.", "stone"),
-        hot("w1.ask-funded", btn("Ask to fund this", { kind: "pri", full: true })),
+        hot("w1.ask-funded", btn("Ask to Fund This", { kind: "pri", full: true })),
       );
       break;
     case "request-open":
@@ -319,7 +319,7 @@ function w1(state: W1State): string {
           note: "Needs approved work: Weed × 2 · Mulch × 4",
           hotId: "w1.open-work-request",
         }),
-        hot("w1.take-up-work-request", btn("I can help", { kind: "pri", full: true })),
+        hot("w1.take-up-work-request", btn("I Can Help", { kind: "pri", full: true })),
       );
       break;
     case "waiting-membership":
@@ -387,12 +387,12 @@ function w1(state: W1State): string {
       break;
     case "not-found":
       content = pagepad(
-        emptyState("search-line", "No pool here yet", "We couldn't find a pool for this garden. It may still be getting set up — check back soon.", hot("w1.retry", btn("Try again", { kind: "sec", icon: "refresh-line" }))),
+        emptyState("search-line", "No pool here yet", "We couldn't find a pool for this garden. It may still be getting set up — check back soon.", hot("w1.retry", btn("Try Again", { kind: "sec", icon: "refresh-line" }))),
       );
       break;
     case "read-error":
       content = pagepad(
-        emptyState("wifi-off-line", "Couldn't load the pool", "Something went wrong reaching the network. Your last view is saved on this device.", hot("w1.retry", btn("Try again", { kind: "pri", icon: "refresh-line" }))),
+        emptyState("wifi-off-line", "Couldn't load the pool", "Something went wrong reaching the network. Your last view is saved on this device.", hot("w1.retry", btn("Try Again", { kind: "pri", icon: "refresh-line" }))),
       );
       break;
     // The five queued outcomes had five compositions (2026-08-17, Afo: "the last
@@ -575,7 +575,7 @@ function w1c(state: W1CState): string {
     return phoneFrame(`${hdr("Season", { back: true })}${pagepad(skeleton({ title: true, lines: 2 }), skeleton({ lines: 3 }), skeleton({ avatar: true, lines: 2 }))}`, { appBar: false });
   if (state === "read-error")
     return phoneFrame(
-      `${hdr("Season", { back: true })}${pagepad(emptyState("wifi-off-line", "Couldn't load this season", "Something went wrong reaching the network. Your last view is saved on this device.", hot("w1c.retry", btn("Try again", { kind: "pri", icon: "refresh-line" }))))}`,
+      `${hdr("Season", { back: true })}${pagepad(emptyState("wifi-off-line", "Couldn't load this season", "Something went wrong reaching the network. Your last view is saved on this device.", hot("w1c.retry", btn("Try Again", { kind: "pri", icon: "refresh-line" }))))}`,
       { appBar: false },
     );
   if (state === "all-seasons")
@@ -1197,7 +1197,7 @@ const w2Disclosures = (state: W2State, opts: { work?: boolean; overrideNote?: bo
     state === "accepted"
       ? sectionCard(
           "Work for this commitment",
-          `${listRow({ icon: "check-line", primary: "Pruning session", meta: "Approved · Jul 8 — not yet linked", chipHtml: chip("Not linked", "warn") })}<div class="brow" style="padding:0 12px 10px">${hot("w2.unlinked-work", btn("Link it", { kind: "sec", sm: true }))}${hot("w2.link-work", btn("Link other work", { kind: "ghost", sm: true }))}</div>`,
+          `${listRow({ icon: "check-line", primary: "Pruning session", meta: "Approved · Jul 8 — not yet linked", chipHtml: chip("Not linked", "warn") })}<div class="brow" style="padding:0 12px 10px">${hot("w2.unlinked-work", btn("Link It", { kind: "sec", sm: true }))}${hot("w2.link-work", btn("Link Other Work", { kind: "ghost", sm: true }))}</div>`,
         )
       : "";
   return (
@@ -1217,7 +1217,7 @@ const w2Disclosures = (state: W2State, opts: { work?: boolean; overrideNote?: bo
     ) +
     (opts.reward ? sectionCard("Support", opts.reward, { flush: true }) : "") +
     unlinkedWork +
-    sectionCard("People", `${peopleRows}<div class="brow" style="padding:0 12px 10px">${hot(teamHot, btn("See team and contributions", { kind: "ghost", sm: true }))}</div>`) +
+    sectionCard("People", `${peopleRows}<div class="brow" style="padding:0 12px 10px">${hot(teamHot, btn("See Team and Contributions", { kind: "ghost", sm: true }))}</div>`) +
     // The one thing that stays folded: a timeline is long, secondary, and read
     // once. It is a card now rather than a bare disclosure on the canvas.
     sectionCard(
@@ -1271,9 +1271,9 @@ function w2(stateIn: W2State): string {
   if (state === "loading")
     return readWrap(pagepad(skeleton({ title: true, lines: 1 }), skeleton({ avatar: true, lines: 3 }), skeleton({ lines: 2 })));
   if (state === "not-found")
-    return readWrap(pagepad(emptyState("search-line", "Commitment not found", "We couldn't find this commitment. It may have been withdrawn, or it hasn't synced to this device yet.", hot("w2.retry", btn("Try again", { kind: "sec", icon: "refresh-line" })))));
+    return readWrap(pagepad(emptyState("search-line", "Commitment not found", "We couldn't find this commitment. It may have been withdrawn, or it hasn't synced to this device yet.", hot("w2.retry", btn("Try Again", { kind: "sec", icon: "refresh-line" })))));
   if (state === "read-error")
-    return readWrap(pagepad(emptyState("wifi-off-line", "Couldn't load this commitment", "Something went wrong reaching the network. Check your connection and try again.", hot("w2.retry", btn("Try again", { kind: "pri", icon: "refresh-line" })))));
+    return readWrap(pagepad(emptyState("wifi-off-line", "Couldn't load this commitment", "Something went wrong reaching the network. Check your connection and try again.", hot("w2.retry", btn("Try Again", { kind: "pri", icon: "refresh-line" })))));
   // ONE object where the top of this screen used to be four bare rows
   // (2026-08-17 round 21, Afo: "pretty poorly designed at the top"). The card
   // someone tapped in the pool, expanded. Terms stay in Details — the card
@@ -1328,8 +1328,8 @@ function w2(stateIn: W2State): string {
     // so a garden-work commitment can carry evidence as well as approved work.
     // The weighting carries the difference the progress block establishes:
     // submitted work advances readiness, evidence credits the people who helped.
-    accepted: `<div class="brow">${hot("w2.add-evidence", btn("Add evidence", { kind: "sec" }))}${hot("w2.submit-work", btn("Submit work", { kind: "pri" }))}</div>`,
-    active: `<div class="brow">${hot("w2.add-evidence", btn("Add evidence", { kind: "sec" }))}${hot("w2.submit-work", btn("Submit work", { kind: "pri" }))}</div>`,
+    accepted: `<div class="brow">${hot("w2.add-evidence", btn("Add Evidence", { kind: "sec" }))}${hot("w2.submit-work", btn("Submit Work", { kind: "pri" }))}</div>`,
+    active: `<div class="brow">${hot("w2.add-evidence", btn("Add Evidence", { kind: "sec" }))}${hot("w2.submit-work", btn("Submit Work", { kind: "pri" }))}</div>`,
     // The confirmer's view of the same stage. `ready` already splits into
     // ready-pending and ready-confirmer; `active` did not, so a confirmer was
     // being offered the provider's button (2026-08-17, Afo).
@@ -1341,33 +1341,33 @@ function w2(stateIn: W2State): string {
     // setContributorRequirement exists to point them at a specific row. What
     // stays the lead's is submitForConfirmation, and confirmation excludes every
     // contributor absolutely.
-    contributor: `<div class="brow">${hot("w2.add-evidence", btn("Add evidence", { kind: "sec" }))}${hot("w2.submit-work", btn("Submit work", { kind: "pri" }))}</div>`,
+    contributor: `<div class="brow">${hot("w2.add-evidence", btn("Add Evidence", { kind: "sec" }))}${hot("w2.submit-work", btn("Submit Work", { kind: "pri" }))}</div>`,
     // Sending names its blast radius first (2026-08-17, Afo), as every other
     // consequential act here does. The freeze is the part worth naming:
     // submitForConfirmation emits ContributorRosterFrozen, so after it nobody
     // can join the team and no further evidence counts toward the commitment.
-    "send-confirm": `<div class="brow">${hot("w2.send-cancel", btn("Not yet", { kind: "ghost" }))}${hot("w2.send-confirm-go", btn("Send it", { kind: "pri" }))}</div>`,
-    "request-active": hot("w2.add-evidence-request", btn("Add evidence", { kind: "pri", full: true, icon: "camera-line" })),
-    "request-evidence-submitted": hot("w2.send-confirmation-request", btn("Send for confirmation", { kind: "pri", full: true })),
-    "request-ready-confirmer": hot("w2.confirm-request-detail", btn("Review confirmation", { kind: "pri", full: true })),
-    "request-work-ready-confirmer": hot("w2.confirm-request-work-detail", btn("Review confirmation", { kind: "pri", full: true })),
-    "campaign-request-active": hot("w2.add-evidence-campaign-request", btn("Add evidence", { kind: "pri", full: true, icon: "camera-line" })),
-    "campaign-request-evidence-submitted": hot("w2.send-confirmation-campaign-request", btn("Send for confirmation", { kind: "pri", full: true })),
-    "campaign-request-ready-confirmer": hot("w2.confirm-campaign-request-detail", btn("Review confirmation", { kind: "pri", full: true })),
-    "support-accepted": hot("w2.add-evidence-support", btn("Add evidence", { kind: "pri", full: true, icon: "camera-line" })),
-    "support-evidence-submitted": hot("w2.send-confirmation", btn("Send for confirmation", { kind: "pri", full: true })),
-    "support-ready-confirmer": hot("w2.confirm-support-detail", btn("Review confirmation", { kind: "pri", full: true })),
-    captured: hot("w2.add-evidence-captured", btn("Add evidence", { kind: "pri", full: true, icon: "camera-line" })),
-    "captured-evidence-submitted": hot("w2.send-confirmation-captured", btn("Send for confirmation", { kind: "pri", full: true })),
-    "captured-ready-confirmer": hot("w2.confirm-captured-detail", btn("Review confirmation", { kind: "pri", full: true })),
-    "garden-provider": hot("w2.add-evidence", btn("Add evidence", { kind: "pri", full: true, icon: "camera-line" })),
-    offered: hot("w2.withdraw", btn("Withdraw this offer…", { kind: "danger", full: true })),
-    requested: hot("w2.withdraw", btn("Withdraw this request…", { kind: "danger", full: true })),
-    "browse-offered": hot("w2.take-up-browse", btn("Take this up", { kind: "pri", full: true })),
-    "browse-requested": hot("w2.help-browse", btn("I can help", { kind: "pri", full: true })),
-    "browse-requested-gated": hot("w2.ask-browse", btn("Ask to take this up", { kind: "pri", full: true })),
-    "ready-confirmer": hot("w2.confirm", btn("Confirm: commitment kept", { kind: "pri", full: true })),
-    expired: hot("w2.offer-again", btn("Offer it again", { kind: "pri", full: true })),
+    "send-confirm": `<div class="brow">${hot("w2.send-cancel", btn("Not Yet", { kind: "ghost" }))}${hot("w2.send-confirm-go", btn("Send It", { kind: "pri" }))}</div>`,
+    "request-active": hot("w2.add-evidence-request", btn("Add Evidence", { kind: "pri", full: true, icon: "camera-line" })),
+    "request-evidence-submitted": hot("w2.send-confirmation-request", btn("Send for Confirmation", { kind: "pri", full: true })),
+    "request-ready-confirmer": hot("w2.confirm-request-detail", btn("Review Confirmation", { kind: "pri", full: true })),
+    "request-work-ready-confirmer": hot("w2.confirm-request-work-detail", btn("Review Confirmation", { kind: "pri", full: true })),
+    "campaign-request-active": hot("w2.add-evidence-campaign-request", btn("Add Evidence", { kind: "pri", full: true, icon: "camera-line" })),
+    "campaign-request-evidence-submitted": hot("w2.send-confirmation-campaign-request", btn("Send for Confirmation", { kind: "pri", full: true })),
+    "campaign-request-ready-confirmer": hot("w2.confirm-campaign-request-detail", btn("Review Confirmation", { kind: "pri", full: true })),
+    "support-accepted": hot("w2.add-evidence-support", btn("Add Evidence", { kind: "pri", full: true, icon: "camera-line" })),
+    "support-evidence-submitted": hot("w2.send-confirmation", btn("Send for Confirmation", { kind: "pri", full: true })),
+    "support-ready-confirmer": hot("w2.confirm-support-detail", btn("Review Confirmation", { kind: "pri", full: true })),
+    captured: hot("w2.add-evidence-captured", btn("Add Evidence", { kind: "pri", full: true, icon: "camera-line" })),
+    "captured-evidence-submitted": hot("w2.send-confirmation-captured", btn("Send for Confirmation", { kind: "pri", full: true })),
+    "captured-ready-confirmer": hot("w2.confirm-captured-detail", btn("Review Confirmation", { kind: "pri", full: true })),
+    "garden-provider": hot("w2.add-evidence", btn("Add Evidence", { kind: "pri", full: true, icon: "camera-line" })),
+    offered: hot("w2.withdraw", btn("Withdraw This Offer…", { kind: "danger", full: true })),
+    requested: hot("w2.withdraw", btn("Withdraw This Request…", { kind: "danger", full: true })),
+    "browse-offered": hot("w2.take-up-browse", btn("Take This Up", { kind: "pri", full: true })),
+    "browse-requested": hot("w2.help-browse", btn("I Can Help", { kind: "pri", full: true })),
+    "browse-requested-gated": hot("w2.ask-browse", btn("Ask to Take This Up", { kind: "pri", full: true })),
+    "ready-confirmer": hot("w2.confirm", btn("Confirm: Commitment Kept", { kind: "pri", full: true })),
+    expired: hot("w2.offer-again", btn("Offer it Again", { kind: "pri", full: true })),
   };
 
   // The confirmer reading an in-progress commitment, the contributor's seat, and
@@ -1413,7 +1413,7 @@ function w2(stateIn: W2State): string {
       break;
     case "request-work-active":
       band = bandCard(
-        `<div class="t-title">João is on the garden work</div><div class="t-meta">This ask needs approved work — Weed × 2 · Mulch × 4 — so submitted work travels the ordinary approval rails before Ana confirms.</div><div class="brow">${hot("w2.submit-work-request-detail", btn("Submit work", { kind: "pri", icon: "camera-line" }))}</div>`,
+        `<div class="t-title">João is on the garden work</div><div class="t-meta">This ask needs approved work — Weed × 2 · Mulch × 4 — so submitted work travels the ordinary approval rails before Ana confirms.</div><div class="brow">${hot("w2.submit-work-request-detail", btn("Submit Work", { kind: "pri", icon: "camera-line" }))}</div>`,
       );
       break;
     case "request-work-partially-approved":
@@ -1499,7 +1499,7 @@ function w2(stateIn: W2State): string {
       break;
     case "support-offered":
       band = bandCard(
-        `<div class="t-title">Maria's service offer is open</div><div class="t-meta">João can take up the repair before Maria starts attaching evidence.</div><div class="brow">${hot("w2.take-up-support", btn("Take this up", { kind: "pri" }))}</div>`,
+        `<div class="t-title">Maria's service offer is open</div><div class="t-meta">João can take up the repair before Maria starts attaching evidence.</div><div class="brow">${hot("w2.take-up-support", btn("Take This Up", { kind: "pri" }))}</div>`,
       );
       break;
     case "support-accepted":
@@ -1712,7 +1712,7 @@ function w2(stateIn: W2State): string {
         `${banner("No one has taken this up yet. Withdrawing removes it from the pool; the record and your reason stay in the timeline.", "stone")}
 ${reasonChips(["Plans changed", "Already handled", "Made by mistake"])}
 ${field("Reason (required)", input("plans changed — the beds got done at the gathering"))}
-${hot("w2.withdraw-send", btn("Withdraw this offer", { kind: "danger", full: true }))}${hot("w2.withdraw-keep", btn("Keep it open", { kind: "ghost", full: true }))}`,
+${hot("w2.withdraw-send", btn("Withdraw This Offer", { kind: "danger", full: true }))}${hot("w2.withdraw-keep", btn("Keep it Open", { kind: "ghost", full: true }))}`,
       ),
       { appBar: false },
     );
@@ -1828,7 +1828,7 @@ const W2B_ROSTER = (opts: { frozen?: boolean } = {}) =>
 // It states how credit is shared and stops there.
 const W2B_POLICY = sectionCard(
   "How credit is shared",
-  `${detailRow("Shared equally", "35% among everyone on the team")}${detailRow("By verified contribution", "65% — approved work and evidence")}${hot("w2b.preview", btn("What counts as verified", { kind: "ghost", sm: true, icon: "information-line" }))}`,
+  `${detailRow("Shared equally", "35% among everyone on the team")}${detailRow("By verified contribution", "65% — approved work and evidence")}${hot("w2b.preview", btn("What Counts as Verified", { kind: "ghost", sm: true, icon: "information-line" }))}`,
 );
 
 function w2b(state: W2bState): string {
@@ -1850,11 +1850,11 @@ function w2b(state: W2bState): string {
         banner("This is fixed when someone accepts — it cannot change afterwards.", "stone", "shield-check-line") +
         sectionCard(
           "Invited so far",
-          `${memberRow({ name: "João", sub: "joao.eth", joined: "Joined Jan 2025" })}${memberRow({ name: "Luz", sub: "luz.eth", joined: "Joined Feb 2025" })}<div class="brow" style="padding:0 12px 10px">${hot("w2b.add", btn("Add people", { kind: "sec", sm: true, icon: "add-line" }))}</div>`,
+          `${memberRow({ name: "João", sub: "joao.eth", joined: "Joined Jan 2025" })}${memberRow({ name: "Luz", sub: "luz.eth", joined: "Joined Feb 2025" })}<div class="brow" style="padding:0 12px 10px">${hot("w2b.add", btn("Add People", { kind: "sec", sm: true, icon: "add-line" }))}</div>`,
           { flush: true },
         ) +
         banner("Inviting someone does not give them credit. Approved work and evidence do.", "stone", "information-line");
-      actions = hot("w2b.setup-done", btn("Save and go back", { kind: "pri", full: true }));
+      actions = hot("w2b.setup-done", btn("Save and Go Back", { kind: "pri", full: true }));
       break;
     // The picker sheet, mirroring the shipped garden Gardeners list: scroll, tap
     // to select, one primary act. It replaces the old single-address text field.
@@ -1874,7 +1874,7 @@ function w2b(state: W2bState): string {
             memberRow({ name: "0x1f…9a", joined: "Joined Aug 2025", select: "off" }) +
             memberRow({ name: "Leila", sub: "leila.eth", joined: "Joined Feb 2025", select: "off" }) +
             `<div class="t-meta">Rocinha has 23 gardeners — scroll for the rest. Someone with no name on file shows their wallet address instead.</div>` +
-            hot("w2b.add-confirm", btn("Add 1 to the team", { kind: "pri", full: true })),
+            hot("w2b.add-confirm", btn("Add 1 to the Team", { kind: "pri", full: true })),
         ),
         { appBar: false },
       );
@@ -1883,7 +1883,7 @@ function w2b(state: W2bState): string {
         formInfo("user-line", "Remove Kwame?", "Only someone with no approved work, pending work, or evidence credit can be removed") +
         sectionCard("Who this is", memberRow({ name: "Kwame", sub: "kwame.eth", joined: "Joined Jun 2025", badge: "Planned" }), { flush: true }) +
         banner("Lead-managed rosters only. On an Open team people leave themselves, before credit and before the roster freezes.", "stone", "information-line");
-      actions = `<div class="brow">${hot("w2b.remove-cancel", btn("Keep them", { kind: "ghost" }))}${hot("w2b.remove-confirm", btn("Remove Kwame", { kind: "danger" }))}</div>`;
+      actions = `<div class="brow">${hot("w2b.remove-cancel", btn("Keep Them", { kind: "ghost" }))}${hot("w2b.remove-confirm", btn("Remove Kwame", { kind: "danger" }))}</div>`;
       break;
     // Garden work only: requirement rows exist nowhere else, which is the ONE
     // action the kind gate legitimately applies to.
@@ -1904,14 +1904,14 @@ function w2b(state: W2bState): string {
         sectionCard("On the team", memberRow({ name: "Maria", sub: "maria.eth", joined: "Joined Mar 2025", badge: "Lead" }) + memberRow({ name: "Ana", sub: "ana.eth", joined: "Joined Mar 2025", badge: "Credited" }), { flush: true }) +
         W2B_POLICY +
         banner("Joining is an online action and does not give you credit by itself.", "stone", "information-line");
-      actions = hot("w2b.join", btn("Join this commitment", { kind: "pri", full: true }));
+      actions = hot("w2b.join", btn("Join This Commitment", { kind: "pri", full: true }));
       break;
     case "join-submitted":
       body =
         formInfo("loader4-line", "Joining…", "Your transaction went through — waiting for the roster to catch up") +
         sectionCard("Where this is", `${detailRow("Yours", "Waiting for roster confirmation")}${detailRow("Credit", "None — joining alone never awards credit")}`) +
         banner("This screen shows you as a member only once the indexed roster contains your account. A missing or stale result stays here.", "stone", "time-line");
-      actions = hot("w2b.join-indexed", btn("Check again", { kind: "sec", full: true }));
+      actions = hot("w2b.join-indexed", btn("Check Again", { kind: "sec", full: true }));
       break;
     case "open-member":
       body =
@@ -1919,7 +1919,7 @@ function w2b(state: W2bState): string {
         sectionCard("On the team", W2B_ROSTER(), { flush: true }) +
         W2B_POLICY +
         banner("You can leave before you have any credit and before the roster freezes.", "stone", "information-line");
-      actions = hot("w2b.leave", btn("Leave this commitment", { kind: "ghost", full: true }));
+      actions = hot("w2b.leave", btn("Leave This Commitment", { kind: "ghost", full: true }));
       break;
     case "frozen":
       body =
@@ -1945,12 +1945,12 @@ function w2b(state: W2bState): string {
         sectionCard("How people join", detailRow("Lead-managed", "Maria or a steward manages who is on it"), { flush: true }) +
         sectionCard(
           "On the team",
-          `${memberRow({ name: "Maria", sub: "maria.eth", joined: "Joined Mar 2025", badge: "Lead" })}${memberRow({ name: "Tomás", sub: "tomas.eth", joined: "Joined Jul 2025", badge: "Planned" })}<div class="brow" style="padding:0 12px 10px">${hot("w2b.add", btn("Add people", { kind: "sec", sm: true, icon: "add-line" }))}</div>`,
+          `${memberRow({ name: "Maria", sub: "maria.eth", joined: "Joined Mar 2025", badge: "Lead" })}${memberRow({ name: "Tomás", sub: "tomas.eth", joined: "Joined Jul 2025", badge: "Planned" })}<div class="brow" style="padding:0 12px 10px">${hot("w2b.add", btn("Add People", { kind: "sec", sm: true, icon: "add-line" }))}</div>`,
           { flush: true },
         ) +
         W2B_POLICY +
         banner("A service has a team like any other commitment. Only garden work can assign someone to a named action.", "stone", "hand-heart-line");
-      actions = hot("w2b.add", btn("Add people", { kind: "pri", full: true }));
+      actions = hot("w2b.add", btn("Add People", { kind: "pri", full: true }));
       break;
     default: // forming
       body =
@@ -1958,11 +1958,11 @@ function w2b(state: W2bState): string {
         sectionCard("How people join", detailRow("Lead-managed", "Maria or a steward manages who is on it"), { flush: true }) +
         sectionCard(
           "On the team",
-          `${W2B_ROSTER()}<div class="brow" style="padding:0 12px 10px">${hot("w2b.add", btn("Add people", { kind: "sec", sm: true, icon: "add-line" }))}${hot("w2b.assign", btn("Assign work", { kind: "ghost", sm: true }))}${hot("w2b.remove", btn("Remove someone", { kind: "ghost", sm: true }))}</div>`,
+          `${W2B_ROSTER()}<div class="brow" style="padding:0 12px 10px">${hot("w2b.add", btn("Add People", { kind: "sec", sm: true, icon: "add-line" }))}${hot("w2b.assign", btn("Assign Work", { kind: "ghost", sm: true }))}${hot("w2b.remove", btn("Remove Someone", { kind: "ghost", sm: true }))}</div>`,
           { flush: true },
         ) +
         W2B_POLICY;
-      actions = hot("w2b.add", btn("Add people", { kind: "pri", full: true }));
+      actions = hot("w2b.add", btn("Add People", { kind: "pri", full: true }));
   }
   return phoneFrame(head + pagepad(body), { appBar: actions ? actionBar(actions) : undefined });
 }
@@ -2115,7 +2115,7 @@ function w2a(state: W2aState): string {
           formCard("sticky-note-line", "Your note", "“Two beds left for next week.”"),
         banner("Saved on this device until it sends — evidence works fully offline.", "stone", "wifi-off-line"),
       );
-      actions = hot(attachHot, btn("Attach evidence", { kind: "pri", full: true }));
+      actions = hot(attachHot, btn("Attach Evidence", { kind: "pri", full: true }));
       break;
     }
     // Outcomes are not steps (2026-08-17, Afo): queued and failed used to render
@@ -2361,7 +2361,6 @@ const w3TeamSection = (members: W3Member[]) =>
   memberTrail([
     memberCard({ name: "Maria", sub: "maria.eth", photo: 3, role: "Lead", lead: true }),
     ...members.map((m) => memberCard({ ...m, role: "Contributor", removeHotId: "w3.team-remove" })),
-    hot("w3.team", `<div class="mcard addtile">${icon("add-line", "l")}<div class="mtn">Add</div></div>`),
   ]);
 
 // Who confirms leads step 3 (2026-08-17, Afo: "who confirmed should sit in the
@@ -2465,7 +2464,7 @@ function w3(state: W3State): string {
       sheetOver(
         w3Head("Make an offer", 0) + pagepad(field("Kind", radio([{ label: "Garden work", on: true }, { label: "A service or support" }]))),
         "Resume your draft?",
-        `${listRow({ icon: "sticky-note-line", primary: "Prune the north beds", meta: "Saved on this device · 2 hours ago" })}${hot("w3.resume", btn("Resume draft", { kind: "pri", full: true }))}${hot("w3.start-fresh", btn("Start fresh", { kind: "ghost", full: true }))}`,
+        `${listRow({ icon: "sticky-note-line", primary: "Prune the north beds", meta: "Saved on this device · 2 hours ago" })}${hot("w3.resume", btn("Resume Draft", { kind: "pri", full: true }))}${hot("w3.start-fresh", btn("Start Fresh", { kind: "ghost", full: true }))}`,
       ),
       { offline: true, appBar: false },
     );
@@ -2544,9 +2543,9 @@ function w3(state: W3State): string {
       );
       actions =
         state === "step-review"
-          ? btn("Make this offer", { kind: "pri", full: true, disabled: true })
-          : hot("w3.submit", btn("Make this offer", { kind: "pri", full: true }));
-      secondary = state === "step-review" ? hot("w3.read-to-end", btn("Read to the end", { kind: "ghost", sm: true, icon: "arrow-right-s-line" })) : "";
+          ? btn("Make This Offer", { kind: "pri", full: true, disabled: true })
+          : hot("w3.submit", btn("Make This Offer", { kind: "pri", full: true }));
+      secondary = state === "step-review" ? hot("w3.read-to-end", btn("Read to the End", { kind: "ghost", sm: true, icon: "arrow-right-s-line" })) : "";
       break;
     case "step-advanced":
       head = w3Head("Make an offer", 3);
@@ -2560,7 +2559,7 @@ function w3(state: W3State): string {
         hot("w3.protocol-fallback", `<label class="arow" style="align-items:flex-start"><input type="checkbox" aria-label="Let the Green Goods team confirm if nobody local is eligible" checked style="margin-top:4px"><span class="grow"><b>Let the Green Goods team confirm if nobody local is eligible</b><span class="t-meta" style="display:block">On for this pilot. Usable only while nobody local can confirm, always with a recorded reason — and never by a contributor.</span></span></label>`),
         field("Needs an assessment", radio([{ label: "No", meta: "evidence and confirmation carry the proof", on: true }, { label: "Yes", meta: "an evaluator attaches a qualifying assessment" }], { interactive: true, name: "requires-assessment" })),
       );
-      actions = hot("w3.advanced-done", btn("Back to review", { kind: "pri", full: true }));
+      actions = hot("w3.advanced-done", btn("Back to Review", { kind: "pri", full: true }));
       break;
     case "advanced-work-ask":
       head = w3Head("Make a request", 3);
@@ -2578,7 +2577,7 @@ function w3(state: W3State): string {
         hot("w3.contributor-policy", field("Contributor policy", radio([{ label: "Open team", meta: "eligible garden members may join", on: true }, { label: "Lead-managed team", meta: "the lead or steward manages the roster" }], { interactive: true, name: "contributor-policy-work-ask" }))),
         field("Needs an assessment", radio([{ label: "No", meta: "approved work carries the proof", on: true }, { label: "Yes", meta: "an evaluator attaches a qualifying assessment" }], { interactive: true, name: "requires-assessment-work-ask" })),
       );
-      actions = hot("w3.advanced-work-done", btn("Back to review", { kind: "pri", full: true }));
+      actions = hot("w3.advanced-work-done", btn("Back to Review", { kind: "pri", full: true }));
       break;
     case "step-advanced-no-protocol":
       head = w3Head("Make an offer", 3);
@@ -2591,7 +2590,7 @@ function w3(state: W3State): string {
         sectionTitle("Team options"),
         hot("w3.contributor-policy", field("Contributor policy", radio([{ label: "Open team", meta: "eligible garden members may join", on: true }, { label: "Lead-managed team", meta: "the lead or steward manages the roster" }], { interactive: true, name: "contributor-policy-noproto" }))),
       );
-      actions = hot("w3.advanced-done", btn("Back to review", { kind: "pri", full: true }));
+      actions = hot("w3.advanced-done", btn("Back to Review", { kind: "pri", full: true }));
       break;
     case "step-confirmers":
       head = w3Head("Make an offer", 3);
@@ -2607,7 +2606,7 @@ function w3(state: W3State): string {
         field("How many must confirm", radio([{ label: "Any one of them", meta: "threshold 1 of 2 named", on: true }, { label: "Both of them", meta: "threshold 2 of 2 named" }], { interactive: true, name: "confirmer-threshold" })),
         banner("Maria and Ana are on the contributor roster, so they are not listed. A contributor can never confirm.", "stone", "shield-check-line"),
       );
-      actions = hot("w3.confirmers-done", btn("Use this group", { kind: "pri", full: true }));
+      actions = hot("w3.confirmers-done", btn("Use This Group", { kind: "pri", full: true }));
       break;
     // Request-aware twin of step-confirmers (PR #710 review): entered from the
     // garden-work ask's Advanced detour, so Use-this-group returns THERE, not
@@ -2625,7 +2624,7 @@ function w3(state: W3State): string {
         field("How many must confirm", radio([{ label: "Any one of them", meta: "threshold 1 of 2 named", on: true }, { label: "Both of them", meta: "threshold 2 of 2 named" }], { interactive: true, name: "confirmer-threshold-work" })),
         banner("Whoever takes up the ask joins the contributor roster and leaves this list. A contributor can never confirm.", "stone", "shield-check-line"),
       );
-      actions = hot("w3.confirmers-work-done", btn("Use this group", { kind: "pri", full: true }));
+      actions = hot("w3.confirmers-work-done", btn("Use This Group", { kind: "pri", full: true }));
       break;
     case "support-review":
       head = w3Head("Make an offer", 3);
@@ -2645,7 +2644,7 @@ function w3(state: W3State): string {
         }),
         `<div class="t-meta">Service offers name no garden actions. Evidence and the person you help carry the proof.</div>`,
       );
-      actions = hot("w3.submit-support", btn("Make this offer", { kind: "pri", full: true }));
+      actions = hot("w3.submit-support", btn("Make This Offer", { kind: "pri", full: true }));
       break;
     case "support-howmuch":
       head = w3Head("Make an offer", 1);
@@ -2767,7 +2766,7 @@ function w3(state: W3State): string {
         }),
         `<div class="t-meta">A garden-work request travels the Work rails: whoever takes it up submits work, the stewards approve it, and you confirm it was met.</div>`,
       );
-      actions = hot("w3.submit-work-request", btn("Request this work", { kind: "pri", full: true }));
+      actions = hot("w3.submit-work-request", btn("Request This Work", { kind: "pri", full: true }));
       break;
     case "request-review":
       head = w3Head("Make a request", 3);
@@ -2786,7 +2785,7 @@ function w3(state: W3State): string {
         }),
         `<div class="t-meta">A service request names no garden actions — evidence and you, the requester, carry the proof.</div>`,
       );
-      actions = hot("w3.submit-request", btn("Make this request", { kind: "pri", full: true }));
+      actions = hot("w3.submit-request", btn("Make This Request", { kind: "pri", full: true }));
       break;
     case "saved-offer-edit":
       head = w3Head("Offer it once", 0, 2);
@@ -2801,7 +2800,7 @@ function w3(state: W3State): string {
         field("How many", input("1")),
         field("Who confirms", input("Recipient", { select: true })),
       );
-      actions = hot("w3.review-saved-offer", btn("Review this offer", { kind: "pri", full: true }));
+      actions = hot("w3.review-saved-offer", btn("Review This Offer", { kind: "pri", full: true }));
       break;
     case "saved-offer-review":
       head = w3Head("Offer it once", 1, 2);
@@ -2809,7 +2808,7 @@ function w3(state: W3State): string {
         card(`${kv("Direction", "Offer")}${kv("Kind", "Support / service")}${kv("Garden", "Rocinha Community Garden")}${kv("Cycle", "Season of First Rains")}${kv("Title", "Hosting climate workshops")}${kv("What people receive", "A two-hour session on local climate work")}${kv("How much", "1 workshop session")}${kv("Who confirms", "Recipient")}`),
         banner("This makes one ordinary Offer. It will not repeat, create an ongoing Offer, or open another later.", "stone", "information-line"),
       );
-      actions = `<div class="brow">${hot("w3.edit-saved-offer", btn("Edit", { kind: "ghost" }))}${hot("w3.submit-saved-offer", btn("Make this offer", { kind: "pri" }))}</div>`;
+      actions = `<div class="brow">${hot("w3.edit-saved-offer", btn("Edit", { kind: "ghost" }))}${hot("w3.submit-saved-offer", btn("Make This Offer", { kind: "pri" }))}</div>`;
       break;
     case "saved-offer-queued":
       head = w3Head("Offer it once", 2, 2);
@@ -2820,7 +2819,7 @@ function w3(state: W3State): string {
         banner("Saved on this phone. It sends when you are connected.", "amber", "time-line"),
         `<div class="t-meta">This is one ordinary Offer. Your saved details remain reusable, but this offer will not repeat or become ongoing.</div>`,
       ) + syncBar("1 waiting to send");
-      actions = hot("w3.saved-offer-done", btn("Back to my offers", { kind: "ghost", full: true }));
+      actions = hot("w3.saved-offer-done", btn("Back to My Offers", { kind: "ghost", full: true }));
       break;
     case "support-details":
       head = w3Head("Make an offer", 2);
@@ -2870,7 +2869,7 @@ function w3(state: W3State): string {
         }),
         banner("Sending this opens the offer and its first two commitments at once. They become takeable once they send. Nothing new opens unless you open it, and when the season ends the offer stays yours.", "stone", "information-line"),
       );
-      actions = hot("w3.submit-ongoing", btn("Start this ongoing offer", { kind: "pri", full: true }));
+      actions = hot("w3.submit-ongoing", btn("Start This Ongoing Offer", { kind: "pri", full: true }));
       break;
     case "request-howmuch-steward":
       // Support folded in (2026-08-17, Afo). It was step 3 of five, which made a
@@ -2925,7 +2924,7 @@ function w3(state: W3State): string {
           advanced: { hot: "w3.advanced", label: "Who confirms", value: "You, because it was your request." },
         }),
       );
-      actions = hot("w3.submit-request", btn("Make this request", { kind: "pri", full: true }));
+      actions = hot("w3.submit-request", btn("Make This Request", { kind: "pri", full: true }));
       break;
     // The composer recognises a repeat and offers to make it count (2026-08-17,
     // Afo). This is the only way a record can start after step 1, because
@@ -2943,7 +2942,7 @@ function w3(state: W3State): string {
         field("What you're offering", input("Hosting climate workshops")),
         card(
           `<div class="t-title">You have offered this three times</div><div class="t-meta">Made ongoing, what you give from now counts together, and neighbours can see it has been running. The three you already made stay as they are; they cannot be gathered up.</div>` +
-            `<div class="brow">${hot("w3.repeat-make-ongoing", btn("Make it ongoing", { kind: "pri" }))}${hot("w3.repeat-keep-once", btn("Keep it a one-off", { kind: "ghost" }))}</div>`,
+            `<div class="brow">${hot("w3.repeat-make-ongoing", btn("Make it Ongoing", { kind: "pri" }))}${hot("w3.repeat-keep-once", btn("Keep it a One-off", { kind: "ghost" }))}</div>`,
           { cls: "inset" },
         ),
         w3Scope("Season of First Rains"),
@@ -2958,7 +2957,7 @@ function w3(state: W3State): string {
         card(
           listRow({ icon: "leaf-line", primary: "Prune × 1", meta: "AGRO · trees and beds", chipHtml: chip("OK", "ok") }) +
             listRow({ icon: "error-warning-line", primary: "Plant × 0", meta: "needs a count of at least 1", chipHtml: chip("Fix", "err") }) +
-            hot("w3.add-action", btn("Add an action", { kind: "ghost", sm: true, icon: "add-line" })),
+            hot("w3.add-action", btn("Add an Action", { kind: "ghost", sm: true, icon: "add-line" })),
           { cls: "flat" },
         ),
         `<div class="t-meta">Each requirement needs a count of 1 or more. Add as many as the commitment genuinely needs; the measured implementation cap is not presented as a planning rule.</div>`,
@@ -2981,8 +2980,7 @@ function w3(state: W3State): string {
         ]),
         w3HowOften(),
         w3Scope("Season of First Rains"),
-        `<div class="t-meta">${hot("w3.repeat-noticed", btn("Offered this before? See what changes", { kind: "ghost", sm: true, icon: "refresh-line" }))}</div>`,
-        field("Title", input("Prune the north beds")),
+        field("Title", hot("w3.repeat-noticed", input("Prune the north beds"))),
         pickRow([{ label: "Prune the north beds", on: true }, { label: "Water the seedlings" }, { label: "Plant out the starts" }, { label: "More…", hotId: "w3.template" }]),
         `<div class="t-meta">Suggestions come from the garden's own actions — tap one to start, then make it yours.</div>`,
       );
@@ -3004,7 +3002,7 @@ const W3_HOTS: HifiDef["hots"] = {
   // in-form control is deleted — season/campaign seeding and on-behalf capture
   // remain console-seeded only (UX:154).
   "w3.team": { l: "Team", to: "screen:W2b@setup", info: "One row where the Advanced detour used to carry a contributor-policy radio and a separate invite step (2026-08-17, Afo). Team is one surface now — policy and invites before anyone accepts, roster afterwards — reachable from here and from the commitment's People section." },
-  "w3.repeat-noticed": { l: "You have offered this before", to: "screen:W3@repeat-noticed", info: "The composer recognises a title you have offered before and asks whether to make it ongoing from here on (2026-08-17, Afo). Without this, accumulating a record depends on a choice made at step 1 before you knew it mattered, and someone who made twelve separate workshop offers has twelve unrelated commitments forever. Past ones stay separate either way: commitmentSeriesId is set at creation and commitments are immutable, so history cannot be back-filled." },
+  "w3.repeat-noticed": { l: "A title you have offered before", to: "screen:W3@repeat-noticed", info: "The composer recognises a title you have offered before and asks whether to make it ongoing from here on (2026-08-17, Afo). Without this, accumulating a record depends on a choice made at step 1 before you knew it mattered, and someone who made twelve separate workshop offers has twelve unrelated commitments forever. Past ones stay separate either way: commitmentSeriesId is set at creation and commitments are immutable, so history cannot be back-filled." },
   "w3.repeat-keep-once": { l: "Keep it a one-off", to: "screen:W3@step-howmuch", info: "Continues as a single commitment. Nothing accumulates, which is the right answer when the repeat was a coincidence rather than a practice." },
   "w3.repeat-make-ongoing": { l: "Make it ongoing", to: "screen:W3@support-howmuch-ongoing", info: "Turns this into an ongoing offer from here on, so what you give from now counts together. The three you already made stay as they are." },
   "w3.team-remove": { l: "Remove from the team", info: "Takes someone off the team before the commitment exists — nothing on chain has happened yet, so this is a local edit to the draft. After creation the roster is managed from the team surface, and once any readiness path fires it freezes (ContributorRosterFrozen) and nobody can be added or removed." },
@@ -3147,21 +3145,21 @@ function w4(state: W4State): string {
   switch (state) {
     case "confirm-request":
       title = "Did the help arrive?";
-      inner = `${summary}${listRow({ icon: "image-line", primary: "Evidence", meta: "1 item · photo from the market" })}${meter(0, { left: "confirmations", right: "0 of 1" })}${exclusion}${hot("w4.confirm-request", btn("Confirm — help arrived", { kind: "pri", full: true }))}${hot("w4.not-yet-request", btn("Not yet — tell the stewards why", { kind: "sec", full: true }))}`;
+      inner = `${summary}${listRow({ icon: "image-line", primary: "Evidence", meta: "1 item · photo from the market" })}${meter(0, { left: "confirmations", right: "0 of 1" })}${exclusion}${hot("w4.confirm-request", btn("Confirm — Help Arrived", { kind: "pri", full: true }))}${hot("w4.not-yet-request", btn("Not Yet — Tell the Stewards Why", { kind: "sec", full: true }))}`;
       break;
     case "confirm-request-work":
       title = "Was the work you asked for done?";
-      inner = `${summary}${listRow({ icon: "check-line", primary: "Approved work", meta: "Weed × 2 · Mulch × 4 — all approved by the stewards" })}${meter(0, { left: "confirmations", right: "0 of 1" })}${exclusion}${hot("w4.confirm-request-work", btn("Confirm — the work was done", { kind: "pri", full: true }))}${hot("w4.not-yet-request-work", btn("Not yet", { kind: "sec", full: true }))}`;
+      inner = `${summary}${listRow({ icon: "check-line", primary: "Approved work", meta: "Weed × 2 · Mulch × 4 — all approved by the stewards" })}${meter(0, { left: "confirmations", right: "0 of 1" })}${exclusion}${hot("w4.confirm-request-work", btn("Confirm — the Work Was Done", { kind: "pri", full: true }))}${hot("w4.not-yet-request-work", btn("Not Yet", { kind: "sec", full: true }))}`;
       break;
     case "confirm-campaign-request":
       title = "Did the Campaign help arrive?";
-      inner = `${summary}${listRow({ icon: "image-line", primary: "Evidence", meta: "1 item · photo from the market" })}${meter(0, { left: "confirmations", right: "0 of 1" })}${exclusion}${hot("w4.confirm-campaign-request", btn("Confirm — help arrived", { kind: "pri", full: true }))}${hot("w4.not-yet-campaign-request", btn("Not yet — tell the stewards why", { kind: "sec", full: true }))}`;
+      inner = `${summary}${listRow({ icon: "image-line", primary: "Evidence", meta: "1 item · photo from the market" })}${meter(0, { left: "confirmations", right: "0 of 1" })}${exclusion}${hot("w4.confirm-campaign-request", btn("Confirm — Help Arrived", { kind: "pri", full: true }))}${hot("w4.not-yet-campaign-request", btn("Not Yet — Tell the Stewards Why", { kind: "sec", full: true }))}`;
       break;
     case "confirm-support":
-      inner = `${summary}${listRow({ icon: "image-line", primary: "Evidence", meta: "1 item · repaired handles" })}${meter(0, { left: "confirmations", right: "0 of 1" })}${exclusion}${hot("w4.confirm-support", btn("Confirm — commitment kept", { kind: "pri", full: true }))}${hot("w4.not-yet-support", btn("Not yet — tell the stewards why", { kind: "sec", full: true }))}`;
+      inner = `${summary}${listRow({ icon: "image-line", primary: "Evidence", meta: "1 item · repaired handles" })}${meter(0, { left: "confirmations", right: "0 of 1" })}${exclusion}${hot("w4.confirm-support", btn("Confirm — Commitment Kept", { kind: "pri", full: true }))}${hot("w4.not-yet-support", btn("Not Yet — Tell the Stewards Why", { kind: "sec", full: true }))}`;
       break;
     case "confirm-captured":
-      inner = `${summary}${listRow({ icon: "image-line", primary: "Evidence", meta: "1 item · workshop photo" })}${meter(0, { left: "confirmations", right: "0 of 1" })}${exclusion}${hot("w4.confirm-captured", btn("Confirm — commitment kept", { kind: "pri", full: true }))}${hot("w4.not-yet-captured", btn("Not yet — tell the stewards why", { kind: "sec", full: true }))}`;
+      inner = `${summary}${listRow({ icon: "image-line", primary: "Evidence", meta: "1 item · workshop photo" })}${meter(0, { left: "confirmations", right: "0 of 1" })}${exclusion}${hot("w4.confirm-captured", btn("Confirm — Commitment Kept", { kind: "pri", full: true }))}${hot("w4.not-yet-captured", btn("Not Yet — Tell the Stewards Why", { kind: "sec", full: true }))}`;
       break;
     case "not-yet":
     case "not-yet-support":
@@ -3186,7 +3184,7 @@ function w4(state: W4State): string {
         : support ? "w4.not-yet-send-support"
         : captured ? "w4.not-yet-send-captured"
         : "w4.not-yet-send",
-        btn("Send to the stewards", { kind: "pri", full: true }),
+        btn("Send to the Stewards", { kind: "pri", full: true }),
       )}`;
       break;
     case "confirmed-pending":
@@ -3220,7 +3218,7 @@ function w4(state: W4State): string {
         : support ? "w4.done-support"
         : captured ? "w4.done-captured"
         : "w4.done",
-        btn("Back to the pool", { kind: "pri", full: true }),
+        btn("Back to the Pool", { kind: "pri", full: true }),
       )}`;
       break;
     case "not-yet-failed":
@@ -3241,7 +3239,7 @@ function w4(state: W4State): string {
         : support ? "w4.not-yet-retry-support"
         : captured ? "w4.not-yet-retry-captured"
         : "w4.not-yet-retry",
-        btn("Try again", { kind: "pri", full: true, icon: "refresh-line" }),
+        btn("Try Again", { kind: "pri", full: true, icon: "refresh-line" }),
       )}`;
       break;
     case "provider-view":
@@ -3251,7 +3249,7 @@ function w4(state: W4State): string {
       inner = `${summary}${confirmMeter}${exclusion}<div class="t-meta">Waiting on João and Ana. You'll see it here the moment they confirm.</div>`;
       break;
     default:
-      inner = `${summary}${listRow({ icon: "check-line", primary: "Linked work", meta: "1 approved · evidence: 2 items" })}${confirmMeter}${exclusion}${hot("w4.confirm", btn("Confirm — commitment kept", { kind: "pri", full: true }))}${hot("w4.not-yet", btn("Not yet — tell the stewards why", { kind: "sec", full: true }))}`;
+      inner = `${summary}${listRow({ icon: "check-line", primary: "Linked work", meta: "1 approved · evidence: 2 items" })}${confirmMeter}${exclusion}${hot("w4.confirm", btn("Confirm — Commitment Kept", { kind: "pri", full: true }))}${hot("w4.not-yet", btn("Not Yet — Tell the Stewards Why", { kind: "sec", full: true }))}`;
   }
   // The confirmation sheet joins the flow grammar through its HEADER rather
   // than a FormInfo card, because a sheet already owns its title (round 11).
@@ -3451,7 +3449,7 @@ function w32(state: W32State): string {
           "seedling-line",
           "Nothing here yet",
           "Save the details of something you can offer, so you do not have to write them again. Only you can see this until you offer it in a garden.",
-          hot("w32.add-first", btn("Save offer details", { kind: "pri", icon: "add-line" })),
+          hot("w32.add-first", btn("Save Offer Details", { kind: "pri", icon: "add-line" })),
         ),
       )}`;
       break;
@@ -3462,7 +3460,7 @@ function w32(state: W32State): string {
         `${field("What are you offering?", input("Hosting climate workshops"))}` +
           `${field("One line about it", input("A two-hour session on local climate work"))}` +
           `<div class="t-meta">This stays a draft on this device until the private save is confirmed.</div>` +
-          hot("w32.save", btn("Save privately", { kind: "pri", full: true })),
+          hot("w32.save", btn("Save Privately", { kind: "pri", full: true })),
       );
       break;
     case "choose-path":
@@ -3487,10 +3485,10 @@ function w32(state: W32State): string {
         banner("This draft is on this phone only. Save it to keep it if you change devices.", "amber", "sticky-note-line"),
         card(
           listRow({ icon: "sticky-note-line", primary: "Hosting climate workshops", meta: "Draft on this device · edited 5 minutes ago", chipHtml: chip("Not saved yet", "warn") }) +
-            hot("w32.save-draft", btn("Save privately", { kind: "pri", sm: true })),
+            hot("w32.save-draft", btn("Save Privately", { kind: "pri", sm: true })),
           { cls: "flat" },
         ),
-        hot("w32.persistence", btn("How saving works", { kind: "ghost", sm: true, icon: "information-line" })),
+        hot("w32.persistence", btn("How Saving Works", { kind: "ghost", sm: true, icon: "information-line" })),
       )}`;
       break;
     case "saving":
@@ -3512,7 +3510,7 @@ function w32(state: W32State): string {
           listRow({ icon: "sticky-note-line", primary: "Hosting climate workshops", meta: "Draft retained · nothing lost", chipHtml: chip("Not saved", "err") }),
           { cls: "flat" },
         ),
-        `<div class="brow">${hot("w32.retry-save", btn("Try saving again", { kind: "pri", icon: "refresh-line" }))}${hot("w32.keep-editing", btn("Keep editing", { kind: "ghost" }))}</div>`,
+        `<div class="brow">${hot("w32.retry-save", btn("Try Saving Again", { kind: "pri", icon: "refresh-line" }))}${hot("w32.keep-editing", btn("Keep Editing", { kind: "ghost" }))}</div>`,
       )}`;
       break;
     case "offline-local":
@@ -3523,8 +3521,8 @@ function w32(state: W32State): string {
           listRow({ icon: "sticky-note-line", primary: "Hosting climate workshops", meta: "Draft on this device", chipHtml: chip("Offline · not saved", "warn") }),
           { cls: "flat" },
         ),
-        hot("w32.use-local-offline", btn("Use this draft", { kind: "pri", full: true })),
-        `<div class="brow">${hot("w32.retry-save-online", btn("Try when connected", { kind: "sec", icon: "refresh-line" }))}${hot("w32.keep-editing", btn("Keep editing", { kind: "ghost" }))}</div>`,
+        hot("w32.use-local-offline", btn("Use This Draft", { kind: "pri", full: true })),
+        `<div class="brow">${hot("w32.retry-save-online", btn("Try When Connected", { kind: "sec", icon: "refresh-line" }))}${hot("w32.keep-editing", btn("Keep Editing", { kind: "ghost" }))}</div>`,
       )}`;
       break;
     case "version-conflict":
@@ -3532,8 +3530,8 @@ function w32(state: W32State): string {
         intro,
         banner("A newer saved version exists. Your local edits are still on this device.", "amber", "refresh-line"),
         card(`${kv("Saved account copy", "newer")}${kv("This device", "local edits retained")}`, { cls: "flat" }),
-        `<div class="brow">${hot("w32.reload-remote", btn("Use saved version", { kind: "pri" }))}${hot("w32.keep-local-copy", btn("Keep a local copy", { kind: "ghost" }))}</div>`,
-        hot("w32.overwrite-current", btn("Replace the saved version…", { kind: "danger", full: true })),
+        `<div class="brow">${hot("w32.reload-remote", btn("Use Saved Version", { kind: "pri" }))}${hot("w32.keep-local-copy", btn("Keep a Local Copy", { kind: "ghost" }))}</div>`,
+        hot("w32.overwrite-current", btn("Replace the Saved Version…", { kind: "danger", full: true })),
       )}`;
       break;
     case "persistence":
@@ -3546,7 +3544,7 @@ function w32(state: W32State): string {
             `${kv("Offered in a garden", "The garden's pool holds the commitment. Your saved details stay private.")}`,
         ) +
           `<div class="t-meta">Saved details are private until you choose a garden. Offering one never publishes the rest of your list.</div>` +
-          hot("w32.persistence-done", btn("Got it", { kind: "pri", full: true })),
+          hot("w32.persistence-done", btn("Got It", { kind: "pri", full: true })),
       );
       break;
     case "loading":
@@ -3558,7 +3556,7 @@ function w32(state: W32State): string {
           "wifi-off-line",
           "Cannot load your saved offers",
           "Everything you saved is safe. This device could not reach it just now.",
-          hot("w32.retry", btn("Try again", { kind: "pri", icon: "refresh-line" })),
+          hot("w32.retry", btn("Try Again", { kind: "pri", icon: "refresh-line" })),
         ),
       )}`;
       break;
@@ -3579,7 +3577,7 @@ function w32(state: W32State): string {
             offerRow({ title: "Environmental action days", meta: "Clean-ups, planting days, shared repairs", tag: "Ready to offer", tone: "plain" }),
           { cls: "flat" },
         ),
-        hot("w32.add", btn("Save offer details", { kind: "ghost", full: true, icon: "add-line" })),
+        hot("w32.add", btn("Save Offer Details", { kind: "ghost", full: true, icon: "add-line" })),
         `<div class="t-meta">Saved privately to your account. Offering one in a garden is a separate, explicit step.</div>`,
       )}`;
       break;
@@ -3634,7 +3632,7 @@ function w32(state: W32State): string {
           offerRow({ title: "Hosting climate workshops", meta: "A two-hour session on local climate work", tag: "Ready to offer", tone: "plain", hotId: "w32.use-saved" }),
           { cls: "flat" },
         ),
-        hot("w32.add", btn("Save offer details", { kind: "ghost", full: true, icon: "add-line" })),
+        hot("w32.add", btn("Save Offer Details", { kind: "ghost", full: true, icon: "add-line" })),
         `<div class="t-meta">Saved privately to your account. No garden, pool, ongoing Offer, or available place exists yet.</div>`,
       )}`;
   }
@@ -3751,7 +3749,7 @@ const w34Record = (opts: { rows?: boolean } = {}) =>
         ? ""
         : listRow({ icon: "checkbox-circle-fill", primary: "Market-day session", meta: "Jul 12 · Season of First Rains", chevron: true }) +
           listRow({ icon: "checkbox-circle-fill", primary: "School visit", meta: "Jun 28 · Season of First Rains", chevron: true })) +
-      hot("w34.open-story", btn("See every one", { kind: "ghost", full: true })),
+      hot("w34.open-story", btn("See Every One", { kind: "ghost", full: true })),
     { flush: true },
   );
 
@@ -3777,8 +3775,7 @@ const w34Places = (n: number) =>
   n === 0
     ? sectionCard(
         "Open now",
-        `<div class="cempty"><div class="t-title">Nothing open</div><div class="t-meta">Nobody has anything to take up. Opening one creates a real commitment and holds your capacity for it straight away.</div></div>` +
-          hot("w34.add-places", btn("Open one", { kind: "pri", full: true, icon: "add-line" })),
+        `<div class="cempty"><div class="t-title">Nothing open</div><div class="t-meta">Nobody has anything to take up. Opening one creates a real commitment and holds your capacity for it straight away.</div></div>`,
         { flush: true },
       )
     : sectionCard(
@@ -3791,15 +3788,13 @@ const w34Places = (n: number) =>
             chipHtml: stateChip("Offered"),
             chevron: true,
           }),
-        ).join("") + hot("w34.add-places", btn("Open more", { kind: "ghost", full: true, icon: "add-line" })),
+        ).join(""),
       );
 
 const w34ActiveManagement = (pool: "Open" | "Ready", availability: "existing" | "none" = "existing") => {
   const ready = pool === "Ready";
   const noPlaces = availability === "none";
-  return `${sectionTitle("Looking after this offer")}
-${hot(ready ? "w34.edit-active-ready" : noPlaces ? "w34.edit-active-none" : "w34.edit-active", btn("Edit offer details", { kind: "ghost", full: true, icon: "sticky-note-line" }))}
-${hot("w34.stop", btn("Stop offering this", { kind: "ghost", full: true, icon: "pause-line" }))}`;
+  return `${hot(ready ? "w34.edit-active-ready" : noPlaces ? "w34.edit-active-none" : "w34.edit-active", btn("Edit Details", { kind: "sec", sm: true, icon: "sticky-note-line" }))}${hot("w34.stop", btn("Stop Offering", { kind: "sec", sm: true, icon: "pause-line" }))}`;
 };
 
 const w34MetadataEditor = (state: "Active" | "Stopped", pool: "Open" | "Ready", availability: "existing" | "none" = "existing") =>
@@ -3815,7 +3810,7 @@ const w34MetadataEditor = (state: "Active" | "Stopped", pool: "Open" | "Ready", 
         state === "Active"
           ? pool === "Ready" ? "w34.save-edit-active-ready" : availability === "none" ? "w34.save-edit-active-none" : "w34.save-edit-active"
           : pool === "Ready" ? "w34.save-edit-stopped" : availability === "none" ? "w34.save-edit-stopped" : "w34.save-edit-stopped",
-        btn("Save changes", { kind: "pri", full: true }),
+        btn("Save Changes", { kind: "pri", full: true }),
       ),
   );
 
@@ -3829,6 +3824,21 @@ const w34StoryTimeline = () =>
     { label: "Kept — solar co-op introduction", meta: "Apr 06 · Season of Seedlings" },
   ]);
 
+// One act per state in a fixed bar, the rule the commitment view already
+// follows. The screen is a pushed read surface, so it carries no bottom nav.
+const W34_MANAGE = new Set<string>(["active-two", "active-one", "active-none"]);
+const W34_BARS: Partial<Record<W34State, string>> = {
+  "active-two": hot("w34.add-places", btn("Open More", { kind: "pri", full: true, icon: "add-line" })),
+  "active-one": hot("w34.add-places", btn("Open More", { kind: "pri", full: true, icon: "add-line" })),
+  "active-none": hot("w34.add-places", btn("Open One", { kind: "pri", full: true, icon: "add-line" })),
+  stopped: hot("w34.start-again", btn("Start Offering Again", { kind: "pri", full: true, icon: "refresh-line" })),
+  "stop-confirm": "",
+  "stopped-none": hot("w34.start-again-none", btn("Start Offering Again", { kind: "pri", full: true, icon: "refresh-line" })),
+  "claimant-view": hot("w34.claim", btn("Take One Up", { kind: "pri", full: true })),
+  "pool-ready": hot("w34.edit-active-ready", btn("Edit Details", { kind: "sec", full: true, icon: "sticky-note-line" })),
+  "edit-stopped": hot("w34.save-edit-stopped", btn("Save", { kind: "pri", full: true })),
+};
+
 function w34(state: W34State): string {
   let body: string;
   switch (state) {
@@ -3839,7 +3849,6 @@ function w34(state: W34State): string {
         w34Places(0),
         w34Repeats(),
         w34TakenUpBy(),
-        w34ActiveManagement("Open", "none"),
       )}`;
       break;
     case "active-one":
@@ -3850,7 +3859,6 @@ function w34(state: W34State): string {
         w34Places(1),
         w34Repeats(),
         w34TakenUpBy(),
-        w34ActiveManagement("Open"),
       )}`;
       break;
     case "pool-ready":
@@ -3859,7 +3867,6 @@ function w34(state: W34State): string {
         banner("This pool is ready but not open. Your ongoing Offer is active, while opening or taking anything up stays unavailable until stewards open participation.", "stone", "information-line"),
         formInfo("time-line", "Nothing open right now", "Opening the pool is a steward action. Nothing can be queued from here."),
         sectionCard("Details", `${detailRow("Kept", "12 times across 5 cycles")}${detailRow("Unit", "workshop sessions")}${detailRow("Pool", "Ready")}`),
-        w34ActiveManagement("Ready"),
       )}`;
       break;
     case "edit-active":
@@ -3895,7 +3902,7 @@ function w34(state: W34State): string {
           { cls: "flat" },
         ),
         sectionCard("Details", `${detailRow("Available now", "1 open")}${detailRow("Waiting to send", "1 open")}`),
-        hot("w34.view-partial", btn("View send details", { kind: "ghost", full: true })),
+        hot("w34.view-partial", btn("View Send Details", { kind: "ghost", full: true })),
       )}${syncBar("1 waiting to send")}`;
       break;
     case "places-partial-failed":
@@ -3909,7 +3916,7 @@ function w34(state: W34State): string {
           { cls: "flat" },
         ),
         sectionCard("Details", `${detailRow("Available now", "1 open")}${detailRow("Needs attention", "1 open")}`),
-        `<div class="brow">${hot("w34.retry-failed-place", btn("Try the failed one again", { kind: "pri", icon: "refresh-line" }))}${hot("w34.discard-failed-place", btn("Discard the failed one", { kind: "ghost" }))}</div>`,
+        `<div class="brow">${hot("w34.retry-failed-place", btn("Try the Failed One Again", { kind: "pri", icon: "refresh-line" }))}${hot("w34.discard-failed-place", btn("Discard the Failed One", { kind: "ghost" }))}</div>`,
       )}`;
       break;
     case "story":
@@ -3919,7 +3926,7 @@ function w34(state: W34State): string {
         card(`<div class="t-title num">Kept 12 times across 5 cycles</div><div class="t-meta">Every entry below is its own commitment, with its own evidence and confirmation. Nothing here is a rating.</div>`),
         sectionTitle("This offer's story"),
         card(w34StoryTimeline(), { cls: "flat" }),
-        hot("w34.story-row", btn("Open the July session", { kind: "ghost", full: true })),
+        hot("w34.story-row", btn("Open the July Session", { kind: "ghost", full: true })),
         `<div class="t-meta">Reported participants come from what people wrote in their evidence, not from the record itself.</div>`,
       )}`;
       break;
@@ -3942,7 +3949,7 @@ function w34(state: W34State): string {
         w34Record(),
         card(
           `<div class="t-title">A new season is open</div><div class="t-meta">Season of Long Rains started on Sep 1. Would you like to offer workshop sessions again?</div>` +
-            `<div class="brow">${hot("w34.ask-again-yes", btn("Open more", { kind: "pri", icon: "add-line" }))}${hot("w34.ask-again-not-now", btn("Not this season", { kind: "ghost" }))}</div>`,
+            `<div class="brow">${hot("w34.ask-again-yes", btn("Open More", { kind: "pri", icon: "add-line" }))}${hot("w34.ask-again-not-now", btn("Not This Season", { kind: "ghost" }))}</div>`,
         ),
         `<div class="t-meta">Nothing is created until you choose. Saying no changes nothing about this offer or its story.</div>`,
         sectionCard("Details", `${detailRow("Kept", "12 times across 5 cycles")}${detailRow("Places available", "None")}`),
@@ -3966,8 +3973,7 @@ function w34(state: W34State): string {
               claimantField(
                 "openTerms",
                 listRow({ icon: "calendar-line", primary: "Workshop session 1", meta: W34_CLAIMANT_PUBLIC_DATA.openTerms, chipHtml: stateChip("Offered") }) +
-                  listRow({ icon: "calendar-line", primary: "Workshop session 2", meta: W34_CLAIMANT_PUBLIC_DATA.openTerms, chipHtml: stateChip("Offered") }) +
-                  hot("w34.claim", btn("Take one up", { kind: "pri", full: true })),
+                  listRow({ icon: "calendar-line", primary: "Workshop session 2", meta: W34_CLAIMANT_PUBLIC_DATA.openTerms, chipHtml: stateChip("Offered") }),
               ),
           ) +
           claimantField(
@@ -3987,7 +3993,7 @@ function w34(state: W34State): string {
             listRow({ icon: "calendar-line", primary: "Workshop session 2", meta: "Season of First Rains · unavailable while pool paused", chipHtml: chip("Paused", "queued") }),
         ),
         sectionCard("Details", `${detailRow("Open more", "Unavailable while paused")}${detailRow("Existing history", "Preserved")}`),
-        hot("w34.open-paused-pool", btn("View the paused pool", { kind: "ghost", full: true })),
+        hot("w34.open-paused-pool", btn("View the Paused Pool", { kind: "ghost", full: true })),
       )}`;
       break;
     case "pool-closed":
@@ -4000,7 +4006,7 @@ function w34(state: W34State): string {
             listRow({ icon: "calendar-line", primary: "Workshop session 2", meta: "Held when the pool closed · unavailable", chipHtml: chip("Closed", "plain") }),
         ),
         sectionCard("Details", `${detailRow("This offer's Story", "Still available")}${detailRow("New or taken-up commitments", "Unavailable until stewards reopen the pool")}`),
-        hot("w34.open-closed-pool", btn("View the closed pool", { kind: "ghost", full: true })),
+        hot("w34.open-closed-pool", btn("View the Closed Pool", { kind: "ghost", full: true })),
       )}`;
       break;
     case "pool-composted":
@@ -4008,7 +4014,7 @@ function w34(state: W34State): string {
         w34Identity({ state: "Active · pool composted", tone: "ink" }),
         banner("This pool is composted for now. Its history remains readable, and its stewards may reopen it for another season.", "stone", "leaf-line"),
         card(`<div class="t-title num">Kept 12 times across 5 cycles</div><div class="t-meta">Past commitments and evidence remain exactly as recorded. Nothing can be opened or taken up.</div>`),
-        hot("w34.open-composted-pool", btn("View the composted pool", { kind: "ghost", full: true })),
+        hot("w34.open-composted-pool", btn("View the Composted Pool", { kind: "ghost", full: true })),
       )}`;
       break;
     // ONE control, and it calls restCommitmentSeries rather than
@@ -4030,7 +4036,6 @@ function w34(state: W34State): string {
         ),
         w34Repeats(),
         w34TakenUpBy(),
-        `<div class="brow">${hot("w34.start-again", btn("Start offering again", { kind: "pri" }))}${hot("w34.edit-stopped", btn("Edit details", { kind: "ghost" }))}</div>`,
       )}`;
       break;
     case "stopped-none":
@@ -4040,7 +4045,6 @@ function w34(state: W34State): string {
         banner("Stopped on Aug 2. Nothing is open, and nothing new opens until you start it again.", "stone", "pause-line"),
         w34Repeats(),
         w34TakenUpBy(),
-        `<div class="brow">${hot("w34.start-again-none", btn("Start offering again", { kind: "pri" }))}${hot("w34.edit-stopped", btn("Edit details", { kind: "ghost" }))}</div>`,
       )}`;
       break;
     case "stop-confirm":
@@ -4051,7 +4055,7 @@ function w34(state: W34State): string {
           card(
             `${kv("What is already open", "Stays open and can still be taken up")}${kv("What you have given", "Stays exactly as it is")}${kv("Your saved details", "Stay saved privately to you")}`,
           ) +
-          `<div class="brow">${hot("w34.stop-confirm", btn("Stop offering", { kind: "pri" }))}${hot("w34.stop-cancel", btn("Keep offering", { kind: "ghost" }))}</div>`,
+          `<div class="brow">${hot("w34.stop-confirm", btn("Stop Offering", { kind: "pri" }))}${hot("w34.stop-cancel", btn("Keep Offering", { kind: "ghost" }))}</div>`,
       );
       break;
     case "edit-stopped":
@@ -4068,7 +4072,7 @@ function w34(state: W34State): string {
           "wifi-off-line",
           "Cannot load this ongoing Offer",
           "Its commitments and story are safe. This device could not reach them just now.",
-          hot("w34.retry", btn("Try again", { kind: "pri", icon: "refresh-line" })),
+          hot("w34.retry", btn("Try Again", { kind: "pri", icon: "refresh-line" })),
         ),
       )}`;
       break;
@@ -4080,10 +4084,22 @@ function w34(state: W34State): string {
         w34Repeats(),
         w34TakenUpBy(),
         sectionCard("Details", `${detailRow("Next cycle", "Ask me again next cycle")}`),
-        w34ActiveManagement("Open"),
       )}`;
   }
-  return phoneFrame(`${body}<div style="flex:1"></div>`, { offline: state === "places-queued", appBar: appBar("home") });
+  const bar = W34_BARS[state];
+  return phoneFrame(`${body}<div style="flex:1"></div>`, {
+    offline: state === "places-queued",
+    appBar: bar
+      ? actionBar(
+          bar,
+          W34_MANAGE.has(state)
+            ? w34ActiveManagement("Open", state === "active-none" ? "none" : "existing")
+            : state === "stopped" || state === "stopped-none"
+              ? hot("w34.edit-stopped", btn("Edit Details", { kind: "sec", sm: true, icon: "sticky-note-line" }))
+              : undefined,
+        )
+      : false,
+  });
 }
 
 const W34_HOTS: HifiDef["hots"] = {
@@ -4134,7 +4150,7 @@ function w35(state: W35State): string {
         ),
         banner("Saved on this phone. They send when you are connected.", "amber", "time-line"),
         `<div class="t-meta">They show as available only once they have sent and your capacity is held for them. Until then nobody can take them up.</div>`,
-        hot("w35.queued-done", btn("Back to this offer", { kind: "ghost", full: true })),
+        hot("w35.queued-done", btn("Back to This Offer", { kind: "ghost", full: true })),
       )}${syncBar("2 waiting to send")}`;
       break;
     case "mixed-queued":
@@ -4146,7 +4162,7 @@ function w35(state: W35State): string {
           { cls: "flat" },
         ),
         card(`${kv("Available now", "1 open")}${kv("Waiting to send", "1 open")}`),
-        hot("w35.mixed-queued-done", btn("Back to this offer", { kind: "ghost", full: true })),
+        hot("w35.mixed-queued-done", btn("Back to This Offer", { kind: "ghost", full: true })),
       )}${syncBar("1 waiting to send")}`;
       break;
     case "mixed-failed":
@@ -4158,8 +4174,8 @@ function w35(state: W35State): string {
           { cls: "flat" },
         ),
         card(`${kv("Available now", "1 open")}${kv("Needs attention", "1 open")}`),
-        `<div class="brow">${hot("w35.retry-failed", btn("Try the failed one again", { kind: "pri", icon: "refresh-line" }))}${hot("w35.discard-failed", btn("Discard the failed one", { kind: "ghost" }))}</div>`,
-        hot("w35.mixed-failed-done", btn("Back to this offer", { kind: "ghost", full: true })),
+        `<div class="brow">${hot("w35.retry-failed", btn("Try the Failed One Again", { kind: "pri", icon: "refresh-line" }))}${hot("w35.discard-failed", btn("Discard the Failed One", { kind: "ghost" }))}</div>`,
+        hot("w35.mixed-failed-done", btn("Back to This Offer", { kind: "ghost", full: true })),
       )}`;
       break;
     default:
@@ -4173,7 +4189,7 @@ function w35(state: W35State): string {
         ], { interactive: true, name: "places-cycle" })),
         field("How long each session runs", input("2 hours")),
         banner("Opening one holds your capacity for them straight away, so nobody sees something that is not really open.", "stone", "information-line"),
-        hot("w35.submit", btn("Open 2 more", { kind: "pri", full: true })),
+        hot("w35.submit", btn("Open 2 More", { kind: "pri", full: true })),
       )}`;
   }
   return phoneFrame(`${body}<div style="flex:1"></div>`, { offline: state !== "compose", appBar: false });

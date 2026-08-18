@@ -1357,6 +1357,14 @@ Known mis-resolutions fixed in place: `contract-spec.md` §Grassroots-Economics-
     WorkView uses an h6 and Media.tsx uses text-xs uppercase, which is what round 19 unified
     down to, so the pooling flows read differently from the shipped work flow until shipped
     follows. Full text: `uiux-spec.md` C.29.
+133. Four corrections (2026-08-17, round 30, Afo). **The repeat explainer button is gone** —
+    it was a prototype navigation affordance dressed as product copy; the title field carries
+    the hotspot, since the composer recognises the title itself. **One plus on the team**: the
+    section title keeps it, the rail's Add tile goes. **Client button labels are Title Case**,
+    153 of them, with small words lower unless they lead or close; admin already used Title
+    Case acts. **The ongoing view is a full-screen read surface** with no bottom nav and a
+    fixed bar carrying the primary act, with Edit Details and Stop Offering in the secondary
+    row. Full text: `uiux-spec.md` C.30.
 
 **Final recursive certification clarification (2026-07-25; no new decision-register entry):**
 the published `42161`↔`42220` production lane is the only required fully paired
