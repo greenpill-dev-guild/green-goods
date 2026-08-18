@@ -21,6 +21,7 @@ import {
 import { execCastCaptured, parseCastTransactionHash } from "../utils/cast-env";
 import { NetworkManager } from "../utils/network";
 import { buildReleaseLock, loadReleaseManifest, type ReleaseManifest } from "../utils/release-manifest";
+import { assertReleaseOperatorSession, resolveCheckoutCommit } from "../utils/release-session";
 import { retryRpcAvailability } from "../utils/rpc-retry";
 
 const CONTRACTS_ROOT = path.join(__dirname, "../..");
@@ -995,10 +996,8 @@ export function assertCheckpointReceiptBlock(recorded: CheckpointEntry, verified
   }
 }
 
-function foundryCredentialArgs(expectedCommit: string): string[] {
-  if (process.env.GG_RELEASE_OPERATOR_SESSION !== expectedCommit) {
-    throw new Error("Broadcast release-operator session does not match the reviewed commit");
-  }
+function foundryCredentialArgs(): string[] {
+  assertReleaseOperatorSession(resolveCheckoutCommit(REPOSITORY_ROOT));
   const account = process.env.FOUNDRY_KEYSTORE_ACCOUNT ?? "green-goods-deployer";
   const passwordFile = process.env.ETH_PASSWORD;
   if (!passwordFile || !fs.existsSync(passwordFile)) {
@@ -1007,7 +1006,7 @@ function foundryCredentialArgs(expectedCommit: string): string[] {
   return ["--account", account, "--password-file", passwordFile];
 }
 
-function sendTransaction(to: string, data: string, nonce: number, rpcUrl: string, expectedCommit: string): string {
+function sendTransaction(to: string, data: string, nonce: number, rpcUrl: string): string {
   const output = execCastCaptured(
     [
       "send",
@@ -1022,7 +1021,7 @@ function sendTransaction(to: string, data: string, nonce: number, rpcUrl: string
       String(CELO_CHAIN_ID),
       "--rpc-url",
       rpcUrl,
-      ...foundryCredentialArgs(expectedCommit),
+      ...foundryCredentialArgs(),
       "--json",
     ],
     { cwd: CONTRACTS_ROOT, env: process.env },
@@ -1248,7 +1247,6 @@ async function executeFinalDeployment(
       entry.transaction.data,
       entry.transaction.nonce,
       networkManager.getRpcUrl("celo"),
-      plan.releaseSourceCommit,
     );
   }
 
