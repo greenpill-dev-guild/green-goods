@@ -1217,12 +1217,12 @@ export function poolHoldings(opts: {
   reserve?: { amount: string; plans: number };
   capacityNote?: string;
   reserveNote?: string;
-  // Who stands behind the units. A garden pool's members are neighbors; the
-  // protocol pool's members are gardens, and calling them neighbors there would
+  // Who stands behind the units. A garden pool's members are neighbours; the
+  // protocol pool's members are gardens, and calling them neighbours there would
   // be a small lie in the one place the block exists to be truthful.
   who?: { one: string; many: string };
 }): string {
-  const who = opts.who ?? { one: "neighbor", many: "neighbors" };
+  const who = opts.who ?? { one: "neighbour", many: "neighbours" };
   const unitRows = opts.units
     .map(({ label, open, people }) =>
       commitmentRow({

@@ -101,7 +101,7 @@ ${hot("w12.no-ranking", banner("This workspace shows the Protocol pool and Rocin
   const header = pageHeader({
     title: "Community",
     eyebrow: "Pools",
-    description: "The protocol pool and this garden — all-garden oversight lives in Operations.",
+    description: "The protocol pool and this garden. All-garden oversight lives in Operations.",
   });
   // Seeding is a dialog over the dimmed workspace (interaction-patterns §2) —
   // never an in-content form card.

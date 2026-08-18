@@ -492,7 +492,7 @@ C5: `┌────────────────────────
 │ Moderation: Acknowledged                     │
 │ Progress: In progress                        │
 ├──────────────────────────────────────────────┤
-│ Your neighbor's words                        │
+│ Your neighbour's words                        │
 │ “Market days are hard for elders…” [▶ audio]│
 ├──────────────────────────────────────────────┤
 │ What followed                                │
@@ -759,7 +759,7 @@ C5: [
   { m: "[Do not support]", l: "Do not support", info: "Directional NeedSignal; non-support never subtracts into a net score (CI-WF:65)." },
   { m: "[Clear my signal]", l: "Clear my signal", info: "Revoke the canonical winning signal; an older direction never returns (CI-SPEC §6)." },
   { m: "[Add testimony]", l: "Add testimony", info: "Community-Hat EAS attestation — September-realized (register #34g; CS:762)." },
-  { m: "[▶ audio]", l: "Play audio", info: "The neighbor's own words stay primary; protocol evidence renders separately (CI-WF:162)." },
+  { m: "[▶ audio]", l: "Play audio", info: "The neighbour's own words stay primary; protocol evidence renders separately (CI-WF:162)." },
 ],
 C6: [
   { m: "[Review evidence] [Confirm fulfillment]", l: "Eligible confirmation", info: "Author-confirm consumes the shared confirmation primitive; a provider never sees a self-confirm CTA (CI-WF:222)." },

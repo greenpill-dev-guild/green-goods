@@ -1414,6 +1414,18 @@ Known mis-resolutions fixed in place: `contract-spec.md` §Grassroots-Economics-
     **Open survives as an adjective** — a takeable commitment is open, so "Open now" and "2
     open" stay — while every use of open as the VERB became offer, including W35's title.
     Full text: `uiux-spec.md` C.35.
+139. The admin-console pass (2026-08-17, round 36, Afo). Walked all twelve console screens.
+    **Admin was already clean on the two things the client kept failing**: one section-title
+    metric (13.5px/700) and Title Case acts throughout. What it carried was stale vocabulary in
+    three layers. **Verb breakage from the promise→commitment rename** — "before neighbors can
+    commitment", "nobody can commitment yet", "a season it can commitment into"; that sweep was
+    recorded as fixed and was only fixed in the client. **"Places" survived here** after the
+    client retired it, so W7's ongoing rows said "3 places made"; they now say "3 offered", and
+    the resting row says stopped. **"neighbor" against the client's "neighbour"**, 23 across the
+    console, kit, gallery, journeys, editorial and lo-fi frames; `poolHoldings` defaulted to the
+    American spelling so the holdings block rendered it in both dialects. **71 em-dashes**
+    rewritten by C.32's rule. Verified across twelve screens: zero of each. Full text:
+    `uiux-spec.md` C.36.
 
 **Final recursive certification clarification (2026-07-25; no new decision-register entry):**
 the published `42161`↔`42220` production lane is the only required fully paired

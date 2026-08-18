@@ -1116,7 +1116,7 @@ const ADMIN_ENTRIES: Entry[] = [
     rule: "Unit groups are rendered by EXACT LABEL and never summed. 40 hours and 12 rides share no denominator, so a total could only exist by inventing a price (Appendix D.1) — and \"hours\" and \"Hours\" stay separate rows because identity is the hash of the stored bytes. The reserve is the second, quieter part: what members can do for each other does not depend on it, and a reserve of nothing is a working pool.",
     usedIn: /class="holdlist"/,
     specs: [
-      { label: "garden pool — capacity and reserve", html: kit.poolHoldings({ units: POOL_HOLDINGS.units, reserve: POOL_HOLDINGS.reserve, capacityNote: "Commitments open now, grouped by what they're measured in.", reserveNote: "What neighbors can do for each other doesn't depend on this." }), w: "l" },
+      { label: "garden pool — capacity and reserve", html: kit.poolHoldings({ units: POOL_HOLDINGS.units, reserve: POOL_HOLDINGS.reserve, capacityNote: "Commitments open now, grouped by what they're measured in.", reserveNote: "What neighbours can do for each other doesn't depend on this." }), w: "l" },
       { label: "protocol pool — members are gardens", html: kit.poolHoldings({ units: [{ label: "surveys", open: 3, people: 2 }, { label: "methodology reviews", open: 2, people: 2 }], who: { one: "garden", many: "gardens" } }), w: "l" },
     ],
   },
@@ -1153,7 +1153,7 @@ const ADMIN_ENTRIES: Entry[] = [
     // a "Cycles" card and a rail card titled "Pool — the container", both gone
     // from every screen. A gallery that documents a shape nothing renders is
     // worse than no gallery, so it now mirrors the shipped W7 split.
-    specs: [{ label: "left objects · right rail", html: `<div class="wsrow"><div class="wsmain">${kit.objectCard({ title: "Season of First Rains", chips: `${kit.chip("Season", "season")}${kit.chip("Open", "ok", { dot: true })}`, meta: "9 commitments · 7 kept · runs through Aug 30", acts: kit.btn("Close Season…", { kind: "sec", sm: true }) })}</div><aside class="wsrail">${kit.acard("What This Pool Holds", kit.poolHoldings({ units: POOL_HOLDINGS.units.slice(0, 2), who: { one: "neighbor", many: "neighbors" } }))}${kit.acard("Pool Status", `<div class="t-meta">The container your seasons and campaigns run in.</div>${kit.kv("Commitment limit", "24 per person at once")}`, kit.chip("Open", "ok", { dot: true }))}</aside></div>`, w: "l" }],
+    specs: [{ label: "left objects · right rail", html: `<div class="wsrow"><div class="wsmain">${kit.objectCard({ title: "Season of First Rains", chips: `${kit.chip("Season", "season")}${kit.chip("Open", "ok", { dot: true })}`, meta: "9 commitments · 7 kept · runs through Aug 30", acts: kit.btn("Close Season…", { kind: "sec", sm: true }) })}</div><aside class="wsrail">${kit.acard("What This Pool Holds", kit.poolHoldings({ units: POOL_HOLDINGS.units.slice(0, 2), who: { one: "neighbour", many: "neighbours" } }))}${kit.acard("Pool Status", `<div class="t-meta">The container your seasons and campaigns run in.</div>${kit.kv("Commitment limit", "24 per person at once")}`, kit.chip("Open", "ok", { dot: true }))}</aside></div>`, w: "l" }],
   },
   {
     id: "meta-strip", title: "MetaStrip", family: "chrome", covers: [],

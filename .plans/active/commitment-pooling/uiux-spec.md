@@ -2165,6 +2165,33 @@ commitment is **independent**, with its own confirmer, evidence and outcome; and
 **prospective only**, since `updateCommitmentSeriesMetadata` never rewrites a commitment
 already made.
 
+### C.36 The admin-console pass (2026-08-17, round 36)
+
+Walked all twelve console screens. **Admin was already clean on the two things the client
+kept failing**: every section title measures 13.5px/700 with no drift, and every act is Title
+Case. The cockpit dialect held.
+
+What it was carrying instead was **stale vocabulary**, in three layers:
+
+**Verb breakage from the promise→commitment rename.** Three sentences read *"before neighbors
+can commitment"*, *"nobody can commitment yet"*, and *"a season it can commitment into"*. That
+sweep was recorded as fixed at the time; it was fixed in the client and never checked here.
+`commitment` is the record, `commit` is what you do with it.
+
+**"Places" survived here after the client retired it.** W7's ongoing-offer rows said *"3
+places made · 1 open now"*. With C.35's verb settled they read *"3 offered · 1 open now"*, and
+the resting row now says *stopped*, matching C.27.
+
+**"neighbor" against the client's "neighbour".** Ten in the console, thirteen more in the
+kit, the components gallery, the journeys, the editorial screens and the lo-fi frames. The
+kit one mattered most: `poolHoldings` defaulted to `{ one: "neighbor", many: "neighbors" }`,
+so the holdings block rendered American in both dialects.
+
+**Em-dashes, 71 rewritten**, by the same rule as C.32. A few list separators read better as a
+colon: *"Units stay in their own bases: hours, rides and sessions"*.
+
+Verified across all twelve screens: zero em-dashes, zero stale vocabulary, one title metric.
+
 ### C.7 PARKED — reciprocity from the claim side (2026-08-16, register #103)
 
 > **Parked 2026-08-17 (Afo): "park it for now and we stabilize and polish the UI."** The

@@ -48,7 +48,7 @@ ${hot("w15.rate", `<div><div class="serif-n">${SEASON_LIVE_KEPT_RATE}%</div><div
     case "pre-launch":
       panel = `<span class="kicker">Commitments</span>
 <h3 class="serif-h">This garden is preparing its pool</h3>
-<p style="margin:0;max-width:52ch">Offers and requests between neighbors open with the coming season. The charter and baseline are in place.</p>`;
+<p style="margin:0;max-width:52ch">Offers and requests between neighbours open with the coming season. The charter and baseline are in place.</p>`;
       break;
     default:
       panel = `<span class="kicker">Commitments</span>
