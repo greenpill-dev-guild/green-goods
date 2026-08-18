@@ -2676,7 +2676,7 @@ function w3(state: W3State): string {
         pickRow([{ label: "hours" }, { label: "sessions", on: true }, { label: "rides" }, { label: "meals" }, { label: "repairs" }, { label: "other…" }]),
         sectionTitle("How many in one"),
         pickRow([{ label: "1", on: true }, { label: "2" }, { label: "3" }, { label: "4" }, { label: "6" }, { label: "custom…" }]),
-        `<div class="t-meta">This opens one commitment now. When someone takes it up you can open another, from the offer itself.</div>`,
+        `<div class="t-meta">This makes one commitment now. When someone takes it up you can offer another, from the offer itself.</div>`,
       );
       actions = hot("w3.continue-support-howmuch-ongoing", btn("Continue", { kind: "pri", full: true }));
       break;
@@ -2868,13 +2868,13 @@ function w3(state: W3State): string {
           details: [
             { icon: "hand-heart-line", label: "Each one", value: "1 workshop session" },
             { icon: "seedling-line", label: "Where it runs", value: "Season of First Rains" },
-            { icon: "refresh-line", label: "To start", value: "One commitment opens now. Open another whenever you want to" },
+            { icon: "refresh-line", label: "To start", value: "One commitment now. Offer another whenever you want to" },
             { icon: "time-line", label: "Next cycle", value: "Ask me again next cycle" },
             { icon: "group-line", label: "Team", value: "Open to garden members" },
           ],
           advanced: { hot: "w3.advanced", label: "Who confirms", value: "Whoever takes it up confirms it, on each one separately." },
         }),
-        banner("Sending this opens the offer and its first commitment. It becomes takeable once it sends. Nothing else opens unless you open it, and when the season ends the offer stays yours.", "stone", "information-line"),
+        banner("Sending this starts the offer and makes its first commitment. It becomes takeable once it sends. Nothing else appears unless you offer it, and when the season ends the offer stays yours.", "stone", "information-line"),
       );
       actions = hot("w3.submit-ongoing", btn("Start This Ongoing Offer", { kind: "pri", full: true }));
       break;
@@ -3804,7 +3804,7 @@ const w34Places = (n: number) =>
   n === 0
     ? sectionCard(
         "Open now",
-        `<div class="cempty"><div class="t-title">Nothing open</div><div class="t-meta">Nobody has anything to take up. Opening one creates a real commitment and holds your capacity for it straight away.</div></div>`,
+        `<div class="cempty"><div class="t-title">Nothing open</div><div class="t-meta">Nobody has anything to take up. Offering one makes a real commitment and holds your capacity for it straight away.</div></div>`,
         { flush: true },
       )
     : sectionCard(
@@ -3857,9 +3857,9 @@ const w34StoryTimeline = () =>
 // follows. The screen is a pushed read surface, so it carries no bottom nav.
 const W34_MANAGE = new Set<string>(["active-two", "active-one", "active-none"]);
 const W34_BARS: Partial<Record<W34State, string>> = {
-  "active-two": hot("w34.add-places", btn("Open More", { kind: "pri", full: true, icon: "add-line" })),
-  "active-one": hot("w34.add-places", btn("Open More", { kind: "pri", full: true, icon: "add-line" })),
-  "active-none": hot("w34.add-places", btn("Open One", { kind: "pri", full: true, icon: "add-line" })),
+  "active-two": hot("w34.add-places", btn("Offer Another", { kind: "pri", full: true, icon: "add-line" })),
+  "active-one": hot("w34.add-places", btn("Offer Another", { kind: "pri", full: true, icon: "add-line" })),
+  "active-none": hot("w34.add-places", btn("Offer One", { kind: "pri", full: true, icon: "add-line" })),
   stopped: hot("w34.start-again", btn("Start Offering Again", { kind: "pri", full: true, icon: "refresh-line" })),
   "stop-confirm": "",
   "stopped-none": hot("w34.start-again-none", btn("Start Offering Again", { kind: "pri", full: true, icon: "refresh-line" })),
@@ -3979,7 +3979,7 @@ function w34(state: W34State): string {
         w34Record(),
         card(
           `<div class="t-title">A new season is open</div><div class="t-meta">Season of Long Rains started on Sep 1. Would you like to offer workshop sessions again?</div>` +
-            `<div class="brow">${hot("w34.ask-again-yes", btn("Open More", { kind: "pri", icon: "add-line" }))}${hot("w34.ask-again-not-now", btn("Not This Season", { kind: "ghost" }))}</div>`,
+            `<div class="brow">${hot("w34.ask-again-yes", btn("Offer Another", { kind: "pri", icon: "add-line" }))}${hot("w34.ask-again-not-now", btn("Not This Season", { kind: "ghost" }))}</div>`,
         ),
         `<div class="t-meta">Nothing is created until you choose. Saying no changes nothing about this offer or its story.</div>`,
         sectionCard("Details", `${detailRow("Kept", "12 times across 5 cycles")}${detailRow("Places available", "None")}`),
@@ -4022,7 +4022,7 @@ function w34(state: W34State): string {
             listRow({ icon: "calendar-line", primary: "Workshop session 1", meta: "Season of First Rains · unavailable while pool paused", chipHtml: chip("Paused", "queued") }) +
             listRow({ icon: "calendar-line", primary: "Workshop session 2", meta: "Season of First Rains · unavailable while pool paused", chipHtml: chip("Paused", "queued") }),
         ),
-        sectionCard("Details", `${detailRow("Open more", "Unavailable while paused")}${detailRow("Existing history", "Preserved")}`),
+        sectionCard("Details", `${detailRow("Offering another", "Unavailable while paused")}${detailRow("Existing history", "Preserved")}`),
         hot("w34.open-paused-pool", btn("View the Paused Pool", { kind: "ghost", full: true })),
       )}`;
       break;
@@ -4058,7 +4058,7 @@ function w34(state: W34State): string {
       body = `${w34Head()}${pagepad(
         w34Identity({ state: "Stopped", tone: "plain" }),
         w34Record(),
-        banner("Stopped on Aug 2. Nothing new opens, and what is already open can still be taken up.", "stone", "pause-line"),
+        banner("Stopped on Aug 2. You cannot offer another, and what is already open can still be taken up.", "stone", "pause-line"),
         sectionCard(
           "Still open",
           listRow({ icon: "calendar-line", primary: "Workshop session 1", meta: "Season of First Rains · 2 hours", chipHtml: stateChip("Offered") }) +
@@ -4072,7 +4072,7 @@ function w34(state: W34State): string {
       body = `${w34Head()}${pagepad(
         w34Identity({ state: "Stopped", tone: "plain" }),
         w34Record(),
-        banner("Stopped on Aug 2. Nothing is open, and nothing new opens until you start it again.", "stone", "pause-line"),
+        banner("Stopped on Aug 2. Nothing is open, and you cannot offer another until you start it again.", "stone", "pause-line"),
         w34Repeats(),
         w34Standard(),
       )}`;
@@ -4149,11 +4149,11 @@ const W34_HOTS: HifiDef["hots"] = {
   "w34.stop": { l: "Stop offering this", to: "screen:W34@stop-confirm", info: "Rest and Retire became ONE control (2026-08-17, Afo: \"they just stop\"). Sixteen states served a two-verb lifecycle nobody uses. This calls restCommitmentSeries rather than retireCommitmentSeries: stopping should destroy nothing, so the record survives and someone who comes back next season keeps their history instead of starting a new series with an empty one. retireCommitmentSeries stays in the contract, unused by the UI for now." },
   "w34.stop-confirm": { l: "Stop offering", to: "screen:W34@stopped", info: "Blocks anything new from opening. Commitments already open stay open and can still be taken up, and the record is untouched.", calls: ["restCommitmentSeries"] },
   "w34.stop-cancel": { l: "Keep offering", to: "screen:W34@active-two", info: "Dismisses the confirmation with nothing changed." },
-  "w34.start-again": { l: "Start offering again", to: "screen:W34@active-two", info: "Returns the offer to Active without opening anything by itself. The record continues where it left off, which is the reason stopping uses rest rather than retire.", calls: ["resumeCommitmentSeries"] },
-  "w34.start-again-none": { l: "Start offering again", to: "screen:W34@active-none", info: "Returns the offer to Active with nothing open. Starting again never opens a commitment by itself; that is still a separate act.", calls: ["resumeCommitmentSeries"] },
+  "w34.start-again": { l: "Start offering again", to: "screen:W34@active-two", info: "Returns the offer to Active without offering anything by itself. The record continues where it left off, which is the reason stopping uses rest rather than retire.", calls: ["resumeCommitmentSeries"] },
+  "w34.start-again-none": { l: "Start offering again", to: "screen:W34@active-none", info: "Returns the offer to Active with nothing open. Starting again never makes a commitment by itself; that is still a separate act.", calls: ["resumeCommitmentSeries"] },
   "w34.edit-stopped": { l: "Edit details while stopped", to: "screen:W34@edit-stopped", info: "A holder may revise the prospective details while stopped; commitments already made keep their own snapshots." },
   "w34.save-edit-stopped": { l: "Save details", to: "screen:W34@stopped", info: "Calls updateCommitmentSeriesMetadata. It does not start the offer again or rewrite anything already open.", calls: ["updateCommitmentSeriesMetadata"] },
-  "w34.add-places": { l: "Open more", to: "screen:W35@compose", info: "Opens the finite-batch flow. Each one becomes one ordinary Offer instance that reserves provider capacity at creation." },
+  "w34.add-places": { l: "Offer another", to: "screen:W35@compose", info: "Makes another commitment under this ongoing offer, with the same terms. The series itself is never takeable; only the commitments it produces are, and creating one reserves your provider capacity straight away, which is why this is a real act rather than a display toggle. \"Open\" was borrowed from the retired places vocabulary and never explained itself (2026-08-17, Afo)." },
   "w34.open-story": { l: "See the whole story", to: "screen:W34@story", info: "Exact linked-instance history and absolute counts. Never a rate, rank, or comparison." },
   "w34.story-row": { l: "Open one kept commitment", to: "screen:W2@fulfilled", info: "Every story row is an ordinary immutable Commitment with its own evidence and confirmation." },
   "w34.claim": { l: "Take one up", to: "screen:W2@support-accepted", info: "Accepts one already-created Offered service instance. No new commitment is created, no second provider slot is consumed, and the instance stays Accepted until Work or evidence lands.", calls: ["claimCommitment"] },
@@ -4169,7 +4169,7 @@ const W34_HOTS: HifiDef["hots"] = {
   "w34.save-edit-active": { l: "Save active offer details", to: "screen:W34@active-two", info: "Calls updateCommitmentSeriesMetadata. Only the current series description changes; every open commitment retains its creation snapshot.", calls: ["updateCommitmentSeriesMetadata"] },
   "w34.save-edit-active-none": { l: "Save active offer details with nothing open", to: "screen:W34@active-none", info: "Calls updateCommitmentSeriesMetadata without opening a commitment or changing availability.", calls: ["updateCommitmentSeriesMetadata"] },
   "w34.save-edit-active-ready": { l: "Save active offer details in a Ready pool", to: "screen:W34@pool-ready", info: "Calls updateCommitmentSeriesMetadata without opening the pool or opening a commitment. The Ready state and historical snapshots remain unchanged.", calls: ["updateCommitmentSeriesMetadata"] },
-  "w34.ask-again-yes": { l: "Open more", to: "screen:W35@compose", info: "Current consent before any new commitment. The protocol never opens a commitment on a schedule." },
+  "w34.ask-again-yes": { l: "Offer another", to: "screen:W35@compose", info: "Current consent before any new commitment. The protocol never opens a commitment on a schedule." },
   "w34.ask-again-not-now": { l: "Not this season", to: "screen:W34@active-none", info: "Declining creates nothing and changes neither this offer nor its story." },
   "w34.retry": { l: "Try again", to: "screen:W34@active-two", info: "Re-reads the indexed ongoing Offer after a failed read." },
 };
@@ -4181,7 +4181,7 @@ const W35_STATES = [
 type W35State = (typeof W35_STATES)[number][0];
 
 function w35(state: W35State): string {
-  const head = `<div class="hdr"><button type="button" class="hback" aria-label="Close, preview only" disabled>${icon("close-line", "l")}</button><h1>Open more</h1></div>`;
+  const head = `<div class="hdr"><button type="button" class="hback" aria-label="Close, preview only" disabled>${icon("close-line", "l")}</button><h1>Offer another</h1></div>`;
   let body: string;
   switch (state) {
     case "queued":
@@ -4239,7 +4239,7 @@ function w35(state: W35State): string {
 }
 
 const W35_HOTS: HifiDef["hots"] = {
-  "w35.submit": { l: "Open more", to: "screen:W35@queued", info: "Queues one ordinary createCommitment per commitment against the Active series. Each gets its own persisted clientCommitmentId and creationRequestKey before send; exact replay cannot create or reserve it twice.", calls: ["createCommitment"], pendingSync: true },
+  "w35.submit": { l: "Offer another", to: "screen:W35@queued", info: "Queues one ordinary createCommitment per commitment against the Active series. Each gets its own persisted clientCommitmentId and creationRequestKey before send; exact replay cannot create or reserve it twice.", calls: ["createCommitment"], pendingSync: true },
   "w35.queued-done": { l: "Back to this offer", to: "screen:W34@places-queued", info: "The two queued commitments remain visible but unavailable. They open only after their creations sync and their capacity is reserved." },
   "w35.mixed-queued-done": { l: "Back to this offer", to: "screen:W34@places-partial", info: "The ongoing Offer shows one real open commitment and one queued sibling." },
   "w35.retry-failed": { l: "Try the failed one again", to: "screen:W35@mixed-queued", info: "Reads creator + creationRequestKey first, then retries only with the same creationRequestKey. A matching commitment completes; zero permits the same-key call; any payload mismatch stops. The synced Offered sibling is untouched.", calls: ["createCommitment"], pendingSync: true },
@@ -4316,5 +4316,5 @@ export const CLIENT_DEFS: HifiDef[] = [
   { ...mk("W4", "W4 · Confirmation sheet", W4_STATES, w4, w4Facts), hots: W4_HOTS },
   { ...mk("W32", "W32 · Things I can offer", W32_STATES, w32, w32Facts), hots: W32_HOTS },
   { ...mk("W34", "W34 · Ongoing Offer detail", W34_STATES, w34, w34Facts), hots: W34_HOTS },
-  { ...mk("W35", "W35 · Open more", W35_STATES, w35, w35Facts), hots: W35_HOTS },
+  { ...mk("W35", "W35 · Offer another", W35_STATES, w35, w35Facts), hots: W35_HOTS },
 ];

@@ -2139,6 +2139,32 @@ where an act sat on a browse surface. It is the ordinary pool tab now, with the 
 everything else; taking it up happens in the commitment, where that act already lives in the
 fixed bar. `w1.take-up-work-request` retires with it.
 
+### C.35 Offer another (2026-08-17, round 35)
+
+*"Open More"* was doing two wrong things: it borrowed **open** from the retired *places*
+vocabulary, and it hid what the act does.
+
+**The architecture it names.** `CommitmentSeries` is the ongoing offer and is **never
+takeable**; only the `Commitment` rows it produces are, each carrying `commitmentSeriesId`.
+Starting an ongoing offer is `createCommitmentSeries` followed by one `createCommitment`.
+Making another is the second call again, with the same terms: a new, independent, takeable
+commitment. So the series is a template plus a ledger — it holds the terms so you do not
+retype them, and it groups the commitments so the record accumulates.
+
+The label is **Offer Another** (**Offer One** when nothing is open), which is the flow's own
+verb: you are making another offer on the same terms.
+
+**Open survives as an adjective, not a verb.** A commitment that is takeable is *open*, so
+*Open now* and *2 open* stay. What changed is every use of open as the act — *"Opening one
+creates a real commitment"* became *"Offering one makes a real commitment"*, and W35's own
+title is *Offer another*.
+
+Three facts the label has to carry, all of them contract truths: creating one **reserves your
+capacity immediately**, which is why it is a real act rather than a display toggle; each
+commitment is **independent**, with its own confirmer, evidence and outcome; and terms are
+**prospective only**, since `updateCommitmentSeriesMetadata` never rewrites a commitment
+already made.
+
 ### C.7 PARKED — reciprocity from the claim side (2026-08-16, register #103)
 
 > **Parked 2026-08-17 (Afo): "park it for now and we stabilize and polish the UI."** The

@@ -1407,6 +1407,13 @@ Known mis-resolutions fixed in place: `contract-spec.md` §Grassroots-Economics-
     header, no filters, one card and a screen-level "I can help", the one act on a browse
     surface in the feature; taking it up happens in the commitment. Held for discussion: what
     "Open More" means on the ongoing offer. Full text: `uiux-spec.md` C.34.
+138. Offer another (2026-08-17, round 35, Afo). "Open More" borrowed **open** from the
+    retired places vocabulary and hid what the act does. `CommitmentSeries` is never takeable;
+    only the `Commitment` rows it produces are, so making another is `createCommitment` again
+    with the same terms. The label is **Offer Another**, or **Offer One** when nothing is open.
+    **Open survives as an adjective** — a takeable commitment is open, so "Open now" and "2
+    open" stay — while every use of open as the VERB became offer, including W35's title.
+    Full text: `uiux-spec.md` C.35.
 
 **Final recursive certification clarification (2026-07-25; no new decision-register entry):**
 the published `42161`↔`42220` production lane is the only required fully paired
