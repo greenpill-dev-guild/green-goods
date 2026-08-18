@@ -25,11 +25,17 @@ const RELEASE_ARTIFACT_MUTATIONS = new Set([
 ]);
 const GARDEN_SAFE_ARTIFACT_PATH = "packages/contracts/deployments/42220-settlement-safes.json";
 const GARDEN_SAFE_ARTIFACT_MUTATIONS = new Set([GARDEN_SAFE_ARTIFACT_PATH]);
-const INTERACTIVE_ARTIFACT_MUTATIONS = new Set([...RELEASE_ARTIFACT_MUTATIONS, ...GARDEN_SAFE_ARTIFACT_MUTATIONS]);
+const RELAY_ARTIFACT_MUTATIONS = new Set(["packages/contracts/deployments/garden-account-relay.json"]);
+const INTERACTIVE_ARTIFACT_MUTATIONS = new Set([
+  ...RELEASE_ARTIFACT_MUTATIONS,
+  ...GARDEN_SAFE_ARTIFACT_MUTATIONS,
+  ...RELAY_ARTIFACT_MUTATIONS,
+]);
 
 export const RELEASE_OPERATOR_COMMANDS = new Map<string, string>([
   ["settlement:garden-accounts:deploy:celo", "one exact GardenAccount coordinator boundary"],
   ["settlement:garden-safes:deploy:celo", "one final native/G$-clear 2-of-3 Garden Safe boundary"],
+  ["settlement:garden-relay:deploy", "one zero-value Garden-bound relay boundary"],
 ] as const);
 
 const FORBIDDEN_ARGUMENTS = new Set([
@@ -46,6 +52,7 @@ const FORBIDDEN_ARGUMENTS = new Set([
 const RELEASE_OPERATOR_ARGUMENTS = new Map<string, ReadonlySet<string>>([
   ["settlement:garden-accounts:deploy:celo", new Set(["--plan", "--step", "--receipt"])],
   ["settlement:garden-safes:deploy:celo", new Set(["--plan", "--inventory", "--step", "--receipt"])],
+  ["settlement:garden-relay:deploy", new Set(["--plan", "--safe-plan", "--broadcast", "--step", "--receipt"])],
 ]);
 
 /**
@@ -54,7 +61,7 @@ const RELEASE_OPERATOR_ARGUMENTS = new Map<string, ReadonlySet<string>>([
  * boundary, and the first failure stops the run — while charging the operator one password entry
  * for the lane instead of one per boundary.
  */
-export type CeremonyStage = "garden-accounts" | "garden-safes";
+export type CeremonyStage = "garden-accounts" | "garden-safes" | "relay";
 
 export const CEREMONY_STAGES = new Map<CeremonyStage, { script: string; boundaries: number; label: string }>([
   [
@@ -71,6 +78,14 @@ export const CEREMONY_STAGES = new Map<CeremonyStage, { script: string; boundari
       script: "settlement:garden-safes:deploy:celo",
       boundaries: 18,
       label: "final 2-of-3 Garden Safes",
+    },
+  ],
+  [
+    "relay",
+    {
+      script: "settlement:garden-relay:deploy",
+      boundaries: 4,
+      label: "Garden-bound relay router, relay, destination binding, and Guardian trust",
     },
   ],
 ]);
@@ -671,6 +686,7 @@ function verifyDeployerPassword(passwordFile: string): string {
   return unlocked;
 }
 const GARDEN_SAFE_PLAN_PATH = path.join(CONTRACTS_ROOT, ".generated/runtime/42220-garden-safe-final.json");
+const RELAY_PLAN_PATH = path.join(CONTRACTS_ROOT, ".generated/runtime/garden-account-relay.json");
 
 /**
  * Resolves which boundaries a stage still has to run. Kept pure and separate from execution so the
@@ -745,6 +761,31 @@ async function runCeremonyStage(
     console.log(`Binding step-2 to the verified step-1 receipt ${receipt}.`);
     runStageBoundary(definition.script, ["--step", "2", "--receipt", receipt], environment, candidateCommit, false);
     console.log(`Stage ${stage} completed both boundaries.`);
+    return;
+  }
+
+  if (stage === "relay") {
+    // Every relay boundary depends on the previous one's receipt, and consecutive boundaries sit on
+    // different chains, so each hash is captured and handed to the next rather than copied by hand.
+    // A resumed lane starts at the first uncheckpointed boundary and lets the wrapper recover that
+    // boundary's prerequisite from its own checkpoint instead of replaying a mined transaction.
+    const completed = completedBoundaries(RELAY_PLAN_PATH);
+    const boundaries = plannedStageBoundaries(stage, completed);
+    if (boundaries.length === 0) {
+      console.log(`Stage ${stage} is already complete with ${completed} checkpointed boundaries.`);
+      return;
+    }
+    if (completed > 0) console.log(`Resuming stage ${stage} after ${completed} checkpointed boundaries.`);
+    let receipt: string | undefined;
+    for (const boundary of boundaries) {
+      console.log(`--- boundary ${boundary} of ${definition.boundaries} ---`);
+      const args = ["--broadcast", "--step", String(boundary)];
+      if (receipt) args.push("--receipt", receipt);
+      const output = runStageBoundary(definition.script, args, environment, candidateCommit, true);
+      receipt = transactionHashFromBoundaryOutput(output, boundary);
+      if (boundary < definition.boundaries) console.log(`Binding boundary ${boundary + 1} to receipt ${receipt}.`);
+    }
+    console.log(`Stage ${stage} completed all ${definition.boundaries} boundaries.`);
     return;
   }
 
