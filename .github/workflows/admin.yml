@@ -22,6 +22,7 @@ on:
       - "scripts/dev/env-check.js"
       - "scripts/quality/check-source-structure.js"
       - ".github/actions/setup-js/action.yml"
+      - ".github/actions/setup-playwright/action.yml"
       - ".github/workflows/admin.yml"
   pull_request:
     paths:
@@ -43,6 +44,7 @@ on:
       - "scripts/dev/env-check.js"
       - "scripts/quality/check-source-structure.js"
       - ".github/actions/setup-js/action.yml"
+      - ".github/actions/setup-playwright/action.yml"
       - ".github/workflows/admin.yml"
   workflow_dispatch:
     inputs:
@@ -178,7 +180,8 @@ jobs:
         run: bun run codegen
 
       - name: Install Playwright Chromium
-        run: bunx playwright install --with-deps chromium
+        timeout-minutes: 15
+        uses: ./.github/actions/setup-playwright
 
       - name: Run admin Playwright project
         run: PLAYWRIGHT_APP=admin APP_ENV=test bunx playwright test --project=admin-ci

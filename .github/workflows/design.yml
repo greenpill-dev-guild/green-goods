@@ -37,6 +37,7 @@ on:
       - "scripts/quality/check-story-quality.ts"
       - "vercel.json"
       - ".github/actions/setup-js/action.yml"
+      - ".github/actions/setup-playwright/action.yml"
       - ".github/workflows/design.yml"
   pull_request:
     paths:
@@ -66,6 +67,7 @@ on:
       - "scripts/quality/check-story-quality.ts"
       - "vercel.json"
       - ".github/actions/setup-js/action.yml"
+      - ".github/actions/setup-playwright/action.yml"
       - ".github/workflows/design.yml"
 
 permissions:
@@ -122,7 +124,8 @@ jobs:
         run: bun run --filter @green-goods/shared check:story-quality
 
       - name: Install Playwright Chromium
-        run: bunx playwright install --with-deps chromium
+        timeout-minutes: 15
+        uses: ./.github/actions/setup-playwright
 
       - name: Run Storybook interaction smoke tests
         run: bun run --filter @green-goods/shared test:stories:ci
