@@ -797,13 +797,13 @@ export function cycleCard(opts: {
   counts: string;
   kind: string;
   stage: string;
-  media?: { label: string; tint?: "agro" | "waste" | "garden" | "quiet" };
+  media?: { label: string; tint?: "agro" | "waste" | "garden" | "quiet"; photo?: number };
   hotId?: string;
 }): string {
   const inner = `<div class="pcbody"><div class="t-title">${esc(opts.title)}</div><div class="t-meta num">${
     opts.units ? `${esc(opts.units)} open` : "nothing open"
   }</div><div class="t-meta num">${esc(opts.counts)}</div><div class="ptags">${chip(opts.kind, opts.kind === "Season" ? "season" : opts.kind === "Campaign" ? "campaign" : "plain")}${chip(opts.stage)}</div></div>${
-    opts.media ? `<div class="pmedia tall ${opts.media.tint ?? "quiet"}">${esc(opts.media.label)}</div>` : `<div class="pmedia tall none"></div>`
+    opts.media ? `<div class="pmedia tall" role="img" aria-label="${escAttr(opts.media.label)}" style="background-image:${photoFill(opts.media.photo ?? 0)}"></div>` : `<div class="pmedia tall none"></div>`
   }`;
   const c = card(inner, { cls: `pcard2 cyc${opts.hotId ? " cardlink" : ""}` });
   return opts.hotId ? hot(opts.hotId, c) : c;
@@ -818,7 +818,7 @@ export function seasonCard(opts: { made?: number; kept?: number; stage?: string;
     counts: made === 0 && kept === 0 ? "no commitments yet · through Aug 30" : `${made} commitments · ${kept} kept · through Aug 30`,
     kind: "Season",
     stage: opts.stage ?? "Open",
-    media: { label: "photo", tint: "garden" },
+    media: { label: "photo", tint: "garden" , photo: 1 },
     hotId: "w1.season-card",
   });
 }
@@ -885,7 +885,7 @@ export function commitmentCard(opts: {
   // campaigns appear together under "All current", and a row in a mixed list
   // has to name its own container (frontend-design Rule 17's stated exception).
   cycle?: { label: string; kind: "season" | "campaign" };
-  media?: { label: string; tint?: "agro" | "waste" | "garden" | "quiet" };
+  media?: { label: string; tint?: "agro" | "waste" | "garden" | "quiet"; photo?: number };
   hotId?: string;
   note?: string;
   acts?: string;
@@ -895,9 +895,12 @@ export function commitmentCard(opts: {
   const tagRow = `<div class="ptags">${shown.map((t) => chip(t.label, t.tone ?? "plain")).join("")}${
     hidden > 0 ? `<span class="ch more">+${hidden}</span>` : ""
   }${opts.cycle ? chip(opts.cycle.label, opts.cycle.kind) : ""}</div>`;
+  // No media means no square. It used to draw an empty grey placeholder, which
+  // on the card you had just made read as a picture that failed to load
+  // (2026-08-17, Afo). The text column simply takes the full width.
   const media = opts.media
-    ? `<div class="pmedia ${opts.media.tint ?? "quiet"}">${esc(opts.media.label)}</div>`
-    : `<div class="pmedia none"></div>`;
+    ? `<div class="pmedia" role="img" aria-label="${escAttr(opts.media.label)}" style="background-image:${photoFill(opts.media.photo ?? 0)}"></div>`
+    : "";
   const inner = `<div class="pcbody"><div class="t-title">${esc(opts.title)}</div><div class="t-meta num">${esc(opts.meta)}</div>${tagRow}${
     opts.note ? `<div class="t-meta">${esc(opts.note)}</div>` : ""
   }${opts.acts ?? ""}</div>${media}`;
@@ -941,7 +944,7 @@ export function offerCard(opts: {
     meta: own ? amount : `Maria · ${amount}`,
     tags,
     cycle: { label: "First Rains", kind: "season" },
-    media: opts.waiting ? undefined : { label: "photo", tint: "agro" },
+    media: opts.waiting ? undefined : { label: "photo", tint: "agro" , photo: 2 },
     note,
     acts: opts.failed
       ? `<div class="brow">${hot("w1.retry-send", btn("Retry", { kind: "sec", sm: true }))}${hot("w1.discard-send", btn("Discard", { kind: "ghost", sm: true }))}</div>`
@@ -992,7 +995,7 @@ export function teamOfferCard(): string {
     title: "Restore the compost bays",
     meta: "Maria · 4 sessions · due Aug 24",
     tags: [{ label: "Offer", tone: "offer" }, { label: "Team of 3" }, { label: "AGRO" }, { label: "WASTE" }],
-    media: { label: "photo", tint: "waste" },
+    media: { label: "photo", tint: "waste" , photo: 3 },
     hotId: "w1.open-team-offer",
   });
 }

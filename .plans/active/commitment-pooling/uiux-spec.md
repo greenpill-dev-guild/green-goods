@@ -1850,6 +1850,46 @@ opens W2. A series is a container of commitments, so it reads as one: the same i
 W2 leads with — title, kind/state/**cycle** chips, the provider — then the completion picture,
 then sections. That identity card is also where the season binding becomes visible.
 
+### C.25 Offer-flow corrections (2026-08-17, round 25 — PARTIAL)
+
+Afo's walk-through of the three Offer flows. Everything below is built. **The ongoing
+offer's detail screen is NOT settled** and is deliberately not rebuilt: Afo asked to talk the
+model through first, and drawing it before that is what produced the last round's partial job.
+
+**The carousel lost its left padding to scroll-snap.** The rail's math was right (a negative
+margin cancelled by equal padding), but a snap container snaps the first slide to the
+*scrollport* edge and ignores the padding box, so it loaded at `scrollLeft: 16` with the
+first card flush at 0 while every other card on the page sat at 16.
+`scroll-padding-inline: 16px` moves the snapport itself.
+
+**Step 3's two people sections share one shape.** A full-width button when nothing is
+chosen, a row you tap when something is. Who confirms is never truly empty, since there is
+always a default, so it is always the row: you tap the person to change them rather than
+reading them and hunting for a button underneath. Who confirms fell from 133px to 89px and
+Team from 146px to 127px, which gives Media back 63px. The helper line now sits in the same
+place in both team states, under the section title, at two lines of similar length; it used
+to jump from above the button to below the cards as soon as someone was added.
+
+**The step-3 info card describes the step.** It still said *"Photos, a voice note, or a
+link"*, written when the step held only media, so it named one of three things.
+
+**The list header says "Commitments", not "Open commitments".** The header was asserting a
+filter state that the control beside it changes.
+
+**An ongoing offer lands on the pool tab.** It was the one creation flow that finished in
+Things I can offer, the wallet's private section, while the other four now end on the pool
+tab with the new card on top. `W1@ongoing-queued` is that outcome.
+
+**A card with no media draws no square, and a card with media draws a photograph.** The empty
+square was transparent rather than grey, so it was only stealing width; the real miss was
+that `commitmentCard`'s media square still rendered the *word* "photo" in a tinted box.
+`mediaStrip` became real thumbnails in round 23 and the card was never converted with it.
+
+**Em-dashes are leaving the copy.** Afo asked for plainer language that translates well. The
+composer, its outcomes and the ongoing screens are done, 35 strings; the rest of the client
+is a follow-up pass and is not claimed as finished. Titles and labels that use a dash as a
+name rather than as punctuation ("North beds — before") keep it.
+
 ### C.7 PARKED — reciprocity from the claim side (2026-08-16, register #103)
 
 > **Parked 2026-08-17 (Afo): "park it for now and we stabilize and polish the UI."** The

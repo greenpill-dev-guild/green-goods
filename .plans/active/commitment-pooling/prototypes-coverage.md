@@ -37,9 +37,9 @@ lead retitled entries.) Round 1 earlier the same day: W7 pool tab restructured �
 
 ## Build snapshot
 
-- 44 registered screens / 486 rendered states in the full source registry
+- 44 registered screens / 487 rendered states in the full source registry
 - 37 presentation-visible hi-fi screens / 472 states: 19 Client PWA (301 states), 16 Admin console (166 states), 2 Editorial website (5 states)
-- 707 registered hotspots
+- 706 registered hotspots
 - 53 validated source flows / 316 scenes; 52 presentation-visible flows / 307 scenes: 20 Client PWA, 30 Admin console, 2 Editorial website
 - 96 component entries / 177 static specimens on the Components tab (46 Client PWA · 38 Steward console · 4 Editorial), every entry anchored at `#components/<id>[@surface]` with shipping citation or net-new note; shipped-palette parity: shipping names lead admin entry titles
 - States are grouped by **frame** in the switcher (2026-08-16 round 7): W2 75 states → 11 frames, W1 33 → 9, W7 31 → 8. Frames are a presentation grouping only — every state keeps its registry entry and §17 accounting, and each screen's default state is unchanged

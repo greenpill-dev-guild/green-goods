@@ -125,12 +125,12 @@ ${filterChips(
       )}
 ${sectionCard(
         "Rocinha Community Garden",
-        `${hot("w5.inbox-row", commitmentCard({ title: "Prune the north beds", meta: "Maria · 6 hours · confirm when kept", tags: [{ label: "Ready to confirm", tone: "warn" }], media: { label: "photo", tint: "agro" } }))}${hot(
+        `${hot("w5.inbox-row", commitmentCard({ title: "Prune the north beds", meta: "Maria · 6 hours · confirm when kept", tags: [{ label: "Ready to confirm", tone: "warn" }], media: { label: "photo", tint: "agro" , photo: 1 } }))}${hot(
           "w5.accepted-row",
           commitmentCard({ title: "Ride to market", meta: "João is on it · 1 ride", tags: [{ label: "Accepted", tone: "request" }, { label: "Your ask" }] }),
         )}${hot(
           "w5.needs-work-row",
-          commitmentCard({ title: "Mulch the pathways", meta: "0 of 3 Mulch approved", tags: [{ label: "Active" }, { label: "Needs your work", tone: "warn" }], media: { label: "photo", tint: "agro" } }),
+          commitmentCard({ title: "Mulch the pathways", meta: "0 of 3 Mulch approved", tags: [{ label: "Active" }, { label: "Needs your work", tone: "warn" }], media: { label: "photo", tint: "agro" , photo: 2 } }),
         )}${hot(
           // The member's own service commitment, picked back up days after offering
           // it (sb56) — the wallet is where you return to something you promised.
@@ -153,7 +153,7 @@ ${sectionCard(
       )}
 ${sectionCard(
         "Muizenberg",
-        commitmentCard({ title: "Beach cleanup Saturday", meta: "2 hours · Jul 12", tags: [{ label: "Kept", tone: "ok" }], media: { label: "photo", tint: "waste" } }),
+        commitmentCard({ title: "Beach cleanup Saturday", meta: "2 hours · Jul 12", tags: [{ label: "Kept", tone: "ok" }], media: { label: "photo", tint: "waste" , photo: 3 } }),
         { flush: true },
       )}`;
   }

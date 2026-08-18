@@ -237,6 +237,7 @@ export const HIFI_CSS = `
    card carrying a note keeps the square in the middle rather than jammed to
    the top. */
 .hf .pmedia{flex:none;align-self:stretch;aspect-ratio:1;width:auto;max-width:96px;border-radius:8px;
+  background-size:cover;background-position:center;background-repeat:no-repeat;
   display:flex;align-items:center;justify-content:center;font-size:10px;letter-spacing:.02em}
 /* No image: the slot still occupies its column, so nothing on the left shifts
    between a commitment with a photo and one without (2026-08-16, Afo). */
@@ -396,7 +397,12 @@ export const HIFI_CSS = `
 
 /* season + campaigns rail (2026-08-14) — bleeds to the screen edge inside
    .pagepad so the next slide peeks; the Season slide leads wider. */
-.hf .crail{display:flex;gap:10px;overflow-x:auto;scroll-snap-type:x mandatory;margin:0 -16px;padding:2px 16px 4px;scrollbar-width:none}
+/* scroll-padding, not just padding: a snap container snaps the first slide to
+   the SCROLLPORT edge and ignores the padding box, so the rail loaded at
+   scrollLeft:16 and the first card sat flush at 0 while every other card on
+   the page sat at 16 (2026-08-17, Afo). scroll-padding-inline moves the
+   snapport itself, so the first card lines up with the layout. */
+.hf .crail{display:flex;gap:10px;overflow-x:auto;scroll-snap-type:x mandatory;margin:0 -16px;padding:2px 16px 4px;scroll-padding-inline:16px;scrollbar-width:none}
 .hf .crail::-webkit-scrollbar{display:none}
 /* Every slide is the same width (2026-08-16, Afo). The season used to be wider
    than the campaigns beside it, which made peers look like a parent and a pair

@@ -41,6 +41,7 @@ const W1_STATES = [
   ["empty-open", "Empty pool"], ["no-season", "No season"],
   ["campaign-market", "Campaign · Market rides"], ["campaign-tools", "Campaign · Tool library"],
   ["queued", "Queued send"], ["support-queued", "Service offer queued"],
+  ["ongoing-queued", "Ongoing offer queued"],
   ["sync-failed", "Send failed"], ["waiting-membership", "Waiting for membership"],
   ["claim-pending", "Claim pending"], ["claim-declined", "Claim declined"],
   ["claim-superseded", "Claim superseded"], ["claim-accepted", "Claim accepted"],
@@ -65,7 +66,7 @@ const cycleCarousel = (opts: { season?: { made?: number; kept?: number; stage?: 
     // Ended cycles trail the live ones, so swiping right walks back through the
     // garden's memory, and the All-seasons card follows once the history is
     // longer than the rail (2026-08-17, Afo).
-    hot("w1.open-ended-cycle", cycleCard({ title: "Season of Long Dry", units: "", counts: "22 of 26 kept · ran Mar 1 – Mar 30", kind: "Season", stage: "Ended", media: { label: "photo", tint: "quiet" } })),
+    hot("w1.open-ended-cycle", cycleCard({ title: "Season of Long Dry", units: "", counts: "22 of 26 kept · ran Mar 1 – Mar 30", kind: "Season", stage: "Ended", media: { label: "photo", tint: "quiet" , photo: 1 } })),
     hot("w1.all-seasons", cycleCard({ title: "All seasons", units: "", counts: "3 more, oldest Sep 2024", kind: "Garden", stage: "History" })),
   ]);
 
@@ -77,7 +78,7 @@ const cycleCarousel = (opts: { season?: { made?: number; kept?: number; stage?: 
 // Warm Earth dialect: the client teaches the idea, where the cockpit only
 // reports it. Sentence case throughout — Title Case is the admin register.
 const W1_WAITING_TO_SEND = new Set<string>([
-  "queued", "support-queued", "request-queued", "request-work-queued", "exchange-queued", "sync-failed",
+  "queued", "support-queued", "ongoing-queued", "request-queued", "request-work-queued", "exchange-queued", "sync-failed",
 ]);
 const W1_SEASON_CHANGED = new Set<string>([
   "reviewing", "paused", "closed", "composted", "cancelled-cycle", "paused-cancelled-cycle", "cycle-summary",
@@ -164,6 +165,13 @@ const W1_QUEUED_CARD: Record<string, string> = {
     cycle: { label: "Tool library", kind: "campaign" },
     note: "João can take it up once the offer reaches the pool.",
   }),
+  "ongoing-queued": commitmentCard({
+    title: "Hosting climate workshops",
+    meta: "1 workshop session in each",
+    tags: [{ label: "Offer", tone: "offer" }, { label: "Ongoing" }, { label: "Queued", tone: "queued" }],
+    cycle: { label: "First Rains", kind: "season" },
+    note: "Two are opening. They become takeable once they send.",
+  }),
   "request-queued": requestCard({ queued: true }),
   "request-work-queued": commitmentCard({
     title: "Clear the drainage channel",
@@ -186,6 +194,7 @@ const W1_QUEUED_CARD: Record<string, string> = {
 const W1_QUEUED_REST: Record<string, string[]> = {
   queued: [ongoingOfferCard(), requestCard()],
   "support-queued": [offerCard(), requestCard()],
+  "ongoing-queued": [offerCard(), requestCard()],
   "request-queued": [offerCard(), ongoingOfferCard()],
   "request-work-queued": [offerCard(), ongoingOfferCard()],
   "exchange-queued": [offerCard(), requestCard()],
@@ -306,7 +315,7 @@ function w1(state: W1State): string {
           meta: "Ana · 8 hours · due Aug 30",
           tags: [{ label: "Request", tone: "request" }, { label: "Garden work" }, { label: "AGRO" }],
           cycle: { label: "First Rains", kind: "season" },
-          media: { label: "photo", tint: "agro" },
+          media: { label: "photo", tint: "agro" , photo: 2 },
           note: "Needs approved work: Weed × 2 · Mulch × 4",
           hotId: "w1.open-work-request",
         }),
@@ -403,12 +412,13 @@ function w1(state: W1State): string {
     // visible, IS the confirmation.
     case "queued":
     case "support-queued":
+    case "ongoing-queued":
     case "request-queued":
     case "request-work-queued":
     case "exchange-queued":
       content = pagepad(
         cycleCarousel(),
-        sectionTitle("Open commitments", hot("w1.scope", input("All current", { select: true, ariaLabel: "Scope" }))),
+        sectionTitle("Commitments", hot("w1.scope", input("All current", { select: true, ariaLabel: "Scope" }))),
         poolFilters(0),
         hot("w1.queued-card", W1_QUEUED_CARD[state]),
         ...W1_QUEUED_REST[state],
@@ -422,7 +432,7 @@ function w1(state: W1State): string {
         // The browse section owns its own header, and the scope control rides
         // in it as a labelled select. Creation left this header for the
         // floating entry (2026-08-14), so one chip row sits before the cards.
-        sectionTitle("Open commitments", hot("w1.scope", input("All current", { select: true, ariaLabel: "Scope" }))),
+        sectionTitle("Commitments", hot("w1.scope", input("All current", { select: true, ariaLabel: "Scope" }))),
         poolFilters(0),
         offerCard(),
         ongoingOfferCard(),
@@ -448,7 +458,7 @@ function w1(state: W1State): string {
   // (D3). An empty pool keeps its big inline CTAs instead, and lifecycle /
   // read-recovery casts draw no creation entry at all.
   const fabStates = new Set<W1State>([
-    "open", "queued", "support-queued", "request-queued", "request-work-queued", "exchange-queued",
+    "open", "queued", "support-queued", "ongoing-queued", "request-queued", "request-work-queued", "exchange-queued",
     "sync-failed", "waiting-membership", "request-open", "request-work-open", "funded-offer",
   ]);
   const doors = `${hot("w1.offer", `<button type="button" class="fabdoor">Offer</button>`)}${hot("w1.request", `<button type="button" class="fabdoor">Request</button>`)}`;
@@ -572,8 +582,8 @@ function w1c(state: W1CState): string {
     return phoneFrame(
       `${hdr("All seasons", { back: true })}${pagepad(
         `<div class="t-meta">Every season and campaign this garden has run. The pool tab shows the ones running now.</div>`,
-        sectionCard("Running now", `${hot("w1c.open-season", cycleCard({ title: "Season of First Rains", units: "27 hours · 7 rides", counts: "9 commitments · 7 kept · through Aug 30", kind: "Season", stage: "Open", media: { label: "photo", tint: "agro" } }))}${cycleCard({ title: "Market rides", units: "10 rides", counts: "6 of 16 kept · through Aug 22", kind: "Campaign", stage: "Open", media: { label: "photo", tint: "waste" } })}`, { flush: true }),
-        sectionCard("Ended", `${hot("w1c.open-ended", cycleCard({ title: "Season of Long Dry", units: "", counts: "22 of 26 kept · ran Mar 1 – Mar 30", kind: "Season", stage: "Ended", media: { label: "photo", tint: "quiet" } }))}${cycleCard({ title: "Tool library", units: "", counts: "8 of 8 kept · ran Feb 1 – Feb 28", kind: "Campaign", stage: "Ended", media: { label: "photo", tint: "quiet" } })}${cycleCard({ title: "Season of First Planting", units: "", counts: "14 of 19 kept · ran Sep 1 – Sep 30", kind: "Season", stage: "Ended", media: { label: "photo", tint: "quiet" } })}`, { flush: true }),
+        sectionCard("Running now", `${hot("w1c.open-season", cycleCard({ title: "Season of First Rains", units: "27 hours · 7 rides", counts: "9 commitments · 7 kept · through Aug 30", kind: "Season", stage: "Open", media: { label: "photo", tint: "agro" , photo: 3 } }))}${cycleCard({ title: "Market rides", units: "10 rides", counts: "6 of 16 kept · through Aug 22", kind: "Campaign", stage: "Open", media: { label: "photo", tint: "waste" , photo: 4 } })}`, { flush: true }),
+        sectionCard("Ended", `${hot("w1c.open-ended", cycleCard({ title: "Season of Long Dry", units: "", counts: "22 of 26 kept · ran Mar 1 – Mar 30", kind: "Season", stage: "Ended", media: { label: "photo", tint: "quiet" , photo: 5 } }))}${cycleCard({ title: "Tool library", units: "", counts: "8 of 8 kept · ran Feb 1 – Feb 28", kind: "Campaign", stage: "Ended", media: { label: "photo", tint: "quiet" , photo: 0 } })}${cycleCard({ title: "Season of First Planting", units: "", counts: "14 of 19 kept · ran Sep 1 – Sep 30", kind: "Season", stage: "Ended", media: { label: "photo", tint: "quiet" , photo: 1 } })}`, { flush: true }),
       )}`,
       { appBar: false },
     );
@@ -622,8 +632,8 @@ function w1c(state: W1CState): string {
     );
 
   const rows = ended
-    ? `${hot("w1c.open-commitment", commitmentCard({ title: "Fix the shed roof", meta: "Maria · 8 hours", tags: [{ label: "Kept", tone: "ok" }], media: { label: "photo", tint: "agro" } }))}${commitmentCard({ title: "Weekly market rides", meta: "João · 12 rides", tags: [{ label: "Kept", tone: "ok" }] })}${commitmentCard({ title: "Compost workshop", meta: "Kwame · 3 sessions", tags: [{ label: "Ended" }] })}${commitmentCard({ title: "Clear the drainage channel", meta: "Ana asked · 8 hours", tags: [{ label: "Kept", tone: "ok" }, { label: "Request", tone: "request" }] })}`
-    : `${hot("w1c.open-commitment", commitmentCard({ title: "Prune the north beds", meta: "Maria · 6 hours", tags: [{ label: "Open" }], media: { label: "photo", tint: "agro" } }))}${commitmentCard({ title: "Ride to the market", meta: "Ana asked · 1 ride", tags: [{ label: "Kept", tone: "ok" }, { label: "Request", tone: "request" }] })}${commitmentCard({ title: "Repair tool handles", meta: "Maria · 1 session", tags: [{ label: "Active" }] })}`;
+    ? `${hot("w1c.open-commitment", commitmentCard({ title: "Fix the shed roof", meta: "Maria · 8 hours", tags: [{ label: "Kept", tone: "ok" }], media: { label: "photo", tint: "agro" , photo: 2 } }))}${commitmentCard({ title: "Weekly market rides", meta: "João · 12 rides", tags: [{ label: "Kept", tone: "ok" }] })}${commitmentCard({ title: "Compost workshop", meta: "Kwame · 3 sessions", tags: [{ label: "Ended" }] })}${commitmentCard({ title: "Clear the drainage channel", meta: "Ana asked · 8 hours", tags: [{ label: "Kept", tone: "ok" }, { label: "Request", tone: "request" }] })}`
+    : `${hot("w1c.open-commitment", commitmentCard({ title: "Prune the north beds", meta: "Maria · 6 hours", tags: [{ label: "Open" }], media: { label: "photo", tint: "agro" , photo: 3 } }))}${commitmentCard({ title: "Ride to the market", meta: "Ana asked · 1 ride", tags: [{ label: "Kept", tone: "ok" }, { label: "Request", tone: "request" }] })}${commitmentCard({ title: "Repair tool handles", meta: "Maria · 1 session", tags: [{ label: "Active" }] })}`;
   return phoneFrame(
     `${head}${w1cTabs("commitments", ended)}${pagepad(ended ? W1C_HOLDS_ENDED : W1C_HOLDS_OPEN, `<div class="h6s">Commitments</div>`, hot("w1c.filters", `<div class="filters">${seg(["All", "Offers", "Requests"], 0)}<span class="mine" role="switch" aria-checked="false">Mine</span></div>`), rows)}`,
     { appBar: false },
@@ -2254,17 +2264,17 @@ const w3StepCard = (state: W3State): string => {
   const asking = state.startsWith("request");
   if (state.endsWith("-what") || state === "step-what")
     return asking
-      ? stepCard("seedling-line", "What you're asking for", "Name it in your own words — a neighbour reads this first")
-      : stepCard("seedling-line", "What you're offering", "Name it in your own words — a neighbour reads this first");
-  if (state.includes("details")) return stepCard("camera-line", "Add details", "Photos, a voice note, or a link — all optional, and they stay with the commitment");
-  if (state.includes("howmuch")) return stepCard("leaf-line", "How much", "The unit, the amount, when it's due — and the terms it's kept on");
+      ? stepCard("seedling-line", "What you're asking for", "Name it in your own words. A neighbour reads this first")
+      : stepCard("seedling-line", "What you're offering", "Name it in your own words. A neighbour reads this first");
+  if (state.includes("details")) return stepCard("group-line", "Who and what", "Say who confirms it, bring in anyone helping, and add anything that shows what you mean. All of it is optional.");
+  if (state.includes("howmuch")) return stepCard("leaf-line", "How much", "The unit, the amount, when it's due, and the terms it's kept on");
   if (state.includes("confirmers") || state.includes("invite") || state.includes("advanced"))
-    return stepCard("settings-line", "Advanced", "Named confirmers, the team policy, and who may join — most commitments need none of it");
+    return stepCard("settings-line", "Advanced", "Named confirmers, the team policy, and who may join. Most commitments need none of it");
   if (state.includes("review"))
     return asking
       ? stepCard("check-line", "Review & ask", "Check if the information is correct")
       : stepCard("check-line", "Review & commit", "Check if the information is correct");
-  if (state === "saved-offer-edit") return stepCard("sticky-note-line", "Edit saved details", "Reusable input for either offer path — private to you until you offer it");
+  if (state === "saved-offer-edit") return stepCard("sticky-note-line", "Edit saved details", "Reusable input for either offer path. Private to you until you offer it");
   return "";
 };
 
@@ -2299,7 +2309,7 @@ const w3Scope = (value: string) =>
 const w3HowOften = () =>
   sectionTitle("How often?") +
   pickRow([{ label: "Just once", on: true }, { label: "Ongoing", hotId: "w3.choose-ongoing" }]) +
-  `<div class="t-meta">Ongoing keeps offering this over time — places open as you add them, and nothing repeats without you.</div>`;
+  `<div class="t-meta">Ongoing keeps offering this over time. You open each one yourself, and nothing repeats without you.</div>`;
 
 // One due control where step 2 used to carry a field plus a two-option radio.
 const w3Due = (value: string) => field("Due", input(value, { select: true }));
@@ -2318,7 +2328,7 @@ const w3Proof = (opts: { title: string; note: string; cells: string[]; pickIx: n
   sectionTitle(opts.title, chip("2 chosen")) +
   `<div class="t-meta">${opts.note}</div>` +
   selRail(opts.cells.map((c, i) => (i === opts.pickIx ? hot("w3.pick-action", c) : c))) +
-  `<div class="t-meta">Swipe for more, and tap a chosen action to change its count — 1 · 2 · 4 · custom.</div>`;
+  `<div class="t-meta">Swipe for more. Tap a chosen action to change its count: 1, 2, 4, or your own number.</div>`;
 
 // The details step body — the shipped Submit Work media step verbatim
 // (wflow@media): the dashed tap-to-add surface, the item list, the link/note
@@ -2341,19 +2351,23 @@ const w3Proof = (opts: { title: string; note: string; cells: string[]; pickIx: n
 // frozen when the commitment reaches readiness. Naming that here is the last
 // cheap moment to change which one it is.
 type W3Member = { name: string; sub?: string; photo?: number };
+// The helper line sits in the SAME place in both states, under the section
+// title, and both run to two lines of similar length (2026-08-17, Afo: it had
+// been above the button when empty and below the cards when filled, so the
+// paragraph jumped as soon as you added someone).
 const w3TeamSection = (members: W3Member[]) =>
   members.length === 0
     ? sectionTitle("Team") +
-      `<div class="t-meta">Nobody yet. A commitment can be kept alone, or with the people you bring in.</div>` +
+      `<div class="t-meta">You can keep this on your own, or bring in people who will help. Anyone you add can add evidence and submit work.</div>` +
       hot("w3.team", btn("Add people", { kind: "sec", full: true, icon: "group-line" }))
     : sectionTitle("Team", hot("w3.team", btn("", { kind: "ghost", sm: true, icon: "add-line", ariaLabel: "Add people to the team" }))) +
+      `<div class="t-meta">The lead is accountable for this one. Everyone here can add evidence and submit work, and only the lead sends it.</div>` +
       memberTrail([
         ...members.map((m, i) =>
           memberCard({ ...m, role: i === 0 ? "Lead" : "Contributor", lead: i === 0, removeHotId: `w3.team-remove` }),
         ),
         hot("w3.team", `<div class="mcard addtile">${icon("add-line", "l")}<div class="mtn">Add</div></div>`),
-      ]) +
-      `<div class="t-meta">The lead is accountable for this commitment. Everyone here can add evidence and submit work; only the lead can send it for confirmation.</div>`;
+      ]);
 
 // Who confirms leads step 3 (2026-08-17, Afo: "who confirmed should sit in the
 // detail step where it's above the team and media. So now we have three things
@@ -2366,10 +2380,18 @@ const w3TeamSection = (members: W3Member[]) =>
 //
 // The Advanced detour hangs off this block now rather than off the review. The
 // default stays the default — most commitments never open it.
-const w3ConfirmSection = (opts: { value: string; hot: string }) =>
+// One shape for both step-3 people sections (2026-08-17, Afo: "we need to have
+// consistency in styling and look across sections like who confirms and team").
+// A full-width button when nothing is chosen, a ROW you tap when something is —
+// so the section is 56px instead of 133px once it is answered, and Media gets
+// the space back. Who confirms is never truly empty (there is always a
+// default), so it is always the row: tap the person to change them, rather than
+// reading the person and then hunting for a separate button underneath.
+const w3ConfirmSection = (opts: { value: string; sub?: string; hot: string; photo?: number }) =>
   sectionTitle("Who confirms") +
-  card(listRow({ icon: "shield-check-line", primary: opts.value, meta: "The default for this kind of commitment" }), { cls: "flat" }) +
-  hot(opts.hot, btn("Change who confirms", { kind: "ghost", full: true, icon: "settings-line" }));
+  (opts.photo === undefined
+    ? hot(opts.hot, card(listRow({ icon: "shield-check-line", primary: opts.value, meta: opts.sub ?? "Tap to change", chevron: true }), { cls: "flat" }))
+    : hot(opts.hot, memberRow({ name: opts.value, sub: opts.sub, photo: opts.photo, badge: "Confirms" })));
 
 const w3DetailsBody = (
   items: string,
@@ -2509,15 +2531,15 @@ function w3(state: W3State): string {
           lead: { icon: "leaf-line", primary: "Prune the north beds", meta: "garden work" },
           media: mediaStrip([{ label: "North beds — before", photo: 0 }, { label: "Voice note", kind: "audio" }]),
           details: [
-            { icon: "leaf-line", label: "How much is put in", value: "6 hours — this is what the pool counts" },
-            { icon: "calendar-line", label: "Due", value: "Aug 30 — runs with the season" },
+            { icon: "leaf-line", label: "How much is put in", value: "6 hours, which is what the pool counts" },
+            { icon: "calendar-line", label: "Due", value: "Aug 30, running with the season" },
             { icon: "seedling-line", label: "Where it runs", value: "Season of First Rains" },
             { icon: "refresh-line", label: "How often", value: "Just once" },
-            { icon: "shield-check-line", label: "What has to be approved", value: "Prune × 2 · Plant × 12 — AGRO. A different measure from the amount: that is what is put in, this is what stewards approve." },
-            { icon: "group-line", label: "Team", value: "Open — anyone eligible may join, 2 invited" },
+            { icon: "shield-check-line", label: "What has to be approved", value: "Prune × 2 · Plant × 12, in AGRO. This is a different measure from the amount. The amount is what you put in; these are what stewards approve." },
+            { icon: "group-line", label: "Team", value: "Open to anyone eligible. 2 invited" },
           ],
           team: memberRow({ name: "João", sub: "joao.eth", joined: "Joined Jan 2025", badge: "Lead", photo: 1 }) + memberRow({ name: "Luz", sub: "luz.eth", joined: "Joined Feb 2025", badge: "Contributor", photo: 4 }) + memberRow({ name: "0x74…c2", joined: "Joined Aug 2025", badge: "Contributor" }),
-          advanced: { hot: "w3.advanced", label: "Who confirms", value: "The person you help. The Green Goods team can step in if nobody local is eligible." },
+          advanced: { hot: "w3.advanced", label: "Who confirms", value: "The person you help. If nobody local is eligible, the Green Goods team can step in." },
         }),
         `<div class="t-meta">Submitting queues the commitment on this device and returns you to the pool — it sends when connected.</div>`,
       );
@@ -2546,7 +2568,7 @@ function w3(state: W3State): string {
         hot("w3.protocol-fallback", `<label class="arow" style="align-items:flex-start"><input type="checkbox" aria-label="Let the Green Goods team confirm if nobody local is eligible" checked style="margin-top:4px"><span class="grow"><b>Let the Green Goods team confirm if nobody local is eligible</b><span class="t-meta" style="display:block">On for this pilot. Usable only while nobody local can confirm, always with a recorded reason — and never by a contributor.</span></span></label>`),
         sectionTitle("Who can take it"),
         hot("w3.claim-mode", field("Who can take this up", radio([
-          { label: "Open to anyone here", meta: "approved work is the gate — unapproved help never reaches Ready", on: true },
+          { label: "Open to anyone here", meta: "approved work is the gate. Help that is not approved never reaches Ready", on: true },
           { label: "Stewards review who takes it", meta: "for asks that need vetting before someone starts" },
         ], { interactive: true, name: "work-ask-claim-mode" }))),
         sectionTitle("Team options"),
@@ -2580,7 +2602,7 @@ function w3(state: W3State): string {
           { cls: "flat" },
         ),
         field("How many must confirm", radio([{ label: "Any one of them", meta: "threshold 1 of 2 named", on: true }, { label: "Both of them", meta: "threshold 2 of 2 named" }], { interactive: true, name: "confirmer-threshold" })),
-        banner("Maria and Ana are on the contributor roster, so they are not listed — a contributor can never confirm.", "stone", "shield-check-line"),
+        banner("Maria and Ana are on the contributor roster, so they are not listed. A contributor can never confirm.", "stone", "shield-check-line"),
       );
       actions = hot("w3.confirmers-done", btn("Use this group", { kind: "pri", full: true }));
       break;
@@ -2598,7 +2620,7 @@ function w3(state: W3State): string {
           { cls: "flat" },
         ),
         field("How many must confirm", radio([{ label: "Any one of them", meta: "threshold 1 of 2 named", on: true }, { label: "Both of them", meta: "threshold 2 of 2 named" }], { interactive: true, name: "confirmer-threshold-work" })),
-        banner("Whoever takes up the ask joins the contributor roster and leaves this list — a contributor can never confirm.", "stone", "shield-check-line"),
+        banner("Whoever takes up the ask joins the contributor roster and leaves this list. A contributor can never confirm.", "stone", "shield-check-line"),
       );
       actions = hot("w3.confirmers-work-done", btn("Use this group", { kind: "pri", full: true }));
       break;
@@ -2611,10 +2633,10 @@ function w3(state: W3State): string {
           media: mediaStrip([{ label: "The bins, cleared", photo: 3 }]),
           details: [
             { icon: "hand-heart-line", label: "How much", value: "1 repair session" },
-            { icon: "calendar-line", label: "Due", value: "Aug 30 — runs with the campaign" },
+            { icon: "calendar-line", label: "Due", value: "Aug 30, running with the campaign" },
             { icon: "seedling-line", label: "Where it runs", value: "Campaign · Tool library" },
             { icon: "refresh-line", label: "How often", value: "Just once" },
-            { icon: "group-line", label: "Team", value: "Open — anyone eligible may join" },
+            { icon: "group-line", label: "Team", value: "Open to anyone eligible" },
           ],
           advanced: { hot: "w3.advanced", label: "Who confirms", value: "The person you help. A service names no garden actions, so evidence and that person carry the proof." },
         }),
@@ -2655,7 +2677,7 @@ function w3(state: W3State): string {
       content = pagepad(
         sectionTitle("What kind?"),
         kindCards([
-          { icon: "hand-heart-line", label: "Help or a service", meta: "rides, meals, repairs — evidence-confirmed", on: true },
+          { icon: "hand-heart-line", label: "Help or a service", meta: "rides, meals, repairs, confirmed by evidence", on: true },
           { icon: "leaf-line", label: "Garden work", meta: "counts toward the garden's actions", hot: "w3.request-choose-work" },
         ]),
         w3Scope("Season of First Rains"),
@@ -2689,7 +2711,7 @@ function w3(state: W3State): string {
       content = pagepad(
         sectionTitle("What kind?"),
         kindCards([
-          { icon: "hand-heart-line", label: "Help or a service", meta: "rides, meals, repairs — evidence-confirmed", hot: "w3.request-choose-service" },
+          { icon: "hand-heart-line", label: "Help or a service", meta: "rides, meals, repairs, confirmed by evidence", hot: "w3.request-choose-service" },
           { icon: "leaf-line", label: "Garden work", meta: "counts toward the garden's actions", on: true },
         ]),
         `<div class="t-meta">Garden work names the actions it needs — they appear on the next step, beside the amount.</div>`,
@@ -2711,7 +2733,7 @@ function w3(state: W3State): string {
         w3Due("Runs with the season · through Aug 30"),
         w3Proof({
           title: "What has to be approved",
-          note: "The garden actions this ask includes — a different measure from the amount above. The person you asked never self-confirms; stewards approve the work first.",
+          note: "The garden actions this ask includes. This is a different measure from the amount above. The person you asked never self-confirms; stewards approve the work first.",
           cells: [
             w3ActionCell("agro", "Weed", "Beds and paths — clear back to the channel edge", "× 2"),
             w3ActionCell("agro", "Mulch", "Barrows spread", "× 4"),
@@ -2732,13 +2754,13 @@ function w3(state: W3State): string {
           lead: { icon: "leaf-line", primary: "Clear the drainage channel", meta: "garden work" },
           media: mediaStrip([{ label: "The beds", photo: 0 }]),
           details: [
-            { icon: "leaf-line", label: "How much is asked for", value: "8 hours — this is what the pool counts" },
-            { icon: "calendar-line", label: "Due", value: "Aug 30 — runs with the season" },
+            { icon: "leaf-line", label: "How much is asked for", value: "8 hours, which is what the pool counts" },
+            { icon: "calendar-line", label: "Due", value: "Aug 30, running with the season" },
             { icon: "seedling-line", label: "Where it runs", value: "Season of First Rains" },
-            { icon: "shield-check-line", label: "What has to be approved", value: "Weed × 2 · Mulch × 4 — AGRO. A different measure from the amount: that is what is asked for, this is what stewards approve." },
+            { icon: "shield-check-line", label: "What has to be approved", value: "Weed × 2 · Mulch × 4, in AGRO. This is a different measure from the amount. The amount is what you asked for; these are what stewards approve." },
             { icon: "user-line", label: "Who can take it up", value: "Open to anyone here" },
           ],
-          advanced: { hot: "w3.advanced-work", label: "Who confirms", value: "You — it was your request. Whoever takes it up submits work, the stewards approve it, then you confirm." },
+          advanced: { hot: "w3.advanced-work", label: "Who confirms", value: "You, because it was your request. Whoever takes it up submits work, the stewards approve it, then you confirm." },
         }),
         `<div class="t-meta">A garden-work request travels the Work rails: whoever takes it up submits work, the stewards approve it, and you confirm it was met.</div>`,
       );
@@ -2753,11 +2775,11 @@ function w3(state: W3State): string {
           media: mediaStrip([{ label: "Written note", kind: "note" }]),
           details: [
             { icon: "hand-heart-line", label: "How much", value: "1 ride" },
-            { icon: "calendar-line", label: "Due", value: "Aug 30 — runs with the season" },
+            { icon: "calendar-line", label: "Due", value: "Aug 30, running with the season" },
             { icon: "seedling-line", label: "Where it runs", value: "Season of First Rains" },
-            { icon: "user-line", label: "Who can take it up", value: "Open to anyone here — the first neighbour to say “I can help”" },
+            { icon: "user-line", label: "Who can take it up", value: "Open to anyone here. The first neighbour to say “I can help” takes it" },
           ],
-          advanced: { hot: "w3.advanced", label: "Who confirms", value: "You — it was your request. Evidence and you carry the proof." },
+          advanced: { hot: "w3.advanced", label: "Who confirms", value: "You, because it was your request. Evidence and you carry the proof." },
         }),
         `<div class="t-meta">A service request names no garden actions — evidence and you, the requester, carry the proof.</div>`,
       );
@@ -2837,13 +2859,13 @@ function w3(state: W3State): string {
           details: [
             { icon: "hand-heart-line", label: "Each one", value: "1 workshop session" },
             { icon: "seedling-line", label: "Where it runs", value: "Season of First Rains" },
-            { icon: "refresh-line", label: "Places to start", value: "2 open at a time — each an ordinary commitment, taken up on its own" },
+            { icon: "refresh-line", label: "Places to start", value: "2 open at a time. Each one is an ordinary commitment, taken up on its own" },
             { icon: "time-line", label: "Next cycle", value: "Ask me again next cycle" },
-            { icon: "group-line", label: "Team", value: "Open — garden members may join in" },
+            { icon: "group-line", label: "Team", value: "Open to garden members" },
           ],
           advanced: { hot: "w3.advanced", label: "Who confirms", value: "The person you help, on each one separately." },
         }),
-        banner("One submission starts the ongoing offer and its first commitments together. They appear as open once they sync and reserve your capacity — nothing repeats without you. When the season ends this offer stays yours: the commitments it opened finish where they are, and it opens nothing new until the next cycle starts.", "stone", "information-line"),
+        banner("Sending this opens the offer and its first two commitments at once. They become takeable once they send. Nothing new opens unless you open it, and when the season ends the offer stays yours.", "stone", "information-line"),
       );
       actions = hot("w3.submit-ongoing", btn("Start this ongoing offer", { kind: "pri", full: true }));
       break;
@@ -2867,7 +2889,7 @@ function w3(state: W3State): string {
         sectionTitle("Add G$ support", chip("Stewards only", "plain")),
         pickRow([{ label: "20 G$", on: true }, { label: "50 G$" }, { label: "100 G$" }, { label: "custom…" }, { label: "none" }]),
         card(`${kv("Where it goes", "The person who helps")}${kv("Paid from", "The garden's account")}${kv("When", "After the commitment is confirmed kept")}`),
-        banner("Declaring support records it with the request — nothing moves until the commitment is kept and confirmed.", "stone", "hand-heart-line"),
+        banner("Declaring support records it with the request. Nothing moves until the commitment is kept and confirmed.", "stone", "hand-heart-line"),
       );
       actions = hot("w3.request-continue-support", btn("Continue", { kind: "pri", full: true }));
       break;
@@ -2879,7 +2901,7 @@ function w3(state: W3State): string {
         sectionTitle("How much"),
         pickRow([{ label: "20 G$", on: true }, { label: "50 G$" }, { label: "100 G$" }, { label: "custom…" }, { label: "none" }]),
         card(`${kv("Where it goes", "The person who helps")}${kv("Paid from", "The garden's account")}${kv("When", "After the commitment is confirmed kept")}`),
-        banner("Declaring support records it with the request — nothing moves until the commitment is kept and confirmed.", "stone", "hand-heart-line"),
+        banner("Declaring support records it with the request. Nothing moves until the commitment is kept and confirmed.", "stone", "hand-heart-line"),
       );
       actions = hot("w3.request-support-continue", btn("Continue", { kind: "pri", full: true }));
       break;
@@ -2892,12 +2914,12 @@ function w3(state: W3State): string {
           media: mediaStrip([{ label: "Written note", kind: "note" }]),
           details: [
             { icon: "hand-heart-line", label: "How much", value: "1 ride" },
-            { icon: "calendar-line", label: "Due", value: "Aug 30 — runs with the season" },
+            { icon: "calendar-line", label: "Due", value: "Aug 30, running with the season" },
             { icon: "seedling-line", label: "Where it runs", value: "Season of First Rains" },
             { icon: "user-line", label: "Who can take it up", value: "Open to anyone here" },
             { icon: "hand-heart-line", label: "G$ support", value: "20 G$ to the person who helps, after it is confirmed kept" },
           ],
-          advanced: { hot: "w3.advanced", label: "Who confirms", value: "You — it was your request." },
+          advanced: { hot: "w3.advanced", label: "Who confirms", value: "You, because it was your request." },
         }),
       );
       actions = hot("w3.submit-request", btn("Make this request", { kind: "pri", full: true }));
@@ -2929,7 +2951,7 @@ function w3(state: W3State): string {
         sectionTitle("What kind?"),
         kindCards([
           { icon: "leaf-line", label: "Garden work", meta: "counts toward the garden's actions", on: true },
-          { icon: "hand-heart-line", label: "A service", meta: "rides, meals, repairs — evidence-confirmed", hot: "w3.choose-support" },
+          { icon: "hand-heart-line", label: "A service", meta: "rides, meals, repairs, confirmed by evidence", hot: "w3.choose-support" },
         ]),
         w3HowOften(),
         w3Scope("Season of First Rains"),
@@ -3014,7 +3036,7 @@ const W3_HOTS: HifiDef["hots"] = {
   "w3.request-choose-service": { l: "Choose help or a service", to: "screen:W3@request-what", info: "Switches the ask back to the evidence-confirmed service cast; entered values are kept." },
   "w3.choose-ongoing": { l: "Choose Ongoing", to: "screen:W3@support-howmuch-ongoing", info: "How often moved to step 1 beside the kind cards (2026-08-16 round 12, Afo): as a field at the BOTTOM of step 2 the fork was discovered only after everything had been filled in for a one-off. Choosing Ongoing carries the how-many block into step 2; one submission later runs the series creation plus its first commitment creations as an ordered queue sequence. Drawn in the service cast, which is where the ongoing fixture lives." },
   "w3.continue-support-howmuch-ongoing": { l: "Continue to details", to: "screen:W3@support-details-ongoing", info: "Amount + how many → the ongoing review, whose open-commitments section repeats what will open." },
-  "w3.submit-ongoing": { l: "Start this ongoing offer", to: "screen:W32@series-queued", info: "One ordered queue sequence: createCommitmentSeries, then the first commitment creations. The ongoing Offer appears pending in Things I can offer; they count as available only after their own creations sync and reserve capacity (Appendix F.2 as amended 2026-08-11).", calls: ["createCommitmentSeries", "createCommitment"], facts: { pool: "Open" }, pendingSync: true },
+  "w3.submit-ongoing": { l: "Start this ongoing offer", to: "screen:W1@ongoing-queued", info: "One ordered queue sequence: createCommitmentSeries, then the first commitment creations. The ongoing Offer appears pending in Things I can offer; they count as available only after their own creations sync and reserve capacity (Appendix F.2 as amended 2026-08-11).", calls: ["createCommitmentSeries", "createCommitment"], facts: { pool: "Open" }, pendingSync: true },
 };
 
 // ---------------------------------------------------------------------------
@@ -3277,7 +3299,7 @@ const w1Facts = (state: W1State): StateFacts | undefined => {
     };
   if (state === "funded-offer")
     return { pool: "Open", cycle: "Open", commitment: "Offered", kind: "SupportService", funding: "None" };
-  if (["open", "create-open", "request-open", "request-queued", "request-work-open", "request-work-queued", "exchange-queued", "empty-open", "campaign-market", "campaign-tools", "queued", "support-queued", "sync-failed", "waiting-membership", "reviewing"].includes(state))
+  if (["open", "create-open", "request-open", "request-queued", "request-work-open", "request-work-queued", "exchange-queued", "empty-open", "campaign-market", "campaign-tools", "queued", "support-queued", "ongoing-queued", "sync-failed", "waiting-membership", "reviewing"].includes(state))
     return { pool: "Open", cycle: "Open" };
   return undefined;
 };
@@ -3731,8 +3753,7 @@ const w34ActiveManagement = (pool: "Open" | "Ready", availability: "existing" | 
   const noPlaces = availability === "none";
   return `${sectionTitle("Looking after this offer")}
 ${hot(ready ? "w34.edit-active-ready" : noPlaces ? "w34.edit-active-none" : "w34.edit-active", btn("Edit offer details", { kind: "ghost", full: true, icon: "sticky-note-line" }))}
-<div class="brow">${hot(ready ? "w34.rest-ready" : noPlaces ? "w34.rest-none" : "w34.rest", btn("Rest it for now", { kind: "ghost", icon: "pause-line" }))}${hot(ready ? "w34.retire-ready" : noPlaces ? "w34.retire-none" : "w34.retire", btn("Retire it", { kind: "ghost" }))}</div>
-${hot("w34.succession", btn("Sharing and handing on — later", { kind: "ghost", full: true, icon: "eye-line" }))}`;
+<div class="brow">${hot(ready ? "w34.rest-ready" : noPlaces ? "w34.rest-none" : "w34.rest", btn("Rest it for now", { kind: "ghost", icon: "pause-line" }))}${hot(ready ? "w34.retire-ready" : noPlaces ? "w34.retire-none" : "w34.retire", btn("Retire it", { kind: "ghost" }))}</div>`;
 };
 
 const w34MetadataEditor = (state: "Active" | "Resting", pool: "Open" | "Ready", availability: "existing" | "none" = "existing") =>
@@ -3787,7 +3808,7 @@ function w34(state: W34State): string {
       body = `${w34Head()}${pagepad(
         w34Identity({ state: "Active · pool ready", tone: "plain", cycle: false }),
         banner("This pool is ready but not open. Your ongoing Offer is active, while opening or taking anything up stays unavailable until stewards open participation.", "stone", "information-line"),
-        formInfo("time-line", "Nothing open right now", "Opening the pool is a steward action — nothing can be queued from here."),
+        formInfo("time-line", "Nothing open right now", "Opening the pool is a steward action. Nothing can be queued from here."),
         sectionCard("Details", `${detailRow("Kept", "12 times across 5 cycles")}${detailRow("Unit", "workshop sessions")}${detailRow("Pool", "Ready")}`),
         hot("w34.open-story", btn("See the whole story", { kind: "ghost", full: true })),
         w34ActiveManagement("Ready"),
@@ -4176,7 +4197,6 @@ const W34_HOTS: HifiDef["hots"] = {
   "w34.open-retired-place": { l: "View an open commitment", to: "screen:W2@support-offered", info: "Opens one surviving Offered instance. Retirement blocks only new series instances; ordinary claimant discovery and claim remain available while the pool is Open." },
   "w34.ask-again-yes": { l: "Open more", to: "screen:W35@compose", info: "Current consent before any new commitment. The protocol never opens a commitment on a schedule." },
   "w34.ask-again-not-now": { l: "Not this season", to: "screen:W34@active-none", info: "Declining creates nothing and changes neither this offer nor its story." },
-  "w34.succession": { l: "Sharing and handing on — later", to: "screen:W34@succession", info: "Labelled horizon only. The initial contract exposes rest, resume, and retire and nothing else." },
   "w34.retry": { l: "Try again", to: "screen:W34@active-two", info: "Re-reads the indexed ongoing Offer after a failed read." },
 };
 

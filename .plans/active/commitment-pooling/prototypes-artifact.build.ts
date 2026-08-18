@@ -843,7 +843,10 @@ const requiredTargets: [string, string][] = [
   // Normalized to the bare screen id: step-what is W3's first state, and
   // validate.ts strips "@<first state>" from every target.
   ["w32.offer-over-time", "screen:W3"],
-  ["w3.submit-ongoing", "screen:W32@series-queued"],
+  // Was W32@series-queued. An ongoing offer used to be the one creation flow
+  // that finished in the wallet's private section instead of the pool tab
+  // (2026-08-17, Afo). It now lands where every other commitment lands.
+  ["w3.submit-ongoing", "screen:W1@ongoing-queued"],
   ["w35.queued-done", "screen:W34@places-queued"],
 ];
 for (const [hotId, target] of requiredTargets) {
