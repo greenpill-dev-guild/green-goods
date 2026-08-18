@@ -57,6 +57,26 @@ const PROXY_PREFIX = "0x602d8060093d393df3363d3d373d3d3d363d73";
 const PROXY_SUFFIX = "0x5af43d82803e903d91602b57fd5bf3";
 const SALT_DOMAIN = "GG_GARDEN_ROLES_V1";
 
+/** Canonical G$ and its transfer selector, frozen in config/commitment-pooling-release.json. */
+const CANONICAL_TOKEN = "0x62B8B11039FcfE5aB0C56E502b1C372A3d2a9c7A";
+const TRANSFER_SELECTOR = "0xa9059cbb";
+
+/** Domain-separated identifiers; Roles treats both purely as opaque bytes32 keys. */
+export const ROLE_KEY = solidityPackedKeccak256(["string"], ["GG_CELO_SETTLEMENT_ROLE_V1"]);
+export const ALLOWANCE_KEY = solidityPackedKeccak256(["string"], ["GG_CELO_SETTLEMENT_ALLOWANCE_V1"]);
+
+/**
+ * Periodic allowance, derived from the caps frozen in the release manifest: maxPeriodAmount over
+ * periodDuration. The per-transfer and per-batch caps are enforced by the executor rather than
+ * Roles, because they measure the Safe's gross debit including a sender-paid G$ fee.
+ */
+export const MAX_PERIOD_AMOUNT = 15_000_000n * 10n ** 18n;
+export const PERIOD_DURATION = 2_592_000n;
+
+/** Zodiac Roles v2 enums, read from the pinned 2.1.0 Types.sol. */
+const ABI_TYPE = { None: 0, Static: 1, Calldata: 5 } as const;
+const OPERATOR = { Or: 2, Matches: 5, EqualTo: 16, WithinAllowance: 28 } as const;
+
 const FACTORY_INTERFACE = new Interface([
   "function deployModule(address masterCopy, bytes initializer, uint256 saltNonce) returns (address)",
 ]);
@@ -101,6 +121,7 @@ export interface RolesBoundary {
   enableModuleData: string;
   safeTxHash: string;
   safeNonce: number;
+  permissionsConfigHash: string;
 }
 
 export interface GardenRolesPlan {
@@ -113,6 +134,13 @@ export interface GardenRolesPlan {
   modifierOwnerAtDeployment: string;
   ownershipTransfersToSafeBeforeEnable: true;
   authorityEnabled: false;
+  roleKey: string;
+  allowanceKey: string;
+  canonicalTarget: string;
+  canonicalSelector: string;
+  allowance: { balance: string; maxRefill: string; refill: string; period: string };
+  recipientAllowlist: string[];
+  conditions: ConditionFlat[];
   boundaries: RolesBoundary[];
   recoveryApprovals: Array<{ recoverySafe: string; multiSendTo: string; multiSendData: string }>;
   blockers: string[];
@@ -183,6 +211,76 @@ export function encodeMultiSend(calls: ReadonlyArray<{ to: string; data: string 
   return new Interface(["function multiSend(bytes transactions)"]).encodeFunctionData("multiSend", [concat(packed)]);
 }
 
+export interface ConditionFlat {
+  parent: number;
+  paramType: number;
+  operator: number;
+  compValue: string;
+}
+
+/**
+ * Scopes `transfer(address,uint256)` on canonical G$ so the role may send only to a registered
+ * Garden Safe, and only within the periodic allowance.
+ *
+ * The flat tree is breadth-first with parent indices. Node 0 matches the calldata; its children map
+ * positionally to the two parameters. The recipient is a logical Or over one EqualTo per registered
+ * Safe, which is how Roles expresses set membership — logical nodes carry no paramType of their
+ * own, so the leaves hold Static.
+ */
+export function buildTransferConditions(recipients: readonly string[]): ConditionFlat[] {
+  if (recipients.length !== EXPECTED_GARDEN_COUNT) {
+    throw new Error(`Recipient allowlist must name all ${EXPECTED_GARDEN_COUNT} registered Garden Safes`);
+  }
+  const unique = new Set(recipients.map((value) => getAddress(value)));
+  if (unique.size !== recipients.length) throw new Error("Recipient allowlist contains a duplicate Safe");
+
+  const encoder = AbiCoder.defaultAbiCoder();
+  const conditions: ConditionFlat[] = [
+    { parent: 0, paramType: ABI_TYPE.Calldata, operator: OPERATOR.Matches, compValue: "0x" },
+    { parent: 0, paramType: ABI_TYPE.None, operator: OPERATOR.Or, compValue: "0x" },
+    {
+      parent: 0,
+      paramType: ABI_TYPE.Static,
+      operator: OPERATOR.WithinAllowance,
+      compValue: encoder.encode(["bytes32"], [ALLOWANCE_KEY]),
+    },
+  ];
+  for (const recipient of recipients) {
+    conditions.push({
+      parent: 1,
+      paramType: ABI_TYPE.Static,
+      operator: OPERATOR.EqualTo,
+      compValue: encoder.encode(["address"], [getAddress(recipient)]),
+    });
+  }
+  return conditions;
+}
+
+/**
+ * Commits the immutable half of the permission: Safe, modifier, both keys, canonical G$, the exact
+ * selector, and the condition-tree shape. Mutable caps, fee policy, and live allowance balances are
+ * deliberately excluded — their own setters and events stay authoritative.
+ */
+export function permissionsConfigHash(
+  safe: string,
+  rolesModifier: string,
+  conditions: readonly ConditionFlat[],
+): string {
+  const encoded = AbiCoder.defaultAbiCoder().encode(
+    ["address", "address", "bytes32", "bytes32", "address", "bytes4", "tuple(uint8,uint8,uint8,bytes)[]"],
+    [
+      getAddress(safe),
+      getAddress(rolesModifier),
+      ROLE_KEY,
+      ALLOWANCE_KEY,
+      getAddress(CANONICAL_TOKEN),
+      TRANSFER_SELECTOR,
+      conditions.map((condition) => [condition.parent, condition.paramType, condition.operator, condition.compValue]),
+    ],
+  );
+  return keccak256(encoded);
+}
+
 async function buildPlan(safePlanPath: string): Promise<GardenRolesPlan> {
   const safePlan = readJson<{ entries: SafePlanEntry[] }>(safePlanPath);
   const blockers: string[] = [];
@@ -193,6 +291,10 @@ async function buildPlan(safePlanPath: string): Promise<GardenRolesPlan> {
   const provider = new JsonRpcProvider(new NetworkManager().getRpcUrl("celo"), CELO_CHAIN_ID, {
     staticNetwork: true,
   });
+
+  // Every Safe shares one reviewed condition tree: the allowlist is the registered Safe set.
+  const recipientAllowlist = safePlan.entries.map((entry) => getAddress(entry.safe));
+  const conditions = buildTransferConditions(recipientAllowlist);
 
   const boundaries: RolesBoundary[] = [];
   for (const entry of safePlan.entries) {
@@ -228,6 +330,7 @@ async function buildPlan(safePlanPath: string): Promise<GardenRolesPlan> {
       enableModuleData,
       safeTxHash: safeTransactionHash(entry.safe, enableModuleData, Number(liveNonce)),
       safeNonce: Number(liveNonce),
+      permissionsConfigHash: permissionsConfigHash(entry.safe, predicted, conditions),
     });
   }
 
@@ -243,9 +346,12 @@ async function buildPlan(safePlanPath: string): Promise<GardenRolesPlan> {
     ),
   }));
 
+  // The encoding is derived from the pinned Roles 2.1.0 Types.sol but has not yet been executed
+  // against a live modifier, and Roles validates tree integrity inside scopeFunction. Until that
+  // runs on a fork or through an eth_call against a deployed modifier, the tree is unproven.
   blockers.push(
-    "Permission tree is undecided: roleKey, allowanceKey, the recipient condition, and the Roles allowance " +
-      "refill parameters are not frozen yet, so no modifier may be configured or enabled from this plan.",
+    "Condition-tree integrity is unproven: scopeFunction has not been executed against a deployed " +
+      "Roles modifier, so no modifier may be configured or enabled from this plan.",
   );
 
   return {
@@ -258,6 +364,18 @@ async function buildPlan(safePlanPath: string): Promise<GardenRolesPlan> {
     modifierOwnerAtDeployment: getAddress(DEPLOYMENT_OPERATOR),
     ownershipTransfersToSafeBeforeEnable: true,
     authorityEnabled: false,
+    roleKey: ROLE_KEY,
+    allowanceKey: ALLOWANCE_KEY,
+    canonicalTarget: getAddress(CANONICAL_TOKEN),
+    canonicalSelector: TRANSFER_SELECTOR,
+    allowance: {
+      balance: MAX_PERIOD_AMOUNT.toString(),
+      maxRefill: MAX_PERIOD_AMOUNT.toString(),
+      refill: MAX_PERIOD_AMOUNT.toString(),
+      period: PERIOD_DURATION.toString(),
+    },
+    recipientAllowlist,
+    conditions,
     boundaries,
     recoveryApprovals,
     blockers,
