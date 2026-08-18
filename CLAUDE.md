@@ -235,6 +235,18 @@ Single `.env` at root (never create package-specific .env). `VITE_CHAIN_ID` sets
 - **indexer postgres** — `localhost:3008`
 - **envio indexer runtime** — `http://localhost:3007/`
 
+## Output Style
+
+Chat output is simple, clear and concise. Lead with what changed or what the answer is; put
+the reasoning after it, and only as much as the decision needs. One short paragraph beats
+three. Cut restatements of the request, recaps of what was just built, and hedged preamble.
+
+This applies to written copy too — UI strings, spec prose, commit messages: plain language
+that translates well, no em-dashes where a full stop or a comma works.
+
+Depth on request. If a decision genuinely turns on evidence, show the evidence — a
+measurement, a file line, a contract field — not more adjectives.
+
 ## Scope Discipline
 - When instructions say "output in chat" or "just tell me", do NOT edit files
 - For destructive changes (removing sections, replacing pages, merging content): list what will be REMOVED and ADDED, then wait for confirmation

@@ -2222,7 +2222,7 @@ const W3_STATES = [
   ["step-what", "1 · What"], ["repeat-noticed", "1 · What — you have offered this before"],
   ["step-howmuch", "2 · How much"], ["step-details", "3 · Details"],
   ["details-preview", "3 · Details — image preview"],
-  ["step-review", "4 · Review & commit"],
+  ["step-review", "4 · Review & commit"], ["step-review-read", "4 · Review — read to the end"],
   ["support-howmuch", "Service · 2 · How much"],
   ["support-details", "Service · 3 · Details"],
   ["support-howmuch-ongoing", "Service · 2 · How much — Ongoing"],
@@ -2523,7 +2523,11 @@ function w3(state: W3State): string {
       // and its accent; only the word goes.
       actions = hot("w3.continue-details", btn("", { kind: "pri", icon: "arrow-right-s-line", ariaLabel: "Continue to review" }));
       break;
+    // A review you can send from the top is not a review (2026-08-17, Afo). The
+    // act is disabled until the reader reaches the end and says why. Drawn once
+    // here, on the offer review; the rule is the same on all six.
     case "step-review":
+    case "step-review-read":
       head = w3Head("Make an offer", 3);
       content = pagepad(
         w3Review({
@@ -2543,7 +2547,11 @@ function w3(state: W3State): string {
         }),
         `<div class="t-meta">Submitting queues the commitment on this device and returns you to the pool — it sends when connected.</div>`,
       );
-      actions = hot("w3.submit", btn("Make this offer", { kind: "pri", full: true }));
+      actions =
+        state === "step-review"
+          ? btn("Make this offer", { kind: "pri", full: true, disabled: true })
+          : hot("w3.submit", btn("Make this offer", { kind: "pri", full: true }));
+      secondary = state === "step-review" ? hot("w3.read-to-end", btn("Read to the end", { kind: "ghost", sm: true, icon: "arrow-right-s-line" })) : "";
       break;
     case "step-advanced":
       head = w3Head("Make an offer", 3);
@@ -3034,6 +3042,7 @@ const W3_HOTS: HifiDef["hots"] = {
   "w3.confirmer-group-work": { l: "Named confirmer group (garden-work ask)", to: "screen:W3@step-confirmers-work", info: "The request-aware twin of the group picker (PR #710 review): entered from the garden-work ask's Advanced detour, so its return path stays in the request composer." },
   "w3.confirmers-work-done": { l: "Use this group", to: "screen:W3@advanced-work-ask", info: "Returns to the garden-work ask's Advanced detour — never the offer detour — keeping the claim-mode field and the request review in reach." },
   "w3.advanced-done": { l: "Back to review", to: "screen:W3@step-review", info: "Returns to review carrying any adjusted confirmer, team, or assessment choices. The detour is drawn once in the offer cast, so the drawn return lands on the offer review — service and request reviews reach it as a screen branch and return to their own review in the app (same reuse convention as W4@confirm-request)." },
+  "w3.read-to-end": { l: "Read to the end", to: "screen:W3@step-review-read", info: "Scrolling to the end of the review enables the act (2026-08-17, Afo). Drawn as a step so the disabled arrival state is visible; in the app it is the scroll itself, not a control." },
   "w3.submit": { l: "Make this offer", to: "screen:W1@queued", info: "Enqueues the commitment job; returns to the pool tab with an optimistic queued card (UX:212).", calls: ["createCommitment"], pendingSync: true },
   "w3.submit-support": { l: "Make this service offer", to: "screen:W1@support-queued", info: "Enqueues the SupportService offer and returns to the pool with its optimistic queued card; a recipient may take it up only after sync.", calls: ["createCommitment"], pendingSync: true },
   "w3.request-continue-what": { l: "Continue to amount", to: "screen:W3@request-howmuch-steward", info: "Season bound, title suggested — continues to chip-picked unit and amount. The drawn walk is the steward cast (5 steps, Support included); gardeners land on the 4-step variant in the library (iteration 2)." },
