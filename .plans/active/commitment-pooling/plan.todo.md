@@ -1397,6 +1397,16 @@ Known mis-resolutions fixed in place: `contract-spec.md` §Grassroots-Economics-
     evidence and submit work, which is what the counterparty does. The three request details
     steps are Who confirms and Media, and the ask composer is now shorter than the offer
     composer, which is honest. Full text: `uiux-spec.md` C.33.
+137. The request-flow second pass (2026-08-17, round 34, Afo). **The review is one card
+    shape** — it had three, and everything is a FormCard now except Media, which holds a
+    thumbnail strip rather than a value. Two cards had also shared an icon. **Amount pickers
+    fill the row** at six options rather than four. **The claim-mode options are the same
+    length**, so the two cards stop being different heights, and *neighbor* became
+    *neighbour*. **The steward G$ banner is gone**, since the review states those terms where
+    someone is actually checking them. **An open request is the pool tab**: the scene had no
+    header, no filters, one card and a screen-level "I can help", the one act on a browse
+    surface in the feature; taking it up happens in the commitment. Held for discussion: what
+    "Open More" means on the ongoing offer. Full text: `uiux-spec.md` C.34.
 
 **Final recursive certification clarification (2026-07-25; no new decision-register entry):**
 the published `42161`↔`42220` production lane is the only required fully paired

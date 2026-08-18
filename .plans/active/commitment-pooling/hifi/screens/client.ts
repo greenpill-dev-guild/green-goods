@@ -306,20 +306,27 @@ function w1(state: W1State): string {
       );
       break;
     case "request-work-open":
-      // The work requirement is what makes this ask different, so it stays on
-      // the card as the note line; the act is the screen's, below it.
+      // The pool tab proper (2026-08-17, Afo). This screen had no section
+      // header, no filters, one card, and a screen-level "I can help" — the one
+      // place in the feature where an act sat on a browse surface. Taking it up
+      // happens in the commitment, where that act already lives in the fixed
+      // bar. The work requirement stays on the card as its note line, which is
+      // what makes this ask different at scroll speed.
       content = pagepad(
         cycleCarousel(),
+        sectionTitle("Commitments", hot("w1.scope", input("All current", { select: true, ariaLabel: "Scope" }))),
+        poolFilters(0),
         commitmentCard({
           title: "Clear the drainage channel",
           meta: "Ana · 8 hours · due Aug 30",
           tags: [{ label: "Request", tone: "request" }, { label: "Garden work" }, { label: "AGRO" }],
           cycle: { label: "First Rains", kind: "season" },
-          media: { label: "photo", tint: "agro" , photo: 2 },
+          media: { label: "photo", tint: "agro", photo: 4 },
           note: "Needs approved work: Weed × 2 · Mulch × 4",
           hotId: "w1.open-work-request",
         }),
-        hot("w1.take-up-work-request", btn("I Can Help", { kind: "pri", full: true })),
+        offerCard(),
+        ongoingOfferCard(),
       );
       break;
     case "waiting-membership":
@@ -489,7 +496,6 @@ const W1_HOTS: HifiDef["hots"] = {
   "w1.open-work-request": { l: "Open the work request", to: "screen:W2@request-work-active", info: "Whole-card tap opens the garden-work request detail; taking it up stays on the button. A dedicated work-request browse cast can follow the two drawn ones (browse-offered / browse-requested)." },
   "w1.open-ongoing": { l: "Open the ongoing Offer", to: "screen:W34@claimant-view", info: "The whole card opens the series detail (2026-08-14 second pass — the See-open-places nav button retired), where each open commitment is an ordinary Offered one that can be taken up (Appendix F.2). How many are left stays on the card as its real progress." },
   "w1.open-team-offer": { l: "Open the team commitment", to: "screen:W2", info: "The whole card opens the commitment DETAIL first (iteration 2 — jumping straight into the team view skipped the commitment itself): the team strip sits above the fold and opens the team view from there. Nav button retired 2026-08-14; the card is the tap target." },
-  "w1.take-up-work-request": { l: "I can help", to: "screen:W2@request-work-active", info: "Open-claim on a DomainImpact Request: claimCommitment → CommitmentAccepted with provider = claimant and confirmer = Ana, the asker. The ask then rides the ordinary Work-approval rails (CS:133 · register #97a).", calls: ["claimCommitment"], facts: { commitment: "Requested", kind: "DomainImpact" } },
   "w1.open-paused-promise": { l: "Open commitment while paused", to: "screen:W2@active", info: "Whole-card tap. Pause blocks new participation and confirmation, not browsing, evidence, linkage, cancellation, expiry, or dispute recovery (UX:60)." },
   "w1.open-reviewing-promise": { l: "Open the ready commitment", to: "screen:W2@ready-confirmer", info: "Whole-card tap; the confirm act lives in the detail. Reviewing keeps evidence and confirmation available; this selected commitment is already ReadyForConfirmation (UX:74)." },
   "w1.campaign-market": { l: "Open Market rides campaign", to: "screen:W1@campaign-market", info: "Campaigns remain independently usable when no Season is open (UX:127)." },
@@ -2451,15 +2457,11 @@ const w3Review = (opts: {
   team?: string;
   advanced: { hot: string; label: string; value: string };
 }) =>
-  sectionCard("Garden", listRow({ icon: "plant-line", primary: opts.garden, meta: opts.gardenMeta })) +
   `<div class="h6s">Details</div>` +
+  formCard("plant-line", "Garden", `${opts.garden} · ${opts.gardenMeta}`) +
   formCard(opts.lead.icon, opts.asking ? "What you're asking for" : "What you're committing to", `${opts.lead.primary} · ${opts.lead.meta}`) +
   opts.details.map((d) => formCard(d.icon, d.label, d.value)).join("") +
-  sectionCard(
-    opts.advanced.label,
-    hot(opts.advanced.hot, listRow({ icon: "shield-check-line", primary: opts.advanced.value, meta: "Tap to change", chevron: true })),
-    { flush: true },
-  ) +
+  hot(opts.advanced.hot, formCard("shield-check-line", opts.advanced.label, opts.advanced.value)) +
   (opts.team ? sectionCard("Team", opts.team, { flush: true }) : "") +
   (opts.media ? sectionCard("Media", opts.media, { flush: true }) : "");
 
@@ -2487,7 +2489,7 @@ function w3(state: W3State): string {
       content = pagepad(
         sectionTitle("How many hours"),
         `<div class="t-meta">Garden work is counted in hours. What you actually do is the actions below, which stewards approve.</div>`,
-        pickRow([{ label: "1" }, { label: "2" }, { label: "6", on: true }, { label: "12" }, { label: "custom…" }]),
+        pickRow([{ label: "1" }, { label: "2" }, { label: "4" }, { label: "6", on: true }, { label: "12" }, { label: "custom…" }]),
         `<div class="t-meta">Tap what fits, a custom unit or amount opens the keyboard only when you ask for it. This is what you are putting in, and it is what the pool counts in its hours.</div>`,
         w3Due("Runs with the season · through Aug 30"),
         w3Proof({
@@ -2576,8 +2578,8 @@ function w3(state: W3State): string {
         hot("w3.protocol-fallback", `<label class="arow" style="align-items:flex-start"><input type="checkbox" aria-label="Let the Green Goods team confirm if nobody local is eligible" checked style="margin-top:4px"><span class="grow"><b>Let the Green Goods team confirm if nobody local is eligible</b><span class="t-meta" style="display:block">On for this pilot. Usable only while nobody local can confirm, always with a recorded reason, and never by a contributor.</span></span></label>`),
         sectionTitle("Who can take it"),
         hot("w3.claim-mode", field("Who can take this up", radio([
-          { label: "Open to anyone here", meta: "approved work is the gate. Help that is not approved never reaches Ready", on: true },
-          { label: "Stewards review who takes it", meta: "for asks that need vetting before someone starts" },
+          { label: "Open to anyone here", meta: "the first neighbour to say yes takes it on", on: true },
+          { label: "Stewards review who takes it", meta: "your stewards choose who takes it on" },
         ], { interactive: true, name: "work-ask-claim-mode" }))),
         sectionTitle("Team options"),
         hot("w3.contributor-policy", field("Contributor policy", radio([{ label: "Open team", meta: "eligible garden members may join", on: true }, { label: "Lead-managed team", meta: "the lead or steward manages the roster" }], { interactive: true, name: "contributor-policy-work-ask" }))),
@@ -2640,7 +2642,7 @@ function w3(state: W3State): string {
           lead: { icon: "hand-heart-line", primary: "Repair tool handles", meta: "a service" },
           media: mediaStrip([{ label: "The bins, cleared", photo: 3 }]),
           details: [
-            { icon: "hand-heart-line", label: "How much", value: "1 repair session" },
+            { icon: "leaf-line", label: "How much", value: "1 repair session" },
             { icon: "calendar-line", label: "Due", value: "Aug 30, running with the campaign" },
             { icon: "seedling-line", label: "Where it runs", value: "Campaign · Tool library" },
             { icon: "refresh-line", label: "How often", value: "Just once" },
@@ -2658,7 +2660,7 @@ function w3(state: W3State): string {
         sectionTitle("Unit"),
         pickRow([{ label: "hours" }, { label: "sessions", on: true }, { label: "rides" }, { label: "meals" }, { label: "repairs" }, { label: "other…" }]),
         sectionTitle("How many"),
-        pickRow([{ label: "1", on: true }, { label: "2" }, { label: "4" }, { label: "custom…" }]),
+        pickRow([{ label: "1", on: true }, { label: "2" }, { label: "3" }, { label: "4" }, { label: "6" }, { label: "custom…" }]),
         `<div class="t-meta">Tap what fits. The keyboard opens only for a custom unit or amount.</div>`,
         w3Due("Runs with the campaign · through Aug 30"),
         banner("A service offer names no garden actions. Evidence and the person you help carry the proof.", "stone", "shield-check-line"),
@@ -2699,14 +2701,14 @@ function w3(state: W3State): string {
         sectionTitle("Unit"),
         pickRow([{ label: "hours" }, { label: "sessions" }, { label: "rides", on: true }, { label: "meals" }, { label: "repairs" }, { label: "other…" }]),
         sectionTitle("How many"),
-        pickRow([{ label: "1", on: true }, { label: "2" }, { label: "4" }, { label: "custom…" }]),
+        pickRow([{ label: "1", on: true }, { label: "2" }, { label: "3" }, { label: "4" }, { label: "6" }, { label: "custom…" }]),
         `<div class="t-meta">Tap what fits. The keyboard opens only for a custom unit or amount.</div>`,
         w3Due("Runs with the season · through Aug 30"),
         // Who-can-take-it was step 3 of the ask — the same slot garden work
         // used for proof. Both are terms this is kept on, so both fold here.
         field("Who can take this up", radio([
-          { label: "Open to anyone here", meta: "the first neighbor to say “I can help” becomes the provider", on: true },
-          { label: "Stewards review who takes it", meta: "people ask first; your stewards choose" },
+          { label: "Open to anyone here", meta: "the first neighbour to say yes takes it on", on: true },
+          { label: "Stewards review who takes it", meta: "your stewards choose who takes it on" },
         ], { interactive: true, name: "request-claim-mode" })),
         `<div class="t-meta">Either way, you confirm when the help arrives.</div>`,
       );
@@ -2733,7 +2735,7 @@ function w3(state: W3State): string {
       content = pagepad(
         sectionTitle("How many hours"),
         `<div class="t-meta">Garden work is counted in hours. What has to be done is the actions below, which stewards approve.</div>`,
-        pickRow([{ label: "4" }, { label: "8", on: true }, { label: "12" }, { label: "custom…" }]),
+        pickRow([{ label: "2" }, { label: "4" }, { label: "8", on: true }, { label: "12" }, { label: "16" }, { label: "custom…" }]),
         `<div class="t-meta">Tap what fits. The keyboard opens only for a custom unit or amount.</div>`,
         w3Due("Runs with the season · through Aug 30"),
         w3Proof({
@@ -2781,7 +2783,7 @@ function w3(state: W3State): string {
           lead: { icon: "hand-heart-line", primary: "Ride to the market on Saturday", meta: "help or a service" },
           media: mediaStrip([{ label: "Written note", kind: "note" }]),
           details: [
-            { icon: "hand-heart-line", label: "How much", value: "1 ride" },
+            { icon: "leaf-line", label: "How much", value: "1 ride" },
             { icon: "calendar-line", label: "Due", value: "Aug 30, running with the season" },
             { icon: "seedling-line", label: "Where it runs", value: "Season of First Rains" },
             { icon: "user-line", label: "Who can take it up", value: "Open to anyone here. The first neighbour to say “I can help” takes it" },
@@ -2887,16 +2889,15 @@ function w3(state: W3State): string {
         sectionTitle("Unit"),
         pickRow([{ label: "hours" }, { label: "sessions" }, { label: "rides", on: true }, { label: "meals" }, { label: "repairs" }, { label: "other…" }]),
         sectionTitle("How many"),
-        pickRow([{ label: "1", on: true }, { label: "2" }, { label: "4" }, { label: "custom…" }]),
+        pickRow([{ label: "1", on: true }, { label: "2" }, { label: "3" }, { label: "4" }, { label: "6" }, { label: "custom…" }]),
         w3Due("Runs with the season · through Aug 30"),
         field("Who can take this up", radio([
-          { label: "Open to anyone here", meta: "the first neighbor to say “I can help” becomes the provider", on: true },
-          { label: "Stewards review who takes it", meta: "people ask first; your stewards choose" },
+          { label: "Open to anyone here", meta: "the first neighbour to say yes takes it on", on: true },
+          { label: "Stewards review who takes it", meta: "your stewards choose who takes it on" },
         ], { interactive: true, name: "request-claim-mode-steward" })),
         sectionTitle("Add G$ support", chip("Stewards only", "plain")),
         pickRow([{ label: "20 G$", on: true }, { label: "50 G$" }, { label: "100 G$" }, { label: "custom…" }, { label: "none" }]),
         card(`${kv("Where it goes", "The person who helps")}${kv("Paid from", "The garden's account")}${kv("When", "After the commitment is confirmed kept")}`),
-        banner("Declaring support records it with the request. Nothing moves until the commitment is kept and confirmed.", "stone", "hand-heart-line"),
       );
       actions = hot("w3.request-continue-support", btn("Continue", { kind: "pri", full: true }));
       break;
@@ -2908,7 +2909,6 @@ function w3(state: W3State): string {
         sectionTitle("How much"),
         pickRow([{ label: "20 G$", on: true }, { label: "50 G$" }, { label: "100 G$" }, { label: "custom…" }, { label: "none" }]),
         card(`${kv("Where it goes", "The person who helps")}${kv("Paid from", "The garden's account")}${kv("When", "After the commitment is confirmed kept")}`),
-        banner("Declaring support records it with the request. Nothing moves until the commitment is kept and confirmed.", "stone", "hand-heart-line"),
       );
       actions = hot("w3.request-support-continue", btn("Continue", { kind: "pri", full: true }));
       break;
@@ -2921,7 +2921,7 @@ function w3(state: W3State): string {
           lead: { icon: "hand-heart-line", primary: "Ride to the market on Saturday", meta: "help or a service" },
           media: mediaStrip([{ label: "Written note", kind: "note" }]),
           details: [
-            { icon: "hand-heart-line", label: "How much", value: "1 ride" },
+            { icon: "leaf-line", label: "How much", value: "1 ride" },
             { icon: "calendar-line", label: "Due", value: "Aug 30, running with the season" },
             { icon: "seedling-line", label: "Where it runs", value: "Season of First Rains" },
             { icon: "user-line", label: "Who can take it up", value: "Open to anyone here" },

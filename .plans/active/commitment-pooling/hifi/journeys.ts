@@ -107,7 +107,7 @@ export const SBS: SB[] = [
   { f: "W3@request-work-details", hot: { h: "w3.continue-request-work-details" }, st: "3 · Details", ev: "a photo of the blocked channel is context for whoever takes it up; the proof arrives later as approved work" },
   { f: "W3@request-work-review", hot: { h: "w3.submit-work-request", l: "Request this work" }, st: "4 · Review", ev: "the shipped Review Work anatomy; whoever takes it up submits work, stewards approve, you confirm" },
   { f: "W1@request-work-queued", hot: null, marks: ["w1.queued-card"], st: "Queued", ev: "the request queues with its requirement rows intact" },
-  { f: "W1@request-work-open", hot: null, st: "Open", ev: "live on the pool tab with the needed work named on the card", br: [{ l: "A helper takes it up and submits work", to: "sb43:0" }, { l: "Approvals land, then you confirm", to: "sb42:0" }] },
+  { f: "W1@request-work-open", hot: null, st: "Open", ev: "live on the pool tab among everything else, with the needed work named on its card. Taking it up happens in the commitment, where that act lives", br: [{ l: "A helper takes it up and submits work", to: "sb43:0" }, { l: "Approvals land, then you confirm", to: "sb42:0" }] },
 ]},
 { id: "sb43", n: 6, title: "Help with what was requested", desc: "João takes up Ana's open request, does it, attaches evidence, and sends it back for her confirmation.", persona: "Helper (João)", scen: "S2 · providing side", reviewVisible: true, reviewGroup: "client", chapter: "take-up", roles: ["gardener"], steps: [
   { f: "W1@request-open", hot: { h: "w1.open-request", l: "Ride to the market on Saturday" }, st: "Requested", ev: "the card opens the request rather than accepting it — what taking it up means is read on the commitment, not guessed from a button" },

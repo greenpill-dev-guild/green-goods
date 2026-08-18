@@ -2112,6 +2112,33 @@ brings their own people, on their side, after acceptance. The three request deta
 **Who confirms** and **Media**, and their step card names two things rather than three. The
 ask composer is now shorter than the offer composer, which is honest: you are asking for less
 setup, not doing less.
+### C.34 The request-flow second pass (2026-08-17, round 34)
+
+**The review is one card shape.** It had three: Garden was a section card, the details were
+FormCards, and Who confirms and Media were flush sections. Everything is a FormCard now,
+including Garden and Who confirms. Media stays a section, and that is the one justified
+exception: it holds a thumbnail strip rather than a value. *What you're asking for* and *How
+much* had also shared `hand-heart-line`; each card now carries its own icon.
+
+**Amount pickers fill the row.** Four options left a ragged half-row on every path. Six now,
+which is what fits a 390px phone at two lines.
+
+**The claim-mode options are the same length.** *"approved work is the gate. Help that is not
+approved never reaches Ready"* wrapped to two lines while its sibling ran to one, so the two
+cards were different heights. Both read *"the first neighbour to say yes takes it on"* and
+*"your stewards choose who takes it on"*. The service ask also said *neighbor* where the rest
+of the client says *neighbour*.
+
+**The steward G$ banner is gone.** It sat at the bottom of the how-much step explaining that
+nothing moves until the commitment is confirmed, which the review already states at the point
+someone is checking terms.
+
+**An open request is the pool tab, not a landing page.** `W1@request-work-open` had no section
+header, no filters, one card, and a screen-level *I can help* — the one place in the feature
+where an act sat on a browse surface. It is the ordinary pool tab now, with the request among
+everything else; taking it up happens in the commitment, where that act already lives in the
+fixed bar. `w1.take-up-work-request` retires with it.
+
 ### C.7 PARKED — reciprocity from the claim side (2026-08-16, register #103)
 
 > **Parked 2026-08-17 (Afo): "park it for now and we stabilize and polish the UI."** The
