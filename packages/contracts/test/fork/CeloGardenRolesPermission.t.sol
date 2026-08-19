@@ -61,6 +61,9 @@ struct ConditionFlat {
 interface ISafe {
     function enableModule(address module) external;
     function isModuleEnabled(address module) external view returns (bool);
+    function approveHash(bytes32 hashToApprove) external;
+    function approvedHashes(address owner, bytes32 hash) external view returns (uint256);
+    function nonce() external view returns (uint256);
 }
 
 /// Roles reverts every condition failure with this; the status names which rule refused.
@@ -98,6 +101,9 @@ contract CeloGardenRolesPermissionForkTest is Test {
 
     address private safe;
     address private predictedModifier;
+    bytes32 private enableTxHash;
+    bytes private enableCalldata;
+    address[] private approvers;
     address private registeredRecipient;
     address private outsider = address(0xBEEF);
 
@@ -115,6 +121,10 @@ contract CeloGardenRolesPermissionForkTest is Test {
         allowanceKey = plan.readBytes32(".allowanceKey");
         periodAmount = uint128(plan.readUint(".allowance.refill"));
         periodDuration = uint64(plan.readUint(".allowance.period"));
+
+        enableTxHash = plan.readBytes32(".enable[0].safeTxHash");
+        enableCalldata = plan.readBytes(".enable[0].data");
+        approvers = plan.readAddressArray(".enable[0].approvers");
 
         safe = plan.readAddress(".boundaries[0].safe");
         predictedModifier = plan.readAddress(".boundaries[0].modifier");
@@ -163,9 +173,21 @@ contract CeloGardenRolesPermissionForkTest is Test {
 
         assertEq(roles.owner(), safe, "ownership did not transfer to the Safe");
 
-        // Only now does the modifier gain authority.
-        vm.prank(safe);
-        ISafe(safe).enableModule(address(roles));
+        // Only now does the modifier gain authority, and it gains it the way the release will:
+        // each recovery Safe records its approval, then anyone submits the reviewed transaction
+        // carrying the planner's pre-approved signature bytes. Pranking the Safe here would have
+        // left that encoding — the thing both organisations' signing round depends on — unexecuted.
+        assertEq(ISafe(safe).nonce(), 0, "reviewed enable hash is bound to nonce zero");
+        for (uint256 index; index < approvers.length; ++index) {
+            vm.prank(approvers[index]);
+            ISafe(safe).approveHash(enableTxHash);
+            assertGt(ISafe(safe).approvedHashes(approvers[index], enableTxHash), 0, "approval was not recorded");
+        }
+
+        // Submitted from an unrelated address: pre-approved hashes need no further signing.
+        vm.prank(outsider);
+        (bool ok,) = safe.call(enableCalldata);
+        assertTrue(ok, "pre-approved enable transaction was rejected");
         assertTrue(ISafe(safe).isModuleEnabled(address(roles)), "module was not enabled on the Safe");
 
         deal(canonicalToken, safe, uint256(periodAmount) * 2);
@@ -175,6 +197,66 @@ contract CeloGardenRolesPermissionForkTest is Test {
      * Asserts the call reverted with a Roles ConditionViolation and returns its status, so each
      * denial names the rule that refused rather than accepting any revert.
      */
+    /**
+     * The eighteen enables are submitted with pre-approved-hash signatures rather than live ones, so
+     * the threshold has to be carried by the approvals themselves. Proven on a second registered
+     * Safe, since the first is already enabled by setUp.
+     */
+    function testFork_enableRequiresBothRecoveryApprovals() public {
+        address secondSafe = plan.readAddress(".boundaries[1].safe");
+        bytes32 secondHash = plan.readBytes32(".enable[1].safeTxHash");
+        bytes memory secondCalldata = plan.readBytes(".enable[1].data");
+        address secondModifier = _prepareSecondModifier(secondSafe);
+
+        // One approval is below threshold two, so the reviewed transaction must not execute.
+        vm.prank(approvers[0]);
+        ISafe(secondSafe).approveHash(secondHash);
+        vm.prank(outsider);
+        (bool tooFew,) = secondSafe.call(secondCalldata);
+        assertFalse(tooFew, "one recovery approval was enough to enable the module");
+        assertFalse(ISafe(secondSafe).isModuleEnabled(secondModifier), "module enabled below threshold");
+
+        // With the second organisation's approval the identical bytes succeed.
+        vm.prank(approvers[1]);
+        ISafe(secondSafe).approveHash(secondHash);
+        vm.prank(outsider);
+        (bool ok,) = secondSafe.call(secondCalldata);
+        assertTrue(ok, "both approvals present but the reviewed transaction was rejected");
+        assertTrue(ISafe(secondSafe).isModuleEnabled(secondModifier), "module was not enabled");
+    }
+
+    /// The reviewed hash is nonce-bound, so a mined enable cannot be replayed against the same Safe.
+    function testFork_enableCannotBeReplayed() public {
+        assertEq(ISafe(safe).nonce(), 1, "setUp did not consume the reviewed nonce");
+
+        vm.prank(outsider);
+        (bool replayed,) = safe.call(enableCalldata);
+        assertFalse(replayed, "the enable transaction replayed after its nonce advanced");
+    }
+
+    /// Deploys and configures a second modifier through the same reviewed path, stopping before enable.
+    function _prepareSecondModifier(address secondSafe) private returns (address secondModifier) {
+        bytes memory initializer =
+            abi.encodeWithSignature("setUp(bytes)", abi.encode(deploymentOperator, secondSafe, secondSafe));
+        vm.prank(deploymentOperator);
+        secondModifier = IModuleProxyFactory(FACTORY)
+            .deployModule(ROLES_MASTERCOPY, initializer, plan.readUint(".boundaries[1].saltNonce"));
+        assertEq(secondModifier, plan.readAddress(".boundaries[1].modifier"), "second modifier differs from the plan");
+
+        bytes32[] memory roleKeys = new bytes32[](1);
+        roleKeys[0] = roleKey;
+        bool[] memory memberOf = new bool[](1);
+        memberOf[0] = true;
+
+        vm.startPrank(deploymentOperator);
+        IRoles(secondModifier).scopeTarget(roleKey, canonicalToken);
+        IRoles(secondModifier).scopeFunction(roleKey, canonicalToken, canonicalSelector, _planConditions(), 0);
+        IRoles(secondModifier).setAllowance(allowanceKey, periodAmount, periodAmount, periodAmount, periodDuration, 0);
+        IRoles(secondModifier).assignRoles(EXECUTOR, roleKeys, memberOf);
+        IRoles(secondModifier).transferOwnership(secondSafe);
+        vm.stopPrank();
+    }
+
     function _expectConditionViolation(address to, bytes memory data) private returns (uint8 status) {
         vm.prank(EXECUTOR);
         (bool ok, bytes memory err) = address(roles)

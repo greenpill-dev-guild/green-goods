@@ -1041,7 +1041,18 @@ export async function main(args = process.argv.slice(2)): Promise<void> {
     blockers: plan.blockers,
     transactions: buildEnableTransactions(plan.boundaries, [GREEN_GOODS_RECOVERY_SAFE, DEV_GUILD_RECOVERY_SAFE]),
   });
+  // The fork proof submits these exact bytes, so the signature encoding both recovery
+  // organisations depend on is executed rather than only shape-tested.
+  const enableTransactions = buildEnableTransactions(plan.boundaries, [
+    GREEN_GOODS_RECOVERY_SAFE,
+    DEV_GUILD_RECOVERY_SAFE,
+  ]);
   atomicWrite(PROOF_FIXTURE, {
+    enable: enableTransactions.slice(0, 2).map((transaction) => ({
+      safeTxHash: transaction.safeTxHash,
+      data: transaction.data,
+      approvers: transaction.approvers,
+    })),
     modifierOwnerAtDeployment: plan.modifierOwnerAtDeployment,
     canonicalTarget: plan.canonicalTarget,
     canonicalSelector: plan.canonicalSelector,
