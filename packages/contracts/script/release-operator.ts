@@ -55,8 +55,8 @@ const RELEASE_OPERATOR_ARGUMENTS = new Map<string, ReadonlySet<string>>([
   ["settlement:garden-accounts:deploy:celo", new Set(["--plan", "--step", "--receipt"])],
   ["settlement:garden-safes:deploy:celo", new Set(["--plan", "--inventory", "--step", "--receipt"])],
   ["settlement:garden-relay:deploy", new Set(["--plan", "--safe-plan", "--step", "--receipt"])],
-  ["settlement:garden-roles:deploy", new Set(["--plan", "--safe-plan", "--step"])],
-  ["settlement:garden-roles:enable", new Set(["--plan", "--step"])],
+  ["settlement:garden-roles:deploy", new Set(["--plan", "--safe-plan", "--broadcast", "--step"])],
+  ["settlement:garden-roles:enable", new Set(["--plan", "--broadcast", "--step"])],
 ]);
 
 /**

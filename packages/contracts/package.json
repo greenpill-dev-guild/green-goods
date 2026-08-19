@@ -141,6 +141,7 @@
     "settlement:garden-safes:deploy:celo": "bun script/deploy/garden-safe-owners.ts deploy --broadcast",
     "settlement:garden-safes:release:celo": "bun script/release-operator.ts --stage garden-safes",
     "settlement:garden-roles:plan": "bun script/deploy/garden-roles.ts plan",
+    "settlement:garden-roles:verify": "bun script/deploy/garden-roles.ts verify",
     "settlement:garden-roles:deploy": "bun script/deploy/garden-roles.ts deploy",
     "settlement:garden-roles:release": "bun script/release-operator.ts --stage garden-roles",
     "settlement:garden-roles:enable": "bun script/deploy/garden-roles.ts enable",

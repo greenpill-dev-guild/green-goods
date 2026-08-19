@@ -4,6 +4,8 @@ import { describe, expect, it } from "vitest";
 import {
   ALLOWANCE_KEY,
   assertNextRolesBoundary,
+  assertPlanUnblocked,
+  buildEnableTransactions,
   buildRolesTransactions,
   buildTransferConditions,
   encodeMultiSend,
@@ -11,6 +13,7 @@ import {
   parseArguments,
   permissionsConfigHash,
   predictModifier,
+  prevalidatedSignatures,
   rolesInitializer,
   safeTransactionHash,
 } from "./garden-roles";
@@ -182,7 +185,7 @@ describe("Roles execution boundaries", () => {
     expect(() => parseArguments(["deploy", "--broadcast", "--step", "0"])).toThrow(/positive boundary index/);
     expect(parseArguments(["enable", "--broadcast", "--step", "3"]).command).toBe("enable");
     expect(() => parseArguments(["enable", "--step", "3"])).toThrow(/enable requires --broadcast/);
-    expect(() => parseArguments(["configure"])).toThrow(/plan\|deploy\|enable/);
+    expect(() => parseArguments(["configure"])).toThrow(/plan\|verify\|deploy\|enable/);
   });
 
   it("resumes at the first uncheckpointed boundary and refuses to replay or skip", () => {
@@ -191,5 +194,60 @@ describe("Roles execution boundaries", () => {
     // Replaying a mined boundary and jumping over an unmined one both fail closed.
     expect(() => assertNextRolesBoundary(50, 50)).toThrow(/next uncheckpointed boundary 51/);
     expect(() => assertNextRolesBoundary(52, 50)).toThrow(/next uncheckpointed boundary 51/);
+  });
+});
+
+describe("release safety gates", () => {
+  const boundaries = SAFES.map((safe, index) => ({
+    tokenId: index,
+    garden: safe,
+    safe,
+    modifier: `0x${(index + 200).toString(16).padStart(40, "0")}`,
+    saltNonce: "1",
+    initializerHash: `0x${"11".repeat(32)}`,
+    enableModuleData: "0x610b5925",
+    safeTxHash: `0x${(index + 1).toString(16).padStart(64, "0")}`,
+    safeNonce: 0,
+    permissionsConfigHash: `0x${"33".repeat(32)}`,
+  }));
+
+  it("refuses to broadcast a plan that reports a chain-state problem", () => {
+    // The human release gate is stated separately, so an unblocked plan is genuinely executable.
+    expect(() => assertPlanUnblocked([])).not.toThrow();
+    expect(() => assertPlanUnblocked(["Garden 3: a contract already exists at 0xdead"])).toThrow(
+      /Roles plan is blocked: Garden 3/,
+    );
+  });
+
+  it("carries the nonce each pre-approved hash is bound to", () => {
+    const transactions = buildEnableTransactions(boundaries, [SAFE_A, SAFE_B]);
+
+    expect(transactions).toHaveLength(SAFES.length);
+    // Without the recorded nonce the enable precondition can only guess, and a drifted Safe would
+    // fail with a message that misstates the cause.
+    expect(transactions.every((transaction) => transaction.safeNonce === 0)).toBe(true);
+    expect(transactions[0].safeTxHash).toEqual(boundaries[0].safeTxHash);
+    expect(transactions.map((transaction) => transaction.step)).toEqual(
+      Array.from({ length: SAFES.length }, (_, index) => index + 1),
+    );
+  });
+
+  it("sorts pre-approved signatures ascending as Safe requires", () => {
+    const low = "0x1B9Ac97Ea62f69521A14cbe6F45eb24aD6612C19";
+    const high = "0x49fa954B6C2Cd14B4b3604EF1Cc17cED20a9E42C";
+
+    // Safe rejects out-of-order owners, so the plan must sort regardless of input order.
+    expect(prevalidatedSignatures([high, low])).toEqual(prevalidatedSignatures([low, high]));
+    const encoded = prevalidatedSignatures([high, low]);
+    expect(encoded.toLowerCase().indexOf(low.slice(2).toLowerCase())).toBeLessThan(
+      encoded.toLowerCase().indexOf(high.slice(2).toLowerCase()),
+    );
+    // Two 65-byte entries.
+    expect((encoded.length - 2) / 2).toBe(130);
+  });
+
+  it("accepts verify without broadcast arguments", () => {
+    expect(parseArguments(["verify"]).command).toBe("verify");
+    expect(() => parseArguments(["verify", "--broadcast"])).toThrow(/does not accept --broadcast/);
   });
 });

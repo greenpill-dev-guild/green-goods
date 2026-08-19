@@ -158,7 +158,8 @@ export type RolesTransactionKind =
   | "SCOPE_FUNCTION"
   | "SET_ALLOWANCE"
   | "ASSIGN_EXECUTOR"
-  | "TRANSFER_OWNERSHIP";
+  | "TRANSFER_OWNERSHIP"
+  | "ENABLE_MODULE";
 
 export interface PlannedRolesTransaction {
   step: number;
@@ -191,8 +192,9 @@ export interface GardenRolesPlan {
   conditionsEncoded: string;
   boundaries: RolesBoundary[];
   transactions: PlannedRolesTransaction[];
-  recoveryApprovals: Array<{ recoverySafe: string; multiSendTo: string; multiSendData: string }>;
+  recoveryApprovals: RecoveryApproval[];
   blockers: string[];
+  releaseGate: string;
 }
 
 function readJson<T>(filePath: string): T {
@@ -204,6 +206,20 @@ function atomicWrite(filePath: string, value: unknown): void {
   const temporary = `${filePath}.tmp`;
   fs.writeFileSync(temporary, `${JSON.stringify(value, null, 2)}\n`);
   fs.renameSync(temporary, filePath);
+}
+
+/**
+ * MultiSendCallOnly performs plain CALLs, so the batch only records approvals under the recovery
+ * Safe when the Safe DELEGATECALLs it. Executed as an ordinary Call every approveHash would land
+ * under MultiSendCallOnly instead, and both organisations would have spent their one coordinated
+ * signing round for nothing, so the operation travels with the payload.
+ */
+export interface RecoveryApproval {
+  recoverySafe: string;
+  multiSendTo: string;
+  multiSendData: string;
+  operation: 1;
+  operationName: "DelegateCall";
 }
 
 /** `setUp(abi.encode(owner, avatar, target))`, the initializer the factory hashes into its salt. */
@@ -482,6 +498,8 @@ async function buildPlan(safePlanPath: string): Promise<GardenRolesPlan> {
   const recoveryApprovals = [GREEN_GOODS_RECOVERY_SAFE, DEV_GUILD_RECOVERY_SAFE].map((recoverySafe) => ({
     recoverySafe: getAddress(recoverySafe),
     multiSendTo: getAddress(MULTI_SEND_CALL_ONLY),
+    operation: 1 as const,
+    operationName: "DelegateCall" as const,
     multiSendData: encodeMultiSend(
       boundaries.map((boundary) => ({
         to: boundary.safe,
@@ -490,15 +508,10 @@ async function buildPlan(safePlanPath: string): Promise<GardenRolesPlan> {
     ),
   }));
 
-  // Tree integrity is proven: test/fork/CeloGardenRolesPermission.t.sol deploys a modifier on a
-  // pinned Celo fork, installs these exact encoded conditions through scopeFunction, and shows a
-  // registered recipient settling while an unregistered one, an over-allowance amount, a foreign
-  // selector, and an unscoped target all revert. What remains is that this planner deliberately
-  // exposes no execution path.
-  blockers.push(
-    "Enabling is not implemented: the two batched recovery approvals and the 18 pre-approved " +
-      "enableModule boundaries have no stage, and enabling still sits behind the value-tier audit gate.",
-  );
+  // `blockers` carries only chain-state problems the tooling can observe and must refuse to
+  // broadcast through. The value-tier gate is a human decision the tooling cannot verify, so it is
+  // stated separately rather than mixed in — conflating them left every plan permanently "blocked"
+  // and made the field meaningless to the execution stages.
 
   return {
     schemaVersion: 1,
@@ -527,6 +540,9 @@ async function buildPlan(safePlanPath: string): Promise<GardenRolesPlan> {
     transactions: buildRolesTransactions(boundaries, conditions, CELO_SETTLEMENT_EXECUTOR),
     recoveryApprovals,
     blockers,
+    releaseGate:
+      "Enabling grants live G$ authority and remains behind the value-tier gate: full audit, timelock, " +
+      "CCIP live-route and dual-chain evidence, Safe/Zodiac review, rollback, and live-exit.",
   };
 }
 
@@ -536,6 +552,7 @@ export interface PlannedEnableTransaction {
   safe: string;
   modifier: string;
   safeTxHash: string;
+  safeNonce: number;
   approvers: string[];
   data: string;
 }
@@ -545,8 +562,9 @@ export interface GardenRolesEnablePlan {
   kind: "GARDEN_ROLES_ENABLE_PLAN";
   chainId: 42220;
   approvers: string[];
-  recoveryApprovals: Array<{ recoverySafe: string; multiSendTo: string; multiSendData: string }>;
+  recoveryApprovals: RecoveryApproval[];
   transactions: PlannedEnableTransaction[];
+  blockers: string[];
 }
 
 /**
@@ -572,6 +590,7 @@ export function buildEnableTransactions(
     safe: boundary.safe,
     modifier: boundary.modifier,
     safeTxHash: boundary.safeTxHash,
+    safeNonce: boundary.safeNonce,
     approvers: [...approvers].map((approver) => getAddress(approver)),
     data: SAFE_INTERFACE.encodeFunctionData("execTransaction", [
       boundary.safe,
@@ -589,7 +608,7 @@ export function buildEnableTransactions(
 }
 
 export interface RolesCliOptions {
-  command: "plan" | "deploy" | "enable";
+  command: "plan" | "verify" | "deploy" | "enable";
   safePlanPath: string;
   planPath: string;
   broadcast: boolean;
@@ -598,9 +617,9 @@ export interface RolesCliOptions {
 
 export function parseArguments(args: string[]): RolesCliOptions {
   const command = args[0] as RolesCliOptions["command"] | undefined;
-  if (!command || !["plan", "deploy", "enable"].includes(command)) {
+  if (!command || !["plan", "verify", "deploy", "enable"].includes(command)) {
     throw new Error(
-      "Use: garden-roles.ts plan|deploy|enable [--safe-plan <path>] [--plan <path>] [--broadcast --step <n>]",
+      "Use: garden-roles.ts plan|verify|deploy|enable [--safe-plan <path>] [--plan <path>] [--broadcast --step <n>]",
     );
   }
   let safePlanPath = DEFAULT_SAFE_PLAN;
@@ -627,7 +646,7 @@ export function parseArguments(args: string[]): RolesCliOptions {
     if (!broadcast) throw new Error(`${command} requires --broadcast`);
     if (step === undefined) throw new Error(`${command} requires one explicit --step boundary`);
   } else if (broadcast || step !== undefined) {
-    throw new Error("plan does not accept --broadcast or --step");
+    throw new Error(`${command} does not accept --broadcast or --step`);
   }
   return { command, safePlanPath, planPath, broadcast, step };
 }
@@ -763,7 +782,17 @@ async function assertRolesPostcondition(
   if (owner !== getAddress(expected)) throw new Error(`Modifier owner is ${owner}, expected ${expected}`);
 }
 
+/**
+ * A plan that still reports an observable chain-state problem must never broadcast. The relay lane
+ * has always refused here; this lane did not, which left findings like a colliding modifier address
+ * or a drifted Safe nonce recorded but unenforced.
+ */
+export function assertPlanUnblocked(blockers: readonly string[]): void {
+  if (blockers.length > 0) throw new Error(`Roles plan is blocked: ${blockers.join("; ")}`);
+}
+
 export async function executeRolesBoundary(plan: GardenRolesPlan, step: number, planPath: string): Promise<void> {
+  assertPlanUnblocked(plan.blockers);
   const transaction = plan.transactions[step - 1];
   if (!transaction || transaction.step !== step) throw new Error(`Reviewed plan has no boundary ${step}`);
   const checkpoint = loadRolesCheckpoint(planPath);
@@ -813,8 +842,14 @@ async function assertEnablePrecondition(
   provider: JsonRpcProvider,
 ): Promise<void> {
   const safe = new Contract(transaction.safe, SAFE_INTERFACE, provider);
+  // The reviewed hash is bound to the nonce the plan observed, so compare against that rather than
+  // a literal zero; any drift means the pre-approved hash no longer matches this transaction.
   const nonce = (await safe.nonce()) as bigint;
-  if (nonce !== 0n) throw new Error(`Safe ${transaction.safe} is at nonce ${nonce}, reviewed hash assumes 0`);
+  if (nonce !== BigInt(transaction.safeNonce)) {
+    throw new Error(
+      `Safe ${transaction.safe} is at nonce ${nonce}; the reviewed hash is bound to ${transaction.safeNonce}`,
+    );
+  }
   if ((await safe.isModuleEnabled(transaction.modifier)) as boolean) {
     throw new Error(`Safe ${transaction.safe} already has the modifier enabled`);
   }
@@ -838,6 +873,7 @@ export async function executeEnableBoundary(
   step: number,
   planPath: string,
 ): Promise<void> {
+  assertPlanUnblocked(plan.blockers);
   const transaction = plan.transactions[step - 1];
   if (!transaction || transaction.step !== step) throw new Error(`Reviewed enable plan has no boundary ${step}`);
   const checkpoint = loadRolesCheckpoint(planPath);
@@ -859,7 +895,7 @@ export async function executeEnableBoundary(
 
   checkpoint.completed.push({
     step,
-    kind: "ENABLE_MODULE" as RolesTransactionKind,
+    kind: "ENABLE_MODULE",
     safe: transaction.safe,
     transactionHash,
     blockNumber: receipt.blockNumber,
@@ -870,6 +906,52 @@ export async function executeEnableBoundary(
   );
 }
 
+/**
+ * Proves the finished state of every modifier in one command, so post-ceremony confirmation does not
+ * fall back to hand-written chain reads. Roles exposes no getter for target or function scoping, so
+ * those are proven by the pinned fork test rather than asserted here.
+ */
+export async function verifyDeployedRoles(plan: GardenRolesPlan): Promise<void> {
+  const provider = new JsonRpcProvider(new NetworkManager().getRpcUrl("celo"), CELO_CHAIN_ID, {
+    staticNetwork: true,
+  });
+  const failures: string[] = [];
+  for (const boundary of plan.boundaries) {
+    const roles = new Contract(boundary.modifier, ROLES_CONFIG_INTERFACE, provider);
+    const safe = new Contract(boundary.safe, SAFE_INTERFACE, provider);
+    try {
+      if ((await provider.getCode(boundary.modifier, "latest")) === "0x") {
+        failures.push(`Garden ${boundary.tokenId}: modifier is not deployed`);
+        continue;
+      }
+      const [avatar, target, owner, member, allowance, enabled] = await Promise.all([
+        roles.avatar() as Promise<string>,
+        roles.getFunction("target").staticCall() as Promise<string>,
+        roles.owner() as Promise<string>,
+        roles.isModuleEnabled(CELO_SETTLEMENT_EXECUTOR) as Promise<boolean>,
+        roles.allowances(ALLOWANCE_KEY) as unknown as Promise<bigint[]>,
+        safe.isModuleEnabled(boundary.modifier) as Promise<boolean>,
+      ]);
+      if (getAddress(avatar) !== getAddress(boundary.safe)) failures.push(`Garden ${boundary.tokenId}: wrong avatar`);
+      if (getAddress(target) !== getAddress(boundary.safe)) failures.push(`Garden ${boundary.tokenId}: wrong target`);
+      if (getAddress(owner) !== getAddress(boundary.safe)) {
+        failures.push(`Garden ${boundary.tokenId}: modifier is owned by ${owner}, not its Safe`);
+      }
+      if (!member) failures.push(`Garden ${boundary.tokenId}: executor is not a Roles member`);
+      if (allowance[0] !== MAX_PERIOD_AMOUNT || allowance[2] !== PERIOD_DURATION) {
+        failures.push(`Garden ${boundary.tokenId}: allowance does not match the frozen period cap`);
+      }
+      if (!enabled) failures.push(`Garden ${boundary.tokenId}: module is not enabled on the Safe`);
+    } catch (error) {
+      failures.push(`Garden ${boundary.tokenId}: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+  if (failures.length > 0) throw new Error(`Roles verification failed:\n${failures.join("\n")}`);
+  console.log(
+    `Verified ${plan.boundaries.length} Roles modifiers: avatar, target, ownership, membership, allowance, and module state.`,
+  );
+}
+
 export async function main(args = process.argv.slice(2)): Promise<void> {
   const options = parseArguments(args);
   const { command, safePlanPath, planPath } = options;
@@ -877,6 +959,12 @@ export async function main(args = process.argv.slice(2)): Promise<void> {
   if (command === "deploy") {
     if (!fs.existsSync(planPath)) throw new Error(`Reviewed plan is missing: ${planPath}`);
     await executeRolesBoundary(readJson<GardenRolesPlan>(planPath), options.step as number, planPath);
+    return;
+  }
+
+  if (command === "verify") {
+    if (!fs.existsSync(planPath)) throw new Error(`Reviewed plan is missing: ${planPath}`);
+    await verifyDeployedRoles(readJson<GardenRolesPlan>(planPath));
     return;
   }
 
@@ -896,6 +984,7 @@ export async function main(args = process.argv.slice(2)): Promise<void> {
     chainId: CELO_CHAIN_ID,
     approvers: [getAddress(GREEN_GOODS_RECOVERY_SAFE), getAddress(DEV_GUILD_RECOVERY_SAFE)],
     recoveryApprovals: plan.recoveryApprovals,
+    blockers: plan.blockers,
     transactions: buildEnableTransactions(plan.boundaries, [GREEN_GOODS_RECOVERY_SAFE, DEV_GUILD_RECOVERY_SAFE]),
   });
   atomicWrite(PROOF_FIXTURE, {
