@@ -4,7 +4,7 @@ sidebar_label: Agentic Eval
 slug: /builders/quality/agentic-eval
 audience: developer
 owner: docs
-last_verified: 2026-07-11
+last_verified: 2026-08-18
 feature_status: Live
 source_of_truth:
   - AGENTS.md
@@ -13,6 +13,8 @@ source_of_truth:
   - docs/routines/health-watch.md
   - scripts/quality/check-codex-docs.js
   - scripts/dev/ci-local.js
+  - scripts/harness/skill-trigger-eval.mjs
+  - scripts/data/skill-trigger-eval.json
   - .claude/loop.md
 keywords: [agentic evaluation, acceptance cases, guidance guardrails, inner loop, test generation]
 ---
@@ -47,9 +49,53 @@ flowchart LR
 | `.claude/evals/` (incl. `acceptance/`) | Committed eval directories | Retired |
 | `check-skill-frontmatter.js` / `bun run check:claude-guidance` | Skill registry/frontmatter structural checks | Retired |
 
-The `.claude/evals/` directory is gone entirely -- the lean-skills consolidation removed its last live surface (`acceptance/`) along with the skills registry, after the automated benchmark packs for `triage`, `code-reviewer`, `oracle`, and `cracked-coder` had already been retired. There are no committed agent definitions anymore either; specialization routes through the 9 skills, built-in subagent types, and plan-hub lanes. Drift around that retirement state is handled by CI guidance checks (`check-guidance-links.mjs` in the supply-chain workflow), Claude routines, Copilot automatic review, and human review instead of a dedicated eval workflow.
+The `.claude/evals/` directory is gone entirely -- the lean-skills consolidation removed its last live surface (`acceptance/`) along with the skills registry, after the automated benchmark packs for `triage`, `code-reviewer`, `oracle`, and `cracked-coder` had already been retired. There are no committed agent definitions anymore either; specialization routes through the repo-local skills, built-in subagent types, and plan-hub lanes. Drift around that retirement state is handled by CI guidance checks (`check-guidance-links.mjs` in the supply-chain workflow), Claude routines, Copilot automatic review, and human review instead of a dedicated eval workflow.
 
-One deliberately small eval survives the retirement: `bun run eval:skills` (`scripts/harness/skill-trigger-eval.mjs` + `scripts/data/skill-trigger-eval.json`) routes ~30 realistic queries against the live `SKILL.md` frontmatter descriptions through a single cheap `claude -p` call. It tests **description routing only** -- not harness trigger behavior and not skill output quality -- and exists to catch description regressions after trigger edits (a trimmed description that stops firing, a greedy one that swallows a sibling's queries). It runs on demand, never in CI.
+One deliberately small eval survives the retirement: `bun run eval:skills` (`scripts/harness/skill-trigger-eval.mjs` + `scripts/data/skill-trigger-eval.json`) routes the fixture's realistic queries against the live `SKILL.md` frontmatter descriptions through a single cheap `claude -p` call. It tests **description routing only** -- not harness trigger behavior and not skill output quality -- and exists to catch description regressions after trigger edits (a trimmed description that stops firing, a greedy one that swallows a sibling's queries). It runs on demand, never in CI.
+
+### Skill Lifecycle Policy
+
+The filesystem remains the skill registry. Keep the repo skill surface small by updating an existing
+workflow unless a candidate clears every addition gate:
+
+1. **Unique trigger** -- an existing skill cannot own the request without making its description or
+   completion contract ambiguous.
+2. **Repeated or critical workflow** -- evidence from recurring tasks justifies reuse, or the workflow
+   protects a critical safety boundary.
+3. **Observable completion** -- the skill produces a defined artifact, decision, proof, or terminal state.
+4. **Canonical policy** -- shared invariants stay in `AGENTS.md`, `CLAUDE.md`, or `.claude/context/`;
+   the skill links to them instead of copying a second policy.
+5. **Evaluation** -- positive, near-neighbor, and negative routing cases cover trigger changes, and
+   decision-changing body edits receive behavior evaluation proportional to risk.
+
+Prefer progressive disclosure: `SKILL.md` owns the trigger, ordered workflow, essential constraints,
+and completion contract; substantial conditional procedures live in references that the entrypoint
+loads only when needed. Do not add a reference, script, template, or parallel state ledger without a
+concrete caller and a deletion or consolidation story.
+
+Merge or retire a skill when it has no distinct trigger, only restates canonical guidance, is fully
+covered by another workflow, or creates more routing uncertainty than procedural clarity. Avoid
+hardcoded inventory counts in prose; derive them from the filesystem or fixture when a count is
+operationally necessary.
+
+### Behavior Evaluation for Substantive Skill Changes
+
+Trigger routing is insufficient when a change alters decisions, ordering, stopping conditions,
+permissions, evidence standards, or output contracts. For those changes, run a disposable blinded
+comparison when the risk justifies the model cost and the required delegation is authorized:
+
+1. Choose one realistic task that exercises the changed decision boundary.
+2. Run the task against the before and after skill using the same prompt, model, tools, repository
+   snapshot, and authorization boundary.
+3. Keep generated artifacts in isolated temporary workspaces. Do not restore committed benchmark packs.
+4. Anonymize the results before judging task success, corrections required, evidence quality,
+   unnecessary work, and scope preservation.
+5. Keep only the conclusion and the smallest supported skill change. A failed comparison is evidence
+   to revise or reject the change, not a reason to weaken the rubric.
+
+Narrow wording or link fixes do not require this comparison unless they change behavior. Critical
+contract, auth, JobQueue, Work-provider, mutation, deployment, or external-write workflows should
+receive the strongest practical evaluation before their instructions are treated as stable.
 
 ### Model Selection
 

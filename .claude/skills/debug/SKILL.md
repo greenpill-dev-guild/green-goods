@@ -162,6 +162,23 @@ geometry. Start at the failing output and trace backward through the data path.
 6. **Do not convert confirmed data/API/contract failures into UI styling investigations** unless
    the data is present and the rendered control is still collapsed, invisible, or unusable.
 
+### Hard-Bug Feedback Loop Gate
+
+Use this gate when the symptom has no exact failing assertion or observable loop, spans multiple
+layers, or survives the first evidence-backed fix attempt. Before expanding the hypothesis set:
+
+1. Establish one **red-capable signal** that fails for the reported symptom rather than for an
+   unrelated setup problem: a targeted test, exact command, boundary probe, or real-surface interaction.
+2. Minimize the reproduction while preserving the failure. Remove unrelated setup and inputs, not the
+   boundary where the symptom occurs.
+3. Make the loop deterministic, fast enough to repeat, and runnable by the agent in the current
+   environment. Record the exact input and failing output.
+4. Change one variable, rerun the same loop, and reject any explanation the loop falsifies.
+
+This gate does not replace required real-surface proof. A mocked or lower-layer test cannot certify an
+authenticated UI, wallet, passkey, deployment, or production-only symptom. If no red-capable loop can
+be established, state that proof limit and do not claim the eventual change fixed the original symptom.
+
 ### Phase 2: Hypothesis Testing
 
 Form one specific hypothesis ("X calls Y with null", not "something is wrong with the API"), test one variable at a time. After 3 failed fixes, STOP fixing — question the architecture and your assumptions before trying a fourth.

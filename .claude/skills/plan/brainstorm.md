@@ -57,10 +57,24 @@ Each sub-feature gets its own brief → plan → implementation cycle.
 
 Focus on: purpose, constraints, success criteria.
 
+Before asking the first question, maintain an internal **decision frontier**:
+
+1. List the unresolved decisions and the dependencies between them.
+2. Resolve repository facts from code, docs, plans, or live state; do not turn research work into a
+   user question.
+3. Treat the current frontier as the unresolved decisions whose prerequisites are already known.
+4. Ask the highest-impact frontier question, with a recommended answer and the tradeoff behind it.
+5. Update the frontier after each answer. Brainstorming is ready to advance only when no silent
+   assumptions remain; anything intentionally deferred must appear under `Open questions` in the brief.
+
+The frontier is a reasoning aid, not a second planning artifact. Do not create a separate decision
+ledger or expose a wall of questions when the one-at-a-time dialogue is sufficient.
+
 **Rules:**
 - One question per message. No stacking.
 - Prefer multiple choice when the option space is small. Open-ended is fine when it isn't.
 - Don't ask about things the code already answers.
+- For a human decision, state the recommended option and why it best fits the known constraints.
 
 **Good questions:**
 - "For the garden creation flow — should draft state persist across sessions, or only within the same tab? (a) cross-session via IndexedDB, (b) tab-only via sessionStorage, (c) no persistence"

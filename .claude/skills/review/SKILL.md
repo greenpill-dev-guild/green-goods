@@ -89,6 +89,23 @@ Correctness of what changed. Prioritize high-signal risk areas:
 
 For large or critical diffs where an adversarial deep pass is warranted, the built-in `/code-review` (effort levels, verify pass) is the engine of choice — say so and use it rather than hand-rolling depth.
 
+### Safety facts for cross-package and critical reviews
+
+For `--scope cross-package` and any critical-surface review, choose the one or two highest-risk
+invariants whose failure would invalidate the change. Report each as a compact safety fact:
+
+- **Fact** — the precise invariant or compatibility claim being evaluated
+- **Consumers** — the affected callers, packages, deployments, or runtime paths
+- **Proof level** — the strongest evidence actually obtained:
+  `REFERENCED` (claimed by source or docs), `PATH_TRACED` (call/data path followed),
+  `DEPENDENCY_WALKED` (direct consumers checked), `EXECUTED` (targeted check passed), or
+  `LIVE_OBSERVED` (required runtime or rendered surface observed)
+- **Evidence and limit** — command, path, output, and anything still unproven
+
+Proof levels are descriptive, not a maturity ladder that every review must climb. Use the level the
+review intent requires, never promote a fact based on indirect evidence, and turn a missing required
+proof into a finding, gap, or blocker under the existing verdict rules.
+
 ## Pass 2 — Remaining Gaps
 
 Completeness against the authoritative requirements established during scoping. Map every requirement to implementation and evidence with an explicit status: `SATISFIED`, `MISSING`, `BLOCKED`, or `OUT_OF_SCOPE`. Any `MISSING` requirement produces `REQUEST_CHANGES`; any `BLOCKED` requirement prevents `APPROVE` and produces `COMMENT_ONLY` unless other findings already require changes.
@@ -173,7 +190,8 @@ inventing a capability.
 
 Lead with findings, keep the list actionable:
 
-1. **Summary** — scope, blast radius, lenses that fired (with triggering signal), intent sources used
+1. **Summary** — scope, blast radius, lenses that fired (with triggering signal), intent sources used,
+   and safety facts when cross-package or critical review rules require them
 2. **Must-Fix** (critical/high) · **Should-Fix** (medium) · **Nice-to-Have** (low, keep short)
 3. **Remaining Gaps** — unfinished intent, each with the smallest completing step
 4. **Human Call-Outs** — dependencies, auth/permissions, migrations, contract deploys, trust-boundary changes (never auto-fix these)
