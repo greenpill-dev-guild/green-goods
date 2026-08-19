@@ -4,8 +4,18 @@ Paste this whole file as the opening message of a fresh session. It is self-cont
 
 ---
 
-Run `/review 732 --scope design-system` — but read the scoping notes below first, because this
-PR's shape breaks two of the skill's defaults.
+Run **two skills, in this order**:
+
+1. `/review 732` — read the scoping notes below first, because this PR's shape breaks two of its
+   defaults.
+2. Then load the `design` skill and apply **`design/review-checklist.md`** — the four-lens per-change
+   pass — to the visual surfaces this touches.
+
+**Do not pass `--scope design-system`.** That flag narrows the review to cross-boundary design
+findings and delegates to `design/system-alignment-review.md`, which is a repo-wide coherence check
+over the design skill stack, `theme.css`, `DESIGN.md` and its surface dialects. This PR changes none
+of those, and that protocol's own text says not to invoke it for change review. Using it here would
+route away from the regression surface below and audit files this PR does not touch.
 
 **Intent: production readiness.** I want a merge verdict, not an evidence pass. Run the full
 non-mutating readiness gate, and treat "the author says it is green" as a claim to disprove.
@@ -167,19 +177,44 @@ I asserted these. Each is checkable and none should be taken on trust.
 
 ---
 
-## Design-system scope
+## The design pass — `design/review-checklist.md`, four lenses
 
-`--scope design-system` fires here on its own terms: this touches the client and admin dialects and
-the editorial surface, and it added a token-mapping section. Delegate to
-`design/system-alignment-review.md` and return its sections separately.
+Run this **after** the review skill's three passes, as its own section. Full pass, not the quick
+one: this adds states to a shipping-bound prototype and moves where a celebration fires.
 
-The specific question: **the prototype's client palette matches `DESIGN.md`'s canonical front matter
-byte-for-byte on ten tokens and diverges on two** — `--amb` `#B45309` against `amber` `#D97706`, and
-`--sky` `#2563EB` against `sky` `#3B82F6`. I flagged that as a decision rather than resolving it.
-Confirm the ten matches, confirm the two divergences, and say which way they should go.
+- **Lens 1, Regenerative.** The sharpest question for this PR. Rounds 52/53 moved the fulfilment
+  hero from the confirmer to the provider and rewrote its copy from a counter (*"the season's count
+  just grew"*) to a named outcome (*"The north beds are pruned"*). Judge whether that is recognition
+  or engagement-shaped. Also: I removed the disclaimer from `W7`'s steward roster while keeping its
+  per-person kept/lapsed counts, on Afo's explicit call and against the design agent's
+  recommendation. That is a scoring surface with its own guardrail deleted — say whether it holds.
+- **Lens 2, Spatial.** Four new `W2` states and two new `W5` rows. Check hit targets, that nothing
+  is spatial-only, and that the new seat states degrade honestly — a seat with no act renders **no**
+  bar rather than a disabled one, which is a deliberate choice worth confirming.
+- **Lens 3, Ecosystem.** The seat axis *is* an ecosystem change: it decides whose screen a person is
+  looking at. Check cascade visibility — when one seat's act lands on another, is the blast radius
+  named before it commits? The withdraw, cancel, pause and send-for-confirmation confirmations are
+  the places to look.
+- **Lens 4, Compliance.** ~40 copy strings changed. Check accessible names survived — in particular
+  composer step 3, where an unlabelled icon button carrying `ariaLabel: "Continue to review"` became
+  a labelled full-width `Continue`; confirm nothing lost its name in that swap.
 
-Also check the surface-identity rule held: hero moments are client-only (13, all client), and the
-admin cockpit gained no celebration language.
+### The one token question
+
+The prototype's client palette matches `DESIGN.md`'s canonical front matter **byte-for-byte on ten
+tokens** and diverges on two: `--amb` `#B45309` against `amber` `#D97706`, and `--sky` `#2563EB`
+against `sky` `#3B82F6`. I flagged it as a decision rather than resolving it. Confirm the ten,
+confirm the two, and say which way they should go.
+
+Note this is a *token-value* question, not a projection question — I changed no `theme.css` and no
+`DESIGN.md`. If you think it warrants the full cross-surface alignment protocol, say so and run it
+as a separate follow-up rather than folding it into this review.
+
+### Surface identity
+
+Check the rule held: hero moments are client-only (13, all client) and the admin cockpit gained no
+celebration language. The build enforces the copy half of that; it does not enforce the component
+half, so check `hero()` did not reach an admin screen.
 
 ---
 
