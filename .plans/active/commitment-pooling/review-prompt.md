@@ -2,6 +2,16 @@
 
 Paste this whole file as the opening message of a fresh session. It is self-contained.
 
+> **Freshness.** Every number and claim below was re-verified on 2026-08-19 against the tree at
+> `6009bc61c`; the only commit since touches this file alone. The verification came after
+> the round-54 CodeRabbit response landed. Two things were stale and are corrected: the diff
+> statistics and the commit range. **Three claims were wrong and now say so**: the machine-word
+> sweep missed a plural, the gallery's file citations are not build-checked at all, and a third
+> design token diverges that I had not found. **The Linear statuses in
+> the readiness section are the exception** — they were read on 2026-08-18/19 and I could not
+> re-query Linear, so re-read the four issues before trusting that table. If you find any other
+> number here disagreeing with the build, that is a finding about this prompt and worth reporting.
+
 ---
 
 Run **two skills, in this order**:
@@ -25,20 +35,25 @@ non-mutating readiness gate, and treat "the author says it is green" as a claim 
 ## Scoping — two things the skill's defaults get wrong here
 
 **1. `.plans/` is not in the package map.** The skill maps scopes to `packages/<name>/**`, `docs/**`
-and `.claude/**`. This PR is 12,913 insertions across 39 files, of which **15,763 changed lines are
-under `.plans/active/commitment-pooling/`** and 317 are under `.claude/`. Auto-inference will find no
-package. Do not narrow to `.claude/` because that is the only recognised scope — review the
+and `.claude/**`. This PR is 13,336 insertions and 3,206 deletions across 40 files, of which
+**16,212 changed lines are under `.plans/active/commitment-pooling/`** and 318 are under `.claude/`
+(one design-skill file). Auto-inference will find no package. Do not narrow to `.claude/` because that is the only recognised scope — review the
 `.plans/` tree as the primary surface and say so in the Summary.
 
 **2. This exceeds 800 LOC by an order of magnitude, so batch it and keep the coverage ledger.**
 Suggested batches, in dependency order:
 
+Sizes below are the **full PR diff** (`origin/develop...HEAD`), which is what GitHub shows you.
+Where my own two work rounds are a smaller slice, that is given second — `client.ts` is +2986/−1469
+across the PR but +870/−333 from `c1f754190`, and the difference is a prior session's prototype
+commits, not this work.
+
 | Batch | Files | Why first |
 |---|---|---|
-| A | `hifi/screens/client.ts` (**+870 / −333**) | The whole risk surface. Everything else is downstream. |
-| B | `hifi/screens/client-wallet.ts`, `hifi/kit.ts`, `hifi/screens/index.ts`, `hifi/types.ts` | Shared machinery the batch-A change leans on |
-| C | `hifi/journeys.ts`, `hifi/validate.ts`, `hifi/state-reference.gen.ts` | Flow wiring and the gate itself |
-| D | `hifi/screens/admin.ts`, `settlement.ts`, `funding.ts`, `prototypes-artifact.build.ts` | Copy sweep + a moved build assertion |
+| A | `hifi/screens/client.ts` (**+2986 / −1469**; mine: +870 / −333) | The whole risk surface. Everything else is downstream. |
+| B | `hifi/screens/client-wallet.ts` (+454/−169), `hifi/kit.ts` (+947/−113), `hifi/components.ts` (+470/−159), `hifi/tokens.ts` (+542/−55), `hifi/screens/index.ts`, `hifi/types.ts` | Shared machinery the batch-A change leans on. `components.ts` and `tokens.ts` are large and were missing from this table until 2026-08-19. |
+| C | `hifi/journeys.ts` (+274/−211), `hifi/validate.ts` (+124/−9), `hifi/state-reference.gen.ts` (new), `hifi/frames.ts` (+34) | Flow wiring and the gates. `frames.ts` is a round-54 ordering fix. |
+| D | `hifi/screens/admin.ts` (**+1745 / −569**), `settlement.ts` (+421/−128), `funding.ts`, `legacy.ts` (+100/−100), `prototypes-artifact.build.ts` (+111/−44) | Copy sweep, the round-54 contract-modelling fixes, and two build assertions. `admin.ts` is the second-largest file in the PR and mostly predates this session. |
 | E | `handoffs/**`, `uiux-spec.md`, `plan.todo.md`, `prototypes-coverage.md`, `architecture-closure*` | Docs, counts, and gate pins |
 
 **Range.** The PR is 46 commits. **Nine are mine**, in order: `c030ef2fa` and `90103b954` (the two
@@ -181,13 +196,24 @@ same way — it fires on a wrong count, a wrong id list, and a missing row.
 
 I asserted these. Each is checkable and none should be taken on trust.
 
-- "Every machine word left the client surface" — `on-chain`, `fulfillment`, `indexed`, `transaction`,
-  `threshold`, `syncs`, `roster`, `cycle` at zero on client screens. Re-run the scan yourself.
-- "25 states carry an act; every one belongs to the seat reading that screen."
-- "13 hero moments, 7 on the provider's side" — and that none renders a double badge.
+- "Every machine word left the client surface." **Half true, and I found the gap re-checking this on
+  2026-08-19.** Whole-word `on-chain`, `fulfillment`, `indexed`, `transaction`, `threshold`, `syncs`,
+  `roster` and `cycle` are all at zero on client screens. The **plural `cycles` is not** — it survives
+  in three member-facing strings on `W34`, the ongoing-offer detail: "Kept 12 times across 5 cycles"
+  (`client.ts:4441`, `:4498`) and "12 kept · 5 cycles" (`:4343`). I did not fix it, because `W34` is
+  an ongoing offer and a cycle there may be a season *or* a campaign, so "5 seasons" could be wrong.
+  **Decide what a member should read.** Scan for `cycles`, not `cycle`.
+- "25 states carry an act; every one belongs to the seat reading that screen." Re-verified at HEAD:
+  82 W2 states, 25 with an act, 0 seat mismatches.
+- "13 hero moments, 7 on the provider's side, none a double badge." Re-verified at HEAD: 13 heroes,
+  all on client surfaces, no state renders two. Count from the screen registry, not the built HTML —
+  the artifact escapes its payload and a naive grep finds one.
 - "No terminal state offers to join a team or to withdraw an already-withdrawn commitment."
-- "All 67 shipped-component citations in the gallery resolve to a real file and line."
-- The counts in `prototypes-coverage.md`, `architecture-closure.validate.ts` pins, C.54, C.55 and
+- "All shipped-component citations in the gallery resolve to a real file and line." **The build does
+  not check this.** `GALLERY_ERRORS` validates duplicate ids, missing specimens, missing ship notes,
+  where-used resolution and unknown screen ids, and it is empty at HEAD — but `components.ts` never
+  touches the filesystem, so no citation is confirmed to point at a real line. 84 `packages/**:NNN`
+  citations render, 68 distinct. The prompt said 67 and was never build-backed. Resolve a sample.- The counts in `prototypes-coverage.md`, `architecture-closure.validate.ts` pins, C.54, C.55 and
   register #157/#158 all agree with the build. **This one was false when I first wrote it** and is
   worth re-checking rather than re-reading: the aggregate totals agreed while 19 of 39 per-screen
   registry rows were wrong in both directions and three screens had no row at all. Rows are now
@@ -240,10 +266,19 @@ one: this adds states to a shipping-bound prototype and moves where a celebratio
 
 ### The one token question
 
-The prototype's client palette matches `DESIGN.md`'s canonical front matter **byte-for-byte on ten
-tokens** and diverges on two: `--amb` `#B45309` against `amber` `#D97706`, and `--sky` `#2563EB`
-against `sky` `#3B82F6`. I flagged it as a decision rather than resolving it. Confirm the ten,
-confirm the two, and say which way they should go.
+`DESIGN.md`'s canonical front matter carries 13 colour tokens. **Ten appear verbatim in
+`hifi/tokens.ts`. Three do not**, and I had only found two of them when I first wrote this:
+
+- `amber` `#D97706` against the prototype's `--amb` `#B45309`
+- `sky` `#3B82F6` against `--sky` `#2563EB`
+- `on-tertiary` `#0B4627` **appears nowhere in the prototype at all.** The nearest thing is
+  `--on-act` `#04290F` in the dark palette, which is a different value for a role that reads like
+  the same one. I did not catch this until re-verifying on 2026-08-19, so it has had no thought put
+  into it: decide whether the prototype is missing a token or `DESIGN.md` is naming one the
+  prototype expresses differently.
+
+I flagged the first two as a decision rather than resolving them, and the third is new. Confirm the
+ten, judge the three, and say which way each should go.
 
 Note this is a *token-value* question, not a projection question — I changed no `theme.css` and no
 `DESIGN.md`. If you think it warrants the full cross-surface alignment protocol, say so and run it
