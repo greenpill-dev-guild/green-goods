@@ -879,6 +879,25 @@ try {
     if (Number.isFinite(stated) && stated !== actual)
       console.warn(`coverage-doc drift: prototypes-coverage.md says ${stated} ${label}, build has ${actual}`);
   }
+  // The aggregate totals above agreed while 19 of 39 per-screen rows were wrong
+  // in both directions (2026-08-19 review), because a total can stay right while
+  // two rows drift the opposite way. Check each row, and check every screen has
+  // one — a per-screen registry that omits a screen is worse than no registry.
+  const listed = new Set<string>();
+  for (const line of coverage.split("\n")) {
+    const row = /^\|\s*([A-Za-z0-9]+)\s*\|\s*[^|]+?\s*\|\s*(\d+)\s*\|\s*(.*?)\s*\|\s*$/.exec(line);
+    if (!row) continue;
+    const screen = SCREENS.find((s) => s.id === row[1]);
+    if (!screen) continue;
+    listed.add(screen.id);
+    const ids = screen.states.map((s) => s.id).join(", ");
+    if (Number(row[2]) !== screen.states.length)
+      console.warn(`coverage-doc drift: ${screen.id} row says ${row[2]} states, build has ${screen.states.length}`);
+    else if (row[3] !== ids)
+      console.warn(`coverage-doc drift: ${screen.id} row lists different state ids than the build`);
+  }
+  for (const s of SCREENS)
+    if (!listed.has(s.id)) console.warn(`coverage-doc drift: ${s.id} has no row in the screen registry`);
 } catch {
   console.warn("coverage-doc drift: prototypes-coverage.md not readable — snapshot unchecked");
 }

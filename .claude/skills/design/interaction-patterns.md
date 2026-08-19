@@ -109,18 +109,19 @@ Four shells, one job each ([AdminDialog.tsx](../../../packages/admin/src/compone
   card — title, chips, counts, and its one act in the header — rather than a generic title with
   the object stacked beneath as a second header. Peers list below a quiet section divider whose
   own act creates more of them.
-- **Counts that don't navigate are not buttons.** Render a read-only stat as text; only a stat
-  that goes somewhere gets button semantics.
 - **No overflow menus on the admin surface.** If two acts are legal at the same moment and one
   is rare or destructive, offer the rare one *inside the flow of the common one*, where its
   context is already on screen — the way cancelling a season is offered inside the close flow.
   An overflow hides the act from anyone who doesn't know to look.
 - **New capability arrives as a row on an existing card, not a new tab** (uiux §5: "every
   screen is designed so a settlement row can be added without moving anything").
-- **Counts are stats, not buttons.** Queue counts render as one card of hairline-separated
-  columns — number leading in tabular figures, label beneath — even when each one navigates. A
-  zero renders calm; a count of nothing must never look like an alert. Button chrome around a
-  number makes a dashboard read as a toolbar. (Refactoring UI: emphasis is a budget.)
+- **Counts are stats, not buttons, but a count that navigates is still a control.** Queue counts
+  render as one card of hairline-separated columns: number leading in tabular figures, label
+  beneath, no button chrome. Button chrome around a number makes a dashboard read as a toolbar
+  (Refactoring UI: emphasis is a budget). Where a count does navigate it still takes real control
+  semantics: a button or link element, an accessible name, and keyboard focus. Rendering it flat
+  must never cost it operability. A count that goes nowhere is plain text. A zero renders calm; a
+  count of nothing must never look like an alert.
 - **Action rows carry at most two button weights.** Outlined secondaries plus one filled
   primary. A text + outlined + filled trio in one row reads as three unrelated controls.
 - **Stacked action groups are equal width.** Buttons in a rail or sheet stack go full-bleed;

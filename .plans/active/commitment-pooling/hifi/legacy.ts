@@ -605,8 +605,8 @@ W3: [
   { m: "[ Make this offer ]", l: "Make this offer", to: "frame:W1", info: "Enqueues the commitment job; returns to the pool tab with an optimistic queued card (UX:212)." },
 ],
 W4: [
-  { m: "[ Confirm — commitment kept ]", l: "Confirm — commitment kept", to: "frame:W2", info: "Positive-only confirmation job; the Nth confirmation flips Fulfilled (CS:139)." },
-  { m: "[ Not yet — tell the stewards why ]", l: "Not yet", to: "frame:W10", info: "Requires a reason → online raiseDispute. It never cancels the commitment (UX:167)." },
+  { m: "[ Confirm. Commitment kept ]", l: "Confirm, commitment kept", to: "frame:W2", info: "Positive-only confirmation job; the Nth confirmation flips Fulfilled (CS:139)." },
+  { m: "[ Not yet, tell the stewards why ]", l: "Not yet", to: "frame:W10", info: "Requires a reason → online raiseDispute. It never cancels the commitment (UX:167)." },
   { m: "Provider Maria cannot confirm this delivery.", l: "Provider exclusion", info: "Provider self-confirmation is blocked everywhere, including steward fallback (UX:32)." },
 ],
 W5: [

@@ -149,6 +149,29 @@ each end to end in the built artifact and confirm the flow still tells one perso
 seat guard) and confirm none can be satisfied vacuously — an assertion that never fires is worse
 than none.
 
+**8. The round-54 settlement changes are the newest and least walked.** Answering CodeRabbit meant
+touching contract modelling in `settlement.ts`, which no journey covers:
+
+- `W26@close-failed` now declares `cycle: "Open"` instead of `"Reconciled"`. Its banner always said
+  the close did not land and nothing was locked, so the fact was the thing that was wrong. Confirm
+  that against `contract-spec.md` and check `mint-failed` and `compost-failed` are still right at
+  `Reconciled` — I decided they were and did not test them the same way.
+- Three hotspots gained a `calls` declaration they had always needed: `w26.close-retry`
+  (`closeCycle`), `w26.compost-retry` (`compostCycle`), `w24.strand-requeue` (`requeue`). Each
+  repeats what its non-retry twin declares. They were exempt from `validateCalls()` before, which is
+  how the `close-failed` fact stayed wrong.
+- `w24.strand-cancel-subject` now targets `W21@close-delivery-confirm` instead of
+  `W21@cancel-queued-confirm`. A stranded subject is `Failed`; the old target declares `Queued`.
+  **This changes a drawn destination.** No journey walks it, which is why I was willing to move it —
+  check that reasoning.
+- The per-screen registry rows in `prototypes-coverage.md` were regenerated wholesale from the
+  build. That is 22 rewritten rows plus 3 added; the ids are machine-copied, but confirm the table
+  still reads as an inventory a person can use.
+
+The `close-failed` fix is the one to attack. I proved it load-bearing by reverting it and watching
+the build fail with `closeCycle forbidden from cycle Reconciled`. Prove the new registry check the
+same way — it fires on a wrong count, a wrong id list, and a missing row.
+
 ---
 
 ## Claims to disprove
@@ -162,7 +185,11 @@ I asserted these. Each is checkable and none should be taken on trust.
 - "No terminal state offers to join a team or to withdraw an already-withdrawn commitment."
 - "All 67 shipped-component citations in the gallery resolve to a real file and line."
 - The counts in `prototypes-coverage.md`, `architecture-closure.validate.ts` pins, C.54, C.55 and
-  register #157/#158 all agree with the build.
+  register #157/#158 all agree with the build. **This one was false when I first wrote it** and is
+  worth re-checking rather than re-reading: the aggregate totals agreed while 19 of 39 per-screen
+  registry rows were wrong in both directions and three screens had no row at all. Rows are now
+  regenerated from the build and checked per row on every build. Register #158's receipt of 519
+  states is superseded by 517 and deliberately left as written.
 
 ---
 
@@ -171,12 +198,15 @@ I asserted these. Each is checkable and none should be taken on trust.
 - **`--no-verify` on every push.** The pre-push hook fails on `solhint: command not found`, a missing
   binary in this worktree. Zero `.sol` files changed. Afo authorised the bypass. Judge whether that
   was right.
-- **Four CodeRabbit findings skipped**, with reasons in the PR reply: a design-contract contradiction
-  in `interaction-patterns.md`, cosmetic em-dashes in a legacy compatibility shim, and two
-  `settlement.ts` contract-modelling findings against commits that predate this branch.
-- **The plan hub's file-count line still drifts** on subtree numbers I did not touch (`hifi` states
-  19, holds 21). I corrected only the two numbers the merge conflicted on and said so in the merge
-  commit. Decide if that was the right call.
+- **CodeRabbit returned CHANGES_REQUESTED on 2026-08-19 and all ten findings are now answered**
+  (round 54, register #159). Five it marked addressed itself in `a6082a8`. Of the rest, four were
+  real and are fixed; the four I had skipped in the previous round were re-raised and three of them
+  turned out to deserve it. **Do not take my triage on trust — the settlement fixes changed contract
+  modelling.** What changed is listed under *Where I would look for regressions* item 8.
+- **The plan hub's file-count line is now correct and was worse than I reported.** It claimed 164
+  files across five subtrees; there are 170 across six, and `evidence/` (added by PR #727) had never
+  been named at all. Root, `handoffs/` and `hifi/` were all short. Fixed rather than left, because an
+  index that is half wrong is worse than one that admits it is partial.
 - **`selectCommitmentSeat()` is specified, not implemented.** `packages/shared` is Codex's
   `state_api` lane, so `codex-state-api.md` carries a binding amendment instead. The UI cannot be
   built correctly until it lands; that is stated, not hidden.

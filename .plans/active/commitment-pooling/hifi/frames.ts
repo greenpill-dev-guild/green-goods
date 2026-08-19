@@ -20,8 +20,15 @@
  * every frame keeps its authored internal sequence.
  */
 export function groupStates<T extends { group?: string }>(states: T[]): T[] {
+  // An ungrouped state is its own frame, keyed on "" and taking its place in
+  // declaration order like any other. Keying it on a bare indexOf miss would
+  // score it -1 and float it ahead of every frame, which in a mixed array can
+  // change the first state — and the first state is the screen's default.
   const order: string[] = [];
-  for (const s of states) if (s.group && !order.includes(s.group)) order.push(s.group);
-  if (order.length === 0) return states;
+  for (const s of states) {
+    const frame = s.group ?? "";
+    if (!order.includes(frame)) order.push(frame);
+  }
+  if (order.length <= 1) return states;
   return [...states].sort((a, b) => order.indexOf(a.group ?? "") - order.indexOf(b.group ?? ""));
 }

@@ -1071,8 +1071,8 @@ const W24_HOTS: HifiDef["hots"] = {
   "w24.strand": { l: "Mark a stranded subject failed", to: "screen:W24@strand-confirm", info: "Decision Log #60's liveness exit, owner-only. Authentication requires the snapshotted executor to still be the active peer or inside its grace, which strands anything genuinely in flight at a cutover — and requeue needs Failed while cancelDisbursement takes only Queued|Failed, so a Dispatched child is otherwise unrecoverable." },
   "w24.strand-cancel": { l: "Keep waiting", to: "screen:W24@stranded", info: "Leaves the subject Dispatched and the value lane paused. The disposition is never automatic." },
   "w24.strand-confirm": { l: "Mark it failed (confirm)", to: "screen:W24@stranded-failed", info: "Writes FailureCode.SourceStranded — a source-side code never accepted from an executor over CCIP, and one that can never produce Confirmed. It moves no G$; it only ends the attempt so recovery becomes legal.", calls: ["failStrandedSubject"] },
-  "w24.strand-requeue": { l: "Requeue as attempt 1", to: "screen:W24@queue", info: "Now legal because the subject is Failed. Requeue preserves attempt 0 and creates a fresh queued attempt against the live route." },
-  "w24.strand-cancel-subject": { l: "Cancel it instead", to: "screen:W21@cancel-queued-confirm", info: "The terminal alternative to requeueing, taking cancelDisbursement's own required reason — which this disposition does not have." },
+  "w24.strand-requeue": { l: "Requeue as attempt 1", to: "screen:W24@queue", info: "Now legal because the subject is Failed. Requeue preserves attempt 0 and creates a fresh queued attempt against the live route.", calls: ["requeue"] },
+  "w24.strand-cancel-subject": { l: "Cancel it instead", to: "screen:W21@close-delivery-confirm", info: "The terminal alternative to requeueing. A stranded subject has already been marked Failed, so it takes the failed-delivery close rather than the queued-cancel path, which would claim the subject was still Queued. cancelDisbursement is legal from either, but only one of them is true here." },
   "w24.retry": { l: "Try again", info: "Read recovery for the operations queue, added round 46. Operations drives settlement, so an unreadable queue must never render like an empty one — a steward would read it as “nothing to dispatch”." },
   "w24.tab-queue": { l: "Queue tab", to: "screen:W24@queue", info: "Cross-garden execution queue." },
   "w24.tab-ccip": { l: "CCIP tab", to: "screen:W24@ccip", info: "Command/ack peer, native fee reserve, and acknowledgment-delay health." },
@@ -1231,9 +1231,9 @@ const W26_HOTS: HifiDef["hots"] = {
   "w26.continue-certificate": { l: "Continue to certificate", to: "screen:W26@certificate", info: "Moves from the allocation snapshot to the existing impact-certificate pipeline." },
   "w26.continue-shares": { l: "Close cycle and continue to shares", to: "screen:W26@shares", info: "With every commitment terminal and liveCommitmentCount zero, closeCycle locks the exact fulfilled bundle before any share review or certificate mint.", calls: ["closeCycle"] },
   "w26.mint": { l: "Mint impact certificate", to: "screen:W26@rest", info: "Existing Hypercert pipeline; bundle = fulfilled commitments + work, evidence, need lineage; allowlist from the six-role shares (CS §9)." },
-  "w26.close-retry": { l: "Try closing again", to: "screen:W26@shares", info: "closeCycle did not land, so nothing changed and the same call repeats. The reassuring half of a chain failure is worth stating: a steward needs to know the bundle was not half-locked (round 49)." },
+  "w26.close-retry": { l: "Try closing again", to: "screen:W26@shares", info: "closeCycle did not land, so nothing changed and the same call repeats. The reassuring half of a chain failure is worth stating: a steward needs to know the bundle was not half-locked (round 49).", calls: ["closeCycle"] },
   "w26.mint-retry": { l: "Try minting again", to: "screen:W26@rest", info: "The cycle is already Reconciled and its bundle locked, so only the certificate mint repeats. Retrying must never re-run closeCycle." },
-  "w26.compost-retry": { l: "Try composting again", to: "screen:W7@cycle-composted", info: "Close and mint both landed, and the mint is irreversible, so only compostCycle repeats. This is why the close flow needs per-step failures rather than one generic cast." },
+  "w26.compost-retry": { l: "Try composting again", to: "screen:W7@cycle-composted", info: "Close and mint both landed, and the mint is irreversible, so only compostCycle repeats. This is why the close flow needs per-step failures rather than one generic cast.", calls: ["compostCycle"] },
   "w26.compost": { l: "Compost closed cycle", to: "screen:W7@cycle-composted", info: "The certificate already uses the Reconciled cycle's locked bundle; compostCycle now archives it without another close call.", calls: ["compostCycle"] },
   "w26.paused-continue-shares": { l: "Close cycle and continue while pool paused", to: "screen:W26@paused-shares", info: "With every commitment terminal and liveCommitmentCount zero, closeCycle locks the exact bundle while leaving the pool Paused.", calls: ["closeCycle"] },
   "w26.paused-continue-certificate": { l: "Continue to certificate while pool paused", to: "screen:W26@paused-certificate", info: "Keeps the pool Paused while reading the cycle's locked allocation snapshot." },
@@ -1356,7 +1356,13 @@ export const SETTLEMENT_DEFS: HifiDef[] = [
       label,
       facts: {
         pool: id.startsWith("paused-") ? "Paused" : "Open",
-        cycle: id === "review" || id === "paused-review" || id === "recognition-blocked" ? "Open" : "Reconciled",
+        // close-failed is Open, not Reconciled. Its own banner says the close did
+        // not land and no bundle was locked, and closeCycle is legal only from
+        // Open — which is what makes the retry drawn on this screen legal at all.
+        cycle:
+          id === "review" || id === "paused-review" || id === "recognition-blocked" || id === "close-failed"
+            ? "Open"
+            : "Reconciled",
         cycleLiveCommitments: "Zero",
         poolLiveCommitments: "Zero",
         poolNonTerminalCycles: "One",
