@@ -4121,7 +4121,7 @@ Exit criteria: Community view/signal/confirm paths work without contract changes
 
 ## 12. Risks and Open Questions
 
-Carried verbatim from the session-plan skeleton (1-6), plus findings from this pass (7-12). Items marked DO-NOT-SILENTLY-FIX must be logged or decided, never patched in passing.
+Carried verbatim from the session-plan skeleton (1-6), plus findings from this pass (7-12) and the 2026-08-16 admin prototype review (13). Items marked DO-NOT-SILENTLY-FIX must be logged or decided, never patched in passing.
 
 1. **On-chain vs derived state weight.** The module carries more transition logic than the repo's thin-module convention (modules today mostly wire external protocols). Decision register #6 accepts this deliberately; reviewers should challenge any FURTHER on-chain state before it lands, not the tabled set.
 2. **EAS -> module bridge coupling.** The resolver -> module hook has GAP precedent (`packages/contracts/src/resolvers/WorkApproval.sol:179-183`) but couples the approval path (criticality: critical) to a new module. Mitigations specced: optional address, try/catch, never-revert no-op semantics, sync fallback, mock-revert test. The bridge and trust model are named in 6.5; any change to linkage authority is a spec change.
@@ -4143,6 +4143,7 @@ repeats the schema-key pattern; nothing may ever rewrite an existing key (the
     must separately specify remaining-slot semantics, register transitions, events, and indexer
     deltas before permitting partial conversion.
 12. **Register upgrade authority.** The register is UUPS-owned by the protocol upgrade owner — the exact approved Safe satisfying §6.1's threshold >= 2 and owner count >= 3 before mainnet activation — while mutations are module-gated (6.2). Anyone proposing owner==module must answer who upgrades the register.
+13. **No address-less member path for steward capture** (open question, surfaced by the 2026-08-16 admin prototype review / Decision Log #66). "Device-free" means no device to sign with, never no wallet: every `StewardCaptured` path requires `onBehalfOf` to be an address holding a garden role Hat (`CreationChecksLib.sol:38-45`, re-checked at acceptance per §5's `NotEligibleContributor` rule), and no name-string, registry-entry, or placeholder identity exists anywhere in the spec. Onboarding therefore has to provision an address and mint the Hat *before* capture, and that step appears in no flow; captured members are additionally locked out of exchanges (`ExchangeCreatorConsentRequired` — a steward cannot consent for a represented gardener) and standing series (standing-commitments-spec §"initial version" exclusion). The prototype now says this plainly (W9's not-a-member empty state), but the provisioning story — who creates the address, who custodies it, and whether a garden-held identity is acceptable for a member who will never touch a device — is undecided. Decide before pilot gardens onboard genuinely address-less members; until then, capture requires prior membership.
 
 ---
 

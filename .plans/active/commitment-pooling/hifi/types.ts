@@ -25,20 +25,27 @@ export const CHAPTERS: Record<ReviewGroup, readonly { id: string; label: string;
   // → prove → confirm → team → money → change. The separate Ongoing chapter is
   // gone — ongoing lives inside Make an offer (Afo decision, iteration 2).
   client: [
+    // Bookends added 2026-08-18 (flow audit): the catalog began at "Make an
+    // offer", which assumes you are already a member of a garden whose pool is
+    // already open and that you already know what a commitment is; and it ended
+    // at "Change of plans", so a member's season never closed. Nobody arrived
+    // and nobody left.
+    { id: "arrive", label: "Find your way in" },
     { id: "make", label: "Make an offer" },
     // "Requests" was the odd one out: every other chapter names the act, so the
     // two creation doors now read as the matched pair they are (Afo, D3).
     { id: "ask", label: "Make a request" },
-    { id: "take-up", label: "Take up a promise" },
+    { id: "take-up", label: "Take up a commitment" },
     { id: "keep", label: "Prove it" },
     { id: "confirm", label: "Confirm & resolve" },
-    { id: "team", label: "The team behind a promise" },
+    { id: "team", label: "The team behind a commitment" },
     { id: "money", label: "Money & wallet" },
     { id: "change", label: "Change of plans" },
+    { id: "season-end", label: "See how the season went" },
   ],
   admin: [
     { id: "season", label: "Run the season" },
-    { id: "promises", label: "Decide on promises" },
+    { id: "commitments", label: "Decide on commitments" },
     { id: "work", label: "Work review" },
     { id: "assess", label: "Assessments" },
     { id: "behalf", label: "On a member's behalf" },
@@ -164,7 +171,13 @@ export type ContractCall =
   | "prepareContributorPayout" | "prepareGardenBeneficiaryPayout" | "queueFunding"
   | "recordFunding" | "recordFundingDeposit" | "consumeFunding" | "queueFundingRefund"
   | "createBatch" | "dispatchDisbursement" | "dispatchBatch" | "retryCommand" | "retryBatchCommand"
-  | "retryAcknowledgment" | "cancelBatch" | "cancelDisbursement";
+  | "retryAcknowledgment" | "cancelBatch" | "cancelDisbursement"
+  // Decision Log #60: the owner-only source-side disposition for a Dispatched
+  // subject whose executor peer retired past its grace window. Named in
+  // settlement-spec §3.1.2 and in FailureCode.SourceStranded, but absent from
+  // that spec's own permission matrix, so its signature is unsettled — the
+  // artifact draws it with no reasonCID, matching every other bare call.
+  | "failStrandedSubject";
 
 // Metadata for one registered hotspot (a tappable control on a screen).
 // `to` targets: "screen:W2" | "screen:W2@disputed" | "sb5:0".
@@ -193,6 +206,13 @@ export type ScreenState = {
   label: string; // chip label in the state switcher
   proposed?: boolean; // amber tag reserved for genuinely unlocked review states
   facts?: StateFacts;
+  // The FRAME this state belongs to (2026-08-16 round 7). W2 carries 75 states
+  // and rendered them as 75 flat chips, which is what made the surface feel
+  // unholdable — but they are one lifecycle repeated across six kinds of
+  // commitment, not 75 different screens. Grouping shows that: same frame,
+  // different data. States keep their own entry (the coverage ledger in
+  // prototypes.md §17 accounts for every one); only the presentation collapses.
+  group?: string;
   html: string; // pre-rendered screen body (device inner HTML)
 };
 
@@ -221,7 +241,13 @@ export type ShippedStep = {
   f: string; // screen id
   v: string; // state id
   hot?: { h: string; l: string } | null;
-  alts?: { h: string; l: string; to: string }[];
+  /**
+   * Always present after normalization — validate.ts builds it as
+   * `(sc.alts ?? []).flatMap(...)`, so consumers may read `.length` directly.
+   * It was optional here while the one guard that reads it did exactly that,
+   * which typechecked nowhere (2026-08-19 review).
+   */
+  alts: { h: string; l: string; to: string }[];
   marks?: string[]; // registered mark/hotspot ids
   who?: string;
   surface?: string;

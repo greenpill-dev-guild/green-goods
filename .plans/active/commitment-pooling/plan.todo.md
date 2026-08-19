@@ -14,10 +14,11 @@ Linear mirror: project [Commitment Pooling](https://linear.app/greenpill-dev-gui
 
 ## Document map
 
-Every file in this hub, by role — **162 files**: 25 at the hub root, 42 under `artifacts/`,
-24 under `handoffs/`, 19 under `hifi/`, 20 under `operations/`, and 32 under `reports/`.
+Every file in this hub, by role — **171 files**: 29 at the hub root, 42 under `artifacts/`,
+25 under `handoffs/`, 22 under `hifi/`, 20 under `operations/`, 32 under `reports/`, and 1 under
+`evidence/`.
 **This list is the index — if you add a document here, add its row.** Root files each get their own
-row; the five subtrees get one row apiece naming their own in-tree index, because the row for a
+row; the six subtrees get one row apiece naming their own in-tree index, because the row for a
 subtree is only honest if that index actually enumerates the tree (this failed review on
 2026-08-05: five root files had no row, three subtrees had no inventory at all, and the
 `handoffs/` row pointed at a README that described source order rather than listing the files).
@@ -38,6 +39,9 @@ subtree is only honest if that index actually enumerates the tree (this failed r
 | `diagrams.md` | D1–D29 Mermaid execution reference (29 named sections rendering 42 Architecture Mermaid blocks; current architecture plus the future identity boundary and staged single-pool-to-federation path) | Flow truth |
 | `prototypes.md` | Numbered storyboards, guided-flow catalogue, missing-frame index, and action inventory; the ongoing-Offer journeys are realized and review-visible | Fidelity-neutral walks — **adds no design authority** |
 | `prototypes-coverage.md` | Rendered-state / hotspot / scene coverage snapshot for the prototypes artifact; the closure validator pins its three counts | Generated coverage snapshot |
+| `flow-audit.md` | Experience audit of the hi-fi prototypes read from the journeys outward: the action map, a walk of every flow, the relay between people, continuity, the emotional arc, and ranked findings | Review findings — **adds no design authority**; decisions land in `uiux-spec.md` and the Decision Log |
+| `flow-audit-prompt.md` | The brief that produced `flow-audit.md`: what to audit for, the six qualities, and the hard limits on what an audit may propose | Audit method — reusable brief, not a spec |
+| `review-prompt.md` | Grounded `/review` brief for PR #732: scoping notes where the skill's defaults miss, the batch plan, the ranked risk surface, the claims to disprove, and what could not be verified | Review method — reusable brief, not a spec |
 | `prototypes-artifact.build.ts` | Generator for the Flow Prototypes artifact; reads the `hifi/` registry alone (the retired `prototypes.md` stays as history, register #96) | Generator — never hand-edit its output |
 | `card-explorations.build.ts` | One-shot cycle/promise card study retained until the Components tab supersedes the review artifact | Design exploration — not canonical implementation truth |
 | `visual-assets.md` | Index of the audience graphics (SVG + 2x PNG) + style contract + regeneration; the ongoing-Offer story and architecture assets are published | Asset index |
@@ -46,6 +50,7 @@ subtree is only honest if that index actually enumerates the tree (this failed r
 | `session-state-admin-canvas.md` | Session-continuity handover for the admin-canvas work stream | Execution context — not canonical design or contract truth |
 | `acceptance-matrix.md` | Exact copy / state / public-claim targets for handoffs and QA | Acceptance targets |
 | `architecture-closure-matrices.md` | Complete event/replay, retry/idempotency, persistence-truth, and lifecycle/wind-down inventories | **Binding cross-lane closure contract** |
+| `tsconfig.json` | Typecheck config for `hifi/**` — the only thing that reads these state unions. Nothing above `.plans/` typechecks: biome is scoped to `packages/**` plus md/json, oxlint to `packages/*/src`. Added 2026-08-19 after eight phantom state ids reached the tree | **Run before merge** — `node …/typescript/lib/tsc.js -p tsconfig.json` |
 | `architecture-closure.validate.ts` | Machine gate for all 58 ABI-closed events, 28 entities, 86 module functions, seven enum vocabularies, eight sparse-event materialization cases, 62 executable calls, six jobs/persistence states, eight lifecycle subjects, and required source assertions | **Must pass before dispatch or merge** |
 | `backfill-pools.ts` | Bun-wrapped, finalized-block pool-inventory and Safe-receipt verifier; fails closed on inventory/root drift and the frozen backfill-before-unpause ABI conflict | Phase A release tooling only; no broadcast authority |
 | `reports/corrections-log.md` | Claim-by-claim verification ledger (VERIFIED / CORRECTED / UNVERIFIABLE / SUPERSEDED) | **Correction record — §9 owns the fund-topology correction** |
@@ -66,33 +71,34 @@ subtree is only honest if that index actually enumerates the tree (this failed r
 | `reports/phase-a-release-scope-correction-2026-08-11.md` | Owner-approved Safe-policy/indexer-scope correction, one-password operator ceremony, fresh evidence, and remaining final-base blockers | **Dated correction record; grants no broadcast authority** |
 | `reports/phase-a-ownership-deferral-2026-08-11.md` | Owner-approved paused/deployer-owned endpoint, current operator enforcement, and later ownership/backfill/unpause issue acceptance | **Dated correction record; grants no broadcast authority** |
 | `status.json` | Machine state for the plan harness | Machine lanes |
-| `handoffs/` (24 files) | Per-lane dispatch files. **`handoffs/README.md` § File index enumerates all 24**; `commitment-pooling-query-contract.md` owns the PRD-723 scope-lock proposal, `fable-phase-a-release-review.md` owns the final pre-Phase-B independent review prompt, `claude-full-pooling-visual-docs.md` owns the additive hand-drawn Story and canonical Google Doc pass, `human-release-ops.md` owns broadcast/cutover authorization, and `human-settlement-evidence.md` owns the September operational-assignment gate | Per-lane dispatch |
+| `handoffs/` (25 files) | Per-lane dispatch files. **`handoffs/README.md` § File index enumerates all 25**; `commitment-pooling-query-contract.md` owns the PRD-723 scope-lock proposal, `fable-phase-a-release-review.md` owns the final pre-Phase-B independent review prompt, `claude-full-pooling-visual-docs.md` owns the additive hand-drawn Story and canonical Google Doc pass, `human-release-ops.md` owns broadcast/cutover authorization, and `human-settlement-evidence.md` owns the September operational-assignment gate | Per-lane dispatch |
 | `artifacts/visuals/` (42 files) | The 21 hand-crafted SVG assets and their 2x PNG upload companions. **`visual-assets.md` is the per-asset index** — it names every file, its Google Doc placement, and what it must show. Nothing here is generated by a build script; each pair is authored | Published audience graphics |
-| `hifi/` (19 files) | Executable hi-fi screen registry consumed by `prototypes-artifact.build.ts`: `screens/{client,client-wallet,admin,settlement,exchange,funding,public,index}.ts` plus `journeys.ts`, `validate.ts`, `types.ts`, `fixtures.ts`, `tokens.ts`, `player.ts`, `html.ts`, `ascii.ts`, `icons.ts`, `kit.ts`, `legacy.ts`. The closure validator asserts directly against `screens/client.ts`, `screens/admin.ts`, `screens/settlement.ts`, `journeys.ts`, `types.ts`, and `validate.ts` | **Executable state/journey truth for the prototypes** |
+| `hifi/` (22 files) | Executable hi-fi screen registry consumed by `prototypes-artifact.build.ts`: `screens/{client,client-wallet,admin,settlement,exchange,funding,public,index}.ts` plus `journeys.ts`, `validate.ts`, `types.ts`, `fixtures.ts`, `tokens.ts`, `player.ts`, `html.ts`, `ascii.ts`, `icons.ts`, `kit.ts`, `legacy.ts`, `components.ts`, `frames.ts`, and the generated `state-reference.gen.ts`. The closure validator asserts directly against `screens/client.ts`, `screens/admin.ts`, `screens/settlement.ts`, `journeys.ts`, `types.ts`, and `validate.ts` | **Executable state/journey truth for the prototypes** |
 | `operations/` (20 files) | Live-chain operational evidence, one directory per operation. `steward-hat-relabel/` holds the PRD-748 Steward relabel: `README.md` (its own index), the `prepare.ts` / `relabel.ts` / `refresh-direct-plan.ts` scripts, dated `preflight-*` / `steward-upgrade-baseline-*` / `direct-admin-plan-*` / `execution-partitions-*` JSON captures keyed by chain and block, plus `preflight-findings.md`, `upgrade-plan-review.md`, and `post-execution-evidence.md` | **Dated operational evidence — captures are immutable** |
+| `evidence/` (1 file) | Pinned external-dependency capture: `celo-zodiac-roles-mastercopies-2026-08-18.json` records the Zodiac Roles v2 mastercopy addresses the Celo settlement authority is pinned to. Added by PR #727, outside the prototype lane | **Dated external pin — immutable capture** |
 
 **Published artifacts** (rebuilt from this hub, same URLs on each rebuild):
 
-- [Flow Prototypes](https://claude.ai/code/artifact/19c3dcad-ac1d-4398-bcd4-57d0c892be2c) — 56 review-visible guided flows + 33 hi-fi screens (per the prototypes-coverage.md build snapshot, which stays authoritative as the registry grows); the one September Community source flow and wireframes remain hidden but validated (`prototypes-artifact.build.ts` + `hifi/`)
+- [Flow Prototypes](https://claude.ai/code/artifact/19c3dcad-ac1d-4398-bcd4-57d0c892be2c) — 56 review-visible guided flows + 37 presentation-visible hi-fi screens (per the prototypes-coverage.md build snapshot, which stays authoritative as the registry grows; the build checks that number on every run since 2026-08-19); the one September Community source flow and wireframes remain hidden but validated (`prototypes-artifact.build.ts` + `hifi/`)
 - [Visual Asset Gallery](https://claude.ai/code/artifact/007ef090-9e26-4b1d-898c-615155304d9d) — all assets rendered, three audience tabs: story · Architecture · Reference (`visual-assets-artifact.build.ts`; Screens tab retired 2026-08-11 per register #98, screens live in the Flow Prototypes artifact below)
 
 **External-facing canonical home**: [Green Goods Commitment Pooling (Google Doc)](https://docs.google.com/document/d/16LNXMr5voQUgWC3iyULbL4iEhRrFo4DezZZLgNtA4hc/edit). `external-brief.md` is a pointer and source map only; no repo file mirrors the external narrative.
 
 ## How to read decision citations
 
-⚠️ **This hub has two independent decision lists, both numbered from 1.** A bare `#N` is therefore ambiguous in the range 1–61, and this has caused real mis-resolutions. Until a full renumber lands:
+⚠️ **This hub has two independent decision lists, both numbered from 1.** A bare `#N` is therefore ambiguous in the range 1–68, and this has caused real mis-resolutions. Until a full renumber lands:
 
 | List | Range | What it is |
 |---|---|---|
-| **Decision Log** (the table below) | 1–61 | Curated current-state decisions spanning the whole feature, newest last |
-| **Full decision register** (further below) | 1–97 | The 2026-07-03 alignment session verbatim, plus dated addenda 28–97 |
+| **Decision Log** (the table below) | 1–68 | Curated current-state decisions spanning the whole feature, newest last |
+| **Full decision register** (further below) | 1–160 | The 2026-07-03 alignment session verbatim, plus dated addenda 28–160 |
 
-- **Every `#1`–`#61` citation is potentially ambiguous** because both lists now occupy that range. Always write “Decision Log #N” or “register #N”.
-- **`#62`–`#97` are unambiguous register numbers**, but naming the list is still preferred.
+- **Every `#1`–`#68` citation is potentially ambiguous** because both lists now occupy that range. Always write “Decision Log #N” or “register #N”.
+- **`#69`–`#160` are unambiguous register numbers**, but naming the list is still preferred.
 - **`#39`–`#40` became ambiguous on 2026-08-01**, when the Decision Log gained its CPP-alignment scope lock and staged-product narrative while the full register already carried different entries at those numbers. Name the list explicitly for both.
 - **`#30`–`#38` became ambiguous on 2026-07-28 and 2026-07-30**, when the Decision Log grew its own entries 30–36 (the group-commitment/recognition/payout amendments), 37 (protocol-pool settlement parity), and 38 (pre-build review closure). The guidance here previously said `#30`–`#60` were always the register, which stopped being true the moment Decision Log `#30` was written; **`#34` is the worst case — it is cited ~71× and now resolves to two different decisions.** Every bare `#30`–`#38` citation predating 2026-07-28 means the register; name the list explicitly from now on.
 - **`#29` became ambiguous on 2026-07-18** when the Decision Log gained its own `#29` (fourth garden not selected). Register `#29` is a different decision entirely. Always name the list for this number.
-- **`#1`–`#61` must be resolved by reading both.** They diverge from `#8` onward: Decision Log `#17` = "app becomes multi-chain"; register `#17` = "clean room, GE paper only". Decision Log `#28` = the visual-asset audit; register `#28` = the needs-layer EAS schemas.
+- **`#1`–`#68` must be resolved by reading both.** They diverge from `#8` onward: Decision Log `#17` = "app becomes multi-chain"; register `#17` = "clean room, GE paper only". Decision Log `#28` = the visual-asset audit; register `#28` = the needs-layer EAS schemas.
 - **Sub-letters do not disambiguate** — both `#28` (Decision Log, a–f) and `#34` (register, a–h) carry them.
 - **When writing a new citation, name the list**: "Decision Log #17" or "register #17", never a bare `#17`.
 
@@ -171,8 +177,11 @@ Known mis-resolutions fixed in place: `contract-spec.md` §Grassroots-Economics-
 | 64 | **Prototype UI reuses the shipping app's components and rhythms — never a parallel pattern.** Wizards render the real FormProgress chrome with back buttons; evidence is an MDR variant of Submit Work; the kind choice is equal cards; the promise detail carries people + team above the fold and one bar-held primary; ongoing is an inline expansion of the composer, not a detour; exchange is parked until it gets its own design session; "Request" is the single asking word; stewards declare G$ support in a real wizard step on the phone. | Afo's iteration-2 review, 2026-08-11: the correction pass fixed structure but not look-and-feel — flows still invented patterns the app already solves (dots vs FormProgress, sheet evidence vs MDR, X-only headers), the ongoing entry stayed invisible, and steward G$ had no phone surface at all. Register #102. |
 | 65 | **PRD-722 indexes the deployed 58-event surface into 28 new records.** The old 54-event/26-record wording predates four member-funding events and `CommitmentFunding`. A twenty-eighth bounded `CommitmentFundingIndex` is required because `DisbursementQueued(kind=Refund)` emits `commitmentId` and the contributor/funder but not `fundingId`; it is the event-owned `(chain, commitment, funder)` join that lets Refund-before-pledge and pledge-before-Refund delivery converge without RPC reads or database scans. | Frozen-ABI reconciliation on 2026-08-13 against live PR #705 head `9948bd7507ac00d0b07f4efd30f6001dd92d84ab`. The extra record is a read-model necessity, not a contract or product-scope expansion. |
 | 63 | **The client prototype catalog is a two-tier product: canonical journeys plus an exhaustive state library.** Seventeen client journeys each start at a drawn home surface, one person, one sitting; every offline/failure/cycle-state variant stays reviewable in the Screen library. The composer is entry-fixed with a details capture, and the ongoing and exchange paths folded in as choices; evidence and work capture share the shipping Submit-Work interaction; the work↔promise bridge is drawn in both directions; browse cards carry the D5 contract. Two new validator rules (entry-surface, one-row bars) keep both regressions impossible. | Afo decisions D1–D10, 2026-08-11 interactive plan session, after the deep client-PWA audit found the registry's state-coverage instrument being presented as UX journeys: wizard repetition across eight flows, mid-app starts, promise/offer vocabulary drift, unused MDR patterns, and a work-link mis-wired to the admin console. Register #101; admin findings recorded, not fixed, in `reports/admin-prototype-follow-up-2026-08-11.md`. |
+| 66 | **The admin prototype set follows the shipping console contract, and four product framings are locked.** (1) View actions in the right-aligned header row with one fixed primary, consequential acts in `AdminDialog`, mobile = the same set on the `FabButton` speed dial with dialogs presenting as sheets — drawn by the restructured W7, the W7M phone set, and journey sb60. (2) Steward vocabulary: the two doors "Start a season" / "Start a campaign" replace "Open cycle"/"Seed a cycle"; pool lifecycle demotes to a Pool settings dialog; Season and Campaign render as peers everywhere ("cycle" stays docs-side umbrella vocabulary). (3) Season↔campaign attribution stays exclusive per the single `cycleId` binding; season reporting may add a clearly-labeled time-window roll-up of overlapping campaigns at the read layer only. (4) Assessments present timing-first ("For [cycle / this garden overall] · at the start / at the close") with wire kind + `baselineUID` derived and the existing schema untouched. Supporting fixes shipped in the same wave: the W11 recognition detour keeps its rail (new RAIL validator rule), W26 joins the flow-dialog shell and sb9c splits at act seams (sb9c/sb9d/sb9e), HUBWORK draws the complete approve/reject arc, W14 renders all three steps, W9 gains the steward-fallback confirmation path + not-a-member empty state + who's-who block (sb8b), and admin PWA echoes trim to the consequence-only rule. | Afo's admin prototype review, aligned interactively 2026-08-16. Of the 2026-08-11 admin follow-up findings this closes 3 (the sb9c split) and moves 5's substance (view-level acts no longer stack in content; dialog footers are the kit's right-aligned row) — a dialog action-row validator rule, plus findings 1, 2, 4, 6, and 7, remain open for the next admin pass. The four framings were explicit user decisions; the conformance work implements the already-locked AdminViewActions / AdminDialog / FabButton contracts. uiux-spec §6 addendum 2026-08-16 carries the full text; contract-spec §12 gains the address-less-member open question surfaced by the device-free walk. |
+| 67 | **The admin design contract is codified and binding, and round 2 re-lands the prototypes under it.** The design skill gains `admin-ux-brief.md` (Afo's canonical brief: NN/g heuristics, GOV.UK, USWDS, Laws of UX, web.dev responsive, Refactoring UI — principles extracted, branding never copied) and `interaction-patterns.md` (the codified contract, each rule cited to shipped code: end-aligned action clusters everywhere; ONE stable view action set across tabs with availability-by-disabling; dialog taxonomy with NO shell change mid-flow; flows enter from drawn console homes; single-column MainSheet with the two-column workspace-tab split where earned; row anatomy who·what·state-chips·meta·one-act with banners teaching once; compose only from the shipped palette). review-checklist Lens 5 makes the contract a mandatory pass before any admin round publishes. Four product answers locked: Garden header = shipped trio + Seed, stable everywhere; pool tab = left objects / right rail (container card · quick actions · activity), pool stays a managed container distinct from cycles; start-season/campaign = one three-step flow shell; assessments stay Hub/evaluator-side for v1 (sb57 retired, state library-only). | Afo's second admin review 2026-08-16 — round 1 was validator-green yet violated the contract (left-aligned card actions, tab-varying header actions against garden.utils.ts's tab-ignoring stable set, details-dialog→wizard shell hop, mid-dialog journey entries) because the guidance stack encoded visual identity but not the interaction layer, and nothing gated design quality. uiux-spec §6 admin round 2 addendum (i)–(o) carries the full text. |
+| 68 | **The commitment view knows who is looking at it, and four seats are enough because creator is not one.** Direction already names the creator: on an Offer they are the provider, on a Request the confirmer. So seat decides the person of every sentence while phase decides the affordances, and the five parallel derivations of "where does this stand" collapse into one declared lifecycle. Where a stage genuinely needs two seats drawn, it gets a second state, following `W4@provider-view`. | Afo's call in an interactive plan session, 2026-08-18, after `flow-audit.md` found the provider's own flow ending on the confirmer's screen with a button they cannot press, a member's request wearing another commitment's identity, and two membership tests naming states that have never existed. Applying the axis rigorously surfaced three further seat gaps that reassignment could not close, and Afo chose to close all three rather than ship the model with documented exceptions. `uiux-spec.md` C.54 and C.55 carry the full text; register #157 and #158. |
 
-### Full decision register (2026-07-03 alignment session, entries 1–27; dated addenda 28–103)
+### Full decision register (2026-07-03 alignment session, entries 1–27; dated addenda 28–160)
 
 **Cite entries in this list as "register #N"** — see the disambiguation note above. (The heading previously read "27 decisions", which stopped being true once the addenda were appended.)
 
@@ -1022,6 +1031,730 @@ Known mis-resolutions fixed in place: `contract-spec.md` §Grassroots-Economics-
     `../celo-garden-account-safe-ownership/`. Its proof authorizes no contract deployment,
     guardian mutation, Safe creation, role/allowance/peer configuration, value movement, canary,
     or other broadcast; every live boundary remains separately human-authorized.
+
+113. Source-model coherence pass on the pool prototypes (2026-08-16, Afo direction; adds to the
+    locked UX record without superseding any entry). Reviewed the specs against Will Ruddick /
+    Grassroots Economics' Chama-pool model. The values translated; the central object did not —
+    every pool surface described how the pool was *configured* and none described what it *held*.
+    Four additions ship, recorded in `uiux-spec.md` C.6: a **holdings block** on `W7`/`W12`/`W1`
+    rendering exact-label unit groups plus the reserve, never summed and never converted (D.1
+    binds; two existing cross-basis sums were removed); a **Seeded state** on `W7` with opening as
+    the event; a **"who's in this pool" roster** on `W7` and `W1` under unchanged D.3 privacy; and
+    **frame grouping** of the state switcher (`W2` 75→11, `W1` 33→9, `W7` 31→8) that merges
+    presentations while leaving the §17 coverage ledger and every default state untouched.
+    Contract finding that shaped the second item: `createCommitment` rejects any cycle that is not
+    `Open` (`CreationChecksLib.sol:72`), so a Seeded cycle holds no promises from anyone — the
+    "members fill the pool during the seeded window" reading is not implementable, and the pool
+    fills at opening instead. Naming defect recorded, not fixed: the `support-` state prefix
+    covers both a service offer's lifecycle and the G$ transport chain.
+
+114. PARKED 2026-08-17 (Afo: "park it for now and we stabilize and polish the UI") — reciprocity
+    from the claim side (2026-08-16, register #103). The proposal stands as written and needs no
+    rework when picked up; it is parked because it is the only new capability while every other
+    lane stabilises, not because anything in it was found wanting. Register #102(d) parked exchange until it got its own design session; this is a proposal
+    for that session, narrower than what was parked. Taking up someone's offer would, in the same
+    skippable step, ask what you can bring and create your offer as part of the claim — so no
+    double coincidence of wants is needed. It requires **no contract change**: E.1's picker and
+    `validateCounterCommitment` already implement the pair, and this adds only the claim-side
+    entry over the same two calls. The design content is ordering — `CreationChecksLib.sol:137`
+    requires the counter offer to still be `Offered`, so `createCommitment(B, counter = A)` must
+    be enqueued **before** `claimCommitment(A)` and the queue must hold that order across retries.
+    Vocabulary ("in exchange for"), the banned-token scan, decision 17 lifecycle independence, and
+    the steward-consent exclusion all bind unchanged. Nothing is drawn as shipped design; no
+    screen implements it. Full text: `uiux-spec.md` C.7.
+
+115. Creation runs Submit Work's four beats, and the wallet's "Things I can offer" splits by
+    what its halves are (2026-08-16, round 12, Afo's four calls). **(a)** `W3` runs What · How
+    much · Details · Review on every path. Scope becomes ONE step-1 field on every path
+    ("Where it runs") — it had been `field("Season")` on step 1 for garden work,
+    `field("Campaign")` on step 2 for a service and `field("Scope")` on step 2 for ongoing.
+    **(b)** The protection step folds into step 2, retiring `step-anchors`, `request-anchors`,
+    `request-variant` and `request-variant-steward` — proof rows and who-can-take-it were the same
+    step-3 slot in different clothes, and both answer step 2's question. **(c)** Details becomes a
+    real numbered step on all five paths, from one shared body that is the shipped media step
+    verbatim; it had been an unnumbered detour drawn with `w3Head(…, 0)`, so the progress bar lit
+    step 1 while the member was on it. **(d)** How often moves to step 1 beside the kind cards —
+    at the bottom of step 2 the fork was found only after everything was filled in for a one-off.
+    **(e)** Every review follows `views/Garden/Review.tsx` LITERALLY (Afo's call over the
+    tappable-rows option): FormInfo over one flat card, one hot row for the Advanced detour
+    mirroring `wflow.fulfills`, thirteen `w3.edit-*` links retired, back arrow as the edit path.
+    Step 1 goes from seven blocks to three. **(f)** In the wallet, the private saved draft becomes
+    a tool row above the ledger and the ongoing Offer's parent moves into its own garden's
+    section — the fourth section card was a category error beside three gardens, held one nav row
+    instead of content, sat outside the scope chips' jurisdiction, and merged a thing that is not
+    on chain with one that is. Raised, NOT acted on: a garden-work promise is still quantified
+    twice (`6 hours` and `Prune × 2 · Plant × 12`), which folding proof into step 2 makes more
+    visible. Full text: `uiux-spec.md` C.10 and C.11.
+
+116. Three wizards, one grammar (2026-08-17, round 13, Afo's calls). The client has
+    exactly three wizards — `WFLOW` (work submission, 4 steps), `W3` (creation, 4),
+    `W2a` (evidence, 3); everything else is a tap or a read. **(a)** The steward
+    ask's Support step folds into step 2 beside the amount and who-can-take-it,
+    retiring `request-support` and taking the last five-step path down to four, so
+    creation is four beats everywhere without exception. **(b)** Evidence STAYS at
+    three steps (Afo's call): work submission's step 1 picks an action and a garden,
+    and evidence arrives from a promise that already fixed both, so a fourth step
+    would confirm a choice already made. **(c)** What evidence owed was grammar, not
+    step count — its review became one flat card led by the promise being proved
+    (it drew three carded sections and never named its subject); note and link
+    stopped being step-2 form fields and became items in the step-1 list, so
+    everything attached composes into one set ("buttons everywhere"); step 2 is
+    renamed "Who helped" for the single question it now asks; queued and failed
+    stopped rendering the review step's progress bar; and the capture step gained
+    its offline banner. **(d)** The work flow's "2 of 1 needed" chip reads
+    "2 added · 1 needed". Creation and evidence now share one `captureBody` and one
+    `captureBar`. STILL OPEN, deliberately: proving with work ends in one act,
+    proving a service in two (`Attach evidence`, then `Send for confirmation`) —
+    the cause is that a service has no approver to advance it, so the provider must
+    declare it done. Whether that declaration belongs at the end of the evidence
+    wizard is undecided. Full text: `uiux-spec.md` C.12.
+
+117. The record is a Commitment, amending §3 (2026-08-17, Afo: "we say promises but we
+    should be saying commitment to be consistent in our framing"). §3 had locked
+    "promise" as the community-facing record name; the canonical glossary lists
+    `Commitment` as the entity with audiences admin · client · community · docs, so the
+    client was carrying a second name for the same thing inside a feature called
+    commitment pooling. Swept everywhere: 843 replacements plus five builder renames;
+    zero "promise" left in rendered artifact text. §3's OTHER half is unamended — the
+    acts stay direction verbs, and no surface may read "Create a commitment". The verb
+    is "commit": three rendered strings needed the verb form, which a blind noun sweep
+    mangles into "nobody can commitment". NOT touched: `promiseKeptRate` (a contract and
+    indexer field name) and the hotspot ids / state keys containing the old word, which
+    are deep-link addresses, not copy. Surfaced a latent bug: the Appendix D.1 tripwire
+    guarded "promised units", a phrasing no surface had ever rendered, so the rule was
+    blind from the day it was written; it now guards the invariant's two real shapes and
+    no longer fires on a single commitment's own reserved units. ALSO SETTLED this round:
+    the shipped work-submission flow does NOT change (Afo) — a commitment needing work
+    actions runs it as designed with the commitment chosen at the start, and
+    evidence-based submission not tied to an action is free to differ; the four proposed
+    alignment fixes are therefore dropped. Full text: `uiux-spec.md` C.13.
+
+118. Team is one surface (2026-08-17, round 15, Afo's six calls). Policy, invites and
+    roster were split between creation's Advanced detour and `W2b`, which never
+    referenced each other. One screen now, two lifecycle states matching the contract:
+    policy is immutable once accepted, and a roster exists only after acceptance.
+    `W3@step-invite` retires; creation reaches team from one row. **(a)** Adding people
+    is a SHEET over the team surface, built from the shipped garden Gardeners item
+    (Gardeners.tsx:74) — avatar, name, subline, joined line, badge; scroll and tap to
+    select. New kit builder `memberRow`. **(b)** Names first, wallet address only when
+    nothing better is on file, in monospace — the same resolution order the shipped
+    component already uses. **(c)** The kind gate was a defect: every contributor action
+    declared `kind: "DomainImpact"`, so a service commitment could pick a team policy and
+    then had nowhere to manage it, against contract-spec's "every accepted commitment
+    stores … an event-indexed contributor roster". add/remove/join/leave now work on
+    every accepted commitment; only `setContributorRequirement` stays garden-work-only,
+    since requirement rows exist nowhere else. **(d)** Recognition states the POLICY and
+    never a per-person split — the old preview ranked teammates by percentage on a member
+    surface, against D.3's copy rule and the round-7 no-per-person-rates rule. **(e)**
+    `W2b` gained FormInfo step cards and a fixed action bar; it was the last client screen
+    without them. Full text: `uiux-spec.md` C.14.
+
+119. The review IS a WorkView, correcting C.10 and C.12 (2026-08-17, round 16, Afo's
+    review feedback). Both earlier rounds described `views/Garden/Review.tsx` as "FormInfo
+    over ONE flat card of rows" and built eleven reviews on that. It renders `<WorkView>`
+    (Review.tsx:192) — FormInfo, an h6 per section, and ONE FormCard per detail
+    (WorkView.tsx:140-176, FormCard.tsx:19). New kit builder `formCard`. Reviewing a
+    commitment and reading one afterwards are now the same anatomy. Landing with it:
+    **(a)** team moves from the Advanced detour to the details step — who is on this is a
+    detail like the photos are; **(b)** the action picker becomes the `selCard` rail the
+    Submit Work intro uses, instead of a 2×2 grid that caps at four; **(c)** counts anchor
+    at each card's foot over a fixed two-line description box, so a wrapping description
+    no longer misaligns the quantities (verified: five cards, one wrapping, all counts at
+    the same offset); **(d)** every adder moves into the fixed bar — link and note had been
+    labelled buttons in the content while camera/gallery/mic were pinned, two rows of
+    adders for one kind of act. ALSO FOUND: `W2`'s `chips` — kind, state and impact
+    domains — was computed on every render and never rendered, so the commitment view
+    showed none of them; the gallery coverage gate caught it when `domainRow` lost its only
+    other consumer. Full text: `uiux-spec.md` C.15.
+
+120. A season is a place you can go (2026-08-17, round 17, Afo). New screen `W1C`:
+    a cycle's details on top, then Commitments / People / Insights. Cycle cards in the
+    carousel become doors; ended cycles trail the live ones so swiping right walks back
+    through the garden's memory, with an All-seasons card after them. `W1@cycle-summary`
+    RETIRES into it — a finished season had been a MODE of the pool tab, so a garden's
+    memory was a state of the current screen rather than somewhere to navigate; the MF10
+    alias and sb9c's branch repoint to `W1C@season-ended`. The pool tab keeps its scope
+    (live cycles) and widens its list to every commitment belonging to them whatever state
+    it reached, and keeps the filter row it already had rather than gaining a second axis
+    (Afo: "we have a filter selection on the title level we should use that"). People
+    names who took part and their role — what D.3 permits — while each person's own
+    kept/lapsed record stays between them and their stewards. Insights leads with the
+    assessments bracketing the cycle and the shift between them, naming the markers that
+    moved and the one that did not, then aggregate figures per unit basis, never
+    per-person (Afo: core metrics and the assessments, without leaning on the people
+    aspects). STILL TO DO: the admin equivalent, which Afo approved in the same round.
+    Full text: `uiux-spec.md` C.16.
+
+121. The console's cycle view (2026-08-17, round 18, closing decision 120's "still to
+    do"). `W7C` gives a steward the same three questions `W1C` gives a gardener, in the
+    console dialect: two-column workspace split with the cycle's holdings and acts in the
+    right rail, Title Case AdminCard heads, dotted status chips, no hero. The season card's
+    header is a door (`objectCard` gains `hotId`); its header acts keep acting in place.
+    `Close Season…` and `Start Campaign` are reachable from the cycle they act on rather
+    than from the pool tab two levels up. ONE deliberate divergence from the client view,
+    and it is D.3 working as written: the console's People tab adds a Pool History card
+    ("4 kept · 1 lapsed · 2 received · carrying 1 open") that the client's does not —
+    counts only, never a percentage or a grade or a ranking, visible to a steward or to
+    that member themself, never published. Full text: `uiux-spec.md` C.17.
+
+122. The details step, and one section-title style (2026-08-17, round 19, Afo). **(a)** The
+    dashed tap-to-add surface retires — a second way to do what the fixed bar already does,
+    sitting where the attached items should be. **(b)** The step becomes Team over Media:
+    an empty team is a full-width button, a populated one a carousel with the add demoted
+    to a plus in the section title, so the roster can never push the media list off the
+    step. New builders `memberTile` / `memberTrail`. **(c)** The primary loses its label to
+    an icon — five adders plus a word squeezed it to nothing — keeping its end position and
+    accent. **(d)** ONE section-title style across the client: the early steps used `.t-sec`
+    at 16.5px sentence case while later steps and every read surface used `.h6s`, the 11px
+    uppercase label mirroring WorkView's `<h6>`. The shipped component decides it; `.t-sec`
+    takes the `.h6s` metric inside the client dialect. Verified across all four creation
+    steps at 11px / uppercase / 600. Admin keeps its own `.t-sec`, a genuine card heading
+    there. Full text: `uiux-spec.md` C.18.
+
+123. Submit Work, drawn as it actually is (2026-08-17, round 20, Afo). The prototype's
+    WFLOW is a drawing of the SHIPPED flow and was wrong in three places; the flow does not
+    change, its drawing does. **(a)** Media mirrors Media.tsx:500-556 — FormInfo, a
+    self-start count badge, the Needed and Optional pill groups the chosen action declares,
+    then image TILES with audio notes beneath. The dashed capture card over a row list
+    existed nowhere in the shipped step. **(b)** Details mirrors Details.tsx:113-180 —
+    FormInfo, Time Spent, then THE INPUTS THE CHOSEN ACTION DECLARES, then feedback. The
+    "Fulfills a commitment" row asked a question the intro had already settled and pushed
+    the step's real content out of view; it retires, and `WFLOW@fulfills-pick` and
+    `WFLOW@details-linked` retire with it — a picker for a settled choice, and a twin
+    distinguished only by carrying it. **(c)** Review was the last review still drawing a
+    flat card of rows; it takes the WorkView anatomy from C.15, keeping the fulfills line as
+    one FormCard, because stating what was chosen differs from asking again. Full text:
+    `uiux-spec.md` C.19.
+
+124. The commitment's identity card (2026-08-17, round 21, Afo's four calls). The top of
+    the commitment view was four bare canvas rows with ad-hoc padding and no grouping; it
+    is ONE card now — the card tapped in the pool, expanded. Terms stay in Details rather
+    than repeating (Afo: "we don't want to repeat too much information"); what the card
+    carries is where this stands and what has been done. THE SUBSTANTIVE PART: the progress
+    block makes the two readiness paths legible. `attachEvidence` has NO kind gate, so a
+    garden-work commitment can hold evidence and credit contributors with it — but
+    `submitForConfirmation` REJECTS DomainImpact, so that evidence never advances readiness;
+    only approved work reaching every requirement count does. A service is the opposite: no
+    requirement rows, evidence IS its path. The block says this structurally — requirement
+    counts carry bars, everything below the hairline carries none, and the absence of a bar
+    is the signal. The explainer appears only where both are present. Browse views omit the
+    block. This also settles the band: progress is structural and lives in the card, the
+    band keeps what is transient. ALSO FIXED: round 15's `memberRow` took the `.mrow` class
+    `meter` already used, so every meter caption had been rendering inside a bordered card
+    since then. Full text: `uiux-spec.md` C.20.
+
+125. Actions by state and by seat (2026-08-17, round 22, Afo's four calls). Measured
+    first: 22 of 75 W2 states carried an action, 53 were read surfaces. Roles FLIP between
+    directions — on an Offer the creator provides and the taker-up confirms; on a Request
+    the creator confirms and the taker-up provides — so the seats are provider and
+    confirmer, never "creator". **(a)** Garden work takes BOTH `Submit work` (primary) and
+    `Add evidence` (secondary) in one row, since attachEvidence has no kind gate; the
+    weighting carries what the progress block establishes. **(b)** `W2@contributor` gives a
+    non-lead teammate a seat for the first time. CORRECTED against the contract in the same
+    round (Afo asked the right question): `linkWork` admits an active contributor as caller
+    AND verifies the Work attester is one, so a contributor's own approved work counts
+    toward the requirement rows — they get `Submit work` as well as `Add evidence`. The rule
+    is that a contributor does everything the provider does EXCEPT send and confirm. **(c)** `W2@active-waiting` splits the active stage by viewer the way
+    `ready` already did; a confirmer had been offered the provider's button. **(d)**
+    `Send for confirmation` gains a confirmation step naming its consequence:
+    submitForConfirmation freezes the contributor roster and credit accounting, so nobody
+    can join and no further evidence counts after it. **(e)** How a commitment can end is now a term in Details, changing with the state:
+    withdraw while nobody has taken it up, a steward cancels it afterwards — so the provider
+    learns where the exit is without being handed a control they do not have.
+    Full text: `uiux-spec.md` C.21.
+
+126. Four open items closed (2026-08-17, Afo's calls on the outstanding list).
+    **(a) Two-send: KEEP TWO, make the pending act unmissable.** The asymmetry is
+    structural — garden work has approvers, a service does not — so the fix is signal, not
+    surgery: sending names the roster freeze it causes, and the evidence-attached states now
+    read "Not sent yet — this is waiting on you." **(b) Double quantification: they are two
+    different questions and now say so.** `unitLabel`/`targetUnits` is what is put in and
+    what the pool counts; requirement rows are what stewards approve. Naming fixed, not
+    structure — the rows are titled "What has to be approved" and state outright that they
+    are a different measure. **(c) unitLabel: NO contract work** (Afo); the guard moves to
+    the render, where it has to be anyway since a direct writer can store any length —
+    `unitLabel(raw)` truncates past 24 and keeps the full text in `title`, independent of
+    the composer so a future contract bound needs no code change. Drawn in `W1C` with a long
+    fixture plus three gallery specimens. **(d) C.7 claim-side reciprocity: PARKED** while
+    the UI stabilises; the proposal stands as written and needs no rework. Full text:
+    `uiux-spec.md` C.10, C.12, C.21, C.22 and the C.7 parking note.
+127. A person is a photograph, and so is a photo (2026-08-17, round 23, Afo). Two
+    surfaces drew a *description of* a thing where the thing belongs. **(a) The team card
+    was a CSS collision, not a taste call.** `memberTile` and `mediaStrip` both emitted
+    `class="mtile"`; `.hf.s-client .mtile` outweighs `.hf .mtile`, so every member card on a
+    client screen rendered at the media tile's 60×78 with its name and account boxes
+    computing to 2px — "just one letter". Media's class is `.mthumb` now and the two no
+    longer share a selector. **(b) The carousel stays; the card grows up.** Option C:
+    GardenMemberItem's layout at 216px — photo, name, account, role — remove control
+    absolutely placed with the text column padded to clear it, the same move shipped makes
+    with `pr-14`. Registered-date dropped (a team being assembled, not a membership record);
+    role kept, because exactly one member is the accountable `leadProvider` and this is the
+    last cheap moment to change which. **(c) Avatars are photographs** —
+    `member.avatar || ensAvatar || /images/avatar.png`, never an initial; the letter discs
+    had no shipped analog. **(d) Media stays ONE list** (Afo, against the shipped two-zone
+    grid) **with the picture on the photo rows** — 44px, the shipped minimum touch target,
+    tappable into `ImagePreviewDialog`. Read-only strips carry real thumbnails everywhere;
+    non-image kinds keep a dashed tile with their kind as a glyph, since WorkView's media
+    section only ever holds images. The preview is a **dialog, not a route**: it renders the
+    state underneath verbatim and adds an overlay, counts photos only (`photoOnlyData`), and
+    draws an arrow only where there is a neighbour. Full text: `uiux-spec.md` C.23.
+128. The three Offer flows (2026-08-17, round 24, Afo's eight-item review). **(a) Cycles
+    had no tag on the client and the WRONG one in admin** — `chip("Campaign", "request")`
+    used the Request tone exactly, so a campaign tag and a request tag were the same colour,
+    while the client carried the cycle as prose in the meta line. New tone pair, one hue at
+    two weights: season filled, campaign outlined. Its own card slot, not one of the three
+    tag places. **(b) Who confirms moved into step 3**, which now asks who confirms · team ·
+    media; the review follows it, under a rule worth keeping — the review reads in the order
+    you filled it in. Team appears in a review for the first time. **(c) Five queued outcomes
+    had five compositions**; they are one screen now, the pool tab with your new card at the
+    top, and the banner is gone everywhere rather than added everywhere (the Queued chip, the
+    status-bar glyph and the card note already said it). **(d) Pickers are controls** —
+    `.ch`'s box reset defeats the 44px minimum, right for a label and an a11y defect for the
+    how-much step's pickers; `pickRow` is the control form. **(e) "Places" is retired** — a
+    second name for a thing that already had one (`standing-commitments-spec.md:224`), absent
+    from the glossary and the contract, and introduced before it was defined. State keys and
+    hotspot ids keep it, as deep-link addresses. **(f) An ongoing offer lives with the season
+    with NO contract change**: `CommitmentSeries` has no `cycleId`, but every `Commitment` it
+    opens does, so the season is a true statement about all of them. The Things-I-can-offer
+    entry — the one path that never picked a cycle — now enters at step 1. **(g) W34 is a
+    commitment view**: W2's identity card, carrying the cycle, then the completion picture,
+    then sections. Full text: `uiux-spec.md` C.24.
+129. Value over time, and the denominator rule (2026-08-17, round 26, Afo). Asked what Maria
+    is making: "one thing she's able to offer multiple times, and the key reason is how do we
+    show the value of a commitment over time." **The two units are different objects** — a
+    commitment is the unit of accountability and ends; an ongoing offer is the unit of value,
+    and its worth is the pattern no single commitment can express. **The public record is
+    numerator-only**, and that is a rule rather than a style: D.3 forbids per-person rates and
+    what enables them is a denominator, so "12 sessions given" is publishable where "4 kept ·
+    1 lapsed" is not. Accepted cost: twelve of twelve and twelve of thirty look the same in
+    public. Pool-level aggregates ("22 of 26 kept" on a cycle) are untouched. **Caught in my
+    own work**: W34's identity card carried a per-person denominator with a progress bar,
+    added one round earlier; removed. **The record leads W34 and rides the pool card**, since
+    the card is where the decision happens. **`W3@repeat-noticed`** lets a repeat become a
+    practice from here on, and says plainly that past one-offs cannot be gathered up, because
+    commitmentSeriesId is set at creation and commitments are immutable. Full text:
+    `uiux-spec.md` C.26 (and C.25 for the offer-flow corrections).
+130. Stopping is one act (2026-08-17, round 27, Afo: "they just stop, make rest and retire
+    one control for now"). Sixteen W34 states served a two-verb lifecycle nobody uses; four
+    remain, and the screen fell from 35 states to 23. **The control calls
+    `restCommitmentSeries`, not `retireCommitmentSeries`** — stopping should destroy nothing,
+    which matters more since decision 129 put the record at the centre of the screen, because
+    retiring would force anyone returning next season to start a new series with an empty
+    one. `retireCommitmentSeries` stays in the contract, unused by the UI, so a terminal state
+    is not foreclosed. Facts still say `Resting`: the on-chain state is unchanged, only the
+    vocabulary and the control count collapsed. Also caught: the stopped chip read "Withdrawn"
+    (the identity card had no branch for the new word), and four states carried two buttons to
+    the same story. Full text: `uiux-spec.md` C.27.
+131. The lead is already on the team (2026-08-17, round 28, Afo). **`leadProvider` is the
+    offer creator** and solo is a one-contributor roster, so the team is never empty and the
+    "Nobody yet" state was wrong. It opens with your card marked Lead; you cannot remove
+    yourself. Helper line cut to one fact about the act: "Anyone you add can add evidence and
+    submit work." **Who confirms names the act** — "Whoever you help says it was done" — since
+    "the person you help" described a category and never said what confirming does.
+    **Reviews gate on reading**: the act arrives disabled with its reason and enables at the
+    end of the scroll, drawn as two states because the artifact is static. **The ongoing view
+    extends the offer view** rather than being a second product: the commitment view's anatomy
+    plus what only a repeating offer has — the record, what is open now, how it repeats, and
+    who has taken it up. Also: CLAUDE.md gained an Output Style section (answer first, plain
+    language, no em-dashes where a full stop works). Full text: `uiux-spec.md` C.28.
+132. Section labels are headings (2026-08-17, round 29, Afo). Measured first: client section
+    titles were already uniform at 11px uppercase grey across ten screens, so the reported
+    inconsistency was actually the step card's heading sitting above them. Sections take the
+    heading style — 15px, 650, sentence case, ink. **Deliberate divergence from shipped**:
+    WorkView uses an h6 and Media.tsx uses text-xs uppercase, which is what round 19 unified
+    down to, so the pooling flows read differently from the shipped work flow until shipped
+    follows. Full text: `uiux-spec.md` C.29.
+133. Four corrections (2026-08-17, round 30, Afo). **The repeat explainer button is gone** —
+    it was a prototype navigation affordance dressed as product copy; the title field carries
+    the hotspot, since the composer recognises the title itself. **One plus on the team**: the
+    section title keeps it, the rail's Add tile goes. **Client button labels are Title Case**,
+    153 of them, with small words lower unless they lead or close; admin already used Title
+    Case acts. **The ongoing view is a full-screen read surface** with no bottom nav and a
+    fixed bar carrying the primary act, with Edit Details and Stop Offering in the secondary
+    row. Full text: `uiux-spec.md` C.30.
+134. Units, one number, and a real extension (2026-08-17, round 31, Afo). **Garden work is
+    always hours** — requirements carry what is done and which domains, unitLabel carries how
+    much of you went in, and unit groups are keccak256 buckets that never sum, so a free
+    choice fragments what the pool holds. Services keep six chips: hours, sessions, rides,
+    meals, repairs, other. **One number, not two**: "How much in each" and "How many to open
+    now" asked about a structure the user had not been shown, so the composer asks only how
+    big one is and opening more happens on the offer screen. **"Whoever takes it up confirms
+    it"** — the old line read badly and Afo's proposed fix would have meant self-confirmation,
+    which the contract forbids. **The ongoing view actually extends the commitment view now**:
+    ongoing blocks first, then Garden, Media, Details, People, Timeline in the commitment
+    view's own order. Three defects of mine fixed: heading margin stacked on flex gap (18px),
+    the action bar's secondary row was never a row (primary wrapped at 70px), and a solo team
+    card did not fill the width. Full text: `uiux-spec.md` C.31.
+135. The em-dash sweep, finished (2026-08-17, round 32). Roughly 160 more strings across
+    `client.ts`, `client-wallet.ts` and `kit.ts`, on top of the offer flows' 35. Rule: a full
+    stop where an independent clause follows, a comma where a trailing phrase does, applied by
+    pattern and read back, since the two are not mechanically separable. One hand correction
+    where a proper noun opened the second clause. Keeps its dash: photo names ("North beds —
+    before" names a variant), screen-library state labels (the prototype's index), and
+    prototype documentation (a different register from the UI). Verified by walking 22 client
+    states and reading the rendered text: zero in product copy. Full text: `uiux-spec.md` C.32.
+136. The request-flow pass (2026-08-17, round 33). Walked all eleven request states. **A
+    garden-work ask still picked a unit** while the equivalent offer path was fixed to hours in
+    decision 134; same commitment kind, same counting. **Every review said "What you're
+    committing to"** — on a request you are asking, so `w3Review` gained `asking`. **The details
+    step contradicted its own review**: the decision-135 sweep set the confirm default
+    everywhere, so a request said "Whoever takes it up confirms it" while its review said "You,
+    because it was your request"; it now reads "You confirm it, because you asked". Two of the
+    three were mine, from applying offer-shaped changes globally. **A request has no team** (Afo): the section claimed you would add
+    evidence and submit work, which is what the counterparty does. The three request details
+    steps are Who confirms and Media, and the ask composer is now shorter than the offer
+    composer, which is honest. Full text: `uiux-spec.md` C.33.
+137. The request-flow second pass (2026-08-17, round 34, Afo). **The review is one card
+    shape** — it had three, and everything is a FormCard now except Media, which holds a
+    thumbnail strip rather than a value. Two cards had also shared an icon. **Amount pickers
+    fill the row** at six options rather than four. **The claim-mode options are the same
+    length**, so the two cards stop being different heights, and *neighbor* became
+    *neighbour*. **The steward G$ banner is gone**, since the review states those terms where
+    someone is actually checking them. **An open request is the pool tab**: the scene had no
+    header, no filters, one card and a screen-level "I can help", the one act on a browse
+    surface in the feature; taking it up happens in the commitment. Held for discussion: what
+    "Open More" means on the ongoing offer. Full text: `uiux-spec.md` C.34.
+138. Offer another (2026-08-17, round 35, Afo). "Open More" borrowed **open** from the
+    retired places vocabulary and hid what the act does. `CommitmentSeries` is never takeable;
+    only the `Commitment` rows it produces are, so making another is `createCommitment` again
+    with the same terms. The label is **Offer Another**, or **Offer One** when nothing is open.
+    **Open survives as an adjective** — a takeable commitment is open, so "Open now" and "2
+    open" stay — while every use of open as the VERB became offer, including W35's title.
+    Full text: `uiux-spec.md` C.35.
+139. The admin-console pass (2026-08-17, round 36, Afo). Walked all twelve console screens.
+    **Admin was already clean on the two things the client kept failing**: one section-title
+    metric (13.5px/700) and Title Case acts throughout. What it carried was stale vocabulary in
+    three layers. **Verb breakage from the promise→commitment rename** — "before neighbors can
+    commitment", "nobody can commitment yet", "a season it can commitment into"; that sweep was
+    recorded as fixed and was only fixed in the client. **"Places" survived here** after the
+    client retired it, so W7's ongoing rows said "3 places made"; they now say "3 offered", and
+    the resting row says stopped. **"neighbor" against the client's "neighbour"**, 23 across the
+    console, kit, gallery, journeys, editorial and lo-fi frames; `poolHoldings` defaulted to the
+    American spelling so the holdings block rendered it in both dialects. **71 em-dashes**
+    rewritten by C.32's rule. Verified across twelve screens: zero of each. Full text:
+    `uiux-spec.md` C.36.
+140. The retired-vocabulary gate (2026-08-17, round 37, Afo). Every vocabulary decision in
+    this feature leaked a dialect, and the promise→commitment one was **recorded as done**
+    while broken copy stood in the console for three weeks. `RETIRED_VOCABULARY` in
+    `validate.ts` guards the retired SENSE rather than the word, so "in place" and "an open
+    request" stay legal; each entry names the decision that retired it. It runs on rendered
+    states, the gallery, journeys and hotspot notes, and errors everywhere including ascii. A
+    companion `DASH` rule keeps em-dashes out of product copy, with journey and hotspot prose
+    exempt per C.32 and named exceptions listed rather than matched. **First run found 338**,
+    including thirteen leaks no manual pass had reached and two forms my sweeps had
+    structurally missed (dashes before a digit or a quote). Reports per occurrence, not per
+    surface. Verified by reintroducing three retired words and watching the build fail. Full
+    text: `uiux-spec.md` C.37.
+141. Proof, equal halves, one radius (2026-08-17, round 38, Afo). **Evidence becomes proof**
+    in gardener-facing copy: the word borrows from legal register and implies you are answering
+    a doubt. `attachEvidence`/`EvidenceAttached` stay as contract identifiers, and the gate
+    learned it as a PRODUCT-COPY-ONLY entry so hotspot notes naming the call do not trip. The
+    sweep also nearly renamed 104 hotspot ids, state ids and journey targets, which are
+    deep-link addresses; the build's own rules caught every one. **Two acts in a bar are equal
+    halves** (`barPair`, 16 bars, 131/124 → 174/174). **A review is one radius**: 24px is the
+    browse-card radius and a review is a list of facts, so the stack is 14px through a `.revw`
+    wrapper rather than a global change. **Work can be untied at review** from the Fulfills row.
+    Recorded as contract facts, not choices: Take This Up is separate because `claimCommitment`
+    is what records the provider and reserves a one-person offer, and proof asks who helped
+    because `creditedContributors` is an argument to the call. Push-back accepted: Submit Work's
+    media step already mirrors Media.tsx; it is the POOLING proof step that differs. Full text:
+    `uiux-spec.md` C.38.
+142. The composer and the read surface are different (2026-08-17, round 39, Afo: "we are not
+    using a grid"). **`Media.tsx:690` is `flex flex-col gap-3`** and only grids at `md:`, which
+    a 390px phone never reaches, so a gardener sees full-width photos at aspect-4/3, stacked,
+    with the remove control pinned over the image. **`WorkView.tsx:102` is a different
+    component**: a Carousel of max-w-40 aspect-3/4 rounded-2xl items. I had built ONE builder
+    for both and got both wrong at 60×78 with a 10px radius. New `mediaStack` for the three
+    composer steps (358×269, 4:3); `mediaStrip` corrected to the read metric (150×200, 3:4,
+    16px). My C.25 note claiming the step already mirrored the shipped file was wrong, and so
+    was the round-23 work under it. Lesson: two surfaces showing the same object are not
+    necessarily the same component, and "mirrors the shipped step" needs the file open rather
+    than a memory of having read it. Full text: `uiux-spec.md` C.39.
+143. Commitments get their own sheet (2026-08-17, round 40, Afo). The wallet's other two tabs
+    are BALANCES — one fungible number each, no lifecycle — while a commitment is a relationship
+    that needs scopes, per-garden grouping, an attention count and retry/discard recovery, so W5
+    was a screen wearing a tab. It becomes its own `ModalDrawer` opened from a fourth Home header
+    control, the only badged one: `WalletDrawer/Icon.tsx` carries no count, so four things needing
+    an act from you were invisible until you opened the drawer. Cheap because the shipping
+    Commitments tab is a `ComingSoonStub`. Its three tabs are the three OBJECTS a member holds,
+    not three filters over one: Commitments (the ledger, scope chips still inside it), Ongoing
+    (`CommitmentSeries`), Saved (private details). Making the scopes the tabs was rejected —
+    round 10 settled that scopes filter one list rather than drawing copies of part of it. Both
+    round-12 workarounds retire (the tool row above the ledger, the series parent parked in a
+    garden section), and W32 drops to the saving flow it always was, 16 states to 8, with eight
+    state aliases keeping old deep links alive. Full text: `uiux-spec.md` C.40.
+
+144. Recovery per tab, and the badge sum rule (2026-08-17, round 41, Afo). Round 40's aliases
+    pointed W32's loading/read-error at `W5@loading`/`W5@read-error`, which compute tab 0, so a
+    saved-details deep link read "Couldn't load your commitments" over the ledger. Each tab now
+    carries its own recovery in its own words. Badges follow ONE rule: a pill counts what needs
+    an act on that tab, the header control carries their sum, and no pill ever counts inventory
+    (Lens 1.5). Full text: `uiux-spec.md` C.41.
+145. The tense split, and the steward's third tab (2026-08-17, round 42, Afo: "A and B titles
+    are repeating the name of the sheet"). The wallet's own rule is that the container word
+    never repeats an object word — "Wallet" holds Cookies · Tokens — and round 40 broke it. No
+    synonym fixed it, because the truthful name for that content WAS "Commitments"; the fix was
+    to change what the tab holds. Split by tense: **Live** (still moving) · **Over time**
+    (settled and standing) · **To confirm** (steward Hats only). Kept leaving Live collapsed the
+    lifecycle chips, and the freed row took `All · Offers · Requests` — the pool tab's own words
+    (client.ts:644), so direction landed at chip level where a confirmation duty's direction
+    cannot scatter it. Over time stops being a list and opens with your record. The steward tab
+    holds ONLY authority confirmations — garden claims where the garden is the counterparty and
+    its Hat wearers are the ordinary confirmers (CS:1421), plus reasoned fallbacks — which were
+    never in the personal ledger, so nothing duplicates and round 10 stands. Saved details left
+    the sheet for composer step 1: input material, not a record, which is why no name ever fit.
+    Full text: `uiux-spec.md` C.42.
+
+146. The sheet is four regions (2026-08-17, round 43, Afo: "the whole tabs right now are
+    scrolling when they should be fixed"). One root cause under three complaints: the shipped
+    ModalDrawer is a four-part panel — fixed header, fixed tabs, one scrolling content region,
+    fixed footer at h-modal 85dvh — and the prototype had collapsed it into two, passing the
+    subtitle and rail as part of the scroller's content. `sheetOver` now takes sub/tabs/footer/
+    close. Verified: body 585px clipped to 542px with the rail moving 0px, both sheets at 574px.
+    The rail also adopts the shipped anatomy (full-width segments + 2px indicator) over pills.
+    Full text: `uiux-spec.md` C.43.
+147. A hero is a moment, not a state (2026-08-17, round 43, Afo). Measured at 390px, W2's
+    identity card ran 272→1318px and the status band sat at 1318px — two screens below the fold
+    on EVERY state. Status moved above the identity card (272px), and `fulfilled` draws a
+    compact kept row while `W4@confirmed` keeps the celebration, because that is when it
+    happens. Full text: `uiux-spec.md` C.44.
+148. Every act in the bar, and the sheet's two answers (2026-08-17, round 43, Afo). W2b rendered
+    "Add People" twice from the same hotspot plus two more acts embedded in the roster card, a
+    drift back from round 19; all three moved to the bar in round 31's .fbrow shape. "Save and
+    Go Back" named navigation, not the act. And the confirmation sheets ask a question, so their
+    buttons are its two answers: "Tell the Stewards Why" named the next screen and became
+    "Not Yet", which three of five states and the admin Hub already used. Full text:
+    `uiux-spec.md` C.45.
+
+149. The identity card carries no title (2026-08-17, round 44, Afo). The commitment view printed
+    its name twice, once in `hdr` and once as the card's `.idt`; W34 hardcoded the same literal
+    in both places. The shipped surface settles which one goes: WorkView's FormInfo title is
+    never the work's name but a state phrase — "Work Approved", "Evaluate Work", "Saved on your
+    device" (WorkViewSection.tsx:197-246) — so identity belongs to the header and the first card
+    says where the thing stands, which is what round 43's status move had already set up. The
+    chips lead the card now. `title` stays optional for a surface with no header of its own.
+    Full text: `uiux-spec.md` C.46.
+
+150. Search in the team picker (2026-08-17, round 45, Afo). I had flagged this as invention
+    because `Gardeners.tsx` has no search; it is not, because `RecipientPicker.tsx` is a person
+    picker in the wallet drawer that has one. The control mirrors its plain full-width input,
+    with a leading glyph added since that picker doubles as a paste-an-address field and ours
+    only searches. It matches NAMES, which RecipientPicker cannot: it notes at :54 that
+    resolving every member across every garden is too costly, and this is one garden's roster
+    already rendering those names. Address matching stays, since a member with no name on file
+    IS an address. The field rides the sheet's fixed chrome (new `chrome` slot) rather than the
+    scroller, per round 43's rule. Three casts: full roster, 2 of 23 matching, no match — the
+    last naming the real remedy and dropping the footer. Full text: `uiux-spec.md` C.47.
+
+151. The admin-console structural review (2026-08-18, round 46, Afo). Round 36 swept admin for
+    vocabulary; this ran the lenses that found the client's defects. Most of it held — admin
+    dialogs already have the four-region anatomy the client sheet lacked, with zero duplicate
+    titles, zero empty footers and zero stranded inline actions, and W10 is the strongest screen
+    in the prototype. Four fixes: the route header and tab rail pin as ONE band (the header was
+    sticky, the rail was not, so 300px of scroll took the stage navigation off screen while
+    shipped pins it at Hub/index.tsx:102); W13's rows gained the confirm / Not yet actions §6.9
+    specifies, both opening dialogs because each takes a mandatory reason, with the disputed row
+    carrying Resolve instead since a frozen commitment is not confirmable; nine recovery states
+    across W13/W12/HUBWORK/W24, which had none, so a failed read rendered as an empty queue; and
+    the two casing outliers moved to Title Case, leaving the sentence-case question (Lens 4.15)
+    recorded and deferred. Separately "Rest the cycle" became "Compost", the contract's own word
+    (compostCycle, CS:206), with a second gate rule guarding rest as a lifecycle verb. Full text:
+    `uiux-spec.md` C.48.
+
+152. The assessment review (2026-08-18, round 47, Afo). The timing-first rebuild holds — step 1
+    derives the wire kind from attribution plus history rather than asking for it. Three gaps
+    closed. §6.6 keeps assessment a DIRECT attest with no offline queue, which makes failure the
+    only thing that can happen to it, and it was the only creation flow in the prototype with no
+    failure cast: `W14@attest-failed` keeps the entered values and says there is no queue holding
+    the attempt, and `W14@offline` says so at step 1 rather than after three steps of work,
+    because this form is not a draft. And no assessment could be READ anywhere across 44 screens
+    — the Assess stage listed rows that did not open, and writing a delta meant comparing against
+    a baseline you could not open. `W14@record` is the read view, an AdminDialog per the cockpit's
+    detail-flow rule, reached from the Assess row, the delta comparison, and W10's attach picker,
+    offering "Write a Re-assessment" since reading a baseline and writing its delta belong
+    together. Found while building it: w14's return named the two states allowed to set their own
+    advance, so any state added later silently rendered "Continue" and dropped its own button.
+    Left open and recorded: the duplicate-baseline rule and the Evaluator-hat gate are prose, not
+    states. Full text: `uiux-spec.md` C.49.
+
+153. The two assessment rules, drawn (2026-08-18, round 48, Afo). C.49 left both as prose.
+    `W14@duplicate` stops claiming a kind ("Records as: Nothing yet"), names the collision, and
+    shows the existing record as a row that OPENS — the C.49 read view is what makes §6.6's
+    "points duplicates at the existing record" mean anything — with no Continue, since there is
+    nothing to record, and a remedy that leads into the delta path because measuring the same
+    domain again is what a re-assessment is for. `W14@no-hat` renders "At the close" DISABLED
+    rather than hidden: §6.6 says delta "renders only for Evaluator-hat holders", but that was
+    written when a steward picked the KIND, and the flow is timing-first now, so hiding a timing
+    choice for an authorship reason would remove a legitimate option and teach nothing. The
+    option carries its reason, a banner names which hat the reader holds, and a Who-can row names
+    the evaluator. New kit affordance: `radio()` takes `disabled` per option. Full text:
+    `uiux-spec.md` C.50.
+
+154. The run-the-season review (2026-08-18, round 49, Afo). The best-built area in the
+    prototype: three things I went looking for were not there — W11's gates already disable
+    Continue on both blocked states, reason capture matches the contract signatures exactly
+    (pausePool takes a reasonCID, closePool and compostPool do not), and W26's paused variants
+    each carry what staying paused means rather than duplicating. What was missing is per-step
+    FAILURE. Closing a season is closeCycle then an irreversible certificate mint then
+    compostCycle; opening one is openPool then openCycle; first-run setup submits six writes in
+    order. None had a failure cast, though W21 beside them has two. Five states now name exactly
+    what landed and what did not, and each retry repeats only the unlanded call, because a retry
+    that re-ran the earlier writes would revert or double-record. w11Facts was corrected with
+    them: it declared every setup-* state pool NotReady, which stops being true once five writes
+    land. Two round-46 leftovers fixed — the close wizard's step said Compost while its button
+    said "Archive Season", and the paused twin's label still read "Rest the cycle" because the
+    rename matched only the unpaused string and state labels are exempt from the vocabulary gate.
+    Plus W7@read-error, since the garden's main read surface had loading but no error while its
+    own child carried both. Full text: `uiux-spec.md` C.51.
+
+155. The Green Goods operations review (2026-08-18, round 50, Afo). The money path holds its own
+    invariants better than anything else in the prototype: requeue is gated on an authenticated
+    failure, delivery-delayed refuses to be one, acknowledgment-pending states that a late ack
+    never re-invokes the Safe route, and outcome states that duplicate terminal acks never mutate
+    settled source state. What did not exist anywhere in 44 screens is the OTHER road to Failed:
+    the owner-only failStrandedSubject disposition (FailureCode.SourceStranded), which Decision
+    Log #60 added precisely because requeue needs Failed and cancelDisbursement takes only
+    Queued|Failed, so a Dispatched child is otherwise unrecoverable. The prototype had drawn that
+    decision's security half and not its liveness half. W24 gains the arc, as a CHOICE rather than
+    an outcome — extend the bounded grace after re-verification, or escalate — because grace is a
+    liveness window and the module never acts merely because it elapsed. Two build catches worth
+    keeping: the CONFIRM allow-list rejected the reason field I first drew, which surfaced a spec
+    gap (failStrandedSubject is named in §3.1.2 and the FailureCode enum but is absent from that
+    spec's own permission matrix, so its signature is unsettled and the artifact draws it bare and
+    says so); and CALL_RULES had no entry, so the validator crashed rather than waving it through.
+    Left open and recorded: W21 and W22 still have no loading or read-error, and W37 has no
+    recovery while its client twin W36 has all three. Full text: `uiux-spec.md` C.52.
+
+156. Recovery on the money surfaces (2026-08-18, round 51, Afo). The three C.52 left open. W21's
+    settlement queue and W22's transport console had no read casts, and W37 had none while its
+    client twin W36 carried all three for the same object. Seven states close them, and every
+    admin read surface now has its casts. Each is worded for what a misread would cost: W21 says
+    nothing was queued, dispatched, cancelled or paid while it was unreachable; W22 — the one
+    where a steward learns whether a command is in flight — says an unreadable console means
+    neither "nothing dispatched" nor "failed", and warns against requeueing or cancelling from it,
+    since a new attempt is legal only after an authenticated failure acknowledgment the screen
+    cannot currently show; W37 says any pledge, deposit or refund already recorded is safe. Facts
+    stay undefined on every read cast, because a screen drawing no record asserts no lifecycle
+    position. Two vocabulary catches from hotspot prose: "owed" is banned and "operator" is the
+    retired word from the steward rename. Full text: `uiux-spec.md` C.53.
+
+157. The commitment view learns who is looking at it (2026-08-18, round 52, acting on
+    `flow-audit.md`). W2 knew the KIND of commitment it was rendering and never the SEAT of the
+    person reading it, so every viewer-dependent thing on the screen was derived from the state id
+    and drifted. A member's own request wore the offer's title, chip, unit, domain, people row and
+    completed-work bars, because `requested` was missing from `W2_REQUEST` and `w2Cast`'s silent
+    `: "offer"` fallthrough hid it. Two membership tests named ids that have never existed —
+    `browse-requested-steward` and `ready-pending` — and neither typechecked nor failed, because
+    nothing above `.plans/` runs tsc; they simply drew the wrong screen. Four seats
+    (provider · confirmer · contributor · bystander) are enough because CREATOR IS NOT ONE:
+    direction already names the creator, so the withdraw affordance gates on phase and seat only
+    decides the person of the sentence. Five parallel derivations of "where does this stand"
+    collapse into one `W2_PHASE`, which fixes five states that reported Accepted while being
+    Active, Fulfilled or ReadyForConfirmation. Four states are added where the audit found seat
+    gaps rather than copy problems: `ready-provider` (the provider's flow ended on the confirmer's
+    screen, Confirm button and all), `support-accepted-confirmer`, `accepted-joinable`, and
+    `fulfilled-confirmer`. Three build-time guards through a new `HifiDef.errors` channel make the
+    class of bug impossible: set members must be real states, every state must declare cast,
+    lifecycle and seat, and every action bar must name the seat its act belongs to. Both were
+    tested by breaking them. Also closed the six pre-existing `architecture-closure.validate.ts`
+    failures, one of which was an assertion checking for the word *promises* that the vocabulary
+    sweep had retired everywhere else. Build 44 screens / 517 states / 730 hotspots / 53 flows /
+    317 scenes, 0 warnings; closure validator green. No runtime package, contract, ABI, indexer or
+    Linear change. Full text: `uiux-spec.md` C.54.
+
+158. The ceremony, the sheet, and three ways in (2026-08-18, round 53, acting on `flow-audit.md`).
+    Nine hero moments in 513 states, six of them on the confirmer's sheet and three on edge casts,
+    so the person who did six hours of pruning got a grey band while the person who tapped Confirm
+    got a halo every time. Fixing the destination lie unlocked it: all six `w4.done-*` hotspots
+    said "Back to the pool" and went to the commitment detail, which is the only reason
+    `W2@fulfilled` had been kept quiet. Seven provider states now name what is true rather than a
+    counter going up; W4 keeps its hero and says something different. The settled band stopped
+    re-firing a celebration on someone who had it days ago. The missing anticipation-to-ownership
+    beat cost one band and one early return: `W2@accepted` leads with "João took this up" and no
+    longer says four different things about when it is. W5 gained the two rows it never had —
+    money in flight and under steward review — which is where `sb11`, `sb53` and `sb5` were
+    handing off into nothing; and the wallet became reachable at all, since W23's five hotspots all
+    originated inside W23. Two chapters bookend a catalog that began at "Make an offer" and ended
+    at "Change of plans", so nobody arrived and nobody left: three flows added, none needing a new
+    screen. The sentence explaining what a commitment IS reached 1 of 33 pool states while the
+    steward's console carried it daily; it is the commitments list's subtitle now. Withdrawing a
+    request had a drawn button and the offer's sheet behind it. Every machine word left the client
+    surface: on-chain, fulfillment, indexed, transaction and threshold to zero, syncs from
+    nineteen, roster from fifteen, cycle from four. Afo's call on the steward roster went against
+    the recommendation: keep the counts, delete the disclaimer. Build 44 screens / 519 states /
+    736 hotspots / 56 flows / 329 scenes, 0 warnings; closure validator green. No runtime package,
+    contract, ABI, indexer or Linear change. Full text: `uiux-spec.md` C.55.
+
+159. What the review caught that the gates did not (2026-08-19, round 54, acting on the CodeRabbit
+    review of PR #732). Four findings were real and one was the same bug seen twice. `W26@close-failed`
+    declared the cycle `Reconciled` while its own banner read "it is still open, no bundle was
+    locked" — and nothing caught it, because the retry that repeats `closeCycle` declared no call,
+    so the validator never looked. Declaring it makes the build fail from `Reconciled`, which is
+    the proof the fact was wrong rather than the rule. Two more hotspots repeated a contract call
+    their non-retry twins declare (`w26.compost-retry`, `w24.strand-requeue`), and the stranded
+    subject's cancel routed to the Queued-cancel confirm when a stranded subject is already Failed;
+    it goes to the failed-delivery close now. The screen registry was the wider lesson: its
+    aggregate totals agreed with the build while 19 of 39 rows were wrong in both directions and
+    three screens had no row at all, because a total stays right when two rows drift opposite ways.
+    Rows are regenerated from the build and checked per row on every build, including the missing-row
+    case. `groupStates` floated every ungrouped state ahead of every frame on an `indexOf` miss,
+    which would change a screen's default; no screen mixes grouped and ungrouped states today, so
+    it was latent, and it is keyed in declaration order now. The design contract contradicted itself
+    on whether a count that navigates is a button: it is a stat by chrome and a control by
+    semantics, and says so in one bullet instead of two that disagreed. The document map claimed
+    164 files across five subtrees; there are 170 across six, and `evidence/` had never been named.
+    Register 158's receipt of 519 states is superseded, not wrong when written: the two retired
+    WFLOW states left in `a6082a860`. Build 44 screens / 517 states / 736 hotspots / 56 flows /
+    329 scenes, 0 warnings and no coverage drift; closure validator green. One `.claude/` design-skill
+    file changed. No runtime package, contract, ABI, indexer or Linear change.
+
+160. The class the guards did not close (2026-08-19, round 55, acting on the production-readiness
+    review of PR #732). Round 52 named the bug class exactly — an id that names a state which does
+    not exist, typechecking nowhere and simply drawing the wrong screen — fixed the two instances it
+    tripped over, and built three guards for W2. It never swept for siblings. There were eight more.
+    `W3` carried a whole "Add G$ support" step, head and actions and all, for a state retired when
+    that step folded into step 2; `W7` listed `funded-claim` and `paused-season-menu` in three
+    tables apiece and neither has ever existed; `W7_DESC` promised every state a description and
+    omitted two; `W1` still grouped `cycle-summary`, retired into the season view; `W32`'s facts
+    tested a state that moved to `W5`; and a second `state === "empty"` arm shadowed the first, so
+    the pool's empty screen drew a bare card with no pool summary while the version matching every
+    sibling sat unreachable below it. None of this was visible because nothing above `.plans/`
+    typechecks: biome is scoped to `packages/**` plus md and json, oxlint to `packages/*/src`. The
+    hub has its own `tsconfig.json` now, and the set-membership check that was W2's alone is W1's,
+    W7's and W34's too — a `Set<string>` defeats the compiler, so the runtime guard is what catches
+    those.
+    Two seat errors survived their own fix. `sb42` — "Confirm a commitment kept", persona the
+    recipient — still ended on `W2@fulfilled`, the provider's screen, which greets its reader with
+    "You did the work"; the confirmer's own view had been drawn in round 52 and nothing pointed at
+    it. And the disputed family was seated provider on the strength of one steward echo, when
+    raising a review is the confirmer's act and all three ordinary routes in arrive from that seat.
+    The destination guard could not have caught the first: it skipped every scene with no control,
+    48 of 273 transitions, which is exactly where `sb42` went stale after `w4.done` was repointed.
+    It covers them now, with the twenty existing crossings named in a list that should only shrink.
+    Coverage-doc drift printed a warning after the exit gate and then reported "warnings: 0",
+    wrote the artifact and exited 0 — the two signals anyone checks both said clean. Drift fails
+    the build now, and the artifact is written only once every gate has passed.
+    Three findings were the reviewer's error, recorded because the reasoning is worth keeping:
+    `support-evidence-queued` sits at Accepted correctly, though not for the reason its comment
+    gives — the rule is that a queued transition preserves phase, not that a service has no
+    approved work; `w10.dispute-confirm` targets the offer cast correctly, because `w10Facts` draws
+    `raise-dispute` as DomainImpact while the override and cancel states draw SupportService; and
+    `withdraw-confirm` does render its consequence sheet over a scrim.
+    Terminal commitments offered an editable team: `w2RosterFrozen` answers a contract question, and
+    Cancelled and Expired never fire `ContributorRosterFrozen`, so both fell through to "add, remove
+    and assign contributors" on a commitment that had ended, which `addContributor` forbids outside
+    Accepted (CS:1411). Proof was seat-dependent — the provider saw the photos on `active` while the
+    confirmer and a contributor, reading the same commitment at the same phase with the same
+    requirement totals, saw none, and `contributor`'s band promised "your proof credits you" above
+    nothing. `support-offered` named João as the one who could act while offering the act to its
+    reader. And the machine-word sweep was an event rather than a rule: the plural `cycles` survived
+    on `W34` in three strings and `W15` still told the public that commitments come "from this
+    cycle". All nine words are pinned to the rendered member surface now, the gallery exempt because
+    it documents the kit. `hifi/validate.ts` exits non-zero when run directly instead of printing
+    nothing and exiting 0, which is how PRD-760's closing checklist named a command that could not
+    fail. Build 44 screens / 517 states / 736 hotspots / 56 flows / 329 scenes, 0 warnings and no
+    coverage drift; closure validator green; typecheck clean. No runtime package, contract, ABI,
+    indexer or Linear change.
 
 **Final recursive certification clarification (2026-07-25; no new decision-register entry):**
 the published `42161`↔`42220` production lane is the only required fully paired

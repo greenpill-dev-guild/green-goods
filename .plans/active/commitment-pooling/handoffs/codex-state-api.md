@@ -6,7 +6,7 @@
 - Execution sub-lane: state_api
 - Owner: Codex
 - Branch signal: feature/commitment-pooling-api-modules
-- Current state: core, Saved Offer, and settlement source implementation complete; runtime availability remains blocked only on human-owned hosted Envio deployment/full-sync/read-back and production Saved Offer configuration
+- Current state: core, Saved Offer, and settlement source implementation complete; runtime availability remains blocked only on human-owned hosted Envio deployment/full-sync/read-back and production Saved Offer configuration. **One open amendment (2026-08-18): the seat gap below — nine queried fields do not reach `CommitmentReadModel`, and `selectCommitmentSeat()` does not exist, so the client UI cannot tell who is reading a commitment.**
 - Linear context: PRD-723 (state/API lane) under parent PRD-650
 
 Concurrent agents share this repository. Stay inside this lane's named shared/state paths,
@@ -348,3 +348,134 @@ state, not optional follow-up coverage.
   `commitmentSeriesId == 0`.
 - No selector computes a personal/series score, rate, rank, inferred participant count, automatic
   renewal, or protocol permission from Story history.
+
+## Binding seat amendment — 2026-08-18
+
+Raised by the 2026-08-18 prototype rounds (`uiux-spec.md` C.54, register #157). The state layer is
+source-complete for everything it was specified to do; this is a gap between what it exposes and
+what the client UI must now render, found by building the screens rather than by reading the spec.
+
+### The finding
+
+`W2`, the commitment detail screen, is decided by three facts: **cast** (what kind), **phase**
+(where in the lifecycle), and **seat** (who is reading). Phase is already covered —
+`deriveCommitmentState()` returns exactly the vocabulary the prototype uses. Seat is not expressible
+at all, and cast is only half expressible.
+
+`COMMITMENT_FIELDS` in `data-core.ts` already queries every field needed. `CommitmentReadModel` in
+`types-core.ts` then drops eleven of the thirteen relevant ones:
+
+| Field | Queried | On `CommitmentReadModel` | Needed for |
+|---|---|---|---|
+| `creator` | yes | yes | seat |
+| `leadProvider` | yes | yes | seat |
+| `counterparty` | yes | **no** | seat |
+| `direction` | yes | **no** | seat, cast |
+| `commitmentType` | yes | **no** | cast |
+| `recordedBy` | yes | **no** | the recorded-for-a-member cast |
+| `confirmers` | yes | **no** | named-confirmer group |
+| `contributorPolicy` | yes | **no** | whether a team may be joined |
+| `contributorsFrozen` | yes | **no** | whether the roster still accepts people |
+| `contributorCount` | yes | **no** | team presence without loading the roster |
+| `claimMode` | yes | **no** | open claim vs steward-reviewed |
+
+The data is fetched and paid for, then discarded at the type boundary. `CommitmentDetail` does carry
+`contributors`, so the roster itself is reachable; the commitment's own relationships are not.
+
+### Why it matters
+
+Without seat, a UI building this screen has to infer the viewer's relationship from whatever it has
+— which in the prototype meant state-id string prefixes, and produced six defects that shipped
+undetected for months: a member's own request rendering another commitment's title, chip, domain,
+people row and completed-work bars; a neighbour shown a provider who did not exist on an unclaimed
+request; the provider's own flow ending on a screen that told them they had been named to confirm a
+commitment they are forbidden from confirming. Two membership tests named states that have never
+existed and neither typechecked nor failed.
+
+The prototype now declares seat per state and refuses a build where an action bar's seat disagrees.
+That guard protects the drawing. Nothing protects the implementation unless the seat comes from the
+state layer.
+
+### Required: surface the dropped fields
+
+The table above lists thirteen relevant fields. Two (`creator`, `leadProvider`) already reach the
+read model, so **nine are missing** and all nine are needed:
+
+- **Seat and cast, required by `selectCommitmentSeat()`** — `counterparty`, `direction`,
+  `commitmentType`, `recordedBy`
+- **Team and confirmation surfaces** — `confirmers`, `contributorPolicy`, `contributorsFrozen`,
+  `contributorCount`, `claimMode`
+
+Land them in one change rather than one at a time. `contributorCount` in particular is what lets a
+card show that a commitment has a team without loading the roster, which the pool tab does on every
+row. No query change is required — all nine are already selected by `COMMITMENT_FIELDS`.
+
+### Required: `selectCommitmentSeat()`
+
+```ts
+export type CommitmentSeat = "provider" | "confirmer" | "contributor" | "bystander";
+
+export function selectCommitmentSeat(input: {
+  commitment: Pick<CommitmentReadModel,
+    "creator" | "leadProvider" | "counterparty" | "direction">;
+  contributors: readonly Address[];
+  viewer?: Address;
+}): CommitmentSeat | null;   // null = unauthenticated, never a default seat
+```
+
+Resolution order, and the order is load-bearing — the lead is also on the roster, so a
+contributors-first test would seat every provider as a contributor:
+
+1. no `viewer` → `null`. Never fall back to a seat; an unauthenticated reader is not a bystander,
+   and the difference decides whether a screen offers acts at all.
+2. no counterparty yet **and** `viewer === creator` → the creator's seat by direction (below).
+3. `viewer === leadProvider` → `provider`
+4. `viewer === counterparty` → `confirmer`
+5. `viewer ∈ contributors` → `contributor`
+6. otherwise → `bystander`
+
+**Creator is not a seat.** Direction already names them: on an Offer the creator is the provider, on
+a Request the creator is the confirmer.
+
+```ts
+const creatorSeat = (direction: CommitmentDirection): CommitmentSeat =>
+  direction === "OFFER" ? "provider" : "confirmer";
+```
+
+This is what keeps the model at four seats. A fifth "creator" seat collides with provider and
+confirmer on every state, which is how the prototype's own two people tables came to contradict
+each other on the same screen.
+
+### One thing this handoff cannot determine
+
+**What `counterparty` holds on each direction.** On an accepted Offer it is clearly the person who
+took it up (the confirmer). On an accepted Request, the taker is the *provider*, and whether
+`counterparty` then holds the taker or the asker is an indexer/contract semantic this lane owns.
+Rules 3 and 4 above assume `leadProvider` is authoritative for the provider on both directions and
+`counterparty` is the other party. **Confirm that before implementing**, and if it does not hold,
+the fix belongs in the selector rather than in every call site.
+
+### Test cases
+
+Each maps to a drawn prototype state; `handoffs/commitment-view-state-reference.md` lists all 82
+with their expected seat.
+
+| Case | Expected |
+|---|---|
+| Offer, pre-acceptance, viewer is creator | `provider` (`W2@offered`) |
+| Request, pre-acceptance, viewer is creator | `confirmer` (`W2@requested`) |
+| Offer, pre-acceptance, viewer is a stranger | `bystander` (`W2@browse-offered`) |
+| Offer, accepted, viewer is leadProvider | `provider` (`W2@active`) |
+| Offer, accepted, viewer is counterparty | `confirmer` (`W2@active-waiting`) |
+| Offer, accepted, viewer on roster but not lead | `contributor` (`W2@contributor`) |
+| Offer, accepted, viewer unrelated, open team | `bystander` (`W2@accepted-joinable`) |
+| Service offer, accepted, viewer took it up | `confirmer` (`W2@support-accepted-confirmer`) |
+| Recorded for a member, viewer is the member | `provider` (`W2@captured`) |
+| Any state, no viewer | `null` |
+| Lead who is also on the roster | `provider`, not `contributor` — order regression guard |
+
+### Boundary
+
+This amendment adds fields and one selector. It changes no query, no entity, no handler, no
+contract, and no existing selector's behaviour. `selectConfirmationEligibility()` stays as it is —
+it answers a narrower question (may this viewer confirm *now*) and remains the authority for that.

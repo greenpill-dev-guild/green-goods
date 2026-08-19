@@ -439,7 +439,19 @@ export const PLAYER_JS = `(function(){
     $("exp-title").textContent = scr.title.replace(/^\\s*(?:W\\d+a?|HUBWORK|WFLOW)\\s*[·—:-]\\s*/i, "");
     var chips = $("expstates"); chips.textContent = "";
     if (scr.states.length > 1) {
+      // States are grouped by FRAME where a screen declares one. Seventy-five
+      // chips in a flat row read as seventy-five screens; the same chips under
+      // eight headings read as what they are — one lifecycle, six kinds of
+      // commitment, and a handful of endings.
+      var lastGroup = null;
       scr.states.forEach(function(s2){
+        if (s2.group && s2.group !== lastGroup) {
+          var h = document.createElement("span");
+          h.className = "vgroup";
+          h.textContent = s2.group;
+          chips.appendChild(h);
+          lastGroup = s2.group;
+        }
         var c = document.createElement("button");
         c.className = "vchip" + (s2.id === st.id ? " on" : "") + (s2.proposed ? " prop" : "");
         c.textContent = s2.label;

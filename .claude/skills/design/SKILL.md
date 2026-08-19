@@ -16,6 +16,7 @@ Design philosophy and visual direction for building spatial-ready, AI-driven int
 ## Route to another skill when…
 
 - You need an at-a-glance map of this skill stack (which file owns which question) → [ARCHITECTURE.md](./ARCHITECTURE.md).
+- You are doing **any admin-console UI work** (shipped console, admin prototypes, AI-generated admin design) → [admin-ux-brief.md](./admin-ux-brief.md) (the canonical brief + authoritative external references) and [interaction-patterns.md](./interaction-patterns.md) (the codified contract: action placement/alignment, dialog taxonomy and shell continuity, flow anatomy, layout, row/status anatomy, component parity — each rule cited to shipped code). Both are MANDATORY reading before an admin design round.
 - You need implementation detail (Tailwind tokens, Radix composition, a11y checks, Storybook, i18n) → [implementation.md](./implementation.md).
 - You are about to feed a design to an AI tool or coding agent → [ai-ui-brief.md](./ai-ui-brief.md) + § Working with AI Design Tools below + the matching prompt contract.
 - You need the **admin** AI prompt contract (stable core, vocabulary, never-use list) → [prompt-contract.md](./prompt-contract.md).
@@ -37,6 +38,8 @@ This skill's frontmatter `token_version` reflects the current Warm Earth token s
 | **Skill Map** | where does X live, skill stack, routing, architecture overview | [ARCHITECTURE.md](./ARCHITECTURE.md) |
 | **Design Language** | Warm Earth language, shape system, motion tokens, color direction, components, hero moments | [language.md](./language.md) |
 | **AI UI Brief** | reusable prompt contract, external reference role map, saved UI/CSS build brief | [ai-ui-brief.md](./ai-ui-brief.md) |
+| **Admin UX Brief** | admin usability brief, NN/g heuristics, GOV.UK patterns, USWDS, Laws of UX, Refactoring UI, responsive requirements | [admin-ux-brief.md](./admin-ux-brief.md) |
+| **Interaction Patterns** | action placement, alignment, right-aligned actions, stable view actions, dialog taxonomy, shell continuity, flow anatomy, two-column rail, row anatomy, state matrix, component parity | [interaction-patterns.md](./interaction-patterns.md) |
 | **Admin Prompt Contract** | admin stable core, banned terms, workspace vocabulary for AI design tools | [prompt-contract.md](./prompt-contract.md) |
 | **Client Prompt Contract** | client stable core, banned terms, PWA shell vocabulary | [client-prompt-contract.md](./client-prompt-contract.md) |
 | **Defect Grammar** | "this looks broken", describe UI bug, component identifier lookup, defect types, browser inspect workflow | [defect-grammar.md](./defect-grammar.md) |

@@ -39,6 +39,7 @@ export const HIFI_CSS = `
   --ln2:#D6D3D1; --gr:#1FC16B; --gr-ink:#15803D; --act:#1A7544; --acth:#16643B;
   --err:#E11D2E; --amb:#B45309; --amb-bg:#FBF3E4; --sky:#2563EB; --sky-bg:#EBF1FD;
   --gr-bg:#E9F5EC; --stone-bg:#F3F1EE; --scrim:rgba(12,10,9,.34);
+  --cyc:#6B4A7A; --cyc-bg:#F4EEF6;
   font-family:Inter,-apple-system,"SF Pro Text","Segoe UI",system-ui,sans-serif;
   color:var(--ink);
   -webkit-font-smoothing:antialiased;
@@ -48,6 +49,7 @@ export const HIFI_CSS = `
   --ln2:#44403C; --gr:#1FC16B; --gr-ink:#4ADE80; --act:#25A05E; --acth:#2DBF70;
   --err:#F87171; --amb:#E7A93F; --amb-bg:#2E2412; --sky:#7CA9F9; --sky-bg:#182337;
   --gr-bg:#12291A; --stone-bg:#262320; --scrim:rgba(0,0,0,.5);--on-act:#04290F;
+  --cyc:#C9A8D8; --cyc-bg:#251C2A;
 }
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]) .hf.s-client{
@@ -55,6 +57,7 @@ export const HIFI_CSS = `
     --ln2:#44403C; --gr:#1FC16B; --gr-ink:#4ADE80; --act:#25A05E; --acth:#2DBF70;
     --err:#F87171; --amb:#E7A93F; --amb-bg:#2E2412; --sky:#7CA9F9; --sky-bg:#182337;
     --gr-bg:#12291A; --stone-bg:#262320; --scrim:rgba(0,0,0,.5);--on-act:#04290F;
+    --cyc:#C9A8D8; --cyc-bg:#251C2A;
   }
 }
 
@@ -77,7 +80,7 @@ export const HIFI_CSS = `
   width:${PHONE_VIEWPORT_WIDTH}px;height:${PHONE_VIEWPORT_HEIGHT}px;min-height:0;overflow:hidden;
   position:relative;font-size:15px;line-height:1.45}
 .hf .statusbar{display:flex;justify-content:space-between;align-items:center;
-  padding:14px 24px 6px;font:600 13px/1 inherit;color:var(--ink);
+  padding:14px 24px 6px;font-weight:600;font-size:13px;line-height:1;color:var(--ink);
   flex:none;z-index:3;background:var(--cv)}
 .hf .statusbar .sbr{display:flex;gap:5px;align-items:center}
 .hf .sb-sig{display:flex;gap:2px;align-items:flex-end}
@@ -99,13 +102,25 @@ export const HIFI_CSS = `
    phoneFrame's header slot sits above the scroll; .fbar sits below it. */
 .hf .hdr.fixed{flex:none;background:var(--cv);border-bottom:1px solid var(--ln);padding-bottom:8px}
 .hf .fbar{flex:none;background:var(--cv);border-top:1px solid var(--ln);padding:10px 16px 12px;display:flex;flex-direction:row;align-items:center;gap:10px}
+.hf .fpair{display:flex;gap:10px;flex:1}
+.hf .fpair > *{flex:1;min-width:0}
+.hf .fpair .b{width:100%}
+/* A review is one stack of facts, so it is one radius. 24px is the BROWSE card
+   radius, which is why a 24px section above a 14px FormCard looked wrong: the
+   review is not a set of cards you tap (2026-08-17, Afo). */
+.hf .revw .card{border-radius:14px}
 .hf .fbar .brow{margin:0}
+/* A secondary row of LABELLED buttons cannot share the primary's line: three
+   of them in 390px squeezed Open More to 70px and wrapped it two lines tall. */
+.hf .fbar:has(.fbrow){flex-direction:column;align-items:stretch}
+.hf .fbrow{display:flex;gap:8px}
+.hf .fbrow .b{flex:1}
 .hf .fbar .b.full{width:auto;flex:1}
 .hf .byline{display:flex;align-items:center;gap:6px;margin:2px 0}
 .hf .byline .avatar{width:20px;height:20px;border-radius:50%;background:var(--act);color:var(--on-act);display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;flex:none}
 .hf .hdr.fixed h1{font-size:17px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .hf .fprog{display:flex;align-items:center;gap:3px;color:var(--stone);flex:none}
-.hf .fprog .fpstep{width:18px;height:18px;border-radius:99px;border:1px solid var(--ln2);display:inline-flex;align-items:center;justify-content:center;font:600 10.5px inherit;color:var(--stone);flex:none;background:var(--card)}
+.hf .fprog .fpstep{width:18px;height:18px;border-radius:99px;border:1px solid var(--ln2);display:inline-flex;align-items:center;justify-content:center;font-weight:600;font-size:10.5px;color:var(--stone);flex:none;background:var(--card)}
 .hf .fprog .fpstep.done{background:var(--gr-bg);border-color:transparent;color:var(--gr-ink)}
 .hf .fprog .fpstep.cur{border-color:var(--act);color:var(--act);box-shadow:0 0 0 3px color-mix(in srgb,var(--act) 20%,transparent)}
 .hf .fprog .fpline{width:8px;height:1px;background:var(--ln2);flex:none}
@@ -115,7 +130,7 @@ export const HIFI_CSS = `
 .hf .kcard{border:1px solid var(--ln);border-radius:16px;background:var(--card);padding:14px 12px;display:flex;flex-direction:column;gap:4px;min-height:108px;cursor:pointer}
 .hf .kcard.on{background:var(--gr-bg);border-color:var(--act);box-shadow:inset 0 0 0 1px var(--act)}
 .hf .kcard .ic{color:var(--act)}
-.hf .kcard .kl{font:600 15px inherit;color:var(--ink)}
+.hf .kcard .kl{font-weight:600;font-size:15px;color:var(--ink)}
 .hf .kcard .km{font-size:12.5px;color:var(--stone);line-height:1.35}
 .hf .teamstrip{display:flex;align-items:center;gap:8px;padding:2px 0}
 .hf .teamstrip .avatar{width:24px;height:24px;border-radius:50%;background:var(--act);color:var(--on-act);display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;flex:none;box-shadow:0 0 0 2px var(--card)}
@@ -129,7 +144,7 @@ export const HIFI_CSS = `
 
 /* garden detail tab row */
 .hf .gtabs{display:flex;gap:2px;padding:2px 12px 0;border-bottom:1px solid var(--ln)}
-.hf .gtab{min-height:44px;padding:9px 12px 10px;font:600 14px inherit;color:var(--stone);border:0;background:none;
+.hf .gtab{min-height:44px;padding:9px 12px 10px;font-weight:600;font-size:14px;color:var(--stone);border:0;background:none;
   cursor:pointer;position:relative;border-radius:8px 8px 0 0}
 .hf .gtab.on{color:var(--ink)}
 .hf .gtab.on::after{content:"";position:absolute;left:10px;right:10px;bottom:-1px;height:2.5px;
@@ -139,11 +154,11 @@ export const HIFI_CSS = `
 .hf .abar{flex:none;background:var(--card);border-top:1px solid var(--ln);border-radius:16px 16px 0 0;
   display:flex;justify-content:space-evenly;align-items:center;height:69px;padding:7px 0 2px}
 .hf .abar .atab{display:flex;flex-direction:column;align-items:center;gap:3px;border:0;background:none;
-  color:var(--stone);font:500 12px inherit;cursor:pointer;padding:2px 14px;position:relative;min-height:44px}
+  color:var(--stone);font-weight:500;font-size:12px;cursor:pointer;padding:2px 14px;position:relative;min-height:44px}
 .hf .abar .atab.on{color:var(--gr)}
 .hf .abar .atab .ic{width:24px;height:24px}
 .hf .abar .badge{position:absolute;top:-2px;right:8px;min-width:16px;height:16px;border-radius:99px;
-  background:var(--gr);color:var(--on-accent);font:700 10px/16px inherit;text-align:center;padding:0 4px}
+  background:var(--gr);color:var(--on-accent);font-weight:700;font-size:10px;line-height:16px;text-align:center;padding:0 4px}
 .hf .syncbar{margin:0 16px 8px;border:1px dashed var(--ln2);background:var(--stone-bg);color:var(--stone);
   border-radius:12px;padding:7px 12px;font-size:12.5px;display:flex;gap:8px;align-items:center}
 
@@ -159,10 +174,118 @@ export const HIFI_CSS = `
 .hf .card.flat{box-shadow:none}
 .hf .card.surface{border-radius:20px}
 .hf .card.inset{border-radius:16px}
-/* promise-direction edge (2026-08-14) — inset stripe: offers green, requests
+/* commitment-direction edge (2026-08-14) — inset stripe: offers green, requests
    sky. Direction reads at scroll speed; the chip stays the labelled signal. */
-.hf .card.edge-offer{box-shadow:inset 3px 0 0 var(--gr-ink),0 1px 3px rgba(14,18,27,.04)}
-.hf .card.edge-request{box-shadow:inset 3px 0 0 var(--sky),0 1px 3px rgba(14,18,27,.04)}
+/* Direction edges (3px inset stripes) retired 2026-08-16 — the Offer/Request
+   chip already says the direction in words, and the stripe gave otherwise
+   identical commitment cards two silhouettes. */
+
+/* Read-surface sections (2026-08-16 round 10) — the shipped work view's shape:
+   a quiet label on the canvas, its content in a card beneath. */
+/* Section labels are a real heading, not a caption (2026-08-17, Afo: "some
+   titles are bold and bigger which I like and others are more smaller and
+   grey"). This is a DELIBERATE divergence from shipped: WorkView renders an h6
+   and Media.tsx labels its Needed/Optional groups with text-xs uppercase, so
+   the pooling flows will read differently from the shipped work flow until
+   shipped follows. It does not compete with the step card's own heading, which
+   is the same size but sits inside a filled card behind a 48px icon badge. */
+.hf.s-client .h6s{font-size:15px;font-weight:650;letter-spacing:-.01em;
+  color:var(--ink);margin:8px 0 -2px}
+.hf.s-client .card.sect{padding:0;overflow:hidden;gap:0}
+.hf.s-client .card.sect.flush{padding:10px}
+/* An empty section says what is missing inside its own card rather than
+   replacing the card with a different component. */
+.hf.s-client .cempty{padding:6px 4px 10px;display:flex;flex-direction:column;gap:4px}
+.hf.s-client .drow{display:flex;justify-content:space-between;gap:12px;padding:9px 12px;
+  border-bottom:1px solid var(--ln);font-size:12.5px}
+.hf.s-client .drow:last-child{border-bottom:0}
+.hf.s-client .drow .dk{color:var(--stone);flex:none}
+.hf.s-client .drow .dv{font-weight:600;text-align:right;min-width:0;overflow-wrap:anywhere}
+/* Evidence as real thumbnails rather than text rows with an image icon. These
+   used to be .mtile — the same class the member tile claimed — and because
+   .hf.s-client .mtile outweighs .hf .mtile, every member card on a client
+   screen rendered at 60×78 with its name box computing to 2px tall. Renamed
+   .mthumb; the two components no longer share a selector.
+   A photo draws its picture. A voice note, link or written note has no picture,
+   so it keeps the dashed tile and shows its KIND as a glyph — the shipped
+   WorkView media section only ever holds images, and pretending otherwise is
+   what produced a box with the word "photo" in it. */
+.hf .mstrip{display:flex;gap:7px;overflow-x:auto;padding:10px;scrollbar-width:none}
+.hf .mstrip::-webkit-scrollbar{display:none}
+/* The READ surface's strip is WorkView's Carousel: max-w-40 (160px) items at
+   aspect-3/4 with a 16px radius, scrolled horizontally. It had been drawn at
+   60×78 with a 10px radius, which is neither the shipped size nor its ratio. */
+.hf .mthumb{width:150px;aspect-ratio:3/4;border-radius:16px;flex:none;position:relative;overflow:hidden;
+  background-size:cover;background-position:center;background-repeat:no-repeat}
+.hf .mthumb.kind{background:var(--card);border:1px dashed var(--ln2);color:var(--stone);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px}
+.hf .mthumb.kind .ic{width:18px;height:18px;color:var(--stone)}
+.hf .mthumb .mtl{font-size:10px;line-height:1.1;text-align:center;padding:0 4px;
+  max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* The zoom affordance Media.tsx puts over a photo (RiZoomInLine on the hover
+   overlay). On touch there is no hover, so it sits permanently at low weight. */
+.hf .mthumb .zoom,.hf .lthumb .zoom{position:absolute;right:3px;bottom:3px;width:16px;height:16px;
+  border-radius:50%;background:rgba(0,0,0,.42);display:flex;align-items:center;justify-content:center}
+.hf .mthumb .zoom .ic,.hf .lthumb .zoom .ic{width:10px;height:10px;color:#fff}
+/* List-row thumbnail — 44px, the shipped minimum touch target, so tapping the
+   picture to preview it lands on a target a finger already expects. */
+.hf .lthumb{width:44px;height:44px;border-radius:10px;flex:none;position:relative;overflow:hidden;
+  background-size:cover;background-position:center;background-repeat:no-repeat;display:block}
+
+/* COMMITMENT CARD (option E, 2026-08-16 round 9). Text column left, square right.
+   The square is sized in px rather than stretched: align-self:stretch with
+   aspect-ratio:1 makes the media's width follow its height while its height
+   follows the card's — a loop the browser resolves by inflating both (it drew
+   275px squares). A definite size is predictable, and 56px is the height of the
+   three text rows beside it, so the square still reads as full-bleed. */
+/* flex-direction:row is explicit — the base .card is a column, so without it
+   the square stacks under the text instead of sitting beside it.
+   The card carries a DEFINITE min-height per variant, which is what lets the
+   square below use align-self:stretch + aspect-ratio:1 without the sizing loop
+   that inflated it to 275px: the height resolves from the card, the width from
+   the ratio. Compact by design — this is the chat mockup's geometry. */
+.hf .card.pcard2{display:flex;flex-direction:row;gap:10px;align-items:stretch;
+  padding:9px 10px;min-height:74px}
+.hf .card.pcard2.cyc{min-height:92px}
+.hf .pcbody{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;
+  gap:3px;justify-content:center}
+.hf .pcbody .t-title{font-size:13.5px;font-weight:600;letter-spacing:-.005em;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hf .pcbody .t-meta{font-size:11.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* Square, and exactly the height of the text beside it — 50px for the commitment
+   card's three rows, 66px for the cycle card's four. Explicit px rather than
+   aspect-ratio + stretch, which loops (height from the row, width from the
+   ratio, row from the width) and inflated the square to 275px. Centred, so a
+   card carrying a note keeps the square in the middle rather than jammed to
+   the top. */
+.hf .pmedia{flex:none;align-self:stretch;aspect-ratio:1;width:auto;max-width:96px;border-radius:8px;
+  background-size:cover;background-position:center;background-repeat:no-repeat;
+  display:flex;align-items:center;justify-content:center;font-size:10px;letter-spacing:.02em}
+/* No image: the slot still occupies its column, so nothing on the left shifts
+   between a commitment with a photo and one without (2026-08-16, Afo). */
+.hf .pmedia.none{background:transparent}
+/* Media tints reuse the existing domain palette rather than inventing a second
+   one — a commitment's picture and its domain tag should not disagree on colour. */
+.hf.s-client .pmedia.agro{background:#EAEFE2;color:#3E5532}
+.hf.s-client .pmedia.waste{background:#F4E8E2;color:#9B3C2D}
+.hf.s-client .pmedia.garden{background:var(--stone-bg);color:var(--stone)}
+.hf.s-client .pmedia.quiet{background:var(--stone-bg);color:var(--stone)}
+/* One line, always. Priority order decides what survives; the overflow count
+   is the release valve so a commitment carrying eight tags still draws one row. */
+/* Clipping is the backstop, not the plan — the priority cap does the real work.
+   The fade makes a clipped tail read as "there is more" rather than as a chip
+   that got cut in half, which matters in narrow columns (the gallery) where a
+   capped row can still outrun its container. */
+/* Card tags run one step smaller than the dense admin chip — they are a label
+   on a thing you are scanning, not a control. */
+.hf .ptags .ch{font-size:10.5px;padding:1.5px 7px;border-radius:7px}
+.hf .ptags{display:flex;gap:4px;flex-wrap:nowrap;overflow:hidden;margin-top:1px;
+  mask-image:linear-gradient(to right,#000 calc(100% - 16px),transparent);
+  -webkit-mask-image:linear-gradient(to right,#000 calc(100% - 16px),transparent)}
+.hf .ptags .ch{flex:none}
+/* The overflow count is a chip like any other — a border here would make it 2px
+   taller than its neighbours and put two heights back into the list. */
+.hf .ptags .ch.more{background:var(--stone-bg);color:var(--stone)}
 
 /* skeleton — "loading preserves layout": card-shaped placeholders with a sheen */
 .hf .sk{background:var(--card);border:1px solid var(--ln);border-radius:24px;padding:14px;
@@ -201,7 +324,7 @@ export const HIFI_CSS = `
 
 /* chips */
 .hf .ch{display:inline-flex;align-items:center;gap:4px;border-radius:8px;padding:2.5px 8px;
-  font:600 12px inherit;background:var(--stone-bg);color:var(--stone);white-space:nowrap}
+  font-weight:600;font-size:12px;background:var(--stone-bg);color:var(--stone);white-space:nowrap}
 .hf .ch.offer{background:var(--gr-bg);color:var(--gr-ink)}
 .hf .ch.request{background:var(--sky-bg);color:var(--sky)}
 .hf .ch.domain{background:var(--amb-bg);color:var(--amb)}
@@ -210,11 +333,19 @@ export const HIFI_CSS = `
 .hf .ch.err{background:transparent;color:var(--err);box-shadow:inset 0 0 0 1px var(--err)}
 .hf .ch.ink{background:var(--ink);color:var(--cv)}
 .hf .ch.queued{background:transparent;color:var(--stone);box-shadow:inset 0 0 0 1px var(--ln2);border-style:dashed}
+/* Cycles — one hue, two weights. A cycle is a different CLASS of tag from the
+   three that existed (direction, subject matter, container), and admin had been
+   drawing Campaign in the Request tone, so the two were indistinguishable.
+   Season is filled because it is the pool's ground rhythm, one at a time;
+   campaigns are outlined because any number of them run on top of it. */
+.hf .ch.season{background:var(--cyc-bg);color:var(--cyc)}
+.hf .ch.campaign{background:transparent;color:var(--cyc);
+  box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--cyc) 38%,transparent)}
 .hf .ch.dot::before{content:"";width:6px;height:6px;border-radius:99px;background:currentColor}
 
 /* buttons — shared skeleton; per-dialect anatomy below (admin keeps its pill) */
 .hf .b{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:0;cursor:pointer;
-  font:600 15px inherit;min-height:44px;padding:10px 20px;border-radius:9999px;color:var(--ink);
+  font-weight:600;font-size:15px;min-height:44px;padding:10px 20px;border-radius:9999px;color:var(--ink);
   background:transparent;transition:transform var(--spring-spatial-fast),background var(--spring-effects-fast)}
 .hf .b:active{transform:scale(.985)}
 .hf .b.pri{background:var(--act);color:var(--on-act)}
@@ -246,7 +377,7 @@ export const HIFI_CSS = `
 .hf .meter .tr{height:6px;border-radius:99px;background:var(--stone-bg);position:relative;overflow:visible}
 .hf .meter .fi{height:100%;border-radius:99px;background:var(--gr);transition:width var(--spring-effects-slow)}
 .hf .meter .tick{position:absolute;top:-3px;width:2px;height:12px;background:var(--ink);opacity:.55;border-radius:1px}
-.hf .meter .mrow{display:flex;justify-content:space-between;font-size:12.5px;color:var(--stone)}
+.hf .meter .mtrow{display:flex;justify-content:space-between;font-size:12.5px;color:var(--stone)}
 
 /* state timeline (StateTimeline grammar) */
 .hf .tl{display:flex;flex-direction:column}
@@ -280,18 +411,26 @@ export const HIFI_CSS = `
 /* segmented filter chips */
 .hf .seg{display:flex;gap:6px;overflow-x:auto;padding:2px 0;scrollbar-width:none}
 .hf .seg .sg{border:0;background:var(--stone-bg);color:var(--stone);border-radius:99px;padding:6px 13px;
-  font:600 13px inherit;white-space:nowrap;min-height:44px;display:inline-flex;align-items:center}
+  font-weight:600;font-size:13px;white-space:nowrap;min-height:44px;display:inline-flex;align-items:center}
 .hf .seg .sg.on{background:var(--ink);color:var(--cv)}
 .hf .seg .sg[disabled],.hf .gtab[disabled],.hf .tabrail .trtab[disabled]{opacity:1;cursor:default}
 .hf .sg .nbadge{margin-left:6px;min-width:16px;height:16px;border-radius:99px;background:var(--act);color:var(--on-act);
-  font:700 10.5px/16px inherit;display:inline-block;text-align:center;padding:0 4px;vertical-align:1px}
+  font-weight:700;font-size:10.5px;line-height:16px;display:inline-block;text-align:center;padding:0 4px;vertical-align:1px}
 
 /* season + campaigns rail (2026-08-14) — bleeds to the screen edge inside
    .pagepad so the next slide peeks; the Season slide leads wider. */
-.hf .crail{display:flex;gap:10px;overflow-x:auto;scroll-snap-type:x mandatory;margin:0 -16px;padding:2px 16px 4px;scrollbar-width:none}
+/* scroll-padding, not just padding: a snap container snaps the first slide to
+   the SCROLLPORT edge and ignores the padding box, so the rail loaded at
+   scrollLeft:16 and the first card sat flush at 0 while every other card on
+   the page sat at 16 (2026-08-17, Afo). scroll-padding-inline moves the
+   snapport itself, so the first card lines up with the layout. */
+.hf .crail{display:flex;gap:10px;overflow-x:auto;scroll-snap-type:x mandatory;margin:0 -16px;padding:2px 16px 4px;scroll-padding-inline:16px;scrollbar-width:none}
 .hf .crail::-webkit-scrollbar{display:none}
-.hf .crail .cslide{flex:0 0 74%;scroll-snap-align:start;display:flex}
-.hf .crail .cslide.lead{flex-basis:84%}
+/* Every slide is the same width (2026-08-16, Afo). The season used to be wider
+   than the campaigns beside it, which made peers look like a parent and a pair
+   of children. Wider slides also mean the next card bleeds in less — enough
+   edge to say "swipe", not enough to read as a half-shown card. */
+.hf .crail .cslide{flex:0 0 88%;scroll-snap-align:start;display:flex}
 .hf .crail .cslide > .card{flex:1;min-width:0}
 
 /* domain row (2026-08-14 second pass) — domains leave the top chip row for
@@ -299,7 +438,7 @@ export const HIFI_CSS = `
    Tints mirror theme.css --domain-*-rgb (agro moss, edu harbour, solar amber,
    waste terracotta); the real build renders DomainBadge with its icons. */
 .hf .dmrow{display:flex;flex-wrap:wrap;gap:6px}
-.hf .dm{border-radius:99px;padding:2.5px 9px;font:600 11.5px/1.4 inherit;letter-spacing:.01em}
+.hf .dm{border-radius:99px;padding:2.5px 9px;font-weight:600;font-size:11.5px;line-height:1.4;letter-spacing:.01em}
 .hf.s-client .dm.agro{background:#EAEFE2;color:#3E5532}
 .hf.s-client .dm.edu{background:#E2EAF0;color:#2E4F6B}
 .hf.s-client .dm.solar{background:#F8EDE0;color:#7A5A13}
@@ -319,12 +458,143 @@ export const HIFI_CSS = `
    the card is the navigation, footer buttons are reserved for claim acts. */
 .hf [data-hot].cardlink{cursor:pointer}
 
+/* ONE section-title style in the client (2026-08-17, Afo: "we need the section
+   title style match across what you're offering, the how much, add details,
+   review and commit"). The flow's early steps used .t-sec — 16.5px sentence
+   case — while its later steps and every read surface used .h6s, the 11px
+   uppercase label that mirrors WorkView's <h6>. The shipped component decides
+   it: .t-sec takes the h6 metric inside the client dialect. Admin keeps its own,
+   where .t-sec is a genuine card heading rather than a section label. */
+.hf.s-client .t-sec{font-size:15px;font-weight:650;letter-spacing:-.01em;
+  color:var(--ink);margin:8px 0 -6px;display:flex;align-items:center;gap:8px}
+.hf.s-client .t-sec .hx{margin-left:auto;text-transform:none;letter-spacing:0}
+
+/* A truncated unit label keeps its full text in its title attribute — cut, never lost. */
+.hf .ulab{border-bottom:1px dotted var(--ln2);cursor:help}
+
+/* The commitment's identity card (2026-08-17 round 21) — one object where the
+   top of the screen used to be four ungrouped rows. */
+.hf .card.idcard{gap:8px;padding:14px 16px}
+.hf .idcard .idt{font-size:19px;font-weight:650;line-height:1.25;letter-spacing:-.01em;color:var(--ink)}
+.hf .idcard .idrule{height:1px;background:var(--ln);margin:2px -16px}
+.hf .idcard .idp{display:flex;align-items:center;gap:9px;font-size:13.5px;color:var(--ink)}
+.hf .idcard .idp .avatar{width:26px;height:26px;border-radius:50%;background:var(--act);color:var(--on-act);
+  display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;flex:none}
+.hf .idcard .idteam{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--act);padding-left:35px}
+.hf .idcard .idteam .ic{flex:none}
+/* Requirement rows carry bars because approved work is what advances readiness.
+   Everything under the hairline does not, and has no bar — that absence is the
+   signal, per the 2026-08-17 alignment. */
+.hf .idcard .prow{display:flex;align-items:center;gap:8px}
+.hf .idcard .prow .meter{flex:1;min-width:0}
+.hf .idcard .prow .pdone{color:var(--gr-ink);flex:none}
+.hf .idcard .phair{height:1px;background:var(--ln);margin:4px 0 2px}
+.hf .idcard .pflat{display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--stone)}
+.hf .idcard .pflat .ic{color:var(--stone);flex:none}
+
+/* Member card — the added-team carousel on the details step. GardenMemberItem's
+   own layout at a fixed width: 40px avatar left, name and account stacked
+   beside it, role beneath. 216px shows one and a half cards on a 375px phone,
+   which is the peek that says "this scrolls". The remove control is absolutely
+   positioned so it costs the text column nothing — the column is 142px, enough
+   for "Contributor" and for most names before the ellipsis. */
+.hf .mtrail{display:flex;gap:8px;overflow-x:auto;margin:0 -16px;padding:2px 16px 6px;scrollbar-width:none}
+.hf .mtrail::-webkit-scrollbar{display:none}
+/* A solo team is one full-width card. 216px leaves dead space beside it and
+   reads like the rail is missing something. */
+.hf .mtrail .mcard:only-child{flex:1 1 auto}
+.hf .mcard{flex:0 0 216px;position:relative;border:1px solid var(--ln);border-radius:14px;
+  background:var(--card);padding:12px;display:flex;align-items:center;gap:10px;min-width:0}
+/* The text column clears the absolutely-placed remove control, exactly as
+   GardenMemberItem pads its own column (pr-14) to clear the Operator badge
+   pinned at top-2 right-2. Without it the 44px touch target — the global
+   minimum, larger than the 28px glyph box — lands on top of the name. */
+.hf .mcard .grow{min-width:0;padding-right:34px}
+.hf .mcard .mn{font-weight:600;font-size:13.5px;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hf .mcard .mn.addr{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px}
+.hf .mcard .ms{font-size:11.5px;color:var(--stone);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* Role reads as a quiet line, not a badge — every card carries one, and five
+   filled pills in a row would out-shout the names they describe. The lead is
+   the exception: exactly one person is accountable, so that one gets weight. */
+.hf .mcard .mrole{margin-top:3px;font-size:11px;color:var(--stone);text-transform:uppercase;letter-spacing:.04em}
+.hf .mcard .mrole.lead{color:var(--act);font-weight:700}
+.hf .mcard .mcx{position:absolute;top:0;right:0;border:0;background:none;padding:0;
+  display:flex;align-items:center;justify-content:center;cursor:pointer}
+.hf .mcard .mcxb{width:26px;height:26px;border:1px solid var(--ln2);border-radius:9px;
+  background:var(--card);color:var(--stone);display:flex;align-items:center;justify-content:center}
+.hf .mcard .mcx .ic{width:13px;height:13px}
+/* The add card closes the rail rather than sitting apart from it. Narrower than
+   a member — it holds one word, not three lines. */
+.hf .mcard.addtile{flex:0 0 104px;border-style:dashed;flex-direction:column;justify-content:center;
+  gap:6px;color:var(--act)}
+.hf .mcard.addtile .ic{color:var(--act)}
+.hf .mcard.addtile .mtn{font-weight:600;font-size:12.5px;color:var(--act)}
+
+/* FormCard — the shipped review's per-detail card (FormCard.tsx:19): an icon +
+   label head above a rule, the value beneath. Stacked one per detail under an
+   h6, which is what WorkView does and therefore what every review here does. */
+.hf .fcard{border:1px solid var(--ln);border-radius:14px;background:var(--card);overflow:hidden}
+.hf .fcard+.fcard{margin-top:8px}
+.hf .fcard .fch{display:flex;align-items:center;gap:8px;padding:11px 12px;border-bottom:1px solid var(--ln)}
+.hf .fcard .fch .ic{color:var(--act);flex:none}
+.hf .fcard .fch span{font-weight:600;font-size:13.5px;color:var(--ink)}
+.hf .fcard .fcv{padding:8px 12px 12px 16px;font-size:13px;color:var(--stone);line-height:1.45}
+
+/* The action rail's count row: anchored at the card's foot with the description
+   held to a fixed two-line box above it, so a rail of cards shows every quantity
+   at the same height (2026-08-17). */
+.hf.s-client .selrail .acard .abody{min-height:96px}
+.hf.s-client .selrail .acard .abody .am{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;
+  overflow:hidden;min-height:calc(2 * 1.4em)}
+.hf.s-client .selrail .acard .acount{margin-top:auto;align-self:flex-start;border-radius:8px;padding:2.5px 8px;
+  font-weight:600;font-size:12px;background:var(--gr-bg);color:var(--gr-ink)}
+.hf.s-client .selrail .acard .acount.off{background:var(--stone-bg);color:var(--stone)}
+
+/* MemberRow — mirrors the shipped garden Gardeners item (Gardeners.tsx:74):
+   full-width tappable row, 40px avatar, name over subline over a registered
+   line, badge pinned top-right. The select dot replaces that component's
+   navigation affordance when the row is being picked rather than opened. */
+.hf .mbrow{position:relative;display:flex;align-items:center;gap:12px;width:100%;text-align:left;
+  border:1px solid var(--ln);border-radius:14px;background:var(--card);padding:8px;
+  box-shadow:0 1px 2px color-mix(in srgb,var(--ink) 6%,transparent)}
+.hf .mbrow+.mbrow{margin-top:8px}
+.hf .mbrow.picked{border-color:var(--act);box-shadow:inset 0 0 0 1px var(--act)}
+/* A gardener is a PHOTOGRAPH — Gardeners.tsx:72 resolves
+   member.avatar, then ensAvatar, then /images/avatar.png, and AvatarFallback is
+   an empty muted disc, never a letter. The 40px avatar on the member row and the
+   member card both draw one; .nopic is the generic-person case. */
+.hf .mbrow .avatar,.hf .mcard .avatar{width:40px;height:40px;border-radius:50%;flex:none;
+  display:inline-flex;align-items:center;justify-content:center;overflow:hidden;
+  background-color:var(--stone-bg);background-size:cover;background-position:center}
+.hf .mbrow .avatar.nopic .ic,.hf .mcard .avatar.nopic .ic{width:22px;height:22px;color:var(--stone)}
+.hf .mbrow .mn{font-weight:600;font-size:14.5px;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* A wallet address stands in for the name only when nothing better is on file,
+   so it reads as an identifier rather than as a person's name. */
+.hf .mbrow .mn.addr{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px}
+.hf .mbrow .ms{font-size:12px;color:var(--stone);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hf .mbrow .mj{display:flex;align-items:center;gap:4px;font-size:11.5px;color:var(--stone);margin-top:1px}
+.hf .mbrow .mj .ic{color:var(--act);flex:none}
+.hf .mbrow .mbadge{position:absolute;top:8px;right:8px;border-radius:99px;padding:2.5px 8px;
+  font-weight:600;font-size:12px;background:var(--stone-bg);color:var(--stone)}
+.hf .mbrow .msel{width:20px;height:20px;border-radius:50%;border:1.5px solid var(--ln2);flex:none;align-self:center}
+.hf .mbrow .msel.on{border-color:var(--act);background:var(--act);
+  box-shadow:inset 0 0 0 3px var(--card),inset 0 0 0 20px var(--act)}
+
 /* browse filter row (2026-08-14) — direction chips + the personal Mine toggle */
 .hf .filters{display:flex;align-items:center;gap:8px}
 .hf .filters .seg{flex:1 1 auto;min-width:0}
-.hf .filters .mine{flex:none;border:1px solid var(--ln2);background:none;color:var(--stone);border-radius:99px;
-  padding:5px 12px;font:600 12.5px/1.2 inherit}
-.hf .filters .mine.on{border-color:var(--ink);background:var(--ink);color:var(--cv)}
+/* One chip metric across the whole row (2026-08-16, Afo). The direction pills
+   inherited the tab-sized .seg .sg metric — 13px type in a 44px box — and sat
+   next to a 12.5px Mine toggle, so the row rendered two chip heights side by
+   side. Both now take the Mine metric. The outline is an inset shadow rather
+   than a border so it adds no height, and the tap target is restored by a
+   transparent ::after rather than by growing the pill. */
+.hf .filters .seg .sg,.hf .filters .mine{position:relative;flex:none;border:0;border-radius:99px;
+  padding:6px 12px;min-height:0;font-weight:600;font-size:12.5px;line-height:1.2;
+  display:inline-flex;align-items:center;white-space:nowrap}
+.hf .filters .seg .sg::after,.hf .filters .mine::after{content:"";position:absolute;inset:-9px 0}
+.hf .filters .mine{background:none;color:var(--stone);box-shadow:inset 0 0 0 1px var(--ln2)}
+.hf .filters .mine.on{background:var(--ink);color:var(--cv);box-shadow:none}
 
 /* Submit Work grounding (2026-08-14) — mirrors the shipping flow's anatomy:
    FormInfo section headers (client FormInfo.tsx) and the image-topped
@@ -333,7 +603,7 @@ export const HIFI_CSS = `
 .hf.s-client .finfo{display:flex;gap:12px;align-items:center;background:var(--stone-bg);border:1px solid var(--ln);border-radius:14px;padding:12px 14px}
 .hf.s-client .finfo .fic{width:48px;height:48px;border-radius:99px;background:var(--card);border:1px solid var(--ln2);display:inline-flex;align-items:center;justify-content:center;flex:none}
 .hf.s-client .finfo .ic{color:var(--act)}
-.hf.s-client .finfo .ft{font:650 15px inherit}
+.hf.s-client .finfo .ft{font-weight:650;font-size:15px}
 .hf.s-client .finfo .fi{font-size:12.5px;color:var(--stone)}
 .hf.s-client .selrail{display:flex;gap:10px;overflow-x:auto;margin:0 -16px;padding:2px 16px 4px;scrollbar-width:none}
 .hf.s-client .selrail::-webkit-scrollbar{display:none}
@@ -341,9 +611,9 @@ export const HIFI_CSS = `
    overridden by the later admin .acard rule, whose --card-low does not exist
    in .s-client. */
 .hf.s-client .selrail .acard{flex:0 0 200px;border:1px solid var(--ln);border-radius:14px;overflow:hidden;background:var(--card);padding:0;gap:0;box-shadow:none;display:flex;flex-direction:column}
-.hf.s-client .selrail .acard .amedia{height:80px;display:flex;align-items:flex-end;padding:8px 11px;color:#FFF;font:650 13px inherit;letter-spacing:.01em}
+.hf.s-client .selrail .acard .amedia{height:80px;display:flex;align-items:flex-end;padding:8px 11px;color:#FFF;font-weight:650;font-size:13px;letter-spacing:.01em}
 .hf.s-client .selrail .acard .abody{padding:10px 12px;display:flex;flex-direction:column;gap:3px}
-.hf.s-client .selrail .acard .abody .at{font:650 14px inherit}
+.hf.s-client .selrail .acard .abody .at{font-weight:650;font-size:14px}
 .hf.s-client .selrail .acard .abody .am{font-size:12px;color:var(--stone);line-height:1.4}
 .hf.s-client .selrail .acard.on{border-color:var(--act);box-shadow:inset 0 0 0 1.5px var(--act)}
 .hf.s-client .amedia.agro{background:#3E5532}
@@ -353,9 +623,9 @@ export const HIFI_CSS = `
 .hf.s-client .amedia.garden{background:#5C6E4E}
 .hf.s-client .inp.ta{height:auto}
 .hf.s-client .inp.ta textarea{resize:none;background:none;border:0;font:inherit;color:inherit;width:100%}
-/* promise slides — the intro's third rail (2026-08-14): compact promise
+/* commitment slides — the intro's third rail (2026-08-14): compact commitment
    cards riding the same horizontal grammar as the action/garden rails, so
-   holding many promises costs no extra vertical space. */
+   holding many commitments costs no extra vertical space. */
 .hf .pcard{flex:0 0 218px;border-radius:14px;padding:11px 12px;gap:3px}
 .hf .pcard .t-title{font-size:14px;line-height:1.3}
 
@@ -366,15 +636,15 @@ export const HIFI_CSS = `
 .hf .fabbtn .ic{width:24px;height:24px}
 .hf .fabbtn.x{background:var(--card);color:var(--ink);border:1px solid var(--ln2)}
 .hf .fabscrim{position:absolute;inset:0;background:var(--scrim);z-index:4;border-radius:inherit}
-.hf .fabdoor{border:0;border-radius:99px;padding:11px 20px;font:600 14.5px/1.2 inherit;background:var(--card);color:var(--ink);
+.hf .fabdoor{border:0;border-radius:99px;padding:11px 20px;font-weight:600;font-size:14.5px;line-height:1.2;background:var(--card);color:var(--ink);
   box-shadow:0 4px 14px rgba(14,18,27,.2);cursor:pointer}
 
 /* forms (W3 grammar) */
 .hf .fld{display:flex;flex-direction:column;gap:5px}
 .hf fieldset.fld{border:0;padding:0;margin:0;min-width:0}
-.hf .fld .fl{font:600 14px/1.35 inherit;color:var(--ink);letter-spacing:0}
+.hf .fld .fl{font-weight:600;font-size:14px;line-height:1.35;color:var(--ink);letter-spacing:0}
 .hf .inp{border:1px solid var(--ln2);background:var(--card);border-radius:12px;min-height:46px;
-  padding:11px 13px;font:500 15px inherit;color:var(--ink);display:flex;align-items:center;gap:8px}
+  padding:11px 13px;font-weight:500;font-size:15px;color:var(--ink);display:flex;align-items:center;gap:8px}
 .hf .inp input,.hf .inp select{appearance:none;border:0;outline:0;background:transparent;color:inherit;font:inherit;
   min-width:0;width:100%;padding:0;margin:0}
 .hf .inp input::placeholder{color:var(--stone);font-weight:400;opacity:1}
@@ -385,35 +655,158 @@ export const HIFI_CSS = `
   padding:11px 13px;cursor:pointer;background:var(--card);min-height:44px}
 .hf .ro .rdot{appearance:none;width:20px;height:20px;border:0;border-radius:99px;box-shadow:inset 0 0 0 2px var(--ln2);flex:none;margin-top:1px;background:transparent;opacity:1}
 .hf .ro.on,.hf .ro:has(.rdot:checked){border-color:var(--act);box-shadow:inset 0 0 0 1px var(--act)}
+/* An option present but not available to this reader (round 48). The label
+   stays legible — the point is that they can see what exists and why it is
+   closed — while the dot and the row read as inert. */
+.hf .ro.off{background:var(--stone-bg);cursor:not-allowed}
+.hf .ro.off .rl{color:var(--stone)}
+.hf .ro.off .rdot{box-shadow:inset 0 0 0 2px var(--ln);opacity:.6}
 .hf .ro.on .rdot,.hf .ro .rdot:checked{box-shadow:inset 0 0 0 6px var(--act)}
 .hf .ro .rl{display:block;font-size:14.5px;font-weight:550}
 .hf .ro .rm{display:block;font-size:12.5px;color:var(--stone)}
-.hf .stepdots{display:flex;gap:6px;align-items:center}
-.hf .stepdots i{width:7px;height:7px;border-radius:99px;background:var(--ln2);display:block}
-.hf .stepdots i.on{background:var(--act)}
-.hf .stepdots i.done{background:color-mix(in srgb,var(--act) 45%,var(--ln2))}
 
 /* key-value stat rows */
 .hf .kv{display:flex;justify-content:space-between;gap:12px;font-size:13.5px;padding:3px 0}
 .hf .kv .k{color:var(--stone)}
 .hf .kv .v{font-weight:550;text-align:right;font-variant-numeric:tabular-nums}
 
+/* Offer record — what an ongoing offer has given over time. Every figure is a
+   numerator; see kit.offerRecord for why the absence of a denominator is the
+   rule rather than a style choice. */
+.hf .orec{display:flex;flex-direction:column;gap:6px;padding:2px 0}
+.hf .orec .orow{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink)}
+.hf .orec .orow .ic{width:14px;height:14px;color:var(--act);flex:none}
+.hf .orec.compact{flex-direction:row;flex-wrap:wrap;gap:0;font-size:11.5px;color:var(--stone);padding:0}
+
+
+/* The COMPOSER's stack: Media.tsx is flex-col on mobile and only grids at md:,
+   which a 390px phone never reaches. Full-width photos at aspect-4/3, stacked,
+   each big enough to check before sending. */
+.hf .mstack{display:flex;flex-direction:column;gap:12px}
+.hf .mwrap{position:relative}
+.hf .mshot{width:100%;aspect-ratio:4/3;border-radius:12px;overflow:hidden;position:relative;
+  background-size:cover;background-position:center}
+.hf .mstack .mrow{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--ln);
+  border-radius:12px;background:var(--card)}
+.hf .mstack .mrow .ic{color:var(--stone);flex:none}
+.hf .mstack .mrow .lp{font-size:13.5px;font-weight:600;color:var(--ink)}
+.hf .mx{min-width:44px;min-height:44px;border:0;background:none;padding:0;display:flex;
+  align-items:center;justify-content:center;cursor:pointer;color:var(--stone)}
+/* Media.tsx pins its remove control at top-2 right-2 over the photo, on a
+   bordered surface square so it reads against any image. */
+.hf .mx.over{position:absolute;top:8px;right:8px;background:var(--card);border:1px solid var(--ln2);
+  border-radius:10px;min-width:38px;min-height:38px;color:var(--ink)}
+.hf .mshot .zoom{position:absolute;right:8px;bottom:8px;width:22px;height:22px;border-radius:50%;
+  background:rgba(0,0,0,.42);display:flex;align-items:center;justify-content:center}
+.hf .mshot .zoom .ic{width:12px;height:12px;color:#fff}
+/* Image preview — ImagePreviewDialog. Fills the phone the way a fullscreen
+   viewer does, so the device status bar goes light-on-dark over it rather than
+   staying a white strip; :has() binds that to the preview's presence instead of
+   a hardcoded status-bar height that would drift. The zoom trio is hidden below
+   the sm breakpoint in the shipped component (pinch is native on touch), so a
+   phone draws download and close only — which is what keeps close on-screen at
+   375px. */
+.hf .ipv{position:absolute;inset:0;z-index:9;background:rgba(0,0,0,.93);
+  display:flex;align-items:center;justify-content:center;border-radius:32px}
+.hf .scr:has(.ipv) .statusbar{background:transparent;color:#fff;z-index:10;position:relative}
+.hf .scr:has(.ipv) .sb-sig i{background:#fff}
+.hf .scr:has(.ipv) .sb-batt{border-color:#fff}
+.hf .scr:has(.ipv) .statusbar .ic{color:#fff}
+.hf .iph{position:absolute;top:34px;left:0;right:0;z-index:2;display:flex;align-items:center;
+  justify-content:space-between;padding:10px 12px 18px;
+  background:linear-gradient(to bottom,rgba(0,0,0,.5),rgba(0,0,0,0))}
+.hf .ipc{font-size:13px;font-weight:600;color:#fff;font-variant-numeric:tabular-nums}
+.hf .ipa{display:flex;align-items:center}
+.hf .ipb{width:36px;height:36px;border-radius:50%;border:0;padding:0;cursor:pointer;
+  background:rgba(255,255,255,.10);display:flex;align-items:center;justify-content:center}
+.hf .ipb .ic{width:18px;height:18px;color:#fff}
+.hf .ipb.solid{background:rgba(255,255,255,.20)}
+/* Close is separated from the download cluster by a rule, as it is in the
+   shipped header — it is the one control that ends the preview. */
+.hf .ipsep{margin-left:12px;padding-left:12px;border-left:1px solid rgba(255,255,255,.2);display:flex}
+/* object-contain: the photo is shown whole at its own aspect, not cropped. */
+.hf .ipi{width:calc(100% - 32px);aspect-ratio:4/3;max-height:62%;border-radius:14px;
+  border:1px solid rgba(255,255,255,.12);background-size:cover;background-position:center}
+.hf .ipb.nav{position:absolute;top:50%;translate:0 -50%;z-index:2}
+.hf .ipb.nav.prev{left:14px}
+.hf .ipb.nav.next{right:14px}
+
 /* in-phone bottom sheet (W2a / W4) */
 .hf .sheetstage{position:relative;flex:1;display:flex;flex-direction:column;min-height:0}
 .hf .sheetstage .behind{filter:saturate(.9);opacity:.9;pointer-events:none;flex:1;display:flex;flex-direction:column}
 .hf .sheetstage .scrimm{position:absolute;inset:0;background:var(--scrim);border-radius:0}
 .hf .sheet{position:absolute;left:0;right:0;bottom:0;background:var(--card);border-radius:16px 16px 0 0;
-  border-bottom:0;padding:8px 16px 14px;display:flex;flex-direction:column;gap:10px;
+  border-bottom:0;padding:8px 16px 14px;display:flex;flex-direction:column;gap:10px;min-height:0;
+  max-height:88%;
   box-shadow:0 -12px 40px rgba(14,18,27,.20),0 -2px 8px rgba(14,18,27,.10)}
+/* Tabbed drawers are a fixed panel: moving between Cookies / Tokens /
+   Commitments must not resize the surface under the reader's thumb.
+   Shipped is h-modal — height:85dvh, a HEIGHT and not a max-height
+   (utilities.css:345). Any sheet in the commitments arc takes it, so
+   confirming something does not resize the surface it opened from
+   (2026-08-17 round 43, Afo). */
+.hf .sheet.drawer{height:88%}
+/* Fixed header row: title block + the shipped close control. */
+.hf .sheet .sh-hd{display:flex;align-items:flex-start;gap:8px;flex:0 0 auto}
+.hf .sheet .sh-hd .grow{min-width:0;flex:1}
+.hf .sheet .sh-sub{font-size:12.5px;color:var(--stone);line-height:1.35;margin-top:2px}
+.hf .sheet .sh-x{width:36px;height:36px;border-radius:99px;border:1px solid var(--ln);background:var(--card);
+  color:var(--stone);display:inline-flex;align-items:center;justify-content:center;flex:none;margin-top:-2px}
+/* Fixed tab rail — shipped anatomy: equal full-width segments, a rule beneath,
+   a 2px indicator under the active one. Bleeds to the sheet's edge like the
+   scroll body does, so the rule spans the panel. */
+.hf .sheet .sh-tabs{display:flex;flex:0 0 auto;margin:2px -16px 0;border-bottom:1px solid var(--ln);background:var(--stone-bg)}
+.hf .sheet .shtab{flex:1 1 0;min-width:0;min-height:44px;position:relative;border:0;background:transparent;
+  color:var(--stone);font-size:12.5px;font-weight:600;padding:8px 6px;display:inline-flex;align-items:center;
+  justify-content:center;gap:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;opacity:1}
+.hf .sheet .shtab.on{color:var(--act);background:var(--card)}
+.hf .sheet .shtab .shind{position:absolute;left:0;right:0;bottom:0;height:2px;background:var(--act)}
+.hf .sheet .shtab .nbadge{min-width:16px;height:16px;border-radius:99px;background:var(--act);color:var(--on-act);
+  font-weight:700;font-size:10.5px;line-height:16px;text-align:center;padding:0 4px;flex:none}
+.hf .sheet .shtab.on .nbadge{background:var(--act);color:var(--on-act)}
+/* Fixed chrome below the header — a search field or any control that governs
+   the list beneath it. Same reasoning as the tab rail: it must not leave the
+   screen while you read what it filters (round 45). */
+.hf .sheet .sh-chrome{flex:0 0 auto;padding:8px 0 2px}
+/* Search field — the shipped RecipientPicker's control (RecipientPicker.tsx:96),
+   a plain full-width input. The leading glyph is ours: that picker doubles as a
+   paste-an-address field, and this one only ever searches. */
+.hf .srch{border:1px solid var(--ln2);background:var(--card);border-radius:12px;min-height:44px;
+  padding:10px 13px;font-size:14.5px;color:var(--ink);display:flex;align-items:center;gap:8px}
+.hf .srch .ic{color:var(--stone);flex:none}
+.hf .srch input{appearance:none;border:0;outline:0;background:transparent;color:inherit;font:inherit;
+  min-width:0;width:100%;padding:0;margin:0}
+.hf .srch input::placeholder{color:var(--stone);font-weight:400;opacity:1}
+/* Fixed footer — the acts live here, never inline at the end of the content
+   (ModalDrawer.tsx:191 · pwaDrawerStyles.footer). Bleeds to the panel edge so
+   the rule spans it, and restores its own padding inside. */
+.hf .sheet .sh-foot{flex:0 0 auto;margin:0 -16px -14px;padding:12px 16px 14px;border-top:1px solid var(--ln);
+  background:var(--card)}
+.hf .sheet .sh-foot .fbar{position:static;padding:0;border:0;background:transparent}
+/* Only the body scrolls — the handle and title stay put. The negative margin
+   puts the scrollbar at the sheet's edge rather than inside its padding. */
+.hf .sheet .sh-body{flex:1 1 auto;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;
+  display:flex;flex-direction:column;gap:10px;margin:0 -16px;padding:0 16px 2px;scrollbar-width:none}
+.hf .sheet .sh-body::-webkit-scrollbar{display:none}
+/* Children must NOT shrink. A column flex container compresses its items by
+   default, so tall content silently squashed to fit instead of overflowing —
+   which is why the sheet could never scroll, only clip. */
+.hf .sheet .sh-body > *{flex:0 0 auto}
 /* drag handle only on gesture sheets (PwaSheet); tinted tone-primary/32%.
    Tabbed drawers (ModalDrawer / WalletDrawer) omit .drag entirely. */
 .hf .sheet .drag{width:36px;height:5px;border-radius:99px;background:color-mix(in srgb,var(--act) 32%,transparent);margin:2px auto 4px}
 .hf .sheet .sh-t{font-size:18px;font-weight:650;letter-spacing:-.01em;text-wrap:balance}
+/* FormInfo anatomy for a sheet header — badge, title, meaning. */
+.hf.s-client .sheet .sh-head{display:flex;gap:12px;align-items:center}
+.hf.s-client .sheet .sh-head .fic{width:44px;height:44px;border-radius:99px;background:var(--stone-bg);
+  border:1px solid var(--ln);display:inline-flex;align-items:center;justify-content:center;flex:none}
+.hf.s-client .sheet .sh-head .ic{color:var(--act)}
+.hf.s-client .sheet .sh-head .fi{font-size:12.5px;color:var(--stone);line-height:1.35;margin-top:2px}
 
 /* disclosure (progressive disclosure on W2) */
 .hf details.disc{border:1px solid var(--ln);border-radius:14px;background:var(--card)}
 .hf details.disc summary{list-style:none;display:flex;align-items:center;gap:8px;cursor:pointer;
-  padding:11px 13px;font:600 14px inherit;min-height:44px}
+  padding:11px 13px;font-weight:600;font-size:14px;min-height:44px}
 .hf details.disc summary::-webkit-details-marker{display:none}
 .hf details.disc summary .cnt{color:var(--stone);font-weight:500;font-size:12.5px}
 .hf details.disc summary .caret{margin-left:auto;transition:rotate var(--spring-spatial-fast);color:var(--stone)}
@@ -473,7 +866,13 @@ export const HIFI_CSS = `
 .hf .hhead .hh-title{margin:0;flex:1;font-size:19px;font-weight:650;letter-spacing:-.01em}
 .hf .hhead .hh-actions{display:flex;align-items:center;gap:8px}
 .hf .hhead .hh-ic{width:44px;height:44px;border-radius:12px;border:1px solid var(--ln);background:var(--card);
-  color:var(--stone);display:inline-flex;align-items:center;justify-content:center;cursor:pointer}
+  color:var(--stone);display:inline-flex;align-items:center;justify-content:center;cursor:pointer;position:relative}
+/* Attention count on a header control (2026-08-17) — the shipped
+   WorkDashboardIcon pattern: a small pill pinned to the icon's top-right
+   corner, not a dot, because the number is the point. */
+.hf .hhead .hh-badge{position:absolute;top:4px;right:4px;min-width:16px;height:16px;padding:0 4px;
+  border-radius:99px;background:var(--act);color:var(--on-act);font-size:10.5px;font-weight:700;
+  line-height:16px;text-align:center;border:2px solid var(--card);box-sizing:content-box}
 
 /* ---------- admin dialect (.s-admin) — Cockpit M3, finished (1a) ----------
    Re-synced 2026-08-15 to the shipped redesign (PR #713): linen canvas
@@ -586,7 +985,16 @@ export const HIFI_CSS = `
 
 /* PageHeader — title-large (22/28 @600, no display ramp), sticky under the
    AppBar, transparent over the canvas wash. */
-.hf .pghead{position:sticky;top:0;z-index:3;background:transparent;display:flex;flex-direction:column;gap:7px;padding:2px 0 4px}
+/* The header and its tab rail pin as ONE band (round 46). Sticky moves here
+   from .pghead: the header stuck while the rail scrolled away, so the stage
+   navigation left the screen exactly when a long queue made it useful. The
+   band carries the canvas ground, because a transparent sticky element lets
+   rows scroll visibly through the title. The negative inline margin lets that
+   ground reach the routecard's padding edge. */
+.hf .routetop{position:sticky;top:0;z-index:3;background:var(--cv);display:flex;flex-direction:column;gap:14px;
+  margin:0 -14px;padding:0 14px}
+@media (min-width:720px){.hf .routetop{margin:0 -24px;padding:0 24px}}
+.hf .pghead{z-index:3;background:transparent;display:flex;flex-direction:column;gap:7px;padding:2px 0 4px}
 .hf .pghead .ph-row{display:flex;align-items:flex-start;gap:12px}
 .hf .pghead .ph-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
 .hf .pghead .eyebrow{font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--stone)}
@@ -610,7 +1018,7 @@ export const HIFI_CSS = `
   border-bottom:1px solid var(--ln);overflow-x:auto}
 .hf .tabrail .trhit{display:flex;align-items:stretch;min-width:0}
 .hf .tabrail .trtab{border:0;border-bottom:2px solid transparent;margin-bottom:-1px;border-radius:0;background:transparent;color:var(--stone);
-  font:500 13.5px inherit;letter-spacing:-.005em;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;
+  font-weight:500;font-size:13.5px;letter-spacing:-.005em;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;
   gap:7px;padding:9px 14px 10px;min-width:0}
 .hf .tabrail .trhit .trtab{width:100%}
 .hf .tabrail span.trtab{cursor:default}
@@ -618,7 +1026,7 @@ export const HIFI_CSS = `
 .hf .tabrail .trtab .lbl{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .hf .tabrail .trtab.on{background:transparent;box-shadow:none;font-weight:600;
   color:var(--tone-ink,var(--act));border-bottom-color:var(--tone-ink,var(--act))}
-.hf .tabrail .trtab .cnt{flex:none;min-width:20px;height:18px;border-radius:99px;padding:0 7px;font:600 11px inherit;
+.hf .tabrail .trtab .cnt{flex:none;min-width:20px;height:18px;border-radius:99px;padding:0 7px;font-weight:600;font-size:11px;
   font-variant-numeric:tabular-nums;display:inline-flex;align-items:center;justify-content:center;
   background:var(--stone-bg);color:var(--stone);border:0}
 .hf .tabrail .trtab.on .cnt{background:var(--tone-soft,var(--gr-bg));color:var(--tone-on-soft,var(--tone-ink,var(--gr-ink)))}
@@ -636,7 +1044,7 @@ export const HIFI_CSS = `
   box-shadow:0 18px 44px rgba(133,109,70,.14),0 0 0 1px rgba(0,0,0,.05)}
 [data-theme="dark"] .hf .navdock{box-shadow:0 20px 48px rgba(30,22,14,.44),0 0 0 1px rgba(240,238,234,.08)}
 .hf .navdock .nditem{display:flex;flex-direction:column;align-items:center;gap:2px;min-width:62px;border:0;background:transparent;
-  color:var(--stone);font:500 10.5px inherit;cursor:pointer;border-radius:9999px;padding:4px 6px 5px}
+  color:var(--stone);font-weight:500;font-size:10.5px;cursor:pointer;border-radius:9999px;padding:4px 6px 5px}
 .hf .navdock .nditem:disabled{opacity:1;cursor:default}
 .hf .navdock .nditem:hover:not(.on){opacity:.75}
 .hf .navdock .nditem .ndic{width:38px;height:26px;border-radius:9999px;display:flex;align-items:center;justify-content:center;
@@ -671,18 +1079,81 @@ export const HIFI_CSS = `
 /* card action row — lifecycle/dialog-trigger buttons + chips beneath a card's
    meta. Children stay content-sized (mirrors .arow > *) so nowrap chips never
    flex-shrink below their text. */
-.hf .actrow{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:3px}
-/* Triage summary row (uiux-spec §6.2 layout addendum). Production maps to
-   MetaStrip + buildHubHeaderStats; each count names the queue that owns it. */
-.hf .sumrow{display:flex;gap:8px;margin:0 0 12px;flex-wrap:wrap}
-.hf .sumcell{display:flex;align-items:baseline;gap:7px;border:0;cursor:pointer;font:inherit;color:var(--ink);
-  background:var(--card);box-shadow:inset 0 0 0 1px var(--ln);border-radius:14px;padding:9px 13px;min-height:44px}
-.hf .sumcell .n{font-weight:700;font-size:15px}
-.hf .sumcell .l{color:var(--stone);font-size:12px}
+/* Action clusters are END-ALIGNED, always (interaction-patterns §1 — header
+   rows, dialog footers, card acts, sheet footers all share the rule). */
+.hf .actrow{display:flex;gap:8px;flex-wrap:wrap;align-items:center;justify-content:flex-end;margin-top:3px}
+/* Workspace-tab two-column split (2026-08-16 decision 2): left = focused
+   objects and acts, right rail = container status + quick actions + activity.
+   Collapses to one column below 900px; rail content stacks after the main
+   column — nothing disappears (admin-ux-brief responsive rules). */
+.hf .wsrow{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:12px;align-items:start}
+.hf .wsmain,.hf .wsrail{display:flex;flex-direction:column;gap:12px;min-width:0}
+@media (max-width:900px){.hf .wsrow{grid-template-columns:minmax(0,1fr)}}
+.hf.f-phone .wsrow{grid-template-columns:minmax(0,1fr)}
+/* Triage stats (uiux-spec §6.2 layout addendum; redesigned 2026-08-16 round 4).
+   These are STATS, not buttons: one card, hairline-separated columns, the
+   number leading in tabular figures with its label beneath. They stay
+   keyboard-operable because each one jumps to the queue that owns it — the
+   affordance is the hover/focus treatment, not button chrome. */
+.hf .sumrow{display:flex;margin:0;background:var(--card);border-radius:12px;padding:2px;
+  box-shadow:0 1px 2px rgba(0,0,0,.3),0 1px 3px 1px rgba(0,0,0,.15);flex-wrap:wrap}
+/* Stacked is the default — number over label, which stays legible when the
+   label is two or three words (the inline cast wrapped "Awaiting Confirmation"
+   into the number's line, 2026-08-16 round 6). Inline remains available where a
+   strip must cost one line. */
+.hf .sumcell{flex:1 1 0;min-width:118px;display:flex;flex-direction:column;align-items:flex-start;gap:1px;
+  border:0;background:transparent;cursor:pointer;font:inherit;color:var(--ink);text-align:left;
+  padding:10px 14px;border-radius:10px;position:relative}
+.hf .sumcell + .sumcell::before{content:"";position:absolute;left:0;top:9px;bottom:9px;width:1px;background:var(--ln)}
+.hf .sumcell .n{font-weight:700;font-size:22px;line-height:1.12;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.hf .sumcell .l{color:var(--stone);font-size:12px;line-height:1.3}
+.hf .sumrow.inline .sumcell{flex-direction:row;align-items:baseline;gap:7px;padding:9px 14px}
+.hf .sumrow.inline .sumcell .n{font-size:19px}
+.hf .sumcell.static{cursor:default}
+.hf .sumcell:not(.static):hover{background:var(--stone-bg)}
+.hf .sumcell:not(.static):hover .l{color:var(--ink)}
+/* Zero is calm — a count of nothing must not read as an alert. */
+.hf .sumcell.zero .n{color:var(--stone);font-weight:600}
+/* Rail action stacks: quick actions are equal-width, full-bleed buttons so the
+   rail never shows three ragged widths (2026-08-16 round 4). */
+.hf .actstack{display:flex;flex-direction:column;gap:8px;margin-top:3px}
+.hf .actstack .b{width:100%;justify-content:center}
+/* Commitment/queue row — ONE anatomy everywhere (interaction-patterns §5):
+   line 1 title + chips, line 2 calm meta, ONE trailing act. Two lines keep a
+   busy row from wrapping its buttons in the narrower main column. */
+.hf .prow{display:flex;align-items:center;gap:10px;padding:9px 2px;border-bottom:1px solid var(--ln);min-height:52px}
+.hf .prow:last-child{border-bottom:0}
+.hf .prow > .pmain{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:3px}
+.hf .prow .ptop{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.hf .prow .ptop b{font-size:13.5px}
+.hf .prow .pmeta{font-size:12px;color:var(--stone);line-height:1.35}
+.hf .prow > .pact{flex:none;display:flex;gap:6px;align-items:center}
+/* A card whose HEADER IS ITS OBJECT (2026-08-16 round 6). The season names the
+   card instead of sitting inside it as a second header — so there is one title
+   bar, not two stacked ones. */
+.hf .objcard .objhead{display:flex;align-items:flex-start;gap:10px;padding-bottom:2px}
+.hf .objcard .objtitle{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:4px}
+.hf .objcard .objtitle .ptop{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.hf .objcard .objtitle .ptop b{font-size:15px;letter-spacing:-.01em}
+.hf .objcard .objacts{flex:none;display:flex;gap:6px;align-items:center}
+/* Section divider inside a card: quiet label left, optional section act right. */
+.hf .cardsub{display:flex;align-items:center;gap:10px;font-weight:600;font-size:12px;color:var(--stone);
+  padding-top:9px;margin-top:2px;border-top:1px solid var(--ln)}
+.hf .cardsub .subact{margin-left:auto;display:flex;gap:6px;align-items:center}
+/* What the pool holds. The quantity IS the row title, so it takes tabular
+   figures and a touch more weight — a column of holdings should be readable as
+   a column of amounts. Each row is one exact unit label; they are never summed,
+   so nothing here draws a total line. */
+.hf .holdlist .prow .ptop b{font-size:15px;font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+.hf .holdlist .prow{min-height:44px;padding:7px 2px}
+/* Setup checklist lines — a statement with its state, not a label/value pair
+   ("How it works: agreed ✓" read as a data row about nothing). */
+.hf .checkline{display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--ink);padding:1px 0}
+.hf .checkline .ic{width:14px;height:14px;flex:none;color:var(--stone)}
 /* Route-local scope chips for the commitments list — Open · Confirmed · Past
    (uiux-spec §6.2 addendum, Garden OverviewTab precedent). Maps to AdminFilterChip. */
 .hf .scopechips{display:flex;gap:6px;flex-wrap:wrap}
-.hf .scopechips .sc-chip{border:0;cursor:pointer;font:600 12px inherit;color:var(--stone);border-radius:99px;
+.hf .scopechips .sc-chip{border:0;cursor:pointer;font-weight:600;font-size:12px;color:var(--stone);border-radius:99px;
   padding:7px 12px;min-height:36px;background:transparent;box-shadow:inset 0 0 0 1px var(--ln)}
 .hf .scopechips .sc-chip.on{color:var(--tone-ink,var(--act));background:var(--tone-soft,var(--gr-bg));box-shadow:none}
 .hf .actrow > *{flex:none}
@@ -691,7 +1162,23 @@ export const HIFI_CSS = `
    label overflows and the next chip lands on top of it. Surface-agnostic on
    purpose: this was scoped to two surfaces, so renaming one silently dropped the
    fix, and the client surface never had it at all. */
-.hf .ch{width:auto}
+/* …and the SAME collision sets height:44px, which made every dotted state chip
+   twice the height of the plain kind chip beside it (2026-08-16 round 5: the
+   original patch fixed width only, so the symptom moved instead of leaving).
+   Reset the whole box the chrome rule touches, not one property of it. */
+.hf .ch{width:auto;height:auto;min-width:0;min-height:0;padding:2.5px 8px;border-radius:8px}
+/* …but a PICKER is not a label. The reset above is right for a chip that
+   describes a card and wrong for the tap-first controls on the how-much step,
+   which were built from the same function and inherited a 24px box (2026-08-17,
+   Afo). .pick is the control form: same shape and rhythm, a real 44px target,
+   and a pressed state the label form has no need for. */
+.hf .pickrow{display:flex;flex-wrap:wrap;gap:8px}
+.hf .pick{min-height:44px;padding:0 15px;border-radius:12px;border:1px solid var(--ln2);
+  background:var(--card);color:var(--ink);font:inherit;font-size:14px;font-weight:550;
+  display:inline-flex;align-items:center;white-space:nowrap;opacity:1}
+.hf .pick.on{background:var(--gr-bg);color:var(--gr-ink);border-color:var(--act);
+  box-shadow:inset 0 0 0 1px var(--act);font-weight:650}
+.hf .pick:hover{border-color:var(--stone)}
 /* flow form column — a step form sits directly on the route card (no card-on-card) */
 .hf .flowform{max-width:640px;display:flex;flex-direction:column;gap:11px}
 .hf .acard .ahead{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
@@ -760,7 +1247,7 @@ export const HIFI_CSS = `
    form with no way back and no way out. */
 .hf .adlg.flow{width:min(880px,calc(100% - 40px));height:85%;max-height:85%}
 .hf .adlg.flow .dlg-head{flex-direction:column;align-items:stretch;gap:1px;position:relative;padding-right:62px}
-.hf .adlg.flow .dlg-head .eyebrow{font:600 11px inherit;letter-spacing:.08em;text-transform:uppercase;color:var(--stone)}
+.hf .adlg.flow .dlg-head .eyebrow{font-weight:600;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--stone)}
 .hf .adlg.flow .dlg-head .dclose{position:absolute;right:12px;top:12px}
 .hf .flowrow{flex:1;min-height:0;display:flex}
 .hf .steprail{flex:0 0 210px;border-right:1px solid var(--ln);padding:14px 12px;display:flex;
@@ -768,10 +1255,10 @@ export const HIFI_CSS = `
 .hf .steprail .srow{display:flex;gap:10px;align-items:flex-start;padding:8px 7px;border-radius:12px}
 .hf .steprail .srow.on{background:var(--tone-soft,var(--gr-bg))}
 .hf .steprail .sdot{flex:none;width:20px;height:20px;border-radius:99px;border:1px solid var(--ln2);
-  display:flex;align-items:center;justify-content:center;font:600 10px inherit;color:var(--stone);margin-top:1px}
+  display:flex;align-items:center;justify-content:center;font-weight:600;font-size:10px;color:var(--stone);margin-top:1px}
 .hf .steprail .srow.on .sdot,.hf .steprail .srow.done .sdot{background:var(--tone-action,var(--act));
   border-color:transparent;color:var(--on-act)}
-.hf .steprail .st{display:block;font:600 12.5px inherit;color:var(--ink);line-height:1.35}
+.hf .steprail .st{display:block;font-weight:600;font-size:12.5px;color:var(--ink);line-height:1.35}
 .hf .steprail .sd{display:block;font:12px inherit;color:var(--stone);line-height:1.35}
 .hf .adlg.flow .dlg-body{flex:1;padding:18px 22px}
 .hf .adlg.flow .dlg-body > .flowform{max-width:640px;width:100%;margin:0 auto}
@@ -825,7 +1312,7 @@ export const HIFI_CSS = `
 .hf .sitehdr nav a{padding:6px 11px;border-radius:8px;color:var(--stone);text-decoration:none;font-size:14px;font-weight:500;cursor:pointer;min-height:44px;display:inline-flex;align-items:center}
 .hf .sitehdr nav a.on{color:var(--ink)}
 .hf .sitehdr nav a:hover{color:var(--ink)}
-.hf .sitehdr .install{flex:none;background:var(--act);color:var(--on-act);border:0;border-radius:9999px;padding:8px 15px;font:600 13px inherit;cursor:pointer;min-height:44px}
+.hf .sitehdr .install{flex:none;background:var(--act);color:var(--on-act);border:0;border-radius:9999px;padding:8px 15px;font-weight:600;font-size:13px;cursor:pointer;min-height:44px}
 .hf .sitehdr .install:hover{background:var(--acth)}
 .hf .webbody{flex:1;min-height:0;overflow-y:auto;padding:34px clamp(24px,6vw,64px) 44px;display:flex;flex-direction:column;gap:18px}
 .hf .kicker{font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--stone)}
@@ -838,7 +1325,7 @@ export const HIFI_CSS = `
 .hf .estatrow{display:flex;gap:28px;flex-wrap:wrap}
 .hf .estat .l{font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--stone);margin-top:4px}
 .hf .elink{color:var(--gr-ink);font-weight:600;text-decoration:none;border-bottom:1px solid color-mix(in srgb,var(--gr-ink) 40%,transparent);
-  display:inline-flex;gap:6px;align-items:center;cursor:pointer;background:none;border-top:0;border-left:0;border-right:0;font:600 15px inherit;padding:0;min-height:44px}
+  display:inline-flex;gap:6px;align-items:center;cursor:pointer;background:none;border-top:0;border-left:0;border-right:0;font-weight:600;font-size:15px;padding:0;min-height:44px}
 .hf .pipe{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .hf .pipe .pstage{border:1px solid var(--ln2);border-radius:2px;padding:7px 13px;font-family:var(--mono);
   font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink);background:var(--card)}

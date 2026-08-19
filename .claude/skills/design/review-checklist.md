@@ -138,7 +138,16 @@ Q4: Is this AI/guidance interaction?
    ↓ Catches: single-user tunnel vision, hidden blast radius
 4. COMPLIANCE (Lens 4) — Does this meet a11y/i18n/responsive standards?
    ↓ Catches: accessibility violations, missing stories, hardcoded strings
+5. INTERACTION (admin surfaces) — Does this follow interaction-patterns.md?
+   ↓ Catches: left-aligned action clusters, tab-varying view actions, dialog
+     shell changes mid-flow, flows without visible entries, banner-as-status,
+     invented components outside the shipped palette
 ```
+
+**Lens 5 is mandatory for every admin design round — shipped console, prototypes, or
+AI-generated output — and runs as an explicit checklist pass against
+[interaction-patterns.md](./interaction-patterns.md) before publishing.** A green prototype
+build does not substitute for it (2026-08-16 lesson: validators check structure, not design).
 
 ---
 

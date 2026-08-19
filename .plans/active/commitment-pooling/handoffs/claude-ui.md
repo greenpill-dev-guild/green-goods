@@ -88,3 +88,180 @@ Run the shared story commands only when a Storybook-covered shared component cha
 - Every runtime UI sub-lane handoff (`ui_client`, `ui_admin`, `editorial`) has recorded acceptance and proof. Post-QA docs, walkthrough videos, and `community` are intentionally excluded.
 - Authenticated Brave covers admin/client visible flows; member PWA also has a real-device pass.
 - Any unavailable external settlement or AA path is reported as a proof limit, never a pass.
+
+## Token bridge — the prototype's CSS variables to the canonical tokens (2026-08-18)
+
+**Corrected 2026-08-19 after PR review.** The first version of this section searched
+`packages/shared/src/styles/theme.css` for the prototype's hex values, found none, and concluded
+the two namespaces were unrelated. That was looking in the wrong file. `theme.css` is a **generated
+runtime projection**; the canonical DesignMD token source is the **root `DESIGN.md` front matter**
+(design skill, `language.md:7`), and `scripts/design/check-tokens.sh` verifies the projection.
+
+Against the real source, the prototype's client palette is not a parallel invention — it is the
+Warm Earth palette, byte-for-byte:
+
+| Prototype (`.hf.s-client`) | `DESIGN.md` | Match |
+|---|---|---|
+| `--ink` `#292524` | `primary` | exact |
+| `--stone` `#78716C` | `secondary` | exact |
+| `--gr` `#1FC16B` | `tertiary` | exact |
+| `--act` `#1A7544` | `tertiary-action` | exact |
+| `--acth` `#16643B` | `tertiary-action-hover` | exact |
+| `--cv` `#FAF8F5` | `neutral` | exact |
+| dark `--ink` `#F5F5F4` | `primary-inverse` | exact |
+| dark `--stone` `#A8A29E` | `secondary-inverse` | exact |
+| dark `--card` `#1C1917` | `neutral-dark` | exact |
+| `--on-act` `#FFFFFF` | `on-tertiary-action` | exact |
+
+### Three that have drifted, and are worth a decision
+
+| Prototype | `DESIGN.md` | |
+|---|---|---|
+| `--amb` `#B45309` | `amber` `#D97706` | **different** |
+| `--sky` `#2563EB` | `sky` `#3B82F6` | **different** |
+| `--on-accent` `#04290F` | `on-tertiary` `#0B4627` | **different** |
+
+Ten tokens agree exactly and these three do not. Measured on the surfaces they are actually used on,
+the prototype is right and the canonical values are not: both `--amb` and `--sky` are text colours
+(four and two `color:` uses), and against their own tinted backgrounds `DESIGN.md`'s `amber` gives
+**2.89:1** and `sky` **3.25:1** — **both fail WCAG AA for normal text**, where the prototype's
+darker values give 4.55:1 and 4.56:1 and pass. The third is a naming mismatch rather than a value
+one: `on-tertiary` is the role the prototype spells `--on-accent`, and over `tertiary` the
+prototype's value has more headroom (6.69:1 against 4.64:1).
+
+So this is not prototype drift to correct. `DESIGN.md` should adopt the prototype's amber and sky
+(or restrict `#D97706`/`#3B82F6` to non-text use), and `on-tertiary` needs its naming reconciled.
+That is a change to the canonical source and to every surface projecting it, so it belongs in its
+own cross-surface pass. Do not resolve it by picking one in implementation.
+
+### No canonical equivalent
+
+- **`--cyc` / `--cyc-bg`** (`#6B4A7A`) — the cycle identity colour, carrying season and campaign
+  chips. Genuinely net-new vocabulary with no entry in `DESIGN.md`. It needs a real decision: either
+  it earns a canonical token, or cycle chips adopt an existing role. Do not improvise a hex.
+- **`--phone-scale`, `--bezel`, `--chrome-border`** — artifact chrome for drawing a phone inside a
+  web page. Nothing to map; they do not exist in the app.
+
+### Where each thing lives
+
+- **`DESIGN.md` front matter owns the values.** A token change starts there.
+- **`theme.css` is the projection implementations consume.** Read values from it; never author them
+  there, and never copy a prototype variable into it.
+- **The prototype's stylesheet is a picture.** `hifi/tokens.ts` exists to render a standalone HTML
+  artifact and ships nothing.
+
+## Net-new component audit — 2026-08-18
+
+The Components tab carries 101 entries. **67 cite a shipped component by `file:line`** and **34 are
+net-new** — the things implementation has to build. Those 67 citations point at **54 distinct
+file:line pairs**, because a concept drawn on both surfaces cites the same shipped anatomy twice
+(client and admin `chip` both cite `Badge.tsx:44`). Counting the ship notes and where-used prose as
+well, 84 citation strings appear across 68 distinct pairs, and every one resolves against the
+current tree — re-measured 2026-08-19, when one was also found off by one line.
+
+Nothing in the build checks any of this: `components.ts` never touches the filesystem, so
+`GALLERY_ERRORS` validates ids, specimens, ship notes and screen references but not whether a
+citation still points at what it names.
+Each was checked against `packages/shared/src/components/`, `packages/admin/src/components/`, and
+both canonical palettes.
+
+### Finding: no duplication
+
+No net-new builder duplicates a shipped primitive. The near-misses were checked individually and are
+genuine gaps:
+
+- `listRow` — `ListPrimitives.tsx` exports `EmptyState`, `ListToolbar` and `SortSelect`, not a row.
+  Admin's row *does* ship (`AdminListItem`) and the gallery already cites it; the client has none.
+- `radio(options)` — `Form/ControlPrimitives` ships `TextInput`, `Textarea`, `NativeSelect` and
+  `Switch`, no radio group. Admin's `AdminChoiceGroup` ships and is cited separately. Correct split.
+- `disclosure` — no shipped accordion on either surface.
+- `dtable` — no shipped table; admin queues use list rows today, which the entry says.
+
+### Two that should build on a shipped base, not from scratch
+
+- **`stages(list, activeIx)`** overlaps `Form/FormWizard`'s step model. Extend it rather than adding
+  a parallel stepper, or the two will diverge on the first spec change.
+- **client `listRow`** should take its anatomy from `AdminListItem` even though it cannot import it.
+  A row is the densest repeated element on both surfaces; two independently-invented ones is how the
+  surfaces stop feeling like one product.
+
+### The real gap: the palettes have no way to receive these
+
+`client-prompt-contract.md` and `prompt-contract.md` § Canonical Component Palette both say *"Do not
+invent component names — flag missing primitives instead."* The prototypes comply: every net-new
+builder carries a `netNew:` note saying what it is for, which is the flag.
+
+But **nothing adds them to the palettes when they ship.** The moment `identityCard` lands as a React
+component, the client palette is stale, and the next AI design round — which is told to map output
+onto the palette — will re-invent a name for a component that now exists. That is a process gap, not
+a code one, and it needs a step in the UI lane's definition of done:
+
+> When a net-new prototype builder ships as a component, add it to the matching palette in the same
+> change, and update the gallery entry from `netNew:` to `ship:` with its `file:line`.
+
+The gallery's `netNew` → `ship` transition is the natural signal, and it is already machine-visible:
+`bun .plans/active/commitment-pooling/prototypes-artifact.build.ts` fails when a kit builder has no
+gallery entry, so the entry is guaranteed to exist and be found.
+
+### Naming
+
+Kit builders are lowercase functions (`identityCard`, `progressBlock`, `cycleRail`); shipped
+components are PascalCase React (`StatCard`, `StatusBadge`). The prototype name is the concept, not
+the export — `identityCard` ships as `CommitmentIdentityCard` or similar. Record the mapping in the
+gallery entry when it ships so the two stay traceable.
+
+## Implementation brief — where the prototypes land, and in what order (2026-08-18)
+
+37 review-visible screens carrying 512 states: 19 client (311), 16 admin (196), 2 editorial (5).
+This maps them onto shipped views and orders them by dependency, not by size.
+
+### Blocking, before any client work
+
+**The seat gap** — `handoffs/codex-state-api.md` § Binding seat amendment. `W2` cannot be built
+correctly without `selectCommitmentSeat()`, and building it wrong is not a cosmetic error: it is the
+class of defect the 2026-08-18 audit found six of. Everything else in this brief can proceed in
+parallel with that landing; `W2` cannot.
+
+The per-state contract is `handoffs/commitment-view-state-reference.md`, generated from the
+prototype's own tables.
+
+### Client — order
+
+| # | Screens | Lands in | Why here |
+|---|---|---|---|
+| 1 | **W5** commitments sheet (19) | `views/Home/WalletDrawer/` — the Commitments tab renders `ComingSoonStub` today (`index.tsx:71`) | A live stub with a real home. It is the member's "what is happening to me" surface, so every later screen has somewhere to be reached from. Smallest real landing. |
+| 2 | **W1** pool tab (33) | `views/Home/Garden/` | The browse surface. Needs the cycle rail and commitment cards, which nothing else depends on. |
+| 3 | **W2** commitment detail (85) | new | **The big one, and the one with the state-layer dependency.** A third of all client states. Do not start it before seat lands. |
+| 4 | **W2a** proof · **WFLOW** work link (19) | `views/Garden/` — `Intro` · `Media` · `Details` · `Review` already ship | Reuses the shipped Submit Work rhythm; the prototype mirrors it deliberately. Mostly composition, not new anatomy. |
+| 5 | **W3** composer (34) | new, but the same four-beat flow as `views/Garden/` | Second-largest. Every path shares one body; build the shared beats once. |
+| 6 | **W4** confirmation sheet (29) | `DialogShell` | Dense in states, thin in anatomy — one sheet, many casts. |
+| 7 | **W2b** team (13) · **W1C** cycle view (10) · **W23** wallet (6) · **W25** protocol claim (4) | mixed | Independent of each other. |
+| 8 | **W34/W35/W32** ongoing offers (36) · **W36** funded claim (10) | new | Later waves. `W36` depends on the member-funded settlement lane. |
+| 9 | **W28–W31** exchange (13) | new | **Parked** — no journey walks it pending a design session. Do not build. |
+
+### Admin — order
+
+| # | Screens | Lands in | Why here |
+|---|---|---|---|
+| 1 | **W7 / W7C / W7M** pool workspace (43) | `views/Garden/` beside `SignalPool`, `Vault`, `Strategies` | The steward's home. `W7M` is the same view below 1024px, not a second build. |
+| 2 | **W13** confirm stage (6) · **HUBWORK** (8) | `views/Hub/` | `HUBWORK` is the existing Work queue; `W13` adds one stage beside it. Small, and it is where the steward's weekly job lives. |
+| 3 | **W10** commitment dialog (19) | `AdminDialog` | The steward's counterpart to `W2`. Same seat question, simpler: the console viewer is always a steward. |
+| 4 | **W8 / W9** seeding and capture (12) | new flow dialog | The on-behalf-of path. Accountability copy matters more here than anywhere else in the product. |
+| 5 | **W11 / W26** allocation and close (30) | new flow dialogs | Once-a-season ceremonies. |
+| 6 | **W14** assessment (10) | `views/Hub/CreateAssessment.tsx` — extends, does not fork | |
+| 7 | **W12 / W24** community and operations (16) | `views/Community/` | Protocol-team only. |
+| 8 | **W21 / W22 / W37** settlement (52) | new | Depends on the settlement lane shipping. A quarter of admin states; last. |
+
+### Editorial
+
+**W15 / W16** (5 states) are the smallest surface in the product and depend on nothing. They can
+land any time, by anyone, and they are the only pooling surface a signed-out reader ever sees.
+
+### Two rules that decide whether this stays coherent
+
+1. **Surface identities never mix.** Client is a warm garden journal; admin is a restrained operator
+   cockpit. Hero moments live in the client only — there are 13 in the prototypes and all 13 are
+   client. The build rejects celebration language on admin screens, and the same rule applies in the
+   app.
+2. **Read the prototype for intent, `theme.css` for values.** See the token bridge above. The
+   artifact's `--act`, `--ink`, `--cyc` are its own vocabulary and must not be copied into the app.

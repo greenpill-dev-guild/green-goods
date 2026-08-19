@@ -259,6 +259,11 @@ const CALL_RULES: Record<ContractCall, CallRule> = {
   retryAcknowledgment: { key: "disbursement", allowed: ["Dispatched"] },
   cancelBatch: { key: "disbursement", allowed: ["Queued"], next: "Cancelled" },
   requeue: { key: "disbursement", allowed: ["Failed"], next: "Queued" },
+  // Decision Log #60's owner-only exit. The ONLY call that may fail a Dispatched
+  // subject — an authenticated failure acknowledgment is the other road to
+  // Failed, and it is not a call the console makes. It can never produce
+  // Confirmed, which is why Failed is its only `next` (settlement-spec §3.1.2).
+  failStrandedSubject: { key: "disbursement", allowed: ["Dispatched"], next: "Failed" },
   cancelDisbursement: { key: "disbursement", allowed: ["Queued", "Failed"], next: "Cancelled" },
 };
 
@@ -397,7 +402,7 @@ function domTokens(html: string) {
   return { hots, marks };
 }
 
-// Enabled buttons are promises of interaction. A button is valid when it owns
+// Enabled buttons are commitments of interaction. A button is valid when it owns
 // a hotspot or sits inside one; preview-only chrome must be honestly disabled.
 // This small stack parser keeps the artifact build dependency-free.
 function scanEnabledButtons(screenId: string, stateId: string, html: string, sink = err) {
@@ -449,7 +454,16 @@ export function scanGalleryHtml(surface: "client" | "admin" | "editorial", html:
   scanEverywhere(where, text, sink);
   const cite = text.match(/\b(?:CS|UX|AM|SS|WF|DG|LAP|CI-WF|CI-SPEC):\s?\d+|register #\d+|\bMF-\d+\b/);
   if (cite) sink.push(`META ${where}: spec citation "${cite[0]}" rendered as gallery copy`);
-  const pct = text.match(/promised units|% of promised/i);
+  // The invariant is Appendix D.1 — never aggregate incommensurable unit bases.
+  // The tripwire guards its two RENDERED shapes: a percentage over units
+  // ("62% of committed units") and a bare cross-commitment total ("18 units
+  // committed"). A single commitment's own reserved units are one basis, so
+  // "cancelling releases the committed units" is legitimate and must not trip —
+  // it did, once the 2026-08-17 vocabulary sweep made the guarded phrasing real.
+  // Before that sweep this rule was BLIND: it looked for "promised units", which
+  // no surface had ever rendered. Historical spellings stay in the pattern so a
+  // reintroduced old phrasing is still caught.
+  const pct = text.match(/%\s*of\s+(?:committed|promised)|\d+\s+units\s+(?:committed|promised)/i);
   if (pct) sink.push(`AGGREGATE ${where}: "${pct[0]}" is a mixed-unit percentage`);
   if (surface === "client" || surface === "editorial") {
     for (const [re, name] of BANNED_CLIENT_PUBLIC) if (re.test(text)) sink.push(`VOCAB ${where}: "${name}"`);
@@ -477,9 +491,76 @@ const BANNED_EVERYWHERE: [RegExp, string][] = [
   [/\bowes?d?\b/i, "owe/owed"],
   [/\boperators?\b/i, "operator (steward rule, Decision Log #28c)"],
 ];
+// RETIRED VOCABULARY — words a decision took out of the product, guarded so a
+// later edit cannot quietly bring one back.
+//
+// This exists because every vocabulary decision in this feature leaked a
+// dialect. The promise→commitment rename was recorded as done and left "nobody
+// can commitment yet" standing in the console for three weeks. "Places" was
+// retired in the client and survived in W7's ongoing rows. "neighbour" was
+// fixed in the client while `poolHoldings` kept defaulting to the American
+// spelling, so BOTH dialects rendered it. The build gates catch structure well
+// and copy not at all; this closes that.
+//
+// Each entry names the decision that retired it, so whoever trips the gate can
+// read why rather than guess. Patterns are deliberately narrow: they guard the
+// RETIRED SENSE, not the word. "in place", "takes place" and "an open request"
+// are all legitimate and must not trip.
+const RETIRED_VOCABULARY: [RegExp, string][] = [
+  // C.14 (round 14): the record is a Commitment everywhere.
+  [/\bpromis(?:e|es|ed|ing)\b/i, 'promise — the record is a "commitment" (C.14)'],
+  // …and the verb is "commit". This exact breakage shipped twice, from a noun
+  // sweep that rewrote verbs it should have left alone.
+  [/\b(?:can|cannot|could|would|will|must|may|to)\s+commitment\b/i, 'commitment used as a VERB — say "commit" (C.14)'],
+  [/\bcommitmentd\b|\bcommitmenting\b/i, 'a verb mangled into "commitment" (C.14)'],
+  // C.23 (round 30) + C.35: a "place" was a second name for a commitment, and
+  // the act of making another is OFFERING, not opening.
+  [/\b\d+\s+places?\b|\bplaces?\s+(?:made|available|to start|left)\b|\b(?:open|add|each|new|existing|available)\s+places?\b/i,
+    'place — each one is a "commitment" (C.23)'],
+  [/\bopen (?:more|another)\b/i, 'open as the ACT — say "offer another" (C.35)'],
+  // C.36: the client says neighbour; poolHoldings defaulted to the other.
+  [/\bneighbor(?!u)/i, 'neighbor — the client spells it "neighbour" (C.36)'],
+  // C.27: rest and retire collapsed into one act.
+  [/\b(?:rest it|resting|retire it|retired)\b(?=[^.]*\boffer\b)/i,
+    'rest/retire — an ongoing offer is "stopped" (C.27)'],
+  // The same word survived on the admin cycle-close wizard, where step 4 was
+  // "Rest the cycle" (round 46). The C.27 rule missed it because that pattern
+  // requires "offer" nearby. This one guards rest as a LIFECYCLE VERB against
+  // the four things that have one, so "the rest of the list" stays legal.
+  [/\brest(?:ing)?\s+(?:the\s+|this\s+)?(?:cycle|season|campaign|pool)\b/i,
+    'rest — a cycle is composted (compostCycle, CS:206); an ongoing offer is stopped (C.27 · C.48)'],
+];
+// Retired only in PRODUCT copy. `attachEvidence` and `EvidenceAttached` are
+// contract identifiers and belong in hotspot notes, the same way leadProvider
+// does; it is the gardener-facing noun that changed (C.38).
+const RETIRED_IN_UI: [RegExp, string][] = [
+  [/\bevidence\b/i, 'evidence — gardeners see "proof" (C.38)'],
+];
+
 const BANNED_CLIENT_PUBLIC: [RegExp, string][] = [
   [/\bdisputes?d?\b/i, 'dispute ("under review by stewards" is the ceiling)'],
   [/\blegal\b/i, "legal"],
+];
+// The machine vocabulary, on RENDERED member copy only. Round B took all of
+// these off the client surface by hand and pinned none of them, so the sweep was
+// an event rather than a rule — which is how the PLURAL "cycles" survived on W34
+// in three strings while the singular sat at zero everywhere, and how W15 kept
+// telling the public that commitments come "from this cycle" (found 2026-08-19).
+// A hand sweep that is not enforced is a sweep that comes undone.
+//
+// Deliberately NOT applied to the component gallery: that documents the kit for
+// whoever builds it, and a ship note naming a cycle state is not a member
+// reading the word.
+const MACHINE_WORDS_CLIENT: [RegExp, string][] = [
+  [/\bon-chain\b/i, "on-chain"],
+  [/\bfulfillment\b/i, "fulfillment"],
+  [/\bindexed\b/i, "indexed"],
+  [/\btransactions?\b/i, "transaction"],
+  [/\bthresholds?\b/i, "threshold"],
+  [/\bsyncs\b/i, "syncs"],
+  [/\brosters?\b/i, "roster"],
+  [/\bcycles?\b/i, 'cycle ("season" or "campaign" — or drop the boundary)'],
+  [/\battestations?\b/i, "attestation"],
 ];
 /** Card descriptions stay one scannable sentence — see the DESC check below. */
 const DESC_MAX = 190;
@@ -499,10 +580,34 @@ const REASON_CONFIRMS = new Set([
   "fallback-confirm", "protocol-fallback-confirm", "cancel-batch-confirm", "close-delivery-confirm",
   "cancel-queued-confirm",
   "withdraw-confirm", // cancelCommitment(commitmentId, reasonCID) — creator path
+  "request-withdraw-confirm", // the same call on the requester's side of the pair
 ]);
 
-function scanEverywhere(where: string, text: string, sink = err) {
+function scanEverywhere(where: string, text: string, sink = err, opts: { docs?: boolean } = {}) {
   for (const [re, name] of BANNED_EVERYWHERE) if (re.test(text)) sink.push(`VOCAB ${where}: "${name}"`);
+  // Retired vocabulary is an error on every surface, including the ascii
+  // frames: a word a decision removed is removed everywhere or it is not
+  // removed. The match is quoted back so the fix is obvious from the message.
+  for (const [re, why] of RETIRED_VOCABULARY) {
+    const hit = text.match(re);
+    if (hit) sink.push(`RETIRED ${where}: "${hit[0].trim()}" — ${why}`);
+  }
+  // Em-dashes leave PRODUCT copy: plainer punctuation translates (C.32, C.36).
+  // Hotspot notes and journey prose are exempt by that same decision — they are
+  // written for whoever is reading the artifact, a different register from the
+  // UI — so `docs` skips this while still enforcing retired vocabulary above.
+  // A dash that NAMES a variant is not punctuation, so those are listed rather
+  // than pattern-matched: adding one is a deliberate act.
+  if (opts.docs) return;
+  for (const [re, why] of RETIRED_IN_UI) {
+    const hit = text.match(re);
+    if (hit) sink.push(`RETIRED ${where}: "${hit[0].trim()}" — ${why}`);
+  }
+  // Every occurrence, not the first: one-at-a-time reporting turns a copy sweep
+  // into a dozen rebuild cycles.
+  const cleaned = text.replace(/North beds — (?:before|after)/g, "");
+  for (const d of new Set([...cleaned.matchAll(/[^\n]{0,30}—[^\n]{0,30}/g)].map((m) => m[0].trim())))
+    sink.push(`DASH ${where}: "${d}" needs a full stop or a comma (C.32)`);
 }
 
 function scanState(screen: Screen, stateId: string, html: string, sept: boolean) {
@@ -535,15 +640,32 @@ function scanState(screen: Screen, stateId: string, html: string, sept: boolean)
   // (uiux-spec §5.2/§12) — it guards these exact phrasings, not the invariant;
   // a rephrased mixed-unit rate ("62% of units") still needs a reviewer's eye.
   // promiseKeptRate is the one sanctioned rate and reads as "N of M kept".
-  const pct = text.match(/promised units|% of promised/i);
+  // The invariant is Appendix D.1 — never aggregate incommensurable unit bases.
+  // The tripwire guards its two RENDERED shapes: a percentage over units
+  // ("62% of committed units") and a bare cross-commitment total ("18 units
+  // committed"). A single commitment's own reserved units are one basis, so
+  // "cancelling releases the committed units" is legitimate and must not trip —
+  // it did, once the 2026-08-17 vocabulary sweep made the guarded phrasing real.
+  // Before that sweep this rule was BLIND: it looked for "promised units", which
+  // no surface had ever rendered. Historical spellings stay in the pattern so a
+  // reintroduced old phrasing is still caught.
+  const pct = text.match(/%\s*of\s+(?:committed|promised)|\d+\s+units\s+(?:committed|promised)/i);
   if (pct) err.push(`AGGREGATE ${where}: "${pct[0]}" is a mixed-unit percentage`);
 
   if (sept) return; // another spec owns the remaining dialect-specific copy
   // Member-facing surfaces (the PWA and the public website) share one ceiling:
   // never "dispute", never "legal". Renaming the editorial surface without this
   // line is silent — the scan would simply stop covering W15/W16.
+  //
+  // `err`, never `sink`. `sink` is `warn` for ASCII-framed screens, and warnings
+  // do not fail the build — so an ASCII client or editorial screen could render
+  // forbidden copy and still pass. No such screen exists today (all seven ASCII
+  // frames are Community wireframes), but those are explicitly waiting on a
+  // high-fidelity pass to graduate, and the word a member reads does not depend
+  // on how the frame is drawn (CodeRabbit, 2026-08-19).
   if (screen.surface === "client" || screen.surface === "editorial") {
-    for (const [re, name] of BANNED_CLIENT_PUBLIC) if (re.test(text)) sink.push(`VOCAB ${where}: "${name}"`);
+    for (const [re, name] of [...BANNED_CLIENT_PUBLIC, ...MACHINE_WORDS_CLIENT])
+      if (re.test(text)) err.push(`VOCAB ${where}: "${name}"`);
   }
   if (screen.surface === "admin") {
     for (const [re, name] of ADMIN_HERO) if (re.test(text)) sink.push(`VOCAB ${where}: ${name}`);
@@ -558,6 +680,40 @@ function scanState(screen: Screen, stateId: string, html: string, sept: boolean)
 }
 
 // ---- normalization ----------------------------------------------------------
+// Control-free scene crossings that predate the 2026-08-19 destination check.
+// Each is an unaudited assertion that the flow moves to another screen with no
+// control declared — most are "open one of these from the list", which is
+// probably fine, but none has been checked and none says why. Shrink this list
+// by giving each scene a real `skipTargetReason` (or the control it walks); do
+// not add to it. A new crossing is a build error, which is the point.
+//
+// Keyed by flow + source + destination, NOT by step index. An index moves the
+// moment a scene is inserted above it, which would silently hand the exemption
+// to a different transition and let a genuinely new crossing through
+// (CodeRabbit, 2026-08-19). A stale entry is an error too, so the list cannot
+// quietly outlive what it excuses.
+const UNAUDITED_SCENE_CROSSINGS = new Set<string>([
+  "sb5 W2@disputed -> W5@default",
+  "sb54 W1@open -> W2@accepted",
+  "sb37 W1@ongoing-queued -> W34@active-two",
+  "sb18 W4@confirm-domain -> W5@queued",
+  "sb13 W1@open -> W25@card",
+  "sb16 W1@open -> W2@offered",
+  "sb62 W1@open -> W2@requested",
+  "sb6a W1@open -> W2@expired",
+  "sb3b W7@claim-declined -> W1@claim-declined",
+  "sb3b W7@claim-outcomes -> W1@claim-superseded",
+  "sb8 W7@open -> W2@captured",
+  "sb12 W22@outcome -> W21@failed-recovery",
+  "sb19 W21@gate-status -> W10@garden-ready",
+  "sb19 W22@individual-dispatched -> W21@payout-partial",
+  "sb19 W21@payout-partial -> W24@flows",
+  "sb15 W15@above-threshold -> W1@open",
+  "sb32 W7@paused-cycle-composted -> W26@paused-review",
+  "sb33 W22@individual-dispatched -> W21@payout-partial",
+  "sb14 C5@default -> C9@default",
+]);
+
 export function normalizeAndValidate(raw: RawSB[], ctx: Ctx): { sbs: ShippedSB[]; errors: string[]; warnings: string[] } {
   const byId = new Map(ctx.screens.map((s) => [s.id, s]));
 
@@ -674,9 +830,10 @@ export function normalizeAndValidate(raw: RawSB[], ctx: Ctx): { sbs: ShippedSB[]
       ...(sc.alts ?? []).map((a) => a.l),
       ...(sc.br ?? []).map((b) => b.l),
     ])].filter(Boolean).join(" ");
-    scanEverywhere(`JOURNEY ${sb.id}`, text);
+    scanEverywhere(`JOURNEY ${sb.id}`, text, err, { docs: true });
   }
-  for (const [hid, meta] of Object.entries(ctx.hots)) scanEverywhere(`HOT ${hid}`, [meta.l, meta.info].filter(Boolean).join(" "));
+  for (const [hid, meta] of Object.entries(ctx.hots))
+    scanEverywhere(`HOT ${hid}`, [meta.l, meta.info].filter(Boolean).join(" "), err, { docs: true });
 
   // hotspot meta targets
   for (const [hid, meta] of Object.entries(ctx.hots)) {
@@ -688,11 +845,33 @@ export function normalizeAndValidate(raw: RawSB[], ctx: Ctx): { sbs: ShippedSB[]
   // immediately next. This prevents the player from concealing consequential
   // UI just because it can intercept the click. Deliberate exceptions require
   // a specific, reviewable reason on the source scene.
+  const usedCrossings = new Set<string>();
   for (const sb of sbs) {
     const rawSb = raw.find((candidate) => candidate.id === sb.id)!;
     for (let ix = 0; ix < sb.steps.length; ix++) {
       const step = sb.steps[ix];
-      if (!step.hot) continue;
+      // A scene with no control still ASSERTS where the flow goes next, and
+      // until 2026-08-19 nothing checked those: 48 of 273 transitions were
+      // exempt because `hot` was null, 23 of them crossing to another screen.
+      // That is how sb42 kept ending on the provider's fulfilled screen after
+      // w4.done had been repointed to the pool tab — the control moved, the
+      // scene did not, and the confirmer was told "You did the work".
+      // Echoes are exempt: they are consequences on another surface, already
+      // checked by the ECHO rules below.
+      if (!step.hot) {
+        const nextScene = sb.steps[ix + 1];
+        if (!nextScene || step.echo || step.f === nextScene.f) continue;
+        if (rawSb.steps[ix].skipTargetReason?.trim()) continue;
+        const crossing = `${sb.id} ${step.f}@${step.v} -> ${nextScene.f}@${nextScene.v}`;
+        if (UNAUDITED_SCENE_CROSSINGS.has(crossing)) {
+          usedCrossings.add(crossing);
+          continue;
+        }
+        err.push(
+          `DESTINATION ${sb.id}:${ix} advances ${step.f} → ${nextScene.f} with no control and no skipTargetReason`,
+        );
+        continue;
+      }
       const target = ctx.hots[step.hot.h]?.to;
       if (!target?.startsWith("screen:")) continue;
       const next = sb.steps[ix + 1];
@@ -705,6 +884,12 @@ export function normalizeAndValidate(raw: RawSB[], ctx: Ctx): { sbs: ShippedSB[]
       if (!reason) err.push(`DESTINATION ${sb.id}:${ix} ${step.hot.h} → ${targetRef}, next is ${actualRef}; add the destination scene or skipTargetReason`);
     }
   }
+  // An exemption that no longer matches anything is an exemption nobody can see
+  // is dead. Failing on it is what keeps the list shrinking rather than growing
+  // a tail of entries that excuse transitions which no longer exist.
+  for (const crossing of UNAUDITED_SCENE_CROSSINGS)
+    if (!usedCrossings.has(crossing))
+      err.push(`DESTINATION: stale exemption "${crossing}" matches no scene crossing — remove it`);
   // Scene surfaces were free text, so a typo ("pwa " / "Admin") silently fell
   // back to the flow's home and the stagebar pill quietly lied. The echo pair
   // is checked BOTH ways: a marked echo must actually be off-home, and any
@@ -773,9 +958,12 @@ export function normalizeAndValidate(raw: RawSB[], ctx: Ctx): { sbs: ShippedSB[]
   // allowed sets are the drawn home surfaces per group: the client enters via
   // the pool tab, the wallet drawer, or the Garden-tab work flow; admin flows
   // enter at their consoles; editorial at its public pages.
+  // Admin tightened 2026-08-16 (interaction-patterns §3): flows enter at TRUE
+  // console homes — workspace routes — never inside a dialog or wizard (W8, W9,
+  // W10, and W14 are flow/dialog surfaces and left the set).
   const ALLOWED_ENTRY: Record<string, readonly string[]> = {
     client: ["W1", "W5", "WFLOW"],
-    admin: ["W7", "W8", "W9", "W10", "W12", "W13", "W14", "W21", "W22", "W24", "HUBWORK"],
+    admin: ["W7", "W7M", "W12", "W13", "W21", "W22", "W24", "HUBWORK"],
     editorial: ["W15", "W16"],
   };
   for (const sb of sbs) {
@@ -825,7 +1013,25 @@ export function normalizeAndValidate(raw: RawSB[], ctx: Ctx): { sbs: ShippedSB[]
     for (const h of ctx.screenHots[s.id] ?? []) {
       if (!s.states.some((st) => domTokens(st.html).hots.has(h))) err.push(`ORPHAN hotspot ${h}: registered on ${s.id} but emitted in no state`);
     }
-    // A promise whose state chip reads Fulfilled is done; offering evidence
+    // Rail stability (2026-08-16, admin prototype review): a flow dialog's
+    // step rail is declared once per flow and never changes mid-flow. Flows
+    // are grouped by their dialog title within a screen (W8 legitimately
+    // hosts both the seed and capture flows); every state sharing a title
+    // must render the identical ordered step-label list. W11 once swapped a
+    // one-item "Policy" rail into the same chrome — the regression this locks.
+    {
+      const railsByFlow = new Map<string, { labels: string; state: string }>();
+      for (const st of s.states) {
+        const title = st.html.match(/id="flow-dialog-title">([^<]*)</)?.[1];
+        if (!title) continue;
+        const labels = [...st.html.matchAll(/<span class="st">([^<]*)<\/span>/g)].map((m) => m[1]).join(" · ");
+        const seen = railsByFlow.get(title);
+        if (!seen) railsByFlow.set(title, { labels, state: st.id });
+        else if (seen.labels !== labels)
+          err.push(`RAIL ${s.id}@${st.id}: flow "${title}" renders steps [${labels}] but @${seen.state} renders [${seen.labels}] — a flow's rail never changes mid-flow`);
+      }
+    }
+    // A commitment whose state chip reads Fulfilled is done; offering evidence
     // attach there contradicts both the chip and §5.3, which gates attach to
     // Active / EvidenceSubmitted / PartiallyApproved. Scoped to the CHIP
     // markup (kit chip(), tone ok) so a greyed future "Fulfilled" stage label
@@ -833,7 +1039,7 @@ export function normalizeAndValidate(raw: RawSB[], ctx: Ctx): { sbs: ShippedSB[]
     for (const st of s.states) {
       if (!domTokens(st.html).hots.has("w2.add-evidence")) continue;
       if (/class="ch ok(?: dot)?"[^>]*>Fulfilled</.test(st.html))
-        err.push(`STATE ${s.id}@${st.id}: evidence attach offered on a Fulfilled promise`);
+        err.push(`STATE ${s.id}@${st.id}: evidence attach offered on a Fulfilled commitment`);
     }
     for (const st of s.states) {
       const text = stripTags(st.html);
@@ -857,4 +1063,23 @@ export function normalizeAndValidate(raw: RawSB[], ctx: Ctx): { sbs: ShippedSB[]
   }
 
   return { sbs, errors: err, warnings: warn };
+}
+
+// ---------------------------------------------------------------------------
+// Running this file directly proves nothing, and said so silently. It is a
+// module: `bun hifi/validate.ts` loaded it, ran no checks, printed nothing and
+// exited 0 — which reads exactly like a pass. PRD-760's closing checklist names
+// that command, so three issues were unblocked partly on the strength of a
+// command that cannot fail (found 2026-08-19).
+//
+// The checks need the registry, which lives in the build. So say so and exit
+// non-zero rather than letting silence be mistaken for a green.
+// ---------------------------------------------------------------------------
+if (import.meta.main) {
+  console.error(
+    "hifi/validate.ts is a module, not a gate — on its own it checks nothing.\n" +
+      "It needs the screen registry, which the build assembles. Run:\n" +
+      "  bun .plans/active/commitment-pooling/prototypes-artifact.build.ts",
+  );
+  process.exit(1);
 }

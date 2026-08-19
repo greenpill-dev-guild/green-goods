@@ -3,8 +3,9 @@
 // ordinary W21/W22 settlement machine instead of drawing a second value rail.
 
 import { hot } from "../html";
+import { icon } from "../icons";
 import {
-  acard, actionBar, adminCanvas, banner, btn, card, chip, deskWin, disclosure, hdr, kv, pagepad, pageHeader, phoneFrame, stateChip, teamstrip,
+  acard, actionBar, adminCanvas, banner, btn, card, chip, deskWin, detailRow, emptyState, hdr, kv, pagepad, pageHeader, phoneFrame, sectionCard, skeleton, stateChip, teamstrip,
 } from "../kit";
 import type { StateFacts } from "../types";
 import { adminChromeHots } from "./admin";
@@ -18,10 +19,17 @@ const W36_STATES = [
   ["funded", "Funded claim accepted"],
   ["refund-queued", "Refund queued"],
   ["refunded", "Refund returned"],
+  // Recovery states (2026-08-16 round 12). This is a read surface reached from
+  // a link and from the wallet, and it was the only client read surface with
+  // none — W1, W2, W5, W28, W32 and W34 all carry the three. A member opening a
+  // funding claim on a bad connection previously got a blank page.
+  ["loading", "Loading"], ["not-found", "Not found"], ["read-error", "Read error"],
 ] as const;
 type W36State = (typeof W36_STATES)[number][0];
 
-const W36_LABEL: Record<W36State, string> = {
+type W36Loaded = Exclude<W36State, "loading" | "not-found" | "read-error">;
+
+const W36_LABEL: Record<W36Loaded, string> = {
   "waiting-pledge": "Claim sent",
   "deposit-instructions": "Ready to deposit",
   "deposit-sent": "Deposit sent",
@@ -31,50 +39,89 @@ const W36_LABEL: Record<W36State, string> = {
   refunded: "Returned",
 };
 
+// Status (icon · what happened · what it means) and the facts that matter in
+// that state. Rebuilt 2026-08-16 round 10 on the commitment view's anatomy: this
+// screen previously hid the garden Safe, the refund account, the funding record
+// and the commitment reference behind a "Funding details" drawer — on EVERY one of
+// its seven states. Money identifiers are the last thing that should need a tap,
+// and this was the highest disclosure-per-state screen in the prototype.
+const W36_VIEW: Record<W36Loaded, { ic: string; title: string; info: string; rows: [string, string][] }> = {
+  "waiting-pledge": {
+    ic: "time-line",
+    title: "Your claim is with the Garden Steward",
+    info: "Nothing has moved yet. When the funding record is ready, this page shows the garden Safe and the exact amount to send.",
+    rows: [["Amount", "40 G$ · not sent yet"]],
+  },
+  "deposit-instructions": {
+    ic: "shield-check-line",
+    title: "Ready to deposit",
+    info: "Send 40 G$ to the garden's recoverable Safe. The garden holds it for this commitment until Ben delivers or the refund path opens.",
+    rows: [["Send", "40 G$"], ["To", "Rocinha garden Safe · 0x8a…2d"], ["Reference", "F-204 · keep with the transfer"]],
+  },
+  "deposit-sent": {
+    ic: "send-plane-line",
+    title: "Transfer sent",
+    info: "The Garden Steward is checking the Safe transfer and its funding reference. Ben's Offer is not accepted yet.",
+    rows: [["Amount", "40 G$"], ["Destination", "Rocinha garden Safe"]],
+  },
+  "pending-acceptance": {
+    ic: "checkbox-circle-fill",
+    title: "Deposit recorded",
+    info: "The full deposit is recorded and held by the garden. The claim now waits for the Garden Steward's decision.",
+    rows: [["Deposit", "40 G$ · recorded"], ["Offer", "Still waiting for acceptance"]],
+  },
+  funded: {
+    ic: "checkbox-circle-fill",
+    title: "Funded claim accepted",
+    info: "Ben can now deliver the poster; the funding record stays attached to this commitment.",
+    rows: [["Held by", "Rocinha garden Safe"], ["Funded by", "Maria · 40 G$"], ["Next", "Ben delivers · Maria confirms"]],
+  },
+  "refund-queued": {
+    ic: "refresh-line",
+    title: "Returning to you",
+    info: "This commitment ended without delivery. The garden has queued the recorded 40 G$ back to your refund account.",
+    rows: [["Amount", "40 G$"], ["Status", "Returning · arrival not confirmed yet"]],
+  },
+  refunded: {
+    ic: "checkbox-circle-fill",
+    title: "Returned",
+    info: "The recorded 40 G$ returned to your refund account.",
+    rows: [["Amount", "40 G$"], ["Status", "Returned · authenticated receipt"]],
+  },
+};
+
 function w36(state: W36State): string {
   const head = hdr("Design a market poster", { back: true });
-  const intro = `<div class="cardrow" style="padding:0 2px">${chip("Offer", "offer")}${chip("40 G$", "plain")}${stateChip(W36_LABEL[state])}</div>
-${card(`<div class="cardrow">${teamstrip(["M", "B"])}<span class="t-meta">Maria funds · Ben offers</span></div><div class="t-meta num">1 poster design · Season of First Rains</div>`, { cls: "flat" })}`;
-
-  let status: string;
-  switch (state) {
-    case "waiting-pledge":
-      status = card(`<div class="t-title">Your claim is with the Garden Steward</div><div class="t-meta">Nothing has moved yet. When the funding record is ready, this page will show the garden Safe and the exact amount to send.</div>`);
-      break;
-    case "deposit-instructions":
-      status = `${banner("Send 40 G$ to the garden's recoverable Safe. The garden holds it for this promise until Ben delivers or the refund path opens.", "stone", "shield-check-line")}
-${card(`${kv("Send", "40 G$")}${kv("To", "Rocinha garden Safe · 0x8a…2d")}${kv("Refund account", "Maria · 0x12…9a")}${kv("Funding reference", "F-204 · keep with the transfer")}`)}`;
-      break;
-    case "deposit-sent":
-      status = card(`<div class="t-title">Transfer sent</div><div class="t-meta">The Garden Steward is checking the Safe transfer and its funding reference. Ben's Offer is not accepted yet.</div>${kv("Amount", "40 G$")}${kv("Destination", "Rocinha garden Safe")}`);
-      break;
-    case "pending-acceptance":
-      status = `${banner("The full deposit is recorded and held by the garden. The claim now waits for the Garden Steward's decision.", "stone", "checkbox-circle-fill")}
-${card(`${kv("Deposit", "40 G$ · recorded")}${kv("Refund account", "Maria · 0x12…9a")}${kv("Offer", "Still waiting for acceptance")}`)}`;
-      break;
-    case "funded":
-      status = `${banner("Your funded claim was accepted. Ben can now deliver the poster; the funding record stays attached to this promise.", "stone", "checkbox-circle-fill")}
-${card(`${kv("Held by", "Rocinha garden Safe")}${kv("Funded by", "Maria · 40 G$")}${kv("Next", "Ben delivers · Maria confirms")}`)}`;
-      break;
-    case "refund-queued":
-      status = `${banner("This promise ended without delivery. The garden has queued the recorded 40 G$ back to your refund account.", "stone")}
-${card(`${kv("Amount", "40 G$")}${kv("To", "Maria · 0x12…9a")}${kv("Status", "Returning · arrival not confirmed yet")}`)}`;
-      break;
-    case "refunded":
-      status = `${banner("The recorded 40 G$ returned to your refund account.", "stone", "checkbox-circle-fill")}
-${card(`${kv("Amount", "40 G$")}${kv("To", "Maria · 0x12…9a")}${kv("Status", "Returned · authenticated receipt")}`)}`;
-      break;
-  }
-
-  const details = hot(
-    "w36.details",
-    disclosure(
-      "Funding details",
-      "garden Safe · recorded account",
-      `${kv("Garden Safe", "0x8a…2d")}${kv("Refund account", "0x12…9a · recorded before deposit")}${kv("Funding record", "F-204")}${kv("Promise", "0x8c…41f2")}`,
+  // Read-surface recovery short-circuits before any funding fact is touched —
+  // same shape as the commitment view's (client.ts): a pushed read surface, so no
+  // bottom nav and no action bar.
+  const readWrap = (inner: string) => phoneFrame(`${head}${inner}<div style="flex:1"></div>`, { appBar: false });
+  if (state === "loading")
+    return readWrap(pagepad(skeleton({ title: true, lines: 1 }), skeleton({ avatar: true, lines: 3 }), skeleton({ lines: 2 })));
+  if (state === "not-found")
+    return readWrap(
+      pagepad(emptyState("search-line", "Funding claim not found", "We couldn't find this claim. It may have been withdrawn, or it hasn't reached this phone yet.", hot("w36.retry", btn("Try again", { kind: "sec", icon: "refresh-line" })))),
+    );
+  if (state === "read-error")
+    return readWrap(
+      pagepad(emptyState("wifi-off-line", "Couldn't load this claim", "Something went wrong reaching the network. Nothing has moved. Your deposit and refund account are unaffected.", hot("w36.retry", btn("Try again", { kind: "pri", icon: "refresh-line" })))),
+    );
+  const v = W36_VIEW[state];
+  // People above the fold, the way the commitment view does it — the chips row and
+  // the separate identity card collapsed into one line plus the tag row below.
+  const people = `<div class="cardrow" style="padding:2px 2px 0">${teamstrip(["M", "B"])}<span class="t-meta">Maria funds · Ben offers</span>${chip("40 G$", "plain")}${stateChip(W36_LABEL[state])}</div>`;
+  const status = `<div class="finfo"><span class="fic">${icon(v.ic)}</span><div class="grow"><div class="ft">${v.title}</div><div class="fi">${v.info}</div></div></div>`;
+  const body = pagepad(
+    people,
+    status,
+    sectionCard("Details", v.rows.map(([k, val]) => detailRow(k, val)).join("")),
+    // The identifiers that were behind the drawer. They belong on the page:
+    // a funder checking a Safe address should never have to hunt for it.
+    sectionCard(
+      "Funding record",
+      `${detailRow("Garden Safe", "0x8a…2d")}${detailRow("Refund account", "0x12…9a")}${detailRow("Record", "F-204")}${detailRow("Commitment", "0x8c…41f2")}`,
     ),
   );
-  const body = pagepad(intro, status, details);
   const bar = state === "deposit-instructions"
     ? actionBar(hot("w36.send-deposit", btn("Open wallet and send 40 G$", { kind: "pri", full: true })))
     : false;
@@ -82,18 +129,16 @@ ${card(`${kv("Amount", "40 G$")}${kv("To", "Maria · 0x12…9a")}${kv("Status", 
 }
 
 const W36_HOTS: HifiDef["hots"] = {
+  "w36.retry": { l: "Try again", info: "Read recovery on a funding claim: nothing has moved, so retrying only re-reads. The deposit and the recorded refund account are untouched." },
   "w36.send-deposit": {
     l: "Open wallet and send the deposit",
     to: "screen:W36@deposit-sent",
     info: "This is an ordinary Celo wallet transfer to the registered garden Safe. It is not a pooling-module call and does not prove that the deposit was recorded.",
   },
-  "w36.details": {
-    l: "Funding details",
-    info: "The exact garden Safe, immutable refund account, funding record, and promise reference stay available without exposing them on the browse card.",
-  },
 };
 
-const w36Facts = (state: W36State): StateFacts => ({
+const w36Facts = (state: W36State): StateFacts | undefined =>
+  state === "loading" || state === "not-found" || state === "read-error" ? undefined : ({
   pool: "Open",
   commitment:
     state === "funded" ? "Accepted"
@@ -117,18 +162,42 @@ const W37_STATES = [
   ["deposit-recorded", "Deposit recorded"],
   ["consumed", "Claim accepted"],
   ["refund-eligible", "Refund eligible"],
+  ["loading", "Loading"], ["not-found", "Not found"], ["read-error", "Read error"],
 ] as const;
 type W37State = (typeof W37_STATES)[number][0];
 
 function w37(state: W37State): string {
   let body: string;
   switch (state) {
+    // The steward's side of a member-funded claim had no read casts at all,
+    // while W36 — the gardener's view of the SAME object — carried all three
+    // (2026-08-18 round 51, Afo). Money is on the other side of this screen, so
+    // an unreadable checkpoint must never look like a claim with nothing on it.
+    case "loading":
+      body = acard("Funded claim", `${skeleton({ title: true, lines: 2 })}${skeleton({ lines: 3 })}`);
+      break;
+    case "not-found":
+      body = emptyState(
+        "search-line",
+        "This funded claim could not be found",
+        "It may have been withdrawn, or the link may be stale. Nothing was recorded against it and no deposit was touched.",
+        hot("w37.retry", btn("Try Again", { kind: "sec", icon: "refresh-line" })),
+      );
+      break;
+    case "read-error":
+      body = emptyState(
+        "wifi-off-line",
+        "Couldn't load this funded claim",
+        "Something went wrong reaching the indexer. Any pledge, deposit, or refund already recorded is safe and unchanged, and nothing can be accepted or refunded until this reads.",
+        hot("w37.retry", btn("Try Again", { kind: "pri", icon: "refresh-line" })),
+      );
+      break;
     case "claim":
       body = acard(
         "Maria's claim · funding not yet pledged",
         `${banner("Confirm the claim, price, garden Safe, and Maria's refund account before giving deposit instructions.", "stone")}
 ${kv("Offer", "Ben · Design a market poster")}${kv("Price", "40 G$ · Celo settlement")}${kv("Claimant / funder", "Maria")}${kv("Refund account", "0x12…9a")}
-<div class="actrow" style="justify-content:flex-end">${hot("w37.record-funding", btn("Create funding record", { kind: "pri", sm: true }))}</div>`,
+<div class="actrow" style="justify-content:flex-end">${hot("w37.record-funding", btn("Create Funding Record", { kind: "pri", sm: true }))}</div>`,
       );
       break;
     case "pledged":
@@ -136,7 +205,7 @@ ${kv("Offer", "Ben · Design a market poster")}${kv("Price", "40 G$ · Celo sett
         "Funding pledged · F-204",
         `${banner("Maria now sees the registered garden Safe and exact amount. Record a deposit only after checking the Safe transfer and its reference.", "stone")}
 ${kv("Expected", "40 G$")}${kv("Garden Safe", "0x8a…2d")}${kv("Refund account", "Maria · 0x12…9a")}${kv("Safe transfer", "0x7b…21 · 40 G$")}
-<div class="actrow" style="justify-content:flex-end">${hot("w37.record-deposit", btn("Record checked deposit", { kind: "pri", sm: true }))}</div>`,
+<div class="actrow" style="justify-content:flex-end">${hot("w37.record-deposit", btn("Record Checked Deposit", { kind: "pri", sm: true }))}</div>`,
       );
       break;
     case "deposit-recorded":
@@ -144,22 +213,22 @@ ${kv("Expected", "40 G$")}${kv("Garden Safe", "0x8a…2d")}${kv("Refund account"
         "Deposit recorded · claim waiting",
         `${banner("The full 40 G$ is recorded in the garden Safe. Acceptance and funding consumption are submitted together from this checkpoint.", "stone", "checkbox-circle-fill")}
 ${kv("Deposit", "40 G$ · reference 0x7b…21")}${kv("Expected", "40 G$")}${kv("Excess", "0 G$")}${kv("Spendable display", "Safe balance minus open earmarks")}
-<div class="actrow" style="justify-content:flex-end">${hot("w37.accept-funded", btn("Accept funded claim", { kind: "pri", sm: true }))}</div>`,
+<div class="actrow" style="justify-content:flex-end">${hot("w37.accept-funded", btn("Accept Funded Claim", { kind: "pri", sm: true }))}</div>`,
       );
       break;
     case "consumed":
       body = acard(
         "Funded claim accepted",
-        `${banner("Ben's Offer is Accepted and F-204 is Consumed. The funding fact stays attached while the promise follows its ordinary evidence and confirmation path.", "stone", "checkbox-circle-fill")}
+        `${banner("Ben's Offer is Accepted and F-204 is Consumed. The funding fact stays attached while the commitment follows its ordinary proof and confirmation path.", "stone", "checkbox-circle-fill")}
 ${kv("Provider", "Ben")}${kv("Funder", "Maria · 40 G$")}${kv("Custody", "Rocinha garden Safe")}${kv("If delivered", "Provider payout plan")}`,
       );
       break;
     case "refund-eligible":
       body = acard(
-        "Promise ended without delivery",
-        `${banner("The Cancelled promise makes this recorded deposit mechanically eligible. Queueing creates one Refund child to Maria's recorded account; an exact repeat returns the same child.", "amber", "error-warning-line")}
+        "Commitment ended without delivery",
+        `${banner("The Cancelled commitment makes this recorded deposit mechanically eligible. Queueing creates one Refund child to Maria's recorded account; an exact repeat returns the same child.", "amber", "error-warning-line")}
 ${kv("Funding", "F-204 · Consumed")}${kv("Terminal state", "Cancelled")}${kv("Refund", "40 G$ → Maria · 0x12…9a")}${kv("Garden Safe", "Accounting earmark · not a token lock")}
-<div class="actrow" style="justify-content:flex-end">${hot("w37.queue-refund", btn("Queue refund", { kind: "pri", sm: true }))}</div>`,
+<div class="actrow" style="justify-content:flex-end">${hot("w37.queue-refund", btn("Queue Refund", { kind: "pri", sm: true }))}</div>`,
       );
       break;
   }
@@ -193,6 +262,7 @@ const W37_HOTS: HifiDef["hots"] = {
     info: "The steward accepts the pending priced-Offer claim, then consumeFunding binds the already-recorded deposit to that accepted commitment.",
     calls: ["acceptClaim", "consumeFunding"],
   },
+  "w37.retry": { l: "Try again", info: "Read recovery for the steward's funded-claim checkpoint, added round 51. Its client twin W36 has carried loading, not-found and read-error for the same object; this side had none, so an unreadable checkpoint looked like a claim with nothing on it." },
   "w37.queue-refund": {
     l: "Queue refund",
     to: "screen:W21@refund-queued",
@@ -202,7 +272,11 @@ const W37_HOTS: HifiDef["hots"] = {
   },
 };
 
-const w37Facts = (state: W37State): StateFacts => ({
+const w37Facts = (state: W37State): StateFacts | undefined =>
+  // A read cast draws no record, so it asserts no funding or commitment fact.
+  state === "loading" || state === "not-found" || state === "read-error"
+    ? undefined
+    : ({
   pool: "Open",
   commitment:
     state === "consumed" ? "Accepted"
@@ -215,7 +289,7 @@ const w37Facts = (state: W37State): StateFacts => ({
     : state === "deposit-recorded" ? "DepositRecorded"
     : "Consumed",
   settlementAccount: "Active",
-});
+    });
 
 export const FUNDING_DEFS: HifiDef[] = [
   {
