@@ -94,7 +94,7 @@ export const PERIOD_DURATION = 2_592_000n;
 
 /** Zodiac Roles v2 enums, read from the pinned 2.1.0 Types.sol. */
 const ABI_TYPE = { None: 0, Static: 1, Calldata: 5 } as const;
-const OPERATOR = { Or: 2, Matches: 5, EqualTo: 16, WithinAllowance: 28 } as const;
+const OPERATOR = { Pass: 0, Or: 2, Matches: 5, EqualTo: 16, WithinAllowance: 28 } as const;
 
 const FACTORY_INTERFACE = new Interface([
   "function deployModule(address masterCopy, bytes initializer, uint256 saltNonce) returns (address)",
@@ -104,11 +104,13 @@ const ROLES_CONFIG_INTERFACE = new Interface([
   "function scopeFunction(bytes32 roleKey, address targetAddress, bytes4 selector, tuple(uint8 parent, uint8 paramType, uint8 operator, bytes compValue)[] conditions, uint8 options)",
   "function setAllowance(bytes32 key, uint128 balance, uint128 maxRefill, uint128 refill, uint64 period, uint64 timestamp)",
   "function assignRoles(address module, bytes32[] roleKeys, bool[] memberOf)",
+  "function setDefaultRole(address module, bytes32 roleKey)",
   "function transferOwnership(address newOwner)",
   "function owner() view returns (address)",
   "function avatar() view returns (address)",
   "function target() view returns (address)",
   "function isModuleEnabled(address module) view returns (bool)",
+  "function defaultRoles(address module) view returns (bytes32)",
   "function allowances(bytes32 key) view returns (uint128 refill, uint128 maxRefill, uint64 period, uint64 timestamp, uint128 balance)",
 ]);
 const ROLES_INTERFACE = new Interface(["function setUp(bytes initParams)"]);
@@ -169,6 +171,7 @@ export type RolesTransactionKind =
   | "SCOPE_FUNCTION"
   | "SET_ALLOWANCE"
   | "ASSIGN_EXECUTOR"
+  | "SET_DEFAULT_ROLE"
   | "TRANSFER_OWNERSHIP"
   | "ENABLE_MODULE";
 
@@ -198,7 +201,7 @@ export interface GardenRolesPlan {
   canonicalTarget: string;
   canonicalSelector: string;
   allowance: { balance: string; maxRefill: string; refill: string; period: string };
-  recipientAllowlist: string[];
+  registeredGardenSafes: string[];
   conditions: ConditionFlat[];
   conditionsEncoded: string;
   boundaries: RolesBoundary[];
@@ -295,25 +298,26 @@ export interface ConditionFlat {
 }
 
 /**
- * Scopes `transfer(address,uint256)` on canonical G$ so the role may send only to a registered
- * Garden Safe, and only within the periodic allowance.
+ * Scopes `transfer(address,uint256)` on canonical G$ so the role may move only G$, only by transfer,
+ * and only within the periodic allowance.
  *
  * The flat tree is breadth-first with parent indices. Node 0 matches the calldata; its children map
- * positionally to the two parameters. The recipient is a logical Or over one EqualTo per registered
- * Safe, which is how Roles expresses set membership — logical nodes carry no paramType of their
- * own, so the leaves hold Static.
+ * positionally to the two parameters, so a parameter that carries no constraint still needs a node.
+ *
+ * The recipient is deliberately unconstrained. Three of the five disbursement kinds pay an
+ * individual rather than a Garden Safe — contributor consideration pays `entry.contributor`, loan
+ * principal pays `loan.borrower`, and refunds pay `funding.refundAccount` — and those addresses are
+ * not knowable when the tree is frozen. A static allowlist would have made every contributor payout
+ * revert with PARAMETER_NOT_ALLOWED, and rewriting it later costs one Safe transaction per Garden
+ * because the ceremony hands each modifier to its Safe. What bounds the destination instead is the
+ * source-side payout plan, which is authenticated over CCIP and re-checked per kind before dispatch;
+ * what bounds the amount on this chain is the allowance below plus the executor's own caps.
  */
-export function buildTransferConditions(recipients: readonly string[]): ConditionFlat[] {
-  if (recipients.length !== EXPECTED_GARDEN_COUNT) {
-    throw new Error(`Recipient allowlist must name all ${EXPECTED_GARDEN_COUNT} registered Garden Safes`);
-  }
-  const unique = new Set(recipients.map((value) => getAddress(value)));
-  if (unique.size !== recipients.length) throw new Error("Recipient allowlist contains a duplicate Safe");
-
+export function buildTransferConditions(): ConditionFlat[] {
   const encoder = AbiCoder.defaultAbiCoder();
-  const conditions: ConditionFlat[] = [
+  return [
     { parent: 0, paramType: ABI_TYPE.Calldata, operator: OPERATOR.Matches, compValue: "0x" },
-    { parent: 0, paramType: ABI_TYPE.None, operator: OPERATOR.Or, compValue: "0x" },
+    { parent: 0, paramType: ABI_TYPE.Static, operator: OPERATOR.Pass, compValue: "0x" },
     {
       parent: 0,
       paramType: ABI_TYPE.Static,
@@ -321,15 +325,6 @@ export function buildTransferConditions(recipients: readonly string[]): Conditio
       compValue: encoder.encode(["bytes32"], [ALLOWANCE_KEY]),
     },
   ];
-  for (const recipient of recipients) {
-    conditions.push({
-      parent: 1,
-      paramType: ABI_TYPE.Static,
-      operator: OPERATOR.EqualTo,
-      compValue: encoder.encode(["address"], [getAddress(recipient)]),
-    });
-  }
-  return conditions;
 }
 
 /** The exact ConditionFlat[] payload scopeFunction receives, so proofs can execute these bytes. */
@@ -365,7 +360,7 @@ export function permissionsConfigHash(
   return keccak256(encoded);
 }
 
-/** Six ordered boundaries per Safe, in the order the frozen ownership model requires. */
+/** Seven ordered boundaries per Safe, in the order the frozen ownership model requires. */
 export function buildRolesTransactions(
   boundaries: readonly RolesBoundary[],
   conditions: readonly ConditionFlat[],
@@ -441,6 +436,15 @@ export function buildRolesTransactions(
       boundary.modifier,
       ROLES_CONFIG_INTERFACE.encodeFunctionData("assignRoles", [executor, [ROLE_KEY], [true]]),
     );
+    // assignRoles grants membership and enables the module, but leaves defaultRoles at zero.
+    // configureGardenRoute refuses any route whose modifier has no default role for the executor,
+    // and after the next boundary only the Safe can set it — so it has to happen here.
+    push(
+      boundary,
+      "SET_DEFAULT_ROLE",
+      boundary.modifier,
+      ROLES_CONFIG_INTERFACE.encodeFunctionData("setDefaultRole", [executor, ROLE_KEY]),
+    );
     // Ownership leaves the operator before the modifier can ever gain authority.
     push(
       boundary,
@@ -495,12 +499,12 @@ async function buildPlan(safePlanPath: string): Promise<GardenRolesPlan> {
     staticNetwork: true,
   });
 
-  // The recipient allowlist is the authority on where G$ may go, so it is checked against the
-  // receipt-backed registry rather than trusted from the supplied plan. Uniqueness alone would let a
-  // substituted zero-nonce Safe produce a perfectly valid tree and permission hash.
+  // Every Safe in the supplied plan must match the receipt-backed registry. The tree no longer
+  // encodes the recipient set, but the registry still decides which Safes get a modifier at all, so
+  // a substituted Safe would otherwise walk away with live G$ authority.
   assertRegisteredSafes(safePlan.entries);
-  const recipientAllowlist = safePlan.entries.map((entry) => getAddress(entry.safe));
-  const conditions = buildTransferConditions(recipientAllowlist);
+  const registeredGardenSafes = safePlan.entries.map((entry) => getAddress(entry.safe));
+  const conditions = buildTransferConditions();
 
   const boundaries: RolesBoundary[] = [];
   for (const entry of safePlan.entries) {
@@ -587,7 +591,7 @@ async function buildPlan(safePlanPath: string): Promise<GardenRolesPlan> {
       refill: MAX_PERIOD_AMOUNT.toString(),
       period: PERIOD_DURATION.toString(),
     },
-    recipientAllowlist,
+    registeredGardenSafes,
     conditions,
     conditionsEncoded: encodeConditions(conditions),
     boundaries,
@@ -978,11 +982,12 @@ export async function verifyDeployedRoles(plan: GardenRolesPlan): Promise<void> 
         failures.push(`Garden ${boundary.tokenId}: modifier is not deployed`);
         continue;
       }
-      const [avatar, target, owner, member, allowance, enabled] = await Promise.all([
+      const [avatar, target, owner, member, defaultRole, allowance, enabled] = await Promise.all([
         roles.avatar() as Promise<string>,
         roles.getFunction("target").staticCall() as Promise<string>,
         roles.owner() as Promise<string>,
         roles.isModuleEnabled(celoSettlementExecutor()) as Promise<boolean>,
+        roles.defaultRoles(celoSettlementExecutor()) as Promise<string>,
         roles.allowances(ALLOWANCE_KEY) as unknown as Promise<bigint[]>,
         safe.isModuleEnabled(boundary.modifier) as Promise<boolean>,
       ]);
@@ -992,6 +997,9 @@ export async function verifyDeployedRoles(plan: GardenRolesPlan): Promise<void> 
         failures.push(`Garden ${boundary.tokenId}: modifier is owned by ${owner}, not its Safe`);
       }
       if (!member) failures.push(`Garden ${boundary.tokenId}: executor is not a Roles member`);
+      if (defaultRole !== ROLE_KEY) {
+        failures.push(`Garden ${boundary.tokenId}: executor default role is ${defaultRole}, not the reviewed role key`);
+      }
       if (allowance[0] !== MAX_PERIOD_AMOUNT || allowance[2] !== PERIOD_DURATION) {
         failures.push(`Garden ${boundary.tokenId}: allowance does not match the frozen period cap`);
       }
@@ -1030,7 +1038,7 @@ export async function main(args = process.argv.slice(2)): Promise<void> {
 
   const plan = await buildPlan(safePlanPath);
   atomicWrite(planPath, plan);
-  // The fork proof reads its fixture inside the EVM, where the full plan's 108 calldata payloads
+  // The fork proof reads its fixture inside the EVM, where the full plan's 126 calldata payloads
   // exhaust the test gas budget. This carries only what the proof executes.
   atomicWrite(ENABLE_PLAN, {
     schemaVersion: 1,
@@ -1060,10 +1068,13 @@ export async function main(args = process.argv.slice(2)): Promise<void> {
     allowanceKey: plan.allowanceKey,
     allowance: plan.allowance,
     conditionsEncoded: plan.conditionsEncoded,
+    executor: celoSettlementExecutor(),
     boundaries: plan.boundaries.slice(0, 2).map((boundary) => ({
+      garden: boundary.garden,
       safe: boundary.safe,
       modifier: boundary.modifier,
       saltNonce: boundary.saltNonce,
+      permissionsConfigHash: boundary.permissionsConfigHash,
     })),
   });
   console.log(

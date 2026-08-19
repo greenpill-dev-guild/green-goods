@@ -4,6 +4,8 @@ pragma solidity ^0.8.25;
 import { Test } from "forge-std/Test.sol";
 import { stdJson } from "forge-std/StdJson.sol";
 
+import { ICeloSettlementExecutor } from "../../src/interfaces/ICeloSettlementExecutor.sol";
+
 /**
  * Proves the reviewed G$ transfer permission on a pinned Celo fork.
  *
@@ -39,6 +41,9 @@ interface IRoles {
     )
         external;
     function assignRoles(address module, bytes32[] memory roleKeys, bool[] memory memberOf) external;
+    function setDefaultRole(address module, bytes32 roleKey) external;
+    function defaultRoles(address module) external view returns (bytes32);
+    function isModuleEnabled(address module) external view returns (bool);
     function execTransactionWithRole(
         address to,
         uint256 value,
@@ -167,6 +172,10 @@ contract CeloGardenRolesPermissionForkTest is Test {
         roles.scopeFunction(roleKey, canonicalToken, canonicalSelector, _planConditions(), 0);
         roles.setAllowance(allowanceKey, periodAmount, periodAmount, periodAmount, periodDuration, 0);
         roles.assignRoles(EXECUTOR, roleKeys, memberOf);
+        // assignRoles grants membership and enables the module but leaves defaultRoles at zero,
+        // which is the one field configureGardenRoute reads. It has to be written before ownership
+        // moves, because afterwards only the Safe can write it.
+        roles.setDefaultRole(EXECUTOR, roleKey);
         // Ownership moves to the Safe while the modifier is still inert.
         roles.transferOwnership(safe);
         vm.stopPrank();
@@ -282,7 +291,7 @@ contract CeloGardenRolesPermissionForkTest is Test {
         );
     }
 
-    function testFork_reviewedTreeAllowsOnlyRegisteredRecipientsWithinAllowance() public {
+    function testFork_reviewedTreeSettlesToARegisteredSafeWithinTheAllowance() public {
         uint256 amount = 1000e18;
         uint256 before = IERC20(canonicalToken).balanceOf(registeredRecipient);
 
@@ -291,22 +300,16 @@ contract CeloGardenRolesPermissionForkTest is Test {
     }
 
     /**
-     * Roles reverts on a condition violation regardless of the shouldRevert flag, which only governs
-     * whether an inner call's own revert bubbles. A denied transfer therefore fails loudly rather
-     * than returning false, and no G$ moves.
+     * Contributor consideration, loan principal, and refunds are all paid to an individual rather
+     * than to a Garden Safe, and those addresses are not knowable when the tree is frozen. A
+     * recipient allowlist here would have refused every one of them with PARAMETER_NOT_ALLOWED.
      */
-    function testFork_reviewedTreeRejectsUnregisteredRecipient() public {
+    function testFork_reviewedTreePaysAnIndividualContributor() public {
+        uint256 amount = 1000e18;
         uint256 before = IERC20(canonicalToken).balanceOf(outsider);
 
-        assertEq(
-            _expectConditionViolation(
-                canonicalToken, abi.encodeWithSelector(canonicalSelector, outsider, uint256(1000e18))
-            ),
-            STATUS_PARAMETER_NOT_ALLOWED,
-            "recipient was refused for the wrong reason"
-        );
-
-        assertEq(IERC20(canonicalToken).balanceOf(outsider), before, "unregistered address received G$");
+        assertTrue(_send(outsider, amount), "transfer to an individual contributor was refused");
+        assertEq(IERC20(canonicalToken).balanceOf(outsider) - before, amount, "contributor did not receive G$");
     }
 
     function testFork_reviewedTreeRejectsAmountAboveTheAllowance() public {
@@ -339,5 +342,39 @@ contract CeloGardenRolesPermissionForkTest is Test {
             STATUS_TARGET_ADDRESS_NOT_ALLOWED,
             "target was refused for the wrong reason"
         );
+    }
+
+    /**
+     * The ceremony and the executor were previously proven apart: this proof drove
+     * execTransactionWithRole, which carries an explicit role key, while the unit tests drove
+     * configureGardenRoute against a mock whose defaultRoles always answered. Neither crossed the
+     * seam, and the real ceremony left defaultRoles at zero — so all eighteen routes would have
+     * reverted with PolicyNotConfigured, after ownership had already moved to the Safes and only a
+     * Safe transaction per Garden could have fixed it. This drives the live executor against the
+     * real modifier the ceremony just finished configuring.
+     */
+    function testFork_configureGardenRouteAcceptsTheFinishedCeremony() public {
+        ICeloSettlementExecutor executor = ICeloSettlementExecutor(EXECUTOR);
+        address garden = plan.readAddress(".boundaries[0].garden");
+
+        assertEq(roles.defaultRoles(EXECUTOR), roleKey, "ceremony did not leave the executor a default role");
+        assertTrue(roles.isModuleEnabled(EXECUTOR), "ceremony did not leave the executor a Roles member");
+        assertTrue(ISafe(safe).isModuleEnabled(address(roles)), "ceremony did not leave the modifier enabled");
+
+        vm.prank(_executorOwner());
+        executor.configureGardenRoute(
+            garden, safe, address(roles), roleKey, allowanceKey, plan.readBytes32(".boundaries[0].permissionsConfigHash")
+        );
+
+        ICeloSettlementExecutor.GardenRoute memory route = executor.gardenRouteOf(garden);
+        assertEq(route.safe, safe, "route did not record the Garden Safe");
+        assertEq(route.rolesModifier, address(roles), "route did not record the modifier");
+        assertTrue(route.active, "route was not activated");
+    }
+
+    function _executorOwner() private view returns (address) {
+        (bool ok, bytes memory data) = EXECUTOR.staticcall(abi.encodeWithSignature("owner()"));
+        require(ok && data.length == 32, "could not read the executor owner");
+        return abi.decode(data, (address));
     }
 }

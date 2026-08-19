@@ -96,7 +96,7 @@ export const CEREMONY_STAGES = new Map<CeremonyStage, { script: string; boundari
     "garden-roles",
     {
       script: "settlement:garden-roles:deploy",
-      boundaries: 108,
+      boundaries: 126,
       label: "Roles modifier deployment, scoping, allowance, executor assignment, and ownership transfer",
     },
   ],
@@ -282,7 +282,7 @@ Ceremony stages:
   garden-accounts                          2 boundaries
   garden-safes                             18 boundaries
   relay                                    4 boundaries
-  garden-roles                             108 boundaries
+  garden-roles                             126 boundaries
   garden-roles-enable                      18 boundaries
 
 Unlocking the session is not broadcast authorization. Run only the exact stage and transaction

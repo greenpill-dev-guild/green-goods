@@ -1,11 +1,12 @@
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as nodePath from "node:path";
-import { getAddress } from "ethers";
+import { Interface, getAddress } from "ethers";
 import { describe, expect, it } from "vitest";
 
 import {
   ALLOWANCE_KEY,
+  ROLE_KEY,
   assertNextRolesBoundary,
   assertPlanUnblocked,
   assertRegisteredSafes,
@@ -81,35 +82,31 @@ describe("Garden Roles modifier planning", () => {
 const SAFES = Array.from({ length: 18 }, (_, index) => `0x${(index + 1).toString(16).padStart(40, "0")}`);
 
 describe("G$ transfer permission tree", () => {
-  it("allows only the registered Safes, and only within the allowance", () => {
-    const conditions = buildTransferConditions(SAFES);
+  it("bounds the amount by the allowance and leaves the recipient open", () => {
+    const conditions = buildTransferConditions();
 
-    // One calldata match, one logical Or for the recipient, one allowance check, 18 leaves.
-    expect(conditions).toHaveLength(21);
+    // One calldata match plus one node per parameter: parameters map positionally, so the
+    // unconstrained recipient still needs a node of its own.
+    expect(conditions).toHaveLength(3);
     expect(conditions[0]).toMatchObject({ parent: 0, paramType: 5, operator: 5 });
-    // Logical nodes carry no paramType of their own; the leaves hold Static.
-    expect(conditions[1]).toMatchObject({ parent: 0, paramType: 0, operator: 2 });
+    expect(conditions[1]).toMatchObject({ parent: 0, paramType: 1, operator: 0 });
     expect(conditions[2]).toMatchObject({ parent: 0, paramType: 1, operator: 28 });
     expect(conditions[2].compValue).toContain(ALLOWANCE_KEY.slice(2));
-
-    const leaves = conditions.slice(3);
-    expect(leaves).toHaveLength(18);
-    expect(leaves.every((leaf) => leaf.parent === 1 && leaf.paramType === 1 && leaf.operator === 16)).toBe(true);
-    // Every registered Safe appears exactly once as an allowed recipient.
-    for (const safe of SAFES) {
-      expect(leaves.filter((leaf) => leaf.compValue.toLowerCase().endsWith(safe.slice(2).toLowerCase()))).toHaveLength(
-        1,
-      );
-    }
   });
 
-  it("refuses an allowlist that is not the exact registered set", () => {
-    expect(() => buildTransferConditions(SAFES.slice(0, 17))).toThrow(/all 18 registered Garden Safes/);
-    expect(() => buildTransferConditions([...SAFES.slice(0, 17), SAFES[0]])).toThrow(/duplicate Safe/);
+  it("keeps a static recipient allowlist out of the tree", () => {
+    // A recipient allowlist here would reject every contributor payout, loan principal, and refund,
+    // because those are paid to individuals rather than to a Garden Safe. Reintroducing one costs a
+    // Safe transaction per Garden to undo, so it is asserted against rather than left to review.
+    const conditions = buildTransferConditions();
+
+    expect(conditions.some((condition) => condition.operator === 16)).toBe(false);
+    expect(conditions.some((condition) => condition.operator === 2)).toBe(false);
+    expect(conditions.filter((condition) => condition.parent === 0)).toHaveLength(3);
   });
 
   it("commits the immutable permission facts and nothing mutable", () => {
-    const conditions = buildTransferConditions(SAFES);
+    const conditions = buildTransferConditions();
     const modifier = "0x679AEB80a481772Df85E2b93F8fDc5180EF422e1";
     const base = permissionsConfigHash(SAFE_A, modifier, conditions);
 
@@ -118,7 +115,7 @@ describe("G$ transfer permission tree", () => {
     expect(permissionsConfigHash(SAFE_B, modifier, conditions)).not.toEqual(base);
     expect(permissionsConfigHash(SAFE_A, SAFE_B, conditions)).not.toEqual(base);
     // So is any change to the reviewed tree.
-    const widened = buildTransferConditions([...SAFES.slice(0, 17), SAFE_B]);
+    const widened = [...conditions.slice(0, 2), { ...conditions[2], operator: 0 }];
     expect(permissionsConfigHash(SAFE_A, modifier, widened)).not.toEqual(base);
   });
 });
@@ -138,31 +135,54 @@ describe("EOA configuration boundaries", () => {
   }));
   const executor = "0xB8a7F3c3DfA407c45e05b7B2381233101938a84F";
 
-  it("orders six unsigned boundaries per Safe and transfers ownership last", () => {
-    const transactions = buildRolesTransactions(boundaries, buildTransferConditions(SAFES), executor);
+  it("orders seven unsigned boundaries per Safe and transfers ownership last", () => {
+    const transactions = buildRolesTransactions(boundaries, buildTransferConditions(), executor);
 
-    expect(transactions).toHaveLength(SAFES.length * 6);
+    expect(transactions).toHaveLength(SAFES.length * 7);
     expect(transactions.map((transaction) => transaction.step)).toEqual(
       Array.from({ length: transactions.length }, (_, index) => index + 1),
     );
-    expect(transactions.slice(0, 6).map((transaction) => transaction.kind)).toEqual([
+    expect(transactions.slice(0, 7).map((transaction) => transaction.kind)).toEqual([
       "DEPLOY_MODIFIER",
       "SCOPE_TARGET",
       "SCOPE_FUNCTION",
       "SET_ALLOWANCE",
       "ASSIGN_EXECUTOR",
+      "SET_DEFAULT_ROLE",
       "TRANSFER_OWNERSHIP",
     ]);
     // Ownership must leave the operator only after the role is fully scoped.
     for (let safeIndex = 0; safeIndex < SAFES.length; safeIndex += 1) {
-      const perSafe = transactions.slice(safeIndex * 6, safeIndex * 6 + 6);
+      const perSafe = transactions.slice(safeIndex * 7, safeIndex * 7 + 7);
       expect(perSafe.every((transaction) => transaction.safe === boundaries[safeIndex].safe)).toBe(true);
       expect(perSafe.at(-1)?.kind).toBe("TRANSFER_OWNERSHIP");
     }
   });
 
+  it("gives the executor a default role, which configureGardenRoute refuses a route without", () => {
+    const transactions = buildRolesTransactions(boundaries, buildTransferConditions(), executor);
+    const setDefaultRole = transactions.filter((transaction) => transaction.kind === "SET_DEFAULT_ROLE");
+
+    // assignRoles grants membership and enables the module, but leaves defaultRoles at zero, and
+    // configureGardenRoute reads exactly that field.
+    const expected = new Interface(["function setDefaultRole(address module, bytes32 roleKey)"]).encodeFunctionData(
+      "setDefaultRole",
+      [executor, ROLE_KEY],
+    );
+
+    expect(setDefaultRole).toHaveLength(SAFES.length);
+    expect(setDefaultRole.every((transaction) => transaction.data === expected)).toBe(true);
+    // It has to land while the operator still owns the modifier; afterwards only the Safe can.
+    for (let safeIndex = 0; safeIndex < SAFES.length; safeIndex += 1) {
+      const perSafe = transactions.slice(safeIndex * 7, safeIndex * 7 + 7);
+      expect(perSafe.findIndex((transaction) => transaction.kind === "SET_DEFAULT_ROLE")).toBeLessThan(
+        perSafe.findIndex((transaction) => transaction.kind === "TRANSFER_OWNERSHIP"),
+      );
+    }
+  });
+
   it("moves no value and touches only the factory or that Safe's own modifier", () => {
-    const transactions = buildRolesTransactions(boundaries, buildTransferConditions(SAFES), executor);
+    const transactions = buildRolesTransactions(boundaries, buildTransferConditions(), executor);
 
     expect(transactions.every((transaction) => transaction.value === "0")).toBe(true);
     for (const transaction of transactions) {
