@@ -661,12 +661,6 @@ export function CommunityTab({
                     })}
                   </div>
 
-                  {showWiringSection && wiringStatus === "connected" ? (
-                    <p className="inline-flex items-start gap-1.5 rounded-lg bg-success-lighter px-3 py-2 text-xs text-success-dark">
-                      <RiCheckLine className="mt-0.5 h-4 w-4 shrink-0" />
-                      {formatMessage({ id: "app.community.yield.connected" })}
-                    </p>
-                  ) : null}
                   {showWiringSection &&
                   (wiringStatus === "missing-resolver-wiring" || wiringStatus === "mismatch") ? (
                     <div className="rounded-lg border border-warning-light bg-warning-lighter px-3 py-2 text-xs text-warning-dark">
@@ -699,12 +693,20 @@ export function CommunityTab({
                       {formatMessage({ id: "app.community.createPools" })}
                     </AdminButton>
                   ) : null}
-                  <AdminButton asChild variant="text" size="sm" className="h-auto rounded p-0">
-                    <Link to={adminRoutes.communityCoordinationStrategies(gardenRouteContext)}>
-                      {formatMessage({ id: "app.conviction.manageStrategies" })}
-                      <RiArrowRightSLine className="h-4 w-4" />
-                    </Link>
-                  </AdminButton>
+                  <div className="flex flex-wrap items-center gap-2">
+                    {showWiringSection && wiringStatus === "connected" ? (
+                      <p className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-success-lighter px-3 text-xs text-success-dark">
+                        <RiCheckLine className="h-4 w-4 shrink-0" aria-hidden="true" />
+                        {formatMessage({ id: "app.community.yield.connected" })}
+                      </p>
+                    ) : null}
+                    <AdminButton asChild variant="text" size="sm" className="px-0">
+                      <Link to={adminRoutes.communityCoordinationStrategies(gardenRouteContext)}>
+                        {formatMessage({ id: "app.conviction.manageStrategies" })}
+                        <RiArrowRightSLine className="h-4 w-4" />
+                      </Link>
+                    </AdminButton>
+                  </div>
                 </Card.Body>
               </Card>
             ) : null}
