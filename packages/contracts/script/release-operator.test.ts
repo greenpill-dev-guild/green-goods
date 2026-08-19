@@ -79,7 +79,7 @@ describe("release operator session", () => {
     expect(parseSessionOptions(["--commit", candidate, "--stage", "relay"]).stage).toBe("relay");
     expect(CEREMONY_STAGES.get("relay")?.boundaries).toBe(4);
     expect(plannedStageBoundaries("relay", 0)).toEqual([1, 2, 3, 4]);
-    // Six unsigned boundaries per Safe across all 18, resumed from its own checkpoint.
+    // Seven unsigned boundaries per Safe across all 18, resumed from its own checkpoint.
     expect(CEREMONY_STAGES.get("garden-roles")?.boundaries).toBe(126);
     expect(plannedStageBoundaries("garden-roles", 124)).toEqual([125, 126]);
     expect(plannedStageBoundaries("garden-roles", 126)).toEqual([]);
@@ -89,6 +89,13 @@ describe("release operator session", () => {
       "garden-roles-enable",
     );
     expect(CEREMONY_STAGES.get("garden-roles-enable")?.boundaries).toBe(18);
+    // Route binding is the last stage and the only one that cannot be undone, so it carries its own
+    // checkpoint rather than riding along with the enables.
+    expect(parseSessionOptions(["--commit", candidate, "--stage", "garden-routes"]).stage).toBe("garden-routes");
+    expect(CEREMONY_STAGES.get("garden-routes")?.boundaries).toBe(18);
+    expect(plannedStageBoundaries("garden-routes", 17)).toEqual([18]);
+    expect(plannedStageBoundaries("garden-routes", 18)).toEqual([]);
+    expect(() => plannedStageBoundaries("garden-routes", 19)).toThrow(/but its plan defines 18/);
   });
 
   it("resumes a staged lane after its checkpoint without replaying a mined boundary", () => {
@@ -189,6 +196,7 @@ describe("release operator session", () => {
       "settlement:garden-relay:deploy",
       "settlement:garden-roles:deploy",
       "settlement:garden-roles:enable",
+      "settlement:garden-routes:configure",
     ]);
     expect(
       assertAllowedOperatorCommand(
