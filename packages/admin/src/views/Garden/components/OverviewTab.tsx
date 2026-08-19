@@ -2,18 +2,19 @@ import {
   type ActivityFilter,
   Card,
   EmptyState,
-  formatRelativeTime,
   type GardenActivityEvent,
   type GardenDetailTab,
   type GardenRange,
   type TabBadgeSeverity,
 } from "@green-goods/shared";
+import { getRelativeTimeParts } from "@green-goods/shared/utils";
 import { RiArrowRightSLine, RiTimeLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
 
 import { AdminButton } from "@/components/AdminButton";
 import { AdminCard } from "@/components/AdminCard";
+import { localizeCanonicalActionTitle } from "@/views/Hub/actionDisplay";
 import { AlertRow, SectionStateCard } from "./GardenDetailHelpers";
 import {
   ACTIVITY_CARD_CLASS,
@@ -74,10 +75,20 @@ export function OverviewTab({
   gardenerCount,
   treasuryBalance,
 }: OverviewTabProps) {
-  const { formatMessage } = useIntl();
+  const { formatMessage, formatRelativeTime } = useIntl();
   const isHealthMode = mode === "health";
   const isActivityMode = mode === "activity";
   const activityEventLimit = isActivityMode ? Number.POSITIVE_INFINITY : 8;
+  const formatActivityTime = (timestamp: number) => {
+    const parts = getRelativeTimeParts(timestamp);
+    return parts
+      ? formatRelativeTime(parts.value, parts.unit, { numeric: "always" })
+      : formatRelativeTime(0, "second", { numeric: "auto" });
+  };
+  const formatActivityTitle = (event: GardenActivityEvent) =>
+    event.category === "work"
+      ? localizeCanonicalActionTitle(event.title, formatMessage)
+      : event.title;
 
   if (isLoading) {
     return (
@@ -160,7 +171,7 @@ export function OverviewTab({
                     </p>
                     <p className="mt-1 font-heading text-lg font-semibold text-text-strong">
                       {filteredActivityEvents.length > 0
-                        ? formatRelativeTime(filteredActivityEvents[0].timestamp)
+                        ? formatActivityTime(filteredActivityEvents[0].timestamp)
                         : formatMessage({
                             id: "app.garden.detail.metric.noActivity",
                             defaultMessage: "No activity yet",
@@ -291,6 +302,7 @@ export function OverviewTab({
                             : event.category === "impact"
                               ? "border-l-information-base"
                               : "border-l-warning-base";
+                        const activityTitle = formatActivityTitle(event);
                         return (
                           <div
                             key={event.id}
@@ -313,16 +325,16 @@ export function OverviewTab({
                                 </p>
                                 <p
                                   className="truncate text-sm font-medium text-text-strong"
-                                  title={event.title}
+                                  title={activityTitle}
                                 >
-                                  {event.title}
+                                  {activityTitle}
                                 </p>
                                 <p className="mt-1 max-w-prose body-xs text-text-soft">
                                   {event.description}
                                 </p>
                               </div>
                               <span className="body-xs text-text-soft">
-                                {formatRelativeTime(event.timestamp)}
+                                {formatActivityTime(event.timestamp)}
                               </span>
                             </div>
                             {event.href ? (
@@ -439,21 +451,24 @@ export function OverviewTab({
                   </>
                 ) : (
                   <>
-                    {filteredActivityEvents.slice(0, 3).map((event) => (
-                      <button
-                        key={event.id}
-                        type="button"
-                        className="garden-stat-row w-full text-left"
-                        onClick={() => openSection("overview", "activity", event.itemId)}
-                      >
-                        <span className="min-w-0 truncate garden-stat-row-label">
-                          {event.title}
-                        </span>
-                        <span className="shrink-0 garden-stat-row-value">
-                          {formatRelativeTime(event.timestamp)}
-                        </span>
-                      </button>
-                    ))}
+                    {filteredActivityEvents.slice(0, 3).map((event) => {
+                      const activityTitle = formatActivityTitle(event);
+                      return (
+                        <button
+                          key={event.id}
+                          type="button"
+                          className="garden-stat-row w-full text-left"
+                          onClick={() => openSection("overview", "activity", event.itemId)}
+                        >
+                          <span className="min-w-0 truncate garden-stat-row-label">
+                            {activityTitle}
+                          </span>
+                          <span className="shrink-0 garden-stat-row-value">
+                            {formatActivityTime(event.timestamp)}
+                          </span>
+                        </button>
+                      );
+                    })}
                     {filteredActivityEvents.length === 0 ? (
                       <p className="body-sm text-text-soft">
                         {formatMessage({ id: "app.garden.detail.activity.empty" })}
