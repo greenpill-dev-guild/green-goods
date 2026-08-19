@@ -87,6 +87,18 @@ describe("ComposeCommitment", () => {
     expect(screen.getByRole("button", { name: "Next" })).toBeEnabled();
   });
 
+  it("says what is missing rather than only disabling the control", async () => {
+    const user = userEvent.setup();
+    render();
+    await user.click(screen.getByRole("button", { name: "Next" }));
+
+    expect(screen.getByText(/Give it a name/i)).toBeInTheDocument();
+    await user.type(screen.getByLabelText("Name it"), "Compost workshop");
+    expect(screen.getByText(/Say what you are counting/i)).toBeInTheDocument();
+    await user.type(screen.getByLabelText("Of what"), "hours");
+    expect(screen.queryByText(/Give it a name/i)).not.toBeInTheDocument();
+  });
+
   it("takes the wording of each beat from the side they chose", async () => {
     const user = userEvent.setup();
     render();

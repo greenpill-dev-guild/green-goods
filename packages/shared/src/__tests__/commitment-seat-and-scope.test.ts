@@ -239,6 +239,14 @@ describe("account-scoped commitment reads", () => {
     expect(variables.ids).toBeUndefined();
   });
 
+  it("finds a commitment that names the reader as a confirmer", async () => {
+    // Seating them as confirmer is no use if their own sheet never lists it.
+    await getCommitments({ chainId: 42161, account: ASKER });
+
+    const { document } = lastCommitmentQuery();
+    expect(document).toContain("confirmers: { _contains: [$account] }");
+  });
+
   it("adds roster membership as one more way in, never as the only one", async () => {
     mocks.query.mockImplementation(
       async (_document: string, _variables: unknown, operation: string) => {

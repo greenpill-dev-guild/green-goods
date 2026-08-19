@@ -59,6 +59,20 @@ vi.mock("../utils/blockchain/contracts", async () => {
 
 const { executeCommitmentQueueJob } = await import("../modules/job-queue/job-executors");
 
+/**
+ * What `processJob` does after a waiting return: it writes the job it is still
+ * holding, spreading the meta from memory rather than from storage.
+ */
+function markWaitingLikeTheRealCaller(job: { id: string; meta?: Record<string, unknown> }) {
+  const next = {
+    ...job,
+    meta: { ...(job.meta ?? {}), waitingForDependency: true },
+    lastAttemptAt: Date.now(),
+  };
+  store.set(job.id, { ...next });
+  return next as never;
+}
+
 /** The read-modify-write `markJobFailed` performs, which is where a CID was lost. */
 function markJobFailedLikeTheRealOne(id: string) {
   const stored = store.get(id);
@@ -125,10 +139,25 @@ describe("a published CID survives what comes after it", () => {
     for (let attempt = 1; attempt <= 4; attempt += 1) {
       const result = await executeCommitmentQueueJob("job-1", current, 42161, {} as never);
       expect(result).toEqual({ status: "waiting", reason: "metadata-unpublished" });
-      current = store.get("job-1") as never;
+      current = markWaitingLikeTheRealCaller(current);
     }
 
     const final = await executeCommitmentQueueJob("job-1", current, 42161, {} as never);
-    expect(final).toEqual({ status: "identity-conflict", reason: "metadata-unavailable" });
+    expect(final).toEqual({ status: "unavailable", reason: "metadata-unavailable" });
+  });
+
+  it("survives the caller writing the job again on the same attempt", async () => {
+    // The step the first version of this file left out. processJob writes the
+    // job it still holds in memory after a waiting return, so a count written
+    // only to storage is erased before the next attempt reads it — and the
+    // ceiling never arrives. The loop above passes either way; this does not.
+    mocks.uploadJSONToIPFS.mockRejectedValue(new Error("gateway down"));
+
+    const first = job();
+    await executeCommitmentQueueJob("job-1", first, 42161, {} as never);
+    markWaitingLikeTheRealCaller(first);
+
+    const persisted = store.get("job-1") as { meta: { metadataAttempts?: number } };
+    expect(persisted.meta.metadataAttempts).toBe(1);
   });
 });

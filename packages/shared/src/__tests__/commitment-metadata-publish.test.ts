@@ -154,7 +154,10 @@ describe("when the gateway never comes back", () => {
     const exhausted = job({ meta: { metadataAttempts: 4 } });
     const result = await executeCommitmentQueueJob("job-1", exhausted, 42161, {} as never);
 
-    expect(result).toEqual({ status: "identity-conflict", reason: "metadata-unavailable" });
+    // Terminal, but named for what happened. Reporting a gateway outage as an
+    // identity conflict puts a data-integrity signal in the member's job record
+    // and makes real conflicts indistinguishable in the metrics.
+    expect(result).toEqual({ status: "unavailable", reason: "metadata-unavailable" });
     expect(mocks.executeCommitmentJob).not.toHaveBeenCalled();
   });
 });

@@ -53,9 +53,9 @@ export async function getCommitments(input: {
   if (input.account) {
     // Everything this account is a party to, not only what it is rostered on.
     // The roster is seeded at acceptance and never holds the confirmer
-    // (AcceptanceLib.sol:183-187), so a roster-only filter loses both a
-    // commitment nobody has taken up yet and every commitment waiting on this
-    // person's confirmation.
+    // (AcceptanceLib.sol:183-187), so a roster-only filter loses a commitment
+    // nobody has taken up yet, one waiting on this person as counterparty, and
+    // one waiting on them as a named confirmer.
     const account = input.account.toLowerCase();
     const contributorQuery = `query CommitmentMembership($chainId: Int!, $account: String!) { CommitmentContributor(where: { chainId: { _eq: $chainId }, contributor: { _eq: $account }, additionSeen: { _eq: true }, active: { _eq: true } }) { commitmentEntityId } }`;
     const rosteredIds = (
@@ -72,6 +72,11 @@ export async function getCommitments(input: {
       "{ creator: { _eq: $account } }",
       "{ leadProvider: { _eq: $account } }",
       "{ counterparty: { _eq: $account } }",
+      // Named confirmers are a party too. selectCommitmentSeat seats them, so
+      // without this their own commitment never reaches the sheet that exists
+      // to tell them something is waiting, and they could only find it by
+      // browsing the garden it lives in.
+      "{ confirmers: { _contains: [$account] } }",
     ];
     // An empty roster is not an empty result — the party clauses stand alone.
     if (rosteredIds.length > 0) {

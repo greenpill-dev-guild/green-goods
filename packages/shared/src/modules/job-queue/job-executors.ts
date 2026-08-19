@@ -142,7 +142,9 @@ export type CommitmentQueueExecution =
   | { status: "complete"; txHash?: Hex; entityId?: bigint }
   | { status: "submitted"; txHash: Hex }
   | { status: "waiting"; reason: string }
-  | { status: "identity-conflict"; reason: string };
+  | { status: "identity-conflict"; reason: string }
+  /** Gave up on something outside the queue. Terminal, but not a data conflict. */
+  | { status: "unavailable"; reason: string };
 
 function contractPayload(payload: CommitmentCreationPayload) {
   return {
@@ -306,10 +308,12 @@ async function publishPendingCommitmentMetadata(
     return { published: true };
   } catch (error) {
     const attempts = Number(job.meta?.metadataAttempts ?? 0) + 1;
-    await jobQueueDB.updateJob({
-      ...job,
-      meta: { ...(job.meta ?? {}), metadataAttempts: attempts },
-    });
+    // Mutated, not replaced. The caller writes the job again on the waiting
+    // path, spreading the meta it still holds — so a count written only to
+    // storage is erased on the same attempt and the ceiling never arrives.
+    // The success path above mutates `payload` for exactly this reason.
+    job.meta = { ...(job.meta ?? {}), metadataAttempts: attempts };
+    await jobQueueDB.updateJob({ ...job });
     logger.warn("[JobQueue] Commitment metadata upload failed", {
       jobId: job.id,
       attempts,
@@ -331,8 +335,12 @@ export async function executeCommitmentQueueJob(
   const moduleAddress = getNetworkContracts(chainId).commitmentPoolingModule;
   const published = await publishPendingCommitmentMetadata(job);
   if (!published.published) {
+    // Not an identity conflict: nothing about this commitment disagrees with
+    // the chain, a gateway was simply unreachable. Reporting it as one puts a
+    // data-integrity signal in the member's job record and makes real conflicts
+    // indistinguishable in the metrics.
     return published.terminal
-      ? { status: "identity-conflict", reason: published.reason }
+      ? { status: "unavailable", reason: published.reason }
       : { status: "waiting", reason: published.reason };
   }
   const commitmentJob: CommitmentJob = {

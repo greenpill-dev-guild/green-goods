@@ -62,6 +62,7 @@ export function ComposeCommitment() {
 
   const beatIndex = BEATS.indexOf(beat);
   const canAdvance = beatCanAdvance(beat, values);
+  const blockingReasonId = beatBlockingReason(beat, values);
 
   const place = async () => {
     if (!pool || !viewer || !gardenAddress) return;
@@ -123,7 +124,13 @@ export function ComposeCommitment() {
       progress={beatIndex + 1}
       bar={
         <div className="shrink-0 border-t border-stroke-soft-200 bg-bg-white-0 p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+          {!canAdvance && blockingReasonId ? (
+            <p className="mb-2 text-xs text-text-sub-600" id="compose-blocked" role="status">
+              {formatMessage({ id: blockingReasonId })}
+            </p>
+          ) : null}
           <button
+            aria-describedby={!canAdvance && blockingReasonId ? "compose-blocked" : undefined}
             type="button"
             disabled={!canAdvance || jobs.isPending || (beat === "review" && !pool)}
             aria-busy={jobs.isPending}
@@ -152,6 +159,23 @@ export function ComposeCommitment() {
       ) : null}
     </Shell>
   );
+}
+
+/**
+ * Why this beat will not let the member continue.
+ *
+ * Disabling a control without saying why leaves someone tapping a dead button
+ * and guessing. The schema's own messages are written for developers, so the
+ * beat says the missing thing in the member's terms instead.
+ */
+function beatBlockingReason(beat: Beat, values: CommitmentComposerValues): string | null {
+  if (beat !== "what") return null;
+  if (values.title.trim().length === 0) return "app.compose.blocked.title";
+  if (values.unitLabel.trim().length === 0) return "app.compose.blocked.unit";
+  if (!Number.isFinite(values.targetUnits) || values.targetUnits <= 0) {
+    return "app.compose.blocked.count";
+  }
+  return null;
 }
 
 /** Which answers each beat is responsible for. */

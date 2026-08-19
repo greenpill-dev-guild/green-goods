@@ -21,18 +21,24 @@ export function groupByGarden(
   unplacedLabel = "Other"
 ): GardenGroup[] {
   const gardenByAddress = new Map(gardens.map((garden) => [garden.id.toLowerCase(), garden.name]));
+  // Keyed by the garden's address, not its name. Two gardens are allowed to
+  // share a name, and grouping by it silently merges them into one heading.
   const gardenByPoolId = new Map(
-    pools.map((pool) => [
-      pool.poolId.toString(),
-      pool.garden ? (gardenByAddress.get(pool.garden.toLowerCase()) ?? null) : null,
-    ])
+    pools.map((pool) => {
+      const address = pool.garden?.toLowerCase() ?? null;
+      return [
+        pool.poolId.toString(),
+        address ? { address, name: gardenByAddress.get(address) ?? null } : null,
+      ] as const;
+    })
   );
 
   const groups = new Map<string, GardenGroup>();
   for (const row of rows) {
     const poolId = row.commitment.poolId?.toString();
-    const gardenName = (poolId ? gardenByPoolId.get(poolId) : null) ?? null;
-    const key = gardenName ?? "__unplaced__";
+    const garden = (poolId ? gardenByPoolId.get(poolId) : null) ?? null;
+    const gardenName = garden?.name ?? null;
+    const key = garden?.address ?? "__unplaced__";
     const existing = groups.get(key);
     if (existing) {
       existing.rows.push(row);
