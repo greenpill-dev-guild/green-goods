@@ -80,10 +80,10 @@ describe("release operator session", () => {
     expect(CEREMONY_STAGES.get("relay")?.boundaries).toBe(4);
     expect(plannedStageBoundaries("relay", 0)).toEqual([1, 2, 3, 4]);
     // Six unsigned boundaries per Safe across all 18, resumed from its own checkpoint.
-    expect(CEREMONY_STAGES.get("garden-roles")?.boundaries).toBe(108);
-    expect(plannedStageBoundaries("garden-roles", 106)).toEqual([107, 108]);
-    expect(plannedStageBoundaries("garden-roles", 108)).toEqual([]);
-    expect(() => plannedStageBoundaries("garden-roles", 109)).toThrow(/but its plan defines 108/);
+    expect(CEREMONY_STAGES.get("garden-roles")?.boundaries).toBe(126);
+    expect(plannedStageBoundaries("garden-roles", 124)).toEqual([125, 126]);
+    expect(plannedStageBoundaries("garden-roles", 126)).toEqual([]);
+    expect(() => plannedStageBoundaries("garden-roles", 127)).toThrow(/but its plan defines 126/);
     // Enabling is its own stage with its own checkpoint, one boundary per Safe.
     expect(parseSessionOptions(["--commit", candidate, "--stage", "garden-roles-enable"]).stage).toBe(
       "garden-roles-enable",
