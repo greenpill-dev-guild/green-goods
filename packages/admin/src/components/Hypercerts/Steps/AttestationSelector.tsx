@@ -317,8 +317,10 @@ export function AttestationSelector({
               )}
             >
               <div className="flex items-start justify-between gap-3">
-                <div className="space-y-1">
-                  <h3 className="text-sm font-semibold text-text-strong">{attestation.title}</h3>
+                <div className="min-w-0 flex-1 space-y-1">
+                  <h3 className="break-words text-sm font-semibold text-text-strong">
+                    {attestation.title}
+                  </h3>
                   <p className="text-xs text-text-sub">
                     <EnsAddressText
                       address={attestation.gardenerAddress}
@@ -328,7 +330,7 @@ export function AttestationSelector({
                 </div>
                 <span
                   className={cn(
-                    "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs",
+                    "inline-flex shrink-0 items-center gap-1 rounded-full border px-2 py-0.5 text-xs",
                     isBundled
                       ? "border-warning-light bg-warning-lighter text-warning-dark"
                       : isSelected
