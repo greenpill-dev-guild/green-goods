@@ -16,7 +16,7 @@
  * @module hooks/commitment-pooling/useCommitmentsInbox
  */
 
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 
 import {
   type CommitmentDerivedState,
@@ -25,18 +25,9 @@ import {
   commitmentNeedsSeat,
   selectCommitmentSeat,
 } from "../../modules/commitment-pooling";
-import { useJobQueueEvents } from "../../modules/job-queue/event-bus";
 import type { Address } from "../../types/domain";
 import { useCommitments } from "./useCommitmentPooling";
-
-/** The kinds whose failure a member would feel on a commitment surface. */
-const COMMITMENT_JOB_KINDS = new Set([
-  "commitment",
-  "claim",
-  "evidence",
-  "workLink",
-  "confirmation",
-]);
+import { useCommitmentQueueState } from "./useCommitmentQueueState";
 
 /** A commitment has settled when nothing further will happen to it on its own. */
 const SETTLED_STATES = new Set<CommitmentDerivedState>([
@@ -109,13 +100,10 @@ export function useCommitmentsInbox({
   // inbox, so the query never runs.
   const query = useCommitments({ chainId, account: viewer }, { enabled: Boolean(viewer) });
 
-  const [failedJobCount, setFailedJobCount] = useState(0);
-  useJobQueueEvents(["job:failed"], (_type, data) => {
-    const kind = (data as { job?: { kind?: string } })?.job?.kind;
-    if (kind && COMMITMENT_JOB_KINDS.has(kind)) {
-      setFailedJobCount((count) => count + 1);
-    }
-  });
+  // Read from the queue rather than counted from events: a counter incremented
+  // on job:failed never resets, is lost on unmount, and double-counts because
+  // Home and the sheet both mount this hook.
+  const { failedCount } = useCommitmentQueueState(viewer);
   const { commitments } = query;
 
   const partitioned = useMemo(() => {
@@ -151,7 +139,7 @@ export function useCommitmentsInbox({
     availability: query.availability,
     isLoading: query.isLoading,
     isError: query.isError,
-    failedJobCount,
+    failedJobCount: failedCount,
     refetch: query.refetch,
   };
 }

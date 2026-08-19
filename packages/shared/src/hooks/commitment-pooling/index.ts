@@ -31,6 +31,8 @@ export {
 } from "./useCommitmentMetadata";
 export type { CommitmentJobInput } from "./useCommitmentJobs";
 export { useCommitmentJobs } from "./useCommitmentJobs";
+export type { CommitmentQueueState } from "./useCommitmentQueueState";
+export { useCommitmentQueueState } from "./useCommitmentQueueState";
 export type { CommitmentsInbox, InboxCommitment } from "./useCommitmentsInbox";
 export { useCommitmentsInbox } from "./useCommitmentsInbox";
 export type { CreditMutationInput } from "./useCredit";

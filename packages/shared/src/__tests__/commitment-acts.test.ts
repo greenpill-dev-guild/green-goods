@@ -33,7 +33,9 @@ describe("one act table for every surface", () => {
     for (const derivedState of phases) {
       for (const seat of ["provider", "confirmer", "contributor", "bystander"] as const) {
         const input = { commitment: { ...base, derivedState }, seat };
-        expect(commitmentNeedsSeat(input)).toBe(selectCommitmentActKind(input) !== null);
+        // Needing somebody is a narrower question than offering them something,
+        // so it may only ever be a subset of where an act exists.
+        if (commitmentNeedsSeat(input)) expect(selectCommitmentActKind(input)).not.toBeNull();
       }
     }
   });
@@ -48,6 +50,30 @@ describe("one act table for every surface", () => {
         seat: "provider",
       })
     ).toBe("addProof");
+  });
+
+  it("does not badge a member for something only they may choose to do", () => {
+    // The bar offers everything available; the badge counts only what somebody
+    // else is held up by. Withdrawing your own untaken offer is neither.
+    const offered = { ...base, derivedState: "OFFERED" as CommitmentDerivedState };
+    expect(selectCommitmentActKind({ commitment: offered, seat: "provider" })).toBe("withdraw");
+    expect(commitmentNeedsSeat({ commitment: offered, seat: "provider" })).toBe(false);
+
+    const expired = { ...base, derivedState: "EXPIRED" as CommitmentDerivedState };
+    expect(commitmentNeedsSeat({ commitment: expired, seat: "provider" })).toBe(false);
+
+    // Taking something up is an invitation, not an obligation.
+    expect(commitmentNeedsSeat({ commitment: offered, seat: "bystander" })).toBe(false);
+  });
+
+  it("still badges the acts other people are actually waiting on", () => {
+    for (const [derivedState, seat] of [
+      ["ACTIVE", "provider"],
+      ["EVIDENCE_SUBMITTED", "provider"],
+      ["READY_FOR_CONFIRMATION", "confirmer"],
+    ] as const) {
+      expect(commitmentNeedsSeat({ commitment: { ...base, derivedState }, seat })).toBe(true);
+    }
   });
 
   it("withholds every act while one is already waiting to send", () => {

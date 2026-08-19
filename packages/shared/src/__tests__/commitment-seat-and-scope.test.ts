@@ -279,6 +279,19 @@ describe("named confirmers", () => {
     ).toBe("confirmer");
   });
 
+  it("keeps someone on the team a contributor even when also named to confirm", () => {
+    // The contract refuses a contributor's confirmation whatever else they are:
+    // ConfirmLib reverts SelfConfirmation before it asks about the confirmer
+    // list. Seating them as confirmer would offer an act the chain rejects.
+    expect(
+      selectCommitmentSeat({
+        commitment: { ...offerAccepted, confirmers: [HELPER] },
+        contributors: [HELPER],
+        viewer: HELPER,
+      })
+    ).toBe("contributor");
+  });
+
   it("still lets the lead outrank a confirmer list they also appear on", () => {
     expect(
       selectCommitmentSeat({

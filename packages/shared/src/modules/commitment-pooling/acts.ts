@@ -110,7 +110,25 @@ export function selectCommitmentActKind(input: CommitmentActInput): CommitmentAc
   return null;
 }
 
-/** Whether this commitment is waiting on this reader specifically. */
+/**
+ * Acts that are the reader's own option rather than something waiting on them.
+ *
+ * Withdrawing an untaken offer is always available to whoever made it, and
+ * offering a lapsed one again is an invitation, not an obligation. Counting
+ * either as "needs you" badges every commitment a member has ever made and
+ * sorts it above the ones actually waiting — which is the opposite of what the
+ * count is for.
+ */
+const ELECTIVE = new Set<CommitmentActKind>(["withdraw", "offerAgain", "takeUp", "askToTakeUp"]);
+
+/**
+ * Whether this commitment is waiting on this reader specifically.
+ *
+ * A narrower question than "what can I do here", and deliberately so: the
+ * action bar offers everything available, while the badge counts only what
+ * somebody else is held up by.
+ */
 export function commitmentNeedsSeat(input: CommitmentActInput): boolean {
-  return selectCommitmentActKind(input) !== null;
+  const kind = selectCommitmentActKind(input);
+  return kind !== null && !ELECTIVE.has(kind);
 }

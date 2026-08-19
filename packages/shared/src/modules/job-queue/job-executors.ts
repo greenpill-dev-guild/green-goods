@@ -257,6 +257,9 @@ async function currentGardenMember(
   return results.some(Boolean);
 }
 
+/** As many tries as any other job gets, so a dead gateway cannot queue forever. */
+const MAX_METADATA_ATTEMPTS = 5;
+
 /**
  * Publish a commitment's words, if it was composed before they could be.
  *
@@ -277,10 +280,16 @@ async function currentGardenMember(
  * `markJobFailed`, which spends one of five attempts on an outage that has
  * nothing to do with this commitment, and does it before the recovery read that
  * would have noticed the commitment already exists.
+ *
+ * Waiting forever is its own failure, though. The other waiting reasons resolve
+ * inside the queue; this one depends on a service that may never come back, so
+ * the attempts are counted separately and the job is allowed to fail once it
+ * has tried as many times as any other. Silence in both directions was the
+ * thing to avoid: dying invisibly after five attempts, and never dying at all.
  */
 async function publishPendingCommitmentMetadata(
   job: Job
-): Promise<{ published: true } | { published: false; reason: string }> {
+): Promise<{ published: true } | { published: false; reason: string; terminal?: boolean }> {
   if (job.kind !== "commitment") return { published: true };
   const payload = job.payload as CommitmentCreationPayload;
   if (!payload.metadata || payload.metadataCID) return { published: true };
@@ -296,10 +305,19 @@ async function publishPendingCommitmentMetadata(
     await jobQueueDB.updateJob({ ...job, payload });
     return { published: true };
   } catch (error) {
-    logger.warn("[JobQueue] Commitment metadata upload failed; will retry", {
+    const attempts = Number(job.meta?.metadataAttempts ?? 0) + 1;
+    await jobQueueDB.updateJob({
+      ...job,
+      meta: { ...(job.meta ?? {}), metadataAttempts: attempts },
+    });
+    logger.warn("[JobQueue] Commitment metadata upload failed", {
       jobId: job.id,
+      attempts,
       error: error instanceof Error ? error.message : String(error),
     });
+    if (attempts >= MAX_METADATA_ATTEMPTS) {
+      return { published: false, reason: "metadata-unavailable", terminal: true };
+    }
     return { published: false, reason: "metadata-unpublished" };
   }
 }
@@ -312,7 +330,11 @@ export async function executeCommitmentQueueJob(
 ): Promise<CommitmentQueueExecution> {
   const moduleAddress = getNetworkContracts(chainId).commitmentPoolingModule;
   const published = await publishPendingCommitmentMetadata(job);
-  if (!published.published) return { status: "waiting", reason: published.reason };
+  if (!published.published) {
+    return published.terminal
+      ? { status: "identity-conflict", reason: published.reason }
+      : { status: "waiting", reason: published.reason };
+  }
   const commitmentJob: CommitmentJob = {
     id: jobId,
     kind: job.kind as CommitmentJobKind,

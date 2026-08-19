@@ -65,10 +65,12 @@ function creatorSeat(direction: CommitmentReadModel["direction"]): CommitmentSea
  *    and would otherwise fall through to bystander on their own request.
  * 3. `counterparty` next. On an Offer it is the person who took it up; on a
  *    Request rule 1 has already claimed them.
- * 4. the named confirmer group. A commitment may name people to confirm it who
- *    are none of the above (`setConfirmerRule`, kept on chain by
- *    `normalizeConfirmers`). Without this rung they read as bystanders and are
- *    never offered the one act they exist to perform.
+ * 4. the team, then the named confirmer group. A commitment may name people to
+ *    confirm it who are none of the above (`setConfirmerRule`, kept on chain by
+ *    `normalizeConfirmers`); without that rung they read as bystanders and are
+ *    never offered the one act they exist to perform. It sits AFTER the team
+ *    because the two lists can overlap and the contract refuses a contributor's
+ *    confirmation whatever else they are.
  */
 export function selectCommitmentSeat(input: {
   commitment: Pick<CommitmentReadModel, "creator" | "leadProvider" | "counterparty" | "direction"> &
@@ -81,11 +83,18 @@ export function selectCommitmentSeat(input: {
   if (isSameAccount(commitment.leadProvider, viewer)) return "provider";
   if (isSameAccount(commitment.creator, viewer)) return creatorSeat(commitment.direction);
   if (isSameAccount(commitment.counterparty, viewer)) return "confirmer";
-  if (commitment.confirmers?.some((confirmer) => isSameAccount(confirmer, viewer))) {
-    return "confirmer";
-  }
+  // The team is checked BEFORE the named confirmer list, because the two can
+  // overlap and the contract settles the tie the other way: ConfirmLib reverts
+  // SelfConfirmation for any active contributor before it ever asks whether
+  // they are an ordinary confirmer, and selectConfirmationEligibility refuses
+  // them for the same reason. Seating such a person as confirmer would offer a
+  // Confirm the chain will reject, which is worse than the bystander reading
+  // this rung was added to fix.
   if (contributors.some((contributor) => isSameAccount(contributor, viewer))) {
     return "contributor";
+  }
+  if (commitment.confirmers?.some((confirmer) => isSameAccount(confirmer, viewer))) {
+    return "confirmer";
   }
   return "bystander";
 }

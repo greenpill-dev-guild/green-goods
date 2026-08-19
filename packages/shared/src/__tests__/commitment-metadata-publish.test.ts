@@ -31,7 +31,10 @@ vi.mock("../modules/commitment-pooling/jobs", async () => {
   );
   return { ...actual, executeCommitmentJob: mocks.executeCommitmentJob };
 });
-vi.mock("@wagmi/core", () => ({ readContract: mocks.readContract }));
+vi.mock("@wagmi/core", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@wagmi/core")>()),
+  readContract: mocks.readContract,
+}));
 vi.mock("../utils/blockchain/contracts", async () => {
   const actual = await vi.importActual<typeof import("../utils/blockchain/contracts")>(
     "../utils/blockchain/contracts"
@@ -127,5 +130,31 @@ describe("publishing a commitment's words", () => {
     );
 
     expect(mocks.uploadJSONToIPFS).not.toHaveBeenCalled();
+  });
+});
+
+describe("when the gateway never comes back", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.executeCommitmentJob.mockResolvedValue({ status: "sent", txHash: "0xabc" });
+    mocks.uploadJSONToIPFS.mockRejectedValue(new Error("gateway down"));
+  });
+
+  it("counts its own attempts rather than waiting forever", async () => {
+    const first = await executeCommitmentQueueJob("job-1", job(), 42161, {} as never);
+    expect(first).toEqual({ status: "waiting", reason: "metadata-unpublished" });
+
+    const persisted = mocks.updateJob.mock.calls[0]?.[0] as { meta: { metadataAttempts: number } };
+    expect(persisted.meta.metadataAttempts).toBe(1);
+  });
+
+  it("gives up after as many tries as any other job gets", async () => {
+    // Waiting silently forever is its own failure mode: no attempts spent, no
+    // job:failed, nothing on any surface. Better to fail where it can be seen.
+    const exhausted = job({ meta: { metadataAttempts: 4 } });
+    const result = await executeCommitmentQueueJob("job-1", exhausted, 42161, {} as never);
+
+    expect(result).toEqual({ status: "identity-conflict", reason: "metadata-unavailable" });
+    expect(mocks.executeCommitmentJob).not.toHaveBeenCalled();
   });
 });
