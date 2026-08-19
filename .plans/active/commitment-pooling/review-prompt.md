@@ -41,10 +41,18 @@ disprove.
 ## Scoping — two things the skill's defaults get wrong here
 
 **1. `.plans/` is not in the package map.** The skill maps scopes to `packages/<name>/**`, `docs/**`
-and `.claude/**`. This PR is 13,336 insertions and 3,206 deletions across 40 files, of which
-**16,212 changed lines are under `.plans/active/commitment-pooling/`** and 318 are under `.claude/`
-(one design-skill file). Auto-inference will find no package. Do not narrow to `.claude/` because that is the only recognised scope — review the
-`.plans/` tree as the primary surface and say so in the Summary.
+and `.claude/**`. Counting insertions and deletions separately, because mixing the two is how the
+earlier version of this paragraph stated a subset larger than its whole:
+
+| Surface | Files | Insertions | Deletions |
+|---|---|---|---|
+| `.plans/active/commitment-pooling/` | 35 | 13,404 | 3,233 |
+| `.claude/` (design skill, launch config) | 5 | 321 | 0 |
+| **Whole PR** | **41** | **13,737** | **3,233** |
+
+Auto-inference will find no package. Do not narrow to `.claude/` because that is the only recognised
+scope — review the `.plans/` tree as the primary surface and say so in the Summary. Re-run
+`git diff --shortstat origin/develop...HEAD` rather than trusting this table if the branch has moved.
 
 **2. This exceeds 800 LOC by an order of magnitude, so batch it and keep the coverage ledger.**
 Suggested batches, in dependency order:
