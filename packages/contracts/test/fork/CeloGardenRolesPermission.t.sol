@@ -63,6 +63,18 @@ interface ISafe {
     function isModuleEnabled(address module) external view returns (bool);
 }
 
+/// Roles reverts every condition failure with this; the status names which rule refused.
+error ConditionViolation(uint8 status, bytes32 info);
+
+// Roles Status values, confirmed against the live modifier by this proof.
+// The block the Garden Safes and Guardian trust were confirmed at.
+uint256 constant CELO_FORK_BLOCK = 75_178_393;
+
+uint8 constant STATUS_TARGET_ADDRESS_NOT_ALLOWED = 2;
+uint8 constant STATUS_FUNCTION_NOT_ALLOWED = 3;
+uint8 constant STATUS_PARAMETER_NOT_ALLOWED = 5;
+uint8 constant STATUS_ALLOWANCE_EXCEEDED = 17;
+
 interface IERC20 {
     function balanceOf(address account) external view returns (uint256);
     function transfer(address to, uint256 amount) external returns (bool);
@@ -92,7 +104,8 @@ contract CeloGardenRolesPermissionForkTest is Test {
     IRoles private roles;
 
     function setUp() public {
-        vm.createSelectFork(vm.envString("CELO_RPC_URL"));
+        // Pinned so the proof is reproducible; an unpinned fork silently re-scopes what was proven.
+        vm.createSelectFork(vm.envString("CELO_RPC_URL"), CELO_FORK_BLOCK);
         plan = vm.readFile("./.generated/runtime/42220-garden-roles-proof.json");
 
         deploymentOperator = plan.readAddress(".modifierOwnerAtDeployment");
@@ -158,6 +171,28 @@ contract CeloGardenRolesPermissionForkTest is Test {
         deal(canonicalToken, safe, uint256(periodAmount) * 2);
     }
 
+    /**
+     * Asserts the call reverted with a Roles ConditionViolation and returns its status, so each
+     * denial names the rule that refused rather than accepting any revert.
+     */
+    function _expectConditionViolation(address to, bytes memory data) private returns (uint8 status) {
+        vm.prank(EXECUTOR);
+        (bool ok, bytes memory err) = address(roles)
+            .call(
+                abi.encodeWithSelector(
+                    IRoles.execTransactionWithRole.selector, to, uint256(0), data, uint8(0), roleKey, false
+                )
+            );
+        assertFalse(ok, "call unexpectedly succeeded");
+        assertEq(bytes4(err), ConditionViolation.selector, "revert is not a Roles ConditionViolation");
+        bytes memory payload = new bytes(err.length - 4);
+        for (uint256 i; i < payload.length; ++i) {
+            payload[i] = err[i + 4];
+        }
+        bytes32 info;
+        (status, info) = abi.decode(payload, (uint8, bytes32));
+    }
+
     function _send(address to, uint256 amount) private returns (bool) {
         vm.prank(EXECUTOR);
         return roles.execTransactionWithRole(
@@ -181,8 +216,13 @@ contract CeloGardenRolesPermissionForkTest is Test {
     function testFork_reviewedTreeRejectsUnregisteredRecipient() public {
         uint256 before = IERC20(canonicalToken).balanceOf(outsider);
 
-        vm.expectRevert();
-        _send(outsider, 1000e18);
+        assertEq(
+            _expectConditionViolation(
+                canonicalToken, abi.encodeWithSelector(canonicalSelector, outsider, uint256(1000e18))
+            ),
+            STATUS_PARAMETER_NOT_ALLOWED,
+            "recipient was refused for the wrong reason"
+        );
 
         assertEq(IERC20(canonicalToken).balanceOf(outsider), before, "unregistered address received G$");
     }
@@ -190,25 +230,32 @@ contract CeloGardenRolesPermissionForkTest is Test {
     function testFork_reviewedTreeRejectsAmountAboveTheAllowance() public {
         uint256 before = IERC20(canonicalToken).balanceOf(registeredRecipient);
 
-        vm.expectRevert();
-        _send(registeredRecipient, uint256(periodAmount) + 1);
+        assertEq(
+            _expectConditionViolation(
+                canonicalToken, abi.encodeWithSelector(canonicalSelector, registeredRecipient, uint256(periodAmount) + 1)
+            ),
+            STATUS_ALLOWANCE_EXCEEDED,
+            "amount was refused for the wrong reason"
+        );
 
         assertEq(IERC20(canonicalToken).balanceOf(registeredRecipient), before, "over-allowance transfer settled");
     }
 
     function testFork_reviewedTreeRejectsAnySelectorOtherThanTransfer() public {
-        vm.prank(EXECUTOR);
-        vm.expectRevert();
-        roles.execTransactionWithRole(
-            canonicalToken, 0, abi.encodeWithSignature("approve(address,uint256)", outsider, 1000e18), 0, roleKey, false
+        assertEq(
+            _expectConditionViolation(
+                canonicalToken, abi.encodeWithSignature("approve(address,uint256)", outsider, uint256(1000e18))
+            ),
+            STATUS_FUNCTION_NOT_ALLOWED,
+            "selector was refused for the wrong reason"
         );
     }
 
     function testFork_roleCannotReachAnyTargetOtherThanCanonicalGDollar() public {
-        vm.prank(EXECUTOR);
-        vm.expectRevert();
-        roles.execTransactionWithRole(
-            registeredRecipient, 0, abi.encodeWithSelector(canonicalSelector, outsider, 1), 0, roleKey, false
+        assertEq(
+            _expectConditionViolation(registeredRecipient, abi.encodeWithSelector(canonicalSelector, outsider, uint256(1))),
+            STATUS_TARGET_ADDRESS_NOT_ALLOWED,
+            "target was refused for the wrong reason"
         );
     }
 }

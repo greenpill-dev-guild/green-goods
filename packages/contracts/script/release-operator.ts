@@ -281,6 +281,9 @@ if step 1 already broadcast, recover through the interactive mode with an explic
 Ceremony stages:
   garden-accounts                          2 boundaries
   garden-safes                             18 boundaries
+  relay                                    4 boundaries
+  garden-roles                             108 boundaries
+  garden-roles-enable                      18 boundaries
 
 Unlocking the session is not broadcast authorization. Run only the exact stage and transaction
 boundary separately authorized by the release owner. The credential session closes after that

@@ -47,6 +47,9 @@ const DEFAULT_SAFE_PLAN = path.join(RUNTIME_ROOT, "42220-garden-safe-final.json"
 const DEFAULT_PLAN = path.join(RUNTIME_ROOT, "42220-garden-roles.json");
 const PROOF_FIXTURE = path.join(RUNTIME_ROOT, "42220-garden-roles-proof.json");
 const ENABLE_PLAN = path.join(RUNTIME_ROOT, "42220-garden-roles-enable.json");
+/** Receipt-backed record of the 18 deployed Garden Safes; the authority on which Safes are registered. */
+const SETTLEMENT_SAFES = path.join(CONTRACTS_ROOT, "deployments/42220-settlement-safes.json");
+const CELO_DEPLOYMENTS = path.join(CONTRACTS_ROOT, "deployments/42220-latest.json");
 
 const CELO_CHAIN_ID = 42_220;
 const EXPECTED_GARDEN_COUNT = 18;
@@ -56,7 +59,15 @@ const ROLES_MASTERCOPY = "0x9646fDAD06d3e24444381f44362a3B0eB343D337";
 const MODULE_PROXY_FACTORY = "0x000000000000aDdB49795b0f9bA5BC298cDda236";
 const MULTI_SEND_CALL_ONLY = "0x9641d764fc13c8B624c04430C7356C1C7C8102e2";
 const DEPLOYMENT_OPERATOR = "0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6";
-const CELO_SETTLEMENT_EXECUTOR = "0xB8a7F3c3DfA407c45e05b7B2381233101938a84F";
+/** Read from the deployment artifact rather than hardcoded, so a redeploy cannot silently diverge. */
+function celoSettlementExecutor(): string {
+  const deployments = readJson<{ celoSettlementExecutor?: string }>(CELO_DEPLOYMENTS);
+  const executor = deployments.celoSettlementExecutor;
+  if (!executor || executor === ZeroAddress) {
+    throw new Error("deployments/42220-latest.json does not record celoSettlementExecutor");
+  }
+  return getAddress(executor);
+}
 const GREEN_GOODS_RECOVERY_SAFE = "0x1B9Ac97Ea62f69521A14cbe6F45eb24aD6612C19";
 const DEV_GUILD_RECOVERY_SAFE = "0x49fa954B6C2Cd14B4b3604EF1Cc17cED20a9E42C";
 
@@ -441,8 +452,40 @@ export function buildRolesTransactions(
   return transactions;
 }
 
+/**
+ * Every entry must match the receipt-backed deployment record by tokenId, garden, and Safe. A plan
+ * naming an unregistered Safe is refused outright rather than reported as a blocker, because the
+ * allowlist it would produce is the thing the permission hash commits to.
+ */
+export function assertRegisteredSafes(
+  entries: readonly SafePlanEntry[],
+  registryPath: string = SETTLEMENT_SAFES,
+): void {
+  const registry = readJson<{ safes?: Array<{ tokenId: number; garden: string; safe: string }> }>(registryPath);
+  if (!Array.isArray(registry.safes) || registry.safes.length !== EXPECTED_GARDEN_COUNT) {
+    throw new Error(`${registryPath} does not record ${EXPECTED_GARDEN_COUNT} deployed Garden Safes`);
+  }
+  const registered = new Map(
+    registry.safes.map((entry) => [entry.tokenId, { garden: getAddress(entry.garden), safe: getAddress(entry.safe) }]),
+  );
+  for (const entry of entries) {
+    const match = registered.get(entry.tokenId);
+    if (!match) throw new Error(`Garden ${entry.tokenId} is not a registered Garden Safe`);
+    if (getAddress(entry.safe) !== match.safe) {
+      throw new Error(`Garden ${entry.tokenId}: Safe ${getAddress(entry.safe)} is not the registered ${match.safe}`);
+    }
+    if (getAddress(entry.garden) !== match.garden) {
+      throw new Error(
+        `Garden ${entry.tokenId}: account ${getAddress(entry.garden)} is not the registered ${match.garden}`,
+      );
+    }
+  }
+}
+
 async function buildPlan(safePlanPath: string): Promise<GardenRolesPlan> {
   const safePlan = readJson<{ entries: SafePlanEntry[] }>(safePlanPath);
+  // The plan path is operator-supplied, so a wrong --safe-plan must fail by name, not by TypeError.
+  if (!Array.isArray(safePlan.entries)) throw new Error(`Safe plan ${safePlanPath} has no entries array`);
   const blockers: string[] = [];
   if (safePlan.entries.length !== EXPECTED_GARDEN_COUNT) {
     blockers.push(`Safe plan lists ${safePlan.entries.length} Gardens, expected ${EXPECTED_GARDEN_COUNT}`);
@@ -452,7 +495,10 @@ async function buildPlan(safePlanPath: string): Promise<GardenRolesPlan> {
     staticNetwork: true,
   });
 
-  // Every Safe shares one reviewed condition tree: the allowlist is the registered Safe set.
+  // The recipient allowlist is the authority on where G$ may go, so it is checked against the
+  // receipt-backed registry rather than trusted from the supplied plan. Uniqueness alone would let a
+  // substituted zero-nonce Safe produce a perfectly valid tree and permission hash.
+  assertRegisteredSafes(safePlan.entries);
   const recipientAllowlist = safePlan.entries.map((entry) => getAddress(entry.safe));
   const conditions = buildTransferConditions(recipientAllowlist);
 
@@ -478,6 +524,14 @@ async function buildPlan(safePlanPath: string): Promise<GardenRolesPlan> {
     }
     const liveNonce = BigInt(await provider.call({ to: entry.safe, data: SAFE_INTERFACE.encodeFunctionData("nonce") }));
     if (liveNonce !== 0n) blockers.push(`Garden ${entry.tokenId}: Safe nonce is ${liveNonce}, expected 0`);
+    const alreadyEnabled = SAFE_INTERFACE.decodeFunctionResult(
+      "isModuleEnabled",
+      await provider.call({
+        to: entry.safe,
+        data: SAFE_INTERFACE.encodeFunctionData("isModuleEnabled", [predicted]),
+      }),
+    )[0] as boolean;
+    if (alreadyEnabled) blockers.push(`Garden ${entry.tokenId}: the modifier is already enabled on its Safe`);
 
     const enableModuleData = SAFE_INTERFACE.encodeFunctionData("enableModule", [predicted]);
     boundaries.push({
@@ -537,7 +591,7 @@ async function buildPlan(safePlanPath: string): Promise<GardenRolesPlan> {
     conditions,
     conditionsEncoded: encodeConditions(conditions),
     boundaries,
-    transactions: buildRolesTransactions(boundaries, conditions, CELO_SETTLEMENT_EXECUTOR),
+    transactions: buildRolesTransactions(boundaries, conditions, celoSettlementExecutor()),
     recoveryApprovals,
     blockers,
     releaseGate:
@@ -772,7 +826,7 @@ async function assertRolesPostcondition(
     return;
   }
   if (transaction.kind === "ASSIGN_EXECUTOR") {
-    if (!((await roles.isModuleEnabled(CELO_SETTLEMENT_EXECUTOR)) as boolean)) {
+    if (!((await roles.isModuleEnabled(celoSettlementExecutor())) as boolean)) {
       throw new Error("Executor was not registered as a Roles member");
     }
     return;
@@ -928,7 +982,7 @@ export async function verifyDeployedRoles(plan: GardenRolesPlan): Promise<void> 
         roles.avatar() as Promise<string>,
         roles.getFunction("target").staticCall() as Promise<string>,
         roles.owner() as Promise<string>,
-        roles.isModuleEnabled(CELO_SETTLEMENT_EXECUTOR) as Promise<boolean>,
+        roles.isModuleEnabled(celoSettlementExecutor()) as Promise<boolean>,
         roles.allowances(ALLOWANCE_KEY) as unknown as Promise<bigint[]>,
         safe.isModuleEnabled(boundary.modifier) as Promise<boolean>,
       ]);

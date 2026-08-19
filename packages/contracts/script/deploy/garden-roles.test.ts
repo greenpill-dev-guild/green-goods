@@ -1,3 +1,6 @@
+import * as fs from "node:fs";
+import * as os from "node:os";
+import * as nodePath from "node:path";
 import { getAddress } from "ethers";
 import { describe, expect, it } from "vitest";
 
@@ -5,6 +8,7 @@ import {
   ALLOWANCE_KEY,
   assertNextRolesBoundary,
   assertPlanUnblocked,
+  assertRegisteredSafes,
   buildEnableTransactions,
   buildRolesTransactions,
   buildTransferConditions,
@@ -249,5 +253,40 @@ describe("release safety gates", () => {
   it("accepts verify without broadcast arguments", () => {
     expect(parseArguments(["verify"]).command).toBe("verify");
     expect(() => parseArguments(["verify", "--broadcast"])).toThrow(/does not accept --broadcast/);
+  });
+});
+
+describe("recipient registry validation", () => {
+  const registered = SAFES.map((safe, index) => ({ tokenId: index, garden: safe, safe }));
+
+  function registryFixture(safes: unknown): string {
+    const directory = fs.mkdtempSync(nodePath.join(os.tmpdir(), "roles-registry-"));
+    const file = nodePath.join(directory, "42220-settlement-safes.json");
+    fs.writeFileSync(file, JSON.stringify({ safes }));
+    return file;
+  }
+
+  it("accepts entries that match the receipt-backed registry", () => {
+    expect(() => assertRegisteredSafes(registered, registryFixture(registered))).not.toThrow();
+  });
+
+  it("refuses a substituted Safe even when the set is still unique", () => {
+    // Uniqueness and count alone would let a swapped zero-nonce Safe produce a valid tree and hash,
+    // so the allowlist is checked against the registry the deployment receipts prove.
+    const swapped = [...registered.slice(0, 17), { tokenId: 17, garden: SAFES[17], safe: SAFE_B }];
+    expect(() => assertRegisteredSafes(swapped, registryFixture(registered))).toThrow(/Safe .* is not the registered/);
+
+    const wrongAccount = [...registered.slice(0, 17), { tokenId: 17, garden: SAFE_B, safe: SAFES[17] }];
+    expect(() => assertRegisteredSafes(wrongAccount, registryFixture(registered))).toThrow(
+      /account .* is not the registered/,
+    );
+  });
+
+  it("refuses an unregistered Garden and an incomplete registry", () => {
+    const unknown = [{ tokenId: 99, garden: SAFE_A, safe: SAFE_A }];
+    expect(() => assertRegisteredSafes(unknown, registryFixture(registered))).toThrow(/Garden 99 is not a registered/);
+    expect(() => assertRegisteredSafes(registered, registryFixture(registered.slice(0, 17)))).toThrow(
+      /does not record 18 deployed Garden Safes/,
+    );
   });
 });
