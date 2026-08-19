@@ -36,6 +36,8 @@ export const RELEASE_OPERATOR_COMMANDS = new Map<string, string>([
   ["settlement:garden-accounts:deploy:celo", "one exact GardenAccount coordinator boundary"],
   ["settlement:garden-safes:deploy:celo", "one final native/G$-clear 2-of-3 Garden Safe boundary"],
   ["settlement:garden-relay:deploy", "one zero-value Garden-bound relay boundary"],
+  ["settlement:garden-roles:deploy", "one zero-value Roles modifier configuration boundary"],
+  ["settlement:garden-roles:enable", "one pre-approved Garden Safe module enable boundary"],
 ] as const);
 
 const FORBIDDEN_ARGUMENTS = new Set([
@@ -53,6 +55,8 @@ const RELEASE_OPERATOR_ARGUMENTS = new Map<string, ReadonlySet<string>>([
   ["settlement:garden-accounts:deploy:celo", new Set(["--plan", "--step", "--receipt"])],
   ["settlement:garden-safes:deploy:celo", new Set(["--plan", "--inventory", "--step", "--receipt"])],
   ["settlement:garden-relay:deploy", new Set(["--plan", "--safe-plan", "--step", "--receipt"])],
+  ["settlement:garden-roles:deploy", new Set(["--plan", "--safe-plan", "--broadcast", "--step"])],
+  ["settlement:garden-roles:enable", new Set(["--plan", "--broadcast", "--step"])],
 ]);
 
 /**
@@ -61,7 +65,7 @@ const RELEASE_OPERATOR_ARGUMENTS = new Map<string, ReadonlySet<string>>([
  * boundary, and the first failure stops the run — while charging the operator one password entry
  * for the lane instead of one per boundary.
  */
-export type CeremonyStage = "garden-accounts" | "garden-safes" | "relay";
+export type CeremonyStage = "garden-accounts" | "garden-safes" | "relay" | "garden-roles" | "garden-roles-enable";
 
 export const CEREMONY_STAGES = new Map<CeremonyStage, { script: string; boundaries: number; label: string }>([
   [
@@ -86,6 +90,22 @@ export const CEREMONY_STAGES = new Map<CeremonyStage, { script: string; boundari
       script: "settlement:garden-relay:deploy",
       boundaries: 4,
       label: "Garden-bound relay router, relay, destination binding, and Guardian trust",
+    },
+  ],
+  [
+    "garden-roles",
+    {
+      script: "settlement:garden-roles:deploy",
+      boundaries: 108,
+      label: "Roles modifier deployment, scoping, allowance, executor assignment, and ownership transfer",
+    },
+  ],
+  [
+    "garden-roles-enable",
+    {
+      script: "settlement:garden-roles:enable",
+      boundaries: 18,
+      label: "pre-approved Garden Safe module enables",
     },
   ],
 ]);
@@ -261,6 +281,9 @@ if step 1 already broadcast, recover through the interactive mode with an explic
 Ceremony stages:
   garden-accounts                          2 boundaries
   garden-safes                             18 boundaries
+  relay                                    4 boundaries
+  garden-roles                             108 boundaries
+  garden-roles-enable                      18 boundaries
 
 Unlocking the session is not broadcast authorization. Run only the exact stage and transaction
 boundary separately authorized by the release owner. The credential session closes after that
@@ -687,6 +710,14 @@ function verifyDeployerPassword(passwordFile: string): string {
 }
 const GARDEN_SAFE_PLAN_PATH = path.join(CONTRACTS_ROOT, ".generated/runtime/42220-garden-safe-final.json");
 const RELAY_PLAN_PATH = path.join(CONTRACTS_ROOT, ".generated/runtime/garden-account-relay.json");
+const ROLES_PLAN_PATH = path.join(CONTRACTS_ROOT, ".generated/runtime/42220-garden-roles.json");
+
+/** Checkpoint-resumed stages read their progress from their own reviewed plan. */
+const STAGE_PLAN_PATHS: Readonly<Partial<Record<CeremonyStage, string>>> = {
+  "garden-safes": GARDEN_SAFE_PLAN_PATH,
+  "garden-roles": ROLES_PLAN_PATH,
+  "garden-roles-enable": path.join(CONTRACTS_ROOT, ".generated/runtime/42220-garden-roles-enable.json"),
+};
 
 /**
  * Resolves which boundaries a stage still has to run. Kept pure and separate from execution so the
@@ -791,7 +822,9 @@ async function runCeremonyStage(
 
   // The Safe wrapper checkpoints every boundary, so a resumed stage continues from the first
   // uncheckpointed boundary instead of replaying a mined Safe deployment.
-  const completed = completedBoundaries(GARDEN_SAFE_PLAN_PATH);
+  const planPath = STAGE_PLAN_PATHS[stage];
+  if (!planPath) throw new Error(`Stage ${stage} has no reviewed plan to resume from`);
+  const completed = completedBoundaries(planPath);
   const boundaries = plannedStageBoundaries(stage, completed);
   if (boundaries.length === 0) {
     console.log(`Stage ${stage} is already complete with ${completed} checkpointed boundaries.`);
@@ -800,7 +833,12 @@ async function runCeremonyStage(
   if (completed > 0) console.log(`Resuming stage ${stage} after ${completed} checkpointed boundaries.`);
   for (const boundary of boundaries) {
     console.log(`--- boundary ${boundary} of ${definition.boundaries} ---`);
-    runStageBoundary(definition.script, ["--step", String(boundary)], environment, candidateCommit, false);
+    // The Roles lanes carry their own --broadcast in the wrapper's argument set.
+    const args =
+      stage === "garden-roles" || stage === "garden-roles-enable"
+        ? ["--broadcast", "--step", String(boundary)]
+        : ["--step", String(boundary)];
+    runStageBoundary(definition.script, args, environment, candidateCommit, false);
   }
   console.log(`Stage ${stage} completed all ${definition.boundaries} boundaries.`);
 }
