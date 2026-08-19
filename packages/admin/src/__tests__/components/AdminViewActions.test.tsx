@@ -3,7 +3,7 @@ import { RiHandCoinLine, RiUserAddLine } from "@remixicon/react";
 import { render, screen } from "@testing-library/react";
 import { IntlProvider } from "react-intl";
 import { describe, expect, it, vi } from "vitest";
-import ptMessages from "../../../../shared/src/i18n/pt.json";
+import ptMessages from "@green-goods/shared/i18n/pt";
 import { AdminViewActions } from "../../components/AdminViewActions";
 
 const actions: ViewAction[] = [

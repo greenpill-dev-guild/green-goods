@@ -6,7 +6,7 @@ import { IntlProvider } from "react-intl";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Action } from "../../../../shared/src/types/domain";
-import enMessages from "../../../../shared/src/i18n/en.json";
+import enMessages from "@green-goods/shared/i18n/en";
 import { Domain } from "../../../../shared/src/types/domain";
 import { SubmitWorkPanel } from "./SubmitWork";
 
@@ -215,6 +215,7 @@ vi.mock("@green-goods/shared", async () => {
       uid === null
         ? fallback
         : (actions.find((action) => Number(action.id.split("-").pop()) === uid)?.title ?? fallback),
+    localizeAction: (action: Action) => action,
     imageCompressor: mockImageCompressor,
     isOfflineTxHash: (txHash: string) => txHash.startsWith("0xoffline_"),
     logger: {

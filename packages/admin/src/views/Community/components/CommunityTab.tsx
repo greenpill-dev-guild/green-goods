@@ -54,8 +54,6 @@ export interface CommunityTabProps {
   closeMembersModal: () => void;
   community: unknown;
   communityLoading: boolean;
-  /** Tightened from `unknown` per Tier-5 audit finding #8 — the actual shape
-   *  is GardenSignalPool[] (returned by useGardenPools). */
   pools: GardenSignalPool[];
   createPools: () => void;
   isCreatingPools: boolean;
@@ -695,7 +693,7 @@ export function CommunityTab({
                   ) : null}
                   <div className="flex flex-wrap items-center gap-2">
                     {showWiringSection && wiringStatus === "connected" ? (
-                      <p className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-success-lighter px-3 text-xs text-success-dark">
+                      <p className="inline-flex h-8 items-center gap-1.5 rounded-[var(--radius-md)] bg-success-lighter px-3 text-xs text-success-dark">
                         <RiCheckLine className="h-4 w-4 shrink-0" aria-hidden="true" />
                         {formatMessage({ id: "app.community.yield.connected" })}
                       </p>

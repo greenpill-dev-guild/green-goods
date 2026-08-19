@@ -363,10 +363,8 @@ function SubmitWorkPanelContent({
       Array.from(new Set(availableActions.map((action) => action.domain))).sort((a, b) => a - b),
     [availableActions]
   );
-  // Guard a stale filter when the garden switches under the open dialog: if the
-  // previously-selected domain isn't among the new garden's domains, fall back to
-  // "all" so the chooser never renders an empty radiogroup. Drives both the
-  // visible actions and the filter tab's active state.
+  // Reset stale filters after garden switches so the chooser stays populated
+  // and its active state remains accurate.
   const effectiveDomain =
     actionDomain !== "all" && chooserDomains.includes(actionDomain) ? actionDomain : "all";
   const visibleActions = useMemo(
