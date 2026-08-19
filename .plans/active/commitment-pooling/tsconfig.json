@@ -1,0 +1,26 @@
+{
+  // Nothing above `.plans/` typechecks this tree: biome.json's `includes` covers
+  // packages/** plus **/*.md and **/*.json, and oxlint is scoped to
+  // packages/*/src. So every phantom state id this lane has shipped — the two
+  // membership tests in round A, the two WFLOW states in round 54, and the eight
+  // this config caught on 2026-08-19 — typechecked nowhere and simply drew the
+  // wrong screen. Run it with:
+  //
+  //   bun run typecheck   (from this directory)
+  //
+  // The screen modules are the surface that matters: their state unions are what
+  // the phantom-id class violates. The root build scripts are Bun programs and
+  // stay out until they have Bun's own types available here.
+  "compilerOptions": {
+    "noEmit": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "target": "es2022",
+    "lib": ["es2022", "dom"],
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "types": ["node"]
+  },
+  "include": ["hifi/**/*.ts"]
+}

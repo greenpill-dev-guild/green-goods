@@ -241,7 +241,13 @@ export type ShippedStep = {
   f: string; // screen id
   v: string; // state id
   hot?: { h: string; l: string } | null;
-  alts?: { h: string; l: string; to: string }[];
+  /**
+   * Always present after normalization — validate.ts builds it as
+   * `(sc.alts ?? []).flatMap(...)`, so consumers may read `.length` directly.
+   * It was optional here while the one guard that reads it did exactly that,
+   * which typechecked nowhere (2026-08-19 review).
+   */
+  alts: { h: string; l: string; to: string }[];
   marks?: string[]; // registered mark/hotspot ids
   who?: string;
   surface?: string;

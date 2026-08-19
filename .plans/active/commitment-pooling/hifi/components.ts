@@ -117,7 +117,7 @@ const CLIENT_ENTRIES: Entry[] = [
   {
     id: "chip", title: "Chip", family: "chips", covers: ["chip"],
     kit: `chip(label, tone, {dot})`,
-    ship: "packages/shared/src/components/Badge/Badge.tsx:43",
+    ship: "packages/shared/src/components/Badge/Badge.tsx:44",
     shipNote: "nearest shipping anatomy; the pooling tone set itself is net-new vocabulary",
     rule: "The workhorse label for kind, direction, and quiet status on cards and rows; never the only signal for state that matters (that is StatusBadge's job).",
     usedIn: /class="ch[\s"]/,
@@ -860,7 +860,7 @@ const ADMIN_ENTRIES: Entry[] = [
   {
     id: "chip", title: "Chip", family: "chips", covers: [],
     kit: `chip(label, tone, {dot}), denser 11.5px cast`,
-    ship: "packages/shared/src/components/Badge/Badge.tsx:43",
+    ship: "packages/shared/src/components/Badge/Badge.tsx:44",
     shipNote: "nearest shipping anatomy; the cockpit keeps flat chips where the client shows StatusBadge pills",
     rule: "Lifecycle and kind labels stay flat chips in the cockpit; icon pills are a client-only signal.",
     usedIn: /class="ch[\s"]/,

@@ -6,7 +6,7 @@
 - Execution sub-lane: state_api
 - Owner: Codex
 - Branch signal: feature/commitment-pooling-api-modules
-- Current state: core, Saved Offer, and settlement source implementation complete; runtime availability remains blocked only on human-owned hosted Envio deployment/full-sync/read-back and production Saved Offer configuration. **One open amendment (2026-08-18): the seat gap below — eleven queried fields do not reach `CommitmentReadModel`, and `selectCommitmentSeat()` does not exist, so the client UI cannot tell who is reading a commitment.**
+- Current state: core, Saved Offer, and settlement source implementation complete; runtime availability remains blocked only on human-owned hosted Envio deployment/full-sync/read-back and production Saved Offer configuration. **One open amendment (2026-08-18): the seat gap below — nine queried fields do not reach `CommitmentReadModel`, and `selectCommitmentSeat()` does not exist, so the client UI cannot tell who is reading a commitment.**
 - Linear context: PRD-723 (state/API lane) under parent PRD-650
 
 Concurrent agents share this repository. Stay inside this lane's named shared/state paths,

@@ -81,9 +81,24 @@ const W1_WAITING_TO_SEND = new Set<string>([
   "queued", "support-queued", "ongoing-queued", "request-queued", "request-work-queued", "exchange-queued", "sync-failed",
 ]);
 const W1_SEASON_CHANGED = new Set<string>([
-  "reviewing", "paused", "closed", "composted", "cancelled-cycle", "paused-cancelled-cycle", "cycle-summary",
+  "reviewing", "paused", "closed", "composted", "cancelled-cycle", "paused-cancelled-cycle",
 ]);
 const W1_BEFORE_OPEN = new Set<string>(["not-ready", "ready", "seeded", "no-season", "empty-open"]);
+
+// Same enforcement W2 gained in round A, for the same reason. `Set<string>` is
+// invisible to the tsconfig added on 2026-08-19 as well as to biome and oxlint,
+// so a retired id sits in one of these forever: `cycle-summary` retired into
+// W1C@season-ended and stayed in W1_SEASON_CHANGED, where it grouped a state
+// that no longer existed.
+const W1_ERRORS: string[] = [];
+const W1_ALL_IDS = new Set<string>(W1_STATES.map(([id]) => id));
+for (const [name, set] of [
+  ["W1_WAITING_TO_SEND", W1_WAITING_TO_SEND],
+  ["W1_SEASON_CHANGED", W1_SEASON_CHANGED],
+  ["W1_BEFORE_OPEN", W1_BEFORE_OPEN],
+] as [string, Set<string>][])
+  for (const member of set)
+    if (!W1_ALL_IDS.has(member)) W1_ERRORS.push(`W1 SET ${name}: "${member}" is not a W1 state`);
 
 const w1Group = (id: W1State): string => {
   if (id === "loading" || id === "not-found" || id === "read-error") return "Loading and problems";
@@ -1047,6 +1062,15 @@ const W2_SEAT_GROUPS: [Seat, W2State[]][] = [
     "campaign-request-ready-confirmer", "campaign-request-confirmation-pending",
     "support-ready-confirmer", "support-confirmation-pending",
     "captured-ready-confirmer", "captured-confirmation-pending",
+    // Under steward review. Raising it is the CONFIRMER's act — "not yet" on W4
+    // — and every route in agrees: w4.not-yet-send, w4.not-yet-retry and the
+    // wallet's w5.review-row all arrive from that seat, as does sb5, whose
+    // persona is the recipient. Seated provider until 2026-08-19, these drew
+    // "You provide this" to the person who had just declined to confirm. The
+    // steward's own echo (sb17) shows the member their cast's own disputed
+    // state, so it does not want the provider seat either.
+    "disputed", "request-disputed", "campaign-request-disputed",
+    "support-disputed", "captured-disputed",
   ]],
   // Everything else is the provider's view. Listed rather than defaulted: a
   // silent fallthrough arm is exactly what produced the bugs above.
@@ -1057,18 +1081,18 @@ const W2_SEAT_GROUPS: [Seat, W2State[]][] = [
     "reward-released", "support-queued", "support-en-route", "support-delayed",
     "support-executed", "support-confirming", "support-arrived", "support-failed",
     "support-cancelled-queued", "support-cancelled-failed",
-    "reconciled", "cancelled", "expired", "disputed", "withdraw-confirm", "withdrawn",
+    "reconciled", "cancelled", "expired", "withdraw-confirm", "withdrawn",
     "captured", "captured-evidence-queued", "captured-evidence-submitted",
-    "captured-ready-pending", "captured-fulfilled", "captured-disputed",
+    "captured-ready-pending", "captured-fulfilled",
     "garden-provider", "garden-support-arrived",
     "request-active", "request-evidence-queued", "request-evidence-submitted",
-    "request-ready-pending", "request-fulfilled", "request-disputed",
+    "request-ready-pending", "request-fulfilled",
     "request-work-active", "request-work-partially-approved", "request-work-fulfilled",
     "campaign-request-active", "campaign-request-evidence-queued",
     "campaign-request-evidence-submitted", "campaign-request-ready-pending",
-    "campaign-request-fulfilled", "campaign-request-disputed",
+    "campaign-request-fulfilled",
     "support-accepted", "support-evidence-queued", "support-evidence-submitted",
-    "support-ready-pending", "support-fulfilled", "support-cancelled", "support-disputed",
+    "support-ready-pending", "support-fulfilled", "support-cancelled",
   ]],
 ];
 const W2_SEAT: Partial<Record<W2State, Seat>> = {};
@@ -1101,7 +1125,15 @@ const W2_UNLINKED_WORK = new Set<W2State>([
 // that carried `ready-pending` — an id with no state behind it — and omitted
 // roughly thirty that belonged.
 const W2_HAS_PROOF = new Set<W2State>([
-  "active", "evidence-submitted", "evidence-preview", "partially-approved", "send-confirm",
+  // Proof on a commitment is not a seat-dependent fact. `active-waiting` and
+  // `contributor` are the confirmer's and a contributor's view of the SAME
+  // commitment at the same phase as `active`, with the same requirement totals
+  // (2 of 2, 8 of 12) — but they were left out here, so the provider saw the
+  // photos and the other two did not, and `contributor`'s own band promised
+  // "your proof credits you" above no proof at all. Both only started drawing
+  // full bodies this round, which is what exposed it (2026-08-19 review).
+  "active", "active-waiting", "contributor",
+  "evidence-submitted", "evidence-preview", "partially-approved", "send-confirm",
   "ready-confirmer", "confirmation-pending", "fulfilled",
   "fulfilled-pool-fallback", "fulfilled-protocol-fallback", "reconciled", "disputed",
   "request-evidence-submitted", "request-ready-pending", "request-ready-confirmer",
@@ -1129,8 +1161,9 @@ const W2_HAS_PROOF = new Set<W2State>([
 // This exists because two membership tests named states that do not exist —
 // `browse-requested-steward` (the real id is browse-requested-gated) and
 // `ready-pending` (the real ones are all cast-prefixed) — and nothing caught
-// them. There is no tsconfig anywhere above `.plans/`, so `Set<W2State>` is
-// documentation; this block is enforcement. Everything a W2 table asserts about
+// them. `Set<W2State>` is documentation — the hub's own tsconfig (added
+// 2026-08-19) checks the typed unions, but a `Set<string>` defeats it, so this
+// block stays the enforcement. Everything a W2 table asserts about
 // a state id is checked here, at build time, once.
 // ---------------------------------------------------------------------------
 const W2_ERRORS: string[] = [];
@@ -1570,7 +1603,13 @@ const w2Disclosures = (state: W2State, opts: { work?: boolean; overrideNote?: bo
   // look at — before this, everyone got the lead's editing screen.
   const teamButtonHot = !hasTeam
     ? undefined
-    : rosterFrozen
+    // Terminal as well as frozen. w2RosterFrozen answers a CONTRACT question —
+    // has ContributorRosterFrozen fired — and Cancelled and Expired never fire
+    // it, so both fell through to the editable view and offered "add, remove and
+    // assign contributors" on a commitment that had ended. addContributor and
+    // removeContributor are Accepted-only (CS:1411), so that view drew acts the
+    // chain forbids (2026-08-19 review).
+    : rosterFrozen || w2Terminal(state)
       ? "w2.open-team-frozen"
       : seat === "contributor"
         ? "w2.open-team-member"
@@ -2017,7 +2056,12 @@ function w2(stateIn: W2State): string {
       break;
     case "support-offered":
       band = bandCard(
-        `<div class="t-title">Maria's service offer is open</div><div class="t-meta">João can take up the repair before Maria starts attaching proof.</div><div class="brow">${hot("w2.take-up-support", btn("Take This Up", { kind: "pri" }))}</div>`,
+        // Second person, like the other two bystander bands. This named João as
+        // the one who could act while offering the act to the reader, so a
+        // neighbour was shown a button for somebody else's decision. The seat
+        // is a bystander eligible to take it up — browse-offered says "Take it
+        // up and this becomes your commitment", and this now matches it.
+        `<div class="t-title">Maria's service offer is open</div><div class="t-meta">You can take this up before Maria starts attaching proof. Taking it up makes you the person she helps, and you confirm it when it's done.</div><div class="brow">${hot("w2.take-up-support", btn("Take This Up", { kind: "pri" }))}</div>`,
       );
       break;
     case "support-accepted":
@@ -3501,17 +3545,11 @@ function w3(state: W3State): string {
       );
       actions = hot("w3.request-continue-support", btn("Continue", { kind: "pri", full: true }));
       break;
-    case "request-support":
-      head = w3Head("Make a request", 2, 5);
-      content = pagepad(
-        sectionTitle("Add G$ support"),
-        `<div class="t-meta">Declare G$ that arrives when this request is kept and confirmed. Only stewards see this step.</div>`,
-        sectionTitle("How much"),
-        pickRow([{ label: "20 G$", on: true }, { label: "50 G$" }, { label: "100 G$" }, { label: "custom…" }, { label: "none" }]),
-        card(`${kv("Where it goes", "The person who helps")}${kv("Paid from", "The garden's account")}${kv("When", "After the commitment is confirmed kept")}`),
-      );
-      actions = hot("w3.request-support-continue", btn("Continue", { kind: "pri", full: true }));
-      break;
+    // The separate "Add G$ support" step was folded into request-howmuch-steward
+    // above on 2026-08-17. Its case survived the fold, drawing the retired
+    // 5-step header and the undeclared hotspot w3.request-support-continue; it
+    // never rendered because "request-support" is not a W3 state, and nothing
+    // above `.plans/` typechecks (2026-08-19 review).
     case "request-review-steward":
       head = w3Head("Make a request", 3);
       content = pagepad(
@@ -3966,7 +4004,6 @@ const w1Facts = (state: W1State): StateFacts | undefined => {
   if (state === "paused") return { pool: "Paused", cycle: "Open" };
   if (state === "closed") return { pool: "Closed", cycle: "Composted" };
   if (state === "composted") return { pool: "Composted", cycle: "Composted" };
-  if (state === "cycle-summary") return { pool: "Open", cycle: "Composted" };
   if (state === "cancelled-cycle") return { pool: "Open", cycle: "Cancelled" };
   if (state === "paused-cancelled-cycle") return { pool: "Paused", cycle: "Cancelled" };
   if (state === "no-season") return { pool: "Open" };
@@ -4340,7 +4377,7 @@ const w34Standard = () =>
     { flush: true },
   ) +
   `<div class="h6s">Timeline</div>` +
-  disclosure("Everything that has happened", "12 kept · 5 cycles", card(w34StoryTimeline(), { cls: "flat" }));
+  disclosure("Everything that has happened", "Kept 12 times", card(w34StoryTimeline(), { cls: "flat" }));
 
 const w34Places = (n: number) =>
   n === 0
@@ -4397,7 +4434,20 @@ const w34StoryTimeline = () =>
 
 // One act per state in a fixed bar, the rule the commitment view already
 // follows. The screen is a pushed read surface, so it carries no bottom nav.
+// "5 cycles" left this screen on 2026-08-19, the last machine word on any client
+// surface. It could not become "5 seasons": an ongoing Offer spans seasons AND
+// campaigns, so naming the boundary would have been wrong as often as right —
+// and this same screen already says "When this season ends" one row away. The
+// count of boundaries is not the member-relevant fact; the twelve keepings are.
 const W34_MANAGE = new Set<string>(["active-two", "active-one", "active-none"]);
+// Checked for the same reason as W1's and W2's sets: `Set<string>` is invisible
+// to the hub's tsconfig.
+const W34_ERRORS: string[] = [];
+{
+  const all = new Set<string>(W34_STATES.map(([id]) => id));
+  for (const member of W34_MANAGE)
+    if (!all.has(member)) W34_ERRORS.push(`W34 SET W34_MANAGE: "${member}" is not a W34 state`);
+}
 const W34_BARS: Partial<Record<W34State, string>> = {
   "active-two": hot("w34.add-places", btn("Offer Another", { kind: "pri", full: true, icon: "add-line" })),
   "active-one": hot("w34.add-places", btn("Offer Another", { kind: "pri", full: true, icon: "add-line" })),
@@ -4438,7 +4488,7 @@ function w34(state: W34State): string {
         w34Identity({ state: "Active · pool ready", tone: "plain", cycle: false }),
         banner("This pool is ready but not open. Your ongoing Offer is active, while opening or taking anything up stays unavailable until stewards open participation.", "stone", "information-line"),
         formInfo("time-line", "Nothing open right now", "Opening the pool is a steward action. Nothing can be queued from here."),
-        sectionCard("Details", `${detailRow("Kept", "12 times across 5 cycles")}${detailRow("Unit", "workshop sessions")}${detailRow("Pool", "Ready")}`),
+        sectionCard("Details", `${detailRow("Kept", "12 times")}${detailRow("Unit", "workshop sessions")}${detailRow("Pool", "Ready")}`),
       )}`;
       break;
     case "edit-active":
@@ -4495,7 +4545,7 @@ function w34(state: W34State): string {
       body = `${w34Head()}${pagepad(
         w34Identity({ state: "Active", tone: "offer" }),
         w34Record(),
-        card(`<div class="t-title num">Kept 12 times across 5 cycles</div><div class="t-meta">Every entry below is its own commitment, with its own proof and confirmation. Nothing here is a rating.</div>`),
+        card(`<div class="t-title num">Kept 12 times</div><div class="t-meta">Every entry below is its own commitment, with its own proof and confirmation. Nothing here is a rating.</div>`),
         sectionTitle("This offer's story"),
         card(w34StoryTimeline(), { cls: "flat" }),
         hot("w34.story-row", btn("Open the July Session", { kind: "ghost", full: true })),
@@ -4507,7 +4557,7 @@ function w34(state: W34State): string {
         w34Identity({ state: "Active", tone: "offer" }),
         w34Record(),
         sectionTitle("This offer's story"),
-        sectionCard("Details", `${detailRow("Kept", "12 times across 5 cycles")}${detailRow("Withdrawn or ran out", "2")}${detailRow("Reported participants", "31 · from proof notes")}`),
+        sectionCard("Details", `${detailRow("Kept", "12 times")}${detailRow("Withdrawn or ran out", "2")}${detailRow("Reported participants", "31 · from proof notes")}`),
         `<div class="t-meta">One offer, in this garden, over time.</div>`,
         sectionTitle("Your part in this pool"),
         sectionCard("Details", `${detailRow("Kept", "18 commitments")}${detailRow("Taken up from others", "7")}${detailRow("Confirmations you gave", "23")}`),
@@ -4524,7 +4574,7 @@ function w34(state: W34State): string {
             barPair(hot("w34.ask-again-yes", btn("Offer Another", { kind: "pri", icon: "add-line" })), hot("w34.ask-again-not-now", btn("Not This Season", { kind: "ghost" }))),
         ),
         `<div class="t-meta">Nothing is created until you choose. Saying no changes nothing about this offer or its story.</div>`,
-        sectionCard("Details", `${detailRow("Kept", "12 times across 5 cycles")}${detailRow("Open now", "None")}`),
+        sectionCard("Details", `${detailRow("Kept", "12 times")}${detailRow("Open now", "None")}`),
       )}`;
       break;
     case "claimant-view":
@@ -4585,7 +4635,7 @@ function w34(state: W34State): string {
       body = `${w34Head()}${pagepad(
         w34Identity({ state: "Active · pool composted", tone: "ink" }),
         banner("This pool is composted for now. Its history remains readable, and its stewards may reopen it for another season.", "stone", "leaf-line"),
-        card(`<div class="t-title num">Kept 12 times across 5 cycles</div><div class="t-meta">Past commitments and proof remain exactly as recorded. Nothing can be opened or taken up.</div>`),
+        card(`<div class="t-title num">Kept 12 times</div><div class="t-meta">Past commitments and proof remain exactly as recorded. Nothing can be opened or taken up.</div>`),
         hot("w34.open-composted-pool", btn("View the Composted Pool", { kind: "ghost", full: true })),
       )}`;
       break;
@@ -4789,8 +4839,12 @@ const W35_HOTS: HifiDef["hots"] = {
   "w35.mixed-failed-done": { l: "Back to this offer", to: "screen:W34@places-partial-failed", info: "The ongoing Offer preserves the synced commitment's availability and the failed sibling's recovery controls." },
 };
 
-const w32Facts = (state: W32State): StateFacts | undefined =>
-  state === "saved-with-ongoing-ready" ? { pool: "Ready", series: "Active" } : undefined;
+// W32 keeps only the saving flow; its series casts moved to W5 and survive as
+// deep-link aliases in screens/index.ts. Every remaining state is a local draft
+// with no position on chain, so asserting none is the honest answer. The lone
+// branch here tested `saved-with-ongoing-ready`, retired with that move
+// (2026-08-19 review).
+const w32Facts = (_state: W32State): StateFacts | undefined => undefined;
 
 const w34Facts = (state: W34State): StateFacts | undefined => {
   if (state === "loading" || state === "read-error") return undefined;
@@ -4843,7 +4897,7 @@ const mk = <T extends readonly (readonly [string, string])[]>(
 };
 
 export const CLIENT_DEFS: HifiDef[] = [
-  { ...mk("W1", "W1 · Pool tab (garden detail)", W1_STATES, w1, w1Facts, new Set(), w1Group), hots: W1_HOTS },
+  { ...mk("W1", "W1 · Pool tab (garden detail)", W1_STATES, w1, w1Facts, new Set(), w1Group), hots: W1_HOTS, errors: W1_ERRORS },
   { ...mk("W1C", "W1C · Season or campaign", W1C_STATES, w1c), hots: W1C_HOTS },
   { ...mk("W2", "W2 · Commitment detail", W2_STATES, w2, w2Facts, new Set(), w2Group), hots: W2_HOTS, errors: W2_ERRORS },
   { ...mk("W2b", "W2b · Team and contributions", W2B_STATES, w2b), hots: W2B_HOTS },
@@ -4857,6 +4911,6 @@ export const CLIENT_DEFS: HifiDef[] = [
   { ...mk("W3", "W3 · Offer/request creation", W3_STATES, w3, w3Facts), hots: W3_HOTS },
   { ...mk("W4", "W4 · Confirmation sheet", W4_STATES, w4, w4Facts), hots: W4_HOTS },
   { ...mk("W32", "W32 · Saving offer details", W32_STATES, w32, w32Facts), hots: W32_HOTS },
-  { ...mk("W34", "W34 · Ongoing Offer detail", W34_STATES, w34, w34Facts), hots: W34_HOTS },
+  { ...mk("W34", "W34 · Ongoing Offer detail", W34_STATES, w34, w34Facts), hots: W34_HOTS, errors: W34_ERRORS },
   { ...mk("W35", "W35 · Offer another", W35_STATES, w35, w35Facts), hots: W35_HOTS },
 ];

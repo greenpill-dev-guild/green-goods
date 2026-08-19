@@ -859,7 +859,6 @@ for (const [hotId, target] of requiredTargets) {
   }
 }
 
-writeFileSync(OUT, html);
 const byteSize = new TextEncoder().encode(html).byteLength;
 
 // prototypes-coverage.md transcribes this snapshot by hand and has drifted from
@@ -867,6 +866,16 @@ const byteSize = new TextEncoder().encode(html).byteLength;
 // so the transcription cannot silently rot again.
 const totalStates = SCREENS.reduce((a, s) => a + s.states.length, 0);
 const totalScenes = sbs.reduce((a, b) => a + b.steps.length, 0);
+// Drift is collected, not just printed. Until 2026-08-19 every line below was a
+// bare console.warn AFTER the exit gate, so a wrong registry printed its warning
+// and then reported "warnings: 0", wrote the artifact, and exited 0 — the two
+// signals anyone actually checks both said clean. Anything that can be wrong
+// silently will be.
+const coverageDrift: string[] = [];
+const noteDrift = (message: string) => {
+  coverageDrift.push(message);
+  console.warn(message);
+};
 try {
   const coverage = readFileSync(new URL("./prototypes-coverage.md", import.meta.url), "utf8");
   const claimed: [string, number, number][] = [
@@ -877,7 +886,7 @@ try {
   ];
   for (const [label, actual, stated] of claimed) {
     if (Number.isFinite(stated) && stated !== actual)
-      console.warn(`coverage-doc drift: prototypes-coverage.md says ${stated} ${label}, build has ${actual}`);
+      noteDrift(`coverage-doc drift: prototypes-coverage.md says ${stated} ${label}, build has ${actual}`);
   }
   // The aggregate totals above agreed while 19 of 39 per-screen rows were wrong
   // in both directions (2026-08-19 review), because a total can stay right while
@@ -892,15 +901,25 @@ try {
     listed.add(screen.id);
     const ids = screen.states.map((s) => s.id).join(", ");
     if (Number(row[2]) !== screen.states.length)
-      console.warn(`coverage-doc drift: ${screen.id} row says ${row[2]} states, build has ${screen.states.length}`);
+      noteDrift(`coverage-doc drift: ${screen.id} row says ${row[2]} states, build has ${screen.states.length}`);
     else if (row[3] !== ids)
-      console.warn(`coverage-doc drift: ${screen.id} row lists different state ids than the build`);
+      noteDrift(`coverage-doc drift: ${screen.id} row lists different state ids than the build`);
   }
   for (const s of SCREENS)
-    if (!listed.has(s.id)) console.warn(`coverage-doc drift: ${s.id} has no row in the screen registry`);
+    if (!listed.has(s.id)) noteDrift(`coverage-doc drift: ${s.id} has no row in the screen registry`);
 } catch {
-  console.warn("coverage-doc drift: prototypes-coverage.md not readable — snapshot unchecked");
+  noteDrift("coverage-doc drift: prototypes-coverage.md not readable — snapshot unchecked");
 }
+
+if (coverageDrift.length > 0) {
+  console.error(`${coverageDrift.length} coverage-doc drift problems — not writing output`);
+  process.exit(1);
+}
+
+// Written only once every gate has passed, so a failing build leaves the last
+// good artifact in place — the same contract the validation-error exit above
+// has always had. Drift used to be found after this line had already run.
+writeFileSync(OUT, html);
 
 console.log(
   "screens:", SCREENS.length,

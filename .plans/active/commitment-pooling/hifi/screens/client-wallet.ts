@@ -780,7 +780,7 @@ export const WALLET_DEFS: HifiDef[] = [
         { id: "intro-promise", label: "1 · Intro, from a commitment", html: wflow("intro-promise") },
         { id: "intro-promises", label: "1 · Intro. You hold commitments", html: wflow("intro-promises") },
         { id: "media", label: "2 · Media", html: wflow("media") },
-        { id: "details", label: "3 · Details (+ fulfills field)", html: wflow("details") },
+        { id: "details", label: "3 · Details", html: wflow("details") },
         // "details-linked" and "fulfills-pick" retired 2026-08-19 (PR #732 review).
         // Both were declared on 2026-08-14 and never added to WflowState or the
         // wflow() switch, so both fell through and rendered the step-1 action

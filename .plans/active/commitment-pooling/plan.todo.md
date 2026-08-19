@@ -14,7 +14,7 @@ Linear mirror: project [Commitment Pooling](https://linear.app/greenpill-dev-gui
 
 ## Document map
 
-Every file in this hub, by role — **170 files**: 28 at the hub root, 42 under `artifacts/`,
+Every file in this hub, by role — **171 files**: 29 at the hub root, 42 under `artifacts/`,
 25 under `handoffs/`, 22 under `hifi/`, 20 under `operations/`, 32 under `reports/`, and 1 under
 `evidence/`.
 **This list is the index — if you add a document here, add its row.** Root files each get their own
@@ -50,6 +50,7 @@ subtree is only honest if that index actually enumerates the tree (this failed r
 | `session-state-admin-canvas.md` | Session-continuity handover for the admin-canvas work stream | Execution context — not canonical design or contract truth |
 | `acceptance-matrix.md` | Exact copy / state / public-claim targets for handoffs and QA | Acceptance targets |
 | `architecture-closure-matrices.md` | Complete event/replay, retry/idempotency, persistence-truth, and lifecycle/wind-down inventories | **Binding cross-lane closure contract** |
+| `tsconfig.json` | Typecheck config for `hifi/**` — the only thing that reads these state unions. Nothing above `.plans/` typechecks: biome is scoped to `packages/**` plus md/json, oxlint to `packages/*/src`. Added 2026-08-19 after eight phantom state ids reached the tree | **Run before merge** — `node …/typescript/lib/tsc.js -p tsconfig.json` |
 | `architecture-closure.validate.ts` | Machine gate for all 58 ABI-closed events, 28 entities, 86 module functions, seven enum vocabularies, eight sparse-event materialization cases, 62 executable calls, six jobs/persistence states, eight lifecycle subjects, and required source assertions | **Must pass before dispatch or merge** |
 | `backfill-pools.ts` | Bun-wrapped, finalized-block pool-inventory and Safe-receipt verifier; fails closed on inventory/root drift and the frozen backfill-before-unpause ABI conflict | Phase A release tooling only; no broadcast authority |
 | `reports/corrections-log.md` | Claim-by-claim verification ledger (VERIFIED / CORRECTED / UNVERIFIABLE / SUPERSEDED) | **Correction record — §9 owns the fund-topology correction** |
@@ -90,10 +91,10 @@ subtree is only honest if that index actually enumerates the tree (this failed r
 | List | Range | What it is |
 |---|---|---|
 | **Decision Log** (the table below) | 1–68 | Curated current-state decisions spanning the whole feature, newest last |
-| **Full decision register** (further below) | 1–159 | The 2026-07-03 alignment session verbatim, plus dated addenda 28–159 |
+| **Full decision register** (further below) | 1–160 | The 2026-07-03 alignment session verbatim, plus dated addenda 28–160 |
 
 - **Every `#1`–`#68` citation is potentially ambiguous** because both lists now occupy that range. Always write “Decision Log #N” or “register #N”.
-- **`#69`–`#159` are unambiguous register numbers**, but naming the list is still preferred.
+- **`#69`–`#160` are unambiguous register numbers**, but naming the list is still preferred.
 - **`#39`–`#40` became ambiguous on 2026-08-01**, when the Decision Log gained its CPP-alignment scope lock and staged-product narrative while the full register already carried different entries at those numbers. Name the list explicitly for both.
 - **`#30`–`#38` became ambiguous on 2026-07-28 and 2026-07-30**, when the Decision Log grew its own entries 30–36 (the group-commitment/recognition/payout amendments), 37 (protocol-pool settlement parity), and 38 (pre-build review closure). The guidance here previously said `#30`–`#60` were always the register, which stopped being true the moment Decision Log `#30` was written; **`#34` is the worst case — it is cited ~71× and now resolves to two different decisions.** Every bare `#30`–`#38` citation predating 2026-07-28 means the register; name the list explicitly from now on.
 - **`#29` became ambiguous on 2026-07-18** when the Decision Log gained its own `#29` (fourth garden not selected). Register `#29` is a different decision entirely. Always name the list for this number.
@@ -180,7 +181,7 @@ Known mis-resolutions fixed in place: `contract-spec.md` §Grassroots-Economics-
 | 67 | **The admin design contract is codified and binding, and round 2 re-lands the prototypes under it.** The design skill gains `admin-ux-brief.md` (Afo's canonical brief: NN/g heuristics, GOV.UK, USWDS, Laws of UX, web.dev responsive, Refactoring UI — principles extracted, branding never copied) and `interaction-patterns.md` (the codified contract, each rule cited to shipped code: end-aligned action clusters everywhere; ONE stable view action set across tabs with availability-by-disabling; dialog taxonomy with NO shell change mid-flow; flows enter from drawn console homes; single-column MainSheet with the two-column workspace-tab split where earned; row anatomy who·what·state-chips·meta·one-act with banners teaching once; compose only from the shipped palette). review-checklist Lens 5 makes the contract a mandatory pass before any admin round publishes. Four product answers locked: Garden header = shipped trio + Seed, stable everywhere; pool tab = left objects / right rail (container card · quick actions · activity), pool stays a managed container distinct from cycles; start-season/campaign = one three-step flow shell; assessments stay Hub/evaluator-side for v1 (sb57 retired, state library-only). | Afo's second admin review 2026-08-16 — round 1 was validator-green yet violated the contract (left-aligned card actions, tab-varying header actions against garden.utils.ts's tab-ignoring stable set, details-dialog→wizard shell hop, mid-dialog journey entries) because the guidance stack encoded visual identity but not the interaction layer, and nothing gated design quality. uiux-spec §6 admin round 2 addendum (i)–(o) carries the full text. |
 | 68 | **The commitment view knows who is looking at it, and four seats are enough because creator is not one.** Direction already names the creator: on an Offer they are the provider, on a Request the confirmer. So seat decides the person of every sentence while phase decides the affordances, and the five parallel derivations of "where does this stand" collapse into one declared lifecycle. Where a stage genuinely needs two seats drawn, it gets a second state, following `W4@provider-view`. | Afo's call in an interactive plan session, 2026-08-18, after `flow-audit.md` found the provider's own flow ending on the confirmer's screen with a button they cannot press, a member's request wearing another commitment's identity, and two membership tests naming states that have never existed. Applying the axis rigorously surfaced three further seat gaps that reassignment could not close, and Afo chose to close all three rather than ship the model with documented exceptions. `uiux-spec.md` C.54 and C.55 carry the full text; register #157 and #158. |
 
-### Full decision register (2026-07-03 alignment session, entries 1–27; dated addenda 28–159)
+### Full decision register (2026-07-03 alignment session, entries 1–27; dated addenda 28–160)
 
 **Cite entries in this list as "register #N"** — see the disambiguation note above. (The heading previously read "27 decisions", which stopped being true once the addenda were appended.)
 
@@ -1706,6 +1707,54 @@ Known mis-resolutions fixed in place: `contract-spec.md` §Grassroots-Economics-
     WFLOW states left in `a6082a860`. Build 44 screens / 517 states / 736 hotspots / 56 flows /
     329 scenes, 0 warnings and no coverage drift; closure validator green. One `.claude/` design-skill
     file changed. No runtime package, contract, ABI, indexer or Linear change.
+
+160. The class the guards did not close (2026-08-19, round 55, acting on the production-readiness
+    review of PR #732). Round 52 named the bug class exactly — an id that names a state which does
+    not exist, typechecking nowhere and simply drawing the wrong screen — fixed the two instances it
+    tripped over, and built three guards for W2. It never swept for siblings. There were eight more.
+    `W3` carried a whole "Add G$ support" step, head and actions and all, for a state retired when
+    that step folded into step 2; `W7` listed `funded-claim` and `paused-season-menu` in three
+    tables apiece and neither has ever existed; `W7_DESC` promised every state a description and
+    omitted two; `W1` still grouped `cycle-summary`, retired into the season view; `W32`'s facts
+    tested a state that moved to `W5`; and a second `state === "empty"` arm shadowed the first, so
+    the pool's empty screen drew a bare card with no pool summary while the version matching every
+    sibling sat unreachable below it. None of this was visible because nothing above `.plans/`
+    typechecks: biome is scoped to `packages/**` plus md and json, oxlint to `packages/*/src`. The
+    hub has its own `tsconfig.json` now, and the set-membership check that was W2's alone is W1's,
+    W7's and W34's too — a `Set<string>` defeats the compiler, so the runtime guard is what catches
+    those.
+    Two seat errors survived their own fix. `sb42` — "Confirm a commitment kept", persona the
+    recipient — still ended on `W2@fulfilled`, the provider's screen, which greets its reader with
+    "You did the work"; the confirmer's own view had been drawn in round 52 and nothing pointed at
+    it. And the disputed family was seated provider on the strength of one steward echo, when
+    raising a review is the confirmer's act and all three ordinary routes in arrive from that seat.
+    The destination guard could not have caught the first: it skipped every scene with no control,
+    48 of 273 transitions, which is exactly where `sb42` went stale after `w4.done` was repointed.
+    It covers them now, with the twenty existing crossings named in a list that should only shrink.
+    Coverage-doc drift printed a warning after the exit gate and then reported "warnings: 0",
+    wrote the artifact and exited 0 — the two signals anyone checks both said clean. Drift fails
+    the build now, and the artifact is written only once every gate has passed.
+    Three findings were the reviewer's error, recorded because the reasoning is worth keeping:
+    `support-evidence-queued` sits at Accepted correctly, though not for the reason its comment
+    gives — the rule is that a queued transition preserves phase, not that a service has no
+    approved work; `w10.dispute-confirm` targets the offer cast correctly, because `w10Facts` draws
+    `raise-dispute` as DomainImpact while the override and cancel states draw SupportService; and
+    `withdraw-confirm` does render its consequence sheet over a scrim.
+    Terminal commitments offered an editable team: `w2RosterFrozen` answers a contract question, and
+    Cancelled and Expired never fire `ContributorRosterFrozen`, so both fell through to "add, remove
+    and assign contributors" on a commitment that had ended, which `addContributor` forbids outside
+    Accepted (CS:1411). Proof was seat-dependent — the provider saw the photos on `active` while the
+    confirmer and a contributor, reading the same commitment at the same phase with the same
+    requirement totals, saw none, and `contributor`'s band promised "your proof credits you" above
+    nothing. `support-offered` named João as the one who could act while offering the act to its
+    reader. And the machine-word sweep was an event rather than a rule: the plural `cycles` survived
+    on `W34` in three strings and `W15` still told the public that commitments come "from this
+    cycle". All nine words are pinned to the rendered member surface now, the gallery exempt because
+    it documents the kit. `hifi/validate.ts` exits non-zero when run directly instead of printing
+    nothing and exiting 0, which is how PRD-760's closing checklist named a command that could not
+    fail. Build 44 screens / 517 states / 736 hotspots / 56 flows / 329 scenes, 0 warnings and no
+    coverage drift; closure validator green; typecheck clean. No runtime package, contract, ABI,
+    indexer or Linear change.
 
 **Final recursive certification clarification (2026-07-25; no new decision-register entry):**
 the published `42161`↔`42220` production lane is the only required fully paired

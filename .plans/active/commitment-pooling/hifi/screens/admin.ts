@@ -496,6 +496,15 @@ ${W7_COMMITMENT_ROWS[scope]}${W7_COMMITMENT_NOTE[scope] ?? ""}`,
     input("Search…", { placeholder: true, icon: "search-line", ariaLabel: "Search commitments" }),
   );
 
+// Availability is expressed by disabling, never by removing: createCommitment
+// requires Pool Open (CS:747). Hoisted out of w7() on 2026-08-19 so W7_ERRORS
+// below can check it — as an inline `string[]` it was invisible to the hub's
+// tsconfig, and carried `funded-claim`, a state that has never existed.
+const W7_SEEDABLE: W7State[] = [
+  "open", "reconciled", "cycle-composted", "claims", "claim-declined",
+  "claim-outcomes", "expiry-queue", "due-live", "series-view", "empty",
+];
+
 const W7_DESC: Record<W7State, string> = {
   open: "Season of First Rains is live. Offers and requests between neighbours.",
   "open-no-cycle": "No season is running. Start one, or a campaign beside it.",
@@ -527,6 +536,12 @@ const W7_DESC: Record<W7State, string> = {
   "cancel-cycle-confirm": "Season of First Rains is live. Offers and requests between neighbours.",
   "paused-cancel-cycle-confirm": "Paused for the season. Proof and recovery stay open.",
   "decline-claim-confirm": "Season of First Rains is live. Offers and requests between neighbours.",
+  // Both were absent until 2026-08-19. `Record<W7State, string>` promised every
+  // state a description and two never had one; pageHeader's own guard is the
+  // only reason the header did not render `undefined`. W7C already carried the
+  // read-error line, so this is the pool's own copy of the same fact.
+  seeded: "A season is prepared. Opening it is what lets neighbours start filling it.",
+  "read-error": "This pool could not be loaded.",
 };
 
 // Dimmed pool route behind a W7 confirmation. Hotspot-free for the same reason
@@ -845,10 +860,7 @@ function w7(state: W7State): string {
   // mirroring the shipped buildGardenViewActions pair (garden.utils.ts:103)
   // plus Seed (2026-08-16 decision 1). Availability is expressed by disabling,
   // never by removing: createCommitment requires Pool Open (CS:747).
-  const seedable = [
-    "open", "reconciled", "cycle-composted", "claims", "claim-declined",
-    "claim-outcomes", "expiry-queue", "due-live", "series-view", "funded-claim", "empty",
-  ].includes(state);
+  const seedable = W7_SEEDABLE.includes(state);
   // TWO button weights in the row, never three: outlined secondaries and one
   // filled primary. A text + outlined + filled trio read as three unrelated
   // controls (2026-08-16 round 4).
@@ -867,9 +879,9 @@ function w7(state: W7State): string {
   // Quick actions; the feed keeps ambient awareness without a second tab.
   const poolRailStates: W7State[] = [
     "open", "open-no-cycle", "seeded", "not-ready", "preflight-complete", "ready", "reconciled",
-    "cycle-composted", "close-blocked-live", "paused", "paused-season-menu", "paused-cycle-composted",
+    "cycle-composted", "close-blocked-live", "paused", "paused-cycle-composted",
     "claims", "claim-declined", "claim-outcomes", "expiry-queue", "due-live",
-    "series-view", "funded-claim", "empty",
+    "series-view", "empty",
   ];
   // Every activity line opens the thing it describes — an update you can't act
   // on is a notification, not a workspace.
@@ -938,16 +950,6 @@ ${activityRow("w7.activity-work", "Pruning session approved for Prune the north 
     );
   } else if (state === "loading") {
     body = `<div class="wsrow"><div class="wsmain">${skeleton({ title: true, lines: 2 })}${skeleton({ lines: 3 })}</div><aside class="wsrail">${skeleton({ lines: 3 })}${skeleton({ lines: 2 })}${skeleton({ lines: 2 })}</aside></div>`;
-  } else if (state === "empty") {
-    body = page(
-      emptyState(
-        "seedling-line",
-        "No commitments yet",
-        "When the pool is open, offers and requests between neighbours show up here. Seed the first commitment to begin.",
-        hot("w7.seed", btn("Seed Commitment", { kind: "pri", sm: true, icon: "add-line" })),
-      ),
-      "open",
-    );
   } else if (state === "not-ready" || state === "preflight-complete") {
     // A pool that has never opened has no season, commitments, or claims. One
     // primary, and the rail's checklist says what is still missing.
@@ -1010,6 +1012,11 @@ ${cardSection("Campaigns · none yet", hot("w7.start-campaign", btn("Start Campa
     );
   } else if (state === "paused-cycle-cancelled") {
     body = page(w7NoSeason(false));
+  // `empty` is NOT a read cast: the pool loaded and is genuinely empty, so the
+  // summary and season still belong on screen. A second `state === "empty"` arm
+  // sat above with loading and read-error and shadowed this one, rendering a
+  // bare empty state with no pool card — dead since f9ca54f37 and invisible
+  // because nothing above `.plans/` typechecks (2026-08-19 review).
   } else if (state === "empty") {
     body = page(`${w7Summary()}${w7Cycles("open")}${acard(
       "Commitments",
@@ -1620,6 +1627,10 @@ const W10_HOTS: HifiDef["hots"] = {
     facts: { commitment: "ReadyForConfirmation", pool: "Open", cycle: "Open", kind: "DomainImpact" },
   },
   "w10.raise": { l: "Raise dispute", to: "screen:W10@raise-dispute", info: "Steward dispute entry, Accepted through Expired (UX:300)." },
+  // Offer cast, unlike the override and cancel confirmations above: w10Facts
+  // draws raise-dispute as a ReadyForConfirmation DomainImpact commitment while
+  // those two draw SupportService, so the steward's three exits are three
+  // different commitments by design (checked 2026-08-19).
   "w10.dispute-confirm": { l: "Raise dispute (confirm)", to: "screen:W2@disputed", info: "raiseDispute stores preDisputeState; member copy stays “under review by stewards” (CS:143).", calls: ["raiseDispute"] },
   "w10.resolve-options": { l: "Resolution outcomes", info: "This contributor-steward fixture exposes RestorePrevious / Cancelled / Expired only. Fulfilled is hidden because the on-chain SelfConfirmation guard would reject this actor; eligible non-contributor stewards receive the separately gated Fulfilled option (CS:144)." },
   "w10.resolve": { l: "Resolve", to: "screen:W2@ready-confirmer", info: "This fixture selects RestorePrevious, returning the exact stored ReadyForConfirmation state with no unit movement (LAP:186).", calls: ["resolveDispute"], resultFacts: { commitment: "ReadyForConfirmation" } },
@@ -2196,7 +2207,10 @@ function w14(state: W14State): string {
     );
   let inner: string;
   let current: number;
-  let next: string;
+  // Empty rather than unassigned: the use site below is `next || Continue`,
+  // which reads it on every path while only four branches set it (W8 at 1220
+  // already used this form).
+  let next = "";
   let back: string | undefined;
   if (state === "kernel") {
     current = 1;
@@ -2555,6 +2569,20 @@ const W7_SETTING_UP = new Set<string>([
   "not-ready", "preflight-complete", "ready", "seeded", "open-no-cycle",
 ]);
 
+// The same enforcement W1 and W2 carry. These three are `Set<string>`, so the
+// hub's tsconfig cannot see their members; W7 already shipped two ids that
+// never existed (`funded-claim`, `paused-season-menu`), found on 2026-08-19
+// only because the typed arrays beside them were checkable.
+export const W7_ERRORS: string[] = [];
+{
+  const all = new Set<string>(W7_STATES.map(([id]) => id));
+  for (const [name, set] of [
+    ["W7_WINDING_DOWN", W7_WINDING_DOWN], ["W7_RUNNING", W7_RUNNING], ["W7_SETTING_UP", W7_SETTING_UP],
+  ] as [string, Set<string>][])
+    for (const member of set)
+      if (!all.has(member)) W7_ERRORS.push(`W7 SET ${name}: "${member}" is not a W7 state`);
+}
+
 const w7Group = (state: W7State): string => {
   if (state === "loading") return "Loading";
   if (state === "edit-pool") return "Settings";
@@ -2576,7 +2604,7 @@ const w7Facts = (state: W7State): StateFacts | undefined => {
   // guard assumes the same. So this state is preparation with an empty pool,
   // and opening is the moment it fills.
   if (state === "seeded") return { pool: "Open", cycle: "Seeded", cycleLiveCommitments: "Zero" };
-  if (state === "paused" || state === "paused-season-menu") return { pool: "Paused", cycle: "Open" };
+  if (state === "paused") return { pool: "Paused", cycle: "Open" };
   if (state === "paused-cycle-cancelled") return { pool: "Paused", cycle: "Cancelled" };
   if (state === "paused-cancel-cycle-confirm")
     return { pool: "Paused", cycle: "Open", cycleLiveCommitments: "Zero" };
@@ -2607,8 +2635,6 @@ const w7Facts = (state: W7State): StateFacts | undefined => {
   if (state === "loading") return undefined;
   if (["claims", "decline-claim-confirm", "claim-declined"].includes(state))
     return { pool: "Open", cycle: "Open", commitment: "Requested", kind: "SupportService" };
-  if (state === "funded-claim")
-    return { pool: "Open", cycle: "Open", commitment: "Offered", kind: "SupportService", funding: "None", settlementAccount: "Active" };
   if (state === "claim-outcomes")
     return { pool: "Open", cycle: "Open", commitment: "Accepted", kind: "SupportService" };
   if (state === "due-live")
@@ -2662,7 +2688,7 @@ const w8Facts = (_state: W8State): StateFacts => ({ pool: "Open", cycle: "Open" 
 
 export const ADMIN_DEFS: HifiDef[] = [
   { screen: { id: "W7", title: "W7 · Garden Pool tab (admin)", surface: "admin", frame: "desktop", group: "Admin console",
-    states: groupStates(W7_STATES.map(([id, label]) => ({ id, label, group: w7Group(id), facts: w7Facts(id), html: w7(id) }))) }, hots: { ...adminChromeHots("w7", "garden"), ...W7_HOTS } },
+    states: groupStates(W7_STATES.map(([id, label]) => ({ id, label, group: w7Group(id), facts: w7Facts(id), html: w7(id) }))) }, hots: { ...adminChromeHots("w7", "garden"), ...W7_HOTS }, errors: W7_ERRORS },
   { screen: { id: "W7C", title: "W7c · Season or campaign (admin)", surface: "admin", frame: "desktop", group: "Admin console",
     states: W7C_STATES.map(([id, label]) => ({ id, label, facts: { pool: "Open", cycle: id.includes("finished") ? "Composted" : "Open" } satisfies StateFacts, html: w7c(id) })) }, hots: { ...adminChromeHots("w7c", "garden"), ...W7C_HOTS } },
   { screen: { id: "W7M", title: "W7m · Garden Pool tab, phone (admin)", surface: "admin", frame: "phone", group: "Admin console",

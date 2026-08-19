@@ -541,6 +541,27 @@ const BANNED_CLIENT_PUBLIC: [RegExp, string][] = [
   [/\bdisputes?d?\b/i, 'dispute ("under review by stewards" is the ceiling)'],
   [/\blegal\b/i, "legal"],
 ];
+// The machine vocabulary, on RENDERED member copy only. Round B took all of
+// these off the client surface by hand and pinned none of them, so the sweep was
+// an event rather than a rule — which is how the PLURAL "cycles" survived on W34
+// in three strings while the singular sat at zero everywhere, and how W15 kept
+// telling the public that commitments come "from this cycle" (found 2026-08-19).
+// A hand sweep that is not enforced is a sweep that comes undone.
+//
+// Deliberately NOT applied to the component gallery: that documents the kit for
+// whoever builds it, and a ship note naming a cycle state is not a member
+// reading the word.
+const MACHINE_WORDS_CLIENT: [RegExp, string][] = [
+  [/\bon-chain\b/i, "on-chain"],
+  [/\bfulfillment\b/i, "fulfillment"],
+  [/\bindexed\b/i, "indexed"],
+  [/\btransactions?\b/i, "transaction"],
+  [/\bthresholds?\b/i, "threshold"],
+  [/\bsyncs\b/i, "syncs"],
+  [/\brosters?\b/i, "roster"],
+  [/\bcycles?\b/i, 'cycle ("season" or "campaign" — or drop the boundary)'],
+  [/\battestations?\b/i, "attestation"],
+];
 /** Card descriptions stay one scannable sentence — see the DESC check below. */
 const DESC_MAX = 190;
 const ADMIN_HERO: [RegExp, string][] = [
@@ -636,7 +657,8 @@ function scanState(screen: Screen, stateId: string, html: string, sept: boolean)
   // never "dispute", never "legal". Renaming the editorial surface without this
   // line is silent — the scan would simply stop covering W15/W16.
   if (screen.surface === "client" || screen.surface === "editorial") {
-    for (const [re, name] of BANNED_CLIENT_PUBLIC) if (re.test(text)) sink.push(`VOCAB ${where}: "${name}"`);
+    for (const [re, name] of [...BANNED_CLIENT_PUBLIC, ...MACHINE_WORDS_CLIENT])
+      if (re.test(text)) sink.push(`VOCAB ${where}: "${name}"`);
   }
   if (screen.surface === "admin") {
     for (const [re, name] of ADMIN_HERO) if (re.test(text)) sink.push(`VOCAB ${where}: ${name}`);
@@ -651,6 +673,35 @@ function scanState(screen: Screen, stateId: string, html: string, sept: boolean)
 }
 
 // ---- normalization ----------------------------------------------------------
+// Control-free scene crossings that predate the 2026-08-19 destination check.
+// Each is an unaudited assertion that the flow moves to another screen with no
+// control declared — most are "open one of these from the list", which is
+// probably fine, but none has been checked and none says why. Shrink this list
+// by giving each scene a real `skipTargetReason` (or the control it walks); do
+// not add to it. A new crossing is a build error, which is the point.
+const UNAUDITED_SCENE_CROSSINGS = new Set<string>([
+  "sb5:3",
+  "sb54:0",
+  "sb37:6",
+  "sb18:1",
+  "sb13:0",
+  "sb16:0",
+  "sb62:0",
+  "sb6a:0",
+  "sb3b:2",
+  "sb3b:5",
+  "sb8:5",
+  "sb12:11",
+  "sb19:0",
+  "sb19:8",
+  "sb19:9",
+  "sb15:2",
+  "sb32:5",
+  "sb33:7",
+  "sb14:3",
+  "sb48:0",
+]);
+
 export function normalizeAndValidate(raw: RawSB[], ctx: Ctx): { sbs: ShippedSB[]; errors: string[]; warnings: string[] } {
   const byId = new Map(ctx.screens.map((s) => [s.id, s]));
 
@@ -786,7 +837,24 @@ export function normalizeAndValidate(raw: RawSB[], ctx: Ctx): { sbs: ShippedSB[]
     const rawSb = raw.find((candidate) => candidate.id === sb.id)!;
     for (let ix = 0; ix < sb.steps.length; ix++) {
       const step = sb.steps[ix];
-      if (!step.hot) continue;
+      // A scene with no control still ASSERTS where the flow goes next, and
+      // until 2026-08-19 nothing checked those: 48 of 273 transitions were
+      // exempt because `hot` was null, 23 of them crossing to another screen.
+      // That is how sb42 kept ending on the provider's fulfilled screen after
+      // w4.done had been repointed to the pool tab — the control moved, the
+      // scene did not, and the confirmer was told "You did the work".
+      // Echoes are exempt: they are consequences on another surface, already
+      // checked by the ECHO rules below.
+      if (!step.hot) {
+        const nextScene = sb.steps[ix + 1];
+        if (!nextScene || step.echo || step.f === nextScene.f) continue;
+        if (rawSb.steps[ix].skipTargetReason?.trim()) continue;
+        if (UNAUDITED_SCENE_CROSSINGS.has(`${sb.id}:${ix}`)) continue;
+        err.push(
+          `DESTINATION ${sb.id}:${ix} advances ${step.f} → ${nextScene.f} with no control and no skipTargetReason`,
+        );
+        continue;
+      }
       const target = ctx.hots[step.hot.h]?.to;
       if (!target?.startsWith("screen:")) continue;
       const next = sb.steps[ix + 1];
@@ -972,4 +1040,23 @@ export function normalizeAndValidate(raw: RawSB[], ctx: Ctx): { sbs: ShippedSB[]
   }
 
   return { sbs, errors: err, warnings: warn };
+}
+
+// ---------------------------------------------------------------------------
+// Running this file directly proves nothing, and said so silently. It is a
+// module: `bun hifi/validate.ts` loaded it, ran no checks, printed nothing and
+// exited 0 — which reads exactly like a pass. PRD-760's closing checklist names
+// that command, so three issues were unblocked partly on the strength of a
+// command that cannot fail (found 2026-08-19).
+//
+// The checks need the registry, which lives in the build. So say so and exit
+// non-zero rather than letting silence be mistaken for a green.
+// ---------------------------------------------------------------------------
+if (import.meta.main) {
+  console.error(
+    "hifi/validate.ts is a module, not a gate — on its own it checks nothing.\n" +
+      "It needs the screen registry, which the build assembles. Run:\n" +
+      "  bun .plans/active/commitment-pooling/prototypes-artifact.build.ts",
+  );
+  process.exit(1);
 }

@@ -3353,4 +3353,5 @@ recommendation). A steward needs to see who is over-committing; the caption argu
 "never a score or a ranking" was the dishonest half.
 
 Build: 44 screens / 519 states / 736 hotspots / 56 flows / 329 scenes, 0 warnings; closure validator
-green.
+green. (Receipt as taken. The state count is 517 from 2026-08-19: `WFLOW@details-linked` and
+`WFLOW@fulfills-pick` retired, both of which this section had already ordered retired.)
