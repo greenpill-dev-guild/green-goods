@@ -1,8 +1,15 @@
 # Flow audit — commitment pooling, from the user's side
 
-2026-08-18. Read from `hifi/journeys.ts` (53 flows, 317 scenes) and the screen modules
-behind them, with every claim checked against rendered output from a fresh
-`bun prototypes-artifact.build.ts` (44 screens, 513 states, 728 hotspots).
+2026-08-18, against **`c1f754190`** — 53 flows / 317 scenes / 44 screens / 513 states /
+728 hotspots. Read from `hifi/journeys.ts` and the screen modules behind it, with every claim
+checked against rendered output from a fresh `bun prototypes-artifact.build.ts` at that revision.
+
+> **This is a dated record, not a live document.** The counts above are the artifact as audited and
+> deliberately are not updated: the findings describe states and copy that no longer exist, so
+> refreshing the numbers would leave the evidence pointing at nothing. Rounds 52 and 53
+> (`uiux-spec.md` C.54 · C.55, register #157 · #158) acted on every finding below; the current
+> artifact is larger and different. Read this for what was wrong and why, and read
+> `prototypes-coverage.md` for what is true now.
 
 The prototypes are further along than this document will make them sound. The
 composer is genuinely good. The Hub's confirm queue is one of the clearest triage

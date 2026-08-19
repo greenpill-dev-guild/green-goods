@@ -781,8 +781,14 @@ export const WALLET_DEFS: HifiDef[] = [
         { id: "intro-promises", label: "1 · Intro. You hold commitments", html: wflow("intro-promises") },
         { id: "media", label: "2 · Media", html: wflow("media") },
         { id: "details", label: "3 · Details (+ fulfills field)", html: wflow("details") },
-        { id: "details-linked", label: "3 · Details, commitment chosen", html: wflow("details-linked") },
-        { id: "fulfills-pick", label: "Fulfills a commitment, picker", html: wflow("fulfills-pick") },
+        // "details-linked" and "fulfills-pick" retired 2026-08-19 (PR #732 review).
+        // Both were declared on 2026-08-14 and never added to WflowState or the
+        // wflow() switch, so both fell through and rendered the step-1 action
+        // picker — a state labelled "3 · Details, commitment chosen" showing the
+        // intro. Nothing above `.plans/` runs tsc, so the ids typechecked
+        // nowhere and the build counted two states that drew the wrong screen.
+        // Superseded regardless: the commitment is chosen at the intro now, and
+        // step 3 does not ask again (sb4a).
         { id: "review", label: "4 · Review (+ fulfills row)", html: wflow("review") },
         { id: "link-picker", label: "Link existing work, picker", facts: { pool: "Open", cycle: "Open", commitment: "Active", kind: "DomainImpact" } satisfies StateFacts, html: wflow("link-picker") },
       ] },

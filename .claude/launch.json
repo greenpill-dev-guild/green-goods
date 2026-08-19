@@ -16,7 +16,7 @@
     {
       "name": "proto",
       "runtimeExecutable": "python3",
-      "runtimeArgs": ["-m", "http.server", "4601", "-d", "/tmp/gg-proto"],
+      "runtimeArgs": ["-m", "http.server", "4601", "--bind", "127.0.0.1", "-d", "/tmp/gg-proto"],
       "port": 4601
     }
   ]

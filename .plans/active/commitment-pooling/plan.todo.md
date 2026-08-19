@@ -82,12 +82,12 @@ subtree is only honest if that index actually enumerates the tree (this failed r
 
 ## How to read decision citations
 
-⚠️ **This hub has two independent decision lists, both numbered from 1.** A bare `#N` is therefore ambiguous in the range 1–61, and this has caused real mis-resolutions. Until a full renumber lands:
+⚠️ **This hub has two independent decision lists, both numbered from 1.** A bare `#N` is therefore ambiguous in the range 1–68, and this has caused real mis-resolutions. Until a full renumber lands:
 
 | List | Range | What it is |
 |---|---|---|
-| **Decision Log** (the table below) | 1–67 | Curated current-state decisions spanning the whole feature, newest last |
-| **Full decision register** (further below) | 1–97 | The 2026-07-03 alignment session verbatim, plus dated addenda 28–97 |
+| **Decision Log** (the table below) | 1–68 | Curated current-state decisions spanning the whole feature, newest last |
+| **Full decision register** (further below) | 1–158 | The 2026-07-03 alignment session verbatim, plus dated addenda 28–158 |
 
 - **Every `#1`–`#67` citation is potentially ambiguous** because both lists now occupy that range. Always write “Decision Log #N” or “register #N”.
 - **`#62`–`#97` are unambiguous register numbers**, but naming the list is still preferred.
@@ -177,7 +177,7 @@ Known mis-resolutions fixed in place: `contract-spec.md` §Grassroots-Economics-
 | 67 | **The admin design contract is codified and binding, and round 2 re-lands the prototypes under it.** The design skill gains `admin-ux-brief.md` (Afo's canonical brief: NN/g heuristics, GOV.UK, USWDS, Laws of UX, web.dev responsive, Refactoring UI — principles extracted, branding never copied) and `interaction-patterns.md` (the codified contract, each rule cited to shipped code: end-aligned action clusters everywhere; ONE stable view action set across tabs with availability-by-disabling; dialog taxonomy with NO shell change mid-flow; flows enter from drawn console homes; single-column MainSheet with the two-column workspace-tab split where earned; row anatomy who·what·state-chips·meta·one-act with banners teaching once; compose only from the shipped palette). review-checklist Lens 5 makes the contract a mandatory pass before any admin round publishes. Four product answers locked: Garden header = shipped trio + Seed, stable everywhere; pool tab = left objects / right rail (container card · quick actions · activity), pool stays a managed container distinct from cycles; start-season/campaign = one three-step flow shell; assessments stay Hub/evaluator-side for v1 (sb57 retired, state library-only). | Afo's second admin review 2026-08-16 — round 1 was validator-green yet violated the contract (left-aligned card actions, tab-varying header actions against garden.utils.ts's tab-ignoring stable set, details-dialog→wizard shell hop, mid-dialog journey entries) because the guidance stack encoded visual identity but not the interaction layer, and nothing gated design quality. uiux-spec §6 admin round 2 addendum (i)–(o) carries the full text. |
 | 68 | **The commitment view knows who is looking at it, and four seats are enough because creator is not one.** Direction already names the creator: on an Offer they are the provider, on a Request the confirmer. So seat decides the person of every sentence while phase decides the affordances, and the five parallel derivations of "where does this stand" collapse into one declared lifecycle. Where a stage genuinely needs two seats drawn, it gets a second state, following `W4@provider-view`. | Afo's call in an interactive plan session, 2026-08-18, after `flow-audit.md` found the provider's own flow ending on the confirmer's screen with a button they cannot press, a member's request wearing another commitment's identity, and two membership tests naming states that have never existed. Applying the axis rigorously surfaced three further seat gaps that reassignment could not close, and Afo chose to close all three rather than ship the model with documented exceptions. `uiux-spec.md` C.54 and C.55 carry the full text; register #157 and #158. |
 
-### Full decision register (2026-07-03 alignment session, entries 1–27; dated addenda 28–103)
+### Full decision register (2026-07-03 alignment session, entries 1–27; dated addenda 28–158)
 
 **Cite entries in this list as "register #N"** — see the disambiguation note above. (The heading previously read "27 decisions", which stopped being true once the addenda were appended.)
 

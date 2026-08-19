@@ -89,56 +89,55 @@ Run the shared story commands only when a Storybook-covered shared component cha
 - Authenticated Brave covers admin/client visible flows; member PWA also has a real-device pass.
 - Any unavailable external settlement or AA path is reported as a proof limit, never a pass.
 
-## Token bridge — the prototype's CSS variables to `theme.css` (2026-08-18)
+## Token bridge — the prototype's CSS variables to the canonical tokens (2026-08-18)
 
-The Flow Prototypes artifact is a standalone HTML file with its own stylesheet
-(`hifi/tokens.ts`), and its variable namespace is **entirely disjoint** from the shipped one.
-`--act`, `--ink`, `--card`, `--cv` exist nowhere in `packages/shared/src/styles/theme.css`, and
-`--bg-weak-50`, `--text-strong-950`, `--primary-base` exist nowhere in the prototype. Nothing maps
-one to the other, so an implementer reading a prototype screen has had no mechanical way to tell
-which shipped token a colour corresponds to, and has had to eyeball it. That is where design-system
-divergence enters.
+**Corrected 2026-08-19 after PR review.** The first version of this section searched
+`packages/shared/src/styles/theme.css` for the prototype's hex values, found none, and concluded
+the two namespaces were unrelated. That was looking in the wrong file. `theme.css` is a **generated
+runtime projection**; the canonical DesignMD token source is the **root `DESIGN.md` front matter**
+(design skill, `language.md:7`), and `scripts/design/check-tokens.sh` verifies the projection.
 
-Two structural differences to know before using the table:
+Against the real source, the prototype's client palette is not a parallel invention — it is the
+Warm Earth palette, byte-for-byte:
 
-- The prototype stores **flat hex** (`--ink:#292524`). The shipped theme is **semantic over
-  palette**: `--text-strong-950: var(--neutral-950)`, consumed as `rgb(var(--token))`. Map to the
-  semantic name, never to a palette entry and never to a hex.
-- The prototype's `.hf.s-client` and `.hf.s-admin` blocks hold different values for the same
-  variable name. The shipped equivalent is the surface's own theme scope, not a renamed token.
-
-### Client PWA (`.hf.s-client`)
-
-| Prototype | Role | Shipped |
+| Prototype (`.hf.s-client`) | `DESIGN.md` | Match |
 |---|---|---|
-| `--cv` | page canvas | `--bg-weak-50` |
-| `--card` | card surface | `--bg-white-0` |
-| `--ink` | primary text | `--text-strong-950` |
-| `--stone` | secondary text | `--text-sub-600` |
-| `--stone-bg` | quiet fill | `--bg-soft-200` |
-| `--ln` | hairline | `--stroke-soft-200` |
-| `--ln2` | visible border | `--stroke-sub-300` |
-| `--act` / `--acth` | accent action, hover | `--primary-base` / `--primary-darker` |
-| `--gr` / `--gr-ink` / `--gr-bg` | success | `--success-base` / darker / `--success-lighter` |
-| `--amb` / `--amb-bg` | warning | `--warning-base` / `--warning-lighter` |
-| `--err` | error | `--error-base` |
-| `--sky` / `--sky-bg` | information | the blue ramp; no dedicated semantic token yet |
-| `--scrim` | modal scrim | `--overlay` |
+| `--ink` `#292524` | `primary` | exact |
+| `--stone` `#78716C` | `secondary` | exact |
+| `--gr` `#1FC16B` | `tertiary` | exact |
+| `--act` `#1A7544` | `tertiary-action` | exact |
+| `--acth` `#16643B` | `tertiary-action-hover` | exact |
+| `--cv` `#FAF8F5` | `neutral` | exact |
+| dark `--ink` `#F5F5F4` | `primary-inverse` | exact |
+| dark `--stone` `#A8A29E` | `secondary-inverse` | exact |
+| dark `--card` `#1C1917` | `neutral-dark` | exact |
 
-### No shipped equivalent
+### Two that have drifted, and are worth a decision
 
-- **`--cyc` / `--cyc-bg`** (#6B4A7A purple) — the cycle identity colour, carrying season and
-  campaign chips. This is **net-new vocabulary with no counterpart in `theme.css`**, and it is the
-  one token on this list that needs a real decision rather than a lookup: either it earns a semantic
-  token in the shipped theme, or cycle chips adopt an existing role. Do not improvise a hex.
+| Prototype | `DESIGN.md` | |
+|---|---|---|
+| `--amb` `#B45309` | `amber` `#D97706` | **different** |
+| `--sky` `#2563EB` | `sky` `#3B82F6` | **different** |
+
+Ten tokens agree exactly and these two do not, which reads as drift rather than intent. Either the
+prototype should adopt the canonical values, or `DESIGN.md` should adopt the prototype's if the
+warmer amber was a deliberate later choice. Do not resolve it by picking one in implementation.
+
+### No canonical equivalent
+
+- **`--cyc` / `--cyc-bg`** (`#6B4A7A`) — the cycle identity colour, carrying season and campaign
+  chips. Genuinely net-new vocabulary with no entry in `DESIGN.md`. It needs a real decision: either
+  it earns a canonical token, or cycle chips adopt an existing role. Do not improvise a hex.
 - **`--phone-scale`, `--bezel`, `--chrome-border`** — artifact chrome for drawing a phone inside a
   web page. Nothing to map; they do not exist in the app.
 
-### The rule
+### Where each thing lives
 
-`--color-*`, `--radius-*` and `--spring-*` in the shipped theme remain the only source for colour,
-radius and motion in implementation. This table exists to read the prototype, not to import from it.
-A prototype screen is a picture of the intent; `theme.css` is the intent.
+- **`DESIGN.md` front matter owns the values.** A token change starts there.
+- **`theme.css` is the projection implementations consume.** Read values from it; never author them
+  there, and never copy a prototype variable into it.
+- **The prototype's stylesheet is a picture.** `hifi/tokens.ts` exists to render a standalone HTML
+  artifact and ships nothing.
 
 ## Net-new component audit — 2026-08-18
 

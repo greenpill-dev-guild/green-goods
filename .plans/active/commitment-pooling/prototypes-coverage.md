@@ -37,8 +37,8 @@ lead retitled entries.) Round 1 earlier the same day: W7 pool tab restructured �
 
 ## Build snapshot
 
-- 44 registered screens / 519 rendered states in the full source registry
-- 37 presentation-visible hi-fi screens / 512 states: 19 Client PWA (311 states), 16 Admin console (196 states), 2 Editorial website (5 states)
+- 44 registered screens / 517 rendered states in the full source registry
+- 37 presentation-visible hi-fi screens / 510 states: 19 Client PWA (309 states), 16 Admin console (196 states), 2 Editorial website (5 states)
 - 736 registered hotspots
 - 56 validated source flows / 329 scenes; 55 presentation-visible flows / 320 scenes: 23 Client PWA, 30 Admin console, 2 Editorial website
 - 101 component entries / 188 static specimens on the Components tab (46 Client PWA · 38 Steward console · 4 Editorial), every entry anchored at `#components/<id>[@surface]` with shipping citation or net-new note; shipped-palette parity: shipping names lead admin entry titles
@@ -347,7 +347,7 @@ field, a reason-less act must not invent one). Each control whose label ends in
 | W5 | Client PWA | 8 | default, queued, waiting-membership, send-failed, empty, loading, not-found, read-error |
 | W23 | Client PWA | 6 | balance, contributor-receipt, send, send-pending, send-failed, delivery-blocked |
 | W25 | Client PWA | 4 | card, context-chooser, pending, accepted |
-| WFLOW | Client PWA | 9 | intro, intro-promise, intro-promises, media, details, details-linked, fulfills-pick, review, link-picker |
+| WFLOW | Client PWA | 7 | intro, intro-promise, intro-promises, media, details, review, link-picker |
 | W32 | Client PWA | 16 | saved, saved-with-ongoing, saved-with-ongoing-ready, series-queued, series-queued-place-waiting, empty, compose, choose-path, draft-unsaved, saving, save-failed, offline-local, version-conflict, persistence, loading, read-error |
 | W34 | Client PWA | 35 | active-two, active-none, active-one, places-queued, places-partial, places-partial-failed, story, participation, ask-again, claimant-view, pool-ready, pool-paused, pool-closed, pool-composted, edit-active, edit-active-none, edit-active-ready, edit-resting, edit-resting-none, edit-resting-ready, resting, resting-none, resting-ready, retire-confirm, retire-confirm-none, retire-confirm-resting, retire-confirm-resting-none, retire-confirm-ready, retire-confirm-resting-ready, retired, retired-none, retired-ready, succession, loading, read-error |
 | W35 | Client PWA | 4 | compose, queued, mixed-queued, mixed-failed |

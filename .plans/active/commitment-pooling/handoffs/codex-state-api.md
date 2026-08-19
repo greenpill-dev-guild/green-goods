@@ -398,10 +398,17 @@ state layer.
 
 ### Required: surface the dropped fields
 
-Add to `CommitmentReadModel` at minimum `counterparty`, `direction`, `commitmentType` and
-`recordedBy`. The remaining four (`confirmers`, `contributorPolicy`, `contributorsFrozen`,
-`claimMode`) are needed by the team and confirmation surfaces and should land in the same change
-rather than one at a time. No query change is required — the fields are already selected.
+The table above lists thirteen relevant fields. Two (`creator`, `leadProvider`) already reach the
+read model, so **nine are missing** and all nine are needed:
+
+- **Seat and cast, required by `selectCommitmentSeat()`** — `counterparty`, `direction`,
+  `commitmentType`, `recordedBy`
+- **Team and confirmation surfaces** — `confirmers`, `contributorPolicy`, `contributorsFrozen`,
+  `contributorCount`, `claimMode`
+
+Land them in one change rather than one at a time. `contributorCount` in particular is what lets a
+card show that a commitment has a team without loading the roster, which the pool tab does on every
+row. No query change is required — all nine are already selected by `COMMITMENT_FIELDS`.
 
 ### Required: `selectCommitmentSeat()`
 
