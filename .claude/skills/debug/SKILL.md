@@ -176,7 +176,7 @@ Simple fixes (<10 lines, single file, root cause proven) apply directly. Complex
 
 ## Part 3: Verification Before Completion
 
-CLAUDE.md § Verify Before Claiming Success is the contract: evidence in the same turn, no "should work / probably / seems to". Standard proofs: `bun run test` (never `bun test`), `bun build`, `bun lint`, `npx tsc --noEmit` in the touched package.
+CLAUDE.md § Verify Before Claiming Success is the contract: evidence in the same turn, no "should work / probably / seems to". Standard proofs: `bun run test` (never `bun test`), `bun run build`, `bun lint`, `npx tsc --noEmit` in the touched package.
 
 ---
 

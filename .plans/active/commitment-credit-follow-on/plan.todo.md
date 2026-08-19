@@ -2,8 +2,8 @@
 
 **Feature Slug**: `commitment-credit-follow-on`
 **Stage**: `active`
-**Status**: `CONTRACTS MERGED — PHASE A RELEASE ENGINEERING IN PROGRESS`
-**Last Updated**: `2026-08-11`
+**Status**: `STATE/API REVIEW FOLLOW-UP IN PROGRESS — UI AND RELEASE OPERATIONS REMAIN`
+**Last Updated**: `2026-08-18`
 
 ## Promotion record and remaining dispatch gates
 
@@ -36,6 +36,43 @@ lint, all 203 indexer tests, code generation, and TypeScript build locally, and 
 Indexer Lint And Build job is green. The root `bun run test` target was then rerun outside the
 restricted sandbox so Foundry could read macOS proxy state; it passed across the monorepo. The prior
 proxy initialization abort and indexer helper drift are no longer active Ship Gate gaps.
+
+## State/API implementation
+
+1. [x] Freeze the Credit lifecycle, viewer, rail, pause/pool, installment/time, delivery-order,
+   recovery, settlement-relationship, and unsupported-G$ behavior matrix before production code.
+2. [x] Record focused RED for the missing Envio `CreditRegistry` surface and shared Credit API.
+3. [x] Implement the canonical chain-scoped `Loan`, `LoanEvent`, and `CreditPoolStats` projections,
+   dynamic registry relationship, settlement join, replay/order convergence, and O(1) integer
+   aggregate accounting.
+4. [x] Implement and publicly export shared Credit types, centralized query keys, chain-scoped
+   queries, viewer-aware and aggregate-only selectors, invalidation, and online-only mutations.
+5. [x] Prove the source snapshot at `c070d20822a862ee09df486e5769c7966e86418f`: focused Credit
+   suites, full indexer, package builds/typechecks/story guards, the complete checkpoint, ontology,
+   vocabulary, and Plan Hub validation are GREEN.
+6. [x] Close the review-requested disclosure boundary so personal hook returns expose only the
+   viewer-gated `loan`/`loans` fields and never TanStack's raw `data` payload.
+7. [x] Add discriminating Credit coverage: every frozen event handler, hard-state and installment/time
+   boundaries, paused/non-open read availability, viewer-role transitions, zero-address mutation
+   rejection, relationship queries, cache invalidation, and blocked validation semantics.
+8. [x] Record whether a real-contract/Envio E2E is applicable and run it when the local fork, Docker,
+   deployed Credit address, and required authority facts are available; never replace missing release
+   authority with fabricated production state.
+9. [x] Document that static CreditRegistry pinning must start at or before its deployment block because
+   dynamic SettlementModule registration cannot recover initialization-era events.
+10. [x] Refresh package, cross-package, ontology, vocabulary, Plan Hub, and TDD receipts at the tested
+    remediation commit before returning PRD-786 to In Review.
+11. [ ] PRD-787 owns all client/admin UI. No UI source was changed in this lane.
+12. [ ] Deployment, address pinning, broadcast, post-deploy replay, QA, and release operations remain
+   outside PRD-786.
+13. [x] Add direct shared read-boundary characterization for all four Credit GraphQL queries,
+    including chain/pool/borrower predicates and scalar-to-domain mapping.
+14. [x] Add an explicit PRD-722-owned CreditRegistry static-pin allowance that expires 2026-08-31
+    and fails on expiry or configured/deployed address drift.
+15. [ ] Refresh the complete checkpoint receipt. Focused Credit proof is GREEN, but the current
+    local-fork E2E is sandbox-blocked, the checkpoint stopped on one unrelated admin test that
+    passed in isolation, and the branch-wide test-quality guard reports 28 pre-existing expired
+    Playwright skip dates.
 
 ## Stage-3 boundary
 

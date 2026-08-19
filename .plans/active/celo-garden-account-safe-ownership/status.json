@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p1",
     "created_at": "2026-08-15T06:08:14.457Z",
-    "updated_at": "2026-08-16T01:09:00.000Z"
+    "updated_at": "2026-08-18T19:05:00.000Z"
   },
   "links": {
     "brief": "brief.md",
@@ -32,7 +32,10 @@
     "recovery_safes_live": "evidence/celo-recovery-safes-live-2026-08-15.json",
     "relay_unit_gas": "evidence/relay-unit-gas-2026-08-15.json",
     "celo_post_safe_upgrade_block": "evidence/celo-post-safe-upgrade-block-2026-08-15.json",
-    "final_safe_bindings": "evidence/garden-safe-final-bindings-2026-08-15.json"
+    "final_safe_bindings": "evidence/garden-safe-final-bindings-2026-08-15.json",
+    "release_readiness": "evidence/celo-release-readiness-2026-08-17.json",
+    "garden_safe_deployment_artifact": "../../../packages/contracts/deployments/42220-settlement-safes.json",
+    "relay_deployment_artifact": "../../../packages/contracts/deployments/garden-account-relay.json"
   },
   "linear": {
     "parentIssue": "PRD-821",
@@ -61,10 +64,16 @@
     "The exact implementation deployment and all 18 account initializations must share one coordinator transaction so the permissionless ERC-6551 creation path cannot expose a separate initialization window.",
     "Historical source, compiler, and tokenbound submodule rebuild proof is closed: repository commit 175469f2fc699712a9fa8016d6aa25390282989d reproduces the exact creation code, constructor arguments, init code, factory input, and CREATE2 address.",
     "Direct final Safe setup supersedes the temporary deployment-EOA bootstrap for this ownership implementation. No deployment EOA may be a Garden Safe owner.",
-    "Live official Safe Wallet reads show both recovery Safes are v1.4.1+L2 with unique owners, no modules, no guard, and the v1.4.1 compatibility fallback handler. The exact pinned-fork test is authored, but its nested EIP-1271 and singleton/runtime proof still requires an RPC-capable execution environment; this workspace's RPC domains are blocked and its focused compile was stopped after five minutes without output.",
+    "The pinned Arbitrum/Celo fork proof now executes green: testFork_exactDependenciesAllAccountsAndNestedSafeThresholds passes and measures deployAndInitialize at 15,133,908 gas against Celo's 30,000,000 block limit. The earlier environment block was empty ARBITRUM_RPC_URL/CELO_RPC_URL in the root .env sending scripts to public non-archive endpoints, not a code defect.",
+    "The Dev Guild recovery Safe passes every reviewed live condition. The Green Goods protocol recovery Safe 0x1B9Ac97Ea62f69521A14cbe6F45eb24aD6612C19 is live as 1-of-4 over a strict subset of the 6 owners frozen in config/commitment-pooling-release.json, a configuration that was never applied on chain. Afo accepted it for this release on 2026-08-17 and intends to raise the threshold separately, so it is not a blocker; final Garden Safe planning returns zero blockers across all 18 boundaries. Accepted risk: one of those four signers reaches the Garden Safe threshold of two combined with any other owner.",
+    "Changing that recovery Safe's threshold or owner set does not move any of the 18 predicted Garden Safe addresses, because the Garden Safe initializer binds only the three owner addresses.",
     "The Garden-bound relay is separate from Settlement and cannot satisfy Safe threshold two alone, become a Safe owner/module/guard/Zodiac member, or receive value authority.",
     "Implementation, review, release, guardian trust, Safe deployment, and value activation remain separate authorization boundaries.",
-    "Use Bun wrappers only; never raw Forge."
+    "Use Bun wrappers only; never raw Forge.",
+    "Broadcast is complete. All 18 Celo GardenAccounts and all 18 final 2-of-3 Garden Safes are live and independently verified; deployments/42220-settlement-safes.json holds the receipt-backed record for every Safe boundary. authorityEnabled is false: no Zodiac Roles module, allowance, peer binding, or value authority was configured. The bounded settlement authority half of PRD-819 is still unbuilt and has no operator stage.",
+    "The release operator's broadcast gate was unsatisfiable until PR 724. Both Celo wrappers compared GG_RELEASE_OPERATOR_SESSION against the release manifest sourceCommit while release-operator.ts pinned git HEAD to that same session value, so broadcast required a commit containing its own hash. The wrappers now check the session against the checked-out candidate; release identity is still asserted separately where the plan is validated. The Arbitrum lane never used this variable.",
+    "The Garden-bound relay is deployed and verified: source router 0xDBF71edb4902cB43260f8A3e4460072e2028E627 on Arbitrum, Celo relay 0x21E4594760454D3c5A7085e3D48F1E60c6AeD1C9, destination bound once, and the Guardian trusting that exact relay. Across all 18 Garden Safes the relay is not an owner, not a module, no guard is set, and it holds no value. It still cannot reach threshold two alone; one recovery-owner signature remains required for every Safe execution.",
+    "Comparing a deployed runtime hash to the artifact's deployedBytecode is wrong for any contract with immutables, which Solidity writes at construction. The router differs from its artifact in 416 bytes, all inside its nine declared immutable spans. Verification masks the declared spans and relies on the CREATE2 address to bind the init code. A boundary that mines before a failing postcondition is recovered with the adopt command rather than replayed against a consumed nonce."
   ],
   "lanes": {
     "ui": {
@@ -111,8 +120,8 @@
     },
     "contracts": {
       "owner": "codex",
-      "status": "in_progress",
-      "branch": null,
+      "status": "completed",
+      "branch": "fix/celo-release-operator-session-gate",
       "depends_on": [],
       "handoff": "handoffs/codex-contracts.md",
       "linear_issues": ["PRD-821"],
@@ -129,11 +138,12 @@
         },
         "note": "Bun-wrapped relay unit proof passes. Both recovery Safes pass live v1.4.1 UI checks. Exact final Safe bindings and the four-step router/relay/Guardian plan are frozen; executable pinned-fork nested EIP-1271/code proof remains open."
       },
-      "skill_tags": ["contracts", "security", "cross-chain", "safe"]
+      "skill_tags": ["contracts", "security", "cross-chain", "safe"],
+      "manual_blocked": false
     },
     "qa_pass_1": {
       "owner": "claude",
-      "status": "blocked",
+      "status": "ready",
       "ready_when_dependencies_met": true,
       "manual_blocked": false,
       "branch": null,
@@ -264,6 +274,54 @@
       "status": "broadcast_gate_narrowed",
       "branch": null,
       "note": "Afo narrowed this readiness pass to pinned fork proof and deterministic router/relay plus Guardian transaction planning. House of Alignment evidence is not required because those funds are sent to the designated Green Goods Safe on Celo. The human will open the PR; no deployment or broadcast was authorized."
+    },
+    {
+      "timestamp": "2026-08-17T00:55:00.000Z",
+      "actor": "claude",
+      "lane": "contracts",
+      "status": "fork_proof_passed_single_recovery_safe_blocker",
+      "branch": "claude/garden-celo-deployment-0d18ef",
+      "note": "Ran the previously environment-blocked gates against archive RPC endpoints. The pinned fork proof passes, the script suite passes 211/211, and the Celo GardenAccount plan returns zero blockers. The only remaining blocker is the Green Goods protocol recovery Safe: live threshold 1 against the hard floor of 2, and a live 4-owner set against the frozen 6-owner manifest configuration. Resolving it requires a human-executed Safe transaction. No deployment, broadcast, Safe creation, Guardian mutation, or value movement occurred."
+    },
+    {
+      "timestamp": "2026-08-17T01:05:00.000Z",
+      "actor": "human",
+      "lane": "contracts",
+      "status": "recovery_safe_change_deferred",
+      "branch": "claude/garden-celo-deployment-0d18ef",
+      "note": "Afo reviewed the Green Goods recovery Safe finding and chose to leave the Safe as it stands for now, updating it later. The release manifest was deliberately left unmodified. Broadcast stays blocked: the threshold floor of 2 is a hard guard in assertRecoverySafeConfiguration and no manifest edit can satisfy it while the live Safe is 1-of-4. When the threshold is raised, keeping the current four owners will also require ownership.protocolSafeConfiguration.owners to be narrowed to those four."
+    },
+    {
+      "timestamp": "2026-08-17T01:30:00.000Z",
+      "actor": "human",
+      "lane": "contracts",
+      "status": "one_of_four_recovery_accepted_broadcast_unblocked",
+      "branch": "claude/garden-celo-deployment-0d18ef",
+      "note": "Afo accepted the live 1-of-4 Green Goods recovery Safe for this release and directed that it is not a blocker. The accepted configuration is recorded as GREEN_GOODS_ACCEPTED_RECOVERY_CONFIGURATION in script/deploy/garden-safe-owners.ts next to the existing DEV_GUILD_REVIEWED_OWNERS constant, and assertRecoverySafeConfiguration now takes a caller-declared minimum threshold that still defaults to the reviewed 2-of-N policy. The release manifest stays unmodified because its hash is the release lock for an already-broadcast Arbitrum pool-backfill lane. The final Garden Safe plan returns zero blockers across all 18 boundaries. Accepted risk: one of the four Green Goods signers plus any other owner reaches the Garden Safe threshold of two."
+    },
+    {
+      "timestamp": "2026-08-17T01:35:00.000Z",
+      "actor": "claude",
+      "lane": "contracts",
+      "status": "single_password_stages_and_test_scope_fix",
+      "branch": "claude/garden-celo-deployment-0d18ef",
+      "note": "Added release-operator --stage mode so each lane needs one keystore password entry instead of one per boundary, with the per-boundary checkout-drift assertions, fail-fast behavior, and credential shredding unchanged. Also fixed packages/contracts test:script, whose unquoted script/**/*.test.ts glob was expanded by sh as a single level and silently excluded release-operator.test.ts and release-verify.test.ts from the gate; coverage went from 19 files/212 tests to 21 files/225 tests, all passing."
+    },
+    {
+      "timestamp": "2026-08-18T07:07:46.330Z",
+      "actor": "human",
+      "lane": "contracts",
+      "status": "completed",
+      "branch": "fix/celo-release-operator-session-gate",
+      "note": "Broadcast complete and verified on Celo from candidate 7949a62964e4ff813dd9842b0997277a8f87c186. Stage one deployed the coordinator (0xf31e5bcc…6ad85) and atomically deployed the implementation plus all 18 accounts (0x2526b382…5211e6, 15,773,672 gas against the 30,000,000 limit); the GardenAccount runtime at 0x710cBFB9a29920B4577692eD495972fcd27286b4 is byte-identical across Celo and Arbitrum and all 18 accounts hold code at their predicted addresses. Stage two deployed all 18 final Safes in blocks 75135556-75135804, each 2-of-3 on Safe v1.4.1 with the v1.4.1 compatibility fallback handler, nonce zero, zero native and zero G$, no modules and no guard. Sender nonce moved 118 to 138 for exactly 20 boundaries at 4.53 CELO. Broadcast was initially impossible: both wrappers compared GG_RELEASE_OPERATOR_SESSION to the manifest sourceCommit while the operator pinned git HEAD to that same value, which required a commit naming its own hash; PR 724 moved the check to the checked-out candidate. authorityEnabled remains false and no Zodiac Roles, allowance, peer, or value authority was configured."
+    },
+    {
+      "timestamp": "2026-08-18T19:05:00.000Z",
+      "actor": "human",
+      "lane": "contracts",
+      "status": "relay_broadcast_complete",
+      "branch": "fix/relay-immutable-runtime-verification",
+      "note": "Afo authorized and executed the four-boundary Garden-bound relay ceremony on 2026-08-18. Source router and destination binding landed on Arbitrum, the relay and Guardian trust on Celo; receipts are in deployments/garden-account-relay.json. Boundary 1 mined and then failed a postcondition that compared the deployed runtime hash to the artifact's deployedBytecode, which cannot hold for a contract with immutables; PR 729 masks the declared immutable spans and adds an adopt command for the mined-but-uncheckpointed state. No value authority was granted and the relay holds no Safe role on any of the 18 boundaries."
     }
   ]
 }

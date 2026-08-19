@@ -968,6 +968,37 @@
       "source_status": "implemented"
     },
     {
+      "id": "hypercert-bundle-kind",
+      "definition": "Metadata discriminator separating legacy Work bundles from commitment-backed Hypercert bundles.",
+      "canonical": {
+        "ordered": true,
+        "value_scheme": "none",
+        "members": ["WORK_LEGACY", "COMMITMENT"]
+      },
+      "representations": [
+        {
+          "id": "indexer",
+          "layer": "indexer",
+          "file": "packages/indexer/schema.graphql",
+          "symbol": "HypercertBundleKind",
+          "extract": "graphql-enum",
+          "ordered": true,
+          "members": ["WORK_LEGACY", "COMMITMENT"]
+        },
+        {
+          "id": "shared",
+          "layer": "shared",
+          "file": "packages/shared/src/modules/commitment-pooling/types-vocabulary.ts",
+          "symbol": "HypercertBundleKind",
+          "extract": "ts-string-enum",
+          "ordered": true,
+          "members": ["WORK_LEGACY", "COMMITMENT"]
+        }
+      ],
+      "mappings": [],
+      "source_status": "implemented"
+    },
+    {
       "id": "work-display-status",
       "definition": "Canonical display status for work items across the UI — protocol states plus client-derived offline/sync states.",
       "canonical": {
@@ -1187,7 +1218,16 @@
       "canonical": {
         "ordered": false,
         "value_scheme": "none",
-        "members": ["work", "approval"]
+        "members": [
+          "work",
+          "approval",
+          "commitmentSeries",
+          "commitment",
+          "claim",
+          "evidence",
+          "workLink",
+          "confirmation"
+        ]
       },
       "representations": [
         {
@@ -1197,7 +1237,16 @@
           "symbol": "JobKindMap",
           "extract": "ts-interface-keys",
           "ordered": false,
-          "members": ["work", "approval"]
+          "members": [
+            "work",
+            "approval",
+            "commitmentSeries",
+            "commitment",
+            "claim",
+            "evidence",
+            "workLink",
+            "confirmation"
+          ]
         }
       ],
       "mappings": [],
@@ -1221,6 +1270,25 @@
           "extract": "solidity-enum",
           "ordered": true,
           "members": ["Garden", "Protocol"]
+        },
+        {
+          "id": "indexer",
+          "layer": "indexer",
+          "file": "packages/indexer/schema.graphql",
+          "symbol": "CommitmentPoolType",
+          "extract": "graphql-enum",
+          "ordered": true,
+          "members": ["UNKNOWN", "GARDEN", "PROTOCOL"],
+          "note": "UNKNOWN represents the Solidity sentinel or unexpected values."
+        },
+        {
+          "id": "shared",
+          "layer": "shared",
+          "file": "packages/shared/src/modules/commitment-pooling/types-vocabulary.ts",
+          "symbol": "CommitmentPoolType",
+          "extract": "ts-string-enum",
+          "ordered": true,
+          "members": ["UNKNOWN", "GARDEN", "PROTOCOL"]
         }
       ],
       "mappings": [],
@@ -1244,6 +1312,25 @@
           "extract": "solidity-enum",
           "ordered": true,
           "members": ["None", "NotReady", "Ready", "Open", "Paused", "Closed", "Composted"]
+        },
+        {
+          "id": "indexer",
+          "layer": "indexer",
+          "file": "packages/indexer/schema.graphql",
+          "symbol": "CommitmentPoolState",
+          "extract": "graphql-enum",
+          "ordered": true,
+          "members": ["UNKNOWN", "NOT_READY", "READY", "OPEN", "PAUSED", "CLOSED", "COMPOSTED"],
+          "note": "UNKNOWN represents the Solidity None sentinel and unexpected values."
+        },
+        {
+          "id": "shared",
+          "layer": "shared",
+          "file": "packages/shared/src/modules/commitment-pooling/types-vocabulary.ts",
+          "symbol": "CommitmentPoolState",
+          "extract": "ts-string-enum",
+          "ordered": true,
+          "members": ["UNKNOWN", "NOT_READY", "READY", "OPEN", "PAUSED", "CLOSED", "COMPOSTED"]
         }
       ],
       "mappings": [],
@@ -1267,6 +1354,25 @@
           "extract": "solidity-enum",
           "ordered": true,
           "members": ["Season", "Campaign"]
+        },
+        {
+          "id": "indexer",
+          "layer": "indexer",
+          "file": "packages/indexer/schema.graphql",
+          "symbol": "CommitmentCycleType",
+          "extract": "graphql-enum",
+          "ordered": true,
+          "members": ["UNKNOWN", "SEASON", "CAMPAIGN"],
+          "note": "UNKNOWN represents the Solidity sentinel or unexpected values."
+        },
+        {
+          "id": "shared",
+          "layer": "shared",
+          "file": "packages/shared/src/modules/commitment-pooling/types-vocabulary.ts",
+          "symbol": "CommitmentCycleType",
+          "extract": "ts-string-enum",
+          "ordered": true,
+          "members": ["UNKNOWN", "SEASON", "CAMPAIGN"]
         }
       ],
       "mappings": [],
@@ -1291,6 +1397,25 @@
           "extract": "solidity-enum",
           "ordered": true,
           "members": ["None", "Seeded", "Open", "Reconciled", "Composted", "Cancelled"]
+        },
+        {
+          "id": "indexer",
+          "layer": "indexer",
+          "file": "packages/indexer/schema.graphql",
+          "symbol": "CommitmentCycleState",
+          "extract": "graphql-enum",
+          "ordered": true,
+          "members": ["UNKNOWN", "SEEDED", "OPEN", "RECONCILED", "COMPOSTED", "CANCELLED"],
+          "note": "UNKNOWN represents the Solidity None sentinel and unexpected values."
+        },
+        {
+          "id": "shared",
+          "layer": "shared",
+          "file": "packages/shared/src/modules/commitment-pooling/types-vocabulary.ts",
+          "symbol": "CommitmentCycleState",
+          "extract": "ts-string-enum",
+          "ordered": true,
+          "members": ["UNKNOWN", "SEEDED", "OPEN", "RECONCILED", "COMPOSTED", "CANCELLED"]
         }
       ],
       "mappings": [],
@@ -1314,6 +1439,25 @@
           "extract": "solidity-enum",
           "ordered": true,
           "members": ["Offer", "Request"]
+        },
+        {
+          "id": "indexer",
+          "layer": "indexer",
+          "file": "packages/indexer/schema.graphql",
+          "symbol": "CommitmentDirection",
+          "extract": "graphql-enum",
+          "ordered": true,
+          "members": ["UNKNOWN", "OFFER", "REQUEST"],
+          "note": "UNKNOWN represents the Solidity sentinel or unexpected values."
+        },
+        {
+          "id": "shared",
+          "layer": "shared",
+          "file": "packages/shared/src/modules/commitment-pooling/types-vocabulary.ts",
+          "symbol": "CommitmentDirection",
+          "extract": "ts-string-enum",
+          "ordered": true,
+          "members": ["UNKNOWN", "OFFER", "REQUEST"]
         }
       ],
       "mappings": [],
@@ -1337,6 +1481,37 @@
           "extract": "solidity-enum",
           "ordered": true,
           "members": ["DomainImpact", "SupportService", "SeasonCampaign", "StewardCaptured"]
+        },
+        {
+          "id": "indexer",
+          "layer": "indexer",
+          "file": "packages/indexer/schema.graphql",
+          "symbol": "CommitmentKind",
+          "extract": "graphql-enum",
+          "ordered": true,
+          "members": [
+            "UNKNOWN",
+            "DOMAIN_IMPACT",
+            "SUPPORT_SERVICE",
+            "SEASON_CAMPAIGN",
+            "STEWARD_CAPTURED"
+          ],
+          "note": "UNKNOWN represents the Solidity sentinel or unexpected values."
+        },
+        {
+          "id": "shared",
+          "layer": "shared",
+          "file": "packages/shared/src/modules/commitment-pooling/types-vocabulary.ts",
+          "symbol": "CommitmentKind",
+          "extract": "ts-string-enum",
+          "ordered": true,
+          "members": [
+            "UNKNOWN",
+            "DOMAIN_IMPACT",
+            "SUPPORT_SERVICE",
+            "SEASON_CAMPAIGN",
+            "STEWARD_CAPTURED"
+          ]
         }
       ],
       "mappings": [],
@@ -1387,6 +1562,45 @@
             "Expired",
             "Disputed"
           ]
+        },
+        {
+          "id": "indexer",
+          "layer": "indexer",
+          "file": "packages/indexer/schema.graphql",
+          "symbol": "CommitmentOnchainState",
+          "extract": "graphql-enum",
+          "ordered": true,
+          "members": [
+            "UNKNOWN",
+            "OFFERED",
+            "REQUESTED",
+            "ACCEPTED",
+            "READY_FOR_CONFIRMATION",
+            "FULFILLED",
+            "CANCELLED",
+            "EXPIRED",
+            "DISPUTED"
+          ],
+          "note": "UNKNOWN represents the Solidity None sentinel and unexpected values."
+        },
+        {
+          "id": "shared",
+          "layer": "shared",
+          "file": "packages/shared/src/modules/commitment-pooling/types-vocabulary.ts",
+          "symbol": "CommitmentOnchainState",
+          "extract": "ts-string-enum",
+          "ordered": true,
+          "members": [
+            "UNKNOWN",
+            "OFFERED",
+            "REQUESTED",
+            "ACCEPTED",
+            "READY_FOR_CONFIRMATION",
+            "FULFILLED",
+            "CANCELLED",
+            "EXPIRED",
+            "DISPUTED"
+          ]
         }
       ],
       "mappings": [],
@@ -1410,6 +1624,25 @@
           "extract": "solidity-enum",
           "ordered": true,
           "members": ["Garden", "Individual"]
+        },
+        {
+          "id": "indexer",
+          "layer": "indexer",
+          "file": "packages/indexer/schema.graphql",
+          "symbol": "CommitmentClaimType",
+          "extract": "graphql-enum",
+          "ordered": true,
+          "members": ["UNKNOWN", "GARDEN", "INDIVIDUAL"],
+          "note": "UNKNOWN represents the Solidity sentinel or unexpected values."
+        },
+        {
+          "id": "shared",
+          "layer": "shared",
+          "file": "packages/shared/src/modules/commitment-pooling/types-vocabulary.ts",
+          "symbol": "CommitmentClaimType",
+          "extract": "ts-string-enum",
+          "ordered": true,
+          "members": ["UNKNOWN", "GARDEN", "INDIVIDUAL"]
         }
       ],
       "mappings": [],
@@ -1433,6 +1666,25 @@
           "extract": "solidity-enum",
           "ordered": true,
           "members": ["Open", "LeadManaged"]
+        },
+        {
+          "id": "indexer",
+          "layer": "indexer",
+          "file": "packages/indexer/schema.graphql",
+          "symbol": "CommitmentContributorPolicy",
+          "extract": "graphql-enum",
+          "ordered": true,
+          "members": ["UNKNOWN", "OPEN", "LEAD_MANAGED"],
+          "note": "UNKNOWN represents the Solidity sentinel or unexpected values."
+        },
+        {
+          "id": "shared",
+          "layer": "shared",
+          "file": "packages/shared/src/modules/commitment-pooling/types-vocabulary.ts",
+          "symbol": "CommitmentContributorPolicy",
+          "extract": "ts-string-enum",
+          "ordered": true,
+          "members": ["UNKNOWN", "OPEN", "LEAD_MANAGED"]
         }
       ],
       "mappings": [],
@@ -1456,6 +1708,25 @@
           "extract": "solidity-enum",
           "ordered": true,
           "members": ["Open", "ApprovalGated"]
+        },
+        {
+          "id": "indexer",
+          "layer": "indexer",
+          "file": "packages/indexer/schema.graphql",
+          "symbol": "CommitmentClaimMode",
+          "extract": "graphql-enum",
+          "ordered": true,
+          "members": ["UNKNOWN", "OPEN", "APPROVAL_GATED"],
+          "note": "UNKNOWN represents the Solidity sentinel or unexpected values."
+        },
+        {
+          "id": "shared",
+          "layer": "shared",
+          "file": "packages/shared/src/modules/commitment-pooling/types-vocabulary.ts",
+          "symbol": "CommitmentClaimMode",
+          "extract": "ts-string-enum",
+          "ordered": true,
+          "members": ["UNKNOWN", "OPEN", "APPROVAL_GATED"]
         }
       ],
       "mappings": [],
@@ -1502,6 +1773,25 @@
           "extract": "solidity-enum",
           "ordered": true,
           "members": ["None", "ArbitrumExternal", "CeloSettlement"]
+        },
+        {
+          "id": "indexer",
+          "layer": "indexer",
+          "file": "packages/indexer/schema.graphql",
+          "symbol": "CommitmentConsiderationRail",
+          "extract": "graphql-enum",
+          "ordered": true,
+          "members": ["UNKNOWN", "NONE", "ARBITRUM_EXTERNAL", "CELO_SETTLEMENT"],
+          "note": "UNKNOWN represents the Solidity sentinel or unexpected values."
+        },
+        {
+          "id": "shared",
+          "layer": "shared",
+          "file": "packages/shared/src/modules/commitment-pooling/types-vocabulary.ts",
+          "symbol": "CommitmentConsiderationRail",
+          "extract": "ts-string-enum",
+          "ordered": true,
+          "members": ["UNKNOWN", "NONE", "ARBITRUM_EXTERNAL", "CELO_SETTLEMENT"]
         }
       ],
       "mappings": [],
@@ -1580,6 +1870,25 @@
           "extract": "solidity-enum",
           "ordered": true,
           "members": ["Ordinary", "PoolFallback", "ProtocolFallback"]
+        },
+        {
+          "id": "indexer",
+          "layer": "indexer",
+          "file": "packages/indexer/schema.graphql",
+          "symbol": "CommitmentConfirmationPath",
+          "extract": "graphql-enum",
+          "ordered": true,
+          "members": ["UNKNOWN", "ORDINARY", "POOL_FALLBACK", "PROTOCOL_FALLBACK"],
+          "note": "UNKNOWN represents the Solidity sentinel or unexpected values."
+        },
+        {
+          "id": "shared",
+          "layer": "shared",
+          "file": "packages/shared/src/modules/commitment-pooling/types-vocabulary.ts",
+          "symbol": "CommitmentConfirmationPath",
+          "extract": "ts-string-enum",
+          "ordered": true,
+          "members": ["UNKNOWN", "ORDINARY", "POOL_FALLBACK", "PROTOCOL_FALLBACK"]
         }
       ],
       "mappings": [],
@@ -1665,6 +1974,22 @@
             "REFUND"
           ],
           "note": "UNKNOWN is the indexer's fail-closed fallback for unmapped values."
+        },
+        {
+          "id": "shared",
+          "layer": "shared",
+          "file": "packages/shared/src/modules/commitment-pooling/types-vocabulary.ts",
+          "symbol": "DisbursementKind",
+          "extract": "ts-string-enum",
+          "ordered": true,
+          "members": [
+            "UNKNOWN",
+            "CONTRIBUTOR_CONSIDERATION",
+            "FUNDING",
+            "LOAN_PRINCIPAL",
+            "GARDEN_BENEFICIARY",
+            "REFUND"
+          ]
         }
       ],
       "mappings": [],
@@ -1739,6 +2064,43 @@
             "Refunded",
             "Withdrawn"
           ]
+        },
+        {
+          "id": "indexer",
+          "layer": "indexer",
+          "file": "packages/indexer/schema.graphql",
+          "symbol": "FundingState",
+          "extract": "graphql-enum",
+          "ordered": true,
+          "members": [
+            "UNKNOWN",
+            "PLEDGED",
+            "DEPOSIT_RECORDED",
+            "CONSUMED",
+            "CLOSED",
+            "REFUND_QUEUED",
+            "REFUNDED",
+            "WITHDRAWN"
+          ],
+          "note": "UNKNOWN represents the Solidity None sentinel and unexpected values."
+        },
+        {
+          "id": "shared",
+          "layer": "shared",
+          "file": "packages/shared/src/modules/commitment-pooling/types-vocabulary.ts",
+          "symbol": "FundingState",
+          "extract": "ts-string-enum",
+          "ordered": true,
+          "members": [
+            "UNKNOWN",
+            "PLEDGED",
+            "DEPOSIT_RECORDED",
+            "CONSUMED",
+            "CLOSED",
+            "REFUND_QUEUED",
+            "REFUNDED",
+            "WITHDRAWN"
+          ]
         }
       ],
       "mappings": [],
@@ -1769,6 +2131,21 @@
             "GARDEN_TO_GARDEN"
           ],
           "note": "UNKNOWN is retained until the protocol garden configuration is observed."
+        },
+        {
+          "id": "shared",
+          "layer": "shared",
+          "file": "packages/shared/src/modules/commitment-pooling/types-vocabulary.ts",
+          "symbol": "CommitmentSettlementFlow",
+          "extract": "ts-string-enum",
+          "ordered": false,
+          "members": [
+            "UNKNOWN",
+            "INTERNAL",
+            "PROTOCOL_TO_GARDEN",
+            "GARDEN_TO_PROTOCOL",
+            "GARDEN_TO_GARDEN"
+          ]
         }
       ],
       "mappings": [],
@@ -1776,7 +2153,7 @@
     },
     {
       "id": "loan-state",
-      "definition": "Records-only pool-credit loan lifecycle: Requested → Approved → Disbursed → Repaid, with recoverable Defaulted and pre-disbursement Cancelled. Default is not terminal — later repayment records LoanRepaid(recoveredFromDefault). The Repaying overlay is derived by consumers from RepaymentRecorded while repayment sits between zero and principal + feeAmount and is never stored. No indexer representation exists yet; the credit spec §6 defines the planned GraphQL mirror.",
+      "definition": "Records-only pool-credit loan lifecycle: Requested → Approved → Disbursed → Repaid, with recoverable Defaulted and pre-disbursement Cancelled. Default is not terminal — later repayment records LoanRepaid(recoveredFromDefault). The Repaying overlay is derived by shared consumers from indexed repayment amounts while repayment sits between zero and principal + feeAmount and is never stored as a contract or indexer hard state.",
       "spec_source": ".plans/active/commitment-credit-follow-on/spec.md",
       "canonical": {
         "ordered": true,
@@ -1808,6 +2185,24 @@
             "Defaulted",
             "Cancelled"
           ]
+        },
+        {
+          "id": "indexer",
+          "layer": "indexer",
+          "file": "packages/indexer/schema.graphql",
+          "symbol": "LoanState",
+          "extract": "graphql-enum",
+          "ordered": true,
+          "members": ["REQUESTED", "APPROVED", "DISBURSED", "REPAID", "DEFAULTED", "CANCELLED"]
+        },
+        {
+          "id": "shared",
+          "layer": "shared",
+          "file": "packages/shared/src/modules/commitment-pooling/types-credit.ts",
+          "symbol": "LoanState",
+          "extract": "ts-string-enum",
+          "ordered": true,
+          "members": ["REQUESTED", "APPROVED", "DISBURSED", "REPAID", "DEFAULTED", "CANCELLED"]
         }
       ],
       "mappings": [],
@@ -1815,7 +2210,7 @@
     },
     {
       "id": "loan-rail",
-      "definition": "Disbursement rail recorded on a loan. Jar and Treasury are steward-attested Arbitrum-side records; GDollarSettlement binds the loan to its one Confirmed SettlementModule LoanPrincipal child. Repayment recording is Jar/Treasury only — the G$ rail reverts GDollarRepaymentDisabled until a bounded authenticated receipt policy clears its gates. No indexer representation exists yet.",
+      "definition": "Disbursement rail recorded on a loan and projected by the CreditRegistry indexer read model. Jar and Treasury are steward-attested Arbitrum-side records; GDollarSettlement binds the loan to its one Confirmed SettlementModule LoanPrincipal child. Repayment recording is Jar/Treasury only — the G$ rail reverts GDollarRepaymentDisabled until a bounded authenticated receipt policy clears its gates.",
       "spec_source": ".plans/active/commitment-credit-follow-on/spec.md",
       "canonical": {
         "ordered": true,
@@ -1831,6 +2226,24 @@
           "extract": "solidity-enum",
           "ordered": true,
           "members": ["None", "Jar", "Treasury", "GDollarSettlement"]
+        },
+        {
+          "id": "indexer",
+          "layer": "indexer",
+          "file": "packages/indexer/schema.graphql",
+          "symbol": "LoanRail",
+          "extract": "graphql-enum",
+          "ordered": true,
+          "members": ["NONE", "JAR", "TREASURY", "GDOLLAR_SETTLEMENT"]
+        },
+        {
+          "id": "shared",
+          "layer": "shared",
+          "file": "packages/shared/src/modules/commitment-pooling/types-credit.ts",
+          "symbol": "LoanRail",
+          "extract": "ts-string-enum",
+          "ordered": true,
+          "members": ["NONE", "JAR", "TREASURY", "GDOLLAR_SETTLEMENT"]
         }
       ],
       "mappings": [],
@@ -2006,6 +2419,15 @@
           "extract": "graphql-enum",
           "ordered": true,
           "members": ["PENDING", "ACCEPTED", "DECLINED", "SUPERSEDED"]
+        },
+        {
+          "id": "shared",
+          "layer": "shared",
+          "file": "packages/shared/src/modules/commitment-pooling/types-vocabulary.ts",
+          "symbol": "CommitmentClaimRequestState",
+          "extract": "ts-string-enum",
+          "ordered": true,
+          "members": ["PENDING", "ACCEPTED", "DECLINED", "SUPERSEDED"]
         }
       ],
       "mappings": [],
@@ -2170,6 +2592,15 @@
           "extract": "graphql-enum",
           "ordered": false,
           "members": ["POOL", "CYCLE"]
+        },
+        {
+          "id": "shared",
+          "layer": "shared",
+          "file": "packages/shared/src/modules/commitment-pooling/types-vocabulary.ts",
+          "symbol": "CommitmentUnitScope",
+          "extract": "ts-string-enum",
+          "ordered": false,
+          "members": ["POOL", "CYCLE"]
         }
       ],
       "mappings": [],
@@ -2203,6 +2634,15 @@
           "ordered": true,
           "members": ["UNKNOWN", "ACTIVE", "RESTING", "RETIRED"],
           "note": "UNKNOWN represents the Solidity None sentinel and unexpected values."
+        },
+        {
+          "id": "shared",
+          "layer": "shared",
+          "file": "packages/shared/src/modules/commitment-pooling/types-vocabulary.ts",
+          "symbol": "CommitmentSeriesState",
+          "extract": "ts-string-enum",
+          "ordered": true,
+          "members": ["UNKNOWN", "ACTIVE", "RESTING", "RETIRED"]
         }
       ],
       "mappings": [],

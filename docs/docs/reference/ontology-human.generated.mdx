@@ -269,9 +269,9 @@ Use these cards when explaining Green Goods to a teammate, community, partner, o
 
 **Do not confuse with:** Vault · Cookie Jar
 
-**Current maturity:** deployed-not-available — implementation implemented; deployment deployed; activation active; integration not-integrated.
+**Current maturity:** deployed-not-available — implementation implemented; deployment deployed; activation active; integration partial.
 
-**Evidence:** `.plans/active/commitment-pooling/status.json` — Pooling is unpaused and 18 pools are receipt-verified; indexer/shared/UI lanes remain blocked. (verified 2026-08-15)
+**Evidence:** `.plans/active/commitment-pooling/status.json` — Pooling contracts are active and the shared/API read contract is implemented; the hosted indexer still needs its manual pooling-schema deployment before reads are available. (verified 2026-08-16)
 
 **Public-safe wording:** The coordination protocol is deployed, but it is not yet an available Green Goods product flow.
 
@@ -331,9 +331,9 @@ Use these cards when explaining Green Goods to a teammate, community, partner, o
 
 **Do not confuse with:** Commitment Contributor
 
-**Current maturity:** in-build — implementation implemented; deployment not-deployed; activation inactive; integration partial.
+**Current maturity:** deployed-not-available — implementation implemented; deployment deployed; activation active; integration not-integrated.
 
-**Evidence:** `packages/indexer/schema.graphql` — The indexer schema defines per-pool lead-provider exposure derived from commitment unit events. (verified 2026-08-15)
+**Evidence:** `packages/indexer/src/handlers/commitment-pool-registry.ts` — The live indexer handler maintains per-pool lead-provider exposure from commitment unit events. (verified 2026-08-16)
 
 ## Commitment Unit Summary
 
@@ -351,9 +351,9 @@ Use these cards when explaining Green Goods to a teammate, community, partner, o
 
 **Do not confuse with:** Commitment Series Cycle Summary
 
-**Current maturity:** in-build — implementation implemented; deployment not-deployed; activation inactive; integration partial.
+**Current maturity:** deployed-not-available — implementation implemented; deployment deployed; activation active; integration not-integrated.
 
-**Evidence:** `packages/indexer/schema.graphql` — The indexer schema defines exact-label commitment unit summaries for pools and cycles. (verified 2026-08-15)
+**Evidence:** `packages/indexer/src/handlers/commitment-pool-unit-summary.ts` — The live indexer handler maintains exact-label commitment unit summaries for pools and cycles. (verified 2026-08-16)
 
 ## Commitment Series Cycle Summary
 
@@ -371,9 +371,9 @@ Use these cards when explaining Green Goods to a teammate, community, partner, o
 
 **Do not confuse with:** Commitment Unit Summary
 
-**Current maturity:** in-build — implementation implemented; deployment not-deployed; activation inactive; integration partial.
+**Current maturity:** deployed-not-available — implementation implemented; deployment deployed; activation active; integration not-integrated.
 
-**Evidence:** `packages/indexer/schema.graphql` — The indexer schema defines per-cycle lifecycle summaries for commitment series. (verified 2026-08-15)
+**Evidence:** `packages/indexer/src/handlers/commitment-pool-state.ts` — The live indexer handler maintains per-cycle lifecycle summaries for commitment series. (verified 2026-08-16)
 
 ## Commitment
 

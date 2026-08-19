@@ -43,11 +43,16 @@ describe("commitment hypercert allocation reconciliation", () => {
       active: true,
       approvedWorkCredits: 3,
     };
-    db.CommitmentPool.set({
-      ...createPool(CHAIN_ID, 7n, 1),
-      childCommitmentEntityIds: [commitment.id],
-    });
+    db.CommitmentPool.set(createPool(CHAIN_ID, 7n, 1));
     db.CommitmentCycle.set(createCycle(CHAIN_ID, 9n, 7n, 1));
+    db.CommitmentCycleCommitmentIndex.set({
+      id: `${CHAIN_ID}-9`,
+      chainId: CHAIN_ID,
+      cycleId: 9n,
+      cycleEntityId: `${CHAIN_ID}-9`,
+      commitmentEntityIds: [commitment.id],
+      updatedAt: 1,
+    });
     db.Commitment.set(commitment);
     db.CommitmentContributor.set(first);
     db.CommitmentContributor.set(second);
@@ -79,7 +84,7 @@ describe("commitment hypercert allocation reconciliation", () => {
         mockEventData: {
           chainId: CHAIN_ID,
           block: { timestamp: 3, number: 3 },
-          srcAddress: address(90),
+          srcAddress: undefined,
           transaction: { hash: `0x${"3".padStart(64, "0")}` },
           logIndex: 0,
         },

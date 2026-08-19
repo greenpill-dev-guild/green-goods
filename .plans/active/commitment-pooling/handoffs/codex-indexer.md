@@ -5,20 +5,19 @@
 - Machine lane: state_api
 - Execution sub-lane: indexer
 - Owner: Codex
-- Branch signal: feature/commitment-pooling-indexer
-- Current state: in progress from live PR #705 head `9948bd7507ac00d0b07f4efd30f6001dd92d84ab`.
-  PRD-557 and PRD-721 are Done, Envio `3.2.1` is merged, and the deployed release artifacts are
-  present. The frozen inventory is 58 ABI events and 28 indexed records: the original 54-event,
-  26-record pooling inventory plus four member-funding events, `CommitmentFunding`, and the
-  bounded `CommitmentFundingIndex` required by reverse-delivered Refund events.
+- Branch signal: feature/commitment-pooling-api-modules
+- Current state: source-ready after the 2026-08-16 pre-deploy gap-closure pass. PR #706 is merged
+  at `b2c427025`; the hosted Envio indexer has not deployed or synced the pooling schema. The
+  frozen event inventory remains 58 events. The 28-record consumer/query contract is unchanged;
+  one additional `CommitmentCycleCommitmentIndex` is handler-internal scale machinery and is not
+  queryable through shared.
 - Linear context: PRD-722 (indexer lane) under parent PRD-650; PRD-673 is historical context
-- Implementation receipt (2026-08-13): all six exact indexer commands in the validation section
-  pass; each named test-file command ran the 216-test package suite successfully. Architecture
-  closure, ontology, and Plan Hub validation also pass. After refreshing to the current PR #705
-  head, codegen, the indexing boundary, package lint, and the indexer build were rerun successfully.
-  The root Ship Gate stops at `bun lint` because the inherited PR #705 contract tree fails
-  `forge fmt --check`; this indexer lane changes no contract files, so that upstream formatting
-  baseline remains an explicit merge-readiness blocker rather than an in-scope edit.
+- Gap-closure receipt (2026-08-16): codegen, the per-chain indexing boundary, package lint,
+  package build, ontology, and Plan Hub validation pass. The full indexer lane passes 255/255.
+  The pass covers bounded metadata retry plus reconciliation marking, optional-address and
+  optional-value normalization, numeric campaign pairing, decline-after-acceptance, shared
+  recognition weights, acknowledgment terminality, and per-cycle reconciliation without a
+  pool-wide scan. No hosted deploy or live read-back occurred.
 
 Concurrent agents share this repository. Stay inside this lane's named indexer/spec paths,
 preserve unrelated working-tree changes, and do not switch the primary tree's branch.
@@ -329,6 +328,11 @@ preserve unrelated working-tree changes, and do not switch the primary tree's br
   handler changes.
 - GREEN: the same fixtures pass after Envio v3 codegen; generated operations expose every entity;
   boundary, tests, and build pass. Envio v3 has no separate generated-ReScript install step.
+- 2026-08-16 gap closure RED: focused regressions reproduced zero-address relationships, numeric
+  campaign/entity order divergence, explicit-zero value persistence, and the discarded newer
+  decline; the prior metadata test also pinned the obsolete throw behavior.
+- 2026-08-16 gap closure GREEN: the four touched files pass 46/46 with the corrected persistence,
+  retry, reconciliation, replay, scale, and terminal-state semantics.
 
 ## Exact Bun commands
 
@@ -338,6 +342,10 @@ preserve unrelated working-tree changes, and do not switch the primary tree's br
 - bun run --filter @green-goods/indexer test -- test/settlement.test.ts
 - bun run --filter @green-goods/indexer test -- test/gardenIdentityCompatibility.test.ts
 - bun run --filter @green-goods/indexer build
+- bun run ../../scripts/dev/node-cli.js mocha --require tsx --timeout 30000 test/hypercerts.test.ts test/commitmentPoolReview.test.ts test/hypercertAllocationReview.test.ts test/settlementReview.test.ts _(from `packages/indexer`)_
+- bun run --filter @green-goods/indexer lint
+- bun run check:ontology
+- node scripts/harness/plan-hub.mjs validate --feature commitment-pooling --json
 
 The pooling and Garden-identity files are intentional RED-first deliverables. The existing
 settlement file receives the member-funding and Refund regression cases before implementation.
@@ -443,12 +451,10 @@ settlement file receives the member-funding and Refund regression cases before i
 
 Two findings for this lane from the cross-stack audit:
 
-1. **Dangling foreign keys already shipped**: `schema.graphql` carries
+1. **Closed by the merged/source-complete pooling schema**: `schema.graphql` carried
    `CommitmentPayoutPlan.commitmentEntityId: String!` and
-   `Disbursement.commitmentEntityId: String` with no `Commitment` entity to
-   join — the settlement half landed ahead of the pooling half. When this lane
-   dispatches, the Commitment entity family must land with ids matching what
-   the settlement handlers already write into those fields.
+   `Disbursement.commitmentEntityId: String` before the `Commitment` entity family landed. The
+   pooling schema now supplies the matching chain-scoped IDs used by the settlement handlers.
 2. **`CLAUDE.md` boundary line updated 2026-08-10** to name settlement and
    (when this lane ships) commitment pooling as in-boundary; the enforceable
    boundary of record is `packages/indexer/scripts/check-indexing-boundary.mjs`.

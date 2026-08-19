@@ -100,7 +100,7 @@ packages/contracts/
 - **CREATE2 deterministic deployment** -- contracts deploy to the same address across chains. Existing addresses are skipped via `_isDeployed()` check.
 - **Hub-and-spoke modules** -- GardenToken uses typed module slots. Optional modules degrade gracefully with `if (address != 0)` + `try/catch` guards.
 - **Selective `via_ir`** -- local builds stay mostly non-IR, while `foundry.toml` enables `via_ir` selectively for stack-heavy contracts and uses `via_ir=true` in the `test`, `ci`, `fork`, and `production` profiles.
-- **Adaptive build system** -- `bun build` defaults to fast mode (~2s cached), detecting what changed. Only `bun build:full` triggers the slow full build (~180-400s).
+- **Adaptive build system** -- `bun run build` defaults to fast mode (~2s cached), detecting what changed. Only `bun run build:full` triggers the slow full build (~180-400s).
 - **Two-layer deploy** -- TypeScript CLI (`deploy/core.ts`) orchestrates environment and parameters, then shells out to Solidity (`Deploy.s.sol`) for on-chain execution.
 
 ### Deployment Artifacts
@@ -129,7 +129,7 @@ Each resolver implements `onAttest()` to validate attestation data. Resolvers ch
 
 ```bash
 # Build
-bun build                    # Adaptive fast build (~2s cached)
+bun run build                # Adaptive fast build (~2s cached)
 bun build:full               # CI/deploy only (skip test/script, ~180-400s)
 bun build:target -- src/...  # Single-target compile
 

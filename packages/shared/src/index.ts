@@ -1,7 +1,7 @@
-// Main entry point: explicit @green-goods/shared exports organized by category.
 export type * from "./ontology/types";
 export * from "./ontology/query";
-// ============================================================================
+export * from "./modules/commitment-pooling";
+export * from "./hooks/commitment-pooling";
 // COMPONENTS
 // ============================================================================
 export type {
@@ -206,7 +206,6 @@ export {
   WorkbenchRow,
   WorkCard as WorkCardComponent,
 } from "./components/index";
-
 // ============================================================================
 // CONFIG
 // ============================================================================
@@ -412,6 +411,7 @@ export {
   createDefaultAssessmentForm,
   createDefaultAssessmentFormData,
   createDefaultGardenForm,
+  creditInvalidationKeys,
   // Garden hooks
   createGardenSchema,
   // Query constants

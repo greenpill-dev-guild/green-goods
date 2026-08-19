@@ -279,16 +279,16 @@
       "recipientPolicy": "registered-garden-safe-only"
     },
     "caps": {
-      "maxTransferAmount": null,
-      "maxBatchAmount": null,
-      "maxPeriodAmount": null,
-      "periodDuration": null,
-      "maxBatchSize": null
+      "maxTransferAmount": "7000000000000000000000000",
+      "maxBatchAmount": "10000000000000000000000000",
+      "maxPeriodAmount": "15000000000000000000000000",
+      "periodDuration": "2592000",
+      "maxBatchSize": "2"
     },
     "feePolicy": {
       "mode": "disabled-until-authorized",
-      "maxFeeBps": null,
-      "maxFeeAmount": null,
+      "maxFeeBps": "0",
+      "maxFeeAmount": "0",
       "arbitrumReserveFloor": null,
       "celoReserveFloor": null
     }

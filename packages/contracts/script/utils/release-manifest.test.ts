@@ -62,9 +62,16 @@ describe("combined commitment release manifest", () => {
     duplicated.schemas[1].identity = duplicated.schemas[0].identity;
     expect(() => validateReleaseManifest(duplicated)).toThrow(/Duplicate schema identity/);
 
+    // The caps are frozen but the Roles module, keys, and condition hash are not, so enabling
+    // authority must still fail closed on the unset Zodiac identities.
     const authority = structuredClone(manifest);
     authority.safeAuthority.enabled = true;
-    expect(() => validateReleaseManifest(authority)).toThrow(/requires non-zero/);
+    expect(() => validateReleaseManifest(authority)).toThrow(/requires zodiacRoles\./);
+
+    const uncapped = structuredClone(manifest);
+    uncapped.safeAuthority.enabled = true;
+    uncapped.safeAuthority.caps.maxPeriodAmount = null;
+    expect(() => validateReleaseManifest(uncapped)).toThrow(/requires non-zero/);
 
     const numericGas = structuredClone(manifest);
     numericGas.chains.arbitrum.destinationGasLimit = 750_000 as unknown as string;

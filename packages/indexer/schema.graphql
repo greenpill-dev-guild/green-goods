@@ -110,6 +110,22 @@ enum SettlementMessageStatus {
   DEFERRED
 }
 
+enum LoanState {
+  REQUESTED
+  APPROVED
+  DISBURSED
+  REPAID
+  DEFAULTED
+  CANCELLED
+}
+
+enum LoanRail {
+  NONE
+  JAR
+  TREASURY
+  GDOLLAR_SETTLEMENT
+}
+
 type SettlementConfiguration {
   id: ID!
   chainId: Int!
@@ -370,6 +386,164 @@ type LoanPrincipalRelationship {
   updatedAt: Int!
 }
 
+type CreditRegistryConfiguration {
+  id: ID! # chainId-lowercaseRegistry
+  chainId: Int!
+  registry: String!
+  owner: String
+  hatsModule: String
+  commitmentPoolingModule: String
+  settlementModule: String
+  paused: Boolean!
+  initializedAt: Int
+  hatsUpdateBlockNumber: BigInt
+  hatsUpdateLogIndex: Int
+  poolingUpdateBlockNumber: BigInt
+  poolingUpdateLogIndex: Int
+  settlementUpdateBlockNumber: BigInt
+  settlementUpdateLogIndex: Int
+  pauseUpdateBlockNumber: BigInt
+  pauseUpdateLogIndex: Int
+  updatedAt: Int!
+}
+
+type CreditPoolStats {
+  id: ID! # chainId-poolId
+  chainId: Int!
+  poolId: BigInt!
+  garden: String!
+  gardenId: String!
+  token: String
+  borrowerCap: BigInt!
+  enabled: Boolean!
+  creditIssued: BigInt!
+  creditRepaid: BigInt!
+  creditOutstanding: BigInt!
+  repaymentRateNumerator: BigInt!
+  repaymentRateDenominator: BigInt!
+  defaultRateNumerator: BigInt!
+  defaultRateDenominator: BigInt!
+  configurationBlockNumber: BigInt
+  configurationLogIndex: Int
+  updatedAt: Int!
+}
+
+type CreditPoolExecutor {
+  id: ID! # chainId-poolId-lowercaseExecutor
+  chainId: Int!
+  poolId: BigInt!
+  executor: String!
+  enabled: Boolean!
+  updatedBy: String!
+  updateBlockNumber: BigInt!
+  updateLogIndex: Int!
+  updatedAt: Int!
+}
+
+type Loan {
+  id: ID! # chainId-loanId
+  chainId: Int!
+  loanId: BigInt!
+  creditRegistry: String!
+  poolId: BigInt!
+  garden: String!
+  gardenId: String!
+  borrower: String!
+  requestedBy: String!
+  recordedBy: String!
+  commitmentId: BigInt
+  token: String!
+  principal: BigInt!
+  repaidAmount: BigInt!
+  outstanding: BigInt!
+  # Reserved contract seam; frozen CreditRegistry events currently project this as zero.
+  feeAmount: BigInt!
+  rail: LoanRail!
+  disbursementId: BigInt
+  state: LoanState!
+  dueDate: BigInt!
+  installmentsTotal: Int!
+  installmentsPaid: Int!
+  attempts: Int
+  executionRef: String
+  termsCID: String!
+  reasonCID: String
+  defaultReasonCID: String
+  recoveredFromDefault: Boolean!
+  defaultedAt: Int
+  settlementRelationshipEntityId: String
+  createdAt: Int!
+  updatedAt: Int!
+}
+
+type LoanEvent {
+  id: ID! # chainId-txHash-logIndex
+  chainId: Int!
+  poolId: BigInt
+  loanId: BigInt
+  eventType: String!
+  actor: String
+  amount: BigInt
+  data: String
+  txHash: String!
+  blockNumber: BigInt!
+  logIndex: Int!
+  timestamp: Int!
+}
+
+# Event-fact projection used internally by handlers, but still publicly queryable through Envio.
+# It lets reverse and stale delivery converge before LoanRequested materializes the Loan row and
+# carries only the deltas needed for O(1) pool accounting; this label is not an access-control claim.
+type CreditLoanProjection {
+  id: ID! # chainId-loanId
+  chainId: Int!
+  loanId: BigInt!
+  creditRegistry: String!
+  requestSeen: Boolean!
+  poolId: BigInt
+  borrower: String
+  requestedBy: String
+  commitmentId: BigInt
+  token: String
+  principal: BigInt!
+  # Reserved contract seam; frozen CreditRegistry events currently project this as zero.
+  feeAmount: BigInt!
+  dueDate: BigInt!
+  installmentsTotal: Int!
+  termsCID: String
+  createdAt: Int
+  state: LoanState
+  lifecycleBlockNumber: BigInt
+  lifecycleLogIndex: Int
+  recordedBy: String
+  actorBlockNumber: BigInt
+  actorLogIndex: Int
+  rail: LoanRail
+  disbursementId: BigInt
+  issuedAmount: BigInt!
+  attempts: Int
+  executionRef: String
+  disbursementBlockNumber: BigInt
+  disbursementLogIndex: Int
+  repaidAmount: BigInt!
+  outstanding: BigInt!
+  installmentsPaid: Int!
+  repaymentBlockNumber: BigInt
+  repaymentLogIndex: Int
+  reasonCID: String
+  defaultReasonCID: String
+  defaultedAt: Int
+  defaultBlockNumber: BigInt
+  defaultLogIndex: Int
+  recoveredFromDefault: Boolean!
+  settlementRelationshipEntityId: String
+  appliedIssued: BigInt!
+  appliedRepaid: BigInt!
+  appliedDefaultCount: BigInt!
+  appliedLoanCount: BigInt!
+  updatedAt: Int!
+}
+
 type SettlementBatch {
   id: ID! # chainId-batchId
   chainId: Int!
@@ -563,8 +737,8 @@ type CommitmentPool {
   openSeasonLogIndex: Int # nullable cursor partner for the singleton open Season relationship
   openCampaignIds: [BigInt!]! # event-derived raw identifiers; never enumerated on-chain
   openCampaignEntityIds: [String!]! # relationship IDs in matching order
-  childCycleEntityIds: [String!]! # bounded reverse join for late PoolRegistered garden hydration
-  childCommitmentEntityIds: [String!]! # bounded reverse join for late PoolRegistered garden hydration
+  childCycleEntityIds: [String!]! # temporary reverse join for late PoolRegistered garden hydration; cleared at registration
+  childCommitmentEntityIds: [String!]! # temporary reverse join for late PoolRegistered garden hydration; cleared at registration
   providerOpenCommitmentCap: BigInt!
   liveCommitmentCount: BigInt! # every non-terminal pool commitment, including cycle-less
   nonTerminalCycleCount: BigInt! # Seeded/Open/Reconciled cycles; zero before pool close
@@ -632,6 +806,17 @@ type CommitmentCycle {
   commitmentsDue: BigInt!
   openCommitmentCount: BigInt!
   createdAt: Int # CycleSeeded timestamp; null until seedSeen
+  updatedAt: Int!
+}
+
+# Handler-internal lookup companion. Cycle-wide reconciliation reads this
+# cycle-scoped set instead of scanning every commitment ever created in the pool.
+type CommitmentCycleCommitmentIndex {
+  id: ID! # chainId-cycleId
+  chainId: Int!
+  cycleId: BigInt!
+  cycleEntityId: String!
+  commitmentEntityIds: [String!]! # unique IDs in numeric commitment order
   updatedAt: Int!
 }
 
@@ -771,7 +956,6 @@ type Commitment {
   memberHistoryOutcome: CommitmentOnchainState # nullable lead terminal bucket currently applied
   fulfilledContributorHistoryAccounts: [String!]! # reversible participant-history set currently applied
   fulfilledReceiverHistoryAccount: String # reversible receivedFulfilled account currently applied
-  contributorEntityIds: [String!]!
   countedLifecycleStates: [CommitmentOnchainState!]! # lifetime pool/cycle counters applied once per milestone
   unitLabel: String # null until creationSeen
   targetUnits: BigInt # null until creationSeen
@@ -1322,6 +1506,7 @@ type Hypercert {
   attestationCount: Int!
   attestationUIDs: [String!]! # EAS attestation UIDs bundled into this hypercert
   bundleKind: HypercertBundleKind!
+  metadataReconciliationRequired: Boolean! # true when ClaimStored metadata could not be fetched after bounded retries
   commitmentIds: [BigInt!]!
   commitmentEntityIds: [String!]!
   needUIDs: [String!]!

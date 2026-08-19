@@ -5,6 +5,8 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import * as yaml from "js-yaml";
 
+import { validatePinnedPoolingContracts } from "./indexing-boundary-rules.mjs";
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const indexerRoot = path.resolve(__dirname, "..");
@@ -139,8 +141,24 @@ const ALLOWED_CONTRACT_EVENTS = {
     "FeeReserveFunded",
     "ExcessFeesWithdrawn",
   ]),
+  CreditRegistry: new Set([
+    "CreditRegistryInitialized",
+    "PoolCreditConfigured",
+    "ExecutorUpdated",
+    "LoanRequested",
+    "LoanApproved",
+    "LoanDisbursed",
+    "RepaymentRecorded",
+    "LoanRepaid",
+    "LoanDefaulted",
+    "LoanCancelled",
+    "HatsModuleUpdated",
+    "CommitmentPoolingModuleUpdated",
+    "SettlementModuleUpdated",
+    "PausedSet",
+  ]),
   // Executor protocol events describe Green Goods command execution and acknowledgment state.
-  // The contract is deliberately not attached to a Celo chain block until release authorization.
+  // The production Celo deployment is pinned in the 42220 chain block below.
   CeloSettlementExecutor: new Set([
     "ExecutorDeploymentPinned",
     "SourcePeerUpdated",
@@ -161,6 +179,43 @@ const ALLOWED_CONTRACT_EVENTS = {
 };
 
 const ALLOWED_CONTRACTS = new Set(Object.keys(ALLOWED_CONTRACT_EVENTS));
+const ALLOWED_CONTRACTS_BY_CHAIN = new Map([
+  [
+    42161,
+    new Set([
+      "ActionRegistry",
+      "GardenToken",
+      "GardenAccount",
+      "HatsModule",
+      "OctantModule",
+      "OctantVault",
+      "YieldSplitter",
+      "HypercertMinter",
+      "GreenWill",
+      "CookieJarFactory",
+      "CommitmentPoolingModule",
+      "CommitmentRegistry",
+      "SettlementModule",
+      "CreditRegistry",
+    ]),
+  ],
+  [
+    11155111,
+    new Set([
+      "ActionRegistry",
+      "GardenToken",
+      "GardenAccount",
+      "HatsModule",
+      "OctantModule",
+      "OctantVault",
+      "YieldSplitter",
+      "HypercertMinter",
+      "CookieJarFactory",
+      "CreditRegistry",
+    ]),
+  ],
+  [42220, new Set(["CeloSettlementExecutor"])],
+]);
 const REQUIRED_CHAIN_BOUNDARIES = new Map([
   [42161, { startBlock: 433_713_812, endBlock: undefined }],
   [11155111, { startBlock: 10_243_363, endBlock: undefined }],
@@ -257,6 +312,7 @@ async function main() {
   }
 
   const chains = Array.isArray(config?.chains) ? config.chains : [];
+  errors.push(...validatePinnedPoolingContracts(chains));
   if (chains.length !== REQUIRED_CHAIN_BOUNDARIES.size) {
     errors.push(
       `Expected ${REQUIRED_CHAIN_BOUNDARIES.size} configured chains, found ${chains.length}`
@@ -266,6 +322,7 @@ async function main() {
   for (const chain of chains) {
     const chainId = Number(chain?.id);
     const requiredBoundary = REQUIRED_CHAIN_BOUNDARIES.get(chainId);
+    const allowedContractsForChain = ALLOWED_CONTRACTS_BY_CHAIN.get(chainId);
     const chainContracts = Array.isArray(chain?.contracts) ? chain.contracts : [];
 
     if (!requiredBoundary) {
@@ -289,6 +346,8 @@ async function main() {
       const name = String(chainContract?.name || "");
       if (!ALLOWED_CONTRACTS.has(name)) {
         errors.push(`Chain ${chainId} includes disallowed contract: ${name}`);
+      } else if (!allowedContractsForChain?.has(name)) {
+        errors.push(`Chain ${chainId} includes contract outside its chain allowlist: ${name}`);
       }
     }
 

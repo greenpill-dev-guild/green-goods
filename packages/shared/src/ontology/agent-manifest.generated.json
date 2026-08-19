@@ -492,15 +492,43 @@
         "implementation": "implemented",
         "deployment": "deployed",
         "activation": "active",
-        "integration": "not-integrated",
+        "integration": "partial",
         "availability": "deployed-not-available",
         "evidence": [
           {
             "file": ".plans/active/commitment-pooling/status.json",
-            "note": "Pooling is unpaused and 18 pools are receipt-verified; indexer/shared/UI lanes remain blocked."
+            "note": "Pooling contracts are active and the shared/API read contract is implemented; the hosted indexer still needs its manual pooling-schema deployment before reads are available."
           }
         ],
-        "verified_at": "2026-08-15"
+        "verified_at": "2026-08-16",
+        "chains": {
+          "42161": {
+            "deployment": "deployed",
+            "activation": "active",
+            "integration": "partial",
+            "availability": "deployed-not-available",
+            "evidence": [
+              {
+                "file": ".plans/active/commitment-pooling/status.json",
+                "note": "Arbitrum pooling contracts are active and shared selectors are implemented, but the hosted indexer has not yet received the pooling schema through the manual Envio deployment step."
+              }
+            ],
+            "verified_at": "2026-08-16"
+          },
+          "11155111": {
+            "deployment": "not-deployed",
+            "activation": "inactive",
+            "integration": "not-integrated",
+            "availability": "planned",
+            "evidence": [
+              {
+                "file": "packages/contracts/deployments/11155111-latest.json",
+                "note": "Sepolia has no commitment-pooling contract deployment, so shared reads and mutations remain unavailable on this chain."
+              }
+            ],
+            "verified_at": "2026-08-16"
+          }
+        }
       },
       "safe_claims": [
         {
@@ -595,17 +623,17 @@
       "maturity": {
         "ref": "entity:commitment-provider-exposure",
         "implementation": "implemented",
-        "deployment": "not-deployed",
-        "activation": "inactive",
-        "integration": "partial",
-        "availability": "in-build",
+        "deployment": "deployed",
+        "activation": "active",
+        "integration": "not-integrated",
+        "availability": "deployed-not-available",
         "evidence": [
           {
-            "file": "packages/indexer/schema.graphql",
-            "note": "The indexer schema defines per-pool lead-provider exposure derived from commitment unit events."
+            "file": "packages/indexer/src/handlers/commitment-pool-registry.ts",
+            "note": "The live indexer handler maintains per-pool lead-provider exposure from commitment unit events."
           }
         ],
-        "verified_at": "2026-08-15"
+        "verified_at": "2026-08-16"
       },
       "safe_claims": []
     },
@@ -630,17 +658,17 @@
       "maturity": {
         "ref": "entity:commitment-unit-summary",
         "implementation": "implemented",
-        "deployment": "not-deployed",
-        "activation": "inactive",
-        "integration": "partial",
-        "availability": "in-build",
+        "deployment": "deployed",
+        "activation": "active",
+        "integration": "not-integrated",
+        "availability": "deployed-not-available",
         "evidence": [
           {
-            "file": "packages/indexer/schema.graphql",
-            "note": "The indexer schema defines exact-label commitment unit summaries for pools and cycles."
+            "file": "packages/indexer/src/handlers/commitment-pool-unit-summary.ts",
+            "note": "The live indexer handler maintains exact-label commitment unit summaries for pools and cycles."
           }
         ],
-        "verified_at": "2026-08-15"
+        "verified_at": "2026-08-16"
       },
       "safe_claims": []
     },
@@ -665,17 +693,17 @@
       "maturity": {
         "ref": "entity:commitment-series-cycle-summary",
         "implementation": "implemented",
-        "deployment": "not-deployed",
-        "activation": "inactive",
-        "integration": "partial",
-        "availability": "in-build",
+        "deployment": "deployed",
+        "activation": "active",
+        "integration": "not-integrated",
+        "availability": "deployed-not-available",
         "evidence": [
           {
-            "file": "packages/indexer/schema.graphql",
-            "note": "The indexer schema defines per-cycle lifecycle summaries for commitment series."
+            "file": "packages/indexer/src/handlers/commitment-pool-state.ts",
+            "note": "The live indexer handler maintains per-cycle lifecycle summaries for commitment series."
           }
         ],
-        "verified_at": "2026-08-15"
+        "verified_at": "2026-08-16"
       },
       "safe_claims": []
     },

@@ -5,14 +5,19 @@
 - Machine lane: state_api
 - Execution sub-lane: state_api
 - Owner: Codex
-- Branch signal: codex/state-api/commitment-pooling
-- Current state: two-phase — core waits for core indexer GREEN; settlement selectors wait for settlement indexer GREEN
+- Branch signal: feature/commitment-pooling-api-modules
+- Current state: core, Saved Offer, and settlement source implementation complete; runtime availability remains blocked only on human-owned hosted Envio deployment/full-sync/read-back and production Saved Offer configuration
 - Linear context: PRD-723 (state/API lane) under parent PRD-650
 
 Concurrent agents share this repository. Stay inside this lane's named shared/state paths,
 preserve unrelated working-tree changes, and do not switch the primary tree's branch.
 
 ## Inputs
+
+- Accepted entity/query contract and selector inventory:
+  [`commitment-pooling-query-contract.md`](commitment-pooling-query-contract.md). The user's
+  completion direction cleared the implementation scope lock; it did not authorize hosted deploys,
+  broadcasts, Safe/value operations, or a live Celo canary.
 
 - Frozen pooling ABI/events for the core phase; frozen CCIP command/ack and Celo executor ABI/events for the settlement phase
 - The 2026-08-01 CPP-alignment amendment (contract-spec decisions 16–17): commitment types carry `counterCommitmentId` and `declaredUnitValue`/`declaredValueBasis`; selectors add the `CommitmentCounterIndex` pair view and the counts-only `PoolMemberHistory` standing read (never a score, percentage, or ranking; value sums only per exact basis). Raw history rows derive from public events and are not confidential. The shared selector requires viewer account plus current pool-steward capability and returns a participant row only for that steward or the member themself; client/admin code must not bind raw history entities, and editorial selectors expose aggregates only.
@@ -93,9 +98,10 @@ preserve unrelated working-tree changes, and do not switch the primary tree's br
 - Online-only Celo wallet transfer action; it never enters the offline queue.
 - Explicit Pimlico endpoints for `421614` and `11142220`, plus one typed account-profile registry:
   Kernel `0.2.4` on both testnets for same-address mechanics evidence and Kernel `0.3.1` on
-  Arbitrum One/Celo Mainnet for production. Account derivation accepts an explicit profile and
-  asserts matching EntryPoint/factory/implementation/initializer/passkey/salt; it never silently
-  falls back, infers a version from chain support, or mixes profile components.
+  Arbitrum One/Celo Mainnet for production. This lane ships the explicit profile registry and the
+  exact-pair assertion seam for EntryPoint/factory/implementation/initializer/passkey/salt. It
+  does not wire a settlement account derivation path; that remains gated with live AA/Celo work,
+  so no receipt claims that the existing general passkey derivation consumes these profiles.
 - `gardenerDeliveryEnabled` is false for every testnet-profile result. On the nullable indexed
   source field, `null` means unknown/not configured and fails closed exactly like `false`; only an
   explicit `true` may satisfy the delivery selector. Production enablement consumes only the
@@ -240,9 +246,9 @@ preserve unrelated working-tree changes, and do not switch the primary tree's br
 
 ## Exact Bun commands
 
-The five named shared test files and the named Agent saved-Offer test file do not exist yet; they
-are intentional to-be-created RED-first deliverables of this lane. The Agent test is a blocking
-prerequisite for the saved-Offer shared/client GREEN state, not optional follow-up coverage.
+The six named shared test files and the named Agent saved-Offer test file are the focused source
+proof for this lane. The Agent test remains a blocking prerequisite for the Saved Offer shared
+state, not optional follow-up coverage.
 
 - bun run --filter @green-goods/agent test -- src/__tests__/saved-offers.test.ts
 - bun run --filter @green-goods/shared test -- src/__tests__/commitment-pooling.test.ts
@@ -250,9 +256,39 @@ prerequisite for the saved-Offer shared/client GREEN state, not optional follow-
 - bun run --filter @green-goods/shared test -- src/__tests__/commitment-jobs.test.ts
 - bun run --filter @green-goods/shared test -- src/__tests__/settlement-selectors.test.ts
 - bun run --filter @green-goods/shared test -- src/__tests__/settlement-aa-profile.test.ts
+- bun run --filter @green-goods/shared test -- src/__tests__/saved-offers.test.ts
 - bun run --filter @green-goods/shared typecheck
 - bun run --filter @green-goods/shared check:stories
 - bun run --filter @green-goods/shared check:story-quality
+- bun run --filter @green-goods/agent test
+- bun run --filter @green-goods/agent test:coverage
+
+## Validation receipt — 2026-08-16
+
+- RED provenance: the shared commitment-pooling module and focused tests, plus the Agent Saved
+  Offer route and tests, are absent from the branch base (`git cat-file -e HEAD:<path>` exits 128).
+  The RED contracts above were recorded before their implementations.
+- Shared source proof: the full shared lane passes 3,502 tests with one governed skip, including
+  the pooling hash, selector, disclosure, settlement-profile, Saved Offer, job-queue, database,
+  and provider regressions; shared typecheck passes.
+- Shared boundary proof: Storybook coverage is 205/205 and the 177-file story-quality guard passes.
+- Saved Offer proof: the full Agent unit/API lane passes 259 tests with one governed skip; the
+  real-SQLite lane passes 5/5, including restart persistence, tombstone/conflict behavior, and
+  transactional rollback; Agent build and typecheck pass.
+- Repository closure proof: format, lint, test-quality, Agentic/Storybook, indexing-boundary, and
+  ontology guards pass. The deterministic Sepolia build passes across contracts, indexer, client,
+  and admin; the independent Agent and indexer builds pass. The full client and admin packages
+  pass 658/658 and 568/568 respectively.
+- Canonical suite proof: `bun run test` passes end to end with 2,050 Solidity tests, three release
+  gas fixtures, 215 contract-script tests, 28 docs tests, 3,502 shared tests, 255 indexer tests,
+  658 client tests, 568 admin tests, and the Agent's 259-unit-plus-5-SQLite lanes.
+- Ontology proof: 20 entities, 47 vocabularies, 38 shared declarations, generated artifacts, and
+  every ontology guard pass.
+- Phase 1 proof is recorded in `codex-indexer.md`: codegen, the 14-contract/3-chain boundary,
+  all 255 indexer tests, build, and ontology all pass.
+- Proof limit: no hosted Envio deployment/read-back, production Saved Offer secret/audience
+  configuration, live sponsored UserOperation, Celo canary, Safe/value mutation, or broadcast was
+  performed.
 
 ## Out of scope
 
@@ -261,15 +297,17 @@ prerequisite for the saved-Offer shared/client GREEN state, not optional follow-
   manual settlement confirmation, garden-custody claims, credit, rankings, and transferable
   vouchers. Live AA/canary evidence is owned by release operations.
 
-## Unblock evidence
+## Completion and release boundary
 
-- Core dispatch requires frozen pooling interfaces plus core indexer entity/query/codegen/build proof. Settlement selector work remains blocked until the settlement interfaces and settlement indexer phase are GREEN.
-- Core GREEN additionally requires the five `usePoolMemberHistory` disclosure cases and the
-  client/admin raw-entity boundary test passing. A lane that renders participation history without
-  those proofs is not complete, however green the rest of the suite is.
-- Composite Garden replay proof is required before switching shared reads, but the live cutover itself is owned by `human-release-ops.md`.
-- Manual status.json gate is explicitly cleared.
-- RED proof is recorded before shared implementation; final GREEN includes targeted tests and typecheck.
+- Frozen pooling and settlement interfaces plus indexer entity/query/codegen/build proof are
+  present; the user accepted the query contract by directing completion.
+- The five `usePoolMemberHistory` disclosure cases and client/admin raw-entity boundary test pass.
+- RED provenance and the final targeted/typecheck/critical-surface GREEN receipt are recorded above
+  and in `status.json`; the source lane is complete.
+- Shared reads and mutations remain deliberately disabled by the chain-scoped capability ledger
+  until the human-owned hosted Envio deploy, fresh full sync, and live query read-back succeed.
+- Composite Garden live cutover, production Saved Offer root-environment configuration, and live
+  AA/Celo evidence remain owned by `human-release-ops.md`; none is implied by source GREEN.
 
 ## Binding architecture amendment — 2026-07-28
 

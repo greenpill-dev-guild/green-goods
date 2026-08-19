@@ -26,3 +26,5 @@ import "./handlers/commitmentPool";
 import "./handlers/settlement";
 import "./handlers/settlement-lifecycle";
 import "./handlers/settlement-executor";
+import "./handlers/credit-registry";
+import "./handlers/credit-registry-loans";

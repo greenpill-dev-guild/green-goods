@@ -16,7 +16,6 @@ describe("Commitment Pooling Garden identity compatibility", () => {
       mockEventData: {
         chainId: CHAIN_ID,
         block: { timestamp: 1, number: 433_713_812 },
-        srcAddress: Addresses.mockAddresses[9],
         transaction: { hash: `0x${"1".padStart(64, "0")}` },
         logIndex: 0,
       },

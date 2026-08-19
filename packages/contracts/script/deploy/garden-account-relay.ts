@@ -13,8 +13,11 @@ import {
   JsonRpcProvider,
   keccak256,
   toUtf8Bytes,
+  ZeroAddress,
 } from "ethers";
+import { execCastCaptured, parseCastTransactionHash } from "../utils/cast-env";
 import { NetworkManager } from "../utils/network";
+import { assertReleaseOperatorSession, resolveCheckoutCommit } from "../utils/release-session";
 
 const CONTRACTS_ROOT = path.join(__dirname, "../..");
 const REPOSITORY_ROOT = path.join(CONTRACTS_ROOT, "../..");
@@ -80,18 +83,31 @@ const RELAY_CONSTRUCTOR_TYPES = [
   "address[]",
   "address[]",
 ] as const;
-const ROUTER_INTERFACE = new Interface(["function bindDestinationRelay(address destinationRelay)"]);
+const ROUTER_INTERFACE = new Interface([
+  "function bindDestinationRelay(address destinationRelay)",
+  "function destinationRelay() view returns (address)",
+]);
 const GUARDIAN_INTERFACE = new Interface([
   "function owner() view returns (address)",
   "function isTrustedExecutor(address executor) view returns (bool)",
   "function setTrustedExecutor(address executor,bool trusted)",
 ]);
 
-type Command = "plan" | "verify";
+type Command = "plan" | "verify" | "deploy" | "adopt";
+
+/** Boundaries alternate chains, so every live read resolves its network from the plan, never a flag. */
+const NETWORK_BY_CHAIN: Readonly<Record<number, string>> = { [SOURCE_CHAIN_ID]: "arbitrum", [CELO_CHAIN_ID]: "celo" };
+const RELAY_BOUNDARIES = 4;
+const DEPLOYMENT_ARTIFACT = path.join(CONTRACTS_ROOT, "deployments/garden-account-relay.json");
+
+interface ImmutableSpan {
+  start: number;
+  length: number;
+}
 
 interface FoundryArtifact {
   bytecode?: { object?: string } | string;
-  deployedBytecode?: { object?: string } | string;
+  deployedBytecode?: { object?: string; immutableReferences?: Record<string, ImmutableSpan[]> } | string;
 }
 
 interface SafePlanEntry {
@@ -211,22 +227,60 @@ function confinedRuntimePath(value: string): string {
   return resolved;
 }
 
-export function parseArguments(args: string[]): { command: Command; safePlanPath: string; planPath: string } {
+export interface RelayCliOptions {
+  command: Command;
+  safePlanPath: string;
+  planPath: string;
+  broadcast: boolean;
+  step?: number;
+  receipt?: string;
+}
+
+export function parseArguments(args: string[]): RelayCliOptions {
   const command = args[0] as Command | undefined;
-  if (!command || !["plan", "verify"].includes(command)) {
-    throw new Error("Use: garden-account-relay.ts plan|verify [--safe-plan <runtime path>] [--plan <runtime path>]");
+  if (!command || !["plan", "verify", "deploy", "adopt"].includes(command)) {
+    throw new Error(
+      "Use: garden-account-relay.ts plan|verify|deploy|adopt [--safe-plan <runtime path>] [--plan <runtime path>]" +
+        " [--broadcast --step <1-4> [--receipt <prior boundary hash>]]",
+    );
   }
   let safePlanPath = DEFAULT_SAFE_PLAN;
   let planPath = DEFAULT_PLAN;
-  for (let index = 1; index < args.length; index += 2) {
+  let broadcast = false;
+  let step: number | undefined;
+  let receipt: string | undefined;
+  for (let index = 1; index < args.length; index += 1) {
     const key = args[index];
+    if (key === "--broadcast") {
+      broadcast = true;
+      continue;
+    }
     const value = args[index + 1];
     if (!value || value.startsWith("--")) throw new Error(`${key} requires a value`);
+    index += 1;
     if (key === "--safe-plan") safePlanPath = confinedRuntimePath(value);
     else if (key === "--plan") planPath = confinedRuntimePath(value);
-    else throw new Error(`Unknown argument: ${key}`);
+    else if (key === "--receipt") receipt = value;
+    else if (key === "--step") {
+      step = Number(value);
+      if (!Number.isInteger(step) || step < 1 || step > RELAY_BOUNDARIES) {
+        throw new Error(`--step must be between 1 and ${RELAY_BOUNDARIES}`);
+      }
+    } else throw new Error(`Unknown argument: ${key}`);
   }
-  return { command, safePlanPath, planPath };
+  if (command === "deploy") {
+    if (!broadcast) throw new Error("deploy requires --broadcast");
+    if (step === undefined) throw new Error("deploy requires one explicit --step boundary");
+    if (step === 1 && receipt) throw new Error("Step 1 has no prerequisite receipt");
+  } else if (command === "adopt") {
+    // Recovery only: a boundary that already mined but was never checkpointed.
+    if (broadcast) throw new Error("adopt never broadcasts and does not accept --broadcast");
+    if (step === undefined || !receipt) throw new Error("adopt requires --step and the mined --receipt for it");
+  } else {
+    if (broadcast) throw new Error(`${command} does not accept --broadcast`);
+    if (step !== undefined || receipt !== undefined) throw new Error(`${command} does not accept --step or --receipt`);
+  }
+  return { command, safePlanPath, planPath, broadcast, step, receipt };
 }
 
 function initCode(bytecode: string, types: readonly string[], values: readonly unknown[]): string {
@@ -457,6 +511,393 @@ async function liveInputs(
   };
 }
 
+function networkFor(chainId: number): string {
+  const network = NETWORK_BY_CHAIN[chainId];
+  if (!network) throw new Error(`Relay plan names an unsupported chain: ${chainId}`);
+  return network;
+}
+
+function providerFor(chainId: number, manager: NetworkManager): JsonRpcProvider {
+  return new JsonRpcProvider(manager.getRpcUrl(networkFor(chainId)), chainId, { staticNetwork: true });
+}
+
+/**
+ * The release operator unlocks one credential session per checkout and asserts that git HEAD equals
+ * that candidate before and after every boundary, so broadcast re-checks the session against the
+ * checkout rather than any release identity.
+ */
+function credentialArgs(): string[] {
+  assertReleaseOperatorSession(resolveCheckoutCommit(REPOSITORY_ROOT));
+  const passwordFile = process.env.ETH_PASSWORD;
+  if (!passwordFile || !fs.existsSync(passwordFile)) {
+    throw new Error("Broadcast requires the release operator's temporary ETH_PASSWORD file");
+  }
+  return ["--account", process.env.FOUNDRY_KEYSTORE_ACCOUNT ?? "green-goods-deployer", "--password-file", passwordFile];
+}
+
+function sendRelayTransaction(transaction: PlannedRelayTransaction, rpcUrl: string): string {
+  const output = execCastCaptured(
+    [
+      "send",
+      transaction.to,
+      "--data",
+      transaction.data,
+      "--value",
+      transaction.value,
+      "--nonce",
+      String(transaction.nonce),
+      "--chain",
+      String(transaction.chainId),
+      "--rpc-url",
+      rpcUrl,
+      ...credentialArgs(),
+      "--json",
+    ],
+    { cwd: CONTRACTS_ROOT, env: process.env },
+    transaction.kind,
+  );
+  return parseCastTransactionHash(output, transaction.kind);
+}
+
+async function assertReceiptMatchesBoundary(
+  provider: JsonRpcProvider,
+  hash: string,
+  sender: string,
+  expected: PlannedRelayTransaction,
+  label: string,
+): Promise<void> {
+  const [receipt, sent] = await Promise.all([provider.getTransactionReceipt(hash), provider.getTransaction(hash)]);
+  if (
+    !receipt ||
+    receipt.status !== 1 ||
+    !sent ||
+    getAddress(sent.from) !== getAddress(sender) ||
+    getAddress(sent.to ?? ZeroAddress) !== getAddress(expected.to) ||
+    sent.data !== expected.data ||
+    sent.value !== 0n ||
+    sent.nonce !== expected.nonce
+  ) {
+    throw new Error(`${label} does not match the reviewed ${expected.kind} boundary`);
+  }
+}
+
+async function routerBinding(plan: GardenAccountRelayPlan, manager: NetworkManager): Promise<string> {
+  const router = new Contract(plan.router.address, ROUTER_INTERFACE, providerFor(SOURCE_CHAIN_ID, manager));
+  return getAddress((await router.destinationRelay()) as string);
+}
+
+async function relayTrusted(plan: GardenAccountRelayPlan, manager: NetworkManager): Promise<boolean> {
+  const guardian = new Contract(plan.guardian, GUARDIAN_INTERFACE, providerFor(CELO_CHAIN_ID, manager));
+  return (await guardian.isTrustedExecutor(plan.relay.address)) as boolean;
+}
+
+function immutableSpans(artifact: FoundryArtifact): ImmutableSpan[] {
+  const deployed = artifact.deployedBytecode;
+  if (typeof deployed === "string" || !deployed?.immutableReferences) return [];
+  return Object.values(deployed.immutableReferences).flat();
+}
+
+export function maskImmutables(runtimeHex: string, spans: readonly ImmutableSpan[]): string {
+  const bytes = Buffer.from(runtimeHex.slice(2), "hex");
+  for (const span of spans) bytes.fill(0, span.start, span.start + span.length);
+  return bytes.toString("hex");
+}
+
+/**
+ * Solidity writes immutables into the runtime at construction, so deployed code never equals the
+ * artifact's `deployedBytecode` byte for byte. The CREATE2 address already binds the exact init
+ * code, and therefore those immutable values; this proves the remaining bytes are the reviewed
+ * runtime and that the artifact has not drifted from the plan since it was reviewed.
+ */
+async function assertReviewedRuntime(
+  provider: JsonRpcProvider,
+  address: string,
+  artifactPath: string,
+  expectedArtifactHash: string,
+  label: string,
+): Promise<void> {
+  const artifact = readJson<FoundryArtifact>(artifactPath);
+  const reviewed = artifactHex(artifact.deployedBytecode, `${label} runtime code`);
+  if (keccak256(reviewed) !== expectedArtifactHash) {
+    throw new Error(`${label} artifact drifted from the reviewed plan`);
+  }
+  const onchain = await provider.getCode(address, "latest");
+  if (onchain === "0x") throw new Error(`${label} has no code at its deterministic address`);
+  if (onchain.length !== reviewed.length) {
+    throw new Error(`${label} runtime length differs from the reviewed artifact`);
+  }
+  const spans = immutableSpans(artifact);
+  if (maskImmutables(onchain, spans) !== maskImmutables(reviewed, spans)) {
+    throw new Error(`${label} runtime differs from the reviewed artifact outside its immutables`);
+  }
+}
+
+async function assertRouterRuntime(plan: GardenAccountRelayPlan, manager: NetworkManager): Promise<void> {
+  await assertReviewedRuntime(
+    providerFor(SOURCE_CHAIN_ID, manager),
+    plan.router.address,
+    ROUTER_ARTIFACT,
+    plan.router.runtimeCodeHash,
+    "Source router",
+  );
+}
+
+async function assertRelayRuntime(plan: GardenAccountRelayPlan, manager: NetworkManager): Promise<void> {
+  await assertReviewedRuntime(
+    providerFor(CELO_CHAIN_ID, manager),
+    plan.relay.address,
+    RELAY_ARTIFACT,
+    plan.relay.runtimeCodeHash,
+    "Celo relay",
+  );
+}
+
+/**
+ * Each boundary asserts only the state its own step depends on. A blanket inertness check would be
+ * wrong here: after step 1 the router exists by design, so re-asserting the planned snapshot would
+ * refuse every later boundary.
+ */
+async function assertBoundaryPrecondition(
+  plan: GardenAccountRelayPlan,
+  step: number,
+  manager: NetworkManager,
+): Promise<void> {
+  const source = providerFor(SOURCE_CHAIN_ID, manager);
+  const celo = providerFor(CELO_CHAIN_ID, manager);
+  if (step === 1) {
+    if ((await source.getCode(plan.router.address, "latest")) !== "0x") {
+      throw new Error("Source router already has code at its deterministic address");
+    }
+    return;
+  }
+  await assertRouterRuntime(plan, manager);
+  if (step === 2) {
+    if ((await celo.getCode(plan.relay.address, "latest")) !== "0x") {
+      throw new Error("Celo relay already has code at its deterministic address");
+    }
+    return;
+  }
+  await assertRelayRuntime(plan, manager);
+  const bound = await routerBinding(plan, manager);
+  if (step === 3) {
+    if (bound !== getAddress(ZeroAddress)) throw new Error("Source router destination is already bound");
+    return;
+  }
+  if (bound !== getAddress(plan.relay.address)) {
+    throw new Error("Source router is not bound to the reviewed relay");
+  }
+  if (await relayTrusted(plan, manager)) throw new Error("Guardian already trusts the reviewed relay");
+}
+
+async function assertBoundaryPostcondition(
+  plan: GardenAccountRelayPlan,
+  step: number,
+  manager: NetworkManager,
+): Promise<void> {
+  if (step === 1) {
+    await assertRouterRuntime(plan, manager);
+    return;
+  }
+  if (step === 2) {
+    await assertRelayRuntime(plan, manager);
+    return;
+  }
+  if (step === 3) {
+    if ((await routerBinding(plan, manager)) !== getAddress(plan.relay.address)) {
+      throw new Error("Destination binding did not record the reviewed relay");
+    }
+    return;
+  }
+  if (!(await relayTrusted(plan, manager))) throw new Error("Guardian did not record trust for the reviewed relay");
+}
+
+export async function verifyDeployedRelay(plan: GardenAccountRelayPlan): Promise<void> {
+  const manager = new NetworkManager();
+  for (const step of [1, 2, 3, 4]) await assertBoundaryPostcondition(plan, step, manager);
+}
+
+async function relayDeploymentStarted(plan: GardenAccountRelayPlan): Promise<boolean> {
+  const manager = new NetworkManager();
+  return (await providerFor(SOURCE_CHAIN_ID, manager).getCode(plan.router.address, "latest")) !== "0x";
+}
+
+export interface RelayCheckpointEntry {
+  step: number;
+  kind: string;
+  chainId: number;
+  transactionHash: string;
+  blockNumber: number;
+}
+
+export interface RelayCheckpoint {
+  schemaVersion: 1;
+  planHash: string;
+  completed: RelayCheckpointEntry[];
+}
+
+function checkpointPath(planPath: string): string {
+  return planPath.replace(/\.json$/u, ".checkpoint.json");
+}
+
+function hashFileContent(filePath: string): string {
+  return keccak256(toUtf8Bytes(fs.readFileSync(filePath, "utf8")));
+}
+
+/**
+ * The checkpoint is bound to the exact reviewed plan. Regenerating the plan after a mined boundary
+ * must stop the lane rather than silently resume against different addresses or nonces.
+ */
+export function loadRelayCheckpoint(planPath: string): RelayCheckpoint {
+  const filePath = checkpointPath(planPath);
+  const planHash = hashFileContent(planPath);
+  if (!fs.existsSync(filePath)) return { schemaVersion: 1, planHash, completed: [] };
+  const checkpoint = readJson<RelayCheckpoint>(filePath);
+  if (checkpoint.schemaVersion !== 1 || checkpoint.planHash !== planHash) {
+    throw new Error("Checkpoint does not belong to the exact reviewed relay plan");
+  }
+  for (const [offset, entry] of checkpoint.completed.entries()) {
+    if (entry.step !== offset + 1) throw new Error("Checkpoint must be a contiguous boundary prefix");
+  }
+  return checkpoint;
+}
+
+export function assertNextRelayBoundary(selected: number, completed: number): number {
+  const nextBoundary = completed + 1;
+  if (selected !== nextBoundary) {
+    throw new Error(`Relay deploy must target the next uncheckpointed boundary ${nextBoundary}`);
+  }
+  return selected;
+}
+
+function recordBoundary(
+  plan: GardenAccountRelayPlan,
+  step: number,
+  transactionHash: string,
+  blockNumber: number,
+): void {
+  const existing = fs.existsSync(DEPLOYMENT_ARTIFACT)
+    ? readJson<{ boundaries?: Array<Record<string, unknown>> }>(DEPLOYMENT_ARTIFACT)
+    : {};
+  const boundaries = (existing.boundaries ?? []).filter((entry) => entry.step !== step);
+  boundaries.push({
+    step,
+    kind: plan.transactions[step - 1].kind,
+    chainId: plan.transactions[step - 1].chainId,
+    transactionHash,
+    blockNumber,
+  });
+  boundaries.sort((left, right) => Number(left.step) - Number(right.step));
+  atomicWrite(DEPLOYMENT_ARTIFACT, {
+    schemaVersion: 1,
+    kind: "GARDEN_ACCOUNT_RELAY_DEPLOYMENT_RECEIPTS",
+    sender: plan.sender,
+    router: plan.router.address,
+    relay: plan.relay.address,
+    guardian: plan.guardian,
+    authorityEnabled: false,
+    valueAuthorityGranted: false,
+    boundaries,
+  });
+}
+
+/**
+ * Adopts a boundary that broadcast successfully but was never checkpointed, so a lane interrupted
+ * after a mined transaction can continue instead of trying to replay a consumed nonce. It verifies
+ * the same receipt and postcondition the executing path would have, and never signs anything.
+ */
+export async function adoptRelayBoundary(
+  plan: GardenAccountRelayPlan,
+  step: number,
+  minedReceipt: string,
+  planPath: string,
+): Promise<void> {
+  const transaction = plan.transactions[step - 1];
+  if (!transaction || transaction.step !== step) throw new Error(`Reviewed plan has no boundary ${step}`);
+  const checkpoint = loadRelayCheckpoint(planPath);
+  assertNextRelayBoundary(step, checkpoint.completed.length);
+  const manager = new NetworkManager();
+  const provider = providerFor(transaction.chainId, manager);
+  await assertReceiptMatchesBoundary(provider, minedReceipt, plan.sender, transaction, `${transaction.kind} receipt`);
+  await assertBoundaryPostcondition(plan, step, manager);
+  const receipt = await provider.getTransactionReceipt(minedReceipt);
+  if (!receipt) throw new Error(`${transaction.kind} receipt is not available`);
+  checkpoint.completed.push({
+    step,
+    kind: transaction.kind,
+    chainId: transaction.chainId,
+    transactionHash: minedReceipt,
+    blockNumber: receipt.blockNumber,
+  });
+  atomicWrite(checkpointPath(planPath), checkpoint);
+  recordBoundary(plan, step, minedReceipt, receipt.blockNumber);
+  process.stdout.write(`${transaction.kind} adopted as ${minedReceipt}; no transaction was signed or broadcast.\n`);
+}
+
+export async function executeRelayBoundary(
+  plan: GardenAccountRelayPlan,
+  step: number,
+  planPath: string,
+  priorReceipt?: string,
+): Promise<void> {
+  if (plan.transactions.length !== RELAY_BOUNDARIES) {
+    throw new Error(`Reviewed plan does not contain the expected ${RELAY_BOUNDARIES} boundaries`);
+  }
+  const transaction = plan.transactions[step - 1];
+  if (!transaction || transaction.step !== step) throw new Error(`Reviewed plan has no boundary ${step}`);
+  const checkpoint = loadRelayCheckpoint(planPath);
+  assertNextRelayBoundary(step, checkpoint.completed.length);
+  const manager = new NetworkManager();
+  const provider = providerFor(transaction.chainId, manager);
+
+  if (step > 1) {
+    const prior = plan.transactions[step - 2];
+    // A resumed lane has no captured hash from this run, so the checkpointed receipt stands in.
+    const recorded = checkpoint.completed[step - 2]?.transactionHash;
+    const priorHash = priorReceipt ?? recorded;
+    if (!priorHash) throw new Error(`Step ${step} requires the reviewed step-${step - 1} receipt`);
+    if (recorded && priorReceipt && recorded !== priorReceipt) {
+      throw new Error(`Step-${step - 1} receipt differs from the checkpointed boundary`);
+    }
+    // The prior boundary can live on the other chain, so its receipt is read there, not here.
+    await assertReceiptMatchesBoundary(
+      providerFor(prior.chainId, manager),
+      priorHash,
+      plan.sender,
+      prior,
+      `Step-${step - 1} receipt`,
+    );
+  }
+  await assertBoundaryPrecondition(plan, step, manager);
+
+  const pendingNonce = await provider.getTransactionCount(plan.sender, "pending");
+  if (pendingNonce !== transaction.nonce) {
+    throw new Error(
+      `Boundary ${step} expected sender nonce ${transaction.nonce} on chain ${transaction.chainId}, live ${pendingNonce}`,
+    );
+  }
+  const transactionHash = sendRelayTransaction(transaction, manager.getRpcUrl(networkFor(transaction.chainId)));
+  const receipt = await provider.waitForTransaction(transactionHash, 1, 180_000);
+  if (!receipt || receipt.status !== 1) throw new Error(`${transaction.kind} did not produce a successful receipt`);
+  await assertReceiptMatchesBoundary(
+    provider,
+    transactionHash,
+    plan.sender,
+    transaction,
+    `${transaction.kind} receipt`,
+  );
+  await assertBoundaryPostcondition(plan, step, manager);
+  checkpoint.completed.push({
+    step,
+    kind: transaction.kind,
+    chainId: transaction.chainId,
+    transactionHash,
+    blockNumber: receipt.blockNumber,
+  });
+  atomicWrite(checkpointPath(planPath), checkpoint);
+  recordBoundary(plan, step, transactionHash, receipt.blockNumber);
+  process.stdout.write(`${transaction.kind} verified as ${transactionHash}; close the credential session.\n`);
+}
+
 async function assertPlannedState(plan: GardenAccountRelayPlan): Promise<void> {
   const manager = new NetworkManager();
   const source = new JsonRpcProvider(manager.getRpcUrl("arbitrum"), SOURCE_CHAIN_ID, { staticNetwork: true });
@@ -475,11 +916,43 @@ async function assertPlannedState(plan: GardenAccountRelayPlan): Promise<void> {
 
 export async function main(args = process.argv.slice(2)): Promise<void> {
   const options = parseArguments(args);
+
+  if (options.command === "adopt") {
+    if (!fs.existsSync(options.planPath)) throw new Error(`Reviewed plan is missing: ${options.planPath}`);
+    await adoptRelayBoundary(
+      readJson<GardenAccountRelayPlan>(options.planPath),
+      options.step as number,
+      options.receipt as string,
+      options.planPath,
+    );
+    return;
+  }
+
+  if (options.command === "deploy") {
+    if (!fs.existsSync(options.planPath)) throw new Error(`Reviewed plan is missing: ${options.planPath}`);
+    await executeRelayBoundary(
+      readJson<GardenAccountRelayPlan>(options.planPath),
+      options.step as number,
+      options.planPath,
+      options.receipt,
+    );
+    return;
+  }
+
   const reviewed =
     options.command === "verify" && fs.existsSync(options.planPath)
       ? readJson<GardenAccountRelayPlan>(options.planPath)
       : undefined;
   if (options.command === "verify" && !reviewed) throw new Error(`Reviewed plan is missing: ${options.planPath}`);
+
+  // Once the router exists the planned snapshot is no longer inert by design, so verification
+  // switches from "the plan is still broadcastable" to "the deployment matches the plan".
+  if (reviewed && (await relayDeploymentStarted(reviewed))) {
+    await verifyDeployedRelay(reviewed);
+    console.log("Deployed relay matches the reviewed plan: router, relay, destination binding, and Guardian trust.");
+    console.log("No transaction was signed or broadcast.");
+    return;
+  }
   const inputs = await liveInputs(
     options.safePlanPath,
     reviewed

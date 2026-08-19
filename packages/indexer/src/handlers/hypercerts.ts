@@ -146,7 +146,26 @@ indexer.onEvent(
       log: context.log,
     });
     if (metadata === null) {
-      throw new Error(`Hypercert metadata unavailable for ${hypercertId}`);
+      const existingCommitmentBundle = baseHypercert.bundleKind === "COMMITMENT";
+      context.Hypercert.set({
+        ...baseHypercert,
+        metadataUri: event.params.uri,
+        totalUnits: event.params.totalUnits,
+        bundleKind: existingCommitmentBundle ? "COMMITMENT" : "WORK_LEGACY",
+        metadataReconciliationRequired: true,
+        commitmentIds: existingCommitmentBundle ? baseHypercert.commitmentIds : [],
+        commitmentEntityIds: existingCommitmentBundle ? baseHypercert.commitmentEntityIds : [],
+        needUIDs: existingCommitmentBundle ? baseHypercert.needUIDs : [],
+        updatedAt: timestamp,
+      });
+      context.log.warn("Hypercert metadata requires reconciliation", {
+        hypercertId,
+        uri: event.params.uri,
+        chainId: event.chainId,
+        blockNumber: event.block.number,
+        correlationId: getTxHash(event.transaction),
+      });
+      return;
     }
 
     const parsedMetadata = parseHypercertMetadata(metadata);
@@ -160,6 +179,7 @@ indexer.onEvent(
       metadataUri: event.params.uri,
       totalUnits: event.params.totalUnits,
       bundleKind,
+      metadataReconciliationRequired: false,
       commitmentIds,
       commitmentEntityIds: commitmentIds.map((id) => poolingEntityId(event.chainId, id)),
       needUIDs,

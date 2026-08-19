@@ -7,11 +7,34 @@ import { handleCommitmentCreated, handleCommitmentTerms } from "./commitment-poo
 import { handleLifecycle, handleMiscCommitment } from "./commitment-pool-lifecycle";
 import { enqueuePendingLifecycle } from "./commitment-pool-pending";
 import { handleRegistryEvent } from "./commitment-pool-registry";
-import { type PoolingContext, type RuntimeEvent, putAudit } from "./commitment-pool-runtime";
+import {
+  COMMITMENT_POOLING_EVENT_NAMES,
+  COMMITMENT_REGISTRY_EVENT_NAMES,
+  type PoolingContext,
+  type RuntimeEvent,
+  putAudit,
+} from "./commitment-pool-runtime";
 import { handleSeriesEvent } from "./commitment-pool-series";
 import { handleEvidence, handleWorkEvent } from "./commitment-pool-work";
 
-async function routeEvent(event: RuntimeEvent, context: PoolingContext): Promise<void> {
+const MODULE_EVENT_NAMES = new Set<string>(COMMITMENT_POOLING_EVENT_NAMES);
+const REGISTRY_EVENT_NAMES = new Set<string>(COMMITMENT_REGISTRY_EVENT_NAMES);
+const AUDIT_ONLY_MODULE_EVENTS = new Set([
+  "ModuleDependencyUpdated",
+  "ModuleSchemaUIDUpdated",
+  "ModulePauseStatusChanged",
+]);
+
+export async function routeEvent(event: RuntimeEvent, context: PoolingContext): Promise<void> {
+  const registeredEvents =
+    event.contractName === "CommitmentPoolingModule"
+      ? MODULE_EVENT_NAMES
+      : event.contractName === "CommitmentRegistry"
+        ? REGISTRY_EVENT_NAMES
+        : undefined;
+  if (!registeredEvents?.has(event.eventName)) {
+    throw new Error(`Unrouted commitment pooling event: ${event.contractName}.${event.eventName}`);
+  }
   if (!(await putAudit(event, context))) return;
   if (event.contractName === "CommitmentRegistry") {
     await handleRegistryEvent(event, context);
@@ -88,70 +111,13 @@ async function routeEvent(event: RuntimeEvent, context: PoolingContext): Promise
     ].includes(event.eventName)
   ) {
     await handleMiscCommitment(event, context);
+    return;
   }
+  if (AUDIT_ONLY_MODULE_EVENTS.has(event.eventName)) return;
+  throw new Error(`Unrouted commitment pooling event: ${event.contractName}.${event.eventName}`);
 }
 
-const POOLING_EVENTS = [
-  "PoolRegistered",
-  "PoolCharterUpdated",
-  "PoolReady",
-  "PoolOpened",
-  "PoolPaused",
-  "PoolResumed",
-  "PoolClosed",
-  "PoolComposted",
-  "PoolReopened",
-  "CycleSeeded",
-  "CycleOpened",
-  "CycleClosed",
-  "CycleComposted",
-  "CycleCancelled",
-  "CommitmentSeriesCreated",
-  "CommitmentSeriesMetadataUpdated",
-  "CommitmentSeriesRested",
-  "CommitmentSeriesResumed",
-  "CommitmentSeriesRetired",
-  "CommitmentCreated",
-  "ConsiderationDeclared",
-  "ValueDeclared",
-  "ConfirmerRuleSet",
-  "ClaimRequested",
-  "ClaimDeclined",
-  "CommitmentAccepted",
-  "ExchangeAccepted",
-  "ContributorAdded",
-  "ContributorRemoved",
-  "ContributorRequirementAssigned",
-  "ContributorRosterFrozen",
-  "WorkLinked",
-  "WorkUnlinked",
-  "ApprovedWorkCounted",
-  "ApprovedWorkReversed",
-  "EvidenceAttached",
-  "AssessmentAttached",
-  "CommitmentReadyForConfirmation",
-  "ConfirmationRecorded",
-  "CommitmentFulfilled",
-  "CommitmentCancelled",
-  "CommitmentExpired",
-  "CommitmentDisputed",
-  "DisputeResolved",
-  "ConsiderationPaid",
-  "ModuleDependencyUpdated",
-  "ModuleSchemaUIDUpdated",
-  "ModulePauseStatusChanged",
-] as const;
-
-const REGISTRY_EVENTS = [
-  "ModuleUpdated",
-  "ClassRegistered",
-  "ProviderOpenCommitmentCapUpdated",
-  "UnitsCommitted",
-  "UnitsReleased",
-  "UnitsFulfilled",
-] as const;
-
-for (const eventName of POOLING_EVENTS) {
+for (const eventName of COMMITMENT_POOLING_EVENT_NAMES) {
   indexer.onEvent(
     { contract: "CommitmentPoolingModule", event: eventName },
     async ({ event, context }) => {
@@ -160,7 +126,7 @@ for (const eventName of POOLING_EVENTS) {
   );
 }
 
-for (const eventName of REGISTRY_EVENTS) {
+for (const eventName of COMMITMENT_REGISTRY_EVENT_NAMES) {
   indexer.onEvent(
     { contract: "CommitmentRegistry", event: eventName },
     async ({ event, context }) => {

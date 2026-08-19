@@ -13,12 +13,14 @@ import {
   cursorWins,
   poolingEntityId,
   sortedUnique,
+  sortedUniqueByNumericSuffix,
 } from "./commitment-pool-projections";
 import { withCommitmentChild } from "./commitment-pool-pool-reconciliation";
 import { getCommitment } from "./commitment-pool-members";
 import { drainPendingLifecycle } from "./commitment-pool-pending";
 import {
   getPool,
+  optionalAddress,
   optionalBigint,
   optionalBytes32,
   type PoolingContext,
@@ -28,7 +30,7 @@ import {
 import { createSeriesCycleSummary } from "./commitment-pool-state";
 import { applyUnitSummaryDeltas } from "./commitment-pool-unit-summary";
 import { reconcileCommitmentHypercerts } from "./hypercert-allocations";
-import { normalizeAddress, ZERO_ADDRESS } from "./shared";
+import { normalizeAddress } from "./shared";
 
 async function createRequirementRows(
   event: RuntimeEvent,
@@ -68,8 +70,7 @@ export async function handleCommitmentCreated(
   const seriesId = optionalBigint(event, "commitmentSeriesId");
   const needUID = optionalBytes32(event, "needUID");
   const counterCommitmentId = optionalBigint(event, "counterCommitmentId");
-  const normalizedPayerGarden = normalizeAddress(value<string>(event, "payerGarden"));
-  const payerGarden = normalizedPayerGarden === ZERO_ADDRESS ? undefined : normalizedPayerGarden;
+  const payerGarden = optionalAddress(event, "payerGarden");
   const initialState = direction === "OFFER" ? "OFFERED" : "REQUESTED";
   const created: Commitment = {
     ...existing,
@@ -154,13 +155,26 @@ export async function handleCommitmentCreated(
   }
 
   if (cycleId !== undefined) {
+    const cycleEntityId = poolingEntityId(event.chainId, cycleId);
     const cycle =
-      (await context.CommitmentCycle.get(poolingEntityId(event.chainId, cycleId))) ??
+      (await context.CommitmentCycle.get(cycleEntityId)) ??
       createCycle(event.chainId, cycleId, poolId, event.block.timestamp);
     context.CommitmentCycle.set({
       ...cycle,
       liveCommitmentCount: cycle.liveCommitmentCount + 1n,
       updatedAt: Math.max(cycle.updatedAt, event.block.timestamp),
+    });
+    const cycleIndex = await context.CommitmentCycleCommitmentIndex.get(cycleEntityId);
+    context.CommitmentCycleCommitmentIndex.set({
+      id: cycleEntityId,
+      chainId: event.chainId,
+      cycleId,
+      cycleEntityId,
+      commitmentEntityIds: sortedUniqueByNumericSuffix([
+        ...(cycleIndex?.commitmentEntityIds ?? []),
+        materialized.id,
+      ]),
+      updatedAt: Math.max(cycleIndex?.updatedAt ?? 0, event.block.timestamp),
     });
   }
 
@@ -278,8 +292,8 @@ export async function handleCommitmentTerms(
       return;
     context.Commitment.set({
       ...commitment,
-      declaredUnitValue: value<bigint>(event, "declaredUnitValue"),
-      declaredValueBasis: value<string>(event, "declaredValueBasis"),
+      declaredUnitValue: optionalBigint(event, "declaredUnitValue"),
+      declaredValueBasis: value<string>(event, "declaredValueBasis") || undefined,
       declaredValueUpdateBlockNumber: BigInt(event.block.number),
       declaredValueUpdateLogIndex: event.logIndex,
       updatedAt: Math.max(commitment.updatedAt, event.block.timestamp),

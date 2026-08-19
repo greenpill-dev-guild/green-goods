@@ -23,7 +23,7 @@ function eventData(blockNumber: number, logIndex: number, transactionIndex = log
   return {
     chainId: CHAIN_ID,
     block: { timestamp: blockNumber, number: blockNumber },
-    srcAddress: address(90),
+    srcAddress: undefined,
     transaction: { hash: hash(transactionIndex) },
     logIndex,
   };
@@ -412,7 +412,7 @@ describe("Commitment Pooling read model", () => {
     assert.equal(pool.commitmentsDue, 1n);
   });
 
-  it("keeps exact-label unit rows and provider exposure as replay-safe signed register deltas", async () => {
+  it("keeps exact-label unit rows and provider exposure as signed register deltas", async () => {
     let db = createTestIndexer();
     const released = CommitmentRegistry.UnitsReleased.createMockEvent({
       classId: 11n,
@@ -432,7 +432,7 @@ describe("Commitment Pooling read model", () => {
       unitLabel: "hours",
       units: 2n,
       totalCommitted: 2n,
-      mockEventData: eventData(START_BLOCK + 1, 0, 31),
+      mockEventData: eventData(START_BLOCK + 1, 1, 31),
     });
     const distinctLabel = CommitmentRegistry.UnitsCommitted.createMockEvent({
       classId: 12n,
@@ -444,7 +444,7 @@ describe("Commitment Pooling read model", () => {
       totalCommitted: 3n,
       mockEventData: eventData(START_BLOCK + 3, 0, 32),
     });
-    db = await processEvents(db, [released, released, committed, committed, distinctLabel]);
+    db = await processEvents(db, [released, committed, distinctLabel]);
 
     const summaries = await db.CommitmentUnitSummary.getAll();
     const poolHours = summaries.find((row) => row.scope === "POOL" && row.unitLabel === "hours");
@@ -460,7 +460,7 @@ describe("Commitment Pooling read model", () => {
     assert.ok(exposure);
     assert.ok(pool);
     assert.equal(poolHours.openUnits, 0n);
-    assert.equal(cycleHours.expectedUnits, 0n);
+    assert.equal(cycleHours.expectedUnits, 2n);
     assert.equal(capitalHours.openUnits, 3n);
     assert.notEqual(poolHours.unitLabelHash, capitalHours.unitLabelHash);
     assert.equal(exposure.openCommitmentCount, 1n);

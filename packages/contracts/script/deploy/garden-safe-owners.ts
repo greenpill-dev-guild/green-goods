@@ -21,6 +21,7 @@ import {
 import { execCastCaptured, parseCastTransactionHash } from "../utils/cast-env";
 import { NetworkManager } from "../utils/network";
 import { buildReleaseLock, loadReleaseManifest, type ReleaseManifest } from "../utils/release-manifest";
+import { assertReleaseOperatorSession, resolveCheckoutCommit } from "../utils/release-session";
 import { retryRpcAvailability } from "../utils/rpc-retry";
 
 const CONTRACTS_ROOT = path.join(__dirname, "../..");
@@ -57,6 +58,34 @@ const DEV_GUILD_REVIEWED_OWNERS = [
   "0x2aa64E6d80390F5C017F0313cB908051BE2FD35e",
   "0xD2838aCb302F40E06f3FDC05f5b357034113262E",
 ] as const;
+
+/**
+ * Release-owner accepted deviation, recorded 2026-08-17 by Afolabi Aiyeloja.
+ *
+ * `config/commitment-pooling-release.json` froze this Safe on 2026-08-11 as 2-of-6, but that
+ * configuration was never applied on chain. Live Celo state is 1-of-4 over a strict subset of the
+ * frozen owners, and the release owner accepted the reduced recovery threshold for this release.
+ *
+ * The manifest is deliberately left unedited. Its hash is the release lock for
+ * `commitment-pooling-settlement-credit-v1`, and the Arbitrum pool-backfill lane has already
+ * broadcast all of its boundaries against that hash, so rewriting it would invalidate completed
+ * on-chain work. Recording the accepted configuration here matches how DEV_GUILD_REVIEWED_OWNERS
+ * is already frozen in code and keeps the divergence explicit.
+ *
+ * Consequence to understand before relying on this: a single one of these four signers reaches
+ * the Garden Safe threshold of two when combined with any other owner. Every other reviewed
+ * condition is still asserted — v1.4.1 singleton and version, at least three unique owners, no
+ * modules, no guard, and the v1.4.1 compatibility fallback handler.
+ */
+const GREEN_GOODS_ACCEPTED_RECOVERY_CONFIGURATION = {
+  threshold: "1",
+  owners: [
+    "0x2aa64E6d80390F5C017F0313cB908051BE2FD35e",
+    "0x5c79d252F458b3720f7f230f8490fd1eE81d32FB",
+    "0x6166E1964447E0959bC7c8d543DB3ab82dB65044",
+    "0xa9d20b435A85fAAa002f32d66F7D21564130E9cf",
+  ],
+} as const;
 
 const SAFE_INTERFACE = new Interface([
   "function setup(address[] owners,uint256 threshold,address to,bytes data,address fallbackHandler,address paymentToken,uint256 payment,address payable paymentReceiver)",
@@ -454,19 +483,31 @@ async function inspectSafe(
   };
 }
 
+/**
+ * `minimumThreshold` defaults to the reviewed 2-of-N policy. Callers that hold a frozen
+ * manifest threshold pass it instead, so a deliberately recorded lower threshold is accepted
+ * only where the release owner declared it and never as a silent global relaxation.
+ */
 export function assertRecoverySafeConfiguration(
   inspection: SafeInspection,
   singleton: string,
   fallbackHandler: string,
+  minimumThreshold = 2,
 ): void {
   const owners = normalizedOwners(inspection.owners);
   const threshold = Number(inspection.threshold);
+  // A non-integer floor would make every threshold comparison below false and silently disable
+  // this check, so reject it rather than clamping it into something that looks valid.
+  if (!Number.isSafeInteger(minimumThreshold)) {
+    throw new Error("Recovery Safe minimum threshold must be a safe integer");
+  }
+  const floor = Math.max(1, minimumThreshold);
   if (
     !inspection.codePresent ||
     inspection.singleton !== getAddress(singleton) ||
     inspection.version !== "1.4.1" ||
     !Number.isSafeInteger(threshold) ||
-    threshold < 2 ||
+    threshold < floor ||
     threshold > owners.length ||
     owners.length < 3 ||
     new Set(owners).size !== owners.length ||
@@ -485,7 +526,7 @@ function assertExpectedRecoverySafe(
   singleton: string,
   fallbackHandler: string,
 ): void {
-  assertRecoverySafeConfiguration(inspection, singleton, fallbackHandler);
+  assertRecoverySafeConfiguration(inspection, singleton, fallbackHandler, Number(expectedThreshold));
   if (inspection.threshold !== expectedThreshold || !sameOwnerSet(inspection.owners, expectedOwners)) {
     throw new Error("Recovery owner does not match its frozen reviewed owner set and threshold");
   }
@@ -497,8 +538,9 @@ export function assertRecoverySafeMatchesPlan(
   singleton: string,
   fallbackHandler: string,
 ): void {
-  assertRecoverySafeConfiguration(inspection, singleton, fallbackHandler);
-  assertRecoverySafeConfiguration(reviewedInspection, singleton, fallbackHandler);
+  const reviewedThreshold = Number(reviewedInspection.threshold);
+  assertRecoverySafeConfiguration(inspection, singleton, fallbackHandler, reviewedThreshold);
+  assertRecoverySafeConfiguration(reviewedInspection, singleton, fallbackHandler, reviewedThreshold);
   if (
     inspection.version !== reviewedInspection.version ||
     inspection.singleton !== reviewedInspection.singleton ||
@@ -633,8 +675,11 @@ function expectedRecoveryInputs(manifest: ReleaseManifest): {
     throw new Error("Release manifest recovery identities differ from the human-frozen Celo Safes");
   }
   return {
-    greenGoodsOwners: manifest.ownership.protocolSafeConfiguration.owners.map(getAddress),
-    greenGoodsThreshold: manifest.ownership.protocolSafeConfiguration.threshold,
+    // See GREEN_GOODS_ACCEPTED_RECOVERY_CONFIGURATION: the frozen manifest entry describes an
+    // intended 2-of-6 that was never applied on chain, so the accepted live configuration is the
+    // expectation here while the manifest hash stays untouched as the release lock.
+    greenGoodsOwners: GREEN_GOODS_ACCEPTED_RECOVERY_CONFIGURATION.owners.map(getAddress),
+    greenGoodsThreshold: GREEN_GOODS_ACCEPTED_RECOVERY_CONFIGURATION.threshold,
     devGuildOwners: DEV_GUILD_REVIEWED_OWNERS.map(getAddress),
     devGuildThreshold: "2",
   };
@@ -951,10 +996,8 @@ export function assertCheckpointReceiptBlock(recorded: CheckpointEntry, verified
   }
 }
 
-function foundryCredentialArgs(expectedCommit: string): string[] {
-  if (process.env.GG_RELEASE_OPERATOR_SESSION !== expectedCommit) {
-    throw new Error("Broadcast release-operator session does not match the reviewed commit");
-  }
+function foundryCredentialArgs(): string[] {
+  assertReleaseOperatorSession(resolveCheckoutCommit(REPOSITORY_ROOT));
   const account = process.env.FOUNDRY_KEYSTORE_ACCOUNT ?? "green-goods-deployer";
   const passwordFile = process.env.ETH_PASSWORD;
   if (!passwordFile || !fs.existsSync(passwordFile)) {
@@ -963,7 +1006,7 @@ function foundryCredentialArgs(expectedCommit: string): string[] {
   return ["--account", account, "--password-file", passwordFile];
 }
 
-function sendTransaction(to: string, data: string, nonce: number, rpcUrl: string, expectedCommit: string): string {
+function sendTransaction(to: string, data: string, nonce: number, rpcUrl: string): string {
   const output = execCastCaptured(
     [
       "send",
@@ -978,7 +1021,7 @@ function sendTransaction(to: string, data: string, nonce: number, rpcUrl: string
       String(CELO_CHAIN_ID),
       "--rpc-url",
       rpcUrl,
-      ...foundryCredentialArgs(expectedCommit),
+      ...foundryCredentialArgs(),
       "--json",
     ],
     { cwd: CONTRACTS_ROOT, env: process.env },
@@ -1204,7 +1247,6 @@ async function executeFinalDeployment(
       entry.transaction.data,
       entry.transaction.nonce,
       networkManager.getRpcUrl("celo"),
-      plan.releaseSourceCommit,
     );
   }
 

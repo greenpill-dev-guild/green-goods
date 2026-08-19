@@ -1,5 +1,5 @@
 import assert from "assert";
-import { Addresses, createTestIndexer, GardenAccount, GardenToken } from "./v3";
+import { Addresses, createTestIndexer, GardenAccount, GardenToken, indexedAddress } from "./v3";
 
 const CHAIN_ID = 42161;
 
@@ -19,9 +19,9 @@ function mockEvent(
   return {
     chainId,
     block: { timestamp, number: opts.blockNumber ?? 0 },
-    srcAddress: opts.srcAddress ?? addr(99),
+    srcAddress: opts.srcAddress,
     transaction: { hash: opts.txHash ?? txHash(timestamp) },
-    logIndex: opts.logIndex ?? 0,
+    logIndex: opts.logIndex,
   };
 }
 
@@ -56,7 +56,7 @@ describe("GardenToken.GardenMinted", () => {
   it("creates a new garden entity with all fields", async () => {
     const mockDb = createTestIndexer();
     const gardenAddress = addr(10);
-    const tokenContract = addr(11);
+    const tokenContract = indexedAddress("GardenToken", CHAIN_ID);
 
     const event = GardenToken.GardenMinted.createMockEvent({
       tokenId: 42n,
@@ -66,7 +66,7 @@ describe("GardenToken.GardenMinted", () => {
       location: "Berlin",
       bannerImage: "ipfs://bafk-banner",
       openJoining: true,
-      mockEventData: mockEvent(CHAIN_ID, 1000, { srcAddress: tokenContract }),
+      mockEventData: mockEvent(CHAIN_ID, 1000),
     });
 
     const result = await GardenToken.GardenMinted.processEvent({ event, mockDb });
@@ -133,7 +133,7 @@ describe("GardenAccount.NameUpdated", () => {
       location: "",
       bannerImage: "",
       openJoining: false,
-      mockEventData: mockEvent(CHAIN_ID, 1000, { srcAddress: addr(11) }),
+      mockEventData: mockEvent(CHAIN_ID, 1000),
     });
     mockDb = await GardenToken.GardenMinted.processEvent({ event: mintEvent, mockDb });
 
@@ -153,7 +153,7 @@ describe("GardenAccount.NameUpdated", () => {
 
   it("creates a default garden if not existing", async () => {
     const mockDb = createTestIndexer();
-    const gardenAddress = addr(10);
+    const gardenAddress = indexedAddress("GardenAccount", CHAIN_ID);
 
     const event = GardenAccount.NameUpdated.createMockEvent({
       updater: addr(1),
@@ -184,7 +184,7 @@ describe("GardenAccount.DescriptionUpdated", () => {
       location: "",
       bannerImage: "",
       openJoining: false,
-      mockEventData: mockEvent(CHAIN_ID, 1000, { srcAddress: addr(11) }),
+      mockEventData: mockEvent(CHAIN_ID, 1000),
     });
     mockDb = await GardenToken.GardenMinted.processEvent({ event: mintEvent, mockDb });
 
@@ -206,7 +206,7 @@ describe("GardenAccount.DescriptionUpdated", () => {
 
   it("creates default garden when missing", async () => {
     const mockDb = createTestIndexer();
-    const gardenAddress = addr(10);
+    const gardenAddress = indexedAddress("GardenAccount", CHAIN_ID);
 
     const event = GardenAccount.DescriptionUpdated.createMockEvent({
       updater: addr(1),
@@ -236,7 +236,7 @@ describe("GardenAccount.LocationUpdated", () => {
       location: "Old Location",
       bannerImage: "",
       openJoining: false,
-      mockEventData: mockEvent(CHAIN_ID, 1000, { srcAddress: addr(11) }),
+      mockEventData: mockEvent(CHAIN_ID, 1000),
     });
     mockDb = await GardenToken.GardenMinted.processEvent({ event: mintEvent, mockDb });
 
@@ -258,7 +258,7 @@ describe("GardenAccount.LocationUpdated", () => {
 
   it("creates default garden when missing", async () => {
     const mockDb = createTestIndexer();
-    const gardenAddress = addr(10);
+    const gardenAddress = indexedAddress("GardenAccount", CHAIN_ID);
 
     const event = GardenAccount.LocationUpdated.createMockEvent({
       updater: addr(1),
@@ -288,7 +288,7 @@ describe("GardenAccount.BannerImageUpdated", () => {
       location: "",
       bannerImage: "ipfs://old",
       openJoining: false,
-      mockEventData: mockEvent(CHAIN_ID, 1000, { srcAddress: addr(11) }),
+      mockEventData: mockEvent(CHAIN_ID, 1000),
     });
     mockDb = await GardenToken.GardenMinted.processEvent({ event: mintEvent, mockDb });
 
@@ -310,7 +310,7 @@ describe("GardenAccount.BannerImageUpdated", () => {
 
   it("creates default garden when missing", async () => {
     const mockDb = createTestIndexer();
-    const gardenAddress = addr(10);
+    const gardenAddress = indexedAddress("GardenAccount", CHAIN_ID);
 
     const event = GardenAccount.BannerImageUpdated.createMockEvent({
       updater: addr(1),
@@ -340,7 +340,7 @@ describe("GardenAccount.GAPProjectCreated", () => {
       location: "",
       bannerImage: "",
       openJoining: false,
-      mockEventData: mockEvent(CHAIN_ID, 1000, { srcAddress: addr(11) }),
+      mockEventData: mockEvent(CHAIN_ID, 1000),
     });
     mockDb = await GardenToken.GardenMinted.processEvent({ event: mintEvent, mockDb });
 
@@ -395,7 +395,7 @@ describe("GardenAccount.OpenJoiningUpdated", () => {
       location: "",
       bannerImage: "",
       openJoining: false,
-      mockEventData: mockEvent(CHAIN_ID, 1000, { srcAddress: addr(11) }),
+      mockEventData: mockEvent(CHAIN_ID, 1000),
     });
     mockDb = await GardenToken.GardenMinted.processEvent({ event: mintEvent, mockDb });
 
@@ -417,7 +417,7 @@ describe("GardenAccount.OpenJoiningUpdated", () => {
 
   it("does nothing when garden not found", async () => {
     const mockDb = createTestIndexer();
-    const gardenAddress = addr(10);
+    const gardenAddress = indexedAddress("GardenAccount", CHAIN_ID);
 
     const updateEvent = GardenAccount.OpenJoiningUpdated.createMockEvent({
       updater: addr(1),

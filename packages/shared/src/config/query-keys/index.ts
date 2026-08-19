@@ -10,5 +10,6 @@ export {
 } from "./constants";
 
 export { queryKeys } from "./registry";
+export { creditInvalidationKeys } from "./credit";
 export { queryInvalidation } from "./invalidation";
 export type { QueryKey, QueueQueryKey, WorksQueryKey } from "./types";

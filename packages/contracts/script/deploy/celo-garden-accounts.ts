@@ -16,6 +16,7 @@ import {
 } from "ethers";
 import { execCastCaptured, parseCastTransactionHash } from "../utils/cast-env";
 import { NetworkManager } from "../utils/network";
+import { assertReleaseOperatorSession, resolveCheckoutCommit } from "../utils/release-session";
 
 const CONTRACTS_ROOT = path.join(__dirname, "../..");
 const REPOSITORY_ROOT = path.join(CONTRACTS_ROOT, "../..");
@@ -655,11 +656,8 @@ async function verifyDeployedPlan(plan: CeloGardenAccountPlan): Promise<void> {
   }
 }
 
-function credentialArgs(expectedCommit: string): string[] {
-  const session = process.env.GG_RELEASE_OPERATOR_SESSION;
-  if (session !== expectedCommit) {
-    throw new Error("Broadcast release-operator session does not match the reviewed commit");
-  }
+function credentialArgs(): string[] {
+  assertReleaseOperatorSession(resolveCheckoutCommit(REPOSITORY_ROOT));
   const passwordFile = process.env.ETH_PASSWORD;
   if (!passwordFile || !fs.existsSync(passwordFile)) {
     throw new Error("Broadcast requires the release operator's temporary ETH_PASSWORD file");
@@ -667,7 +665,7 @@ function credentialArgs(expectedCommit: string): string[] {
   return ["--account", process.env.FOUNDRY_KEYSTORE_ACCOUNT ?? "green-goods-deployer", "--password-file", passwordFile];
 }
 
-function sendTransaction(transaction: PlannedTransaction, rpcUrl: string, expectedCommit: string): string {
+function sendTransaction(transaction: PlannedTransaction, rpcUrl: string): string {
   const output = execCastCaptured(
     [
       "send",
@@ -682,7 +680,7 @@ function sendTransaction(transaction: PlannedTransaction, rpcUrl: string, expect
       String(CELO_CHAIN_ID),
       "--rpc-url",
       rpcUrl,
-      ...credentialArgs(expectedCommit),
+      ...credentialArgs(),
       "--json",
     ],
     { cwd: CONTRACTS_ROOT, env: process.env },
@@ -729,7 +727,7 @@ async function executeBoundary(plan: CeloGardenAccountPlan, step: number, recove
   const pendingNonce = await provider.getTransactionCount(plan.sender, "pending");
   if (pendingNonce !== transaction.nonce)
     throw new Error(`Expected sender nonce ${transaction.nonce}, live ${pendingNonce}`);
-  const transactionHash = sendTransaction(transaction, networkManager.getRpcUrl("celo"), plan.releaseSourceCommit);
+  const transactionHash = sendTransaction(transaction, networkManager.getRpcUrl("celo"));
   const [receipt, liveTransaction] = await Promise.all([
     provider.waitForTransaction(transactionHash, 1, 120_000),
     provider.getTransaction(transactionHash),

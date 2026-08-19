@@ -8,6 +8,7 @@ import {
 } from "./commitment-pool-projections";
 import { getTxHash, normalizeAddress } from "./shared";
 import { linkConsumedFundingToCommitment } from "./settlement-funding-reconciliation";
+import { derivedFundingState } from "./settlement-projections";
 
 function fundingEntityId(chainId: number, fundingId: bigint): string {
   return `${chainId}-${fundingId}`;
@@ -46,17 +47,6 @@ function createFunding(chainId: number, fundingId: bigint, timestamp: number): C
     closedAt: undefined,
     updatedAt: timestamp,
   };
-}
-
-function derivedFundingState(funding: CommitmentFunding): CommitmentFunding["state"] {
-  if (funding.state === "REFUNDED") return "REFUNDED";
-  if (funding.withdrawBlockNumber !== undefined) return "WITHDRAWN";
-  if (funding.refundDisbursementId !== undefined) return "REFUND_QUEUED";
-  if (funding.closedAt !== undefined) return "CLOSED";
-  if (funding.consumeBlockNumber !== undefined) return "CONSUMED";
-  if (funding.depositBlockNumber !== undefined) return "DEPOSIT_RECORDED";
-  if (funding.pledgeSeen) return "PLEDGED";
-  return "UNKNOWN";
 }
 
 type FundingEvent = {

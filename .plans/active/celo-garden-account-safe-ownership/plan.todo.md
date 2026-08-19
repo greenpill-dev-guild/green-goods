@@ -6,7 +6,7 @@
 **Feature Slug**: `celo-garden-account-safe-ownership`  
 **Status**: ACTIVE  
 **Created**: 2026-08-14  
-**Last Updated**: 2026-08-15
+**Last Updated**: 2026-08-18
 
 ## Decision Log
 
@@ -34,9 +34,16 @@
 - [x] Garden-bound relay threat model and cancellation boundary defined in `spec.md`.
 - [x] Temporary deployment-EOA path explicitly superseded for this implementation.
 - [x] Recover the exact implementation creation transaction, init-code hash, constructor tuple, deterministic dependency chain, and all 18 initialization hashes.
-- [ ] Close the designated recovery Safe gate. Live official Safe Wallet reads prove both Safes
-  are v1.4.1 with unique owners, no modules, and no guard. Pinned-fork nested EIP-1271 proof and
-  singleton/runtime code hashes remain the only recovery-Safe blockers in this lane.
+- [x] Close the designated recovery Safe gate. Pinned-fork nested EIP-1271 proof and
+  singleton/runtime code hashes are closed by `evidence/celo-release-readiness-2026-08-17.json`.
+  The Dev Guild recovery Safe passes every reviewed condition live. The Green Goods protocol
+  recovery Safe `0x1B9Ac97Ea62f69521A14cbe6F45eb24aD6612C19` is live as 1-of-4 over a strict subset
+  of the 6 owners frozen in `config/commitment-pooling-release.json`, which never matched on-chain
+  state. Afo accepted that configuration for this release on 2026-08-17 and intends to raise the
+  threshold separately, so it is no longer a blocker. The accepted configuration is recorded as
+  `GREEN_GOODS_ACCEPTED_RECOVERY_CONFIGURATION` in `script/deploy/garden-safe-owners.ts` and final
+  Garden Safe planning returns zero blockers across all 18 boundaries. Accepted risk: one of those
+  four signers reaches the Garden Safe threshold of two combined with any other owner.
 - [x] Reverify official CCIP router identities, selectors, code, and both Arbitrum/Celo lane directions at the research snapshot.
 - [x] Rebuild the historical source/compiler/submodule snapshot and match the recovered creation-code hashes.
 
@@ -45,11 +52,11 @@
 | Requirement | Lane | Planned step | Status |
 |---|---|---|---|
 | Exact implementation and dependency address/code ledger | `contracts` | Step 1 | Exact on-chain recovery and historical-source rebuild complete |
-| RED proof for address, initialization, relay, Safe, and replay boundaries | `contracts` | Step 2 | Bun-wrapped relay unit suite passes 11/11; fork proof remains open |
-| Atomic same-address account deployment and initialization | `contracts` | Step 3 | Coordinator, operator, recovered raw init code, and production artifact are complete; live Celo plan/fork proof remains open |
-| Garden-bound authenticated relay with honest cancellation | `contracts` | Step 4 | Source/destination contracts compile and the 11-test unit suite passes; fork proof pending |
-| Direct final 2-of-3 Safe prediction/deployment/verifier tooling | `contracts` | Step 5 | Implemented with focused script proof; PRD-733 live proof remains a closure gate |
-| Arbitrum/Celo fork and invariant proof | `contracts` | Step 6 | Exact 18-account, Safe-code, live-recovery, Guardian, and nested EIP-1271 fork test authored; executable receipt pending |
+| RED proof for address, initialization, relay, Safe, and replay boundaries | `contracts` | Step 2 | Complete — Bun-wrapped relay unit suite passes 11/11 and the pinned fork proof passes |
+| Atomic same-address account deployment and initialization | `contracts` | Step 3 | Complete — live Celo plan returns zero blockers and the pinned fork proof passes |
+| Garden-bound authenticated relay with honest cancellation | `contracts` | Step 4 | Source/destination contracts compile, the 11-test unit suite passes, and the pinned fork proof passes. Live relay deployment belongs to the later PRD-819 lane |
+| Direct final 2-of-3 Safe prediction/deployment/verifier tooling | `contracts` | Step 5 | Complete — PRD-733 live state is verified for both recovery Safes and planning returns zero blockers under the accepted 1-of-4 Green Goods configuration |
+| Arbitrum/Celo fork and invariant proof | `contracts` | Step 6 | Passing — exact 18-account, Safe-code, Guardian, and nested EIP-1271 pinned fork test executes green on 2026-08-17 |
 | Deterministic router/relay and Guardian transaction plan | `contracts` | Step 7 | Four zero-value, receipt-ordered transactions implemented in plan/verify-only tooling; live release-time artifact pending RPC |
 | Exact candidate security review and evidence closure | `qa_pass_1`, `qa_pass_2` | Step 8 | Human-owned PR/review phase after readiness proof |
 | UI and shared application changes | `ui`, `state_api` | Not applicable | N/A |
@@ -181,18 +188,88 @@ its own pinned candidate and transaction-by-transaction authority.
 
 - [x] Targeted Bun-wrapped relay unit command and gas result recorded during Step 2.
 - [x] Focused deployment operator tests pass 21/21 across GardenAccount, final Safe, and relay planning.
-- [ ] Pinned fork command passes against Arbitrum `494724924` and Celo `74938820`; local RPC access remains environment-blocked.
-- [ ] `bun run --cwd packages/contracts test:script`
-- [ ] `bun run --cwd packages/contracts build:full`
-- [ ] `bun run --cwd packages/contracts check:sizes`
+- [x] Pinned fork command passes: `bun run test:fork:garden-account-release` →
+  `testFork_exactDependenciesAllAccountsAndNestedSafeThresholds()` PASS (1 passed, 0 failed),
+  `deployAndInitialize` measured at 15,133,908 gas against Celo's 30,000,000 block limit. The
+  earlier environment block was empty `ARBITRUM_RPC_URL`/`CELO_RPC_URL` in the root `.env` sending
+  the scripts to public non-archive endpoints, not a code defect.
+- [x] `bun run --cwd packages/contracts test:script` — 21 files, 225 tests, 0 failed. The command
+  previously ran only 19 files: its unquoted `script/**/*.test.ts` glob was expanded by `sh` as a
+  single level, silently excluding `release-operator.test.ts` and `release-verify.test.ts`. Fixed
+  to `vitest run --dir script`.
+- [x] `bun run --cwd packages/contracts build:full` — exit 0.
+- [x] `bun run --cwd packages/contracts check:sizes` — all deployable contracts under EIP-170.
 - [ ] `bash scripts/quality/check-test-quality.sh`
 - [x] `node scripts/harness/plan-hub.mjs validate` — 42 feature hubs validated on 2026-08-16.
+- [x] Broadcast gate fix proved before use: `bun run --cwd packages/contracts test:script` — 22
+  files, 236 tests, 0 failed; typecheck clean; positive and negative session checks exercised
+  against both wrappers without broadcasting.
+- [x] Post-broadcast verification: `settlement:garden-accounts:verify:celo` and
+  `settlement:garden-safes:verify:celo` both pass with zero blockers, independently confirmed by
+  direct chain reads of all 18 accounts and all 18 Safes.
 - [ ] Full Ship Gate only for explicit PR/merge readiness.
 - [ ] Fresh validation receipts in every terminal lane handoff.
 
+## Release Record
+
+Broadcast was separately authorized by Afo and executed on 2026-08-18 from candidate
+`7949a62964e4ff813dd9842b0997277a8f87c186`, twenty boundaries in two stages, sender nonce 118 to
+138 at 4.53 CELO.
+
+| Boundary | Result |
+|---|---|
+| Coordinator deploy | `0xf31e5bcc…6ad85`, block 75,135,173, 1,375,262 gas |
+| Atomic 18-account deploy and initialize | `0x2526b382…5211e6`, block 75,135,181, 15,773,672 gas against the 30,000,000 limit |
+| 18 final Garden Safes | blocks 75,135,556–75,135,804, receipts in `deployments/42220-settlement-safes.json` |
+
+Verified independently of the release tooling: the GardenAccount runtime at
+`0x710cBFB9a29920B4577692eD495972fcd27286b4` is byte-identical on Celo and Arbitrum, all 18
+accounts hold code at their predicted addresses, and every Safe is 2-of-3 on Safe v1.4.1 with the
+v1.4.1 compatibility fallback handler, nonce zero, zero native and zero G$, no modules, no guard.
+
+The ceremony could not run at first. Both wrappers compared `GG_RELEASE_OPERATOR_SESSION` against
+the release manifest `sourceCommit` while `release-operator.ts` pinned `git HEAD` to that same
+session value, so broadcast required a commit naming its own hash. PR 724 moved the check to the
+checked-out candidate and left release identity asserted where the plan is validated.
+
+### Garden-bound relay, 2026-08-18
+
+The relay lane ran separately, four boundaries alternating chains, receipts in
+`deployments/garden-account-relay.json`.
+
+| Boundary | Result |
+|---|---|
+| Deploy source router (Arbitrum) | `0x9507f131…9ebb1`, block 495,913,526 |
+| Deploy Celo relay | `0x52d8115e…38c7d`, block 75,178,382, 2,882,880 gas |
+| Bind destination (Arbitrum) | `0xcb483669…88f06`, block 495,916,953, 45,465 gas |
+| Trust relay in Guardian (Celo) | `0xf5c48940…4712f`, block 75,178,393, 47,672 gas |
+
+Router `0xDBF71edb4902cB43260f8A3e4460072e2028E627` and relay
+`0x21E4594760454D3c5A7085e3D48F1E60c6AeD1C9`; the router's `destinationRelay` is the reviewed relay
+and the Guardian trusts it. The custody boundary was verified across all 18 Safes: the relay is not
+an owner, not a module, no guard is set, and it holds zero native and zero G$. Total relay spend was
+about 0.00006 ETH and 0.586 CELO, sender nonce 971 to 973 on Arbitrum and 138 to 140 on Celo.
+
+Boundary 1 broadcast correctly and then failed its own postcondition, which compared the deployed
+runtime hash against the artifact's `deployedBytecode`. Solidity writes immutables at construction,
+so those can never be equal: the router declares nine immutable references over 960 bytes, and the
+deployed code differs from the artifact in exactly 416 bytes, every one inside a declared span. The
+CREATE2 address already binds the init code and therefore those values, so PR 729 masks the
+declared spans, compares the remaining bytes, and cross-checks the artifact against the hash frozen
+in the plan. Because the postcondition threw before the checkpoint was written, the mined boundary
+was unrecoverable by re-running against a consumed nonce; PR 729 also added an `adopt` command that
+verifies the same receipt and postcondition and records the boundary without signing.
+
+`authorityEnabled` stays false. No Zodiac Roles module, allowance, peer binding, ownership
+transfer, or value authority was configured. The bounded settlement authority half of PRD-819 has
+no operator stage yet and remains open work. The relay does not by itself let a Garden act alone:
+it requires one recovery-owner signature for every Safe execution, so Garden-plus-one-recovery now
+reaches threshold two where both recovery organisations were previously needed.
+
 ## Boundaries
 
-This active plan authorizes planning and later scoped implementation only. It does not authorize
+This active plan authorized planning and scoped implementation; the 2026-08-18 broadcast above ran
+under separate human authorization. It does not authorize
 dependency installation, production deployment, broadcast, guardian trust mutation, Safe
 creation, Safe transaction execution, role/allowance/peer configuration, ownership transfer,
 value movement, canary, unpause, commit, push, or merge by itself.

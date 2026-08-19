@@ -79,7 +79,7 @@ Remove unused files/exports/types/deps found by `bunx knip --reporter compact`. 
 
 ### Agent 4: Circular Dependency Resolution (madge)
 
-Zero out cycles from `npx madge --circular --extensions ts,tsx packages/`. Resolution preference: `import type` → extract shared interface → dependency inversion → merge modules. Rules: respect build order `contracts -> shared -> indexer -> client/admin/agent`; never create upward dependencies; hooks stay in shared; `bun build` must pass after.
+Zero out cycles from `npx madge --circular --extensions ts,tsx packages/`. Resolution preference: `import type` → extract shared interface → dependency inversion → merge modules. Rules: respect build order `contracts -> shared -> indexer -> client/admin/agent`; never create upward dependencies; hooks stay in shared; `bun run build` must pass after.
 
 ### Agent 5: Type Strengthening
 
@@ -211,7 +211,7 @@ Use `--no-codex` when:
 git diff --check                # Whitespace / conflict marker sanity
 bun format:check && bun lint    # Non-mutating style gate
 bun run test                    # Correctness
-bun build                       # Build integrity
+bun run build                   # Build integrity
 madge --circular --extensions ts,tsx packages/  # Only when locally installed or explicitly approved
 bunx knip --reporter compact    # Checked-in dependency; reduced dead code
 ```
