@@ -8,6 +8,7 @@ import {
   toastService,
   useActions,
   useBrowserNavigation,
+  useCommitmentPools,
   useConvictionStrategies,
   useGardeners,
   useGardens,
@@ -26,9 +27,6 @@ import {
 import {
   RiCalendarEventFill,
   RiErrorWarningLine,
-  RiFileChartFill,
-  RiGroupFill,
-  RiHammerFill,
   RiLoader4Line,
   RiMapPin2Fill,
   RiUserAddLine,
@@ -46,7 +44,9 @@ import {
   type GardenMember,
   GardenWork,
 } from "@/components/Features";
-import { type StandardTab, StandardTabs, TopNav } from "@/components/Navigation";
+import { StandardTabs, TopNav } from "@/components/Navigation";
+import { buildGardenTabs } from "./gardenTabs";
+import { GardenPool } from "./Pool";
 
 export const Garden: React.FC = () => {
   const intl = useIntl();
@@ -79,21 +79,6 @@ export const Garden: React.FC = () => {
 
   // Reset scroll position before paint — prevents flash from stale scroll state
   useScrollToTop();
-
-  const tabNames = {
-    [GardenTab.Work]: intl.formatMessage({
-      id: "app.garden.work",
-      defaultMessage: "Work",
-    }),
-    [GardenTab.Insights]: intl.formatMessage({
-      id: "app.garden.insights",
-      defaultMessage: "Insights",
-    }),
-    [GardenTab.Gardeners]: intl.formatMessage({
-      id: "app.garden.gardeners",
-      defaultMessage: "Gardeners",
-    }),
-  };
 
   const navigate = useNavigateToTop();
   const { activeTab, setActiveTab } = useGardenTabs();
@@ -175,6 +160,12 @@ export const Garden: React.FC = () => {
   );
 
   const validGardenAddress = gardenIdParam && isAddress(gardenIdParam) ? gardenIdParam : undefined;
+
+  const { pools: commitmentPools } = useCommitmentPools({
+    chainId: DEFAULT_CHAIN_ID,
+    garden: validGardenAddress as Address | undefined,
+  });
+  const commitmentPool = commitmentPools[0];
   const { strategies: convictionStrategies } = useConvictionStrategies(validGardenAddress, {
     enabled: Boolean(validGardenAddress),
   });
@@ -312,24 +303,7 @@ export const Garden: React.FC = () => {
 
   // Restore scroll position when switching tabs
 
-  // Standard tabs configuration - removed counts
-  const tabs: StandardTab[] = [
-    {
-      id: GardenTab.Work,
-      label: tabNames[GardenTab.Work],
-      icon: <RiHammerFill className="w-4 h-4" />,
-    },
-    {
-      id: GardenTab.Insights,
-      label: tabNames[GardenTab.Insights],
-      icon: <RiFileChartFill className="w-4 h-4" />,
-    },
-    {
-      id: GardenTab.Gardeners,
-      label: tabNames[GardenTab.Gardeners],
-      icon: <RiGroupFill className="w-4 h-4" />,
-    },
-  ];
+  const tabs = buildGardenTabs(intl, { hasPool: Boolean(commitmentPool) });
 
   const renderTabContent = () => {
     switch (activeTab) {
@@ -350,6 +324,8 @@ export const Garden: React.FC = () => {
           />
         );
       }
+      case GardenTab.Pool:
+        return commitmentPool ? <GardenPool pool={commitmentPool} /> : null;
       case GardenTab.Insights:
         return (
           <GardenAssessments
@@ -368,7 +344,9 @@ export const Garden: React.FC = () => {
   return (
     <GardenErrorBoundary>
       <div className="h-full min-h-0 w-full flex flex-col relative overflow-hidden">
-        {pathname.includes("work") || pathname.includes("assessments") ? null : (
+        {pathname.includes("work") ||
+        pathname.includes("assessments") ||
+        pathname.includes("commitments") ? null : (
           <>
             {/* Fixed Header (banner + TopNav + title/metadata) */}
             <div ref={headerRef} className="fixed top-0 left-0 right-0 bg-bg-white-0 z-20">
