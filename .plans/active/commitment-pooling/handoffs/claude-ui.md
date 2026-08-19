@@ -152,11 +152,16 @@ own cross-surface pass. Do not resolve it by picking one in implementation.
 
 ## Net-new component audit — 2026-08-18
 
-The Components tab carries 101 entries. **68 cite a shipped component by `file:line`** (84
-occurrences) and all 68 resolve against the current tree — re-measured 2026-08-19, when one was also
-found off by one line. Nothing in the build checks these: `components.ts` never touches the
-filesystem, so `GALLERY_ERRORS` validates ids, specimens, ship notes and screen references but not
-whether a citation still points at what it names. **34 are net-new** — the things implementation has to build.
+The Components tab carries 101 entries. **67 cite a shipped component by `file:line`** and **34 are
+net-new** — the things implementation has to build. Those 67 citations point at **54 distinct
+file:line pairs**, because a concept drawn on both surfaces cites the same shipped anatomy twice
+(client and admin `chip` both cite `Badge.tsx:44`). Counting the ship notes and where-used prose as
+well, 84 citation strings appear across 68 distinct pairs, and every one resolves against the
+current tree — re-measured 2026-08-19, when one was also found off by one line.
+
+Nothing in the build checks any of this: `components.ts` never touches the filesystem, so
+`GALLERY_ERRORS` validates ids, specimens, ship notes and screen references but not whether a
+citation still points at what it names.
 Each was checked against `packages/shared/src/components/`, `packages/admin/src/components/`, and
 both canonical palettes.
 
