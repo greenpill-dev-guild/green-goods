@@ -1,0 +1,168 @@
+{
+  "version": 2,
+  "feature": {
+    "slug": "client-structure-and-agent-guides",
+    "title": "Client Structure Cleanup + Agent Guide Consolidation",
+    "kind": "feature",
+    "stage": "backlog"
+  },
+  "workflow": {
+    "overall_status": "backlog",
+    "priority": "p1",
+    "created_at": "2026-08-19T19:13:54.605Z",
+    "updated_at": "2026-08-19T19:13:54.605Z"
+  },
+  "links": {
+    "brief": "brief.md",
+    "spec": "spec.md",
+    "plan": "plan.todo.md",
+    "eval": "eval.md"
+  },
+  "linear": {
+    "parentIssue": null,
+    "project": null,
+    "initiative": null,
+    "syncDirection": "plans_to_linear_visibility",
+    "lastSyncedAt": null,
+    "lanes": {}
+  },
+  "taxonomy": {
+    "initiative": "engineering-quality",
+    "tracks": ["client", "admin", "shared", "docs", "ops"],
+    "work_types": ["implementation", "cleanup", "hardening", "maintenance", "qa"],
+    "surfaces": ["client", "admin", "shared", "docs", "tooling"],
+    "depends_on_features": []
+  },
+  "notes": [
+    "Contracts lane is n/a: no Solidity in scope.",
+    "Phase 1 ships as ONE PR per maintainer decision D1 -- config corrections as the first commit, then error fixes by cluster.",
+    "Open decisions A-D in plan.todo.md must be resolved by the maintainer before the steps that depend on them.",
+    "AGENTS.md and scripts/quality/** are security-sensitive surfaces -- call them out in any PR summary.",
+    "status.json is authoritative; set a concrete <type>/<work-description> branch only when work begins.",
+    "Validation intent is Ship Gate, not QA Speed Mode -- build config, a shared domain type, and security-sensitive surfaces are in scope."
+  ],
+  "lanes": {
+    "ui": {
+      "owner": "claude",
+      "status": "todo",
+      "branch": null,
+      "depends_on": ["state_api"],
+      "handoff": "handoffs/claude-ui.md",
+      "tdd": {
+        "mode": "not_applicable",
+        "status": "pending",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
+        "note": "Refactor only, no behavior change. Proof is the restored tsc -b plus the existing client suite staying green after every rename."
+      },
+      "skill_tags": ["react", "refactor", "frontend-design"]
+    },
+    "state_api": {
+      "owner": "codex",
+      "status": "todo",
+      "branch": null,
+      "depends_on": [],
+      "handoff": "handoffs/codex-state-api.md",
+      "tdd": {
+        "mode": "required",
+        "status": "pending",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
+        "note": "RED is the probe passing today (recorded in spec.md); GREEN is AC-1, the same probe failing the build."
+      },
+      "skill_tags": ["typescript", "build-config", "data-layer"]
+    },
+    "contracts": {
+      "owner": "codex",
+      "status": "n/a",
+      "branch": null,
+      "depends_on": [],
+      "handoff": "handoffs/codex-contracts.md",
+      "tdd": {
+        "mode": "not_applicable",
+        "status": "pending",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
+        "note": "No Solidity in scope."
+      },
+      "skill_tags": ["contracts"]
+    },
+    "qa_pass_1": {
+      "owner": "claude",
+      "status": "blocked",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": false,
+      "branch": null,
+      "depends_on": ["state_api", "ui", "docs"],
+      "handoff": "handoffs/claude-qa-pass-1.md",
+      "skill_tags": ["testing", "review"]
+    },
+    "qa_pass_2": {
+      "owner": "codex",
+      "status": "blocked",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": false,
+      "branch": null,
+      "depends_on": ["qa_pass_1"],
+      "handoff": "handoffs/codex-qa-pass-2.md",
+      "skill_tags": ["testing", "review"]
+    },
+    "docs": {
+      "owner": "claude",
+      "status": "todo",
+      "branch": null,
+      "depends_on": ["ui"],
+      "handoff": "handoffs/claude-docs.md",
+      "tdd": {
+        "mode": "required",
+        "status": "pending",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
+        "note": "Phase 3 (AGENTS.md) is documentation. Phase 4 adds a gate: RED is a deliberately misnamed fixture failing check:source-structure, GREEN is the real tree passing."
+      },
+      "skill_tags": ["documentation", "tooling", "review"]
+    }
+  },
+  "history": [
+    {
+      "timestamp": "2026-08-19T19:13:54.607Z",
+      "actor": "human",
+      "lane": "system",
+      "status": "scaffolded",
+      "branch": null,
+      "note": "Scaffolded feature hub in backlog"
+    },
+    {
+      "timestamp": "2026-08-19T19:13:54.605Z",
+      "actor": "claude",
+      "lane": "system",
+      "status": "scoped",
+      "branch": null,
+      "note": "Filled hub from the 2026-08-19 client structure review: 9 topics reviewed, 14 decisions locked, 4 phases planned."
+    }
+  ]
+}
