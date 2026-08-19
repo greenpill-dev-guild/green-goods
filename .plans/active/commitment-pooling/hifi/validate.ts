@@ -656,9 +656,16 @@ function scanState(screen: Screen, stateId: string, html: string, sept: boolean)
   // Member-facing surfaces (the PWA and the public website) share one ceiling:
   // never "dispute", never "legal". Renaming the editorial surface without this
   // line is silent — the scan would simply stop covering W15/W16.
+  //
+  // `err`, never `sink`. `sink` is `warn` for ASCII-framed screens, and warnings
+  // do not fail the build — so an ASCII client or editorial screen could render
+  // forbidden copy and still pass. No such screen exists today (all seven ASCII
+  // frames are Community wireframes), but those are explicitly waiting on a
+  // high-fidelity pass to graduate, and the word a member reads does not depend
+  // on how the frame is drawn (CodeRabbit, 2026-08-19).
   if (screen.surface === "client" || screen.surface === "editorial") {
     for (const [re, name] of [...BANNED_CLIENT_PUBLIC, ...MACHINE_WORDS_CLIENT])
-      if (re.test(text)) sink.push(`VOCAB ${where}: "${name}"`);
+      if (re.test(text)) err.push(`VOCAB ${where}: "${name}"`);
   }
   if (screen.surface === "admin") {
     for (const [re, name] of ADMIN_HERO) if (re.test(text)) sink.push(`VOCAB ${where}: ${name}`);
@@ -679,27 +686,32 @@ function scanState(screen: Screen, stateId: string, html: string, sept: boolean)
 // probably fine, but none has been checked and none says why. Shrink this list
 // by giving each scene a real `skipTargetReason` (or the control it walks); do
 // not add to it. A new crossing is a build error, which is the point.
+//
+// Keyed by flow + source + destination, NOT by step index. An index moves the
+// moment a scene is inserted above it, which would silently hand the exemption
+// to a different transition and let a genuinely new crossing through
+// (CodeRabbit, 2026-08-19). A stale entry is an error too, so the list cannot
+// quietly outlive what it excuses.
 const UNAUDITED_SCENE_CROSSINGS = new Set<string>([
-  "sb5:3",
-  "sb54:0",
-  "sb37:6",
-  "sb18:1",
-  "sb13:0",
-  "sb16:0",
-  "sb62:0",
-  "sb6a:0",
-  "sb3b:2",
-  "sb3b:5",
-  "sb8:5",
-  "sb12:11",
-  "sb19:0",
-  "sb19:8",
-  "sb19:9",
-  "sb15:2",
-  "sb32:5",
-  "sb33:7",
-  "sb14:3",
-  "sb48:0",
+  "sb5 W2@disputed -> W5@default",
+  "sb54 W1@open -> W2@accepted",
+  "sb37 W1@ongoing-queued -> W34@active-two",
+  "sb18 W4@confirm-domain -> W5@queued",
+  "sb13 W1@open -> W25@card",
+  "sb16 W1@open -> W2@offered",
+  "sb62 W1@open -> W2@requested",
+  "sb6a W1@open -> W2@expired",
+  "sb3b W7@claim-declined -> W1@claim-declined",
+  "sb3b W7@claim-outcomes -> W1@claim-superseded",
+  "sb8 W7@open -> W2@captured",
+  "sb12 W22@outcome -> W21@failed-recovery",
+  "sb19 W21@gate-status -> W10@garden-ready",
+  "sb19 W22@individual-dispatched -> W21@payout-partial",
+  "sb19 W21@payout-partial -> W24@flows",
+  "sb15 W15@above-threshold -> W1@open",
+  "sb32 W7@paused-cycle-composted -> W26@paused-review",
+  "sb33 W22@individual-dispatched -> W21@payout-partial",
+  "sb14 C5@default -> C9@default",
 ]);
 
 export function normalizeAndValidate(raw: RawSB[], ctx: Ctx): { sbs: ShippedSB[]; errors: string[]; warnings: string[] } {
@@ -833,6 +845,7 @@ export function normalizeAndValidate(raw: RawSB[], ctx: Ctx): { sbs: ShippedSB[]
   // immediately next. This prevents the player from concealing consequential
   // UI just because it can intercept the click. Deliberate exceptions require
   // a specific, reviewable reason on the source scene.
+  const usedCrossings = new Set<string>();
   for (const sb of sbs) {
     const rawSb = raw.find((candidate) => candidate.id === sb.id)!;
     for (let ix = 0; ix < sb.steps.length; ix++) {
@@ -849,7 +862,11 @@ export function normalizeAndValidate(raw: RawSB[], ctx: Ctx): { sbs: ShippedSB[]
         const nextScene = sb.steps[ix + 1];
         if (!nextScene || step.echo || step.f === nextScene.f) continue;
         if (rawSb.steps[ix].skipTargetReason?.trim()) continue;
-        if (UNAUDITED_SCENE_CROSSINGS.has(`${sb.id}:${ix}`)) continue;
+        const crossing = `${sb.id} ${step.f}@${step.v} -> ${nextScene.f}@${nextScene.v}`;
+        if (UNAUDITED_SCENE_CROSSINGS.has(crossing)) {
+          usedCrossings.add(crossing);
+          continue;
+        }
         err.push(
           `DESTINATION ${sb.id}:${ix} advances ${step.f} → ${nextScene.f} with no control and no skipTargetReason`,
         );
@@ -867,6 +884,12 @@ export function normalizeAndValidate(raw: RawSB[], ctx: Ctx): { sbs: ShippedSB[]
       if (!reason) err.push(`DESTINATION ${sb.id}:${ix} ${step.hot.h} → ${targetRef}, next is ${actualRef}; add the destination scene or skipTargetReason`);
     }
   }
+  // An exemption that no longer matches anything is an exemption nobody can see
+  // is dead. Failing on it is what keeps the list shrinking rather than growing
+  // a tail of entries that excuse transitions which no longer exist.
+  for (const crossing of UNAUDITED_SCENE_CROSSINGS)
+    if (!usedCrossings.has(crossing))
+      err.push(`DESTINATION: stale exemption "${crossing}" matches no scene crossing — remove it`);
   // Scene surfaces were free text, so a typo ("pwa " / "Admin") silently fell
   // back to the flow's home and the stagebar pill quietly lied. The echo pair
   // is checked BOTH ways: a marked echo must actually be off-home, and any
