@@ -3995,6 +3995,25 @@ const W2_CAST_KIND: Record<CommitmentCast, NonNullable<StateFacts["kind"]>> = {
   request: "SupportService", "campaign-request": "SupportService", support: "SupportService",
   captured: "StewardCaptured",
 };
+/**
+ * The commitment view's three axes, per state, for the implementation contract.
+ *
+ * Exported so `handoffs/` can GENERATE its state reference rather than transcribe
+ * it. A transcribed table is a fifth derivation of the same fact, which is the
+ * exact problem this round removed — the tables stay private, only this derived
+ * view is public.
+ */
+export const w2SeatReference = () =>
+  W2_STATES.filter(([id]) => !W2_READ_SURFACE.has(id)).map(([id, label]) => ({
+    state: id,
+    label,
+    cast: W2_CAST[id] as CommitmentCast,
+    seat: W2_SEAT[id] as Seat,
+    phase: W2_PHASE[id] as CommitmentLifecycle,
+    bar: W2_BARS[id]?.html ? (W2_BARS[id] as BarSpec).seat : null,
+    group: w2Group(id),
+  }));
+
 const w2Facts = (state: W2State): StateFacts | undefined =>
   W2_READ_SURFACE.has(state)
     ? undefined
