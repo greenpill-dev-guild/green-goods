@@ -41,9 +41,12 @@ Suggested batches, in dependency order:
 | D | `hifi/screens/admin.ts`, `settlement.ts`, `funding.ts`, `prototypes-artifact.build.ts` | Copy sweep + a moved build assertion |
 | E | `handoffs/**`, `uiux-spec.md`, `plan.todo.md`, `prototypes-coverage.md`, `architecture-closure*` | Docs, counts, and gate pins |
 
-**Range.** The PR is 41 commits. **Only four are mine** — `c030ef2fa`, `90103b954`, `00e0d4b73`,
-`a6082a860`. The rest arrived via a `develop` merge (`39e8519eb`) or predate this session on the
-branch. Review the full `origin/develop...HEAD` union for the verdict, but when you find something in
+**Range.** The PR is 46 commits. **Nine are mine**, in order: `c030ef2fa` and `90103b954` (the two
+work rounds), `00e0d4b73` (alignment docs), `a6082a860` (first CodeRabbit pass), `1c9bf8c9f`,
+`a568a8bd5`, `f1d4fcb34` and `9646e3ad1` (this prompt), and `4aa826684` (the second CodeRabbit pass,
+round 54). Only the first four and the last change anything a reviewer needs to judge; the four
+prompt commits edit this file. The rest arrived via a `develop` merge (`39e8519eb`) or predate this
+session on the branch. Review the full `origin/develop...HEAD` union for the verdict, but when you find something in
 the other 37, say so rather than attributing it to this work — three of them are prototype commits by
 a prior session and two `settlement.ts` findings from CodeRabbit already sit there unresolved.
 
