@@ -156,5 +156,8 @@ Four shells, one job each ([AdminDialog.tsx](../../../packages/admin/src/compone
 Before publishing any admin design round (prototype or code): run this contract top-to-bottom as
 a checklist, plus [review-checklist.md](./review-checklist.md) Lens 4. Mechanical validators
 (prototype build: rail stability, entry surfaces, reason-field pairing, one-row bars) catch a
-subset; sections 1, 2, 4, and 5 are judgment checks a human-visible pass must cover explicitly.
-"The build is green" is necessary, never sufficient.
+subset. Of section 3, only **every flow shows its entry** is mechanically checked — step grammar and
+where completion lands are not, so a flow can pass the build while beginning inside its own dialog's
+grammar or ending nowhere real. Sections 1, 2, 4 and 5 have no mechanical cover at all. Every one of
+those is a judgment check a human-visible pass must cover explicitly. "The build is green" is
+necessary, never sufficient.

@@ -27,8 +27,14 @@ over the design skill stack, `theme.css`, `DESIGN.md` and its surface dialects. 
 of those, and that protocol's own text says not to invoke it for change review. Using it here would
 route away from the regression surface below and audit files this PR does not touch.
 
-**Intent: production readiness.** I want a merge verdict, not an evidence pass. Run the full
-non-mutating readiness gate, and treat "the author says it is green" as a claim to disprove.
+**Intent: production readiness — of the prototype artifact, not of a runtime release.** This PR
+changes no runtime package, contract, ABI or indexer, so runtime release criteria do not apply and a
+green CI Gate proves almost nothing here (only `ontology.yml` and `supply-chain-guardrails.yml`
+trigger on `.plans/`, and between them they check four spec files this PR does not touch plus
+Markdown and JSON formatting). "Ready" means: the two hub gates pass, the drawn screens are honest
+about who is reading them and what an act does, and the handoffs are safe to implement against. I
+want a merge verdict on that, not an evidence pass, and "the author says it is green" is a claim to
+disprove.
 
 ---
 
