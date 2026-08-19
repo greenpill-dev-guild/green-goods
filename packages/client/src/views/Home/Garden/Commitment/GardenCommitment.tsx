@@ -60,6 +60,15 @@ export function GardenCommitment() {
   // two Confirms on one commitment before either had left the phone.
   const [queuedAct, setQueuedAct] = useState(false);
 
+  // Marked before the enqueue so the guard covers the in-flight window, and
+  // released if it never made it: an act that failed to queue has not been
+  // taken, and a member left staring at a screen with no way forward is worse
+  // than the double tap this guards against.
+  const runAct = (enqueue: () => Promise<unknown>) => {
+    setQueuedAct(true);
+    void enqueue().catch(() => setQueuedAct(false));
+  };
+
   const commitmentId = useMemo(() => {
     if (!commitmentIdParam) return null;
     try {
@@ -188,29 +197,32 @@ export function GardenCommitment() {
                     // ClaimType.Garden is a GardenAccount claiming on a protocol
                     // pool, which is a steward path and not this button. The
                     // context is the garden the claim is scoped to, never a person.
-                    setQueuedAct(true);
-                    void jobs.enqueue({
-                      act: "claim",
-                      payload: {
-                        commitmentId: commitment.commitmentId,
-                        kind: CLAIM_TYPE_INDIVIDUAL,
-                        gardenContext: gardenAddress as Address,
-                      },
-                    });
+                    runAct(() =>
+                      jobs.enqueue({
+                        act: "claim",
+                        payload: {
+                          commitmentId: commitment.commitmentId,
+                          kind: CLAIM_TYPE_INDIVIDUAL,
+                          gardenContext: gardenAddress as Address,
+                        },
+                      })
+                    );
                     return;
                   case "sendForConfirmation":
-                    setQueuedAct(true);
-                    void jobs.enqueue({
-                      act: "sendForConfirmation",
-                      commitmentId: commitment.commitmentId,
-                    });
+                    runAct(() =>
+                      jobs.enqueue({
+                        act: "sendForConfirmation",
+                        commitmentId: commitment.commitmentId,
+                      })
+                    );
                     return;
                   case "confirm":
-                    setQueuedAct(true);
-                    void jobs.enqueue({
-                      act: "confirm",
-                      commitmentId: commitment.commitmentId,
-                    });
+                    runAct(() =>
+                      jobs.enqueue({
+                        act: "confirm",
+                        commitmentId: commitment.commitmentId,
+                      })
+                    );
                     return;
                   case "addProof":
                   case "offerAgain":
