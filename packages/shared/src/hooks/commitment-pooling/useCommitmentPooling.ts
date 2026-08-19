@@ -84,19 +84,28 @@ export function useCommitmentCycle(input: { chainId: number; cycleId: bigint }) 
   return { ...query, cycle: query.data?.cycle ?? null, detail: query.data ?? null, availability };
 }
 
-export function useCommitments(input: {
-  chainId: number;
-  poolId?: bigint;
-  cycleId?: bigint;
-  seriesId?: bigint;
-  account?: Address;
-  state?: string;
-}) {
+export function useCommitments(
+  input: {
+    chainId: number;
+    poolId?: bigint;
+    cycleId?: bigint;
+    seriesId?: bigint;
+    account?: Address;
+    state?: string;
+  },
+  /**
+   * Callers that scope by a value which may not be known yet must gate here.
+   * An absent `account` is not a narrower query, it is an unscoped one: the
+   * filter is simply dropped and every commitment on the chain comes back.
+   * `options` stays out of the query key so gating never fragments the cache.
+   */
+  options: { enabled?: boolean } = {}
+) {
   const availability = useCommitmentPoolingAvailability(input);
   const query = useQuery({
     queryKey: queryKeys.commitmentPooling.commitments(input.chainId, input),
     queryFn: () => getCommitments(input),
-    enabled: availability.status === "available",
+    enabled: availability.status === "available" && options.enabled !== false,
     staleTime: STALE_TIME_MEDIUM,
   });
   return { ...query, commitments: query.data ?? [], availability };
