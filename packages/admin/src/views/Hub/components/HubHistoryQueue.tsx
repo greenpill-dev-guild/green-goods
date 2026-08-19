@@ -16,6 +16,7 @@ import {
 } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { adminCardVariants } from "@/components/AdminCard";
+import { localizeCanonicalActionTitle } from "../actionDisplay";
 import { HubWorkbenchSkeletonRows } from "./HubWorkbenchSkeletonRows";
 
 interface HubHistoryQueueProps {
@@ -104,6 +105,7 @@ export function HubHistoryQueue({
           dateStyle: "medium",
           timeStyle: "short",
         });
+        const localizedTitle = localizeCanonicalActionTitle(event.title, formatMessage);
 
         return (
           <li key={event.id} className="min-w-0">
@@ -136,7 +138,7 @@ export function HubHistoryQueue({
                 </span>
 
                 <span className="block text-title-sm font-semibold leading-5 text-text-strong">
-                  {event.title}
+                  {localizedTitle}
                 </span>
                 <span className="block text-body-sm leading-5 text-text-sub">
                   {event.description}

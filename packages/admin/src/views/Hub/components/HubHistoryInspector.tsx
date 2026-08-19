@@ -9,9 +9,11 @@ import { AdminCard } from "@/components/AdminCard";
 import { RiExternalLinkLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { AdminButton } from "@/components/AdminButton";
+import { localizeCanonicalActionTitle } from "../actionDisplay";
 
 export function HubHistoryInspector({ event }: { event: ActivityEvent }) {
   const { formatMessage } = useIntl();
+  const localizedTitle = localizeCanonicalActionTitle(event.title, formatMessage);
 
   const categoryLabel =
     event.category === "work"
@@ -29,7 +31,7 @@ export function HubHistoryInspector({ event }: { event: ActivityEvent }) {
             <span className="text-xs text-text-soft">{formatRelativeTime(event.timestamp)}</span>
           </div>
           <div>
-            <h3 className="text-lg font-semibold text-text-strong">{event.title}</h3>
+            <h3 className="text-lg font-semibold text-text-strong">{localizedTitle}</h3>
             <p className="mt-1 text-sm text-text-sub">{event.description}</p>
           </div>
         </AdminCard>

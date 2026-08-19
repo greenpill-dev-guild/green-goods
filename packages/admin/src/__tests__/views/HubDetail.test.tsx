@@ -1,6 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import React from "react";
 import { IntlProvider } from "react-intl";
+import ptMessages from "@green-goods/shared/i18n/pt.json";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mockUseGardens = vi.fn();
@@ -27,6 +28,14 @@ vi.mock("@green-goods/shared", () => ({
   },
   cn: (...args: unknown[]) => args.filter(Boolean).join(" "),
   DEFAULT_CHAIN_ID: 11155111,
+  getReviewedActionTranslation: () => null,
+  instructionTemplates: {
+    "solar.install_milestone": {
+      description:
+        "Record installation progress milestones for solar panels, batteries, internet equipment, or retrofits.",
+    },
+  },
+  localizeAction: (action: unknown) => action,
   useAdminStore: (selector: (state: any) => any) =>
     selector({
       selectedGarden: mockSelectedGarden,
@@ -154,7 +163,7 @@ vi.mock("@/views/Garden/WorkDetail/SubmissionDetails", () => ({
   SubmissionDetails: () => React.createElement("div", { "data-testid": "submission-details" }),
 }));
 
-import WorkDetail from "@/views/Garden/WorkDetail";
+import WorkDetail, { WorkDetailPanel } from "@/views/Garden/WorkDetail";
 
 const messages = {
   "app.garden.admin.backToGarden": "Back to garden",
@@ -177,12 +186,15 @@ const messages = {
   "app.work.status.rejected": "Rejected",
 } satisfies Record<string, string>;
 
-function renderWithIntl() {
+function renderWithIntl(
+  locale: "en" | "pt" = "en",
+  children: React.ReactNode = React.createElement(WorkDetail)
+) {
   return render(
     React.createElement(IntlProvider, {
-      locale: "en",
-      messages,
-      children: React.createElement(WorkDetail),
+      locale,
+      messages: locale === "pt" ? ptMessages : messages,
+      children,
     })
   );
 }
@@ -364,5 +376,43 @@ describe("WorkDetail view", () => {
       expect.objectContaining({ id: "0xAltGarden", name: "Alt Garden" })
     );
     expect(screen.queryByText("Work not found")).not.toBeInTheDocument();
+  });
+
+  it("localizes infrastructure milestone titles in the Portuguese Hub detail", () => {
+    mockUseWorks.mockReturnValue({
+      works: [
+        {
+          id: "0xWork",
+          title: "Infrastructure Milestone - 2026-07-07T16:36:37.231Z - 2026-07-07T16:36:37.366Z",
+          actionUID: 1,
+          gardenAddress: "0xGarden",
+          gardenerAddress: "0xgardener",
+          metadata: "{}",
+          media: [],
+          status: "pending",
+        },
+      ],
+      isLoading: false,
+    });
+    mockUseActions.mockReturnValue({
+      data: [
+        {
+          id: "1",
+          title: "Infrastructure Milestone - 2026-07-07T16:36:37.231Z",
+          slug: "solar.install_milestone",
+          endTime: Date.now() + 60_000,
+        },
+      ],
+    });
+
+    renderWithIntl(
+      "pt",
+      React.createElement(WorkDetailPanel, { workId: "0xWork", layout: "sheet" })
+    );
+
+    expect(
+      screen.getByText("Marco de infraestrutura - 2026-07-07T16:36:37.231Z")
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/Infrastructure Milestone/)).not.toBeInTheDocument();
   });
 });

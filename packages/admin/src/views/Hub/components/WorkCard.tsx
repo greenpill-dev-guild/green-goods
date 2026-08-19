@@ -12,6 +12,7 @@ import type React from "react";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
 import { formatEnsAddressName } from "@/components/EnsAddressText";
+import { localizeCanonicalActionTitle } from "../actionDisplay";
 
 interface WorkCardProps {
   work: EASWork & { status?: "pending" | "approved" | "rejected" };
@@ -31,9 +32,12 @@ export const WorkCard: React.FC<WorkCardProps> = ({ work, canReview, hubContext 
 
   const workData: WorkCardData = {
     id: work.id,
-    title:
-      work.title ||
-      intl.formatMessage({ id: "app.admin.work.untitledWork", defaultMessage: "Untitled Work" }),
+    title: work.title
+      ? localizeCanonicalActionTitle(work.title, intl.formatMessage)
+      : intl.formatMessage({
+          id: "app.admin.work.untitledWork",
+          defaultMessage: "Untitled Work",
+        }),
     status: work.status || "pending",
     createdAt: work.createdAt,
     mediaPreview: work.media?.map((m) => resolveIPFSUrl(m)),

@@ -57,6 +57,7 @@ import { AdminTextField } from "@/components/AdminTextField";
 import { ActionFlowShell } from "@/components/Layout/ActionFlowShell";
 import { FlowStepHeader } from "@/components/Layout/FlowStepHeader";
 import { type ActionFlowStep } from "@/components/Layout/ActionFlowStepper";
+import { localizeActionForDisplay } from "@/views/Hub/actionDisplay";
 import { ActionChooserGrid } from "./components/ActionChooserGrid";
 import { SubmitWorkReview } from "./components/SubmitWorkReview";
 
@@ -332,7 +333,7 @@ function SubmitWorkPanelContent({
   onBusyChange,
   auth,
 }: Omit<SubmitWorkPanelProps, "auth"> & { auth: SubmitWorkAuthSnapshot }) {
-  const { formatMessage } = useIntl();
+  const { formatMessage, locale } = useIntl();
   const navigate = useNavigate();
   const { selectedGarden } = useAdminGardenWorkspaceSelection();
   const gardenId = selectedGarden?.id ?? null;
@@ -382,8 +383,9 @@ function SubmitWorkPanelContent({
   const selectedAction = useMemo<Action | null>(() => {
     if (!selectedActionId) return null;
     const uid = parseActionUID(selectedActionId);
-    return findActionByUID(actions, uid);
-  }, [selectedActionId, actions]);
+    const action = findActionByUID(actions, uid);
+    return action ? localizeActionForDisplay(action, { formatMessage, locale }) : null;
+  }, [actions, formatMessage, locale, selectedActionId]);
   const selectedActionUID = useMemo(
     () => (selectedAction ? parseActionUID(selectedAction.id) : null),
     [selectedAction]

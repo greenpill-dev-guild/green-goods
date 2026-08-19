@@ -11,6 +11,7 @@ import { getRelativeTimeParts, normalizeTimestamp } from "@green-goods/shared/ut
 import { useState, type CSSProperties } from "react";
 import { useIntl } from "react-intl";
 import { adminCardVariants } from "@/components/AdminCard";
+import { localizeCanonicalActionTitle } from "../actionDisplay";
 
 // ---------------------------------------------------------------------------
 // Props
@@ -153,14 +154,19 @@ export function HubWorkCard({
   const resolvedStatusTone: HubWorkCardStatusTone =
     statusTone ?? (work.status === "approved" ? "success" : "neutral");
   const domainConfig = actionDomain !== undefined ? DOMAIN_CONFIG[actionDomain] : undefined;
+  const localizedActionTitle = actionTitle
+    ? localizeCanonicalActionTitle(actionTitle, formatMessage)
+    : undefined;
 
-  const rawTitle =
+  const rawTitle = localizeCanonicalActionTitle(
     work.title ||
-    formatMessage({ id: "app.admin.work.untitledWork", defaultMessage: "Untitled Work" });
-  const title = stripGeneratedWorkTitleTimestamp(rawTitle, actionTitle) || rawTitle;
+      formatMessage({ id: "app.admin.work.untitledWork", defaultMessage: "Untitled Work" }),
+    formatMessage
+  );
+  const title = stripGeneratedWorkTitleTimestamp(rawTitle, localizedActionTitle) || rawTitle;
   const visibleActionTitle =
-    actionTitle && actionTitle.trim().toLowerCase() !== title.trim().toLowerCase()
-      ? actionTitle
+    localizedActionTitle && localizedActionTitle.trim().toLowerCase() !== title.trim().toLowerCase()
+      ? localizedActionTitle
       : undefined;
 
   return (
@@ -251,7 +257,7 @@ export function HubWorkCard({
       {/* Body — 14px padding, 10px column gap (1a card anatomy). */}
       <div
         className="space-y-2.5 p-3.5"
-        title={actionTitle ? `${actionTitle} · ${gardenName}` : gardenName}
+        title={localizedActionTitle ? `${localizedActionTitle} · ${gardenName}` : gardenName}
       >
         <div className="flex items-start justify-between gap-2.5">
           <h3

@@ -12,12 +12,13 @@ import { HubWorkCard } from "@/views/Hub/components/HubWorkCard";
 import { IntlProvider } from "react-intl";
 import en from "@green-goods/shared/i18n/en.json";
 import es from "@green-goods/shared/i18n/es.json";
+import pt from "@green-goods/shared/i18n/pt.json";
 
-const MESSAGES: Record<string, Record<string, string>> = { en, es };
+const MESSAGES: Record<string, Record<string, string>> = { en, es, pt };
 
 function renderCard(
   props: Partial<React.ComponentProps<typeof HubWorkCard>> = {},
-  locale: "en" | "es" = "en"
+  locale: "en" | "es" | "pt" = "en"
 ) {
   const defaultWork: Work = {
     id: "0x123",
@@ -222,6 +223,37 @@ describe("HubWorkCard", () => {
     expect(screen.getByRole("heading", { name: "Community Cleanup" })).toBeInTheDocument();
     expect(screen.getAllByText("Community Cleanup")).toHaveLength(1);
     expect(container.textContent).not.toContain("2026-07-08T12:34:00.000Z");
+  });
+
+  it("localizes generated infrastructure milestone titles in Portuguese", () => {
+    const actionTimestamp = "2026-07-07T16:36:37.231Z";
+    const workTimestamp = "2026-07-07T16:36:37.366Z";
+    const { container } = renderCard(
+      {
+        actionTitle: `Infrastructure Milestone - ${actionTimestamp}`,
+        work: {
+          id: "0xmilestone",
+          title: `Infrastructure Milestone - ${actionTimestamp} - ${workTimestamp}`,
+          actionUID: 1,
+          gardenerAddress: "0x1234567890abcdef1234567890abcdef12345678" as `0x${string}`,
+          gardenAddress: "0xabcdefabcdefabcdefabcdefabcdefabcdefabcd" as `0x${string}`,
+          feedback: "",
+          metadata: "{}",
+          media: [],
+          createdAt: new Date(workTimestamp).getTime() / 1000,
+          status: "pending",
+        },
+      },
+      "pt"
+    );
+
+    expect(
+      screen.getByRole("heading", {
+        name: `Marco de infraestrutura - ${actionTimestamp}`,
+      })
+    ).toBeInTheDocument();
+    expect(container.textContent).not.toContain("Infrastructure Milestone");
+    expect(container.textContent).not.toContain(workTimestamp);
   });
 
   it("does not scale images on hover", () => {
