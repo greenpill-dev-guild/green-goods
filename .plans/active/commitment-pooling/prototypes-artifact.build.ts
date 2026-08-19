@@ -883,6 +883,19 @@ try {
     ["states", totalStates, Number(coverage.match(/registered screens \/ (\d+) rendered states/)?.[1])],
     ["hotspots", Object.keys(HOTS).length, Number(coverage.match(/- (\d+) registered hotspots/)?.[1])],
     ["scenes", totalScenes, Number(coverage.match(/source flows \/ (\d+) scenes/)?.[1])],
+    // The presentation-visible subset had its own hand-written line and no check,
+    // so plan.todo.md quoted this snapshot for a screen count of 33 while the
+    // snapshot itself said 37 (CodeRabbit, 2026-08-19).
+    [
+      "presentation-visible screens",
+      visibleScreens.length,
+      Number(coverage.match(/- (\d+) presentation-visible hi-fi screens/)?.[1]),
+    ],
+    [
+      "presentation-visible states",
+      visibleScreens.reduce((total, screen) => total + screen.states.length, 0),
+      Number(coverage.match(/presentation-visible hi-fi screens \/ (\d+) states/)?.[1]),
+    ],
   ];
   for (const [label, actual, stated] of claimed) {
     if (Number.isFinite(stated) && stated !== actual)
@@ -897,7 +910,19 @@ try {
     const row = /^\|\s*([A-Za-z0-9]+)\s*\|\s*[^|]+?\s*\|\s*(\d+)\s*\|\s*(.*?)\s*\|\s*$/.exec(line);
     if (!row) continue;
     const screen = SCREENS.find((s) => s.id === row[1]);
-    if (!screen) continue;
+    // A row for a screen that does not exist used to be skipped in silence, so a
+    // registry could name a retired screen forever and still report no drift —
+    // the same shape as the state ids this round removed. And `listed` swallowed
+    // a second row for the same screen, so a duplicate passed as a match while
+    // only one of the two was ever checked (CodeRabbit, 2026-08-19).
+    if (!screen) {
+      noteDrift(`coverage-doc drift: row "${row[1]}" names a screen the build does not have`);
+      continue;
+    }
+    if (listed.has(screen.id)) {
+      noteDrift(`coverage-doc drift: ${screen.id} has more than one row in the screen registry`);
+      continue;
+    }
     listed.add(screen.id);
     const ids = screen.states.map((s) => s.id).join(", ");
     if (Number(row[2]) !== screen.states.length)

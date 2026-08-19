@@ -111,17 +111,28 @@ Warm Earth palette, byte-for-byte:
 | dark `--ink` `#F5F5F4` | `primary-inverse` | exact |
 | dark `--stone` `#A8A29E` | `secondary-inverse` | exact |
 | dark `--card` `#1C1917` | `neutral-dark` | exact |
+| `--on-act` `#FFFFFF` | `on-tertiary-action` | exact |
 
-### Two that have drifted, and are worth a decision
+### Three that have drifted, and are worth a decision
 
 | Prototype | `DESIGN.md` | |
 |---|---|---|
 | `--amb` `#B45309` | `amber` `#D97706` | **different** |
 | `--sky` `#2563EB` | `sky` `#3B82F6` | **different** |
+| `--on-accent` `#04290F` | `on-tertiary` `#0B4627` | **different** |
 
-Ten tokens agree exactly and these two do not, which reads as drift rather than intent. Either the
-prototype should adopt the canonical values, or `DESIGN.md` should adopt the prototype's if the
-warmer amber was a deliberate later choice. Do not resolve it by picking one in implementation.
+Ten tokens agree exactly and these three do not. Measured on the surfaces they are actually used on,
+the prototype is right and the canonical values are not: both `--amb` and `--sky` are text colours
+(four and two `color:` uses), and against their own tinted backgrounds `DESIGN.md`'s `amber` gives
+**2.89:1** and `sky` **3.25:1** — **both fail WCAG AA for normal text**, where the prototype's
+darker values give 4.55:1 and 4.56:1 and pass. The third is a naming mismatch rather than a value
+one: `on-tertiary` is the role the prototype spells `--on-accent`, and over `tertiary` the
+prototype's value has more headroom (6.69:1 against 4.64:1).
+
+So this is not prototype drift to correct. `DESIGN.md` should adopt the prototype's amber and sky
+(or restrict `#D97706`/`#3B82F6` to non-text use), and `on-tertiary` needs its naming reconciled.
+That is a change to the canonical source and to every surface projecting it, so it belongs in its
+own cross-surface pass. Do not resolve it by picking one in implementation.
 
 ### No canonical equivalent
 
@@ -141,8 +152,11 @@ warmer amber was a deliberate later choice. Do not resolve it by picking one in 
 
 ## Net-new component audit — 2026-08-18
 
-The Components tab carries 101 entries. **67 cite a shipped component by `file:line`** and all 67
-resolve against the current tree. **34 are net-new** — the things implementation has to build.
+The Components tab carries 101 entries. **68 cite a shipped component by `file:line`** (84
+occurrences) and all 68 resolve against the current tree — re-measured 2026-08-19, when one was also
+found off by one line. Nothing in the build checks these: `components.ts` never touches the
+filesystem, so `GALLERY_ERRORS` validates ids, specimens, ship notes and screen references but not
+whether a citation still points at what it names. **34 are net-new** — the things implementation has to build.
 Each was checked against `packages/shared/src/components/`, `packages/admin/src/components/`, and
 both canonical palettes.
 
