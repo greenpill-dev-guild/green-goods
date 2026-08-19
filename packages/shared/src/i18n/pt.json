@@ -938,7 +938,7 @@
   "app.commitments.state.requested": "Pedido",
   "app.commitments.state.underReview": "Em revisão pelos zeladores",
   "app.commitments.state.withdrawn": "Retirado",
-  "app.commitments.subtitle": "O que você ofereceu, pediu e aceitou nas suas hortas.",
+  "app.commitments.subtitle": "Oferecido, pedido e aceito.",
   "app.commitments.tab.live": "Em andamento",
   "app.commitments.tab.overTime": "Ao longo do tempo",
   "app.commitments.title": "Compromissos",

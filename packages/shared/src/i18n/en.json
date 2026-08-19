@@ -938,7 +938,7 @@
   "app.commitments.state.requested": "Asked for",
   "app.commitments.state.underReview": "Under review by stewards",
   "app.commitments.state.withdrawn": "Withdrawn",
-  "app.commitments.subtitle": "What you have offered, asked for, and taken up across gardens.",
+  "app.commitments.subtitle": "Offered, asked for, taken up.",
   "app.commitments.tab.live": "Live",
   "app.commitments.tab.overTime": "Over time",
   "app.commitments.title": "Commitments",

@@ -938,7 +938,7 @@
   "app.commitments.state.requested": "Pedido",
   "app.commitments.state.underReview": "En revisión por los custodios",
   "app.commitments.state.withdrawn": "Retirado",
-  "app.commitments.subtitle": "Lo que has ofrecido, pedido y aceptado en tus huertas.",
+  "app.commitments.subtitle": "Ofrecido, pedido y aceptado.",
   "app.commitments.tab.live": "En curso",
   "app.commitments.tab.overTime": "Con el tiempo",
   "app.commitments.title": "Compromisos",
