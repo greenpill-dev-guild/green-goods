@@ -180,7 +180,9 @@ describe("Roles execution boundaries", () => {
     expect(() => parseArguments(["plan", "--broadcast"])).toThrow(/does not accept --broadcast/);
     expect(() => parseArguments(["plan", "--step", "1"])).toThrow(/does not accept --broadcast or --step/);
     expect(() => parseArguments(["deploy", "--broadcast", "--step", "0"])).toThrow(/positive boundary index/);
-    expect(() => parseArguments(["enable"])).toThrow(/plan\|deploy/);
+    expect(parseArguments(["enable", "--broadcast", "--step", "3"]).command).toBe("enable");
+    expect(() => parseArguments(["enable", "--step", "3"])).toThrow(/enable requires --broadcast/);
+    expect(() => parseArguments(["configure"])).toThrow(/plan\|deploy\|enable/);
   });
 
   it("resumes at the first uncheckpointed boundary and refuses to replay or skip", () => {

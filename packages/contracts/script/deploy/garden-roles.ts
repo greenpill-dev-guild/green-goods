@@ -33,6 +33,7 @@ import {
   type TypedDataField,
   toUtf8Bytes,
   ZeroAddress,
+  zeroPadValue,
 } from "ethers";
 
 import { execCastCaptured, parseCastTransactionHash } from "../utils/cast-env";
@@ -45,6 +46,7 @@ const RUNTIME_ROOT = path.join(CONTRACTS_ROOT, ".generated/runtime");
 const DEFAULT_SAFE_PLAN = path.join(RUNTIME_ROOT, "42220-garden-safe-final.json");
 const DEFAULT_PLAN = path.join(RUNTIME_ROOT, "42220-garden-roles.json");
 const PROOF_FIXTURE = path.join(RUNTIME_ROOT, "42220-garden-roles-proof.json");
+const ENABLE_PLAN = path.join(RUNTIME_ROOT, "42220-garden-roles-enable.json");
 
 const CELO_CHAIN_ID = 42_220;
 const EXPECTED_GARDEN_COUNT = 18;
@@ -104,6 +106,8 @@ const SAFE_INTERFACE = new Interface([
   "function approveHash(bytes32 hashToApprove)",
   "function nonce() view returns (uint256)",
   "function isModuleEnabled(address module) view returns (bool)",
+  "function approvedHashes(address owner, bytes32 hash) view returns (uint256)",
+  "function execTransaction(address to, uint256 value, bytes data, uint8 operation, uint256 safeTxGas, uint256 baseGas, uint256 gasPrice, address gasToken, address refundReceiver, bytes signatures) payable returns (bool)",
 ]);
 
 const SAFE_TX_TYPES: Record<string, TypedDataField[]> = {
@@ -526,8 +530,66 @@ async function buildPlan(safePlanPath: string): Promise<GardenRolesPlan> {
   };
 }
 
+export interface PlannedEnableTransaction {
+  step: number;
+  tokenId: number;
+  safe: string;
+  modifier: string;
+  safeTxHash: string;
+  approvers: string[];
+  data: string;
+}
+
+export interface GardenRolesEnablePlan {
+  schemaVersion: 1;
+  kind: "GARDEN_ROLES_ENABLE_PLAN";
+  chainId: 42220;
+  approvers: string[];
+  recoveryApprovals: Array<{ recoverySafe: string; multiSendTo: string; multiSendData: string }>;
+  transactions: PlannedEnableTransaction[];
+}
+
+/**
+ * Safe accepts a pre-approved hash as a signature with v = 1, where r carries the approving owner
+ * and s is unused. Both recovery Safes approve every boundary in one batched transaction each, so
+ * the eighteen enables need no further signing and anyone may submit them.
+ */
+export function prevalidatedSignatures(approvers: readonly string[]): string {
+  const sorted = [...approvers]
+    .map((approver) => getAddress(approver))
+    .sort((left, right) => (left.toLowerCase() < right.toLowerCase() ? -1 : 1));
+  return concat(sorted.map((approver) => concat([zeroPadValue(approver, 32), zeroPadValue("0x00", 32), "0x01"])));
+}
+
+export function buildEnableTransactions(
+  boundaries: readonly RolesBoundary[],
+  approvers: readonly string[],
+): PlannedEnableTransaction[] {
+  const signatures = prevalidatedSignatures(approvers);
+  return boundaries.map((boundary, index) => ({
+    step: index + 1,
+    tokenId: boundary.tokenId,
+    safe: boundary.safe,
+    modifier: boundary.modifier,
+    safeTxHash: boundary.safeTxHash,
+    approvers: [...approvers].map((approver) => getAddress(approver)),
+    data: SAFE_INTERFACE.encodeFunctionData("execTransaction", [
+      boundary.safe,
+      0n,
+      boundary.enableModuleData,
+      0,
+      0n,
+      0n,
+      0n,
+      ZeroAddress,
+      ZeroAddress,
+      signatures,
+    ]),
+  }));
+}
+
 export interface RolesCliOptions {
-  command: "plan" | "deploy";
+  command: "plan" | "deploy" | "enable";
   safePlanPath: string;
   planPath: string;
   broadcast: boolean;
@@ -536,8 +598,10 @@ export interface RolesCliOptions {
 
 export function parseArguments(args: string[]): RolesCliOptions {
   const command = args[0] as RolesCliOptions["command"] | undefined;
-  if (!command || !["plan", "deploy"].includes(command)) {
-    throw new Error("Use: garden-roles.ts plan|deploy [--safe-plan <path>] [--plan <path>] [--broadcast --step <n>]");
+  if (!command || !["plan", "deploy", "enable"].includes(command)) {
+    throw new Error(
+      "Use: garden-roles.ts plan|deploy|enable [--safe-plan <path>] [--plan <path>] [--broadcast --step <n>]",
+    );
   }
   let safePlanPath = DEFAULT_SAFE_PLAN;
   let planPath = DEFAULT_PLAN;
@@ -559,9 +623,9 @@ export function parseArguments(args: string[]): RolesCliOptions {
       if (!Number.isInteger(step) || step < 1) throw new Error("--step must be a positive boundary index");
     } else throw new Error(`Unknown argument: ${key}`);
   }
-  if (command === "deploy") {
-    if (!broadcast) throw new Error("deploy requires --broadcast");
-    if (step === undefined) throw new Error("deploy requires one explicit --step boundary");
+  if (command === "deploy" || command === "enable") {
+    if (!broadcast) throw new Error(`${command} requires --broadcast`);
+    if (step === undefined) throw new Error(`${command} requires one explicit --step boundary`);
   } else if (broadcast || step !== undefined) {
     throw new Error("plan does not accept --broadcast or --step");
   }
@@ -622,13 +686,13 @@ function credentialArgs(): string[] {
   return ["--account", process.env.FOUNDRY_KEYSTORE_ACCOUNT ?? "green-goods-deployer", "--password-file", passwordFile];
 }
 
-function sendRolesTransaction(transaction: PlannedRolesTransaction, rpcUrl: string): string {
+function sendRolesTransaction(to: string, data: string, label: string, rpcUrl: string): string {
   const output = execCastCaptured(
     [
       "send",
-      transaction.to,
+      to,
       "--data",
-      transaction.data,
+      data,
       "--value",
       "0",
       "--chain",
@@ -639,9 +703,9 @@ function sendRolesTransaction(transaction: PlannedRolesTransaction, rpcUrl: stri
       "--json",
     ],
     { cwd: CONTRACTS_ROOT, env: process.env },
-    transaction.kind,
+    label,
   );
-  return parseCastTransactionHash(output, transaction.kind);
+  return parseCastTransactionHash(output, label);
 }
 
 /**
@@ -710,7 +774,7 @@ export async function executeRolesBoundary(plan: GardenRolesPlan, step: number, 
   const provider = new JsonRpcProvider(rpcUrl, CELO_CHAIN_ID, { staticNetwork: true });
   await assertRolesPrecondition(transaction, provider);
 
-  const transactionHash = sendRolesTransaction(transaction, rpcUrl);
+  const transactionHash = sendRolesTransaction(transaction.to, transaction.data, transaction.kind, rpcUrl);
   const receipt = await provider.waitForTransaction(transactionHash, 1, 180_000);
   if (!receipt || receipt.status !== 1) throw new Error(`${transaction.kind} did not produce a successful receipt`);
   const sent = await provider.getTransaction(transactionHash);
@@ -738,6 +802,74 @@ export async function executeRolesBoundary(plan: GardenRolesPlan, step: number, 
   );
 }
 
+/**
+ * Enabling is the moment a modifier gains authority, so the preconditions are strict: the Safe must
+ * still be at the nonce its reviewed hash was computed against, must not already hold the module,
+ * the modifier must already belong to the Safe rather than the operator, and both recovery Safes
+ * must have recorded their approval on chain.
+ */
+async function assertEnablePrecondition(
+  transaction: PlannedEnableTransaction,
+  provider: JsonRpcProvider,
+): Promise<void> {
+  const safe = new Contract(transaction.safe, SAFE_INTERFACE, provider);
+  const nonce = (await safe.nonce()) as bigint;
+  if (nonce !== 0n) throw new Error(`Safe ${transaction.safe} is at nonce ${nonce}, reviewed hash assumes 0`);
+  if ((await safe.isModuleEnabled(transaction.modifier)) as boolean) {
+    throw new Error(`Safe ${transaction.safe} already has the modifier enabled`);
+  }
+  if ((await provider.getCode(transaction.modifier, "latest")) === "0x") {
+    throw new Error(`Modifier ${transaction.modifier} is not deployed; run the configuration stage first`);
+  }
+  const roles = new Contract(transaction.modifier, ROLES_CONFIG_INTERFACE, provider);
+  if (getAddress((await roles.owner()) as string) !== getAddress(transaction.safe)) {
+    throw new Error(`Modifier ${transaction.modifier} is not owned by its Safe yet`);
+  }
+  for (const approver of transaction.approvers) {
+    const approved = (await safe.approvedHashes(approver, transaction.safeTxHash)) as bigint;
+    if (approved === 0n) {
+      throw new Error(`Recovery Safe ${approver} has not approved boundary ${transaction.step}`);
+    }
+  }
+}
+
+export async function executeEnableBoundary(
+  plan: GardenRolesEnablePlan,
+  step: number,
+  planPath: string,
+): Promise<void> {
+  const transaction = plan.transactions[step - 1];
+  if (!transaction || transaction.step !== step) throw new Error(`Reviewed enable plan has no boundary ${step}`);
+  const checkpoint = loadRolesCheckpoint(planPath);
+  assertNextRolesBoundary(step, checkpoint.completed.length);
+
+  const manager = new NetworkManager();
+  const rpcUrl = manager.getRpcUrl("celo");
+  const provider = new JsonRpcProvider(rpcUrl, CELO_CHAIN_ID, { staticNetwork: true });
+  await assertEnablePrecondition(transaction, provider);
+
+  const transactionHash = sendRolesTransaction(transaction.safe, transaction.data, "ENABLE_MODULE", rpcUrl);
+  const receipt = await provider.waitForTransaction(transactionHash, 1, 180_000);
+  if (!receipt || receipt.status !== 1) throw new Error("ENABLE_MODULE did not produce a successful receipt");
+
+  const safe = new Contract(transaction.safe, SAFE_INTERFACE, provider);
+  if (!((await safe.isModuleEnabled(transaction.modifier)) as boolean)) {
+    throw new Error("Safe did not record the modifier as enabled");
+  }
+
+  checkpoint.completed.push({
+    step,
+    kind: "ENABLE_MODULE" as RolesTransactionKind,
+    safe: transaction.safe,
+    transactionHash,
+    blockNumber: receipt.blockNumber,
+  });
+  atomicWrite(checkpointPath(planPath), checkpoint);
+  process.stdout.write(
+    `ENABLE_MODULE boundary ${step}/${plan.transactions.length} verified as ${transactionHash}; close the credential session.\n`,
+  );
+}
+
 export async function main(args = process.argv.slice(2)): Promise<void> {
   const options = parseArguments(args);
   const { command, safePlanPath, planPath } = options;
@@ -748,10 +880,24 @@ export async function main(args = process.argv.slice(2)): Promise<void> {
     return;
   }
 
+  if (command === "enable") {
+    if (!fs.existsSync(ENABLE_PLAN)) throw new Error(`Reviewed enable plan is missing: ${ENABLE_PLAN}`);
+    await executeEnableBoundary(readJson<GardenRolesEnablePlan>(ENABLE_PLAN), options.step as number, ENABLE_PLAN);
+    return;
+  }
+
   const plan = await buildPlan(safePlanPath);
   atomicWrite(planPath, plan);
   // The fork proof reads its fixture inside the EVM, where the full plan's 108 calldata payloads
   // exhaust the test gas budget. This carries only what the proof executes.
+  atomicWrite(ENABLE_PLAN, {
+    schemaVersion: 1,
+    kind: "GARDEN_ROLES_ENABLE_PLAN",
+    chainId: CELO_CHAIN_ID,
+    approvers: [getAddress(GREEN_GOODS_RECOVERY_SAFE), getAddress(DEV_GUILD_RECOVERY_SAFE)],
+    recoveryApprovals: plan.recoveryApprovals,
+    transactions: buildEnableTransactions(plan.boundaries, [GREEN_GOODS_RECOVERY_SAFE, DEV_GUILD_RECOVERY_SAFE]),
+  });
   atomicWrite(PROOF_FIXTURE, {
     modifierOwnerAtDeployment: plan.modifierOwnerAtDeployment,
     canonicalTarget: plan.canonicalTarget,
