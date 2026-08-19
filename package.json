@@ -280,7 +280,8 @@
     "systeminformation": "5.31.7",
     "vite": "8.1.4",
     "websocket-driver": "0.7.5",
-    "ethers": "6.17.0"
+    "ethers": "6.17.0",
+    "viem": "2.55.0"
   },
   "resolutions": {
     "uint8arrays": "^5.1.0"
