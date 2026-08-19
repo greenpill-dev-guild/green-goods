@@ -201,7 +201,9 @@ describe("usePublicGardenDetail", () => {
     expect(data?.assessmentCount).toBe(1);
   });
 
-  it("respects fieldNotesLimit option", async () => {
+  it("returns every field note so callers can page locally", async () => {
+    // The query key carries no page size, so a hook-side slice could never be
+    // widened without a second fetch. The full set is already in memory here.
     const garden = createMockGarden({ id: MOCK_ADDRESSES.garden, name: "Garden" });
     mockGetGardens.mockResolvedValue([garden]);
 
@@ -214,7 +216,7 @@ describe("usePublicGardenDetail", () => {
     );
     mockGetWorks.mockResolvedValue(works);
 
-    const { result } = renderHook(() => usePublicGardenDetail(garden.id, { fieldNotesLimit: 5 }), {
+    const { result } = renderHook(() => usePublicGardenDetail(garden.id), {
       wrapper: createWrapper(queryClient),
     });
 
@@ -222,7 +224,69 @@ describe("usePublicGardenDetail", () => {
       expect(result.current.isSuccess).toBe(true);
     });
 
-    expect(result.current.data?.fieldNotes).toHaveLength(5);
+    expect(result.current.data?.fieldNotes).toHaveLength(12);
+    expect(result.current.data?.totalFieldNotes).toBe(12);
+  });
+
+  it("reports a failed works read instead of returning a silent empty list", async () => {
+    const garden = createMockGarden({ id: MOCK_ADDRESSES.garden, name: "Garden" });
+    mockGetGardens.mockResolvedValue([garden]);
+    mockGetWorks.mockRejectedValue(new Error("EAS unavailable"));
+    mockGetGardenAssessments.mockResolvedValue([]);
+
+    const { result } = renderHook(() => usePublicGardenDetail(garden.id), {
+      wrapper: createWrapper(queryClient),
+    });
+
+    await waitFor(() => {
+      expect(result.current.isSuccess).toBe(true);
+    });
+
+    // Still resolves — one source outage must not blank the page — but a
+    // consumer can now tell "no notes" from "we could not read the notes".
+    expect(result.current.data?.fieldNotes).toHaveLength(0);
+    expect(result.current.data?.partialData).toBe(true);
+    expect(result.current.data?.unavailableSources).toEqual({
+      works: true,
+      assessments: false,
+    });
+  });
+
+  it("marks only the source that failed", async () => {
+    const garden = createMockGarden({ id: MOCK_ADDRESSES.garden, name: "Garden" });
+    mockGetGardens.mockResolvedValue([garden]);
+    mockGetWorks.mockResolvedValue([]);
+    mockGetGardenAssessments.mockRejectedValue(new Error("EAS unavailable"));
+
+    const { result } = renderHook(() => usePublicGardenDetail(garden.id), {
+      wrapper: createWrapper(queryClient),
+    });
+
+    await waitFor(() => {
+      expect(result.current.isSuccess).toBe(true);
+    });
+
+    expect(result.current.data?.unavailableSources).toEqual({
+      works: false,
+      assessments: true,
+    });
+  });
+
+  it("reports no unavailable sources when both reads succeed", async () => {
+    const garden = createMockGarden({ id: MOCK_ADDRESSES.garden, name: "Garden" });
+    mockGetGardens.mockResolvedValue([garden]);
+    mockGetWorks.mockResolvedValue([]);
+    mockGetGardenAssessments.mockResolvedValue([]);
+
+    const { result } = renderHook(() => usePublicGardenDetail(garden.id), {
+      wrapper: createWrapper(queryClient),
+    });
+
+    await waitFor(() => {
+      expect(result.current.isSuccess).toBe(true);
+    });
+
+    expect(result.current.data?.partialData).toBe(false);
   });
 
   it("propagates garden indexer fetch failure", async () => {

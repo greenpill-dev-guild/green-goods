@@ -1,7 +1,7 @@
 import { type PublicGardenSummary, useInViewReveal, usePublicGardens } from "@green-goods/shared";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
-import { Outlet, useMatch } from "react-router-dom";
+import { useNavigationType } from "react-router-dom";
 import {
   EditorialDivider,
   EditorialHeading,
@@ -12,6 +12,7 @@ import { PublicEditorialHero } from "@/components/Public/PublicEditorialHero";
 import { PublicFooter } from "@/components/Public/PublicFooter";
 import { PublicGardenCard } from "@/components/Public/PublicGardenCard";
 import { getPublicHeroImage, publicCuration } from "@/content/publicCuration";
+import { focusRememberedGardenCard } from "./garden-return-focus";
 
 /**
  * Gardens — public discovery and browsing view.
@@ -26,8 +27,15 @@ export default function GardensGallery() {
   const { formatMessage } = useIntl();
   const { data: gardens = [], isLoading } = usePublicGardens();
   const [query, setQuery] = useState("");
-  const dialogRouteActive = Boolean(useMatch("/gardens/:id"));
+  const navigationType = useNavigationType();
   const { ref: archiveRef, revealed: archiveRevealed } = useInViewReveal<HTMLElement>();
+
+  // Arriving back from a Garden page: ScrollRestoration puts the grid back
+  // where it was, this puts focus back on the card the reader opened.
+  useEffect(() => {
+    if (navigationType !== "POP" || isLoading) return;
+    focusRememberedGardenCard();
+  }, [isLoading, navigationType]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -45,7 +53,6 @@ export default function GardensGallery() {
     <>
       <PublicEditorialHero
         variant="banner"
-        disableViewTransition={dialogRouteActive}
         imageSrc={getPublicHeroImage("gardens")}
         imageFallbackSrc={publicCuration.fallbackImagePaths[0]}
         imageAlt=""
@@ -181,7 +188,6 @@ export default function GardensGallery() {
       </section>
 
       <PublicFooter variant="soil" />
-      <Outlet />
     </>
   );
 }

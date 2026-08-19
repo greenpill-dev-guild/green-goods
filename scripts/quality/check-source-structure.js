@@ -80,7 +80,6 @@ const FROZEN_ALLOWLIST = {
   "packages/client/src/views/Login/index.tsx": 641,
   "packages/client/src/views/Profile/ENSSection.tsx": 651,
   "packages/client/src/views/Public/Fund.tsx": 776,
-  "packages/client/src/views/Public/GardenDialog.tsx": 523,
   "packages/client/src/views/Public/Impact.tsx": 638,
   "packages/client/src/views/Public/Vaults.tsx": 706,
   "packages/contracts/src/modules/Gardens.sol": 914,

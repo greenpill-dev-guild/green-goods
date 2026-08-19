@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef } from "react";
-import { Outlet, ScrollRestoration, useLocation } from "react-router-dom";
+import { Outlet, ScrollRestoration, useLocation, useNavigationType } from "react-router-dom";
 import { SiteHeader } from "@/components/Navigation/SiteHeader";
 import { publicCuration } from "@/content/publicCuration";
 
@@ -150,13 +150,28 @@ function useLatestPublicScrollPositionRef() {
 }
 
 function usePublicRouteScrollReset() {
-  const { hash, pathname, search } = useLocation();
+  const { hash, key, pathname, search } = useLocation();
+  const navigationType = useNavigationType();
   const previousRouteRef = useRef<PublicRouteSnapshot | null>(null);
+  // Per-history-entry scroll positions. React Router's <ScrollRestoration>
+  // restores `window`, and this shell scrolls `#client-scroll-root` instead, so
+  // it never sees the position that actually matters. Without this, going back
+  // to /gardens from a Garden page lands at the top of the archive.
+  const positionsRef = useRef<Map<string, PublicScrollPosition>>(new Map());
+  const previousKeyRef = useRef<string | null>(null);
   const { interactionScrollPositionRef, scrollPositionRef } = useLatestPublicScrollPositionRef();
 
   useLayoutEffect(() => {
     const previousRoute = previousRouteRef.current;
     previousRouteRef.current = { hash, pathname, search };
+
+    // Bank the outgoing entry's position before anything moves the container.
+    // `scrollPositionRef` still holds where the previous route was left.
+    if (previousKeyRef.current && previousKeyRef.current !== key) {
+      positionsRef.current.set(previousKeyRef.current, scrollPositionRef.current);
+    }
+    const restoringKey = previousKeyRef.current === key ? null : key;
+    previousKeyRef.current = key;
 
     const isInitialRender = previousRoute === null;
     const didPathnameChange = previousRoute?.pathname !== pathname;
@@ -180,10 +195,40 @@ function usePublicRouteScrollReset() {
     if (!isInitialRender && !didPathnameChange && !didHashChange && !didSearchChange) return;
 
     if (scrollToHashTarget(hash)) return;
+
+    // Back/forward returns the reader to where they were. That was free while
+    // `/gardens/:id` was a modal over a never-unmounting grid; as a route it is
+    // not. PUSH and REPLACE still start at the top, and the initial render
+    // reports POP, so it stays excluded.
+    if (navigationType === "POP" && !isInitialRender) {
+      const saved = restoringKey ? positionsRef.current.get(restoringKey) : undefined;
+      if (!saved) return;
+      // The incoming route has not painted yet, so the container has no height
+      // to scroll within. Re-apply across the next two frames.
+      restorePublicScrollPosition(saved);
+      let second = 0;
+      const first = requestAnimationFrame(() => {
+        restorePublicScrollPosition(saved);
+        second = requestAnimationFrame(() => restorePublicScrollPosition(saved));
+      });
+      return () => {
+        cancelAnimationFrame(first);
+        if (second) cancelAnimationFrame(second);
+      };
+    }
+
     scrollPublicRootToTop();
     interactionScrollPositionRef.current = null;
     scrollPositionRef.current = { left: 0, top: 0 };
-  }, [hash, interactionScrollPositionRef, pathname, scrollPositionRef, search]);
+  }, [
+    hash,
+    interactionScrollPositionRef,
+    key,
+    navigationType,
+    pathname,
+    scrollPositionRef,
+    search,
+  ]);
 }
 
 /**

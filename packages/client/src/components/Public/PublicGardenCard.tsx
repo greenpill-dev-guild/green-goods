@@ -1,6 +1,6 @@
 import { cn, type PublicGardenSummary } from "@green-goods/shared";
 import { useIntl } from "react-intl";
-import { Link, useMatch } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { ImageWithFallback } from "@/components/Display";
 import { EditorialKicker, EditorialMetaRow } from "./atoms";
 import { GardenCoverFallback } from "./GardenCoverFallback";
@@ -26,14 +26,6 @@ export function PublicGardenCard({
 }: PublicGardenCardProps) {
   const { formatMessage } = useIntl();
   const isLead = variant === "lead";
-  const match = useMatch("/gardens/:id");
-  const openId = match?.params.id?.toLowerCase();
-  const isActiveDialogTarget = openId
-    ? openId === garden.id.toLowerCase() ||
-      openId === garden.address.toLowerCase() ||
-      openId === garden.slug.toLowerCase()
-    : false;
-  const heroVtName = isActiveDialogTarget ? undefined : `garden-card-${garden.id}`;
 
   const metaItems: { label: string }[] = [];
   if (garden.location) metaItems.push({ label: garden.location });
@@ -71,7 +63,6 @@ export function PublicGardenCard({
           "relative w-full overflow-hidden bg-editorial-warm",
           isLead ? "aspect-[4/3]" : "aspect-[3/2]"
         )}
-        style={heroVtName ? { viewTransitionName: heroVtName } : undefined}
       >
         <ImageWithFallback
           src={garden.bannerImage}

@@ -14,7 +14,7 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { createElement } from "react";
 import { IntlProvider } from "react-intl";
-import { Link, MemoryRouter, Route, Routes } from "react-router-dom";
+import { Link, MemoryRouter, Route, Routes, useNavigate } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // --- Mocks ---
@@ -80,8 +80,15 @@ const FundContent = () =>
     createElement(Link, { to: "/gardens" }, "Open gardens"),
     createElement(Link, { to: "/fund?manage=endowments" }, "Open endowments")
   );
-const GardensContent = () =>
-  createElement("div", { "data-testid": "gardens-content" }, "Gardens Page Content");
+const GardensContent = () => {
+  const navigate = useNavigate();
+  return createElement(
+    "div",
+    { "data-testid": "gardens-content" },
+    "Gardens Page Content",
+    createElement("button", { type: "button", onClick: () => navigate(-1) }, "Go back")
+  );
+};
 const VaultsContent = () =>
   createElement("div", { "data-testid": "vaults-content" }, "Vaults Page Content");
 
@@ -176,6 +183,31 @@ describe("PublicShell", () => {
 
     expect(screen.getByTestId("gardens-content")).toBeInTheDocument();
     expect(scrollRoot!.scrollTop).toBe(0);
+  });
+
+  it("restores the public scroll container on back navigation", () => {
+    // <ScrollRestoration> restores `window`; this shell scrolls
+    // `#client-scroll-root`, so it has to bank and restore that itself. Before
+    // `/gardens/:id` became a route, going back to the archive cost nothing
+    // because the grid never unmounted. Now a reader who opened a Garden from
+    // deep in the list has to come back to where they were.
+    renderShellWithRoute("/fund");
+
+    const scrollRoot = document.getElementById("client-scroll-root");
+    expect(scrollRoot).toBeInTheDocument();
+
+    scrollRoot!.scrollTop = 1850;
+    fireEvent.scroll(scrollRoot!);
+
+    fireEvent.click(screen.getByRole("link", { name: "Open gardens" }));
+    expect(screen.getByTestId("gardens-content")).toBeInTheDocument();
+    // Forward navigation still starts at the top.
+    expect(scrollRoot!.scrollTop).toBe(0);
+
+    fireEvent.click(screen.getByRole("button", { name: "Go back" }));
+
+    expect(screen.getByTestId("fund-content")).toBeInTheDocument();
+    expect(scrollRoot!.scrollTop).toBe(1850);
   });
 
   it("preserves the public scroll container on search-only route changes", () => {
