@@ -28,6 +28,60 @@ export function selectSeenCommitments<T extends { creationSeen: boolean }>(
   return rows.filter((row) => row.creationSeen);
 }
 
+/** Who is reading a commitment. Never inferred from a state id or a title. */
+export type CommitmentSeat = "provider" | "confirmer" | "contributor" | "bystander";
+
+const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
+
+/** Absent, empty and zero-address all mean "nobody", so none of them may match a viewer. */
+function isSameAccount(left: Address | null | undefined, right: Address): boolean {
+  if (!left || left === ZERO_ADDRESS) return false;
+  return left.toLowerCase() === right.toLowerCase();
+}
+
+/**
+ * Direction names the creator, so no fifth seat is needed: on an Offer they
+ * provide, on a Request they receive and confirm.
+ */
+function creatorSeat(direction: CommitmentReadModel["direction"]): CommitmentSeat {
+  return direction === "REQUEST" ? "confirmer" : "provider";
+}
+
+/**
+ * Resolve the reader's relationship to a commitment.
+ *
+ * Returns null for an unauthenticated reader: they are not a bystander, and the
+ * difference decides whether a screen offers acts at all. There is no default seat.
+ *
+ * The order is load-bearing and each rung exists for a measured reason:
+ *
+ * 1. `leadProvider` first, because the lead is also on the team roster
+ *    (AcceptanceLib.sol:183-187 seeds them as contributor #1). A contributors-first
+ *    test would seat every provider as a contributor.
+ * 2. `creator` next, by direction. This covers a commitment nobody has taken up yet,
+ *    where neither party address is written, AND the asker on an accepted Request:
+ *    the contract stores the *taker* in `counterparty` on that direction
+ *    (AcceptanceLib.sol:146,172), so the asker appears in no party field but `creator`
+ *    and would otherwise fall through to bystander on their own request.
+ * 3. `counterparty` last of the party checks. On an Offer it is the person who took
+ *    it up; on a Request rule 1 has already claimed them.
+ */
+export function selectCommitmentSeat(input: {
+  commitment: Pick<CommitmentReadModel, "creator" | "leadProvider" | "counterparty" | "direction">;
+  contributors: readonly Address[];
+  viewer?: Address;
+}): CommitmentSeat | null {
+  const { commitment, contributors, viewer } = input;
+  if (!viewer) return null;
+  if (isSameAccount(commitment.leadProvider, viewer)) return "provider";
+  if (isSameAccount(commitment.creator, viewer)) return creatorSeat(commitment.direction);
+  if (isSameAccount(commitment.counterparty, viewer)) return "confirmer";
+  if (contributors.some((contributor) => isSameAccount(contributor, viewer))) {
+    return "contributor";
+  }
+  return "bystander";
+}
+
 export function deriveCommitmentState(
   commitment: CommitmentReadModel,
   cycleState?: string | null

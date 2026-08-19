@@ -50,21 +50,36 @@ export async function getCommitments(input: {
     clauses.push("state: { _eq: $state }");
     variables.state = input.state;
   }
-  let allowedIds: string[] | undefined;
   if (input.account) {
+    // Everything this account is a party to, not only what it is rostered on.
+    // The roster is seeded at acceptance and never holds the confirmer
+    // (AcceptanceLib.sol:183-187), so a roster-only filter loses both a
+    // commitment nobody has taken up yet and every commitment waiting on this
+    // person's confirmation.
+    const account = input.account.toLowerCase();
     const contributorQuery = `query CommitmentMembership($chainId: Int!, $account: String!) { CommitmentContributor(where: { chainId: { _eq: $chainId }, contributor: { _eq: $account }, additionSeen: { _eq: true }, active: { _eq: true } }) { commitmentEntityId } }`;
-    allowedIds = (
+    const rosteredIds = (
       await queryRows(
         contributorQuery,
-        { chainId: input.chainId, account: input.account.toLowerCase() },
+        { chainId: input.chainId, account },
         "CommitmentContributor",
         "getCommitmentMembership"
       )
     ).map((row) => String(row.commitmentEntityId));
-    if (allowedIds.length === 0) return [];
-    declarations.push("$ids: [String!]!");
-    clauses.push("id: { _in: $ids }");
-    variables.ids = allowedIds;
+    declarations.push("$account: String!");
+    variables.account = account;
+    const partyClauses = [
+      "{ creator: { _eq: $account } }",
+      "{ leadProvider: { _eq: $account } }",
+      "{ counterparty: { _eq: $account } }",
+    ];
+    // An empty roster is not an empty result — the party clauses stand alone.
+    if (rosteredIds.length > 0) {
+      declarations.push("$ids: [String!]!");
+      variables.ids = rosteredIds;
+      partyClauses.push("{ id: { _in: $ids } }");
+    }
+    clauses.push(`_or: [${partyClauses.join(", ")}]`);
   }
   const query = `query Commitments(${declarations.join(", ")}) { Commitment(where: { ${clauses.join(", ")} }, order_by: { commitmentId: desc }) { ${COMMITMENT_FIELDS} } }`;
   return (

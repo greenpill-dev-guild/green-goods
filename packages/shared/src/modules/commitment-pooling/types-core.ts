@@ -1,12 +1,16 @@
 import type { OntologyChainCapability } from "../../ontology/types";
 import type { Address } from "../../types/domain";
 import type {
+  CommitmentClaimMode,
   CommitmentClaimRequestState,
   CommitmentClaimType,
   CommitmentConsiderationRail,
+  CommitmentContributorPolicy,
   CommitmentCycleState,
   CommitmentCycleType,
   CommitmentDerivedState,
+  CommitmentDirection,
+  CommitmentKind,
   CommitmentOnchainState,
   CommitmentPoolState,
   CommitmentPoolType,
@@ -39,6 +43,31 @@ export interface CommitmentReadModel {
   counterCommitmentId?: bigint | null;
   considerationRail?: keyof typeof CommitmentConsiderationRail | null;
   considerationPaid?: boolean;
+  /**
+   * The other side of the agreement, written at acceptance and null before it.
+   * On an Offer this is the person who took it up. On a Request the contract
+   * stores the taker here as well, so it repeats `leadProvider` on an
+   * individual claim rather than naming the asker (AcceptanceLib.sol:172-174).
+   * Resolve the reader's relationship with `selectCommitmentSeat`, never by
+   * comparing this field directly.
+   */
+  counterparty?: Address | null;
+  /** Who recorded this on someone else's behalf. Null until creation is seen. */
+  recordedBy?: Address | null;
+  /** Offer or Request. Null until creation is seen. */
+  direction?: keyof typeof CommitmentDirection | null;
+  /** What kind of commitment this is. Null until creation is seen. */
+  commitmentType?: keyof typeof CommitmentKind | null;
+  /** Whether taking this up is open or steward-reviewed. Null until creation is seen. */
+  claimMode?: keyof typeof CommitmentClaimMode | null;
+  /** Whether a team may be joined. Null until creation is seen. */
+  contributorPolicy?: keyof typeof CommitmentContributorPolicy | null;
+  /** The named confirmer group. Empty when confirmation follows the ordinary rule. */
+  confirmers: Address[];
+  /** Team size without loading the team itself, which every card row needs. */
+  contributorCount: number;
+  /** Whether the team still accepts people. */
+  contributorsFrozen: boolean;
 }
 
 export interface PoolMemberHistory {
