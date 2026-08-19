@@ -252,15 +252,18 @@ why the prototype-to-implementation alignment in this PR matters.
    keep offering it", and moved the build assertion that pinned the old phrase
    (`prototypes-artifact.build.ts:831`). My reasoning was that *cycle* is the contract's word leaking
    into member copy, which the same sweep removed everywhere else. The requirement is explicit and I
-   did not check it. **Decide which wins** — the copy rule or the issue text — and if the copy rule
-   wins, PRD-724's description needs amending rather than the conflict standing.
+   did not check it. **Afo's call (2026-08-19): the copy rule wins**, and PRD-724 carries a comment
+   recording the amendment and inviting a reversal if the old phrase was deliberate. Verify the
+   reasoning holds rather than accepting the resolution — if "cycle" was naming the renewal boundary
+   on purpose, the comment says it goes back.
 
 3. **PRD-760's closing checklist contains a vacuous check.** It names
    `bun .plans/active/commitment-pooling/hifi/validate.ts`. That file is a module with **no
    entrypoint**: it exits 0 and prints nothing, so anyone running it as written gets a pass that
    proves nothing. The real gate is `prototypes-artifact.build.ts`, which imports it. PRD-760 is
-   closed and unblocking three issues on that checklist. Worth recording regardless of this PR's
-   verdict.
+   closed and unblocking three issues on that checklist. **Recorded on PRD-760 as a comment
+   (2026-08-19), not reopened** — its substantive checks were done by hand and the outcome looks
+   sound. Confirm that judgement.
 
 4. **PRD-760's other criteria are things this PR could regress.** It required that two screens
    describing the same moment show the same totals, and that detail loading/error/loaded states share
