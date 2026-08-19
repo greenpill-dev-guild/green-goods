@@ -15,8 +15,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { renderWithProviders, screen } from "../test-utils";
 
 /** The tab navigates into commitment detail, so it needs a router around it. */
-const render = (ui: React.ReactElement) =>
-  renderWithProviders(<MemoryRouter>{ui}</MemoryRouter>);
+const render = (ui: React.ReactElement) => renderWithProviders(<MemoryRouter>{ui}</MemoryRouter>);
 
 const VIEWER = "0x1111111111111111111111111111111111111111" as const;
 const OTHER = "0x2222222222222222222222222222222222222222" as const;
