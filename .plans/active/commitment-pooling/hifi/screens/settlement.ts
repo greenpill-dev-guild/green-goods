@@ -1113,7 +1113,7 @@ type W26Phase = "review" | "shares" | "certificate" | "rest";
 // rail; the advance lives in the footer; the X exits without losing the
 // on-chain position.
 const CLOSE_STEPS: FlowStep[] = [
-  { title: "Review", desc: "close the cycle's exact bundle" },
+  { title: "Review", desc: "close this season's exact bundle" },
   { title: "Shares", desc: "the six-role snapshot, locked at open" },
   { title: "Certificate", desc: "mint the impact record" },
   // "Rest" retired here too (2026-08-18 round 46, Afo). C.27 retired it on the
@@ -1122,7 +1122,7 @@ const CLOSE_STEPS: FlowStep[] = [
   // word was already in the contract: the cycle's terminal transition is
   // Reconciled → Composted via compostCycle(cycleId) (CS:206), and compost is
   // established Green Goods vocabulary for an ending that feeds what follows.
-  { title: "Compost", desc: "roll the cycle up into pool history" },
+  { title: "Compost", desc: "roll the season up into pool history" },
 ];
 
 function w26(state: W26State): string {

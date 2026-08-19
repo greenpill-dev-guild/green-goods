@@ -99,7 +99,7 @@ const commitmentsShell = (
   // Title, subtitle and rail are FIXED chrome; only the list below them moves
   // (2026-08-17 round 43, Afo). The direction chips scroll with the list they
   // filter, which is where the pool tab already puts them.
-  return sheetOver(homeHeader({ commitments: total || undefined }), "Commitments", inner, {
+  return sheetOver(homeHeader({ commitments: total || undefined, walletHot: "w5.open-wallet" }), "Commitments", inner, {
     handle: false,
     close: true,
     sub: "What you've offered, asked for, and taken up across gardens.",
@@ -333,7 +333,32 @@ ${sectionCard(
           // The member's own service commitment, picked back up days after offering
           // it (sb56) — the wallet is where you return to something you promised.
           "w5.mine-row",
-          commitmentCard({ title: "Repair tool handles", meta: "1 repair session · yours", tags: [{ label: "Accepted", tone: "request" }, { label: "Support / service" }] }),
+          commitmentCard({ title: "Repair tool handles", meta: "1 repair session · yours", tags: [{ label: "Accepted", tone: "request" }, { label: "A service" }] }),
+        )}${hot(
+          // Money in flight belongs in Live, not Over time: the commitment is
+          // Fulfilled but something is still moving, and the tense split
+          // partitions by motion rather than by lifecycle. No W5 state mentioned
+          // money at all before this, so two journeys opened on this sheet and
+          // then jumped somewhere it does not lead. It needs no act from the
+          // member, so it takes no warn chip and adds nothing to the badge.
+          "w5.support-row",
+          commitmentCard({
+            title: "Fix the shed roof",
+            meta: "8 hours · kept Jul 12",
+            tags: [{ label: "Kept", tone: "ok" }, { label: "On its way", tone: "queued" }],
+            note: "Support on its way. You will see it here when it arrives.",
+          }),
+        )}${hot(
+          // A commitment frozen for steward review. Saying "not yet" used to send
+          // it somewhere the member had no way to watch, which is where sb5
+          // ended. Nothing to do here either, so no warn chip and no badge.
+          "w5.review-row",
+          commitmentCard({
+            title: "Weed the terrace beds",
+            meta: "You said not yet · Jul 10",
+            tags: [{ label: "Under review", tone: "queued" }],
+            note: "Stewards are looking at this. Nothing for you to do until they finish.",
+          }),
         )}`,
         { flush: true },
       )}
@@ -379,6 +404,9 @@ const W5_HOTS: HifiDef["hots"] = {
   "w5.retry-send": { l: "Retry failed send", to: "screen:W5@queued", info: "Wallet-side recovery (2026-08-14 second pass): resets the exhausted job to pending and retries without dropping the local commitment — the same UX:218 contract as the pool tab, reachable from any garden." },
   "w5.discard-send": { l: "Discard failed send", to: "screen:W5", info: "Removes only the exhausted local job after an explicit member choice; no remote commitment exists yet (UX:218)." },
   "w5.mine-row": { l: "My commitment", to: "screen:W2", info: "Your own commitments grouped by garden." },
+  "w5.open-wallet": { l: "Open the wallet", to: "screen:W23", info: "The Home header's wallet control, which is the real door in the shipping app. Nothing else in the artifact reached W23: its five hotspots all originated inside it, so the G$ balance was drawn and unreachable, and sb53 opened on this sheet and then jumped there with no control between. The other three header controls stay inert preview chrome." },
+  "w5.support-row": { l: "Support on its way", to: "screen:W2@support-queued", info: "Money in flight lives in Live because something is still moving, even though the commitment is already Fulfilled. The row carries no warn chip and no badge weight: nothing here needs an act, and the badge counts only what does (round 41). Support states live on the commitment itself; this sheet is where you notice them, which is what sb11's own premise claimed and nothing drew." },
+  "w5.review-row": { l: "Under review by stewards", to: "screen:W2@disputed", info: "A commitment frozen for steward review. Actions pause, so it takes no warn chip and no badge weight: the member's part is over until the stewards act. Without this row, saying \u201cnot yet\u201d handed a commitment to somebody else and left the person who raised it nowhere to watch." },
   "w5.open-series": { l: "Open the ongoing Offer", to: "screen:W34@active-two", info: "The ongoing Offer's parent — internally the pool-scoped CommitmentSeries. What it opens is public and lives on the pool tab; the parent is what only you edit or stop. The row counts commitments — one basis, never a unit sum (Appendix D.1)." },
   "w5.open-series-stopped": { l: "Open a stopped ongoing Offer", to: "screen:W34@active-none", info: "Stopping a series means it opens nothing more. Whatever members already took up carries on untouched, which is why this is a control on the parent and never a change to its children (C.27: one control, not two)." },
   "w5.open-series-ready": { l: "Open the ongoing Offer in a Ready pool", to: "screen:W34@pool-ready", info: "A series can be Active while its pool has not opened. The parent's controls all work; nothing can be taken up until stewards open the pool." },

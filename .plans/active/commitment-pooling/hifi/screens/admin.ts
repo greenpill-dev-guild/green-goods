@@ -270,7 +270,7 @@ const w7NoSeason = (canStart: boolean) =>
 const w7Members = () =>
   acard(
     "Who's In This Pool",
-    `<div class="t-meta">What each person currently offers, and how their commitments have gone here. Counts only. This is shared memory for stewarding, never a score or a ranking.</div>
+    `<div class="t-meta">What each person currently offers, and how their commitments have gone here. Counts only, so you can see who is stretched and who has room.</div>
 ${commitmentRow({
       title: "Maria",
       chips: `${chip("6 hours", "offer")}${chip("2 rides", "offer")}`,
@@ -1490,7 +1490,7 @@ ${banner("This rail records a jar or treasury payment that happens outside the a
       actions = `${dismiss()}${hot("w10.dispute-confirm", btn("Raise Dispute", { kind: "pri" }))}`;
       break;
     case "resolve-dispute":
-      body = `${kv("Your role", "Steward · contributor on this commitment")}${field("Outcome", hot("w10.resolve-options", radio([{ label: "Restore previous state", meta: "returns the exact stored state, no unit movement", on: true }, { label: "Cancelled" }, { label: "Expired" }], { interactive: true, name: "resolution" })))}${reasonChips(["Resolved at the gathering", "Work completed since", "Agreed to release it"])}${field("Reason (required)", input("resolved at the weekly gathering"))}${banner("Fulfilled is unavailable because your connected steward address is on the contributor roster. A non-contributor steward may see that outcome only when its policy and verified-credit gates pass. Every available outcome renders its reason in the member timeline.", "stone")}`;
+      body = `${kv("Your role", "Steward · contributor on this commitment")}${field("Outcome", hot("w10.resolve-options", radio([{ label: "Restore previous state", meta: "returns the exact stored state, no unit movement", on: true }, { label: "Cancelled" }, { label: "Expired" }], { interactive: true, name: "resolution" })))}${reasonChips(["Resolved at the gathering", "Work completed since", "Agreed to release it"])}${field("Reason (required)", input("resolved at the weekly gathering"))}${banner("You can't mark this kept: you're on this commitment's team, and nobody confirms their own work. A steward who isn't on it may. Every outcome records its reason in the member's timeline.", "stone")}`;
       actions = `${dismiss()}${hot("w10.resolve", btn("Resolve", { kind: "pri" }))}`;
       break;
     case "attach-assessment":

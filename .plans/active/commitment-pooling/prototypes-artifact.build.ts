@@ -826,10 +826,14 @@ if (
   );
 }
 // W33 retired 2026-08-11 (D2), and iteration 2 folded ongoing INLINE into the
-// composer: the renewal phrase lives on the ongoing review state + W34.
+// composer: the renewal prompt lives on the ongoing review state + W34. What
+// this assertion protects is that an ongoing offer never renews itself — the
+// member is asked. The phrase was "Ask me again next cycle" until 2026-08-18,
+// when "cycle" left member copy: it is the machine's word for what the composer
+// calls where it runs, and it appeared in a control the member reads.
 for (const [screenId, stateId] of [["W3", "support-review-ongoing"], ["W34", "active-two"]] as const) {
-  if (!stateHtml(screenId, stateId).includes("Ask me again next cycle")) {
-    throw new Error(`Renewal-copy regression: ${screenId}@${stateId} lost the exact phrase "Ask me again next cycle".`);
+  if (!stateHtml(screenId, stateId).includes("Ask me whether to keep offering it")) {
+    throw new Error(`Renewal-copy regression: ${screenId}@${stateId} lost the exact phrase "Ask me whether to keep offering it".`);
   }
 }
 const requiredTargets: [string, string][] = [

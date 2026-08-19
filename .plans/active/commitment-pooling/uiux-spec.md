@@ -3257,3 +3257,100 @@ validator passes for the first time in three rounds — its coverage pins were t
 stale, its `failStrandedSubject` row was never added when that call joined the union, and one of its
 assertions was checking for the word *promises*, which the vocabulary sweep had already retired
 everywhere else.
+
+### C.55 The ceremony, the sheet, and three ways in (2026-08-18, round 53)
+
+**The moment the product exists for was given to the wrong person.** There were nine hero moments in
+513 states. Six sat on W4, the *confirmer's* sheet, and fired every time somebody tapped Confirm.
+Three sat on W2 fulfilled states, and they were the edge casts: a service, a Campaign request, and a
+commitment a steward had recorded. The two main paths — an ordinary offer kept, an ordinary request
+met — gave the person who did the work a grey band above a details list. So the ceremony went to the
+two-tap act and not the six-hour one, and inconsistently even then.
+
+**Fixing the destination lie is what freed the screen.** All six `w4.done-*` hotspots were labelled
+"Back to the pool" and targeted `W2@*-fulfilled` — the commitment detail. The reason `W2@fulfilled`
+had been kept quiet is recorded on `sb42`'s own last scene: *"kept, once … no duplicate full-screen
+repeat"*. That was true only because the confirmer was being sent there. Once Done goes to the pool,
+which is what the button says, the fulfilled view is only ever the provider's, and can carry the
+celebration the hotspot registry had documented for it all along.
+
+**Seven provider states now name what is true rather than what went up.** "Confirmed · the season's
+count just grew" was the payoff line of the whole product, and it was a counter. It reads "The north
+beds are pruned · You did the work. João confirmed it on Jul 12." W4 keeps its hero and says
+something different: the provider's says *you did this*, the confirmer's says *you vouched for it*.
+Both people did something; the two heroes now say which. The three that already had a hero were
+wrapped in `bandCard`, so they rendered an information badge and a celebration halo 130px apart.
+
+**Two fulfilled states deliberately keep their band.** A fallback-confirmed commitment's news is who
+confirmed it and why, and a hero's message is capped at 30 characters, so a halo cannot carry a
+reason. The timeline can, and does.
+
+**The settled band stopped claiming to be the celebration.** Ten states short-circuited to
+"Commitment kept · the season's count already grew" while their money was still moving. That is the
+third statement of a fact the state chip and the timeline's last moment already carry, and it
+re-fires a celebration the person had days ago. "Kept" survives as the first word, because somebody
+arriving from a payment notification still needs it; the rest of each band says where the support
+has got to.
+
+**The missing beat cost one band and one early return.** When João takes up Maria's offer, that
+reached her as a row inside a folded `Timeline · 4 moments`, under a band that opened with an
+instruction. The screen also said four different things about when it was: the band said add proof,
+the progress block said "Prune 2 of 2", the Work section said an approval dated five days after
+acceptance was *not linked*, and the timeline's last row said "Ready to confirm · waiting on João".
+`W2@accepted` now leads with **João took this up**, the instruction second; the offer cast's timeline
+tail no longer asserts work that has not happened; requirement rows read `0 of 2` until something is
+approved; and the Media section appears when there is proof rather than whenever the commitment has
+been claimed.
+
+**The commitments sheet had no row for two of the things that happen most.** No state of W5
+mentioned money at all, and none carried a commitment frozen for steward review — which is where
+three flows handed off. `sb11` and `sb53` opened on this sheet and then moved on with no control
+between them, and `sb5` ended by handing a commitment to somebody else and leaving the person who
+raised it nowhere to follow it. Both rows reuse `commitmentCard`, take the `queued` tone rather than
+`warn`, and add nothing to the badge: neither needs an act, and the badge counts acts, not inventory.
+
+**Nothing in the artifact reached the wallet.** W23's five hotspots all originated inside W23, and
+the Home header's four controls were inert preview chrome, so the G$ balance was drawn and
+unreachable — and `sb53` could not legally begin anywhere else, because a client flow must enter at
+W1, W5 or WFLOW. `homeHeader` takes an opt-in `walletHot`; only the commitments sheet passes it, so
+the wallet's own shell and the gallery specimen stay inert.
+
+**The catalog had no beginning and no end.** It opened at "Make an offer", which assumes you are
+already a member of a garden whose pool is already open and that you already know what a commitment
+is, and closed at "Change of plans". Two chapters bookend it now. *Find your way in* holds the
+arrival walk and `sb18`, which is the commitments-sheet orientation flow and was filed under money.
+*See how the season went* holds the ending, which uses three cycle-carousel hotspots that were
+already drawn and wired and led nowhere. Neither flow needed a new screen.
+
+**The sentence that explains the whole idea reached one state in thirty-three.** "Offer something
+you can give, or ask for help you need" lived on `W1@empty-open` alone — the state almost nobody sees
+twice — while the steward's console carried a plain-language description of the pool every day. The
+garden's charter is now the commitments list's subtitle, on all nine states where that list renders.
+It is a line under a section header, not the 236px summary card round 8 removed from that same gap.
+
+**Withdrawing a request had a button and no sheet.** `W2_BARS.requested` drew "Withdraw This
+Request…" and routed it into the offer's confirmation, which asked *"Withdraw this offer?"* over an
+ask. Two states close it, and `request-withdraw-confirm` joins `REASON_CONFIRMS` because
+`cancelCommitment` stores a `reasonCID` and the gate checks that in both directions.
+
+**Every machine word left the client surface.** *on-chain*, *fulfillment*, *indexed*, *transaction*
+and *threshold* are at zero; *syncs* went from nineteen to zero, *roster* from fifteen, *cycle* from
+four. The two worth naming: "Fulfillment appears only after it syncs on-chain" was the sentence a
+person read immediately after confirming a commitment, which is plausibly the highest moment in the
+product; and `W2b@join-submitted` answered "am I on the team?" with a paragraph about indexer
+freshness. Six bands explained idempotency — *"cannot be confirmed twice while it syncs"* — to
+somebody who had not asked. What survives is the consequence: joining on its own still earns no
+credit, and the screen still says so.
+
+**Composer step 3 was the only step whose next action had no word on it.** An unlabelled arrow, on
+the one step that is entirely optional. The icon-only decision was a real measurement — five capture
+adders plus a labelled primary left about 78px — so the adders move to their own row through the
+`.fbar:has(.fbrow)` mechanism the flow already uses elsewhere, and the primary gets the full width.
+Step 2's amount-versus-actions distinction is explained once now instead of four times.
+
+**The steward's roster keeps its counts and loses its disclaimer** (Afo's call, against the
+recommendation). A steward needs to see who is over-committing; the caption arguing that the list was
+"never a score or a ranking" was the dishonest half.
+
+Build: 44 screens / 519 states / 736 hotspots / 56 flows / 329 scenes, 0 warnings; closure validator
+green.

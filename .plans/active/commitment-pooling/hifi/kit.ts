@@ -799,15 +799,20 @@ export function gardenHeader(name: string, meta: { location: string; founded: st
 // The glyph is hand-heart rather than the shipped tab's hand-coin: the sprite
 // carries no hand-coin, and the two leaf glyphs (seedling, plant) would read
 // as a second Garden control next to Work.
-export function homeHeader(opts: { commitments?: number } = {}): string {
+export function homeHeader(opts: { commitments?: number; walletHot?: string } = {}): string {
   const n = opts.commitments;
   const badge = n ? `<span class="hh-badge">${n > 9 ? "9+" : n}</span>` : "";
   const ic = (name: string, label: string, extra = "") =>
     `<button type="button" class="hh-ic" aria-label="${esc(label)}, preview only" disabled>${icon(name, "s")}${extra}</button>`;
-  return `<div class="hhead"><h4 class="hh-title">Home</h4><div class="hh-actions">${ic("search-line", "Filter")}${ic(
-    "wallet-line",
-    "Wallet",
-  )}${ic("hand-heart-line", n ? `Commitments, ${n} waiting on you` : "Commitments", badge)}${ic("plant-line", "Work")}</div></div>`;
+  return `<div class="hhead"><h4 class="hh-title">Home</h4><div class="hh-actions">${ic("search-line", "Filter")}${(() => {
+    // Opt-in, so only the commitments sheet lights this up: a wallet door inside
+    // the wallet is a loop, and the components-gallery specimen must stay inert.
+    // Nothing in the artifact reached W23 before this — its five hotspots all
+    // originated inside it, so the G$ balance was drawn and unreachable, and
+    // sb53 could not legally begin anywhere else (ALLOWED_ENTRY.client).
+    const wallet = ic("wallet-line", "Wallet");
+    return opts.walletHot ? hot(opts.walletHot, wallet) : wallet;
+  })()}${ic("hand-heart-line", n ? `Commitments, ${n} waiting on you` : "Commitments", badge)}${ic("plant-line", "Work")}</div></div>`;
 }
 
 export function pagepad(...children: string[]): string {

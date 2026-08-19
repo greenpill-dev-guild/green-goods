@@ -60,6 +60,11 @@ export const SBS: SB[] = [
 // sitting and ends when the commitment is queued; the taking-up (sb55) and the
 // proving (sb56) are their own walks. Old mid-ribbon hashes (#sb1/6, #sb29/5+)
 // retire exactly as #sb9 did.
+{ id: "sb61", n: 29, title: "Arrive for the first time", desc: "A new member opens Commitments, finds it empty, browses the garden's pool, and reads one whole commitment before deciding anything.", persona: "New member", scen: "S6 · first run", reviewVisible: true, reviewGroup: "client", chapter: "arrive", roles: ["gardener"], steps: [
+  { f: "W5@empty", hot: { h: "w5.browse-gardens", l: "Browse gardens" }, st: "Nothing yet", ev: "the commitments control sits in the Home header from the first launch, so this empty state is also the first thing a member of a garden with no commitments sees. It carries the one sentence that says what a commitment IS, and it reads as an invitation rather than a failure" },
+  { f: "W1", hot: { h: "w1.open-offer", l: "Prune the north beds" }, st: "Pool open", ev: "the pool tab now says in one line what this pool is for, in the garden's own words. That sentence lived on the empty-pool state alone, which is the one screen almost nobody sees twice, while the steward's console carried it every day", br: [{ l: "A pool with nothing in it yet", to: "screen:W1@empty-open" }] },
+  { f: "W2@browse-offered", hot: null, st: "Offered", ev: "reading one whole commitment is the fastest way to learn the shape of all of them: what is being given, by whom, what proves it, and who says it was kept. Nothing here is an act, because the card carried none either", br: [{ l: "Take it up", to: "sb55:1" }, { l: "Offer something yourself", to: "sb1:0" }, { l: "Ask for what you need", to: "sb2:0" }] },
+]},
 { id: "sb1", n: 1, title: "Make an offer", desc: "Maria offers to prune the north beds — four composer steps, then the commitment sits queued on her phone until it syncs.", persona: "Gardener (Maria)", scen: "S1 · TAS workshop", reviewVisible: true, reviewGroup: "client", chapter: "make", roles: ["gardener"], steps: [
   { f: "W1", hot: { h: "w1.create", l: "Offer or request" }, st: "Pool open", ev: "the one floating create entry stays reachable however far the list scrolls — it opens the doors, it is not a form", cite: "uiux §5.2 addendum 2026-08-14" },
   { f: "W1@create-open", hot: { h: "w1.offer", l: "Offer" }, st: "Doors open", ev: "the two entry verbs are the only creation doors — direction is fixed by the door and never re-asked inside", cite: "uiux Appendix B §5.4 addendum 2026-08-11" },
@@ -160,7 +165,8 @@ export const SBS: SB[] = [
   { f: "W5", hot: { h: "w5.inbox-row", l: "Review" }, st: "Wallet", ev: "the same inbox row — confirming honestly includes saying not yet" },
   { f: "W4", hot: { h: "w4.not-yet", l: "Not yet" }, st: "ReadyForConfirmation", ev: "not-yet is a separate act with its own reason — never a negative confirmation" },
   { f: "W4@not-yet", hot: { h: "w4.not-yet-send", l: "Send to the stewards" }, st: "Reason", ev: "common reasons fill the still-required field; your words stay yours" },
-  { f: "W2@disputed", hot: null, st: "Under review", ev: "the member ceiling is “under review by stewards” — CTAs pause, nothing is public, and what happens next is the stewards' act, not theirs", br: [{ l: "The steward's resolution", to: "sb47:0" }] },
+  { f: "W2@disputed", hot: null, st: "Under review", ev: "the member ceiling is “under review by stewards” — CTAs pause, nothing is public, and what happens next is the stewards' act, not theirs" },
+  { f: "W5", hot: null, st: "Waiting", ev: "and this is where you watch it: a quiet row in Live, no act and no badge, because nothing is waiting on you. Saying not yet used to hand the commitment to somebody else and leave you with nowhere to follow it", br: [{ l: "The steward's resolution", to: "sb47:0" }] },
 ]},
 { id: "sb45", n: 11, title: "The team behind a commitment", desc: "João opens a commitment whose team is still forming and joins it himself — membership shows only once the indexed roster confirms it.", persona: "Contributor (João)", scen: "S1 · group commitment", reviewVisible: true, reviewGroup: "client", chapter: "team", roles: ["gardener"], steps: [
   { f: "W1", hot: { h: "w1.open-team-offer", l: "Open the team commitment" }, st: "Pool open", ev: "a forming team is visible right on the card — and opening it lands on the COMMITMENT, not a bare team screen", cite: "iteration 2 E8" },
@@ -188,20 +194,20 @@ export const SBS: SB[] = [
   { f: "W34@story", hot: null, st: "Story", ev: "what the ongoing offer has become — kept commitments, people, no scores", br: [{ l: "Stop offering it, the record stays", to: "screen:W34@stopped" }, { l: "Take up one open commitment (recipient side)", to: "screen:W34@claimant-view" }] },
 ]},
 { id: "sb11", n: 13, title: "Watch G$ support arrive", desc: "A gardener follows declared support from queued to on its way to arrived — and only an authenticated success ever says arrived.", persona: "Gardener", scen: "S8/S9 · TAS", reviewVisible: true, reviewGroup: "client", chapter: "money", roles: ["gardener"], steps: [
-  { f: "W5", hot: null, st: "Wallet", ev: "support states live on the commitment itself; the wallet is where you notice them" },
+  { f: "W5", hot: { h: "w5.support-row", l: "Support on its way" }, st: "Commitments", ev: "money in flight has a row of its own in Live now, so noticing it is a tap rather than a jump. This walk used to open here and move on with no control between, because no state of this sheet mentioned money at all" },
   { f: "W2@support-queued", hot: null, st: "Queued", ev: "the fulfilled commitment's declared support enters the settlement queue" },
   { f: "W2@support-en-route", hot: null, st: "On its way", ev: "“support on its way” — the only phrase before an authenticated outcome", cite: "settlement copy contract" },
   { f: "W2@support-delayed", hot: null, st: "Taking longer", ev: "delay is named calmly; no ticking, no alarm" },
   { f: "W2@support-arrived", hot: null, st: "Arrived", ev: "“support arrived” renders only after the authenticated success acknowledgment", br: [{ l: "Send it on", to: "sb53:0" }, { l: "If it fails: “support is being rearranged”", to: "screen:W2@support-failed" }] },
 ]},
 { id: "sb53", n: 14, title: "Send support on", desc: "Arrived G$ sits in the wallet; sending it on to a neighbour is recent recipients, an amount preset, and one send.", persona: "Gardener", scen: "S8/S9 · onward send", reviewVisible: true, reviewGroup: "client", chapter: "money", roles: ["gardener"], steps: [
-  { f: "W5", hot: null, st: "Wallet", ev: "sending on starts from the wallet — a separate sitting from watching it arrive" },
+  { f: "W5", hot: { h: "w5.open-wallet", l: "Open the wallet" }, st: "Commitments", ev: "sending on starts from the wallet, a separate sitting from watching it arrive, and the Home header's wallet control is how you reach it. Nothing in the artifact targeted W23 before this" },
   { f: "W23", hot: { h: "w23.send", l: "Send G$" }, st: "Balance", ev: "the arrived support sits in the wallet's G$ section" },
   { f: "W23@send", hot: { h: "w23.send-submit", l: "Send" }, st: "Send", ev: "recent recipients and amount presets — tap-first" },
   { f: "W23@send-pending", hot: null, st: "Sending", ev: "the send keeps its state visibly until it lands" },
   { f: "W23@balance", hot: null, st: "Balance", ev: "done — the record stays in the wallet history", br: [{ l: "If a send fails", to: "screen:W23@send-failed" }, { l: "Contributor receipts", to: "screen:W23@contributor-receipt" }] },
 ]},
-{ id: "sb18", n: 15, title: "Find everything waiting on you", desc: "One cross-garden home: what waits on you first, then your own commitments by garden, then what you keep ready to offer.", persona: "Gardener across gardens", scen: "S6 · wallet drawer", reviewVisible: true, reviewGroup: "client", chapter: "money", roles: ["gardener"], steps: [
+{ id: "sb18", n: 15, title: "Find everything waiting on you", desc: "One cross-garden home: what waits on you first, then your own commitments by garden, then what you keep ready to offer.", persona: "Gardener across gardens", scen: "S6 · wallet drawer", reviewVisible: true, reviewGroup: "client", chapter: "arrive", roles: ["gardener"], steps: [
   { f: "W5", hot: { h: "w5.inbox-row", l: "Review" }, st: "Wallet", ev: "one cross-garden home: waiting-on-you first, then your commitments by garden, then Things I can offer" },
   { f: "W4", hot: null, st: "ReadyForConfirmation", ev: "the inbox row opens the same confirmation sheet the commitment itself opens", br: [{ l: "Confirm a commitment kept", to: "sb42:1" }] },
   { f: "W5@queued", hot: null, st: "Queued", ev: "queued commitments ride at the top of their garden group with the offline banner" },
@@ -222,6 +228,12 @@ export const SBS: SB[] = [
   { f: "W2@withdraw-confirm", hot: { h: "w2.withdraw-send", l: "Withdraw" }, st: "Confirm", ev: "no units were committed, so none release; the reason is stored" },
   { f: "W2@withdrawn", hot: null, st: "Withdrawn", ev: "the timeline names you as the actor — distinct from a steward cancellation", br: [{ l: "The steward's cancellation instead", to: "sb17:3" }] },
 ]},
+{ id: "sb62", n: 30, title: "Withdraw a request", desc: "Ana no longer needs the ride. She withdraws her own request before anyone takes it up, with the reason she gives kept on the record.", persona: "Gardener (Ana)", scen: "S2 edge · MF-2a, requester side", reviewVisible: true, reviewGroup: "client", chapter: "change", roles: ["gardener"], steps: [
+  { f: "W1", hot: null, st: "Pool open", ev: "your open request, before anyone has said they can help. The mirror of withdrawing an offer, which had a flow of its own while this had a drawn button and no sheet behind it" },
+  { f: "W2@requested", hot: { h: "w2.withdraw-request", l: "Withdraw this request…" }, st: "Requested", ev: "withdrawing is the requester's act, pre-acceptance only, from the fixed bar" },
+  { f: "W2@request-withdraw-confirm", hot: { h: "w2.withdraw-request-send", l: "Withdraw" }, st: "Confirm", ev: "the sheet speaks the request's own language. It used to open the offer's: “Withdraw this offer?” over an ask. Nobody committed units to this, so none release, and the reason cancelCommitment stores is required rather than offered" },
+  { f: "W2@request-withdrawn", hot: null, st: "Withdrawn", ev: "the timeline names you as the actor and quotes what you said, which is what distinguishes this from a steward cancellation. Asking again is a fresh request, never a retry of this one", br: [{ l: "Withdrawing an offer instead", to: "sb16:1" }, { l: "The steward's cancellation", to: "sb17:3" }] },
+]},
 { id: "sb6a", n: 17, title: "Offer it again", desc: "A commitment lapsed with the season; offering it again is one tap into a prefilled composer, and the old record stays honest.", persona: "Gardener (Maria)", scen: "S1/S5 edge", reviewVisible: true, reviewGroup: "client", chapter: "change", roles: ["gardener"], steps: [
   { f: "W1", hot: null, st: "Pool open", ev: "the season moved on and a commitment lapsed — offering again is one tap" },
   { f: "W2@expired", hot: { h: "w2.offer-again", l: "Offer it again" }, st: "Expired", ev: "a lapsed commitment can be offered again — a fresh record, the old one stays honest" },
@@ -234,6 +246,12 @@ export const SBS: SB[] = [
   { f: "W36@deposit-sent", hot: null, st: "Deposit sent", ev: "the wallet transfer alone is not a recorded deposit and does not accept the claim" },
   { f: "W36@pending-acceptance", hot: null, st: "Deposit recorded", ev: "the Garden Steward checked the full transfer; it is held by the garden while the priced Offer still waits for acceptance" },
   { f: "W36@funded", hot: null, st: "Funded", ev: "the accepted commitment carries Maria's 40 G$ funding fact; Ben now follows the ordinary proof and confirmation path", br: [{ l: "If the commitment ends without delivery", to: "screen:W36@refund-queued" }, { l: "The steward checkpoint and refund", to: "sb59:0" }] },
+]},
+{ id: "sb63", n: 31, title: "See how the season went", desc: "The season ended. A gardener opens it from the pool tab and reads what it grew, who took part, and what the two assessments found.", persona: "Gardener", scen: "S5 · the garden's memory", reviewVisible: true, reviewGroup: "client", chapter: "season-end", roles: ["gardener"], steps: [
+  { f: "W1", hot: { h: "w1.open-ended-cycle", l: "Season of Long Dry" }, alts: [{ h: "w1.open-season", l: "The season running now", to: "screen:W1C@season" }, { h: "w1.all-seasons", l: "All seasons", to: "screen:W1C@all-seasons" }], st: "Pool open", ev: "ended cycles trail the live ones in the same rail, so the garden's memory is one swipe away rather than a separate screen. A cycle card is a door, and all three of these open one" },
+  { f: "W1C@season-ended", hot: { h: "w1c.tab-people-ended", l: "People" }, st: "Ended", ev: "what the season grew, in its own units and never summed across them: 48 hours, 12 rides, 6 sessions, and the reserve that went to 7 gardeners. Counts stay in their own units because that is what they mean" },
+  { f: "W1C@people-ended", hot: { h: "w1c.tab-insights-ended", l: "Insights" }, st: "People", ev: "who took part and what they did, as shared memory rather than a score. Each person's own record stays between them and their stewards" },
+  { f: "W1C@insights-ended", hot: null, st: "Insights", ev: "and what the season changed, read from the assessment that opened it against the one that closed it, including the marker that did not move", br: [{ l: "Every season this garden has run", to: "screen:W1C@all-seasons" }, { l: "A kept commitment from it", to: "screen:W2@fulfilled" }, { l: "The steward's side of ending it", to: "sb9c:0" }] },
 ]},
 // sb3 was one 13-scene arc crossing PWA and admin. Split at the surface seam:
 // the member's asking-and-hearing-back is its own story, and so is the
@@ -615,9 +633,9 @@ export const SB_ROUTE_ALIASES: Record<string, string> = {
   "sb29/9": "sb56/5",
   "sb29/10": "sb56/6",
   "sb29/11": "sb56/7",
-  // D3 round 2 — the member's "not yet" no longer replays the stewards' restore;
-  // that moment is sb47's own echo of it.
-  "sb5/4": "sb47/1",
+  // "sb5/4" retired 2026-08-18: the member's flow gained a real fifth scene —
+  // the quiet row in Live where they watch it — and a live scene always wins
+  // over a redirect.
   // D3 round 2's "sb50/2" → "sb57/1" retired 2026-08-16: the full assessment
   // walk regrew that scene index, and a real route wins over a redirect (the
   // end-beat links to sb57).

@@ -25,6 +25,12 @@ export const CHAPTERS: Record<ReviewGroup, readonly { id: string; label: string;
   // → prove → confirm → team → money → change. The separate Ongoing chapter is
   // gone — ongoing lives inside Make an offer (Afo decision, iteration 2).
   client: [
+    // Bookends added 2026-08-18 (flow audit): the catalog began at "Make an
+    // offer", which assumes you are already a member of a garden whose pool is
+    // already open and that you already know what a commitment is; and it ended
+    // at "Change of plans", so a member's season never closed. Nobody arrived
+    // and nobody left.
+    { id: "arrive", label: "Find your way in" },
     { id: "make", label: "Make an offer" },
     // "Requests" was the odd one out: every other chapter names the act, so the
     // two creation doors now read as the matched pair they are (Afo, D3).
@@ -35,6 +41,7 @@ export const CHAPTERS: Record<ReviewGroup, readonly { id: string; label: string;
     { id: "team", label: "The team behind a commitment" },
     { id: "money", label: "Money & wallet" },
     { id: "change", label: "Change of plans" },
+    { id: "season-end", label: "See how the season went" },
   ],
   admin: [
     { id: "season", label: "Run the season" },

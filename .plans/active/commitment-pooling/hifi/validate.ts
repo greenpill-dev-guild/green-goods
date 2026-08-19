@@ -559,6 +559,7 @@ const REASON_CONFIRMS = new Set([
   "fallback-confirm", "protocol-fallback-confirm", "cancel-batch-confirm", "close-delivery-confirm",
   "cancel-queued-confirm",
   "withdraw-confirm", // cancelCommitment(commitmentId, reasonCID) — creator path
+  "request-withdraw-confirm", // the same call on the requester's side of the pair
 ]);
 
 function scanEverywhere(where: string, text: string, sink = err, opts: { docs?: boolean } = {}) {

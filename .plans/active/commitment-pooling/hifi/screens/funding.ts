@@ -100,7 +100,7 @@ function w36(state: W36State): string {
     return readWrap(pagepad(skeleton({ title: true, lines: 1 }), skeleton({ avatar: true, lines: 3 }), skeleton({ lines: 2 })));
   if (state === "not-found")
     return readWrap(
-      pagepad(emptyState("search-line", "Funding claim not found", "We couldn't find this claim. It may have been withdrawn, or it hasn't synced to this device yet.", hot("w36.retry", btn("Try again", { kind: "sec", icon: "refresh-line" })))),
+      pagepad(emptyState("search-line", "Funding claim not found", "We couldn't find this claim. It may have been withdrawn, or it hasn't reached this phone yet.", hot("w36.retry", btn("Try again", { kind: "sec", icon: "refresh-line" })))),
     );
   if (state === "read-error")
     return readWrap(
