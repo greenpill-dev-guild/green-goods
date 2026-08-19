@@ -5,7 +5,7 @@
 PRD-721 contract behavior remains **in progress** on `feature/build-commitment-pooling-contracts`,
 with the review corrections implemented through `4256623d0`. The review-correction run is
 **BLOCKED** only on canonical branch-mirror reconciliation: Plan Hub requires the machine-lane
-signal `codex/contracts/commitment-pooling`, while this dispatch requires the actual execution
+signal `feature/commitment-pooling-contracts`, while this dispatch requires the actual execution
 branch `feature/build-commitment-pooling-contracts`. Changing that validator is outside this
 lane. This remains a tested checkpoint, not the full first-PR acceptance surface.
 
@@ -165,7 +165,7 @@ repository artifact, environment file, or chain state.
   broader payload-safety wording was removed; this is an evidence limitation, not a contract-spec
   deviation.
 - Reviewer finding 5 cannot be applied inside the authorized paths. `status.json` keeps Plan Hub's
-  required machine-lane branch `codex/contracts/commitment-pooling` and separately records the
+  required machine-lane branch `feature/commitment-pooling-contracts` and separately records the
   actual dispatched branch under `execution_sub_lanes.contracts.branch`. Setting the machine-lane
   value to the actual branch makes `node scripts/harness/plan-hub.mjs validate` fail because
   `scripts/harness/plan-hub.mjs` hard-codes the former value. That script is outside the contracts

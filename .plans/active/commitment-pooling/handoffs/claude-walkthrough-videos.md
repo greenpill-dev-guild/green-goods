@@ -5,7 +5,7 @@
 - Execution sub-lane: walkthrough_videos
 - Machine lane: none
 - Owner: Claude
-- Branch signal: claude/walkthrough-videos/commitment-pooling
+- Branch signal: docs/commitment-pooling-walkthrough-videos
 - Current state: blocked until QA Pass 2 and post-QA documentation polish are complete
 - Linear context: PRD-728 (walkthrough-video lane, repurposed from docs-guides) under parent PRD-650
 

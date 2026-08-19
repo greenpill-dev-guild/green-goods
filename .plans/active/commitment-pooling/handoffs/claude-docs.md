@@ -5,7 +5,7 @@
 - Execution sub-lane: docs
 - Machine lane: none; post-QA communication lane
 - Owner: Claude
-- Branch signal: claude/docs/commitment-pooling
+- Branch signal: docs/commitment-pooling
 - Current state: blocked until QA Pass 1 completes
 - Linear context: PRD-727 (docs lane) under parent PRD-650
 

@@ -5,7 +5,7 @@
 - Execution sub-lane: editorial
 - Machine lane: ui
 - Owner: Claude
-- Branch signal: claude/editorial/commitment-pooling
+- Branch signal: feature/commitment-pooling-editorial
 - Current state: the `/gardens/:id` page conversion has landed and the public copy is frozen on
   "commitment"; implementation still waits for verified non-value deployment/indexer output, the
   shared admin/UI foundation cleanup, the cycle-scoped distinct-provider counter, and the

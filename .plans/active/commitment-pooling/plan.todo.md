@@ -1940,7 +1940,7 @@ The Needs layer consumed by PRD-682 and PRD-691 (Need/NeedSignal/NeedStatus/Fund
 
 Machine-lane ownership mirrors `status.json`: Codex owns `contracts`, `state_api`, and `qa_pass_2`; Claude owns `ui` and `qa_pass_1`. The detailed execution sub-lanes below are dispatch labels and handoff buckets, not valid `plan-hub --lane` values. Per-issue dispatch stays with Afo.
 
-### Contracts (`codex/contracts/commitment-pooling`): PRD-721 (historical labels PRD-671/672)
+### Contracts (`feature/commitment-pooling-contracts`): PRD-721 (historical labels PRD-671/672)
 
 - [ ] Implement register #103's full pool-pause freeze and paused `registerPool` path, as amended
   by register #104's accepted root-registration residual, without
@@ -2041,7 +2041,7 @@ Machine-lane ownership mirrors `status.json`: Codex owns `contracts`, `state_api
 - [ ] Then: `CreditRegistry` + indexer + shared `queryKeys.credit.*` + `credit` job kind + admin/PWA credit surfaces (spec §8 order)
 - [ ] Write `../commitment-credit-follow-on/handoffs/codex-contracts.md`
 
-### UI Client (`claude/ui-client/commitment-pooling`): PRD-724 (historical label PRD-675)
+### UI Client (`feature/commitment-pooling-client-ui`): PRD-724 (historical label PRD-675)
 
 - [ ] Client tasks only; i18n en/es/pt for every new string; hero moments per spec
 - [ ] Implement `uiux-spec.md` Appendix F only after the backend contract/query gates and remaining
@@ -2058,7 +2058,7 @@ Machine-lane ownership mirrors `status.json`: Codex owns `contracts`, `state_api
 - [ ] Record RED/GREEN proof or a proof-limit note
 - [ ] Write `handoffs/claude-ui-client.md`
 
-### UI Admin (`claude/ui-admin/commitment-pooling`): PRD-725 (historical labels PRD-676/677/679 admin half)
+### UI Admin (`feature/commitment-pooling-admin-ui`): PRD-725 (historical labels PRD-676/677/679 admin half)
 
 - [ ] Admin tasks only; AdminDialog anatomy (side sheets retired); i18n; Storybook coverage
 - [ ] Add viewer-authorized series grouping and Story context without steward mutation of another
@@ -2074,14 +2074,14 @@ Machine-lane ownership mirrors `status.json`: Codex owns `contracts`, `state_api
 - [ ] Record RED/GREEN proof or a proof-limit note
 - [ ] Write `handoffs/claude-ui-admin.md`
 
-### Editorial (`claude/editorial/commitment-pooling`): PRD-726 (historical label PRD-678)
+### Editorial (`feature/commitment-pooling-editorial`): PRD-726 (historical label PRD-678)
 
 - [ ] Public surfaces only; aggregate-only data; small-community thresholds
 - [ ] Ongoing-Offer copy remains pool-level and evidence-labelled; no personal saved Offer
   metadata, series Story, inferred participants, reliability language, or cross-pool identity
 - [ ] Write `handoffs/claude-editorial.md`
 
-### Post-QA documentation polish (`claude/docs/commitment-pooling`): PRD-727 (historical labels PRD-680/681)
+### Post-QA documentation polish (`docs/commitment-pooling`): PRD-727 (historical labels PRD-680/681)
 
 - [ ] Start only after QA Pass 1; reconcile architecture, glossary, task guides, screenshots,
       accessible names, translations, recovery states, and planned/live claims
@@ -2090,21 +2090,21 @@ Machine-lane ownership mirrors `status.json`: Codex owns `contracts`, `state_api
 - [ ] Glossary anchors preserved; docs build and vocab lint green
 - [ ] Write `handoffs/claude-docs.md`
 
-### Walkthrough videos (`claude/walkthrough-videos/commitment-pooling`): PRD-728
+### Walkthrough videos (`docs/commitment-pooling-walkthrough-videos`): PRD-728
 
 - [ ] Start only after QA Pass 2 and PRD-727 completion
 - [ ] Record final client PWA, admin, editorial, gardener, Garden Steward, evaluator, and operations
       walkthroughs with captions/transcripts, privacy review, source SHA, and final path replay
 - [ ] Write `handoffs/claude-walkthrough-videos.md`
 
-### QA Pass 1 (`claude/qa-pass-1/commitment-pooling`)
+### QA Pass 1 (`test/commitment-pooling-qa-pass-1`)
 
 - [ ] Review UI behavior and user flows through the authenticated Brave QA profile
 - [ ] Verify acceptance criteria against the specs; offline queue proof via mockAuth
 - [ ] Confirm required execution sub-lane handoffs exist, including settlement exit-proof evidence or an explicit proof-limit note
 - [ ] Write `handoffs/claude-qa-pass-1.md`
 
-### QA Pass 2 (`codex/qa-pass-2/commitment-pooling`)
+### QA Pass 2 (`test/commitment-pooling-qa-pass-2`)
 
 - [ ] Review implementation edges and regressions per lane acceptance criteria
 - [ ] Run targeted validation commands
