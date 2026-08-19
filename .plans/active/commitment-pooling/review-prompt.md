@@ -70,9 +70,15 @@ Then `00e0d4b73` (implementation-alignment docs) and `a6082a860` (CodeRabbit fix
 
 ## Authoritative requirements
 
-In the skill's order: the PR body on #732; `.plans/active/commitment-pooling/flow-audit.md` (the
-findings this is answering, pinned to `c1f754190`); `plan.todo.md` Decision Log #68 and register
-#157/#158; `uiux-spec.md` C.54 and C.55. The PR says `Refs PRD-563`.
+In the skill's order: the PR body on #732; the four Linear issues this is meant to unblock —
+**PRD-724** (client), **PRD-725** (admin), **PRD-726** (editorial), **PRD-787** (credit companion),
+all under project Commitment Pooling, parent PRD-650; `.plans/active/commitment-pooling/flow-audit.md`
+(the findings this answers, pinned to `c1f754190`); `plan.todo.md` Decision Log #68 and register
+#157/#158; `uiux-spec.md` C.54 and C.55.
+
+The PR body says `Refs PRD-563`, which is the June maturation issue and **not** the work this
+actually serves. Treat the four UI issues above as the requirement baseline and note the mislabelled
+reference as a finding.
 
 **Check the audit's findings actually closed** — that is the requirement baseline. Do not take C.54
 and C.55 as evidence of themselves; they are my own account of the work.
@@ -217,6 +223,62 @@ celebration language. The build enforces the copy half of that; it does not enfo
 half, so check `hero()` did not reach an admin screen.
 
 ---
+
+## Implementation readiness — the four UI issues this unblocks
+
+The point of this PR is that the UI lane can start. Judge that claim against the four issues, all
+under project **Commitment Pooling**, parent PRD-650, all assigned to Afo, all past their due date:
+
+| Issue | Status | Points | Blocked by |
+|---|---|---|---|
+| [PRD-724 UI Client](https://linear.app/greenpill-dev-guild/issue/PRD-724) | **In Progress** since 2026-08-18 | 8 | PRD-789 ✅ · PRD-760 ✅ · **PRD-723** |
+| [PRD-725 UI Admin](https://linear.app/greenpill-dev-guild/issue/PRD-725) | Todo | 8 | PRD-789 ✅ · PRD-760 ✅ · **PRD-723** |
+| [PRD-726 Editorial](https://linear.app/greenpill-dev-guild/issue/PRD-726) | Todo | 4 | PRD-722 ✅ · PRD-789 ✅ · PRD-760 ✅ · **PRD-723** |
+| [PRD-787 Credit companion](https://linear.app/greenpill-dev-guild/issue/PRD-787) | Todo | — | **PRD-786** (State/API credit) |
+
+PRD-789 and PRD-760 are Done; PRD-723 is source-GREEN with runtime availability still fail-closed on
+hosted Envio read-back. So the remaining hard blocker is deployment, not design — which is exactly
+why the prototype-to-implementation alignment in this PR matters.
+
+### Ask these
+
+1. **Does this PR actually clear the design-side blocking?** `codex-state-api.md` now carries a
+   binding seat amendment saying `selectCommitmentSeat()` does not exist and eleven queried fields do
+   not reach `CommitmentReadModel`. If that is right, **PRD-724 cannot be built correctly today even
+   with PRD-723 source-complete**, and PRD-724 is already In Progress. Verify the gap, and if it
+   holds, say plainly that a new state-layer dependency has appeared under a started issue.
+
+2. **PRD-724 says "Preserve **Ask me again next cycle**". This PR renamed it** to "Ask me whether to
+   keep offering it", and moved the build assertion that pinned the old phrase
+   (`prototypes-artifact.build.ts:831`). My reasoning was that *cycle* is the contract's word leaking
+   into member copy, which the same sweep removed everywhere else. The requirement is explicit and I
+   did not check it. **Decide which wins** — the copy rule or the issue text — and if the copy rule
+   wins, PRD-724's description needs amending rather than the conflict standing.
+
+3. **PRD-760's closing checklist contains a vacuous check.** It names
+   `bun .plans/active/commitment-pooling/hifi/validate.ts`. That file is a module with **no
+   entrypoint**: it exits 0 and prints nothing, so anyone running it as written gets a pass that
+   proves nothing. The real gate is `prototypes-artifact.build.ts`, which imports it. PRD-760 is
+   closed and unblocking three issues on that checklist. Worth recording regardless of this PR's
+   verdict.
+
+4. **PRD-760's other criteria are things this PR could regress.** It required that two screens
+   describing the same moment show the same totals, and that detail loading/error/loaded states share
+   navigation rules. This PR changed `W2` requirement rows to read `0 of 2` at Accepted where they
+   previously read `2 of 2`, and changed which states render the Media section. Re-check those two
+   criteria hold.
+
+5. **Vocabulary bans across all four issues.** PRD-724/725/726 forbid `Practice` as a product noun;
+   PRD-726 additionally forbids `CommitmentSeries` as a gardener-facing noun and forbids exposing
+   rates, ranks, scores, reliability language, or inferred participant counts. PRD-787 forbids a
+   personal score, rank, or public borrower directory. This PR **removed** the disclaimer from `W7`'s
+   steward roster while keeping per-person kept/lapsed counts. PRD-725 says standing is "context for
+   stewardship, never a score or comparison". Judge whether the roster still satisfies that with its
+   guardrail removed.
+
+6. **Scope honesty.** PRD-726 requires that later routing, exchange and pricing mechanics are never
+   presented as shipped. The exchange screens (W28–W31) remain in the artifact and are marked parked
+   with no journey. Confirm nothing in this PR's new copy implies they work.
 
 ## What I could not verify
 
