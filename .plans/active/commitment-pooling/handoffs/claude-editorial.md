@@ -6,8 +6,10 @@
 - Machine lane: ui
 - Owner: Claude
 - Branch signal: claude/editorial/commitment-pooling
-- Current state: prototype/copy review may continue; implementation waits for state_api, verified
-  non-value deployment/indexer output, and the shared admin/UI foundation cleanup
+- Current state: the `/gardens/:id` page conversion has landed and the public copy is frozen on
+  "commitment"; implementation still waits for verified non-value deployment/indexer output, the
+  shared admin/UI foundation cleanup, the cycle-scoped distinct-provider counter, and the
+  `PublicEvidencePipeline` i18n prerequisite
 - Linear context: PRD-726 (editorial lane) under parent PRD-650
 
 ## Inputs
@@ -16,17 +18,20 @@
 - uiux-spec.md editorial contract and W15/W16
 - the canonical [Commitment Pooling Google Doc](https://docs.google.com/document/d/16LNXMr5voQUgWC3iyULbL4iEhRrFo4DezZZLgNtA4hc/edit) for external language; `external-brief.md` for the repo source map
 - acceptance-matrix.md §3 public claims matrix
-- Existing public GardenDialog and /impact composition
+- The public Garden page (`packages/client/src/views/Public/GardenDetail.tsx`) and `/impact`
+  composition. The Garden page is a page, not a dialog, as of 2026-08-19; its `Section` shell,
+  `StatCell` em-dash contract, and always-render rule are what the commitments section plugs into
 
 ## Outputs
 
-- Read-only garden pool story and protocol-wide promise aggregates.
+- Read-only garden pool story at `§ 02` and protocol-wide commitment aggregates.
 - Clear labels separating planned, queued, dispatched, confirming, and CCIP-confirmed behavior.
 - Privacy-thresholded counts with readiness/empty/error copy.
 - en/es/pt copy and accessible public-browser proof.
 
 ## Acceptance
 
+- Public copy says commitment, never promise (C.14; the prototype build already enforces it).
 - Public views render only indexer-backed aggregates and approved EAS/shared joined reads.
 - No per-person lists, wallet addresses, rankings, funding-ordering, or unsupported percentage claims.
 - Dispatched or Celo-executed/ack-pending settlement never reads as arrived; only a CCIP-confirmed outcome may use arrival language and it remains distinct from community narrative and evaluator conclusions.
@@ -52,7 +57,13 @@
 
 ## Unblock evidence
 
-- Indexer/shared aggregate selectors and privacy thresholds are GREEN.
+- Indexer/shared aggregate selectors and privacy thresholds are GREEN. §7.2's threshold is not
+  buildable today: `selectPromiseKeptRate` applies no gate, and no distinct-provider counter
+  exists in the indexer schema. The threshold is per-cycle, so a cycle-scoped counter (new
+  per-(cycle, provider) sentinel entity) is the one required; counting `CommitmentProviderExposure`
+  rows is not an option because it enumerates provider addresses.
+- `PublicEvidencePipeline` is internationalised and laid out for five nodes. Today its node titles
+  and descriptions are literal English and it is `md:grid-cols-3` with three hardcoded domain tones.
 - Verified live indexer output and the scoped shared admin/UI foundation cleanup are complete.
 - `acceptance-matrix.md` §3 is approved and every public claim maps to its required evidence class.
 - GREEN includes targeted tests, client build, and rendered public-browser proof for readiness, live, queued, dispatched, confirming, confirmed, empty, and error states.
@@ -67,7 +78,6 @@
 
 - Public ongoing-Offer copy uses separately approved pool-level aggregates only.
 - Do not expose a person's saved Offer metadata, series Story, inferred participant count,
-  reliability
-  language, cross-pool identity, rate, rank, or score.
+  reliability language, cross-pool identity, rate, rank, or score.
 - “Kept N times across M cycles” is permitted only when exact linked Fulfilled instances and
   unique cycle IDs support it; “verified impact” requires its own evidence authority.

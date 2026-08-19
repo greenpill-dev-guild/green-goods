@@ -403,21 +403,33 @@ Stage rail: **Queue · CCIP · Flows** (W24 draws it).
 
 ## 7. Surface 3: Editorial website (full depth, register #21)
 
-### 7.1 `/gardens/:id` GardenDialog: pool story section NET-NEW
+**Vocabulary.** Public copy on this surface says **commitment**, never "promise". That was already the decided state — `hifi/validate.ts`'s `RETIRED_VOCABULARY` fails the prototype build on `/\bpromis(?:e|es|ed|ing)\b/i` (C.14, "the record is a commitment") — and this section had simply not been swept. `promiseKeptRate` survives as a code identifier; the gate reads rendered copy, not field names. The rest of this spec still carries the old vocabulary and needs its own pass (see `plan.todo.md` decision log).
 
-The dialog today: hero banner, header, four-cell stats strip (`dl` grid, Entries / Hands at work / Assessments / Certificates, `packages/client/src/views/Public/GardenDialog.tsx:249-278`), `FieldNotesSection` (line 280), Impact Certificates section (282-332), operators section (336-360). The pool story inserts **after `FieldNotesSection` and before the Impact Certificates section**: field notes stay the first-scroll content (editorial identity untouched) and the promises narrative flows into certificates ("fulfilled promises become Impact Certificates"), reusing the local `SectionHeading` grammar (`GardenDialog.tsx:404`).
+### 7.1 `/gardens/:id`: commitments section NET-NEW
+
+The page today: `PublicEditorialHero variant="banner"` (Garden banner image, falling back to `getPublicHeroImage("gardens")`; location kicker, name H1, description lede, `← All Gardens` in the `actions` slot), a four-cell record strip (`dl` grid — Entries / Hands at work / Assessments / Certificates), then three numbered single-column sections: `§ 01 Field notes` (image-led grid, twelve at a time with local paging, tiles opening `PublicSourceDialog`), `§ 02 Impact Certificates`, `§ 03 Operators`. It closes with Support / View public evidence, `PublicInstallCta`, and `PublicFooter variant="soil"` (`packages/client/src/views/Public/GardenDetail.tsx`).
+
+Until 2026-08-19 this route rendered a Radix modal over the `/gardens` grid. That was never an IA decision — the route was switched inside an unrelated homepage-polish commit — and `DESIGN.browser.md` had described a page the whole time. The conversion landed first precisely so this section has stable ground: no nested scroll container, no hand-indexed dialog stagger to push past its `:nth-last-child(n+7)` tier, and a real footer.
+
+The commitments section inserts at **`§ 02`, between field notes and Impact Certificates**, renumbering certificates to `§ 03` and operators to `§ 04`. Field notes stay the first-scroll content (editorial identity untouched) and the commitments narrative flows into certificates ("fulfilled commitments become Impact Certificates"). It reuses the page's `Section` shell — `EditorialKicker` + `EditorialHeading` + helper inside a `useInViewReveal` wrapper — like every other section.
 
 Section content:
-1. **Pool state copy**: one sentence per §4.1 column. Pre-launch (NotReady/Ready) renders readiness copy only, no numbers ("This garden is preparing its first season of promises").
+1. **Pool state copy**: one sentence per §4.1 column. Pre-launch (NotReady/Ready) renders readiness copy only, no numbers ("This garden is preparing its first season of commitments").
 2. **Active cycle progress**: cycle name + type, stage phrase, "runs through {date}", scoped state counts, and separate exact-label unit-summary rows. Never combine labels into one progress band or percentage. No timers.
-3. **Promises kept aggregate**: offered and fulfilled counts, with `promiseKeptRate` as the sole cross-commitment percentage **only above the small-community threshold** (§7.2); otherwise use a counts-only sentence ("9 promises made, 7 kept so far"). Active-cycle progress uses state counts and exact-label unit groups, never a synthetic percentage. Rendered with the existing `StatCell` grammar (`GardenDialog.tsx:250-277`) inside the section, not by widening the four-cell strip.
-4. **Hypercert reports tie-in**: when fulfilled-commitment bundles exist, one line linking down to the certificates section ("Fulfilled promises from this cycle are anchored in the certificates below").
+3. **Commitments kept aggregate**: offered and fulfilled counts, with `promiseKeptRate` as the sole cross-commitment percentage **only above the small-community threshold** (§7.2); otherwise use a counts-only sentence ("9 commitments made, 7 kept so far"). Active-cycle progress uses state counts and exact-label unit groups, never a synthetic percentage. Rendered with the page's existing `StatCell` grammar inside the section, not by widening the four-cell strip.
+4. **Hypercert reports tie-in**: when fulfilled-commitment bundles exist, one line linking down to the certificates section ("Fulfilled commitments from this cycle are anchored in the certificates below").
 
-The four-cell stats strip itself does not change in MVP. `/gardens` grid cards (`packages/client/src/views/Public/Gardens.tsx`) are untouched.
+**The section always renders**, like its three neighbours. A garden with no pool yet gets the pre-launch state rather than a missing section, which is what keeps the ordinals stable between gardens. The four-cell strip does not change in MVP. `/gardens` grid cards (`packages/client/src/views/Public/Gardens.tsx`) are untouched.
+
+**Honest states are already load-bearing on this page.** `usePublicGardenDetail` reports `partialData` and `unavailableSources`, and the strip renders an em dash rather than `0` for a count whose source failed. The commitments section inherits that contract: a failed read says it could not load, and never publishes an unknown as a zero.
 
 ### 7.2 Small-community sensitivity (answers the digest's open question)
 
-Recommendation, locked for this spec: `promiseKeptRate` renders publicly only when the cycle has **at least 5 due commitments and at least 3 distinct promisers**. It is the sole cross-commitment percentage. Below threshold, show absolute counts in sentence form and never a percentage; a single lapsed promise in a three-person pool must not read as a 33 percent failure on a public page. Cancelled and Disputed never appear individually anywhere public (§4.3). The same threshold applies to the WalletDrawer Commitments summary (§5.8); inside the garden (pool tab), gardeners see their own full counts and exact-label unit groups.
+Recommendation, locked for this spec: `promiseKeptRate` renders publicly only when the cycle has **at least 5 due commitments and at least 3 distinct providers**. It is the sole cross-commitment percentage. Below threshold, show absolute counts in sentence form and never a percentage; a single lapsed commitment in a three-person pool must not read as a 33 percent failure on a public page. Cancelled and Disputed never appear individually anywhere public (§4.3). The same threshold applies to the WalletDrawer Commitments summary (§5.8); inside the garden (pool tab), gardeners see their own full counts and exact-label unit groups.
+
+**This threshold is not yet buildable, and the gap is in two places.** `selectPromiseKeptRate` (`packages/shared/src/modules/commitment-pooling/disclosure.ts`) returns `{fulfilled, due}` whenever `due > 0` — no count gate and no provider input at all. And no distinct-provider counter exists in `packages/indexer/schema.graphql`: `CommitmentPool` carries `commitmentsDue`, `commitmentsFulfilled`, and `openCommitmentCount`, but nothing counts distinct providers. `CommitmentProviderExposure` is keyed `chainId-poolId-lowercaseProvider`, so counting its rows would enumerate provider addresses on a public page — exactly what §7.4 forbids.
+
+The threshold is stated **per cycle**, so a cycle-scoped counter is the one actually required. Pool-scoped is nearly free (increment on first sight of a `CommitmentProviderExposure` key); cycle-scoped needs a new per-(cycle, provider) sentinel entity, since none exists. Recorded as its own indexer item; check whether the hosted Envio indexer has already shipped PRD-722 before starting, since merge is not deploy.
 
 This is a product-display floor, not the pilot's research publication threshold or evidence that
 pooling strengthened settlement capacity. `pilot-evidence-spec.md` owns the stronger privacy,
@@ -426,11 +438,16 @@ stricter, the stricter rule controls.
 
 ### 7.3 `/impact`: protocol-wide pool aggregates NET-NEW
 
-Add one editorial band to `packages/client/src/views/Public/Impact.tsx` using its section grammar (EditorialKicker + EditorialHeading + reveal wrapper, verified at lines 290-296 and 367-380), **placed between §01 proof markers and §02 "The cycle"** (decision 2026-07-18): kicker "Promises", heading on aggregate mutual-aid framing (Document B relay vocabulary: promises offered, promises kept, gardens with live pools). Content: stat tiles in the §01 proof-marker grammar (gardens with open pools, commitments fulfilled this season, CCIP-confirmed G$ support; protocol-wide promiseKeptRate subject to §7.2 thresholds), one line explaining the commitment lifecycle in relay terms, and a link to `/gardens`. **Pipeline delta**: §02's `PublicEvidencePipeline` gains the promise stages — Assessment → Promise → Work → Confirmation → Impact Certificate — so the cycle section tells the story the band introduces. No per-garden table on this page (that is the Operations overview's job, and public per-garden comparison drifts toward ranking).
+Add one editorial band to `packages/client/src/views/Public/Impact.tsx` using its section grammar (EditorialKicker + EditorialHeading + reveal wrapper, verified at lines 290-296 and 367-380), **placed between §01 proof markers and §02 "The cycle"** (decision 2026-07-18): kicker "Commitments", heading on aggregate mutual-aid framing (Document B relay vocabulary: commitments offered, commitments kept, gardens with live pools). Content: stat tiles in the §01 proof-marker grammar (gardens with open pools, commitments fulfilled this season, CCIP-confirmed G$ support; protocol-wide `promiseKeptRate` subject to §7.2 thresholds), one line explaining the commitment lifecycle in relay terms, and a link to `/gardens`. **Pipeline delta**: §02's `PublicEvidencePipeline` gains the commitment stages — Assessment → Commitment → Work → Confirmation → Impact Certificate — so the cycle section tells the story the band introduces. No per-garden table on this page (that is the Operations overview's job, and public per-garden comparison drifts toward ranking).
+
+**The pipeline needs work before it can take two more stages.** `PublicEvidencePipeline.tsx` passes **literal English** node titles and descriptions — only the closing caption goes through `formatMessage` — against an acceptance that requires en/es/pt. It is also `md:grid-cols-3` with three hardcoded domain tones (education / agro / solar). Internationalising the component, choosing a five-node layout, and assigning two more tones are prerequisites, not part of the band.
 
 ### 7.4 Boundaries
 
-Read-only, aggregate-only. No leaderboards, no ranked lists, no participant-level data, no wallet addresses tied to promise outcomes, no dispute or cancellation stories. All pool stats flow from module events via the indexer (EAS is not indexed; corrections-log §2 boundary), so the public surfaces need no easscan reads.
+Read-only, aggregate-only. No leaderboards, no ranked lists, no participant-level data, no wallet addresses tied to commitment outcomes, no dispute or cancellation stories. All pool stats flow from module events via the indexer (EAS is not indexed; corrections-log §2 boundary), so the public surfaces need no easscan reads.
+
+Note the boundary is about **commitment outcomes**, not identity as such: the page already shows field-note authors and operators through `AddressDisplay`, which is authorship of published Work and predates this feature. Nothing in the commitments section may attach a person to a commitment outcome.
+
 
 ---
 
@@ -457,6 +474,8 @@ The commitment-pooling UX owns the shared commitment detail, evidence, confirmat
 | Shared linear progress meter (client-legal) | §4.3/§5.3 per-commitment unit progress, §5.6 N-of-group meter | `AdminLinearProgress` exists but is admin-only M3 (`packages/admin/src/components/AdminLinearProgress.tsx`); client has `FormProgress` (step dots, `packages/client/src/views/Garden/index.tsx:41`) which is not a quantity meter. Propose shared `ProgressMeter` in `packages/shared/src/components/`; never use it to combine pool/cycle unit labels |
 | State timeline | §5.3, §6.2 commitment detail history | No vertical event-history primitive exists in shared or client; propose shared `StateTimeline` (rows: state, actor, timestamp, reason) |
 | Address group picker with N-of-group stepper | §6.3 confirmer rule builder | `ManageMembers` handles role membership (`packages/admin/src/views/Garden/ManageMembers.tsx`) but there is no reusable multi-address picker + threshold control; propose admin-side `AddressGroupField` composed from `AdminTextField` + `AddressDisplay` rows |
+| Five-node evidence pipeline | §7.3 | `PublicEvidencePipeline` (`packages/client/src/components/Public/PublicEvidencePipeline.tsx`) is a three-node `md:grid-cols-3` figure with three hardcoded domain tones, and its node titles and descriptions are literal English rather than `formatMessage` calls. Adding Commitment and Confirmation needs the component internationalised, a five-node layout, and two more tones assigned — do that first, as its own change |
+| Public rate threshold helper | §7.2 | `selectPromiseKeptRate` (`packages/shared/src/modules/commitment-pooling/disclosure.ts`) applies no gate at all. Propose a shared selector that takes due count + distinct-provider count and returns either a rate or a counts-only shape, so editorial and the WalletDrawer cannot drift apart on the same rule |
 | Unit quantity field (number + unit label pair) | §5.4 step 2, §6.3 step 2 | Composable from `FormField` + `AdminTextField`/inputs today; flag as a candidate shared field if the composition repeats more than twice |
 
 Tailwind gotcha applies to all new shared components: layout utilities authored in `packages/shared/src/` do not reach admin/client builds; use inline styles for layout in shared components or restate classes in the consumer (CLAUDE.md Known Gotchas; precedent `packages/shared/src/components/Canvas/MainSheet.tsx`).
@@ -472,7 +491,9 @@ Every key ships en + es + pt (`packages/shared/src/i18n/en.json` + sibling local
 | `cockpit.garden.pool.*` | Admin Garden Pool tab, seeding, capture, claims queue |
 | `cockpit.community.pools.*` | Community workspace Pools mode |
 | `cockpit.hub.confirm.*` | Hub Confirm stage |
-| `public.pool.*` | GardenDialog pool story + `/impact` promises section |
+| `public.pool.*` | Garden page commitments section (`§ 02`) + `/impact` commitments band |
+
+The garden page's own keys moved from `public.gardenDialog.*` to `public.gardenDetail.*` when the modal became a page (2026-08-19); dialog-only chrome keys (`close`, `loading`) and the old placeholder sections' keys were dropped. `public.pool.*` is still unallocated — zero keys exist today.
 | `community.*` | `packages/community` (new package, same shared i18n pipeline) |
 | `app.pool.exchange.*` / `cockpit.garden.pool.exchange.*` | pair picker, pair status, pool exchange feed, and acceptance summary |
 | `app.pool.templates.*` / `cockpit.garden.pool.templates.*` | offer-template names, one-line explanations, defaults, and locale naming notes |
@@ -539,7 +560,7 @@ Privacy boundary: no counterparty addresses, commitment titles, or reason texts 
 | Admin routes | `packages/admin/src/routes/views.tsx` |
 | Hub stage rail | `packages/shared/src/hooks/admin-ui/hub/hub.utils.ts:21,121`; `packages/admin/src/views/Hub/index.tsx:128-139` |
 | Flow dialog precedents | `packages/admin/src/views/Hub/CreateAssessment.tsx:12-22`; `packages/admin/src/views/Garden/SubmitWork.tsx:44-52` |
-| Editorial dialog | `packages/client/src/views/Public/GardenDialog.tsx:249-360` |
+| Editorial garden page | `packages/client/src/views/Public/GardenDetail.tsx` |
 | Editorial impact page | `packages/client/src/views/Public/Impact.tsx:290-296,367-380` |
 | Bps sum guard precedent | `packages/contracts/src/resolvers/Yield.sol` (InvalidSplitRatio, corrections-log §2) |
 

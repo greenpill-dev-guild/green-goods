@@ -1756,6 +1756,36 @@ Known mis-resolutions fixed in place: `contract-spec.md` §Grassroots-Economics-
     coverage drift; closure validator green; typecheck clean. No runtime package, contract, ABI,
     indexer or Linear change.
 
+161. The editorial surface, made buildable (2026-08-19, Afo authorization). Three decisions, taken
+    before any commitment-pooling copy goes onto the public site.
+    **Public copy says commitment, not promise.** This was not a new freeze — `hifi/validate.ts`
+    already fails the prototype build on `/\bpromis(?:e|es|ed|ing)\b/i` (C.14), and `uiux-spec` §7
+    had simply never been swept. It is swept now. `promiseKeptRate` survives as a code identifier
+    because the gate reads rendered copy, not field names. The rest of `uiux-spec` still carries the
+    old vocabulary in §4–§6 and needs its own pass; that is a known debt, not an oversight.
+    **§7.2's threshold gets a cycle-scoped indexer counter rather than a weaker rule.** The rule
+    reads "at least 5 due commitments and at least 3 distinct providers", and half of it was not
+    derivable: `selectPromiseKeptRate` applies no gate at all, and nothing in the indexer schema
+    counts distinct providers. The available per-provider entity, `CommitmentProviderExposure`, is
+    keyed by address — counting its rows would enumerate providers on a public page, which §7.4
+    forbids outright. Since the threshold is stated per cycle, the cycle-scoped counter is the one
+    required, and it needs a new per-(cycle, provider) sentinel entity because none exists. Check
+    whether the hosted Envio indexer has already shipped PRD-722 before starting; merge is not deploy.
+    **`/gardens/:id` became a page before the commitments section lands, as its own change.** The
+    route had been rendering a Radix modal since it was switched inside an unrelated homepage-polish
+    commit — never an IA decision, and `DESIGN.browser.md` had described a page the whole time, as
+    did the W15 prototype frame. Inserting a fourth section into that modal would have pushed a
+    hand-indexed close ladder past its never-used `:nth-last-child(n+7)` tier, deepened a nested
+    scroll container holding an editorial long-read, and left the reader with no footer. Two defects
+    were fixed rather than inherited: field-note photos, carried on `PublicFieldNote.media` and
+    discarded by every render, now lead the section; and a failed EAS read, previously swallowed to
+    an empty list and published as `0`, now reports through `partialData` / `unavailableSources` and
+    renders an em dash. Every section always renders, which is what gives the commitments section a
+    defined pre-launch home at `§ 02` and keeps the ordinals stable between gardens. Not in scope
+    and recorded as follow-ups: per-route meta (`react-helmet-async` is wired but only Login uses
+    it, so every shared garden link previews as the generic site card), the Operator → Steward
+    rename (PRD-746–751; 71 catalogue keys still say Operator), and chain-aware easscan links.
+
 **Final recursive certification clarification (2026-07-25; no new decision-register entry):**
 the published `42161`↔`42220` production lane is the only required fully paired
 `SettlementConfiguration`. Arbitrum Sepolia `421614` and Celo Sepolia `11142220` remain
