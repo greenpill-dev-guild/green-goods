@@ -263,23 +263,45 @@ async function currentGardenMember(
  * Composing works offline, so the member's title travels in the job rather than
  * as a CID. It has to become one before anything else touches this payload: the
  * creation hash covers the CID, and the recovery check compares that hash
- * against what the contract stored, so uploading later would make a successful
+ * against what the contract stored, so publishing later would make a successful
  * commitment look like a mismatch.
  *
- * Re-running is safe. The bytes are identical, so the CID is identical.
+ * The CID is written back to the stored job the moment it exists. Without that
+ * the mutation lives only in memory, and `markJobFailed` re-reads the job from
+ * storage — so a broadcast followed by any throw would lose the CID, the next
+ * attempt would publish again, and the whole thing would rest on two uploads
+ * returning byte-identical CIDs. They should, but a commitment that can never
+ * be retried is too much to stake on "should".
+ *
+ * A failed upload is reported as waiting rather than thrown. Throwing here runs
+ * `markJobFailed`, which spends one of five attempts on an outage that has
+ * nothing to do with this commitment, and does it before the recovery read that
+ * would have noticed the commitment already exists.
  */
-async function publishPendingCommitmentMetadata(job: Job): Promise<void> {
-  if (job.kind !== "commitment") return;
+async function publishPendingCommitmentMetadata(
+  job: Job
+): Promise<{ published: true } | { published: false; reason: string }> {
+  if (job.kind !== "commitment") return { published: true };
   const payload = job.payload as CommitmentCreationPayload;
-  if (!payload.metadata || payload.metadataCID) return;
+  if (!payload.metadata || payload.metadataCID) return { published: true };
 
-  const { uploadJSONToIPFS } = await import("../data/ipfs/upload");
-  const { cid } = await uploadJSONToIPFS(payload.metadata as unknown as Record<string, unknown>, {
-    source: "commitment-creation",
-    gardenAddress: payload.gardenAddress,
-    metadataType: "commitment",
-  });
-  payload.metadataCID = cid;
+  try {
+    const { uploadJSONToIPFS } = await import("../data/ipfs/upload");
+    const { cid } = await uploadJSONToIPFS(payload.metadata as unknown as Record<string, unknown>, {
+      source: "commitment-creation",
+      gardenAddress: payload.gardenAddress,
+      metadataType: "commitment",
+    });
+    payload.metadataCID = cid;
+    await jobQueueDB.updateJob({ ...job, payload });
+    return { published: true };
+  } catch (error) {
+    logger.warn("[JobQueue] Commitment metadata upload failed; will retry", {
+      jobId: job.id,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return { published: false, reason: "metadata-unpublished" };
+  }
 }
 
 export async function executeCommitmentQueueJob(
@@ -289,7 +311,8 @@ export async function executeCommitmentQueueJob(
   sender: TransactionSender
 ): Promise<CommitmentQueueExecution> {
   const moduleAddress = getNetworkContracts(chainId).commitmentPoolingModule;
-  await publishPendingCommitmentMetadata(job);
+  const published = await publishPendingCommitmentMetadata(job);
+  if (!published.published) return { status: "waiting", reason: published.reason };
   const commitmentJob: CommitmentJob = {
     id: jobId,
     kind: job.kind as CommitmentJobKind,

@@ -1,0 +1,116 @@
+/**
+ * What a commitment offers its reader, and to whom.
+ *
+ * One source of truth for seat × phase. It lived in two places — the detail
+ * screen's action bar and the inbox's "needs you" count — and they had already
+ * drifted: the inbox omitted EVIDENCE_SUBMITTED, so a member with work ready to
+ * send saw no marker on the one surface built to tell them.
+ *
+ * Derived from the axes rather than from state ids: phase decides whether an
+ * affordance exists at all, seat decides whose it is. Inferring seat from an id
+ * is what produced the defects the seat axis exists to prevent.
+ *
+ * @module modules/commitment-pooling/acts
+ */
+
+import type { CommitmentDerivedState, CommitmentReadModel } from "./types";
+import type { CommitmentSeat } from "./selectors";
+
+export type CommitmentActKind =
+  | "takeUp"
+  | "askToTakeUp"
+  | "withdraw"
+  | "addProof"
+  | "sendForConfirmation"
+  | "confirm"
+  | "offerAgain";
+
+/** Nothing is offered to anyone once a commitment has stopped moving. */
+const TERMINAL = new Set<CommitmentDerivedState>([
+  "FULFILLED",
+  "RECONCILED",
+  "CANCELLED",
+  "EXPIRED",
+  "DISPUTED",
+]);
+
+const PRE_ACCEPTANCE = new Set<CommitmentDerivedState>(["OFFERED", "REQUESTED"]);
+
+/**
+ * Work is happening. ACCEPTED is included for safety rather than need: today
+ * `deriveCommitmentState` collapses it into ACTIVE, EVIDENCE_SUBMITTED or
+ * PARTIALLY_APPROVED, so it never reaches here — but the band table answers for
+ * it, and an act table that disagreed with the band table is exactly the kind of
+ * split this module exists to close.
+ */
+const IN_PROGRESS = new Set<CommitmentDerivedState>(["ACCEPTED", "ACTIVE", "PARTIALLY_APPROVED"]);
+
+// PARTIALLY_APPROVED is a deliberate disagreement with the drawn reference,
+// which shows no bar on either of its two rows. The spec gates evidence attach
+// to Active / EvidenceSubmitted / PartiallyApproved, and a provider whose work
+// is only part approved plainly still has some to do, so a dead screen there
+// reads as the drawing being conservative rather than as a rule. Recorded here
+// rather than left as silent drift: if the drawing is right, this is the line
+// to change.
+
+export interface CommitmentActInput {
+  commitment: Pick<CommitmentReadModel, "derivedState" | "claimMode">;
+  seat: CommitmentSeat | null;
+  /** True while an act for this commitment is still waiting to send. */
+  hasPendingJob?: boolean;
+}
+
+/**
+ * The single act this commitment offers this reader, or null.
+ *
+ * Null is a real answer, not a gap. A seat with nothing to do gets no bar
+ * rather than a disabled one: the provider of a commitment awaiting someone
+ * else's confirmation is asking where it has got to, and a greyed-out Confirm
+ * answers a question they did not ask.
+ */
+export function selectCommitmentActKind(input: CommitmentActInput): CommitmentActKind | null {
+  const { commitment, seat, hasPendingJob } = input;
+  const phase = commitment.derivedState;
+
+  // An unauthenticated reader is not a bystander: the difference decides
+  // whether a screen offers acts at all.
+  if (!seat) return null;
+  // The act has already been taken and is waiting to send. Offering it again is
+  // how one commitment becomes two.
+  if (hasPendingJob) return null;
+
+  if (phase === "EXPIRED") return seat === "provider" ? "offerAgain" : null;
+  if (TERMINAL.has(phase)) return null;
+
+  if (PRE_ACCEPTANCE.has(phase)) {
+    // Direction already names the creator, so they read as provider on an Offer
+    // and confirmer on a Request. Either way the act is to take it back.
+    if (seat === "provider" || seat === "confirmer") return "withdraw";
+    return commitment.claimMode === "APPROVAL_GATED" ? "askToTakeUp" : "takeUp";
+  }
+
+  if (IN_PROGRESS.has(phase)) {
+    // The people doing the work add proof. The confirmer is waiting; a
+    // bystander has no relationship to act on yet.
+    return seat === "provider" || seat === "contributor" ? "addProof" : null;
+  }
+
+  if (phase === "EVIDENCE_SUBMITTED") {
+    // Sending settles the team and the credit record, so only the lead may do
+    // it. Someone on the team never sends, and never confirms.
+    return seat === "provider" ? "sendForConfirmation" : null;
+  }
+
+  if (phase === "READY_FOR_CONFIRMATION") {
+    // The provider cannot confirm their own commitment, which is why this is
+    // the confirmer's alone rather than a disabled button on both.
+    return seat === "confirmer" ? "confirm" : null;
+  }
+
+  return null;
+}
+
+/** Whether this commitment is waiting on this reader specifically. */
+export function commitmentNeedsSeat(input: CommitmentActInput): boolean {
+  return selectCommitmentActKind(input) !== null;
+}

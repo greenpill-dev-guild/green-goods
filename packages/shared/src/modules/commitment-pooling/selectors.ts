@@ -63,11 +63,16 @@ function creatorSeat(direction: CommitmentReadModel["direction"]): CommitmentSea
  *    the contract stores the *taker* in `counterparty` on that direction
  *    (AcceptanceLib.sol:146,172), so the asker appears in no party field but `creator`
  *    and would otherwise fall through to bystander on their own request.
- * 3. `counterparty` last of the party checks. On an Offer it is the person who took
- *    it up; on a Request rule 1 has already claimed them.
+ * 3. `counterparty` next. On an Offer it is the person who took it up; on a
+ *    Request rule 1 has already claimed them.
+ * 4. the named confirmer group. A commitment may name people to confirm it who
+ *    are none of the above (`setConfirmerRule`, kept on chain by
+ *    `normalizeConfirmers`). Without this rung they read as bystanders and are
+ *    never offered the one act they exist to perform.
  */
 export function selectCommitmentSeat(input: {
-  commitment: Pick<CommitmentReadModel, "creator" | "leadProvider" | "counterparty" | "direction">;
+  commitment: Pick<CommitmentReadModel, "creator" | "leadProvider" | "counterparty" | "direction"> &
+    Partial<Pick<CommitmentReadModel, "confirmers">>;
   contributors: readonly Address[];
   viewer?: Address;
 }): CommitmentSeat | null {
@@ -76,6 +81,9 @@ export function selectCommitmentSeat(input: {
   if (isSameAccount(commitment.leadProvider, viewer)) return "provider";
   if (isSameAccount(commitment.creator, viewer)) return creatorSeat(commitment.direction);
   if (isSameAccount(commitment.counterparty, viewer)) return "confirmer";
+  if (commitment.confirmers?.some((confirmer) => isSameAccount(confirmer, viewer))) {
+    return "confirmer";
+  }
   if (contributors.some((contributor) => isSameAccount(contributor, viewer))) {
     return "contributor";
   }

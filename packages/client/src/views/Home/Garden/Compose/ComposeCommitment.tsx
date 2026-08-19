@@ -2,6 +2,7 @@ import {
   type Address,
   buildCommitmentCreationPayload,
   type CommitmentComposerValues,
+  commitmentComposerSchema,
   DEFAULT_CHAIN_ID,
   useCommitmentComposerForm,
   useCommitmentJobs,
@@ -57,17 +58,23 @@ export function ComposeCommitment() {
 
   // One id per draft, generated once. It is what the queue derives the
   // creation key from, so it must not change between a failed send and a retry.
-  const clientCommitmentId = useMemo(
-    () => `${gardenAddress ?? "garden"}-${Math.random().toString(36).slice(2)}-draft`,
-    [gardenAddress]
-  );
+  const clientCommitmentId = useMemo(() => crypto.randomUUID(), []);
 
   const beatIndex = BEATS.indexOf(beat);
   const canAdvance = beatCanAdvance(beat, values);
 
   const place = async () => {
     if (!pool || !viewer || !gardenAddress) return;
-    await jobs.enqueue({
+    try {
+      await enqueueCommitment();
+      setPlaced(true);
+    } catch {
+      // useCommitmentJobs already surfaced this; nothing further to say here.
+    }
+  };
+
+  const enqueueCommitment = () =>
+    jobs.enqueue({
       act: "create",
       payload: buildCommitmentCreationPayload({
         values,
@@ -79,8 +86,6 @@ export function ComposeCommitment() {
         nowSeconds: Math.floor(Date.now() / 1000),
       }),
     });
-    setPlaced(true);
-  };
 
   if (placed) {
     return (
@@ -149,25 +154,29 @@ export function ComposeCommitment() {
   );
 }
 
+/** Which answers each beat is responsible for. */
+const BEAT_FIELDS = {
+  kind: ["direction"],
+  what: ["title", "unitLabel", "targetUnits"],
+  terms: ["dueInDays"],
+  review: [],
+} as const satisfies Record<Beat, readonly (keyof CommitmentComposerValues)[]>;
+
 /**
- * Each beat gates on its own answer only. A member cannot be blocked at beat
+ * Each beat gates on its own answers only, so a member is never blocked at beat
  * two by something they have not been asked yet.
+ *
+ * The rules come from the schema rather than being restated here. Two copies of
+ * "a commitment needs a name" is how one of them ends up saying otherwise.
  */
 function beatCanAdvance(beat: Beat, values: CommitmentComposerValues): boolean {
-  switch (beat) {
-    case "kind":
-      return values.direction === "OFFER" || values.direction === "REQUEST";
-    case "what":
-      return (
-        values.title.trim().length > 0 &&
-        values.unitLabel.trim().length > 0 &&
-        values.targetUnits > 0
-      );
-    case "terms":
-      return values.dueInDays > 0;
-    case "review":
-      return true;
-  }
+  const fields = BEAT_FIELDS[beat];
+  if (fields.length === 0) return true;
+  const result = commitmentComposerSchema.safeParse(values);
+  if (result.success) return true;
+  return !result.error.issues.some((issue) =>
+    fields.includes(issue.path[0] as (typeof fields)[number])
+  );
 }
 
 function Shell({

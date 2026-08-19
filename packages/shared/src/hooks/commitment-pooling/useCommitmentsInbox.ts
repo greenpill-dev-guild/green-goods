@@ -16,16 +16,27 @@
  * @module hooks/commitment-pooling/useCommitmentsInbox
  */
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 
 import {
   type CommitmentDerivedState,
   type CommitmentReadModel,
   type CommitmentSeat,
+  commitmentNeedsSeat,
   selectCommitmentSeat,
 } from "../../modules/commitment-pooling";
+import { useJobQueueEvents } from "../../modules/job-queue/event-bus";
 import type { Address } from "../../types/domain";
 import { useCommitments } from "./useCommitmentPooling";
+
+/** The kinds whose failure a member would feel on a commitment surface. */
+const COMMITMENT_JOB_KINDS = new Set([
+  "commitment",
+  "claim",
+  "evidence",
+  "workLink",
+  "confirmation",
+]);
 
 /** A commitment has settled when nothing further will happen to it on its own. */
 const SETTLED_STATES = new Set<CommitmentDerivedState>([
@@ -34,19 +45,6 @@ const SETTLED_STATES = new Set<CommitmentDerivedState>([
   "CANCELLED",
   "EXPIRED",
 ]);
-
-/**
- * What each seat is waiting to do, by phase. A seat with nothing to do here is a
- * deliberate answer rather than a missing one, so the absent combinations are as
- * meaningful as the present ones: a provider on a commitment awaiting someone
- * else's confirmation is asking "where has this got to?", not waiting to act.
- */
-const ACT_BY_SEAT: Record<CommitmentSeat, ReadonlySet<CommitmentDerivedState>> = {
-  provider: new Set<CommitmentDerivedState>(["ACTIVE", "PARTIALLY_APPROVED"]),
-  confirmer: new Set<CommitmentDerivedState>(["READY_FOR_CONFIRMATION"]),
-  contributor: new Set<CommitmentDerivedState>(["ACTIVE", "PARTIALLY_APPROVED"]),
-  bystander: new Set<CommitmentDerivedState>(),
-};
 
 export interface InboxCommitment {
   commitment: CommitmentReadModel;
@@ -70,6 +68,12 @@ export interface CommitmentsInbox {
   availability: ReturnType<typeof useCommitments>["availability"];
   isLoading: boolean;
   isError: boolean;
+  /**
+   * Commitment work that gave up trying to send. A job that dies terminally
+   * leaves nothing on any surface — the commitment simply never appears — so
+   * the count is surfaced here rather than left to be inferred from an absence.
+   */
+  failedJobCount: number;
   refetch: ReturnType<typeof useCommitments>["refetch"];
 }
 
@@ -104,6 +108,14 @@ export function useCommitmentsInbox({
   // return every commitment on the chain rather than none. Signed out means no
   // inbox, so the query never runs.
   const query = useCommitments({ chainId, account: viewer }, { enabled: Boolean(viewer) });
+
+  const [failedJobCount, setFailedJobCount] = useState(0);
+  useJobQueueEvents(["job:failed"], (_type, data) => {
+    const kind = (data as { job?: { kind?: string } })?.job?.kind;
+    if (kind && COMMITMENT_JOB_KINDS.has(kind)) {
+      setFailedJobCount((count) => count + 1);
+    }
+  });
   const { commitments } = query;
 
   const partitioned = useMemo(() => {
@@ -113,8 +125,9 @@ export function useCommitmentsInbox({
     for (const commitment of viewer ? commitments : []) {
       const seat = seatOnOwnList(commitment, viewer);
       const isSettled = SETTLED_STATES.has(commitment.derivedState);
-      const needsYou =
-        !isSettled && seat !== null && ACT_BY_SEAT[seat].has(commitment.derivedState);
+      // Asked of the one act table, so this count and the detail screen's
+      // action bar can never disagree about whether somebody is waiting.
+      const needsYou = !isSettled && commitmentNeedsSeat({ commitment, seat });
       (isSettled ? settled : live).push({ commitment, seat, needsYou });
     }
 
@@ -138,6 +151,7 @@ export function useCommitmentsInbox({
     availability: query.availability,
     isLoading: query.isLoading,
     isError: query.isError,
+    failedJobCount,
     refetch: query.refetch,
   };
 }

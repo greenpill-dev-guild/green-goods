@@ -18,6 +18,7 @@ export function ComposeWhat({ form }: ComposeWhatProps) {
   const { formatMessage } = useIntl();
   const direction = form.watch("direction");
   const title = form.watch("title");
+  const description = form.watch("description") ?? "";
   const unitLabel = form.watch("unitLabel");
   const targetUnits = form.watch("targetUnits");
 
@@ -53,6 +54,26 @@ export function ComposeWhat({ form }: ComposeWhatProps) {
         <p className="mt-1.5 text-xs text-text-soft-400">
           {formatMessage({ id: "app.compose.what.titleHelp" })}
         </p>
+      </div>
+
+      <div>
+        <label
+          className="block text-sm font-medium text-text-strong-950"
+          htmlFor="compose-description"
+        >
+          {formatMessage({ id: "app.compose.what.descriptionLabel" })}
+        </label>
+        <textarea
+          id="compose-description"
+          value={description}
+          rows={3}
+          maxLength={2000}
+          placeholder={formatMessage({ id: "app.compose.what.descriptionPlaceholder" })}
+          onChange={(event) =>
+            form.setValue("description", event.target.value, { shouldValidate: true })
+          }
+          className="mt-1.5 w-full rounded-[var(--radius-lg)] border border-stroke-soft-200 bg-bg-weak-50 p-3 text-sm text-text-strong-950"
+        />
       </div>
 
       <div>

@@ -1,4 +1,5 @@
 import {
+  Alert,
   cn,
   type CommitmentPoolRecord,
   type CommitmentsInbox,
@@ -69,6 +70,12 @@ export function LiveTab({ inbox, pools, gardens }: LiveTabProps) {
         emptyDescriptionId: "app.commitments.live.emptyDescription",
       }}
     >
+      {inbox.failedJobCount > 0 ? (
+        <Alert variant="error" className="p-3">
+          {formatMessage({ id: "app.commitments.sendFailed" }, { count: inbox.failedJobCount })}
+        </Alert>
+      ) : null}
+
       {/* The chips scroll with the list they filter, which is where the garden
         pool tab already puts them. */}
       <div

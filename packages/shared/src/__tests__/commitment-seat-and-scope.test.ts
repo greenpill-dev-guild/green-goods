@@ -265,3 +265,37 @@ describe("account-scoped commitment reads", () => {
     expect(document).not.toContain("$account");
   });
 });
+
+describe("named confirmers", () => {
+  it("seats someone named to confirm as the confirmer, not a bystander", () => {
+    // setConfirmerRule can name people who are neither party. Without this rung
+    // they read as bystanders and are never offered the one act they exist for.
+    expect(
+      selectCommitmentSeat({
+        commitment: { ...offerAccepted, confirmers: [HELPER] },
+        contributors: [],
+        viewer: HELPER,
+      })
+    ).toBe("confirmer");
+  });
+
+  it("still lets the lead outrank a confirmer list they also appear on", () => {
+    expect(
+      selectCommitmentSeat({
+        commitment: { ...offerAccepted, confirmers: [OFFERER] },
+        contributors: [],
+        viewer: OFFERER,
+      })
+    ).toBe("provider");
+  });
+
+  it("leaves everyone else a bystander when the list does not name them", () => {
+    expect(
+      selectCommitmentSeat({
+        commitment: { ...offerAccepted, confirmers: [HELPER] },
+        contributors: [],
+        viewer: STRANGER,
+      })
+    ).toBe("bystander");
+  });
+});

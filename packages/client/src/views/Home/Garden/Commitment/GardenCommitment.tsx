@@ -55,6 +55,10 @@ export function GardenCommitment() {
   const chainId = DEFAULT_CHAIN_ID;
 
   const [withdrawOpen, setWithdrawOpen] = useState(false);
+  // An act that has been queued has been taken. The bar re-enables the moment
+  // the enqueue mutation settles, so without this a member offline could stack
+  // two Confirms on one commitment before either had left the phone.
+  const [queuedAct, setQueuedAct] = useState(false);
 
   const commitmentId = useMemo(() => {
     if (!commitmentIdParam) return null;
@@ -149,7 +153,7 @@ export function GardenCommitment() {
   const { commitment, contributors, requirements } = detail;
   const state = presentState(commitment.derivedState);
   const band = selectStatusBand({ commitment, seat });
-  const act = selectCommitmentAct({ commitment, seat });
+  const act = selectCommitmentAct({ commitment, seat, hasPendingJob: queuedAct });
   const joinable = canJoinTeam({ commitment, seat });
 
   const units = commitment.unitLabel
@@ -184,6 +188,7 @@ export function GardenCommitment() {
                     // ClaimType.Garden is a GardenAccount claiming on a protocol
                     // pool, which is a steward path and not this button. The
                     // context is the garden the claim is scoped to, never a person.
+                    setQueuedAct(true);
                     void jobs.enqueue({
                       act: "claim",
                       payload: {
@@ -194,13 +199,18 @@ export function GardenCommitment() {
                     });
                     return;
                   case "sendForConfirmation":
+                    setQueuedAct(true);
                     void jobs.enqueue({
                       act: "sendForConfirmation",
                       commitmentId: commitment.commitmentId,
                     });
                     return;
                   case "confirm":
-                    void jobs.enqueue({ act: "confirm", commitmentId: commitment.commitmentId });
+                    setQueuedAct(true);
+                    void jobs.enqueue({
+                      act: "confirm",
+                      commitmentId: commitment.commitmentId,
+                    });
                     return;
                   case "addProof":
                   case "offerAgain":
