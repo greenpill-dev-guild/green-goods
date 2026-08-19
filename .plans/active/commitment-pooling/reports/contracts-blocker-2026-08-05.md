@@ -122,7 +122,7 @@ Recording this as a blocker halted valid PRD-721 work and requested an unnecessa
 
 The fresh reviewer correctly observed that this run's actual branch is
 `feature/build-commitment-pooling-contracts`, while the machine-lane branch in `status.json` and
-the handoff signal are `feature/commitment-pooling-contracts`. Replacing those signals with the
+the handoff signal are `codex/contracts/commitment-pooling`. Replacing those signals with the
 actual branch makes Plan Hub validation fail. Its enforcing source is `scripts/harness/plan-hub.mjs`,
 which is outside the dispatch's permitted paths (`packages/contracts/**` and
 `.plans/active/commitment-pooling/**`).
@@ -138,7 +138,7 @@ which is outside the dispatch's permitted paths (`packages/contracts/**` and
 
 ```text
 node scripts/harness/plan-hub.mjs validate
-.plans/active/commitment-pooling: lane "contracts" branch must be "feature/commitment-pooling-contracts"
+.plans/active/commitment-pooling: lane "contracts" branch must be "codex/contracts/commitment-pooling"
 ```
 
 - Restoring the validator-owned machine-lane signal keeps the plan valid while
@@ -150,7 +150,7 @@ node scripts/harness/plan-hub.mjs validate
 1. **Authorize a narrow Plan Hub follow-up.** Teach the validator to accept an
    explicit dispatched integration-branch override, then change the canonical lane signal and
    rerun validation. Rejected on re-review: it solves a problem that does not exist.
-2. Switch this run to `feature/commitment-pooling-contracts`. Rejected: the dispatch explicitly
+2. Switch this run to `codex/contracts/commitment-pooling`. Rejected: the dispatch explicitly
    prohibits branch creation or switching and requires the current feature branch before commits.
 3. Leave the feature branch in the canonical field despite failed validation. Rejected: this would
    knowingly leave the active plan invalid.
