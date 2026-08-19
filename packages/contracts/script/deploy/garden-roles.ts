@@ -21,6 +21,7 @@ import * as path from "node:path";
 import * as dotenv from "dotenv";
 import {
   AbiCoder,
+  Contract,
   concat,
   getAddress,
   getCreate2Address,
@@ -30,10 +31,13 @@ import {
   solidityPackedKeccak256,
   TypedDataEncoder,
   type TypedDataField,
+  toUtf8Bytes,
   ZeroAddress,
 } from "ethers";
 
+import { execCastCaptured, parseCastTransactionHash } from "../utils/cast-env";
 import { NetworkManager } from "../utils/network";
+import { assertReleaseOperatorSession, resolveCheckoutCommit } from "../utils/release-session";
 
 const CONTRACTS_ROOT = path.join(__dirname, "../..");
 const REPOSITORY_ROOT = path.join(CONTRACTS_ROOT, "../..");
@@ -89,6 +93,10 @@ const ROLES_CONFIG_INTERFACE = new Interface([
   "function assignRoles(address module, bytes32[] roleKeys, bool[] memberOf)",
   "function transferOwnership(address newOwner)",
   "function owner() view returns (address)",
+  "function avatar() view returns (address)",
+  "function target() view returns (address)",
+  "function isModuleEnabled(address module) view returns (bool)",
+  "function allowances(bytes32 key) view returns (uint128 refill, uint128 maxRefill, uint64 period, uint64 timestamp, uint128 balance)",
 ]);
 const ROLES_INTERFACE = new Interface(["function setUp(bytes initParams)"]);
 const SAFE_INTERFACE = new Interface([
@@ -484,8 +492,8 @@ async function buildPlan(safePlanPath: string): Promise<GardenRolesPlan> {
   // selector, and an unscoped target all revert. What remains is that this planner deliberately
   // exposes no execution path.
   blockers.push(
-    "This lane is plan-only: deploy, configure, ownership-transfer, and enable stages are not " +
-      "implemented, and enabling still sits behind the value-tier audit gate.",
+    "Enabling is not implemented: the two batched recovery approvals and the 18 pre-approved " +
+      "enableModule boundaries have no stage, and enabling still sits behind the value-tier audit gate.",
   );
 
   return {
@@ -518,18 +526,226 @@ async function buildPlan(safePlanPath: string): Promise<GardenRolesPlan> {
   };
 }
 
-export async function main(args = process.argv.slice(2)): Promise<void> {
-  const command = args[0];
-  if (command !== "plan") throw new Error("Use: garden-roles.ts plan [--safe-plan <path>] [--plan <path>]");
+export interface RolesCliOptions {
+  command: "plan" | "deploy";
+  safePlanPath: string;
+  planPath: string;
+  broadcast: boolean;
+  step?: number;
+}
+
+export function parseArguments(args: string[]): RolesCliOptions {
+  const command = args[0] as RolesCliOptions["command"] | undefined;
+  if (!command || !["plan", "deploy"].includes(command)) {
+    throw new Error("Use: garden-roles.ts plan|deploy [--safe-plan <path>] [--plan <path>] [--broadcast --step <n>]");
+  }
   let safePlanPath = DEFAULT_SAFE_PLAN;
   let planPath = DEFAULT_PLAN;
-  for (let index = 1; index < args.length; index += 2) {
+  let broadcast = false;
+  let step: number | undefined;
+  for (let index = 1; index < args.length; index += 1) {
     const key = args[index];
+    if (key === "--broadcast") {
+      broadcast = true;
+      continue;
+    }
     const value = args[index + 1];
     if (!value || value.startsWith("--")) throw new Error(`${key} requires a value`);
+    index += 1;
     if (key === "--safe-plan") safePlanPath = value;
     else if (key === "--plan") planPath = value;
-    else throw new Error(`Unknown argument: ${key}`);
+    else if (key === "--step") {
+      step = Number(value);
+      if (!Number.isInteger(step) || step < 1) throw new Error("--step must be a positive boundary index");
+    } else throw new Error(`Unknown argument: ${key}`);
+  }
+  if (command === "deploy") {
+    if (!broadcast) throw new Error("deploy requires --broadcast");
+    if (step === undefined) throw new Error("deploy requires one explicit --step boundary");
+  } else if (broadcast || step !== undefined) {
+    throw new Error("plan does not accept --broadcast or --step");
+  }
+  return { command, safePlanPath, planPath, broadcast, step };
+}
+
+export interface RolesCheckpointEntry {
+  step: number;
+  kind: RolesTransactionKind;
+  safe: string;
+  transactionHash: string;
+  blockNumber: number;
+}
+
+export interface RolesCheckpoint {
+  schemaVersion: 1;
+  planHash: string;
+  completed: RolesCheckpointEntry[];
+}
+
+function checkpointPath(planPath: string): string {
+  return planPath.replace(/\.json$/u, ".checkpoint.json");
+}
+
+function hashFileContent(filePath: string): string {
+  return keccak256(toUtf8Bytes(fs.readFileSync(filePath, "utf8")));
+}
+
+/** Regenerating the plan after a mined boundary must stop the lane, not resume against new addresses. */
+export function loadRolesCheckpoint(planPath: string): RolesCheckpoint {
+  const filePath = checkpointPath(planPath);
+  const planHash = hashFileContent(planPath);
+  if (!fs.existsSync(filePath)) return { schemaVersion: 1, planHash, completed: [] };
+  const checkpoint = readJson<RolesCheckpoint>(filePath);
+  if (checkpoint.schemaVersion !== 1 || checkpoint.planHash !== planHash) {
+    throw new Error("Checkpoint does not belong to the exact reviewed Roles plan");
+  }
+  for (const [offset, entry] of checkpoint.completed.entries()) {
+    if (entry.step !== offset + 1) throw new Error("Checkpoint must be a contiguous boundary prefix");
+  }
+  return checkpoint;
+}
+
+export function assertNextRolesBoundary(selected: number, completed: number): number {
+  const nextBoundary = completed + 1;
+  if (selected !== nextBoundary) {
+    throw new Error(`Roles deploy must target the next uncheckpointed boundary ${nextBoundary}`);
+  }
+  return selected;
+}
+
+function credentialArgs(): string[] {
+  assertReleaseOperatorSession(resolveCheckoutCommit(REPOSITORY_ROOT));
+  const passwordFile = process.env.ETH_PASSWORD;
+  if (!passwordFile || !fs.existsSync(passwordFile)) {
+    throw new Error("Broadcast requires the release operator's temporary ETH_PASSWORD file");
+  }
+  return ["--account", process.env.FOUNDRY_KEYSTORE_ACCOUNT ?? "green-goods-deployer", "--password-file", passwordFile];
+}
+
+function sendRolesTransaction(transaction: PlannedRolesTransaction, rpcUrl: string): string {
+  const output = execCastCaptured(
+    [
+      "send",
+      transaction.to,
+      "--data",
+      transaction.data,
+      "--value",
+      "0",
+      "--chain",
+      String(CELO_CHAIN_ID),
+      "--rpc-url",
+      rpcUrl,
+      ...credentialArgs(),
+      "--json",
+    ],
+    { cwd: CONTRACTS_ROOT, env: process.env },
+    transaction.kind,
+  );
+  return parseCastTransactionHash(output, transaction.kind);
+}
+
+/**
+ * Each boundary asserts only what it depends on. Roles exposes no getter for target or function
+ * scoping, so those steps prove a successful receipt plus an unchanged owner; the steps that do have
+ * readable state — allowance, role membership, ownership — are checked against the plan directly.
+ */
+async function assertRolesPrecondition(transaction: PlannedRolesTransaction, provider: JsonRpcProvider): Promise<void> {
+  const code = await provider.getCode(transaction.modifier, "latest");
+  if (transaction.kind === "DEPLOY_MODIFIER") {
+    if (code !== "0x") throw new Error(`Modifier ${transaction.modifier} already has code`);
+    return;
+  }
+  if (code === "0x") throw new Error(`Modifier ${transaction.modifier} is not deployed`);
+  const roles = new Contract(transaction.modifier, ROLES_CONFIG_INTERFACE, provider);
+  const owner = getAddress((await roles.owner()) as string);
+  if (owner !== getAddress(DEPLOYMENT_OPERATOR)) {
+    throw new Error(`Modifier ${transaction.modifier} is owned by ${owner}, not the deployment operator`);
+  }
+}
+
+async function assertRolesPostcondition(
+  transaction: PlannedRolesTransaction,
+  provider: JsonRpcProvider,
+): Promise<void> {
+  const roles = new Contract(transaction.modifier, ROLES_CONFIG_INTERFACE, provider);
+  if (transaction.kind === "DEPLOY_MODIFIER") {
+    if ((await provider.getCode(transaction.modifier, "latest")) === "0x") {
+      throw new Error("Modifier deployment produced no code");
+    }
+    if (getAddress((await roles.avatar()) as string) !== getAddress(transaction.safe)) {
+      throw new Error("Deployed modifier does not target its Garden Safe as avatar");
+    }
+    // `target` collides with ethers' Contract.target property, so resolve the function explicitly.
+    if (getAddress((await roles.getFunction("target").staticCall()) as string) !== getAddress(transaction.safe)) {
+      throw new Error("Deployed modifier does not target its Garden Safe");
+    }
+    return;
+  }
+  if (transaction.kind === "SET_ALLOWANCE") {
+    const allowance = (await roles.allowances(ALLOWANCE_KEY)) as unknown as bigint[];
+    if (allowance[0] !== MAX_PERIOD_AMOUNT || allowance[2] !== PERIOD_DURATION) {
+      throw new Error("Allowance does not match the frozen period cap");
+    }
+    return;
+  }
+  if (transaction.kind === "ASSIGN_EXECUTOR") {
+    if (!((await roles.isModuleEnabled(CELO_SETTLEMENT_EXECUTOR)) as boolean)) {
+      throw new Error("Executor was not registered as a Roles member");
+    }
+    return;
+  }
+  const owner = getAddress((await roles.owner()) as string);
+  const expected = transaction.kind === "TRANSFER_OWNERSHIP" ? transaction.safe : DEPLOYMENT_OPERATOR;
+  if (owner !== getAddress(expected)) throw new Error(`Modifier owner is ${owner}, expected ${expected}`);
+}
+
+export async function executeRolesBoundary(plan: GardenRolesPlan, step: number, planPath: string): Promise<void> {
+  const transaction = plan.transactions[step - 1];
+  if (!transaction || transaction.step !== step) throw new Error(`Reviewed plan has no boundary ${step}`);
+  const checkpoint = loadRolesCheckpoint(planPath);
+  assertNextRolesBoundary(step, checkpoint.completed.length);
+
+  const manager = new NetworkManager();
+  const rpcUrl = manager.getRpcUrl("celo");
+  const provider = new JsonRpcProvider(rpcUrl, CELO_CHAIN_ID, { staticNetwork: true });
+  await assertRolesPrecondition(transaction, provider);
+
+  const transactionHash = sendRolesTransaction(transaction, rpcUrl);
+  const receipt = await provider.waitForTransaction(transactionHash, 1, 180_000);
+  if (!receipt || receipt.status !== 1) throw new Error(`${transaction.kind} did not produce a successful receipt`);
+  const sent = await provider.getTransaction(transactionHash);
+  if (
+    !sent ||
+    getAddress(sent.from) !== getAddress(DEPLOYMENT_OPERATOR) ||
+    getAddress(sent.to ?? ZeroAddress) !== getAddress(transaction.to) ||
+    sent.data !== transaction.data ||
+    sent.value !== 0n
+  ) {
+    throw new Error(`${transaction.kind} receipt does not match the reviewed boundary`);
+  }
+  await assertRolesPostcondition(transaction, provider);
+
+  checkpoint.completed.push({
+    step,
+    kind: transaction.kind,
+    safe: transaction.safe,
+    transactionHash,
+    blockNumber: receipt.blockNumber,
+  });
+  atomicWrite(checkpointPath(planPath), checkpoint);
+  process.stdout.write(
+    `${transaction.kind} boundary ${step}/${plan.transactions.length} verified as ${transactionHash}; close the credential session.\n`,
+  );
+}
+
+export async function main(args = process.argv.slice(2)): Promise<void> {
+  const options = parseArguments(args);
+  const { command, safePlanPath, planPath } = options;
+
+  if (command === "deploy") {
+    if (!fs.existsSync(planPath)) throw new Error(`Reviewed plan is missing: ${planPath}`);
+    await executeRolesBoundary(readJson<GardenRolesPlan>(planPath), options.step as number, planPath);
+    return;
   }
 
   const plan = await buildPlan(safePlanPath);

@@ -3,10 +3,12 @@ import { describe, expect, it } from "vitest";
 
 import {
   ALLOWANCE_KEY,
+  assertNextRolesBoundary,
   buildRolesTransactions,
   buildTransferConditions,
   encodeMultiSend,
   modifierSaltNonce,
+  parseArguments,
   permissionsConfigHash,
   predictModifier,
   rolesInitializer,
@@ -161,5 +163,31 @@ describe("EOA configuration boundaries", () => {
         transaction.kind === "DEPLOY_MODIFIER" ? "0x000000000000aDdB49795b0f9bA5BC298cDda236" : transaction.modifier;
       expect(transaction.to.toLowerCase()).toEqual(expected.toLowerCase());
     }
+  });
+});
+
+describe("Roles execution boundaries", () => {
+  it("binds every broadcast to one explicit boundary", () => {
+    expect(parseArguments(["plan"]).broadcast).toBe(false);
+    expect(parseArguments(["deploy", "--broadcast", "--step", "7"])).toMatchObject({
+      command: "deploy",
+      broadcast: true,
+      step: 7,
+    });
+
+    expect(() => parseArguments(["deploy", "--step", "1"])).toThrow(/requires --broadcast/);
+    expect(() => parseArguments(["deploy", "--broadcast"])).toThrow(/one explicit --step boundary/);
+    expect(() => parseArguments(["plan", "--broadcast"])).toThrow(/does not accept --broadcast/);
+    expect(() => parseArguments(["plan", "--step", "1"])).toThrow(/does not accept --broadcast or --step/);
+    expect(() => parseArguments(["deploy", "--broadcast", "--step", "0"])).toThrow(/positive boundary index/);
+    expect(() => parseArguments(["enable"])).toThrow(/plan\|deploy/);
+  });
+
+  it("resumes at the first uncheckpointed boundary and refuses to replay or skip", () => {
+    expect(assertNextRolesBoundary(1, 0)).toBe(1);
+    expect(assertNextRolesBoundary(108, 107)).toBe(108);
+    // Replaying a mined boundary and jumping over an unmined one both fail closed.
+    expect(() => assertNextRolesBoundary(50, 50)).toThrow(/next uncheckpointed boundary 51/);
+    expect(() => assertNextRolesBoundary(52, 50)).toThrow(/next uncheckpointed boundary 51/);
   });
 });
