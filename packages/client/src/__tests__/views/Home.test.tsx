@@ -20,6 +20,18 @@ vi.mock("@green-goods/shared", () => ({
     isAuthenticated: true,
   }),
   useBrowserNavigation: vi.fn(),
+  DEFAULT_CHAIN_ID: 42161,
+  useCommitmentsInbox: () => ({
+    live: [],
+    settled: [],
+    liveActCount: 0,
+    settledActCount: 0,
+    totalActCount: 0,
+    availability: { status: "unknown-chain" },
+    isLoading: false,
+    isError: false,
+    refetch: vi.fn(),
+  }),
   useFilteredGardens: (gardens: unknown[]) => ({
     filteredGardens: gardens,
     myGardensCount: 1,
@@ -117,6 +129,15 @@ vi.mock("../../views/Home/GardenFilters", () => ({
 
 vi.mock("../../views/Home/WalletDrawer/Icon", () => ({
   WalletDrawerIcon: () => createElement("button", { "data-testid": "wallet-drawer-icon" }),
+}));
+
+vi.mock("../../views/Home/CommitmentsDrawer/Icon", () => ({
+  CommitmentsDrawerIcon: () =>
+    createElement("button", { "data-testid": "commitments-drawer-icon" }),
+}));
+
+vi.mock("../../views/Home/CommitmentsDrawer", () => ({
+  CommitmentsDrawer: () => null,
 }));
 
 vi.mock("../../views/Home/WalletDrawer", () => ({
