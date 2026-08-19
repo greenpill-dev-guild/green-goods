@@ -183,7 +183,7 @@ that row's recovery rule; this table prevents a new visible mutation from bypass
 | RI-13 | `joinCommitment`, `leaveCommitment`, `addContributor`, `removeContributor`, `setContributorRequirement` |
 | RI-14 | `attachAssessment`, `markReadyForConfirmation`, `cancelCommitment`, `expireCommitment`, `raiseDispute`, `resolveDispute` |
 | RI-15 | `confirmFulfillmentAsFallback`, `recordConsiderationPaid` |
-| RI-17–RI-19 | `registerSettlementAccount`, `requeue`, `queueFunding`, `createBatch`, `dispatchDisbursement`, `dispatchBatch`, `retryCommand`, `retryBatchCommand`, `retryAcknowledgment`, `cancelBatch`, `cancelDisbursement` |
+| RI-17–RI-19 | `registerSettlementAccount`, `requeue`, `queueFunding`, `createBatch`, `dispatchDisbursement`, `dispatchBatch`, `retryCommand`, `retryBatchCommand`, `retryAcknowledgment`, `cancelBatch`, `cancelDisbursement`, `failStrandedSubject` |
 | RI-20 | `createCommitmentPayoutPlan`, `setContributorPayouts`, `finalizeCommitmentPayoutPlan`, `prepareContributorPayout`, `prepareGardenBeneficiaryPayout` |
 | RI-22 | `recordFunding`, `recordFundingDeposit`, `consumeFunding`, `queueFundingRefund` |
 

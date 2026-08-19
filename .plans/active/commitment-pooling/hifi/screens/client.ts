@@ -19,7 +19,7 @@ import {
   teamOfferCard, teamstrip, timeline,
 } from "../kit";
 import type { HifiDef } from "./index";
-import type { StateFacts } from "../types";
+import type { CommitmentLifecycle, StateFacts } from "../types";
 
 // ---------------------------------------------------------------------------
 // W1 — Pool tab on the garden detail (uiux-spec §5.2)
@@ -495,7 +495,7 @@ const W1_HOTS: HifiDef["hots"] = {
   "w1.open-request-gated": { l: "Open the steward-reviewed request", to: "screen:W2@browse-requested-gated", info: "Whole-card tap on a steward-reviewed request opens the gated browse cast (PR #710 review): the detail names the review mode and its one act is Ask to take this up — opening a card never changes the modeled claim mode." },
   "w1.open-work-request": { l: "Open the work request", to: "screen:W2@request-work-active", info: "Whole-card tap opens the garden-work request detail; taking it up stays on the button. A dedicated work-request browse cast can follow the two drawn ones (browse-offered / browse-requested)." },
   "w1.open-ongoing": { l: "Open the ongoing Offer", to: "screen:W34@claimant-view", info: "The whole card opens the series detail (2026-08-14 second pass — the See-open-places nav button retired), where each open commitment is an ordinary Offered one that can be taken up (Appendix F.2). How many are left stays on the card as its real progress." },
-  "w1.open-team-offer": { l: "Open the team commitment", to: "screen:W2", info: "The whole card opens the commitment DETAIL first (iteration 2 — jumping straight into the team view skipped the commitment itself): the team strip sits above the fold and opens the team view from there. Nav button retired 2026-08-14; the card is the tap target." },
+  "w1.open-team-offer": { l: "Open the team commitment", to: "screen:W2@accepted-joinable", info: "The whole card opens the commitment DETAIL first (iteration 2 — jumping straight into the team view skipped the commitment itself): the team strip sits above the fold and opens the team view from there. It lands on the JOINABLE view: the reader is a neighbour who might join, not the provider, and the untargeted screen:W2 resolved to the provider's screen by declaration order. Nav button retired 2026-08-14; the card is the tap target." },
   "w1.open-paused-promise": { l: "Open commitment while paused", to: "screen:W2@active", info: "Whole-card tap. Pause blocks new participation and confirmation, not browsing, evidence, linkage, cancellation, expiry, or dispute recovery (UX:60)." },
   "w1.open-reviewing-promise": { l: "Open the ready commitment", to: "screen:W2@ready-confirmer", info: "Whole-card tap; the confirm act lives in the detail. Reviewing keeps proof and confirmation available; this selected commitment is already ReadyForConfirmation (UX:74)." },
   "w1.campaign-market": { l: "Open Market rides campaign", to: "screen:W1@campaign-market", info: "Campaigns remain independently usable when no Season is open (UX:127)." },
@@ -665,15 +665,15 @@ const W1C_HOTS: HifiDef["hots"] = {
 // ---------------------------------------------------------------------------
 
 const W2_STATES = [
-  ["accepted", "Accepted"], ["offered", "Offered (yours)"], ["requested", "Requested (yours)"],
+  ["accepted", "Accepted"], ["accepted-joinable", "Accepted — open team, not joined"], ["offered", "Offered (yours)"], ["requested", "Requested (yours)"],
   ["browse-offered", "Offered — browse view"], ["browse-requested", "Requested — browse view"],
   ["browse-requested-gated", "Requested — browse view (steward-reviewed)"],
   ["active", "Active — yours to work"], ["active-waiting", "Active — waiting on them"],
   ["contributor", "Active — you're on the team"], ["send-confirm", "Send for confirmation — confirm"], ["evidence-queued", "Proof queued"],
   ["evidence-submitted", "Proof in"], ["evidence-preview", "Proof in — image preview"],
   ["partially-approved", "Partly approved"],
-  ["ready-confirmer", "Ready — confirmer view"], ["confirmation-pending", "Confirmation queued"],
-  ["fulfilled", "Fulfilled"], ["fulfilled-pool-fallback", "Fulfilled — garden fallback"],
+  ["ready-provider", "Ready — provider view"], ["ready-confirmer", "Ready — confirmer view"], ["confirmation-pending", "Confirmation queued"],
+  ["fulfilled", "Fulfilled"], ["fulfilled-confirmer", "Fulfilled — confirmer view"], ["fulfilled-pool-fallback", "Fulfilled — garden fallback"],
   ["fulfilled-protocol-fallback", "Fulfilled — Green Goods team fallback"],
   ["reward-released", "Reward released"],
   ["support-queued", "Support queued"], ["support-en-route", "Support on its way"], ["support-delayed", "Delivery delayed"],
@@ -706,6 +706,7 @@ const W2_STATES = [
   ["request-confirmation-pending", "Request — confirmation queued"],
   ["request-fulfilled", "Request — help arrived"], ["request-disputed", "Request — steward review"],
   ["support-offered", "Service offer — open"], ["support-accepted", "Service offer — accepted"],
+  ["support-accepted-confirmer", "Service offer — accepted, your view"],
   ["support-evidence-queued", "Service offer — proof queued"],
   ["support-evidence-submitted", "Service offer — proof in"], ["support-ready-pending", "Service offer — readiness queued"],
   ["support-ready-confirmer", "Service offer — ready"],
@@ -723,7 +724,8 @@ const w2StateChip: Record<W2ChipState, string> = {
   "browse-offered": "Offered", "browse-requested": "Requested", "browse-requested-gated": "Requested",
   "evidence-queued": "Active", "evidence-submitted": "Proof in", "evidence-preview": "Proof in",
   "partially-approved": "Partly approved",
-  "ready-confirmer": "Ready to confirm", "confirmation-pending": "Ready to confirm",
+  "ready-provider": "Ready to confirm", "ready-confirmer": "Ready to confirm", "confirmation-pending": "Ready to confirm",
+  "fulfilled-confirmer": "Fulfilled", "accepted-joinable": "Accepted",
   fulfilled: "Fulfilled", "fulfilled-pool-fallback": "Fulfilled",
   "fulfilled-protocol-fallback": "Fulfilled", "reward-released": "Fulfilled",
   "support-queued": "Fulfilled", "support-en-route": "Fulfilled", "support-delayed": "Fulfilled",
@@ -750,7 +752,7 @@ const w2StateChip: Record<W2ChipState, string> = {
   "request-evidence-submitted": "Proof in", "request-ready-pending": "Proof in",
   "request-ready-confirmer": "Ready to confirm", "request-confirmation-pending": "Ready to confirm",
   "request-fulfilled": "Fulfilled", "request-disputed": "Under review",
-  "support-offered": "Offered", "support-accepted": "Accepted", "support-evidence-queued": "Accepted",
+  "support-offered": "Offered", "support-accepted": "Accepted", "support-accepted-confirmer": "Accepted", "support-evidence-queued": "Accepted",
   "support-evidence-submitted": "Proof in", "support-ready-pending": "Proof in",
   "support-ready-confirmer": "Ready to confirm", "support-confirmation-pending": "Ready to confirm",
   "support-fulfilled": "Fulfilled", "support-cancelled": "Cancelled",
@@ -768,26 +770,34 @@ const w2StateChip: Record<W2ChipState, string> = {
 // lifecycle and the G$ transport chain — so these are explicit sets rather than
 // prefix tests. That collision is a naming defect worth recording, not working
 // around silently.
-const W2_MONEY_MOVING = new Set<string>([
+// Every set below is Set<W2State>, not Set<string>. That is not a style choice:
+// the untyped versions let `browse-requested-steward` and `ready-pending` — two
+// ids that have never existed — sit in membership tests for months, silently
+// rendering the wrong person's screen. Nothing above `.plans/` runs tsc, so the
+// type buys editor safety only; W2_ERRORS below is what actually catches them.
+const W2_MONEY_MOVING = new Set<W2State>([
   "support-queued", "support-en-route", "support-delayed", "support-executed",
   "support-confirming", "support-arrived", "support-failed",
   "support-cancelled-queued", "support-cancelled-failed",
 ]);
-const W2_SERVICE_OFFER = new Set<string>([
-  "support-offered", "support-accepted", "support-evidence-queued", "support-evidence-submitted",
-  "support-ready-pending", "support-ready-confirmer", "support-confirmation-pending",
-  "support-fulfilled", "support-cancelled", "support-disputed",
-]);
-const W2_ENDINGS = new Set<string>(["cancelled", "expired", "disputed", "reconciled"]);
-const W2_YOUR_GARDEN = new Set<string>(["garden-provider", "garden-support-arrived"]);
+// W2_SERVICE_OFFER and W2_YOUR_GARDEN retired (2026-08-18): they were
+// character-for-character duplicates of W2_SUPPORT and W2_GARDEN declared fifty
+// lines apart — four sets carrying two meanings, which is how two of them drift.
+const W2_ENDINGS = new Set<W2State>(["cancelled", "expired", "reconciled"]);
 
 const w2Group = (id: W2State): string => {
   if (id === "loading" || id === "not-found" || id === "read-error") return "Loading and problems";
   if (id.startsWith("browse-")) return "Someone else's commitment";
   if (id === "captured" || id.startsWith("captured-")) return "Recorded for you";
   if (W2_MONEY_MOVING.has(id)) return "Money on its way";
-  if (W2_SERVICE_OFFER.has(id)) return "A service offer";
-  if (W2_YOUR_GARDEN.has(id)) return "Your garden's commitment";
+  if (W2_SUPPORT.has(id)) return "A service offer";
+  if (W2_GARDEN.has(id)) return "Your garden's commitment";
+  // A commitment frozen for steward review has NOT ended — it is mid-flight and
+  // waiting on someone else. Filing it under "How it ended" told a reviewer the
+  // opposite (flow audit, local finding 9), and scattered its four cast siblings
+  // into their own groups. They gather here. "Review", never the other word:
+  // validate.ts bans it on every client surface.
+  if (id === "disputed" || id.endsWith("-disputed")) return "Under steward review";
   if (W2_ENDINGS.has(id)) return "How it ended";
   if (id.startsWith("campaign-request-")) return "A campaign request";
   if (id.startsWith("request-work-")) return "A request for work";
@@ -795,25 +805,35 @@ const w2Group = (id: W2State): string => {
   return "Your offer, start to finish";
 };
 
-const W2_REQUEST = new Set<string>([
+const W2_REQUEST = new Set<W2State>([
+  // "requested" belongs here and was missing for months. w2Group special-cased
+  // the id at its own `id === "requested"` test; w2Cast did not, so the member's
+  // own request fell through to the offer default and rendered another
+  // commitment's title, chip, unit, domain, people row and completed-work bars.
+  "requested",
   "browse-requested", "browse-requested-gated",
   "request-active", "request-evidence-queued", "request-evidence-submitted",
   "request-ready-pending", "request-ready-confirmer", "request-confirmation-pending",
   "request-fulfilled", "request-disputed",
 ]);
-const W2_CAMPAIGN_REQUEST = new Set<string>([
+const W2_CAMPAIGN_REQUEST = new Set<W2State>([
   "campaign-request-active", "campaign-request-evidence-queued", "campaign-request-evidence-submitted",
   "campaign-request-ready-pending", "campaign-request-ready-confirmer",
   "campaign-request-confirmation-pending",
   "campaign-request-fulfilled", "campaign-request-disputed",
 ]);
-const W2_SUPPORT = new Set<string>([
+const W2_SUPPORT = new Set<W2State>([
   "support-offered", "support-accepted", "support-evidence-queued",
   "support-evidence-submitted", "support-ready-pending", "support-ready-confirmer", "support-fulfilled",
   "support-confirmation-pending",
-  "support-cancelled", "support-disputed",
+  "support-cancelled", "support-disputed", "support-accepted-confirmer",
+  // The send-for-confirmation step is a SERVICE act: submitForConfirmation is
+  // rejected on-chain for DomainImpact, both its exits return to support-cast
+  // states, and w2Facts already special-cased it to SupportService. It read as
+  // an offer only because the early return skipped its body entirely.
+  "send-confirm",
 ]);
-const W2_CAPTURED = new Set<string>([
+const W2_CAPTURED = new Set<W2State>([
   "captured", "captured-evidence-queued", "captured-evidence-submitted",
   "captured-ready-pending", "captured-ready-confirmer", "captured-confirmation-pending",
   "captured-fulfilled", "captured-disputed",
@@ -826,23 +846,392 @@ const W2_WORK = new Set<W2State>([
 ]);
 // DomainImpact Requests (2026-08-10, register #97): the ask is for garden work,
 // so proof travels through Work approvals — the asker still confirms.
-const W2_REQUEST_WORK = new Set<string>([
+const W2_REQUEST_WORK = new Set<W2State>([
   "request-work-active", "request-work-partially-approved", "request-work-ready-confirmer",
   "request-work-confirmation-pending", "request-work-fulfilled",
 ]);
-const W2_GARDEN = new Set<string>(["garden-provider", "garden-support-arrived"]);
+const W2_GARDEN = new Set<W2State>(["garden-provider", "garden-support-arrived"]);
+// The offer cast, DECLARED. It used to be `: "offer"` — the fallthrough arm of a
+// six-way ternary — which meant every state nobody had classified silently
+// became an offer, wearing the offer's title, chip, unit, domain and people row.
+// That is the single line that produced the `requested` bug. A cast you have to
+// write down is a cast you notice getting wrong.
+//
+// The nine money-transport states are genuinely offer-cast: the commitment IS a
+// fulfilled offer and only its settlement is still moving. What was wrong there
+// was never the cast — it was drawing requirement bars on a screen whose only
+// live question is where the G$ is. Phase gates that, not cast.
+const W2_OFFER = new Set<W2State>([
+  "accepted", "offered", "browse-offered", "active", "active-waiting", "contributor",
+  "evidence-queued", "evidence-submitted", "evidence-preview", "partially-approved",
+  "ready-provider", "ready-confirmer", "confirmation-pending", "accepted-joinable",
+  "fulfilled", "fulfilled-confirmer", "fulfilled-pool-fallback", "fulfilled-protocol-fallback", "reward-released",
+  "support-queued", "support-en-route", "support-delayed", "support-executed",
+  "support-confirming", "support-arrived", "support-failed",
+  "support-cancelled-queued", "support-cancelled-failed",
+  "reconciled", "cancelled", "expired", "disputed", "withdraw-confirm", "withdrawn",
+]);
 type CommitmentCast = "offer" | "request" | "request-work" | "campaign-request" | "support" | "captured" | "garden";
-const w2Cast = (state: W2State): CommitmentCast =>
-  W2_GARDEN.has(state) ? "garden"
-  : W2_REQUEST_WORK.has(state) ? "request-work"
-  : W2_CAMPAIGN_REQUEST.has(state) ? "campaign-request"
-  : W2_REQUEST.has(state) ? "request"
-  : W2_SUPPORT.has(state) ? "support"
-  : W2_CAPTURED.has(state) ? "captured"
-  : "offer";
+
+// Cast families, most specific first. The map is DERIVED from the sets rather
+// than transcribed beside them, so a state can never be in a set and absent from
+// the map. W2_ERRORS below asserts every state reaches one.
+const W2_CAST_FAMILIES: [Set<W2State>, CommitmentCast][] = [
+  [W2_GARDEN, "garden"], [W2_REQUEST_WORK, "request-work"], [W2_CAMPAIGN_REQUEST, "campaign-request"],
+  [W2_REQUEST, "request"], [W2_SUPPORT, "support"], [W2_CAPTURED, "captured"], [W2_OFFER, "offer"],
+];
+const W2_CAST: Partial<Record<W2State, CommitmentCast>> = {};
+for (const [family, cast] of W2_CAST_FAMILIES) for (const id of family) W2_CAST[id] ??= cast;
+// The three read surfaces short-circuit before cast is used for anything but the
+// header title, so they take the offer fixture and never render from it.
+const w2Cast = (state: W2State): CommitmentCast => W2_CAST[state] ?? "offer";
+
+// Read surfaces: no cast, no seat, no lifecycle. w2() returns before any of the
+// three is consulted, so they are excluded rather than given dishonest filler.
+const W2_READ_SURFACE = new Set<W2State>(["loading", "not-found", "read-error"]);
+
+// ---------------------------------------------------------------------------
+// Where each state sits in the CONTRACT lifecycle. This is the one declaration
+// of that fact; everything else derives from it.
+//
+// It used to be derived three times over — a 40-line ternary ladder in w2Facts
+// ending `: "Accepted"`, a substring test for whether the roster had frozen, and
+// a hand-listed pre-acceptance disjunction. They disagreed. `active-waiting` and
+// `contributor` reported Accepted while being Active; `request-work-fulfilled`
+// and `request-work-confirmation-pending` reported Accepted while being Fulfilled
+// and ReadyForConfirmation. Each was a state somebody added to one list and not
+// the others, which is what happens when the same fact is written down four times.
+// ---------------------------------------------------------------------------
+const W2_PHASE_GROUPS: [CommitmentLifecycle, W2State[]][] = [
+  ["Offered", ["offered", "support-offered", "withdraw-confirm", "browse-offered"]],
+  ["Requested", ["requested", "browse-requested", "browse-requested-gated"]],
+  // A queued service proof leaves the commitment Accepted: nothing has reached
+  // the chain, and a service has no approved work to have made it Active. The
+  // offer cast's own queued proof rides a commitment that already is.
+  ["Accepted", ["accepted", "accepted-joinable", "support-accepted", "support-accepted-confirmer", "support-evidence-queued", "garden-provider"]],
+  ["Active", [
+    "active", "active-waiting", "contributor", "evidence-queued",
+    "request-active", "request-work-active", "campaign-request-active",
+    "request-evidence-queued", "campaign-request-evidence-queued",
+    "captured", "captured-evidence-queued",
+  ]],
+  ["EvidenceSubmitted", [
+    "send-confirm", "evidence-submitted", "evidence-preview",
+    "request-evidence-submitted", "campaign-request-evidence-submitted",
+    "support-evidence-submitted", "captured-evidence-submitted",
+    "request-ready-pending", "campaign-request-ready-pending",
+    "support-ready-pending", "captured-ready-pending",
+  ]],
+  ["PartiallyApproved", ["partially-approved", "request-work-partially-approved"]],
+  ["ReadyForConfirmation", [
+    "ready-provider", "ready-confirmer", "confirmation-pending",
+    "request-ready-confirmer", "request-confirmation-pending",
+    "request-work-ready-confirmer", "request-work-confirmation-pending",
+    "campaign-request-ready-confirmer", "campaign-request-confirmation-pending",
+    "support-ready-confirmer", "support-confirmation-pending",
+    "captured-ready-confirmer", "captured-confirmation-pending",
+  ]],
+  ["Fulfilled", [
+    "fulfilled", "fulfilled-confirmer", "fulfilled-pool-fallback", "fulfilled-protocol-fallback",
+    "request-fulfilled", "request-work-fulfilled", "campaign-request-fulfilled",
+    "support-fulfilled", "captured-fulfilled", "garden-support-arrived",
+    // Settlement-bearing states are Fulfilled commitments whose money is still
+    // moving. The lifecycle is done; only the transport is not.
+    "reward-released", "support-queued", "support-en-route", "support-delayed",
+    "support-executed", "support-confirming", "support-arrived", "support-failed",
+    "support-cancelled-queued", "support-cancelled-failed",
+  ]],
+  ["Cancelled", ["cancelled", "withdrawn", "support-cancelled"]],
+  ["Expired", ["expired"]],
+  ["Disputed", ["disputed", "request-disputed", "campaign-request-disputed", "support-disputed", "captured-disputed"]],
+  ["Reconciled", ["reconciled"]],
+];
+const W2_PHASE: Partial<Record<W2State, CommitmentLifecycle>> = {};
+for (const [phase, ids] of W2_PHASE_GROUPS) for (const id of ids) W2_PHASE[id] ??= phase;
+
+const w2Phase = (state: W2State): CommitmentLifecycle => W2_PHASE[state] ?? "Accepted";
+const w2InPhase = (state: W2State, ...phases: CommitmentLifecycle[]) => phases.includes(w2Phase(state));
+
+// Derived, not hand-listed. Each of these was its own disjunction before, and
+// each drifted from the others.
+const w2PreAcceptance = (state: W2State) => w2InPhase(state, "Offered", "Requested");
+const w2Terminal = (state: W2State) => w2InPhase(state, "Cancelled", "Expired", "Reconciled");
+// Nobody ever took this one up. Not the same question as "is it pre-acceptance",
+// and the contract cannot answer it: withdrawn and cancelled are both Cancelled
+// on-chain, but a withdrawn commitment never left the pool while a cancelled one
+// had been accepted and worked on before a steward ended it. So the screen shows
+// a team, proof and requirement bars for the second and none of them for the
+// first — which is why this is a named exception rather than a phase test.
+const w2NeverClaimed = (state: W2State) => w2PreAcceptance(state) || state === "withdrawn";
+// submitForConfirmation emits ContributorRosterFrozen, so the roster is fixed
+// from ReadyForConfirmation onward — and a commitment frozen for review keeps
+// whatever it had. Previously a substring test that matched "ready" anywhere.
+const w2RosterFrozen = (state: W2State) =>
+  w2InPhase(state, "ReadyForConfirmation", "Fulfilled", "Reconciled", "Disputed");
+
+// Fulfilled, with the money still moving. The commitment's lifecycle is done;
+// only its settlement is not, which is why the live question on these ten
+// screens is where the G$ is rather than what was committed.
+const W2_SETTLED = new Set<W2State>([
+  "reward-released", "support-queued", "support-en-route", "support-delayed",
+  "support-executed", "support-confirming", "support-arrived", "support-failed",
+  "support-cancelled-queued", "support-cancelled-failed",
+]);
+
+// ---------------------------------------------------------------------------
+// WHO IS LOOKING. The axis this screen never had.
+//
+// W2 knew what KIND of commitment it was rendering and derived everything else
+// from the state id, so every viewer-dependent thing on it — the people row, the
+// consequence copy, the progress bars, the action bar — was really a guess about
+// the reader, written as a string prefix. The guesses drifted: a neighbour
+// browsing an unclaimed request was shown a provider who did not exist, and the
+// provider's own flow ended on a screen telling them they had been named to
+// confirm a commitment they are forbidden from confirming.
+//
+// Four seats is enough because CREATOR IS NOT ONE. Direction already says who
+// the creator is: on an Offer they are the provider, on a Request they are the
+// confirmer. So `offered` is a provider's screen and `requested` is a
+// confirmer's, and the withdraw affordance gates on PHASE — nobody has taken it
+// up yet — while seat only decides the person of the sentence.
+// ---------------------------------------------------------------------------
+type Seat = "provider" | "confirmer" | "contributor" | "bystander";
+
+const W2_DIRECTION: Record<CommitmentCast, "offer" | "request"> = {
+  offer: "offer", support: "offer", captured: "offer",
+  request: "request", "campaign-request": "request", "request-work": "request", garden: "request",
+};
+const creatorRole = (cast: CommitmentCast): Seat =>
+  W2_DIRECTION[cast] === "offer" ? "provider" : "confirmer";
+
+const W2_SEAT_GROUPS: [Seat, W2State[]][] = [
+  ["bystander", [
+    "browse-offered", "browse-requested", "browse-requested-gated",
+    // Reachable from the pool tab's team card: someone eligible to join, reading
+    // a commitment already under way. sb45 used to walk them through the
+    // provider's screen to reach the team.
+    "accepted-joinable",
+    // An Offer whose drawn viewer is not its creator: the band talks about Maria
+    // in the third person and the only act is taking it up. The creator's view
+    // of this state simply is not drawn.
+    "support-offered",
+  ]],
+  ["contributor", ["contributor"]],
+  ["confirmer", [
+    // The creator of a request is its confirmer — this is the state the whole
+    // seat model exists to get right.
+    "requested",
+    "active-waiting",
+    "ready-confirmer", "confirmation-pending", "fulfilled-confirmer", "support-accepted-confirmer",
+    "request-ready-confirmer", "request-confirmation-pending",
+    "request-work-ready-confirmer", "request-work-confirmation-pending",
+    "campaign-request-ready-confirmer", "campaign-request-confirmation-pending",
+    "support-ready-confirmer", "support-confirmation-pending",
+    "captured-ready-confirmer", "captured-confirmation-pending",
+  ]],
+  // Everything else is the provider's view. Listed rather than defaulted: a
+  // silent fallthrough arm is exactly what produced the bugs above.
+  ["provider", [
+    "offered", "accepted", "active", "evidence-queued", "evidence-submitted", "evidence-preview",
+    "partially-approved", "send-confirm", "ready-provider",
+    "fulfilled", "fulfilled-pool-fallback", "fulfilled-protocol-fallback",
+    "reward-released", "support-queued", "support-en-route", "support-delayed",
+    "support-executed", "support-confirming", "support-arrived", "support-failed",
+    "support-cancelled-queued", "support-cancelled-failed",
+    "reconciled", "cancelled", "expired", "disputed", "withdraw-confirm", "withdrawn",
+    "captured", "captured-evidence-queued", "captured-evidence-submitted",
+    "captured-ready-pending", "captured-fulfilled", "captured-disputed",
+    "garden-provider", "garden-support-arrived",
+    "request-active", "request-evidence-queued", "request-evidence-submitted",
+    "request-ready-pending", "request-fulfilled", "request-disputed",
+    "request-work-active", "request-work-partially-approved", "request-work-fulfilled",
+    "campaign-request-active", "campaign-request-evidence-queued",
+    "campaign-request-evidence-submitted", "campaign-request-ready-pending",
+    "campaign-request-fulfilled", "campaign-request-disputed",
+    "support-accepted", "support-evidence-queued", "support-evidence-submitted",
+    "support-ready-pending", "support-fulfilled", "support-cancelled", "support-disputed",
+  ]],
+];
+const W2_SEAT: Partial<Record<W2State, Seat>> = {};
+for (const [seat, ids] of W2_SEAT_GROUPS) for (const id of ids) W2_SEAT[id] ??= seat;
+const w2Seat = (state: W2State): Seat => W2_SEAT[state] ?? "provider";
+
+// The offline overlays. Each of these was written out twice as a `state === "…"`
+// disjunction in two different scopes, and the two copies had already drifted:
+// `request-work-confirmation-pending` was missing from the confirmation list, so
+// a screen whose own band read "Confirmation waiting to send" drew no sync bar
+// and no offline chrome.
+const W2_EVIDENCE_QUEUED = new Set<W2State>([
+  "evidence-queued", "support-evidence-queued", "request-evidence-queued",
+  "campaign-request-evidence-queued", "captured-evidence-queued",
+]);
+const W2_READINESS_QUEUED = new Set<W2State>([
+  "request-ready-pending", "campaign-request-ready-pending",
+  "support-ready-pending", "captured-ready-pending",
+]);
+const W2_CONFIRMATION_QUEUED = new Set<W2State>([
+  "confirmation-pending", "request-confirmation-pending", "request-work-confirmation-pending",
+  "campaign-request-confirmation-pending", "support-confirmation-pending", "captured-confirmation-pending",
+]);
+const W2_UNLINKED_WORK = new Set<W2State>([
+  "accepted", "active", "contributor", "evidence-queued", "evidence-submitted",
+  "evidence-preview", "partially-approved",
+  "request-work-active", "request-work-partially-approved", "garden-provider",
+]);
+// Where proof actually exists on the commitment. Replaces an inline `new Set([…])`
+// that carried `ready-pending` — an id with no state behind it — and omitted
+// roughly thirty that belonged.
+const W2_HAS_PROOF = new Set<W2State>([
+  "active", "evidence-submitted", "evidence-preview", "partially-approved", "send-confirm",
+  "ready-confirmer", "confirmation-pending", "fulfilled",
+  "fulfilled-pool-fallback", "fulfilled-protocol-fallback", "reconciled", "disputed",
+  "request-evidence-submitted", "request-ready-pending", "request-ready-confirmer",
+  "request-confirmation-pending", "request-fulfilled", "request-disputed",
+  "request-work-partially-approved", "request-work-ready-confirmer",
+  "request-work-confirmation-pending", "request-work-fulfilled",
+  "campaign-request-evidence-submitted", "campaign-request-ready-pending",
+  "campaign-request-ready-confirmer", "campaign-request-confirmation-pending",
+  "campaign-request-fulfilled", "campaign-request-disputed",
+  "support-evidence-submitted", "support-ready-pending", "support-ready-confirmer",
+  "support-confirmation-pending", "support-fulfilled", "support-disputed",
+  "captured-evidence-submitted", "captured-ready-pending", "captured-ready-confirmer",
+  "captured-confirmation-pending", "captured-fulfilled", "captured-disputed",
+  "garden-provider", "garden-support-arrived",
+  "reward-released", "support-queued", "support-en-route", "support-delayed",
+  "support-executed", "support-confirming", "support-arrived", "support-failed",
+  "support-cancelled-queued", "support-cancelled-failed",
+]);
+
+// ---------------------------------------------------------------------------
+// W2 integrity. Reported through HifiDef.errors, which joins the ordinary build
+// error list — so a broken declaration reads like every other build failure
+// rather than a stack trace.
+//
+// This exists because two membership tests named states that do not exist —
+// `browse-requested-steward` (the real id is browse-requested-gated) and
+// `ready-pending` (the real ones are all cast-prefixed) — and nothing caught
+// them. There is no tsconfig anywhere above `.plans/`, so `Set<W2State>` is
+// documentation; this block is enforcement. Everything a W2 table asserts about
+// a state id is checked here, at build time, once.
+// ---------------------------------------------------------------------------
+const W2_ERRORS: string[] = [];
+const W2_ALL_IDS = new Set<string>(W2_STATES.map(([id]) => id));
+const w2CheckSets = (sets: [string, Set<string>][]) => {
+  for (const [name, set] of sets)
+    for (const member of set)
+      if (!W2_ALL_IDS.has(member)) W2_ERRORS.push(`W2 SET ${name}: "${member}" is not a W2 state`);
+};
+w2CheckSets([
+  ["W2_MONEY_MOVING", W2_MONEY_MOVING], ["W2_ENDINGS", W2_ENDINGS], ["W2_REQUEST", W2_REQUEST],
+  ["W2_CAMPAIGN_REQUEST", W2_CAMPAIGN_REQUEST], ["W2_SUPPORT", W2_SUPPORT], ["W2_CAPTURED", W2_CAPTURED],
+  ["W2_WORK", W2_WORK], ["W2_REQUEST_WORK", W2_REQUEST_WORK], ["W2_GARDEN", W2_GARDEN],
+  ["W2_OFFER", W2_OFFER], ["W2_READ_SURFACE", W2_READ_SURFACE],
+  ["W2_EVIDENCE_QUEUED", W2_EVIDENCE_QUEUED], ["W2_READINESS_QUEUED", W2_READINESS_QUEUED],
+  ["W2_CONFIRMATION_QUEUED", W2_CONFIRMATION_QUEUED], ["W2_HAS_PROOF", W2_HAS_PROOF], ["W2_UNLINKED_WORK", W2_UNLINKED_WORK],
+  ["W2_SETTLED", W2_SETTLED],
+]);
+for (const [, ids] of W2_PHASE_GROUPS)
+  for (const id of ids)
+    if (!W2_ALL_IDS.has(id)) W2_ERRORS.push(`W2 PHASE: "${id}" is not a W2 state`);
+for (const [, ids] of W2_SEAT_GROUPS)
+  for (const id of ids)
+    if (!W2_ALL_IDS.has(id)) W2_ERRORS.push(`W2 SEAT: "${id}" is not a W2 state`);
+for (const [id] of W2_STATES) {
+  if (W2_READ_SURFACE.has(id)) continue;
+  if (!W2_CAST[id]) W2_ERRORS.push(`W2 CAST: no cast family claims "${id}" — add it to one, or to W2_OFFER deliberately`);
+  if (!W2_PHASE[id]) W2_ERRORS.push(`W2 PHASE: no contract lifecycle declared for "${id}"`);
+  if (!W2_SEAT[id]) W2_ERRORS.push(`W2 SEAT: no seat declared for "${id}" — who is looking at this screen?`);
+}
 // Domain propagation (2026-08-14 workflows round): domains left the chip row
 // for the equal-weight domain row on cards — the detail header follows, so
 // the amber .ch.domain chip retires from W2 and `domains` renders as a dmrow.
+// ---------------------------------------------------------------------------
+// WHO IS ON THIS COMMITMENT. One table.
+//
+// There were two, cast-keyed, in different scopes — one feeding the identity
+// card at the top of the screen and one feeding the People card further down —
+// and they disagreed on the same screen. A browse view said "Nobody has taken it
+// up yet" in the first and listed an accountable lead plus two credited
+// contributors in the second. A member's own request named Maria as lead while
+// its own timeline named Ana.
+//
+// Roles are named here rather than baked into prose, so the person of each
+// sentence can be chosen against the reader's seat instead of guessed.
+// ---------------------------------------------------------------------------
+type PartyRole = "provider" | "confirmer" | "contributor" | "recorder";
+type Party = { name: string; initial: string; role: PartyRole; icon: string };
+
+const W2_PARTIES: Record<CommitmentCast, readonly Party[]> = {
+  offer: [
+    { name: "Maria", initial: "M", role: "provider", icon: "user-line" },
+    { name: "João", initial: "J", role: "confirmer", icon: "user-line" },
+    { name: "Ana · Kwame", initial: "A", role: "contributor", icon: "group-line" },
+  ],
+  request: [
+    { name: "Ana", initial: "A", role: "confirmer", icon: "user-line" },
+    { name: "João", initial: "J", role: "provider", icon: "user-line" },
+  ],
+  "request-work": [
+    { name: "Ana", initial: "A", role: "confirmer", icon: "user-line" },
+    { name: "João", initial: "J", role: "provider", icon: "user-line" },
+  ],
+  "campaign-request": [
+    { name: "Ana", initial: "A", role: "confirmer", icon: "user-line" },
+    { name: "João", initial: "J", role: "provider", icon: "user-line" },
+  ],
+  support: [
+    { name: "Maria", initial: "M", role: "provider", icon: "user-line" },
+    { name: "João", initial: "J", role: "confirmer", icon: "user-line" },
+  ],
+  captured: [
+    { name: "Kwame", initial: "K", role: "provider", icon: "user-line" },
+    { name: "João", initial: "J", role: "confirmer", icon: "user-line" },
+    { name: "David", initial: "D", role: "recorder", icon: "user-line" },
+  ],
+  garden: [
+    { name: "Awka Hub", initial: "A", role: "provider", icon: "group-line" },
+    { name: "Protocol stewards", initial: "S", role: "confirmer", icon: "group-line" },
+    { name: "Leila · Amara · Chidi", initial: "L", role: "contributor", icon: "group-line" },
+  ],
+};
+
+// A recorder is never the reader: recording is an act a steward performs from
+// the console, and the commitment stays the member's.
+const PARTY_SEAT: Record<PartyRole, Seat | null> = {
+  provider: "provider", confirmer: "confirmer", contributor: "contributor", recorder: null,
+};
+const PARTY_LINE: Record<PartyRole, { you: string; them: (n: string) => string; meta: string }> = {
+  provider: { you: "You provide this", them: (n) => `${n} provides this`, meta: "Provider, accountable for it" },
+  confirmer: { you: "You confirm it when it's done", them: (n) => `${n} confirms it when it's done`, meta: "Confirms it once it's ready" },
+  contributor: { you: "You're on the team", them: (n) => `${n} on the team`, meta: "Contributors, credited from approved work" },
+  recorder: { you: "Recorded on your behalf", them: (n) => `Recorded by ${n}`, meta: "Recorded it on the member's behalf" },
+};
+
+/**
+ * The parties on a commitment, from one seat's point of view.
+ *
+ * `claimed` is the whole reason the old browse view could name a provider who
+ * did not exist: before anyone takes it up there is exactly one real party, and
+ * the empty slot says it is empty rather than borrowing a fixture name.
+ */
+const w2People = (cast: CommitmentCast, seat: Seat, claimed: boolean) => {
+  const creator = creatorRole(cast);
+  const parties = claimed
+    ? W2_PARTIES[cast]
+    : W2_PARTIES[cast].filter((p) => p.role === creator || p.role === "recorder");
+  const line = (p: Party) =>
+    PARTY_SEAT[p.role] === seat ? PARTY_LINE[p.role].you : PARTY_LINE[p.role].them(p.name);
+  const open = { initial: "·", line: "Nobody has taken it up yet" };
+  return {
+    // The identity card carries the two accountable parties, in creator order.
+    idPeople: [...parties.slice(0, 2).map((p) => ({ initial: p.initial, line: line(p) })), ...(claimed ? [] : [open])],
+    rows:
+      parties.map((p) => listRow({ icon: p.icon, primary: p.name, meta: PARTY_LINE[p.role].meta })).join("") +
+      (claimed ? "" : listRow({ icon: "add-line", primary: "Nobody has taken it up yet", meta: "This slot is open" })),
+    hasTeam: parties.some((p) => p.role === "contributor"),
+  };
+};
+
 const W2_IDENTITY: Record<CommitmentCast, { title: string; meta: string; chips: string; domains?: string[] }> = {
   offer: {
     title: "Prune the north beds",
@@ -937,12 +1326,6 @@ function w2RewardRow(state: W2State): string {
 // Settlement-bearing outcomes: the commitment is Fulfilled and the only news
 // left is where the support is. Kept as one set so the state chip, the lead
 // band, and the timeline can never disagree about whether the commitment is done.
-const W2_SETTLED = new Set<W2State>([
-  "reward-released", "support-queued", "support-en-route", "support-delayed",
-  "support-executed", "support-confirming", "support-arrived", "support-failed",
-  "support-cancelled-queued", "support-cancelled-failed",
-]);
-
 type Moment = { label: string; meta?: string; open?: boolean; warn?: boolean; note?: string };
 
 // The timeline is a function of where the commitment actually is. A single shared
@@ -1105,54 +1488,17 @@ const w2Disclosures = (state: W2State, opts: { work?: boolean; overrideNote?: bo
   const moments = w2Moments(state, !!opts.overrideNote);
   const cast = w2Cast(state);
   const ident = W2_IDENTITY[cast];
-  const rosterFrozen =
-    state.includes("ready") ||
-    state.includes("confirmation-pending") ||
-    state.includes("fulfilled") ||
-    state === "reconciled" ||
-    W2_SETTLED.has(state);
-  const teamHot = rosterFrozen ? "w2.open-team-frozen" : "w2.open-team-forming";
-  // Nothing has been done yet on an unclaimed commitment — no proof, no work.
-  const preAcceptance =
-    state === "offered" || state === "requested" || state === "support-offered" ||
-    state === "withdraw-confirm" || state === "withdrawn" ||
-    state === "browse-offered" || state === "browse-requested" || state === "browse-requested-gated";
-  const evidenceQueued =
-    state === "evidence-queued" || state === "support-evidence-queued" || state === "request-evidence-queued" ||
-    state === "campaign-request-evidence-queued" || state === "captured-evidence-queued";
-  const proof =
-    cast === "support"
-      ? listRow({
-          icon: "image-line",
-          primary: "Tool handles after repair",
-          meta: evidenceQueued ? "Photo · saved on this device" : "Photo · Jul 6",
-          chipHtml: evidenceQueued ? chip("Queued", "queued") : undefined,
-        })
-      : cast === "request-work"
-        ? listRow({
-            icon: "image-line",
-            primary: "The channel after clearing",
-            meta: "Photo · Jul 12 · attached with the work",
-          })
-      : cast === "request" || cast === "campaign-request"
-        ? listRow({
-            icon: "image-line",
-            primary: "Ride arrived at the market",
-            meta: evidenceQueued ? "Photo · saved on this device" : "Photo · Jul 6",
-            chipHtml: evidenceQueued ? chip("Queued", "queued") : undefined,
-          })
-        : cast === "captured"
-          ? listRow({
-              icon: "image-line",
-              primary: "Compost workshop underway",
-              meta: evidenceQueued ? "Photo · saved on this device" : "Photo · Jul 6",
-              chipHtml: evidenceQueued ? chip("Queued", "queued") : undefined,
-            })
-          : cast === "garden"
-            ? listRow({ icon: "file-copy-line", primary: "Methodology survey sheet", meta: "Document · Jul 10" })
-            : listRow({ icon: "image-line", primary: "North beds after", meta: "Photo · Jul 8" }) +
-              listRow({ icon: "sticky-note-line", primary: "“Two beds left for next week”", meta: "Note · Jul 8" });
-  const evidenceCount = evidenceQueued ? "1 queued" : cast === "offer" ? "2 items" : "1 item";
+  const seat = w2Seat(state);
+  const rosterFrozen = w2RosterFrozen(state);
+  // Nothing was ever done on this one, so there is no proof and no work to show.
+  // `withdrawn` belongs here and `cancelled` does not: a withdrawn commitment
+  // never left the pool, while a cancelled one had been taken up and worked on
+  // before a steward ended it.
+  const preAcceptance = w2NeverClaimed(state);
+  const evidenceQueued = W2_EVIDENCE_QUEUED.has(state);
+  // `proof` and `evidenceCount` stood here: 33 lines of cast-branched listRow
+  // output and a count string, both computed on every render and read by
+  // nothing. The media section below supersedes them.
   const scopeRow =
     cast === "support" ? detailRow("Campaign", "Tool library")
     : cast === "campaign-request" ? detailRow("Campaign", "Market rides")
@@ -1182,12 +1528,19 @@ const w2Disclosures = (state: W2State, opts: { work?: boolean; overrideNote?: bo
     if (cast === "support") return mediaStrip([{ label: "The bins, cleared", photo: 3, hotId: "w2.preview" }]);
     return mediaStrip([{ label: "The beds", photo: 0, hotId: "w2.preview" }]);
   };
-  const peopleRows =
-    cast === "garden"
-      ? `${listRow({ icon: "group-line", primary: "Awka Hub", meta: "Accountable provider garden" })}${listRow({ icon: "user-line", primary: "Leila", meta: "Lead · credited contributor" })}${listRow({ icon: "group-line", primary: "Amara · Chidi", meta: "Contributors · credited from approved work" })}`
-      : cast === "request-work"
-        ? `${listRow({ icon: "user-line", primary: "João", meta: "Provider, took up the ask" })}${listRow({ icon: "user-line", primary: "Ana", meta: "Asked for this · confirms when it's ready" })}`
-        : `${listRow({ icon: "user-line", primary: "Maria", meta: "Accountable lead" })}${listRow({ icon: "group-line", primary: "Ana · Kwame", meta: "Contributors · credited from approved work" })}`;
+  const { rows: peopleRows, hasTeam } = w2People(cast, seat, !preAcceptance);
+  // The team surface a reader may actually open. A provider manages the roster,
+  // a contributor reads their own membership, and a bystander has no team to
+  // look at — before this, everyone got the lead's editing screen.
+  const teamButtonHot = !hasTeam
+    ? undefined
+    : rosterFrozen
+      ? "w2.open-team-frozen"
+      : seat === "contributor"
+        ? "w2.open-team-member"
+        : seat === "bystander"
+          ? "w2.open-team-eligible"
+          : "w2.open-team-forming";
   // Work-for-this-commitment stops being its own drawer and becomes a Details row,
   // except where there is something to DO about it — an unlinked approval is a
   // recovery act, so it keeps its rows and buttons.
@@ -1199,8 +1552,14 @@ const w2Disclosures = (state: W2State, opts: { work?: boolean; overrideNote?: bo
         : state === "accepted"
           ? ""
           : detailRow("Work approved", "Pruning session · Jul 8");
+  // Approved work that has not been pointed at this commitment yet. linkWork's
+  // caller may be the lead OR an active contributor, and the contract allows it
+  // from Accepted through PartiallyApproved, so both seats see the recovery act
+  // across the whole window. It was keyed on the single id `accepted`, against
+  // its own hotspot note, which said "whenever the member has approved work
+  // matching a requirement row that is not yet linked".
   const unlinkedWork =
-    state === "accepted"
+    W2_UNLINKED_WORK.has(state) && (seat === "provider" || seat === "contributor")
       ? sectionCard(
           "Work for this commitment",
           `${listRow({ icon: "check-line", primary: "Pruning session", meta: "Approved · Jul 8 · not yet linked", chipHtml: chip("Not linked", "warn") })}<div class="brow" style="padding:0 12px 10px">${hot("w2.unlinked-work", btn("Link It", { kind: "sec", sm: true }))}${hot("w2.link-work", btn("Link Other Work", { kind: "ghost", sm: true }))}</div>`,
@@ -1216,14 +1575,28 @@ const w2Disclosures = (state: W2State, opts: { work?: boolean; overrideNote?: bo
       `${detailRow("Amount", ident.meta.split(" · ").slice(0, 2).join(" · "))}${detailRow("Kind", ident.domains ? `${ident.domains.join(" · ")}` : "Support / service")}${
         scopeRow
       }${workRow}${detailRow("Recorded on", "Arbitrum · 0x8c…41f2")}${
-        preAcceptance
-          ? detailRow("If you change your mind", "You can withdraw it while nobody has taken it up")
-          : detailRow("If it needs to end", "Now that it has been taken up, a steward cancels it. Ask in the garden")
+        // Phase decides whether the withdraw route is open; seat decides whose
+        // sentence it is. Before, both came from one flag, so a neighbour reading
+        // somebody else's offer was told THEY could withdraw it, and an already
+        // withdrawn commitment offered to withdraw itself again.
+        w2Terminal(state)
+          ? ""
+          : seat === "bystander"
+            ? detailRow("If they change their mind", "Whoever made this can withdraw it until someone takes it up")
+            : w2PreAcceptance(state)
+              ? detailRow("If you change your mind", "You can withdraw it while nobody has taken it up")
+              : detailRow("If it needs to end", "Now that it has been taken up, a steward cancels it. Ask in the garden")
       }`,
     ) +
     (opts.reward ? sectionCard("Support", opts.reward, { flush: true }) : "") +
     unlinkedWork +
-    sectionCard("People", `${peopleRows}<div class="brow" style="padding:0 12px 10px">${hot(teamHot, btn("See Team and Contributions", { kind: "ghost", sm: true }))}</div>`) +
+    sectionCard(
+      "People",
+      peopleRows +
+        (teamButtonHot
+          ? `<div class="brow" style="padding:0 12px 10px">${hot(teamButtonHot, btn("See Team and Contributions", { kind: "ghost", sm: true }))}</div>`
+          : ""),
+    ) +
     // The one thing that stays folded: a timeline is long, secondary, and read
     // once. It is a card now rather than a bare disclosure on the canvas.
     sectionCard(
@@ -1256,6 +1629,69 @@ const W2_BAND_ICON: Record<string, string> = {
   "Under review": "eye-line",
 };
 
+// The action bar, hoisted to module scope so its seats can be checked (2026-08-18).
+//
+// This table was already the de-facto seat model: `active` vs `active-waiting`
+// exists only because a confirmer was being offered the provider's button. It
+// just had no way to say so, so the next such mistake — the provider's own flow
+// ending on the confirmer's ready screen, Confirm button and all — went unnoticed
+// for as long as it took someone to walk the flow and read it.
+//
+// Each entry now names the seat its act belongs to, and W2_ERRORS refuses a build
+// where that disagrees with the state's declared seat.
+type BarSpec = { seat: Seat; html: string };
+const W2_BARS: Partial<Record<W2State, BarSpec>> = {
+  // Garden work takes BOTH (2026-08-17, Afo). attachEvidence has no kind gate,
+  // so a garden-work commitment can carry evidence as well as approved work.
+  // The weighting carries the difference the progress block establishes:
+  // submitted work advances readiness, proof credits the people who helped.
+  accepted: { seat: "provider", html: barPair(hot("w2.add-evidence", btn("Add Proof", { kind: "sec" })), hot("w2.submit-work", btn("Submit Work", { kind: "pri" }))) },
+  active: { seat: "provider", html: barPair(hot("w2.add-evidence", btn("Add Proof", { kind: "sec" })), hot("w2.submit-work", btn("Submit Work", { kind: "pri" }))) },
+  // The confirmer's view of the same stage. `ready` already splits into
+  // ready-pending and ready-confirmer; `active` did not, so a confirmer was
+  // being offered the provider's button (2026-08-17, Afo).
+  // A contributor does everything the provider does EXCEPT send and confirm
+  // (2026-08-17, Afo — corrected against the contract). linkWork's caller may
+  // be an active contributor and it verifies the Work attester is one, so a
+  // contributor's own approved work counts toward the requirement rows;
+  // setContributorRequirement exists to point them at a specific row. What
+  // stays the lead's is submitForConfirmation, and confirmation excludes every
+  // contributor absolutely.
+  contributor: { seat: "contributor", html: barPair(hot("w2.add-evidence", btn("Add Proof", { kind: "sec" })), hot("w2.submit-work", btn("Submit Work", { kind: "pri" }))) },
+  // Sending names its blast radius first (2026-08-17, Afo), as every other
+  // consequential act here does. The freeze is the part worth naming:
+  // submitForConfirmation emits ContributorRosterFrozen, so after it nobody
+  // can join the team and no further proof counts toward the commitment.
+  "send-confirm": { seat: "provider", html: barPair(hot("w2.send-cancel", btn("Not Yet", { kind: "ghost" })), hot("w2.send-confirm-go", btn("Send It", { kind: "pri" }))) },
+  "request-active": { seat: "provider", html: hot("w2.add-evidence-request", btn("Add Proof", { kind: "pri", full: true, icon: "camera-line" })) },
+  "request-evidence-submitted": { seat: "provider", html: hot("w2.send-confirmation-request", btn("Send for Confirmation", { kind: "pri", full: true })) },
+  "request-ready-confirmer": { seat: "confirmer", html: hot("w2.confirm-request-detail", btn("Review Confirmation", { kind: "pri", full: true })) },
+  "request-work-ready-confirmer": { seat: "confirmer", html: hot("w2.confirm-request-work-detail", btn("Review Confirmation", { kind: "pri", full: true })) },
+  "campaign-request-active": { seat: "provider", html: hot("w2.add-evidence-campaign-request", btn("Add Proof", { kind: "pri", full: true, icon: "camera-line" })) },
+  "campaign-request-evidence-submitted": { seat: "provider", html: hot("w2.send-confirmation-campaign-request", btn("Send for Confirmation", { kind: "pri", full: true })) },
+  "campaign-request-ready-confirmer": { seat: "confirmer", html: hot("w2.confirm-campaign-request-detail", btn("Review Confirmation", { kind: "pri", full: true })) },
+  "support-accepted": { seat: "provider", html: hot("w2.add-evidence-support", btn("Add Proof", { kind: "pri", full: true, icon: "camera-line" })) },
+  "support-evidence-submitted": { seat: "provider", html: hot("w2.send-confirmation", btn("Send for Confirmation", { kind: "pri", full: true })) },
+  "support-ready-confirmer": { seat: "confirmer", html: hot("w2.confirm-support-detail", btn("Review Confirmation", { kind: "pri", full: true })) },
+  captured: { seat: "provider", html: hot("w2.add-evidence-captured", btn("Add Proof", { kind: "pri", full: true, icon: "camera-line" })) },
+  "captured-evidence-submitted": { seat: "provider", html: hot("w2.send-confirmation-captured", btn("Send for Confirmation", { kind: "pri", full: true })) },
+  "captured-ready-confirmer": { seat: "confirmer", html: hot("w2.confirm-captured-detail", btn("Review Confirmation", { kind: "pri", full: true })) },
+  "garden-provider": { seat: "provider", html: hot("w2.add-evidence", btn("Add Proof", { kind: "pri", full: true, icon: "camera-line" })) },
+  offered: { seat: "provider", html: hot("w2.withdraw", btn("Withdraw This Offer…", { kind: "danger", full: true })) },
+  requested: { seat: "confirmer", html: hot("w2.withdraw", btn("Withdraw This Request…", { kind: "danger", full: true })) },
+  "browse-offered": { seat: "bystander", html: hot("w2.take-up-browse", btn("Take This Up", { kind: "pri", full: true })) },
+  "browse-requested": { seat: "bystander", html: hot("w2.help-browse", btn("I Can Help", { kind: "pri", full: true })) },
+  "browse-requested-gated": { seat: "bystander", html: hot("w2.ask-browse", btn("Ask to Take This Up", { kind: "pri", full: true })) },
+  "ready-confirmer": { seat: "confirmer", html: hot("w2.confirm", btn("Confirm: Commitment Kept", { kind: "pri", full: true })) },
+  expired: { seat: "provider", html: hot("w2.offer-again", btn("Offer it Again", { kind: "pri", full: true })) },
+};
+
+for (const [id, spec] of Object.entries(W2_BARS)) {
+  if (!W2_ALL_IDS.has(id)) W2_ERRORS.push(`W2 BAR: "${id}" is not a W2 state`);
+  else if (spec && spec.seat !== w2Seat(id as W2State))
+    W2_ERRORS.push(`W2 BAR ${id}: draws a ${spec.seat} act on a ${w2Seat(id as W2State)} screen`);
+}
+
 function w2(stateIn: W2State): string {
   // The image preview is a DIALOG over the commitment, not a state of it: the
   // commitment underneath is unchanged, which is why `evidence-preview` renders
@@ -1285,115 +1721,55 @@ function w2(stateIn: W2State): string {
   // someone tapped in the pool, expanded. Terms stay in Details — the card
   // carries what exists nowhere else: where this stands and what has been done.
   const cast = w2Cast(state);
-  const W2_PEOPLE: Record<CommitmentCast, { people: { initial: string; line: string }[]; team?: boolean }> = {
-    offer: { people: [{ initial: "M", line: "Maria offers" }, { initial: "J", line: "João takes it up" }], team: true },
-    request: { people: [{ initial: "A", line: "Ana asked for this" }, { initial: "J", line: "João provides" }] },
-    "request-work": { people: [{ initial: "A", line: "Ana asked for this" }, { initial: "J", line: "João provides" }, { initial: "A", line: "Ana confirms" }] },
-    "campaign-request": { people: [{ initial: "A", line: "Ana asked for this" }, { initial: "J", line: "João provides" }] },
-    support: { people: [{ initial: "M", line: "Maria provides" }, { initial: "J", line: "João confirms" }] },
-    captured: { people: [{ initial: "K", line: "Kwame's commitment" }, { initial: "D", line: "Recorded by David" }] },
-    garden: { people: [{ initial: "A", line: "Awka Hub provides" }, { initial: "S", line: "Protocol stewards confirm" }] },
-  };
-  const browse = state === "browse-offered" || state === "browse-requested" || state === "browse-requested-steward";
-  const pp = browse
-    ? { people: [state === "browse-offered" ? { initial: "M", line: "Maria offers this. Nobody has taken it up yet" } : { initial: "A", line: "Ana asked for this. Nobody has taken it up yet" }] }
-    : W2_PEOPLE[cast];
-  // A browse view shows no progress block: nothing has been done yet, and the
-  // screen is about deciding whether to take it up rather than tracking it.
+  const seat = w2Seat(state);
+  const claimed = !w2NeverClaimed(state);
+  const { idPeople, hasTeam } = w2People(cast, seat, claimed);
   const work = cast === "offer" || cast === "request-work";
-  const evidenceStates = new Set(["evidence-submitted", "request-evidence-submitted", "support-evidence-submitted", "ready-confirmer", "ready-pending", "request-ready-pending", "support-ready-pending", "fulfilled", "partially-approved", "active"]);
-  const hasEvidence = evidenceStates.has(state);
-  const progress = browse
-    ? undefined
-    : work
-      ? progressBlock({
-          rows: cast === "request-work"
-            ? [{ label: "Weed", done: 2, of: 2 }, { label: "Mulch", done: 3, of: 4 }]
-            : [{ label: "Prune", done: 2, of: 2 }, { label: "Plant", done: 8, of: 12 }],
-          proof: hasEvidence ? "3 items · credits Maria, Ana" : undefined,
-          // The explainer earns its place only where the distinction actually
-          // confuses: garden work carrying evidence that does not advance it.
-          note: hasEvidence ? "Approved work is what moves this forward. Proof credits the people who helped." : undefined,
-        })
-      : progressBlock({ proof: "2 items · credits Maria", note: "Proof is what moves this forward. A service names no garden actions." });
+  const hasEvidence = W2_HAS_PROOF.has(state);
+  // What has been done. Nothing has, before anyone takes it up — so an unclaimed
+  // commitment showed "Prune 2 of 2 · Plant 8 of 12" for as long as this block
+  // was gated on a browse flag that tested an id which does not exist. And once
+  // the money is moving the live question is where the G$ is, not what was
+  // committed, so the requirement bars stop earning their place there too.
+  const progress =
+    !claimed || W2_SETTLED.has(state)
+      ? undefined
+      : work
+        ? progressBlock({
+            rows: cast === "request-work"
+              ? [{ label: "Weed", done: 2, of: 2 }, { label: "Mulch", done: 3, of: 4 }]
+              : [{ label: "Prune", done: 2, of: 2 }, { label: "Plant", done: 8, of: 12 }],
+            proof: hasEvidence ? "3 items · credits Maria, Ana" : undefined,
+            // The explainer earns its place only where the distinction actually
+            // confuses: garden work carrying evidence that does not advance it.
+            note: hasEvidence ? "Approved work is what moves this forward. Proof credits the people who helped." : undefined,
+          })
+        : progressBlock({ proof: "2 items · credits Maria", note: "Proof is what moves this forward. A service names no garden actions." });
+  // An invitation to join, on a commitment that is still forming and to somebody
+  // who could act on it. It used to ride the cast alone, so it offered a place on
+  // the team of commitments that had been withdrawn, cancelled or expired.
+  const showTeamStrip = hasTeam && claimed && !w2RosterFrozen(state) && !w2Terminal(state);
   const meta = pagepad(
     identityCard({
       // No title: the header two rows up already carries it (round 44).
       chips: `${ident.chips}${stateChip(w2StateChip[state])}`,
       domains: ident.domains,
-      people: pp.people,
-      teamRow: "team" in pp && pp.team ? hot("w2.team-strip", `<div class="idteam">${icon("group-line", "s")}<span>Open team, anyone eligible may join</span>${icon("arrow-right-s-line", "s")}</div>`) : undefined,
+      people: idPeople,
+      teamRow: showTeamStrip ? hot("w2.team-strip", `<div class="idteam">${icon("group-line", "s")}<span>Open team, anyone eligible may join</span>${icon("arrow-right-s-line", "s")}</div>`) : undefined,
       progress,
     }),
   );
   // E5: the walked states put their ONE contextual primary in a fixed bottom
   // bar — the same rule the wizards follow. Content keeps the story; the bar
   // owns the act. Unlisted states stay bar-less read surfaces.
-  const W2_BARS: Partial<Record<W2State, string>> = {
-    // Garden work takes BOTH (2026-08-17, Afo). attachEvidence has no kind gate,
-    // so a garden-work commitment can carry evidence as well as approved work.
-    // The weighting carries the difference the progress block establishes:
-    // submitted work advances readiness, proof credits the people who helped.
-    accepted: barPair(hot("w2.add-evidence", btn("Add Proof", { kind: "sec" })), hot("w2.submit-work", btn("Submit Work", { kind: "pri" }))),
-    active: barPair(hot("w2.add-evidence", btn("Add Proof", { kind: "sec" })), hot("w2.submit-work", btn("Submit Work", { kind: "pri" }))),
-    // The confirmer's view of the same stage. `ready` already splits into
-    // ready-pending and ready-confirmer; `active` did not, so a confirmer was
-    // being offered the provider's button (2026-08-17, Afo).
-    "active-waiting": "",
-    // A contributor does everything the provider does EXCEPT send and confirm
-    // (2026-08-17, Afo — corrected against the contract). linkWork's caller may
-    // be an active contributor and it verifies the Work attester is one, so a
-    // contributor's own approved work counts toward the requirement rows;
-    // setContributorRequirement exists to point them at a specific row. What
-    // stays the lead's is submitForConfirmation, and confirmation excludes every
-    // contributor absolutely.
-    contributor: barPair(hot("w2.add-evidence", btn("Add Proof", { kind: "sec" })), hot("w2.submit-work", btn("Submit Work", { kind: "pri" }))),
-    // Sending names its blast radius first (2026-08-17, Afo), as every other
-    // consequential act here does. The freeze is the part worth naming:
-    // submitForConfirmation emits ContributorRosterFrozen, so after it nobody
-    // can join the team and no further proof counts toward the commitment.
-    "send-confirm": barPair(hot("w2.send-cancel", btn("Not Yet", { kind: "ghost" })), hot("w2.send-confirm-go", btn("Send It", { kind: "pri" }))),
-    "request-active": hot("w2.add-evidence-request", btn("Add Proof", { kind: "pri", full: true, icon: "camera-line" })),
-    "request-evidence-submitted": hot("w2.send-confirmation-request", btn("Send for Confirmation", { kind: "pri", full: true })),
-    "request-ready-confirmer": hot("w2.confirm-request-detail", btn("Review Confirmation", { kind: "pri", full: true })),
-    "request-work-ready-confirmer": hot("w2.confirm-request-work-detail", btn("Review Confirmation", { kind: "pri", full: true })),
-    "campaign-request-active": hot("w2.add-evidence-campaign-request", btn("Add Proof", { kind: "pri", full: true, icon: "camera-line" })),
-    "campaign-request-evidence-submitted": hot("w2.send-confirmation-campaign-request", btn("Send for Confirmation", { kind: "pri", full: true })),
-    "campaign-request-ready-confirmer": hot("w2.confirm-campaign-request-detail", btn("Review Confirmation", { kind: "pri", full: true })),
-    "support-accepted": hot("w2.add-evidence-support", btn("Add Proof", { kind: "pri", full: true, icon: "camera-line" })),
-    "support-evidence-submitted": hot("w2.send-confirmation", btn("Send for Confirmation", { kind: "pri", full: true })),
-    "support-ready-confirmer": hot("w2.confirm-support-detail", btn("Review Confirmation", { kind: "pri", full: true })),
-    captured: hot("w2.add-evidence-captured", btn("Add Proof", { kind: "pri", full: true, icon: "camera-line" })),
-    "captured-evidence-submitted": hot("w2.send-confirmation-captured", btn("Send for Confirmation", { kind: "pri", full: true })),
-    "captured-ready-confirmer": hot("w2.confirm-captured-detail", btn("Review Confirmation", { kind: "pri", full: true })),
-    "garden-provider": hot("w2.add-evidence", btn("Add Proof", { kind: "pri", full: true, icon: "camera-line" })),
-    offered: hot("w2.withdraw", btn("Withdraw This Offer…", { kind: "danger", full: true })),
-    requested: hot("w2.withdraw", btn("Withdraw This Request…", { kind: "danger", full: true })),
-    "browse-offered": hot("w2.take-up-browse", btn("Take This Up", { kind: "pri", full: true })),
-    "browse-requested": hot("w2.help-browse", btn("I Can Help", { kind: "pri", full: true })),
-    "browse-requested-gated": hot("w2.ask-browse", btn("Ask to Take This Up", { kind: "pri", full: true })),
-    "ready-confirmer": hot("w2.confirm", btn("Confirm: Commitment Kept", { kind: "pri", full: true })),
-    expired: hot("w2.offer-again", btn("Offer it Again", { kind: "pri", full: true })),
-  };
 
   // The confirmer reading an in-progress commitment, the contributor's seat, and
   // the send-for-confirmation confirmation (2026-08-17 round 22, Afo).
-  if (state === "active-waiting" || state === "contributor" || state === "send-confirm") {
-    const body =
-      state === "active-waiting"
-        ? bandCard(
-            `<div class="t-title">João is working on this</div><div class="t-meta">Nothing to do yet. When the work is approved and the commitment is ready, you will be asked to confirm it was kept.</div>`,
-            "time-line",
-          )
-        : state === "contributor"
-          ? bandCard(
-              `<div class="t-title">You're on the team</div><div class="t-meta">Your approved work counts toward this commitment and your proof credits you. Maria leads it and sends it for confirmation when it's done, and a contributor never confirms their own commitment.</div>`,
-              "group-line",
-            )
-          : `${banner("Sending tells João it is ready for their confirmation. From that moment the team is fixed: nobody else can join, and further proof no longer counts toward it.", "amber", "shield-check-line")}${card(`${detailRow("What you're sending", "1 photo · 1 voice note · credits Maria, Ana")}${detailRow("Who confirms", "João, the person you helped")}${detailRow("After this", "You can still read everything; you cannot add to it")}`)}`;
-    const b = W2_BARS[state];
-    return phoneFrame(`${head}${meta}${pagepad(body)}<div style="flex:1"></div>`, { appBar: b ? actionBar(b) : false });
-  }
+  // The three seat states used to return here, before w2Disclosures ran, so they
+  // rendered with no Garden, Media, Details, Support, People or Timeline at all.
+  // The contributor — the seat that most needs to see who else is on this and how
+  // credit is shared — could not reach the team from their own screen. They are
+  // ordinary band cases now and get the whole commitment like everybody else.
   const capturedChip =
     W2_CAPTURED.has(state)
       ? hot("w2.captured-chip", banner("Recorded by your steward on your behalf. The commitment stays yours.", "stone", "hand-heart-line"))
@@ -1407,6 +1783,60 @@ function w2(stateIn: W2State): string {
   if (W2_SETTLED.has(state))
     band = bandCard(`<div class="t-title">Commitment kept</div><div class="t-meta">Confirmed by João · Jul 12. The season's count already grew.</div>`);
   else switch (state) {
+    // The provider, once the requirements are met. This screen did not exist:
+    // "Prove it with work" ended on the CONFIRMER's ready view, so the person who
+    // had just done six hours of pruning was told they had been named to confirm
+    // it, above a button they are forbidden from pressing. W4@provider-view
+    // answers the same question on the confirmation sheet: not "may I confirm?"
+    // but "where has this got to?".
+    case "ready-provider":
+      band = bandCard(
+        `<div class="t-title">Waiting on João to confirm</div><div class="t-meta">The work is approved and the proof is in, so your part is done. You provided this, so you cannot confirm it. You will see it here the moment João does.</div>`,
+        "time-line",
+      );
+      break;
+    // The confirmer's own fulfilled view. Keeping it separate is what lets
+    // W2@fulfilled belong to the provider, and carry the celebration.
+    case "fulfilled-confirmer":
+      band = bandCard(
+        `<div class="t-title">You confirmed this</div><div class="t-meta">Maria kept it and you said so on Jul 12. Nothing else is needed from either of you.</div>`,
+        "checkbox-circle-fill",
+      );
+      break;
+    // Someone eligible to join, reading a commitment already under way. The team
+    // flow used to walk them through the provider's screen to reach the roster.
+    case "accepted-joinable":
+      band = bandCard(
+        `<div class="t-title">Maria is working on this, and the team is open</div><div class="t-meta">Joining lets you add proof and submit work toward it. It does not make you the confirmer, and it does not earn credit on its own.</div>`,
+        "group-line",
+      );
+      break;
+    // The neighbour who took up a service offer. w2.take-up-support's own note
+    // says the claimant becomes the counterparty, and then landed them on the
+    // provider's screen.
+    case "support-accepted-confirmer":
+      band = bandCard(
+        `<div class="t-title">Maria is repairing the handles</div><div class="t-meta">Nothing to do yet. When Maria has shown what she did and sent it, you will be asked to confirm it was kept.</div>`,
+        "time-line",
+      );
+      break;
+    // The confirmer's view of an Active offer. Maria provides it — the copy said
+    // João, which is the person reading the screen.
+    case "active-waiting":
+      band = bandCard(
+        `<div class="t-title">Maria is working on this</div><div class="t-meta">Nothing to do yet. When the work is approved and the commitment is ready, you will be asked to confirm it was kept.</div>`,
+        "time-line",
+      );
+      break;
+    case "contributor":
+      band = bandCard(
+        `<div class="t-title">You're on the team</div><div class="t-meta">Your approved work counts toward this commitment and your proof credits you. Maria leads it and sends it for confirmation when it's done, and a contributor never confirms their own commitment.</div>`,
+        "group-line",
+      );
+      break;
+    case "send-confirm":
+      band = `${banner("Sending tells João it is ready for their confirmation. From that moment the team is fixed: nobody else can join, and further proof no longer counts toward it.", "amber", "shield-check-line")}${card(`${detailRow("What you're sending", "1 photo · 1 voice note · credits Maria, Ana")}${detailRow("Who confirms", "João, the person you helped")}${detailRow("After this", "You can still read everything; you cannot add to it")}`)}`;
+      break;
     case "evidence-queued":
       band = bandCard(
         `<div class="t-title">Proof saved on this device</div><div class="t-meta">It will send when connected. The credited-contributor vector stays attached to this queued item, and Work progress does not change until sync.</div>`,
@@ -1414,12 +1844,12 @@ function w2(stateIn: W2State): string {
       break;
     case "request-active":
       band = bandCard(
-        `<div class="t-title">João is helping</div><div class="t-meta">Add proof as it happens. Ana asked for this, so Ana confirms it was done.</div>`,
+        `<div class="t-title">You are helping with Ana's ask</div><div class="t-meta">Add proof as it happens. Ana asked for this, so Ana confirms it was done.</div>`,
       );
       break;
     case "request-work-active":
       band = bandCard(
-        `<div class="t-title">João is on the garden work</div><div class="t-meta">This ask needs approved work: Weed × 2 · Mulch × 4. Submitted work travels the ordinary approval rails before Ana confirms.</div><div class="brow">${hot("w2.submit-work-request-detail", btn("Submit Work", { kind: "pri", icon: "camera-line" }))}</div>`,
+        `<div class="t-title">You are on the garden work</div><div class="t-meta">This ask needs approved work: Weed × 2 · Mulch × 4. Submitted work travels the ordinary approval rails before Ana confirms.</div><div class="brow">${hot("w2.submit-work-request-detail", btn("Submit Work", { kind: "pri", icon: "camera-line" }))}</div>`,
       );
       break;
     case "request-work-partially-approved":
@@ -1427,12 +1857,12 @@ function w2(stateIn: W2State): string {
       break;
     case "request-work-ready-confirmer":
       band = bandCard(
-        `<div class="t-title">Ready to confirm</div><div class="t-meta">Ana asked for this work, so Ana confirms it. Every contributor stays excluded.</div>`,
+        `<div class="t-title">Ready to confirm</div><div class="t-meta">You asked for this work, so you confirm it. Every contributor stays excluded.</div>`,
       );
       break;
     case "request-work-confirmation-pending":
       band = bandCard(
-        `<div class="t-title">Confirmation waiting to send</div><div class="t-meta">Ana's saved confirmation is queued. The ask stays ready and cannot be confirmed twice while it syncs.</div>`,
+        `<div class="t-title">Confirmation waiting to send</div><div class="t-meta">Ana's confirmation is held on her phone. The ask counts as met once it sends.</div>`,
       );
       break;
     case "request-work-fulfilled":
@@ -1442,7 +1872,7 @@ function w2(stateIn: W2State): string {
       break;
     case "campaign-request-active":
       band = bandCard(
-        `<div class="t-title">João is helping with this Campaign request</div><div class="t-meta">The Market rides Campaign remains the scope. Add proof as the ride happens.</div>`,
+        `<div class="t-title">You are helping with this Campaign request</div><div class="t-meta">The Market rides Campaign remains the scope. Add proof as the ride happens.</div>`,
       );
       break;
     case "campaign-request-evidence-queued":
@@ -1462,12 +1892,12 @@ function w2(stateIn: W2State): string {
       break;
     case "campaign-request-ready-confirmer":
       band = bandCard(
-        `<div class="t-title">Ready to confirm</div><div class="t-meta">Ana confirms the Market rides Campaign request. João, who provided it, cannot.</div>`,
+        `<div class="t-title">Ready to confirm</div><div class="t-meta">You confirm this Market rides Campaign request. João, who provided it, cannot.</div>`,
       );
       break;
     case "campaign-request-confirmation-pending":
       band = bandCard(
-        `<div class="t-title">Confirmation waiting to send</div><div class="t-meta">Ana's saved confirmation stays with this Market rides Campaign request. No second confirmation is available while it syncs.</div>`,
+        `<div class="t-title">Confirmation waiting to send</div><div class="t-meta">Ana's confirmation is held on her phone. The Market rides request counts as kept once it sends.</div>`,
       );
       break;
     case "campaign-request-fulfilled":
@@ -1490,12 +1920,12 @@ function w2(stateIn: W2State): string {
       break;
     case "request-ready-confirmer":
       band = bandCard(
-        `<div class="t-title">Ready to confirm</div><div class="t-meta">Ana asked for this help and is the named confirmer. João, who provided it, cannot.</div>`,
+        `<div class="t-title">Ready to confirm</div><div class="t-meta">You asked for this help, so you are the named confirmer. João, who provided it, cannot.</div>`,
       );
       break;
     case "request-confirmation-pending":
       band = bandCard(
-        `<div class="t-title">Confirmation waiting to send</div><div class="t-meta">Ana's saved confirmation is queued. The request stays ready and cannot be confirmed twice while it syncs.</div>`,
+        `<div class="t-title">Confirmation waiting to send</div><div class="t-meta">Ana's confirmation is held on her phone. The request counts as kept once it sends.</div>`,
       );
       break;
     case "request-fulfilled":
@@ -1510,7 +1940,7 @@ function w2(stateIn: W2State): string {
       break;
     case "support-accepted":
       band = bandCard(
-        `<div class="t-title">Repair accepted</div><div class="t-meta">João took up this place. It remains Accepted until Maria links Work or proof reaches the commitment.</div>`,
+        `<div class="t-title">Repair accepted</div><div class="t-meta">João took this up. It stays Accepted until you link work or proof reaches the commitment.</div>`,
       );
       break;
     case "support-evidence-queued":
@@ -1535,12 +1965,12 @@ function w2(stateIn: W2State): string {
       break;
     case "support-ready-confirmer":
       band = bandCard(
-        `<div class="t-title">Ready to confirm</div><div class="t-meta">João was named to confirm this service. Maria, who offered it, cannot.</div>`,
+        `<div class="t-title">Ready to confirm</div><div class="t-meta">You were named to confirm this service. Maria, who offered it, cannot.</div>`,
       );
       break;
     case "support-confirmation-pending":
       band = bandCard(
-        `<div class="t-title">Confirmation waiting to send</div><div class="t-meta">João's saved confirmation is queued. The service stays ready and cannot be confirmed twice while it syncs.</div>`,
+        `<div class="t-title">Confirmation waiting to send</div><div class="t-meta">João's confirmation is held on his phone. The repair counts as kept once it sends.</div>`,
       );
       break;
     case "support-fulfilled":
@@ -1568,12 +1998,12 @@ function w2(stateIn: W2State): string {
       break;
     case "captured-ready-confirmer":
       band = bandCard(
-        `<div class="t-title">Ready to confirm</div><div class="t-meta">The lead provider remains excluded. The named counterparty reviews the captured commitment.</div>`,
+        `<div class="t-title">Ready to confirm</div><div class="t-meta">You review this recorded commitment. The lead provider stays excluded.</div>`,
       );
       break;
     case "captured-confirmation-pending":
       band = bandCard(
-        `<div class="t-title">Confirmation waiting to send</div><div class="t-meta">The saved confirmation stays with Kwame's recorded commitment and cannot be submitted twice while it syncs.</div>`,
+        `<div class="t-title">Confirmation waiting to send</div><div class="t-meta">The confirmation is held on the confirmer's phone. Kwame's record counts it as kept once it sends.</div>`,
       );
       break;
     case "captured-fulfilled":
@@ -1629,7 +2059,7 @@ function w2(stateIn: W2State): string {
       break;
     case "confirmation-pending":
       band = bandCard(
-        `<div class="t-title">Confirmation waiting to send</div><div class="t-meta">Your saved confirmation is queued. This commitment stays ready and cannot be confirmed twice while it syncs.</div>`,
+        `<div class="t-title">Confirmation waiting to send</div><div class="t-meta">Your confirmation is held on this phone. It sends when you're online, and the commitment counts as kept from then.</div>`,
       );
       break;
     // A hero is a MOMENT, not a state (2026-08-17 round 43, Afo). W4@confirmed
@@ -1669,6 +2099,12 @@ function w2(stateIn: W2State): string {
       band = banner("This season closed. The commitment rolled into the season summary.", "stone", "seedling-line");
       break;
     default:
+      // This default is a PROVIDER's instruction. Reaching it on another seat
+      // means a state was added without its own band and is now telling the
+      // wrong person to add proof — which is how the four seat states drawn in
+      // this round read before they had bands of their own.
+      if (w2Seat(state) !== "provider")
+        W2_ERRORS.push(`W2 BAND: ${state} (${w2Seat(state)} seat) falls through to the provider's default band`);
       band = bandCard(
         `<div class="t-title">Keep the commitment moving</div><div class="t-meta">Add proof as you go. Work that fulfills this commitment links from the work section below.</div>`,
       );
@@ -1737,17 +2173,9 @@ ${hot("w2.withdraw-send", btn("Withdraw This Offer", { kind: "danger", full: tru
     );
 
   // Work/commitment detail hides the bottom AppBar — the back-header is the chrome.
-  const evidenceQueued =
-    state === "evidence-queued" || state === "support-evidence-queued" || state === "request-evidence-queued" ||
-    state === "campaign-request-evidence-queued" || state === "captured-evidence-queued";
-  const readinessQueued =
-    state === "support-ready-pending" || state === "request-ready-pending" ||
-    state === "campaign-request-ready-pending" || state === "captured-ready-pending";
-  const confirmationQueued =
-    state === "confirmation-pending" || state === "support-confirmation-pending" ||
-    state === "request-confirmation-pending" ||
-    state === "campaign-request-confirmation-pending" ||
-    state === "captured-confirmation-pending";
+  const evidenceQueued = W2_EVIDENCE_QUEUED.has(state);
+  const readinessQueued = W2_READINESS_QUEUED.has(state);
+  const confirmationQueued = W2_CONFIRMATION_QUEUED.has(state);
   const sync = evidenceQueued
     ? syncBar("1 proof item waiting to send")
     : readinessQueued
@@ -1755,7 +2183,7 @@ ${hot("w2.withdraw-send", btn("Withdraw This Offer", { kind: "danger", full: tru
       : confirmationQueued
         ? syncBar("1 confirmation waiting to send")
       : "";
-  const bar = W2_BARS[state];
+  const bar = W2_BARS[state]?.html;
   return phoneFrame(`${head}${status}${meta}${content}<div style="flex:1"></div>${sync}`, {
     appBar: bar ? actionBar(bar) : false,
     offline: evidenceQueued || readinessQueued || confirmationQueued,
@@ -1766,10 +2194,12 @@ ${hot("w2.withdraw-send", btn("Withdraw This Offer", { kind: "danger", full: tru
 }
 
 const W2_HOTS: HifiDef["hots"] = {
-  "w2.take-up-support": { l: "Take up this service offer", to: "screen:W2@support-accepted", info: "Open claim mode accepts João as the recipient/counterparty; Maria remains the provider. The commitment stays Accepted until WorkLinked or EvidenceAttached lands.", calls: ["claimCommitment"], facts: { commitment: "Offered", kind: "SupportService" } },
+  "w2.take-up-support": { l: "Take up this service offer", to: "screen:W2@support-accepted-confirmer", info: "Open claim mode accepts João as the recipient/counterparty; Maria remains the provider. So the claimant lands on the CONFIRMER's view of the accepted offer, not the provider's — this used to send them to Maria's screen, which told them to add proof for a repair they are not doing. The commitment stays Accepted until WorkLinked or EvidenceAttached lands.", calls: ["claimCommitment"], facts: { commitment: "Offered", kind: "SupportService" } },
   "w2.team-strip": { l: "Open team — join in", to: "screen:W2b@open-eligible", info: "The team strip above the fold (iteration 2, E5/E8): the commitment's people are visible on open, and the strip opens the team view where eligible open-team members join." },
   "w2.open-team-forming": { l: "See editable team and contributions", to: "screen:W2b@forming", info: "Before readiness, the accountable lead can add, remove, and assign contributors through online contract actions." },
   "w2.open-team-frozen": { l: "See frozen team and contributions", to: "screen:W2b@frozen", info: "After readiness, opens the frozen contributor roster and contribution record without implying that every participant receives an equal share." },
+  "w2.open-team-member": { l: "See the team you're on", to: "screen:W2b@open-member", info: "A contributor's route into the team surface. Every seat used to get the lead's roster editor, so a contributor was handed Add People and Remove Someone for a team they do not manage." },
+  "w2.open-team-eligible": { l: "See the team and join it", to: "screen:W2b@open-eligible", info: "The route for someone eligible to join an open team on a commitment already under way. Joining is an online act and carries no credit by itself, which the team surface says before the control." },
   "w2.preview": { l: "Open the photo", to: "screen:W2@evidence-preview", info: "The commitment's evidence tiles open ImagePreviewDialog. This is what the tiles are FOR: whoever is deciding — a neighbour weighing an offer, a confirmer weighing whether it was kept — is deciding on the photograph, and a 60px tile is too small to decide on." },
   "w2.preview-close": { l: "Close the preview", to: "screen:W2@evidence-submitted", info: "Returns to the commitment unchanged. The preview is a dialog, so nothing about the commitment's state moved while it was open." },
   "w2.preview-save": { l: "Download image", info: "Saves the photo to the device. The shipped dialog offers this on every viewport — a gardener who attached evidence from one phone often needs the file on another." },
@@ -1779,7 +2209,7 @@ const W2_HOTS: HifiDef["hots"] = {
   "w2.add-evidence-campaign-request": { l: "Add campaign-request evidence", to: "screen:W2a@media", info: "Keeps the Market rides Campaign binding while opening the shared evidence composer." },
   "w2.add-evidence-support": { l: "Add service evidence", to: "screen:W2a@media", info: "Evidence-only SupportService offer: photo / link / note → one offline proof job (UX:164)." },
   "w2.add-evidence-captured": { l: "Add captured-commitment evidence", to: "screen:W2a@media", info: "Keeps the StewardCaptured kind and the member as commitment source while opening the proof composer." },
-  "w2.take-up-browse": { l: "Take this up", to: "screen:W2", info: "The browse detail's one act (2026-08-14 workflows round — card-taps land here pre-claim): the same open-mode claim as the card button. Claim job → optimistic Accepted (UX:129).", calls: ["claimCommitment"], facts: { commitment: "Offered", kind: "DomainImpact" } },
+  "w2.take-up-browse": { l: "Take this up", to: "screen:W2@accepted", info: "The browse detail's one act (2026-08-14 workflows round — card-taps land here pre-claim): the same open-mode claim as the card button. Claim job → optimistic Accepted (UX:129).", calls: ["claimCommitment"], facts: { commitment: "Offered", kind: "DomainImpact" } },
   "w2.help-browse": { l: "I can help", to: "screen:W2@request-active", info: "The request browse detail's one act: open-mode claim — the claimant becomes the provider and Ana, the asker, remains the confirmer (UX:104).", calls: ["claimCommitment"], facts: { commitment: "Requested", kind: "SupportService" } },
   "w2.ask-browse": { l: "Ask to take this up", to: "screen:W1@claim-pending", info: "The gated browse detail's one act (PR #710 review): approval-gated claim request with stored terms — the commitment stays available to others while stewards review (UX:99), and W1's pending/declined/superseded grammar takes over.", calls: ["claimCommitment"], facts: { commitment: "Requested", kind: "SupportService" } },
   "w2.submit-work": { l: "Submit work for this commitment", to: "screen:WFLOW@intro-promise", info: "Deep-links the existing Garden-tab work flow with commitment context (UX:174). Commitment-first entry scopes the intro (2026-08-14 workflows round): a fulfilling strip on top, the action grid filtered to the commitment's requirement rows, the garden locked. DomainImpact only." },
@@ -3367,7 +3797,7 @@ function w4(state: W4State): string {
         : state === "provider-view"
           ? { ic: "eye-line", info: "You provided this, so you cannot confirm it. You'll see it here the moment they do." }
           : state.includes("pending")
-            ? { ic: "time-line", info: "Saved on this device and waiting to send. It cannot be confirmed twice while it syncs." }
+            ? { ic: "time-line", info: "Saved on this phone and waiting to send. It goes as soon as you're online." }
             : state.startsWith("confirmed")
               ? { ic: "checkbox-circle-fill", info: "Confirmed and counted. The season's total just grew." }
               : { ic: "hand-heart-line", info: "Only the person it was made to can confirm it. Everyone who contributed is excluded." };
@@ -3443,49 +3873,26 @@ const w1Facts = (state: W1State): StateFacts | undefined => {
   return undefined;
 };
 
-const w2Facts = (state: W2State): StateFacts | undefined => {
-  const kind: StateFacts["kind"] =
-    state === "send-confirm" ? "SupportService"
-    : W2_CAPTURED.has(state) ? "StewardCaptured"
-    : W2_REQUEST.has(state) || W2_CAMPAIGN_REQUEST.has(state) || W2_SUPPORT.has(state) ? "SupportService"
-    : "DomainImpact";
-  const commitment: StateFacts["commitment"] =
-    state === "send-confirm" ? "EvidenceSubmitted"
-    : state === "offered" || state === "support-offered" || state === "withdraw-confirm" || state === "browse-offered" ? "Offered"
-    : state === "requested" || state === "browse-requested" || state === "browse-requested-gated" ? "Requested"
-    : state === "active" || state === "evidence-queued" || state === "request-active" || state === "request-work-active" || state === "campaign-request-active" ||
-      state === "request-evidence-queued" || state === "campaign-request-evidence-queued" ||
-      state === "captured" || state === "captured-evidence-queued" ? "Active"
-    : state === "evidence-submitted" || state === "request-evidence-submitted" ||
-      state === "campaign-request-evidence-submitted" || state === "support-evidence-submitted" ||
-      state === "captured-evidence-submitted" || state === "request-ready-pending" ||
-      state === "campaign-request-ready-pending" || state === "support-ready-pending" ||
-      state === "captured-ready-pending" ? "EvidenceSubmitted"
-    : state === "partially-approved" || state === "request-work-partially-approved" ? "PartiallyApproved"
-    : state === "ready-confirmer" || state === "confirmation-pending" ||
-      state === "request-work-ready-confirmer" ||
-      state === "request-ready-confirmer" || state === "request-confirmation-pending" ||
-      state === "campaign-request-ready-confirmer" || state === "support-ready-confirmer" ||
-      state === "campaign-request-confirmation-pending" ||
-      state === "support-confirmation-pending" ||
-      state === "captured-ready-confirmer" || state === "captured-confirmation-pending"
-      ? "ReadyForConfirmation"
-    : state === "fulfilled" || state === "fulfilled-pool-fallback" ||
-      state === "fulfilled-protocol-fallback" || state === "request-fulfilled" || state === "campaign-request-fulfilled" ||
-      state === "support-fulfilled" || state === "captured-fulfilled" ||
-      state === "garden-support-arrived" || W2_SETTLED.has(state) ? "Fulfilled"
-    : state === "cancelled" || state === "withdrawn" || state === "support-cancelled" ? "Cancelled"
-    : state === "expired" ? "Expired"
-    : state === "disputed" || state === "request-disputed" ||
-      state === "campaign-request-disputed" || state === "support-disputed" ||
-      state === "captured-disputed" ? "Disputed"
-    : state === "reconciled" ? "Reconciled"
-    : ["loading", "not-found", "read-error"].includes(state) ? undefined
-    : "Accepted";
-  return commitment
-    ? { pool: "Open", cycle: state === "reconciled" ? "Reconciled" : "Open", commitment, kind }
-    : undefined;
+// Contract facts, from the one lifecycle declaration. This was a 40-line ternary
+// ladder ending `: "Accepted"`, and five states reached that arm by accident:
+// active-waiting and contributor reported Accepted while Active, and
+// request-work-fulfilled and request-work-confirmation-pending reported Accepted
+// while Fulfilled and ReadyForConfirmation. Every one was a state somebody added
+// to the render and not to the ladder.
+const W2_CAST_KIND: Record<CommitmentCast, NonNullable<StateFacts["kind"]>> = {
+  offer: "DomainImpact", "request-work": "DomainImpact", garden: "DomainImpact",
+  request: "SupportService", "campaign-request": "SupportService", support: "SupportService",
+  captured: "StewardCaptured",
 };
+const w2Facts = (state: W2State): StateFacts | undefined =>
+  W2_READ_SURFACE.has(state)
+    ? undefined
+    : {
+        pool: "Open",
+        cycle: state === "reconciled" ? "Reconciled" : "Open",
+        commitment: w2Phase(state),
+        kind: W2_CAST_KIND[w2Cast(state)],
+      };
 
 const w4Facts = (state: W4State): StateFacts => ({
   pool: "Open",
@@ -4308,7 +4715,7 @@ const mk = <T extends readonly (readonly [string, string])[]>(
 export const CLIENT_DEFS: HifiDef[] = [
   { ...mk("W1", "W1 · Pool tab (garden detail)", W1_STATES, w1, w1Facts, new Set(), w1Group), hots: W1_HOTS },
   { ...mk("W1C", "W1C · Season or campaign", W1C_STATES, w1c), hots: W1C_HOTS },
-  { ...mk("W2", "W2 · Commitment detail", W2_STATES, w2, w2Facts, new Set(), w2Group), hots: W2_HOTS },
+  { ...mk("W2", "W2 · Commitment detail", W2_STATES, w2, w2Facts, new Set(), w2Group), hots: W2_HOTS, errors: W2_ERRORS },
   { ...mk("W2b", "W2b · Team and contributions", W2B_STATES, w2b), hots: W2B_HOTS },
   { ...mk("W2a", "W2a · Proof (Media → Details → Review)", [
     ["media", "1 · Media"], ["media-preview", "1 · Media — image preview"], ["details", "2 · Details"],

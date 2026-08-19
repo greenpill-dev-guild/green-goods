@@ -14,7 +14,7 @@ Linear mirror: project [Commitment Pooling](https://linear.app/greenpill-dev-gui
 
 ## Document map
 
-Every file in this hub, by role — **161 files**: 25 at the hub root, 42 under `artifacts/`,
+Every file in this hub, by role — **163 files**: 27 at the hub root, 42 under `artifacts/`,
 23 under `handoffs/`, 19 under `hifi/`, 20 under `operations/`, and 32 under `reports/`.
 **This list is the index — if you add a document here, add its row.** Root files each get their own
 row; the five subtrees get one row apiece naming their own in-tree index, because the row for a
@@ -38,6 +38,8 @@ subtree is only honest if that index actually enumerates the tree (this failed r
 | `diagrams.md` | D1–D29 Mermaid execution reference (29 named sections rendering 42 Architecture Mermaid blocks; current architecture plus the future identity boundary and staged single-pool-to-federation path) | Flow truth |
 | `prototypes.md` | Numbered storyboards, guided-flow catalogue, missing-frame index, and action inventory; the ongoing-Offer journeys are realized and review-visible | Fidelity-neutral walks — **adds no design authority** |
 | `prototypes-coverage.md` | Rendered-state / hotspot / scene coverage snapshot for the prototypes artifact; the closure validator pins its three counts | Generated coverage snapshot |
+| `flow-audit.md` | Experience audit of the hi-fi prototypes read from the journeys outward: the action map, a walk of every flow, the relay between people, continuity, the emotional arc, and ranked findings | Review findings — **adds no design authority**; decisions land in `uiux-spec.md` and the Decision Log |
+| `flow-audit-prompt.md` | The brief that produced `flow-audit.md`: what to audit for, the six qualities, and the hard limits on what an audit may propose | Audit method — reusable brief, not a spec |
 | `prototypes-artifact.build.ts` | Generator for the Flow Prototypes artifact; reads the `hifi/` registry alone (the retired `prototypes.md` stays as history, register #96) | Generator — never hand-edit its output |
 | `card-explorations.build.ts` | One-shot cycle/promise card study retained until the Components tab supersedes the review artifact | Design exploration — not canonical implementation truth |
 | `visual-assets.md` | Index of the audience graphics (SVG + 2x PNG) + style contract + regeneration; the ongoing-Offer story and architecture assets are published | Asset index |
@@ -1630,6 +1632,30 @@ Known mis-resolutions fixed in place: `contract-spec.md` §Grassroots-Economics-
     stay undefined on every read cast, because a screen drawing no record asserts no lifecycle
     position. Two vocabulary catches from hotspot prose: "owed" is banned and "operator" is the
     retired word from the steward rename. Full text: `uiux-spec.md` C.53.
+
+157. The commitment view learns who is looking at it (2026-08-18, round 52, acting on
+    `flow-audit.md`). W2 knew the KIND of commitment it was rendering and never the SEAT of the
+    person reading it, so every viewer-dependent thing on the screen was derived from the state id
+    and drifted. A member's own request wore the offer's title, chip, unit, domain, people row and
+    completed-work bars, because `requested` was missing from `W2_REQUEST` and `w2Cast`'s silent
+    `: "offer"` fallthrough hid it. Two membership tests named ids that have never existed —
+    `browse-requested-steward` and `ready-pending` — and neither typechecked nor failed, because
+    nothing above `.plans/` runs tsc; they simply drew the wrong screen. Four seats
+    (provider · confirmer · contributor · bystander) are enough because CREATOR IS NOT ONE:
+    direction already names the creator, so the withdraw affordance gates on phase and seat only
+    decides the person of the sentence. Five parallel derivations of "where does this stand"
+    collapse into one `W2_PHASE`, which fixes five states that reported Accepted while being
+    Active, Fulfilled or ReadyForConfirmation. Four states are added where the audit found seat
+    gaps rather than copy problems: `ready-provider` (the provider's flow ended on the confirmer's
+    screen, Confirm button and all), `support-accepted-confirmer`, `accepted-joinable`, and
+    `fulfilled-confirmer`. Three build-time guards through a new `HifiDef.errors` channel make the
+    class of bug impossible: set members must be real states, every state must declare cast,
+    lifecycle and seat, and every action bar must name the seat its act belongs to. Both were
+    tested by breaking them. Also closed the six pre-existing `architecture-closure.validate.ts`
+    failures, one of which was an assertion checking for the word *promises* that the vocabulary
+    sweep had retired everywhere else. Build 44 screens / 517 states / 730 hotspots / 53 flows /
+    317 scenes, 0 warnings; closure validator green. No runtime package, contract, ABI, indexer or
+    Linear change. Full text: `uiux-spec.md` C.54.
 
 **Final recursive certification clarification (2026-07-25; no new decision-register entry):**
 the published `42161`↔`42220` production lane is the only required fully paired

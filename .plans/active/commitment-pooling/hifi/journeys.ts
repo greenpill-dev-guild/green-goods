@@ -130,7 +130,7 @@ export const SBS: SB[] = [
   { f: "WFLOW@review", hot: { h: "wflow.submit", l: "Submit work" }, marks: ["wflow.fulfills"], st: "4 · Review", ev: "the locked fulfills row repeats the choice; work job + meta.commitmentId, workLink follows after sync", cite: "UX:220" },
   { f: "W2@active", hot: null, st: "Active", ev: "approvals land on the commitment as visible progress per requirement", br: [{ l: "Link work you already submitted", to: "screen:WFLOW@link-picker" }, { l: "The steward's approvals", to: "sb4b:0" }] },
   { f: "W2@partially-approved", hot: null, st: "Partly approved · 1 of 2", ev: "each approval counts toward the exact requirement row it was linked to" },
-  { f: "W2@ready-confirmer", hot: null, st: "Ready to confirm", ev: "requirements met — the named confirmation path is ready", br: [{ l: "Confirm a commitment kept", to: "sb42:0" }, { l: "The assessment side", to: "sb50:0" }] },
+  { f: "W2@ready-provider", hot: null, st: "Ready to confirm", ev: "requirements met, and the provider's part is done. This walk used to end on the confirmer's screen, so the person who did the work was told they had been named to confirm it, above a button they are forbidden from pressing", br: [{ l: "Confirm a commitment kept", to: "sb42:0" }, { l: "The assessment side", to: "sb50:0" }] },
 ]},
 // The proving half of the old sb29 (D3): a service is shown with proof
 // rather than approved work, so it is the sibling of "Prove it with work" —
@@ -164,7 +164,7 @@ export const SBS: SB[] = [
 ]},
 { id: "sb45", n: 11, title: "The team behind a commitment", desc: "João opens a commitment whose team is still forming and joins it himself — membership shows only once the indexed roster confirms it.", persona: "Contributor (João)", scen: "S1 · group commitment", reviewVisible: true, reviewGroup: "client", chapter: "team", roles: ["gardener"], steps: [
   { f: "W1", hot: { h: "w1.open-team-offer", l: "Open the team commitment" }, st: "Pool open", ev: "a forming team is visible right on the card — and opening it lands on the COMMITMENT, not a bare team screen", cite: "iteration 2 E8" },
-  { f: "W2", hot: { h: "w2.team-strip", l: "Open team — join in" }, st: "Accepted", ev: "the people are above the fold: creator, counterparty, and the team strip in the commitment's own context" },
+  { f: "W2@accepted-joinable", hot: { h: "w2.team-strip", l: "Open team — join in" }, st: "Accepted", ev: "the people are above the fold: creator, counterparty, and the team strip in the commitment's own context. The seat is a neighbour eligible to join, not the provider, so the screen says Maria is working on this rather than handing them her acts" },
   { f: "W2b@open-eligible", hot: { h: "w2b.join", l: "Join this commitment" }, st: "Open team", ev: "eligible open-team members join on their own" },
   { f: "W2b@join-submitted", hot: null, st: "Pending", ev: "membership renders only after the indexed roster confirms it" },
   { f: "W2b@open-member", hot: null, st: "On the team", ev: "planned responsibilities are planning, never recognition credit", br: [{ l: "Readiness freezes roster and credit", to: "screen:W2b@frozen" }, { l: "Recognition preview", to: "screen:W2b@recognition" }] },

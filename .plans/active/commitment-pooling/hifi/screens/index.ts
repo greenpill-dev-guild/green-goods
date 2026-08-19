@@ -137,6 +137,13 @@ for (const { surface, ids } of GROUP_DEFS) {
 export type HifiDef = {
   screen: Omit<Screen, "reviewVisible">;
   hots: Record<string, HotMeta>;
+  // Module-local integrity checks, surfaced through the ordinary build error
+  // list (2026-08-18). A screen module's own tables — cast families, seat
+  // assignments, membership sets — are private to it, so validate.ts cannot see
+  // them; and throwing from module scope would crash the build with a stack
+  // trace instead of joining the printed list the build emits before it exits.
+  // This is the channel for "my own declarations disagree with each other".
+  errors?: string[];
 };
 const REG: HifiDef[] = [
   ...CLIENT_DEFS,
@@ -155,6 +162,7 @@ for (const g of GROUP_DEFS) {
     if (RETIRED.has(id)) continue;
     const hifi = hifiById.get(id);
     if (hifi) {
+      BUILD_ERRORS.push(...(hifi.errors ?? []));
       SCREENS.push({ ...hifi.screen, group: g.name, surface: g.surface, reviewVisible: g.surface !== "community" });
       SCREEN_HOTS[id] = new Set(Object.keys(hifi.hots));
       SCREEN_MARKS[id] = new Set();

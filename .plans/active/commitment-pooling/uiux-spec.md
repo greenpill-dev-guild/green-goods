@@ -3173,3 +3173,87 @@ claiming a lifecycle position for a record it could not load.
 is banned, and *operator* is the word the steward rename retired (Decision Log #28c). The gate
 scans hotspot `info` for banned vocabulary even though it exempts them from the dash and
 product-copy rules, which is why these surfaced at all.
+
+### C.54 The commitment view learns who is looking at it (2026-08-18, round 52)
+
+**W2 knew what kind of commitment it was rendering and never who was reading it.** It had a cast —
+offer, request, request-work, campaign-request, service, recorded, garden — derived from six set
+tests with a silent `: "offer"` fallthrough, and no equivalent notion of *seat*. Everything
+viewer-dependent was therefore derived from the state id: the people row, the consequence copy, the
+progress bars, the action bar, the team affordance. The flow audit found six visible consequences of
+that, and each was the same defect wearing different clothes.
+
+**A member's own request wore another commitment's identity.** `requested` was absent from
+`W2_REQUEST`, so it fell through the cast ternary to the offer default and rendered "Prune the north
+beds", the Offer chip, AGRO, "6 hours · due Aug 12", the people row "Maria offers / João takes it
+up", and a progress block reading "Prune 2 of 2 · Plant 8 of 12" on a commitment nobody had taken
+up. The band, the timeline verb and the button correctly said request throughout. `w2Group` had
+already special-cased the id at its own `id === "requested"` test; `w2Cast` had not, and the
+fallthrough hid the omission.
+
+**Two membership tests named states that do not exist.** `browse` tested for
+`browse-requested-steward` (the real id is `browse-requested-gated`), so the steward-reviewed browse
+view took the non-browse path and showed a neighbour a provider who had not taken it up and proof
+nobody had submitted. `evidenceStates` contained `ready-pending`, which has never been a state; the
+real ones are all cast-prefixed. Both were `Set<string>`, and nothing above `.plans/` runs `tsc`, so
+neither typechecked nor failed at runtime. They simply rendered the wrong screen.
+
+**Creator is not a seat, which is what keeps this to four.** Direction already names the creator: on
+an Offer they are the provider, on a Request they are the confirmer. So `offered` is a provider's
+screen and `requested` is a confirmer's, and the withdraw affordance gates on phase — nobody has
+taken it up yet — while seat only decides the person of the sentence. `W2_DIRECTION` and
+`creatorRole` state that in code rather than leaving it as prose.
+
+**Five parallel derivations of the same fact collapse into one.** `w2Cast`, `w2Group`,
+`w2StateChip`, `w2Facts` and the presentation layer each worked out where a commitment stood, and
+they disagreed. `w2Facts` was a forty-line ternary ladder ending `: "Accepted"`, and five states
+reached that arm by omission: `active-waiting` and `contributor` reported Accepted while Active, and
+`request-work-fulfilled` and `request-work-confirmation-pending` reported Accepted while Fulfilled
+and ReadyForConfirmation. `W2_PHASE` is now the single declaration of contract lifecycle, and
+pre-acceptance, terminal and roster-frozen derive from it instead of being hand-listed three times.
+
+**One exception is named rather than derived.** `withdrawn` and `cancelled` are both Cancelled
+on-chain, but a withdrawn commitment never left the pool while a cancelled one had been accepted and
+worked on before a steward ended it. The screen shows a team, proof and requirement bars for the
+second and none of them for the first, so `w2NeverClaimed` carries that distinction explicitly.
+
+**Four states existed as gaps before they existed as screens.** `ready-provider`: "Prove it with
+work" ended on the confirmer's ready view, so the person who had just done six hours of pruning read
+*"You were named to confirm this commitment"* above a button they are forbidden from pressing.
+`support-accepted-confirmer`: taking up a service offer landed the claimant on the provider's
+screen, telling them to add proof for a repair they are not doing. `accepted-joinable`: the team
+walk sent a would-be joiner through the provider's screen to reach the roster. `fulfilled-confirmer`
+gives the confirmer their own kept view, which is what lets `W2@fulfilled` belong to the provider.
+Each follows `W4@provider-view`: same stage, same cast, a second state id, and no bar where the seat
+has no act.
+
+**The three seat states that already existed rendered almost nothing.** `active-waiting`,
+`contributor` and `send-confirm` returned before `w2Disclosures` ran, so they drew no Garden, Media,
+Details, Support, People or Timeline at all. The contributor — the seat that most needs to see who
+else is on this and how credit is shared — could not reach the team from their own screen. They are
+ordinary band cases now.
+
+**The guards matter more than the fixes.** Three checks run at build time through a new
+`HifiDef.errors` channel, which joins the ordinary error list rather than throwing: every membership
+set's ids must exist; every state must declare a cast, a lifecycle and a seat; every action bar must
+name the seat its act belongs to, and that seat must match the state's. The last one is the
+important one. `W2_BARS` was already the de-facto seat model — `active` versus `active-waiting`
+exists only because a confirmer was being offered the provider's button — but it had no way to say
+so, so the next such mistake went unnoticed until someone walked the flow and read it. Both guards
+were tested by breaking them: reintroducing `browse-requested-steward` and mis-seating
+`ready-confirmer` each fail the build with a named error.
+
+**Nine bands were speaking about the reader in the third person.** `request-ready-confirmer` read
+*"Ana asked for this help and is the named confirmer"* on Ana's own screen, while `ready-confirmer`
+one stage over was already second-person. That asymmetry is what a seat axis makes visible: the
+states whose id happens to name their seat never drifted, and the ones that did not, did.
+
+**Six bands explained idempotency to somebody who had not asked.** *"cannot be confirmed twice while
+it syncs"* is a machine concern surfaced as reassurance. They now say whose confirmation it is, that
+it is held, and when it lands.
+
+Build: 44 screens / 517 states / 730 hotspots / 53 flows / 317 scenes, 0 warnings. The closure
+validator passes for the first time in three rounds — its coverage pins were three generations
+stale, its `failStrandedSubject` row was never added when that call joined the union, and one of its
+assertions was checking for the word *promises*, which the vocabulary sweep had already retired
+everywhere else.

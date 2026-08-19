@@ -301,7 +301,7 @@ for (const functionName of new Set(classifiedFunctions)) {
 
 const contractCallBlock = types.match(/export type ContractCall =([\s\S]*?);\n\n\/\/ Metadata/)?.[1] ?? "";
 const contractCalls = namesInBackticks(contractCallBlock.replaceAll('"', "`"));
-require(contractCalls.length === 62, `expected 62 executable hi-fi call names, found ${contractCalls.length}`);
+require(contractCalls.length === 63, `expected 63 executable hi-fi call names, found ${contractCalls.length}`);
 const executablePoolingCalls = contractCalls.filter((call) => poolingFunctions.includes(call));
 require(
   executablePoolingCalls.length === 42,
@@ -510,7 +510,7 @@ const sourceChecks: Array<[boolean, string]> = [
   [types.includes("poolNonTerminalCycles?: PoolNonTerminalCycles"), "hi-fi StateFacts lacks pool cycle-count facts"],
   [validate.includes('closePool:') && validate.includes('poolLiveCommitments: ["Zero"]'), "hi-fi closePool rule lacks zero-live guard"],
   [validate.includes('poolNonTerminalCycles: ["Zero"]'), "hi-fi closePool rule lacks zero-cycle guard"],
-  [admin.includes("live promises must be wound down"), "admin close flow lacks a live-commitment blocker"],
+  [admin.includes("live commitments have been wound down"), "admin close flow lacks a live-commitment blocker"],
   [admin.includes('"close-blocked-live"') && admin.includes('poolLiveCommitments: "NonZero"'), "admin close blocker lacks non-zero facts"],
   [
     admin.includes('["due-live", "Past due — expiry available"]') &&
@@ -585,9 +585,9 @@ const sourceChecks: Array<[boolean, string]> = [
   [wireframes.includes("`saving` · `save-failed` · `offline-local` · `version-conflict`"), "wireframes omit persistence truth states"],
   [wireframes.includes("#screens/W7@open") && wireframes.includes("(30 states)"), "wireframe W7 state count is stale"],
   [
-    coverage.includes("441 rendered states") &&
-      coverage.includes("627 registered hotspots") &&
-      coverage.includes("306 scenes"),
+    coverage.includes("517 rendered states") &&
+      coverage.includes("730 registered hotspots") &&
+      coverage.includes("317 scenes"),
     "prototype coverage snapshot is stale",
   ],
   [plan.includes("architecture-closure-matrices.md") && plan.includes("architecture-closure.validate.ts"), "plan document map omits closure artifacts"],
