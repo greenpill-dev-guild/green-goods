@@ -112,6 +112,9 @@ const allowedIdenticalProductValues = new Set([
   "Feedback",
   "GitHub",
   "Green Goods",
+  // The product noun the team already uses untranslated in Spanish and
+  // Portuguese copy ("las pools", "as pools").
+  "Pool",
   "Greenpill Network",
   "GreenWill",
   "ha",
@@ -152,7 +155,16 @@ const allowedIdenticalProductValues = new Set([
 // "{hours} h" / "{hours}h" — the hour symbol "h" is identical across en/es/pt, so a
 // compact "{n} h" value is legitimately locale-identical (the optional space matches
 // the actual en.json formatting).
-const allowedIdenticalValuePatterns = [/^[\d\W]+$/, /^\d+d$/, /^\{[^}]+\}$/, /^\{[^}]+\} ?h$/];
+const allowedIdenticalValuePatterns = [
+  /^[\d\W]+$/,
+  /^\d+d$/,
+  /^\{[^}]+\}$/,
+  /^\{[^}]+\} ?h$/,
+  // Placeholder-only values carry no words to translate, so every locale is
+  // legitimately identical. The letters live inside the braces, which is why
+  // the has-letters check alone cannot tell these from an English fallback.
+  /^(?:\s*\{[^}]+\}\s*)+$/,
+];
 const localeAllowedIdenticalValues: Record<string, Set<string>> = {
   es: new Set([
     " - Error",
