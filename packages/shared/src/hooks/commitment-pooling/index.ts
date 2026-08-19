@@ -24,6 +24,11 @@ export {
   commitmentComposerSchema,
   useCommitmentComposerForm,
 } from "./useCommitmentComposerForm";
+export type { CommitmentMetadataMap } from "./useCommitmentMetadata";
+export {
+  useCommitmentMetadata,
+  useCommitmentMetadataFor,
+} from "./useCommitmentMetadata";
 export type { CommitmentJobInput } from "./useCommitmentJobs";
 export { useCommitmentJobs } from "./useCommitmentJobs";
 export type { CommitmentsInbox, InboxCommitment } from "./useCommitmentsInbox";

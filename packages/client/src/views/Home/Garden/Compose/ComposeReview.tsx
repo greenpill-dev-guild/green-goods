@@ -26,7 +26,8 @@ export function ComposeReview({ values, isOnline, hasPool }: ComposeReviewProps)
       </h1>
 
       <section className="rounded-[var(--radius-lg)] border border-stroke-soft-200 bg-bg-white-0 p-4">
-        <p className="text-base font-medium text-text-strong-950">
+        <p className="text-base font-medium text-text-strong-950">{values.title.trim()}</p>
+        <p className="mt-0.5 text-sm text-text-sub-600">
           {formatMessage(
             { id: "app.commitments.row.units" },
             { count: String(values.targetUnits), unit: values.unitLabel.trim() }

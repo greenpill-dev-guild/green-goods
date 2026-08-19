@@ -229,6 +229,7 @@ export function mapCommitment(row: RawRow): CommitmentReadModel {
     confirmers: strings(row.confirmers).map((entry) => entry.toLowerCase() as Address),
     contributorCount: number(row.contributorCount),
     contributorsFrozen: row.contributorsFrozen === true,
+    metadataCID: string(row.metadataCID),
   };
   return { ...mapped, derivedState: deriveCommitmentState(mapped) };
 }

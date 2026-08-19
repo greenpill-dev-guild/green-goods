@@ -257,6 +257,31 @@ async function currentGardenMember(
   return results.some(Boolean);
 }
 
+/**
+ * Publish a commitment's words, if it was composed before they could be.
+ *
+ * Composing works offline, so the member's title travels in the job rather than
+ * as a CID. It has to become one before anything else touches this payload: the
+ * creation hash covers the CID, and the recovery check compares that hash
+ * against what the contract stored, so uploading later would make a successful
+ * commitment look like a mismatch.
+ *
+ * Re-running is safe. The bytes are identical, so the CID is identical.
+ */
+async function publishPendingCommitmentMetadata(job: Job): Promise<void> {
+  if (job.kind !== "commitment") return;
+  const payload = job.payload as CommitmentCreationPayload;
+  if (!payload.metadata || payload.metadataCID) return;
+
+  const { uploadJSONToIPFS } = await import("../data/ipfs/upload");
+  const { cid } = await uploadJSONToIPFS(payload.metadata as unknown as Record<string, unknown>, {
+    source: "commitment-creation",
+    gardenAddress: payload.gardenAddress,
+    metadataType: "commitment",
+  });
+  payload.metadataCID = cid;
+}
+
 export async function executeCommitmentQueueJob(
   jobId: string,
   job: Job,
@@ -264,6 +289,7 @@ export async function executeCommitmentQueueJob(
   sender: TransactionSender
 ): Promise<CommitmentQueueExecution> {
   const moduleAddress = getNetworkContracts(chainId).commitmentPoolingModule;
+  await publishPendingCommitmentMetadata(job);
   const commitmentJob: CommitmentJob = {
     id: jobId,
     kind: job.kind as CommitmentJobKind,

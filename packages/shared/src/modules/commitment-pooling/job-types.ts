@@ -1,5 +1,6 @@
 import type { Hex } from "viem";
 import type { Address } from "../../types/domain";
+import type { CommitmentMetadataV1 } from "./metadata";
 
 export const COMMITMENT_JOB_KINDS = [
   "commitmentSeries",
@@ -52,6 +53,14 @@ export interface CommitmentCreationPayload {
   requiresAssessment: boolean;
   dueDate: bigint;
   metadataCID: string;
+  /**
+   * The words to publish, carried instead of a CID when the commitment was
+   * composed offline. The executor uploads this and fills `metadataCID` before
+   * the payload is hashed or sent, the same way work uploads its media at send
+   * time rather than at compose time. Content addressing makes that repeatable:
+   * a retry re-uploads identical bytes and gets the identical CID back.
+   */
+  metadata?: CommitmentMetadataV1;
   needUID: Hex;
   counterCommitmentId: bigint;
   confirmers: readonly Address[];

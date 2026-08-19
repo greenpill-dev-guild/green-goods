@@ -17,6 +17,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 
 import type { CommitmentCreationPayload } from "../../modules/commitment-pooling/jobs";
+import { buildCommitmentMetadata } from "../../modules/commitment-pooling/metadata";
 import type { Address } from "../../types/domain";
 
 /** ICommitmentPoolingModule enum ordinals. */
@@ -33,6 +34,9 @@ const ZERO_BYTES32 = `0x${"0".repeat(64)}` as `0x${string}`;
 /** Static English; the view renders its own translated messages. */
 export const commitmentComposerSchema = z.object({
   direction: z.enum(["OFFER", "REQUEST"]),
+  /** What this is called. The contract stores only a CID, so the words are the metadata. */
+  title: z.string().trim().min(1, "Give it a name").max(120, "Keep the name short"),
+  description: z.string().trim().max(2000, "That is very long").optional(),
   /** What is being counted, in the member's own words: "hours", "rides". */
   unitLabel: z.string().trim().min(1, "Say what you are counting").max(40, "Keep the label short"),
   targetUnits: z.number().int().positive("How many?"),
@@ -47,6 +51,8 @@ export type CommitmentComposerValues = z.infer<typeof commitmentComposerSchema>;
 
 export const COMMITMENT_COMPOSER_DEFAULTS: CommitmentComposerValues = {
   direction: "OFFER",
+  title: "",
+  description: "",
   unitLabel: "",
   targetUnits: 1,
   dueInDays: 14,
@@ -103,7 +109,13 @@ export function buildCommitmentCreationPayload(input: {
     targetUnits: BigInt(values.targetUnits),
     requiresAssessment: false,
     dueDate,
+    // Empty on purpose: the words travel with the job and the executor publishes
+    // them, so composing works with no signal.
     metadataCID: "",
+    metadata: buildCommitmentMetadata({
+      title: values.title,
+      description: values.description,
+    }),
     needUID: ZERO_BYTES32,
     counterCommitmentId: 0n,
     // Nobody is named, so the ordinary rule decides who confirms: on an Offer

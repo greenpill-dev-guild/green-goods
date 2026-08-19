@@ -4,6 +4,7 @@ import {
   type CommitmentsInbox,
   type Garden,
   StatusBadge,
+  useCommitmentMetadata,
   useOffline,
 } from "@green-goods/shared";
 import { useMemo } from "react";
@@ -32,6 +33,9 @@ export interface OverTimeTabProps {
 export function OverTimeTab({ inbox, pools, gardens, series }: OverTimeTabProps) {
   const { formatMessage } = useIntl();
   const { isOnline } = useOffline();
+  const { byCID } = useCommitmentMetadata(
+    useMemo(() => inbox.settled.map((row) => row.commitment), [inbox.settled])
+  );
 
   const groups = useMemo(
     () =>
@@ -153,7 +157,15 @@ export function OverTimeTab({ inbox, pools, gardens, series }: OverTimeTabProps)
                 </p>
                 <div className="space-y-2">
                   {group.rows.map((row) => (
-                    <CommitmentRow key={row.commitment.id} row={row} />
+                    <CommitmentRow
+                      key={row.commitment.id}
+                      row={row}
+                      title={
+                        row.commitment.metadataCID
+                          ? (byCID.get(row.commitment.metadataCID)?.title ?? null)
+                          : null
+                      }
+                    />
                   ))}
                 </div>
               </div>

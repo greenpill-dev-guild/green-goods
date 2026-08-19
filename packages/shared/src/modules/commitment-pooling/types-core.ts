@@ -68,6 +68,12 @@ export interface CommitmentReadModel {
   contributorCount: number;
   /** Whether the team still accepts people. */
   contributorsFrozen: boolean;
+  /**
+   * Where the commitment's own words live. The contract stores only this, so a
+   * title needs a second read; resolve it with `useCommitmentMetadata` rather
+   * than describing the record back to the member.
+   */
+  metadataCID?: string | null;
 }
 
 export interface PoolMemberHistory {

@@ -11,7 +11,13 @@ const CREATOR = "0x1111111111111111111111111111111111111111" as Address;
 const GARDEN = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" as Address;
 const NOW = 1_700_000_000;
 
-const values = { ...COMMITMENT_COMPOSER_DEFAULTS, unitLabel: "hours", targetUnits: 3 };
+// A commitment must be named, so every fixture carries one.
+const values = {
+  ...COMMITMENT_COMPOSER_DEFAULTS,
+  title: "Compost workshop",
+  unitLabel: "hours",
+  targetUnits: 3,
+};
 
 function build(overrides: Partial<typeof values> = {}) {
   return buildCommitmentCreationPayload({
@@ -33,6 +39,10 @@ describe("commitment composer validation", () => {
 
   it("refuses a commitment with no end, which could never lapse or settle", () => {
     expect(commitmentComposerSchema.safeParse({ ...values, dueInDays: 0 }).success).toBe(false);
+  });
+
+  it("refuses a commitment nobody could recognise in the pool", () => {
+    expect(commitmentComposerSchema.safeParse({ ...values, title: "  " }).success).toBe(false);
   });
 
   it("accepts an ordinary one", () => {

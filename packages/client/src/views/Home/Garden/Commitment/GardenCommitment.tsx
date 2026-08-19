@@ -5,6 +5,7 @@ import {
   StatusBadge,
   useCommitment,
   useCommitmentJobs,
+  useCommitmentMetadataFor,
   useCommitmentMutation,
   useOffline,
   usePrimaryAddress,
@@ -69,6 +70,7 @@ export function GardenCommitment() {
     commitmentId: commitmentId ?? 0n,
   });
   const jobs = useCommitmentJobs({ chainId });
+  const metadata = useCommitmentMetadataFor(detail?.commitment);
   const onlineMutation = useCommitmentMutation({ chainId });
 
   const seat = useMemo(() => {
@@ -150,18 +152,21 @@ export function GardenCommitment() {
   const act = selectCommitmentAct({ commitment, seat });
   const joinable = canJoinTeam({ commitment, seat });
 
-  const substance = commitment.unitLabel
+  const units = commitment.unitLabel
     ? formatMessage(
         { id: "app.commitments.row.units" },
         { count: commitment.targetUnits.toString(), unit: commitment.unitLabel }
       )
-    : formatMessage({ id: "app.commitments.row.untitled" });
+    : null;
+  // The member's own name for it leads; the units stay, because they are what
+  // the commitment is measured and settled against.
+  const heading = metadata?.title ?? units ?? formatMessage({ id: "app.commitments.row.untitled" });
 
   return (
     <>
       <DetailShell
         onBack={back}
-        title={substance}
+        title={heading}
         bar={
           act ? (
             <CommitmentActionBar
@@ -224,9 +229,12 @@ export function GardenCommitment() {
         <section className="rounded-[var(--radius-lg)] border border-stroke-soft-200 bg-bg-white-0 p-4">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
-              <p className="truncate text-base font-medium text-text-strong-950" title={substance}>
-                {substance}
+              <p className="truncate text-base font-medium text-text-strong-950" title={heading}>
+                {heading}
               </p>
+              {metadata?.title && units ? (
+                <p className="mt-0.5 text-sm text-text-sub-600">{units}</p>
+              ) : null}
               <p className="mt-0.5 text-xs text-text-soft-400">
                 {formatMessage({
                   id:
@@ -240,6 +248,10 @@ export function GardenCommitment() {
               {formatMessage({ id: state.labelId })}
             </StatusBadge>
           </div>
+
+          {metadata?.description ? (
+            <p className="mt-3 text-sm leading-relaxed text-text-sub-600">{metadata.description}</p>
+          ) : null}
 
           <CommitmentPeople commitment={commitment} contributors={contributors} seat={seat} />
 

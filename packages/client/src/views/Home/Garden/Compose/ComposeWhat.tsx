@@ -17,6 +17,7 @@ export interface ComposeWhatProps {
 export function ComposeWhat({ form }: ComposeWhatProps) {
   const { formatMessage } = useIntl();
   const direction = form.watch("direction");
+  const title = form.watch("title");
   const unitLabel = form.watch("unitLabel");
   const targetUnits = form.watch("targetUnits");
 
@@ -30,6 +31,29 @@ export function ComposeWhat({ form }: ComposeWhatProps) {
               : "app.compose.what.legendOffer",
         })}
       </h1>
+
+      <div>
+        <label className="block text-sm font-medium text-text-strong-950" htmlFor="compose-title">
+          {formatMessage({ id: "app.compose.what.titleLabel" })}
+        </label>
+        <input
+          id="compose-title"
+          type="text"
+          value={title}
+          maxLength={120}
+          placeholder={formatMessage({
+            id:
+              direction === "REQUEST"
+                ? "app.compose.what.titlePlaceholderRequest"
+                : "app.compose.what.titlePlaceholderOffer",
+          })}
+          onChange={(event) => form.setValue("title", event.target.value, { shouldValidate: true })}
+          className="mt-1.5 w-full rounded-[var(--radius-lg)] border border-stroke-soft-200 bg-bg-weak-50 p-3 text-sm text-text-strong-950"
+        />
+        <p className="mt-1.5 text-xs text-text-soft-400">
+          {formatMessage({ id: "app.compose.what.titleHelp" })}
+        </p>
+      </div>
 
       <div>
         <label className="block text-sm font-medium text-text-strong-950" htmlFor="compose-units">

@@ -158,7 +158,11 @@ function beatCanAdvance(beat: Beat, values: CommitmentComposerValues): boolean {
     case "kind":
       return values.direction === "OFFER" || values.direction === "REQUEST";
     case "what":
-      return values.unitLabel.trim().length > 0 && values.targetUnits > 0;
+      return (
+        values.title.trim().length > 0 &&
+        values.unitLabel.trim().length > 0 &&
+        values.targetUnits > 0
+      );
     case "terms":
       return values.dueInDays > 0;
     case "review":

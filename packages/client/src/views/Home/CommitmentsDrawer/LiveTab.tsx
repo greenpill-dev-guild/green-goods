@@ -4,6 +4,7 @@ import {
   type CommitmentsInbox,
   type Garden,
   type InboxCommitment,
+  useCommitmentMetadata,
   useOffline,
 } from "@green-goods/shared";
 import { useMemo, useState } from "react";
@@ -39,6 +40,9 @@ export interface LiveTabProps {
 export function LiveTab({ inbox, pools, gardens }: LiveTabProps) {
   const { formatMessage } = useIntl();
   const { isOnline } = useOffline();
+  const { byCID } = useCommitmentMetadata(
+    useMemo(() => inbox.live.map((row) => row.commitment), [inbox.live])
+  );
   const [direction, setDirection] = useState<DirectionFilter>("all");
 
   const { visible, groups } = useMemo(() => {
@@ -112,7 +116,15 @@ export function LiveTab({ inbox, pools, gardens }: LiveTabProps) {
             </h4>
             <div className="space-y-2">
               {group.rows.map((row) => (
-                <CommitmentRow key={row.commitment.id} row={row} />
+                <CommitmentRow
+                  key={row.commitment.id}
+                  row={row}
+                  title={
+                    row.commitment.metadataCID
+                      ? (byCID.get(row.commitment.metadataCID)?.title ?? null)
+                      : null
+                  }
+                />
               ))}
             </div>
           </div>

@@ -6,6 +6,8 @@ import { presentState, relationshipLabelId } from "./presentation";
 
 export interface CommitmentRowProps {
   row: InboxCommitment;
+  /** The commitment's own name, once its metadata has resolved. */
+  title?: string | null;
   /** Given a destination, the row becomes the way into the commitment. */
   onOpen?: (commitmentId: bigint) => void;
 }
@@ -18,18 +20,22 @@ export interface CommitmentRowProps {
  * count, which the spec already requires to stay in exact labels and never be
  * added across unlike units.
  */
-export function CommitmentRow({ row, onOpen }: CommitmentRowProps) {
+export function CommitmentRow({ row, title, onOpen }: CommitmentRowProps) {
   const { formatMessage } = useIntl();
   const { commitment, seat, needsYou } = row;
   const state = presentState(commitment.derivedState);
   const relationshipId = relationshipLabelId(seat, commitment.direction);
 
-  const substance = commitment.unitLabel
+  const units = commitment.unitLabel
     ? formatMessage(
         { id: "app.commitments.row.units" },
         { count: commitment.targetUnits.toString(), unit: commitment.unitLabel }
       )
-    : formatMessage({ id: "app.commitments.row.untitled" });
+    : null;
+  // A commitment is named by its member, counted by its units. Until the name
+  // resolves the units stand in, because they are the substance either way.
+  const primary = title ?? units ?? formatMessage({ id: "app.commitments.row.untitled" });
+  const secondary = title ? units : null;
 
   // A row without a destination is a record, not a control, so it stays a div
   // rather than a button nothing happens behind.
@@ -51,9 +57,12 @@ export function CommitmentRow({ row, onOpen }: CommitmentRowProps) {
         <RiSeedlingLine className="h-4 w-4" />
       </span>
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-medium text-text-strong-950" title={substance}>
-          {substance}
+        <p className="truncate text-sm font-medium text-text-strong-950" title={primary}>
+          {primary}
         </p>
+        {secondary ? (
+          <p className="mt-0.5 truncate text-xs text-text-sub-600">{secondary}</p>
+        ) : null}
         {commitment.direction === "OFFER" || commitment.direction === "REQUEST" ? (
           <p className="mt-0.5 text-xs text-text-soft-400">
             {formatMessage({

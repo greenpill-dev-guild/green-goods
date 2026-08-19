@@ -4,6 +4,7 @@ import {
   DEFAULT_CHAIN_ID,
   selectCommitmentSeat,
   useCommitmentCycles,
+  useCommitmentMetadata,
   useCommitments,
   useOffline,
   usePrimaryAddress,
@@ -75,6 +76,7 @@ export function GardenPool({ pool }: GardenPoolProps) {
     }));
   }, [commitmentsQuery.commitments, direction, viewer]);
 
+  const { byCID } = useCommitmentMetadata(commitmentsQuery.commitments);
   const poolState = pool.state ?? "UNKNOWN";
 
   if (NON_PARTICIPATING.has(poolState)) {
@@ -149,6 +151,11 @@ export function GardenPool({ pool }: GardenPoolProps) {
             <CommitmentRow
               key={row.commitment.id}
               row={row}
+              title={
+                row.commitment.metadataCID
+                  ? (byCID.get(row.commitment.metadataCID)?.title ?? null)
+                  : null
+              }
               onOpen={(id) => navigate(`commitments/${id.toString()}`)}
             />
           ))}
