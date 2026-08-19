@@ -276,7 +276,7 @@
       "allowanceKey": null,
       "canonicalTarget": "0x62B8B11039FcfE5aB0C56E502b1C372A3d2a9c7A",
       "canonicalSelector": "0xa9059cbb",
-      "recipientPolicy": "registered-garden-safe-only"
+      "recipientPolicy": "source-plan-bounded"
     },
     "caps": {
       "maxTransferAmount": "7000000000000000000000000",
@@ -286,11 +286,11 @@
       "maxBatchSize": "2"
     },
     "feePolicy": {
-      "mode": "disabled-until-authorized",
-      "maxFeeBps": "0",
-      "maxFeeAmount": "0",
-      "arbitrumReserveFloor": null,
-      "celoReserveFloor": null
+      "mode": "authorized-ceiling",
+      "maxFeeBps": "100",
+      "maxFeeAmount": "50000000000000000000000",
+      "arbitrumReserveFloor": "5000000000000000",
+      "celoReserveFloor": "50000000000000000000"
     }
   },
   "indexer": {
