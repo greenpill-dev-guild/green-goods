@@ -103,4 +103,16 @@ describe("HubHistoryQueue", () => {
     ).toBeInTheDocument();
     expect(screen.queryByText(/Infrastructure Milestone/)).not.toBeInTheDocument();
   });
+
+  it("localizes the event age in Portuguese", () => {
+    const threeDaysAgo: ActivityEvent = {
+      ...EVENT,
+      timestamp: Date.now() - 3 * 24 * 60 * 60 * 1000,
+    };
+
+    renderHistoryQueue({ items: [threeDaysAgo] }, "pt");
+
+    expect(screen.getByText("há 3 dias")).toBeInTheDocument();
+    expect(screen.queryByText("3 days ago")).not.toBeInTheDocument();
+  });
 });

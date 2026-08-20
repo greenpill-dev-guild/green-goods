@@ -4,7 +4,6 @@ import {
   EmptyState,
   EmptyStateShell,
   formatDateTime,
-  formatRelativeTime,
   type ActivityEvent,
 } from "@green-goods/shared";
 import {
@@ -17,6 +16,7 @@ import {
 import { useIntl } from "react-intl";
 import { adminCardVariants } from "@/components/AdminCard";
 import { localizeCanonicalActionTitle } from "../actionDisplay";
+import { useLocalizedRelativeTime } from "../relativeTime";
 import { HubWorkbenchSkeletonRows } from "./HubWorkbenchSkeletonRows";
 
 interface HubHistoryQueueProps {
@@ -43,6 +43,7 @@ export function HubHistoryQueue({
   onOpenHistoryEvent,
 }: HubHistoryQueueProps) {
   const { formatMessage } = useIntl();
+  const formatEventAge = useLocalizedRelativeTime();
 
   if (hasDataError) {
     return (
@@ -133,7 +134,7 @@ export function HubHistoryQueue({
                     title={exactTimestamp}
                     className="text-label-sm text-text-soft"
                   >
-                    {formatRelativeTime(event.timestamp)}
+                    {formatEventAge(event.timestamp)}
                   </time>
                 </span>
 
