@@ -1,5 +1,6 @@
 import { AddressDisplay, cn, getEASExplorerUrl, type PublicFieldNote } from "@green-goods/shared";
 import { useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useIntl } from "react-intl";
 import { ImageWithFallback } from "@/components/Display";
 import { PublicSourceDialog } from "@/components/Public/PublicSourceDialog";
@@ -116,14 +117,22 @@ export function FieldNotesSection({
         </>
       )}
 
-      <FieldNoteDialog
-        chainId={chainId}
-        note={openNote}
-        onClose={() => {
-          setOpenNote(null);
-          triggerRef.current?.focus();
-        }}
-      />
+      {/* Portalled to the body on purpose. This section carries
+          `.editorial-section-reveal`, which applies a transform — and a
+          transformed ancestor becomes the containing block for
+          `position: fixed`, so the dialog's overlay would size and scroll
+          against this section instead of the viewport. */}
+      {createPortal(
+        <FieldNoteDialog
+          chainId={chainId}
+          note={openNote}
+          onClose={() => {
+            setOpenNote(null);
+            triggerRef.current?.focus();
+          }}
+        />,
+        document.body
+      )}
     </Section>
   );
 }

@@ -311,6 +311,20 @@ describe("GardenDetail", () => {
     expect(within(certificates).queryByText("0")).not.toBeInTheDocument();
   });
 
+  it("renders the note dialog outside the transformed section", () => {
+    // `.editorial-section-reveal` applies a transform, and a transformed
+    // ancestor becomes the containing block for `position: fixed`. Rendered
+    // in place, the dialog's overlay sizes and scrolls against the section
+    // instead of the viewport.
+    const { container } = renderView();
+    fireEvent.click(screen.getByRole("button", { name: /Field note 0/ }));
+
+    const dialog = screen.getByRole("dialog");
+    expect(dialog).toBeInTheDocument();
+    expect(container.contains(dialog)).toBe(false);
+    expect(dialog.closest(".editorial-section-reveal")).toBeNull();
+  });
+
   it("never nests an interactive element inside a note tile", () => {
     const { container } = renderView();
     // The tile is itself a button. AddressDisplay is not usable inside it.
