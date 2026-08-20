@@ -1,5 +1,5 @@
 import { RiCloseLine } from "@remixicon/react";
-import { type ReactNode, useEffect } from "react";
+import { type ReactNode, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useIntl } from "react-intl";
 
@@ -43,6 +43,15 @@ export function PublicRecordDrawer({
   children,
 }: PublicRecordDrawerProps) {
   const { formatMessage } = useIntl();
+  const closeRef = useRef<HTMLButtonElement | null>(null);
+
+  // Focus the close control when the drawer opens, and only then. An inline
+  // `ref={(node) => node?.focus()}` is a new callback every render, so React
+  // re-runs it on each one — closing the nested image viewer re-rendered this
+  // drawer and stole focus back here instead of returning it to the photo.
+  useEffect(() => {
+    if (open) closeRef.current?.focus();
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
@@ -81,7 +90,7 @@ export function PublicRecordDrawer({
             {eyebrow}
           </p>
           <button
-            ref={(node) => node?.focus()}
+            ref={closeRef}
             type="button"
             aria-label={closeLabel}
             onClick={onClose}
