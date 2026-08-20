@@ -142,7 +142,9 @@ export type CommitmentQueueExecution =
   | { status: "complete"; txHash?: Hex; entityId?: bigint }
   | { status: "submitted"; txHash: Hex }
   | { status: "waiting"; reason: string }
-  | { status: "identity-conflict"; reason: string };
+  | { status: "identity-conflict"; reason: string }
+  /** Gave up on something outside the queue. Terminal, but not a data conflict. */
+  | { status: "unavailable"; reason: string };
 
 function contractPayload(payload: CommitmentCreationPayload) {
   return {
@@ -257,6 +259,73 @@ async function currentGardenMember(
   return results.some(Boolean);
 }
 
+/** As many tries as any other job gets, so a dead gateway cannot queue forever. */
+const MAX_METADATA_ATTEMPTS = 5;
+
+/**
+ * Publish a commitment's words, if it was composed before they could be.
+ *
+ * Composing works offline, so the member's title travels in the job rather than
+ * as a CID. It has to become one before anything else touches this payload: the
+ * creation hash covers the CID, and the recovery check compares that hash
+ * against what the contract stored, so publishing later would make a successful
+ * commitment look like a mismatch.
+ *
+ * The CID is written back to the stored job the moment it exists. Without that
+ * the mutation lives only in memory, and `markJobFailed` re-reads the job from
+ * storage — so a broadcast followed by any throw would lose the CID, the next
+ * attempt would publish again, and the whole thing would rest on two uploads
+ * returning byte-identical CIDs. They should, but a commitment that can never
+ * be retried is too much to stake on "should".
+ *
+ * A failed upload is reported as waiting rather than thrown. Throwing here runs
+ * `markJobFailed`, which spends one of five attempts on an outage that has
+ * nothing to do with this commitment, and does it before the recovery read that
+ * would have noticed the commitment already exists.
+ *
+ * Waiting forever is its own failure, though. The other waiting reasons resolve
+ * inside the queue; this one depends on a service that may never come back, so
+ * the attempts are counted separately and the job is allowed to fail once it
+ * has tried as many times as any other. Silence in both directions was the
+ * thing to avoid: dying invisibly after five attempts, and never dying at all.
+ */
+async function publishPendingCommitmentMetadata(
+  job: Job
+): Promise<{ published: true } | { published: false; reason: string; terminal?: boolean }> {
+  if (job.kind !== "commitment") return { published: true };
+  const payload = job.payload as CommitmentCreationPayload;
+  if (!payload.metadata || payload.metadataCID) return { published: true };
+
+  try {
+    const { uploadJSONToIPFS } = await import("../data/ipfs/upload");
+    const { cid } = await uploadJSONToIPFS(payload.metadata as unknown as Record<string, unknown>, {
+      source: "commitment-creation",
+      gardenAddress: payload.gardenAddress,
+      metadataType: "commitment",
+    });
+    payload.metadataCID = cid;
+    await jobQueueDB.updateJob({ ...job, payload });
+    return { published: true };
+  } catch (error) {
+    const attempts = Number(job.meta?.metadataAttempts ?? 0) + 1;
+    // Mutated, not replaced. The caller writes the job again on the waiting
+    // path, spreading the meta it still holds — so a count written only to
+    // storage is erased on the same attempt and the ceiling never arrives.
+    // The success path above mutates `payload` for exactly this reason.
+    job.meta = { ...(job.meta ?? {}), metadataAttempts: attempts };
+    await jobQueueDB.updateJob({ ...job });
+    logger.warn("[JobQueue] Commitment metadata upload failed", {
+      jobId: job.id,
+      attempts,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    if (attempts >= MAX_METADATA_ATTEMPTS) {
+      return { published: false, reason: "metadata-unavailable", terminal: true };
+    }
+    return { published: false, reason: "metadata-unpublished" };
+  }
+}
+
 export async function executeCommitmentQueueJob(
   jobId: string,
   job: Job,
@@ -264,6 +333,16 @@ export async function executeCommitmentQueueJob(
   sender: TransactionSender
 ): Promise<CommitmentQueueExecution> {
   const moduleAddress = getNetworkContracts(chainId).commitmentPoolingModule;
+  const published = await publishPendingCommitmentMetadata(job);
+  if (!published.published) {
+    // Not an identity conflict: nothing about this commitment disagrees with
+    // the chain, a gateway was simply unreachable. Reporting it as one puts a
+    // data-integrity signal in the member's job record and makes real conflicts
+    // indistinguishable in the metrics.
+    return published.terminal
+      ? { status: "unavailable", reason: published.reason }
+      : { status: "waiting", reason: published.reason };
+  }
   const commitmentJob: CommitmentJob = {
     id: jobId,
     kind: job.kind as CommitmentJobKind,

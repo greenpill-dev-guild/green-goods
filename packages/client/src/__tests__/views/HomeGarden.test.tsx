@@ -70,6 +70,7 @@ vi.mock("@green-goods/shared", () => ({
   useBrowserNavigation: vi.fn(),
   useConvictionStrategies: () => ({ strategies: [] }),
   useGardeners: () => ({ data: [] }),
+  useCommitmentPools: () => ({ pools: [], availability: { status: "unknown-chain" } }),
   useGardenTabs: (...args: unknown[]) => mockUseGardenTabs(...args),
   useGardenVaults: () => ({ vaults: [] }),
   useGardens: (...args: unknown[]) => mockUseGardens(...args),

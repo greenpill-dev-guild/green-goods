@@ -220,6 +220,16 @@ export function mapCommitment(row: RawRow): CommitmentReadModel {
     declaredValueBasis: string(row.declaredValueBasis),
     considerationRail: row.considerationRail as CommitmentReadModel["considerationRail"],
     considerationPaid: row.considerationPaid === true,
+    counterparty: address(row.counterparty),
+    recordedBy: address(row.recordedBy),
+    direction: row.direction as CommitmentReadModel["direction"],
+    commitmentType: row.commitmentType as CommitmentReadModel["commitmentType"],
+    claimMode: row.claimMode as CommitmentReadModel["claimMode"],
+    contributorPolicy: row.contributorPolicy as CommitmentReadModel["contributorPolicy"],
+    confirmers: strings(row.confirmers).map((entry) => entry.toLowerCase() as Address),
+    contributorCount: number(row.contributorCount),
+    contributorsFrozen: row.contributorsFrozen === true,
+    metadataCID: string(row.metadataCID),
   };
   return { ...mapped, derivedState: deriveCommitmentState(mapped) };
 }

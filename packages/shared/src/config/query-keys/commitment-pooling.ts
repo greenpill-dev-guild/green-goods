@@ -45,6 +45,11 @@ export const commitmentPoolingKeys = {
     [...commitmentPoolingKeys.all(chainId), "commitments", stableFilters(filters)] as const,
   commitment: (chainId: number, commitmentId: bigint | string | number) =>
     [...commitmentPoolingKeys.all(chainId), "commitment", String(commitmentId)] as const,
+  /**
+   * Chain-free on purpose: content at a CID is the same bytes everywhere, so a
+   * title resolved on one chain is the same title on another.
+   */
+  metadata: (cid: string) => ["greengoods", "commitment-pooling", "metadata", cid] as const,
   requirements: (chainId: number, commitmentId: bigint | string | number) =>
     [...commitmentPoolingKeys.all(chainId), "requirements", String(commitmentId)] as const,
   contributors: (chainId: number, commitmentId: bigint | string | number) =>

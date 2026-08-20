@@ -310,8 +310,13 @@ class JobQueue {
           });
           return { success: false, error: execution.reason, skipped: true };
         }
-        if (execution.status === "identity-conflict") {
-          const errorMessage = `identity_conflict:${execution.reason}`;
+        // Both terminal, and kept distinct in the record: a conflict means this
+        // commitment disagrees with the chain, unavailable means something
+        // outside the queue stayed unreachable. Conflating them would hide real
+        // integrity failures among gateway outages.
+        if (execution.status === "identity-conflict" || execution.status === "unavailable") {
+          const prefix = execution.status === "unavailable" ? "unavailable" : "identity_conflict";
+          const errorMessage = `${prefix}:${execution.reason}`;
           await jobQueueDB.markJobTerminalFailed(jobId, errorMessage);
           jobQueueEventBus.emit("job:failed", { jobId, job, error: errorMessage });
           trackJobPermanentlyFailed({ ...job, lastError: errorMessage, attempts: MAX_RETRIES });

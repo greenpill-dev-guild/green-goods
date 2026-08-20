@@ -26,6 +26,21 @@ import type {
 // Core Job Types
 // ============================================
 
+/**
+ * A queued piece of work.
+ *
+ * **Ownership rule, and it has cost two bugs.** A `Job` is passed by reference
+ * from `processJob` into an executor and back. The executor may persist changes
+ * itself, but `processJob` then writes *its own copy* of the same object on the
+ * waiting and submitted paths, and `markJobFailed` re-reads from storage. So a
+ * value written only to storage is silently overwritten on the same attempt.
+ *
+ * Anything that must survive to the next attempt has to be **mutated on this
+ * object** before it is persisted — `payload.metadataCID = cid` and
+ * `job.meta = {...}` are both written that way for exactly this reason. Writing
+ * `updateJob({ ...job, meta: { ... } })` without also mutating `job` is the
+ * mistake; it looks correct and is undone microseconds later.
+ */
 export interface Job<T = unknown> {
   id: string;
   kind: string;

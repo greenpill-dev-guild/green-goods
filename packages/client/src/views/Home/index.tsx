@@ -1,9 +1,11 @@
 import {
   cn,
+  DEFAULT_CHAIN_ID,
   queryKeys,
   toastService,
   useArrivalState,
   useAuthState,
+  useCommitmentsInbox,
   useBrowserNavigation,
   useFilteredGardens,
   useGardens,
@@ -24,6 +26,8 @@ import { PullToRefresh } from "@/components/Inputs";
 import { APP_ROUTES } from "@/config/pwa-routing";
 import { pwaStatusStyles } from "@/styles/pwaStatusStyles";
 import { ARRIVAL_TOASTS, type ArrivalActionKind } from "./arrival-toast";
+import { CommitmentsDrawer } from "./CommitmentsDrawer";
+import { CommitmentsDrawerIcon } from "./CommitmentsDrawer/Icon";
 import { type GardenFiltersState, GardensFilterDrawer } from "./GardenFilters";
 import { GardenList } from "./GardenList";
 import { WalletDrawer } from "./WalletDrawer";
@@ -72,6 +76,13 @@ const Home: React.FC = () => {
   const isWalletDrawerOpen = useUIStore((s) => s.isWalletDrawerOpen);
   const openWalletDrawer = useUIStore((s) => s.openWalletDrawer);
   const closeWalletDrawer = useUIStore((s) => s.closeWalletDrawer);
+  const { totalActCount: commitmentActCount } = useCommitmentsInbox({
+    chainId: DEFAULT_CHAIN_ID,
+    viewer: primaryAddress ?? undefined,
+  });
+  const isCommitmentsDrawerOpen = useUIStore((s) => s.isCommitmentsDrawerOpen);
+  const openCommitmentsDrawer = useUIStore((s) => s.openCommitmentsDrawer);
+  const closeCommitmentsDrawer = useUIStore((s) => s.closeCommitmentsDrawer);
 
   // Ensure proper re-rendering on browser navigation
   useBrowserNavigation();
@@ -267,6 +278,10 @@ const Home: React.FC = () => {
                 )}
               </button>
               <WalletDrawerIcon onClick={openWalletDrawer} />
+              <CommitmentsDrawerIcon
+                onClick={openCommitmentsDrawer}
+                actCount={commitmentActCount}
+              />
               <WorkDashboardIcon />
             </div>
           </div>
@@ -301,6 +316,7 @@ const Home: React.FC = () => {
       )}
       <Outlet />
       <WalletDrawer isOpen={isWalletDrawerOpen} onClose={closeWalletDrawer} />
+      <CommitmentsDrawer isOpen={isCommitmentsDrawerOpen} onClose={closeCommitmentsDrawer} />
     </article>
   );
 };

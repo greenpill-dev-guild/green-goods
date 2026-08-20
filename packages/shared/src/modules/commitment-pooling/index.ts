@@ -3,6 +3,8 @@ export * from "./jobs";
 export * from "./account-profiles";
 export * from "./disclosure";
 export * from "./credit";
+export * from "./acts";
+export * from "./metadata";
 export * from "./selectors";
 export * from "./settlement";
 export * from "./types";

@@ -1,10 +1,15 @@
 #!/bin/bash
-# Work around Envio EE806/EE807: on fresh Hasura instances, Envio's built-in
-# metadata tracking fails because it expects "already-exists" but gets "not-found".
-# This script waits for entity tables to appear, then tracks them via Hasura API.
+# Envio tracks its generated entity tables in Hasura during fresh storage
+# initialization, but it does not track its internal envio_* progress tables.
+# Local tooling (scripts/dev/smoke-full.js) queries envio_chains over GraphQL to
+# prove indexing progress, so this script tracks whatever Envio left untracked.
 # Uses only curl + node (no psql/python3 dependency).
 
+# Envio's HASURA_GRAPHQL_ENDPOINT is the metadata endpoint itself, so strip the
+# path to get the server root this script needs for /v2/query and /v1/graphql.
 HASURA_URL="${HASURA_GRAPHQL_ENDPOINT:-http://graphql-engine:8080}"
+HASURA_URL="${HASURA_URL%/v1/metadata}"
+HASURA_URL="${HASURA_URL%/}"
 HASURA_SECRET="${HASURA_GRAPHQL_ADMIN_SECRET:-testing}"
 
 MAX_WAIT=120
@@ -18,27 +23,27 @@ get_tables() {
     -d "{\"type\":\"run_sql\",\"args\":{\"source\":\"default\",\"sql\":\"SELECT tablename FROM pg_tables WHERE schemaname = 'public' ORDER BY tablename\"}}" 2>/dev/null
 }
 
-# Wait for entity tables to exist in postgres
+# Wait for the indexer schema to exist in postgres
 while [ $elapsed -lt $MAX_WAIT ]; do
   resp=$(get_tables)
-  if echo "$resp" | grep -q '"Garden"'; then
+  if echo "$resp" | grep -q '"envio_chains"'; then
     break
   fi
   sleep $POLL
   elapsed=$((elapsed + POLL))
 done
 
-if ! echo "$resp" | grep -q '"Garden"'; then
-  echo "track-hasura-tables: no entity tables found after ${MAX_WAIT}s, skipping" >&2
+if ! echo "$resp" | grep -q '"envio_chains"'; then
+  echo "track-hasura-tables: indexer schema not found after ${MAX_WAIT}s, skipping" >&2
   exit 0
 fi
 
-# Check if Hasura already exposes queries (Envio tracking succeeded)
+# Nothing to do if the internal progress tables are already exposed.
 schema_check=$(curl -s -X POST "${HASURA_URL}/v1/graphql" \
   -H "content-type: application/json" \
   -d '{"query":"{ __schema { queryType { fields { name } } } }"}' 2>/dev/null)
 
-if echo "$schema_check" | grep -q '"Garden"'; then
+if echo "$schema_check" | grep -q '"envio_chains"'; then
   exit 0
 fi
 
