@@ -4,7 +4,7 @@ import {
   instructionTemplates,
   localizeAction,
 } from "@green-goods/shared";
-import enMessages from "@green-goods/shared/i18n/en.json";
+import enMessages from "@green-goods/shared/i18n/en";
 import type { IntlShape } from "react-intl";
 
 interface CanonicalActionCopy {
