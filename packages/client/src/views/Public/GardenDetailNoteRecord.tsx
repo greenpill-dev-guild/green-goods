@@ -110,22 +110,28 @@ export function FieldNoteDialog({
   const { formatMessage } = intl;
   const titleId = "public-garden-detail-note-title";
   const [viewerIndex, setViewerIndex] = useState<number | null>(null);
-  // The viewer ships English defaults; the public site is translated.
+  // The viewer ships English defaults for every string it renders or announces.
+  // The public site is translated, so it gets the whole set, not just the two
+  // that happen to be visible.
   const viewerLabels = useMemo(
     () => ({
-      close: formatMessage({ id: "public.source.close", defaultMessage: "Close" }),
-      closePreview: formatMessage({
-        id: "public.gardenDetail.notes.closePhoto",
-        defaultMessage: "Close photo",
-      }),
-      previousImage: formatMessage({
-        id: "public.gardenDetail.notes.previousPhoto",
-        defaultMessage: "Previous photo",
-      }),
-      nextImage: formatMessage({
-        id: "public.gardenDetail.notes.nextPhoto",
-        defaultMessage: "Next photo",
-      }),
+      dialogLabel: formatMessage({ id: "public.gardenDetail.notes.photo.viewer" }),
+      title: formatMessage({ id: "public.gardenDetail.notes.photo.viewer" }),
+      description: formatMessage({ id: "public.gardenDetail.notes.photo.viewerHelp" }),
+      close: formatMessage({ id: "public.source.close" }),
+      closePreview: formatMessage({ id: "public.gardenDetail.notes.closePhoto" }),
+      previousImage: formatMessage({ id: "public.gardenDetail.notes.previousPhoto" }),
+      nextImage: formatMessage({ id: "public.gardenDetail.notes.nextPhoto" }),
+      zoomIn: formatMessage({ id: "public.gardenDetail.notes.photo.zoomIn" }),
+      zoomOut: formatMessage({ id: "public.gardenDetail.notes.photo.zoomOut" }),
+      resetZoom: formatMessage({ id: "public.gardenDetail.notes.photo.resetZoom" }),
+      downloadImage: formatMessage({ id: "public.gardenDetail.notes.photo.download" }),
+      previewAlt: (n: number) =>
+        formatMessage({ id: "public.gardenDetail.notes.photo.alt" }, { n }),
+      thumbnailAlt: (n: number) =>
+        formatMessage({ id: "public.gardenDetail.notes.photo.thumbAlt" }, { n }),
+      goToImage: (n: number) =>
+        formatMessage({ id: "public.gardenDetail.notes.photo.goTo" }, { n }),
     }),
     [formatMessage]
   );
