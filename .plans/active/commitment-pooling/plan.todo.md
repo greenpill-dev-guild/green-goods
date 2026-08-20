@@ -1756,6 +1756,36 @@ Known mis-resolutions fixed in place: `contract-spec.md` §Grassroots-Economics-
     coverage drift; closure validator green; typecheck clean. No runtime package, contract, ABI,
     indexer or Linear change.
 
+161. The editorial surface, made buildable (2026-08-19, Afo authorization). Three decisions, taken
+    before any commitment-pooling copy goes onto the public site.
+    **Public copy says commitment, not promise.** This was not a new freeze — `hifi/validate.ts`
+    already fails the prototype build on `/\bpromis(?:e|es|ed|ing)\b/i` (C.14), and `uiux-spec` §7
+    had simply never been swept. It is swept now. `promiseKeptRate` survives as a code identifier
+    because the gate reads rendered copy, not field names. The rest of `uiux-spec` still carries the
+    old vocabulary in §4–§6 and needs its own pass; that is a known debt, not an oversight.
+    **§7.2's threshold gets a cycle-scoped indexer counter rather than a weaker rule.** The rule
+    reads "at least 5 due commitments and at least 3 distinct providers", and half of it was not
+    derivable: `selectPromiseKeptRate` applies no gate at all, and nothing in the indexer schema
+    counts distinct providers. The available per-provider entity, `CommitmentProviderExposure`, is
+    keyed by address — counting its rows would enumerate providers on a public page, which §7.4
+    forbids outright. Since the threshold is stated per cycle, the cycle-scoped counter is the one
+    required, and it needs a new per-(cycle, provider) sentinel entity because none exists. Check
+    whether the hosted Envio indexer has already shipped PRD-722 before starting; merge is not deploy.
+    **`/gardens/:id` became a page before the commitments section lands, as its own change.** The
+    route had been rendering a Radix modal since it was switched inside an unrelated homepage-polish
+    commit — never an IA decision, and `DESIGN.browser.md` had described a page the whole time, as
+    did the W15 prototype frame. Inserting a fourth section into that modal would have pushed a
+    hand-indexed close ladder past its never-used `:nth-last-child(n+7)` tier, deepened a nested
+    scroll container holding an editorial long-read, and left the reader with no footer. Two defects
+    were fixed rather than inherited: field-note photos, carried on `PublicFieldNote.media` and
+    discarded by every render, now lead the section; and a failed EAS read, previously swallowed to
+    an empty list and published as `0`, now reports through `partialData` / `unavailableSources` and
+    renders an em dash. Every section always renders, which is what gives the commitments section a
+    defined pre-launch home at `§ 02` and keeps the ordinals stable between gardens. Not in scope
+    and recorded as follow-ups: per-route meta (`react-helmet-async` is wired but only Login uses
+    it, so every shared garden link previews as the generic site card), the Operator → Steward
+    rename (PRD-746–751; 71 catalogue keys still say Operator), and chain-aware easscan links.
+
 **Final recursive certification clarification (2026-07-25; no new decision-register entry):**
 the published `42161`↔`42220` production lane is the only required fully paired
 `SettlementConfiguration`. Arbitrum Sepolia `421614` and Celo Sepolia `11142220` remain
@@ -1910,7 +1940,7 @@ The Needs layer consumed by PRD-682 and PRD-691 (Need/NeedSignal/NeedStatus/Fund
 
 Machine-lane ownership mirrors `status.json`: Codex owns `contracts`, `state_api`, and `qa_pass_2`; Claude owns `ui` and `qa_pass_1`. The detailed execution sub-lanes below are dispatch labels and handoff buckets, not valid `plan-hub --lane` values. Per-issue dispatch stays with Afo.
 
-### Contracts (`codex/contracts/commitment-pooling`): PRD-721 (historical labels PRD-671/672)
+### Contracts (`feature/commitment-pooling-contracts`): PRD-721 (historical labels PRD-671/672)
 
 - [ ] Implement register #103's full pool-pause freeze and paused `registerPool` path, as amended
   by register #104's accepted root-registration residual, without
@@ -2011,7 +2041,7 @@ Machine-lane ownership mirrors `status.json`: Codex owns `contracts`, `state_api
 - [ ] Then: `CreditRegistry` + indexer + shared `queryKeys.credit.*` + `credit` job kind + admin/PWA credit surfaces (spec §8 order)
 - [ ] Write `../commitment-credit-follow-on/handoffs/codex-contracts.md`
 
-### UI Client (`claude/ui-client/commitment-pooling`): PRD-724 (historical label PRD-675)
+### UI Client (`feature/commitment-pooling-client-ui`): PRD-724 (historical label PRD-675)
 
 - [ ] Client tasks only; i18n en/es/pt for every new string; hero moments per spec
 - [ ] Implement `uiux-spec.md` Appendix F only after the backend contract/query gates and remaining
@@ -2028,7 +2058,7 @@ Machine-lane ownership mirrors `status.json`: Codex owns `contracts`, `state_api
 - [ ] Record RED/GREEN proof or a proof-limit note
 - [ ] Write `handoffs/claude-ui-client.md`
 
-### UI Admin (`claude/ui-admin/commitment-pooling`): PRD-725 (historical labels PRD-676/677/679 admin half)
+### UI Admin (`feature/commitment-pooling-admin-ui`): PRD-725 (historical labels PRD-676/677/679 admin half)
 
 - [ ] Admin tasks only; AdminDialog anatomy (side sheets retired); i18n; Storybook coverage
 - [ ] Add viewer-authorized series grouping and Story context without steward mutation of another
@@ -2044,14 +2074,14 @@ Machine-lane ownership mirrors `status.json`: Codex owns `contracts`, `state_api
 - [ ] Record RED/GREEN proof or a proof-limit note
 - [ ] Write `handoffs/claude-ui-admin.md`
 
-### Editorial (`claude/editorial/commitment-pooling`): PRD-726 (historical label PRD-678)
+### Editorial (`feature/commitment-pooling-editorial`): PRD-726 (historical label PRD-678)
 
 - [ ] Public surfaces only; aggregate-only data; small-community thresholds
 - [ ] Ongoing-Offer copy remains pool-level and evidence-labelled; no personal saved Offer
   metadata, series Story, inferred participants, reliability language, or cross-pool identity
 - [ ] Write `handoffs/claude-editorial.md`
 
-### Post-QA documentation polish (`claude/docs/commitment-pooling`): PRD-727 (historical labels PRD-680/681)
+### Post-QA documentation polish (`docs/commitment-pooling`): PRD-727 (historical labels PRD-680/681)
 
 - [ ] Start only after QA Pass 1; reconcile architecture, glossary, task guides, screenshots,
       accessible names, translations, recovery states, and planned/live claims
@@ -2060,21 +2090,21 @@ Machine-lane ownership mirrors `status.json`: Codex owns `contracts`, `state_api
 - [ ] Glossary anchors preserved; docs build and vocab lint green
 - [ ] Write `handoffs/claude-docs.md`
 
-### Walkthrough videos (`claude/walkthrough-videos/commitment-pooling`): PRD-728
+### Walkthrough videos (`docs/commitment-pooling-walkthrough-videos`): PRD-728
 
 - [ ] Start only after QA Pass 2 and PRD-727 completion
 - [ ] Record final client PWA, admin, editorial, gardener, Garden Steward, evaluator, and operations
       walkthroughs with captions/transcripts, privacy review, source SHA, and final path replay
 - [ ] Write `handoffs/claude-walkthrough-videos.md`
 
-### QA Pass 1 (`claude/qa-pass-1/commitment-pooling`)
+### QA Pass 1 (`test/commitment-pooling-qa-pass-1`)
 
 - [ ] Review UI behavior and user flows through the authenticated Brave QA profile
 - [ ] Verify acceptance criteria against the specs; offline queue proof via mockAuth
 - [ ] Confirm required execution sub-lane handoffs exist, including settlement exit-proof evidence or an explicit proof-limit note
 - [ ] Write `handoffs/claude-qa-pass-1.md`
 
-### QA Pass 2 (`codex/qa-pass-2/commitment-pooling`)
+### QA Pass 2 (`test/commitment-pooling-qa-pass-2`)
 
 - [ ] Review implementation edges and regressions per lane acceptance criteria
 - [ ] Run targeted validation commands

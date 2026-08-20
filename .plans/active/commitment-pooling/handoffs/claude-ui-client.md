@@ -5,7 +5,7 @@
 - Execution sub-lane: ui_client
 - Machine lane: ui
 - Owner: Claude
-- Branch signal: claude/ui-client/commitment-pooling
+- Branch signal: feature/commitment-pooling-client-ui
 - Current state: prototype/journey review may continue; implementation waits for state_api,
   verified non-value deployment/indexer output, and the existing admin/UI foundation cleanup
 - Linear context: PRD-724 (client UI lane) under parent PRD-650

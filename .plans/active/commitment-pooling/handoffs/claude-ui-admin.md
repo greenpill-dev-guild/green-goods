@@ -5,7 +5,7 @@
 - Execution sub-lane: ui_admin
 - Machine lane: ui
 - Owner: Claude
-- Branch signal: claude/ui-admin/commitment-pooling
+- Branch signal: feature/commitment-pooling-admin-ui
 - Current state: prototype/journey review may continue; feature implementation waits for core
   state_api, verified non-value deployment/indexer output, and completion of the scoped existing
   admin-console fixes and polish led by PRD-737; settlement controls wait for settlement selectors

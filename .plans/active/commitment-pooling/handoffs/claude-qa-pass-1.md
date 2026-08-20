@@ -4,7 +4,7 @@
 
 - Machine lane: qa_pass_1
 - Owner: Claude
-- Branch signal: claude/qa-pass-1/commitment-pooling
+- Branch signal: test/commitment-pooling-qa-pass-1
 - Current state: manually blocked
 - Linear context: PRD-729 (QA pass 1 lane) under parent PRD-650. Register #37 reversed the earlier no-QA-child rule.
 

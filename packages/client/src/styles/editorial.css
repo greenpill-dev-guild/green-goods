@@ -252,13 +252,10 @@
    * the children you want to cascade — typically the section's content grid
    * or its `<header>`.
    *
-   * Cadence note — 80ms intra-cascade delay is intentionally slower than
-   * the dialog body stagger's 70ms (`.public-garden-dialog-stagger` below).
-   * The dialog opens in response to a deliberate click and benefits from a
-   * tighter, more responsive unfold. Editorial reveals fire on scroll —
-   * ambient, not user-triggered — so an extra 10ms reads as more cinematic
-   * and less rushed. Don't unify these unless one of the surfaces' contexts
-   * changes.
+   * Cadence note — 80ms is deliberately unhurried. Editorial reveals fire on
+   * scroll: ambient, not user-triggered, so the extra breathing room reads as
+   * cinematic rather than sluggish. Tighten it only for motion a reader
+   * actually asked for with a click.
    *
    * Child-count cap — if a cascade wrapper grows past 6 direct children,
    * the `nth-child(n + 7)` fallback bunches everything 7+ at 480ms delay.
@@ -295,156 +292,6 @@
   }
   [data-revealed="true"] .editorial-cascade > *:nth-child(n + 7) {
     animation-delay: 480ms;
-  }
-
-  /*
-   * Public Garden dialog — Radix Dialog rendered as a modal route over the
-   * Gardens index. The hero image inside carries a per-garden
-   * `view-transition-name` matching the clicked card; PublicGardenCard
-   * suppresses its own name on the active card so the API can pair card →
-   * dialog hero into a single morphing element. Mobile = full-screen, desktop
-   * = centered modal sitting above an overlay-blurred index.
-   */
-  .public-garden-dialog-overlay {
-    position: fixed;
-    inset: 0;
-    z-index: 50;
-    background-color: var(--color-overlay, rgba(0, 0, 0, 0.45));
-    backdrop-filter: blur(var(--blur-material-thick, 18px));
-    -webkit-backdrop-filter: blur(var(--blur-material-thick, 18px));
-    animation-duration: var(--spring-effects-fast-duration, 150ms);
-    animation-timing-function: var(--spring-effects-fast-easing, ease-out);
-  }
-
-  .public-garden-dialog-overlay[data-state="open"] {
-    animation-name: public-install-overlay-in;
-  }
-
-  .public-garden-dialog-overlay[data-state="closed"] {
-    animation-name: public-install-overlay-out;
-  }
-
-  .public-garden-dialog {
-    position: fixed;
-    inset: 0;
-    z-index: 60;
-    display: flex;
-    flex-direction: column;
-    background-color: var(--color-bg-white-0, #fff);
-    overflow-y: auto;
-    outline: none;
-  }
-
-  @media (min-width: 768px) {
-    .public-garden-dialog {
-      inset: auto;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      width: min(calc(100vw - 4rem), 56rem);
-      max-height: calc(100vh - 4rem);
-      overflow: hidden;
-      box-shadow: var(--shadow-editorial-panel, 0 24px 64px rgba(0, 0, 0, 0.18));
-    }
-
-    .public-garden-dialog-body {
-      overflow-y: auto;
-      flex: 1;
-    }
-  }
-
-  /*
-   * Body stagger — each top-level child of `.public-garden-dialog-stagger`
-   * fades up after the card → dialog hero morph has time to settle. The
-   * leading 200ms delay keeps the first body block from racing the morph;
-   * subsequent children land 70ms apart so the eye reads top-to-bottom.
-   * `both` fill so the children stay invisible during their delay window
-   * (otherwise React renders them at full opacity for a frame before the
-   * animation kicks in — the stutter Afo flagged).
-   *
-   * Cadence note — 70ms is intentionally tighter than the editorial scroll
-   * cascade's 80ms (`.editorial-cascade` above). The dialog opens in
-   * response to a deliberate click; a snappier unfold reads as responsive
-   * to the user's action. The scroll cascade is ambient, so 80ms reads as
-   * more cinematic. Don't unify unless the trigger context changes.
-   *
-   * Belt-and-braces: also default the children to `opacity: 0` regardless
-   * of whether the `[data-state="open"]` parent selector has matched yet.
-   * Without this, there's a one-frame race where Radix attaches
-   * `data-state="open"` and the matching animation rule applies, but the
-   * browser may have already painted the children at default opacity 1.
-   * The reduced-motion block below restores `opacity: 1 !important`.
-   */
-  .public-garden-dialog-stagger > * {
-    opacity: 0;
-  }
-
-  .public-garden-dialog[data-state="open"] .public-garden-dialog-stagger > * {
-    animation: editorial-fade-up var(--spring-spatial-duration, 300ms)
-      var(--spring-spatial-easing, ease-out) both;
-  }
-  .public-garden-dialog[data-state="open"] .public-garden-dialog-stagger > *:nth-child(1) {
-    animation-delay: 200ms;
-  }
-  .public-garden-dialog[data-state="open"] .public-garden-dialog-stagger > *:nth-child(2) {
-    animation-delay: 270ms;
-  }
-  .public-garden-dialog[data-state="open"] .public-garden-dialog-stagger > *:nth-child(3) {
-    animation-delay: 340ms;
-  }
-  .public-garden-dialog[data-state="open"] .public-garden-dialog-stagger > *:nth-child(4) {
-    animation-delay: 410ms;
-  }
-  .public-garden-dialog[data-state="open"] .public-garden-dialog-stagger > *:nth-child(5) {
-    animation-delay: 480ms;
-  }
-  .public-garden-dialog[data-state="open"] .public-garden-dialog-stagger > *:nth-child(6) {
-    animation-delay: 550ms;
-  }
-  .public-garden-dialog[data-state="open"] .public-garden-dialog-stagger > *:nth-child(n + 7) {
-    animation-delay: 620ms;
-  }
-
-  /*
-   * Close choreography — driven by GardenDialog setting `data-closing="true"`
-   * on the Content while we wait for body content to evacuate before
-   * navigating (route change + reverse view-transition). Reverses stagger
-   * direction (bottom-up) so the action row leaves first and the title
-   * settles out last; faster cadence (50ms) and shorter per-child duration
-   * (180ms via `--spring-effects-fast-duration`) so the close reads as
-   * snappier than the deliberate open. Same specificity as the open rules
-   * above — these MUST stay below them so cascade order applies.
-   *
-   * Worst-case total = `:nth-last-child(n+7)` delay + duration =
-   * 300 + 180 = 480ms. `CLOSE_STAGGER_DURATION_MS` in `GardenDialog.tsx`
-   * mirrors that and must stay in sync.
-   */
-  .public-garden-dialog[data-closing="true"] .public-garden-dialog-stagger > * {
-    animation: editorial-fade-down var(--spring-effects-fast-duration, 180ms)
-      var(--spring-effects-fast-easing, ease-in) both;
-  }
-  .public-garden-dialog[data-closing="true"] .public-garden-dialog-stagger > *:nth-last-child(1) {
-    animation-delay: 0ms;
-  }
-  .public-garden-dialog[data-closing="true"] .public-garden-dialog-stagger > *:nth-last-child(2) {
-    animation-delay: 50ms;
-  }
-  .public-garden-dialog[data-closing="true"] .public-garden-dialog-stagger > *:nth-last-child(3) {
-    animation-delay: 100ms;
-  }
-  .public-garden-dialog[data-closing="true"] .public-garden-dialog-stagger > *:nth-last-child(4) {
-    animation-delay: 150ms;
-  }
-  .public-garden-dialog[data-closing="true"] .public-garden-dialog-stagger > *:nth-last-child(5) {
-    animation-delay: 200ms;
-  }
-  .public-garden-dialog[data-closing="true"] .public-garden-dialog-stagger > *:nth-last-child(6) {
-    animation-delay: 250ms;
-  }
-  .public-garden-dialog[data-closing="true"]
-    .public-garden-dialog-stagger
-    > *:nth-last-child(n + 7) {
-    animation-delay: 300ms;
   }
 
   /*
@@ -568,8 +415,7 @@
     .vault-manage-overlay[data-motion-state],
     .vault-manage-panel[data-motion-state],
     .public-install-overlay[data-state],
-    .public-install-sheet[data-state],
-    .public-garden-dialog-overlay[data-state] {
+    .public-install-sheet[data-state] {
       animation: none;
       opacity: 1;
       transform: none;
@@ -588,12 +434,6 @@
       transform: none !important;
     }
 
-    .public-garden-dialog .public-garden-dialog-stagger > * {
-      animation: none !important;
-      opacity: 1 !important;
-      transform: none !important;
-    }
-
     .public-install-sheet {
       translate: -50% 0;
       scale: 1;
@@ -605,4 +445,173 @@
       }
     }
   }
+}
+
+/* ============================================================================
+ * Image viewer — editorial dialect
+ *
+ * The shared ImagePreviewDialog arrives in the installed-app dialect: filled
+ * round buttons and gradient bars floating over a full-bleed photo. Passing
+ * `variant="editorial"` strips that chrome and hands the dressing to the rules
+ * below, so the public site's viewer reads like PublicSourceDialog — a centred
+ * square-cornered panel on a light scrim — rather than a phone gallery.
+ *
+ * It lives here rather than on the component because Tailwind does not scan
+ * packages/shared/src from this build, and because the editorial tokens it
+ * needs (--shadow-editorial-panel, --color-editorial-warm) are defined in this
+ * file. Surfaces dress their own chrome.
+ * ============================================================================ */
+
+[data-component="ImagePreviewDialog"][data-variant="editorial"][data-slot="overlay"] {
+  background: rgb(var(--static-black) / 0.4);
+}
+
+[data-component="ImagePreviewDialog"][data-variant="editorial"][data-slot="content"] {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+[data-component="ImagePreviewDialog"][data-variant="editorial"] [data-slot="panel"] {
+  position: relative;
+  display: flex;
+  width: 100%;
+  max-height: 92vh;
+  flex-direction: column;
+  /* Bottom sheet on mobile, matching PublicRecordDrawer's rounded top. */
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  background: var(--color-bg-white-0);
+  padding: 1.25rem;
+  box-shadow: var(--shadow-editorial-panel);
+}
+
+@media (min-width: 640px) {
+  [data-component="ImagePreviewDialog"][data-variant="editorial"][data-slot="content"] {
+    align-items: center;
+    padding: 1rem;
+  }
+
+  /* Desktop: a centred panel, square like every other editorial surface. */
+  [data-component="ImagePreviewDialog"][data-variant="editorial"] [data-slot="panel"] {
+    max-width: 46rem;
+    max-height: calc(100vh - 2rem);
+    border-radius: 0;
+    padding: 1.5rem;
+  }
+}
+
+[data-component="ImagePreviewDialog"][data-variant="editorial"] [data-slot="bar"] {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--color-stroke-soft-200);
+}
+
+[data-component="ImagePreviewDialog"][data-variant="editorial"] [data-slot="counter"] {
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--color-text-soft-400);
+}
+
+/* Ghost capsule, matching EditorialGhostButton's anatomy and press motion at
+ * the compact size a toolbar needs. */
+[data-component="ImagePreviewDialog"][data-variant="editorial"] [data-slot="control"] {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 0.4rem;
+  border: 1px solid var(--color-stroke-soft-200);
+  border-radius: var(--radius-full);
+  background: var(--color-bg-white-0);
+  color: var(--color-text-strong-950);
+  transition:
+    background-color var(--spring-spatial-fast),
+    border-color var(--spring-spatial-fast),
+    transform var(--spring-spatial-fast);
+}
+
+[data-component="ImagePreviewDialog"][data-variant="editorial"] [data-slot="control"]:hover {
+  background: var(--color-bg-weak-50);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  [data-component="ImagePreviewDialog"][data-variant="editorial"] [data-slot="control"]:hover {
+    transform: scale(1.02);
+  }
+  [data-component="ImagePreviewDialog"][data-variant="editorial"] [data-slot="control"]:active {
+    transform: scale(0.98);
+  }
+  /* The arrows already carry a centring transform; scaling them would drop it. */
+  [data-component="ImagePreviewDialog"][data-variant="editorial"]
+    [data-slot="control"][data-direction]:hover,
+  [data-component="ImagePreviewDialog"][data-variant="editorial"]
+    [data-slot="control"][data-direction]:active {
+    transform: translateY(-50%);
+  }
+}
+
+[data-component="ImagePreviewDialog"][data-variant="editorial"] [data-slot="control"]:focus-visible {
+  outline: 2px solid var(--color-primary-action);
+  outline-offset: 2px;
+}
+
+[data-component="ImagePreviewDialog"][data-variant="editorial"]
+  [data-slot="control"][data-shape="pill"] {
+  padding: 0.34rem 0.75rem;
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  font-size: 10.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/* Arrows sit over the photo, so they need a surface of their own to stay
+ * legible against whatever the gardener photographed. */
+[data-component="ImagePreviewDialog"][data-variant="editorial"]
+  [data-slot="control"][data-direction] {
+  box-shadow: var(--shadow-editorial-card);
+}
+
+/* Zoom is hidden on narrow viewports — pinch is native there, and the close
+ * pill needs the room. `hidden` alone loses to the slot rule's specificity. */
+@media (max-width: 639px) {
+  [data-component="ImagePreviewDialog"][data-variant="editorial"] [data-optional="desktop"] {
+    display: none;
+  }
+}
+
+/* A definite height, not `flex: 1`. The panel is content-sized, so a flexed
+ * frame has no resolved height for the photo's `max-height: 100%` to measure
+ * against and a portrait photo overflows. Fixing the plate also keeps the panel
+ * the same size whichever way the gardener held the phone. */
+[data-component="ImagePreviewDialog"][data-variant="editorial"] [data-slot="frame"] {
+  height: 58vh;
+  margin-top: 1.25rem;
+  background: var(--color-editorial-warm);
+}
+
+@media (min-width: 640px) {
+  [data-component="ImagePreviewDialog"][data-variant="editorial"] [data-slot="frame"] {
+    height: min(62vh, 34rem);
+  }
+}
+
+[data-component="ImagePreviewDialog"][data-variant="editorial"] [data-slot="filmstrip"] {
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--color-stroke-soft-200);
+}
+
+[data-component="ImagePreviewDialog"][data-variant="editorial"] [data-slot="thumb"] {
+  border: 1px solid var(--color-stroke-soft-200);
+  transition: border-color var(--spring-spatial-fast);
+}
+
+[data-component="ImagePreviewDialog"][data-variant="editorial"] [data-slot="thumb"][data-active="true"] {
+  border-color: var(--color-text-strong-950);
 }

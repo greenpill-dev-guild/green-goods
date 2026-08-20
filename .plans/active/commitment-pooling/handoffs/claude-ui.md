@@ -4,7 +4,7 @@
 
 - Machine lane: ui
 - Owner: Claude
-- Branch signal: claude/ui/commitment-pooling
+- Branch signal: feature/commitment-pooling-ui
 - Current state: prototype/spec review may continue; runtime implementation is blocked
 - Linear context: this machine lane aggregates PRD-724 (client UI), PRD-725 (admin UI), and PRD-726 (editorial). PRD-727 is post-QA documentation polish, PRD-728 is post-certification walkthrough video, and PRD-682 is September Community context.
 

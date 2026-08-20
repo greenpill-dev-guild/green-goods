@@ -14,7 +14,7 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { createElement } from "react";
 import { IntlProvider } from "react-intl";
-import { Link, MemoryRouter, Route, Routes } from "react-router-dom";
+import { Link, MemoryRouter, Route, Routes, useNavigate } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // --- Mocks ---
@@ -80,19 +80,27 @@ const FundContent = () =>
     createElement(Link, { to: "/gardens" }, "Open gardens"),
     createElement(Link, { to: "/fund?manage=endowments" }, "Open endowments")
   );
-const GardensContent = () =>
-  createElement("div", { "data-testid": "gardens-content" }, "Gardens Page Content");
+const GardensContent = () => {
+  const navigate = useNavigate();
+  return createElement(
+    "div",
+    { "data-testid": "gardens-content" },
+    "Gardens Page Content",
+    createElement("button", { type: "button", onClick: () => navigate(-1) }, "Go back")
+  );
+};
 const VaultsContent = () =>
   createElement("div", { "data-testid": "vaults-content" }, "Vaults Page Content");
 
-function renderShellWithRoute(initialRoute: string) {
+function renderShellWithRoute(initialRoute: string, priorEntries: string[] = []) {
+  const entries = [...priorEntries, initialRoute];
   return render(
     createElement(
       "div",
       { id: "client-scroll-root" },
       createElement(
         MemoryRouter,
-        { initialEntries: [initialRoute] },
+        { initialEntries: entries, initialIndex: entries.length - 1 },
         createElement(
           IntlProvider,
           { locale: "en", messages },
@@ -175,6 +183,50 @@ describe("PublicShell", () => {
     fireEvent.click(screen.getByRole("link", { name: "Open gardens" }));
 
     expect(screen.getByTestId("gardens-content")).toBeInTheDocument();
+    expect(scrollRoot!.scrollTop).toBe(0);
+  });
+
+  it("restores the public scroll container on back navigation", () => {
+    // <ScrollRestoration> restores `window`; this shell scrolls
+    // `#client-scroll-root`, so it has to bank and restore that itself. Before
+    // `/gardens/:id` became a route, going back to the archive cost nothing
+    // because the grid never unmounted. Now a reader who opened a Garden from
+    // deep in the list has to come back to where they were.
+    renderShellWithRoute("/fund");
+
+    const scrollRoot = document.getElementById("client-scroll-root");
+    expect(scrollRoot).toBeInTheDocument();
+
+    scrollRoot!.scrollTop = 1850;
+    fireEvent.scroll(scrollRoot!);
+
+    fireEvent.click(screen.getByRole("link", { name: "Open gardens" }));
+    expect(screen.getByTestId("gardens-content")).toBeInTheDocument();
+    // Forward navigation still starts at the top.
+    expect(scrollRoot!.scrollTop).toBe(0);
+
+    fireEvent.click(screen.getByRole("button", { name: "Go back" }));
+
+    expect(screen.getByTestId("fund-content")).toBeInTheDocument();
+    expect(scrollRoot!.scrollTop).toBe(1850);
+  });
+
+  it("resets to the top on back navigation with no banked position", () => {
+    // A hard reload mid-history, or a shell remount, leaves the map empty for
+    // an entry the reader can still go Back to. Keeping the outgoing route's
+    // offset would drop them into the middle of a page they have not seen.
+    // /fund is already in history but was never visited in this mount, so
+    // nothing is banked for it — exactly the state after a hard reload.
+    renderShellWithRoute("/gardens", ["/fund"]);
+
+    const scrollRoot = document.getElementById("client-scroll-root");
+    expect(scrollRoot).toBeInTheDocument();
+
+    scrollRoot!.scrollTop = 900;
+    fireEvent.scroll(scrollRoot!);
+    fireEvent.click(screen.getByRole("button", { name: "Go back" }));
+
+    expect(screen.getByTestId("fund-content")).toBeInTheDocument();
     expect(scrollRoot!.scrollTop).toBe(0);
   });
 

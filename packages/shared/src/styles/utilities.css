@@ -570,3 +570,124 @@
     border-bottom-right-radius: var(--radius-lg);
   }
 }
+
+/* ── Image preview: constraints the utilities can't carry ──
+ * Same scan gap as the dialog radius above. `max-w-full max-h-full` on the
+ * photo and `left-4` on the previous-image arrow are authored in shared JSX and
+ * therefore never generate in the admin or client bundle — the first measured
+ * as `max-height: none`, which let a 1422px portrait render at natural size
+ * inside a 683px frame and clip.
+ *
+ * Only surface-neutral rules live here. The public site's editorial dressing
+ * for `data-variant="editorial"` lives in the client's own editorial.css,
+ * beside the tokens it uses. */
+[data-component="ImagePreviewDialog"] [data-slot="frame"] img {
+  max-width: 100%;
+  max-height: 100%;
+}
+
+[data-component="ImagePreviewDialog"] [data-direction] {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+}
+[data-component="ImagePreviewDialog"] [data-direction="prev"] {
+  left: 1rem;
+}
+[data-component="ImagePreviewDialog"] [data-direction="next"] {
+  right: 1rem;
+}
+
+/* The installed-app dialect: filled round controls floating over a full-bleed
+ * photo. Written here for the same reason as the rules above — measured in the
+ * built bundles, `sm:flex` and `object-contain` were absent from admin, so the
+ * Hub's evidence viewer had permanently hidden zoom controls and stretched
+ * every photo out of aspect. `btn-icon` and `tap-feedback` stay on the JSX;
+ * they are real CSS in this file already. */
+[data-component="ImagePreviewDialog"][data-variant="app"] [data-slot="panel"] {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  max-width: 56rem;
+  margin: 1rem;
+}
+
+[data-component="ImagePreviewDialog"][data-variant="app"] [data-slot="bar"] {
+  position: absolute;
+  inset: 0 0 auto 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem;
+  background: linear-gradient(to bottom, rgb(var(--static-black) / 0.5), transparent);
+}
+
+[data-component="ImagePreviewDialog"][data-variant="app"] [data-slot="frame"] {
+  height: 100%;
+  border: 1px solid rgb(var(--static-white) / 0.1);
+  border-radius: var(--radius-lg);
+}
+
+[data-component="ImagePreviewDialog"][data-variant="app"] [data-slot="filmstrip"] {
+  position: absolute;
+  inset: auto 0 0 0;
+  padding: 1rem;
+  background: linear-gradient(to top, rgb(var(--static-black) / 0.5), transparent);
+}
+
+[data-component="ImagePreviewDialog"][data-variant="app"] [data-slot="thumb"] {
+  border: 2px solid rgb(var(--static-white) / 0.3);
+  border-radius: var(--radius-md);
+}
+
+[data-component="ImagePreviewDialog"][data-variant="app"] [data-slot="thumb"][data-active="true"] {
+  border-color: rgb(var(--static-white));
+  box-shadow: var(--shadow-regular-md, 0 4px 12px rgb(var(--static-black) / 0.25));
+  transform: scale(1.1);
+}
+
+/* The translucent fill and white ink were both absent from the built bundles,
+ * so the controls rendered as opaque circles with grey icons instead of the
+ * chrome the design intends. `btn-icon` supplies the box; the palette
+ * belongs here. */
+[data-component="ImagePreviewDialog"][data-variant="app"] [data-slot="control"] {
+  border-radius: var(--radius-full);
+  border-color: rgb(var(--static-white) / 0.25);
+  background: rgb(var(--static-white) / 0.12);
+  color: rgb(var(--static-white));
+}
+
+[data-component="ImagePreviewDialog"][data-variant="app"] [data-slot="control"]:hover {
+  background: rgb(var(--static-white) / 0.22);
+}
+
+[data-component="ImagePreviewDialog"][data-variant="app"] [data-slot="control"] svg {
+  color: inherit;
+}
+
+[data-component="ImagePreviewDialog"][data-variant="app"] [data-slot="counter"] {
+  color: rgb(var(--static-white));
+}
+
+[data-component="ImagePreviewDialog"][data-variant="app"] [data-slot="divider"] {
+  border-left: 1px solid rgb(var(--static-white) / 0.2);
+  padding-left: 0.75rem;
+}
+
+/* Zoom is desktop-only in both dialects: pinch is native on touch, and the
+ * close control needs the room at narrow widths. */
+[data-component="ImagePreviewDialog"] [data-optional="desktop"] {
+  display: none;
+}
+
+@media (min-width: 640px) {
+  [data-component="ImagePreviewDialog"] [data-optional="desktop"] {
+    display: inline-flex;
+  }
+}
+
+[data-component="ImagePreviewDialog"] [data-slot="frame"] img {
+  object-fit: contain;
+  user-select: none;
+}

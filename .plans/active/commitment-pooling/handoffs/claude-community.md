@@ -5,7 +5,7 @@
 - Execution sub-lane: community
 - Machine lane: ui
 - Owner: Claude
-- Branch signal: claude/community/commitment-pooling
+- Branch signal: feature/commitment-pooling-community
 - Current state: September follow-up; blocked on August substrate and the Community hub gates
 - Linear context: PRD-682 (Community substrate); lane issues now exist per register #37
 

@@ -1,5 +1,7 @@
 import * as Dialog from "@radix-ui/react-dialog";
 import {
+  RiArrowLeftSLine,
+  RiArrowRightSLine,
   RiCloseLine,
   RiDownloadLine,
   RiFocus3Line,
@@ -16,38 +18,9 @@ import React, {
 } from "react";
 import { cn } from "../../utils/styles/cn";
 import { ImageWithFallback } from "../Display/ImageWithFallback";
+import { defaultLabels, type ImagePreviewDialogLabels } from "./ImagePreviewDialog.labels";
 
-export interface ImagePreviewDialogLabels {
-  dialogLabel: string;
-  title: string;
-  description: string;
-  zoomOut: string;
-  resetZoom: string;
-  zoomIn: string;
-  downloadImage: string;
-  closePreview: string;
-  previousImage: string;
-  nextImage: string;
-  previewAlt: (index: number) => string;
-  thumbnailAlt: (index: number) => string;
-  goToImage: (index: number) => string;
-}
-
-const defaultLabels: ImagePreviewDialogLabels = {
-  dialogLabel: "Image preview",
-  title: "Image preview",
-  description: "Zoom, browse, or download this image.",
-  zoomOut: "Zoom out",
-  resetZoom: "Reset zoom",
-  zoomIn: "Zoom in",
-  downloadImage: "Download image",
-  closePreview: "Close preview",
-  previousImage: "Previous image",
-  nextImage: "Next image",
-  previewAlt: (index) => `Preview ${index}`,
-  thumbnailAlt: (index) => `Thumbnail ${index}`,
-  goToImage: (index) => `Go to image ${index}`,
-};
+export type { ImagePreviewDialogLabels };
 
 export interface ImagePreviewDialogProps {
   isOpen: boolean;
@@ -56,6 +29,13 @@ export interface ImagePreviewDialogProps {
   initialIndex?: number;
   className?: string;
   labels?: Partial<ImagePreviewDialogLabels>;
+  /**
+   * Control chrome. `app` (default) is the installed-PWA dialect: filled round
+   * icon buttons. `editorial` matches the public website's record drawer —
+   * hairline pills with mono uppercase labels. The two surface identities are
+   * deliberately not mixed.
+   */
+  variant?: "app" | "editorial";
 }
 
 export const ImagePreviewDialog: React.FC<ImagePreviewDialogProps> = ({
@@ -65,8 +45,16 @@ export const ImagePreviewDialog: React.FC<ImagePreviewDialogProps> = ({
   initialIndex = 0,
   className,
   labels,
+  variant = "app",
 }) => {
   const resolvedLabels = { ...defaultLabels, ...labels };
+  // The editorial variant carries no utilities of its own: Tailwind does not
+  // scan packages/shared/src from the client build, so classes written here
+  // never generate. Its chrome is dressed from `[data-variant="editorial"]`
+  // rules in the client's editorial.css, beside the tokens it uses.
+  const editorial = variant === "editorial";
+  const iconBtn = editorial ? undefined : "btn-icon tap-feedback";
+  const counter = editorial ? undefined : "text-sm font-medium";
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const [scale, setScale] = useState(1);
   const [position, setPosition] = useState({ x: 0, y: 0 });
@@ -103,10 +91,16 @@ export const ImagePreviewDialog: React.FC<ImagePreviewDialogProps> = ({
     setPosition({ x: 0, y: 0 });
   }, [currentIndex]);
 
-  // Update current index when initialIndex changes
+  // Land on the requested image every time the viewer opens, not only when
+  // `initialIndex` changes. The dialog stays mounted while closed, so paging to
+  // the second photo and reopening the first tile — same `initialIndex` — used
+  // to reopen on the second. Zoom carries over the same way.
   useEffect(() => {
+    if (!isOpen) return;
     setCurrentIndex(initialIndex);
-  }, [initialIndex]);
+    setScale(1);
+    setPosition({ x: 0, y: 0 });
+  }, [isOpen, initialIndex]);
 
   const zoomIn = useCallback(() => {
     setScale((prev) => Math.min(prev + 0.25, 4));
@@ -267,19 +261,26 @@ export const ImagePreviewDialog: React.FC<ImagePreviewDialogProps> = ({
         <Dialog.Overlay
           data-component="ImagePreviewDialog"
           data-slot="overlay"
+          data-variant={variant}
           className={cn("fixed inset-0 z-overlay", className)}
-          style={{ backgroundColor: "var(--color-scrim-obscure)" }}
+          style={editorial ? undefined : { backgroundColor: "var(--color-scrim-obscure)" }}
           data-testid="image-preview-dialog"
         />
         <Dialog.Content
-          className="fixed inset-0 z-modal flex items-center justify-center focus:outline-none"
+          data-component="ImagePreviewDialog"
+          data-slot="content"
+          data-variant={variant}
+          className={cn(
+            "fixed inset-0 z-modal focus:outline-none",
+            !editorial && "flex items-center justify-center"
+          )}
           aria-label={resolvedLabels.dialogLabel}
         >
-          <div className="relative w-full h-full max-w-4xl max-h-4xl m-4">
+          <div data-slot="panel">
             {/* Header Controls */}
-            <div className="absolute top-0 left-0 right-0 z-raised flex items-center justify-between p-4 bg-gradient-to-b from-black/50 to-transparent">
+            <div data-slot="bar">
               <div className="flex items-center gap-2">
-                <span className="text-sm text-white font-medium">
+                <span data-slot="counter" className={counter}>
                   {currentIndex + 1} / {images.length}
                 </span>
               </div>
@@ -289,7 +290,9 @@ export const ImagePreviewDialog: React.FC<ImagePreviewDialogProps> = ({
                     stays on-screen at narrow widths. */}
                 <button
                   onClick={zoomOut}
-                  className="hidden sm:flex btn-icon bg-bg-white-0/10 tap-feedback text-white rounded-full"
+                  data-slot="control"
+                  data-optional="desktop"
+                  className={iconBtn}
                   aria-label={resolvedLabels.zoomOut}
                   type="button"
                 >
@@ -297,7 +300,9 @@ export const ImagePreviewDialog: React.FC<ImagePreviewDialogProps> = ({
                 </button>
                 <button
                   onClick={resetZoom}
-                  className="hidden sm:flex btn-icon bg-bg-white-0/10 tap-feedback text-white rounded-full"
+                  data-slot="control"
+                  data-optional="desktop"
+                  className={iconBtn}
                   aria-label={resolvedLabels.resetZoom}
                   type="button"
                 >
@@ -305,7 +310,9 @@ export const ImagePreviewDialog: React.FC<ImagePreviewDialogProps> = ({
                 </button>
                 <button
                   onClick={zoomIn}
-                  className="hidden sm:flex btn-icon bg-bg-white-0/10 tap-feedback text-white rounded-full"
+                  data-slot="control"
+                  data-optional="desktop"
+                  className={iconBtn}
                   aria-label={resolvedLabels.zoomIn}
                   type="button"
                 >
@@ -315,7 +322,8 @@ export const ImagePreviewDialog: React.FC<ImagePreviewDialogProps> = ({
                 {/* Download Button */}
                 <button
                   onClick={handleDownload}
-                  className="btn-icon bg-bg-white-0/10 tap-feedback text-white rounded-full sm:ml-2"
+                  data-slot="control"
+                  className={iconBtn}
                   aria-label={resolvedLabels.downloadImage}
                   type="button"
                   data-testid="image-preview-download"
@@ -324,15 +332,18 @@ export const ImagePreviewDialog: React.FC<ImagePreviewDialogProps> = ({
                 </button>
 
                 {/* Close Button — separated visually from zoom/download cluster */}
-                <span className="ml-3 pl-3 border-l border-white/20 flex items-center">
+                <span data-slot="divider" className="ml-3 flex items-center">
                   <Dialog.Close asChild>
                     <button
-                      className="btn-icon bg-bg-white-0/20 hover:bg-bg-white-0/30 tap-feedback text-white rounded-full"
+                      data-slot="control"
+                      data-shape={editorial ? "pill" : undefined}
+                      className={editorial ? undefined : "btn-icon tap-feedback"}
                       aria-label={resolvedLabels.closePreview}
                       data-testid="image-preview-close"
                       type="button"
                     >
-                      <RiCloseLine className="w-6 h-6" />
+                      <RiCloseLine className={editorial ? "h-3.5 w-3.5" : "w-6 h-6"} />
+                      {editorial ? resolvedLabels.close : null}
                     </button>
                   </Dialog.Close>
                 </span>
@@ -349,7 +360,8 @@ export const ImagePreviewDialog: React.FC<ImagePreviewDialogProps> = ({
             <div
               ref={imageRef}
               role="application"
-              className="relative w-full h-full flex items-center justify-center overflow-hidden rounded-xl border border-white/10"
+              data-slot="frame"
+              className="relative flex w-full items-center justify-center overflow-hidden"
               onWheel={handleWheel}
               onTouchStart={handleTouchStart}
               onTouchMove={handleTouchMove}
@@ -363,7 +375,7 @@ export const ImagePreviewDialog: React.FC<ImagePreviewDialogProps> = ({
               <ImageWithFallback
                 src={images[currentIndex]}
                 alt={resolvedLabels.previewAlt(currentIndex + 1)}
-                className="max-w-full max-h-full object-contain select-none"
+                className="max-w-full max-h-full"
                 fallbackClassName="w-64 h-64"
                 decoding="async"
                 style={{
@@ -373,63 +385,50 @@ export const ImagePreviewDialog: React.FC<ImagePreviewDialogProps> = ({
                 }}
                 draggable={false}
               />
+
+              {/* Navigation Arrows */}
+              {images.length > 1 && (
+                <>
+                  {currentIndex > 0 && (
+                    <button
+                      onClick={navigatePrev}
+                      data-slot="control"
+                      data-direction="prev"
+                      className={iconBtn}
+                      aria-label={resolvedLabels.previousImage}
+                      type="button"
+                    >
+                      <RiArrowLeftSLine className="w-6 h-6" />
+                    </button>
+                  )}
+
+                  {currentIndex < images.length - 1 && (
+                    <button
+                      onClick={navigateNext}
+                      data-slot="control"
+                      data-direction="next"
+                      className={iconBtn}
+                      aria-label={resolvedLabels.nextImage}
+                      type="button"
+                    >
+                      <RiArrowRightSLine className="w-6 h-6" />
+                    </button>
+                  )}
+                </>
+              )}
             </div>
-
-            {/* Navigation Arrows */}
-            {images.length > 1 && (
-              <>
-                {currentIndex > 0 && (
-                  <button
-                    onClick={navigatePrev}
-                    className="absolute left-4 top-1/2 -translate-y-1/2 btn-icon bg-bg-white-0/10 tap-feedback text-white rounded-full"
-                    aria-label={resolvedLabels.previousImage}
-                    type="button"
-                  >
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M15 19l-7-7 7-7"
-                      />
-                    </svg>
-                  </button>
-                )}
-
-                {currentIndex < images.length - 1 && (
-                  <button
-                    onClick={navigateNext}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 btn-icon bg-bg-white-0/10 tap-feedback text-white rounded-full"
-                    aria-label={resolvedLabels.nextImage}
-                    type="button"
-                  >
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M9 5l7 7-7 7"
-                      />
-                    </svg>
-                  </button>
-                )}
-              </>
-            )}
 
             {/* Thumbnail Navigation */}
             {images.length > 1 && (
-              <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/50 to-transparent">
+              <div data-slot="filmstrip">
                 <div className="flex items-center justify-center gap-2 overflow-x-auto pb-2">
                   {images.map((image, index) => (
                     <button
                       key={index}
                       onClick={() => setCurrentIndex(index)}
-                      className={cn(
-                        "flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 transition-all relative",
-                        index === currentIndex
-                          ? "border-white shadow-lg scale-110"
-                          : "border-white/30 tap-feedback"
-                      )}
+                      data-slot="thumb"
+                      data-active={index === currentIndex}
+                      className="relative w-16 h-16 flex-shrink-0 overflow-hidden transition-all"
                       type="button"
                       aria-label={resolvedLabels.goToImage(index + 1)}
                     >
