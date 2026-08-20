@@ -73,6 +73,10 @@ export function useCommitmentQueueState(viewer?: Address | null): CommitmentQueu
       return all.filter((job) => COMMITMENT_JOB_KINDS.includes(job.kind as never));
     },
     staleTime: Number.POSITIVE_INFINITY,
+    // The event bus is in-process, so a second tab never hears the first one
+    // queue something. Without this it would keep offering an act already
+    // taken, which is the double-enqueue this whole mechanism exists to stop.
+    refetchOnWindowFocus: "always",
   });
 
   const refresh = useCallback(() => {

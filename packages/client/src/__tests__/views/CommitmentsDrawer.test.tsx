@@ -57,6 +57,9 @@ function inbox(overrides: Record<string, unknown> = {}) {
     availability: AVAILABLE,
     isLoading: false,
     isError: false,
+    failedJobCount: 0,
+    failedCommitmentIds: new Set<string>(),
+    queueUnavailable: false,
     refetch: vi.fn(),
     ...overrides,
   };
@@ -188,6 +191,33 @@ describe("CommitmentsDrawer", () => {
 
     expect(screen.getByText("You are helping with this")).toBeInTheDocument();
     expect(screen.queryByText("You offered this")).not.toBeInTheDocument();
+  });
+
+  it("says the queue could not be read rather than showing a short list", () => {
+    // An unreadable queue and an empty one look identical in the data; only
+    // one of them means the member has nothing waiting.
+    mockUseCommitmentsInbox.mockReturnValue(
+      inbox({
+        live: [{ commitment: commitment(), seat: "provider", needsYou: false }],
+        queueUnavailable: true,
+      })
+    );
+
+    render(<CommitmentsDrawer isOpen onClose={() => {}} />);
+    expect(screen.getByText(/this list may be incomplete/i)).toBeInTheDocument();
+  });
+
+  it("names the commitment whose work gave up, not just how many", () => {
+    mockUseCommitmentsInbox.mockReturnValue(
+      inbox({
+        live: [{ commitment: commitment(), seat: "provider", needsYou: false }],
+        failedJobCount: 1,
+        failedCommitmentIds: new Set(["9"]),
+      })
+    );
+
+    render(<CommitmentsDrawer isOpen onClose={() => {}} />);
+    expect(screen.getByText("Didn't send")).toBeInTheDocument();
   });
 
   it("counts acts per tab, and never inventory", () => {

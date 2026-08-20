@@ -38,7 +38,11 @@ export function groupByGarden(
     const poolId = row.commitment.poolId?.toString();
     const garden = (poolId ? gardenByPoolId.get(poolId) : null) ?? null;
     const gardenName = garden?.name ?? null;
-    const key = garden?.address ?? "__unplaced__";
+    // A group is identified by address so two gardens sharing a name stay
+    // apart, but only once it HAS a name. A garden the member cannot see is
+    // unnameable, and keying those by address produced one heading per garden
+    // all reading "Other", sorted among the real ones instead of after them.
+    const key = gardenName ? (garden?.address ?? "__unplaced__") : "__unplaced__";
     const existing = groups.get(key);
     if (existing) {
       existing.rows.push(row);

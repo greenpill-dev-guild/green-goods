@@ -65,6 +65,14 @@ export interface CommitmentsInbox {
    * the count is surfaced here rather than left to be inferred from an absence.
    */
   failedJobCount: number;
+  /** Which commitments those failures belong to, so a row can say so itself. */
+  failedCommitmentIds: ReadonlySet<string>;
+  /**
+   * The queue could not be read at all. Distinct from an empty queue: a surface
+   * that cannot tell them apart reports no failures precisely when it cannot
+   * see any.
+   */
+  queueUnavailable: boolean;
   refetch: ReturnType<typeof useCommitments>["refetch"];
 }
 
@@ -103,7 +111,7 @@ export function useCommitmentsInbox({
   // Read from the queue rather than counted from events: a counter incremented
   // on job:failed never resets, is lost on unmount, and double-counts because
   // Home and the sheet both mount this hook.
-  const { failedCount } = useCommitmentQueueState(viewer);
+  const { failedCount, failedCommitmentIds, isUnavailable } = useCommitmentQueueState(viewer);
   const { commitments } = query;
 
   const partitioned = useMemo(() => {
@@ -140,6 +148,8 @@ export function useCommitmentsInbox({
     isLoading: query.isLoading,
     isError: query.isError,
     failedJobCount: failedCount,
+    failedCommitmentIds,
+    queueUnavailable: isUnavailable,
     refetch: query.refetch,
   };
 }

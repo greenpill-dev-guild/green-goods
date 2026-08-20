@@ -8,6 +8,8 @@ export interface CommitmentRowProps {
   row: InboxCommitment;
   /** The commitment's own name, once its metadata has resolved. */
   title?: string | null;
+  /** This one's work gave up trying to send, so the row says so itself. */
+  sendFailed?: boolean;
   /** Given a destination, the row becomes the way into the commitment. */
   onOpen?: (commitmentId: bigint) => void;
 }
@@ -20,7 +22,7 @@ export interface CommitmentRowProps {
  * count, which the spec already requires to stay in exact labels and never be
  * added across unlike units.
  */
-export function CommitmentRow({ row, title, onOpen }: CommitmentRowProps) {
+export function CommitmentRow({ row, title, sendFailed, onOpen }: CommitmentRowProps) {
   const { formatMessage } = useIntl();
   const { commitment, seat, needsYou } = row;
   const state = presentState(commitment.derivedState);
@@ -91,7 +93,11 @@ export function CommitmentRow({ row, title, onOpen }: CommitmentRowProps) {
         <StatusBadge size="sm" variant={state.tone}>
           {formatMessage({ id: state.labelId })}
         </StatusBadge>
-        {needsYou ? (
+        {sendFailed ? (
+          <span className="text-[10px] font-medium uppercase tracking-wide text-error-base">
+            {formatMessage({ id: "app.commitments.row.sendFailed" })}
+          </span>
+        ) : needsYou ? (
           <span className="text-[10px] font-medium uppercase tracking-wide text-warning-base">
             {formatMessage({ id: "app.commitments.row.needsYou" })}
           </span>

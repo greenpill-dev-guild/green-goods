@@ -70,6 +70,12 @@ export function LiveTab({ inbox, pools, gardens }: LiveTabProps) {
         emptyDescriptionId: "app.commitments.live.emptyDescription",
       }}
     >
+      {inbox.queueUnavailable ? (
+        <Alert variant="warning" className="p-3">
+          {formatMessage({ id: "app.commitments.queueUnreadable" })}
+        </Alert>
+      ) : null}
+
       {inbox.failedJobCount > 0 ? (
         <Alert variant="error" className="p-3">
           {formatMessage({ id: "app.commitments.sendFailed" }, { count: inbox.failedJobCount })}
@@ -131,6 +137,7 @@ export function LiveTab({ inbox, pools, gardens }: LiveTabProps) {
                       ? (byCID.get(row.commitment.metadataCID)?.title ?? null)
                       : null
                   }
+                  sendFailed={inbox.failedCommitmentIds.has(row.commitment.commitmentId.toString())}
                 />
               ))}
             </div>
