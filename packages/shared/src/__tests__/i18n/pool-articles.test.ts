@@ -4,26 +4,44 @@ import es from "../../i18n/es.json";
 import pt from "../../i18n/pt.json";
 
 /**
- * PRD-772 — the article preceding "pool" in the coordination status string.
+ * PRD-772 — gender agreement on the loanword "pool".
  *
- * The issue records the QA reporter's expected forms as "la pool" and
- * "a piscina". Only the Spanish half was adopted: a native Portuguese speaker
- * reviewing the fix kept "pool" as the domain term in Portuguese rather than
- * translating it to "piscina", and that reading is authoritative here.
+ * "Pool" is masculine in both Spanish and Portuguese: el pool / los pools,
+ * o pool / os pools. The RAE treats it as a masculine anglicism (and suggests
+ * consorcio / agrupación / grupo as native alternatives), and the financial
+ * sense both catalogs use follows the same pattern — "el pool bancario",
+ * "el pool de liquidez".
  *
- * These two strings have already been changed back and forth once, so they are
- * pinned. If you arrived here from the Linear issue and are about to "fix" the
- * Portuguese to "piscina", that is the loop this test exists to stop — take it
- * up with the reviewer first.
+ * The catalogs used to mix genders: Spanish had three feminine strings against
+ * thirty-three masculine ones, and the Portuguese string was briefly translated
+ * to "piscina" — a swimming pool, not a signal pool. Rather than pin the
+ * individual strings, this scans both catalogs so a new feminine "pool" fails
+ * wherever it is introduced.
  */
-describe("i18n pool articles (PRD-772)", () => {
-  const key = "cockpit.community.coordination.status";
+const FEMININE_ARTICLE_BEFORE_POOL =
+  /\b(la|las|una|unas|esta|estas|de la|a la|da|das|uma|umas|essa|essas)\s+pools?\b/i;
 
-  it("uses the feminine article in Spanish", () => {
-    expect((es as Record<string, string>)[key]).toBe("Estado de la pool");
-  });
+describe("i18n pool gender agreement (PRD-772)", () => {
+  const catalogs: [string, Record<string, string>][] = [
+    ["es", es as Record<string, string>],
+    ["pt", pt as Record<string, string>],
+  ];
 
-  it("keeps the untranslated domain term in Portuguese", () => {
-    expect((pt as Record<string, string>)[key]).toBe("Status do pool");
+  for (const [locale, catalog] of catalogs) {
+    it(`treats "pool" as masculine throughout the ${locale} catalog`, () => {
+      const offenders = Object.entries(catalog)
+        .filter(([, value]) => FEMININE_ARTICLE_BEFORE_POOL.test(value))
+        .map(([key, value]) => `${key}: ${value}`);
+
+      expect(offenders).toEqual([]);
+    });
+  }
+
+  it("does not translate the signal pool as a swimming pool in Portuguese", () => {
+    const offenders = Object.entries(pt as Record<string, string>)
+      .filter(([, value]) => /piscina/i.test(value))
+      .map(([key]) => key);
+
+    expect(offenders).toEqual([]);
   });
 });
