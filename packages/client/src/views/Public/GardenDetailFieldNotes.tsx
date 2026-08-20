@@ -1,5 +1,10 @@
-import { cn, getEASExplorerUrl, type PublicFieldNote } from "@green-goods/shared";
-import { useRef, useState } from "react";
+import {
+  cn,
+  getEASExplorerUrl,
+  ImagePreviewDialog,
+  type PublicFieldNote,
+} from "@green-goods/shared";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { ImageWithFallback } from "@/components/Display";
 import { PublicRecordDrawer } from "@/components/Public/PublicRecordDrawer";
@@ -195,6 +200,91 @@ function FieldNoteTile({
   );
 }
 
+/**
+ * Compact media mosaic for a field note — the same 1 / 2 / 3-up grammar the
+ * evidence cards use on `/impact`, so a note with photos reads as one framed
+ * block rather than a column of full-height images.
+ *
+ * Tiles are buttons: the mosaic is a summary, and the full frame (with zoom
+ * and paging across every photo, not just the three shown) lives in the image
+ * viewer behind a tap.
+ *
+ * A photo whose URL fails drops out and the layout reflows (3 → 2 → 1), so a
+ * dead IPFS link never leaves a tile-shaped hole beside working photos.
+ */
+function NoteMediaMosaic({
+  media,
+  alt,
+  onOpen,
+}: {
+  media: readonly string[];
+  alt: string;
+  onOpen: (index: number) => void;
+}) {
+  const { formatMessage } = useIntl();
+  const [failed, setFailed] = useState<readonly string[]>([]);
+  const valid = useMemo(() => media.filter((url) => !failed.includes(url)), [media, failed]);
+  const handleError = useCallback((url: string) => {
+    setFailed((prev) => (prev.includes(url) ? prev : [...prev, url]));
+  }, []);
+
+  const shown = valid.slice(0, 3);
+  const overflow = valid.length - shown.length;
+
+  if (valid.length === 0) return null;
+
+  const tile = (src: string, index: number, className?: string) => (
+    <button
+      key={src}
+      type="button"
+      onClick={() => onOpen(media.indexOf(src))}
+      aria-label={formatMessage(
+        { id: "public.gardenDetail.notes.viewPhoto", defaultMessage: "View photo {n}" },
+        { n: index + 1 }
+      )}
+      className={cn(
+        "group relative overflow-hidden bg-editorial-warm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action focus-visible:ring-offset-2",
+        className
+      )}
+    >
+      <ImageWithFallback
+        src={src}
+        alt={index === 0 ? alt : ""}
+        loading="lazy"
+        backgroundFallback={<NotePlaceholderTile />}
+        onErrorCallback={() => handleError(src)}
+        className="h-full w-full object-cover transition-transform duration-[var(--spring-effects-slow-duration)] ease-[var(--spring-effects-slow-easing)] group-hover:scale-[1.03]"
+      />
+      {overflow > 0 && index === shown.length - 1 ? (
+        <span className="absolute inset-0 flex items-center justify-center bg-static-black/50 font-mono text-sm text-static-white">
+          {formatMessage(
+            { id: "public.gardenDetail.notes.morePhotos", defaultMessage: "+{count} more" },
+            { count: overflow }
+          )}
+        </span>
+      ) : null}
+    </button>
+  );
+
+  return (
+    <div className="mt-8 aspect-[4/3] w-full overflow-hidden rounded-[var(--radius-md)]">
+      {shown.length === 1 ? (
+        tile(shown[0], 0, "h-full w-full")
+      ) : shown.length === 2 ? (
+        <div className="grid h-full w-full grid-cols-2 gap-px bg-stroke-soft-200">
+          {shown.map((src, i) => tile(src, i, "h-full w-full"))}
+        </div>
+      ) : (
+        <div className="grid h-full w-full grid-cols-2 grid-rows-2 gap-px bg-stroke-soft-200">
+          {tile(shown[0], 0, "row-span-2 h-full w-full")}
+          {tile(shown[1], 1, "h-full w-full")}
+          {tile(shown[2], 2, "h-full w-full")}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function FieldNoteDialog({
   chainId,
   note,
@@ -207,6 +297,26 @@ function FieldNoteDialog({
   const intl = useIntl();
   const { formatMessage } = intl;
   const titleId = "public-garden-detail-note-title";
+  const [viewerIndex, setViewerIndex] = useState<number | null>(null);
+  // The viewer ships English defaults; the public site is translated.
+  const viewerLabels = useMemo(
+    () => ({
+      close: formatMessage({ id: "public.source.close", defaultMessage: "Close" }),
+      closePreview: formatMessage({
+        id: "public.gardenDetail.notes.closePhoto",
+        defaultMessage: "Close photo",
+      }),
+      previousImage: formatMessage({
+        id: "public.gardenDetail.notes.previousPhoto",
+        defaultMessage: "Previous photo",
+      }),
+      nextImage: formatMessage({
+        id: "public.gardenDetail.notes.nextPhoto",
+        defaultMessage: "Next photo",
+      }),
+    }),
+    [formatMessage]
+  );
 
   if (!note) return null;
 
@@ -219,6 +329,7 @@ function FieldNoteDialog({
       open
       onClose={onClose}
       titleId={titleId}
+      dismissOnEscape={viewerIndex === null}
       eyebrow={formatMessage({
         id: "public.gardenDetail.notes.recordHeader",
         defaultMessage: "Field note",
@@ -237,30 +348,14 @@ function FieldNoteDialog({
         <span>{formatNoteDate(intl, note.createdAt)}</span>
       </div>
 
-      {note.media.length > 0 ? (
-        <ul className="mt-8 flex flex-col gap-4">
-          {note.media.map((src) => (
-            <li
-              key={src}
-              className="flex max-h-[40vh] items-center justify-center overflow-hidden rounded-[var(--radius-md)] bg-editorial-warm"
-            >
-              <ImageWithFallback
-                src={src}
-                alt={formatMessage(
-                  {
-                    id: "public.gardenDetail.notes.mediaAlt",
-                    defaultMessage: "Photo logged with {title}",
-                  },
-                  { title }
-                )}
-                loading="lazy"
-                backgroundFallback={<NotePlaceholderTile />}
-                className="max-h-[40vh] w-auto max-w-full object-contain"
-              />
-            </li>
-          ))}
-        </ul>
-      ) : null}
+      <NoteMediaMosaic
+        media={note.media}
+        alt={formatMessage(
+          { id: "public.gardenDetail.notes.mediaAlt", defaultMessage: "Photo logged with {title}" },
+          { title }
+        )}
+        onOpen={setViewerIndex}
+      />
 
       <p
         className={cn(
@@ -288,6 +383,22 @@ function FieldNoteDialog({
           })}
         </a>
       </p>
+
+      <ImagePreviewDialog
+        isOpen={viewerIndex !== null}
+        onClose={() => setViewerIndex(null)}
+        images={[...note.media]}
+        initialIndex={viewerIndex ?? 0}
+        // Its scrim defaults to `z-overlay` (40), which sits under the drawer
+        // at `z-modal` (50), so the drawer showed through beside the photo.
+        // `cn` here does not merge conflicting z utilities — both land on the
+        // element and `z-overlay` wins the cascade — so this has to be
+        // important. The viewer mounts second, so at equal layers it paints on
+        // top of the drawer.
+        className="!z-modal"
+        variant="editorial"
+        labels={viewerLabels}
+      />
     </PublicRecordDrawer>
   );
 }

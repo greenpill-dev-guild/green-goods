@@ -16,38 +16,9 @@ import React, {
 } from "react";
 import { cn } from "../../utils/styles/cn";
 import { ImageWithFallback } from "../Display/ImageWithFallback";
+import { defaultLabels, type ImagePreviewDialogLabels } from "./ImagePreviewDialog.labels";
 
-export interface ImagePreviewDialogLabels {
-  dialogLabel: string;
-  title: string;
-  description: string;
-  zoomOut: string;
-  resetZoom: string;
-  zoomIn: string;
-  downloadImage: string;
-  closePreview: string;
-  previousImage: string;
-  nextImage: string;
-  previewAlt: (index: number) => string;
-  thumbnailAlt: (index: number) => string;
-  goToImage: (index: number) => string;
-}
-
-const defaultLabels: ImagePreviewDialogLabels = {
-  dialogLabel: "Image preview",
-  title: "Image preview",
-  description: "Zoom, browse, or download this image.",
-  zoomOut: "Zoom out",
-  resetZoom: "Reset zoom",
-  zoomIn: "Zoom in",
-  downloadImage: "Download image",
-  closePreview: "Close preview",
-  previousImage: "Previous image",
-  nextImage: "Next image",
-  previewAlt: (index) => `Preview ${index}`,
-  thumbnailAlt: (index) => `Thumbnail ${index}`,
-  goToImage: (index) => `Go to image ${index}`,
-};
+export type { ImagePreviewDialogLabels };
 
 export interface ImagePreviewDialogProps {
   isOpen: boolean;
@@ -56,6 +27,13 @@ export interface ImagePreviewDialogProps {
   initialIndex?: number;
   className?: string;
   labels?: Partial<ImagePreviewDialogLabels>;
+  /**
+   * Control chrome. `app` (default) is the installed-PWA dialect: filled round
+   * icon buttons. `editorial` matches the public website's record drawer —
+   * hairline pills with mono uppercase labels. The two surface identities are
+   * deliberately not mixed.
+   */
+  variant?: "app" | "editorial";
 }
 
 export const ImagePreviewDialog: React.FC<ImagePreviewDialogProps> = ({
@@ -65,8 +43,19 @@ export const ImagePreviewDialog: React.FC<ImagePreviewDialogProps> = ({
   initialIndex = 0,
   className,
   labels,
+  variant = "app",
 }) => {
   const resolvedLabels = { ...defaultLabels, ...labels };
+  // The editorial variant's chrome is styled from `[data-variant="editorial"]`
+  // rules in shared/src/styles/utilities.css, not from utilities here: Tailwind
+  // does not scan packages/shared/src from the client build, so classes written
+  // in this file never generate there.
+  const editorial = variant === "editorial";
+  const iconBtn = editorial ? "" : "btn-icon bg-bg-white-0/10 tap-feedback text-white rounded-full";
+  const headerBar = editorial
+    ? "shrink-0"
+    : "absolute top-0 left-0 right-0 z-raised flex items-center justify-between p-4 bg-gradient-to-b from-black/50 to-transparent";
+  const counter = editorial ? "" : "text-sm text-white font-medium";
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const [scale, setScale] = useState(1);
   const [position, setPosition] = useState({ x: 0, y: 0 });
@@ -272,14 +261,24 @@ export const ImagePreviewDialog: React.FC<ImagePreviewDialogProps> = ({
           data-testid="image-preview-dialog"
         />
         <Dialog.Content
+          data-component="ImagePreviewDialog"
+          data-slot="content"
+          data-variant={variant}
           className="fixed inset-0 z-modal flex items-center justify-center focus:outline-none"
           aria-label={resolvedLabels.dialogLabel}
         >
-          <div className="relative w-full h-full max-w-4xl max-h-4xl m-4">
+          <div
+            className={cn(
+              "relative w-full h-full max-w-4xl",
+              // Editorial stacks bar / photo / filmstrip so the photo always
+              // fits. The app variant keeps its floating chrome.
+              editorial ? "flex flex-col gap-4 p-4 sm:p-6" : "max-h-4xl m-4"
+            )}
+          >
             {/* Header Controls */}
-            <div className="absolute top-0 left-0 right-0 z-raised flex items-center justify-between p-4 bg-gradient-to-b from-black/50 to-transparent">
+            <div data-slot="bar" className={headerBar}>
               <div className="flex items-center gap-2">
-                <span className="text-sm text-white font-medium">
+                <span data-slot="counter" className={counter}>
                   {currentIndex + 1} / {images.length}
                 </span>
               </div>
@@ -289,7 +288,9 @@ export const ImagePreviewDialog: React.FC<ImagePreviewDialogProps> = ({
                     stays on-screen at narrow widths. */}
                 <button
                   onClick={zoomOut}
-                  className="hidden sm:flex btn-icon bg-bg-white-0/10 tap-feedback text-white rounded-full"
+                  data-slot="control"
+                  data-optional="desktop"
+                  className={cn("hidden sm:flex", iconBtn)}
                   aria-label={resolvedLabels.zoomOut}
                   type="button"
                 >
@@ -297,7 +298,9 @@ export const ImagePreviewDialog: React.FC<ImagePreviewDialogProps> = ({
                 </button>
                 <button
                   onClick={resetZoom}
-                  className="hidden sm:flex btn-icon bg-bg-white-0/10 tap-feedback text-white rounded-full"
+                  data-slot="control"
+                  data-optional="desktop"
+                  className={cn("hidden sm:flex", iconBtn)}
                   aria-label={resolvedLabels.resetZoom}
                   type="button"
                 >
@@ -305,7 +308,9 @@ export const ImagePreviewDialog: React.FC<ImagePreviewDialogProps> = ({
                 </button>
                 <button
                   onClick={zoomIn}
-                  className="hidden sm:flex btn-icon bg-bg-white-0/10 tap-feedback text-white rounded-full"
+                  data-slot="control"
+                  data-optional="desktop"
+                  className={cn("hidden sm:flex", iconBtn)}
                   aria-label={resolvedLabels.zoomIn}
                   type="button"
                 >
@@ -315,7 +320,8 @@ export const ImagePreviewDialog: React.FC<ImagePreviewDialogProps> = ({
                 {/* Download Button */}
                 <button
                   onClick={handleDownload}
-                  className="btn-icon bg-bg-white-0/10 tap-feedback text-white rounded-full sm:ml-2"
+                  data-slot="control"
+                  className={cn(iconBtn, "sm:ml-2")}
                   aria-label={resolvedLabels.downloadImage}
                   type="button"
                   data-testid="image-preview-download"
@@ -324,15 +330,27 @@ export const ImagePreviewDialog: React.FC<ImagePreviewDialogProps> = ({
                 </button>
 
                 {/* Close Button — separated visually from zoom/download cluster */}
-                <span className="ml-3 pl-3 border-l border-white/20 flex items-center">
+                <span
+                  className={cn(
+                    "ml-3 flex items-center",
+                    editorial ? "" : "border-l border-white/20 pl-3"
+                  )}
+                >
                   <Dialog.Close asChild>
                     <button
-                      className="btn-icon bg-bg-white-0/20 hover:bg-bg-white-0/30 tap-feedback text-white rounded-full"
+                      data-slot="control"
+                      data-shape={editorial ? "pill" : undefined}
+                      className={
+                        editorial
+                          ? ""
+                          : "btn-icon bg-bg-white-0/20 hover:bg-bg-white-0/30 tap-feedback text-white rounded-full"
+                      }
                       aria-label={resolvedLabels.closePreview}
                       data-testid="image-preview-close"
                       type="button"
                     >
-                      <RiCloseLine className="w-6 h-6" />
+                      <RiCloseLine className={editorial ? "h-3.5 w-3.5" : "w-6 h-6"} />
+                      {editorial ? resolvedLabels.close : null}
                     </button>
                   </Dialog.Close>
                 </span>
@@ -349,7 +367,11 @@ export const ImagePreviewDialog: React.FC<ImagePreviewDialogProps> = ({
             <div
               ref={imageRef}
               role="application"
-              className="relative w-full h-full flex items-center justify-center overflow-hidden rounded-xl border border-white/10"
+              data-slot="frame"
+              className={cn(
+                "relative flex w-full items-center justify-center overflow-hidden",
+                editorial ? "min-h-0 flex-1" : "h-full rounded-xl border border-white/10"
+              )}
               onWheel={handleWheel}
               onTouchStart={handleTouchStart}
               onTouchMove={handleTouchMove}
@@ -381,7 +403,9 @@ export const ImagePreviewDialog: React.FC<ImagePreviewDialogProps> = ({
                 {currentIndex > 0 && (
                   <button
                     onClick={navigatePrev}
-                    className="absolute left-4 top-1/2 -translate-y-1/2 btn-icon bg-bg-white-0/10 tap-feedback text-white rounded-full"
+                    data-slot="control"
+                    data-direction="prev"
+                    className={iconBtn}
                     aria-label={resolvedLabels.previousImage}
                     type="button"
                   >
@@ -399,7 +423,9 @@ export const ImagePreviewDialog: React.FC<ImagePreviewDialogProps> = ({
                 {currentIndex < images.length - 1 && (
                   <button
                     onClick={navigateNext}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 btn-icon bg-bg-white-0/10 tap-feedback text-white rounded-full"
+                    data-slot="control"
+                    data-direction="next"
+                    className={iconBtn}
                     aria-label={resolvedLabels.nextImage}
                     type="button"
                   >
@@ -418,17 +444,28 @@ export const ImagePreviewDialog: React.FC<ImagePreviewDialogProps> = ({
 
             {/* Thumbnail Navigation */}
             {images.length > 1 && (
-              <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/50 to-transparent">
+              <div
+                data-slot="filmstrip"
+                className={cn(
+                  editorial
+                    ? "shrink-0"
+                    : "absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/50 to-transparent"
+                )}
+              >
                 <div className="flex items-center justify-center gap-2 overflow-x-auto pb-2">
                   {images.map((image, index) => (
                     <button
                       key={index}
                       onClick={() => setCurrentIndex(index)}
+                      data-slot="thumb"
+                      data-active={index === currentIndex}
                       className={cn(
-                        "flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 transition-all relative",
-                        index === currentIndex
-                          ? "border-white shadow-lg scale-110"
-                          : "border-white/30 tap-feedback"
+                        "flex-shrink-0 w-16 h-16 overflow-hidden relative",
+                        !editorial && "rounded-lg border-2 transition-all",
+                        !editorial &&
+                          (index === currentIndex
+                            ? "border-white shadow-lg scale-110"
+                            : "border-white/30 tap-feedback")
                       )}
                       type="button"
                       aria-label={resolvedLabels.goToImage(index + 1)}

@@ -10,6 +10,11 @@ export interface PublicRecordDrawerProps {
   eyebrow: ReactNode;
   /** id of the `<h2>` the body renders, for `aria-labelledby`. */
   titleId: string;
+  /**
+   * Set false while a nested dialog (e.g. an image viewer) is open, so Escape
+   * dismisses that one rather than closing the drawer out from under it.
+   */
+  dismissOnEscape?: boolean;
   children: ReactNode;
 }
 
@@ -34,6 +39,7 @@ export function PublicRecordDrawer({
   onClose,
   eyebrow,
   titleId,
+  dismissOnEscape = true,
   children,
 }: PublicRecordDrawerProps) {
   const { formatMessage } = useIntl();
@@ -43,14 +49,14 @@ export function PublicRecordDrawer({
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     const handler = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
+      if (event.key === "Escape" && dismissOnEscape) onClose();
     };
     document.addEventListener("keydown", handler);
     return () => {
       document.body.style.overflow = previousOverflow;
       document.removeEventListener("keydown", handler);
     };
-  }, [open, onClose]);
+  }, [open, onClose, dismissOnEscape]);
 
   if (!open) return null;
 
