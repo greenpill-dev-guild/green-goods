@@ -571,20 +571,16 @@
   }
 }
 
-/* ── Image preview chrome ──
- * Same scan gap as the dialog radius above. The viewer's chrome is authored in
- * shared JSX, so `/opacity` variants, arbitrary values, and even `left-4` never
- * reach the client bundle — the nav offsets below are a live fix, not a
- * precaution.
+/* ── Image preview: constraints the utilities can't carry ──
+ * Same scan gap as the dialog radius above. `max-w-full max-h-full` on the
+ * photo and `left-4` on the previous-image arrow are authored in shared JSX and
+ * therefore never generate in the admin or client bundle — the first measured
+ * as `max-height: none`, which let a 1422px portrait render at natural size
+ * inside a 683px frame and clip.
  *
- * `data-variant="editorial"` is the public site's dialect: hairline pills over
- * the scrim with mono uppercase labels, matching PublicRecordDrawer's header.
- * The default `app` variant keeps the installed-PWA look and stays styled on
- * the component itself. */
-/* `max-w-full max-h-full` on the photo is authored in shared JSX and therefore
- * never generates either — measured as `max-height: none` in the client bundle,
- * which let a portrait photo render at its natural 1422px inside a 683px frame
- * and clip. Both variants need the constraint. */
+ * Only surface-neutral rules live here. The public site's editorial dressing
+ * for `data-variant="editorial"` lives in the client's own editorial.css,
+ * beside the tokens it uses. */
 [data-component="ImagePreviewDialog"] [data-slot="frame"] img {
   max-width: 100%;
   max-height: 100%;
@@ -600,82 +596,4 @@
 }
 [data-component="ImagePreviewDialog"] [data-direction="next"] {
   right: 1rem;
-}
-
-[data-component="ImagePreviewDialog"][data-variant="editorial"] [data-slot="bar"] {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  padding-bottom: 0.875rem;
-  border-bottom: 1px solid rgb(var(--static-white) / 0.16);
-}
-
-[data-component="ImagePreviewDialog"][data-variant="editorial"] [data-slot="counter"] {
-  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
-  font-size: 10.5px;
-  font-weight: 500;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: rgb(var(--static-white) / 0.72);
-}
-
-[data-component="ImagePreviewDialog"][data-variant="editorial"] [data-slot="control"] {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.35rem;
-  padding: 0.4rem;
-  border: 1px solid rgb(var(--static-white) / 0.28);
-  border-radius: var(--radius-full);
-  color: rgb(var(--static-white));
-  transition:
-    background-color var(--spring-spatial-fast),
-    border-color var(--spring-spatial-fast);
-}
-
-[data-component="ImagePreviewDialog"][data-variant="editorial"] [data-slot="control"]:hover {
-  background: rgb(var(--static-white) / 0.12);
-  border-color: rgb(var(--static-white) / 0.5);
-}
-
-[data-component="ImagePreviewDialog"][data-variant="editorial"] [data-slot="control"]:focus-visible {
-  outline: 2px solid rgb(var(--static-white) / 0.7);
-  outline-offset: 2px;
-}
-
-[data-component="ImagePreviewDialog"][data-variant="editorial"] [data-slot="control"][data-shape="pill"] {
-  padding: 0.34rem 0.72rem;
-  border-color: rgb(var(--static-white) / 0.42);
-  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
-  font-size: 10.5px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-
-/* Zoom is hidden on narrow viewports — pinch is native there, and the close
- * pill needs the room. `hidden` alone loses to the slot rule's specificity. */
-@media (max-width: 639px) {
-  [data-component="ImagePreviewDialog"][data-variant="editorial"] [data-optional="desktop"] {
-    display: none;
-  }
-}
-
-[data-component="ImagePreviewDialog"][data-variant="editorial"] [data-slot="frame"] img {
-  border-radius: var(--radius-md);
-}
-
-[data-component="ImagePreviewDialog"][data-variant="editorial"] [data-slot="filmstrip"] {
-  padding-top: 0.875rem;
-  border-top: 1px solid rgb(var(--static-white) / 0.16);
-}
-
-[data-component="ImagePreviewDialog"][data-variant="editorial"] [data-slot="thumb"] {
-  border-radius: var(--radius-md);
-  border: 1px solid rgb(var(--static-white) / 0.28);
-  transition: border-color var(--spring-spatial-fast);
-}
-
-[data-component="ImagePreviewDialog"][data-variant="editorial"] [data-slot="thumb"][data-active="true"] {
-  border-color: rgb(var(--static-white));
 }

@@ -16,7 +16,7 @@ source_of_truth:
 
 Scope: installed-PWA runtime files in `packages/client/src`. Public browser routes, stories, and tests are excluded so the freeze audit stays focused on the protected app surface.
 
-Summary: 315 token references (accent: 68, action: 143, state: 89, contrast-exception: 15, contrast-risk: 0).
+Summary: 316 token references (accent: 68, action: 144, state: 89, contrast-exception: 15, contrast-risk: 0).
 
 Unapproved bright-green text-bearing combinations: 0.
 
@@ -241,6 +241,7 @@ Approved contrast exceptions:
 | `packages/client/src/components/Public/VaultManagePositionsPanel.tsx:917` | `ring-primary-action` | action | <code>className="mt-3 text-xs font-medium text-primary-base underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action"</code> |
 | `packages/client/src/components/Public/VaultManagePositionsPanel.tsx:917` | `text-primary-base` | state | <code>className="mt-3 text-xs font-medium text-primary-base underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action"</code> |
 | `packages/client/src/index.css:93` | `primary-base` | accent | <code>background: rgb(var(--tone-primary, var(--primary-base)) / 0.32);</code> |
+| `packages/client/src/styles/editorial.css:560` | `primary-action` | action | <code>outline: 2px solid var(--color-primary-action);</code> |
 | `packages/client/src/styles/pwaDrawerStyles.ts:39` | `text-primary` | state | <code>"flex min-h-11 items-center justify-center gap-1 px-1.5 py-2.5 text-xs font-medium transition-[color,background-color,border-color,box-shadow,transform] duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)] relative flex-1 min-w-0 tap-feedback sm:min-h-12 sm:gap-2 sm:px-3 sm:py-3 sm:text-label-sm focus:outline-none focus-visible:shadow-button-primary-focus active:text-primary",</code> |
 | `packages/client/src/styles/pwaDrawerStyles.ts:47` | `border-primary` | state | <code>"group rounded-full border border-stroke-soft-200 transition-[color,border-color,background-color,box-shadow,transform] duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)] flex-shrink-0 tap-feedback hover:bg-bg-weak-50 focus:outline-none focus-visible:shadow-button-primary-focus active:border-primary active:scale-95",</code> |
 | `packages/client/src/styles/pwaDrawerStyles.ts:49` | `text-primary` | state | <code>"text-text-soft-400 transition-colors duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)] group-focus-visible:text-primary group-active:text-primary",</code> |

@@ -1,5 +1,7 @@
 import * as Dialog from "@radix-ui/react-dialog";
 import {
+  RiArrowLeftSLine,
+  RiArrowRightSLine,
   RiCloseLine,
   RiDownloadLine,
   RiFocus3Line,
@@ -46,16 +48,18 @@ export const ImagePreviewDialog: React.FC<ImagePreviewDialogProps> = ({
   variant = "app",
 }) => {
   const resolvedLabels = { ...defaultLabels, ...labels };
-  // The editorial variant's chrome is styled from `[data-variant="editorial"]`
-  // rules in shared/src/styles/utilities.css, not from utilities here: Tailwind
-  // does not scan packages/shared/src from the client build, so classes written
-  // in this file never generate there.
+  // The editorial variant carries no utilities of its own: Tailwind does not
+  // scan packages/shared/src from the client build, so classes written here
+  // never generate. Its chrome is dressed from `[data-variant="editorial"]`
+  // rules in the client's editorial.css, beside the tokens it uses.
   const editorial = variant === "editorial";
-  const iconBtn = editorial ? "" : "btn-icon bg-bg-white-0/10 tap-feedback text-white rounded-full";
+  const iconBtn = editorial
+    ? undefined
+    : "btn-icon bg-bg-white-0/10 tap-feedback text-white rounded-full";
   const headerBar = editorial
-    ? "shrink-0"
+    ? undefined
     : "absolute top-0 left-0 right-0 z-raised flex items-center justify-between p-4 bg-gradient-to-b from-black/50 to-transparent";
-  const counter = editorial ? "" : "text-sm text-white font-medium";
+  const counter = editorial ? undefined : "text-sm text-white font-medium";
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const [scale, setScale] = useState(1);
   const [position, setPosition] = useState({ x: 0, y: 0 });
@@ -256,24 +260,24 @@ export const ImagePreviewDialog: React.FC<ImagePreviewDialogProps> = ({
         <Dialog.Overlay
           data-component="ImagePreviewDialog"
           data-slot="overlay"
+          data-variant={variant}
           className={cn("fixed inset-0 z-overlay", className)}
-          style={{ backgroundColor: "var(--color-scrim-obscure)" }}
+          style={editorial ? undefined : { backgroundColor: "var(--color-scrim-obscure)" }}
           data-testid="image-preview-dialog"
         />
         <Dialog.Content
           data-component="ImagePreviewDialog"
           data-slot="content"
           data-variant={variant}
-          className="fixed inset-0 z-modal flex items-center justify-center focus:outline-none"
+          className={cn(
+            "fixed inset-0 z-modal focus:outline-none",
+            !editorial && "flex items-center justify-center"
+          )}
           aria-label={resolvedLabels.dialogLabel}
         >
           <div
-            className={cn(
-              "relative w-full h-full max-w-4xl",
-              // Editorial stacks bar / photo / filmstrip so the photo always
-              // fits. The app variant keeps its floating chrome.
-              editorial ? "flex flex-col gap-4 p-4 sm:p-6" : "max-h-4xl m-4"
-            )}
+            data-slot="panel"
+            className={cn(!editorial && "relative w-full h-full max-w-4xl max-h-4xl m-4")}
           >
             {/* Header Controls */}
             <div data-slot="bar" className={headerBar}>
@@ -342,7 +346,7 @@ export const ImagePreviewDialog: React.FC<ImagePreviewDialogProps> = ({
                       data-shape={editorial ? "pill" : undefined}
                       className={
                         editorial
-                          ? ""
+                          ? undefined
                           : "btn-icon bg-bg-white-0/20 hover:bg-bg-white-0/30 tap-feedback text-white rounded-full"
                       }
                       aria-label={resolvedLabels.closePreview}
@@ -370,7 +374,7 @@ export const ImagePreviewDialog: React.FC<ImagePreviewDialogProps> = ({
               data-slot="frame"
               className={cn(
                 "relative flex w-full items-center justify-center overflow-hidden",
-                editorial ? "min-h-0 flex-1" : "h-full rounded-xl border border-white/10"
+                editorial ? "" : "h-full rounded-xl border border-white/10"
               )}
               onWheel={handleWheel}
               onTouchStart={handleTouchStart}
@@ -395,62 +399,48 @@ export const ImagePreviewDialog: React.FC<ImagePreviewDialogProps> = ({
                 }}
                 draggable={false}
               />
+
+              {/* Navigation Arrows */}
+              {images.length > 1 && (
+                <>
+                  {currentIndex > 0 && (
+                    <button
+                      onClick={navigatePrev}
+                      data-slot="control"
+                      data-direction="prev"
+                      className={iconBtn}
+                      aria-label={resolvedLabels.previousImage}
+                      type="button"
+                    >
+                      <RiArrowLeftSLine className="w-6 h-6" />
+                    </button>
+                  )}
+
+                  {currentIndex < images.length - 1 && (
+                    <button
+                      onClick={navigateNext}
+                      data-slot="control"
+                      data-direction="next"
+                      className={iconBtn}
+                      aria-label={resolvedLabels.nextImage}
+                      type="button"
+                    >
+                      <RiArrowRightSLine className="w-6 h-6" />
+                    </button>
+                  )}
+                </>
+              )}
             </div>
-
-            {/* Navigation Arrows */}
-            {images.length > 1 && (
-              <>
-                {currentIndex > 0 && (
-                  <button
-                    onClick={navigatePrev}
-                    data-slot="control"
-                    data-direction="prev"
-                    className={iconBtn}
-                    aria-label={resolvedLabels.previousImage}
-                    type="button"
-                  >
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M15 19l-7-7 7-7"
-                      />
-                    </svg>
-                  </button>
-                )}
-
-                {currentIndex < images.length - 1 && (
-                  <button
-                    onClick={navigateNext}
-                    data-slot="control"
-                    data-direction="next"
-                    className={iconBtn}
-                    aria-label={resolvedLabels.nextImage}
-                    type="button"
-                  >
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M9 5l7 7-7 7"
-                      />
-                    </svg>
-                  </button>
-                )}
-              </>
-            )}
 
             {/* Thumbnail Navigation */}
             {images.length > 1 && (
               <div
                 data-slot="filmstrip"
-                className={cn(
+                className={
                   editorial
-                    ? "shrink-0"
+                    ? undefined
                     : "absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/50 to-transparent"
-                )}
+                }
               >
                 <div className="flex items-center justify-center gap-2 overflow-x-auto pb-2">
                   {images.map((image, index) => (

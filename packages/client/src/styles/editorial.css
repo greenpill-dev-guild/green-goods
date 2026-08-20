@@ -446,3 +446,172 @@
     }
   }
 }
+
+/* ============================================================================
+ * Image viewer — editorial dialect
+ *
+ * The shared ImagePreviewDialog arrives in the installed-app dialect: filled
+ * round buttons and gradient bars floating over a full-bleed photo. Passing
+ * `variant="editorial"` strips that chrome and hands the dressing to the rules
+ * below, so the public site's viewer reads like PublicSourceDialog — a centred
+ * square-cornered panel on a light scrim — rather than a phone gallery.
+ *
+ * It lives here rather than on the component because Tailwind does not scan
+ * packages/shared/src from this build, and because the editorial tokens it
+ * needs (--shadow-editorial-panel, --color-editorial-warm) are defined in this
+ * file. Surfaces dress their own chrome.
+ * ============================================================================ */
+
+[data-component="ImagePreviewDialog"][data-variant="editorial"][data-slot="overlay"] {
+  background: rgb(var(--static-black) / 0.4);
+}
+
+[data-component="ImagePreviewDialog"][data-variant="editorial"][data-slot="content"] {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+[data-component="ImagePreviewDialog"][data-variant="editorial"] [data-slot="panel"] {
+  position: relative;
+  display: flex;
+  width: 100%;
+  max-height: 92vh;
+  flex-direction: column;
+  /* Bottom sheet on mobile, matching PublicRecordDrawer's rounded top. */
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  background: var(--color-bg-white-0);
+  padding: 1.25rem;
+  box-shadow: var(--shadow-editorial-panel);
+}
+
+@media (min-width: 640px) {
+  [data-component="ImagePreviewDialog"][data-variant="editorial"][data-slot="content"] {
+    align-items: center;
+    padding: 1rem;
+  }
+
+  /* Desktop: a centred panel, square like every other editorial surface. */
+  [data-component="ImagePreviewDialog"][data-variant="editorial"] [data-slot="panel"] {
+    max-width: 46rem;
+    max-height: calc(100vh - 2rem);
+    border-radius: 0;
+    padding: 1.5rem;
+  }
+}
+
+[data-component="ImagePreviewDialog"][data-variant="editorial"] [data-slot="bar"] {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--color-stroke-soft-200);
+}
+
+[data-component="ImagePreviewDialog"][data-variant="editorial"] [data-slot="counter"] {
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--color-text-soft-400);
+}
+
+/* Ghost capsule, matching EditorialGhostButton's anatomy and press motion at
+ * the compact size a toolbar needs. */
+[data-component="ImagePreviewDialog"][data-variant="editorial"] [data-slot="control"] {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 0.4rem;
+  border: 1px solid var(--color-stroke-soft-200);
+  border-radius: var(--radius-full);
+  background: var(--color-bg-white-0);
+  color: var(--color-text-strong-950);
+  transition:
+    background-color var(--spring-spatial-fast),
+    border-color var(--spring-spatial-fast),
+    transform var(--spring-spatial-fast);
+}
+
+[data-component="ImagePreviewDialog"][data-variant="editorial"] [data-slot="control"]:hover {
+  background: var(--color-bg-weak-50);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  [data-component="ImagePreviewDialog"][data-variant="editorial"] [data-slot="control"]:hover {
+    transform: scale(1.02);
+  }
+  [data-component="ImagePreviewDialog"][data-variant="editorial"] [data-slot="control"]:active {
+    transform: scale(0.98);
+  }
+  /* The arrows already carry a centring transform; scaling them would drop it. */
+  [data-component="ImagePreviewDialog"][data-variant="editorial"]
+    [data-slot="control"][data-direction]:hover,
+  [data-component="ImagePreviewDialog"][data-variant="editorial"]
+    [data-slot="control"][data-direction]:active {
+    transform: translateY(-50%);
+  }
+}
+
+[data-component="ImagePreviewDialog"][data-variant="editorial"] [data-slot="control"]:focus-visible {
+  outline: 2px solid var(--color-primary-action);
+  outline-offset: 2px;
+}
+
+[data-component="ImagePreviewDialog"][data-variant="editorial"]
+  [data-slot="control"][data-shape="pill"] {
+  padding: 0.34rem 0.75rem;
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  font-size: 10.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/* Arrows sit over the photo, so they need a surface of their own to stay
+ * legible against whatever the gardener photographed. */
+[data-component="ImagePreviewDialog"][data-variant="editorial"]
+  [data-slot="control"][data-direction] {
+  box-shadow: var(--shadow-editorial-card);
+}
+
+/* Zoom is hidden on narrow viewports — pinch is native there, and the close
+ * pill needs the room. `hidden` alone loses to the slot rule's specificity. */
+@media (max-width: 639px) {
+  [data-component="ImagePreviewDialog"][data-variant="editorial"] [data-optional="desktop"] {
+    display: none;
+  }
+}
+
+/* A definite height, not `flex: 1`. The panel is content-sized, so a flexed
+ * frame has no resolved height for the photo's `max-height: 100%` to measure
+ * against and a portrait photo overflows. Fixing the plate also keeps the panel
+ * the same size whichever way the gardener held the phone. */
+[data-component="ImagePreviewDialog"][data-variant="editorial"] [data-slot="frame"] {
+  height: 58vh;
+  margin-top: 1.25rem;
+  background: var(--color-editorial-warm);
+}
+
+@media (min-width: 640px) {
+  [data-component="ImagePreviewDialog"][data-variant="editorial"] [data-slot="frame"] {
+    height: min(62vh, 34rem);
+  }
+}
+
+[data-component="ImagePreviewDialog"][data-variant="editorial"] [data-slot="filmstrip"] {
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--color-stroke-soft-200);
+}
+
+[data-component="ImagePreviewDialog"][data-variant="editorial"] [data-slot="thumb"] {
+  border: 1px solid var(--color-stroke-soft-200);
+  transition: border-color var(--spring-spatial-fast);
+}
+
+[data-component="ImagePreviewDialog"][data-variant="editorial"] [data-slot="thumb"][data-active="true"] {
+  border-color: var(--color-text-strong-950);
+}

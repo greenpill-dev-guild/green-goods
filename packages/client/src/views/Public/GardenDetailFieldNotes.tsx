@@ -267,15 +267,17 @@ function NoteMediaMosaic({
   );
 
   return (
-    <div className="mt-8 aspect-[4/3] w-full overflow-hidden rounded-[var(--radius-md)]">
+    // Square corners and a hairline gutter: the editorial dialect frames photos
+    // with whitespace, not rounding.
+    <div className="mt-8 aspect-[4/3] w-full">
       {shown.length === 1 ? (
         tile(shown[0], 0, "h-full w-full")
       ) : shown.length === 2 ? (
-        <div className="grid h-full w-full grid-cols-2 gap-px bg-stroke-soft-200">
+        <div className="grid h-full w-full grid-cols-2 gap-2">
           {shown.map((src, i) => tile(src, i, "h-full w-full"))}
         </div>
       ) : (
-        <div className="grid h-full w-full grid-cols-2 grid-rows-2 gap-px bg-stroke-soft-200">
+        <div className="grid h-full w-full grid-cols-2 grid-rows-2 gap-2">
           {tile(shown[0], 0, "row-span-2 h-full w-full")}
           {tile(shown[1], 1, "h-full w-full")}
           {tile(shown[2], 2, "h-full w-full")}
