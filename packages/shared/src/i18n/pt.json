@@ -3444,6 +3444,7 @@
   "public.gardenDetail.notes.empty": "Ainda não há notas de campo. Elas aparecem quando o Trabalho é enviado.",
   "public.gardenDetail.notes.heading": "Notas de campo recentes",
   "public.gardenDetail.notes.helper": "O que jardineiros registraram em campo, mais recentes primeiro.",
+  "public.gardenDetail.notes.justNow": "Agora mesmo",
   "public.gardenDetail.notes.loadMore": "Ver mais entradas",
   "public.gardenDetail.notes.mediaAlt": "Foto registrada com {title}",
   "public.gardenDetail.notes.noDescription": "Nenhuma descrição foi registrada com esta entrada.",

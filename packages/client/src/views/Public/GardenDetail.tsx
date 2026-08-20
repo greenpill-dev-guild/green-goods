@@ -1,5 +1,6 @@
 import {
   type Address,
+  DEFAULT_CHAIN_ID,
   publicGardenHelpers,
   useHypercerts,
   usePublicGardenDetail,
@@ -40,7 +41,10 @@ export default function GardenDetail() {
   const { id } = useParams<{ id: string }>();
   const { formatMessage } = useIntl();
   const { data: gardens = [] } = usePublicGardens();
-  const { data: detail, isLoading: detailLoading } = usePublicGardenDetail(id);
+  // Pinned so the field-note explorer links resolve against the same chain the
+  // notes were read from.
+  const chainId = DEFAULT_CHAIN_ID;
+  const { data: detail, isLoading: detailLoading } = usePublicGardenDetail(id, { chainId });
 
   const summary = useMemo(() => {
     if (!id) return undefined;
@@ -159,13 +163,14 @@ export default function GardenDetail() {
                 id: "public.gardenDetail.stats.certificates",
                 defaultMessage: "Certificates",
               })}
-              value={hypercerts.length}
-              loading={hypercertsLoading}
+              value={garden ? hypercerts.length : undefined}
+              loading={detailLoading || hypercertsLoading}
               unavailable={false}
             />
           </dl>
 
           <FieldNotesSection
+            chainId={chainId}
             notes={detail?.fieldNotes ?? []}
             total={detail?.totalFieldNotes ?? 0}
             loading={detailLoading}

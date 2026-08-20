@@ -3444,6 +3444,7 @@
   "public.gardenDetail.notes.empty": "No field notes yet. They appear when Work is submitted.",
   "public.gardenDetail.notes.heading": "Latest field notes",
   "public.gardenDetail.notes.helper": "What gardeners have logged from the field, most recent first.",
+  "public.gardenDetail.notes.justNow": "Just now",
   "public.gardenDetail.notes.loadMore": "Show more entries",
   "public.gardenDetail.notes.mediaAlt": "Photo logged with {title}",
   "public.gardenDetail.notes.noDescription": "No description was logged with this entry.",

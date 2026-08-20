@@ -42,6 +42,11 @@ const mockGardens = [
 
 vi.mock("@green-goods/shared", () => ({
   cn: (...args: unknown[]) => args.filter(Boolean).join(" "),
+  DEFAULT_CHAIN_ID: 42161,
+  getRelativeTimeParts: () => ({ value: -3, unit: "day" }),
+  getEASExplorerUrl: (chainId: number, uid: string) => `https://explorer.example/${chainId}/${uid}`,
+  formatAddress: (address: string) => address,
+  useEnsName: () => ({ data: null }),
   publicGardenHelpers: {
     deriveSlug: (name: string) =>
       name

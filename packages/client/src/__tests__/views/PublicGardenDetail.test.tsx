@@ -77,6 +77,10 @@ vi.mock("@green-goods/shared", async () => {
       createElement("button", { type: "button", "data-testid": "address" }, address),
     useEnsName: () => ({ data: null }),
     formatAddress: (address: string) => `${address.slice(0, 4)}…${address.slice(-3)}`,
+    getRelativeTimeParts: () => ({ value: -3, unit: "day" }),
+    getEASExplorerUrl: (chainId: number, uid: string) =>
+      `https://explorer.example/${chainId}/${uid}`,
+    DEFAULT_CHAIN_ID: 42161,
     useInstallGuidance: () => ({
       scenario: "desktop",
       primaryAction: { type: "continue-in-browser", label: "Open on Mobile" },
@@ -271,7 +275,7 @@ describe("GardenDetail", () => {
     // useless: `queryKeys.public.gardenDetail` carries no page size, so the
     // cached result would come back unchanged.
     for (const call of mockUsePublicGardenDetail.mock.calls) {
-      expect(call).toEqual(["solar-community-garden"]);
+      expect(call).toEqual(["solar-community-garden", { chainId: 42161 }]);
     }
   });
 
@@ -282,14 +286,29 @@ describe("GardenDetail", () => {
 
     const dialog = screen.getByRole("dialog");
     expect(within(dialog).getByText("What happened on day 0")).toBeInTheDocument();
+    // Chain-aware: the link resolves against the same chain the notes came from.
     expect(within(dialog).getByRole("link", { name: "View attestation" })).toHaveAttribute(
       "href",
-      "https://easscan.org/attestation/view/0xnote0"
+      "https://explorer.example/42161/0xnote0"
     );
 
     fireEvent.click(within(dialog).getAllByRole("button", { name: "Close" })[0]);
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     expect(tile).toHaveFocus();
+  });
+
+  it("does not publish a certificate count before the garden resolves", () => {
+    // useHypercerts is disabled without a gardenId, so it reports isLoading
+    // false with an empty list — which must not render as a confident 0.
+    mockUsePublicGardenDetail.mockReturnValue({
+      data: undefined,
+      isLoading: true,
+    });
+    mockUseHypercerts.mockReturnValue({ hypercerts: [], isLoading: false });
+    renderView();
+
+    const certificates = screen.getByText("Certificates").closest("div") as HTMLElement;
+    expect(within(certificates).queryByText("0")).not.toBeInTheDocument();
   });
 
   it("never nests an interactive element inside a note tile", () => {

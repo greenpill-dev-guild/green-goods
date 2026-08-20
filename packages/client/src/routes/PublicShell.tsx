@@ -202,7 +202,19 @@ function usePublicRouteScrollReset() {
     // reports POP, so it stays excluded.
     if (navigationType === "POP" && !isInitialRender) {
       const saved = restoringKey ? positionsRef.current.get(restoringKey) : undefined;
-      if (!saved) return;
+      // No banked position means this entry predates the current mount — a hard
+      // reload mid-history, or a shell remount. Falling through to the top is
+      // right: keeping the outgoing route's offset would drop the reader into
+      // the middle of a page they have not seen.
+      if (!saved) {
+        scrollPublicRootToTop();
+        interactionScrollPositionRef.current = null;
+        scrollPositionRef.current = { left: 0, top: 0 };
+        return;
+      }
+      // The scroll listener is asynchronous, so without this a fast
+      // Back → Forward → Back banks the pre-restore position for this entry.
+      scrollPositionRef.current = saved;
       // The incoming route has not painted yet, so the container has no height
       // to scroll within. Re-apply across the next two frames.
       restorePublicScrollPosition(saved);

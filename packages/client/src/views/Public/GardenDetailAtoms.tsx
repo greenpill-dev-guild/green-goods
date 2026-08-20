@@ -1,4 +1,7 @@
 import { type Address, formatAddress, useEnsName } from "@green-goods/shared";
+// `getRelativeTimeParts` is not on the root barrel — only the declared
+// `./utils` subpath exports it (shared rule 11: narrowest declared path).
+import { getRelativeTimeParts } from "@green-goods/shared/utils";
 import { RiImageLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 
@@ -126,15 +129,23 @@ export function ListSkeleton({ rows = 3 }: { rows?: number }) {
   );
 }
 
-export function formatRelativeDate(secondsSinceEpoch: number): string {
-  const date = new Date(secondsSinceEpoch * 1000);
-  const diffMs = Date.now() - date.getTime();
-  const day = 1000 * 60 * 60 * 24;
-  if (diffMs < day) {
-    const hours = Math.max(1, Math.round(diffMs / (1000 * 60 * 60)));
-    return `${hours}h ago`;
-  }
-  const days = Math.round(diffMs / day);
-  if (days < 14) return `${days}d ago`;
-  return date.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+/**
+ * Localized relative timestamp for a field note.
+ *
+ * Not the shared `formatRelativeTime`, which is English-only by design; this
+ * pairs `getRelativeTimeParts` with react-intl so the value follows the active
+ * locale, which this page needs in en/es/pt.
+ */
+export function useNoteDate(): (createdAt: number) => string {
+  const { formatMessage, formatRelativeTime } = useIntl();
+  return (createdAt: number) => {
+    const parts = getRelativeTimeParts(createdAt);
+    if (!parts) {
+      return formatMessage({
+        id: "public.gardenDetail.notes.justNow",
+        defaultMessage: "Just now",
+      });
+    }
+    return formatRelativeTime(parts.value, parts.unit, { numeric: "auto" });
+  };
 }

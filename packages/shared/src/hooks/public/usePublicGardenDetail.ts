@@ -32,7 +32,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 
-import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
+import { DEFAULT_CHAIN_ID, getEASConfig } from "../../config/blockchain";
 import { isGardenPubliclyVisible } from "../../config/garden-visibility";
 import { queryKeys } from "../../config/query-keys";
 import { STALE_TIME_RARE } from "../../config/query-keys/constants";
@@ -41,6 +41,7 @@ import { getGardenAssessments, getWorks } from "../../modules/data/eas";
 import { getGardens } from "../../modules/data/greengoods";
 import type { Address, Garden } from "../../types/domain";
 import type { EASWork } from "../../types/eas-responses";
+import { isZeroBytes32 } from "../../utils/blockchain/vaults";
 import { publicGardenHelpers } from "./usePublicGardens";
 
 export interface PublicFieldNote {
@@ -153,9 +154,17 @@ export function usePublicGardenDetail(
 
       const allWorks = worksResult.status === "fulfilled" ? worksResult.value : [];
       const assessments = assessmentsResult.status === "fulfilled" ? assessmentsResult.value : [];
+
+      // A rejected read is not the only way to not-know. Both readers return a
+      // fulfilled `[]` when their schema UID is unset on this chain, which
+      // `allSettled` cannot distinguish from a genuinely empty garden — and a
+      // page that renders that as 0 states something it cannot support, which
+      // is the whole point of these flags.
+      const easConfig = getEASConfig(chainId);
       const unavailableSources: PublicGardenUnavailableSources = {
-        works: worksResult.status === "rejected",
-        assessments: assessmentsResult.status === "rejected",
+        works: worksResult.status === "rejected" || isZeroBytes32(easConfig.WORK.uid),
+        assessments:
+          assessmentsResult.status === "rejected" || isZeroBytes32(easConfig.ASSESSMENT.uid),
       };
 
       if (worksResult.status === "rejected") {

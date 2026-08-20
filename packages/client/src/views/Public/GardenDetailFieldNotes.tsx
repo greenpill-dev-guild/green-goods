@@ -1,15 +1,15 @@
-import { AddressDisplay, cn, type PublicFieldNote } from "@green-goods/shared";
+import { AddressDisplay, cn, getEASExplorerUrl, type PublicFieldNote } from "@green-goods/shared";
 import { useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { ImageWithFallback } from "@/components/Display";
 import { PublicSourceDialog } from "@/components/Public/PublicSourceDialog";
 import {
-  formatRelativeDate,
   NoteAuthor,
   NotePlaceholderTile,
   SectionEmpty,
   SectionNotice,
   TileSkeletonGrid,
+  useNoteDate,
 } from "./GardenDetailAtoms";
 import { Section } from "./GardenDetailSections";
 
@@ -21,11 +21,14 @@ export function FieldNotesSection({
   total,
   loading,
   unavailable,
+  chainId,
 }: {
   notes: readonly PublicFieldNote[];
   total: number;
   loading: boolean;
   unavailable: boolean;
+  /** Same chain the notes were read from, so the explorer link cannot drift. */
+  chainId: number;
 }) {
   const { formatMessage } = useIntl();
   const [visibleCount, setVisibleCount] = useState(NOTES_PAGE_SIZE);
@@ -114,6 +117,7 @@ export function FieldNotesSection({
       )}
 
       <FieldNoteDialog
+        chainId={chainId}
         note={openNote}
         onClose={() => {
           setOpenNote(null);
@@ -132,6 +136,7 @@ function FieldNoteTile({
   onOpen: (element: HTMLButtonElement) => void;
 }) {
   const { formatMessage } = useIntl();
+  const noteDate = useNoteDate();
   const title =
     note.title ||
     formatMessage({
@@ -183,15 +188,24 @@ function FieldNoteTile({
         <div className="mt-auto flex flex-wrap items-center gap-x-3 gap-y-1 text-xs tracking-[0.02em] text-text-soft-400">
           <NoteAuthor address={note.gardenerAddress} />
           <span aria-hidden="true">·</span>
-          <span>{formatRelativeDate(note.createdAt)}</span>
+          <span>{noteDate(note.createdAt)}</span>
         </div>
       </button>
     </li>
   );
 }
 
-function FieldNoteDialog({ note, onClose }: { note: PublicFieldNote | null; onClose: () => void }) {
+function FieldNoteDialog({
+  chainId,
+  note,
+  onClose,
+}: {
+  chainId: number;
+  note: PublicFieldNote | null;
+  onClose: () => void;
+}) {
   const { formatMessage } = useIntl();
+  const noteDate = useNoteDate();
   if (!note) return null;
 
   const title =
@@ -203,8 +217,8 @@ function FieldNoteDialog({ note, onClose }: { note: PublicFieldNote | null; onCl
       open
       onClose={onClose}
       title={title}
-      subtitle={formatRelativeDate(note.createdAt)}
-      sourceHref={`https://easscan.org/attestation/view/${note.id}`}
+      subtitle={noteDate(note.createdAt)}
+      sourceHref={getEASExplorerUrl(chainId, note.id)}
       sourceLabel={formatMessage({
         id: "public.gardenDetail.notes.sourceLabel",
         defaultMessage: "View attestation",
