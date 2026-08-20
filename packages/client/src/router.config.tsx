@@ -1,11 +1,11 @@
 import { ensureBaseLists, HydrationFallback } from "@green-goods/shared";
 import { type LoaderFunctionArgs, type RouteObject, redirect } from "react-router-dom";
 import { RouteErrorBoundary } from "@/components/Errors";
+import { APP_ROUTES, LEGACY_APP_ROUTES } from "./config/pwa-routing";
 import {
   requirePwaPresentationLoader,
   requireWebsitePresentationLoader,
 } from "./routes/presentation-mode";
-import { APP_ROUTES, LEGACY_APP_ROUTES } from "./config/pwa-routing";
 
 export const CLIENT_ROUTE_IDS = {
   root: "root",
@@ -13,6 +13,7 @@ export const CLIENT_ROUTE_IDS = {
   publicHome: "public-home",
   publicLanding: "public-landing",
   publicGardens: "public-gardens",
+  publicGardenDetail: "public-garden-detail",
   publicCookies: "public-cookies",
   publicFund: "public-fund",
   publicVaults: "public-vaults",
@@ -82,14 +83,15 @@ export const appRoutes = [
             lazy: async () => ({
               Component: (await import("@/views/Public/Gardens")).default,
             }),
-            children: [
-              {
-                path: ":id",
-                lazy: async () => ({
-                  Component: (await import("@/views/Public/GardenDialog")).default,
-                }),
-              },
-            ],
+          },
+          // Sibling of the archive, not a child: the Garden page is an ordinary
+          // editorial page with its own footer, not a modal over the grid.
+          {
+            id: CLIENT_ROUTE_IDS.publicGardenDetail,
+            path: "gardens/:id",
+            lazy: async () => ({
+              Component: (await import("@/views/Public/GardenDetail")).default,
+            }),
           },
           {
             id: CLIENT_ROUTE_IDS.publicCookies,

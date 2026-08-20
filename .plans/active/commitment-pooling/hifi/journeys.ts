@@ -460,13 +460,16 @@ export const SBS: SB[] = [
 { id: "sb15", n: 15, title: "Follow a garden's commitments from the public site", desc: "A signed-out reader watches one garden's public page mature — readiness copy, then counts, then the one publishable rate.", persona: "Neighbour or funder (signed out)", scen: "S11 · editorial", reviewVisible: true, reviewGroup: "editorial", chapter: "public-story", roles: ["public"], steps: [
   { f: "W15@pre-launch", hot: null, st: "pool NotReady", ev: "readiness copy only — a garden preparing its pool publishes no numbers", cite: "UX:352 · UX:57" },
   { f: "W15", hot: null, marks: ["w15.counts"], st: "below threshold", ev: "counts-only sentences: commitments made and kept, with the cycle's calm end date — no rate yet", cite: "UX:350 · UX:364" },
-  { f: "W15@above-threshold", hot: null, marks: ["w15.rate"], st: "above threshold", ev: "at 5+ due commitments across 3+ commitmentrs the kept-rate becomes publishable — the one sanctioned percentage; cancelled and under-review records never appear individually", cite: "UX:364-371", br: [{ l: "The protocol-wide story", to: "sb48:0" }] },
+  { f: "W15@above-threshold", hot: null, marks: ["w15.rate"], st: "above threshold", ev: "at 5+ due commitments across 3+ distinct providers the kept-rate becomes publishable — the one sanctioned percentage; cancelled and under-review records never appear individually", cite: "UX:364-371" },
+  { f: "W15@empty", hot: null, marks: ["w15.empty"], st: "open, nothing yet", ev: "the section never disappears — an open pool with no commitments says so where § 02 sits", cite: "UX:352" },
+  { f: "W15@read-error", hot: null, marks: ["w15.read-error"], st: "cannot read", ev: "an unread count is an em dash, never a zero; the page does not publish what it could not load", cite: "UX:352", br: [{ l: "The protocol-wide story", to: "sb48:0" }] },
   { f: "W1", hot: null, surface: "pwa", echo: true, ev: "the same pool, now joinable — the public story and the member surface are one system", cite: "UX:120" },
 ]},
 // The /impact page's own short walk, split from sb15 (2026-08-10) so the
 // editorial tab reads as two honest stories: one garden, then the protocol.
 { id: "sb48", n: 48, title: "See protocol-wide impact", desc: "The same story protocol-wide: the impact page links back to the gardens instead of ranking them, and offers a way in.", persona: "Neighbour or funder (signed out)", scen: "S11 · editorial", reviewVisible: true, reviewGroup: "editorial", chapter: "public-story", roles: ["public"], steps: [
   { f: "W16@band", hot: null, marks: ["w16.see-gardens"], st: "protocol aggregate", ev: "the impact page carries the same story protocol-wide, and links back to the gardens rather than ranking them", cite: "UX:373-375" },
+  { f: "W16@support-in-flight", hot: null, marks: ["w16.in-flight"], st: "dispatched, not arrived", ev: "40 G$ is in flight and the published figure does not move — only an authenticated acknowledgment may claim arrival", cite: "SS:62" },
   { f: "W16@pipeline-delta", hot: { h: "w16.install", l: "Install the app" }, marks: ["w16.pipeline"], ev: "the proof pipeline gains Commitment and Confirmation stages; the install CTA is the reader's way in", cite: "UX:375" },
   { f: "W1", hot: null, surface: "pwa", echo: true, ev: "the same pool, now joinable — the public story and the member surface are one system", cite: "UX:120" },
 ]},

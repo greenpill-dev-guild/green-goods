@@ -4,8 +4,8 @@
 
 - Machine lane: qa_pass_2
 - Owner: Codex
-- Branch signal: codex/qa-pass-2/commitment-pooling
-- Branch trigger: claude/qa-pass-1/commitment-pooling
+- Branch signal: test/commitment-pooling-qa-pass-2
+- Branch trigger: test/commitment-pooling-qa-pass-1
 - Current state: manually blocked on QA Pass 1 defect disposition and completed PRD-727
   post-QA documentation polish
 - Linear context: PRD-730 (QA pass 2 lane) under parent PRD-650. Register #37 reversed the earlier no-QA-child rule.

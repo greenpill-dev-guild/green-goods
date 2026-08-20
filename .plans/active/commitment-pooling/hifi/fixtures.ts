@@ -27,7 +27,7 @@ export const SEASON_LIVE = {
 
 /**
  * Kept rate for the live season, rendered publicly only above the disclosure
- * threshold (≥5 due commitments and ≥3 commitmentrs, UX:350). Derived so it can
+ * threshold (≥5 due commitments and ≥3 distinct providers, UX:350). Derived so it can
  * never contradict the counts printed beside it.
  */
 export const SEASON_LIVE_KEPT_RATE = Math.round((SEASON_LIVE.kept / SEASON_LIVE.made) * 100);

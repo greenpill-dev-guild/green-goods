@@ -1324,6 +1324,9 @@ export const HIFI_CSS = `
 .hf .erule{height:1px;background:var(--ln);border:0;margin:2px 0}
 .hf .estatrow{display:flex;gap:28px;flex-wrap:wrap}
 .hf .estat .l{font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--stone);margin-top:4px}
+.hf .eunits{display:flex;flex-direction:column;gap:4px;min-width:150px}
+.hf .eunits .erow{display:flex;justify-content:space-between;gap:16px;font-size:13px;color:var(--stone)}
+.hf .eunits .erow .num{font-family:var(--mono);font-size:12px;color:var(--ink);font-variant-numeric:tabular-nums}
 .hf .elink{color:var(--gr-ink);font-weight:600;text-decoration:none;border-bottom:1px solid color-mix(in srgb,var(--gr-ink) 40%,transparent);
   display:inline-flex;gap:6px;align-items:center;cursor:pointer;background:none;border-top:0;border-left:0;border-right:0;font-weight:600;font-size:15px;padding:0;min-height:44px}
 .hf .pipe{display:flex;align-items:center;gap:8px;flex-wrap:wrap}

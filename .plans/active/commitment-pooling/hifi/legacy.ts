@@ -664,7 +664,7 @@ W14: [
   { m: "◉ Baseline   ○ Re-assessment (delta)", l: "Assessment kind", info: "Baseline: evaluator or steward. Delta: Evaluator Hat only (CS:760-761)." },
 ],
 W15: [
-  { m: `${SEASON_LIVE.made} commitments made, ${SEASON_LIVE.kept} kept so far`, l: "Counts-only sentence", info: "Percentages render publicly only at ≥5 due commitments and ≥3 commitmentrs (UX:350)." },
+  { m: `${SEASON_LIVE.made} commitments made, ${SEASON_LIVE.kept} kept so far`, l: "Counts-only sentence", info: "Percentages render publicly only at ≥5 due commitments and ≥3 distinct providers (UX:350)." },
 ],
 W16: [
   { m: "[ See the gardens ▸ ]", l: "See the gardens", info: "Links to /gardens; no per-garden table on /impact — comparison drifts toward ranking (UX:354)." },
