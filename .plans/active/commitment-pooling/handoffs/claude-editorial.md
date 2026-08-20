@@ -62,8 +62,10 @@
   exists in the indexer schema. The threshold is per-cycle, so a cycle-scoped counter (new
   per-(cycle, provider) sentinel entity) is the one required; counting `CommitmentProviderExposure`
   rows is not an option because it enumerates provider addresses.
-- `PublicEvidencePipeline` is internationalised and laid out for five nodes. Today its node titles
-  and descriptions are literal English and it is `md:grid-cols-3` with three hardcoded domain tones.
+- NOT MET — `PublicEvidencePipeline` must be internationalised and laid out for five nodes before
+  the `/impact` band can ship. It is not yet: its node titles and descriptions are literal English
+  (only the closing caption goes through `formatMessage`) and it is `md:grid-cols-3` with three
+  hardcoded domain tones.
 - Verified live indexer output and the scoped shared admin/UI foundation cleanup are complete.
 - `acceptance-matrix.md` §3 is approved and every public claim maps to its required evidence class.
 - GREEN includes targeted tests, client build, and rendered public-browser proof for readiness, live, queued, dispatched, confirming, confirmed, empty, and error states.

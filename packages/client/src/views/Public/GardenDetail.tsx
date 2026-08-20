@@ -170,6 +170,9 @@ export default function GardenDetail() {
           </dl>
 
           <FieldNotesSection
+            // Remount per Garden: the section survives a /gardens/a -> /gardens/b
+            // param change, and its local page window must not carry over.
+            key={id}
             chainId={chainId}
             notes={detail?.fieldNotes ?? []}
             total={detail?.totalFieldNotes ?? 0}

@@ -4,12 +4,12 @@ import { useIntl } from "react-intl";
 import { ImageWithFallback } from "@/components/Display";
 import { PublicSourceDialog } from "@/components/Public/PublicSourceDialog";
 import {
+  formatNoteDate,
   NoteAuthor,
   NotePlaceholderTile,
   SectionEmpty,
   SectionNotice,
   TileSkeletonGrid,
-  useNoteDate,
 } from "./GardenDetailAtoms";
 import { Section } from "./GardenDetailSections";
 
@@ -135,8 +135,8 @@ function FieldNoteTile({
   note: PublicFieldNote;
   onOpen: (element: HTMLButtonElement) => void;
 }) {
-  const { formatMessage } = useIntl();
-  const noteDate = useNoteDate();
+  const intl = useIntl();
+  const { formatMessage } = intl;
   const title =
     note.title ||
     formatMessage({
@@ -188,7 +188,7 @@ function FieldNoteTile({
         <div className="mt-auto flex flex-wrap items-center gap-x-3 gap-y-1 text-xs tracking-[0.02em] text-text-soft-400">
           <NoteAuthor address={note.gardenerAddress} />
           <span aria-hidden="true">·</span>
-          <span>{noteDate(note.createdAt)}</span>
+          <span>{formatNoteDate(intl, note.createdAt)}</span>
         </div>
       </button>
     </li>
@@ -204,8 +204,8 @@ function FieldNoteDialog({
   note: PublicFieldNote | null;
   onClose: () => void;
 }) {
-  const { formatMessage } = useIntl();
-  const noteDate = useNoteDate();
+  const intl = useIntl();
+  const { formatMessage } = intl;
   if (!note) return null;
 
   const title =
@@ -217,7 +217,7 @@ function FieldNoteDialog({
       open
       onClose={onClose}
       title={title}
-      subtitle={noteDate(note.createdAt)}
+      subtitle={formatNoteDate(intl, note.createdAt)}
       sourceHref={getEASExplorerUrl(chainId, note.id)}
       sourceLabel={formatMessage({
         id: "public.gardenDetail.notes.sourceLabel",

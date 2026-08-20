@@ -609,9 +609,12 @@ function scanEverywhere(where: string, text: string, sink = err, opts: { docs?: 
   // is how the garden page says "this source failed, and we will not publish
   // an unknown as a zero" (Decision Log #161). Listed rather than pattern-
   // matched, same as the variant dashes above — the list should only shrink.
+  // Scoped to the rendered StatCell shape: the glyph stands alone in its own
+  // cell, so it is surrounded by cell-gap whitespace. Prose with single spaces
+  // ("Progress — commitments made") still trips, which is the point.
   const cleaned = text
     .replace(/North beds — (?:before|after)/g, "")
-    .replace(/—(?=\s+(?:commitments made|kept so far)\b)/g, "");
+    .replace(/(^|\s{2,})—(?=\s{2,}(?:commitments made|kept so far)\b)/g, "$1");
   for (const d of new Set([...cleaned.matchAll(/[^\n]{0,30}—[^\n]{0,30}/g)].map((m) => m[0].trim())))
     sink.push(`DASH ${where}: "${d}" needs a full stop or a comma (C.32)`);
 }

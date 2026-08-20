@@ -3,7 +3,7 @@ import { type Address, formatAddress, useEnsName } from "@green-goods/shared";
 // `./utils` subpath exports it (shared rule 11: narrowest declared path).
 import { getRelativeTimeParts } from "@green-goods/shared/utils";
 import { RiImageLine } from "@remixicon/react";
-import { useIntl } from "react-intl";
+import { type IntlShape, useIntl } from "react-intl";
 
 /**
  * Small pieces of the public Garden page. Split out of `GardenDetail.tsx` to
@@ -132,20 +132,20 @@ export function ListSkeleton({ rows = 3 }: { rows?: number }) {
 /**
  * Localized relative timestamp for a field note.
  *
+ * A plain formatter rather than a hook: custom hooks belong in
+ * `@green-goods/shared`, and this is page-local formatting.
+ *
  * Not the shared `formatRelativeTime`, which is English-only by design; this
  * pairs `getRelativeTimeParts` with react-intl so the value follows the active
  * locale, which this page needs in en/es/pt.
  */
-export function useNoteDate(): (createdAt: number) => string {
-  const { formatMessage, formatRelativeTime } = useIntl();
-  return (createdAt: number) => {
-    const parts = getRelativeTimeParts(createdAt);
-    if (!parts) {
-      return formatMessage({
-        id: "public.gardenDetail.notes.justNow",
-        defaultMessage: "Just now",
-      });
-    }
-    return formatRelativeTime(parts.value, parts.unit, { numeric: "auto" });
-  };
+export function formatNoteDate(intl: IntlShape, createdAt: number): string {
+  const parts = getRelativeTimeParts(createdAt);
+  if (!parts) {
+    return intl.formatMessage({
+      id: "public.gardenDetail.notes.justNow",
+      defaultMessage: "Just now",
+    });
+  }
+  return intl.formatRelativeTime(parts.value, parts.unit, { numeric: "auto" });
 }
