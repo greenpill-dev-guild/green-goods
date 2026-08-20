@@ -1,9 +1,8 @@
-import { AddressDisplay, cn, getEASExplorerUrl, type PublicFieldNote } from "@green-goods/shared";
+import { cn, getEASExplorerUrl, type PublicFieldNote } from "@green-goods/shared";
 import { useRef, useState } from "react";
-import { createPortal } from "react-dom";
 import { useIntl } from "react-intl";
 import { ImageWithFallback } from "@/components/Display";
-import { PublicSourceDialog } from "@/components/Public/PublicSourceDialog";
+import { PublicRecordDrawer } from "@/components/Public/PublicRecordDrawer";
 import {
   formatNoteDate,
   NoteAuthor,
@@ -34,7 +33,7 @@ export function FieldNotesSection({
   const { formatMessage } = useIntl();
   const [visibleCount, setVisibleCount] = useState(NOTES_PAGE_SIZE);
   const [openNote, setOpenNote] = useState<PublicFieldNote | null>(null);
-  // PublicSourceDialog moves focus to its close button but does not put it
+  // PublicRecordDrawer moves focus to its close button but does not put it
   // back, so the tile that opened it holds the return target.
   const triggerRef = useRef<HTMLButtonElement | null>(null);
 
@@ -117,22 +116,14 @@ export function FieldNotesSection({
         </>
       )}
 
-      {/* Portalled to the body on purpose. This section carries
-          `.editorial-section-reveal`, which applies a transform — and a
-          transformed ancestor becomes the containing block for
-          `position: fixed`, so the dialog's overlay would size and scroll
-          against this section instead of the viewport. */}
-      {createPortal(
-        <FieldNoteDialog
-          chainId={chainId}
-          note={openNote}
-          onClose={() => {
-            setOpenNote(null);
-            triggerRef.current?.focus();
-          }}
-        />,
-        document.body
-      )}
+      <FieldNoteDialog
+        chainId={chainId}
+        note={openNote}
+        onClose={() => {
+          setOpenNote(null);
+          triggerRef.current?.focus();
+        }}
+      />
     </Section>
   );
 }
@@ -215,6 +206,8 @@ function FieldNoteDialog({
 }) {
   const intl = useIntl();
   const { formatMessage } = intl;
+  const titleId = "public-garden-detail-note-title";
+
   if (!note) return null;
 
   const title =
@@ -222,21 +215,35 @@ function FieldNoteDialog({
     formatMessage({ id: "public.gardenDetail.notes.untitled", defaultMessage: "Untitled entry" });
 
   return (
-    <PublicSourceDialog
+    <PublicRecordDrawer
       open
       onClose={onClose}
-      title={title}
-      subtitle={formatNoteDate(intl, note.createdAt)}
-      sourceHref={getEASExplorerUrl(chainId, note.id)}
-      sourceLabel={formatMessage({
-        id: "public.gardenDetail.notes.sourceLabel",
-        defaultMessage: "View attestation",
+      titleId={titleId}
+      eyebrow={formatMessage({
+        id: "public.gardenDetail.notes.recordHeader",
+        defaultMessage: "Field note",
       })}
     >
+      <h2
+        id={titleId}
+        className="font-serif text-2xl leading-[1.12] text-text-strong-950 md:text-3xl"
+      >
+        {title}
+      </h2>
+
+      <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs tracking-[0.02em] text-text-soft-400">
+        <NoteAuthor address={note.gardenerAddress} />
+        <span aria-hidden="true">·</span>
+        <span>{formatNoteDate(intl, note.createdAt)}</span>
+      </div>
+
       {note.media.length > 0 ? (
-        <ul className="flex flex-col gap-3">
+        <ul className="mt-8 flex flex-col gap-4">
           {note.media.map((src) => (
-            <li key={src} className="overflow-hidden bg-editorial-warm">
+            <li
+              key={src}
+              className="flex max-h-[40vh] items-center justify-center overflow-hidden rounded-[var(--radius-md)] bg-editorial-warm"
+            >
               <ImageWithFallback
                 src={src}
                 alt={formatMessage(
@@ -248,14 +255,19 @@ function FieldNoteDialog({
                 )}
                 loading="lazy"
                 backgroundFallback={<NotePlaceholderTile />}
-                className="h-full w-full object-cover"
+                className="max-h-[40vh] w-auto max-w-full object-contain"
               />
             </li>
           ))}
         </ul>
       ) : null}
 
-      <p className={cn(note.feedback ? "" : "italic text-text-soft-400")}>
+      <p
+        className={cn(
+          "mt-8 text-sm leading-relaxed text-text-sub-600 md:text-base",
+          note.feedback ? "" : "italic text-text-soft-400"
+        )}
+      >
         {note.feedback ||
           formatMessage({
             id: "public.gardenDetail.notes.noDescription",
@@ -263,7 +275,19 @@ function FieldNoteDialog({
           })}
       </p>
 
-      <AddressDisplay address={note.gardenerAddress} showCopyButton={false} />
-    </PublicSourceDialog>
+      <p className="mt-8 border-t border-stroke-soft-200 pt-6 text-xs">
+        <a
+          href={getEASExplorerUrl(chainId, note.id)}
+          target="_blank"
+          rel="noreferrer noopener"
+          className="text-primary-base hover:underline"
+        >
+          {formatMessage({
+            id: "public.gardenDetail.notes.sourceLabel",
+            defaultMessage: "View attestation",
+          })}
+        </a>
+      </p>
+    </PublicRecordDrawer>
   );
 }

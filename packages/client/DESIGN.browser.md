@@ -158,11 +158,14 @@ Pairing rule: keep Inter as the sans companion; **never** pair two serifs on the
 - **Route transitions:** soft fades (no morphs).
 - **Section reveals:** light stagger.
 - **Return position:** back and forward belong to `ScrollRestoration`. `PublicShell`'s scroll reset skips POP navigations so it cannot race and win; pages that were reached from a list also hand focus back to the item that was opened. Only PUSH and REPLACE start at the top.
+- **Record drawers** (`PublicRecordDrawer` — used by the Garden page's field notes and `/impact`'s evidence records): bottom sheet at `92vh` on mobile with a rounded top, right-side drawer at `sm:h-screen sm:max-w-[42rem]` on desktop. **Fixed height, never content-sized**: a persistent header bar (mono uppercase eyebrow + pill close) over a `flex-1 overflow-y-auto` body, so a long record scrolls inside the drawer instead of growing past the viewport. Use this for reading one published record.
+  - **Images inside a record are bounded and uncropped** — `max-h-[40vh]` with `object-contain` on `bg-editorial-warm`, one per row. These are evidence photos, usually shot portrait; cropping hides what was documented, and unbounded ones ran past 2,000px and pushed the record's own title and source link off screen.
 - **Source dialogs** (`PublicSourceDialog`, `PublicFundingMethodSelector`, `PublicFundingReceipt`, `PublicEndowmentPanel`):
   - Desktop: centered, rounded sheet on `bg-static-black/40` overlay; `PublicEndowmentPanel` is the exception and opens as a right-side public panel.
   - Mobile: bottom sheet with rounded top corners.
   - Labelled title (`aria-labelledby` → `<h2>` id), Escape close, overlay click close, focus moved to the close button on mount.
   - Mobile-safe width: `max-w-[calc(100vw-2rem)]` clamps the dialog under 375px viewports.
+- **Modals portal to `document.body`.** `.editorial-section-reveal` applies a transform, and a transformed ancestor becomes the containing block for `position: fixed` — a dialog rendered inside a revealed section sizes and scrolls against that section instead of the viewport. `PublicRecordDrawer` and `PublicSourceDialog` portal internally, so a consumer is safe wherever it is rendered. Do not rely on a call site happening to sit outside a transform.
 - Source-morph transitions require unique transition names per item; until that lands, public surfaces fall back to simple fades.
 - All motion respects reduced-motion preferences.
 

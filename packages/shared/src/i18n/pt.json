@@ -3448,6 +3448,7 @@
   "public.gardenDetail.notes.loadMore": "Ver mais entradas",
   "public.gardenDetail.notes.mediaAlt": "Foto registrada com {title}",
   "public.gardenDetail.notes.noDescription": "Nenhuma descrição foi registrada com esta entrada.",
+  "public.gardenDetail.notes.recordHeader": "Nota de campo",
   "public.gardenDetail.notes.showing": "Mostrando {shown} de {total}",
   "public.gardenDetail.notes.sourceLabel": "Ver atestação",
   "public.gardenDetail.notes.unavailable": "Não foi possível carregar as notas de campo neste momento.",

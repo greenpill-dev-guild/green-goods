@@ -3448,6 +3448,7 @@
   "public.gardenDetail.notes.loadMore": "Show more entries",
   "public.gardenDetail.notes.mediaAlt": "Photo logged with {title}",
   "public.gardenDetail.notes.noDescription": "No description was logged with this entry.",
+  "public.gardenDetail.notes.recordHeader": "Field note",
   "public.gardenDetail.notes.showing": "Showing {shown} of {total}",
   "public.gardenDetail.notes.sourceLabel": "View attestation",
   "public.gardenDetail.notes.unavailable": "Field notes could not be loaded right now.",
