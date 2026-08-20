@@ -6,6 +6,7 @@ import {
   formatDateTime,
   type ActivityEvent,
 } from "@green-goods/shared";
+import { useLocalizedRelativeTime } from "@green-goods/shared/hooks";
 import {
   RiArrowRightLine,
   RiCheckboxCircleLine,
@@ -16,7 +17,6 @@ import {
 import { useIntl } from "react-intl";
 import { adminCardVariants } from "@/components/AdminCard";
 import { localizeCanonicalActionTitle } from "../actionDisplay";
-import { useLocalizedRelativeTime } from "../relativeTime";
 import { HubWorkbenchSkeletonRows } from "./HubWorkbenchSkeletonRows";
 
 interface HubHistoryQueueProps {

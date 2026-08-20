@@ -4,12 +4,12 @@ import {
   SheetFooter,
   type ActivityEvent,
 } from "@green-goods/shared";
+import { useLocalizedRelativeTime } from "@green-goods/shared/hooks";
 import { AdminCard } from "@/components/AdminCard";
 import { RiExternalLinkLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { AdminButton } from "@/components/AdminButton";
 import { localizeCanonicalActionTitle } from "../actionDisplay";
-import { useLocalizedRelativeTime } from "../relativeTime";
 
 export function HubHistoryInspector({ event }: { event: ActivityEvent }) {
   const { formatMessage } = useIntl();

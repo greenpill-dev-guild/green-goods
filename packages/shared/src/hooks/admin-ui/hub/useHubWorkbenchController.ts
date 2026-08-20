@@ -1,7 +1,6 @@
 import {
   type AdminHubRouteContext,
   adminRoutes,
-  formatRelativeTime,
   type SortOption,
   useActions,
   useAdminGardenWorkspaceSelection,
@@ -16,6 +15,7 @@ import {
   useSheetOrchestrator,
   useViewActions,
 } from "@green-goods/shared";
+import { useLocalizedRelativeTime } from "../../app/useLocalizedRelativeTime";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
@@ -389,7 +389,11 @@ export function useHubWorkbenchController() {
     historyEvents: historyEvents.length,
   });
 
-  const refreshAgoText = useMemo(() => formatRelativeTime(lastRefreshAt), [lastRefreshAt]);
+  const formatEventAge = useLocalizedRelativeTime();
+  const refreshAgoText = useMemo(
+    () => formatEventAge(lastRefreshAt),
+    [formatEventAge, lastRefreshAt]
+  );
   const hasDataError = Boolean(error || assessmentsError);
 
   const sortOptions = useMemo<SortOption<SortDirection>[]>(

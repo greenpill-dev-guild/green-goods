@@ -7,7 +7,7 @@ import {
   type GardenRange,
   type TabBadgeSeverity,
 } from "@green-goods/shared";
-import { getRelativeTimeParts } from "@green-goods/shared/utils";
+import { useLocalizedRelativeTime } from "@green-goods/shared/hooks";
 import { RiArrowRightSLine, RiTimeLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
@@ -75,16 +75,11 @@ export function OverviewTab({
   gardenerCount,
   treasuryBalance,
 }: OverviewTabProps) {
-  const { formatMessage, formatRelativeTime } = useIntl();
+  const { formatMessage } = useIntl();
+  const formatActivityTime = useLocalizedRelativeTime();
   const isHealthMode = mode === "health";
   const isActivityMode = mode === "activity";
   const activityEventLimit = isActivityMode ? Number.POSITIVE_INFINITY : 8;
-  const formatActivityTime = (timestamp: number) => {
-    const parts = getRelativeTimeParts(timestamp);
-    return parts
-      ? formatRelativeTime(parts.value, parts.unit, { numeric: "always" })
-      : formatRelativeTime(0, "second", { numeric: "auto" });
-  };
   const formatActivityTitle = (event: GardenActivityEvent) =>
     event.category === "work"
       ? localizeCanonicalActionTitle(event.title, formatMessage)

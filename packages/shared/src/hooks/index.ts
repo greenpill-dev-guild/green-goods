@@ -67,9 +67,9 @@ export type {
   UseLoadingWithMinDurationResult,
 } from "./app/useLoadingWithMinDuration";
 export { useLoadingWithMinDuration } from "./app/useLoadingWithMinDuration";
+export { useLocalizedRelativeTime } from "./app/useLocalizedRelativeTime";
 export { useMerged } from "./app/useMerged";
-export type { NavigateToTopOptions } from "./app/useNavigateToTop";
-export { useNavigateToTop } from "./app/useNavigateToTop";
+export { type NavigateToTopOptions, useNavigateToTop } from "./app/useNavigateToTop";
 export { useOffline } from "./app/useOffline";
 export { usePublicInstallHandler } from "./app/usePublicInstallHandler";
 export { useScrollToTop } from "./app/useScrollToTop";

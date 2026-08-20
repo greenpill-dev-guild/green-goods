@@ -3,10 +3,10 @@ import {
   Card,
   cn,
   EmptyState,
-  formatRelativeTime,
   useWorks,
   type Work,
 } from "@green-goods/shared";
+import { useLocalizedRelativeTime } from "@green-goods/shared/hooks";
 import {
   RiCheckboxCircleLine,
   RiCloseLine,
@@ -49,6 +49,7 @@ export const WorkSubmissionsView: React.FC<WorkSubmissionsViewProps> = ({
   hubContext,
 }) => {
   const intl = useIntl();
+  const formatEventAge = useLocalizedRelativeTime();
   const [activeFilter, setActiveFilter] = useState<FilterType>(initialFilter);
   const hasExternalDataControl =
     worksProp !== undefined ||
@@ -128,7 +129,7 @@ export const WorkSubmissionsView: React.FC<WorkSubmissionsViewProps> = ({
               <p className="mt-1 text-xs text-text-soft">
                 {intl.formatMessage(
                   { id: "app.admin.work.submissions.lastUpdated" },
-                  { when: formatRelativeTime(lastUpdatedAt) }
+                  { when: formatEventAge(lastUpdatedAt) }
                 )}
               </p>
             ) : null}
