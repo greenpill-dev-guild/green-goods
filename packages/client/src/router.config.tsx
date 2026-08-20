@@ -208,6 +208,22 @@ export const appRoutes = [
                             }),
                           },
                           {
+                            // Declared before the dynamic sibling so "new" is a
+                            // destination rather than a commitment id.
+                            path: "commitments/new",
+                            lazy: async () => ({
+                              Component: (await import("@/views/Home/Garden/Compose"))
+                                .ComposeCommitment,
+                            }),
+                          },
+                          {
+                            path: "commitments/:commitmentId",
+                            lazy: async () => ({
+                              Component: (await import("@/views/Home/Garden/Commitment"))
+                                .GardenCommitment,
+                            }),
+                          },
+                          {
                             path: "assessments/:assessmentId",
                             lazy: async () => ({
                               Component: (await import("@/views/Home/Garden/Assessment"))

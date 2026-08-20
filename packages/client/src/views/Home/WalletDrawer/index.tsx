@@ -1,10 +1,8 @@
 import { useAccessibleCookieJars } from "@green-goods/shared";
-import { RiCoinsLine, RiGiftLine, RiHandCoinLine } from "@remixicon/react";
+import { RiCoinsLine, RiGiftLine } from "@remixicon/react";
 import React, { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { ModalDrawer, type ModalDrawerTab } from "@/components/Dialogs/ModalDrawer";
-import { WALLET_DRAWER_SCROLL_CLASSNAME } from "./classnames";
-import { ComingSoonStub } from "./ComingSoonStub";
 import { CookieJarTab } from "./CookieJarTab";
 import { SendTab } from "./SendTab";
 
@@ -13,6 +11,11 @@ interface WalletDrawerProps {
   onClose: () => void;
 }
 
+/**
+ * The wallet holds balances: one fungible number each, no lifecycle, nothing
+ * waiting on anyone. Commitments left for their own sheet because they are none
+ * of those things (see views/Home/CommitmentsDrawer).
+ */
 export const WalletDrawer: React.FC<WalletDrawerProps> = ({ isOpen, onClose }) => {
   const { formatMessage } = useIntl();
   const [activeTab, setActiveTab] = useState("cookie-jar");
@@ -40,11 +43,6 @@ export const WalletDrawer: React.FC<WalletDrawerProps> = ({ isOpen, onClose }) =
       label: formatMessage({ id: "app.wallet.tab.tokens" }),
       icon: <RiCoinsLine />,
     },
-    {
-      id: "pools",
-      label: formatMessage({ id: "app.wallet.tab.commitments" }),
-      icon: <RiHandCoinLine />,
-    },
   ];
 
   return (
@@ -66,15 +64,6 @@ export const WalletDrawer: React.FC<WalletDrawerProps> = ({ isOpen, onClose }) =
     >
       {activeTab === "cookie-jar" && <CookieJarTab />}
       {activeTab === "send" && <SendTab resetNonce={sendResetNonce} />}
-      {activeTab === "pools" && (
-        <div className={WALLET_DRAWER_SCROLL_CLASSNAME}>
-          <ComingSoonStub
-            tabName={formatMessage({ id: "app.wallet.tab.commitments" })}
-            description={formatMessage({ id: "app.wallet.commitments.comingSoon" })}
-            icon={<RiHandCoinLine />}
-          />
-        </div>
-      )}
     </ModalDrawer>
   );
 };

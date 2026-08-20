@@ -31,8 +31,8 @@
     "@remixicon/react": "4.9.0",
     "clsx": "^2.0.0",
     "prism-react-renderer": "^2.3.0",
-    "react": "19.2.7",
-    "react-dom": "19.2.7",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
     "recharts": "3.9.2"
   },
   "devDependencies": {

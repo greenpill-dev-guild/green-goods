@@ -1,10 +1,9 @@
 /**
- * WalletDrawer Tests — host drawer: tab badge counting and stub tabs.
+ * WalletDrawer Tests — host drawer: tab badge counting and tab membership.
  * @vitest-environment jsdom
  */
 
 import { within } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { renderWithProviders as render, screen } from "../test-utils";
 
@@ -94,15 +93,11 @@ describe("WalletDrawer", () => {
     expect(cookiesTab.queryByText("2")).not.toBeInTheDocument();
   });
 
-  it("shows a calm promise on the Commitments coming-soon tab", async () => {
-    const user = userEvent.setup();
+  it("holds only the two balances, with commitments gone to their own sheet", () => {
     render(<WalletDrawer isOpen onClose={() => {}} />);
 
-    await user.click(screen.getByTestId("tab-pools"));
-
-    expect(screen.getByRole("heading", { name: "Commitments" })).toBeInTheDocument();
-    expect(
-      screen.getByText("Make and honor shared promises with your gardens — coming soon.")
-    ).toBeInTheDocument();
+    expect(screen.getByTestId("tab-cookie-jar")).toBeInTheDocument();
+    expect(screen.getByTestId("tab-send")).toBeInTheDocument();
+    expect(screen.queryByTestId("tab-pools")).not.toBeInTheDocument();
   });
 });

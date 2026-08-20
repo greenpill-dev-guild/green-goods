@@ -112,6 +112,9 @@ const allowedIdenticalProductValues = new Set([
   "Feedback",
   "GitHub",
   "Green Goods",
+  // The product noun the team already uses untranslated in Spanish and
+  // Portuguese copy ("las pools", "as pools").
+  "Pool",
   "Greenpill Network",
   "GreenWill",
   "ha",
@@ -153,6 +156,22 @@ const allowedIdenticalProductValues = new Set([
 // compact "{n} h" value is legitimately locale-identical (the optional space matches
 // the actual en.json formatting).
 const allowedIdenticalValuePatterns = [/^[\d\W]+$/, /^\d+d$/, /^\{[^}]+\}$/, /^\{[^}]+\} ?h$/];
+
+/**
+ * A value made only of ICU placeholders and whitespace, like `{count} {unit}`.
+ *
+ * These carry no words to translate, so every locale is legitimately identical;
+ * the letters the has-letters check sees are inside the braces.
+ *
+ * Written as a linear scan rather than `(?:\s*\{[^}]+\}\s*)+`, which CodeQL
+ * flagged: whitespace between repetitions can be matched by either the trailing
+ * or the leading `\s*`, and that ambiguity backtracks exponentially on input
+ * like `{{|}}` repeated. Stripping the tokens has no such shape.
+ */
+function isPlaceholderOnlyValue(value: string): boolean {
+  if (!value.includes("{")) return false;
+  return value.replace(/\{[^}]*\}/g, "").trim().length === 0;
+}
 const localeAllowedIdenticalValues: Record<string, Set<string>> = {
   es: new Set([
     " - Error",
@@ -176,6 +195,7 @@ function isAllowedIdenticalLocalizedValue(locale: string, key: string, value: st
     allowedIdenticalLocalizedKeys.has(key) ||
     allowedIdenticalProductValues.has(value) ||
     allowedIdenticalValuePatterns.some((pattern) => pattern.test(value)) ||
+    isPlaceholderOnlyValue(value) ||
     (localeAllowedIdenticalValues[locale]?.has(value) ?? false)
   );
 }
