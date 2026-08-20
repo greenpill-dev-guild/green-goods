@@ -909,6 +909,7 @@
   "app.commitments.overTime.emptyTitle": "Nada resolvido ainda",
   "app.commitments.overTime.error": "Não conseguimos carregar o seu histórico. Nada foi perdido.",
   "app.commitments.overTime.loading": "Reunindo o seu histórico…",
+  "app.commitments.pendingCreate": "Um compromisso que você fez ainda está esperando para ser enviado deste telefone. Ele aparece aqui assim que chegar.",
   "app.commitments.queueUnreadable": "Não conseguimos verificar o que está esperando para enviar neste telefone, então esta lista pode estar incompleta.",
   "app.commitments.record.counts": "{kept, plural, one {# cumprido} other {# cumpridos}} · {lapsed, plural, one {# vencido} other {# vencidos}}",
   "app.commitments.record.note": "As contagens ficam nas suas próprias unidades. Vencidos aparecem só para você e seus zeladores.",

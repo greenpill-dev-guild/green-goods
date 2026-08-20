@@ -5,6 +5,8 @@ import {
   selectCommitmentActKind,
 } from "@green-goods/shared";
 
+export { canJoinTeam } from "@green-goods/shared";
+
 /**
  * How the commitment's one act is labelled.
  *
@@ -38,26 +40,4 @@ export function selectCommitmentAct(input: {
   const kind = selectCommitmentActKind(input);
   if (!kind) return null;
   return { kind, ...LABELS[kind] };
-}
-
-const JOINABLE = new Set(["ACCEPTED", "ACTIVE", "PARTIALLY_APPROVED"]);
-
-/**
- * Whether an eligible reader may join the team.
- *
- * Offered beside the team rather than in the action bar: it is not the screen's
- * act, and it earns no credit on its own.
- */
-export function canJoinTeam(input: {
-  commitment: Pick<
-    CommitmentReadModel,
-    "derivedState" | "contributorPolicy" | "contributorsFrozen"
-  >;
-  seat: CommitmentSeat | null;
-}): boolean {
-  const { commitment, seat } = input;
-  if (seat !== "bystander") return false;
-  if (commitment.contributorsFrozen) return false;
-  if (commitment.contributorPolicy !== "OPEN") return false;
-  return JOINABLE.has(commitment.derivedState);
 }

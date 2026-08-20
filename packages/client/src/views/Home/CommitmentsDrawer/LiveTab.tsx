@@ -60,7 +60,15 @@ export function LiveTab({ inbox, pools, gardens }: LiveTabProps) {
       isLoading={inbox.isLoading}
       isError={inbox.isError}
       isOnline={isOnline}
-      isEmpty={inbox.live.length === 0}
+      // A commitment still waiting to send, or one that gave up, has no row to
+      // appear in — so the emptiest list is exactly when those notices matter
+      // most. Treating the tab as empty would hide the only thing saying so.
+      isEmpty={
+        inbox.live.length === 0 &&
+        !inbox.hasPendingCreate &&
+        inbox.unlistedFailureCount === 0 &&
+        !inbox.queueUnavailable
+      }
       onRetry={() => void inbox.refetch()}
       regionClassName={COMMITMENTS_DRAWER_SCROLL_CLASSNAME}
       copy={{
@@ -76,9 +84,21 @@ export function LiveTab({ inbox, pools, gardens }: LiveTabProps) {
         </Alert>
       ) : null}
 
-      {inbox.failedJobCount > 0 ? (
+      {inbox.hasPendingCreate ? (
+        <Alert variant="warning" className="p-3">
+          {formatMessage({ id: "app.commitments.pendingCreate" })}
+        </Alert>
+      ) : null}
+
+      {/* Only the failures no row can name. The rest already say "Didn't send"
+        on their own row, and a banner repeating them says the same thing
+        twice about one commitment. */}
+      {inbox.unlistedFailureCount > 0 ? (
         <Alert variant="error" className="p-3">
-          {formatMessage({ id: "app.commitments.sendFailed" }, { count: inbox.failedJobCount })}
+          {formatMessage(
+            { id: "app.commitments.sendFailed" },
+            { count: inbox.unlistedFailureCount }
+          )}
         </Alert>
       ) : null}
 

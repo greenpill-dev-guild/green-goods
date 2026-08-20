@@ -111,6 +111,28 @@ export function selectCommitmentActKind(input: CommitmentActInput): CommitmentAc
 }
 
 /**
+ * Whether an eligible reader may join the team.
+ *
+ * Offered beside the team rather than in the action bar: it is not the screen's
+ * act, and it earns no credit on its own. It lives here rather than in the
+ * client so it reuses IN_PROGRESS — the same question, asked once. A second
+ * copy of that set is how the badge and the bar came to disagree in round 2.
+ */
+export function canJoinTeam(input: {
+  commitment: Pick<
+    CommitmentReadModel,
+    "derivedState" | "contributorPolicy" | "contributorsFrozen"
+  >;
+  seat: CommitmentSeat | null;
+}): boolean {
+  const { commitment, seat } = input;
+  if (seat !== "bystander") return false;
+  if (commitment.contributorsFrozen) return false;
+  if (commitment.contributorPolicy !== "OPEN") return false;
+  return IN_PROGRESS.has(commitment.derivedState);
+}
+
+/**
  * Acts that are the reader's own option rather than something waiting on them.
  *
  * Withdrawing an untaken offer is always available to whoever made it, and

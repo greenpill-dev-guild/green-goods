@@ -909,6 +909,7 @@
   "app.commitments.overTime.emptyTitle": "Nothing settled yet",
   "app.commitments.overTime.error": "We could not load your record. Nothing has been lost.",
   "app.commitments.overTime.loading": "Gathering your record…",
+  "app.commitments.pendingCreate": "A commitment you made is still waiting to send from this phone. It will appear here once it lands.",
   "app.commitments.queueUnreadable": "We could not check what is waiting to send on this phone, so this list may be incomplete.",
   "app.commitments.record.counts": "{kept, plural, one {# kept} other {# kept}} · {lapsed, plural, one {# lapsed} other {# lapsed}}",
   "app.commitments.record.note": "Counts stay in their own units. Lapsed shows only to you and your stewards.",

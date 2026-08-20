@@ -59,6 +59,8 @@ function inbox(overrides: Record<string, unknown> = {}) {
     isError: false,
     failedJobCount: 0,
     failedCommitmentIds: new Set<string>(),
+    unlistedFailureCount: 0,
+    hasPendingCreate: false,
     queueUnavailable: false,
     refetch: vi.fn(),
     ...overrides,
@@ -218,6 +220,38 @@ describe("CommitmentsDrawer", () => {
 
     render(<CommitmentsDrawer isOpen onClose={() => {}} />);
     expect(screen.getByText("Didn't send")).toBeInTheDocument();
+  });
+
+  it("does not say twice what a row already says once", () => {
+    // A failed confirm names its own row. A banner counting it as well reports
+    // one commitment as two problems.
+    mockUseCommitmentsInbox.mockReturnValue(
+      inbox({
+        live: [{ commitment: commitment(), seat: "provider", needsYou: false }],
+        failedJobCount: 1,
+        failedCommitmentIds: new Set(["9"]),
+        unlistedFailureCount: 0,
+      })
+    );
+
+    render(<CommitmentsDrawer isOpen onClose={() => {}} />);
+    expect(screen.getByText("Didn't send")).toBeInTheDocument();
+    expect(screen.queryByText(/could not be sent after several tries/i)).not.toBeInTheDocument();
+  });
+
+  it("still speaks for a failure no row could carry", () => {
+    // A commitment that never reached the chain has no id and so no row.
+    mockUseCommitmentsInbox.mockReturnValue(inbox({ failedJobCount: 1, unlistedFailureCount: 1 }));
+
+    render(<CommitmentsDrawer isOpen onClose={() => {}} />);
+    expect(screen.getByText(/could not be sent after several tries/i)).toBeInTheDocument();
+  });
+
+  it("says a commitment made offline is still on its way", () => {
+    mockUseCommitmentsInbox.mockReturnValue(inbox({ hasPendingCreate: true }));
+
+    render(<CommitmentsDrawer isOpen onClose={() => {}} />);
+    expect(screen.getByText(/still waiting to send from this phone/i)).toBeInTheDocument();
   });
 
   it("counts acts per tab, and never inventory", () => {

@@ -68,6 +68,14 @@ export interface CommitmentsInbox {
   /** Which commitments those failures belong to, so a row can say so itself. */
   failedCommitmentIds: ReadonlySet<string>;
   /**
+   * Failures no row can account for. A commitment that never reached the chain
+   * has no id and therefore no row, so it is invisible unless something says so
+   * — while the ones that do have rows already say it themselves.
+   */
+  unlistedFailureCount: number;
+  /** A commitment composed on this phone and still waiting to be placed. */
+  hasPendingCreate: boolean;
+  /**
    * The queue could not be read at all. Distinct from an empty queue: a surface
    * that cannot tell them apart reports no failures precisely when it cannot
    * see any.
@@ -111,7 +119,8 @@ export function useCommitmentsInbox({
   // Read from the queue rather than counted from events: a counter incremented
   // on job:failed never resets, is lost on unmount, and double-counts because
   // Home and the sheet both mount this hook.
-  const { failedCount, failedCommitmentIds, isUnavailable } = useCommitmentQueueState(viewer);
+  const { failedCount, failedCommitmentIds, hasPendingCreate, isUnavailable } =
+    useCommitmentQueueState(viewer);
   const { commitments } = query;
 
   const partitioned = useMemo(() => {
@@ -149,6 +158,9 @@ export function useCommitmentsInbox({
     isError: query.isError,
     failedJobCount: failedCount,
     failedCommitmentIds,
+    // Never negative: every named failure is also counted in the total.
+    unlistedFailureCount: Math.max(0, failedCount - failedCommitmentIds.size),
+    hasPendingCreate,
     queueUnavailable: isUnavailable,
     refetch: query.refetch,
   };
