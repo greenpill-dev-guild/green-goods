@@ -1,6 +1,5 @@
 import {
   NotificationPanel,
-  formatRelativeTime,
   resolveAdminWorkspaceSectionRoute,
   useAdminGardenWorkspaceSelection,
   useGardenDerivedState,
@@ -9,12 +8,14 @@ import {
   type NotificationPanelItem,
   type NotificationPanelSection,
 } from "@green-goods/shared";
+import { useLocalizedRelativeTime } from "@green-goods/shared/hooks";
 import { useCallback, useMemo } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
 
 export function AdminNotificationPanel({ onCloseSheet }: { onCloseSheet: () => void }) {
   const { formatMessage } = useIntl();
+  const formatEventAge = useLocalizedRelativeTime();
   const navigate = useNavigate();
   const { selectedGarden } = useAdminGardenWorkspaceSelection();
   const selectedGardenAddress = selectedGarden?.id;
@@ -82,7 +83,7 @@ export function AdminNotificationPanel({ onCloseSheet }: { onCloseSheet: () => v
           id: event.id,
           title: event.title,
           description: event.description,
-          meta: formatRelativeTime(event.timestamp),
+          meta: formatEventAge(event.timestamp),
           tone: "info" as const,
           onSelect: href ? () => navigateFromNotification(href) : undefined,
         };
@@ -109,6 +110,7 @@ export function AdminNotificationPanel({ onCloseSheet }: { onCloseSheet: () => v
   }, [
     derived.activityEvents,
     derived.overviewAlerts,
+    formatEventAge,
     formatMessage,
     navigateFromNotification,
     workspace.garden,

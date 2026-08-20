@@ -57,6 +57,7 @@ import { AdminTextField } from "@/components/AdminTextField";
 import { ActionFlowShell } from "@/components/Layout/ActionFlowShell";
 import { FlowStepHeader } from "@/components/Layout/FlowStepHeader";
 import { type ActionFlowStep } from "@/components/Layout/ActionFlowStepper";
+import { localizeActionForDisplay } from "@/views/Hub/actionDisplay";
 import { ActionChooserGrid } from "./components/ActionChooserGrid";
 import { SubmitWorkReview } from "./components/SubmitWorkReview";
 
@@ -332,7 +333,7 @@ function SubmitWorkPanelContent({
   onBusyChange,
   auth,
 }: Omit<SubmitWorkPanelProps, "auth"> & { auth: SubmitWorkAuthSnapshot }) {
-  const { formatMessage } = useIntl();
+  const { formatMessage, locale } = useIntl();
   const navigate = useNavigate();
   const { selectedGarden } = useAdminGardenWorkspaceSelection();
   const gardenId = selectedGarden?.id ?? null;
@@ -362,10 +363,8 @@ function SubmitWorkPanelContent({
       Array.from(new Set(availableActions.map((action) => action.domain))).sort((a, b) => a - b),
     [availableActions]
   );
-  // Guard a stale filter when the garden switches under the open dialog: if the
-  // previously-selected domain isn't among the new garden's domains, fall back to
-  // "all" so the chooser never renders an empty radiogroup. Drives both the
-  // visible actions and the filter tab's active state.
+  // Reset stale filters after garden switches so the chooser stays populated
+  // and its active state remains accurate.
   const effectiveDomain =
     actionDomain !== "all" && chooserDomains.includes(actionDomain) ? actionDomain : "all";
   const visibleActions = useMemo(
@@ -382,8 +381,9 @@ function SubmitWorkPanelContent({
   const selectedAction = useMemo<Action | null>(() => {
     if (!selectedActionId) return null;
     const uid = parseActionUID(selectedActionId);
-    return findActionByUID(actions, uid);
-  }, [selectedActionId, actions]);
+    const action = findActionByUID(actions, uid);
+    return action ? localizeActionForDisplay(action, { formatMessage, locale }) : null;
+  }, [actions, formatMessage, locale, selectedActionId]);
   const selectedActionUID = useMemo(
     () => (selectedAction ? parseActionUID(selectedAction.id) : null),
     [selectedAction]

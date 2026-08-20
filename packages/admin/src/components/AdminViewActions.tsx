@@ -1,4 +1,5 @@
 import type { ViewAction } from "@green-goods/shared";
+import { useIntl } from "react-intl";
 import { AdminButton } from "./AdminButton";
 
 interface AdminViewActionsProps {
@@ -43,6 +44,7 @@ export function AdminViewActions({ items }: AdminViewActionsProps) {
 }
 
 function AdminViewActionButton({ action }: { action: ViewAction }) {
+  const { formatMessage } = useIntl();
   const adminVariant = VARIANT_TO_ADMIN_BUTTON[action.variant ?? "secondary"];
   const Icon = action.icon;
   return (
@@ -56,7 +58,7 @@ function AdminViewActionButton({ action }: { action: ViewAction }) {
       data-action-id={action.id}
       data-action-variant={action.variant ?? "secondary"}
     >
-      {action.shortLabel ?? action.label}
+      {formatMessage({ id: action.labelId, defaultMessage: action.shortLabel ?? action.label })}
     </AdminButton>
   );
 }

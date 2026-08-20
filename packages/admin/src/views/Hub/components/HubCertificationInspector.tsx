@@ -1,11 +1,11 @@
 import {
   Alert,
-  formatRelativeTime,
   HUB_CERTIFY_STATUS_CLASSNAME,
   HUB_META_PILL_CLASSNAME,
   SheetBody,
   SheetFooter,
 } from "@green-goods/shared";
+import { useLocalizedRelativeTime } from "@green-goods/shared/hooks";
 import { AdminCard } from "@/components/AdminCard";
 import { RiExternalLinkLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
@@ -27,6 +27,7 @@ export function HubCertificationInspector({
   onOpenMintFlow: () => void;
 }) {
   const { formatMessage } = useIntl();
+  const formatEventAge = useLocalizedRelativeTime();
 
   return (
     <>
@@ -44,9 +45,7 @@ export function HubCertificationInspector({
                     defaultMessage: "Read-only handoff",
                   })}
             </span>
-            <span className="text-xs text-text-soft">
-              {formatRelativeTime(assessment.createdAt)}
-            </span>
+            <span className="text-xs text-text-soft">{formatEventAge(assessment.createdAt)}</span>
           </div>
 
           <div>

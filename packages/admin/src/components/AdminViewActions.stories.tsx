@@ -13,7 +13,7 @@ const meta: Meta<typeof AdminViewActions> = {
     docs: {
       description: {
         component:
-          "Desktop view-action row for admin workspaces — the stable-trio grammar. The workspace's actions render in declaration order on every tab; only the active tab's action carries the filled variant, so button positions never shift while the emphasis moves with the tab.",
+          "Desktop view-action row for admin workspaces — the stable-trio grammar. Action labels resolve from each item’s message ID in the active locale, with the declared label as the fallback. The workspace's actions render in declaration order on every tab; only the active tab's action carries the filled variant, so button positions never shift while the emphasis moves with the tab.",
       },
     },
   },

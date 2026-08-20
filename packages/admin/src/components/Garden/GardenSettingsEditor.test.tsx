@@ -1,9 +1,9 @@
+import enMessages from "@green-goods/shared/i18n/en";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { type ReactNode, useCallback, useRef, useState } from "react";
 import { IntlProvider, useIntl } from "react-intl";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import enMessages from "../../../../shared/src/i18n/en.json";
 import { Domain } from "../../../../shared/src/types/domain";
 import { resolveIPFSUrl } from "../../../../shared/src/modules/data/ipfs/resolve";
 import {

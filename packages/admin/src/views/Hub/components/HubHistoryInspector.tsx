@@ -1,17 +1,20 @@
 import {
-  formatRelativeTime,
   HUB_HISTORY_STATUS_CLASSNAME,
   SheetBody,
   SheetFooter,
   type ActivityEvent,
 } from "@green-goods/shared";
+import { useLocalizedRelativeTime } from "@green-goods/shared/hooks";
 import { AdminCard } from "@/components/AdminCard";
 import { RiExternalLinkLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { AdminButton } from "@/components/AdminButton";
+import { localizeCanonicalActionTitle } from "../actionDisplay";
 
 export function HubHistoryInspector({ event }: { event: ActivityEvent }) {
   const { formatMessage } = useIntl();
+  const formatEventAge = useLocalizedRelativeTime();
+  const localizedTitle = localizeCanonicalActionTitle(event.title, formatMessage);
 
   const categoryLabel =
     event.category === "work"
@@ -26,10 +29,10 @@ export function HubHistoryInspector({ event }: { event: ActivityEvent }) {
         <AdminCard density="compact" className="flex flex-col gap-3">
           <div className="flex flex-wrap items-center gap-2">
             <span className={HUB_HISTORY_STATUS_CLASSNAME}>{categoryLabel}</span>
-            <span className="text-xs text-text-soft">{formatRelativeTime(event.timestamp)}</span>
+            <span className="text-xs text-text-soft">{formatEventAge(event.timestamp)}</span>
           </div>
           <div>
-            <h3 className="text-lg font-semibold text-text-strong">{event.title}</h3>
+            <h3 className="text-lg font-semibold text-text-strong">{localizedTitle}</h3>
             <p className="mt-1 text-sm text-text-sub">{event.description}</p>
           </div>
         </AdminCard>

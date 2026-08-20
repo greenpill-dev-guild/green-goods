@@ -199,6 +199,27 @@ describe("components/Hypercerts/AttestationSelector", () => {
       expect(screen.getByText("Carbon Sequestration Project")).toBeInTheDocument();
     });
 
+    it("contains long titles beside the selection badge", () => {
+      const longTitle =
+        "Maintenance Activity – 2026-03-21T04:55:23.886Z – 2026-03-21T04:55:24.125Z";
+
+      render(
+        createElement(AttestationSelector, {
+          ...defaultProps,
+          attestations: [createMockAttestation({ id: "0xlong", title: longTitle })],
+        })
+      );
+
+      const title = screen.getByText(longTitle);
+      const titleColumn = title.parentElement;
+      const card = title.closest("button");
+      const selectionBadge = within(card!).getByText(/^select$/i);
+
+      expect(titleColumn).toHaveClass("min-w-0", "flex-1");
+      expect(title).toHaveClass("break-words");
+      expect(selectionBadge).toHaveClass("shrink-0");
+    });
+
     it("displays attestation count", () => {
       render(createElement(AttestationSelector, defaultProps));
 

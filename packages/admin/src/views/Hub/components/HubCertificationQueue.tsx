@@ -1,10 +1,5 @@
-import {
-  Alert,
-  EmptyState,
-  EmptyStateShell,
-  formatRelativeTime,
-  WorkbenchCard,
-} from "@green-goods/shared";
+import { Alert, EmptyState, EmptyStateShell, WorkbenchCard } from "@green-goods/shared";
+import { useLocalizedRelativeTime } from "@green-goods/shared/hooks";
 import { RiMedalLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { HubWorkbenchSkeletonRows } from "./HubWorkbenchSkeletonRows";
@@ -37,6 +32,7 @@ export function HubCertificationQueue({
   onOpenCertification,
 }: HubCertificationQueueProps) {
   const { formatMessage } = useIntl();
+  const formatEventAge = useLocalizedRelativeTime();
 
   if (hasDataError) {
     return (
@@ -105,7 +101,7 @@ export function HubCertificationQueue({
               meta={[
                 assessment.assessmentType ||
                   formatMessage({ id: "cockpit.garden.impact", defaultMessage: "Impact" }),
-                formatRelativeTime(assessment.createdAt),
+                formatEventAge(assessment.createdAt),
               ]}
               statusLabel={
                 hasMintAuthority

@@ -13,6 +13,7 @@ import { useRouteBackedLeftSheetConfig } from "@/components/Layout";
 import { WorkDetailPanel } from "@/views/Garden/WorkDetail";
 import { HubCertificationInspector } from "./HubCertificationInspector";
 import { HubHistoryInspector } from "./HubHistoryInspector";
+import { localizeCanonicalActionTitle } from "../actionDisplay";
 
 interface HubSheetDescriptorProps {
   routeSheetContentId: string | null;
@@ -103,7 +104,9 @@ export function HubSheetDescriptor({
     if (resolvedWorkDetailId) {
       return {
         title:
-          selectedWork?.title ??
+          (selectedWork?.title
+            ? localizeCanonicalActionTitle(selectedWork.title, formatMessage)
+            : undefined) ??
           formatMessage({ id: "app.work.detail.reviewTitle", defaultMessage: "Review Work" }),
         content: (
           <WorkDetailPanel
@@ -148,7 +151,9 @@ export function HubSheetDescriptor({
     if (routeHistoryEventId || selectedHistoryEvent) {
       return {
         title:
-          selectedHistoryEvent?.title ??
+          (selectedHistoryEvent?.title
+            ? localizeCanonicalActionTitle(selectedHistoryEvent.title, formatMessage)
+            : undefined) ??
           formatMessage({ id: "cockpit.hub.tab.history", defaultMessage: "History" }),
         content: selectedHistoryEvent ? (
           <HubHistoryInspector event={selectedHistoryEvent} />

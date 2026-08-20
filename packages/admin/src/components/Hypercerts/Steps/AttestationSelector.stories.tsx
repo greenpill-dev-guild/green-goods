@@ -40,6 +40,14 @@ const ATTESTATIONS: HypercertAttestation[] = [
   attestation("0xatt4", "Panel install site 3", "solar", daysAgo(9), "diego.eth"),
 ];
 
+const LONG_TITLE_ATTESTATION = attestation(
+  "0xatt-long",
+  "Maintenance Activity – 2026-03-21T04:55:23.886Z – 2026-03-21T04:55:24.125Z",
+  "agroforestry",
+  daysAgo(2),
+  "maria.eth"
+);
+
 const ASSESSMENT: GardenAssessment = {
   id: "0xassess1",
   schemaVersion: "assessment_v2",
@@ -88,6 +96,15 @@ type Story = StoryObj<typeof AttestationSelector>;
 export const WithData: Story = {
   args: {
     attestations: ATTESTATIONS,
+    selectedIds: [],
+    isLoading: false,
+    hasError: false,
+  },
+};
+
+export const LongTitle: Story = {
+  args: {
+    attestations: [LONG_TITLE_ATTESTATION],
     selectedIds: [],
     isLoading: false,
     hasError: false,

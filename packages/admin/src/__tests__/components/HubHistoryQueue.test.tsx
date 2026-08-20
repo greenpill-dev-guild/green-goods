@@ -4,6 +4,7 @@
 
 import { type ActivityEvent } from "@green-goods/shared";
 import enMessages from "@green-goods/shared/i18n/en.json";
+import ptMessages from "@green-goods/shared/i18n/pt.json";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { IntlProvider } from "react-intl";
 import { describe, expect, it, vi } from "vitest";
@@ -21,9 +22,12 @@ const EVENT: ActivityEvent = {
   itemId: "work-1",
 };
 
-function renderHistoryQueue(props: Partial<React.ComponentProps<typeof HubHistoryQueue>> = {}) {
+function renderHistoryQueue(
+  props: Partial<React.ComponentProps<typeof HubHistoryQueue>> = {},
+  locale: "en" | "pt" = "en"
+) {
   return render(
-    <IntlProvider locale="en" messages={enMessages}>
+    <IntlProvider locale={locale} messages={locale === "pt" ? ptMessages : enMessages}>
       <HubHistoryQueue
         items={[EVENT]}
         worksLoading={false}
@@ -82,5 +86,33 @@ describe("HubHistoryQueue", () => {
       "data-selected",
       "false"
     );
+  });
+
+  it("localizes infrastructure milestone events in Portuguese history", () => {
+    const milestoneEvent: ActivityEvent = {
+      ...EVENT,
+      title: "Infrastructure Milestone - 2026-07-07T16:36:37.231Z - 2026-07-07T16:36:37.366Z",
+    };
+
+    renderHistoryQueue({ items: [milestoneEvent] }, "pt");
+
+    expect(
+      screen.getByText(
+        "Marco de infraestrutura - 2026-07-07T16:36:37.231Z - 2026-07-07T16:36:37.366Z"
+      )
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/Infrastructure Milestone/)).not.toBeInTheDocument();
+  });
+
+  it("localizes the event age in Portuguese", () => {
+    const threeDaysAgo: ActivityEvent = {
+      ...EVENT,
+      timestamp: Date.now() - 3 * 24 * 60 * 60 * 1000,
+    };
+
+    renderHistoryQueue({ items: [threeDaysAgo] }, "pt");
+
+    expect(screen.getByText("há 3 dias")).toBeInTheDocument();
+    expect(screen.queryByText("3 days ago")).not.toBeInTheDocument();
   });
 });

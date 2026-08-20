@@ -1,0 +1,138 @@
+import { PoolType, useGardenOperations, useGardenYieldWiringState } from "@green-goods/shared";
+import { RiUserLine } from "@remixicon/react";
+import { IntlProvider } from "react-intl";
+import { MemoryRouter } from "react-router-dom";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { renderWithProviders, screen } from "@/__tests__/test-utils";
+import { CommunityTab } from "@/views/Community/components/CommunityTab";
+
+vi.mock("@green-goods/shared", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@green-goods/shared")>();
+  return {
+    ...actual,
+    useGardenOperations: vi.fn(),
+    useGardenYieldWiringState: vi.fn(),
+  };
+});
+
+vi.mock("@/components/Garden/AddMembersDialog", () => ({ AddMembersDialog: () => null }));
+vi.mock("@/components/Garden/ManageMembersDialog", () => ({ ManageMembersDialog: () => null }));
+vi.mock("@/views/Community/components/GovernancePanel", () => ({
+  GovernancePanel: () => null,
+}));
+
+const GARDEN_ID = "0x1111111111111111111111111111111111111111";
+const HYPERCERT_POOL = "0x2222222222222222222222222222222222222222";
+const ACTION_POOL = "0x3333333333333333333333333333333333333333";
+const noop = vi.fn();
+
+describe("Community coordination status actions", () => {
+  beforeEach(() => {
+    vi.mocked(useGardenOperations).mockReturnValue({
+      addGardener: noop,
+      addOperator: noop,
+      addEvaluator: noop,
+      addOwner: noop,
+      addFunder: noop,
+      addCommunity: noop,
+      removeGardener: noop,
+      removeOperator: noop,
+      removeEvaluator: noop,
+      removeOwner: noop,
+      removeFunder: noop,
+      removeCommunity: noop,
+      isLoading: false,
+    } as unknown as ReturnType<typeof useGardenOperations>);
+    vi.mocked(useGardenYieldWiringState).mockReturnValue({
+      wiringStatus: "connected",
+      wiringState: {
+        readStatus: "available",
+        status: "connected",
+        gardenAddress: GARDEN_ID,
+        expectedHypercertPoolAddress: HYPERCERT_POOL,
+        resolverHypercertPoolAddress: HYPERCERT_POOL,
+        canRepairFromCommunity: false,
+        issues: [],
+      },
+    } as ReturnType<typeof useGardenYieldWiringState>);
+  });
+
+  it("aligns connected yield status and Manage Strategies to one compact row", () => {
+    renderWithProviders(
+      <IntlProvider
+        locale="en"
+        messages={{
+          "app.actions.view": "View",
+          "app.community.poolType.action": "Action signaling",
+          "app.community.poolType.hypercert": "Hypercert curation",
+          "app.community.statusConnected": "Connected",
+          "app.community.yield.connected": "Yield connected",
+          "app.conviction.manageStrategies": "Manage Strategies",
+          "cockpit.community.coordination.community": "Community",
+          "cockpit.community.coordination.proposals": "Registered proposals",
+          "cockpit.community.coordination.proposalsDescription": "Proposal review",
+          "cockpit.community.coordination.status": "Pool status",
+        }}
+      >
+        <MemoryRouter>
+          <CommunityTab
+            mode="coordination"
+            garden={{ id: GARDEN_ID, name: "Test garden" }}
+            gardenId={GARDEN_ID}
+            canManage={true}
+            section={undefined}
+            selectedItem={null}
+            showSectionStateCard={false}
+            clearSection={noop}
+            closeMembersModal={noop}
+            community={{}}
+            communityLoading={false}
+            pools={[
+              { poolType: PoolType.Hypercert, poolAddress: HYPERCERT_POOL },
+              { poolType: PoolType.Action, poolAddress: ACTION_POOL },
+            ]}
+            createPools={noop}
+            isCreatingPools={false}
+            vaultsLoading={false}
+            hasVaults={false}
+            vaultNetDeposited={0n}
+            treasurySeverity="none"
+            allocations={[]}
+            allocationsLoading={false}
+            roleSummary={[]}
+            roleMembers={{
+              gardener: [],
+              operator: [],
+              evaluator: [],
+              owner: [],
+              funder: [],
+              community: [],
+            }}
+            visibleDirectory={[]}
+            memberSearch=""
+            setMemberSearch={noop}
+            roleIcons={{
+              gardener: RiUserLine,
+              operator: RiUserLine,
+              evaluator: RiUserLine,
+              owner: RiUserLine,
+              funder: RiUserLine,
+              community: RiUserLine,
+            }}
+            scheduleBackgroundRefetch={noop}
+          />
+        </MemoryRouter>
+      </IntlProvider>
+    );
+
+    const connectedStatus = screen.getByText("Yield connected");
+    const manageStrategies = screen.getByRole("link", { name: /Manage Strategies/i });
+    const actionRow = connectedStatus.parentElement;
+
+    expect(actionRow).toBe(manageStrategies.parentElement);
+    expect(actionRow).toHaveClass("flex", "items-center", "gap-2");
+    expect(connectedStatus).toHaveClass("h-8", "items-center");
+    expect(manageStrategies).toHaveClass("h-8");
+    expect(manageStrategies).not.toHaveClass("h-auto");
+  });
+});

@@ -1,7 +1,7 @@
+import enMessages from "@green-goods/shared/i18n/en";
 import { render, screen } from "@testing-library/react";
 import { IntlProvider } from "react-intl";
 import { describe, expect, it } from "vitest";
-import enMessages from "../../../../shared/src/i18n/en.json";
 import { ActionFlowStepper, type ActionFlowStep } from "./ActionFlowStepper";
 
 const STEPS: ActionFlowStep[] = [

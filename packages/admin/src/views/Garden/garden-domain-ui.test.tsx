@@ -5,8 +5,8 @@ import type { ReactNode } from "react";
 import { IntlProvider } from "react-intl";
 import { MemoryRouter, Route, RouterProvider, Routes, createMemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import enMessages from "../../../../shared/src/i18n/en.json";
 import { useGardenWorkspaceController } from "@green-goods/shared";
+import enMessages from "@green-goods/shared/i18n/en";
 import { GardenWorkspaceContent } from "./components/GardenWorkspaceContent";
 import { SubmitWorkPanel } from "./SubmitWork";
 

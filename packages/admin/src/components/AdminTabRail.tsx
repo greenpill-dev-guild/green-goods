@@ -141,9 +141,7 @@ export function AdminTabRail({
           >
             {Icon ? <Icon className="h-4 w-4 shrink-0" aria-hidden /> : null}
 
-            <span className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">
-              {tab.label}
-            </span>
+            <span className="whitespace-nowrap">{tab.label}</span>
 
             {tab.count !== undefined && tab.count > 0 ? (
               <>

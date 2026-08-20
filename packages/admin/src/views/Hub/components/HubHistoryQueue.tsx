@@ -4,9 +4,9 @@ import {
   EmptyState,
   EmptyStateShell,
   formatDateTime,
-  formatRelativeTime,
   type ActivityEvent,
 } from "@green-goods/shared";
+import { useLocalizedRelativeTime } from "@green-goods/shared/hooks";
 import {
   RiArrowRightLine,
   RiCheckboxCircleLine,
@@ -16,6 +16,7 @@ import {
 } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { adminCardVariants } from "@/components/AdminCard";
+import { localizeCanonicalActionTitle } from "../actionDisplay";
 import { HubWorkbenchSkeletonRows } from "./HubWorkbenchSkeletonRows";
 
 interface HubHistoryQueueProps {
@@ -42,6 +43,7 @@ export function HubHistoryQueue({
   onOpenHistoryEvent,
 }: HubHistoryQueueProps) {
   const { formatMessage } = useIntl();
+  const formatEventAge = useLocalizedRelativeTime();
 
   if (hasDataError) {
     return (
@@ -104,6 +106,7 @@ export function HubHistoryQueue({
           dateStyle: "medium",
           timeStyle: "short",
         });
+        const localizedTitle = localizeCanonicalActionTitle(event.title, formatMessage);
 
         return (
           <li key={event.id} className="min-w-0">
@@ -131,12 +134,12 @@ export function HubHistoryQueue({
                     title={exactTimestamp}
                     className="text-label-sm text-text-soft"
                   >
-                    {formatRelativeTime(event.timestamp)}
+                    {formatEventAge(event.timestamp)}
                   </time>
                 </span>
 
                 <span className="block text-title-sm font-semibold leading-5 text-text-strong">
-                  {event.title}
+                  {localizedTitle}
                 </span>
                 <span className="block text-body-sm leading-5 text-text-sub">
                   {event.description}

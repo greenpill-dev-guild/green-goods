@@ -96,6 +96,28 @@ export const LabelsOnly: Story = {
   },
 };
 
+export const TranslatedDescenders: Story = {
+  render: () => {
+    const Demo = () => {
+      const [active, setActive] = useState("payouts");
+      return (
+        <AdminTabRail
+          ariaLabel="Secciones de la comunidad"
+          activeId={active}
+          onChange={setActive}
+          tabs={[
+            { id: "members", label: "Miembros" },
+            { id: "coordination", label: "Coordinación" },
+            { id: "endowment", label: "Dotación" },
+            { id: "payouts", label: "Pagos" },
+          ]}
+        />
+      );
+    };
+    return <Demo />;
+  },
+};
+
 export const WithIconsAndCounts: Story = {
   tags: ["storybook-ci"],
   render: () => <StagesDemo />,

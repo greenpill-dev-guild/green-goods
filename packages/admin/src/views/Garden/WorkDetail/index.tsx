@@ -11,6 +11,7 @@ import { CanvasRouteErrorState } from "@/components/Layout/CanvasRouteState";
 import { MediaEvidence } from "@/views/Hub/components/MediaEvidence";
 import { ReviewForm } from "./ReviewForm";
 import { SubmissionDetails } from "./SubmissionDetails";
+import { localizeActionForDisplay, localizeCanonicalActionTitle } from "@/views/Hub/actionDisplay";
 
 type WorkDetailLayout = "page" | "sheet";
 
@@ -70,7 +71,7 @@ export interface WorkDetailPanelProps {
 }
 
 export function WorkDetailPanel({ workId, layout = "page", onSuccess }: WorkDetailPanelProps) {
-  const { formatMessage } = useIntl();
+  const { formatMessage, locale } = useIntl();
   const resolved = useResolvedWorkDetail(workId);
   const { garden, work, action, canReview, canApproveOrReject, isReviewed, metadata } = resolved;
 
@@ -123,11 +124,21 @@ export function WorkDetailPanel({ workId, layout = "page", onSuccess }: WorkDeta
     );
   }
 
+  const displayAction = action
+    ? localizeActionForDisplay(action, { formatMessage, locale })
+    : undefined;
+  const localizedActionTitle = displayAction?.title;
+  const localizedWorkTitle = work.title
+    ? localizeCanonicalActionTitle(work.title, formatMessage)
+    : undefined;
+
   const sheetTopline = (
     <div className="flex flex-wrap items-center gap-2 px-1">
       <WorkDetailStatusBadge status={work.status} />
       <span className="text-xs text-text-soft">
-        {action?.title ?? work.title ?? formatMessage({ id: "app.work.detail.title" })}
+        {localizedActionTitle ??
+          localizedWorkTitle ??
+          formatMessage({ id: "app.work.detail.title" })}
       </span>
     </div>
   );
@@ -146,13 +157,13 @@ export function WorkDetailPanel({ workId, layout = "page", onSuccess }: WorkDeta
               <MediaEvidence
                 media={work.media}
                 audioNoteCids={resolved.audioNoteCids}
-                actionTitle={action?.title}
+                actionTitle={localizedActionTitle}
               />
             </section>
             <SubmissionDetails
               work={work}
               gardenName={garden.name}
-              actionTitle={action?.title}
+              actionTitle={localizedActionTitle}
               actionSlug={action?.slug}
               metadata={metadata}
             />
@@ -183,14 +194,14 @@ export function WorkDetailPanel({ workId, layout = "page", onSuccess }: WorkDeta
             <MediaEvidence
               media={work.media}
               audioNoteCids={resolved.audioNoteCids}
-              actionTitle={action?.title}
+              actionTitle={localizedActionTitle}
             />
           </section>
 
           <SubmissionDetails
             work={work}
             gardenName={garden.name}
-            actionTitle={action?.title}
+            actionTitle={localizedActionTitle}
             actionSlug={action?.slug}
             metadata={metadata}
           />
@@ -214,8 +225,15 @@ export function WorkDetailPanel({ workId, layout = "page", onSuccess }: WorkDeta
 
 export default function WorkDetail() {
   const { workId } = useParams<{ workId: string }>();
-  const { formatMessage } = useIntl();
+  const { formatMessage, locale } = useIntl();
   const resolved = useResolvedWorkDetail(workId);
+  const displayAction = resolved.action
+    ? localizeActionForDisplay(resolved.action, { formatMessage, locale })
+    : undefined;
+  const localizedActionTitle = displayAction?.title;
+  const localizedWorkTitle = resolved.work?.title
+    ? localizeCanonicalActionTitle(resolved.work.title, formatMessage)
+    : undefined;
   const hubContext =
     typeof window === "undefined" ? undefined : parseHubContext(window.location.search);
 
@@ -250,8 +268,8 @@ export default function WorkDetail() {
         maxWidthClassName="max-w-6xl"
         title={formatMessage({ id: "app.work.detail.reviewTitle" })}
         description={
-          resolved.action?.title ??
-          resolved.work?.title ??
+          localizedActionTitle ??
+          localizedWorkTitle ??
           formatMessage({ id: "app.work.detail.loadingDescription" })
         }
         metadata={
