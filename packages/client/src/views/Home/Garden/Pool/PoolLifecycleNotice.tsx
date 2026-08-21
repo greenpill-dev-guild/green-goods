@@ -30,12 +30,13 @@ export function PoolLifecycleNotice({ pool, inline = false }: PoolLifecycleNotic
     );
   }
 
-  const notice = {
+  const notices: Record<string, { icon: React.ReactNode; key: string }> = {
     NOT_READY: { icon: <RiPlantLine />, key: "notReady" },
     READY: { icon: <RiTimeLine />, key: "ready" },
     CLOSED: { icon: <RiLeafLine />, key: "closed" },
     COMPOSTED: { icon: <RiLeafLine />, key: "composted" },
-  }[state] ?? { icon: <RiPlantLine />, key: "unknown" };
+  };
+  const notice = notices[state] ?? { icon: <RiPlantLine />, key: "unknown" };
 
   return (
     <div className="min-h-0 flex-1 overflow-y-auto">

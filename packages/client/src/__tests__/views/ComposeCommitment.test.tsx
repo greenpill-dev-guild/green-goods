@@ -10,7 +10,7 @@
  */
 
 import userEvent from "@testing-library/user-event";
-import { MemoryRouter, Route, Routes } from "react-router-dom";
+import { MemoryRouter, Outlet, Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { renderWithProviders, screen } from "../test-utils";
 
@@ -40,18 +40,28 @@ vi.mock("@green-goods/shared", async () => {
 
 const { ComposeCommitment } = await import("../../views/Home/Garden/Compose");
 
-const render = () =>
+const render = (direction: string | null = "offer") =>
   renderWithProviders(
-    <MemoryRouter initialEntries={[`/home/${GARDEN}/commitments/new`]}>
+    <MemoryRouter
+      initialEntries={[
+        direction
+          ? `/home/${GARDEN}/commitments/new?direction=${direction}`
+          : `/home/${GARDEN}/commitments/new`,
+      ]}
+    >
+      {/* Nested like the app router: the composer is a child of the garden,
+        so a route-relative ".." lands on the garden, not on the root. */}
       <Routes>
-        <Route path="/home/:id/commitments/new" element={<ComposeCommitment />} />
+        <Route path="/home/:id" element={<Outlet />}>
+          <Route index element={<p>Back on the pool</p>} />
+          <Route path="commitments/new" element={<ComposeCommitment />} />
+        </Route>
       </Routes>
     </MemoryRouter>
   );
 
-/** Walk the first two beats with a usable answer. */
+/** Walk the first beat with a usable answer. */
 async function fillWhat(user: ReturnType<typeof userEvent.setup>, title = "Compost workshop") {
-  await user.click(screen.getByRole("button", { name: "Next" }));
   await user.type(screen.getByLabelText("Name it"), title);
   await user.clear(screen.getByLabelText("How many"));
   await user.type(screen.getByLabelText("How many"), "3");
@@ -66,17 +76,24 @@ describe("ComposeCommitment", () => {
     mockEnqueue.mockResolvedValue("job-1");
   });
 
-  it("asks which side of the exchange this is, before anything else", () => {
-    render();
-    expect(screen.getByText("What are you doing?")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Offering something/ })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Asking for something/ })).toBeInTheDocument();
+  it("takes its direction from the door that opened it, and never asks again", () => {
+    render("offer");
+    // The door fixed the direction, so the first beat is already the what,
+    // under a header that names the act. No in-form direction control exists.
+    expect(screen.getByText("Make an offer")).toBeInTheDocument();
+    expect(screen.getByText("What are you offering?")).toBeInTheDocument();
+    expect(screen.queryByText("What are you doing?")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Offering something/ })).not.toBeInTheDocument();
+  });
+
+  it("leaves the flow when no door opened it, rather than guessing a direction", () => {
+    render(null);
+    expect(screen.getByText("Back on the pool")).toBeInTheDocument();
   });
 
   it("will not let a member place something nobody could recognise", async () => {
     const user = userEvent.setup();
     render();
-    await user.click(screen.getByRole("button", { name: "Next" }));
 
     // The name is what neighbours see in the pool; without it the row can only
     // describe the record back to them.
@@ -90,7 +107,6 @@ describe("ComposeCommitment", () => {
   it("says what is missing rather than only disabling the control", async () => {
     const user = userEvent.setup();
     render();
-    await user.click(screen.getByRole("button", { name: "Next" }));
 
     expect(screen.getByText(/Give it a name/i)).toBeInTheDocument();
     await user.type(screen.getByLabelText("Name it"), "Compost workshop");
@@ -99,12 +115,10 @@ describe("ComposeCommitment", () => {
     expect(screen.queryByText(/Give it a name/i)).not.toBeInTheDocument();
   });
 
-  it("takes the wording of each beat from the side they chose", async () => {
-    const user = userEvent.setup();
-    render();
-    await user.click(screen.getByRole("button", { name: /Asking for something/ }));
-    await user.click(screen.getByRole("button", { name: "Next" }));
+  it("takes the wording of each beat from the door they came through", () => {
+    render("request");
 
+    expect(screen.getByText("Make a request")).toBeInTheDocument();
     expect(screen.getByText("What are you asking for?")).toBeInTheDocument();
   });
 

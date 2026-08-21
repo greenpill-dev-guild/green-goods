@@ -16,6 +16,12 @@ import { renderWithProviders, screen } from "../test-utils";
 
 /** The tab navigates into commitment detail, so it needs a router around it. */
 const render = (ui: React.ReactElement) => renderWithProviders(<MemoryRouter>{ui}</MemoryRouter>);
+const mockNavigate = vi.fn();
+
+vi.mock("react-router-dom", async () => {
+  const actual = await vi.importActual<typeof import("react-router-dom")>("react-router-dom");
+  return { ...actual, useNavigate: () => mockNavigate };
+});
 
 const VIEWER = "0x1111111111111111111111111111111111111111" as const;
 const OTHER = "0x2222222222222222222222222222222222222222" as const;
@@ -283,6 +289,53 @@ describe("GardenPool", () => {
       "false",
     ]);
     expect(screen.getAllByText("Needs you")).toHaveLength(1);
+  });
+
+  it("opens two one-word doors from the floating entry, each fixing its direction by route", async () => {
+    const user = userEvent.setup();
+    mockUseCommitments.mockReturnValue(commitmentsResult({ commitments: [commitment()] }));
+
+    render(<GardenPool pool={pool()} />);
+
+    // Closed: one entry, no doors, and no form.
+    expect(screen.queryByRole("button", { name: "Offer" })).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Offer or request" }));
+    expect(screen.getByRole("button", { name: "Request" })).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Offer" }));
+    expect(mockNavigate).toHaveBeenCalledWith("commitments/new?direction=offer");
+  });
+
+  it("closes the doors without starting anything", async () => {
+    const user = userEvent.setup();
+    mockUseCommitments.mockReturnValue(commitmentsResult({ commitments: [commitment()] }));
+
+    render(<GardenPool pool={pool()} />);
+    await user.click(screen.getByRole("button", { name: "Offer or request" }));
+    await user.click(screen.getByRole("button", { name: "Close" }));
+
+    expect(screen.queryByRole("button", { name: "Offer" })).not.toBeInTheDocument();
+    expect(mockNavigate).not.toHaveBeenCalled();
+  });
+
+  it("keeps big inline doors on an empty pool and draws no floating entry", async () => {
+    const user = userEvent.setup();
+
+    render(<GardenPool pool={pool()} />);
+
+    expect(screen.getByText("No commitments yet")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Offer or request" })).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Make a request" }));
+    expect(mockNavigate).toHaveBeenCalledWith("commitments/new?direction=request");
+  });
+
+  it("draws no creation entry while the pool is paused", () => {
+    mockUseCommitments.mockReturnValue(commitmentsResult({ commitments: [commitment()] }));
+
+    render(<GardenPool pool={pool({ state: "PAUSED" })} />);
+
+    expect(screen.queryByRole("button", { name: "Offer or request" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Offer support" })).not.toBeInTheDocument();
   });
 
   it("explains what the pool is for before listing what is in it", () => {

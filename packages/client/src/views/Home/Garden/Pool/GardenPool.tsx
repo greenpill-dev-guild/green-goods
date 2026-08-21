@@ -10,13 +10,14 @@ import {
   useOffline,
   usePrimaryAddress,
 } from "@green-goods/shared";
-import { RiAddLine, RiInformationLine } from "@remixicon/react";
+import { RiHandHeartLine, RiInformationLine, RiSeedlingLine } from "@remixicon/react";
 import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
 
 import { CommitmentRow, CommitmentStateLadder } from "@/components/Features/Commitments";
 import { CycleRail } from "./CycleRail";
+import { type CommitmentDoor, PoolCreateEntry } from "./PoolCreateEntry";
 import { PoolLifecycleNotice } from "./PoolLifecycleNotice";
 
 export interface GardenPoolProps {
@@ -91,6 +92,11 @@ export function GardenPool({ pool }: GardenPoolProps) {
     return <PoolLifecycleNotice pool={pool} />;
   }
 
+  // The door fixes the direction; the form never asks it again. Creation is
+  // only offered while the pool is open, since a paused pool takes nothing.
+  const openDoor = (door: CommitmentDoor) => navigate(`commitments/new?direction=${door}`);
+  const canCreate = poolState === "OPEN";
+
   return (
     <CommitmentStateLadder
       availability={commitmentsQuery.availability}
@@ -104,6 +110,28 @@ export function GardenPool({ pool }: GardenPoolProps) {
         errorId: "app.pool.error",
         emptyTitleId: "app.pool.emptyTitle",
         emptyDescriptionId: "app.pool.emptyDescription",
+        // An empty pool keeps its big inline doors and draws no floating entry:
+        // there is nothing to scroll past, and the invitation is the screen.
+        emptyAction: canCreate ? (
+          <div className="flex w-full max-w-xs flex-col gap-2">
+            <button
+              type="button"
+              onClick={() => openDoor("offer")}
+              className="flex items-center justify-center gap-2 rounded-[var(--radius-lg)] bg-primary-action px-4 py-3 text-sm font-medium text-primary-action-foreground tap-target-lg"
+            >
+              <RiSeedlingLine className="h-4 w-4" aria-hidden="true" />
+              {formatMessage({ id: "app.pool.empty.offer" })}
+            </button>
+            <button
+              type="button"
+              onClick={() => openDoor("request")}
+              className="flex items-center justify-center gap-2 rounded-[var(--radius-lg)] border border-stroke-soft-200 bg-bg-white-0 px-4 py-3 text-sm font-medium text-text-strong-950 tap-target-lg"
+            >
+              <RiHandHeartLine className="h-4 w-4" aria-hidden="true" />
+              {formatMessage({ id: "app.pool.empty.request" })}
+            </button>
+          </div>
+        ) : undefined,
       }}
     >
       {poolState === "PAUSED" ? <PoolLifecycleNotice pool={pool} inline /> : null}
@@ -140,15 +168,6 @@ export function GardenPool({ pool }: GardenPoolProps) {
         })}
       </div>
 
-      <button
-        type="button"
-        onClick={() => navigate("commitments/new")}
-        className="flex w-full items-center justify-center gap-2 rounded-[var(--radius-lg)] border border-stroke-soft-200 bg-bg-white-0 p-3 text-sm font-medium text-text-strong-950 tap-target-lg"
-      >
-        <RiAddLine className="h-4 w-4" aria-hidden="true" />
-        {formatMessage({ id: "app.pool.compose" })}
-      </button>
-
       {rows.length === 0 ? (
         <p className="py-6 text-center text-sm text-text-sub-600">
           {formatMessage({ id: "app.commitments.filter.noMatches" })}
@@ -169,6 +188,8 @@ export function GardenPool({ pool }: GardenPoolProps) {
           ))}
         </div>
       )}
+
+      {canCreate ? <PoolCreateEntry onChoose={openDoor} /> : null}
     </CommitmentStateLadder>
   );
 }
