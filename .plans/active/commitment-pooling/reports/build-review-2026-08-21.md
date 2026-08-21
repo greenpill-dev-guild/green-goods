@@ -21,7 +21,7 @@ does not exist yet.
 | Contracts | Live | 86 functions / 48 events / 20 libraries; deployed and unpaused on Arbitrum with 18 pools; 361 unit + 94 fuzz/invariant/integration tests pass; no Critical/High code defect; three Medium ops risks |
 | Settlement & Celo | Built, paused | `SettlementModule` + `CeloSettlementExecutor` deployed, both paused, no Safe/Zodiac value authority; credit registry deployed; `SettlementModule` has 81 bytes of EIP-170 headroom |
 | Indexer | Source complete, not deployed | 119/119 events handled, 28 pooling records, replay and out-of-order proofs, boundary check passes; the hosted Envio still serves the old schema without `CommitmentPool` |
-| Shared state & API | Complete, fail-closed | Types, hooks, mutations, six offline job kinds, Saved Offers; 186/186 tests pass; the capability ledger reads `deployed-not-available`, so every pooling read and write is disabled in production by design |
+| Shared state & API | Complete (one offline gap), fail-closed | Types, hooks, mutations, six offline job kinds (the four membership-gated ones skip the hat preflight; see Shared), Saved Offers; 186/186 tests pass; the capability ledger reads `deployed-not-available`, so every pooling read and write is disabled in production by design |
 | Client PWA | Partial | 4 of 19 prototype screens shipped in PR #740; 104/104 tests pass; three High findings, one of them on-chain data hygiene |
 | Admin | Not started | 0 files against a 16-screen / 196-state prototype; the steward flows Cycle 1 needs have no UI; Linear PRD-725 shows In Progress |
 | Editorial | Backend only | Public readers with the privacy gates intact (8/8 tests); no § 02 section on `/gardens/:id`, no `/impact` band; `PublicEvidencePipeline` i18n is a prerequisite |
@@ -115,11 +115,17 @@ Findings:
   commitment that carries a single credit. Spec-intended for the pilot; the Safe transfer is
   deferred and this wave replaced the external audit with internal review. A known ops decision,
   to be written down where the value tier is gated.
-- **Medium.** Storage-layout and ERC-7201 gates are manual only. Baselines exist and match
-  (`storage-layouts/*.json`, 38 slots + `__gap[12]`), but `.github/workflows/contracts.yml:148` runs
-  only `check:sizes`; `check:storage-layout` and `check-erc7201-layout.ts` are in neither CI nor
-  any deploy/upgrade wrapper, and `script/upgrade.ts` has no named target for the six new proxies.
-  Pooling upgrades also do not require pause, unlike Settlement and Celo.
+- **Medium.** Storage-layout and ERC-7201 gates are not wired for the pooling, settlement, or
+  credit proxies. Baselines exist and match (`storage-layouts/*.json`, 38 slots + `__gap[12]`), but
+  `.github/workflows/contracts.yml:148` runs only `check:sizes`; `check:storage-layout` is invoked
+  only by the assessment and Hats upgrade scripts (`packages/contracts/package.json:175,223,226`),
+  never by CI or by any pooling/settlement/credit path; `check-erc7201-layout.ts` has no caller at
+  all; and `script/upgrade.ts` exposes an explicit `testimony-resolver` target plus the
+  `commitment-pooling` GardenToken/WorkApprovalResolver integration group, but no target for
+  `CommitmentPoolingModule`, `CommitmentRegistry`, `SettlementModule`, `CeloSettlementExecutor`,
+  or `CreditRegistry`. Pooling upgrades also do not require pause, unlike Settlement and Celo.
+  *(Corrected 2026-08-21 after PR #747 review; the first wording overstated the gap as "no
+  upgrade wrapper" and "all six proxies".)*
 - **Medium.** `SettlementModule` has 81 bytes of EIP-170 headroom
   (`check-contract-sizes.ts --skip-build`: 24,495 bytes; CreditRegistry 22,055;
   CommitmentPoolingModule 21,217; CeloSettlementExecutor 20,243).
@@ -168,8 +174,9 @@ pooling block; `distinctProviderCount` is monotonic and publishes a number, neve
 
 ## Shared state & API
 
-**Verdict: Complete, fail-closed.** The offline-first contract is met and the mutation surface is
-disciplined.
+**Verdict: Complete with one offline gap, fail-closed.** The mutation surface is disciplined; the
+offline-first contract holds for creation and series jobs but not yet for the four
+membership-gated field jobs (see the first finding below, added after PR #747 review).
 
 Evidence: `bun run test -- commitment` → 17 files / 186 tests pass; disclosure, saved-offers,
 settlement selectors → 5 files / 63 pass; editorial readers → 3 files / 8 pass.
@@ -189,6 +196,14 @@ deployed-not-available` (verified 2026-08-16). That makes `addJob` throw for eve
 kind, disables authenticated queries, and makes online mutations throw. It is a build-time ledger
 flipped by editing the projection JSON and regenerating, not a runtime read-back probe.
 
+- **Medium (offline jobs; added 2026-08-21 after PR #747 review).** The membership preflight
+  runs only when a payload carries `gardenAddress` (`modules/commitment-pooling/job-executor.ts:84-87`);
+  `CommitmentSeriesJobPayload` and `CommitmentCreationPayload` carry it, but `ClaimJobPayload`,
+  `EvidenceJobPayload`, `WorkLinkJobPayload`, and `ConfirmationJobPayload` do not
+  (`job-types.ts:75-98`). Those four jobs therefore skip the `waiting` / `membership-unavailable`
+  path and spend their retries on a revert when the member's hat is not yet granted. The
+  "six-job offline surface is complete" line in the status board is overstated to that extent;
+  `prompt-client-loop.md` Phase 0 item 5 closes it.
 - **Medium (editorial readers).** The `/impact` "support arrived" sum counts every disbursement
   kind and token: `data-public-impact.ts:73` filters only on `state: CONFIRMED`; `DisbursementKind`
   includes `FUNDING`, `LOAN_PRINCIPAL`, and `REFUND`, and `token` is per row. Filter to
@@ -202,9 +217,12 @@ flipped by editing the projection JSON and regenerating, not a runtime read-back
 - **Low.** `useCommitmentQueueState` builds an ad-hoc query key; `usePublicGardenPool` borrows the
   `gardenDetail` key namespace; `modules/commitment-pooling/index.ts` re-exports two hooks; public
   readers skip the ledger and warn on every public garden page until the deploy; the pool reader
-  awaits every IPFS cycle-name resolution before returning counts; confirm/claim jobs carry no
-  identity key; the `/impact` lifetime totals filtered `state: OPEN` pools only at review time
-  (fixed in PR #746).
+  awaits every IPFS cycle-name resolution before returning counts; the `/impact` lifetime totals
+  filtered `state: OPEN` pools only at review time (fixed in PR #746). *(A first draft of this
+  list said confirm/claim jobs "carry no identity key"; that was wrong — `commitmentJobIdentity`
+  in `modules/job-queue/queue-policy.ts` derives identities for all six kinds and `addJob`
+  deduplicates on them at `index.ts:147-158`. Only `job-identity.ts`'s on-chain request keys are
+  limited to series, commitment, and work-link.)*
 
 ## Client PWA
 
@@ -244,8 +262,10 @@ Findings:
   (`GardenCommitment.tsx:216-218`); `band.provider.active.b` copy points at sections that do not
   render.
 - **Medium (suspected).** A failed queue read re-arms the action bar (`GardenCommitment.tsx:76`
-  reads only `pendingCommitmentIds`); confirm/claim jobs carry no identity key
-  (`job-identity.ts:90-130`).
+  reads only `pendingCommitmentIds`). A second tap is caught by the queue's existing identity
+  dedup (`queue-policy.ts` + `index.ts:147-158`), so the defect is the re-armed, misleading
+  button, not a duplicate send; the detail bar should read `isUnavailable` and
+  `failedCommitmentIds` the way the sheet does.
 - **Medium.** The composer diverges from the locked spec: `uiux-spec.md:685-687` forbids an
   in-form Direction control; `ComposeKind.tsx:17-69` is one, entered from a single button
   (`GardenPool.tsx:135-142`).
@@ -324,7 +344,7 @@ carry 11 states; the admin follow-up list is open.
 2. One EOA owns every proxy and is steward of every pool; Safe transfer deferred; no external
    audit this wave.
 3. Client Highs on the live path (not-found ordering, raw reason as CID, inert inbox).
-4. Upgrade safety unwired (storage-layout / ERC-7201 manual; no named upgrade targets).
+4. Upgrade safety unwired for the pooling, settlement, and credit proxies (storage-layout / ERC-7201 checks run only in the assessment and Hats upgrade scripts; no `upgrade.ts` target for the five new proxies other than `testimony-resolver`).
 5. Admin surface does not exist, and Cycle 1 is a steward act.
 6. `SettlementModule` at 81 bytes of headroom.
 7. Public totals can overstate (`/impact` kinds/tokens; pool reader blocks on IPFS).
@@ -340,8 +360,9 @@ carry 11 states; the admin follow-up list is open.
 2. Land the three client Highs before the flip (`prompt-client-loop.md`, Phase 0).
 3. Scope a narrowed admin dispatch: W7 pool console, W10 detail, W13 confirmation queue, W11 cycle
    open.
-4. Wire `check:storage-layout` and the ERC-7201 check into CI and the upgrade wrapper; add named
-   upgrade targets for the six proxies.
+4. Wire `check:storage-layout` and the ERC-7201 check into CI and into the pooling/settlement/credit
+   upgrade paths; add `upgrade.ts` targets for `CommitmentPoolingModule`, `CommitmentRegistry`,
+   `SettlementModule`, `CeloSettlementExecutor`, and `CreditRegistry` (`testimony-resolver` already has one).
 5. Reconcile the record: PRD-650 body, PRD-725 state, PRD-724 scope comment, the hub's coverage
    table and Track B step 8, the three stale handoffs.
 6. Date the ownership and audit decisions before the value tier unpauses.

@@ -39,7 +39,8 @@ them, never run `git` against them. Do not remove this worktree at the end; Afo 
 - Never `git add -A`: stage explicit paths. Before each commit, `git status --short` from the
   worktree root and confirm no `node_modules`, `.env`, or `.generated` stray is staged.
 - The second branch, `feature/commitment-pooling-client-over-time`, is created from this worktree
-  with `git switch -c` only after the D1 PR is open; do not create a second worktree.
+  with `git switch -c` off the updated `develop` only after the D1 PR has merged; do not create a
+  second worktree and do not open D2 against `develop` while D1 is still open.
 
 Worktree creation (Afo runs this before the session starts):
 
@@ -55,6 +56,26 @@ Absolute paths on the `ln` (a relative one once landed a stray symlink inside `h
 non-secret baseline over it; `mise trust` first or Node falls back to v18 and the husky hook dies
 with a misleading `toSorted` error.
 
+## Dispatch gate (check before anything else)
+
+The hub still records the product-UI lane as manually blocked: `status.json` has
+`lanes.ui.manual_blocked: true` and `execution_sub_lanes.ui_client.status: "blocked"`, and
+`handoffs/claude-ui-client.md` names verified live indexer read-back and the admin-foundation
+cleanup as unblock evidence. PR #740 was dispatched under the narrowed option without that
+transition being recorded, which is how its scope went unrecorded. Do not repeat that.
+
+Start only when both are true:
+
+1. Afo has recorded the scope-lock in the hub on this branch, in its own first commit:
+   `node scripts/harness/plan-hub.mjs set-lane --feature commitment-pooling --lane ui --status in_progress --actor human --branch feature/commitment-pooling-client-loop --note "Narrowed client dispatch: Phase 0 + D1 + D2 of prompt-client-loop.md, built against fixtures and the local stack before hosted read-back; rendered live proof deferred to the hosted Envio deployment"`,
+   the `execution_sub_lanes.ui_client` entry updated to match (`status`, `branch`,
+   `blocked_reason` replaced by the same note), then `bunx biome format --write` on `status.json`
+   (the plan-hub command rewrites it with raw `JSON.stringify`).
+2. `git log -1 -- .plans/active/commitment-pooling/status.json` on this branch shows that commit.
+
+If either is missing, stop and report "dispatch gate not recorded"; do not edit product code. The
+ledger flip and the hosted Envio deployment stay outside this lane regardless.
+
 ## Objective
 
 Make the client PWA able to run one real commitment end to end for a member: create (service
@@ -62,10 +83,12 @@ Make the client PWA able to run one real commitment end to end for a member: cre
 "Not yet", and find all of it from the commitments sheet. Then (D2) make "Offer over time" usable:
 saved Offers, an ongoing Offer with finite places, its Story, rest/resume/retire.
 
-Deliver as **two PRs to `develop`**: D1 from `feature/commitment-pooling-client-loop`, D2 from
-`feature/commitment-pooling-client-over-time` (a branch off D1 created in this worktree after the
-D1 PR is open). PR bodies use `Refs PRD-724` and `Refs PRD-650`. Do not change any Linear state or
-create Linear records; Afo does that.
+Deliver as **two PRs to `develop`**: D1 from `feature/commitment-pooling-client-loop`; D2 from
+`feature/commitment-pooling-client-over-time`, opened only after the D1 PR has merged and the D2
+branch is rebased onto the updated `develop` (a stacked PR against `develop` would carry the whole
+D1 diff and trips this repo's CI Gate base-branch filter). Each PR body links exactly one issue
+for resolution: `Refs PRD-724` (partial work), plus `Relates to PRD-650` for context only. Do not
+change any Linear state or create Linear records; Afo does that.
 
 ## Present state (verified 2026-08-21; re-verify cheaply before trusting)
 
@@ -79,7 +102,9 @@ create Linear records; Afo does that.
 - PR #745 and #746 merged the public editorial readers (`usePublicGardenPool`,
   `usePublicCommitmentImpact`, `cycle-metadata.ts`) into `develop`, so cycle-name resolution is
   available to the client.
-- The shared layer is complete and the backend supports everything below: hooks exported from
+- The shared layer supports everything below, with three gaps this prompt closes in Phase 0 and
+  Phase 1 (membership preflight coverage, offline evidence payload, pool pause/readiness fields):
+  hooks exported from
   `packages/shared/src/hooks/commitment-pooling/index.ts` (`useCommitment`, `useCommitmentPool(s)`,
   `useCommitmentCycle(s)`, `useCommitmentClaimRequests`, `useCommitmentSeries`,
   `useCommitmentSeriesDetail`, `useCommitmentsInbox`, `useCommitmentJobs`,
@@ -108,8 +133,14 @@ create Linear records; Afo does that.
   `cancelCommitment(uint256,string reasonCID)`); sheet rows have no `onOpen`
   (`LiveTab.tsx:152-161`, `OverTimeTab.tsx:160-168`) and `needsYou` is hard-coded `false`
   (`GardenPool.tsx:75`); the detail bar reads only `pendingCommitmentIds` so a failed queue read
-  re-arms the act (`GardenCommitment.tsx:76`) and `claim`/`confirmation` jobs carry no identity
-  key (`job-identity.ts:90-130`); `tap-target` is not a defined utility (only `.tap-target-lg`
+  re-arms the act (`GardenCommitment.tsx:76`) — note that queue-level deduplication for
+  claim/evidence/confirmation already exists (`commitmentJobIdentity` in
+  `modules/job-queue/queue-policy.ts:27-48`, enforced by `addJob` at `modules/job-queue/index.ts:147-158`),
+  so the detail-bar problem is the re-armed button, not a missing identity; the membership preflight
+  in `modules/commitment-pooling/job-executor.ts:84-87` runs only when a payload carries
+  `gardenAddress`, which `ClaimJobPayload`, `EvidenceJobPayload`, `WorkLinkJobPayload`, and the
+  confirmation payload do not (`job-types.ts`), so those four jobs skip the waiting-for-membership
+  path and spend retries on a revert instead; `tap-target` is not a defined utility (only `.tap-target-lg`
   exists in `packages/client/src/styles/utilities.css:30-39`; sites `LiveTab.tsx:121`,
   `GardenPool.tsx:125-126`, `ComposeTerms.tsx:46-47`); the bottom nav stays under the
   detail/composer action bars (`AppBar.tsx:22,35` hides it only for `/work/`;
@@ -200,15 +231,27 @@ create Linear records; Afo does that.
    and `resolveDispute` use the same helper.
 3. The sheet opens things: pass `onOpen` from both tabs to `CommitmentRow`, navigating to
    `/home/:gardenId/commitments/:commitmentId` (series rows in D2 go to W34). Derive `needsYou` on
-   the pool tab from `selectCommitmentActKind` for the viewer's seat instead of `false`.
+   the pool tab from `commitmentNeedsSeat` (`acts.ts:153`, which excludes the elective withdraw /
+   take-up / ask-to-take-up / offer-again acts) with the viewer's seat from `selectCommitmentSeat`,
+   not from `selectCommitmentActKind`, which would badge rows nobody is waiting on.
 4. Queue truth on the detail bar: consume `isUnavailable`, `pendingCommitmentIds`, and
    `failedCommitmentIds` from `useCommitmentQueueState`; an unreadable queue disables the act with
-   the existing `app.commitments.*` queue-unreadable copy rather than offering it. Add
-   deterministic identity keys for `claim` and `confirmation` jobs in `job-identity.ts` /
-   `prepareCommitmentJobPayload`, with a RED test in
-   `packages/shared/src/__tests__/commitment-jobs.test.ts` proving a second enqueue of the same act
-   is rejected or deduplicated.
-5. Small fixes: replace `tap-target` with `tap-target-lg` (or define it) at the five sites; hide
+   the existing `app.commitments.*` queue-unreadable copy rather than offering it. Do not add new
+   identity fields to the claim or confirmation payloads: `commitmentJobIdentity`
+   (`queue-policy.ts`) already derives claim identity from commitment + kind + garden context and
+   confirmation identity from action + commitment, and `addJob` returns the existing non-terminal
+   job or throws `offline_job_identity_conflict`. Add regression coverage for that existing policy
+   in `packages/shared/src/__tests__/commitment-jobs.test.ts` (second enqueue of the same claim /
+   confirm returns the existing job id; a differing payload conflicts) and only add an identity
+   dimension if a concrete missing one is demonstrated.
+5. Membership preflight for every membership-gated job: add `gardenAddress` to
+   `ClaimJobPayload`, `EvidenceJobPayload`, `WorkLinkJobPayload`, and the confirmation payload (or
+   resolve it inside `job-executor.ts` from `readCommitment` → pool → garden before the send) so
+   the preflight at `job-executor.ts:84-87` returns `waiting` / `membership-unavailable` instead
+   of spending retries on a revert. RED tests in `commitment-jobs.test.ts` and
+   `modules/job-queue.commitment-policy.test.ts` for each kind; persisted payload shape changes
+   need a read-compatibility test for jobs queued before the change.
+6. Small fixes: replace `tap-target` with `tap-target-lg` (or define it) at the five sites; hide
    the bottom nav on `/home/:id/commitments/*` and add the commitments drawer to
    `isAnyDrawerOpen`; pass the translated unplaced label in `LiveTab`; translate `app.garden.pool`
    in es/pt; `aria-label` on progress bars; single heading on detail; requirement rows show the
@@ -232,15 +275,31 @@ Build in this order; each item names the prototype states it must render (ids fr
    request-work-*`, `validation`, `draft-resume`. `step-advanced` (confirmers, protocol-fallback
    opt-out) is required only if the shared composer form already models confirmers; otherwise
    record it as not built.
-3. **Proof composer (W2a).** New route `commitments/:commitmentId/proof`; states `media,
-   media-preview, details, review, review-request, review-support, review-captured, queued,
-   failed`; enqueue `{ act: "evidence", payload }` with `creditedContributors` carried durably;
-   reuse the Submit Work media / `FormProgress` rhythm. "Add proof" on W2 opens it instead of
-   navigating away; `band.provider.active.b` copy must describe what the screen actually shows.
-4. **Link work (WFLOW).** From W2, a "Link work" act opens a picker of the viewer's approved Work
-   in this garden (`link-picker`) and enqueues `{ act: "workLink", payload }`; the Work Review view
-   gains a read-only "Fulfills" row from `meta.commitmentId` (`WFLOW@review`), navigable both
-   ways, never editable. Remove the linked-work promise from copy if you cannot render it.
+3. **Proof composer (W2a).** Shared first: `EvidenceJobPayload` is `{ commitmentId, cid,
+   creditedContributors }` and its executor calls `attachEvidence` immediately
+   (`job-executors.ts:203-206`), so today nothing can be queued offline without a CID already in
+   hand. Extend the payload with the raw evidence document (note, links, details) and persist the
+   media the way the work job does (`jobQueueDB.getImagesForJob` → upload at execution,
+   `executeWorkJob`, `job-executors.ts:33-45`); the executor publishes the document and media at
+   sync, writes the resulting `cid` back onto the job, then attaches. Keep `cid` optional at
+   enqueue and required at send; RED tests for queue-offline → restart → upload → attach, and for
+   upload failure leaving the job `waiting`, not terminal. Then the screen: new route
+   `commitments/:commitmentId/proof`; states `media, media-preview, details, review,
+   review-request, review-support, review-captured, queued, failed`; enqueue
+   `{ act: "evidence", payload }` with `creditedContributors` carried durably; reuse the Submit Work
+   media / `FormProgress` rhythm. "Add proof" on W2 opens it instead of navigating away;
+   `band.provider.active.b` copy must describe what the screen actually shows.
+4. **Link work (WFLOW).** The Work model has no `meta.commitmentId` (zero readers in shared or
+   client), and the indexer's `CommitmentWorkAttribution` is read only commitment → work
+   (`data-commitments.ts:143`). Add a shared reader that returns attributions by `workUID` (same
+   entity, `where: { workUID }`, plus a query key under `queryKeys.commitmentPooling.*`) and a
+   hook over it; that is the data source for the read-only "Fulfills" row on the Work Review view
+   (`WFLOW@review`), navigable both ways, never editable. From W2, a "Link work" act opens a
+   picker of the viewer's approved Work in this garden (`link-picker`) and enqueues
+   `{ act: "workLink", payload }`. Persisting a commitment reference on Work *submitted from* a
+   commitment deep link (the handoff's `meta.commitmentId` path) touches the work metadata schema
+   outside this lane's paths; treat it as decision 6 below and do not build it unasked. Remove the
+   linked-work promise from copy if you cannot render it.
 5. **Confirmation sheet (W4).** Replace the bare bar button with the sheet: `confirm-domain,
    confirm-support, confirm-request, confirm-request-work, confirm-campaign-request,
    confirm-captured`, evidence preview read-only, direction-aware seat (Offer receiver / Request
@@ -256,10 +315,17 @@ Build in this order; each item names the prototype states it must render (ids fr
    only for eligible stewards, binding `claimant = GardenAccount`, `requestedBy = steward`,
    `gardenContext`; the choice is resolved before the claim job is enqueued and never rewritten
    after.
-7. **Pool readiness and pause (W1).** `not-ready` renders the readiness checklist (charter,
-   qualifying baseline, provider open-commitment cap) from `useCommitmentPool`; `paused` shows the
-   reason; `queued` / `sync-failed` rows from queue state; `waiting-membership`. Keep lifecycle
-   notices as they are.
+7. **Pool readiness and pause (W1).** Shared first: `CommitmentPoolRecord` and
+   `getCommitmentPoolDetail` omit the indexer's `pauseReasonCID` / `pauseReasonBlockNumber`
+   (`schema.graphql:731-733`) and carry no qualifying-Baseline fact, so the states below have no
+   data source yet. Extend the pool read model and query with the pause-reason fields (resolve the
+   CID through the metadata helper, em dash when unresolvable), and source the Baseline from the
+   existing garden assessment reads (the same preflight the admin handoff calls "the app-preflight
+   Baseline"; if no shared selector exists for it, render the checklist without the Baseline row
+   and record that as not built rather than inventing one). Then: `not-ready` renders the
+   readiness checklist (charter, qualifying baseline, provider open-commitment cap); `paused`
+   shows the resolved reason; `queued` / `sync-failed` rows from queue state;
+   `waiting-membership`. Keep lifecycle notices as they are.
 8. **Team (W2b, read side only).** Render the roster (lead + contributors, requirement assignment
    where present) from the read model: `setup, forming, open-member, frozen, recognition`. Roster
    *mutations* are online-only and steward-gated; build the "join" path only if
@@ -306,18 +372,29 @@ Checkpoint after Phase 2 as above, then the D2 PR.
   could not).
 - Locale: `packages/shared/src/__tests__/i18n/locale-coverage.test.ts` green; `bun run lint:vocab`
   green.
-- Types: the client build does not type-check (solution tsconfig, known repo defect). Run
+- Types: the client `build` script's `tsc --noEmit` runs against a solution-style `tsconfig.json`
+  with `"files": []`, so it checks zero files and passes regardless of type errors (known repo
+  defect; `bun run build` is therefore green today and stays satisfiable). That is why you run the
+  real project check by hand:
   `cd packages/client && node ../../scripts/dev/node-cli.js tsc --noEmit -p tsconfig.app.json 2>&1 | grep -E "views/Home/(Garden|CommitmentsDrawer)|Features/Commitments"`
-  and leave zero errors in files you touched; do not try to clear the ~80 pre-existing ones.
+  and leave zero errors in files you touched; do not try to clear the ~80 pre-existing ones, and
+  do not treat them as a Ship Gate failure, because the gate does not see them.
 - Design: `bun run check:design-tokens` green; a `*.stories.tsx` for `CommitmentRow`,
   `CommitmentStateLadder`, `CycleRail`, the proof composer, and the confirmation sheet alongside
   the 20 existing client stories; the prototype build still passes.
 - Rendered proof: `bun run dev` from this worktree, then
   `https://localhost:3001/home?mockAuth=user&presentation=pwa` (and `operator` for steward paths)
-  through the authenticated Brave QA profile via the Claude-in-Chrome extension. Offline states:
-  dispatch `window.dispatchEvent(new Event("offline"))` while the target view is mounted. If the
+  through the authenticated Brave QA profile via the Claude-in-Chrome extension. If the
   authenticated profile is unavailable, report browser QA as BLOCKED; do not substitute an isolated
   Playwright/Browser-pane profile as proof.
+- Offline proof must be real. A synthetic `window.dispatchEvent(new Event("offline"))` only flips
+  the `useOffline` listener; the queue itself reads `navigator.onLine` before processing
+  (`modules/job-queue/index.ts:124,255`, `providers/JobQueue.tsx:321,375`), so jobs would sync
+  immediately and prove nothing. Use an actual offline network state (Brave DevTools → Network →
+  Offline, or the OS network off), enqueue, reload the PWA while still offline, confirm the job
+  and its media survived the restart, then restore the network and watch it send. The handoff's
+  real-device pass (installed PWA, airplane mode, relaunch) is part of D1's evidence, not
+  optional; if no device is available, record it as BLOCKED.
 - Before each PR, the Ship Gate: `bun format && bun lint && bun run test && bun run build`. Re-run
   Biome on touched files before staging (the PostToolUse formatter may reformat with the wrong
   style).
@@ -335,6 +412,9 @@ Checkpoint after Phase 2 as above, then the D2 PR.
    form does not model it yet.
 4. Roster join/leave mutations (steward-gated, online-only) in D1 or deferred.
 5. The local ledger flip for rendered QA, if you need it longer than one QA session.
+6. Whether Work submitted from a commitment deep link should persist a commitment reference in
+   its metadata (the handoff's `meta.commitmentId`), which touches the work metadata schema
+   outside this lane's paths, or whether the indexer attribution is the only source.
 
 ## Stop conditions
 
