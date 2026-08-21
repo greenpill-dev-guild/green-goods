@@ -1,6 +1,6 @@
 import { keccak256 } from "ethers";
 import { describe, expect, it } from "vitest";
-import { buildTransferConditions, encodeConditions } from "../deploy/garden-roles";
+import { buildTransferConditions, encodeConditions, permissionsConfigHash } from "../deploy/garden-roles";
 import {
   assertManifestMatchesNetworkDirectory,
   buildReleaseLock,
@@ -25,10 +25,11 @@ describe("combined commitment release manifest", () => {
     expect(manifest.indexer).toMatchObject({ ownerLane: "PRD-722", handoffOnly: true });
     expect(manifest.indexer).not.toHaveProperty("cloud");
     expect(manifest.ceremony).toEqual({
-      endState: "paused-deployer-owned",
-      ownershipTransferIncluded: false,
+      endState: "paused-safe-owned",
+      ownershipTransferIncluded: true,
       poolBackfillIncluded: false,
       unpauseIncluded: false,
+      peerWiringIncluded: true,
       followUpIssueRequired: true,
     });
     expect(manifest.batching).toMatchObject({
@@ -77,20 +78,65 @@ describe("combined commitment release manifest", () => {
     // The condition hash is proven against the exact tree the ceremony scoped, never transcribed.
     expect(authority.zodiacRoles.conditionsHash).toBe(keccak256(encodeConditions(buildTransferConditions())));
 
-    // One entry per Garden, each binding a Garden to its own Safe and its own Roles modifier.
-    const gardenSafes = authority.gardenSafes as Array<Record<string, string | number>>;
+    // One entry per Garden, and every row's permission hash is recomputed from its own Safe and
+    // modifier against the exact condition tree, so a substituted Safe fails on its own row rather
+    // than hiding behind a correct count.
+    const gardenSafes = authority.gardenSafes;
     expect(gardenSafes).toHaveLength(18);
     expect(gardenSafes.map((entry) => entry.tokenId)).toEqual([...Array(18).keys()]);
-    for (const field of ["garden", "safe", "modifier"] as const) {
-      const addresses = gardenSafes.map((entry) => String(entry[field]));
-      expect(addresses.every((address) => /^0x[0-9a-fA-F]{40}$/u.test(address))).toBe(true);
-      expect(new Set(addresses).size).toBe(18);
+    const conditions = buildTransferConditions();
+    for (const row of gardenSafes) {
+      expect(permissionsConfigHash(row.safe, row.modifier, conditions)).toBe(row.permissionsConfigHash);
     }
-    expect(gardenSafes.every((entry) => /^0x[0-9a-f]{64}$/u.test(String(entry.permissionsConfigHash)))).toBe(true);
 
     // `module` is the shared Roles v2 mastercopy; the per-Garden proxies live in `gardenSafes`.
     expect(authority.zodiacRoles.module).toBe("0x9646fDAD06d3e24444381f44362a3B0eB343D337");
-    expect(gardenSafes.some((entry) => entry.modifier === authority.zodiacRoles.module)).toBe(false);
+
+    // Substituting one Safe for another syntactically valid one must be rejected structurally too.
+    const swapped = structuredClone(manifest);
+    swapped.safeAuthority.gardenSafes[3].safe = swapped.safeAuthority.gardenSafes[4].safe;
+    expect(() => validateReleaseManifest(swapped)).toThrow(/gardenSafes\[4\]\.safe is duplicated/);
+    const mastercopy = structuredClone(manifest);
+    mastercopy.safeAuthority.gardenSafes[0].modifier = String(mastercopy.safeAuthority.zodiacRoles.module);
+    expect(() => validateReleaseManifest(mastercopy)).toThrow(/must be a proxy, not the Roles mastercopy/);
+    const reordered = structuredClone(manifest);
+    reordered.safeAuthority.gardenSafes[0].tokenId = 5;
+    expect(() => validateReleaseManifest(reordered)).toThrow(/must have tokenId 0/);
+
+    // Swapping two Gardens between rows keeps every permission hash valid, because the hash covers
+    // only the Safe and modifier. The receipt-backed deployment artifact is what catches it.
+    const swappedGardens = structuredClone(manifest);
+    const [rowA, rowB] = [swappedGardens.safeAuthority.gardenSafes[1], swappedGardens.safeAuthority.gardenSafes[2]];
+    [rowA.garden, rowB.garden] = [rowB.garden, rowA.garden];
+    for (const row of [rowA, rowB]) {
+      expect(permissionsConfigHash(row.safe, row.modifier, conditions)).toBe(row.permissionsConfigHash);
+    }
+    expect(() => validateReleaseManifest(swappedGardens)).toThrow(
+      /gardenSafes\[1\]\.garden differs from the deployment artifact/,
+    );
+  });
+
+  it("freezes the Celo protocol Safe separately from Arbitrum's owner set", () => {
+    const manifest = loadReleaseManifest();
+    const celo = manifest.ownership.celoProtocolSafeConfiguration;
+    const approved = new Set(manifest.ownership.protocolSafeConfiguration.owners.map((owner) => owner.toLowerCase()));
+    expect(celo.threshold).toBe("2");
+    expect(celo.owners).toHaveLength(4);
+    // No new identity: every Celo signer is already an approved protocol Safe signer.
+    expect(celo.owners.every((owner) => approved.has(owner.toLowerCase()))).toBe(true);
+    expect(celo.guidePolicyStatus).toBe("pending-live-threshold-raise");
+
+    const strangerSigner = structuredClone(manifest);
+    strangerSigner.ownership.celoProtocolSafeConfiguration.owners[0] = "0x000000000000000000000000000000000000dEaD";
+    expect(() => validateReleaseManifest(strangerSigner)).toThrow(/not an approved protocol Safe signer/);
+
+    const belowFloor = structuredClone(manifest);
+    belowFloor.ownership.celoProtocolSafeConfiguration.threshold = "1";
+    expect(() => validateReleaseManifest(belowFloor)).toThrow(/Celo protocol Safe must have threshold >= 2/);
+
+    const impossible = structuredClone(manifest);
+    impossible.ownership.celoProtocolSafeConfiguration.threshold = "5";
+    expect(() => validateReleaseManifest(impossible)).toThrow(/may not exceed its owner count/);
   });
 
   it("rejects numeric selectors, duplicate schemas, and half-configured authority", () => {
@@ -119,6 +165,29 @@ describe("combined commitment release manifest", () => {
     const halfDisabled = structuredClone(manifest);
     halfDisabled.safeAuthority.enabled = false;
     expect(() => validateReleaseManifest(halfDisabled)).toThrow(/may not pre-authorize garden Safes/);
+
+    // Both inclusion flags must be stated explicitly.
+    const implicitPeerWiring = structuredClone(manifest);
+    (implicitPeerWiring.ceremony as { peerWiringIncluded?: unknown }).peerWiringIncluded = undefined;
+    expect(() => validateReleaseManifest(implicitPeerWiring)).toThrow(/must be explicit booleans/);
+
+    // The ceremony always ends paused: backfill and unpause stay behind a later issue.
+    for (const key of ["poolBackfillIncluded", "unpauseIncluded"] as const) {
+      const widened = structuredClone(manifest);
+      widened.ceremony[key] = true as never;
+      expect(() => validateReleaseManifest(widened)).toThrow(/must end paused/);
+    }
+
+    // endState and ownershipTransferIncluded are one decision stated twice and may not disagree.
+    const disagree = structuredClone(manifest);
+    disagree.ceremony.ownershipTransferIncluded = false;
+    expect(() => validateReleaseManifest(disagree)).toThrow(/must agree with ceremony.endState/);
+
+    // Peer wiring is tier 3, so a deployer-owned ceremony cannot authorize it.
+    const deployerPeerWiring = structuredClone(manifest);
+    deployerPeerWiring.ceremony.endState = "paused-deployer-owned";
+    deployerPeerWiring.ceremony.ownershipTransferIncluded = false;
+    expect(() => validateReleaseManifest(deployerPeerWiring)).toThrow(/peer wiring is a tier-3 boundary/);
 
     const numericGas = structuredClone(manifest);
     numericGas.chains.arbitrum.destinationGasLimit = 750_000 as unknown as string;
@@ -193,13 +262,14 @@ describe("combined commitment release manifest", () => {
     gasMeasurement.includesAcknowledgmentAttempt = false;
     expect(() => validateReleaseManifest(missingAcknowledgment)).toThrow(/include the acknowledgment attempt/);
 
-    const ownershipTransfer = structuredClone(manifest);
-    ownershipTransfer.ceremony.ownershipTransferIncluded = true as false;
-    expect(() => validateReleaseManifest(ownershipTransfer)).toThrow(/paused and deployer-owned/);
+    // Ownership transfer is included, but it may only hand off to a Safe-owned paused end state.
+    const deployerOwnedTransfer = structuredClone(manifest);
+    deployerOwnedTransfer.ceremony.endState = "paused-deployer-owned";
+    expect(() => validateReleaseManifest(deployerOwnedTransfer)).toThrow(/must agree with ceremony.endState/);
 
     const backfill = structuredClone(manifest);
     backfill.ceremony.poolBackfillIncluded = true as false;
-    expect(() => validateReleaseManifest(backfill)).toThrow(/paused and deployer-owned/);
+    expect(() => validateReleaseManifest(backfill)).toThrow(/must end paused/);
 
     const batchActivation = structuredClone(manifest);
     batchActivation.batching.activationIncluded = true as false;

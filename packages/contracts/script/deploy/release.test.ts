@@ -271,10 +271,13 @@ describe("release CLI real entrypoints", () => {
   it("ends the current core plan paused and blocks ownership broadcast before RPC", () => {
     const corePlan = run(["protocol-core", "--network", "arbitrum", "--pure-simulation"]);
     expect(corePlan).toContain('"operations": [');
-    expect(corePlan).toContain('"ownership-transfer"');
     expect(corePlan).toContain('"18-garden-pool-backfill"');
-    expect(corePlan.indexOf('"ownership-transfer"')).toBeLessThan(corePlan.indexOf('"18-garden-pool-backfill"'));
     expect(corePlan.indexOf('"18-garden-pool-backfill"')).toBeLessThan(corePlan.indexOf('"core-unpause"'));
+    // Ownership transfer is part of this ceremony now, so it is reported as included rather than
+    // deferred; the plan must not hand the release owner two contradictory instructions.
+    const deferred = corePlan.slice(corePlan.indexOf('"operations": ['), corePlan.indexOf('"includedInThisCeremony"'));
+    expect(deferred).not.toContain('"ownership-transfer"');
+    expect(corePlan).toMatch(/"includedInThisCeremony": \[\s*"ownership-transfer"\s*\]/u);
     expect(corePlan).toContain("backfill while the module remains paused");
     expect(corePlan).toContain("separate later unpause authorization");
     expect(corePlan).not.toContain('"command": "bun run release:ownership:plan:arbitrum"');
@@ -289,19 +292,64 @@ describe("release CLI real entrypoints", () => {
       '"command": "bun run credit:registry:plan:arbitrum --expected-nonce <fresh-pending-nonce>"',
     );
 
-    const transfer = fail([
-      "ownership-transfer",
-      "--network",
-      "arbitrum",
-      "--broadcast",
-      "--step",
-      "1",
-      "--expected-nonce",
-      "0",
-      "--override-sepolia-gate",
-    ]);
+    // Ownership transfer is now part of the ceremony, so the pre-RPC guard is the boundary contract
+    // itself: a broadcast without an exact step and reviewed nonce must fail before any chain read.
+    const transfer = fail(["ownership-transfer", "--network", "arbitrum", "--broadcast", "--override-sepolia-gate"]);
     expect(transfer.status).not.toBe(0);
-    expect(`${transfer.stdout}${transfer.stderr}`).toContain("deferred to a later issue");
+    expect(`${transfer.stdout}${transfer.stderr}`).toContain("requires --step <index> and --expected-nonce <n>");
+  });
+
+  it("re-verifies the destination Safe after the receipt and checks every ownership target", () => {
+    const source = fs.readFileSync(path.join(CONTRACTS_ROOT, "script/deploy/release.ts"), "utf8");
+    const start = source.indexOf("private async ownershipTransfer(");
+    const end = source.indexOf("\n  }\n", source.indexOf("checkpoint written atomically", start));
+    const transfer = source.slice(start, end);
+    const postState = transfer.indexOf("Ownership post-state mismatch");
+    const checkpointWrite = transfer.indexOf("writeReleaseJsonAtomic(checkpointPath, checkpoint)");
+
+    // The Safe is re-read at the receipt block and at head between the post-state owner check and
+    // the checkpoint write, so a Safe that changed after the pre-send read cannot checkpoint.
+    const receiptRecheck = transfer.indexOf(
+      "assertTierThreeOwnerSafe(provider, manifest, network, receipt.blockNumber)",
+      postState,
+    );
+    const headRecheck = transfer.indexOf(
+      'assertTierThreeOwnerSafe(provider, manifest, network, "finalized")',
+      postState,
+    );
+    expect(receiptRecheck).toBeGreaterThan(postState);
+    expect(headRecheck).toBeGreaterThan(receiptRecheck);
+    expect(headRecheck).toBeLessThan(checkpointWrite);
+
+    // The transfer plan and the Safe-phase verifier share one target list by construction.
+    expect(transfer).toContain("ownershipTransferTargets(network, manifest, lock");
+    const verifier = fs.readFileSync(path.join(CONTRACTS_ROOT, "script/release-verify.ts"), "utf8");
+    expect(verifier).toContain("export function ownershipTransferTargets(");
+    for (const target of ["AssessmentResolver", "TestimonyResolver", "GardenToken", "WorkApprovalResolver"]) {
+      expect(verifier).toContain(`["${target}",`);
+    }
+    expect(verifier).toContain("protocolSafe.${network}.exact-owner-set");
+  });
+
+  it("freezes ownership transfer as the tier-3 gate in front of peer wiring", () => {
+    const source = fs.readFileSync(path.join(CONTRACTS_ROOT, "script/deploy/release.ts"), "utf8");
+    const transferStart = source.indexOf("private async ownershipTransfer(");
+    const broadcastGate = source.indexOf("assertSepoliaGate({ network, broadcast: true", transferStart);
+    const tierCheck = source.indexOf(
+      'await this.assertTierThreeOwnerSafe(provider, manifest, network, "finalized")',
+      broadcastGate,
+    );
+    const firstSend = source.indexOf("execCastCaptured(", broadcastGate);
+
+    // The destination Safe is verified live, on the target chain, before any boundary is sent.
+    expect(transferStart).toBeGreaterThan(0);
+    expect(tierCheck).toBeGreaterThan(broadcastGate);
+    expect(tierCheck).toBeLessThan(firstSend);
+    // And the dry run applies the same check, so a below-floor Safe is caught before the ceremony.
+    const dryRun = source.indexOf("Ownership dry-run pinned to finalized", transferStart);
+    expect(source.slice(transferStart, dryRun)).toContain(
+      "await this.assertTierThreeOwnerSafe(provider, manifest, network, finalized.number)",
+    );
   });
 
   it("documents a reviewed nonce on every release-stage planning command", () => {
@@ -328,30 +376,117 @@ describe("release CLI real entrypoints", () => {
     expect(fs.readFileSync(ARBITRUM_ARTIFACT).equals(canonicalBefore)).toBe(true);
   });
 
-  it("builds both peer plans at the measured gas frozen in the manifest", () => {
+  it("builds the Arbitrum peer plan at the measured gas and refuses a Celo plan", () => {
     const env = { ...process.env, SETTLEMENT_DESTINATION_GAS_LIMIT: "3000000" };
-    for (const network of ["arbitrum", "celo"]) {
-      const output = run(["settlement-peer", "--network", network, "--pure-simulation"], env);
-      expect(output).toContain('"stage": "settlement-peer"');
-      expect(output).toContain(
-        network === "arbitrum"
-          ? '"destination gas limit equals 3000000"'
-          : '"source peer has no previous peer or grace window"',
-      );
-    }
+    const output = run(["settlement-peer", "--network", "arbitrum", "--pure-simulation"], env);
+    expect(output).toContain('"stage": "settlement-peer"');
+    expect(output).toContain('"destination gas limit equals 3000000"');
+
+    // The Celo source peer was configured at initialization and has no verification path here, so
+    // the global authorization flag must not be able to emit setSourcePeer calldata.
+    const celo = fail(["settlement-peer", "--network", "celo", "--pure-simulation"], env);
+    expect(celo.status).not.toBe(0);
+    expect(`${celo.stdout}${celo.stderr}`).toContain("peer wiring authorizes only the Arbitrum route");
+    expect(`${celo.stdout}${celo.stderr}`).not.toContain("setSourcePeer");
   });
 
-  it("rejects deployment-EOA peer plans after the ownership-transfer boundary", () => {
-    const result = fail([
-      "settlement-peer",
-      "--network",
-      "arbitrum",
-      "--pure-simulation",
-      "--sender",
-      "0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6",
-    ]);
+  it("binds peer plans to the protocol Safe and rejects the deployment EOA", () => {
+    const env = { ...process.env, SETTLEMENT_DESTINATION_GAS_LIMIT: "3000000" };
+    // Peer wiring is tier 3: the protocol Safe must already be the live owner and is the only
+    // acceptable sender, so the plan names it and its precondition requires it.
+    const accepted = run(
+      [
+        "settlement-peer",
+        "--network",
+        "arbitrum",
+        "--pure-simulation",
+        "--sender",
+        "0x1B9Ac97Ea62f69521A14cbe6F45eb24aD6612C19",
+      ],
+      env,
+    );
+    expect(accepted).toContain('"live owner equals 0x1B9Ac97Ea62f69521A14cbe6F45eb24aD6612C19"');
+
+    const rejected = fail(
+      [
+        "settlement-peer",
+        "--network",
+        "arbitrum",
+        "--pure-simulation",
+        "--sender",
+        "0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6",
+      ],
+      env,
+    );
+    expect(rejected.status).not.toBe(0);
+    expect(`${rejected.stdout}${rejected.stderr}`).toContain("Wrong sender");
+  });
+
+  it("refuses peer broadcast and points at the receipt-bound verifier instead", () => {
+    const env = { ...process.env, SETTLEMENT_DESTINATION_GAS_LIMIT: "3000000" };
+    const result = fail(["settlement-peer", "--network", "arbitrum", "--broadcast"], env);
     expect(result.status).not.toBe(0);
-    expect(`${result.stdout}${result.stderr}`).toContain("Wrong sender");
+    expect(`${result.stdout}${result.stderr}`).toContain("settlement-peer-verify --receipt");
+  });
+
+  it("requires a mined receipt before verifying peer wiring", () => {
+    const result = fail(["settlement-peer-verify", "--network", "arbitrum"]);
+    expect(result.status).not.toBe(0);
+    expect(`${result.stdout}${result.stderr}`).toContain("requires --receipt <tx-hash>");
+  });
+
+  it("proves peer wiring against the owner at the receipt block and the whole Celo peer", () => {
+    const source = fs.readFileSync(path.join(CONTRACTS_ROOT, "script/deploy/release.ts"), "utf8");
+    const start = source.indexOf("private async peerVerify(");
+    const end = source.indexOf("private recoveryPlan(", start);
+    const verifier = source.slice(start, end);
+
+    // The receipt is fetched alone and mapped to undefined when absent, which is the only shape
+    // retryRpcAvailability actually retries; inside a Promise.all an absent receipt never retried.
+    expect(verifier).toContain("(await arbitrum.getTransactionReceipt(receiptHash)) ?? undefined");
+    expect(verifier).not.toMatch(/Promise\.all\(\[\s*arbitrum\.getTransactionReceipt/u);
+    // Ownership is read at the receipt block, so a route wired before the transfer cannot pass.
+    expect(verifier).toContain(".owner({ blockTag: receipt.blockNumber })");
+    expect(verifier).toContain("module owned by the protocol Safe at the receipt block");
+    // The complete Celo peer struct is asserted, not only the current module.
+    for (const label of [
+      "Celo has no retiring previous source peer",
+      "Celo previous-peer grace is zero",
+      "Celo source protocol version is frozen",
+      "Celo executor still paused",
+    ]) {
+      expect(verifier).toContain(label);
+    }
+    // And every check is evaluated before the checkpoint is written.
+    expect(verifier.indexOf("const failed = checks.filter")).toBeLessThan(
+      verifier.indexOf("settlement-peer.checkpoint.json"),
+    );
+  });
+
+  it("retries an absent receipt only when the read reports it as undefined", async () => {
+    let reads = 0;
+    const receipt = await retryRpcAvailability(
+      async () => {
+        reads += 1;
+        return reads < 3 ? undefined : { hash: TRANSACTION_HASH };
+      },
+      { attempts: 4, wait: async () => undefined },
+    );
+    expect(receipt.hash).toBe(TRANSACTION_HASH);
+    expect(reads).toBe(3);
+
+    // The shape the reviewer caught: a Promise.all result is defined even when its receipt is null,
+    // so it returns on the first attempt and the null is never retried.
+    let bundled = 0;
+    const [nullReceipt] = await retryRpcAvailability(
+      async () => {
+        bundled += 1;
+        return Promise.all([Promise.resolve(null)]);
+      },
+      { attempts: 4, wait: async () => undefined },
+    );
+    expect(nullReceipt).toBeNull();
+    expect(bundled).toBe(1);
   });
 });
 

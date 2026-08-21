@@ -156,7 +156,7 @@
     "settlement:garden-relay:adopt": "bun script/deploy/garden-account-relay.ts adopt",
     "settlement:garden-relay:release": "bun script/release-operator.ts --stage relay",
     "settlement:peer:plan:arbitrum": "bun script/deploy.ts settlement-peer --network arbitrum --pure-simulation",
-    "settlement:peer:plan:celo": "bun script/deploy.ts settlement-peer --network celo --pure-simulation",
+    "settlement:peer:verify:arbitrum": "bun script/deploy.ts settlement-peer-verify --network arbitrum",
     "release:recover:arbitrum": "bun script/deploy.ts release-recover --network arbitrum",
     "release:recover:celo": "bun script/deploy.ts release-recover --network celo",
     "release:recover:plan:arbitrum": "bun script/deploy.ts release-recover --network arbitrum --pure-simulation",

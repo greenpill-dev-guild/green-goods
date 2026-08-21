@@ -14,6 +14,7 @@ import {
   type ReleaseNetwork,
   type ReleaseStage,
 } from "./utils/release-manifest";
+import { buildTransferConditions, permissionsConfigHash } from "./deploy/garden-roles";
 import { buildStageTransactionPlan, type ReleaseTransactionBoundary } from "./utils/release-plan";
 
 const IMPLEMENTATION_SLOT = "0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc";
@@ -312,6 +313,114 @@ async function verifySettlement(
     ] as const) {
       check(checks, `CeloExecutor.${label}-before-value-authority`, "0", await contract[getter]());
     }
+    await verifyGardenRoutesBindFrozenBoundaries(provider, address, checks);
+  }
+}
+
+/**
+ * Safe-phase ownership proof. The deterministic-identity loop above covers only the five lock
+ * proxies, but the ownership ceremony hands over eight Arbitrum contracts and one on Celo, so every
+ * ownership target is checked here from the same list the transfer plan uses. The protocol Safe's
+ * own configuration is then re-read live, because "owner() equals the Safe address" says nothing
+ * about whether that Safe still matches the frozen threshold and owner set.
+ */
+async function verifySafeOwnershipPhase(
+  provider: JsonRpcProvider,
+  network: ReleaseNetwork,
+  manifest: ReturnType<typeof loadReleaseManifest>,
+  lock: ReturnType<typeof buildReleaseLock>,
+  artifact: Record<string, unknown>,
+  checks: Check[],
+) {
+  const safeAddress = manifest.ownership.protocolSafe;
+  for (const [label, address] of ownershipTransferTargets(network, manifest, lock, artifact)) {
+    const owner = await new Contract(address, OWNER_ABI, provider).owner();
+    check(checks, `ownership.${label}.owner`, safeAddress, owner, true);
+  }
+  const approved =
+    network === "celo"
+      ? manifest.ownership.celoProtocolSafeConfiguration
+      : manifest.ownership.protocolSafeConfiguration;
+  const safe = new Contract(
+    safeAddress,
+    ["function getOwners() view returns (address[])", "function getThreshold() view returns (uint256)"],
+    provider,
+  );
+  const [owners, threshold] = (await Promise.all([safe.getOwners(), safe.getThreshold()])) as [string[], bigint];
+  const liveOwners = owners
+    .map((owner) => getAddress(owner))
+    .sort()
+    .join(",");
+  const frozenOwners = approved.owners
+    .map((owner) => getAddress(owner))
+    .sort()
+    .join(",");
+  check(checks, `protocolSafe.${network}.threshold`, approved.threshold, String(threshold));
+  check(checks, `protocolSafe.${network}.owner-count`, String(approved.owners.length), String(owners.length));
+  check(checks, `protocolSafe.${network}.exact-owner-set`, frozenOwners, liveOwners, true);
+}
+
+/** The exact ownership-transfer target list, shared with the transfer plan so the two cannot drift. */
+export function ownershipTransferTargets(
+  network: ReleaseNetwork,
+  manifest: ReturnType<typeof loadReleaseManifest>,
+  lock: ReturnType<typeof buildReleaseLock>,
+  artifact: Record<string, unknown>,
+): Array<[string, string]> {
+  const proxy = (name: string) => releaseProxy(lock, name);
+  const deployed = (key: string) => {
+    const value = artifact[key];
+    if (typeof value !== "string" || !/^0x[0-9a-fA-F]{40}$/u.test(value) || /^0x0+$/iu.test(value)) {
+      throw new Error(`Deployment artifact has no address for ${key}`);
+    }
+    return value;
+  };
+  return network === "arbitrum"
+    ? [
+        ["AssessmentResolver", deployed("assessmentResolver")],
+        ["TestimonyResolver", manifest.schemaPreparation.expected.proxy],
+        ["CommitmentPoolingModule", proxy("CommitmentPoolingModule")],
+        ["CommitmentRegistry", proxy("CommitmentRegistry")],
+        ["GardenToken", deployed("gardenToken")],
+        ["WorkApprovalResolver", deployed("workApprovalResolver")],
+        ["SettlementModule", proxy("SettlementModule")],
+        ["CreditRegistry", proxy("CreditRegistry")],
+      ]
+    : [["CeloSettlementExecutor", proxy("CeloSettlementExecutor")]];
+}
+
+/**
+ * Chain-time Garden binding for the frozen Safe authority. The permission hash covers only the
+ * Safe, modifier, and condition tree, so it cannot tell one Garden from another; the executor's
+ * write-once route can. Every frozen row must match the live route for its own Garden on Safe,
+ * modifier, and permission hash, so two Gardens swapped between manifest rows fail here even though
+ * every hash still recomputes.
+ */
+async function verifyGardenRoutesBindFrozenBoundaries(provider: JsonRpcProvider, executor: string, checks: Check[]) {
+  const manifest = loadReleaseManifest();
+  if (!manifest.safeAuthority.enabled) return;
+  const routes = new Contract(
+    executor,
+    [
+      "function gardenRouteOf(address garden) view returns (tuple(address safe,address rolesModifier,bytes32 roleKey,bytes32 allowanceKey,bytes32 permissionsConfigHash,bool active))",
+    ],
+    provider,
+  );
+  for (const row of manifest.safeAuthority.gardenSafes) {
+    const route = await routes.gardenRouteOf(row.garden);
+    const prefix = `CeloExecutor.gardenRoute[${row.tokenId}]`;
+    check(checks, `${prefix}.safe`, row.safe, route.safe, true);
+    check(checks, `${prefix}.rolesModifier`, row.modifier, route.rolesModifier, true);
+    check(checks, `${prefix}.permissionsConfigHash`, row.permissionsConfigHash, route.permissionsConfigHash, true);
+    check(checks, `${prefix}.roleKey`, String(manifest.safeAuthority.zodiacRoles.roleKey), route.roleKey, true);
+    check(
+      checks,
+      `${prefix}.allowanceKey`,
+      String(manifest.safeAuthority.zodiacRoles.allowanceKey),
+      route.allowanceKey,
+      true,
+    );
+    check(checks, `${prefix}.active`, true, route.active);
   }
 }
 
@@ -511,10 +620,21 @@ async function main() {
   check(checks, "manifest.network.chain-id-string", chain.evmChainId, BigInt(chain.evmChainId).toString());
   check(checks, "manifest.network.selector-string", chain.ccipSelector, BigInt(chain.ccipSelector).toString());
   // The Celo Safe/Zodiac ceremony is complete, so this no longer guards an unconfigured authority.
-  // What it guards now is a half-recorded one: the freeze must name every Garden boundary the
-  // ceremony actually configured, and a 19th Garden must not inherit authority without its own run.
+  // It guards a half-recorded or substituted one: every frozen Garden boundary must carry the exact
+  // permission hash the ceremony scoped for that Safe and modifier, recomputed here from the same
+  // condition tree, so swapping a Safe or a modifier in the manifest fails on its own row.
   check(checks, "manifest.safe-authority-frozen", true, manifest.safeAuthority.enabled);
   check(checks, "manifest.safe-authority-garden-count", 18, manifest.safeAuthority.gardenSafes.length);
+  const frozenConditions = buildTransferConditions();
+  for (const row of manifest.safeAuthority.gardenSafes) {
+    check(
+      checks,
+      `manifest.safe-authority-garden-${row.tokenId}-permission-hash`,
+      permissionsConfigHash(row.safe, row.modifier, frozenConditions),
+      row.permissionsConfigHash,
+      true,
+    );
+  }
   check(checks, "manifest.indexer-activation-disabled", false, manifest.indexer.activationAuthorized);
   check(
     checks,
@@ -577,6 +697,9 @@ async function main() {
           true,
         );
       }
+    }
+    if (args.ownerPhase === "safe" && !boundary) {
+      await verifySafeOwnershipPhase(provider, args.network, manifest, lock, artifact, checks);
     }
     if (boundary?.kind === "configuration") {
       await verifyConfigurationBoundary(provider, boundary, manifest, lock, deployment, expectedOwner, true, checks);
