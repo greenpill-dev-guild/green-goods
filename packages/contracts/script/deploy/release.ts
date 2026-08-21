@@ -443,7 +443,12 @@ Phase B boundary form (not authorized by Phase A):
       assertLockExact(lock);
       console.log(`Frozen release lock matches: ${LOCK_PATH}`);
     }
-    console.log("Safe/Zodiac authority: disabled; no value-authority transaction can be built from this manifest");
+    console.log(
+      manifest.safeAuthority.enabled
+        ? `Safe/Zodiac authority: frozen over ${manifest.safeAuthority.gardenSafes.length} garden Safes; ` +
+            "reserve funding, the Arbitrum CCIP route, and the canary remain separately gated"
+        : "Safe/Zodiac authority: disabled; no value-authority transaction can be built from this manifest",
+    );
     console.log("Indexer deployment: outside this lane; PRD-722 handoff generation is inert");
   }
 
@@ -1318,7 +1323,11 @@ Phase B boundary form (not authorized by Phase A):
 
   private async safePlan(options: ParsedOptions, manifest: ReleaseManifest, lock: ReleaseLock): Promise<void> {
     if (options.network !== "celo") throw new Error("safe-plan requires --network celo");
-    if (options.broadcast) throw new Error("Safe authority has no broadcast path while safeAuthority.enabled is false");
+    if (options.broadcast) {
+      throw new Error(
+        "safe-plan only produces a reviewed plan; Safe authority broadcasts through the release operator",
+      );
+    }
     const executor = identity(lock, "CeloSettlementExecutor", "proxy").address;
     const liveEvidence: Record<string, unknown> = {
       inspected: false,

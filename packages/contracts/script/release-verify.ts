@@ -510,7 +510,11 @@ async function main() {
 
   check(checks, "manifest.network.chain-id-string", chain.evmChainId, BigInt(chain.evmChainId).toString());
   check(checks, "manifest.network.selector-string", chain.ccipSelector, BigInt(chain.ccipSelector).toString());
-  check(checks, "manifest.safe-authority-disabled", false, manifest.safeAuthority.enabled);
+  // The Celo Safe/Zodiac ceremony is complete, so this no longer guards an unconfigured authority.
+  // What it guards now is a half-recorded one: the freeze must name every Garden boundary the
+  // ceremony actually configured, and a 19th Garden must not inherit authority without its own run.
+  check(checks, "manifest.safe-authority-frozen", true, manifest.safeAuthority.enabled);
+  check(checks, "manifest.safe-authority-garden-count", 18, manifest.safeAuthority.gardenSafes.length);
   check(checks, "manifest.indexer-activation-disabled", false, manifest.indexer.activationAuthorized);
   check(
     checks,

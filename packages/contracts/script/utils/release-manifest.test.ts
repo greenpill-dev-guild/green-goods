@@ -1,4 +1,6 @@
+import { keccak256 } from "ethers";
 import { describe, expect, it } from "vitest";
+import { buildTransferConditions, encodeConditions } from "../deploy/garden-roles";
 import {
   assertManifestMatchesNetworkDirectory,
   buildReleaseLock,
@@ -66,7 +68,32 @@ describe("combined commitment release manifest", () => {
     ]);
   });
 
-  it("rejects numeric selectors, duplicate schemas, and prematurely enabled authority", () => {
+  it("freezes the completed Safe/Zodiac ceremony with a derived condition hash", () => {
+    const manifest = loadReleaseManifest();
+    const authority = manifest.safeAuthority;
+    expect(authority.enabled).toBe(true);
+    expect(() => validateReleaseManifest(manifest)).not.toThrow();
+
+    // The condition hash is proven against the exact tree the ceremony scoped, never transcribed.
+    expect(authority.zodiacRoles.conditionsHash).toBe(keccak256(encodeConditions(buildTransferConditions())));
+
+    // One entry per Garden, each binding a Garden to its own Safe and its own Roles modifier.
+    const gardenSafes = authority.gardenSafes as Array<Record<string, string | number>>;
+    expect(gardenSafes).toHaveLength(18);
+    expect(gardenSafes.map((entry) => entry.tokenId)).toEqual([...Array(18).keys()]);
+    for (const field of ["garden", "safe", "modifier"] as const) {
+      const addresses = gardenSafes.map((entry) => String(entry[field]));
+      expect(addresses.every((address) => /^0x[0-9a-fA-F]{40}$/u.test(address))).toBe(true);
+      expect(new Set(addresses).size).toBe(18);
+    }
+    expect(gardenSafes.every((entry) => /^0x[0-9a-f]{64}$/u.test(String(entry.permissionsConfigHash)))).toBe(true);
+
+    // `module` is the shared Roles v2 mastercopy; the per-Garden proxies live in `gardenSafes`.
+    expect(authority.zodiacRoles.module).toBe("0x9646fDAD06d3e24444381f44362a3B0eB343D337");
+    expect(gardenSafes.some((entry) => entry.modifier === authority.zodiacRoles.module)).toBe(false);
+  });
+
+  it("rejects numeric selectors, duplicate schemas, and half-configured authority", () => {
     const manifest = loadReleaseManifest();
     const numeric = structuredClone(manifest);
     numeric.chains.arbitrum.ccipSelector = Number(numeric.chains.arbitrum.ccipSelector) as unknown as string;
@@ -76,16 +103,22 @@ describe("combined commitment release manifest", () => {
     duplicated.schemas[1].identity = duplicated.schemas[0].identity;
     expect(() => validateReleaseManifest(duplicated)).toThrow(/Duplicate schema identity/);
 
-    // The caps are frozen but the Roles module, keys, and condition hash are not, so enabling
-    // authority must still fail closed on the unset Zodiac identities.
-    const authority = structuredClone(manifest);
-    authority.safeAuthority.enabled = true;
-    expect(() => validateReleaseManifest(authority)).toThrow(/requires zodiacRoles\./);
+    // Authority is enabled against the completed ceremony, so the fail-closed proof is that
+    // clearing any one Zodiac identity still rejects the manifest.
+    for (const key of ["module", "roleKey", "conditionsHash", "allowanceKey"] as const) {
+      const cleared = structuredClone(manifest);
+      cleared.safeAuthority.zodiacRoles[key] = null;
+      expect(() => validateReleaseManifest(cleared)).toThrow(/requires zodiacRoles\./);
+    }
 
     const uncapped = structuredClone(manifest);
-    uncapped.safeAuthority.enabled = true;
     uncapped.safeAuthority.caps.maxPeriodAmount = null;
     expect(() => validateReleaseManifest(uncapped)).toThrow(/requires non-zero/);
+
+    // Authority may never be switched off while the ceremony's garden Safes stay pre-authorized.
+    const halfDisabled = structuredClone(manifest);
+    halfDisabled.safeAuthority.enabled = false;
+    expect(() => validateReleaseManifest(halfDisabled)).toThrow(/may not pre-authorize garden Safes/);
 
     const numericGas = structuredClone(manifest);
     numericGas.chains.arbitrum.destinationGasLimit = 750_000 as unknown as string;
