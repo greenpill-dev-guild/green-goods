@@ -29,6 +29,7 @@ describe("combined commitment release manifest", () => {
       ownershipTransferIncluded: false,
       poolBackfillIncluded: false,
       unpauseIncluded: false,
+      peerWiringIncluded: true,
       followUpIssueRequired: true,
     });
     expect(manifest.batching).toMatchObject({
@@ -119,6 +120,18 @@ describe("combined commitment release manifest", () => {
     const halfDisabled = structuredClone(manifest);
     halfDisabled.safeAuthority.enabled = false;
     expect(() => validateReleaseManifest(halfDisabled)).toThrow(/may not pre-authorize garden Safes/);
+
+    // Peer wiring is the only mutation this ceremony authorizes, and it must be stated explicitly.
+    const implicitPeerWiring = structuredClone(manifest);
+    (implicitPeerWiring.ceremony as { peerWiringIncluded?: unknown }).peerWiringIncluded = undefined;
+    expect(() => validateReleaseManifest(implicitPeerWiring)).toThrow(/peerWiringIncluded must be an explicit boolean/);
+
+    // Authorizing peer wiring must not quietly widen the ceremony into ownership or unpause.
+    for (const key of ["ownershipTransferIncluded", "poolBackfillIncluded", "unpauseIncluded"] as const) {
+      const widened = structuredClone(manifest);
+      widened.ceremony[key] = true as never;
+      expect(() => validateReleaseManifest(widened)).toThrow(/must end paused and deployer-owned/);
+    }
 
     const numericGas = structuredClone(manifest);
     numericGas.chains.arbitrum.destinationGasLimit = 750_000 as unknown as string;

@@ -102,6 +102,7 @@ Commands:
   settlement-executor     Deploy/plan the paused Celo executor (--network celo only)
   safe-plan               Produce the inert Safe prediction/Zodiac Roles plan
   settlement-peer         Plan peer wiring after fresh bidirectional route verification
+  settlement-peer-verify  Prove a sent peer-wiring call matches the reviewed plan
   release-recover         Produce deterministic artifact recovery inputs
   release-verify          Reread release code, proxy, owner, peer, pause, and artifact state
   indexer-handoff         Produce an inert Envio activation/reindex/read-back plan
@@ -369,6 +370,7 @@ For UUPS upgrades, use: bun upgrade.ts <contract> --network <network> --broadcas
         case "settlement-executor":
         case "safe-plan":
         case "settlement-peer":
+        case "settlement-peer-verify":
         case "release-recover":
         case "release-verify":
         case "indexer-handoff": {

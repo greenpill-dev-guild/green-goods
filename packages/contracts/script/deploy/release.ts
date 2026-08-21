@@ -409,6 +409,8 @@ Phase B boundary form (not authorized by Phase A):
         return this.safePlan(options, manifest, lock);
       case "settlement-peer":
         return this.peerPlan(options, manifest, lock);
+      case "settlement-peer-verify":
+        return this.peerVerify(options, manifest, lock);
       case "release-recover":
         return this.recoveryPlan(options, manifest, lock);
       case "release-verify":
@@ -1445,7 +1447,16 @@ Phase B boundary form (not authorized by Phase A):
     if (options.network !== "arbitrum" && options.network !== "celo") {
       throw new Error("settlement-peer requires --network arbitrum|celo");
     }
-    if (options.broadcast) throw new Error("Peer wiring is not broadcast-authorized in Phase A");
+    if (options.broadcast) {
+      // There is deliberately no operator broadcast path for peer wiring: it is a single owner-gated
+      // configuration call that moves no value, so it executes as one reviewed owner transaction and
+      // is proven afterwards by `settlement-peer-verify` rather than through a second boundary engine.
+      throw new Error(
+        manifest.ceremony.peerWiringIncluded
+          ? "Peer wiring executes as one reviewed owner transaction; send the planned calldata, then run settlement-peer-verify"
+          : "Peer wiring is not authorized by this ceremony; set ceremony.peerWiringIncluded in the reviewed manifest first",
+      );
+    }
     const gas = process.env.SETTLEMENT_DESTINATION_GAS_LIMIT;
     if (!gas) throw new Error("Set SETTLEMENT_DESTINATION_GAS_LIMIT to the measured non-zero uint32 value");
     const plan = buildPeerTransactionPlan(manifest, lock, BigInt(gas), options.network);
@@ -1453,6 +1464,68 @@ Phase B boundary form (not authorized by Phase A):
     writeGenerated(filePath, plan);
     console.log(stable(plan));
     console.log(`Peer plan written: ${filePath}`);
+  }
+
+  /**
+   * Proves a peer-wiring transaction landed exactly as reviewed. This is the evidence half of the
+   * split described in `peerPlan`: the owner sends one planned call, this reads the live route back
+   * and asserts every postcondition the plan declared, including that both peers are still paused.
+   */
+  private async peerVerify(options: ParsedOptions, manifest: ReleaseManifest, lock: ReleaseLock): Promise<void> {
+    if (options.network !== "arbitrum") throw new Error("settlement-peer-verify supports only --network arbitrum");
+    if (!manifest.ceremony.peerWiringIncluded) {
+      throw new Error("Peer wiring is not authorized by this ceremony; nothing to verify");
+    }
+    const settlement = identity(lock, "SettlementModule", "proxy").address;
+    const executor = identity(lock, "CeloSettlementExecutor", "proxy").address;
+    const expectedSelector = BigInt(manifest.chains.celo.ccipSelector);
+    const expectedGasLimit = BigInt(manifest.chains.arbitrum.destinationGasLimit ?? "0");
+    if (expectedGasLimit === 0n) throw new Error("chains.arbitrum.destinationGasLimit must be frozen before verifying");
+
+    const chainId = Number(manifest.chains.arbitrum.evmChainId);
+    const provider = new JsonRpcProvider(this.networkManager.getRpcUrl("arbitrum"), chainId, { staticNetwork: true });
+    const module_ = new Contract(
+      settlement,
+      [
+        "function ccipRoute() view returns ((uint64 destinationChainSelector, address destinationExecutor, address previousDestinationExecutor, uint64 previousPeerExpiresAt, uint32 destinationGasLimit, uint8 protocolVersion))",
+        "function paused() view returns (bool)",
+      ],
+      provider,
+    );
+    const [route, paused] = await retryRpcAvailability(async () =>
+      Promise.all([module_.ccipRoute(), module_.paused()]),
+    );
+
+    const checks: Array<[string, boolean, string]> = [
+      [
+        "destination selector",
+        route.destinationChainSelector === expectedSelector,
+        String(route.destinationChainSelector),
+      ],
+      [
+        "destination executor",
+        getAddress(route.destinationExecutor) === getAddress(executor),
+        String(route.destinationExecutor),
+      ],
+      [
+        "destination gas limit",
+        BigInt(route.destinationGasLimit) === expectedGasLimit,
+        String(route.destinationGasLimit),
+      ],
+      [
+        "protocol version",
+        BigInt(route.protocolVersion) === BigInt(manifest.chains.celo.protocolVersion),
+        String(route.protocolVersion),
+      ],
+      ["retiring-peer grace is zero", BigInt(route.previousPeerExpiresAt) === 0n, String(route.previousPeerExpiresAt)],
+      ["module still paused", paused === true, String(paused)],
+    ];
+    const failed = checks.filter(([, ok]) => !ok);
+    for (const [label, ok, actual] of checks) console.log(`${ok ? "PASS" : "FAIL"} ${label}: ${actual}`);
+    if (failed.length > 0) {
+      throw new Error(`Peer wiring does not match the reviewed plan: ${failed.map(([label]) => label).join(", ")}`);
+    }
+    console.log(`Peer wiring verified against the frozen plan on ${manifest.releaseId}`);
   }
 
   private recoveryPlan(options: ParsedOptions, manifest: ReleaseManifest, lock: ReleaseLock): void {
@@ -1575,8 +1648,13 @@ Phase B boundary form (not authorized by Phase A):
   }
 
   private assertSender(command: string, options: ParsedOptions, manifest: ReleaseManifest): void {
-    const expected =
-      command === "settlement-peer" ? manifest.ownership.protocolSafe : manifest.ownership.deploymentSender;
+    // Peer wiring is owner-gated, so its sender follows whoever this ceremony leaves owning the
+    // module: the protocol Safe once ownership transfer is part of the ceremony, the deployment
+    // sender while it is not. Reading it from the manifest keeps the plan and the assertion aligned.
+    const peerSender = manifest.ceremony.ownershipTransferIncluded
+      ? manifest.ownership.protocolSafe
+      : manifest.ownership.deploymentSender;
+    const expected = command === "settlement-peer" ? peerSender : manifest.ownership.deploymentSender;
     const sender = options.sender ?? expected;
     if (getAddress(sender) !== getAddress(expected)) {
       throw new Error(`Wrong sender: expected ${expected}, received ${sender}`);

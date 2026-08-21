@@ -341,17 +341,44 @@ describe("release CLI real entrypoints", () => {
     }
   });
 
-  it("rejects deployment-EOA peer plans after the ownership-transfer boundary", () => {
-    const result = fail([
-      "settlement-peer",
-      "--network",
-      "arbitrum",
-      "--pure-simulation",
-      "--sender",
-      "0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6",
-    ]);
+  it("binds peer plans to whichever sender this ceremony leaves owning the module", () => {
+    const env = { ...process.env, SETTLEMENT_DESTINATION_GAS_LIMIT: "3000000" };
+    // Ownership transfer is not part of this ceremony, so the deployment sender still owns the
+    // module and is the only sender the plan and the live precondition can agree on.
+    const accepted = run(
+      [
+        "settlement-peer",
+        "--network",
+        "arbitrum",
+        "--pure-simulation",
+        "--sender",
+        "0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6",
+      ],
+      env,
+    );
+    expect(accepted).toContain('"live owner equals 0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6"');
+
+    // The protocol Safe does not own it yet, so naming it would plan a transaction that reverts.
+    const rejected = fail(
+      [
+        "settlement-peer",
+        "--network",
+        "arbitrum",
+        "--pure-simulation",
+        "--sender",
+        "0x1B9Ac97Ea62f69521A14cbe6F45eb24aD6612C19",
+      ],
+      env,
+    );
+    expect(rejected.status).not.toBe(0);
+    expect(`${rejected.stdout}${rejected.stderr}`).toContain("Wrong sender");
+  });
+
+  it("refuses peer broadcast and points at the verifier instead", () => {
+    const env = { ...process.env, SETTLEMENT_DESTINATION_GAS_LIMIT: "3000000" };
+    const result = fail(["settlement-peer", "--network", "arbitrum", "--broadcast"], env);
     expect(result.status).not.toBe(0);
-    expect(`${result.stdout}${result.stderr}`).toContain("Wrong sender");
+    expect(`${result.stdout}${result.stderr}`).toContain("settlement-peer-verify");
   });
 });
 

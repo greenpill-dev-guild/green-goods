@@ -80,6 +80,12 @@ export interface ReleaseManifest {
     ownershipTransferIncluded: false;
     poolBackfillIncluded: false;
     unpauseIncluded: false;
+    /**
+     * Peer wiring is the one mutation this paused deployer-owned ceremony may still authorize:
+     * `setCcipRoute` is owner-gated, requires the module to stay paused, and moves no value. It is
+     * declared here rather than hard-coded so the authorization is reviewed data, not a code edit.
+     */
+    peerWiringIncluded: boolean;
     followUpIssueRequired: true;
   };
   batching: {
@@ -313,6 +319,9 @@ export function validateReleaseManifest(manifest: ReleaseManifest): void {
     throw new Error(
       "The current ceremony must end paused and deployer-owned; ownership transfer, pool backfill, and unpause require a later issue",
     );
+  }
+  if (typeof manifest.ceremony.peerWiringIncluded !== "boolean") {
+    throw new Error("ceremony.peerWiringIncluded must be an explicit boolean");
   }
 
   const batching = manifest.batching;

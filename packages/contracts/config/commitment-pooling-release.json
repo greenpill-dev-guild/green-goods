@@ -45,6 +45,7 @@
     "ownershipTransferIncluded": false,
     "poolBackfillIncluded": false,
     "unpauseIncluded": false,
+    "peerWiringIncluded": true,
     "followUpIssueRequired": true
   },
   "batching": {

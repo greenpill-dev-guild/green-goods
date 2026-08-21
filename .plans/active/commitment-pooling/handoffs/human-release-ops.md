@@ -393,12 +393,28 @@ the `release:verify:safe:*` variants; those belong to the later ownership-transf
   ceremony. PRD-722 remains responsible for its later deployment/reindex/cutover/read-back.
 
 The Garden Safe bootstrap, the route ceremony, and the manifest re-freeze are all complete, which
-closes the repository half of this lane. Every remaining step moves value or sends a transaction and
-belongs to the release owner: funding the Arbitrum SettlementModule and the Celo executor above
-their frozen reserve floors, executing and verifying the Arbitrum `setCcipRoute` boundary at the
-frozen 3,000,000 destination gas limit, then the message-only ping/ack and the minimum-value
-canary, in that order. Ownership transfer, cap changes, and broader value movement stay gated
-behind their own authorizations.
+closes the repository half of this lane. Both fee reserves are funded above their floors. Every
+remaining step sends a transaction and belongs to the release owner: the Arbitrum `setCcipRoute`
+boundary at the frozen 3,000,000 destination gas limit, then the message-only ping/ack and the
+minimum-value canary, in that order. Ownership transfer, cap changes, and broader value movement
+stay gated behind their own authorizations.
+
+### Wiring the Arbitrum route
+
+`setCcipRoute` is owner-gated, requires the module to stay paused, and moves no value, so this
+ceremony authorizes it through `ceremony.peerWiringIncluded` rather than a code edit. It runs as one
+reviewed owner transaction rather than through the release operator, because a second broadcast
+engine for a single configuration call would add risk without adding evidence.
+
+1. Plan it and read the calldata back:
+   `SETTLEMENT_DESTINATION_GAS_LIMIT=3000000 bun run contracts:settlement:peer:plan:arbitrum`
+2. Send that exact `to` and `calldata` from the live owner. While ownership transfer is not part of
+   this ceremony the plan names the deployment sender; it will name the protocol Safe automatically
+   once a later ceremony includes the transfer.
+3. Prove it landed as reviewed: `bun run contracts:settlement:peer:verify:arbitrum`. It re-reads the
+   live route and asserts the destination selector, executor, gas limit, protocol version, a zero
+   retiring-peer grace, and that the module is still paused. It fails closed and names each
+   unmet condition, so a silent partial write cannot pass.
 
 ## Core-tier unblock evidence
 

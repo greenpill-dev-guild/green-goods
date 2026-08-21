@@ -302,14 +302,20 @@ export function buildPeerTransactionPlan(
     0n,
   ]);
   const isArbitrum = network === "arbitrum";
+  // Peer wiring is owner-gated, so it is sent by whoever this ceremony leaves owning the module:
+  // the protocol Safe once ownership transfer is included, the deployment sender while it is not.
+  // `assertSender` in release.ts derives the same value, so plan and assertion cannot disagree.
+  const peerSender = manifest.ceremony.ownershipTransferIncluded
+    ? manifest.ownership.protocolSafe
+    : manifest.ownership.deploymentSender;
   return {
     schemaVersion: 1,
     releaseId: manifest.releaseId,
     sourceCommit: manifest.sourceCommit,
     stage: "settlement-peer",
     network,
-    sender: manifest.ownership.protocolSafe,
-    owner: manifest.ownership.protocolSafe,
+    sender: peerSender,
+    owner: peerSender,
     create2Factory: manifest.create2.factory,
     baseSalt: `${manifest.create2.domain}:${manifest.create2.version}`,
     libraryMap: lock.libraryMap,
@@ -320,7 +326,7 @@ export function buildPeerTransactionPlan(
         kind: "configuration",
         label: isArbitrum ? "wire verified Arbitrum to Celo route" : "reconcile verified Celo to Arbitrum source peer",
         network,
-        sender: manifest.ownership.protocolSafe,
+        sender: peerSender,
         to: isArbitrum ? settlement : executor,
         calldata: isArbitrum ? arbitrumCall : celoCall,
         preconditions: [
@@ -330,7 +336,7 @@ export function buildPeerTransactionPlan(
           isArbitrum
             ? `Celo source peer already equals ${settlement}`
             : "Arbitrum destination route is unset or already equals the frozen Celo executor",
-          `live owner equals ${manifest.ownership.protocolSafe}`,
+          `live owner equals ${peerSender}`,
         ],
         resumableState:
           "Both peers remain paused and have no Safe value authority; exact repeated configuration is a no-op.",
