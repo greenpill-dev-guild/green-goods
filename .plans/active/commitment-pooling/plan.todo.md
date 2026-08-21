@@ -14,9 +14,10 @@ Linear mirror: project [Commitment Pooling](https://linear.app/greenpill-dev-gui
 
 ## Document map
 
-Every file in this hub, by role — **171 files**: 29 at the hub root, 42 under `artifacts/`,
-25 under `handoffs/`, 22 under `hifi/`, 20 under `operations/`, 32 under `reports/`, and 1 under
-`evidence/`.
+Every file in this hub, by role — **181 files**: 36 at the hub root, 42 under `artifacts/`,
+25 under `handoffs/`, 22 under `hifi/`, 20 under `operations/`, 35 under `reports/` (including
+`reports/linear/`), and 1 under `evidence/`. Counts re-taken 2026-08-21; the previous 171 predated
+the client-UI review prompts and the editorial dispatch prompt.
 **This list is the index — if you add a document here, add its row.** Root files each get their own
 row; the six subtrees get one row apiece naming their own in-tree index, because the row for a
 subtree is only honest if that index actually enumerates the tree (this failed review on
@@ -42,6 +43,14 @@ subtree is only honest if that index actually enumerates the tree (this failed r
 | `flow-audit.md` | Experience audit of the hi-fi prototypes read from the journeys outward: the action map, a walk of every flow, the relay between people, continuity, the emotional arc, and ranked findings | Review findings — **adds no design authority**; decisions land in `uiux-spec.md` and the Decision Log |
 | `flow-audit-prompt.md` | The brief that produced `flow-audit.md`: what to audit for, the six qualities, and the hard limits on what an audit may propose | Audit method — reusable brief, not a spec |
 | `review-prompt.md` | Grounded `/review` brief for PR #732: scoping notes where the skill's defaults miss, the batch plan, the ranked risk surface, the claims to disprove, and what could not be verified | Review method — reusable brief, not a spec |
+| `review-prompt-client-ui.md` | First adversarial review brief for the PR #740 client slice (W1–W5); fixes landed in `dd12817ab` | Review method — dated brief, not a spec |
+| `review-prompt-client-ui-round2.md` | Round-2 client UI review brief; fixes landed in `694a20316` | Review method — dated brief, not a spec |
+| `review-prompt-client-ui-round3.md` | Round-3 client UI review brief; records the deliberately absent W2a / WFLOW / DomainImpact / To-confirm / W28–W31 scope; fixes in `f5e86ae37` | Review method — dated brief; the scope note is the honest record of what #740 left out |
+| `review-prompt-client-ui-round4.md` | Round-4 client UI review brief; fixes in `c984ec5ef` | Review method — dated brief, not a spec |
+| `review-prompt-client-ui-round5.md` | Round-5 client UI review brief; fixes in `5f0f99dee` | Review method — dated brief, not a spec |
+| `prompt-editorial-backend.md` | Codex dispatch prompt for the editorial backend readers (merged as PR #745 / #746) | Dispatch prompt — historical once merged |
+| `prompt-client-loop.md` | Claude Code dispatch prompt to finish the client PWA in a worktree: Phase 0 fixes, D1 close-the-loop (W2a, W4, DomainImpact rows, WFLOW, claims, W25), D2 Offer over time (W32, W34, W35); written from `reports/build-review-2026-08-21.md` | Dispatch prompt — re-verify its "Present state" before use |
+| `reports/build-review-2026-08-21.md` | Layer-by-layer build review of the PRD-650 tree: status board, coverage tables, severity-ordered findings, tracking drift, ranked risks, next moves, and the commands run | Dated review evidence — findings carry file:line anchors as of `develop@665e8a573` |
 | `prototypes-artifact.build.ts` | Generator for the Flow Prototypes artifact; reads the `hifi/` registry alone (the retired `prototypes.md` stays as history, register #96) | Generator — never hand-edit its output |
 | `card-explorations.build.ts` | One-shot cycle/promise card study retained until the Components tab supersedes the review artifact | Design exploration — not canonical implementation truth |
 | `visual-assets.md` | Index of the audience graphics (SVG + 2x PNG) + style contract + regeneration; the ongoing-Offer story and architecture assets are published | Asset index |
