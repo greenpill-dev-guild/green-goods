@@ -222,6 +222,29 @@ describe("GardenCommitment", () => {
     expect(mockEnqueue).toHaveBeenCalledWith({
       act: "sendForConfirmation",
       commitmentId: 9n,
+      gardenAddress: GARDEN,
+    });
+  });
+
+  it("queues a confirmation with the garden whose membership gates it", async () => {
+    const user = userEvent.setup();
+    mockUseCommitment.mockReturnValue(
+      detail({
+        commitment: {
+          derivedState: "READY_FOR_CONFIRMATION",
+          creator: OTHER,
+          leadProvider: OTHER,
+          counterparty: VIEWER,
+        },
+      })
+    );
+    render();
+
+    await user.click(screen.getByRole("button", { name: "Confirm it was kept" }));
+    expect(mockEnqueue).toHaveBeenCalledWith({
+      act: "confirm",
+      commitmentId: 9n,
+      gardenAddress: GARDEN,
     });
   });
 
@@ -243,7 +266,7 @@ describe("GardenCommitment", () => {
     // ClaimType.Individual, and a garden as the context rather than a person.
     expect(mockEnqueue).toHaveBeenCalledWith({
       act: "claim",
-      payload: { commitmentId: 9n, kind: 1, gardenContext: GARDEN },
+      payload: { commitmentId: 9n, kind: 1, gardenContext: GARDEN, gardenAddress: GARDEN },
     });
   });
 

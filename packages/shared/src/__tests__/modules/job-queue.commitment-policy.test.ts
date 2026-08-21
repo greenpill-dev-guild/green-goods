@@ -5,7 +5,10 @@ import {
   isTerminallyFailedJob,
   isWaitingReprobeThrottled,
 } from "../../modules/job-queue";
+import { commitmentJobIdentity } from "../../modules/job-queue/queue-policy";
 import type { Job } from "../../types/job-queue";
+
+const GARDEN = "0x2222222222222222222222222222222222222222";
 
 const job = (overrides: Partial<Job> = {}): Job => ({
   id: "job-1",
@@ -25,6 +28,27 @@ describe("commitment queue retry policy", () => {
     expect(isTerminallyFailedJob(job({ attempts: 5 }))).toBe(true);
     expect(isTerminallyFailedJob(job({ attempts: 4 }))).toBe(false);
     expect(isTerminallyFailedJob(job({ attempts: 5, synced: true }))).toBe(false);
+  });
+
+  it.each([
+    ["claim", { commitmentId: 9n, kind: 1, gardenContext: GARDEN }],
+    ["evidence", { commitmentId: 9n, cid: "bafy", creditedContributors: [] }],
+    [
+      "workLink",
+      {
+        clientOperationId: "op",
+        commitmentId: 9n,
+        workUID: "0x1",
+        requirementIndex: 0,
+        operationKey: "0xkey",
+      },
+    ],
+    ["confirmation", { action: "confirm", commitmentId: 9n }],
+  ] as const)("keeps the %s identity the same whether or not the garden rides along, so old and new jobs dedupe together", (kind, payload) => {
+    const before = commitmentJobIdentity(kind, payload);
+    const after = commitmentJobIdentity(kind, { ...payload, gardenAddress: GARDEN });
+    expect(before).not.toBeNull();
+    expect(after).toBe(before);
   });
 
   it("throttles dependency probes without consuming the retry budget", () => {

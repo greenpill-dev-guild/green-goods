@@ -444,6 +444,98 @@ describe("work-link recovery", () => {
   });
 });
 
+describe("membership preflight covers every membership-gated act", () => {
+  const SENT = `0x${"12".repeat(32)}`;
+  const gated = [
+    {
+      kind: "claim" as const,
+      payload: { commitmentId: 9n, kind: 1, gardenContext: GARDEN, gardenAddress: GARDEN },
+    },
+    {
+      kind: "evidence" as const,
+      payload: {
+        commitmentId: 9n,
+        cid: "bafy-proof",
+        creditedContributors: [HOLDER],
+        gardenAddress: GARDEN,
+      },
+    },
+    {
+      kind: "workLink" as const,
+      payload: {
+        clientOperationId: "work-link-local-1",
+        commitmentId: 9n,
+        workUID: `0x${"ab".repeat(32)}` as const,
+        requirementIndex: 0,
+        operationKey: createWorkLinkOperationKey({
+          chainId: 42161,
+          moduleAddress: MODULE,
+          caller: HOLDER,
+          clientOperationId: "work-link-local-1",
+        }),
+        gardenAddress: GARDEN,
+      },
+    },
+    {
+      kind: "confirmation" as const,
+      payload: { action: "confirm" as const, commitmentId: 9n, gardenAddress: GARDEN },
+    },
+  ];
+  const jobFor = (entry: (typeof gated)[number]): CommitmentJob =>
+    ({
+      id: `job-${entry.kind}`,
+      kind: entry.kind,
+      payload: entry.payload,
+      chainId: 42161,
+      moduleAddress: MODULE,
+      userAddress: HOLDER,
+    }) as CommitmentJob;
+
+  it.each(
+    gated
+  )("holds a $kind job as waiting while the account has no hat in its garden", async (entry) => {
+    const send = vi.fn();
+    const hasMembership = vi.fn().mockResolvedValue(false);
+    const result = await executeCommitmentJob(jobFor(entry), dependencies({ hasMembership, send }));
+
+    expect(result).toEqual({ status: "waiting", reason: "membership-unavailable" });
+    expect(hasMembership).toHaveBeenCalledWith(GARDEN, HOLDER);
+    expect(send).not.toHaveBeenCalled();
+  });
+
+  it.each(gated)("sends a $kind job once membership is confirmed", async (entry) => {
+    const send = vi.fn().mockResolvedValue(SENT);
+    const result = await executeCommitmentJob(
+      jobFor(entry),
+      dependencies({ hasMembership: vi.fn().mockResolvedValue(true), send })
+    );
+
+    expect(result).toEqual({ status: "sent", txHash: SENT });
+    expect(send).toHaveBeenCalledTimes(1);
+  });
+
+  it("still sends a job queued before the garden rode along, rather than stranding it", async () => {
+    // Persisted before 2026-08-21: no gardenAddress on the record. It keeps
+    // the behaviour it was queued with, a send with no preflight, instead of
+    // waiting on a garden it cannot name.
+    const legacy = {
+      id: "job-legacy",
+      kind: "confirmation",
+      payload: { action: "confirm", commitmentId: 9n },
+      chainId: 42161,
+      moduleAddress: MODULE,
+      userAddress: HOLDER,
+    } as unknown as CommitmentJob;
+    const send = vi.fn().mockResolvedValue(SENT);
+    const hasMembership = vi.fn().mockResolvedValue(false);
+
+    const result = await executeCommitmentJob(legacy, dependencies({ hasMembership, send }));
+
+    expect(result).toEqual({ status: "sent", txHash: SENT });
+    expect(hasMembership).not.toHaveBeenCalled();
+  });
+});
+
 describe("queue identity for acts that name a commitment", () => {
   async function drain() {
     for (const job of await jobQueueDB.getAllJobsUnfiltered()) {
@@ -456,7 +548,7 @@ describe("queue identity for acts that name a commitment", () => {
   const meta = { chainId: 42161 };
 
   it("returns the existing job when the same claim is enqueued twice", async () => {
-    const payload = { commitmentId: 9n, kind: 1, gardenContext: GARDEN };
+    const payload = { commitmentId: 9n, kind: 1, gardenContext: GARDEN, gardenAddress: GARDEN };
     const first = await jobQueue.addJob("claim", payload, HOLDER, meta);
     const second = await jobQueue.addJob("claim", { ...payload }, HOLDER, meta);
 
@@ -465,7 +557,7 @@ describe("queue identity for acts that name a commitment", () => {
   });
 
   it("returns the existing job when the same confirmation is enqueued twice", async () => {
-    const payload = { action: "confirm" as const, commitmentId: 9n };
+    const payload = { action: "confirm" as const, commitmentId: 9n, gardenAddress: GARDEN };
     const first = await jobQueue.addJob("confirmation", payload, HOLDER, meta);
     const second = await jobQueue.addJob("confirmation", { ...payload }, HOLDER, meta);
 
@@ -476,13 +568,13 @@ describe("queue identity for acts that name a commitment", () => {
   it("keeps submit and confirm on one commitment as two different acts", async () => {
     const submit = await jobQueue.addJob(
       "confirmation",
-      { action: "submit", commitmentId: 9n },
+      { action: "submit", commitmentId: 9n, gardenAddress: GARDEN },
       HOLDER,
       meta
     );
     const confirm = await jobQueue.addJob(
       "confirmation",
-      { action: "confirm", commitmentId: 9n },
+      { action: "confirm", commitmentId: 9n, gardenAddress: GARDEN },
       HOLDER,
       meta
     );
@@ -499,8 +591,17 @@ describe("queue identity for acts that name a commitment", () => {
     ).rejects.toThrow(/offline_job_identity_conflict/);
   });
 
+  it("refuses the same claim under a different garden rather than quietly taking the second", async () => {
+    const payload = { commitmentId: 9n, kind: 1, gardenContext: GARDEN, gardenAddress: GARDEN };
+    await jobQueue.addJob("claim", payload, HOLDER, meta);
+
+    await expect(
+      jobQueue.addJob("claim", { ...payload, gardenAddress: OTHER }, HOLDER, meta)
+    ).rejects.toThrow(/offline_job_identity_conflict/);
+  });
+
   it("lets a terminally failed act be enqueued afresh rather than deduped against the corpse", async () => {
-    const payload = { commitmentId: 9n, kind: 1, gardenContext: GARDEN };
+    const payload = { commitmentId: 9n, kind: 1, gardenContext: GARDEN, gardenAddress: GARDEN };
     const first = await jobQueue.addJob("claim", payload, HOLDER, meta);
     const stored = await jobQueueDB.getJob(first);
     await jobQueueDB.updateJob({ ...stored!, attempts: 5 });

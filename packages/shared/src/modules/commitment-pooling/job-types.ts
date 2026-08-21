@@ -72,19 +72,33 @@ export interface CommitmentCreationPayload {
   gardenAddress: Address;
 }
 
-export interface ClaimJobPayload {
+/**
+ * Carried by every act that a garden hat gates.
+ *
+ * The executor runs its membership preflight on `gardenAddress` before the
+ * first send, so an account still waiting for its hat waits
+ * (`membership-unavailable`) instead of spending retries on a revert. It is not
+ * part of the job's identity: jobs persisted before 2026-08-21 carry no
+ * `gardenAddress` and still send the way they were queued, and an old and a
+ * new record of the same act dedupe as one.
+ */
+export interface MembershipGatedJobPayload {
+  gardenAddress: Address;
+}
+
+export interface ClaimJobPayload extends MembershipGatedJobPayload {
   commitmentId: bigint;
   kind: number;
   gardenContext: Address;
 }
 
-export interface EvidenceJobPayload {
+export interface EvidenceJobPayload extends MembershipGatedJobPayload {
   commitmentId: bigint;
   cid: string;
   creditedContributors: readonly Address[];
 }
 
-export interface WorkLinkJobPayload {
+export interface WorkLinkJobPayload extends MembershipGatedJobPayload {
   clientOperationId: string;
   commitmentId: bigint;
   workUID: Hex;
@@ -93,8 +107,8 @@ export interface WorkLinkJobPayload {
 }
 
 export type ConfirmationJobPayload =
-  | { action: "submit"; commitmentId: bigint }
-  | { action: "confirm"; commitmentId: bigint };
+  | ({ action: "submit"; commitmentId: bigint } & MembershipGatedJobPayload)
+  | ({ action: "confirm"; commitmentId: bigint } & MembershipGatedJobPayload);
 
 export interface CommitmentJobPayloadMap {
   commitmentSeries: CommitmentSeriesJobPayload;

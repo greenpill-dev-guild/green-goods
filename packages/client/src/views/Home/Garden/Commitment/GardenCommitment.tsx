@@ -203,13 +203,16 @@ export function GardenCommitment() {
                     // A member claims as themselves (ClaimType.Individual = 1);
                     // ClaimType.Garden is a GardenAccount claiming on a protocol
                     // pool, which is a steward path and not this button. The
-                    // context is the garden the claim is scoped to, never a person.
+                    // context is the garden the claim is scoped to, never a
+                    // person, and it is also the garden whose hat the queue
+                    // waits for before the first send.
                     void jobs.enqueue({
                       act: "claim",
                       payload: {
                         commitmentId: commitment.commitmentId,
                         kind: CLAIM_TYPE_INDIVIDUAL,
                         gardenContext: gardenAddress as Address,
+                        gardenAddress: gardenAddress as Address,
                       },
                     });
                     return;
@@ -217,12 +220,14 @@ export function GardenCommitment() {
                     void jobs.enqueue({
                       act: "sendForConfirmation",
                       commitmentId: commitment.commitmentId,
+                      gardenAddress: gardenAddress as Address,
                     });
                     return;
                   case "confirm":
                     void jobs.enqueue({
                       act: "confirm",
                       commitmentId: commitment.commitmentId,
+                      gardenAddress: gardenAddress as Address,
                     });
                     return;
                   case "addProof":
