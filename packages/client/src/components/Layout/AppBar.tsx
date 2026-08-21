@@ -20,6 +20,9 @@ export const AppBar = () => {
     pathname === LEGACY_APP_ROUTES.garden ||
     pathname.startsWith(`${LEGACY_APP_ROUTES.garden}/`);
   const isWorkDetail = pathname.includes("/work/");
+  // A commitment's detail and composer carry their own fixed action bar, and
+  // the nav underneath it would sit exactly where the thumb lands.
+  const isCommitmentRoute = pathname.includes("/commitments/");
   const intl = useIntl();
   const { data: pendingCount = 0 } = usePendingWorksCount();
   const { isPwaPresentation } = useApp();
@@ -29,10 +32,16 @@ export const AppBar = () => {
   const isGardenFilterOpen = useUIStore((s) => s.isGardenFilterOpen);
   const isEndowmentDrawerOpen = useUIStore((s) => s.isEndowmentDrawerOpen);
   const isWalletDrawerOpen = useUIStore((s) => s.isWalletDrawerOpen);
+  const isCommitmentsDrawerOpen = useUIStore((s) => s.isCommitmentsDrawerOpen);
   const isAnyDrawerOpen =
-    isWorkDashboardOpen || isGardenFilterOpen || isEndowmentDrawerOpen || isWalletDrawerOpen;
+    isWorkDashboardOpen ||
+    isGardenFilterOpen ||
+    isEndowmentDrawerOpen ||
+    isWalletDrawerOpen ||
+    isCommitmentsDrawerOpen;
   // Browser mode shows SiteHeader only (D6); bottom nav is PWA-only
-  const shouldHideBar = !isPwaPresentation || isGarden || isWorkDetail || isAnyDrawerOpen;
+  const shouldHideBar =
+    !isPwaPresentation || isGarden || isWorkDetail || isCommitmentRoute || isAnyDrawerOpen;
 
   const tabs: {
     path: string;

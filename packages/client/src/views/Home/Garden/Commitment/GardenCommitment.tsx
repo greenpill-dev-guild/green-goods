@@ -267,14 +267,14 @@ export function GardenCommitment() {
           </section>
         ) : null}
 
+        {/* The identity card carries no title: the screen header already names
+          the commitment, and the card says where it stands and what it is
+          measured in. Name, then state, then facts, each said once. */}
         <section className="rounded-[var(--radius-lg)] border border-stroke-soft-200 bg-bg-white-0 p-4">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
-              <p className="truncate text-base font-medium text-text-strong-950" title={heading}>
-                {heading}
-              </p>
               {metadata?.title && units ? (
-                <p className="mt-0.5 text-sm text-text-sub-600">{units}</p>
+                <p className="text-sm text-text-sub-600">{units}</p>
               ) : null}
               <p className="mt-0.5 text-xs text-text-soft-400">
                 {formatMessage({
@@ -304,7 +304,7 @@ export function GardenCommitment() {
           ) : null}
         </section>
 
-        <CommitmentProgress commitment={commitment} requirements={requirements} />
+        <CommitmentProgress chainId={chainId} commitment={commitment} requirements={requirements} />
       </DetailShell>
 
       <WithdrawDialog

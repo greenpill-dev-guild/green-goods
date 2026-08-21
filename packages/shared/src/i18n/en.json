@@ -2269,6 +2269,7 @@
   "app.pool.loading": "Gathering this garden's commitments…",
   "app.pool.rail.campaign": "Campaign",
   "app.pool.rail.counts": "{kept} of {made} kept",
+  "app.pool.rail.dates": "{start} – {end}",
   "app.pool.rail.label": "Seasons and campaigns",
   "app.pool.rail.season": "Season",
   "app.pool.state.closed.body": "Its history stays with the garden.",

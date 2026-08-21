@@ -43,8 +43,8 @@ export function ComposeTerms({ form }: ComposeTermsProps) {
                 onClick={() => form.setValue("dueInDays", days, { shouldValidate: true })}
                 className={
                   selected
-                    ? "rounded-full border border-primary-alpha-24 bg-primary-alpha-10 px-3 py-1.5 text-xs font-medium text-primary tap-target"
-                    : "rounded-full border border-stroke-soft-200 px-3 py-1.5 text-xs font-medium text-text-sub-600 tap-target"
+                    ? "rounded-full border border-primary-alpha-24 bg-primary-alpha-10 px-3 py-1.5 text-xs font-medium text-primary tap-target-lg"
+                    : "rounded-full border border-stroke-soft-200 px-3 py-1.5 text-xs font-medium text-text-sub-600 tap-target-lg"
                 }
               >
                 {formatMessage({ id: "app.compose.terms.days" }, { count: days })}

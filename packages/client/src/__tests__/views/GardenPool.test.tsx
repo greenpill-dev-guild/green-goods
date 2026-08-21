@@ -22,6 +22,7 @@ const OTHER = "0x2222222222222222222222222222222222222222" as const;
 
 const mockUseCommitments = vi.fn();
 const mockUseCommitmentCycles = vi.fn();
+const mockUseCommitmentCycleNames = vi.fn();
 const mockUseOffline = vi.fn();
 
 const AVAILABLE = { status: "available", capability: {} } as const;
@@ -87,6 +88,7 @@ vi.mock("@green-goods/shared", async () => {
     usePrimaryAddress: () => VIEWER,
     useCommitments: () => mockUseCommitments(),
     useCommitmentCycles: () => mockUseCommitmentCycles(),
+    useCommitmentCycleNames: () => mockUseCommitmentCycleNames(),
     useOffline: () => mockUseOffline(),
   };
 });
@@ -98,6 +100,7 @@ describe("GardenPool", () => {
     vi.clearAllMocks();
     mockUseOffline.mockReturnValue({ isOnline: true });
     mockUseCommitmentCycles.mockReturnValue({ cycles: [] });
+    mockUseCommitmentCycleNames.mockReturnValue({ byCycleId: new Map(), isLoading: false });
     mockUseCommitments.mockReturnValue(commitmentsResult());
   });
 
@@ -199,6 +202,35 @@ describe("GardenPool", () => {
     expect(screen.getByText("Campaign")).toBeInTheDocument();
     expect(screen.getByText("6 of 16 kept")).toBeInTheDocument();
     expect(screen.getByText("8 of 8 kept")).toBeInTheDocument();
+  });
+
+  it("names a season and says when it runs, when the record carries both", () => {
+    mockUseCommitmentCycles.mockReturnValue({
+      cycles: [
+        {
+          id: "42161-1",
+          cycleId: 1n,
+          cycleType: "SEASON",
+          state: "OPEN",
+          startTime: 1_772_366_400n, // 2026-03-01T12:00:00Z, noon so every zone reads the same day
+          endTime: 1_780_228_800n, // 2026-05-31T12:00:00Z
+          metadataCID: "bafy-season",
+          commitmentsFulfilled: 6n,
+          commitmentsDue: 16n,
+        },
+      ],
+    });
+    mockUseCommitmentCycleNames.mockReturnValue({
+      byCycleId: new Map([["1", { status: "resolved", name: "Spring planting" }]]),
+      isLoading: false,
+    });
+    mockUseCommitments.mockReturnValue(commitmentsResult({ commitments: [commitment()] }));
+
+    render(<GardenPool pool={pool()} />);
+
+    expect(screen.getByText("Spring planting")).toBeInTheDocument();
+    expect(screen.getByText(/Mar 1/)).toBeInTheDocument();
+    expect(screen.getByText(/May 31, 2026/)).toBeInTheDocument();
   });
 
   it("filters by direction without inventing a total across kinds", async () => {

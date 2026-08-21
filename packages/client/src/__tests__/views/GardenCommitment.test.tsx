@@ -102,6 +102,7 @@ vi.mock("@green-goods/shared", async () => {
     }),
     useCommitmentQueueState: () => mockUseQueueState(),
     useCommitmentMetadataFor: () => null,
+    useActions: () => ({ data: [{ id: "42161-44", title: "Prune the north beds" }] }),
     useOffline: () => mockUseOffline(),
   };
 });
@@ -358,8 +359,8 @@ describe("GardenCommitment", () => {
     mockUseCommitment.mockReturnValue(
       detail({
         requirements: [
-          { id: "r0", requirementIndex: 0, requiredCount: 2, approvedCount: 2 },
-          { id: "r1", requirementIndex: 1, requiredCount: 4, approvedCount: 1 },
+          { id: "r0", requirementIndex: 0, actionUID: 44n, requiredCount: 2, approvedCount: 2 },
+          { id: "r1", requirementIndex: 1, actionUID: 45n, requiredCount: 4, approvedCount: 1 },
         ],
       })
     );
@@ -368,5 +369,32 @@ describe("GardenCommitment", () => {
     expect(screen.getByText("2 of 2")).toBeInTheDocument();
     expect(screen.getByText("1 of 4")).toBeInTheDocument();
     expect(screen.queryByText("3 of 6")).not.toBeInTheDocument();
+  });
+
+  it("names each requirement by its action, and gives its bar that name", () => {
+    mockUseCommitment.mockReturnValue(
+      detail({
+        requirements: [
+          { id: "r0", requirementIndex: 0, actionUID: 44n, requiredCount: 2, approvedCount: 1 },
+          { id: "r1", requirementIndex: 1, actionUID: 99n, requiredCount: 1, approvedCount: 0 },
+        ],
+      })
+    );
+    render();
+
+    // A known action reads by its title; one the registry cannot name falls
+    // back to its position rather than to nothing.
+    expect(screen.getByText("Prune the north beds")).toBeInTheDocument();
+    expect(screen.getByText("Requirement 2")).toBeInTheDocument();
+    const bars = screen.getAllByRole("progressbar");
+    expect(bars[0]).toHaveAccessibleName("Prune the north beds");
+    expect(bars[1]).toHaveAccessibleName("Requirement 2");
+  });
+
+  it("says the commitment's name once, in the screen header", () => {
+    render();
+
+    expect(screen.getAllByText("3 hours")).toHaveLength(1);
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("3 hours");
   });
 });

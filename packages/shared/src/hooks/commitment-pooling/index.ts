@@ -24,6 +24,8 @@ export {
   commitmentComposerSchema,
   useCommitmentComposerForm,
 } from "./useCommitmentComposerForm";
+export type { CommitmentCycleNameMap } from "./useCommitmentCycleNames";
+export { useCommitmentCycleNames } from "./useCommitmentCycleNames";
 export type { CommitmentMetadataMap } from "./useCommitmentMetadata";
 export {
   useCommitmentMetadata,

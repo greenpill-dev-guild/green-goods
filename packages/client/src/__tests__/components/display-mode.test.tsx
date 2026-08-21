@@ -158,6 +158,29 @@ describe("Display mode — AppBar visibility", () => {
     expect(screen.getByRole("link", { name: /garden/i }).className).toContain("tab-active");
   });
 
+  it("standalone PWA: a commitment detail or composer hides the bottom nav under its action bar", () => {
+    mockUseApp.mockReturnValue({ isInstalled: true, isPwaPresentation: true });
+
+    renderAppBar("/home/0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/commitments/9");
+    expect(screen.getByTestId("authenticated-nav").className).toMatch(/translate-y-full/);
+  });
+
+  it("standalone PWA: the commitments sheet hides the bottom nav like every other drawer", () => {
+    mockUseApp.mockReturnValue({ isInstalled: true, isPwaPresentation: true });
+    mockUseUIStore.mockImplementation((selector: (s: any) => any) =>
+      selector({
+        isWorkDashboardOpen: false,
+        isGardenFilterOpen: false,
+        isEndowmentDrawerOpen: false,
+        isWalletDrawerOpen: false,
+        isCommitmentsDrawerOpen: true,
+      })
+    );
+
+    renderAppBar("/home");
+    expect(screen.getByTestId("authenticated-nav").className).toMatch(/translate-y-full/);
+  });
+
   it("standalone PWA: /home/profile keeps Profile active", () => {
     mockUseApp.mockReturnValue({ isInstalled: true, isPwaPresentation: true });
 

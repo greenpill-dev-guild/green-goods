@@ -53,8 +53,16 @@ export function LiveTab({ inbox, pools, gardens, onOpenCommitment }: LiveTabProp
       direction === "all"
         ? inbox.live
         : inbox.live.filter((row) => row.commitment.direction === direction);
-    return { visible: filtered, groups: groupByGarden(filtered, pools, gardens) };
-  }, [inbox.live, direction, pools, gardens]);
+    return {
+      visible: filtered,
+      groups: groupByGarden(
+        filtered,
+        pools,
+        gardens,
+        formatMessage({ id: "app.commitments.group.other" })
+      ),
+    };
+  }, [inbox.live, direction, pools, gardens, formatMessage]);
 
   return (
     <CommitmentStateLadder
@@ -120,7 +128,7 @@ export function LiveTab({ inbox, pools, gardens, onOpenCommitment }: LiveTabProp
               aria-pressed={selected}
               onClick={() => setDirection(filter.id)}
               className={cn(
-                "rounded-full border px-3 py-1.5 text-xs font-medium tap-target",
+                "rounded-full border px-3 py-1.5 text-xs font-medium tap-target-lg",
                 selected
                   ? cn(
                       pwaStatusStyles.primary.border,
