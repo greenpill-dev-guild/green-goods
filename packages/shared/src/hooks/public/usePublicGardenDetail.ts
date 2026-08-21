@@ -211,6 +211,5 @@ export function usePublicGardenDetail(
       };
     },
     staleTime: STALE_TIME_RARE,
-    placeholderData: (previousData) => previousData ?? undefined,
   });
 }

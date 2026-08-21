@@ -22,6 +22,7 @@ export const CYCLE = "Season of First Rains";
 export const SEASON_LIVE = {
   made: 9,
   kept: 7,
+  due: 8,
   units: { hours: { done: 25, of: 52 }, rides: { done: 9, of: 16 } },
 } as const;
 
@@ -30,7 +31,7 @@ export const SEASON_LIVE = {
  * threshold (≥5 due commitments and ≥3 distinct providers, UX:350). Derived so it can
  * never contradict the counts printed beside it.
  */
-export const SEASON_LIVE_KEPT_RATE = Math.round((SEASON_LIVE.kept / SEASON_LIVE.made) * 100);
+export const SEASON_LIVE_KEPT_RATE = Math.round((SEASON_LIVE.kept / SEASON_LIVE.due) * 100);
 
 /**
  * The same cycle after it closes. Terminal outcomes partition the total:
@@ -41,6 +42,7 @@ export const SEASON_CLOSED = {
   kept: 11,
   expired: 2,
   cancelled: 1,
+  due: 13,
   units: 61,
   hours: { done: 40, of: 52 },
   rides: { done: 14, of: 16 },
@@ -53,13 +55,14 @@ export const SEASON_CLOSED = {
  * Campaigns sit in the same list as seasons and never masquerade as one (§4.2).
  */
 export const PRIOR_CYCLES = [
-  { name: "Summer Mutirão", type: "campaign", window: "Dec 2025 – Feb 2026", made: 6, kept: 5 },
-  { name: "Season of Repair", type: "season", window: "Jun – Nov 2025", made: 12, kept: 10 },
-  { name: "Season of Planting", type: "season", window: "Dec 2024 – May 2025", made: 11, kept: 9 },
+  { name: "Summer Mutirão", type: "campaign", window: "Dec 2025 – Feb 2026", made: 6, kept: 5, due: 6 },
+  { name: "Season of Repair", type: "season", window: "Jun – Nov 2025", made: 12, kept: 10, due: 11 },
+  { name: "Season of Planting", type: "season", window: "Dec 2024 – May 2025", made: 11, kept: 9, due: 10 },
 ] as const;
 
 const priorMade = PRIOR_CYCLES.reduce((n, c) => n + c.made, 0);
 const priorKept = PRIOR_CYCLES.reduce((n, c) => n + c.kept, 0);
+const priorDue = PRIOR_CYCLES.reduce((n, c) => n + c.due, 0);
 
 /**
  * The garden's record while the current season is still running — what the
@@ -72,10 +75,11 @@ export const POOL_RECORD_LIVE = {
   campaigns: PRIOR_CYCLES.filter((c) => c.type === "campaign").length,
   made: priorMade + SEASON_LIVE.made,
   kept: priorKept + SEASON_LIVE.kept,
+  due: priorDue + SEASON_LIVE.due,
 } as const;
 
 export const POOL_RECORD_LIVE_KEPT_RATE = Math.round(
-  (POOL_RECORD_LIVE.kept / POOL_RECORD_LIVE.made) * 100,
+  (POOL_RECORD_LIVE.kept / POOL_RECORD_LIVE.due) * 100,
 );
 
 /**
@@ -88,7 +92,24 @@ export const POOL_LIFETIME = {
   campaigns: POOL_RECORD_LIVE.campaigns,
   made: priorMade + SEASON_CLOSED.made,
   kept: priorKept + SEASON_CLOSED.kept,
+  due: priorDue + SEASON_CLOSED.due,
 } as const;
+
+export const POOL_LIFETIME_KEPT_RATE = Math.round(
+  (POOL_LIFETIME.kept / POOL_LIFETIME.due) * 100,
+);
+
+export const FINISHED_CYCLES = [
+  {
+    name: CYCLE,
+    type: "season",
+    window: "Mar – Aug 2026",
+    made: SEASON_CLOSED.made,
+    kept: SEASON_CLOSED.kept,
+    due: SEASON_CLOSED.due,
+  },
+  ...PRIOR_CYCLES,
+] as const;
 
 /**
  * What the pool HOLDS right now — the thing the console never showed.

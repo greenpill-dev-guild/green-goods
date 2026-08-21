@@ -3728,7 +3728,7 @@
   "public.gardenDetail.stats.unknown": "Indisponível",
   "public.gardenDetail.support": "Apoiar este Jardim",
   "public.gardenDetail.unavailable": "Não foi possível carregar este Jardim",
-  "public.gardenDetail.unavailableHelp": "O registro existe, mas não conseguimos lê-lo agora. Tente novamente em instantes.",
+  "public.gardenDetail.unavailableHelp": "Não conseguimos ler o registro público deste Jardim agora. Tente novamente em instantes.",
   "public.gardens.archiveCount": "{count, plural, one {# Jardim} other {# Jardins}}",
   "public.gardens.archiveSearchCount": "{count, plural, =0 {Sem resultados para \"{query}\"} one {# resultado para \"{query}\"} other {# resultados para \"{query}\"}}",
   "public.gardens.archiveTitle": "Explore cada Jardim que mantém um registro público.",

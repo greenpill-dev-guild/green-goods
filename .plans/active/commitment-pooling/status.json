@@ -1198,7 +1198,7 @@
       "lane": "editorial",
       "status": "backend_source_green",
       "branch": "feature/commitment-pooling-editorial",
-      "note": "Reconciled the editorial backend source against Decisions #161/#162 and the final review. The garden reader resolves versioned cycle names without returning metadata CIDs, the /impact reader uses aggregate-only responses for open-pool counts, fulfilled/due totals, distinct providers, and confirmed settlement value, and the four original backend contracts remain GREEN. The Plan Hub linear-sync preview would regress already-completed or in-progress Product issues to Todo, so no bulk sync was applied. Merge, hosted Envio deployment/full reindex/cutover, and live schema/data read-back remain separate gates before UI implementation."
+      "note": "Reconciled the editorial backend source against Decisions #161/#162 and the final review. The garden reader resolves versioned cycle names without returning metadata CIDs, the /impact reader uses aggregate-only responses for open-pool counts, fulfilled/due totals, distinct providers, and confirmed settlement value, and the four original backend contracts remain GREEN. The Plan Hub linear-sync preview would regress already-completed or in-progress Product issues to Todo, so no bulk sync was applied. This backend history event lists backend and release gates only: merge, hosted Envio deployment/full reindex/cutover, and live schema/data read-back. The active editorial handoff separately owns the shared UI-foundation and five-node PublicEvidencePipeline prerequisites."
     }
   ]
 }
