@@ -2,7 +2,7 @@
 
 **Feature Slug**: `commitment-pooling`
 **Stage**: `active`
-**Status**: `ACTIVE: Pooling contracts and the complete pooling indexer read model are merged to develop. PRD-723 source implementation and local proof are complete. The hosted indexer still requires a manual Envio deploy, fresh full sync, and read-back before pooling queries become available; settlement/Celo selectors, client, admin, and editorial implementation remain gated. Value release, Safe authority, audit, canary, and external evidence remain separately blocked.`
+**Status**: `ACTIVE: Pooling contracts and the complete pooling indexer read model are merged to develop. PRD-723 source implementation and local proof are complete. The hosted indexer still requires a manual Envio deploy, fresh full sync, and read-back before pooling queries become available; settlement/Celo selectors, client, admin, and editorial implementation remain gated. Celo Safe authority is frozen in the manifest and both fee reserves are funded; the ceremony is re-scoped to paused-safe-owned, so ownership transfer comes first, then the Safe-sent route, ping, and canary. Value release, audit, and external evidence remain separately blocked.`
 **Created**: `2026-07-03`
 **Last Updated**: `2026-08-16`
 

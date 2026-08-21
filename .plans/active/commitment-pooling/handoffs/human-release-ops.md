@@ -382,39 +382,68 @@ the `release:verify:safe:*` variants; those belong to the later ownership-transf
   identities, and restart instructions are recorded in
   [`../reports/celo-garden-safe-ceremony-checkpoint-2026-08-20.md`](../reports/celo-garden-safe-ceremony-checkpoint-2026-08-20.md).
 - The post-ceremony re-freeze is committed. `safeAuthority.enabled` is true, all 18 Garden
-  boundaries are named, and the Zodiac module, role key, allowance key, and condition hash are set;
-  the manifest hash moved to
-  `0x2c7fd3ec4e7dc461af193e2eda2635042e63b5e2342592c3360c193705d7df6a` and no library,
-  implementation, or proxy address moved with it. Enabling authority in the manifest is not an
-  authorization to settle: funding, routing, and the canary each remain their own gate. Evidence and
-  the gates that had to move are in
+  boundaries are named with their permission hashes, and the Zodiac module, role key, allowance
+  key, and condition hash are set. `release:verify` recomputes every Garden's permission hash from
+  its own Safe and modifier, so a substituted boundary fails on its own row. Evidence and the gates
+  that had to move are in
   [`../reports/celo-safe-authority-refreeze-2026-08-21.md`](../reports/celo-safe-authority-refreeze-2026-08-21.md).
+- The ceremony is re-scoped to `paused-safe-owned`: `ownershipTransferIncluded` and
+  `peerWiringIncluded` are both true, pool backfill and unpause stay excluded, and the manifest hash
+  is now `0x4609b6764f96eb128fcff11a19ab95232566e11cc9e2539f2385b05e033c3454`. No library,
+  implementation, or proxy address moved with it. Enabling authority in the manifest is not an
+  authorization to settle: ownership transfer, routing, and the canary each remain their own gate.
 - The hosted production indexer is the older deployment and is deliberately outside this contracts
   ceremony. PRD-722 remains responsible for its later deployment/reindex/cutover/read-back.
 
 The Garden Safe bootstrap, the route ceremony, and the manifest re-freeze are all complete, which
 closes the repository half of this lane. Both fee reserves are funded above their floors. Every
-remaining step sends a transaction and belongs to the release owner: the Arbitrum `setCcipRoute`
-boundary at the frozen 3,000,000 destination gas limit, then the message-only ping/ack and the
-minimum-value canary, in that order. Ownership transfer, cap changes, and broader value movement
-stay gated behind their own authorizations.
+remaining step sends a transaction and belongs to the release owner, in this order: transfer
+protocol ownership to the approved Safe (tier 3), wire the Arbitrum `setCcipRoute` boundary from
+that Safe at the frozen 3,000,000 destination gas limit, then the message-only ping/ack and the
+minimum-value canary. Cap changes and broader value movement stay gated behind their own
+authorizations.
+
+### Ownership transfer comes first
+
+Peer wiring is a tier-3 boundary under "Mainnet Requirements by Activation Risk" in
+`packages/contracts/AGENTS.md`, so protocol ownership must already sit on the approved Safe before
+the route is wired. That is why the ceremony now includes the transfer rather than deferring it.
+
+The ownership tooling reads the destination Safe live on the target chain before any dry run or
+broadcast and requires the repository floor (threshold at least 2, at least 3 owners) and the exact
+frozen owner set. The same address is a different Safe on each chain:
+
+- On Arbitrum it is the approved 2-of-6. The dry run passes and all eight boundaries report ready.
+- On Celo it is 1-of-4, below the floor, so the dry run fails closed with the threshold named. Raise
+  the Celo Safe to at least 2-of-4 in the Safe UI before running the Celo boundary. That is a
+  separate Safe transaction and it does not move any Garden Safe address.
+
+1. Arbitrum, eight boundaries in order through the release operator:
+   `bun run contracts:release:ownership:dry:arbitrum`, then the broadcast form one boundary at a
+   time with `--step <index> --expected-nonce <n>`. Verify afterwards with
+   `bun run contracts:release:verify:arbitrum --owner-phase safe`.
+2. Celo, one boundary, only after the threshold is raised:
+   `bun run contracts:release:ownership:dry:celo`, then the same broadcast form.
 
 ### Wiring the Arbitrum route
 
-`setCcipRoute` is owner-gated, requires the module to stay paused, and moves no value, so this
-ceremony authorizes it through `ceremony.peerWiringIncluded` rather than a code edit. It runs as one
-reviewed owner transaction rather than through the release operator, because a second broadcast
-engine for a single configuration call would add risk without adding evidence.
+After the Arbitrum transfer, `setCcipRoute` is sent by the protocol Safe. It is owner-gated,
+requires the module to stay paused, and moves no value. There is no operator broadcast path for it:
+a second boundary engine for one configuration call would add risk without adding evidence, so the
+proof comes from the mined receipt instead.
 
 1. Plan it and read the calldata back:
-   `SETTLEMENT_DESTINATION_GAS_LIMIT=3000000 bun run contracts:settlement:peer:plan:arbitrum`
-2. Send that exact `to` and `calldata` from the live owner. While ownership transfer is not part of
-   this ceremony the plan names the deployment sender; it will name the protocol Safe automatically
-   once a later ceremony includes the transfer.
-3. Prove it landed as reviewed: `bun run contracts:settlement:peer:verify:arbitrum`. It re-reads the
-   live route and asserts the destination selector, executor, gas limit, protocol version, a zero
-   retiring-peer grace, and that the module is still paused. It fails closed and names each
-   unmet condition, so a silent partial write cannot pass.
+   `SETTLEMENT_DESTINATION_GAS_LIMIT=3000000 bun run contracts:settlement:peer:plan:arbitrum`.
+   The plan names the protocol Safe as the only acceptable sender and will not generate at all
+   unless `ceremony.peerWiringIncluded` is true.
+2. Propose that exact `to` and `calldata` as a Safe transaction and collect the 2-of-6 signatures.
+3. Prove it landed as reviewed:
+   `bun run contracts:settlement:peer:verify:arbitrum --receipt <tx-hash>`. It requires the mined
+   receipt to have succeeded and to carry the module's own `CcipRouteUpdated` event with the
+   reviewed selector, executor, gas limit, version, and zero grace; re-reads the live route; and
+   re-reads the Celo executor to confirm it is still paused and its source peer is unchanged. On
+   success it writes `settlement-peer.checkpoint.json` with the transaction hash and block. It fails
+   closed and names each unmet condition.
 
 ## Core-tier unblock evidence
 

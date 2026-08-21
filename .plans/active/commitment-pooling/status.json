@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p1",
     "created_at": "2026-07-03",
-    "updated_at": "2026-08-16T13:10:00-07:00"
+    "updated_at": "2026-08-21T14:30:00-07:00"
   },
   "links": {
     "brief": "external-brief.md",
@@ -185,7 +185,8 @@
     "2026-08-13 verified core execution: the deployer-owned release candidates were deployed, the root Protocol pool and seventeen Garden pools were registered through contiguous receipt-backed boundaries, and the separately authorized Commitment Pooling unpause completed at transaction 0x69129f9cf15f537aca062770d579f13453700a09d01acd02910eecfb586227a4 in Arbitrum block 493999183. SettlementModule and CeloSettlementExecutor remain paused with no Safe/Zodiac value authority. The Celo executor was initialized with its nonzero Arbitrum selector and SettlementModule source peer, so that completed configuration boundary is tier 3; ownership transfer, ping, canary, caps, and indexer activation remain separate.",
     "2026-08-14 mainnet activation policy (register #109, corrected by register #111): release gates now follow three activation-risk tiers rather than one all-or-nothing checklist. The current pooling activation is accepted only as non-custodial, non-transferable tier 2 under explicit temporary-owner risk acceptance, exact current/rollback-owner verification, emergency pause, committed-range review, receipt/post-state, and tested-rollback evidence. Passive retention of the deployment-sender owner key is the bounded accepted risk; using upgrade or administrative authority for anything other than emergency pause is tier 3. SettlementModule and CeloSettlementExecutor remain paused, but the executor's already-initialized nonzero source peer is a completed tier-3 configuration boundary, not pending peer wiring. Safe/Zodiac value authority and value movement remain disabled and require separate tier-3 gates. Historical register #78 remains verbatim.",
     "2026-08-14 same-address GardenAccount ownership (register #112, Afo authorized): the active ../celo-garden-account-safe-ownership/ plan supersedes the temporary 1-of-2 deployment-EOA Garden Safe bootstrap before any Garden Safe deployment. The accepted target reproduces the exact Arbitrum GardenAccount implementation and immutable dependencies on Celo, atomically creates accounts from the (42161, Arbitrum GardenToken, tokenId) tuple, uses a dedicated authenticated Garden-bound relay that cannot satisfy threshold two alone, and deploys each Safe directly with GardenAccount plus the protocol and Dev Guild recovery Safes at threshold two. This plan authorizes no deployment, guardian mutation, Safe creation, role/allowance/peer configuration, value movement, canary, or other broadcast.",
-    "Zodiac Roles v2 is pinned for Celo. The 2.1.0 Roles mastercopy 0x9646fDAD06d3e24444381f44362a3B0eB343D337 and its Integrity, Packer, and MultiSendUnwrapper dependencies are live on Celo, byte-identical to the same addresses on Ethereum mainnet, and every function in src/interfaces/IZodiacRoles.sol is dispatchable in the deployed runtime. The ERC-2470 singleton factory and the Zodiac module proxy factory are both present, so the per-Safe modifier clones have a deterministic deployment path. No modifier instance exists yet and this record grants no authority."
+    "Zodiac Roles v2 is pinned for Celo. The 2.1.0 Roles mastercopy 0x9646fDAD06d3e24444381f44362a3B0eB343D337 and its Integrity, Packer, and MultiSendUnwrapper dependencies are live on Celo, byte-identical to the same addresses on Ethereum mainnet, and every function in src/interfaces/IZodiacRoles.sol is dispatchable in the deployed runtime. The ERC-2470 singleton factory and the Zodiac module proxy factory are both present, so the per-Safe modifier clones have a deterministic deployment path. No modifier instance exists yet and this record grants no authority.",
+    "2026-08-21 Celo Safe authority recorded and ceremony re-scoped (Afo authorized, PRs #743/#744): the completed 2026-08-20 Safe/Zodiac/route ceremony is frozen in the release manifest with safeAuthority.enabled true and all 18 Garden boundaries carrying their permission hashes; release:verify recomputes every hash so a substituted Safe fails on its own row. Both fee reserves were funded above their floors. Codex review of #744 found that wiring the Arbitrum route from the deployment EOA violates the tier-3 rule (peer wiring requires protocol ownership on the approved multisig), so the ceremony is re-scoped to paused-safe-owned with ownershipTransferIncluded and peerWiringIncluded both true; pool backfill and unpause stay excluded. The ownership tooling now reads the destination Safe live per chain and fails closed below the floor: Arbitrum's 2-of-6 passes, Celo's 1-of-4 is blocked until raised. setCcipRoute is sent by the protocol Safe and proven by settlement-peer-verify from the mined receipt. Registers #106, #109, and #111 remain verbatim; this record supersedes only their deferral of ownership transfer. No broadcast, ownership transfer, peer wiring, value movement, or canary occurred."
   ],
   "lanes": {
     "contracts": {
@@ -539,14 +540,14 @@
       "accountable_owner": "Afolabi Aiyeloja",
       "protocol_safe": "0x1B9Ac97Ea62f69521A14cbe6F45eb24aD6612C19",
       "current_ceremony_end_state": "pooling-unpaused-deployer-owned-with-18-pools-registered",
-      "current_release_target_state": "pooling-unpaused-deployer-owned-with-18-pools-registered",
+      "current_release_target_state": "pooling-unpaused-safe-owned-with-18-pools-registered-and-celo-safe-authority-enabled",
       "current_ceremony_end_owner": "green-goods-deployer",
       "rollback_owner_before_transfer": "green-goods-deployer",
       "rollback_owner_after_transfer": "protocol Safe; green-goods-deployer remains proposer/coordinator",
       "garden_safe_recovery_owner": "0x49fa954B6C2Cd14B4b3604EF1Cc17cED20a9E42C",
       "status": "blocked",
       "manual_blocked": true,
-      "blocked_reason": "The deployer-owned contract deployment, exact root-Protocol-first plus seventeen-Garden registration backfill, and separately authorized Commitment Pooling unpause are complete and receipt-verified. SettlementModule and CeloSettlementExecutor remain paused with no Safe/Zodiac value authority. The executor's initialized nonzero Arbitrum source peer is already a completed tier-3 configuration boundary. Ownership transfer, message-only ping, Safe/Zodiac value authority, minimum-value canary, indexer activation, and cap increases each remain separate human authorization events.",
+      "blocked_reason": "The deployer-owned contract deployment, exact root-Protocol-first plus seventeen-Garden registration backfill, and separately authorized Commitment Pooling unpause are complete and receipt-verified. The Celo Safe/Zodiac ceremony is also complete: 18 Garden Safes, 18 Roles modifiers, 18 module enablements, and 18 write-once executor routes are live and verified, the manifest records that authority as enabled with every boundary's permission hash, and both fee reserves are funded above their floors. SettlementModule and CeloSettlementExecutor remain paused. Protocol ownership still sits on the deployment sender, and peer wiring is a tier-3 boundary, so the ceremony is re-scoped to paused-safe-owned: ownership transfer to the approved Safe comes first, then the Arbitrum setCcipRoute boundary sent by that Safe and proven against its receipt, then message-only ping and the minimum-value canary. The Celo executor transfer is blocked until the Celo protocol Safe is raised from 1-of-4 to the repository floor. Indexer activation and cap increases remain separate human authorization events.",
       "branch": null,
       "depends_on": ["contracts", "indexer", "state_api"],
       "handoff": "handoffs/human-release-ops.md",
@@ -557,7 +558,7 @@
         "milestone": "release"
       },
       "linear_issues": ["PRD-731"],
-      "acceptance": "The pooling/register/schema, SettlementModule, CreditRegistry, integration-upgrade, and Celo executor candidates are live and deployment-sender owned. The exact root Protocol pool plus seventeen Garden pools are registered with contiguous receipt and pool-ID evidence, and Commitment Pooling boundary 19 is unpaused at transaction 0x69129f9cf15f537aca062770d579f13453700a09d01acd02910eecfb586227a4, Arbitrum block 493999183. SettlementModule and CeloSettlementExecutor remain paused and have no Safe/Zodiac value authority. The executor's nonzero Arbitrum source peer was configured at initialization and is classified as a completed tier-3 boundary. Protocol-Safe ownership transfer, message-only ping, Safe/Zodiac authority, minimum-value canary, indexer activation, and cap increases remain separate authorization events."
+      "acceptance": "The pooling/register/schema, SettlementModule, CreditRegistry, integration-upgrade, and Celo executor candidates are live. The exact root Protocol pool plus seventeen Garden pools are registered with contiguous receipt and pool-ID evidence, and Commitment Pooling boundary 19 is unpaused at transaction 0x69129f9cf15f537aca062770d579f13453700a09d01acd02910eecfb586227a4, Arbitrum block 493999183. The Celo Safe/Zodiac ceremony ended at block 75390218 with settlement:garden-roles:verify and settlement:garden-routes:verify green, and release:verify recomputes all 18 frozen permission hashes. SettlementModule and CeloSettlementExecutor remain paused. Accepted when protocol ownership on Arbitrum is verified on the 2-of-6 Safe, the Celo executor is owned by a Celo protocol Safe at or above the repository floor, setCcipRoute is verified from a mined receipt carrying the module's CcipRouteUpdated event with both peers still paused, and the ping/ack and minimum-value canary have each been separately authorized and witnessed."
     },
     "community": {
       "machine_lane": "ui",
@@ -1191,6 +1192,14 @@
       "status": "passed",
       "branch": "feature/commitment-pooling-api-modules",
       "note": "PRD-722 gap closure and PRD-723 shared/Agent source implementation passed local source validation. Hosted Envio deployment/read-back, production Saved Offer root-environment configuration, and live Celo canary remain human-owned release evidence and were not performed."
+    },
+    {
+      "timestamp": "2026-08-21T21:30:00Z",
+      "actor": "claude",
+      "lane": "release_ops",
+      "status": "blocked",
+      "branch": "feature/celo-peer-wiring-authorization",
+      "note": "Recorded the completed Celo Safe/Zodiac ceremony in the manifest and re-scoped the ceremony to paused-safe-owned after review established that peer wiring is tier 3 and requires Safe ownership first. release:verify is 53 pass, 0 fail. Next human boundary is the Arbitrum ownership transfer; the Celo transfer waits on raising the Celo protocol Safe above 1-of-4."
     }
   ]
 }
