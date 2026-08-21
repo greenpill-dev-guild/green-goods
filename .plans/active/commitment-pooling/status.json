@@ -243,7 +243,7 @@
       "status": "blocked",
       "ready_when_dependencies_met": true,
       "manual_blocked": true,
-      "blocked_reason": "Manual product-UI gate: the PRD-789 Offer-vocabulary prototype/gallery correction is approved and published. Product implementation still waits for PRD-760 closure, the frozen state/API contract, authorized non-value broadcast plus live indexer read-back, and scoped admin-foundation fixes. Settlement slices still wait for settlement.",
+      "blocked_reason": "Manual product-UI gate: PRD-760 is closed and the state/API source contract is locally GREEN. Product implementation still waits for the editorial backend branch to merge, the hosted Envio schema deployment plus full reindex/live read-back, and scoped admin-foundation fixes. Settlement slices still wait for settlement.",
       "branch": "feature/commitment-pooling-ui",
       "depends_on": ["state_api"],
       "handoff": "handoffs/claude-ui.md",
@@ -446,7 +446,7 @@
       "status": "blocked",
       "ready_when_dependencies_met": true,
       "manual_blocked": true,
-      "blocked_reason": "PRD-760 is closed and the public copy is frozen on 'commitment' (uiux-spec §7 swept 2026-08-19, matching the C.14 prototype gate). The /gardens/:id page conversion is done. Editorial implementation still waits for authorized non-value broadcast with live indexer output, the shared UI foundation cleanup, the cycle-scoped distinct-provider counter §7.2 needs, and the PublicEvidencePipeline i18n prerequisite §7.3 needs.",
+      "blocked_reason": "The public copy freeze and /gardens/:id page conversion are complete. The address-free garden reader, lifetime distinct-provider counter, public rate gate, confirmed-only selector, cycle-name metadata resolver, and protocol-wide /impact aggregate reader are locally GREEN on feature/commitment-pooling-editorial. UI implementation still waits for that branch to merge, the hosted Envio schema deployment plus full reindex/live read-back, the shared UI foundation cleanup, and the PublicEvidencePipeline i18n/five-node prerequisite.",
       "branch": "feature/commitment-pooling-editorial",
       "depends_on": ["state_api"],
       "handoff": "handoffs/claude-editorial.md",
@@ -1192,6 +1192,14 @@
       "status": "passed",
       "branch": "feature/commitment-pooling-api-modules",
       "note": "PRD-722 gap closure and PRD-723 shared/Agent source implementation passed local source validation. Hosted Envio deployment/read-back, production Saved Offer root-environment configuration, and live Celo canary remain human-owned release evidence and were not performed."
+    },
+    {
+      "timestamp": "2026-08-21T19:31:37Z",
+      "actor": "codex",
+      "lane": "editorial",
+      "status": "backend_source_green",
+      "branch": "feature/commitment-pooling-editorial",
+      "note": "Reconciled the editorial backend source against Decisions #161/#162 and the final review. The garden reader resolves versioned cycle names without returning metadata CIDs, the /impact reader uses aggregate-only responses for open-pool counts, fulfilled/due totals, distinct providers, and confirmed settlement value, and the four original backend contracts remain GREEN. The Plan Hub linear-sync preview would regress already-completed or in-progress Product issues to Todo, so no bulk sync was applied. Merge, hosted Envio deployment/full reindex/cutover, and live schema/data read-back remain separate gates before UI implementation."
     },
     {
       "timestamp": "2026-08-21T21:30:00Z",

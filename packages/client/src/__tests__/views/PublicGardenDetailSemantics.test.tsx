@@ -76,7 +76,10 @@ vi.mock("@green-goods/shared", () => ({
   }),
   useHypercerts: () => ({ hypercerts: [], isLoading: false }),
   useInViewReveal: () => ({ ref: { current: null }, revealed: true }),
-  AddressDisplay: ({ address }: { address: string }) => createElement("span", null, address),
+  // A <button>, matching the real component and the main suite's stub. A <span>
+  // here is what let a button-inside-a-button reach the browser last time.
+  AddressDisplay: ({ address }: { address: string }) =>
+    createElement("button", { type: "button" }, address),
 }));
 
 vi.mock("@/components/Display", () => ({

@@ -134,6 +134,7 @@ export interface CommitmentPoolRecord {
   workLinkedCount: bigint;
   workApprovedCount: bigint;
   openCommitmentCount: bigint;
+  distinctProviderCount: bigint;
   commitmentsDue: bigint;
   createdAt: number | null;
   updatedAt: number;

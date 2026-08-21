@@ -455,13 +455,16 @@ export const SBS: SB[] = [
   { f: "W22@refund-confirmed", hot: null, st: "Confirmed", ev: "only the authenticated acknowledgment closes F-204 as Refunded", br: [{ l: "Maria sees the full 40 G$ returned", to: "screen:W36@refunded" }] },
 ]},
 // The public surface has its own reader: a neighbour or funder who never signs
-// in. This flow walks what they can see as a pool matures — and the moment the
-// small-community threshold flips counts into a rate.
-{ id: "sb15", n: 15, title: "Follow a garden's commitments from the public site", desc: "A signed-out reader watches one garden's public page mature — readiness copy, then counts, then the one publishable rate.", persona: "Neighbour or funder (signed out)", scen: "S11 · editorial", reviewVisible: true, reviewGroup: "editorial", chapter: "public-story", roles: ["public"], steps: [
+// in. This flow walks what they can see as a pool matures — the moment the
+// small-community threshold flips counts into a rate, and the states a garden
+// spends most of its life in once it has a record behind it.
+{ id: "sb15", n: 15, title: "Follow a garden's commitments from the public site", desc: "A signed-out reader watches one garden's public page mature — readiness copy, then counts, then a record spanning seasons that survives the quiet stretches.", persona: "Neighbour or funder (signed out)", scen: "S11 · editorial", reviewVisible: true, reviewGroup: "editorial", chapter: "public-story", roles: ["public"], steps: [
   { f: "W15@pre-launch", hot: null, st: "pool NotReady", ev: "readiness copy only — a garden preparing its pool publishes no numbers", cite: "UX:352 · UX:57" },
-  { f: "W15", hot: null, marks: ["w15.counts"], st: "below threshold", ev: "counts-only sentences: commitments made and kept, with the cycle's calm end date — no rate yet", cite: "UX:350 · UX:364" },
-  { f: "W15@above-threshold", hot: null, marks: ["w15.rate"], st: "above threshold", ev: "at 5+ due commitments across 3+ distinct providers the kept-rate becomes publishable — the one sanctioned percentage; cancelled and under-review records never appear individually", cite: "UX:364-371" },
   { f: "W15@empty", hot: null, marks: ["w15.empty"], st: "open, nothing yet", ev: "the section never disappears — an open pool with no commitments says so where § 02 sits", cite: "UX:352" },
+  { f: "W15@counts-only", hot: null, marks: ["w15.counts"], st: "below threshold", ev: "a first season publishes counts and no percentage: nine commitments between two people is not a sample a rate can describe fairly", cite: "UX:350 · UX:364" },
+  { f: "W15", hot: null, marks: ["w15.rate", "w15.rows"], st: "seasons behind it", ev: "the section is the garden's record across seasons and campaigns, not one live cycle — the kept rate describes the whole record, and the live season is the current chapter beneath it", cite: "UX:352 · UX:364-371" },
+  { f: "W15@between-seasons", hot: null, marks: ["w15.between"], st: "no live cycle", ev: "between seasons the record still stands — the state that scoping this section to one cycle could never say anything true about", cite: "UX:352" },
+  { f: "W15@paused", hot: null, marks: ["w15.paused"], st: "pool Paused", ev: "a quiet-period line, aggregates intact, and the indexed pause reason stays off the public page", cite: "UX:57" },
   { f: "W15@read-error", hot: null, marks: ["w15.read-error"], st: "cannot read", ev: "an unread count is an em dash, never a zero; the page does not publish what it could not load", cite: "UX:352", br: [{ l: "The protocol-wide story", to: "sb48:0" }] },
   { f: "W1", hot: null, surface: "pwa", echo: true, ev: "the same pool, now joinable — the public story and the member surface are one system", cite: "UX:120" },
 ]},

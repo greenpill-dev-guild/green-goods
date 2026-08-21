@@ -1786,6 +1786,33 @@ Known mis-resolutions fixed in place: `contract-spec.md` §Grassroots-Economics-
     it, so every shared garden link previews as the generic site card), the Operator → Steward
     rename (PRD-746–751; 71 catalogue keys still say Operator), and chain-aware easscan links.
 
+162. The garden's commitments section is a record, not a cycle report (2026-08-20, Afo). §7.1 had
+    scoped the section to the active cycle, which §4.1's own Editorial column already contradicted
+    — it keeps aggregates through Paused ("aggregates stay"), Closed ("aggregate story remains")
+    and Composted ("past-cycles aggregate"). Cycle scoping also had no answer for two states the
+    model permits: a garden between cycles, and §4.2's legal combination of one open Season with
+    zero or more open Campaigns competing for a single slot. The section now publishes the
+    garden's record across seasons and campaigns — lifetime made and kept with the one sanctioned
+    rate, the live cycle as the current chapter when there is one, and finished seasons and
+    campaigns as rows beneath. A funder reads what a garden has kept over years rather than where
+    it happens to be this month, and the quiet stretches stop being holes.
+    **This downgrades an indexer prerequisite.** Decision #161 required a cycle-scoped
+    distinct-provider counter and priced it at a new per-(cycle, provider) sentinel entity, because
+    the threshold read per-cycle. With the published rate at pool lifetime, the gate reads lifetime
+    providers and the counter is the one #161 had already costed as nearly free: a
+    `distinctProviderCount` on `CommitmentPool`, incremented on first sight of a
+    `CommitmentProviderExposure` key, publishing a number and never a list. Per-cycle rows stay
+    counts-only, which §7.1 already required, so this surface never needs a per-cycle rate.
+    **Three gaps found in the same review and recorded rather than carried.** No public pooling
+    reader exists, and `getCommitmentPoolDetail` selects provider addresses, so reusing it would
+    breach §7.4 on a signed-out page. The `/impact` band's CCIP-confirmed G$ tile has no selector
+    that returns an acknowledged-only total. And the five-node pipeline shares `EVIDENCE_KIND_LABELS`
+    with the `§ 03` evidence ledger, so adding stages naively would put commitment records — which
+    name people — into a public ledger; the pipeline's node kinds and the ledger's record kinds get
+    split instead. Not in scope and still owed: the promise→commitment sweep across `uiux-spec`
+    §4–§6 and `prototypes.md` (223 occurrences, entangled with `promiseKeptRate` and `promiseSlide`
+    identifiers that must not be renamed).
+
 **Final recursive certification clarification (2026-07-25; no new decision-register entry):**
 the published `42161`↔`42220` production lane is the only required fully paired
 `SettlementConfiguration`. Arbitrum Sepolia `421614` and Celo Sepolia `11142220` remain

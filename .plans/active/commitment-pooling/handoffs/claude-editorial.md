@@ -6,10 +6,11 @@
 - Machine lane: ui
 - Owner: Claude
 - Branch signal: feature/commitment-pooling-editorial
-- Current state: the `/gardens/:id` page conversion has landed and the public copy is frozen on
-  "commitment"; implementation still waits for verified non-value deployment/indexer output, the
-  shared admin/UI foundation cleanup, the cycle-scoped distinct-provider counter, and the
-  `PublicEvidencePipeline` i18n prerequisite
+- Current state: the `/gardens/:id` page conversion and every editorial backend source contract are
+  complete on `feature/commitment-pooling-editorial`. The section's scope is a record across seasons
+  and campaigns, not one live cycle. UI implementation still waits for merge, hosted Envio
+  deployment/full reindex/live read-back, the shared admin/UI foundation cleanup, and the
+  `PublicEvidencePipeline` i18n/five-node prerequisite
 - Linear context: PRD-726 (editorial lane) under parent PRD-650
 
 ## Inputs
@@ -57,16 +58,28 @@
 
 ## Unblock evidence
 
-- Indexer/shared aggregate selectors and privacy thresholds are GREEN. §7.2's threshold is not
-  buildable today: `selectPromiseKeptRate` applies no gate, and no distinct-provider counter
-  exists in the indexer schema. The threshold is per-cycle, so a cycle-scoped counter (new
-  per-(cycle, provider) sentinel entity) is the one required; counting `CommitmentProviderExposure`
-  rows is not an option because it enumerates provider addresses.
+- MET in source — `CommitmentPool.distinctProviderCount` is monotonic, replay-safe, and seeded at
+  zero. `selectPublicPromiseKeptRate` gates the lifetime rate at five due commitments and three
+  distinct providers while the authenticated in-garden selector remains unchanged.
+- MET in source — `usePublicGardenPool` reads pool, included cycles, and exact-label unit summaries
+  without selecting or returning provider addresses. It resolves the frozen cycle metadata v1
+  `{ version: 1, name }` shape and reports an unavailable name as partial data rather than zero or
+  a fabricated label.
+- MET in source — `usePublicCommitmentImpact` returns open-pool count, fulfilled/due totals,
+  server-side distinct providers across the open pool IDs, and a confirmed settlement sum through
+  aggregate-only GraphQL responses. It returns no provider, disbursement, wallet, token, recipient,
+  or source row.
+- MET in source — the confirmed selector and aggregate both require exact `CONFIRMED` state;
+  queued, dispatched, executed/ack-pending, failed, cancelled, unknown, and future states cannot
+  reach the published total.
 - NOT MET — `PublicEvidencePipeline` must be internationalised and laid out for five nodes before
   the `/impact` band can ship. It is not yet: its node titles and descriptions are literal English
   (only the closing caption goes through `formatMessage`) and it is `md:grid-cols-3` with three
   hardcoded domain tones.
-- Verified live indexer output and the scoped shared admin/UI foundation cleanup are complete.
+- NOT MET — the configured hosted Envio endpoint still serves the older schema without
+  `CommitmentPool`. Merge, deployment, full reindex, cutover, and live schema/data read-back are
+  required before runtime availability can be claimed.
+- NOT MET — the scoped shared admin/UI foundation cleanup remains a UI-entry dependency.
 - `acceptance-matrix.md` §3 is approved and every public claim maps to its required evidence class.
 - GREEN includes targeted tests, client build, and rendered public-browser proof for readiness, live, queued, dispatched, confirming, confirmed, empty, and error states.
 

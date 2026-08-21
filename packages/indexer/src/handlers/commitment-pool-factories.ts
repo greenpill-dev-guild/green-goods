@@ -60,6 +60,7 @@ export function createPool(chainId: number, poolId: bigint, timestamp: number): 
     workLinkedCount: 0n,
     workApprovedCount: 0n,
     openCommitmentCount: 0n,
+    distinctProviderCount: 0n,
     commitmentsDue: 0n,
     createdAt: undefined,
     updatedAt: timestamp,

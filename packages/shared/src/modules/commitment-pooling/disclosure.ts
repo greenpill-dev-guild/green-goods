@@ -40,3 +40,25 @@ export function selectPromiseKeptRate(input: {
     ? null
     : { fulfilled: input.commitmentsFulfilled, due: input.commitmentsDue };
 }
+
+export type PublicPromiseKeptRateSelection =
+  | { kind: "rate"; rate: { fulfilled: bigint; due: bigint } }
+  | { kind: "counts-only"; counts: { fulfilled: bigint; due: bigint } };
+
+export const PUBLIC_PROMISE_KEPT_MIN_DUE = 5n;
+export const PUBLIC_PROMISE_KEPT_MIN_DISTINCT_PROVIDERS = 3n;
+
+export function selectPublicPromiseKeptRate(input: {
+  commitmentsFulfilled: bigint;
+  commitmentsDue: bigint;
+  distinctProviderCount: bigint;
+}): PublicPromiseKeptRateSelection {
+  const counts = {
+    fulfilled: input.commitmentsFulfilled,
+    due: input.commitmentsDue,
+  };
+  return input.commitmentsDue >= PUBLIC_PROMISE_KEPT_MIN_DUE &&
+    input.distinctProviderCount >= PUBLIC_PROMISE_KEPT_MIN_DISTINCT_PROVIDERS
+    ? { kind: "rate", rate: counts }
+    : { kind: "counts-only", counts };
+}

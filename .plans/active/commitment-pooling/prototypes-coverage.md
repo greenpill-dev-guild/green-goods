@@ -37,10 +37,10 @@ lead retitled entries.) Round 1 earlier the same day: W7 pool tab restructured �
 
 ## Build snapshot
 
-- 44 registered screens / 521 rendered states in the full source registry
-- 37 presentation-visible hi-fi screens / 514 states: 19 Client PWA (309 states), 16 Admin console (196 states), 2 Editorial website (9 states)
-- 740 registered hotspots
-- 56 validated source flows / 332 scenes; 55 presentation-visible flows / 323 scenes: 23 Client PWA, 30 Admin console, 2 Editorial website
+- 44 registered screens / 523 rendered states in the full source registry
+- 37 presentation-visible hi-fi screens / 516 states: 19 Client PWA (309 states), 16 Admin console (196 states), 2 Editorial website (11 states)
+- 743 registered hotspots
+- 56 validated source flows / 334 scenes; 55 presentation-visible flows / 323 scenes: 23 Client PWA, 30 Admin console, 2 Editorial website
 - 101 component entries / 188 static specimens on the Components tab (46 Client PWA · 38 Steward console · 4 Editorial), every entry anchored at `#components/<id>[@surface]` with shipping citation or net-new note; shipped-palette parity: shipping names lead admin entry titles
 - States are grouped by **frame** in the switcher (2026-08-16 round 7): W2 85 states → 12 frames, W1 33 → 9, W7 31 → 8. Frames are a presentation grouping only — every state keeps its registry entry and §17 accounting, and each screen's default state is unchanged
 - 0 build warnings
@@ -372,7 +372,7 @@ field, a reason-less act must not invent one). Each control whose label ends in
 | W24 | Admin console | 11 | queue, ccip, flows, flows-funding-unavailable, funding, funding-unauthorized, loading, read-error, stranded, strand-confirm, stranded-failed |
 | W26 | Admin console | 12 | review, recognition-blocked, shares, certificate, rest, paused-review, paused-shares, paused-certificate, paused-rest, close-failed, mint-failed, compost-failed |
 | HUBWORK | Admin console | 8 | pending, approve-confirm, approved, reject-reason, rejected, empty, loading, read-error |
-| W15 | Editorial website | 6 | counts-only, above-threshold, pre-launch, empty, loading, read-error |
+| W15 | Editorial website | 8 | record, counts-only, between-seasons, paused, pre-launch, empty, loading, read-error |
 | W16 | Editorial website | 3 | band, support-in-flight, pipeline-delta |
 | C1 | Community PWA — September preview (lo-fi) | 1 | default |
 | C3 | Community PWA — September preview (lo-fi) | 1 | default |
