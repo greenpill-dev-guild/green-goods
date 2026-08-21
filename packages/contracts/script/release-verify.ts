@@ -14,6 +14,7 @@ import {
   type ReleaseNetwork,
   type ReleaseStage,
 } from "./utils/release-manifest";
+import { buildTransferConditions, permissionsConfigHash } from "./deploy/garden-roles";
 import { buildStageTransactionPlan, type ReleaseTransactionBoundary } from "./utils/release-plan";
 
 const IMPLEMENTATION_SLOT = "0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc";
@@ -511,10 +512,21 @@ async function main() {
   check(checks, "manifest.network.chain-id-string", chain.evmChainId, BigInt(chain.evmChainId).toString());
   check(checks, "manifest.network.selector-string", chain.ccipSelector, BigInt(chain.ccipSelector).toString());
   // The Celo Safe/Zodiac ceremony is complete, so this no longer guards an unconfigured authority.
-  // What it guards now is a half-recorded one: the freeze must name every Garden boundary the
-  // ceremony actually configured, and a 19th Garden must not inherit authority without its own run.
+  // It guards a half-recorded or substituted one: every frozen Garden boundary must carry the exact
+  // permission hash the ceremony scoped for that Safe and modifier, recomputed here from the same
+  // condition tree, so swapping a Safe or a modifier in the manifest fails on its own row.
   check(checks, "manifest.safe-authority-frozen", true, manifest.safeAuthority.enabled);
   check(checks, "manifest.safe-authority-garden-count", 18, manifest.safeAuthority.gardenSafes.length);
+  const frozenConditions = buildTransferConditions();
+  for (const row of manifest.safeAuthority.gardenSafes) {
+    check(
+      checks,
+      `manifest.safe-authority-garden-${row.tokenId}-permission-hash`,
+      permissionsConfigHash(row.safe, row.modifier, frozenConditions),
+      row.permissionsConfigHash,
+      true,
+    );
+  }
   check(checks, "manifest.indexer-activation-disabled", false, manifest.indexer.activationAuthorized);
   check(
     checks,

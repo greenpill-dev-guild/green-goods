@@ -41,8 +41,8 @@
     "timelockWaivedForRelease": true
   },
   "ceremony": {
-    "endState": "paused-deployer-owned",
-    "ownershipTransferIncluded": false,
+    "endState": "paused-safe-owned",
+    "ownershipTransferIncluded": true,
     "poolBackfillIncluded": false,
     "unpauseIncluded": false,
     "peerWiringIncluded": true,
