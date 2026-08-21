@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p1",
     "created_at": "2026-08-15T06:08:14.457Z",
-    "updated_at": "2026-08-18T19:05:00.000Z"
+    "updated_at": "2026-08-21T07:30:00.000Z"
   },
   "links": {
     "brief": "brief.md",
@@ -70,7 +70,7 @@
     "The Garden-bound relay is separate from Settlement and cannot satisfy Safe threshold two alone, become a Safe owner/module/guard/Zodiac member, or receive value authority.",
     "Implementation, review, release, guardian trust, Safe deployment, and value activation remain separate authorization boundaries.",
     "Use Bun wrappers only; never raw Forge.",
-    "Broadcast is complete. All 18 Celo GardenAccounts and all 18 final 2-of-3 Garden Safes are live and independently verified; deployments/42220-settlement-safes.json holds the receipt-backed record for every Safe boundary. authorityEnabled is false: no Zodiac Roles module, allowance, peer binding, or value authority was configured. The bounded settlement authority half of PRD-819 is still unbuilt and has no operator stage.",
+    "Broadcast is complete. All 18 Celo GardenAccounts and all 18 final 2-of-3 Garden Safes are live and independently verified; deployments/42220-settlement-safes.json holds the receipt-backed record for every Safe boundary. The bounded settlement authority half then landed in two steps: the 2026-08-20 ceremony configured 18 Zodiac Roles modifiers, enabled them as Safe modules, and bound 18 write-once executor routes, and the 2026-08-21 re-freeze recorded that in the release manifest with safeAuthority.enabled true. What is still open is live and human-owned: reserve funding on both chains, the Arbitrum setCcipRoute boundary, and the ping/ack plus minimum-value canary.",
     "The release operator's broadcast gate was unsatisfiable until PR 724. Both Celo wrappers compared GG_RELEASE_OPERATOR_SESSION against the release manifest sourceCommit while release-operator.ts pinned git HEAD to that same session value, so broadcast required a commit containing its own hash. The wrappers now check the session against the checked-out candidate; release identity is still asserted separately where the plan is validated. The Arbitrum lane never used this variable.",
     "The Garden-bound relay is deployed and verified: source router 0xDBF71edb4902cB43260f8A3e4460072e2028E627 on Arbitrum, Celo relay 0x21E4594760454D3c5A7085e3D48F1E60c6AeD1C9, destination bound once, and the Guardian trusting that exact relay. Across all 18 Garden Safes the relay is not an owner, not a module, no guard is set, and it holds no value. It still cannot reach threshold two alone; one recovery-owner signature remains required for every Safe execution.",
     "Comparing a deployed runtime hash to the artifact's deployedBytecode is wrong for any contract with immutables, which Solidity writes at construction. The router differs from its artifact in 416 bytes, all inside its nine declared immutable spans. Verification masks the declared spans and relies on the CREATE2 address to bind the init code. A boundary that mines before a failing postcondition is recovered with the adopt command rather than replayed against a consumed nonce."
@@ -322,6 +322,22 @@
       "status": "relay_broadcast_complete",
       "branch": "fix/relay-immutable-runtime-verification",
       "note": "Afo authorized and executed the four-boundary Garden-bound relay ceremony on 2026-08-18. Source router and destination binding landed on Arbitrum, the relay and Guardian trust on Celo; receipts are in deployments/garden-account-relay.json. Boundary 1 mined and then failed a postcondition that compared the deployed runtime hash to the artifact's deployedBytecode, which cannot hold for a contract with immutables; PR 729 masks the declared immutable spans and adds an adopt command for the mined-but-uncheckpointed state. No value authority was granted and the relay holds no Safe role on any of the 18 boundaries."
+    },
+    {
+      "timestamp": "2026-08-20T22:42:00.000Z",
+      "actor": "human",
+      "lane": "contracts",
+      "status": "safe_zodiac_ceremony_complete",
+      "branch": "claude/celo-garden-safes-deploy-04bd67",
+      "note": "Afo ran the Zodiac Roles, module-enablement, and executor-route ceremony through the release operator pinned to 32e25d621065d34d062a6943e506b3e0aed3a7da: 126 Roles configuration and ownership-transfer transactions, 18 module enablements, and 18 write-once route bindings, ending at block 75390218. Plan hashes, final receipts, and the full Garden/Safe/modifier inventory are in .plans/active/commitment-pooling/reports/celo-garden-safe-ceremony-checkpoint-2026-08-20.md."
+    },
+    {
+      "timestamp": "2026-08-21T07:30:00.000Z",
+      "actor": "claude",
+      "lane": "contracts",
+      "status": "manifest_refreeze_complete",
+      "branch": "claude/celo-garden-safes-deploy-04bd67",
+      "note": "Completed the post-ceremony re-freeze. settlement:garden-roles:verify and settlement:garden-routes:verify were re-run live against Celo and both passed, and all 18 rows of the committed ceremony report were diffed against the receipt ledger with no mismatch. The manifest now carries 18 gardenSafes plus the Zodiac module, moduleFactory, roleKey, allowanceKey, and a conditionsHash derived from keccak256(encodeConditions(buildTransferConditions())) rather than transcribed; caps, feePolicy, and destinationGasLimit are untouched and the lock moved only its manifestHash, to 0x2c7fd3ec4e7dc461af193e2eda2635042e63b5e2342592c3360c193705d7df6a. Three gates that hard-asserted the disabled state were re-pointed: the release-verify check now proves the freeze names all 18 boundaries, the manifest test proves the enabled shape fails closed on any cleared identity, and two release.ts strings that claimed authority was disabled were corrected. No transaction, funding, or value movement occurred."
     }
   ]
 }

@@ -381,17 +381,24 @@ the `release:verify:safe:*` variants; those belong to the later ownership-transf
   executor routes are deployed and verified. The exact plan hashes, final receipts, authority
   identities, and restart instructions are recorded in
   [`../reports/celo-garden-safe-ceremony-checkpoint-2026-08-20.md`](../reports/celo-garden-safe-ceremony-checkpoint-2026-08-20.md).
-- The committed manifest still keeps Safe authority disabled. The next repository boundary is one
-  receipt-backed post-ceremony re-freeze that fills every Safe/Zodiac field and flips
-  `safeAuthority.enabled` together. No settlement is authorized before that change is reviewed and
-  merged.
+- The post-ceremony re-freeze is committed. `safeAuthority.enabled` is true, all 18 Garden
+  boundaries are named, and the Zodiac module, role key, allowance key, and condition hash are set;
+  the manifest hash moved to
+  `0x2c7fd3ec4e7dc461af193e2eda2635042e63b5e2342592c3360c193705d7df6a` and no library,
+  implementation, or proxy address moved with it. Enabling authority in the manifest is not an
+  authorization to settle: funding, routing, and the canary each remain their own gate. Evidence and
+  the gates that had to move are in
+  [`../reports/celo-safe-authority-refreeze-2026-08-21.md`](../reports/celo-safe-authority-refreeze-2026-08-21.md).
 - The hosted production indexer is the older deployment and is deliberately outside this contracts
   ceremony. PRD-722 remains responsible for its later deployment/reindex/cutover/read-back.
 
-The Garden Safe bootstrap and route ceremony is complete. The next boundary is the post-ceremony
-manifest re-freeze described in the checkpoint report above. It is repository work and does not
-authorize another transaction. Fee-reserve funding, Arbitrum `setCcipRoute`, message-only ping,
-minimum-value canary, ownership transfer, cap changes, and value movement remain separately gated.
+The Garden Safe bootstrap, the route ceremony, and the manifest re-freeze are all complete, which
+closes the repository half of this lane. Every remaining step moves value or sends a transaction and
+belongs to the release owner: funding the Arbitrum SettlementModule and the Celo executor above
+their frozen reserve floors, executing and verifying the Arbitrum `setCcipRoute` boundary at the
+frozen 3,000,000 destination gas limit, then the message-only ping/ack and the minimum-value
+canary, in that order. Ownership transfer, cap changes, and broader value movement stay gated
+behind their own authorizations.
 
 ## Core-tier unblock evidence
 

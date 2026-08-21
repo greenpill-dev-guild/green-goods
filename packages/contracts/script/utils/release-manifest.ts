@@ -582,7 +582,10 @@ function artifactPath(relativePath: string): string {
 
 function loadArtifact(relativePath: string): FoundryArtifact {
   const filePath = artifactPath(relativePath);
-  if (!fs.existsSync(filePath)) throw new Error(`Production artifact missing: ${filePath}; run bun run build:full`);
+  // `build:full` alone compiles the test profile; only FOUNDRY_PROFILE=production writes out/production.
+  if (!fs.existsSync(filePath)) {
+    throw new Error(`Production artifact missing: ${filePath}; run FOUNDRY_PROFILE=production bun run build`);
+  }
   return readJson<FoundryArtifact>(filePath);
 }
 
