@@ -528,6 +528,57 @@ Phase B boundary form (not authorized by Phase A):
     console.log(`Plan written: ${planPath}`);
   }
 
+  /**
+   * Tier-3 destination check for any ownership handover. Ownership transfer is what moves protocol
+   * authority onto a multisig, so the Safe it lands on must already be the approved one on *this*
+   * chain: code present, threshold and owner count at or above the repository floor, and the exact
+   * frozen owner set and threshold. The same address can be a different Safe on each chain, which
+   * is why this reads the live configuration per network rather than trusting the manifest alone.
+   */
+  private async assertTierThreeOwnerSafe(
+    provider: JsonRpcProvider,
+    manifest: ReleaseManifest,
+    network: "arbitrum" | "celo",
+    blockTag: number | "finalized",
+  ): Promise<void> {
+    const safeAddress = manifest.ownership.protocolSafe;
+    const approved = manifest.ownership.protocolSafeConfiguration;
+    const floorThreshold = BigInt(approved.contractsGuideMinimumThreshold);
+    const floorOwners = BigInt(approved.contractsGuideMinimumOwnerCount);
+    if ((await provider.getCode(safeAddress, blockTag)) === "0x") {
+      throw new Error(`Frozen protocol Safe ${safeAddress} has no code on ${network} at block ${String(blockTag)}`);
+    }
+    const safe = new Contract(
+      safeAddress,
+      ["function getOwners() view returns (address[])", "function getThreshold() view returns (uint256)"],
+      provider,
+    );
+    const [owners, threshold] = (await Promise.all([
+      safe.getOwners({ blockTag }),
+      safe.getThreshold({ blockTag }),
+    ])) as [string[], bigint];
+    const liveOwners = owners.map((owner) => getAddress(owner)).sort();
+    const approvedOwners = approved.owners.map((owner) => getAddress(owner)).sort();
+    const summary = `${String(threshold)}-of-${liveOwners.length}`;
+    if (BigInt(threshold) < floorThreshold || BigInt(liveOwners.length) < floorOwners) {
+      throw new Error(
+        `Tier-3 ownership transfer is blocked: protocol Safe ${safeAddress} on ${network} is ${summary}, ` +
+          `below the repository floor of ${floorThreshold}-of-${floorOwners}; raise it before transferring`,
+      );
+    }
+    const exactMatch =
+      BigInt(threshold) === BigInt(approved.threshold) &&
+      liveOwners.length === approvedOwners.length &&
+      liveOwners.every((owner, index) => owner === approvedOwners[index]);
+    if (!exactMatch) {
+      throw new Error(
+        `Tier-3 ownership transfer is blocked: protocol Safe ${safeAddress} on ${network} is ${summary} ` +
+          `with a different owner set than the frozen ${approved.threshold}-of-${approvedOwners.length} configuration`,
+      );
+    }
+    console.log(`  protocol Safe on ${network}: ${summary}, exact frozen owner set`);
+  }
+
   private async ownershipTransfer(options: ParsedOptions, manifest: ReleaseManifest, lock: ReleaseLock): Promise<void> {
     if (options.broadcast && !manifest.ceremony.ownershipTransferIncluded) {
       throw new Error(
@@ -608,11 +659,7 @@ Phase B boundary form (not authorized by Phase A):
         throw new Error("ownership-transfer requires --dry-run, --pure-simulation, or authorized --broadcast");
       const finalized = await provider.getBlock("finalized");
       if (!finalized) throw new Error(`${network} RPC returned no finalized block`);
-      if ((await provider.getCode(plan.finalOwner, finalized.number)) === "0x") {
-        throw new Error(
-          `Frozen protocol Safe ${plan.finalOwner} has no code on ${network} at block ${finalized.number}`,
-        );
-      }
+      await this.assertTierThreeOwnerSafe(provider, manifest, network, finalized.number);
       for (const target of normalized) {
         const code = await provider.getCode(target.address, finalized.number);
         if (code === "0x") {
@@ -635,6 +682,7 @@ Phase B boundary form (not authorized by Phase A):
     if (options.releaseStep === undefined || options.expectedNonce === undefined) {
       throw new Error("Ownership broadcast requires --step <index> and --expected-nonce <n>");
     }
+    await this.assertTierThreeOwnerSafe(provider, manifest, network, "finalized");
     const boundary = plan.transactions[options.releaseStep - 1];
     if (!boundary || boundary.index !== options.releaseStep) {
       throw new Error(`Ownership plan has no boundary ${options.releaseStep}`);
@@ -1426,13 +1474,23 @@ Phase B boundary form (not authorized by Phase A):
       transactions: [],
       liveEvidence,
       liveBlockers,
-      blockedUntil: [
-        "exact garden Safe owners and threshold",
-        "exact recovery configuration",
-        "Zodiac Roles modifier address, role key, allowance key, and condition-tree hash",
-        "non-zero transfer, batch, period, and fee caps",
-        "separate human authorization",
-      ],
+      // Before the ceremony this listed the authority facts still to be frozen. Once the manifest
+      // records them, the honest list is the activation gates that remain in front of value.
+      blockedUntil: manifest.safeAuthority.enabled
+        ? [
+            "protocol ownership transferred to the approved Safe on each chain (tier 3)",
+            "Arbitrum setCcipRoute sent by the protocol Safe and receipt-verified",
+            "message-only ping/ack round trip",
+            "minimum-value settlement canary",
+            "separate human authorization for each step",
+          ]
+        : [
+            "exact garden Safe owners and threshold",
+            "exact recovery configuration",
+            "Zodiac Roles modifier address, role key, allowance key, and condition-tree hash",
+            "non-zero transfer, batch, period, and fee caps",
+            "separate human authorization",
+          ],
     };
     const filePath = path.join(GENERATED_ROOT, manifest.releaseId, "celo", "safe-zodiac-plan.json");
     writeGenerated(filePath, plan);
@@ -1447,14 +1505,20 @@ Phase B boundary form (not authorized by Phase A):
     if (options.network !== "arbitrum" && options.network !== "celo") {
       throw new Error("settlement-peer requires --network arbitrum|celo");
     }
-    if (options.broadcast) {
-      // There is deliberately no operator broadcast path for peer wiring: it is a single owner-gated
-      // configuration call that moves no value, so it executes as one reviewed owner transaction and
-      // is proven afterwards by `settlement-peer-verify` rather than through a second boundary engine.
+    // The authorization gate sits in front of plan generation, not only the broadcast branch: the
+    // supported execution path is "send the planned calldata", so an unauthorized ceremony must not
+    // be able to emit executable calldata at all.
+    if (!manifest.ceremony.peerWiringIncluded) {
       throw new Error(
-        manifest.ceremony.peerWiringIncluded
-          ? "Peer wiring executes as one reviewed owner transaction; send the planned calldata, then run settlement-peer-verify"
-          : "Peer wiring is not authorized by this ceremony; set ceremony.peerWiringIncluded in the reviewed manifest first",
+        "Peer wiring is not authorized by this ceremony; set ceremony.peerWiringIncluded in the reviewed manifest first",
+      );
+    }
+    if (options.broadcast) {
+      // There is deliberately no operator broadcast path for peer wiring. It is one owner-gated
+      // configuration call sent by the protocol Safe, and it is proven afterwards by
+      // `settlement-peer-verify` against the mined receipt rather than through a second boundary engine.
+      throw new Error(
+        "Peer wiring executes as one reviewed protocol Safe transaction; send the planned calldata, then run settlement-peer-verify --receipt <tx-hash>",
       );
     }
     const gas = process.env.SETTLEMENT_DESTINATION_GAS_LIMIT;
@@ -1467,65 +1531,159 @@ Phase B boundary form (not authorized by Phase A):
   }
 
   /**
-   * Proves a peer-wiring transaction landed exactly as reviewed. This is the evidence half of the
-   * split described in `peerPlan`: the owner sends one planned call, this reads the live route back
-   * and asserts every postcondition the plan declared, including that both peers are still paused.
+   * Proves a peer-wiring transaction landed exactly as reviewed, and persists that proof.
+   *
+   * This is the evidence half of the split described in `peerPlan`. It is receipt-bound: the mined
+   * transaction must have succeeded and must contain the module's own `CcipRouteUpdated` event with
+   * the reviewed values, which binds the proof to the specific write rather than to whatever the
+   * route happens to read as afterwards. Because the Safe executes the call internally, the event
+   * is the stable binding point whether the outer transaction came from a Safe or a bare owner.
+   * The live route on Arbitrum and the live peer and pause state on Celo are then re-read, so a
+   * correct write followed by a bad later mutation cannot pass either.
    */
   private async peerVerify(options: ParsedOptions, manifest: ReleaseManifest, lock: ReleaseLock): Promise<void> {
     if (options.network !== "arbitrum") throw new Error("settlement-peer-verify supports only --network arbitrum");
     if (!manifest.ceremony.peerWiringIncluded) {
       throw new Error("Peer wiring is not authorized by this ceremony; nothing to verify");
     }
+    if (!options.receiptHash || !/^0x[0-9a-f]{64}$/iu.test(options.receiptHash)) {
+      throw new Error("settlement-peer-verify requires --receipt <tx-hash> for the mined peer-wiring transaction");
+    }
     const settlement = identity(lock, "SettlementModule", "proxy").address;
     const executor = identity(lock, "CeloSettlementExecutor", "proxy").address;
     const expectedSelector = BigInt(manifest.chains.celo.ccipSelector);
     const expectedGasLimit = BigInt(manifest.chains.arbitrum.destinationGasLimit ?? "0");
+    const expectedVersion = BigInt(manifest.chains.celo.protocolVersion);
     if (expectedGasLimit === 0n) throw new Error("chains.arbitrum.destinationGasLimit must be frozen before verifying");
 
-    const chainId = Number(manifest.chains.arbitrum.evmChainId);
-    const provider = new JsonRpcProvider(this.networkManager.getRpcUrl("arbitrum"), chainId, { staticNetwork: true });
+    const arbitrumChainId = Number(manifest.chains.arbitrum.evmChainId);
+    const celoChainId = Number(manifest.chains.celo.evmChainId);
+    const arbitrum = new JsonRpcProvider(this.networkManager.getRpcUrl("arbitrum"), arbitrumChainId, {
+      staticNetwork: true,
+    });
+    const celo = new JsonRpcProvider(this.networkManager.getRpcUrl("celo"), celoChainId, { staticNetwork: true });
+    const routeEvent = new Interface([
+      "event CcipRouteUpdated(uint64 indexed destinationChainSelector, address indexed destinationExecutor, address indexed previousDestinationExecutor, uint64 previousPeerExpiresAt, uint32 destinationGasLimit, uint8 protocolVersion)",
+    ]);
     const module_ = new Contract(
       settlement,
       [
         "function ccipRoute() view returns ((uint64 destinationChainSelector, address destinationExecutor, address previousDestinationExecutor, uint64 previousPeerExpiresAt, uint32 destinationGasLimit, uint8 protocolVersion))",
         "function paused() view returns (bool)",
       ],
-      provider,
+      arbitrum,
     );
-    const [route, paused] = await retryRpcAvailability(async () =>
-      Promise.all([module_.ccipRoute(), module_.paused()]),
+    const celoExecutor = new Contract(
+      executor,
+      [
+        "function sourcePeer() view returns ((uint64 sourceChainSelector, address sourceSettlementModule, address previousSourceSettlementModule, uint64 previousPeerExpiresAt, uint8 protocolVersion))",
+        "function paused() view returns (bool)",
+      ],
+      celo,
     );
 
+    const receiptHash = options.receiptHash;
+    const [receipt, route, arbitrumPaused, sourcePeer, celoPaused] = await retryRpcAvailability(async () =>
+      Promise.all([
+        arbitrum.getTransactionReceipt(receiptHash),
+        module_.ccipRoute(),
+        module_.paused(),
+        celoExecutor.sourcePeer(),
+        celoExecutor.paused(),
+      ]),
+    );
+    if (!receipt) throw new Error(`Receipt ${receiptHash} is not mined on Arbitrum`);
+
+    // The binding event: the module itself must have announced exactly the reviewed route.
+    const routeLog = receipt.logs
+      .filter((log) => getAddress(log.address) === getAddress(settlement))
+      .map((log) => {
+        try {
+          return routeEvent.parseLog({ topics: [...log.topics], data: log.data });
+        } catch {
+          return null;
+        }
+      })
+      .find((parsed) => parsed?.name === "CcipRouteUpdated");
+    const eventSelector = routeLog ? BigInt(routeLog.args.destinationChainSelector) : null;
+    const eventExecutor = routeLog ? getAddress(String(routeLog.args.destinationExecutor)) : null;
+    const eventGasLimit = routeLog ? BigInt(routeLog.args.destinationGasLimit) : null;
+    const eventVersion = routeLog ? BigInt(routeLog.args.protocolVersion) : null;
+    const eventGrace = routeLog ? BigInt(routeLog.args.previousPeerExpiresAt) : null;
+
     const checks: Array<[string, boolean, string]> = [
+      ["receipt succeeded", receipt.status === 1, String(receipt.status)],
       [
-        "destination selector",
-        route.destinationChainSelector === expectedSelector,
+        "receipt emitted CcipRouteUpdated from the module",
+        routeLog !== undefined && routeLog !== null,
+        routeLog ? "yes" : "no",
+      ],
+      ["event destination selector", eventSelector === expectedSelector, String(eventSelector)],
+      ["event destination executor", eventExecutor === getAddress(executor), String(eventExecutor)],
+      ["event destination gas limit", eventGasLimit === expectedGasLimit, String(eventGasLimit)],
+      ["event protocol version", eventVersion === expectedVersion, String(eventVersion)],
+      ["event retiring-peer grace is zero", eventGrace === 0n, String(eventGrace)],
+      [
+        "live destination selector",
+        BigInt(route.destinationChainSelector) === expectedSelector,
         String(route.destinationChainSelector),
       ],
       [
-        "destination executor",
+        "live destination executor",
         getAddress(route.destinationExecutor) === getAddress(executor),
         String(route.destinationExecutor),
       ],
       [
-        "destination gas limit",
+        "live destination gas limit",
         BigInt(route.destinationGasLimit) === expectedGasLimit,
         String(route.destinationGasLimit),
       ],
+      ["live protocol version", BigInt(route.protocolVersion) === expectedVersion, String(route.protocolVersion)],
       [
-        "protocol version",
-        BigInt(route.protocolVersion) === BigInt(manifest.chains.celo.protocolVersion),
-        String(route.protocolVersion),
+        "live retiring-peer grace is zero",
+        BigInt(route.previousPeerExpiresAt) === 0n,
+        String(route.previousPeerExpiresAt),
       ],
-      ["retiring-peer grace is zero", BigInt(route.previousPeerExpiresAt) === 0n, String(route.previousPeerExpiresAt)],
-      ["module still paused", paused === true, String(paused)],
+      ["Arbitrum module still paused", arbitrumPaused === true, String(arbitrumPaused)],
+      ["Celo executor still paused", celoPaused === true, String(celoPaused)],
+      [
+        "Celo source peer still the frozen module",
+        getAddress(sourcePeer.sourceSettlementModule) === getAddress(settlement),
+        String(sourcePeer.sourceSettlementModule),
+      ],
+      [
+        "Celo source selector still Arbitrum",
+        BigInt(sourcePeer.sourceChainSelector) === BigInt(manifest.chains.arbitrum.ccipSelector),
+        String(sourcePeer.sourceChainSelector),
+      ],
     ];
     const failed = checks.filter(([, ok]) => !ok);
     for (const [label, ok, actual] of checks) console.log(`${ok ? "PASS" : "FAIL"} ${label}: ${actual}`);
     if (failed.length > 0) {
       throw new Error(`Peer wiring does not match the reviewed plan: ${failed.map(([label]) => label).join(", ")}`);
     }
+
+    // Persist the proof so the next boundary can require it instead of trusting a console line.
+    const checkpointPath = path.join(GENERATED_ROOT, manifest.releaseId, "arbitrum", "settlement-peer.checkpoint.json");
+    writeGenerated(checkpointPath, {
+      schemaVersion: 1,
+      releaseId: manifest.releaseId,
+      manifestHash: lock.manifestHash,
+      stage: "settlement-peer",
+      network: "arbitrum",
+      transactionHash: receipt.hash,
+      blockNumber: receipt.blockNumber,
+      from: getAddress(receipt.from),
+      to: receipt.to ? getAddress(receipt.to) : null,
+      settlementModule: getAddress(settlement),
+      destinationExecutor: getAddress(executor),
+      destinationChainSelector: expectedSelector.toString(),
+      destinationGasLimit: expectedGasLimit.toString(),
+      protocolVersion: expectedVersion.toString(),
+      verifiedAt: new Date().toISOString(),
+    });
     console.log(`Peer wiring verified against the frozen plan on ${manifest.releaseId}`);
+    console.log(`Peer wiring checkpoint written: ${checkpointPath}`);
   }
 
   private recoveryPlan(options: ParsedOptions, manifest: ReleaseManifest, lock: ReleaseLock): void {
@@ -1648,13 +1806,11 @@ Phase B boundary form (not authorized by Phase A):
   }
 
   private assertSender(command: string, options: ParsedOptions, manifest: ReleaseManifest): void {
-    // Peer wiring is owner-gated, so its sender follows whoever this ceremony leaves owning the
-    // module: the protocol Safe once ownership transfer is part of the ceremony, the deployment
-    // sender while it is not. Reading it from the manifest keeps the plan and the assertion aligned.
-    const peerSender = manifest.ceremony.ownershipTransferIncluded
-      ? manifest.ownership.protocolSafe
-      : manifest.ownership.deploymentSender;
-    const expected = command === "settlement-peer" ? peerSender : manifest.ownership.deploymentSender;
+    // Peer wiring is a tier-3 boundary (packages/contracts/AGENTS.md, "Mainnet Requirements by
+    // Activation Risk"), so it is always sent by the protocol Safe; the deployment sender is never
+    // an acceptable peer-wiring sender, even while it still happens to own the module.
+    const expected =
+      command === "settlement-peer" ? manifest.ownership.protocolSafe : manifest.ownership.deploymentSender;
     const sender = options.sender ?? expected;
     if (getAddress(sender) !== getAddress(expected)) {
       throw new Error(`Wrong sender: expected ${expected}, received ${sender}`);

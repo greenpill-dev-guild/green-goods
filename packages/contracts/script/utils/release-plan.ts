@@ -302,12 +302,9 @@ export function buildPeerTransactionPlan(
     0n,
   ]);
   const isArbitrum = network === "arbitrum";
-  // Peer wiring is owner-gated, so it is sent by whoever this ceremony leaves owning the module:
-  // the protocol Safe once ownership transfer is included, the deployment sender while it is not.
-  // `assertSender` in release.ts derives the same value, so plan and assertion cannot disagree.
-  const peerSender = manifest.ceremony.ownershipTransferIncluded
-    ? manifest.ownership.protocolSafe
-    : manifest.ownership.deploymentSender;
+  // Peer wiring is a tier-3 boundary, so the protocol Safe must already be the verified live owner
+  // before it runs; the plan names that Safe as the only acceptable sender and the verifier proves it.
+  const peerSender = manifest.ownership.protocolSafe;
   return {
     schemaVersion: 1,
     releaseId: manifest.releaseId,

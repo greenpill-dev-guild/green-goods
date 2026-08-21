@@ -289,19 +289,32 @@ describe("release CLI real entrypoints", () => {
       '"command": "bun run credit:registry:plan:arbitrum --expected-nonce <fresh-pending-nonce>"',
     );
 
-    const transfer = fail([
-      "ownership-transfer",
-      "--network",
-      "arbitrum",
-      "--broadcast",
-      "--step",
-      "1",
-      "--expected-nonce",
-      "0",
-      "--override-sepolia-gate",
-    ]);
+    // Ownership transfer is now part of the ceremony, so the pre-RPC guard is the boundary contract
+    // itself: a broadcast without an exact step and reviewed nonce must fail before any chain read.
+    const transfer = fail(["ownership-transfer", "--network", "arbitrum", "--broadcast", "--override-sepolia-gate"]);
     expect(transfer.status).not.toBe(0);
-    expect(`${transfer.stdout}${transfer.stderr}`).toContain("deferred to a later issue");
+    expect(`${transfer.stdout}${transfer.stderr}`).toContain("requires --step <index> and --expected-nonce <n>");
+  });
+
+  it("freezes ownership transfer as the tier-3 gate in front of peer wiring", () => {
+    const source = fs.readFileSync(path.join(CONTRACTS_ROOT, "script/deploy/release.ts"), "utf8");
+    const transferStart = source.indexOf("private async ownershipTransfer(");
+    const broadcastGate = source.indexOf("assertSepoliaGate({ network, broadcast: true", transferStart);
+    const tierCheck = source.indexOf(
+      'await this.assertTierThreeOwnerSafe(provider, manifest, network, "finalized")',
+      broadcastGate,
+    );
+    const firstSend = source.indexOf("execCastCaptured(", broadcastGate);
+
+    // The destination Safe is verified live, on the target chain, before any boundary is sent.
+    expect(transferStart).toBeGreaterThan(0);
+    expect(tierCheck).toBeGreaterThan(broadcastGate);
+    expect(tierCheck).toBeLessThan(firstSend);
+    // And the dry run applies the same check, so a below-floor Safe is caught before the ceremony.
+    const dryRun = source.indexOf("Ownership dry-run pinned to finalized", transferStart);
+    expect(source.slice(transferStart, dryRun)).toContain(
+      "await this.assertTierThreeOwnerSafe(provider, manifest, network, finalized.number)",
+    );
   });
 
   it("documents a reviewed nonce on every release-stage planning command", () => {
@@ -341,25 +354,11 @@ describe("release CLI real entrypoints", () => {
     }
   });
 
-  it("binds peer plans to whichever sender this ceremony leaves owning the module", () => {
+  it("binds peer plans to the protocol Safe and rejects the deployment EOA", () => {
     const env = { ...process.env, SETTLEMENT_DESTINATION_GAS_LIMIT: "3000000" };
-    // Ownership transfer is not part of this ceremony, so the deployment sender still owns the
-    // module and is the only sender the plan and the live precondition can agree on.
+    // Peer wiring is tier 3: the protocol Safe must already be the live owner and is the only
+    // acceptable sender, so the plan names it and its precondition requires it.
     const accepted = run(
-      [
-        "settlement-peer",
-        "--network",
-        "arbitrum",
-        "--pure-simulation",
-        "--sender",
-        "0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6",
-      ],
-      env,
-    );
-    expect(accepted).toContain('"live owner equals 0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6"');
-
-    // The protocol Safe does not own it yet, so naming it would plan a transaction that reverts.
-    const rejected = fail(
       [
         "settlement-peer",
         "--network",
@@ -370,15 +369,34 @@ describe("release CLI real entrypoints", () => {
       ],
       env,
     );
+    expect(accepted).toContain('"live owner equals 0x1B9Ac97Ea62f69521A14cbe6F45eb24aD6612C19"');
+
+    const rejected = fail(
+      [
+        "settlement-peer",
+        "--network",
+        "arbitrum",
+        "--pure-simulation",
+        "--sender",
+        "0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6",
+      ],
+      env,
+    );
     expect(rejected.status).not.toBe(0);
     expect(`${rejected.stdout}${rejected.stderr}`).toContain("Wrong sender");
   });
 
-  it("refuses peer broadcast and points at the verifier instead", () => {
+  it("refuses peer broadcast and points at the receipt-bound verifier instead", () => {
     const env = { ...process.env, SETTLEMENT_DESTINATION_GAS_LIMIT: "3000000" };
     const result = fail(["settlement-peer", "--network", "arbitrum", "--broadcast"], env);
     expect(result.status).not.toBe(0);
-    expect(`${result.stdout}${result.stderr}`).toContain("settlement-peer-verify");
+    expect(`${result.stdout}${result.stderr}`).toContain("settlement-peer-verify --receipt");
+  });
+
+  it("requires a mined receipt before verifying peer wiring", () => {
+    const result = fail(["settlement-peer-verify", "--network", "arbitrum"]);
+    expect(result.status).not.toBe(0);
+    expect(`${result.stdout}${result.stderr}`).toContain("requires --receipt <tx-hash>");
   });
 });
 
