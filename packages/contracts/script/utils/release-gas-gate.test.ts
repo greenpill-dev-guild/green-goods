@@ -65,6 +65,16 @@ describe("release gas gate routing", () => {
     expect(packageJson.scripts["test:fork:garden-roles"]).toBe("bun script/utils/run-garden-roles-proof.ts");
     const runner = fs.readFileSync(path.join(CONTRACTS_ROOT, "script/utils/run-garden-roles-proof.ts"), "utf8");
     expect(runner).toContain("--isolate");
+    expect(runner).toContain("--safe-plan");
+    expect(runner).toContain("garden-safe-final-bindings-2026-08-15.json");
+    expect(
+      fs.existsSync(
+        path.resolve(
+          CONTRACTS_ROOT,
+          "../../.plans/active/celo-garden-account-safe-ownership/evidence/garden-safe-final-bindings-2026-08-15.json",
+        ),
+      ),
+    ).toBe(true);
   });
 
   it("finds each configured fixture exactly once in the Solidity test tree", () => {

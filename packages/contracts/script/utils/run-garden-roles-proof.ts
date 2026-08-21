@@ -6,6 +6,10 @@ import { config as loadDotenv } from "dotenv";
 import { NetworkManager } from "./network";
 
 const contractsRoot = path.resolve(import.meta.dir, "../..");
+const reviewedSafeBindings = path.resolve(
+  contractsRoot,
+  "../../.plans/active/celo-garden-account-safe-ownership/evidence/garden-safe-final-bindings-2026-08-15.json",
+);
 
 loadDotenv({ path: path.resolve(contractsRoot, "../../.env"), override: false, quiet: true });
 
@@ -25,7 +29,11 @@ function run(command: string, args: string[], label: string): void {
   if (result.status !== 0) process.exit(result.status ?? 1);
 }
 
-run(process.execPath, ["script/deploy/garden-roles.ts", "plan"], "generating the reviewed permission fixture");
+run(
+  process.execPath,
+  ["script/deploy/garden-roles.ts", "plan", "--safe-plan", reviewedSafeBindings],
+  "generating the reviewed permission fixture from checked-in Safe bindings",
+);
 run(
   "forge",
   ["test", "--isolate", "--match-path", "test/fork/CeloGardenRolesPermission.t.sol", "--threads", "1", "-vvv"],

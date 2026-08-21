@@ -377,6 +377,8 @@ export function validateReleaseManifest(manifest: ReleaseManifest): void {
   }
 
   for (const [network, chain] of Object.entries(manifest.chains) as Array<[ReleaseNetwork, ChainManifest]>) {
+    const ccipRoute = `${network}->${chain.peerNetwork}` as `${ReleaseNetwork}->${ReleaseNetwork}`;
+    const pinnedCcipCeiling = CCIP_PER_MESSAGE_GAS_LIMIT_CEILINGS[ccipRoute];
     requireUintString(chain.evmChainId, `${network}.evmChainId`);
     requireUintString(chain.ccipSelector, `${network}.ccipSelector`);
     requireUintString(chain.peerSelector, `${network}.peerSelector`);
@@ -388,6 +390,9 @@ export function validateReleaseManifest(manifest: ReleaseManifest): void {
       }
       if (BigInt(chain.destinationGasLimit) > (1n << 32n) - 1n) {
         throw new Error(`${network}.destinationGasLimit does not round-trip to uint32`);
+      }
+      if (pinnedCcipCeiling !== undefined && BigInt(chain.destinationGasLimit) > pinnedCcipCeiling) {
+        throw new Error(`${network}.destinationGasLimit exceeds the pinned CCIP per-message ceiling`);
       }
     }
     if (chain.destinationGasMeasurement !== undefined) {
@@ -427,8 +432,6 @@ export function validateReleaseManifest(manifest: ReleaseManifest): void {
       ) {
         throw new Error(`${network}.destinationGasLimit exceeds the recorded CCIP per-message ceiling`);
       }
-      const ccipRoute = `${network}->${chain.peerNetwork}` as `${ReleaseNetwork}->${ReleaseNetwork}`;
-      const pinnedCcipCeiling = CCIP_PER_MESSAGE_GAS_LIMIT_CEILINGS[ccipRoute];
       if (pinnedCcipCeiling === undefined) {
         throw new Error(`${ccipRoute} destination gas measurement has no pinned CCIP per-message ceiling`);
       }

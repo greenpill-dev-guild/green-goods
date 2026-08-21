@@ -136,10 +136,16 @@ describe("combined commitment release manifest", () => {
     const transportCeilingDrift = structuredClone(manifest);
     const driftedCeilingMeasurement = transportCeilingDrift.chains.arbitrum.destinationGasMeasurement;
     if (!driftedCeilingMeasurement) throw new Error("Fixture must include the frozen destination gas measurement");
-    transportCeilingDrift.chains.arbitrum.destinationGasLimit = "3000001";
     driftedCeilingMeasurement.ccipPerMessageGasLimitCeiling = "3000001";
     expect(() => validateReleaseManifest(transportCeilingDrift)).toThrow(
       /must equal the pinned arbitrum->celo ceiling/,
+    );
+
+    const missingMeasurementWithOversizedLimit = structuredClone(manifest);
+    delete missingMeasurementWithOversizedLimit.chains.arbitrum.destinationGasMeasurement;
+    missingMeasurementWithOversizedLimit.chains.arbitrum.destinationGasLimit = "3000001";
+    expect(() => validateReleaseManifest(missingMeasurementWithOversizedLimit)).toThrow(
+      /destinationGasLimit exceeds the pinned CCIP per-message ceiling/,
     );
 
     const unmeasuredAuthorityBatch = structuredClone(manifest);
