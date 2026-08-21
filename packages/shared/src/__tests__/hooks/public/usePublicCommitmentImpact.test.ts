@@ -46,10 +46,10 @@ describe("public commitment impact reader", () => {
             CommitmentPool: [{ poolId: "7" }, { poolId: "9" }],
             CommitmentPool_aggregate: {
               aggregate: {
-                count: 2,
                 sum: { commitmentsFulfilled: "12", commitmentsDue: "15" },
               },
             },
+            OpenCommitmentPool_aggregate: { aggregate: { count: 2 } },
           },
         };
       }
@@ -75,6 +75,7 @@ describe("public commitment impact reader", () => {
     expect(documents).not.toContain("CommitmentProviderExposure(");
     expect(documents).not.toContain("Disbursement(");
     expect(documents).toContain("state: { _eq: CONFIRMED }");
+    expect(documents).toContain("OpenCommitmentPool_aggregate");
     expect(documents).not.toContain("distinctProviderCount");
     expect(containsAddressValue(result)).toBe(false);
     expect(result).toEqual({
@@ -100,10 +101,10 @@ describe("public commitment impact reader", () => {
             CommitmentPool: [{ poolId: "7" }],
             CommitmentPool_aggregate: {
               aggregate: {
-                count: 1,
                 sum: { commitmentsFulfilled: "5", commitmentsDue: "6" },
               },
             },
+            OpenCommitmentPool_aggregate: { aggregate: { count: 1 } },
           },
         };
       }
@@ -131,5 +132,33 @@ describe("public commitment impact reader", () => {
       unavailableSources: { distinctProviders: true },
     });
     expect(mocks.warn).toHaveBeenCalledOnce();
+  });
+
+  it("keeps closed-pool history in lifetime totals while counting only open pools", async () => {
+    mocks.query.mockImplementation(async (_query, variables, operation) => {
+      if (operation === "getPublicCommitmentImpactPools") {
+        return {
+          data: {
+            CommitmentPool: [{ poolId: "7" }, { poolId: "9" }],
+            CommitmentPool_aggregate: {
+              aggregate: { sum: { commitmentsFulfilled: "18", commitmentsDue: "22" } },
+            },
+            OpenCommitmentPool_aggregate: { aggregate: { count: 1 } },
+          },
+        };
+      }
+      if (operation === "getPublicCommitmentImpactProviders") {
+        expect(variables).toEqual({ chainId: 42161, poolIds: ["7", "9"] });
+        return { data: { CommitmentProviderExposure_aggregate: { aggregate: { count: 5 } } } };
+      }
+      return { data: { Disbursement_aggregate: { aggregate: { sum: { amount: "20" } } } } };
+    });
+
+    await expect(getPublicCommitmentImpact(42161)).resolves.toMatchObject({
+      openPoolCount: 1n,
+      commitmentsFulfilled: 18n,
+      commitmentsDue: 22n,
+      distinctProviderCount: 5n,
+    });
   });
 });

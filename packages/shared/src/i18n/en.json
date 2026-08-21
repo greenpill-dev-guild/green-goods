@@ -3728,7 +3728,7 @@
   "public.gardenDetail.stats.unknown": "Not available",
   "public.gardenDetail.support": "Support this Garden",
   "public.gardenDetail.unavailable": "This Garden could not be loaded",
-  "public.gardenDetail.unavailableHelp": "The record is there, we just could not read it right now. Try again in a moment.",
+  "public.gardenDetail.unavailableHelp": "We could not read this Garden's public record right now. Try again in a moment.",
   "public.gardens.archiveCount": "{count, plural, one {# Garden} other {# Gardens}}",
   "public.gardens.archiveSearchCount": "{count, plural, =0 {No matches for \"{query}\"} one {# match for \"{query}\"} other {# matches for \"{query}\"}}",
   "public.gardens.archiveTitle": "Browse every Garden keeping a public record.",

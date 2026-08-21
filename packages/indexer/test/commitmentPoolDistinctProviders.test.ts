@@ -1,12 +1,13 @@
 import assert from "node:assert/strict";
+import type { Address } from "viem";
 
 import { Addresses, CommitmentRegistry, createTestIndexer, processEvents } from "./v3";
 
 const CHAIN_ID = 42161;
 const POOL_ID = 7n;
 
-function address(index: number): string {
-  return Addresses.mockAddresses[index] ?? `0x${index.toString(16).padStart(40, "0")}`;
+function address(index: number): Address {
+  return (Addresses.mockAddresses[index] ?? `0x${index.toString(16).padStart(40, "0")}`) as Address;
 }
 
 function hash(index: number): string {
@@ -23,7 +24,12 @@ function eventData(blockNumber: number) {
   };
 }
 
-function committed(classId: bigint, provider: string, blockNumber: number, totalCommitted: bigint) {
+function committed(
+  classId: bigint,
+  provider: Address,
+  blockNumber: number,
+  totalCommitted: bigint
+) {
   return CommitmentRegistry.UnitsCommitted.createMockEvent({
     classId,
     poolId: POOL_ID,
@@ -36,7 +42,7 @@ function committed(classId: bigint, provider: string, blockNumber: number, total
   });
 }
 
-function released(classId: bigint, provider: string, blockNumber: number, totalCommitted: bigint) {
+function released(classId: bigint, provider: Address, blockNumber: number, totalCommitted: bigint) {
   return CommitmentRegistry.UnitsReleased.createMockEvent({
     classId,
     poolId: POOL_ID,

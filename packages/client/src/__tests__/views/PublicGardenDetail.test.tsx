@@ -73,7 +73,7 @@ vi.mock("@green-goods/shared", async () => {
     // tooltip trigger) whether or not the copy affordance is on — the stub keeps
     // that shape, because a span-shaped stub is what let a button-inside-a-button
     // reach the browser.
-    AddressDisplay: ({ address }: { address: string }) =>
+    AddressDisplay: ({ address }: { address: Address }) =>
       createElement("button", { type: "button", "data-testid": "address" }, address),
     useEnsName: () => ({ data: null }),
     formatAddress: (address: string) => `${address.slice(0, 4)}…${address.slice(-3)}`,
@@ -389,5 +389,17 @@ describe("GardenDetail", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Try again" }));
     expect(refetch).toHaveBeenCalled();
+  });
+
+  it("keeps cached Garden data visible when a background refetch fails", () => {
+    mockUsePublicGardenDetail.mockReturnValue({
+      ...detailResult(),
+      isError: true,
+      refetch: vi.fn(),
+    });
+    renderView();
+
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Solar Community Garden");
+    expect(screen.queryByText("This Garden could not be loaded")).not.toBeInTheDocument();
   });
 });

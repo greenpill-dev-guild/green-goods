@@ -177,6 +177,41 @@ describe("public commitment pool reader", () => {
     expect(result?.cycleUnitSummaries.map((entry) => entry.cycleId)).toEqual([10n]);
     expect(result?.pool.distinctProviderCount).toBe(4n);
   });
+
+  it("limits cycle metadata reads while preserving finished-cycle order", async () => {
+    const indexedCycles = Array.from({ length: 10 }, (_, index) =>
+      cycle(10 + index, "SEASON", "RECONCILED", 100 + index)
+    );
+    mocks.query.mockImplementation(async (_query, _variables, operation) => {
+      if (operation === "getPublicGardenPool") return { data: { CommitmentPool: [POOL] } };
+      return { data: { CommitmentCycle: indexedCycles, CommitmentUnitSummary: [] } };
+    });
+    let activeReads = 0;
+    let maxActiveReads = 0;
+    mocks.getJsonByHash.mockImplementation(async (cid: string) => {
+      activeReads += 1;
+      maxActiveReads = Math.max(maxActiveReads, activeReads);
+      await new Promise((resolve) => setTimeout(resolve, 5));
+      activeReads -= 1;
+      return { version: 1, name: `Name for ${cid.replace("ipfs://", "")}` };
+    });
+
+    const result = await getPublicGardenPool(42161, GARDEN);
+
+    expect(maxActiveReads).toBeLessThanOrEqual(4);
+    expect(result?.finishedCycles.map((entry) => entry.cycleId)).toEqual([
+      19n,
+      18n,
+      17n,
+      16n,
+      15n,
+      14n,
+      13n,
+      12n,
+      11n,
+      10n,
+    ]);
+  });
 });
 
 describe("usePublicGardenPool", () => {

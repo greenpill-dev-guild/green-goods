@@ -8,6 +8,8 @@ import type {
 import { type RawRow, integer, mapUnitSummary, number, optionalInteger, string } from "./data-core";
 import { resolveCycleMetadataName } from "./cycle-metadata";
 
+const PUBLIC_CYCLE_METADATA_CONCURRENCY = 4;
+
 const PUBLIC_POOL_FIELDS = /* GraphQL */ `
   id chainId poolId state commitmentsOffered commitmentsAccepted commitmentsFulfilled
   commitmentsCancelled commitmentsExpired commitmentsDisputed commitmentsDue openCommitmentCount
@@ -128,6 +130,24 @@ async function resolvePublicCycle(
   };
 }
 
+async function resolvePublicCycles(
+  cycles: readonly IndexedPublicCommitmentCycleRecord[]
+): Promise<PublicCommitmentCycleRecord[]> {
+  const resolved = new Array<PublicCommitmentCycleRecord>(cycles.length);
+  let nextIndex = 0;
+  const worker = async () => {
+    while (nextIndex < cycles.length) {
+      const index = nextIndex++;
+      const cycle = cycles[index];
+      if (cycle) resolved[index] = await resolvePublicCycle(cycle);
+    }
+  };
+  await Promise.all(
+    Array.from({ length: Math.min(PUBLIC_CYCLE_METADATA_CONCURRENCY, cycles.length) }, worker)
+  );
+  return resolved;
+}
+
 function newestFirst(
   left: PublicCommitmentCycleRecord,
   right: PublicCommitmentCycleRecord
@@ -172,7 +192,7 @@ export async function getPublicGardenPool(
       (cycle) =>
         cycle.state === "OPEN" || cycle.state === "RECONCILED" || cycle.state === "COMPOSTED"
     );
-  const cycles = await Promise.all(indexedCycles.map(resolvePublicCycle));
+  const cycles = await resolvePublicCycles(indexedCycles);
   const includedCycleIds = new Set(cycles.map((cycle) => cycle.cycleId.toString()));
   const summaries = (detailsResult.data?.CommitmentUnitSummary ?? []).map(mapUnitSummary);
 

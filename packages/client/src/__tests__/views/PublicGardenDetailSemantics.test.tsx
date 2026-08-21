@@ -16,6 +16,7 @@
 
 import { render, screen } from "@testing-library/react";
 import { createElement } from "react";
+import type { Address } from "viem";
 import { IntlProvider } from "react-intl";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
@@ -78,7 +79,7 @@ vi.mock("@green-goods/shared", () => ({
   useInViewReveal: () => ({ ref: { current: null }, revealed: true }),
   // A <button>, matching the real component and the main suite's stub. A <span>
   // here is what let a button-inside-a-button reach the browser last time.
-  AddressDisplay: ({ address }: { address: string }) =>
+  AddressDisplay: ({ address }: { address: Address }) =>
     createElement("button", { type: "button" }, address),
 }));
 

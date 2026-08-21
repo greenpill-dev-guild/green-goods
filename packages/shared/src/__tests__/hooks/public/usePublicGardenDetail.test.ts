@@ -4,7 +4,7 @@
  */
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { renderHook, waitFor } from "@testing-library/react";
+import { act, renderHook, waitFor } from "@testing-library/react";
 import { createElement, type ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -342,5 +342,36 @@ describe("usePublicGardenDetail", () => {
     });
 
     expect(result.current.error?.message).toBe("Indexer down");
+  });
+
+  it("clears the previous Garden while a new query key loads", async () => {
+    const firstGarden = createMockGarden({
+      id: MOCK_ADDRESSES.garden,
+      name: "First Garden",
+    });
+    const secondGarden = createMockGarden({
+      id: MOCK_ADDRESSES.user,
+      name: "Second Garden",
+    });
+    mockGetGardens.mockResolvedValueOnce([firstGarden, secondGarden]);
+
+    const { result, rerender } = renderHook(({ lookup }) => usePublicGardenDetail(lookup), {
+      initialProps: { lookup: firstGarden.id },
+      wrapper: createWrapper(queryClient),
+    });
+    await waitFor(() => expect(result.current.data?.garden?.name).toBe("First Garden"));
+
+    let resolveSecondRead: (gardens: Array<typeof firstGarden>) => void = () => {};
+    mockGetGardens.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          resolveSecondRead = resolve;
+        })
+    );
+    rerender({ lookup: secondGarden.id });
+
+    expect(result.current.data).toBeUndefined();
+    act(() => resolveSecondRead([firstGarden, secondGarden]));
+    await waitFor(() => expect(result.current.data?.garden?.name).toBe("Second Garden"));
   });
 });

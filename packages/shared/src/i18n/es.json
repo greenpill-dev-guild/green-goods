@@ -3728,7 +3728,7 @@
   "public.gardenDetail.stats.unknown": "No disponible",
   "public.gardenDetail.support": "Apoyar este Jardín",
   "public.gardenDetail.unavailable": "No se pudo cargar este Jardín",
-  "public.gardenDetail.unavailableHelp": "El registro existe, pero no pudimos leerlo ahora mismo. Inténtalo de nuevo en un momento.",
+  "public.gardenDetail.unavailableHelp": "No pudimos leer el registro público de este Jardín ahora mismo. Inténtalo de nuevo en un momento.",
   "public.gardens.archiveCount": "{count, plural, one {# Jardín} other {# Jardines}}",
   "public.gardens.archiveSearchCount": "{count, plural, =0 {Sin resultados para \"{query}\"} one {# resultado para \"{query}\"} other {# resultados para \"{query}\"}}",
   "public.gardens.archiveTitle": "Explora cada Jardín que mantiene un registro público.",
