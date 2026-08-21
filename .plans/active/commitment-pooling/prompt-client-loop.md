@@ -1,8 +1,9 @@
 # Complete the Commitment Pooling client PWA: close the member loop (D1), then Offer over time (D2)
 
 Dispatch prompt for a fresh Claude Code session. Written 2026-08-21 from the build review in
-`reports/build-review-2026-08-21.md`. Paste it whole; the facts under "Present state" were verified
-that day and should be re-verified cheaply before they are trusted.
+`reports/build-review-2026-08-21.md`; refreshed the same evening after the worktree below was
+prepared and the dev stack was started from it. Read it whole; the facts under "Present state" were
+verified that day and should be re-verified cheaply before they are trusted.
 
 You are working in the Green Goods monorepo. Read `CLAUDE.md` and `AGENTS.md` first; they bind
 you. This repo runs concurrent Claude/Codex sessions on the same tree: stay inside the paths named
@@ -12,49 +13,91 @@ revert), never `git add -A`, never switch the primary tree's branch except as in
 ## Worktree
 
 You are in the worktree `/Users/afo/Code/greenpill/green-goods/.claude/worktrees/client-loop` on
-`feature/commitment-pooling-client-loop`, branched from `origin/develop`. The primary checkout at
-`/Users/afo/Code/greenpill/green-goods` and every other `.claude/worktrees/*` directory belong to
-other sessions: never read their uncommitted files, never symlink, copy, install into, or clean
-them, never run `git` against them. Do not remove this worktree at the end; Afo does.
+`feature/commitment-pooling-client-loop`, created from `origin/develop` at `bcf6adfc2`. The primary
+checkout at `/Users/afo/Code/greenpill/green-goods` and every other `.claude/worktrees/*` directory
+belong to other sessions: never read their uncommitted files, never symlink, copy, install into, or
+clean them, never run `git` against them. Do not remove this worktree at the end; Afo does.
 
-- `.env` here is a symlink to the primary repo's `.env`; treat it as read-only. If a secret-backed
-  step fails, report it env-gated rather than editing env.
-- Dependencies were installed with `bun run setup:isolated` (frozen lockfile). Do not run any other
-  install.
-- Run the dev stack **from this worktree** (`bun run dev`, or `bun run dev:web` if Docker is not
-  needed) so the browser serves the code you are editing. PM2 is one daemon for the machine and
-  `scripts/dev/stack.js` deletes same-named apps before starting, so starting here takes over
-  ports 3001–3009 from any other checkout. If `bun run dev:doctor -- --profile web` reports ports
-  in use, stop and tell Afo which tree holds them instead of killing anything. `bun run dev:stop`
-  stops the stack wherever it was started.
-- `dev:web` serves the UI against the indexer named in `.env`, which has no pooling schema yet, so
-  pooling queries land in read-error states. For real pooling data use `bun run dev` (Docker): the
-  local Envio builds from this worktree and mirrors live Arbitrum, where 18 pools are registered;
-  writes go to the Anvil fork.
-- The indexer legs of `bun run test` / `bun run build` may fail on `envio codegen` in a fresh
-  worktree; prove it pre-existing with a stash and report that leg as env-gated. Everything else in
-  the Ship Gate must actually pass here.
-- Repo-root `bun build` invokes Bun's bundler, not the package script; always `bun run build`.
-  Capture a stage's exit code before piping to `tail`.
+Prepared on 2026-08-21, so none of this is yours to redo:
+
+- Dependencies were installed with `bun run setup:isolated` (frozen lockfile, 6,768 packages). Do
+  not run any other install.
+- `.env` is an absolute symlink to the primary repo's `.env`; treat it as read-only. If a
+  secret-backed step fails, report it env-gated rather than editing env. The command guard denies
+  any shell command that names `.env`, even `ln` or `ls`; do not route around it.
+- `mise trust` is done and the pinned toolchain (Node 22.22.1, Bun 1.3.14, Foundry 1.7.1) is
+  installed. mise is **not** activated in Claude Code tool shells: a bare `node` resolves to v18 and
+  `bun` to 1.3.10 there, and the husky hook then dies with a misleading `toSorted` error. Prefix
+  every repo command with `mise exec --` (`mise exec -- bun run test`, `mise exec -- bun format`),
+  or check that `node --version` prints `v22.22.1` before trusting a result.
+- The branch has no upstream on purpose (`worktree add` had pointed it at `origin/develop`).
+  Publish with `git push -u origin feature/commitment-pooling-client-loop`.
+- At session start this worktree has no uncommitted changes; the branch's first commit is this
+  refreshed prompt (`docs(plans): refresh the client loop prompt for the prepared worktree`). Any
+  uncommitted change you find is another session's work: leave it alone and report it.
 - Never `git add -A`: stage explicit paths. Before each commit, `git status --short` from the
-  worktree root and confirm no `node_modules`, `.env`, or `.generated` stray is staged.
+  worktree root and confirm no `node_modules`, `.env`, `tmp/`, or `.generated` stray is staged.
 - The second branch, `feature/commitment-pooling-client-over-time`, is created from this worktree
   with `git switch -c` off the updated `develop` only after the D1 PR has merged; do not create a
   second worktree and do not open D2 against `develop` while D1 is still open.
 
-Worktree creation (Afo runs this before the session starts):
+### The dev stack already runs from this worktree
+
+`bun run dev` (Anvil Arbitrum fork, client, admin, docs, Storybook, agent, Docker indexer, tunnel)
+was started from this worktree on 2026-08-21, so `https://localhost:3001/` serves the code you
+edit, with HMR. Facts that matter:
+
+- PM2 is one daemon for the machine and app names are shared. `scripts/dev/stack.js` deletes the
+  same-named apps before starting, so **any** `bun run dev` from another checkout silently takes the
+  stack back (it happened twice while this worktree was being prepared). Before browser QA, prove
+  ownership: `lsof -a -p "$(lsof -nP -iTCP:3001 -sTCP:LISTEN -t | head -1)" -d cwd -Fn | grep '^n'`
+  must print this worktree's path. If it prints the primary checkout, stop and tell Afo which
+  session owns it; do not start a takeover loop.
+- `bun run dev:doctor` cannot see the live stack: its port probe binds `127.0.0.1`, which succeeds
+  against Vite's wildcard bind on macOS, so it reports 3001/3002/3004 "available" while they are
+  being served. Use `npx pm2 list` and `lsof -nP -iTCP:<port> -sTCP:LISTEN` instead; `bun run
+  dev:health` and `bun run dev:smoke:full` stay valid once the stack is up.
+- `stack.js` never returns: it tails PM2 logs and **deletes every app on SIGINT/SIGTERM**. Never run
+  `bun run dev` as a foreground tool call (the timeout kills the stack) or as a harness-tracked
+  background task (session teardown does the same). If Afo asks you to restart it, launch it
+  detached from the worktree root with the log outside the repo, then wait on the ports:
+  `( nohup mise exec -- bun run dev > "$TMPDIR/gg-stack.log" 2>&1 < /dev/null & )`, then
+  `npx wait-port -t 240000 localhost:3001`. The indexer leg is a Docker image rebuild and can need
+  more than the probe's 180 s; `npx wait-port -t 300000 localhost:3006` covers it.
+  `bun run dev:stop` stops the stack wherever it was started.
+- The local Envio builds from this worktree and mirrors live Arbitrum (18 pools registered); writes
+  go to the Anvil fork, which is in-memory and resets on every stack restart. `dev:web` serves the UI
+  against the hosted indexer named in `.env`, which has no pooling schema yet, so pooling queries
+  land in read-error states there; stay on the full stack.
+- Do not expect live local pooling data yet. On 2026-08-21 the local index for chain 42161 sat at
+  block 435,619,882 while the Arbitrum head and the pool registrations were near 497,000,000, and
+  Envio HyperSync rate-limited the catch-up to zero progress (68 `rate-limited` warnings in two
+  minutes of `docker logs indexer-indexer-1`). `bun run dev:smoke:full` then fails exactly one
+  check, `local-indexer-lag`, by design. Until that check passes, authenticated pooling reads
+  against the local stack return nothing even after the local ledger flip: build and test against
+  fixtures, and run the smoke before claiming any live local proof. Raising the Envio plan limit is
+  Afo's call; do not change indexer config, compose, or env to work around it.
+- The tunnel app publishes `trycloudflare.com` URLs for the client and admin
+  (`npx pm2 logs tunnel --nostream --lines 40 | grep -i ready`); use them for the real-device pass,
+  and remember they change on every restart.
+- Host-side `envio codegen` works in this worktree under `mise exec -- bun run --cwd
+  packages/indexer codegen` (run on 2026-08-21; `bun run dev:health` is green), so the indexer
+  legs of `bun run test` / `bun run build` are expected to pass here. If one fails on codegen
+  anyway, prove it pre-existing with a stash and report that leg as env-gated. Everything else in
+  the Ship Gate must actually pass here. Repo-root `bun build` invokes Bun's bundler, not the package script;
+  always `bun run build`. Capture a stage's exit code before piping to `tail`.
+
+If the worktree is ever missing, Afo recreates it (absolute paths on the `ln`, because a relative
+one once landed a stray symlink inside `hifi/screens/`; the `.env` link before `setup:isolated`, or
+setup writes its non-secret baseline where the link should go; `mise trust` before anything that
+runs Node):
 
 ```bash
 git -C /Users/afo/Code/greenpill/green-goods fetch origin develop
 git -C /Users/afo/Code/greenpill/green-goods worktree add /Users/afo/Code/greenpill/green-goods/.claude/worktrees/client-loop -b feature/commitment-pooling-client-loop origin/develop
 ln -s /Users/afo/Code/greenpill/green-goods/.env /Users/afo/Code/greenpill/green-goods/.claude/worktrees/client-loop/.env
-cd /Users/afo/Code/greenpill/green-goods/.claude/worktrees/client-loop && mise trust && bun run setup:isolated
+mise trust && GG_SETUP_ENV_MODE=skip mise exec -- bun run setup:isolated && git branch --unset-upstream
 ```
-
-Absolute paths on the `ln` (a relative one once landed a stray symlink inside `hifi/screens/`); the
-`.env` link is a brand-new path and must come before `setup:isolated` so setup does not write its
-non-secret baseline over it; `mise trust` first or Node falls back to v18 and the husky hook dies
-with a misleading `toSorted` error.
 
 ## Dispatch gate (check before anything else)
 
@@ -64,17 +107,25 @@ The hub still records the product-UI lane as manually blocked: `status.json` has
 cleanup as unblock evidence. PR #740 was dispatched under the narrowed option without that
 transition being recorded, which is how its scope went unrecorded. Do not repeat that.
 
-Start only when both are true:
+Start only when both are true. Afo's dispatch of this prompt is the human authorization; you record
+it yourself, as your first action:
 
-1. Afo has recorded the scope-lock in the hub on this branch, in its own first commit:
+1. The scope-lock is recorded in the hub on this branch, as the first commit of your session (the
+   branch already carries the prompt-refresh commit ahead of it):
    `node scripts/harness/plan-hub.mjs set-lane --feature commitment-pooling --lane ui --status in_progress --actor human --branch feature/commitment-pooling-client-loop --note "Narrowed client dispatch: Phase 0 + D1 + D2 of prompt-client-loop.md, built against fixtures and the local stack before hosted read-back; rendered live proof deferred to the hosted Envio deployment"`,
-   the `execution_sub_lanes.ui_client` entry updated to match (`status`, `branch`,
-   `blocked_reason` replaced by the same note), then `bunx biome format --write` on `status.json`
-   (the plan-hub command rewrites it with raw `JSON.stringify`).
+   then a hand edit of the `execution_sub_lanes.ui_client` entry to match (`status`
+   `"in_progress"`, `manual_blocked` `false`, `branch` this branch, `blocked_reason` replaced by the
+   same note; the harness has no sub-lane command; replace `lanes.ui.blocked_reason` with the
+   same note as well, since `set-lane` leaves it untouched), then `bunx biome format --write` on
+   `status.json` (the plan-hub command rewrites it with raw `JSON.stringify`), then
+   `node scripts/harness/plan-hub.mjs validate` green. Commit as
+   `docs(plans): open the client loop lane` with exactly `status.json` staged.
 2. `git log -1 -- .plans/active/commitment-pooling/status.json` on this branch shows that commit.
 
-If either is missing, stop and report "dispatch gate not recorded"; do not edit product code. The
-ledger flip and the hosted Envio deployment stay outside this lane regardless.
+If the transition cannot be recorded (the harness command fails, `validate` rejects the edit, or
+`status.json` no longer matches the state described above), stop and report "dispatch gate not
+recorded"; do not edit product code. The ledger flip and the hosted Envio deployment stay outside
+this lane regardless.
 
 ## Objective
 
@@ -92,7 +143,8 @@ change any Linear state or create Linear records; Afo does that.
 
 ## Present state (verified 2026-08-21; re-verify cheaply before trusting)
 
-- `develop` is at or past `67a32ae41`. PR #740 (`173a2a627`) shipped the client slice:
+- `develop` is at `bcf6adfc2`, this branch's base (it includes #744 contracts peer wiring, #746,
+  and #747). PR #740 (`173a2a627`) shipped the client slice:
   `packages/client/src/views/Home/CommitmentsDrawer/*` (W5 sheet), `views/Home/Garden/Pool/*`
   (W1), `views/Home/Garden/Commitment/*` (W2 + withdraw), `views/Home/Garden/Compose/*` (W3,
   service-only), `components/Features/Commitments/*`, routes `commitments/new` and
@@ -382,7 +434,8 @@ Checkpoint after Phase 2 as above, then the D2 PR.
 - Design: `bun run check:design-tokens` green; a `*.stories.tsx` for `CommitmentRow`,
   `CommitmentStateLadder`, `CycleRail`, the proof composer, and the confirmation sheet alongside
   the 20 existing client stories; the prototype build still passes.
-- Rendered proof: `bun run dev` from this worktree, then
+- Rendered proof: the stack already runs from this worktree (§ Worktree: run the ownership check
+  first, never restart it unasked), then
   `https://localhost:3001/home?mockAuth=user&presentation=pwa` (and `operator` for steward paths)
   through the authenticated Brave QA profile via the Claude-in-Chrome extension. If the
   authenticated profile is unavailable, report browser QA as BLOCKED; do not substitute an isolated
@@ -421,6 +474,7 @@ Checkpoint after Phase 2 as above, then the D2 PR.
 - Complete: both PRs open against `develop` with green Ship Gate, the built/not-built table
   attached, rendered proof or an explicit BLOCKED line, and no change outside the allowed paths.
 - Blocked: a required shared API is missing in a way that needs a contract or indexer change, the
-  authenticated Brave profile is unavailable, or a decision above is unanswered. Finish everything
+  authenticated Brave profile is unavailable, another checkout has taken the dev stack (the
+  ownership check prints the primary path), or a decision above is unanswered. Finish everything
   not dependent on it, then report with the exact file and line.
 - Out of scope: anything listed under Boundaries. Report it; do not build it.
