@@ -103,7 +103,7 @@ export default function GardenDetail() {
   // production, and falling through to not-found told the reader their Garden
   // does not exist — the same "publish an unknown as a fact" failure the stat
   // strip's em dash exists to prevent.
-  if (detailFailed) return <GardenUnavailable onRetry={() => void refetchDetail()} />;
+  if (detailFailed && !detail) return <GardenUnavailable onRetry={() => void refetchDetail()} />;
   if (!detailLoading && !garden) return <GardenNotFound />;
 
   const worksUnavailable = detail?.unavailableSources.works ?? false;
@@ -232,7 +232,7 @@ function GardenUnavailable({ onRetry }: { onRetry: () => void }) {
           {formatMessage({
             id: "public.gardenDetail.unavailableHelp",
             defaultMessage:
-              "The record is there, we just could not read it right now. Try again in a moment.",
+              "We could not read this Garden's public record right now. Try again in a moment.",
           })}
         </p>
         <div className="mt-6 flex flex-wrap gap-3">

@@ -13,6 +13,9 @@
 
 import {
   CYCLE,
+  FINISHED_CYCLES,
+  POOL_LIFETIME,
+  POOL_LIFETIME_KEPT_RATE,
   POOL_RECORD_LIVE,
   POOL_RECORD_LIVE_KEPT_RATE,
   PRIOR_CYCLES,
@@ -55,10 +58,13 @@ const TIE_IN = `Fulfilled commitments from these seasons are anchored in the cer
 const KICKER = `<span class="kicker">§ 02: Commitments</span>`;
 
 /** Lifetime made / kept, with the one sanctioned percentage when it is publishable. */
-const recordRow = (rate: boolean) =>
-  `<div class="estatrow"><div class="estat"><div class="serif-n">${POOL_RECORD_LIVE.made}</div><div class="l">commitments made</div></div><div class="estat"><div class="serif-n">${POOL_RECORD_LIVE.kept}</div><div class="l">kept</div></div>${
-    rate
-      ? hot("w15.rate", `<div class="estat"><div class="serif-n">${POOL_RECORD_LIVE_KEPT_RATE}%</div><div class="l">kept rate</div></div>`)
+const recordRow = (
+  record: { made: number; kept: number },
+  keptRate: number | null,
+) =>
+  `<div class="estatrow"><div class="estat"><div class="serif-n">${record.made}</div><div class="l">commitments made</div></div><div class="estat"><div class="serif-n">${record.kept}</div><div class="l">kept</div></div>${
+    keptRate !== null
+      ? hot("w15.rate", `<div class="estat"><div class="serif-n">${keptRate}%</div><div class="l">kept rate</div></div>`)
       : ""
   }</div>`;
 
@@ -69,10 +75,18 @@ const liveCycle = () =>
 ${hot("w15.units", `<div class="eunits"><div class="erow"><span>Hours</span><span class="num">${SEASON_LIVE.units.hours.done} of ${SEASON_LIVE.units.hours.of}</span></div><div class="erow"><span>Rides</span><span class="num">${SEASON_LIVE.units.rides.done} of ${SEASON_LIVE.units.rides.of}</span></div></div>`)}</div>`;
 
 /** Finished cycles, newest first. Campaigns sit beside seasons (§4.2). */
-const seasonRows = () =>
+const seasonRows = (
+  cycles: readonly {
+    name: string;
+    type: string;
+    window: string;
+    made: number;
+    kept: number;
+  }[] = PRIOR_CYCLES,
+) =>
   hot(
     "w15.rows",
-    `<div class="ecycle"><div class="kicker">Earlier seasons and campaigns</div><div class="eunits">${PRIOR_CYCLES.map(
+    `<div class="ecycle"><div class="kicker">Earlier seasons and campaigns</div><div class="eunits">${cycles.map(
       (c) =>
         `<div class="erow"><span>${c.name} · ${c.type} · ${c.window}</span><span class="num">${c.kept} of ${c.made} kept</span></div>`,
     ).join("")}</div></div>`,
@@ -89,7 +103,7 @@ function w15(state: W15State): string {
     case "record":
       panel = `${KICKER}
 <h3 class="serif-h">${POOL_RECORD_LIVE.seasons} seasons of commitments</h3>
-${recordRow(true)}
+${recordRow(POOL_RECORD_LIVE, POOL_RECORD_LIVE_KEPT_RATE)}
 ${liveCycle()}
 ${seasonRows()}
 <p style="margin:0;max-width:52ch;color:var(--stone)">${TIE_IN}</p>`;
@@ -98,18 +112,20 @@ ${seasonRows()}
     // commitments, too few distinct people for a percentage to be fair.
     case "counts-only":
       panel = `${KICKER}
-<h3 class="serif-h">The first ${CYCLE}</h3>
-${hot("w15.counts", `<p style="margin:0;max-width:52ch;font-size:16.5px">${SEASON_LIVE.made} commitments made, ${SEASON_LIVE.kept} kept so far, running through Aug 30.</p>`)}
+<h3 class="serif-h">${POOL_RECORD_LIVE.seasons} seasons of commitments</h3>
+${hot("w15.counts", recordRow(POOL_RECORD_LIVE, null))}
+${liveCycle()}
+${seasonRows()}
 <p style="margin:0;max-width:52ch;color:var(--stone)">${TIE_IN}</p>`;
       break;
     // The state the record framing exists for: no live cycle, and the section
     // still has something true to say.
     case "between-seasons":
       panel = `${KICKER}
-<h3 class="serif-h">${POOL_RECORD_LIVE.seasons} seasons of commitments</h3>
+<h3 class="serif-h">${POOL_LIFETIME.seasons} seasons of commitments</h3>
 ${hot("w15.between", `<p style="margin:0;max-width:52ch">The next season has not opened yet. What the garden has kept so far stays here.</p>`)}
-${recordRow(true)}
-${seasonRows()}`;
+${recordRow(POOL_LIFETIME, POOL_LIFETIME_KEPT_RATE)}
+${seasonRows(FINISHED_CYCLES)}`;
       break;
     // §4.1 Paused: neutral quiet-period line, aggregates stay. The indexed
     // pause reason is not published here.
@@ -117,7 +133,7 @@ ${seasonRows()}`;
       panel = `${KICKER}
 <h3 class="serif-h">${POOL_RECORD_LIVE.seasons} seasons of commitments</h3>
 ${hot("w15.paused", `<p style="margin:0;max-width:52ch">This garden has paused new commitments for now. Its record stays readable.</p>`)}
-${recordRow(true)}
+${recordRow(POOL_RECORD_LIVE, POOL_RECORD_LIVE_KEPT_RATE)}
 ${seasonRows()}`;
       break;
     case "pre-launch":
@@ -141,7 +157,7 @@ ${hot("w15.empty", `<p style="margin:0;max-width:52ch">No commitments have been 
     // the conversion established: an unknown count renders an em dash, never 0.
     default:
       panel = `${KICKER}
-<h3 class="serif-h">${POOL_RECORD_LIVE.seasons} seasons of commitments</h3>
+<h3 class="serif-h">Garden commitments</h3>
 ${hot("w15.read-error", `<div class="estatrow"><div class="estat"><div class="serif-n">—</div><div class="l">commitments made</div></div><div class="estat"><div class="serif-n">—</div><div class="l">kept</div></div></div>
 <p style="margin:0;max-width:52ch">This garden's commitments could not be loaded just now.</p>`)}
 ${hot("w15.retry", `<button type="button" class="elink">Try again</button>`)}`;
