@@ -1282,7 +1282,7 @@ const EDITORIAL_ENTRIES: Entry[] = [
   },
   {
     id: "editorial-panel", title: "Editorial panel", family: "cards", covers: [],
-    kit: `.epanel + .kicker + .serif-h + .estatrow + .erule + .elink. Screens/public.ts`,
+    kit: `.epanel + .kicker + .serif-h + .estatrow + .ecycle + .eunits + .erule + .elink. Screens/public.ts`,
     netNew: "sharp editorial panel with mono kicker, serif headline, serif numerals",
     rule: "Aggregate-only public storytelling: counts and sentences, no rankings, no participant data; percentages only above the small-community threshold.",
     usedIn: /class="epanel/,

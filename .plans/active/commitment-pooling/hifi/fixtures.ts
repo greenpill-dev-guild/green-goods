@@ -47,14 +47,47 @@ export const SEASON_CLOSED = {
 } as const;
 
 /**
- * Pool lifetime. The demo pool has run exactly one season, so its lifetime
- * total IS that season's closed total — it is not an independent number.
- * Deriving it here is what keeps the two reconciled.
+ * Cycles this pool has already finished, newest first. The public garden page
+ * shows a garden's record across seasons and campaigns rather than one live
+ * cycle (UX §7.1, 2026-08-20), so the demo garden needs a history to show.
+ * Campaigns sit in the same list as seasons and never masquerade as one (§4.2).
+ */
+export const PRIOR_CYCLES = [
+  { name: "Summer Mutirão", type: "campaign", window: "Dec 2025 – Feb 2026", made: 6, kept: 5 },
+  { name: "Season of Repair", type: "season", window: "Jun – Nov 2025", made: 12, kept: 10 },
+  { name: "Season of Planting", type: "season", window: "Dec 2024 – May 2025", made: 11, kept: 9 },
+] as const;
+
+const priorMade = PRIOR_CYCLES.reduce((n, c) => n + c.made, 0);
+const priorKept = PRIOR_CYCLES.reduce((n, c) => n + c.kept, 0);
+
+/**
+ * The garden's record while the current season is still running — what the
+ * public page publishes today. Derived from the finished cycles plus the live
+ * one, so it can never contradict either the rows beneath it or the live
+ * cycle's own counts.
+ */
+export const POOL_RECORD_LIVE = {
+  seasons: PRIOR_CYCLES.filter((c) => c.type === "season").length + 1,
+  campaigns: PRIOR_CYCLES.filter((c) => c.type === "campaign").length,
+  made: priorMade + SEASON_LIVE.made,
+  kept: priorKept + SEASON_LIVE.kept,
+} as const;
+
+export const POOL_RECORD_LIVE_KEPT_RATE = Math.round(
+  (POOL_RECORD_LIVE.kept / POOL_RECORD_LIVE.made) * 100,
+);
+
+/**
+ * Pool lifetime, at the moment the current season closes: the finished cycles
+ * plus that season's closed total. Same derivation as POOL_RECORD_LIVE, one
+ * lifecycle step later — the only reason the two differ.
  */
 export const POOL_LIFETIME = {
-  seasons: 1,
-  made: SEASON_CLOSED.made,
-  kept: SEASON_CLOSED.kept,
+  seasons: POOL_RECORD_LIVE.seasons,
+  campaigns: POOL_RECORD_LIVE.campaigns,
+  made: priorMade + SEASON_CLOSED.made,
+  kept: priorKept + SEASON_CLOSED.kept,
 } as const;
 
 /**

@@ -7,9 +7,10 @@
 - Owner: Claude
 - Branch signal: feature/commitment-pooling-editorial
 - Current state: the `/gardens/:id` page conversion has landed and the public copy is frozen on
-  "commitment"; implementation still waits for verified non-value deployment/indexer output, the
-  shared admin/UI foundation cleanup, the cycle-scoped distinct-provider counter, and the
-  `PublicEvidencePipeline` i18n prerequisite
+  "commitment"; the section's scope is a record across seasons and campaigns, not one live cycle
+  (2026-08-20). Implementation still waits for verified non-value deployment/indexer output, the
+  shared admin/UI foundation cleanup, the pool-scoped distinct-provider counter, a public pool
+  reader, a CCIP-confirmed settlement selector, and the `PublicEvidencePipeline` i18n prerequisite
 - Linear context: PRD-726 (editorial lane) under parent PRD-650
 
 ## Inputs
@@ -59,9 +60,21 @@
 
 - Indexer/shared aggregate selectors and privacy thresholds are GREEN. §7.2's threshold is not
   buildable today: `selectPromiseKeptRate` applies no gate, and no distinct-provider counter
-  exists in the indexer schema. The threshold is per-cycle, so a cycle-scoped counter (new
-  per-(cycle, provider) sentinel entity) is the one required; counting `CommitmentProviderExposure`
-  rows is not an option because it enumerates provider addresses.
+  exists in the indexer schema. **Scope amended 2026-08-20**: the section publishes the garden's
+  record across seasons and campaigns (§7.1), so the rate is a pool-lifetime figure and the gate
+  reads lifetime due commitments and lifetime distinct providers. That makes the required counter
+  the cheap one — a `distinctProviderCount` on `CommitmentPool`, incremented the first time a
+  `CommitmentProviderExposure` key appears, on the same dedup pattern the other pool counters use.
+  No new entity, and it publishes a number rather than a list. The per-(cycle, provider) sentinel
+  Decision Log #161 called for is no longer this lane's dependency; a surface that later publishes
+  a per-cycle rate owns it. Counting `CommitmentProviderExposure` rows is still not an option.
+- NOT MET — no public reader exists. `packages/shared/src/hooks/public/` has no pooling hook, and
+  the reader that does exist, `getCommitmentPoolDetail`, selects `CommitmentProviderExposure
+  { provider }` — reusing it would ship provider addresses to a signed-out browser against §7.4.
+  This lane adds its own reader over pool, cycle, and unit-summary fields only.
+- NOT MET — the `/impact` band's CCIP-confirmed G$ tile has no selector. `Disbursement`,
+  `SettlementMessage` and `SettlementExecution` carry the lifecycle; nothing returns an
+  acknowledged-only total, and dispatched or executed-ack-pending must never reach the tile.
 - NOT MET — `PublicEvidencePipeline` must be internationalised and laid out for five nodes before
   the `/impact` band can ship. It is not yet: its node titles and descriptions are literal English
   (only the closing caption goes through `formatMessage`) and it is `md:grid-cols-3` with three
