@@ -313,6 +313,42 @@ async function verifySettlement(
     ] as const) {
       check(checks, `CeloExecutor.${label}-before-value-authority`, "0", await contract[getter]());
     }
+    await verifyGardenRoutesBindFrozenBoundaries(provider, address, checks);
+  }
+}
+
+/**
+ * Chain-time Garden binding for the frozen Safe authority. The permission hash covers only the
+ * Safe, modifier, and condition tree, so it cannot tell one Garden from another; the executor's
+ * write-once route can. Every frozen row must match the live route for its own Garden on Safe,
+ * modifier, and permission hash, so two Gardens swapped between manifest rows fail here even though
+ * every hash still recomputes.
+ */
+async function verifyGardenRoutesBindFrozenBoundaries(provider: JsonRpcProvider, executor: string, checks: Check[]) {
+  const manifest = loadReleaseManifest();
+  if (!manifest.safeAuthority.enabled) return;
+  const routes = new Contract(
+    executor,
+    [
+      "function gardenRouteOf(address garden) view returns (tuple(address safe,address rolesModifier,bytes32 roleKey,bytes32 allowanceKey,bytes32 permissionsConfigHash,bool active))",
+    ],
+    provider,
+  );
+  for (const row of manifest.safeAuthority.gardenSafes) {
+    const route = await routes.gardenRouteOf(row.garden);
+    const prefix = `CeloExecutor.gardenRoute[${row.tokenId}]`;
+    check(checks, `${prefix}.safe`, row.safe, route.safe, true);
+    check(checks, `${prefix}.rolesModifier`, row.modifier, route.rolesModifier, true);
+    check(checks, `${prefix}.permissionsConfigHash`, row.permissionsConfigHash, route.permissionsConfigHash, true);
+    check(checks, `${prefix}.roleKey`, String(manifest.safeAuthority.zodiacRoles.roleKey), route.roleKey, true);
+    check(
+      checks,
+      `${prefix}.allowanceKey`,
+      String(manifest.safeAuthority.zodiacRoles.allowanceKey),
+      route.allowanceKey,
+      true,
+    );
+    check(checks, `${prefix}.active`, true, route.active);
   }
 }
 

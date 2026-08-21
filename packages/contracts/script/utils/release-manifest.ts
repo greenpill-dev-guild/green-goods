@@ -79,6 +79,19 @@ export interface ReleaseManifest {
       contractsGuideMinimumOwnerCount: string;
       guidePolicyStatus: "satisfied";
     };
+    /**
+     * The protocol Safe address is the same on both chains but is a different Safe on each. This
+     * is the approved Celo configuration the executor hands over to; `liveThresholdAtFreeze`
+     * records that the live Safe was still below the floor when frozen, so the Celo ownership
+     * boundary stays blocked until the threshold is raised to exactly this configuration.
+     */
+    celoProtocolSafeConfiguration: {
+      threshold: string;
+      owners: string[];
+      ownerDecisionDate: string;
+      liveThresholdAtFreeze: string;
+      guidePolicyStatus: "satisfied" | "pending-live-threshold-raise";
+    };
     rollbackOwnerBeforeTransfer: string;
     rollbackOwnerAfterTransfer: string;
     gardenRecoveryOwner: string;
@@ -268,6 +281,44 @@ function requireUintString(value: unknown, label: string, bits = 64) {
     throw new Error(`${label} does not round-trip to uint${bits}`);
 }
 
+export const CELO_SETTLEMENT_SAFES_ARTIFACT_PATH = path.join(CONTRACTS_ROOT, "deployments/42220-settlement-safes.json");
+
+interface CeloSettlementSafesArtifact {
+  chainId: number;
+  safes: Array<{ tokenId: number; garden: string; safe: string }>;
+}
+
+/**
+ * Binds every frozen Garden boundary to the committed, receipt-backed Celo Safe deployment
+ * artifact. The artifact is the durable record of which Safe was created for which Garden, so it
+ * is the right CI-time authority for Garden identity; the live executor route is the chain-time one
+ * and is read by release-verify.
+ */
+export function assertGardenSafesMatchDeploymentArtifact(
+  rows: readonly GardenSafeBoundary[],
+  artifactPath = CELO_SETTLEMENT_SAFES_ARTIFACT_PATH,
+): void {
+  if (!fs.existsSync(artifactPath)) throw new Error(`Celo Safe deployment artifact missing: ${artifactPath}`);
+  const artifact = readJson<CeloSettlementSafesArtifact>(artifactPath);
+  if (artifact.chainId !== 42220) throw new Error("Celo Safe deployment artifact is not the chain 42220 record");
+  const recorded = artifact.safes ?? [];
+  if (recorded.length === 0) throw new Error("Celo Safe deployment artifact records no Garden Safes");
+  const byToken = new Map(recorded.map((entry) => [entry.tokenId, entry]));
+  if (byToken.size !== rows.length) {
+    throw new Error(`Frozen garden Safes (${rows.length}) do not match the deployment artifact (${byToken.size})`);
+  }
+  for (const row of rows) {
+    const entry = byToken.get(row.tokenId);
+    if (!entry) throw new Error(`Deployment artifact has no Garden Safe for token ${row.tokenId}`);
+    if (getAddress(entry.garden) !== getAddress(row.garden)) {
+      throw new Error(`safeAuthority.gardenSafes[${row.tokenId}].garden differs from the deployment artifact`);
+    }
+    if (getAddress(entry.safe) !== getAddress(row.safe)) {
+      throw new Error(`safeAuthority.gardenSafes[${row.tokenId}].safe differs from the deployment artifact`);
+    }
+  }
+}
+
 export function validateReleaseManifest(manifest: ReleaseManifest): void {
   if (manifest.schemaVersion !== 1) throw new Error(`Unsupported release manifest version ${manifest.schemaVersion}`);
   if (!/^[0-9a-f]{40}$/u.test(manifest.sourceCommit)) throw new Error("sourceCommit must be an exact 40-character SHA");
@@ -324,6 +375,33 @@ export function validateReleaseManifest(manifest: ReleaseManifest): void {
   }
   if (safeConfiguration.guidePolicyStatus !== "satisfied") {
     throw new Error("Protocol Safe guide policy status must be satisfied");
+  }
+  const celoSafe = manifest.ownership.celoProtocolSafeConfiguration;
+  if (!celoSafe) throw new Error("ownership.celoProtocolSafeConfiguration must freeze the approved Celo Safe");
+  requireUintString(celoSafe.threshold, "ownership.celoProtocolSafeConfiguration.threshold", 8);
+  requireUintString(celoSafe.liveThresholdAtFreeze, "ownership.celoProtocolSafeConfiguration.liveThresholdAtFreeze", 8);
+  const approvedSigners = new Set(safeConfiguration.owners.map((owner) => getAddress(owner)));
+  const celoOwners = new Set<string>();
+  for (const owner of celoSafe.owners) {
+    requireAddress(owner, "ownership.celoProtocolSafeConfiguration.owners[]");
+    const normalized = getAddress(owner);
+    if (celoOwners.has(normalized)) throw new Error(`Celo protocol Safe owner ${owner} is duplicated`);
+    celoOwners.add(normalized);
+    // The Celo Safe may only be signed by people already approved for the protocol Safe.
+    if (!approvedSigners.has(normalized)) {
+      throw new Error(`Celo protocol Safe owner ${owner} is not an approved protocol Safe signer`);
+    }
+  }
+  if (BigInt(celoSafe.threshold) < guideMinimum || BigInt(celoOwners.size) < guideMinimumOwners) {
+    throw new Error(
+      `Celo protocol Safe must have threshold >= ${guideMinimum} and owner count >= ${guideMinimumOwners}`,
+    );
+  }
+  if (BigInt(celoSafe.threshold) > BigInt(celoOwners.size)) {
+    throw new Error("Celo protocol Safe threshold may not exceed its owner count");
+  }
+  if (celoSafe.guidePolicyStatus !== "satisfied" && celoSafe.guidePolicyStatus !== "pending-live-threshold-raise") {
+    throw new Error("Celo protocol Safe guide policy status must be satisfied or pending-live-threshold-raise");
   }
   const ceremony = manifest.ceremony;
   if (
@@ -618,6 +696,12 @@ export function validateReleaseManifest(manifest: ReleaseManifest): void {
         throw new Error(`safeAuthority.gardenSafes[${index}].permissionsConfigHash must be an exact bytes32`);
       }
     });
+    // The permission hash deliberately covers only the Safe, modifier, and condition tree (it is
+    // what the ceremony scoped on chain), so it cannot tell one Garden from another. Bind each row's
+    // Garden identity to the receipt-backed Safe deployment artifact instead: a Garden and its Safe
+    // were created together there, so swapping two Gardens between rows fails here even though
+    // every hash still recomputes.
+    assertGardenSafesMatchDeploymentArtifact(rows);
   } else if (manifest.safeAuthority.gardenSafes.length !== 0) {
     throw new Error("Disabled Safe authority may not pre-authorize garden Safes");
   }

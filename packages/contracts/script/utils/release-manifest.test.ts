@@ -102,6 +102,41 @@ describe("combined commitment release manifest", () => {
     const reordered = structuredClone(manifest);
     reordered.safeAuthority.gardenSafes[0].tokenId = 5;
     expect(() => validateReleaseManifest(reordered)).toThrow(/must have tokenId 0/);
+
+    // Swapping two Gardens between rows keeps every permission hash valid, because the hash covers
+    // only the Safe and modifier. The receipt-backed deployment artifact is what catches it.
+    const swappedGardens = structuredClone(manifest);
+    const [rowA, rowB] = [swappedGardens.safeAuthority.gardenSafes[1], swappedGardens.safeAuthority.gardenSafes[2]];
+    [rowA.garden, rowB.garden] = [rowB.garden, rowA.garden];
+    for (const row of [rowA, rowB]) {
+      expect(permissionsConfigHash(row.safe, row.modifier, conditions)).toBe(row.permissionsConfigHash);
+    }
+    expect(() => validateReleaseManifest(swappedGardens)).toThrow(
+      /gardenSafes\[1\]\.garden differs from the deployment artifact/,
+    );
+  });
+
+  it("freezes the Celo protocol Safe separately from Arbitrum's owner set", () => {
+    const manifest = loadReleaseManifest();
+    const celo = manifest.ownership.celoProtocolSafeConfiguration;
+    const approved = new Set(manifest.ownership.protocolSafeConfiguration.owners.map((owner) => owner.toLowerCase()));
+    expect(celo.threshold).toBe("2");
+    expect(celo.owners).toHaveLength(4);
+    // No new identity: every Celo signer is already an approved protocol Safe signer.
+    expect(celo.owners.every((owner) => approved.has(owner.toLowerCase()))).toBe(true);
+    expect(celo.guidePolicyStatus).toBe("pending-live-threshold-raise");
+
+    const strangerSigner = structuredClone(manifest);
+    strangerSigner.ownership.celoProtocolSafeConfiguration.owners[0] = "0x000000000000000000000000000000000000dEaD";
+    expect(() => validateReleaseManifest(strangerSigner)).toThrow(/not an approved protocol Safe signer/);
+
+    const belowFloor = structuredClone(manifest);
+    belowFloor.ownership.celoProtocolSafeConfiguration.threshold = "1";
+    expect(() => validateReleaseManifest(belowFloor)).toThrow(/Celo protocol Safe must have threshold >= 2/);
+
+    const impossible = structuredClone(manifest);
+    impossible.ownership.celoProtocolSafeConfiguration.threshold = "5";
+    expect(() => validateReleaseManifest(impossible)).toThrow(/may not exceed its owner count/);
   });
 
   it("rejects numeric selectors, duplicate schemas, and half-configured authority", () => {

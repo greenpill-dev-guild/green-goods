@@ -271,10 +271,13 @@ describe("release CLI real entrypoints", () => {
   it("ends the current core plan paused and blocks ownership broadcast before RPC", () => {
     const corePlan = run(["protocol-core", "--network", "arbitrum", "--pure-simulation"]);
     expect(corePlan).toContain('"operations": [');
-    expect(corePlan).toContain('"ownership-transfer"');
     expect(corePlan).toContain('"18-garden-pool-backfill"');
-    expect(corePlan.indexOf('"ownership-transfer"')).toBeLessThan(corePlan.indexOf('"18-garden-pool-backfill"'));
     expect(corePlan.indexOf('"18-garden-pool-backfill"')).toBeLessThan(corePlan.indexOf('"core-unpause"'));
+    // Ownership transfer is part of this ceremony now, so it is reported as included rather than
+    // deferred; the plan must not hand the release owner two contradictory instructions.
+    const deferred = corePlan.slice(corePlan.indexOf('"operations": ['), corePlan.indexOf('"includedInThisCeremony"'));
+    expect(deferred).not.toContain('"ownership-transfer"');
+    expect(corePlan).toMatch(/"includedInThisCeremony": \[\s*"ownership-transfer"\s*\]/u);
     expect(corePlan).toContain("backfill while the module remains paused");
     expect(corePlan).toContain("separate later unpause authorization");
     expect(corePlan).not.toContain('"command": "bun run release:ownership:plan:arbitrum"');
@@ -397,6 +400,60 @@ describe("release CLI real entrypoints", () => {
     const result = fail(["settlement-peer-verify", "--network", "arbitrum"]);
     expect(result.status).not.toBe(0);
     expect(`${result.stdout}${result.stderr}`).toContain("requires --receipt <tx-hash>");
+  });
+
+  it("proves peer wiring against the owner at the receipt block and the whole Celo peer", () => {
+    const source = fs.readFileSync(path.join(CONTRACTS_ROOT, "script/deploy/release.ts"), "utf8");
+    const start = source.indexOf("private async peerVerify(");
+    const end = source.indexOf("private recoveryPlan(", start);
+    const verifier = source.slice(start, end);
+
+    // The receipt is fetched alone and mapped to undefined when absent, which is the only shape
+    // retryRpcAvailability actually retries; inside a Promise.all an absent receipt never retried.
+    expect(verifier).toContain("(await arbitrum.getTransactionReceipt(receiptHash)) ?? undefined");
+    expect(verifier).not.toMatch(/Promise\.all\(\[\s*arbitrum\.getTransactionReceipt/u);
+    // Ownership is read at the receipt block, so a route wired before the transfer cannot pass.
+    expect(verifier).toContain(".owner({ blockTag: receipt.blockNumber })");
+    expect(verifier).toContain("module owned by the protocol Safe at the receipt block");
+    // The complete Celo peer struct is asserted, not only the current module.
+    for (const label of [
+      "Celo has no retiring previous source peer",
+      "Celo previous-peer grace is zero",
+      "Celo source protocol version is frozen",
+      "Celo executor still paused",
+    ]) {
+      expect(verifier).toContain(label);
+    }
+    // And every check is evaluated before the checkpoint is written.
+    expect(verifier.indexOf("const failed = checks.filter")).toBeLessThan(
+      verifier.indexOf("settlement-peer.checkpoint.json"),
+    );
+  });
+
+  it("retries an absent receipt only when the read reports it as undefined", async () => {
+    let reads = 0;
+    const receipt = await retryRpcAvailability(
+      async () => {
+        reads += 1;
+        return reads < 3 ? undefined : { hash: TRANSACTION_HASH };
+      },
+      { attempts: 4, wait: async () => undefined },
+    );
+    expect(receipt.hash).toBe(TRANSACTION_HASH);
+    expect(reads).toBe(3);
+
+    // The shape the reviewer caught: a Promise.all result is defined even when its receipt is null,
+    // so it returns on the first attempt and the null is never retried.
+    let bundled = 0;
+    const [nullReceipt] = await retryRpcAvailability(
+      async () => {
+        bundled += 1;
+        return Promise.all([Promise.resolve(null)]);
+      },
+      { attempts: 4, wait: async () => undefined },
+    );
+    expect(nullReceipt).toBeNull();
+    expect(bundled).toBe(1);
   });
 });
 

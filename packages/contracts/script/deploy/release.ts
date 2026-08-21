@@ -1,7 +1,7 @@
 import { execFileSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { Contract, getAddress, Interface, isAddress, JsonRpcProvider, keccak256 } from "ethers";
+import { Contract, getAddress, Interface, isAddress, JsonRpcProvider, keccak256, ZeroAddress } from "ethers";
 import { buildReadOnlyCastEnv, execCastCaptured, parseCastTransactionHash } from "../utils/cast-env";
 import type { ParsedOptions } from "../utils/cli-parser";
 import { NetworkManager } from "../utils/network";
@@ -427,7 +427,11 @@ Phase B boundary form (not authorized by Phase A):
     console.log(`Frozen implementation source: ${manifest.sourceCommit}`);
     console.log(`Deployment sender/initial owner: ${manifest.ownership.deploymentSender}`);
     console.log(`Protocol Safe/future owner: ${manifest.ownership.protocolSafe}`);
-    console.log("Current ceremony end state: paused and deployment-sender owned");
+    console.log(
+      manifest.ceremony.endState === "paused-safe-owned"
+        ? "Current ceremony end state: paused and protocol-Safe owned (ownership transfer included)"
+        : "Current ceremony end state: paused and deployment-sender owned",
+    );
     console.log(`CREATE2 salt base: ${manifest.create2.domain}:${manifest.create2.version}`);
     console.log(`Deterministic identities: ${lock.identities.length} (21 libraries, 5 implementations, 5 proxies)`);
     console.log(
@@ -506,7 +510,14 @@ Phase B boundary form (not authorized by Phase A):
       ],
       deferredFollowUp: {
         issueRequired: manifest.ceremony.followUpIssueRequired,
-        operations: ["ownership-transfer", "18-garden-pool-backfill", "core-unpause"],
+        // Ownership transfer leaves this list once the ceremony includes it; backfill and unpause
+        // always stay deferred here because this manifest never authorizes them.
+        operations: [
+          ...(manifest.ceremony.ownershipTransferIncluded ? [] : ["ownership-transfer"]),
+          "18-garden-pool-backfill",
+          "core-unpause",
+        ],
+        includedInThisCeremony: manifest.ceremony.ownershipTransferIncluded ? ["ownership-transfer"] : [],
         from: manifest.ownership.deploymentSender,
         to: manifest.ownership.protocolSafe,
         rollbackBefore: manifest.ownership.rollbackOwnerBeforeTransfer,
@@ -542,9 +553,14 @@ Phase B boundary form (not authorized by Phase A):
     blockTag: number | "finalized",
   ): Promise<void> {
     const safeAddress = manifest.ownership.protocolSafe;
-    const approved = manifest.ownership.protocolSafeConfiguration;
-    const floorThreshold = BigInt(approved.contractsGuideMinimumThreshold);
-    const floorOwners = BigInt(approved.contractsGuideMinimumOwnerCount);
+    // The same address is a different Safe on each chain, so compare against the configuration
+    // frozen for this chain rather than Arbitrum's owner set.
+    const approved =
+      network === "celo"
+        ? manifest.ownership.celoProtocolSafeConfiguration
+        : manifest.ownership.protocolSafeConfiguration;
+    const floorThreshold = BigInt(manifest.ownership.protocolSafeConfiguration.contractsGuideMinimumThreshold);
+    const floorOwners = BigInt(manifest.ownership.protocolSafeConfiguration.contractsGuideMinimumOwnerCount);
     if ((await provider.getCode(safeAddress, blockTag)) === "0x") {
       throw new Error(`Frozen protocol Safe ${safeAddress} has no code on ${network} at block ${String(blockTag)}`);
     }
@@ -1583,16 +1599,25 @@ Phase B boundary form (not authorized by Phase A):
     );
 
     const receiptHash = options.receiptHash;
-    const [receipt, route, arbitrumPaused, sourcePeer, celoPaused] = await retryRpcAvailability(async () =>
+    // The receipt is read on its own: retryRpcAvailability retries only an undefined result, and a
+    // Promise.all array is always defined, so bundling it would turn a not-yet-propagated receipt
+    // into an immediate failure instead of the bounded retry the operator is promised.
+    const receipt = await retryRpcAvailability(
+      async () => (await arbitrum.getTransactionReceipt(receiptHash)) ?? undefined,
+      { unavailableMessage: `Receipt ${receiptHash} is not mined on Arbitrum` },
+    );
+    const ownerAtReceipt = getAddress(
+      await new Contract(settlement, ownableInterface, arbitrum).owner({ blockTag: receipt.blockNumber }),
+    );
+    const [route, arbitrumPaused, ownerNow, sourcePeer, celoPaused] = await retryRpcAvailability(async () =>
       Promise.all([
-        arbitrum.getTransactionReceipt(receiptHash),
         module_.ccipRoute(),
         module_.paused(),
+        new Contract(settlement, ownableInterface, arbitrum).owner(),
         celoExecutor.sourcePeer(),
         celoExecutor.paused(),
       ]),
     );
-    if (!receipt) throw new Error(`Receipt ${receiptHash} is not mined on Arbitrum`);
 
     // The binding event: the module itself must have announced exactly the reviewed route.
     const routeLog = receipt.logs
@@ -1645,6 +1670,19 @@ Phase B boundary form (not authorized by Phase A):
         String(route.previousPeerExpiresAt),
       ],
       ["Arbitrum module still paused", arbitrumPaused === true, String(arbitrumPaused)],
+      // Tier 3 requires the protocol Safe to own the module when the route is written. Reading the
+      // owner at the receipt block proves the ordering; a route wired by the deployment EOA before
+      // transfer fails here even though ownership moved afterwards.
+      [
+        "module owned by the protocol Safe at the receipt block",
+        ownerAtReceipt === getAddress(manifest.ownership.protocolSafe),
+        ownerAtReceipt,
+      ],
+      [
+        "module still owned by the protocol Safe",
+        getAddress(ownerNow) === getAddress(manifest.ownership.protocolSafe),
+        String(ownerNow),
+      ],
       ["Celo executor still paused", celoPaused === true, String(celoPaused)],
       [
         "Celo source peer still the frozen module",
@@ -1655,6 +1693,23 @@ Phase B boundary form (not authorized by Phase A):
         "Celo source selector still Arbitrum",
         BigInt(sourcePeer.sourceChainSelector) === BigInt(manifest.chains.arbitrum.ccipSelector),
         String(sourcePeer.sourceChainSelector),
+      ],
+      // A retiring previous peer stays authenticated until its grace expires, so the whole struct
+      // has to be clean, not just the current module.
+      [
+        "Celo has no retiring previous source peer",
+        getAddress(sourcePeer.previousSourceSettlementModule) === ZeroAddress,
+        String(sourcePeer.previousSourceSettlementModule),
+      ],
+      [
+        "Celo previous-peer grace is zero",
+        BigInt(sourcePeer.previousPeerExpiresAt) === 0n,
+        String(sourcePeer.previousPeerExpiresAt),
+      ],
+      [
+        "Celo source protocol version is frozen",
+        BigInt(sourcePeer.protocolVersion) === BigInt(manifest.chains.arbitrum.protocolVersion),
+        String(sourcePeer.protocolVersion),
       ],
     ];
     const failed = checks.filter(([, ok]) => !ok);
@@ -1675,6 +1730,7 @@ Phase B boundary form (not authorized by Phase A):
       blockNumber: receipt.blockNumber,
       from: getAddress(receipt.from),
       to: receipt.to ? getAddress(receipt.to) : null,
+      moduleOwnerAtReceipt: ownerAtReceipt,
       settlementModule: getAddress(settlement),
       destinationExecutor: getAddress(executor),
       destinationChainSelector: expectedSelector.toString(),
