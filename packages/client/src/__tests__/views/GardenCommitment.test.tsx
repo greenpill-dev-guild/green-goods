@@ -229,13 +229,19 @@ describe("GardenCommitment", () => {
   });
 
   it("says the surface is not ready rather than showing an empty commitment", () => {
+    // The real hook never returns a populated detail while unavailable: its
+    // query is disabled, so `detail` is null and `isLoading` is false. A
+    // fixture that returned both was how the not-found branch hid this.
     mockUseCommitment.mockReturnValue({
       ...detail(),
+      detail: null,
+      isLoading: false,
       availability: { status: "unavailable", reason: "not-integrated", capability: {} },
     });
     render();
 
     expect(screen.getByText("Commitments are not ready here yet")).toBeInTheDocument();
+    expect(screen.queryByText("Commitment not found")).not.toBeInTheDocument();
   });
 
   it("offers a way back from a failed read", () => {

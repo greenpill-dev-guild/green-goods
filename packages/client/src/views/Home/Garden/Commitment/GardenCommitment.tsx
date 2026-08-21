@@ -88,18 +88,9 @@ export function GardenCommitment() {
 
   const back = () => navigate(-1);
 
-  if (!commitmentId || (!isLoading && !detail && !isError)) {
-    return (
-      <DetailShell onBack={back}>
-        <EmptyState
-          icon={<RiSearchLine />}
-          title={formatMessage({ id: "app.commitment.notFound.title" })}
-          description={formatMessage({ id: "app.commitment.notFound.body" })}
-        />
-      </DetailShell>
-    );
-  }
-
+  // Availability is answered before absence. While pooling is unavailable the
+  // read is disabled, so there is no detail and no loading, and a not-found
+  // branch tested first turns every deep link into "this does not exist".
   if (availability.status !== "available") {
     return (
       <DetailShell onBack={back}>
@@ -107,6 +98,18 @@ export function GardenCommitment() {
           icon={<RiWifiOffLine />}
           title={formatMessage({ id: "app.commitments.notReady.title" })}
           description={formatMessage({ id: "app.commitments.notReady.description" })}
+        />
+      </DetailShell>
+    );
+  }
+
+  if (!commitmentId || (!isLoading && !detail && !isError)) {
+    return (
+      <DetailShell onBack={back}>
+        <EmptyState
+          icon={<RiSearchLine />}
+          title={formatMessage({ id: "app.commitment.notFound.title" })}
+          description={formatMessage({ id: "app.commitment.notFound.body" })}
         />
       </DetailShell>
     );
