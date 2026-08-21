@@ -374,18 +374,24 @@ the `release:verify:safe:*` variants; those belong to the later ownership-transf
 - The AssessmentResolver v3 upgrade, canonical v2 pin, schema finalization, Pooling,
   SettlementModule, CreditRegistry, integration upgrade, and Celo executor deployment receipts are
   complete. Their broadcast orchestrators are retired; current-state verification remains read-only.
-- A local hard-max 24-member executor run measured **1,383,897 gas**, including the acknowledgment
-  attempt. The manifest remains `"0"` until the final Safe/Zodiac configuration exists and the same
-  atomic path is measured through that live-authority policy.
-- Garden Safe/owner/recovery and Zodiac Roles/cap/fee/reserve facts are incomplete; value authority
-  is disabled. They do not block a paused candidate with no peer/value authority.
+- The destination-gas gate now freezes the live Safe/Zodiac fork measurement and the exact Celo
+  lane ceiling: batch 6 used 2,744,378 gas, batch 7 exceeded the 3,000,000 per-message ceiling, and
+  the operational `maxBatchSize` remains 2.
+- The 18 Garden Safes, 18 Zodiac Roles modifiers, 18 Safe module enablements, and 18 write-once
+  executor routes are deployed and verified. The exact plan hashes, final receipts, authority
+  identities, and restart instructions are recorded in
+  [`../reports/celo-garden-safe-ceremony-checkpoint-2026-08-20.md`](../reports/celo-garden-safe-ceremony-checkpoint-2026-08-20.md).
+- The committed manifest still keeps Safe authority disabled. The next repository boundary is one
+  receipt-backed post-ceremony re-freeze that fills every Safe/Zodiac field and flips
+  `safeAuthority.enabled` together. No settlement is authorized before that change is reviewed and
+  merged.
 - The hosted production indexer is the older deployment and is deliberately outside this contracts
   ceremony. PRD-722 remains responsible for its later deployment/reindex/cutover/read-back.
 
-The next mutable boundary is one selected Garden Safe bootstrap. It still requires a pinned
-candidate, fresh gates, exact-range review, the reviewed deterministic plan, exact live 2-of-3
-recovery Safe proof, and explicit human authorization for that one step. Deferred activation facts
-continue to block ownership transfer, peer/value authority, message-only ping, and value movement.
+The Garden Safe bootstrap and route ceremony is complete. The next boundary is the post-ceremony
+manifest re-freeze described in the checkpoint report above. It is repository work and does not
+authorize another transaction. Fee-reserve funding, Arbitrum `setCcipRoute`, message-only ping,
+minimum-value canary, ownership transfer, cap changes, and value movement remain separately gated.
 
 ## Core-tier unblock evidence
 
