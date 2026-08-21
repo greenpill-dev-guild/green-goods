@@ -425,7 +425,7 @@
   },
   "indexer": {
     "activationAuthorized": false,
-    "configHash": "0xb3cfc35d0ff1152a7543c5209032ac4b118b08cbd2c916f6d62fdef0bb3b82b0",
+    "configHash": "0x94d77e3ee814ca65d14992fd1ebf2f629809243bd8d1c6785133a1d510952092",
     "ownerLane": "PRD-722",
     "handoffOnly": true,
     "networks": [
