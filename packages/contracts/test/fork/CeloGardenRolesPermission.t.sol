@@ -3,8 +3,10 @@ pragma solidity ^0.8.25;
 
 import { Test } from "forge-std/Test.sol";
 import { stdJson } from "forge-std/StdJson.sol";
+import { Client } from "@chainlink/contracts-ccip/contracts/libraries/Client.sol";
 
 import { ICeloSettlementExecutor } from "../../src/interfaces/ICeloSettlementExecutor.sol";
+import { SettlementMessageCodec } from "../../src/libraries/SettlementMessageCodec.sol";
 
 /**
  * Proves the reviewed G$ transfer permission on a pinned Celo fork.
@@ -88,12 +90,20 @@ interface IERC20 {
     function transfer(address to, uint256 amount) external returns (bool);
 }
 
+interface ICcipReceiver {
+    function ccipReceive(Client.Any2EVMMessage calldata message) external;
+}
+
 contract CeloGardenRolesPermissionForkTest is Test {
     using stdJson for string;
 
     address private constant FACTORY = 0x000000000000aDdB49795b0f9bA5BC298cDda236;
     address private constant ROLES_MASTERCOPY = 0x9646fDAD06d3e24444381f44362a3B0eB343D337;
     address private constant EXECUTOR = 0xB8a7F3c3DfA407c45e05b7B2381233101938a84F;
+    uint16 private constant FROZEN_MAX_BATCH_SIZE = 2;
+    uint16 private constant DELIVERABLE_MAX_BATCH_SIZE = 6;
+    uint16 private constant FIRST_UNDELIVERABLE_BATCH_SIZE = 7;
+    uint256 private constant CCIP_DESTINATION_GAS_LIMIT = 3_000_000;
 
     string private plan;
     address private deploymentOperator;
@@ -370,6 +380,104 @@ contract CeloGardenRolesPermissionForkTest is Test {
         assertEq(route.safe, safe, "route did not record the Garden Safe");
         assertEq(route.rolesModifier, address(roles), "route did not record the modifier");
         assertTrue(route.active, "route was not activated");
+    }
+
+    /**
+     * Measures the largest batch Celo can execute beneath the Arbitrum-to-Celo lane's exact
+     * 3,000,000-gas per-message ceiling. Every call crosses the live executor, a real Safe, a real
+     * Zodiac Roles modifier, G$, and the live CCIP router acknowledgment path at the pinned block.
+     * The dedicated proof runner uses forge --isolate so every delivery starts with a fresh
+     * transaction access list.
+     *
+     * The smaller cases preserve the measured sweep's ordering so the batch-six log remains
+     * comparable to the frozen release evidence. Batch seven is the adjacent negative boundary,
+     * and the separately frozen operational maximum of two must stay inside the measured envelope.
+     */
+    function testFork_measureDeliverableDestinationGasCeiling() public {
+        ICeloSettlementExecutor executor = ICeloSettlementExecutor(EXECUTOR);
+        address garden = plan.readAddress(".boundaries[0].garden");
+        _activateForMeasurement(executor, garden);
+
+        uint16[5] memory sizes = [uint16(1), 2, 4, DELIVERABLE_MAX_BATCH_SIZE, FIRST_UNDELIVERABLE_BATCH_SIZE];
+        uint256 frozenMaxGasUsed;
+        uint256 deliverableMaxGasUsed;
+        uint256 firstUndeliverableGasUsed;
+
+        for (uint256 caseIndex; caseIndex < sizes.length; ++caseIndex) {
+            uint256 size = sizes[caseIndex];
+            address[] memory recipients = new address[](size);
+            uint256[] memory amounts = new uint256[](size);
+            for (uint256 index; index < size; ++index) {
+                recipients[index] = address(uint160(0x100000 + caseIndex * 1000 + index));
+                amounts[index] = 10_000e18;
+            }
+
+            uint256 gasUsed = _deliver(executor, garden, caseIndex + 1, size > 1, recipients, amounts);
+            emit log_named_uint(string.concat("batch of ", vm.toString(size), " -> destination gas"), gasUsed);
+
+            if (size == FROZEN_MAX_BATCH_SIZE) frozenMaxGasUsed = gasUsed;
+            if (size == DELIVERABLE_MAX_BATCH_SIZE) deliverableMaxGasUsed = gasUsed;
+            if (size == FIRST_UNDELIVERABLE_BATCH_SIZE) firstUndeliverableGasUsed = gasUsed;
+        }
+
+        assertLe(FROZEN_MAX_BATCH_SIZE, DELIVERABLE_MAX_BATCH_SIZE, "frozen max exceeds measured deliverable max");
+        assertLe(frozenMaxGasUsed, CCIP_DESTINATION_GAS_LIMIT, "frozen max batch exceeds the CCIP gas limit");
+        assertLe(deliverableMaxGasUsed, CCIP_DESTINATION_GAS_LIMIT, "measured deliverable max exceeds the CCIP limit");
+        assertGt(
+            firstUndeliverableGasUsed,
+            CCIP_DESTINATION_GAS_LIMIT,
+            "the claimed deliverable maximum is not the transport boundary"
+        );
+    }
+
+    function _activateForMeasurement(ICeloSettlementExecutor executor, address garden) private {
+        vm.startPrank(_executorOwner());
+        executor.configureGardenRoute(
+            garden, safe, address(roles), roleKey, allowanceKey, plan.readBytes32(".boundaries[0].permissionsConfigHash")
+        );
+        executor.setCaps(24, 7_000_000e18, 10_000_000e18);
+        executor.setFeePolicy(100, 50_000e18);
+        executor.setPeriodicCap(uint64(periodDuration), uint256(periodAmount));
+        executor.setAcknowledgmentFeeReserveMinimum(50e18);
+        vm.deal(EXECUTOR, 10_000e18);
+        executor.setPaused(false);
+        vm.stopPrank();
+    }
+
+    function _deliver(
+        ICeloSettlementExecutor executor,
+        address garden,
+        uint256 settlementId,
+        bool isBatch,
+        address[] memory recipients,
+        uint256[] memory amounts
+    )
+        private
+        returns (uint256 gasUsed)
+    {
+        ICeloSettlementExecutor.SourcePeer memory peer = executor.sourcePeer();
+        Client.Any2EVMMessage memory message = Client.Any2EVMMessage({
+            messageId: keccak256(abi.encode("measure", settlementId)),
+            sourceChainSelector: peer.sourceChainSelector,
+            sender: abi.encode(peer.sourceSettlementModule),
+            data: SettlementMessageCodec.encodeCommand(
+                peer.protocolVersion, settlementId, isBatch, 0, garden, 0, recipients, amounts
+            ),
+            destTokenAmounts: new Client.EVMTokenAmount[](0)
+        });
+
+        vm.prank(executor.CCIP_ROUTER());
+        uint256 gasBefore = gasleft();
+        ICcipReceiver(EXECUTOR).ccipReceive(message);
+        gasUsed = gasBefore - gasleft();
+
+        bytes32 executionKey = keccak256(
+            abi.encode(peer.sourceChainSelector, peer.sourceSettlementModule, isBatch, settlementId, uint32(0))
+        );
+        ICeloSettlementExecutor.ExecutionResult memory result = executor.executionResultOf(executionKey);
+        assertEq(uint8(result.status), uint8(ICeloSettlementExecutor.ResultStatus.Success), "batch did not settle");
+        assertTrue(result.acknowledgmentSent, "acknowledgment was not sent");
+        assertTrue(result.acknowledgmentMessageId != bytes32(0), "acknowledgment carries no message id");
     }
 
     function _executorOwner() private view returns (address) {

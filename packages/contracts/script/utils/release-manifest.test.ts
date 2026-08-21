@@ -45,6 +45,20 @@ describe("combined commitment release manifest", () => {
         status: "local-cold-state-green",
       },
     });
+    expect(manifest.chains.arbitrum).toMatchObject({
+      destinationGasLimit: "3000000",
+      destinationGasMeasurement: {
+        fixture: "CeloGardenRolesPermissionForkTest.testFork_measureDeliverableDestinationGasCeiling",
+        batchSize: "6",
+        gasUsed: "2744378",
+        ccipPerMessageGasLimitCeiling: "3000000",
+        includesAcknowledgmentAttempt: true,
+        liveSafeZodiacMeasured: true,
+        measuredOn: "2026-08-19",
+        status: "final-live-authority-green",
+      },
+    });
+    expect(manifest.safeAuthority.caps).toMatchObject({ maxBatchSize: "2" });
     expect(manifest.existingProxyUpgrades.map((upgrade) => upgrade.currentCeremonyEndOwner)).toEqual([
       manifest.ownership.deploymentSender,
       manifest.ownership.deploymentSender,
@@ -99,9 +113,46 @@ describe("combined commitment release manifest", () => {
       belowMinimumOwners.ownership.protocolSafeConfiguration.owners.slice(0, 2);
     expect(() => validateReleaseManifest(belowMinimumOwners)).toThrow(/owner count >= 3/);
 
-    const prematureGasFreeze = structuredClone(manifest);
-    prematureGasFreeze.chains.arbitrum.destinationGasLimit = "2000000";
+    const statusMismatch = structuredClone(manifest);
+    const statusMismatchMeasurement = statusMismatch.chains.arbitrum.destinationGasMeasurement;
+    if (!statusMismatchMeasurement) throw new Error("Fixture must include the frozen destination gas measurement");
+    statusMismatchMeasurement.status = "local-hard-max-green-live-authority-pending";
+    expect(() => validateReleaseManifest(statusMismatch)).toThrow(/status does not match live Safe\/Zodiac proof/);
+
+    const prematureGasFreeze = structuredClone(statusMismatch);
+    const prematureMeasurement = prematureGasFreeze.chains.arbitrum.destinationGasMeasurement;
+    if (!prematureMeasurement) throw new Error("Fixture must include the frozen destination gas measurement");
+    prematureMeasurement.liveSafeZodiacMeasured = false;
     expect(() => validateReleaseManifest(prematureGasFreeze)).toThrow(/must remain zero/);
+
+    const transportCeilingExceeded = structuredClone(manifest);
+    const ceilingMeasurement = transportCeilingExceeded.chains.arbitrum.destinationGasMeasurement;
+    if (!ceilingMeasurement) throw new Error("Fixture must include the frozen destination gas measurement");
+    ceilingMeasurement.ccipPerMessageGasLimitCeiling = "2999999";
+    expect(() => validateReleaseManifest(transportCeilingExceeded)).toThrow(
+      /exceeds the recorded CCIP per-message ceiling/,
+    );
+
+    const transportCeilingDrift = structuredClone(manifest);
+    const driftedCeilingMeasurement = transportCeilingDrift.chains.arbitrum.destinationGasMeasurement;
+    if (!driftedCeilingMeasurement) throw new Error("Fixture must include the frozen destination gas measurement");
+    driftedCeilingMeasurement.ccipPerMessageGasLimitCeiling = "3000001";
+    expect(() => validateReleaseManifest(transportCeilingDrift)).toThrow(
+      /must equal the pinned arbitrum->celo ceiling/,
+    );
+
+    const missingMeasurementWithOversizedLimit = structuredClone(manifest);
+    delete missingMeasurementWithOversizedLimit.chains.arbitrum.destinationGasMeasurement;
+    missingMeasurementWithOversizedLimit.chains.arbitrum.destinationGasLimit = "3000001";
+    expect(() => validateReleaseManifest(missingMeasurementWithOversizedLimit)).toThrow(
+      /destinationGasLimit exceeds the pinned CCIP per-message ceiling/,
+    );
+
+    const unmeasuredAuthorityBatch = structuredClone(manifest);
+    unmeasuredAuthorityBatch.safeAuthority.caps.maxBatchSize = "7";
+    expect(() => validateReleaseManifest(unmeasuredAuthorityBatch)).toThrow(
+      /Safe authority maxBatchSize exceeds the measured deliverable maximum/,
+    );
 
     const missingAcknowledgment = structuredClone(manifest);
     const gasMeasurement = missingAcknowledgment.chains.arbitrum.destinationGasMeasurement;
@@ -139,16 +190,12 @@ describe("combined commitment release manifest", () => {
     expect(() => validateReleaseManifest(unisolatedMeasurement)).toThrow(/per-call transaction isolation/);
   });
 
-  it("refuses peer wiring until measured gas is frozen and then rejects environment drift", async () => {
+  it("builds peer wiring only at the measured gas frozen in the manifest", async () => {
     const { buildPeerTransactionPlan } = await import("./release-plan");
     const manifest = loadReleaseManifest();
     const lock = buildReleaseLock(manifest);
-    expect(() => buildPeerTransactionPlan(manifest, lock, 750_000n)).toThrow(/frozen in the release manifest/);
-
-    const frozen = structuredClone(manifest);
-    frozen.chains.arbitrum.destinationGasLimit = "750000";
-    expect(() => buildPeerTransactionPlan(frozen, lock, 750_001n)).toThrow(/differs from the frozen manifest/);
-    expect(buildPeerTransactionPlan(frozen, lock, 750_000n).transactions).toHaveLength(1);
+    expect(() => buildPeerTransactionPlan(manifest, lock, 3_000_001n)).toThrow(/differs from the frozen manifest/);
+    expect(buildPeerTransactionPlan(manifest, lock, 3_000_000n).transactions).toHaveLength(1);
   });
 
   it("derives one deterministic library map for build, CREATE2, and verification", () => {

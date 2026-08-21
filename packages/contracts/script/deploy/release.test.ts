@@ -328,12 +328,16 @@ describe("release CLI real entrypoints", () => {
     expect(fs.readFileSync(ARBITRUM_ARTIFACT).equals(canonicalBefore)).toBe(true);
   });
 
-  it("refuses both peer plans until measured gas is frozen in the manifest", () => {
-    const env = { ...process.env, SETTLEMENT_DESTINATION_GAS_LIMIT: "750000" };
+  it("builds both peer plans at the measured gas frozen in the manifest", () => {
+    const env = { ...process.env, SETTLEMENT_DESTINATION_GAS_LIMIT: "3000000" };
     for (const network of ["arbitrum", "celo"]) {
-      const result = fail(["settlement-peer", "--network", network, "--pure-simulation"], env);
-      expect(result.status).not.toBe(0);
-      expect(`${result.stdout}${result.stderr}`).toContain("measured destination gas is frozen");
+      const output = run(["settlement-peer", "--network", network, "--pure-simulation"], env);
+      expect(output).toContain('"stage": "settlement-peer"');
+      expect(output).toContain(
+        network === "arbitrum"
+          ? '"destination gas limit equals 3000000"'
+          : '"source peer has no previous peer or grace window"',
+      );
     }
   });
 

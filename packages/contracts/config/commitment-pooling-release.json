@@ -77,15 +77,16 @@
       "peerNetwork": "celo",
       "peerSelector": "1346049177634351622",
       "protocolVersion": 1,
-      "destinationGasLimit": "0",
+      "destinationGasLimit": "3000000",
       "destinationGasMeasurement": {
-        "fixture": "CeloSettlementExecutorTest.testCeloSettlementExecutor_measureHardMaxBatchDestinationGasCandidate",
-        "batchSize": "24",
-        "gasUsed": "1383897",
+        "fixture": "CeloGardenRolesPermissionForkTest.testFork_measureDeliverableDestinationGasCeiling",
+        "batchSize": "6",
+        "gasUsed": "2744378",
+        "ccipPerMessageGasLimitCeiling": "3000000",
         "includesAcknowledgmentAttempt": true,
-        "liveSafeZodiacMeasured": false,
-        "measuredOn": "2026-08-11",
-        "status": "local-hard-max-green-live-authority-pending"
+        "liveSafeZodiacMeasured": true,
+        "measuredOn": "2026-08-19",
+        "status": "final-live-authority-green"
       },
       "paused": true,
       "protocolGarden": "0xf401f34378384713222d1d21f63359cc4E8a858a",

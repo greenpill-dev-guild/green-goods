@@ -21,6 +21,10 @@ export const PRODUCTION_ARTIFACT_ROOT = path.join(CONTRACTS_ROOT, ".generated/fo
 export type ReleaseNetwork = "arbitrum" | "celo";
 export type ReleaseStage = "pooling" | "settlement-module" | "credit-registry" | "settlement-executor";
 
+const CCIP_PER_MESSAGE_GAS_LIMIT_CEILINGS: Partial<Record<`${ReleaseNetwork}->${ReleaseNetwork}`, bigint>> = {
+  "arbitrum->celo": 3_000_000n,
+};
+
 interface ChainManifest {
   evmChainId: string;
   ccipSelector: string;
@@ -34,6 +38,7 @@ interface ChainManifest {
     fixture: string;
     batchSize: string;
     gasUsed: string;
+    ccipPerMessageGasLimitCeiling: string;
     includesAcknowledgmentAttempt: boolean;
     liveSafeZodiacMeasured: boolean;
     measuredOn: string;
@@ -372,6 +377,8 @@ export function validateReleaseManifest(manifest: ReleaseManifest): void {
   }
 
   for (const [network, chain] of Object.entries(manifest.chains) as Array<[ReleaseNetwork, ChainManifest]>) {
+    const ccipRoute = `${network}->${chain.peerNetwork}` as `${ReleaseNetwork}->${ReleaseNetwork}`;
+    const pinnedCcipCeiling = CCIP_PER_MESSAGE_GAS_LIMIT_CEILINGS[ccipRoute];
     requireUintString(chain.evmChainId, `${network}.evmChainId`);
     requireUintString(chain.ccipSelector, `${network}.ccipSelector`);
     requireUintString(chain.peerSelector, `${network}.peerSelector`);
@@ -384,6 +391,9 @@ export function validateReleaseManifest(manifest: ReleaseManifest): void {
       if (BigInt(chain.destinationGasLimit) > (1n << 32n) - 1n) {
         throw new Error(`${network}.destinationGasLimit does not round-trip to uint32`);
       }
+      if (pinnedCcipCeiling !== undefined && BigInt(chain.destinationGasLimit) > pinnedCcipCeiling) {
+        throw new Error(`${network}.destinationGasLimit exceeds the pinned CCIP per-message ceiling`);
+      }
     }
     if (chain.destinationGasMeasurement !== undefined) {
       requireUintString(
@@ -392,14 +402,19 @@ export function validateReleaseManifest(manifest: ReleaseManifest): void {
         16,
       );
       requireUintString(chain.destinationGasMeasurement.gasUsed, `${network}.destinationGasMeasurement.gasUsed`, 32);
+      requireUintString(
+        chain.destinationGasMeasurement.ccipPerMessageGasLimitCeiling,
+        `${network}.destinationGasMeasurement.ccipPerMessageGasLimitCeiling`,
+        32,
+      );
       if (!/^\d{4}-\d{2}-\d{2}$/u.test(chain.destinationGasMeasurement.measuredOn)) {
         throw new Error(`${network}.destinationGasMeasurement.measuredOn must be an exact YYYY-MM-DD date`);
       }
       if (!chain.destinationGasMeasurement.fixture.trim()) {
         throw new Error(`${network}.destinationGasMeasurement.fixture must name the exact measured entrypoint`);
       }
-      if (chain.destinationGasMeasurement.batchSize !== "24") {
-        throw new Error(`${network}.destinationGasMeasurement must exercise the compile-time hard maximum of 24`);
+      if (BigInt(chain.destinationGasMeasurement.batchSize) > BigInt(batching.hardMaxBatchSize)) {
+        throw new Error(`${network}.destinationGasMeasurement exceeds the compile-time hard maximum`);
       }
       if (!chain.destinationGasMeasurement.includesAcknowledgmentAttempt) {
         throw new Error(`${network}.destinationGasMeasurement must include the acknowledgment attempt`);
@@ -412,11 +427,33 @@ export function validateReleaseManifest(manifest: ReleaseManifest): void {
         throw new Error(`${network}.destinationGasLimit must remain zero until live Safe/Zodiac measurement is green`);
       }
       if (
+        chain.destinationGasLimit !== undefined &&
+        BigInt(chain.destinationGasLimit) > BigInt(chain.destinationGasMeasurement.ccipPerMessageGasLimitCeiling)
+      ) {
+        throw new Error(`${network}.destinationGasLimit exceeds the recorded CCIP per-message ceiling`);
+      }
+      if (pinnedCcipCeiling === undefined) {
+        throw new Error(`${ccipRoute} destination gas measurement has no pinned CCIP per-message ceiling`);
+      }
+      if (BigInt(chain.destinationGasMeasurement.ccipPerMessageGasLimitCeiling) !== pinnedCcipCeiling) {
+        throw new Error(
+          `${network}.destinationGasMeasurement.ccipPerMessageGasLimitCeiling must equal the pinned ` +
+            `${ccipRoute} ceiling of ${pinnedCcipCeiling}`,
+        );
+      }
+      if (
         finalMeasurement &&
         (chain.destinationGasLimit === undefined ||
           BigInt(chain.destinationGasLimit) < BigInt(chain.destinationGasMeasurement.gasUsed))
       ) {
         throw new Error(`${network}.destinationGasLimit must cover the final live-authority measurement`);
+      }
+      const authorityMaxBatchSize = manifest.safeAuthority.caps.maxBatchSize;
+      requireUintString(authorityMaxBatchSize, "safeAuthority.caps.maxBatchSize", 16);
+      if (BigInt(String(authorityMaxBatchSize)) > BigInt(chain.destinationGasMeasurement.batchSize)) {
+        throw new Error(
+          `Safe authority maxBatchSize exceeds the measured deliverable maximum of ${chain.destinationGasMeasurement.batchSize}`,
+        );
       }
     }
     const peer = manifest.chains[chain.peerNetwork];
