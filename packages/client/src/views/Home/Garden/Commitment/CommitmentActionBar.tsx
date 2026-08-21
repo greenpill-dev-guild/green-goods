@@ -6,6 +6,12 @@ export interface CommitmentActionBarProps {
   act: CommitmentAct;
   isPending: boolean;
   isOnline: boolean;
+  /**
+   * Why the act cannot be offered right now, when the reason is outside the
+   * act itself. The bar stays on screen so the reader knows the act exists,
+   * and says what is stopping it.
+   */
+  blockedReasonId?: string | null;
   onRun: () => void;
 }
 
@@ -14,21 +20,30 @@ export interface CommitmentActionBarProps {
  *
  * Only a seat that can actually perform something reaches this component, so
  * there is no disabled-for-your-seat state to draw: a bar that cannot be used
- * answers a question its reader did not ask. The only disabling here is for an
- * act already in flight, and for the one act that genuinely needs the network.
+ * answers a question its reader did not ask. The disabling here is for an act
+ * already in flight, for the one act that genuinely needs the network, and for
+ * a queue the phone cannot read, which is not the same as an empty one.
  */
-export function CommitmentActionBar({ act, isPending, isOnline, onRun }: CommitmentActionBarProps) {
+export function CommitmentActionBar({
+  act,
+  isPending,
+  isOnline,
+  blockedReasonId = null,
+  onRun,
+}: CommitmentActionBarProps) {
   const { formatMessage } = useIntl();
   // Withdrawing is an immediate contract call rather than a queued job, so it
   // is the one act that cannot be taken offline. Everything else queues.
   const needsNetwork = act.kind === "withdraw";
-  const blocked = isPending || (needsNetwork && !isOnline);
+  const reasonId =
+    blockedReasonId ?? (needsNetwork && !isOnline ? "app.commitment.act.needsNetwork" : null);
+  const blocked = isPending || reasonId !== null;
 
   return (
     <div className="shrink-0 border-t border-stroke-soft-200 bg-bg-white-0 p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
-      {needsNetwork && !isOnline ? (
+      {reasonId ? (
         <p className="mb-2 text-xs text-text-sub-600" role="status">
-          {formatMessage({ id: "app.commitment.act.needsNetwork" })}
+          {formatMessage({ id: reasonId })}
         </p>
       ) : null}
       <button

@@ -1,5 +1,6 @@
 import {
   type Address,
+  Alert,
   DEFAULT_CHAIN_ID,
   isCommitmentReasonPinError,
   selectCommitmentSeat,
@@ -73,8 +74,10 @@ export function GardenCommitment() {
   const jobs = useCommitmentJobs({ chainId });
   // Asked of the queue rather than remembered locally: a flag set when an act
   // is queued never hears that it landed, so the bar stayed suppressed for the
-  // component's lifetime and survived navigation between commitments.
-  const { pendingCommitmentIds } = useCommitmentQueueState(viewer as Address | null);
+  // component's lifetime and survived navigation between commitments. All
+  // three answers are read, because each changes what the bar may say: an act
+  // already waiting, a send that gave up, and a queue the phone cannot read.
+  const queue = useCommitmentQueueState(viewer as Address | null);
   const metadata = useCommitmentMetadataFor(detail?.commitment);
   const onlineMutation = useCommitmentMutation({ chainId });
 
@@ -157,12 +160,16 @@ export function GardenCommitment() {
   const { commitment, contributors, requirements } = detail;
   const state = presentState(commitment.derivedState);
   const band = selectStatusBand({ commitment, seat });
-  const act = selectCommitmentAct({
-    commitment,
-    seat,
-    hasPendingJob: pendingCommitmentIds.has(commitment.commitmentId.toString()),
-  });
+  const queueKey = commitment.commitmentId.toString();
+  const hasPendingJob = queue.pendingCommitmentIds.has(queueKey);
+  const sendFailed = queue.failedCommitmentIds.has(queueKey);
+  const act = selectCommitmentAct({ commitment, seat, hasPendingJob });
   const joinable = canJoinTeam({ commitment, seat });
+  // The seat's act is real but the queue is unreadable, so it is held rather
+  // than offered: a queue the phone cannot see may already hold this very act.
+  // A terminal failure is the opposite case, and re-arms it on purpose: the
+  // dead job no longer counts for dedupe, so trying again is a fresh send.
+  const queueBlockedReasonId = queue.isUnavailable ? "app.commitments.queueUnreadable" : null;
 
   const units = commitment.unitLabel
     ? formatMessage(
@@ -185,6 +192,7 @@ export function GardenCommitment() {
               act={act}
               isPending={jobs.isPending || onlineMutation.isPending}
               isOnline={isOnline}
+              blockedReasonId={queueBlockedReasonId}
               onRun={() => {
                 switch (act.kind) {
                   case "withdraw":
@@ -223,9 +231,22 @@ export function GardenCommitment() {
                 }
               }}
             />
+          ) : hasPendingJob ? (
+            <p
+              className="shrink-0 border-t border-stroke-soft-200 bg-bg-white-0 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] text-sm text-text-sub-600"
+              role="status"
+            >
+              {formatMessage({ id: "app.commitment.queue.waiting" })}
+            </p>
           ) : null
         }
       >
+        {sendFailed ? (
+          <Alert variant="error" className="p-3">
+            {formatMessage({ id: "app.commitment.queue.failed" })}
+          </Alert>
+        ) : null}
+
         {band ? (
           <section
             className={`rounded-[var(--radius-lg)] border p-4 ${BAND_TONE_CLASS[band.tone]}`}

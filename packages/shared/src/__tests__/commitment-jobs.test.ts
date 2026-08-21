@@ -1,5 +1,46 @@
-import { describe, expect, it, vi } from "vitest";
+/**
+ * @vitest-environment jsdom
+ */
 
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+// The queue-level identity tests below run `jobQueue.addJob` against a real
+// (fake) IndexedDB, so the queue's heavy edges are stubbed the same way the
+// core queue tests stub them.
+import "fake-indexeddb/auto";
+
+vi.mock("../config/appkit", () => ({
+  getWagmiConfig: () => ({}),
+  getAppKit: () => null,
+}));
+vi.mock("@wagmi/core", () => ({
+  getPublicClient: vi.fn(() => ({ readContract: vi.fn() })),
+  readContract: vi.fn(),
+}));
+vi.mock("../modules/app/posthog", () => ({ track: vi.fn() }));
+vi.mock("../ontology/query", () => ({
+  getOntologyChainMaturity: () => ({
+    deployment: "deployed",
+    activation: "active",
+    integration: "integrated",
+    availability: "available",
+    evidence: [],
+    verified_at: "2026-08-21",
+  }),
+}));
+vi.mock("../utils/blockchain/contracts", async () => {
+  const actual = await vi.importActual<typeof import("../utils/blockchain/contracts")>(
+    "../utils/blockchain/contracts"
+  );
+  return {
+    ...actual,
+    getNetworkContracts: () => ({
+      commitmentPoolingModule: "0x6bb5b0fd70b6771b0e955fef37f8bd2ce911470a",
+    }),
+  };
+});
+
+import { jobQueue, jobQueueDB } from "../modules/job-queue";
 import {
   COMMITMENT_JOB_KINDS,
   createCommitmentCreationRequestKey,
@@ -400,5 +441,72 @@ describe("work-link recovery", () => {
       status: "identity-conflict",
       reason: "work-link-payload-mismatch",
     });
+  });
+});
+
+describe("queue identity for acts that name a commitment", () => {
+  async function drain() {
+    for (const job of await jobQueueDB.getAllJobsUnfiltered()) {
+      await jobQueueDB.deleteJob(job.id);
+    }
+  }
+  beforeEach(drain);
+  afterEach(drain);
+
+  const meta = { chainId: 42161 };
+
+  it("returns the existing job when the same claim is enqueued twice", async () => {
+    const payload = { commitmentId: 9n, kind: 1, gardenContext: GARDEN };
+    const first = await jobQueue.addJob("claim", payload, HOLDER, meta);
+    const second = await jobQueue.addJob("claim", { ...payload }, HOLDER, meta);
+
+    expect(second).toBe(first);
+    expect(await jobQueueDB.getJobs({ userAddress: HOLDER, kind: "claim" })).toHaveLength(1);
+  });
+
+  it("returns the existing job when the same confirmation is enqueued twice", async () => {
+    const payload = { action: "confirm" as const, commitmentId: 9n };
+    const first = await jobQueue.addJob("confirmation", payload, HOLDER, meta);
+    const second = await jobQueue.addJob("confirmation", { ...payload }, HOLDER, meta);
+
+    expect(second).toBe(first);
+    expect(await jobQueueDB.getJobs({ userAddress: HOLDER, kind: "confirmation" })).toHaveLength(1);
+  });
+
+  it("keeps submit and confirm on one commitment as two different acts", async () => {
+    const submit = await jobQueue.addJob(
+      "confirmation",
+      { action: "submit", commitmentId: 9n },
+      HOLDER,
+      meta
+    );
+    const confirm = await jobQueue.addJob(
+      "confirmation",
+      { action: "confirm", commitmentId: 9n },
+      HOLDER,
+      meta
+    );
+
+    expect(confirm).not.toBe(submit);
+  });
+
+  it("refuses a different payload behind the same identity instead of replacing it", async () => {
+    const payload = commitmentPayload({ creationRequestKey: ZERO_HASH });
+    await jobQueue.addJob("commitment", payload, HOLDER, meta);
+
+    await expect(
+      jobQueue.addJob("commitment", { ...payload, targetUnits: 11n }, HOLDER, meta)
+    ).rejects.toThrow(/offline_job_identity_conflict/);
+  });
+
+  it("lets a terminally failed act be enqueued afresh rather than deduped against the corpse", async () => {
+    const payload = { commitmentId: 9n, kind: 1, gardenContext: GARDEN };
+    const first = await jobQueue.addJob("claim", payload, HOLDER, meta);
+    const stored = await jobQueueDB.getJob(first);
+    await jobQueueDB.updateJob({ ...stored!, attempts: 5 });
+
+    const retry = await jobQueue.addJob("claim", { ...payload }, HOLDER, meta);
+
+    expect(retry).not.toBe(first);
   });
 });

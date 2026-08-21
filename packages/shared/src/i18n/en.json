@@ -899,6 +899,8 @@
   "app.commitment.progress.proofOnly": "{count, plural, =0 {No proof added yet. Proof is what moves this forward.} one {# piece of proof added. Proof is what moves this forward.} other {# pieces of proof added. Proof is what moves this forward.}}",
   "app.commitment.progress.row": "Requirement {index}",
   "app.commitment.progress.title": "What has been done",
+  "app.commitment.queue.failed": "The last send for this commitment gave up after several tries. Nothing else is affected, and you can try again below.",
+  "app.commitment.queue.waiting": "Your last act here is waiting to send from this phone.",
   "app.commitment.team.openInvite": "The team is open. Joining lets you add proof and submit work toward this, and it does not make you the confirmer.",
   "app.commitment.withdraw.bodyOffer": "Nobody has taken this up yet. Withdrawing removes it from the pool. The record and your reason stay in its history, and offering again later is a fresh commitment.",
   "app.commitment.withdraw.bodyRequest": "Nobody has taken this up yet. Withdrawing removes it from the pool. The record and your reason stay in its history, and asking again later is a fresh request.",

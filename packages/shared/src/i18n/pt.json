@@ -899,6 +899,8 @@
   "app.commitment.progress.proofOnly": "{count, plural, =0 {Ainda não há provas. A prova é o que faz isto avançar.} one {# prova adicionada. A prova é o que faz isto avançar.} other {# provas adicionadas. A prova é o que faz isto avançar.}}",
   "app.commitment.progress.row": "Requisito {index}",
   "app.commitment.progress.title": "O que já foi feito",
+  "app.commitment.queue.failed": "O último envio deste compromisso desistiu após várias tentativas. Nada mais é afetado e você pode tentar novamente abaixo.",
+  "app.commitment.queue.waiting": "A sua última ação aqui está aguardando para ser enviada deste telefone.",
   "app.commitment.team.openInvite": "A equipe está aberta. Entrar deixa você adicionar provas e enviar trabalho, e não faz de você quem confirma.",
   "app.commitment.withdraw.bodyOffer": "Ninguém aceitou ainda. Retirar tira do pool. O registro e o seu motivo ficam no histórico, e oferecer de novo depois é um compromisso novo.",
   "app.commitment.withdraw.bodyRequest": "Ninguém aceitou ainda. Retirar tira do pool. O registro e o seu motivo ficam no histórico, e pedir de novo depois é um pedido novo.",

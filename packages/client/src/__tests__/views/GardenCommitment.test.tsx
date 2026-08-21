@@ -56,6 +56,18 @@ function commitment(overrides: Record<string, unknown> = {}) {
   };
 }
 
+function queueState(overrides: Record<string, unknown> = {}) {
+  return {
+    pendingCommitmentIds: new Set<string>(),
+    failedCount: 0,
+    failedCommitmentIds: new Set<string>(),
+    hasPendingCreate: false,
+    isUnavailable: false,
+    refresh: vi.fn(),
+    ...overrides,
+  };
+}
+
 function detail(overrides: Record<string, unknown> = {}) {
   return {
     detail: {
@@ -110,12 +122,7 @@ describe("GardenCommitment", () => {
     vi.clearAllMocks();
     mockMutationError = null;
     mockUseOffline.mockReturnValue({ isOnline: true });
-    mockUseQueueState.mockReturnValue({
-      pendingCommitmentIds: new Set<string>(),
-      failedCount: 0,
-      hasPendingCreate: false,
-      refresh: vi.fn(),
-    });
+    mockUseQueueState.mockReturnValue(queueState());
     mockUseCommitment.mockReturnValue(detail());
   });
 
@@ -175,16 +182,33 @@ describe("GardenCommitment", () => {
     expect(screen.queryByRole("button", { name: "Confirm it was kept" })).not.toBeInTheDocument();
   });
 
-  it("does not offer an act that is already waiting to send", () => {
-    mockUseQueueState.mockReturnValue({
-      pendingCommitmentIds: new Set(["9"]),
-      failedCount: 0,
-      hasPendingCreate: false,
-      refresh: vi.fn(),
-    });
+  it("does not offer an act that is already waiting to send, and says so", () => {
+    mockUseQueueState.mockReturnValue(queueState({ pendingCommitmentIds: new Set(["9"]) }));
     render();
 
     expect(screen.queryByRole("button", { name: "Add proof" })).not.toBeInTheDocument();
+    expect(screen.getByText(/waiting to send from this phone/i)).toBeInTheDocument();
+  });
+
+  it("disables the act rather than offering it when the queue cannot be read", () => {
+    // An unreadable queue is not an empty one. Offering the act here is how a
+    // claim already waiting to send becomes two claims.
+    mockUseQueueState.mockReturnValue(queueState({ isUnavailable: true }));
+    render();
+
+    const act = screen.getByRole("button", { name: "Add proof" });
+    expect(act).toBeDisabled();
+    expect(screen.getByText(/could not check what is waiting to send/i)).toBeInTheDocument();
+  });
+
+  it("says when the last send gave up, and offers the act again", () => {
+    mockUseQueueState.mockReturnValue(
+      queueState({ failedCount: 1, failedCommitmentIds: new Set(["9"]) })
+    );
+    render();
+
+    expect(screen.getByRole("alert")).toHaveTextContent(/gave up/i);
+    expect(screen.getByRole("button", { name: "Add proof" })).toBeEnabled();
   });
 
   it("queues the act the bar names", async () => {

@@ -899,6 +899,8 @@
   "app.commitment.progress.proofOnly": "{count, plural, =0 {Todavía no hay pruebas. La prueba es lo que hace avanzar esto.} one {# prueba añadida. La prueba es lo que hace avanzar esto.} other {# pruebas añadidas. La prueba es lo que hace avanzar esto.}}",
   "app.commitment.progress.row": "Requisito {index}",
   "app.commitment.progress.title": "Lo que se ha hecho",
+  "app.commitment.queue.failed": "El último envío de este compromiso se detuvo después de varios intentos. Nada más se ve afectado y puedes intentarlo de nuevo abajo.",
+  "app.commitment.queue.waiting": "Tu última acción aquí está esperando para enviarse desde este teléfono.",
   "app.commitment.team.openInvite": "El equipo está abierto. Unirte te deja añadir pruebas y enviar trabajo, y no te convierte en quien confirma.",
   "app.commitment.withdraw.bodyOffer": "Nadie lo ha aceptado todavía. Retirarlo lo saca del pool. El registro y tu motivo quedan en su historial, y ofrecerlo otra vez más adelante es un compromiso nuevo.",
   "app.commitment.withdraw.bodyRequest": "Nadie la ha aceptado todavía. Retirarla la saca del pool. El registro y tu motivo quedan en su historial, y pedirla otra vez más adelante es una petición nueva.",
