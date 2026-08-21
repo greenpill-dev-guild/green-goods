@@ -48,9 +48,11 @@ existing counter tests live): first exposure for a provider increments; a second
 provider does not; a different provider does; a decrement to zero does not reduce it; and replay of
 the same events converges to the same value.
 
-**Check first:** whether the hosted Envio indexer has already shipped PRD-722. Merge is not deploy
-in this repo — a schema addition that is not deployed will read as missing at runtime. Report what
-you find rather than assuming.
+**Check first:** PRD-722 (Build the Commitment Pooling indexer) is Done in Linear as of
+2026-08-17, so the pooling entities exist in the schema. What is not established is whether the
+**hosted** Envio indexer runs that deploy — this repo ships the indexer manually, so merge is not
+deploy, and a schema addition that has not been deployed reads as missing at runtime. Establish
+which of the two is true and report it rather than assuming.
 
 ---
 
