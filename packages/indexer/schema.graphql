@@ -765,6 +765,7 @@ type CommitmentPool {
   # Count-safe cross-commitment stats. Unit totals live only in exact-label
   # CommitmentUnitSummary rows.
   openCommitmentCount: BigInt! # committed Offers plus accepted Requests not released or fulfilled
+  distinctProviderCount: BigInt! # lifetime providers first seen in CommitmentProviderExposure
   commitmentsDue: BigInt!     # accepted minus cancelled (mutually released promises are not broken promises)
   createdAt: Int # PoolRegistered timestamp; null until registrationSeen
   updatedAt: Int!

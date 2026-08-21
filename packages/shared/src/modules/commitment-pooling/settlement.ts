@@ -10,6 +10,16 @@ export type IndexedDisbursementState =
   | "FAILED"
   | "CANCELLED";
 
+export function selectConfirmedDisbursementTotal(
+  disbursements: readonly { state: IndexedDisbursementState; amount: bigint }[]
+): bigint {
+  return disbursements.reduce(
+    (total, disbursement) =>
+      disbursement.state === "CONFIRMED" ? total + disbursement.amount : total,
+    0n
+  );
+}
+
 export type SettlementDeliveryState =
   | { status: "confirmed" }
   | { status: "cancelled"; from: "queued" | "failed" }

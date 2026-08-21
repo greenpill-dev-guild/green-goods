@@ -17,7 +17,8 @@ export const POOL_FIELDS = /* GraphQL */ `
   providerOpenCommitmentCap liveCommitmentCount nonTerminalCycleCount
   commitmentsOffered commitmentsRequested commitmentsAccepted commitmentsReadyForConfirmation
   commitmentsFulfilled commitmentsCancelled commitmentsExpired commitmentsDisputed
-  workLinkedCount workApprovedCount openCommitmentCount commitmentsDue createdAt updatedAt
+  workLinkedCount workApprovedCount openCommitmentCount distinctProviderCount commitmentsDue
+  createdAt updatedAt
 `;
 
 export const CYCLE_FIELDS = /* GraphQL */ `
@@ -150,6 +151,7 @@ export function mapPool(row: RawRow): CommitmentPoolRecord {
     workLinkedCount: integer(row.workLinkedCount),
     workApprovedCount: integer(row.workApprovedCount),
     openCommitmentCount: integer(row.openCommitmentCount),
+    distinctProviderCount: integer(row.distinctProviderCount),
     commitmentsDue: integer(row.commitmentsDue),
     createdAt: optionalNumber(row.createdAt),
     updatedAt: number(row.updatedAt),

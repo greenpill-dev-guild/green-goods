@@ -109,9 +109,13 @@ export async function handleRegistryEvent(
   );
 
   const pool = await getPool(event, context, poolId);
+  const account = normalizeAddress(value<string>(event, "account"));
+  const exposureId = `${event.chainId}-${poolId}-${account}`;
+  const exposure = await context.CommitmentProviderExposure.get(exposureId);
   context.CommitmentPool.set({
     ...pool,
     openCommitmentCount: pool.openCommitmentCount + countDelta,
+    distinctProviderCount: pool.distinctProviderCount + (exposure === undefined ? 1n : 0n),
     updatedAt: Math.max(pool.updatedAt, event.block.timestamp),
   });
   if (cycleId !== undefined) {
@@ -125,9 +129,6 @@ export async function handleRegistryEvent(
       updatedAt: Math.max(cycle.updatedAt, event.block.timestamp),
     });
   }
-  const account = normalizeAddress(value<string>(event, "account"));
-  const exposureId = `${event.chainId}-${poolId}-${account}`;
-  const exposure = await context.CommitmentProviderExposure.get(exposureId);
   context.CommitmentProviderExposure.set({
     id: exposureId,
     chainId: event.chainId,
