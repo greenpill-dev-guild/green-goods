@@ -44,7 +44,12 @@ export default function GardenDetail() {
   // Pinned so the field-note explorer links resolve against the same chain the
   // notes were read from.
   const chainId = DEFAULT_CHAIN_ID;
-  const { data: detail, isLoading: detailLoading } = usePublicGardenDetail(id, { chainId });
+  const {
+    data: detail,
+    isLoading: detailLoading,
+    isError: detailFailed,
+    refetch: refetchDetail,
+  } = usePublicGardenDetail(id, { chainId });
 
   const summary = useMemo(() => {
     if (!id) return undefined;
@@ -94,6 +99,11 @@ export default function GardenDetail() {
     rememberGardenReturn(identity?.slug);
   }, [identity?.slug]);
 
+  // A failed indexer read is not a missing Garden. `getGardens` times out in
+  // production, and falling through to not-found told the reader their Garden
+  // does not exist — the same "publish an unknown as a fact" failure the stat
+  // strip's em dash exists to prevent.
+  if (detailFailed) return <GardenUnavailable onRetry={() => void refetchDetail()} />;
   if (!detailLoading && !garden) return <GardenNotFound />;
 
   const worksUnavailable = detail?.unavailableSources.works ?? false;
@@ -202,6 +212,49 @@ export default function GardenDetail() {
       </div>
 
       <PublicInstallCta />
+      <PublicFooter variant="soil" />
+    </>
+  );
+}
+
+function GardenUnavailable({ onRetry }: { onRetry: () => void }) {
+  const { formatMessage } = useIntl();
+  return (
+    <>
+      <div className="mx-auto max-w-6xl px-6 py-32 sm:px-10">
+        <h1 className="font-serif text-3xl text-text-strong-950">
+          {formatMessage({
+            id: "public.gardenDetail.unavailable",
+            defaultMessage: "This Garden could not be loaded",
+          })}
+        </h1>
+        <p className="mt-3 text-sm text-text-sub-600">
+          {formatMessage({
+            id: "public.gardenDetail.unavailableHelp",
+            defaultMessage:
+              "The record is there, we just could not read it right now. Try again in a moment.",
+          })}
+        </p>
+        <div className="mt-6 flex flex-wrap gap-3">
+          <button
+            type="button"
+            onClick={onRetry}
+            className="inline-flex rounded-full border border-stroke-soft-200 bg-bg-white-0 px-5 py-2.5 text-sm font-medium text-text-strong-950 hover:bg-bg-weak-50"
+          >
+            {formatMessage({ id: "public.gardenDetail.retry", defaultMessage: "Try again" })}
+          </button>
+          <Link
+            to="/gardens"
+            viewTransition
+            className="inline-flex rounded-full px-5 py-2.5 text-sm font-medium text-text-sub-600 hover:text-text-strong-950"
+          >
+            {formatMessage({
+              id: "public.gardenDetail.backToGardens",
+              defaultMessage: "Browse Gardens",
+            })}
+          </Link>
+        </div>
+      </div>
       <PublicFooter variant="soil" />
     </>
   );
