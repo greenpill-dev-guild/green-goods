@@ -28,6 +28,6 @@ function run(command: string, args: string[], label: string): void {
 run(process.execPath, ["script/deploy/garden-roles.ts", "plan"], "generating the reviewed permission fixture");
 run(
   "forge",
-  ["test", "--match-path", "test/fork/CeloGardenRolesPermission.t.sol", "--threads", "1", "-vvv"],
+  ["test", "--isolate", "--match-path", "test/fork/CeloGardenRolesPermission.t.sol", "--threads", "1", "-vvv"],
   "running the pinned Celo Roles permission fork proof",
 );

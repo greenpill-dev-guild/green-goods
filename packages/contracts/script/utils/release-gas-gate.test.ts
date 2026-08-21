@@ -61,6 +61,12 @@ describe("release gas gate routing", () => {
     expect(runner).toContain("--list");
   });
 
+  it("routes the live Safe/Zodiac destination proof with per-call isolation", () => {
+    expect(packageJson.scripts["test:fork:garden-roles"]).toBe("bun script/utils/run-garden-roles-proof.ts");
+    const runner = fs.readFileSync(path.join(CONTRACTS_ROOT, "script/utils/run-garden-roles-proof.ts"), "utf8");
+    expect(runner).toContain("--isolate");
+  });
+
   it("finds each configured fixture exactly once in the Solidity test tree", () => {
     const sources = solidityFiles(path.join(CONTRACTS_ROOT, "test")).map((file) => ({
       file,

@@ -81,7 +81,7 @@
       "destinationGasMeasurement": {
         "fixture": "CeloGardenRolesPermissionForkTest.testFork_measureDeliverableDestinationGasCeiling",
         "batchSize": "6",
-        "gasUsed": "2744354",
+        "gasUsed": "2744378",
         "ccipPerMessageGasLimitCeiling": "3000000",
         "includesAcknowledgmentAttempt": true,
         "liveSafeZodiacMeasured": true,

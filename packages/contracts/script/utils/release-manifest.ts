@@ -21,6 +21,10 @@ export const PRODUCTION_ARTIFACT_ROOT = path.join(CONTRACTS_ROOT, ".generated/fo
 export type ReleaseNetwork = "arbitrum" | "celo";
 export type ReleaseStage = "pooling" | "settlement-module" | "credit-registry" | "settlement-executor";
 
+const CCIP_PER_MESSAGE_GAS_LIMIT_CEILINGS: Partial<Record<`${ReleaseNetwork}->${ReleaseNetwork}`, bigint>> = {
+  "arbitrum->celo": 3_000_000n,
+};
+
 interface ChainManifest {
   evmChainId: string;
   ccipSelector: string;
@@ -422,6 +426,17 @@ export function validateReleaseManifest(manifest: ReleaseManifest): void {
         BigInt(chain.destinationGasLimit) > BigInt(chain.destinationGasMeasurement.ccipPerMessageGasLimitCeiling)
       ) {
         throw new Error(`${network}.destinationGasLimit exceeds the recorded CCIP per-message ceiling`);
+      }
+      const ccipRoute = `${network}->${chain.peerNetwork}` as `${ReleaseNetwork}->${ReleaseNetwork}`;
+      const pinnedCcipCeiling = CCIP_PER_MESSAGE_GAS_LIMIT_CEILINGS[ccipRoute];
+      if (pinnedCcipCeiling === undefined) {
+        throw new Error(`${ccipRoute} destination gas measurement has no pinned CCIP per-message ceiling`);
+      }
+      if (BigInt(chain.destinationGasMeasurement.ccipPerMessageGasLimitCeiling) !== pinnedCcipCeiling) {
+        throw new Error(
+          `${network}.destinationGasMeasurement.ccipPerMessageGasLimitCeiling must equal the pinned ` +
+            `${ccipRoute} ceiling of ${pinnedCcipCeiling}`,
+        );
       }
       if (
         finalMeasurement &&

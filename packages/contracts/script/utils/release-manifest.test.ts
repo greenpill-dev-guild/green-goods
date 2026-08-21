@@ -50,7 +50,7 @@ describe("combined commitment release manifest", () => {
       destinationGasMeasurement: {
         fixture: "CeloGardenRolesPermissionForkTest.testFork_measureDeliverableDestinationGasCeiling",
         batchSize: "6",
-        gasUsed: "2744354",
+        gasUsed: "2744378",
         ccipPerMessageGasLimitCeiling: "3000000",
         includesAcknowledgmentAttempt: true,
         liveSafeZodiacMeasured: true,
@@ -131,6 +131,15 @@ describe("combined commitment release manifest", () => {
     ceilingMeasurement.ccipPerMessageGasLimitCeiling = "2999999";
     expect(() => validateReleaseManifest(transportCeilingExceeded)).toThrow(
       /exceeds the recorded CCIP per-message ceiling/,
+    );
+
+    const transportCeilingDrift = structuredClone(manifest);
+    const driftedCeilingMeasurement = transportCeilingDrift.chains.arbitrum.destinationGasMeasurement;
+    if (!driftedCeilingMeasurement) throw new Error("Fixture must include the frozen destination gas measurement");
+    transportCeilingDrift.chains.arbitrum.destinationGasLimit = "3000001";
+    driftedCeilingMeasurement.ccipPerMessageGasLimitCeiling = "3000001";
+    expect(() => validateReleaseManifest(transportCeilingDrift)).toThrow(
+      /must equal the pinned arbitrum->celo ceiling/,
     );
 
     const unmeasuredAuthorityBatch = structuredClone(manifest);

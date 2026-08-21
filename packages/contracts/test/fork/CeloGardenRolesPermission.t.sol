@@ -386,6 +386,8 @@ contract CeloGardenRolesPermissionForkTest is Test {
      * Measures the largest batch Celo can execute beneath the Arbitrum-to-Celo lane's exact
      * 3,000,000-gas per-message ceiling. Every call crosses the live executor, a real Safe, a real
      * Zodiac Roles modifier, G$, and the live CCIP router acknowledgment path at the pinned block.
+     * The dedicated proof runner uses forge --isolate so every delivery starts with a fresh
+     * transaction access list.
      *
      * The smaller cases preserve the measured sweep's ordering so the batch-six log remains
      * comparable to the frozen release evidence. Batch seven is the adjacent negative boundary,
