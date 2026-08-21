@@ -45,6 +45,7 @@ const mocks = vi.hoisted(() => ({
   senderAvailable: true,
   sender: { sendContractCall: vi.fn() },
   mutationErrorHandler: vi.fn(),
+  pinCommitmentReason: vi.fn(),
   roles: vi.fn(),
   getCommitmentPools: vi.fn(),
   getCommitmentPoolDetail: vi.fn(),
@@ -109,6 +110,13 @@ vi.mock("../utils/errors/contract-errors", () => ({
 vi.mock("../utils/errors/mutation-error-handler", () => ({
   createMutationErrorHandler: () => mocks.mutationErrorHandler,
 }));
+
+vi.mock("../modules/commitment-pooling/reasons", async () => {
+  const actual = await vi.importActual<typeof import("../modules/commitment-pooling/reasons")>(
+    "../modules/commitment-pooling/reasons"
+  );
+  return { ...actual, pinCommitmentReason: mocks.pinCommitmentReason };
+});
 
 const pool = {
   id: "42161-9",
@@ -556,6 +564,85 @@ describe("useCommitmentMutation", () => {
         chainId: 42161,
         parsedErrorName: "MockContractError",
       },
+    });
+  });
+
+  describe("reasons are pinned before they are sent", () => {
+    it.each([
+      {
+        input: { action: "cancelCommitment", commitmentId: 5n, reason: "Plans changed" },
+        args: [5n, "bafy-reason"],
+      },
+      {
+        input: { action: "raiseDispute", commitmentId: 5n, reason: "Not what was agreed" },
+        args: [5n, "bafy-reason"],
+      },
+      {
+        input: {
+          action: "resolveDispute",
+          commitmentId: 5n,
+          resolution: 1,
+          reason: "Seen and settled",
+        },
+        args: [5n, 1, "bafy-reason"],
+      },
+    ] as const)("pins the $input.action reason and sends the CID, never the text", async ({
+      input,
+      args,
+    }) => {
+      mocks.pinCommitmentReason.mockResolvedValue("bafy-reason");
+      const { result } = renderHookWithProviders(() => useCommitmentMutation({ chainId: 42161 }));
+
+      await act(async () => {
+        await result.current.mutateAsync(input as CommitmentMutationInput);
+      });
+
+      expect(mocks.pinCommitmentReason).toHaveBeenCalledWith(
+        expect.objectContaining({ reason: input.reason })
+      );
+      expect(mocks.sender.sendContractCall).toHaveBeenLastCalledWith({
+        address: MODULE,
+        abi: [],
+        functionName: input.action,
+        args,
+        chainId: 42161,
+      });
+    });
+
+    it("sends nothing when the reason could not be pinned", async () => {
+      const { CommitmentReasonPinError } = await import("../modules/commitment-pooling/reasons");
+      mocks.pinCommitmentReason.mockRejectedValue(
+        new CommitmentReasonPinError(new Error("gateway down"))
+      );
+      const { result } = renderHookWithProviders(() => useCommitmentMutation({ chainId: 42161 }));
+
+      await act(async () => {
+        await expect(
+          result.current.mutateAsync({
+            action: "cancelCommitment",
+            commitmentId: 5n,
+            reason: "Plans changed",
+          })
+        ).rejects.toBeInstanceOf(CommitmentReasonPinError);
+      });
+      expect(mocks.sender.sendContractCall).not.toHaveBeenCalled();
+    });
+
+    it("still accepts a CID a caller already holds", async () => {
+      const { result } = renderHookWithProviders(() => useCommitmentMutation({ chainId: 42161 }));
+
+      await act(async () => {
+        await result.current.mutateAsync({
+          action: "cancelCommitment",
+          commitmentId: 5n,
+          reasonCID: "bafy-held",
+        });
+      });
+
+      expect(mocks.pinCommitmentReason).not.toHaveBeenCalled();
+      expect(mocks.sender.sendContractCall).toHaveBeenLastCalledWith(
+        expect.objectContaining({ functionName: "cancelCommitment", args: [5n, "bafy-held"] })
+      );
     });
   });
 });

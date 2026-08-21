@@ -907,6 +907,8 @@
   "app.commitment.withdraw.keep": "Dejarlo abierto",
   "app.commitment.withdraw.reasonLabel": "Motivo (obligatorio)",
   "app.commitment.withdraw.reasonPlaceholder": "Cambiaron los planes, se resolvió de otra forma, o fue un error.",
+  "app.commitment.withdraw.reasonUnsaved": "No se pudo guardar tu motivo, así que no se envió nada. Revisa tu conexión e inténtalo de nuevo.",
+  "app.commitment.withdraw.retry": "Intentar de nuevo",
   "app.commitment.withdraw.titleOffer": "¿Retirar este ofrecimiento?",
   "app.commitment.withdraw.titleRequest": "¿Retirar esta petición?",
   "app.commitments.direction.offer": "Ofrecido",

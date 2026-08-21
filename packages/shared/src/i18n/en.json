@@ -907,6 +907,8 @@
   "app.commitment.withdraw.keep": "Keep it open",
   "app.commitment.withdraw.reasonLabel": "Reason (required)",
   "app.commitment.withdraw.reasonPlaceholder": "Plans changed, it was handled another way, or it was made by mistake.",
+  "app.commitment.withdraw.reasonUnsaved": "Your reason could not be saved, so nothing was sent. Check your connection and try again.",
+  "app.commitment.withdraw.retry": "Try again",
   "app.commitment.withdraw.titleOffer": "Withdraw this offer?",
   "app.commitment.withdraw.titleRequest": "Withdraw this request?",
   "app.commitments.direction.offer": "Offered",

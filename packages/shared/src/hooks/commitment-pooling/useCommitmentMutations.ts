@@ -4,6 +4,7 @@ import type { Hex } from "viem";
 import { queryKeys } from "../../config/query-keys";
 import { getOntologyChainMaturity } from "../../ontology/query";
 import type { DeclaredConsiderationInput } from "../../modules/commitment-pooling/jobs";
+import { pinCommitmentReason } from "../../modules/commitment-pooling/reasons";
 import { selectCommitmentPoolingAvailability } from "../../modules/commitment-pooling/selectors";
 import type { Address } from "../../types/domain";
 import { isZeroAddress } from "../../utils/blockchain/address";
@@ -37,7 +38,10 @@ export type CommitmentOnlineAction =
   | "resumeCommitmentSeries"
   | "retireCommitmentSeries";
 
-export type CommitmentMutationInput =
+/**
+ * The contract call, with every reason already a CID. What `argsFor` encodes.
+ */
+export type CommitmentMutationCall =
   | { action: "acceptClaim"; commitmentId: bigint; claimant: Address }
   | { action: "declineClaim"; commitmentId: bigint; claimant: Address; reasonCID: string }
   | { action: "acceptExchange"; commitmentId: bigint }
@@ -79,7 +83,58 @@ export type CommitmentMutationInput =
       seriesId: bigint;
     };
 
-function argsFor(input: CommitmentMutationInput): readonly unknown[] {
+/**
+ * The same acts with the reason still in the member's words. The hook pins the
+ * reason and sends the CID, so no surface ever holds a CID or, worse, sends the
+ * text in its place. A caller that already has a CID uses the call shape.
+ */
+export type CommitmentReasonedMutationInput =
+  | {
+      action: "cancelCommitment" | "raiseDispute";
+      commitmentId: bigint;
+      reason: string;
+      /** For upload tracking only; the call itself is commitment-scoped. */
+      gardenAddress?: Address | null;
+    }
+  | {
+      action: "resolveDispute";
+      commitmentId: bigint;
+      resolution: number;
+      reason: string;
+      gardenAddress?: Address | null;
+    };
+
+export type CommitmentMutationInput = CommitmentMutationCall | CommitmentReasonedMutationInput;
+
+/**
+ * Only the acts whose ABI takes a `reasonCID`. `markReadyForConfirmation` and
+ * `confirmFulfillmentAsFallback` take a plain `reason` string on chain and must
+ * not be pinned.
+ */
+const CID_REASON_ACTIONS = new Set<CommitmentOnlineAction>([
+  "cancelCommitment",
+  "raiseDispute",
+  "resolveDispute",
+]);
+
+function carriesRawReason(
+  input: CommitmentMutationInput
+): input is CommitmentReasonedMutationInput {
+  return CID_REASON_ACTIONS.has(input.action) && "reason" in input && !("reasonCID" in input);
+}
+
+/**
+ * Resolve a reasoned input into its call. Pinning happens before any chain
+ * work so a pin failure is reported as exactly that and nothing is sent.
+ */
+async function resolveCall(input: CommitmentMutationInput): Promise<CommitmentMutationCall> {
+  if (!carriesRawReason(input)) return input;
+  const { reason, gardenAddress, ...call } = input;
+  const reasonCID = await pinCommitmentReason({ reason, gardenAddress, source: call.action });
+  return { ...call, reasonCID } as CommitmentMutationCall;
+}
+
+function argsFor(input: CommitmentMutationCall): readonly unknown[] {
   switch (input.action) {
     case "acceptClaim":
       return [input.commitmentId, input.claimant];
@@ -142,11 +197,12 @@ export function useCommitmentMutation(options: { chainId?: number } = {}) {
       const moduleAddress = getNetworkContracts(chainId).commitmentPoolingModule;
       if (isZeroAddress(moduleAddress))
         throw new Error("Commitment Pooling is not deployed on this chain");
+      const call = await resolveCall(input);
       const result = await sender.sendContractCall({
         address: moduleAddress,
         abi: CommitmentPoolingModuleABI,
-        functionName: input.action,
-        args: argsFor(input),
+        functionName: call.action,
+        args: argsFor(call),
         chainId,
       });
       return result.hash;

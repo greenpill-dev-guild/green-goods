@@ -1,6 +1,7 @@
 import {
   type Address,
   DEFAULT_CHAIN_ID,
+  isCommitmentReasonPinError,
   selectCommitmentSeat,
   StatusBadge,
   useCommitment,
@@ -285,12 +286,17 @@ export function GardenCommitment() {
         onOpenChange={setWithdrawOpen}
         direction={commitment.direction === "REQUEST" ? "REQUEST" : "OFFER"}
         isPending={onlineMutation.isPending}
-        onConfirm={(reasonCID) => {
+        pinFailed={isCommitmentReasonPinError(onlineMutation.error)}
+        onConfirm={(reason) => {
+          // The words go to the hook, which pins them and sends the CID. The
+          // dialog closes only once the chain has the call; a failed pin leaves
+          // it open with the reason intact so the member can try again.
           onlineMutation.mutate(
             {
               action: "cancelCommitment",
               commitmentId: commitment.commitmentId,
-              reasonCID,
+              reason,
+              gardenAddress: gardenAddress as Address,
             },
             { onSuccess: () => setWithdrawOpen(false) }
           );

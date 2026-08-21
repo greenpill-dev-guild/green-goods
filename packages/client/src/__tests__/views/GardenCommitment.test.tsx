@@ -23,6 +23,7 @@ const mockUseOffline = vi.fn();
 const mockUseQueueState = vi.fn();
 const mockEnqueue = vi.fn();
 const mockMutate = vi.fn();
+let mockMutationError: unknown = null;
 
 const AVAILABLE = { status: "available", capability: {} } as const;
 
@@ -82,7 +83,11 @@ vi.mock("@green-goods/shared", async () => {
       error: null,
       viewer: VIEWER,
     }),
-    useCommitmentMutation: () => ({ mutate: mockMutate, isPending: false }),
+    useCommitmentMutation: () => ({
+      mutate: mockMutate,
+      isPending: false,
+      error: mockMutationError,
+    }),
     useCommitmentQueueState: () => mockUseQueueState(),
     useCommitmentMetadataFor: () => null,
     useOffline: () => mockUseOffline(),
@@ -103,6 +108,7 @@ const render = () =>
 describe("GardenCommitment", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockMutationError = null;
     mockUseOffline.mockReturnValue({ isOnline: true });
     mockUseQueueState.mockReturnValue({
       pendingCommitmentIds: new Set<string>(),
@@ -226,6 +232,55 @@ describe("GardenCommitment", () => {
     expect(screen.getByText("Withdraw this offer?")).toBeInTheDocument();
     expect(screen.getByText(/offering again later is a fresh commitment/i)).toBeInTheDocument();
     expect(mockMutate).not.toHaveBeenCalled();
+  });
+
+  it("hands the withdraw reason to the hook as words, never as a CID it made up", async () => {
+    const user = userEvent.setup();
+    mockUseCommitment.mockReturnValue(detail({ commitment: { derivedState: "OFFERED" } }));
+    render();
+
+    await user.click(screen.getByRole("button", { name: "Withdraw this" }));
+    await user.type(screen.getByLabelText("Reason (required)"), "Plans changed");
+    await user.click(screen.getByRole("button", { name: "Withdraw this offer" }));
+
+    expect(mockMutate).toHaveBeenCalledWith(
+      {
+        action: "cancelCommitment",
+        commitmentId: 9n,
+        reason: "Plans changed",
+        gardenAddress: GARDEN,
+      },
+      expect.anything()
+    );
+    const [input] = mockMutate.mock.calls[0] as [Record<string, unknown>];
+    expect(input).not.toHaveProperty("reasonCID");
+  });
+
+  it("keeps the dialog open and offers a retry when the reason could not be pinned", async () => {
+    const user = userEvent.setup();
+    const { CommitmentReasonPinError } = await import("@green-goods/shared");
+    mockUseCommitment.mockReturnValue(detail({ commitment: { derivedState: "OFFERED" } }));
+    mockMutate.mockImplementation(() => {
+      mockMutationError = new CommitmentReasonPinError(new Error("gateway down"));
+    });
+    const view = render();
+
+    await user.click(screen.getByRole("button", { name: "Withdraw this" }));
+    await user.type(screen.getByLabelText("Reason (required)"), "Plans changed");
+    await user.click(screen.getByRole("button", { name: "Withdraw this offer" }));
+    view.rerender(
+      <MemoryRouter initialEntries={[`/home/${GARDEN}/commitments/9`]}>
+        <Routes>
+          <Route path="/home/:id/commitments/:commitmentId" element={<GardenCommitment />} />
+        </Routes>
+      </MemoryRouter>
+    );
+
+    // Still open, still holding the words, and saying what actually failed.
+    expect(screen.getByText("Withdraw this offer?")).toBeInTheDocument();
+    expect(screen.getByLabelText("Reason (required)")).toHaveValue("Plans changed");
+    expect(screen.getByText(/could not be saved/i)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Try again" })).toBeInTheDocument();
   });
 
   it("says the surface is not ready rather than showing an empty commitment", () => {

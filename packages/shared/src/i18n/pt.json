@@ -907,6 +907,8 @@
   "app.commitment.withdraw.keep": "Deixar em aberto",
   "app.commitment.withdraw.reasonLabel": "Motivo (obrigatório)",
   "app.commitment.withdraw.reasonPlaceholder": "Os planos mudaram, foi resolvido de outro jeito, ou foi engano.",
+  "app.commitment.withdraw.reasonUnsaved": "Não foi possível salvar o seu motivo, então nada foi enviado. Verifique a conexão e tente novamente.",
+  "app.commitment.withdraw.retry": "Tentar novamente",
   "app.commitment.withdraw.titleOffer": "Retirar esta oferta?",
   "app.commitment.withdraw.titleRequest": "Retirar este pedido?",
   "app.commitments.direction.offer": "Oferecido",

@@ -1,4 +1,4 @@
-import { DialogShell } from "@green-goods/shared";
+import { Alert, DialogShell } from "@green-goods/shared";
 import { useState } from "react";
 import { useIntl } from "react-intl";
 
@@ -7,6 +7,11 @@ export interface WithdrawDialogProps {
   onOpenChange: (open: boolean) => void;
   direction: "OFFER" | "REQUEST";
   isPending: boolean;
+  /**
+   * The last attempt could not pin the reason, so nothing was sent. The words
+   * stay on screen and the same button tries the pin again.
+   */
+  pinFailed?: boolean;
   onConfirm: (reason: string) => void;
 }
 
@@ -16,12 +21,16 @@ export interface WithdrawDialogProps {
  * The reason is required because the contract stores one and the timeline shows
  * it. What the dialog must not soften: this leaves the pool, and asking again
  * later is a fresh commitment rather than a retry of this one.
+ *
+ * The reason leaves here as words. Pinning it is the shared hook's job, so the
+ * dialog never holds a CID and can never send the text in a CID's place.
  */
 export function WithdrawDialog({
   open,
   onOpenChange,
   direction,
   isPending,
+  pinFailed = false,
   onConfirm,
 }: WithdrawDialogProps) {
   const { formatMessage } = useIntl();
@@ -55,6 +64,11 @@ export function WithdrawDialog({
           className="w-full rounded-[var(--radius-lg)] border border-stroke-soft-200 bg-bg-weak-50 p-3 text-sm text-text-strong-950"
           placeholder={formatMessage({ id: "app.commitment.withdraw.reasonPlaceholder" })}
         />
+        {pinFailed ? (
+          <Alert variant="error" className="p-3">
+            {formatMessage({ id: "app.commitment.withdraw.reasonUnsaved" })}
+          </Alert>
+        ) : null}
         <button
           type="button"
           disabled={reason.trim().length === 0 || isPending}
@@ -63,9 +77,11 @@ export function WithdrawDialog({
           className="w-full rounded-[var(--radius-lg)] border border-error-base px-4 py-3 text-sm font-medium text-error-base tap-target-lg disabled:opacity-60"
         >
           {formatMessage({
-            id: isRequest
-              ? "app.commitment.withdraw.confirmRequest"
-              : "app.commitment.withdraw.confirmOffer",
+            id: pinFailed
+              ? "app.commitment.withdraw.retry"
+              : isRequest
+                ? "app.commitment.withdraw.confirmRequest"
+                : "app.commitment.withdraw.confirmOffer",
           })}
         </button>
         <button
