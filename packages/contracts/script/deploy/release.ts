@@ -2,6 +2,7 @@ import { execFileSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { Contract, getAddress, Interface, isAddress, JsonRpcProvider, keccak256, ZeroAddress } from "ethers";
+import { ownershipTransferTargets } from "../release-verify";
 import { buildReadOnlyCastEnv, execCastCaptured, parseCastTransactionHash } from "../utils/cast-env";
 import type { ParsedOptions } from "../utils/cli-parser";
 import { NetworkManager } from "../utils/network";
@@ -607,20 +608,9 @@ Phase B boundary form (not authorized by Phase A):
     const network = options.network;
     const chainId = Number(manifest.chains[network].evmChainId);
     const deployment = readDeployment(String(chainId));
-    const predicted = (name: string) => identity(lock, name, "proxy").address;
-    const targets =
-      network === "arbitrum"
-        ? [
-            ["AssessmentResolver", deployment.assessmentResolver],
-            ["TestimonyResolver", manifest.schemaPreparation.expected.proxy],
-            ["CommitmentPoolingModule", predicted("CommitmentPoolingModule")],
-            ["CommitmentRegistry", predicted("CommitmentRegistry")],
-            ["GardenToken", deployment.gardenToken],
-            ["WorkApprovalResolver", deployment.workApprovalResolver],
-            ["SettlementModule", predicted("SettlementModule")],
-            ["CreditRegistry", predicted("CreditRegistry")],
-          ]
-        : [["CeloSettlementExecutor", predicted("CeloSettlementExecutor")]];
+    // One target list, shared with release-verify's Safe phase, so the contracts this ceremony hands
+    // over and the contracts the post-state verifier checks are the same list by construction.
+    const targets = ownershipTransferTargets(network, manifest, lock, deployment as Record<string, unknown>);
     const normalized = targets.map(([label, address]) => ({
       label: String(label),
       address: typeof address === "string" && isAddress(address) ? getAddress(address) : "",
@@ -779,6 +769,11 @@ Phase B boundary form (not authorized by Phase A):
     }
     const liveOwner = getAddress(await new Contract(boundary.to, ownableInterface, provider).owner());
     if (liveOwner !== getAddress(plan.finalOwner)) throw new Error(`Ownership post-state mismatch at ${boundary.to}`);
+    // The pre-send Safe check proves the destination was right when we looked; the Safe can change
+    // between that read and mining, and again afterwards. Re-verify the exact frozen configuration
+    // at the receipt block and at the current head before this boundary is allowed to checkpoint.
+    await this.assertTierThreeOwnerSafe(provider, manifest, network, receipt.blockNumber);
+    await this.assertTierThreeOwnerSafe(provider, manifest, network, "finalized");
     if (prior) {
       console.log(`Ownership boundary ${options.releaseStep} is already verified; no replay transaction was sent`);
       return;
@@ -1520,6 +1515,15 @@ Phase B boundary form (not authorized by Phase A):
   private peerPlan(options: ParsedOptions, manifest: ReleaseManifest, lock: ReleaseLock): void {
     if (options.network !== "arbitrum" && options.network !== "celo") {
       throw new Error("settlement-peer requires --network arbitrum|celo");
+    }
+    // The Celo source peer was set by the executor's initializer and is a completed tier-3
+    // boundary. ceremony.peerWiringIncluded authorizes only the remaining Arbitrum route, and
+    // settlement-peer-verify proves only that, so a Celo plan would be executable calldata for a
+    // mutation with no authorization and no receipt-backed proof path. Refuse to emit it.
+    if (options.network === "celo") {
+      throw new Error(
+        "Celo source peer is already configured and is outside this ceremony; peer wiring authorizes only the Arbitrum route",
+      );
     }
     // The authorization gate sits in front of plan generation, not only the broadcast branch: the
     // supported execution path is "send the planned calldata", so an unauthorized ceremony must not

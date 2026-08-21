@@ -433,10 +433,18 @@ frozen owner set. The same address is a different Safe on each chain:
 
 1. Arbitrum, eight boundaries in order through the release operator:
    `bun run contracts:release:ownership:dry:arbitrum`, then the broadcast form one boundary at a
-   time with `--step <index> --expected-nonce <n>`. Verify afterwards with
-   `bun run contracts:release:verify:arbitrum --owner-phase safe`.
+   time with `--step <index> --expected-nonce <n>`. Each boundary re-reads the Safe's exact frozen
+   configuration at its receipt block and at head before it checkpoints, so a Safe that changed
+   between the pre-send read and mining cannot complete the boundary. Verify afterwards with
+   `bun run contracts:release:verify:arbitrum --owner-phase safe`, which checks all eight
+   ownership targets (including AssessmentResolver, TestimonyResolver, GardenToken, and
+   WorkApprovalResolver, which are not deterministic lock identities) and re-asserts the Safe's
+   threshold and exact owner set.
 2. Celo, one boundary, only after the threshold is raised:
-   `bun run contracts:release:ownership:dry:celo`, then the same broadcast form.
+   `bun run contracts:release:ownership:dry:celo`, then the same broadcast form, then
+   `bun run contracts:release:verify:celo --owner-phase safe`. The Celo source peer is already
+   configured from the executor's initializer; there is no Celo peer-wiring plan, and the
+   `settlement:peer:plan:celo` command is retired.
 
 ### Wiring the Arbitrum route
 

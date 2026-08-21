@@ -318,6 +318,78 @@ async function verifySettlement(
 }
 
 /**
+ * Safe-phase ownership proof. The deterministic-identity loop above covers only the five lock
+ * proxies, but the ownership ceremony hands over eight Arbitrum contracts and one on Celo, so every
+ * ownership target is checked here from the same list the transfer plan uses. The protocol Safe's
+ * own configuration is then re-read live, because "owner() equals the Safe address" says nothing
+ * about whether that Safe still matches the frozen threshold and owner set.
+ */
+async function verifySafeOwnershipPhase(
+  provider: JsonRpcProvider,
+  network: ReleaseNetwork,
+  manifest: ReturnType<typeof loadReleaseManifest>,
+  lock: ReturnType<typeof buildReleaseLock>,
+  artifact: Record<string, unknown>,
+  checks: Check[],
+) {
+  const safeAddress = manifest.ownership.protocolSafe;
+  for (const [label, address] of ownershipTransferTargets(network, manifest, lock, artifact)) {
+    const owner = await new Contract(address, OWNER_ABI, provider).owner();
+    check(checks, `ownership.${label}.owner`, safeAddress, owner, true);
+  }
+  const approved =
+    network === "celo"
+      ? manifest.ownership.celoProtocolSafeConfiguration
+      : manifest.ownership.protocolSafeConfiguration;
+  const safe = new Contract(
+    safeAddress,
+    ["function getOwners() view returns (address[])", "function getThreshold() view returns (uint256)"],
+    provider,
+  );
+  const [owners, threshold] = (await Promise.all([safe.getOwners(), safe.getThreshold()])) as [string[], bigint];
+  const liveOwners = owners
+    .map((owner) => getAddress(owner))
+    .sort()
+    .join(",");
+  const frozenOwners = approved.owners
+    .map((owner) => getAddress(owner))
+    .sort()
+    .join(",");
+  check(checks, `protocolSafe.${network}.threshold`, approved.threshold, String(threshold));
+  check(checks, `protocolSafe.${network}.owner-count`, String(approved.owners.length), String(owners.length));
+  check(checks, `protocolSafe.${network}.exact-owner-set`, frozenOwners, liveOwners, true);
+}
+
+/** The exact ownership-transfer target list, shared with the transfer plan so the two cannot drift. */
+export function ownershipTransferTargets(
+  network: ReleaseNetwork,
+  manifest: ReturnType<typeof loadReleaseManifest>,
+  lock: ReturnType<typeof buildReleaseLock>,
+  artifact: Record<string, unknown>,
+): Array<[string, string]> {
+  const proxy = (name: string) => releaseProxy(lock, name);
+  const deployed = (key: string) => {
+    const value = artifact[key];
+    if (typeof value !== "string" || !/^0x[0-9a-fA-F]{40}$/u.test(value) || /^0x0+$/iu.test(value)) {
+      throw new Error(`Deployment artifact has no address for ${key}`);
+    }
+    return value;
+  };
+  return network === "arbitrum"
+    ? [
+        ["AssessmentResolver", deployed("assessmentResolver")],
+        ["TestimonyResolver", manifest.schemaPreparation.expected.proxy],
+        ["CommitmentPoolingModule", proxy("CommitmentPoolingModule")],
+        ["CommitmentRegistry", proxy("CommitmentRegistry")],
+        ["GardenToken", deployed("gardenToken")],
+        ["WorkApprovalResolver", deployed("workApprovalResolver")],
+        ["SettlementModule", proxy("SettlementModule")],
+        ["CreditRegistry", proxy("CreditRegistry")],
+      ]
+    : [["CeloSettlementExecutor", proxy("CeloSettlementExecutor")]];
+}
+
+/**
  * Chain-time Garden binding for the frozen Safe authority. The permission hash covers only the
  * Safe, modifier, and condition tree, so it cannot tell one Garden from another; the executor's
  * write-once route can. Every frozen row must match the live route for its own Garden on Safe,
@@ -625,6 +697,9 @@ async function main() {
           true,
         );
       }
+    }
+    if (args.ownerPhase === "safe" && !boundary) {
+      await verifySafeOwnershipPhase(provider, args.network, manifest, lock, artifact, checks);
     }
     if (boundary?.kind === "configuration") {
       await verifyConfigurationBoundary(provider, boundary, manifest, lock, deployment, expectedOwner, true, checks);

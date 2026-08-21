@@ -204,7 +204,6 @@
     "contracts:settlement:safe:plan:celo": "APP_ENV=development bun run --cwd packages/contracts settlement:safe:plan:celo",
     "contracts:settlement:safe:dry:celo": "APP_ENV=development bun run --cwd packages/contracts settlement:safe:dry:celo",
     "contracts:settlement:peer:plan:arbitrum": "APP_ENV=development bun run --cwd packages/contracts settlement:peer:plan:arbitrum",
-    "contracts:settlement:peer:plan:celo": "APP_ENV=development bun run --cwd packages/contracts settlement:peer:plan:celo",
     "contracts:settlement:peer:verify:arbitrum": "APP_ENV=development bun run --cwd packages/contracts settlement:peer:verify:arbitrum",
     "contracts:settlement:dual-chain:up": "APP_ENV=development bun run --cwd packages/contracts settlement:dual-chain:up",
     "contracts:settlement:dual-chain:down": "APP_ENV=development bun run --cwd packages/contracts settlement:dual-chain:down",

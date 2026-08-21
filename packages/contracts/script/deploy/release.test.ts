@@ -299,6 +299,38 @@ describe("release CLI real entrypoints", () => {
     expect(`${transfer.stdout}${transfer.stderr}`).toContain("requires --step <index> and --expected-nonce <n>");
   });
 
+  it("re-verifies the destination Safe after the receipt and checks every ownership target", () => {
+    const source = fs.readFileSync(path.join(CONTRACTS_ROOT, "script/deploy/release.ts"), "utf8");
+    const start = source.indexOf("private async ownershipTransfer(");
+    const end = source.indexOf("\n  }\n", source.indexOf("checkpoint written atomically", start));
+    const transfer = source.slice(start, end);
+    const postState = transfer.indexOf("Ownership post-state mismatch");
+    const checkpointWrite = transfer.indexOf("writeReleaseJsonAtomic(checkpointPath, checkpoint)");
+
+    // The Safe is re-read at the receipt block and at head between the post-state owner check and
+    // the checkpoint write, so a Safe that changed after the pre-send read cannot checkpoint.
+    const receiptRecheck = transfer.indexOf(
+      "assertTierThreeOwnerSafe(provider, manifest, network, receipt.blockNumber)",
+      postState,
+    );
+    const headRecheck = transfer.indexOf(
+      'assertTierThreeOwnerSafe(provider, manifest, network, "finalized")',
+      postState,
+    );
+    expect(receiptRecheck).toBeGreaterThan(postState);
+    expect(headRecheck).toBeGreaterThan(receiptRecheck);
+    expect(headRecheck).toBeLessThan(checkpointWrite);
+
+    // The transfer plan and the Safe-phase verifier share one target list by construction.
+    expect(transfer).toContain("ownershipTransferTargets(network, manifest, lock");
+    const verifier = fs.readFileSync(path.join(CONTRACTS_ROOT, "script/release-verify.ts"), "utf8");
+    expect(verifier).toContain("export function ownershipTransferTargets(");
+    for (const target of ["AssessmentResolver", "TestimonyResolver", "GardenToken", "WorkApprovalResolver"]) {
+      expect(verifier).toContain(`["${target}",`);
+    }
+    expect(verifier).toContain("protocolSafe.${network}.exact-owner-set");
+  });
+
   it("freezes ownership transfer as the tier-3 gate in front of peer wiring", () => {
     const source = fs.readFileSync(path.join(CONTRACTS_ROOT, "script/deploy/release.ts"), "utf8");
     const transferStart = source.indexOf("private async ownershipTransfer(");
@@ -344,17 +376,18 @@ describe("release CLI real entrypoints", () => {
     expect(fs.readFileSync(ARBITRUM_ARTIFACT).equals(canonicalBefore)).toBe(true);
   });
 
-  it("builds both peer plans at the measured gas frozen in the manifest", () => {
+  it("builds the Arbitrum peer plan at the measured gas and refuses a Celo plan", () => {
     const env = { ...process.env, SETTLEMENT_DESTINATION_GAS_LIMIT: "3000000" };
-    for (const network of ["arbitrum", "celo"]) {
-      const output = run(["settlement-peer", "--network", network, "--pure-simulation"], env);
-      expect(output).toContain('"stage": "settlement-peer"');
-      expect(output).toContain(
-        network === "arbitrum"
-          ? '"destination gas limit equals 3000000"'
-          : '"source peer has no previous peer or grace window"',
-      );
-    }
+    const output = run(["settlement-peer", "--network", "arbitrum", "--pure-simulation"], env);
+    expect(output).toContain('"stage": "settlement-peer"');
+    expect(output).toContain('"destination gas limit equals 3000000"');
+
+    // The Celo source peer was configured at initialization and has no verification path here, so
+    // the global authorization flag must not be able to emit setSourcePeer calldata.
+    const celo = fail(["settlement-peer", "--network", "celo", "--pure-simulation"], env);
+    expect(celo.status).not.toBe(0);
+    expect(`${celo.stdout}${celo.stderr}`).toContain("peer wiring authorizes only the Arbitrum route");
+    expect(`${celo.stdout}${celo.stderr}`).not.toContain("setSourcePeer");
   });
 
   it("binds peer plans to the protocol Safe and rejects the deployment EOA", () => {
