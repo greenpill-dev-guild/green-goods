@@ -7,8 +7,9 @@ import {
   usePrimaryAddress,
 } from "@green-goods/shared";
 import { RiArchiveLine, RiPulseLine } from "@remixicon/react";
-import React, { useState } from "react";
+import React, { useCallback, useState } from "react";
 import { useIntl } from "react-intl";
+import { useNavigate } from "react-router-dom";
 
 import { ModalDrawer, type ModalDrawerTab } from "@/components/Dialogs/ModalDrawer";
 import { LiveTab } from "./LiveTab";
@@ -39,6 +40,18 @@ export const CommitmentsDrawer: React.FC<CommitmentsDrawerProps> = ({ isOpen, on
   const { pools } = useCommitmentPools({ chainId });
   const { data: gardens = [] } = useGardens();
   const { series } = useCommitmentSeries({ chainId, holder: viewer ?? undefined });
+  const navigate = useNavigate();
+
+  // The sheet sits beside the garden outlet rather than above a route of its
+  // own, so opening a commitment has to put the sheet away first or it would
+  // stay drawn over the very screen it just opened.
+  const openCommitment = useCallback(
+    (gardenAddress: string, commitmentId: bigint) => {
+      onClose();
+      navigate(`/home/${gardenAddress}/commitments/${commitmentId.toString()}`);
+    },
+    [onClose, navigate]
+  );
 
   const tabs: ModalDrawerTab[] = [
     {
@@ -69,9 +82,17 @@ export const CommitmentsDrawer: React.FC<CommitmentsDrawerProps> = ({ isOpen, on
       contentClassName="flex min-h-0 flex-col overflow-hidden p-0"
       maxHeight="95vh"
     >
-      {activeTab === "live" && <LiveTab inbox={inbox} pools={pools} gardens={gardens} />}
+      {activeTab === "live" && (
+        <LiveTab inbox={inbox} pools={pools} gardens={gardens} onOpenCommitment={openCommitment} />
+      )}
       {activeTab === "over-time" && (
-        <OverTimeTab inbox={inbox} pools={pools} gardens={gardens} series={series} />
+        <OverTimeTab
+          inbox={inbox}
+          pools={pools}
+          gardens={gardens}
+          series={series}
+          onOpenCommitment={openCommitment}
+        />
       )}
     </ModalDrawer>
   );

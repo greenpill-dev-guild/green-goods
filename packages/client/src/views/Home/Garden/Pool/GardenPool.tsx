@@ -1,6 +1,7 @@
 import {
   type Address,
   type CommitmentPoolRecord,
+  commitmentNeedsSeat,
   DEFAULT_CHAIN_ID,
   selectCommitmentSeat,
   useCommitmentCycles,
@@ -62,18 +63,25 @@ export function GardenPool({ pool }: GardenPoolProps) {
       direction === "all"
         ? commitmentsQuery.commitments
         : commitmentsQuery.commitments.filter((c) => c.direction === direction);
-    return filtered.map((commitment) => ({
-      commitment,
+    return filtered.map((commitment) => {
       // Browse has no team roster loaded, so an empty team is the honest input:
       // it can name the parties, and it never guesses that a reader is on a
       // team it cannot see.
-      seat: selectCommitmentSeat({
+      const seat = selectCommitmentSeat({
         commitment,
         contributors: [],
         viewer: (viewer ?? undefined) as Address | undefined,
-      }),
-      needsYou: false,
-    }));
+      });
+      return {
+        commitment,
+        seat,
+        // Asked of the same act table as the sheet's badge and the detail bar,
+        // and of the narrower question: not "can I do something here" but "is
+        // somebody held up by me". Withdrawing or taking up is the reader's
+        // own option and never marks a row.
+        needsYou: commitmentNeedsSeat({ commitment, seat }),
+      };
+    });
   }, [commitmentsQuery.commitments, direction, viewer]);
 
   const { byCID } = useCommitmentMetadata(commitmentsQuery.commitments);

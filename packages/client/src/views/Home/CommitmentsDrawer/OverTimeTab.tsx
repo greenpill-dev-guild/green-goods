@@ -12,13 +12,15 @@ import { useIntl } from "react-intl";
 
 import { CommitmentRow, CommitmentStateLadder } from "@/components/Features/Commitments";
 import { COMMITMENTS_DRAWER_SCROLL_CLASSNAME } from "./classnames";
-import { groupByGarden } from "./grouping";
+import { gardenAddressFor, groupByGarden } from "./grouping";
 
 export interface OverTimeTabProps {
   inbox: CommitmentsInbox;
   pools: CommitmentPoolRecord[];
   gardens: Garden[];
   series: CommitmentSeriesRecord[];
+  /** Where a row goes when tapped: the commitment, in its garden. */
+  onOpenCommitment: (gardenAddress: string, commitmentId: bigint) => void;
 }
 
 /**
@@ -30,7 +32,7 @@ export interface OverTimeTabProps {
  * commitment in a three-person garden must not read as a third of a failure.
  * Lapsed appears because this is the member's own view of themselves.
  */
-export function OverTimeTab({ inbox, pools, gardens, series }: OverTimeTabProps) {
+export function OverTimeTab({ inbox, pools, gardens, series, onOpenCommitment }: OverTimeTabProps) {
   const { formatMessage } = useIntl();
   const { isOnline } = useOffline();
   const { byCID } = useCommitmentMetadata(
@@ -156,17 +158,23 @@ export function OverTimeTab({ inbox, pools, gardens, series }: OverTimeTabProps)
                   {group.gardenName}
                 </p>
                 <div className="space-y-2">
-                  {group.rows.map((row) => (
-                    <CommitmentRow
-                      key={row.commitment.id}
-                      row={row}
-                      title={
-                        row.commitment.metadataCID
-                          ? (byCID.get(row.commitment.metadataCID)?.title ?? null)
-                          : null
-                      }
-                    />
-                  ))}
+                  {group.rows.map((row) => {
+                    const gardenAddress = gardenAddressFor(row, pools);
+                    return (
+                      <CommitmentRow
+                        key={row.commitment.id}
+                        row={row}
+                        title={
+                          row.commitment.metadataCID
+                            ? (byCID.get(row.commitment.metadataCID)?.title ?? null)
+                            : null
+                        }
+                        onOpen={
+                          gardenAddress ? (id) => onOpenCommitment(gardenAddress, id) : undefined
+                        }
+                      />
+                    );
+                  })}
                 </div>
               </div>
             ))}

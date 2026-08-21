@@ -10,8 +10,18 @@
  */
 
 import userEvent from "@testing-library/user-event";
+import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { renderWithProviders as render, screen } from "../test-utils";
+import { renderWithProviders, screen } from "../test-utils";
+
+/** Rows navigate into a commitment, so the sheet needs a router around it. */
+const render = (ui: React.ReactElement) => renderWithProviders(<MemoryRouter>{ui}</MemoryRouter>);
+const mockNavigate = vi.fn();
+
+vi.mock("react-router-dom", async () => {
+  const actual = await vi.importActual<typeof import("react-router-dom")>("react-router-dom");
+  return { ...actual, useNavigate: () => mockNavigate };
+});
 
 const VIEWER = "0x1111111111111111111111111111111111111111" as const;
 const GARDEN = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" as const;
@@ -88,6 +98,56 @@ describe("CommitmentsDrawer", () => {
     vi.clearAllMocks();
     mockUseOffline.mockReturnValue({ isOnline: true });
     mockUseCommitmentsInbox.mockReturnValue(inbox());
+  });
+
+  it("opens a row's commitment in its garden and closes the sheet behind it", async () => {
+    const user = userEvent.setup();
+    const onClose = vi.fn();
+    mockUseCommitmentsInbox.mockReturnValue(
+      inbox({ live: [{ commitment: commitment(), seat: "provider", needsYou: false }] })
+    );
+
+    render(<CommitmentsDrawer isOpen onClose={onClose} />);
+    await user.click(screen.getByRole("button", { name: /3 hours/ }));
+
+    expect(mockNavigate).toHaveBeenCalledWith(`/home/${GARDEN}/commitments/9`);
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it("opens settled commitments from the Over time tab the same way", async () => {
+    const user = userEvent.setup();
+    const onClose = vi.fn();
+    mockUseCommitmentsInbox.mockReturnValue(
+      inbox({
+        settled: [
+          {
+            commitment: commitment({ derivedState: "FULFILLED", onchainState: "FULFILLED" }),
+            seat: "provider",
+            needsYou: false,
+          },
+        ],
+      })
+    );
+
+    render(<CommitmentsDrawer isOpen onClose={onClose} />);
+    await user.click(screen.getByRole("tab", { name: /over time/i }));
+    await user.click(screen.getByRole("button", { name: /3 hours/ }));
+
+    expect(mockNavigate).toHaveBeenCalledWith(`/home/${GARDEN}/commitments/9`);
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it("leaves a row whose garden it cannot place as a record rather than a dead button", () => {
+    mockUseCommitmentsInbox.mockReturnValue(
+      inbox({
+        live: [{ commitment: commitment({ poolId: 99n }), seat: "provider", needsYou: false }],
+      })
+    );
+
+    render(<CommitmentsDrawer isOpen onClose={() => {}} />);
+
+    expect(screen.getByText("3 hours")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /3 hours/ })).not.toBeInTheDocument();
   });
 
   it("says the surface is not ready rather than claiming the garden is empty", () => {

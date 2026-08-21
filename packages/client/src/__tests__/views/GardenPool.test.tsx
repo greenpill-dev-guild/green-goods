@@ -221,6 +221,38 @@ describe("GardenPool", () => {
     expect(screen.queryByText("3 hours")).not.toBeInTheDocument();
   });
 
+  it("marks a row that is waiting on the reader, and only that row", () => {
+    mockUseCommitments.mockReturnValue(
+      commitmentsResult({
+        commitments: [
+          // Ready, and the reader is the one who has to confirm it.
+          commitment({ derivedState: "READY_FOR_CONFIRMATION", counterparty: VIEWER }),
+          // The reader's own untaken offer: withdrawing is their option, not a duty.
+          commitment({
+            id: "42161-10",
+            commitmentId: 10n,
+            derivedState: "OFFERED",
+            creator: VIEWER,
+            leadProvider: null,
+            unitLabel: "rides",
+          }),
+          // Somebody else's, in progress: nothing waits on a bystander.
+          commitment({ id: "42161-11", commitmentId: 11n, unitLabel: "seedlings" }),
+        ],
+      })
+    );
+
+    render(<GardenPool pool={pool()} />);
+
+    const rows = screen.getAllByRole("button", { name: /hours|rides|seedlings/ });
+    expect(rows.map((row) => row.getAttribute("data-needs-you"))).toEqual([
+      "true",
+      "false",
+      "false",
+    ]);
+    expect(screen.getAllByText("Needs you")).toHaveLength(1);
+  });
+
   it("explains what the pool is for before listing what is in it", () => {
     mockUseCommitments.mockReturnValue(commitmentsResult({ commitments: [commitment()] }));
 
