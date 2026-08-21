@@ -98,6 +98,9 @@ import GardenDetail from "../../views/Public/GardenDetail";
 
 const messages: Record<string, string> = {
   "public.gardenDetail.notFound": "Garden not found",
+  "public.gardenDetail.unavailable": "This Garden could not be loaded",
+  "public.gardenDetail.unavailableHelp": "Could not read it right now.",
+  "public.gardenDetail.retry": "Try again",
   "public.gardenDetail.notFoundHelp": "The link may be stale.",
   "public.gardenDetail.backToGardens": "Browse Gardens",
   "public.gardenDetail.backToArchive": "All Gardens",
@@ -131,7 +134,6 @@ const messages: Record<string, string> = {
   "public.gardenDetail.operators.heading": "Operators",
   "public.gardenDetail.operators.helper": "Trusted coordinators.",
   "public.gardenDetail.operators.empty": "No operators are listed for this Garden yet.",
-  "public.gardenDetail.retry": "Try again",
   "public.source.close": "Close",
   "public.nav.installApp": "Install App",
   "public.nav.openApp": "Open App",
@@ -369,5 +371,23 @@ describe("GardenDetail", () => {
       "href",
       "/gardens"
     );
+  });
+  it("distinguishes a failed read from a missing Garden", () => {
+    // `getGardens` times out in production. Falling through to not-found told
+    // the reader their Garden does not exist, which the page cannot know.
+    const refetch = vi.fn();
+    mockUsePublicGardenDetail.mockReturnValue({
+      data: undefined,
+      isLoading: false,
+      isError: true,
+      refetch,
+    });
+    renderView("/gardens/solar-community-garden");
+
+    expect(screen.getByText("This Garden could not be loaded")).toBeInTheDocument();
+    expect(screen.queryByText("Garden not found")).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Try again" }));
+    expect(refetch).toHaveBeenCalled();
   });
 });

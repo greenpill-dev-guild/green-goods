@@ -27,6 +27,7 @@ import {
   selectSeenCommitments,
   selectHypercertCycleEligibility,
   selectPoolClosureEligibility,
+  selectPublicPromiseKeptRate,
   selectPromiseKeptRate,
   selectRequirementProgress,
   type CommitmentReadModel,
@@ -132,6 +133,30 @@ describe("pool promise rate", () => {
       due: 4n,
     });
     expect(selectPromiseKeptRate({ commitmentsFulfilled: 0n, commitmentsDue: 0n })).toBeNull();
+  });
+
+  it("publishes a public rate only when both privacy thresholds are met", () => {
+    expect(
+      selectPublicPromiseKeptRate({
+        commitmentsFulfilled: 4n,
+        commitmentsDue: 5n,
+        distinctProviderCount: 3n,
+      })
+    ).toEqual({ kind: "rate", rate: { fulfilled: 4n, due: 5n } });
+    expect(
+      selectPublicPromiseKeptRate({
+        commitmentsFulfilled: 3n,
+        commitmentsDue: 4n,
+        distinctProviderCount: 3n,
+      })
+    ).toEqual({ kind: "counts-only", counts: { fulfilled: 3n, due: 4n } });
+    expect(
+      selectPublicPromiseKeptRate({
+        commitmentsFulfilled: 4n,
+        commitmentsDue: 5n,
+        distinctProviderCount: 2n,
+      })
+    ).toEqual({ kind: "counts-only", counts: { fulfilled: 4n, due: 5n } });
   });
 });
 

@@ -8,6 +8,7 @@ import {
   isSuccessfulSettlementExecution,
   selectConsiderationStatus,
   selectOperationsCapabilities,
+  selectConfirmedDisbursementTotal,
   selectSettlementActions,
   selectSettlementReadiness,
 } from "../modules/commitment-pooling/settlement";
@@ -16,6 +17,19 @@ const A = "0x1111111111111111111111111111111111111111" as const;
 const B = "0x2222222222222222222222222222222222222222" as const;
 
 describe("settlement status precedence", () => {
+  it("totals only acknowledgment-confirmed disbursements", () => {
+    expect(
+      selectConfirmedDisbursementTotal([
+        { state: "UNKNOWN", amount: 1n },
+        { state: "QUEUED", amount: 2n },
+        { state: "DISPATCHED", amount: 4n },
+        { state: "CONFIRMED", amount: 8n },
+        { state: "FAILED", amount: 16n },
+        { state: "CANCELLED", amount: 32n },
+      ])
+    ).toBe(8n);
+  });
+
   it("accepts only the indexer's literal execution success enum", () => {
     expect(isSuccessfulSettlementExecution("SUCCESS")).toBe(true);
     expect(isSuccessfulSettlementExecution("EXECUTED")).toBe(false);

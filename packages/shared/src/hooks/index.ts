@@ -385,9 +385,7 @@ export type {
   UsePublicFieldNotesOptions,
 } from "./public/usePublicFieldNotes";
 export { usePublicFieldNotes } from "./public/usePublicFieldNotes";
-// ============================================================================
 // PUBLIC READ-SIDE (Living Archive journal)
-// ============================================================================
 export type {
   PublicFieldNote,
   PublicGardenContributor,
@@ -395,6 +393,8 @@ export type {
   UsePublicGardenDetailOptions,
 } from "./public/usePublicGardenDetail";
 export { usePublicGardenDetail } from "./public/usePublicGardenDetail";
+export { usePublicCommitmentImpact } from "./public/usePublicCommitmentImpact";
+export { usePublicGardenPool } from "./public/usePublicGardenPool";
 export type { PublicGardenSummary } from "./public/usePublicGardens";
 export { publicGardenHelpers, usePublicGardens } from "./public/usePublicGardens";
 export type { UsePublicImpactEvidenceOptions } from "./public/usePublicImpactEvidence";
