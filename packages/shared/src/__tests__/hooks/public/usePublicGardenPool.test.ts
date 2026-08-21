@@ -7,13 +7,20 @@ import { renderHook, waitFor } from "@testing-library/react";
 import { createElement, type ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const mocks = vi.hoisted(() => ({ query: vi.fn(), warn: vi.fn() }));
+const mocks = vi.hoisted(() => ({
+  query: vi.fn(),
+  warn: vi.fn(),
+  getJsonByHash: vi.fn(),
+}));
 
 vi.mock("../../../modules/data/graphql-client", () => ({
   greenGoodsIndexer: { query: (...args: unknown[]) => mocks.query(...args) },
 }));
 vi.mock("../../../modules/app/logger", () => ({
   logger: { warn: (...args: unknown[]) => mocks.warn(...args) },
+}));
+vi.mock("../../../modules/data/ipfs", () => ({
+  getJsonByHash: (...args: unknown[]) => mocks.getJsonByHash(...args),
 }));
 vi.mock("../../../config/blockchain", () => ({ DEFAULT_CHAIN_ID: 42161 }));
 
@@ -110,6 +117,10 @@ function forbiddenPublicFieldKeys(value: unknown): string[] {
 describe("public commitment pool reader", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.getJsonByHash.mockImplementation(async (cid: string) => ({
+      version: 1,
+      name: `Name for ${cid.replace("ipfs://", "")}`,
+    }));
     mocks.query.mockImplementation(async (_query, _variables, operation) => {
       if (operation === "getPublicGardenPool") return { data: { CommitmentPool: [POOL] } };
       return {
@@ -159,6 +170,8 @@ describe("public commitment pool reader", () => {
     ).toEqual(["wallet", "token", "recipient", "source"]);
     expect(containsAddressValue(result)).toBe(false);
     expect(result?.openSeason?.cycleId).toBe(10n);
+    expect(result?.openSeason?.name).toBe("Name for cycle-10");
+    expect(result?.openSeason).not.toHaveProperty("metadataCID");
     expect(result?.openCampaigns.map((entry) => entry.cycleId)).toEqual([11n]);
     expect(result?.finishedCycles.map((entry) => entry.cycleId)).toEqual([13n, 12n]);
     expect(result?.cycleUnitSummaries.map((entry) => entry.cycleId)).toEqual([10n]);
@@ -194,6 +207,31 @@ describe("usePublicGardenPool", () => {
       unavailableSources: { commitmentPool: true },
     });
     expect(mocks.warn).toHaveBeenCalledOnce();
+  });
+
+  it("reports an unavailable cycle name without discarding indexed cycle data", async () => {
+    mocks.query.mockImplementation(async (_query, _variables, operation) => {
+      if (operation === "getPublicGardenPool") return { data: { CommitmentPool: [POOL] } };
+      return {
+        data: {
+          CommitmentCycle: [cycle(10, "SEASON", "OPEN", 50)],
+          CommitmentUnitSummary: [],
+        },
+      };
+    });
+    mocks.getJsonByHash.mockRejectedValue(new Error("IPFS unavailable"));
+
+    const queryClient = createQueryClient();
+    const result = renderHook(() => usePublicGardenPool(GARDEN), {
+      wrapper: createWrapper(queryClient),
+    });
+    await waitFor(() => expect(result.result.current.isSuccess).toBe(true));
+
+    expect(result.result.current.data).toMatchObject({
+      openSeason: { cycleId: 10n, name: null, nameUnavailable: true },
+      partialData: true,
+      unavailableSources: { commitmentPool: false, cycleMetadata: true },
+    });
   });
 
   it("never carries a previous garden's data across a query-key switch", async () => {

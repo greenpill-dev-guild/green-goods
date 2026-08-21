@@ -14,6 +14,7 @@ import type { Address } from "../../types/domain";
 
 export interface PublicGardenPoolUnavailableSources {
   commitmentPool: boolean;
+  cycleMetadata: boolean;
 }
 
 export interface PublicGardenPoolData {
@@ -40,7 +41,7 @@ function emptyPublicGardenPool(unavailable: boolean): PublicGardenPoolData {
     poolUnitSummaries: [],
     cycleUnitSummaries: [],
     partialData: unavailable,
-    unavailableSources: { commitmentPool: unavailable },
+    unavailableSources: { commitmentPool: unavailable, cycleMetadata: false },
   };
 }
 
@@ -59,10 +60,18 @@ export function usePublicGardenPool(
       try {
         const record = await getPublicGardenPool(chainId, gardenAddress);
         if (!record) return emptyPublicGardenPool(false);
+        const cycleMetadataUnavailable = [
+          record.openSeason,
+          ...record.openCampaigns,
+          ...record.finishedCycles,
+        ].some((cycle) => cycle?.nameUnavailable === true);
         return {
           ...record,
-          partialData: false,
-          unavailableSources: { commitmentPool: false },
+          partialData: cycleMetadataUnavailable,
+          unavailableSources: {
+            commitmentPool: false,
+            cycleMetadata: cycleMetadataUnavailable,
+          },
         };
       } catch (error) {
         logger.warn("[usePublicGardenPool] Envio read failed", {

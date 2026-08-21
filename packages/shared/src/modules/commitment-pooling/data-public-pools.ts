@@ -6,6 +6,7 @@ import type {
   CommitmentUnitSummaryRecord,
 } from "./types";
 import { type RawRow, integer, mapUnitSummary, number, optionalInteger, string } from "./data-core";
+import { resolveCycleMetadataName } from "./cycle-metadata";
 
 const PUBLIC_POOL_FIELDS = /* GraphQL */ `
   id chainId poolId state commitmentsOffered commitmentsAccepted commitmentsFulfilled
@@ -49,8 +50,8 @@ export interface PublicCommitmentCycleRecord {
   state: CommitmentCycleRecord["state"];
   startTime: bigint | null;
   endTime: bigint | null;
-  /** Public clients may resolve the cycle's editorial name from this metadata document. */
-  metadataCID: string | null;
+  name: string | null;
+  nameUnavailable: boolean;
   commitmentsAccepted: bigint;
   commitmentsReadyForConfirmation: bigint;
   commitmentsFulfilled: bigint;
@@ -88,7 +89,12 @@ function mapPublicPool(row: RawRow): PublicCommitmentPoolRecord {
   };
 }
 
-function mapPublicCycle(row: RawRow): PublicCommitmentCycleRecord {
+interface IndexedPublicCommitmentCycleRecord
+  extends Omit<PublicCommitmentCycleRecord, "name" | "nameUnavailable"> {
+  metadataCID: string | null;
+}
+
+function mapPublicCycle(row: RawRow): IndexedPublicCommitmentCycleRecord {
   return {
     id: String(row.id),
     chainId: number(row.chainId),
@@ -107,6 +113,18 @@ function mapPublicCycle(row: RawRow): PublicCommitmentCycleRecord {
     commitmentsDisputed: integer(row.commitmentsDisputed),
     commitmentsDue: integer(row.commitmentsDue),
     openCommitmentCount: integer(row.openCommitmentCount),
+  };
+}
+
+async function resolvePublicCycle(
+  cycle: IndexedPublicCommitmentCycleRecord
+): Promise<PublicCommitmentCycleRecord> {
+  const { metadataCID, ...record } = cycle;
+  const resolution = await resolveCycleMetadataName(metadataCID);
+  return {
+    ...record,
+    name: resolution.name,
+    nameUnavailable: resolution.status === "unavailable",
   };
 }
 
@@ -148,12 +166,13 @@ export async function getPublicGardenPool(
   );
   if (detailsResult.error) throw detailsResult.error;
 
-  const cycles = (detailsResult.data?.CommitmentCycle ?? [])
+  const indexedCycles = (detailsResult.data?.CommitmentCycle ?? [])
     .map(mapPublicCycle)
     .filter(
       (cycle) =>
         cycle.state === "OPEN" || cycle.state === "RECONCILED" || cycle.state === "COMPOSTED"
     );
+  const cycles = await Promise.all(indexedCycles.map(resolvePublicCycle));
   const includedCycleIds = new Set(cycles.map((cycle) => cycle.cycleId.toString()));
   const summaries = (detailsResult.data?.CommitmentUnitSummary ?? []).map(mapUnitSummary);
 

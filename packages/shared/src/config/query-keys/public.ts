@@ -55,4 +55,8 @@ export const publicKeys = {
   /** Visitor-safe public impact evidence slice. */
   impactEvidence: (chainId: number, page: number, pageSize: number) =>
     ["greengoods", "public", "impactEvidence", chainId, page, pageSize] as const,
+
+  /** Address-free Commitment Pooling aggregates for the public impact page. */
+  commitmentImpact: (chainId: number) =>
+    ["greengoods", "public", "commitmentImpact", chainId] as const,
 } as const;
