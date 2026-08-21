@@ -134,7 +134,6 @@ const messages: Record<string, string> = {
   "public.gardenDetail.operators.heading": "Operators",
   "public.gardenDetail.operators.helper": "Trusted coordinators.",
   "public.gardenDetail.operators.empty": "No operators are listed for this Garden yet.",
-  "public.gardenDetail.retry": "Try again",
   "public.source.close": "Close",
   "public.nav.installApp": "Install App",
   "public.nav.openApp": "Open App",
