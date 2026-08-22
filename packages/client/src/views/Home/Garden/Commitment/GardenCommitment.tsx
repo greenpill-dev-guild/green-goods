@@ -3,6 +3,7 @@ import {
   Alert,
   DEFAULT_CHAIN_ID,
   isCommitmentReasonPinError,
+  canLinkWork,
   isGardenMember,
   selectCommitmentSeat,
   useActions,
@@ -217,16 +218,12 @@ export function GardenCommitment() {
   // The contract rosters only the garden's own people, whatever the policy says.
   const memberHere = isSteward || isGardenMember(viewer, garden?.gardeners, garden?.operators);
   const joinable = canJoinTeam({ commitment, seat, isGardenMember: memberHere });
-  // Linking work is a provider's or contributor's act on garden work that is
-  // still moving; it rides the bar's second row beside Add proof.
-  const canLinkWork =
-    commitment.commitmentType === "DOMAIN_IMPACT" &&
-    (seat === "provider" || seat === "contributor") &&
-    !commitment.contributorsFrozen &&
-    (commitment.derivedState === "ACCEPTED" ||
-      commitment.derivedState === "ACTIVE" ||
-      commitment.derivedState === "PARTIALLY_APPROVED" ||
-      commitment.derivedState === "EVIDENCE_SUBMITTED");
+  // Linking work rides the bar's second row beside Add proof.
+  const linkable = canLinkWork({
+    commitment,
+    seat,
+    linkedCount: detail.workAttributions.filter((entry) => entry.linked).length,
+  });
   const linkableWorks = works.filter(
     (work) =>
       viewer &&
@@ -236,14 +233,14 @@ export function GardenCommitment() {
         (entry) => entry.linked && entry.workUID.toLowerCase() === work.id.toLowerCase()
       )
   );
-  const linkWork = (workUID: string, requirementIndex: number) => {
-    // A fresh operation id per act: a link after an unlink is a new operation,
-    // and the queue derives the caller-scoped key from this id.
+  const linkWork = (workUID: string, requirementIndex: number, clientOperationId: string) => {
+    // The dialog mints the operation id once per selection, so a double tap
+    // before the pending state lands is one job rather than two sends.
     void jobs
       .enqueue({
         act: "workLink",
         payload: {
-          clientOperationId: crypto.randomUUID(),
+          clientOperationId,
           commitmentId: commitment.commitmentId,
           workUID: workUID as `0x${string}`,
           requirementIndex,
@@ -284,7 +281,7 @@ export function GardenCommitment() {
               isOnline={isOnline}
               blockedReasonId={queueBlockedReasonId}
               secondary={
-                canLinkWork && act.kind === "addProof"
+                linkable && act.kind === "addProof"
                   ? { labelId: "app.commitment.act.linkWork", onRun: () => setLinkOpen(true) }
                   : null
               }
@@ -397,7 +394,7 @@ export function GardenCommitment() {
           actions={actions}
           chainId={chainId}
           viewer={viewer ?? null}
-          canLink={canLinkWork && !hasPendingJob && !queue.isUnavailable}
+          canLink={linkable && !hasPendingJob && !queue.isUnavailable}
           onOpenWork={(workUID) => navigate(`../../work/${workUID}`, { relative: "path" })}
           onLink={(workUID, requirementIndex) => setLinkOpen({ workUID, requirementIndex })}
         />

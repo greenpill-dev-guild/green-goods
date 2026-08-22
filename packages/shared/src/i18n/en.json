@@ -1224,6 +1224,7 @@
   "app.compose.what.whereBound": "Runs in the {cycle}.",
   "app.compose.what.whereHelp": "Seasons and campaigns both hold commitments. Pick which one holds this.",
   "app.compose.what.whereLabel": "Where it runs",
+  "app.compose.what.whereOwn": "On its own, outside any season or campaign",
   "app.compose.what.whereNone": "No season or campaign is open, so this runs on its own.",
   "app.confirm.act.captured": "Confirm it was kept",
   "app.confirm.act.offer": "Confirm it was kept",

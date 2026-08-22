@@ -699,8 +699,13 @@ describe("GardenCommitment", () => {
 
   it("queues the act the bar names", async () => {
     const user = userEvent.setup();
+    // A service is sent by hand once its proof is in. Garden work is not:
+    // the contract refuses that send (WorkApprovalRequired) and moves the
+    // commitment itself when the work approvals arrive.
     mockUseCommitment.mockReturnValue(
-      detail({ commitment: { derivedState: "EVIDENCE_SUBMITTED" } })
+      detail({
+        commitment: { derivedState: "EVIDENCE_SUBMITTED", commitmentType: "SUPPORT_SERVICE" },
+      })
     );
     render();
 
@@ -863,6 +868,35 @@ describe("GardenCommitment", () => {
         gardenAddress: GARDEN,
       },
     });
+  });
+
+  it("hands the queue one operation id however many times Confirm is tapped", async () => {
+    // The dedup key comes from the id, so a double tap before the pending
+    // state re-renders must be one job rather than a send and a WorkAlreadyLinked.
+    const user = userEvent.setup();
+    mockUseWorks.mockReturnValue({ works: [work()] });
+    mockUseCommitment.mockReturnValue(
+      detail({
+        requirements: [
+          { id: "r0", requirementIndex: 0, actionUID: 44n, requiredCount: 2, approvedCount: 0 },
+        ],
+      })
+    );
+    // Leave the enqueue unresolved so the dialog never reaches its pending state.
+    mockEnqueue.mockReturnValue(new Promise(() => {}));
+    render();
+
+    await user.click(screen.getByRole("button", { name: "Link work" }));
+    await user.click(screen.getByRole("radio", { name: /Prune the north beds/ }));
+    const confirm = screen.getByRole("button", { name: "Link this work" });
+    await user.click(confirm);
+    await user.click(confirm);
+
+    const ids = mockEnqueue.mock.calls.map(
+      (call) => (call[0] as { payload: { clientOperationId: string } }).payload.clientOperationId
+    );
+    expect(ids).toHaveLength(2);
+    expect(new Set(ids).size).toBe(1);
   });
 
   it("still asks which row when the same action repeats", async () => {

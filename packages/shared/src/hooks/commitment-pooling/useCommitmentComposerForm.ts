@@ -25,6 +25,7 @@ import { z } from "zod";
 
 import type { CommitmentCreationPayload } from "../../modules/commitment-pooling/jobs";
 import { buildCommitmentMetadata } from "../../modules/commitment-pooling/metadata";
+import { MAX_LINKED_WORKS_PER_COMMITMENT } from "../../modules/commitment-pooling/acts";
 import type { Address } from "../../types/domain";
 
 /** ICommitmentPoolingModule enum ordinals. */
@@ -122,6 +123,17 @@ export const commitmentComposerSchema = z
         }
         seen.add(row.actionUID);
       });
+      // The contract caps linked work per commitment, and counts what is
+      // required as well as what is attached (CreationChecksLib,
+      // TooManyLinkedWorks). Rows may be few and still ask for too much.
+      const totalRequired = values.requirements.reduce((sum, row) => sum + row.requiredCount, 0);
+      if (totalRequired > MAX_LINKED_WORKS_PER_COMMITMENT) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["requirements"],
+          message: "That is more work than one commitment can hold",
+        });
+      }
     }
   });
 

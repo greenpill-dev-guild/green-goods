@@ -1224,6 +1224,7 @@
   "app.compose.what.whereBound": "Acontece na {cycle}.",
   "app.compose.what.whereHelp": "Temporadas e campanhas guardam compromissos. Escolha qual guarda este.",
   "app.compose.what.whereLabel": "Onde acontece",
+  "app.compose.what.whereOwn": "Por conta própria, fora de qualquer temporada ou campanha",
   "app.compose.what.whereNone": "Nenhuma temporada ou campanha está aberta, então este segue por conta própria.",
   "app.confirm.act.captured": "Confirmar que foi cumprido",
   "app.confirm.act.offer": "Confirmar que foi cumprido",

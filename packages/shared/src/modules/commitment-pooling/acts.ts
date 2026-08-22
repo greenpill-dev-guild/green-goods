@@ -16,6 +16,11 @@
 import type { CommitmentDerivedState, CommitmentReadModel } from "./types";
 import type { CommitmentSeat } from "./selectors";
 
+/** Mirrors CommitmentPoolingCommonLib: a roster the contract will not grow past. */
+export const MAX_CONTRIBUTORS_PER_COMMITMENT = 40;
+/** Mirrors CommitmentPoolingCommonLib: linked work, counted as required and as attached. */
+export const MAX_LINKED_WORKS_PER_COMMITMENT = 40;
+
 export type CommitmentActKind =
   | "takeUp"
   | "askToTakeUp"
@@ -54,7 +59,8 @@ const IN_PROGRESS = new Set<CommitmentDerivedState>(["ACCEPTED", "ACTIVE", "PART
 // to change.
 
 export interface CommitmentActInput {
-  commitment: Pick<CommitmentReadModel, "derivedState" | "claimMode">;
+  commitment: Pick<CommitmentReadModel, "derivedState" | "claimMode"> &
+    Partial<Pick<CommitmentReadModel, "commitmentType">>;
   seat: CommitmentSeat | null;
   /** True while an act for this commitment is still waiting to send. */
   hasPendingJob?: boolean;
@@ -96,6 +102,12 @@ export function selectCommitmentActKind(input: CommitmentActInput): CommitmentAc
   }
 
   if (phase === "EVIDENCE_SUBMITTED") {
+    // Garden work is never sent by hand: the contract refuses it outright
+    // (ConfirmLib, WorkApprovalRequired) and moves the commitment itself once
+    // the work approvals arrive. Until then the team keeps adding proof.
+    if (commitment.commitmentType === "DOMAIN_IMPACT") {
+      return seat === "provider" || seat === "contributor" ? "addProof" : null;
+    }
     // Sending settles the team and the credit record, so only the lead may do
     // it. Someone on the team never sends, and never confirms.
     return seat === "provider" ? "sendForConfirmation" : null;
@@ -121,7 +133,7 @@ export function selectCommitmentActKind(input: CommitmentActInput): CommitmentAc
 export function canJoinTeam(input: {
   commitment: Pick<
     CommitmentReadModel,
-    "derivedState" | "contributorPolicy" | "contributorsFrozen"
+    "derivedState" | "contributorPolicy" | "contributorsFrozen" | "contributorCount"
   >;
   seat: CommitmentSeat | null;
   /**
@@ -135,9 +147,35 @@ export function canJoinTeam(input: {
   const { commitment, seat, isGardenMember } = input;
   if (seat !== "bystander") return false;
   if (!isGardenMember) return false;
+  // A full roster takes nobody (TooManyContributors), however open the policy.
+  if (commitment.contributorCount >= MAX_CONTRIBUTORS_PER_COMMITMENT) return false;
   if (commitment.contributorsFrozen) return false;
   if (commitment.contributorPolicy !== "OPEN") return false;
   return IN_PROGRESS.has(commitment.derivedState);
+}
+
+/**
+ * Whether the reader may link one of their works to this commitment.
+ *
+ * Garden work only, by the people doing it, while it is still moving, and
+ * only up to the contract's ceiling: the forty-first link reverts
+ * (TooManyLinkedWorks), and every active attribution counts towards it,
+ * not only the approved ones.
+ */
+export function canLinkWork(input: {
+  commitment: Pick<CommitmentReadModel, "derivedState" | "commitmentType" | "contributorsFrozen">;
+  seat: CommitmentSeat | null;
+  /** Attributions currently linked, whatever their approval state. */
+  linkedCount: number;
+}): boolean {
+  const { commitment, seat, linkedCount } = input;
+  if (commitment.commitmentType !== "DOMAIN_IMPACT") return false;
+  if (seat !== "provider" && seat !== "contributor") return false;
+  if (commitment.contributorsFrozen) return false;
+  if (linkedCount >= MAX_LINKED_WORKS_PER_COMMITMENT) return false;
+  return (
+    IN_PROGRESS.has(commitment.derivedState) || commitment.derivedState === "EVIDENCE_SUBMITTED"
+  );
 }
 
 /**

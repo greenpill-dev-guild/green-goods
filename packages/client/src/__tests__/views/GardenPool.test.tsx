@@ -31,6 +31,7 @@ const mockUseCommitments = vi.fn();
 const mockUseCommitmentCycles = vi.fn();
 const mockUseCommitmentCycleNames = vi.fn();
 const mockUseOffline = vi.fn();
+const mockUseHasRole = vi.fn();
 const mockUseQueueState = vi.fn();
 const mockUseReason = vi.fn();
 const mockFlush = vi.fn();
@@ -130,6 +131,7 @@ vi.mock("@green-goods/shared", async () => {
     useJobQueue: () => ({ flush: mockFlush }),
     jobQueue: { retryJob: mockRetryJob, discardJob: mockDiscardJob },
     useOffline: () => mockUseOffline(),
+    useHasRole: () => mockUseHasRole(),
   };
 });
 
@@ -139,6 +141,7 @@ describe("GardenPool", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockUseOffline.mockReturnValue({ isOnline: true });
+    mockUseHasRole.mockReturnValue({ hasRole: false, isLoading: false });
     mockUseCommitmentCycles.mockReturnValue({ cycles: [] });
     mockUseCommitmentCycleNames.mockReturnValue({ byCycleId: new Map(), isLoading: false });
     mockUseQueueState.mockReturnValue({
@@ -512,6 +515,22 @@ describe("GardenPool", () => {
 
     await user.click(screen.getByRole("button", { name: "Offer" }));
     expect(mockNavigate).toHaveBeenCalledWith("commitments/new?direction=offer");
+  });
+
+  it("offers the protocol pool's doors to its stewards only", () => {
+    // The contract refuses any other creator on the protocol pool
+    // (CreationChecksLib.resolveCreator), so a member's door would queue an
+    // act that can only revert. The garden pool keeps its doors for everyone.
+    mockUseCommitments.mockReturnValue(commitmentsResult({ commitments: [commitment()] }));
+    const protocol = pool({ poolType: "PROTOCOL", garden: OTHER });
+
+    const { unmount } = render(<GardenPool pool={protocol} />);
+    expect(screen.queryByRole("button", { name: "Offer or request" })).not.toBeInTheDocument();
+    unmount();
+
+    mockUseHasRole.mockReturnValue({ hasRole: true, isLoading: false });
+    render(<GardenPool pool={protocol} />);
+    expect(screen.getByRole("button", { name: "Offer or request" })).toBeInTheDocument();
   });
 
   it("closes the doors without starting anything", async () => {

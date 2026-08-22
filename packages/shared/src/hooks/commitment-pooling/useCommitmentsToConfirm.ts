@@ -161,8 +161,11 @@ export function useCommitmentsToConfirm({
     count: groups.reduce((sum, group) => sum + group.rows.length, 0),
     isSteward: stewarded.length > 0,
     availability,
-    isLoading: queries.some((query) => query.isLoading),
-    isError: queries.some((query) => query.isError),
-    refetch: () => Promise.all(queries.map((query) => query.refetch())),
+    // The reader's own set is part of the answer: while it is missing, a
+    // steward on a team could be listed and offered a confirmation that
+    // reverts. So it loads, fails and refetches with the garden reads.
+    isLoading: own.isLoading || queries.some((query) => query.isLoading),
+    isError: own.isError || queries.some((query) => query.isError),
+    refetch: () => Promise.all([own.refetch(), ...queries.map((query) => query.refetch())]),
   };
 }

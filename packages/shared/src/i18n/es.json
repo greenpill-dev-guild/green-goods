@@ -1224,6 +1224,7 @@
   "app.compose.what.whereBound": "Transcurre en la {cycle}.",
   "app.compose.what.whereHelp": "Las temporadas y las campañas contienen compromisos. Elige cuál contiene este.",
   "app.compose.what.whereLabel": "Dónde transcurre",
+  "app.compose.what.whereOwn": "Por su cuenta, fuera de cualquier temporada o campaña",
   "app.compose.what.whereNone": "No hay ninguna temporada ni campaña abierta, así que este va por su cuenta.",
   "app.confirm.act.captured": "Confirmar que se cumplió",
   "app.confirm.act.offer": "Confirmar que se cumplió",

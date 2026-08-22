@@ -106,7 +106,13 @@ export function useCommitmentQueueState(viewer?: Address | null): CommitmentQueu
     void queryClient.invalidateQueries({ queryKey });
   }, [queryClient, queryKey]);
 
-  useJobQueueEvents(["job:added", "job:completed", "job:failed"], refresh, [refresh]);
+  // A flush that only moved a job to waiting (membership not yet granted, a
+  // gateway down) rewrites the record without a completed or failed event, and
+  // the query never goes stale on its own. The sync-completed event is the one
+  // signal every flush emits, so the stored state is re-read on it.
+  useJobQueueEvents(["job:added", "job:completed", "job:failed", "queue:sync-completed"], refresh, [
+    refresh,
+  ]);
 
   return useMemo(() => {
     const jobs: Job[] = query.data ?? [];

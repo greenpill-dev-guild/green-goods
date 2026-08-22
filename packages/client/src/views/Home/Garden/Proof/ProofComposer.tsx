@@ -14,13 +14,12 @@ import {
   useOffline,
   usePrimaryAddress,
 } from "@green-goods/shared";
-import { RiCameraFill, RiImageFill, RiMicLine, RiStopFill } from "@remixicon/react";
 import { useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate, useParams } from "react-router-dom";
 
 import { ImagePreviewDialog } from "@/components/Dialogs";
-import { pwaStatusStyles } from "@/styles/pwaStatusStyles";
+import { ProofBar } from "./ProofBar";
 import { ProofDetails } from "./ProofDetails";
 import { ProofMedia } from "./ProofMedia";
 import { ProofReview } from "./ProofReview";
@@ -221,8 +220,10 @@ export function ProofComposer() {
   if (isLoading) return <ProofState kind="loading" isOnline={isOnline} onBack={back} />;
   // A failed read is not an answer about who this belongs to. Reporting it as
   // "not yours" tells the provider they lack permission and offers no way out,
-  // so the read failure is named first and can be tried again.
-  if (isError || (!detail && !isLoading)) {
+  // so the read failure is named first and can be tried again. A read that
+  // succeeded with nothing behind it is a different answer: the commitment
+  // does not exist, and "not yours" is the plain truth of that too.
+  if (isError) {
     return (
       <ProofState kind="error" isOnline={isOnline} onBack={back} onRetry={() => void refetch()} />
     );
@@ -246,66 +247,17 @@ export function ProofComposer() {
         onBack={() => (beatIndex === 0 ? back() : setBeat(BEATS[beatIndex - 1] as Beat))}
         progress={beatIndex + 1}
         bar={
-          <div className="shrink-0 border-t border-stroke-soft-200 bg-bg-white-0 p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
-            {!canAdvance && blockedReasonId ? (
-              <p className="mb-2 text-xs text-text-sub-600" id="proof-blocked" role="status">
-                {formatMessage({ id: blockedReasonId })}
-              </p>
-            ) : null}
-            <div className="flex items-center gap-2">
-              {beat === "media" ? (
-                <>
-                  <button
-                    type="button"
-                    onClick={() => document.getElementById("proof-media-upload")?.click()}
-                    disabled={isProcessing}
-                    aria-label={formatMessage({ id: "app.proof.media.gallery" })}
-                    className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[var(--radius-lg)] border border-stroke-soft-200 bg-bg-white-0 tap-target-lg disabled:opacity-60"
-                  >
-                    <RiImageFill className={`h-5 w-5 ${pwaStatusStyles.primary.icon}`} />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => document.getElementById("proof-media-camera")?.click()}
-                    disabled={isProcessing}
-                    aria-label={formatMessage({ id: "app.proof.media.camera" })}
-                    className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[var(--radius-lg)] border border-stroke-soft-200 bg-bg-white-0 tap-target-lg disabled:opacity-60"
-                  >
-                    <RiCameraFill className={`h-5 w-5 ${pwaStatusStyles.primary.icon}`} />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={toggleRecording}
-                    aria-pressed={isRecording}
-                    aria-label={formatMessage({
-                      id: isRecording ? "app.proof.media.stopRecording" : "app.proof.media.record",
-                    })}
-                    className={
-                      isRecording
-                        ? `flex h-11 w-11 shrink-0 items-center justify-center rounded-[var(--radius-lg)] border tap-target-lg ${pwaStatusStyles.error.surface} ${pwaStatusStyles.error.border}`
-                        : "flex h-11 w-11 shrink-0 items-center justify-center rounded-[var(--radius-lg)] border border-stroke-soft-200 bg-bg-white-0 tap-target-lg"
-                    }
-                  >
-                    {isRecording ? (
-                      <RiStopFill className={`h-5 w-5 ${pwaStatusStyles.error.icon}`} />
-                    ) : (
-                      <RiMicLine className={`h-5 w-5 ${pwaStatusStyles.primary.icon}`} />
-                    )}
-                  </button>
-                </>
-              ) : null}
-              <button
-                aria-describedby={!canAdvance && blockedReasonId ? "proof-blocked" : undefined}
-                type="button"
-                disabled={!canAdvance || jobs.isPending}
-                aria-busy={jobs.isPending}
-                onClick={() => (isReview ? void submit() : setBeat(BEATS[beatIndex + 1] as Beat))}
-                className="min-w-0 flex-1 rounded-[var(--radius-lg)] bg-primary-action px-4 py-3 text-sm font-medium text-primary-action-foreground tap-target-lg disabled:opacity-60"
-              >
-                {formatMessage({ id: isReview ? "app.proof.submit" : "app.compose.next" })}
-              </button>
-            </div>
-          </div>
+          <ProofBar
+            showMediaTools={beat === "media"}
+            isProcessing={isProcessing}
+            isRecording={isRecording}
+            onToggleRecording={toggleRecording}
+            advanceLabelId={isReview ? "app.proof.submit" : "app.compose.next"}
+            canAdvance={canAdvance}
+            isPending={jobs.isPending}
+            blockedReasonId={blockedReasonId}
+            onAdvance={() => (isReview ? void submit() : setBeat(BEATS[beatIndex + 1] as Beat))}
+          />
         }
       >
         {beat === "media" ? (

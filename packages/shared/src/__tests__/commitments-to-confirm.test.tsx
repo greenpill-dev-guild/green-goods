@@ -200,4 +200,27 @@ describe("useCommitmentsToConfirm", () => {
     await waitFor(() => expect(result.current.isError).toBe(true));
     expect(result.current.groups).toEqual([]);
   });
+
+  it("treats the reader's own read failing as the tab failing", async () => {
+    // Without the own set a steward on a team would be listed and offered a
+    // confirmation that reverts, so its failure is the tab's failure, and its
+    // retry rides the tab's retry.
+    mocks.gardens = [garden(GARDEN_A, "Rocinha", { operators: [VIEWER] })];
+    mocks.getCommitments.mockImplementation(async (input: { account?: string }) => {
+      if (input.account?.toLowerCase() === VIEWER.toLowerCase()) throw new Error("own read failed");
+      return [commitment()];
+    });
+
+    const result = await toConfirm();
+
+    await waitFor(() => expect(result.current.isError).toBe(true));
+    const before = mocks.getCommitments.mock.calls.length;
+    await result.current.refetch();
+    const ownCalls = mocks.getCommitments.mock.calls
+      .slice(before)
+      .filter(
+        (call) => (call[0] as { account?: string }).account?.toLowerCase() === VIEWER.toLowerCase()
+      );
+    expect(ownCalls).toHaveLength(1);
+  });
 });

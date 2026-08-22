@@ -79,6 +79,58 @@ render, which is what the demo walk wants to show), and the online mutation thro
   garden stewards through `stewardedGardens`. The concern it raises is exactly what that commit
   fixed; verified absent at the live head.
 
+## Second round, same day — the fix commit's own review
+
+Codex and the code-quality bot reviewed `1b93020d0` and opened seven more threads. All seven were
+real; six are fixed here and one joins the deferred set. CI on the merge head `5e12c441d` was red
+for one reason: `ProofComposer.tsx` had crossed the 350-line cap for *new* files. It had passed
+locally only because the local check diffs against `HEAD~`, where the file counts as modified
+(500 cap); CI diffs against `origin/develop`, where it is new.
+
+| Thread | Root cause | Where |
+|---|---|---|
+| Useless conditional | `!detail && !isLoading` past the loading guard collapses to `!detail`, which also routed a genuinely missing commitment to "error" instead of "not yours" — a real bug in the T9 fix, not just dead code | `Proof/ProofComposer.tsx` |
+| Include the personal query in the tab's error state | The own-set query added for T5 was omitted from `isLoading`, `isError` and `refetch`, so its failure silently re-admitted team rows | `useCommitmentsToConfirm.ts` |
+| Refresh pending rows after skipped transitions | A flush that only parks a job on a preflight rewrites the record without `job:completed`/`job:failed`; the query has infinite stale time and did not subscribe to `queue:sync-completed` | `useCommitmentQueueState.ts` |
+| Keep the cycle-less option when cycles are open | The effect rewrote the legal `cycleId === "0"` to the first open cycle, and the chooser never offered "none", so an unscoped commitment was impossible while any cycle ran. The contract accepts 0 unconditionally and the handoff names "one explicit cycle or cycle-less context" | `Compose/ComposeCommitment.tsx`, `Compose/ComposeWhat.tsx`, en/es/pt |
+| Reuse one operation ID per submission | `linkWork` minted `clientOperationId` per tap, so a double tap before the pending state landed sent two jobs and the second reverted `WorkAlreadyLinked` | `Commitment/LinkWorkDialog.tsx`, `GardenCommitment.tsx` |
+| Restrict protocol-pool creation to stewards | Both doors showed to every member on a protocol pool while `CreationChecksLib.resolveCreator` reverts `NotPoolSteward`; the composer route was reachable by URL too | `Pool/GardenPool.tsx`, `Compose/ComposeCommitment.tsx` |
+
+Deferred with the earlier set: **Use the accepted provider garden for proof preflight** is the same
+route-versus-record family as T2/T18/T21; `providerGarden` is already in the query
+(`data-core.ts:35`) but not on the read model, so it waits for that plumbing.
+
+Source structure: the composer's bottom bar moved into `Proof/ProofBar.tsx`, which also retires
+three copies of a 200-character class string. `ProofComposer.tsx` is 319 lines.
+
+Two more tests changed meaning: both `ComposeCommitment` cycle tests asserted the auto-bind that
+the "keep the cycle-less option" thread shows to be wrong.
+
+## Third round — the merge head's review
+
+Codex reviewed the develop merge `5e12c441d` and opened nine more. Six fixed, one duplicate, two
+deferred.
+
+| Thread | Root cause | Where |
+|---|---|---|
+| Keep garden-work commitments editable after evidence | The act table offered `sendForConfirmation` on `EVIDENCE_SUBMITTED` for every type, but `ConfirmLib` reverts `WorkApprovalRequired` for all DomainImpact; the chain moves garden work on its own when approvals land | `modules/commitment-pooling/acts.ts` |
+| Hide Join when the roster is full | `canJoinTeam` never read `contributorCount`; the roster caps at 40 (`TooManyContributors`) | `acts.ts` |
+| Stop offering Work links at the limit | The link rule lived inline in the view and never counted attributions; `ProofLib.linkWork` rejects the forty-first. Moved into `canLinkWork` beside `canJoinTeam` | `acts.ts`, `GardenCommitment.tsx` |
+| Cap the total required Work count | The schema bounded rows and each row's uint32, not their sum; `validateAndBuildRequirements` rejects an aggregate above 40 | `useCommitmentComposerForm.ts` |
+| Refuse placement unless the pool is open | Only the doors checked `state === "OPEN"`; a deep link or a form left open while the pool paused placed into `PoolNotInState` | `Compose/ComposeCommitment.tsx` |
+| Evict demo query data before re-enabling writes | Real and demo readers share cache keys, so `?mockPooling=0` in the same tab left fresh fixture results that the lifted write guard and the persister could both act on. Pooling reads are now dropped at the flip in either direction | `demo/demo-mode.ts` |
+
+Duplicate: **Bind protocol claims to the selected external garden** restates T2.
+
+Deferred: **Reload the composer draft when its key changes** (the draft is captured once at mount;
+re-resolving it on `viewer`/garden change needs the draft store to own that transition) and
+**Route linked Work through the commitment's pool garden** (`WorkFulfills` navigates under the
+Work's garden; resolving `poolId` to its garden needs a pool read the Work page does not make).
+Both are real; both are their own change.
+
+Two more tests changed meaning: `GardenCommitment`'s "queues the act the bar names" was sending a
+DomainImpact commitment for confirmation, which the contract refuses.
+
 ## Proof
 
 Ship Gate at the fix commit: `bun format` clean, `bun lint` 0 errors, `bun run test`, `bun run build`.
