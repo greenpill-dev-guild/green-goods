@@ -211,3 +211,93 @@ The three named admin test files do not exist yet; they are intentional to-be-cr
 - A steward does not gain authority to edit another holder's metadata or rest/resume/retire their
   series. Saved Offer metadata and person-level Story never enter cross-garden Operations or
   public surfaces.
+
+## Narrowed dispatch option — 2026-08-21
+
+Recorded from `reports/build-review-2026-08-21.md` (admin "Not started": zero pooling files
+against 16 screens / 196 states) and a same-day read of the tree at `develop@bcf6adfc2` plus the
+open PR #749 branch. Mirrors the client lane's narrowed option above: the core steward loop may be
+dispatched by an explicit narrowed handoff stacked on the client-loop branch (PR #749, fast-forwarded
+into the prepared worktree on 2026-08-21 at `faf05338e`), without waiting for hosted read-back, the
+ledger flip, or settlement; the D1 PR opens only after PR #749 is on `develop`. The dispatch prompt is
+`prompt-client-loop.md`'s sibling, `../prompt-admin-console.md`; its "Present state" section is
+the verified gap record and must be re-verified cheaply before use.
+
+**Why now.** Every local pool is NOT_READY with no commitments and no cycles
+(`reports/client-loop-2026-08-21.md` § Rendered proof), so nothing the client lane built can
+render live until a steward sets the charter and cap, marks the pool ready, opens it, and seeds and
+opens a Season. The steward console is the critical path for every lane's rendered QA, and Cycle 1
+is a steward act.
+
+**Scope split.**
+
+- **D1 — run the season** (branch `feature/commitment-pooling-admin-console`; the Status block's
+  `feature/commitment-pooling-admin-ui` signal above is lane-shaped, and the branch takes the
+  outcome-shaped name the convention asks for, as the client lane did): W7 pool console, W11
+  setup / open-season / campaign flows, W8 seeding console, W10 commitment dialog (detail,
+  accepted action row, cancel, mark-ready override, attach assessment, raise / resolve dispute,
+  garden and protocol fallback confirmation, fallback-eligible detail, not-found), W13 Hub Confirm
+  stage, W12 Community → Pools (Protocol pool + This garden). Journeys sb9a, sb20, sb3b, sb17,
+  sb47, sb9b, sb6b, sb21.
+- **D2 — close the season** (branch `feature/commitment-pooling-admin-season-close`, after D1
+  merges): W7C cycle view, W26 close → certificate → compost ceremony with per-step failure
+  states, W9 analog capture (+ `W8@captured-for`), W14 assessment additions, W7M phone layout,
+  `W10@edit-declared-value`, `W10@external-fulfilled` + `record-payout`, `W7@series-view`,
+  `W13@context-chip`. Journeys sb9c, sb9d, sb9e, sb32, sb8, sb8b, sb22, sb50, sb60, sb10.
+- **D3 — stays gated with settlement**: the Operations workspace, `queueFunding`, W21 / W22 /
+  W24 / W37, payout plans, batches, CCIP, the W12 funding view and delivery-gate row. The
+  acceptance bullets above that name these surfaces belong to D3, and so does
+  `src/__tests__/settlement-ccip-flow.test.tsx` under § Exact Bun commands; the other two test
+  files named there are D1 and appear in the list below.
+
+**Shared deliverables owned by this lane (Phase 0 of the prompt).** The aggregate
+`claude-ui.md` lists "shared behavior changes" as out of scope; that line predates the repo rule
+that every hook lives in `@green-goods/shared`, and the client dispatch already allowed shared
+additions in named paths. The admin dispatch allows the same, limited to
+`packages/shared/src/{hooks/commitment-pooling,hooks/admin-ui,modules/commitment-pooling,config/query-keys,utils/navigation,i18n}/**`:
+
+- `useCommitmentPoolMutation` over the 14 pool / cycle lifecycle functions
+  (`ICommitmentPoolingModule.sol:643-685,742`), which have no shared wrapper today although
+  `useCommitmentMutation` already covers every commitment-level steward act.
+- Versioned charter and cycle-name documents pinned before `setPoolCharter` / `seedCycle`.
+- A resumable write-chain helper for the six-write first-run setup and the two-write open, which
+  derives "what landed" from on-chain reads and retries only the unlanded call (`uiux-spec.md`
+  C.51).
+- Readers: protocol pool (`protocolPoolId()` / `rootGarden()`), pending claims by pool,
+  past-due-and-live commitments, typed `confirmationPath` / `fallbackReason`, an `isPoolSteward`
+  predicate, and a fallback group on `useCommitmentsToConfirm` derived from indexed `confirmers` +
+  `protocolFallbackEnabled` + the frozen roster (no indexed reachability field exists;
+  `schema.graphql:970-971`).
+- `cockpit.garden.pool.*`, `cockpit.community.pools.*`, `cockpit.hub.confirm.*` in en / es / pt.
+
+**D1 RED-first test files** (replacing the three names under § Exact Bun commands for this
+dispatch):
+
+- bun run --filter @green-goods/admin test -- src/__tests__/routing/garden-pool-route.test.tsx
+- bun run --filter @green-goods/admin test -- src/__tests__/routing/community-pools-route.test.tsx
+- bun run --filter @green-goods/admin test -- src/__tests__/routing/hub-confirm-route.test.tsx
+- bun run --filter @green-goods/admin test -- src/__tests__/views/GardenPool.test.tsx
+- bun run --filter @green-goods/admin test -- src/__tests__/views/PoolSetupFlow.test.tsx
+- bun run --filter @green-goods/admin test -- src/__tests__/views/SeedCommitment.test.tsx
+- bun run --filter @green-goods/admin test -- src/__tests__/views/CommitmentDialog.test.tsx
+- bun run --filter @green-goods/admin test -- src/__tests__/views/HubConfirm.test.tsx
+- bun run --filter @green-goods/admin test -- src/__tests__/views/CommunityPools.test.tsx
+- bun run --filter @green-goods/shared test -- commitment-pool-mutations commitments-to-confirm
+- cd packages/admin && node ../../scripts/dev/node-cli.js tsc --noEmit -p tsconfig.app.json
+  (the `bun run build` typecheck step checks zero admin files; `tsconfig.json` is solution-style
+  with `files: []`)
+
+**Proof limits carried into the dispatch.** `?mockAuth=operator` changes UI auth state only and
+cannot sign (`docs/docs/builders/getting-started.mdx:189-207`); write-side rendered proof on the
+Anvil fork needs a real wallet that stewards a local garden, which no disposable Anvil account
+does today (prompt decision 5). The local stack runs chain 42161, so the ledger flip rule of the
+client prompt applies to rendered QA here as well. Live authenticated proof stays pending the
+hosted Envio deployment.
+
+**Record.** The dispatch gate, branch, and narrowed scope are recorded in `status.json`
+`execution_sub_lanes.ui_admin` by the dispatched session as its first commit, Afo's dispatch being
+the authorization (the client precedent is `a549877d1`); this handoff's Status block above stays as
+written until then. Linear on 2026-08-21: PRD-725 In Progress since 2026-08-19, blockers PRD-789 /
+PRD-760 / PRD-723 Done, PRD-737 Done since 2026-07-31. The session appends
+its built / not-built table under a dated heading here and writes
+`reports/admin-console-<date>.md`.
