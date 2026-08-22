@@ -12,6 +12,9 @@
     "skipLibCheck": true,
     "strict": true,
     "noEmit": true,
+    "composite": true,
+    "incremental": true,
+    "tsBuildInfoFile": "./.tsbuildinfo/source.tsbuildinfo",
     "verbatimModuleSyntax": true,
     "jsx": "preserve",
     "paths": {
@@ -28,7 +31,8 @@
     "src/__mocks__/**",
     "**/__tests__/**",
     "**/*.test.ts",
-    "**/*.test.tsx"
+    "**/*.test.tsx",
+    "**/*.stories.*"
   ],
   "plugins": [
     {

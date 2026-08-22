@@ -74,6 +74,14 @@ function stripCode(source) {
   return stripLineComments(stripBlockComments(source), "//");
 }
 
+function escapeRegExp(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+export function sourceContainsSymbol(source, symbol) {
+  return new RegExp(`(?<![\\w$])${escapeRegExp(symbol)}(?![\\w$])`).test(stripCode(source));
+}
+
 export function parseSolidityEnum(source, symbol) {
   const match = new RegExp(`enum\\s+${symbol}\\s*\\{([\\s\\S]*?)\\}`).exec(stripCode(source));
   if (!match) return null;
@@ -395,15 +403,37 @@ export function collectAnchorFiles(ontology) {
     if (schema.resolver) files.add(schema.resolver);
   }
   for (const constraint of ontology.constraints) {
+    if (constraint.spec_source) files.add(constraint.spec_source);
     for (const anchor of constraint.enforced_at) files.add(anchor.file);
     for (const hole of constraint.holes) for (const anchor of hole.anchors) files.add(anchor.file);
   }
   for (const machine of ontology.state_machines) {
     if (machine.spec_source) files.add(machine.spec_source);
+    for (const anchor of machine.enforced_at ?? []) files.add(anchor.file);
   }
   for (const watch of ontology.pattern_watches) files.add(watch.file);
   for (const issue of ontology.known_issues) for (const anchor of issue.anchors) files.add(anchor);
   return files;
+}
+
+export function collectPlannedAnchors(ontology) {
+  const entries = [];
+  for (const vocabulary of ontology.vocabularies) {
+    if (vocabulary.source_status === "specified" && vocabulary.planned_anchor) {
+      entries.push({ kind: "vocabulary", id: vocabulary.id, anchor: vocabulary.planned_anchor });
+    }
+  }
+  for (const constraint of ontology.constraints) {
+    if (constraint.source_status === "specified" && constraint.planned_anchor) {
+      entries.push({ kind: "constraint", id: constraint.id, anchor: constraint.planned_anchor });
+    }
+  }
+  for (const machine of ontology.state_machines) {
+    if (machine.source_status === "specified" && machine.planned_anchor) {
+      entries.push({ kind: "state machine", id: machine.id, anchor: machine.planned_anchor });
+    }
+  }
+  return entries;
 }
 
 export function collectProjectionFiles(projections) {
@@ -560,6 +590,7 @@ export function checkProjectionIntegrity(ontology, projections, fileExists) {
 
 export function checkSidecarIntegrity(ontology, fileExists) {
   const errors = [];
+  const validSymbol = (symbol) => typeof symbol === "string" && /^[A-Za-z_$][\w$]*$/.test(symbol);
   const uniq = (label, ids) => {
     const seen = new Set();
     for (const id of ids) {
@@ -602,6 +633,9 @@ export function checkSidecarIntegrity(ontology, fileExists) {
           `vocabulary ${vocabulary.id}: planned_anchor directory does not exist: ${path.dirname(vocabulary.planned_anchor.file)}`
         );
       }
+      if (vocabulary.planned_anchor && !validSymbol(vocabulary.planned_anchor.symbol)) {
+        errors.push(`vocabulary ${vocabulary.id}: planned_anchor requires an identifier symbol`);
+      }
     }
     const repIds = new Set();
     for (const rep of vocabulary.representations) {
@@ -619,6 +653,24 @@ export function checkSidecarIntegrity(ontology, fileExists) {
       const to = vocabulary.representations.find((r) => r.id === mapping.to);
       if (!from) errors.push(`vocabulary ${vocabulary.id}/mapping ${mapping.id}: unknown "from" rep ${mapping.from}`);
       if (!to) errors.push(`vocabulary ${vocabulary.id}/mapping ${mapping.id}: unknown "to" rep ${mapping.to}`);
+    }
+  }
+
+  for (const constraint of ontology.constraints) {
+    if (constraint.source_status === "specified") {
+      if (!constraint.spec_source) {
+        errors.push(`constraint ${constraint.id}: specified source requires spec_source`);
+      }
+      if (!constraint.planned_anchor) {
+        errors.push(`constraint ${constraint.id}: specified source requires planned_anchor`);
+      } else if (!validSymbol(constraint.planned_anchor.symbol)) {
+        errors.push(`constraint ${constraint.id}: planned_anchor requires an identifier symbol`);
+      }
+      if (constraint.enforced_at.length > 0) {
+        errors.push(`constraint ${constraint.id}: specified source must not declare implementation anchors`);
+      }
+    } else if (constraint.planned_anchor) {
+      errors.push(`constraint ${constraint.id}: implemented source must not retain planned_anchor`);
     }
   }
 
@@ -641,6 +693,34 @@ export function checkSidecarIntegrity(ontology, fileExists) {
           if (!stateSet.has(endpoint)) {
             errors.push(`state machine ${machine.id}/transition ${index}: undeclared state "${endpoint}"`);
           }
+        }
+      }
+    }
+    if (machine.source_status === "specified") {
+      if (!machine.spec_source) {
+        errors.push(`state machine ${machine.id}: specified source requires spec_source`);
+      }
+      if (!machine.planned_anchor) {
+        errors.push(`state machine ${machine.id}: specified source requires planned_anchor`);
+      } else if (!validSymbol(machine.planned_anchor.symbol)) {
+        errors.push(`state machine ${machine.id}: planned_anchor requires an identifier symbol`);
+      }
+      if ((machine.enforced_at ?? []).length > 0) {
+        errors.push(`state machine ${machine.id}: specified source must not declare implementation anchors`);
+      }
+    } else if (machine.planned_anchor) {
+      errors.push(`state machine ${machine.id}: implemented source must not retain planned_anchor`);
+    }
+  }
+
+  for (const [kind, records] of [
+    ["constraint", ontology.constraints],
+    ["state machine", ontology.state_machines],
+  ]) {
+    for (const record of records) {
+      for (const anchor of record.enforced_at ?? []) {
+        if (anchor.symbol && !validSymbol(anchor.symbol)) {
+          errors.push(`${kind} ${record.id}: anchor for ${anchor.file} has an invalid symbol`);
         }
       }
     }
@@ -1030,20 +1110,36 @@ function runGuards(ontology) {
   }
   counts.mappings = mappingCount;
 
-  // G7: spec arrival.
+  // G7: stable implementation anchors and spec arrival.
+  let anchorSymbolCount = 0;
+  for (const [kind, records] of [
+    ["constraint", ontology.constraints],
+    ["state machine", ontology.state_machines],
+  ]) {
+    for (const record of records) {
+      for (const anchor of record.enforced_at ?? []) {
+        if (!anchor.symbol) continue;
+        anchorSymbolCount += 1;
+        const source = sourceOf(anchor.file);
+        if (source !== null && !sourceContainsSymbol(source, anchor.symbol)) {
+          errors.push(
+            `[anchor-symbol] ${kind} "${record.id}" no longer finds ${anchor.symbol} in ${anchor.file}`
+          );
+        }
+      }
+    }
+  }
+  counts["anchor-symbols"] = anchorSymbolCount;
+
   let arrivalWatched = 0;
-  for (const vocabulary of ontology.vocabularies) {
-    if (vocabulary.source_status !== "specified" || !vocabulary.planned_anchor) continue;
+  for (const { kind, id, anchor } of collectPlannedAnchors(ontology)) {
     arrivalWatched += 1;
-    const abs = path.join(REPO_ROOT, vocabulary.planned_anchor.file);
+    const abs = path.join(REPO_ROOT, anchor.file);
     if (!existsSync(abs)) continue;
-    // Bare-symbol probe on the comment-stripped source: arrival must trip even
-    // if the vocabulary lands as a type alias or constant set rather than an
-    // enum, but a commented-out mention must not trip it.
-    const source = stripCode(readFileSync(abs, "utf8"));
-    if (new RegExp(`\\b${vocabulary.planned_anchor.symbol}\\b`).test(source)) {
+    const source = readFileSync(abs, "utf8");
+    if (sourceContainsSymbol(source, anchor.symbol)) {
       errors.push(
-        `[spec-arrival] vocabulary "${vocabulary.id}" is now implemented at ${vocabulary.planned_anchor.file} — flip source_status to "implemented", declare representations, and regenerate the docs artifacts`
+        `[spec-arrival] ${kind} "${id}" is now implemented at ${anchor.file} — flip source_status to "implemented", declare implementation anchors, and regenerate the ontology projections`
       );
     }
   }
@@ -1052,7 +1148,9 @@ function runGuards(ontology) {
     try {
       const keys = new Set(Object.keys(JSON.parse(schemasJsonForArrival).schemas ?? {}));
       for (const [key, schema] of Object.entries(ontology.schemas)) {
-        if (schema.source_status === "specified" && keys.has(key)) {
+        if (schema.source_status !== "specified") continue;
+        arrivalWatched += 1;
+        if (keys.has(key)) {
           errors.push(`[spec-arrival] schema "${key}" is now registered in schemas.json — flip source_status to "implemented"`);
         }
       }
@@ -1204,7 +1302,7 @@ function main() {
   }
 
   console.log(
-    `✅ sidecar-integrity: ${ontology.entities.length} entities, ${ontology.vocabularies.length} vocabularies, ${Object.keys(ontology.schemas).length} schemas, ${ontology.constraints.length} constraints, ${ontology.state_machines.length} state machines validated`
+    `✅ sidecar-integrity: ${ontology.entities.length} entities, ${ontology.vocabularies.length} vocabularies, ${Object.keys(ontology.schemas).length} schemas, ${ontology.constraints.length} constraint records, ${ontology.state_machines.length} state-machine records structurally valid`
   );
   console.log(`✅ solidity-enums: ${counts["solidity-enums"]} enums verified`);
   console.log(`✅ graphql-enums: ${counts["graphql-enums"]} enums verified`);
@@ -1212,6 +1310,7 @@ function main() {
   console.log(`✅ eas-schemas: ${counts["eas-schemas"]} schemas verified (↷ ${counts["eas-schemas-skipped"]} specified skipped)`);
   console.log("✅ docs-glossary: entity count, entities, personas, capital ordering, and definitions locked");
   console.log(`✅ mappings: ${counts.mappings} mappings verified`);
+  console.log(`✅ anchor-symbols: ${counts["anchor-symbols"]} stable implementation anchors verified`);
   console.log(`✅ spec-arrival: ${counts["spec-arrival"]} planned anchors watched`);
   console.log(`✅ pattern-watch: ${counts["pattern-watch"]} watches evaluated`);
   console.log("✅ generated-staleness: 5 artifacts current and deterministic");

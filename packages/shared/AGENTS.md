@@ -1,4 +1,4 @@
-# Shared Package — Codex Guide
+# Shared Package — Agent Guide
 
 Use this guide when editing `packages/shared/**`.
 
@@ -32,7 +32,7 @@ types, i18n, and Storybook-backed shared UI building blocks.
 - Add every new user-facing string to `src/i18n/en.json`, `src/i18n/es.json`, and `src/i18n/pt.json`.
 - Use `logger` and typed domain models (`Address`, discriminated unions, `unknown` for untrusted data).
 
-## Codex Notes
+## Package Notes
 
 - Shared changes frequently fan out into `client`, `admin`, and `agent`. If you change a hook
   signature, data shape, or exported utility, run repo-level quick verification from the root.
@@ -41,8 +41,9 @@ types, i18n, and Storybook-backed shared UI building blocks.
   signatures, provider contracts, shared data shapes, or mutation flows can affect consumers.
 - When changing test helpers or hook contracts, keep tests aligned before downstream package fixes.
 - Storybook is the source of truth for shared UI foundations; keep stories aligned when primitives change.
-- Local agentic browser QA must use the authenticated Brave QA profile. Codex: use the Codex browser-extension path and claim the already-open Brave tab/window. Claude Code: use the Claude Code Chrome/Chromium extension path (`claude --chrome` or `/chrome`) and select the authenticated Brave profile/tab when it is installed, connected, and able to control the already-open Brave window. Do not fall back merely because the extension is branded Chrome. If the Brave extension path is unavailable or not connected, use Claude computer-use/visible desktop control of the already-open Brave window; if neither can reach authenticated Brave, report QA as blocked. Use this for admin, PWA, extension, wallet/passkey, staging-session, installed-app, and profile-dependent verification.
-- Do not use isolated Browser, Playwright, or DevTools MCP profiles for local QA. Existing isolated browser-proof commands are CI/clean-room checks only and must not be reported as authenticated verification. If authenticated Brave access is blocked, stop and report QA as blocked.
+- Follow root `AGENTS.md` section “Agentic Modern Web Standard” for browser proof. Consumer QA that
+  depends on a session, wallet, passkey, installed app, or profile must use authenticated Brave; if
+  that path is unavailable, report browser QA as blocked.
 - **Tailwind v4 gotcha**: utility classes authored in shared JSX (`mx-4`, `w-max`, `self-center`, etc.) are not in admin/client content scans and silently fail to generate in consuming apps. They will look correct in Storybook and broken in the running app. Use inline styles or CSS custom properties for layout in shared components, or apply the utility class in the consumer's JSX. Full detail and commit references in root `AGENTS.md` → "Known Gotchas".
 
 ## Validation

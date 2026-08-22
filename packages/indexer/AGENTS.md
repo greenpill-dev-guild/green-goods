@@ -1,4 +1,4 @@
-# Indexer Package — Codex Guide
+# Indexer Package — Agent Guide
 
 Use this guide when editing `packages/indexer/**`.
 
@@ -30,7 +30,7 @@ responsible for protocol entities, not for EAS attestations.
 - `envio dev` preserves the local database. Use `bun run dev:restart` only when a destructive
   local replay is explicitly intended and authorized.
 
-## Codex Notes
+## Package Notes
 
 - On macOS, local development usually relies on Docker-based scripts, but validation still needs
   boundary checks, tests, and a TypeScript build.

@@ -5,15 +5,13 @@ import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const mockUseGardens = vi.fn();
-const mockCanManageGarden = vi.fn();
 
 vi.mock("@green-goods/shared", () => ({
-  cn: (...classes: unknown[]) => classes.filter(Boolean).join(" "),
   DEFAULT_CHAIN_ID: 42161,
-  getEASExplorerUrl: (chainId: number, uid: string) =>
-    `https://easscan.example/?chain=${chainId}&uid=${uid}`,
-  getTag: (_intl: unknown, tag: string) => tag,
-  useGardenPermissions: () => ({ canManageGarden: mockCanManageGarden }),
+  DOMAIN_LABEL_IDS: { 1: "app.domain.tab.agro" },
+  formatDateRange: (start: number, end: number, fallback: string) =>
+    start || end ? "Nov 14, 2023 – Mar 9, 2024" : fallback,
+  resolveIPFSUrl: (cid: string) => `https://gateway.test/ipfs/${cid}`,
   useGardens: (...args: unknown[]) => mockUseGardens(...args),
 }));
 
@@ -30,32 +28,42 @@ vi.mock("@/components/Navigation", () => ({
   TopNav: () => createElement("nav", { "data-testid": "topnav" }),
 }));
 
-vi.mock("@/styles/pwaStatusStyles", () => ({
-  pwaStatusStyles: { primary: { text: "text-primary" } },
-}));
-
 import { GardenAssessment } from "../../views/Home/Garden/Assessment";
 
 const ASSESSMENT_ID = "assessment-1";
-const GARDEN_ID = "0xgarden";
+const GARDEN_ID = "0x0000000000000000000000000000000000000001";
 
 const baseAssessment = {
   id: ASSESSMENT_ID,
+  schemaVersion: "assessment_v2" as const,
+  authorAddress: "0x0000000000000000000000000000000000000002" as const,
+  gardenAddress: GARDEN_ID,
   title: "Q1 Soil Health Assessment",
   description: "Assessment of soil regeneration outcomes",
-  assessmentType: "Soil",
-  capitals: ["Natural", "Social"],
-  tags: ["regeneration", "soil"],
-  startDate: 1700000000,
-  endDate: 1710000000,
-  location: "Field A",
-  metrics: { phLevel: 6.8, organicMatter: "12%", drainage: "good" },
-  evidenceMedia: ["https://example.com/photo1.jpg", "https://example.com/photo2.jpg"],
-  reportDocuments: ["https://example.com/report.pdf"],
-  impactAttestations: [
-    "0xeac1111111111111111111111111111111111111111111111111111111111111",
-    "0xeac2222222222222222222222222222222222222222222222222222222222222",
+  diagnosis: "Compacted soil and low organic matter are limiting water retention.",
+  smartOutcomes: [
+    {
+      description: "Restore healthy soil across the north field",
+      metric: "hectares",
+      target: 20,
+    },
+    {
+      description: "Increase soil organic matter",
+      metric: "percent",
+      target: 12,
+    },
   ],
+  cynefinPhase: 2 as const,
+  domain: 1 as const,
+  selectedActionUIDs: ["action-1", "action-2"],
+  reportingPeriod: { start: 1_700_000_000, end: 1_710_000_000 },
+  sdgTargets: [2, 13],
+  attachments: [
+    { name: "Field photo.jpg", cid: "bafy-photo", mimeType: "image/jpeg" },
+    { name: "Soil report.pdf", cid: "bafy-report", mimeType: "application/pdf" },
+  ],
+  location: "Field A",
+  createdAt: 1_700_000_000,
 };
 
 const baseGarden = {
@@ -65,19 +73,24 @@ const baseGarden = {
 };
 
 const messages = {
-  "app.garden.assessments.title": "Assessment",
-  "app.garden.assessments.metrics": "Metrics",
-  "app.garden.assessments.noMetrics": "No metrics available.",
-  "app.garden.assessments.evidence": "Evidence",
-  "app.garden.assessments.noEvidence": "No evidence available.",
-  "app.garden.assessments.documents": "Documents",
-  "app.garden.assessments.documentItem": "Open document {index}",
-  "app.garden.assessments.noDocuments": "No documents available.",
-  "app.garden.assessments.evidenceItem": "Open evidence {index}",
-  "app.garden.assessments.impactAttestations": "Impact attestations",
+  "app.domain.tab.agro": "Agroforestry",
+  "app.garden.assessments.attachments": "Supporting files",
+  "app.garden.assessments.cynefin.complex": "Complex",
+  "app.garden.assessments.cynefinPhase": "Complexity",
   "app.garden.assessments.dateNotSet": "Date not set",
+  "app.garden.assessments.dateRange": "Reporting period",
+  "app.garden.assessments.diagnosis": "Diagnosis",
   "app.garden.assessments.locationNotProvided": "Location not provided",
+  "app.garden.assessments.noAttachments": "No supporting files attached.",
+  "app.garden.assessments.noSdgTargets": "No SDG alignment recorded.",
+  "app.garden.assessments.noSmartOutcomes": "No outcome targets recorded.",
   "app.garden.assessments.notFound": "Assessment not found.",
+  "app.garden.assessments.outcomeTarget": "Target: {target} {metric}",
+  "app.garden.assessments.sdgAlignment": "SDG alignment",
+  "app.garden.assessments.sdgItem": "SDG {number}: {label}",
+  "app.garden.assessments.smartOutcomes": "SMART outcomes",
+  "app.hypercerts.sdg.2": "Zero Hunger",
+  "app.hypercerts.sdg.13": "Climate Action",
 };
 
 const renderRoute = () =>
@@ -103,7 +116,6 @@ const renderRoute = () =>
 describe("GardenAssessment", () => {
   beforeEach(() => {
     mockUseGardens.mockReturnValue({ data: [baseGarden] });
-    mockCanManageGarden.mockReturnValue(false);
   });
 
   afterEach(() => {
@@ -126,65 +138,46 @@ describe("GardenAssessment", () => {
     expect(screen.getByText("Assessment not found.")).toBeInTheDocument();
   });
 
-  it("renders title, description, capitals, and garden eyebrow", () => {
+  it("renders the canonical domain, complexity, and reporting period", () => {
     renderRoute();
     expect(screen.getByText("Muizenberg Community Garden")).toBeInTheDocument();
     expect(screen.getByText("Q1 Soil Health Assessment")).toBeInTheDocument();
     expect(screen.getByText("Assessment of soil regeneration outcomes")).toBeInTheDocument();
-    expect(screen.getByText("Natural")).toBeInTheDocument();
-    expect(screen.getByText("Social")).toBeInTheDocument();
+    expect(screen.getByText("Agroforestry")).toBeInTheDocument();
+    expect(screen.getByText("Complex")).toBeInTheDocument();
+    expect(screen.getByText(/Nov 14, 2023 – Mar 9, 2024/)).toBeInTheDocument();
   });
 
-  it("renders metrics as labeled key/value rows for non-operators", () => {
+  it("renders the diagnosis and SMART outcome targets", () => {
     renderRoute();
-    // Metric labels are humanized (camelCase → spaced + Capitalized)
-    expect(screen.getByText("Ph Level")).toBeInTheDocument();
-    expect(screen.getByText("6.8")).toBeInTheDocument();
-    expect(screen.getByText("Organic Matter")).toBeInTheDocument();
-    expect(screen.getByText("12%")).toBeInTheDocument();
-    // No raw JSON dump for non-operators
-    expect(screen.queryByText(/"phLevel":/)).not.toBeInTheDocument();
-  });
-
-  it("renders raw JSON metrics for operators", () => {
-    mockCanManageGarden.mockReturnValue(true);
-    renderRoute();
-    // Operator sees the JSON pre block
-    expect(screen.getByText(/"phLevel": 6.8/)).toBeInTheDocument();
-    expect(screen.getByText(/"organicMatter": "12%"/)).toBeInTheDocument();
-  });
-
-  it("hides the impact attestations section for non-operators", () => {
-    renderRoute();
-    expect(screen.queryByText("Impact attestations")).not.toBeInTheDocument();
     expect(
-      screen.queryByText("0xeac1111111111111111111111111111111111111111111111111111111111111")
-    ).not.toBeInTheDocument();
-  });
-
-  it("renders the impact attestations section for operators", () => {
-    mockCanManageGarden.mockReturnValue(true);
-    renderRoute();
-    expect(screen.getByText("Impact attestations")).toBeInTheDocument();
-    expect(
-      screen.getByText("0xeac1111111111111111111111111111111111111111111111111111111111111")
+      screen.getByText("Compacted soil and low organic matter are limiting water retention.")
     ).toBeInTheDocument();
+    expect(screen.getByText("Restore healthy soil across the north field")).toBeInTheDocument();
+    expect(screen.getByText("Target: 20 hectares")).toBeInTheDocument();
+    expect(screen.getByText("Increase soil organic matter")).toBeInTheDocument();
+    expect(screen.getByText("Target: 12 percent")).toBeInTheDocument();
   });
 
-  it("renders documents with friendly indexed labels (not raw URLs)", () => {
+  it("renders localized SDG alignment", () => {
     renderRoute();
-    expect(screen.getByText("Open document 1")).toBeInTheDocument();
-    // The raw URL text is not displayed
-    expect(screen.queryByText("https://example.com/report.pdf")).not.toBeInTheDocument();
+    expect(screen.getByText("SDG 2: Zero Hunger")).toBeInTheDocument();
+    expect(screen.getByText("SDG 13: Climate Action")).toBeInTheDocument();
   });
 
-  it("renders evidence with friendly indexed labels", () => {
+  it("renders IPFS attachments by their human-readable names", () => {
     renderRoute();
-    expect(screen.getByText("Open evidence 1")).toBeInTheDocument();
-    expect(screen.getByText("Open evidence 2")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Field photo.jpg" })).toHaveAttribute(
+      "href",
+      "https://gateway.test/ipfs/bafy-photo"
+    );
+    expect(screen.getByRole("link", { name: "Soil report.pdf" })).toHaveAttribute(
+      "href",
+      "https://gateway.test/ipfs/bafy-report"
+    );
   });
 
-  it("falls back to date-not-set / location-not-provided when missing", () => {
+  it("renders honest empty states for omitted optional display data", () => {
     mockUseGardens.mockReturnValue({
       data: [
         {
@@ -192,8 +185,10 @@ describe("GardenAssessment", () => {
           assessments: [
             {
               ...baseAssessment,
-              startDate: null,
-              endDate: null,
+              reportingPeriod: { start: 0, end: 0 },
+              smartOutcomes: [],
+              sdgTargets: [],
+              attachments: [],
               location: "",
             },
           ],
@@ -203,5 +198,8 @@ describe("GardenAssessment", () => {
     renderRoute();
     expect(screen.getByText(/Date not set/)).toBeInTheDocument();
     expect(screen.getByText(/Location not provided/)).toBeInTheDocument();
+    expect(screen.getByText("No outcome targets recorded.")).toBeInTheDocument();
+    expect(screen.getByText("No SDG alignment recorded.")).toBeInTheDocument();
+    expect(screen.getByText("No supporting files attached.")).toBeInTheDocument();
   });
 });

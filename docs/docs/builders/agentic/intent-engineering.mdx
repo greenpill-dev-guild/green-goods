@@ -74,7 +74,7 @@ An agent implementing a feature that requires network connectivity must consider
 
 ## Agent Decision Heuristics
 
-From `intent.md`, agents use these heuristics:
+From `.claude/context/product.md` and `.claude/context/values.md`, agents use these heuristics:
 
 ### Feature Conflicts
 - Features advancing Capital Formation + Impact Accessibility take priority over Governance-only features
@@ -87,7 +87,8 @@ From `intent.md`, agents use these heuristics:
 - Removing evidence capture (photos) breaks the entire verification model
 
 ### Scope Decisions
-- Each major feature set maps to a specific grant (see intent.md table)
+- When the canonical product context maps work to a funding commitment, keep the implementation
+  inside that commitment's accepted deliverables.
 - When a feature request touches a grant area, scope the work to that grant's deliverables
 - Do not expand scope beyond the funding source
 

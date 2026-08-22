@@ -4,13 +4,13 @@
     "slug": "client-structure-and-agent-guides",
     "title": "Client Structure Cleanup + Agent Guide Consolidation",
     "kind": "feature",
-    "stage": "backlog"
+    "stage": "active"
   },
   "workflow": {
-    "overall_status": "backlog",
+    "overall_status": "active",
     "priority": "p1",
     "created_at": "2026-08-19T19:13:54.605Z",
-    "updated_at": "2026-08-19T19:13:54.605Z"
+    "updated_at": "2026-08-22T00:06:49.220Z"
   },
   "links": {
     "brief": "brief.md",
@@ -19,12 +19,13 @@
     "eval": "eval.md"
   },
   "linear": {
-    "parentIssue": null,
+    "parentIssue": "PRD-826",
     "project": null,
     "initiative": null,
     "syncDirection": "plans_to_linear_visibility",
-    "lastSyncedAt": null,
-    "lanes": {}
+    "lastSyncedAt": "2026-08-21T23:11:51.912Z",
+    "lanes": {},
+    "laneSyncMode": "parent_only"
   },
   "taxonomy": {
     "initiative": "engineering-quality",
@@ -65,7 +66,7 @@
     },
     "state_api": {
       "owner": "codex",
-      "status": "todo",
+      "status": "in_progress",
       "branch": null,
       "depends_on": [],
       "handoff": "handoffs/codex-state-api.md",
@@ -82,7 +83,8 @@
         },
         "note": "RED is the probe passing today (recorded in spec.md); GREEN is AC-1, the same probe failing the build."
       },
-      "skill_tags": ["typescript", "build-config", "data-layer"]
+      "skill_tags": ["typescript", "build-config", "data-layer"],
+      "manual_blocked": false
     },
     "contracts": {
       "owner": "codex",
@@ -163,6 +165,46 @@
       "status": "scoped",
       "branch": null,
       "note": "Filled hub from the 2026-08-19 client structure review: 9 topics reviewed, 14 decisions locked, 4 phases planned."
+    },
+    {
+      "timestamp": "2026-08-21T23:09:19.530Z",
+      "actor": "human",
+      "lane": "system",
+      "status": "moved_to_active",
+      "branch": null,
+      "note": "Moved feature hub from backlog to active"
+    },
+    {
+      "timestamp": "2026-08-21T23:11:51.914Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "linear_recorded",
+      "branch": null,
+      "note": "Recorded Linear parent/lane issue identifiers"
+    },
+    {
+      "timestamp": "2026-08-21T23:23:56.738Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "blocked",
+      "branch": null,
+      "note": "Blocked on maintainer product-model decision: migrate client assessment UI to canonical GardenAssessment v2 or define an intentional legacy/read-model contract. Fresh app-only counts: client 87, admin 61. Partial config edits restored."
+    },
+    {
+      "timestamp": "2026-08-21T23:49:17.141Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "in_progress",
+      "branch": null,
+      "note": "Maintainer selected canonical GardenAssessment v2 semantics. Migrating the two client assessment screens without legacy aliases or casts; the broader truthful typecheck lane remains open after this cluster."
+    },
+    {
+      "timestamp": "2026-08-22T00:06:49.220Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "in_progress",
+      "branch": null,
+      "note": "Completed step 1.5: both client assessment screens now consume canonical GardenAssessment v2 semantics with focused RED/GREEN coverage. Automated selector checks pass; the broader truthful typecheck lane remains open and authenticated browser proof is blocked by an external client-loop worktree on port 3001."
     }
   ]
 }

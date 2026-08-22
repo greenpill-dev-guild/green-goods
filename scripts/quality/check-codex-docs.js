@@ -357,12 +357,156 @@ function validateSkillMirrorSymlink() {
   }
 }
 
+function validateRepoDerivedGuidanceFacts() {
+  const skillsDir = path.join(repoRoot, ".claude/skills");
+  const skillNames = fs
+    .readdirSync(skillsDir, { withFileTypes: true })
+    .filter(
+      (entry) =>
+        entry.isDirectory() && fs.existsSync(path.join(skillsDir, entry.name, "SKILL.md")),
+    )
+    .map((entry) => entry.name)
+    .sort();
+
+  const skillDocs = [
+    "docs/docs/builders/agentic/claude-code.mdx",
+    "docs/docs/builders/agentic/context-engineering.mdx",
+    "docs/docs/builders/agentic/spec-engineering.mdx",
+  ];
+  for (const relPath of skillDocs) {
+    const doc = read(relPath);
+    const documentedCounts = Array.from(doc.matchAll(/\b(\d+) skills\b/g), (match) =>
+      Number(match[1]),
+    );
+    if (
+      documentedCounts.length === 0 ||
+      documentedCounts.some((count) => count !== skillNames.length)
+    ) {
+      fail(`${relPath}: documented skill count must match ${skillNames.length} skill directories`);
+    }
+  }
+  for (const relPath of [skillDocs[0], skillDocs[2]]) {
+    const doc = read(relPath);
+    for (const skillName of skillNames) {
+      if (!doc.includes(skillName)) {
+        fail(`${relPath}: skill inventory is missing ${skillName}`);
+      }
+    }
+  }
+
+  const agenticDocs = fs
+    .readdirSync(path.join(repoRoot, "docs/docs/builders/agentic"))
+    .filter((name) => name.endsWith(".mdx"))
+    .map((name) => `docs/docs/builders/agentic/${name}`);
+  for (const relPath of agenticDocs) {
+    const doc = read(relPath);
+    if (doc.includes(".claude/context/intent.md") || /(?:^|[^/])intent\.md\b/m.test(doc)) {
+      fail(`${relPath}: references nonexistent intent.md; use product.md and values.md`);
+    }
+  }
+
+  const codexDoc = read("docs/docs/builders/agentic/codex.mdx");
+  if (/Skills\["\.agents\/skills\\nGenerated mirror"\]/.test(codexDoc)) {
+    fail("docs/docs/builders/agentic/codex.mdx: .agents/skills is a symlink, not a generated mirror");
+  }
+  if (/^model\s*=/m.test(codexDoc)) {
+    fail("docs/docs/builders/agentic/codex.mdx: project config must not invent a model setting");
+  }
+  for (const setting of ['model_verbosity = "low"', 'model_reasoning_summary = "concise"']) {
+    if (!codexDoc.includes(setting) || !read(".codex/config.toml").includes(setting)) {
+      fail(`docs/docs/builders/agentic/codex.mdx: config example drifted from .codex/config.toml (${setting})`);
+    }
+  }
+
+  const contractsGuide = read("packages/contracts/AGENTS.md");
+  for (const relPath of [
+    "packages/contracts/src/modules/CommitmentPooling.sol",
+    "packages/contracts/src/modules/SettlementModule.sol",
+    "packages/contracts/src/registries/Credit.sol",
+    "packages/contracts/src/registries/Deployment.sol",
+  ]) {
+    const packageRelative = relPath.replace("packages/contracts/", "");
+    if (!exists(relPath) || !contractsGuide.includes(packageRelative)) {
+      fail(`packages/contracts/AGENTS.md: architecture map must include existing ${packageRelative}`);
+    }
+  }
+  if (contractsGuide.includes("src/DeploymentRegistry.sol")) {
+    fail("packages/contracts/AGENTS.md: references nonexistent src/DeploymentRegistry.sol");
+  }
+
+  const hookFolders = fs
+    .readdirSync(path.join(repoRoot, "packages/shared/src/hooks"), { withFileTypes: true })
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => `${entry.name}/`)
+    .sort();
+  const hookSection = getSection(read("packages/shared/src/MODULES.md"), "hooks/ -- React hooks");
+  const documentedHookFolders = Array.from(
+    hookSection.matchAll(/^\| `([^`]+\/)` \|/gm),
+    (match) => match[1],
+  ).sort();
+  if (JSON.stringify(documentedHookFolders) !== JSON.stringify(hookFolders)) {
+    fail(
+      "packages/shared/src/MODULES.md: hook folder inventory drifted from packages/shared/src/hooks",
+    );
+  }
+
+  const adminGuide = read("packages/admin/AGENTS.md");
+  const adminVitest = read("packages/admin/vitest.config.ts");
+  if (
+    !adminVitest.includes('exclude: [\n      "**/node_modules/**"') ||
+    /default admin Vitest run excludes `src\/__tests__\/views/.test(adminGuide)
+  ) {
+    fail("packages/admin/AGENTS.md: default Vitest discovery guidance drifted from vitest.config.ts");
+  }
+
+  const testsReadme = read("tests/README.md");
+  for (const relPath of [
+    "tests/fixtures/playwright-services.ts",
+    "tests/fixtures/anvil-fork.ts",
+    "tests/fixtures/contract-helpers.ts",
+    "tests/helpers/test-utils.ts",
+    "tests/helpers/test-config.ts",
+    "tests/mocks/pimlico-handlers.ts",
+    "scripts/dev/test-e2e.js",
+  ]) {
+    if (!exists(relPath) || !testsReadme.includes(relPath)) {
+      fail(`tests/README.md: missing current E2E path ${relPath}`);
+    }
+  }
+  for (const stalePath of [
+    "tests/run-tests.ts",
+    "docs/developer/getting-started.md",
+    "docs/developer/cursor-workflows.md",
+    ".github/workflows/e2e-tests.yml",
+  ]) {
+    if (testsReadme.includes(stalePath)) {
+      fail(`tests/README.md: references removed path ${stalePath}`);
+    }
+  }
+
+  const playwrightDoc = read("docs/docs/builders/testing/playwright.mdx");
+  for (const marker of ["port 3006", "bun run dev:web", "fork and testnet projects get 120s"]) {
+    if (!playwrightDoc.includes(marker)) {
+      fail(`docs/docs/builders/testing/playwright.mdx: missing current config fact: ${marker}`);
+    }
+  }
+  if (playwrightDoc.includes("npx playwright")) {
+    fail("docs/docs/builders/testing/playwright.mdx: use the repo's Bun Playwright entrypoint");
+  }
+
+  const forgeDoc = read("docs/docs/builders/testing/forge.mdx");
+  if (/\bbun build:(?:fast|full|target)\b/.test(forgeDoc)) {
+    fail("docs/docs/builders/testing/forge.mdx: package scripts require `bun run`");
+  }
+}
+
 validateActions();
 validateRootGuide();
 validatePackageGuides();
 validateGuideReferences();
 validateSkillMirrorSymlink();
 validateCodexImplementationAgent();
+validateRepoDerivedGuidanceFacts();
 
 if (failures.length > 0) {
   console.error("Codex consistency check failed:");
