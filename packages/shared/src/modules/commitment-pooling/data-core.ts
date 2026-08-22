@@ -230,6 +230,8 @@ export function mapCommitment(row: RawRow): CommitmentReadModel {
     direction: row.direction as CommitmentReadModel["direction"],
     commitmentType: row.commitmentType as CommitmentReadModel["commitmentType"],
     claimMode: row.claimMode as CommitmentReadModel["claimMode"],
+    counterpartyKind: row.counterpartyKind as CommitmentReadModel["counterpartyKind"],
+    dueDate: optionalInteger(row.dueDate),
     contributorPolicy: row.contributorPolicy as CommitmentReadModel["contributorPolicy"],
     confirmers: strings(row.confirmers).map((entry) => entry.toLowerCase() as Address),
     confirmationCount: number(row.confirmationCount),

@@ -40,6 +40,9 @@ export type { CommitmentJobInput } from "./useCommitmentJobs";
 export { useCommitmentNotYetDraft } from "./useCommitmentNotYetDraft";
 export { useCommitmentReason } from "./useCommitmentReason";
 export { usePoolCharter } from "./usePoolCharter";
+export { usePoolClaimRequests } from "./usePoolClaimRequests";
+export type { ProtocolPool } from "./useProtocolPool";
+export { useProtocolPool } from "./useProtocolPool";
 export { useCommitmentJobs } from "./useCommitmentJobs";
 export type {
   CommitmentQueueState,
@@ -48,7 +51,11 @@ export type {
 export { useCommitmentQueueState } from "./useCommitmentQueueState";
 export type { CommitmentsInbox, InboxCommitment } from "./useCommitmentsInbox";
 export { useCommitmentsInbox } from "./useCommitmentsInbox";
-export type { CommitmentsToConfirm, ToConfirmGroup } from "./useCommitmentsToConfirm";
+export type {
+  CommitmentsToConfirm,
+  ToConfirmFallbackRow,
+  ToConfirmGroup,
+} from "./useCommitmentsToConfirm";
 export { useCommitmentsToConfirm } from "./useCommitmentsToConfirm";
 export type { CreditMutationInput } from "./useCredit";
 export {

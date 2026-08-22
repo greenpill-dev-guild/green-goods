@@ -60,6 +60,16 @@ export interface CommitmentReadModel {
   commitmentType?: keyof typeof CommitmentKind | null;
   /** Whether taking this up is open or steward-reviewed. Null until creation is seen. */
   claimMode?: keyof typeof CommitmentClaimMode | null;
+  /**
+   * Who took it up: a person or a garden account. Written at acceptance, null
+   * before; a garden counterparty is confirmed by that garden's stewards.
+   */
+  counterpartyKind?: keyof typeof CommitmentClaimType | null;
+  /**
+   * Unix seconds, or null for none. A cycle-scoped commitment without its own
+   * date is due at the cycle's end (`selectDueLiveCommitments`).
+   */
+  dueDate?: bigint | null;
   /** Whether a team may be joined. Null until creation is seen. */
   contributorPolicy?: keyof typeof CommitmentContributorPolicy | null;
   /** The named confirmer group. Empty when confirmation follows the ordinary rule. */
@@ -330,3 +340,15 @@ export interface CommitmentEventRecord {
 }
 
 export type HexString = `0x${string}`;
+
+/** A pool-wide claim row: the request and the commitment it sits on. */
+export interface PoolClaimRequestRow {
+  claim: CommitmentClaimRequestRecord;
+  commitment: CommitmentReadModel;
+}
+
+/** A ready-for-confirmation commitment with the roster that bounds who may confirm it. */
+export interface FallbackConfirmationCandidate {
+  commitment: CommitmentReadModel;
+  activeContributors: Address[];
+}

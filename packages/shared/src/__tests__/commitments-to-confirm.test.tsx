@@ -10,6 +10,8 @@ const VIEWER = "0x1111111111111111111111111111111111111111" as const;
 const OTHER = "0x2222222222222222222222222222222222222222" as const;
 const GARDEN_A = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" as const;
 const GARDEN_B = "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb" as const;
+const ROOT_GARDEN = "0xcccccccccccccccccccccccccccccccccccccccc" as const;
+const CONTRIBUTOR = "0x3333333333333333333333333333333333333333" as const;
 
 const mocks = vi.hoisted(() => ({
   capability: {
@@ -21,7 +23,14 @@ const mocks = vi.hoisted(() => ({
     verified_at: "2026-08-16",
   } as unknown,
   getCommitments: vi.fn(),
+  getFallbackCandidates: vi.fn(),
   gardens: [] as unknown[],
+  protocolPool: {
+    rootGarden: "0xcccccccccccccccccccccccccccccccccccccccc",
+    poolId: 1n,
+    isRegistered: true,
+    isLoading: false,
+  } as Record<string, unknown>,
 }));
 
 vi.mock("../ontology/query", () => ({
@@ -30,6 +39,11 @@ vi.mock("../ontology/query", () => ({
 
 vi.mock("../modules/commitment-pooling/data", () => ({
   getCommitments: mocks.getCommitments,
+  getFallbackConfirmationCandidates: mocks.getFallbackCandidates,
+}));
+
+vi.mock("../hooks/commitment-pooling/useProtocolPool", () => ({
+  useProtocolPool: () => mocks.protocolPool,
 }));
 
 vi.mock("../hooks/blockchain/useBaseLists", () => ({
@@ -68,9 +82,9 @@ function commitment(overrides: Record<string, unknown> = {}) {
   };
 }
 
-async function toConfirm() {
+async function toConfirm(options: { includeProtocolFallback?: boolean } = {}) {
   const { result } = renderHookWithProviders(() =>
-    useCommitmentsToConfirm({ chainId: 42161, viewer: VIEWER })
+    useCommitmentsToConfirm({ chainId: 42161, viewer: VIEWER, ...options })
   );
   await waitFor(() => expect(result.current.isLoading).toBe(false));
   return result;
@@ -80,6 +94,7 @@ describe("useCommitmentsToConfirm", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.gardens = [];
+    mocks.getFallbackCandidates.mockResolvedValue([]);
   });
 
   it("exists only for someone who stewards a garden, and asks each garden as the party", async () => {
@@ -178,5 +193,131 @@ describe("useCommitmentsToConfirm", () => {
 
     await waitFor(() => expect(result.current.isError).toBe(true));
     expect(result.current.groups).toEqual([]);
+  });
+});
+
+describe("useCommitmentsToConfirm fallback group", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.gardens = [garden(GARDEN_A, "Rocinha", { operators: [VIEWER] })];
+    mocks.getCommitments.mockResolvedValue([]);
+  });
+
+  it("lists a row only a steward's garden fallback can still confirm, and names the garden", async () => {
+    mocks.getFallbackCandidates.mockResolvedValue([
+      {
+        // Taken up by a person who then joined the team: the ordinary path is
+        // unreachable, and the garden's steward may step in with a reason.
+        commitment: commitment({
+          counterparty: OTHER,
+          counterpartyKind: "INDIVIDUAL",
+          confirmationThreshold: 1,
+          protocolFallbackEnabled: false,
+        }),
+        activeContributors: [OTHER],
+      },
+      {
+        // Still reachable: the taker is not on the roster. No fallback.
+        commitment: commitment({
+          id: "42161-10",
+          commitmentId: 10n,
+          counterparty: OTHER,
+          counterpartyKind: "INDIVIDUAL",
+          confirmationThreshold: 1,
+        }),
+        activeContributors: [CONTRIBUTOR],
+      },
+    ]);
+
+    const result = await toConfirm();
+
+    expect(mocks.getFallbackCandidates).toHaveBeenCalledWith({
+      chainId: 42161,
+      garden: GARDEN_A,
+    });
+    expect(result.current.fallback).toHaveLength(1);
+    expect(result.current.fallback[0]).toMatchObject({
+      path: "POOL_FALLBACK",
+      garden: GARDEN_A,
+      gardenName: "Rocinha",
+    });
+    expect(result.current.fallback[0]?.commitment.id).toBe("42161-9");
+    expect(result.current.count).toBe(1);
+  });
+
+  it("never offers a fallback to a steward who is on the roster", async () => {
+    mocks.getFallbackCandidates.mockResolvedValue([
+      {
+        commitment: commitment({
+          counterparty: OTHER,
+          counterpartyKind: "INDIVIDUAL",
+          confirmationThreshold: 1,
+        }),
+        activeContributors: [OTHER, VIEWER],
+      },
+    ]);
+
+    const result = await toConfirm();
+
+    expect(result.current.fallback).toEqual([]);
+  });
+
+  it("keeps a row out of the fallback group when the garden can confirm it ordinarily", async () => {
+    const row = commitment({ counterparty: GARDEN_A, counterpartyKind: "GARDEN" });
+    mocks.getCommitments.mockResolvedValue([row]);
+    mocks.getFallbackCandidates.mockResolvedValue([{ commitment: row, activeContributors: [] }]);
+
+    const result = await toConfirm();
+
+    expect(result.current.groups[0]?.rows).toHaveLength(1);
+    expect(result.current.fallback).toEqual([]);
+    expect(result.current.count).toBe(1);
+  });
+
+  it("reads protocol-fallback rows only when asked to, and only for a root-garden steward", async () => {
+    const optedIn = {
+      commitment: commitment({
+        id: "42161-11",
+        commitmentId: 11n,
+        counterparty: OTHER,
+        counterpartyKind: "INDIVIDUAL",
+        confirmationThreshold: 1,
+        protocolFallbackEnabled: true,
+      }),
+      activeContributors: [OTHER],
+    };
+    mocks.getFallbackCandidates.mockImplementation(async (input: { garden?: string }) =>
+      input.garden === undefined ? [optedIn] : []
+    );
+
+    const local = await toConfirm();
+    expect(local.current.fallback).toEqual([]);
+    expect(mocks.getFallbackCandidates).not.toHaveBeenCalledWith({
+      chainId: 42161,
+      protocolFallbackEnabled: true,
+    });
+
+    mocks.gardens = [
+      garden(GARDEN_A, "Rocinha", { operators: [VIEWER] }),
+      garden(ROOT_GARDEN, "Green Goods", { operators: [VIEWER] }),
+    ];
+    const protocol = await toConfirm({ includeProtocolFallback: true });
+    expect(mocks.getFallbackCandidates).toHaveBeenCalledWith({
+      chainId: 42161,
+      protocolFallbackEnabled: true,
+    });
+    expect(protocol.current.fallback.map((row) => [row.commitment.id, row.path])).toEqual([
+      ["42161-11", "PROTOCOL_FALLBACK"],
+    ]);
+    expect(protocol.current.fallback[0]?.garden).toBe(ROOT_GARDEN);
+  });
+
+  it("reports a failed fallback read as an error, not an empty group", async () => {
+    mocks.getFallbackCandidates.mockRejectedValue(new Error("indexer unreachable"));
+
+    const result = await toConfirm();
+
+    await waitFor(() => expect(result.current.isError).toBe(true));
+    expect(result.current.fallback).toEqual([]);
   });
 });

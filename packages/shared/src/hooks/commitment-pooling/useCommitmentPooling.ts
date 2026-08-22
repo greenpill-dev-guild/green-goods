@@ -24,6 +24,7 @@ import {
   selectPoolParticipationSummary,
   selectPromiseKeptRate,
 } from "../../modules/commitment-pooling/disclosure";
+import { isPoolSteward } from "../../modules/commitment-pooling/selectors";
 import type { Address } from "../../types/domain";
 import { useGardenRoles } from "../roles/useGardenRoles";
 import { useCommitmentPoolingAvailability } from "./useCommitmentPoolingAvailability";
@@ -309,8 +310,7 @@ export function usePoolMemberHistory(input: {
     !self ? input.viewer : undefined,
     input.chainId
   );
-  const isCurrentSteward =
-    roleQuery.roles.includes("operator") || roleQuery.roles.includes("owner");
+  const isCurrentSteward = isPoolSteward(roleQuery.roles);
   const canRead = Boolean(input.viewer && (self || isCurrentSteward));
   const query = useQuery({
     queryKey: queryKeys.commitmentPooling.memberHistory(

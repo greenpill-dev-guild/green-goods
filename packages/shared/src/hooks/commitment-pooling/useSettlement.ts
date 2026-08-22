@@ -5,7 +5,10 @@ import type { Hex } from "viem";
 import { queryKeys } from "../../config/query-keys";
 import { getOntologyChainMaturity } from "../../ontology/query";
 import { selectOperationsCapabilities } from "../../modules/commitment-pooling/settlement";
-import { selectCommitmentPoolingAvailability } from "../../modules/commitment-pooling/selectors";
+import {
+  isPoolSteward,
+  selectCommitmentPoolingAvailability,
+} from "../../modules/commitment-pooling/selectors";
 import type { Address } from "../../types/domain";
 import { isZeroAddress } from "../../utils/blockchain/address";
 import { getNetworkContracts, SettlementModuleABI } from "../../utils/blockchain/contracts";
@@ -175,7 +178,7 @@ export function useSettlementOperationsCapabilities(input: {
   });
   const protocolRoles = useGardenRoles(input.protocolGarden, input.account, input.chainId);
   const executorRoles = useGardenRoles(input.executorGarden, input.account, input.chainId);
-  const role = (roles: string[]) => roles.includes("operator") || roles.includes("owner");
+  const role = isPoolSteward;
   const authorityResolved =
     enabled &&
     !owner.isLoading &&

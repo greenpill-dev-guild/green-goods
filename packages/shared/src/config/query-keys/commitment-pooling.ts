@@ -56,6 +56,15 @@ export const commitmentPoolingKeys = {
     [...commitmentPoolingKeys.all(chainId), "contributors", String(commitmentId)] as const,
   claims: (chainId: number, commitmentId: bigint | string | number, state?: string) =>
     [...commitmentPoolingKeys.all(chainId), "claims", String(commitmentId), state] as const,
+  /** Every claim across a pool, joined through its commitments (the steward's queue). */
+  poolClaims: (chainId: number, poolId: bigint | string | number, state?: string) =>
+    [...commitmentPoolingKeys.all(chainId), "pool-claims", String(poolId), state] as const,
+  /** Ready-for-confirmation rows with their rosters, by pool, garden, or protocol opt-in. */
+  fallbackCandidates: (chainId: number, scope: CommitmentFilters = {}) =>
+    [...commitmentPoolingKeys.all(chainId), "fallback-candidates", stableFilters(scope)] as const,
+  /** The registered protocol pool and root garden, read from the module. */
+  protocolPool: (chainId: number) =>
+    [...commitmentPoolingKeys.all(chainId), "protocol-pool"] as const,
   seriesList: (chainId: number, filters: CommitmentFilters = {}) =>
     [...commitmentPoolingKeys.all(chainId), "series-list", stableFilters(filters)] as const,
   series: (chainId: number, seriesId: bigint | string | number) =>
