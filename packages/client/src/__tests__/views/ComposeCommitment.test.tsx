@@ -24,10 +24,24 @@ const mockUseCycles = vi.fn();
 const mockUseActions = vi.fn();
 const mockEnqueue = vi.fn();
 
+// Live now: the rail hides actions outside their window, because Work is
+// refused there and a commitment kept by such an action could never be kept.
+const NOW = Math.floor(Date.now() / 1000);
+const LIVE = { startTime: NOW - 86_400, endTime: NOW + 86_400 };
 const ACTIONS = [
-  { id: "42161-44", title: "Prune", domain: "AGRO", media: [], description: "" },
-  { id: "42161-45", title: "Plant", domain: "AGRO", media: [], description: "" },
-  { id: "42161-0", title: "Water", domain: "AGRO", media: [], description: "" },
+  { id: "42161-44", title: "Prune", domain: "AGRO", media: [], description: "", ...LIVE },
+  { id: "42161-45", title: "Plant", domain: "AGRO", media: [], description: "", ...LIVE },
+  { id: "42161-0", title: "Water", domain: "AGRO", media: [], description: "", ...LIVE },
+  // Expired: registered, but no Work can be submitted for it any more.
+  {
+    id: "42161-99",
+    title: "Harvest",
+    domain: "AGRO",
+    media: [],
+    description: "",
+    startTime: NOW - 172_800,
+    endTime: NOW - 86_400,
+  },
 ];
 
 vi.mock("@green-goods/shared", async () => {
@@ -134,6 +148,16 @@ describe("ComposeCommitment", () => {
     expect(screen.getByText("How many hours?")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "sessions" })).not.toBeInTheDocument();
     expect(screen.getByText("What has to be approved")).toBeInTheDocument();
+  });
+
+  it("offers only actions that can take work now", async () => {
+    const user = userEvent.setup();
+    render("offer");
+    await user.type(screen.getByLabelText("Name it"), "Prune the north beds");
+    await user.click(next());
+
+    expect(screen.getByRole("button", { name: /Prune/ })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Harvest/ })).not.toBeInTheDocument();
   });
 
   it("will not let garden work continue without an action, and says so", async () => {

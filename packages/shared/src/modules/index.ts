@@ -418,6 +418,7 @@ export type {
   AcceptedWorkMediaFile,
   ConvertedWorkMediaFile,
   MediaRejectedReason,
+  PreparedMedia,
   RejectedWorkMediaFile,
   SafeMediaMetadata,
   WorkMediaKind,
@@ -434,6 +435,7 @@ export {
   HEIC_JPEG_QUALITY,
   isVideoFile,
   normalizeWorkMediaFiles,
+  prepareMediaForUpload,
 } from "./work/media-processing";
 // ============================================================================
 // TRANSACTIONS

@@ -4,7 +4,8 @@ import {
   imageCompressor,
   isVideoFile,
   mediaResourceManager,
-  normalizeWorkMediaFiles,
+  prepareMediaForUpload,
+  selectCommitmentActKind,
   selectCommitmentSeat,
   toastService,
   useAudioRecording,
@@ -25,7 +26,7 @@ import { ProofBar } from "./ProofBar";
 import { ProofDetails } from "./ProofDetails";
 import { ProofMedia } from "./ProofMedia";
 import { ProofReview } from "./ProofReview";
-import { ProofShell, ProofState } from "./ProofShell";
+import { ProofShell, ProofState, type ProofStateKind } from "./ProofShell";
 
 const BEATS = ["media", "details", "review"] as const;
 type Beat = (typeof BEATS)[number];
@@ -110,9 +111,8 @@ export function ProofComposer() {
     onRecordingComplete: (file) => setAudioNotes((current) => [...current, file]),
   });
 
-  // This screen creates preview URLs in the `proof` scope on the review beat,
-  // after ProofMedia has unmounted. Only a successful submit released them, so
-  // walking away from review left every photo's blob alive.
+  // Preview URLs are created here on the review beat; release them on unmount
+  // so walking away from review does not leave every photo's blob alive.
   useEffect(() => () => mediaResourceManager.cleanupUrls("proof"), []);
 
   const back = () => navigate("..", { relative: "path" });
@@ -151,34 +151,18 @@ export function ProofComposer() {
     if (!files?.length) return;
     setIsProcessing(true);
     try {
-      const normalized = await normalizeWorkMediaFiles(Array.from(files));
-      if (normalized.rejected.length > 0) {
+      const prepared = await prepareMediaForUpload(Array.from(files), imageCompressor);
+      if (prepared.rejectedCount > 0) {
         toastService.info({
           title: formatMessage({ id: "app.garden.upload.unsupportedMediaTitle" }),
           message: formatMessage(
             { id: "app.garden.upload.unsupportedMediaMessage" },
-            { count: normalized.rejected.length }
+            { count: prepared.rejectedCount }
           ),
           context: "mediaUpload",
         });
       }
-      const accepted = normalized.accepted.map((item) => item.file);
-      const videos = accepted.filter(isVideoFile);
-      const images = accepted.filter((file) => !isVideoFile(file));
-      const toCompress = images.filter((file) => imageCompressor.shouldCompress(file, 1024));
-      const asIs = images.filter((file) => !imageCompressor.shouldCompress(file, 1024));
-      const compressed =
-        toCompress.length > 0
-          ? (
-              await imageCompressor.compressImages(toCompress, {
-                maxSizeMB: 0.8,
-                maxWidthOrHeight: 2048,
-                initialQuality: 0.8,
-                useWebWorker: true,
-              })
-            ).map((result) => result.file)
-          : [];
-      setMedia((current) => [...current, ...asIs, ...compressed, ...videos]);
+      setMedia((current) => [...current, ...prepared.files]);
     } finally {
       setIsProcessing(false);
     }
@@ -243,26 +227,31 @@ export function ProofComposer() {
         )
       : formatMessage({ id: "app.commitments.row.untitled" }));
 
-  if (availability.status !== "available") {
-    return <ProofState kind="unavailable" isOnline={isOnline} onBack={back} />;
-  }
-  if (isLoading) return <ProofState kind="loading" isOnline={isOnline} onBack={back} />;
-  // A failed read is not an answer about who this belongs to. Reporting it as
-  // "not yours" tells the provider they lack permission and offers no way out,
-  // so the read failure is named first and can be tried again. A read that
-  // succeeded with nothing behind it is a different answer: the commitment
-  // does not exist, and "not yours" is the plain truth of that too.
-  if (isError) {
+  // The plain answer that stands in for the form, in order of certainty.
+  const state: ProofStateKind | null =
+    availability.status !== "available"
+      ? "unavailable"
+      : isLoading
+        ? "loading"
+        : isError
+          ? "error"
+          : !detail || (seat !== "provider" && seat !== "contributor")
+            ? "notYours"
+            : selectCommitmentActKind({ commitment: detail.commitment, seat }) !== "addProof"
+              ? "closed"
+              : queued
+                ? "queued"
+                : null;
+  if (state || !detail) {
     return (
-      <ProofState kind="error" isOnline={isOnline} onBack={back} onRetry={() => void refetch()} />
+      <ProofState
+        kind={state ?? "notYours"}
+        isOnline={isOnline}
+        onBack={back}
+        onRetry={state === "error" ? () => void refetch() : undefined}
+      />
     );
   }
-  // Proof belongs to the people doing the work. Anyone else who lands here
-  // reads a plain answer rather than a form the chain would refuse.
-  if (!detail || (seat !== "provider" && seat !== "contributor")) {
-    return <ProofState kind="notYours" isOnline={isOnline} onBack={back} />;
-  }
-  if (queued) return <ProofState kind="queued" isOnline={isOnline} onBack={back} />;
 
   const beatIndex = BEATS.indexOf(beat);
   const isReview = beat === "review";

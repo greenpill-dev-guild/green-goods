@@ -652,7 +652,10 @@ describe("GardenCommitment", () => {
 
       expect(screen.getByText(/needs a connection/i)).toBeInTheDocument();
       expect(screen.getByRole("button", { name: "Send to the stewards" })).toBeDisabled();
-      expect(window.localStorage.getItem("gg-commitment-not-yet:42161-9")).toBe("The far bed");
+      // Scoped to the signer: two confirmers on one device never share a draft.
+      expect(
+        window.localStorage.getItem(`gg-commitment-not-yet:${VIEWER.toLowerCase()}:42161-9`)
+      ).toBe("The far bed");
     });
 
     it("keeps the note and offers a retry when the stewards could not be reached", async () => {

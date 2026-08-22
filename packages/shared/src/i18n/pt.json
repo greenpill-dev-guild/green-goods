@@ -2755,6 +2755,8 @@
   "app.proof.media.stopRecording": "Parar a gravação",
   "app.proof.media.tapToAdd": "Toque para adicionar fotos ou um vídeo",
   "app.proof.notYours.body": "Só as pessoas que fazem este compromisso podem adicionar provas a ele.",
+  "app.proof.closed.title": "Este já passou do momento de adicionar provas",
+  "app.proof.closed.body": "Já foi enviado para confirmação, confirmado ou parou de avançar, então nada mais pode ser anexado.",
   "app.proof.notYours.title": "Nada para você adicionar aqui",
   "app.proof.queued.back": "Voltar ao compromisso",
   "app.proof.queued.body": "A sua prova está a caminho. Ela aparecerá no compromisso quando chegar.",

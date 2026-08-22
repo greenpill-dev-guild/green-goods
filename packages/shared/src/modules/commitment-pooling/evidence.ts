@@ -52,6 +52,22 @@ function cleanLine(value: unknown, max: number): string | null {
   return collapsed.length === 0 ? null : collapsed.slice(0, max);
 }
 
+/**
+ * A note keeps its paragraphs. The review screen shows them, so the pinned
+ * document must hold the same text; only runs of spaces and blank lines are
+ * tidied, never the breaks themselves.
+ */
+function cleanNote(value: unknown, max: number): string | null {
+  if (typeof value !== "string") return null;
+  const tidied = value
+    .replace(/\r\n?/g, "\n")
+    .replace(/[ \t]+/g, " ")
+    .replace(/ ?\n ?/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+  return tidied.length === 0 ? null : tidied.slice(0, max);
+}
+
 function cleanLinks(value: unknown): CommitmentMetadataLink[] {
   if (!Array.isArray(value)) return [];
   const links: CommitmentMetadataLink[] = [];
@@ -115,7 +131,7 @@ export function buildCommitmentEvidenceDocument(input: {
   media?: CommitmentEvidenceMedia[];
   audio?: CommitmentEvidenceAudio[];
 }): CommitmentEvidenceDocumentV1 {
-  const note = cleanLine(input.note, MAX_NOTE);
+  const note = cleanNote(input.note, MAX_NOTE);
   const links = cleanLinks(input.links);
   const media = cleanMedia(input.media);
   const audio = cleanAudio(input.audio);
@@ -135,7 +151,7 @@ export function buildCommitmentEvidenceDocument(input: {
 export function parseCommitmentEvidenceDocument(raw: unknown): CommitmentEvidenceDocumentV1 | null {
   if (!raw || typeof raw !== "object") return null;
   const record = raw as Record<string, unknown>;
-  const note = cleanLine(record.note, MAX_NOTE);
+  const note = cleanNote(record.note, MAX_NOTE);
   const links = cleanLinks(record.links);
   const media = cleanMedia(record.media);
   const audio = cleanAudio(record.audio);

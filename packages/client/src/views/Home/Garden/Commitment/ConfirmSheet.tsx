@@ -83,7 +83,8 @@ export function ConfirmSheet({
   const { evidence, isLoading: evidenceLoading } = useCommitmentEvidence(evidenceAttributions);
   // The words of a Not yet survive closing the sheet and losing the signal.
   const { reason: draftReason, setReason: setDraftReason } = useCommitmentNotYetDraft(
-    commitment.id
+    commitment.id,
+    viewer
   );
 
   const count = commitment.confirmationCount ?? 0;

@@ -135,7 +135,24 @@ export function GardenPool({ pool }: GardenPoolProps) {
   const poolState = pool.state ?? "UNKNOWN";
 
   if (NON_PARTICIPATING.has(poolState)) {
-    return <PoolLifecycleNotice pool={pool} />;
+    // A creation queued before the pool closed can never land now, and these
+    // rows are the only way to throw its record away. They stay reachable
+    // above the notice; retry is pointless here, so only discard is offered.
+    return (
+      <div className="space-y-3">
+        {ownCreations.map((creation) => (
+          <PendingCreationRow
+            key={creation.jobId}
+            creation={{ ...creation, failed: true }}
+            isBusy={busyJobId === creation.jobId}
+            onRetry={() => undefined}
+            onDiscard={discardCreation}
+            discardOnly
+          />
+        ))}
+        <PoolLifecycleNotice pool={pool} />
+      </div>
+    );
   }
 
   // The door fixes the direction; the form never asks it again. Creation is

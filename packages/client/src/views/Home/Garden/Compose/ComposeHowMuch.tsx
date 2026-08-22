@@ -76,19 +76,26 @@ export function ComposeHowMuch({ form, chainId, actions }: ComposeHowMuchProps) 
             {formatMessage({ id: "app.compose.what.unitLabel" })}
           </legend>
           <div className="mt-2 flex flex-wrap gap-2">
-            {UNIT_CHOICES.map((unit) => (
-              <button
-                key={unit}
-                type="button"
-                aria-pressed={unitLabel === unit}
-                onClick={() =>
-                  form.setValue("unitLabel", unit, { shouldValidate: true, shouldDirty: true })
-                }
-                className={chipClass(unitLabel === unit)}
-              >
-                {formatMessage({ id: `app.compose.unit.${unit}` })}
-              </button>
-            ))}
+            {UNIT_CHOICES.map((unit) => {
+              // The label is the member's own word for what is counted, and it
+              // goes on chain as written. A chip therefore stores what it shows,
+              // so a Spanish reader's commitment does not say "hours".
+              const label = formatMessage({ id: `app.compose.unit.${unit}` });
+              const selected = unitLabel === label;
+              return (
+                <button
+                  key={unit}
+                  type="button"
+                  aria-pressed={selected}
+                  onClick={() =>
+                    form.setValue("unitLabel", label, { shouldValidate: true, shouldDirty: true })
+                  }
+                  className={chipClass(selected)}
+                >
+                  {label}
+                </button>
+              );
+            })}
           </div>
           <label className="mt-2 block text-xs text-text-soft-400" htmlFor="compose-label">
             {formatMessage({ id: "app.compose.what.unitHelp" })}

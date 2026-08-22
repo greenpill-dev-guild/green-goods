@@ -39,7 +39,7 @@ export function ProofShell({ children, onBack, progress, bar }: ProofShellProps)
   );
 }
 
-export type ProofStateKind = "unavailable" | "loading" | "notYours" | "queued" | "error";
+export type ProofStateKind = "unavailable" | "loading" | "notYours" | "queued" | "error" | "closed";
 
 /**
  * Every screen the composer shows that is not the form. Proof belongs to the
@@ -89,6 +89,12 @@ export function ProofState({
         <p className="text-xs text-text-soft-400" role="status">
           {formatMessage({ id: "app.commitment.loading" })}
         </p>
+      ) : kind === "closed" ? (
+        <EmptyState
+          icon={<RiSearchLine />}
+          title={formatMessage({ id: "app.proof.closed.title" })}
+          description={formatMessage({ id: "app.proof.closed.body" })}
+        />
       ) : kind === "notYours" ? (
         <EmptyState
           icon={<RiSearchLine />}

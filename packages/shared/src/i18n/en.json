@@ -2755,6 +2755,8 @@
   "app.proof.media.stopRecording": "Stop recording",
   "app.proof.media.tapToAdd": "Tap to add photos or a video",
   "app.proof.notYours.body": "Only the people doing this commitment can add proof to it.",
+  "app.proof.closed.title": "This one is past adding proof",
+  "app.proof.closed.body": "It has been sent for confirmation, confirmed, or has otherwise stopped moving, so nothing more can be attached.",
   "app.proof.notYours.title": "Nothing for you to add here",
   "app.proof.queued.back": "Back to the commitment",
   "app.proof.queued.body": "Your proof is on its way. It will appear on the commitment once it lands.",

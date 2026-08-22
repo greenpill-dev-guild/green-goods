@@ -156,7 +156,9 @@ function ComposeCommitmentForm({ direction }: { direction: Direction }) {
     // An offer leads with garden work, an ask with help: the same two cards,
     // in the order each door's first visitor most often wants.
     kind: direction === "REQUEST" ? "SERVICE" : "GARDEN_WORK",
-    ...(direction === "OFFER" ? { unitLabel: "hours" } : {}),
+    ...(direction === "OFFER"
+      ? { unitLabel: formatMessage({ id: "app.compose.unit.hours" }) }
+      : {}),
   });
   // useWatch rather than form.watch: the React Compiler memoises this
   // component, and a read of the form's mutable values is invisible to it.

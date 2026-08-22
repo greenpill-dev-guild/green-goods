@@ -2755,6 +2755,8 @@
   "app.proof.media.stopRecording": "Detener la grabación",
   "app.proof.media.tapToAdd": "Toca para añadir fotos o un video",
   "app.proof.notYours.body": "Solo las personas que hacen este compromiso pueden añadirle pruebas.",
+  "app.proof.closed.title": "Este ya pasó el momento de añadir pruebas",
+  "app.proof.closed.body": "Ya se envió a confirmación, se confirmó o dejó de avanzar, así que no se puede adjuntar nada más.",
   "app.proof.notYours.title": "Aquí no tienes nada que añadir",
   "app.proof.queued.back": "Volver al compromiso",
   "app.proof.queued.body": "Tu prueba va en camino. Aparecerá en el compromiso cuando llegue.",

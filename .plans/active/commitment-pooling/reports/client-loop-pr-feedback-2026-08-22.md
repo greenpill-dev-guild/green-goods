@@ -160,6 +160,22 @@ controls instead of a count.
 `GardenCommitment.tsx` gave up its role block and its claim lifecycle to stay under its cap
 (`useCommitmentViewerRoles`, `CommitmentClaims.tsx`). Twelve strings added in en, es and pt.
 
+## Fifth round — six more on the ledger commit
+
+All six fixed. Not-yet drafts are keyed by the signer as well as the commitment, so two
+confirmers on one device never share words. Creations queued before a pool closed stay reachable
+above the lifecycle notice, discard only, since those rows are the one way to throw the record
+away. Proof notes keep their paragraphs: a note-specific cleaner tidies spaces and blank lines and
+leaves the breaks, so the pinned document is the text the review screen showed. Unit chips store
+the word they display, so a Spanish commitment does not say "hours" on chain. The action rail
+shows only actions inside their window, the same filter the Work composer applies, because a
+commitment kept by an expired action could never be kept. And the proof route asks the same act
+table that draws Add proof, so a saved URL opened after the roster froze reads a plain answer
+rather than queueing a send that reverts.
+
+`prepareMediaForUpload` moved into shared while the composer was at its cap; the Work media
+screen carries the same logic and can adopt it.
+
 ## A validation gap, recorded so it is not repeated
 
 CI on `04e9b47e6` failed two jobs the local gate never ran: `typecheck:tests` in shared and
