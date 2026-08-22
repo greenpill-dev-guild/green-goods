@@ -269,6 +269,7 @@ export * from "./hooks/admin-ui/hub/hub.utils";
 export * from "./hooks/admin-ui/hub/hub.workbenchModel";
 export * from "./hooks/admin-ui/hub/useCreateAssessmentController";
 export * from "./hooks/admin-ui/hub/useCreateHypercertController";
+export * from "./hooks/admin-ui/pool/useCommitmentDialogController";
 export * from "./hooks/admin-ui/pool/usePoolConsoleController";
 export * from "./hooks/admin-ui/hub/useHubWorkbenchController";
 export * from "./hooks/admin-ui/hypercerts/types";

@@ -83,12 +83,16 @@ export function useCommitmentCycles(
   return { ...query, cycles: query.data ?? [], availability };
 }
 
-export function useCommitmentCycle(input: { chainId: number; cycleId: bigint }) {
+export function useCommitmentCycle(
+  input: { chainId: number; cycleId: bigint },
+  /** A caller that may not know the cycle yet gates here; the key stays the same. */
+  options: { enabled?: boolean } = {}
+) {
   const availability = useCommitmentPoolingAvailability(input);
   const query = useQuery({
     queryKey: queryKeys.commitmentPooling.cycle(input.chainId, input.cycleId),
     queryFn: () => getCommitmentCycleDetail(input.chainId, input.cycleId),
-    enabled: availability.status === "available",
+    enabled: availability.status === "available" && options.enabled !== false,
     staleTime: STALE_TIME_MEDIUM,
   });
   return { ...query, cycle: query.data?.cycle ?? null, detail: query.data ?? null, availability };

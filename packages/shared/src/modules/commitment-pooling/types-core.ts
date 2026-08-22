@@ -70,6 +70,18 @@ export interface CommitmentReadModel {
    * date is due at the cycle's end (`selectDueLiveCommitments`).
    */
   dueDate?: bigint | null;
+  /** The garden whose provider delivered it, frozen at acceptance; null before. */
+  providerGarden?: Address | null;
+  /** An assessment gate, and the attestation once one is attached. */
+  requiresAssessment?: boolean | null;
+  assessmentUID?: string | null;
+  /** A steward marked it ready with a recorded reason rather than the ordinary send. */
+  readyOverridden?: boolean;
+  /** The state a dispute froze, so a resolution can restore it; null outside a dispute. */
+  preDisputeState?: keyof typeof CommitmentOnchainState | null;
+  /** The words behind the latest dispute and cancellation, as CIDs. */
+  disputeReasonCID?: string | null;
+  cancelReasonCID?: string | null;
   /** Whether a team may be joined. Null until creation is seen. */
   contributorPolicy?: keyof typeof CommitmentContributorPolicy | null;
   /** The named confirmer group. Empty when confirmation follows the ordinary rule. */
