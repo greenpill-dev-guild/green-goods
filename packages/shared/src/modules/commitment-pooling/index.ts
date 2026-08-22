@@ -8,6 +8,7 @@ export * from "./metadata";
 export * from "./evidence";
 export * from "./reasons";
 export * from "./cycle-metadata";
+export * from "./pool-charter";
 export * from "./selectors";
 export * from "./settlement";
 export * from "./types";

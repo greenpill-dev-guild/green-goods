@@ -1,5 +1,7 @@
+import type { Address } from "../../types/domain";
 import { logger } from "../app/logger";
 import { getJsonByHash } from "../data/ipfs";
+import { PoolDocumentPinError } from "./pool-charter";
 
 export const CYCLE_METADATA_VERSION = 1;
 
@@ -28,6 +30,40 @@ export function parseCycleMetadata(raw: unknown): CycleMetadataV1 | null {
   return record.version === CYCLE_METADATA_VERSION && name
     ? { version: CYCLE_METADATA_VERSION, name }
     : null;
+}
+
+/**
+ * Build the document a season or campaign is named by. The write side of the
+ * same shape `resolveCycleMetadataName` reads, kept here so the console and
+ * the rail cannot drift.
+ */
+export function buildCycleMetadata(input: { name: string }): CycleMetadataV1 {
+  const name = cleanCycleName(input.name);
+  if (!name) throw new Error("A cycle needs a name");
+  return { version: CYCLE_METADATA_VERSION, name };
+}
+
+/**
+ * Pin a cycle name and return its CID for `seedCycle`. Pinned before the
+ * call; a failure is a `PoolDocumentPinError` so the seeding step stays open
+ * with the name typed and offers to pin again, and nothing is sent.
+ */
+export async function pinCycleMetadata(input: {
+  name: string;
+  gardenAddress?: Address | null;
+}): Promise<string> {
+  const document = buildCycleMetadata(input);
+  try {
+    const { uploadJSONToIPFS } = await import("../data/ipfs/upload");
+    const { cid } = await uploadJSONToIPFS(document as unknown as Record<string, unknown>, {
+      source: "commitment-cycle-metadata",
+      gardenAddress: input.gardenAddress ?? undefined,
+      metadataType: "commitment-cycle",
+    });
+    return cid;
+  } catch (error) {
+    throw new PoolDocumentPinError("cycle", error);
+  }
 }
 
 function isResolvableCycleMetadataCID(cid: string | null | undefined): cid is string {

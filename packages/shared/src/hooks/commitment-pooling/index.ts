@@ -39,6 +39,7 @@ export {
 export type { CommitmentJobInput } from "./useCommitmentJobs";
 export { useCommitmentNotYetDraft } from "./useCommitmentNotYetDraft";
 export { useCommitmentReason } from "./useCommitmentReason";
+export { usePoolCharter } from "./usePoolCharter";
 export { useCommitmentJobs } from "./useCommitmentJobs";
 export type {
   CommitmentQueueState,
