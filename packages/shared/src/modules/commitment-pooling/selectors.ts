@@ -1,5 +1,6 @@
 import type { OntologyChainCapability } from "../../ontology/types";
 import type { Address } from "../../types/domain";
+import { isDemoPoolingActive } from "./demo/demo-mode";
 import type {
   CommitmentDerivedState,
   CommitmentPoolingAvailability,
@@ -10,6 +11,9 @@ export function selectCommitmentPoolingAvailability(
   capability: OntologyChainCapability | undefined
 ): CommitmentPoolingAvailability {
   if (!capability) return { status: "unknown-chain" };
+  // Dev only: the demo world stands in for the ledger, so every screen that
+  // gates on availability opens, and the queue accepts the acts they offer.
+  if (isDemoPoolingActive()) return { status: "available", capability };
   if (capability.deployment !== "deployed") {
     return { status: "unavailable", reason: "not-deployed", capability };
   }

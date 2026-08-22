@@ -14,6 +14,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 
+import { demoDocumentFor } from "../../modules/commitment-pooling/demo/demo-gate";
 import { getJsonByHash } from "../../modules/data/ipfs/resolve";
 import { isResolvableMetadataCID } from "../../modules/commitment-pooling/metadata";
 import {
@@ -38,7 +39,10 @@ export function useCommitmentReason(cid: string | null | undefined): {
       "reason",
       resolvable ? cid.trim() : null,
     ] as const,
-    queryFn: async () => parseCommitmentReason(await getJsonByHash((cid as string).trim())),
+    queryFn: async () => {
+      const key = (cid as string).trim();
+      return parseCommitmentReason((await demoDocumentFor(key)) ?? (await getJsonByHash(key)));
+    },
     enabled: resolvable,
     staleTime: IMMUTABLE,
     gcTime: IMMUTABLE,

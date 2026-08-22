@@ -1,5 +1,6 @@
 import { logger } from "../app/logger";
 import { getJsonByHash } from "../data/ipfs";
+import { demoDocumentFor } from "./demo/demo-gate";
 
 export const CYCLE_METADATA_VERSION = 1;
 
@@ -41,7 +42,9 @@ export async function resolveCycleMetadataName(
 ): Promise<CycleMetadataNameResolution> {
   if (!isResolvableCycleMetadataCID(metadataCID)) return { status: "missing", name: null };
   try {
-    const metadata = parseCycleMetadata(await getJsonByHash(metadataCID));
+    const metadata = parseCycleMetadata(
+      (await demoDocumentFor(metadataCID)) ?? (await getJsonByHash(metadataCID))
+    );
     return metadata
       ? { status: "resolved", name: metadata.name }
       : { status: "unavailable", name: null };

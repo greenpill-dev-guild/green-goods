@@ -9,6 +9,7 @@ export * from "./evidence";
 export * from "./reasons";
 export * from "./cycle-metadata";
 export * from "./selectors";
+export { DEMO_POOLING_PARAM, isDemoPoolingActive } from "./demo/demo-mode";
 export * from "./settlement";
 export * from "./types";
 export * from "./data-public-pools";
