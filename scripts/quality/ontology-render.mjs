@@ -30,7 +30,10 @@ const prose = escapeMdxProse;
 
 function anchorList(anchors) {
   return anchors
-    .map((a) => (a.lines ? `\`${a.file}:${a.lines}\`` : `\`${a.file}\``))
+    .map((a) => {
+      if (a.symbol) return `\`${a.file}#${a.symbol}\``;
+      return a.lines ? `\`${a.file}:${a.lines}\`` : `\`${a.file}\``;
+    })
     .join(", ");
 }
 
@@ -123,6 +126,15 @@ function renderStateMachine(machine, headingLevel) {
   lines.push("");
   if (machine.note) {
     lines.push(prose(machine.note));
+    lines.push("");
+  }
+  if (machine.source_status === "specified" && machine.planned_anchor) {
+    lines.push(
+      `_Specified in \`${machine.spec_source}\`; the gate watches \`${machine.planned_anchor.file}#${machine.planned_anchor.symbol}\` for implementation arrival._`
+    );
+    lines.push("");
+  } else if (machine.enforced_at?.length) {
+    lines.push(`_Implementation evidence: ${anchorList(machine.enforced_at)}._`);
     lines.push("");
   }
   lines.push("| State | Storage |");
@@ -272,8 +284,12 @@ export function renderOntologyMdx(ontology, projections) {
   );
   lines.push("");
   for (const constraint of ontology.constraints) {
+    const evidence =
+      constraint.source_status === "specified" && constraint.planned_anchor
+        ? `specified in \`${constraint.spec_source}\`; watches \`${constraint.planned_anchor.file}#${constraint.planned_anchor.symbol}\``
+        : `enforced at: ${anchorList(constraint.enforced_at)}`;
     lines.push(
-      `- **\`${constraint.id}\`** · ${constraint.kind} · ${constraint.source_status} — ${prose(constraint.statement)} _(enforced at: ${anchorList(constraint.enforced_at)})_`
+      `- **\`${constraint.id}\`** · ${constraint.kind} · ${constraint.source_status} — ${prose(constraint.statement)} _(${evidence})_`
     );
     for (const hole of constraint.holes) {
       lines.push(`  - ⚠️ Hole: ${prose(hole.statement)} _(${anchorList(hole.anchors)})_`);
@@ -286,14 +302,17 @@ export function renderOntologyMdx(ontology, projections) {
   for (const machine of ontology.state_machines.filter((m) => m.source_status === "implemented")) {
     lines.push(renderStateMachine(machine, 3));
   }
-  lines.push("### Specified machines without an implemented source");
-  lines.push("");
-  lines.push(
-    '"On-chain" means a named function performs the transition; "derived" means a reader computes it. These machines remain specified until their declared runtime source arrives.'
-  );
-  lines.push("");
-  for (const machine of ontology.state_machines.filter((m) => m.source_status === "specified")) {
-    lines.push(renderStateMachine(machine, 4));
+  const specifiedMachines = ontology.state_machines.filter((m) => m.source_status === "specified");
+  if (specifiedMachines.length > 0) {
+    lines.push("### Specified machines without an implemented source");
+    lines.push("");
+    lines.push(
+      '"On-chain" means a named function performs the transition; "derived" means a reader computes it. These machines remain specified until their declared runtime source arrives.'
+    );
+    lines.push("");
+    for (const machine of specifiedMachines) {
+      lines.push(renderStateMachine(machine, 4));
+    }
   }
 
   lines.push("## Agent query seam");
@@ -340,7 +359,7 @@ export function renderOntologyMdx(ontology, projections) {
   lines.push("## How this page stays honest");
   lines.push("");
   lines.push(
-    "`bun run check:ontology` cross-checks semantic sources, evidence-backed capability and claim projections, executable state endpoints, Solidity and GraphQL enums, shared TypeScript vocabularies, EAS schemas, and glossary tables. Known drift stays bidirectional in `scripts/data/ontology-drift-baseline.json`. To change the ontology, edit its semantic or projection source and run `bun run ontology:generate`."
+    "`bun run check:ontology` cross-checks declared representations, evidence paths, stable implementation symbols, state-machine structure, Solidity and GraphQL enums, shared TypeScript vocabularies, EAS schemas, and glossary tables. Constraint prose and transition behavior remain test-owned rather than inferred by this gate. Known drift stays bidirectional in `scripts/data/ontology-drift-baseline.json`. To change the ontology, edit its semantic or projection source and run `bun run ontology:generate`."
   );
   lines.push("");
 

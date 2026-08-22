@@ -94,7 +94,7 @@ function createTestMachine(
  */
 async function startAndSettle(machine: ReturnType<typeof createTestMachine>): Promise<AnyActorRef> {
   const actor = createActor(machine, {
-    input: { chainId: MOCK_CHAIN_ID, passkeyClient: null },
+    input: { chainId: MOCK_CHAIN_ID },
   });
   actor.start();
 
@@ -345,7 +345,7 @@ describe("workflows/authMachine", () => {
       try {
         const machine = createTestMachine();
         const actor = createActor(machine, {
-          input: { chainId: MOCK_CHAIN_ID, passkeyClient: null },
+          input: { chainId: MOCK_CHAIN_ID },
         });
         actor.start();
         await vi.advanceTimersByTimeAsync(0); // settle initialization

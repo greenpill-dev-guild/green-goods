@@ -10,7 +10,13 @@ import { createActor, fromPromise } from "xstate";
 
 import { AUTH_MODE_STORAGE_KEY } from "../../modules/auth/session";
 import { AuthProvider, useAuthContext } from "../../providers/Auth";
-import { authMachine } from "../../workflows/authMachine";
+import {
+  authMachine,
+  type PasskeyOperationInput,
+  type PasskeySessionResult,
+  type RestoreSessionInput,
+  type RestoreSessionResult,
+} from "../../workflows/authMachine";
 
 const mocks = vi.hoisted(() => ({
   mockClearQueryClient: vi.fn(),
@@ -31,7 +37,7 @@ vi.mock("wagmi", () => ({
 }));
 
 vi.mock("@wagmi/core", () => ({
-  disconnect: (...args: unknown[]) => mocks.mockDisconnect(...args),
+  disconnect: () => mocks.mockDisconnect(),
 }));
 
 vi.mock("../../config/appkit", () => ({
@@ -88,11 +94,13 @@ function createAuthTestActor() {
   return createActor(
     authMachine.provide({
       actors: {
-        restoreSession: fromPromise(async () => null),
-        registerPasskey: fromPromise(async () => {
+        restoreSession: fromPromise<RestoreSessionResult | null, RestoreSessionInput>(
+          async () => null
+        ),
+        registerPasskey: fromPromise<PasskeySessionResult, PasskeyOperationInput>(async () => {
           throw new Error("registerPasskey should not run in wallet tests");
         }),
-        authenticatePasskey: fromPromise(async () => {
+        authenticatePasskey: fromPromise<PasskeySessionResult, PasskeyOperationInput>(async () => {
           throw new Error("authenticatePasskey should not run in wallet tests");
         }),
       },

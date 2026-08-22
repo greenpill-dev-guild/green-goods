@@ -1,0 +1,61 @@
+{
+  "version": 1,
+  "entries": [
+    {
+      "feature": "celo-garden-account-safe-ownership",
+      "lane": "contracts",
+      "owner": "codex",
+      "expires_at": "2026-09-05T00:00:00.000Z",
+      "burn_down": "Rerun the contracts lane on a commit-attributable clean tree, then record the tested SHA and canonical path-scoped status evidence in its handoff."
+    },
+    {
+      "feature": "commitment-pooling",
+      "lane": "contracts",
+      "owner": "codex",
+      "expires_at": "2026-09-05T00:00:00.000Z",
+      "burn_down": "Run fresh contracts validation on clean committed paths and add the complete terminal Validation Receipt to the existing handoff."
+    },
+    {
+      "feature": "commitment-pooling",
+      "lane": "state_api",
+      "owner": "codex",
+      "expires_at": "2026-09-05T00:00:00.000Z",
+      "burn_down": "Run fresh state/API validation on clean committed paths and add the complete terminal Validation Receipt to the existing handoff."
+    },
+    {
+      "feature": "validation-system-optimization",
+      "lane": "ui",
+      "owner": "codex",
+      "expires_at": "2026-09-05T00:00:00.000Z",
+      "burn_down": "Revalidate the documentation lane on clean committed paths and replace its prose proof with the complete structured terminal receipt."
+    },
+    {
+      "feature": "validation-system-optimization",
+      "lane": "state_api",
+      "owner": "codex",
+      "expires_at": "2026-09-05T00:00:00.000Z",
+      "burn_down": "Revalidate the selector and local-runner lane on clean committed paths and record the complete structured terminal receipt."
+    },
+    {
+      "feature": "validation-system-optimization",
+      "lane": "contracts",
+      "owner": "codex",
+      "expires_at": "2026-09-05T00:00:00.000Z",
+      "burn_down": "Revalidate the CI gate and workflow lane on clean committed paths and record the complete structured terminal receipt."
+    },
+    {
+      "feature": "validation-system-optimization",
+      "lane": "qa_pass_1",
+      "owner": "codex",
+      "expires_at": "2026-09-05T00:00:00.000Z",
+      "burn_down": "Run fresh QA pass 1 proof on clean committed paths and replace the incomplete handoff fields with the complete structured terminal receipt."
+    },
+    {
+      "feature": "validation-system-optimization",
+      "lane": "qa_pass_2",
+      "owner": "codex",
+      "expires_at": "2026-09-05T00:00:00.000Z",
+      "burn_down": "Run fresh QA pass 2 certification on clean committed paths and replace the incomplete handoff fields with the complete structured terminal receipt."
+    }
+  ]
+}

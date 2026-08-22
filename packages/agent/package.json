@@ -17,7 +17,10 @@
     "test:ui": "APP_ENV=test node ../../scripts/dev/node-cli.js vitest --ui",
     "format": "biome format --write src",
     "format:check": "biome format src",
-    "typecheck": "node ../../scripts/dev/node-cli.js tsc --noEmit",
+    "typecheck:source": "node ../../scripts/dev/node-cli.js tsc --noEmit -p tsconfig.json",
+    "typecheck:tests": "node ../../scripts/dev/node-cli.js tsc --noEmit -p tsconfig.test.json",
+    "typecheck:full": "bun run typecheck:source && bun run typecheck:tests",
+    "typecheck": "bun run typecheck:source",
     "sentry:sourcemaps": "sentry-cli sourcemaps inject --org ${SENTRY_ORG:-greenpill} --project ${SENTRY_AGENT_PROJECT:-green-goods-agent} ./dist && sentry-cli sourcemaps upload --org ${SENTRY_ORG:-greenpill} --project ${SENTRY_AGENT_PROJECT:-green-goods-agent} ./dist"
   },
   "dependencies": {

@@ -28,9 +28,9 @@ import { FormWizard } from "../../components/Form/FormWizard";
 
 describe("components/Form/FormWizard", () => {
   const mockSteps = [
-    { id: "details", label: "Details" },
-    { id: "team", label: "Team" },
-    { id: "review", label: "Review" },
+    { id: "details", title: "Details" },
+    { id: "team", title: "Team" },
+    { id: "review", title: "Review" },
   ];
 
   const defaultProps = {

@@ -95,7 +95,7 @@ vi.mock("@green-goods/shared", () => ({
 
     return { accepted, rejected: [], converted };
   }),
-  AudioPlayer: ({ file, onDelete }: any) => <div data-testid="audio-player">{file?.name}</div>,
+  AudioPlayer: ({ file }: any) => <div data-testid="audio-player">{file?.name}</div>,
   AudioRecorder: ({ onRecordingComplete }: any) => (
     <button
       data-testid="audio-recorder"
@@ -190,7 +190,7 @@ function StatefulWorkMedia({ initialImages = [] }: { initialImages?: File[] }) {
 
   return (
     <WorkMedia
-      config={{ required: false, maxImageCount: 5 }}
+      config={{ title: "Evidence", required: false, maxImageCount: 5 }}
       images={images}
       setImages={setImages}
       audioNotes={[]}
@@ -255,7 +255,7 @@ describe("WorkMedia", () => {
 
     renderWithIntl(
       <WorkMedia
-        config={{ required: false, maxImageCount: 5 }}
+        config={{ title: "Evidence", required: false, maxImageCount: 5 }}
         images={[]}
         setImages={setImages}
         audioNotes={[]}
@@ -275,7 +275,7 @@ describe("WorkMedia", () => {
 
     renderWithIntl(
       <WorkMedia
-        config={{ required: false, maxImageCount: 5 }}
+        config={{ title: "Evidence", required: false, maxImageCount: 5 }}
         images={[]}
         setImages={setImages}
         audioNotes={[]}
@@ -297,7 +297,7 @@ describe("WorkMedia", () => {
 
     renderWithIntl(
       <WorkMedia
-        config={{ required: true, maxImageCount: 5 }}
+        config={{ title: "Evidence", required: true, maxImageCount: 5 }}
         images={[mockFile1, mockFile2]}
         setImages={setImages}
         audioNotes={[]}
@@ -316,7 +316,7 @@ describe("WorkMedia", () => {
 
     renderWithIntl(
       <WorkMedia
-        config={{ required: true, maxImageCount: 5, minImageCount: 2 }}
+        config={{ title: "Evidence", required: true, maxImageCount: 5, minImageCount: 2 }}
         images={[]}
         setImages={setImages}
         audioNotes={[]}
@@ -335,7 +335,7 @@ describe("WorkMedia", () => {
 
     renderWithIntl(
       <WorkMedia
-        config={{ required: false, maxImageCount: 5 }}
+        config={{ title: "Evidence", required: false, maxImageCount: 5 }}
         images={[]}
         setImages={setImages}
         audioNotes={[]}
@@ -355,7 +355,7 @@ describe("WorkMedia", () => {
 
     renderWithIntl(
       <WorkMedia
-        config={{ required: false, maxImageCount: 5 }}
+        config={{ title: "Evidence", required: false, maxImageCount: 5 }}
         images={[]}
         setImages={setImages}
         audioNotes={[]}
@@ -375,7 +375,7 @@ describe("WorkMedia", () => {
 
     renderWithIntl(
       <WorkMedia
-        config={{ required: false, maxImageCount: 5 }}
+        config={{ title: "Evidence", required: false, maxImageCount: 5 }}
         images={[]}
         setImages={setImages}
         audioNotes={[]}
@@ -438,7 +438,7 @@ describe("WorkMedia", () => {
 
     renderWithIntl(
       <WorkMedia
-        config={{ required: false, maxImageCount: 5 }}
+        config={{ title: "Evidence", required: false, maxImageCount: 5 }}
         images={[first, second]}
         setImages={vi.fn()}
         audioNotes={[]}

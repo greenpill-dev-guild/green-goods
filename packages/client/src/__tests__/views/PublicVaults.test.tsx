@@ -144,9 +144,9 @@ vi.mock("@/routes/WalletRuntimeProviders", async () => {
   const { createElement } = await import("react");
 
   return {
-    default: ({ children }: { children: unknown }) => {
+    default: ({ children }: { children: React.ReactNode }) => {
       sharedHookMocks.walletRuntimeProviderRender();
-      return createElement("div", { "data-testid": "wallet-runtime-provider" }, children);
+      return createElement("div", { "data-testid": "wallet-runtime-provider", children });
     },
   };
 });
@@ -231,11 +231,11 @@ function renderContent(campaigns: OctantVaultCampaignManifest[], path = "/vaults
     createElement(
       MemoryRouter,
       { initialEntries: [path] },
-      createElement(
-        IntlProvider,
-        { locale: "en", messages: { "app.common.close": "Close" } },
-        createElement(VaultsPageContent, { campaigns })
-      )
+      createElement(IntlProvider, {
+        locale: "en",
+        messages: { "app.common.close": "Close" },
+        children: <VaultsPageContent campaigns={campaigns} />,
+      })
     )
   );
 }
@@ -698,6 +698,7 @@ describe("VaultsPage", () => {
       harvestableAssets: 2_000_000_000_000_000n,
       isLoading: false,
       isError: false,
+      unavailableReason: "missing_strategy",
     };
 
     renderView();
@@ -719,6 +720,7 @@ describe("VaultsPage", () => {
       harvestableAssets: 0n,
       isLoading: false,
       isError: false,
+      unavailableReason: "missing_strategy",
     };
 
     renderView();
@@ -1246,6 +1248,7 @@ describe("VaultsPage", () => {
     sharedHookMocks.walletBalances = {
       nativeBalance: 20_000_000_000_000_000n,
       assetBalance: 0n,
+      gasPrice: null,
       isLoading: false,
       isError: false,
       isFetching: false,
@@ -1308,6 +1311,7 @@ describe("VaultsPage", () => {
     sharedHookMocks.walletBalances = {
       nativeBalance: 1_000_000_000_000_000n,
       assetBalance: 9_000_000_000_000_000n,
+      gasPrice: null,
       isLoading: false,
       isError: false,
       isFetching: false,
@@ -1347,6 +1351,7 @@ describe("VaultsPage", () => {
     sharedHookMocks.walletBalances = {
       nativeBalance: null,
       assetBalance: null,
+      gasPrice: null,
       isLoading: true,
       isError: false,
       isFetching: true,

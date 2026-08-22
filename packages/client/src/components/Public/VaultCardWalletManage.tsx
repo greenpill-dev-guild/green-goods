@@ -8,15 +8,11 @@
  */
 import {
   type Address,
-  DEFAULT_WITHDRAW_MAX_LOSS_BPS,
   formatTokenAmount,
   getOctantVaultCampaignBySlug,
-  getOctantVaultRedeemCallShape,
   getOctantVaultPendingFundedCardWalletRefs,
-  OCTANT_VAULT_REDEEM_CALL_SHAPES,
   type OctantVaultCardWalletPositionRef,
   type OctantVaultPosition,
-  type OctantVaultRedeemCallVariant,
   rememberOctantVaultCardWalletPosition,
   truncateAddress,
   useOctantVaultPositions,
@@ -40,6 +36,10 @@ import {
 } from "thirdweb/react";
 import { inAppWallet, preAuthenticate } from "thirdweb/wallets/in-app";
 import { EditorialGhostButton } from "./atoms";
+import {
+  prepareCardWalletRedeem,
+  readCardWalletMaxRedeemable,
+} from "./VaultCardWalletManage.calls";
 import { PositionsList, VaultPositionRowView } from "./VaultManagePositionsPanel";
 
 function getThirdwebClientId(): string {
@@ -48,32 +48,6 @@ function getThirdwebClientId(): string {
 
 function getThirdwebChain(chainId: number) {
   return chainId === ethereum.id ? ethereum : defineChain(chainId);
-}
-
-async function readCardWalletMaxRedeemable({
-  contract,
-  owner,
-}: {
-  contract: ReturnType<typeof getContract>;
-  owner: Address;
-}): Promise<{ shares: bigint; variant: OctantVaultRedeemCallVariant }> {
-  for (const shape of OCTANT_VAULT_REDEEM_CALL_SHAPES) {
-    try {
-      const result = await readContract({
-        contract,
-        method: shape.maxRedeemMethod,
-        params: shape.maxRedeemArgs(owner, DEFAULT_WITHDRAW_MAX_LOSS_BPS),
-      });
-      return {
-        shares: typeof result === "bigint" ? result : 0n,
-        variant: shape.variant,
-      };
-    } catch {
-      // Try the next Octant V2 / ERC-4626-compatible redeem shape.
-    }
-  }
-
-  return { shares: 0n, variant: "multistrategy" };
 }
 
 // The recovered email wallet config must match the one Card Endow connected with,
@@ -331,12 +305,7 @@ function CardVaultPositionRow({
               })
             );
           }
-          const redeemShape = getOctantVaultRedeemCallShape(maxRedeemable.variant);
-          const transaction = prepareContractCall({
-            contract: vault,
-            method: redeemShape.redeemMethod,
-            params: redeemShape.redeemArgs(shares, owner, owner, DEFAULT_WITHDRAW_MAX_LOSS_BPS),
-          });
+          const transaction = prepareCardWalletRedeem(vault, shares, owner, maxRedeemable.variant);
           await sendAndConfirm.mutateAsync(transaction);
           await onRefresh();
         } catch (caught) {

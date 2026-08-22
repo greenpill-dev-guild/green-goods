@@ -22,6 +22,7 @@ import {
   isAppInstalled,
   isMobilePlatform,
   isStandaloneMode,
+  type InstallPromptEvent,
   type Platform,
 } from "../utils/app/pwa";
 
@@ -71,9 +72,9 @@ export interface AppDataProps {
   platform: Platform;
   locale: Locale;
   availableLocales: readonly Locale[];
-  deferredPrompt: BeforeInstallPromptEvent | null;
+  deferredPrompt: InstallPromptEvent | null;
   promptInstall: () => void;
-  handleInstallCheck: (e: BeforeInstallPromptEvent | null) => void;
+  handleInstallCheck: (e: InstallPromptEvent | null) => void;
   switchLanguage: (lang: Locale) => void;
 }
 
@@ -136,7 +137,7 @@ export const AppProvider = ({
     ? (localStorage.getItem("gg-language") as Locale)
     : (getBrowserLocale(supportedLanguages, "en") as Locale); // Use helper instead of browserLang
   const [locale, setLocale] = useState<Locale>(defaultLocale as Locale);
-  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+  const [deferredPrompt, setDeferredPrompt] = useState<InstallPromptEvent | null>(null);
   const installSettleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const installAttemptHadExistingInstallRef = useRef<boolean | null>(null);
   const installReadinessSettledRef = useRef(false);
@@ -214,7 +215,7 @@ export const AppProvider = ({
   );
 
   const handleInstallCheck = useCallback(
-    (e: BeforeInstallPromptEvent | null) => {
+    (e: InstallPromptEvent | null) => {
       e?.preventDefault(); // Prevent the automatic prompt
       setDeferredPrompt(e);
 
@@ -231,7 +232,7 @@ export const AppProvider = ({
 
   const handleBeforeInstall = useCallback((e: Event) => {
     e.preventDefault();
-    setDeferredPrompt(e as BeforeInstallPromptEvent);
+    setDeferredPrompt(e as InstallPromptEvent);
   }, []);
 
   const handleAppInstalled = useCallback(() => {

@@ -17,6 +17,7 @@ interface DraftFormState {
   gardenAddress: string | null;
   actionUID: number | null;
   feedback: string;
+  timeSpentMinutes: number;
 }
 
 interface UseDraftResumeOptions {

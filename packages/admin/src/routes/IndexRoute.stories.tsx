@@ -1,17 +1,20 @@
-import type { Meta, StoryObj } from "@storybook/react";
-import type { QueryKey } from "@tanstack/react-query";
-import { AppBar, DEFAULT_CHAIN_ID, MainSheet, queryKeys, type Address } from "@green-goods/shared";
+import { type Address, AppBar, DEFAULT_CHAIN_ID, MainSheet, queryKeys } from "@green-goods/shared";
 import {
   AuthActionsContext,
-  AuthContext,
-  AuthStateContext,
   type AuthActionsValue,
+  AuthContext,
   type AuthContextType,
+  AuthStateContext,
   type AuthStateValue,
 } from "@green-goods/shared/providers";
+import type { Meta, StoryObj } from "@storybook/react";
+import type { QueryKey } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import { Route, Routes } from "react-router-dom";
 import { expect, fn, within } from "storybook/test";
+import { CanvasGardenAccessState } from "@/components/Layout/CanvasGardenAccessState";
+import { CanvasIndexerErrorState } from "@/components/Layout/CanvasIndexerErrorState";
+import { SeedlingIllustration } from "@/components/Layout/SeedlingIllustration";
 import {
   STORYBOOK_ADMIN_SHELL_SEEDS,
   STORYBOOK_OPERATOR_ADDRESS,
@@ -22,12 +25,10 @@ import {
   withSeededQueryClient,
   withWagmi,
 } from "../../../shared/.storybook/decorators";
-import { CanvasGardenAccessState } from "@/components/Layout/CanvasGardenAccessState";
-import { CanvasIndexerErrorState } from "@/components/Layout/CanvasIndexerErrorState";
-import { SeedlingIllustration } from "@/components/Layout/SeedlingIllustration";
 import IndexRoute from "./IndexRoute";
 
 const STORYBOOK_OPERATOR_ADDRESS_KEY = STORYBOOK_OPERATOR_ADDRESS.toLowerCase() as Address;
+const STORYBOOK_OPERATOR = STORYBOOK_OPERATOR_ADDRESS satisfies Address;
 
 const noopAsync = async () => {};
 const noop = () => {};
@@ -68,11 +69,11 @@ const walletAuthState: AuthStateValue = {
   smartAccountClient: null,
   userName: "Storybook operator",
   hasStoredCredential: false,
-  walletAddress: STORYBOOK_OPERATOR_ADDRESS,
-  eoaAddress: STORYBOOK_OPERATOR_ADDRESS,
+  walletAddress: STORYBOOK_OPERATOR,
+  eoaAddress: STORYBOOK_OPERATOR,
   embeddedAddress: null,
   externalWalletConnected: true,
-  externalWalletAddress: STORYBOOK_OPERATOR_ADDRESS,
+  externalWalletAddress: STORYBOOK_OPERATOR,
 };
 
 const loadingAuthState: AuthStateValue = {
@@ -101,7 +102,7 @@ const embeddedAuthState: AuthStateValue = {
   authMode: "embedded",
   eoaAddress: undefined,
   walletAddress: null,
-  embeddedAddress: STORYBOOK_OPERATOR_ADDRESS,
+  embeddedAddress: STORYBOOK_OPERATOR,
 };
 
 const NO_GARDEN_SEEDS: ReadonlyArray<readonly [QueryKey, unknown]> = [

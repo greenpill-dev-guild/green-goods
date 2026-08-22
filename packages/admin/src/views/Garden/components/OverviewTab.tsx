@@ -1,5 +1,6 @@
 import {
   type ActivityFilter,
+  type AdminWorkspaceSectionTab,
   Card,
   EmptyState,
   type GardenActivityEvent,
@@ -30,7 +31,12 @@ export interface OverviewTabProps {
   clearSection: () => void;
   openSection: (tab: GardenDetailTab, section: string, itemId?: string) => void;
   updateQueryState: (
-    updates: Partial<Record<"tab" | "range" | "section" | "item", string | undefined>>,
+    updates: {
+      tab?: AdminWorkspaceSectionTab;
+      range?: string;
+      section?: string;
+      item?: string;
+    },
     replace?: boolean
   ) => void;
   overviewAlerts: Array<{

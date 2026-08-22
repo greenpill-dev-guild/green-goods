@@ -1,11 +1,11 @@
 import {
   type AdminHubRouteContext,
-  type EASWork,
   adminRoutes,
   resolveIPFSUrl,
   useEnsName,
   WorkCardComponent as SharedWorkCard,
   type WorkCardData,
+  type Work,
 } from "@green-goods/shared";
 import { RiCheckboxCircleLine, RiCloseLine } from "@remixicon/react";
 import type React from "react";
@@ -15,7 +15,7 @@ import { formatEnsAddressName } from "@/components/EnsAddressText";
 import { localizeCanonicalActionTitle } from "../actionDisplay";
 
 interface WorkCardProps {
-  work: EASWork & { status?: "pending" | "approved" | "rejected" };
+  work: Work;
   canReview?: boolean;
   hubContext?: AdminHubRouteContext;
 }

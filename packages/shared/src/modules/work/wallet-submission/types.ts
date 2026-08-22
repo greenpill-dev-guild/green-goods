@@ -37,6 +37,9 @@ export class WorkSubmissionError extends Error {
     public readonly uploadBatchId?: string,
     originalError?: unknown
   ) {
-    super(message, { cause: originalError });
+    super(message);
+    this.cause = originalError;
   }
+
+  readonly cause?: unknown;
 }

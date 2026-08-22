@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import type { Garden } from "../../types/domain";
 
 /**
  * Unit tests for garden filtering logic
@@ -19,6 +20,10 @@ describe("Garden Filtering Logic", () => {
       bannerImage: "/banner.png",
       gardeners: ["0xuser1", "0xuser2"],
       operators: ["0xoperator1"],
+      evaluators: [],
+      owners: [],
+      funders: [],
+      communities: [],
       assessments: [],
       works: [],
       createdAt: Date.now(),
@@ -34,6 +39,10 @@ describe("Garden Filtering Logic", () => {
       bannerImage: "/banner.png",
       gardeners: ["0xuser2", "0xuser3"],
       operators: ["0xoperator1"],
+      evaluators: [],
+      owners: [],
+      funders: [],
+      communities: [],
       assessments: [],
       works: [],
       createdAt: Date.now(),
@@ -49,6 +58,10 @@ describe("Garden Filtering Logic", () => {
       bannerImage: "/banner.png",
       gardeners: ["0xuser4"],
       operators: ["0xoperator1"],
+      evaluators: [],
+      owners: [],
+      funders: [],
+      communities: [],
       assessments: [],
       works: [],
       createdAt: Date.now(),

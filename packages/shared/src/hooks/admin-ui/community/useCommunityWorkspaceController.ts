@@ -50,7 +50,11 @@ export function useCommunityWorkspaceController() {
     location.pathname.startsWith("/community/endowment/vault/withdraw") ||
     location.pathname.startsWith("/community/resources/vault/withdraw") ||
     location.pathname.startsWith("/community/treasury/vault/withdraw");
-  const vaultAction = isVaultDepositRoute ? "deposit" : isVaultWithdrawRoute ? "withdraw" : null;
+  const vaultAction: "deposit" | "withdraw" | null = isVaultDepositRoute
+    ? "deposit"
+    : isVaultWithdrawRoute
+      ? "withdraw"
+      : null;
   const isStrategiesRoute =
     location.pathname.startsWith("/community/coordination/strategies") ||
     location.pathname.startsWith("/community/governance/strategies");

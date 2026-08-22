@@ -1,7 +1,7 @@
 # Client Structure Cleanup + Agent Guide Consolidation
 
 **Slug**: `client-structure-and-agent-guides`
-**Stage**: `backlog`
+**Stage**: `active`
 **Priority**: `p1`
 **Created**: `2026-08-19`
 

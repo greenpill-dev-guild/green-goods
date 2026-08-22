@@ -261,13 +261,13 @@ describe("useSavedOfferPersistence", () => {
     {
       name: "offline",
       api: createApi(),
-      isOnline: () => false,
+      isOnline: (): boolean => false,
       expectedState: "OFFLINE_LOCAL" as const,
     },
     {
       name: "missing provider",
       api: undefined,
-      isOnline: () => true,
+      isOnline: (): boolean => true,
       expectedState: "SAVE_FAILED" as const,
     },
   ])("fails closed when deleting with an $name boundary", async (testCase) => {

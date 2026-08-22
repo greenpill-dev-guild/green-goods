@@ -31,7 +31,7 @@ vi.mock("../../modules/app/error-events", () => ({
 
 import { ErrorBoundary } from "../../components/ErrorBoundary/ErrorBoundary";
 
-function ThrowingChild() {
+function ThrowingChild(): never {
   throw new Error("Boundary test explosion");
 }
 

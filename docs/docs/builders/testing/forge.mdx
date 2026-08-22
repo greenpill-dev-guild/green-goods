@@ -4,7 +4,7 @@ sidebar_label: Forge
 slug: /builders/testing/forge
 audience: developer
 owner: docs
-last_verified: 2026-04-07
+last_verified: 2026-08-21
 feature_status: Live
 source_of_truth:
   - packages/contracts/package.json
@@ -68,8 +68,8 @@ All tests extend shared base contracts that provide common setup:
 
 - **Unit tests** (`test/unit/`) -- isolated contract logic with mock dependencies
 - **Integration tests** (`test/integration/`) -- multi-contract interaction with shared fixtures
-- **E2E tests** (`test/E2E*.t.sol`) -- full protocol workflow from deploy through attestation
-- **Fuzz tests** (`test/Fuzz*.t.sol`) -- property-based testing with configurable run count
+- **Invariant tests** (`test/invariant/`) -- stateful accounting and role-hierarchy properties
+- **E2E scripts** (`script/utils/run-e2e.sh`) -- named protocol workflows through package scripts
 
 ## Completing Test Coverage
 
@@ -132,9 +132,9 @@ The adaptive build system (`bun run build`) defaults to fast mode (~2s cached) a
 
 ```bash
 bun run build             # Adaptive (fast by default)
-bun build:fast            # Force fast mode
-bun build:full            # Full build (CI/deploy)
-bun build:target -- src/registries/Action.sol  # Single target
+bun run build:fast        # Force fast mode
+bun run build:full        # Full build (CI/deploy)
+bun run build:target -- src/registries/Action.sol  # Single target
 ```
 
 ### CI Integration

@@ -193,7 +193,12 @@ function DynamicWorkFields({
                   <FormField label={input.title} required={input.required} error={error}>
                     <div className="flex flex-wrap gap-2">
                       {(input.options ?? []).map((option) => {
-                        const selected = Array.isArray(field.value) && field.value.includes(option);
+                        const current = Array.isArray(field.value)
+                          ? field.value.filter(
+                              (value): value is string => typeof value === "string"
+                            )
+                          : [];
+                        const selected = current.includes(option);
                         return (
                           <AdminButton
                             key={option}
@@ -201,7 +206,6 @@ function DynamicWorkFields({
                             variant={selected ? "tonal" : "outlined"}
                             size="sm"
                             onClick={() => {
-                              const current = Array.isArray(field.value) ? field.value : [];
                               field.onChange(
                                 selected
                                   ? current.filter((value: string) => value !== option)
@@ -337,12 +341,10 @@ function SubmitWorkPanelContent({
   const navigate = useNavigate();
   const { selectedGarden } = useAdminGardenWorkspaceSelection();
   const gardenId = selectedGarden?.id ?? null;
-
   const { data: gardens = [], isLoading: gardensLoading } = useGardens();
   const { data: actions = [], isLoading: actionsLoading } = useActions();
   const { authMode, isAuthenticated, primaryAddress } = auth;
   const { canManageGarden } = useGardenPermissions();
-
   const garden = useMemo(
     () => gardens.find((candidate) => compareAddresses(candidate.id, gardenId)),
     [gardens, gardenId]
@@ -352,19 +354,19 @@ function SubmitWorkPanelContent({
     [garden?.domainMask]
   );
   const availableActions = useMemo(
-    () => actions.filter((action) => gardenDomains.has(action.domain)),
+    () =>
+      actions.filter(
+        (action): action is Action & { domain: Domain } =>
+          action.domain !== null && gardenDomains.has(action.domain)
+      ),
     [actions, gardenDomains]
   );
-  // Domain filter for the action chooser — shown only when the garden's eligible
-  // actions span more than one domain (mirrors the client's domain tabs).
   const [actionDomain, setActionDomain] = useState<Domain | "all">("all");
   const chooserDomains = useMemo(
     () =>
       Array.from(new Set(availableActions.map((action) => action.domain))).sort((a, b) => a - b),
     [availableActions]
   );
-  // Reset stale filters after garden switches so the chooser stays populated
-  // and its active state remains accurate.
   const effectiveDomain =
     actionDomain !== "all" && chooserDomains.includes(actionDomain) ? actionDomain : "all";
   const visibleActions = useMemo(
@@ -403,9 +405,7 @@ function SubmitWorkPanelContent({
   const [mediaFeedback, setMediaFeedback] = useState<MediaFeedback | null>(null);
   const [isPreparingMedia, setIsPreparingMedia] = useState(false);
   const submitIntentRef = useRef(false);
-  // Stepped flow position (1=Action, 2=Media, 3=Details, 4=Review).
   const [currentStep, setCurrentStep] = useState(1);
-
   // Dirty = typed form content or staged media (not mere action selection) —
   // drives the hosting dialog's discard guard.
   const panelDirty = formIsDirty || images.length > 0;

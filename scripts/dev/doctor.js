@@ -17,6 +17,7 @@ import {
   readPinnedFoundryVersion,
 } from "../contracts/check-foundry-version.mjs";
 import { commandExists, commandVersion, majorVersion } from "../lib/dev-shared.js";
+import { inspectSurface } from "./surface-leases.mjs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -73,6 +74,18 @@ const profilePorts = {
     { port: 3007, label: "envio indexer" },
     { port: 3008, label: "indexer postgres" },
   ],
+};
+
+const serviceByPort = {
+  3001: "client",
+  3002: "admin",
+  3003: "docs",
+  3004: "storybook",
+  3005: "agent",
+  3006: "indexer",
+  3007: "indexer",
+  3008: "indexer",
+  3009: "anvil-arbitrum",
 };
 
 const requiredTools = [
@@ -141,6 +154,14 @@ function add(level, title, detail = "", fix = "", metadata = {}) {
 
 function requiredLevel(requiredProfiles, fallback = "warn") {
   return requiredProfiles.includes(options.profile) ? "fail" : fallback;
+}
+
+function expectedCompatibilityKey(port) {
+  const profile =
+    options.profile === "prod" || options.profile === "prod-mirror"
+      ? options.profile
+      : "local";
+  return `${serviceByPort[port]}:${profile}`;
 }
 
 function parseEnvFile(filePath) {
@@ -692,15 +713,72 @@ function checkIndexerGenerated() {
 async function checkPorts() {
   for (const item of profilePorts[options.profile]) {
     const available = await checkPort(item.port);
+    const ownership = inspectSurface({ port: item.port, portLive: !available });
     if (available) {
-      add("pass", `Port ${item.port} available`, item.label, "", { check: `port:${item.port}` });
+      if (ownership.state === "stale") {
+        add(
+          "warn",
+          `Port ${item.port} has a stale lease`,
+          `${item.label}; former owner ${ownership.claim.ownerId} pid ${ownership.claim.ownerPid} is gone and no listener remains.`,
+          "The next repo stack launch will remove this stale claim before starting the service.",
+          { check: `port:${item.port}`, ownership }
+        );
+      } else if (ownership.state === "claimed-starting") {
+        const compatible =
+          ownership.claim.compatibilityKey === expectedCompatibilityKey(item.port);
+        add(
+          compatible ? "info" : "warn",
+          `Port ${item.port} is claimed and ${compatible ? "starting" : "incompatible"}`,
+          `${item.label}; owner ${ownership.claim.ownerId} pid ${ownership.claim.ownerPid}.`,
+          compatible
+            ? "Reuse that owning session; do not start a competing service."
+            : `This profile needs ${expectedCompatibilityKey(item.port)}. Use the owning session to stop the conflicting profile.`,
+          { check: `port:${item.port}`, ownership }
+        );
+      } else {
+        add("pass", `Port ${item.port} available`, item.label, "", {
+          check: `port:${item.port}`,
+          ownership,
+        });
+      }
+      continue;
+    }
+
+    if (ownership.state === "owned-live") {
+      const compatible =
+        ownership.claim.compatibilityKey === expectedCompatibilityKey(item.port);
+      if (compatible) {
+        add(
+          "pass",
+          `Port ${item.port} already serves ${ownership.claim.service}`,
+          `${ownership.claim.compatibilityKey}; owner ${ownership.claim.ownerId} pid ${ownership.claim.ownerPid}.`,
+          "Reuse the compatible live service. Only its owner may stop it or release its lease.",
+          { check: `port:${item.port}`, ownership }
+        );
+      } else {
+        add(
+          "warn",
+          `Port ${item.port} serves an incompatible profile`,
+          `${ownership.claim.compatibilityKey}; owner ${ownership.claim.ownerId} pid ${ownership.claim.ownerPid}.`,
+          `This profile needs ${expectedCompatibilityKey(item.port)}. Use the owning session to stop the conflicting profile.`,
+          { check: `port:${item.port}`, ownership }
+        );
+      }
+    } else if (ownership.state === "stale-owner-live") {
+      add(
+        "warn",
+        `Port ${item.port} has a live listener but a stale owner`,
+        `${item.label}; recorded owner ${ownership.claim.ownerId} pid ${ownership.claim.ownerPid} is gone.`,
+        "Treat the listener as external. Inspect it manually; the repo stack will not delete, stop, or take over this claim.",
+        { check: `port:${item.port}`, ownership }
+      );
     } else {
       add(
         "warn",
-        `Port ${item.port} already in use`,
+        `Port ${item.port} is occupied by an external listener`,
         item.label,
-        "Run bun run dev:stack:stop for PM2 services, or stop the conflicting process before starting services.",
-        { check: `port:${item.port}` }
+        "Inspect the listener and reuse it only when compatible. The repo stack will not stop unknown processes.",
+        { check: `port:${item.port}`, ownership }
       );
     }
   }

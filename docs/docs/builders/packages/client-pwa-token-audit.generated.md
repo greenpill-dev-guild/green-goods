@@ -16,7 +16,7 @@ source_of_truth:
 
 Scope: installed-PWA runtime files in `packages/client/src`. Public browser routes, stories, and tests are excluded so the freeze audit stays focused on the protected app surface.
 
-Summary: 316 token references (accent: 68, action: 144, state: 89, contrast-exception: 15, contrast-risk: 0).
+Summary: 317 token references (accent: 69, action: 144, state: 89, contrast-exception: 15, contrast-risk: 0).
 
 Unapproved bright-green text-bearing combinations: 0.
 
@@ -70,11 +70,11 @@ Approved contrast exceptions:
 | `packages/client/src/components/Errors/ErrorBoundary.tsx:71` | `bg-primary` | accent | <code>&lt;div className="mx-auto mb-4 w-14 h-14 rounded-2xl grid place-items-center bg-primary/10"&gt;</code> |
 | `packages/client/src/components/Errors/ErrorBoundary.tsx:72` | `text-primary` | accent | <code>&lt;RiLeafFill className="w-7 h-7 text-primary" /&gt;</code> |
 | `packages/client/src/components/Features/Garden/Assessments.tsx:85` | `text-primary` | accent | <code>&lt;Badge leadingIcon=&#123;&lt;RiCalendarLine className="h-4 w-4 text-primary" /&gt;&#125; variant="pill"&gt;</code> |
-| `packages/client/src/components/Features/Garden/Assessments.tsx:93` | `text-primary` | accent | <code>&lt;Badge leadingIcon=&#123;&lt;RiStackLine className="h-4 w-4 text-primary" /&gt;&#125; variant="pill"&gt;</code> |
-| `packages/client/src/components/Features/Garden/Assessments.tsx:107` | `text-primary` | accent | <code>&lt;Badge leadingIcon=&#123;&lt;RiPriceTag3Line className="h-4 w-4 text-primary" /&gt;&#125; variant="pill"&gt;</code> |
-| `packages/client/src/components/Features/Garden/Assessments.tsx:211` | `text-primary` | accent | <code>&lt;div className="flex items-center gap-2 text-primary"&gt;</code> |
-| `packages/client/src/components/Features/Garden/Assessments.tsx:227` | `text-primary` | accent | <code>className="mt-auto inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"</code> |
-| `packages/client/src/components/Features/Garden/Assessments.tsx:260` | `text-primary` | accent | <code>&lt;RiInformationLine size=&#123;24&#125; className="text-primary" /&gt;</code> |
+| `packages/client/src/components/Features/Garden/Assessments.tsx:91` | `text-primary` | accent | <code>&lt;Badge leadingIcon=&#123;&lt;RiStackLine className="h-4 w-4 text-primary" /&gt;&#125; variant="pill"&gt;</code> |
+| `packages/client/src/components/Features/Garden/Assessments.tsx:97` | `text-primary` | accent | <code>&lt;Badge leadingIcon=&#123;&lt;RiPriceTag3Line className="h-4 w-4 text-primary" /&gt;&#125; variant="pill"&gt;</code> |
+| `packages/client/src/components/Features/Garden/Assessments.tsx:214` | `text-primary` | accent | <code>&lt;div className="flex items-center gap-2 text-primary"&gt;</code> |
+| `packages/client/src/components/Features/Garden/Assessments.tsx:223` | `text-primary` | accent | <code>className="mt-auto inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"</code> |
+| `packages/client/src/components/Features/Garden/Assessments.tsx:247` | `text-primary` | accent | <code>&lt;RiInformationLine size=&#123;24&#125; className="text-primary" aria-hidden="true" /&gt;</code> |
 | `packages/client/src/components/Features/Garden/Gardeners.tsx:120` | `text-primary` | accent | <code>&lt;RiCalendarEventFill className="w-3.5 h-3.5 text-primary" /&gt;</code> |
 | `packages/client/src/components/Features/Garden/Gardeners.tsx:266` | `text-primary` | accent | <code>&lt;RiUserLine className="w-4 h-4 text-primary" /&gt;</code> |
 | `packages/client/src/components/Features/Garden/Gardeners.tsx:288` | `text-primary` | accent | <code>&lt;RiWallet3Fill className="w-4 h-4 text-primary" /&gt;</code> |
@@ -204,10 +204,10 @@ Approved contrast exceptions:
 | `packages/client/src/components/Public/VaultCardEndowFlow.tsx:1497` | `text-primary-base` | state | <code>className="text-sm font-semibold text-primary-base underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action"</code> |
 | `packages/client/src/components/Public/VaultCardPaymentPanel.tsx:584` | `bg-primary-action` | action | <code>&lt;p className="rounded-none bg-primary-action/10 p-4 text-sm leading-[1.55] text-primary-base"&gt;</code> |
 | `packages/client/src/components/Public/VaultCardPaymentPanel.tsx:584` | `text-primary-base` | accent | <code>&lt;p className="rounded-none bg-primary-action/10 p-4 text-sm leading-[1.55] text-primary-base"&gt;</code> |
-| `packages/client/src/components/Public/VaultCardWalletManage.tsx:656` | `border-primary-action` | action | <code>className="min-h-11 w-full rounded-full border border-stroke-soft-200 bg-bg-white-0 px-4 py-2.5 text-sm text-text-strong-950 outline-none transition-colors placeholder:text-text-soft-400 focus:border-primary-action"</code> |
-| `packages/client/src/components/Public/VaultCardWalletManage.tsx:675` | `bg-primary-action` | action | <code>&lt;p className="rounded-none bg-primary-action/10 p-3 text-xs leading-[1.5] text-primary-base"&gt;</code> |
-| `packages/client/src/components/Public/VaultCardWalletManage.tsx:675` | `text-primary-base` | accent | <code>&lt;p className="rounded-none bg-primary-action/10 p-3 text-xs leading-[1.5] text-primary-base"&gt;</code> |
-| `packages/client/src/components/Public/VaultCardWalletManage.tsx:703` | `border-primary-action` | action | <code>className="min-h-11 w-full rounded-full border border-stroke-soft-200 bg-bg-white-0 px-4 py-2.5 text-sm text-text-strong-950 outline-none transition-colors placeholder:text-text-soft-400 focus:border-primary-action"</code> |
+| `packages/client/src/components/Public/VaultCardWalletManage.tsx:625` | `border-primary-action` | action | <code>className="min-h-11 w-full rounded-full border border-stroke-soft-200 bg-bg-white-0 px-4 py-2.5 text-sm text-text-strong-950 outline-none transition-colors placeholder:text-text-soft-400 focus:border-primary-action"</code> |
+| `packages/client/src/components/Public/VaultCardWalletManage.tsx:644` | `bg-primary-action` | action | <code>&lt;p className="rounded-none bg-primary-action/10 p-3 text-xs leading-[1.5] text-primary-base"&gt;</code> |
+| `packages/client/src/components/Public/VaultCardWalletManage.tsx:644` | `text-primary-base` | accent | <code>&lt;p className="rounded-none bg-primary-action/10 p-3 text-xs leading-[1.5] text-primary-base"&gt;</code> |
+| `packages/client/src/components/Public/VaultCardWalletManage.tsx:672` | `border-primary-action` | action | <code>className="min-h-11 w-full rounded-full border border-stroke-soft-200 bg-bg-white-0 px-4 py-2.5 text-sm text-text-strong-950 outline-none transition-colors placeholder:text-text-soft-400 focus:border-primary-action"</code> |
 | `packages/client/src/components/Public/VaultCheckoutDialog.tsx:826` | `bg-primary-action` | action | <code>&lt;p className="rounded-none bg-primary-action/10 p-4 text-sm leading-[1.55] text-primary-base"&gt;</code> |
 | `packages/client/src/components/Public/VaultCheckoutDialog.tsx:826` | `text-primary-base` | accent | <code>&lt;p className="rounded-none bg-primary-action/10 p-4 text-sm leading-[1.55] text-primary-base"&gt;</code> |
 | `packages/client/src/components/Public/VaultCheckoutDialog.tsx:837` | `ring-primary-action` | action | <code>className="text-sm font-semibold text-primary-base underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action"</code> |
@@ -264,6 +264,7 @@ Approved contrast exceptions:
 | `packages/client/src/views/Garden/Details.tsx:338` | `bg-primary-base` | accent | <code>locationEnabled ? "bg-primary-base" : "bg-bg-soft-200"</code> |
 | `packages/client/src/views/Garden/Intro.tsx:328` | `bg-primary-alpha-10` | accent | <code>&lt;div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[var(--radius-md)] bg-primary-alpha-10 text-primary"&gt;</code> |
 | `packages/client/src/views/Garden/Intro.tsx:328` | `text-primary` | accent | <code>&lt;div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[var(--radius-md)] bg-primary-alpha-10 text-primary"&gt;</code> |
+| `packages/client/src/views/Home/Garden/Assessment.tsx:164` | `text-primary` | accent | <code>className="font-medium text-primary hover:underline"</code> |
 | `packages/client/src/views/Home/Garden/Commitment/CommitmentActionBar.tsx:44` | `bg-primary-action` | action | <code>: "w-full rounded-[var(--radius-lg)] bg-primary-action px-4 py-3 text-sm font-medium text-primary-action-foreground tap-target-lg disabled:opacity-60"</code> |
 | `packages/client/src/views/Home/Garden/Commitment/CommitmentActionBar.tsx:44` | `text-primary-action-foreground` | action | <code>: "w-full rounded-[var(--radius-lg)] bg-primary-action px-4 py-3 text-sm font-medium text-primary-action-foreground tap-target-lg disabled:opacity-60"</code> |
 | `packages/client/src/views/Home/Garden/Commitment/CommitmentProgress.tsx:75` | `bg-primary-action` | action | <code>className="h-full rounded-full bg-primary-action"</code> |

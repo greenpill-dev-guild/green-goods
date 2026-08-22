@@ -6,7 +6,7 @@ import {
   RiSearchLine,
 } from "@remixicon/react";
 import type { Meta, StoryObj } from "@storybook/react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { type ComponentProps, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { expect, userEvent, waitFor, within } from "storybook/test";
 import { STORYBOOK_ADMIN_DEPLOYER_SEEDS } from "../../../../shared/.storybook/adminFixtures";
@@ -306,7 +306,7 @@ function MockCommandPalette({
 
 // ─── Meta ────────────────────────────────────────────────────────────
 
-type CommandPaletteStoryArgs = MockCommandPaletteProps;
+type CommandPaletteStoryArgs = ComponentProps<typeof CommandPalette> & MockCommandPaletteProps;
 
 const meta: Meta<CommandPaletteStoryArgs> = {
   title: "Admin/Shell/CommandPalette",

@@ -1,4 +1,4 @@
-# Agent Package — Codex Guide
+# Agent Package — Agent Guide
 
 Use this guide when editing `packages/agent/**`.
 
@@ -23,7 +23,7 @@ routes them through handlers, and coordinates service dependencies.
 - Do not leak internal error details to users; keep user-facing failures generic.
 - If a change touches shared types or shared APIs, validate those boundaries as well.
 
-## Codex Notes
+## Package Notes
 
 - Response-shape changes ripple quickly through platform adapters and tests; run both tests and
   typecheck when editing handlers, adapters, or service contracts.

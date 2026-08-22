@@ -5,6 +5,7 @@
 
 import { within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { CookieJar } from "@green-goods/shared";
 import { renderWithProviders as render, screen } from "../test-utils";
 
 const TEST_GARDEN = "0x1111111111111111111111111111111111111111" as const;
@@ -37,7 +38,7 @@ const pausedJar = {
   isPaused: true,
 };
 
-function jarsState(jars: (typeof baseJar)[]) {
+function jarsState(jars: CookieJar[]) {
   return {
     jars,
     isLoading: false,

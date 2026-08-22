@@ -4,7 +4,7 @@ import { GardenTokenABI } from "../../utils/blockchain/contracts";
 
 describe("utils/blockchain/contracts GardenToken ABI compatibility", () => {
   it("includes gardeners/operators in mintGarden config tuple", () => {
-    const mintGarden = (GardenTokenABI as Array<Record<string, unknown>>).find(
+    const mintGarden = (GardenTokenABI as readonly Record<string, unknown>[]).find(
       (item) => item.type === "function" && item.name === "mintGarden"
     );
 

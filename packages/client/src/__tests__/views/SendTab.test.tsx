@@ -5,6 +5,7 @@
 
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { SendableTokenBalance } from "@green-goods/shared";
 import { renderWithProviders as render, screen } from "../test-utils";
 
 const SELF = "0x1111111111111111111111111111111111111111" as const;
@@ -12,7 +13,7 @@ const MEMBER = "0x2222222222222222222222222222222222222222" as const;
 const GOODS_ADDR = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" as const;
 const USDC_ADDR = "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb" as const;
 
-const goodsToken = {
+const goodsToken: SendableTokenBalance = {
   symbol: "GOODS",
   label: "Green Goods",
   address: GOODS_ADDR,
@@ -22,7 +23,7 @@ const goodsToken = {
   balance: 1000n * 10n ** 18n,
   errored: false,
 };
-const usdcToken = {
+const usdcToken: SendableTokenBalance = {
   symbol: "USDC",
   label: "USDC",
   address: USDC_ADDR,
@@ -37,8 +38,7 @@ const mockSend = vi.fn();
 const mockRefetch = vi.fn();
 let mockIsOnline = true;
 
-type MockToken = Omit<typeof goodsToken, "balance"> & { balance: bigint | null };
-let mockTokensState: { tokens: MockToken[]; isLoading: boolean; isError: boolean } = {
+let mockTokensState: { tokens: SendableTokenBalance[]; isLoading: boolean; isError: boolean } = {
   tokens: [goodsToken, usdcToken],
   isLoading: false,
   isError: false,

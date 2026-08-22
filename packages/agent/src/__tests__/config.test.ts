@@ -234,7 +234,9 @@ describe("production Saved Offers configuration", () => {
     "AGENT_TRUSTED_PROXY_HOPS",
     "AGENT_TRUSTED_PROXY_CIDRS",
   ] as const;
-  const original = new Map(ENV_KEYS.map((key) => [key, process.env[key]]));
+  const original = new Map<string, string | undefined>(
+    ENV_KEYS.map((key) => [key, process.env[key]])
+  );
 
   beforeEach(() => {
     process.env.NODE_ENV = "production";

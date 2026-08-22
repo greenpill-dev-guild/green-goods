@@ -55,7 +55,7 @@ function useGardenStringMutation(
       });
       return { toastId };
     },
-    onSuccess: (_txHash, params, context) => {
+    onSuccess: (_txHash, _params, context) => {
       if (context?.toastId) toastService.dismiss(context.toastId);
       toastService.success({
         title: formatMessage({ id: successMessageId, defaultMessage: "Updated" }),

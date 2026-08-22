@@ -10,6 +10,15 @@ function read(relativePath) {
   return readFileSync(join(root, relativePath), "utf8");
 }
 
+function workflowEventBlock(source, event) {
+  const marker = `  ${event}:\n`;
+  const start = source.indexOf(marker);
+  assert.ok(start >= 0, `missing ${event} workflow trigger`);
+  const remainder = source.slice(start + marker.length);
+  const nextSection = remainder.search(/^(?:  [a-z_]+|permissions):\n/m);
+  return nextSection < 0 ? remainder : remainder.slice(0, nextSection);
+}
+
 function workflowSources() {
   return readdirSync(workflowsDir)
     .filter((file) => file.endsWith(".yml") && file !== "ci-gate.yml")
@@ -110,6 +119,72 @@ test("raw Solidity source does not fan out to mocked consumer workflows", () => 
     assert.doesNotMatch(source, /packages\/contracts\/src\/\*\*/);
     assert.match(source, /packages\/contracts\/abis\/\*\*/);
     assert.match(source, /packages\/contracts\/deployments\/\*\*/);
+  }
+});
+
+test("lockfile changes run package validation and Supply Chain Guardrails", () => {
+  for (const file of [
+    "admin.yml",
+    "agent.yml",
+    "client.yml",
+    "contracts.yml",
+    "docs.yml",
+    "indexer.yml",
+    "shared.yml",
+  ]) {
+    const source = read(`.github/workflows/${file}`);
+    for (const event of ["push", "pull_request"]) {
+      assert.equal(
+        workflowEventBlock(source, event).match(/- "bun\.lock"/g)?.length,
+        1,
+        `${file}:${event} must include bun.lock exactly once`,
+      );
+    }
+  }
+
+  const design = read(".github/workflows/design.yml").split("permissions:", 1)[0];
+  assert.ok(!design.includes('"bun.lock"'), "Design is not a package validation workflow");
+
+  const supplyChain = read(".github/workflows/supply-chain-guardrails.yml");
+  for (const event of ["push", "pull_request"]) {
+    assert.equal(
+      workflowEventBlock(supplyChain, event).match(/- "bun\.lock"/g)?.length,
+      1,
+      `${event} must include bun.lock exactly once`,
+    );
+  }
+});
+
+test("owning workflows enforce strict test and story typechecks", () => {
+  for (const [file, packageName] of [
+    ["shared.yml", "shared"],
+    ["admin.yml", "admin"],
+    ["client.yml", "client"],
+  ]) {
+    const source = read(`.github/workflows/${file}`);
+    assert.match(
+      source,
+      new RegExp(`working-directory: packages/${packageName}\\n\\s+run: bun run typecheck:tests`),
+      `${file} must typecheck ${packageName} tests and stories`,
+    );
+  }
+});
+
+test("consumer workflows exclude Shared tests and stories", () => {
+  for (const file of ["admin.yml", "agent.yml", "client.yml"]) {
+    const outer = read(`.github/workflows/${file}`).split("permissions:", 1)[0];
+    for (const pattern of [
+      "!packages/shared/**/__tests__/**",
+      "!packages/shared/**/*.test.*",
+      "!packages/shared/**/*.spec.*",
+      "!packages/shared/**/*.stories.*",
+      "!packages/shared/.storybook/**",
+    ]) {
+      const occurrences = outer.match(
+        new RegExp(pattern.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "g"),
+      )?.length;
+      assert.equal(occurrences, 2, `${file} must exclude ${pattern} for push and pull_request`);
+    }
   }
 });
 

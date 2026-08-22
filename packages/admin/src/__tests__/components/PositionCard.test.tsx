@@ -22,7 +22,7 @@ vi.mock("wagmi", () => ({
 }));
 
 vi.mock("@green-goods/shared", async (importOriginal) => {
-  const actual = await importOriginal();
+  const actual = await importOriginal<typeof import("@green-goods/shared")>();
   return {
     ...actual,
     formatTokenAmount: (value: bigint, decimals?: number) => {

@@ -55,7 +55,8 @@ The repository guidance points to `.mcp.json` as the source of truth. User-level
 
 ## Safe usage policy
 
-- Prefer local tooling (`bun`, `forge`, `cast`) for small scoped tasks.
+- Prefer repo-owned Bun scripts for small scoped tasks. Contracts still use the package wrappers;
+  do not substitute raw `forge` commands.
 - Use the authenticated Brave QA profile for local live browser state, rendered DOM, screenshots, traces, and success claims on admin, PWA, wallet, or private-data surfaces. Use `brave-devtools` only for CI/clean-room public-route checks or explicit non-authenticated protocol debugging.
 - Never use Google Chrome, Chrome for Testing, Chromium, or Edge as a Green Goods browser-proof fallback.
 - Avoid exposing secrets in logs or docs examples.

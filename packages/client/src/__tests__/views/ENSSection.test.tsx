@@ -9,10 +9,10 @@ import { createElement, type ReactNode } from "react";
 import { IntlProvider } from "react-intl";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const mockUseENSRegistrationStatus = vi.fn();
+const mockUseENSRegistrationStatus = vi.fn((_slug?: string) => undefined);
 const mockMutateAsync = vi.fn();
 const mockReleaseMutateAsync = vi.fn();
-const mockValidateSlug = vi.fn(() => ({ valid: true }));
+const mockValidateSlug = vi.fn((_slug: string) => ({ valid: true }));
 const mockClipboardWriteText = vi.fn(async () => undefined);
 const mockTrigger = vi.fn(async () => true);
 const mockGetValues = vi.fn(() => "river");
@@ -52,7 +52,7 @@ vi.mock("@green-goods/shared", () => ({
     return { data: slug ? mockRegistrationData : undefined };
   },
   useGreenGoodsEnsName: () => ({ data: mockExistingGreenGoodsEnsName }),
-  ENSProgressTimeline: ({ slug, data }: { slug: string; data: unknown }) =>
+  ENSProgressTimeline: ({ slug }: { slug: string; data: unknown }) =>
     createElement("div", { "data-testid": "ens-progress" }, slug),
   ConfirmDialog: ({
     isOpen,

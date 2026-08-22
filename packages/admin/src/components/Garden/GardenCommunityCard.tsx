@@ -114,15 +114,15 @@ export const GardenCommunityCard: React.FC<GardenCommunityCardProps> = ({
               <div className="mt-2 flex gap-3 text-xs text-text-sub">
                 <span>
                   {formatMessage({ id: "app.roles.community" })}:{" "}
-                  {WEIGHT_SCHEME_VALUES[community.weightScheme].community / 10_000}x
+                  {WEIGHT_SCHEME_VALUES[community.weightScheme as WeightScheme].community / 10_000}x
                 </span>
                 <span>
                   {formatMessage({ id: "app.roles.gardener" })}:{" "}
-                  {WEIGHT_SCHEME_VALUES[community.weightScheme].gardener / 10_000}x
+                  {WEIGHT_SCHEME_VALUES[community.weightScheme as WeightScheme].gardener / 10_000}x
                 </span>
                 <span>
                   {formatMessage({ id: "app.roles.operator" })}:{" "}
-                  {WEIGHT_SCHEME_VALUES[community.weightScheme].operator / 10_000}x
+                  {WEIGHT_SCHEME_VALUES[community.weightScheme as WeightScheme].operator / 10_000}x
                 </span>
               </div>
             </div>

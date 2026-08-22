@@ -174,7 +174,10 @@ describe("ProfileAvatarEditor", () => {
       },
     ],
   ])("makes a new selection supersede a persisted %s draft", async (_action, draft) => {
-    avatarEditorMocks.editor.draft = draft;
+    avatarEditorMocks.editor.draft = {
+      ...draft,
+      action: draft.action as "clear" | "set",
+    };
     const user = userEvent.setup();
     renderEditor();
 

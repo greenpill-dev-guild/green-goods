@@ -25,9 +25,9 @@ graph TB
     subgraph Layers["Context Layers (broadest → most specific)"]
         L1["Layer 1: CLAUDE.md\nAlways loaded — commands, architecture, patterns"]
         L2["Layer 2: AGENTS.md\nAlways loaded — invariants, scope constraints"]
-        L3["Layer 3: context/*.md\nPer-package — shared, contracts, client, etc."]
+        L3["Layer 3: context/*.md\nRead on demand — package and domain depth"]
         L4["Layer 4: rules/*.md\nPath-scoped — typescript, contracts, frontend"]
-        L5["Layer 5: skills/*\nProcedural — 9 skills, loaded on trigger"]
+        L5["Layer 5: skills/*\nProcedural — 10 skills, loaded on trigger"]
     end
 
     L1 --> L2 --> L3 --> L4 --> L5
@@ -46,7 +46,7 @@ as the durable repo-truth planning and execution hub:
 .claude/
   context/         # Package and domain context files
   rules/           # Path-scoped coding rules
-  skills/          # 9 skills -- the filesystem + SKILL.md frontmatter is the registry
+  skills/          # 10 skills -- the filesystem + SKILL.md frontmatter is the registry
   scripts/         # Hook helpers and Codex lane dispatch
   loop.md          # Maintenance loop: guidance consistency, stale references, build health
   launch.json      # Dev-server launch configs for the browser preview
@@ -63,7 +63,9 @@ Context is loaded in layers, from broadest to most specific:
 
 ### Layer 1: `CLAUDE.md` (Always Loaded)
 
-The root `CLAUDE.md` provides universal project context: commands, architecture, key patterns, git workflow, and non-negotiable rules. Every agent session starts with this context. Keep it under 4KB.
+The root `CLAUDE.md` provides Claude Code harness context: commands, architecture, key patterns,
+git workflow, and tool-specific routing. Keep shared policy in `AGENTS.md` or the canonical context
+file it links so this always-loaded layer remains useful rather than becoming a second copy.
 
 ### Layer 2: `AGENTS.md` (Always Loaded)
 
@@ -71,9 +73,11 @@ A compact runtime contract for all agents -- non-negotiable invariants, code con
 
 ### Layer 3: Package Context (`.claude/context/*.md`)
 
-Loaded based on which files the agent is working with:
+These files are canonical, read-on-demand depth for package and domain work. Package `AGENTS.md`
+files and task prompts route agents to them; their presence alone does not prove every harness loads
+them automatically.
 
-| File | Loaded When |
+| File | Read When |
 |------|-------------|
 | `shared.md` | Editing `packages/shared/` |
 | `contracts.md` | Editing `packages/contracts/` |
@@ -82,7 +86,6 @@ Loaded based on which files the agent is working with:
 | `agent.md` | Editing `packages/agent/` |
 | `indexer.md` | Editing `packages/indexer/` |
 | `testing.md` | Writing or diagnosing tests (absorbed the old testing skill) |
-| `intent.md` | Making prioritization or UX decisions |
 | `values.md` | Resolving conflicts between constraints |
 | `product.md` | Feature planning and requirements |
 

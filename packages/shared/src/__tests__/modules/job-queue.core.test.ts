@@ -162,8 +162,11 @@ describe("modules/job-queue", () => {
       {
         actionUID: 1,
         workUID: "0xwork",
+        gardenAddress: "0xgarden",
         approved: true,
         gardenerAddress: "0xgardener",
+        confidence: 1,
+        verificationMethod: 1,
       },
       TEST_USER_ADDRESS,
       { chainId: 11155111 }

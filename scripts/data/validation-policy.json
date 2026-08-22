@@ -74,14 +74,7 @@
     },
     {
       "surface": "all",
-      "exact": [
-        "package.json",
-        "bun.lock",
-        "biome.json",
-        ".env.schema",
-        "tsconfig.json",
-        "tsconfig.base.json"
-      ]
+      "exact": ["package.json", "biome.json", ".env.schema", "tsconfig.json", "tsconfig.base.json"]
     }
   ],
   "conditionalRules": [
@@ -104,13 +97,43 @@
     },
     {
       "check": "ontology",
+      "exact": [
+        "packages/contracts/config/schemas.json",
+        "packages/contracts/test/unit/CreditRegistry.t.sol",
+        "packages/client/src/views/Home/Garden/Assessment.tsx",
+        "packages/client/src/views/Home/Garden/Work.tsx",
+        "packages/indexer/schema.graphql",
+        "packages/indexer/test/credit-registry.test.ts",
+        "docs/docs/reference/glossary-community.md",
+        "docs/docs/reference/ontology.generated.mdx",
+        "docs/docs/reference/ontology-human.generated.mdx",
+        "docs/docs/community/green-goods-claims.generated.mdx",
+        "docs/docs/builders/integrations/entity-matrix.mdx",
+        "scripts/quality/check-ontology.mjs",
+        "scripts/quality/ontology-render.mjs",
+        "scripts/quality/check-ontology.test.mjs",
+        "scripts/data/ontology-drift-baseline.json",
+        ".github/workflows/ontology.yml",
+        ".plans/active/commitment-pooling/contract-spec.md",
+        ".plans/active/commitment-pooling/status.json",
+        ".plans/active/commitment-pooling/standing-commitments-spec.md",
+        ".plans/active/community-interface/spec.md",
+        ".plans/active/community-interface/status.json",
+        ".plans/active/commitment-pooling/settlement-spec.md",
+        ".plans/active/commitment-credit-follow-on/spec.md",
+        "docs/docs/builders/architecture/erd.mdx",
+        "docs/docs/builders/specs/v1-0.mdx",
+        "packages/contracts/script/DeployBadgeSchema.s.sol"
+      ],
       "prefixes": [
+        "packages/shared/src/",
         "packages/contracts/src/",
         "packages/contracts/deployments/",
-        "packages/shared/src/ontology/",
+        "packages/indexer/src/handlers/",
         "packages/client/src/components/Public/",
         "packages/client/src/views/Public/"
-      ]
+      ],
+      "excludeValidationOnlyFrom": ["shared"]
     },
     {
       "check": "supply-chain",
@@ -156,7 +179,27 @@
       "risk": "static defects cross package boundaries",
       "expectedSignal": "repository lint rules pass",
       "freshness": "exact-inputs",
-      "budgetSeconds": 45,
+      "budgetSeconds": 20,
+      "stopRule": "stop-dependent-checks",
+      "capabilities": ["dependencies"]
+    },
+    {
+      "id": "validation-system-test",
+      "command": "bun run test:validation-system",
+      "risk": "validation selector or workflow routing changes are not exercised by their durable regression suite",
+      "expectedSignal": "the validation-system regression suite passes",
+      "freshness": "exact-inputs-and-toolchain",
+      "budgetSeconds": 30,
+      "stopRule": "stop-dependent-checks",
+      "capabilities": ["dependencies"]
+    },
+    {
+      "id": "env-schema-test",
+      "command": "bun run test:env-schema",
+      "risk": "environment schema behavior changes without executing its direct regression test",
+      "expectedSignal": "the environment schema regression test passes",
+      "freshness": "exact-inputs-and-toolchain",
+      "budgetSeconds": 15,
       "stopRule": "stop-dependent-checks",
       "capabilities": ["dependencies"]
     },
@@ -173,12 +216,23 @@
     },
     {
       "id": "shared-typecheck",
-      "command": "node ../../scripts/dev/node-cli.js tsc --noEmit",
+      "command": "bun run typecheck",
       "cwd": "packages/shared",
       "risk": "shared type contracts no longer compile",
       "expectedSignal": "shared TypeScript graph has no errors",
       "freshness": "exact-inputs-and-toolchain",
       "budgetSeconds": 45,
+      "stopRule": "stop-dependent-checks",
+      "capabilities": ["dependencies"]
+    },
+    {
+      "id": "shared-test-typecheck",
+      "command": "bun run typecheck:tests",
+      "cwd": "packages/shared",
+      "risk": "shared tests and stories no longer satisfy their strict TypeScript contract",
+      "expectedSignal": "shared test and story TypeScript graph has no errors",
+      "freshness": "exact-inputs-and-toolchain",
+      "budgetSeconds": 20,
       "stopRule": "stop-dependent-checks",
       "capabilities": ["dependencies"]
     },
@@ -206,6 +260,17 @@
       "capabilities": ["dependencies"]
     },
     {
+      "id": "client-test-typecheck",
+      "command": "bun run typecheck:tests",
+      "cwd": "packages/client",
+      "risk": "client tests and stories no longer satisfy their strict TypeScript contract",
+      "expectedSignal": "client test and story TypeScript graph has no errors",
+      "freshness": "exact-inputs-and-toolchain",
+      "budgetSeconds": 20,
+      "stopRule": "stop-dependent-checks",
+      "capabilities": ["dependencies"]
+    },
+    {
       "id": "client-test",
       "command": "bun run test",
       "cwd": "packages/client",
@@ -225,6 +290,17 @@
       "expectedSignal": "client production bundle succeeds",
       "freshness": "exact-inputs-toolchain-and-environment",
       "budgetSeconds": 75,
+      "stopRule": "stop-dependent-checks",
+      "capabilities": ["dependencies"]
+    },
+    {
+      "id": "admin-test-typecheck",
+      "command": "bun run typecheck:tests",
+      "cwd": "packages/admin",
+      "risk": "admin tests and stories no longer satisfy their strict TypeScript contract",
+      "expectedSignal": "admin test and story TypeScript graph has no errors",
+      "freshness": "exact-inputs-and-toolchain",
+      "budgetSeconds": 20,
       "stopRule": "stop-dependent-checks",
       "capabilities": ["dependencies"]
     },
@@ -271,6 +347,17 @@
       "expectedSignal": "agent TypeScript graph has no errors",
       "freshness": "exact-inputs-and-toolchain",
       "budgetSeconds": 45,
+      "stopRule": "stop-dependent-checks",
+      "capabilities": ["dependencies"]
+    },
+    {
+      "id": "agent-test-typecheck",
+      "command": "bun run typecheck:tests",
+      "cwd": "packages/agent",
+      "risk": "agent tests no longer satisfy their strict TypeScript contract",
+      "expectedSignal": "agent test TypeScript graph has no errors",
+      "freshness": "exact-inputs-and-toolchain",
+      "budgetSeconds": 20,
       "stopRule": "stop-dependent-checks",
       "capabilities": ["dependencies"]
     },
@@ -426,6 +513,27 @@
       "manual": true
     },
     {
+      "id": "story-quality",
+      "command": "bun run --filter @green-goods/shared check:stories && bun run --filter @green-goods/shared check:story-quality",
+      "risk": "Storybook coverage or agent-readable story contracts regress",
+      "expectedSignal": "story coverage and quality guardrails pass",
+      "freshness": "exact-inputs-and-toolchain",
+      "budgetSeconds": 10,
+      "stopRule": "stop-dependent-checks",
+      "capabilities": ["dependencies"]
+    },
+    {
+      "id": "storybook-build",
+      "command": "bun run build-storybook",
+      "cwd": "packages/shared",
+      "risk": "Storybook configuration no longer compiles or produces a runnable static build",
+      "expectedSignal": "the shared Storybook static build completes",
+      "freshness": "exact-inputs-and-toolchain",
+      "budgetSeconds": 180,
+      "stopRule": "stop-dependent-checks",
+      "capabilities": ["dependencies"]
+    },
+    {
       "id": "lighthouse-client",
       "command": "bunx lhci autorun",
       "cwd": "packages/client",
@@ -508,7 +616,8 @@
         "tests/",
         "packages/contracts/abis/",
         "packages/contracts/deployments/"
-      ]
+      ],
+      "excludeValidationOnlyFrom": ["shared"]
     },
     "Agent": {
       "exact": [
@@ -520,7 +629,8 @@
         ".github/actions/setup-js/action.yml",
         ".github/workflows/agent.yml"
       ],
-      "prefixes": ["packages/agent/", "packages/shared/"]
+      "prefixes": ["packages/agent/", "packages/shared/"],
+      "excludeValidationOnlyFrom": ["shared"]
     },
     "Client": {
       "exact": [
@@ -545,7 +655,8 @@
         "tests/",
         "packages/contracts/abis/",
         "packages/contracts/deployments/"
-      ]
+      ],
+      "excludeValidationOnlyFrom": ["shared"]
     },
     "Contracts": {
       "exact": [
@@ -565,7 +676,6 @@
         "CLAUDE.md",
         "DESIGN.md",
         "package.json",
-        "bun.lock",
         "docs/DESIGN.md",
         "docs/docs/builders/packages/admin.mdx",
         "docs/docs/builders/testing/storybook.mdx",
@@ -590,7 +700,8 @@
         "packages/shared/.storybook/",
         "packages/shared/src/",
         "scripts/design/"
-      ]
+      ],
+      "excludeTests": true
     },
     "Docs": {
       "exact": [
@@ -619,9 +730,11 @@
     "Ontology": {
       "exact": [
         "packages/contracts/config/schemas.json",
+        "packages/contracts/test/unit/CreditRegistry.t.sol",
         "packages/client/src/views/Home/Garden/Assessment.tsx",
         "packages/client/src/views/Home/Garden/Work.tsx",
         "packages/indexer/schema.graphql",
+        "packages/indexer/test/credit-registry.test.ts",
         "docs/docs/reference/glossary-community.md",
         "docs/docs/reference/ontology.generated.mdx",
         "docs/docs/reference/ontology-human.generated.mdx",
@@ -650,7 +763,8 @@
         "packages/indexer/src/handlers/",
         "packages/client/src/components/Public/",
         "packages/client/src/views/Public/"
-      ]
+      ],
+      "excludeValidationOnlyFrom": ["shared"]
     },
     "Shared": {
       "exact": [

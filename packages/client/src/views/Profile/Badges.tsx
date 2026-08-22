@@ -191,7 +191,7 @@ export const ProfileBadges: React.FC = () => {
             id: "app.profile.badges.claimGenesis",
             defaultMessage: "Claim Genesis",
           })}
-          onClick={() => genesisClaim.mutate()}
+          onClick={() => genesisClaim.mutate(undefined)}
           disabled={genesisClaim.isPending}
         />
       );

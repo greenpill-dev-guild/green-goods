@@ -3,12 +3,19 @@ import { createElement } from "react";
 import { IntlProvider } from "react-intl";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { Work } from "@green-goods/shared";
 
 const mockNavigate = vi.hoisted(() => vi.fn());
 const mockUseMyWorks = vi.fn();
 const mockUseMyOnlineWorks = vi.fn();
 let mockReviewerGardenIds: string[] = [];
-let mockReviewerWorksState = {
+let mockReviewerWorksState: {
+  data: Work[];
+  isLoading: boolean;
+  isFetching: boolean;
+  isError: boolean;
+  refetch: ReturnType<typeof vi.fn>;
+} = {
   data: [],
   isLoading: false,
   isFetching: false,
@@ -212,7 +219,7 @@ describe("WorkDashboard", () => {
         {
           id: "job-1",
           title: "Queued tree planting",
-          actionUID: "1",
+          actionUID: 1,
           gardenerAddress: "0xabc",
           gardenAddress: "garden-1",
           feedback: "",
@@ -300,7 +307,7 @@ describe("WorkDashboard", () => {
         {
           id: "reviewed-work",
           title: "Already reviewed planting",
-          actionUID: "1",
+          actionUID: 1,
           gardenerAddress: "0xdef",
           gardenAddress: "garden-1",
           feedback: "",

@@ -202,12 +202,6 @@ describe("campaign cookie jar admin model", () => {
   it("prefills management drafts from selected campaign metadata", () => {
     const draft = resolveCampaignCookieJarManageDraft({
       address: JAR,
-      jarAddress: JAR,
-      slug: "earth-week",
-      label: "Earth Week",
-      title: "Earth Week",
-      rawMetadata: "",
-      source: "indexed",
       metadata: {
         kind: "green-goods.campaign-cookie-jar",
         version: 1,

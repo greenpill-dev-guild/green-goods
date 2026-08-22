@@ -47,16 +47,16 @@ function makeFormStatus(overrides: Partial<CreateGardenFormStatus> = {}): Create
   };
 }
 
-function createHangingActor<T>() {
-  return fromPromise<T, void>(() => new Promise<T>(() => {}));
+function createHangingActor() {
+  return fromPromise<string, void>(() => new Promise<string>(() => {}));
 }
 
-function createResolvingActor<T>(value: T) {
-  return fromPromise<T, void>(() => Promise.resolve(value));
+function createResolvingActor(value: string) {
+  return fromPromise<string, void>(() => Promise.resolve(value));
 }
 
 function createRejectingActor(error: Error | string) {
-  return fromPromise<never, void>(() =>
+  return fromPromise<string, void>(() =>
     Promise.reject(typeof error === "string" ? new Error(error) : error)
   );
 }
@@ -319,7 +319,7 @@ describe("workflows/createGardenMachine", () => {
     it("transitions to submitting on SUBMIT when review ready", async () => {
       const machine = createGardenMachine.provide({
         actors: {
-          submitGarden: createHangingActor<string>(),
+          submitGarden: createHangingActor(),
         },
       });
 
@@ -370,7 +370,7 @@ describe("workflows/createGardenMachine", () => {
     function goToSubmitting(actorOverride?: ReturnType<typeof createResolvingActor>) {
       const machine = createGardenMachine.provide({
         actors: {
-          submitGarden: actorOverride ?? createHangingActor<string>(),
+          submitGarden: actorOverride ?? createHangingActor(),
         },
       });
 

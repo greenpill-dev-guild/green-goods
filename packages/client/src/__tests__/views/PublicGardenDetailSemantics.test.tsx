@@ -109,7 +109,7 @@ vi.mock("@/components/Display", () => ({
 }));
 
 vi.mock("@/components/Public/PublicEditorialHero", () => ({
-  PublicEditorialHero: ({ title }: { title: unknown }) => createElement("h1", null, title),
+  PublicEditorialHero: ({ title }: { title: React.ReactNode }) => createElement("h1", null, title),
 }));
 
 vi.mock("@/components/Public/PublicFooter", () => ({
