@@ -10,7 +10,7 @@
     "overall_status": "blocked",
     "priority": "p1",
     "created_at": "2026-08-15",
-    "updated_at": "2026-08-22T01:30:26.000Z"
+    "updated_at": "2026-08-22T05:28:33.000Z"
   },
   "links": {
     "brief": "brief.md",
@@ -19,12 +19,12 @@
     "eval": "eval.md"
   },
   "linear": {
-    "parentIssue": null,
+    "parentIssue": "PRD-830",
     "project": null,
     "initiative": null,
     "syncDirection": "plans_to_linear_visibility",
     "laneSyncMode": "parent_only",
-    "lastSyncedAt": null,
+    "lastSyncedAt": "2026-08-22T05:11:29.741Z",
     "lanes": {}
   },
   "taxonomy": {
@@ -176,6 +176,22 @@
       "status": "blocked",
       "branch": null,
       "note": "Terminal Validation Receipt enforcement found incomplete structured proof in all five lanes. The active hub remains blocked until fresh tested-SHA, UTC, exact-command, result, and path-clean receipts replace the temporary debt baseline; it must not be archived while proof is incomplete."
+    },
+    {
+      "timestamp": "2026-08-22T05:11:29.744Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "linear_recorded",
+      "branch": null,
+      "note": "Recorded Linear parent/lane issue identifiers"
+    },
+    {
+      "timestamp": "2026-08-22T05:28:33.000Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "implementation_checkpoint",
+      "branch": "test/strict-story-typechecks",
+      "note": "Corrected test, story, lockfile, and consumer routing; targeted validation is green, while terminal receipt status remains blocked until the implementation is committed on a clean validated path set."
     }
   ]
 }

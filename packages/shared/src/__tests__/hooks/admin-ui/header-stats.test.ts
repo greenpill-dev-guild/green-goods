@@ -15,7 +15,12 @@ import { buildGardenHeaderStats } from "../../../hooks/admin-ui/garden/garden.ut
 import { buildHubHeaderStats } from "../../../hooks/admin-ui/hub/hub.utils";
 
 function makeFormatMessage() {
-  return vi.fn((descriptor: { id: string; defaultMessage?: string }) => descriptor.id);
+  return vi.fn(
+    (
+      descriptor: { id: string; defaultMessage?: string },
+      _values?: Record<string, string | number | boolean | Date | null | undefined>
+    ) => descriptor.id
+  );
 }
 
 describe("buildGardenHeaderStats", () => {

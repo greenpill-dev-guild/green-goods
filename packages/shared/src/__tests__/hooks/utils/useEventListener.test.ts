@@ -22,16 +22,21 @@ function createMockTarget() {
   const listeners = new Map<string, Set<EventListener>>();
 
   return {
-    addEventListener: vi.fn((event: string, handler: EventListener) => {
-      if (!listeners.has(event)) listeners.set(event, new Set());
-      listeners.get(event)!.add(handler);
-    }),
-    removeEventListener: vi.fn((event: string, handler: EventListener) => {
-      listeners.get(event)?.delete(handler);
-    }),
+    addEventListener: vi.fn(
+      (event: string, handler: EventListener, _options?: AddEventListenerOptions | boolean) => {
+        if (!listeners.has(event)) listeners.set(event, new Set());
+        listeners.get(event)!.add(handler);
+      }
+    ),
+    removeEventListener: vi.fn(
+      (event: string, handler: EventListener, _options?: EventListenerOptions | boolean) => {
+        listeners.get(event)?.delete(handler);
+      }
+    ),
     dispatchEvent: (event: Event) => {
       const handlers = listeners.get(event.type);
       handlers?.forEach((h) => h(event));
+      return !event.defaultPrevented;
     },
     getListenerCount: (event: string) => listeners.get(event)?.size ?? 0,
   };
@@ -47,7 +52,7 @@ describe("useEventListener", () => {
       const target = createMockTarget();
       const handler = vi.fn();
 
-      renderHook(() => useEventListener(target as any, "click" as any, handler));
+      renderHook(() => useEventListener(target as EventTarget, "click", handler));
 
       expect(target.addEventListener).toHaveBeenCalledOnce();
       expect(target.addEventListener.mock.calls[0][0]).toBe("click");
@@ -58,7 +63,7 @@ describe("useEventListener", () => {
       const handler = vi.fn();
 
       const { unmount } = renderHook(() =>
-        useEventListener(target as any, "click" as any, handler)
+        useEventListener(target as EventTarget, "click", handler)
       );
 
       expect(target.addEventListener).toHaveBeenCalledOnce();
@@ -73,7 +78,7 @@ describe("useEventListener", () => {
       const target = createMockTarget();
       const handler = vi.fn();
 
-      renderHook(() => useEventListener(target as any, "click" as any, handler));
+      renderHook(() => useEventListener(target as EventTarget, "click", handler));
 
       const event = new Event("click");
       target.dispatchEvent(event);
@@ -87,7 +92,7 @@ describe("useEventListener", () => {
       const handler = vi.fn();
 
       const { unmount } = renderHook(() =>
-        useEventListener(target as any, "click" as any, handler)
+        useEventListener(target as EventTarget, "click", handler)
       );
 
       unmount();
@@ -106,14 +111,14 @@ describe("useEventListener", () => {
       const handler = vi.fn();
 
       // Should not throw
-      renderHook(() => useEventListener(null, "click" as any, handler));
+      renderHook(() => useEventListener<EventTarget, string>(null, "click", handler));
     });
 
     it("does not attach listener when target is undefined", () => {
       const handler = vi.fn();
 
       // Should not throw
-      renderHook(() => useEventListener(undefined, "click" as any, handler));
+      renderHook(() => useEventListener<EventTarget, string>(undefined, "click", handler));
     });
   });
 
@@ -128,7 +133,7 @@ describe("useEventListener", () => {
       const handler2 = vi.fn();
 
       const { rerender } = renderHook(
-        ({ handler }) => useEventListener(target as any, "click" as any, handler),
+        ({ handler }) => useEventListener(target as EventTarget, "click", handler),
         { initialProps: { handler: handler1 } }
       );
 
@@ -155,7 +160,7 @@ describe("useEventListener", () => {
       const handler = vi.fn();
 
       const { rerender } = renderHook(
-        ({ target }) => useEventListener(target as any, "click" as any, handler),
+        ({ target }) => useEventListener(target as EventTarget, "click", handler),
         { initialProps: { target: target1 } }
       );
 
@@ -178,7 +183,9 @@ describe("useEventListener", () => {
       const target = createMockTarget();
       const handler = vi.fn();
 
-      renderHook(() => useEventListener(target as any, "click" as any, handler, { capture: true }));
+      renderHook(() =>
+        useEventListener(target as EventTarget, "click", handler, { capture: true })
+      );
 
       const options = target.addEventListener.mock.calls[0][2];
       expect(options).toEqual(expect.objectContaining({ capture: true }));
@@ -188,7 +195,7 @@ describe("useEventListener", () => {
       const target = createMockTarget();
       const handler = vi.fn();
 
-      renderHook(() => useEventListener(target as any, "click" as any, handler, { once: true }));
+      renderHook(() => useEventListener(target as EventTarget, "click", handler, { once: true }));
 
       const options = target.addEventListener.mock.calls[0][2];
       expect(options).toEqual(expect.objectContaining({ once: true }));
@@ -199,7 +206,7 @@ describe("useEventListener", () => {
       const handler = vi.fn();
 
       renderHook(() =>
-        useEventListener(target as any, "scroll" as any, handler, { passive: true })
+        useEventListener(target as EventTarget, "scroll", handler, { passive: true })
       );
 
       const options = target.addEventListener.mock.calls[0][2];

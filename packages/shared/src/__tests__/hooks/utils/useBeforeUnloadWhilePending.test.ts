@@ -12,6 +12,9 @@ import { renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useBeforeUnloadWhilePending } from "../../../hooks/utils/useBeforeUnloadWhilePending";
 
+type AddEventListenerCall = Parameters<Window["addEventListener"]>;
+type RemoveEventListenerCall = Parameters<Window["removeEventListener"]>;
+
 describe("hooks/utils/useBeforeUnloadWhilePending", () => {
   let addSpy: ReturnType<typeof vi.spyOn>;
   let removeSpy: ReturnType<typeof vi.spyOn>;
@@ -29,14 +32,18 @@ describe("hooks/utils/useBeforeUnloadWhilePending", () => {
   it("does not register handler when isPending is false", () => {
     renderHook(() => useBeforeUnloadWhilePending(false));
 
-    const beforeUnloadCalls = addSpy.mock.calls.filter(([event]) => event === "beforeunload");
+    const beforeUnloadCalls = addSpy.mock.calls.filter(
+      (call: AddEventListenerCall) => call[0] === "beforeunload"
+    );
     expect(beforeUnloadCalls).toHaveLength(0);
   });
 
   it("registers handler when isPending is true", () => {
     renderHook(() => useBeforeUnloadWhilePending(true));
 
-    const beforeUnloadCalls = addSpy.mock.calls.filter(([event]) => event === "beforeunload");
+    const beforeUnloadCalls = addSpy.mock.calls.filter(
+      (call: AddEventListenerCall) => call[0] === "beforeunload"
+    );
     expect(beforeUnloadCalls).toHaveLength(1);
   });
 
@@ -46,14 +53,18 @@ describe("hooks/utils/useBeforeUnloadWhilePending", () => {
     });
 
     // Handler should be registered
-    const addCalls = addSpy.mock.calls.filter(([event]) => event === "beforeunload");
+    const addCalls = addSpy.mock.calls.filter(
+      (call: AddEventListenerCall) => call[0] === "beforeunload"
+    );
     expect(addCalls).toHaveLength(1);
 
     // Switch to not pending
     rerender({ pending: false });
 
     // Handler should be removed
-    const removeCalls = removeSpy.mock.calls.filter(([event]) => event === "beforeunload");
+    const removeCalls = removeSpy.mock.calls.filter(
+      (call: RemoveEventListenerCall) => call[0] === "beforeunload"
+    );
     expect(removeCalls).toHaveLength(1);
   });
 
@@ -62,16 +73,18 @@ describe("hooks/utils/useBeforeUnloadWhilePending", () => {
 
     unmount();
 
-    const removeCalls = removeSpy.mock.calls.filter(([event]) => event === "beforeunload");
+    const removeCalls = removeSpy.mock.calls.filter(
+      (call: RemoveEventListenerCall) => call[0] === "beforeunload"
+    );
     expect(removeCalls).toHaveLength(1);
   });
 
   it("handler calls preventDefault and sets returnValue", () => {
     renderHook(() => useBeforeUnloadWhilePending(true));
 
-    const handler = addSpy.mock.calls.find(([event]) => event === "beforeunload")?.[1] as
-      | ((e: BeforeUnloadEvent) => void)
-      | undefined;
+    const handler = addSpy.mock.calls.find(
+      (call: AddEventListenerCall) => call[0] === "beforeunload"
+    )?.[1] as ((e: BeforeUnloadEvent) => void) | undefined;
     expect(handler).toBeDefined();
 
     // Create a mock BeforeUnloadEvent

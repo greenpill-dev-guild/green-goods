@@ -408,7 +408,7 @@ describe("useCreateAssessmentWorkflow", () => {
       mocks.easAttest.mock.invocationCallOrder[0]
     );
     expect(mocks.clearDraft).toHaveBeenCalledBefore(mocks.peekDraft);
-    expect(invalidateQueries.mock.calls.map(([filters]) => filters.queryKey)).toEqual([
+    expect(invalidateQueries.mock.calls.map(([filters]) => filters?.queryKey)).toEqual([
       ["greengoods", "assessments", "byGarden", GARDEN_ID, 11155111],
       ["greengoods", "gardens", 11155111],
       ["greengoods", "gardens", "detail", GARDEN_ID, 11155111],

@@ -13,6 +13,21 @@ import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { renderWithProviders, screen } from "../test-utils";
 
+interface EligibleGardenStub {
+  id: string;
+  name: string;
+  location: string;
+}
+
+interface EligibleAdminGardensStub {
+  eligibleGardens: EligibleGardenStub[];
+  resolvedDefaultGarden: EligibleGardenStub | null;
+  persistedGardenId: string | null;
+  scopeKey: string | null;
+  canCreateGarden: boolean;
+  isLoaded: boolean;
+}
+
 const { mockNavigate, mockEligibleAdminGardens } = vi.hoisted(() => ({
   mockNavigate: vi.fn(),
   mockEligibleAdminGardens: {
@@ -23,7 +38,7 @@ const { mockNavigate, mockEligibleAdminGardens } = vi.hoisted(() => ({
       scopeKey: "0x123:10",
       canCreateGarden: true,
       isLoaded: true,
-    },
+    } as EligibleAdminGardensStub,
   },
 }));
 

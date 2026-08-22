@@ -6,6 +6,7 @@ import React from "react";
 import { act, renderHook } from "@testing-library/react";
 import { IntlProvider } from "react-intl";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { createActionDefaultValues } from "../../../hooks/admin-ui/actions/createAction.utils";
 import { useCreateActionController } from "../../../hooks/admin-ui/actions/useCreateActionController";
 
 const mockNavigate = vi.fn();
@@ -104,20 +105,12 @@ function wrapper({ children }: { children: React.ReactNode }) {
 
 function createFormData() {
   return {
+    ...createActionDefaultValues(),
     title: "Repair Event",
     slug: " Repair.Event ",
-    domain: 2,
+    domain: 2 as const,
     startTime: new Date("2026-06-02T00:00:00.000Z"),
     endTime: new Date("2026-06-09T00:00:00.000Z"),
-    capitals: [],
-    media: [],
-    instructionConfig: {
-      title: "Work Submission",
-      description: "",
-      feedbackPlaceholder: "",
-      inputs: [],
-    },
-    translations: {},
   };
 }
 

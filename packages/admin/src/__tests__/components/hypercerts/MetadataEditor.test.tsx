@@ -123,18 +123,26 @@ import { MetadataEditor } from "../../../components/Hypercerts/Steps/MetadataEdi
 
 function createMockDraft(overrides: Partial<HypercertDraft> = {}): HypercertDraft {
   return {
+    id: "draft-1",
     gardenId: "0xGarden123",
     operatorAddress: "0xOperator123",
+    stepNumber: 2,
+    attestationIds: [],
     title: "",
     description: "",
     workScopes: [],
     impactScopes: [],
     workTimeframeStart: 0,
     workTimeframeEnd: 0,
-    impactTimeframeStart: null,
+    impactTimeframeStart: 0,
     impactTimeframeEnd: null,
     sdgs: [],
     capitals: [],
+    outcomes: { predefined: {}, custom: {} },
+    allowlist: [],
+    externalUrl: "",
+    createdAt: 0,
+    updatedAt: 0,
     ...overrides,
   };
 }

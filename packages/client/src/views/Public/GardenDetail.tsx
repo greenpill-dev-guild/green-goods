@@ -15,6 +15,7 @@ import { PublicFooter } from "@/components/Public/PublicFooter";
 import { PublicInstallCta } from "@/components/Public/PublicInstallCta";
 import { getPublicHeroImage } from "@/content/publicCuration";
 import { StatCell } from "./GardenDetailAtoms";
+import { CommitmentsSection } from "./GardenDetailCommitments";
 import { FieldNotesSection } from "./GardenDetailFieldNotes";
 import { CertificatesSection, OperatorsSection } from "./GardenDetailSections";
 import { rememberGardenReturn } from "./garden-return-focus";
@@ -30,8 +31,8 @@ import { rememberGardenReturn } from "./garden-return-focus";
  *
  * Every section always renders. A Garden with no certificates says so rather
  * than dropping the section, which keeps the ordinals stable between Gardens
- * and gives the commitment-pooling section a defined pre-launch home when it
- * lands at § 02.
+ * and gives the commitments section (§ 02) a defined pre-launch home for a
+ * Garden whose pool is not open yet.
  *
  * Identity paints from the `usePublicGardens` list — normally warm in cache
  * from the archive the reader just clicked — so the name is on screen before
@@ -188,6 +189,15 @@ export default function GardenDetail() {
             total={detail?.totalFieldNotes ?? 0}
             loading={detailLoading}
             unavailable={worksUnavailable}
+          />
+
+          <CommitmentsSection
+            // Remount per Garden for the same reason as field notes: the
+            // finished-cycle page window must not carry over.
+            key={`commitments:${id}`}
+            gardenAddress={garden ? (garden.id as Address) : undefined}
+            chainId={chainId}
+            gardenLoading={detailLoading}
           />
 
           <CertificatesSection certificates={hypercerts} loading={hypercertsLoading} />

@@ -239,7 +239,7 @@ function calleeName(node: Node): string | undefined {
 
 function jsxTagName(node: Node): string | undefined {
   if (node.type === "JSXIdentifier") return node.name;
-  if (node.type === "JSXMemberExpression") return node.property.name.name;
+  if (node.type === "JSXMemberExpression") return node.property.name;
   return undefined;
 }
 

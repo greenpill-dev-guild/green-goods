@@ -310,9 +310,9 @@ describe("hooks/work/useWorks", () => {
         },
         userAddress: TEST_PRIMARY_ADDRESS,
         createdAt: 1700000000000, // ms timestamp
-        retryCount: 0,
+        attempts: 0,
         synced: false,
-        lastError: null,
+        lastError: undefined,
       };
 
       const work = jobToWork(job);
@@ -345,9 +345,9 @@ describe("hooks/work/useWorks", () => {
         },
         userAddress: TEST_PRIMARY_ADDRESS,
         createdAt: Date.now(),
-        retryCount: 0,
+        attempts: 0,
         synced: false,
-        lastError: null,
+        lastError: undefined,
       };
 
       const work = jobToWork(job);
@@ -370,9 +370,9 @@ describe("hooks/work/useWorks", () => {
         },
         userAddress: TEST_PRIMARY_ADDRESS,
         createdAt: Date.now(),
-        retryCount: 0,
+        attempts: 0,
         synced: true,
-        lastError: null,
+        lastError: undefined,
       };
 
       const work = jobToWork(job);
@@ -395,7 +395,7 @@ describe("hooks/work/useWorks", () => {
         },
         userAddress: TEST_PRIMARY_ADDRESS,
         createdAt: Date.now(),
-        retryCount: 3,
+        attempts: 3,
         synced: false,
         lastError: "Transaction reverted",
       };
@@ -420,9 +420,9 @@ describe("hooks/work/useWorks", () => {
         },
         userAddress: TEST_PRIMARY_ADDRESS,
         createdAt: Date.now(),
-        retryCount: 0,
+        attempts: 0,
         synced: false,
-        lastError: null,
+        lastError: undefined,
       };
 
       const work = jobToWork(job);
