@@ -9,6 +9,7 @@ import {
   useCommitmentMetadata,
   useCommitmentQueueState,
   useCommitments,
+  useHasRole,
   useJobQueue,
   useOffline,
   usePrimaryAddress,
@@ -57,6 +58,18 @@ export function GardenPool({ pool }: GardenPoolProps) {
   const [direction, setDirection] = useState<DirectionFilter>("all");
 
   const { cycles } = useCommitmentCycles({ chainId, poolId: pool.poolId });
+  const { hasRole: stewardsPool } = useHasRole(
+    pool.garden as Address,
+    (viewer ?? undefined) as Address | undefined,
+    "operator",
+    chainId
+  );
+  const { hasRole: ownsPool } = useHasRole(
+    pool.garden as Address,
+    (viewer ?? undefined) as Address | undefined,
+    "owner",
+    chainId
+  );
   // What this phone still holds for this pool: creations waiting to send,
   // waiting for a garden hat, or given up. They ride the top of the list so
   // landing back here with the thing visible is the confirmation.
@@ -122,13 +135,34 @@ export function GardenPool({ pool }: GardenPoolProps) {
   const poolState = pool.state ?? "UNKNOWN";
 
   if (NON_PARTICIPATING.has(poolState)) {
-    return <PoolLifecycleNotice pool={pool} />;
+    // A creation queued before the pool closed can never land now, and these
+    // rows are the only way to throw its record away. They stay reachable
+    // above the notice; retry is pointless here, so only discard is offered.
+    return (
+      <div className="space-y-3">
+        {ownCreations.map((creation) => (
+          <PendingCreationRow
+            key={creation.jobId}
+            creation={{ ...creation, failed: true }}
+            isBusy={busyJobId === creation.jobId}
+            onRetry={() => undefined}
+            onDiscard={discardCreation}
+            discardOnly
+          />
+        ))}
+        <PoolLifecycleNotice pool={pool} />
+      </div>
+    );
   }
 
   // The door fixes the direction; the form never asks it again. Creation is
-  // only offered while the pool is open, since a paused pool takes nothing.
+  // only offered while the pool is open, since a paused pool takes nothing,
+  // and on the protocol pool only to its stewards: the contract refuses any
+  // other creator there (CreationChecksLib.resolveCreator), so a member's door
+  // would queue an act that can only revert.
   const openDoor = (door: CommitmentDoor) => navigate(`commitments/new?direction=${door}`);
-  const canCreate = poolState === "OPEN";
+  const canCreate =
+    poolState === "OPEN" && (pool.poolType !== "PROTOCOL" || stewardsPool || ownsPool);
 
   return (
     <CommitmentStateLadder

@@ -16,6 +16,7 @@
  * @module modules/commitment-pooling/demo/demo-mode
  */
 
+import { queryClient } from "../../../config/react-query";
 import type { Address } from "../../../types/domain";
 
 export const DEMO_POOLING_PARAM = "mockPooling";
@@ -34,18 +35,37 @@ function hasWindow(): boolean {
   return typeof window !== "undefined" && typeof window.sessionStorage !== "undefined";
 }
 
+/**
+ * Drop every pooling read the moment the flag flips, in either direction. The
+ * real and demo readers answer under the same cache keys, so without this a
+ * fresh fixture result would survive `?mockPooling=0`: the write guard lifts,
+ * a screen still drawn from fixture ids offers an act, and the dehydration
+ * rule (which only excludes pooling reads while the flag is on) persists the
+ * fixture. Evicting at the flip is what keeps the two worlds apart.
+ */
+function evictPoolingReads(): void {
+  queryClient.removeQueries({ predicate: (query) => query.queryKey[1] === "commitment-pooling" });
+}
+
 export function isDemoPoolingActive(): boolean {
   if (!import.meta.env.DEV || !hasWindow()) return false;
   const flag = new URLSearchParams(window.location.search).get(DEMO_POOLING_PARAM);
+  const wasOn = window.sessionStorage.getItem(DEMO_POOLING_STORAGE_KEY) === "1";
   if (flag === "0" || flag === "off" || flag === "false") {
-    window.sessionStorage.removeItem(DEMO_POOLING_STORAGE_KEY);
+    if (wasOn) {
+      window.sessionStorage.removeItem(DEMO_POOLING_STORAGE_KEY);
+      evictPoolingReads();
+    }
     return false;
   }
   if (flag !== null) {
-    window.sessionStorage.setItem(DEMO_POOLING_STORAGE_KEY, "1");
+    if (!wasOn) {
+      window.sessionStorage.setItem(DEMO_POOLING_STORAGE_KEY, "1");
+      evictPoolingReads();
+    }
     return true;
   }
-  return window.sessionStorage.getItem(DEMO_POOLING_STORAGE_KEY) === "1";
+  return wasOn;
 }
 
 /**

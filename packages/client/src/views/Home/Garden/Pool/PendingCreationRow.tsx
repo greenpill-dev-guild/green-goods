@@ -7,6 +7,8 @@ export interface PendingCreationRowProps {
   isBusy: boolean;
   onRetry: (jobId: string) => void;
   onDiscard: (jobId: string) => void;
+  /** The pool can no longer take it, so trying again is not an option. */
+  discardOnly?: boolean;
 }
 
 /**
@@ -23,6 +25,7 @@ export function PendingCreationRow({
   isBusy,
   onRetry,
   onDiscard,
+  discardOnly = false,
 }: PendingCreationRowProps) {
   const { formatMessage } = useIntl();
   const units =
@@ -88,7 +91,10 @@ export function PendingCreationRow({
       </p>
       {creation.failed ? (
         <div
-          className={cn("mt-3 grid gap-2", creation.discardable ? "grid-cols-2" : "grid-cols-1")}
+          className={cn(
+            "mt-3 grid gap-2",
+            creation.discardable && !discardOnly ? "grid-cols-2" : "grid-cols-1"
+          )}
         >
           {/* A creation whose transaction was already sent keeps its record: retry
               can still find the commitment, while throwing it away would file a
@@ -108,6 +114,7 @@ export function PendingCreationRow({
             type="button"
             onClick={() => onRetry(creation.jobId)}
             disabled={isBusy}
+            hidden={discardOnly}
             className="flex items-center justify-center gap-1 rounded-[var(--radius-lg)] bg-primary-action px-3 py-2 text-xs font-medium text-primary-action-foreground tap-target-lg disabled:opacity-60"
           >
             <RiRefreshLine className="h-4 w-4" aria-hidden="true" />

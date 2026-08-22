@@ -15,6 +15,7 @@ import {
   DEMO_GARDEN_POOL_ID,
   ROSA,
 } from "../modules/commitment-pooling/demo/demo-world";
+import { queryClient } from "../config/react-query";
 import { DEV_MOCK_AUTH_ADDRESSES } from "../providers/DevAuthProvider";
 import type { Address } from "../types/domain";
 
@@ -93,5 +94,32 @@ describe("demo pooling mode", () => {
       state: "READY_FOR_CONFIRMATION",
     });
     expect(gardenClaims.map((row) => row.commitmentId)).toEqual([1020n]);
+  });
+});
+
+describe("demo pooling cache boundary", () => {
+  afterEach(() => {
+    window.sessionStorage.clear();
+    visit("");
+    queryClient.clear();
+  });
+
+  it("drops every pooling read when the flag flips, in either direction", () => {
+    // The two readers answer under the same keys. A fixture result that
+    // survived the flip would be what a screen offers an act from once the
+    // write guard lifts, and what the persister writes once the flag is off.
+    const key = ["greengoods", "commitment-pooling", 42161, "pools", undefined] as const;
+    queryClient.setQueryData(key, [{ poolId: 1n }]);
+    queryClient.setQueryData(["greengoods", "gardens"], ["kept"]);
+
+    visit("?mockPooling=1");
+    expect(isDemoPoolingActive()).toBe(true);
+    expect(queryClient.getQueryData(key)).toBeUndefined();
+    expect(queryClient.getQueryData(["greengoods", "gardens"])).toEqual(["kept"]);
+
+    queryClient.setQueryData(key, [{ poolId: DEMO_GARDEN_POOL_ID }]);
+    visit("?mockPooling=0");
+    expect(isDemoPoolingActive()).toBe(false);
+    expect(queryClient.getQueryData(key)).toBeUndefined();
   });
 });

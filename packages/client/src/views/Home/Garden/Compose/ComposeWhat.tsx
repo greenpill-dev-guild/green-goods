@@ -107,7 +107,10 @@ export function ComposeWhat({ form, openCycles, cycleNames }: ComposeWhatProps) 
         </div>
       </fieldset>
 
-      {openCycles.length > 1 ? (
+      {openCycles.length > 0 ? (
+        // The contract takes cycleId 0 whenever it likes, so a commitment may
+        // always run on its own. The chooser therefore appears as soon as one
+        // cycle is open: the choice is between that cycle and none.
         <div>
           <label className="block text-sm font-medium text-text-strong-950" htmlFor="compose-cycle">
             {formatMessage({ id: "app.compose.what.whereLabel" })}
@@ -128,18 +131,12 @@ export function ComposeWhat({ form, openCycles, cycleNames }: ComposeWhatProps) 
                 {cycleLabel(cycle)}
               </option>
             ))}
+            <option value="0">{formatMessage({ id: "app.compose.what.whereOwn" })}</option>
           </select>
           <p className="mt-1.5 text-xs text-text-soft-400">
             {formatMessage({ id: "app.compose.what.whereHelp" })}
           </p>
         </div>
-      ) : openCycles[0] ? (
-        <p className="text-sm text-text-sub-600">
-          {formatMessage(
-            { id: "app.compose.what.whereBound" },
-            { cycle: cycleLabel(openCycles[0]) }
-          )}
-        </p>
       ) : (
         <p className="text-sm text-text-sub-600">
           {formatMessage({ id: "app.compose.what.whereNone" })}

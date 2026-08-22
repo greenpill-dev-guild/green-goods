@@ -84,8 +84,6 @@ function createMockDraftRecord(overrides?: Partial<WorkDraftRecord>): WorkDraftR
     gardenAddress: MOCK_ADDRESSES.garden,
     actionUID: 1,
     feedback: "Test feedback",
-    plantSelection: [],
-    plantCount: undefined,
     currentStep: "intro",
     firstIncompleteStep: "intro",
     createdAt: Date.now(),

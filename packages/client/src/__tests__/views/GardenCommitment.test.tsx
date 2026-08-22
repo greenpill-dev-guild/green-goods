@@ -29,6 +29,9 @@ const mockUseHasRole = vi.fn();
 const mockUseReason = vi.fn();
 const WORK = `0x${"ab".repeat(32)}` as const;
 const mockEnqueue = vi.fn();
+const mockFlush = vi.fn();
+const mockRetryJob = vi.fn();
+const mockDiscardJob = vi.fn();
 const mockMutate = vi.fn();
 let mockMutationError: unknown = null;
 
@@ -85,6 +88,7 @@ function queueState(overrides: Record<string, unknown> = {}) {
     pendingCommitmentIds: new Set<string>(),
     failedCount: 0,
     failedCommitmentIds: new Set<string>(),
+    failedJobs: new Map<string, { jobId: string; discardable: boolean }>(),
     hasPendingCreate: false,
     isUnavailable: false,
     refresh: vi.fn(),
@@ -145,6 +149,8 @@ vi.mock("@green-goods/shared", async () => {
       error: mockMutationError,
     }),
     useCommitmentQueueState: () => mockUseQueueState(),
+    useJobQueue: () => ({ flush: mockFlush }),
+    jobQueue: { retryJob: mockRetryJob, discardJob: mockDiscardJob },
     useCommitmentMetadataFor: () => null,
     useActions: () => ({
       data: [
@@ -161,6 +167,42 @@ vi.mock("@green-goods/shared", async () => {
     useGardens: () => ({
       data: [{ id: GARDEN, name: "Rocinha Community Garden", gardeners: [VIEWER], operators: [] }],
     }),
+    // The roles hook answers from the same role mock the tests already drive,
+    // with the same shape the real one derives from chain.
+    useCommitmentViewerRoles: (input: {
+      viewer: string | null;
+      routeGarden?: string;
+      commitment?: { direction?: string; counterpartyKind?: string; counterparty?: string | null };
+      pool?: { garden?: string | null } | null;
+    }) => {
+      const role = (garden: string | undefined, kind: string) =>
+        garden ? Boolean(mockUseHasRole(garden, input.viewer, kind).hasRole) : false;
+      const isSteward = role(input.routeGarden, "operator") || role(input.routeGarden, "owner");
+      const counterpartyGarden =
+        input.commitment?.direction === "OFFER" && input.commitment.counterpartyKind === "GARDEN"
+          ? (input.commitment.counterparty ?? undefined)
+          : undefined;
+      const host = input.pool?.garden?.toLowerCase();
+      const mine =
+        GARDEN.toLowerCase() === host
+          ? []
+          : [{ address: GARDEN, name: "Rocinha Community Garden" }];
+      return {
+        isSteward,
+        isMemberHere: true,
+        stewardsPoolGarden: role(input.pool?.garden ?? undefined, "operator"),
+        counterpartyGarden,
+        stewardsCounterparty:
+          role(counterpartyGarden, "operator") || role(counterpartyGarden, "owner"),
+        garden: {
+          id: GARDEN,
+          name: "Rocinha Community Garden",
+          gardeners: [VIEWER],
+          operators: [],
+        },
+        claimGardens: { member: mine, stewarded: isSteward ? mine : [] },
+      };
+    },
     useCommitmentReason: (cid: string | null) => mockUseReason(cid),
     useOffline: () => mockUseOffline(),
   };
@@ -498,6 +540,8 @@ describe("GardenCommitment", () => {
         act: "confirm",
         commitmentId: 9n,
         gardenAddress: GARDEN,
+        // Not a named confirmer, so the garden's hat still gates the send.
+        membershipNotRequired: false,
       });
     });
 
@@ -569,6 +613,8 @@ describe("GardenCommitment", () => {
         act: "confirm",
         commitmentId: 9n,
         gardenAddress: GARDEN,
+        // Not a named confirmer, so the garden's hat still gates the send.
+        membershipNotRequired: false,
       });
     });
 
@@ -606,7 +652,10 @@ describe("GardenCommitment", () => {
 
       expect(screen.getByText(/needs a connection/i)).toBeInTheDocument();
       expect(screen.getByRole("button", { name: "Send to the stewards" })).toBeDisabled();
-      expect(window.localStorage.getItem("gg-commitment-not-yet:42161-9")).toBe("The far bed");
+      // Scoped to the signer: two confirmers on one device never share a draft.
+      expect(
+        window.localStorage.getItem(`gg-commitment-not-yet:${VIEWER.toLowerCase()}:42161-9`)
+      ).toBe("The far bed");
     });
 
     it("keeps the note and offers a retry when the stewards could not be reached", async () => {
@@ -697,10 +746,39 @@ describe("GardenCommitment", () => {
     expect(screen.getByRole("button", { name: "Add proof" })).toBeEnabled();
   });
 
+  it("lets the member retry or throw away an act that gave up, from the alert", async () => {
+    // A terminal record nobody could reach drove this alert and the drawer's
+    // badge forever, and a failed proof kept its photos with it.
+    const user = userEvent.setup();
+    mockRetryJob.mockResolvedValue(undefined);
+    mockDiscardJob.mockResolvedValue(true);
+    mockFlush.mockResolvedValue(undefined);
+    mockUseQueueState.mockReturnValue(
+      queueState({
+        failedCount: 1,
+        failedCommitmentIds: new Set(["9"]),
+        failedJobs: new Map([["9", { jobId: "job-9", discardable: true }]]),
+      })
+    );
+    render();
+
+    const alert = screen.getByRole("alert");
+    await user.click(within(alert).getByRole("button", { name: "Try again" }));
+    expect(mockRetryJob).toHaveBeenCalledWith("job-9");
+    expect(mockFlush).toHaveBeenCalledTimes(1);
+    await user.click(within(alert).getByRole("button", { name: "Discard" }));
+    expect(mockDiscardJob).toHaveBeenCalledWith("job-9");
+  });
+
   it("queues the act the bar names", async () => {
     const user = userEvent.setup();
+    // A service is sent by hand once its proof is in. Garden work is not:
+    // the contract refuses that send (WorkApprovalRequired) and moves the
+    // commitment itself when the work approvals arrive.
     mockUseCommitment.mockReturnValue(
-      detail({ commitment: { derivedState: "EVIDENCE_SUBMITTED" } })
+      detail({
+        commitment: { derivedState: "EVIDENCE_SUBMITTED", commitmentType: "SUPPORT_SERVICE" },
+      })
     );
     render();
 
@@ -734,6 +812,7 @@ describe("GardenCommitment", () => {
       act: "confirm",
       commitmentId: 9n,
       gardenAddress: GARDEN,
+      membershipNotRequired: false,
     });
   });
 
@@ -863,6 +942,35 @@ describe("GardenCommitment", () => {
         gardenAddress: GARDEN,
       },
     });
+  });
+
+  it("hands the queue one operation id however many times Confirm is tapped", async () => {
+    // The dedup key comes from the id, so a double tap before the pending
+    // state re-renders must be one job rather than a send and a WorkAlreadyLinked.
+    const user = userEvent.setup();
+    mockUseWorks.mockReturnValue({ works: [work()] });
+    mockUseCommitment.mockReturnValue(
+      detail({
+        requirements: [
+          { id: "r0", requirementIndex: 0, actionUID: 44n, requiredCount: 2, approvedCount: 0 },
+        ],
+      })
+    );
+    // Leave the enqueue unresolved so the dialog never reaches its pending state.
+    mockEnqueue.mockReturnValue(new Promise(() => {}));
+    render();
+
+    await user.click(screen.getByRole("button", { name: "Link work" }));
+    await user.click(screen.getByRole("radio", { name: /Prune the north beds/ }));
+    const confirm = screen.getByRole("button", { name: "Link this work" });
+    await user.click(confirm);
+    await user.click(confirm);
+
+    const ids = mockEnqueue.mock.calls.map(
+      (call) => (call[0] as { payload: { clientOperationId: string } }).payload.clientOperationId
+    );
+    expect(ids).toHaveLength(2);
+    expect(new Set(ids).size).toBe(1);
   });
 
   it("still asks which row when the same action repeats", async () => {

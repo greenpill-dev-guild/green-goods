@@ -22,7 +22,13 @@ vi.mock(import("@green-goods/shared"), async (importOriginal) => {
         },
       ],
       isLoading: false,
+      error: null,
+      jarCount: 1,
       moduleConfigured: true,
+      detailErrorCount: 0,
+      hasDetailReadFailure: false,
+      decimalsErrorCount: 0,
+      hasDecimalsReadFailure: false,
     }),
   };
 });

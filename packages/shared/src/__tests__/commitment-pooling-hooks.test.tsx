@@ -293,7 +293,7 @@ describe("commitment pooling query hooks", () => {
   ];
 
   it.each(listAndDetailCases)("returns $name data through the shared hook", async (testCase) => {
-    const { result } = renderHookWithProviders(testCase.render);
+    const { result } = renderHookWithProviders(() => testCase.render());
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(testCase.select(result.current as unknown as Record<string, unknown>)).toEqual(
       testCase.expected
@@ -450,9 +450,9 @@ describe("useCommitmentMutation", () => {
       input: {
         action: "setDeclaredConsideration",
         commitmentId: 1n,
-        consideration: { rail: 1, amount: 2n, token: ACCOUNT, reference: "0x1234" },
+        consideration: { rail: 1, amount: 2n, source: VIEWER, token: ACCOUNT },
       },
-      args: [1n, { rail: 1, amount: 2n, token: ACCOUNT, reference: "0x1234" }],
+      args: [1n, { rail: 1, amount: 2n, source: VIEWER, token: ACCOUNT }],
     },
     {
       input: {

@@ -307,8 +307,12 @@ export function useCommitmentsToConfirm({
     isSteward: stewarded.length > 0,
     isProtocolSteward: protocolGarden !== null,
     availability,
-    isLoading: queries.some((query) => query.isLoading) || protocolPool.isLoading,
-    isError: queries.some((query) => query.isError),
-    refetch: () => Promise.all(queries.map((query) => query.refetch())),
+    // The reader's own set is part of the answer: while it is missing, a
+    // steward on a team could be listed and offered a confirmation that
+    // reverts. So it loads, fails and refetches with the garden reads, and
+    // with the protocol-pool read the fallback group is derived from.
+    isLoading: own.isLoading || protocolPool.isLoading || queries.some((q) => q.isLoading),
+    isError: own.isError || queries.some((query) => query.isError),
+    refetch: () => Promise.all([own.refetch(), ...queries.map((query) => query.refetch())]),
   };
 }

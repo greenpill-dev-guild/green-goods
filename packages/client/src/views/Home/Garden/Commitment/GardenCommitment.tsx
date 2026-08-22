@@ -1,9 +1,8 @@
 import {
   type Address,
-  Alert,
   DEFAULT_CHAIN_ID,
   isCommitmentReasonPinError,
-  isGardenMember,
+  canLinkWork,
   selectCommitmentSeat,
   useActions,
   useCommitment,
@@ -13,8 +12,8 @@ import {
   useCommitmentMutation,
   useCommitmentPool,
   useCommitmentQueueState,
-  useGardens,
-  useHasRole,
+  useCommitmentViewerRoles,
+  useLinkedWorkUIDs,
   useOffline,
   usePrimaryAddress,
   useWorks,
@@ -23,12 +22,13 @@ import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate, useParams } from "react-router-dom";
 
-import { type ClaimContext, ClaimContextSheet } from "./ClaimContextSheet";
+import type { ClaimContext } from "./ClaimContextSheet";
 import { CommitmentActionBar } from "./CommitmentActionBar";
 import { canJoinTeam, selectCommitmentAct } from "./commitmentActions";
-import { CommitmentClaimPanel } from "./CommitmentClaimPanel";
+import { CommitmentClaims } from "./CommitmentClaims";
 import { CommitmentDetailShell, CommitmentDetailState } from "./CommitmentDetailShell";
 import { CommitmentIdentity } from "./CommitmentIdentity";
+import { FailedActAlert } from "./FailedActAlert";
 import { CommitmentProgress } from "./CommitmentProgress";
 import { CommitmentTeam } from "./CommitmentTeam";
 import { CommitmentWork } from "./CommitmentWork";
@@ -98,41 +98,14 @@ export function GardenCommitment() {
     { chainId, poolId: detail?.commitment.poolId ?? 0n },
     { enabled: Boolean(detail?.commitment.poolId) }
   );
-  const { hasRole: isOperator } = useHasRole(
-    gardenAddress as Address | undefined,
-    (viewer ?? undefined) as Address | undefined,
-    "operator",
-    chainId
-  );
-  const { hasRole: isOwner } = useHasRole(
-    gardenAddress as Address | undefined,
-    (viewer ?? undefined) as Address | undefined,
-    "owner",
-    chainId
-  );
-  const isSteward = isOperator || isOwner;
-  // When a garden took the offer up, its stewards confirm for it. The
-  // counterparty garden is usually this one, but the seat is read from the
-  // record, not assumed from the route.
-  const counterpartyGarden =
-    detail?.commitment.direction === "OFFER" && detail.commitment.counterpartyKind === "GARDEN"
-      ? (detail.commitment.counterparty ?? undefined)
-      : undefined;
-  const { hasRole: stewardsCounterparty } = useHasRole(
-    counterpartyGarden,
-    (viewer ?? undefined) as Address | undefined,
-    "operator",
-    chainId
-  );
-  const { hasRole: ownsCounterparty } = useHasRole(
-    counterpartyGarden,
-    (viewer ?? undefined) as Address | undefined,
-    "owner",
-    chainId
-  );
-  const { data: gardens = [] } = useGardens();
-  const garden = gardens.find((entry) => entry.id.toLowerCase() === gardenAddress?.toLowerCase());
-  const gardenName = garden?.name ?? null;
+  const roles = useCommitmentViewerRoles({
+    chainId,
+    viewer: viewer as Address | null,
+    routeGarden: gardenAddress,
+    commitment: detail?.commitment,
+    pool,
+  });
+  const { stewardsPoolGarden, counterpartyGarden, claimGardens } = roles;
   // The reader's own claim request, in its exact lifecycle. Read whether the
   // commitment is still open or already taken: a declined or superseded
   // request still has something to say.
@@ -150,6 +123,14 @@ export function GardenCommitment() {
     return mine.sort((left, right) => right.requestedAt - left.requestedAt)[0] ?? null;
   }, [claimRequests, viewer]);
   const { data: actions = [] } = useActions(chainId);
+  const ownWorkUIDs = useMemo(
+    () =>
+      works
+        .filter((work) => viewer && work.gardenerAddress.toLowerCase() === viewer.toLowerCase())
+        .map((work) => work.id),
+    [works, viewer]
+  );
+  const { linked: linkedElsewhere } = useLinkedWorkUIDs({ chainId, workUIDs: ownWorkUIDs });
 
   const seat = useMemo(() => {
     if (!detail) return null;
@@ -158,11 +139,9 @@ export function GardenCommitment() {
       contributors: detail.contributors.filter((c) => c.active).map((c) => c.contributor),
       viewer: (viewer ?? undefined) as Address | undefined,
       stewardedGardens:
-        counterpartyGarden && (stewardsCounterparty || ownsCounterparty)
-          ? [counterpartyGarden]
-          : [],
+        counterpartyGarden && roles.stewardsCounterparty ? [counterpartyGarden] : [],
     });
-  }, [detail, viewer, counterpartyGarden, stewardsCounterparty, ownsCounterparty]);
+  }, [detail, viewer, counterpartyGarden, roles.stewardsCounterparty]);
 
   const back = () => navigate(-1);
 
@@ -182,6 +161,11 @@ export function GardenCommitment() {
 
   const { commitment, contributors, requirements } = detail;
   const band = selectStatusBand({ commitment, seat });
+  // The garden whose hat gates the reader's acts on this commitment. The
+  // contract writes providerGarden at acceptance; before that, and on a garden
+  // pool, it is the route. On the protocol pool the route is the host, where
+  // an external provider holds no hat, so the record wins whenever it has one.
+  const actGarden = (commitment.providerGarden ?? gardenAddress) as Address;
   const queueKey = commitment.commitmentId.toString();
   const hasPendingJob = queue.pendingCommitmentIds.has(queueKey);
   const sendFailed = queue.failedCommitmentIds.has(queueKey);
@@ -194,9 +178,9 @@ export function GardenCommitment() {
     hasPendingJob: hasPendingJob || hasPendingClaimRequest,
   });
   const enqueueClaim = (context: ClaimContext) => {
-    // A person claims as themselves; a steward may claim for their garden on
-    // a protocol pool, which stores the garden as claimant and the steward as
-    // the one who asked. The context is the garden the claim is scoped to,
+    // A person claims through a garden they belong to; a steward may claim for
+    // a garden they run, which stores the garden as claimant and the steward
+    // as the one who asked. The context is the garden the claim is scoped to,
     // never a person, and it is also the garden whose hat the queue waits for
     // before the first send. The choice is resolved here and never rewritten.
     void jobs
@@ -204,9 +188,9 @@ export function GardenCommitment() {
         act: "claim",
         payload: {
           commitmentId: commitment.commitmentId,
-          kind: context === "garden" ? CLAIM_TYPE_GARDEN : CLAIM_TYPE_INDIVIDUAL,
-          gardenContext: gardenAddress as Address,
-          gardenAddress: gardenAddress as Address,
+          kind: context.kind === "garden" ? CLAIM_TYPE_GARDEN : CLAIM_TYPE_INDIVIDUAL,
+          gardenContext: context.garden,
+          gardenAddress: context.garden,
         },
       })
       .then(() => setContextOpen(false))
@@ -215,39 +199,33 @@ export function GardenCommitment() {
       });
   };
   // The contract rosters only the garden's own people, whatever the policy says.
-  const memberHere = isSteward || isGardenMember(viewer, garden?.gardeners, garden?.operators);
-  const joinable = canJoinTeam({ commitment, seat, isGardenMember: memberHere });
-  // Linking work is a provider's or contributor's act on garden work that is
-  // still moving; it rides the bar's second row beside Add proof.
-  const canLinkWork =
-    commitment.commitmentType === "DOMAIN_IMPACT" &&
-    (seat === "provider" || seat === "contributor") &&
-    !commitment.contributorsFrozen &&
-    (commitment.derivedState === "ACCEPTED" ||
-      commitment.derivedState === "ACTIVE" ||
-      commitment.derivedState === "PARTIALLY_APPROVED" ||
-      commitment.derivedState === "EVIDENCE_SUBMITTED");
+  const joinable = canJoinTeam({ commitment, seat, isGardenMember: roles.isMemberHere });
+  // Linking work rides the bar's second row beside Add proof.
+  const linkable = canLinkWork({
+    commitment,
+    seat,
+    linkedCount: detail.workAttributions.filter((entry) => entry.linked).length,
+  });
   const linkableWorks = works.filter(
     (work) =>
       viewer &&
       work.gardenerAddress.toLowerCase() === viewer.toLowerCase() &&
       (work.status === "approved" || work.status === "pending") &&
-      !detail.workAttributions.some(
-        (entry) => entry.linked && entry.workUID.toLowerCase() === work.id.toLowerCase()
-      )
+      // Linked anywhere, not only here: the contract keeps one link per work.
+      !linkedElsewhere.has(work.id.toLowerCase())
   );
-  const linkWork = (workUID: string, requirementIndex: number) => {
-    // A fresh operation id per act: a link after an unlink is a new operation,
-    // and the queue derives the caller-scoped key from this id.
+  const linkWork = (workUID: string, requirementIndex: number, clientOperationId: string) => {
+    // The dialog mints the operation id once per selection, so a double tap
+    // before the pending state lands is one job rather than two sends.
     void jobs
       .enqueue({
         act: "workLink",
         payload: {
-          clientOperationId: crypto.randomUUID(),
+          clientOperationId,
           commitmentId: commitment.commitmentId,
           workUID: workUID as `0x${string}`,
           requirementIndex,
-          gardenAddress: gardenAddress as Address,
+          gardenAddress: actGarden,
         },
       })
       .then(() => setLinkOpen(null))
@@ -284,7 +262,7 @@ export function GardenCommitment() {
               isOnline={isOnline}
               blockedReasonId={queueBlockedReasonId}
               secondary={
-                canLinkWork && act.kind === "addProof"
+                linkable && act.kind === "addProof"
                   ? { labelId: "app.commitment.act.linkWork", onRun: () => setLinkOpen(true) }
                   : null
               }
@@ -299,13 +277,13 @@ export function GardenCommitment() {
                     // In the protocol pool the provider context is a choice,
                     // made before any claim exists.
                     if (pool?.poolType === "PROTOCOL") setContextOpen(true);
-                    else enqueueClaim("personal");
+                    else enqueueClaim({ kind: "personal", garden: gardenAddress as Address });
                     return;
                   case "sendForConfirmation":
                     void jobs.enqueue({
                       act: "sendForConfirmation",
                       commitmentId: commitment.commitmentId,
-                      gardenAddress: gardenAddress as Address,
+                      gardenAddress: actGarden,
                     });
                     return;
                   case "confirm":
@@ -332,9 +310,10 @@ export function GardenCommitment() {
         }
       >
         {sendFailed ? (
-          <Alert variant="error" className="p-3">
-            {formatMessage({ id: "app.commitment.queue.failed" })}
-          </Alert>
+          <FailedActAlert
+            failed={queue.failedJobs.get(queueKey) ?? null}
+            onChanged={queue.refresh}
+          />
         ) : null}
 
         <CommitmentIdentity
@@ -369,23 +348,30 @@ export function GardenCommitment() {
           }
         />
 
-        {ownRequest && viewer ? (
-          <CommitmentClaimPanel
-            commitment={commitment}
-            request={ownRequest}
-            viewer={viewer as Address}
-            canAskAgain={
-              (commitment.derivedState === "OFFERED" || commitment.derivedState === "REQUESTED") &&
-              !hasPendingJob &&
-              !queue.isUnavailable
-            }
-            isPending={jobs.isPending}
-            onAskAgain={() =>
-              pool?.poolType === "PROTOCOL" ? setContextOpen(true) : enqueueClaim("personal")
-            }
-            onBackToBrowse={() => navigate("../..", { relative: "path" })}
-          />
-        ) : null}
+        <CommitmentClaims
+          commitment={commitment}
+          claimRequests={claimRequests}
+          viewer={viewer as Address | null}
+          ownRequest={ownRequest}
+          canAskAgain={
+            (commitment.derivedState === "OFFERED" || commitment.derivedState === "REQUESTED") &&
+            !hasPendingJob &&
+            !queue.isUnavailable
+          }
+          stewardsPoolGarden={stewardsPoolGarden}
+          claimGardens={claimGardens}
+          contextOpen={contextOpen}
+          onContextOpenChange={setContextOpen}
+          isPending={jobs.isPending}
+          chainId={chainId}
+          gardenAddress={gardenAddress as Address}
+          onAskAgain={() =>
+            pool?.poolType === "PROTOCOL"
+              ? setContextOpen(true)
+              : enqueueClaim({ kind: "personal", garden: gardenAddress as Address })
+          }
+          onContinue={enqueueClaim}
+        />
 
         <CommitmentProgress chainId={chainId} commitment={commitment} requirements={requirements} />
 
@@ -397,21 +383,11 @@ export function GardenCommitment() {
           actions={actions}
           chainId={chainId}
           viewer={viewer ?? null}
-          canLink={canLinkWork && !hasPendingJob && !queue.isUnavailable}
+          canLink={linkable && !hasPendingJob && !queue.isUnavailable}
           onOpenWork={(workUID) => navigate(`../../work/${workUID}`, { relative: "path" })}
           onLink={(workUID, requirementIndex) => setLinkOpen({ workUID, requirementIndex })}
         />
       </CommitmentDetailShell>
-
-      <ClaimContextSheet
-        open={contextOpen}
-        onOpenChange={setContextOpen}
-        gardenName={gardenName}
-        canClaimForGarden={isSteward}
-        approvalGated={commitment.claimMode === "APPROVAL_GATED"}
-        isPending={jobs.isPending}
-        onContinue={enqueueClaim}
-      />
 
       <ConfirmSheet
         open={confirmOpen}
@@ -419,6 +395,7 @@ export function GardenCommitment() {
         commitment={commitment}
         requirements={requirements}
         contributors={contributors}
+        evidenceAttributions={detail.evidenceAttributions}
         viewer={viewer as Address | null}
         isOnline={isOnline}
         // Where the sheet stands is read from the record and the queue, never
@@ -433,11 +410,31 @@ export function GardenCommitment() {
         }
         isPending={jobs.isPending || onlineMutation.isPending}
         notYetFailed={notYetFailed}
+        // TerminalLib.raiseDispute: creator, counterparty address, a named
+        // confirmer, or a steward of the pool's garden. A steward seated for
+        // the garden that took the offer up is none of those.
+        canNotYet={
+          Boolean(viewer) &&
+          (commitment.creator?.toLowerCase() === viewer?.toLowerCase() ||
+            commitment.counterparty?.toLowerCase() === viewer?.toLowerCase() ||
+            (commitment.confirmers ?? []).some(
+              (entry) => entry.toLowerCase() === viewer?.toLowerCase()
+            ) ||
+            (stewardsPoolGarden ?? false))
+        }
         onConfirm={() => {
           void jobs.enqueue({
             act: "confirm",
             commitmentId: commitment.commitmentId,
-            gardenAddress: gardenAddress as Address,
+            // A steward confirms through the garden that took the work up, which
+            // is the counterparty on a garden claim; otherwise the route garden.
+            gardenAddress: (counterpartyGarden ?? gardenAddress) as Address,
+            // A confirmer named on the commitment needs no hat anywhere
+            // (CreditLib.isOrdinaryConfirmer reads the list), so the queue
+            // must not hold their confirmation for one.
+            membershipNotRequired: (commitment.confirmers ?? []).some(
+              (entry) => entry.toLowerCase() === viewer?.toLowerCase()
+            ),
           });
         }}
         onNotYet={(reason) => {

@@ -97,6 +97,10 @@ const meta: Meta<typeof ConfirmSheet> = {
     phase: "ask",
     isPending: false,
     notYetFailed: false,
+    // The reader here is an ordinary confirmer, so the chain would take a
+    // dispute from them. A steward acting only for a claiming garden is the
+    // case that hides it; that is the detail screen's call, not the sheet's.
+    canNotYet: true,
     onConfirm: fn(),
     onNotYet: fn(),
     onDone: fn(),

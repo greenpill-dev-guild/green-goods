@@ -23,12 +23,16 @@ function read(key: string): string {
   }
 }
 
-export function useCommitmentNotYetDraft(commitmentEntityId: string): {
+export function useCommitmentNotYetDraft(
+  commitmentEntityId: string,
+  /** The signer. Two confirmers on one device must never share a draft. */
+  viewer: string | null | undefined
+): {
   reason: string;
   setReason: (value: string) => void;
   clear: () => void;
 } {
-  const key = `${PREFIX}${commitmentEntityId}`;
+  const key = `${PREFIX}${viewer?.toLowerCase() ?? "anon"}:${commitmentEntityId}`;
   const [reason, setReasonState] = useState(() => read(key));
   // The router reuses this component when one commitment opens another, so the
   // key changes without a remount and the initializer above never runs again.

@@ -4,27 +4,30 @@ import {
   imageCompressor,
   isVideoFile,
   mediaResourceManager,
-  normalizeWorkMediaFiles,
+  selectCommitmentActKind,
   selectCommitmentSeat,
   toastService,
   useAudioRecording,
   useCommitment,
   useCommitmentJobs,
   useCommitmentMetadataFor,
+  useCommitmentProofDraft,
   useOffline,
+  useProofDraftSync,
   usePrimaryAddress,
 } from "@green-goods/shared";
-import { RiCameraFill, RiImageFill, RiMicLine, RiStopFill } from "@remixicon/react";
+// The narrowest declared subpath: media preparation is a module, not a hook.
+import { prepareMediaForUpload } from "@green-goods/shared/modules";
 import { useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate, useParams } from "react-router-dom";
 
 import { ImagePreviewDialog } from "@/components/Dialogs";
-import { pwaStatusStyles } from "@/styles/pwaStatusStyles";
+import { ProofBar } from "./ProofBar";
 import { ProofDetails } from "./ProofDetails";
 import { ProofMedia } from "./ProofMedia";
 import { ProofReview } from "./ProofReview";
-import { ProofShell, ProofState } from "./ProofShell";
+import { ProofShell, ProofState, type ProofStateKind } from "./ProofShell";
 
 const BEATS = ["media", "details", "review"] as const;
 type Beat = (typeof BEATS)[number];
@@ -65,18 +68,41 @@ export function ProofComposer() {
   const metadata = useCommitmentMetadataFor(detail?.commitment);
   const jobs = useCommitmentJobs({ chainId });
 
+  // Everything composed here survives the app being put away or evicted: the
+  // words in the proof draft store, the files in the draft image table, both
+  // under one key. The draft is read once and written as the member works.
+  const draft = useCommitmentProofDraft({
+    chainId,
+    viewer: viewer as Address | null,
+    commitmentId,
+  });
   const [beat, setBeat] = useState<Beat>("media");
   const [media, setMedia] = useState<File[]>([]);
   const [audioNotes, setAudioNotes] = useState<File[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [previewIndex, setPreviewIndex] = useState<number | null>(null);
-  const [note, setNote] = useState("");
-  const [links, setLinks] = useState<string[]>([]);
-  const [credited, setCredited] = useState<Address[] | null>(null);
+  const [note, setNote] = useState(() => draft.saved?.note ?? "");
+  const [links, setLinks] = useState<string[]>(() => draft.saved?.links ?? []);
+  const [credited, setCredited] = useState<Address[] | null>(
+    () => (draft.saved?.credited as Address[] | null | undefined) ?? null
+  );
   const [queued, setQueued] = useState(false);
-  // One id per composition, minted once: the queue's identity for this proof
-  // before it has a CID, so a retry behind the same button is one job.
-  const clientEvidenceId = useMemo(() => crypto.randomUUID(), []);
+  // One id per composition, minted once and kept with the draft: the queue's
+  // identity for this proof before it has a CID, so a retry behind the same
+  // button — even after a restart — is one job.
+  const clientEvidenceId = useMemo(
+    () => draft.saved?.clientEvidenceId ?? crypto.randomUUID(),
+    [draft.saved?.clientEvidenceId]
+  );
+  useProofDraftSync(draft, {
+    queued,
+    words: { note, links, credited, clientEvidenceId },
+    files: { media, audioNotes },
+    onRestore: (files) => {
+      if (files.media.length > 0) setMedia(files.media);
+      if (files.audioNotes.length > 0) setAudioNotes(files.audioNotes);
+    },
+  });
 
   const {
     isRecording,
@@ -86,9 +112,8 @@ export function ProofComposer() {
     onRecordingComplete: (file) => setAudioNotes((current) => [...current, file]),
   });
 
-  // This screen creates preview URLs in the `proof` scope on the review beat,
-  // after ProofMedia has unmounted. Only a successful submit released them, so
-  // walking away from review left every photo's blob alive.
+  // Preview URLs are created here on the review beat; release them on unmount
+  // so walking away from review does not leave every photo's blob alive.
   useEffect(() => () => mediaResourceManager.cleanupUrls("proof"), []);
 
   const back = () => navigate("..", { relative: "path" });
@@ -127,34 +152,18 @@ export function ProofComposer() {
     if (!files?.length) return;
     setIsProcessing(true);
     try {
-      const normalized = await normalizeWorkMediaFiles(Array.from(files));
-      if (normalized.rejected.length > 0) {
+      const prepared = await prepareMediaForUpload(Array.from(files), imageCompressor);
+      if (prepared.rejectedCount > 0) {
         toastService.info({
           title: formatMessage({ id: "app.garden.upload.unsupportedMediaTitle" }),
           message: formatMessage(
             { id: "app.garden.upload.unsupportedMediaMessage" },
-            { count: normalized.rejected.length }
+            { count: prepared.rejectedCount }
           ),
           context: "mediaUpload",
         });
       }
-      const accepted = normalized.accepted.map((item) => item.file);
-      const videos = accepted.filter(isVideoFile);
-      const images = accepted.filter((file) => !isVideoFile(file));
-      const toCompress = images.filter((file) => imageCompressor.shouldCompress(file, 1024));
-      const asIs = images.filter((file) => !imageCompressor.shouldCompress(file, 1024));
-      const compressed =
-        toCompress.length > 0
-          ? (
-              await imageCompressor.compressImages(toCompress, {
-                maxSizeMB: 0.8,
-                maxWidthOrHeight: 2048,
-                initialQuality: 0.8,
-                useWebWorker: true,
-              })
-            ).map((result) => result.file)
-          : [];
-      setMedia((current) => [...current, ...asIs, ...compressed, ...videos]);
+      setMedia((current) => [...current, ...prepared.files]);
     } finally {
       setIsProcessing(false);
     }
@@ -189,7 +198,10 @@ export function ProofComposer() {
           clientEvidenceId,
           commitmentId: detail.commitment.commitmentId,
           creditedContributors: creditedNow,
-          gardenAddress: gardenAddress as Address,
+          // The garden whose hat gates attaching proof is the one the work is
+          // done for, which the contract wrote at acceptance. On the protocol
+          // pool the route names the host, where the provider holds no hat.
+          gardenAddress: (detail.commitment.providerGarden ?? gardenAddress) as Address,
           ...(note.trim() ? { note: note.trim() } : {}),
           ...(links.length > 0 ? { links } : {}),
           ...(media.length > 0 ? { media } : {}),
@@ -198,6 +210,7 @@ export function ProofComposer() {
       });
       mediaResourceManager.cleanupUrls("proof");
       setQueued(true);
+      await draft.clear();
     } catch {
       // useCommitmentJobs already surfaced it; the member keeps their draft.
     }
@@ -215,24 +228,31 @@ export function ProofComposer() {
         )
       : formatMessage({ id: "app.commitments.row.untitled" }));
 
-  if (availability.status !== "available") {
-    return <ProofState kind="unavailable" isOnline={isOnline} onBack={back} />;
-  }
-  if (isLoading) return <ProofState kind="loading" isOnline={isOnline} onBack={back} />;
-  // A failed read is not an answer about who this belongs to. Reporting it as
-  // "not yours" tells the provider they lack permission and offers no way out,
-  // so the read failure is named first and can be tried again.
-  if (isError || (!detail && !isLoading)) {
+  // The plain answer that stands in for the form, in order of certainty.
+  const state: ProofStateKind | null =
+    availability.status !== "available"
+      ? "unavailable"
+      : isLoading
+        ? "loading"
+        : isError
+          ? "error"
+          : !detail || (seat !== "provider" && seat !== "contributor")
+            ? "notYours"
+            : selectCommitmentActKind({ commitment: detail.commitment, seat }) !== "addProof"
+              ? "closed"
+              : queued
+                ? "queued"
+                : null;
+  if (state || !detail) {
     return (
-      <ProofState kind="error" isOnline={isOnline} onBack={back} onRetry={() => void refetch()} />
+      <ProofState
+        kind={state ?? "notYours"}
+        isOnline={isOnline}
+        onBack={back}
+        onRetry={state === "error" ? () => void refetch() : undefined}
+      />
     );
   }
-  // Proof belongs to the people doing the work. Anyone else who lands here
-  // reads a plain answer rather than a form the chain would refuse.
-  if (!detail || (seat !== "provider" && seat !== "contributor")) {
-    return <ProofState kind="notYours" isOnline={isOnline} onBack={back} />;
-  }
-  if (queued) return <ProofState kind="queued" isOnline={isOnline} onBack={back} />;
 
   const beatIndex = BEATS.indexOf(beat);
   const isReview = beat === "review";
@@ -246,66 +266,17 @@ export function ProofComposer() {
         onBack={() => (beatIndex === 0 ? back() : setBeat(BEATS[beatIndex - 1] as Beat))}
         progress={beatIndex + 1}
         bar={
-          <div className="shrink-0 border-t border-stroke-soft-200 bg-bg-white-0 p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
-            {!canAdvance && blockedReasonId ? (
-              <p className="mb-2 text-xs text-text-sub-600" id="proof-blocked" role="status">
-                {formatMessage({ id: blockedReasonId })}
-              </p>
-            ) : null}
-            <div className="flex items-center gap-2">
-              {beat === "media" ? (
-                <>
-                  <button
-                    type="button"
-                    onClick={() => document.getElementById("proof-media-upload")?.click()}
-                    disabled={isProcessing}
-                    aria-label={formatMessage({ id: "app.proof.media.gallery" })}
-                    className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[var(--radius-lg)] border border-stroke-soft-200 bg-bg-white-0 tap-target-lg disabled:opacity-60"
-                  >
-                    <RiImageFill className={`h-5 w-5 ${pwaStatusStyles.primary.icon}`} />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => document.getElementById("proof-media-camera")?.click()}
-                    disabled={isProcessing}
-                    aria-label={formatMessage({ id: "app.proof.media.camera" })}
-                    className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[var(--radius-lg)] border border-stroke-soft-200 bg-bg-white-0 tap-target-lg disabled:opacity-60"
-                  >
-                    <RiCameraFill className={`h-5 w-5 ${pwaStatusStyles.primary.icon}`} />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={toggleRecording}
-                    aria-pressed={isRecording}
-                    aria-label={formatMessage({
-                      id: isRecording ? "app.proof.media.stopRecording" : "app.proof.media.record",
-                    })}
-                    className={
-                      isRecording
-                        ? `flex h-11 w-11 shrink-0 items-center justify-center rounded-[var(--radius-lg)] border tap-target-lg ${pwaStatusStyles.error.surface} ${pwaStatusStyles.error.border}`
-                        : "flex h-11 w-11 shrink-0 items-center justify-center rounded-[var(--radius-lg)] border border-stroke-soft-200 bg-bg-white-0 tap-target-lg"
-                    }
-                  >
-                    {isRecording ? (
-                      <RiStopFill className={`h-5 w-5 ${pwaStatusStyles.error.icon}`} />
-                    ) : (
-                      <RiMicLine className={`h-5 w-5 ${pwaStatusStyles.primary.icon}`} />
-                    )}
-                  </button>
-                </>
-              ) : null}
-              <button
-                aria-describedby={!canAdvance && blockedReasonId ? "proof-blocked" : undefined}
-                type="button"
-                disabled={!canAdvance || jobs.isPending}
-                aria-busy={jobs.isPending}
-                onClick={() => (isReview ? void submit() : setBeat(BEATS[beatIndex + 1] as Beat))}
-                className="min-w-0 flex-1 rounded-[var(--radius-lg)] bg-primary-action px-4 py-3 text-sm font-medium text-primary-action-foreground tap-target-lg disabled:opacity-60"
-              >
-                {formatMessage({ id: isReview ? "app.proof.submit" : "app.compose.next" })}
-              </button>
-            </div>
-          </div>
+          <ProofBar
+            showMediaTools={beat === "media"}
+            isProcessing={isProcessing}
+            isRecording={isRecording}
+            onToggleRecording={toggleRecording}
+            advanceLabelId={isReview ? "app.proof.submit" : "app.compose.next"}
+            canAdvance={canAdvance}
+            isPending={jobs.isPending}
+            blockedReasonId={blockedReasonId}
+            onAdvance={() => (isReview ? void submit() : setBeat(BEATS[beatIndex + 1] as Beat))}
+          />
         }
       >
         {beat === "media" ? (

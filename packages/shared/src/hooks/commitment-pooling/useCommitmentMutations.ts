@@ -110,6 +110,13 @@ export type CommitmentReasonedMutationInput =
       resolution: number;
       reason: string;
       gardenAddress?: Address | null;
+    }
+  | {
+      action: "declineClaim";
+      commitmentId: bigint;
+      claimant: Address;
+      reason: string;
+      gardenAddress?: Address | null;
     };
 
 export type CommitmentMutationInput = CommitmentMutationCall | CommitmentReasonedMutationInput;
@@ -124,6 +131,7 @@ const CID_REASON_ACTIONS = new Set<CommitmentOnlineAction>([
   "cancelCommitment",
   "raiseDispute",
   "resolveDispute",
+  "declineClaim",
 ]);
 
 function carriesRawReason(

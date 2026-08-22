@@ -50,21 +50,24 @@ import { AppContext } from "../../../providers/App";
 // Test Wrapper
 // ============================================
 
-function createWrapper(locale: string) {
+function createWrapper(locale: "en" | "es" | "pt") {
   return function Wrapper({ children }: { children: React.ReactNode }) {
     const value = {
       locale,
       isMobile: false,
       isInstalled: false,
+      isInstalling: false,
       isPwaPresentation: false,
       isStandalone: false,
+      installState: "not-installed" as const,
       presentationMode: "website" as const,
       wasInstalled: false,
-      availableLocales: ["en", "es", "fr"],
+      availableLocales: ["en", "es", "pt"] as const,
       deferredPrompt: null,
       platform: "unknown" as const,
       promptInstall: () => {},
       handleInstallCheck: () => {},
+      switchLanguage: () => {},
     };
     return React.createElement(AppContext.Provider, { value }, children);
   };
@@ -126,7 +129,7 @@ describe("useTranslation", () => {
     it("translates array of strings", async () => {
       const content = ["Hello", "World"];
       const { result } = renderHook(() => useTranslation(content), {
-        wrapper: createWrapper("fr"),
+        wrapper: createWrapper("pt"),
       });
 
       await waitFor(() => {
@@ -139,7 +142,7 @@ describe("useTranslation", () => {
     it("translates object values recursively", async () => {
       const content = { greeting: "Hello", farewell: "Goodbye" };
       const { result } = renderHook(() => useTranslation(content as Record<string, unknown>), {
-        wrapper: createWrapper("fr"),
+        wrapper: createWrapper("pt"),
       });
 
       await waitFor(() => {

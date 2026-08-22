@@ -8,7 +8,7 @@ import { resolveWorkSubmissionTitle } from "../../utils/work/workTitles";
 import type { TransactionSender } from "../transactions/types";
 import { jobQueueDB } from "./db";
 import { readContract } from "@wagmi/core";
-import type { Hex } from "viem";
+import { type Hex, keccak256, toBytes } from "viem";
 import { getWagmiConfig } from "../../config/appkit";
 import {
   executeCommitmentJob,
@@ -417,6 +417,14 @@ export async function executeCommitmentQueueJob(
       })) as { creationPayloadHash: Hex; poolId: bigint; creator: Address };
       return value;
     },
+    readEvidenceAttached: async (commitmentId, cid) =>
+      (await readContract(getWagmiConfig(), {
+        address: moduleAddress,
+        abi: CommitmentPoolingModuleABI,
+        functionName: "isEvidenceAttached",
+        args: [commitmentId, keccak256(toBytes(cid))],
+        chainId,
+      })) as boolean,
     readWorkLinkPayloadHash: async (caller, key) =>
       (await readContract(getWagmiConfig(), {
         address: moduleAddress,

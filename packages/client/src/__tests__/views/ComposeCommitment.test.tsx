@@ -24,10 +24,24 @@ const mockUseCycles = vi.fn();
 const mockUseActions = vi.fn();
 const mockEnqueue = vi.fn();
 
+// Live now: the rail hides actions outside their window, because Work is
+// refused there and a commitment kept by such an action could never be kept.
+const NOW = Math.floor(Date.now() / 1000);
+const LIVE = { startTime: NOW - 86_400, endTime: NOW + 86_400 };
 const ACTIONS = [
-  { id: "42161-44", title: "Prune", domain: "AGRO", media: [], description: "" },
-  { id: "42161-45", title: "Plant", domain: "AGRO", media: [], description: "" },
-  { id: "42161-0", title: "Water", domain: "AGRO", media: [], description: "" },
+  { id: "42161-44", title: "Prune", domain: "AGRO", media: [], description: "", ...LIVE },
+  { id: "42161-45", title: "Plant", domain: "AGRO", media: [], description: "", ...LIVE },
+  { id: "42161-0", title: "Water", domain: "AGRO", media: [], description: "", ...LIVE },
+  // Expired: registered, but no Work can be submitted for it any more.
+  {
+    id: "42161-99",
+    title: "Harvest",
+    domain: "AGRO",
+    media: [],
+    description: "",
+    startTime: NOW - 172_800,
+    endTime: NOW - 86_400,
+  },
 ];
 
 vi.mock("@green-goods/shared", async () => {
@@ -100,7 +114,9 @@ describe("ComposeCommitment", () => {
     window.localStorage.clear();
     useCommitmentComposerDraftStore.setState({ drafts: {} });
     mockUseOffline.mockReturnValue({ isOnline: true });
-    mockUsePools.mockReturnValue({ pools: [{ poolId: 7n, openSeasonCycleId: null }] });
+    mockUsePools.mockReturnValue({
+      pools: [{ poolId: 7n, openSeasonCycleId: null, state: "OPEN", poolType: "GARDEN" }],
+    });
     mockUseCycles.mockReturnValue({ cycles: [] });
     mockUseActions.mockReturnValue({ data: ACTIONS });
     mockEnqueue.mockResolvedValue("job-1");
@@ -132,6 +148,16 @@ describe("ComposeCommitment", () => {
     expect(screen.getByText("How many hours?")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "sessions" })).not.toBeInTheDocument();
     expect(screen.getByText("What has to be approved")).toBeInTheDocument();
+  });
+
+  it("offers only actions that can take work now", async () => {
+    const user = userEvent.setup();
+    render("offer");
+    await user.type(screen.getByLabelText("Name it"), "Prune the north beds");
+    await user.click(next());
+
+    expect(screen.getByRole("button", { name: /Prune/ })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Harvest/ })).not.toBeInTheDocument();
   });
 
   it("will not let garden work continue without an action, and says so", async () => {
@@ -230,7 +256,9 @@ describe("ComposeCommitment", () => {
     expect(call.payload.commitmentType).toBe(1);
   });
 
-  it("binds the one open season without asking, and asks only when more than one cycle is open", async () => {
+  it("offers the open season and keeps running on its own as a choice", async () => {
+    // The contract takes cycleId 0 whatever is open, so one open cycle is a
+    // choice between that cycle and none; the default is never rewritten.
     const user = userEvent.setup();
     mockUseCycles.mockReturnValue({
       cycles: [
@@ -239,8 +267,9 @@ describe("ComposeCommitment", () => {
     });
     render("offer");
 
-    expect(screen.getByText(/Runs in the Season/)).toBeInTheDocument();
-    expect(screen.queryByLabelText("Where it runs")).not.toBeInTheDocument();
+    const where = screen.getByLabelText("Where it runs");
+    expect(where).toHaveValue("0");
+    await user.selectOptions(where, "8");
 
     await user.type(screen.getByLabelText("Name it"), "Prune the north beds");
     await user.click(next());
@@ -253,6 +282,26 @@ describe("ComposeCommitment", () => {
     ).toBe(8n);
   });
 
+  it("places a commitment that runs on its own while a season is open", async () => {
+    const user = userEvent.setup();
+    mockUseCycles.mockReturnValue({
+      cycles: [
+        { id: "42161-8", cycleId: 8n, cycleType: "SEASON", state: "OPEN", metadataCID: null },
+      ],
+    });
+    render("offer");
+
+    await user.type(screen.getByLabelText("Name it"), "Prune the north beds");
+    await user.click(next());
+    await user.click(screen.getByRole("button", { name: /Prune/ }));
+    await user.click(next());
+    await user.click(next());
+    await place(user, "Make this offer");
+    expect(
+      (mockEnqueue.mock.calls[0]?.[0] as { payload: { cycleId: bigint } }).payload.cycleId
+    ).toBe(0n);
+  });
+
   it("lets the member choose between an open season and an open campaign", async () => {
     const user = userEvent.setup();
     mockUseCycles.mockReturnValue({
@@ -263,9 +312,11 @@ describe("ComposeCommitment", () => {
     });
     render("offer");
 
-    const where = screen.getByLabelText("Where it runs");
-    // The season leads the list and is bound first.
-    expect(where).toHaveValue("8");
+    const where = screen.getByLabelText("Where it runs") as HTMLSelectElement;
+    // Nothing is bound for the member: running on its own stays the default.
+    // The season leads the list, the campaign follows, and none comes last.
+    expect(where).toHaveValue("0");
+    expect(Array.from(where.options).map((option) => option.value)).toEqual(["8", "9", "0"]);
     await user.selectOptions(where, "9");
     expect(where).toHaveValue("9");
   });
@@ -354,6 +405,21 @@ describe("ComposeCommitment", () => {
 
     expect(screen.getByText(/no pool to place it in yet/i)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Make this offer" })).toBeDisabled();
+  });
+
+  it("holds placement while the pool is paused, whatever route led here", async () => {
+    // The doors already hide on a paused pool; a deep link, a bookmark or a
+    // form left open while the pool paused do not pass through them. The
+    // contract refuses the creation (PoolNotInState), so the button does first.
+    const user = userEvent.setup();
+    mockUsePools.mockReturnValue({
+      pools: [{ poolId: 7n, openSeasonCycleId: null, state: "PAUSED", poolType: "GARDEN" }],
+    });
+    render("offer");
+    await walkServiceToReview(user);
+
+    expect(screen.getByRole("button", { name: "Make this offer" })).toBeDisabled();
+    expect(mockEnqueue).not.toHaveBeenCalled();
   });
 
   it("queues the commitment with the member's own words attached", async () => {

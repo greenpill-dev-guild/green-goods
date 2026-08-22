@@ -19,6 +19,7 @@ import {
 import { demoAware } from "./demo/demo-gate";
 
 export {
+  getLinkedWorkUIDs,
   mapClaim,
   mapCommitmentsWithCycleState,
   mapWorkAttribution,

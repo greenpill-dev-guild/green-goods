@@ -56,6 +56,12 @@ export interface CommitmentQueueState {
   failedCount: number;
   /** Which commitments those failures belong to, so a surface can name them. */
   failedCommitmentIds: ReadonlySet<string>;
+  /**
+   * The failed job behind each of those, so the commitment's own screen can
+   * offer retry and discard rather than only an alert. A terminal record that
+   * nobody can reach drives the alert forever and keeps its media with it.
+   */
+  failedJobs: ReadonlyMap<string, { jobId: string; discardable: boolean }>;
   /** True while a new commitment is still waiting to be placed. */
   hasPendingCreate: boolean;
   /** Every creation still on this phone, failed ones included, newest first. */
@@ -106,12 +112,19 @@ export function useCommitmentQueueState(viewer?: Address | null): CommitmentQueu
     void queryClient.invalidateQueries({ queryKey });
   }, [queryClient, queryKey]);
 
-  useJobQueueEvents(["job:added", "job:completed", "job:failed"], refresh, [refresh]);
+  // A flush that only moved a job to waiting (membership not yet granted, a
+  // gateway down) rewrites the record without a completed or failed event, and
+  // the query never goes stale on its own. The sync-completed event is the one
+  // signal every flush emits, so the stored state is re-read on it.
+  useJobQueueEvents(["job:added", "job:completed", "job:failed", "queue:sync-completed"], refresh, [
+    refresh,
+  ]);
 
   return useMemo(() => {
     const jobs: Job[] = query.data ?? [];
     const pendingCommitmentIds = new Set<string>();
     const failedCommitmentIds = new Set<string>();
+    const failedJobs = new Map<string, { jobId: string; discardable: boolean }>();
     const pendingCreates: PendingCommitmentCreation[] = [];
     let failedCount = 0;
     let hasPendingCreate = false;
@@ -144,7 +157,10 @@ export function useCommitmentQueueState(viewer?: Address | null): CommitmentQueu
       }
       if (failed) {
         failedCount += 1;
-        if (commitmentId) failedCommitmentIds.add(commitmentId);
+        if (commitmentId) {
+          failedCommitmentIds.add(commitmentId);
+          failedJobs.set(commitmentId, { jobId: job.id, discardable: isDiscardableJob(job) });
+        }
         continue;
       }
       if (commitmentId) pendingCommitmentIds.add(commitmentId);
@@ -156,6 +172,7 @@ export function useCommitmentQueueState(viewer?: Address | null): CommitmentQueu
       pendingCommitmentIds,
       failedCount,
       failedCommitmentIds,
+      failedJobs,
       hasPendingCreate,
       pendingCreates,
       isUnavailable: Boolean(viewer) && query.isError,

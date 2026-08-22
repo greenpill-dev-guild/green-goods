@@ -61,6 +61,15 @@ export interface CommitmentReadModel {
    * address itself.
    */
   counterpartyKind?: keyof typeof CommitmentClaimType | null;
+  /**
+   * The garden whose people do the work, written by the contract at
+   * acceptance: the claimant's garden on a garden claim, the claimant's chosen
+   * context on a personal one. The membership preflight and the proof path
+   * read this, never the route, because on the protocol pool the route names
+   * the host garden and the provider may hold no hat there. Frozen at
+   * acceptance; null before.
+   */
+  providerGarden?: Address | null;
   /** Offer or Request. Null until creation is seen. */
   direction?: keyof typeof CommitmentDirection | null;
   /** What kind of commitment this is. Null until creation is seen. */
@@ -72,8 +81,6 @@ export interface CommitmentReadModel {
    * date is due at the cycle's end (`selectDueLiveCommitments`).
    */
   dueDate?: bigint | null;
-  /** The garden whose provider delivered it, frozen at acceptance; null before. */
-  providerGarden?: Address | null;
   /** An assessment gate, and the attestation once one is attached. */
   requiresAssessment?: boolean | null;
   assessmentUID?: string | null;

@@ -51,6 +51,7 @@ vi.mock("@green-goods/shared", () => ({
   useCommitment: (...args: unknown[]) => mockUseCommitment(...args),
   useCommitmentMetadataFor: () => ({ version: 1, title: "Prune the north beds" }),
   useCommitmentWorkAttributionsForWork: (...args: unknown[]) => mockUseAttributions(...args),
+  useCommitmentPool: () => ({ pool: null }),
   useGardenPermissions: () => ({
     canManageGarden: mockCanManageGarden,
   }),

@@ -15,6 +15,7 @@ import {
   getCommitmentSeriesDetail,
   getCommitments,
   getCommitmentWorkAttributionsByWork,
+  getLinkedWorkUIDs,
   getNeedCommitments,
   getPoolMemberHistory,
 } from "../../modules/commitment-pooling/data";
@@ -142,6 +143,23 @@ export function useCommitment(
     detail: query.data ?? null,
     availability,
   };
+}
+
+/**
+ * Which of the reader's works are already linked to some commitment. The
+ * picker leaves those out: the contract keeps one link per work and rejects a
+ * second with WorkAlreadyLinked.
+ */
+export function useLinkedWorkUIDs(input: { chainId: number; workUIDs: readonly string[] }) {
+  const availability = useCommitmentPoolingAvailability(input);
+  const key = [...input.workUIDs].map((uid) => uid.toLowerCase()).sort();
+  const query = useQuery({
+    queryKey: queryKeys.commitmentPooling.linkedWorks(input.chainId, key),
+    queryFn: () => getLinkedWorkUIDs(input.chainId, key),
+    enabled: availability.status === "available" && key.length > 0,
+    staleTime: STALE_TIME_MEDIUM,
+  });
+  return { ...query, linked: query.data ?? new Set<string>(), availability };
 }
 
 /**

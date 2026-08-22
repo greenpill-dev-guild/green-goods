@@ -6,6 +6,7 @@ import {
   MAX_COMMITMENT_REQUIREMENTS,
 } from "@green-goods/shared";
 import { RiAddLine, RiCloseLine } from "@remixicon/react";
+import { useMemo } from "react";
 import { type UseFormReturn, useWatch } from "react-hook-form";
 import { useIntl } from "react-intl";
 
@@ -36,7 +37,14 @@ export interface ComposeActionRailProps {
  * module's ceiling is a validation limit, never a number a member is shown
  * as a plan.
  */
-export function ComposeActionRail({ form, chainId, actions }: ComposeActionRailProps) {
+export function ComposeActionRail({ form, chainId, actions: allActions }: ComposeActionRailProps) {
+  // Work is refused outside an action's window, so a commitment kept by an
+  // expired or not-yet-open action could never be kept. The same filter the
+  // Work composer applies.
+  const actions = useMemo(() => {
+    const now = Date.now() / 1000;
+    return allActions.filter((action) => now >= action.startTime && now <= action.endTime);
+  }, [allActions]);
   const { formatMessage } = useIntl();
   const requirements = useWatch({ control: form.control, name: "requirements" });
   const isRequest = useWatch({ control: form.control, name: "direction" }) === "REQUEST";

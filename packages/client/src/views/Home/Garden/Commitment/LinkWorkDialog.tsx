@@ -19,7 +19,12 @@ export interface LinkWorkDialogProps {
   /** A row the caller already chose, from the standing not-yet-linked row. */
   preselected?: { workUID: string; requirementIndex: number } | null;
   isPending: boolean;
-  onConfirm: (workUID: string, requirementIndex: number) => void;
+  /**
+   * The operation id is minted here, once per selection, and travels with the
+   * confirm: the queue derives its dedup key from it, so a double tap before
+   * the pending state re-renders must hand over the same id both times.
+   */
+  onConfirm: (workUID: string, requirementIndex: number, clientOperationId: string) => void;
 }
 
 /**
@@ -41,12 +46,15 @@ export function LinkWorkDialog({
   const { formatMessage, formatDate } = useIntl();
   const [workUID, setWorkUID] = useState<string | null>(null);
   const [requirementIndex, setRequirementIndex] = useState<number | null>(null);
+  const [operationId, setOperationId] = useState(() => crypto.randomUUID());
 
-  // Each opening starts from what the caller handed over, or from nothing.
+  // Each opening starts from what the caller handed over, or from nothing,
+  // and is a new operation. A link after an unlink is a new act too.
   useEffect(() => {
     if (!open) return;
     setWorkUID(preselected?.workUID ?? null);
     setRequirementIndex(preselected?.requirementIndex ?? (requirements.length === 1 ? 0 : null));
+    setOperationId(crypto.randomUUID());
   }, [open, preselected, requirements.length]);
 
   const actionTitle = (actionUID: number | bigint) =>
@@ -112,7 +120,10 @@ export function LinkWorkDialog({
                       type="radio"
                       name="link-work"
                       checked={selected}
-                      onChange={() => setWorkUID(work.id)}
+                      onChange={() => {
+                        setWorkUID(work.id);
+                        setOperationId(crypto.randomUUID());
+                      }}
                       className="accent-[var(--color-primary)]"
                     />
                     <label
@@ -149,9 +160,10 @@ export function LinkWorkDialog({
             <select
               id="link-row"
               value={requirementIndex ?? ""}
-              onChange={(event) =>
-                setRequirementIndex(event.target.value === "" ? null : Number(event.target.value))
-              }
+              onChange={(event) => {
+                setRequirementIndex(event.target.value === "" ? null : Number(event.target.value));
+                setOperationId(crypto.randomUUID());
+              }}
               className="mt-1.5 w-full rounded-[var(--radius-lg)] border border-stroke-soft-200 bg-bg-weak-50 p-3 text-sm text-text-strong-950"
             >
               <option value="">{formatMessage({ id: "app.commitment.link.rowChoose" })}</option>
@@ -183,7 +195,7 @@ export function LinkWorkDialog({
           disabled={!canConfirm}
           aria-busy={isPending}
           onClick={() => {
-            if (workUID && chosenRow) onConfirm(workUID, chosenRow.requirementIndex);
+            if (workUID && chosenRow) onConfirm(workUID, chosenRow.requirementIndex, operationId);
           }}
           className="w-full rounded-[var(--radius-lg)] bg-primary-action px-4 py-3 text-sm font-medium text-primary-action-foreground tap-target-lg disabled:opacity-60"
         >

@@ -49,6 +49,11 @@ the risk it covers, expected signal, freshness rule, and stopping condition. Pas
 reusable only while source inputs, validated paths, policy, command, toolchain, and environment still
 match. A deterministic failure stops dependent checks.
 
+For QA and checkpoint plans, inspect `selectedBy`. If routine test, story, or workspace-importer
+changes select an unrelated package suite or omit their direct acceptance check, run the targeted
+acceptance proof and report the selector defect instead of starting the unrelated suite. Critical
+overrides and readiness, push, ship, merge, and release intent remain strict.
+
 - **Diagnosis / evidence review**: inspect evidence first and run only the non-mutating checks needed to prove or disprove a finding. This is not production-readiness certification. An explicit production-quality, approval, or merge-readiness review runs the full non-mutating Production Review Readiness Gate.
 - **QA Speed Mode**: default for "QA mode", "quick fix", "get this to staging", and small visible/content/control fixes. Run targeted test file(s) or the package-local command that proves the touched behavior. Add package-local typecheck/build only when route wiring, render/build output, exported types, or runtime contracts move. Style-only proof is path-scoped and non-mutating; do not run workspace-mutating `bun format`. For visible UI, use authenticated Brave rendered proof when available; if that path is unavailable, report browser QA as blocked rather than replacing it with isolated Playwright. Do not run full `bun run test`, full `bun run build`, or `ci-local --quick` just to close an isolated QA fix.
 - **Repo Quick Gate**: run `node scripts/dev/ci-local.js --quick` for cross-package/shared-impact changes, after several QA fixes as a coordinator checkpoint, or when shared exports, hook signatures, provider contracts, data shapes, or mutation flows move.

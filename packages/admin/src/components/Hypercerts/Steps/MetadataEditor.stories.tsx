@@ -25,7 +25,7 @@ const EMPTY_DRAFT: HypercertDraft = {
   impactTimeframeEnd: null,
   sdgs: [],
   capitals: [],
-  outcomes: {},
+  outcomes: { predefined: {}, custom: {} },
   allowlist: [],
   externalUrl: "",
   createdAt: 0,

@@ -7,6 +7,8 @@ import {
   type CommitmentRequirementRecord,
   DialogShell,
   useCommitmentNotYetDraft,
+  type EvidenceAttributionRow,
+  useCommitmentEvidence,
 } from "@green-goods/shared";
 import {
   RiCheckboxCircleFill,
@@ -17,6 +19,8 @@ import {
 } from "@remixicon/react";
 import { useState } from "react";
 import { useIntl } from "react-intl";
+
+import { EvidencePreview } from "./EvidencePreview";
 
 import { ConfirmNotYet } from "./ConfirmNotYet";
 import { Meter, Provenance } from "./ConfirmOutcome";
@@ -34,6 +38,8 @@ export interface ConfirmSheetProps {
   commitment: CommitmentReadModel;
   requirements: CommitmentRequirementRecord[];
   contributors: CommitmentContributorRecord[];
+  /** The detail's evidence attributions, resolved to what was actually submitted. */
+  evidenceAttributions?: EvidenceAttributionRow[];
   viewer: Address | null;
   isOnline: boolean;
   phase: ConfirmPhase;
@@ -41,6 +47,14 @@ export interface ConfirmSheetProps {
   isPending: boolean;
   /** The last Not yet attempt failed to reach the chain. */
   notYetFailed: boolean;
+  /**
+   * Whether the chain would take a dispute from this reader. Confirming and
+   * disputing are granted to different people: a steward confirming for the
+   * garden that took an offer up may confirm, but raiseDispute accepts only
+   * the creator, the counterparty address, a named confirmer or a steward of
+   * the pool's own garden. With no way to say Not yet, the sheet says so.
+   */
+  canNotYet: boolean;
   onConfirm: () => void;
   onNotYet: (reason: string) => void;
   onDone: () => void;
@@ -52,11 +66,13 @@ export function ConfirmSheet({
   commitment,
   requirements,
   contributors,
+  evidenceAttributions = [],
   viewer,
   isOnline,
   phase,
   isPending,
   notYetFailed,
+  canNotYet,
   onConfirm,
   onNotYet,
   onDone,
@@ -64,9 +80,11 @@ export function ConfirmSheet({
   const { formatMessage } = useIntl();
   const cast = selectConfirmCast(commitment);
   const [mode, setMode] = useState<"ask" | "notYet">("ask");
+  const { evidence, isLoading: evidenceLoading } = useCommitmentEvidence(evidenceAttributions);
   // The words of a Not yet survive closing the sheet and losing the signal.
   const { reason: draftReason, setReason: setDraftReason } = useCommitmentNotYetDraft(
-    commitment.id
+    commitment.id,
+    viewer
   );
 
   const count = commitment.confirmationCount ?? 0;
@@ -214,6 +232,13 @@ export function ConfirmSheet({
             </li>
           </ul>
 
+          <div className="space-y-2">
+            <p className="text-xs font-medium uppercase tracking-wide text-text-soft-400">
+              {formatMessage({ id: "app.confirm.evidence.title" })}
+            </p>
+            <EvidencePreview evidence={evidence} isLoading={evidenceLoading} />
+          </div>
+
           <Meter done={count} of={threshold} />
 
           {named.length > 0 ? (
@@ -241,15 +266,22 @@ export function ConfirmSheet({
             {formatMessage({ id: `app.confirm.exclusion.${cast}` }, { count: excludedCount })}
           </p>
 
-          <div className="grid grid-cols-2 gap-2">
-            <button
-              type="button"
-              onClick={() => setMode("notYet")}
-              disabled={isPending}
-              className="rounded-[var(--radius-lg)] border border-stroke-soft-200 px-4 py-3 text-sm font-medium text-text-strong-950 tap-target-lg disabled:opacity-60"
-            >
-              {formatMessage({ id: "app.confirm.notYet.act" })}
-            </button>
+          {!canNotYet ? (
+            <p className="text-xs text-text-sub-600">
+              {formatMessage({ id: "app.confirm.notYet.unavailable" })}
+            </p>
+          ) : null}
+          <div className={canNotYet ? "grid grid-cols-2 gap-2" : "grid grid-cols-1 gap-2"}>
+            {canNotYet ? (
+              <button
+                type="button"
+                onClick={() => setMode("notYet")}
+                disabled={isPending}
+                className="rounded-[var(--radius-lg)] border border-stroke-soft-200 px-4 py-3 text-sm font-medium text-text-strong-950 tap-target-lg disabled:opacity-60"
+              >
+                {formatMessage({ id: "app.confirm.notYet.act" })}
+              </button>
+            ) : null}
             <button
               type="button"
               onClick={onConfirm}

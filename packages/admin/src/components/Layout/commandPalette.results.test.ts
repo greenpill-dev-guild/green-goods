@@ -1,12 +1,13 @@
 import {
   buildCommandPaletteResults,
+  Domain,
   groupCommandPaletteResults,
   type Action,
   type Garden,
   type GardenAssessment,
 } from "@green-goods/shared";
 import type { IntlShape } from "react-intl";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 
 const formatMessage = ((descriptor: { defaultMessage?: string; id: string }) =>
   descriptor.defaultMessage ?? descriptor.id) as IntlShape["formatMessage"];
@@ -95,7 +96,21 @@ describe("buildCommandPaletteResults", () => {
       formatMessage,
       staticRoutes: [],
       eligibleGardens: [eligibleGarden],
-      actions: [{ id: "action-1", title: "Mulch day", startTime: null } as Action],
+      actions: [
+        {
+          id: "action-1",
+          slug: "agro.mulch_day",
+          title: "Mulch day",
+          startTime: 0,
+          endTime: 0,
+          capitals: [],
+          media: [],
+          domain: Domain.AGRO,
+          createdAt: 0,
+          description: "",
+          inputs: [],
+        } satisfies Action,
+      ],
       assessments: [],
     });
 

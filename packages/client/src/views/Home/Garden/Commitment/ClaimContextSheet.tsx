@@ -1,16 +1,31 @@
-import { DialogShell } from "@green-goods/shared";
+import { type Address, DialogShell } from "@green-goods/shared";
 import { RiGroupLine } from "@remixicon/react";
 import { useEffect, useState } from "react";
 import { useIntl } from "react-intl";
 
-export type ClaimContext = "personal" | "garden";
+/**
+ * What a claim is scoped to: the person, through a garden they belong to, or
+ * a garden they steward. The garden travels with the choice because on the
+ * protocol pool it is never the route's garden — that is the host, which the
+ * contract refuses as a garden-claim context (GardenClaimMustBeExternal) and
+ * which most claimants hold no hat in.
+ */
+export type ClaimContext =
+  | { kind: "personal"; garden: Address }
+  | { kind: "garden"; garden: Address };
+
+export interface ClaimGardenOption {
+  address: Address;
+  name: string;
+}
 
 export interface ClaimContextSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  gardenName: string | null;
-  /** Only a steward of this garden may take something up for it. */
-  canClaimForGarden: boolean;
+  /** Gardens the claimant belongs to, for a personal claim. */
+  memberGardens: ClaimGardenOption[];
+  /** Gardens the claimant stewards, for a garden claim. Host excluded by the caller. */
+  stewardedGardens: ClaimGardenOption[];
   /** Steward-reviewed claims ask; open ones take up. The sheet names which. */
   approvalGated: boolean;
   isPending: boolean;
@@ -20,31 +35,39 @@ export interface ClaimContextSheetProps {
 /**
  * The provider-context choice before a protocol-pool claim.
  *
- * A commitment in the protocol pool can be taken up by a person or, by an
- * eligible steward, for their garden. Personal is the default and the only
- * option for everyone else. The choice is resolved here, before any claim
- * exists, and is never rewritten afterwards: a garden claim stores the garden
- * as claimant and the steward as the one who asked.
+ * A commitment in the protocol pool can be taken up by a person, through one
+ * of the gardens they belong to, or by a steward for a garden they run. The
+ * choice is resolved here, before any claim exists, and is never rewritten
+ * afterwards: a garden claim stores the garden as claimant and the steward as
+ * the one who asked.
  */
 export function ClaimContextSheet({
   open,
   onOpenChange,
-  gardenName,
-  canClaimForGarden,
+  memberGardens,
+  stewardedGardens,
   approvalGated,
   isPending,
   onContinue,
 }: ClaimContextSheetProps) {
   const { formatMessage } = useIntl();
-  const [context, setContext] = useState<ClaimContext>("personal");
+  const first = memberGardens[0] ?? stewardedGardens[0];
+  const [context, setContext] = useState<ClaimContext | null>(null);
 
-  // Each opening starts from Personal; back and retry keep whatever was
-  // chosen until the sheet closes, and nothing is submitted in between.
+  // Each opening starts from the first personal option; back and retry keep
+  // whatever was chosen until the sheet closes, and nothing is submitted between.
   useEffect(() => {
-    if (open) setContext("personal");
-  }, [open]);
+    if (!open) return;
+    setContext(
+      memberGardens[0]
+        ? { kind: "personal", garden: memberGardens[0].address }
+        : first
+          ? { kind: "garden", garden: first.address }
+          : null
+    );
+  }, [open, memberGardens, first]);
 
-  const garden = gardenName ?? formatMessage({ id: "app.claim.context.thisGarden" });
+  const same = (left: Address, right: Address) => left.toLowerCase() === right.toLowerCase();
 
   return (
     <DialogShell
@@ -59,26 +82,41 @@ export function ClaimContextSheet({
         <fieldset>
           <legend className="sr-only">{formatMessage({ id: "app.claim.context.legend" })}</legend>
           <div className="space-y-2">
-            <Option
-              id="claim-context-personal"
-              checked={context === "personal"}
-              onChange={() => setContext("personal")}
-              title={formatMessage({ id: "app.claim.context.personal.title" })}
-              body={formatMessage({ id: "app.claim.context.personal.body" })}
-            />
-            {canClaimForGarden ? (
+            {memberGardens.map((garden) => (
               <Option
-                id="claim-context-garden"
-                checked={context === "garden"}
-                onChange={() => setContext("garden")}
-                title={formatMessage({ id: "app.claim.context.garden.title" }, { garden })}
+                key={`personal-${garden.address}`}
+                id={`claim-context-personal-${garden.address.toLowerCase()}`}
+                checked={context?.kind === "personal" && same(context.garden, garden.address)}
+                onChange={() => setContext({ kind: "personal", garden: garden.address })}
+                title={formatMessage({ id: "app.claim.context.personal.title" })}
+                body={formatMessage(
+                  { id: "app.claim.context.personal.through" },
+                  { garden: garden.name }
+                )}
+              />
+            ))}
+            {stewardedGardens.map((garden) => (
+              <Option
+                key={`garden-${garden.address}`}
+                id={`claim-context-garden-${garden.address.toLowerCase()}`}
+                checked={context?.kind === "garden" && same(context.garden, garden.address)}
+                onChange={() => setContext({ kind: "garden", garden: garden.address })}
+                title={formatMessage(
+                  { id: "app.claim.context.garden.title" },
+                  { garden: garden.name }
+                )}
                 body={formatMessage({ id: "app.claim.context.garden.body" })}
               />
+            ))}
+            {memberGardens.length === 0 && stewardedGardens.length === 0 ? (
+              <p className="text-sm text-text-sub-600">
+                {formatMessage({ id: "app.claim.context.noGarden" })}
+              </p>
             ) : null}
           </div>
         </fieldset>
 
-        {context === "garden" ? (
+        {context?.kind === "garden" ? (
           <p className="flex items-start gap-2 rounded-[var(--radius-lg)] bg-bg-weak-50 p-3 text-xs text-text-sub-600">
             <RiGroupLine className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
             {formatMessage({ id: "app.claim.context.gardenNote" })}
@@ -87,9 +125,9 @@ export function ClaimContextSheet({
 
         <button
           type="button"
-          disabled={isPending}
+          disabled={isPending || !context}
           aria-busy={isPending}
-          onClick={() => onContinue(context)}
+          onClick={() => context && onContinue(context)}
           className="w-full rounded-[var(--radius-lg)] bg-primary-action px-4 py-3 text-sm font-medium text-primary-action-foreground tap-target-lg disabled:opacity-60"
         >
           {formatMessage({

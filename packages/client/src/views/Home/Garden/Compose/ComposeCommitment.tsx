@@ -11,6 +11,7 @@ import {
   useCommitmentCycles,
   useCommitmentJobs,
   useCommitmentPools,
+  useHasRole,
   useGardens,
   useOffline,
   usePrimaryAddress,
@@ -91,6 +92,23 @@ function ComposeCommitmentForm({ direction }: { direction: Direction }) {
     [cycles, pool]
   );
   const { byCycleId: cycleNames } = useCommitmentCycleNames(openCycles);
+  // The protocol pool takes commitments only from its stewards
+  // (CreationChecksLib.resolveCreator). The pool tab hides the doors, but the
+  // route is typeable, so the composer answers the same question itself.
+  const { hasRole: stewardsPool, isLoading: stewardLoading } = useHasRole(
+    pool?.garden as Address | undefined,
+    (viewer ?? undefined) as Address | undefined,
+    "operator",
+    chainId
+  );
+  const { hasRole: ownsPool, isLoading: ownerLoading } = useHasRole(
+    pool?.garden as Address | undefined,
+    (viewer ?? undefined) as Address | undefined,
+    "owner",
+    chainId
+  );
+  const protocolBarred =
+    pool?.poolType === "PROTOCOL" && !stewardLoading && !ownerLoading && !stewardsPool && !ownsPool;
   const { data: actions = [] } = useActions(chainId);
   const { data: gardens = [] } = useGardens();
   const gardenName =
@@ -108,13 +126,25 @@ function ComposeCommitmentForm({ direction }: { direction: Direction }) {
   const drafts = useCommitmentComposerDraftStore((state) => state.drafts);
   const saveDraft = useCommitmentComposerDraftStore((state) => state.saveDraft);
   const clearDraft = useCommitmentComposerDraftStore((state) => state.clearDraft);
-  const [savedDraft] = useState(() => (draftKey ? drafts[draftKey] : undefined));
+  const [savedDraft, setSavedDraft] = useState(() => (draftKey ? drafts[draftKey] : undefined));
   const [draftDecision, setDraftDecision] = useState<"pending" | "decided">(
     savedDraft ? "pending" : "decided"
   );
   const [clientCommitmentId, setClientCommitmentId] = useState(
     () => savedDraft?.clientCommitmentId ?? crypto.randomUUID()
   );
+  // The key is who, where and which door. The viewer resolves after mount and
+  // the route can be reused for another garden, so the draft is re-resolved
+  // whenever the key moves: the new key's own draft is offered, and the old
+  // form values and client id are never saved under it.
+  const [resolvedKey, setResolvedKey] = useState(draftKey);
+  if (resolvedKey !== draftKey) {
+    setResolvedKey(draftKey);
+    const next = draftKey ? drafts[draftKey] : undefined;
+    setSavedDraft(next);
+    setDraftDecision(next ? "pending" : "decided");
+    setClientCommitmentId(next?.clientCommitmentId ?? crypto.randomUUID());
+  }
 
   const [beat, setBeat] = useState<Beat>("what");
   const [placed, setPlaced] = useState(false);
@@ -126,7 +156,9 @@ function ComposeCommitmentForm({ direction }: { direction: Direction }) {
     // An offer leads with garden work, an ask with help: the same two cards,
     // in the order each door's first visitor most often wants.
     kind: direction === "REQUEST" ? "SERVICE" : "GARDEN_WORK",
-    ...(direction === "OFFER" ? { unitLabel: "hours" } : {}),
+    ...(direction === "OFFER"
+      ? { unitLabel: formatMessage({ id: "app.compose.unit.hours" }) }
+      : {}),
   });
   // useWatch rather than form.watch: the React Compiler memoises this
   // component, and a read of the form's mutable values is invisible to it.
@@ -136,14 +168,16 @@ function ComposeCommitmentForm({ direction }: { direction: Direction }) {
   // Read in render so the form state proxy subscribes this component to it.
   const isDirty = form.formState.isDirty;
 
-  // Bind the one legal target without asking; a chooser appears in the what
-  // beat only when more than one cycle is open.
+  // Running on its own (cycleId "0") is always legal, so it is never rewritten.
+  // What does get rewritten is a draft bound to a cycle that has since closed:
+  // that value would fail on chain, so it falls back to running on its own and
+  // the what beat shows the choice again.
   useEffect(() => {
     if (draftDecision !== "decided") return;
-    if (openCycles.length === 0) return;
     const current = values.cycleId;
+    if (current === "0") return;
     if (openCycles.some((cycle) => cycle.cycleId.toString() === current)) return;
-    form.setValue("cycleId", openCycles[0]!.cycleId.toString(), { shouldValidate: true });
+    form.setValue("cycleId", "0", { shouldValidate: true });
   }, [openCycles, values.cycleId, form, draftDecision]);
 
   // Keep the device's copy current. Saving the defaults would leave a draft
@@ -180,8 +214,11 @@ function ComposeCommitmentForm({ direction }: { direction: Direction }) {
   );
   const onReadToEnd = useCallback(() => setReadToEnd(true), []);
 
+  // A paused pool takes nothing (PoolNotInState). The doors already know, but
+  // a deep link, a bookmark or a form left open while the pool paused do not.
+  const poolOpen = pool?.state === "OPEN";
   const place = async () => {
-    if (!pool || !viewer || !gardenAddress) return;
+    if (!pool || !poolOpen || !viewer || !gardenAddress) return;
     try {
       await jobs.enqueue({
         act: "create",
@@ -211,6 +248,8 @@ function ComposeCommitmentForm({ direction }: { direction: Direction }) {
         : "app.compose.place.request"
       : "app.compose.place.offer";
 
+  if (protocolBarred) return <Navigate to=".." replace />;
+
   if (placed) {
     return (
       <Shell onBack={() => navigate("..")} title={actTitle}>
@@ -238,7 +277,8 @@ function ComposeCommitmentForm({ direction }: { direction: Direction }) {
   }
 
   const isReview = beat === "review";
-  const primaryBlocked = !canAdvance || jobs.isPending || (isReview && (!pool || !readToEnd));
+  const primaryBlocked =
+    !canAdvance || jobs.isPending || (isReview && (!pool || !poolOpen || !readToEnd));
 
   return (
     <>

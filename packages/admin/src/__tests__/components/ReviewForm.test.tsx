@@ -2,7 +2,7 @@
  * @vitest-environment jsdom
  */
 
-import type { Address } from "@green-goods/shared";
+import type { Address, Work } from "@green-goods/shared";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { IntlProvider } from "react-intl";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -92,7 +92,7 @@ const messages = {
   "app.work.detail.verificationMethods": "Verification methods",
 };
 
-const TEST_WORK = {
+const TEST_WORK: Work = {
   id: "0xWork",
   title: "Mulch beds",
   actionUID: 1,
@@ -103,7 +103,7 @@ const TEST_WORK = {
   media: [],
   createdAt: 1_700_000_000,
   status: "pending",
-} as const;
+};
 
 function renderReviewForm(work = TEST_WORK) {
   return render(

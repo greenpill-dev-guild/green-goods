@@ -35,7 +35,13 @@ export type CommitmentJobInput =
   | { act: "evidence"; payload: EvidenceJobPayload }
   | { act: "workLink"; payload: Omit<WorkLinkJobPayload, "operationKey"> }
   | { act: "sendForConfirmation"; commitmentId: bigint; gardenAddress: Address }
-  | { act: "confirm"; commitmentId: bigint; gardenAddress: Address }
+  | {
+      act: "confirm";
+      commitmentId: bigint;
+      gardenAddress: Address;
+      /** The reader was seated through the commitment's named confirmer list. */
+      membershipNotRequired?: boolean;
+    }
   | { act: "create"; payload: Omit<CommitmentCreationPayload, "creationRequestKey"> };
 
 /**
@@ -99,6 +105,7 @@ export function useCommitmentJobs(options: { chainId?: number } = {}) {
               action: "confirm",
               commitmentId: input.commitmentId,
               gardenAddress: input.gardenAddress,
+              ...(input.membershipNotRequired ? { membershipNotRequired: true } : {}),
             },
             viewer,
             meta

@@ -13,6 +13,7 @@ export {
   useCommitmentSeries,
   useCommitmentSeriesDetail,
   useCommitmentWorkAttributionsForWork,
+  useLinkedWorkUIDs,
   useNeedCommitments,
   usePoolMemberHistory,
   usePoolParticipationSummary,
@@ -37,7 +38,13 @@ export {
   useCommitmentMetadataFor,
 } from "./useCommitmentMetadata";
 export type { CommitmentJobInput } from "./useCommitmentJobs";
+export { useCommitmentEvidence } from "./useCommitmentEvidence";
+export type { EvidenceAttributionRow, ResolvedEvidence } from "./useCommitmentEvidence";
 export { useCommitmentNotYetDraft } from "./useCommitmentNotYetDraft";
+export { useCommitmentViewerRoles } from "./useCommitmentViewerRoles";
+export type { CommitmentViewerRoles } from "./useCommitmentViewerRoles";
+export { useCommitmentProofDraft, useProofDraftSync } from "./useCommitmentProofDraft";
+export type { CommitmentProofDraftHandle, ProofDraftFiles } from "./useCommitmentProofDraft";
 export { useCommitmentReason } from "./useCommitmentReason";
 export { usePoolCharter } from "./usePoolCharter";
 export { usePoolClaimRequests } from "./usePoolClaimRequests";

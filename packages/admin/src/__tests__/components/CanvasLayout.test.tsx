@@ -8,7 +8,13 @@ import { createMemoryRouter, MemoryRouter, RouterProvider } from "react-router-d
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { act, renderWithProviders, screen, waitFor } from "../test-utils";
 import userEvent from "@testing-library/user-event";
-import { useSheetOrchestratorStore } from "@green-goods/shared";
+import {
+  type Address,
+  type AdminAccessState,
+  type EligibleAdminGardensResult,
+  type Garden,
+  useSheetOrchestratorStore,
+} from "@green-goods/shared";
 
 const {
   mockUseGardenUrlSync,
@@ -50,23 +56,133 @@ const {
   },
   mockEligibleAdminGardens: {
     current: {
-      eligibleGardens: [{ id: "garden-1", name: "Garden One", location: "Quito" }],
-      resolvedDefaultGarden: { id: "garden-1", name: "Garden One", location: "Quito" },
+      eligibleGardens: [
+        {
+          id: "garden-1",
+          chainId: 1,
+          tokenAddress: "0x1111111111111111111111111111111111111111",
+          tokenID: 1n,
+          name: "Garden One",
+          description: "",
+          location: "Quito",
+          bannerImage: "",
+          gardeners: [],
+          operators: [],
+          evaluators: [],
+          owners: [],
+          funders: [],
+          communities: [],
+          assessments: [],
+          works: [],
+          createdAt: 0,
+        },
+      ],
+      resolvedDefaultGarden: {
+        id: "garden-1",
+        chainId: 1,
+        tokenAddress: "0x1111111111111111111111111111111111111111",
+        tokenID: 1n,
+        name: "Garden One",
+        description: "",
+        location: "Quito",
+        bannerImage: "",
+        gardeners: [],
+        operators: [],
+        evaluators: [],
+        owners: [],
+        funders: [],
+        communities: [],
+        assessments: [],
+        works: [],
+        createdAt: 0,
+      },
       persistedGardenId: null,
       scopeKey: "0x123:10",
       canCreateGarden: true,
       isLoaded: true,
-    },
+      isError: false,
+      hasStaleBaseList: false,
+    } as EligibleAdminGardensResult,
   },
   mockAdminAccessState: {
     current: {
       status: "ready" as const,
-      eligibleGardens: [{ id: "garden-1", name: "Garden One", location: "Quito" }],
-      resolvedDefaultGarden: { id: "garden-1", name: "Garden One", location: "Quito" },
+      eligibleGardens: [
+        {
+          id: "garden-1",
+          chainId: 1,
+          tokenAddress: "0x1111111111111111111111111111111111111111",
+          tokenID: 1n,
+          name: "Garden One",
+          description: "",
+          location: "Quito",
+          bannerImage: "",
+          gardeners: [],
+          operators: [],
+          evaluators: [],
+          owners: [],
+          funders: [],
+          communities: [],
+          assessments: [],
+          works: [],
+          createdAt: 0,
+        },
+      ],
+      resolvedDefaultGarden: {
+        id: "garden-1",
+        chainId: 1,
+        tokenAddress: "0x1111111111111111111111111111111111111111",
+        tokenID: 1n,
+        name: "Garden One",
+        description: "",
+        location: "Quito",
+        bannerImage: "",
+        gardeners: [],
+        operators: [],
+        evaluators: [],
+        owners: [],
+        funders: [],
+        communities: [],
+        assessments: [],
+        works: [],
+        createdAt: 0,
+      },
       hasStaleBaseList: false,
-    },
+    } as AdminAccessState,
   },
 }));
+
+function createGardenFixture({
+  id = "garden-1",
+  name = "Garden One",
+  location = "Quito",
+  tokenAddress = "0x1111111111111111111111111111111111111111",
+}: {
+  id?: string;
+  name?: string;
+  location?: string;
+  tokenAddress?: Address;
+} = {}): Garden {
+  return {
+    id,
+    chainId: 1,
+    tokenAddress,
+    tokenID: 1n,
+    name,
+    description: "",
+    location,
+    bannerImage: "",
+    gardeners: [],
+    operators: [],
+    evaluators: [],
+    owners: [],
+    funders: [],
+    communities: [],
+    assessments: [],
+    works: [],
+    createdAt: 0,
+  };
+}
 
 vi.mock("@/components/Shell", () => ({
   NavigationBar: ({
@@ -331,12 +447,14 @@ describe("CanvasLayout", () => {
       signOut: vi.fn(),
     };
     mockEligibleAdminGardens.current = {
-      eligibleGardens: [{ id: "garden-1", name: "Garden One", location: "Quito" }],
-      resolvedDefaultGarden: { id: "garden-1", name: "Garden One", location: "Quito" },
+      eligibleGardens: [createGardenFixture()],
+      resolvedDefaultGarden: createGardenFixture(),
       persistedGardenId: null,
       scopeKey: "0x123:10",
       canCreateGarden: true,
       isLoaded: true,
+      isError: false,
+      hasStaleBaseList: false,
     };
     mockUseGardenUrlSync.mockReturnValue({
       gardenId: null,
@@ -441,18 +559,18 @@ describe("CanvasLayout", () => {
 
   it("switches gardens through the URL-aware selector", async () => {
     const user = userEvent.setup();
-    const gardenOne = {
+    const gardenOne = createGardenFixture({
       id: "garden-1",
       tokenAddress: "0x1111111111111111111111111111111111111111",
       name: "Garden One",
       location: "Quito",
-    };
-    const gardenTwo = {
+    });
+    const gardenTwo = createGardenFixture({
       id: "garden-2",
       tokenAddress: "0x2222222222222222222222222222222222222222",
       name: "Garden Two",
       location: "Lisbon",
-    };
+    });
     mockEligibleAdminGardens.current = {
       eligibleGardens: [gardenOne, gardenTwo],
       resolvedDefaultGarden: gardenOne,
@@ -460,6 +578,8 @@ describe("CanvasLayout", () => {
       scopeKey: "0x123:10",
       canCreateGarden: true,
       isLoaded: true,
+      isError: false,
+      hasStaleBaseList: false,
     };
 
     renderWithProviders(
@@ -595,6 +715,8 @@ describe("CanvasLayout", () => {
       scopeKey: "0x123:10",
       canCreateGarden: true,
       isLoaded: true,
+      isError: false,
+      hasStaleBaseList: false,
     };
 
     const user = userEvent.setup();
@@ -684,8 +806,8 @@ describe("CanvasShell access states", () => {
     vi.clearAllMocks();
     mockAdminAccessState.current = {
       status: "ready",
-      eligibleGardens: [{ id: "garden-1", name: "Garden One", location: "Quito" }],
-      resolvedDefaultGarden: { id: "garden-1", name: "Garden One", location: "Quito" },
+      eligibleGardens: [createGardenFixture()],
+      resolvedDefaultGarden: createGardenFixture(),
       hasStaleBaseList: false,
     };
   });

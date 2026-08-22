@@ -18,6 +18,12 @@ returned plan instead of inventing a broader command set. If the selector comman
 fails, fall back to the intent ladder and commands below and report the selector problem. A missing
 or failed selector never authorizes omitting a required check or critical override.
 
+For QA and checkpoint intent, inspect each check's `selectedBy` reasons before execution. A plan is
+invalid when routine test, story, or workspace-importer changes select an unrelated package suite,
+or when it omits the direct acceptance check for the changed artifact. Run the targeted acceptance
+proof, report the selector defect, and do not start the unrelated suite. This guard never downgrades
+a critical override or readiness, push, ship, merge, or release intent.
+
 Every selected check states:
 
 - **Risk** — the concrete regression, invariant, or acceptance criterion it covers.

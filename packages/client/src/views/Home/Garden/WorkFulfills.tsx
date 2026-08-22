@@ -1,6 +1,7 @@
 import {
   useCommitment,
   useCommitmentMetadataFor,
+  useCommitmentPool,
   useCommitmentWorkAttributionsForWork,
   useNavigateToTop,
 } from "@green-goods/shared";
@@ -33,9 +34,18 @@ export function WorkFulfills({ chainId, workUID, gardenId }: WorkFulfillsProps) 
     { enabled: Boolean(attribution) }
   );
   const metadata = useCommitmentMetadataFor(detail?.commitment);
+  // The commitment lives under the garden that owns its pool, which on the
+  // protocol pool is not the garden this work was submitted to. Opening it
+  // under the work's garden would have the detail screen derive names, roles
+  // and preflights from the wrong route.
+  const { pool } = useCommitmentPool(
+    { chainId, poolId: detail?.commitment.poolId ?? 0n },
+    { enabled: Boolean(detail?.commitment.poolId) }
+  );
   if (!attribution) return null;
 
   const commitment = detail?.commitment;
+  const commitmentGarden = pool?.garden ?? gardenId;
   const name =
     metadata?.title ??
     (commitment?.unitLabel
@@ -49,7 +59,9 @@ export function WorkFulfills({ chainId, workUID, gardenId }: WorkFulfillsProps) 
     <button
       type="button"
       onClick={() =>
-        navigateToTop(`/home/${gardenId}/commitments/${attribution.commitmentId.toString()}`)
+        navigateToTop(
+          `/home/${commitmentGarden}/commitments/${attribution.commitmentId.toString()}`
+        )
       }
       data-component="WorkFulfillsRow"
       className="w-full text-left tap-feedback"
