@@ -8,14 +8,12 @@ on:
     paths:
       - "docs/**"
       - "package.json"
-      - "bun.lock"
       - ".github/actions/setup-js/action.yml"
       - ".github/workflows/docs.yml"
   pull_request:
     paths:
       - "docs/**"
       - "package.json"
-      - "bun.lock"
       - ".github/actions/setup-js/action.yml"
       - ".github/workflows/docs.yml"
   workflow_dispatch:

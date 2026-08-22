@@ -113,13 +113,52 @@ test("raw Solidity source does not fan out to mocked consumer workflows", () => 
   }
 });
 
+test("lockfile-only changes stay on Supply Chain Guardrails", () => {
+  for (const file of [
+    "admin.yml",
+    "agent.yml",
+    "client.yml",
+    "contracts.yml",
+    "design.yml",
+    "docs.yml",
+    "indexer.yml",
+    "shared.yml",
+  ]) {
+    const outer = read(`.github/workflows/${file}`).split("permissions:", 1)[0];
+    assert.ok(!outer.includes('"bun.lock"'), `${file} must not run for lockfile-only changes`);
+  }
+
+  const supplyChain = read(".github/workflows/supply-chain-guardrails.yml").split(
+    "permissions:",
+    1,
+  )[0];
+  assert.equal(supplyChain.match(/- "bun\.lock"/g)?.length, 2);
+});
+
+test("consumer workflows exclude Shared tests and stories", () => {
+  for (const file of ["admin.yml", "agent.yml", "client.yml"]) {
+    const outer = read(`.github/workflows/${file}`).split("permissions:", 1)[0];
+    for (const pattern of [
+      "!packages/shared/**/__tests__/**",
+      "!packages/shared/**/*.test.*",
+      "!packages/shared/**/*.spec.*",
+      "!packages/shared/**/*.stories.*",
+      "!packages/shared/.storybook/**",
+    ]) {
+      const occurrences = outer.match(
+        new RegExp(pattern.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "g"),
+      )?.length;
+      assert.equal(occurrences, 2, `${file} must exclude ${pattern} for push and pull_request`);
+    }
+  }
+});
+
 test("Shared outer routing matches the internal shared-impact detector", () => {
   const source = read(".github/workflows/shared.yml");
   const outer = source.slice(0, source.indexOf("permissions:"));
 
   for (const required of [
     "package.json",
-    "bun.lock",
     "biome.json",
     ".env.schema",
     ".github/actions/setup-js/action.yml",
@@ -136,6 +175,8 @@ test("Shared outer routing matches the internal shared-impact detector", () => {
       `Shared push and pull_request routing must include ${required}`,
     );
   }
+
+  assert.ok(!outer.includes('"bun.lock"'), "Shared must not run for lockfile-only changes");
 
   for (const forbidden of [
     ".github/workflows/**",

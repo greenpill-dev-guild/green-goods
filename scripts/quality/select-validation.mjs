@@ -53,6 +53,68 @@ function normalizePaths(paths = []) {
   return [...new Set(paths.filter(Boolean).map(normalizePath))].sort();
 }
 
+const packageSurfaces = ["contracts", "shared", "indexer", "client", "admin", "agent"];
+const allSurfaces = [...packageSurfaces, "docs"];
+
+function owningSurface(path) {
+  if (path.startsWith("docs/")) return "docs";
+  return packageSurfaces.find((surface) => path.startsWith(`packages/${surface}/`)) ?? null;
+}
+
+function isTestPath(path) {
+  return /(^|\/)(__tests__|test|tests)\//.test(path) || /\.(test|spec)\.[cm]?[jt]sx?$/.test(path);
+}
+
+function isStoryPath(path) {
+  return (
+    /\.stories?\.[cm]?[jt]sx?$/.test(path) ||
+    path.includes("/.storybook/") ||
+    /(^|\/)storybook[^/]*\.[cm]?[jt]sx?$/i.test(path)
+  );
+}
+
+function isValidationOnlyPath(path) {
+  return isTestPath(path) || isStoryPath(path);
+}
+
+function classifyChangedPath(path) {
+  if (path === "bun.lock" || path === "bun.lockb") return "lockfile";
+  if (path === "package.json" || path.endsWith("/package.json")) return "package-manifest";
+  if (isStoryPath(path)) return "story";
+  if (isTestPath(path)) return "test";
+  if (
+    path.startsWith("packages/shared/src/") &&
+    (path.endsWith("/index.ts") || path === "packages/shared/src/index.ts")
+  ) {
+    return "public-source";
+  }
+  if (/^packages\/[^/]+\/src\//.test(path)) return "runtime-source";
+  if (["biome.json", ".env.schema", "tsconfig.json", "tsconfig.base.json"].includes(path)) {
+    return "root-config";
+  }
+  return "other";
+}
+
+function inferChangedTestPaths(paths) {
+  const inferred = {};
+  for (const path of paths) {
+    if (!isTestPath(path)) continue;
+    const surface = owningSurface(path);
+    if (!surface || surface === "docs") continue;
+    const prefix = `packages/${surface}/`;
+    (inferred[surface] ??= []).push(path.slice(prefix.length));
+  }
+  return inferred;
+}
+
+function mergeTestPaths(explicit, inferred) {
+  const merged = {};
+  for (const surface of new Set([...Object.keys(explicit), ...Object.keys(inferred)])) {
+    merged[surface] = [...(explicit[surface] ?? []), ...(inferred[surface] ?? [])];
+  }
+  return normalizeTestPaths(merged);
+}
+
 function checkpointScopes(requestedScope, intent, changedPaths, cancelled) {
   const requested = requestedScope ?? "workspace";
   if (!["lane", "workspace"].includes(requested)) {
@@ -66,8 +128,18 @@ function checkpointScopes(requestedScope, intent, changedPaths, cancelled) {
 }
 
 function groupMatches(path, rule) {
+  const exactMatch = rule.exact?.includes(path) ?? false;
+  const excluded =
+    !exactMatch &&
+    ((rule.excludeValidationOnlyFrom?.includes(owningSurface(path)) &&
+      isValidationOnlyPath(path)) ||
+      (rule.excludeTests === true && isTestPath(path)) ||
+      (rule.excludeExact?.includes(path) ?? false) ||
+      (rule.excludePrefixes?.some((prefix) => path.startsWith(prefix)) ?? false) ||
+      (rule.excludeContains?.some((part) => path.includes(part)) ?? false));
+  if (excluded) return false;
   const groups = [];
-  if (rule.exact?.length) groups.push(rule.exact.includes(path));
+  if (rule.exact?.length) groups.push(exactMatch);
   if (rule.prefixes?.length) groups.push(rule.prefixes.some((prefix) => path.startsWith(prefix)));
   if (rule.contains?.length) groups.push(rule.contains.some((part) => path.includes(part)));
   if (rule.extensions?.length) groups.push(rule.extensions.some((extension) => path.endsWith(extension)));
@@ -96,20 +168,31 @@ function effectiveIntent(policy, requestedIntent, ci) {
 }
 
 function impactedSurfaces(policy, paths, fullRepository) {
-  const all = ["contracts", "shared", "indexer", "client", "admin", "agent", "docs"];
-  if (fullRepository) return new Set(all);
+  if (fullRepository) return new Set(allSurfaces);
   if (paths.length === 0) return new Set();
 
   const surfaces = new Set();
-  for (const rule of policy.surfaceRules ?? []) {
-    if (!ruleMatches(paths, rule)) continue;
-    if (rule.surface === "all") all.forEach((surface) => surfaces.add(surface));
-    else surfaces.add(rule.surface);
+  for (const path of paths) {
+    for (const rule of policy.surfaceRules ?? []) {
+      if (!groupMatches(path, rule)) continue;
+      if (path === "bun.lock" && rule.surface === "all") continue;
+      const owner = owningSurface(path);
+      if (
+        isValidationOnlyPath(path) &&
+        owner &&
+        rule.surface !== "all" &&
+        rule.surface !== owner
+      ) {
+        continue;
+      }
+      if (rule.surface === "all") allSurfaces.forEach((surface) => surfaces.add(surface));
+      else surfaces.add(rule.surface);
+    }
   }
-  return surfaces;
+  return new Set(allSurfaces.filter((surface) => surfaces.has(surface)));
 }
 
-function addSurfaceChecks(ids, surface, { includeBuilds, intent }) {
+function addSurfaceChecks(select, surface, { includeBuilds, intent }) {
   const checks = {
     contracts: ["contracts-build", "contracts-test"],
     shared: ["shared-typecheck", "shared-test"],
@@ -127,8 +210,20 @@ function addSurfaceChecks(ids, surface, { includeBuilds, intent }) {
     agent: "agent-build",
   };
 
-  for (const id of checks[surface] ?? []) ids.add(id);
-  if (includeBuilds && builds[surface]) ids.add(builds[surface]);
+  for (const id of checks[surface] ?? []) select(id, `surface:${surface}`);
+  if (includeBuilds && builds[surface]) select(builds[surface], `surface:${surface}:build`);
+}
+
+function addValidationOnlyChecks(select, surface, paths) {
+  const testTypechecks = {
+    shared: "shared-test-typecheck",
+    client: "client-test-typecheck",
+    admin: "admin-test-typecheck",
+    agent: "agent-test-typecheck",
+  };
+  if (testTypechecks[surface]) select(testTypechecks[surface], `validation-only:${surface}:types`);
+  if (paths.some(isTestPath)) select(`${surface}-test`, `validation-only:${surface}:tests`);
+  if (paths.some(isStoryPath)) select("story-quality", `validation-only:${surface}:stories`);
 }
 
 function isUiBuildImpact(paths, surface) {
@@ -167,7 +262,10 @@ export function selectValidation(input = {}, options = {}) {
     changedPaths,
     input.cancelled,
   );
-  const testPaths = normalizeTestPaths(input.testPaths);
+  const testPaths = mergeTestPaths(
+    normalizeTestPaths(input.testPaths),
+    inferChangedTestPaths(changedPaths),
+  );
   const requestedChecks = normalizePaths(input.checkIds);
   const baseRisk = input.risk ?? "routine";
 
@@ -182,6 +280,11 @@ export function selectValidation(input = {}, options = {}) {
     head: input.head ?? null,
     workingCopyFingerprint: input.workingCopyFingerprint ?? null,
     changedPaths,
+    changes: changedPaths.map((path) => ({
+      path,
+      kind: classifyChangedPath(path),
+      surface: owningSurface(path),
+    })),
     testPaths,
     requestedChecks,
   };
@@ -218,27 +321,34 @@ export function selectValidation(input = {}, options = {}) {
     (intent === "merge" && !ci);
   const surfaces = impactedSurfaces(policy, changedPaths, fullRepository);
   const selected = new Set();
+  const selectionReasons = new Map();
+  const select = (id, reason) => {
+    selected.add(id);
+    const reasons = selectionReasons.get(id) ?? new Set();
+    reasons.add(reason);
+    selectionReasons.set(id, reasons);
+  };
   const evidenceOnly = ["diagnose", "review"].includes(intent);
   const hasAutomaticScope = changedPaths.length > 0 || fullRepository;
 
   const knownCheckIds = new Set(policy.checks.map((check) => check.id));
   for (const id of requestedChecks) {
     if (!knownCheckIds.has(id)) throw new Error(`Unknown requested validation check: ${id}`);
-    selected.add(id);
+    select(id, "explicit-request");
   }
 
-  if (!evidenceOnly && hasAutomaticScope) selected.add("format");
+  if (!evidenceOnly && hasAutomaticScope) select("format", "automatic-hygiene");
   if (
     intent === "qa" &&
     changedPaths.some((path) => [".js", ".jsx", ".mjs", ".cjs", ".ts", ".tsx"].some((extension) => path.endsWith(extension)))
   ) {
-    selected.add("lint");
+    select("lint", "automatic-hygiene");
   }
   if (
     hasAutomaticScope &&
     ["checkpoint", "readiness", "push", "ship", "merge", "release"].includes(intent)
   ) {
-    selected.add("lint");
+    select("lint", "automatic-hygiene");
   }
 
   const includeBuilds = ["readiness", "push", "ship", "merge", "release"].includes(intent);
@@ -246,42 +356,75 @@ export function selectValidation(input = {}, options = {}) {
     for (const surface of Object.keys(testPaths)) {
       const testId = `${surface}-test`;
       if (!knownCheckIds.has(testId)) throw new Error(`Unknown focused-test surface: ${surface}`);
-      selected.add(testId);
+      select(testId, `focused-test:${surface}`);
     }
   } else {
     for (const surface of surfaces) {
-      addSurfaceChecks(selected, surface, { includeBuilds, intent });
+      const surfacePaths = changedPaths.filter((path) => owningSurface(path) === surface);
+      const validationOnly =
+        surfacePaths.length > 0 && surfacePaths.every((path) => isValidationOnlyPath(path));
+      if (validationOnly) addValidationOnlyChecks(select, surface, surfacePaths);
+      else {
+        addSurfaceChecks(select, surface, { includeBuilds, intent });
+        if (
+          surfacePaths.some(isValidationOnlyPath) ||
+          surfacePaths.includes(`packages/${surface}/package.json`)
+        ) {
+          addValidationOnlyChecks(select, surface, surfacePaths);
+        }
+      }
       if (
         intent === "qa" &&
         ["client", "admin"].includes(surface) &&
         isUiBuildImpact(changedPaths, surface)
       ) {
-        selected.add(`${surface}-build`);
+        select(`${surface}-build`, `qa-build-impact:${surface}`);
       }
       if (
         intent === "qa" &&
         surface === "agent" &&
         changedPaths.some((path) => path.startsWith("packages/agent/src/"))
       ) {
-        selected.add("agent-build");
+        select("agent-build", "qa-build-impact:agent");
       }
     }
   }
 
   if (["readiness", "push", "ship", "release"].includes(intent)) {
-    selected.add("abi-artifacts");
-    selected.add("contracts-verify-fast");
+    select("abi-artifacts", "strict-intent");
+    select("contracts-verify-fast", "strict-intent");
+    for (const id of [
+      "shared-test-typecheck",
+      "client-test-typecheck",
+      "admin-test-typecheck",
+      "agent-test-typecheck",
+    ]) {
+      select(id, "strict-intent:test-types");
+    }
   }
   for (const rule of evidenceOnly ? [] : (policy.conditionalRules ?? [])) {
-    if (!ruleMatches(changedPaths, rule)) continue;
+    const matchingPaths = changedPaths.filter((path) => {
+      if (!groupMatches(path, rule)) return false;
+      if (rule.exact?.includes(path)) return true;
+      if (rule.check === "browser-proof" && isValidationOnlyPath(path)) return false;
+      if (rule.check === "ontology" && isValidationOnlyPath(path)) return false;
+      if (
+        ["source-structure", "design-guardrails"].includes(rule.check) &&
+        isValidationOnlyPath(path)
+      ) {
+        return false;
+      }
+      return true;
+    });
+    if (matchingPaths.length === 0) continue;
     if (intent === "qa" && !["browser-proof", "ontology"].includes(rule.check)) continue;
-    selected.add(rule.check);
+    select(rule.check, `conditional:${rule.check}`);
   }
 
   const mandatory = new Set();
   for (const rule of evidenceOnly ? [] : hardRules) {
     for (const id of rule.checks) {
-      selected.add(id);
+      select(id, "critical-override");
       mandatory.add(id);
     }
   }
@@ -293,11 +436,14 @@ export function selectValidation(input = {}, options = {}) {
   let checks = policy.checks
     .filter((check) => selected.has(check.id))
     .map((check) =>
-      materializeCheck(check, environment, mandatory.has(check.id), testPaths, {
-        intent,
-        ci,
-        changedPaths,
-        checkpointScope: checkpointScope.effective,
+      ({
+        ...materializeCheck(check, environment, mandatory.has(check.id), testPaths, {
+          intent,
+          ci,
+          changedPaths,
+          checkpointScope: checkpointScope.effective,
+        }),
+        selectedBy: [...(selectionReasons.get(check.id) ?? [])],
       }),
     );
   const toolchainBlockers = compareToolchain(policy.toolchain, environment.toolchain, checks);
@@ -458,7 +604,16 @@ export function selectExpectedWorkflows(input = {}, options = {}) {
   effectiveIntent(policy, input.intent ?? "merge", input.ci === true);
   const paths = normalizePaths(input.changedPaths);
   return Object.entries(policy.workflowRules ?? {})
-    .filter(([, rule]) => ruleMatches(paths, rule))
+    .filter(([name, rule]) =>
+      paths.some((path) => {
+        if (!groupMatches(path, rule)) return false;
+        if (rule.exact?.includes(path)) return true;
+        if (!isValidationOnlyPath(path)) return true;
+        if (name === "Supply Chain Guardrails") return true;
+        if (name === "Design" && isStoryPath(path)) return true;
+        return name.toLowerCase() === owningSurface(path);
+      }),
+    )
     .map(([name]) => name)
     .sort();
 }

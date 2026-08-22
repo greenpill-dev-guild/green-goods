@@ -74,6 +74,80 @@ test("a clean checkpoint is an explicit no-op", () => {
   assert.equal(plan.budget.automatedSeconds, 0);
 });
 
+test("test-only shared changes stay in Shared and select the direct typecheck", () => {
+  const changedPath = "packages/shared/src/__tests__/components/FormWizard.test.tsx";
+  const plan = selectValidation({
+    intent: "checkpoint",
+    checkpointScope: "lane",
+    changedPaths: [changedPath],
+  });
+
+  assert.deepEqual(plan.surfaces, ["shared"]);
+  assert.deepEqual(ids(plan), [
+    "format",
+    "lint",
+    "shared-test-typecheck",
+    "shared-test",
+  ]);
+  assert.equal(plan.checks.find((check) => check.id === "shared-test").command,
+    "bun run test src/__tests__/components/FormWizard.test.tsx");
+  assert.ok(!ids(plan).includes("client-test"));
+  assert.ok(!ids(plan).includes("ontology"));
+  assert.deepEqual(
+    selectExpectedWorkflows({ changedPaths: [changedPath], intent: "merge", ci: true }),
+    ["Shared", "Supply Chain Guardrails"],
+  );
+});
+
+test("story-only changes select story typing and quality without runtime or browser proof", () => {
+  const changedPath = "packages/admin/src/components/Layout/AccountSurface.stories.tsx";
+  const plan = selectValidation({ intent: "qa", changedPaths: [changedPath] });
+
+  assert.deepEqual(plan.surfaces, ["admin"]);
+  assert.deepEqual(plan.changes, [{ path: changedPath, kind: "story", surface: "admin" }]);
+  assert.deepEqual(ids(plan), ["format", "lint", "admin-test-typecheck", "story-quality"]);
+  assert.ok(!ids(plan).includes("admin-test"));
+  assert.ok(!ids(plan).includes("browser-proof"));
+  assert.deepEqual(
+    selectExpectedWorkflows({ changedPaths: [changedPath], intent: "merge", ci: true }),
+    ["Admin", "Design", "Supply Chain Guardrails"],
+  );
+});
+
+test("workspace package manifests contain lockfile impact to their owning surfaces", () => {
+  const changedPaths = ["bun.lock", "packages/admin/package.json", "packages/client/package.json"];
+  const plan = selectValidation({ intent: "checkpoint", changedPaths });
+
+  assert.deepEqual(plan.surfaces, ["client", "admin"]);
+  assert.ok(ids(plan).includes("admin-test"));
+  assert.ok(ids(plan).includes("client-test"));
+  for (const unrelated of [
+    "contracts-build",
+    "contracts-test",
+    "indexer-test",
+    "docs-build",
+    "agent-test",
+  ]) {
+    assert.ok(!ids(plan).includes(unrelated), unrelated);
+  }
+  assert.deepEqual(
+    selectExpectedWorkflows({ changedPaths, intent: "merge", ci: true }),
+    ["Admin", "Client", "Supply Chain Guardrails"],
+  );
+});
+
+test("a lockfile-only change stays on the dependency-integrity gate", () => {
+  const plan = selectValidation({ intent: "checkpoint", changedPaths: ["bun.lock"] });
+
+  assert.deepEqual(plan.surfaces, []);
+  assert.deepEqual(plan.changes, [{ path: "bun.lock", kind: "lockfile", surface: null }]);
+  assert.deepEqual(ids(plan), ["format", "lint", "supply-chain"]);
+  assert.deepEqual(
+    selectExpectedWorkflows({ changedPaths: ["bun.lock"], intent: "merge", ci: true }),
+    ["Supply Chain Guardrails"],
+  );
+});
+
 test("lane checkpoint scopes format and lint to explicitly supplied paths", () => {
   const plan = selectValidation({
     intent: "checkpoint",
@@ -662,7 +736,7 @@ test("workflow mapping preserves exact live and intended trigger parity", () => 
     ["packages/client/DESIGN-pwa.md", ["Client", "Design", "Supply Chain Guardrails"]],
     [
       "packages/shared/.storybook/preview.ts",
-      ["Admin", "Agent", "Client", "Design", "Shared", "Supply Chain Guardrails"],
+      ["Design", "Shared", "Supply Chain Guardrails"],
     ],
     ["scripts/data/design-token-usage-baseline.tsv", ["Design"]],
     ["scripts/quality/check-story-quality.ts", ["Design", "Supply Chain Guardrails"]],

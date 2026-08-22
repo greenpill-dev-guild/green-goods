@@ -74,14 +74,7 @@
     },
     {
       "surface": "all",
-      "exact": [
-        "package.json",
-        "bun.lock",
-        "biome.json",
-        ".env.schema",
-        "tsconfig.json",
-        "tsconfig.base.json"
-      ]
+      "exact": ["package.json", "biome.json", ".env.schema", "tsconfig.json", "tsconfig.base.json"]
     }
   ],
   "conditionalRules": [
@@ -139,7 +132,8 @@
         "packages/indexer/src/handlers/",
         "packages/client/src/components/Public/",
         "packages/client/src/views/Public/"
-      ]
+      ],
+      "excludeValidationOnlyFrom": ["shared"]
     },
     {
       "check": "supply-chain",
@@ -185,7 +179,7 @@
       "risk": "static defects cross package boundaries",
       "expectedSignal": "repository lint rules pass",
       "freshness": "exact-inputs",
-      "budgetSeconds": 45,
+      "budgetSeconds": 20,
       "stopRule": "stop-dependent-checks",
       "capabilities": ["dependencies"]
     },
@@ -208,6 +202,17 @@
       "expectedSignal": "shared TypeScript graph has no errors",
       "freshness": "exact-inputs-and-toolchain",
       "budgetSeconds": 45,
+      "stopRule": "stop-dependent-checks",
+      "capabilities": ["dependencies"]
+    },
+    {
+      "id": "shared-test-typecheck",
+      "command": "bun run typecheck:tests",
+      "cwd": "packages/shared",
+      "risk": "shared tests and stories no longer satisfy their strict TypeScript contract",
+      "expectedSignal": "shared test and story TypeScript graph has no errors",
+      "freshness": "exact-inputs-and-toolchain",
+      "budgetSeconds": 20,
       "stopRule": "stop-dependent-checks",
       "capabilities": ["dependencies"]
     },
@@ -235,6 +240,17 @@
       "capabilities": ["dependencies"]
     },
     {
+      "id": "client-test-typecheck",
+      "command": "bun run typecheck:tests",
+      "cwd": "packages/client",
+      "risk": "client tests and stories no longer satisfy their strict TypeScript contract",
+      "expectedSignal": "client test and story TypeScript graph has no errors",
+      "freshness": "exact-inputs-and-toolchain",
+      "budgetSeconds": 20,
+      "stopRule": "stop-dependent-checks",
+      "capabilities": ["dependencies"]
+    },
+    {
       "id": "client-test",
       "command": "bun run test",
       "cwd": "packages/client",
@@ -254,6 +270,17 @@
       "expectedSignal": "client production bundle succeeds",
       "freshness": "exact-inputs-toolchain-and-environment",
       "budgetSeconds": 75,
+      "stopRule": "stop-dependent-checks",
+      "capabilities": ["dependencies"]
+    },
+    {
+      "id": "admin-test-typecheck",
+      "command": "bun run typecheck:tests",
+      "cwd": "packages/admin",
+      "risk": "admin tests and stories no longer satisfy their strict TypeScript contract",
+      "expectedSignal": "admin test and story TypeScript graph has no errors",
+      "freshness": "exact-inputs-and-toolchain",
+      "budgetSeconds": 20,
       "stopRule": "stop-dependent-checks",
       "capabilities": ["dependencies"]
     },
@@ -300,6 +327,17 @@
       "expectedSignal": "agent TypeScript graph has no errors",
       "freshness": "exact-inputs-and-toolchain",
       "budgetSeconds": 45,
+      "stopRule": "stop-dependent-checks",
+      "capabilities": ["dependencies"]
+    },
+    {
+      "id": "agent-test-typecheck",
+      "command": "bun run typecheck:tests",
+      "cwd": "packages/agent",
+      "risk": "agent tests no longer satisfy their strict TypeScript contract",
+      "expectedSignal": "agent test TypeScript graph has no errors",
+      "freshness": "exact-inputs-and-toolchain",
+      "budgetSeconds": 20,
       "stopRule": "stop-dependent-checks",
       "capabilities": ["dependencies"]
     },
@@ -455,6 +493,16 @@
       "manual": true
     },
     {
+      "id": "story-quality",
+      "command": "bun run --filter @green-goods/shared check:stories && bun run --filter @green-goods/shared check:story-quality",
+      "risk": "Storybook coverage or agent-readable story contracts regress",
+      "expectedSignal": "story coverage and quality guardrails pass",
+      "freshness": "exact-inputs-and-toolchain",
+      "budgetSeconds": 10,
+      "stopRule": "stop-dependent-checks",
+      "capabilities": ["dependencies"]
+    },
+    {
       "id": "lighthouse-client",
       "command": "bunx lhci autorun",
       "cwd": "packages/client",
@@ -517,7 +565,6 @@
     "Admin": {
       "exact": [
         "package.json",
-        "bun.lock",
         "biome.json",
         ".env.schema",
         "playwright.config.ts",
@@ -537,24 +584,24 @@
         "tests/",
         "packages/contracts/abis/",
         "packages/contracts/deployments/"
-      ]
+      ],
+      "excludeValidationOnlyFrom": ["shared"]
     },
     "Agent": {
       "exact": [
         "package.json",
-        "bun.lock",
         "biome.json",
         ".env.schema",
         "scripts/quality/check-source-structure.js",
         ".github/actions/setup-js/action.yml",
         ".github/workflows/agent.yml"
       ],
-      "prefixes": ["packages/agent/", "packages/shared/"]
+      "prefixes": ["packages/agent/", "packages/shared/"],
+      "excludeValidationOnlyFrom": ["shared"]
     },
     "Client": {
       "exact": [
         "package.json",
-        "bun.lock",
         "biome.json",
         ".env.schema",
         "playwright.config.ts",
@@ -574,12 +621,12 @@
         "tests/",
         "packages/contracts/abis/",
         "packages/contracts/deployments/"
-      ]
+      ],
+      "excludeValidationOnlyFrom": ["shared"]
     },
     "Contracts": {
       "exact": [
         "package.json",
-        "bun.lock",
         ".env.schema",
         "scripts/lib/git-guardrails.mjs",
         "scripts/quality/check-source-structure.js",
@@ -594,7 +641,6 @@
         "CLAUDE.md",
         "DESIGN.md",
         "package.json",
-        "bun.lock",
         "docs/DESIGN.md",
         "docs/docs/builders/packages/admin.mdx",
         "docs/docs/builders/testing/storybook.mdx",
@@ -619,12 +665,12 @@
         "packages/shared/.storybook/",
         "packages/shared/src/",
         "scripts/design/"
-      ]
+      ],
+      "excludeTests": true
     },
     "Docs": {
       "exact": [
         "package.json",
-        "bun.lock",
         ".github/actions/setup-js/action.yml",
         ".github/workflows/docs.yml"
       ],
@@ -633,7 +679,6 @@
     "Indexer": {
       "exact": [
         "package.json",
-        "bun.lock",
         ".env.schema",
         "scripts/quality/check-source-structure.js",
         ".github/actions/setup-js/action.yml",
@@ -681,12 +726,12 @@
         "packages/indexer/src/handlers/",
         "packages/client/src/components/Public/",
         "packages/client/src/views/Public/"
-      ]
+      ],
+      "excludeValidationOnlyFrom": ["shared"]
     },
     "Shared": {
       "exact": [
         "package.json",
-        "bun.lock",
         "biome.json",
         ".env.schema",
         "scripts/quality/check-source-structure.js",
