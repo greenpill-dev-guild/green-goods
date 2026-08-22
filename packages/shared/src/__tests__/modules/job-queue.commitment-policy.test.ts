@@ -5,6 +5,7 @@ import {
   isTerminallyFailedJob,
   isWaitingReprobeThrottled,
 } from "../../modules/job-queue";
+import { isDiscardableJob } from "../../modules/job-queue/job-recovery";
 import { commitmentJobIdentity } from "../../modules/job-queue/queue-policy";
 import type { Job } from "../../types/job-queue";
 
@@ -75,5 +76,15 @@ describe("commitment queue retry policy", () => {
     );
     expect(isWaitingReprobeThrottled(waiting, 10_000 + COMMITMENT_WAITING_REPROBE_MS)).toBe(false);
     expect(waiting.attempts).toBe(0);
+  });
+});
+
+describe("discard safety", () => {
+  it("refuses to throw away a job whose transaction was already broadcast", () => {
+    // The record carries the creation request key. Deleting it means composing
+    // again files a second commitment once the first one materializes.
+    expect(isDiscardableJob(job({ meta: { submittedTxHash: "0xabc" } }))).toBe(false);
+    expect(isDiscardableJob(job({ meta: {} }))).toBe(true);
+    expect(isDiscardableJob(job({ synced: true, meta: {} }))).toBe(false);
   });
 });

@@ -5,6 +5,7 @@ import { queryKeys } from "../../config/query-keys";
 import { getOntologyChainMaturity } from "../../ontology/query";
 import type { DeclaredConsiderationInput } from "../../modules/commitment-pooling/jobs";
 import { pinCommitmentReason } from "../../modules/commitment-pooling/reasons";
+import { isDemoPoolingActive } from "../../modules/commitment-pooling/demo/demo-mode";
 import { selectCommitmentPoolingAvailability } from "../../modules/commitment-pooling/selectors";
 import type { Address } from "../../types/domain";
 import { isZeroAddress } from "../../utils/blockchain/address";
@@ -188,6 +189,11 @@ export function useCommitmentMutation(options: { chainId?: number } = {}) {
   return useMutation({
     mutationFn: async (input: CommitmentMutationInput) => {
       if (!sender) throw new Error("Transaction sender is unavailable");
+      // The reads are fixtures in demo mode but the sender is real, so an act
+      // composed against a fixture id must not reach the deployed module.
+      if (isDemoPoolingActive()) {
+        throw new Error("Commitment Pooling is in demo mode; this act is not sent");
+      }
       const availability = selectCommitmentPoolingAvailability(
         getOntologyChainMaturity("entity:commitment-pool", chainId)
       );

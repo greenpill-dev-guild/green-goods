@@ -39,22 +39,25 @@ export function ProofShell({ children, onBack, progress, bar }: ProofShellProps)
   );
 }
 
-export type ProofStateKind = "unavailable" | "loading" | "notYours" | "queued";
+export type ProofStateKind = "unavailable" | "loading" | "notYours" | "queued" | "error";
 
 /**
  * Every screen the composer shows that is not the form. Proof belongs to the
  * people doing the work, so anyone else reads a plain answer rather than a
  * form the chain would refuse; and once the proof is queued the screen says
- * what happens next in the reader's actual conditions.
+ * what happens next in the reader's actual conditions. A read that failed is
+ * its own answer, with a way to try again.
  */
 export function ProofState({
   kind,
   isOnline,
   onBack,
+  onRetry,
 }: {
   kind: ProofStateKind;
   isOnline: boolean;
   onBack: () => void;
+  onRetry?: () => void;
 }) {
   const { formatMessage } = useIntl();
   return (
@@ -65,6 +68,23 @@ export function ProofState({
           title={formatMessage({ id: "app.commitments.notReady.title" })}
           description={formatMessage({ id: "app.commitments.notReady.description" })}
         />
+      ) : kind === "error" ? (
+        <div className="flex flex-col items-center gap-3">
+          <EmptyState
+            icon={<RiWifiOffLine />}
+            title={formatMessage({ id: "app.commitment.error.title" })}
+            description={formatMessage({ id: "app.commitment.error.body" })}
+          />
+          {onRetry ? (
+            <button
+              type="button"
+              onClick={onRetry}
+              className="rounded-[var(--radius-lg)] bg-primary-action px-4 py-3 text-sm font-medium text-primary-action-foreground tap-target-lg"
+            >
+              {formatMessage({ id: "app.commitments.retry" })}
+            </button>
+          ) : null}
+        </div>
       ) : kind === "loading" ? (
         <p className="text-xs text-text-soft-400" role="status">
           {formatMessage({ id: "app.commitment.loading" })}

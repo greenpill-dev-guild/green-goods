@@ -27,7 +27,7 @@ export interface CommitmentReasonV1 {
   reason: string;
 }
 
-const MAX_REASON = 2000;
+export const MAX_REASON = 2000;
 
 function cleanReason(value: unknown): string | null {
   if (typeof value !== "string") return null;
@@ -36,10 +36,20 @@ function cleanReason(value: unknown): string | null {
   return collapsed.slice(0, MAX_REASON);
 }
 
-/** Build the document a reason surface writes. */
+/**
+ * Build the document a reason surface writes.
+ *
+ * Too long is refused rather than trimmed. What gets pinned becomes the
+ * on-chain record of why something happened, and silently dropping the tail
+ * would store different words than the member read before they confirmed.
+ * Reading is the lenient direction; writing is not.
+ */
 export function buildCommitmentReason(reason: string): CommitmentReasonV1 {
   const cleaned = cleanReason(reason);
   if (!cleaned) throw new Error("A reason is required");
+  if (typeof reason === "string" && reason.replace(/\s+/g, " ").trim().length > MAX_REASON) {
+    throw new Error(`A reason must be ${MAX_REASON} characters or fewer`);
+  }
   return { version: COMMITMENT_REASON_VERSION, reason: cleaned };
 }
 

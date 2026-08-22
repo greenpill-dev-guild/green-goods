@@ -1,4 +1,10 @@
-import { type Address, AddressDisplay, cn, formatAddress } from "@green-goods/shared";
+import {
+  type Address,
+  AddressDisplay,
+  cn,
+  formatAddress,
+  MAX_EVIDENCE_LINKS,
+} from "@green-goods/shared";
 import { RiAddLine, RiCloseLine } from "@remixicon/react";
 import { useState } from "react";
 import { useIntl } from "react-intl";
@@ -45,9 +51,13 @@ export function ProofDetails({
 
   const isCredited = (address: Address) =>
     credited.some((entry) => entry.toLowerCase() === address.toLowerCase());
+  // The pinned document keeps only the first MAX_EVIDENCE_LINKS, so the limit
+  // is held here instead: a link that would be dropped is never accepted, and
+  // the member is not told their proof was saved whole when it was not.
+  const linksFull = links.length >= MAX_EVIDENCE_LINKS;
   const addLink = () => {
     const url = pendingLink.trim();
-    if (!url) return;
+    if (!url || linksFull) return;
     onLinks([...links, url]);
     setPendingLink("");
   };
@@ -157,7 +167,7 @@ export function ProofDetails({
           <button
             type="button"
             onClick={addLink}
-            disabled={pendingLink.trim().length === 0}
+            disabled={pendingLink.trim().length === 0 || linksFull}
             className="flex shrink-0 items-center gap-1 rounded-[var(--radius-lg)] border border-stroke-soft-200 px-3 text-sm font-medium text-text-strong-950 tap-target-lg disabled:opacity-60"
           >
             <RiAddLine className="h-4 w-4" aria-hidden="true" />

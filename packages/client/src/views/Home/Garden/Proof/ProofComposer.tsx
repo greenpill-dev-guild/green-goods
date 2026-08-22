@@ -15,7 +15,7 @@ import {
   usePrimaryAddress,
 } from "@green-goods/shared";
 import { RiCameraFill, RiImageFill, RiMicLine, RiStopFill } from "@remixicon/react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate, useParams } from "react-router-dom";
 
@@ -58,7 +58,7 @@ export function ProofComposer() {
     }
   }, [commitmentIdParam]);
 
-  const { detail, isLoading, availability } = useCommitment({
+  const { detail, isLoading, isError, refetch, availability } = useCommitment({
     chainId,
     commitmentId: commitmentId ?? 0n,
   });
@@ -85,6 +85,11 @@ export function ProofComposer() {
   } = useAudioRecording({
     onRecordingComplete: (file) => setAudioNotes((current) => [...current, file]),
   });
+
+  // This screen creates preview URLs in the `proof` scope on the review beat,
+  // after ProofMedia has unmounted. Only a successful submit released them, so
+  // walking away from review left every photo's blob alive.
+  useEffect(() => () => mediaResourceManager.cleanupUrls("proof"), []);
 
   const back = () => navigate("..", { relative: "path" });
 
@@ -214,6 +219,14 @@ export function ProofComposer() {
     return <ProofState kind="unavailable" isOnline={isOnline} onBack={back} />;
   }
   if (isLoading) return <ProofState kind="loading" isOnline={isOnline} onBack={back} />;
+  // A failed read is not an answer about who this belongs to. Reporting it as
+  // "not yours" tells the provider they lack permission and offers no way out,
+  // so the read failure is named first and can be tried again.
+  if (isError || (!detail && !isLoading)) {
+    return (
+      <ProofState kind="error" isOnline={isOnline} onBack={back} onRetry={() => void refetch()} />
+    );
+  }
   // Proof belongs to the people doing the work. Anyone else who lands here
   // reads a plain answer rather than a form the chain would refuse.
   if (!detail || (seat !== "provider" && seat !== "contributor")) {
@@ -307,7 +320,11 @@ export function ProofComposer() {
             onRemoveAudio={(index) =>
               setAudioNotes((current) => current.filter((_, i) => i !== index))
             }
-            onPreview={setPreviewIndex}
+            // ProofMedia counts across every item; the preview only holds
+            // photos, so a video earlier in the list would shift the rest.
+            onPreview={(index) =>
+              setPreviewIndex(media.slice(0, index).filter((file) => !isVideoFile(file)).length)
+            }
           />
         ) : null}
         {beat === "details" ? (

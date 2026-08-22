@@ -69,6 +69,17 @@ function commitment(overrides: Record<string, unknown> = {}) {
   };
 }
 
+/**
+ * The hook asks two different questions: what each stewarded garden must
+ * confirm, and what the reader is already a party to. The fixture answers them
+ * apart so a row cannot be filtered out by its own garden's reply.
+ */
+function answerWith(gardenRows: unknown[], ownRows: unknown[] = []) {
+  mocks.getCommitments.mockImplementation(async (input: { account?: string }) =>
+    input.account?.toLowerCase() === VIEWER.toLowerCase() ? ownRows : gardenRows
+  );
+}
+
 async function toConfirm() {
   const { result } = renderHookWithProviders(() =>
     useCommitmentsToConfirm({ chainId: 42161, viewer: VIEWER })
@@ -88,12 +99,13 @@ describe("useCommitmentsToConfirm", () => {
       garden(GARDEN_A, "Rocinha", { operators: [VIEWER] }),
       garden(GARDEN_B, "Awka", { owners: [OTHER] }),
     ];
-    mocks.getCommitments.mockResolvedValue([commitment()]);
+    answerWith([commitment()]);
 
     const result = await toConfirm();
 
     expect(result.current.isSteward).toBe(true);
-    expect(mocks.getCommitments).toHaveBeenCalledTimes(1);
+    // The stewarded garden, plus the reader's own set that keeps team rows out.
+    expect(mocks.getCommitments).toHaveBeenCalledTimes(2);
     expect(mocks.getCommitments).toHaveBeenCalledWith({
       chainId: 42161,
       account: GARDEN_A,
@@ -118,7 +130,7 @@ describe("useCommitmentsToConfirm", () => {
 
   it("lists only what a steward can confirm for the garden", async () => {
     mocks.gardens = [garden(GARDEN_A, "Rocinha", { owners: [VIEWER] })];
-    mocks.getCommitments.mockResolvedValue([
+    answerWith([
       // The garden took this up: its stewards confirm (CreditLib.isOrdinaryConfirmer).
       commitment(),
       // The garden offered this one; somebody else confirms it.
@@ -157,14 +169,21 @@ describe("useCommitmentsToConfirm", () => {
 
   it("leaves out what already sits in the reader's own inbox", async () => {
     mocks.gardens = [garden(GARDEN_A, "Rocinha", { operators: [VIEWER] })];
-    mocks.getCommitments.mockResolvedValue([
-      // The steward offered this to their own garden: they are the provider
-      // and cannot confirm it, and it is already in Live.
-      commitment({ creator: VIEWER, leadProvider: VIEWER }),
-      // Named personally as well as through the garden: Live has it.
-      commitment({ id: "42161-10", commitmentId: 10n, confirmers: [VIEWER] }),
-      commitment({ id: "42161-11", commitmentId: 11n }),
-    ]);
+    answerWith(
+      [
+        // The steward offered this to their own garden: they are the provider
+        // and cannot confirm it, and it is already in Live.
+        commitment({ creator: VIEWER, leadProvider: VIEWER }),
+        // Named personally as well as through the garden: Live has it.
+        commitment({ id: "42161-10", commitmentId: 10n, confirmers: [VIEWER] }),
+        commitment({ id: "42161-11", commitmentId: 11n }),
+        // On the team as well as a steward. Only the account-scoped set knows,
+        // because the roster is not loaded at list scope — and the contract
+        // refuses a contributor's confirmation with SelfConfirmation.
+        commitment({ id: "42161-12", commitmentId: 12n }),
+      ],
+      [commitment({ id: "42161-12", commitmentId: 12n })]
+    );
 
     const result = await toConfirm();
 

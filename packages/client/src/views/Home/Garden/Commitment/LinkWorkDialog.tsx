@@ -60,10 +60,19 @@ export function LinkWorkDialog({
           : "app.commitment.work.statusOther",
     });
 
+  // The contract pairs a work with a row of the same action and rejects any
+  // other pairing with `WorkActionMismatch`, so only the rows that match the
+  // chosen work are offered. With exactly one match the row needs no choice.
+  const chosenWork = works.find((work) => work.id === workUID) ?? null;
+  const eligibleRows = chosenWork
+    ? requirements.filter((row) => Number(row.actionUID) === Number(chosenWork.actionUID))
+    : requirements;
   const chosenRow =
-    requirementIndex === null
-      ? null
-      : (requirements.find((row) => row.requirementIndex === requirementIndex) ?? null);
+    eligibleRows.length === 1
+      ? eligibleRows[0]
+      : requirementIndex === null
+        ? null
+        : (eligibleRows.find((row) => row.requirementIndex === requirementIndex) ?? null);
   const canConfirm = Boolean(workUID) && chosenRow !== null && !isPending;
 
   return (
@@ -132,7 +141,7 @@ export function LinkWorkDialog({
           </fieldset>
         )}
 
-        {requirements.length > 1 ? (
+        {eligibleRows.length > 1 ? (
           <div>
             <label className="block text-sm font-medium text-text-strong-950" htmlFor="link-row">
               {formatMessage({ id: "app.commitment.link.row" })}
@@ -146,7 +155,7 @@ export function LinkWorkDialog({
               className="mt-1.5 w-full rounded-[var(--radius-lg)] border border-stroke-soft-200 bg-bg-weak-50 p-3 text-sm text-text-strong-950"
             >
               <option value="">{formatMessage({ id: "app.commitment.link.rowChoose" })}</option>
-              {requirements.map((row) => (
+              {eligibleRows.map((row) => (
                 <option key={row.id} value={row.requirementIndex}>
                   {formatMessage(
                     { id: "app.commitment.link.rowOption" },

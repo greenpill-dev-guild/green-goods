@@ -17,6 +17,7 @@
 
 import { useQueries } from "@tanstack/react-query";
 import { useMemo } from "react";
+import { queryKeys } from "../../config/query-keys";
 
 import {
   type CycleMetadataNameResolution,
@@ -31,8 +32,7 @@ const MISSING: CycleMetadataNameResolution = { status: "missing", name: null };
  * on every chain. Declared here beside the queue-state key rather than in the
  * registry, which this lane does not own.
  */
-const cycleMetadataKey = (cid: string) =>
-  ["greengoods", "commitment-pooling", "cycle-metadata", cid] as const;
+const cycleMetadataKey = (cid: string) => queryKeys.commitmentPooling.cycleMetadata(cid);
 
 function resolvableCID(cid: string | null | undefined): string | null {
   if (!cid) return null;

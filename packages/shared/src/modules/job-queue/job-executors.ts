@@ -18,6 +18,7 @@ import {
   type CommitmentJobPayloadMap,
   type CommitmentSeriesJobPayload,
 } from "../commitment-pooling/jobs";
+import { isDemoPoolingActive } from "../commitment-pooling/demo/demo-mode";
 import { publishPendingEvidence } from "./evidence-publisher";
 import type { Address } from "../../types/domain";
 import {
@@ -333,6 +334,11 @@ export async function executeCommitmentQueueJob(
   chainId: number,
   sender: TransactionSender
 ): Promise<CommitmentQueueExecution> {
+  // Demo mode answers reads from fixtures, but the sender is real: dev mock
+  // auth reports `wallet`, so a connected wallet would sign a call built from
+  // fixture ids against the deployed module. The act waits instead, which is
+  // also the state the demo walk wants to show.
+  if (isDemoPoolingActive()) return { status: "waiting", reason: "demo-mode" };
   const moduleAddress = getNetworkContracts(chainId).commitmentPoolingModule;
   const published =
     job.kind === "evidence"

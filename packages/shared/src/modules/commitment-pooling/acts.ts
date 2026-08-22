@@ -124,9 +124,17 @@ export function canJoinTeam(input: {
     "derivedState" | "contributorPolicy" | "contributorsFrozen"
   >;
   seat: CommitmentSeat | null;
+  /**
+   * Whether the reader holds a role in the garden providing the work. An open
+   * policy opens the team to that garden's people, not to everyone: the
+   * contract refuses a contributor from outside it, so a reader who is not a
+   * member is offered nothing rather than an act that reverts.
+   */
+  isGardenMember: boolean;
 }): boolean {
-  const { commitment, seat } = input;
+  const { commitment, seat, isGardenMember } = input;
   if (seat !== "bystander") return false;
+  if (!isGardenMember) return false;
   if (commitment.contributorsFrozen) return false;
   if (commitment.contributorPolicy !== "OPEN") return false;
   return IN_PROGRESS.has(commitment.derivedState);

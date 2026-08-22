@@ -156,7 +156,11 @@ vi.mock("@green-goods/shared", async () => {
     useCommitmentClaimRequests: () => mockUseClaimRequests(),
     useCommitmentPool: () => mockUsePool(),
     useHasRole: (...args: unknown[]) => mockUseHasRole(...args),
-    useGardens: () => ({ data: [{ id: GARDEN, name: "Rocinha Community Garden" }] }),
+    // The reader is a gardener here: joining a team is open to the garden's
+    // people, and the contract refuses a contributor from outside it.
+    useGardens: () => ({
+      data: [{ id: GARDEN, name: "Rocinha Community Garden", gardeners: [VIEWER], operators: [] }],
+    }),
     useCommitmentReason: (cid: string | null) => mockUseReason(cid),
     useOffline: () => mockUseOffline(),
   };
@@ -826,7 +830,10 @@ describe("GardenCommitment", () => {
     expect(screen.getAllByRole("button", { name: "Link work" })).toHaveLength(1);
   });
 
-  it("links one of the member's own works at the exact row, and queues it", async () => {
+  it("binds the work to the only row its action can fulfil, and queues it", async () => {
+    // The contract pairs a work with a row of the same action and rejects any
+    // other pairing with WorkActionMismatch. This work is action 44, so row 1
+    // (action 45) is never on offer and the single match needs no choice.
     const user = userEvent.setup();
     mockUseWorks.mockReturnValue({ works: [work()] });
     mockUseCommitment.mockReturnValue(
@@ -841,9 +848,39 @@ describe("GardenCommitment", () => {
 
     await user.click(screen.getByRole("button", { name: "Link work" }));
     expect(screen.getByText("Link work to this commitment")).toBeInTheDocument();
-    // Two rows, so the row is a choice; repeated actions never fall back to first-match.
     expect(screen.getByRole("button", { name: "Link this work" })).toBeDisabled();
     await user.click(screen.getByRole("radio", { name: /Prune the north beds/ }));
+    expect(screen.queryByLabelText("Which row it fulfils")).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Link this work" }));
+
+    expect(mockEnqueue).toHaveBeenCalledWith({
+      act: "workLink",
+      payload: {
+        clientOperationId: expect.any(String),
+        commitmentId: 9n,
+        workUID: WORK,
+        requirementIndex: 0,
+        gardenAddress: GARDEN,
+      },
+    });
+  });
+
+  it("still asks which row when the same action repeats", async () => {
+    const user = userEvent.setup();
+    mockUseWorks.mockReturnValue({ works: [work()] });
+    mockUseCommitment.mockReturnValue(
+      detail({
+        requirements: [
+          { id: "r0", requirementIndex: 0, actionUID: 44n, requiredCount: 2, approvedCount: 0 },
+          { id: "r1", requirementIndex: 1, actionUID: 44n, requiredCount: 1, approvedCount: 0 },
+        ],
+      })
+    );
+    render();
+
+    await user.click(screen.getByRole("button", { name: "Link work" }));
+    await user.click(screen.getByRole("radio", { name: /Prune the north beds/ }));
+    // Both rows fulfil action 44, so repeated actions never fall back to first-match.
     await user.selectOptions(screen.getByLabelText("Which row it fulfils"), "1");
     await user.click(screen.getByRole("button", { name: "Link this work" }));
 

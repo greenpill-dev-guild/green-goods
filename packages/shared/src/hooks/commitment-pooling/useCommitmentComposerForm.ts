@@ -48,14 +48,28 @@ export const MAX_COMMITMENT_REQUIREMENTS = 40;
 /** A decimal action UID. Zero is a real action in the registry. */
 const actionUIDSchema = z.string().regex(/^\d+$/, "Choose an action");
 
+/** `requiredCount` is a contract uint32; a larger number cannot be encoded. */
+const MAX_REQUIRED_COUNT = 4_294_967_295;
+
 const requirementSchema = z.object({
   actionUID: actionUIDSchema,
-  requiredCount: z.number().int().min(1, "Needs a count of at least 1"),
+  requiredCount: z
+    .number()
+    .int()
+    .min(1, "Needs a count of at least 1")
+    .max(MAX_REQUIRED_COUNT, "That count is too large"),
 });
 
-const webLink = z.string().trim().url("Enter a web address").startsWith("http", {
-  message: "Enter a web address",
-});
+/**
+ * Only real http(s) addresses. A generic URL check accepts any scheme, and a
+ * `startsWith("http")` test also passes `httpx://`, which the metadata builder
+ * then drops — so the pinned document would differ from what was approved.
+ */
+const webLink = z
+  .string()
+  .trim()
+  .url("Enter a web address")
+  .refine((value) => /^https?:\/\//i.test(value), { message: "Enter a web address" });
 
 /** Static English; the view renders its own translated messages. */
 export const commitmentComposerSchema = z

@@ -88,6 +88,11 @@ export const CommitmentsDrawer: React.FC<CommitmentsDrawerProps> = ({ isOpen, on
       : []),
   ];
 
+  // The drawer stays mounted, so a steward who loses the role (or switches
+  // account) while To confirm is selected would reopen it with a tab that no
+  // longer exists and no panel under it. Fall back to the tab that always does.
+  const selectedTab = tabs.some((tab) => tab.id === activeTab) ? activeTab : "live";
+
   return (
     <ModalDrawer
       isOpen={isOpen}
@@ -97,15 +102,15 @@ export const CommitmentsDrawer: React.FC<CommitmentsDrawerProps> = ({ isOpen, on
         description: formatMessage({ id: "app.commitments.subtitle" }),
       }}
       tabs={tabs}
-      activeTab={activeTab}
+      activeTab={selectedTab}
       onTabChange={setActiveTab}
       contentClassName="flex min-h-0 flex-col overflow-hidden p-0"
       maxHeight="95vh"
     >
-      {activeTab === "live" && (
+      {selectedTab === "live" && (
         <LiveTab inbox={inbox} pools={pools} gardens={gardens} onOpenCommitment={openCommitment} />
       )}
-      {activeTab === "over-time" && (
+      {selectedTab === "over-time" && (
         <OverTimeTab
           inbox={inbox}
           pools={pools}
@@ -114,7 +119,7 @@ export const CommitmentsDrawer: React.FC<CommitmentsDrawerProps> = ({ isOpen, on
           onOpenCommitment={openCommitment}
         />
       )}
-      {activeTab === "to-confirm" && toConfirm.isSteward && (
+      {selectedTab === "to-confirm" && toConfirm.isSteward && (
         <ToConfirmTab toConfirm={toConfirm} onOpenCommitment={openCommitment} />
       )}
     </ModalDrawer>

@@ -1,6 +1,6 @@
 import { cn, useWindowEvent } from "@green-goods/shared";
 import { RiAddLine, RiCloseLine } from "@remixicon/react";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 
 export type CommitmentDoor = "offer" | "request";
@@ -24,6 +24,11 @@ export function PoolCreateEntry({ onChoose }: PoolCreateEntryProps) {
   const { formatMessage } = useIntl();
   const [open, setOpen] = useState(false);
   const entryRef = useRef<HTMLButtonElement>(null);
+  const firstChoiceRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    if (open) firstChoiceRef.current?.focus();
+  }, [open]);
 
   const close = () => {
     setOpen(false);
@@ -60,6 +65,10 @@ export function PoolCreateEntry({ onChoose }: PoolCreateEntryProps) {
           <>
             <button
               type="button"
+              // The choices sit above the toggle in the DOM, so Tab from the
+              // toggle would leave the menu entirely. Opening moves focus to
+              // the first choice; Escape and the toggle return it.
+              ref={firstChoiceRef}
               onClick={() => onChoose("offer")}
               className="rounded-full bg-bg-white-0 px-5 py-3 text-sm font-medium text-text-strong-950 shadow-md tap-target-lg"
             >

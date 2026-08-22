@@ -1,4 +1,4 @@
-import { Alert, DialogShell } from "@green-goods/shared";
+import { Alert, DialogShell, MAX_REASON } from "@green-goods/shared";
 import { useState } from "react";
 import { useIntl } from "react-intl";
 
@@ -61,6 +61,9 @@ export function WithdrawDialog({
           value={reason}
           onChange={(event) => setReason(event.target.value)}
           rows={3}
+          // Matches the pinned document's limit, so the words that are stored
+          // are the words that were on screen.
+          maxLength={MAX_REASON}
           className="w-full rounded-[var(--radius-lg)] border border-stroke-soft-200 bg-bg-weak-50 p-3 text-sm text-text-strong-950"
           placeholder={formatMessage({ id: "app.commitment.withdraw.reasonPlaceholder" })}
         />

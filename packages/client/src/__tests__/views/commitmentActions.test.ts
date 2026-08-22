@@ -127,20 +127,38 @@ describe("selectCommitmentAct", () => {
 
 describe("canJoinTeam", () => {
   it("invites only an unrelated reader, and only while the team is open", () => {
-    expect(canJoinTeam({ commitment: base, seat: "bystander" })).toBe(true);
-    expect(canJoinTeam({ commitment: base, seat: "provider" })).toBe(false);
+    expect(canJoinTeam({ commitment: base, seat: "bystander", isGardenMember: true })).toBe(true);
+    expect(canJoinTeam({ commitment: base, seat: "provider", isGardenMember: true })).toBe(false);
     expect(
-      canJoinTeam({ commitment: { ...base, contributorsFrozen: true }, seat: "bystander" })
+      canJoinTeam({
+        commitment: { ...base, contributorsFrozen: true },
+        seat: "bystander",
+        isGardenMember: true,
+      })
     ).toBe(false);
     expect(
-      canJoinTeam({ commitment: { ...base, contributorPolicy: "LEAD_MANAGED" }, seat: "bystander" })
+      canJoinTeam({
+        commitment: { ...base, contributorPolicy: "LEAD_MANAGED" },
+        seat: "bystander",
+        isGardenMember: true,
+      })
     ).toBe(false);
   });
 
   it("does not invite anyone onto a commitment that has already ended", () => {
     expect(
-      canJoinTeam({ commitment: { ...base, derivedState: "FULFILLED" }, seat: "bystander" })
+      canJoinTeam({
+        commitment: { ...base, derivedState: "FULFILLED" },
+        seat: "bystander",
+        isGardenMember: true,
+      })
     ).toBe(false);
+  });
+
+  it("does not invite someone with no role in the garden doing the work", () => {
+    // An open team is open to the garden's people. The contract refuses a
+    // contributor from outside it, so the button never appears for them.
+    expect(canJoinTeam({ commitment: base, seat: "bystander", isGardenMember: false })).toBe(false);
   });
 });
 
