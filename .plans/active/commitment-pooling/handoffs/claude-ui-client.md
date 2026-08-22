@@ -214,3 +214,20 @@ attribution rather than `meta.commitmentId` (decision 6). Settlement, considerat
 saved-Offer bullets: out of this lane (D2 for saved Offers). Rendered proof: pool tab and sheet
 live; detail/compose/proof/confirm/claim/team/To confirm pending an open pool and the hosted Envio
 deployment; real offline and real-device passes BLOCKED (report has the reasons).
+
+## Review outcome, 2026-08-21 (added after the D1 table above)
+
+PR #749 was reviewed at `603163d7b` and came back **REQUEST_CHANGES**, recorded in
+`reports/client-loop-review-2026-08-21.md`. Two defects block, both about which garden an act
+carries or trusts:
+
+1. Claims and confirmations take their garden from the route (`GardenCommitment.tsx:208,438`) while
+   the protocol pool is only listed under its host (`views/Home/Garden/index.tsx:170`). The garden
+   door therefore always sends the one context `AcceptanceLib.sol:88` rejects, and a non-host member
+   parks forever on `membership-unavailable` with no way to retry.
+2. Demo mode's availability short-circuit (`selectors.ts:16`) is trusted by the queue and the
+   mutations, so a dev build with a real signer can send real commitment transactions against
+   fixture state. Production builds are clean — this is a dev-only hole, verified against the bundle.
+
+Neither is fixed on the branch. Whoever picks this lane up next should read the review before D2:
+the claim/confirm garden is the same code D2's ongoing-Offer path will build on.
