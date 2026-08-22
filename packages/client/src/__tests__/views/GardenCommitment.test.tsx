@@ -114,6 +114,7 @@ const render = () =>
     <MemoryRouter initialEntries={[`/home/${GARDEN}/commitments/9`]}>
       <Routes>
         <Route path="/home/:id/commitments/:commitmentId" element={<GardenCommitment />} />
+        <Route path="/home/:id/commitments/:commitmentId/proof" element={<p>Proof composer</p>} />
       </Routes>
     </MemoryRouter>
   );
@@ -131,6 +132,14 @@ describe("GardenCommitment", () => {
     render();
     expect(screen.getByText("Keep this moving")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Add proof" })).toBeInTheDocument();
+  });
+
+  it("opens the proof composer from Add proof instead of leaving the commitment", async () => {
+    const user = userEvent.setup();
+    render();
+
+    await user.click(screen.getByRole("button", { name: "Add proof" }));
+    expect(screen.getByText("Proof composer")).toBeInTheDocument();
   });
 
   it("never offers a provider the confirmation of their own commitment", () => {

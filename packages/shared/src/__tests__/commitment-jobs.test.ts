@@ -536,6 +536,32 @@ describe("membership preflight covers every membership-gated act", () => {
   });
 });
 
+describe("proof is attached only once it has a CID", () => {
+  it("holds an evidence job whose document has not been published yet", async () => {
+    const send = vi.fn();
+    const result = await executeCommitmentJob(
+      {
+        id: "job-proof",
+        kind: "evidence",
+        payload: {
+          clientEvidenceId: "proof-1",
+          commitmentId: 9n,
+          creditedContributors: [HOLDER],
+          gardenAddress: GARDEN,
+          note: "Beds cleared",
+        },
+        chainId: 42161,
+        moduleAddress: MODULE,
+        userAddress: HOLDER,
+      },
+      dependencies({ hasMembership: vi.fn().mockResolvedValue(true), send })
+    );
+
+    expect(result).toEqual({ status: "waiting", reason: "evidence-unpublished" });
+    expect(send).not.toHaveBeenCalled();
+  });
+});
+
 describe("queue identity for acts that name a commitment", () => {
   async function drain() {
     for (const job of await jobQueueDB.getAllJobsUnfiltered()) {

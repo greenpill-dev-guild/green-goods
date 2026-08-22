@@ -92,10 +92,24 @@ export interface ClaimJobPayload extends MembershipGatedJobPayload {
   gardenContext: Address;
 }
 
+/**
+ * Proof, as composed in the field. The document and its media ride the job
+ * until the phone is online; the executor uploads them, pins the document and
+ * writes `cid` back before `attachEvidence` is called. A record queued before
+ * this shape carried `cid` alone and still sends as it was queued.
+ */
 export interface EvidenceJobPayload extends MembershipGatedJobPayload {
+  /** Stable per composition, so a retry behind the same button is one job. */
+  clientEvidenceId: string;
   commitmentId: bigint;
-  cid: string;
+  /** Absent until the executor publishes the document; required at send. */
+  cid?: string;
   creditedContributors: readonly Address[];
+  note?: string;
+  links?: readonly string[];
+  /** Persisted by the queue store the way work media is; read back at send. */
+  media?: File[];
+  audioNotes?: File[];
 }
 
 export interface WorkLinkJobPayload extends MembershipGatedJobPayload {
@@ -134,7 +148,11 @@ export type CommitmentJobExecutionResult =
   | { status: "sent"; txHash: Hex }
   | {
       status: "waiting";
-      reason: "series-not-materialized" | "membership-unavailable" | "pending-first-send";
+      reason:
+        | "series-not-materialized"
+        | "membership-unavailable"
+        | "pending-first-send"
+        | "evidence-unpublished";
     }
   | {
       status: "identity-conflict";

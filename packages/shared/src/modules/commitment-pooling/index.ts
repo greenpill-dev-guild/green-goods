@@ -5,6 +5,7 @@ export * from "./disclosure";
 export * from "./credit";
 export * from "./acts";
 export * from "./metadata";
+export * from "./evidence";
 export * from "./reasons";
 export * from "./cycle-metadata";
 export * from "./selectors";

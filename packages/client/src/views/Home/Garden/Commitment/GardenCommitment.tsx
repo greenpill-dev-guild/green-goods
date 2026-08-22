@@ -231,6 +231,8 @@ export function GardenCommitment() {
                     });
                     return;
                   case "addProof":
+                    navigate("proof", { relative: "path" });
+                    return;
                   case "offerAgain":
                     navigate("../..", { relative: "path" });
                 }

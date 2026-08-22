@@ -51,6 +51,20 @@ describe("commitment queue retry policy", () => {
     expect(after).toBe(before);
   });
 
+  it("tells two pieces of proof for one commitment apart before either has a CID", () => {
+    const first = commitmentJobIdentity("evidence", { commitmentId: 9n, clientEvidenceId: "p-1" });
+    const second = commitmentJobIdentity("evidence", { commitmentId: 9n, clientEvidenceId: "p-2" });
+    expect(first).not.toBe(second);
+    // The same proof enqueued twice is one job, whether or not its CID exists yet.
+    expect(
+      commitmentJobIdentity("evidence", { commitmentId: 9n, clientEvidenceId: "p-1", cid: "bafy" })
+    ).toBe(first);
+    // A record queued before client ids existed keeps its CID identity.
+    expect(commitmentJobIdentity("evidence", { commitmentId: 9n, cid: "bafy" })).toBe(
+      "evidence:9:bafy"
+    );
+  });
+
   it("throttles dependency probes without consuming the retry budget", () => {
     const waiting = job({
       meta: { waitingForDependency: true },

@@ -7,6 +7,7 @@ import {
 import type {
   CommitmentCreationPayload,
   CommitmentJob,
+  EvidenceJobPayload,
   CommitmentJobExecutionDependencies,
   CommitmentJobExecutionResult,
   CommitmentJobKind,
@@ -79,6 +80,13 @@ export async function executeCommitmentJob<K extends CommitmentJobKind>(
         ? { status: "recovered" }
         : { status: "identity-conflict", reason: "work-link-payload-mismatch" };
     }
+  }
+
+  if (job.kind === "evidence" && !(job.payload as EvidenceJobPayload).cid) {
+    // The document has not been published; attaching nothing is not an option
+    // and attaching the wrong thing is worse. The queue's publish step fills
+    // the CID in before this runs, so reaching here means it has not yet.
+    return { status: "waiting", reason: "evidence-unpublished" };
   }
 
   if (dependencies.hasMembership) {
