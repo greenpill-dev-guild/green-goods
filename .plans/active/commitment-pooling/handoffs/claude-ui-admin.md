@@ -457,3 +457,27 @@ over:
   steward readers. Both restored; the readers are exported unwrapped beside activity, since the
   console is an operator surface rather than one of the member screens `?mockPooling=1` stands
   in for.
+
+
+### Addendum — 2026-08-22, PR #752 green
+
+The client lane advanced twice while this branch was open and was merged in both times; the second
+merge needed hands only where the two lanes meet on the confirm queue. The client lane now reads
+team membership from the viewer's own account-scoped set, and this lane derives the fallback
+group: both are kept, their `ownIds` guard and dependency alongside this lane's fallback
+derivation, and the fallback tests now go through their `answerWith()` fixture so the garden query
+and the viewer's own query are answered apart.
+
+**Decision 7 is closed, and not by this branch.** The parent's newest commit regenerated
+`client-pwa-token-audit.generated.md`, so `check:design-generated` and the Design Guardrails job
+are green here.
+
+Every check on PR #752 passes at `a91438fe9`: CI Gate, Design Guardrails, Storybook, Playwright
+Admin and Client, the four Lint/Typecheck/Build jobs, Ontology Drift, Supply-chain guardrails and
+Guidance integrity. Local proof at the same commit: shared 3894 tests, admin 638, client 817,
+format, lint, both typechecks, `check:source-structure` under CI's own
+`SOURCE_STRUCTURE_BASE_REF`, and `check-react-patterns`.
+
+One inherited red remains outside this lane: `check:browser-verification-policy` wants six phrases
+that `packages/{admin,client,shared}/AGENTS.md` do not carry. Those files fail the same way on the
+parent branch and this lane does not touch them.
