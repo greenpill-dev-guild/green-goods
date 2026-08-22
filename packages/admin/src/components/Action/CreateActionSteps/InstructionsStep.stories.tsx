@@ -1,7 +1,6 @@
-import { createActionSchema, type CreateActionFormData } from "@green-goods/shared";
+import { createActionResolver, type CreateActionFormData } from "@green-goods/shared";
 import type { Meta, StoryObj } from "@storybook/react";
 import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
 import { InstructionsStep } from "./InstructionsStep";
 
 const BASE_DEFAULTS: CreateActionFormData = {
@@ -45,12 +44,13 @@ const BASE_DEFAULTS: CreateActionFormData = {
       },
     },
   },
+  translations: {},
 };
 
 function InstructionsStepHarness() {
   const form = useForm<CreateActionFormData>({
     defaultValues: BASE_DEFAULTS,
-    resolver: zodResolver(createActionSchema),
+    resolver: createActionResolver,
     mode: "onChange",
   });
   return <InstructionsStep form={form} />;

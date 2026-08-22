@@ -28,6 +28,7 @@ import { SeedlingIllustration } from "@/components/Layout/SeedlingIllustration";
 import IndexRoute from "./IndexRoute";
 
 const STORYBOOK_OPERATOR_ADDRESS_KEY = STORYBOOK_OPERATOR_ADDRESS.toLowerCase() as Address;
+const STORYBOOK_OPERATOR = STORYBOOK_OPERATOR_ADDRESS as `0x${string}`;
 
 const noopAsync = async () => {};
 const noop = () => {};
@@ -68,11 +69,11 @@ const walletAuthState: AuthStateValue = {
   smartAccountClient: null,
   userName: "Storybook operator",
   hasStoredCredential: false,
-  walletAddress: STORYBOOK_OPERATOR_ADDRESS,
-  eoaAddress: STORYBOOK_OPERATOR_ADDRESS,
+  walletAddress: STORYBOOK_OPERATOR,
+  eoaAddress: STORYBOOK_OPERATOR,
   embeddedAddress: null,
   externalWalletConnected: true,
-  externalWalletAddress: STORYBOOK_OPERATOR_ADDRESS,
+  externalWalletAddress: STORYBOOK_OPERATOR,
 };
 
 const loadingAuthState: AuthStateValue = {
@@ -101,7 +102,7 @@ const embeddedAuthState: AuthStateValue = {
   authMode: "embedded",
   eoaAddress: undefined,
   walletAddress: null,
-  embeddedAddress: STORYBOOK_OPERATOR_ADDRESS,
+  embeddedAddress: STORYBOOK_OPERATOR,
 };
 
 const NO_GARDEN_SEEDS: ReadonlyArray<readonly [QueryKey, unknown]> = [

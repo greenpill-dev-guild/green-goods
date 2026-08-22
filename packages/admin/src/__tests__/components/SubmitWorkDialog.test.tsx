@@ -11,6 +11,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { IntlProvider } from "react-intl";
+import type { ComponentProps } from "react";
 import { RouterProvider, createMemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
@@ -20,13 +21,13 @@ import {
   queryKeys,
   useAdminStore,
   type Action,
-  type AuthContextType,
   type Garden,
 } from "@green-goods/shared";
 import { createTestQueryClient } from "@green-goods/shared/testing";
 import SubmitWork from "@/views/Garden/SubmitWork";
 
 const OPERATOR = "0x9999999999999999999999999999999999999999";
+type AuthContextValue = NonNullable<ComponentProps<typeof AuthContext.Provider>["value"]>;
 
 const workMutationOverride = vi.hoisted(() => ({
   current: null as null | (() => unknown),
@@ -169,7 +170,7 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
   };
 });
 
-const authContextValue: AuthContextType = {
+const authContextValue: AuthContextValue = {
   authMode: "wallet",
   isReady: true,
   isAuthenticated: true,

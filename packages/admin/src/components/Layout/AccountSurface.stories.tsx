@@ -1,13 +1,14 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import type { AccountSheetTab } from "@green-goods/shared";
-import { useState } from "react";
+import { type ComponentProps, useState } from "react";
+import { fn } from "storybook/test";
 import { STORYBOOK_ADMIN_SHELL_SEEDS } from "../../../../shared/.storybook/adminFixtures";
 import { withAdminIdentity, withSeededQueryClient } from "../../../../shared/.storybook/decorators";
 import { AccountSurface } from "./AccountSurface";
 
-interface AccountSurfaceStoryArgs {
+type AccountSurfaceStoryArgs = ComponentProps<typeof AccountSurface> & {
   initialTab: AccountSheetTab;
-}
+};
 
 function AccountSurfaceStory({ initialTab }: AccountSurfaceStoryArgs) {
   const [activeTab, setActiveTab] = useState<AccountSheetTab>(initialTab);
@@ -37,7 +38,9 @@ const meta: Meta<AccountSurfaceStoryArgs> = {
     },
   },
   args: {
+    activeTab: "profile",
     initialTab: "profile",
+    onTabChange: fn(),
   },
   argTypes: {
     initialTab: {

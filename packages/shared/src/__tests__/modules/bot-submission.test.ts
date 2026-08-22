@@ -242,6 +242,8 @@ describe("modules/work/bot-submission", () => {
         actionUID: 1,
         approved: false,
         feedback: "Plants were not watered properly",
+        confidence: 0,
+        verificationMethod: 0,
       };
 
       await submitApprovalBot(mockWalletClient, rejectionDraft, "0xGarden", 11155111);
@@ -295,6 +297,8 @@ describe("modules/work/bot-submission", () => {
         actionUID: 1,
         approved: true,
         feedback: "",
+        confidence: 1,
+        verificationMethod: 1,
       };
 
       await submitApprovalBot(mockWalletClient, draftNoFeedback, "0xGarden", 11155111);

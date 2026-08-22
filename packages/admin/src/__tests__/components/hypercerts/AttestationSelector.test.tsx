@@ -33,7 +33,7 @@ vi.mock("@green-goods/shared", () => ({
   useEnsName: (address: string | null | undefined) => ({
     data: address ? "river.greengoods.eth" : null,
   }),
-  ACTION_DOMAINS: ["biodiversity", "water", "soil", "carbon"],
+  ACTION_DOMAINS: ["agroforestry", "waste", "solar", "education"],
   filterAttestationsByAssessment: (attestations: any[]) => attestations,
   Alert: ({ children }: { children?: React.ReactNode }) => {
     const React = require("react");
@@ -136,16 +136,19 @@ function createMockAttestation(
 ): HypercertAttestation {
   const id = overrides.id ?? `0x${Math.random().toString(16).slice(2)}`;
   return {
-    id,
-    title: "Test Work Submission",
-    gardenerAddress: "0x1234567890123456789012345678901234567890",
-    gardenerName: "Alice Gardener",
-    domain: "biodiversity",
-    actionType: "planting",
-    createdAt: Math.floor(Date.now() / 1000) - 86400,
-    approvedAt: Math.floor(Date.now() / 1000),
-    workScope: ["tree planting", "habitat restoration"],
     ...overrides,
+    id,
+    workUid: overrides.workUid ?? `${id}-work`,
+    gardenId: overrides.gardenId ?? "0x1234567890123456789012345678901234567890",
+    title: overrides.title ?? "Test Work Submission",
+    gardenerAddress: overrides.gardenerAddress ?? "0x1234567890123456789012345678901234567890",
+    gardenerName: "gardenerName" in overrides ? overrides.gardenerName : "Alice Gardener",
+    domain: overrides.domain ?? "agroforestry",
+    actionType: overrides.actionType ?? "planting",
+    createdAt: overrides.createdAt ?? Math.floor(Date.now() / 1000) - 86400,
+    approvedAt: overrides.approvedAt ?? Math.floor(Date.now() / 1000),
+    workScope: overrides.workScope ?? ["tree planting", "habitat restoration"],
+    mediaUrls: overrides.mediaUrls ?? [],
   };
 }
 
@@ -154,25 +157,25 @@ const mockAttestations: HypercertAttestation[] = [
     id: "0x1111",
     title: "Native Tree Planting",
     gardenerName: "Alice",
-    domain: "biodiversity",
+    domain: "agroforestry",
   }),
   createMockAttestation({
     id: "0x2222",
     title: "Rain Garden Installation",
     gardenerName: "Bob",
-    domain: "water",
+    domain: "waste",
   }),
   createMockAttestation({
     id: "0x3333",
     title: "Compost System Setup",
     gardenerName: "Charlie",
-    domain: "soil",
+    domain: "solar",
   }),
   createMockAttestation({
     id: "0x4444",
     title: "Carbon Sequestration Project",
     gardenerName: "Diana",
-    domain: "carbon",
+    domain: "education",
   }),
 ];
 
@@ -380,9 +383,9 @@ describe("components/Hypercerts/AttestationSelector", () => {
       render(createElement(AttestationSelector, defaultProps));
 
       const domainSelect = screen.getByRole("combobox");
-      await user.selectOptions(domainSelect, "water");
+      await user.selectOptions(domainSelect, "waste");
 
-      // Only water domain attestation should be visible
+      // Only the waste-domain attestation should be visible.
       expect(screen.getByText("Rain Garden Installation")).toBeInTheDocument();
       expect(screen.queryByText("Native Tree Planting")).not.toBeInTheDocument();
     });
@@ -395,7 +398,7 @@ describe("components/Hypercerts/AttestationSelector", () => {
       const searchInput = screen.getByRole("textbox");
       const domainSelect = screen.getByRole("combobox");
 
-      await user.selectOptions(domainSelect, "biodiversity");
+      await user.selectOptions(domainSelect, "agroforestry");
       await user.type(searchInput, "Tree");
 
       expect(screen.getByText("Native Tree Planting")).toBeInTheDocument();

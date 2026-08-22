@@ -353,7 +353,7 @@ vi.mock("@green-goods/shared", async () => {
   };
 });
 
-function createAction(mediaInfo: Action["mediaInfo"] = {}): Action {
+function createAction(mediaInfo: Partial<NonNullable<Action["mediaInfo"]>> = {}): Action {
   return {
     id: actionId,
     slug: "agro.site_assessment_before",

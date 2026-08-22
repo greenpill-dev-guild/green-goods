@@ -143,6 +143,9 @@ function commitmentReadModel(overrides: Partial<CommitmentReadModel> = {}): Comm
     counterCommitmentId: null,
     declaredUnitValue: null,
     declaredValueBasis: null,
+    confirmers: [],
+    contributorCount: 0,
+    contributorsFrozen: false,
     considerationPaid: false,
     ...overrides,
   };

@@ -28,7 +28,7 @@ const COMMUNITY = "0x3333333333333333333333333333333333333333";
 describe("GovernancePanel", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(usePrimaryAddress).mockReturnValue(undefined);
+    vi.mocked(usePrimaryAddress).mockReturnValue(null);
     vi.mocked(useConvictionProposalsForPool).mockReturnValue({
       hasError: false,
       isLoading: false,

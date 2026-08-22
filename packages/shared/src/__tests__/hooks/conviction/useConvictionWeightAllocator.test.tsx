@@ -28,7 +28,7 @@ vi.mock("../../../hooks/conviction/useMemberVotingPower", () => ({
 }));
 
 vi.mock("../../../hooks/conviction/useAllocateHypercertSupport", () => ({
-  useAllocateHypercertSupport: (...args: unknown[]) => mockUseAllocateHypercertSupport(...args),
+  useAllocateHypercertSupport: () => mockUseAllocateHypercertSupport(),
 }));
 
 import { useConvictionWeightAllocator } from "../../../hooks/conviction/useConvictionWeightAllocator";

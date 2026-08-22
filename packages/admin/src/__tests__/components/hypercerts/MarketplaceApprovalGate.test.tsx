@@ -62,11 +62,10 @@ const CHILDREN_TEXT = "ready-state-children";
 
 function renderGate(props: { chainId?: number } = {}) {
   return render(
-    createElement(
-      MarketplaceApprovalGate,
-      { chainId: props.chainId ?? 42161 },
-      createElement("div", { "data-testid": "gate-children" }, CHILDREN_TEXT)
-    )
+    createElement(MarketplaceApprovalGate, {
+      chainId: props.chainId ?? 42161,
+      children: createElement("div", { "data-testid": "gate-children" }, CHILDREN_TEXT),
+    })
   );
 }
 

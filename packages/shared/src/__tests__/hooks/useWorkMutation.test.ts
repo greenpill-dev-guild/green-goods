@@ -466,7 +466,7 @@ describe("hooks/work/useWorkMutation", () => {
         async (_draft, _garden, _actionUID, _actionTitle, _chainId, _images, options) => {
           // Simulate the wallet submission calling onProgress("complete")
           if (options?.onProgress) {
-            options.onProgress("complete");
+            options.onProgress("complete", "Work submitted successfully!");
           }
           return MOCK_TX_HASH;
         }

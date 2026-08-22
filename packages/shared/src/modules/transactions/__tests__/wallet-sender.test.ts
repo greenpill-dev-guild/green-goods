@@ -50,12 +50,16 @@ const MOCK_WAGMI_CONFIG = {} as any;
 
 describe("WalletSender", () => {
   let sender: WalletSender;
-  let mockWriteContractAsync: ReturnType<typeof vi.fn>;
+  let mockWriteContractAsync: ReturnType<
+    typeof vi.fn<ConstructorParameters<typeof WalletSender>[1]>
+  >;
   let mockDeps: WalletSenderDeps;
 
   beforeEach(() => {
     vi.clearAllMocks();
-    mockWriteContractAsync = vi.fn().mockResolvedValue(MOCK_TX_HASH);
+    mockWriteContractAsync = vi
+      .fn<ConstructorParameters<typeof WalletSender>[1]>()
+      .mockResolvedValue(MOCK_TX_HASH);
     mockDeps = {
       waitForTransactionReceipt: vi.fn().mockResolvedValue({ status: "success" }),
       assertWriteSafety: vi.fn().mockResolvedValue(undefined),
@@ -170,7 +174,7 @@ describe("WalletSender", () => {
 
   describe("sendBatch (unsupported)", () => {
     it("does not expose sendBatch", () => {
-      expect(sender.sendBatch).toBeUndefined();
+      expect("sendBatch" in sender).toBe(false);
     });
   });
 });

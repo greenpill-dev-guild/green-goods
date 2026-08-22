@@ -45,13 +45,13 @@ const meta: Meta<typeof OverviewTab> = {
     },
   },
   args: {
+    mode: "health",
     section: undefined,
     selectedItem: undefined,
     selectedRange: "30d" as GardenRange,
     clearSection: fn(),
     openSection: fn(),
     updateQueryState: fn(),
-    setTab: fn(),
     overviewAlerts: [],
     gardenHealthLabel: "Healthy",
     approvedInRangeCount: 14,
@@ -76,8 +76,8 @@ export const Healthy: Story = {};
 export const WithAlerts: Story = {
   args: {
     overviewAlerts: [
-      { key: "pending-work", severity: "medium", label: "5 pending work items", onAction: fn() },
-      { key: "vault-paused", severity: "high", label: "USDC vault paused", onAction: fn() },
+      { key: "pending-work", severity: "warn", label: "5 pending work items", onAction: fn() },
+      { key: "vault-paused", severity: "critical", label: "USDC vault paused", onAction: fn() },
     ],
   },
 };

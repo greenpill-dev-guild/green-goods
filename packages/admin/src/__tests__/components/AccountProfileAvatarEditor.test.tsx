@@ -220,11 +220,11 @@ describe("AccountProfileAvatarEditor", () => {
     expect(mocks.continue).toHaveBeenCalledTimes(1);
   });
   it.each([
-    ["clear", { action: "clear", file: null }],
+    ["clear", { action: "clear" as const, file: null }],
     [
       "set",
       {
-        action: "set",
+        action: "set" as const,
         file: new File(["old"], "old-profile-avatar.webp", { type: "image/webp" }),
       },
     ],

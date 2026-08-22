@@ -21,10 +21,50 @@ vi.mock("@/views/Community/components/GovernancePanel", () => ({
   GovernancePanel: () => null,
 }));
 
-const GARDEN_ID = "0x1111111111111111111111111111111111111111";
-const HYPERCERT_POOL = "0x2222222222222222222222222222222222222222";
-const ACTION_POOL = "0x3333333333333333333333333333333333333333";
+const GARDEN_ID = "0x1111111111111111111111111111111111111111" as const;
+const HYPERCERT_POOL = "0x2222222222222222222222222222222222222222" as const;
+const ACTION_POOL = "0x3333333333333333333333333333333333333333" as const;
 const noop = vi.fn();
+const connectedWiringState = {
+  readStatus: "available" as const,
+  status: "connected" as const,
+  gardenAddress: GARDEN_ID,
+  expectedHypercertPoolAddress: HYPERCERT_POOL,
+  resolverHypercertPoolAddress: HYPERCERT_POOL,
+  canRepairFromCommunity: false,
+  issues: [],
+};
+const connectedWiringResult: ReturnType<typeof useGardenYieldWiringState> = {
+  data: connectedWiringState,
+  dataUpdatedAt: 0,
+  error: null,
+  errorUpdatedAt: 0,
+  failureCount: 0,
+  failureReason: null,
+  errorUpdateCount: 0,
+  isError: false,
+  isFetched: true,
+  isFetchedAfterMount: true,
+  isFetching: false,
+  isLoading: false,
+  isPending: false,
+  isLoadingError: false,
+  isInitialLoading: false,
+  isPaused: false,
+  isPlaceholderData: false,
+  isRefetchError: false,
+  isRefetching: false,
+  isStale: false,
+  isSuccess: true,
+  isEnabled: true,
+  refetch: vi.fn(),
+  status: "success",
+  fetchStatus: "idle",
+  promise: Promise.resolve(connectedWiringState),
+  wiringStatus: "connected",
+  wiringState: connectedWiringState,
+  repairHref: undefined,
+};
 
 describe("Community coordination status actions", () => {
   beforeEach(() => {
@@ -43,18 +83,7 @@ describe("Community coordination status actions", () => {
       removeCommunity: noop,
       isLoading: false,
     } as unknown as ReturnType<typeof useGardenOperations>);
-    vi.mocked(useGardenYieldWiringState).mockReturnValue({
-      wiringStatus: "connected",
-      wiringState: {
-        readStatus: "available",
-        status: "connected",
-        gardenAddress: GARDEN_ID,
-        expectedHypercertPoolAddress: HYPERCERT_POOL,
-        resolverHypercertPoolAddress: HYPERCERT_POOL,
-        canRepairFromCommunity: false,
-        issues: [],
-      },
-    } as ReturnType<typeof useGardenYieldWiringState>);
+    vi.mocked(useGardenYieldWiringState).mockReturnValue(connectedWiringResult);
   });
 
   it("aligns connected yield status and Manage Strategies to one compact row", () => {
@@ -88,8 +117,18 @@ describe("Community coordination status actions", () => {
             community={{}}
             communityLoading={false}
             pools={[
-              { poolType: PoolType.Hypercert, poolAddress: HYPERCERT_POOL },
-              { poolType: PoolType.Action, poolAddress: ACTION_POOL },
+              {
+                poolType: PoolType.Hypercert,
+                poolAddress: HYPERCERT_POOL,
+                gardenAddress: GARDEN_ID,
+                communityAddress: GARDEN_ID,
+              },
+              {
+                poolType: PoolType.Action,
+                poolAddress: ACTION_POOL,
+                gardenAddress: GARDEN_ID,
+                communityAddress: GARDEN_ID,
+              },
             ]}
             createPools={noop}
             isCreatingPools={false}

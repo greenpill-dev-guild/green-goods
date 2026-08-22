@@ -32,7 +32,12 @@ async function waitFor(
 }
 
 import { TOTAL_UNITS } from "../../lib/hypercerts/constants";
-import { type MintHypercertInput, mintHypercertMachine } from "../../workflows/mintHypercert";
+import {
+  type MintHypercertInput,
+  type MintHypercertReceiptInput,
+  type MintHypercertSigningInput,
+  mintHypercertMachine,
+} from "../../workflows/mintHypercert";
 
 // ============================================
 // Test Fixtures
@@ -104,18 +109,18 @@ function createMockInput(): MintHypercertInput {
 }
 
 // Helper to create a hanging promise actor
-function createHangingActor<T>() {
-  return fromPromise<T, unknown>(() => new Promise<T>(() => {}));
+function createHangingActor<T, TInput = MintHypercertInput>() {
+  return fromPromise<T, TInput>(() => new Promise<T>(() => {}));
 }
 
 // Helper to create a resolving actor
-function createResolvingActor<T>(value: T) {
-  return fromPromise<T, unknown>(() => Promise.resolve(value));
+function createResolvingActor<T, TInput = MintHypercertInput>(value: T) {
+  return fromPromise<T, TInput>(() => Promise.resolve(value));
 }
 
 // Helper to create a rejecting actor
-function createRejectingActor(error: Error | string) {
-  return fromPromise<never, unknown>(() =>
+function createRejectingActor<TOutput, TInput = MintHypercertInput>(error: Error | string) {
+  return fromPromise<TOutput, TInput>(() =>
     Promise.reject(typeof error === "string" ? new Error(error) : error)
   );
 }
@@ -201,8 +206,13 @@ describe("workflows/mintHypercertMachine", () => {
             cid: MOCK_ALLOWLIST_CID,
             merkleRoot: MOCK_MERKLE_ROOT,
           }),
-          buildAndSignUserOp: createResolvingActor({ hash: MOCK_USER_OP_HASH }),
-          pollForReceipt: createResolvingActor({
+          buildAndSignUserOp: createResolvingActor<{ hash: Hex }, MintHypercertSigningInput>({
+            hash: MOCK_USER_OP_HASH,
+          }),
+          pollForReceipt: createResolvingActor<
+            { txHash: Hex; hypercertId: string },
+            MintHypercertReceiptInput
+          >({
             txHash: MOCK_TX_HASH,
             hypercertId: MOCK_HYPERCERT_ID,
           }),
@@ -242,8 +252,13 @@ describe("workflows/mintHypercertMachine", () => {
             cid: MOCK_ALLOWLIST_CID,
             merkleRoot: MOCK_MERKLE_ROOT,
           }),
-          buildAndSignUserOp: createResolvingActor({ hash: MOCK_USER_OP_HASH }),
-          pollForReceipt: createResolvingActor({
+          buildAndSignUserOp: createResolvingActor<{ hash: Hex }, MintHypercertSigningInput>({
+            hash: MOCK_USER_OP_HASH,
+          }),
+          pollForReceipt: createResolvingActor<
+            { txHash: Hex; hypercertId: string },
+            MintHypercertReceiptInput
+          >({
             txHash: MOCK_TX_HASH,
             hypercertId: MOCK_HYPERCERT_ID,
           }),
@@ -275,7 +290,7 @@ describe("workflows/mintHypercertMachine", () => {
       const errorMessage = "IPFS upload failed";
       const machine = mintHypercertMachine.provide({
         actors: {
-          uploadMetadata: createRejectingActor(errorMessage),
+          uploadMetadata: createRejectingActor<{ cid: string }>(errorMessage),
         },
       });
 
@@ -299,7 +314,7 @@ describe("workflows/mintHypercertMachine", () => {
       const machine = mintHypercertMachine.provide({
         actors: {
           uploadMetadata: createResolvingActor({ cid: MOCK_METADATA_CID }),
-          uploadAllowlist: createRejectingActor(errorMessage),
+          uploadAllowlist: createRejectingActor<{ cid: string; merkleRoot: Hex }>(errorMessage),
         },
       });
 
@@ -325,7 +340,9 @@ describe("workflows/mintHypercertMachine", () => {
             cid: MOCK_ALLOWLIST_CID,
             merkleRoot: MOCK_MERKLE_ROOT,
           }),
-          buildAndSignUserOp: createRejectingActor(errorMessage),
+          buildAndSignUserOp: createRejectingActor<{ hash: Hex }, MintHypercertSigningInput>(
+            errorMessage
+          ),
         },
       });
 
@@ -351,8 +368,13 @@ describe("workflows/mintHypercertMachine", () => {
             cid: MOCK_ALLOWLIST_CID,
             merkleRoot: MOCK_MERKLE_ROOT,
           }),
-          buildAndSignUserOp: createResolvingActor({ hash: MOCK_USER_OP_HASH }),
-          pollForReceipt: createRejectingActor(errorMessage),
+          buildAndSignUserOp: createResolvingActor<{ hash: Hex }, MintHypercertSigningInput>({
+            hash: MOCK_USER_OP_HASH,
+          }),
+          pollForReceipt: createRejectingActor<
+            { txHash: Hex; hypercertId: string },
+            MintHypercertReceiptInput
+          >(errorMessage),
         },
       });
 
@@ -372,7 +394,7 @@ describe("workflows/mintHypercertMachine", () => {
     it("converts non-Error objects to string in error messages", async () => {
       const machine = mintHypercertMachine.provide({
         actors: {
-          uploadMetadata: fromPromise<{ cid: string }, unknown>(() =>
+          uploadMetadata: fromPromise<{ cid: string }, MintHypercertInput>(() =>
             Promise.reject("String error")
           ),
         },
@@ -398,7 +420,7 @@ describe("workflows/mintHypercertMachine", () => {
 
       const machine = mintHypercertMachine.provide({
         actors: {
-          uploadMetadata: fromPromise<{ cid: string }, unknown>(async () => {
+          uploadMetadata: fromPromise<{ cid: string }, MintHypercertInput>(async () => {
             callCount++;
             if (callCount === 1) {
               throw new Error("First attempt failed");
@@ -409,8 +431,13 @@ describe("workflows/mintHypercertMachine", () => {
             cid: MOCK_ALLOWLIST_CID,
             merkleRoot: MOCK_MERKLE_ROOT,
           }),
-          buildAndSignUserOp: createResolvingActor({ hash: MOCK_USER_OP_HASH }),
-          pollForReceipt: createResolvingActor({
+          buildAndSignUserOp: createResolvingActor<{ hash: Hex }, MintHypercertSigningInput>({
+            hash: MOCK_USER_OP_HASH,
+          }),
+          pollForReceipt: createResolvingActor<
+            { txHash: Hex; hypercertId: string },
+            MintHypercertReceiptInput
+          >({
             txHash: MOCK_TX_HASH,
             hypercertId: MOCK_HYPERCERT_ID,
           }),
@@ -443,7 +470,7 @@ describe("workflows/mintHypercertMachine", () => {
     it("increments retryCount on each RETRY action", async () => {
       const machine = mintHypercertMachine.provide({
         actors: {
-          uploadMetadata: createRejectingActor("Always fails"),
+          uploadMetadata: createRejectingActor<{ cid: string }>("Always fails"),
         },
       });
 
@@ -485,7 +512,7 @@ describe("workflows/mintHypercertMachine", () => {
     it("blocks retry when retryCount >= 3", async () => {
       const machine = mintHypercertMachine.provide({
         actors: {
-          uploadMetadata: createRejectingActor("Always fails"),
+          uploadMetadata: createRejectingActor<{ cid: string }>("Always fails"),
         },
       });
 
@@ -583,7 +610,7 @@ describe("workflows/mintHypercertMachine", () => {
             cid: MOCK_ALLOWLIST_CID,
             merkleRoot: MOCK_MERKLE_ROOT,
           }),
-          buildAndSignUserOp: createHangingActor<{ hash: Hex }>(),
+          buildAndSignUserOp: createHangingActor<{ hash: Hex }, MintHypercertSigningInput>(),
         },
       });
 
@@ -605,7 +632,7 @@ describe("workflows/mintHypercertMachine", () => {
     it("returns to idle on CANCEL from failed state", async () => {
       const machine = mintHypercertMachine.provide({
         actors: {
-          uploadMetadata: createRejectingActor("Failed"),
+          uploadMetadata: createRejectingActor<{ cid: string }>("Failed"),
         },
       });
 
@@ -659,8 +686,13 @@ describe("workflows/mintHypercertMachine", () => {
             cid: MOCK_ALLOWLIST_CID,
             merkleRoot: MOCK_MERKLE_ROOT,
           }),
-          buildAndSignUserOp: createResolvingActor({ hash: MOCK_USER_OP_HASH }),
-          pollForReceipt: createResolvingActor({
+          buildAndSignUserOp: createResolvingActor<{ hash: Hex }, MintHypercertSigningInput>({
+            hash: MOCK_USER_OP_HASH,
+          }),
+          pollForReceipt: createResolvingActor<
+            { txHash: Hex; hypercertId: string },
+            MintHypercertReceiptInput
+          >({
             txHash: MOCK_TX_HASH,
             hypercertId: MOCK_HYPERCERT_ID,
           }),
@@ -694,7 +726,7 @@ describe("workflows/mintHypercertMachine", () => {
 
       const machine = mintHypercertMachine.provide({
         actors: {
-          uploadMetadata: fromPromise<{ cid: string }, unknown>(async ({ input }) => {
+          uploadMetadata: fromPromise<{ cid: string }, MintHypercertInput>(async ({ input }) => {
             // The input includes the full MintHypercertInput structure
             capturedMetadata = (input as { metadata: unknown }).metadata;
             return { cid: MOCK_METADATA_CID };

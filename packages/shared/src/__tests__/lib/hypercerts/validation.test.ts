@@ -275,8 +275,7 @@ describe("scopeDefinitionSchema", () => {
   });
 
   it("allows optional display_value", () => {
-    const scope = { ...createValidScopeDefinition() };
-    delete scope.display_value;
+    const { display_value: _displayValue, ...scope } = createValidScopeDefinition();
     const result = scopeDefinitionSchema.safeParse(scope);
     expect(result.success).toBe(true);
   });
@@ -551,8 +550,7 @@ describe("hypercertMetadataSchema", () => {
   });
 
   it("allows optional external_url", () => {
-    const metadata = createValidHypercertMetadata();
-    delete metadata.external_url;
+    const { external_url: _externalUrl, ...metadata } = createValidHypercertMetadata();
     const result = hypercertMetadataSchema.safeParse(metadata);
     expect(result.success).toBe(true);
   });
@@ -567,8 +565,7 @@ describe("hypercertMetadataSchema", () => {
   });
 
   it("allows optional hidden_properties", () => {
-    const metadata = createValidHypercertMetadata();
-    delete metadata.hidden_properties;
+    const { hidden_properties: _hiddenProperties, ...metadata } = createValidHypercertMetadata();
     const result = hypercertMetadataSchema.safeParse(metadata);
     expect(result.success).toBe(true);
   });

@@ -21,7 +21,12 @@ vi.mock("../../../config/appkit", () => ({
   getWagmiConfig: () => ({}),
 }));
 
-import { useEnsQuery } from "../../../hooks/blockchain/useEnsQuery";
+import { type UseEnsQueryOptions, useEnsQuery } from "../../../hooks/blockchain/useEnsQuery";
+
+type EnsResolver = (
+  normalizedInput: string,
+  options?: UseEnsQueryOptions
+) => Promise<string | null>;
 
 // ============================================
 // Test helpers
@@ -50,11 +55,11 @@ function createQueryClient() {
 
 describe("useEnsQuery", () => {
   let queryClient: QueryClient;
-  let mockResolver: ReturnType<typeof vi.fn>;
+  let mockResolver: ReturnType<typeof vi.fn<EnsResolver>>;
 
   beforeEach(() => {
     queryClient = createQueryClient();
-    mockResolver = vi.fn();
+    mockResolver = vi.fn<EnsResolver>();
   });
 
   // ------------------------------------------

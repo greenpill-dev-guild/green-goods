@@ -86,7 +86,7 @@ const mockSubscribe = vi.fn((_selector: unknown, callback: unknown) => {
 vi.mock("../../../stores/useHypercertWizardStore", () => {
   const store = (selector: (state: typeof mockStoreState) => unknown) => selector(mockStoreState);
   store.getState = () => mockStoreState;
-  store.subscribe = (...args: unknown[]) => mockSubscribe(...args);
+  store.subscribe = (selector: unknown, callback: unknown) => mockSubscribe(selector, callback);
   return { useHypercertWizardStore: store };
 });
 

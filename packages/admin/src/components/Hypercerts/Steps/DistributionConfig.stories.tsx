@@ -1,4 +1,9 @@
-import { type Address, type AllowlistEntry, TOTAL_UNITS } from "@green-goods/shared";
+import {
+  type Address,
+  type AllowlistEntry,
+  type DistributionMode,
+  TOTAL_UNITS,
+} from "@green-goods/shared";
 import type { Meta, StoryObj } from "@storybook/react";
 import { useState } from "react";
 import { DistributionConfig } from "./DistributionConfig";
@@ -18,10 +23,10 @@ function DistributionConfigHarness({
   initialMode = "equal",
   initialAllowlist = EVEN_ALLOWLIST,
 }: {
-  initialMode?: "equal" | "count" | "value" | "custom";
+  initialMode?: DistributionMode;
   initialAllowlist?: AllowlistEntry[];
 }) {
-  const [mode, setMode] = useState<"equal" | "count" | "value" | "custom">(initialMode);
+  const [mode, setMode] = useState<DistributionMode>(initialMode);
   const [allowlist, setAllowlist] = useState<AllowlistEntry[]>(initialAllowlist);
   return (
     <DistributionConfig
