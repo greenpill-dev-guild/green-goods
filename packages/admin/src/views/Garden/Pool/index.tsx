@@ -12,12 +12,14 @@ import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
 import { AdminButton } from "@/components/AdminButton";
 import { AdminCard } from "@/components/AdminCard";
-import { AdminConfirmDialog } from "@/components/AdminDialog";
+import { AdminConfirmDialog, AdminDialog } from "@/components/AdminDialog";
 import { AdminReasonDialog } from "@/components/AdminReasonDialog";
 import { PoolClaimsCard } from "./PoolClaimsCard";
 import { PoolCommitmentsCard, type PoolCommitmentScope } from "./PoolCommitmentsCard";
+import { CommitmentDialogPanel } from "./CommitmentDialog";
 import { PoolCyclesCard } from "./PoolCyclesCard";
 import { PoolSettingsDialog } from "./PoolSettingsDialog";
+import { SeedCommitmentDialog } from "./Seed";
 import { PoolStatusCard } from "./PoolStatusCard";
 import { cycleName } from "./poolPresentation";
 import { PoolSetupFlow, type PoolSetupIntent } from "./SetupFlow";
@@ -26,6 +28,18 @@ export interface GardenPoolTabProps {
   garden: { id: Address; name: string };
   chainId: number;
   canManage: boolean;
+  /**
+   * Where the seed console and the commitment inspector open. The Garden
+   * workspace routes them (`/garden/pool/seed`, `/garden/pool/:id`); the
+   * Community → Pools protocol tab hosts the same console for another garden
+   * and opens both in place, in its own tone.
+   */
+  presentation?: {
+    inspector: "route" | "dialog";
+    tone: "garden" | "community";
+    /** Seeding in protocol context: requests default to steward review. */
+    protocolContext?: boolean;
+  };
 }
 
 type FlowState = { intent: PoolSetupIntent; cycle?: CommitmentCycleRecord | null } | null;
@@ -52,10 +66,18 @@ function SkeletonRail() {
  * in shared; every reasoned act through the one reason dialog; every row opens
  * in the Garden workspace's left inspector, route-backed.
  */
-export function GardenPoolTab({ garden, chainId, canManage }: GardenPoolTabProps) {
+export function GardenPoolTab({
+  garden,
+  chainId,
+  canManage,
+  presentation = { inspector: "route", tone: "garden" },
+}: GardenPoolTabProps) {
   const { formatMessage } = useIntl();
   const navigate = useNavigate();
   const pool = usePoolConsoleController({ chainId, garden: garden.id });
+  const tone = presentation.tone;
+  const [inspected, setInspected] = useState<string | null>(null);
+  const [seedOpen, setSeedOpen] = useState(false);
   const [scope, setScope] = useState<PoolCommitmentScope>("open");
   const [dueOnly, setDueOnly] = useState(false);
   const [flow, setFlow] = useState<FlowState>(null);
@@ -65,18 +87,26 @@ export function GardenPoolTab({ garden, chainId, canManage }: GardenPoolTabProps
   const { model } = pool;
 
   const openCommitment = useCallback(
-    (commitment: CommitmentReadModel) =>
+    (commitment: CommitmentReadModel) => {
+      if (presentation.inspector === "dialog") {
+        setInspected(commitment.commitmentId.toString());
+        return;
+      }
       navigate(
         adminRoutes.gardenPoolCommitment(commitment.commitmentId.toString(), {
           gardenId: garden.id,
         })
-      ),
-    [navigate, garden.id]
+      );
+    },
+    [navigate, garden.id, presentation.inspector]
   );
-  const openSeed = useCallback(
-    () => navigate(adminRoutes.gardenPoolSeed({ gardenId: garden.id })),
-    [navigate, garden.id]
-  );
+  const openSeed = useCallback(() => {
+    if (presentation.inspector === "dialog") {
+      setSeedOpen(true);
+      return;
+    }
+    navigate(adminRoutes.gardenPoolSeed({ gardenId: garden.id }));
+  }, [navigate, garden.id, presentation.inspector]);
   const jumpTo = (id: string) => {
     if (typeof document === "undefined") return;
     document.getElementById(id)?.scrollIntoView({ block: "start" });
@@ -352,10 +382,44 @@ export function GardenPoolTab({ garden, chainId, canManage }: GardenPoolTabProps
         onClose={() => setSettingsOpen(false)}
       />
 
+      {presentation.inspector === "dialog" ? (
+        <>
+          <SeedCommitmentDialog
+            open={seedOpen}
+            chainId={chainId}
+            garden={garden.id}
+            onClose={() => setSeedOpen(false)}
+            protocolContext={presentation.protocolContext}
+          />
+          <AdminDialog
+            open={inspected !== null}
+            onOpenChange={(next) => {
+              if (!next) setInspected(null);
+            }}
+            size="lg"
+            tone={tone}
+            title={formatMessage({
+              id: "cockpit.garden.pool.commitment.title",
+              defaultMessage: "Commitment",
+            })}
+            bodyClassName="p-0"
+          >
+            {inspected ? (
+              <CommitmentDialogPanel
+                chainId={chainId}
+                garden={garden.id}
+                commitmentId={inspected}
+                tone={tone}
+              />
+            ) : null}
+          </AdminDialog>
+        </>
+      ) : null}
+
       <AdminReasonDialog
         isOpen={reasonDialog?.kind === "pause"}
         onClose={() => setReasonDialog(null)}
-        tone="garden"
+        tone={tone}
         title={formatMessage({
           id: "cockpit.garden.pool.pause.title",
           defaultMessage: "Pause this pool",
@@ -407,7 +471,7 @@ export function GardenPoolTab({ garden, chainId, canManage }: GardenPoolTabProps
       <AdminReasonDialog
         isOpen={reasonDialog?.kind === "cancel-cycle"}
         onClose={() => setReasonDialog(null)}
-        tone="garden"
+        tone={tone}
         variant="danger"
         title={
           reasonDialog?.kind === "cancel-cycle" && reasonDialog.cycle.cycleType === "CAMPAIGN"
@@ -480,7 +544,7 @@ export function GardenPoolTab({ garden, chainId, canManage }: GardenPoolTabProps
       <AdminReasonDialog
         isOpen={reasonDialog?.kind === "decline-claim"}
         onClose={() => setReasonDialog(null)}
-        tone="garden"
+        tone={tone}
         title={formatMessage({
           id: "cockpit.garden.pool.declineClaim.title",
           defaultMessage: "Decline this request",
@@ -534,7 +598,7 @@ export function GardenPoolTab({ garden, chainId, canManage }: GardenPoolTabProps
       <AdminConfirmDialog
         isOpen={confirmDialog === "close"}
         onClose={() => setConfirmDialog(null)}
-        tone="garden"
+        tone={tone}
         variant="danger"
         title={formatMessage({
           id: "cockpit.garden.pool.close.title",
@@ -563,7 +627,7 @@ export function GardenPoolTab({ garden, chainId, canManage }: GardenPoolTabProps
       <AdminConfirmDialog
         isOpen={confirmDialog === "compost"}
         onClose={() => setConfirmDialog(null)}
-        tone="garden"
+        tone={tone}
         variant="warning"
         title={formatMessage({
           id: "cockpit.garden.pool.compost.title",
@@ -592,7 +656,7 @@ export function GardenPoolTab({ garden, chainId, canManage }: GardenPoolTabProps
       <AdminConfirmDialog
         isOpen={confirmDialog === "reopen"}
         onClose={() => setConfirmDialog(null)}
-        tone="garden"
+        tone={tone}
         title={formatMessage({
           id: "cockpit.garden.pool.reopen.title",
           defaultMessage: "Reopen this pool",
