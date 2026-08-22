@@ -81,6 +81,19 @@ function isValidationOnlyPath(path) {
   return isTestPath(path) || isStoryPath(path);
 }
 
+const directRootTestChecks = new Map([
+  ["scripts/lib/env-schema.test.mjs", "env-schema-test"],
+  ["scripts/quality/select-validation.test.mjs", "validation-system-test"],
+  ["scripts/dev/ci-local.test.mjs", "validation-system-test"],
+  ["scripts/dev/surface-leases.test.mjs", "validation-system-test"],
+  ["scripts/quality/ci-gate.test.mjs", "validation-system-test"],
+  ["scripts/quality/workflow-performance-parity.test.mjs", "validation-system-test"],
+]);
+
+function inferDirectRootTestChecks(paths) {
+  return [...new Set(paths.map((path) => directRootTestChecks.get(path)).filter(Boolean))];
+}
+
 function classifyChangedPath(path) {
   if (path === "bun.lock" || path === "bun.lockb") return "lockfile";
   if (path === "package.json" || path.endsWith("/package.json")) return "package-manifest";
@@ -179,9 +192,12 @@ function impactedSurfaces(policy, paths, fullRepository) {
 
   const surfaces = new Set();
   for (const path of paths) {
+    if (path === "bun.lock" || path === "bun.lockb") {
+      allSurfaces.forEach((surface) => surfaces.add(surface));
+      continue;
+    }
     for (const rule of policy.surfaceRules ?? []) {
       if (!groupMatches(path, rule)) continue;
-      if (path === "bun.lock" && rule.surface === "all") continue;
       const owner = owningSurface(path);
       if (
         isValidationOnlyPath(path) &&
@@ -361,6 +377,11 @@ export function selectValidation(input = {}, options = {}) {
   ) {
     select("lint", "automatic-hygiene");
   }
+  if (!evidenceOnly) {
+    for (const checkId of inferDirectRootTestChecks(changedPaths)) {
+      select(checkId, `direct-root-test:${checkId}`);
+    }
+  }
 
   const includeBuilds = ["readiness", "push", "ship", "merge", "release"].includes(intent);
   if (evidenceOnly) {
@@ -535,12 +556,15 @@ function materializeCheck(check, environment, mandatory, testPaths, context) {
     (capability) => environment.capabilities[capability] === false,
   );
   const surface = check.id.endsWith("-test") ? check.id.slice(0, -5) : null;
-  const focusedPaths = surface ? testPaths[surface] ?? [] : [];
+  const focusedPaths =
+    surface && ["diagnose", "review", "qa", "checkpoint"].includes(context.intent)
+      ? testPaths[surface] ?? []
+      : [];
   let command = check.command;
   if (focusedPaths.length > 0) {
     command =
       check.id === "contracts-test"
-        ? `bun run test:match ${focusedPaths.join(" ")}`
+        ? focusedPaths.map((path) => `bun run test:match ${path}`).join(" && ")
         : `${check.command} ${focusedPaths.join(" ")}`;
   }
   const laneCheckpoint =
@@ -574,7 +598,9 @@ function materializeCheck(check, environment, mandatory, testPaths, context) {
     const sourcePaths = context.changedPaths.filter((path) =>
       [".js", ".jsx", ".mjs", ".cjs", ".ts", ".tsx"].some(
         (extension) => path.endsWith(extension),
-      ) && lintablePrefixes.some((prefix) => path.startsWith(prefix)),
+      ) &&
+      lintablePrefixes.some((prefix) => path.startsWith(prefix)) &&
+      !isValidationOnlyPath(path),
     );
     command =
       sourcePaths.length > 0

@@ -5,6 +5,7 @@ on:
     branches: [main, develop]
     paths:
       - "package.json"
+      - "bun.lock"
       - "biome.json"
       - ".env.schema"
       - "packages/agent/**"
@@ -20,6 +21,7 @@ on:
   pull_request:
     paths:
       - "package.json"
+      - "bun.lock"
       - "biome.json"
       - ".env.schema"
       - "packages/agent/**"

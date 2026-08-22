@@ -122,20 +122,28 @@ test("raw Solidity source does not fan out to mocked consumer workflows", () => 
   }
 });
 
-test("lockfile-only changes stay on Supply Chain Guardrails", () => {
+test("lockfile changes run package validation and Supply Chain Guardrails", () => {
   for (const file of [
     "admin.yml",
     "agent.yml",
     "client.yml",
     "contracts.yml",
-    "design.yml",
     "docs.yml",
     "indexer.yml",
     "shared.yml",
   ]) {
-    const outer = read(`.github/workflows/${file}`).split("permissions:", 1)[0];
-    assert.ok(!outer.includes('"bun.lock"'), `${file} must not run for lockfile-only changes`);
+    const source = read(`.github/workflows/${file}`);
+    for (const event of ["push", "pull_request"]) {
+      assert.equal(
+        workflowEventBlock(source, event).match(/- "bun\.lock"/g)?.length,
+        1,
+        `${file}:${event} must include bun.lock exactly once`,
+      );
+    }
   }
+
+  const design = read(".github/workflows/design.yml").split("permissions:", 1)[0];
+  assert.ok(!design.includes('"bun.lock"'), "Design is not a package validation workflow");
 
   const supplyChain = read(".github/workflows/supply-chain-guardrails.yml");
   for (const event of ["push", "pull_request"]) {
@@ -186,6 +194,7 @@ test("Shared outer routing matches the internal shared-impact detector", () => {
 
   for (const required of [
     "package.json",
+    "bun.lock",
     "biome.json",
     ".env.schema",
     ".github/actions/setup-js/action.yml",
@@ -202,8 +211,6 @@ test("Shared outer routing matches the internal shared-impact detector", () => {
       `Shared push and pull_request routing must include ${required}`,
     );
   }
-
-  assert.ok(!outer.includes('"bun.lock"'), "Shared must not run for lockfile-only changes");
 
   for (const forbidden of [
     ".github/workflows/**",

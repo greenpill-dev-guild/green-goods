@@ -5,8 +5,8 @@
  * These functions use WalletClient directly (Node.js compatible).
  */
 
+import { Confidence, VerificationMethod, type WorkApprovalDraft } from "@green-goods/shared/types";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { Confidence, VerificationMethod, type WorkApprovalDraft } from "../../types";
 
 // Mock dependencies
 vi.mock("../../config/blockchain", () => ({

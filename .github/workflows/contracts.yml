@@ -5,6 +5,7 @@ on:
     branches: [main, develop]
     paths:
       - "package.json"
+      - "bun.lock"
       - ".env.schema"
       - "packages/contracts/**"
       - "scripts/contracts/**"
@@ -15,6 +16,7 @@ on:
   pull_request:
     paths:
       - "package.json"
+      - "bun.lock"
       - ".env.schema"
       - "packages/contracts/**"
       - "scripts/contracts/**"

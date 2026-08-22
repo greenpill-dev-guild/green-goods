@@ -5,6 +5,7 @@ on:
     branches: [main, develop]
     paths:
       - "package.json"
+      - "bun.lock"
       - "biome.json"
       - ".env.schema"
       - "playwright.config.ts"
@@ -31,6 +32,7 @@ on:
   pull_request:
     paths:
       - "package.json"
+      - "bun.lock"
       - "biome.json"
       - ".env.schema"
       - "playwright.config.ts"

@@ -5,6 +5,7 @@ on:
     branches: [main, develop]
     paths:
       - "package.json"
+      - "bun.lock"
       - "biome.json"
       - ".env.schema"
       - ".github/actions/setup-js/action.yml"
@@ -16,6 +17,7 @@ on:
   pull_request:
     paths:
       - "package.json"
+      - "bun.lock"
       - "biome.json"
       - ".env.schema"
       - ".github/actions/setup-js/action.yml"

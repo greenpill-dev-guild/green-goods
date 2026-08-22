@@ -184,6 +184,26 @@
       "capabilities": ["dependencies"]
     },
     {
+      "id": "validation-system-test",
+      "command": "bun run test:validation-system",
+      "risk": "validation selector or workflow routing changes are not exercised by their durable regression suite",
+      "expectedSignal": "the validation-system regression suite passes",
+      "freshness": "exact-inputs-and-toolchain",
+      "budgetSeconds": 30,
+      "stopRule": "stop-dependent-checks",
+      "capabilities": ["dependencies"]
+    },
+    {
+      "id": "env-schema-test",
+      "command": "bun run test:env-schema",
+      "risk": "environment schema behavior changes without executing its direct regression test",
+      "expectedSignal": "the environment schema regression test passes",
+      "freshness": "exact-inputs-and-toolchain",
+      "budgetSeconds": 15,
+      "stopRule": "stop-dependent-checks",
+      "capabilities": ["dependencies"]
+    },
+    {
       "id": "abi-artifacts",
       "command": null,
       "builtin": "abiArtifacts",
@@ -576,6 +596,7 @@
     "Admin": {
       "exact": [
         "package.json",
+        "bun.lock",
         "biome.json",
         ".env.schema",
         "playwright.config.ts",
@@ -601,6 +622,7 @@
     "Agent": {
       "exact": [
         "package.json",
+        "bun.lock",
         "biome.json",
         ".env.schema",
         "scripts/quality/check-source-structure.js",
@@ -613,6 +635,7 @@
     "Client": {
       "exact": [
         "package.json",
+        "bun.lock",
         "biome.json",
         ".env.schema",
         "playwright.config.ts",
@@ -638,6 +661,7 @@
     "Contracts": {
       "exact": [
         "package.json",
+        "bun.lock",
         ".env.schema",
         "scripts/lib/git-guardrails.mjs",
         "scripts/quality/check-source-structure.js",
@@ -682,6 +706,7 @@
     "Docs": {
       "exact": [
         "package.json",
+        "bun.lock",
         ".github/actions/setup-js/action.yml",
         ".github/workflows/docs.yml"
       ],
@@ -690,6 +715,7 @@
     "Indexer": {
       "exact": [
         "package.json",
+        "bun.lock",
         ".env.schema",
         "scripts/quality/check-source-structure.js",
         ".github/actions/setup-js/action.yml",
@@ -743,6 +769,7 @@
     "Shared": {
       "exact": [
         "package.json",
+        "bun.lock",
         "biome.json",
         ".env.schema",
         "scripts/quality/check-source-structure.js",

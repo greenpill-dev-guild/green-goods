@@ -89,8 +89,14 @@ test("test-only shared changes stay in Shared and select the direct typecheck", 
     "shared-test-typecheck",
     "shared-test",
   ]);
-  assert.equal(plan.checks.find((check) => check.id === "shared-test").command,
-    "bun run test src/__tests__/components/FormWizard.test.tsx");
+  assert.equal(
+    plan.checks.find((check) => check.id === "shared-test").command,
+    "bun run test src/__tests__/components/FormWizard.test.tsx",
+  );
+  assert.equal(
+    plan.checks.find((check) => check.id === "lint").command,
+    `bunx @biomejs/biome lint --no-errors-on-unmatched '${changedPath}'`,
+  );
   assert.ok(!ids(plan).includes("client-test"));
   assert.ok(!ids(plan).includes("ontology"));
   assert.deepEqual(
@@ -134,8 +140,8 @@ test("Storybook configuration changes select a static build", () => {
   );
 });
 
-test("workspace package manifests contain lockfile impact to their owning surfaces", () => {
-  const changedPaths = ["bun.lock", "packages/admin/package.json", "packages/client/package.json"];
+test("workspace package manifests stay on their owning surfaces", () => {
+  const changedPaths = ["packages/admin/package.json", "packages/client/package.json"];
   const plan = selectValidation({ intent: "checkpoint", changedPaths });
 
   assert.deepEqual(plan.surfaces, ["client", "admin"]);
@@ -156,16 +162,65 @@ test("workspace package manifests contain lockfile impact to their owning surfac
   );
 });
 
-test("a lockfile-only change stays on the dependency-integrity gate", () => {
+test("a lockfile-only change retains package validation and dependency integrity", () => {
   const plan = selectValidation({ intent: "checkpoint", changedPaths: ["bun.lock"] });
 
-  assert.deepEqual(plan.surfaces, []);
+  assert.deepEqual(plan.surfaces, [
+    "contracts",
+    "shared",
+    "indexer",
+    "client",
+    "admin",
+    "agent",
+    "docs",
+  ]);
   assert.deepEqual(plan.changes, [{ path: "bun.lock", kind: "lockfile", surface: null }]);
-  assert.deepEqual(ids(plan), ["format", "lint", "supply-chain"]);
+  for (const checkId of [
+    "contracts-build",
+    "contracts-test",
+    "shared-test",
+    "indexer-test",
+    "client-test",
+    "admin-test",
+    "agent-test",
+    "docs-build",
+    "supply-chain",
+  ]) {
+    assert.ok(ids(plan).includes(checkId), checkId);
+  }
   assert.deepEqual(
     selectExpectedWorkflows({ changedPaths: ["bun.lock"], intent: "merge", ci: true }),
-    ["Supply Chain Guardrails"],
+    [
+      "Admin",
+      "Agent",
+      "Client",
+      "Contracts",
+      "Docs",
+      "Indexer",
+      "Shared",
+      "Supply Chain Guardrails",
+    ],
   );
+});
+
+test("recognized root tests select their durable acceptance commands", () => {
+  for (const [changedPath, checkId, command] of [
+    ["scripts/lib/env-schema.test.mjs", "env-schema-test", "bun run test:env-schema"],
+    [
+      "scripts/quality/select-validation.test.mjs",
+      "validation-system-test",
+      "bun run test:validation-system",
+    ],
+  ]) {
+    for (const input of [
+      { intent: "checkpoint" },
+      { intent: "merge", ci: true },
+    ]) {
+      const plan = selectValidation({ ...input, changedPaths: [changedPath] });
+      const check = plan.checks.find((candidate) => candidate.id === checkId);
+      assert.equal(check?.command, command, `${input.intent}:${changedPath}`);
+    }
+  }
 });
 
 test("lane checkpoint scopes format and lint to explicitly supplied paths", () => {
@@ -307,6 +362,26 @@ test("focused Solidity tests use the contracts match-path wrapper", () => {
   const contractsTest = plan.checks.find((check) => check.id === "contracts-test");
   assert.equal(contractsTest.command, "bun run test:match test/unit/Garden.t.sol");
   assert.deepEqual(contractsTest.focusedPaths, ["test/unit/Garden.t.sol"]);
+});
+
+test("multiple focused Solidity tests invoke the contracts wrapper once per path", () => {
+  const plan = selectValidation({
+    intent: "qa",
+    changedPaths: [
+      "packages/contracts/test/unit/Action.t.sol",
+      "packages/contracts/test/unit/Garden.t.sol",
+    ],
+  });
+
+  const contractsTest = plan.checks.find((check) => check.id === "contracts-test");
+  assert.equal(
+    contractsTest.command,
+    "bun run test:match test/unit/Action.t.sol && bun run test:match test/unit/Garden.t.sol",
+  );
+  assert.deepEqual(contractsTest.focusedPaths, [
+    "test/unit/Action.t.sol",
+    "test/unit/Garden.t.sol",
+  ]);
 });
 
 test("mutation-rich shared hooks retain the critical override", () => {
@@ -481,16 +556,31 @@ test("ship remains strict and includes the complete build surface", () => {
 });
 
 test("strict intents preserve owning surface gates for test-only changes", () => {
-  const changedPath = "packages/admin/src/__tests__/components/CanvasLayout.test.tsx";
-  for (const intent of ["readiness", "push", "ship", "merge", "release"]) {
-    const plan = selectValidation({
-      intent,
-      ci: intent === "merge",
-      changedPaths: [changedPath],
-    });
+  for (const [changedPath, surface] of [
+    ["packages/admin/src/__tests__/components/CanvasLayout.test.tsx", "admin"],
+    ["packages/shared/src/__tests__/components/FormWizard.test.tsx", "shared"],
+  ]) {
+    for (const intent of ["readiness", "push", "ship", "merge", "release"]) {
+      const plan = selectValidation({
+        intent,
+        ci: intent === "merge",
+        changedPaths: [changedPath],
+      });
 
-    for (const checkId of ["admin-test-typecheck", "admin-test", "admin-build"]) {
-      assert.ok(ids(plan).includes(checkId), `${intent} must include ${checkId}`);
+      for (const checkId of [`${surface}-test-typecheck`, `${surface}-test`, `${surface}-build`]) {
+        assert.ok(ids(plan).includes(checkId), `${intent} must include ${checkId}`);
+      }
+      const packageTest = plan.checks.find((check) => check.id === `${surface}-test`);
+      assert.equal(
+        packageTest.command,
+        "bun run test",
+        `${intent} must run the full ${surface} suite`,
+      );
+      assert.deepEqual(
+        packageTest.focusedPaths,
+        [],
+        `${intent} must not retain focused test paths`,
+      );
     }
   }
 });
