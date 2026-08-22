@@ -696,10 +696,10 @@ describe("handleApprove", () => {
       address: pendingWork.gardenerAddress,
       locale: "pt-BR",
     });
-    const workUID = `0x${"e".repeat(64)}`;
+    const workUID = `0x${"e".repeat(64)}` as `0x${string}`;
     const submitWork = vi
       .spyOn(blockchain, "submitWork")
-      .mockResolvedValue({ txHash: `0x${"c".repeat(64)}`, workUID });
+      .mockResolvedValue({ txHash: `0x${"c".repeat(64)}` as `0x${string}`, workUID });
     const submitApproval = vi
       .spyOn(blockchain, "submitApproval")
       .mockResolvedValue(`0x${"d".repeat(64)}`);

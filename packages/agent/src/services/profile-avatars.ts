@@ -70,7 +70,7 @@ export class MemoryProfileAvatarStore implements ProfileAvatarStore {
 
     const record: ProfileAvatarRecord = {
       chainId: input.chainId,
-      address: input.address,
+      address: input.address as ProfileAvatarRecord["address"],
       avatarUri: input.avatarUri,
       version: currentVersion + 1,
       updatedAt: input.updatedAt,
