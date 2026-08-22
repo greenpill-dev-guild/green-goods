@@ -2,11 +2,17 @@ import { cn } from "@green-goods/shared";
 import { forwardRef, type ComponentProps, type ComponentPropsWithoutRef } from "react";
 import { PageHeader } from "./PageHeader";
 
-type CanvasRouteFrameProps = ComponentPropsWithoutRef<"div">;
-
-type CanvasRouteContentProps = ComponentPropsWithoutRef<"div"> & {
-  maxWidthClassName?: string;
+type CanvasDataAttributes = {
+  "data-component"?: string;
+  "data-region"?: string;
 };
+
+type CanvasRouteFrameProps = ComponentPropsWithoutRef<"div"> & CanvasDataAttributes;
+
+type CanvasRouteContentProps = ComponentPropsWithoutRef<"div"> &
+  CanvasDataAttributes & {
+    maxWidthClassName?: string;
+  };
 
 type CanvasRouteHeaderProps = ComponentProps<typeof PageHeader> & {
   maxWidthClassName?: string;

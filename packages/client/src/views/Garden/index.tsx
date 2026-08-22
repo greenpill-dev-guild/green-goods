@@ -198,7 +198,7 @@ const Work: React.FC = () => {
       gardenAddress,
       actionUID,
       feedback,
-      timeSpentMinutes,
+      timeSpentMinutes: timeSpentMinutes ?? 0,
     },
     isOnIntroTab: activeTab === WorkTab.Intro,
     searchParams,

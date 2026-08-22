@@ -303,7 +303,7 @@ export function CampaignCookieJarCreateWorkspace({
       gardensLoading={gardensLoading}
       factoryLoading={factoryLoading}
       payoutAssets={payoutAssets}
-      defaultPayoutAsset={defaultPayoutAsset}
+      defaultPayoutAsset={defaultPayoutAsset ?? undefined}
       selectedAssetId={selectedAssetId}
       setSelectedAssetId={setSelectedAssetId}
       campaignTitle={campaignTitle}

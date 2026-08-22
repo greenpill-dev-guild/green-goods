@@ -937,6 +937,7 @@ export {
   WorkProvider,
 } from "./providers/index";
 export type {
+  PublicImpactEvidenceKind,
   PublicImpactEvidenceRecord,
   PublicImpactSlice,
 } from "./public-contracts";
@@ -1147,6 +1148,7 @@ export type {
   WorkConflict,
   WorkDisplayStatus,
   WorkDraft,
+  GreenWillBadgeView,
   WorkInput,
   WorkJobPayload,
   WorkMetadata,

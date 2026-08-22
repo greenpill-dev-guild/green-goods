@@ -285,7 +285,11 @@ export function ActionTranslationEditor({
     updateActiveData((data) =>
       updateScope(data, "details", (details) => ({
         ...details,
-        inputs: upsertInputTranslation(details.inputs, path, updater),
+        inputs: upsertInputTranslation(
+          "inputs" in details ? details.inputs : undefined,
+          path,
+          updater
+        ),
       }))
     );
   };

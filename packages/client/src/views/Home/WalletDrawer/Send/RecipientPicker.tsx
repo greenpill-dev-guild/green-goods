@@ -40,7 +40,7 @@ export function RecipientPicker({ selectedAddress, onSelect }: RecipientPickerPr
 
   const trimmed = query.trim();
   const queryIsAddress = isAddress(trimmed);
-  const looksLikeEns = !queryIsAddress && trimmed.includes(".");
+  const looksLikeEns = trimmed.includes(".") && !queryIsAddress;
   const { data: resolvedEns, isFetching: ensResolving } = useEnsAddress(
     looksLikeEns ? trimmed : undefined,
     { enabled: looksLikeEns }

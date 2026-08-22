@@ -19,6 +19,7 @@ export type EnsureWalletChainOptions = {
 export class WalletChainMismatchError extends Error {
   readonly targetChainId: number;
   readonly walletChainId?: number;
+  readonly cause?: unknown;
 
   constructor(params: {
     targetChainId: number;

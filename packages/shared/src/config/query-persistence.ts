@@ -1,4 +1,4 @@
-import type { Query } from "@tanstack/react-query";
+import type { DehydratedState, Query } from "@tanstack/react-query";
 import { createStore, del as idbDel, get as idbGet, set as idbSet } from "idb-keyval";
 import { debugWarn } from "../utils";
 
@@ -22,7 +22,7 @@ type MaybePromise<T> = T | Promise<T>;
 interface PersistedClient {
   timestamp: number;
   buster: string;
-  clientState: unknown;
+  clientState: DehydratedState;
 }
 
 export interface QueryPersister {

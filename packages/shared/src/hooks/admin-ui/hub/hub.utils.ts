@@ -58,7 +58,7 @@ export interface HubHeaderStatsInput {
   waitingCount: number;
   formatMessage: (
     descriptor: { id: string; defaultMessage?: string },
-    values?: Record<string, unknown>
+    values?: Record<string, string | number | boolean | Date | null | undefined>
   ) => string;
 }
 
@@ -242,7 +242,7 @@ export function resolveOpenSectionRoute(
 // follows the active stage.
 
 export function buildHubViewActions(
-  stage: HubPipelineStage,
+  _stage: HubPipelineStage,
   canManage: boolean,
   canReview: boolean,
   navigate: (path: string) => void,

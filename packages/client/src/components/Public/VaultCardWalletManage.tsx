@@ -11,7 +11,6 @@ import {
   DEFAULT_WITHDRAW_MAX_LOSS_BPS,
   formatTokenAmount,
   getOctantVaultCampaignBySlug,
-  getOctantVaultRedeemCallShape,
   getOctantVaultPendingFundedCardWalletRefs,
   OCTANT_VAULT_REDEEM_CALL_SHAPES,
   type OctantVaultCardWalletPositionRef,
@@ -59,11 +58,7 @@ async function readCardWalletMaxRedeemable({
 }): Promise<{ shares: bigint; variant: OctantVaultRedeemCallVariant }> {
   for (const shape of OCTANT_VAULT_REDEEM_CALL_SHAPES) {
     try {
-      const result = await readContract({
-        contract,
-        method: shape.maxRedeemMethod,
-        params: shape.maxRedeemArgs(owner, DEFAULT_WITHDRAW_MAX_LOSS_BPS),
-      });
+      const result = await readCardWalletMaxRedeemVariant(contract, owner, shape.variant);
       return {
         shares: typeof result === "bigint" ? result : 0n,
         variant: shape.variant,
@@ -74,6 +69,62 @@ async function readCardWalletMaxRedeemable({
   }
 
   return { shares: 0n, variant: "multistrategy" };
+}
+
+function readCardWalletMaxRedeemVariant(
+  contract: ReturnType<typeof getContract>,
+  owner: Address,
+  variant: OctantVaultRedeemCallVariant
+) {
+  if (variant === "multistrategy") {
+    return readContract({
+      contract,
+      method:
+        "function maxRedeem(address owner, uint256 maxLoss, address[] strategies) view returns (uint256)",
+      params: [owner, DEFAULT_WITHDRAW_MAX_LOSS_BPS, []] as const,
+    });
+  }
+  if (variant === "tokenized-strategy") {
+    return readContract({
+      contract,
+      method: "function maxRedeem(address owner, uint256 maxLoss) view returns (uint256)",
+      params: [owner, DEFAULT_WITHDRAW_MAX_LOSS_BPS] as const,
+    });
+  }
+  return readContract({
+    contract,
+    method: "function maxRedeem(address owner) view returns (uint256)",
+    params: [owner] as const,
+  });
+}
+
+function prepareCardWalletRedeem(
+  contract: ReturnType<typeof getContract>,
+  shares: bigint,
+  owner: Address,
+  variant: OctantVaultRedeemCallVariant
+) {
+  if (variant === "multistrategy") {
+    return prepareContractCall({
+      contract,
+      method:
+        "function redeem(uint256 shares, address receiver, address owner, uint256 maxLoss, address[] strategies) returns (uint256)",
+      params: [shares, owner, owner, DEFAULT_WITHDRAW_MAX_LOSS_BPS, []] as const,
+    });
+  }
+  if (variant === "tokenized-strategy") {
+    return prepareContractCall({
+      contract,
+      method:
+        "function redeem(uint256 shares, address receiver, address owner, uint256 maxLoss) returns (uint256)",
+      params: [shares, owner, owner, DEFAULT_WITHDRAW_MAX_LOSS_BPS] as const,
+    });
+  }
+  return prepareContractCall({
+    contract,
+    method: "function redeem(uint256 shares, address receiver, address owner) returns (uint256)",
+    params: [shares, owner, owner] as const,
+  });
 }
 
 // The recovered email wallet config must match the one Card Endow connected with,
@@ -331,12 +382,7 @@ function CardVaultPositionRow({
               })
             );
           }
-          const redeemShape = getOctantVaultRedeemCallShape(maxRedeemable.variant);
-          const transaction = prepareContractCall({
-            contract: vault,
-            method: redeemShape.redeemMethod,
-            params: redeemShape.redeemArgs(shares, owner, owner, DEFAULT_WITHDRAW_MAX_LOSS_BPS),
-          });
+          const transaction = prepareCardWalletRedeem(vault, shares, owner, maxRedeemable.variant);
           await sendAndConfirm.mutateAsync(transaction);
           await onRefresh();
         } catch (caught) {

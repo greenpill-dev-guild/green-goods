@@ -193,7 +193,12 @@ function DynamicWorkFields({
                   <FormField label={input.title} required={input.required} error={error}>
                     <div className="flex flex-wrap gap-2">
                       {(input.options ?? []).map((option) => {
-                        const selected = Array.isArray(field.value) && field.value.includes(option);
+                        const current = Array.isArray(field.value)
+                          ? field.value.filter(
+                              (value): value is string => typeof value === "string"
+                            )
+                          : [];
+                        const selected = current.includes(option);
                         return (
                           <AdminButton
                             key={option}
@@ -201,7 +206,6 @@ function DynamicWorkFields({
                             variant={selected ? "tonal" : "outlined"}
                             size="sm"
                             onClick={() => {
-                              const current = Array.isArray(field.value) ? field.value : [];
                               field.onChange(
                                 selected
                                   ? current.filter((value: string) => value !== option)
@@ -352,7 +356,11 @@ function SubmitWorkPanelContent({
     [garden?.domainMask]
   );
   const availableActions = useMemo(
-    () => actions.filter((action) => gardenDomains.has(action.domain)),
+    () =>
+      actions.filter(
+        (action): action is Action & { domain: Domain } =>
+          action.domain !== null && gardenDomains.has(action.domain)
+      ),
     [actions, gardenDomains]
   );
   // Domain filter for the action chooser — shown only when the garden's eligible

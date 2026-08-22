@@ -15,6 +15,7 @@ const PREVIEWABLE_IMAGE_TYPES = new Set([
 ]);
 
 export interface FileUploadFieldProps {
+  id?: string;
   onFilesChange: (files: File[]) => void;
   accept?: string;
   multiple?: boolean;
@@ -28,6 +29,7 @@ export interface FileUploadFieldProps {
 }
 
 export function FileUploadField({
+  id,
   onFilesChange,
   accept = "*",
   multiple = false,
@@ -184,6 +186,7 @@ export function FileUploadField({
       {helpText && <p className="text-xs text-text-soft">{helpText}</p>}
 
       <input
+        id={id}
         ref={fileInputRef}
         type="file"
         accept={accept}

@@ -51,7 +51,6 @@ export class WalletSender implements TransactionSender {
     chainId?: number;
     value?: bigint;
   }) => Promise<`0x${string}`>;
-  private erc7677ProxyUrl?: string;
   private deps: WalletSenderDeps;
 
   constructor(
@@ -64,12 +63,11 @@ export class WalletSender implements TransactionSender {
       chainId?: number;
       value?: bigint;
     }) => Promise<`0x${string}`>,
-    erc7677ProxyUrl?: string,
+    _erc7677ProxyUrl?: string,
     deps?: WalletSenderDeps
   ) {
     this.config = wagmiConfig;
     this.writeContractAsync = writeContractAsync;
-    this.erc7677ProxyUrl = erc7677ProxyUrl;
     this.deps = deps ?? {
       waitForTransactionReceipt:
         defaultWaitForReceipt as unknown as WalletSenderDeps["waitForTransactionReceipt"],

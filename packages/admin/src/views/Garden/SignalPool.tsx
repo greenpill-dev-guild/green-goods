@@ -71,7 +71,7 @@ export default function GardenSignalPoolView({
 
   const { data: gardens = [], isLoading: gardensLoading } = useGardens();
   const garden = gardens.find((item) => compareAddresses(item.id, gardenId));
-  const gardenRouteContext = { gardenId: garden?.id ?? gardenId };
+  const gardenRouteContext = { gardenId: garden?.id ?? gardenId ?? undefined };
   const permissions = useGardenPermissions();
 
   // Load pools from GardensModule — typed with PoolType

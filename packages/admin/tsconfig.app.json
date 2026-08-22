@@ -65,6 +65,8 @@
     "src/**/*.test.ts",
     "src/**/*.test.tsx",
     "src/**/*.stories.*",
+    "src/views/storybook*.ts",
+    "src/views/storybook*.tsx",
     "src/__mocks__",
     "../shared/src/__tests__/**",
     "../shared/src/__mocks__/**",
