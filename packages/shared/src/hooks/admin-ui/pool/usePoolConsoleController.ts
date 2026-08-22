@@ -40,7 +40,8 @@ export function usePoolConsoleController(input: { chainId: number; garden: Addre
   const isOnline = useOnlineStatus();
 
   const poolsQuery = useCommitmentPools({ chainId, garden });
-  const pool = poolsQuery.pools[0] ?? null;
+  // .at(0) keeps the null honest in the type; [0] would claim a pool always exists.
+  const pool = poolsQuery.pools.at(0) ?? null;
   const poolId = pool?.poolId;
   const hasPool = poolId !== undefined;
 

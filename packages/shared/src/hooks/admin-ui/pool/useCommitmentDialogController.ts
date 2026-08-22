@@ -72,7 +72,8 @@ export function useCommitmentDialogController(input: {
   const activity = useCommitmentActivity({ chainId, commitmentId, limit: 50 });
   const metadata = useCommitmentMetadataFor(commitment ?? undefined);
   const poolsQuery = useCommitmentPools({ chainId, garden });
-  const pool = poolsQuery.pools[0] ?? null;
+  // .at(0) keeps the null honest in the type; [0] would claim a pool always exists.
+  const pool = poolsQuery.pools.at(0) ?? null;
   const cycleQuery = useCommitmentCycle(
     { chainId, cycleId: commitment?.cycleId ?? 0n },
     { enabled: Boolean(commitment?.cycleId && commitment.cycleId !== 0n) }

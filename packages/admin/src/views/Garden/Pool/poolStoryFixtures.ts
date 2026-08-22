@@ -18,6 +18,7 @@ import {
   type PoolConsoleController,
   queryKeys,
   selectPoolConsoleModel,
+  selectPromiseKeptRate,
 } from "@green-goods/shared";
 import type { QueryKey } from "@tanstack/react-query";
 import { STORYBOOK_PRIMARY_ADMIN_GARDEN } from "../../../../../shared/.storybook/adminFixtures";
@@ -28,7 +29,10 @@ import {
 } from "../../../../../shared/.storybook/fixtures";
 
 export const STORY_GARDEN = STORYBOOK_PRIMARY_ADMIN_GARDEN.id as Address;
-export const STORY_STEWARD = "0x04D60647836bcA09c37B379550038BdaaFD82503" as Address;
+// A literal, not `as Address`: the controllers type the viewer as viem's Hex and
+// the admin typecheck resolves the shared Address alias to a plain string.
+export const STORY_STEWARD =
+  "0x04D60647836bcA09c37B379550038BdaaFD82503" as const satisfies Address;
 export const STORY_MARIA = "0x1111111111111111111111111111111111111111" as Address;
 export const STORY_JOAO = "0x2222222222222222222222222222222222222222" as Address;
 export const STORY_ANA = "0x3333333333333333333333333333333333333333" as Address;
@@ -294,7 +298,9 @@ export const STORY_CLAIMS: PoolClaimRequestRow[] = [
 
 /** The real controller's shape over the fixtures above; acts resolve without sending. */
 export function storyPoolConsole(
-  overrides: Partial<PoolConsoleController> & { pool?: CommitmentPoolRecord | null } = {}
+  overrides: Omit<Partial<PoolConsoleController>, "pool"> & {
+    pool?: CommitmentPoolRecord | null;
+  } = {}
 ): PoolConsoleController {
   const pool = overrides.pool === undefined ? storyPool() : overrides.pool;
   const cycles = overrides.cycles ?? (pool ? STORY_CYCLES : []);
@@ -320,7 +326,7 @@ export function storyPoolConsole(
     viewer: STORY_STEWARD,
     isOnline: true,
     availability: { status: "available", capability: {} as never },
-    pool,
+    pool: pool ? { ...pool, promiseKeptRate: selectPromiseKeptRate(pool) } : null,
     poolId: pool?.poolId,
     model: selectPoolConsoleModel({
       pool,
