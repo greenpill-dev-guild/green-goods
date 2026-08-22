@@ -165,6 +165,29 @@ export function openSeasonSteps(plan: {
   ];
 }
 
+/**
+ * A new season on a pool that is already set up: `seedCycle`, `openPool` (skipped
+ * when the pool is already open, as after a finished season), then `openCycle`.
+ */
+export function newSeasonSteps(plan: {
+  poolId: bigint;
+  cycle: PoolSetupCycleInput;
+  allocation: CommitmentAllocationBps;
+  recognitionPolicy: CommitmentRecognitionPolicyBps;
+}): PoolSetupStep[] {
+  return [
+    { action: "seedCycle", poolId: plan.poolId, cycle: plan.cycle },
+    { action: "openPool", poolId: plan.poolId },
+    {
+      action: "openCycle",
+      poolId: plan.poolId,
+      cycleId: "seeded",
+      allocation: plan.allocation,
+      recognitionPolicy: plan.recognitionPolicy,
+    },
+  ];
+}
+
 /** A Campaign beside the open season: `seedCycle` then `openCycle`. */
 export function campaignSteps(plan: {
   poolId: bigint;

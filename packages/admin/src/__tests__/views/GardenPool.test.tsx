@@ -1,0 +1,552 @@
+/**
+ * @vitest-environment jsdom
+ */
+
+import { type PoolConsoleController, selectPoolConsoleModel } from "@green-goods/shared";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { fireEvent, renderWithProviders, screen, waitFor, within } from "../test-utils";
+
+const GARDEN = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" as const;
+const CLAIMANT = "0x2222222222222222222222222222222222222222" as const;
+
+const mocks = vi.hoisted(() => ({
+  controller: {} as Record<string, unknown>,
+  gardenController: {} as Record<string, unknown>,
+  navigate: vi.fn(),
+}));
+
+vi.mock("@green-goods/shared", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@green-goods/shared")>();
+  return {
+    ...actual,
+    usePoolConsoleController: () => mocks.controller,
+    useGardenWorkspaceController: () => mocks.gardenController,
+    useMediaQuery: () => true,
+  };
+});
+
+vi.mock("react-router-dom", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("react-router-dom")>();
+  return { ...actual, useNavigate: () => mocks.navigate };
+});
+
+vi.mock("@/views/Garden/components/GardenWorkspaceContent", () => ({
+  GardenWorkspaceContent: () => <div data-testid="garden-content" />,
+}));
+vi.mock("@/views/Garden/components/GardenSheetDescriptor", () => ({
+  GardenSheetDescriptor: () => null,
+}));
+// The season/campaign flows and the settings dialog are their own surfaces;
+// here they only need to be openable.
+vi.mock("@/views/Garden/Pool/SetupFlow", () => ({
+  PoolSetupFlow: ({ open, intent }: { open: boolean; intent: string }) =>
+    open ? <div data-testid="pool-setup-flow">{intent}</div> : null,
+}));
+
+const { GardenPoolTab } = await import("@/views/Garden/Pool");
+const { default: GardenView } = await import("@/views/Garden");
+
+const NOW = 1_756_000_000n;
+
+function pool(overrides: Record<string, unknown> = {}) {
+  return {
+    id: "42161-7",
+    chainId: 42161,
+    poolId: 7n,
+    registrationSeen: true,
+    garden: GARDEN,
+    gardenId: GARDEN,
+    poolType: "GARDEN",
+    state: "OPEN",
+    charterCID: "bafy-charter",
+    pauseReasonCID: null,
+    pauseReasonBlockNumber: null,
+    openSeasonCycleId: 12n,
+    openSeasonCycleEntityId: "42161-12",
+    openCampaignIds: [],
+    openCampaignEntityIds: [],
+    providerOpenCommitmentCap: 24n,
+    liveCommitmentCount: 2n,
+    nonTerminalCycleCount: 1n,
+    commitmentsOffered: 1n,
+    commitmentsRequested: 0n,
+    commitmentsAccepted: 1n,
+    commitmentsReadyForConfirmation: 0n,
+    commitmentsFulfilled: 3n,
+    commitmentsCancelled: 0n,
+    commitmentsExpired: 1n,
+    commitmentsDisputed: 0n,
+    workLinkedCount: 0n,
+    workApprovedCount: 0n,
+    openCommitmentCount: 2n,
+    distinctProviderCount: 2n,
+    commitmentsDue: 0n,
+    createdAt: 1_700_000_000,
+    updatedAt: 1_700_000_100,
+    ...overrides,
+  };
+}
+
+function cycle(overrides: Record<string, unknown> = {}) {
+  return {
+    id: "42161-12",
+    chainId: 42161,
+    cycleId: 12n,
+    seedSeen: true,
+    poolId: 7n,
+    poolEntityId: "42161-7",
+    garden: null,
+    gardenId: null,
+    cycleType: "SEASON",
+    state: "OPEN",
+    startTime: NOW - 100n,
+    endTime: NOW + 1000n,
+    metadataCID: "bafy-season",
+    gardenersBps: 6000,
+    treasuryBps: 1500,
+    operatorBps: 1000,
+    evaluatorBps: 500,
+    communityBps: 500,
+    funderBps: 500,
+    equalParticipationBps: 2000,
+    verifiedContributionBps: 8000,
+    liveCommitmentCount: 2n,
+    commitmentsAccepted: 1n,
+    commitmentsReadyForConfirmation: 0n,
+    commitmentsFulfilled: 1n,
+    commitmentsCancelled: 0n,
+    commitmentsExpired: 0n,
+    commitmentsDisputed: 0n,
+    commitmentsDue: 0n,
+    openCommitmentCount: 2n,
+    createdAt: 1_700_000_000,
+    updatedAt: 1_700_000_100,
+    ...overrides,
+  };
+}
+
+function commitment(overrides: Record<string, unknown> = {}) {
+  return {
+    id: "42161-1",
+    chainId: 42161,
+    commitmentId: 1n,
+    creationSeen: true,
+    onchainState: "ACCEPTED",
+    derivedState: "ACTIVE",
+    state: "ACCEPTED",
+    approvedUnits: 0n,
+    evidenceCount: 0,
+    cycleId: 12n,
+    declaredUnitValue: null,
+    declaredValueBasis: null,
+    targetUnits: 6n,
+    unitLabel: "hours",
+    direction: "OFFER",
+    creator: CLAIMANT,
+    leadProvider: CLAIMANT,
+    confirmers: [],
+    contributorCount: 1,
+    contributorsFrozen: false,
+    dueDate: NOW + 500n,
+    metadataCID: "bafy-1",
+    ...overrides,
+  };
+}
+
+function controller(overrides: Partial<Record<keyof PoolConsoleController, unknown>> = {}) {
+  const acts = {
+    pause: vi.fn().mockResolvedValue("0x1"),
+    resume: vi.fn().mockResolvedValue("0x1"),
+    closePool: vi.fn().mockResolvedValue("0x1"),
+    compostPool: vi.fn().mockResolvedValue("0x1"),
+    reopenPool: vi.fn().mockResolvedValue("0x1"),
+    cancelCycle: vi.fn().mockResolvedValue("0x1"),
+    closeCycle: vi.fn().mockResolvedValue("0x1"),
+    compostCycle: vi.fn().mockResolvedValue("0x1"),
+    expire: vi.fn().mockResolvedValue("0x1"),
+    acceptClaim: vi.fn().mockResolvedValue("0x1"),
+    declineClaim: vi.fn().mockResolvedValue("0x1"),
+    saveSettings: vi.fn().mockResolvedValue(undefined),
+  };
+  const base = {
+    chainId: 42161,
+    garden: GARDEN,
+    viewer: "0x1111111111111111111111111111111111111111",
+    isOnline: true,
+    availability: { status: "available" },
+    pool: pool(),
+    poolId: 7n,
+    cycles: [cycle()],
+    cycleNames: new Map([["12", { status: "resolved", name: "Season of First Rains" }]]),
+    commitments: [commitment()],
+    titles: new Map([["bafy-1", { version: 1, title: "Prune the north beds" }]]),
+    claims: [],
+    charter: {
+      charter: { version: 1, purpose: "Neighbourly help in Rocinha" },
+      isLoading: false,
+      isUnavailable: false,
+    },
+    pauseReason: { reason: null, isLoading: false, isUnavailable: false },
+    pendingCreates: [],
+    queueUnavailable: false,
+    acts,
+    isActing: false,
+    isLoading: false,
+    isError: false,
+    refetch: vi.fn(),
+  };
+  const merged = { ...base, ...overrides };
+  return {
+    ...merged,
+    model:
+      overrides.model ??
+      selectPoolConsoleModel({
+        pool: merged.pool as never,
+        cycles: merged.cycles as never,
+        commitments: merged.commitments as never,
+        pendingClaimCount: (merged.claims as unknown[]).length,
+        now: NOW,
+      }),
+  };
+}
+
+function renderTab() {
+  return renderWithProviders(
+    <GardenPoolTab garden={{ id: GARDEN, name: "Rocinha" }} chainId={42161} canManage />
+  );
+}
+
+describe("GardenPoolTab (W7)", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.controller = controller();
+  });
+
+  it("shows skeletons while the pool loads and a retry when the read fails", () => {
+    mocks.controller = controller({ isLoading: true, pool: null, poolId: undefined });
+    const { unmount } = renderTab();
+    expect(screen.getByRole("status")).toBeInTheDocument();
+    unmount();
+
+    const refetch = vi.fn();
+    mocks.controller = controller({ isError: true, refetch });
+    renderTab();
+    expect(screen.getByText(/couldn.t load this pool/i)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /try again/i }));
+    expect(refetch).toHaveBeenCalled();
+  });
+
+  it("says when the garden has no pool registered, without offering setup", () => {
+    mocks.controller = controller({ pool: null, poolId: undefined, cycles: [], commitments: [] });
+    renderTab();
+    expect(screen.getByText(/no commitment pool/i)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /set up commitments/i })).not.toBeInTheDocument();
+  });
+
+  it("renders the setup checklist for a pool that has never opened and opens the setup flow", () => {
+    mocks.controller = controller({
+      pool: pool({
+        state: "NOT_READY",
+        charterCID: null,
+        providerOpenCommitmentCap: 0n,
+        openSeasonCycleId: null,
+        liveCommitmentCount: 0n,
+        nonTerminalCycleCount: 0n,
+      }),
+      cycles: [],
+      commitments: [],
+      charter: { charter: null, isLoading: false, isUnavailable: false },
+    });
+    renderTab();
+    expect(screen.getByText(/not taking commitments yet/i)).toBeInTheDocument();
+    expect(screen.getByText(/agreement not written yet/i)).toBeInTheDocument();
+    expect(screen.getByText(/commitment limit not set/i)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /set up commitments/i }));
+    expect(screen.getByTestId("pool-setup-flow")).toHaveTextContent("first-run");
+  });
+
+  it("offers a season on a set-up pool with none running", () => {
+    mocks.controller = controller({
+      pool: pool({ state: "READY", openSeasonCycleId: null, nonTerminalCycleCount: 0n }),
+      cycles: [],
+      commitments: [],
+    });
+    renderTab();
+    expect(screen.getByText(/no season running/i)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /start season/i }));
+    expect(screen.getByTestId("pool-setup-flow")).toHaveTextContent("season");
+    // A campaign needs an open pool.
+    expect(screen.getByRole("button", { name: /start campaign/i })).toBeDisabled();
+  });
+
+  it("names the running season, its campaigns, and the pool's rules", () => {
+    mocks.controller = controller({
+      cycles: [
+        cycle(),
+        cycle({
+          id: "42161-13",
+          cycleId: 13n,
+          cycleType: "CAMPAIGN",
+          state: "OPEN",
+          metadataCID: "bafy-13",
+        }),
+      ],
+      cycleNames: new Map([
+        ["12", { status: "resolved", name: "Season of First Rains" }],
+        ["13", { status: "resolved", name: "Market rides" }],
+      ]),
+    });
+    renderTab();
+    expect(screen.getByText("Season of First Rains")).toBeInTheDocument();
+    expect(screen.getByText("Market rides")).toBeInTheDocument();
+    expect(screen.getByText("Neighbourly help in Rocinha")).toBeInTheDocument();
+    expect(screen.getByText(/24 per person at once/i)).toBeInTheDocument();
+    expect(screen.getByText(/taking commitments/i)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /start campaign/i }));
+    expect(screen.getByTestId("pool-setup-flow")).toHaveTextContent("campaign");
+  });
+
+  it("groups commitments under Open · Confirmed · Past and opens a row in the inspector", () => {
+    mocks.controller = controller({
+      commitments: [
+        commitment(),
+        commitment({
+          id: "42161-3",
+          commitmentId: 3n,
+          onchainState: "FULFILLED",
+          derivedState: "FULFILLED",
+          state: "FULFILLED",
+          metadataCID: "bafy-3",
+        }),
+        commitment({
+          id: "42161-4",
+          commitmentId: 4n,
+          onchainState: "EXPIRED",
+          derivedState: "EXPIRED",
+          state: "EXPIRED",
+          metadataCID: "bafy-4",
+        }),
+      ],
+      titles: new Map([
+        ["bafy-1", { version: 1, title: "Prune the north beds" }],
+        ["bafy-3", { version: 1, title: "Repair the greenhouse" }],
+        ["bafy-4", { version: 1, title: "Market rides" }],
+      ]),
+    });
+    renderTab();
+    const list = screen.getByTestId("pool-commitments");
+    expect(within(list).getByText("Prune the north beds")).toBeInTheDocument();
+    expect(within(list).queryByText("Repair the greenhouse")).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: /^confirmed/i }));
+    expect(within(list).getByText("Repair the greenhouse")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /^past/i }));
+    expect(within(list).getByText("Market rides")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: /^open/i }));
+    fireEvent.click(within(list).getByText("Prune the north beds"));
+    expect(mocks.navigate).toHaveBeenCalledWith(
+      expect.stringMatching(/^\/garden\/pool\/1\?gardenId=/)
+    );
+  });
+
+  it("offers Expire now on a live past-due row and nothing else until the index says Expired", async () => {
+    mocks.controller = controller({
+      commitments: [commitment({ dueDate: NOW - 10n })],
+    });
+    renderTab();
+    const row = screen.getByTestId("pool-commitment-1");
+    expect(within(row).getByText(/past due/i)).toBeInTheDocument();
+    fireEvent.click(within(row).getByRole("button", { name: /expire now/i }));
+    await waitFor(() =>
+      expect(
+        (mocks.controller.acts as { expire: ReturnType<typeof vi.fn> }).expire
+      ).toHaveBeenCalledWith(1n)
+    );
+    // Still listed as live: past due alone never renders Expired.
+    expect(within(row).queryByText(/^expired$/i)).not.toBeInTheDocument();
+  });
+
+  it("pauses with a reason, and resumes without one", async () => {
+    renderTab();
+    fireEvent.click(screen.getByRole("button", { name: /^pause/i }));
+    const dialog = await screen.findByRole("dialog");
+    const confirm = within(dialog).getByRole("button", { name: /pause pool/i });
+    expect(confirm).toBeDisabled();
+    fireEvent.change(within(dialog).getByLabelText(/^reason/i), {
+      target: { value: "Seasonal flooding, back after the rains" },
+    });
+    expect(confirm).toBeEnabled();
+    fireEvent.click(confirm);
+    await waitFor(() =>
+      expect(
+        (mocks.controller.acts as { pause: ReturnType<typeof vi.fn> }).pause
+      ).toHaveBeenCalledWith("Seasonal flooding, back after the rains")
+    );
+  });
+
+  it("while paused, shows the reason, hides the acts the contract refuses, and offers Resume", async () => {
+    mocks.controller = controller({
+      pool: pool({ state: "PAUSED", pauseReasonCID: "bafy-reason" }),
+      pauseReason: {
+        reason: { version: 1, reason: "Seasonal flooding, back after the rains" },
+        isLoading: false,
+        isUnavailable: false,
+      },
+      claims: [
+        {
+          claim: {
+            id: `42161-2-${CLAIMANT}`,
+            chainId: 42161,
+            commitmentId: 2n,
+            claimant: CLAIMANT,
+            requestSeen: true,
+            requestedBy: CLAIMANT,
+            claimType: "INDIVIDUAL",
+            gardenContext: null,
+            state: "PENDING",
+            reasonCID: null,
+            resolutionCode: null,
+            requestedAt: 1_700_000_000,
+            resolvedAt: null,
+            updatedAt: 1_700_000_100,
+          },
+          commitment: commitment({
+            id: "42161-2",
+            commitmentId: 2n,
+            onchainState: "REQUESTED",
+            state: "REQUESTED",
+            metadataCID: "bafy-2",
+          }),
+        },
+      ],
+    });
+    renderTab();
+    expect(screen.getByText(/seasonal flooding, back after the rains/i)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^accept$/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^pause/i })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /resume pool/i }));
+    await waitFor(() =>
+      expect(
+        (mocks.controller.acts as { resume: ReturnType<typeof vi.fn> }).resume
+      ).toHaveBeenCalled()
+    );
+  });
+
+  it("accepts a claim directly and declines one with a reason, keyed to the stored claimant", async () => {
+    mocks.controller = controller({
+      claims: [
+        {
+          claim: {
+            id: `42161-2-${CLAIMANT}`,
+            chainId: 42161,
+            commitmentId: 2n,
+            claimant: CLAIMANT,
+            requestSeen: true,
+            requestedBy: CLAIMANT,
+            claimType: "INDIVIDUAL",
+            gardenContext: null,
+            state: "PENDING",
+            reasonCID: null,
+            resolutionCode: null,
+            requestedAt: 1_700_000_000,
+            resolvedAt: null,
+            updatedAt: 1_700_000_100,
+          },
+          commitment: commitment({
+            id: "42161-2",
+            commitmentId: 2n,
+            onchainState: "REQUESTED",
+            state: "REQUESTED",
+            metadataCID: "bafy-2",
+          }),
+        },
+      ],
+      titles: new Map([["bafy-2", { version: 1, title: "Ride to the market on Saturday" }]]),
+    });
+    renderTab();
+    const claims = screen.getByTestId("pool-claims");
+    expect(within(claims).getByText("Ride to the market on Saturday")).toBeInTheDocument();
+    fireEvent.click(within(claims).getByRole("button", { name: /^accept$/i }));
+    await waitFor(() =>
+      expect(
+        (mocks.controller.acts as { acceptClaim: ReturnType<typeof vi.fn> }).acceptClaim
+      ).toHaveBeenCalledWith(2n, CLAIMANT)
+    );
+
+    fireEvent.click(within(claims).getByRole("button", { name: /^decline/i }));
+    const dialog = await screen.findByRole("dialog");
+    fireEvent.change(within(dialog).getByLabelText(/^reason/i), {
+      target: { value: "Crew is full" },
+    });
+    fireEvent.click(within(dialog).getByRole("button", { name: /decline request/i }));
+    await waitFor(() =>
+      expect(
+        (mocks.controller.acts as { declineClaim: ReturnType<typeof vi.fn> }).declineClaim
+      ).toHaveBeenCalledWith(2n, CLAIMANT, "Crew is full")
+    );
+  });
+
+  it("keeps Close pool out of reach while anything is live, and names the live count", () => {
+    renderTab();
+    expect(screen.queryByRole("button", { name: /close pool/i })).not.toBeInTheDocument();
+    expect(screen.getByText(/2 live commitments/i)).toBeInTheDocument();
+  });
+
+  it("offers Close pool only once every cycle and commitment has finished", async () => {
+    mocks.controller = controller({
+      pool: pool({ liveCommitmentCount: 0n, nonTerminalCycleCount: 0n, openSeasonCycleId: null }),
+      cycles: [cycle({ state: "COMPOSTED" })],
+      commitments: [],
+    });
+    renderTab();
+    fireEvent.click(screen.getByRole("button", { name: /close pool/i }));
+    const dialog = await screen.findByRole("alertdialog");
+    fireEvent.click(within(dialog).getByRole("button", { name: /close pool/i }));
+    await waitFor(() =>
+      expect(
+        (mocks.controller.acts as { closePool: ReturnType<typeof vi.fn> }).closePool
+      ).toHaveBeenCalled()
+    );
+  });
+
+  it("disables every online act and says why when the device is offline", () => {
+    mocks.controller = controller({ isOnline: false });
+    renderTab();
+    expect(screen.getByRole("button", { name: /^pause/i })).toBeDisabled();
+    expect(screen.getAllByText(/needs a connection/i).length).toBeGreaterThan(0);
+  });
+});
+
+describe("Garden workspace Pool tab visibility", () => {
+  function gardenController(canManage: boolean) {
+    return {
+      containerRef: { current: null },
+      selectedGarden: { id: GARDEN, name: "Rocinha" },
+      garden: { id: GARDEN, name: "Rocinha", gardeners: [], chainId: 42161 },
+      hypercertsLoading: false,
+      hypercerts: [],
+      view: "health",
+      derived: { overviewAlerts: [], impactBadge: { count: undefined } },
+      handleTabChange: vi.fn(),
+      desktopActions: [],
+      canManage,
+      hypercertId: undefined,
+      hypercertSheetCloseTo: "/garden/impact",
+      poolSeedOpen: false,
+      poolCommitmentId: undefined,
+      poolSheetCloseTo: "/garden/pool",
+    };
+  }
+
+  it("shows the Pool tab to a steward and not to a plain member", () => {
+    mocks.gardenController = gardenController(true);
+    const steward = renderWithProviders(<GardenView />);
+    expect(screen.getByRole("tab", { name: /pool/i })).toBeInTheDocument();
+    steward.unmount();
+
+    mocks.gardenController = gardenController(false);
+    renderWithProviders(<GardenView />);
+    expect(screen.queryByRole("tab", { name: /pool/i })).not.toBeInTheDocument();
+  });
+});

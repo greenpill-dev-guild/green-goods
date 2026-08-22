@@ -62,18 +62,22 @@ export function useCommitmentPool(
   return { ...query, pool: query.data?.pool ?? null, detail: query.data ?? null, availability };
 }
 
-export function useCommitmentCycles(input: {
-  chainId: number;
-  poolId: bigint;
-  cycleType?: string;
-  state?: string;
-}) {
+export function useCommitmentCycles(
+  input: {
+    chainId: number;
+    poolId: bigint;
+    cycleType?: string;
+    state?: string;
+  },
+  /** A caller that may not know the pool yet gates here; the key stays the same. */
+  options: { enabled?: boolean } = {}
+) {
   const availability = useCommitmentPoolingAvailability(input);
   const filters = { cycleType: input.cycleType, state: input.state };
   const query = useQuery({
     queryKey: queryKeys.commitmentPooling.cycles(input.chainId, input.poolId, filters),
     queryFn: () => getCommitmentCycles(input),
-    enabled: availability.status === "available",
+    enabled: availability.status === "available" && options.enabled !== false,
     staleTime: STALE_TIME_MEDIUM,
   });
   return { ...query, cycles: query.data ?? [], availability };
