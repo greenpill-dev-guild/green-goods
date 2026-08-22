@@ -9,6 +9,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { act, renderWithProviders, screen, waitFor } from "../test-utils";
 import userEvent from "@testing-library/user-event";
 import {
+  type Address,
   type AdminAccessState,
   type EligibleAdminGardensResult,
   type Garden,
@@ -160,7 +161,7 @@ function createGardenFixture({
   id?: string;
   name?: string;
   location?: string;
-  tokenAddress?: `0x${string}`;
+  tokenAddress?: Address;
 } = {}): Garden {
   return {
     id,

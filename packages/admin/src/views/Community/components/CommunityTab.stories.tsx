@@ -79,13 +79,13 @@ const meta: Meta<typeof CommunityTab> = {
     pools: [
       {
         poolType: PoolType.Hypercert,
-        poolAddress: "0xpoolhypercert" as Address,
+        poolAddress: "0x4444444444444444444444444444444444444444" as Address,
         gardenAddress: GARDEN_ID as Address,
         communityAddress: GARDEN_ID as Address,
       },
       {
         poolType: PoolType.Action,
-        poolAddress: "0xpoolaction" as Address,
+        poolAddress: "0x6666666666666666666666666666666666666666" as Address,
         gardenAddress: GARDEN_ID as Address,
         communityAddress: GARDEN_ID as Address,
       },

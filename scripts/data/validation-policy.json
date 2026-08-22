@@ -503,6 +503,17 @@
       "capabilities": ["dependencies"]
     },
     {
+      "id": "storybook-build",
+      "command": "bun run build-storybook",
+      "cwd": "packages/shared",
+      "risk": "Storybook configuration no longer compiles or produces a runnable static build",
+      "expectedSignal": "the shared Storybook static build completes",
+      "freshness": "exact-inputs-and-toolchain",
+      "budgetSeconds": 180,
+      "stopRule": "stop-dependent-checks",
+      "capabilities": ["dependencies"]
+    },
+    {
       "id": "lighthouse-client",
       "command": "bunx lhci autorun",
       "cwd": "packages/client",

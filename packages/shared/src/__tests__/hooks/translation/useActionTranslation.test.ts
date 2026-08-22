@@ -59,7 +59,7 @@ function createWrapper(locale: "en" | "es" | "pt" = "en") {
       installState: "not-installed" as const,
       presentationMode: "website" as const,
       wasInstalled: false,
-      availableLocales: ["en", "es"] as const,
+      availableLocales: ["en", "es", "pt"] as const,
       deferredPrompt: null,
       platform: "unknown" as const,
       promptInstall: () => {},

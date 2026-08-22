@@ -10,6 +10,15 @@ function read(relativePath) {
   return readFileSync(join(root, relativePath), "utf8");
 }
 
+function workflowEventBlock(source, event) {
+  const marker = `  ${event}:\n`;
+  const start = source.indexOf(marker);
+  assert.ok(start >= 0, `missing ${event} workflow trigger`);
+  const remainder = source.slice(start + marker.length);
+  const nextSection = remainder.search(/^(?:  [a-z_]+|permissions):\n/m);
+  return nextSection < 0 ? remainder : remainder.slice(0, nextSection);
+}
+
 function workflowSources() {
   return readdirSync(workflowsDir)
     .filter((file) => file.endsWith(".yml") && file !== "ci-gate.yml")
@@ -128,11 +137,29 @@ test("lockfile-only changes stay on Supply Chain Guardrails", () => {
     assert.ok(!outer.includes('"bun.lock"'), `${file} must not run for lockfile-only changes`);
   }
 
-  const supplyChain = read(".github/workflows/supply-chain-guardrails.yml").split(
-    "permissions:",
-    1,
-  )[0];
-  assert.equal(supplyChain.match(/- "bun\.lock"/g)?.length, 2);
+  const supplyChain = read(".github/workflows/supply-chain-guardrails.yml");
+  for (const event of ["push", "pull_request"]) {
+    assert.equal(
+      workflowEventBlock(supplyChain, event).match(/- "bun\.lock"/g)?.length,
+      1,
+      `${event} must include bun.lock exactly once`,
+    );
+  }
+});
+
+test("owning workflows enforce strict test and story typechecks", () => {
+  for (const [file, packageName] of [
+    ["shared.yml", "shared"],
+    ["admin.yml", "admin"],
+    ["client.yml", "client"],
+  ]) {
+    const source = read(`.github/workflows/${file}`);
+    assert.match(
+      source,
+      new RegExp(`working-directory: packages/${packageName}\\n\\s+run: bun run typecheck:tests`),
+      `${file} must typecheck ${packageName} tests and stories`,
+    );
+  }
 });
 
 test("consumer workflows exclude Shared tests and stories", () => {

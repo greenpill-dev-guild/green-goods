@@ -93,7 +93,7 @@ import { usePrimaryAddress } from "../../hooks/auth/usePrimaryAddress";
 import { useUser } from "../../hooks/auth/useUser";
 import { useTransactionSender } from "../../hooks/blockchain/useTransactionSender";
 import { jobQueue } from "../../modules/job-queue";
-import type { QueueEvent } from "../../types/job-queue";
+import type { QueueEvent } from "@green-goods/shared/types";
 import {
   JobQueueProvider,
   useJobQueue,

@@ -1,4 +1,9 @@
-import { PoolType, useGardenOperations, useGardenYieldWiringState } from "@green-goods/shared";
+import {
+  type Address,
+  PoolType,
+  useGardenOperations,
+  useGardenYieldWiringState,
+} from "@green-goods/shared";
 import { RiUserLine } from "@remixicon/react";
 import { IntlProvider } from "react-intl";
 import { MemoryRouter } from "react-router-dom";
@@ -21,9 +26,9 @@ vi.mock("@/views/Community/components/GovernancePanel", () => ({
   GovernancePanel: () => null,
 }));
 
-const GARDEN_ID = "0x1111111111111111111111111111111111111111" as const;
-const HYPERCERT_POOL = "0x2222222222222222222222222222222222222222" as const;
-const ACTION_POOL = "0x3333333333333333333333333333333333333333" as const;
+const GARDEN_ID: Address = "0x1111111111111111111111111111111111111111";
+const HYPERCERT_POOL: Address = "0x2222222222222222222222222222222222222222";
+const ACTION_POOL: Address = "0x3333333333333333333333333333333333333333";
 const noop = vi.fn();
 const connectedWiringState = {
   readStatus: "available" as const,

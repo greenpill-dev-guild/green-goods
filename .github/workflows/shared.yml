@@ -143,3 +143,7 @@ jobs:
       - name: Typecheck shared
         working-directory: packages/shared
         run: bun run typecheck
+
+      - name: Typecheck shared tests and stories
+        working-directory: packages/shared
+        run: bun run typecheck:tests

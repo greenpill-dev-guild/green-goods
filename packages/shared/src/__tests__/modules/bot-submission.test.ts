@@ -6,6 +6,7 @@
  */
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { Confidence, VerificationMethod, type WorkApprovalDraft } from "../../types";
 
 // Mock dependencies
 vi.mock("../../config/blockchain", () => ({
@@ -197,12 +198,14 @@ describe("modules/work/bot-submission", () => {
   });
 
   describe("submitApprovalBot", () => {
-    const mockApprovalDraft = {
+    const mockApprovalDraft: WorkApprovalDraft = {
       workUID: "0xWorkUID123",
       actionUID: 1,
       approved: true,
       feedback: "Good work!",
-    } as any;
+      confidence: Confidence.LOW,
+      verificationMethod: VerificationMethod.HUMAN,
+    };
 
     it("encodes approval data and sends transaction", async () => {
       const result = await submitApprovalBot(

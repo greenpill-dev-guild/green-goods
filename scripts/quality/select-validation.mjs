@@ -2,7 +2,7 @@
 
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { lstatSync, readFileSync, readlinkSync } from "node:fs";
+import { existsSync, lstatSync, readFileSync, readlinkSync } from "node:fs";
 import { dirname, resolve, sep } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
@@ -65,10 +65,14 @@ function isTestPath(path) {
   return /(^|\/)(__tests__|test|tests)\//.test(path) || /\.(test|spec)\.[cm]?[jt]sx?$/.test(path);
 }
 
+function isStorybookConfigPath(path) {
+  return path.includes("/.storybook/");
+}
+
 function isStoryPath(path) {
   return (
     /\.stories?\.[cm]?[jt]sx?$/.test(path) ||
-    path.includes("/.storybook/") ||
+    isStorybookConfigPath(path) ||
     /(^|\/)storybook[^/]*\.[cm]?[jt]sx?$/i.test(path)
   );
 }
@@ -80,6 +84,7 @@ function isValidationOnlyPath(path) {
 function classifyChangedPath(path) {
   if (path === "bun.lock" || path === "bun.lockb") return "lockfile";
   if (path === "package.json" || path.endsWith("/package.json")) return "package-manifest";
+  if (isStorybookConfigPath(path)) return "storybook-config";
   if (isStoryPath(path)) return "story";
   if (isTestPath(path)) return "test";
   if (
@@ -95,10 +100,11 @@ function classifyChangedPath(path) {
   return "other";
 }
 
-function inferChangedTestPaths(paths) {
+function inferChangedTestPaths(paths, deletedPaths = []) {
+  const deleted = new Set(deletedPaths);
   const inferred = {};
   for (const path of paths) {
-    if (!isTestPath(path)) continue;
+    if (!isTestPath(path) || deleted.has(path)) continue;
     const surface = owningSurface(path);
     if (!surface || surface === "docs") continue;
     const prefix = `packages/${surface}/`;
@@ -224,6 +230,9 @@ function addValidationOnlyChecks(select, surface, paths) {
   if (testTypechecks[surface]) select(testTypechecks[surface], `validation-only:${surface}:types`);
   if (paths.some(isTestPath)) select(`${surface}-test`, `validation-only:${surface}:tests`);
   if (paths.some(isStoryPath)) select("story-quality", `validation-only:${surface}:stories`);
+  if (paths.some(isStorybookConfigPath)) {
+    select("storybook-build", `validation-only:${surface}:storybook-config`);
+  }
 }
 
 function isUiBuildImpact(paths, surface) {
@@ -256,6 +265,7 @@ export function selectValidation(input = {}, options = {}) {
   const ci = input.ci === true;
   const intent = effectiveIntent(policy, requestedIntent, ci);
   const changedPaths = normalizePaths(input.changedPaths);
+  const deletedPaths = normalizePaths(input.deletedPaths);
   const checkpointScope = checkpointScopes(
     input.checkpointScope,
     intent,
@@ -264,7 +274,7 @@ export function selectValidation(input = {}, options = {}) {
   );
   const testPaths = mergeTestPaths(
     normalizeTestPaths(input.testPaths),
-    inferChangedTestPaths(changedPaths),
+    inferChangedTestPaths(changedPaths, deletedPaths),
   );
   const requestedChecks = normalizePaths(input.checkIds);
   const baseRisk = input.risk ?? "routine";
@@ -280,6 +290,7 @@ export function selectValidation(input = {}, options = {}) {
     head: input.head ?? null,
     workingCopyFingerprint: input.workingCopyFingerprint ?? null,
     changedPaths,
+    deletedPaths,
     changes: changedPaths.map((path) => ({
       path,
       kind: classifyChangedPath(path),
@@ -363,8 +374,17 @@ export function selectValidation(input = {}, options = {}) {
       const surfacePaths = changedPaths.filter((path) => owningSurface(path) === surface);
       const validationOnly =
         surfacePaths.length > 0 && surfacePaths.every((path) => isValidationOnlyPath(path));
-      if (validationOnly) addValidationOnlyChecks(select, surface, surfacePaths);
-      else {
+      if (includeBuilds) {
+        addSurfaceChecks(select, surface, { includeBuilds, intent });
+        if (
+          surfacePaths.some(isValidationOnlyPath) ||
+          surfacePaths.includes(`packages/${surface}/package.json`)
+        ) {
+          addValidationOnlyChecks(select, surface, surfacePaths);
+        }
+      } else if (validationOnly) {
+        addValidationOnlyChecks(select, surface, surfacePaths);
+      } else {
         addSurfaceChecks(select, surface, { includeBuilds, intent });
         if (
           surfacePaths.some(isValidationOnlyPath) ||
@@ -516,8 +536,13 @@ function materializeCheck(check, environment, mandatory, testPaths, context) {
   );
   const surface = check.id.endsWith("-test") ? check.id.slice(0, -5) : null;
   const focusedPaths = surface ? testPaths[surface] ?? [] : [];
-  let command =
-    focusedPaths.length > 0 ? `${check.command} ${focusedPaths.join(" ")}` : check.command;
+  let command = check.command;
+  if (focusedPaths.length > 0) {
+    command =
+      check.id === "contracts-test"
+        ? `bun run test:match ${focusedPaths.join(" ")}`
+        : `${check.command} ${focusedPaths.join(" ")}`;
+  }
   const laneCheckpoint =
     context.intent === "checkpoint" && context.checkpointScope === "lane";
   if (
@@ -538,19 +563,18 @@ function materializeCheck(check, environment, mandatory, testPaths, context) {
     command = `bunx @biomejs/biome format --no-errors-on-unmatched ${context.changedPaths.map(shellQuote).join(" ")}`;
   }
   if (check.id === "lint" && (context.intent === "qa" || laneCheckpoint)) {
+    const lintablePrefixes = [
+      "packages/client/src/",
+      "packages/admin/src/",
+      "packages/shared/src/",
+      "packages/indexer/src/",
+      "packages/agent/src/",
+      "packages/contracts/script/",
+    ];
     const sourcePaths = context.changedPaths.filter((path) =>
       [".js", ".jsx", ".mjs", ".cjs", ".ts", ".tsx"].some(
         (extension) => path.endsWith(extension),
-      ) &&
-      (!laneCheckpoint ||
-        [
-          "packages/client/src/",
-          "packages/admin/src/",
-          "packages/shared/src/",
-          "packages/indexer/src/",
-          "packages/agent/src/",
-          "packages/contracts/script/",
-        ].some((prefix) => path.startsWith(prefix))),
+      ) && lintablePrefixes.some((prefix) => path.startsWith(prefix)),
     );
     command =
       sourcePaths.length > 0
@@ -824,6 +848,16 @@ export function resolveGitInputs(options, { cwd = projectRoot } = {}) {
   const stagedPaths = lines(gitOutput(["diff", "--cached", "--name-only"], cwd));
   const unstagedPaths = lines(gitOutput(["diff", "--name-only"], cwd));
   const untrackedPaths = lines(gitOutput(["ls-files", "--others", "--exclude-standard"], cwd));
+  const deletedPaths = normalizePaths([
+    ...lines(
+      gitOutput(
+        ["diff", "--name-only", "--diff-filter=D", `${resolvedBase}...${resolvedHead}`],
+        cwd,
+      ),
+    ),
+    ...lines(gitOutput(["diff", "--cached", "--name-only", "--diff-filter=D"], cwd)),
+    ...lines(gitOutput(["diff", "--name-only", "--diff-filter=D"], cwd)),
+  ]).filter((path) => !existsSync(resolve(cwd, path)));
   const changedPaths =
     explicitPaths.length > 0
       ? explicitPaths
@@ -839,6 +873,7 @@ export function resolveGitInputs(options, { cwd = projectRoot } = {}) {
     base: resolvedBase,
     head: resolvedHead,
     changedPaths,
+    deletedPaths,
     workingCopyFingerprint: workingCopyFingerprint(
       cwd,
       committedPatch,
