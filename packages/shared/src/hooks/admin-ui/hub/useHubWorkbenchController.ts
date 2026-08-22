@@ -15,30 +15,21 @@ import {
   useSheetOrchestrator,
   useViewActions,
 } from "@green-goods/shared";
-import { useLocalizedRelativeTime } from "../../app/useLocalizedRelativeTime";
-import { usePrimaryAddress } from "../../auth/usePrimaryAddress";
-import { useCurrentChain } from "../../blockchain/useChainConfig";
-import { useCommitmentsToConfirm } from "../../commitment-pooling/useCommitmentsToConfirm";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { useLocalizedRelativeTime } from "../../app/useLocalizedRelativeTime";
 import {
   type ActivityEvent,
-  type HubPipelineStage,
-  type SortDirection,
   buildHubViewActions,
   getSearchPlaceholder,
   getStageDescription,
   getStageTitle,
+  type HubPipelineStage,
   isRouteSheetContentId,
   resolveOpenSectionRoute,
+  type SortDirection,
 } from "./hub.utils";
-import {
-  filterAssessmentQueue,
-  filterCertificationQueue,
-  filterHistoryEvents,
-  filterPendingWorks,
-} from "./hub.filters";
 import {
   buildActionTitleMap,
   buildHubStageModel,
@@ -48,6 +39,8 @@ import {
   resolveHubRouteSelection,
   resolveHubRouteState,
 } from "./hub.workbenchModel";
+import { useHubConfirmStage } from "./useHubConfirmStage";
+import { useHubStageQueues } from "./useHubStageQueues";
 
 export function useHubWorkbenchController() {
   const { formatMessage } = useIntl();
@@ -137,12 +130,8 @@ export function useHubWorkbenchController() {
   const canCertify = canReview;
   const canBrowseHistory = canManage || canReview;
 
-  // The Confirm stage (uiux-spec §6.9): what the reader's gardens must
-  // confirm, plus the fallback rows only a steward can still confirm. Spans
-  // the reader's stewarded gardens rather than the selected one.
-  const chainId = useCurrentChain();
-  const viewer = usePrimaryAddress() ?? undefined;
-  const toConfirm = useCommitmentsToConfirm({ chainId, viewer });
+  const { chainId, viewer, toConfirm, handleOpenCommitment, handleCloseCommitment } =
+    useHubConfirmStage({ navigate, hubContext });
 
   const { stage, stages, stageCounts } = useMemo(
     () =>
@@ -221,47 +210,28 @@ export function useHubWorkbenchController() {
 
   const normalizedSearch = normalizeHubSearch(debouncedSearch);
 
-  const pendingWorks = useMemo(
-    () => filterPendingWorks(works, actionsMap, normalizedSearch, sortDirection),
-    [actionsMap, normalizedSearch, sortDirection, works]
-  );
-
-  const assessmentQueue = useMemo(
-    () => filterAssessmentQueue(works, actionsMap, normalizedSearch),
-    [actionsMap, normalizedSearch, works]
-  );
-
-  const certificationQueue = useMemo(
-    () => filterCertificationQueue(assessments, hypercerts, normalizedSearch),
-    [assessments, hypercerts, normalizedSearch]
-  );
-
-  const historyEvents = useMemo(
-    () => filterHistoryEvents(derived.activityEvents, normalizedSearch, sortDirection),
-    [derived.activityEvents, normalizedSearch, sortDirection]
-  );
-
-  const historyEventMap = useMemo(
-    () => new Map(historyEvents.map((event) => [event.id, event])),
-    [historyEvents]
-  );
-
-  const selectedWork = useMemo(() => {
-    const resolvedId = routeWorkId ?? activeWorkDetailId;
-    return resolvedId ? works.find((work) => work.id === resolvedId) : undefined;
-  }, [activeWorkDetailId, routeWorkId, works]);
-
-  const selectedCertification = useMemo(() => {
-    const resolvedId = routeCertificationId ?? activeCertificationId;
-    return resolvedId
-      ? certificationQueue.find((assessment) => assessment.id === resolvedId)
-      : undefined;
-  }, [activeCertificationId, certificationQueue, routeCertificationId]);
-
-  const selectedHistoryEvent = useMemo(() => {
-    return routeHistoryEventId ? historyEventMap.get(routeHistoryEventId) : undefined;
-  }, [historyEventMap, routeHistoryEventId]);
-
+  const {
+    pendingWorks,
+    assessmentQueue,
+    certificationQueue,
+    historyEvents,
+    selectedWork,
+    selectedCertification,
+    selectedHistoryEvent,
+  } = useHubStageQueues({
+    works,
+    actionsMap,
+    normalizedSearch,
+    sortDirection,
+    assessments,
+    hypercerts,
+    activityEvents: derived.activityEvents,
+    routeWorkId,
+    activeWorkDetailId,
+    routeCertificationId,
+    activeCertificationId,
+    routeHistoryEventId,
+  });
   const { hasOpenHubInspector, persistedSelectedItem } = resolveHubRouteSelection({
     routeWorkId,
     routeCertificationId,
@@ -324,18 +294,6 @@ export function useHubWorkbenchController() {
   const handleCloseSheet = useCallback(() => {
     closeSheet();
   }, [closeSheet]);
-
-  // The Confirm stage opens a commitment in place (/hub/confirm/:commitmentId)
-  // and closing returns to the queue, the way the other stages deep-link.
-  const handleOpenCommitment = useCallback(
-    (commitmentId: string) => {
-      navigate(adminRoutes.hubConfirmDetail(commitmentId, hubContext));
-    },
-    [hubContext, navigate]
-  );
-  const handleCloseCommitment = useCallback(() => {
-    navigate(adminRoutes.hubConfirm(hubContext));
-  }, [hubContext, navigate]);
 
   const handleOpenWorkDetail = useCallback(
     (workId: string) => {

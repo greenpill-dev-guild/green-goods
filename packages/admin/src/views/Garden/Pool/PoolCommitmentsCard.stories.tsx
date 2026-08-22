@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from "@storybook/react";
 import { type ComponentProps, useState } from "react";
 import { expect, userEvent, within } from "storybook/test";
 import { daysAgo } from "../../../../../shared/.storybook/fixtures";
-import { PoolCommitmentsCard, type PoolCommitmentScope } from "./PoolCommitmentsCard";
+import { type PoolCommitmentScope, PoolCommitmentsCard } from "./PoolCommitmentsCard";
 import { storyPoolConsole } from "./poolStoryFixtures";
 
 /** The card owns no filter state; the story does, so the chips work. */

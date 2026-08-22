@@ -17,7 +17,7 @@ import { AdminDialog } from "@/components/AdminDialog";
 import { AdminLinearProgress } from "@/components/AdminLinearProgress";
 import { AdminReasonDialog } from "@/components/AdminReasonDialog";
 import { CommitmentDialogPanel } from "@/views/Garden/Pool/CommitmentDialog";
-import { shortAddress } from "@/views/Garden/Pool/poolPresentation";
+import { confirmEligibilityChip, shortAddress } from "@/views/Garden/Pool/poolPresentation";
 import { HubWorkbenchSkeletonRows } from "./HubWorkbenchSkeletonRows";
 
 export interface HubConfirmQueueProps {
@@ -63,29 +63,7 @@ export function HubConfirmQueue({
     );
 
   const badge = (eligibility: ConfirmQueueEligibility) =>
-    eligibility === "ORDINARY"
-      ? {
-          variant: "success" as const,
-          label: formatMessage({
-            id: "cockpit.hub.confirm.eligibility.ordinary",
-            defaultMessage: "ordinary",
-          }),
-        }
-      : eligibility === "POOL_FALLBACK"
-        ? {
-            variant: "warning" as const,
-            label: formatMessage({
-              id: "cockpit.hub.confirm.eligibility.garden",
-              defaultMessage: "garden fallback",
-            }),
-          }
-        : {
-            variant: "warning" as const,
-            label: formatMessage({
-              id: "cockpit.hub.confirm.eligibility.protocol",
-              defaultMessage: "Green Goods team fallback",
-            }),
-          };
+    confirmEligibilityChip(eligibility, formatMessage);
 
   let body: ReactNode;
   if (queue.isError) {

@@ -1,6 +1,7 @@
 import type {
   CommitmentCycleRecord,
   CommitmentReadModel,
+  ConfirmQueueEligibility,
   CycleMetadataNameResolution,
   PoolConsoleStatus,
 } from "@green-goods/shared";
@@ -282,4 +283,40 @@ export function formatUnixDate(
   return new Intl.DateTimeFormat(locale, { month: "short", day: "numeric" }).format(
     new Date(seconds * 1000)
   );
+}
+
+/**
+ * The Confirm queue's eligibility chip: ordinary, this garden's fallback, or
+ * the Green Goods team's. Kept beside the other pool chips so the queue and
+ * the commitment dialog read the same words.
+ */
+export function confirmEligibilityChip(
+  eligibility: ConfirmQueueEligibility,
+  formatMessage: FormatMessage
+): { variant: "success" | "warning"; label: string } {
+  if (eligibility === "ORDINARY") {
+    return {
+      variant: "success",
+      label: formatMessage({
+        id: "cockpit.hub.confirm.eligibility.ordinary",
+        defaultMessage: "ordinary",
+      }),
+    };
+  }
+  if (eligibility === "POOL_FALLBACK") {
+    return {
+      variant: "warning",
+      label: formatMessage({
+        id: "cockpit.hub.confirm.eligibility.garden",
+        defaultMessage: "garden fallback",
+      }),
+    };
+  }
+  return {
+    variant: "warning",
+    label: formatMessage({
+      id: "cockpit.hub.confirm.eligibility.protocol",
+      defaultMessage: "Green Goods team fallback",
+    }),
+  };
 }

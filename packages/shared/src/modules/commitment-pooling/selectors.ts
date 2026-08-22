@@ -38,7 +38,7 @@ export type CommitmentSeat = "provider" | "confirmer" | "contributor" | "bystand
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 
 /** Absent, empty and zero-address all mean "nobody", so none of them may match a viewer. */
-function isSameAccount(left: Address | null | undefined, right: Address): boolean {
+export function isSameAccount(left: Address | null | undefined, right: Address): boolean {
   if (!left || left === ZERO_ADDRESS) return false;
   return left.toLowerCase() === right.toLowerCase();
 }
@@ -333,91 +333,6 @@ export function selectContributorRemoval(input: {
     ...(input.rosterFrozen ? ["roster-frozen" as const] : []),
   ];
   return { allowed: blockers.length === 0, blockers };
-}
-
-/**
- * The garden roles that make someone a pool steward: the operator or owner
- * Hat of the pool's garden (`ICommitmentPoolingModule.sol` "pool steward
- * (garden operator/owner via hatsModule)"). Module ownership is a separate
- * fallback the contract grants; it is not a role this predicate sees.
- */
-export function isPoolSteward(roles: readonly string[]): boolean {
-  return roles.includes("operator") || roles.includes("owner");
-}
-
-/** The four states `expireCommitment` accepts (TerminalLib.sol:62-69). */
-const EXPIRABLE_STATES = new Set<string>([
-  "OFFERED",
-  "REQUESTED",
-  "ACCEPTED",
-  "READY_FOR_CONFIRMATION",
-]);
-
-/**
- * Live commitments the chain would let anyone expire: one of the four
- * expirable states, and strictly past its own due date or, when it carries
- * none, its cycle's end (TerminalLib.sol:71-72, `_effectiveDueDate`). A
- * cycle-less, undated commitment is never due.
- *
- * Past due alone never renders Expired: the row stays live until the indexer
- * shows the Expired state, which is why this returns the live rows rather
- * than relabelling them.
- */
-export function selectDueLiveCommitments<
-  T extends Pick<CommitmentReadModel, "onchainState" | "cycleId" | "dueDate">,
->(input: {
-  commitments: readonly T[];
-  /** Decimal cycle id → `endTime`, from the cycles already loaded. */
-  cycleEndTimes: ReadonlyMap<string, bigint | null>;
-  /** Unix seconds. */
-  now: bigint;
-}): T[] {
-  return input.commitments.filter((commitment) => {
-    if (!EXPIRABLE_STATES.has(commitment.onchainState)) return false;
-    const due =
-      commitment.dueDate !== null && commitment.dueDate !== undefined && commitment.dueDate !== 0n
-        ? commitment.dueDate
-        : commitment.cycleId !== null && commitment.cycleId !== 0n
-          ? (input.cycleEndTimes.get(commitment.cycleId.toString()) ?? null)
-          : null;
-    return due !== null && due !== 0n && input.now > due;
-  });
-}
-
-/**
- * Whether the ordinary confirmation path can still reach threshold, the way
- * the contract decides before it allows a fallback
- * (CreditLib.sol:206-230, `ordinaryConfirmationReachable`):
- *
- * - a named group counts its members who are not on the active roster;
- * - a Request with no group is confirmed by its creator, unless they joined;
- * - an Offer taken up by a garden is always reachable (the garden's stewards);
- * - an Offer taken up by a person is reachable unless that person joined.
- *
- * No reachability field is indexed (schema.graphql:970-971 carries only the
- * group and the protocol flag), so the Confirm stage derives it here from the
- * record plus the roster.
- */
-export function selectOrdinaryConfirmationReachable(input: {
-  confirmers: readonly Address[];
-  confirmationThreshold: number;
-  direction: CommitmentReadModel["direction"];
-  counterpartyKind: CommitmentReadModel["counterpartyKind"];
-  creator: Address | null | undefined;
-  counterparty: Address | null | undefined;
-  activeContributors: readonly Address[];
-}): boolean {
-  const onRoster = (account: Address | null | undefined) =>
-    account !== null &&
-    account !== undefined &&
-    input.activeContributors.some((contributor) => isSameAccount(contributor, account));
-  if (input.confirmers.length > 0) {
-    const eligible = input.confirmers.filter((confirmer) => !onRoster(confirmer)).length;
-    return eligible >= input.confirmationThreshold;
-  }
-  if (input.direction === "REQUEST") return Boolean(input.creator) && !onRoster(input.creator);
-  if (input.counterpartyKind === "GARDEN") return true;
-  return Boolean(input.counterparty) && !onRoster(input.counterparty);
 }
 
 export function selectConfirmationEligibility(input: {

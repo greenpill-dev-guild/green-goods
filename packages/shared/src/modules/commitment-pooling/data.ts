@@ -18,17 +18,17 @@ import {
 } from "./data-pools";
 import { demoAware } from "./demo/demo-gate";
 
-export * from "./data-credit";
-export * from "./data-lineage";
-export * from "./data-public-pools";
-export * from "./data-series";
-export * from "./data-settlement";
 export {
   mapClaim,
   mapCommitmentsWithCycleState,
   mapWorkAttribution,
   rowsByIds,
 } from "./data-commitments";
+export * from "./data-credit";
+export * from "./data-lineage";
+export * from "./data-public-pools";
+export * from "./data-series";
+export * from "./data-settlement";
 
 // The reads the member's screens depend on answer from the demo world in dev
 // with `?mockPooling=1`; everywhere else they are the real readers unchanged.

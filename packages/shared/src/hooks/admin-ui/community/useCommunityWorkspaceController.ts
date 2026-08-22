@@ -13,8 +13,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import {
-  resolveAdminWorkspaceSectionRoute,
   type AdminWorkspaceSectionTab,
+  resolveAdminWorkspaceSectionRoute,
 } from "../navigation/workspaceNavigation";
 import {
   buildCommunityViewActions,

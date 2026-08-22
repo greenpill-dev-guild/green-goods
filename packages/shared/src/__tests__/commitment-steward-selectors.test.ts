@@ -11,7 +11,7 @@ import {
   isPoolSteward,
   selectDueLiveCommitments,
   selectOrdinaryConfirmationReachable,
-} from "../modules/commitment-pooling/selectors";
+} from "../modules/commitment-pooling/steward-selectors";
 
 const CREATOR = "0x1111111111111111111111111111111111111111" as const;
 const TAKER = "0x2222222222222222222222222222222222222222" as const;

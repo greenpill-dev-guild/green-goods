@@ -13,7 +13,8 @@
  * @module modules/commitment-pooling/pool-console
  */
 
-import { selectDueLiveCommitments, selectPoolClosureEligibility } from "./selectors";
+import { selectPoolClosureEligibility } from "./selectors";
+import { selectDueLiveCommitments } from "./steward-selectors";
 import type { CommitmentCycleRecord, CommitmentPoolRecord, CommitmentReadModel } from "./types";
 
 export type PoolConsoleStatus =

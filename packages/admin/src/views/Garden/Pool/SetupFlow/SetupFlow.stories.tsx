@@ -6,8 +6,8 @@ import {
   withAdminIdentity,
   withSeededQueryClient,
 } from "../../../../../../shared/.storybook/decorators";
-import { PoolSetupFlow } from "./index";
 import { storyCycle, storyNotReadyPool, storyPool, storyPoolConsole } from "../poolStoryFixtures";
+import { PoolSetupFlow } from "./index";
 
 const meta: Meta<typeof PoolSetupFlow> = {
   title: "Admin/Pool/PoolSetupFlow",

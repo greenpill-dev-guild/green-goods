@@ -1,4 +1,10 @@
 import {
+  type AdminHubRouteContext,
+  adminRoutes,
+  type MetaStripItem,
+  type useGardenDerivedState,
+} from "@green-goods/shared";
+import {
   RiAddLine,
   RiCheckboxCircleLine,
   RiCheckLine,
@@ -6,12 +12,6 @@ import {
   RiMedalLine,
   RiShakeHandsLine,
 } from "@remixicon/react";
-import {
-  type AdminHubRouteContext,
-  adminRoutes,
-  type MetaStripItem,
-  type useGardenDerivedState,
-} from "@green-goods/shared";
 import type { ViewAction } from "../../../components/Canvas/viewActions.types";
 import { resolveAdminWorkspaceSectionRoute } from "../navigation/workspaceNavigation";
 

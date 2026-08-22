@@ -14,7 +14,7 @@
  */
 
 import { useCallback, useMemo } from "react";
-
+import { pinPoolCharter } from "../../../modules/commitment-pooling/pool-charter";
 import { selectPoolConsoleModel } from "../../../modules/commitment-pooling/pool-console";
 import type { Address } from "../../../types/domain";
 import { useOnlineStatus } from "../../app/useOnlineStatus";
@@ -32,7 +32,6 @@ import { useCommitmentQueueState } from "../../commitment-pooling/useCommitmentQ
 import { useCommitmentReason } from "../../commitment-pooling/useCommitmentReason";
 import { usePoolCharter } from "../../commitment-pooling/usePoolCharter";
 import { usePoolClaimRequests } from "../../commitment-pooling/usePoolClaimRequests";
-import { pinPoolCharter } from "../../../modules/commitment-pooling/pool-charter";
 
 export function usePoolConsoleController(input: { chainId: number; garden: Address }) {
   const { chainId, garden } = input;

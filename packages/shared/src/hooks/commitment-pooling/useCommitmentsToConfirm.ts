@@ -47,8 +47,8 @@ import {
 import {
   selectCommitmentSeat,
   selectConfirmationEligibility,
-  selectOrdinaryConfirmationReachable,
 } from "../../modules/commitment-pooling/selectors";
+import { selectOrdinaryConfirmationReachable } from "../../modules/commitment-pooling/steward-selectors";
 import type {
   CommitmentReadModel,
   FallbackConfirmationCandidate,

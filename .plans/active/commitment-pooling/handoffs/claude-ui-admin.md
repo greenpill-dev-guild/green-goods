@@ -417,3 +417,43 @@ did not regenerate it.
 Proof on the merged tree (`e7afb8844`): shared 340 files / 3892 tests, admin 93 / 638, client
 92 / 814, root lint 0 errors, shared typecheck clean, admin `typecheck:source` clean,
 `check-react-patterns` clean.
+
+### Addendum — 2026-08-22, the source-structure refactor
+
+PR #752 opened against `feature/commitment-pooling-client-loop` (#749) rather than `develop`, at
+Afo's direction, so the diff stays admin + shared + plans. CI then failed a gate the local
+checkpoint had not exercised: `bun run check:source-structure` scopes itself to files changed
+against a base, and `ci-local --quick --base faf05338e` put nothing in scope, so it passed locally
+and failed on the PR with nine violations, every one of them this lane's.
+
+Six new files were over the 350-line cap that new files get with no allowlist, and three modified
+files were over theirs. All nine are now under, by splitting rather than by widening a cap:
+
+| File | Before | After | How |
+|---|---|---|---|
+| `CommitmentDialog/index.tsx` | 1326 | 193 | Twelve siblings: the summary, alerts, facts, recovery, claims and roster, timeline, act bar, the four dialogs, and a pure `commitmentDialogPresentation.ts`. |
+| `Seed/index.tsx` | 1294 | 334 | Eight siblings: the four steps, the confirmer list, the reward rail, the footer, and a pure `seedStepModel.ts`. |
+| `SetupFlow/index.tsx` | 870 | 345 | Seven siblings: the three steps, the failure cast, the footer, and the pure `setupFlowModel.ts` / `setupFlowPlan.ts`. |
+| `Pool/index.tsx` | 683 | 272 | `PoolStatusCasts` (loading, read error, unavailable, unregistered), `PoolDialogs` and `PoolReasonDialogs`, and a shared `poolDialogState.ts`. |
+| `poolStoryFixtures.ts` | 639 | 38 | Four fixture modules re-exported from the entry so every story's import path is unchanged. |
+| `HubConfirmQueue.tsx` | 351 | 329 | The eligibility chip joined the other pool chips in `poolPresentation.ts`. |
+| `shared/src/index.ts` | 1434 | 1430 | At its frozen ceiling, so the `pool` and `hypercerts` admin-ui directories each became one sub-barrel line. |
+| `selectors.ts` | 502 | 417 | This lane's three steward selectors moved to `steward-selectors.ts`; the pre-existing ones stayed. |
+| `useHubWorkbenchController.ts` | 532 | 490 | `useHubConfirmStage` and `useHubStageQueues`. |
+
+The splits are structural only: the admin pool surfaces declare the same 478 `cockpit.*` message
+ids before and after, none lost and none invented, and every `data-component` / `data-region` /
+`data-testid` is where it was. Because the repo requires a real story per admin component, the 26
+extracted components each gained one, which is also why `check:stories` had to be re-proven.
+
+Two defects surfaced in the process, both of them ours and both fixed here rather than papered
+over:
+
+- `poolStoryFixtures.storyPoolConsole` ended with `...overrides`, which put the raw pool record
+  back over the derived one, so any story overriding `pool` rendered a shape
+  `useCommitmentPools` never returns. The derivation now runs after the spread.
+- Merging the parent left a duplicated `counterpartyKind` that git had auto-merged from both
+  lanes, and the client lane's newly demo-gated `data.ts` barrel had dropped this lane's two
+  steward readers. Both restored; the readers are exported unwrapped beside activity, since the
+  console is an operator surface rather than one of the member screens `?mockPooling=1` stands
+  in for.

@@ -22,12 +22,14 @@ import { useCallback, useMemo } from "react";
 
 import { selectCommitmentActKind } from "../../../modules/commitment-pooling/acts";
 import {
-  isPoolSteward,
   selectCommitmentSeat,
   selectConfirmationEligibility,
+} from "../../../modules/commitment-pooling/selectors";
+import {
+  isPoolSteward,
   selectDueLiveCommitments,
   selectOrdinaryConfirmationReachable,
-} from "../../../modules/commitment-pooling/selectors";
+} from "../../../modules/commitment-pooling/steward-selectors";
 import type { Address } from "../../../types/domain";
 import { useOnlineStatus } from "../../app/useOnlineStatus";
 import { useGardenAssessments } from "../../assessment/useGardenAssessments";

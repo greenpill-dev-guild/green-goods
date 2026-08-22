@@ -1,6 +1,6 @@
 import {
-  adminRoutes,
   type AdminCommunityRouteContext,
+  adminRoutes,
   formatTokenAmount,
   type MetaStripItem,
   type ViewAction,

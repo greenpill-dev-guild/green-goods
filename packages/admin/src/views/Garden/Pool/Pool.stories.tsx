@@ -1,7 +1,7 @@
 import { DEFAULT_CHAIN_ID, queryKeys } from "@green-goods/shared";
 import type { Meta, StoryObj } from "@storybook/react";
-import type { ComponentType } from "react";
 import type { QueryKey } from "@tanstack/react-query";
+import type { ComponentType } from "react";
 import { createMemoryRouter, RouterProvider } from "react-router-dom";
 import { expect, within } from "storybook/test";
 import { STORYBOOK_ADMIN_SHELL_SEEDS } from "../../../../../shared/.storybook/adminFixtures";

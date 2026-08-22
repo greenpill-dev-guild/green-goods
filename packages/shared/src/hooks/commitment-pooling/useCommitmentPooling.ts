@@ -1,5 +1,4 @@
 import { useQuery } from "@tanstack/react-query";
-
 import { queryKeys, STALE_TIME_MEDIUM } from "../../config/query-keys";
 import {
   getCommitmentActivity,
@@ -12,9 +11,9 @@ import {
   getCommitmentHypercertBundle,
   getCommitmentPoolDetail,
   getCommitmentPools,
-  getCommitments,
   getCommitmentSeries,
   getCommitmentSeriesDetail,
+  getCommitments,
   getCommitmentWorkAttributionsByWork,
   getNeedCommitments,
   getPoolMemberHistory,
@@ -24,7 +23,7 @@ import {
   selectPoolParticipationSummary,
   selectPromiseKeptRate,
 } from "../../modules/commitment-pooling/disclosure";
-import { isPoolSteward } from "../../modules/commitment-pooling/selectors";
+import { isPoolSteward } from "../../modules/commitment-pooling/steward-selectors";
 import type { Address } from "../../types/domain";
 import { useGardenRoles } from "../roles/useGardenRoles";
 import { useCommitmentPoolingAvailability } from "./useCommitmentPoolingAvailability";

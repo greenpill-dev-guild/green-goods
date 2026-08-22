@@ -7,8 +7,8 @@ import {
   withAdminIdentity,
   withSeededQueryClient,
 } from "../../../../../../shared/.storybook/decorators";
-import { CommitmentDialogPanel } from "./index";
 import { POOL_STORY_SEEDS, STORY_GARDEN, storyCommitmentDialog } from "../poolStoryFixtures";
+import { CommitmentDialogPanel } from "./index";
 
 // The panel reads the commitment through the shared controller; the cache
 // carries the detail and its timeline so the real component renders over

@@ -8,8 +8,8 @@ import {
   withAdminIdentity,
   withSeededQueryClient,
 } from "../../../../../../shared/.storybook/decorators";
-import { SeedCommitmentDialog } from "./index";
 import { POOL_STORY_SEEDS, STORY_GARDEN } from "../poolStoryFixtures";
+import { SeedCommitmentDialog } from "./index";
 
 // The seeding console reads the pool through the shared controllers; the
 // cache carries the pool, its cycles and the (unregistered) protocol pool so

@@ -1,6 +1,6 @@
 import {
-  adminRoutes,
   type AdminGardenRouteContext,
+  adminRoutes,
   type MetaStripItem,
   type ViewAction,
 } from "@green-goods/shared";
