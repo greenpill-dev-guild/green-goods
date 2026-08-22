@@ -94,7 +94,9 @@ export function GardenPoolTab({
   if (pool.isLoading || pool.isError || model.status === "unregistered") return casts;
   if (pool.availability.status !== "available" && pool.pool === null) return casts;
 
-  const canSeed = canManage && model.status === "open" && pool.isOnline;
+  // canManage is guaranteed by the guard above; only pool state and the
+  // connection decide whether seeding is offered.
+  const canSeed = model.status === "open" && pool.isOnline;
   const preOpen = model.status === "not-ready";
   const finished = model.status === "closed" || model.status === "composted";
 
@@ -201,19 +203,17 @@ export function GardenPoolTab({
                   "Neighbours can offer help and ask for it here once you’ve set up how this pool works.",
               })}
             </p>
-            {canManage ? (
-              <AdminButton
-                type="button"
-                variant="filled"
-                onClick={() => setFlow({ intent: "first-run" })}
-                disabled={!pool.isOnline}
-              >
-                {formatMessage({
-                  id: "cockpit.garden.pool.act.setUp",
-                  defaultMessage: "Set up commitments",
-                })}
-              </AdminButton>
-            ) : null}
+            <AdminButton
+              type="button"
+              variant="filled"
+              onClick={() => setFlow({ intent: "first-run" })}
+              disabled={!pool.isOnline}
+            >
+              {formatMessage({
+                id: "cockpit.garden.pool.act.setUp",
+                defaultMessage: "Set up commitments",
+              })}
+            </AdminButton>
           </AdminCard>
         ) : finished ? null : (
           <PoolCyclesCard

@@ -21,7 +21,6 @@ import {
 } from "../modules/commitment-pooling/pool-setup";
 import { createTestQueryClient, renderHookWithProviders } from "./test-utils";
 
-const MODULE = "0x6bb5b0fd70b6771b0e955fef37f8bd2ce911470a";
 const POOL_ID = 7n;
 
 const mocks = vi.hoisted(() => ({
