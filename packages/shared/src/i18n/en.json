@@ -2509,7 +2509,7 @@
   "app.pool.rail.dates": "{start} – {end}",
   "app.pool.rail.label": "Seasons and campaigns",
   "app.pool.rail.season": "Season",
-  "app.pool.readiness.cap": "How many promises one person can hold at once",
+  "app.pool.readiness.cap": "How many commitments one person can hold at once",
   "app.pool.readiness.charter": "What this pool is for",
   "app.pool.readiness.done": "Set",
   "app.pool.readiness.title": "What this pool still needs",

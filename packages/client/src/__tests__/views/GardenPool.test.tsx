@@ -253,7 +253,9 @@ describe("GardenPool", () => {
     expect(rows[0]).toHaveAttribute("data-done", "true");
     expect(rows[1]).toHaveAttribute("data-done", "false");
     expect(screen.getByText("What this pool is for")).toBeInTheDocument();
-    expect(screen.getByText("How many promises one person can hold at once")).toBeInTheDocument();
+    expect(
+      screen.getByText("How many commitments one person can hold at once")
+    ).toBeInTheDocument();
   });
 
   it("says a paused pool resumes and loses nothing, above a still-readable list", () => {
