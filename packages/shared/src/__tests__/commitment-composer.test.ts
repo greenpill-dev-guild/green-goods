@@ -208,3 +208,107 @@ describe("buildCommitmentCreationPayload", () => {
     });
   });
 });
+
+describe("the steward's extras on the same composer", () => {
+  const CONFIRMER = "0x2222222222222222222222222222222222222222" as Address;
+  const OTHER = "0x3333333333333333333333333333333333333333" as Address;
+  const TOKEN = "0x4444444444444444444444444444444444444444" as Address;
+  const SOURCE = "0x5555555555555555555555555555555555555555" as Address;
+
+  it("seeds a season or campaign commitment on the contract's own ordinal", () => {
+    expect(build({ kind: "SEASON_CAMPAIGN" }).commitmentType).toBe(2);
+    expect(build({ kind: "SEASON_CAMPAIGN" }).requirements).toEqual([]);
+  });
+
+  it("carries a named confirmer group and its threshold, lowercased and deduplicated", () => {
+    const payload = build({
+      confirmers: [CONFIRMER, CONFIRMER.toUpperCase() as Address, OTHER],
+      confirmationThreshold: 2,
+    });
+    expect(payload.confirmers).toEqual([CONFIRMER, OTHER]);
+    expect(payload.confirmationThreshold).toBe(2);
+  });
+
+  it("refuses a threshold the named group could never reach", () => {
+    const result = commitmentComposerSchema.safeParse({
+      ...values,
+      confirmers: [CONFIRMER],
+      confirmationThreshold: 2,
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("lets a steward gate an offer, which a member composing alone cannot", () => {
+    expect(build({ direction: "OFFER", claimMode: "APPROVAL_GATED" }).claimMode).toBe(0);
+    expect(
+      buildCommitmentCreationPayload({
+        values: { ...values, direction: "OFFER", claimMode: "APPROVAL_GATED" },
+        clientCommitmentId: "draft-1",
+        poolId: 7n,
+        creator: CREATOR,
+        gardenAddress: GARDEN,
+        nowSeconds: NOW,
+        allowGatedOffers: true,
+      }).claimMode
+    ).toBe(1);
+  });
+
+  it("declares exactly one consideration rail with the sentinels each rail wants", () => {
+    expect(build({ considerationRail: "NONE", considerationAmount: "20" }).consideration).toEqual({
+      rail: 0,
+      source: "0x0000000000000000000000000000000000000000",
+      token: "0x0000000000000000000000000000000000000000",
+      amount: 0n,
+    });
+    expect(
+      build({
+        considerationRail: "ARBITRUM_EXTERNAL",
+        considerationSource: SOURCE,
+        considerationToken: TOKEN,
+        considerationAmount: "20000000",
+      }).consideration
+    ).toEqual({ rail: 1, source: SOURCE, token: TOKEN, amount: 20_000_000n });
+    // Celo settlement derives its token and payer from the module: zero sentinels.
+    expect(
+      build({
+        considerationRail: "CELO_SETTLEMENT",
+        considerationSource: SOURCE,
+        considerationToken: TOKEN,
+        considerationAmount: "5",
+      }).consideration
+    ).toEqual({
+      rail: 2,
+      source: "0x0000000000000000000000000000000000000000",
+      token: "0x0000000000000000000000000000000000000000",
+      amount: 5n,
+    });
+  });
+
+  it("requires the external rail to name its source, token and a non-zero amount", () => {
+    expect(
+      commitmentComposerSchema.safeParse({
+        ...values,
+        considerationRail: "ARBITRUM_EXTERNAL",
+        considerationSource: SOURCE,
+        considerationToken: TOKEN,
+        considerationAmount: "0",
+      }).success
+    ).toBe(false);
+    expect(
+      commitmentComposerSchema.safeParse({
+        ...values,
+        considerationRail: "ARBITRUM_EXTERNAL",
+        considerationSource: "",
+        considerationToken: TOKEN,
+        considerationAmount: "20",
+      }).success
+    ).toBe(false);
+    expect(
+      commitmentComposerSchema.safeParse({
+        ...values,
+        considerationRail: "CELO_SETTLEMENT",
+        considerationAmount: "20",
+      }).success
+    ).toBe(true);
+  });
+});
