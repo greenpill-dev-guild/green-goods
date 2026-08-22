@@ -71,6 +71,21 @@ export type {
   CommitmentReasonedMutationInput,
 } from "./useCommitmentMutations";
 export { useCommitmentMutation } from "./useCommitmentMutations";
+export type {
+  CommitmentAllocationBps,
+  CommitmentCycleTypeInput,
+  CommitmentPoolAction,
+  CommitmentPoolMutationCall,
+  CommitmentPoolMutationInput,
+  CommitmentPoolReasonedMutationInput,
+  CommitmentRecognitionPolicyBps,
+} from "./useCommitmentPoolMutations";
+export {
+  ALLOCATION_BPS_TOTAL,
+  assertCycleSplit,
+  commitmentPoolCallArgs,
+  useCommitmentPoolMutation,
+} from "./useCommitmentPoolMutations";
 export type { SavedOffersApi } from "./useSavedOffers";
 export {
   useSavedOffer,
