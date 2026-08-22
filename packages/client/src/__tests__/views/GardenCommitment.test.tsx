@@ -12,7 +12,7 @@
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { renderWithProviders, screen } from "../test-utils";
+import { renderWithProviders, screen, within } from "../test-utils";
 
 const VIEWER = "0x1111111111111111111111111111111111111111" as const;
 const OTHER = "0x2222222222222222222222222222222222222222" as const;
@@ -456,6 +456,52 @@ describe("GardenCommitment", () => {
         act: "claim",
         payload: { commitmentId: 9n, kind: 1, gardenContext: GARDEN, gardenAddress: GARDEN },
       });
+    });
+  });
+
+  describe("a garden that took an offer up", () => {
+    const takenByGarden = () =>
+      detail({
+        commitment: {
+          derivedState: "READY_FOR_CONFIRMATION",
+          onchainState: "READY_FOR_CONFIRMATION",
+          creator: OTHER,
+          leadProvider: OTHER,
+          counterparty: GARDEN,
+          counterpartyKind: "GARDEN",
+          evidenceCount: 1,
+          confirmationCount: 0,
+          confirmationThreshold: 1,
+        },
+        contributors: [contributor({ contributor: OTHER, isLead: true })],
+      });
+
+    it("lets a steward of that garden confirm for it, and queues it with the garden", async () => {
+      const user = userEvent.setup();
+      // Steward of the counterparty garden, asked by address and role.
+      mockUseHasRole.mockImplementation((garden: unknown, _user: unknown, role: string) => ({
+        hasRole: String(garden).toLowerCase() === GARDEN.toLowerCase() && role === "operator",
+        isLoading: false,
+      }));
+      mockUseCommitment.mockReturnValue(takenByGarden());
+      render();
+
+      await user.click(screen.getByRole("button", { name: "Confirm it was kept" }));
+      await user.click(
+        within(screen.getByRole("dialog")).getByRole("button", { name: "Confirm it was kept" })
+      );
+      expect(mockEnqueue).toHaveBeenCalledWith({
+        act: "confirm",
+        commitmentId: 9n,
+        gardenAddress: GARDEN,
+      });
+    });
+
+    it("offers a plain member nothing on it", () => {
+      mockUseCommitment.mockReturnValue(takenByGarden());
+      render();
+
+      expect(screen.queryByRole("button", { name: "Confirm it was kept" })).not.toBeInTheDocument();
     });
   });
 

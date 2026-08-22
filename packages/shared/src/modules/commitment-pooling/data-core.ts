@@ -227,6 +227,7 @@ export function mapCommitment(row: RawRow): CommitmentReadModel {
     considerationPaid: row.considerationPaid === true,
     counterparty: address(row.counterparty),
     recordedBy: address(row.recordedBy),
+    counterpartyKind: row.counterpartyKind as CommitmentReadModel["counterpartyKind"],
     direction: row.direction as CommitmentReadModel["direction"],
     commitmentType: row.commitmentType as CommitmentReadModel["commitmentType"],
     claimMode: row.claimMode as CommitmentReadModel["claimMode"],

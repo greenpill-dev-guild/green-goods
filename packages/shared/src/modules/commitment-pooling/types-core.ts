@@ -54,6 +54,12 @@ export interface CommitmentReadModel {
   counterparty?: Address | null;
   /** Who recorded this on someone else's behalf. Null until creation is seen. */
   recordedBy?: Address | null;
+  /**
+   * Whether the counterparty is a person or a garden. On an Offer a garden
+   * took up, the garden's stewards and owners are its ordinary confirmers
+   * (CreditLib.isOrdinaryConfirmer), not the garden address itself.
+   */
+  counterpartyKind?: keyof typeof CommitmentClaimType | null;
   /** Offer or Request. Null until creation is seen. */
   direction?: keyof typeof CommitmentDirection | null;
   /** What kind of commitment this is. Null until creation is seen. */

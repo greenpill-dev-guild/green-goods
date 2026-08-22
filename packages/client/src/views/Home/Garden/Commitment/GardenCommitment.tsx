@@ -110,6 +110,25 @@ export function GardenCommitment() {
     chainId
   );
   const isSteward = isOperator || isOwner;
+  // When a garden took the offer up, its stewards confirm for it. The
+  // counterparty garden is usually this one, but the seat is read from the
+  // record, not assumed from the route.
+  const counterpartyGarden =
+    detail?.commitment.direction === "OFFER" && detail.commitment.counterpartyKind === "GARDEN"
+      ? (detail.commitment.counterparty ?? undefined)
+      : undefined;
+  const { hasRole: stewardsCounterparty } = useHasRole(
+    counterpartyGarden,
+    (viewer ?? undefined) as Address | undefined,
+    "operator",
+    chainId
+  );
+  const { hasRole: ownsCounterparty } = useHasRole(
+    counterpartyGarden,
+    (viewer ?? undefined) as Address | undefined,
+    "owner",
+    chainId
+  );
   const { data: gardens = [] } = useGardens();
   const gardenName =
     gardens.find((garden) => garden.id.toLowerCase() === gardenAddress?.toLowerCase())?.name ??
@@ -138,8 +157,12 @@ export function GardenCommitment() {
       commitment: detail.commitment,
       contributors: detail.contributors.filter((c) => c.active).map((c) => c.contributor),
       viewer: (viewer ?? undefined) as Address | undefined,
+      stewardedGardens:
+        counterpartyGarden && (stewardsCounterparty || ownsCounterparty)
+          ? [counterpartyGarden]
+          : [],
     });
-  }, [detail, viewer]);
+  }, [detail, viewer, counterpartyGarden, stewardsCounterparty, ownsCounterparty]);
 
   const back = () => navigate(-1);
 

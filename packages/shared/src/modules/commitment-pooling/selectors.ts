@@ -91,14 +91,21 @@ function creatorSeat(direction: CommitmentReadModel["direction"]): CommitmentSea
  *    never offered the one act they exist to perform. It sits AFTER the team
  *    because the two lists can overlap and the contract refuses a contributor's
  *    confirmation whatever else they are.
+ * 5. a steward of a garden that took the offer up, last and only when no group
+ *    is named. The contract seats the garden's stewards and owners as its
+ *    ordinary confirmers (CreditLib.isOrdinaryConfirmer), so a caller that
+ *    knows which gardens the reader stewards passes them here; a caller that
+ *    does not may leave it out and the reader stays a bystander.
  */
 export function selectCommitmentSeat(input: {
   commitment: Pick<CommitmentReadModel, "creator" | "leadProvider" | "counterparty" | "direction"> &
-    Partial<Pick<CommitmentReadModel, "confirmers">>;
+    Partial<Pick<CommitmentReadModel, "confirmers" | "counterpartyKind">>;
   contributors: readonly Address[];
   viewer?: Address;
+  /** Gardens the viewer stewards or owns, for rung 5. */
+  stewardedGardens?: readonly Address[];
 }): CommitmentSeat | null {
-  const { commitment, contributors, viewer } = input;
+  const { commitment, contributors, viewer, stewardedGardens } = input;
   if (!viewer) return null;
   if (isSameAccount(commitment.leadProvider, viewer)) return "provider";
   if (isSameAccount(commitment.creator, viewer)) return creatorSeat(commitment.direction);
@@ -114,6 +121,15 @@ export function selectCommitmentSeat(input: {
     return "contributor";
   }
   if (commitment.confirmers?.some((confirmer) => isSameAccount(confirmer, viewer))) {
+    return "confirmer";
+  }
+  if (
+    commitment.direction === "OFFER" &&
+    commitment.counterpartyKind === "GARDEN" &&
+    !(commitment.confirmers && commitment.confirmers.length > 0) &&
+    commitment.counterparty &&
+    stewardedGardens?.some((garden) => isSameAccount(garden, commitment.counterparty as Address))
+  ) {
     return "confirmer";
   }
   return "bystander";

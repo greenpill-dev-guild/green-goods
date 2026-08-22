@@ -60,6 +60,7 @@ function commitment(overrides: Record<string, unknown> = {}) {
     creator: OTHER,
     leadProvider: OTHER,
     counterparty: GARDEN_A,
+    counterpartyKind: "GARDEN",
     direction: "OFFER",
     confirmers: [],
     contributorCount: 1,
@@ -115,10 +116,10 @@ describe("useCommitmentsToConfirm", () => {
     expect(mocks.getCommitments).not.toHaveBeenCalled();
   });
 
-  it("lists only what the garden itself must confirm", async () => {
+  it("lists only what a steward can confirm for the garden", async () => {
     mocks.gardens = [garden(GARDEN_A, "Rocinha", { owners: [VIEWER] })];
     mocks.getCommitments.mockResolvedValue([
-      // The garden took this up: its confirmation.
+      // The garden took this up: its stewards confirm (CreditLib.isOrdinaryConfirmer).
       commitment(),
       // The garden offered this one; somebody else confirms it.
       commitment({
@@ -127,12 +128,15 @@ describe("useCommitmentsToConfirm", () => {
         creator: GARDEN_A,
         leadProvider: GARDEN_A,
         counterparty: OTHER,
+        counterpartyKind: "INDIVIDUAL",
       }),
-      // Named to confirm, which is the garden's turn too.
+      // The garden's address is named to confirm: only the garden account
+      // itself can, not a steward's own key, so it is not this person's act.
       commitment({
         id: "42161-11",
         commitmentId: 11n,
         counterparty: OTHER,
+        counterpartyKind: "INDIVIDUAL",
         confirmers: [GARDEN_A],
       }),
       // Still being worked: nothing to confirm yet, whatever the query returned.
@@ -147,10 +151,8 @@ describe("useCommitmentsToConfirm", () => {
 
     const result = await toConfirm();
 
-    expect(result.current.groups[0]?.rows.map((row) => row.commitment.id)).toEqual([
-      "42161-11",
-      "42161-9",
-    ]);
+    expect(result.current.groups[0]?.rows.map((row) => row.commitment.id)).toEqual(["42161-9"]);
+    expect(result.current.groups[0]?.rows[0]?.seat).toBe("confirmer");
   });
 
   it("leaves out what already sits in the reader's own inbox", async () => {
