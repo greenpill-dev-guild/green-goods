@@ -72,9 +72,22 @@ async function getDistinctProviderCount(
   return integer(aggregate.count);
 }
 
+/**
+ * "Support arrived" is G$ that reached a Garden: protocol → Garden funding and
+ * payer-Garden → beneficiary-Garden payouts, and only once the Celo → Arbitrum
+ * acknowledgment set the row to `CONFIRMED`. Contributor consideration, loan
+ * principal, and refunds go to people, not Gardens, so they never join the
+ * figure however confirmed they are.
+ */
 async function getConfirmedSettlementAggregate(chainId: number): Promise<bigint> {
   const query = `query PublicCommitmentImpactSettlement($chainId: Int!) {
-    Disbursement_aggregate(where: { chainId: { _eq: $chainId }, state: { _eq: CONFIRMED } }) {
+    Disbursement_aggregate(
+      where: {
+        chainId: { _eq: $chainId }
+        state: { _eq: CONFIRMED }
+        kind: { _in: [FUNDING, GARDEN_BENEFICIARY] }
+      }
+    ) {
       aggregate { sum { amount } }
     }
   }`;

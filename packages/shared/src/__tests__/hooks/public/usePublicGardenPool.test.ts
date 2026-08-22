@@ -215,7 +215,45 @@ describe("public commitment pool reader", () => {
 });
 
 describe("usePublicGardenPool", () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.query.mockImplementation(async (_query, _variables, operation) => {
+      if (operation === "getPublicGardenPool") return { data: { CommitmentPool: [POOL] } };
+      return { data: { CommitmentCycle: [], CommitmentUnitSummary: [] } };
+    });
+  });
+
+  it("resolves metadata only for the requested history window and reports the total", async () => {
+    const open = cycle(40, "SEASON", "OPEN", 200);
+    const finished = Array.from({ length: 30 }, (_, index) =>
+      cycle(10 + index, "SEASON", "RECONCILED", 100 + index)
+    );
+    mocks.query.mockImplementation(async (_query, _variables, operation) => {
+      if (operation === "getPublicGardenPool") return { data: { CommitmentPool: [POOL] } };
+      return { data: { CommitmentCycle: [open, ...finished], CommitmentUnitSummary: [] } };
+    });
+
+    const firstPage = await getPublicGardenPool(42161, GARDEN, { historyLimit: 12 });
+    // Open cycles always resolve; only the newest twelve finished ones do.
+    expect(mocks.getJsonByHash).toHaveBeenCalledTimes(13);
+    expect(firstPage?.openSeason?.cycleId).toBe(40n);
+    expect(firstPage?.finishedCycles).toHaveLength(12);
+    expect(firstPage?.finishedCycles[0]?.cycleId).toBe(39n);
+    expect(firstPage?.finishedCycles[11]?.cycleId).toBe(28n);
+    expect(firstPage?.finishedCycleTotal).toBe(30);
+
+    mocks.getJsonByHash.mockClear();
+    const widened = await getPublicGardenPool(42161, GARDEN, { historyLimit: 24 });
+    expect(mocks.getJsonByHash).toHaveBeenCalledTimes(25);
+    expect(widened?.finishedCycles).toHaveLength(24);
+    expect(widened?.finishedCycleTotal).toBe(30);
+
+    // The default window is the public page size, so a caller that passes
+    // nothing still never resolves an unbounded history.
+    mocks.getJsonByHash.mockClear();
+    const defaulted = await getPublicGardenPool(42161, GARDEN);
+    expect(defaulted?.finishedCycles).toHaveLength(12);
+  });
 
   it("distinguishes an empty garden from an unavailable indexer read", async () => {
     mocks.query.mockResolvedValueOnce({ data: { CommitmentPool: [] } });
@@ -244,6 +282,57 @@ describe("usePublicGardenPool", () => {
     expect(mocks.warn).toHaveBeenCalledOnce();
   });
 
+  it("keeps the last successful record when a background refresh fails", async () => {
+    const queryClient = createQueryClient();
+    const hook = renderHook(() => usePublicGardenPool(GARDEN), {
+      wrapper: createWrapper(queryClient),
+    });
+    await waitFor(() => expect(hook.result.current.isSuccess).toBe(true));
+    expect(hook.result.current.data?.pool?.commitmentsFulfilled).toBe(6n);
+
+    // The indexer goes away for the refresh only. The page already holds a
+    // real record, so the refresh rejects and Query keeps that record rather
+    // than swapping it for the unavailable shape.
+    mocks.query.mockResolvedValue({ error: new Error("transient indexer failure") });
+    await hook.result.current.refetch();
+    await waitFor(() => expect(hook.result.current.isError).toBe(true));
+    expect(hook.result.current.data?.pool?.commitmentsFulfilled).toBe(6n);
+    expect(hook.result.current.data?.unavailableSources.commitmentPool).toBe(false);
+  });
+
+  it("reports a commitment-bundled certificate only when the indexer returns one", async () => {
+    const withLinkage = await getPublicGardenPool(42161, GARDEN);
+    // Default mock answers the linkage operation with no `Hypercert` rows.
+    expect(withLinkage?.hasCommitmentCertificates).toBe(false);
+    const documents = mocks.query.mock.calls.map(([document]) => document).join("\n");
+    expect(documents).toContain("bundleKind: { _eq: COMMITMENT }");
+    expect(documents).toContain("limit: 1");
+
+    mocks.query.mockImplementation(async (_query, _variables, operation) => {
+      if (operation === "getPublicGardenPool") return { data: { CommitmentPool: [POOL] } };
+      if (operation === "getPublicGardenCommitmentCertificates") {
+        return { data: { Hypercert: [{ id: "42161-7" }] } };
+      }
+      return { data: { CommitmentCycle: [], CommitmentUnitSummary: [] } };
+    });
+    const linked = await getPublicGardenPool(42161, GARDEN);
+    expect(linked?.hasCommitmentCertificates).toBe(true);
+    expect(containsAddressValue(linked)).toBe(false);
+
+    // A failed linkage read cannot prove an anchor: it answers "no" and the
+    // pool record stays publishable.
+    mocks.query.mockImplementation(async (_query, _variables, operation) => {
+      if (operation === "getPublicGardenPool") return { data: { CommitmentPool: [POOL] } };
+      if (operation === "getPublicGardenCommitmentCertificates") {
+        return { error: new Error("bundleKind not in hosted schema") };
+      }
+      return { data: { CommitmentCycle: [], CommitmentUnitSummary: [] } };
+    });
+    const unproven = await getPublicGardenPool(42161, GARDEN);
+    expect(unproven?.pool.commitmentsFulfilled).toBe(6n);
+    expect(unproven?.hasCommitmentCertificates).toBe(false);
+  });
+
   it("reports an unavailable cycle name without discarding indexed cycle data", async () => {
     mocks.query.mockImplementation(async (_query, _variables, operation) => {
       if (operation === "getPublicGardenPool") return { data: { CommitmentPool: [POOL] } };
@@ -267,6 +356,32 @@ describe("usePublicGardenPool", () => {
       partialData: true,
       unavailableSources: { commitmentPool: false, cycleMetadata: true },
     });
+  });
+
+  it("keeps the current window on screen while a wider one loads for the same garden", async () => {
+    const finished = Array.from({ length: 20 }, (_, index) =>
+      cycle(10 + index, "SEASON", "RECONCILED", 100 + index)
+    );
+    mocks.query.mockImplementation(async (_query, _variables, operation) => {
+      if (operation === "getPublicGardenPool") return { data: { CommitmentPool: [POOL] } };
+      return { data: { CommitmentCycle: finished, CommitmentUnitSummary: [] } };
+    });
+    const queryClient = createQueryClient();
+    const { result, rerender } = renderHook(
+      ({ historyLimit }) => usePublicGardenPool(GARDEN, { historyLimit }),
+      { initialProps: { historyLimit: 12 }, wrapper: createWrapper(queryClient) }
+    );
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(result.current.data?.finishedCycles).toHaveLength(12);
+
+    rerender({ historyLimit: 24 });
+    // The re-keyed query shows the twelve it already has rather than a
+    // skeleton, and says so through isPlaceholderData.
+    expect(result.current.data?.finishedCycles).toHaveLength(12);
+    expect(result.current.isPlaceholderData).toBe(true);
+    await waitFor(() => expect(result.current.isPlaceholderData).toBe(false));
+    expect(result.current.data?.finishedCycles).toHaveLength(20);
+    expect(result.current.data?.finishedCycleTotal).toBe(20);
   });
 
   it("never carries a previous garden's data across a query-key switch", async () => {

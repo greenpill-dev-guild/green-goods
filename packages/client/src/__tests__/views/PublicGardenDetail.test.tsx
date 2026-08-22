@@ -3,9 +3,10 @@
  *
  * Locks the page that replaced the modal at `/gardens/:id`:
  * - Slug-or-id resolution via `publicGardenHelpers.deriveSlug`.
- * - Field notes → Certificates → Operators section order, all three always
- *   rendered so the ordinals stay stable and § 02 has a home when the
- *   commitment-pooling section lands.
+ * - Field notes → Commitments → Certificates → Operators section order, all
+ *   four always rendered so the ordinals stay stable. The commitments section
+ *   has its own suite (`commitment-editorial.test.tsx`); here it is pinned to
+ *   the pre-launch state so the page contract stays the subject.
  * - A failed EAS read renders an em dash, never `0` — the page may not publish
  *   "we don't know" as zero.
  * - Local paging over the full note set (the query key carries no page size).
@@ -58,6 +59,7 @@ function makeNote(index: number) {
 const mockUsePublicGardens = vi.fn();
 const mockUsePublicGardenDetail = vi.fn();
 const mockUseHypercerts = vi.fn();
+const mockUsePublicGardenPool = vi.fn();
 const mockUseApp = vi.fn();
 
 vi.mock("@green-goods/shared", async () => {
@@ -67,6 +69,7 @@ vi.mock("@green-goods/shared", async () => {
     usePublicGardens: (...args: unknown[]) => mockUsePublicGardens(...args),
     usePublicGardenDetail: (...args: unknown[]) => mockUsePublicGardenDetail(...args),
     useHypercerts: (...args: unknown[]) => mockUseHypercerts(...args),
+    usePublicGardenPool: (...args: unknown[]) => mockUsePublicGardenPool(...args),
     useApp: () => mockUseApp(),
     // Real AddressDisplay resolves ENS through wagmi, which needs a provider
     // this suite deliberately does not stand up. It renders a <button> (popover
@@ -113,8 +116,11 @@ const messages: Record<string, string> = {
   "public.gardenDetail.stats.certificates": "Certificates",
   "public.gardenDetail.stats.unknown": "Not available",
   "public.gardenDetail.section.notes": "§ 01: Field notes",
-  "public.gardenDetail.section.certificates": "§ 02: Certificates",
-  "public.gardenDetail.section.operators": "§ 03: Operators",
+  "public.gardenDetail.section.certificates": "§ 03: Certificates",
+  "public.gardenDetail.section.operators": "§ 04: Operators",
+  "public.pool.garden.kicker": "§ 02: Commitments",
+  "public.pool.garden.heading.preparing": "This Garden is preparing its pool",
+  "public.pool.garden.state.notReady": "Offers and requests open once the pool is ready.",
   "public.gardenDetail.notes.heading": "Latest field notes",
   "public.gardenDetail.notes.helper": "What gardeners have logged.",
   "public.gardenDetail.notes.empty": "No field notes yet.",
@@ -200,6 +206,21 @@ describe("GardenDetail", () => {
     mockUsePublicGardens.mockReturnValue({ data: mockGardens, isLoading: false });
     mockUsePublicGardenDetail.mockReturnValue(detailResult());
     mockUseHypercerts.mockReturnValue({ hypercerts: [], isLoading: false });
+    // Pre-launch: no pool registered for this Garden.
+    mockUsePublicGardenPool.mockReturnValue({
+      data: {
+        pool: null,
+        openSeason: null,
+        openCampaigns: [],
+        finishedCycles: [],
+        poolUnitSummaries: [],
+        cycleUnitSummaries: [],
+        partialData: false,
+        unavailableSources: { commitmentPool: false, cycleMetadata: false },
+      },
+      isLoading: false,
+      refetch: vi.fn(),
+    });
     mockUseApp.mockReturnValue({
       isMobile: false,
       isInstalled: false,
@@ -223,7 +244,7 @@ describe("GardenDetail", () => {
     expect(screen.getAllByText(/solar-powered community garden/i).length).toBeGreaterThanOrEqual(1);
   });
 
-  it("renders field notes, certificates and operators in order, all three always present", () => {
+  it("renders field notes, commitments, certificates and operators in order, all four always present", () => {
     mockUsePublicGardenDetail.mockReturnValue(detailResult({ fieldNotes: [] }));
     const { container } = renderView();
     // Scoped to the record ladder: PublicInstallCta is a labelled section with
@@ -231,7 +252,12 @@ describe("GardenDetail", () => {
     const headings = Array.from(
       container.querySelectorAll('section[aria-labelledby^="public-garden-detail-"] h2')
     ).map((h) => h.textContent ?? "");
-    expect(headings).toEqual(["Latest field notes", "Impact Certificates", "Operators"]);
+    expect(headings).toEqual([
+      "Latest field notes",
+      "This Garden is preparing its pool",
+      "Impact Certificates",
+      "Operators",
+    ]);
     // Empty sections say so rather than disappearing.
     expect(screen.getByText("No field notes yet.")).toBeInTheDocument();
     expect(screen.getByText("No Impact Certificates yet.")).toBeInTheDocument();
