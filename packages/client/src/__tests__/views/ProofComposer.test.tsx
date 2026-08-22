@@ -106,6 +106,7 @@ vi.mock("@green-goods/shared", async () => {
   };
 });
 
+const { useCommitmentProofDraftStore } = await import("@green-goods/shared/stores");
 const { ProofComposer } = await import("../../views/Home/Garden/Proof");
 
 const render = () =>
@@ -124,6 +125,14 @@ const photo = () => new File(["jpeg-bytes"], "beds.jpg", { type: "image/jpeg" })
 describe("ProofComposer", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // The composer keeps a draft on the device now; one test's words must
+    // not be the next test's starting point.
+    // Order matters: the persisted store writes through to storage, so the
+    // store is emptied first and storage cleared after, or the next hydration
+    // brings the previous test's words straight back.
+    useCommitmentProofDraftStore.setState({ drafts: {} });
+    useCommitmentProofDraftStore.persist.clearStorage();
+    window.localStorage.clear();
     mockUseOffline.mockReturnValue({ isOnline: true });
     mockUseCommitment.mockReturnValue(detail());
     mockEnqueue.mockResolvedValue("job-1");
@@ -193,6 +202,23 @@ describe("ProofComposer", () => {
     expect(
       screen.getByText("Add a photo, a voice note, a link or a few words first.")
     ).toBeInTheDocument();
+  });
+
+  it("keeps the words and the credited people when the screen is put away and reopened", async () => {
+    // Proof is composed in the field across three beats. An evicted PWA or a
+    // wrong tap used to lose all of it; the draft brings it back, with the
+    // same job identity so a retry is still one job.
+    const user = userEvent.setup();
+    const first = render();
+    await user.click(next());
+    await user.click(screen.getByRole("checkbox", { name: "Credit 0x3333...3333" }));
+    await user.type(screen.getByLabelText("A few words (optional)"), "Beds cleared");
+    first.unmount();
+
+    render();
+    await user.click(next());
+    expect(screen.getByLabelText("A few words (optional)")).toHaveValue("Beds cleared");
+    expect(screen.getByRole("checkbox", { name: "Credit 0x3333...3333" })).toBeChecked();
   });
 
   it("queues the photo, the words, the links and the credited people as one job with no CID", async () => {

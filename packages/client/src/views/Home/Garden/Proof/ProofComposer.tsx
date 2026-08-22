@@ -11,7 +11,9 @@ import {
   useCommitment,
   useCommitmentJobs,
   useCommitmentMetadataFor,
+  useCommitmentProofDraft,
   useOffline,
+  useProofDraftSync,
   usePrimaryAddress,
 } from "@green-goods/shared";
 import { useEffect, useMemo, useState } from "react";
@@ -64,18 +66,41 @@ export function ProofComposer() {
   const metadata = useCommitmentMetadataFor(detail?.commitment);
   const jobs = useCommitmentJobs({ chainId });
 
+  // Everything composed here survives the app being put away or evicted: the
+  // words in the proof draft store, the files in the draft image table, both
+  // under one key. The draft is read once and written as the member works.
+  const draft = useCommitmentProofDraft({
+    chainId,
+    viewer: viewer as Address | null,
+    commitmentId,
+  });
   const [beat, setBeat] = useState<Beat>("media");
   const [media, setMedia] = useState<File[]>([]);
   const [audioNotes, setAudioNotes] = useState<File[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [previewIndex, setPreviewIndex] = useState<number | null>(null);
-  const [note, setNote] = useState("");
-  const [links, setLinks] = useState<string[]>([]);
-  const [credited, setCredited] = useState<Address[] | null>(null);
+  const [note, setNote] = useState(() => draft.saved?.note ?? "");
+  const [links, setLinks] = useState<string[]>(() => draft.saved?.links ?? []);
+  const [credited, setCredited] = useState<Address[] | null>(
+    () => (draft.saved?.credited as Address[] | null | undefined) ?? null
+  );
   const [queued, setQueued] = useState(false);
-  // One id per composition, minted once: the queue's identity for this proof
-  // before it has a CID, so a retry behind the same button is one job.
-  const clientEvidenceId = useMemo(() => crypto.randomUUID(), []);
+  // One id per composition, minted once and kept with the draft: the queue's
+  // identity for this proof before it has a CID, so a retry behind the same
+  // button — even after a restart — is one job.
+  const clientEvidenceId = useMemo(
+    () => draft.saved?.clientEvidenceId ?? crypto.randomUUID(),
+    [draft.saved?.clientEvidenceId]
+  );
+  useProofDraftSync(draft, {
+    queued,
+    words: { note, links, credited, clientEvidenceId },
+    files: { media, audioNotes },
+    onRestore: (files) => {
+      if (files.media.length > 0) setMedia(files.media);
+      if (files.audioNotes.length > 0) setAudioNotes(files.audioNotes);
+    },
+  });
 
   const {
     isRecording,
@@ -188,7 +213,10 @@ export function ProofComposer() {
           clientEvidenceId,
           commitmentId: detail.commitment.commitmentId,
           creditedContributors: creditedNow,
-          gardenAddress: gardenAddress as Address,
+          // The garden whose hat gates attaching proof is the one the work is
+          // done for, which the contract wrote at acceptance. On the protocol
+          // pool the route names the host, where the provider holds no hat.
+          gardenAddress: (detail.commitment.providerGarden ?? gardenAddress) as Address,
           ...(note.trim() ? { note: note.trim() } : {}),
           ...(links.length > 0 ? { links } : {}),
           ...(media.length > 0 ? { media } : {}),
@@ -197,6 +225,7 @@ export function ProofComposer() {
       });
       mediaResourceManager.cleanupUrls("proof");
       setQueued(true);
+      await draft.clear();
     } catch {
       // useCommitmentJobs already surfaced it; the member keeps their draft.
     }

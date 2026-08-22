@@ -28,6 +28,16 @@ export {
   commitmentComposerDraftKey,
   useCommitmentComposerDraftStore,
 } from "./useCommitmentComposerDraftStore";
+// Commitment Proof Draft Store
+export type {
+  CommitmentProofDraft,
+  CommitmentProofDraftStore,
+} from "./useCommitmentProofDraftStore";
+export {
+  COMMITMENT_PROOF_DRAFT_STORAGE_KEY,
+  commitmentProofDraftKey,
+  useCommitmentProofDraftStore,
+} from "./useCommitmentProofDraftStore";
 // Create Garden Store
 export type {
   CreateGardenFormState,

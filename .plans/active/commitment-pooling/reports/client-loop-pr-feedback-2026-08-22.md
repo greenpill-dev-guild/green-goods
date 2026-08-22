@@ -131,6 +131,35 @@ Both are real; both are their own change.
 Two more tests changed meaning: `GardenCommitment`'s "queues the act the bar names" was sending a
 DomainImpact commitment for confirmation, which the contract refuses.
 
+## Fourth round — the deferred set, closed
+
+Afo's call: the thirteen open threads were to be fixed, not carried. All thirteen are.
+
+The six in the route-versus-record family fall to one change: the record now carries
+`providerGarden` (already queried, never mapped), and a new `useCommitmentViewerRoles` hook
+reads the reader's hats against the route garden, the pool's garden and the garden that took an
+offer up, once, from chain. Claims are scoped by a rewritten `ClaimContextSheet` that offers one
+personal option per garden the claimant belongs to and one garden option per garden they steward,
+with the pool's host left out — the context the contract refuses. Proof, work links and
+send-for-confirmation are preflighted against the provider garden; a steward's confirmation
+against the counterparty garden; Not yet is withheld unless `raiseDispute` would take it; a named
+confirmer's confirmation skips the membership wait entirely (`membershipNotRequired` on the
+payload, honoured by the executor); `WorkFulfills` resolves the commitment's pool garden before
+navigating.
+
+The rest: evidence jobs recover through `isEvidenceAttached` before re-sending, the way creations
+and work links already did; failed non-creation acts get retry and discard on the detail
+(`FailedActAlert`, with the same discard guard the pool tab applies); proof drafts persist words in
+a new store and files in the draft image table, under one key, restored on remount; the composer
+draft re-resolves when its key changes; the work picker excludes work linked to any commitment
+(`useLinkedWorkUIDs`, one batched indexer read); stewards accept or decline gated claims from a
+`ClaimDecisionPanel`, with `declineClaim` now among the reasoned inputs the hook pins; and the
+confirm sheet renders what was submitted (`useCommitmentEvidence` + `EvidencePreview`) above its
+controls instead of a count.
+
+`GardenCommitment.tsx` gave up its role block and its claim lifecycle to stay under its cap
+(`useCommitmentViewerRoles`, `CommitmentClaims.tsx`). Twelve strings added in en, es and pt.
+
 ## A validation gap, recorded so it is not repeated
 
 CI on `04e9b47e6` failed two jobs the local gate never ran: `typecheck:tests` in shared and

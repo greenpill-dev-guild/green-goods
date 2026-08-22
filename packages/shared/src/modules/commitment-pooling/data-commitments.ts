@@ -285,6 +285,26 @@ export async function getCommitmentWorkAttributionsByWork(
     .map(mapWorkAttribution);
 }
 
+/**
+ * Which of these works are linked to any commitment at all. The contract keeps
+ * one link per work (`workCommitmentOf`), so a picker that only checks the
+ * commitment in front of it offers work the chain will refuse.
+ */
+export async function getLinkedWorkUIDs(
+  chainId: number,
+  workUIDs: readonly string[]
+): Promise<Set<string>> {
+  if (workUIDs.length === 0) return new Set();
+  const query = `query LinkedWorkUIDs($chainId: Int!, $workUIDs: [String!]!) { CommitmentWorkAttribution(where: { chainId: { _eq: $chainId }, workUID: { _in: $workUIDs }, linkSeen: { _eq: true }, linked: { _eq: true } }) { workUID } }`;
+  const rows = await queryRows(
+    query,
+    { chainId, workUIDs: workUIDs.map((uid) => uid.toLowerCase()) },
+    "CommitmentWorkAttribution",
+    "getLinkedWorkUIDs"
+  );
+  return new Set(rows.map((row) => String(row.workUID).toLowerCase()));
+}
+
 export function mapClaim(row: RawRow): CommitmentClaimRequestRecord {
   if (row.requestSeen !== true) throw new Error("unseen claim request placeholder");
   return {

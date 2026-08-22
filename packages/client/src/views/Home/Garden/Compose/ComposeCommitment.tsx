@@ -126,13 +126,25 @@ function ComposeCommitmentForm({ direction }: { direction: Direction }) {
   const drafts = useCommitmentComposerDraftStore((state) => state.drafts);
   const saveDraft = useCommitmentComposerDraftStore((state) => state.saveDraft);
   const clearDraft = useCommitmentComposerDraftStore((state) => state.clearDraft);
-  const [savedDraft] = useState(() => (draftKey ? drafts[draftKey] : undefined));
+  const [savedDraft, setSavedDraft] = useState(() => (draftKey ? drafts[draftKey] : undefined));
   const [draftDecision, setDraftDecision] = useState<"pending" | "decided">(
     savedDraft ? "pending" : "decided"
   );
   const [clientCommitmentId, setClientCommitmentId] = useState(
     () => savedDraft?.clientCommitmentId ?? crypto.randomUUID()
   );
+  // The key is who, where and which door. The viewer resolves after mount and
+  // the route can be reused for another garden, so the draft is re-resolved
+  // whenever the key moves: the new key's own draft is offered, and the old
+  // form values and client id are never saved under it.
+  const [resolvedKey, setResolvedKey] = useState(draftKey);
+  if (resolvedKey !== draftKey) {
+    setResolvedKey(draftKey);
+    const next = draftKey ? drafts[draftKey] : undefined;
+    setSavedDraft(next);
+    setDraftDecision(next ? "pending" : "decided");
+    setClientCommitmentId(next?.clientCommitmentId ?? crypto.randomUUID());
+  }
 
   const [beat, setBeat] = useState<Beat>("what");
   const [placed, setPlaced] = useState(false);

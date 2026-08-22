@@ -60,6 +60,14 @@ export interface CommitmentReadModel {
    * (CreditLib.isOrdinaryConfirmer), not the garden address itself.
    */
   counterpartyKind?: keyof typeof CommitmentClaimType | null;
+  /**
+   * The garden whose people do the work, written by the contract at
+   * acceptance: the claimant's garden on a garden claim, the claimant's chosen
+   * context on a personal one. The membership preflight and the proof path
+   * read this, never the route, because on the protocol pool the route names
+   * the host garden and the provider may hold no hat there.
+   */
+  providerGarden?: Address | null;
   /** Offer or Request. Null until creation is seen. */
   direction?: keyof typeof CommitmentDirection | null;
   /** What kind of commitment this is. Null until creation is seen. */

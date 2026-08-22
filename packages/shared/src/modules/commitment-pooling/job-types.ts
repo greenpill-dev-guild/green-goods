@@ -84,6 +84,13 @@ export interface CommitmentCreationPayload {
  */
 export interface MembershipGatedJobPayload {
   gardenAddress: Address;
+  /**
+   * True when the chain authorizes this act by identity rather than by hat: a
+   * confirmer named on the commitment (setConfirmerRule) confirms without any
+   * garden role, and isOrdinaryConfirmer checks the list, not Hats. The
+   * preflight then stays out of the way; the contract is the only gate.
+   */
+  membershipNotRequired?: boolean;
 }
 
 export interface ClaimJobPayload extends MembershipGatedJobPayload {
@@ -176,6 +183,8 @@ export interface CommitmentJobExecutionDependencies {
     commitmentId: bigint
   ): Promise<{ creationPayloadHash: Hex; poolId: bigint; creator: Address }>;
   readWorkLinkPayloadHash(caller: Address, key: Hex): Promise<Hex>;
+  /** Whether this CID is already attached, so a re-send after a lost receipt recovers. */
+  readEvidenceAttached?(commitmentId: bigint, cid: string): Promise<boolean>;
   resolveSeriesId?(clientSeriesId: string): Promise<bigint | null>;
   hasMembership?(garden: Address, account: Address): Promise<boolean | null>;
   send(input: {

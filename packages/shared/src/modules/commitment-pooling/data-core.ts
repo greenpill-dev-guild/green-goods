@@ -228,6 +228,7 @@ export function mapCommitment(row: RawRow): CommitmentReadModel {
     counterparty: address(row.counterparty),
     recordedBy: address(row.recordedBy),
     counterpartyKind: row.counterpartyKind as CommitmentReadModel["counterpartyKind"],
+    providerGarden: address(row.providerGarden),
     direction: row.direction as CommitmentReadModel["direction"],
     commitmentType: row.commitmentType as CommitmentReadModel["commitmentType"],
     claimMode: row.claimMode as CommitmentReadModel["claimMode"],

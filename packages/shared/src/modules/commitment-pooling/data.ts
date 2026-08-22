@@ -22,6 +22,7 @@ export * from "./data-public-pools";
 export * from "./data-series";
 export * from "./data-settlement";
 export {
+  getLinkedWorkUIDs,
   mapClaim,
   mapCommitmentsWithCycleState,
   mapWorkAttribution,
