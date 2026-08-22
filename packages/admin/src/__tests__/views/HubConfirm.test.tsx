@@ -1,0 +1,250 @@
+/**
+ * @vitest-environment jsdom
+ */
+
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { cleanup, fireEvent, renderWithProviders, screen, waitFor, within } from "../test-utils";
+
+const GARDEN_A = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" as const;
+const ROOT = "0xcccccccccccccccccccccccccccccccccccccccc" as const;
+const MARIA = "0x1111111111111111111111111111111111111111" as const;
+
+const mocks = vi.hoisted(() => ({
+  queue: {} as Record<string, unknown>,
+}));
+
+vi.mock("@green-goods/shared", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@green-goods/shared")>();
+  return { ...actual, useHubConfirmQueueController: () => mocks.queue };
+});
+
+vi.mock("@/views/Garden/Pool/CommitmentDialog", () => ({
+  CommitmentDialogPanel: ({ commitmentId, garden }: { commitmentId: string; garden: string }) => (
+    <div data-testid="commitment-panel">
+      {commitmentId}:{garden}
+    </div>
+  ),
+}));
+
+vi.mock("@/components/AdminReasonDialog", () => ({
+  AdminReasonDialog: ({
+    isOpen,
+    title,
+    confirmLabel,
+    onConfirm,
+  }: {
+    isOpen: boolean;
+    title: string;
+    confirmLabel: string;
+    onConfirm: (reason: string) => void | Promise<void>;
+  }) =>
+    isOpen ? (
+      <div role="dialog" aria-label={title}>
+        <button type="button" onClick={() => void onConfirm("not yet, the beds are half pruned")}>
+          {confirmLabel}
+        </button>
+      </div>
+    ) : null,
+}));
+
+const { HubConfirmQueue } = await import("@/views/Hub/components/HubConfirmQueue");
+
+function commitment(overrides: Record<string, unknown> = {}) {
+  return {
+    id: "42161-9",
+    chainId: 42161,
+    commitmentId: 9n,
+    creationSeen: true,
+    onchainState: "READY_FOR_CONFIRMATION",
+    derivedState: "READY_FOR_CONFIRMATION",
+    state: "READY_FOR_CONFIRMATION",
+    approvedUnits: 0n,
+    evidenceCount: 2,
+    cycleId: 12n,
+    declaredUnitValue: null,
+    declaredValueBasis: null,
+    targetUnits: 6n,
+    unitLabel: "hours",
+    direction: "OFFER",
+    creator: MARIA,
+    leadProvider: MARIA,
+    confirmers: [],
+    confirmationThreshold: 2,
+    confirmationCount: 1,
+    contributorCount: 1,
+    contributorsFrozen: true,
+    metadataCID: "bafy-9",
+    ...overrides,
+  };
+}
+
+function row(overrides: Record<string, unknown> = {}) {
+  return {
+    commitment: commitment(),
+    garden: GARDEN_A,
+    gardenName: "Rocinha",
+    eligibility: "ORDINARY",
+    title: "Prune the north beds",
+    ...overrides,
+  };
+}
+
+function queue(overrides: Record<string, unknown> = {}) {
+  return {
+    rows: [],
+    isOnline: true,
+    isLoading: false,
+    isError: false,
+    isConfirming: false,
+    isDisputing: false,
+    acts: {
+      confirm: vi.fn().mockResolvedValue("job"),
+      notYet: vi.fn().mockResolvedValue("0x1"),
+    },
+    ...overrides,
+  };
+}
+
+const toConfirm = {
+  groups: [],
+  fallback: [],
+  count: 0,
+  isSteward: true,
+  isProtocolSteward: false,
+  availability: { status: "available" },
+  isLoading: false,
+  isError: false,
+  refetch: vi.fn(),
+} as never;
+
+function renderQueue(props: Partial<Parameters<typeof HubConfirmQueue>[0]> = {}) {
+  const onOpen = vi.fn();
+  const onClose = vi.fn();
+  renderWithProviders(
+    <HubConfirmQueue
+      toConfirm={toConfirm}
+      chainId={42161}
+      normalizedSearch=""
+      selectedCommitmentId={undefined}
+      onOpenCommitment={onOpen}
+      onCloseCommitment={onClose}
+      {...props}
+    />
+  );
+  return { onOpen, onClose };
+}
+
+describe("HubConfirmQueue (W13)", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.queue = queue();
+  });
+
+  it("renders loading and read-error casts that never read as an empty queue", () => {
+    mocks.queue = queue({ isLoading: true });
+    renderQueue();
+    expect(screen.queryByText(/nothing to confirm/i)).not.toBeInTheDocument();
+    cleanup();
+
+    mocks.queue = queue({ isError: true });
+    renderQueue();
+    expect(screen.getByRole("alert")).toHaveTextContent(/could not be read/i);
+    expect(screen.queryByText(/nothing to confirm/i)).not.toBeInTheDocument();
+  });
+
+  it("renders the empty stage when nothing waits", () => {
+    renderQueue();
+    expect(screen.getByText(/nothing to confirm/i)).toBeInTheDocument();
+  });
+
+  it("shows who committed, the title, the garden, the progress and the eligibility, and confirms an ordinary row through the queue", async () => {
+    mocks.queue = queue({ rows: [row()] });
+    renderQueue();
+    const item = screen.getByTestId("hub-confirm-9");
+    expect(within(item).getByText("Prune the north beds")).toBeInTheDocument();
+    expect(within(item).getByText(/rocinha/i)).toBeInTheDocument();
+    expect(within(item).getByText(/1 of 2 confirmed/i)).toBeInTheDocument();
+    expect(within(item).getByText(/^ordinary$/i)).toBeInTheDocument();
+    fireEvent.click(within(item).getByRole("button", { name: /^confirm$/i }));
+    const acts = mocks.queue.acts as { confirm: ReturnType<typeof vi.fn> };
+    await waitFor(() =>
+      expect(acts.confirm).toHaveBeenCalledWith(expect.objectContaining({ garden: GARDEN_A }))
+    );
+  });
+
+  it("labels a garden fallback row and a Green Goods team fallback row, and opens the dialog instead of confirming in place", () => {
+    mocks.queue = queue({
+      rows: [
+        row({ eligibility: "POOL_FALLBACK" }),
+        row({
+          commitment: commitment({
+            id: "42161-11",
+            commitmentId: 11n,
+            protocolFallbackEnabled: true,
+          }),
+          garden: ROOT,
+          gardenName: "Green Goods",
+          eligibility: "PROTOCOL_FALLBACK",
+          title: "Survey the wetland",
+        }),
+      ],
+    });
+    const { onOpen } = renderQueue();
+    expect(
+      within(screen.getByTestId("hub-confirm-9")).getByText(/garden fallback/i)
+    ).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId("hub-confirm-11")).getByText(/green goods team fallback/i)
+    ).toBeInTheDocument();
+    fireEvent.click(
+      within(screen.getByTestId("hub-confirm-9")).getByRole("button", { name: /^confirm…$/i })
+    );
+    expect(onOpen).toHaveBeenCalledWith("9");
+    expect(screen.queryByRole("button", { name: /^confirm$/i })).not.toBeInTheDocument();
+  });
+
+  it("raises a reasoned dispute from Not yet", async () => {
+    mocks.queue = queue({ rows: [row()] });
+    renderQueue();
+    fireEvent.click(
+      within(screen.getByTestId("hub-confirm-9")).getByRole("button", { name: /not yet/i })
+    );
+    fireEvent.click(
+      within(screen.getByRole("dialog", { name: /raise a dispute/i })).getByRole("button", {
+        name: /raise dispute/i,
+      })
+    );
+    const acts = mocks.queue.acts as { notYet: ReturnType<typeof vi.fn> };
+    await waitFor(() =>
+      expect(acts.notYet).toHaveBeenCalledWith(
+        expect.objectContaining({ garden: GARDEN_A }),
+        "not yet, the beds are half pruned"
+      )
+    );
+  });
+
+  it("carries Resolve instead of Confirm on a disputed row", () => {
+    mocks.queue = queue({
+      rows: [
+        row({
+          commitment: commitment({
+            onchainState: "DISPUTED",
+            derivedState: "DISPUTED",
+            state: "DISPUTED",
+          }),
+        }),
+      ],
+    });
+    const { onOpen } = renderQueue();
+    const item = screen.getByTestId("hub-confirm-9");
+    expect(within(item).queryByRole("button", { name: /^confirm/i })).not.toBeInTheDocument();
+    fireEvent.click(within(item).getByRole("button", { name: /resolve/i }));
+    expect(onOpen).toHaveBeenCalledWith("9");
+  });
+
+  it("opens the commitment dialog for the routed id with the row's garden authority", () => {
+    mocks.queue = queue({ rows: [row({ eligibility: "POOL_FALLBACK" })] });
+    renderQueue({ selectedCommitmentId: "9" });
+    expect(screen.getByTestId("commitment-panel")).toHaveTextContent(`9:${GARDEN_A}`);
+  });
+});

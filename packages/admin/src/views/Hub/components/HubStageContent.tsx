@@ -45,6 +45,7 @@ interface HubStageContentProps {
   viewer?: Address;
   selectedCommitmentId: string | undefined;
   onOpenCommitment: (commitmentId: string) => void;
+  onCloseCommitment: () => void;
   onOpenWorkDetail: (workId: string) => void;
   onClearSearch: () => void;
   onOpenCertification: (assessmentId: string) => void;
@@ -75,6 +76,7 @@ export function HubStageContent({
   viewer,
   selectedCommitmentId,
   onOpenCommitment,
+  onCloseCommitment,
   onOpenWorkDetail,
   onClearSearch,
   onOpenCertification,
@@ -120,6 +122,7 @@ export function HubStageContent({
         normalizedSearch={normalizedSearch}
         selectedCommitmentId={selectedCommitmentId}
         onOpenCommitment={onOpenCommitment}
+        onCloseCommitment={onCloseCommitment}
       />
     );
   }

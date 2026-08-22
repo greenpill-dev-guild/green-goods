@@ -186,6 +186,7 @@ export default function HubView() {
                   viewer={hub.viewer}
                   selectedCommitmentId={hub.routeCommitmentId}
                   onOpenCommitment={hub.handleOpenCommitment}
+                  onCloseCommitment={hub.handleCloseCommitment}
                   onOpenWorkDetail={hub.handleOpenWorkDetail}
                   onClearSearch={hub.handleClearSearch}
                   onOpenCertification={hub.handleOpenCertification}
