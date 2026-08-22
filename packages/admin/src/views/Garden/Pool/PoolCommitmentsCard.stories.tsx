@@ -74,6 +74,7 @@ export const Queued: Story = {
           unitLabel: "workshop",
           targetUnits: "1",
           waitingForMembership: false,
+          discardable: true,
           failed: false,
           createdAt: daysAgo(0) * 1000,
         },

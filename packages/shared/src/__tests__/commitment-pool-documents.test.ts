@@ -86,7 +86,7 @@ describe("pinPoolCharter", () => {
 
     expect(failure).toBeInstanceOf(PoolDocumentPinError);
     expect(isPoolDocumentPinError(failure)).toBe(true);
-    expect((failure as PoolDocumentPinError).document).toBe("charter");
+    expect((failure as InstanceType<typeof PoolDocumentPinError>).document).toBe("charter");
   });
 });
 
@@ -125,6 +125,6 @@ describe("cycle metadata write side", () => {
     );
 
     expect(failure).toBeInstanceOf(PoolDocumentPinError);
-    expect((failure as PoolDocumentPinError).document).toBe("cycle");
+    expect((failure as InstanceType<typeof PoolDocumentPinError>).document).toBe("cycle");
   });
 });

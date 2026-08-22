@@ -14,6 +14,7 @@ function render(onConfirm: (reason: string) => Promise<void>, onError?: (error: 
       onConfirm={onConfirm}
       onError={onError}
       title="Pause the pool"
+      description="Stops new commitments until you resume."
       confirmLabel="Pause pool"
     />
   );

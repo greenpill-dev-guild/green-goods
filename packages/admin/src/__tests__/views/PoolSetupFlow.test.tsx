@@ -45,42 +45,44 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
 
 const { PoolSetupFlow } = await import("@/views/Garden/Pool/SetupFlow");
 
+const BASE_POOL = {
+  id: "42161-7",
+  chainId: 42161,
+  poolId: 7n,
+  registrationSeen: true,
+  garden: GARDEN,
+  gardenId: GARDEN,
+  poolType: "GARDEN",
+  state: "NOT_READY",
+  charterCID: null,
+  pauseReasonCID: null,
+  pauseReasonBlockNumber: null,
+  openSeasonCycleId: null,
+  openSeasonCycleEntityId: null,
+  openCampaignIds: [],
+  openCampaignEntityIds: [],
+  providerOpenCommitmentCap: 0n,
+  liveCommitmentCount: 0n,
+  nonTerminalCycleCount: 0n,
+  commitmentsOffered: 0n,
+  commitmentsRequested: 0n,
+  commitmentsAccepted: 0n,
+  commitmentsReadyForConfirmation: 0n,
+  commitmentsFulfilled: 0n,
+  commitmentsCancelled: 0n,
+  commitmentsExpired: 0n,
+  commitmentsDisputed: 0n,
+  workLinkedCount: 0n,
+  workApprovedCount: 0n,
+  openCommitmentCount: 0n,
+  distinctProviderCount: 0n,
+  commitmentsDue: 0n,
+  createdAt: 1_700_000_000,
+  updatedAt: 1_700_000_100,
+};
+
 function controller(overrides: Partial<Record<keyof PoolConsoleController, unknown>> = {}) {
-  const pool = {
-    id: "42161-7",
-    chainId: 42161,
-    poolId: 7n,
-    registrationSeen: true,
-    garden: GARDEN,
-    gardenId: GARDEN,
-    poolType: "GARDEN",
-    state: "NOT_READY",
-    charterCID: null,
-    pauseReasonCID: null,
-    pauseReasonBlockNumber: null,
-    openSeasonCycleId: null,
-    openSeasonCycleEntityId: null,
-    openCampaignIds: [],
-    openCampaignEntityIds: [],
-    providerOpenCommitmentCap: 0n,
-    liveCommitmentCount: 0n,
-    nonTerminalCycleCount: 0n,
-    commitmentsOffered: 0n,
-    commitmentsRequested: 0n,
-    commitmentsAccepted: 0n,
-    commitmentsReadyForConfirmation: 0n,
-    commitmentsFulfilled: 0n,
-    commitmentsCancelled: 0n,
-    commitmentsExpired: 0n,
-    commitmentsDisputed: 0n,
-    workLinkedCount: 0n,
-    workApprovedCount: 0n,
-    openCommitmentCount: 0n,
-    distinctProviderCount: 0n,
-    commitmentsDue: 0n,
-    createdAt: 1_700_000_000,
-    updatedAt: 1_700_000_100,
-  };
+  const pool = BASE_POOL;
   const base = {
     chainId: 42161,
     garden: GARDEN,
@@ -364,7 +366,7 @@ describe("PoolSetupFlow (W11)", () => {
   it("blocks a second season and names the running one", () => {
     const running = controller({
       pool: {
-        ...controller().pool,
+        ...BASE_POOL,
         state: "OPEN",
         charterCID: "bafy-charter",
         providerOpenCommitmentCap: 24n,
@@ -418,7 +420,7 @@ describe("PoolSetupFlow (W11)", () => {
   it("seeds and opens a campaign on an open pool with two writes", async () => {
     const open = controller({
       pool: {
-        ...controller().pool,
+        ...BASE_POOL,
         state: "OPEN",
         charterCID: "bafy-charter",
         providerOpenCommitmentCap: 24n,
