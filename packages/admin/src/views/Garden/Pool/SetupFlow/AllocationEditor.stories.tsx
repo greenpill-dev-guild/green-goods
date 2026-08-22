@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react";
-import { useState } from "react";
+import { type ComponentProps, useState } from "react";
 import { expect, userEvent, within } from "storybook/test";
 import {
   ALLOCATION_PRESETS,
@@ -9,6 +9,26 @@ import {
   DEFAULT_RECOGNITION_PERCENT,
   type RecognitionPercent,
 } from "./AllocationEditor";
+
+/** The editor is controlled; the story holds its values. */
+function AllocationEditorWithValues(props: ComponentProps<typeof AllocationEditor>) {
+  const [preset, setPreset] = useState<AllocationPreset>(props.preset);
+  const [allocation, setAllocation] = useState<AllocationPercent>(props.allocation);
+  const [recognition, setRecognition] = useState<RecognitionPercent>(props.recognition);
+  return (
+    <div className="max-w-2xl p-4" data-tone="garden">
+      <AllocationEditor
+        preset={preset}
+        onPresetChange={setPreset}
+        allocation={allocation}
+        onAllocationChange={setAllocation}
+        recognition={recognition}
+        onRecognitionChange={setRecognition}
+        disabled={props.disabled}
+      />
+    </div>
+  );
+}
 
 const meta: Meta<typeof AllocationEditor> = {
   title: "Admin/Pool/AllocationEditor",
@@ -27,24 +47,7 @@ const meta: Meta<typeof AllocationEditor> = {
     allocation: ALLOCATION_PRESETS.model1,
     recognition: DEFAULT_RECOGNITION_PERCENT,
   },
-  render: (args) => {
-    const [preset, setPreset] = useState<AllocationPreset>(args.preset);
-    const [allocation, setAllocation] = useState<AllocationPercent>(args.allocation);
-    const [recognition, setRecognition] = useState<RecognitionPercent>(args.recognition);
-    return (
-      <div className="max-w-2xl p-4" data-tone="garden">
-        <AllocationEditor
-          preset={preset}
-          onPresetChange={setPreset}
-          allocation={allocation}
-          onAllocationChange={setAllocation}
-          recognition={recognition}
-          onRecognitionChange={setRecognition}
-          disabled={args.disabled}
-        />
-      </div>
-    );
-  },
+  render: (args) => <AllocationEditorWithValues {...args} />,
 };
 
 export default meta;

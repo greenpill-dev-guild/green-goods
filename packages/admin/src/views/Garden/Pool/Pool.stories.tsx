@@ -1,5 +1,6 @@
 import { DEFAULT_CHAIN_ID, queryKeys } from "@green-goods/shared";
 import type { Meta, StoryObj } from "@storybook/react";
+import type { ComponentType } from "react";
 import type { QueryKey } from "@tanstack/react-query";
 import { createMemoryRouter, RouterProvider } from "react-router-dom";
 import { expect, within } from "storybook/test";
@@ -39,7 +40,7 @@ function decorators(seeds: ReadonlyArray<readonly [QueryKey, unknown]>) {
   return [
     withAdminIdentity,
     withSeededQueryClient(seeds),
-    (Story: React.ComponentType) => (
+    (Story: ComponentType) => (
       <RouterProvider
         router={createMemoryRouter(
           [

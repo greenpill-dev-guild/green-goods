@@ -1,9 +1,26 @@
 import type { Meta, StoryObj } from "@storybook/react";
-import { useState } from "react";
+import { type ComponentProps, useState } from "react";
 import { expect, userEvent, within } from "storybook/test";
 import { daysAgo } from "../../../../../shared/.storybook/fixtures";
 import { PoolCommitmentsCard, type PoolCommitmentScope } from "./PoolCommitmentsCard";
 import { storyPoolConsole } from "./poolStoryFixtures";
+
+/** The card owns no filter state; the story does, so the chips work. */
+function PoolCommitmentsCardWithScope(props: ComponentProps<typeof PoolCommitmentsCard>) {
+  const [scope, setScope] = useState<PoolCommitmentScope>(props.scope);
+  const [dueOnly, setDueOnly] = useState(props.dueOnly);
+  return (
+    <div className="max-w-2xl p-4" data-tone="garden">
+      <PoolCommitmentsCard
+        {...props}
+        scope={scope}
+        onScopeChange={setScope}
+        dueOnly={dueOnly}
+        onDueOnlyChange={setDueOnly}
+      />
+    </div>
+  );
+}
 
 const meta: Meta<typeof PoolCommitmentsCard> = {
   title: "Admin/Pool/PoolCommitmentsCard",
@@ -24,21 +41,7 @@ const meta: Meta<typeof PoolCommitmentsCard> = {
     scope: "open",
     dueOnly: false,
   },
-  render: (args) => {
-    const [scope, setScope] = useState<PoolCommitmentScope>(args.scope);
-    const [dueOnly, setDueOnly] = useState(args.dueOnly);
-    return (
-      <div className="max-w-2xl p-4" data-tone="garden">
-        <PoolCommitmentsCard
-          {...args}
-          scope={scope}
-          onScopeChange={setScope}
-          dueOnly={dueOnly}
-          onDueOnlyChange={setDueOnly}
-        />
-      </div>
-    );
-  },
+  render: (args) => <PoolCommitmentsCardWithScope {...args} />,
 };
 
 export default meta;
