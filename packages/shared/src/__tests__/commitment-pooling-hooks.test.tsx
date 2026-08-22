@@ -579,6 +579,15 @@ describe("useCommitmentMutation", () => {
       },
       {
         input: {
+          action: "declineClaim",
+          commitmentId: 5n,
+          claimant: ACCOUNT,
+          reason: "Another neighbour already asked",
+        },
+        args: [5n, ACCOUNT, "bafy-reason"],
+      },
+      {
+        input: {
           action: "resolveDispute",
           commitmentId: 5n,
           resolution: 1,
