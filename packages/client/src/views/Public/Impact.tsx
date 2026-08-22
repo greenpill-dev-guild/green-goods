@@ -1,13 +1,13 @@
 import {
   PUBLIC_IMPACT_RECORD_FETCH_CAP,
   type PublicGardenSummary,
-  type PublicImpactEvidenceKind,
   type PublicImpactEvidenceRecord,
   useInViewReveal,
   usePublicGardens,
   usePublicImpactEvidence,
   usePublicStats,
 } from "@green-goods/shared";
+import type { PublicImpactEvidenceKind } from "@green-goods/shared/public-contracts";
 import { useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import {
@@ -19,11 +19,13 @@ import {
   type EditorialSelectOption,
   EditorialTitleAccent,
 } from "@/components/Public/atoms";
+import { PublicCommitmentsBand } from "@/components/Public/PublicCommitmentsBand";
 import { PublicEditorialHero } from "@/components/Public/PublicEditorialHero";
 import { PublicEvidenceCard } from "@/components/Public/PublicEvidenceCard";
 import { PublicEvidenceDialog } from "@/components/Public/PublicEvidenceDialog";
 import { PublicEvidencePipeline } from "@/components/Public/PublicEvidencePipeline";
 import { PublicFooter } from "@/components/Public/PublicFooter";
+import { type PublicProofMarker, PublicProofMarkers } from "@/components/Public/PublicProofMarkers";
 import { getPublicHeroImage, publicCuration } from "@/content/publicCuration";
 
 type KindFilter = "all" | PublicImpactEvidenceKind;
@@ -88,56 +90,21 @@ function recordMatchesDomain(record: PublicImpactEvidenceRecord, filterId: strin
   return String(record.domain) === filterId;
 }
 
-interface ProofMarker {
-  labelId: string;
-  defaultLabel: string;
-  value: number;
-  isLoading: boolean;
-  noteId: string;
-  defaultNote: string;
-}
-
-function ProofMarkers({ markers }: { markers: readonly ProofMarker[] }) {
-  const { formatMessage } = useIntl();
-  return (
-    <dl className="grid grid-cols-2 gap-x-6 gap-y-10 sm:gap-x-12 md:grid-cols-4 md:gap-x-16">
-      {markers.map(({ labelId, defaultLabel, value, isLoading, noteId, defaultNote }) => (
-        <div key={labelId} className="flex min-w-0 flex-col gap-3">
-          <dt className="font-mono text-[11px] font-medium uppercase tracking-[0.18em] text-text-soft-400">
-            {formatMessage({ id: labelId, defaultMessage: defaultLabel })}
-          </dt>
-          <dd className="font-serif text-5xl font-normal leading-none tracking-[-0.025em] text-text-strong-950 md:text-6xl">
-            {isLoading ? "—" : value > 0 ? new Intl.NumberFormat().format(value) : ""}
-            {!isLoading && value === 0 ? (
-              <span className="font-serif text-2xl italic text-text-soft-400 md:text-2xl">
-                {formatMessage({
-                  id: "public.impact.proof.notPublicYet",
-                  defaultMessage: "Not public yet",
-                })}
-              </span>
-            ) : null}
-          </dd>
-          <p className="max-w-[22rem] text-sm leading-[1.55] text-text-sub-600 md:text-base">
-            {formatMessage({ id: noteId, defaultMessage: defaultNote })}
-          </p>
-        </div>
-      ))}
-    </dl>
-  );
-}
-
 /**
  * Impact — credible public evidence ledger.
  *
  * Editorial recomposition:
  *   Hero ("See how Garden work becomes evidence.") → § 01 Proof markers →
- *   § 02 evidence pipeline (Assessment → Work → Impact Certificate) → § 03
- *   image-forward evidence grid with combined Kind + Domain filter row +
- *   Prev / Next pagination → optional source dialog → Footer.
+ *   § 02 commitments band (protocol-wide pool aggregates) → § 03 evidence
+ *   pipeline (Assessment → Commitment → Work → Confirmation → Impact
+ *   Certificate) → § 04 image-forward evidence grid with combined Kind +
+ *   Domain filter row + Prev / Next pagination → optional source dialog →
+ *   Footer.
  *
  * Cycle order on the pipeline figure follows the user's correction:
  * Assessment first, then Work, then Impact Certificate, with the cycle
- * looping back to a new Assessment.
+ * looping back to a new Assessment. The ledger's record kinds stay the three
+ * attestation-backed ones; the two commitment stages are narrative only.
  */
 
 /**
@@ -263,6 +230,72 @@ export default function ImpactPage() {
   const canPrev = page > 1;
   const canNext = page < totalPages;
 
+  // § 01 proof markers. A confirmed zero reads as "Not public yet" rather than
+  // as a numeral, and the certificate figure is pinned there until the first
+  // issuance is public.
+  const notPublicYet = formatMessage({
+    id: "public.impact.proof.notPublicYet",
+    defaultMessage: "Not public yet",
+  });
+  const proofMarker = (
+    key: string,
+    label: string,
+    note: string,
+    value: number,
+    loading: boolean
+  ): PublicProofMarker => ({
+    key,
+    label,
+    note,
+    loading,
+    ...(value > 0 ? { value: new Intl.NumberFormat().format(value) } : { phrase: notPublicYet }),
+  });
+  const proofMarkers: PublicProofMarker[] = [
+    proofMarker(
+      "work",
+      formatMessage({ id: "public.impact.totalWork", defaultMessage: "Work" }),
+      formatMessage({
+        id: "public.impact.proof.workNote",
+        defaultMessage: "Field entries logged across Gardens.",
+      }),
+      counts.fieldNoteCount,
+      stats.isLoading
+    ),
+    proofMarker(
+      "assessments",
+      formatMessage({ id: "public.impact.totalAssessments", defaultMessage: "Assessments" }),
+      formatMessage({
+        id: "public.impact.proof.assessmentsNote",
+        defaultMessage: "Baselines recorded before Work begins.",
+      }),
+      counts.attestationCount,
+      stats.isLoading
+    ),
+    proofMarker(
+      "gardens",
+      formatMessage({ id: "public.impact.totalGardens", defaultMessage: "Gardens" }),
+      formatMessage({
+        id: "public.impact.proof.gardensNote",
+        defaultMessage: "Active places under continuous documentation.",
+      }),
+      counts.gardenCount,
+      stats.isLoading
+    ),
+    proofMarker(
+      "certificates",
+      formatMessage({
+        id: "public.impact.totalCertificates",
+        defaultMessage: "Impact Certificates",
+      }),
+      formatMessage({
+        id: "public.impact.proof.certificatesNote",
+        defaultMessage: "Not public yet. First issuance pending.",
+      }),
+      0,
+      false
+    ),
+  ];
+
   return (
     <>
       <PublicEditorialHero
@@ -308,49 +341,16 @@ export default function ImpactPage() {
               })}
             </EditorialHeading>
           </header>
-          <ProofMarkers
-            markers={[
-              {
-                labelId: "public.impact.totalWork",
-                defaultLabel: "Work",
-                value: counts.fieldNoteCount,
-                isLoading: stats.isLoading,
-                noteId: "public.impact.proof.workNote",
-                defaultNote: "Field entries logged across Gardens.",
-              },
-              {
-                labelId: "public.impact.totalAssessments",
-                defaultLabel: "Assessments",
-                value: counts.attestationCount,
-                isLoading: stats.isLoading,
-                noteId: "public.impact.proof.assessmentsNote",
-                defaultNote: "Baselines recorded before Work begins.",
-              },
-              {
-                labelId: "public.impact.totalGardens",
-                defaultLabel: "Gardens",
-                value: counts.gardenCount,
-                isLoading: stats.isLoading,
-                noteId: "public.impact.proof.gardensNote",
-                defaultNote: "Active places under continuous documentation.",
-              },
-              {
-                labelId: "public.impact.totalCertificates",
-                defaultLabel: "Impact Certificates",
-                value: 0,
-                isLoading: false,
-                noteId: "public.impact.proof.certificatesNote",
-                defaultNote: "Not public yet. First issuance pending.",
-              },
-            ]}
-          />
+          <PublicProofMarkers markers={proofMarkers} />
         </div>
       </section>
+
+      <PublicCommitmentsBand />
 
       <PublicEvidencePipeline
         kicker={formatMessage({
           id: "public.impact.pipeline.kicker",
-          defaultMessage: "§ 02: The cycle",
+          defaultMessage: "§ 03: The cycle",
         })}
         title={formatMessage({
           id: "public.impact.pipeline.title",
@@ -360,7 +360,7 @@ export default function ImpactPage() {
         intro={formatMessage({
           id: "public.impact.pipeline.intro",
           defaultMessage:
-            "Each Garden moves through three stages of evidence and starts again. The cycle is what turns a place's intentions into something the public can verify.",
+            "Each Garden moves through five stages of evidence and starts again. The cycle is what turns a place's intentions into something the public can verify.",
         })}
       />
 
@@ -375,7 +375,7 @@ export default function ImpactPage() {
             <EditorialKicker className="mb-3">
               {formatMessage({
                 id: "public.impact.ledger.kicker",
-                defaultMessage: "§ 03: Evidence ledger",
+                defaultMessage: "§ 04: Evidence ledger",
               })}
             </EditorialKicker>
             <EditorialHeading id="public-impact-ledger-title">

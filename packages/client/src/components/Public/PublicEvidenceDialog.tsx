@@ -2,7 +2,7 @@ import { cn, type PublicGardenSummary, type PublicImpactEvidenceRecord } from "@
 import { useId } from "react";
 import { useIntl } from "react-intl";
 import { EditorialKicker } from "./atoms";
-import { EVIDENCE_KIND_LABELS } from "./PublicEvidencePipeline";
+import { EVIDENCE_KIND_LABELS } from "./evidenceKinds";
 import { PublicRecordDrawer } from "./PublicRecordDrawer";
 
 const DOMAIN_INK: Record<"solar" | "agro" | "education" | "waste", string> = {

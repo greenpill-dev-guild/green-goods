@@ -58,7 +58,7 @@ export function CertificatesSection({
       id="public-garden-detail-certificates"
       kicker={formatMessage({
         id: "public.gardenDetail.section.certificates",
-        defaultMessage: "§ 02: Certificates",
+        defaultMessage: "§ 03: Certificates",
       })}
       heading={formatMessage({
         id: "public.gardenDetail.certificates.heading",
@@ -135,7 +135,7 @@ export function OperatorsSection({
       id="public-garden-detail-operators"
       kicker={formatMessage({
         id: "public.gardenDetail.section.operators",
-        defaultMessage: "§ 03: Operators",
+        defaultMessage: "§ 04: Operators",
       })}
       heading={formatMessage({
         id: "public.gardenDetail.operators.heading",

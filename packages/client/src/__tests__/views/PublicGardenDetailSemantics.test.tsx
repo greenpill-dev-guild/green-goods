@@ -76,6 +76,22 @@ vi.mock("@green-goods/shared", () => ({
     isLoading: false,
   }),
   useHypercerts: () => ({ hypercerts: [], isLoading: false }),
+  // Pre-launch: no pool registered, so § 02 renders its readiness copy.
+  usePublicGardenPool: () => ({
+    data: {
+      pool: null,
+      openSeason: null,
+      openCampaigns: [],
+      finishedCycles: [],
+      poolUnitSummaries: [],
+      cycleUnitSummaries: [],
+      partialData: false,
+      unavailableSources: { commitmentPool: false, cycleMetadata: false },
+    },
+    isLoading: false,
+    refetch: () => Promise.resolve(),
+  }),
+  selectPublicPromiseKeptRate: () => ({ kind: "counts-only", counts: { fulfilled: 0n, due: 0n } }),
   useInViewReveal: () => ({ ref: { current: null }, revealed: true }),
   // A <button>, matching the real component and the main suite's stub. A <span>
   // here is what let a button-inside-a-button reach the browser last time.
@@ -115,8 +131,11 @@ const messages: Record<string, string> = {
   "public.gardenDetail.stats.certificates": "Certificates",
   "public.gardenDetail.stats.unknown": "Not available",
   "public.gardenDetail.section.notes": "§ 01: Field notes",
-  "public.gardenDetail.section.certificates": "§ 02: Certificates",
-  "public.gardenDetail.section.operators": "§ 03: Operators",
+  "public.gardenDetail.section.certificates": "§ 03: Certificates",
+  "public.gardenDetail.section.operators": "§ 04: Operators",
+  "public.pool.garden.kicker": "§ 02: Commitments",
+  "public.pool.garden.heading.preparing": "This Garden is preparing its pool",
+  "public.pool.garden.state.notReady": "Offers and requests open once the pool is ready.",
   "public.gardenDetail.notes.heading": "Latest field notes",
   "public.gardenDetail.notes.helper": "What gardeners have logged.",
   "public.gardenDetail.notes.empty": "No field notes yet.",
@@ -152,6 +171,7 @@ describe("GardenDetail section semantics (P3-4)", () => {
 
     const expected = [
       ["public-garden-detail-notes", "Latest field notes"],
+      ["public-garden-detail-commitments", "This Garden is preparing its pool"],
       ["public-garden-detail-certificates", "Impact Certificates"],
       ["public-garden-detail-operators", "Operators"],
     ] as const;
@@ -167,16 +187,21 @@ describe("GardenDetail section semantics (P3-4)", () => {
     // The sections appear at h2 level and do not collide with the page h1,
     // which carries the Garden name.
     const h2Texts = screen.getAllByRole("heading", { level: 2 }).map((h) => h.textContent ?? "");
-    expect(h2Texts).toEqual(["Latest field notes", "Impact Certificates", "Operators"]);
+    expect(h2Texts).toEqual([
+      "Latest field notes",
+      "This Garden is preparing its pool",
+      "Impact Certificates",
+      "Operators",
+    ]);
   });
 
   it("keeps every section present when the Garden has no content for it", () => {
     const { container } = renderView();
 
-    // Ordinals stay stable between Gardens, and the § 02 slot the
-    // commitment-pooling section will take has a defined neighbour on both
-    // sides regardless of what this Garden happens to have published.
-    expect(container.querySelectorAll("section[aria-labelledby]")).toHaveLength(3);
+    // Ordinals stay stable between Gardens: § 02 commitments renders its
+    // pre-launch state rather than disappearing, so it has a defined
+    // neighbour on both sides regardless of what this Garden has published.
+    expect(container.querySelectorAll("section[aria-labelledby]")).toHaveLength(4);
     expect(screen.getByText("No field notes yet.")).toBeInTheDocument();
     expect(screen.getByText("No Impact Certificates yet.")).toBeInTheDocument();
   });

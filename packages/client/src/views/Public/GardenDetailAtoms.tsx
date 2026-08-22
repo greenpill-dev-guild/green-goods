@@ -72,13 +72,25 @@ export function SectionEmpty({ message }: { message: string }) {
   return <p className="mt-8 font-serif text-xl italic text-text-soft-400">{message}</p>;
 }
 
-export function SectionNotice({ message }: { message: string }) {
+/**
+ * A failed read says so and offers a retry. Sections whose data comes from
+ * the page-level detail query reload the page; a section with its own query
+ * passes `onRetry` so only its sources are re-read and the rest of the page,
+ * which rendered from reads that succeeded, is left alone.
+ */
+export function SectionNotice({
+  message,
+  onRetry = () => window.location.reload(),
+}: {
+  message: string;
+  onRetry?: () => void;
+}) {
   return (
     <p role="status" className="mt-8 text-sm text-text-sub-600">
       {message}{" "}
       <button
         type="button"
-        onClick={() => window.location.reload()}
+        onClick={onRetry}
         className="border-b border-primary-action/35 pb-0.5 font-medium text-primary-action transition-colors hover:border-primary-action-hover hover:text-primary-action-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action focus-visible:ring-offset-2"
       >
         <RetryLabel />

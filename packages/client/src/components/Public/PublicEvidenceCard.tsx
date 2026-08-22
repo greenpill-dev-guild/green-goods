@@ -2,7 +2,7 @@ import { cn, ImageWithFallback, type PublicImpactEvidenceRecord } from "@green-g
 import { RiImageLine } from "@remixicon/react";
 import { useCallback, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
-import { EVIDENCE_KIND_LABELS } from "./PublicEvidencePipeline";
+import { EVIDENCE_KIND_LABELS } from "./evidenceKinds";
 
 const DOMAIN_INK: Record<"solar" | "agro" | "education" | "waste", string> = {
   solar: "text-domain-solar",

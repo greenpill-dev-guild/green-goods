@@ -61,6 +61,7 @@ const mockSliceReady = {
 const mockUsePublicStats = vi.fn();
 const mockUsePublicImpactEvidence = vi.fn();
 const mockUsePublicGardens = vi.fn();
+const mockUsePublicCommitmentImpact = vi.fn();
 
 vi.mock("@green-goods/shared", async () => {
   const actual = await vi.importActual<typeof import("@green-goods/shared")>("@green-goods/shared");
@@ -69,6 +70,7 @@ vi.mock("@green-goods/shared", async () => {
     usePublicStats: () => mockUsePublicStats(),
     usePublicImpactEvidence: () => mockUsePublicImpactEvidence(),
     usePublicGardens: () => mockUsePublicGardens(),
+    usePublicCommitmentImpact: () => mockUsePublicCommitmentImpact(),
   };
 });
 
@@ -125,6 +127,10 @@ describe("ImpactPage", () => {
     mockUsePublicStats.mockReturnValue({ data: mockStats, isLoading: false });
     mockUsePublicImpactEvidence.mockReturnValue({ data: mockSliceReady, isLoading: false });
     mockUsePublicGardens.mockReturnValue({ data: [], isLoading: false });
+    // § 02 commitments band has its own suite (`commitment-editorial.test.tsx`);
+    // here it is pinned to a still-loading read so its figures cannot collide
+    // with the proof-marker counts this suite asserts on.
+    mockUsePublicCommitmentImpact.mockReturnValue({ data: undefined, isLoading: true });
   });
 
   it("renders the editorial hero", () => {
