@@ -64,6 +64,20 @@ export interface CommitmentReadModel {
   contributorPolicy?: keyof typeof CommitmentContributorPolicy | null;
   /** The named confirmer group. Empty when confirmation follows the ordinary rule. */
   confirmers: Address[];
+  /** How many confirmations have landed, and how many it takes. */
+  confirmationCount?: number;
+  confirmationThreshold?: number;
+  /** Whether the Green Goods team may step in when nobody local is eligible. */
+  protocolFallbackEnabled?: boolean;
+  /**
+   * Who confirmed it and by which path, once Fulfilled. Ordinary names the
+   * confirmer plainly; a fallback carries its reason. Null until then, and
+   * null when fulfilment came from a dispute resolution rather than a
+   * confirmation.
+   */
+  fulfilledBy?: Address | null;
+  confirmationPath?: "ORDINARY" | "POOL_FALLBACK" | "PROTOCOL_FALLBACK" | null;
+  fallbackReason?: string | null;
   /** Team size without loading the team itself, which every card row needs. */
   contributorCount: number;
   /** Whether the team still accepts people. */

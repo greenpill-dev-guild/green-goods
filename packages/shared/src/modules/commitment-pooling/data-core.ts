@@ -229,6 +229,17 @@ export function mapCommitment(row: RawRow): CommitmentReadModel {
     claimMode: row.claimMode as CommitmentReadModel["claimMode"],
     contributorPolicy: row.contributorPolicy as CommitmentReadModel["contributorPolicy"],
     confirmers: strings(row.confirmers).map((entry) => entry.toLowerCase() as Address),
+    confirmationCount: number(row.confirmationCount),
+    confirmationThreshold: number(row.confirmationThreshold),
+    protocolFallbackEnabled: row.protocolFallbackEnabled === true,
+    fulfilledBy: address(row.fulfilledBy),
+    confirmationPath:
+      row.confirmationPath === "ORDINARY" ||
+      row.confirmationPath === "POOL_FALLBACK" ||
+      row.confirmationPath === "PROTOCOL_FALLBACK"
+        ? row.confirmationPath
+        : null,
+    fallbackReason: string(row.fallbackReason),
     contributorCount: number(row.contributorCount),
     contributorsFrozen: row.contributorsFrozen === true,
     metadataCID: string(row.metadataCID),

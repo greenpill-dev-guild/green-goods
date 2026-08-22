@@ -28,6 +28,7 @@ import { canJoinTeam, selectCommitmentAct } from "./commitmentActions";
 import { CommitmentPeople } from "./CommitmentPeople";
 import { CommitmentProgress } from "./CommitmentProgress";
 import { CommitmentWork } from "./CommitmentWork";
+import { ConfirmSheet, Provenance } from "./ConfirmSheet";
 import { LinkWorkDialog } from "./LinkWorkDialog";
 import { selectStatusBand } from "./statusBand";
 import { WithdrawDialog } from "./WithdrawDialog";
@@ -62,6 +63,8 @@ export function GardenCommitment() {
   const chainId = DEFAULT_CHAIN_ID;
 
   const [withdrawOpen, setWithdrawOpen] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [notYetFailed, setNotYetFailed] = useState(false);
   const [linkOpen, setLinkOpen] = useState<
     { workUID: string; requirementIndex: number } | true | null
   >(null);
@@ -278,11 +281,9 @@ export function GardenCommitment() {
                     });
                     return;
                   case "confirm":
-                    void jobs.enqueue({
-                      act: "confirm",
-                      commitmentId: commitment.commitmentId,
-                      gardenAddress: gardenAddress as Address,
-                    });
+                    // The sheet asks the question and offers its two answers;
+                    // the bar only opens it.
+                    setConfirmOpen(true);
                     return;
                   case "addProof":
                     navigate("proof", { relative: "path" });
@@ -320,6 +321,13 @@ export function GardenCommitment() {
             <p className="mt-1 text-sm leading-relaxed text-text-sub-600">
               {formatMessage({ id: band.bodyId })}
             </p>
+            {/* Once kept, who confirmed it and by which path. A fallback's news
+              is the path and its reason, which a halo cannot carry. */}
+            {commitment.derivedState === "FULFILLED" || commitment.derivedState === "RECONCILED" ? (
+              <div className="mt-2">
+                <Provenance commitment={commitment} />
+              </div>
+            ) : null}
           </section>
         ) : null}
 
@@ -392,6 +400,51 @@ export function GardenCommitment() {
           onLink={(workUID, requirementIndex) => setLinkOpen({ workUID, requirementIndex })}
         />
       </DetailShell>
+
+      <ConfirmSheet
+        open={confirmOpen}
+        onOpenChange={setConfirmOpen}
+        commitment={commitment}
+        requirements={requirements}
+        contributors={contributors}
+        viewer={viewer as Address | null}
+        isOnline={isOnline}
+        // Where the sheet stands is read from the record and the queue, never
+        // remembered: a kept commitment is the indexer's word, and a queued
+        // confirmation is the queue's.
+        phase={
+          commitment.derivedState === "FULFILLED" || commitment.derivedState === "RECONCILED"
+            ? "confirmed"
+            : hasPendingJob
+              ? "pending"
+              : "ask"
+        }
+        isPending={jobs.isPending || onlineMutation.isPending}
+        notYetFailed={notYetFailed}
+        onConfirm={() => {
+          void jobs.enqueue({
+            act: "confirm",
+            commitmentId: commitment.commitmentId,
+            gardenAddress: gardenAddress as Address,
+          });
+        }}
+        onNotYet={(reason) => {
+          setNotYetFailed(false);
+          onlineMutation.mutate(
+            {
+              action: "raiseDispute",
+              commitmentId: commitment.commitmentId,
+              reason,
+              gardenAddress: gardenAddress as Address,
+            },
+            {
+              onSuccess: () => setConfirmOpen(false),
+              onError: () => setNotYetFailed(true),
+            }
+          );
+        }}
+        onDone={() => setConfirmOpen(false)}
+      />
 
       <LinkWorkDialog
         open={linkOpen !== null}

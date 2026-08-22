@@ -155,6 +155,7 @@ const render = () =>
 describe("GardenCommitment", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    window.localStorage.clear();
     mockMutationError = null;
     mockUseOffline.mockReturnValue({ isOnline: true });
     mockUseQueueState.mockReturnValue(queueState());
@@ -203,6 +204,144 @@ describe("GardenCommitment", () => {
 
     expect(screen.getByText("Ready for you to confirm")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Confirm it was kept" })).toBeInTheDocument();
+  });
+
+  describe("the confirmation sheet", () => {
+    const ready = (overrides: Record<string, unknown> = {}) =>
+      detail({
+        commitment: {
+          derivedState: "READY_FOR_CONFIRMATION",
+          onchainState: "READY_FOR_CONFIRMATION",
+          creator: OTHER,
+          leadProvider: OTHER,
+          counterparty: VIEWER,
+          evidenceCount: 2,
+          confirmationCount: 0,
+          confirmationThreshold: 1,
+          ...overrides,
+        },
+        contributors: [{ contributor: OTHER, active: true, isLead: true }],
+      });
+
+    it("asks the cast's own question and offers its two answers", async () => {
+      const user = userEvent.setup();
+      mockUseCommitment.mockReturnValue(ready());
+      render();
+
+      await user.click(screen.getByRole("button", { name: "Confirm it was kept" }));
+
+      expect(screen.getByText("Commitment kept?")).toBeInTheDocument();
+      expect(screen.getByText("2 items")).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Not yet" })).toBeInTheDocument();
+      // Nothing was queued by opening the sheet.
+      expect(mockEnqueue).not.toHaveBeenCalled();
+    });
+
+    it("asks a request's confirmer whether the help arrived, and garden work whether it was done", async () => {
+      const user = userEvent.setup();
+      mockUseCommitment.mockReturnValue(
+        ready({
+          direction: "REQUEST",
+          creator: VIEWER,
+          counterparty: OTHER,
+          commitmentType: "SUPPORT_SERVICE",
+        })
+      );
+      render();
+      await user.click(screen.getByRole("button", { name: "Confirm it was kept" }));
+      expect(screen.getByText("Did the help arrive?")).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Confirm the help arrived" })).toBeInTheDocument();
+    });
+
+    it("queues the ordinary confirmation from the sheet, with the garden", async () => {
+      const user = userEvent.setup();
+      mockUseCommitment.mockReturnValue(ready());
+      render();
+      await user.click(screen.getByRole("button", { name: "Confirm it was kept" }));
+      // The sheet's own answer carries the same words as the bar.
+      const answers = screen.getAllByRole("button", { name: "Confirm it was kept" });
+      await user.click(answers[answers.length - 1]!);
+
+      expect(mockEnqueue).toHaveBeenCalledWith({
+        act: "confirm",
+        commitmentId: 9n,
+        gardenAddress: GARDEN,
+      });
+    });
+
+    it("raises a dispute from Not yet with the words as typed, never cancelling anything", async () => {
+      const user = userEvent.setup();
+      mockUseCommitment.mockReturnValue(ready());
+      render();
+      await user.click(screen.getByRole("button", { name: "Confirm it was kept" }));
+      await user.click(screen.getByRole("button", { name: "Not yet" }));
+
+      expect(screen.getByText("Tell the stewards")).toBeInTheDocument();
+      await user.click(screen.getByRole("button", { name: "Not finished yet" }));
+      await user.click(screen.getByRole("button", { name: "Send to the stewards" }));
+
+      expect(mockMutate).toHaveBeenCalledWith(
+        {
+          action: "raiseDispute",
+          commitmentId: 9n,
+          reason: "Not finished yet",
+          gardenAddress: GARDEN,
+        },
+        expect.anything()
+      );
+      expect(mockEnqueue).not.toHaveBeenCalled();
+    });
+
+    it("says Not yet needs a connection when offline, and keeps the words", async () => {
+      const user = userEvent.setup();
+      mockUseOffline.mockReturnValue({ isOnline: false });
+      mockUseCommitment.mockReturnValue(ready());
+      render();
+      await user.click(screen.getByRole("button", { name: "Confirm it was kept" }));
+      await user.click(screen.getByRole("button", { name: "Not yet" }));
+      await user.type(screen.getByLabelText("What still needs doing?"), "The far bed");
+
+      expect(screen.getByText(/needs a connection/i)).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Send to the stewards" })).toBeDisabled();
+      expect(window.localStorage.getItem("gg-commitment-not-yet:42161-9")).toBe("The far bed");
+    });
+
+    it("keeps the note and offers a retry when the stewards could not be reached", async () => {
+      const user = userEvent.setup();
+      mockUseCommitment.mockReturnValue(ready());
+      mockMutate.mockImplementation((_input: unknown, options?: { onError?: () => void }) => {
+        options?.onError?.();
+      });
+      render();
+      await user.click(screen.getByRole("button", { name: "Confirm it was kept" }));
+      await user.click(screen.getByRole("button", { name: "Not yet" }));
+      await user.click(screen.getByRole("button", { name: "Something looks off" }));
+      await user.click(screen.getByRole("button", { name: "Send to the stewards" }));
+
+      expect(screen.getByText(/Could not reach the stewards/i)).toBeInTheDocument();
+      expect(screen.getByLabelText("What still needs doing?")).toHaveValue("Something looks off");
+      expect(screen.getByRole("button", { name: "Try again" })).toBeInTheDocument();
+    });
+
+    it("names who confirmed a kept commitment, and a fallback's reason", () => {
+      mockUseCommitment.mockReturnValue(
+        detail({
+          commitment: {
+            derivedState: "FULFILLED",
+            onchainState: "FULFILLED",
+            fulfilledBy: OTHER,
+            confirmationPath: "POOL_FALLBACK",
+            fallbackReason: "Nobody local was eligible",
+          },
+        })
+      );
+      render();
+
+      expect(
+        screen.getByText(/Confirmed by your garden steward, as a fallback/)
+      ).toBeInTheDocument();
+      expect(screen.getByText("Reason: Nobody local was eligible")).toBeInTheDocument();
+    });
   });
 
   it("gives someone on the team no way to send or confirm", () => {
@@ -284,7 +423,10 @@ describe("GardenCommitment", () => {
     );
     render();
 
+    // The bar opens the sheet; the sheet's own answer is what queues.
     await user.click(screen.getByRole("button", { name: "Confirm it was kept" }));
+    const answers = screen.getAllByRole("button", { name: "Confirm it was kept" });
+    await user.click(answers[answers.length - 1]!);
     expect(mockEnqueue).toHaveBeenCalledWith({
       act: "confirm",
       commitmentId: 9n,
