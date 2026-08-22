@@ -131,6 +131,21 @@ Both are real; both are their own change.
 Two more tests changed meaning: `GardenCommitment`'s "queues the act the bar names" was sending a
 DomainImpact commitment for confirmation, which the contract refuses.
 
+## A validation gap, recorded so it is not repeated
+
+CI on `04e9b47e6` failed two jobs the local gate never ran: `typecheck:tests` in shared and
+client, added by develop's strict-typecheck lane (`94a002214`) and merged in on `5e12c441d`.
+The local client typecheck uses `tsconfig.app.json`, which excludes tests, and the Ship Gate
+does not include `typecheck:tests`. Six fixtures predated fields this branch made required;
+fixed in `931cb0d0d`. One of them is deliberately incomplete — a claim record persisted before
+2026-08-21 must still send without a membership preflight — and now says so with a cast rather
+than testing the wrong thing.
+
+Running both `typecheck:tests` scripts belongs in the local proof for any branch that touches
+payload types. The local worktree also reports ~100 `@storybook/react` resolution errors in that
+job that CI does not: the package is a declared devDependency that is not installed here. Not a
+defect, and not installed without approval.
+
 ## Proof
 
 Ship Gate at the fix commit: `bun format` clean, `bun lint` 0 errors, `bun run test`, `bun run build`.
