@@ -8,6 +8,7 @@ import type {
   CommitmentDetail,
   CommitmentReadModel,
   CommitmentRequirementRecord,
+  CommitmentWorkAttributionRecord,
 } from "./types";
 import {
   CLAIM_FIELDS,
@@ -140,7 +141,7 @@ export async function getCommitmentDetail(
     CommitmentEvidenceAttributionIndex(where: { id: { _eq: $id } }, limit: 1) { attributionEntityIds }
     CommitmentClaimRequestIndex(where: { id: { _eq: $id } }, limit: 1) { requestIds }
     CommitmentCounterIndex(where: { id: { _eq: $id } }, limit: 1) { referencingCommitmentEntityIds }
-    CommitmentWorkAttribution(where: { chainId: { _eq: $chainId }, commitmentId: { _eq: $commitmentId }, linkSeen: { _eq: true } }, order_by: { workUID: asc }) { id chainId workUID commitmentId linkSeen contributor requirementIndex operationKey linked creditActive latestDecisionSequence latestDecisionUID linkedBy linkedAt unlinkedBy unlinkedAt updatedAt }
+    CommitmentWorkAttribution(where: { chainId: { _eq: $chainId }, commitmentId: { _eq: $commitmentId }, linkSeen: { _eq: true } }, order_by: { workUID: asc }) { ${WORK_ATTRIBUTION_FIELDS} }
   }`;
   const result = await greenGoodsIndexer.query<Record<string, RawRow[]>>(
     query,
@@ -230,13 +231,58 @@ export async function getCommitmentDetail(
         })
       ),
     assignments,
-    workAttributions: (result.data?.CommitmentWorkAttribution ?? []).filter(
-      (row) => row.linkSeen === true
-    ),
+    workAttributions: (result.data?.CommitmentWorkAttribution ?? [])
+      .filter((row) => row.linkSeen === true)
+      .map(mapWorkAttribution),
     evidenceAttributions: evidence,
     claimRequests: claims.filter((row) => row.requestSeen === true).map(mapClaim),
     counterpartCommitments: mappedCommitments.slice(1).filter((row) => row.creationSeen),
   };
+}
+
+const WORK_ATTRIBUTION_FIELDS =
+  "id chainId workUID commitmentId linkSeen contributor requirementIndex operationKey linked creditActive linkedBy linkedAt unlinkedBy unlinkedAt updatedAt";
+
+export function mapWorkAttribution(row: RawRow): CommitmentWorkAttributionRecord {
+  if (row.linkSeen !== true) throw new Error("unseen work attribution placeholder");
+  return {
+    id: String(row.id),
+    chainId: number(row.chainId),
+    workUID: String(row.workUID) as CommitmentWorkAttributionRecord["workUID"],
+    commitmentId: integer(row.commitmentId),
+    linkSeen: true,
+    contributor: address(row.contributor)!,
+    requirementIndex: number(row.requirementIndex),
+    operationKey: string(row.operationKey) as CommitmentWorkAttributionRecord["operationKey"],
+    linked: row.linked === true,
+    creditActive: row.creditActive === true,
+    linkedBy: address(row.linkedBy),
+    linkedAt: optionalNumber(row.linkedAt),
+    unlinkedBy: address(row.unlinkedBy),
+    unlinkedAt: optionalNumber(row.unlinkedAt),
+    updatedAt: number(row.updatedAt),
+  };
+}
+
+/**
+ * The commitment a work fulfils, read from the work's side. The same entity
+ * the detail reads commitment → work, with the other column as the key.
+ */
+export async function getCommitmentWorkAttributionsByWork(
+  chainId: number,
+  workUID: string
+): Promise<CommitmentWorkAttributionRecord[]> {
+  const query = `query CommitmentWorkAttributionsByWork($chainId: Int!, $workUID: String!) { CommitmentWorkAttribution(where: { chainId: { _eq: $chainId }, workUID: { _eq: $workUID }, linkSeen: { _eq: true } }, order_by: [{ updatedAt: desc }, { id: asc }]) { ${WORK_ATTRIBUTION_FIELDS} } }`;
+  return (
+    await queryRows(
+      query,
+      { chainId, workUID },
+      "CommitmentWorkAttribution",
+      "getCommitmentWorkAttributionsByWork"
+    )
+  )
+    .filter((row) => row.linkSeen === true)
+    .map(mapWorkAttribution);
 }
 
 export function mapClaim(row: RawRow): CommitmentClaimRequestRecord {

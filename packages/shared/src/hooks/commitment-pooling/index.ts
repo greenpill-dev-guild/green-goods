@@ -12,6 +12,7 @@ export {
   useCommitments,
   useCommitmentSeries,
   useCommitmentSeriesDetail,
+  useCommitmentWorkAttributionsForWork,
   useNeedCommitments,
   usePoolMemberHistory,
   usePoolParticipationSummary,

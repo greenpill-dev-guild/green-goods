@@ -5,6 +5,7 @@ import {
   isCommitmentReasonPinError,
   selectCommitmentSeat,
   StatusBadge,
+  useActions,
   useCommitment,
   useCommitmentJobs,
   useCommitmentMetadataFor,
@@ -12,6 +13,7 @@ import {
   useCommitmentQueueState,
   useOffline,
   usePrimaryAddress,
+  useWorks,
 } from "@green-goods/shared";
 import { RiGroupLine, RiRefreshLine, RiSearchLine, RiWifiOffLine } from "@remixicon/react";
 import { useMemo, useState } from "react";
@@ -25,6 +27,8 @@ import { CommitmentActionBar } from "./CommitmentActionBar";
 import { canJoinTeam, selectCommitmentAct } from "./commitmentActions";
 import { CommitmentPeople } from "./CommitmentPeople";
 import { CommitmentProgress } from "./CommitmentProgress";
+import { CommitmentWork } from "./CommitmentWork";
+import { LinkWorkDialog } from "./LinkWorkDialog";
 import { selectStatusBand } from "./statusBand";
 import { WithdrawDialog } from "./WithdrawDialog";
 
@@ -58,6 +62,9 @@ export function GardenCommitment() {
   const chainId = DEFAULT_CHAIN_ID;
 
   const [withdrawOpen, setWithdrawOpen] = useState(false);
+  const [linkOpen, setLinkOpen] = useState<
+    { workUID: string; requirementIndex: number } | true | null
+  >(null);
   const commitmentId = useMemo(() => {
     if (!commitmentIdParam) return null;
     try {
@@ -80,6 +87,10 @@ export function GardenCommitment() {
   const queue = useCommitmentQueueState(viewer as Address | null);
   const metadata = useCommitmentMetadataFor(detail?.commitment);
   const onlineMutation = useCommitmentMutation({ chainId });
+  // The garden's work, online and queued, and its actions: what the Work
+  // section reads and what the link picker chooses from.
+  const { works } = useWorks(gardenAddress ?? "", { offline: true });
+  const { data: actions = [] } = useActions(chainId);
 
   const seat = useMemo(() => {
     if (!detail) return null;
@@ -165,6 +176,44 @@ export function GardenCommitment() {
   const sendFailed = queue.failedCommitmentIds.has(queueKey);
   const act = selectCommitmentAct({ commitment, seat, hasPendingJob });
   const joinable = canJoinTeam({ commitment, seat });
+  // Linking work is a provider's or contributor's act on garden work that is
+  // still moving; it rides the bar's second row beside Add proof.
+  const canLinkWork =
+    commitment.commitmentType === "DOMAIN_IMPACT" &&
+    (seat === "provider" || seat === "contributor") &&
+    !commitment.contributorsFrozen &&
+    (commitment.derivedState === "ACCEPTED" ||
+      commitment.derivedState === "ACTIVE" ||
+      commitment.derivedState === "PARTIALLY_APPROVED" ||
+      commitment.derivedState === "EVIDENCE_SUBMITTED");
+  const linkableWorks = works.filter(
+    (work) =>
+      viewer &&
+      work.gardenerAddress.toLowerCase() === viewer.toLowerCase() &&
+      (work.status === "approved" || work.status === "pending") &&
+      !detail.workAttributions.some(
+        (entry) => entry.linked && entry.workUID.toLowerCase() === work.id.toLowerCase()
+      )
+  );
+  const linkWork = (workUID: string, requirementIndex: number) => {
+    // A fresh operation id per act: a link after an unlink is a new operation,
+    // and the queue derives the caller-scoped key from this id.
+    void jobs
+      .enqueue({
+        act: "workLink",
+        payload: {
+          clientOperationId: crypto.randomUUID(),
+          commitmentId: commitment.commitmentId,
+          workUID: workUID as `0x${string}`,
+          requirementIndex,
+          gardenAddress: gardenAddress as Address,
+        },
+      })
+      .then(() => setLinkOpen(null))
+      .catch(() => {
+        // useCommitmentJobs already surfaced it; the picker stays open.
+      });
+  };
   // The seat's act is real but the queue is unreadable, so it is held rather
   // than offered: a queue the phone cannot see may already hold this very act.
   // A terminal failure is the opposite case, and re-arms it on purpose: the
@@ -193,6 +242,11 @@ export function GardenCommitment() {
               isPending={jobs.isPending || onlineMutation.isPending}
               isOnline={isOnline}
               blockedReasonId={queueBlockedReasonId}
+              secondary={
+                canLinkWork && act.kind === "addProof"
+                  ? { labelId: "app.commitment.act.linkWork", onRun: () => setLinkOpen(true) }
+                  : null
+              }
               onRun={() => {
                 switch (act.kind) {
                   case "withdraw":
@@ -324,7 +378,34 @@ export function GardenCommitment() {
         </section>
 
         <CommitmentProgress chainId={chainId} commitment={commitment} requirements={requirements} />
+
+        <CommitmentWork
+          commitment={commitment}
+          requirements={requirements}
+          attributions={detail.workAttributions}
+          works={works}
+          actions={actions}
+          chainId={chainId}
+          viewer={viewer ?? null}
+          canLink={canLinkWork && !hasPendingJob && !queue.isUnavailable}
+          onOpenWork={(workUID) => navigate(`../../work/${workUID}`, { relative: "path" })}
+          onLink={(workUID, requirementIndex) => setLinkOpen({ workUID, requirementIndex })}
+        />
       </DetailShell>
+
+      <LinkWorkDialog
+        open={linkOpen !== null}
+        onOpenChange={(open) => {
+          if (!open) setLinkOpen(null);
+        }}
+        works={linkableWorks}
+        requirements={requirements}
+        actions={actions}
+        chainId={chainId}
+        preselected={linkOpen && linkOpen !== true ? linkOpen : null}
+        isPending={jobs.isPending}
+        onConfirm={linkWork}
+      />
 
       <WithdrawDialog
         open={withdrawOpen}

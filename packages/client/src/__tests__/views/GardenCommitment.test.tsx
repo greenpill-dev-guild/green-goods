@@ -21,6 +21,8 @@ const GARDEN = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" as const;
 const mockUseCommitment = vi.fn();
 const mockUseOffline = vi.fn();
 const mockUseQueueState = vi.fn();
+const mockUseWorks = vi.fn();
+const WORK = `0x${"ab".repeat(32)}` as const;
 const mockEnqueue = vi.fn();
 const mockMutate = vi.fn();
 let mockMutationError: unknown = null;
@@ -48,10 +50,27 @@ function commitment(overrides: Record<string, unknown> = {}) {
     leadProvider: VIEWER,
     counterparty: OTHER,
     direction: "OFFER",
+    commitmentType: "DOMAIN_IMPACT",
     confirmers: [],
     contributorCount: 1,
     contributorsFrozen: false,
     metadataCID: null,
+    ...overrides,
+  };
+}
+
+function work(overrides: Record<string, unknown> = {}) {
+  return {
+    id: WORK,
+    title: "Pruned the beds",
+    actionUID: 44,
+    gardenerAddress: VIEWER,
+    gardenAddress: GARDEN,
+    feedback: "",
+    metadata: "",
+    media: [],
+    createdAt: 1_700_000_000_000,
+    status: "approved",
     ...overrides,
   };
 }
@@ -70,10 +89,17 @@ function queueState(overrides: Record<string, unknown> = {}) {
 
 function detail(overrides: Record<string, unknown> = {}) {
   return {
+    // Every collection the real reader returns, so a view that reads one the
+    // fixture forgot fails here rather than in a garden.
     detail: {
       commitment: commitment(overrides.commitment as Record<string, unknown>),
       contributors: (overrides.contributors as unknown[]) ?? [],
       requirements: (overrides.requirements as unknown[]) ?? [],
+      assignments: [],
+      workAttributions: (overrides.workAttributions as unknown[]) ?? [],
+      evidenceAttributions: [],
+      claimRequests: [],
+      counterpartCommitments: [],
     },
     availability: AVAILABLE,
     isLoading: false,
@@ -102,7 +128,13 @@ vi.mock("@green-goods/shared", async () => {
     }),
     useCommitmentQueueState: () => mockUseQueueState(),
     useCommitmentMetadataFor: () => null,
-    useActions: () => ({ data: [{ id: "42161-44", title: "Prune the north beds" }] }),
+    useActions: () => ({
+      data: [
+        { id: "42161-44", title: "Prune the north beds" },
+        { id: "42161-45", title: "Plant the starts" },
+      ],
+    }),
+    useWorks: () => mockUseWorks(),
     useOffline: () => mockUseOffline(),
   };
 });
@@ -115,6 +147,7 @@ const render = () =>
       <Routes>
         <Route path="/home/:id/commitments/:commitmentId" element={<GardenCommitment />} />
         <Route path="/home/:id/commitments/:commitmentId/proof" element={<p>Proof composer</p>} />
+        <Route path="/home/:id/work/:workId" element={<p>Work detail</p>} />
       </Routes>
     </MemoryRouter>
   );
@@ -126,6 +159,7 @@ describe("GardenCommitment", () => {
     mockUseOffline.mockReturnValue({ isOnline: true });
     mockUseQueueState.mockReturnValue(queueState());
     mockUseCommitment.mockReturnValue(detail());
+    mockUseWorks.mockReturnValue({ works: [] });
   });
 
   it("offers the provider their own act and speaks to them", () => {
@@ -338,6 +372,111 @@ describe("GardenCommitment", () => {
     expect(screen.getByLabelText("Reason (required)")).toHaveValue("Plans changed");
     expect(screen.getByText(/could not be saved/i)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Try again" })).toBeInTheDocument();
+  });
+
+  it("offers Link work beside Add proof on garden work, and never on a service", () => {
+    render();
+    expect(screen.getByRole("button", { name: "Link work" })).toBeInTheDocument();
+
+    mockUseCommitment.mockReturnValue(
+      detail({ commitment: { commitmentType: "SUPPORT_SERVICE" } })
+    );
+    render();
+    expect(screen.getAllByRole("button", { name: "Link work" })).toHaveLength(1);
+  });
+
+  it("links one of the member's own works at the exact row, and queues it", async () => {
+    const user = userEvent.setup();
+    mockUseWorks.mockReturnValue({ works: [work()] });
+    mockUseCommitment.mockReturnValue(
+      detail({
+        requirements: [
+          { id: "r0", requirementIndex: 0, actionUID: 44n, requiredCount: 2, approvedCount: 0 },
+          { id: "r1", requirementIndex: 1, actionUID: 45n, requiredCount: 1, approvedCount: 0 },
+        ],
+      })
+    );
+    render();
+
+    await user.click(screen.getByRole("button", { name: "Link work" }));
+    expect(screen.getByText("Link work to this commitment")).toBeInTheDocument();
+    // Two rows, so the row is a choice; repeated actions never fall back to first-match.
+    expect(screen.getByRole("button", { name: "Link this work" })).toBeDisabled();
+    await user.click(screen.getByRole("radio", { name: /Prune the north beds/ }));
+    await user.selectOptions(screen.getByLabelText("Which row it fulfils"), "1");
+    await user.click(screen.getByRole("button", { name: "Link this work" }));
+
+    expect(mockEnqueue).toHaveBeenCalledWith({
+      act: "workLink",
+      payload: {
+        clientOperationId: expect.any(String),
+        commitmentId: 9n,
+        workUID: WORK,
+        requirementIndex: 1,
+        gardenAddress: GARDEN,
+      },
+    });
+  });
+
+  it("points at approved work of the member's own that nothing has linked yet", async () => {
+    const user = userEvent.setup();
+    mockUseWorks.mockReturnValue({ works: [work()] });
+    mockUseCommitment.mockReturnValue(
+      detail({
+        requirements: [
+          { id: "r0", requirementIndex: 0, actionUID: 44n, requiredCount: 2, approvedCount: 0 },
+        ],
+      })
+    );
+    render();
+
+    expect(screen.getByText(/not yet linked/i)).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Link it" }));
+    // The row came preselected from the standing row, with its single requirement bound.
+    await user.click(screen.getByRole("button", { name: "Link this work" }));
+
+    expect(mockEnqueue).toHaveBeenCalledWith(
+      expect.objectContaining({
+        act: "workLink",
+        payload: expect.objectContaining({ workUID: WORK, requirementIndex: 0 }),
+      })
+    );
+  });
+
+  it("shows linked work by what it did, and opens it", async () => {
+    const user = userEvent.setup();
+    mockUseWorks.mockReturnValue({ works: [work()] });
+    mockUseCommitment.mockReturnValue(
+      detail({
+        requirements: [
+          { id: "r0", requirementIndex: 0, actionUID: 44n, requiredCount: 2, approvedCount: 1 },
+        ],
+        workAttributions: [
+          {
+            id: `42161-9-${WORK}`,
+            chainId: 42161,
+            workUID: WORK,
+            commitmentId: 9n,
+            linkSeen: true,
+            contributor: VIEWER,
+            requirementIndex: 0,
+            operationKey: null,
+            linked: true,
+            creditActive: true,
+            linkedBy: VIEWER,
+            linkedAt: 1_700_000_000,
+            unlinkedBy: null,
+            unlinkedAt: null,
+            updatedAt: 1_700_000_000,
+          },
+        ],
+      })
+    );
+    render();
+
+    expect(screen.queryByText(/not yet linked/i)).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Open Prune the north beds" }));
+    expect(screen.getByText("Work detail")).toBeInTheDocument();
   });
 
   it("says the surface is not ready rather than showing an empty commitment", () => {

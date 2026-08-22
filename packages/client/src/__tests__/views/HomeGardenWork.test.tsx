@@ -11,6 +11,8 @@ const mockUseUser = vi.fn();
 const mockCanManageGarden = vi.fn();
 const mockIsUserAddress = vi.fn();
 const mockUseWorkApprovalActions = vi.fn();
+const mockUseAttributions = vi.fn();
+const mockUseCommitment = vi.fn();
 const mockWorkViewSectionProps: { current: Record<string, unknown> | null } = { current: null };
 
 vi.mock("@green-goods/shared", () => ({
@@ -29,7 +31,7 @@ vi.mock("@green-goods/shared", () => ({
   downloadWorkMedia: vi.fn(),
   getJsonByHash: vi.fn(),
   isUserAddress: (...args: unknown[]) => mockIsUserAddress(...args),
-  isValidAttestationId: vi.fn(() => false),
+  isValidAttestationId: (id: string) => /^0x[0-9a-f]{64}$/i.test(id),
   jobQueue: { processJob: vi.fn() },
   openEASExplorer: vi.fn(),
   queryKeys: {
@@ -46,6 +48,9 @@ vi.mock("@green-goods/shared", () => ({
   },
   useActions: () => ({ data: [] }),
   useAsyncEffect: vi.fn(),
+  useCommitment: (...args: unknown[]) => mockUseCommitment(...args),
+  useCommitmentMetadataFor: () => ({ version: 1, title: "Prune the north beds" }),
+  useCommitmentWorkAttributionsForWork: (...args: unknown[]) => mockUseAttributions(...args),
   useGardenPermissions: () => ({
     canManageGarden: mockCanManageGarden,
   }),
@@ -104,6 +109,8 @@ describe("Home garden work detail", () => {
     mockWorkViewSectionProps.current = null;
     mockUseGardens.mockReturnValue({ data: [], isLoading: false });
     mockUseWorks.mockReturnValue({ works: [] });
+    mockUseAttributions.mockReturnValue({ attributions: [] });
+    mockUseCommitment.mockReturnValue({ detail: null });
     mockUseUser.mockReturnValue({ user: null, smartAccountClient: null });
     mockCanManageGarden.mockReturnValue(false);
     mockIsUserAddress.mockReturnValue(false);
@@ -256,5 +263,65 @@ describe("Home garden work detail", () => {
     expect(mockUseWorkApprovalActions).toHaveBeenCalledWith(
       expect.objectContaining({ viewingMode: "operator" })
     );
+  });
+
+  it("names the commitment a work fulfils, read-only, with a way to it", () => {
+    mockUseWorks.mockReturnValue({
+      works: [
+        {
+          id: "0x" + "ab".repeat(32),
+          actionUID: "1",
+          gardenerAddress: "0x2222222222222222222222222222222222222222",
+          status: "approved",
+          createdAt: Date.now(),
+          media: [],
+        },
+      ],
+    });
+    mockUseAttributions.mockReturnValue({
+      attributions: [{ commitmentId: 9n, requirementIndex: 1, linked: true }],
+    });
+    mockUseCommitment.mockReturnValue({
+      detail: { commitment: { commitmentId: 9n, unitLabel: "hours", targetUnits: 6n } },
+    });
+
+    render(
+      createElement(
+        MemoryRouter,
+        { initialEntries: ["/home/garden-1/work/" + "0x" + "ab".repeat(32)] },
+        createElement(
+          IntlProvider,
+          {
+            locale: "en",
+            messages: {
+              "app.work.fulfills.label": "Fulfills",
+              "app.work.fulfills.value": "{name} · row {row}",
+            },
+          },
+          createElement(
+            Routes,
+            null,
+            createElement(Route, {
+              path: "/home/:id/work/:workId",
+              element: createElement(GardenWork),
+            })
+          )
+        )
+      )
+    );
+
+    // The attribution is read only for a work that is on chain.
+    expect(mockUseAttributions).toHaveBeenCalledWith(
+      expect.objectContaining({ workUID: "0x" + "ab".repeat(32) })
+    );
+    const fulfills = mockWorkViewSectionProps.current?.fulfills as {
+      label: string;
+      value: string;
+      onOpen: () => void;
+    };
+    expect(fulfills.label).toBe("Fulfills");
+    expect(fulfills.value).toBe("Prune the north beds · row 2");
+    fulfills.onOpen();
+    expect(mockNavigate).toHaveBeenCalledWith("/home/garden-1/commitments/9");
   });
 });

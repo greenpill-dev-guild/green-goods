@@ -13,6 +13,12 @@ export interface CommitmentActionBarProps {
    */
   blockedReasonId?: string | null;
   onRun: () => void;
+  /**
+   * A rarer act that belongs to the same seat, on its own row beneath the
+   * primary: every act lives in the bar, and two rows is not three buttons on
+   * one line.
+   */
+  secondary?: { labelId: string; onRun: () => void; disabled?: boolean } | null;
 }
 
 /**
@@ -30,6 +36,7 @@ export function CommitmentActionBar({
   isOnline,
   blockedReasonId = null,
   onRun,
+  secondary = null,
 }: CommitmentActionBarProps) {
   const { formatMessage } = useIntl();
   // Withdrawing is an immediate contract call rather than a queued job, so it
@@ -61,6 +68,17 @@ export function CommitmentActionBar({
       >
         {formatMessage({ id: act.labelId })}
       </button>
+      {secondary ? (
+        <button
+          type="button"
+          onClick={secondary.onRun}
+          disabled={blocked || secondary.disabled}
+          data-component="CommitmentActionBarSecondary"
+          className="mt-2 w-full rounded-[var(--radius-lg)] border border-stroke-soft-200 bg-bg-white-0 px-4 py-3 text-sm font-medium text-text-strong-950 tap-target-lg disabled:opacity-60"
+        >
+          {formatMessage({ id: secondary.labelId })}
+        </button>
+      ) : null}
     </div>
   );
 }
