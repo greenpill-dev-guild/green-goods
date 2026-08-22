@@ -23,18 +23,16 @@ describe("commitment metadata", () => {
     expect(() => buildCommitmentMetadata({ title: "   " })).toThrow();
   });
 
-  it("omits an absent description rather than writing an empty one", () => {
+  it("omits an absent note rather than writing an empty one", () => {
     expect(buildCommitmentMetadata({ title: "Rides" })).toEqual({
       version: COMMITMENT_METADATA_VERSION,
       title: "Rides",
     });
-    expect(buildCommitmentMetadata({ title: "Rides", description: "  " })).not.toHaveProperty(
-      "description"
-    );
+    expect(buildCommitmentMetadata({ title: "Rides", note: "  " })).not.toHaveProperty("note");
   });
 
   it("reads back what it wrote", () => {
-    const written = buildCommitmentMetadata({ title: "Rides", description: "To the market" });
+    const written = buildCommitmentMetadata({ title: "Rides", note: "To the market" });
     expect(parseCommitmentMetadata(written)).toEqual(written);
   });
 
@@ -67,13 +65,12 @@ describe("composer metadata handoff", () => {
       values: {
         ...COMMITMENT_COMPOSER_DEFAULTS,
         title: "Compost workshop",
-        description: "Two hours on Saturday",
+        note: "Two hours on Saturday",
         unitLabel: "hours",
         targetUnits: 2,
       },
       clientCommitmentId: "draft-1",
       poolId: 7n,
-      cycleId: 0n,
       creator: "0x1111111111111111111111111111111111111111" as Address,
       gardenAddress: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" as Address,
       nowSeconds: 1_700_000_000,
@@ -85,11 +82,47 @@ describe("composer metadata handoff", () => {
     expect(built.metadata).toEqual({
       version: COMMITMENT_METADATA_VERSION,
       title: "Compost workshop",
-      description: "Two hours on Saturday",
+      note: "Two hours on Saturday",
     });
   });
 
   it("stays a pure function, so the same draft always hashes the same", () => {
     expect(payload()).toEqual(payload());
+  });
+});
+
+describe("commitment metadata v1 note and links", () => {
+  it("writes the note and links under the schema's names", () => {
+    expect(
+      buildCommitmentMetadata({
+        title: "Prune",
+        note: "  Bring  gloves ",
+        links: [{ url: "https://example.org/plan", label: "Plan" }],
+      })
+    ).toEqual({
+      version: 1,
+      title: "Prune",
+      note: "Bring gloves",
+      links: [{ url: "https://example.org/plan", label: "Plan" }],
+    });
+  });
+
+  it("reads a note, and still reads the older description field as the note", () => {
+    expect(
+      parseCommitmentMetadata({ version: 1, title: "Prune", note: "Bring gloves" })?.note
+    ).toBe("Bring gloves");
+    expect(
+      parseCommitmentMetadata({ version: 1, title: "Prune", description: "Bring gloves" })?.note
+    ).toBe("Bring gloves");
+  });
+
+  it("drops links that are not web addresses rather than failing the whole document", () => {
+    expect(
+      parseCommitmentMetadata({
+        version: 1,
+        title: "Prune",
+        links: [{ url: "https://example.org/a" }, { url: "javascript:alert(1)" }, { url: 5 }],
+      })?.links
+    ).toEqual([{ url: "https://example.org/a" }]);
   });
 });

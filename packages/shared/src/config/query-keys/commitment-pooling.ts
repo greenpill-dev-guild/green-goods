@@ -50,6 +50,18 @@ export const commitmentPoolingKeys = {
    * title resolved on one chain is the same title on another.
    */
   metadata: (cid: string) => ["greengoods", "commitment-pooling", "metadata", cid] as const,
+  /** Chain-free for the same reason as `metadata`: a CID is a CID. */
+  reason: (cid: string | null) => ["greengoods", "commitment-pooling", "reason", cid] as const,
+  evidence: (cid: string) => ["greengoods", "commitment-pooling", "evidence", cid] as const,
+  cycleMetadata: (cid: string) =>
+    ["greengoods", "commitment-pooling", "cycle-metadata", cid] as const,
+  workAttributions: (chainId: number, workUID: string | null) =>
+    [...commitmentPoolingKeys.all(chainId), "work-attributions", workUID] as const,
+  linkedWorks: (chainId: number, workUIDs: readonly string[]) =>
+    [...commitmentPoolingKeys.all(chainId), "linked-works", workUIDs.join(",")] as const,
+  /** The device's own queue, read per account rather than per chain. */
+  queueState: (account: string | null | undefined) =>
+    ["greengoods", "commitment-pooling", "queue", account?.toLowerCase() ?? null] as const,
   requirements: (chainId: number, commitmentId: bigint | string | number) =>
     [...commitmentPoolingKeys.all(chainId), "requirements", String(commitmentId)] as const,
   contributors: (chainId: number, commitmentId: bigint | string | number) =>

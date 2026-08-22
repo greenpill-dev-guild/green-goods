@@ -7,6 +7,7 @@ import {
 import type {
   CommitmentCreationPayload,
   CommitmentJob,
+  EvidenceJobPayload,
   CommitmentJobExecutionDependencies,
   CommitmentJobExecutionResult,
   CommitmentJobKind,
@@ -81,7 +82,30 @@ export async function executeCommitmentJob<K extends CommitmentJobKind>(
     }
   }
 
-  if (dependencies.hasMembership) {
+  if (job.kind === "evidence") {
+    const payload = job.payload as EvidenceJobPayload;
+    if (!payload.cid) {
+      // The document has not been published; attaching nothing is not an option
+      // and attaching the wrong thing is worse. The queue's publish step fills
+      // the CID in before this runs, so reaching here means it has not yet.
+      return { status: "waiting", reason: "evidence-unpublished" };
+    }
+    // A send that broadcast and then threw leaves the proof on chain and the
+    // job unsynced; re-sending reverts EvidenceAlreadyAttached and, after
+    // enough tries, records a failure for something that landed. The chain
+    // is asked first, the way creations and work links are.
+    if (dependencies.readEvidenceAttached) {
+      if (await dependencies.readEvidenceAttached(payload.commitmentId, payload.cid)) {
+        return { status: "recovered" };
+      }
+    }
+  }
+
+  // A named confirmer is authorized by the list on the commitment, not by any
+  // hat, so a membership wait would hold an act the chain already accepts.
+  const byIdentity =
+    "membershipNotRequired" in job.payload && job.payload.membershipNotRequired === true;
+  if (dependencies.hasMembership && !byIdentity) {
     const garden = "gardenAddress" in job.payload ? job.payload.gardenAddress : undefined;
     if (garden && (await dependencies.hasMembership(garden, job.userAddress)) !== true) {
       return { status: "waiting", reason: "membership-unavailable" };

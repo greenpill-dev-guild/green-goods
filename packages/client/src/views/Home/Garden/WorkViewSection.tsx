@@ -37,6 +37,8 @@ type WorkViewSectionProps = {
   onDownloadMedia?: () => void;
   onShare: () => void;
   onViewAttestation?: () => void;
+  /** The commitment this work fulfils, read-only, with a way to it. */
+  fulfills?: React.ReactNode;
   footer?: React.ReactNode;
   reserveFooterSpace?: boolean;
   footerSpacerClassName?: string;
@@ -179,6 +181,7 @@ export const WorkViewSection: React.FC<WorkViewSectionProps> = ({
   onDownloadMedia,
   onShare,
   onViewAttestation,
+  fulfills = null,
   footer,
   reserveFooterSpace,
   footerSpacerClassName,
@@ -418,6 +421,7 @@ export const WorkViewSection: React.FC<WorkViewSectionProps> = ({
       media={media}
       audioNoteCids={audioNoteCids}
       details={allDetails}
+      fulfills={fulfills}
       isDetailsLoading={isDetailsLoading}
       headerIcon={RiCheckDoubleFill}
       primaryActions={primaryActions}

@@ -8,6 +8,7 @@
 
 import { describe, expect, it } from "vitest";
 
+import { canLinkWork } from "@green-goods/shared";
 import {
   canJoinTeam,
   selectCommitmentAct,
@@ -19,6 +20,7 @@ const base = {
   claimMode: "OPEN" as const,
   contributorPolicy: "OPEN" as const,
   contributorsFrozen: false,
+  contributorCount: 1,
 };
 
 describe("selectCommitmentAct", () => {
@@ -125,22 +127,101 @@ describe("selectCommitmentAct", () => {
   });
 });
 
+describe("garden work with evidence submitted", () => {
+  it("keeps adding proof rather than offering a send the chain refuses", () => {
+    // submitForConfirmation reverts WorkApprovalRequired for every
+    // DomainImpact commitment; the approvals move it on their own.
+    const gardenWork = {
+      ...base,
+      derivedState: "EVIDENCE_SUBMITTED" as const,
+      commitmentType: "DOMAIN_IMPACT" as const,
+    };
+    expect(selectCommitmentAct({ commitment: gardenWork, seat: "provider" })?.kind).toBe(
+      "addProof"
+    );
+    expect(selectCommitmentAct({ commitment: gardenWork, seat: "contributor" })?.kind).toBe(
+      "addProof"
+    );
+    const service = { ...gardenWork, commitmentType: "SUPPORT_SERVICE" as const };
+    expect(selectCommitmentAct({ commitment: service, seat: "provider" })?.kind).toBe(
+      "sendForConfirmation"
+    );
+  });
+});
+
 describe("canJoinTeam", () => {
   it("invites only an unrelated reader, and only while the team is open", () => {
-    expect(canJoinTeam({ commitment: base, seat: "bystander" })).toBe(true);
-    expect(canJoinTeam({ commitment: base, seat: "provider" })).toBe(false);
+    expect(canJoinTeam({ commitment: base, seat: "bystander", isGardenMember: true })).toBe(true);
+    expect(canJoinTeam({ commitment: base, seat: "provider", isGardenMember: true })).toBe(false);
     expect(
-      canJoinTeam({ commitment: { ...base, contributorsFrozen: true }, seat: "bystander" })
+      canJoinTeam({
+        commitment: { ...base, contributorsFrozen: true },
+        seat: "bystander",
+        isGardenMember: true,
+      })
     ).toBe(false);
     expect(
-      canJoinTeam({ commitment: { ...base, contributorPolicy: "LEAD_MANAGED" }, seat: "bystander" })
+      canJoinTeam({
+        commitment: { ...base, contributorPolicy: "LEAD_MANAGED" },
+        seat: "bystander",
+        isGardenMember: true,
+      })
     ).toBe(false);
   });
 
   it("does not invite anyone onto a commitment that has already ended", () => {
     expect(
-      canJoinTeam({ commitment: { ...base, derivedState: "FULFILLED" }, seat: "bystander" })
+      canJoinTeam({
+        commitment: { ...base, derivedState: "FULFILLED" },
+        seat: "bystander",
+        isGardenMember: true,
+      })
     ).toBe(false);
+  });
+
+  it("does not invite anyone onto a full roster", () => {
+    // The contract caps every roster at forty (TooManyContributors).
+    expect(
+      canJoinTeam({
+        commitment: { ...base, contributorCount: 40 },
+        seat: "bystander",
+        isGardenMember: true,
+      })
+    ).toBe(false);
+  });
+
+  it("does not invite someone with no role in the garden doing the work", () => {
+    // An open team is open to the garden's people. The contract refuses a
+    // contributor from outside it, so the button never appears for them.
+    expect(canJoinTeam({ commitment: base, seat: "bystander", isGardenMember: false })).toBe(false);
+  });
+});
+
+describe("canLinkWork", () => {
+  const gardenWork = {
+    ...base,
+    commitmentType: "DOMAIN_IMPACT" as const,
+  };
+
+  it("lets the team link work while garden work is still moving", () => {
+    expect(canLinkWork({ commitment: gardenWork, seat: "provider", linkedCount: 0 })).toBe(true);
+    expect(canLinkWork({ commitment: gardenWork, seat: "contributor", linkedCount: 39 })).toBe(
+      true
+    );
+    expect(canLinkWork({ commitment: gardenWork, seat: "confirmer", linkedCount: 0 })).toBe(false);
+    expect(
+      canLinkWork({
+        commitment: { ...gardenWork, commitmentType: "SUPPORT_SERVICE" },
+        seat: "provider",
+        linkedCount: 0,
+      })
+    ).toBe(false);
+  });
+
+  it("stops at the contract's ceiling, counting every active link", () => {
+    // ProofLib.linkWork rejects the forty-first (TooManyLinkedWorks), and
+    // pending or rejected submissions hold a slot as much as approved ones.
+    expect(canLinkWork({ commitment: gardenWork, seat: "provider", linkedCount: 40 })).toBe(false);
   });
 });
 

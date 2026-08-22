@@ -40,6 +40,7 @@ import { Button } from "@/components/Actions";
 import { WorkViewSkeleton } from "@/components/Features/Work";
 import { TopNav } from "@/components/Navigation";
 import { pwaDrawerStyles } from "@/styles/pwaDrawerStyles";
+import { WorkFulfills } from "./WorkFulfills";
 import { WorkViewSection } from "./WorkViewSection";
 
 export const GardenWork: React.FC = () => {
@@ -242,11 +243,9 @@ export const GardenWork: React.FC = () => {
     }
   };
 
+  const onChainWorkId = work?.id && isValidAttestationId(work.id) ? work.id : null;
   const handleViewAttestation = () => {
-    if (!work?.id || !isValidAttestationId(work.id)) {
-      return;
-    }
-    openEASExplorer(chainId, work.id);
+    if (onChainWorkId) openEASExplorer(chainId, onChainWorkId);
   };
 
   const handleBack = () => {
@@ -301,7 +300,7 @@ export const GardenWork: React.FC = () => {
       id: "app.home.work.unknownAction",
       defaultMessage: "Unknown Action",
     });
-  const canViewAttestation = Boolean(work?.id && isValidAttestationId(work.id));
+  const canViewAttestation = onChainWorkId !== null;
 
   // Retry footer for offline work
   const retryFooter =
@@ -630,6 +629,7 @@ export const GardenWork: React.FC = () => {
           onDownloadMedia={hasMedia ? handleDownloadMedia : undefined}
           onShare={handleShare}
           onViewAttestation={canViewAttestation ? handleViewAttestation : undefined}
+          fulfills={<WorkFulfills chainId={chainId} workUID={onChainWorkId} gardenId={gardenId} />}
           footer={retryFooter || approvalFooter || successFooter}
           reserveFooterSpace={Boolean(retryFooter || approvalFooter || successFooter)}
           footerSpacerClassName="h-[calc(112px+env(safe-area-inset-bottom))]"

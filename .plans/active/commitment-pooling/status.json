@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p1",
     "created_at": "2026-07-03",
-    "updated_at": "2026-08-21T14:30:00-07:00"
+    "updated_at": "2026-08-21T22:58:13.035Z"
   },
   "links": {
     "brief": "external-brief.md",
@@ -240,11 +240,11 @@
     },
     "ui": {
       "owner": "claude",
-      "status": "blocked",
+      "status": "in_progress",
       "ready_when_dependencies_met": true,
-      "manual_blocked": true,
-      "blocked_reason": "Manual product-UI gate: PRD-760 is closed and the state/API source contract is locally GREEN. Product implementation still waits for the editorial backend branch to merge, the hosted Envio schema deployment plus full reindex/live read-back, and scoped admin-foundation fixes. Settlement slices still wait for settlement.",
-      "branch": "feature/commitment-pooling-ui",
+      "manual_blocked": false,
+      "blocked_reason": "Narrowed client dispatch: Phase 0 + D1 + D2 of prompt-client-loop.md, built against fixtures and the local stack before hosted read-back; rendered live proof deferred to the hosted Envio deployment",
+      "branch": "feature/commitment-pooling-client-loop",
       "depends_on": ["state_api"],
       "handoff": "handoffs/claude-ui.md",
       "handoff_note": "The machine UI lane aggregates runtime client, admin, and editorial implementation only. Documentation polish starts after QA Pass 1, walkthrough videos finish after QA Pass 2, and September Community remains a separate follow-on.",
@@ -403,11 +403,11 @@
     "ui_client": {
       "machine_lane": "ui",
       "owner": "claude",
-      "status": "blocked",
+      "status": "in_progress",
       "ready_when_dependencies_met": true,
-      "manual_blocked": true,
-      "blocked_reason": "PRD-789 is approved and published. Product implementation waits for PRD-760 closure, amended state_api GREEN, authorized non-value broadcast, verified live indexer read-back, and scoped admin-foundation cleanup.",
-      "branch": "feature/commitment-pooling-client-ui",
+      "manual_blocked": false,
+      "blocked_reason": "Narrowed client dispatch: Phase 0 + D1 + D2 of prompt-client-loop.md, built against fixtures and the local stack before hosted read-back; rendered live proof deferred to the hosted Envio deployment",
+      "branch": "feature/commitment-pooling-client-loop",
       "depends_on": ["state_api"],
       "handoff": "handoffs/claude-ui-client.md",
       "linear": {
@@ -1208,6 +1208,14 @@
       "status": "blocked",
       "branch": "feature/celo-peer-wiring-authorization",
       "note": "Recorded the completed Celo Safe/Zodiac ceremony in the manifest and re-scoped the ceremony to paused-safe-owned after review established that peer wiring is tier 3 and requires Safe ownership first. release:verify is 53 pass, 0 fail. Next human boundary is the Arbitrum ownership transfer; the Celo transfer waits on raising the Celo protocol Safe above 1-of-4."
+    },
+    {
+      "timestamp": "2026-08-21T22:58:13.036Z",
+      "actor": "human",
+      "lane": "ui",
+      "status": "in_progress",
+      "branch": "feature/commitment-pooling-client-loop",
+      "note": "Narrowed client dispatch: Phase 0 + D1 + D2 of prompt-client-loop.md, built against fixtures and the local stack before hosted read-back; rendered live proof deferred to the hosted Envio deployment"
     }
   ]
 }

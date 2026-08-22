@@ -8,7 +8,7 @@ import { resolveWorkSubmissionTitle } from "../../utils/work/workTitles";
 import type { TransactionSender } from "../transactions/types";
 import { jobQueueDB } from "./db";
 import { readContract } from "@wagmi/core";
-import type { Hex } from "viem";
+import { type Hex, keccak256, toBytes } from "viem";
 import { getWagmiConfig } from "../../config/appkit";
 import {
   executeCommitmentJob,
@@ -18,6 +18,8 @@ import {
   type CommitmentJobPayloadMap,
   type CommitmentSeriesJobPayload,
 } from "../commitment-pooling/jobs";
+import { isDemoPoolingActive } from "../commitment-pooling/demo/demo-mode";
+import { publishPendingEvidence } from "./evidence-publisher";
 import type { Address } from "../../types/domain";
 import {
   CommitmentPoolingModuleABI,
@@ -332,8 +334,16 @@ export async function executeCommitmentQueueJob(
   chainId: number,
   sender: TransactionSender
 ): Promise<CommitmentQueueExecution> {
+  // Demo mode answers reads from fixtures, but the sender is real: dev mock
+  // auth reports `wallet`, so a connected wallet would sign a call built from
+  // fixture ids against the deployed module. The act waits instead, which is
+  // also the state the demo walk wants to show.
+  if (isDemoPoolingActive()) return { status: "waiting", reason: "demo-mode" };
   const moduleAddress = getNetworkContracts(chainId).commitmentPoolingModule;
-  const published = await publishPendingCommitmentMetadata(job);
+  const published =
+    job.kind === "evidence"
+      ? await publishPendingEvidence(jobId, job)
+      : await publishPendingCommitmentMetadata(job);
   if (!published.published) {
     // Not an identity conflict: nothing about this commitment disagrees with
     // the chain, a gateway was simply unreachable. Reporting it as one puts a
@@ -407,6 +417,14 @@ export async function executeCommitmentQueueJob(
       })) as { creationPayloadHash: Hex; poolId: bigint; creator: Address };
       return value;
     },
+    readEvidenceAttached: async (commitmentId, cid) =>
+      (await readContract(getWagmiConfig(), {
+        address: moduleAddress,
+        abi: CommitmentPoolingModuleABI,
+        functionName: "isEvidenceAttached",
+        args: [commitmentId, keccak256(toBytes(cid))],
+        chainId,
+      })) as boolean,
     readWorkLinkPayloadHash: async (caller, key) =>
       (await readContract(getWagmiConfig(), {
         address: moduleAddress,

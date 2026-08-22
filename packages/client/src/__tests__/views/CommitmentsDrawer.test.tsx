@@ -10,13 +10,24 @@
  */
 
 import userEvent from "@testing-library/user-event";
+import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { renderWithProviders as render, screen } from "../test-utils";
+import { renderWithProviders, screen } from "../test-utils";
+
+/** Rows navigate into a commitment, so the sheet needs a router around it. */
+const render = (ui: React.ReactElement) => renderWithProviders(<MemoryRouter>{ui}</MemoryRouter>);
+const mockNavigate = vi.fn();
+
+vi.mock("react-router-dom", async () => {
+  const actual = await vi.importActual<typeof import("react-router-dom")>("react-router-dom");
+  return { ...actual, useNavigate: () => mockNavigate };
+});
 
 const VIEWER = "0x1111111111111111111111111111111111111111" as const;
 const GARDEN = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" as const;
 
 const mockUseCommitmentsInbox = vi.fn();
+const mockUseCommitmentsToConfirm = vi.fn();
 const mockUseOffline = vi.fn();
 
 const AVAILABLE = { status: "available", capability: {} } as const;
@@ -67,6 +78,19 @@ function inbox(overrides: Record<string, unknown> = {}) {
   };
 }
 
+function toConfirm(overrides: Record<string, unknown> = {}) {
+  return {
+    groups: [],
+    count: 0,
+    isSteward: false,
+    availability: AVAILABLE,
+    isLoading: false,
+    isError: false,
+    refetch: vi.fn(),
+    ...overrides,
+  };
+}
+
 vi.mock("@green-goods/shared", async () => {
   const actual = await vi.importActual<typeof import("@green-goods/shared")>("@green-goods/shared");
   return {
@@ -77,6 +101,7 @@ vi.mock("@green-goods/shared", async () => {
     useCommitmentPools: () => ({ pools: [{ poolId: 7n, garden: GARDEN }] }),
     useCommitmentSeries: () => ({ series: [] }),
     useCommitmentsInbox: () => mockUseCommitmentsInbox(),
+    useCommitmentsToConfirm: () => mockUseCommitmentsToConfirm(),
     useOffline: () => mockUseOffline(),
   };
 });
@@ -88,6 +113,145 @@ describe("CommitmentsDrawer", () => {
     vi.clearAllMocks();
     mockUseOffline.mockReturnValue({ isOnline: true });
     mockUseCommitmentsInbox.mockReturnValue(inbox());
+    mockUseCommitmentsToConfirm.mockReturnValue(toConfirm());
+  });
+
+  describe("the To confirm tab", () => {
+    const gardenClaim = (overrides: Record<string, unknown> = {}) => ({
+      commitment: commitment({
+        creator: "0x2222222222222222222222222222222222222222",
+        leadProvider: "0x2222222222222222222222222222222222222222",
+        counterparty: GARDEN,
+        derivedState: "READY_FOR_CONFIRMATION",
+        onchainState: "READY_FOR_CONFIRMATION",
+        evidenceCount: 1,
+        ...overrides,
+      }),
+      seat: "confirmer" as const,
+      needsYou: true,
+    });
+
+    it("does not exist for a plain member", () => {
+      render(<CommitmentsDrawer isOpen onClose={vi.fn()} />);
+
+      expect(screen.queryByRole("tab", { name: /to confirm/i })).not.toBeInTheDocument();
+    });
+
+    it("shows a steward what their garden must confirm, grouped by garden, and opens it there", async () => {
+      const user = userEvent.setup();
+      const onClose = vi.fn();
+      mockUseCommitmentsToConfirm.mockReturnValue(
+        toConfirm({
+          isSteward: true,
+          count: 1,
+          groups: [
+            { garden: GARDEN, gardenName: "Rocinha Community Garden", rows: [gardenClaim()] },
+          ],
+        })
+      );
+
+      render(<CommitmentsDrawer isOpen onClose={onClose} />);
+      await user.click(screen.getByRole("tab", { name: /to confirm/i }));
+
+      expect(screen.getByText(/These reach you as a steward/)).toBeInTheDocument();
+      expect(screen.getByText("Garden claim")).toBeInTheDocument();
+      expect(screen.getByText(/Nobody can confirm their own work/)).toBeInTheDocument();
+      await user.click(screen.getByRole("button", { name: /3 hours/ }));
+      expect(mockNavigate).toHaveBeenCalledWith(`/home/${GARDEN}/commitments/9`);
+      expect(onClose).toHaveBeenCalledTimes(1);
+    });
+
+    it("marks a commitment a steward recorded for someone as recorded", async () => {
+      const user = userEvent.setup();
+      const row = gardenClaim({ recordedBy: "0x3333333333333333333333333333333333333333" });
+      mockUseCommitmentsToConfirm.mockReturnValue(
+        toConfirm({
+          isSteward: true,
+          count: 1,
+          groups: [{ garden: GARDEN, gardenName: "Rocinha Community Garden", rows: [row] }],
+        })
+      );
+
+      render(<CommitmentsDrawer isOpen onClose={vi.fn()} />);
+      await user.click(screen.getByRole("tab", { name: /to confirm/i }));
+
+      expect(screen.getByText("Recorded")).toBeInTheDocument();
+    });
+
+    it("says nothing is waiting for the garden, not that the reader has nothing", async () => {
+      const user = userEvent.setup();
+      mockUseCommitmentsToConfirm.mockReturnValue(toConfirm({ isSteward: true }));
+
+      render(<CommitmentsDrawer isOpen onClose={vi.fn()} />);
+      await user.click(screen.getByRole("tab", { name: /to confirm/i }));
+
+      expect(screen.getByText("Nothing waiting for the garden")).toBeInTheDocument();
+    });
+
+    it("offers a retry when the garden's queue could not be read", async () => {
+      const user = userEvent.setup();
+      const refetch = vi.fn();
+      mockUseCommitmentsToConfirm.mockReturnValue(
+        toConfirm({ isSteward: true, isError: true, refetch })
+      );
+
+      render(<CommitmentsDrawer isOpen onClose={vi.fn()} />);
+      await user.click(screen.getByRole("tab", { name: /to confirm/i }));
+
+      expect(screen.getByText(/Could not load the garden's queue/)).toBeInTheDocument();
+      await user.click(screen.getByRole("button", { name: /try again/i }));
+      expect(refetch).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  it("opens a row's commitment in its garden and closes the sheet behind it", async () => {
+    const user = userEvent.setup();
+    const onClose = vi.fn();
+    mockUseCommitmentsInbox.mockReturnValue(
+      inbox({ live: [{ commitment: commitment(), seat: "provider", needsYou: false }] })
+    );
+
+    render(<CommitmentsDrawer isOpen onClose={onClose} />);
+    await user.click(screen.getByRole("button", { name: /3 hours/ }));
+
+    expect(mockNavigate).toHaveBeenCalledWith(`/home/${GARDEN}/commitments/9`);
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it("opens settled commitments from the Over time tab the same way", async () => {
+    const user = userEvent.setup();
+    const onClose = vi.fn();
+    mockUseCommitmentsInbox.mockReturnValue(
+      inbox({
+        settled: [
+          {
+            commitment: commitment({ derivedState: "FULFILLED", onchainState: "FULFILLED" }),
+            seat: "provider",
+            needsYou: false,
+          },
+        ],
+      })
+    );
+
+    render(<CommitmentsDrawer isOpen onClose={onClose} />);
+    await user.click(screen.getByRole("tab", { name: /over time/i }));
+    await user.click(screen.getByRole("button", { name: /3 hours/ }));
+
+    expect(mockNavigate).toHaveBeenCalledWith(`/home/${GARDEN}/commitments/9`);
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it("leaves a row whose garden it cannot place as a record rather than a dead button", () => {
+    mockUseCommitmentsInbox.mockReturnValue(
+      inbox({
+        live: [{ commitment: commitment({ poolId: 99n }), seat: "provider", needsYou: false }],
+      })
+    );
+
+    render(<CommitmentsDrawer isOpen onClose={() => {}} />);
+
+    expect(screen.getByText("3 hours")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /3 hours/ })).not.toBeInTheDocument();
   });
 
   it("says the surface is not ready rather than claiming the garden is empty", () => {

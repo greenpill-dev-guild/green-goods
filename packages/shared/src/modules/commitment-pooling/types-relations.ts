@@ -25,12 +25,36 @@ export interface CommitmentCycleDetail {
   seriesSummaries: CommitmentSeriesCycleSummaryRecord[];
 }
 
+/**
+ * One work submission attributed to one commitment, at one requirement row.
+ * Read from either side: a commitment lists the work that fulfils it, and a
+ * work names the commitment it fulfils. `linked` is the live state; an
+ * unlinked record stays, because the history is the point.
+ */
+export interface CommitmentWorkAttributionRecord {
+  id: string;
+  chainId: number;
+  workUID: HexString;
+  commitmentId: bigint;
+  linkSeen: true;
+  contributor: Address;
+  requirementIndex: number;
+  operationKey: HexString | null;
+  linked: boolean;
+  creditActive: boolean;
+  linkedBy: Address | null;
+  linkedAt: number | null;
+  unlinkedBy: Address | null;
+  unlinkedAt: number | null;
+  updatedAt: number;
+}
+
 export interface CommitmentDetail {
   commitment: CommitmentReadModel;
   requirements: CommitmentRequirementRecord[];
   contributors: CommitmentContributorRecord[];
   assignments: Array<Record<string, unknown>>;
-  workAttributions: Array<Record<string, unknown>>;
+  workAttributions: CommitmentWorkAttributionRecord[];
   evidenceAttributions: Array<Record<string, unknown>>;
   claimRequests: CommitmentClaimRequestRecord[];
   counterpartCommitments: CommitmentReadModel[];

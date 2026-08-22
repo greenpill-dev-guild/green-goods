@@ -118,6 +118,35 @@ describe("modules/job-queue", () => {
     }
   });
 
+  it("never sends a commitment act while demo pooling is on", async () => {
+    // Dev mock auth reports authMode "wallet", so the sender is a real
+    // WalletSender over wagmi even with no smart account. A fixture id must
+    // therefore never reach sendContractCall.
+    const { isDemoPoolingActive } = await import("../../modules/commitment-pooling/demo/demo-mode");
+    window.sessionStorage.setItem("greengoods_dev_mock_pooling", "1");
+    expect(isDemoPoolingActive()).toBe(true);
+
+    const jobId = await jobQueueDB.addJob({
+      kind: "confirmation",
+      payload: {
+        action: "confirm",
+        commitmentId: 1007n,
+        gardenAddress: "0x00000000000000000000000000000000000000aa",
+      },
+      meta: { chainId: 42161 },
+      chainId: 42161,
+      userAddress: TEST_USER_ADDRESS,
+    });
+
+    const mockSender = createMockSender();
+    const result = await jobQueue.processJob(jobId, { transactionSender: mockSender });
+
+    expect(mockSender.sendContractCall).not.toHaveBeenCalled();
+    expect(result.skipped).toBe(true);
+    expect(result.error).toBe("demo-mode");
+    window.sessionStorage.clear();
+  });
+
   it("processes a queued work job during flush when sender is available", async () => {
     const file = createMockFile("content", "work.jpg", "image/jpeg");
     const jobId = await jobQueue.addJob(

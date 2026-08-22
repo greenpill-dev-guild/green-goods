@@ -3,16 +3,19 @@ import {
   useCommitmentPools,
   useCommitmentSeries,
   useCommitmentsInbox,
+  useCommitmentsToConfirm,
   useGardens,
   usePrimaryAddress,
 } from "@green-goods/shared";
-import { RiArchiveLine, RiPulseLine } from "@remixicon/react";
-import React, { useState } from "react";
+import { RiArchiveLine, RiPulseLine, RiShieldCheckLine } from "@remixicon/react";
+import React, { useCallback, useState } from "react";
 import { useIntl } from "react-intl";
+import { useNavigate } from "react-router-dom";
 
 import { ModalDrawer, type ModalDrawerTab } from "@/components/Dialogs/ModalDrawer";
 import { LiveTab } from "./LiveTab";
 import { OverTimeTab } from "./OverTimeTab";
+import { ToConfirmTab } from "./ToConfirmTab";
 
 interface CommitmentsDrawerProps {
   isOpen: boolean;
@@ -28,6 +31,8 @@ interface CommitmentsDrawerProps {
  *
  * Tabs split by tense rather than by object, so the container word and the
  * object words are never the same: "Commitments" holds "Live" and "Over time".
+ * A steward gets a third, "To confirm", for what reaches them through their
+ * garden's Hat rather than through their own account.
  */
 export const CommitmentsDrawer: React.FC<CommitmentsDrawerProps> = ({ isOpen, onClose }) => {
   const { formatMessage } = useIntl();
@@ -36,9 +41,27 @@ export const CommitmentsDrawer: React.FC<CommitmentsDrawerProps> = ({ isOpen, on
   const viewer = usePrimaryAddress();
 
   const inbox = useCommitmentsInbox({ chainId, viewer: viewer ?? undefined });
+  const toConfirm = useCommitmentsToConfirm({ chainId, viewer: viewer ?? undefined });
   const { pools } = useCommitmentPools({ chainId });
   const { data: gardens = [] } = useGardens();
   const { series } = useCommitmentSeries({ chainId, holder: viewer ?? undefined });
+  const navigate = useNavigate();
+
+  // The sheet sits beside the garden outlet rather than above a route of its
+  // own, so opening a commitment has to put the sheet away first or it would
+  // stay drawn over the very screen it just opened.
+  const openCommitment = useCallback(
+    (gardenAddress: string, commitmentId: bigint) => {
+      onClose();
+      // The pool names its garden in lowercase; the route is happier with the
+      // garden's own id when the list has it.
+      const canonical =
+        gardens.find((garden) => garden.id.toLowerCase() === gardenAddress.toLowerCase())?.id ??
+        gardenAddress;
+      navigate(`/home/${canonical}/commitments/${commitmentId.toString()}`);
+    },
+    [onClose, navigate, gardens]
+  );
 
   const tabs: ModalDrawerTab[] = [
     {
@@ -53,7 +76,22 @@ export const CommitmentsDrawer: React.FC<CommitmentsDrawerProps> = ({ isOpen, on
       icon: <RiArchiveLine />,
       count: inbox.settledActCount,
     },
+    ...(toConfirm.isSteward
+      ? [
+          {
+            id: "to-confirm",
+            label: formatMessage({ id: "app.commitments.tab.toConfirm" }),
+            icon: <RiShieldCheckLine />,
+            count: toConfirm.count,
+          },
+        ]
+      : []),
   ];
+
+  // The drawer stays mounted, so a steward who loses the role (or switches
+  // account) while To confirm is selected would reopen it with a tab that no
+  // longer exists and no panel under it. Fall back to the tab that always does.
+  const selectedTab = tabs.some((tab) => tab.id === activeTab) ? activeTab : "live";
 
   return (
     <ModalDrawer
@@ -64,14 +102,25 @@ export const CommitmentsDrawer: React.FC<CommitmentsDrawerProps> = ({ isOpen, on
         description: formatMessage({ id: "app.commitments.subtitle" }),
       }}
       tabs={tabs}
-      activeTab={activeTab}
+      activeTab={selectedTab}
       onTabChange={setActiveTab}
       contentClassName="flex min-h-0 flex-col overflow-hidden p-0"
       maxHeight="95vh"
     >
-      {activeTab === "live" && <LiveTab inbox={inbox} pools={pools} gardens={gardens} />}
-      {activeTab === "over-time" && (
-        <OverTimeTab inbox={inbox} pools={pools} gardens={gardens} series={series} />
+      {selectedTab === "live" && (
+        <LiveTab inbox={inbox} pools={pools} gardens={gardens} onOpenCommitment={openCommitment} />
+      )}
+      {selectedTab === "over-time" && (
+        <OverTimeTab
+          inbox={inbox}
+          pools={pools}
+          gardens={gardens}
+          series={series}
+          onOpenCommitment={openCommitment}
+        />
+      )}
+      {selectedTab === "to-confirm" && toConfirm.isSteward && (
+        <ToConfirmTab toConfirm={toConfirm} onOpenCommitment={openCommitment} />
       )}
     </ModalDrawer>
   );

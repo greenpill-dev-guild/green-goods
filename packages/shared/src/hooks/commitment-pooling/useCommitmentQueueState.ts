@@ -18,12 +18,36 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useMemo } from "react";
 
+import { queryKeys } from "../../config/query-keys";
 import { useJobQueueEvents } from "../../modules/job-queue/event-bus";
 import { jobQueueDB } from "../../modules/job-queue/db";
+import { isDiscardableJob } from "../../modules/job-queue/job-recovery";
 import { isTerminallyFailedJob } from "../../modules/job-queue/queue-policy";
 import { COMMITMENT_JOB_KINDS } from "../../modules/commitment-pooling/jobs";
 import type { Job } from "../../types/job-queue";
 import type { Address } from "../../types/domain";
+
+/** A commitment composed on this phone that has not reached the chain yet. */
+export interface PendingCommitmentCreation {
+  jobId: string;
+  chainId: number;
+  poolId: string;
+  direction: "OFFER" | "REQUEST";
+  title: string | null;
+  unitLabel: string;
+  targetUnits: string;
+  /** Waiting for the member's garden hat; consumes no retries. */
+  waitingForMembership: boolean;
+  /** Gave up after its attempts; retry or discard are the member's call. */
+  failed: boolean;
+  /**
+   * Whether throwing it away is safe. A creation whose transaction was already
+   * broadcast keeps its record so a retry can recover the commitment instead
+   * of filing a second one.
+   */
+  discardable: boolean;
+  createdAt: number;
+}
 
 export interface CommitmentQueueState {
   /** Commitments with an act queued and still trying. Keyed by decimal id. */
@@ -32,8 +56,16 @@ export interface CommitmentQueueState {
   failedCount: number;
   /** Which commitments those failures belong to, so a surface can name them. */
   failedCommitmentIds: ReadonlySet<string>;
+  /**
+   * The failed job behind each of those, so the commitment's own screen can
+   * offer retry and discard rather than only an alert. A terminal record that
+   * nobody can reach drives the alert forever and keeps its media with it.
+   */
+  failedJobs: ReadonlyMap<string, { jobId: string; discardable: boolean }>;
   /** True while a new commitment is still waiting to be placed. */
   hasPendingCreate: boolean;
+  /** Every creation still on this phone, failed ones included, newest first. */
+  pendingCreates: PendingCommitmentCreation[];
   /**
    * The queue could not be read. Distinct from "nothing is queued": a surface
    * that treats a failed read as an empty queue re-enables an act already
@@ -57,10 +89,7 @@ function commitmentIdOf(job: Job): string | null {
  */
 export function useCommitmentQueueState(viewer?: Address | null): CommitmentQueueState {
   const queryClient = useQueryClient();
-  const queryKey = useMemo(
-    () => ["greengoods", "commitment-pooling", "queue", viewer?.toLowerCase() ?? null] as const,
-    [viewer]
-  );
+  const queryKey = useMemo(() => queryKeys.commitmentPooling.queueState(viewer), [viewer]);
 
   // One query per reader rather than one per mount. Home, the sheet and the
   // detail screen all ask, and react-query serves them from a single read
@@ -83,32 +112,69 @@ export function useCommitmentQueueState(viewer?: Address | null): CommitmentQueu
     void queryClient.invalidateQueries({ queryKey });
   }, [queryClient, queryKey]);
 
-  useJobQueueEvents(["job:added", "job:completed", "job:failed"], refresh, [refresh]);
+  // A flush that only moved a job to waiting (membership not yet granted, a
+  // gateway down) rewrites the record without a completed or failed event, and
+  // the query never goes stale on its own. The sync-completed event is the one
+  // signal every flush emits, so the stored state is re-read on it.
+  useJobQueueEvents(["job:added", "job:completed", "job:failed", "queue:sync-completed"], refresh, [
+    refresh,
+  ]);
 
   return useMemo(() => {
     const jobs: Job[] = query.data ?? [];
     const pendingCommitmentIds = new Set<string>();
     const failedCommitmentIds = new Set<string>();
+    const failedJobs = new Map<string, { jobId: string; discardable: boolean }>();
+    const pendingCreates: PendingCommitmentCreation[] = [];
     let failedCount = 0;
     let hasPendingCreate = false;
 
     for (const job of jobs) {
       if (job.synced) continue;
       const commitmentId = commitmentIdOf(job);
-      if (isTerminallyFailedJob(job)) {
+      const failed = isTerminallyFailedJob(job);
+      if (job.kind === "commitment") {
+        const payload = job.payload as {
+          poolId?: bigint | string;
+          direction?: number;
+          metadata?: { title?: string };
+          unitLabel?: string;
+          targetUnits?: bigint | string;
+        };
+        pendingCreates.push({
+          jobId: job.id,
+          chainId: job.chainId ?? 0,
+          poolId: String(payload.poolId ?? ""),
+          direction: payload.direction === 1 ? "REQUEST" : "OFFER",
+          title: payload.metadata?.title ?? null,
+          unitLabel: payload.unitLabel ?? "",
+          targetUnits: String(payload.targetUnits ?? ""),
+          waitingForMembership: !failed && job.meta?.waitingReason === "membership-unavailable",
+          failed,
+          discardable: isDiscardableJob(job),
+          createdAt: job.createdAt,
+        });
+      }
+      if (failed) {
         failedCount += 1;
-        if (commitmentId) failedCommitmentIds.add(commitmentId);
+        if (commitmentId) {
+          failedCommitmentIds.add(commitmentId);
+          failedJobs.set(commitmentId, { jobId: job.id, discardable: isDiscardableJob(job) });
+        }
         continue;
       }
       if (commitmentId) pendingCommitmentIds.add(commitmentId);
       else if (job.kind === "commitment") hasPendingCreate = true;
     }
+    pendingCreates.sort((left, right) => right.createdAt - left.createdAt);
 
     return {
       pendingCommitmentIds,
       failedCount,
       failedCommitmentIds,
+      failedJobs,
       hasPendingCreate,
+      pendingCreates,
       isUnavailable: Boolean(viewer) && query.isError,
       refresh,
     };

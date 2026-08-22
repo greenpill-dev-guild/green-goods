@@ -7,6 +7,22 @@ export interface GardenGroup {
 }
 
 /**
+ * The garden a row's commitment belongs to, by address, or null when its pool
+ * is not in view yet. A row with no garden has no route to open, so it stays
+ * a record: the name-less "Other" group may still hold openable rows, because
+ * knowing a garden's address and knowing its name are different things.
+ */
+export function gardenAddressFor(
+  row: InboxCommitment,
+  pools: readonly CommitmentPoolRecord[]
+): string | null {
+  const poolId = row.commitment.poolId;
+  if (poolId === null || poolId === undefined) return null;
+  const pool = pools.find((candidate) => candidate.poolId === poolId);
+  return pool?.garden ?? null;
+}
+
+/**
  * Group a member's commitments under the garden they belong to.
  *
  * A commitment names its pool, and a pool names its garden, so the two lookups

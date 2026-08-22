@@ -13,6 +13,7 @@ export type RawRow = Record<string, unknown>;
 
 export const POOL_FIELDS = /* GraphQL */ `
   id chainId poolId registrationSeen garden gardenId poolType state charterCID
+  pauseReasonCID pauseReasonBlockNumber
   openSeasonCycleId openSeasonCycleEntityId openCampaignIds openCampaignEntityIds
   providerOpenCommitmentCap liveCommitmentCount nonTerminalCycleCount
   commitmentsOffered commitmentsRequested commitmentsAccepted commitmentsReadyForConfirmation
@@ -133,6 +134,8 @@ export function mapPool(row: RawRow): CommitmentPoolRecord {
     poolType: row.poolType as CommitmentPoolRecord["poolType"],
     state: row.state as CommitmentPoolRecord["state"],
     charterCID: string(row.charterCID),
+    pauseReasonCID: string(row.pauseReasonCID),
+    pauseReasonBlockNumber: optionalInteger(row.pauseReasonBlockNumber),
     openSeasonCycleId: optionalInteger(row.openSeasonCycleId),
     openSeasonCycleEntityId: string(row.openSeasonCycleEntityId),
     openCampaignIds: integers(row.openCampaignIds),
@@ -224,11 +227,24 @@ export function mapCommitment(row: RawRow): CommitmentReadModel {
     considerationPaid: row.considerationPaid === true,
     counterparty: address(row.counterparty),
     recordedBy: address(row.recordedBy),
+    counterpartyKind: row.counterpartyKind as CommitmentReadModel["counterpartyKind"],
+    providerGarden: address(row.providerGarden),
     direction: row.direction as CommitmentReadModel["direction"],
     commitmentType: row.commitmentType as CommitmentReadModel["commitmentType"],
     claimMode: row.claimMode as CommitmentReadModel["claimMode"],
     contributorPolicy: row.contributorPolicy as CommitmentReadModel["contributorPolicy"],
     confirmers: strings(row.confirmers).map((entry) => entry.toLowerCase() as Address),
+    confirmationCount: number(row.confirmationCount),
+    confirmationThreshold: number(row.confirmationThreshold),
+    protocolFallbackEnabled: row.protocolFallbackEnabled === true,
+    fulfilledBy: address(row.fulfilledBy),
+    confirmationPath:
+      row.confirmationPath === "ORDINARY" ||
+      row.confirmationPath === "POOL_FALLBACK" ||
+      row.confirmationPath === "PROTOCOL_FALLBACK"
+        ? row.confirmationPath
+        : null,
+    fallbackReason: string(row.fallbackReason),
     contributorCount: number(row.contributorCount),
     contributorsFrozen: row.contributorsFrozen === true,
     metadataCID: string(row.metadataCID),

@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import type { ClaimJobPayload } from "../modules/commitment-pooling/jobs";
 
 import {
   type CommitmentCreationPayload,
@@ -240,14 +241,17 @@ describe("commitment job authority and recovery boundary", () => {
     );
   });
 
-  it("does not invent a membership requirement for an existing-commitment operation", async () => {
+  it("does not invent a membership requirement for a record queued before gardenAddress", async () => {
+    // Jobs persisted before 2026-08-21 carry no gardenAddress and still send
+    // the way they were queued (job-types.ts); the contract is their gate.
     const hasMembership = vi.fn().mockResolvedValue(false);
     const send = vi.fn().mockResolvedValue(`0x${"90".repeat(32)}`);
+    const legacy = { commitmentId: 9n, kind: 0, gardenContext: GARDEN } as ClaimJobPayload;
     const result = await executeCommitmentJob(
       {
         id: "claim-job",
         kind: "claim",
-        payload: { commitmentId: 9n, kind: 0, gardenContext: GARDEN },
+        payload: legacy,
         chainId: 42161,
         moduleAddress: MODULE,
         userAddress: HOLDER,
@@ -320,7 +324,7 @@ describe("commitment job identity and conflict boundaries", () => {
   });
 
   it("prepares only the three idempotent identity-bearing payloads", () => {
-    const claim = { commitmentId: 9n, kind: 0, gardenContext: GARDEN };
+    const claim = { commitmentId: 9n, kind: 0, gardenContext: GARDEN, gardenAddress: GARDEN };
     const prepared = prepareCommitmentJobPayload({
       kind: "claim",
       payload: claim,

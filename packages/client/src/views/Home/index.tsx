@@ -6,6 +6,7 @@ import {
   useArrivalState,
   useAuthState,
   useCommitmentsInbox,
+  useCommitmentsToConfirm,
   useBrowserNavigation,
   useFilteredGardens,
   useGardens,
@@ -76,10 +77,17 @@ const Home: React.FC = () => {
   const isWalletDrawerOpen = useUIStore((s) => s.isWalletDrawerOpen);
   const openWalletDrawer = useUIStore((s) => s.openWalletDrawer);
   const closeWalletDrawer = useUIStore((s) => s.closeWalletDrawer);
-  const { totalActCount: commitmentActCount } = useCommitmentsInbox({
+  const { totalActCount: inboxActCount } = useCommitmentsInbox({
     chainId: DEFAULT_CHAIN_ID,
     viewer: primaryAddress ?? undefined,
   });
+  // The header control counts every tab of the sheet, so a steward's garden
+  // confirmations raise the same number as their own acts.
+  const { count: toConfirmCount } = useCommitmentsToConfirm({
+    chainId: DEFAULT_CHAIN_ID,
+    viewer: primaryAddress ?? undefined,
+  });
+  const commitmentActCount = inboxActCount + toConfirmCount;
   const isCommitmentsDrawerOpen = useUIStore((s) => s.isCommitmentsDrawerOpen);
   const openCommitmentsDrawer = useUIStore((s) => s.openCommitmentsDrawer);
   const closeCommitmentsDrawer = useUIStore((s) => s.closeCommitmentsDrawer);

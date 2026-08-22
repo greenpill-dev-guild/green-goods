@@ -19,6 +19,7 @@ import { useQueries } from "@tanstack/react-query";
 import { useMemo } from "react";
 
 import { queryKeys } from "../../config/query-keys";
+import { demoDocumentFor } from "../../modules/commitment-pooling/demo/demo-gate";
 import { getJsonByHash } from "../../modules/data/ipfs/resolve";
 import {
   type CommitmentMetadataV1,
@@ -53,7 +54,8 @@ export function useCommitmentMetadata(
   const results = useQueries({
     queries: cids.map((cid) => ({
       queryKey: queryKeys.commitmentPooling.metadata(cid),
-      queryFn: async () => parseCommitmentMetadata(await getJsonByHash(cid)),
+      queryFn: async () =>
+        parseCommitmentMetadata((await demoDocumentFor(cid)) ?? (await getJsonByHash(cid))),
       staleTime: IMMUTABLE,
       gcTime: IMMUTABLE,
       // A caption is not worth hammering a gateway for.

@@ -15,6 +15,8 @@ import {
   getCommitments,
   getCommitmentSeries,
   getCommitmentSeriesDetail,
+  getCommitmentWorkAttributionsByWork,
+  getLinkedWorkUIDs,
   getNeedCommitments,
   getPoolMemberHistory,
 } from "../../modules/commitment-pooling/data";
@@ -45,12 +47,16 @@ export function useCommitmentPools(input: { chainId: number; garden?: Address })
   };
 }
 
-export function useCommitmentPool(input: { chainId: number; poolId: bigint }) {
+export function useCommitmentPool(
+  input: { chainId: number; poolId: bigint },
+  /** A caller that may not know the id yet gates here; the key stays the same. */
+  options: { enabled?: boolean } = {}
+) {
   const availability = useCommitmentPoolingAvailability(input);
   const query = useQuery({
     queryKey: queryKeys.commitmentPooling.pool(input.chainId, input.poolId),
     queryFn: () => getCommitmentPoolDetail(input.chainId, input.poolId),
-    enabled: availability.status === "available",
+    enabled: availability.status === "available" && options.enabled !== false,
     staleTime: STALE_TIME_MEDIUM,
   });
   return { ...query, pool: query.data?.pool ?? null, detail: query.data ?? null, availability };
@@ -111,12 +117,16 @@ export function useCommitments(
   return { ...query, commitments: query.data ?? [], availability };
 }
 
-export function useCommitment(input: { chainId: number; commitmentId: bigint }) {
+export function useCommitment(
+  input: { chainId: number; commitmentId: bigint },
+  /** A caller that may not know the id yet gates here; the key stays the same. */
+  options: { enabled?: boolean } = {}
+) {
   const availability = useCommitmentPoolingAvailability(input);
   const query = useQuery({
     queryKey: queryKeys.commitmentPooling.commitment(input.chainId, input.commitmentId),
     queryFn: () => getCommitmentDetail(input.chainId, input.commitmentId),
-    enabled: availability.status === "available",
+    enabled: availability.status === "available" && options.enabled !== false,
     staleTime: STALE_TIME_MEDIUM,
   });
   return {
@@ -125,6 +135,44 @@ export function useCommitment(input: { chainId: number; commitmentId: bigint }) 
     detail: query.data ?? null,
     availability,
   };
+}
+
+/**
+ * Which of the reader's works are already linked to some commitment. The
+ * picker leaves those out: the contract keeps one link per work and rejects a
+ * second with WorkAlreadyLinked.
+ */
+export function useLinkedWorkUIDs(input: { chainId: number; workUIDs: readonly string[] }) {
+  const availability = useCommitmentPoolingAvailability(input);
+  const key = [...input.workUIDs].map((uid) => uid.toLowerCase()).sort();
+  const query = useQuery({
+    queryKey: queryKeys.commitmentPooling.linkedWorks(input.chainId, key),
+    queryFn: () => getLinkedWorkUIDs(input.chainId, key),
+    enabled: availability.status === "available" && key.length > 0,
+    staleTime: STALE_TIME_MEDIUM,
+  });
+  return { ...query, linked: query.data ?? new Set<string>(), availability };
+}
+
+/**
+ * Which commitment a work fulfils, read from the work's side. Keyed under the
+ * chain's pooling prefix so the same invalidation that refreshes a commitment
+ * refreshes this; the key is declared here because the registry is not this
+ * lane's to extend.
+ */
+export function useCommitmentWorkAttributionsForWork(input: {
+  chainId: number;
+  workUID?: string | null;
+}) {
+  const availability = useCommitmentPoolingAvailability(input);
+  const workUID = input.workUID?.toLowerCase() ?? null;
+  const query = useQuery({
+    queryKey: queryKeys.commitmentPooling.workAttributions(input.chainId, workUID),
+    queryFn: () => getCommitmentWorkAttributionsByWork(input.chainId, workUID as string),
+    enabled: availability.status === "available" && Boolean(workUID),
+    staleTime: STALE_TIME_MEDIUM,
+  });
+  return { ...query, attributions: query.data ?? [], availability };
 }
 
 export function useCommitmentClaimRequests(input: {

@@ -28,6 +28,8 @@ type WorkViewProps = {
   /** IPFS CIDs for gardener audio notes (from work metadata) */
   audioNoteCids?: string[];
   details: Array<{ label: string; value: string; icon?: IconComponent | null }>;
+  /** The commitment this work fulfils, drawn after the details when there is one. */
+  fulfills?: React.ReactNode;
   /** When true, shows skeleton placeholders for details instead of the actual cards */
   isDetailsLoading?: boolean;
   headerIcon?: IconComponent | null;
@@ -57,6 +59,7 @@ export const WorkView: React.FC<WorkViewProps> = ({
   media = [],
   audioNoteCids,
   details,
+  fulfills = null,
   isDetailsLoading = false,
   headerIcon: HeaderIcon,
   primaryActions = [],
@@ -170,6 +173,8 @@ export const WorkView: React.FC<WorkViewProps> = ({
             />
           ))
       )}
+
+      {fulfills}
 
       {feedbackSection}
 

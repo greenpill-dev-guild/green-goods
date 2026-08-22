@@ -14,7 +14,7 @@ import { useIntl } from "react-intl";
 import { CommitmentRow, CommitmentStateLadder } from "@/components/Features/Commitments";
 import { pwaStatusStyles } from "@/styles/pwaStatusStyles";
 import { COMMITMENTS_DRAWER_SCROLL_CLASSNAME } from "./classnames";
-import { groupByGarden } from "./grouping";
+import { gardenAddressFor, groupByGarden } from "./grouping";
 
 type DirectionFilter = "all" | "OFFER" | "REQUEST";
 
@@ -28,6 +28,8 @@ export interface LiveTabProps {
   inbox: CommitmentsInbox;
   pools: CommitmentPoolRecord[];
   gardens: Garden[];
+  /** Where a row goes when tapped: the commitment, in its garden. */
+  onOpenCommitment: (gardenAddress: string, commitmentId: bigint) => void;
 }
 
 /**
@@ -38,7 +40,7 @@ export interface LiveTabProps {
  * chip: it leads the sort and drives the badge, so it can never be filtered
  * out of sight.
  */
-export function LiveTab({ inbox, pools, gardens }: LiveTabProps) {
+export function LiveTab({ inbox, pools, gardens, onOpenCommitment }: LiveTabProps) {
   const { formatMessage } = useIntl();
   const { isOnline } = useOffline();
   const { byCID } = useCommitmentMetadata(
@@ -51,8 +53,16 @@ export function LiveTab({ inbox, pools, gardens }: LiveTabProps) {
       direction === "all"
         ? inbox.live
         : inbox.live.filter((row) => row.commitment.direction === direction);
-    return { visible: filtered, groups: groupByGarden(filtered, pools, gardens) };
-  }, [inbox.live, direction, pools, gardens]);
+    return {
+      visible: filtered,
+      groups: groupByGarden(
+        filtered,
+        pools,
+        gardens,
+        formatMessage({ id: "app.commitments.group.other" })
+      ),
+    };
+  }, [inbox.live, direction, pools, gardens, formatMessage]);
 
   return (
     <CommitmentStateLadder
@@ -118,7 +128,7 @@ export function LiveTab({ inbox, pools, gardens }: LiveTabProps) {
               aria-pressed={selected}
               onClick={() => setDirection(filter.id)}
               className={cn(
-                "rounded-full border px-3 py-1.5 text-xs font-medium tap-target",
+                "rounded-full border px-3 py-1.5 text-xs font-medium tap-target-lg",
                 selected
                   ? cn(
                       pwaStatusStyles.primary.border,
@@ -148,18 +158,24 @@ export function LiveTab({ inbox, pools, gardens }: LiveTabProps) {
               {group.gardenName}
             </h4>
             <div className="space-y-2">
-              {group.rows.map((row) => (
-                <CommitmentRow
-                  key={row.commitment.id}
-                  row={row}
-                  title={
-                    row.commitment.metadataCID
-                      ? (byCID.get(row.commitment.metadataCID)?.title ?? null)
-                      : null
-                  }
-                  sendFailed={inbox.failedCommitmentIds.has(row.commitment.commitmentId.toString())}
-                />
-              ))}
+              {group.rows.map((row) => {
+                const gardenAddress = gardenAddressFor(row, pools);
+                return (
+                  <CommitmentRow
+                    key={row.commitment.id}
+                    row={row}
+                    title={
+                      row.commitment.metadataCID
+                        ? (byCID.get(row.commitment.metadataCID)?.title ?? null)
+                        : null
+                    }
+                    sendFailed={inbox.failedCommitmentIds.has(
+                      row.commitment.commitmentId.toString()
+                    )}
+                    onOpen={gardenAddress ? (id) => onOpenCommitment(gardenAddress, id) : undefined}
+                  />
+                );
+              })}
             </div>
           </div>
         ))

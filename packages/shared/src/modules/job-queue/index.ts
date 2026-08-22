@@ -23,6 +23,7 @@ import {
   trackStorageWarning,
 } from "./job-analytics";
 import { executeApprovalJob, executeCommitmentQueueJob, executeWorkJob } from "./job-executors";
+import { discardQueuedJob, retryQueuedJob } from "./job-recovery";
 import {
   COMMITMENT_JOB_KINDS,
   prepareCommitmentJobPayload,
@@ -303,9 +304,11 @@ class JobQueue {
       } else if (COMMITMENT_JOB_KINDS.includes(job.kind as (typeof COMMITMENT_JOB_KINDS)[number])) {
         const execution = await executeCommitmentQueueJob(jobId, job, chainId, sender);
         if (execution.status === "waiting") {
+          // The reason stays on the record so a surface can say what it waits for.
+          const meta = { ...(job.meta ?? {}), waitingForDependency: true };
           await jobQueueDB.updateJob({
             ...job,
-            meta: { ...(job.meta ?? {}), waitingForDependency: true },
+            meta: { ...meta, waitingReason: execution.reason },
             lastAttemptAt: Date.now(),
           });
           return { success: false, error: execution.reason, skipped: true };
@@ -473,6 +476,14 @@ class JobQueue {
     return result;
   }
 
+  retryJob(jobId: string): Promise<void> {
+    return retryQueuedJob(jobId);
+  }
+
+  discardJob(jobId: string): Promise<boolean> {
+    return discardQueuedJob(jobId);
+  }
+
   async getStats(userAddress: string): Promise<QueueStats> {
     return getQueueStats(userAddress);
   }
@@ -497,30 +508,22 @@ class JobQueue {
     return subscribeToQueue(listener);
   }
 
-  /**
-   * Cleanup orphaned synced jobs that failed to delete.
-   */
+  /** Cleanup orphaned synced jobs that failed to delete. */
   async cleanupOrphanedSyncedJobs(): Promise<{ cleaned: number; failed: number }> {
     return this.maintenance.cleanupOrphanedSyncedJobs();
   }
 
-  /**
-   * Start periodic cleanup of orphaned synced jobs.
-   */
+  /** Start periodic cleanup of orphaned synced jobs. */
   startCleanupScheduler(intervalMs?: number): void {
     this.maintenance.startCleanupScheduler(intervalMs);
   }
 
-  /**
-   * Stop the periodic cleanup scheduler.
-   */
+  /** Stop the periodic cleanup scheduler. */
   stopCleanupScheduler(): void {
     this.maintenance.stopCleanupScheduler();
   }
 
-  /**
-   * Cleanup resources when queue is no longer needed
-   */
+  /** Cleanup resources when queue is no longer needed. */
   async cleanup(): Promise<void> {
     this.stopCleanupScheduler();
     await jobQueueDB.cleanup();

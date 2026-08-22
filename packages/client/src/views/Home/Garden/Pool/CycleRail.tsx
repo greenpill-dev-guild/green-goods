@@ -1,4 +1,4 @@
-import { cn, type CommitmentCycleRecord } from "@green-goods/shared";
+import { cn, type CommitmentCycleRecord, useCommitmentCycleNames } from "@green-goods/shared";
 import { RiFlagLine, RiSunLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 
@@ -22,9 +22,32 @@ export interface CycleRailProps {
  * would invent a number the garden never agreed to.
  */
 export function CycleRail({ cycles, selectedCycleId, onSelect }: CycleRailProps) {
-  const { formatMessage } = useIntl();
+  const { formatMessage, formatDate } = useIntl();
+  const { byCycleId } = useCommitmentCycleNames(cycles);
 
   if (cycles.length === 0) return null;
+
+  // A calm date: the day it runs from and the day it runs to. Seconds on the
+  // record, so the conversion happens once here rather than in the template.
+  const calmRange = (cycle: CommitmentCycleRecord) => {
+    if (
+      cycle.startTime === null ||
+      cycle.startTime === undefined ||
+      cycle.endTime === null ||
+      cycle.endTime === undefined
+    ) {
+      return null;
+    }
+    const start = new Date(Number(cycle.startTime) * 1000);
+    const end = new Date(Number(cycle.endTime) * 1000);
+    const startLabel = formatDate(start, {
+      month: "short",
+      day: "numeric",
+      ...(start.getFullYear() !== end.getFullYear() ? { year: "numeric" } : {}),
+    });
+    const endLabel = formatDate(end, { month: "short", day: "numeric", year: "numeric" });
+    return formatMessage({ id: "app.pool.rail.dates" }, { start: startLabel, end: endLabel });
+  };
 
   return (
     <div
@@ -41,6 +64,8 @@ export function CycleRail({ cycles, selectedCycleId, onSelect }: CycleRailProps)
         const stateLabel = formatMessage({
           id: `app.pool.cycleState.${(cycle.state ?? "UNKNOWN").toLowerCase()}`,
         });
+        const name = byCycleId.get(cycle.cycleId.toString())?.name ?? null;
+        const dates = calmRange(cycle);
 
         return (
           <button
@@ -55,17 +80,27 @@ export function CycleRail({ cycles, selectedCycleId, onSelect }: CycleRailProps)
                 : "border-stroke-soft-200 bg-bg-white-0"
             )}
           >
+            {/* Chips lead, then the name, then the calm date, then the counts,
+              all on one left axis. */}
             <span className="flex items-center gap-1.5 text-xs font-medium text-text-sub-600">
               {isCampaign ? (
                 <RiFlagLine className="h-4 w-4" aria-hidden="true" />
               ) : (
                 <RiSunLine className="h-4 w-4" aria-hidden="true" />
               )}
-              {kindLabel}
+              <span>{kindLabel}</span>
+              <span aria-hidden="true">·</span>
+              <span>{stateLabel}</span>
             </span>
-            <span className="mt-1 block text-sm font-medium text-text-strong-950">
-              {stateLabel}
-            </span>
+            {name ? (
+              <span
+                className="mt-1 block truncate text-sm font-medium text-text-strong-950"
+                title={name}
+              >
+                {name}
+              </span>
+            ) : null}
+            {dates ? <span className="mt-1 block text-xs text-text-sub-600">{dates}</span> : null}
             <span className="mt-1 block text-xs text-text-sub-600">
               {formatMessage(
                 { id: "app.pool.rail.counts" },

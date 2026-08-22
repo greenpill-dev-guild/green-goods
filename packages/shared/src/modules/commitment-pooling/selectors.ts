@@ -1,5 +1,6 @@
 import type { OntologyChainCapability } from "../../ontology/types";
 import type { Address } from "../../types/domain";
+import { isDemoPoolingActive } from "./demo/demo-mode";
 import type {
   CommitmentDerivedState,
   CommitmentPoolingAvailability,
@@ -10,6 +11,9 @@ export function selectCommitmentPoolingAvailability(
   capability: OntologyChainCapability | undefined
 ): CommitmentPoolingAvailability {
   if (!capability) return { status: "unknown-chain" };
+  // Dev only: the demo world stands in for the ledger, so every screen that
+  // gates on availability opens, and the queue accepts the acts they offer.
+  if (isDemoPoolingActive()) return { status: "available", capability };
   if (capability.deployment !== "deployed") {
     return { status: "unavailable", reason: "not-deployed", capability };
   }
@@ -37,6 +41,22 @@ const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 function isSameAccount(left: Address | null | undefined, right: Address): boolean {
   if (!left || left === ZERO_ADDRESS) return false;
   return left.toLowerCase() === right.toLowerCase();
+}
+
+/**
+ * A commitment a steward recorded on somebody else's behalf.
+ *
+ * The record names both: `creator` is the person the commitment is for and
+ * `recordedBy` the steward who wrote it down. When they differ, the proof
+ * and confirmation screens speak to the steward rather than to a provider
+ * who may never have opened the app.
+ */
+export function isCapturedCommitment(
+  commitment: Pick<CommitmentReadModel, "creator" | "recordedBy">
+): boolean {
+  const recordedBy = commitment.recordedBy;
+  if (!recordedBy || recordedBy === ZERO_ADDRESS) return false;
+  return !isSameAccount(commitment.creator, recordedBy);
 }
 
 /**
@@ -71,14 +91,21 @@ function creatorSeat(direction: CommitmentReadModel["direction"]): CommitmentSea
  *    never offered the one act they exist to perform. It sits AFTER the team
  *    because the two lists can overlap and the contract refuses a contributor's
  *    confirmation whatever else they are.
+ * 5. a steward of a garden that took the offer up, last and only when no group
+ *    is named. The contract seats the garden's stewards and owners as its
+ *    ordinary confirmers (CreditLib.isOrdinaryConfirmer), so a caller that
+ *    knows which gardens the reader stewards passes them here; a caller that
+ *    does not may leave it out and the reader stays a bystander.
  */
 export function selectCommitmentSeat(input: {
   commitment: Pick<CommitmentReadModel, "creator" | "leadProvider" | "counterparty" | "direction"> &
-    Partial<Pick<CommitmentReadModel, "confirmers">>;
+    Partial<Pick<CommitmentReadModel, "confirmers" | "counterpartyKind">>;
   contributors: readonly Address[];
   viewer?: Address;
+  /** Gardens the viewer stewards or owns, for rung 5. */
+  stewardedGardens?: readonly Address[];
 }): CommitmentSeat | null {
-  const { commitment, contributors, viewer } = input;
+  const { commitment, contributors, viewer, stewardedGardens } = input;
   if (!viewer) return null;
   if (isSameAccount(commitment.leadProvider, viewer)) return "provider";
   if (isSameAccount(commitment.creator, viewer)) return creatorSeat(commitment.direction);
@@ -94,6 +121,15 @@ export function selectCommitmentSeat(input: {
     return "contributor";
   }
   if (commitment.confirmers?.some((confirmer) => isSameAccount(confirmer, viewer))) {
+    return "confirmer";
+  }
+  if (
+    commitment.direction === "OFFER" &&
+    commitment.counterpartyKind === "GARDEN" &&
+    !(commitment.confirmers && commitment.confirmers.length > 0) &&
+    commitment.counterparty &&
+    stewardedGardens?.some((garden) => isSameAccount(garden, commitment.counterparty as Address))
+  ) {
     return "confirmer";
   }
   return "bystander";

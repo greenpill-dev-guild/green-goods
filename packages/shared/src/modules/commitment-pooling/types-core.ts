@@ -54,6 +54,20 @@ export interface CommitmentReadModel {
   counterparty?: Address | null;
   /** Who recorded this on someone else's behalf. Null until creation is seen. */
   recordedBy?: Address | null;
+  /**
+   * Whether the counterparty is a person or a garden. On an Offer a garden
+   * took up, the garden's stewards and owners are its ordinary confirmers
+   * (CreditLib.isOrdinaryConfirmer), not the garden address itself.
+   */
+  counterpartyKind?: keyof typeof CommitmentClaimType | null;
+  /**
+   * The garden whose people do the work, written by the contract at
+   * acceptance: the claimant's garden on a garden claim, the claimant's chosen
+   * context on a personal one. The membership preflight and the proof path
+   * read this, never the route, because on the protocol pool the route names
+   * the host garden and the provider may hold no hat there.
+   */
+  providerGarden?: Address | null;
   /** Offer or Request. Null until creation is seen. */
   direction?: keyof typeof CommitmentDirection | null;
   /** What kind of commitment this is. Null until creation is seen. */
@@ -64,6 +78,20 @@ export interface CommitmentReadModel {
   contributorPolicy?: keyof typeof CommitmentContributorPolicy | null;
   /** The named confirmer group. Empty when confirmation follows the ordinary rule. */
   confirmers: Address[];
+  /** How many confirmations have landed, and how many it takes. */
+  confirmationCount?: number;
+  confirmationThreshold?: number;
+  /** Whether the Green Goods team may step in when nobody local is eligible. */
+  protocolFallbackEnabled?: boolean;
+  /**
+   * Who confirmed it and by which path, once Fulfilled. Ordinary names the
+   * confirmer plainly; a fallback carries its reason. Null until then, and
+   * null when fulfilment came from a dispute resolution rather than a
+   * confirmation.
+   */
+  fulfilledBy?: Address | null;
+  confirmationPath?: "ORDINARY" | "POOL_FALLBACK" | "PROTOCOL_FALLBACK" | null;
+  fallbackReason?: string | null;
   /** Team size without loading the team itself, which every card row needs. */
   contributorCount: number;
   /** Whether the team still accepts people. */
@@ -116,6 +144,9 @@ export interface CommitmentPoolRecord {
   poolType: keyof typeof CommitmentPoolType | null;
   state: keyof typeof CommitmentPoolState | null;
   charterCID: string | null;
+  /** Why the pool is paused, as a reason CID. Set by PoolPaused, cleared by PoolResumed. */
+  pauseReasonCID: string | null;
+  pauseReasonBlockNumber: bigint | null;
   openSeasonCycleId: bigint | null;
   openSeasonCycleEntityId: string | null;
   openCampaignIds: bigint[];

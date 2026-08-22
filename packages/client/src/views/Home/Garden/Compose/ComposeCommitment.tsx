@@ -4,93 +4,255 @@ import {
   type CommitmentComposerValues,
   commitmentComposerSchema,
   DEFAULT_CHAIN_ID,
+  DialogShell,
+  useActions,
   useCommitmentComposerForm,
+  useCommitmentCycleNames,
+  useCommitmentCycles,
   useCommitmentJobs,
   useCommitmentPools,
+  useHasRole,
+  useGardens,
   useOffline,
   usePrimaryAddress,
 } from "@green-goods/shared";
-import { useMemo, useState } from "react";
+// The narrowest declared subpath: the draft store is device state, not a hook.
+import {
+  commitmentComposerDraftKey,
+  useCommitmentComposerDraftStore,
+} from "@green-goods/shared/stores";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useWatch } from "react-hook-form";
 import { useIntl } from "react-intl";
-import { useNavigate, useParams } from "react-router-dom";
+import { Navigate, useNavigate, useParams, useSearchParams } from "react-router-dom";
 
 import { FormProgress } from "@/components/Communication";
 import { TopNav } from "@/components/Navigation";
-import { ComposeKind } from "./ComposeKind";
+import { ComposeDetails } from "./ComposeDetails";
+import { actionUIDOf, ComposeHowMuch } from "./ComposeHowMuch";
 import { ComposeReview } from "./ComposeReview";
-import { ComposeTerms } from "./ComposeTerms";
 import { ComposeWhat } from "./ComposeWhat";
 
-const BEATS = ["kind", "what", "terms", "review"] as const;
+const BEATS = ["what", "howMuch", "details", "review"] as const;
 type Beat = (typeof BEATS)[number];
+type Direction = "OFFER" | "REQUEST";
+
+/** The door that opened the form. Anything else is not a direction. */
+function directionFromRoute(value: string | null): Direction | null {
+  if (value === "offer") return "OFFER";
+  if (value === "request") return "REQUEST";
+  return null;
+}
 
 /**
- * Making a commitment, in four beats.
+ * Making a commitment, in the four beats the shipped Submit Work flow uses:
+ * what, how much, details, review. One question per screen, a progress row
+ * in the header, and a single primary in a fixed bar, so a gardener who has
+ * submitted work already knows how this behaves.
  *
- * It follows the shipped Submit Work rhythm on purpose: one question per
- * screen, a progress row in the header, and a single primary in a fixed bar.
- * A gardener who has submitted work already knows how this behaves.
+ * Direction is fixed by the door that opened the form and never asked again
+ * inside it: a member who meant the other one leaves and comes back through
+ * the other door. A form reached with no door goes back to the garden rather
+ * than guessing.
  *
  * The whole thing is offline-first. Placing a commitment queues a job rather
  * than sending a call, so a member standing in a garden with no signal can
  * still make one, and the queue is what refuses to make the same one twice.
+ * What they typed is kept on the device until it is placed or discarded.
  */
 export function ComposeCommitment() {
-  const { formatMessage } = useIntl();
+  const [searchParams] = useSearchParams();
+  const direction = directionFromRoute(searchParams.get("direction"));
+  if (!direction) return <Navigate to=".." replace />;
+  return <ComposeCommitmentForm direction={direction} />;
+}
+
+function ComposeCommitmentForm({ direction }: { direction: Direction }) {
+  const { formatMessage, formatRelativeTime } = useIntl();
   const navigate = useNavigate();
   const { id: gardenAddress } = useParams<{ id: string }>();
   const { isOnline } = useOffline();
   const viewer = usePrimaryAddress();
   const chainId = DEFAULT_CHAIN_ID;
 
-  const [beat, setBeat] = useState<Beat>("kind");
-  const [placed, setPlaced] = useState(false);
-
-  const form = useCommitmentComposerForm();
-  const values = form.watch();
-
   const { pools } = useCommitmentPools({
     chainId,
     garden: gardenAddress as Address | undefined,
   });
   const pool = pools[0];
+  const { cycles } = useCommitmentCycles({ chainId, poolId: pool?.poolId ?? 0n, state: "OPEN" });
+  const openCycles = useMemo(
+    () =>
+      pool
+        ? [...cycles].sort((left, right) =>
+            // The season leads; campaigns follow in the order they were opened.
+            left.cycleType === right.cycleType ? 0 : left.cycleType === "SEASON" ? -1 : 1
+          )
+        : [],
+    [cycles, pool]
+  );
+  const { byCycleId: cycleNames } = useCommitmentCycleNames(openCycles);
+  // The protocol pool takes commitments only from its stewards
+  // (CreationChecksLib.resolveCreator). The pool tab hides the doors, but the
+  // route is typeable, so the composer answers the same question itself.
+  const { hasRole: stewardsPool, isLoading: stewardLoading } = useHasRole(
+    pool?.garden as Address | undefined,
+    (viewer ?? undefined) as Address | undefined,
+    "operator",
+    chainId
+  );
+  const { hasRole: ownsPool, isLoading: ownerLoading } = useHasRole(
+    pool?.garden as Address | undefined,
+    (viewer ?? undefined) as Address | undefined,
+    "owner",
+    chainId
+  );
+  const protocolBarred =
+    pool?.poolType === "PROTOCOL" && !stewardLoading && !ownerLoading && !stewardsPool && !ownsPool;
+  const { data: actions = [] } = useActions(chainId);
+  const { data: gardens = [] } = useGardens();
+  const gardenName =
+    gardens.find((garden) => garden.id.toLowerCase() === gardenAddress?.toLowerCase())?.name ??
+    null;
   const jobs = useCommitmentJobs({ chainId });
 
-  // One id per draft, generated once. It is what the queue derives the
-  // creation key from, so it must not change between a failed send and a retry.
-  const clientCommitmentId = useMemo(() => crypto.randomUUID(), []);
+  // The draft is keyed by who, where and through which door, and carries its
+  // own client id: the queue derives the creation key from that id, so a
+  // draft resumed after a restart keeps the key it started with.
+  const draftKey =
+    viewer && gardenAddress
+      ? commitmentComposerDraftKey({ chainId, viewer, garden: gardenAddress, direction })
+      : null;
+  const drafts = useCommitmentComposerDraftStore((state) => state.drafts);
+  const saveDraft = useCommitmentComposerDraftStore((state) => state.saveDraft);
+  const clearDraft = useCommitmentComposerDraftStore((state) => state.clearDraft);
+  const [savedDraft, setSavedDraft] = useState(() => (draftKey ? drafts[draftKey] : undefined));
+  const [draftDecision, setDraftDecision] = useState<"pending" | "decided">(
+    savedDraft ? "pending" : "decided"
+  );
+  const [clientCommitmentId, setClientCommitmentId] = useState(
+    () => savedDraft?.clientCommitmentId ?? crypto.randomUUID()
+  );
+  // The key is who, where and which door. The viewer resolves after mount and
+  // the route can be reused for another garden, so the draft is re-resolved
+  // whenever the key moves: the new key's own draft is offered, and the old
+  // form values and client id are never saved under it.
+  const [resolvedKey, setResolvedKey] = useState(draftKey);
+  if (resolvedKey !== draftKey) {
+    setResolvedKey(draftKey);
+    const next = draftKey ? drafts[draftKey] : undefined;
+    setSavedDraft(next);
+    setDraftDecision(next ? "pending" : "decided");
+    setClientCommitmentId(next?.clientCommitmentId ?? crypto.randomUUID());
+  }
+
+  const [beat, setBeat] = useState<Beat>("what");
+  const [placed, setPlaced] = useState(false);
+  const [readToEnd, setReadToEnd] = useState(false);
+  const reviewEndRef = useRef<HTMLDivElement>(null);
+
+  const form = useCommitmentComposerForm({
+    direction,
+    // An offer leads with garden work, an ask with help: the same two cards,
+    // in the order each door's first visitor most often wants.
+    kind: direction === "REQUEST" ? "SERVICE" : "GARDEN_WORK",
+    ...(direction === "OFFER"
+      ? { unitLabel: formatMessage({ id: "app.compose.unit.hours" }) }
+      : {}),
+  });
+  // useWatch rather than form.watch: the React Compiler memoises this
+  // component, and a read of the form's mutable values is invisible to it.
+  // Typed as the full shape: every field has a default, so the partial
+  // useWatch declares is never actually partial here.
+  const values = useWatch({ control: form.control }) as CommitmentComposerValues;
+  // Read in render so the form state proxy subscribes this component to it.
+  const isDirty = form.formState.isDirty;
+
+  // Running on its own (cycleId "0") is always legal, so it is never rewritten.
+  // What does get rewritten is a draft bound to a cycle that has since closed:
+  // that value would fail on chain, so it falls back to running on its own and
+  // the what beat shows the choice again.
+  useEffect(() => {
+    if (draftDecision !== "decided") return;
+    const current = values.cycleId;
+    if (current === "0") return;
+    if (openCycles.some((cycle) => cycle.cycleId.toString() === current)) return;
+    form.setValue("cycleId", "0", { shouldValidate: true });
+  }, [openCycles, values.cycleId, form, draftDecision]);
+
+  // Keep the device's copy current. Saving the defaults would leave a draft
+  // behind a form nobody touched, so nothing is written until the form is dirty.
+  const serialized = JSON.stringify(values);
+  useEffect(() => {
+    if (!draftKey || placed || draftDecision !== "decided" || !isDirty) return;
+    saveDraft(draftKey, { values: JSON.parse(serialized), clientCommitmentId });
+  }, [serialized, draftKey, placed, draftDecision, isDirty, saveDraft, clientCommitmentId]);
+
+  const resumeDraft = () => {
+    if (savedDraft) {
+      form.reset({
+        ...form.getValues(),
+        ...(savedDraft.values as Partial<CommitmentComposerValues>),
+        direction,
+      });
+    }
+    setDraftDecision("decided");
+  };
+  const startFresh = () => {
+    if (draftKey) clearDraft(draftKey);
+    setClientCommitmentId(crypto.randomUUID());
+    setDraftDecision("decided");
+  };
 
   const beatIndex = BEATS.indexOf(beat);
   const canAdvance = beatCanAdvance(beat, values);
   const blockingReasonId = beatBlockingReason(beat, values);
+  const actionTitle = useCallback(
+    (uid: string) =>
+      actions.find((action) => actionUIDOf(action.id, chainId) === uid)?.title ?? `#${uid}`,
+    [actions, chainId]
+  );
+  const onReadToEnd = useCallback(() => setReadToEnd(true), []);
 
+  // A paused pool takes nothing (PoolNotInState). The doors already know, but
+  // a deep link, a bookmark or a form left open while the pool paused do not.
+  const poolOpen = pool?.state === "OPEN";
   const place = async () => {
-    if (!pool || !viewer || !gardenAddress) return;
+    if (!pool || !poolOpen || !viewer || !gardenAddress) return;
     try {
-      await enqueueCommitment();
+      await jobs.enqueue({
+        act: "create",
+        payload: buildCommitmentCreationPayload({
+          values,
+          clientCommitmentId,
+          poolId: pool.poolId,
+          creator: viewer as Address,
+          gardenAddress: gardenAddress as Address,
+          nowSeconds: Math.floor(Date.now() / 1000),
+        }),
+      });
+      if (draftKey) clearDraft(draftKey);
       setPlaced(true);
     } catch {
       // useCommitmentJobs already surfaced this; nothing further to say here.
     }
   };
 
-  const enqueueCommitment = () =>
-    jobs.enqueue({
-      act: "create",
-      payload: buildCommitmentCreationPayload({
-        values,
-        clientCommitmentId,
-        poolId: pool.poolId,
-        cycleId: pool.openSeasonCycleId ?? 0n,
-        creator: viewer as Address,
-        gardenAddress: gardenAddress as Address,
-        nowSeconds: Math.floor(Date.now() / 1000),
-      }),
-    });
+  const actTitle = formatMessage({
+    id: direction === "REQUEST" ? "app.compose.title.request" : "app.compose.title.offer",
+  });
+  const placeLabelId =
+    direction === "REQUEST"
+      ? values.kind === "GARDEN_WORK"
+        ? "app.compose.place.requestWork"
+        : "app.compose.place.request"
+      : "app.compose.place.offer";
+
+  if (protocolBarred) return <Navigate to=".." replace />;
 
   if (placed) {
     return (
-      <Shell onBack={() => navigate("..", { relative: "path" })}>
+      <Shell onBack={() => navigate("..")} title={actTitle}>
         <div className="flex flex-1 flex-col items-center justify-center gap-3 text-center">
           <h1 className="text-lg font-medium text-text-strong-950">
             {formatMessage({
@@ -104,7 +266,7 @@ export function ComposeCommitment() {
           </p>
           <button
             type="button"
-            onClick={() => navigate("..", { relative: "path" })}
+            onClick={() => navigate("..")}
             className="mt-2 rounded-[var(--radius-lg)] bg-primary-action px-4 py-3 text-sm font-medium text-primary-action-foreground tap-target-lg"
           >
             {formatMessage({ id: "app.compose.done.back" })}
@@ -114,50 +276,117 @@ export function ComposeCommitment() {
     );
   }
 
+  const isReview = beat === "review";
+  const primaryBlocked =
+    !canAdvance || jobs.isPending || (isReview && (!pool || !poolOpen || !readToEnd));
+
   return (
-    <Shell
-      onBack={() =>
-        beatIndex === 0
-          ? navigate("..", { relative: "path" })
-          : setBeat(BEATS[beatIndex - 1] as Beat)
-      }
-      progress={beatIndex + 1}
-      bar={
-        <div className="shrink-0 border-t border-stroke-soft-200 bg-bg-white-0 p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
-          {!canAdvance && blockingReasonId ? (
-            <p className="mb-2 text-xs text-text-sub-600" id="compose-blocked" role="status">
-              {formatMessage({ id: blockingReasonId })}
+    <>
+      <Shell
+        onBack={() => (beatIndex === 0 ? navigate("..") : setBeat(BEATS[beatIndex - 1] as Beat))}
+        title={actTitle}
+        progress={beatIndex + 1}
+        bar={
+          <div className="shrink-0 border-t border-stroke-soft-200 bg-bg-white-0 p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+            {!canAdvance && blockingReasonId ? (
+              <p className="mb-2 text-xs text-text-sub-600" id="compose-blocked" role="status">
+                {formatMessage({ id: blockingReasonId })}
+              </p>
+            ) : null}
+            {isReview && !readToEnd ? (
+              <button
+                type="button"
+                onClick={() => {
+                  reviewEndRef.current?.scrollIntoView({ block: "end" });
+                  setReadToEnd(true);
+                }}
+                className="mb-2 flex w-full items-center justify-center rounded-[var(--radius-lg)] px-4 py-2 text-sm font-medium text-text-sub-600 tap-target-lg"
+              >
+                {formatMessage({ id: "app.compose.review.readToEnd" })}
+              </button>
+            ) : null}
+            <button
+              aria-describedby={!canAdvance && blockingReasonId ? "compose-blocked" : undefined}
+              type="button"
+              disabled={primaryBlocked}
+              aria-busy={jobs.isPending}
+              onClick={() => (isReview ? void place() : setBeat(BEATS[beatIndex + 1] as Beat))}
+              className="w-full rounded-[var(--radius-lg)] bg-primary-action px-4 py-3 text-sm font-medium text-primary-action-foreground tap-target-lg disabled:opacity-60"
+            >
+              {formatMessage({ id: isReview ? placeLabelId : "app.compose.next" })}
+            </button>
+          </div>
+        }
+      >
+        {beat === "what" ? (
+          <ComposeWhat form={form} openCycles={openCycles} cycleNames={cycleNames} />
+        ) : null}
+        {beat === "howMuch" ? (
+          <ComposeHowMuch form={form} chainId={chainId} actions={actions} />
+        ) : null}
+        {beat === "details" ? <ComposeDetails form={form} /> : null}
+        {isReview ? (
+          <ComposeReview
+            values={values}
+            isOnline={isOnline}
+            hasPool={Boolean(pool)}
+            gardenName={gardenName}
+            openCycles={openCycles}
+            cycleNames={cycleNames}
+            actionTitle={actionTitle}
+            onReadToEnd={onReadToEnd}
+            endRef={reviewEndRef}
+          />
+        ) : null}
+      </Shell>
+
+      <DialogShell
+        open={draftDecision === "pending"}
+        onOpenChange={(open) => {
+          if (!open) resumeDraft();
+        }}
+        title={formatMessage({ id: "app.compose.draft.title" })}
+        description={
+          savedDraft
+            ? formatMessage(
+                { id: "app.compose.draft.body" },
+                {
+                  when: formatRelativeTime(
+                    Math.round((savedDraft.updatedAt - Date.now()) / 60_000),
+                    "minute",
+                    { numeric: "auto" }
+                  ),
+                }
+              )
+            : undefined
+        }
+        size="md"
+      >
+        <div className="space-y-3">
+          {savedDraft?.values &&
+          typeof savedDraft.values.title === "string" &&
+          savedDraft.values.title ? (
+            <p className="truncate text-sm font-medium text-text-strong-950">
+              {savedDraft.values.title}
             </p>
           ) : null}
           <button
-            aria-describedby={!canAdvance && blockingReasonId ? "compose-blocked" : undefined}
             type="button"
-            disabled={!canAdvance || jobs.isPending || (beat === "review" && !pool)}
-            aria-busy={jobs.isPending}
-            onClick={() =>
-              beat === "review" ? void place() : setBeat(BEATS[beatIndex + 1] as Beat)
-            }
-            className="w-full rounded-[var(--radius-lg)] bg-primary-action px-4 py-3 text-sm font-medium text-primary-action-foreground tap-target-lg disabled:opacity-60"
+            onClick={resumeDraft}
+            className="w-full rounded-[var(--radius-lg)] bg-primary-action px-4 py-3 text-sm font-medium text-primary-action-foreground tap-target-lg"
           >
-            {formatMessage({
-              id: beat === "review" ? "app.compose.place" : "app.compose.next",
-            })}
+            {formatMessage({ id: "app.compose.draft.resume" })}
+          </button>
+          <button
+            type="button"
+            onClick={startFresh}
+            className="w-full rounded-[var(--radius-lg)] px-4 py-3 text-sm font-medium text-text-sub-600 tap-target-lg"
+          >
+            {formatMessage({ id: "app.compose.draft.fresh" })}
           </button>
         </div>
-      }
-    >
-      {beat === "kind" ? (
-        <ComposeKind
-          value={values.direction}
-          onChange={(direction) => form.setValue("direction", direction, { shouldValidate: true })}
-        />
-      ) : null}
-      {beat === "what" ? <ComposeWhat form={form} /> : null}
-      {beat === "terms" ? <ComposeTerms form={form} /> : null}
-      {beat === "review" ? (
-        <ComposeReview values={values} isOnline={isOnline} hasPool={Boolean(pool)} />
-      ) : null}
-    </Shell>
+      </DialogShell>
+    </>
   );
 }
 
@@ -169,20 +398,35 @@ export function ComposeCommitment() {
  * beat says the missing thing in the member's terms instead.
  */
 function beatBlockingReason(beat: Beat, values: CommitmentComposerValues): string | null {
-  if (beat !== "what") return null;
-  if (values.title.trim().length === 0) return "app.compose.blocked.title";
-  if (values.unitLabel.trim().length === 0) return "app.compose.blocked.unit";
-  if (!Number.isFinite(values.targetUnits) || values.targetUnits <= 0) {
-    return "app.compose.blocked.count";
+  if (beat === "what") {
+    if (values.title.trim().length === 0) return "app.compose.blocked.title";
+    return null;
+  }
+  if (beat === "howMuch") {
+    if (values.unitLabel.trim().length === 0) return "app.compose.blocked.unit";
+    if (!Number.isFinite(values.targetUnits) || values.targetUnits <= 0) {
+      return "app.compose.blocked.count";
+    }
+    if (values.kind === "GARDEN_WORK") {
+      if (values.requirements.length === 0) return "app.compose.blocked.action";
+      if (
+        values.requirements.some(
+          (row) => !Number.isInteger(row.requiredCount) || row.requiredCount < 1
+        )
+      ) {
+        return "app.compose.blocked.rowCount";
+      }
+    }
+    return null;
   }
   return null;
 }
 
 /** Which answers each beat is responsible for. */
 const BEAT_FIELDS = {
-  kind: ["direction"],
-  what: ["title", "unitLabel", "targetUnits"],
-  terms: ["dueInDays"],
+  what: ["title", "kind", "cycleId"],
+  howMuch: ["unitLabel", "targetUnits", "dueInDays", "requirements", "claimMode"],
+  details: ["note", "links", "openTeam", "protocolFallbackEnabled"],
   review: [],
 } as const satisfies Record<Beat, readonly (keyof CommitmentComposerValues)[]>;
 
@@ -206,19 +450,22 @@ function beatCanAdvance(beat: Beat, values: CommitmentComposerValues): boolean {
 function Shell({
   children,
   onBack,
+  title,
   progress,
   bar,
 }: {
   children: React.ReactNode;
   onBack: () => void;
+  /** The act the door named: the wizard is titled, the door was one word. */
+  title: string;
   progress?: number;
   bar?: React.ReactNode;
 }) {
   const { formatMessage } = useIntl();
   const steps = [
-    formatMessage({ id: "app.compose.beat.kind" }),
     formatMessage({ id: "app.compose.beat.what" }),
-    formatMessage({ id: "app.compose.beat.terms" }),
+    formatMessage({ id: "app.compose.beat.howMuch" }),
+    formatMessage({ id: "app.compose.beat.details" }),
     formatMessage({ id: "app.compose.beat.review" }),
   ];
 
@@ -228,7 +475,10 @@ function Shell({
         {progress ? <FormProgress currentStep={progress} steps={steps} /> : null}
       </TopNav>
       <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
-        <div className="flex flex-1 flex-col gap-4 p-4 pb-24">{children}</div>
+        <div className="flex flex-1 flex-col gap-4 p-4 pb-24">
+          <p className="text-xs font-medium uppercase tracking-wide text-text-soft-400">{title}</p>
+          {children}
+        </div>
       </div>
       {bar}
     </div>

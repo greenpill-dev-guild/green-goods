@@ -1,4 +1,4 @@
-import { logger, queryClient } from "@green-goods/shared";
+import { isDemoPoolingActive, logger, queryClient } from "@green-goods/shared";
 // Note: Service worker is registered by vite-plugin-pwa (registerType: "autoUpdate")
 // Auto-update logic (foreground checks + controllerchange reload) is in main.tsx
 import type { Query } from "@tanstack/react-query";
@@ -107,7 +107,21 @@ function App() {
     // Queue keys are high churn; don't persist
     if (key[1] === "queue") return false;
 
+    // Dev demo pooling (?mockPooling=1) answers from fixtures. They must never
+    // reach the persisted cache, where they would outlive the flag.
+    if (key[1] === "commitment-pooling" && isDemoPoolingActive()) return false;
+
     return true;
+  };
+
+  // The mirror of the rule above: a cache restored from a real session must
+  // not stand in front of the demo world, so its pooling entries go once the
+  // restore has landed. Production builds replace the DEV guard with false.
+  const dropPersistedPoolingReads = () => {
+    if (!import.meta.env.DEV || !isDemoPoolingActive()) return;
+    queryClient.removeQueries({
+      predicate: (query) => query.queryKey[1] === "commitment-pooling",
+    });
   };
 
   return (
@@ -119,6 +133,7 @@ function App() {
         buster: import.meta.env.VITE_APP_VERSION || "dev",
         dehydrateOptions: { shouldDehydrateQuery },
       }}
+      onSuccess={dropPersistedPoolingReads}
     >
       <AppErrorBoundary>
         <RouterProvider router={router} />

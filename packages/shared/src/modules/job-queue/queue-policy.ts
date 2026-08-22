@@ -39,7 +39,11 @@ export function commitmentJobIdentity(kind: string, payload: unknown): string | 
     case "claim":
       return `${kind}:${String(value.commitmentId)}:${String(value.kind)}:${String(value.gardenContext).toLowerCase()}`;
     case "evidence":
-      return `${kind}:${String(value.commitmentId)}:${String(value.cid)}`;
+      // The client id names one composition before its CID exists; a record
+      // queued before client ids keeps the CID it was queued with.
+      return `${kind}:${String(value.commitmentId)}:${
+        typeof value.clientEvidenceId === "string" ? value.clientEvidenceId : String(value.cid)
+      }`;
     case "confirmation":
       return `${kind}:${String(value.action)}:${String(value.commitmentId)}`;
     default:

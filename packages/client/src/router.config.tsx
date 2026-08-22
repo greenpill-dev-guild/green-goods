@@ -226,6 +226,12 @@ export const appRoutes = [
                             }),
                           },
                           {
+                            path: "commitments/:commitmentId/proof",
+                            lazy: async () => ({
+                              Component: (await import("@/views/Home/Garden/Proof")).ProofComposer,
+                            }),
+                          },
+                          {
                             path: "assessments/:assessmentId",
                             lazy: async () => ({
                               Component: (await import("@/views/Home/Garden/Assessment"))

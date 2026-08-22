@@ -72,19 +72,54 @@ export interface CommitmentCreationPayload {
   gardenAddress: Address;
 }
 
-export interface ClaimJobPayload {
+/**
+ * Carried by every act that a garden hat gates.
+ *
+ * The executor runs its membership preflight on `gardenAddress` before the
+ * first send, so an account still waiting for its hat waits
+ * (`membership-unavailable`) instead of spending retries on a revert. It is not
+ * part of the job's identity: jobs persisted before 2026-08-21 carry no
+ * `gardenAddress` and still send the way they were queued, and an old and a
+ * new record of the same act dedupe as one.
+ */
+export interface MembershipGatedJobPayload {
+  gardenAddress: Address;
+  /**
+   * True when the chain authorizes this act by identity rather than by hat: a
+   * confirmer named on the commitment (setConfirmerRule) confirms without any
+   * garden role, and isOrdinaryConfirmer checks the list, not Hats. The
+   * preflight then stays out of the way; the contract is the only gate.
+   */
+  membershipNotRequired?: boolean;
+}
+
+export interface ClaimJobPayload extends MembershipGatedJobPayload {
   commitmentId: bigint;
   kind: number;
   gardenContext: Address;
 }
 
-export interface EvidenceJobPayload {
+/**
+ * Proof, as composed in the field. The document and its media ride the job
+ * until the phone is online; the executor uploads them, pins the document and
+ * writes `cid` back before `attachEvidence` is called. A record queued before
+ * this shape carried `cid` alone and still sends as it was queued.
+ */
+export interface EvidenceJobPayload extends MembershipGatedJobPayload {
+  /** Stable per composition, so a retry behind the same button is one job. */
+  clientEvidenceId: string;
   commitmentId: bigint;
-  cid: string;
+  /** Absent until the executor publishes the document; required at send. */
+  cid?: string;
   creditedContributors: readonly Address[];
+  note?: string;
+  links?: readonly string[];
+  /** Persisted by the queue store the way work media is; read back at send. */
+  media?: File[];
+  audioNotes?: File[];
 }
 
-export interface WorkLinkJobPayload {
+export interface WorkLinkJobPayload extends MembershipGatedJobPayload {
   clientOperationId: string;
   commitmentId: bigint;
   workUID: Hex;
@@ -93,8 +128,8 @@ export interface WorkLinkJobPayload {
 }
 
 export type ConfirmationJobPayload =
-  | { action: "submit"; commitmentId: bigint }
-  | { action: "confirm"; commitmentId: bigint };
+  | ({ action: "submit"; commitmentId: bigint } & MembershipGatedJobPayload)
+  | ({ action: "confirm"; commitmentId: bigint } & MembershipGatedJobPayload);
 
 export interface CommitmentJobPayloadMap {
   commitmentSeries: CommitmentSeriesJobPayload;
@@ -120,7 +155,11 @@ export type CommitmentJobExecutionResult =
   | { status: "sent"; txHash: Hex }
   | {
       status: "waiting";
-      reason: "series-not-materialized" | "membership-unavailable" | "pending-first-send";
+      reason:
+        | "series-not-materialized"
+        | "membership-unavailable"
+        | "pending-first-send"
+        | "evidence-unpublished";
     }
   | {
       status: "identity-conflict";
@@ -144,6 +183,8 @@ export interface CommitmentJobExecutionDependencies {
     commitmentId: bigint
   ): Promise<{ creationPayloadHash: Hex; poolId: bigint; creator: Address }>;
   readWorkLinkPayloadHash(caller: Address, key: Hex): Promise<Hex>;
+  /** Whether this CID is already attached, so a re-send after a lost receipt recovers. */
+  readEvidenceAttached?(commitmentId: bigint, cid: string): Promise<boolean>;
   resolveSeriesId?(clientSeriesId: string): Promise<bigint | null>;
   hasMembership?(garden: Address, account: Address): Promise<boolean | null>;
   send(input: {

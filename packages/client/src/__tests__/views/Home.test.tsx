@@ -32,6 +32,15 @@ vi.mock("@green-goods/shared", () => ({
     isError: false,
     refetch: vi.fn(),
   }),
+  useCommitmentsToConfirm: () => ({
+    groups: [],
+    count: 0,
+    isSteward: false,
+    availability: { status: "unknown-chain" },
+    isLoading: false,
+    isError: false,
+    refetch: vi.fn(),
+  }),
   useFilteredGardens: (gardens: unknown[]) => ({
     filteredGardens: gardens,
     myGardensCount: 1,
