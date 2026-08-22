@@ -1,5 +1,5 @@
 import { AudioPlayer, resolveIPFSUrl, type Garden } from "@green-goods/shared";
-import { RiDownloadLine, RiExternalLinkLine, RiHandHeartLine } from "@remixicon/react";
+import { RiDownloadLine, RiExternalLinkLine } from "@remixicon/react";
 import React from "react";
 import { useIntl } from "react-intl";
 import { Button } from "@/components/Actions";
@@ -28,11 +28,8 @@ type WorkViewProps = {
   /** IPFS CIDs for gardener audio notes (from work metadata) */
   audioNoteCids?: string[];
   details: Array<{ label: string; value: string; icon?: IconComponent | null }>;
-  /**
-   * The commitment this work fulfils, when the indexer says it does. Read-only:
-   * the relationship has no edit control here, only a way to its other end.
-   */
-  fulfills?: { label: string; value: string; onOpen: () => void } | null;
+  /** The commitment this work fulfils, drawn after the details when there is one. */
+  fulfills?: React.ReactNode;
   /** When true, shows skeleton placeholders for details instead of the actual cards */
   isDetailsLoading?: boolean;
   headerIcon?: IconComponent | null;
@@ -177,21 +174,7 @@ export const WorkView: React.FC<WorkViewProps> = ({
           ))
       )}
 
-      {fulfills ? (
-        <button
-          type="button"
-          onClick={fulfills.onOpen}
-          data-component="WorkFulfillsRow"
-          className="w-full text-left tap-feedback"
-        >
-          <FormCard
-            label={fulfills.label}
-            value={fulfills.value}
-            Icon={RiHandHeartLine}
-            className="border-primary-alpha-24"
-          />
-        </button>
-      ) : null}
+      {fulfills}
 
       {feedbackSection}
 

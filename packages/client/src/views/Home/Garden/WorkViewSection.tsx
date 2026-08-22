@@ -38,7 +38,7 @@ type WorkViewSectionProps = {
   onShare: () => void;
   onViewAttestation?: () => void;
   /** The commitment this work fulfils, read-only, with a way to it. */
-  fulfills?: { label: string; value: string; onOpen: () => void } | null;
+  fulfills?: React.ReactNode;
   footer?: React.ReactNode;
   reserveFooterSpace?: boolean;
   footerSpacerClassName?: string;

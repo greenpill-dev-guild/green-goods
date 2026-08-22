@@ -2,36 +2,28 @@ import {
   type Address,
   AddressDisplay,
   Alert,
-  cn,
   type CommitmentContributorRecord,
   type CommitmentReadModel,
   type CommitmentRequirementRecord,
   DialogShell,
-  isCapturedCommitment,
   useCommitmentNotYetDraft,
 } from "@green-goods/shared";
 import {
   RiCheckboxCircleFill,
   RiCheckLine,
   RiImageLine,
-  RiRefreshLine,
   RiShieldCheckLine,
   RiTimeLine,
-  RiWifiOffLine,
 } from "@remixicon/react";
 import { useState } from "react";
 import { useIntl } from "react-intl";
 
-export type ConfirmCast = "offer" | "support" | "request" | "request-work" | "captured";
+import { ConfirmNotYet } from "./ConfirmNotYet";
+import { Meter, Provenance } from "./ConfirmOutcome";
+import { selectConfirmCast } from "./confirm-cast";
 
-/** What kind of commitment is being confirmed. Derivable from the record alone. */
-export function selectConfirmCast(commitment: CommitmentReadModel): ConfirmCast {
-  if (isCapturedCommitment(commitment)) return "captured";
-  if (commitment.direction === "REQUEST") {
-    return commitment.commitmentType === "DOMAIN_IMPACT" ? "request-work" : "request";
-  }
-  return commitment.commitmentType === "SUPPORT_SERVICE" ? "support" : "offer";
-}
+export { Provenance } from "./ConfirmOutcome";
+export { type ConfirmCast, selectConfirmCast } from "./confirm-cast";
 
 /** Where the sheet stands, from the record and the queue rather than a local flag. */
 export type ConfirmPhase = "ask" | "pending" | "confirmed";
@@ -54,27 +46,6 @@ export interface ConfirmSheetProps {
   onDone: () => void;
 }
 
-const REASON_CHIPS: Record<ConfirmCast, string[]> = {
-  offer: ["notFinished", "cantCheck", "looksOff"],
-  support: ["notFinished", "anotherPass", "looksOff"],
-  request: ["didntArrive", "partArrived", "looksOff"],
-  "request-work": ["notFinished", "cantCheck", "looksOff"],
-  captured: ["hasntHappened", "cantCheck", "looksOff"],
-};
-
-/**
- * The confirmation sheet asks one question and offers its two answers.
- *
- * The question depends on the cast: "Commitment kept?", "Did the help
- * arrive?", "Was the work you asked for done?". The answers are Confirm and
- * Not yet. Confirm queues the ordinary confirmation, which works with no
- * signal; Not yet raises a dispute, which is an online contract call, so
- * offline it says so and keeps the words on this phone for when a connection
- * returns. Neither cancels anything.
- *
- * Who has already confirmed is context; whose turn it is is the point. Every
- * contributor is excluded, and the sheet says so rather than hiding a button.
- */
 export function ConfirmSheet({
   open,
   onOpenChange,
@@ -186,87 +157,16 @@ export function ConfirmSheet({
           </button>
         </div>
       ) : mode === "notYet" ? (
-        <div className="space-y-4" data-component="ConfirmSheetNotYet">
-          <div
-            className="flex flex-wrap gap-2"
-            role="group"
-            aria-label={formatMessage({ id: "app.confirm.notYet.chips" })}
-          >
-            {REASON_CHIPS[cast].map((chip) => {
-              const label = formatMessage({ id: `app.confirm.notYet.chip.${chip}` });
-              const selected = draftReason.trim() === label;
-              return (
-                <button
-                  key={chip}
-                  type="button"
-                  aria-pressed={selected}
-                  onClick={() => setDraftReason(label)}
-                  className={cn(
-                    "rounded-full border px-3 py-1.5 text-xs font-medium tap-target-lg",
-                    selected
-                      ? "border-primary-alpha-24 bg-primary-alpha-10 text-primary"
-                      : "border-stroke-soft-200 text-text-sub-600"
-                  )}
-                >
-                  {label}
-                </button>
-              );
-            })}
-          </div>
-          <div>
-            <label
-              className="block text-sm font-medium text-text-strong-950"
-              htmlFor="confirm-not-yet"
-            >
-              {formatMessage({ id: "app.confirm.notYet.label" })}
-            </label>
-            <textarea
-              id="confirm-not-yet"
-              value={draftReason}
-              rows={3}
-              maxLength={2000}
-              placeholder={formatMessage({ id: `app.confirm.notYet.placeholder.${cast}` })}
-              onChange={(event) => setDraftReason(event.target.value)}
-              className="mt-1.5 w-full rounded-[var(--radius-lg)] border border-stroke-soft-200 bg-bg-weak-50 p-3 text-sm text-text-strong-950"
-            />
-          </div>
-          {notYetFailed ? (
-            <Alert variant="warning" className="p-3">
-              {formatMessage({ id: "app.confirm.notYet.failed" })}
-            </Alert>
-          ) : !isOnline ? (
-            <Alert variant="warning" className="p-3">
-              <span className="flex items-start gap-2">
-                <RiWifiOffLine className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
-                {formatMessage({ id: "app.confirm.notYet.offline" })}
-              </span>
-            </Alert>
-          ) : (
-            <p className="text-xs text-text-soft-400">
-              {formatMessage({ id: "app.confirm.notYet.neverCancels" })}
-            </p>
-          )}
-          <button
-            type="button"
-            disabled={draftReason.trim().length === 0 || isPending || !isOnline}
-            aria-busy={isPending}
-            onClick={sendNotYet}
-            className="flex w-full items-center justify-center gap-2 rounded-[var(--radius-lg)] bg-primary-action px-4 py-3 text-sm font-medium text-primary-action-foreground tap-target-lg disabled:opacity-60"
-          >
-            {notYetFailed ? <RiRefreshLine className="h-4 w-4" aria-hidden="true" /> : null}
-            {formatMessage({
-              id: notYetFailed ? "app.confirm.notYet.retry" : "app.confirm.notYet.send",
-            })}
-          </button>
-          <button
-            type="button"
-            disabled={isPending}
-            onClick={() => setMode("ask")}
-            className="w-full rounded-[var(--radius-lg)] px-4 py-3 text-sm font-medium text-text-sub-600 tap-target-lg"
-          >
-            {formatMessage({ id: "app.confirm.notYet.back" })}
-          </button>
-        </div>
+        <ConfirmNotYet
+          cast={cast}
+          draftReason={draftReason}
+          setDraftReason={setDraftReason}
+          isOnline={isOnline}
+          isPending={isPending}
+          notYetFailed={notYetFailed}
+          onSend={sendNotYet}
+          onBack={() => setMode("ask")}
+        />
       ) : (
         <div className="space-y-4" data-component="ConfirmSheetAsk">
           <p className="text-sm text-text-sub-600">
@@ -363,66 +263,5 @@ export function ConfirmSheet({
         </div>
       )}
     </DialogShell>
-  );
-}
-
-function Meter({
-  done,
-  of,
-  includesThisDevice = false,
-}: {
-  done: number;
-  of: number;
-  includesThisDevice?: boolean;
-}) {
-  const { formatMessage } = useIntl();
-  const pct = of > 0 ? Math.round((Math.min(done, of) / of) * 100) : 0;
-  const label = formatMessage(
-    { id: includesThisDevice ? "app.confirm.meter.saved" : "app.confirm.meter.count" },
-    { done: Math.min(done, of), of }
-  );
-  return (
-    <div>
-      <div className="flex items-baseline justify-between text-xs text-text-sub-600">
-        <span>{formatMessage({ id: "app.confirm.meter.label" })}</span>
-        <span>{label}</span>
-      </div>
-      <div
-        className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-bg-weak-50"
-        role="progressbar"
-        aria-label={formatMessage({ id: "app.confirm.meter.label" })}
-        aria-valuenow={Math.min(done, of)}
-        aria-valuemin={0}
-        aria-valuemax={of}
-        aria-valuetext={label}
-      >
-        <div className="h-full rounded-full bg-primary-action" style={{ width: `${pct}%` }} />
-      </div>
-    </div>
-  );
-}
-
-/** Who confirmed it, and by which path. A fallback always carries its reason. */
-export function Provenance({ commitment }: { commitment: CommitmentReadModel }) {
-  const { formatMessage } = useIntl();
-  if (!commitment.fulfilledBy) return null;
-  const path = commitment.confirmationPath ?? "ORDINARY";
-  return (
-    <p
-      className="flex flex-wrap items-center gap-1 text-xs text-text-sub-600"
-      data-component="ConfirmProvenance"
-      data-path={path}
-    >
-      {formatMessage({ id: `app.confirm.provenance.${path}` })}
-      <AddressDisplay address={commitment.fulfilledBy} showCopyButton={false} />
-      {path !== "ORDINARY" && commitment.fallbackReason ? (
-        <span className="w-full">
-          {formatMessage(
-            { id: "app.confirm.provenance.reason" },
-            { reason: commitment.fallbackReason }
-          )}
-        </span>
-      ) : null}
-    </p>
   );
 }

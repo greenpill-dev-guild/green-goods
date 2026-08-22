@@ -23,6 +23,7 @@ import {
   trackStorageWarning,
 } from "./job-analytics";
 import { executeApprovalJob, executeCommitmentQueueJob, executeWorkJob } from "./job-executors";
+import { discardQueuedJob, retryQueuedJob } from "./job-recovery";
 import {
   COMMITMENT_JOB_KINDS,
   prepareCommitmentJobPayload,
@@ -303,16 +304,11 @@ class JobQueue {
       } else if (COMMITMENT_JOB_KINDS.includes(job.kind as (typeof COMMITMENT_JOB_KINDS)[number])) {
         const execution = await executeCommitmentQueueJob(jobId, job, chainId, sender);
         if (execution.status === "waiting") {
-          // The reason is kept on the record so a surface can say what the
-          // job is waiting for (a garden hat, a series, a gateway) rather than
-          // only that it waits.
+          // The reason stays on the record so a surface can say what it waits for.
+          const meta = { ...(job.meta ?? {}), waitingForDependency: true };
           await jobQueueDB.updateJob({
             ...job,
-            meta: {
-              ...(job.meta ?? {}),
-              waitingForDependency: true,
-              waitingReason: execution.reason,
-            },
+            meta: { ...meta, waitingReason: execution.reason },
             lastAttemptAt: Date.now(),
           });
           return { success: false, error: execution.reason, skipped: true };
@@ -480,32 +476,12 @@ class JobQueue {
     return result;
   }
 
-  /**
-   * Give a job that gave up another run of attempts. The record keeps its
-   * payload and identity, so a retry is the same act, not a second one; only
-   * the count and the last error are cleared, and the next flush picks it up.
-   */
-  async retryJob(jobId: string): Promise<void> {
-    const job = await jobQueueDB.getJob(jobId);
-    if (!job || job.synced) return;
-    const { lastError: _lastError, ...rest } = job;
-    await jobQueueDB.updateJob({
-      ...rest,
-      attempts: 0,
-      meta: { ...(job.meta ?? {}), waitingForDependency: false },
-    });
-    jobQueueEventBus.emit("job:added", { jobId, job: { ...rest, attempts: 0 } });
+  retryJob(jobId: string): Promise<void> {
+    return retryQueuedJob(jobId);
   }
 
-  /**
-   * Remove a job that never reached the chain, after an explicit choice. Only
-   * the local record goes; nothing remote exists yet.
-   */
-  async discardJob(jobId: string): Promise<void> {
-    const job = await jobQueueDB.getJob(jobId);
-    if (!job || job.synced) return;
-    await jobQueueDB.deleteJob(jobId);
-    jobQueueEventBus.emit("job:failed", { jobId, job, error: "discarded" });
+  discardJob(jobId: string): Promise<void> {
+    return discardQueuedJob(jobId);
   }
 
   async getStats(userAddress: string): Promise<QueueStats> {
@@ -532,30 +508,22 @@ class JobQueue {
     return subscribeToQueue(listener);
   }
 
-  /**
-   * Cleanup orphaned synced jobs that failed to delete.
-   */
+  /** Cleanup orphaned synced jobs that failed to delete. */
   async cleanupOrphanedSyncedJobs(): Promise<{ cleaned: number; failed: number }> {
     return this.maintenance.cleanupOrphanedSyncedJobs();
   }
 
-  /**
-   * Start periodic cleanup of orphaned synced jobs.
-   */
+  /** Start periodic cleanup of orphaned synced jobs. */
   startCleanupScheduler(intervalMs?: number): void {
     this.maintenance.startCleanupScheduler(intervalMs);
   }
 
-  /**
-   * Stop the periodic cleanup scheduler.
-   */
+  /** Stop the periodic cleanup scheduler. */
   stopCleanupScheduler(): void {
     this.maintenance.stopCleanupScheduler();
   }
 
-  /**
-   * Cleanup resources when queue is no longer needed
-   */
+  /** Cleanup resources when queue is no longer needed. */
   async cleanup(): Promise<void> {
     this.stopCleanupScheduler();
     await jobQueueDB.cleanup();

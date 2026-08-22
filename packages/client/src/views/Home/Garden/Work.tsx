@@ -13,9 +13,6 @@ import {
   shareWork,
   toastService,
   useActions,
-  useCommitment,
-  useCommitmentMetadataFor,
-  useCommitmentWorkAttributionsForWork,
   useGardenPermissions,
   useGardens,
   useNavigateToTop,
@@ -42,6 +39,7 @@ import { Button } from "@/components/Actions";
 import { WorkViewSkeleton } from "@/components/Features/Work";
 import { TopNav } from "@/components/Navigation";
 import { pwaDrawerStyles } from "@/styles/pwaDrawerStyles";
+import { WorkFulfills } from "./WorkFulfills";
 import { WorkViewSection } from "./WorkViewSection";
 
 export const GardenWork: React.FC = () => {
@@ -60,43 +58,6 @@ export const GardenWork: React.FC = () => {
   const { data: actions = [] } = useActions(chainId);
   const { works: mergedWorks } = useWorks(gardenId || "", { offline: true });
   const work = mergedWorks.find((w) => w.id === (workId || ""));
-
-  // The commitment this work fulfils, from the indexer's own attribution. The
-  // relationship is read here and never edited: the row only opens its other
-  // end. A work not yet on chain has no attribution to read.
-  const { attributions } = useCommitmentWorkAttributionsForWork({
-    chainId,
-    workUID: work?.id && isValidAttestationId(work.id) ? work.id : null,
-  });
-  const fulfilledAttribution = attributions.find((entry) => entry.linked) ?? null;
-  const { detail: fulfilledDetail } = useCommitment(
-    { chainId, commitmentId: fulfilledAttribution?.commitmentId ?? 0n },
-    { enabled: Boolean(fulfilledAttribution) }
-  );
-  const fulfilledMetadata = useCommitmentMetadataFor(fulfilledDetail?.commitment);
-  const fulfills = useMemo(() => {
-    if (!fulfilledAttribution) return null;
-    const commitment = fulfilledDetail?.commitment;
-    const name =
-      fulfilledMetadata?.title ??
-      (commitment?.unitLabel
-        ? intl.formatMessage(
-            { id: "app.commitments.row.units" },
-            { count: commitment.targetUnits.toString(), unit: commitment.unitLabel }
-          )
-        : intl.formatMessage({ id: "app.commitments.row.untitled" }));
-    return {
-      label: intl.formatMessage({ id: "app.work.fulfills.label" }),
-      value: intl.formatMessage(
-        { id: "app.work.fulfills.value" },
-        { name, row: fulfilledAttribution.requirementIndex + 1 }
-      ),
-      onOpen: () =>
-        navigateToTop(
-          `/home/${gardenId}/commitments/${fulfilledAttribution.commitmentId.toString()}`
-        ),
-    };
-  }, [fulfilledAttribution, fulfilledDetail, fulfilledMetadata, intl, navigateToTop, gardenId]);
 
   // Metadata loading (with retry support)
   const {
@@ -282,11 +243,9 @@ export const GardenWork: React.FC = () => {
     }
   };
 
+  const onChainWorkId = work?.id && isValidAttestationId(work.id) ? work.id : null;
   const handleViewAttestation = () => {
-    if (!work?.id || !isValidAttestationId(work.id)) {
-      return;
-    }
-    openEASExplorer(chainId, work.id);
+    if (onChainWorkId) openEASExplorer(chainId, onChainWorkId);
   };
 
   const handleBack = () => {
@@ -341,7 +300,7 @@ export const GardenWork: React.FC = () => {
       id: "app.home.work.unknownAction",
       defaultMessage: "Unknown Action",
     });
-  const canViewAttestation = Boolean(work?.id && isValidAttestationId(work.id));
+  const canViewAttestation = onChainWorkId !== null;
 
   // Retry footer for offline work
   const retryFooter =
@@ -670,7 +629,7 @@ export const GardenWork: React.FC = () => {
           onDownloadMedia={hasMedia ? handleDownloadMedia : undefined}
           onShare={handleShare}
           onViewAttestation={canViewAttestation ? handleViewAttestation : undefined}
-          fulfills={fulfills}
+          fulfills={<WorkFulfills chainId={chainId} workUID={onChainWorkId} gardenId={gardenId} />}
           footer={retryFooter || approvalFooter || successFooter}
           reserveFooterSpace={Boolean(retryFooter || approvalFooter || successFooter)}
           footerSpacerClassName="h-[calc(112px+env(safe-area-inset-bottom))]"

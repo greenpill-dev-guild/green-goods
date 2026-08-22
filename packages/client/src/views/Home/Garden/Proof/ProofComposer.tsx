@@ -14,25 +14,17 @@ import {
   useOffline,
   usePrimaryAddress,
 } from "@green-goods/shared";
-import {
-  RiCameraFill,
-  RiImageFill,
-  RiMicLine,
-  RiSearchLine,
-  RiStopFill,
-  RiWifiOffLine,
-} from "@remixicon/react";
+import { RiCameraFill, RiImageFill, RiMicLine, RiStopFill } from "@remixicon/react";
 import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate, useParams } from "react-router-dom";
 
-import { EmptyState, FormProgress } from "@/components/Communication";
 import { ImagePreviewDialog } from "@/components/Dialogs";
-import { TopNav } from "@/components/Navigation";
 import { pwaStatusStyles } from "@/styles/pwaStatusStyles";
 import { ProofDetails } from "./ProofDetails";
 import { ProofMedia } from "./ProofMedia";
 import { ProofReview } from "./ProofReview";
+import { ProofShell, ProofState } from "./ProofShell";
 
 const BEATS = ["media", "details", "review"] as const;
 type Beat = (typeof BEATS)[number];
@@ -219,66 +211,15 @@ export function ProofComposer() {
       : formatMessage({ id: "app.commitments.row.untitled" }));
 
   if (availability.status !== "available") {
-    return (
-      <Shell onBack={back} title={formatMessage({ id: "app.proof.title" })}>
-        <EmptyState
-          icon={<RiWifiOffLine />}
-          title={formatMessage({ id: "app.commitments.notReady.title" })}
-          description={formatMessage({ id: "app.commitments.notReady.description" })}
-        />
-      </Shell>
-    );
+    return <ProofState kind="unavailable" isOnline={isOnline} onBack={back} />;
   }
-
-  if (isLoading) {
-    return (
-      <Shell onBack={back} title={formatMessage({ id: "app.proof.title" })}>
-        <p className="text-xs text-text-soft-400" role="status">
-          {formatMessage({ id: "app.commitment.loading" })}
-        </p>
-      </Shell>
-    );
-  }
-
+  if (isLoading) return <ProofState kind="loading" isOnline={isOnline} onBack={back} />;
   // Proof belongs to the people doing the work. Anyone else who lands here
   // reads a plain answer rather than a form the chain would refuse.
   if (!detail || (seat !== "provider" && seat !== "contributor")) {
-    return (
-      <Shell onBack={back} title={formatMessage({ id: "app.proof.title" })}>
-        <EmptyState
-          icon={<RiSearchLine />}
-          title={formatMessage({ id: "app.proof.notYours.title" })}
-          description={formatMessage({ id: "app.proof.notYours.body" })}
-        />
-      </Shell>
-    );
+    return <ProofState kind="notYours" isOnline={isOnline} onBack={back} />;
   }
-
-  if (queued) {
-    return (
-      <Shell onBack={back} title={formatMessage({ id: "app.proof.title" })}>
-        <div className="flex flex-1 flex-col items-center justify-center gap-3 text-center">
-          <h1 className="text-lg font-medium text-text-strong-950">
-            {formatMessage({
-              id: isOnline ? "app.proof.queued.title" : "app.proof.queued.offlineTitle",
-            })}
-          </h1>
-          <p className="max-w-sm text-sm text-text-sub-600">
-            {formatMessage({
-              id: isOnline ? "app.proof.queued.body" : "app.proof.queued.offlineBody",
-            })}
-          </p>
-          <button
-            type="button"
-            onClick={back}
-            className="mt-2 rounded-[var(--radius-lg)] bg-primary-action px-4 py-3 text-sm font-medium text-primary-action-foreground tap-target-lg"
-          >
-            {formatMessage({ id: "app.proof.queued.back" })}
-          </button>
-        </div>
-      </Shell>
-    );
-  }
+  if (queued) return <ProofState kind="queued" isOnline={isOnline} onBack={back} />;
 
   const beatIndex = BEATS.indexOf(beat);
   const isReview = beat === "review";
@@ -288,9 +229,8 @@ export function ProofComposer() {
 
   return (
     <>
-      <Shell
+      <ProofShell
         onBack={() => (beatIndex === 0 ? back() : setBeat(BEATS[beatIndex - 1] as Beat))}
-        title={formatMessage({ id: "app.proof.title" })}
         progress={beatIndex + 1}
         bar={
           <div className="shrink-0 border-t border-stroke-soft-200 bg-bg-white-0 p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
@@ -395,7 +335,7 @@ export function ProofComposer() {
             isOnline={isOnline}
           />
         ) : null}
-      </Shell>
+      </ProofShell>
 
       <ImagePreviewDialog
         isOpen={previewIndex !== null}
@@ -404,42 +344,6 @@ export function ProofComposer() {
         initialIndex={previewIndex ?? 0}
       />
     </>
-  );
-}
-
-function Shell({
-  children,
-  onBack,
-  title,
-  progress,
-  bar,
-}: {
-  children: React.ReactNode;
-  onBack: () => void;
-  title: string;
-  progress?: number;
-  bar?: React.ReactNode;
-}) {
-  const { formatMessage } = useIntl();
-  const steps = [
-    formatMessage({ id: "app.proof.beat.media" }),
-    formatMessage({ id: "app.proof.beat.details" }),
-    formatMessage({ id: "app.compose.beat.review" }),
-  ];
-
-  return (
-    <div className="flex h-full min-h-0 w-full flex-col">
-      <TopNav onBackClick={onBack}>
-        {progress ? <FormProgress currentStep={progress} steps={steps} /> : null}
-      </TopNav>
-      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
-        <div className="flex flex-1 flex-col gap-4 p-4 pb-24">
-          <p className="text-xs font-medium uppercase tracking-wide text-text-soft-400">{title}</p>
-          {children}
-        </div>
-      </div>
-      {bar}
-    </div>
   );
 }
 

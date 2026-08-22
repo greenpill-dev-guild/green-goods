@@ -17,9 +17,8 @@ import {
   type CommitmentJobKind,
   type CommitmentJobPayloadMap,
   type CommitmentSeriesJobPayload,
-  type EvidenceJobPayload,
 } from "../commitment-pooling/jobs";
-import { buildCommitmentEvidenceDocument, evidenceMediaKind } from "../commitment-pooling/evidence";
+import { publishPendingEvidence } from "./evidence-publisher";
 import type { Address } from "../../types/domain";
 import {
   CommitmentPoolingModuleABI,
@@ -325,86 +324,6 @@ async function publishPendingCommitmentMetadata(
       return { published: false, reason: "metadata-unavailable", terminal: true };
     }
     return { published: false, reason: "metadata-unpublished" };
-  }
-}
-
-/**
- * Publish a piece of proof, if it was composed before it could be.
- *
- * The same contract as the metadata publish above, for the same reason: proof
- * is composed with no signal, so the job carries the words and the media, and
- * the CID has to exist before `attachEvidence` can be called with it. Media
- * uploads first, each becoming a CID the document names; then the document is
- * pinned and its CID written back to the stored job the moment it exists, so a
- * throw between here and the send cannot lose it.
- *
- * Failure is reported as waiting, never thrown: a dead gateway has nothing to do
- * with this proof and must not spend one of its five attempts. The attempts are
- * counted on their own, so a gateway that never returns still lets the job fail
- * once it has tried as many times as any other.
- */
-async function publishPendingEvidence(
-  jobId: string,
-  job: Job
-): Promise<{ published: true } | { published: false; reason: string; terminal?: boolean }> {
-  if (job.kind !== "evidence") return { published: true };
-  const payload = job.payload as EvidenceJobPayload;
-  if (payload.cid) return { published: true };
-
-  try {
-    const { uploadFileToIPFS, uploadJSONToIPFS } = await import("../data/ipfs/upload");
-    const files = (await jobQueueDB.getImagesForJob(jobId)).map((image) => image.file);
-    const audioFiles = files.filter((file) => file.type.startsWith("audio/"));
-    const mediaFiles = files.filter((file) => !file.type.startsWith("audio/"));
-    const context = { source: "commitment-evidence", gardenAddress: payload.gardenAddress };
-
-    const media = [];
-    for (const [index, file] of mediaFiles.entries()) {
-      const { cid } = await uploadFileToIPFS(file, {
-        ...context,
-        fileIndex: index,
-        totalFiles: mediaFiles.length,
-      });
-      media.push({ cid, mime: file.type, kind: evidenceMediaKind(file.type) });
-    }
-    const audio = [];
-    for (const [index, file] of audioFiles.entries()) {
-      const { cid } = await uploadFileToIPFS(file, {
-        ...context,
-        fileIndex: index,
-        totalFiles: audioFiles.length,
-      });
-      audio.push({ cid, mime: file.type });
-    }
-
-    const document = buildCommitmentEvidenceDocument({
-      note: payload.note,
-      links: (payload.links ?? []).map((url) => ({ url })),
-      media,
-      audio,
-    });
-    const { cid } = await uploadJSONToIPFS(document as unknown as Record<string, unknown>, {
-      ...context,
-      metadataType: "commitment-evidence",
-    });
-    payload.cid = cid;
-    await jobQueueDB.updateJob({ ...job, payload });
-    return { published: true };
-  } catch (error) {
-    const attempts = Number(job.meta?.evidenceAttempts ?? 0) + 1;
-    // Mutated, not replaced, for the same reason the metadata step does it:
-    // the caller rewrites the job on the waiting path with the meta it holds.
-    job.meta = { ...(job.meta ?? {}), evidenceAttempts: attempts };
-    await jobQueueDB.updateJob({ ...job });
-    logger.warn("[JobQueue] Commitment evidence publish failed", {
-      jobId: job.id,
-      attempts,
-      error: error instanceof Error ? error.message : String(error),
-    });
-    if (attempts >= MAX_METADATA_ATTEMPTS) {
-      return { published: false, reason: "evidence-unavailable", terminal: true };
-    }
-    return { published: false, reason: "evidence-unpublished" };
   }
 }
 

@@ -4,7 +4,6 @@ import {
   DEFAULT_CHAIN_ID,
   isCommitmentReasonPinError,
   selectCommitmentSeat,
-  StatusBadge,
   useActions,
   useCommitment,
   useCommitmentClaimRequests,
@@ -19,23 +18,20 @@ import {
   usePrimaryAddress,
   useWorks,
 } from "@green-goods/shared";
-import { RiGroupLine, RiRefreshLine, RiSearchLine, RiWifiOffLine } from "@remixicon/react";
 import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate, useParams } from "react-router-dom";
 
-import { presentState } from "@/components/Features/Commitments";
-import { EmptyState } from "@/components/Communication";
-import { TopNav } from "@/components/Navigation";
 import { type ClaimContext, ClaimContextSheet } from "./ClaimContextSheet";
 import { CommitmentActionBar } from "./CommitmentActionBar";
 import { canJoinTeam, selectCommitmentAct } from "./commitmentActions";
 import { CommitmentClaimPanel } from "./CommitmentClaimPanel";
-import { CommitmentPeople } from "./CommitmentPeople";
+import { CommitmentDetailShell, CommitmentDetailState } from "./CommitmentDetailShell";
+import { CommitmentIdentity } from "./CommitmentIdentity";
 import { CommitmentProgress } from "./CommitmentProgress";
 import { CommitmentTeam } from "./CommitmentTeam";
 import { CommitmentWork } from "./CommitmentWork";
-import { ConfirmSheet, Provenance } from "./ConfirmSheet";
+import { ConfirmSheet } from "./ConfirmSheet";
 import { LinkWorkDialog } from "./LinkWorkDialog";
 import { selectStatusBand } from "./statusBand";
 import { WithdrawDialog } from "./WithdrawDialog";
@@ -43,13 +39,6 @@ import { WithdrawDialog } from "./WithdrawDialog";
 /** ICommitmentPoolingModule.ClaimType: Garden = 0, Individual = 1. */
 const CLAIM_TYPE_GARDEN = 0;
 const CLAIM_TYPE_INDIVIDUAL = 1;
-
-const BAND_TONE_CLASS = {
-  neutral: "border-stroke-soft-200 bg-bg-weak-50",
-  waiting: "border-stroke-soft-200 bg-bg-weak-50",
-  attention: "border-warning-light bg-warning-lighter",
-  kept: "border-success-light bg-success-lighter",
-} as const;
 
 /**
  * One commitment, read by one person.
@@ -158,69 +147,17 @@ export function GardenCommitment() {
   // read is disabled, so there is no detail and no loading, and a not-found
   // branch tested first turns every deep link into "this does not exist".
   if (availability.status !== "available") {
-    return (
-      <DetailShell onBack={back}>
-        <EmptyState
-          icon={<RiWifiOffLine />}
-          title={formatMessage({ id: "app.commitments.notReady.title" })}
-          description={formatMessage({ id: "app.commitments.notReady.description" })}
-        />
-      </DetailShell>
-    );
+    return <CommitmentDetailState kind="unavailable" onBack={back} />;
   }
-
   if (!commitmentId || (!isLoading && !detail && !isError)) {
-    return (
-      <DetailShell onBack={back}>
-        <EmptyState
-          icon={<RiSearchLine />}
-          title={formatMessage({ id: "app.commitment.notFound.title" })}
-          description={formatMessage({ id: "app.commitment.notFound.body" })}
-        />
-      </DetailShell>
-    );
+    return <CommitmentDetailState kind="notFound" onBack={back} />;
   }
-
-  if (isLoading) {
-    return (
-      <DetailShell onBack={back}>
-        <div className="space-y-3" role="status">
-          <p className="text-xs text-text-soft-400">
-            {formatMessage({ id: "app.commitment.loading" })}
-          </p>
-          <div className="space-y-3 animate-pulse" aria-hidden="true">
-            <div className="h-20 rounded-[var(--radius-lg)] bg-bg-weak-50" />
-            <div className="h-32 rounded-[var(--radius-lg)] bg-bg-weak-50" />
-          </div>
-        </div>
-      </DetailShell>
-    );
-  }
-
+  if (isLoading) return <CommitmentDetailState kind="loading" onBack={back} />;
   if (isError || !detail) {
-    return (
-      <DetailShell onBack={back}>
-        <EmptyState
-          icon={<RiWifiOffLine />}
-          title={formatMessage({ id: "app.commitment.error.title" })}
-          description={formatMessage({ id: "app.commitment.error.body" })}
-          action={
-            <button
-              type="button"
-              onClick={() => void refetch()}
-              className="inline-flex items-center gap-2 rounded-[var(--radius-lg)] border border-stroke-soft-200 px-4 py-2 text-sm font-medium text-text-strong-950 tap-target-lg"
-            >
-              <RiRefreshLine className="h-4 w-4" aria-hidden="true" />
-              {formatMessage({ id: "app.commitments.retry" })}
-            </button>
-          }
-        />
-      </DetailShell>
-    );
+    return <CommitmentDetailState kind="error" onBack={back} onRetry={() => void refetch()} />;
   }
 
   const { commitment, contributors, requirements } = detail;
-  const state = presentState(commitment.derivedState);
   const band = selectStatusBand({ commitment, seat });
   const queueKey = commitment.commitmentId.toString();
   const hasPendingJob = queue.pendingCommitmentIds.has(queueKey);
@@ -311,7 +248,7 @@ export function GardenCommitment() {
 
   return (
     <>
-      <DetailShell
+      <CommitmentDetailShell
         onBack={back}
         title={heading}
         bar={
@@ -375,81 +312,15 @@ export function GardenCommitment() {
           </Alert>
         ) : null}
 
-        {band ? (
-          <section
-            className={`rounded-[var(--radius-lg)] border p-4 ${BAND_TONE_CLASS[band.tone]}`}
-            data-component="CommitmentStatusBand"
-            data-tone={band.tone}
-          >
-            <h2 className="text-sm font-medium text-text-strong-950">
-              {formatMessage({ id: band.titleId })}
-            </h2>
-            <p className="mt-1 text-sm leading-relaxed text-text-sub-600">
-              {formatMessage({ id: band.bodyId })}
-            </p>
-            {/* Once kept, who confirmed it and by which path. A fallback's news
-              is the path and its reason, which a halo cannot carry. */}
-            {commitment.derivedState === "FULFILLED" || commitment.derivedState === "RECONCILED" ? (
-              <div className="mt-2">
-                <Provenance commitment={commitment} />
-              </div>
-            ) : null}
-          </section>
-        ) : null}
-
-        {/* The identity card carries no title: the screen header already names
-          the commitment, and the card says where it stands and what it is
-          measured in. Name, then state, then facts, each said once. */}
-        <section className="rounded-[var(--radius-lg)] border border-stroke-soft-200 bg-bg-white-0 p-4">
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0">
-              {metadata?.title && units ? (
-                <p className="text-sm text-text-sub-600">{units}</p>
-              ) : null}
-              <p className="mt-0.5 text-xs text-text-soft-400">
-                {formatMessage({
-                  id:
-                    commitment.direction === "REQUEST"
-                      ? "app.commitments.direction.request"
-                      : "app.commitments.direction.offer",
-                })}
-              </p>
-            </div>
-            <StatusBadge size="sm" variant={state.tone}>
-              {formatMessage({ id: state.labelId })}
-            </StatusBadge>
-          </div>
-
-          {metadata?.note ? (
-            <p className="mt-3 text-sm leading-relaxed text-text-sub-600">{metadata.note}</p>
-          ) : null}
-          {metadata?.links && metadata.links.length > 0 ? (
-            <ul className="mt-2 space-y-1 text-sm">
-              {metadata.links.map((link) => (
-                <li key={link.url} className="truncate">
-                  <a
-                    href={link.url}
-                    target="_blank"
-                    rel="noreferrer noopener"
-                    className="text-primary underline-offset-2 hover:underline"
-                    title={link.url}
-                  >
-                    {link.label ?? link.url}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          ) : null}
-
-          <CommitmentPeople commitment={commitment} contributors={contributors} seat={seat} />
-
-          {joinable ? (
-            <p className="mt-3 flex items-center gap-2 text-xs text-text-sub-600">
-              <RiGroupLine className="h-4 w-4 shrink-0" aria-hidden="true" />
-              {formatMessage({ id: "app.commitment.team.openInvite" })}
-            </p>
-          ) : null}
-        </section>
+        <CommitmentIdentity
+          commitment={commitment}
+          contributors={contributors}
+          seat={seat}
+          band={band}
+          metadata={metadata}
+          units={units}
+          joinable={joinable}
+        />
 
         <CommitmentTeam
           commitment={commitment}
@@ -505,7 +376,7 @@ export function GardenCommitment() {
           onOpenWork={(workUID) => navigate(`../../work/${workUID}`, { relative: "path" })}
           onLink={(workUID, requirementIndex) => setLinkOpen({ workUID, requirementIndex })}
         />
-      </DetailShell>
+      </CommitmentDetailShell>
 
       <ClaimContextSheet
         open={contextOpen}
@@ -598,37 +469,6 @@ export function GardenCommitment() {
         }}
       />
     </>
-  );
-}
-
-function DetailShell({
-  children,
-  onBack,
-  title,
-  bar,
-}: {
-  children: React.ReactNode;
-  onBack: () => void;
-  title?: string;
-  bar?: React.ReactNode;
-}) {
-  // TopNav owns the back affordance only; it takes no title of its own, so the
-  // commitment names itself in its own heading rather than in a tooltip.
-  return (
-    <div className="flex h-full min-h-0 w-full flex-col">
-      <TopNav onBackClick={onBack} />
-      <div className="min-h-0 flex-1 overflow-y-auto">
-        <div className="space-y-4 p-4 pb-24">
-          {title ? (
-            <h1 className="truncate text-lg font-medium text-text-strong-950" title={title}>
-              {title}
-            </h1>
-          ) : null}
-          {children}
-        </div>
-      </div>
-      {bar}
-    </div>
   );
 }
 

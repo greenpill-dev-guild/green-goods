@@ -96,7 +96,8 @@ vi.mock("../../views/Home/Garden/WorkViewSection", () => ({
     return createElement(
       "div",
       { "data-testid": "work-view-mode" },
-      String(props.viewingMode ?? "")
+      String(props.viewingMode ?? ""),
+      props.fulfills as React.ReactNode
     );
   },
 }));
@@ -314,14 +315,9 @@ describe("Home garden work detail", () => {
     expect(mockUseAttributions).toHaveBeenCalledWith(
       expect.objectContaining({ workUID: "0x" + "ab".repeat(32) })
     );
-    const fulfills = mockWorkViewSectionProps.current?.fulfills as {
-      label: string;
-      value: string;
-      onOpen: () => void;
-    };
-    expect(fulfills.label).toBe("Fulfills");
-    expect(fulfills.value).toBe("Prune the north beds · row 2");
-    fulfills.onOpen();
+    const row = screen.getByRole("button", { name: /Prune the north beds · row 2/ });
+    expect(row).toHaveTextContent("Fulfills");
+    fireEvent.click(row);
     expect(mockNavigate).toHaveBeenCalledWith("/home/garden-1/commitments/9");
   });
 });
