@@ -386,3 +386,34 @@ on :3102 over the local Envio mirror (ledger flipped for the session, then rever
 - 2026-08-22 (UTC), `mise exec -- node scripts/dev/ci-local.js --quick --base faf05338e --no-fail-fast` @ `f36e222de`: every check green (shared 339 / 3886, client 91 / 813, admin 93 / 638, agent 24 / 265, source-structure, supply-chain) except `design-guardrails`, red on `check:design-generated` only (decision 7).
 - `build-storybook` @ `8cb94189b` green; `bun .plans/active/commitment-pooling/prototypes-artifact.build.ts`:
   44 screens / 523 states / 0 warnings.
+
+
+### Addendum — 2026-08-22, parent merge and the D1 PR
+
+The D1 PR opens against `feature/commitment-pooling-client-loop` (#749) rather than `develop`,
+at Afo's direction, so the diff stays admin + shared + plans. The parent was merged in first
+(`e7afb8844`); four things needed hands, recorded in that commit message: the `cycle-metadata.ts`
+import block, a `counterpartyKind` both lanes added (kept once), the two steward readers dropped
+by the client lane's newly demo-gated `data.ts` barrel (re-exported unwrapped, like activity —
+the console is an operator surface, not a member screen `?mockPooling=1` stands in for), and a
+story fixture whose trailing `...overrides` put the raw pool record back over the derived one.
+
+Two facts in `reports/admin-console-2026-08-21.md` are superseded by the merge, and the report
+stays as written:
+
+- **The admin typecheck is now real and clean.** `packages/admin` gained a `typecheck:source`
+  script (`tsc --noEmit -p tsconfig.app.json`) and the client lane cleared the pre-existing
+  errors, so the report's "611 pre-existing errors, zero in touched non-story files" is now
+  **0 errors in the package**, once the story-fixture bug above was fixed. That bug was real, not
+  a type nit: it only became visible because CI now type-checks admin.
+- **A new architecture gate arrived from `develop`**, `node scripts/quality/check-react-patterns.js`,
+  wired into the CI Gate by #750. It reports 0 violations across this lane's 100 files.
+
+Still open: decision 7. `check:design-generated` remains red on
+`docs/docs/builders/packages/client-pwa-token-audit.generated.md`; regenerating changes 95 rows,
+every one of them a `packages/client` path, so it is the client lane's artifact and this branch
+did not regenerate it.
+
+Proof on the merged tree (`e7afb8844`): shared 340 files / 3892 tests, admin 93 / 638, client
+92 / 814, root lint 0 errors, shared typecheck clean, admin `typecheck:source` clean,
+`check-react-patterns` clean.
