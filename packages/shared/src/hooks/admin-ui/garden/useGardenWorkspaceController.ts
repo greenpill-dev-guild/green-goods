@@ -31,7 +31,10 @@ export function useGardenWorkspaceController() {
   const { formatMessage } = useIntl();
   const navigate = useNavigate();
   const location = useLocation();
-  const { hypercertId } = useParams<{ hypercertId?: string }>();
+  const { hypercertId, commitmentId: poolCommitmentId } = useParams<{
+    hypercertId?: string;
+    commitmentId?: string;
+  }>();
   const { searchParams, updateSearch } = useCanvasSearchParams();
   const { selectedGarden, gardenOptions, handleSelectGarden } = useAdminGardenWorkspaceSelection();
   const { containerRef } = useSheetWidth();
@@ -44,6 +47,8 @@ export function useGardenWorkspaceController() {
 
   const view = resolveGardenView(location.pathname);
   const settingsOpen = location.pathname.startsWith("/garden/settings");
+  // The seeding console is a route-backed dialog over the Pool tab (§6.3).
+  const poolSeedOpen = location.pathname.startsWith("/garden/pool/seed");
   const range = parseGardenRange(searchParams.get("range"));
   const section = searchParams.get("section") ?? undefined;
   const selectedItem = searchParams.get("item") ?? undefined;
@@ -62,13 +67,15 @@ export function useGardenWorkspaceController() {
     setGardenWorkspaceState(gardenStateKey, "garden", {
       activeMode: view,
       filter: activityFilter,
-      selectedItem: selectedItem ?? hypercertId ?? null,
-      sheetOpen: Boolean(hypercertId) || settingsOpen,
+      selectedItem: selectedItem ?? hypercertId ?? poolCommitmentId ?? null,
+      sheetOpen: Boolean(hypercertId) || Boolean(poolCommitmentId) || settingsOpen || poolSeedOpen,
     });
   }, [
     activityFilter,
     gardenStateKey,
     hypercertId,
+    poolCommitmentId,
+    poolSeedOpen,
     selectedGarden,
     selectedItem,
     setGardenWorkspaceState,
@@ -107,7 +114,7 @@ export function useGardenWorkspaceController() {
   const { desktopActions } = useViewActions({
     actions: viewActions,
     isDesktop,
-    blocked: Boolean(hypercertId) || settingsOpen,
+    blocked: Boolean(hypercertId) || Boolean(poolCommitmentId) || settingsOpen || poolSeedOpen,
   });
 
   const openSection = useCallback(
@@ -208,6 +215,8 @@ export function useGardenWorkspaceController() {
     (nextView: string) => {
       if (nextView === "settings") {
         navigate(adminRoutes.gardenSettings({ gardenId: selectedGardenAddress }));
+      } else if (nextView === "pool") {
+        navigate(adminRoutes.gardenPool({ gardenId: selectedGardenAddress }));
       } else if (nextView === "impact") {
         navigate(adminRoutes.gardenImpact({ gardenId: selectedGardenAddress, range }));
       } else if (nextView === "activity") {
@@ -222,6 +231,12 @@ export function useGardenWorkspaceController() {
   const handleSettingsClose = useCallback(
     () => navigate(adminRoutes.gardenHealth({ gardenId: selectedGardenAddress, range })),
     [navigate, range, selectedGardenAddress]
+  );
+
+  // Closing the seed console or a commitment inspector lands back on the Pool tab.
+  const poolSheetCloseTo = useMemo(
+    () => adminRoutes.gardenPool({ gardenId: selectedGardenAddress }),
+    [selectedGardenAddress]
   );
 
   const hypercertSheetCloseTo = useMemo(
@@ -260,6 +275,9 @@ export function useGardenWorkspaceController() {
     garden,
     gardenOptions,
     hypercertSheetCloseTo,
+    poolCommitmentId,
+    poolSeedOpen,
+    poolSheetCloseTo,
     handleSelectGarden,
     handleSettingsClose,
     handleTabChange,

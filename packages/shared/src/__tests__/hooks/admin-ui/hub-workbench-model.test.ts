@@ -53,6 +53,40 @@ describe("buildHubStageModel stageCounts", () => {
     expect(stageCounts.assess).toBe(2);
     expect(stageCounts.certify).toBe(1);
   });
+
+  it("counts the Confirm stage from the confirmation queue and shows it only to a steward", () => {
+    const steward = buildHubStageModel({
+      ...baseInput,
+      canConfirm: true,
+      confirmCount: 3,
+      works: [],
+      assessments: [],
+      hypercerts: [],
+    });
+    expect(steward.stageCounts.confirm).toBe(3);
+    expect(steward.stageVisibility.confirm).toBe(true);
+    expect(steward.stages.map((stage) => stage.id)).toEqual([
+      "work",
+      "assess",
+      "certify",
+      "confirm",
+      "history",
+    ]);
+
+    const evaluator = buildHubStageModel({
+      ...baseInput,
+      canManage: false,
+      canConfirm: false,
+      confirmCount: 3,
+      requestedStage: "confirm",
+      works: [],
+      assessments: [],
+      hypercerts: [],
+    });
+    expect(evaluator.stageVisibility.confirm).toBe(false);
+    // A stage the reader cannot see clamps to a visible one, never to an empty Confirm.
+    expect(evaluator.stage).not.toBe("confirm");
+  });
 });
 
 /**

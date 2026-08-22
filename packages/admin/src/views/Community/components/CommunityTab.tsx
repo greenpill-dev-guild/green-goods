@@ -43,7 +43,7 @@ import { SectionStateCard } from "@/views/Garden/components/GardenDetailHelpers"
 import { GovernancePanel } from "./GovernancePanel";
 
 export interface CommunityTabProps {
-  mode: "members" | "coordination" | "endowment" | "payouts";
+  mode: "members" | "coordination" | "endowment" | "payouts" | "pools";
   garden: { id: string; name: string };
   gardenId: string;
   canManage: boolean;

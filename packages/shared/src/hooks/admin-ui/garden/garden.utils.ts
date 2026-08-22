@@ -76,11 +76,13 @@ export function buildGardenHeaderStats({
  * deep links, but it opens as a dialog over the Health view rather than taking
  * a tab slot.
  */
-export type GardenWorkspaceView = "health" | "impact" | "activity";
+export type GardenWorkspaceView = "health" | "impact" | "activity" | "pool";
 
 export function resolveGardenView(pathname: string): GardenWorkspaceView {
   if (pathname.startsWith("/garden/activity")) return "activity";
   if (pathname.startsWith("/garden/impact")) return "impact";
+  // The pool console and its seed / commitment inspectors all sit on the Pool tab.
+  if (pathname.startsWith("/garden/pool")) return "pool";
   return "health";
 }
 

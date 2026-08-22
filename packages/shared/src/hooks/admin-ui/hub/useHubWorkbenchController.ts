@@ -16,6 +16,9 @@ import {
   useViewActions,
 } from "@green-goods/shared";
 import { useLocalizedRelativeTime } from "../../app/useLocalizedRelativeTime";
+import { usePrimaryAddress } from "../../auth/usePrimaryAddress";
+import { useCurrentChain } from "../../blockchain/useChainConfig";
+import { useCommitmentsToConfirm } from "../../commitment-pooling/useCommitmentsToConfirm";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
@@ -54,10 +57,12 @@ export function useHubWorkbenchController() {
     workId: routedWorkIdParam,
     assessmentId: routedAssessmentIdParam,
     historyEventId: routedHistoryEventIdParam,
+    commitmentId: routeCommitmentId,
   } = useParams<{
     workId?: string;
     assessmentId?: string;
     historyEventId?: string;
+    commitmentId?: string;
   }>();
   const { searchParams, updateSearch } = useCanvasSearchParams();
   const { activeSheet, activeContentId, closeSheet, openSheet } = useSheetOrchestrator();
@@ -132,6 +137,13 @@ export function useHubWorkbenchController() {
   const canCertify = canReview;
   const canBrowseHistory = canManage || canReview;
 
+  // The Confirm stage (uiux-spec §6.9): what the reader's gardens must
+  // confirm, plus the fallback rows only a steward can still confirm. Spans
+  // the reader's stewarded gardens rather than the selected one.
+  const chainId = useCurrentChain();
+  const viewer = usePrimaryAddress() ?? undefined;
+  const toConfirm = useCommitmentsToConfirm({ chainId, viewer });
+
   const { stage, stages, stageCounts } = useMemo(
     () =>
       buildHubStageModel({
@@ -140,6 +152,8 @@ export function useHubWorkbenchController() {
         canAssess,
         canCertify,
         canBrowseHistory,
+        canConfirm: toConfirm.isSteward,
+        confirmCount: toConfirm.count,
         works,
         assessments,
         hypercerts,
@@ -152,6 +166,8 @@ export function useHubWorkbenchController() {
       canManage,
       hypercerts,
       requestedStage,
+      toConfirm.count,
+      toConfirm.isSteward,
       works,
     ]
   );
@@ -309,6 +325,18 @@ export function useHubWorkbenchController() {
     closeSheet();
   }, [closeSheet]);
 
+  // The Confirm stage opens a commitment in place (/hub/confirm/:commitmentId)
+  // and closing returns to the queue, the way the other stages deep-link.
+  const handleOpenCommitment = useCallback(
+    (commitmentId: string) => {
+      navigate(adminRoutes.hubConfirmDetail(commitmentId, hubContext));
+    },
+    [hubContext, navigate]
+  );
+  const handleCloseCommitment = useCallback(() => {
+    navigate(adminRoutes.hubConfirm(hubContext));
+  }, [hubContext, navigate]);
+
   const handleOpenWorkDetail = useCallback(
     (workId: string) => {
       navigate(adminRoutes.hubWorkDetail(workId, hubContext));
@@ -386,6 +414,7 @@ export function useHubWorkbenchController() {
     pendingWorks: pendingWorks.length,
     assessmentQueue: assessmentQueue.length,
     certificationQueue: certificationQueue.length,
+    confirmQueue: toConfirm.count,
     historyEvents: historyEvents.length,
   });
 
@@ -447,13 +476,18 @@ export function useHubWorkbenchController() {
     assessmentQueue,
     canManage,
     certificationQueue,
+    chainId,
+    toConfirm,
+    viewer,
     debouncedSearch,
     desktopActions,
     fetchingAssessments,
     gardenOptions,
     handleClearSearch,
+    handleCloseCommitment,
     handleCloseSheet,
     handleOpenCertification,
+    handleOpenCommitment,
     handleOpenHistoryEvent,
     handleOpenWorkDetail,
     handleRefresh,
@@ -474,6 +508,7 @@ export function useHubWorkbenchController() {
     routeSheetContentId,
     routeSheetCloseTo,
     routeCertificationId,
+    routeCommitmentId,
     routeHistoryEventId,
     routeWorkId,
     searchPlaceholder,

@@ -167,7 +167,9 @@ export function useCommunityWorkspaceController() {
             ? adminRoutes.communityEndowment({ gardenId: selectedGardenAddress })
             : nextMode === "payouts"
               ? adminRoutes.communityPayouts({ gardenId: selectedGardenAddress })
-              : adminRoutes.communityMembers({ gardenId: selectedGardenAddress })
+              : nextMode === "pools"
+                ? adminRoutes.communityPools({ gardenId: selectedGardenAddress })
+                : adminRoutes.communityMembers({ gardenId: selectedGardenAddress })
       ),
     [navigate, selectedGardenAddress]
   );
@@ -181,7 +183,9 @@ export function useCommunityWorkspaceController() {
             ? adminRoutes.communityPayouts({ gardenId: selectedGardenAddress })
             : mode === "members"
               ? adminRoutes.communityMembers({ gardenId: selectedGardenAddress })
-              : adminRoutes.communityEndowment({ gardenId: selectedGardenAddress })
+              : mode === "pools"
+                ? adminRoutes.communityPools({ gardenId: selectedGardenAddress })
+                : adminRoutes.communityEndowment({ gardenId: selectedGardenAddress })
       ),
     [mode, navigate, selectedGardenAddress]
   );
