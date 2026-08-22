@@ -158,13 +158,13 @@ describe("queryKeys", () => {
       gardenerAddress: "0xABCDEF1234567890ABCDEF1234567890ABCDEF12" as Address,
       searchQuery: "  restoration  ",
       startDate: new Date("2026-01-01T00:00:00.000Z"),
-      domain: 2,
+      domain: "education",
     };
     const filtersB: AttestationFilters = {
       gardenerAddress: "0xabcdef1234567890abcdef1234567890abcdef12" as Address,
       searchQuery: "restoration",
       startDate: new Date("2026-01-01T00:00:00.000Z"),
-      domain: 2,
+      domain: "education",
     };
 
     const keyA = queryKeys.hypercerts.attestations(TEST_GARDEN, filtersA);

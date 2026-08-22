@@ -27,8 +27,8 @@ const mockFormState = {
   bannerImage: "",
   metadata: "",
   openJoining: false,
-  gardeners: [],
-  operators: [],
+  gardeners: [] as string[],
+  operators: [] as string[],
 };
 
 let mockStoreState = {
@@ -36,15 +36,15 @@ let mockStoreState = {
   currentStep: 0,
 };
 
-const mockSetState = vi.fn();
+const mockSetState = vi.fn((..._args: unknown[]) => undefined);
 const mockGetState = vi.fn(() => mockStoreState);
-const mockSubscribe = vi.fn(() => vi.fn()); // returns unsubscribe
+const mockSubscribe = vi.fn((_listener: unknown) => vi.fn()); // returns unsubscribe
 
 vi.mock("../../../stores/useCreateGardenStore", () => ({
   useCreateGardenStore: Object.assign(vi.fn(), {
     setState: (...args: unknown[]) => mockSetState(...args),
     getState: () => mockGetState(),
-    subscribe: (listener: any) => mockSubscribe(listener),
+    subscribe: (listener: unknown) => mockSubscribe(listener),
   }),
 }));
 

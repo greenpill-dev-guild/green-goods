@@ -4,6 +4,7 @@
 
 import { QueryClientProvider } from "@tanstack/react-query";
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
+import type { ComponentProps } from "react";
 import { IntlProvider } from "react-intl";
 import { RouterProvider, createMemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -13,13 +14,13 @@ import {
   queryKeys,
   useAdminStore,
   useHypercertWizardStore,
-  type AuthContextType,
   type Garden,
 } from "@green-goods/shared";
 import { createTestQueryClient } from "@green-goods/shared/testing";
 import CreateHypercert from "@/views/Hub/CreateHypercert";
 
 const OPERATOR = "0x9999999999999999999999999999999999999999";
+type AuthContextValue = NonNullable<ComponentProps<typeof AuthContext.Provider>["value"]>;
 
 const SELECTED_GARDEN: Garden = {
   id: "0x1111111111111111111111111111111111111111",
@@ -49,7 +50,7 @@ vi.mock("wagmi", () => ({
   useWalletClient: () => ({ data: undefined }),
 }));
 
-const authContextValue: AuthContextType = {
+const authContextValue: AuthContextValue = {
   authMode: "wallet",
   isReady: true,
   isAuthenticated: true,

@@ -70,6 +70,7 @@ function createMockPublicClient() {
   return {
     readContract: vi.fn(),
     getLogs: vi.fn(),
+    getBlock: vi.fn(),
     multicall: vi.fn(),
   };
 }

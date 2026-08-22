@@ -122,6 +122,11 @@ set. If the selector command is unavailable or fails, use the Validation Intent 
 directly and report the selector problem; selector failure is never permission to omit a required
 check or critical override.
 
+For QA and checkpoint plans, inspect `selectedBy`. If routine test, story, or workspace-importer
+changes select an unrelated package suite or omit their direct acceptance check, run the targeted
+acceptance proof and report the selector defect instead of starting the unrelated suite. Never use
+this guard to downgrade a critical override or readiness, push, ship, merge, or release intent.
+
 Every check you execute must have a named **risk**, **expected signal**, **freshness rule**, and
 **stopping condition**. A passing receipt is reusable only when its source inputs, validation
 entrypoint, policy, toolchain, environment profile, and validated paths still match. Never reuse a

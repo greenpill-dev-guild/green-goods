@@ -117,6 +117,7 @@ vi.mock("../../config/query-keys", () => ({
 
 import * as wagmiCore from "@wagmi/core";
 import type { WalletClient } from "viem";
+import type { WorkApprovalDraft, WorkDraft } from "../../types/domain";
 
 import {
   submitApprovalDirectly,
@@ -151,8 +152,8 @@ describe("wallet-submission", () => {
       actionUID: 123,
       title: "Test Work",
       feedback: "Test feedback",
-      plantSelection: ["plant1", "plant2"],
-      plantCount: 10,
+      timeSpentMinutes: 10,
+      details: { plantSelection: ["plant1", "plant2"], plantCount: 10 },
       media: [],
     };
 

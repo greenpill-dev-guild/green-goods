@@ -171,6 +171,7 @@ describe("useActionOperations", () => {
         error: {
           name: "SimulationError",
           message: "Transaction would revert",
+          raw: "simulation-error",
         },
       });
 

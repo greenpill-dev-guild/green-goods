@@ -136,7 +136,7 @@ describe("useBaseLists", () => {
       const query = queryClient.getQueryCache().find({
         queryKey: ["greengoods", "actions", 11155111],
       });
-      expect(query?.options.staleTime).toBe(60_000);
+      expect((query?.options as { staleTime?: number }).staleTime).toBe(60_000);
     });
 
     it("provides empty array as placeholder data", async () => {

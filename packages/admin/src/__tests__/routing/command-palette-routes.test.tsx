@@ -7,7 +7,6 @@
  * garden selection, and toggles with Cmd+K.
  */
 
-import React from "react";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { act, renderWithProviders, screen, fireEvent, waitFor } from "../test-utils";

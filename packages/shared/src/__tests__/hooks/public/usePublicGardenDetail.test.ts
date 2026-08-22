@@ -34,7 +34,7 @@ const mockEasConfig = vi.fn(() => ({
 }));
 vi.mock("../../../config/blockchain", () => ({
   DEFAULT_CHAIN_ID: 11155111,
-  getEASConfig: (...args: unknown[]) => mockEasConfig(...args),
+  getEASConfig: () => mockEasConfig(),
 }));
 
 import { usePublicGardenDetail } from "../../../hooks/public/usePublicGardenDetail";
@@ -107,8 +107,8 @@ describe("usePublicGardenDetail", () => {
       expect(result.current.isSuccess).toBe(true);
     });
 
-    expect(result.current.data?.garden.id).toBe(garden.id);
-    expect(result.current.data?.garden.name).toBe("Riparian Restoration");
+    expect(result.current.data?.garden?.id).toBe(garden.id);
+    expect(result.current.data?.garden?.name).toBe("Riparian Restoration");
   });
 
   it("resolves a garden by slug derived from name", async () => {
@@ -127,7 +127,7 @@ describe("usePublicGardenDetail", () => {
       expect(result.current.isSuccess).toBe(true);
     });
 
-    expect(result.current.data?.garden.id).toBe(garden.id);
+    expect(result.current.data?.garden?.id).toBe(garden.id);
   });
 
   it("returns null garden when no match is found", async () => {

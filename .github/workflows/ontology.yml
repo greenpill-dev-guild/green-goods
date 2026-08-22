@@ -5,6 +5,10 @@ on:
     branches: [main, develop]
     paths:
       - "packages/shared/src/**"
+      - "!packages/shared/src/**/__tests__/**"
+      - "!packages/shared/src/**/*.test.*"
+      - "!packages/shared/src/**/*.spec.*"
+      - "!packages/shared/src/**/*.stories.*"
       - "packages/contracts/src/**"
       - "packages/contracts/deployments/**"
       - "packages/contracts/config/schemas.json"
@@ -39,6 +43,10 @@ on:
   pull_request:
     paths:
       - "packages/shared/src/**"
+      - "!packages/shared/src/**/__tests__/**"
+      - "!packages/shared/src/**/*.test.*"
+      - "!packages/shared/src/**/*.spec.*"
+      - "!packages/shared/src/**/*.stories.*"
       - "packages/contracts/src/**"
       - "packages/contracts/deployments/**"
       - "packages/contracts/config/schemas.json"

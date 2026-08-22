@@ -93,6 +93,7 @@ import { usePrimaryAddress } from "../../hooks/auth/usePrimaryAddress";
 import { useUser } from "../../hooks/auth/useUser";
 import { useTransactionSender } from "../../hooks/blockchain/useTransactionSender";
 import { jobQueue } from "../../modules/job-queue";
+import type { QueueEvent } from "@green-goods/shared/types";
 import {
   JobQueueProvider,
   useJobQueue,
@@ -101,13 +102,7 @@ import {
 } from "../../providers/JobQueue";
 
 // Type helpers for mocked functions
-const mockJobQueue = jobQueue as {
-  getStats: ReturnType<typeof vi.fn>;
-  flush: ReturnType<typeof vi.fn>;
-  subscribe: ReturnType<typeof vi.fn>;
-  hasPendingJobs: ReturnType<typeof vi.fn>;
-  getPendingCount: ReturnType<typeof vi.fn>;
-};
+const mockJobQueue = vi.mocked(jobQueue);
 const mockUseAuth = useAuth as ReturnType<typeof vi.fn>;
 const mockUseUser = useUser as ReturnType<typeof vi.fn>;
 const mockUsePrimaryAddress = usePrimaryAddress as ReturnType<typeof vi.fn>;
@@ -306,8 +301,8 @@ describe("providers/JobQueueProvider", () => {
     });
 
     it("invalidates recipient-scoped approval reads when an approval job completes", async () => {
-      let subscribedHandler: ((event: unknown) => void) | undefined;
-      mockJobQueue.subscribe.mockImplementation((handler: (event: unknown) => void) => {
+      let subscribedHandler: ((event: QueueEvent) => void) | undefined;
+      mockJobQueue.subscribe.mockImplementation((handler: (event: QueueEvent) => void) => {
         subscribedHandler = handler;
         return vi.fn();
       });
@@ -317,14 +312,25 @@ describe("providers/JobQueueProvider", () => {
       await act(async () => {
         subscribedHandler?.({
           type: "job_completed",
+          jobId: "approval-job-1",
           txHash: "0xabc",
           job: {
+            id: "approval-job-1",
             kind: "approval",
             chainId: 11155111,
             payload: {
+              actionUID: 1,
               workUID: "work-1",
+              gardenAddress: "0xgarden",
+              gardenerAddress: "0xgardener",
               approved: true,
+              confidence: 1,
+              verificationMethod: 1,
             },
+            createdAt: Date.now(),
+            attempts: 0,
+            synced: true,
+            userAddress: "0xuser",
           },
         });
         await Promise.resolve();

@@ -5,6 +5,7 @@
 import { QueryClientProvider } from "@tanstack/react-query";
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { get as idbGet } from "idb-keyval";
+import type { ComponentProps } from "react";
 import { IntlProvider } from "react-intl";
 import { RouterProvider, createMemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -14,7 +15,6 @@ import {
   queryKeys,
   useAdminStore,
   useCreateAssessmentStore,
-  type AuthContextType,
   type Garden,
 } from "@green-goods/shared";
 import { createTestQueryClient } from "@green-goods/shared/testing";
@@ -25,6 +25,7 @@ const createAssessmentControllerOverride = vi.hoisted(() => ({
 }));
 
 const OPERATOR = "0x9999999999999999999999999999999999999999";
+type AuthContextValue = NonNullable<ComponentProps<typeof AuthContext.Provider>["value"]>;
 
 const SELECTED_GARDEN: Garden = {
   id: "0x1111111111111111111111111111111111111111",
@@ -65,7 +66,7 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
   };
 });
 
-const authContextValue: AuthContextType = {
+const authContextValue: AuthContextValue = {
   authMode: "wallet",
   isReady: true,
   isAuthenticated: true,

@@ -245,7 +245,7 @@ describe("hooks/greenwill", () => {
     });
 
     await act(async () => {
-      await result.current.mutateAsync();
+      await result.current.mutateAsync(undefined);
     });
 
     expect(mockSendContractCall).toHaveBeenCalledWith(

@@ -12,7 +12,7 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { createActor, fromPromise, setup } from "xstate";
+import { createActor, fromPromise } from "xstate";
 
 import { trackAuthPasskeyLoginFailed } from "../../modules/app/analytics-events";
 
@@ -247,51 +247,14 @@ async function invokeService<TOutput, TInput>(
   input: TInput
 ): Promise<TOutput> {
   return new Promise((resolve, reject) => {
-    const testMachine = setup({
-      types: {
-        context: {} as { result: TOutput | null; error: unknown },
-        events: {} as { type: "done" },
-      },
-      actors: { testService: service },
-    }).createMachine({
-      id: "test",
-      initial: "running",
-      context: { result: null, error: null },
-      states: {
-        running: {
-          invoke: {
-            src: "testService",
-            input: () => input,
-            onDone: {
-              target: "done",
-              actions: ({ context, event }) => {
-                context.result = event.output;
-              },
-            },
-            onError: {
-              target: "error",
-              actions: ({ context, event }) => {
-                context.error = event.error;
-              },
-            },
-          } as any,
-        },
-        done: { type: "final" },
-        error: { type: "final" },
-      },
-    });
-
-    const actor = createActor(testMachine);
+    const actor = createActor(service, { input });
 
     actor.subscribe({
-      complete: () => {
-        const snapshot = actor.getSnapshot();
-        if (snapshot.matches("error")) {
-          reject(snapshot.context.error);
-        } else {
-          resolve(snapshot.context.result as TOutput);
-        }
+      next: (snapshot) => {
+        if (snapshot.status === "done") resolve(snapshot.output);
+        if (snapshot.status === "error") reject(snapshot.error);
       },
+      error: reject,
     });
 
     actor.start();
@@ -547,7 +510,7 @@ describe("workflows/authServices (Pimlico Server Flow)", () => {
       });
 
       expect(result.smartAccountClient).toBeDefined();
-      expect(result.smartAccountClient.account.address).toBe(MOCK_SMART_ACCOUNT_ADDRESS);
+      expect(result.smartAccountClient.account?.address).toBe(MOCK_SMART_ACCOUNT_ADDRESS);
     });
   });
 
@@ -895,6 +858,7 @@ describe("workflows/authServices (Pimlico Server Flow)", () => {
       };
       const credentialId = webAuthnRequest.publicKey?.allowCredentials?.[0]?.id;
       expect(credentialId).toBeInstanceOf(ArrayBuffer);
+      if (!credentialId) throw new Error("Expected a WebAuthn credential ID");
       expect(Array.from(new Uint8Array(credentialId))).toEqual([0xde, 0xad, 0xbe, 0xef]);
     });
 
