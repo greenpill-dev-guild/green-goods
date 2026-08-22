@@ -95,7 +95,9 @@ export const Garden: React.FC = () => {
     isError: gardensError,
     refetch: refetchGardens,
   } = useGardens(chainId);
-  const garden = allGardens.find((g) => g.id === gardenIdParam);
+  // Addresses arrive in either case: the list is checksummed, the indexer's
+  // pool and work rows are lowercase, and a link may be typed. One garden.
+  const garden = allGardens.find((g) => g.id.toLowerCase() === gardenIdParam?.toLowerCase());
   const gardenStatus: "error" | "success" | "pending" = gardensError
     ? "error"
     : garden

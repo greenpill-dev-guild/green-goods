@@ -53,9 +53,14 @@ export const CommitmentsDrawer: React.FC<CommitmentsDrawerProps> = ({ isOpen, on
   const openCommitment = useCallback(
     (gardenAddress: string, commitmentId: bigint) => {
       onClose();
-      navigate(`/home/${gardenAddress}/commitments/${commitmentId.toString()}`);
+      // The pool names its garden in lowercase; the route is happier with the
+      // garden's own id when the list has it.
+      const canonical =
+        gardens.find((garden) => garden.id.toLowerCase() === gardenAddress.toLowerCase())?.id ??
+        gardenAddress;
+      navigate(`/home/${canonical}/commitments/${commitmentId.toString()}`);
     },
-    [onClose, navigate]
+    [onClose, navigate, gardens]
   );
 
   const tabs: ModalDrawerTab[] = [

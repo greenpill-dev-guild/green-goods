@@ -258,6 +258,20 @@ describe("GardenPool", () => {
     ).toBeInTheDocument();
   });
 
+  it("says why a pool is paused even when it holds nothing yet", () => {
+    mockUseReason.mockReturnValue({
+      reason: { version: 1, reason: "Flooding on the lower terraces" },
+      isLoading: false,
+      isUnavailable: false,
+    });
+
+    render(<GardenPool pool={pool({ state: "PAUSED", pauseReasonCID: "bafy-pause" })} />);
+
+    expect(screen.getByText(/paused this pool/i)).toBeInTheDocument();
+    expect(screen.getByText("Why: Flooding on the lower terraces")).toBeInTheDocument();
+    expect(screen.getByText("No commitments yet")).toBeInTheDocument();
+  });
+
   it("says a paused pool resumes and loses nothing, above a still-readable list", () => {
     mockUseCommitments.mockReturnValue(commitmentsResult({ commitments: [commitment()] }));
 
