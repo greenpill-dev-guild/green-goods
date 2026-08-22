@@ -1,7 +1,7 @@
 /** @vitest-environment jsdom */
 
 import { act } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { queryKeys } from "../config/query-keys";
 import {
@@ -88,6 +88,11 @@ describe("useCommitmentPoolMutation", () => {
     mocks.senderAvailable = true;
     mocks.moduleAddress = MODULE;
     mocks.sender.sendContractCall.mockResolvedValue({ hash: "0xabc" });
+    window.sessionStorage.clear();
+  });
+
+  afterEach(() => {
+    window.sessionStorage.clear();
   });
 
   const actions: Array<{ input: CommitmentPoolMutationInput; args: readonly unknown[] }> = [
@@ -219,6 +224,16 @@ describe("useCommitmentPoolMutation", () => {
         mocks.moduleAddress = "0x0000000000000000000000000000000000000000";
       },
       message: "Commitment Pooling is not deployed on this chain",
+    },
+    {
+      // Demo mode answers every read from fixtures, availability included, but
+      // the sender stays real: a lifecycle act composed against a fixture pool
+      // id would otherwise reach whichever real pool carries that number.
+      name: "demo pooling mode",
+      configure: () => {
+        window.sessionStorage.setItem("greengoods_dev_mock_pooling", "1");
+      },
+      message: "Commitment Pooling is in demo mode; this act is not sent",
     },
   ])("fails closed for $name and reports mutation context", async ({ configure, message }) => {
     configure();

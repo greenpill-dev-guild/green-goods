@@ -55,6 +55,9 @@ export const commitmentPoolingKeys = {
   evidence: (cid: string) => ["greengoods", "commitment-pooling", "evidence", cid] as const,
   cycleMetadata: (cid: string) =>
     ["greengoods", "commitment-pooling", "cycle-metadata", cid] as const,
+  /** Chain-free like the other document keys: the same CID is the same bytes. */
+  poolCharter: (cid: string | null) =>
+    ["greengoods", "commitment-pooling", "pool-charter", cid] as const,
   workAttributions: (chainId: number, workUID: string | null) =>
     [...commitmentPoolingKeys.all(chainId), "work-attributions", workUID] as const,
   linkedWorks: (chainId: number, workUIDs: readonly string[]) =>

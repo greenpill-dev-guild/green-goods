@@ -11,8 +11,12 @@
  * unlanded call goes out. Nothing already recorded is written twice.
  *
  * The sequence holds the seeded cycle id from the seeding receipt for the
- * `openCycle` that follows; every other judgement is a fresh read. The
- * indexer keys are invalidated when the run ends, whichever way it ended.
+ * `openCycle` that follows; every other judgement is a fresh read. A read that
+ * throws stops the run like any other failure rather than escaping, so the
+ * console never sits stuck on `running`. Seeding is the exception to the retry
+ * rule: no later read can tell this run's cycle from any other, so once a
+ * `seedCycle` outcome is unknown the run fails closed instead of seeding again.
+ * The indexer keys are invalidated when the run ends, whichever way it ended.
  *
  * @module hooks/commitment-pooling/useCommitmentPoolSetupSequence
  */
@@ -34,6 +38,7 @@ import {
   type PoolSetupFailure,
   type PoolSetupRunContext,
   type PoolSetupStep,
+  type PoolStepVerdict,
   stepToCall,
 } from "../../modules/commitment-pooling/pool-setup";
 import type { Address } from "../../types/domain";
@@ -117,6 +122,11 @@ export function useCommitmentPoolSetupSequence(
   // The seeded id survives across retries within one sequence: the receipt
   // named it once and the chain still holds the cycle.
   const cycleIdRef = useRef<bigint | null>(null);
+  // Set when a `seedCycle` went out and this sequence could not learn whether
+  // it landed. It also survives retries: the ambiguity does not clear by
+  // asking again, and only `reset()` (a fresh open of the flow, after the
+  // console has refetched the pool) lifts it.
+  const seedUnconfirmedRef = useRef(false);
 
   const run = useCallback(
     async (steps: PoolSetupStep[]): Promise<PoolSetupOutcome> => {
@@ -151,6 +161,28 @@ export function useCommitmentPoolSetupSequence(
         };
         publish({ status: "failed", failedStep, failure, error });
         return outcome;
+      };
+      /**
+       * A chain read that threw stops the run like any other failure. Letting
+       * it escape would leave the sequence `running`, which in the console
+       * disables every control and blocks the close, even where earlier writes
+       * already landed. Nothing was sent, so the landed list still stands and
+       * the run is safe to repeat.
+       */
+      const readFailed = (
+        step: PoolSetupStep,
+        stepState: PoolSetupStepState,
+        error: unknown
+      ): PoolSetupOutcome => {
+        stepState.status = "failed";
+        handleError(error, {
+          metadata: {
+            action: step.action,
+            chainId,
+            parsedErrorName: parseContractError(error).name,
+          },
+        });
+        return fail("read-failed", step.action, error);
       };
       const invalidate = async () => {
         await queryClient.invalidateQueries({
@@ -193,7 +225,23 @@ export function useCommitmentPoolSetupSequence(
         for (let index = 0; index < steps.length; index += 1) {
           const step = steps[index]!;
           const stepState = stepStates[index]!;
-          const before = await judgeStep(step, reader, context);
+          // A seed whose outcome this sequence never learned is terminal:
+          // walking the step again would seed a second cycle beside the one
+          // that may already be there.
+          if (
+            step.action === "seedCycle" &&
+            seedUnconfirmedRef.current &&
+            context.cycleId === null
+          ) {
+            stepState.status = "failed";
+            return fail("seed-unconfirmed", step.action, null);
+          }
+          let before: PoolStepVerdict;
+          try {
+            before = await judgeStep(step, reader, context);
+          } catch (error) {
+            return readFailed(step, stepState, error);
+          }
           if (before.landed) {
             stepState.status = "landed";
             landed.push(step.action);
@@ -223,25 +271,46 @@ export function useCommitmentPoolSetupSequence(
             hash = result.hash;
           } catch (error) {
             stepState.status = "failed";
+            const parsed = parseContractError(error);
             handleError(error, {
-              metadata: {
-                action: step.action,
-                chainId,
-                parsedErrorName: parseContractError(error).name,
-              },
+              metadata: { action: step.action, chainId, parsedErrorName: parsed.name },
             });
+            // A rejected send says nothing about the chain unless the wallet
+            // reports the steward refusing it, which means nothing was signed.
+            // Any other rejection may still have been mined, and a mined
+            // `seedCycle` this run cannot name is a cycle a second seed would
+            // orphan, so the run stops instead of offering to repeat it.
+            if (step.action === "seedCycle" && parsed.name !== "UserRejected") {
+              seedUnconfirmedRef.current = true;
+              return fail("seed-unconfirmed", step.action, error);
+            }
             return fail("send-failed", step.action, error);
           }
           if (step.action === "seedCycle") {
-            const seededId = await reader.readSeededCycleId(hash, step.poolId);
-            if (seededId === null) {
+            // The seed is mined by now; only its receipt names the cycle. With
+            // no id there is nothing to open and nothing safe to send again.
+            let seededId: bigint | null;
+            try {
+              seededId = await reader.readSeededCycleId(hash, step.poolId);
+            } catch (error) {
+              seedUnconfirmedRef.current = true;
               stepState.status = "failed";
-              return fail("cycle-id-unknown", step.action, null);
+              return fail("seed-unconfirmed", step.action, error);
+            }
+            if (seededId === null) {
+              seedUnconfirmedRef.current = true;
+              stepState.status = "failed";
+              return fail("seed-unconfirmed", step.action, null);
             }
             context.cycleId = seededId;
             cycleIdRef.current = seededId;
           }
-          const after = await judgeStep(step, reader, context);
+          let after: PoolStepVerdict;
+          try {
+            after = await judgeStep(step, reader, context);
+          } catch (error) {
+            return readFailed(step, stepState, error);
+          }
           if (!after.landed) {
             stepState.status = "failed";
             return fail("not-confirmed", step.action, null);
@@ -273,6 +342,7 @@ export function useCommitmentPoolSetupSequence(
   const reset = useCallback(() => {
     stepsRef.current = [];
     cycleIdRef.current = null;
+    seedUnconfirmedRef.current = false;
     setState(IDLE);
   }, []);
 

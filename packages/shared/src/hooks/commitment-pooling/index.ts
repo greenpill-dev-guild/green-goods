@@ -26,9 +26,11 @@ export type {
 export {
   buildCommitmentCreationPayload,
   COMMITMENT_COMPOSER_DEFAULTS,
+  COMMITMENT_COMPOSER_ERROR_IDS,
   commitmentComposerSchema,
   MAX_COMMITMENT_REQUIREMENTS,
   useCommitmentComposerForm,
+  useCommitmentComposerSession,
 } from "./useCommitmentComposerForm";
 export type { CommitmentCycleNameMap } from "./useCommitmentCycleNames";
 export { useCommitmentCycleNames } from "./useCommitmentCycleNames";

@@ -221,15 +221,32 @@ function controller(overridesWithCommitment: Record<string, unknown> = {}) {
     isActing: false,
     isLoading: false,
     isError: false,
+    unavailable: false,
     notFound: false,
     refetch: vi.fn(),
     ...overrides,
   };
 }
 
-function renderPanel() {
+function renderPanel(commitmentId = "9") {
   return renderWithProviders(
-    <CommitmentDialogPanel chainId={42161} garden={GARDEN} commitmentId="9" tone="garden" />
+    <CommitmentDialogPanel
+      chainId={42161}
+      garden={GARDEN}
+      commitmentId={commitmentId}
+      tone="garden"
+    />
+  );
+}
+
+function panel(commitmentId: string) {
+  return (
+    <CommitmentDialogPanel
+      chainId={42161}
+      garden={GARDEN}
+      commitmentId={commitmentId}
+      tone="garden"
+    />
   );
 }
 
@@ -424,5 +441,82 @@ describe("CommitmentDialogPanel (W10)", () => {
     renderPanel();
     expect(screen.getByText(/green goods team — fallback/i)).toBeInTheDocument();
     expect(screen.getByText(/no eligible local confirmer/i)).toBeInTheDocument();
+  });
+
+  it("shows the not-found cast for a malformed route id rather than failing to render", () => {
+    renderPanel("not-a-number");
+    expect(screen.getByText(/couldn.t be loaded/i)).toBeInTheDocument();
+    expect(screen.queryByTestId("commitment-acts")).not.toBeInTheDocument();
+  });
+
+  it("names an unavailable chain and offers no retry that cannot run", () => {
+    mocks.controller = controller({
+      commitment: null,
+      detail: null,
+      unavailable: true,
+      availability: { status: "unavailable", reason: "not-integrated" },
+    });
+    renderPanel();
+    expect(screen.getByText(/not on this chain yet/i)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^retry$/i })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /back to pool/i })).toBeInTheDocument();
+  });
+
+  it("drops the picked resolution when the panel switches to another commitment", async () => {
+    mocks.controller = controller({
+      commitment: {
+        onchainState: "DISPUTED",
+        state: "DISPUTED",
+        derivedState: "DISPUTED",
+        preDisputeState: "READY_FOR_CONFIRMATION",
+      },
+      can: can({ resolveDispute: true, resolveFulfilled: true }),
+    });
+    const { rerender } = renderPanel("9");
+    fireEvent.click(screen.getByRole("button", { name: /^resolve/i }));
+    fireEvent.click(
+      within(screen.getByRole("dialog", { name: /resolve the dispute/i })).getByRole("radio", {
+        name: /^kept/i,
+      })
+    );
+
+    // The next record is one this steward may not mark kept, so a carried-over
+    // FULFILLED would submit an outcome its own dialog refuses to offer.
+    (mocks.controller as { can: unknown }).can = can({
+      resolveDispute: true,
+      resolveFulfilled: false,
+    });
+    rerender(panel("10"));
+    expect(screen.queryByRole("dialog", { name: /resolve the dispute/i })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: /^resolve/i }));
+    const dialog = screen.getByRole("dialog", { name: /resolve the dispute/i });
+    expect(within(dialog).queryByRole("radio", { name: /^kept/i })).not.toBeInTheDocument();
+    fireEvent.click(within(dialog).getByRole("button", { name: /^resolve$/i }));
+    const acts = mocks.controller.acts as Record<string, ReturnType<typeof vi.fn>>;
+    await waitFor(() =>
+      expect(acts.resolveDispute).toHaveBeenCalledWith("RESTORE_PREVIOUS", "because")
+    );
+  });
+
+  it("drops the picked assessment when the panel switches to another commitment", () => {
+    mocks.controller = controller({
+      commitment: { requiresAssessment: true },
+      can: can({ attachAssessment: true }),
+      assessments: [
+        { id: "0xaaa", title: "Soil check", domain: "AGROFORESTRY", createdAt: 1_755_000_000 },
+      ],
+    });
+    const { rerender } = renderPanel("9");
+    const open = () => fireEvent.click(screen.getByRole("button", { name: /attach assessment/i }));
+
+    open();
+    fireEvent.click(screen.getByRole("radio", { name: /soil check/i }));
+    expect(screen.getByRole("button", { name: /^attach$/i })).toBeEnabled();
+
+    rerender(panel("10"));
+    open();
+    // A record in another provider garden must not inherit this pick.
+    expect(screen.getByRole("button", { name: /^attach$/i })).toBeDisabled();
   });
 });

@@ -54,3 +54,24 @@ export const CampaignNotConfirmed: Story = {
     failedStep: "openCycle",
   },
 };
+
+/** The chain went unreadable mid-run; the landed list still stands and a retry is safe. */
+export const ReadFailed: Story = {
+  args: {
+    failure: "read-failed",
+    landed: ["setPoolCharter", "setProviderOpenCommitmentCap"],
+    failedStep: "markPoolReady",
+  },
+};
+
+/**
+ * The seed went out and the run never learned whether it landed. No retry is
+ * offered: a second seed would leave a second season behind.
+ */
+export const SeedUnconfirmed: Story = {
+  args: {
+    failure: "seed-unconfirmed",
+    landed: ["setPoolCharter", "setProviderOpenCommitmentCap", "markPoolReady"],
+    failedStep: "seedCycle",
+  },
+};

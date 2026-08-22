@@ -36,8 +36,10 @@ export interface HubConfirmQueueProps {
  * progress, a visible eligibility badge and the decision row. Confirm on an
  * ordinary row enqueues the confirmation; on a fallback row it opens the
  * commitment dialog, where the reasoned fallback lives; Not yet opens the
- * reasoned dispute dialog; a disputed row carries Resolve instead. Loading
- * and read-error casts never render as an empty queue.
+ * reasoned dispute dialog, and appears only where the pool's own steward
+ * authority makes it legal; a disputed row carries Resolve instead. Loading
+ * and read-error casts never render as an empty queue, and the error cast
+ * retries the confirmation reads rather than sending the steward elsewhere.
  */
 export function HubConfirmQueue({
   toConfirm,
@@ -76,6 +78,12 @@ export function HubConfirmQueue({
               "The confirmation queue could not be read. Nothing was confirmed or disputed while it was unreachable; refresh and try again.",
           })}
         </Alert>
+        <AdminButton type="button" variant="filled" onClick={() => void toConfirm.refetch()}>
+          {formatMessage({
+            id: "cockpit.garden.pool.readError.retry",
+            defaultMessage: "Try again",
+          })}
+        </AdminButton>
       </EmptyStateShell>
     );
   } else if (queue.isLoading) {
@@ -112,8 +120,8 @@ export function HubConfirmQueue({
           const title = titleOf(row);
           const threshold = Math.max(commitment.confirmationThreshold ?? 1, 1);
           const count = commitment.confirmationCount ?? 0;
-          const eligibility = badge(row.eligibility);
           const disputed = commitment.onchainState === "DISPUTED";
+          const eligibility = disputed ? null : badge(row.eligibility);
           const id = commitment.commitmentId.toString();
           const selectedRow = selectedCommitmentId === id;
           const progressLabel = formatMessage(
@@ -154,13 +162,12 @@ export function HubConfirmQueue({
                       .join(" · ")}
                   </span>
                 </button>
-                <StatusBadge variant={disputed ? "error" : eligibility.variant} size="sm">
-                  {disputed
-                    ? formatMessage({
-                        id: "cockpit.hub.confirm.disputed",
-                        defaultMessage: "under review",
-                      })
-                    : eligibility.label}
+                <StatusBadge variant={eligibility?.variant ?? "error"} size="sm">
+                  {eligibility?.label ??
+                    formatMessage({
+                      id: "cockpit.hub.confirm.disputed",
+                      defaultMessage: "under review",
+                    })}
                 </StatusBadge>
               </div>
               <div className="mt-2 flex items-center gap-2">
@@ -186,18 +193,23 @@ export function HubConfirmQueue({
                   </AdminButton>
                 ) : (
                   <>
-                    <AdminButton
-                      type="button"
-                      variant="outlined"
-                      size="sm"
-                      onClick={() => setNotYet(row)}
-                      disabled={actDisabled}
-                    >
-                      {formatMessage({
-                        id: "cockpit.hub.confirm.act.notYet",
-                        defaultMessage: "Not yet…",
-                      })}
-                    </AdminButton>
+                    {/* Only the pool garden's own steward may raise a dispute
+                        (TerminalLib.raiseDispute), so a protocol steward
+                        reaching into another garden's pool is not offered one. */}
+                    {row.canDispute === false ? null : (
+                      <AdminButton
+                        type="button"
+                        variant="outlined"
+                        size="sm"
+                        onClick={() => setNotYet(row)}
+                        disabled={actDisabled}
+                      >
+                        {formatMessage({
+                          id: "cockpit.hub.confirm.act.notYet",
+                          defaultMessage: "Not yet…",
+                        })}
+                      </AdminButton>
+                    )}
                     {row.eligibility === "ORDINARY" ? (
                       <AdminButton
                         type="button"
@@ -310,7 +322,9 @@ export function HubConfirmQueue({
           selected ? (
             <CommitmentDialogPanel
               chainId={chainId}
-              garden={selected.garden}
+              // The pool's garden, not the one whose authority confirms: the
+              // inspector reads that pool's state and seats the reader there.
+              garden={selected.poolGarden ?? selected.garden}
               commitmentId={selectedCommitmentId}
               tone="hub"
             />

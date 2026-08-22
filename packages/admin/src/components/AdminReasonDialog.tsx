@@ -87,8 +87,11 @@ export function AdminReasonDialog({
         title,
         error: error instanceof Error ? error.message : String(error),
       });
-      if (onError) onError(error);
-      else throw error;
+      // The click boundary invokes this with `void`, so a rethrow here becomes
+      // an unhandled rejection that no error boundary catches — after the
+      // failure has already been logged and surfaced by the mutation layer.
+      // The dialog stays open with the reason intact so the steward can retry.
+      onError?.(error);
     } finally {
       setSubmitting(false);
     }

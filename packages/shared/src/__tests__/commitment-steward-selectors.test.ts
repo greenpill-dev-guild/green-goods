@@ -10,6 +10,7 @@ import { describe, expect, it } from "vitest";
 import {
   isPoolSteward,
   selectDueLiveCommitments,
+  selectNextDueBoundary,
   selectOrdinaryConfirmationReachable,
 } from "../modules/commitment-pooling/steward-selectors";
 
@@ -214,5 +215,43 @@ describe("isPoolSteward", () => {
     expect(isPoolSteward(["gardener"])).toBe(false);
     expect(isPoolSteward(["evaluator"])).toBe(false);
     expect(isPoolSteward([])).toBe(false);
+  });
+});
+
+describe("selectNextDueBoundary", () => {
+  const live = (dueDate: bigint | null, cycleId: bigint | null = null) => ({
+    onchainState: "ACCEPTED" as const,
+    cycleId,
+    dueDate,
+  });
+
+  it("names the earliest moment a live row falls due", () => {
+    expect(
+      selectNextDueBoundary({
+        commitments: [live(400n), live(200n), live(900n)],
+        cycleEndTimes: new Map(),
+        now: 100n,
+      })
+    ).toBe(200n);
+  });
+
+  it("falls back to the cycle end for a row with no date of its own", () => {
+    expect(
+      selectNextDueBoundary({
+        commitments: [live(null, 7n)],
+        cycleEndTimes: new Map([["7", 500n]]),
+        now: 100n,
+      })
+    ).toBe(500n);
+  });
+
+  it("is null once nothing live is still ahead of now", () => {
+    expect(
+      selectNextDueBoundary({
+        commitments: [live(50n), { onchainState: "FULFILLED", cycleId: null, dueDate: 900n }],
+        cycleEndTimes: new Map(),
+        now: 100n,
+      })
+    ).toBeNull();
   });
 });

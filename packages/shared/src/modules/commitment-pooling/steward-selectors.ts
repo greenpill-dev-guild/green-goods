@@ -4,8 +4,17 @@
  * out of `selectors.ts`, which is at its source-structure cap.
  */
 import type { Address } from "../../types/domain";
-import { isSameAccount } from "./selectors";
-import type { CommitmentReadModel } from "./types";
+import {
+  type CommitmentReadinessBlocker,
+  isSameAccount,
+  selectCommitmentReadiness,
+} from "./selectors";
+import type {
+  CommitmentCycleRecord,
+  CommitmentDetail,
+  CommitmentPoolRecord,
+  CommitmentReadModel,
+} from "./types";
 
 /**
  * The garden roles that make someone a pool steward: the operator or owner
@@ -57,6 +66,34 @@ export function selectDueLiveCommitments<
 }
 
 /**
+ * The earliest moment a live commitment becomes past due, or null when none
+ * will. `selectDueLiveCommitments` answers against a fixed `now`, so a console
+ * left open would never notice a row falling due; this is what it schedules
+ * against instead of polling.
+ */
+export function selectNextDueBoundary<
+  T extends Pick<CommitmentReadModel, "onchainState" | "cycleId" | "dueDate">,
+>(input: {
+  commitments: readonly T[];
+  cycleEndTimes: ReadonlyMap<string, bigint | null>;
+  now: bigint;
+}): bigint | null {
+  let next: bigint | null = null;
+  for (const commitment of input.commitments) {
+    if (!EXPIRABLE_STATES.has(commitment.onchainState)) continue;
+    const due =
+      commitment.dueDate !== null && commitment.dueDate !== undefined && commitment.dueDate !== 0n
+        ? commitment.dueDate
+        : commitment.cycleId !== null && commitment.cycleId !== 0n
+          ? (input.cycleEndTimes.get(commitment.cycleId.toString()) ?? null)
+          : null;
+    if (due === null || due === 0n || due <= input.now) continue;
+    if (next === null || due < next) next = due;
+  }
+  return next;
+}
+
+/**
  * Whether the ordinary confirmation path can still reach threshold, the way
  * the contract decides before it allows a fallback
  * (CreditLib.sol:206-230, `ordinaryConfirmationReachable`):
@@ -90,4 +127,50 @@ export function selectOrdinaryConfirmationReachable(input: {
   if (input.direction === "REQUEST") return Boolean(input.creator) && !onRoster(input.creator);
   if (input.counterpartyKind === "GARDEN") return true;
   return Boolean(input.counterparty) && !onRoster(input.counterparty);
+}
+
+/**
+ * Whether `submitForConfirmation` would clear every gate the chain applies, so
+ * a console never queues a job the contract rejects outright: an Accepted
+ * record in an Open pool and Open cycle, proof and verified credit present, a
+ * required assessment attached, and a confirmer still reachable
+ * (ConfirmLib.sol:29-58 through CreditLib.freezeAndReady).
+ *
+ * Two gates are deliberately not decided here. A pool or cycle the reader has
+ * not read yet is unknown rather than shut, so a slow read never hides an act
+ * the chain would take. And `linkedWorkFresh` stays true because the contract
+ * compares the module's recorded decision sequence against the resolver's live
+ * one, and neither side is indexed; that gate remains the chain's alone.
+ */
+export function selectCommitmentSubmissionReadiness(input: {
+  detail?: CommitmentDetail | null;
+  pool?: CommitmentPoolRecord | null;
+  cycle?: CommitmentCycleRecord | null;
+  ordinaryReachable: boolean;
+  protocolPoolRegistered: boolean;
+}): { ready: boolean; blockers: CommitmentReadinessBlocker[] } {
+  const commitment = input.detail?.commitment;
+  if (!commitment) return { ready: false, blockers: ["wrong-state"] };
+  return selectCommitmentReadiness({
+    state: commitment.onchainState,
+    commitmentKind:
+      commitment.commitmentType === "DOMAIN_IMPACT" ? "DOMAIN_IMPACT" : "SUPPORT_SERVICE",
+    poolOpen: input.pool ? input.pool.state === "OPEN" : true,
+    cycleId: commitment.cycleId,
+    cycleState: input.cycle ? input.cycle.state : "OPEN",
+    requirements: input.detail?.requirements ?? [],
+    evidenceCount: commitment.evidenceCount,
+    requiresAssessment: commitment.requiresAssessment === true,
+    assessmentUID: commitment.assessmentUID,
+    // The chain counts one credit per approved Work plus at most one evidence
+    // participation credit per contributor; the indexer mirrors both per row.
+    totalVerifiedCredits: (input.detail?.contributors ?? []).reduce(
+      (total, row) => total + row.approvedWorkCredits + row.evidenceCredits,
+      0
+    ),
+    linkedWorkFresh: true,
+    ordinaryConfirmationReachable: input.ordinaryReachable,
+    protocolFallbackEnabled: commitment.protocolFallbackEnabled === true,
+    protocolPoolRegistered: input.protocolPoolRegistered,
+  });
 }

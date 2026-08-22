@@ -24,6 +24,16 @@ export function isoDate(seconds: number): string {
   return new Date(seconds * 1000).toISOString().slice(0, 10);
 }
 
+/**
+ * The range a fresh open of the flow starts from: today, running a month.
+ * Read again on every open, so a discarded edit never comes back and a flow
+ * left mounted for days does not offer last week's dates.
+ */
+export function defaultCycleDates(): { start: string; end: string } {
+  const now = Math.floor(Date.now() / 1000);
+  return { start: isoDate(now), end: isoDate(now + 30 * DAY) };
+}
+
 export function startOfDaySeconds(iso: string): bigint | null {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) return null;
   const value = Date.parse(`${iso}T00:00:00`);

@@ -6,6 +6,7 @@ import {
   logger,
   useActions,
   useCommitmentComposerForm,
+  useCommitmentComposerSession,
   useCommitmentJobs,
   useDirtyClose,
   usePoolConsoleController,
@@ -27,11 +28,13 @@ import { SeedStepProof } from "./SeedStepProof";
 import { SeedStepReview } from "./SeedStepReview";
 import { SeedStepWhat } from "./SeedStepWhat";
 import {
+  buildSeedCycleOptions,
   buildSeedStepConfigs,
-  CONFIRMER_ADDRESS_PATTERN,
+  SEED_ERROR_DESCRIPTOR_BY_ID,
   type SeedFieldError,
   STEP_FIELDS,
   STEPS,
+  withConfirmer,
 } from "./seedStepModel";
 
 export interface SeedCommitmentDialogProps {
@@ -78,13 +81,20 @@ export function SeedCommitmentDialog({
   const [submitError, setSubmitError] = useState<string | null>(null);
   const stepRef = useStepFocus<HTMLDivElement>(stepIndex);
 
-  const form = useCommitmentComposerForm({
-    kind: "SEASON_CAMPAIGN",
-    direction: "OFFER",
-    cycleId: pool.model.season ? pool.model.season.cycleId.toString() : "0",
-    claimMode: protocolContext ? "APPROVAL_GATED" : "OPEN",
-    protocolFallbackEnabled: protocolPool.isRegistered,
-  });
+  // The season and the protocol pool arrive with their queries, so these are
+  // not all known on a cold load; useCommitmentComposerSession carries the late
+  // ones onto the untouched fields.
+  const initial = useMemo(
+    () => ({
+      kind: "SEASON_CAMPAIGN" as const,
+      direction: "OFFER" as const,
+      cycleId: pool.model.season ? pool.model.season.cycleId.toString() : "0",
+      claimMode: (protocolContext ? "APPROVAL_GATED" : "OPEN") as "APPROVAL_GATED" | "OPEN",
+      protocolFallbackEnabled: protocolPool.isRegistered,
+    }),
+    [pool.model.season, protocolContext, protocolPool.isRegistered]
+  );
+  const form = useCommitmentComposerForm(initial);
   const requirements = useFieldArray({ control: form.control, name: "requirements" });
   const values = form.watch();
   const protocolRegistered = protocolPool.isRegistered;
@@ -97,31 +107,31 @@ export function SeedCommitmentDialog({
     preventRouteChange: jobs.isPending,
   });
 
-  const cycleOptions = useMemo(() => {
-    const season = pool.model.season;
-    const campaigns = pool.model.campaigns;
-    return [
-      ...(season
-        ? [
-            {
-              value: season.cycleId.toString(),
-              label: `${formatMessage({ id: "cockpit.garden.pool.cycle.season", defaultMessage: "Season" })} · ${cycleName(season, pool.cycleNames, formatMessage)}`,
-            },
-          ]
-        : []),
-      ...campaigns.map((campaign) => ({
-        value: campaign.cycleId.toString(),
-        label: `${formatMessage({ id: "cockpit.garden.pool.cycle.campaign", defaultMessage: "Campaign" })} · ${cycleName(campaign, pool.cycleNames, formatMessage)}`,
-      })),
-      {
-        value: "0",
-        label: formatMessage({
-          id: "cockpit.garden.pool.seed.cycleless",
-          defaultMessage: "No cycle (runs on its own)",
-        }),
-      },
-    ];
-  }, [pool.model.season, pool.model.campaigns, pool.cycleNames, formatMessage]);
+  const restart = useCallback(() => {
+    setStepIndex(0);
+    setConfirmerDraft("");
+    setSubmitError(null);
+  }, []);
+  // This dialog stays mounted while `open` toggles, so a cancelled or seeded
+  // attempt would otherwise be resumed — and queued a second time.
+  useCommitmentComposerSession({
+    form,
+    open,
+    sessionKey: `${chainId}:${garden}:${protocolContext}`,
+    initial,
+    onRestart: restart,
+  });
+
+  const cycleOptions = useMemo(
+    () =>
+      buildSeedCycleOptions({
+        season: pool.model.season,
+        campaigns: pool.model.campaigns,
+        cycleNames: pool.cycleNames,
+        formatMessage,
+      }),
+    [pool.model.season, pool.model.campaigns, pool.cycleNames, formatMessage]
+  );
 
   const stepConfigs = useMemo(() => buildSeedStepConfigs(formatMessage), [formatMessage]);
 
@@ -185,22 +195,19 @@ export function SeedCommitmentDialog({
   }, [form, pool.poolId, jobs, protocolRegistered, garden, onClose, formatMessage]);
 
   const addConfirmer = () => {
-    const candidate = confirmerDraft.trim();
-    if (!CONFIRMER_ADDRESS_PATTERN.test(candidate)) return;
-    const current = form.getValues("confirmers");
-    if (current.some((address) => address.toLowerCase() === candidate.toLowerCase())) {
-      setConfirmerDraft("");
-      return;
-    }
-    form.setValue("confirmers", [...current, candidate], {
-      shouldDirty: true,
-      shouldValidate: true,
-    });
+    const named = withConfirmer(form.getValues("confirmers"), confirmerDraft);
+    if (named) form.setValue("confirmers", named, { shouldDirty: true, shouldValidate: true });
     setConfirmerDraft("");
   };
 
-  const errorOf: SeedFieldError = (field) =>
-    form.formState.errors[field]?.message as string | undefined;
+  // The composer says its newer rules as message ids so they can be read in any
+  // language; its older ones are English prose and are shown as they are.
+  const errorOf: SeedFieldError = (field) => {
+    const message = form.formState.errors[field]?.message as string | undefined;
+    if (message === undefined) return undefined;
+    const descriptor = SEED_ERROR_DESCRIPTOR_BY_ID.get(message);
+    return descriptor ? formatMessage(descriptor) : message;
+  };
 
   let body: ReactNode;
   switch (currentStep) {

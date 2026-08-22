@@ -1,6 +1,7 @@
 import {
   type Address,
   adminRoutes,
+  type CommitmentsToConfirm,
   StatusBadge,
   useCommitmentPools,
   useCommitmentsToConfirm,
@@ -8,7 +9,7 @@ import {
   useUser,
 } from "@green-goods/shared";
 import { RiArrowRightLine, RiRefreshLine } from "@remixicon/react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
 import { AdminButton } from "@/components/AdminButton";
@@ -49,6 +50,14 @@ export function CommunityPools({ chainId, garden, canManage }: CommunityPoolsPro
   // Stewarding the registered protocol garden is what the queue already
   // checks; the console's write authority is the same Hat.
   const isProtocolSteward = toConfirm.isProtocolSteward;
+  // Only the cross-garden rows the team was asked to step into. A reader who
+  // also stewards ordinary gardens carries those gardens' own confirmations
+  // and disputes in the same object, and none of them belong under a heading
+  // that promises no other garden's pool is browsed here.
+  const protocolToConfirm = useMemo<CommitmentsToConfirm>(() => {
+    const fallback = toConfirm.fallback.filter((row) => row.path === "PROTOCOL_FALLBACK");
+    return { ...toConfirm, groups: [], fallback, disputed: [], count: fallback.length };
+  }, [toConfirm]);
   const ownPools = useCommitmentPools({ chainId, garden: garden.id });
   const ownPool = ownPools.pools[0] ?? null;
   const [selectedCommitment, setSelectedCommitment] = useState<string | undefined>(undefined);
@@ -71,7 +80,7 @@ export function CommunityPools({ chainId, garden, canManage }: CommunityPoolsPro
               id: "cockpit.community.pools.protocol",
               defaultMessage: "Protocol pool",
             }),
-            count: toConfirm.isProtocolSteward ? toConfirm.fallback.length || undefined : undefined,
+            count: toConfirm.isProtocolSteward ? protocolToConfirm.count || undefined : undefined,
           },
           {
             id: "current",
@@ -170,7 +179,7 @@ export function CommunityPools({ chainId, garden, canManage }: CommunityPoolsPro
                   })}
                 </p>
                 <HubConfirmQueue
-                  toConfirm={toConfirm}
+                  toConfirm={protocolToConfirm}
                   chainId={chainId}
                   normalizedSearch=""
                   selectedCommitmentId={selectedCommitment}

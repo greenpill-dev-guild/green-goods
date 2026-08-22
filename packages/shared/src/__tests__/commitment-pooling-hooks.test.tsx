@@ -1,10 +1,13 @@
 /** @vitest-environment jsdom */
 
-import { act, waitFor } from "@testing-library/react";
 import { QueryClient } from "@tanstack/react-query";
+import { act, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { queryKeys } from "../config/query-keys";
+import { useCommitmentDialogController } from "../hooks/admin-ui/pool/useCommitmentDialogController";
+import type { CommitmentMutationInput } from "../hooks/commitment-pooling/useCommitmentMutations";
+import { useCommitmentMutation } from "../hooks/commitment-pooling/useCommitmentMutations";
 import {
   useCommitment,
   useCommitmentActivity,
@@ -23,9 +26,7 @@ import {
   usePoolMemberHistory,
   usePoolParticipationSummary,
 } from "../hooks/commitment-pooling/useCommitmentPooling";
-import { useCommitmentMutation } from "../hooks/commitment-pooling/useCommitmentMutations";
 import { useCommitmentPoolingAvailability } from "../hooks/commitment-pooling/useCommitmentPoolingAvailability";
-import type { CommitmentMutationInput } from "../hooks/commitment-pooling/useCommitmentMutations";
 import { createTestQueryClient, renderHookWithProviders } from "./test-utils";
 
 const ACCOUNT = "0x1111111111111111111111111111111111111111";
@@ -62,6 +63,10 @@ const mocks = vi.hoisted(() => ({
   getCommitmentFunding: vi.fn(),
   getCommitmentActivity: vi.fn(),
   getPoolMemberHistory: vi.fn(),
+  viewer: "0x2222222222222222222222222222222222222222" as string | null,
+  jobs: { enqueue: vi.fn(), isPending: false },
+  queueState: { pendingCommitmentIds: new Set<string>() },
+  protocolPool: { poolId: null as bigint | null, rootGarden: null, isRegistered: false },
 }));
 
 vi.mock("../ontology/query", () => ({
@@ -88,6 +93,38 @@ vi.mock("../modules/commitment-pooling/data", () => ({
 
 vi.mock("../hooks/roles/useGardenRoles", () => ({
   useGardenRoles: (...args: unknown[]) => mocks.roles(...args),
+}));
+
+// The dialog controller's remaining dependencies, held still so the acts it
+// offers are decided by the record, its pool and its cycle — nothing ambient.
+vi.mock("../hooks/auth/usePrimaryAddress", () => ({
+  usePrimaryAddress: () => mocks.viewer,
+}));
+
+vi.mock("../hooks/app/useOnlineStatus", () => ({ useOnlineStatus: () => true }));
+
+vi.mock("../hooks/assessment/useGardenAssessments", () => ({
+  useGardenAssessments: () => ({ data: [], isLoading: false }),
+}));
+
+vi.mock("../hooks/commitment-pooling/useCommitmentMetadata", () => ({
+  useCommitmentMetadataFor: () => null,
+}));
+
+vi.mock("../hooks/commitment-pooling/useCommitmentJobs", () => ({
+  useCommitmentJobs: () => mocks.jobs,
+}));
+
+vi.mock("../hooks/commitment-pooling/useCommitmentQueueState", () => ({
+  useCommitmentQueueState: () => mocks.queueState,
+}));
+
+vi.mock("../hooks/commitment-pooling/useCommitmentReason", () => ({
+  useCommitmentReason: () => ({ reason: null, isLoading: false, isUnavailable: false }),
+}));
+
+vi.mock("../hooks/commitment-pooling/useProtocolPool", () => ({
+  useProtocolPool: () => mocks.protocolPool,
 }));
 
 vi.mock("../hooks/blockchain/useChainConfig", () => ({
@@ -653,5 +690,198 @@ describe("useCommitmentMutation", () => {
         expect.objectContaining({ functionName: "cancelCommitment", args: [5n, "bafy-held"] })
       );
     });
+  });
+});
+
+describe("useCommitmentDialogController", () => {
+  const STEWARD = "0x2222222222222222222222222222222222222222";
+  const LEAD = "0x4444444444444444444444444444444444444444";
+  const TAKER = "0x5555555555555555555555555555555555555555";
+
+  function detail(commitment: Record<string, unknown> = {}, contributors?: unknown[]) {
+    return {
+      commitment: {
+        id: "42161-9",
+        chainId: 42161,
+        commitmentId: 9n,
+        creationSeen: true,
+        onchainState: "ACCEPTED",
+        state: "ACCEPTED",
+        derivedState: "EVIDENCE_SUBMITTED",
+        commitmentType: "SUPPORT_SERVICE",
+        direction: "OFFER",
+        counterpartyKind: "INDIVIDUAL",
+        creator: LEAD,
+        leadProvider: LEAD,
+        counterparty: TAKER,
+        confirmers: [],
+        confirmationThreshold: 1,
+        protocolFallbackEnabled: false,
+        evidenceCount: 2,
+        approvedUnits: 0n,
+        targetUnits: 1n,
+        cycleId: 12n,
+        dueDate: null,
+        requiresAssessment: false,
+        assessmentUID: null,
+        contributorCount: 1,
+        contributorsFrozen: false,
+        preDisputeState: null,
+        ...commitment,
+      },
+      requirements: [],
+      contributors: contributors ?? [
+        {
+          contributor: LEAD,
+          active: true,
+          isLead: true,
+          approvedWorkCredits: 0,
+          evidenceCredits: 1,
+          uncountedLinkedWorkCount: 0,
+        },
+      ],
+      assignments: [],
+      workAttributions: [],
+      evidenceAttributions: [],
+      claimRequests: [],
+      counterpartCommitments: [],
+    };
+  }
+
+  function render() {
+    return renderHookWithProviders(() =>
+      useCommitmentDialogController({ chainId: 42161, garden: ACCOUNT, commitmentId: 9n })
+    );
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    setAvailable();
+    mocks.viewer = STEWARD;
+    mocks.queueState = { pendingCommitmentIds: new Set<string>() };
+    mocks.protocolPool = { poolId: null, rootGarden: null, isRegistered: false };
+    mocks.roles.mockReturnValue({ roles: ["operator"], isLoading: false, error: null });
+    mocks.getCommitmentDetail.mockResolvedValue(detail());
+    mocks.getCommitmentPools.mockResolvedValue([{ ...pool, state: "OPEN" }]);
+    mocks.getCommitmentCycleDetail.mockResolvedValue({
+      cycle: { cycleId: 12n, state: "OPEN", endTime: null },
+    });
+    mocks.getCommitmentActivity.mockResolvedValue([]);
+  });
+
+  it("keeps cancellation open while the pool is paused, and holds readying and confirming back", async () => {
+    mocks.getCommitmentPools.mockResolvedValue([{ ...pool, state: "PAUSED" }]);
+    const { result } = render();
+
+    await waitFor(() => expect(result.current.commitment).not.toBeNull());
+    // TerminalLib.sol:11-12 — a pause never blocks the wind-down path.
+    expect(result.current.poolPaused).toBe(true);
+    expect(result.current.can.cancel).toBe(true);
+    expect(result.current.can.markReady).toBe(false);
+    expect(result.current.can.sendForConfirmation).toBe(false);
+  });
+
+  it("offers a dispute only in the three states raiseDispute accepts", async () => {
+    const states: Array<[string, boolean]> = [
+      ["ACCEPTED", true],
+      ["READY_FOR_CONFIRMATION", true],
+      ["EXPIRED", true],
+      // TerminalLib.sol:91-96 never takes a fulfilled record.
+      ["FULFILLED", false],
+      ["CANCELLED", false],
+    ];
+
+    for (const [onchainState, expected] of states) {
+      mocks.getCommitmentDetail.mockResolvedValue(detail({ onchainState, state: onchainState }));
+      const { result, unmount } = render();
+      await waitFor(() => expect(result.current.commitment?.onchainState).toBe(onchainState));
+      expect(result.current.can.raiseDispute, onchainState).toBe(expected);
+      unmount();
+    }
+  });
+
+  it("withholds submission until every gate the chain applies is clear", async () => {
+    const ready = render();
+    await waitFor(() => expect(ready.result.current.can.sendForConfirmation).toBe(true));
+    ready.unmount();
+
+    const blocked: Array<[string, () => void]> = [
+      [
+        "a cycle that is no longer open",
+        () =>
+          mocks.getCommitmentCycleDetail.mockResolvedValue({
+            cycle: { cycleId: 12n, state: "RECONCILED", endTime: null },
+          }),
+      ],
+      [
+        "a required assessment that is not attached",
+        () => mocks.getCommitmentDetail.mockResolvedValue(detail({ requiresAssessment: true })),
+      ],
+      [
+        "a roster carrying no verified credit",
+        () =>
+          mocks.getCommitmentDetail.mockResolvedValue(
+            detail({}, [
+              {
+                contributor: LEAD,
+                active: true,
+                isLead: true,
+                approvedWorkCredits: 0,
+                evidenceCredits: 0,
+                uncountedLinkedWorkCount: 0,
+              },
+            ])
+          ),
+      ],
+      [
+        "no confirmer the ordinary path can still reach",
+        () =>
+          mocks.getCommitmentDetail.mockResolvedValue(
+            detail({ counterparty: LEAD, protocolFallbackEnabled: false })
+          ),
+      ],
+      [
+        "no proof at all",
+        () => mocks.getCommitmentDetail.mockResolvedValue(detail({ evidenceCount: 0 })),
+      ],
+    ];
+
+    for (const [name, configure] of blocked) {
+      configure();
+      const { result, unmount } = render();
+      await waitFor(() => expect(result.current.commitment).not.toBeNull());
+      expect(result.current.can.sendForConfirmation, name).toBe(false);
+      unmount();
+      mocks.getCommitmentDetail.mockResolvedValue(detail());
+      mocks.getCommitmentCycleDetail.mockResolvedValue({
+        cycle: { cycleId: 12n, state: "OPEN", endTime: null },
+      });
+    }
+  });
+
+  it("reports a failed timeline read instead of rendering an empty one", async () => {
+    mocks.getCommitmentActivity.mockRejectedValue(new Error("indexer down"));
+    const { result } = render();
+
+    await waitFor(() => expect(result.current.isError).toBe(true));
+    expect(result.current.events).toEqual([]);
+    expect(result.current.notFound).toBe(false);
+  });
+
+  it("names a chain without pooling as unavailable rather than a missing record", async () => {
+    mocks.capability = {
+      deployment: "deployed",
+      activation: "active",
+      integration: "not-integrated",
+      availability: "deployed-not-available",
+      evidence: [],
+      verified_at: "2026-08-16",
+    };
+    const { result } = render();
+
+    await waitFor(() => expect(result.current.unavailable).toBe(true));
+    expect(mocks.getCommitmentDetail).not.toHaveBeenCalled();
+    expect(result.current.notFound).toBe(false);
+    expect(result.current.commitment).toBeNull();
   });
 });

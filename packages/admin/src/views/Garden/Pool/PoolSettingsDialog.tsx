@@ -3,12 +3,14 @@ import {
   isPoolDocumentPinError,
   logger,
   type PoolConsoleController,
+  useDirtyClose,
 } from "@green-goods/shared";
 import { useEffect, useId, useState } from "react";
 import { useIntl } from "react-intl";
 import { AdminButton } from "@/components/AdminButton";
 import { AdminDialog } from "@/components/AdminDialog";
 import { AdminTextField } from "@/components/AdminTextField";
+import { DiscardChangesDialog } from "@/components/DiscardChangesDialog";
 
 export interface PoolSettingsDialogProps {
   console: PoolConsoleController;
@@ -50,6 +52,9 @@ export function PoolSettingsDialog({ console: pool, open, onClose }: PoolSetting
         })
       : undefined;
   const dirty = purpose.trim() !== currentPurpose || (capValue ?? 0n) !== BigInt(currentCap);
+  // Cancel, the X, the scrim and Escape all land here, so an edited purpose or
+  // cap is never dropped silently — the same guard the setup and seed flows use.
+  const dirtyClose = useDirtyClose({ isDirty: open && dirty && !saving, onClose });
   const canSave =
     dirty &&
     purpose.trim().length > 0 &&
@@ -76,107 +81,118 @@ export function PoolSettingsDialog({ console: pool, open, onClose }: PoolSetting
   };
 
   return (
-    <AdminDialog
-      open={open}
-      onOpenChange={(next) => {
-        if (!next && !saving) onClose();
-      }}
-      size="md"
-      tone="garden"
-      preventClose={saving}
-      title={formatMessage({
-        id: "cockpit.garden.pool.settings.title",
-        defaultMessage: "Pool settings",
-      })}
-      bodyClassName="space-y-4"
-      actions={
-        <>
-          <AdminButton type="button" variant="text" onClick={onClose} disabled={saving}>
-            {formatMessage({ id: "app.common.cancel", defaultMessage: "Cancel" })}
-          </AdminButton>
-          <AdminButton
-            type="button"
-            variant="filled"
-            onClick={() => void save()}
-            disabled={!canSave}
-            loading={saving}
-          >
+    <>
+      <AdminDialog
+        open={open}
+        onOpenChange={dirtyClose.onOpenChange}
+        size="md"
+        tone="garden"
+        preventClose={saving}
+        title={formatMessage({
+          id: "cockpit.garden.pool.settings.title",
+          defaultMessage: "Pool settings",
+        })}
+        bodyClassName="space-y-4"
+        actions={
+          <>
+            <AdminButton
+              type="button"
+              variant="text"
+              onClick={() => dirtyClose.onOpenChange(false)}
+              disabled={saving}
+            >
+              {formatMessage({ id: "app.common.cancel", defaultMessage: "Cancel" })}
+            </AdminButton>
+            <AdminButton
+              type="button"
+              variant="filled"
+              onClick={() => void save()}
+              disabled={!canSave}
+              loading={saving}
+            >
+              {formatMessage({
+                id: "cockpit.garden.pool.settings.save",
+                defaultMessage: "Save settings",
+              })}
+            </AdminButton>
+          </>
+        }
+      >
+        <div className="space-y-1.5">
+          <label htmlFor={purposeId} className="label-md block text-text-strong">
             {formatMessage({
-              id: "cockpit.garden.pool.settings.save",
-              defaultMessage: "Save settings",
+              id: "cockpit.garden.pool.settings.purpose",
+              defaultMessage: "What this pool is for",
             })}
-          </AdminButton>
-        </>
-      }
-    >
-      <div className="space-y-1.5">
-        <label htmlFor={purposeId} className="label-md block text-text-strong">
-          {formatMessage({
-            id: "cockpit.garden.pool.settings.purpose",
-            defaultMessage: "What this pool is for",
+            <span aria-hidden="true" className="ml-0.5 text-[rgb(var(--m3-error))]">
+              *
+            </span>
+          </label>
+          <textarea
+            id={purposeId}
+            value={purpose}
+            onChange={(event) => setPurpose(event.target.value)}
+            rows={4}
+            maxLength={2000}
+            required
+            disabled={saving}
+            className="w-full resize-y rounded-[var(--m3-shape-sm)] bg-[rgb(var(--m3-surface-container-highest))] px-3 py-2 text-body-md text-[rgb(var(--m3-on-surface))] ring-1 ring-inset ring-[rgb(var(--m3-outline-variant))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-focus-ring,var(--m3-primary)))] disabled:opacity-[0.38]"
+          />
+        </div>
+        <AdminTextField
+          label={formatMessage({
+            id: "cockpit.garden.pool.settings.cap",
+            defaultMessage: "How many commitments one person can hold at once",
           })}
-          <span aria-hidden="true" className="ml-0.5 text-[rgb(var(--m3-error))]">
-            *
-          </span>
-        </label>
-        <textarea
-          id={purposeId}
-          value={purpose}
-          onChange={(event) => setPurpose(event.target.value)}
-          rows={4}
-          maxLength={2000}
-          required
+          value={cap}
+          onChange={(event) => setCap(event.target.value)}
+          error={capError}
+          helperText={formatMessage({
+            id: "cockpit.garden.pool.settings.capHelp",
+            defaultMessage: "A safety limit so nobody over-commits. 24 suits most gardens.",
+          })}
+          inputProps={{ inputMode: "numeric", pattern: "[0-9]*" }}
           disabled={saving}
-          className="w-full resize-y rounded-[var(--m3-shape-sm)] bg-[rgb(var(--m3-surface-container-highest))] px-3 py-2 text-body-md text-[rgb(var(--m3-on-surface))] ring-1 ring-inset ring-[rgb(var(--m3-outline-variant))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-focus-ring,var(--m3-primary)))] disabled:opacity-[0.38]"
+          required
         />
-      </div>
-      <AdminTextField
-        label={formatMessage({
-          id: "cockpit.garden.pool.settings.cap",
-          defaultMessage: "How many commitments one person can hold at once",
-        })}
-        value={cap}
-        onChange={(event) => setCap(event.target.value)}
-        error={capError}
-        helperText={formatMessage({
-          id: "cockpit.garden.pool.settings.capHelp",
-          defaultMessage: "A safety limit so nobody over-commits. 24 suits most gardens.",
-        })}
-        inputProps={{ inputMode: "numeric", pattern: "[0-9]*" }}
-        disabled={saving}
-        required
-      />
-      <p className="text-xs text-text-soft">
-        {formatMessage({
-          id: "cockpit.garden.pool.settings.note",
-          defaultMessage:
-            "Both stay editable for the pool's whole life. Changing the limit never affects commitments already made.",
-        })}
-      </p>
-      {!pool.isOnline ? (
-        <Alert variant="warning">
+        <p className="text-xs text-text-soft">
           {formatMessage({
-            id: "cockpit.garden.pool.offline",
-            defaultMessage: "Needs a connection. Pool changes are sent straight to the chain.",
-          })}
-        </Alert>
-      ) : null}
-      {failure === "pin" ? (
-        <Alert variant="error">
-          {formatMessage({
-            id: "cockpit.garden.pool.settings.pinFailed",
+            id: "cockpit.garden.pool.settings.note",
             defaultMessage:
-              "The agreement could not be stored, so nothing was sent. Your words are still here; try saving again.",
+              "Both stay editable for the pool's whole life. Changing the limit never affects commitments already made.",
           })}
-        </Alert>
-      ) : failure === "send" ? (
-        <Alert variant="error">
-          {formatMessage({
-            id: "cockpit.garden.pool.settings.sendFailed",
-            defaultMessage: "The change was not recorded. Try again.",
-          })}
-        </Alert>
-      ) : null}
-    </AdminDialog>
+        </p>
+        {!pool.isOnline ? (
+          <Alert variant="warning">
+            {formatMessage({
+              id: "cockpit.garden.pool.offline",
+              defaultMessage: "Needs a connection. Pool changes are sent straight to the chain.",
+            })}
+          </Alert>
+        ) : null}
+        {failure === "pin" ? (
+          <Alert variant="error">
+            {formatMessage({
+              id: "cockpit.garden.pool.settings.pinFailed",
+              defaultMessage:
+                "The agreement could not be stored, so nothing was sent. Your words are still here; try saving again.",
+            })}
+          </Alert>
+        ) : failure === "send" ? (
+          <Alert variant="error">
+            {formatMessage({
+              id: "cockpit.garden.pool.settings.sendFailed",
+              defaultMessage: "The change was not recorded. Try again.",
+            })}
+          </Alert>
+        ) : null}
+      </AdminDialog>
+      <DiscardChangesDialog
+        open={dirtyClose.confirmOpen}
+        onKeepEditing={dirtyClose.cancelClose}
+        onDiscard={dirtyClose.confirmClose}
+        tone="garden"
+      />
+    </>
   );
 }

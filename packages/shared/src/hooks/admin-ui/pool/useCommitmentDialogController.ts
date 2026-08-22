@@ -27,6 +27,7 @@ import {
 } from "../../../modules/commitment-pooling/selectors";
 import {
   isPoolSteward,
+  selectCommitmentSubmissionReadiness,
   selectDueLiveCommitments,
   selectOrdinaryConfirmationReachable,
 } from "../../../modules/commitment-pooling/steward-selectors";
@@ -170,7 +171,13 @@ export function useCommitmentDialogController(input: {
   const hasPendingJob = commitment
     ? queue.pendingCommitmentIds.has(commitment.commitmentId.toString())
     : false;
-
+  const readiness = selectCommitmentSubmissionReadiness({
+    detail,
+    pool,
+    cycle: cycleQuery.cycle,
+    ordinaryReachable,
+    protocolPoolRegistered: protocolPool.isRegistered,
+  });
   /**
    * What this steward may do to this record, each a plain boolean derived
    * from state, authority and the contract's own gates, so a disabled
@@ -198,21 +205,17 @@ export function useCommitmentDialogController(input: {
       (detail?.requirements.length ?? 0) === 0 && commitment.commitmentType !== "DOMAIN_IMPACT";
     const steward = isLocalSteward;
     const accepted = state === "ACCEPTED";
+    // The three states raiseDispute accepts (TerminalLib.sol:91-96).
     const disputable =
-      state === "ACCEPTED" ||
-      state === "READY_FOR_CONFIRMATION" ||
-      state === "FULFILLED" ||
-      state === "EXPIRED";
+      state === "ACCEPTED" || state === "READY_FOR_CONFIRMATION" || state === "EXPIRED";
     const live = state === "ACCEPTED" || state === "READY_FOR_CONFIRMATION";
     return {
-      cancel: steward && accepted && !poolPaused,
+      cancel: steward && accepted, // a pause never winds down (TerminalLib.sol:11-12)
       markReady: steward && accepted && evidenceOnly && !poolPaused,
       sendForConfirmation:
         (steward || seat === "provider" || seat === "confirmer") &&
-        accepted &&
         evidenceOnly &&
-        commitment.evidenceCount > 0 &&
-        !poolPaused &&
+        readiness.ready &&
         !hasPendingJob,
       attachAssessment:
         steward &&
@@ -247,6 +250,7 @@ export function useCommitmentDialogController(input: {
     onRoster,
     isDue,
     confirmation,
+    readiness.ready,
   ]);
 
   const acts = useMemo(
@@ -303,6 +307,9 @@ export function useCommitmentDialogController(input: {
     [detailQuery, activity]
   );
 
+  // A query that never ran leaves no record; that is unavailable, not missing.
+  const unavailable = detailQuery.availability.status !== "available";
+  const isError = detailQuery.isError || activity.isError;
   return {
     chainId,
     garden,
@@ -333,8 +340,9 @@ export function useCommitmentDialogController(input: {
     acts,
     isActing: mutation.isPending || jobs.isPending,
     isLoading: detailQuery.isLoading || activity.isLoading || poolsQuery.isLoading,
-    isError: detailQuery.isError,
-    notFound: !detailQuery.isLoading && !detailQuery.isError && commitment === null,
+    isError,
+    unavailable,
+    notFound: !unavailable && !isError && !detailQuery.isLoading && commitment === null,
     refetch,
   };
 }

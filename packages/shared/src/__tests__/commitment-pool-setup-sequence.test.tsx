@@ -10,15 +10,15 @@
 
 import { act } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-
+import { useCommitmentPoolSetupSequence } from "../hooks/commitment-pooling/useCommitmentPoolSetupSequence";
 import {
   campaignSteps,
   firstRunSetupSteps,
+  isRetriablePoolSetupFailure,
   openSeasonSteps,
   type PoolChainReader,
   type PoolSetupStep,
 } from "../modules/commitment-pooling/pool-setup";
-import { useCommitmentPoolSetupSequence } from "../hooks/commitment-pooling/useCommitmentPoolSetupSequence";
 import { createTestQueryClient, renderHookWithProviders } from "./test-utils";
 
 const MODULE = "0x6bb5b0fd70b6771b0e955fef37f8bd2ce911470a";
@@ -53,7 +53,13 @@ vi.mock("../utils/blockchain/contracts", () => ({
   }),
 }));
 vi.mock("../utils/errors/contract-errors", () => ({
-  parseContractError: () => ({ name: "MockContractError" }),
+  parseContractError: (error: unknown) => ({
+    name: String(error instanceof Error ? error.message : error)
+      .toLowerCase()
+      .includes("user rejected")
+      ? "UserRejected"
+      : "MockContractError",
+  }),
 }));
 vi.mock("../utils/errors/mutation-error-handler", () => ({
   createMutationErrorHandler: () => mocks.mutationErrorHandler,
@@ -164,6 +170,13 @@ const FIRST_RUN: PoolSetupStep[] = firstRunSetupSteps({
   charterCID: "bafy-charter",
   cap: 24n,
   cycle: SEASON,
+  allocation: MODEL_ONE,
+  recognitionPolicy: RECOGNITION,
+});
+
+const CAMPAIGN_PLAN = campaignSteps({
+  poolId: POOL_ID,
+  cycle: { ...SEASON, cycleType: "CAMPAIGN", metadataCID: "bafy-campaign" },
   allocation: MODEL_ONE,
   recognitionPolicy: RECOGNITION,
 });
@@ -390,6 +403,163 @@ describe("useCommitmentPoolSetupSequence", () => {
     expect(result.current.state.status).toBe("failed");
     expect(result.current.state.failure).toBe("invalid-split");
     expect(mocks.sender.sendContractCall).not.toHaveBeenCalled();
+  });
+
+  it("stops with a retriable read failure when a chain read throws, and keeps what landed", async () => {
+    const { reader, apply } = fakeChain({ poolState: POOL.NOT_READY });
+    mocks.sender.sendContractCall.mockImplementation(async (call) => apply(call));
+    let poolReads = 0;
+    const flaky: PoolChainReader = {
+      ...reader,
+      readPool: async (poolId) => {
+        poolReads += 1;
+        // The charter and the cap are on chain; the read before markPoolReady
+        // is the one that cannot reach the node.
+        if (poolReads === 3) throw new Error("HTTP request failed");
+        return reader.readPool(poolId);
+      },
+    };
+    const { result } = renderSequence(flaky);
+
+    let outcome: Awaited<ReturnType<typeof result.current.run>> | undefined;
+    await act(async () => {
+      // The regression this guards: the throw used to escape `run`, leaving the
+      // sequence stuck on "running" with the console unable to close.
+      outcome = await result.current.run(FIRST_RUN);
+    });
+
+    expect(outcome?.status).toBe("failed");
+    expect(outcome?.failure).toBe("read-failed");
+    expect(outcome?.landed).toEqual(["setPoolCharter", "setProviderOpenCommitmentCap"]);
+    expect(result.current.state.status).toBe("failed");
+    expect(result.current.state.failedStep).toBe("markPoolReady");
+    expect(isRetriablePoolSetupFailure(result.current.state.failure)).toBe(true);
+
+    mocks.sender.sendContractCall.mockClear();
+    await act(async () => {
+      await result.current.retry();
+    });
+
+    // The reader answers again, so the run resumes at the step it stopped on.
+    expect(sentFunctions()).toEqual(["markPoolReady", "seedCycle", "openPool", "openCycle"]);
+    expect(result.current.state.status).toBe("complete");
+  });
+
+  it("does not seed a second cycle after a seed whose outcome it never learned", async () => {
+    const { reader, apply, chain } = fakeChain({
+      poolState: POOL.OPEN,
+      cycles: { "12": { state: CYCLE.OPEN } },
+    });
+    mocks.sender.sendContractCall.mockImplementation(async (call) => {
+      if (call.functionName === "seedCycle") {
+        // Mined, then the wallet gave up waiting for the receipt: the campaign
+        // exists on chain but this run never learned its id.
+        apply(call);
+        throw new Error("Timed out waiting for the receipt");
+      }
+      return apply(call);
+    });
+    const { result } = renderSequence(reader);
+
+    await act(async () => {
+      await result.current.run(CAMPAIGN_PLAN);
+    });
+
+    expect(result.current.state.status).toBe("failed");
+    expect(result.current.state.failure).toBe("seed-unconfirmed");
+    expect(result.current.state.failedStep).toBe("seedCycle");
+    // Not retriable: the console offers no "try again" that would seed twice.
+    expect(isRetriablePoolSetupFailure(result.current.state.failure)).toBe(false);
+    expect(chain.cycles.size).toBe(2);
+
+    mocks.sender.sendContractCall.mockClear();
+    await act(async () => {
+      await result.current.retry();
+    });
+
+    expect(mocks.sender.sendContractCall).not.toHaveBeenCalled();
+    expect(result.current.state.failure).toBe("seed-unconfirmed");
+    // Still one orphan beside the open season, never two.
+    expect(chain.cycles.size).toBe(2);
+  });
+
+  it("fails closed the same way when the seeding receipt cannot be read", async () => {
+    const { reader, apply, chain } = fakeChain({
+      poolState: POOL.OPEN,
+      cycles: { "12": { state: CYCLE.OPEN } },
+    });
+    mocks.sender.sendContractCall.mockImplementation(async (call) => apply(call));
+    const noReceipt: PoolChainReader = {
+      ...reader,
+      readSeededCycleId: async () => {
+        throw new Error("Transaction receipt not found");
+      },
+    };
+    const { result } = renderSequence(noReceipt);
+
+    await act(async () => {
+      await result.current.run(CAMPAIGN_PLAN);
+    });
+
+    expect(result.current.state.failure).toBe("seed-unconfirmed");
+    expect(sentFunctions()).toEqual(["seedCycle"]);
+
+    mocks.sender.sendContractCall.mockClear();
+    await act(async () => {
+      await result.current.retry();
+    });
+    expect(mocks.sender.sendContractCall).not.toHaveBeenCalled();
+    expect(chain.cycles.size).toBe(2);
+  });
+
+  it("still seeds again when the wallet reports the steward refused the seed", async () => {
+    const { reader, apply } = fakeChain({
+      poolState: POOL.OPEN,
+      cycles: { "12": { state: CYCLE.OPEN } },
+    });
+    let refused = false;
+    mocks.sender.sendContractCall.mockImplementation(async (call) => {
+      if (call.functionName === "seedCycle" && !refused) {
+        refused = true;
+        // Nothing was signed, so there is no cycle to orphan.
+        throw new Error("User rejected the request");
+      }
+      return apply(call);
+    });
+    const { result } = renderSequence(reader);
+
+    await act(async () => {
+      await result.current.run(CAMPAIGN_PLAN);
+    });
+    expect(result.current.state.failure).toBe("send-failed");
+    expect(isRetriablePoolSetupFailure(result.current.state.failure)).toBe(true);
+
+    mocks.sender.sendContractCall.mockClear();
+    await act(async () => {
+      await result.current.retry();
+    });
+    expect(sentFunctions()).toEqual(["seedCycle", "openCycle"]);
+    expect(result.current.state.status).toBe("complete");
+  });
+
+  it("refuses to run while demo pooling stands in for the ledger", async () => {
+    // The reads are fixtures there but the sender is real, so a fixture pool id
+    // must never reach the deployed module.
+    window.sessionStorage.setItem("greengoods_dev_mock_pooling", "1");
+    const { reader } = fakeChain({ poolState: POOL.NOT_READY });
+    const { result } = renderSequence(reader);
+
+    try {
+      await act(async () => {
+        await result.current.run(FIRST_RUN);
+      });
+
+      expect(result.current.state.status).toBe("failed");
+      expect(result.current.state.failure).toBe("unavailable");
+      expect(mocks.sender.sendContractCall).not.toHaveBeenCalled();
+    } finally {
+      window.sessionStorage.clear();
+    }
   });
 
   it("refuses to run while Commitment Pooling is unavailable on the chain", async () => {

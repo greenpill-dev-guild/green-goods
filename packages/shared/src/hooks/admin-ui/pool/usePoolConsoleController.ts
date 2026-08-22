@@ -13,9 +13,10 @@
  * @module hooks/admin-ui/pool/usePoolConsoleController
  */
 
-import { useCallback, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { pinPoolCharter } from "../../../modules/commitment-pooling/pool-charter";
 import { selectPoolConsoleModel } from "../../../modules/commitment-pooling/pool-console";
+import { selectNextDueBoundary } from "../../../modules/commitment-pooling/steward-selectors";
 import type { Address } from "../../../types/domain";
 import { useOnlineStatus } from "../../app/useOnlineStatus";
 import { usePrimaryAddress } from "../../auth/usePrimaryAddress";
@@ -32,6 +33,7 @@ import { useCommitmentQueueState } from "../../commitment-pooling/useCommitmentQ
 import { useCommitmentReason } from "../../commitment-pooling/useCommitmentReason";
 import { usePoolCharter } from "../../commitment-pooling/usePoolCharter";
 import { usePoolClaimRequests } from "../../commitment-pooling/usePoolClaimRequests";
+import { useTimeout } from "../../utils/useTimeout";
 
 export function usePoolConsoleController(input: { chainId: number; garden: Address }) {
   const { chainId, garden } = input;
@@ -56,7 +58,11 @@ export function usePoolConsoleController(input: { chainId: number; garden: Addre
   const metadata = useCommitmentMetadata(commitmentsQuery.commitments);
   const queue = useCommitmentQueueState(viewer);
 
-  const now = useMemo(() => BigInt(Math.floor(Date.now() / 1000)), []);
+  // A console can sit open across a due moment. Rather than polling, the tick
+  // is scheduled for the next boundary the loaded rows actually have, so a row
+  // falling due starts offering Expire now without a remount.
+  const nowTimer = useTimeout();
+  const [now, setNow] = useState(() => BigInt(Math.floor(Date.now() / 1000)));
   const model = useMemo(
     () =>
       selectPoolConsoleModel({
@@ -68,6 +74,25 @@ export function usePoolConsoleController(input: { chainId: number; garden: Addre
       }),
     [pool, hasPool, cyclesQuery.cycles, commitmentsQuery.commitments, claimsQuery.rows.length, now]
   );
+
+  const nextDue = useMemo(
+    () =>
+      selectNextDueBoundary({
+        commitments: commitmentsQuery.commitments,
+        cycleEndTimes: new Map(
+          (hasPool ? cyclesQuery.cycles : []).map((row) => [row.cycleId.toString(), row.endTime])
+        ),
+        now,
+      }),
+    [commitmentsQuery.commitments, cyclesQuery.cycles, hasPool, now]
+  );
+  useEffect(() => {
+    if (nextDue === null) return;
+    const delay = Number(nextDue - now) * 1000;
+    if (delay <= 0) return;
+    nowTimer.set(() => setNow(BigInt(Math.floor(Date.now() / 1000))), delay);
+    return () => nowTimer.clear();
+  }, [nextDue, now, nowTimer]);
 
   const pendingCreates = useMemo(
     () =>

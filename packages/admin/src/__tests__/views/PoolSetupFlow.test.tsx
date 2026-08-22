@@ -3,6 +3,7 @@
  */
 
 import { type PoolConsoleController, selectPoolConsoleModel } from "@green-goods/shared";
+import { useState } from "react";
 import { createMemoryRouter, RouterProvider } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, renderWithProviders, screen, waitFor, within } from "../test-utils";
@@ -315,6 +316,49 @@ describe("PoolSetupFlow (W11)", () => {
     await waitFor(() => expect(mocks.retry).toHaveBeenCalledTimes(1));
     expect(mocks.run).toHaveBeenCalledTimes(1);
     await waitFor(() => expect(onClose).toHaveBeenCalled());
+  });
+
+  it("starts every fresh open from today, so a discarded date range never comes back", () => {
+    const pool = controller();
+    function Harness() {
+      const [open, setOpen] = useState(true);
+      return (
+        <>
+          <button type="button" onClick={() => setOpen((value) => !value)}>
+            toggle flow
+          </button>
+          <PoolSetupFlow
+            open={open}
+            intent="campaign"
+            console={pool as unknown as PoolConsoleController}
+            onClose={() => setOpen(false)}
+          />
+        </>
+      );
+    }
+    const router = createMemoryRouter([{ path: "/garden/pool", element: <Harness /> }], {
+      initialEntries: ["/garden/pool"],
+    });
+    renderWithProviders(<RouterProvider router={router} />);
+
+    const startField = () => within(dialog()).getByLabelText(/^starts/i) as HTMLInputElement;
+    const endField = () => within(dialog()).getByLabelText(/runs through/i) as HTMLInputElement;
+    const toggle = () => screen.getByRole("button", { name: /toggle flow/i, hidden: true });
+    const today = new Date().toISOString().slice(0, 10);
+    expect(startField().value).toBe(today);
+
+    // A steward names the campaign, moves the range, then thinks better of it.
+    fillCycle();
+    expect(startField().value).toBe("2026-09-01");
+
+    // Cancel closes the flow; PoolDialogs keeps it mounted on `open={flow !== null}`.
+    fireEvent.click(within(dialog()).getByRole("button", { name: /^cancel$/i }));
+    fireEvent.click(toggle());
+
+    // Nothing unmounted, so the fresh-open reset is the only thing that clears it.
+    expect(startField().value).toBe(today);
+    expect(endField().value).not.toBe("2026-09-30");
+    expect((within(dialog()).getByLabelText(/^name/i) as HTMLInputElement).value).toBe("");
   });
 
   it("blocks a second season and names the running one", () => {

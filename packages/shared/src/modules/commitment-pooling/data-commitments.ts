@@ -462,3 +462,30 @@ export async function getFallbackConfirmationCandidates(input: {
     activeContributors: byCommitment.get(commitment.id) ?? [],
   }));
 }
+
+/**
+ * The commitments this account has already confirmed, as raw commitment ids.
+ *
+ * `ConfirmLib.confirmFulfillment` records `hasConfirmed[commitmentId][msg.sender]`
+ * and reverts `AlreadyConfirmed` on a repeat, and a commitment whose threshold is
+ * above one stays `READY_FOR_CONFIRMATION` after the first confirmation. The
+ * confirmer's identity is indexed: `ConfirmationRecorded` writes a
+ * `CommitmentEvent` audit row whose `actor` is the event's `confirmer`
+ * (`firstExplicitActor`), so the queue can leave out what this reader already
+ * signed instead of offering a transaction the chain refuses.
+ */
+export async function getViewerConfirmedCommitmentIds(input: {
+  chainId: number;
+  viewer: Address;
+}): Promise<string[]> {
+  const query = `query ViewerConfirmedCommitments($chainId: Int!, $actor: String!) { CommitmentEvent(where: { chainId: { _eq: $chainId }, eventType: { _eq: CONFIRMATION_RECORDED }, actor: { _eq: $actor } }) { commitmentId } }`;
+  const rows = await queryRows(
+    query,
+    { chainId: input.chainId, actor: input.viewer.toLowerCase() },
+    "CommitmentEvent",
+    "getViewerConfirmedCommitments"
+  );
+  return rows
+    .map((row) => (row.commitmentId === null ? null : String(row.commitmentId)))
+    .filter((id): id is string => id !== null);
+}

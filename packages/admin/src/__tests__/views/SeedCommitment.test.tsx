@@ -3,6 +3,7 @@
  */
 
 import { selectPoolConsoleModel } from "@green-goods/shared";
+import { useState } from "react";
 import { createMemoryRouter, RouterProvider } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, renderWithProviders, screen, waitFor, within } from "../test-utils";
@@ -10,6 +11,7 @@ import { fireEvent, renderWithProviders, screen, waitFor, within } from "../test
 const GARDEN = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" as const;
 const VIEWER = "0x1111111111111111111111111111111111111111" as const;
 const CONFIRMER = "0x2222222222222222222222222222222222222222" as const;
+const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000" as const;
 const NOW = 1_756_000_000n;
 
 const mocks = vi.hoisted(() => ({
@@ -185,6 +187,49 @@ function renderSeed(props: { protocolContext?: boolean } = {}) {
   return { onClose };
 }
 
+/**
+ * The dialog as PoolDialogs mounts it: always rendered, `open` toggling around
+ * it, and a re-render on demand so a query can be made to answer late.
+ */
+function renderMounted(props: { protocolContext?: boolean } = {}) {
+  function Harness() {
+    const [open, setOpen] = useState(true);
+    const [, setTick] = useState(0);
+    return (
+      <>
+        <button type="button" data-testid="toggle-seed" onClick={() => setOpen((value) => !value)}>
+          toggle seed
+        </button>
+        <button
+          type="button"
+          data-testid="settle-queries"
+          onClick={() => setTick((value) => value + 1)}
+        >
+          settle queries
+        </button>
+        <SeedCommitmentDialog
+          open={open}
+          chainId={42161}
+          garden={GARDEN}
+          onClose={() => setOpen(false)}
+          protocolContext={props.protocolContext}
+        />
+      </>
+    );
+  }
+  const router = createMemoryRouter([{ path: "/garden/pool/seed", element: <Harness /> }], {
+    initialEntries: ["/garden/pool/seed"],
+  });
+  renderWithProviders(<RouterProvider router={router} />);
+  // By test id, not by role: an open Radix dialog marks everything outside it
+  // aria-hidden, so the harness controls are not in the accessibility tree.
+  const press = (id: string) => fireEvent.click(screen.getByTestId(id));
+  return {
+    toggleOpen: () => press("toggle-seed"),
+    settleQueries: () => press("settle-queries"),
+  };
+}
+
 const dialog = () => screen.getByRole("dialog");
 const next = () => fireEvent.click(within(dialog()).getByRole("button", { name: /^next$/i }));
 
@@ -256,7 +301,10 @@ describe("SeedCommitmentDialog (W8)", () => {
       confirmers: [CONFIRMER],
       confirmationThreshold: 1,
       protocolFallbackEnabled: true,
-      onBehalfOf: VIEWER,
+      // Direct creation: CreationChecksLib.resolveCreator reverts
+      // UnauthorizedCaller on any named onBehalfOf outside a StewardCaptured
+      // commitment, and this console never seeds one.
+      onBehalfOf: ZERO_ADDRESS,
       gardenAddress: GARDEN,
       consideration: { rail: 0, amount: 0n },
     });
@@ -317,5 +365,99 @@ describe("SeedCommitmentDialog (W8)", () => {
     await waitFor(() => expect(mocks.enqueue).toHaveBeenCalledTimes(1));
     const input = mocks.enqueue.mock.calls[0]?.[0] as { payload: Record<string, unknown> };
     expect(input.payload.protocolFallbackEnabled).toBe(false);
+  });
+
+  it("refuses the zero address as a named confirmer, which no threshold could ever reach", async () => {
+    renderSeed();
+    fillWhat();
+    next();
+    await waitFor(() => expect(within(dialog()).getByLabelText(/^unit/i)).toBeInTheDocument());
+    fillHowMuch();
+    next();
+    await waitFor(() =>
+      expect(within(dialog()).getByLabelText(/add an address/i)).toBeInTheDocument()
+    );
+    const draft = within(dialog()).getByLabelText(/add an address/i);
+    fireEvent.change(draft, { target: { value: ZERO_ADDRESS } });
+    expect(within(dialog()).getByRole("button", { name: /^add$/i })).toBeDisabled();
+    fireEvent.change(draft, { target: { value: CONFIRMER } });
+    expect(within(dialog()).getByRole("button", { name: /^add$/i })).toBeEnabled();
+  });
+
+  it("says a broken reward in the operator's language, not in the schema's own words", async () => {
+    renderSeed();
+    fillWhat();
+    next();
+    await waitFor(() => expect(within(dialog()).getByLabelText(/^unit/i)).toBeInTheDocument());
+    fillHowMuch();
+    next();
+    await waitFor(() =>
+      expect(
+        within(dialog()).getByRole("radio", { name: /external payout record/i })
+      ).toBeInTheDocument()
+    );
+    fireEvent.click(within(dialog()).getByRole("radio", { name: /external payout record/i }));
+    fireEvent.change(within(dialog()).getByLabelText(/^amount \(base units\)/i), {
+      target: { value: "0" },
+    });
+    // The schema says this as a message id; a raw one reaching the DOM is the
+    // regression, and only a catalog lookup turns it back into a sentence.
+    await waitFor(() =>
+      expect(within(dialog()).getByText("Enter a whole amount above zero.")).toBeInTheDocument()
+    );
+    expect(dialog().textContent).not.toContain("cockpit.garden.pool.seed.error");
+  });
+
+  it("starts a fresh draft each time the mounted dialog reopens", async () => {
+    const { toggleOpen } = renderMounted();
+    fillWhat("Abandoned draft");
+    next();
+    await waitFor(() => expect(within(dialog()).getByLabelText(/^unit/i)).toBeInTheDocument());
+    toggleOpen();
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    toggleOpen();
+    // Back on the first step, with nothing carried over: resuming the abandoned
+    // answers is how the same commitment reaches the queue twice.
+    await waitFor(() => expect(within(dialog()).getByLabelText(/^title/i)).toBeInTheDocument());
+    expect(within(dialog()).getByLabelText(/^title/i)).toHaveValue("");
+    expect(mocks.enqueue).not.toHaveBeenCalled();
+  });
+
+  it("follows the season and the protocol pool once their queries answer", async () => {
+    mocks.protocolRegistered = false;
+    mocks.console = { ...consoleFor(), model: { ...consoleFor().model, season: null } };
+    const { settleQueries } = renderMounted();
+    const cycleSelect = () => within(dialog()).getByLabelText(/^cycle/i) as HTMLSelectElement;
+    // Cold load: no season yet, and no protocol pool, so the one-time defaults
+    // are cycle-less with the fallback off.
+    expect(cycleSelect().value).toBe("0");
+
+    mocks.protocolRegistered = true;
+    mocks.console = consoleFor();
+    settleQueries();
+
+    // Untouched fields follow the answer; otherwise an untouched submission is
+    // silently cycle-less with the fallback off.
+    expect(cycleSelect().value).toBe("12");
+    fillWhat();
+    next();
+    await waitFor(() => expect(within(dialog()).getByLabelText(/^unit/i)).toBeInTheDocument());
+    fillHowMuch();
+    next();
+    await waitFor(() =>
+      expect(within(dialog()).getByRole("checkbox", { name: /green goods team/i })).toBeChecked()
+    );
+  });
+
+  it("never overwrites a choice the steward already made with a late default", () => {
+    mocks.console = { ...consoleFor(), model: { ...consoleFor().model, season: null } };
+    const { settleQueries } = renderMounted();
+    const cycleSelect = () => within(dialog()).getByLabelText(/^cycle/i) as HTMLSelectElement;
+    fireEvent.change(cycleSelect(), { target: { value: "13" } });
+
+    mocks.console = consoleFor();
+    settleQueries();
+
+    expect(cycleSelect().value).toBe("13");
   });
 });

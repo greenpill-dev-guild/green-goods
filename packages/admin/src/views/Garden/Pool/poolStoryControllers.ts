@@ -242,6 +242,7 @@ export function storyCommitmentDialog(
     isActing: false,
     isLoading: false,
     isError: false,
+    unavailable: false,
     notFound: false,
     refetch: async () => [] as never,
     ...overrides,

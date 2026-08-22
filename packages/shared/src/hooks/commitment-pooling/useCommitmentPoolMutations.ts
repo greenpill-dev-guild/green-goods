@@ -28,7 +28,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { queryKeys } from "../../config/query-keys";
-import { getOntologyChainMaturity } from "../../ontology/query";
+import { isDemoPoolingActive } from "../../modules/commitment-pooling/demo/demo-mode";
 import {
   type CommitmentPoolAction,
   type CommitmentPoolMutationCall,
@@ -38,6 +38,7 @@ import {
 } from "../../modules/commitment-pooling/pool-lifecycle";
 import { pinCommitmentReason } from "../../modules/commitment-pooling/reasons";
 import { selectCommitmentPoolingAvailability } from "../../modules/commitment-pooling/selectors";
+import { getOntologyChainMaturity } from "../../ontology/query";
 import type { Address } from "../../types/domain";
 import { isZeroAddress } from "../../utils/blockchain/address";
 import { CommitmentPoolingModuleABI, getNetworkContracts } from "../../utils/blockchain/contracts";
@@ -89,8 +90,17 @@ async function resolveCall(
 /**
  * The module a pool write goes to, once the chain is known to serve pooling.
  * Shared with the setup sequence so both refuse the same way.
+ *
+ * Demo mode refuses first, and for the same reason `useCommitmentMutation`
+ * does: every read is a fixture there, availability included, but the sender
+ * is real. A pause, a close or a whole setup chain composed against a fixture
+ * pool id would otherwise reach the deployed module and act on whichever real
+ * pool happens to carry that number.
  */
 export function resolveCommitmentPoolingModule(chainId: number): Address {
+  if (isDemoPoolingActive()) {
+    throw new Error("Commitment Pooling is in demo mode; this act is not sent");
+  }
   const availability = selectCommitmentPoolingAvailability(
     getOntologyChainMaturity("entity:commitment-pool", chainId)
   );

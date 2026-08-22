@@ -120,7 +120,31 @@ export type PoolSetupFailure =
   | "cycle-id-unknown"
   | "cycle-terminal"
   | "send-failed"
-  | "not-confirmed";
+  | "not-confirmed"
+  | "read-failed"
+  | "seed-unconfirmed";
+
+/**
+ * The failures a retry can clear. Each of them leaves the chain able to say
+ * what landed, so walking the same steps again sends only the unlanded call.
+ *
+ * `seed-unconfirmed` is deliberately absent. Seeding is the one write the
+ * chain cannot recognise on its own — a cycle is named by the receipt, not by
+ * any later read — so once a `seedCycle` outcome is unknown, sending it again
+ * risks a second, orphaned cycle. That run fails closed and the steward
+ * refetches the pool instead.
+ */
+const RETRIABLE_FAILURES = new Set<PoolSetupFailure>([
+  "send-failed",
+  "not-confirmed",
+  "cycle-id-unknown",
+  "read-failed",
+]);
+
+/** Whether repeating the run is safe. The console offers a retry only for these. */
+export function isRetriablePoolSetupFailure(failure: PoolSetupFailure | null): boolean {
+  return failure !== null && RETRIABLE_FAILURES.has(failure);
+}
 
 export function firstRunSetupSteps(plan: {
   poolId: bigint;

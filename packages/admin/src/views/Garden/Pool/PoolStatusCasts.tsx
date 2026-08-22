@@ -19,8 +19,39 @@ function SkeletonRail() {
  * Returns null once the console itself should render. Split out of `index.tsx`,
  * which is at its source-structure cap.
  */
-export function PoolStatusCasts({ pool }: { pool: PoolConsoleController }) {
+export function PoolStatusCasts({
+  pool,
+  canManage,
+}: {
+  pool: PoolConsoleController;
+  canManage: boolean;
+}) {
   const { formatMessage } = useIntl();
+
+  // The console is the steward's surface (uiux-spec §6.2), and the Garden rail
+  // only offers the tab to one. A direct link is the other way in, so the
+  // permission is checked here too rather than on each card: pause, close,
+  // cancel, accept and decline would otherwise invite a member to sign a call
+  // the contract refuses.
+  if (!canManage) {
+    return (
+      <AdminCard variant="elevated" data-component="GardenPoolTab" className="space-y-2">
+        <p className="label-md text-text-strong">
+          {formatMessage({
+            id: "cockpit.garden.pool.stewardOnly.title",
+            defaultMessage: "The pool console is for this garden's stewards",
+          })}
+        </p>
+        <p className="text-sm text-text-soft">
+          {formatMessage({
+            id: "cockpit.garden.pool.stewardOnly.body",
+            defaultMessage:
+              "Members read this garden's pool in the Green Goods app. Ask a steward if something here needs changing.",
+          })}
+        </p>
+      </AdminCard>
+    );
+  }
 
   if (pool.isLoading) {
     return (

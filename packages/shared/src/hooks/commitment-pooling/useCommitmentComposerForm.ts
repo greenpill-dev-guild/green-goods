@@ -20,7 +20,8 @@
  */
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
+import { useEffect, useRef } from "react";
+import { useForm, type UseFormReturn } from "react-hook-form";
 import { z } from "zod";
 
 import type { CommitmentCreationPayload } from "../../modules/commitment-pooling/jobs";
@@ -76,6 +77,39 @@ const addressSchema = z.string().regex(/^0x[0-9a-fA-F]{40}$/, "Enter an address"
 /** Base units of the token, as the contract stores them. */
 const amountSchema = z.string().regex(/^\d+$/, "Enter a whole amount");
 
+/**
+ * A named confirmer, never the zero address.
+ *
+ * `CreditLib.eligibleNamedConfirmerCount` skips the zero address while counting
+ * who may still confirm, so naming it buys nothing and costs the commitment:
+ * a group of one zero address leaves the threshold unreachable and
+ * `assertConfirmationReachable` reverts `ConfirmationThresholdUnreachable`,
+ * which cannot be repaired once the commitment is accepted.
+ */
+const confirmerAddressSchema = addressSchema.refine(
+  (value) => !/^0x0{40}$/i.test(value),
+  "Enter a confirmer's own address"
+);
+
+/**
+ * Message ids for the rules the steward's seeding console added, resolved by the
+ * view through `formatMessage`.
+ *
+ * The composer's older messages are developer English that no surface shows —
+ * the member composer says the missing thing in its own words instead. These
+ * rules have no such restatement: the seeding console renders the schema's
+ * message directly, so an id is the only way a Spanish or Portuguese steward
+ * reads them in their language.
+ */
+export const COMMITMENT_COMPOSER_ERROR_IDS = {
+  confirmersTooMany: "cockpit.garden.pool.seed.error.confirmersTooMany",
+  thresholdAtLeastOne: "cockpit.garden.pool.seed.error.thresholdAtLeastOne",
+  thresholdAboveGroup: "cockpit.garden.pool.seed.error.thresholdAboveGroup",
+  considerationSource: "cockpit.garden.pool.seed.error.considerationSource",
+  considerationToken: "cockpit.garden.pool.seed.error.considerationToken",
+  considerationAmount: "cockpit.garden.pool.seed.error.considerationAmount",
+} as const;
+
 /** Static English; the view renders its own translated messages. */
 export const commitmentComposerSchema = z
   .object({
@@ -115,8 +149,13 @@ export const commitmentComposerSchema = z
      * group with its threshold, and exactly one consideration rail. All
      * default to the member composer's answers: nobody named, no money.
      */
-    confirmers: z.array(addressSchema).max(40, "Too many confirmers"),
-    confirmationThreshold: z.number().int().min(1, "At least one"),
+    confirmers: z
+      .array(confirmerAddressSchema)
+      .max(40, COMMITMENT_COMPOSER_ERROR_IDS.confirmersTooMany),
+    confirmationThreshold: z
+      .number()
+      .int()
+      .min(1, COMMITMENT_COMPOSER_ERROR_IDS.thresholdAtLeastOne),
     considerationRail: z.enum(["NONE", "ARBITRUM_EXTERNAL", "CELO_SETTLEMENT"]),
     considerationSource: z.string().trim(),
     considerationToken: z.string().trim(),
@@ -158,7 +197,7 @@ export const commitmentComposerSchema = z
       context.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["confirmationThreshold"],
-        message: "More confirmations than confirmers",
+        message: COMMITMENT_COMPOSER_ERROR_IDS.thresholdAboveGroup,
       });
     }
     if (values.considerationRail === "ARBITRUM_EXTERNAL") {
@@ -166,14 +205,14 @@ export const commitmentComposerSchema = z
         context.addIssue({
           code: z.ZodIssueCode.custom,
           path: ["considerationSource"],
-          message: "Name where the payout comes from",
+          message: COMMITMENT_COMPOSER_ERROR_IDS.considerationSource,
         });
       }
       if (!addressSchema.safeParse(values.considerationToken).success) {
         context.addIssue({
           code: z.ZodIssueCode.custom,
           path: ["considerationToken"],
-          message: "Name the token",
+          message: COMMITMENT_COMPOSER_ERROR_IDS.considerationToken,
         });
       }
     }
@@ -183,7 +222,7 @@ export const commitmentComposerSchema = z
         context.addIssue({
           code: z.ZodIssueCode.custom,
           path: ["considerationAmount"],
-          message: "Enter a whole amount above zero",
+          message: COMMITMENT_COMPOSER_ERROR_IDS.considerationAmount,
         });
       }
     }
@@ -225,6 +264,65 @@ export function useCommitmentComposerForm(initial?: Partial<CommitmentComposerVa
 }
 
 /**
+ * Keep a composer honest inside a dialog that outlives one attempt at filling it.
+ *
+ * Two things go wrong otherwise, and both end in a commitment nobody meant to
+ * queue. A dialog whose `open` prop merely toggles keeps the last attempt, so
+ * cancelling or seeding and then reopening resumes the abandoned answers on the
+ * step they were abandoned at, and the same commitment can go into the queue
+ * twice. And react-hook-form reads `defaultValues` once, on the first render:
+ * a default that only a query can supply — the pool's open season, whether a
+ * protocol pool is registered — is captured as the cold-load placeholder and
+ * never corrected, so an untouched form submits the placeholder while the view
+ * shows the resolved choice.
+ *
+ * `initial` is the same object the form was built with, applied field by field
+ * and only where nobody has typed, so a late answer never overwrites a steward's.
+ */
+export function useCommitmentComposerSession(input: {
+  form: UseFormReturn<CommitmentComposerValues>;
+  /** The dialog's own flag. A closed composer is left alone. */
+  open: boolean;
+  /** What the draft belongs to. A different garden or context starts a fresh one. */
+  sessionKey: string;
+  /** The form's initial values, including the ones a query resolves late. */
+  initial: Partial<CommitmentComposerValues>;
+  /** Clears what the view holds beside the form: step, drafts, submission errors. */
+  onRestart: () => void;
+}): void {
+  const { form, open, sessionKey, initial, onRestart } = input;
+  const startedSession = useRef<string | null>(null);
+  const latest = useRef({ initial, onRestart });
+  useEffect(() => {
+    latest.current = { initial, onRestart };
+  });
+
+  useEffect(() => {
+    if (!open) {
+      // Closing ends the session, so the next open starts over even if the
+      // steward reopens the very same garden.
+      startedSession.current = null;
+      return;
+    }
+    if (startedSession.current === sessionKey) return;
+    startedSession.current = sessionKey;
+    form.reset({ ...COMMITMENT_COMPOSER_DEFAULTS, ...latest.current.initial });
+    latest.current.onRestart();
+  }, [form, open, sessionKey]);
+
+  useEffect(() => {
+    if (!open) return;
+    for (const [field, value] of Object.entries(initial)) {
+      const name = field as keyof CommitmentComposerValues;
+      if (value === undefined || form.getFieldState(name).isDirty) continue;
+      if (form.getValues(name) === value) continue;
+      // Not dirty: this is the default arriving, not an answer being given.
+      form.setValue(name, value as never, { shouldDirty: false });
+    }
+  }, [form, open, initial]);
+}
+
+/**
  * Turn a filled-in form into the creation payload.
  *
  * `creationRequestKey` is deliberately absent: the queue derives it from
@@ -239,6 +337,11 @@ export function buildCommitmentCreationPayload(input: {
   values: CommitmentComposerValues;
   clientCommitmentId: string;
   poolId: bigint;
+  /**
+   * Who is composing, as the calling surface knows them. It does not travel in
+   * the payload: `CreationChecksLib.resolveCreator` takes the creator from
+   * `msg.sender` and rejects a caller-named one outside capture (`capturedFor`).
+   */
   creator: Address;
   gardenAddress: Address;
   /** Seconds since epoch at build time; passed in so the result stays pure. */
@@ -248,8 +351,16 @@ export function buildCommitmentCreationPayload(input: {
    * defaults to steward review); a member composing alone may not.
    */
   allowGatedOffers?: boolean;
+  /**
+   * Delegated creation, and only for a `StewardCaptured` commitment: the member
+   * whose contribution a steward is capturing. Every other type must send the
+   * zero address — `CreationChecksLib.resolveCreator` reverts
+   * `UnauthorizedCaller` on a non-zero `onBehalfOf` — so this stays unset for
+   * everything this composer builds today.
+   */
+  capturedFor?: Address;
 }): Omit<CommitmentCreationPayload, "creationRequestKey"> {
-  const { values, clientCommitmentId, poolId, creator, gardenAddress } = input;
+  const { values, clientCommitmentId, poolId, gardenAddress } = input;
   const dueDate = BigInt(input.nowSeconds + values.dueInDays * 24 * 60 * 60);
   const isGardenWork = values.kind === "GARDEN_WORK";
   const confirmers = [
@@ -285,7 +396,9 @@ export function buildCommitmentCreationPayload(input: {
         ? CLAIM_MODE.APPROVAL_GATED
         : CLAIM_MODE.OPEN,
     contributorPolicy: values.openTeam ? CONTRIBUTOR_POLICY.OPEN : CONTRIBUTOR_POLICY.LEAD_MANAGED,
-    onBehalfOf: creator,
+    // Direct creation, so the module reads the creator from `msg.sender`. Naming
+    // anyone here reverts `UnauthorizedCaller` unless the type is StewardCaptured.
+    onBehalfOf: input.capturedFor ?? ZERO_ADDRESS,
     domainTags: [],
     requirements: isGardenWork
       ? values.requirements.map((row) => ({

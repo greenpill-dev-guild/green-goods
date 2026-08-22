@@ -114,6 +114,9 @@ export function SeedConfirmerList({
           })}
         </AdminButton>
       </div>
+      {errorOf("confirmers") ? (
+        <p className="text-xs text-[rgb(var(--m3-error))]">{errorOf("confirmers")}</p>
+      ) : null}
       {values.confirmers.length > 0 ? (
         <AdminTextField
           label={formatMessage({

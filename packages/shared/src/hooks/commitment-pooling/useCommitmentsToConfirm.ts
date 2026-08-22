@@ -38,6 +38,15 @@
  * steward holding both renders the garden path. The protocol queue is read
  * only when a caller asks for it, because it lists rows from other gardens.
  *
+ * **Pool authority is a separate question.** A garden confirms as a party
+ * wherever its commitment lives, while `raiseDispute` and `resolveDispute`
+ * admit only a steward of the pool's own garden (`GuardLib.isPoolSteward`), so
+ * every row names its pool's garden beside the authority garden and says
+ * plainly whether this reader may dispute it. That also makes disputed rows
+ * readable: a dispute freezes the record out of `READY_FOR_CONFIRMATION`, so
+ * each stewarded pool is read for them too rather than dropping the record
+ * the moment it needs a steward most.
+ *
  * @module hooks/commitment-pooling/useCommitmentsToConfirm
  */
 
@@ -49,6 +58,7 @@ import { selectCommitmentActKind } from "../../modules/commitment-pooling/acts";
 import {
   getCommitments,
   getFallbackConfirmationCandidates,
+  getViewerConfirmedCommitmentIds,
 } from "../../modules/commitment-pooling/data";
 import {
   selectCommitmentSeat,
@@ -63,8 +73,30 @@ import type { Address, Garden } from "../../types/domain";
 import { useGardens } from "../blockchain/useBaseLists";
 import { useGardenPermissions } from "../garden/useGardenPermissions";
 import { useCommitmentPoolingAvailability } from "./useCommitmentPoolingAvailability";
+import { useCommitmentPools } from "./useCommitmentPooling";
 import type { InboxCommitment } from "./useCommitmentsInbox";
 import { useProtocolPool } from "./useProtocolPool";
+
+/**
+ * Which pool a row belongs to, and what that lets this reader do to it. Both
+ * fields are optional so a fixture may leave them out; every row this hook
+ * builds states them outright.
+ */
+export interface ToConfirmPoolAuthority {
+  /**
+   * The garden that owns the commitment's pool, which is not always the garden
+   * whose authority confirms. Null when the pools read has not answered.
+   */
+  poolGarden?: Address | null;
+  /**
+   * The reader currently stewards that pool's garden, the only authority
+   * `TerminalLib.raiseDispute` and `resolveDispute` accept here.
+   */
+  canDispute?: boolean;
+}
+
+/** One commitment in a garden's group, with the pool it actually lives in. */
+export interface ToConfirmRow extends InboxCommitment, ToConfirmPoolAuthority {}
 
 /** The garden's own read of a commitment, as the party its stewards act for. */
 export interface ToConfirmGroup {
@@ -75,11 +107,11 @@ export interface ToConfirmGroup {
    * `needsYou` means "needs this garden". The row renders with the same
    * grammar as the personal inbox.
    */
-  rows: InboxCommitment[];
+  rows: ToConfirmRow[];
 }
 
 /** A commitment only a steward's reasoned fallback can still confirm. */
-export interface ToConfirmFallbackRow {
+export interface ToConfirmFallbackRow extends ToConfirmPoolAuthority {
   commitment: CommitmentReadModel;
   path: "POOL_FALLBACK" | "PROTOCOL_FALLBACK";
   /** The garden whose steward authority the act would use. */
@@ -88,10 +120,23 @@ export interface ToConfirmFallbackRow {
   activeContributors: Address[];
 }
 
+/** A frozen record waiting on the pool steward who may resolve the dispute. */
+export interface ToConfirmDisputedRow {
+  commitment: CommitmentReadModel;
+  /** The pool's garden, which is the authority `resolveDispute` requires. */
+  garden: Address;
+  gardenName: string;
+}
+
 export interface CommitmentsToConfirm {
   groups: ToConfirmGroup[];
   fallback: ToConfirmFallbackRow[];
-  /** Rows across every garden, ordinary and fallback: the tab's badge. */
+  /**
+   * Disputed records in the reader's own pools. Optional so a fixture may
+   * leave it out; this hook always answers with an array.
+   */
+  disputed?: ToConfirmDisputedRow[];
+  /** Rows across every garden — ordinary, fallback and disputed: the badge. */
   count: number;
   /** The reader stewards at least one garden. The tab exists only then. */
   isSteward: boolean;
@@ -161,6 +206,37 @@ export function useCommitmentsToConfirm({
     [own.data]
   );
 
+  // What this reader already signed. `ConfirmLib.confirmFulfillment` records
+  // the confirmer and reverts `AlreadyConfirmed` on a repeat, and a threshold
+  // above one keeps the record ready in between, so without this the same row
+  // would be offered again with a transaction the chain refuses.
+  const confirmed = useQuery({
+    queryKey: queryKeys.commitmentPooling.activity(chainId, {
+      actor: viewer,
+      eventType: "CONFIRMATION_RECORDED",
+    }),
+    queryFn: () => getViewerConfirmedCommitmentIds({ chainId, viewer: viewer as Address }),
+    enabled: availability.status === "available" && Boolean(viewer) && stewarded.length > 0,
+    staleTime: STALE_TIME_MEDIUM,
+  });
+  const confirmedIds = useMemo(() => new Set(confirmed.data ?? []), [confirmed.data]);
+
+  // Which garden owns which pool. Confirmation authority and pool authority
+  // are different questions, and only the pool's garden may dispute or
+  // resolve (`GuardLib.isPoolSteward`), so the queue reads the registered
+  // pools once rather than guessing from the confirming garden.
+  const poolsQuery = useCommitmentPools({ chainId });
+  const { poolGardens, stewardedSet } = useMemo(() => {
+    const poolGardens = new Map<string, Address>();
+    for (const pool of poolsQuery.pools) {
+      if (pool.garden) poolGardens.set(pool.poolId.toString(), pool.garden);
+    }
+    return {
+      poolGardens,
+      stewardedSet: new Set(stewarded.map((garden) => garden.id.toLowerCase())),
+    };
+  }, [poolsQuery.pools, stewarded]);
+
   // One query per garden, each under the registry key the garden-scoped list
   // would use anyway, so a pool tab that already read it shares the cache.
   const ordinaryQueries = useQueries({
@@ -209,18 +285,65 @@ export function useCommitmentsToConfirm({
     ],
   });
 
-  const { groups, fallback } = useMemo(() => {
-    if (!viewer) return { groups: [] as ToConfirmGroup[], fallback: [] as ToConfirmFallbackRow[] };
+  // Disputed records live in the pools this reader stewards, one query per
+  // pool. A dispute freezes the record out of the ready state both reads
+  // above ask for, and only this pool's steward may resolve it.
+  const disputedScopes = useMemo(
+    () =>
+      poolsQuery.pools
+        .filter((pool) => pool.garden && stewardedSet.has(pool.garden.toLowerCase()))
+        .map((pool) => ({
+          poolId: pool.poolId,
+          garden: stewarded.find((garden) => isSameGarden(pool.garden, garden.id as Address)),
+        }))
+        .filter((scope): scope is { poolId: bigint; garden: Garden } => scope.garden !== undefined),
+    [poolsQuery.pools, stewardedSet, stewarded]
+  );
+  const disputedQueries = useQueries({
+    queries: disputedScopes.map((scope) => {
+      const input = { chainId, poolId: scope.poolId, state: "DISPUTED" };
+      return {
+        queryKey: queryKeys.commitmentPooling.commitments(chainId, input),
+        queryFn: () => getCommitments(input),
+        enabled: availability.status === "available",
+        staleTime: STALE_TIME_MEDIUM,
+      };
+    }),
+  });
+
+  const { groups, fallback, disputed } = useMemo(() => {
+    if (!viewer) {
+      return {
+        groups: [] as ToConfirmGroup[],
+        fallback: [] as ToConfirmFallbackRow[],
+        disputed: [] as ToConfirmDisputedRow[],
+      };
+    }
+    // Where this commitment's pool lives, and whether that pool is one this
+    // reader stewards — the only authority the dispute calls accept.
+    const poolAuthority = (commitment: CommitmentReadModel): ToConfirmPoolAuthority => {
+      const poolGarden =
+        commitment.poolId === null || commitment.poolId === undefined
+          ? null
+          : (poolGardens.get(commitment.poolId.toString()) ?? null);
+      return {
+        poolGarden,
+        canDispute: poolGarden !== null && stewardedSet.has(poolGarden.toLowerCase()),
+      };
+    };
     const groups: ToConfirmGroup[] = [];
     const ordinaryIds = new Set<string>();
     stewarded.forEach((garden, index) => {
       const gardenAddress = garden.id as Address;
-      const rows: InboxCommitment[] = [];
+      const rows: ToConfirmRow[] = [];
       for (const commitment of ordinaryQueries[index]?.data ?? []) {
         if (isPersonalParty(commitment, viewer)) continue;
         // Already in the reader's own set: they are a named party or on the
         // team. Live carries it, and a contributor's confirmation reverts.
         if (ownIds.has(commitment.commitmentId.toString())) continue;
+        // Already signed by this reader. The record stays ready until the
+        // threshold is met, and a second confirmation reverts AlreadyConfirmed.
+        if (confirmedIds.has(commitment.commitmentId.toString())) continue;
         // Seated as the steward of this garden, which is how the detail
         // screen will seat them too; the garden's own address is the party.
         const seat = selectCommitmentSeat({
@@ -230,7 +353,7 @@ export function useCommitmentsToConfirm({
           stewardedGardens: [gardenAddress],
         });
         if (selectCommitmentActKind({ commitment, seat }) !== "confirm") continue;
-        rows.push({ commitment, seat, needsYou: true });
+        rows.push({ commitment, seat, needsYou: true, ...poolAuthority(commitment) });
         ordinaryIds.add(commitment.id);
       }
       rows.sort((left, right) =>
@@ -261,7 +384,9 @@ export function useCommitmentsToConfirm({
         state: commitment.onchainState,
         viewer,
         contributors: activeContributors,
-        // Not indexed per reader; the contract refuses a repeat confirmation.
+        // A fallback confirmation fulfils outright and `confirmFulfillmentAsFallback`
+        // keeps no per-confirmer record, so an earlier ordinary signature from
+        // this reader does not close the fallback path to them.
         alreadyConfirmed: false,
         // Ordinary rows are listed above; this group answers for the fallback only.
         ordinaryEligible: false,
@@ -280,6 +405,7 @@ export function useCommitmentsToConfirm({
         garden: authority.garden.id as Address,
         gardenName: authority.garden.name,
         activeContributors,
+        ...poolAuthority(commitment),
       });
     };
     // Local authority first, so a steward holding both renders the garden path.
@@ -296,23 +422,76 @@ export function useCommitmentsToConfirm({
     fallback.sort((left, right) =>
       Number(right.commitment.commitmentId - left.commitment.commitmentId)
     );
-    return { groups, fallback };
-  }, [stewarded, ordinaryQueries, fallbackQueries, viewer, readProtocol, protocolGarden, ownIds]);
 
-  const queries = [...ordinaryQueries, ...fallbackQueries];
+    // Disputed rows are the pool steward's to resolve. Being a party neither
+    // grants that authority nor removes it, and Live carries no Resolve, so
+    // unlike a confirmation these are not left out for the reader's own set.
+    const disputed: ToConfirmDisputedRow[] = [];
+    const disputedIds = new Set<string>();
+    disputedScopes.forEach((scope, index) => {
+      for (const commitment of disputedQueries[index]?.data ?? []) {
+        if (commitment.onchainState !== "DISPUTED" || disputedIds.has(commitment.id)) continue;
+        disputedIds.add(commitment.id);
+        disputed.push({
+          commitment,
+          garden: scope.garden.id as Address,
+          gardenName: scope.garden.name,
+        });
+      }
+    });
+    disputed.sort((left, right) =>
+      Number(right.commitment.commitmentId - left.commitment.commitmentId)
+    );
+    return { groups, fallback, disputed };
+  }, [
+    stewarded,
+    ordinaryQueries,
+    fallbackQueries,
+    disputedQueries,
+    disputedScopes,
+    viewer,
+    readProtocol,
+    protocolGarden,
+    ownIds,
+    confirmedIds,
+    poolGardens,
+    stewardedSet,
+  ]);
+
+  const queries = [...ordinaryQueries, ...fallbackQueries, ...disputedQueries];
   return {
     groups,
     fallback,
-    count: groups.reduce((sum, group) => sum + group.rows.length, 0) + fallback.length,
+    disputed,
+    count:
+      groups.reduce((sum, group) => sum + group.rows.length, 0) + fallback.length + disputed.length,
     isSteward: stewarded.length > 0,
     isProtocolSteward: protocolGarden !== null,
     availability,
     // The reader's own set is part of the answer: while it is missing, a
     // steward on a team could be listed and offered a confirmation that
     // reverts. So it loads, fails and refetches with the garden reads, and
-    // with the protocol-pool read the fallback group is derived from.
-    isLoading: own.isLoading || protocolPool.isLoading || queries.some((q) => q.isLoading),
-    isError: own.isError || queries.some((query) => query.isError),
-    refetch: () => Promise.all([own.refetch(), ...queries.map((query) => query.refetch())]),
+    // with the protocol-pool read the fallback group is derived from. The
+    // signatures this reader already gave and the pool-to-garden map answer
+    // the same kind of question — without them the queue would offer a
+    // repeat confirmation or a dispute the pool refuses — so they ride along.
+    isLoading:
+      own.isLoading ||
+      confirmed.isLoading ||
+      poolsQuery.isLoading ||
+      protocolPool.isLoading ||
+      queries.some((q) => q.isLoading),
+    isError:
+      own.isError ||
+      confirmed.isError ||
+      poolsQuery.isError ||
+      queries.some((query) => query.isError),
+    refetch: () =>
+      Promise.all([
+        own.refetch(),
+        confirmed.refetch(),
+        poolsQuery.refetch(),
+        ...queries.map((query) => query.refetch()),
+      ]),
   };
 }

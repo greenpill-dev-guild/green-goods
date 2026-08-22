@@ -89,7 +89,8 @@ export function GardenPoolTab({
     document.getElementById(id)?.scrollIntoView({ block: "start" });
   };
 
-  const casts = <PoolStatusCasts pool={pool} />;
+  const casts = <PoolStatusCasts pool={pool} canManage={canManage} />;
+  if (!canManage) return casts;
   if (pool.isLoading || pool.isError || model.status === "unregistered") return casts;
   if (pool.availability.status !== "available" && pool.pool === null) return casts;
 

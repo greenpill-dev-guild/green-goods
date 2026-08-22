@@ -84,6 +84,8 @@ export const ThresholdAboveTheGroup: Story = {
       confirmationThreshold: 3,
     },
     errorOf: (field) =>
-      field === "confirmationThreshold" ? "More confirmations than confirmers" : undefined,
+      field === "confirmationThreshold"
+        ? "That asks for more confirmations than there are named confirmers."
+        : undefined,
   },
 };

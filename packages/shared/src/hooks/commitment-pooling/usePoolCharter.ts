@@ -12,13 +12,13 @@
  */
 
 import { useQuery } from "@tanstack/react-query";
-
-import { getJsonByHash } from "../../modules/data/ipfs/resolve";
+import { queryKeys } from "../../config/query-keys";
 import { isResolvableMetadataCID } from "../../modules/commitment-pooling/metadata";
 import {
   type PoolCharterV1,
   parsePoolCharter,
 } from "../../modules/commitment-pooling/pool-charter";
+import { getJsonByHash } from "../../modules/data/ipfs/resolve";
 
 const IMMUTABLE = Number.POSITIVE_INFINITY;
 
@@ -30,13 +30,7 @@ export function usePoolCharter(cid: string | null | undefined): {
 } {
   const resolvable = isResolvableMetadataCID(cid);
   const query = useQuery({
-    // Chain-free like the metadata key: the same CID is the same bytes everywhere.
-    queryKey: [
-      "greengoods",
-      "commitment-pooling",
-      "pool-charter",
-      resolvable ? cid.trim() : null,
-    ] as const,
+    queryKey: queryKeys.commitmentPooling.poolCharter(resolvable ? cid.trim() : null),
     queryFn: async () => parsePoolCharter(await getJsonByHash((cid as string).trim())),
     enabled: resolvable,
     staleTime: IMMUTABLE,

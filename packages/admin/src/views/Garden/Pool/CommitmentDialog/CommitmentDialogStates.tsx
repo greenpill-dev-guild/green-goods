@@ -86,3 +86,44 @@ export function CommitmentDialogNotFound({
     </div>
   );
 }
+
+/**
+ * The panel on a chain that does not serve pooling yet. No query ever ran, so
+ * there is nothing to retry — only a way back to the pool.
+ */
+export function CommitmentDialogUnavailable({ garden }: { garden: Address }) {
+  const { formatMessage } = useIntl();
+  const navigate = useNavigate();
+
+  return (
+    <div
+      className="flex min-h-56 flex-col items-center justify-center gap-3 p-4 text-center"
+      data-component="CommitmentDialogPanel"
+      data-state="unavailable"
+    >
+      <p className="label-md text-text-strong">
+        {formatMessage({
+          id: "cockpit.garden.pool.unavailable.title",
+          defaultMessage: "Commitment pooling is not on this chain yet",
+        })}
+      </p>
+      <p className="max-w-sm text-sm text-text-soft">
+        {formatMessage({
+          id: "cockpit.garden.pool.unavailable.body",
+          defaultMessage: "The pool console switches on with the release that serves pooling here.",
+        })}
+      </p>
+      <AdminButton
+        type="button"
+        variant="text"
+        size="sm"
+        onClick={() => navigate(adminRoutes.gardenPool({ gardenId: garden }))}
+      >
+        {formatMessage({
+          id: "cockpit.garden.pool.commitment.notFound.back",
+          defaultMessage: "Back to pool",
+        })}
+      </AdminButton>
+    </div>
+  );
+}

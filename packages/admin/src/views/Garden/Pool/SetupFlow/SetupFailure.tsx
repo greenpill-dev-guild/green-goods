@@ -1,5 +1,6 @@
 import {
   Alert,
+  isRetriablePoolSetupFailure,
   type PoolSetupAction,
   type PoolSetupFailure as PoolSetupFailureReason,
 } from "@green-goods/shared";
@@ -61,6 +62,69 @@ function actionLabel(
   }
 }
 
+/** Why the run stopped, in the words the steward reads first. */
+function failureMessage(
+  failure: PoolSetupFailureReason | null,
+  isCampaign: boolean,
+  formatMessage: FormatMessage
+): string {
+  switch (failure) {
+    case "existing-cycle":
+      return formatMessage({
+        id: "cockpit.garden.pool.setup.failure.existingCycle",
+        defaultMessage:
+          "This pool already holds a prepared cycle, so nothing more was written. Open that cycle from the pool tab instead.",
+      });
+    case "pool-paused":
+      return formatMessage({
+        id: "cockpit.garden.pool.setup.failure.poolPaused",
+        defaultMessage: "The pool is paused. Resume it before opening a cycle.",
+      });
+    case "unavailable":
+      return formatMessage({
+        id: "cockpit.garden.pool.setup.failure.unavailable",
+        defaultMessage:
+          "Commitment pooling is not available on this chain yet, so nothing was written.",
+      });
+    case "no-sender":
+      return formatMessage({
+        id: "cockpit.garden.pool.setup.failure.noSender",
+        defaultMessage:
+          "No wallet is ready to sign. Connect one and try again; nothing was written.",
+      });
+    case "read-failed":
+      return formatMessage({
+        id: "cockpit.garden.pool.setup.failure.readFailed",
+        defaultMessage:
+          "The chain could not be read, so setup stopped where it was. What landed stays landed; try again when the connection is steady.",
+      });
+    case "seed-unconfirmed":
+      return isCampaign
+        ? formatMessage({
+            id: "cockpit.garden.pool.setup.failure.seedUnconfirmedCampaign",
+            defaultMessage:
+              "The campaign may or may not have been prepared; the wallet never said which. Close this and check the pool tab: if the campaign is there, open it from the list; if it is not, start again.",
+          })
+        : formatMessage({
+            id: "cockpit.garden.pool.setup.failure.seedUnconfirmedSeason",
+            defaultMessage:
+              "The season may or may not have been prepared; the wallet never said which. Close this and check the pool tab: if the season is there, open it from the list; if it is not, start again.",
+          });
+    default:
+      return isCampaign
+        ? formatMessage({
+            id: "cockpit.garden.pool.setup.failure.campaign",
+            defaultMessage:
+              "The campaign did not open. What landed stays landed; the rest was not written.",
+          })
+        : formatMessage({
+            id: "cockpit.garden.pool.setup.failure.season",
+            defaultMessage:
+              "The season did not open. What landed stays landed; the rest was not written.",
+          });
+  }
+}
+
 export interface SetupFailureProps {
   failure: PoolSetupFailureReason | null;
   isCampaign: boolean;
@@ -76,42 +140,7 @@ export function SetupFailure({ failure, isCampaign, landed, failedStep }: SetupF
   const { formatMessage } = useIntl();
   return (
     <div className="space-y-3" data-testid="pool-setup-failed">
-      <Alert variant="error">
-        {failure === "existing-cycle"
-          ? formatMessage({
-              id: "cockpit.garden.pool.setup.failure.existingCycle",
-              defaultMessage:
-                "This pool already holds a prepared cycle, so nothing more was written. Open that cycle from the pool tab instead.",
-            })
-          : failure === "pool-paused"
-            ? formatMessage({
-                id: "cockpit.garden.pool.setup.failure.poolPaused",
-                defaultMessage: "The pool is paused. Resume it before opening a cycle.",
-              })
-            : failure === "unavailable"
-              ? formatMessage({
-                  id: "cockpit.garden.pool.setup.failure.unavailable",
-                  defaultMessage:
-                    "Commitment pooling is not available on this chain yet, so nothing was written.",
-                })
-              : failure === "no-sender"
-                ? formatMessage({
-                    id: "cockpit.garden.pool.setup.failure.noSender",
-                    defaultMessage:
-                      "No wallet is ready to sign. Connect one and try again; nothing was written.",
-                  })
-                : isCampaign
-                  ? formatMessage({
-                      id: "cockpit.garden.pool.setup.failure.campaign",
-                      defaultMessage:
-                        "The campaign did not open. What landed stays landed; the rest was not written.",
-                    })
-                  : formatMessage({
-                      id: "cockpit.garden.pool.setup.failure.season",
-                      defaultMessage:
-                        "The season did not open. What landed stays landed; the rest was not written.",
-                    })}
-      </Alert>
+      <Alert variant="error">{failureMessage(failure, isCampaign, formatMessage)}</Alert>
       <dl className="space-y-2 text-body-md">
         <div>
           <dt className="label-xs text-text-soft">
@@ -146,9 +175,7 @@ export function SetupFailure({ failure, isCampaign, landed, failedStep }: SetupF
           </dd>
         </div>
       </dl>
-      {failure === "send-failed" ||
-      failure === "not-confirmed" ||
-      failure === "cycle-id-unknown" ? (
+      {isRetriablePoolSetupFailure(failure) ? (
         <p className="flex items-center gap-1.5 text-xs text-text-soft">
           <RiShieldCheckLine className="h-3.5 w-3.5" aria-hidden />
           {formatMessage({

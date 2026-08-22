@@ -16,6 +16,7 @@ const mocks = vi.hoisted(() => ({
   ownPools: {} as Record<string, unknown>,
   navigate: vi.fn(),
   poolTabGardens: [] as string[],
+  confirmQueueProps: [] as Record<string, unknown>[],
 }));
 
 vi.mock("@green-goods/shared", async (importOriginal) => {
@@ -53,7 +54,10 @@ vi.mock("@/views/Garden/Pool", () => ({
   },
 }));
 vi.mock("@/views/Hub/components/HubConfirmQueue", () => ({
-  HubConfirmQueue: () => <div data-testid="protocol-confirm-queue" />,
+  HubConfirmQueue: ({ toConfirm }: { toConfirm: Record<string, unknown> }) => {
+    mocks.confirmQueueProps.push(toConfirm);
+    return <div data-testid="protocol-confirm-queue" />;
+  },
 }));
 
 const { CommunityPools } = await import("@/views/Community/components/CommunityPools");
@@ -72,6 +76,7 @@ describe("CommunityPools (W12)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.poolTabGardens = [];
+    mocks.confirmQueueProps = [];
     mocks.protocolPool = {
       poolId: 1n,
       rootGarden: ROOT,
@@ -115,6 +120,28 @@ describe("CommunityPools (W12)", () => {
     // Never another garden's pool.
     expect(mocks.poolTabGardens).toEqual([ROOT]);
     expect(mocks.poolTabGardens).not.toContain(OTHER_GARDEN);
+  });
+
+  it("gives the protocol section only the cross-garden rows the team was asked into", () => {
+    // A protocol steward who also stewards ordinary gardens carries those
+    // gardens' own confirmations and disputes in the same object. Under a
+    // heading promising no other garden's pool is browsed here, they are out.
+    const protocolRow = { path: "PROTOCOL_FALLBACK", garden: ROOT, gardenName: "Green Goods" };
+    mocks.toConfirm = {
+      ...mocks.toConfirm,
+      groups: [{ garden: OTHER_GARDEN, gardenName: "Awka", rows: [{}, {}] }],
+      fallback: [protocolRow, { path: "POOL_FALLBACK", garden: OTHER_GARDEN, gardenName: "Awka" }],
+      disputed: [{ garden: OTHER_GARDEN, gardenName: "Awka" }],
+      count: 5,
+    };
+    renderPools();
+    const handed = mocks.confirmQueueProps.at(-1);
+    expect(handed?.groups).toEqual([]);
+    expect(handed?.fallback).toEqual([protocolRow]);
+    expect(handed?.disputed).toEqual([]);
+    expect(handed?.count).toBe(1);
+    // The tab badge counts the same rows the section will show.
+    expect(within(screen.getByRole("tablist", { name: /pools/i })).getByText("1")).toBeVisible();
   });
 
   it("keeps the protocol confirmations queue from a steward who does not steward the protocol garden", () => {

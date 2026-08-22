@@ -9,7 +9,11 @@ import { CommitmentActions } from "./CommitmentActions";
 import { CommitmentAlerts } from "./CommitmentAlerts";
 import { CommitmentAssessmentDialog } from "./CommitmentAssessmentDialog";
 import { CommitmentClaims, CommitmentRoster } from "./CommitmentClaims";
-import { CommitmentDialogLoading, CommitmentDialogNotFound } from "./CommitmentDialogStates";
+import {
+  CommitmentDialogLoading,
+  CommitmentDialogNotFound,
+  CommitmentDialogUnavailable,
+} from "./CommitmentDialogStates";
 import { CommitmentFacts } from "./CommitmentFacts";
 import {
   CommitmentDeclineClaimDialog,
@@ -20,7 +24,11 @@ import { CommitmentRecovery } from "./CommitmentRecovery";
 import { CommitmentResolveDialog } from "./CommitmentResolveDialog";
 import { CommitmentSummary } from "./CommitmentSummary";
 import { CommitmentTimeline } from "./CommitmentTimeline";
-import { type OpenDialog, stageIndex } from "./commitmentDialogPresentation";
+import {
+  type OpenDialog,
+  parseCommitmentRouteId,
+  stageIndex,
+} from "./commitmentDialogPresentation";
 
 export interface CommitmentDialogPanelProps {
   chainId: number;
@@ -38,18 +46,24 @@ export interface CommitmentDialogPanelProps {
  * confirmation appears only when the ordinary path is unreachable, naming
  * the garden whose authority it uses.
  */
-export function CommitmentDialogPanel({
+export function CommitmentDialogPanel({ commitmentId, ...props }: CommitmentDialogPanelProps) {
+  const parsed = parseCommitmentRouteId(commitmentId);
+  if (parsed === null) {
+    return <CommitmentDialogNotFound garden={props.garden} onRetry={() => undefined} />;
+  }
+  // Keyed on the record: switching commitments inside one inspector must not
+  // carry a resolution, a picked assessment or an open subdialog across.
+  return <CommitmentRecord key={commitmentId} commitmentId={parsed} {...props} />;
+}
+
+function CommitmentRecord({
   chainId,
   garden,
   commitmentId,
   tone,
-}: CommitmentDialogPanelProps) {
+}: Omit<CommitmentDialogPanelProps, "commitmentId"> & { commitmentId: bigint }) {
   const { formatMessage } = useIntl();
-  const dialog = useCommitmentDialogController({
-    chainId,
-    garden,
-    commitmentId: BigInt(commitmentId),
-  });
+  const dialog = useCommitmentDialogController({ chainId, garden, commitmentId });
   const [open, setOpen] = useState<OpenDialog>(null);
   const [resolution, setResolution] = useState<DisputeResolutionKey>("RESTORE_PREVIOUS");
   const [assessmentUID, setAssessmentUID] = useState<string | null>(null);
@@ -57,6 +71,10 @@ export function CommitmentDialogPanel({
     id: "cockpit.garden.pool.offline",
     defaultMessage: "Needs a connection. Pool changes are sent straight to the chain.",
   });
+
+  if (dialog.unavailable) {
+    return <CommitmentDialogUnavailable garden={garden} />;
+  }
 
   if (dialog.isLoading) {
     return <CommitmentDialogLoading />;

@@ -3,6 +3,7 @@
  */
 
 import { type PoolConsoleController, selectPoolConsoleModel } from "@green-goods/shared";
+import { createMemoryRouter, RouterProvider } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, renderWithProviders, screen, waitFor, within } from "../test-utils";
 
@@ -210,10 +211,25 @@ function controller(overrides: Partial<Record<keyof PoolConsoleController, unkno
   };
 }
 
-function renderTab() {
-  return renderWithProviders(
-    <GardenPoolTab garden={{ id: GARDEN, name: "Rocinha" }} chainId={42161} canManage />
+function renderTab({ canManage = true }: { canManage?: boolean } = {}) {
+  // A data router, because the console's dialogs guard their close paths with
+  // useDirtyClose (useBlocker), exactly as the app mounts them.
+  const router = createMemoryRouter(
+    [
+      {
+        path: "/",
+        element: (
+          <GardenPoolTab
+            garden={{ id: GARDEN, name: "Rocinha" }}
+            chainId={42161}
+            canManage={canManage}
+          />
+        ),
+      },
+    ],
+    { initialEntries: ["/"] }
   );
+  return renderWithProviders(<RouterProvider router={router} />);
 }
 
 describe("GardenPoolTab (W7)", () => {
@@ -548,5 +564,16 @@ describe("Garden workspace Pool tab visibility", () => {
     mocks.gardenController = gardenController(false);
     renderWithProviders(<GardenView />);
     expect(screen.queryByRole("tab", { name: /pool/i })).not.toBeInTheDocument();
+  });
+
+  it("keeps the whole console from a member who reaches the route directly", () => {
+    // The rail hides the tab, but a deep link is the other way in: every write
+    // control here would otherwise invite a call the contract refuses.
+    renderTab({ canManage: false });
+
+    expect(screen.getByText(/pool console is for this garden.s stewards/i)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /pause/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /close pool/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /set up commitments/i })).not.toBeInTheDocument();
   });
 });

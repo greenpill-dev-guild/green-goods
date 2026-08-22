@@ -1,5 +1,6 @@
 import {
   type CommitmentCycleRecord,
+  isRetriablePoolSetupFailure,
   isValidCycleSplit,
   logger,
   type PoolConsoleController,
@@ -30,10 +31,9 @@ import { SetupStepHow } from "./SetupStepHow";
 import { SetupStepOpen } from "./SetupStepOpen";
 import {
   buildStepConfigs,
-  DAY,
   DEFAULT_CAP,
+  defaultCycleDates,
   endOfDaySeconds,
-  isoDate,
   isStepValid,
   type PoolSetupIntent,
   STEPS_BY_INTENT,
@@ -69,8 +69,8 @@ export function PoolSetupFlow({ open, intent, cycle, console: pool, onClose }: P
   const [purpose, setPurpose] = useState("");
   const [cap, setCap] = useState(DEFAULT_CAP);
   const [name, setName] = useState("");
-  const [startDate, setStartDate] = useState(() => isoDate(Math.floor(Date.now() / 1000)));
-  const [endDate, setEndDate] = useState(() => isoDate(Math.floor(Date.now() / 1000) + 30 * DAY));
+  const [startDate, setStartDate] = useState(() => defaultCycleDates().start);
+  const [endDate, setEndDate] = useState(() => defaultCycleDates().end);
   const [preset, setPreset] = useState<AllocationPreset>("model1");
   const [allocation, setAllocation] = useState<AllocationPercent>(ALLOCATION_PRESETS.model1);
   const [recognition, setRecognition] = useState<RecognitionPercent>(DEFAULT_RECOGNITION_PERCENT);
@@ -88,6 +88,9 @@ export function PoolSetupFlow({ open, intent, cycle, console: pool, onClose }: P
     const currentCap = pool.pool?.providerOpenCommitmentCap ?? 0n;
     setCap(currentCap > 0n ? currentCap.toString() : DEFAULT_CAP);
     setName("");
+    const dates = defaultCycleDates();
+    setStartDate(dates.start);
+    setEndDate(dates.end);
     setPreset("model1");
     setAllocation(ALLOCATION_PRESETS.model1);
     setRecognition(DEFAULT_RECOGNITION_PERCENT);
@@ -273,9 +276,7 @@ export function PoolSetupFlow({ open, intent, cycle, console: pool, onClose }: P
       );
   }
 
-  const retryable =
-    failed &&
-    (failure === "send-failed" || failure === "not-confirmed" || failure === "cycle-id-unknown");
+  const retryable = failed && isRetriablePoolSetupFailure(failure);
 
   const footer = (
     <SetupFlowFooter

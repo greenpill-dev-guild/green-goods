@@ -105,16 +105,18 @@ function queue(overrides: Record<string, unknown> = {}) {
   };
 }
 
+const refetchToConfirm = vi.fn();
 const toConfirm = {
   groups: [],
   fallback: [],
+  disputed: [],
   count: 0,
   isSteward: true,
   isProtocolSteward: false,
   availability: { status: "available" },
   isLoading: false,
   isError: false,
-  refetch: vi.fn(),
+  refetch: refetchToConfirm,
 } as never;
 
 function renderQueue(props: Partial<Parameters<typeof HubConfirmQueue>[0]> = {}) {
@@ -246,5 +248,47 @@ describe("HubConfirmQueue (W13)", () => {
     mocks.queue = queue({ rows: [row({ eligibility: "POOL_FALLBACK" })] });
     renderQueue({ selectedCommitmentId: "9" });
     expect(screen.getByTestId("commitment-panel")).toHaveTextContent(`9:${GARDEN_A}`);
+  });
+
+  it("inspects a commitment through the garden that owns its pool, not the one confirming", () => {
+    // A Green Goods team fallback confirms with the protocol garden's Hat while
+    // the record lives in Rocinha's pool. Handing the inspector the protocol
+    // garden would read the wrong pool and seat the reader as a local steward.
+    mocks.queue = queue({
+      rows: [row({ eligibility: "PROTOCOL_FALLBACK", garden: ROOT, poolGarden: GARDEN_A })],
+    });
+    renderQueue({ selectedCommitmentId: "9" });
+    expect(screen.getByTestId("commitment-panel")).toHaveTextContent(`9:${GARDEN_A}`);
+  });
+
+  it("offers Not yet only where the pool's own steward authority makes it legal", () => {
+    // TerminalLib.raiseDispute admits the pool garden's steward, never a
+    // protocol steward reaching into someone else's pool.
+    mocks.queue = queue({
+      rows: [
+        row({ canDispute: true }),
+        row({
+          commitment: commitment({ id: "42161-11", commitmentId: 11n }),
+          eligibility: "PROTOCOL_FALLBACK",
+          garden: ROOT,
+          poolGarden: GARDEN_A,
+          canDispute: false,
+        }),
+      ],
+    });
+    renderQueue();
+    expect(
+      within(screen.getByTestId("hub-confirm-9")).getByRole("button", { name: /not yet/i })
+    ).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId("hub-confirm-11")).queryByRole("button", { name: /not yet/i })
+    ).not.toBeInTheDocument();
+  });
+
+  it("retries the confirmation reads from the read-error cast", () => {
+    mocks.queue = queue({ isError: true });
+    renderQueue();
+    fireEvent.click(screen.getByRole("button", { name: /try again/i }));
+    expect(refetchToConfirm).toHaveBeenCalled();
   });
 });

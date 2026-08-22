@@ -22,6 +22,21 @@ export type CommitmentDialogTone = "garden" | "hub" | "community";
 /** The confirmation path when the ordinary one is unreachable, else null. */
 export type FallbackPath = "POOL_FALLBACK" | "PROTOCOL_FALLBACK" | null;
 
+/** The widest id a uint256 commitment counter can carry. */
+const MAX_COMMITMENT_ID = 2n ** 256n - 1n;
+
+/**
+ * The commitment id a route may carry: plain decimal digits inside uint256.
+ * A malformed deep link (`/garden/pool/not-a-number`) has to reach the panel's
+ * not-found state, so this returns null rather than letting `BigInt` throw out
+ * of the render that would have shown it.
+ */
+export function parseCommitmentRouteId(value: string): bigint | null {
+  if (!/^[0-9]+$/.test(value)) return null;
+  const parsed = BigInt(value);
+  return parsed <= MAX_COMMITMENT_ID ? parsed : null;
+}
+
 /** The lifecycle stops the panel walks a reader through. */
 export const STAGES = ["open", "accepted", "proof", "ready", "kept"] as const;
 
