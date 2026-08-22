@@ -3,10 +3,11 @@ import {
   useCommitmentPools,
   useCommitmentSeries,
   useCommitmentsInbox,
+  useCommitmentsToConfirm,
   useGardens,
   usePrimaryAddress,
 } from "@green-goods/shared";
-import { RiArchiveLine, RiPulseLine } from "@remixicon/react";
+import { RiArchiveLine, RiPulseLine, RiShieldCheckLine } from "@remixicon/react";
 import React, { useCallback, useState } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
@@ -14,6 +15,7 @@ import { useNavigate } from "react-router-dom";
 import { ModalDrawer, type ModalDrawerTab } from "@/components/Dialogs/ModalDrawer";
 import { LiveTab } from "./LiveTab";
 import { OverTimeTab } from "./OverTimeTab";
+import { ToConfirmTab } from "./ToConfirmTab";
 
 interface CommitmentsDrawerProps {
   isOpen: boolean;
@@ -29,6 +31,8 @@ interface CommitmentsDrawerProps {
  *
  * Tabs split by tense rather than by object, so the container word and the
  * object words are never the same: "Commitments" holds "Live" and "Over time".
+ * A steward gets a third, "To confirm", for what reaches them through their
+ * garden's Hat rather than through their own account.
  */
 export const CommitmentsDrawer: React.FC<CommitmentsDrawerProps> = ({ isOpen, onClose }) => {
   const { formatMessage } = useIntl();
@@ -37,6 +41,7 @@ export const CommitmentsDrawer: React.FC<CommitmentsDrawerProps> = ({ isOpen, on
   const viewer = usePrimaryAddress();
 
   const inbox = useCommitmentsInbox({ chainId, viewer: viewer ?? undefined });
+  const toConfirm = useCommitmentsToConfirm({ chainId, viewer: viewer ?? undefined });
   const { pools } = useCommitmentPools({ chainId });
   const { data: gardens = [] } = useGardens();
   const { series } = useCommitmentSeries({ chainId, holder: viewer ?? undefined });
@@ -66,6 +71,16 @@ export const CommitmentsDrawer: React.FC<CommitmentsDrawerProps> = ({ isOpen, on
       icon: <RiArchiveLine />,
       count: inbox.settledActCount,
     },
+    ...(toConfirm.isSteward
+      ? [
+          {
+            id: "to-confirm",
+            label: formatMessage({ id: "app.commitments.tab.toConfirm" }),
+            icon: <RiShieldCheckLine />,
+            count: toConfirm.count,
+          },
+        ]
+      : []),
   ];
 
   return (
@@ -93,6 +108,9 @@ export const CommitmentsDrawer: React.FC<CommitmentsDrawerProps> = ({ isOpen, on
           series={series}
           onOpenCommitment={openCommitment}
         />
+      )}
+      {activeTab === "to-confirm" && toConfirm.isSteward && (
+        <ToConfirmTab toConfirm={toConfirm} onOpenCommitment={openCommitment} />
       )}
     </ModalDrawer>
   );

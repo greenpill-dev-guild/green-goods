@@ -7,6 +7,7 @@ import {
   type CommitmentReadModel,
   type CommitmentRequirementRecord,
   DialogShell,
+  isCapturedCommitment,
   useCommitmentNotYetDraft,
 } from "@green-goods/shared";
 import {
@@ -25,7 +26,7 @@ export type ConfirmCast = "offer" | "support" | "request" | "request-work" | "ca
 
 /** What kind of commitment is being confirmed. Derivable from the record alone. */
 export function selectConfirmCast(commitment: CommitmentReadModel): ConfirmCast {
-  if (commitment.recordedBy && commitment.recordedBy !== commitment.creator) return "captured";
+  if (isCapturedCommitment(commitment)) return "captured";
   if (commitment.direction === "REQUEST") {
     return commitment.commitmentType === "DOMAIN_IMPACT" ? "request-work" : "request";
   }

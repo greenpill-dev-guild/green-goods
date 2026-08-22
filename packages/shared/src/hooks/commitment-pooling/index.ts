@@ -47,6 +47,8 @@ export type {
 export { useCommitmentQueueState } from "./useCommitmentQueueState";
 export type { CommitmentsInbox, InboxCommitment } from "./useCommitmentsInbox";
 export { useCommitmentsInbox } from "./useCommitmentsInbox";
+export type { CommitmentsToConfirm, ToConfirmGroup } from "./useCommitmentsToConfirm";
+export { useCommitmentsToConfirm } from "./useCommitmentsToConfirm";
 export type { CreditMutationInput } from "./useCredit";
 export {
   CreditRegistryABI,

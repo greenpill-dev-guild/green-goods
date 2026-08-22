@@ -1,4 +1,10 @@
-import { type Address, AddressDisplay, Alert, type CommitmentReadModel } from "@green-goods/shared";
+import {
+  type Address,
+  AddressDisplay,
+  Alert,
+  type CommitmentReadModel,
+  isCapturedCommitment,
+} from "@green-goods/shared";
 import { useIntl } from "react-intl";
 
 export interface ProofReviewProps {
@@ -21,9 +27,7 @@ export interface ProofReviewProps {
  * steward who recorded it reads it. Each says the consequence, not the form.
  */
 function consequenceId(commitment: CommitmentReadModel): string {
-  if (commitment.recordedBy && commitment.recordedBy !== commitment.creator) {
-    return "app.proof.review.consequenceCaptured";
-  }
+  if (isCapturedCommitment(commitment)) return "app.proof.review.consequenceCaptured";
   if (commitment.direction === "REQUEST") return "app.proof.review.consequenceRequest";
   if (commitment.commitmentType === "SUPPORT_SERVICE") return "app.proof.review.consequenceSupport";
   return "app.proof.review.consequenceOffer";

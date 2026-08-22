@@ -40,6 +40,22 @@ function isSameAccount(left: Address | null | undefined, right: Address): boolea
 }
 
 /**
+ * A commitment a steward recorded on somebody else's behalf.
+ *
+ * The record names both: `creator` is the person the commitment is for and
+ * `recordedBy` the steward who wrote it down. When they differ, the proof
+ * and confirmation screens speak to the steward rather than to a provider
+ * who may never have opened the app.
+ */
+export function isCapturedCommitment(
+  commitment: Pick<CommitmentReadModel, "creator" | "recordedBy">
+): boolean {
+  const recordedBy = commitment.recordedBy;
+  if (!recordedBy || recordedBy === ZERO_ADDRESS) return false;
+  return !isSameAccount(commitment.creator, recordedBy);
+}
+
+/**
  * Direction names the creator, so no fifth seat is needed: on an Offer they
  * provide, on a Request they receive and confirm.
  */
