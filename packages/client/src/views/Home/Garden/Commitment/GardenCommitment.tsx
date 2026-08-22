@@ -33,6 +33,7 @@ import { canJoinTeam, selectCommitmentAct } from "./commitmentActions";
 import { CommitmentClaimPanel } from "./CommitmentClaimPanel";
 import { CommitmentPeople } from "./CommitmentPeople";
 import { CommitmentProgress } from "./CommitmentProgress";
+import { CommitmentTeam } from "./CommitmentTeam";
 import { CommitmentWork } from "./CommitmentWork";
 import { ConfirmSheet, Provenance } from "./ConfirmSheet";
 import { LinkWorkDialog } from "./LinkWorkDialog";
@@ -449,6 +450,28 @@ export function GardenCommitment() {
             </p>
           ) : null}
         </section>
+
+        <CommitmentTeam
+          commitment={commitment}
+          contributors={contributors}
+          requirements={requirements}
+          actions={actions}
+          chainId={chainId}
+          seat={seat}
+          viewer={viewer as Address | null}
+          canJoin={joinable}
+          isOnline={isOnline}
+          isJoining={onlineMutation.isPending}
+          onJoin={() =>
+            // Joining is a contract call, not a queued job: the roster is
+            // authoritative on chain and a join that waited offline could land
+            // on a frozen team.
+            onlineMutation.mutate({
+              action: "joinCommitment",
+              commitmentId: commitment.commitmentId,
+            })
+          }
+        />
 
         {ownRequest && viewer ? (
           <CommitmentClaimPanel

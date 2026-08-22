@@ -16,6 +16,7 @@ import { renderWithProviders, screen } from "../test-utils";
 
 const VIEWER = "0x1111111111111111111111111111111111111111" as const;
 const OTHER = "0x2222222222222222222222222222222222222222" as const;
+const HELPER = "0x3333333333333333333333333333333333333333" as const;
 const GARDEN = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" as const;
 
 const mockUseCommitment = vi.fn();
@@ -87,6 +88,19 @@ function queueState(overrides: Record<string, unknown> = {}) {
     hasPendingCreate: false,
     isUnavailable: false,
     refresh: vi.fn(),
+    ...overrides,
+  };
+}
+
+/** A roster entry in the shape the reader maps from the indexer. */
+function contributor(overrides: Record<string, unknown>) {
+  return {
+    id: `c-${String(overrides.contributor)}`,
+    active: true,
+    isLead: false,
+    requirementIndexes: [],
+    approvedWorkCredits: 0,
+    evidenceCredits: 0,
     ...overrides,
   };
 }
@@ -217,6 +231,86 @@ describe("GardenCommitment", () => {
 
     expect(screen.getByText("Ready for you to confirm")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Confirm it was kept" })).toBeInTheDocument();
+  });
+
+  describe("the team", () => {
+    it("names the lead and everyone else, with what each has put in and their rows", () => {
+      mockUseCommitment.mockReturnValue(
+        detail({
+          commitment: { creator: OTHER, leadProvider: OTHER, counterparty: null },
+          contributors: [
+            contributor({
+              contributor: OTHER,
+              isLead: true,
+              requirementIndexes: [0],
+              approvedWorkCredits: 1,
+            }),
+            contributor({ contributor: VIEWER, evidenceCredits: 2 }),
+            contributor({ contributor: HELPER, active: false }),
+          ],
+          requirements: [
+            { id: "r0", requirementIndex: 0, actionUID: 44n, requiredCount: 2, approvedCount: 1 },
+          ],
+        })
+      );
+      render();
+
+      const roster = screen.getByRole("list", { name: "Team" });
+      const rows = roster.querySelectorAll("li");
+      // The lead first, a removed member not at all.
+      expect(rows).toHaveLength(2);
+      expect(rows[0]).toHaveAttribute("data-lead", "true");
+      expect(screen.getByText("Assigned: Prune the north beds")).toBeInTheDocument();
+      expect(screen.getByText("1 approved work · no proof yet")).toBeInTheDocument();
+      expect(screen.getByText("No approved work yet · 2 proofs")).toBeInTheDocument();
+      expect(screen.getByText(/Recognition follows the record/)).toBeInTheDocument();
+    });
+
+    it("lets a neighbour join an open team online, and says it needs a connection offline", async () => {
+      const user = userEvent.setup();
+      const bystander = () =>
+        detail({
+          commitment: {
+            creator: OTHER,
+            leadProvider: OTHER,
+            counterparty: HELPER,
+            contributorPolicy: "OPEN",
+          },
+          contributors: [contributor({ contributor: OTHER, isLead: true })],
+        });
+      mockUseCommitment.mockReturnValue(bystander());
+      render();
+
+      await user.click(screen.getByRole("button", { name: "Join the team" }));
+      expect(mockMutate).toHaveBeenCalledWith({ action: "joinCommitment", commitmentId: 9n });
+      expect(mockEnqueue).not.toHaveBeenCalled();
+
+      mockUseOffline.mockReturnValue({ isOnline: false });
+      mockUseCommitment.mockReturnValue(bystander());
+      render();
+      const joins = screen.getAllByRole("button", { name: "Join the team" });
+      expect(joins[joins.length - 1]).toBeDisabled();
+      expect(screen.getByText("Connect to join the team.")).toBeInTheDocument();
+    });
+
+    it("marks a set team and offers no join", () => {
+      mockUseCommitment.mockReturnValue(
+        detail({
+          commitment: {
+            creator: OTHER,
+            leadProvider: OTHER,
+            counterparty: HELPER,
+            contributorPolicy: "OPEN",
+            contributorsFrozen: true,
+          },
+          contributors: [contributor({ contributor: OTHER, isLead: true })],
+        })
+      );
+      render();
+
+      expect(screen.getByText("Team set")).toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "Join the team" })).not.toBeInTheDocument();
+    });
   });
 
   describe("claims", () => {
@@ -379,7 +473,7 @@ describe("GardenCommitment", () => {
           confirmationThreshold: 1,
           ...overrides,
         },
-        contributors: [{ contributor: OTHER, active: true, isLead: true }],
+        contributors: [contributor({ contributor: OTHER, isLead: true })],
       });
 
     it("asks the cast's own question and offers its two answers", async () => {
@@ -512,7 +606,7 @@ describe("GardenCommitment", () => {
           leadProvider: OTHER,
           counterparty: null,
         },
-        contributors: [{ contributor: VIEWER, active: true, isLead: false }],
+        contributors: [contributor({ contributor: VIEWER })],
       })
     );
     render();
