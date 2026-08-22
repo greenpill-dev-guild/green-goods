@@ -30,6 +30,11 @@ const mockUseCommitments = vi.fn();
 const mockUseCommitmentCycles = vi.fn();
 const mockUseCommitmentCycleNames = vi.fn();
 const mockUseOffline = vi.fn();
+const mockUseQueueState = vi.fn();
+const mockUseReason = vi.fn();
+const mockFlush = vi.fn();
+const mockRetryJob = vi.fn();
+const mockDiscardJob = vi.fn();
 
 const AVAILABLE = { status: "available", capability: {} } as const;
 const UNAVAILABLE = { status: "unavailable", reason: "not-integrated", capability: {} } as const;
@@ -95,6 +100,10 @@ vi.mock("@green-goods/shared", async () => {
     useCommitments: () => mockUseCommitments(),
     useCommitmentCycles: () => mockUseCommitmentCycles(),
     useCommitmentCycleNames: () => mockUseCommitmentCycleNames(),
+    useCommitmentQueueState: () => mockUseQueueState(),
+    useCommitmentReason: (cid: string | null) => mockUseReason(cid),
+    useJobQueue: () => ({ flush: mockFlush }),
+    jobQueue: { retryJob: mockRetryJob, discardJob: mockDiscardJob },
     useOffline: () => mockUseOffline(),
   };
 });
@@ -107,7 +116,144 @@ describe("GardenPool", () => {
     mockUseOffline.mockReturnValue({ isOnline: true });
     mockUseCommitmentCycles.mockReturnValue({ cycles: [] });
     mockUseCommitmentCycleNames.mockReturnValue({ byCycleId: new Map(), isLoading: false });
+    mockUseQueueState.mockReturnValue({
+      pendingCommitmentIds: new Set<string>(),
+      failedCount: 0,
+      failedCommitmentIds: new Set<string>(),
+      hasPendingCreate: false,
+      pendingCreates: [],
+      isUnavailable: false,
+      refresh: vi.fn(),
+    });
+    mockUseReason.mockReturnValue({ reason: null, isLoading: false, isUnavailable: false });
+    mockRetryJob.mockResolvedValue(undefined);
+    mockDiscardJob.mockResolvedValue(undefined);
+    mockFlush.mockResolvedValue(undefined);
     mockUseCommitments.mockReturnValue(commitmentsResult());
+  });
+
+  const creation = (overrides: Record<string, unknown> = {}) => ({
+    jobId: "job-1",
+    chainId: 42161,
+    poolId: "7",
+    direction: "OFFER",
+    title: "Prune the north beds",
+    unitLabel: "hours",
+    targetUnits: "6",
+    waitingForMembership: false,
+    failed: false,
+    createdAt: 1_700_000_000_000,
+    ...overrides,
+  });
+
+  it("draws a commitment still on this phone at the top of the pool, as waiting to send", () => {
+    mockUseQueueState.mockReturnValue({
+      pendingCommitmentIds: new Set<string>(),
+      failedCount: 0,
+      failedCommitmentIds: new Set<string>(),
+      hasPendingCreate: true,
+      pendingCreates: [creation()],
+      isUnavailable: false,
+      refresh: vi.fn(),
+    });
+    mockUseCommitments.mockReturnValue(commitmentsResult({ commitments: [commitment()] }));
+
+    render(<GardenPool pool={pool()} />);
+
+    expect(screen.getByText("Prune the north beds")).toBeInTheDocument();
+    expect(screen.getByText("Waiting to send")).toBeInTheDocument();
+    // The phone's own row counts: an otherwise empty pool is not empty.
+    expect(screen.queryByText("No commitments yet")).not.toBeInTheDocument();
+  });
+
+  it("says a creation waiting for the member's hat spends no tries", () => {
+    mockUseQueueState.mockReturnValue({
+      pendingCommitmentIds: new Set<string>(),
+      failedCount: 0,
+      failedCommitmentIds: new Set<string>(),
+      hasPendingCreate: true,
+      pendingCreates: [creation({ waitingForMembership: true })],
+      isUnavailable: false,
+      refresh: vi.fn(),
+    });
+
+    render(<GardenPool pool={pool()} />);
+
+    expect(screen.getByText("Waiting for your membership")).toBeInTheDocument();
+    expect(screen.getByText(/spends no tries/i)).toBeInTheDocument();
+  });
+
+  it("offers retry and discard on a creation that gave up, and only then", async () => {
+    const user = userEvent.setup();
+    mockUseQueueState.mockReturnValue({
+      pendingCommitmentIds: new Set<string>(),
+      failedCount: 1,
+      failedCommitmentIds: new Set<string>(),
+      hasPendingCreate: false,
+      pendingCreates: [creation({ failed: true })],
+      isUnavailable: false,
+      refresh: vi.fn(),
+    });
+
+    render(<GardenPool pool={pool()} />);
+
+    expect(screen.getByText("Didn't send")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Try again" }));
+    expect(mockRetryJob).toHaveBeenCalledWith("job-1");
+    expect(mockFlush).toHaveBeenCalledTimes(1);
+
+    await user.click(screen.getByRole("button", { name: "Discard" }));
+    expect(mockDiscardJob).toHaveBeenCalledWith("job-1");
+  });
+
+  it("leaves another pool's creation where it belongs", () => {
+    mockUseQueueState.mockReturnValue({
+      pendingCommitmentIds: new Set<string>(),
+      failedCount: 0,
+      failedCommitmentIds: new Set<string>(),
+      hasPendingCreate: true,
+      pendingCreates: [creation({ poolId: "99" })],
+      isUnavailable: false,
+      refresh: vi.fn(),
+    });
+
+    render(<GardenPool pool={pool()} />);
+
+    expect(screen.queryByText("Prune the north beds")).not.toBeInTheDocument();
+  });
+
+  it("reads out why a pool is paused, from the stewards' own words", () => {
+    mockUseReason.mockReturnValue({
+      reason: { version: 1, reason: "Flooding on the lower terraces" },
+      isLoading: false,
+      isUnavailable: false,
+    });
+    mockUseCommitments.mockReturnValue(commitmentsResult({ commitments: [commitment()] }));
+
+    render(<GardenPool pool={pool({ state: "PAUSED", pauseReasonCID: "bafy-pause" })} />);
+
+    expect(mockUseReason).toHaveBeenCalledWith("bafy-pause");
+    expect(screen.getByText("Why: Flooding on the lower terraces")).toBeInTheDocument();
+  });
+
+  it("lists what a pool still needs before it takes anything", () => {
+    render(
+      <GardenPool
+        pool={pool({
+          state: "NOT_READY",
+          charterCID: "bafy-charter",
+          providerOpenCommitmentCap: 0n,
+        })}
+      />
+    );
+
+    const list = screen.getByRole("list", { name: "What this pool still needs" });
+    const rows = list.querySelectorAll("li");
+    expect(rows).toHaveLength(2);
+    expect(rows[0]).toHaveAttribute("data-done", "true");
+    expect(rows[1]).toHaveAttribute("data-done", "false");
+    expect(screen.getByText("What this pool is for")).toBeInTheDocument();
+    expect(screen.getByText("How many promises one person can hold at once")).toBeInTheDocument();
   });
 
   it("says a paused pool resumes and loses nothing, above a still-readable list", () => {

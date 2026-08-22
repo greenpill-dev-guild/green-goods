@@ -637,3 +637,52 @@ describe("queue identity for acts that name a commitment", () => {
     expect(retry).not.toBe(first);
   });
 });
+
+describe("a dead creation can be retried or discarded, never quietly", () => {
+  async function drain() {
+    for (const job of await jobQueueDB.getAllJobsUnfiltered()) {
+      await jobQueueDB.deleteJob(job.id);
+    }
+  }
+  beforeEach(drain);
+  afterEach(drain);
+
+  const meta = { chainId: 42161 };
+
+  it("retrying resets the attempts and clears the last error, keeping the same record", async () => {
+    const id = await jobQueue.addJob(
+      "commitment",
+      commitmentPayload({ creationRequestKey: ZERO_HASH }),
+      HOLDER,
+      meta
+    );
+    const stored = (await jobQueueDB.getJob(id))!;
+    await jobQueueDB.updateJob({
+      ...stored,
+      attempts: 5,
+      lastError: "revert",
+      meta: { ...stored.meta, waitingForDependency: true },
+    });
+
+    await jobQueue.retryJob(id);
+
+    const retried = (await jobQueueDB.getJob(id))!;
+    expect(retried.attempts).toBe(0);
+    expect(retried.lastError).toBeUndefined();
+    expect(retried.meta?.waitingForDependency).toBe(false);
+    // Same job, same identity: a retry is not a second commitment.
+    expect(retried.payload).toEqual(stored.payload);
+  });
+
+  it("discarding removes the local record and nothing else", async () => {
+    const id = await jobQueue.addJob(
+      "commitment",
+      commitmentPayload({ creationRequestKey: ZERO_HASH }),
+      HOLDER,
+      meta
+    );
+    await jobQueue.discardJob(id);
+
+    expect(await jobQueueDB.getJob(id)).toBeUndefined();
+  });
+});

@@ -13,6 +13,7 @@ export type RawRow = Record<string, unknown>;
 
 export const POOL_FIELDS = /* GraphQL */ `
   id chainId poolId registrationSeen garden gardenId poolType state charterCID
+  pauseReasonCID pauseReasonBlockNumber
   openSeasonCycleId openSeasonCycleEntityId openCampaignIds openCampaignEntityIds
   providerOpenCommitmentCap liveCommitmentCount nonTerminalCycleCount
   commitmentsOffered commitmentsRequested commitmentsAccepted commitmentsReadyForConfirmation
@@ -133,6 +134,8 @@ export function mapPool(row: RawRow): CommitmentPoolRecord {
     poolType: row.poolType as CommitmentPoolRecord["poolType"],
     state: row.state as CommitmentPoolRecord["state"],
     charterCID: string(row.charterCID),
+    pauseReasonCID: string(row.pauseReasonCID),
+    pauseReasonBlockNumber: optionalInteger(row.pauseReasonBlockNumber),
     openSeasonCycleId: optionalInteger(row.openSeasonCycleId),
     openSeasonCycleEntityId: string(row.openSeasonCycleEntityId),
     openCampaignIds: integers(row.openCampaignIds),

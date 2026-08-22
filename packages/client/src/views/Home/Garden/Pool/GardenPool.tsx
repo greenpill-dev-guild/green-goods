@@ -3,10 +3,13 @@ import {
   type CommitmentPoolRecord,
   commitmentNeedsSeat,
   DEFAULT_CHAIN_ID,
+  jobQueue,
   selectCommitmentSeat,
   useCommitmentCycles,
   useCommitmentMetadata,
+  useCommitmentQueueState,
   useCommitments,
+  useJobQueue,
   useOffline,
   usePrimaryAddress,
 } from "@green-goods/shared";
@@ -17,6 +20,7 @@ import { useNavigate } from "react-router-dom";
 
 import { CommitmentRow, CommitmentStateLadder } from "@/components/Features/Commitments";
 import { CycleRail } from "./CycleRail";
+import { PendingCreationRow } from "./PendingCreationRow";
 import { type CommitmentDoor, PoolCreateEntry } from "./PoolCreateEntry";
 import { PoolLifecycleNotice } from "./PoolLifecycleNotice";
 
@@ -53,6 +57,35 @@ export function GardenPool({ pool }: GardenPoolProps) {
   const [direction, setDirection] = useState<DirectionFilter>("all");
 
   const { cycles } = useCommitmentCycles({ chainId, poolId: pool.poolId });
+  // What this phone still holds for this pool: creations waiting to send,
+  // waiting for a garden hat, or given up. They ride the top of the list so
+  // landing back here with the thing visible is the confirmation.
+  const queue = useCommitmentQueueState(viewer as Address | null);
+  const { flush } = useJobQueue();
+  const [busyJobId, setBusyJobId] = useState<string | null>(null);
+  const ownCreations = useMemo(
+    () => queue.pendingCreates.filter((entry) => entry.poolId === pool.poolId.toString()),
+    [queue.pendingCreates, pool.poolId]
+  );
+  const retryCreation = async (jobId: string) => {
+    setBusyJobId(jobId);
+    try {
+      await jobQueue.retryJob(jobId);
+      await flush();
+    } finally {
+      setBusyJobId(null);
+      queue.refresh();
+    }
+  };
+  const discardCreation = async (jobId: string) => {
+    setBusyJobId(jobId);
+    try {
+      await jobQueue.discardJob(jobId);
+    } finally {
+      setBusyJobId(null);
+      queue.refresh();
+    }
+  };
   const commitmentsQuery = useCommitments({
     chainId,
     poolId: pool.poolId,
@@ -103,7 +136,8 @@ export function GardenPool({ pool }: GardenPoolProps) {
       isLoading={commitmentsQuery.isLoading}
       isError={commitmentsQuery.isError}
       isOnline={isOnline}
-      isEmpty={commitmentsQuery.commitments.length === 0}
+      // A creation still on this phone is a row, so the list is not empty.
+      isEmpty={commitmentsQuery.commitments.length === 0 && ownCreations.length === 0}
       onRetry={() => void commitmentsQuery.refetch()}
       copy={{
         loadingId: "app.pool.loading",
@@ -168,10 +202,26 @@ export function GardenPool({ pool }: GardenPoolProps) {
         })}
       </div>
 
+      {ownCreations.length > 0 ? (
+        <div className="space-y-2" data-component="PoolPendingCreations">
+          {ownCreations.map((creation) => (
+            <PendingCreationRow
+              key={creation.jobId}
+              creation={creation}
+              isBusy={busyJobId === creation.jobId}
+              onRetry={(jobId) => void retryCreation(jobId)}
+              onDiscard={(jobId) => void discardCreation(jobId)}
+            />
+          ))}
+        </div>
+      ) : null}
+
       {rows.length === 0 ? (
-        <p className="py-6 text-center text-sm text-text-sub-600">
-          {formatMessage({ id: "app.commitments.filter.noMatches" })}
-        </p>
+        ownCreations.length === 0 ? (
+          <p className="py-6 text-center text-sm text-text-sub-600">
+            {formatMessage({ id: "app.commitments.filter.noMatches" })}
+          </p>
+        ) : null
       ) : (
         <div className="space-y-2">
           {rows.map((row) => (

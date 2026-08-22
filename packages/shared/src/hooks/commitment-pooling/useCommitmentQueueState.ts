@@ -25,6 +25,22 @@ import { COMMITMENT_JOB_KINDS } from "../../modules/commitment-pooling/jobs";
 import type { Job } from "../../types/job-queue";
 import type { Address } from "../../types/domain";
 
+/** A commitment composed on this phone that has not reached the chain yet. */
+export interface PendingCommitmentCreation {
+  jobId: string;
+  chainId: number;
+  poolId: string;
+  direction: "OFFER" | "REQUEST";
+  title: string | null;
+  unitLabel: string;
+  targetUnits: string;
+  /** Waiting for the member's garden hat; consumes no retries. */
+  waitingForMembership: boolean;
+  /** Gave up after its attempts; retry or discard are the member's call. */
+  failed: boolean;
+  createdAt: number;
+}
+
 export interface CommitmentQueueState {
   /** Commitments with an act queued and still trying. Keyed by decimal id. */
   pendingCommitmentIds: ReadonlySet<string>;
@@ -34,6 +50,8 @@ export interface CommitmentQueueState {
   failedCommitmentIds: ReadonlySet<string>;
   /** True while a new commitment is still waiting to be placed. */
   hasPendingCreate: boolean;
+  /** Every creation still on this phone, failed ones included, newest first. */
+  pendingCreates: PendingCommitmentCreation[];
   /**
    * The queue could not be read. Distinct from "nothing is queued": a surface
    * that treats a failed read as an empty queue re-enables an act already
@@ -89,13 +107,36 @@ export function useCommitmentQueueState(viewer?: Address | null): CommitmentQueu
     const jobs: Job[] = query.data ?? [];
     const pendingCommitmentIds = new Set<string>();
     const failedCommitmentIds = new Set<string>();
+    const pendingCreates: PendingCommitmentCreation[] = [];
     let failedCount = 0;
     let hasPendingCreate = false;
 
     for (const job of jobs) {
       if (job.synced) continue;
       const commitmentId = commitmentIdOf(job);
-      if (isTerminallyFailedJob(job)) {
+      const failed = isTerminallyFailedJob(job);
+      if (job.kind === "commitment") {
+        const payload = job.payload as {
+          poolId?: bigint | string;
+          direction?: number;
+          metadata?: { title?: string };
+          unitLabel?: string;
+          targetUnits?: bigint | string;
+        };
+        pendingCreates.push({
+          jobId: job.id,
+          chainId: job.chainId ?? 0,
+          poolId: String(payload.poolId ?? ""),
+          direction: payload.direction === 1 ? "REQUEST" : "OFFER",
+          title: payload.metadata?.title ?? null,
+          unitLabel: payload.unitLabel ?? "",
+          targetUnits: String(payload.targetUnits ?? ""),
+          waitingForMembership: !failed && job.meta?.waitingReason === "membership-unavailable",
+          failed,
+          createdAt: job.createdAt,
+        });
+      }
+      if (failed) {
         failedCount += 1;
         if (commitmentId) failedCommitmentIds.add(commitmentId);
         continue;
@@ -103,12 +144,14 @@ export function useCommitmentQueueState(viewer?: Address | null): CommitmentQueu
       if (commitmentId) pendingCommitmentIds.add(commitmentId);
       else if (job.kind === "commitment") hasPendingCreate = true;
     }
+    pendingCreates.sort((left, right) => right.createdAt - left.createdAt);
 
     return {
       pendingCommitmentIds,
       failedCount,
       failedCommitmentIds,
       hasPendingCreate,
+      pendingCreates,
       isUnavailable: Boolean(viewer) && query.isError,
       refresh,
     };

@@ -303,9 +303,16 @@ class JobQueue {
       } else if (COMMITMENT_JOB_KINDS.includes(job.kind as (typeof COMMITMENT_JOB_KINDS)[number])) {
         const execution = await executeCommitmentQueueJob(jobId, job, chainId, sender);
         if (execution.status === "waiting") {
+          // The reason is kept on the record so a surface can say what the
+          // job is waiting for (a garden hat, a series, a gateway) rather than
+          // only that it waits.
           await jobQueueDB.updateJob({
             ...job,
-            meta: { ...(job.meta ?? {}), waitingForDependency: true },
+            meta: {
+              ...(job.meta ?? {}),
+              waitingForDependency: true,
+              waitingReason: execution.reason,
+            },
             lastAttemptAt: Date.now(),
           });
           return { success: false, error: execution.reason, skipped: true };
@@ -471,6 +478,34 @@ class JobQueue {
     const result = { processed, failed, skipped };
     jobQueueEventBus.emit("queue:sync-completed", { result });
     return result;
+  }
+
+  /**
+   * Give a job that gave up another run of attempts. The record keeps its
+   * payload and identity, so a retry is the same act, not a second one; only
+   * the count and the last error are cleared, and the next flush picks it up.
+   */
+  async retryJob(jobId: string): Promise<void> {
+    const job = await jobQueueDB.getJob(jobId);
+    if (!job || job.synced) return;
+    const { lastError: _lastError, ...rest } = job;
+    await jobQueueDB.updateJob({
+      ...rest,
+      attempts: 0,
+      meta: { ...(job.meta ?? {}), waitingForDependency: false },
+    });
+    jobQueueEventBus.emit("job:added", { jobId, job: { ...rest, attempts: 0 } });
+  }
+
+  /**
+   * Remove a job that never reached the chain, after an explicit choice. Only
+   * the local record goes; nothing remote exists yet.
+   */
+  async discardJob(jobId: string): Promise<void> {
+    const job = await jobQueueDB.getJob(jobId);
+    if (!job || job.synced) return;
+    await jobQueueDB.deleteJob(jobId);
+    jobQueueEventBus.emit("job:failed", { jobId, job, error: "discarded" });
   }
 
   async getStats(userAddress: string): Promise<QueueStats> {

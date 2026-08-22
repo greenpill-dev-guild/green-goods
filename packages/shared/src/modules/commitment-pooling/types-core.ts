@@ -130,6 +130,9 @@ export interface CommitmentPoolRecord {
   poolType: keyof typeof CommitmentPoolType | null;
   state: keyof typeof CommitmentPoolState | null;
   charterCID: string | null;
+  /** Why the pool is paused, as a reason CID. Set by PoolPaused, cleared by PoolResumed. */
+  pauseReasonCID: string | null;
+  pauseReasonBlockNumber: bigint | null;
   openSeasonCycleId: bigint | null;
   openSeasonCycleEntityId: string | null;
   openCampaignIds: bigint[];
