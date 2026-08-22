@@ -4,6 +4,7 @@ import {
   EmptyState,
   adminRoutes,
   type GardenDetailTab,
+  type HypercertRecord,
 } from "@green-goods/shared";
 import { RiArrowRightSLine, RiFileList3Line } from "@remixicon/react";
 import { useIntl } from "react-intl";
@@ -27,7 +28,7 @@ export interface ImpactTabProps {
   assessments: Array<{ id: string; title?: string; assessmentType?: string; createdAt: number }>;
   fetchingAssessments: boolean;
   assessmentsError: Error | null;
-  hypercerts: Array<{ id: string; title?: string; mintedAt?: number }>;
+  hypercerts: HypercertRecord[];
   hypercertsLoading: boolean;
   domainLabels: string[];
   approvedInLastThirtyDays: number;

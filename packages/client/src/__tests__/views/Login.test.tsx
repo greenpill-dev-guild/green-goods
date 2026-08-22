@@ -25,6 +25,7 @@ const mockLoginWithEmbedded = vi.fn();
 const { mockClassifyPasskeyCeremonyContext } = vi.hoisted(() => ({
   mockClassifyPasskeyCeremonyContext: vi.fn(() => ({
     supported: true,
+    reason: undefined as "rp_origin_mismatch" | undefined,
     rpId: "greengoods.app",
     origin: "https://greengoods.app",
   })),
@@ -202,6 +203,7 @@ describe("Login View - New User (two-step create)", () => {
     mockStoredUsername = null;
     mockClassifyPasskeyCeremonyContext.mockReturnValue({
       supported: true,
+      reason: undefined,
       rpId: "greengoods.app",
       origin: "https://greengoods.app",
     });
@@ -516,6 +518,7 @@ describe("Login View - fallback account surfacing", () => {
     mockStoredUsername = null;
     mockClassifyPasskeyCeremonyContext.mockReturnValue({
       supported: true,
+      reason: undefined,
       rpId: "greengoods.app",
       origin: "https://greengoods.app",
     });

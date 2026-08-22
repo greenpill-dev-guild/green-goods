@@ -14,6 +14,7 @@ import {
   createSavedOfferCipher,
   MemorySavedOfferStore,
   MemorySavedOffersSessionStore,
+  type SavedOffersSignatureVerifier,
 } from "../services/saved-offers";
 import {
   compareAndSwapSavedOffer,
@@ -61,13 +62,13 @@ function payload(overrides: Partial<SavedOfferPayloadV1> = {}): SavedOfferPayloa
 
 function createApp(
   options: {
-    verify?: ReturnType<typeof vi.fn>;
+    verify?: SavedOffersSignatureVerifier;
     trustedProxy?: { hops?: number; cidrs?: string[]; allowTestSocketIp?: boolean };
   } = {}
 ) {
   const store = new MemorySavedOfferStore(createSavedOfferCipher(KEY));
   const sessions = new MemorySavedOffersSessionStore({ now: () => NOW, tokenSecret: KEY });
-  const verify =
+  const verify: SavedOffersSignatureVerifier =
     options.verify ??
     vi.fn(async (input: { address: string; message: string; signature: `0x${string}` }) => {
       const expected =

@@ -1,8 +1,8 @@
 {
   "version": 1,
-  "description": "Machine-readable Green Goods ontology: canonical entities, controlled vocabularies with per-layer representations, EAS schemas, cross-layer constraints, and lifecycle state machines. scripts/quality/check-ontology.mjs (bun run check:ontology) drift-gates every section against the code and docs anchors declared inline; bun run ontology:generate renders docs/docs/reference/ontology.generated.mdx and docs/docs/builders/integrations/entity-matrix.mdx from it. Entity and persona prose stays human-canonical in docs/docs/reference/glossary-community.md — this file mirrors it and the checker locks the two together.",
+  "description": "Machine-readable Green Goods ontology: canonical entities, controlled vocabularies with per-layer representations, EAS schemas, cross-layer constraints, and lifecycle state machines. scripts/quality/check-ontology.mjs (bun run check:ontology) drift-gates the declared code and documentation representations; bun run ontology:generate renders five deterministic reference, matrix, human, claims, and agent-manifest projections. Entity and persona prose stays human-canonical in docs/docs/reference/glossary-community.md — this file mirrors it and the checker locks the two together.",
   "meta": {
-    "last_verified": "2026-08-15",
+    "last_verified": "2026-08-21",
     "excluded_from_v1": [
       "Impact-axes taxonomy — canon is maintained outside the repo; this public file carries only the four production action domains.",
       "ModuleDependency and ModuleSchemaKind from the commitment-pooling spec — module wiring plumbing, not domain vocabulary."
@@ -3005,7 +3005,7 @@
       "enforced_at": [
         {
           "file": "packages/contracts/src/resolvers/WorkApproval.sol",
-          "lines": "153-156"
+          "symbol": "SelfAttestation"
         }
       ],
       "holes": [],
@@ -3044,7 +3044,7 @@
       "enforced_at": [
         {
           "file": "packages/contracts/src/tokens/Garden.sol",
-          "lines": "43-48,513-518"
+          "symbol": "_beforeTokenTransfer"
         }
       ],
       "holes": [],
@@ -3183,36 +3183,39 @@
     {
       "id": "needs-eas-envelope-reference",
       "kind": "domain-range",
+      "spec_source": ".plans/active/community-interface/spec.md",
+      "planned_anchor": {
+        "file": "packages/contracts/src/resolvers/Needs.sol",
+        "symbol": "NeedsResolver"
+      },
       "statement": "All four Needs schemas use EAS recipient as the canonical garden and expirationTime zero; a Need is a root with refUID zero, while NeedSignal, NeedStatus, and FundingAttribution use refUID to reference an exact live same-garden Need.",
-      "enforced_at": [
-        {
-          "file": ".plans/active/community-interface/spec.md"
-        }
-      ],
+      "enforced_at": [],
       "holes": [],
       "source_status": "specified"
     },
     {
       "id": "need-signal-latest-winner",
       "kind": "functional",
+      "spec_source": ".plans/active/community-interface/spec.md",
+      "planned_anchor": {
+        "file": "packages/shared/src/modules/community-needs/signals.ts",
+        "symbol": "NeedSignal"
+      },
       "statement": "For each Need and attester, readers first select the greatest unsigned (timeCreated, uid) NeedSignal tuple and then apply revocation and expiry; a revoked or expired winner clears the signal without restoring an older record, and support and non-support remain separate counts.",
-      "enforced_at": [
-        {
-          "file": ".plans/active/community-interface/spec.md"
-        }
-      ],
+      "enforced_at": [],
       "holes": [],
       "source_status": "specified"
     },
     {
       "id": "needs-resolver-trust-boundaries",
       "kind": "closed-set",
+      "spec_source": ".plans/active/community-interface/spec.md",
+      "planned_anchor": {
+        "file": "packages/contracts/src/resolvers/Needs.sol",
+        "symbol": "NeedsResolver"
+      },
       "statement": "Exactly four Needs schemas route through two resolvers: NeedsResolver accepts only Need, NeedSignal, and NeedStatus with schema-specific Community or Operator authorization, while the ungated FundingAttribution schema routes through FundingAttributionResolver; unknown schema branches fail closed.",
-      "enforced_at": [
-        {
-          "file": ".plans/active/community-interface/spec.md"
-        }
-      ],
+      "enforced_at": [],
       "holes": [],
       "source_status": "specified"
     }
@@ -3595,6 +3598,20 @@
       "id": "commitment-loan",
       "vocabulary": "loan-state",
       "spec_source": ".plans/active/commitment-credit-follow-on/spec.md",
+      "enforced_at": [
+        {
+          "file": "packages/contracts/src/registries/Credit.sol",
+          "symbol": "requestLoan"
+        },
+        {
+          "file": "packages/contracts/test/unit/CreditRegistry.t.sol",
+          "symbol": "testCreditRegistry_requestApproveDisburseAndRepayInInstallments"
+        },
+        {
+          "file": "packages/indexer/test/credit-registry.test.ts",
+          "symbol": "CreditRegistry"
+        }
+      ],
       "note": "Records-only pool credit (CreditRegistry). Default is not terminal — a defaulted loan can still be repaid, recorded as LoanRepaid(recoveredFromDefault = true). Registry pause blocks every mutation except markDefaulted and cancelLoan (wind-down). The G$ leg binds the loan to exactly one Confirmed DisbursementKind.LoanPrincipal settlement child; nothing in this machine moves value. Drawn as D30 in the commitment-pooling gallery.",
       "states": [
         {
@@ -3680,7 +3697,7 @@
           "mechanism": "recordRepayment clearing the balance → LoanRepaid(recoveredFromDefault = true); default is not terminal"
         }
       ],
-      "source_status": "specified",
+      "source_status": "implemented",
       "kind": "executable"
     }
   ],

@@ -1,10 +1,10 @@
 # Client Structure Cleanup + Agent Guide Consolidation Plan
 
 **Feature Slug**: `client-structure-and-agent-guides`
-**Stage**: `backlog`
+**Stage**: `active`
 **Status**: `ACTIVE`
 **Created**: `2026-08-19`
-**Last Updated**: `2026-08-19`
+**Last Updated**: `2026-08-21`
 
 ## Decision Log
 
@@ -24,6 +24,7 @@
 | 12 | `views/Landing/` stays as a one-file folder | Maintainer call. |
 | 13 | `AGENTS.md` becomes the agent-neutral repo contract; `CLAUDE.md` keeps only harness-specific content | Maintainer call. Extends the existing `.claude/context/*.md` canonical-source pattern rather than inventing one. |
 | 14 | Enforcement extends `check-source-structure.js` rather than adding a new gate | It is already wired into every package CI workflow and already uses a frozen-allowlist pattern that works. |
+| 15 | Client assessment screens migrate to canonical `GardenAssessment` v2 semantics | Maintainer call on 2026-08-21. The client stops reading legacy metrics, capitals, tags, report-document, evidence-media, and impact-attestation fields; it presents the canonical domain, strategy kernel, reporting period, SDGs, and attachments instead. |
 
 ## Research / Plan Gate
 
@@ -37,7 +38,7 @@
 
 | # | Question | Blocks |
 |---|---|---|
-| A | `GardenAssessment`: does the shared type gain `metrics` / `startDate` / `endDate` / `tags` / `capitals` / `reportDocuments`, or does the client stop reading them? | Step 1.5 |
+| A | **Resolved:** the client stops reading the dropped legacy fields and migrates both assessment screens to canonical v2 semantics. | Step 1.5 unblocked |
 | B | Why is `"resolvePackageJsonExports": false` set? If removable, 57 errors go with it; if not, those paths need excluding. | Step 1.3 |
 | C | `views/Garden/` (work capture) vs `views/Home/Garden/` (garden detail) — rename one? | Step 2.9 (optional) |
 | D | Staged marker syntax: JSDoc `@staged` tag vs a manifest file | Step 2.8, Step 4.2 |
@@ -54,7 +55,7 @@ Config first, then errors by cluster, then flip the command last.
 - [ ] **1.2** `packages/client/tsconfig.test.json`: narrow `include` to test + story globs only (currently claims all of `src`, overlapping `tsconfig.app.json`), add the `@green-goods/shared*` path aliases, remove `baseUrl` **first** — TS 7.0.2 rejects it with `TS5102` before type-checking starts, so the test project cannot be measured until it is gone. Add Storybook types per decision 2. Expect ~79 previously-unchecked errors in `src/__tests__/**` to appear at this point.
 - [ ] **1.3** `packages/client/tsconfig.app.json`: exclude `**/*.stories.tsx`, raise `target`/`lib` to ES2022, resolve open decision B.
 - [ ] **1.4** `packages/shared/tsconfig.json`: add `composite: true` (required for `tsc -b` to reference it). Add `packages/admin/tsconfig.test.json` mirroring 1.2, **and add it to `packages/admin/tsconfig.json` references** (that file currently lists only app + node, so a new project is invisible to `tsc -b` without the entry). Admin's test error surface is unmeasured — expect it to appear here.
-- [ ] **1.5** Fix the `GardenAssessment` cluster — 46 of client's 80 errors, in `views/Home/Garden/Assessment.tsx` (27) and `components/Features/Garden/Assessments.tsx` (19). Resolve open decision A first, then enumerate the shared type's consumers across admin and indexer before editing.
+- [x] **1.5** Fix the `GardenAssessment` cluster — 46 of client's 80 errors, in `views/Home/Garden/Assessment.tsx` (27) and `components/Features/Garden/Assessments.tsx` (19). Resolve open decision A first, then enumerate the shared type's consumers across admin and indexer before editing.
 - [ ] **1.6** Fix the `Address` cluster — ~30 sites using `string` where `` `0x${string}` `` is required. This is the `CLAUDE.md` `Address` invariant.
 - [ ] **1.7** Fix the remaining client errors (~4 files, single-digit counts each).
 - [ ] **1.8** Fix admin's 52 real errors.
@@ -129,8 +130,8 @@ Extends `scripts/quality/check-source-structure.js`, already wired into every pa
 
 ### State / API (Phase 1)
 
-- [ ] Resolve open decisions A and B before editing types
-- [ ] Enumerate `GardenAssessment` consumers across admin and indexer before changing the shared type
+- [ ] Resolve open decisions A and B before editing types (A resolved; B remains open)
+- [x] Enumerate `GardenAssessment` consumers across admin and indexer before changing the shared type
 - [ ] Keep hooks in shared
 - [ ] Record RED/GREEN proof (the probe) before marking the lane complete
 - [ ] Write `handoffs/codex-state-api.md`

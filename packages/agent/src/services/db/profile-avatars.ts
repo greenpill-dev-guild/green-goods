@@ -46,7 +46,7 @@ export function compareAndSwapProfileAvatar(
 
     const record: ProfileAvatarRecord = {
       chainId: input.chainId,
-      address: normalizedAddress,
+      address: normalizedAddress as ProfileAvatarRecord["address"],
       avatarUri: input.avatarUri,
       version: currentVersion + 1,
       updatedAt: input.updatedAt,
@@ -82,7 +82,7 @@ export function compareAndSwapProfileAvatar(
 function toRecord(row: StoredProfileAvatar): ProfileAvatarRecord {
   return {
     chainId: row.chainId,
-    address: row.address.toLowerCase() as Address,
+    address: row.address.toLowerCase() as ProfileAvatarRecord["address"],
     avatarUri: row.avatarUri,
     version: row.version,
     updatedAt: row.updatedAt,

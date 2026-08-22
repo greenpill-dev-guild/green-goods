@@ -112,10 +112,7 @@ export function ReviewStep({
       </div>
 
       {token.confersGovernance ? (
-        <Alert
-          variant="information"
-          title={formatMessage({ id: "app.send.governance.reviewTitle" })}
-        >
+        <Alert variant="info" title={formatMessage({ id: "app.send.governance.reviewTitle" })}>
           {formatMessage({ id: "app.send.governance.reviewBody" })}
         </Alert>
       ) : null}

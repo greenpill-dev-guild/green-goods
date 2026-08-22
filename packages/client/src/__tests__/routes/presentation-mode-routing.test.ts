@@ -104,16 +104,6 @@ function findRouteById(routes: RouteObject[], id: string): RouteObject | undefin
   return undefined;
 }
 
-function findRouteByPath(routes: RouteObject[], path: string): RouteObject | undefined {
-  for (const route of routes) {
-    if (route.path === path) return route;
-    const childMatch = route.children ? findRouteByPath(route.children, path) : undefined;
-    if (childMatch) return childMatch;
-  }
-
-  return undefined;
-}
-
 function setWebsiteMode() {
   mockNavigator({
     userAgent:
@@ -299,7 +289,9 @@ describe("presentation-mode route guards", () => {
     setLocalDevicePreviewMode();
 
     const legacyUrl = new URL(`http://localhost:3001${legacyPath}`);
-    const legacyRoute = matchRoutes(appRoutes, legacyUrl.pathname)?.at(-1)?.route;
+    const legacyRoute = matchRoutes(appRoutes, legacyUrl.pathname)?.at(-1)?.route as
+      | RouteObject
+      | undefined;
     expect(legacyRoute?.loader).toBeTypeOf("function");
 
     const result = (legacyRoute!.loader as (args: LoaderFunctionArgs) => unknown)(

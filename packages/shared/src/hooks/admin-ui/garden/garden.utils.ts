@@ -17,7 +17,7 @@ export interface GardenHeaderStatsInput {
   impactCount: number | null;
   formatMessage: (
     descriptor: { id: string; defaultMessage?: string },
-    values?: Record<string, unknown>
+    values?: Record<string, string | number | boolean | Date | null | undefined>
   ) => string;
 }
 
@@ -101,7 +101,7 @@ export function resolveGardenView(pathname: string): GardenWorkspaceView {
  * redirect route, which resolves to the public garden page.
  */
 export function buildGardenViewActions(
-  view: GardenWorkspaceView,
+  _view: GardenWorkspaceView,
   canManage: boolean,
   hasSelectedGarden: boolean,
   navigate: (path: string) => void,

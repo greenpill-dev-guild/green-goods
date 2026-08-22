@@ -233,7 +233,6 @@ export function GardenWorkspaceContent({ workspace }: GardenWorkspaceContentProp
               bannerImage: workspace.garden.bannerImage,
               domainMask: workspace.garden.domainMask,
               openJoining: workspace.garden.openJoining,
-              maxGardeners: workspace.garden.maxGardeners,
             }}
             canManage={workspace.canManage}
             isOwner={workspace.isOwner}

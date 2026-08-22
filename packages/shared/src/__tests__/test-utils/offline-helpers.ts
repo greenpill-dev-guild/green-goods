@@ -120,14 +120,6 @@ export const createMockRetryState = (attempts: number = 0, nextAttempt: number =
 // Fetch Mocking Utilities
 // ============================================
 
-/** Partial Response type for mocking fetch */
-interface MockResponse {
-  ok: boolean;
-  status: number;
-  json: () => Promise<unknown>;
-  text: () => Promise<string>;
-}
-
 /** Configuration for mock fetch responses */
 interface MockFetchConfig {
   response: unknown;
@@ -137,13 +129,13 @@ interface MockFetchConfig {
 
 export const mockFetch = (response: unknown, ok = true, status = 200) => {
   global.fetch = vi.fn(
-    (): Promise<MockResponse> =>
+    (): Promise<Response> =>
       Promise.resolve({
         ok,
         status,
         json: () => Promise.resolve(response),
         text: () => Promise.resolve(JSON.stringify(response)),
-      })
+      } as Response)
   );
 };
 
@@ -153,7 +145,7 @@ export const mockFetchError = (error: Error) => {
 
 export const mockFetchSequence = (responses: MockFetchConfig[]) => {
   let callCount = 0;
-  global.fetch = vi.fn((): Promise<MockResponse> => {
+  global.fetch = vi.fn((): Promise<Response> => {
     const config = responses[callCount] || responses[responses.length - 1];
     callCount++;
     return Promise.resolve({
@@ -161,7 +153,7 @@ export const mockFetchSequence = (responses: MockFetchConfig[]) => {
       status: config.status ?? 200,
       json: () => Promise.resolve(config.response),
       text: () => Promise.resolve(JSON.stringify(config.response)),
-    });
+    } as Response);
   });
 };
 
@@ -169,7 +161,7 @@ export const mockFetchSequence = (responses: MockFetchConfig[]) => {
 // Network Condition Simulation
 // ============================================
 
-export const waitFor = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+export const waitForNetwork = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 export const simulateNetworkConditions = {
   offline: () => {
@@ -196,7 +188,7 @@ export const simulateNetworkConditions = {
     // Mock slow network by adding delays to fetch
     const originalFetch = global.fetch;
     global.fetch = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
-      await waitFor(1000); // 1 second delay
+      await waitForNetwork(1000); // 1 second delay
       return originalFetch?.(input, init);
     });
   },

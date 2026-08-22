@@ -8,6 +8,7 @@ import test from "node:test";
 import {
   buildReceiptInputs,
   detectCliToolchain,
+  loadPolicy,
   resolveGitInputs,
   selectExpectedWorkflows,
   selectValidation,
@@ -73,6 +74,57 @@ test("a clean checkpoint is an explicit no-op", () => {
   assert.equal(plan.budget.automatedSeconds, 0);
 });
 
+test("lane checkpoint scopes format and lint to explicitly supplied paths", () => {
+  const plan = selectValidation({
+    intent: "checkpoint",
+    checkpointScope: "lane",
+    changedPaths: ["packages/client/src/components/Panel.tsx"],
+  });
+
+  assert.equal(plan.requestedCheckpointScope, "lane");
+  assert.equal(plan.checkpointScope, "lane");
+  assert.equal(
+    plan.checks.find((check) => check.id === "format").command,
+    "bunx @biomejs/biome format --no-errors-on-unmatched 'packages/client/src/components/Panel.tsx'",
+  );
+  assert.equal(
+    plan.checks.find((check) => check.id === "lint").command,
+    "bun --bun run oxlint 'packages/client/src/components/Panel.tsx' --deny-warnings",
+  );
+});
+
+test("workspace checkpoint keeps repository-wide format and lint commands", () => {
+  const plan = selectValidation({
+    intent: "checkpoint",
+    checkpointScope: "workspace",
+    changedPaths: ["packages/client/src/components/Panel.tsx"],
+  });
+
+  assert.equal(plan.checkpointScope, "workspace");
+  assert.equal(plan.checks.find((check) => check.id === "format").command, "bun run format:check");
+  assert.equal(plan.checks.find((check) => check.id === "lint").command, "bun run lint");
+});
+
+test("lane lint preserves workspace ownership instead of widening Oxlint to scripts", () => {
+  const plan = selectValidation({
+    intent: "checkpoint",
+    checkpointScope: "lane",
+    changedPaths: ["scripts/quality/select-validation.mjs"],
+  });
+
+  assert.equal(
+    plan.checks.find((check) => check.id === "lint").command,
+    "bunx @biomejs/biome lint --no-errors-on-unmatched 'scripts/quality/select-validation.mjs'",
+  );
+});
+
+test("lane checkpoint requires explicit changed paths", () => {
+  assert.throws(
+    () => selectValidation({ intent: "checkpoint", checkpointScope: "lane" }),
+    /lane checkpoint requires explicit changed paths/i,
+  );
+});
+
 test("validation tooling paths escalate to sensitive risk", () => {
   const plan = selectValidation({
     intent: "diagnose",
@@ -93,6 +145,7 @@ test("isolated client behavior accepts focused proof without forcing a package b
     "format",
     "lint",
     "client-test",
+    "ontology",
     "browser-proof",
   ]);
   assert.equal(
@@ -104,7 +157,8 @@ test("isolated client behavior accepts focused proof without forcing a package b
     "bun --bun run oxlint 'packages/client/src/views/Home/Garden/Work.tsx' --deny-warnings",
   );
   assert.equal(plan.budget.targetSeconds, 90);
-  assert.equal(plan.budget.withinTarget, true);
+  assert.equal(plan.budget.withinTarget, false);
+  assert.equal(plan.budget.rule, "Budgets warn and profile; they never skip selected or mandatory checks.");
   assert.equal(plan.checks.at(-1).state, "pending");
 });
 
@@ -169,6 +223,7 @@ test("shared public API changes include direct consumers", () => {
     "agent-test",
     "source-structure",
     "design-guardrails",
+    "ontology",
   ]);
 });
 
@@ -285,8 +340,13 @@ test("cancellation is terminal and selects no checks", () => {
 test("ship remains strict and includes the complete build surface", () => {
   const plan = selectValidation({
     intent: "ship",
+    checkpointScope: "lane",
     changedPaths: ["docs/README.md"],
   });
+
+  assert.equal(plan.requestedCheckpointScope, "lane");
+  assert.equal(plan.checkpointScope, "workspace");
+  assert.equal(plan.checks.find((check) => check.id === "format").command, "bun format");
 
   for (const checkId of [
     "contracts-test",
@@ -300,6 +360,23 @@ test("ship remains strict and includes the complete build surface", () => {
   ]) {
     assert.ok(ids(plan).includes(checkId), checkId);
     assert.equal(plan.checks.find((check) => check.id === checkId).mandatory, true, checkId);
+  }
+});
+
+test("lane checkpoint scope cannot downgrade push, ship, or release", () => {
+  for (const intent of ["push", "ship", "release"]) {
+    const plan = selectValidation({
+      intent,
+      checkpointScope: "lane",
+      changedPaths: ["packages/client/src/components/Panel.tsx"],
+    });
+
+    assert.equal(plan.requestedCheckpointScope, "lane", intent);
+    assert.equal(plan.checkpointScope, "workspace", intent);
+    assert.equal(plan.checks.find((check) => check.id === "format").command, "bun format", intent);
+    assert.ok(plan.checks.every((check) => check.mandatory), intent);
+    assert.ok(ids(plan).includes("contracts-verify-fast"), intent);
+    assert.ok(ids(plan).includes("docs-build"), intent);
   }
 });
 
@@ -428,6 +505,53 @@ test("git inputs include dirty and untracked paths and fingerprint their content
   );
 });
 
+test("lane fingerprint ignores an unrelated dirty plan while workspace fingerprint remains broad", (t) => {
+  const directory = mkdtempSync(join(tmpdir(), "validation-lane-selector-"));
+  t.after(() => rmSync(directory, { recursive: true, force: true }));
+  const git = (...args) => execFileSync("git", args, { cwd: directory, stdio: "ignore" });
+  git("init");
+  git("config", "user.email", "validation@example.com");
+  git("config", "user.name", "Validation Test");
+  git("config", "commit.gpgsign", "false");
+  mkdirSync(join(directory, "packages/client/src"), { recursive: true });
+  mkdirSync(join(directory, ".plans/active/unrelated"), { recursive: true });
+  const sourcePath = join(directory, "packages/client/src/app.ts");
+  const planPath = join(directory, ".plans/active/unrelated/plan.todo.md");
+  writeFileSync(sourcePath, "export const value = 1;\n");
+  writeFileSync(planPath, "# Baseline plan\n");
+  git("add", ".");
+  git("commit", "-m", "test: seed lane fixture");
+
+  writeFileSync(sourcePath, "export const value = 2;\n");
+  writeFileSync(planPath, "# Unrelated dirty plan\n");
+  const options = {
+    base: "HEAD",
+    head: "HEAD",
+    checkpointScope: "lane",
+    changedPaths: ["packages/client/src/app.ts"],
+  };
+  const lane = resolveGitInputs(options, { cwd: directory });
+  assert.deepEqual(lane.changedPaths, ["packages/client/src/app.ts"]);
+
+  writeFileSync(planPath, "# Unrelated dirty plan changed again\n");
+  const laneAfterPlanChange = resolveGitInputs(options, { cwd: directory });
+  assert.equal(laneAfterPlanChange.workingCopyFingerprint, lane.workingCopyFingerprint);
+
+  const workspace = resolveGitInputs(
+    { ...options, checkpointScope: "workspace" },
+    { cwd: directory },
+  );
+  writeFileSync(planPath, "# Third unrelated plan change\n");
+  const workspaceAfterPlanChange = resolveGitInputs(
+    { ...options, checkpointScope: "workspace" },
+    { cwd: directory },
+  );
+  assert.notEqual(
+    workspaceAfterPlanChange.workingCopyFingerprint,
+    workspace.workingCopyFingerprint,
+  );
+});
+
 test("workflow mapping follows observable contract artifacts", () => {
   assert.deepEqual(
     selectExpectedWorkflows({
@@ -453,6 +577,24 @@ test("workflow mapping follows observable contract artifacts", () => {
       "Supply Chain Guardrails",
     ],
   );
+});
+
+test("local ontology routing stays in parity with the Ontology workflow matcher", () => {
+  const policy = loadPolicy();
+  const localRule = policy.conditionalRules.find((rule) => rule.check === "ontology");
+  assert.ok(localRule, "missing local ontology validation rule");
+
+  const { check: _check, ...localMatcher } = localRule;
+  assert.deepEqual(localMatcher, policy.workflowRules.Ontology);
+
+  const probes = [
+    ...localMatcher.exact,
+    ...localMatcher.prefixes.map((prefix) => `${prefix}__ontology_probe__.ts`),
+  ];
+  for (const changedPath of probes) {
+    const plan = selectValidation({ intent: "qa", changedPaths: [changedPath] });
+    assert.ok(ids(plan).includes("ontology"), changedPath);
+  }
 });
 
 test("workflow mapping includes global formatting ownership for ordinary source", () => {

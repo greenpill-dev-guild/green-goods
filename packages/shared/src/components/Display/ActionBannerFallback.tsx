@@ -19,8 +19,9 @@ const DOMAIN_TOKEN_SLUG: Record<Domain, string> = {
 
 const VARIANT_ANGLES = [120, 135, 150] as const;
 
-function buildDomainGradient(domain: Domain, variantIndex: number): string {
-  const slug = DOMAIN_TOKEN_SLUG[domain] ?? DOMAIN_TOKEN_SLUG[Domain.AGRO];
+function buildDomainGradient(domain: Domain | null, variantIndex: number): string {
+  const resolvedDomain = domain ?? Domain.AGRO;
+  const slug = DOMAIN_TOKEN_SLUG[resolvedDomain];
   const angle = VARIANT_ANGLES[variantIndex % VARIANT_ANGLES.length];
   return `linear-gradient(${angle}deg, rgb(var(--domain-${slug}-rgb)) 0%, rgb(var(--domain-${slug}-soft-rgb)) 100%)`;
 }
@@ -51,7 +52,7 @@ function hashName(str: string): number {
 
 export interface ActionBannerFallbackProps {
   /** Action domain — determines the base color palette */
-  domain: Domain;
+  domain: Domain | null;
   /** Action title — used for deterministic gradient variation within the domain */
   title: string;
   /** Additional class names for the root container */
@@ -79,7 +80,7 @@ export const ActionBannerFallback: React.FC<ActionBannerFallbackProps> = React.m
   ({ domain, title, className }) => {
     const variantIndex = hashName(title || "Action") % VARIANT_ANGLES.length;
     const gradient = buildDomainGradient(domain, variantIndex);
-    const Icon = DOMAIN_ICONS[domain] ?? DOMAIN_ICONS[Domain.AGRO];
+    const Icon = DOMAIN_ICONS[domain ?? Domain.AGRO];
 
     return (
       <div className={cn("absolute inset-0", className)}>

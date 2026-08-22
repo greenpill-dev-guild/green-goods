@@ -53,6 +53,18 @@ function normalizePaths(paths = []) {
   return [...new Set(paths.filter(Boolean).map(normalizePath))].sort();
 }
 
+function checkpointScopes(requestedScope, intent, changedPaths, cancelled) {
+  const requested = requestedScope ?? "workspace";
+  if (!["lane", "workspace"].includes(requested)) {
+    throw new Error(`Unknown checkpoint scope: ${requested}`);
+  }
+  const effective = intent === "checkpoint" ? requested : "workspace";
+  if (effective === "lane" && changedPaths.length === 0 && cancelled !== true) {
+    throw new Error("Lane checkpoint requires explicit changed paths");
+  }
+  return { requested, effective };
+}
+
 function groupMatches(path, rule) {
   const groups = [];
   if (rule.exact?.length) groups.push(rule.exact.includes(path));
@@ -149,6 +161,12 @@ export function selectValidation(input = {}, options = {}) {
   const ci = input.ci === true;
   const intent = effectiveIntent(policy, requestedIntent, ci);
   const changedPaths = normalizePaths(input.changedPaths);
+  const checkpointScope = checkpointScopes(
+    input.checkpointScope,
+    intent,
+    changedPaths,
+    input.cancelled,
+  );
   const testPaths = normalizeTestPaths(input.testPaths);
   const requestedChecks = normalizePaths(input.checkIds);
   const baseRisk = input.risk ?? "routine";
@@ -157,6 +175,8 @@ export function selectValidation(input = {}, options = {}) {
     policyVersion: policy.version,
     requestedIntent,
     effectiveIntent: intent,
+    requestedCheckpointScope: checkpointScope.requested,
+    checkpointScope: checkpointScope.effective,
     ci,
     base: input.base ?? null,
     head: input.head ?? null,
@@ -277,6 +297,7 @@ export function selectValidation(input = {}, options = {}) {
         intent,
         ci,
         changedPaths,
+        checkpointScope: checkpointScope.effective,
       }),
     );
   const toolchainBlockers = compareToolchain(policy.toolchain, environment.toolchain, checks);
@@ -351,6 +372,8 @@ function materializeCheck(check, environment, mandatory, testPaths, context) {
   const focusedPaths = surface ? testPaths[surface] ?? [] : [];
   let command =
     focusedPaths.length > 0 ? `${check.command} ${focusedPaths.join(" ")}` : check.command;
+  const laneCheckpoint =
+    context.intent === "checkpoint" && context.checkpointScope === "lane";
   if (
     check.id === "format" &&
     !context.ci &&
@@ -360,7 +383,7 @@ function materializeCheck(check, environment, mandatory, testPaths, context) {
   }
   if (
     check.id === "format" &&
-    ["diagnose", "review", "qa"].includes(context.intent) &&
+    (["diagnose", "review", "qa"].includes(context.intent) || laneCheckpoint) &&
     context.changedPaths.length > 0
   ) {
     // Biome exits non-zero when every supplied path is one it does not handle,
@@ -368,19 +391,36 @@ function materializeCheck(check, environment, mandatory, testPaths, context) {
     // scoped format check fails and fail-fast stops the rest of the plan.
     command = `bunx @biomejs/biome format --no-errors-on-unmatched ${context.changedPaths.map(shellQuote).join(" ")}`;
   }
-  if (check.id === "lint" && context.intent === "qa") {
+  if (check.id === "lint" && (context.intent === "qa" || laneCheckpoint)) {
     const sourcePaths = context.changedPaths.filter((path) =>
-      [".js", ".jsx", ".mjs", ".cjs", ".ts", ".tsx"].some((extension) =>
-        path.endsWith(extension),
-      ),
+      [".js", ".jsx", ".mjs", ".cjs", ".ts", ".tsx"].some(
+        (extension) => path.endsWith(extension),
+      ) &&
+      (!laneCheckpoint ||
+        [
+          "packages/client/src/",
+          "packages/admin/src/",
+          "packages/shared/src/",
+          "packages/indexer/src/",
+          "packages/agent/src/",
+          "packages/contracts/script/",
+        ].some((prefix) => path.startsWith(prefix))),
     );
-    command = `bun --bun run oxlint ${sourcePaths.map(shellQuote).join(" ")} --deny-warnings`;
+    command =
+      sourcePaths.length > 0
+        ? `bun --bun run oxlint ${sourcePaths.map(shellQuote).join(" ")} --deny-warnings`
+        : `bunx @biomejs/biome lint --no-errors-on-unmatched ${context.changedPaths.map(shellQuote).join(" ")}`;
   }
   let budgetSeconds = focusedPaths.length > 0 ? Math.min(check.budgetSeconds, 60) : check.budgetSeconds;
-  if (check.id === "format" && ["diagnose", "review", "qa"].includes(context.intent)) {
+  if (
+    check.id === "format" &&
+    (["diagnose", "review", "qa"].includes(context.intent) || laneCheckpoint)
+  ) {
     budgetSeconds = Math.min(budgetSeconds, 10);
   }
-  if (check.id === "lint" && context.intent === "qa") budgetSeconds = Math.min(budgetSeconds, 15);
+  if (check.id === "lint" && (context.intent === "qa" || laneCheckpoint)) {
+    budgetSeconds = Math.min(budgetSeconds, 15);
+  }
   return {
     ...check,
     command,
@@ -440,6 +480,8 @@ export function buildReceiptInputs(plan, check) {
     policyVersion: plan.policyVersion,
     requestedIntent: plan.requestedIntent,
     effectiveIntent: plan.effectiveIntent,
+    requestedCheckpointScope: plan.requestedCheckpointScope,
+    checkpointScope: plan.checkpointScope,
     risk: plan.risk,
     base: plan.base,
     head: plan.head,
@@ -470,6 +512,7 @@ export function fingerprintReceiptInputs(receiptInputs) {
 export function parseCliArgs(argv) {
   const options = {
     intent: "checkpoint",
+    checkpointScope: "workspace",
     changedPaths: [],
     capabilities: {},
     testPaths: {},
@@ -489,6 +532,9 @@ export function parseCliArgs(argv) {
     switch (arg) {
       case "--intent":
         options.intent = next();
+        break;
+      case "--checkpoint-scope":
+        options.checkpointScope = next();
         break;
       case "--base":
         options.base = next();
@@ -547,6 +593,14 @@ export function parseCliArgs(argv) {
         throw new Error(`Unknown argument: ${arg}`);
     }
   }
+  if (
+    options.intent === "checkpoint" &&
+    options.checkpointScope === "lane" &&
+    options.changedPaths.length === 0 &&
+    !options.cancelled
+  ) {
+    throw new Error("Lane checkpoint requires --changed or --changed-file");
+  }
   return options;
 }
 
@@ -594,12 +648,21 @@ export function resolveGitInputs(options, { cwd = projectRoot } = {}) {
   const head = options.head ?? "HEAD";
   const resolvedBase = gitOutput(["rev-parse", base], cwd);
   const resolvedHead = gitOutput(["rev-parse", head], cwd);
+  const explicitPaths = normalizePaths(options.changedPaths);
+  const laneCheckpoint =
+    (options.intent ?? "checkpoint") === "checkpoint" &&
+    options.checkpointScope === "lane" &&
+    options.ci !== true;
+  if (laneCheckpoint && explicitPaths.length === 0) {
+    throw new Error("Lane checkpoint requires explicit changed paths");
+  }
+  const pathspec = laneCheckpoint ? ["--", ...explicitPaths] : [];
   const committedPatch = gitRawOutput(
-    ["diff", "--binary", `${resolvedBase}...${resolvedHead}`],
+    ["diff", "--binary", `${resolvedBase}...${resolvedHead}`, ...pathspec],
     cwd,
   );
-  const stagedPatch = gitRawOutput(["diff", "--cached", "--binary"], cwd);
-  const unstagedPatch = gitRawOutput(["diff", "--binary"], cwd);
+  const stagedPatch = gitRawOutput(["diff", "--cached", "--binary", ...pathspec], cwd);
+  const unstagedPatch = gitRawOutput(["diff", "--binary", ...pathspec], cwd);
   const committedPaths = lines(
     gitOutput(["diff", "--name-only", `${resolvedBase}...${resolvedHead}`], cwd),
   );
@@ -607,9 +670,16 @@ export function resolveGitInputs(options, { cwd = projectRoot } = {}) {
   const unstagedPaths = lines(gitOutput(["diff", "--name-only"], cwd));
   const untrackedPaths = lines(gitOutput(["ls-files", "--others", "--exclude-standard"], cwd));
   const changedPaths =
-    options.changedPaths.length > 0
-      ? normalizePaths(options.changedPaths)
+    explicitPaths.length > 0
+      ? explicitPaths
       : normalizePaths([...committedPaths, ...stagedPaths, ...unstagedPaths, ...untrackedPaths]);
+  const fingerprintUntrackedPaths = laneCheckpoint
+    ? untrackedPaths.filter((path) =>
+        explicitPaths.some(
+          (explicitPath) => path === explicitPath || path.startsWith(`${explicitPath}/`),
+        ),
+      )
+    : untrackedPaths;
   return {
     base: resolvedBase,
     head: resolvedHead,
@@ -619,7 +689,7 @@ export function resolveGitInputs(options, { cwd = projectRoot } = {}) {
       committedPatch,
       stagedPatch,
       unstagedPatch,
-      untrackedPaths,
+      fingerprintUntrackedPaths,
     ),
   };
 }
@@ -653,6 +723,7 @@ function showHelp() {
 
 Options:
   --intent <intent>       diagnose|qa|review|checkpoint|readiness|push|ship|merge|release
+  --checkpoint-scope <s>  lane|workspace; lane requires explicit changed paths
   --base <revision>       Base revision (default: origin/develop)
   --head <revision>       Head revision (default: HEAD)
   --changed <paths>       Comma-separated changed paths; repeatable
@@ -679,6 +750,7 @@ async function main() {
     : resolveGitInputs(options);
   const plan = selectValidation({
     intent: options.intent,
+    checkpointScope: options.checkpointScope,
     risk: options.risk,
     testPaths: options.testPaths,
     checkIds: options.checkIds,

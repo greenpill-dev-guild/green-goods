@@ -95,11 +95,10 @@ describe("GardenErrorBoundary", () => {
 
       // Render with a component that will throw
       render(
-        createElement(
-          GardenErrorBoundary,
-          { fallback: customFallback },
-          createElement(ThrowingComponent, { shouldThrow: true })
-        )
+        createElement(GardenErrorBoundary, {
+          fallback: customFallback,
+          children: createElement(ThrowingComponent, { shouldThrow: true }),
+        })
       );
 
       expect(screen.getByText("Custom error fallback")).toBeInTheDocument();
@@ -109,11 +108,10 @@ describe("GardenErrorBoundary", () => {
       const customFallback = createElement("div", null, "Custom error fallback");
 
       render(
-        createElement(
-          GardenErrorBoundary,
-          { fallback: customFallback },
-          createElement("div", null, "Normal content")
-        )
+        createElement(GardenErrorBoundary, {
+          fallback: customFallback,
+          children: createElement("div", null, "Normal content"),
+        })
       );
 
       expect(screen.getByText("Normal content")).toBeInTheDocument();

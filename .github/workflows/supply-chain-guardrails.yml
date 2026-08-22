@@ -149,13 +149,16 @@ jobs:
           GUIDANCE_BASE_REF: ${{ github.event_name == 'pull_request' && format('origin/{0}', github.base_ref) || (github.event.before != '0000000000000000000000000000000000000000' && github.event.before || '') }}
         run: bun run check:guidance-links
 
+      - name: Check critical skill behavior contracts
+        run: bun run check:skill-behavior
+
       - name: Check immutable dated plan reports
         env:
           PLAN_REPORTS_BASE_REF: ${{ github.event_name == 'pull_request' && format('origin/{0}', github.base_ref) || (github.event.before != '0000000000000000000000000000000000000000' && github.event.before || '') }}
         run: bun run check:immutable-plan-reports
 
       - name: Run guidance guardrail tests
-        run: node --test scripts/quality/branch-name-policy.test.mjs scripts/quality/check-guidance-links.test.mjs scripts/quality/check-immutable-plan-reports.test.mjs
+        run: node --test scripts/quality/branch-name-policy.test.mjs scripts/quality/check-guidance-links.test.mjs scripts/quality/check-skill-behavior-contracts.test.mjs scripts/quality/check-immutable-plan-reports.test.mjs
 
       - name: Check test quality
         run: bun run check:test-quality

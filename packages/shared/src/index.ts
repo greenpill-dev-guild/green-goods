@@ -937,13 +937,12 @@ export {
   WorkProvider,
 } from "./providers/index";
 export type {
+  PublicImpactEvidenceKind,
   PublicImpactEvidenceRecord,
   PublicImpactSlice,
 } from "./public-contracts";
 export { derivePublicGardenSlug, PUBLIC_IMPACT_RECORD_FETCH_CAP } from "./public-contracts";
-// ============================================================================
 // STORES
-// ============================================================================
 export {
   type AdminState,
   ALL_GARDENS_KEY,
@@ -1147,6 +1146,7 @@ export type {
   WorkConflict,
   WorkDisplayStatus,
   WorkDraft,
+  GreenWillBadgeView,
   WorkInput,
   WorkJobPayload,
   WorkMetadata,

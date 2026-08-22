@@ -1,4 +1,4 @@
-# Green Goods Contracts — Architecture Guide
+# Contracts Package — Agent Guide
 
 The contracts package contains Solidity smart contracts for the Green Goods protocol, built with Foundry.
 
@@ -27,32 +27,30 @@ The contracts package contains Solidity smart contracts for the Green Goods prot
 
 ## Architecture Overview
 
+Current high-change systems are `src/modules/CommitmentPooling.sol`,
+`src/modules/SettlementModule.sol`, `src/registries/Credit.sol`, and
+`src/registries/Deployment.sol`. Treat this map as routing, not a frozen file inventory.
+
 ```
 src/
-├── accounts/            # Token-bound accounts
-│   └── Garden.sol      # Garden account (TBA)
-├── modules/             # Integration modules (fan-out pattern)
-│   ├── Octant.sol      # Yield vault creation
-│   ├── Unlock.sol      # Work badges
-│   └── Hats.sol        # Role management
-├── registries/          # Protocol registries
-│   ├── Action.sol      # Action registry
-│   └── ENS.sol         # ENS subdomain registration (CCIP)
-├── resolvers/           # EAS schema resolvers
-│   ├── Assessment.sol  # Assessment attestations
-│   ├── Work.sol        # Work submission attestations
-│   └── WorkApproval.sol # Work approval attestations
-├── tokens/              # Token contracts
-│   └── Garden.sol      # Garden NFT (ERC721)
-├── lib/                 # Shared libraries
-│   ├── EAS.sol
-│   ├── Karma.sol
-│   ├── StringUtils.sol
-│   └── TBA.sol
-├── interfaces/          # Contract interfaces
-├── mocks/               # Test mocks
-├── DeploymentRegistry.sol # Deployment tracking
-└── Schemas.sol          # EAS schema definitions
+├── accounts/                # Garden accounts, action routing, and Celo relay/coordinator
+├── modules/                 # Integrations plus pooling and settlement control planes
+│   ├── CommitmentPooling.sol
+│   ├── SettlementModule.sol
+│   └── CeloSettlementExecutor.sol
+├── registries/              # Action, commitment, credit, deployment, ENS, power, GreenWill
+│   ├── Commitment.sol
+│   ├── Credit.sol
+│   └── Deployment.sol
+├── resolvers/               # EAS assessment, testimony, work, approval, and yield resolvers
+├── lib/                     # Shared libraries, including pooling and settlement behavior
+├── libraries/               # Garden account and settlement codecs/execution helpers
+├── markets/                 # Marketplace adapters
+├── strategies/              # Yield strategies
+├── tokens/                  # Garden and Goods tokens
+├── interfaces/              # Contract interfaces
+├── mocks/                   # Test mocks
+└── Schemas.sol              # EAS schema definitions
 ```
 
 ## Design Principles for Solidity
@@ -325,7 +323,7 @@ Process attestations for the Ethereum Attestation Service:
 
 **Location:** `src/resolvers/`
 
-### DeploymentRegistry
+### Deployment Registry
 
 Tracks contract deployments across networks.
 
@@ -334,7 +332,7 @@ Tracks contract deployments across networks.
 - Address registry
 - Ownership management
 
-**Location:** `src/DeploymentRegistry.sol`
+**Location:** `src/registries/Deployment.sol`
 
 ## Deployment
 
@@ -352,7 +350,7 @@ bun script/deploy.ts core --network sepolia --broadcast
 # Register an approved new schema through its standalone deploy path.
 # Bulk --update-schemas remains prohibited.
 
-# Or use npm scripts
+# Or use package scripts
 bun deploy:testnet     # Sepolia
 bun deploy:mainnet     # Production
 ```

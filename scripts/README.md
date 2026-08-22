@@ -43,6 +43,8 @@ scripts/
 | `seed-test-data.ts` | `bun run seed:test` / `seed:anvil` | Seed local/anvil chain with test fixtures |
 | `ci-local.js` | `bun run ci:local` | Selector-driven local executor with change-aware plans, fail-fast stopping, explicit blocked/cancelled results, and opt-in exact passing receipts |
 | `ci-local.test.mjs` | `bun run test:validation-system`, CI Gate | Fixture coverage for local fail-fast, cancellation, blocking, and exact passing-receipt behavior |
+| `surface-leases.mjs` | `stack.js`, `doctor.js` | Coordinate port/service ownership, compatible reuse, stale-claim cleanup, and owner-only release for concurrent development sessions |
+| `surface-leases.test.mjs` | `bun run test:validation-system`, CI Gate | Deterministic coverage for claims, reuse, conflicts, stale-owner handling, and owner-only release |
 
 ### `mcp/` — project-scoped MCP server launchers
 | Script | Caller | Purpose |
@@ -59,6 +61,8 @@ scripts/
 | `drift-check.test.mjs` | `bun run test:review-guardrails` | Fixture tests for drift checker warning normalization, routing, and dirty-tree context |
 | `check-guidance-links.mjs` | `bun run check:guidance-links`, Supply Chain Guardrails | Guidance drift guard: links/scripts resolve, deleted commands and guides have no live consumers, changed fences have language tags, and the command banner remains aligned |
 | `check-guidance-links.test.mjs` | `bun run test:review-guardrails` | Fixture tests for deleted command/guide consumers, retirement notices, renames, and fenced-language checks |
+| `check-skill-behavior-contracts.mjs` | `bun run check:skill-behavior`, `bun run agentic:check`, Supply Chain Guardrails | Deterministic scenarios for critical audit, contract-review, browser-proof, evidence, plan-lifecycle, and Ship-activation guidance contracts |
+| `check-skill-behavior-contracts.test.mjs` | `bun run test:review-guardrails`, Supply Chain Guardrails | Positive live-source coverage and negative mutations proving each critical guidance scenario fails closed |
 | `check-immutable-plan-reports.mjs` | `bun run check:immutable-plan-reports`, Supply Chain Guardrails | Reject edits, deletions, and renames of existing dated Plan Hub reports while allowing new correction artifacts |
 | `check-immutable-plan-reports.test.mjs` | `bun run test:review-guardrails` | Fixture tests for immutable dated report diff classification |
 | `check-source-structure.js` | `bun run check:source-structure` | File-size limits + frozen-allowlist policy |
@@ -144,6 +148,7 @@ scripts/
 
 ### `data/`
 - `validation-policy.json` — versioned check catalog, hard overrides, timing budgets, surface impact, and workflow routing consumed by the shared validation selector.
+- `plan-hub-validation-receipt-debt.json` — exact owner- and expiry-bound burn-down baseline for pre-policy terminal lanes missing structured Validation Receipts; consumed by `harness/plan-hub.mjs`.
 - `design-token-usage-baseline.tsv` — audited baseline of legacy token references; consumed by `design/check-tokens.sh`.
 - `css-custom-property-baseline.tsv` — audited baseline of unresolved legacy CSS custom properties; consumed by `design/check-css-custom-properties.mjs`.
 - `ontology-drift-baseline.json` — audited burn-down baseline of known ontology drift (owner/expires/note per entry); consumed by `quality/check-ontology.mjs`.

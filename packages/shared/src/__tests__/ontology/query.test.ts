@@ -28,6 +28,6 @@ describe("ontology query seam", () => {
       expect.arrayContaining([expect.objectContaining({ to: "garden", kind: "raised-in" })])
     );
     expect(listOntologyTerms().length).toBeGreaterThan(20);
-    expect(getOntologyManifestVersion()).toEqual({ version: 1, verified_at: "2026-08-15" });
+    expect(getOntologyManifestVersion()).toEqual({ version: 1, verified_at: "2026-08-21" });
   });
 });

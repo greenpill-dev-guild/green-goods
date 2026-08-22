@@ -11,7 +11,7 @@
  */
 
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
-import { type ComponentProps, createElement } from "react";
+import { createElement } from "react";
 import { IntlProvider } from "react-intl";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -49,12 +49,16 @@ const messages: Record<string, string> = {
   "public.nav.closeMenu": "Close menu",
 };
 
-function renderHeader(initialRoute = "/gardens", props: ComponentProps<typeof SiteHeader> = {}) {
+function renderHeader(initialRoute = "/gardens") {
   return render(
     createElement(
       MemoryRouter,
       { initialEntries: [initialRoute] },
-      createElement(IntlProvider, { locale: "en", messages }, createElement(SiteHeader, props))
+      createElement(IntlProvider, {
+        locale: "en",
+        messages,
+        children: <SiteHeader />,
+      })
     )
   );
 }

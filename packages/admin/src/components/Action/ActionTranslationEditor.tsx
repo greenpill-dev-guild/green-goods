@@ -260,11 +260,9 @@ export function ActionTranslationEditor({
       data: updater(record.data),
     }));
   };
-
   const updateTopLevel = (key: "title" | "description", nextValue: string) => {
     updateActiveData((data) => ({ ...data, [key]: nextValue }));
   };
-
   const updateScopedField = (
     scope: TranslationScope,
     key: string,
@@ -277,7 +275,6 @@ export function ActionTranslationEditor({
       }))
     );
   };
-
   const updateInputField = (
     path: string[],
     updater: (input: ActionInstructionInputTranslation) => ActionInstructionInputTranslation
@@ -285,11 +282,14 @@ export function ActionTranslationEditor({
     updateActiveData((data) =>
       updateScope(data, "details", (details) => ({
         ...details,
-        inputs: upsertInputTranslation(details.inputs, path, updater),
+        inputs: upsertInputTranslation(
+          "inputs" in details ? details.inputs : undefined,
+          path,
+          updater
+        ),
       }))
     );
   };
-
   const handleGenerateDraft = async () => {
     setMessage(null);
     if (!browserTranslator.isSupported) {

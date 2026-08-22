@@ -1,5 +1,8 @@
 # CLAUDE.md
 
+Claude Code harness notes for Green Goods. The agent-neutral repository contract lives in
+`AGENTS.md`; keep shared invariants there and use this file for Claude-specific routing and tools.
+
 This file provides guidance to Claude Code when working with this repository.
 
 ## Commands

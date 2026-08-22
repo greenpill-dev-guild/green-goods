@@ -1,4 +1,9 @@
-import { Alert, adminRoutes, useResolvedWorkDetail } from "@green-goods/shared";
+import {
+  Alert,
+  adminRoutes,
+  useResolvedWorkDetail,
+  type WorkDisplayStatus,
+} from "@green-goods/shared";
 import { RiCheckboxCircleLine, RiCloseLine, RiTimeLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { useParams } from "react-router-dom";
@@ -30,7 +35,7 @@ function parseHubContext(search: string) {
   } as const;
 }
 
-function WorkDetailStatusBadge({ status }: { status: "pending" | "approved" | "rejected" }) {
+function WorkDetailStatusBadge({ status }: { status: WorkDisplayStatus }) {
   const { formatMessage } = useIntl();
 
   const statusConfig = {
@@ -51,7 +56,8 @@ function WorkDetailStatusBadge({ status }: { status: "pending" | "approved" | "r
     },
   } as const;
 
-  const config = statusConfig[status];
+  const displayStatus = status === "approved" || status === "rejected" ? status : "pending";
+  const config = statusConfig[displayStatus];
   const StatusIcon = config.icon;
 
   return (

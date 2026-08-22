@@ -398,12 +398,13 @@ const BEAT_FIELDS = {
  * "a commitment needs a name" is how one of them ends up saying otherwise.
  */
 function beatCanAdvance(beat: Beat, values: CommitmentComposerValues): boolean {
-  const fields = BEAT_FIELDS[beat];
+  const fields: readonly (keyof CommitmentComposerValues)[] = BEAT_FIELDS[beat];
   if (fields.length === 0) return true;
   const result = commitmentComposerSchema.safeParse(values);
   if (result.success) return true;
-  const owned: readonly string[] = fields;
-  return !result.error.issues.some((issue) => owned.includes(String(issue.path[0])));
+  return !result.error.issues.some((issue) =>
+    fields.includes(issue.path[0] as keyof CommitmentComposerValues)
+  );
 }
 
 function Shell({
