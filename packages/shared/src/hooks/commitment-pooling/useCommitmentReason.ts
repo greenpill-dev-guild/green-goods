@@ -17,6 +17,7 @@ import { useQuery } from "@tanstack/react-query";
 import { demoDocumentFor } from "../../modules/commitment-pooling/demo/demo-gate";
 import { getJsonByHash } from "../../modules/data/ipfs/resolve";
 import { isResolvableMetadataCID } from "../../modules/commitment-pooling/metadata";
+import { queryKeys } from "../../config/query-keys";
 import {
   type CommitmentReasonV1,
   parseCommitmentReason,
@@ -32,13 +33,7 @@ export function useCommitmentReason(cid: string | null | undefined): {
 } {
   const resolvable = isResolvableMetadataCID(cid);
   const query = useQuery({
-    // Chain-free like the metadata key: the same CID is the same bytes everywhere.
-    queryKey: [
-      "greengoods",
-      "commitment-pooling",
-      "reason",
-      resolvable ? cid.trim() : null,
-    ] as const,
+    queryKey: queryKeys.commitmentPooling.reason(resolvable ? cid.trim() : null),
     queryFn: async () => {
       const key = (cid as string).trim();
       return parseCommitmentReason((await demoDocumentFor(key)) ?? (await getJsonByHash(key)));

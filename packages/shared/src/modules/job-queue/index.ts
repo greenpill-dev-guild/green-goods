@@ -480,7 +480,7 @@ class JobQueue {
     return retryQueuedJob(jobId);
   }
 
-  discardJob(jobId: string): Promise<void> {
+  discardJob(jobId: string): Promise<boolean> {
     return discardQueuedJob(jobId);
   }
 

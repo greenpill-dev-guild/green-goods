@@ -42,7 +42,8 @@ export interface CommitmentEvidenceDocumentV1 {
 }
 
 const MAX_NOTE = 2000;
-const MAX_LINKS = 10;
+export const MAX_EVIDENCE_LINKS = 10;
+const MAX_LINKS = MAX_EVIDENCE_LINKS;
 const MAX_LINK_LABEL = 120;
 
 function cleanLine(value: unknown, max: number): string | null {

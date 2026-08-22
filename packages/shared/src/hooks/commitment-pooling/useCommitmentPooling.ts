@@ -157,11 +157,7 @@ export function useCommitmentWorkAttributionsForWork(input: {
   const availability = useCommitmentPoolingAvailability(input);
   const workUID = input.workUID?.toLowerCase() ?? null;
   const query = useQuery({
-    queryKey: [
-      ...queryKeys.commitmentPooling.all(input.chainId),
-      "work-attributions",
-      workUID,
-    ] as const,
+    queryKey: queryKeys.commitmentPooling.workAttributions(input.chainId, workUID),
     queryFn: () => getCommitmentWorkAttributionsByWork(input.chainId, workUID as string),
     enabled: availability.status === "available" && Boolean(workUID),
     staleTime: STALE_TIME_MEDIUM,

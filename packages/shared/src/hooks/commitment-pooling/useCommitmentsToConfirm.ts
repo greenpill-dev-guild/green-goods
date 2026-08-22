@@ -21,6 +21,12 @@
  *    party to already sits in their own inbox, so it is left out here even
  *    when the garden could also confirm it.
  *
+ * The roster is not loaded at list scope, so team membership is read from the
+ * viewer's own account-scoped set instead: that query already resolves active
+ * contributors, and the contract refuses a contributor's confirmation with
+ * `SelfConfirmation`. A row the viewer is on is therefore neither listed nor
+ * marked as needing them.
+ *
  * **Fallback.** The contract lets a current steward of the commitment's own
  * garden confirm with a reason once the ordinary path can no longer reach
  * threshold (every named confirmer, or the default confirmer, has joined the
@@ -35,7 +41,7 @@
  * @module hooks/commitment-pooling/useCommitmentsToConfirm
  */
 
-import { useQueries } from "@tanstack/react-query";
+import { useQueries, useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
 
 import { queryKeys, STALE_TIME_MEDIUM } from "../../config/query-keys";
@@ -139,6 +145,22 @@ export function useCommitmentsToConfirm({
     return { stewarded, protocolGarden };
   }, [gardens, viewer, canManageGarden, protocolPool.rootGarden]);
 
+  // The viewer's own set, which the account query resolves through the
+  // contributor roster as well as the named party fields. It is what tells a
+  // list-scope read that the steward is on a commitment's team.
+  const ownInput = useMemo(() => ({ chainId, account: viewer as Address }), [chainId, viewer]);
+  const own = useQuery({
+    queryKey: queryKeys.commitmentPooling.commitments(chainId, ownInput),
+    queryFn: () => getCommitments(ownInput),
+    // Only a steward has a tab to fill, so a plain member never asks at all.
+    enabled: availability.status === "available" && Boolean(viewer) && stewarded.length > 0,
+    staleTime: STALE_TIME_MEDIUM,
+  });
+  const ownIds = useMemo(
+    () => new Set((own.data ?? []).map((row) => row.commitmentId.toString())),
+    [own.data]
+  );
+
   // One query per garden, each under the registry key the garden-scoped list
   // would use anyway, so a pool tab that already read it shares the cache.
   const ordinaryQueries = useQueries({
@@ -196,6 +218,9 @@ export function useCommitmentsToConfirm({
       const rows: InboxCommitment[] = [];
       for (const commitment of ordinaryQueries[index]?.data ?? []) {
         if (isPersonalParty(commitment, viewer)) continue;
+        // Already in the reader's own set: they are a named party or on the
+        // team. Live carries it, and a contributor's confirmation reverts.
+        if (ownIds.has(commitment.commitmentId.toString())) continue;
         // Seated as the steward of this garden, which is how the detail
         // screen will seat them too; the garden's own address is the party.
         const seat = selectCommitmentSeat({
@@ -272,7 +297,7 @@ export function useCommitmentsToConfirm({
       Number(right.commitment.commitmentId - left.commitment.commitmentId)
     );
     return { groups, fallback };
-  }, [stewarded, ordinaryQueries, fallbackQueries, viewer, readProtocol, protocolGarden]);
+  }, [stewarded, ordinaryQueries, fallbackQueries, viewer, readProtocol, protocolGarden, ownIds]);
 
   const queries = [...ordinaryQueries, ...fallbackQueries];
   return {

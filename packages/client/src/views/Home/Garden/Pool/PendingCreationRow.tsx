@@ -1,4 +1,4 @@
-import { type PendingCommitmentCreation, StatusBadge } from "@green-goods/shared";
+import { cn, type PendingCommitmentCreation, StatusBadge } from "@green-goods/shared";
 import { RiDeleteBinLine, RiRefreshLine, RiSeedlingLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 
@@ -87,16 +87,23 @@ export function PendingCreationRow({
         })}
       </p>
       {creation.failed ? (
-        <div className="mt-3 grid grid-cols-2 gap-2">
-          <button
-            type="button"
-            onClick={() => onDiscard(creation.jobId)}
-            disabled={isBusy}
-            className="flex items-center justify-center gap-1 rounded-[var(--radius-lg)] border border-stroke-soft-200 px-3 py-2 text-xs font-medium text-text-strong-950 tap-target-lg disabled:opacity-60"
-          >
-            <RiDeleteBinLine className="h-4 w-4" aria-hidden="true" />
-            {formatMessage({ id: "app.pool.queued.discard" })}
-          </button>
+        <div
+          className={cn("mt-3 grid gap-2", creation.discardable ? "grid-cols-2" : "grid-cols-1")}
+        >
+          {/* A creation whose transaction was already sent keeps its record: retry
+              can still find the commitment, while throwing it away would file a
+              second one. Only the safe case is offered a way to delete. */}
+          {creation.discardable ? (
+            <button
+              type="button"
+              onClick={() => onDiscard(creation.jobId)}
+              disabled={isBusy}
+              className="flex items-center justify-center gap-1 rounded-[var(--radius-lg)] border border-stroke-soft-200 px-3 py-2 text-xs font-medium text-text-strong-950 tap-target-lg disabled:opacity-60"
+            >
+              <RiDeleteBinLine className="h-4 w-4" aria-hidden="true" />
+              {formatMessage({ id: "app.pool.queued.discard" })}
+            </button>
+          ) : null}
           <button
             type="button"
             onClick={() => onRetry(creation.jobId)}

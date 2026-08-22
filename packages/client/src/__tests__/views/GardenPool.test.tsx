@@ -167,6 +167,8 @@ describe("GardenPool", () => {
     targetUnits: "6",
     waitingForMembership: false,
     failed: false,
+    /** Nothing was broadcast, so throwing this one away is safe. */
+    discardable: true,
     createdAt: 1_700_000_000_000,
     ...overrides,
   });
@@ -229,6 +231,25 @@ describe("GardenPool", () => {
 
     await user.click(screen.getByRole("button", { name: "Discard" }));
     expect(mockDiscardJob).toHaveBeenCalledWith("job-1");
+  });
+
+  it("withholds discard from a creation whose transaction was already sent", async () => {
+    // The record is the only local trace of a broadcast commitment. Deleting it
+    // would file a second one, so only Try again is offered.
+    mockUseQueueState.mockReturnValue({
+      pendingCommitmentIds: new Set<string>(),
+      failedCount: 1,
+      failedCommitmentIds: new Set<string>(),
+      hasPendingCreate: false,
+      pendingCreates: [creation({ failed: true, discardable: false })],
+      isUnavailable: false,
+      refresh: vi.fn(),
+    });
+
+    render(<GardenPool pool={pool()} />);
+
+    expect(screen.getByRole("button", { name: "Try again" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Discard" })).not.toBeInTheDocument();
   });
 
   it("leaves another pool's creation where it belongs", () => {

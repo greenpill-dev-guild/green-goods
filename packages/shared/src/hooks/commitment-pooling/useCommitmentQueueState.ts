@@ -18,8 +18,10 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useMemo } from "react";
 
+import { queryKeys } from "../../config/query-keys";
 import { useJobQueueEvents } from "../../modules/job-queue/event-bus";
 import { jobQueueDB } from "../../modules/job-queue/db";
+import { isDiscardableJob } from "../../modules/job-queue/job-recovery";
 import { isTerminallyFailedJob } from "../../modules/job-queue/queue-policy";
 import { COMMITMENT_JOB_KINDS } from "../../modules/commitment-pooling/jobs";
 import type { Job } from "../../types/job-queue";
@@ -38,6 +40,12 @@ export interface PendingCommitmentCreation {
   waitingForMembership: boolean;
   /** Gave up after its attempts; retry or discard are the member's call. */
   failed: boolean;
+  /**
+   * Whether throwing it away is safe. A creation whose transaction was already
+   * broadcast keeps its record so a retry can recover the commitment instead
+   * of filing a second one.
+   */
+  discardable: boolean;
   createdAt: number;
 }
 
@@ -75,10 +83,7 @@ function commitmentIdOf(job: Job): string | null {
  */
 export function useCommitmentQueueState(viewer?: Address | null): CommitmentQueueState {
   const queryClient = useQueryClient();
-  const queryKey = useMemo(
-    () => ["greengoods", "commitment-pooling", "queue", viewer?.toLowerCase() ?? null] as const,
-    [viewer]
-  );
+  const queryKey = useMemo(() => queryKeys.commitmentPooling.queueState(viewer), [viewer]);
 
   // One query per reader rather than one per mount. Home, the sheet and the
   // detail screen all ask, and react-query serves them from a single read
@@ -133,6 +138,7 @@ export function useCommitmentQueueState(viewer?: Address | null): CommitmentQueu
           targetUnits: String(payload.targetUnits ?? ""),
           waitingForMembership: !failed && job.meta?.waitingReason === "membership-unavailable",
           failed,
+          discardable: isDiscardableJob(job),
           createdAt: job.createdAt,
         });
       }

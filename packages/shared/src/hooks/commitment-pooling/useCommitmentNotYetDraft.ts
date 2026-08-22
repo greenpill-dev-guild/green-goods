@@ -30,6 +30,15 @@ export function useCommitmentNotYetDraft(commitmentEntityId: string): {
 } {
   const key = `${PREFIX}${commitmentEntityId}`;
   const [reason, setReasonState] = useState(() => read(key));
+  // The router reuses this component when one commitment opens another, so the
+  // key changes without a remount and the initializer above never runs again.
+  // Without this the second sheet shows the first commitment's words, and the
+  // next edit copies them into the new commitment's key.
+  const [loadedKey, setLoadedKey] = useState(key);
+  if (loadedKey !== key) {
+    setLoadedKey(key);
+    setReasonState(read(key));
+  }
 
   const setReason = useCallback(
     (value: string) => {

@@ -3,6 +3,7 @@ import {
   Alert,
   DEFAULT_CHAIN_ID,
   isCommitmentReasonPinError,
+  isGardenMember,
   selectCommitmentSeat,
   useActions,
   useCommitment,
@@ -130,9 +131,8 @@ export function GardenCommitment() {
     chainId
   );
   const { data: gardens = [] } = useGardens();
-  const gardenName =
-    gardens.find((garden) => garden.id.toLowerCase() === gardenAddress?.toLowerCase())?.name ??
-    null;
+  const garden = gardens.find((entry) => entry.id.toLowerCase() === gardenAddress?.toLowerCase());
+  const gardenName = garden?.name ?? null;
   // The reader's own claim request, in its exact lifecycle. Read whether the
   // commitment is still open or already taken: a declined or superseded
   // request still has something to say.
@@ -214,7 +214,9 @@ export function GardenCommitment() {
         // useCommitmentJobs already surfaced it; the sheet stays where it is.
       });
   };
-  const joinable = canJoinTeam({ commitment, seat });
+  // The contract rosters only the garden's own people, whatever the policy says.
+  const memberHere = isSteward || isGardenMember(viewer, garden?.gardeners, garden?.operators);
+  const joinable = canJoinTeam({ commitment, seat, isGardenMember: memberHere });
   // Linking work is a provider's or contributor's act on garden work that is
   // still moving; it rides the bar's second row beside Add proof.
   const canLinkWork =
