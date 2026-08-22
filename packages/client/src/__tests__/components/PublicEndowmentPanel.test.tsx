@@ -65,8 +65,8 @@ vi.mock("@green-goods/shared", async () => {
       variant,
       ...props
     }: {
-      children?: unknown;
-      title?: unknown;
+      children?: React.ReactNode;
+      title?: React.ReactNode;
       variant?: string;
     } & Record<string, unknown>) =>
       React.createElement(

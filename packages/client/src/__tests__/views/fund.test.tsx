@@ -555,7 +555,7 @@ describe("FundPage", () => {
     const defaultSummary = mockUsePublicVaultSummary();
     mockUsePublicVaultSummary.mockReturnValue({
       ...defaultSummary,
-      assets: defaultSummary.assets.map((asset) =>
+      assets: defaultSummary.assets.map((asset: (typeof defaultSummary.assets)[number]) =>
         asset.symbol === "DAI" ? { ...asset, accruingYield: undefined } : asset
       ),
     });
