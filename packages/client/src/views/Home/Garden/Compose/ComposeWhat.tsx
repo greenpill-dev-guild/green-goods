@@ -4,7 +4,7 @@ import type {
   CycleMetadataNameResolution,
 } from "@green-goods/shared";
 import { RiHandHeartLine, RiLeafLine } from "@remixicon/react";
-import type { UseFormReturn } from "react-hook-form";
+import { type UseFormReturn, useWatch } from "react-hook-form";
 import { useIntl } from "react-intl";
 
 export interface ComposeWhatProps {
@@ -28,10 +28,10 @@ export interface ComposeWhatProps {
  */
 export function ComposeWhat({ form, openCycles, cycleNames }: ComposeWhatProps) {
   const { formatMessage } = useIntl();
-  const direction = form.watch("direction");
-  const kind = form.watch("kind");
-  const title = form.watch("title");
-  const cycleId = form.watch("cycleId");
+  const direction = useWatch({ control: form.control, name: "direction" });
+  const kind = useWatch({ control: form.control, name: "kind" });
+  const title = useWatch({ control: form.control, name: "title" });
+  const cycleId = useWatch({ control: form.control, name: "cycleId" });
   const isRequest = direction === "REQUEST";
 
   const kinds = [

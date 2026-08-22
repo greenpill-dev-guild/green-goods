@@ -1,5 +1,5 @@
 import { type Action, type CommitmentComposerValues, cn } from "@green-goods/shared";
-import type { UseFormReturn } from "react-hook-form";
+import { type UseFormReturn, useWatch } from "react-hook-form";
 import { useIntl } from "react-intl";
 
 import { ComposeActionRail } from "./ComposeActionRail";
@@ -42,12 +42,12 @@ function chipClass(selected: boolean) {
  */
 export function ComposeHowMuch({ form, chainId, actions }: ComposeHowMuchProps) {
   const { formatMessage } = useIntl();
-  const direction = form.watch("direction");
-  const kind = form.watch("kind");
-  const unitLabel = form.watch("unitLabel");
-  const targetUnits = form.watch("targetUnits");
-  const dueInDays = form.watch("dueInDays");
-  const claimMode = form.watch("claimMode");
+  const direction = useWatch({ control: form.control, name: "direction" });
+  const kind = useWatch({ control: form.control, name: "kind" });
+  const unitLabel = useWatch({ control: form.control, name: "unitLabel" });
+  const targetUnits = useWatch({ control: form.control, name: "targetUnits" });
+  const dueInDays = useWatch({ control: form.control, name: "dueInDays" });
+  const claimMode = useWatch({ control: form.control, name: "claimMode" });
   const isRequest = direction === "REQUEST";
   const isGardenWork = kind === "GARDEN_WORK";
 

@@ -21,6 +21,7 @@ import {
   useCommitmentComposerDraftStore,
 } from "@green-goods/shared/stores";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useWatch } from "react-hook-form";
 import { useIntl } from "react-intl";
 import { Navigate, useNavigate, useParams, useSearchParams } from "react-router-dom";
 
@@ -127,7 +128,11 @@ function ComposeCommitmentForm({ direction }: { direction: Direction }) {
     kind: direction === "REQUEST" ? "SERVICE" : "GARDEN_WORK",
     ...(direction === "OFFER" ? { unitLabel: "hours" } : {}),
   });
-  const values = form.watch();
+  // useWatch rather than form.watch: the React Compiler memoises this
+  // component, and a read of the form's mutable values is invisible to it.
+  // Typed as the full shape: every field has a default, so the partial
+  // useWatch declares is never actually partial here.
+  const values = useWatch({ control: form.control }) as CommitmentComposerValues;
   // Read in render so the form state proxy subscribes this component to it.
   const isDirty = form.formState.isDirty;
 
