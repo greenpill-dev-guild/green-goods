@@ -88,20 +88,23 @@ export function CommitmentRow({ row, title, sendFailed, onOpen }: CommitmentRowP
             )}
           </p>
         ) : null}
-      </div>
-      <div className="flex shrink-0 flex-col items-end gap-1">
-        <StatusBadge size="sm" variant={state.tone}>
-          {formatMessage({ id: state.labelId })}
-        </StatusBadge>
-        {sendFailed ? (
-          <span className="text-[10px] font-medium uppercase tracking-wide text-error-base">
-            {formatMessage({ id: "app.commitments.row.sendFailed" })}
-          </span>
-        ) : needsYou ? (
-          <span className="text-[10px] font-medium uppercase tracking-wide text-warning-base">
-            {formatMessage({ id: "app.commitments.row.needsYou" })}
-          </span>
-        ) : null}
+        {/* State and marker ride under the words rather than beside them: on
+          a phone a chip the width of "Waiting to be confirmed" beside the
+          title leaves the title three letters. */}
+        <div className="mt-2 flex flex-wrap items-center gap-2">
+          <StatusBadge size="sm" variant={state.tone}>
+            {formatMessage({ id: state.labelId })}
+          </StatusBadge>
+          {sendFailed ? (
+            <span className="text-[10px] font-medium uppercase tracking-wide text-error-base">
+              {formatMessage({ id: "app.commitments.row.sendFailed" })}
+            </span>
+          ) : needsYou ? (
+            <span className="text-[10px] font-medium uppercase tracking-wide text-warning-base">
+              {formatMessage({ id: "app.commitments.row.needsYou" })}
+            </span>
+          ) : null}
+        </div>
       </div>
     </Element>
   );
