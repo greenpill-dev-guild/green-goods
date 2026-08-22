@@ -30,7 +30,14 @@ export function CycleRail({ cycles, selectedCycleId, onSelect }: CycleRailProps)
   // A calm date: the day it runs from and the day it runs to. Seconds on the
   // record, so the conversion happens once here rather than in the template.
   const calmRange = (cycle: CommitmentCycleRecord) => {
-    if (cycle.startTime == null || cycle.endTime == null) return null;
+    if (
+      cycle.startTime === null ||
+      cycle.startTime === undefined ||
+      cycle.endTime === null ||
+      cycle.endTime === undefined
+    ) {
+      return null;
+    }
     const start = new Date(Number(cycle.startTime) * 1000);
     const end = new Date(Number(cycle.endTime) * 1000);
     const startLabel = formatDate(start, {

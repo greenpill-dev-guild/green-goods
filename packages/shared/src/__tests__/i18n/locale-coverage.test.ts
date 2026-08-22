@@ -170,7 +170,9 @@ const allowedIdenticalValuePatterns = [/^[\d\W]+$/, /^\d+d$/, /^\{[^}]+\}$/, /^\
  */
 function isPlaceholderOnlyValue(value: string): boolean {
   if (!value.includes("{")) return false;
-  return value.replace(/\{[^}]*\}/g, "").trim().length === 0;
+  // Symbols and punctuation outside the placeholders (`× {count}`, `{start} – {end}`)
+  // are no more translatable than the whitespace; only letters are words.
+  return !/\p{L}/u.test(value.replace(/\{[^}]*\}/g, ""));
 }
 const localeAllowedIdenticalValues: Record<string, Set<string>> = {
   es: new Set([

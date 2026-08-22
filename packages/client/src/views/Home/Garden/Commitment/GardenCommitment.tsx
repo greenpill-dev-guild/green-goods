@@ -290,8 +290,25 @@ export function GardenCommitment() {
             </StatusBadge>
           </div>
 
-          {metadata?.description ? (
-            <p className="mt-3 text-sm leading-relaxed text-text-sub-600">{metadata.description}</p>
+          {metadata?.note ? (
+            <p className="mt-3 text-sm leading-relaxed text-text-sub-600">{metadata.note}</p>
+          ) : null}
+          {metadata?.links && metadata.links.length > 0 ? (
+            <ul className="mt-2 space-y-1 text-sm">
+              {metadata.links.map((link) => (
+                <li key={link.url} className="truncate">
+                  <a
+                    href={link.url}
+                    target="_blank"
+                    rel="noreferrer noopener"
+                    className="text-primary underline-offset-2 hover:underline"
+                    title={link.url}
+                  >
+                    {link.label ?? link.url}
+                  </a>
+                </li>
+              ))}
+            </ul>
           ) : null}
 
           <CommitmentPeople commitment={commitment} contributors={contributors} seat={seat} />

@@ -4,6 +4,7 @@ import {
   buildCommitmentCreationPayload,
   COMMITMENT_COMPOSER_DEFAULTS,
   commitmentComposerSchema,
+  MAX_COMMITMENT_REQUIREMENTS,
 } from "../hooks/commitment-pooling/useCommitmentComposerForm";
 import type { Address } from "../types/domain";
 
@@ -24,12 +25,20 @@ function build(overrides: Partial<typeof values> = {}) {
     values: { ...values, ...overrides },
     clientCommitmentId: "draft-1",
     poolId: 7n,
-    cycleId: 0n,
     creator: CREATOR,
     gardenAddress: GARDEN,
     nowSeconds: NOW,
   });
 }
+
+const gardenWork = {
+  ...values,
+  kind: "GARDEN_WORK" as const,
+  requirements: [
+    { actionUID: "44", requiredCount: 2 },
+    { actionUID: "0", requiredCount: 12 },
+  ],
+};
 
 describe("commitment composer validation", () => {
   it("refuses a commitment that counts nothing", () => {
@@ -47,6 +56,61 @@ describe("commitment composer validation", () => {
 
   it("accepts an ordinary one", () => {
     expect(commitmentComposerSchema.safeParse(values).success).toBe(true);
+  });
+
+  it("requires garden work to name at least one action, each with a count of one or more", () => {
+    expect(commitmentComposerSchema.safeParse({ ...gardenWork, requirements: [] }).success).toBe(
+      false
+    );
+    expect(
+      commitmentComposerSchema.safeParse({
+        ...gardenWork,
+        requirements: [{ actionUID: "44", requiredCount: 0 }],
+      }).success
+    ).toBe(false);
+    expect(commitmentComposerSchema.safeParse(gardenWork).success).toBe(true);
+  });
+
+  it("treats action UID zero as a real action, and refuses the same action twice", () => {
+    expect(
+      commitmentComposerSchema.safeParse({
+        ...gardenWork,
+        requirements: [{ actionUID: "0", requiredCount: 1 }],
+      }).success
+    ).toBe(true);
+    expect(
+      commitmentComposerSchema.safeParse({
+        ...gardenWork,
+        requirements: [
+          { actionUID: "44", requiredCount: 1 },
+          { actionUID: "44", requiredCount: 2 },
+        ],
+      }).success
+    ).toBe(false);
+  });
+
+  it("caps rows at the module's limit without ever telling a member four is the maximum", () => {
+    expect(MAX_COMMITMENT_REQUIREMENTS).toBeGreaterThan(4);
+    const tooMany = Array.from({ length: MAX_COMMITMENT_REQUIREMENTS + 1 }, (_, i) => ({
+      actionUID: String(i),
+      requiredCount: 1,
+    }));
+    expect(
+      commitmentComposerSchema.safeParse({ ...gardenWork, requirements: tooMany }).success
+    ).toBe(false);
+  });
+
+  it("lets a service carry no rows at all", () => {
+    expect(commitmentComposerSchema.safeParse({ ...values, kind: "SERVICE" }).success).toBe(true);
+  });
+
+  it("keeps a link list honest: every entry must be a web address", () => {
+    expect(
+      commitmentComposerSchema.safeParse({ ...values, links: ["https://example.org/plan"] }).success
+    ).toBe(true);
+    expect(commitmentComposerSchema.safeParse({ ...values, links: ["not a link"] }).success).toBe(
+      false
+    );
   });
 });
 
@@ -103,5 +167,44 @@ describe("buildCommitmentCreationPayload", () => {
 
   it("is a pure function of its inputs", () => {
     expect(build()).toEqual(build());
+  });
+
+  it("rides the service rail with no rows unless the member chose garden work", () => {
+    expect(build().commitmentType).toBe(1);
+    expect(build().requirements).toEqual([]);
+    const work = build(gardenWork);
+    expect(work.commitmentType).toBe(0);
+  });
+
+  it("preserves every requirement row, in order, including action UID zero, and authors no tags", () => {
+    const work = build(gardenWork);
+    expect(work.requirements).toEqual([
+      { actionUID: 44n, requiredCount: 2 },
+      { actionUID: 0n, requiredCount: 12 },
+    ]);
+    // The contract derives domains from the registry; a caller-authored tag
+    // would be rejected or ignored, so none is ever written.
+    expect(work.domainTags).toEqual([]);
+  });
+
+  it("binds the cycle the member chose, with zero meaning no season or campaign", () => {
+    expect(build({ cycleId: "8" }).cycleId).toBe(8n);
+    expect(build({ cycleId: "0" }).cycleId).toBe(0n);
+  });
+
+  it("maps who-can-take-it onto the claim mode, and only a request may gate it", () => {
+    expect(build({ direction: "REQUEST", claimMode: "APPROVAL_GATED" }).claimMode).toBe(1);
+    expect(build({ direction: "REQUEST", claimMode: "OPEN" }).claimMode).toBe(0);
+    expect(build({ direction: "OFFER", claimMode: "APPROVAL_GATED" }).claimMode).toBe(0);
+  });
+
+  it("carries the note and links into the metadata document under the schema's own names", () => {
+    const payload = build({ note: "Bring gloves", links: ["https://example.org/plan"] });
+    expect(payload.metadata).toEqual({
+      version: 1,
+      title: "Compost workshop",
+      note: "Bring gloves",
+      links: [{ url: "https://example.org/plan" }],
+    });
   });
 });

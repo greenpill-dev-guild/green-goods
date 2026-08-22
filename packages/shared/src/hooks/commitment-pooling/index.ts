@@ -17,11 +17,15 @@ export {
   usePoolParticipationSummary,
 } from "./useCommitmentPooling";
 export { useCommitmentPoolingAvailability } from "./useCommitmentPoolingAvailability";
-export type { CommitmentComposerValues } from "./useCommitmentComposerForm";
+export type {
+  CommitmentComposerRequirement,
+  CommitmentComposerValues,
+} from "./useCommitmentComposerForm";
 export {
   buildCommitmentCreationPayload,
   COMMITMENT_COMPOSER_DEFAULTS,
   commitmentComposerSchema,
+  MAX_COMMITMENT_REQUIREMENTS,
   useCommitmentComposerForm,
 } from "./useCommitmentComposerForm";
 export type { CommitmentCycleNameMap } from "./useCommitmentCycleNames";
