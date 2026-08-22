@@ -403,6 +403,9 @@ export function PoolSetupFlow({ open, intent, cycle, console: pool, onClose }: P
                 id: "cockpit.garden.pool.settings.purpose",
                 defaultMessage: "What this pool is for",
               })}
+              <span aria-hidden="true" className="ml-0.5 text-[rgb(var(--m3-error))]">
+                *
+              </span>
             </label>
             <textarea
               id={purposeId}
@@ -410,6 +413,7 @@ export function PoolSetupFlow({ open, intent, cycle, console: pool, onClose }: P
               onChange={(event) => setPurpose(event.target.value)}
               rows={4}
               maxLength={2000}
+              required
               disabled={submitting}
               placeholder={formatMessage({
                 id: "cockpit.garden.pool.setup.purposePlaceholder",

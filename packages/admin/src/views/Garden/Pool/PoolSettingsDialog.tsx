@@ -115,6 +115,9 @@ export function PoolSettingsDialog({ console: pool, open, onClose }: PoolSetting
             id: "cockpit.garden.pool.settings.purpose",
             defaultMessage: "What this pool is for",
           })}
+          <span aria-hidden="true" className="ml-0.5 text-[rgb(var(--m3-error))]">
+            *
+          </span>
         </label>
         <textarea
           id={purposeId}
@@ -122,6 +125,7 @@ export function PoolSettingsDialog({ console: pool, open, onClose }: PoolSetting
           onChange={(event) => setPurpose(event.target.value)}
           rows={4}
           maxLength={2000}
+          required
           disabled={saving}
           className="w-full resize-y rounded-[var(--m3-shape-sm)] bg-[rgb(var(--m3-surface-container-highest))] px-3 py-2 text-body-md text-[rgb(var(--m3-on-surface))] ring-1 ring-inset ring-[rgb(var(--m3-outline-variant))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-focus-ring,var(--m3-primary)))] disabled:opacity-[0.38]"
         />
