@@ -942,9 +942,7 @@ export type {
   PublicImpactSlice,
 } from "./public-contracts";
 export { derivePublicGardenSlug, PUBLIC_IMPACT_RECORD_FETCH_CAP } from "./public-contracts";
-// ============================================================================
 // STORES
-// ============================================================================
 export {
   type AdminState,
   ALL_GARDENS_KEY,

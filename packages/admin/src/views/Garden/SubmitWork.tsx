@@ -341,12 +341,10 @@ function SubmitWorkPanelContent({
   const navigate = useNavigate();
   const { selectedGarden } = useAdminGardenWorkspaceSelection();
   const gardenId = selectedGarden?.id ?? null;
-
   const { data: gardens = [], isLoading: gardensLoading } = useGardens();
   const { data: actions = [], isLoading: actionsLoading } = useActions();
   const { authMode, isAuthenticated, primaryAddress } = auth;
   const { canManageGarden } = useGardenPermissions();
-
   const garden = useMemo(
     () => gardens.find((candidate) => compareAddresses(candidate.id, gardenId)),
     [gardens, gardenId]
@@ -363,16 +361,12 @@ function SubmitWorkPanelContent({
       ),
     [actions, gardenDomains]
   );
-  // Domain filter for the action chooser — shown only when the garden's eligible
-  // actions span more than one domain (mirrors the client's domain tabs).
   const [actionDomain, setActionDomain] = useState<Domain | "all">("all");
   const chooserDomains = useMemo(
     () =>
       Array.from(new Set(availableActions.map((action) => action.domain))).sort((a, b) => a - b),
     [availableActions]
   );
-  // Reset stale filters after garden switches so the chooser stays populated
-  // and its active state remains accurate.
   const effectiveDomain =
     actionDomain !== "all" && chooserDomains.includes(actionDomain) ? actionDomain : "all";
   const visibleActions = useMemo(
@@ -411,9 +405,7 @@ function SubmitWorkPanelContent({
   const [mediaFeedback, setMediaFeedback] = useState<MediaFeedback | null>(null);
   const [isPreparingMedia, setIsPreparingMedia] = useState(false);
   const submitIntentRef = useRef(false);
-  // Stepped flow position (1=Action, 2=Media, 3=Details, 4=Review).
   const [currentStep, setCurrentStep] = useState(1);
-
   // Dirty = typed form content or staged media (not mere action selection) —
   // drives the hosting dialog's discard guard.
   const panelDirty = formIsDirty || images.length > 0;

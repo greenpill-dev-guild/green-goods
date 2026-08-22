@@ -74,7 +74,6 @@ export const GardenWork: React.FC = () => {
   }, [actions, chainId, work]);
   const actionTitle = matchedAction?.title ?? null;
   const isActionExpired = matchedAction ? matchedAction.endTime <= Date.now() / 1000 : false;
-
   const { user } = useUser();
   const transactionSender = useTransactionSender();
   const activeAddress = user?.id;
@@ -114,7 +113,6 @@ export const GardenWork: React.FC = () => {
     onApprovalComplete: (gId) => navigateToTop(`/home/${gId || gardenIdParam || ""}`),
   });
 
-  // Detect if this is offline work
   const isOfflineWork =
     work?.id.startsWith("0xoffline_") || (work?.id && !work.id.startsWith("0x"));
 
