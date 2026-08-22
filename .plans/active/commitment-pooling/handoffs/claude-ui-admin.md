@@ -301,3 +301,88 @@ written until then. Linear on 2026-08-21: PRD-725 In Progress since 2026-08-19, 
 PRD-760 / PRD-723 Done, PRD-737 Done since 2026-07-31. The session appends
 its built / not-built table under a dated heading here and writes
 `reports/admin-console-<date>.md`.
+
+
+## D1 built / not built — 2026-08-21
+
+Session report: `reports/admin-console-2026-08-21.md` (evidence, rendered proof, decisions 1–8
+with file:line, flags). Branch `feature/commitment-pooling-admin-console`, 17 commits
+`534abef04..f36e222de` on top of the client-loop branch at `faf05338e` + `fee7b734f`; the D1
+PR waits for PR #749 to reach `develop`. Write-side rendered proof is BLOCKED on decision 5;
+read-side states rendered through the authenticated Brave profile against this worktree's admin
+on :3102 over the local Envio mirror (ledger flipped for the session, then reverted).
+
+| Surface / state | Status | Proof | Note |
+|---|---|---|---|
+| Placement: `garden/pool`, `garden/pool/seed`, `garden/pool/:commitmentId`, `community/pools`, `hub/confirm`; Pool tab, Pools mode, Confirm stage + count | built | routing tests (9), rendered | `hub.workbenchModel` counts `confirmCount`; the Garden rail shows Pool only to `canManage`. |
+| W7 `not-ready` | built | tests, rendered (root garden, pool 1) | Checklist rows: charter and cap. |
+| W7 Baseline readiness row | **not built** | — | No shared selector for the qualifying Baseline exists; two rows render, as the prompt allows. |
+| W7 `preflight-complete` | built | tests | Checklist rows turn done; a retry of the flow skips the steps the chain reads as landed (`pool-setup.ts:244-258`). |
+| W7 `ready`, `open-no-cycle` | built | tests, Storybook | "No season running" with Start season. |
+| W7 `seeded` | built | tests, Storybook | Season row with "Open to the garden" (two-write open). |
+| W7 `open` | built | tests, Storybook | Season, campaigns, rules, groups. |
+| W7 `paused`, `pause-confirm` | built | tests | Reason dialog; paused hides create / claim / accept / decline / Ready / override / confirm, keeps evidence, cancel, expire, resolve. |
+| W7 `edit-pool` | built | tests, Storybook | `PoolSettingsDialog`; charter re-pinned before `setPoolCharter`. |
+| W7 `claims`, `decline-claim-confirm` | built | tests | Keyed to the stored claimant; decline reason pinned. |
+| W7 `claim-declined`, `claim-outcomes` | built as timeline | tests | Outcomes read as W10 timeline events (requested / declined / taken up); no separate outcomes panel on W7. |
+| W7 `due-live` | built | tests | Expire now → `expireCommitment`; the row stays live until indexed Expired. |
+| W7 `expiry-queue` | built as group | tests | Expired rows live in the Past group; no dedicated queue view. |
+| W7 `close-blocked-live`, `close-pool-confirm`, `pool-closed` | built | tests | Close only when `selectPoolClosureEligibility` passes; otherwise the live count and a link to the rows. |
+| W7 `compost-pool-confirm`, `pool-composted`, `reopen-confirm` | built | tests | "Archive pool…", "Reopen pool…" with zero-count facts. |
+| W7 `cancel-cycle-confirm`, `paused-cancel-cycle-confirm` | built | tests | Reason dialog; cancel stays while paused. |
+| W7 `paused-cycle-cancelled`, `paused-cycle-composted`, `cycle-composted`, `reconciled` | built as display | Storybook | Finished cycles render with their state; `closeCycle` / `compostCycle` acts are D2. |
+| W7 `loading`, `read-error`, `empty` (no pool registered) | built | tests, rendered (unavailable cast) | Unavailable renders only when no cached pool exists. |
+| W7 summary row with jump links, Open · Confirmed · Past chips | built | tests | Rows open in the left inspector (route-backed) or a dialog (protocol context). |
+| W11 `setup-how`, `setup-how-blocked`, `setup-season`, `setup-split`, `setup-open`, `setup-discard`, `setup-failed` | built | tests, rendered (steps 1–4 walked; the write was not sent) | Offline blocks Continue; failure names what landed; retry sends one call. |
+| W11 `details`, `presets`, `invalid-sum`, `recognition-policy`, `guard`, `discard`, `open-failed` | built | tests, Storybook | Second season blocked with the running one named. |
+| W11 `campaign-details`, `campaign-allocation`, `campaign-open`, `campaign-discard` | built | tests | Seed + open in two writes; campaigns run beside the season. |
+| W8 `step1`–`step4`, `step3-no-protocol`, `discard` | built | tests, Storybook | Cycle binding grouped Season → Campaigns → cycle-less; rails exclusive; Celo disabled with its explanation; team-fallback checkbox on by default, disabled with a repair path when unregistered. |
+| W8 `captured-for` | **not built** | — | D2 (W9). |
+| W10 `detail`, `detail-fallback-eligible` | built | tests, Storybook | Fallback banner and act only when the ordinary path is unreachable, naming the garden's authority. |
+| W10 `accepted` (three separate acts), `cancel`, `mark-ready-override` | built | tests | Each through its own reason dialog. |
+| W10 `attach-assessment` | built | tests | Non-revoked attestations under the configured Assessment schema whose recipient is the stored `providerGarden` (`modules/data/eas.ts:279-283`); empty state otherwise. |
+| W10 `raise-dispute`, `resolve-dispute` | built | tests | Four resolutions; Kept hidden for a roster steward and a formerly Expired record. |
+| W10 `fallback-confirm`, `protocol-fallback-confirm` | built | tests | Reason required; names the garden / the Green Goods team. |
+| W10 `garden-ready`, `garden-fulfilled` | built as display | tests | State chips and the fulfilled path; garden claims labelled by `claimType`. |
+| W10 `not-found` | built | tests | Retry and a way back to the pool. |
+| W10 `external-fulfilled`, `record-payout`, `fulfilled` acts, `contributor-allocation`, `queue-settlement-garden`, `edit-declared-value` | **not built** | — | D2 or settlement-gated, per the prompt. |
+| W13 `queue`, `empty`, `loading`, `read-error` | built | tests, rendered (empty stage) | Confirm enqueues on ordinary rows, opens W10 on fallback rows; Not yet raises a reasoned dispute; disputed rows carry Resolve. |
+| W13 `context-chip`, `assess` | **not built** | — | D2 cross-links. |
+| W12 `protocol`, `current-garden`, `loading`, `read-error` | built | tests, rendered (protocol tab) | Exactly two tabs; never another garden's pool. |
+| W12 `seed-protocol` | built | tests | Seed opens W8 with `protocolContext`. |
+| Stories: one per new component + `/garden/pool`, `/community/pools`, `/hub/confirm` route stories | built | `check:stories`, `check:story-quality`, `build-storybook` | Loading / empty / read-error casts included. |
+| Shared: `useCommitmentPoolMutation` (14 calls) | built | 13 tests | |
+| Shared: charter + cycle-name documents | built | 12 + 3 tests | |
+| Shared: resumable write chain | built | 8 + 5 tests | |
+| Shared: readers (protocol pool, claims by pool, due-live, reachability, `isPoolSteward`, fallback group) | built | 10 + 7 + 10 tests | `confirmationPath` / `fallbackReason` surface as `ConfirmQueueEligibility` on the queue rows. |
+| Shared: `cockpit.garden.pool.*`, `cockpit.community.pools.*`, `cockpit.hub.confirm.*` in en / es / pt | built | locale-coverage, `lint:vocab` | 486 keys per catalog. |
+| Acceptance: all writes through shared hooks | built | tests | No view imports a contract client. |
+| Acceptance: pause reason-required, disables only the named acts | built | tests | |
+| Acceptance: `closePool` never from a live state; zero-count facts | built | tests | |
+| Acceptance: past due never renders Expired; `W7@due-live` submits `expireCommitment` | built | tests | |
+| Acceptance: `W10@accepted` three separate reasoned acts | built | tests | |
+| Acceptance: `W10@attach-assessment` scoped to `providerGarden` | built | tests | |
+| Acceptance: second Season blocked, Campaigns independent | built | tests | |
+| Acceptance: pre-acceptance declared-value editor | **not built** | — | D2 (`W10@edit-declared-value`). |
+| Acceptance: batches, CCIP, settlement, Operations, Safe, funding | **not built** | — | D3, gated with settlement. |
+| Acceptance: authenticated Brave proves the live operator flow | partial | rendered read-side only | Write-side proof BLOCKED (decision 5). |
+
+### Validation receipt
+
+- Tested commit: `42116ecd1` (targeted) and `f36e222de` (head; the last commit adds a required
+  marker only, re-proven by `PoolSetupFlow` + `GardenPool`, 2 files / 19 tests).
+- `git status --porcelain=v1 --untracked-files=all -- packages/admin/src packages/shared/src`:
+  empty at both commits.
+- 2026-08-22 (UTC), `mise exec -- node scripts/dev/ci-local.js --quick --base faf05338e` @ `8cb94189b`:
+  format, lint, shared-typecheck, shared-test (339 / 3886), client-test (91 / 813), admin-test
+  (93 / 638), agent-typecheck, agent-test (24 / 265) green; `source-structure` and
+  `supply-chain` green via `--intent diagnose --check`; `design-guardrails` red on
+  `check:design-generated` only (PR #749's client token audit; decision 7), with
+  `check:design-md`, `check:design-tokens`, `lint:vocab` green individually.
+- 2026-08-22 (UTC), `cd packages/admin && mise exec -- bun run test -- GardenPool PoolSetupFlow SeedCommitment CommitmentDialog HubConfirm CommunityPools garden-pool-route community-pools-route hub-confirm-route` @ `42116ecd1`: 9 files / 55 tests passed; `-- Standard.guard`: 2 / 8.
+- 2026-08-22 (UTC), `cd packages/shared && mise exec -- bun run test -- commitment-pool commitments-to-confirm commitment i18n` @ `42116ecd1`: 34 files / 353 tests passed.
+- Shared `bun run typecheck` clean; admin `tsc --noEmit -p tsconfig.app.json`: zero errors in
+  touched non-story files (611 pre-existing elsewhere).
+- 2026-08-22 (UTC), `mise exec -- node scripts/dev/ci-local.js --quick --base faf05338e --no-fail-fast` @ `f36e222de`: every check green (shared 339 / 3886, client 91 / 813, admin 93 / 638, agent 24 / 265, source-structure, supply-chain) except `design-guardrails`, red on `check:design-generated` only (decision 7).
+- `build-storybook` @ `8cb94189b` green; `bun .plans/active/commitment-pooling/prototypes-artifact.build.ts`:
+  44 screens / 523 states / 0 warnings.
