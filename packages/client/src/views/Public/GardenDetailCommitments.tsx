@@ -5,20 +5,37 @@ import {
   usePublicGardenPool,
 } from "@green-goods/shared";
 import { type IntlShape, useIntl } from "react-intl";
-import { EditorialKicker } from "@/components/Public/atoms";
-import { ListSkeleton, SectionEmpty, SectionNotice, StatCell } from "./GardenDetailAtoms";
-import { FinishedCycles, OpenCycle, UnitRows } from "./GardenDetailCommitmentCycles";
+import { EditorialPanel } from "@/components/Public/atoms";
+import { formatKeptRate } from "@/components/Public/keptRate";
+import {
+  ListSkeleton,
+  PanelLead,
+  PanelNote,
+  RecordStats,
+  SectionNotice,
+} from "./GardenDetailAtoms";
+import {
+  CertificatesTieIn,
+  FinishedCycles,
+  OpenCycles,
+  PoolUnits,
+} from "./GardenDetailCommitmentCycles";
 import { Section } from "./GardenDetailSections";
 
 /**
  * `§ 02 Commitments` on the public Garden page (uiux-spec §7.1).
  *
  * The section is the Garden's record across seasons and campaigns, not one
- * live cycle: lifetime commitments made and kept, the one sanctioned
- * percentage when `selectPublicPromiseKeptRate` publishes it, the open Season
- * and every open Campaign as their own rows, exact-label unit rows, and the
- * finished cycles newest first. It always renders — a Garden with no pool
- * gets readiness copy, which keeps the ordinals stable between Gardens.
+ * live cycle. Its header sits on the canvas with the page's other sections;
+ * its body is one `EditorialPanel` — the `/fund` card grammar — so the record
+ * reads as a composed object at any width rather than loose text hugging the
+ * left edge. Inside the panel: the pool-state sentence beside the lifetime
+ * record (commitments made, kept, and the one sanctioned percentage when
+ * `selectPublicPromiseKeptRate` publishes it); then the open Season and
+ * Campaigns beside the pool-wide exact-label units; then the finished cycles
+ * newest first; then the line that ties fulfilled commitments to § 03. A
+ * Garden with no pool keeps the same panel with readiness copy, which keeps
+ * the ordinals stable.
  *
  * What it never shows: pause reasons, metadata CIDs, provider rows, wallet
  * addresses, cancelled or disputed counts, cancelled cycles, rankings, or any
@@ -29,11 +46,18 @@ export function CommitmentsSection({
   gardenAddress,
   chainId,
   gardenLoading,
+  hasCertificates,
 }: {
   gardenAddress: Address | undefined;
   chainId: number;
   /** The page is still resolving the Garden; the section waits with it. */
   gardenLoading: boolean;
+  /**
+   * § 03 has at least one Impact Certificate. The tie-in line claims that
+   * fulfilled commitments are anchored below, so it needs a certificate to
+   * point at, not just a fulfilled count.
+   */
+  hasCertificates: boolean;
 }) {
   const { formatMessage } = useIntl();
   const pool = usePublicGardenPool(gardenAddress, { chainId });
@@ -61,15 +85,20 @@ export function CommitmentsSection({
               defaultMessage: "Commitments between neighbours",
             })
       }
-      helper={loading || unavailable ? undefined : stateSentence(formatMessage, data)}
     >
-      {loading ? (
-        <ListSkeleton />
-      ) : unavailable || !data ? (
-        <UnavailableRecord onRetry={() => void pool.refetch()} />
-      ) : preparing ? null : (
-        <PoolRecord data={data} />
-      )}
+      <EditorialPanel className="mt-8">
+        {loading ? (
+          <PanelLead lede={<ListSkeleton rows={2} className="flex flex-col gap-4" />}>
+            <RecordStats loading />
+          </PanelLead>
+        ) : unavailable || !data ? (
+          <UnavailableRecord onRetry={() => void pool.refetch()} />
+        ) : preparing ? (
+          <Readiness sentence={stateSentence(formatMessage, data)} />
+        ) : (
+          <PoolRecord data={data} hasCertificates={hasCertificates} />
+        )}
+      </EditorialPanel>
     </Section>
   );
 }
@@ -135,80 +164,67 @@ function stateSentence(
   }
 }
 
+/** No pool, NOT_READY, or READY: readiness language, no statistics. */
+function Readiness({ sentence }: { sentence: string }) {
+  const { formatMessage } = useIntl();
+  return (
+    <PanelLead lede={sentence}>
+      <PanelNote
+        kicker={formatMessage({
+          id: "public.pool.garden.readinessKicker",
+          defaultMessage: "What this section will hold",
+        })}
+      >
+        {formatMessage({
+          id: "public.pool.garden.readinessBody",
+          defaultMessage:
+            "Commitments made and kept, the open season and its campaigns, and every finished season since the pool opened.",
+        })}
+      </PanelNote>
+    </PanelLead>
+  );
+}
+
+/** Unknown is not zero: em dashes under the labels, a neutral retry beside. */
 function UnavailableRecord({ onRetry }: { onRetry: () => void }) {
   const { formatMessage } = useIntl();
   return (
-    <>
-      <RecordStrip made={undefined} kept={undefined} unavailable />
-      <SectionNotice
-        message={formatMessage({
-          id: "public.pool.garden.unavailable",
-          defaultMessage: "This Garden's commitments could not be loaded just now.",
-        })}
-        onRetry={onRetry}
-      />
-    </>
+    <PanelLead
+      lede={formatMessage({
+        id: "public.pool.garden.unavailable",
+        defaultMessage: "This Garden's commitments could not be loaded just now.",
+      })}
+      aside={
+        <SectionNotice
+          className="text-sm text-text-sub-600"
+          message={formatMessage({
+            id: "public.pool.garden.unavailableHint",
+            defaultMessage: "Nothing else on this page is affected.",
+          })}
+          onRetry={onRetry}
+        />
+      }
+    >
+      <RecordStats unavailable />
+    </PanelLead>
   );
 }
 
-/**
- * Lifetime made and kept, plus the kept rate only when the public selector
- * publishes it. "Made" is accepted commitments; the rate is fulfilled over
- * due, never fulfilled over made.
- */
-function RecordStrip({
-  made,
-  kept,
-  rate,
-  unavailable = false,
+function PoolRecord({
+  data,
+  hasCertificates,
 }: {
-  made: number | undefined;
-  kept: number | undefined;
-  rate?: string;
-  unavailable?: boolean;
+  data: PublicGardenPoolData;
+  hasCertificates: boolean;
 }) {
-  const { formatMessage } = useIntl();
-  return (
-    <dl className="mt-8 grid grid-cols-2 gap-x-8 gap-y-6 sm:grid-cols-3">
-      <StatCell
-        label={formatMessage({
-          id: "public.pool.garden.record.made",
-          defaultMessage: "Commitments made",
-        })}
-        value={made}
-        loading={false}
-        unavailable={unavailable}
-      />
-      <StatCell
-        label={formatMessage({ id: "public.pool.garden.record.kept", defaultMessage: "Kept" })}
-        value={kept}
-        loading={false}
-        unavailable={unavailable}
-      />
-      {rate !== undefined ? (
-        <div>
-          <dt className="font-mono text-[11px] uppercase tracking-[0.16em] text-text-soft-400">
-            {formatMessage({
-              id: "public.pool.garden.record.keptRate",
-              defaultMessage: "Kept rate",
-            })}
-          </dt>
-          <dd className="mt-1 font-serif text-2xl text-text-strong-950">{rate}</dd>
-        </div>
-      ) : null}
-    </dl>
-  );
-}
-
-function PoolRecord({ data }: { data: PublicGardenPoolData }) {
   const { formatMessage, formatNumber } = useIntl();
   const { pool, openSeason, openCampaigns, poolUnitSummaries, cycleUnitSummaries } = data;
   if (!pool) return null;
   // The reader already excludes cancelled cycles; the render guards it too,
   // because §4.2 says a cancelled cycle never appears on a public page.
   const finishedCycles = data.finishedCycles.filter((cycle) => cycle.state !== "CANCELLED");
-  // Nothing has been made yet: the record strip gives way to a scope-named
-  // empty sentence, while an open cycle still names itself below it.
+  // Nothing has been made yet: a scope-named empty note stands where the
+  // numerals would, while an open cycle still names itself below.
   const nothingYet = pool.commitmentsAccepted === 0n && finishedCycles.length === 0;
 
   const selection = selectPublicPromiseKeptRate({
@@ -218,86 +234,73 @@ function PoolRecord({ data }: { data: PublicGardenPoolData }) {
   });
   const rate =
     selection.kind === "rate"
-      ? formatNumber(Number(selection.rate.fulfilled) / Number(selection.rate.due), {
-          style: "percent",
-          maximumFractionDigits: 0,
-        })
+      ? formatKeptRate(formatNumber, selection.rate.fulfilled, selection.rate.due)
       : undefined;
   const openCycles = [...(openSeason ? [openSeason] : []), ...openCampaigns];
+  const hasOpen = openCycles.length > 0;
+  const hasUnits = poolUnitSummaries.length > 0;
 
   return (
     <>
-      {nothingYet ? (
-        <SectionEmpty
-          message={formatMessage({
-            id: "public.pool.garden.empty",
-            defaultMessage:
-              "No commitments have been made yet. They appear here as neighbours offer and take them up.",
-          })}
-        />
-      ) : (
-        <>
-          <RecordStrip
-            made={Number(pool.commitmentsAccepted)}
-            kept={Number(pool.commitmentsFulfilled)}
-            rate={rate}
-          />
-          <p className="mt-3 max-w-2xl text-sm text-text-sub-600">
-            {selection.kind === "rate"
-              ? formatMessage({
-                  id: "public.pool.garden.record.keptRateNote",
-                  defaultMessage:
-                    "The kept rate counts commitments that came due, not those still in progress.",
-                })
-              : formatMessage({
-                  id: "public.pool.garden.record.countsOnlyNote",
-                  defaultMessage:
-                    "Counts only for now. A kept rate is published once the record is large enough to describe fairly.",
-                })}
-          </p>
-        </>
-      )}
-
-      {openCycles.length > 0 ? (
-        <ul className="mt-10 flex flex-col gap-8">
-          {openCycles.map((cycle) => (
-            <OpenCycle
-              key={cycle.id}
-              cycle={cycle}
-              units={cycleUnitSummaries.filter((unit) => unit.cycleId === cycle.cycleId)}
-            />
-          ))}
-        </ul>
-      ) : null}
-
-      {poolUnitSummaries.length > 0 ? (
-        <div className="mt-10">
-          <EditorialKicker>
-            {formatMessage({
-              id: "public.pool.garden.units.pool",
-              defaultMessage: "Across the whole pool",
+      <PanelLead lede={stateSentence(formatMessage, data)}>
+        {nothingYet ? (
+          <PanelNote
+            kicker={formatMessage({
+              id: "public.pool.garden.emptyKicker",
+              defaultMessage: "Reading the record",
             })}
-          </EditorialKicker>
-          <UnitRows units={poolUnitSummaries} />
+          >
+            {formatMessage({
+              id: "public.pool.garden.empty",
+              defaultMessage:
+                "No commitments have been made yet. They appear here as neighbours offer and take them up.",
+            })}
+          </PanelNote>
+        ) : (
+          <>
+            <RecordStats
+              made={pool.commitmentsAccepted}
+              kept={pool.commitmentsFulfilled}
+              rate={rate}
+            />
+            <p className="mt-4 max-w-md text-sm leading-relaxed text-text-sub-600">
+              {selection.kind === "rate"
+                ? formatMessage({
+                    id: "public.pool.garden.record.keptRateNote",
+                    defaultMessage:
+                      "The kept rate counts commitments that came due, not those still in progress.",
+                  })
+                : formatMessage({
+                    id: "public.pool.garden.record.countsOnlyNote",
+                    defaultMessage:
+                      "Counts only for now. A kept rate is published once the record is large enough to describe fairly.",
+                  })}
+            </p>
+          </>
+        )}
+      </PanelLead>
+
+      {hasOpen || hasUnits ? (
+        <div className="mt-8 grid gap-x-12 gap-y-8 border-t border-stroke-soft-200 pt-8 lg:grid-cols-2">
+          {hasOpen ? (
+            <OpenCycles
+              cycles={openCycles}
+              units={cycleUnitSummaries}
+              className={hasUnits ? undefined : "lg:col-span-2"}
+            />
+          ) : null}
+          {hasUnits ? (
+            <PoolUnits
+              units={poolUnitSummaries}
+              className={hasOpen ? undefined : "lg:col-span-2"}
+            />
+          ) : null}
         </div>
       ) : null}
 
       {finishedCycles.length > 0 ? <FinishedCycles cycles={finishedCycles} /> : null}
 
-      {pool.commitmentsFulfilled > 0n ? (
-        <p className="mt-10 max-w-2xl font-serif text-base italic text-text-sub-600 md:text-lg">
-          <a
-            href="#public-garden-detail-certificates"
-            className="border-b border-primary-action/35 pb-0.5 transition-colors hover:border-primary-action-hover hover:text-primary-action-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action focus-visible:ring-offset-2"
-          >
-            {formatMessage({
-              id: "public.pool.garden.certificatesTieIn",
-              defaultMessage:
-                "Fulfilled commitments from these seasons are anchored in the certificates below.",
-            })}
-          </a>
-        </p>
-      ) : null}
+      {pool.commitmentsFulfilled > 0n && hasCertificates ? <CertificatesTieIn /> : null}
 
       {data.unavailableSources.cycleMetadata ? (
         <p role="status" className="mt-6 text-sm text-text-sub-600">

@@ -75,6 +75,9 @@ describe("public commitment impact reader", () => {
     expect(documents).not.toContain("CommitmentProviderExposure(");
     expect(documents).not.toContain("Disbursement(");
     expect(documents).toContain("state: { _eq: CONFIRMED }");
+    // Only G$ that reached a Garden counts as support arrived; consideration,
+    // loan principal, and refunds are paid to people and stay out of the sum.
+    expect(documents).toContain("kind: { _in: [FUNDING, GARDEN_BENEFICIARY] }");
     expect(documents).toContain("OpenCommitmentPool_aggregate");
     expect(documents).not.toContain("distinctProviderCount");
     expect(containsAddressValue(result)).toBe(false);

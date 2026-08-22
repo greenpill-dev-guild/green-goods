@@ -221,7 +221,7 @@ function seeded(record: PublicGardenPoolData) {
 const meta: Meta<typeof CommitmentsSection> = {
   title: "Client/Public/GardenDetail/CommitmentsSection",
   component: CommitmentsSection,
-  args: { gardenAddress: GARDEN, chainId: CHAIN_ID, gardenLoading: false },
+  args: { gardenAddress: GARDEN, chainId: CHAIN_ID, gardenLoading: false, hasCertificates: true },
   decorators: [
     (Story) => (
       <div className="bg-bg-weak-50 px-6 py-16 sm:px-10">
@@ -236,12 +236,14 @@ const meta: Meta<typeof CommitmentsSection> = {
     docs: {
       description: {
         component:
-          "`/gardens/:id` § 02 — the Garden's commitment record across seasons and campaigns. " +
-          "Readiness copy before launch, lifetime made and kept, the kept rate only above the " +
-          "public threshold, the open Season and every open Campaign as their own rows, " +
-          "exact-label unit rows, finished cycles newest first. A failed read renders em " +
-          "dashes with a section-scoped retry; cancelled cycles, pause reasons, provider " +
-          "rows, and addresses never appear.",
+          "`/gardens/:id` § 02 — the Garden's commitment record across seasons and campaigns, " +
+          "as one editorial panel under a canvas header. The pool-state sentence sits beside " +
+          "lifetime made and kept (the kept rate only above the public threshold); the open " +
+          "Season and every open Campaign sit beside the pool-wide exact-label unit rows; " +
+          "finished cycles follow newest first, then the line that ties fulfilled commitments " +
+          "to the certificates. Readiness copy before launch keeps the same panel. A failed " +
+          "read renders em dashes with a section-scoped retry; cancelled cycles, pause reasons, " +
+          "provider rows, and addresses never appear.",
       },
     },
   },
@@ -338,6 +340,26 @@ export const Ready: Story = {
           commitmentsAccepted: 0n,
           commitmentsFulfilled: 0n,
           commitmentsDue: 0n,
+          distinctProviderCount: 0n,
+        }),
+      })
+    ),
+  ],
+};
+
+/** An open pool with no cycle and nothing made: the empty note stands where the numbers would. */
+export const EmptyPool: Story = {
+  decorators: [
+    seeded(
+      data({
+        pool: pool({
+          commitmentsOffered: 0n,
+          commitmentsAccepted: 0n,
+          commitmentsFulfilled: 0n,
+          commitmentsCancelled: 0n,
+          commitmentsExpired: 0n,
+          commitmentsDue: 0n,
+          openCommitmentCount: 0n,
           distinctProviderCount: 0n,
         }),
       })

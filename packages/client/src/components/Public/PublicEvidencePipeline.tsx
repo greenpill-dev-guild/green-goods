@@ -179,7 +179,7 @@ function nodeCopy(
         description: formatMessage({
           id: "public.impact.pipeline.node.confirmation.description",
           defaultMessage:
-            "The person the commitment was made to confirms it was kept. Evidence and approved Work stand behind the confirmation, and the commitment records the outcome.",
+            "The person the commitment was made to confirms it was kept. Evidence, or approved Work where the commitment calls for it, stands behind the confirmation, and the commitment records the outcome.",
         }),
       };
     case "certificate":

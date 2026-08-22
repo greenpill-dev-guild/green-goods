@@ -198,6 +198,7 @@ export default function GardenDetail() {
             gardenAddress={garden ? (garden.id as Address) : undefined}
             chainId={chainId}
             gardenLoading={detailLoading}
+            hasCertificates={hypercerts.length > 0}
           />
 
           <CertificatesSection certificates={hypercerts} loading={hypercertsLoading} />

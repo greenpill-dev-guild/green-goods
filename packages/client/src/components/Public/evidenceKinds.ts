@@ -1,8 +1,11 @@
 import type { PublicImpactEvidenceKind } from "@green-goods/shared/public-contracts";
+import type { MessageDescriptor } from "react-intl";
 
 /**
- * Labels for the public evidence ledger's record kinds, indexed by
- * `PublicImpactEvidenceRecord.kind` (card tiles, source dialog, filter chips).
+ * Localized labels for the public evidence ledger's record kinds, indexed by
+ * `PublicImpactEvidenceRecord.kind` (card tiles, source dialog). The same
+ * `public.impact.kind.*` keys drive the ledger's filter chips, so a kind is
+ * named identically wherever it appears.
  *
  * Deliberately typed on the shared ledger contract and not on the
  * `PublicEvidencePipeline` node kinds: the pipeline tells a five-stage story
@@ -14,8 +17,8 @@ import type { PublicImpactEvidenceKind } from "@green-goods/shared/public-contra
  * forbids. Keeping the two kind unions apart is what stops the pipeline's
  * stages from leaking into the ledger's filters.
  */
-export const EVIDENCE_KIND_LABELS: Record<PublicImpactEvidenceKind, string> = {
-  assessment: "Assessment",
-  work: "Work",
-  certificate: "Impact Certificate",
+export const EVIDENCE_KIND_LABELS: Record<PublicImpactEvidenceKind, MessageDescriptor> = {
+  assessment: { id: "public.impact.kind.assessment", defaultMessage: "Assessment" },
+  work: { id: "public.impact.kind.work", defaultMessage: "Work" },
+  certificate: { id: "public.impact.kind.certificate", defaultMessage: "Impact Certificate" },
 };

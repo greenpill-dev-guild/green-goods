@@ -19,14 +19,14 @@
  * @vitest-environment jsdom
  */
 
+import en from "@green-goods/shared/i18n/en";
+import es from "@green-goods/shared/i18n/es";
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { createElement, type ReactElement } from "react";
 import { IntlProvider } from "react-intl";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import type { Address } from "viem";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import en from "../../../shared/src/i18n/en.json";
-import es from "../../../shared/src/i18n/es.json";
 
 const GARDEN_ID = "0x1111111111111111111111111111111111111111" as Address;
 const GARDENER = "0x2222222222222222222222222222222222222222" as Address;
@@ -426,6 +426,72 @@ describe("PublicEvidencePipeline", () => {
       expect.arrayContaining(["All", "Assessment", "Work", "Impact Certificate"])
     );
   });
+
+  it("names a ledger record's kind through the same localized keys as the filters", () => {
+    mockUsePublicImpactEvidence.mockReturnValue({
+      data: {
+        records: [
+          {
+            id: "certificate:1",
+            kind: "certificate",
+            gardenId: GARDEN_ID,
+            gardenName: "Rocinha Community Garden",
+            title: "Season of Repair: terraces",
+            hypercertId: "1",
+            sourceAvailable: true,
+            createdAt: 1_710_000_000,
+          },
+        ],
+        page: 1,
+        pageSize: 12,
+        totalFetchedRecords: 1,
+        partialData: false,
+        sourceLimitReached: false,
+        status: "ready",
+      },
+      isLoading: false,
+    });
+    withProviders(createElement(ImpactPage), { locale: "es", messages: es });
+    const card = screen.getByRole("button", { name: "Season of Repair: terraces" });
+    expect(card).toHaveTextContent(es["public.impact.kind.certificate"]);
+    expect(card).not.toHaveTextContent("Impact Certificate");
+  });
+
+  it("formats a record's time window in the visitor's locale and survives an unrepresentable date", () => {
+    mockUsePublicImpactEvidence.mockReturnValue({
+      data: {
+        records: [
+          {
+            id: "work:0xabcd",
+            kind: "work",
+            gardenId: GARDEN_ID,
+            gardenName: "Rocinha Community Garden",
+            title: "Terracing the upper slope",
+            // Start is 14 Nov 2023; the end is past what `Date` can hold.
+            timeWindow: { start: 1_700_000_000, end: 8_640_000_000_001 },
+            easUid: "0xabcd",
+            sourceAvailable: true,
+            createdAt: 1_700_000_000,
+          },
+        ],
+        page: 1,
+        pageSize: 12,
+        totalFetchedRecords: 1,
+        partialData: false,
+        sourceLimitReached: false,
+        status: "ready",
+      },
+      isLoading: false,
+    });
+    withProviders(createElement(ImpactPage), { locale: "es", messages: es });
+    fireEvent.click(screen.getByRole("button", { name: "Terracing the upper slope" }));
+    const dialog = screen.getByRole("dialog");
+    const window = within(dialog).getByText(es["public.impact.dialog.meta.timeWindow"])
+      .nextElementSibling as HTMLElement;
+    expect(window).toHaveTextContent(/nov/i);
+    expect(window).not.toHaveTextContent(/Nov 14, 2023/);
+    expect(window).not.toHaveTextContent("→");
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -466,6 +532,23 @@ describe("GardenDetail § 02 Commitments", () => {
     // No numbers beyond the ordinal in the kicker.
     const body = (section.textContent ?? "").replace(en["public.pool.garden.kicker"], "");
     expect(body).not.toMatch(/\d/);
+  });
+
+  it("holds the record's frame while the pool is still loading, without printing a number", () => {
+    mockUsePublicGardenPool.mockReturnValue({
+      data: undefined,
+      isLoading: true,
+      isPending: true,
+      refetch: vi.fn(),
+    });
+    renderGarden();
+    const section = commitmentsSection();
+    expect(within(section).getByText(en["public.pool.garden.record.made"])).toBeInTheDocument();
+    expect(within(section).getByText(en["public.pool.garden.record.kept"])).toBeInTheDocument();
+    expect(within(section).queryByText(en["public.pool.garden.record.keptRate"])).toBeNull();
+    const body = (section.textContent ?? "").replace(en["public.pool.garden.kicker"], "");
+    expect(body).not.toMatch(/\d/);
+    expect(body).not.toContain("—");
   });
 
   it("uses ready-state copy for a READY pool without fabricating live statistics", () => {
@@ -621,6 +704,11 @@ describe("GardenDetail § 02 Commitments", () => {
     expect(campaignRow).toHaveTextContent("4 made · 1 kept so far");
     expect(within(campaignRow).getByText("rides").nextElementSibling).toHaveTextContent("9 of 16");
 
+    // One block kicker over both rows, and it does not repeat each row's
+    // own "Open now" so neither reading doubles the other.
+    expect(within(section).getAllByText(en["public.pool.garden.openKicker"])).toHaveLength(1);
+    expect(en["public.pool.garden.openKicker"]).not.toBe(en["public.pool.garden.cycle.openNow"]);
+
     // Pool-scope rows stay separate from the cycle rows.
     const poolUnits = within(section).getByText(en["public.pool.garden.units.pool"])
       .parentElement as HTMLElement;
@@ -670,6 +758,9 @@ describe("GardenDetail § 02 Commitments", () => {
     expect(
       within(history).queryByRole("button", { name: en["public.pool.garden.history.loadMore"] })
     ).toBeNull();
+    // The control unmounted under the reader; focus moves to the line that
+    // announces the change rather than falling to the document body.
+    expect(document.activeElement).toBe(within(history).getByText("Showing 14 of 14"));
   });
 
   it("never renders a cancelled cycle", () => {
@@ -852,13 +943,64 @@ describe("GardenDetail § 02 Commitments", () => {
     expect(within(section).queryByText(en["public.pool.garden.record.made"])).toBeNull();
   });
 
-  it("links fulfilled commitments into the certificates section", () => {
+  it("links fulfilled commitments into the certificates section only when a certificate exists", () => {
+    mockUseHypercerts.mockReturnValue({
+      hypercerts: [
+        { id: "hc-1", title: "Season of Repair: terraces", attestationCount: 12, workScopes: [] },
+      ],
+      isLoading: false,
+    });
     renderGarden();
-    const link = within(commitmentsSection()).getByRole("link", {
-      name: en["public.pool.garden.certificatesTieIn"],
+    const section = commitmentsSection();
+    expect(section).toHaveTextContent(en["public.pool.garden.certificatesTieIn"]);
+    const link = within(section).getByRole("link", {
+      name: en["public.pool.garden.certificatesLink"],
     });
     expect(link).toHaveAttribute("href", "#public-garden-detail-certificates");
     expect(document.getElementById("public-garden-detail-certificates")).not.toBeNull();
+  });
+
+  it("makes no anchoring claim while the Garden has fulfilled commitments but no certificate yet", () => {
+    renderGarden();
+    const section = commitmentsSection();
+    expect(cellValue(en["public.pool.garden.record.kept"])).toBe("24");
+    expect(section).not.toHaveTextContent(en["public.pool.garden.certificatesTieIn"]);
+    expect(
+      within(section).queryByRole("link", { name: en["public.pool.garden.certificatesLink"] })
+    ).toBeNull();
+  });
+
+  it("never rounds a near-boundary kept rate into a categorical claim", () => {
+    mockUsePublicGardenPool.mockReturnValue(
+      poolResult(
+        poolData({
+          pool: makePool({
+            commitmentsAccepted: 1_000n,
+            commitmentsFulfilled: 999n,
+            commitmentsDue: 1_000n,
+            distinctProviderCount: 9n,
+          }),
+        })
+      )
+    );
+    const { unmount } = renderGarden();
+    expect(cellValue(en["public.pool.garden.record.keptRate"])).toBe(">99%");
+    unmount();
+
+    mockUsePublicGardenPool.mockReturnValue(
+      poolResult(
+        poolData({
+          pool: makePool({
+            commitmentsAccepted: 1_000n,
+            commitmentsFulfilled: 1n,
+            commitmentsDue: 1_000n,
+            distinctProviderCount: 9n,
+          }),
+        })
+      )
+    );
+    renderGarden();
+    expect(cellValue(en["public.pool.garden.record.keptRate"])).toBe("<1%");
   });
 
   it("never exposes a provider address, provider-level outcome, or cancelled and disputed counts", () => {

@@ -1,6 +1,6 @@
 import { cn, type PublicGardenSummary, type PublicImpactEvidenceRecord } from "@green-goods/shared";
 import { useId } from "react";
-import { useIntl } from "react-intl";
+import { type IntlShape, useIntl } from "react-intl";
 import { EditorialKicker } from "./atoms";
 import { EVIDENCE_KIND_LABELS } from "./evidenceKinds";
 import { PublicRecordDrawer } from "./PublicRecordDrawer";
@@ -47,16 +47,26 @@ function resolveDomainSlug(domain: string | number | undefined | null) {
   }
 }
 
-function formatTimeWindow(window: PublicImpactEvidenceRecord["timeWindow"]): string | null {
+/**
+ * Attested seconds are untrusted input: a value past what `Date` can hold
+ * would make `Intl` throw and take the dialog down, so an unrepresentable
+ * instant is treated as an absent one. Formatting goes through react-intl
+ * so the window follows the visitor's locale, not the runtime default.
+ */
+function formatTimeWindow(
+  intl: IntlShape,
+  window: PublicImpactEvidenceRecord["timeWindow"]
+): string | null {
   if (!window) return null;
-  const start = window.start ? new Date(window.start * 1000) : null;
-  const end = window.end ? new Date(window.end * 1000) : null;
+  const toDate = (seconds: number | null | undefined): Date | null => {
+    if (!seconds) return null;
+    const date = new Date(seconds * 1000);
+    return Number.isFinite(date.getTime()) ? date : null;
+  };
+  const start = toDate(window.start);
+  const end = toDate(window.end);
   const fmt = (date: Date) =>
-    new Intl.DateTimeFormat(undefined, {
-      day: "numeric",
-      month: "short",
-      year: "numeric",
-    }).format(date);
+    intl.formatDate(date, { day: "numeric", month: "short", year: "numeric" });
   if (start && end) return `${fmt(start)} → ${fmt(end)}`;
   if (start) return fmt(start);
   if (end) return fmt(end);
@@ -99,17 +109,18 @@ export interface PublicEvidenceDialogProps {
  * additional rows just to look full — honest > impressive.
  */
 export function PublicEvidenceDialog({ open, onClose, record, garden }: PublicEvidenceDialogProps) {
-  const { formatMessage } = useIntl();
+  const intl = useIntl();
+  const { formatMessage } = intl;
   const titleId = useId();
 
   if (!open) return null;
 
   const domainSlug = resolveDomainSlug(record.domain);
-  const kindLabel = EVIDENCE_KIND_LABELS[record.kind];
+  const kindLabel = formatMessage(EVIDENCE_KIND_LABELS[record.kind]);
   const recordIdShort = record.easUid
     ? shortHex(record.easUid)
     : (shortHex(record.id.split(":")[1]) ?? "—");
-  const timeWindowLabel = formatTimeWindow(record.timeWindow);
+  const timeWindowLabel = formatTimeWindow(intl, record.timeWindow);
 
   const sourceRefs: SourceRef[] = [];
   if (record.easUid) {

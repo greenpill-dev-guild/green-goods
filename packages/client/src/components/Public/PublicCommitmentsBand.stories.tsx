@@ -44,10 +44,12 @@ const meta: Meta<typeof PublicCommitmentsBand> = {
     docs: {
       description: {
         component:
-          "`/impact` § 02 — protocol-wide commitment aggregates in the § 01 proof-marker " +
-          "grammar. Gardens with open pools, lifetime commitments fulfilled, the share of " +
-          "due commitments kept (published only above the ≥ 5 due / ≥ 3 providers threshold), " +
-          "and CCIP-confirmed G$ support. A failed source renders an em dash, never a zero; " +
+          "`/impact` § 02 — protocol-wide commitment aggregates: a canvas header, then one " +
+          "editorial panel holding four markers in the § 01 proof-marker grammar. Gardens with " +
+          "open pools, lifetime commitments fulfilled, the share of due commitments kept " +
+          "(published only above the ≥ 5 due / ≥ 3 providers threshold), and CCIP-confirmed " +
+          "G$ support, with the lifecycle sentence and the way into the Gardens as the panel's " +
+          "footer line. A failed source renders an em dash, never a zero; " +
           '"support arrived" names the confirmed total and nothing else.',
       },
     },

@@ -114,7 +114,7 @@ function recordMatchesDomain(record: PublicImpactEvidenceRecord, filterId: strin
 const LEDGER_PAGE_SIZE = 12;
 
 export default function ImpactPage() {
-  const { formatMessage } = useIntl();
+  const { formatMessage, formatNumber } = useIntl();
   const stats = usePublicStats();
   // Pull the full fetched window in one query so kind/domain filtering and
   // pagination are pure client-side concerns over a stable dataset.
@@ -248,7 +248,7 @@ export default function ImpactPage() {
     label,
     note,
     loading,
-    ...(value > 0 ? { value: new Intl.NumberFormat().format(value) } : { phrase: notPublicYet }),
+    ...(value > 0 ? { value: formatNumber(value) } : { phrase: notPublicYet }),
   });
   const proofMarkers: PublicProofMarker[] = [
     proofMarker(
