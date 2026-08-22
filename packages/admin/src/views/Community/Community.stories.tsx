@@ -14,6 +14,8 @@ import {
   ADMIN_ROUTE_STORY_QUERY_OPTIONS,
   StorybookAdminCanvasRoute,
 } from "../storybookCanvasHarness";
+import type { QueryKey } from "@tanstack/react-query";
+import { POOL_STORY_SEEDS } from "../Garden/Pool/poolStoryFixtures";
 import {
   expectAdminShellDarkPalette,
   expectAllVisibleSelectorContrast,
@@ -46,10 +48,12 @@ const meta: Meta<typeof CommunityCanvasStory> = {
 export default meta;
 type Story = StoryObj<typeof CommunityCanvasStory>;
 
-function communityDecorators() {
+function communityDecorators(
+  seeds: ReadonlyArray<readonly [QueryKey, unknown]> = STORYBOOK_ADMIN_SHELL_SEEDS
+) {
   return [
     withAdminIdentity,
-    withSeededQueryClient(STORYBOOK_ADMIN_SHELL_SEEDS),
+    withSeededQueryClient(seeds),
     withSelectedAdminGarden(STORYBOOK_PRIMARY_ADMIN_GARDEN),
     withCanvasFrame({
       className: "p-0",
@@ -58,6 +62,13 @@ function communityDecorators() {
     }),
   ];
 }
+
+// Community → Pools (W12): the protocol pool and this garden's pool.
+export const Pools: Story = {
+  tags: ["visual-harness"],
+  args: { initialPath: "/community/pools" },
+  decorators: communityDecorators([...STORYBOOK_ADMIN_SHELL_SEEDS, ...POOL_STORY_SEEDS]),
+};
 
 export const Endowment: Story = {
   // Not in storybook-ci: the endowment play needs live indexer/vault + analytics data the

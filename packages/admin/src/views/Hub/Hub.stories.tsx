@@ -58,6 +58,14 @@ function hubDecorators() {
   ];
 }
 
+// The Confirm stage (W13) on the Hub rail; empty here because the seeded
+// stewarded gardens hold nothing waiting for confirmation.
+export const ConfirmQueue: Story = {
+  tags: ["visual-harness"],
+  args: { initialPath: "/hub/confirm" },
+  decorators: hubDecorators(),
+};
+
 export const WorkQueue: Story = {
   // Not in storybook-ci: the work queue needs live indexer data the clean-room CI browser
   // can't reach, so seeded work items ("Canopy transect upload") never render offline. Kept

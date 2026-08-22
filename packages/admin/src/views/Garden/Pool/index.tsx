@@ -169,7 +169,9 @@ export function GardenPoolTab({
     );
   }
 
-  if (pool.availability.status !== "available") {
+  // A chain that does not serve pooling yet has nothing to show; data that is
+  // already here (a cache, a fixture) renders regardless of the ledger.
+  if (pool.availability.status !== "available" && pool.pool === null) {
     return (
       <AdminCard variant="elevated" data-component="GardenPoolTab" className="space-y-2">
         <p className="label-md text-text-strong">
@@ -209,11 +211,7 @@ export function GardenPoolTab({
     );
   }
 
-  const canSeed =
-    canManage &&
-    model.status === "open" &&
-    pool.isOnline &&
-    pool.availability.status === "available";
+  const canSeed = canManage && model.status === "open" && pool.isOnline;
   const preOpen = model.status === "not-ready";
   const finished = model.status === "closed" || model.status === "composted";
 

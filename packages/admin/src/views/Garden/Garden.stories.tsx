@@ -23,6 +23,7 @@ import {
   ADMIN_ROUTE_STORY_QUERY_OPTIONS,
   StorybookAdminCanvasRoute,
 } from "../storybookCanvasHarness";
+import { POOL_STORY_SEEDS } from "./Pool/poolStoryFixtures";
 import {
   expectAdminShellDarkPalette,
   expectAllVisibleSelectorContrast,
@@ -151,6 +152,14 @@ export const Activity: Story = {
 
 // Members tab retired — "Manage members" now opens ManageMembersDialog from
 // the community workspace rather than a browsable Garden workspace tab.
+
+// The steward's pool console on the Garden workspace's Pool tab (W7), seeded
+// through the registry keys the pool controller reads.
+export const Pool: Story = {
+  tags: ["visual-harness"],
+  args: { initialPath: "/garden/pool" },
+  decorators: gardenDecorators({ seeds: [...STORYBOOK_ADMIN_SHELL_SEEDS, ...POOL_STORY_SEEDS] }),
+};
 
 export const Settings: Story = {
   tags: ["visual-harness"],
