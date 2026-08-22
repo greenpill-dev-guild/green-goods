@@ -61,6 +61,7 @@ vi.mock("@green-goods/shared", () => ({
   useTimeout: () => ({
     set: (fn: () => void) => fn,
   }),
+  useTransactionSender: () => null,
   useUser: (...args: unknown[]) => mockUseUser(...args),
   useWorkApproval: () => ({
     mutate: vi.fn(),

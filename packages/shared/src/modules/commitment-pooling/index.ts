@@ -13,6 +13,7 @@ export * from "./pool-console";
 export * from "./pool-lifecycle";
 export * from "./pool-setup";
 export * from "./selectors";
+export { DEMO_POOLING_PARAM, isDemoPoolingActive } from "./demo/demo-mode";
 export * from "./settlement";
 export * from "./types";
 export * from "./data-public-pools";

@@ -12,6 +12,7 @@
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { CommitmentPoolRecord } from "@green-goods/shared";
 import { renderWithProviders, screen } from "../test-utils";
 
 /** The tab navigates into commitment detail, so it needs a router around it. */
@@ -39,15 +40,39 @@ const mockDiscardJob = vi.fn();
 const AVAILABLE = { status: "available", capability: {} } as const;
 const UNAVAILABLE = { status: "unavailable", reason: "not-integrated", capability: {} } as const;
 
-function pool(overrides: Record<string, unknown> = {}) {
+function pool(overrides: Partial<CommitmentPoolRecord> = {}): CommitmentPoolRecord {
   return {
     id: "42161-7",
     chainId: 42161,
     poolId: 7n,
     registrationSeen: true,
+    garden: null,
+    gardenId: null,
+    poolType: "GARDEN",
     state: "OPEN",
+    charterCID: null,
+    openSeasonCycleId: null,
+    openSeasonCycleEntityId: null,
+    openCampaignIds: [],
+    openCampaignEntityIds: [],
+    providerOpenCommitmentCap: 0n,
+    liveCommitmentCount: 0n,
+    nonTerminalCycleCount: 0n,
+    commitmentsOffered: 0n,
+    commitmentsRequested: 0n,
+    commitmentsAccepted: 0n,
+    commitmentsReadyForConfirmation: 0n,
     commitmentsDue: 12n,
     commitmentsFulfilled: 9n,
+    commitmentsCancelled: 0n,
+    commitmentsExpired: 0n,
+    commitmentsDisputed: 0n,
+    workLinkedCount: 0n,
+    workApprovedCount: 0n,
+    openCommitmentCount: 0n,
+    distinctProviderCount: 0n,
+    createdAt: null,
+    updatedAt: 0,
     ...overrides,
   };
 }
@@ -256,6 +281,20 @@ describe("GardenPool", () => {
     expect(
       screen.getByText("How many commitments one person can hold at once")
     ).toBeInTheDocument();
+  });
+
+  it("says why a pool is paused even when it holds nothing yet", () => {
+    mockUseReason.mockReturnValue({
+      reason: { version: 1, reason: "Flooding on the lower terraces" },
+      isLoading: false,
+      isUnavailable: false,
+    });
+
+    render(<GardenPool pool={pool({ state: "PAUSED", pauseReasonCID: "bafy-pause" })} />);
+
+    expect(screen.getByText(/paused this pool/i)).toBeInTheDocument();
+    expect(screen.getByText("Why: Flooding on the lower terraces")).toBeInTheDocument();
+    expect(screen.getByText("No commitments yet")).toBeInTheDocument();
   });
 
   it("says a paused pool resumes and loses nothing, above a still-readable list", () => {

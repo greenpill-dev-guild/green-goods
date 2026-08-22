@@ -43,7 +43,7 @@ export function CampaignCookieJarAssetPicker({
               )}
             </span>
             <span className="mt-2 block break-all text-label-sm">
-              {asset.supported ? (
+              {asset.supported && asset.address ? (
                 <EnsAddressText address={asset.address} />
               ) : (
                 formatMessage(

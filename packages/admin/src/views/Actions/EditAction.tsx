@@ -42,8 +42,8 @@ import {
 
 const editActionSchema = z.object({
   title: z.string().min(1, "Title is required"),
-  startTime: z.coerce.date(),
-  endTime: z.coerce.date(),
+  startTime: z.date(),
+  endTime: z.date(),
 });
 
 type EditActionFormData = z.infer<typeof editActionSchema>;

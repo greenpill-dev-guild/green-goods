@@ -20,6 +20,11 @@ export interface TabCopy {
   emptyDescriptionId: string;
   /** Optional way in from the empty state. */
   emptyAction?: React.ReactNode;
+  /**
+   * Something the tab must say even when it holds nothing: a paused pool's
+   * notice, for one. Drawn above the empty state rather than lost with the list.
+   */
+  emptyLead?: React.ReactNode;
 }
 
 function Region({ className, children }: { className?: string; children: React.ReactNode }) {
@@ -116,6 +121,7 @@ export function CommitmentStateLadder({
   if (isEmpty) {
     return (
       <Region className={regionClassName}>
+        {copy.emptyLead}
         {!isOnline ? (
           <EmptyState
             icon={<RiWifiOffLine />}

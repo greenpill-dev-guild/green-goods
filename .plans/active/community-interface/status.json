@@ -7,10 +7,10 @@
     "stage": "active"
   },
   "workflow": {
-    "overall_status": "active",
+    "overall_status": "blocked",
     "priority": "p2",
     "created_at": "2026-07-04",
-    "updated_at": "2026-07-30T21:17:01.000Z"
+    "updated_at": "2026-08-22T01:30:26.000Z"
   },
   "links": {
     "brief": "brief.md",
@@ -413,6 +413,14 @@
       "status": "linear_recorded",
       "branch": null,
       "note": "Recorded Linear parent/lane issue identifiers"
+    },
+    {
+      "timestamp": "2026-08-22T01:30:26.000Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "blocked",
+      "branch": null,
+      "note": "Lifecycle truth reconciled: every canonical lane and execution sub-lane remains blocked. Contracts waits for the Commitment Pooling schema-registration interface freeze; shared foundation needs explicit dispatch, reviewer, and RED targets; sponsored writes need human Pimlico policy proof; and the membership queue remains gated on RESR-64. No implementation-complete claim is made."
     }
   ]
 }

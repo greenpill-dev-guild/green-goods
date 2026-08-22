@@ -3,7 +3,7 @@ import { cn } from "../../utils/styles/cn";
 
 export interface FormFieldWrapperProps {
   id?: string;
-  label: string;
+  label: ReactNode;
   required?: boolean;
   helperText?: string;
   error?: string;

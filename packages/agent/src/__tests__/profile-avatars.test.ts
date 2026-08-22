@@ -11,6 +11,7 @@ import { initSchema } from "../services/db/schema";
 import {
   createViemProfileAvatarSignatureVerifier,
   MemoryProfileAvatarStore,
+  type ProfileAvatarSignatureVerifier,
 } from "../services/profile-avatars";
 
 const ORIGIN = "https://greengoods.app";
@@ -22,13 +23,13 @@ const URI = "ipfs://bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi"
 
 function createAvatarApp(
   options: {
-    verify?: ReturnType<typeof vi.fn>;
+    verify?: ProfileAvatarSignatureVerifier;
     now?: number;
     configuredChainId?: number | null;
   } = {}
 ) {
   const store = new MemoryProfileAvatarStore();
-  const verify = options.verify ?? vi.fn(async () => true);
+  const verify: ProfileAvatarSignatureVerifier = options.verify ?? vi.fn(async () => true);
   const now = options.now ?? NOW;
   const app = createServer({
     isAIReady: () => true,
@@ -402,7 +403,9 @@ describe("profile avatar public API", () => {
 
   it("uses the production validator call for deployed and counterfactual smart accounts", async () => {
     const verificationClient = {
-      call: vi.fn(async () => ({ data: "0x1" as const })),
+      call: vi.fn<(parameters: { data: `0x${string}` }) => Promise<{ data: `0x${string}` }>>(
+        async () => ({ data: "0x1" })
+      ),
     };
     const verify = createViemProfileAvatarSignatureVerifier({
       chain: arbitrum,

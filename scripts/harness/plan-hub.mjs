@@ -21,6 +21,10 @@ import { isWorkBranchName } from "../quality/branch-name-policy.mjs";
 const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(SCRIPT_DIR, "../..");
 const PLANS_ROOT = join(REPO_ROOT, ".plans");
+const VALIDATION_RECEIPT_DEBT_PATH = join(
+  REPO_ROOT,
+  "scripts/data/plan-hub-validation-receipt-debt.json",
+);
 const STAGES = ["ideas", "backlog", "active"];
 const MOVE_STAGES = [...STAGES, "archive"];
 const VALIDATION_STAGES = [...STAGES, "archive"];
@@ -75,11 +79,12 @@ const VALID_ARCHIVE_RESOLUTIONS = new Set([
   "cancelled",
 ]);
 const IMPLEMENTATION_LANES = new Set(["ui", "state_api", "contracts"]);
-const TDD_TERMINAL_STATUSES = new Set(["passed", "completed"]);
+const PROOF_TERMINAL_STATUSES = new Set(["passed", "completed"]);
 const VALID_TDD_MODES = new Set(["required", "not_applicable", "proof_limit", "legacy_unrecorded"]);
 const VALID_TDD_STATUSES = new Set(["pending", "red_recorded", "green_recorded"]);
 const TDD_POLICY_STARTED_AT = Date.parse("2026-05-01T00:00:00.000Z");
 const HANDOFF_FILE_POLICY_STARTED_AT = Date.parse("2026-07-06T00:00:00.000Z");
+const VALIDATION_RECEIPT_POLICY_STARTED_AT = Date.parse("2026-08-11T00:00:00.000Z");
 const VALID_TAXONOMY_INITIATIVES = new Set([
   "agent-platform",
   "design-system",
@@ -127,6 +132,7 @@ const LANE_ALIASES = {
   qa_pass_2: "qa_pass_2",
 };
 const CANONICAL_LANES = ["ui", "state_api", "contracts", "qa_pass_1", "qa_pass_2"];
+const CANONICAL_LANE_SET = new Set(CANONICAL_LANES);
 const LINEAR_SYNC_DIRECTION = "plans_to_linear_visibility";
 const LINEAR_LANE_SYNC_MODES = new Set(["lane_issues", "parent_only"]);
 const DEFAULT_LINEAR_LANE_SYNC_MODE = "lane_issues";
@@ -585,6 +591,9 @@ function refreshLaneStatuses(status) {
   const allDone = lanes.every((lane) => DONE_LANE_STATUSES.has(lane.status));
   const hasCompletedWork = lanes.some((lane) => lane.status === "passed" || lane.status === "completed");
   if (allDone) {
+    if (status.workflow.overall_status === "blocked") {
+      return status;
+    }
     status.workflow.overall_status = hasCompletedWork ? "done" : STAGE_TO_STATUS[stage];
     return status;
   }
@@ -1476,8 +1485,351 @@ function hasText(value) {
   return typeof value === "string" && value.trim().length > 0;
 }
 
+let cachedValidationReceiptDebt;
+const matchedValidationReceiptDebt = new Set();
+const acceptedValidationReceiptDebt = new Map();
+
+function validationReceiptDebtKey(feature, lane) {
+  return `${feature}/${lane}`;
+}
+
+function loadValidationReceiptDebt() {
+  if (cachedValidationReceiptDebt) {
+    return cachedValidationReceiptDebt;
+  }
+
+  const state = { entries: new Map(), errors: [] };
+  cachedValidationReceiptDebt = state;
+
+  if (!existsSync(VALIDATION_RECEIPT_DEBT_PATH)) {
+    state.errors.push("missing Validation Receipt debt baseline");
+    return state;
+  }
+
+  let document;
+  try {
+    document = JSON.parse(readFileSync(VALIDATION_RECEIPT_DEBT_PATH, "utf8"));
+  } catch (error) {
+    state.errors.push(`invalid JSON: ${error.message}`);
+    return state;
+  }
+
+  if (!document || typeof document !== "object" || Array.isArray(document)) {
+    state.errors.push("baseline must be a JSON object");
+    return state;
+  }
+
+  const extraRootKeys = Object.keys(document).filter((key) => !["version", "entries"].includes(key));
+  if (extraRootKeys.length > 0) {
+    state.errors.push(`baseline has unsupported fields: ${extraRootKeys.join(", ")}`);
+  }
+  if (document.version !== 1) {
+    state.errors.push('baseline version must be 1');
+  }
+  if (!Array.isArray(document.entries)) {
+    state.errors.push("baseline entries must be an array");
+    return state;
+  }
+
+  const seenKeys = new Set();
+  for (const [index, entry] of document.entries.entries()) {
+    const entryPrefix = `entries[${index}]`;
+    if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
+      state.errors.push(`${entryPrefix} must be an object`);
+      continue;
+    }
+
+    const allowedFields = new Set(["feature", "lane", "owner", "expires_at", "burn_down"]);
+    const extraFields = Object.keys(entry).filter((key) => !allowedFields.has(key));
+    let valid = true;
+    if (extraFields.length > 0) {
+      state.errors.push(`${entryPrefix} has unsupported fields: ${extraFields.join(", ")}`);
+      valid = false;
+    }
+    if (!hasText(entry.feature) || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(entry.feature)) {
+      state.errors.push(`${entryPrefix}.feature must be a kebab-case feature slug`);
+      valid = false;
+    }
+    if (!CANONICAL_LANE_SET.has(entry.lane)) {
+      state.errors.push(`${entryPrefix}.lane must be a canonical lane`);
+      valid = false;
+    }
+    if (!EXECUTION_SUB_LANE_OWNERS.has(entry.owner)) {
+      state.errors.push(`${entryPrefix}.owner must be codex, claude, or human`);
+      valid = false;
+    }
+    if (!hasText(entry.burn_down)) {
+      state.errors.push(`${entryPrefix}.burn_down must name the concrete proof needed to remove the debt`);
+      valid = false;
+    }
+    if (
+      !hasText(entry.expires_at) ||
+      !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/.test(entry.expires_at) ||
+      !Number.isFinite(Date.parse(entry.expires_at))
+    ) {
+      state.errors.push(`${entryPrefix}.expires_at must be an ISO-8601 UTC timestamp ending in Z`);
+      valid = false;
+    }
+
+    if (!valid) {
+      continue;
+    }
+
+    const key = validationReceiptDebtKey(entry.feature, entry.lane);
+    if (seenKeys.has(key)) {
+      state.errors.push(`${entryPrefix} duplicates ${key}`);
+      state.entries.delete(key);
+      continue;
+    }
+    seenKeys.add(key);
+    state.entries.set(key, entry);
+  }
+
+  if (state.errors.length > 0) {
+    state.entries.clear();
+  }
+
+  return state;
+}
+
+function resetValidationReceiptDebtObservations() {
+  matchedValidationReceiptDebt.clear();
+  acceptedValidationReceiptDebt.clear();
+}
+
+function applyValidationReceiptDebt(status, laneName, lane, receiptErrors, errors) {
+  if (receiptErrors.length === 0) {
+    return;
+  }
+
+  const key = validationReceiptDebtKey(status.feature.slug, laneName);
+  const entry = loadValidationReceiptDebt().entries.get(key);
+  if (!entry) {
+    errors.push(...receiptErrors);
+    return;
+  }
+
+  matchedValidationReceiptDebt.add(key);
+  if (entry.owner !== lane.owner) {
+    errors.push(
+      `lane "${laneName}" Validation Receipt debt baseline owner "${entry.owner}" does not match lane owner "${lane.owner}"`,
+    );
+    return;
+  }
+  if (Date.parse(entry.expires_at) <= Date.now()) {
+    errors.push(
+      `lane "${laneName}" Validation Receipt debt baseline expired at ${entry.expires_at}; complete its burn-down before making another terminal claim`,
+    );
+    return;
+  }
+
+  acceptedValidationReceiptDebt.set(key, entry);
+}
+
 function proofHasCommandAndEvidence(proof) {
   return proof && hasText(proof.command) && hasText(proof.evidence);
+}
+
+function laneRequiresValidationReceipt(status, laneName, lane) {
+  if (!PROOF_TERMINAL_STATUSES.has(lane.status)) {
+    return false;
+  }
+
+  const laneTransitions = Array.isArray(status.history)
+    ? status.history.filter(
+        (entry) =>
+          entry?.lane === laneName &&
+          VALID_LANE_STATUSES.has(entry.status) &&
+          Number.isFinite(Date.parse(entry.timestamp)),
+      )
+    : [];
+  const latestTransition = [...laneTransitions]
+    .sort((left, right) => Date.parse(left.timestamp) - Date.parse(right.timestamp))
+    .at(-1);
+  if (latestTransition) {
+    const transitionedAt = Date.parse(latestTransition.timestamp);
+    return transitionedAt >= VALIDATION_RECEIPT_POLICY_STARTED_AT;
+  }
+
+  const createdAt = Date.parse(status.workflow.created_at);
+  return Number.isFinite(createdAt) && createdAt >= VALIDATION_RECEIPT_POLICY_STARTED_AT;
+}
+
+function validationReceiptSection(markdown) {
+  const lines = markdown.split(/\r?\n/);
+  const start = lines.findIndex((line) => /^##\s+Validation Receipt\s*$/.test(line));
+  if (start < 0) return "";
+  const endOffset = lines.slice(start + 1).findIndex((line) => /^#{1,2}\s+/.test(line));
+  const end = endOffset < 0 ? lines.length : start + 1 + endOffset;
+  return lines.slice(start + 1, end).join("\n");
+}
+
+const VALIDATION_RECEIPT_FIELDS = new Map([
+  ["tested implementation commit sha", "testedSha"],
+  ["run at (utc)", "runAtUtc"],
+  ["exact command(s)", "command"],
+  ["exact command", "command"],
+  ["command", "command"],
+  ["result", "result"],
+  ["validated paths", "validatedPaths"],
+  ["worktree identity command and result", "worktreeIdentity"],
+  ["evidence-only diff command and result (if applicable)", "evidenceDiff"],
+  ["evidence-only worktree-status command and result (if applicable)", "evidenceWorktree"],
+]);
+
+function parseValidationReceipt(section) {
+  const fields = {};
+  let currentField = null;
+
+  for (const line of section.split(/\r?\n/)) {
+    const fieldMatch = line.match(/^\s*-\s+(?:\*\*)?([^:*]+?)(?:\*\*)?:\s*(.*)$/);
+    const normalizedLabel = fieldMatch?.[1].trim().toLowerCase();
+    const fieldName = normalizedLabel ? VALIDATION_RECEIPT_FIELDS.get(normalizedLabel) : null;
+    if (fieldName) {
+      currentField = fieldName;
+      fields[currentField] = fieldMatch[2].trim();
+      continue;
+    }
+    if (currentField && line.trim()) {
+      fields[currentField] = `${fields[currentField]}\n${line.trim()}`.trim();
+    }
+  }
+
+  return fields;
+}
+
+function isReceiptPlaceholder(value) {
+  if (!hasText(value)) return true;
+  const normalized = value.replaceAll("`", "").trim();
+  return /^(?:pending|todo|tbd|unknown|<[^>]+>)$/i.test(normalized);
+}
+
+function isNotApplicable(value) {
+  return hasText(value) && /^(?:not applicable|n\/a)$/i.test(value.replaceAll("`", "").trim());
+}
+
+function hasPathScopedStatusCommand(value) {
+  return /git status --porcelain=v1 --untracked-files=all --\s+(?!<)[^`\s][^`\n]*/.test(value);
+}
+
+function reportsCleanWorktree(value) {
+  return /(?:empty|no output|clean)/i.test(value);
+}
+
+function reportsNoDiff(value) {
+  return /(?:empty|no output|clean|exit(?:ed)?(?: with)?\s+(?:code\s+)?0|status\s+0)/i.test(value);
+}
+
+function validateValidationReceipt(status, featureDirPath, laneName, lane, errors) {
+  if (!laneRequiresValidationReceipt(status, laneName, lane)) {
+    return;
+  }
+
+  const prefix = `lane "${laneName}" Validation Receipt`;
+  const receiptErrors = [];
+  const finish = () => applyValidationReceiptDebt(status, laneName, lane, receiptErrors, errors);
+  if (!hasText(lane.handoff)) {
+    receiptErrors.push(`${prefix} requires a handoff path`);
+    finish();
+    return;
+  }
+
+  const handoffPath = join(featureDirPath, lane.handoff);
+  if (!existsSync(handoffPath)) {
+    receiptErrors.push(`${prefix} handoff file is missing: ${lane.handoff}`);
+    finish();
+    return;
+  }
+
+  const section = validationReceiptSection(readFileSync(handoffPath, "utf8"));
+  if (!hasText(section)) {
+    receiptErrors.push(`${prefix} is missing from ${lane.handoff}`);
+    finish();
+    return;
+  }
+
+  const receipt = parseValidationReceipt(section);
+  const validFields = new Set();
+  for (const [fieldName, label] of [
+    ["testedSha", "Tested implementation commit SHA"],
+    ["runAtUtc", "Run at (UTC)"],
+    ["command", "Exact command(s)"],
+    ["result", "Result"],
+    ["validatedPaths", "Validated paths"],
+    ["worktreeIdentity", "Worktree identity command and result"],
+  ]) {
+    if (isReceiptPlaceholder(receipt[fieldName])) {
+      receiptErrors.push(`${prefix} requires a non-placeholder ${label} field`);
+    } else {
+      validFields.add(fieldName);
+    }
+  }
+
+  if (validFields.has("command") && !/`[^`\n]+`/.test(receipt.command)) {
+    receiptErrors.push(
+      `${prefix} Exact command(s) must preserve at least one exact command in code formatting`,
+    );
+  }
+
+  const testedSha = receipt.testedSha ?? "";
+  const hasTestedSha = validFields.has("testedSha") && /\b[0-9a-f]{7,40}\b/i.test(testedSha);
+  const hasDirtyTreeLimitation =
+    validFields.has("testedSha") &&
+    /(?:not commit-attributable|not commit attributable|uncommitted)/i.test(testedSha) &&
+    /dirty(?:-tree| tree| worktree| checkout| shared)/i.test(testedSha);
+  if (validFields.has("testedSha") && !hasTestedSha && !hasDirtyTreeLimitation) {
+    receiptErrors.push(
+      `${prefix} requires a tested SHA or an explicit non-commit dirty-tree limitation`,
+    );
+  }
+
+  const runAtUtc = (receipt.runAtUtc ?? "").replaceAll("`", "").trim();
+  if (
+    validFields.has("runAtUtc") &&
+    (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/.test(runAtUtc) ||
+      !Number.isFinite(Date.parse(runAtUtc)))
+  ) {
+    receiptErrors.push(`${prefix} Run at (UTC) must be an ISO-8601 UTC timestamp ending in Z`);
+  }
+
+  const worktreeIdentity = receipt.worktreeIdentity ?? "";
+  if (validFields.has("worktreeIdentity") && !hasPathScopedStatusCommand(worktreeIdentity)) {
+    receiptErrors.push(
+      `${prefix} worktree evidence must use git status --porcelain=v1 --untracked-files=all -- <validated paths>`,
+    );
+  } else if (
+    validFields.has("worktreeIdentity") &&
+    hasTestedSha &&
+    !reportsCleanWorktree(worktreeIdentity)
+  ) {
+    receiptErrors.push(`${prefix} commit-attributed worktree evidence must report a clean/empty result`);
+  } else if (
+    validFields.has("worktreeIdentity") &&
+    hasDirtyTreeLimitation &&
+    !/dirty|(?:^|\n)[ MADRCU?!]{1,2}\s+\S+/im.test(worktreeIdentity)
+  ) {
+    receiptErrors.push(`${prefix} dirty-tree limitation must summarize the path-scoped dirty result`);
+  }
+
+  if (hasText(receipt.evidenceDiff) && !isNotApplicable(receipt.evidenceDiff)) {
+    if (!/git diff --exit-code\s+\S+\.\.HEAD\s+--\s+(?!<)[^`\s][^`\n]*/.test(receipt.evidenceDiff)) {
+      receiptErrors.push(
+        `${prefix} evidence-only diff must use git diff --exit-code <tested>..HEAD -- <validated paths>`,
+      );
+    }
+    if (!reportsNoDiff(receipt.evidenceDiff)) {
+      receiptErrors.push(`${prefix} evidence-only diff must report no validated-path changes`);
+    }
+    if (
+      isNotApplicable(receipt.evidenceWorktree) ||
+      !hasPathScopedStatusCommand(receipt.evidenceWorktree ?? "") ||
+      !reportsCleanWorktree(receipt.evidenceWorktree ?? "")
+    ) {
+      receiptErrors.push(`${prefix} evidence-only reuse requires clean path-scoped worktree-status evidence`);
+    }
+  }
+
+  finish();
 }
 
 function validateRequiredTdd(laneName, lane, errors) {
@@ -1496,7 +1848,7 @@ function validateRequiredTdd(laneName, lane, errors) {
     }
   }
 
-  if (TDD_TERMINAL_STATUSES.has(lane.status) && tdd.status !== "green_recorded") {
+  if (PROOF_TERMINAL_STATUSES.has(lane.status) && tdd.status !== "green_recorded") {
     errors.push(`lane "${laneName}" TDD required lane cannot be ${lane.status} without green_recorded RED/GREEN evidence`);
   }
 }
@@ -1508,7 +1860,7 @@ function validateLegacyTdd(status, laneName, lane, stage, errors) {
     errors.push(`lane "${laneName}" legacy_unrecorded TDD mode is only allowed on active hubs`);
   }
 
-  if (!TDD_TERMINAL_STATUSES.has(lane.status)) {
+  if (!PROOF_TERMINAL_STATUSES.has(lane.status)) {
     errors.push(`lane "${laneName}" legacy_unrecorded TDD mode is only allowed for completed pre-policy work`);
   }
 
@@ -1780,6 +2132,7 @@ function validateFeatureStatus(status, featureDirPath, stage, knownSlugs = forma
       }
 
       validateLaneTdd(status, laneName, lane, stage, errors);
+      validateValidationReceipt(status, featureDirPath, laneName, lane, errors);
     }
   }
 
@@ -2360,6 +2713,11 @@ function checkBranch(flags) {
 function validate() {
   const failures = [];
   let checked = 0;
+  resetValidationReceiptDebtObservations();
+  const receiptDebt = loadValidationReceiptDebt();
+  for (const error of receiptDebt.errors) {
+    failures.push(`${VALIDATION_RECEIPT_DEBT_PATH}: ${error}`);
+  }
   validatePlanRootStructure(failures);
   for (const stage of VALIDATION_STAGES) {
     validateStageStructure(stage, failures);
@@ -2374,6 +2732,29 @@ function validate() {
     const errors = validateFeatureStatus(record.status, record.dir, record.status.feature.stage, knownSlugs);
     for (const error of errors) {
       failures.push(`${record.dir}: ${error}`);
+    }
+  }
+
+  for (const [key, entry] of receiptDebt.entries) {
+    if (Date.parse(entry.expires_at) <= Date.now()) {
+      failures.push(
+        `${VALIDATION_RECEIPT_DEBT_PATH}: Validation Receipt debt baseline entry ${key} expired at ${entry.expires_at}`,
+      );
+      continue;
+    }
+    if (!matchedValidationReceiptDebt.has(key)) {
+      failures.push(
+        `${VALIDATION_RECEIPT_DEBT_PATH}: stale Validation Receipt debt baseline entry ${key}; remove it because the lane is compliant, nonterminal, or no longer exists`,
+      );
+    }
+  }
+
+  if (acceptedValidationReceiptDebt.size > 0) {
+    console.log(
+      `Validation Receipt debt (${acceptedValidationReceiptDebt.size} temporarily baselined lane gap${acceptedValidationReceiptDebt.size === 1 ? "" : "s"}):`,
+    );
+    for (const [key, entry] of [...acceptedValidationReceiptDebt].sort(([left], [right]) => left.localeCompare(right))) {
+      console.log(`- ${key} | owner=${entry.owner} | expires=${entry.expires_at} | burn-down=${entry.burn_down}`);
     }
   }
 

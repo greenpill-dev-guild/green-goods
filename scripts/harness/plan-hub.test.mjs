@@ -26,10 +26,15 @@ function createFixture() {
   const root = mkdtempSync(join(tmpdir(), "plan-hub-test-"));
   mkdirSync(join(root, "scripts", "harness"), { recursive: true });
   mkdirSync(join(root, "scripts", "quality"), { recursive: true });
+  mkdirSync(join(root, "scripts", "data"), { recursive: true });
   mkdirSync(join(root, ".plans", "_templates"), { recursive: true });
   cpSync(SCRIPT_PATH, join(root, "scripts", "harness", "plan-hub.mjs"));
   cpSync(BRANCH_POLICY_PATH, join(root, "scripts", "quality", "branch-name-policy.mjs"));
   cpSync(TEMPLATE_PATH, join(root, ".plans", "_templates", "feature"), { recursive: true });
+  writeFileSync(
+    join(root, "scripts", "data", "plan-hub-validation-receipt-debt.json"),
+    `${JSON.stringify({ version: 1, entries: [] }, null, 2)}\n`,
+  );
   symlinkSync(join(REPO_ROOT, "node_modules"), join(root, "node_modules"), "dir");
   return root;
 }
@@ -47,6 +52,44 @@ function readStatus(root, stage, slug) {
 
 function writeStatus(root, stage, slug, status) {
   writeFileSync(join(root, ".plans", stage, slug, "status.json"), `${JSON.stringify(status, null, 2)}\n`);
+}
+
+function writeValidationReceiptDebt(root, entries) {
+  writeFileSync(
+    join(root, "scripts", "data", "plan-hub-validation-receipt-debt.json"),
+    `${JSON.stringify({ version: 1, entries }, null, 2)}\n`,
+  );
+}
+
+function writeValidationReceipt(root, stage, slug, laneName, options = {}) {
+  const status = readStatus(root, stage, slug);
+  const handoffPath = join(root, ".plans", stage, slug, status.lanes[laneName].handoff);
+  const dirty = options.dirty === true;
+  const testedIdentity = dirty
+    ? "not commit-attributable; dirty worktree limitation for the validated paths"
+    : "0123456789abcdef0123456789abcdef01234567";
+  const worktreeResult = dirty
+    ? "`git status --porcelain=v1 --untracked-files=all -- packages/shared/src/example.ts` → `M packages/shared/src/example.ts` (dirty)"
+    : "`git status --porcelain=v1 --untracked-files=all -- packages/shared/src/example.ts` → no output (clean)";
+  const evidenceDiff = options.evidenceDiff ?? "not applicable";
+  const evidenceWorktree = options.evidenceWorktree ?? "not applicable";
+
+  writeFileSync(
+    handoffPath,
+    `# ${laneName} handoff
+
+## Validation Receipt
+
+- Tested implementation commit SHA: ${testedIdentity}
+- Run at (UTC): \`2026-08-12T12:00:00Z\`
+- Exact command(s): \`node --test scripts/harness/plan-hub.test.mjs\`
+- Result: focused Plan Hub fixtures passed
+- Validated paths: \`packages/shared/src/example.ts\`
+- Worktree identity command and result: ${worktreeResult}
+- Evidence-only diff command and result (if applicable): ${evidenceDiff}
+- Evidence-only worktree-status command and result (if applicable): ${evidenceWorktree}
+`,
+  );
 }
 
 function withFixture(work) {
@@ -167,6 +210,19 @@ test("terminal implementation lanes require recorded RED and GREEN evidence", ()
     ]);
     assert.equal(recorded.status, 0, recorded.stderr);
 
+    const missingReceipt = runPlanHub(root, [
+      "set-lane",
+      "--feature",
+      "terminal-proof",
+      "--lane",
+      "state-api",
+      "--status",
+      "completed",
+    ]);
+    assert.notEqual(missingReceipt.status, 0);
+    assert.match(missingReceipt.stderr, /state_api.*Validation Receipt.*Tested implementation commit SHA/);
+
+    writeValidationReceipt(root, "active", "terminal-proof", "state_api");
     const completed = runPlanHub(root, [
       "set-lane",
       "--feature",
@@ -211,7 +267,60 @@ test("not_applicable and proof_limit TDD modes require notes", () =>
     status.lanes.ui.tdd.note = "UI lane is not applicable for this API-only fixture.";
     status.lanes.state_api.tdd.note = "No deterministic RED state exists; fallback validation is recorded.";
     writeStatus(root, "active", "notes-required", status);
+    writeValidationReceipt(root, "active", "notes-required", "state_api");
 
+    assert.equal(runPlanHub(root, ["validate"]).status, 0);
+  }));
+
+test("terminal lanes accept an explicit non-commit dirty-tree receipt", () =>
+  withFixture((root) => {
+    assert.equal(runPlanHub(root, ["scaffold", "dirty-receipt", "--stage", "active"]).status, 0);
+    const status = readStatus(root, "active", "dirty-receipt");
+    status.lanes.qa_pass_1.status = "passed";
+    status.history.push({
+      timestamp: "2026-08-12T11:59:00.000Z",
+      actor: "human",
+      lane: "qa_pass_1",
+      status: "passed",
+      branch: null,
+      note: "Dirty-tree evidence fixture",
+    });
+    writeStatus(root, "active", "dirty-receipt", status);
+    writeValidationReceipt(root, "active", "dirty-receipt", "qa_pass_1", { dirty: true });
+
+    const accepted = runPlanHub(root, ["validate"]);
+    assert.equal(accepted.status, 0, accepted.stderr);
+  }));
+
+test("evidence-only receipt reuse requires diff and clean path evidence", () =>
+  withFixture((root) => {
+    assert.equal(runPlanHub(root, ["scaffold", "evidence-reuse", "--stage", "active"]).status, 0);
+    const status = readStatus(root, "active", "evidence-reuse");
+    status.lanes.qa_pass_1.status = "passed";
+    status.history.push({
+      timestamp: "2026-08-12T11:59:00.000Z",
+      actor: "human",
+      lane: "qa_pass_1",
+      status: "passed",
+      branch: null,
+      note: "Evidence-only fixture",
+    });
+    writeStatus(root, "active", "evidence-reuse", status);
+    writeValidationReceipt(root, "active", "evidence-reuse", "qa_pass_1", {
+      evidenceDiff:
+        "`git diff --exit-code 0123456..HEAD -- packages/shared/src/example.ts` → no output (clean)",
+    });
+
+    const rejected = runPlanHub(root, ["validate"]);
+    assert.notEqual(rejected.status, 0);
+    assert.match(rejected.stderr, /qa_pass_1.*evidence-only reuse requires clean path-scoped worktree-status evidence/);
+
+    writeValidationReceipt(root, "active", "evidence-reuse", "qa_pass_1", {
+      evidenceDiff:
+        "`git diff --exit-code 0123456..HEAD -- packages/shared/src/example.ts` → no output (clean)",
+      evidenceWorktree:
+        "`git status --porcelain=v1 --untracked-files=all -- packages/shared/src/example.ts` → no output (clean)",
+    });
     assert.equal(runPlanHub(root, ["validate"]).status, 0);
   }));
 
@@ -237,6 +346,86 @@ test("legacy_unrecorded is limited to pre-policy completed active work", () =>
     status.workflow.created_at = "2026-04-30T00:00:00.000Z";
     writeStatus(root, "active", "legacy-proof", status);
 
+    assert.equal(runPlanHub(root, ["validate"]).status, 0);
+
+    status.history.push(
+      {
+        timestamp: "2026-08-12T10:00:00.000Z",
+        actor: "human",
+        lane: "state_api",
+        status: "in_progress",
+        branch: null,
+        note: "Reopened after the receipt policy boundary",
+      },
+      {
+        timestamp: "2026-08-12T11:00:00.000Z",
+        actor: "human",
+        lane: "state_api",
+        status: "completed",
+        branch: null,
+        note: "Closed again after the receipt policy boundary",
+      },
+    );
+    writeStatus(root, "active", "legacy-proof", status);
+
+    const reopened = runPlanHub(root, ["validate"]);
+    assert.notEqual(reopened.status, 0);
+    assert.match(reopened.stderr, /state_api.*Validation Receipt/);
+
+    writeValidationReceipt(root, "active", "legacy-proof", "state_api");
+    assert.equal(runPlanHub(root, ["validate"]).status, 0);
+  }));
+
+test("Validation Receipt debt baseline is exact, owner-bound, expiry-bound, and bidirectional", () =>
+  withFixture((root) => {
+    assert.equal(runPlanHub(root, ["scaffold", "receipt-debt", "--stage", "active"]).status, 0);
+    const status = readStatus(root, "active", "receipt-debt");
+    status.workflow.created_at = "2026-08-12T10:00:00.000Z";
+    status.lanes.qa_pass_1.status = "passed";
+    status.history.push({
+      timestamp: "2026-08-12T11:00:00.000Z",
+      actor: "human",
+      lane: "qa_pass_1",
+      status: "passed",
+      branch: null,
+      note: "Receipt debt fixture",
+    });
+    writeStatus(root, "active", "receipt-debt", status);
+
+    const unbaselined = runPlanHub(root, ["validate"]);
+    assert.notEqual(unbaselined.status, 0);
+    assert.match(unbaselined.stderr, /qa_pass_1.*Validation Receipt.*Tested implementation commit SHA/);
+
+    const entry = {
+      feature: "receipt-debt",
+      lane: "qa_pass_1",
+      owner: "claude",
+      expires_at: "2099-01-01T00:00:00.000Z",
+      burn_down: "Run fresh QA proof and replace the incomplete handoff receipt.",
+    };
+    writeValidationReceiptDebt(root, [entry]);
+    const baselined = runPlanHub(root, ["validate"]);
+    assert.equal(baselined.status, 0, baselined.stderr);
+    assert.match(baselined.stdout, /Validation Receipt debt \(1 temporarily baselined lane gap\)/);
+    assert.match(baselined.stdout, /receipt-debt\/qa_pass_1.*owner=claude.*expires=2099-01-01/);
+
+    writeValidationReceiptDebt(root, [{ ...entry, owner: "codex" }]);
+    const wrongOwner = runPlanHub(root, ["validate"]);
+    assert.notEqual(wrongOwner.status, 0);
+    assert.match(wrongOwner.stderr, /baseline owner "codex" does not match lane owner "claude"/);
+
+    writeValidationReceiptDebt(root, [{ ...entry, expires_at: "2000-01-01T00:00:00.000Z" }]);
+    const expired = runPlanHub(root, ["validate"]);
+    assert.notEqual(expired.status, 0);
+    assert.match(expired.stderr, /baseline expired at 2000-01-01T00:00:00.000Z/);
+
+    writeValidationReceiptDebt(root, [entry]);
+    writeValidationReceipt(root, "active", "receipt-debt", "qa_pass_1");
+    const stale = runPlanHub(root, ["validate"]);
+    assert.notEqual(stale.status, 0);
+    assert.match(stale.stderr, /stale Validation Receipt debt baseline entry receipt-debt\/qa_pass_1/);
+
+    writeValidationReceiptDebt(root, []);
     assert.equal(runPlanHub(root, ["validate"]).status, 0);
   }));
 
@@ -355,6 +544,22 @@ test("summary preserves stage status for research-only hubs with no implementati
     assert.equal(summary.status, 0, summary.stderr);
     const item = JSON.parse(summary.stdout).find((entry) => entry.slug === "research-only");
     assert.equal(item.overall_status, "backlog");
+  }));
+
+test("summary preserves an explicit lifecycle blocker when all lanes are terminal", () =>
+  withFixture((root) => {
+    assert.equal(runPlanHub(root, ["scaffold", "proof-blocked", "--stage", "active"]).status, 0);
+    const status = readStatus(root, "active", "proof-blocked");
+    status.workflow.overall_status = "blocked";
+    for (const lane of Object.values(status.lanes)) {
+      lane.status = "passed";
+    }
+    writeStatus(root, "active", "proof-blocked", status);
+
+    const summary = runPlanHub(root, ["summary", "--json"]);
+    assert.equal(summary.status, 0, summary.stderr);
+    const item = JSON.parse(summary.stdout).find((entry) => entry.slug === "proof-blocked");
+    assert.equal(item.overall_status, "blocked");
   }));
 
 test("archive hubs retain taxonomy for closed-work discovery", () =>

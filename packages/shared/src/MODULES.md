@@ -1,7 +1,7 @@
 # @green-goods/shared -- Module Map
 
 > Canonical architecture contract for the shared package.
-> Last updated: 2026-04-11
+> Last verified against the source tree: 2026-08-21
 
 ## Package Contract
 
@@ -56,46 +56,53 @@ i18n catalogs, and Storybook-backed UI primitives.
 | --- | --- | --- |
 | `app/` | Observability and runtime adapters -- analytics events, error tracking, logging, service worker management | `logger`, `track`, `trackError`, `serviceWorkerManager`, `ANALYTICS_EVENTS` |
 | `auth/` | Session persistence only -- auth mode, passkey credential, username, RP ID storage | `getAuthMode`, `setAuthMode`, `clearAllAuth`, `getStoredUsername` |
+| `commitment-pooling/` | Pool, series, credit, settlement, and job-domain data/types | Domain selectors, mappers, metadata, and job executors |
 | `data/` | Data-fetching adapters -- GraphQL clients, EAS/indexer/gardens reads, IPFS upload/resolve, marketplace and vault reads | `getGardens`, `getWorks`, `uploadFileToIPFS`, `resolveIPFSUrl`, `greenGoodsIndexer` |
 | `job-queue/` | Offline job queue -- IndexedDB queue, draft persistence, media resource manager, event bus | `jobQueue`, `jobQueueDB`, `jobQueueEventBus`, `mediaResourceManager` |
 | `marketplace/` | HypercertExchange SDK integration -- maker ask signing, approvals, validation | `getMarketplaceClient`, `buildMakerAsk`, `signMakerAsk`, `checkMarketplaceApprovals` |
+| `profile-avatar/` | Avatar drafts, normalization, signing, publishing, and resolution | Profile avatar transport and persistence helpers |
 | `transactions/` | Abstract transaction sending -- passkey, wallet, and embedded sender strategies | `createTransactionSender`, `PasskeySender`, `WalletSender`, `EmbeddedSender` |
 | `translation/` | Browser translation engine -- LibreTranslate client, IndexedDB cache, diagnostics | `browserTranslator`, `translationCache`, `runTranslationDiagnostics` |
 | `work/` | Work submission pipelines -- bot, passkey, wallet, validation helpers | `submitWorkBot`, `submitWorkWithPasskey`, `submitWorkDirectly`, `validateWorkSubmissionContext` |
+| `vault-crowdfunding.ts` | Vault crowdfunding calculations and domain helpers | Vault crowdfunding utilities |
 
-### hooks/ -- React hooks (21 domain folders)
+### hooks/ -- React hooks
 
-Counts below reflect current source files per folder, excluding folder `index.ts`.
+The folder inventory is checked against the source tree; avoid hand-maintained file counts here.
 
-| Folder | Count | Purpose |
-| --- | ---: | --- |
-| `action/` | 3 | Action CRUD, filtering, form schema |
-| `analytics/` | 2 | PostHog identity and page view tracking |
-| `app/` | 13 | Browser nav, carousel, install guidance, theme, offline, toasts, service worker |
-| `assessment/` | 6 | Assessment drafts, forms, workflow orchestration |
-| `auth/` | 3 | Auth context, primary address, user profile |
-| `blockchain/` | 11 | Chain config, base lists, ENS, deployment registry, tx sender |
-| `conviction/` | 14 | Conviction strategies, pools, signals, member power |
-| `cookie-jar/` | 5 | Cookie jar reads and admin/user mutations |
-| `ens/` | 5 | ENS claim, registration status, slug form |
-| `garden/` | 18 | Garden CRUD, permissions, tabs, domains, invites, joining |
-| `gardener/` | 2 | Gardener profile and role resolution |
-| `hypercerts/` | 15 | Minting, listings, attestations, allowlists, contracts |
-| `navigation/` | 3 | URL sync and canvas search params |
-| `ops/` | 3 | Ops runner hooks |
-| `roles/` | 4 | Role checks and toolbar permissions |
-| `translation/` | 3 | Garden/action/general translation hooks |
-| `ui/` | 1 | Shared UI state helpers (`useIsDarkMode`) |
-| `utils/` | 11 | Async effects, clipboard, audio, debounce, timers, focus trap |
-| `vault/` | 17 | Vault deposits, events, funder and strategy views |
-| `work/` | 21 | Drafts, mutation, approvals, metadata, queue sync, images |
-| `yield/` | 5 | Yield allocation and summary hooks |
+| Folder | Purpose |
+| --- | --- |
+| `action/` | Action CRUD, filtering, and form schema |
+| `admin-ui/` | Admin shell and workspace state helpers |
+| `analytics/` | PostHog identity and page-view tracking |
+| `app/` | Browser navigation, install guidance, theme, offline, toasts, and service worker |
+| `assessment/` | Assessment drafts, forms, and workflow orchestration |
+| `auth/` | Auth context, primary address, and user profile |
+| `blockchain/` | Chain config, base lists, ENS, deployment registry, and transaction sender |
+| `commitment-pooling/` | Pooling, credit, settlement, and contributor hooks |
+| `conviction/` | Conviction strategies, pools, signals, and member power |
+| `cookie-jar/` | Cookie jar reads and admin/user mutations |
+| `ens/` | ENS claim, registration status, and slug form |
+| `garden/` | Garden CRUD, permissions, tabs, domains, invites, and joining |
+| `gardener/` | Gardener profile and role resolution |
+| `greenwill/` | GreenWill reads and mutations |
+| `hypercerts/` | Minting, listings, attestations, allowlists, and contracts |
+| `navigation/` | URL synchronization and canvas search params |
+| `profile/` | Profile data and editing workflows |
+| `public/` | Public-route reads and presentation state |
+| `roles/` | Role checks and toolbar permissions |
+| `translation/` | Garden, action, and general translation hooks |
+| `ui/` | Shared UI state helpers |
+| `utils/` | Async effects, clipboard, audio, debounce, timers, and focus trap |
+| `vault/` | Vault deposits, events, funder, and strategy views |
+| `work/` | Drafts, mutation, approvals, metadata, queue sync, and images |
+| `yield/` | Yield allocation and summary hooks |
 
 Shared hook infrastructure also includes `query-keys.ts`.
 
 ### providers/ -- React context wiring
 
-Current provider folder contents: 5 runtime providers plus 2 support files.
+Current provider inventory is seven runtime files plus the barrel export.
 
 | File | Role |
 | --- | --- |
@@ -109,7 +116,7 @@ Current provider folder contents: 5 runtime providers plus 2 support files.
 
 ### workflows/ -- XState state machines
 
-The workflow folder currently contains 4 machines plus auth actor/services support files.
+The workflow folder contains four machines, auth actor/services support, and the barrel export.
 
 | File | Purpose |
 | --- | --- |
@@ -122,7 +129,8 @@ The workflow folder currently contains 4 machines plus auth actor/services suppo
 
 ### stores/ -- Zustand stores
 
-Current store folder contents: 7 stores plus shared workflow type definitions.
+The store folder contains eight Zustand store files, shared workflow type definitions, and the barrel
+export.
 
 | File | Purpose |
 | --- | --- |

@@ -17,6 +17,7 @@ import {
   useGardens,
   useNavigateToTop,
   useOffline,
+  useTransactionSender,
   useUser,
   useWorkApprovalActions,
   useWorkMetadata,
@@ -74,8 +75,8 @@ export const GardenWork: React.FC = () => {
   }, [actions, chainId, work]);
   const actionTitle = matchedAction?.title ?? null;
   const isActionExpired = matchedAction ? matchedAction.endTime <= Date.now() / 1000 : false;
-
-  const { user, smartAccountClient } = useUser();
+  const { user } = useUser();
+  const transactionSender = useTransactionSender();
   const activeAddress = user?.id;
   const gardenPermissions = useGardenPermissions();
   const [isRetrying, setIsRetrying] = useState(false);
@@ -113,16 +114,15 @@ export const GardenWork: React.FC = () => {
     onApprovalComplete: (gId) => navigateToTop(`/home/${gId || gardenIdParam || ""}`),
   });
 
-  // Detect if this is offline work
   const isOfflineWork =
     work?.id.startsWith("0xoffline_") || (work?.id && !work.id.startsWith("0x"));
 
   const handleRetry = async () => {
-    if (!smartAccountClient || !work) return;
+    if (!transactionSender || !work) return;
 
     setIsRetrying(true);
     try {
-      const result = await jobQueue.processJob(work.id, { smartAccountClient });
+      const result = await jobQueue.processJob(work.id, { transactionSender });
 
       if (result.success) {
         // Invalidate the work caches explicitly so the UI updates without

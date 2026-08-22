@@ -144,6 +144,8 @@ export function GardenPool({ pool }: GardenPoolProps) {
         errorId: "app.pool.error",
         emptyTitleId: "app.pool.emptyTitle",
         emptyDescriptionId: "app.pool.emptyDescription",
+        // A paused pool says so whether or not it holds anything yet.
+        emptyLead: poolState === "PAUSED" ? <PoolLifecycleNotice pool={pool} inline /> : undefined,
         // An empty pool keeps its big inline doors and draws no floating entry:
         // there is nothing to scroll past, and the invitation is the screen.
         emptyAction: canCreate ? (

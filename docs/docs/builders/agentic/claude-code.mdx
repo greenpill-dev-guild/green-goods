@@ -21,7 +21,7 @@ import {NextBestAction} from "@site/src/components/docs";
 ```mermaid
 graph TB
     subgraph Config[".claude/ Directory"]
-        Skills["skills/\n9 skills"]
+        Skills["skills/\n10 skills"]
         Rules["rules/\npath-scoped"]
         Context["context/\nper-package"]
     end
@@ -68,7 +68,7 @@ The `.claude/` directory contains all agentic configuration:
 
 ```
 .claude/
-  skills/           # 9 skills -- the filesystem + SKILL.md frontmatter is the registry
+  skills/           # 10 skills -- the filesystem + SKILL.md frontmatter is the registry
     review/         # Full change review: regressions -> gaps -> production quality -> verdict
     ship/           # Pre-merge gate (format, lint, test, build, branch safety)
     plan/           # Planning lifecycle: .plans hub + Codex lanes (passive)
@@ -78,6 +78,7 @@ The `.claude/` directory contains all agentic configuration:
     qa-triage/      # Build sync QA notes -> Linear records + QA-sheet rows
     doc-feedback/   # Google Doc review feedback processing
     design/         # Design direction + implementation (design/implementation.md)
+    resolve-pr-comments/ # Validate and resolve actionable GitHub review feedback
   rules/            # Conditional rules loaded by file path
     typescript.md   # TypeScript conventions (error handling, Address type, barrel imports)
     frontend-design.md  # UI/UX rules for admin dashboard
@@ -101,7 +102,16 @@ The `.claude/` directory contains all agentic configuration:
   settings.json     # Claude Code project settings and tool hooks
 ```
 
-There is no separate skills registry, index file, or per-skill version ceremony -- each skill's `SKILL.md` frontmatter description is what triggers it, and the filesystem is the count of record. Five skills are user-invocable slash commands advertised in the session banner (`/review /audit /clean /qa-triage /doc-feedback`); `plan` and `debug` fire passively from intent, and `ship` and `design` load when their triggers appear. The curated PostHog question library moved to `docs/routines/posthog-questions.md` -- it is a data dictionary, not a procedure. `.agents/skills` is a symlink to `.claude/skills`, so Codex sees the same set. `bun run check:codex-guidance` keeps Codex guidance in parity, and `scripts/quality/check-guidance-links.mjs` (run locally via `bun run drift:check` and in CI by the supply-chain workflow's guidance job) enforces link integrity, retired-name hygiene, and banner/frontmatter parity.
+There is no separate skills registry, index file, or per-skill version ceremony -- each skill's
+`SKILL.md` frontmatter description is what triggers it, and the filesystem is the count of record.
+Five skills are user-invocable slash commands advertised in the session banner
+(`/review /audit /clean /qa-triage /doc-feedback`); other skills load from their declared triggers or
+are invoked by the workflow that owns them. The curated PostHog question library moved to
+`docs/routines/posthog-questions.md` -- it is a data dictionary, not a procedure. `.agents/skills`
+is a symlink to `.claude/skills`, so Codex sees the same set. `bun run check:codex-guidance` keeps
+Codex guidance in parity, and `scripts/quality/check-guidance-links.mjs` (run locally via
+`bun run drift:check` and in CI by the supply-chain workflow's guidance job) enforces link integrity,
+retired-name hygiene, and banner/frontmatter parity.
 
 **`CLAUDE.md`** (project root) is the primary context file, always loaded into every conversation. It defines:
 - Build commands and package scripts

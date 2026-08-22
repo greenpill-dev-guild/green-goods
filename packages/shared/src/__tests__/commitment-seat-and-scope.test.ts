@@ -138,6 +138,57 @@ describe("selectCommitmentSeat", () => {
       })
     ).toBe("confirmer");
   });
+
+  // When a garden took the offer up, its stewards confirm for it
+  // (CreditLib.isOrdinaryConfirmer). The caller says which gardens the
+  // reader stewards; without that the reader is a bystander.
+  const GARDEN = "0x6666666666666666666666666666666666666666" as Address;
+  const offerTakenByGarden = {
+    ...offerAccepted,
+    counterparty: GARDEN,
+    counterpartyKind: "GARDEN",
+  } as const;
+
+  it("seats a steward of the garden that took an offer up as its confirmer", () => {
+    expect(
+      selectCommitmentSeat({
+        commitment: offerTakenByGarden,
+        contributors: [],
+        viewer: HELPER,
+        stewardedGardens: [GARDEN],
+      })
+    ).toBe("confirmer");
+    expect(
+      selectCommitmentSeat({ commitment: offerTakenByGarden, contributors: [], viewer: HELPER })
+    ).toBe("bystander");
+  });
+
+  it("never seats a steward over a named group, or on the team, or for a person's claim", () => {
+    expect(
+      selectCommitmentSeat({
+        commitment: { ...offerTakenByGarden, confirmers: [STRANGER] },
+        contributors: [],
+        viewer: HELPER,
+        stewardedGardens: [GARDEN],
+      })
+    ).toBe("bystander");
+    expect(
+      selectCommitmentSeat({
+        commitment: offerTakenByGarden,
+        contributors: [HELPER],
+        viewer: HELPER,
+        stewardedGardens: [GARDEN],
+      })
+    ).toBe("contributor");
+    expect(
+      selectCommitmentSeat({
+        commitment: { ...offerAccepted, counterpartyKind: "INDIVIDUAL" },
+        contributors: [],
+        viewer: HELPER,
+        stewardedGardens: [TAKER],
+      })
+    ).toBe("bystander");
+  });
 });
 
 describe("commitment read model relationships", () => {

@@ -196,7 +196,14 @@ export function useCommitmentsToConfirm({
       const rows: InboxCommitment[] = [];
       for (const commitment of ordinaryQueries[index]?.data ?? []) {
         if (isPersonalParty(commitment, viewer)) continue;
-        const seat = selectCommitmentSeat({ commitment, contributors: [], viewer: gardenAddress });
+        // Seated as the steward of this garden, which is how the detail
+        // screen will seat them too; the garden's own address is the party.
+        const seat = selectCommitmentSeat({
+          commitment,
+          contributors: [],
+          viewer,
+          stewardedGardens: [gardenAddress],
+        });
         if (selectCommitmentActKind({ commitment, seat }) !== "confirm") continue;
         rows.push({ commitment, seat, needsYou: true });
         ordinaryIds.add(commitment.id);

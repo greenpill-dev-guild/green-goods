@@ -283,7 +283,7 @@ export function CampaignCookieJarPanel() {
         setSyncExtraAddresses,
         syncAggregation,
         syncDiff,
-        selectedJarAddress,
+        selectedJarAddress: selectedJarAddress ?? null,
         syncJar,
       }}
     />

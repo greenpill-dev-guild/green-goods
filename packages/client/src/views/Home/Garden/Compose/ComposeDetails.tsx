@@ -1,7 +1,7 @@
 import type { CommitmentComposerValues } from "@green-goods/shared";
 import { RiAddLine, RiCloseLine, RiShieldCheckLine } from "@remixicon/react";
 import { useState } from "react";
-import type { UseFormReturn } from "react-hook-form";
+import { type UseFormReturn, useWatch } from "react-hook-form";
 import { useIntl } from "react-intl";
 
 export interface ComposeDetailsProps {
@@ -23,12 +23,15 @@ export interface ComposeDetailsProps {
  */
 export function ComposeDetails({ form }: ComposeDetailsProps) {
   const { formatMessage } = useIntl();
-  const direction = form.watch("direction");
-  const kind = form.watch("kind");
-  const note = form.watch("note") ?? "";
-  const links = form.watch("links");
-  const openTeam = form.watch("openTeam");
-  const protocolFallbackEnabled = form.watch("protocolFallbackEnabled");
+  const direction = useWatch({ control: form.control, name: "direction" });
+  const kind = useWatch({ control: form.control, name: "kind" });
+  const note = useWatch({ control: form.control, name: "note" }) ?? "";
+  const links = useWatch({ control: form.control, name: "links" });
+  const openTeam = useWatch({ control: form.control, name: "openTeam" });
+  const protocolFallbackEnabled = useWatch({
+    control: form.control,
+    name: "protocolFallbackEnabled",
+  });
   const isRequest = direction === "REQUEST";
   const [pendingLink, setPendingLink] = useState("");
 

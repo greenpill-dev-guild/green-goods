@@ -11,7 +11,7 @@ import { IntlProvider } from "react-intl";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 // Track calls to mediaResourceManager and AudioPlayer
-const mockGetOrCreateUrl = vi.fn((file: File, trackingId: string) => `blob:mock-${file.name}`);
+const mockGetOrCreateUrl = vi.fn((file: File, _trackingId: string) => `blob:mock-${file.name}`);
 
 vi.mock("@green-goods/shared", () => ({
   AudioPlayer: ({ file }: { file: File }) =>

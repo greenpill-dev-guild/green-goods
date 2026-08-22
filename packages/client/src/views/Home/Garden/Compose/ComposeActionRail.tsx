@@ -6,7 +6,7 @@ import {
   MAX_COMMITMENT_REQUIREMENTS,
 } from "@green-goods/shared";
 import { RiAddLine, RiCloseLine } from "@remixicon/react";
-import type { UseFormReturn } from "react-hook-form";
+import { type UseFormReturn, useWatch } from "react-hook-form";
 import { useIntl } from "react-intl";
 
 import { ImageWithFallback } from "@/components/Display";
@@ -38,8 +38,8 @@ export interface ComposeActionRailProps {
  */
 export function ComposeActionRail({ form, chainId, actions }: ComposeActionRailProps) {
   const { formatMessage } = useIntl();
-  const requirements = form.watch("requirements");
-  const isRequest = form.watch("direction") === "REQUEST";
+  const requirements = useWatch({ control: form.control, name: "requirements" });
+  const isRequest = useWatch({ control: form.control, name: "direction" }) === "REQUEST";
   const setRows = (rows: CommitmentComposerValues["requirements"]) =>
     form.setValue("requirements", rows, { shouldValidate: true, shouldDirty: true });
 

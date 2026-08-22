@@ -54,17 +54,19 @@ export interface CommitmentReadModel {
   counterparty?: Address | null;
   /** Who recorded this on someone else's behalf. Null until creation is seen. */
   recordedBy?: Address | null;
+  /**
+   * Who took it up: a person or a garden account. Written at acceptance, null
+   * before. On an Offer a garden took up, the garden's stewards and owners are
+   * its ordinary confirmers (CreditLib.isOrdinaryConfirmer), not the garden
+   * address itself.
+   */
+  counterpartyKind?: keyof typeof CommitmentClaimType | null;
   /** Offer or Request. Null until creation is seen. */
   direction?: keyof typeof CommitmentDirection | null;
   /** What kind of commitment this is. Null until creation is seen. */
   commitmentType?: keyof typeof CommitmentKind | null;
   /** Whether taking this up is open or steward-reviewed. Null until creation is seen. */
   claimMode?: keyof typeof CommitmentClaimMode | null;
-  /**
-   * Who took it up: a person or a garden account. Written at acceptance, null
-   * before; a garden counterparty is confirmed by that garden's stewards.
-   */
-  counterpartyKind?: keyof typeof CommitmentClaimType | null;
   /**
    * Unix seconds, or null for none. A cycle-scoped commitment without its own
    * date is due at the cycle's end (`selectDueLiveCommitments`).

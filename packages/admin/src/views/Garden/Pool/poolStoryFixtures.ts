@@ -326,8 +326,6 @@ export function storyPoolConsole(
     viewer: STORY_STEWARD,
     isOnline: true,
     availability: { status: "available", capability: {} as never },
-    pool: pool ? { ...pool, promiseKeptRate: selectPromiseKeptRate(pool) } : null,
-    poolId: pool?.poolId,
     model: selectPoolConsoleModel({
       pool,
       cycles,
@@ -359,6 +357,12 @@ export function storyPoolConsole(
     refetch: async () => [] as never,
     ...overrides,
     ...(overrides.model ? { model: overrides.model } : {}),
+    // After the spread on purpose: `pool` already folds in `overrides.pool`,
+    // and the real hook hands the console a record with `promiseKeptRate`
+    // computed. Letting the spread put the raw record back would give stories a
+    // shape `useCommitmentPools` never returns.
+    pool: pool ? { ...pool, promiseKeptRate: selectPromiseKeptRate(pool) } : null,
+    poolId: pool?.poolId,
   };
 }
 

@@ -106,9 +106,12 @@ export function DistributionChart({
             innerRadius={size * 0.3}
             outerRadius={size * 0.45}
             dataKey="value"
-            label={({ percentage }) =>
-              percentage >= OTHERS_THRESHOLD ? `${percentage.toFixed(1)}%` : undefined
-            }
+            label={({ payload }) => {
+              const percentage = (payload as ChartDataItem | undefined)?.percentage;
+              return percentage !== undefined && percentage >= OTHERS_THRESHOLD
+                ? `${percentage.toFixed(1)}%`
+                : undefined;
+            }}
             labelLine={false}
           >
             {chartData.map((entry, index) => (

@@ -17,7 +17,7 @@ import {
   getRecommendedBrowser,
   type MobileBrowser,
 } from "../../utils/app/browser";
-import type { Platform } from "../../utils/app/pwa";
+import type { InstallPromptEvent, Platform } from "../../utils/app/pwa";
 
 /**
  * Browser info for desktop scenarios (non-mobile platforms)
@@ -105,7 +105,7 @@ export function useInstallGuidance(
   platform: Platform,
   isInstalled: boolean,
   wasInstalled: boolean,
-  deferredPrompt: BeforeInstallPromptEvent | null,
+  deferredPrompt: InstallPromptEvent | null,
   isMobile: boolean,
   isInstalling = false
 ): InstallGuidance {

@@ -14,6 +14,7 @@ import { deduplicateById, mergeAndDeduplicateByClientId } from "../../utils/work
 import { fetchOfflineWorks } from "../../utils/work/offline";
 import { useUser } from "../auth/useUser";
 import { queryKeys } from "../../config/query-keys";
+import type { Work } from "../../types/domain";
 
 export interface UseMyWorksOptions {
   /**
@@ -96,7 +97,10 @@ export function useMyWorks(options: UseMyWorksOptions = {}) {
       }
 
       // Deduplicate online works
-      let works = deduplicateById(onlineWorksRaw);
+      let works: Work[] = deduplicateById(onlineWorksRaw).map((work) => ({
+        ...work,
+        status: "pending",
+      }));
 
       // Merge offline works if requested
       if (includeOffline) {

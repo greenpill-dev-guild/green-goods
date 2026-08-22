@@ -10,7 +10,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { createElement, type ReactNode } from "react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, type Mock, vi } from "vitest";
 
 import { createMockFile, MOCK_ADDRESSES } from "../../test-utils/mock-factories";
 
@@ -96,6 +96,7 @@ function createDefaultFormState() {
     gardenAddress: null as string | null,
     actionUID: null as number | null,
     feedback: "",
+    timeSpentMinutes: 0,
     plantSelection: [] as string[],
     plantCount: null as number | null,
   };
@@ -107,7 +108,7 @@ function createDefaultFormState() {
 
 describe("useDraftResume", () => {
   let queryClient: QueryClient;
-  let mockSetSearchParams: ReturnType<typeof vi.fn>;
+  let mockSetSearchParams: Mock<(params: URLSearchParams, options?: { replace?: boolean }) => void>;
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -115,7 +116,7 @@ describe("useDraftResume", () => {
     mockActiveDraftId = null;
     mockResumeDraft.mockResolvedValue("Intro");
     mockClearActiveDraft.mockResolvedValue(undefined);
-    mockSetSearchParams = vi.fn();
+    mockSetSearchParams = vi.fn((_params: URLSearchParams, _options?: { replace?: boolean }) => {});
   });
 
   // ------------------------------------------

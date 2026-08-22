@@ -153,3 +153,43 @@ Authenticated Brave QA profile through Claude-in-Chrome, dev stack owned by this
 - Pre-existing `Work.tsx` type errors and the `Assessment.tsx` family are not touched.
 - The source-structure refactor (`8f9424a76`) split seven files along existing seams with no
   behaviour change; `job-queue/index.ts` and `Work.tsx` are exactly at their frozen ceilings.
+
+## Addendum, same day: the demo world and what walking it caught
+
+Afo asked for screenshots of every screen and, where nothing rendered, for mock data to
+see it all. The gallery is the artifact "Commitment Loop Walk" (42 frames at 390 × 844,
+captured from the local stack through the Brave DevTools profile; the authenticated Brave
+profile was used for the same screens first, and its screenshots are cropped by the side
+panel, which is why the gallery frames come from the DevTools viewport).
+
+Demo mode, dev builds only: `?mockPooling=1` (persists for the tab; `=0` turns it off)
+swaps the pooling reads in `modules/commitment-pooling/data.ts` for a fixture world and
+makes the availability selector answer available. The world is built around the signed-in
+`mockAuth` identity: a GARDEN pool (101, OPEN) on the Arbitrum Green Goods Community
+Garden where the deployer mock is a real steward and gardener, the PROTOCOL pool (1) drawn
+on TAS HUB so it has a page, a PAUSED pool (102) on Growecosystems, a season and a
+campaign, and commitments 1001–1021 covering every seat and state. Fixture reads never
+enter the persisted query cache and a restored real cache drops its pooling entries while
+the flag is on. Queued acts stay on the phone in this mode: the mock identity has no
+signer.
+
+Walking it in a real browser caught six things the tests could not:
+
+1. The composer's chips, cards and action rows did nothing in the built app. The client
+   build runs the React Compiler; every beat read the form with `form.watch()`, which the
+   compiler's memo cannot see change. jsdom runs without the compiler, so 21 composer
+   tests passed. Fixed with `useWatch` throughout (`ee073089f`).
+2. Opening a commitment from the sheet landed on "Garden not found": pool rows carry
+   lowercase garden addresses, the gardens list is checksummed, the route compared exactly
+   (`d8e7edb35`).
+3. A steward saw the garden's claim in To confirm and then had no act on it. The contract
+   seats a garden's stewards as its ordinary confirmers (`CreditLib.isOrdinaryConfirmer`);
+   the seat selector now does too, the read model carries `counterpartyKind`, and To
+   confirm lists only what a steward can actually confirm (`8a832021c`).
+4. A paused pool with nothing in it hid the stewards' reason (`d8e7edb35`).
+5. Row titles were three letters wide beside the state chip on a phone (`4395dfd14`).
+6. The readiness row said "promises" (`30d8a6338`, earlier the same day).
+
+Not shown in the frames, unchanged from the table above: `step-advanced`, team setup and
+roster mutations, the claim card on the pool tab, the state timeline, composer media
+capture, steward fallback confirmation, the campaign-request cast, saved offers, settlement.

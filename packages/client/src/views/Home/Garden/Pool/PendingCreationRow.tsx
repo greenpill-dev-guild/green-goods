@@ -69,10 +69,13 @@ export function PendingCreationRow({
                   : "app.commitments.direction.offer",
             })}
           </p>
+          {/* Under the words, as on the indexed rows, so the title keeps its width. */}
+          <div className="mt-2">
+            <StatusBadge size="sm" variant={tone}>
+              {formatMessage({ id: chipId })}
+            </StatusBadge>
+          </div>
         </div>
-        <StatusBadge size="sm" variant={tone}>
-          {formatMessage({ id: chipId })}
-        </StatusBadge>
       </div>
       <p className="mt-2 text-xs text-text-sub-600">
         {formatMessage({

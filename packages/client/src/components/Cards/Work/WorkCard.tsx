@@ -51,8 +51,6 @@ export interface MinimalWorkCardProps {
   variant?: "compact" | "detailed";
 }
 
-type MediaItem = string | { url: string } | { file: File } | File;
-
 function getWorkCardLabels(formatMessage: ReturnType<typeof useIntl>["formatMessage"]) {
   return {
     error: formatMessage({ id: "app.workCard.error", defaultMessage: "Error" }),
@@ -70,51 +68,6 @@ function getWorkCardLabels(formatMessage: ReturnType<typeof useIntl>["formatMess
       offline: formatMessage({ id: "app.status.offline", defaultMessage: "Offline" }),
     },
   };
-}
-
-function useMediaPreview(media: Work["media"] | undefined): string[] | undefined {
-  const [preview, setPreview] = React.useState<string[] | undefined>(undefined);
-
-  React.useEffect(() => {
-    const createdUrls: string[] = [];
-    const urls = Array.isArray(media)
-      ? media.flatMap((item) => {
-          if (typeof item === "string") {
-            return [item];
-          }
-
-          if (item && typeof item === "object") {
-            if ("url" in item && typeof item.url === "string") {
-              return [item.url];
-            }
-
-            if ("file" in item && item.file instanceof File) {
-              const objectUrl = URL.createObjectURL(item.file);
-              createdUrls.push(objectUrl);
-              return [objectUrl];
-            }
-
-            if (item instanceof File) {
-              const objectUrl = URL.createObjectURL(item);
-              createdUrls.push(objectUrl);
-              return [objectUrl];
-            }
-          }
-
-          return [];
-        })
-      : [];
-
-    setPreview(urls.length > 0 ? urls : undefined);
-
-    return () => {
-      for (const url of createdUrls) {
-        URL.revokeObjectURL(url);
-      }
-    };
-  }, [media]);
-
-  return preview;
 }
 
 export const WorkCard: React.FC<WorkCardProps> = ({
@@ -184,7 +137,7 @@ export const MinimalWorkCard: React.FC<MinimalWorkCardProps> = ({
   });
   const isOfflineWork = work.id.startsWith("0xoffline_");
   const effectiveStatus = isOfflineWork ? "uploading" : work.status;
-  const mediaPreview = useMediaPreview(work.media as MediaItem[] | undefined);
+  const mediaPreview = work.media.length > 0 ? work.media : undefined;
   const hasFeedback = Boolean(work.feedback && work.feedback.trim().length > 0);
   const mediaCount = Array.isArray(work.media) ? work.media.length : 0;
   const action = actionTitle || work.title;

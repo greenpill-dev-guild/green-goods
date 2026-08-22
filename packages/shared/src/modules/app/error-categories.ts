@@ -232,8 +232,9 @@ export function trackError(error: unknown, context: ErrorContext = {}): void {
 
   // Preserve original error message when the error was re-wrapped with a user-friendly message.
   // The `cause` chain can contain the raw upstream error (e.g. IPFS gateway timeout).
+  const normalizedCause = (normalizedError as Error & { cause?: unknown }).cause;
   const originalErrorMessage =
-    normalizedError.cause instanceof Error ? normalizedError.cause.message : undefined;
+    normalizedCause instanceof Error ? normalizedCause.message : undefined;
 
   // Build the error properties
   const rawProperties: Record<string, unknown> = {
