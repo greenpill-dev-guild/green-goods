@@ -85,8 +85,19 @@ export {
   ALLOCATION_BPS_TOTAL,
   assertCycleSplit,
   commitmentPoolCallArgs,
+  DEFAULT_ALLOCATION_BPS,
+  DEFAULT_RECOGNITION_POLICY_BPS,
+  isValidCycleSplit,
+  resolveCommitmentPoolingModule,
   useCommitmentPoolMutation,
 } from "./useCommitmentPoolMutations";
+export type {
+  PoolSetupOutcome,
+  PoolSetupSequenceState,
+  PoolSetupStepState,
+  PoolSetupStepStatus,
+} from "./useCommitmentPoolSetupSequence";
+export { useCommitmentPoolSetupSequence } from "./useCommitmentPoolSetupSequence";
 export type { SavedOffersApi } from "./useSavedOffers";
 export {
   useSavedOffer,

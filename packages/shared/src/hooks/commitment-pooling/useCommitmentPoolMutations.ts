@@ -29,6 +29,13 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { queryKeys } from "../../config/query-keys";
 import { getOntologyChainMaturity } from "../../ontology/query";
+import {
+  type CommitmentPoolAction,
+  type CommitmentPoolMutationCall,
+  type CommitmentPoolMutationInput,
+  type CommitmentPoolReasonedMutationInput,
+  commitmentPoolCallArgs,
+} from "../../modules/commitment-pooling/pool-lifecycle";
 import { pinCommitmentReason } from "../../modules/commitment-pooling/reasons";
 import { selectCommitmentPoolingAvailability } from "../../modules/commitment-pooling/selectors";
 import type { Address } from "../../types/domain";
@@ -39,94 +46,23 @@ import { createMutationErrorHandler } from "../../utils/errors/mutation-error-ha
 import { useCurrentChain } from "../blockchain/useChainConfig";
 import { useTransactionSender } from "../blockchain/useTransactionSender";
 
-export type CommitmentPoolAction =
-  | "setPoolCharter"
-  | "setProviderOpenCommitmentCap"
-  | "markPoolReady"
-  | "openPool"
-  | "pausePool"
-  | "resumePool"
-  | "closePool"
-  | "compostPool"
-  | "reopenPool"
-  | "seedCycle"
-  | "openCycle"
-  | "closeCycle"
-  | "compostCycle"
-  | "cancelCycle";
-
-/** The chain's `CycleType` enum, by the vocabulary word the read model uses. */
-export type CommitmentCycleTypeInput = "SEASON" | "CAMPAIGN";
-
-const CYCLE_TYPE_CODE: Record<CommitmentCycleTypeInput, number> = { SEASON: 0, CAMPAIGN: 1 };
-
-/** Six allocation classes in basis points; the on-chain `AllocationBps` struct. */
-export interface CommitmentAllocationBps {
-  gardeners: number;
-  treasury: number;
-  /** The on-chain name of the steward class; UI copy renders it as "steward". */
-  operator: number;
-  evaluator: number;
-  community: number;
-  funder: number;
-}
-
-/** Within the gardeners class; the on-chain `RecognitionPolicy` struct. */
-export interface CommitmentRecognitionPolicyBps {
-  equalParticipationBps: number;
-  verifiedContributionBps: number;
-}
-
-/** Both structs must total exactly this many basis points. */
-export const ALLOCATION_BPS_TOTAL = 10_000;
-
-/**
- * The contract call, with every reason already a CID. What `argsFor` encodes.
- */
-export type CommitmentPoolMutationCall =
-  | { action: "setPoolCharter"; poolId: bigint; charterCID: string }
-  | { action: "setProviderOpenCommitmentCap"; poolId: bigint; cap: bigint }
-  | {
-      action: "markPoolReady" | "openPool" | "resumePool" | "closePool" | "compostPool";
-      poolId: bigint;
-    }
-  | { action: "pausePool"; poolId: bigint; reasonCID: string }
-  | { action: "reopenPool"; poolId: bigint; toOpen: boolean }
-  | {
-      action: "seedCycle";
-      poolId: bigint;
-      cycleType: CommitmentCycleTypeInput;
-      /** Unix seconds, as the contract's `uint64`. */
-      startTime: bigint;
-      endTime: bigint;
-      metadataCID: string;
-    }
-  | {
-      action: "openCycle";
-      cycleId: bigint;
-      allocation: CommitmentAllocationBps;
-      recognitionPolicy: CommitmentRecognitionPolicyBps;
-    }
-  | { action: "closeCycle" | "compostCycle"; cycleId: bigint }
-  | { action: "cancelCycle"; cycleId: bigint; reasonCID: string };
-
-/**
- * The two reasoned acts with the reason still in the steward's words. The
- * hook pins it and sends the CID.
- */
-export type CommitmentPoolReasonedMutationInput =
-  | {
-      action: "pausePool";
-      poolId: bigint;
-      reason: string;
-      /** For upload tracking only; the call itself is pool-scoped. */
-      gardenAddress?: Address | null;
-    }
-  | { action: "cancelCycle"; cycleId: bigint; reason: string; gardenAddress?: Address | null };
-
-export type CommitmentPoolMutationInput =
-  | CommitmentPoolMutationCall
-  | CommitmentPoolReasonedMutationInput;
+export type {
+  CommitmentAllocationBps,
+  CommitmentCycleTypeInput,
+  CommitmentPoolAction,
+  CommitmentPoolMutationCall,
+  CommitmentPoolMutationInput,
+  CommitmentPoolReasonedMutationInput,
+  CommitmentRecognitionPolicyBps,
+} from "../../modules/commitment-pooling/pool-lifecycle";
+export {
+  ALLOCATION_BPS_TOTAL,
+  assertCycleSplit,
+  commitmentPoolCallArgs,
+  DEFAULT_ALLOCATION_BPS,
+  DEFAULT_RECOGNITION_POLICY_BPS,
+  isValidCycleSplit,
+} from "../../modules/commitment-pooling/pool-lifecycle";
 
 /** Only the acts whose ABI takes a `reasonCID`. */
 const CID_REASON_ACTIONS = new Set<CommitmentPoolAction>(["pausePool", "cancelCycle"]);
@@ -135,49 +71,6 @@ function carriesRawReason(
   input: CommitmentPoolMutationInput
 ): input is CommitmentPoolReasonedMutationInput {
   return CID_REASON_ACTIONS.has(input.action) && "reason" in input && !("reasonCID" in input);
-}
-
-function sumsToTotal(values: number[]): boolean {
-  return (
-    values.every((value) => Number.isInteger(value) && value >= 0) &&
-    values.reduce((sum, value) => sum + value, 0) === ALLOCATION_BPS_TOTAL
-  );
-}
-
-/**
- * The contract's `InvalidAllocation` check, run before anything is sent. A
- * split that does not total 10 000 bps is refused here with the same name, so
- * the console's "sum must equal 100 %" guard and the revert say one thing.
- */
-export function assertCycleSplit(input: {
-  allocation: CommitmentAllocationBps;
-  recognitionPolicy: CommitmentRecognitionPolicyBps;
-}): void {
-  const { allocation, recognitionPolicy } = input;
-  if (
-    !sumsToTotal([
-      allocation.gardeners,
-      allocation.treasury,
-      allocation.operator,
-      allocation.evaluator,
-      allocation.community,
-      allocation.funder,
-    ])
-  ) {
-    throw new Error(
-      `InvalidAllocation: the six allocation shares must total exactly ${ALLOCATION_BPS_TOTAL} bps`
-    );
-  }
-  if (
-    !sumsToTotal([
-      recognitionPolicy.equalParticipationBps,
-      recognitionPolicy.verifiedContributionBps,
-    ])
-  ) {
-    throw new Error(
-      `InvalidAllocation: the recognition policy must total exactly ${ALLOCATION_BPS_TOTAL} bps`
-    );
-  }
 }
 
 /**
@@ -193,39 +86,22 @@ async function resolveCall(
   return { ...call, reasonCID } as CommitmentPoolMutationCall;
 }
 
-export function commitmentPoolCallArgs(input: CommitmentPoolMutationCall): readonly unknown[] {
-  switch (input.action) {
-    case "setPoolCharter":
-      return [input.poolId, input.charterCID];
-    case "setProviderOpenCommitmentCap":
-      return [input.poolId, input.cap];
-    case "markPoolReady":
-    case "openPool":
-    case "resumePool":
-    case "closePool":
-    case "compostPool":
-      return [input.poolId];
-    case "pausePool":
-      return [input.poolId, input.reasonCID];
-    case "reopenPool":
-      return [input.poolId, input.toOpen];
-    case "seedCycle":
-      return [
-        input.poolId,
-        CYCLE_TYPE_CODE[input.cycleType],
-        input.startTime,
-        input.endTime,
-        input.metadataCID,
-      ];
-    case "openCycle":
-      assertCycleSplit(input);
-      return [input.cycleId, input.allocation, input.recognitionPolicy];
-    case "closeCycle":
-    case "compostCycle":
-      return [input.cycleId];
-    case "cancelCycle":
-      return [input.cycleId, input.reasonCID];
+/**
+ * The module a pool write goes to, once the chain is known to serve pooling.
+ * Shared with the setup sequence so both refuse the same way.
+ */
+export function resolveCommitmentPoolingModule(chainId: number): Address {
+  const availability = selectCommitmentPoolingAvailability(
+    getOntologyChainMaturity("entity:commitment-pool", chainId)
+  );
+  if (availability.status !== "available") {
+    throw new Error("Commitment Pooling is unavailable on this chain");
   }
+  const moduleAddress = getNetworkContracts(chainId).commitmentPoolingModule;
+  if (isZeroAddress(moduleAddress)) {
+    throw new Error("Commitment Pooling is not deployed on this chain");
+  }
+  return moduleAddress;
 }
 
 export function useCommitmentPoolMutation(options: { chainId?: number } = {}) {
@@ -241,15 +117,7 @@ export function useCommitmentPoolMutation(options: { chainId?: number } = {}) {
   return useMutation({
     mutationFn: async (input: CommitmentPoolMutationInput) => {
       if (!sender) throw new Error("Transaction sender is unavailable");
-      const availability = selectCommitmentPoolingAvailability(
-        getOntologyChainMaturity("entity:commitment-pool", chainId)
-      );
-      if (availability.status !== "available") {
-        throw new Error("Commitment Pooling is unavailable on this chain");
-      }
-      const moduleAddress = getNetworkContracts(chainId).commitmentPoolingModule;
-      if (isZeroAddress(moduleAddress))
-        throw new Error("Commitment Pooling is not deployed on this chain");
+      const moduleAddress = resolveCommitmentPoolingModule(chainId);
       const call = await resolveCall(input);
       // Encoded before the send so a refused split never reaches the wallet.
       const args = commitmentPoolCallArgs(call);
