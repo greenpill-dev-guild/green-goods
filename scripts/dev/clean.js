@@ -79,6 +79,17 @@ function listMatches(dir, pattern) {
   }
 }
 
+function listDisposableCacheEntries() {
+  try {
+    return fs
+      .readdirSync(path.join(projectRoot, ".cache"), { withFileTypes: true })
+      .filter((entry) => !entry.name.startsWith("dev-surface-leases.json"))
+      .map((entry) => path.posix.join(".cache", entry.name));
+  } catch {
+    return [];
+  }
+}
+
 function dedupe(items) {
   return [...new Set(items)].sort();
 }
@@ -103,7 +114,7 @@ function cleanupTargets() {
   ];
 
   const targets = [
-    ".cache",
+    ...listDisposableCacheEntries(),
     ".parcel-cache",
     ".turbo",
     ".tunnel-url",

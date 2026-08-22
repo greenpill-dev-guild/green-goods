@@ -10,7 +10,7 @@ import { resolveWorkSubmissionTitle } from "../../utils/work/workTitles";
  */
 export async function submitWorkBot(
   client: WalletClient,
-  publicClient: PublicClient,
+  _publicClient: PublicClient,
   draft: WorkDraft,
   gardenAddress: Address,
   actionUID: number,

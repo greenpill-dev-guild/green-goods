@@ -6,6 +6,7 @@ import test from "node:test";
 
 import {
   applyCompatibilityFilters,
+  buildLocalValidationPlan,
   executePlan,
   loadPassingReceiptStore,
   parseArguments,
@@ -187,8 +188,10 @@ test("persisted receipt store rejects tampered receipt inputs", async (t) => {
 test("legacy and selector arguments remain parseable", () => {
   const parsed = parseArguments([
     "--quick",
+    "--checkpoint-scope",
+    "lane",
     "--intent",
-    "readiness",
+    "checkpoint",
     "--skip-contracts",
     "--plan-json",
     "--test-path",
@@ -197,10 +200,48 @@ test("legacy and selector arguments remain parseable", () => {
     "packages/client/src/foo.tsx",
   ]);
 
-  assert.equal(parsed.intent, "readiness");
+  assert.equal(parsed.intent, "checkpoint");
+  assert.equal(parsed.checkpointScope, "lane");
   assert.equal(parsed.skipContracts, true);
   assert.equal(parsed.planJson, true);
   assert.deepEqual(parsed.testPaths.client, ["src/foo.test.tsx"]);
+});
+
+test("ci-local rejects a lane checkpoint without explicit changed paths", () => {
+  assert.throws(
+    () => parseArguments(["--quick", "--checkpoint-scope", "lane"]),
+    /lane checkpoint requires --changed/i,
+  );
+});
+
+test("ci-local passes explicit lane checkpoint scope into the selector", () => {
+  const options = parseArguments([
+    "--quick",
+    "--checkpoint-scope",
+    "lane",
+    "--changed",
+    "packages/client/src/components/Panel.tsx",
+  ]);
+  const localPlan = buildLocalValidationPlan(
+    options,
+    {
+      base: "base",
+      head: "head",
+      workingCopyFingerprint: "lane-fingerprint",
+      changedPaths: options.changedPaths,
+    },
+    { profile: "test", toolchain: {}, capabilities: {} },
+  );
+
+  assert.equal(localPlan.checkpointScope, "lane");
+  assert.equal(
+    localPlan.checks.find((check) => check.id === "format").command,
+    "bunx @biomejs/biome format --no-errors-on-unmatched 'packages/client/src/components/Panel.tsx'",
+  );
+  assert.equal(
+    localPlan.checks.find((check) => check.id === "lint").command,
+    "bun --bun run oxlint 'packages/client/src/components/Panel.tsx' --deny-warnings",
+  );
 });
 
 // Independent package suites declare a concurrency group in the policy. Only

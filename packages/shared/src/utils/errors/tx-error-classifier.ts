@@ -124,7 +124,7 @@ const CANCELLED_ERROR_NAMES = new Set(["NotAllowedError", "AbortError"]);
 function hasCancelledErrorName(error: unknown, depth = 0): boolean {
   if (depth > 4 || !(error instanceof Error)) return false;
   if (CANCELLED_ERROR_NAMES.has(error.name)) return true;
-  return hasCancelledErrorName(error.cause, depth + 1);
+  return hasCancelledErrorName((error as Error & { cause?: unknown }).cause, depth + 1);
 }
 
 function isUserCancelled(error: unknown, normalizedMessage: string): boolean {

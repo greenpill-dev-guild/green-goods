@@ -425,7 +425,7 @@ export function PublicFundingCard({ open, garden, intent, onClose }: PublicFundi
             selected={selected}
             selectedAddress={selectedAddress}
             onSelectAddress={setSelectedAddress}
-            primaryAddress={primaryAddress}
+            primaryAddress={primaryAddress ?? undefined}
             tokenAmountWei={tokenAmountWei}
             usdCents={usdCents}
             conversionUnavailable={conversionUnavailable}
@@ -437,7 +437,7 @@ export function PublicFundingCard({ open, garden, intent, onClose }: PublicFundi
                 ? {
                     severity: txErrorView.severity,
                     message: isMeaningfulTxErrorMessage(txErrorView.rawMessage)
-                      ? txErrorView.rawMessage
+                      ? (txErrorView.rawMessage ?? undefined)
                       : formatMessage({
                           id: txErrorView.messageKey,
                           defaultMessage: "Something went wrong. Please try again.",

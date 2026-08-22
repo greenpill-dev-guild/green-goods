@@ -61,7 +61,7 @@ export function VaultContractDetails({ gardenAddress }: VaultContractDetailsProp
             </a>
           </div>
         ))}
-        {!isZeroAddress(octantModuleAddress) && (
+        {octantModuleAddress && !isZeroAddress(octantModuleAddress) && (
           <div className={rowClass}>
             <p className="body-xs text-text-soft">
               {formatMessage({ id: "app.explorer.vaultRegistry" })}

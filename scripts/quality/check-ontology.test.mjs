@@ -7,6 +7,7 @@ import {
   checkProjectionIntegrity,
   checkSidecarIntegrity,
   collectAnchorFiles,
+  collectPlannedAnchors,
   collectProjectionFiles,
   compareMembers,
   evalNumericToken,
@@ -27,6 +28,7 @@ import {
   parseTsUnion,
   reconcileBaseline,
   splitTableRow,
+  sourceContainsSymbol,
   titleCase,
 } from "./check-ontology.mjs";
 import { expectedWorkflowNames } from "./ci-gate.mjs";
@@ -549,6 +551,7 @@ const miniOntology = {
       kind: "executable",
       vocabulary: "pool-state",
       spec_source: "spec.md",
+      planned_anchor: { file: "pool.sol", symbol: "PoolState" },
       states: [{ name: "Ready", storage: "on-chain" }],
       transitions: [{ from: ["Ready"], to: ["Ready"], layer: "on-chain", mechanism: "markPoolReady | guard" }],
     },
@@ -622,9 +625,6 @@ test("every sidecar anchor file is covered by the Ontology ci-gate matcher", () 
 });
 
 test("every projection evidence file is covered by the Ontology ci-gate matcher", () => {
-  const ontology = JSON.parse(
-    readFileSync("packages/shared/src/ontology/green-goods-ontology.json", "utf8")
-  );
   const projections = JSON.parse(
     readFileSync("packages/shared/src/ontology/green-goods-projections.json", "utf8")
   );
@@ -647,6 +647,18 @@ test("renderers are deterministic", () => {
   assert.equal(renderAgentManifest(miniOntology, miniProjections), renderAgentManifest(miniOntology, miniProjections));
 });
 
+test("ontology renderer omits an empty specified-machines section", () => {
+  const implemented = structuredClone(miniOntology);
+  implemented.state_machines = implemented.state_machines.map((machine) => ({
+    ...machine,
+    source_status: "implemented",
+    planned_anchor: undefined,
+  }));
+
+  const rendered = renderOntologyMdx(implemented, miniProjections);
+  assert.equal(rendered.includes("Specified machines without an implemented source"), false);
+});
+
 test("matrix renderer emits em-dash for missing cells and escapes pipes in mechanisms", () => {
   const matrix = renderEntityMatrixMdx(miniOntology);
   assert.ok(matrix.includes("| Garden | Project | — |"));
@@ -664,6 +676,55 @@ test("integrity rejects undeclared executable transition endpoints and relations
   const errors = checkSidecarIntegrity(broken, () => true);
   assert.ok(errors.some((error) => error.includes('undeclared state "missing"')));
   assert.ok(errors.some((error) => error.includes('unknown entity "missing"')));
+});
+
+test("specified constraints and state machines require specs and planned anchors", () => {
+  const broken = structuredClone(miniOntology);
+  broken.constraints[0] = {
+    ...broken.constraints[0],
+    source_status: "specified",
+    enforced_at: [],
+  };
+  delete broken.state_machines[1].planned_anchor;
+
+  const errors = checkSidecarIntegrity(broken, () => true);
+  assert.ok(errors.includes("constraint x: specified source requires spec_source"));
+  assert.ok(errors.includes("constraint x: specified source requires planned_anchor"));
+  assert.ok(errors.includes("state machine pool: specified source requires planned_anchor"));
+});
+
+test("planned arrival covers vocabularies, constraints, and state machines", () => {
+  const ontology = structuredClone(miniOntology);
+  ontology.constraints.push({
+    id: "planned-constraint",
+    kind: "functional",
+    source_status: "specified",
+    spec_source: "spec.md",
+    planned_anchor: { file: "needs.sol", symbol: "NeedsResolver" },
+    statement: "Needs stay scoped to their garden.",
+    enforced_at: [],
+    holes: [],
+  });
+
+  assert.deepEqual(collectPlannedAnchors(ontology), [
+    {
+      kind: "vocabulary",
+      id: "pool-state",
+      anchor: { file: "b.sol", symbol: "PoolState" },
+    },
+    {
+      kind: "constraint",
+      id: "planned-constraint",
+      anchor: { file: "needs.sol", symbol: "NeedsResolver" },
+    },
+    {
+      kind: "state machine",
+      id: "pool",
+      anchor: { file: "pool.sol", symbol: "PoolState" },
+    },
+  ]);
+  assert.equal(sourceContainsSymbol("// NeedsResolver\ncontract Other {}", "NeedsResolver"), false);
+  assert.equal(sourceContainsSymbol("contract NeedsResolver {}", "NeedsResolver"), true);
 });
 
 test("projection integrity requires capability and human coverage", () => {

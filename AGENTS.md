@@ -1,6 +1,6 @@
-# Green Goods — Codex Guide
+# Green Goods — Agent Guide
 
-Primary runtime contract for Codex in this repository. Start here, then read the nearest
+Primary runtime contract for coding agents in this repository. Start here, then read the nearest
 `AGENTS.md` for the package you are editing. Package-level guides override this file for
 their subtree.
 
@@ -68,7 +68,7 @@ When you are dispatched from a Linear issue (delegated/assigned, labeled `ai:cod
 - **Branch + PR.** Branch names describe the work, never the worker, tool, Linear issue, or orchestration lane: `<type>/<work-description>`, where type is `feature`, `fix`, `refactor`, `docs`, `chore`, `test`, `perf`, `ci`, `release`, or `research`. Use a concrete kebab-case outcome such as `feature/commitment-pooling-indexer`; never use `codex/`, `claude/`, `<user>/PRD-NNN-...`, or generic lane prefixes. When an issue or plan supplies a branch, it must follow this contract, and so does a branch you inherit: sessions frequently begin on an auto-created branch that predates this rule, so check the name before your first push or PR and, if it does not conform, ask the user before renaming. Never rename unprompted — concurrent sessions share this checkout, and `git branch -m` moves the branch under all of them. With approval, rename while the branch is still local; renaming after a PR exists closes that PR and forces a new one. The PR body is the issue↔PR source of truth: use `Fixes PRD-NNN` when merge completes the issue, `Refs PRD-NNN` for partial or stacked work, or `Relates to PRD-NNN` for context. One issue per PR; keep unattended-maintenance PRs as drafts with the right labels (see `## Scope Constraints For Automated Maintenance`); never self-merge. `critical` and `packages/contracts` surfaces get extra human/Claude review.
 - **Before the PR**, run the Ship Gate from `## Validation Intent Ladder` and produce evidence per `## Verify Before Claiming Success`. Honor the privacy boundary above and `## Multi-Agent Repo Safety`.
 
-## Codex Workflow
+## Agent Workflow
 
 1. Read the nearest `AGENTS.md`.
 2. Apply [the Implementation Quality Contract](.claude/context/values.md#implementation-quality-contract)

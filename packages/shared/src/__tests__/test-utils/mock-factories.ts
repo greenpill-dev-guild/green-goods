@@ -105,6 +105,10 @@ export function createMockGarden(overrides?: Partial<Garden>): Garden {
     createdAt: Date.now(),
     gardeners: [MOCK_ADDRESSES.gardener],
     operators: [MOCK_ADDRESSES.operator],
+    evaluators: [],
+    owners: [],
+    funders: [],
+    communities: [],
     assessments: [],
     works: [],
     ...overrides,
@@ -147,6 +151,7 @@ export function createMockCookieJar(overrides?: Partial<CookieJar>): CookieJar {
     decimals: 18,
     maxWithdrawal: 500000000000000000n, // 0.5e18
     withdrawalInterval: 86400n, // 1 day in seconds
+    minDeposit: 0n,
     isPaused: false,
     emergencyWithdrawalEnabled: false,
     ...overrides,

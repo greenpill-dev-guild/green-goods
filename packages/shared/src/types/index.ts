@@ -287,3 +287,4 @@ export type {
   VaultPreview,
   WithdrawParams,
 } from "./vaults";
+export type { GreenWillBadgeView } from "./greenwill";

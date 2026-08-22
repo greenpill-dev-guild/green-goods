@@ -16,7 +16,7 @@ export interface CommunityHeaderStatsInput {
   distributedAmounts: readonly bigint[] | null;
   formatMessage: (
     descriptor: { id: string; defaultMessage?: string },
-    values?: Record<string, unknown>
+    values?: Record<string, string | number | boolean | Date | null | undefined>
   ) => string;
 }
 

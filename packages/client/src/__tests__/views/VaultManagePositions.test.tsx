@@ -194,9 +194,9 @@ function makeStableCampaign(): OctantVaultCampaignManifest {
 vi.mock("@/routes/WalletRuntimeProviders", async () => {
   const { createElement: ce } = await import("react");
   return {
-    default: ({ children }: { children: unknown }) => {
+    default: ({ children }: { children: React.ReactNode }) => {
       mocks.walletRuntimeRender();
-      return ce("div", { "data-testid": "wallet-runtime-provider" }, children);
+      return ce("div", { "data-testid": "wallet-runtime-provider", children });
     },
   };
 });
@@ -273,11 +273,11 @@ function renderContent(campaigns: OctantVaultCampaignManifest[]) {
     createElement(
       MemoryRouter,
       { initialEntries: ["/vaults"] },
-      createElement(
-        IntlProvider,
-        { locale: "en", messages: intlMessages },
-        createElement(VaultsPageContent, { campaigns })
-      )
+      createElement(IntlProvider, {
+        locale: "en",
+        messages: intlMessages,
+        children: <VaultsPageContent campaigns={campaigns} />,
+      })
     )
   );
 }

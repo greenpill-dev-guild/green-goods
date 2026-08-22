@@ -334,19 +334,6 @@ export const withWagmi: Decorator = (Story) => (
 );
 
 /**
- * Provides the shared Auth context via `DevAuthProvider`, which exposes
- * the same context shape as the real `AuthProvider` but with hardcoded
- * role values keyed off the `?mockAuth=` URL param (defaults to
- * `operator`). Stories that need a connected admin identity should layer
- * this on top of `withWagmi`.
- */
-const withDevAuth: Decorator = (Story) => (
-  <DevAuthProvider>
-    <Story />
-  </DevAuthProvider>
-);
-
-/**
  * Combined decorator for stories that render real components which read
  * auth + wagmi state. Applies `withWagmi` then `withDevAuth`. Must sit
  * inside `withQueryClient` / `withI18n` (the global preview decorators

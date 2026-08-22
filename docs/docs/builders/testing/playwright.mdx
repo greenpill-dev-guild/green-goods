@@ -4,7 +4,7 @@ sidebar_label: Playwright
 slug: /builders/testing/playwright
 audience: developer
 owner: docs
-last_verified: 2026-04-27
+last_verified: 2026-08-21
 feature_status: Live
 source_of_truth:
   - playwright.config.ts
@@ -40,7 +40,7 @@ graph TB
     Config["playwright.config.ts"] --> Projects
 
     subgraph Servers["Selected Web Servers"]
-        S1["Envio :8080"]
+        S1["Indexer :3006\nonly when required"]
         S2["Client :3001\nPLAYWRIGHT_APP=client"]
         S3["Admin :3002\nPLAYWRIGHT_APP=admin"]
     end
@@ -89,7 +89,11 @@ Mobile projects (`mobile-chrome`, `mobile-safari`) exist in the config, but the 
 
 ### Web Server Configuration
 
-Playwright config (`playwright.config.ts`) always starts the Envio indexer on port 8080 unless `SKIP_WEBSERVER=true` is set. App servers are selected with `PLAYWRIGHT_APP`: `PLAYWRIGHT_APP=client` starts the client on 3001, `PLAYWRIGHT_APP=admin` starts the admin on 3002, and an unset value starts both apps for broader local runs.
+Playwright config starts the indexer on port 3006 only when the selected specs need it;
+`SKIP_INDEXER=true` disables that server. App servers are selected with `PLAYWRIGHT_APP`:
+`PLAYWRIGHT_APP=client` starts the client on 3001, `PLAYWRIGHT_APP=admin` starts the admin on 3002,
+and an unset value starts both apps for broader local runs. `SKIP_WEBSERVER=true` reuses externally
+managed services.
 
 ## Completing Test Coverage
 
@@ -146,13 +150,15 @@ bun run test:e2e:passkey
 bun run test:e2e:testnet
 
 # Direct Playwright usage when you want a specific project or file
-npx playwright test --project=client-ci
-npx playwright test --project=admin-ci
-npx playwright test tests/specs/client.navigation.spec.ts
-npx playwright test --ui
+bun x playwright test --project=client-ci
+bun x playwright test --project=admin-ci
+bun x playwright test tests/specs/client.navigation.spec.ts
+bun x playwright test --ui
 ```
 
-The `bun run test:e2e` wrapper starts `bun run dev`, waits for the client and admin surfaces to become reachable, then runs `npx playwright test` with `SKIP_WEBSERVER=true` and `SKIP_HEALTH_CHECK=true`.
+The `bun run test:e2e` wrapper starts `bun run dev:web`, waits for the client and admin surfaces to
+become reachable, then launches the checked-in Playwright CLI under system Node with
+`SKIP_WEBSERVER=true` and `SKIP_HEALTH_CHECK=true`.
 
 ### Configuration Details
 
@@ -163,7 +169,7 @@ Key settings from `playwright.config.ts`:
 - **Traces**: Captured on first retry
 - **Video**: Retained on failure (local only)
 - **Screenshots**: Only on failure
-- **Timeouts**: 30s navigation, 15s actions; fork tests get 60s, testnet gets 120s
+- **Timeouts**: 30s navigation, 15s actions; fork and testnet projects get 120s
 
 The global setup (`global-setup.ts`) bootstraps the test environment, and `global-teardown.ts` handles cleanup. Both use ESM-compatible imports.
 

@@ -44,7 +44,7 @@ type MockMutationOptions = {
 function rejectMutation(
   message: string,
   setError: Dispatch<SetStateAction<Error | null>>,
-  spy: ReturnType<typeof vi.fn>,
+  spy: (params: unknown, options?: MockMutationOptions) => unknown,
   params: unknown,
   options?: MockMutationOptions
 ) {

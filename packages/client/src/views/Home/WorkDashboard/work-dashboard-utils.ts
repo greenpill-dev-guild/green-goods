@@ -39,12 +39,12 @@ export function isOperatorForGarden(
 interface CompletedApproval {
   workUID: string;
   title?: string;
-  actionUID: string;
+  actionUID: number | string;
   gardenerAddress: string;
   gardenId?: string;
   feedback?: string;
   createdAt: number;
-  status: string;
+  status: "approved" | "rejected" | "pending" | "syncing" | "failed";
 }
 
 /** Shape of a received approval from fetchApprovalsByRecipients. */
@@ -72,7 +72,7 @@ export function approvalsToCompletedWorks(approvals: CompletedApproval[]): Work[
     .map((approval) => ({
       id: approval.workUID,
       title: approval.title || `Work ${String(approval.workUID || "").slice(0, 8)}...`,
-      actionUID: approval.actionUID,
+      actionUID: toActionUID(approval.actionUID),
       gardenerAddress: approval.gardenerAddress,
       gardenAddress: approval.gardenId || "",
       feedback: approval.feedback || "",

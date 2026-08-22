@@ -16,6 +16,7 @@ import {
   VerificationMethod,
   type Work,
   type WorkApprovalDraft,
+  type WorkDisplayStatus,
 } from "../../types/domain";
 import type { ApprovalJobPayload } from "../../types/job-queue";
 import { toastService } from "../../components/toast";
@@ -42,7 +43,7 @@ export interface UseWorkApprovalActionsResult {
   setConfidence: (value: Confidence) => void;
   optimisticStatus: "approved" | "rejected" | null;
   /** Derived status: optimistic takes precedence over fetched */
-  effectiveStatus: string;
+  effectiveStatus: WorkDisplayStatus;
   handleApprovePress: () => void;
   handleRejectPress: () => void;
   handleCancelFeedback: () => void;

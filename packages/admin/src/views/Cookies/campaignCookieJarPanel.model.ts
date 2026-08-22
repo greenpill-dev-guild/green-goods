@@ -15,10 +15,9 @@ export interface CampaignCookieJarCreateResult {
   jarAddress?: Address;
 }
 
-export function filterCampaignCookieJarGardens(
-  gardens: readonly Pick<Garden, "id" | "name" | "tokenAddress">[],
-  search: string
-) {
+export function filterCampaignCookieJarGardens<
+  T extends Pick<Garden, "id" | "name" | "tokenAddress">,
+>(gardens: readonly T[], search: string) {
   const query = search.trim().toLowerCase();
   if (!query) return [...gardens];
 
@@ -31,11 +30,9 @@ export function filterCampaignCookieJarGardens(
   );
 }
 
-export function orderCampaignCookieJarGardensForSelection(
-  gardens: readonly Pick<Garden, "id" | "name" | "tokenAddress">[],
-  selectedGardenIds: readonly string[],
-  search: string
-) {
+export function orderCampaignCookieJarGardensForSelection<
+  T extends Pick<Garden, "id" | "name" | "tokenAddress">,
+>(gardens: readonly T[], selectedGardenIds: readonly string[], search: string) {
   const selectedKeys = new Set(selectedGardenIds.map((id) => id.toLowerCase()));
   const filteredGardens = filterCampaignCookieJarGardens(gardens, search);
   const filteredKeys = new Set(filteredGardens.map((garden) => garden.id.toLowerCase()));

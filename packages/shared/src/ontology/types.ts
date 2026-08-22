@@ -51,8 +51,15 @@ export type VocabularyExtract =
 
 export interface OntologyAnchor {
   file: string;
+  /** Stable source identifier checked when present. Prefer this over a line hint. */
+  symbol?: string;
   /** Optional human line hint, e.g. "28-34" or "107,373". Never parsed. */
   lines?: string;
+}
+
+export interface OntologyPlannedAnchor {
+  file: string;
+  symbol: string;
 }
 
 export interface EntityLayerAnchors {
@@ -131,7 +138,7 @@ export interface OntologyVocabulary {
   spec_source?: string;
   canonical: VocabularyCanonical;
   derived_members?: string[];
-  planned_anchor?: { file: string; symbol: string };
+  planned_anchor?: OntologyPlannedAnchor;
   representations: VocabularyRepresentation[];
   mappings: VocabularyMapping[];
 }
@@ -175,6 +182,8 @@ export interface OntologyConstraint {
   id: string;
   kind: ConstraintKind;
   source_status: OntologySourceStatus;
+  spec_source?: string;
+  planned_anchor?: OntologyPlannedAnchor;
   statement: string;
   enforced_at: OntologyAnchor[];
   holes: ConstraintHole[];
@@ -198,6 +207,8 @@ export interface OntologyStateMachine {
   kind: "executable" | "narrative";
   vocabulary: string;
   spec_source?: string;
+  planned_anchor?: OntologyPlannedAnchor;
+  enforced_at?: OntologyAnchor[];
   note?: string;
   states: StateMachineState[];
   transitions: StateMachineTransition[];

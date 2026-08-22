@@ -31,7 +31,7 @@ import { type ReactNode, useMemo } from "react";
 interface ActionDetailMediaTileProps {
   src?: string;
   alt: string;
-  domain: Domain;
+  domain: Domain | null;
   title: string;
 }
 

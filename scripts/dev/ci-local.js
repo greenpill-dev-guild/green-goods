@@ -48,6 +48,7 @@ const ciEnv = {
 export function parseArguments(argv) {
   const options = {
     intent: "ship",
+    checkpointScope: "workspace",
     changedPaths: [],
     testPaths: {},
     checkIds: [],
@@ -120,6 +121,9 @@ export function parseArguments(argv) {
       case "--intent":
         options.intent = next();
         break;
+      case "--checkpoint-scope":
+        options.checkpointScope = next();
+        break;
       case "--base":
         options.base = next();
         break;
@@ -159,6 +163,14 @@ export function parseArguments(argv) {
         throw new Error(`Unknown argument: ${arg}`);
     }
   }
+  if (
+    options.intent === "checkpoint" &&
+    options.checkpointScope === "lane" &&
+    options.changedPaths.length === 0 &&
+    !options.cancelled
+  ) {
+    throw new Error("Lane checkpoint requires --changed");
+  }
   return options;
 }
 
@@ -167,6 +179,7 @@ function showHelp() {
 
 Selector options:
   --intent <intent>       diagnose|qa|review|checkpoint|readiness|push|ship|merge|release
+  --checkpoint-scope <s>  lane|workspace; lane requires explicit --changed paths
   --base <revision>       Base revision (default: origin/develop)
   --head <revision>       Head revision (default: HEAD)
   --changed <paths>       Comma-separated changed paths; repeatable
@@ -294,6 +307,23 @@ export function applyCompatibilityFilters(plan, options) {
       automatedSeconds > plan.budget.targetSeconds,
   };
   return { ...plan, checks, status, budget, skipped };
+}
+
+export function buildLocalValidationPlan(options, gitInputs, environment) {
+  const plan = selectValidation({
+    intent: options.intent,
+    checkpointScope: options.checkpointScope,
+    base: gitInputs.base,
+    head: gitInputs.head,
+    workingCopyFingerprint: gitInputs.workingCopyFingerprint,
+    changedPaths: gitInputs.changedPaths,
+    risk: options.risk,
+    cancelled: options.cancelled,
+    testPaths: options.testPaths,
+    checkIds: options.checkIds,
+    environment,
+  });
+  return applyCompatibilityFilters(plan, options);
 }
 
 function envForCheck(check) {
@@ -622,19 +652,7 @@ async function main() {
   const environment = options.cancelled
     ? { profile: "cancelled", toolchain: {}, capabilities: {} }
     : await detectEnvironment(options);
-  let plan = selectValidation({
-    intent: options.intent,
-    base: gitInputs.base,
-    head: gitInputs.head,
-    workingCopyFingerprint: gitInputs.workingCopyFingerprint,
-    changedPaths: gitInputs.changedPaths,
-    risk: options.risk,
-    cancelled: options.cancelled,
-    testPaths: options.testPaths,
-    checkIds: options.checkIds,
-    environment,
-  });
-  plan = applyCompatibilityFilters(plan, options);
+  const plan = buildLocalValidationPlan(options, gitInputs, environment);
 
   if (options.planJson) {
     console.log(JSON.stringify(plan, null, 2));
