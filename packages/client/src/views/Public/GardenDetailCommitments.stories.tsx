@@ -1,6 +1,7 @@
 import {
   type Address,
   type CommitmentUnitSummaryRecord,
+  PUBLIC_HISTORY_PAGE_SIZE,
   type PublicCommitmentCycleRecord,
   type PublicCommitmentPoolRecord,
   type PublicGardenPoolData,
@@ -199,29 +200,39 @@ const POOL_UNITS = [
 ];
 
 function data(overrides: Partial<PublicGardenPoolData> = {}): PublicGardenPoolData {
+  const finishedCycles = overrides.finishedCycles ?? [];
   return {
     pool: pool(),
     openSeason: null,
     openCampaigns: [],
-    finishedCycles: [],
+    finishedCycles,
     poolUnitSummaries: [],
     cycleUnitSummaries: [],
+    finishedCycleTotal: finishedCycles.length,
+    hasCommitmentCertificates: true,
     partialData: false,
     unavailableSources: { commitmentPool: false, cycleMetadata: false },
     ...overrides,
   };
 }
 
+/** The key carries the history window the section asks for on first render. */
 function seeded(record: PublicGardenPoolData) {
   return withSeededQueryClient([
-    [queryKeys.public.gardenDetail(`commitment-pool:${GARDEN.toLowerCase()}`, CHAIN_ID), record],
+    [
+      queryKeys.public.gardenDetail(
+        `commitment-pool:${GARDEN.toLowerCase()}:${PUBLIC_HISTORY_PAGE_SIZE}`,
+        CHAIN_ID
+      ),
+      record,
+    ],
   ]);
 }
 
 const meta: Meta<typeof CommitmentsSection> = {
   title: "Client/Public/GardenDetail/CommitmentsSection",
   component: CommitmentsSection,
-  args: { gardenAddress: GARDEN, chainId: CHAIN_ID, gardenLoading: false, hasCertificates: true },
+  args: { gardenAddress: GARDEN, chainId: CHAIN_ID, gardenLoading: false },
   decorators: [
     (Story) => (
       <div className="bg-bg-weak-50 px-6 py-16 sm:px-10">

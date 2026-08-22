@@ -150,6 +150,19 @@ describe("ImpactPage", () => {
     expect(screen.getByText("30")).toBeInTheDocument();
   });
 
+  it("renders a stats read that settled without data as unavailable, never as zero", () => {
+    mockUsePublicStats.mockReturnValue({ data: undefined, isLoading: false });
+    renderView();
+    const proof = document.querySelector(
+      'section[aria-labelledby="public-impact-proof-title"]'
+    ) as HTMLElement;
+    // Three live markers dash out with a screen-reader label; the certificates
+    // marker is a confirmed "not public yet", not a failed read, and keeps its phrase.
+    expect(within(proof).getAllByText("Not available right now")).toHaveLength(3);
+    expect(within(proof).getAllByText("Not public yet")).toHaveLength(1);
+    expect(within(proof).queryByText("0")).toBeNull();
+  });
+
   it("renders evidence cards with their titles in an image-forward grid", () => {
     renderView();
     expect(screen.getByText("Q3 Soil Renewal")).toBeInTheDocument();

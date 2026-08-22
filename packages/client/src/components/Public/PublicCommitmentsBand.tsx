@@ -23,7 +23,7 @@ import { type PublicProofMarker, PublicProofMarkers } from "./PublicProofMarkers
  * The section header sits on the linen like § 01 and § 04; the record is one
  * `EditorialPanel` holding four markers in the § 01 proof-marker grammar —
  * Gardens with open pools, lifetime commitments fulfilled across every
- * registered pool, the share of due commitments kept, and CCIP-confirmed G$
+ * registered pool, the share of taken-up commitments kept, and CCIP-confirmed G$
  * support — then one lifecycle sentence and a way into `/gardens` as the
  * panel's footer line. No per-garden table, comparison, or ordering of any
  * kind: public comparison drifts toward ranking (§7.4).
@@ -108,12 +108,13 @@ export function PublicCommitmentsBand({ chainId = DEFAULT_CHAIN_ID }: { chainId?
       keptSelection?.kind === "rate"
         ? formatMessage({
             id: "public.pool.impact.kept.rateNote",
-            defaultMessage: "Of the commitments that came due, the share confirmed as kept.",
+            defaultMessage:
+              "Of every commitment taken up and not mutually released, the share confirmed as kept. Commitments still in progress count until they are kept.",
           })
         : formatMessage({
             id: "public.pool.impact.kept.countsOnlyNote",
             defaultMessage:
-              "Of the commitments that came due, those confirmed as kept. A share is published once the record is large enough to describe fairly.",
+              "Of every commitment taken up and not mutually released, those confirmed as kept. A share is published once the record is large enough to describe fairly.",
           }),
     loading: isLoading,
     unavailable: !isLoading && keptSelection === null,
@@ -207,7 +208,7 @@ export function PublicCommitmentsBand({ chainId = DEFAULT_CHAIN_ID }: { chainId?
               {formatMessage({
                 id: "public.pool.impact.lifecycle",
                 defaultMessage:
-                  "A commitment is offered or asked for, taken up, worked, witnessed, and confirmed by the person it was made to. Fulfilled commitments join a Garden's record and can anchor an Impact Certificate.",
+                  "A commitment is offered or asked for, taken up, worked, witnessed, and confirmed by an eligible confirmer, usually the person it was made to. Fulfilled commitments join a Garden's record and can anchor an Impact Certificate.",
               })}
             </EditorialLede>
             <EditorialLinkArrow to="/gardens" className="shrink-0 self-start lg:self-auto">

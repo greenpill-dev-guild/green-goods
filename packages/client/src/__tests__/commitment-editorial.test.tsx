@@ -195,18 +195,23 @@ interface PoolDataFixture {
   finishedCycles: CycleFixture[];
   poolUnitSummaries: ReturnType<typeof makeUnit>[];
   cycleUnitSummaries: ReturnType<typeof makeUnit>[];
+  finishedCycleTotal: number;
+  hasCommitmentCertificates: boolean;
   partialData: boolean;
   unavailableSources: { commitmentPool: boolean; cycleMetadata: boolean };
 }
 
 function poolData(overrides: Partial<PoolDataFixture> = {}): PoolDataFixture {
+  const finishedCycles = overrides.finishedCycles ?? [];
   return {
     pool: makePool(),
     openSeason: null,
     openCampaigns: [],
-    finishedCycles: [],
+    finishedCycles,
     poolUnitSummaries: [],
     cycleUnitSummaries: [],
+    finishedCycleTotal: finishedCycles.length,
+    hasCommitmentCertificates: false,
     partialData: false,
     unavailableSources: { commitmentPool: false, cycleMetadata: false },
     ...overrides,
@@ -214,7 +219,15 @@ function poolData(overrides: Partial<PoolDataFixture> = {}): PoolDataFixture {
 }
 
 function poolResult(data: PoolDataFixture, extra: Record<string, unknown> = {}) {
-  return { data, isLoading: false, isPending: false, refetch: vi.fn(), ...extra };
+  return {
+    data,
+    isLoading: false,
+    isPending: false,
+    isFetching: false,
+    isPlaceholderData: false,
+    refetch: vi.fn(),
+    ...extra,
+  };
 }
 
 function impactData(
@@ -517,7 +530,10 @@ describe("GardenDetail § 02 Commitments", () => {
     expect(screen.getByText("§ 02: Commitments")).toBeInTheDocument();
     expect(screen.getByText("§ 03: Certificates")).toBeInTheDocument();
     expect(screen.getByText("§ 04: Operators")).toBeInTheDocument();
-    expect(mockUsePublicGardenPool).toHaveBeenCalledWith(GARDEN_ID, { chainId: CHAIN_ID });
+    expect(mockUsePublicGardenPool).toHaveBeenCalledWith(GARDEN_ID, {
+      chainId: CHAIN_ID,
+      historyLimit: 12,
+    });
   });
 
   it("renders readiness copy and no statistics when the Garden has no pool yet", () => {
@@ -731,7 +747,17 @@ describe("GardenDetail § 02 Commitments", () => {
         commitmentsFulfilled: 10n,
       })
     );
-    mockUsePublicGardenPool.mockReturnValue(poolResult(poolData({ finishedCycles: finished })));
+    // The reader cuts the window before resolving metadata; the mock answers
+    // each requested window the way the data boundary would.
+    mockUsePublicGardenPool.mockImplementation(
+      (_garden: unknown, options: { historyLimit?: number } = {}) =>
+        poolResult(
+          poolData({
+            finishedCycles: finished.slice(0, options.historyLimit ?? 12),
+            finishedCycleTotal: finished.length,
+          })
+        )
+    );
     renderGarden();
     const section = commitmentsSection();
     const history = within(section).getByText(en["public.pool.garden.history.kicker"])
@@ -754,6 +780,12 @@ describe("GardenDetail § 02 Commitments", () => {
       within(history).getByRole("button", { name: en["public.pool.garden.history.loadMore"] })
     );
     expect(names()).toHaveLength(14);
+    // Paging asked the data boundary for a wider window rather than slicing
+    // a fully resolved history on the client.
+    expect(mockUsePublicGardenPool).toHaveBeenLastCalledWith(
+      GARDEN_ID,
+      expect.objectContaining({ historyLimit: 24 })
+    );
     expect(within(history).getByText("Showing 14 of 14")).toBeInTheDocument();
     expect(
       within(history).queryByRole("button", { name: en["public.pool.garden.history.loadMore"] })
@@ -943,7 +975,10 @@ describe("GardenDetail § 02 Commitments", () => {
     expect(within(section).queryByText(en["public.pool.garden.record.made"])).toBeNull();
   });
 
-  it("links fulfilled commitments into the certificates section only when a certificate exists", () => {
+  it("links fulfilled commitments into the certificates section only when a certificate bundles commitments", () => {
+    mockUsePublicGardenPool.mockReturnValue(
+      poolResult(poolData({ hasCommitmentCertificates: true }))
+    );
     mockUseHypercerts.mockReturnValue({
       hypercerts: [
         { id: "hc-1", title: "Season of Repair: terraces", attestationCount: 12, workScopes: [] },
@@ -960,10 +995,19 @@ describe("GardenDetail § 02 Commitments", () => {
     expect(document.getElementById("public-garden-detail-certificates")).not.toBeNull();
   });
 
-  it("makes no anchoring claim while the Garden has fulfilled commitments but no certificate yet", () => {
+  it("makes no anchoring claim when the Garden's certificates are legacy Work bundles", () => {
+    // A certificate exists in § 03, but the indexer reports no commitment
+    // bundle for this Garden: presence is not linkage, so no anchor is claimed.
+    mockUseHypercerts.mockReturnValue({
+      hypercerts: [
+        { id: "hc-legacy", title: "Planting season 2025", attestationCount: 8, workScopes: [] },
+      ],
+      isLoading: false,
+    });
     renderGarden();
     const section = commitmentsSection();
     expect(cellValue(en["public.pool.garden.record.kept"])).toBe("24");
+    expect(document.getElementById("public-garden-detail-certificates")).not.toBeNull();
     expect(section).not.toHaveTextContent(en["public.pool.garden.certificatesTieIn"]);
     expect(
       within(section).queryByRole("link", { name: en["public.pool.garden.certificatesLink"] })
@@ -999,8 +1043,27 @@ describe("GardenDetail § 02 Commitments", () => {
         })
       )
     );
-    renderGarden();
+    const second = renderGarden();
     expect(cellValue(en["public.pool.garden.record.keptRate"])).toBe("<1%");
+    second.unmount();
+
+    // Every decision is integer arithmetic on the counters: a uint256-scale
+    // record a hair under 99.5% narrows to exactly 0.995 as a double, which a
+    // float formatter would round up to "100%". It must read as 99%.
+    mockUsePublicGardenPool.mockReturnValue(
+      poolResult(
+        poolData({
+          pool: makePool({
+            commitmentsAccepted: 10n ** 30n,
+            commitmentsFulfilled: 995n * 10n ** 27n - 1n,
+            commitmentsDue: 10n ** 30n,
+            distinctProviderCount: 9n,
+          }),
+        })
+      )
+    );
+    renderGarden();
+    expect(cellValue(en["public.pool.garden.record.keptRate"])).toBe("99%");
   });
 
   it("never exposes a provider address, provider-level outcome, or cancelled and disputed counts", () => {

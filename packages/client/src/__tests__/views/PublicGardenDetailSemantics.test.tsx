@@ -77,6 +77,7 @@ vi.mock("@green-goods/shared", () => ({
   }),
   useHypercerts: () => ({ hypercerts: [], isLoading: false }),
   // Pre-launch: no pool registered, so § 02 renders its readiness copy.
+  PUBLIC_HISTORY_PAGE_SIZE: 12,
   usePublicGardenPool: () => ({
     data: {
       pool: null,
@@ -85,10 +86,14 @@ vi.mock("@green-goods/shared", () => ({
       finishedCycles: [],
       poolUnitSummaries: [],
       cycleUnitSummaries: [],
+      finishedCycleTotal: 0,
+      hasCommitmentCertificates: false,
       partialData: false,
       unavailableSources: { commitmentPool: false, cycleMetadata: false },
     },
     isLoading: false,
+    isFetching: false,
+    isPlaceholderData: false,
     refetch: () => Promise.resolve(),
   }),
   selectPublicPromiseKeptRate: () => ({ kind: "counts-only", counts: { fulfilled: 0n, due: 0n } }),

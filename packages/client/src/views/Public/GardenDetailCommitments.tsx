@@ -1,9 +1,11 @@
 import {
   type Address,
+  PUBLIC_HISTORY_PAGE_SIZE,
   type PublicGardenPoolData,
   selectPublicPromiseKeptRate,
   usePublicGardenPool,
 } from "@green-goods/shared";
+import { useState } from "react";
 import { type IntlShape, useIntl } from "react-intl";
 import { EditorialPanel } from "@/components/Public/atoms";
 import { formatKeptRate } from "@/components/Public/keptRate";
@@ -46,21 +48,17 @@ export function CommitmentsSection({
   gardenAddress,
   chainId,
   gardenLoading,
-  hasCertificates,
 }: {
   gardenAddress: Address | undefined;
   chainId: number;
   /** The page is still resolving the Garden; the section waits with it. */
   gardenLoading: boolean;
-  /**
-   * § 03 has at least one Impact Certificate. The tie-in line claims that
-   * fulfilled commitments are anchored below, so it needs a certificate to
-   * point at, not just a fulfilled count.
-   */
-  hasCertificates: boolean;
 }) {
   const { formatMessage } = useIntl();
-  const pool = usePublicGardenPool(gardenAddress, { chainId });
+  // The finished-cycle window is paged at the data boundary: widening it
+  // re-reads with a larger limit while the current rows stay on screen.
+  const [historyLimit, setHistoryLimit] = useState(PUBLIC_HISTORY_PAGE_SIZE);
+  const pool = usePublicGardenPool(gardenAddress, { chainId, historyLimit });
   const data = pool.data;
   const loading = gardenLoading || (gardenAddress !== undefined && pool.isPending === true);
   const unavailable = data?.unavailableSources.commitmentPool === true || (!loading && !data);
@@ -96,7 +94,11 @@ export function CommitmentsSection({
         ) : preparing ? (
           <Readiness sentence={stateSentence(formatMessage, data)} />
         ) : (
-          <PoolRecord data={data} hasCertificates={hasCertificates} />
+          <PoolRecord
+            data={data}
+            loadingMore={pool.isPlaceholderData && pool.isFetching}
+            onShowMore={() => setHistoryLimit((limit) => limit + PUBLIC_HISTORY_PAGE_SIZE)}
+          />
         )}
       </EditorialPanel>
     </Section>
@@ -150,7 +152,7 @@ function stateSentence(
       // OPEN. Between seasons, the record framing carries the sentence.
       return data.openSeason === null &&
         data.openCampaigns.length === 0 &&
-        data.finishedCycles.length > 0
+        data.finishedCycleTotal > 0
         ? formatMessage({
             id: "public.pool.garden.state.betweenSeasons",
             defaultMessage:
@@ -212,10 +214,12 @@ function UnavailableRecord({ onRetry }: { onRetry: () => void }) {
 
 function PoolRecord({
   data,
-  hasCertificates,
+  loadingMore,
+  onShowMore,
 }: {
   data: PublicGardenPoolData;
-  hasCertificates: boolean;
+  loadingMore: boolean;
+  onShowMore: () => void;
 }) {
   const { formatMessage, formatNumber } = useIntl();
   const { pool, openSeason, openCampaigns, poolUnitSummaries, cycleUnitSummaries } = data;
@@ -225,7 +229,7 @@ function PoolRecord({
   const finishedCycles = data.finishedCycles.filter((cycle) => cycle.state !== "CANCELLED");
   // Nothing has been made yet: a scope-named empty note stands where the
   // numerals would, while an open cycle still names itself below.
-  const nothingYet = pool.commitmentsAccepted === 0n && finishedCycles.length === 0;
+  const nothingYet = pool.commitmentsAccepted === 0n && data.finishedCycleTotal === 0;
 
   const selection = selectPublicPromiseKeptRate({
     commitmentsFulfilled: pool.commitmentsFulfilled,
@@ -268,7 +272,7 @@ function PoolRecord({
                 ? formatMessage({
                     id: "public.pool.garden.record.keptRateNote",
                     defaultMessage:
-                      "The kept rate counts commitments that came due, not those still in progress.",
+                      "Kept commitments over every commitment taken up and not mutually released. Commitments still in progress count until they are kept.",
                   })
                 : formatMessage({
                     id: "public.pool.garden.record.countsOnlyNote",
@@ -298,9 +302,21 @@ function PoolRecord({
         </div>
       ) : null}
 
-      {finishedCycles.length > 0 ? <FinishedCycles cycles={finishedCycles} /> : null}
+      {finishedCycles.length > 0 ? (
+        <FinishedCycles
+          cycles={finishedCycles}
+          total={data.finishedCycleTotal}
+          loadingMore={loadingMore}
+          onShowMore={onShowMore}
+        />
+      ) : null}
 
-      {pool.commitmentsFulfilled > 0n && hasCertificates ? <CertificatesTieIn /> : null}
+      {/* The tie-in claims an anchor, so it needs a certificate that actually
+          bundles commitments — not merely any certificate in § 03. The reader
+          answers "no" when it could not prove one. */}
+      {pool.commitmentsFulfilled > 0n && data.hasCommitmentCertificates ? (
+        <CertificatesTieIn />
+      ) : null}
 
       {data.unavailableSources.cycleMetadata ? (
         <p role="status" className="mt-6 text-sm text-text-sub-600">

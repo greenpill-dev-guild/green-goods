@@ -137,12 +137,10 @@ export default function ImpactPage() {
     return map;
   }, [gardens]);
 
-  const counts = stats.data ?? {
-    gardenCount: 0,
-    contributorCount: 0,
-    fieldNoteCount: 0,
-    attestationCount: 0,
-  };
+  // A read that settled without data is unknown, never zero: its markers
+  // render as unavailable, and "Not public yet" stays for a confirmed 0.
+  const statsUnavailable = !stats.isLoading && stats.data === undefined;
+  const counts = stats.data ?? { gardenCount: 0, fieldNoteCount: 0, attestationCount: 0 };
 
   const slice = evidence.data;
 
@@ -242,12 +240,13 @@ export default function ImpactPage() {
     label: string,
     note: string,
     value: number,
-    loading: boolean
+    fromStats = true
   ): PublicProofMarker => ({
     key,
     label,
     note,
-    loading,
+    loading: fromStats && stats.isLoading,
+    unavailable: fromStats && statsUnavailable,
     ...(value > 0 ? { value: formatNumber(value) } : { phrase: notPublicYet }),
   });
   const proofMarkers: PublicProofMarker[] = [
@@ -258,8 +257,7 @@ export default function ImpactPage() {
         id: "public.impact.proof.workNote",
         defaultMessage: "Field entries logged across Gardens.",
       }),
-      counts.fieldNoteCount,
-      stats.isLoading
+      counts.fieldNoteCount
     ),
     proofMarker(
       "assessments",
@@ -268,8 +266,7 @@ export default function ImpactPage() {
         id: "public.impact.proof.assessmentsNote",
         defaultMessage: "Baselines recorded before Work begins.",
       }),
-      counts.attestationCount,
-      stats.isLoading
+      counts.attestationCount
     ),
     proofMarker(
       "gardens",
@@ -278,8 +275,7 @@ export default function ImpactPage() {
         id: "public.impact.proof.gardensNote",
         defaultMessage: "Active places under continuous documentation.",
       }),
-      counts.gardenCount,
-      stats.isLoading
+      counts.gardenCount
     ),
     proofMarker(
       "certificates",

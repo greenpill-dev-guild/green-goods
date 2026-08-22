@@ -46,7 +46,7 @@ const meta: Meta<typeof PublicCommitmentsBand> = {
         component:
           "`/impact` § 02 — protocol-wide commitment aggregates: a canvas header, then one " +
           "editorial panel holding four markers in the § 01 proof-marker grammar. Gardens with " +
-          "open pools, lifetime commitments fulfilled, the share of due commitments kept " +
+          "open pools, lifetime commitments fulfilled, the share of taken-up commitments kept " +
           "(published only above the ≥ 5 due / ≥ 3 providers threshold), and CCIP-confirmed " +
           "G$ support, with the lifecycle sentence and the way into the Gardens as the panel's " +
           "footer line. A failed source renders an em dash, never a zero; " +

@@ -19,7 +19,7 @@ import {
  * then Impact Certificate (the certified outcome), and a new Assessment
  * begins the next loop. Commitment pooling added the two relational stages
  * around Work (uiux-spec §7.3): work begins as a commitment to someone, and
- * the person it was made to confirms it was kept.
+ * an eligible confirmer, usually that person, records that it was kept.
  *
  * These node kinds are the figure's own vocabulary. They are not the public
  * evidence ledger's record kinds (`PublicImpactEvidenceKind`, labelled in
@@ -172,14 +172,14 @@ function nodeCopy(
             definition={formatMessage({
               id: "public.pool.terms.confirmation",
               defaultMessage:
-                "The moment the person a commitment was made to records that it was kept.",
+                "The moment an eligible confirmer, usually the person a commitment was made to, records that it was kept.",
             })}
           />
         ),
         description: formatMessage({
           id: "public.impact.pipeline.node.confirmation.description",
           defaultMessage:
-            "The person the commitment was made to confirms it was kept. Evidence, or approved Work where the commitment calls for it, stands behind the confirmation, and the commitment records the outcome.",
+            "An eligible confirmer, usually the person the commitment was made to, records that it was kept. Evidence, or approved Work where the commitment calls for it, stands behind the confirmation, and the commitment records the outcome.",
         }),
       };
     case "certificate":

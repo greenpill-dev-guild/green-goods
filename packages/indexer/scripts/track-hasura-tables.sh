@@ -47,19 +47,28 @@ if ! echo "$resp" | grep -q '"envio_chains"'; then
 fi
 
 # Nothing to do once the internal progress tables are exposed *and* the public
-# role can aggregate. A stack that predates the aggregation grant exposes
-# envio_chains but publishes no `_aggregate` root field, so it still needs a
-# pass; checking only the table would leave it permanently unfixed. The fast
-# path reads "already migrated", which a partly-applied pass would satisfy
-# too, so TRACK_HASURA_FORCE=1 re-runs every grant to recover the stragglers a
-# reported failure names.
+# role can aggregate every table the public impact reader asks for. A stack
+# that predates the aggregation grant exposes envio_chains but publishes no
+# `_aggregate` root field, and a pass that only half applied publishes some;
+# either way the pass has to run again, so the fast path checks each required
+# root by name rather than "any aggregate". TRACK_HASURA_FORCE=1 skips the
+# fast path outright to re-run every grant.
+REQUIRED_AGGREGATE_ROOTS="CommitmentPool_aggregate CommitmentProviderExposure_aggregate Disbursement_aggregate"
+
 schema_check=$(curl -s -X POST "${HASURA_URL}/v1/graphql" \
   -H "content-type: application/json" \
   -d '{"query":"{ __schema { queryType { fields { name } } } }"}' 2>/dev/null)
 
+required_roots_present() {
+  for root in $REQUIRED_AGGREGATE_ROOTS; do
+    echo "$schema_check" | grep -q "\"$root\"" || return 1
+  done
+  return 0
+}
+
 if [ "${TRACK_HASURA_FORCE:-0}" != "1" ] &&
    echo "$schema_check" | grep -q '"envio_chains"' &&
-   echo "$schema_check" | grep -q '_aggregate"'; then
+   required_roots_present; then
   exit 0
 fi
 
@@ -92,8 +101,29 @@ metadata_call() {
 # table Envio tracked itself already carries one without `allow_aggregations`,
 # so an existing grant is replaced through a single `bulk` transaction: two
 # separate drop and create requests would leave a window where the table reads
-# as forbidden.
+# as forbidden. Only a grant of this script's own shape is ever replaced: a
+# narrower one (a column allowlist, a row filter) is somebody's deliberate
+# restriction, and widening it back to every column would be a silent security
+# regression, so it is left alone and reported instead.
 PERMISSION='{"columns":"*","filter":{},"allow_aggregations":true}'
+# Matched as a quoted (literal) case pattern, so the star is not a glob.
+OWN_SHAPE_PATTERN='"columns":"*","filter":{}'
+
+current_public_permission() {
+  metadata_call '{"type":"export_metadata","version":2,"args":{}}' | node -e "
+    const chunks = [];
+    process.stdin.on('data', d => chunks.push(d));
+    process.stdin.on('end', () => {
+      try {
+        const md = JSON.parse(Buffer.concat(chunks).toString()).metadata;
+        const table = (md.sources || []).flatMap(s => s.tables || [])
+          .find(t => t.table && t.table.schema === 'public' && t.table.name === process.argv[1]);
+        const perm = ((table && table.select_permissions) || []).find(p => p.role === 'public');
+        process.stdout.write(perm ? JSON.stringify(perm.permission) : '');
+      } catch (e) { process.exit(1); }
+    });
+  " "$1"
+}
 
 # Each metadata write makes Hasura rebuild its GraphQL schema, so a busy engine
 # can drop one. A lost write leaves the table readable but not aggregatable —
@@ -113,6 +143,16 @@ grant_public_select() {
     case "$response" in
       *'"message":"success"'*) return 0 ;;
       *already-exists*)
+        existing=$(current_public_permission "$table")
+        case "$existing" in
+          *'"allow_aggregations":true'*) return 0 ;;
+          *"$OWN_SHAPE_PATTERN"*) ;;
+          *)
+            kept=$((kept + 1))
+            echo "track-hasura-tables: left the public grant on $table untouched (not this script's shape): $existing" >&2
+            return 0
+            ;;
+        esac
         response=$(metadata_call "$replace")
         case "$response" in
           *'"message":"success"'*) return 0 ;;
@@ -130,6 +170,7 @@ grant_public_select() {
 # Track each table and grant the public role select + aggregation permission
 tracked=0
 ungranted=0
+kept=0
 for table in $tables; do
   metadata_call "{\"type\":\"pg_track_table\",\"args\":{\"source\":\"default\",\"table\":{\"schema\":\"public\",\"name\":\"$table\"}}}" > /dev/null
 
@@ -141,6 +182,8 @@ done
 if [ "$ungranted" -gt 0 ]; then
   echo "track-hasura-tables: tracked $tracked tables in Hasura, $ungranted without aggregate access" >&2
   echo "track-hasura-tables: re-run with TRACK_HASURA_FORCE=1 to retry them" >&2
+elif [ "$kept" -gt 0 ]; then
+  echo "track-hasura-tables: tracked $tracked tables in Hasura, $kept custom public grant(s) left untouched"
 else
   echo "track-hasura-tables: tracked $tracked tables in Hasura"
 fi

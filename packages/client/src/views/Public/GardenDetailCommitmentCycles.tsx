@@ -3,7 +3,7 @@ import {
   cn,
   type PublicCommitmentCycleRecord,
 } from "@green-goods/shared";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { type IntlShape, useIntl } from "react-intl";
 import { EditorialHeading, EditorialKicker } from "@/components/Public/atoms";
 
@@ -14,9 +14,6 @@ import { EditorialHeading, EditorialKicker } from "@/components/Public/atoms";
  * `GardenDetailCommitments.tsx` to keep that file under the source-structure
  * ceiling; they have no meaning outside it.
  */
-
-/** Finished-cycle window, paged locally like § 01 field notes. */
-const HISTORY_PAGE_SIZE = 12;
 
 const META_CLASS =
   "font-mono text-[11px] font-medium uppercase tracking-[0.16em] text-text-soft-400";
@@ -195,12 +192,26 @@ export function PoolUnits({
   );
 }
 
-/** Finished cycles newest first, twelve at a time, campaigns beside seasons. */
-export function FinishedCycles({ cycles }: { cycles: PublicCommitmentCycleRecord[] }) {
+/**
+ * Finished cycles newest first, campaigns beside seasons. The rows are the
+ * window the reader resolved; `total` counts every finished cycle the Garden
+ * has, and `onShowMore` widens the window at the data boundary, so a mature
+ * Garden's whole history is never resolved just to show its newest twelve.
+ */
+export function FinishedCycles({
+  cycles,
+  total,
+  loadingMore,
+  onShowMore,
+}: {
+  cycles: PublicCommitmentCycleRecord[];
+  total: number;
+  loadingMore: boolean;
+  onShowMore: () => void;
+}) {
   const intl = useIntl();
   const { formatMessage, formatNumber } = intl;
-  const [visibleCount, setVisibleCount] = useState(HISTORY_PAGE_SIZE);
-  const visible = cycles.slice(0, visibleCount);
+  const visible = cycles;
   const statusRef = useRef<HTMLParagraphElement>(null);
   const focusPending = useRef(false);
 
@@ -209,10 +220,10 @@ export function FinishedCycles({ cycles }: { cycles: PublicCommitmentCycleRecord
   // change instead. Only a click arms this, so a data refresh never steals
   // focus.
   useEffect(() => {
-    if (!focusPending.current) return;
+    if (!focusPending.current || loadingMore) return;
     focusPending.current = false;
-    if (visibleCount >= cycles.length) statusRef.current?.focus();
-  }, [visibleCount, cycles.length]);
+    if (visible.length >= total) statusRef.current?.focus();
+  }, [visible.length, total, loadingMore]);
 
   return (
     <div className="mt-8 flex flex-col gap-4 border-t border-stroke-soft-200 pt-8">
@@ -265,17 +276,19 @@ export function FinishedCycles({ cycles }: { cycles: PublicCommitmentCycleRecord
               id: "public.pool.garden.history.showing",
               defaultMessage: "Showing {shown} of {total}",
             },
-            { shown: visible.length, total: cycles.length }
+            { shown: visible.length, total }
           )}
         </p>
-        {visible.length < cycles.length ? (
+        {visible.length < total ? (
           <button
             type="button"
+            disabled={loadingMore}
+            aria-busy={loadingMore}
             onClick={() => {
               focusPending.current = true;
-              setVisibleCount((count) => count + HISTORY_PAGE_SIZE);
+              onShowMore();
             }}
-            className="border-b border-primary-action/35 pb-0.5 text-sm font-medium text-primary-action transition-colors hover:border-primary-action-hover hover:text-primary-action-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action focus-visible:ring-offset-2"
+            className="border-b border-primary-action/35 pb-0.5 text-sm font-medium text-primary-action transition-colors hover:border-primary-action-hover hover:text-primary-action-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action focus-visible:ring-offset-2 disabled:cursor-wait disabled:text-text-soft-400"
           >
             {formatMessage({
               id: "public.pool.garden.history.loadMore",
