@@ -53,7 +53,7 @@ function address(value: unknown): Address | null {
   return typeof value === "string" && value.startsWith("0x") ? (value as Address) : null;
 }
 
-export function useCommitmentEvidence(attributions: readonly EvidenceAttributionRow[]): {
+export function useCommitmentEvidence(attributions: readonly EvidenceAttributionRow[] = []): {
   evidence: ResolvedEvidence[];
   isLoading: boolean;
 } {

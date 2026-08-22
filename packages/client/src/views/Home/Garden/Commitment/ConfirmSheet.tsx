@@ -39,7 +39,7 @@ export interface ConfirmSheetProps {
   requirements: CommitmentRequirementRecord[];
   contributors: CommitmentContributorRecord[];
   /** The detail's evidence attributions, resolved to what was actually submitted. */
-  evidenceAttributions: EvidenceAttributionRow[];
+  evidenceAttributions?: EvidenceAttributionRow[];
   viewer: Address | null;
   isOnline: boolean;
   phase: ConfirmPhase;
@@ -66,7 +66,7 @@ export function ConfirmSheet({
   commitment,
   requirements,
   contributors,
-  evidenceAttributions,
+  evidenceAttributions = [],
   viewer,
   isOnline,
   phase,

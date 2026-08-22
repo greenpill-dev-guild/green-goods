@@ -4,7 +4,6 @@ import {
   imageCompressor,
   isVideoFile,
   mediaResourceManager,
-  prepareMediaForUpload,
   selectCommitmentActKind,
   selectCommitmentSeat,
   toastService,
@@ -17,6 +16,8 @@ import {
   useProofDraftSync,
   usePrimaryAddress,
 } from "@green-goods/shared";
+// The narrowest declared subpath: media preparation is a module, not a hook.
+import { prepareMediaForUpload } from "@green-goods/shared/modules";
 import { useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate, useParams } from "react-router-dom";

@@ -861,7 +861,6 @@ export {
   mediaResourceManager,
   meetsOctantVaultCardEndowUsdMinimum,
   normalizeWorkMediaFiles,
-  prepareMediaForUpload,
   OCTANT_VAULT_CAMPAIGN_COPY_MESSAGE_IDS,
   OCTANT_VAULT_CAMPAIGN_MANIFEST,
   OCTANT_VAULT_CARD_ENDOW_MIN_USD_CENTS,
