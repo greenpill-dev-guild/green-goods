@@ -175,3 +175,42 @@ Both named client test files do not exist yet; they are intentional to-be-create
 - Keep Pool participation history separate from one ongoing Offer’s Story. No device-only saved
   Offer metadata, claim-spawned instance, auto-renewal, active succession control, inferred
   participant count, reliability score, or cross-pool identity.
+
+## Built / not built — D1 client loop, 2026-08-21
+
+Branch `feature/commitment-pooling-client-loop`; full evidence and decisions in
+`reports/client-loop-2026-08-21.md`. One line per "not built" says why.
+
+| Screen | State id | Built | Proof / why not |
+|---|---|---|---|
+| W1 | two doors, empty-state doors | Built | `GardenPool.test.tsx`; client-local `PoolCreateEntry` (no FAB primitive, flagged) |
+| W1 | `not-ready` charter + cap rows | Built | Rendered on a live NOT_READY pool; tests |
+| W1 | `not-ready` Baseline row | Not built | No shared selector for a qualifying starting assessment |
+| W1 | `paused` with reason | Built | `useCommitmentReason` over `pauseReasonCID` |
+| W1 | `queued`, `sync-failed`, `waiting-membership` | Built | `PendingCreationRow`, retry/discard |
+| W1 + W25 | `claim-pending/declined/superseded/accepted` | Built | `CommitmentClaimPanel` on the detail |
+| W25 | `context-chooser`, `pending`, `accepted` | Built | `ClaimContextSheet`, resolved before enqueue |
+| W25 | `card` on the pool tab | Not built | Deferred; lifecycle lives on the detail panel |
+| W2 | acts, held/failed queue, provenance | Built | `GardenCommitment.test.tsx` (40) |
+| W2 | StateTimeline | Not built | Deferred; not a D1 item |
+| W2a | `media`, `media-preview`, `details`, `review*`, `queued` | Built | `ProofComposer.test.tsx`, Storybook |
+| W2a | `failed` | On W2 only | The detail's queue alert; the composer ends at `queued` |
+| W2b | `open-member`, `frozen`, `recognition` | Built | `CommitmentTeam`, join via `joinCommitment` |
+| W2b | `setup`, `forming` | Not built | Decision 4: roster mutations deferred |
+| W3 | `step-what/howmuch/details/review/review-read`, `request-work-*`, `validation`, `draft-resume` | Built | `ComposeCommitment.test.tsx` (21) |
+| W3 | `details-preview` | Not built | D2, with composer media capture |
+| W3 | `step-advanced` | Not built | Decision 3: shared form models no confirmers |
+| W4 | `confirm-domain/support/request/request-work/captured`, named group, fallback provenance, `confirmed-pending*`, `confirmed*`, `not-yet*`, `not-yet-failed*` | Built | `ConfirmSheet`, tests, Storybook |
+| W4 | `confirm-campaign-request` | Not built | No campaign-request cast in the read model; falls to `request` |
+| WFLOW | `WFLOW@review` Fulfills row, `link-picker`, `workLink` job | Built | From the indexer attribution by `workUID` |
+| WFLOW | `meta.commitmentId` on deep-link Work | Not built | Decision 6: work metadata schema is outside the lane |
+| W5 | `toconfirm`, `toconfirm-empty/loading/read-error` | Built | `useCommitmentsToConfirm`; tab only for stewards |
+| W5 | steward fallback rows | Not built | Reasoned step-in not selected; ordinary confirmations only |
+| Stories | row, ladder, rail, proof, confirm | Built | 37 Chromium plays, `storybook-ci` |
+
+Acceptance bullets: six job kinds, creation/work-link identity, DomainImpact validation, cycle
+scope, claim identity and chooser, state ladders, accessibility: built. `WFLOW@review` from the
+attribution rather than `meta.commitmentId` (decision 6). Settlement, consideration and
+saved-Offer bullets: out of this lane (D2 for saved Offers). Rendered proof: pool tab and sheet
+live; detail/compose/proof/confirm/claim/team/To confirm pending an open pool and the hosted Envio
+deployment; real offline and real-device passes BLOCKED (report has the reasons).
