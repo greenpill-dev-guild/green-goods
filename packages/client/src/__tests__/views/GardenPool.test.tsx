@@ -12,7 +12,7 @@
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { CommitmentPoolRecord } from "@green-goods/shared";
+import type { Address, CommitmentPoolRecord } from "@green-goods/shared";
 import { renderWithProviders, screen } from "../test-utils";
 
 /** The tab navigates into commitment detail, so it needs a router around it. */
@@ -24,8 +24,8 @@ vi.mock("react-router-dom", async () => {
   return { ...actual, useNavigate: () => mockNavigate };
 });
 
-const VIEWER = "0x1111111111111111111111111111111111111111" as const;
-const OTHER = "0x2222222222222222222222222222222222222222" as const;
+const VIEWER = "0x1111111111111111111111111111111111111111" as Address;
+const OTHER = "0x2222222222222222222222222222222222222222" as Address;
 
 const mockUseCommitments = vi.fn();
 const mockUseCommitmentCycles = vi.fn();
@@ -52,6 +52,8 @@ function pool(overrides: Partial<CommitmentPoolRecord> = {}): CommitmentPoolReco
     poolType: "GARDEN",
     state: "OPEN",
     charterCID: null,
+    pauseReasonCID: null,
+    pauseReasonBlockNumber: null,
     openSeasonCycleId: null,
     openSeasonCycleEntityId: null,
     openCampaignIds: [],

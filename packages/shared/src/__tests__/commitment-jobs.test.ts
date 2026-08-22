@@ -204,6 +204,7 @@ describe("stable offline identities", () => {
         workUID: `0x${"ab".repeat(32)}`,
         requirementIndex: 2,
         operationKey: ZERO_HASH,
+        gardenAddress: GARDEN,
       },
       chainId: 42161,
       moduleAddress: MODULE,
@@ -388,6 +389,7 @@ describe("work-link recovery", () => {
     commitmentId: 9n,
     workUID: `0x${"ab".repeat(32)}`,
     requirementIndex: 2,
+    gardenAddress: GARDEN,
     operationKey: createWorkLinkOperationKey({
       chainId: 42161,
       moduleAddress: MODULE,

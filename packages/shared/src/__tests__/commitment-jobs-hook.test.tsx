@@ -78,7 +78,13 @@ describe("useCommitmentJobs", () => {
   it("routes proof, work links and creation to their own kinds", async () => {
     await jobs().current.enqueue({
       act: "evidence",
-      payload: { commitmentId: 9n, cid: "bafy", creditedContributors: [], gardenAddress: GARDEN },
+      payload: {
+        clientEvidenceId: "proof-1",
+        commitmentId: 9n,
+        cid: "bafy",
+        creditedContributors: [],
+        gardenAddress: GARDEN,
+      },
     });
     expect(mocks.addJob.mock.calls.at(-1)?.[0]).toBe("evidence");
 
