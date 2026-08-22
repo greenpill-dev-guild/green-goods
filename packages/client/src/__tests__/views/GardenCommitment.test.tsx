@@ -22,6 +22,10 @@ const mockUseCommitment = vi.fn();
 const mockUseOffline = vi.fn();
 const mockUseQueueState = vi.fn();
 const mockUseWorks = vi.fn();
+const mockUseClaimRequests = vi.fn();
+const mockUsePool = vi.fn();
+const mockUseHasRole = vi.fn();
+const mockUseReason = vi.fn();
 const WORK = `0x${"ab".repeat(32)}` as const;
 const mockEnqueue = vi.fn();
 const mockMutate = vi.fn();
@@ -135,6 +139,11 @@ vi.mock("@green-goods/shared", async () => {
       ],
     }),
     useWorks: () => mockUseWorks(),
+    useCommitmentClaimRequests: () => mockUseClaimRequests(),
+    useCommitmentPool: () => mockUsePool(),
+    useHasRole: (...args: unknown[]) => mockUseHasRole(...args),
+    useGardens: () => ({ data: [{ id: GARDEN, name: "Rocinha Community Garden" }] }),
+    useCommitmentReason: (cid: string | null) => mockUseReason(cid),
     useOffline: () => mockUseOffline(),
   };
 });
@@ -161,6 +170,10 @@ describe("GardenCommitment", () => {
     mockUseQueueState.mockReturnValue(queueState());
     mockUseCommitment.mockReturnValue(detail());
     mockUseWorks.mockReturnValue({ works: [] });
+    mockUseClaimRequests.mockReturnValue({ claimRequests: [] });
+    mockUsePool.mockReturnValue({ pool: { poolId: 7n, poolType: "GARDEN" } });
+    mockUseHasRole.mockReturnValue({ hasRole: false, isLoading: false });
+    mockUseReason.mockReturnValue({ reason: null, isLoading: false, isUnavailable: false });
   });
 
   it("offers the provider their own act and speaks to them", () => {
@@ -204,6 +217,152 @@ describe("GardenCommitment", () => {
 
     expect(screen.getByText("Ready for you to confirm")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Confirm it was kept" })).toBeInTheDocument();
+  });
+
+  describe("claims", () => {
+    const browse = (overrides: Record<string, unknown> = {}) =>
+      detail({
+        commitment: {
+          derivedState: "OFFERED",
+          onchainState: "OFFERED",
+          creator: OTHER,
+          leadProvider: null,
+          counterparty: null,
+          claimMode: "APPROVAL_GATED",
+          ...overrides,
+        },
+      });
+    const request = (overrides: Record<string, unknown> = {}) => ({
+      id: "42161-9-claim",
+      chainId: 42161,
+      commitmentId: 9n,
+      claimant: VIEWER,
+      requestSeen: true,
+      requestedBy: VIEWER,
+      claimType: "INDIVIDUAL",
+      gardenContext: GARDEN,
+      state: "PENDING",
+      reasonCID: null,
+      resolutionCode: null,
+      requestedAt: 1_700_000_000,
+      resolvedAt: null,
+      updatedAt: 1_700_000_000,
+      ...overrides,
+    });
+
+    it("shows a pending request waiting on a steward, and stops offering the act again", () => {
+      mockUseCommitment.mockReturnValue(browse());
+      mockUseClaimRequests.mockReturnValue({ claimRequests: [request()] });
+      render();
+
+      expect(screen.getByText("Waiting for a steward")).toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "Ask to take this up" })).not.toBeInTheDocument();
+    });
+
+    it("shows the steward's reason for a decline and offers a fresh request, never a retry", async () => {
+      const user = userEvent.setup();
+      mockUseCommitment.mockReturnValue(browse());
+      mockUseClaimRequests.mockReturnValue({
+        claimRequests: [
+          request({ state: "DECLINED", reasonCID: "bafy-reason", resolvedAt: 1_700_100_000 }),
+        ],
+      });
+      mockUseReason.mockReturnValue({
+        reason: { version: 1, reason: "Already covered this week" },
+        isLoading: false,
+        isUnavailable: false,
+      });
+      render();
+
+      expect(screen.getByText("A steward declined this")).toBeInTheDocument();
+      expect(screen.getByText("Already covered this week")).toBeInTheDocument();
+      await user.click(screen.getByRole("button", { name: "Ask again" }));
+      expect(mockEnqueue).toHaveBeenCalledWith({
+        act: "claim",
+        payload: { commitmentId: 9n, kind: 1, gardenContext: GARDEN, gardenAddress: GARDEN },
+      });
+    });
+
+    it("says when someone else took it up, with a way out and no retry", () => {
+      mockUseCommitment.mockReturnValue(
+        browse({ derivedState: "ACTIVE", onchainState: "ACCEPTED", leadProvider: OTHER })
+      );
+      mockUseClaimRequests.mockReturnValue({ claimRequests: [request({ state: "SUPERSEDED" })] });
+      render();
+
+      expect(screen.getByText("Taken up by another provider")).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Back to the pool" })).toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: /again/i })).not.toBeInTheDocument();
+    });
+
+    it("shows a garden claim's claimant and the steward who asked as two different people", () => {
+      mockUseCommitment.mockReturnValue(browse());
+      mockUseClaimRequests.mockReturnValue({
+        claimRequests: [request({ claimType: "GARDEN", claimant: GARDEN, requestedBy: VIEWER })],
+      });
+      render();
+
+      expect(screen.getByText("Claimant")).toBeInTheDocument();
+      expect(screen.getByText("garden")).toBeInTheDocument();
+      expect(screen.getByText("Asked by")).toBeInTheDocument();
+      expect(screen.getByText("You")).toBeInTheDocument();
+    });
+
+    it("asks a protocol-pool claimant whether they take it up as themselves, and offers the garden only to a steward", async () => {
+      const user = userEvent.setup();
+      mockUseCommitment.mockReturnValue(browse());
+      mockUsePool.mockReturnValue({ pool: { poolId: 7n, poolType: "PROTOCOL" } });
+      render();
+
+      await user.click(screen.getByRole("button", { name: "Ask to take this up" }));
+      expect(screen.getByText("Take this up…")).toBeInTheDocument();
+      expect(screen.getByRole("radio", { name: /As myself/ })).toBeChecked();
+      expect(screen.queryByRole("radio", { name: /For Rocinha/ })).not.toBeInTheDocument();
+      expect(mockEnqueue).not.toHaveBeenCalled();
+
+      const answers = screen.getAllByRole("button", { name: "Ask to take this up" });
+      await user.click(answers[answers.length - 1]!);
+      expect(mockEnqueue).toHaveBeenCalledWith({
+        act: "claim",
+        payload: { commitmentId: 9n, kind: 1, gardenContext: GARDEN, gardenAddress: GARDEN },
+      });
+    });
+
+    it("lets a steward take a protocol-pool commitment up for their garden, as the garden", async () => {
+      const user = userEvent.setup();
+      mockUseCommitment.mockReturnValue(browse());
+      mockUsePool.mockReturnValue({ pool: { poolId: 7n, poolType: "PROTOCOL" } });
+      mockUseHasRole.mockImplementation((_garden: unknown, _user: unknown, role: string) => ({
+        hasRole: role === "operator",
+        isLoading: false,
+      }));
+      render();
+
+      await user.click(screen.getByRole("button", { name: "Ask to take this up" }));
+      await user.click(screen.getByRole("radio", { name: /For Rocinha Community Garden/ }));
+      const answers = screen.getAllByRole("button", { name: "Ask to take this up" });
+      await user.click(answers[answers.length - 1]!);
+
+      // ClaimType.Garden, scoped to this garden: the garden is the claimant and
+      // the steward the one who asked, resolved before the job and never after.
+      expect(mockEnqueue).toHaveBeenCalledWith({
+        act: "claim",
+        payload: { commitmentId: 9n, kind: 0, gardenContext: GARDEN, gardenAddress: GARDEN },
+      });
+    });
+
+    it("claims directly in a garden pool, where a member can only be themselves", async () => {
+      const user = userEvent.setup();
+      mockUseCommitment.mockReturnValue(browse({ claimMode: "OPEN" }));
+      render();
+
+      await user.click(screen.getByRole("button", { name: "Take this up" }));
+      expect(screen.queryByText("Take this up…")).not.toBeInTheDocument();
+      expect(mockEnqueue).toHaveBeenCalledWith({
+        act: "claim",
+        payload: { commitmentId: 9n, kind: 1, gardenContext: GARDEN, gardenAddress: GARDEN },
+      });
+    });
   });
 
   describe("the confirmation sheet", () => {

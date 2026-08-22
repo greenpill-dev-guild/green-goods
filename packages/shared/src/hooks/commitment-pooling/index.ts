@@ -38,6 +38,7 @@ export {
 } from "./useCommitmentMetadata";
 export type { CommitmentJobInput } from "./useCommitmentJobs";
 export { useCommitmentNotYetDraft } from "./useCommitmentNotYetDraft";
+export { useCommitmentReason } from "./useCommitmentReason";
 export { useCommitmentJobs } from "./useCommitmentJobs";
 export type { CommitmentQueueState } from "./useCommitmentQueueState";
 export { useCommitmentQueueState } from "./useCommitmentQueueState";

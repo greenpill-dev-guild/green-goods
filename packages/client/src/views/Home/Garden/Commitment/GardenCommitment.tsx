@@ -7,10 +7,14 @@ import {
   StatusBadge,
   useActions,
   useCommitment,
+  useCommitmentClaimRequests,
   useCommitmentJobs,
   useCommitmentMetadataFor,
   useCommitmentMutation,
+  useCommitmentPool,
   useCommitmentQueueState,
+  useGardens,
+  useHasRole,
   useOffline,
   usePrimaryAddress,
   useWorks,
@@ -23,8 +27,10 @@ import { useNavigate, useParams } from "react-router-dom";
 import { presentState } from "@/components/Features/Commitments";
 import { EmptyState } from "@/components/Communication";
 import { TopNav } from "@/components/Navigation";
+import { type ClaimContext, ClaimContextSheet } from "./ClaimContextSheet";
 import { CommitmentActionBar } from "./CommitmentActionBar";
 import { canJoinTeam, selectCommitmentAct } from "./commitmentActions";
+import { CommitmentClaimPanel } from "./CommitmentClaimPanel";
 import { CommitmentPeople } from "./CommitmentPeople";
 import { CommitmentProgress } from "./CommitmentProgress";
 import { CommitmentWork } from "./CommitmentWork";
@@ -33,7 +39,8 @@ import { LinkWorkDialog } from "./LinkWorkDialog";
 import { selectStatusBand } from "./statusBand";
 import { WithdrawDialog } from "./WithdrawDialog";
 
-/** ICommitmentPoolingModule.ClaimType.Individual — a person claiming as themselves. */
+/** ICommitmentPoolingModule.ClaimType: Garden = 0, Individual = 1. */
+const CLAIM_TYPE_GARDEN = 0;
 const CLAIM_TYPE_INDIVIDUAL = 1;
 
 const BAND_TONE_CLASS = {
@@ -64,6 +71,7 @@ export function GardenCommitment() {
 
   const [withdrawOpen, setWithdrawOpen] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [contextOpen, setContextOpen] = useState(false);
   const [notYetFailed, setNotYetFailed] = useState(false);
   const [linkOpen, setLinkOpen] = useState<
     { workUID: string; requirementIndex: number } | true | null
@@ -93,6 +101,45 @@ export function GardenCommitment() {
   // The garden's work, online and queued, and its actions: what the Work
   // section reads and what the link picker chooses from.
   const { works } = useWorks(gardenAddress ?? "", { offline: true });
+  // The pool decides whether a claim needs a provider-context choice: only a
+  // protocol pool lets a steward take something up for their garden.
+  const { pool } = useCommitmentPool(
+    { chainId, poolId: detail?.commitment.poolId ?? 0n },
+    { enabled: Boolean(detail?.commitment.poolId) }
+  );
+  const { hasRole: isOperator } = useHasRole(
+    gardenAddress as Address | undefined,
+    (viewer ?? undefined) as Address | undefined,
+    "operator",
+    chainId
+  );
+  const { hasRole: isOwner } = useHasRole(
+    gardenAddress as Address | undefined,
+    (viewer ?? undefined) as Address | undefined,
+    "owner",
+    chainId
+  );
+  const isSteward = isOperator || isOwner;
+  const { data: gardens = [] } = useGardens();
+  const gardenName =
+    gardens.find((garden) => garden.id.toLowerCase() === gardenAddress?.toLowerCase())?.name ??
+    null;
+  // The reader's own claim request, in its exact lifecycle. Read whether the
+  // commitment is still open or already taken: a declined or superseded
+  // request still has something to say.
+  const { claimRequests } = useCommitmentClaimRequests({
+    chainId,
+    commitmentId: commitmentId ?? 0n,
+  });
+  const ownRequest = useMemo(() => {
+    if (!viewer) return null;
+    const mine = claimRequests.filter(
+      (request) =>
+        request.requestedBy.toLowerCase() === viewer.toLowerCase() ||
+        request.claimant.toLowerCase() === viewer.toLowerCase()
+    );
+    return mine.sort((left, right) => right.requestedAt - left.requestedAt)[0] ?? null;
+  }, [claimRequests, viewer]);
   const { data: actions = [] } = useActions(chainId);
 
   const seat = useMemo(() => {
@@ -177,7 +224,35 @@ export function GardenCommitment() {
   const queueKey = commitment.commitmentId.toString();
   const hasPendingJob = queue.pendingCommitmentIds.has(queueKey);
   const sendFailed = queue.failedCommitmentIds.has(queueKey);
-  const act = selectCommitmentAct({ commitment, seat, hasPendingJob });
+  // A request still waiting on a steward is an act already taken: offering it
+  // again would file a second request behind the same button.
+  const hasPendingClaimRequest = ownRequest?.state === "PENDING";
+  const act = selectCommitmentAct({
+    commitment,
+    seat,
+    hasPendingJob: hasPendingJob || hasPendingClaimRequest,
+  });
+  const enqueueClaim = (context: ClaimContext) => {
+    // A person claims as themselves; a steward may claim for their garden on
+    // a protocol pool, which stores the garden as claimant and the steward as
+    // the one who asked. The context is the garden the claim is scoped to,
+    // never a person, and it is also the garden whose hat the queue waits for
+    // before the first send. The choice is resolved here and never rewritten.
+    void jobs
+      .enqueue({
+        act: "claim",
+        payload: {
+          commitmentId: commitment.commitmentId,
+          kind: context === "garden" ? CLAIM_TYPE_GARDEN : CLAIM_TYPE_INDIVIDUAL,
+          gardenContext: gardenAddress as Address,
+          gardenAddress: gardenAddress as Address,
+        },
+      })
+      .then(() => setContextOpen(false))
+      .catch(() => {
+        // useCommitmentJobs already surfaced it; the sheet stays where it is.
+      });
+  };
   const joinable = canJoinTeam({ commitment, seat });
   // Linking work is a provider's or contributor's act on garden work that is
   // still moving; it rides the bar's second row beside Add proof.
@@ -257,21 +332,11 @@ export function GardenCommitment() {
                     return;
                   case "takeUp":
                   case "askToTakeUp":
-                    // A member claims as themselves (ClaimType.Individual = 1);
-                    // ClaimType.Garden is a GardenAccount claiming on a protocol
-                    // pool, which is a steward path and not this button. The
-                    // context is the garden the claim is scoped to, never a
-                    // person, and it is also the garden whose hat the queue
-                    // waits for before the first send.
-                    void jobs.enqueue({
-                      act: "claim",
-                      payload: {
-                        commitmentId: commitment.commitmentId,
-                        kind: CLAIM_TYPE_INDIVIDUAL,
-                        gardenContext: gardenAddress as Address,
-                        gardenAddress: gardenAddress as Address,
-                      },
-                    });
+                    // In a garden pool a member can only claim as themselves.
+                    // In the protocol pool the provider context is a choice,
+                    // made before any claim exists.
+                    if (pool?.poolType === "PROTOCOL") setContextOpen(true);
+                    else enqueueClaim("personal");
                     return;
                   case "sendForConfirmation":
                     void jobs.enqueue({
@@ -385,6 +450,24 @@ export function GardenCommitment() {
           ) : null}
         </section>
 
+        {ownRequest && viewer ? (
+          <CommitmentClaimPanel
+            commitment={commitment}
+            request={ownRequest}
+            viewer={viewer as Address}
+            canAskAgain={
+              (commitment.derivedState === "OFFERED" || commitment.derivedState === "REQUESTED") &&
+              !hasPendingJob &&
+              !queue.isUnavailable
+            }
+            isPending={jobs.isPending}
+            onAskAgain={() =>
+              pool?.poolType === "PROTOCOL" ? setContextOpen(true) : enqueueClaim("personal")
+            }
+            onBackToBrowse={() => navigate("../..", { relative: "path" })}
+          />
+        ) : null}
+
         <CommitmentProgress chainId={chainId} commitment={commitment} requirements={requirements} />
 
         <CommitmentWork
@@ -400,6 +483,16 @@ export function GardenCommitment() {
           onLink={(workUID, requirementIndex) => setLinkOpen({ workUID, requirementIndex })}
         />
       </DetailShell>
+
+      <ClaimContextSheet
+        open={contextOpen}
+        onOpenChange={setContextOpen}
+        gardenName={gardenName}
+        canClaimForGarden={isSteward}
+        approvalGated={commitment.claimMode === "APPROVAL_GATED"}
+        isPending={jobs.isPending}
+        onContinue={enqueueClaim}
+      />
 
       <ConfirmSheet
         open={confirmOpen}

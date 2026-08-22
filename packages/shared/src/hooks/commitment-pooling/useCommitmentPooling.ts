@@ -46,12 +46,16 @@ export function useCommitmentPools(input: { chainId: number; garden?: Address })
   };
 }
 
-export function useCommitmentPool(input: { chainId: number; poolId: bigint }) {
+export function useCommitmentPool(
+  input: { chainId: number; poolId: bigint },
+  /** A caller that may not know the id yet gates here; the key stays the same. */
+  options: { enabled?: boolean } = {}
+) {
   const availability = useCommitmentPoolingAvailability(input);
   const query = useQuery({
     queryKey: queryKeys.commitmentPooling.pool(input.chainId, input.poolId),
     queryFn: () => getCommitmentPoolDetail(input.chainId, input.poolId),
-    enabled: availability.status === "available",
+    enabled: availability.status === "available" && options.enabled !== false,
     staleTime: STALE_TIME_MEDIUM,
   });
   return { ...query, pool: query.data?.pool ?? null, detail: query.data ?? null, availability };

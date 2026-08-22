@@ -1,0 +1,52 @@
+/**
+ * useCommitmentReason Hook
+ *
+ * Resolves the words behind a reason CID: why a claim was declined, a
+ * commitment withdrawn, or a dispute raised. The record carries only the CID;
+ * the member reads the sentence.
+ *
+ * Immutable at its CID, cached forever, and never an error for the caller: a
+ * reason that cannot be read leaves the row standing with an em dash where the
+ * words would be.
+ *
+ * @module hooks/commitment-pooling/useCommitmentReason
+ */
+
+import { useQuery } from "@tanstack/react-query";
+
+import { getJsonByHash } from "../../modules/data/ipfs/resolve";
+import { isResolvableMetadataCID } from "../../modules/commitment-pooling/metadata";
+import {
+  type CommitmentReasonV1,
+  parseCommitmentReason,
+} from "../../modules/commitment-pooling/reasons";
+
+const IMMUTABLE = Number.POSITIVE_INFINITY;
+
+export function useCommitmentReason(cid: string | null | undefined): {
+  reason: CommitmentReasonV1 | null;
+  isLoading: boolean;
+  /** The CID exists but its document could not be read or held no reason. */
+  isUnavailable: boolean;
+} {
+  const resolvable = isResolvableMetadataCID(cid);
+  const query = useQuery({
+    // Chain-free like the metadata key: the same CID is the same bytes everywhere.
+    queryKey: [
+      "greengoods",
+      "commitment-pooling",
+      "reason",
+      resolvable ? cid.trim() : null,
+    ] as const,
+    queryFn: async () => parseCommitmentReason(await getJsonByHash((cid as string).trim())),
+    enabled: resolvable,
+    staleTime: IMMUTABLE,
+    gcTime: IMMUTABLE,
+    retry: 1,
+  });
+  return {
+    reason: query.data ?? null,
+    isLoading: resolvable && query.isLoading,
+    isUnavailable: resolvable && !query.isLoading && (query.isError || query.data === null),
+  };
+}
