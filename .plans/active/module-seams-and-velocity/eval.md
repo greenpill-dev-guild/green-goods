@@ -65,3 +65,26 @@
 - Contract changes that require redeployment remain outside this program.
 - Agent `HandlerServices`, Telegram adapter separation, and blockchain-client injection remain
   backlog work.
+
+## Resolved W0-H Receipt Debt Ledger
+
+The active debt baseline was cleared on 2026-08-23 after each waived lane gained a complete,
+clean-tree Validation Receipt. The original expiry was 2026-09-05 for every row; no deadline was
+extended. All eight receipts validate implementation commit
+`8fd3311980b28d71d48f72fe41c99d15276de912` at `2026-08-23T08:02:46Z`.
+
+| Feature | Lane | Owner | Receipt | Result |
+|---|---|---|---|---|
+| Celo GardenAccount Safe Ownership | contracts | Codex | `handoffs/codex-contracts.md` | Relay unit, fuzz, and invariant proof passed 16/16; operator suites passed 31/31. |
+| Commitment Pooling | contracts | Codex | `handoffs/codex-contracts.md` | Focused Solidity proof passed 192 tests; full package proof passed 2,050 Solidity tests and 289 script tests. |
+| Commitment Pooling | state API | Codex | `handoffs/codex-state-api.md` | Seven focused suites passed 108 tests; Shared, Storybook, and Agent checks passed. |
+| Validation System Optimization | UI | Codex | `handoffs/guidance.md` | All four guidance and browser-policy checks passed. |
+| Validation System Optimization | state API | Codex | `handoffs/selector-local.md` | Selector and local-runner tests passed 78/78. |
+| Validation System Optimization | contracts | Codex | `handoffs/ci-workflows.md` | CI Gate and workflow parity tests passed 40/40; the cited live Wave 0 workflows passed. |
+| Validation System Optimization | QA pass 1 | Codex | `handoffs/qa-pass-1.md` | The integrated validation-system suite passed 130/130 with cited live CI proof. |
+| Validation System Optimization | QA pass 2 | Codex | `handoffs/qa-pass-2.md` | Integrated validation passed 130/130 and focused CI/workflow proof passed 40/40. |
+
+GitHub reports PRs #754 through #760 merged into `develop` at squash commit
+`91e1ae904cc28af61cd0b203fce2f798fb31d4c8`. The Celo and Commitment Pooling handoffs retain their
+exact commands and clean-path evidence. The W0-H handoff preserves the VSO closeout evidence after
+the repository archive command compacts that completed hub.

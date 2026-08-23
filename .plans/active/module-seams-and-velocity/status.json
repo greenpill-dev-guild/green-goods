@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p1",
     "created_at": "2026-08-23T02:50:35.809Z",
-    "updated_at": "2026-08-23T04:48:54.000Z"
+    "updated_at": "2026-08-23T08:24:07.882Z"
   },
   "links": {
     "brief": "brief.md",
@@ -51,7 +51,7 @@
     "depends_on_features": ["validation-system-optimization"]
   },
   "notes": [
-    "This hub owns the module-seam and test-architecture program. Validation System Optimization remains active until W0-H replaces its receipt debt and archives it.",
+    "This hub owns the module-seam and test-architecture program. Validation System Optimization was archived after W0-H replaced all eight receipt waivers with fresh proof.",
     "One execution sub-lane owns one worktree and one pull request. Future handoff paths are recorded when dependencies become dispatchable so prompts reflect the merged parent state.",
     "No dependency installation, contract broadcast, coverage-gate weakening, receipt-expiry extension, or package-level env file is authorized.",
     "Claude reviews every Codex lane. Afo approves critical-surface merges."
@@ -200,7 +200,7 @@
     "w0_vitest_worker_cap": {
       "machine_lane": "state_api",
       "owner": "codex",
-      "status": "in_progress",
+      "status": "passed",
       "branch": "perf/vitest-worker-cap",
       "depends_on": ["w0_toolchain_reexec"],
       "handoff": "handoffs/w0_vitest_worker_cap.md",
@@ -214,7 +214,7 @@
       "validation": "Functional package and validation-system proof passed on a clean committed tree",
       "proof_limit": "Host never became credibly quiet; base-versus-lane single-package and consumer-batch timing claims remain unproven",
       "pull_request": "https://github.com/greenpill-dev-guild/green-goods/pull/757",
-      "publication_status": "stacked #757 ready for review against fix/ci-local-toolchain-reexec; live CI passed; quiet-machine timing proof limit accepted by Afo"
+      "publication_status": "merged through the Wave 0 squash on develop; live CI passed; quiet-machine timing proof limit accepted by Afo"
     },
     "w0_load_sensitive_tests": {
       "machine_lane": "state_api",
@@ -238,7 +238,7 @@
     "w0_coverage_floors_nightly": {
       "machine_lane": "state_api",
       "owner": "claude",
-      "status": "in_progress",
+      "status": "passed",
       "branch": "ci/coverage-floors-nightly",
       "depends_on": [],
       "handoff": "handoffs/w0_coverage_floors_nightly.md",
@@ -254,7 +254,7 @@
       "proof_limit": "Local PR-path timing was inconsistent under host contention, so no speed improvement is claimed from local timings",
       "pull_request": "https://github.com/greenpill-dev-guild/green-goods/pull/759",
       "stack_rewrite_validation": "incremental diff is clean; combined workflow parity 16/16 and validation-system suite 130/130 passed",
-      "publication_status": "stacked #759 ready for review against test/load-sensitive-tests; all replacement CI passed; first live Coverage Nightly run deferred to post-merge by Afo"
+      "publication_status": "merged through the Wave 0 squash on develop; all replacement CI passed; first live Coverage Nightly run accepted as a post-merge observation by Afo"
     },
     "w0_turbo_test_routing": {
       "machine_lane": "state_api",
@@ -273,21 +273,23 @@
       "validation": "Agent cold run passed 270 tests, the warm repeat hit full Turbo cache in 146 ms, and a historical runtime-hook diff selected Shared plus all three consumers under the current config",
       "proof_limit": "The pasted ci-local test-only consumer example contradicts W0-C/D6 because focused shared tests are Shared-only and consumer inputs deliberately exclude test files",
       "pull_request": "https://github.com/greenpill-dev-guild/green-goods/pull/760",
-      "publication_status": "stacked #760 ready for review against perf/path-scoped-strict-intents; live CI passed"
+      "publication_status": "merged through the Wave 0 squash on develop; live CI passed"
     },
     "w0_turbo_guidance": {
       "machine_lane": "ui",
       "owner": "claude",
-      "status": "blocked",
+      "status": "passed",
       "branch": "docs/turbo-test-guidance",
       "depends_on": ["w0_turbo_test_routing"],
       "handoff": "handoffs/w0_turbo_guidance.md",
-      "blocked_reason": "The handoff requires W0-G1 to merge into develop; its stacked draft is published as PR #760 and awaits prerequisite review and merge"
+      "commit": "8fd3311980b28d71d48f72fe41c99d15276de912",
+      "validation": "Codex and guidance guards passed; every selector-chosen package passed on a clean committed tree",
+      "publication_status": "local stacked commit validated after the Wave 0 merge; publication remains pending"
     },
     "w0_receipt_debt_burndown": {
       "machine_lane": "state_api",
       "owner": "claude",
-      "status": "blocked",
+      "status": "passed",
       "branch": "chore/receipt-debt-burndown",
       "depends_on": [
         "w0_toolchain_reexec",
@@ -295,7 +297,8 @@
         "w0_turbo_test_routing"
       ],
       "handoff": "handoffs/w0_receipt_debt_burndown.md",
-      "blocked_reason": "The handoff requires W0-B, W0-C, and W0-G1 to merge into develop; drafts #755, #756, and stacked #760 await review and merge"
+      "validation": "All eight waiver receipts are machine-valid, the debt baseline is empty, Plan Hub validation passed, and Validation System Optimization is archived with completed resolution",
+      "publication_status": "local stacked closeout is validated; publication remains pending"
     },
     "jobqueue_create_deps": {
       "machine_lane": "state_api",

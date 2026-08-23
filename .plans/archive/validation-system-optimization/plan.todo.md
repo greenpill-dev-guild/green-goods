@@ -1,5 +1,7 @@
 # Validation System Optimization Plan
 
+> **Archived record:** implementation is closed. Operational handoffs, artifacts, and lane files were removed; preserved reports and any references below describe historical execution, not live work.
+
 **Feature Slug**: `validation-system-optimization`
 **Stage**: `active`
 **Status**: `ACTIVE`

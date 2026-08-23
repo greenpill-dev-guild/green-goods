@@ -126,8 +126,9 @@ G$ movement, canaries, application UI, package-level env files, or raw Forge com
   tests; Celo account and final-Safe operator scripts/tests; release operator and package wrappers.
 - Worktree identity command and result: `git status --porcelain=v1 --untracked-files=all --
   packages/contracts` → empty.
-- Evidence-only diff command and result (if applicable): not applicable.
-- Evidence-only worktree-status command and result (if applicable): not applicable.
+- Evidence-only diff command and result (if applicable): `git diff --exit-code
+  8fd3311980b28d71d48f72fe41c99d15276de912..HEAD -- packages/contracts` → empty, exit code 0.
+- Evidence-only worktree-status command and result (if applicable): `git status --porcelain=v1 --untracked-files=all -- packages/contracts` → empty.
 
 ## Risks / Blockers
 

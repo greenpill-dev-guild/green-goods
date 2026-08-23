@@ -1,5 +1,7 @@
 # Validation System Optimization Evaluation Plan
 
+> **Archived record:** implementation is closed. Operational handoffs, artifacts, and lane files were removed; preserved reports and any references below describe historical execution, not live work.
+
 ## Release Gates
 
 1. Correctness: all required checks are selected for every locked scenario and no critical override can be downgraded.

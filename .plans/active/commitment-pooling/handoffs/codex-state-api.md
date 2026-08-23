@@ -290,11 +290,12 @@ state, not optional follow-up coverage.
   configuration, live sponsored UserOperation, Celo canary, Safe/value mutation, or broadcast was
   performed.
 
-## Terminal Validation Receipt — 2026-08-23
+## Validation Receipt
 
 - Tested implementation commit SHA: `8fd3311980b28d71d48f72fe41c99d15276de912`
 - Run at (UTC): `2026-08-23T08:02:46Z`
-- Exact command(s): the twelve commands in `## Exact Bun commands` above.
+- Exact command(s): the twelve commands in `## Exact Bun commands` above, beginning with `bun run
+  --filter @green-goods/shared test -- src/modules/commitment-pooling/services/CommitmentService.test.ts`.
 - Result: all seven focused suites passed (108 tests total); Shared typecheck passed; Storybook
   coverage was 244/244 and story-quality passed; Agent full tests passed 265 with 1 governed skip;
   Agent coverage passed at 71.62% statements, 64.89% branches, 72.29% functions, 73.99% lines.
@@ -304,8 +305,10 @@ state, not optional follow-up coverage.
 - Worktree identity command and result: `git status --porcelain=v1 --untracked-files=all --
   packages/shared/src packages/shared/package.json packages/agent/src packages/agent/package.json` →
   empty.
-- Evidence-only diff command and result (if applicable): not applicable.
-- Evidence-only worktree-status command and result (if applicable): not applicable.
+- Evidence-only diff command and result (if applicable): `git diff --exit-code
+  8fd3311980b28d71d48f72fe41c99d15276de912..HEAD -- packages/shared/src packages/shared/package.json
+  packages/agent/src packages/agent/package.json` → empty, exit code 0.
+- Evidence-only worktree-status command and result (if applicable): `git status --porcelain=v1 --untracked-files=all -- packages/shared/src packages/shared/package.json packages/agent/src packages/agent/package.json` → empty.
 
 ## Out of scope
 

@@ -1,5 +1,7 @@
 # Validation System Optimization Spec
 
+> **Archived record:** implementation is closed. Operational handoffs, artifacts, and lane files were removed; preserved reports and any references below describe historical execution, not live work.
+
 ## Summary
 
 Validation is a policy decision followed by command execution. The repository will own a versioned

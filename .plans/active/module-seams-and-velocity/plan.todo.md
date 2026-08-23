@@ -22,7 +22,7 @@
 | 9 | Create lane handoffs when their dependencies become dispatchable, and record the final path in `status.json` before dispatch. | Prompts must reflect the merged parent state; future lane entries remain complete in `execution_sub_lanes` without freezing stale instructions. |
 | 10 | Hold W0-F for a human floor correction instead of implementing accepted statement thresholds that fail the clean baseline. | Measured full-suite statement coverage is Shared 61.12%, Client 63.36%, and Admin 51.52%; the accepted 63% Shared and 61% Admin floors are not presently attainable. |
 | 11 | Treat W0-G1 as locally proven with a bounded empirical-proof limit, without claiming its pasted test-only consumer example. | W0-C deliberately keeps focused shared test-only changes scoped to Shared, D6 excludes test files from consumer inputs, and the Work-hook mutation needed for the other example is outside the lane allowlist. |
-| 12 | Keep W0-G2 and W0-H blocked until their prerequisite commits are merged into `develop`. | Their handoffs require merged-parent provenance. Local stacked commits are implementation checkpoints, not permission to bypass review, CI, or merge gates. |
+| 12 | Start W0-G2 and W0-H only after their prerequisite commits merge into `develop`. | The Wave 0 stack merged with live CI green, so both lanes gained the required merged-parent provenance. |
 | 13 | Adopt Afo's corrected W0-F statement floors of 61 Shared, 63 Client, and 51 Admin, while keeping the other metrics at their measured integer floors. | The corrected values pass the clean baseline and preserve real enforcement; live Coverage Nightly proof remains a merge gate. |
 | 14 | Merge the ready Wave 0 stack without waiting for the quiet-machine timing matrix or a pre-merge Coverage Nightly dispatch. | Afo explicitly accepted both proof limits on 2026-08-22 to unblock Wave 1. The timing result remains unclaimed, and the first default-branch Coverage Nightly run remains a required post-merge observation. |
 
@@ -52,9 +52,9 @@
 1. [x] Scaffold and populate this hub from the accepted program.
 2. [x] Validate the hub and Plan Hub fixtures.
 3. [x] Run `linear-sync --json`, create or update one parent Product issue with `source:plans`, and record `parent_only` identifiers (`PRD-831`).
-4. [ ] Dispatch and land Wave 0 parallel set 1: W0-A, W0-B, W0-C, W0-E, W0-F.
-5. [ ] Dispatch and land W0-D after W0-B and W0-G1 after W0-C.
-6. [ ] Land W0-G2 and burn down receipt debt in W0-H, then archive Validation System Optimization.
+4. [x] Dispatch and land Wave 0 parallel set 1: W0-A, W0-B, W0-C, W0-E, W0-F.
+5. [x] Dispatch and land W0-D after W0-B and W0-G1 after W0-C.
+6. [x] Land W0-G2 and burn down receipt debt in W0-H, then archive Validation System Optimization.
 7. [ ] Record the Wave 0 Module Health and Velocity snapshots and verify every Wave 0 exit signal.
 8. [ ] Land Wave 1 shared seams in order A and C, then B1, then B2.
 9. [ ] Land Wave 1 pooling controller contracts, direct suites, and typed view tests.
