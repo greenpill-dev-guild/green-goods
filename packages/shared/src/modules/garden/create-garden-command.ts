@@ -71,7 +71,7 @@ export interface GardenCreationEstimate {
   formatted: { txFeeEth: string; ccipFeeEth: string; totalEth: string };
 }
 
-export function buildGardenContractConfig(params: CreateGardenParams): GardenContractConfig {
+function buildGardenContractConfig(params: CreateGardenParams): GardenContractConfig {
   return {
     name: params.name,
     slug: params.slug ?? "",

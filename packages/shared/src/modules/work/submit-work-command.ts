@@ -24,7 +24,7 @@ interface ResolvedSubmitWorkCommand extends SubmitWorkCommand {
   userAddress: Address;
 }
 
-export interface QueuedWorkSubmission {
+interface QueuedWorkSubmission {
   txHash: `0x${string}`;
   jobId: string;
   clientWorkId: string;
