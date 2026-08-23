@@ -6,12 +6,13 @@
    runtime, error, offline, export, and deployment contracts.
 2. Structure: new and modified source files meet the 350/500-line limits; frozen ceilings never
    grow and are lowered when the owning file shrinks.
-3. Regression safety: the repository selector, lane proof, conditional gates, Ship Gate, review,
-   and CI Gate are green at the tested commit.
+3. Regression safety: the repository selector, focused lane proof, conditional gates, and one Repo
+   Quick Gate are green at each tested wave commit; the Ship Gate runs once at program exit.
 4. Evidence quality: terminal claims include RED/GREEN or mutant proof and a complete Validation
    Receipt from a clean committed path set.
-5. Human judgment: Claude reviews every Codex pull request and Afo approves every critical-surface
-   merge.
+5. Human judgment: Afo has authorized critical Shared implementation on `develop`; only new product
+   decisions, conflicting foreign changes, unclear destructive targets, or unresolvable blockers
+   return to the user.
 
 ## Acceptance Checks
 
@@ -27,17 +28,18 @@
 | AC-W6 | Test architecture | DOM-free tests use Node projects, admin import share below 40%, and direct-test guard blocks new mock-only subjects | parity, timing, and fixture evidence |
 | AC-EXIT | Program | Health inventory complete except named deferrals and Velocity targets met | fresh final snapshots and receipts |
 
-## Per-Lane Evidence Contract
+## Wave Evidence Contract
 
-- Render the repository plan before implementation and before handoff.
+- Render the repository plan for each wave's actual changed paths before its boundary receipt.
 - Record each check's risk, expected signal, freshness rule, and stopping condition from selector
   output; stop dependent work on the first deterministic failure.
 - Preserve the named RED failure on the parent commit, or demonstrate the named one-line mutant for
   test-only lanes.
-- Run focused tests and coverage for the touched seam, then source-structure and selector-mandated
-  consumers.
-- Use the full Ship Gate only at the pull-request boundary, with Storybook, design, dead-code,
-  validation-system, indexer, or contract gates added when their surfaces move.
+- Run focused tests and coverage for each touched seam, then source-structure and selector-mandated
+  consumers. Record one consolidated receipt per wave.
+- Use one Repo Quick Gate at each wave boundary. Use the full Ship Gate once at program exit, with
+  Storybook, design, dead-code, validation-system, indexer, or contract gates added when their
+  surfaces move.
 - For visible UI, attach authenticated Brave rendered proof. If Brave cannot be controlled, record
   browser QA as blocked.
 - Do not reuse a passing receipt after its code, dependencies, configuration, validation entrypoint,

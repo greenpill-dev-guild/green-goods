@@ -33,12 +33,15 @@ the large graph makes reliable local proof slow.
   hooks, and providers; client and admin controllers and composition; indexer test architecture and
   helper separation; Vitest project routing; direct-tested-seam enforcement; and wave-boundary
   health and velocity snapshots.
+- Execution: all remaining work is implemented and committed directly in the shared checkout on
+  `develop`. Original lane blocks remain acceptance criteria inside wave batches, not separate
+  branch, worktree, pull-request, or agent delivery units.
 - Deferred: agent `HandlerServices`, Telegram and blockchain-client adapter work, caller-side
   contract capability wrappers, any contract change that requires redeployment, and Card Endow
   activation until it is scheduled.
 - Prohibited: dependency installs or upgrades, contract broadcasts, package-level `.env` files,
-  lowering critical gates, extending receipt-debt expiry, or merging critical surfaces without
-  Afo's approval.
+  lowering critical gates, extending receipt-debt expiry, or creating branches, worktrees, pull
+  requests, or subagents for this program.
 
 ## Success Signal
 

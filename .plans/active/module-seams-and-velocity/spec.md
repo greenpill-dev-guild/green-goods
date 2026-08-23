@@ -6,7 +6,8 @@ This program improves agentic delivery speed by fixing module boundaries before 
 runner. It begins with the validation harness, then introduces direct seams around mutations and
 controllers, narrows shared public imports, splits oversized composition surfaces, completes the
 remaining shared and UI module inventory, strengthens indexer tests, and finally routes DOM-free
-tests through Node projects. One execution sub-lane owns one worktree and one pull request.
+tests through Node projects. The remaining work runs as wave batches directly on `develop`; the
+execution sub-lanes below are acceptance criteria and evidence rows, not publication units.
 
 ## Research Evidence
 
@@ -25,10 +26,10 @@ tests through Node projects. One execution sub-lane owns one worktree and one pu
 
 ## Human Judgment Points
 
-- Afo approves merges that touch Job Queue, Work mutation hooks/providers, auth, vault mutation
-  hooks, contract tooling, or other critical surfaces.
-- Claude owns CI workflow, package-script, repository-guidance, design, accessibility, and receipt
-  burn-down lanes, and reviews every Codex lane before merge.
+- Afo authorized implementation and local commits on critical Shared surfaces directly on
+  `develop`; critical checks and mutation-reliability proof remain mandatory.
+- Pause only for a new product decision, conflicting foreign changes on `develop`, an unclear
+  destructive target, or a blocker that cannot be resolved safely.
 - `fallback` and `disputed` confirmation rows defaulting off in the client is a product decision and
   must remain visible in review.
 - Card Endow activation and contract changes that require redeployment remain deferred.
@@ -37,9 +38,9 @@ tests through Node projects. One execution sub-lane owns one worktree and one pu
 
 ## Program Invariants
 
-- One execution sub-lane equals one worktree and one pull request against `develop`.
-- Branches use `<type>/<work-description>` and never contain an agent name, Linear identifier, or
-  bare orchestration lane name.
+- Work only in the shared main checkout on `develop`. Do not create or switch branches, create
+  worktrees or pull requests, or spawn subagents for this program.
+- Treat execution sub-lanes as acceptance and evidence rows inside one wave batch.
 - New source files stay at or below 350 lines. Modified source files stay at or below 500 lines.
   Frozen ceilings may not grow and must be lowered in the commit that shrinks them.
 - Use `bun run test`, never `bun test`, and Bun wrappers for every Foundry operation.
@@ -47,9 +48,9 @@ tests through Node projects. One execution sub-lane owns one worktree and one pu
   `packages/shared/package.json#exports` paths.
 - Preserve user-visible error strings byte-for-byte unless a lane explicitly owns copy.
 - New user-facing strings ship in English, Spanish, and Portuguese.
-- Validation follows `bun run validation:plan -- --intent qa --changed <paths>` per lane, plus the
-  lane's direct proof, source-structure gate, Ship Gate, conditional gates, review, CI, and a fresh
-  Validation Receipt.
+- Validation follows `bun run validation:plan -- --intent qa --changed <paths>` for each wave batch,
+  plus the named focused proof and conditional gates. Run one Repo Quick Gate per wave, one
+  consolidated wave receipt, and the full Ship Gate once at program exit.
 
 ## Wave Registry
 
@@ -171,5 +172,5 @@ tests through Node projects. One execution sub-lane owns one worktree and one pu
   and enforce on nightly and `main`.
 - Hasura permission automation can widen policy. The pure planner preserves any restricted or
   malformed policy and never rewrites it automatically.
-- The work spans protected files. One-lane path globs, Claude review, conditional gates, and Afo's
-  critical-surface approval bound each pull request.
+- The work spans protected files. Dependency-ordered wave batches, focused RED/GREEN proof,
+  conditional gates, wave-boundary Quick Gates, and coherent direct commits bound the risk.

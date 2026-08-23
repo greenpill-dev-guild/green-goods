@@ -70,8 +70,8 @@ and blockers.
 
 ## Validation Receipt
 
-- Tested implementation commit SHA: `0c49a77986802e4bf457eed343f1e3192ba29a3b`
-- Run at (UTC): `2026-08-23T10:56:32Z`
+- Tested implementation commit SHA: `596ccb7a468191f083abce02a2e1d9c2a845989f`
+- Run at (UTC): `2026-08-23T15:44:16Z`
 - Exact command(s):
   - `bun run validation:plan -- --intent qa --changed packages/shared/src/__tests__/hooks/admin-ui/usePoolConsoleController.test.tsx --json`
   - `bunx @biomejs/biome format --no-errors-on-unmatched 'packages/shared/src/__tests__/hooks/admin-ui/usePoolConsoleController.test.tsx'`
@@ -83,11 +83,12 @@ and blockers.
   - `SOURCE_STRUCTURE_BASE_REF=c00ea6ef64de134379ca6bec1f9c93a4fc31c43a bun run check:source-structure`
   - `node -e '<read the suite and reject as-never, Record-string-unknown, and whole-Shared-barrel mock patterns>'`
   - `git diff --exit-code c00ea6ef64de134379ca6bec1f9c93a4fc31c43a -- packages/shared/src/hooks/admin-ui/pool/usePoolConsoleController.ts`
-- Result: selector status `ready`; all four selected checks passed. The focused suite passed 11/11;
-  focused V8 coverage was 98.5% statements (66/67), 90.9% branches (40/44), 100%
-  functions (25/25), and 100% lines (61/61). Shared source and test typechecks passed, source
-  structure reported no changed non-test source, all three static searches were empty, and the
-  production controller matched the stacked parent exactly.
+- Result: selector status `ready`; all four selected checks passed at the integrated availability
+  assertion commit. The focused suite passed 11/11; focused V8 coverage was 98.5% statements
+  (66/67), 90.9% branches (40/44), 100% functions (25/25), and 100% lines (61/61). Shared source and
+  test typechecks passed. The earlier source-structure, static-search, timer-cleanup, and
+  production-controller identity evidence remains unchanged because those paths and entrypoints did
+  not move after the original receipt.
 - Validated paths:
   - `packages/shared/src/__tests__/hooks/admin-ui/usePoolConsoleController.test.tsx`
   - `packages/shared/src/hooks/admin-ui/pool/usePoolConsoleController.ts`
@@ -96,7 +97,7 @@ and blockers.
   packages/shared/src/hooks/admin-ui/pool/usePoolConsoleController.ts` returned no output at the
   tested SHA.
 - Evidence-only diff command and result (if applicable): `git diff --exit-code
-  0c49a77986802e4bf457eed343f1e3192ba29a3b..HEAD --
+  596ccb7a468191f083abce02a2e1d9c2a845989f..HEAD --
   packages/shared/src/__tests__/hooks/admin-ui/usePoolConsoleController.test.tsx
   packages/shared/src/hooks/admin-ui/pool/usePoolConsoleController.ts packages/shared/package.json
   packages/shared/vitest.config.ts scripts/dev/node-cli.js scripts/lib/dev-shared.js

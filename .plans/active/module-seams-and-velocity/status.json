@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p1",
     "created_at": "2026-08-23T02:50:35.809Z",
-    "updated_at": "2026-08-23T10:56:32.000Z"
+    "updated_at": "2026-08-23T15:44:16.000Z"
   },
   "links": {
     "brief": "brief.md",
@@ -52,9 +52,9 @@
   },
   "notes": [
     "This hub owns the module-seam and test-architecture program. Validation System Optimization was archived after W0-H replaced all eight receipt waivers with fresh proof.",
-    "One execution sub-lane owns one worktree and one pull request. Future handoff paths are recorded when dependencies become dispatchable so prompts reflect the merged parent state.",
+    "All remaining work executes in the shared main checkout on develop. Execution sub-lanes are acceptance and evidence rows inside wave batches, not branch, worktree, pull-request, or agent units.",
     "No dependency installation, contract broadcast, coverage-gate weakening, receipt-expiry extension, or package-level env file is authorized.",
-    "Claude reviews every Codex lane. Afo approves critical-surface merges."
+    "Afo authorized critical Shared implementation and local commits on develop. One Repo Quick Gate runs per wave and the full Ship Gate runs once at program exit."
   ],
   "lanes": {
     "ui": {
@@ -157,7 +157,7 @@
       },
       "validation": "POSIX syntax, base default/override/fallback, source structure, design generation, docs build, and clean committed receipt passed",
       "pull_request": "https://github.com/greenpill-dev-guild/green-goods/pull/754",
-      "publication_status": "#754 ready for review against develop; live CI passed"
+      "publication_status": "merged into develop through Wave 0 merge commit 91e1ae904cc28af61cd0b203fce2f798fb31d4c8; live CI passed"
     },
     "w0_toolchain_reexec": {
       "machine_lane": "state_api",
@@ -176,7 +176,7 @@
       "validation": "114/114 validation-system tests; both ci-local entrypoints ready on Node 22.22.1, Bun 1.3.14, Foundry 1.7.1; clean committed receipt",
       "review": "Codex lead challenge review passed; human and Claude review remain pending",
       "pull_request": "https://github.com/greenpill-dev-guild/green-goods/pull/755",
-      "publication_status": "stacked #755 ready for review against perf/prepush-static-checks; live CI passed"
+      "publication_status": "merged into develop through Wave 0 merge commit 91e1ae904cc28af61cd0b203fce2f798fb31d4c8; live CI passed"
     },
     "w0_path_scoped_strict_intents": {
       "machine_lane": "state_api",
@@ -195,7 +195,7 @@
       "validation": "49/49 selector tests and 113/113 validation-system tests; exact strict-scope invariants passed; clean committed receipt",
       "review": "Codex lead challenge review passed; human and Claude review remain pending",
       "pull_request": "https://github.com/greenpill-dev-guild/green-goods/pull/756",
-      "publication_status": "stacked #756 ready for review against perf/vitest-worker-cap; live CI passed"
+      "publication_status": "merged into develop through Wave 0 merge commit 91e1ae904cc28af61cd0b203fce2f798fb31d4c8; live CI passed"
     },
     "w0_vitest_worker_cap": {
       "machine_lane": "state_api",
@@ -233,7 +233,7 @@
       "validation": "Clean committed focused proof, 25/25 post-edit loaded runs, five green full admin backgrounds, and exact 4,568-reference filtered/unfiltered locale equivalence",
       "proof_limit": "The exact pre-change admin-load RED did not reproduce; supporting locale evidence came from non-equivalent baseline coverage load",
       "pull_request": "https://github.com/greenpill-dev-guild/green-goods/pull/758",
-      "publication_status": "stacked #758 ready for review against perf/turbo-test-routing; live CI passed"
+      "publication_status": "merged into develop through Wave 0 merge commit 91e1ae904cc28af61cd0b203fce2f798fb31d4c8; live CI passed"
     },
     "w0_coverage_floors_nightly": {
       "machine_lane": "state_api",
@@ -290,7 +290,7 @@
       },
       "validation": "Focused RED/GREEN passed; validation-system 130/130, every push-selector check, Plan Hub 46 hubs and 56/56 fixtures, and the deterministic root build passed",
       "proof_limit": "The additional full test run passed 2,050 Solidity tests and 278 contract script tests, but the dual-chain lifecycle suite was environment-blocked because this sandbox rejects localhost Anvil connections with EPERM",
-      "publication_status": "local stacked commit validated; publication remains pending"
+      "publication_status": "integrated directly on develop; original tested tree retained"
     },
     "w0_turbo_guidance": {
       "machine_lane": "ui",
@@ -301,7 +301,7 @@
       "handoff": "handoffs/w0_turbo_guidance.md",
       "commit": "8fd3311980b28d71d48f72fe41c99d15276de912",
       "validation": "Codex and guidance guards passed; every selector-chosen package passed on a clean committed tree",
-      "publication_status": "local stacked commit validated after the Wave 0 merge; publication remains pending"
+      "publication_status": "integrated directly on develop; original tested tree retained"
     },
     "w0_receipt_debt_burndown": {
       "machine_lane": "state_api",
@@ -315,13 +315,13 @@
       ],
       "handoff": "handoffs/w0_receipt_debt_burndown.md",
       "validation": "All eight waiver receipts are machine-valid, the debt baseline is empty, Plan Hub validation passed, and Validation System Optimization is archived with completed resolution",
-      "publication_status": "local stacked closeout is validated; publication remains pending"
+      "publication_status": "integrated directly on develop; receipt debt remains closed"
     },
     "jobqueue_create_deps": {
       "machine_lane": "state_api",
       "owner": "codex",
       "status": "passed",
-      "branch": "refactor/job-queue-dependencies",
+      "branch": null,
       "depends_on": ["w0_receipt_debt_burndown"],
       "handoff": "handoffs/jobqueue_create_deps.md",
       "commit": "a83be79670abc877ec4d8083d9a12e2fa5f715b1",
@@ -332,13 +332,13 @@
       },
       "validation": "Critical QA selector ready; format, lint, Shared full typecheck/test, Client/Admin/Agent suites, Agent typecheck, ontology, source structure, focused proof, coverage, listener and clean-tree checks passed",
       "proof_limit": "A first Shared run under concurrent Shared/Client/Admin load timed out one dynamic import; the unchanged exact SHA then passed all 344 Shared files standalone, so cross-package concurrent timing robustness is not claimed",
-      "publication_status": "local stacked implementation commit validated; publication remains pending"
+      "publication_status": "integrated directly on develop at 8cc274304b3e879b8ba3a90dd078b4849711045c; original tested SHA retained"
     },
     "sender_conformance": {
       "machine_lane": "state_api",
       "owner": "codex",
       "status": "passed",
-      "branch": "test/transaction-sender-conformance",
+      "branch": null,
       "depends_on": ["w0_receipt_debt_burndown"],
       "handoff": "handoffs/sender_conformance.md",
       "commit": "8fe5f6cba756470123b3bceb54cef556e245bcbf",
@@ -349,7 +349,7 @@
       },
       "validation": "Selector ready; direct sender and migration proof 198 passed/5 explicit skips, focused production coverage exceeded 92% statements and branches, shared typecheck plus Client/Admin/Agent and ontology checks passed",
       "proof_limit": "The out-of-lane JobQueueProvider legacy mock is deferred to jobqueue_create_deps and the pre-existing useContractTxSender transfer ABI remains deferred; program-wide legacy-mock and one-ABI exits are not claimed",
-      "publication_status": "local stacked implementation commit validated; publication remains pending"
+      "publication_status": "integrated directly on develop at 3bafa5f5b444c7cd8fd24998d1be168b7a9e72dc; original tested SHA retained"
     },
     "work_submit_command": {
       "machine_lane": "state_api",
@@ -371,7 +371,7 @@
       "machine_lane": "state_api",
       "owner": "codex",
       "status": "passed",
-      "branch": "refactor/pool-controller-contracts",
+      "branch": null,
       "depends_on": ["w0_receipt_debt_burndown"],
       "handoff": "handoffs/pool_controller_contracts_and_fixtures.md",
       "commit": "7266e90786a445b6169dde0dd1c4a85f6633301b",
@@ -382,24 +382,24 @@
       },
       "validation": "QA selector ready; its format/lint, Shared typechecks, Client/Admin/Agent suites, Agent typecheck, ontology, source structure, direct fixture acceptance, focused Shared pool tests, direct Admin source/test typechecks, and zero-cast/controller-bag searches passed",
       "proof_limit": "Admin typecheck:full is BLOCKED, not passing, by untouched Shared declaration-emission portability errors: TS2883 in passkeyServer, pimlico, command-palette, cookie-jar, ENS, and blockchain client files plus TS4058 in the two Hub controller files. The selector also names nonexistent controller-fixtures.ts; the direct controller-fixtures.test.ts acceptance command passed. This type-and-fixture lane adds no production coverage floor; direct controller coverage belongs to the dependent controller-suite lanes.",
-      "publication_status": "local stacked implementation commits validated; publication remains pending"
+      "publication_status": "integrated directly on develop at dff011746596f3588d58c0b7d7fb9e8ee95ff026; original tested SHA retained"
     },
     "pool_console_controller_suite": {
       "machine_lane": "state_api",
       "owner": "codex",
       "status": "passed",
-      "branch": "test/pool-console-controller",
+      "branch": null,
       "depends_on": ["pool_controller_contracts_and_fixtures"],
       "handoff": "handoffs/pool_console_controller_suite.md",
-      "commit": "0c49a77986802e4bf457eed343f1e3192ba29a3b",
+      "commit": "596ccb7a468191f083abce02a2e1d9c2a845989f",
       "tdd": {
         "status": "green_recorded",
         "red": "The timer-condition mutant failed because no 30-second controller timer was armed; the saveSettings guard mutant failed because the no-pool call resolved instead of rejecting.",
         "green": "The focused controller suite passed 11/11 with all 12 acts executed and 100% line and function coverage."
       },
-      "validation": "QA selector ready; every selected check, focused suite and coverage, Shared full typecheck, source structure, static searches, timer cleanup, and exact parent-source comparison passed",
+      "validation": "Integrated QA selector ready; format, lint, Shared test typecheck, focused 11/11 suite, focused 98.5/90.9/100/100 coverage, and Shared full typecheck passed at 596ccb7a468191f083abce02a2e1d9c2a845989f",
       "proof_limit": "Test-only lane: no production, browser, integration, network, or performance claim; error composition uses real React Query cache-state transitions rather than remote retry behavior",
-      "publication_status": "local stacked implementation commit validated; publication remains pending"
+      "publication_status": "integrated and freshly revalidated directly on develop"
     },
     "hub_confirm_queue_controller_suite": {
       "machine_lane": "state_api",
@@ -926,6 +926,14 @@
       "status": "tdd_recorded",
       "branch": null,
       "note": "Execution proof belongs to jobqueue_create_deps; the state_api lane summary records the required RED/GREEN transition."
+    },
+    {
+      "timestamp": "2026-08-23T15:44:16.000Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "reconciled",
+      "branch": null,
+      "note": "Confirmed PRs 754 through 760 merged, integrated the missing validated Wave 0 and Wave 1 stack directly on develop, and refreshed Pool Console proof at the final assertion commit."
     }
   ]
 }

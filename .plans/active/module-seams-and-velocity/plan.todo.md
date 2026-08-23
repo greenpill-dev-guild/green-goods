@@ -27,6 +27,9 @@
 | 14 | Merge the ready Wave 0 stack without waiting for the quiet-machine timing matrix or a pre-merge Coverage Nightly dispatch. | Afo explicitly accepted both proof limits on 2026-08-22 to unblock Wave 1. The timing result remains unclaimed, and the first default-branch Coverage Nightly run remains a required post-merge observation. |
 | 15 | Close the two actionable Turbo input findings from merged PR #760 on a successor stacked lane before Wave 1. | Root test-runner helpers and consumer source scanned by Shared tests must affect Turbo hashes or later validation can reuse stale successes. |
 | 16 | Accept the repository-owned Wave 0 snapshot as the execution gate while the two private Claude artifacts are inaccessible from this environment. | Fresh local receipts preserve every observed signal and proof limit without blocking the approved implementation program on an external presentation surface. |
+| 17 | Execute the remaining program only in the shared checkout on `develop`, with no new branches, worktrees, pull requests, or subagents. | Afo replaced the original lane-publication protocol on 2026-08-23 so the program can finish without duplicating fixes across stacked delivery units. |
+| 18 | Treat lane blocks as acceptance criteria inside wave batches, run one Repo Quick Gate per wave, and reserve the full Ship Gate for program exit. | Focused RED/GREEN proof remains required while repeated full-suite lane gates are removed. |
+| 19 | Record one consolidated receipt and Plan Hub update per wave. | Sublanes may reference the same tested wave SHA when their implementation and validation inputs are unchanged. |
 
 ## Research / Plan Gate
 
@@ -59,40 +62,39 @@
 6. [x] Land W0-G2 and burn down receipt debt in W0-H, then archive Validation System Optimization.
 7. [x] Close W0 Turbo input hardening feedback on a successor stacked lane.
 8. [x] Record the Wave 0 Module Health and Velocity snapshots and verify every Wave 0 exit signal.
-9. [ ] Land Wave 1 shared seams in order A and C, then B1, then B2.
-10. [ ] Land Wave 1 pooling controller contracts, direct suites, and typed view tests.
-11. [ ] Land the Wave 2 client controller, Community split, design review, Hasura planner, and pooling subpath lanes.
-12. [ ] Land Wave 3 shared ports, repositories, adapters, commands, transitions, hooks, providers, and shell contracts in dependency rounds.
-13. [ ] Land Wave 4 client and admin controller, view-model, state, and direct-test lanes.
-14. [ ] Land Wave 5 indexer event helpers, fixtures, delivery contracts, source split, automatic mined-log selection, and permission planner.
-15. [ ] Land Wave 6 Vitest projects, direct-tested-seam guard, and first coverage ratchet when due.
+9. [ ] Complete the remaining Wave 1 shared seams in order A and C, then B1 and B2, as one integrated `develop` batch.
+10. [ ] Complete the remaining Wave 1 pooling controller suites and typed view tests in the same batch.
+11. [ ] Complete Wave 2 client controllers, Community split and design pass, Hasura planner, and pooling subpath on `develop`.
+12. [ ] Complete Wave 3 shared ports, repositories, adapters, commands, transitions, hooks, providers, and shell contracts in dependency rounds.
+13. [ ] Complete Wave 4 client and admin controller, view-model, state, and direct-test requirements.
+14. [ ] Complete Wave 5 indexer event helpers, fixtures, delivery contracts, source split, automatic mined-log selection, and permission planner.
+15. [ ] Complete Wave 6 Vitest projects, direct-tested-seam guard, and the coverage ratchet when due.
 16. [ ] Re-run the complete Module Health and Velocity procedures, attach fresh receipts, and close only the non-deferred program rows.
 
-## Lane Lifecycle
+## Wave Lifecycle
 
-1. Write `handoffs/<lane>.md` with an outcome, files to read first, exact path globs, explicit
-   exclusions, gates, report shape, and stop condition.
-2. Dispatch one isolated worktree and branch from current `develop` with
-   `.claude/scripts/dispatch-codex-lane.sh` for Codex-owned work.
-3. Read `codex-result.md`; refine and re-dispatch a partial or failed lane once, then report a real
-   blocker.
-4. Run a Claude review and the lane's Ship Gate. Apply the mutation-reliability lens and require
-   Afo approval for critical surfaces.
-5. Open one pull request to `develop`, reference the parent Linear issue, require CI green, merge
-   with `--no-ff`, then remove the worktree and local branch.
-6. Record RED/GREEN proof, tested SHA, UTC time, exact commands, result, validated paths, and empty
-   path-scoped status before marking the execution sub-lane passed.
+1. Reconcile the wave's lane dependencies and acceptance criteria against live `develop`.
+2. Implement the related changes as one batch in the shared main checkout. Do not create or switch
+   branches, create worktrees or pull requests, or spawn subagents.
+3. Preserve each required RED or named mutant and run focused tests and coverage while editing.
+4. Commit coherent checkpoints directly to `develop` without running the full repository suite after
+   every checkpoint.
+5. Render `bun run validation:plan` for the wave's actual changed paths, execute its targeted and
+   conditional checks, then run one Repo Quick Gate at the wave boundary.
+6. Record one consolidated wave receipt with the tested SHA, UTC time, commands, results, validated
+   paths, and clean status. Update Plan Hub and repository-owned health and velocity evidence once.
+7. Continue automatically unless a new product decision, conflicting foreign work on `develop`, an
+   unclear destructive target, or an unresolvable blocker requires human direction.
 
 ## Validation
 
 - [ ] `node scripts/harness/plan-hub.mjs validate`
 - [ ] `node --test scripts/harness/plan-hub.test.mjs`
-- [ ] Per lane: render and execute `bun run validation:plan -- --intent qa --changed <lane paths>`.
-- [ ] Per lane: run the named RED/GREEN or mutant proof and per-file coverage target.
-- [ ] Per lane: `SOURCE_STRUCTURE_BASE_REF=origin/develop bun run check:source-structure`.
-- [ ] Per lane before merge: `bun format && bun lint && bun run test && bun run build`, plus every conditional gate selected for touched paths.
-- [ ] Per lane: Claude diff review, critical approval where applicable, CI green, and a fresh Validation Receipt.
-- [ ] Per wave: update the Module Health and Velocity snapshots from fresh measurements.
+- [ ] During each wave: render and execute `bun run validation:plan -- --intent qa --changed <wave paths>`.
+- [ ] During each wave: run the named RED/GREEN or mutant proof and per-file coverage targets.
+- [ ] At each wave boundary: run `SOURCE_STRUCTURE_BASE_REF=origin/develop bun run check:source-structure` when selected and one Repo Quick Gate.
+- [ ] Per wave: record one fresh consolidated receipt and update repository-owned Module Health and Velocity evidence.
+- [ ] At program exit only: run `bun format && bun lint && bun run test && bun run build`, plus every conditional gate selected for the complete touched surface.
 
 ## Program Exit
 
