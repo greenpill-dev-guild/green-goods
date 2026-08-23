@@ -58,10 +58,10 @@ export interface GardenCommitmentController {
   canAskAgain: boolean;
   claimNeedsContext: boolean;
   queue: {
-    pending: boolean;
+    hasPendingJob: boolean;
     sendFailed: boolean;
     failedJob: { jobId: string; discardable: boolean } | null;
-    unavailable: boolean;
+    isUnavailable: boolean;
     refresh: () => void;
   };
   confirmation: {

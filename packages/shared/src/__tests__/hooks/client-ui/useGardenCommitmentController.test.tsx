@@ -20,7 +20,6 @@ import type {
   CommitmentPoolRecord,
 } from "../../../modules/commitment-pooling/types";
 import type { Action, Address, Work } from "../../../types/domain";
-import type { CommitmentViewerRoles } from "../../../hooks/commitment-pooling/useCommitmentViewerRoles";
 import {
   availableCapability,
   claimFixture,
@@ -53,6 +52,8 @@ const detail = commitmentDetailFixture({
     commitmentType: "DOMAIN_IMPACT",
     providerGarden: DEMO_GARDEN,
     leadProvider: TUNDE,
+    counterpartyKind: "GARDEN",
+    counterparty: MARIA,
   }),
 });
 
@@ -87,15 +88,14 @@ const mocks = vi.hoisted(() => ({
   mutationError: null as unknown,
   works: [] as Work[],
   pool: null as CommitmentPoolRecord | null,
-  roles: {
-    isSteward: false,
-    isMemberHere: true,
-    stewardsPoolGarden: true,
-    counterpartyGarden: undefined as Address | undefined,
-    stewardsCounterparty: false,
-    garden: undefined,
-    claimGardens: { member: [], stewarded: [] },
-  } as CommitmentViewerRoles,
+  roleAnswers: new Map<string, boolean>(),
+  gardens: [] as Array<{
+    id: string;
+    name: string;
+    gardeners: Address[];
+    operators: Address[];
+  }>,
+  managedGardens: new Set<string>(),
   claimRequests: [] as CommitmentClaimRequestRecord[],
   actions: [] as Action[],
   linked: new Set<string>(),
@@ -111,6 +111,20 @@ vi.mock("../../../hooks/auth/usePrimaryAddress", () => ({
 
 vi.mock("../../../hooks/blockchain/useBaseLists", () => ({
   useActions: () => ({ data: mocks.actions }),
+  useGardens: () => ({ data: mocks.gardens }),
+}));
+
+vi.mock("../../../hooks/roles/useHasRole", () => ({
+  useHasRole: (garden: string | undefined, _viewer: string | undefined, role: string) => ({
+    hasRole: garden ? (mocks.roleAnswers.get(`${garden.toLowerCase()}:${role}`) ?? false) : false,
+    isLoading: false,
+  }),
+}));
+
+vi.mock("../../../hooks/garden/useGardenPermissions", () => ({
+  useGardenPermissions: () => ({
+    canManageGarden: (garden: { id: string }) => mocks.managedGardens.has(garden.id.toLowerCase()),
+  }),
 }));
 
 vi.mock("../../../hooks/work/useWorks", () => ({
@@ -149,10 +163,6 @@ vi.mock("../../../hooks/commitment-pooling/useCommitmentMutations", () => ({
   }),
 }));
 
-vi.mock("../../../hooks/commitment-pooling/useCommitmentViewerRoles", () => ({
-  useCommitmentViewerRoles: () => mocks.roles,
-}));
-
 beforeEach(() => {
   vi.clearAllMocks();
   mocks.isOnline = true;
@@ -172,9 +182,22 @@ beforeEach(() => {
   mocks.works = [work(), work({ id: "0xbbbb", status: "rejected" })];
   mocks.linked = new Set();
   mocks.pool = poolFixture({ poolType: "PROTOCOL" });
-  mocks.roles.isMemberHere = true;
-  mocks.roles.stewardsPoolGarden = true;
-  mocks.roles.counterpartyGarden = MARIA;
+  mocks.roleAnswers = new Map([[`${DEMO_GARDEN.toLowerCase()}:operator`, true]]);
+  mocks.gardens = [
+    {
+      id: DEMO_GARDEN,
+      name: "Host Garden",
+      gardeners: [TUNDE],
+      operators: [],
+    },
+    {
+      id: MARIA,
+      name: "Provider Garden",
+      gardeners: [TUNDE],
+      operators: [],
+    },
+  ];
+  mocks.managedGardens = new Set();
   mocks.claimRequests = [
     claimFixture({ requestedBy: TUNDE, claimant: TUNDE, requestedAt: 1, state: "DECLINED" }),
     claimFixture({ requestedBy: TUNDE, claimant: TUNDE, requestedAt: 2, state: "DECLINED" }),
@@ -238,6 +261,11 @@ describe("useGardenCommitmentController", () => {
     expect(result.current.ownRequest?.state).toBe("DECLINED");
     expect(result.current.pendingClaimRequests.map((request) => request.claimant)).toEqual([MARIA]);
     expect(result.current.linkableWorks.map((entry) => entry.id)).toEqual(["0xaaaa"]);
+    expect(result.current.roles).toMatchObject({
+      stewardsPoolGarden: true,
+      counterpartyGarden: MARIA,
+      claimGardens: { member: [{ address: MARIA, name: "Provider Garden" }] },
+    });
   });
 
   it("suppresses duplicate acts when the queue is pending or unreadable and exposes failures", () => {
@@ -257,10 +285,10 @@ describe("useGardenCommitmentController", () => {
 
     expect(result.current.actKind).toBeNull();
     expect(result.current.queue).toEqual({
-      pending: true,
+      hasPendingJob: true,
       sendFailed: true,
       failedJob: { jobId: "failed-1", discardable: true },
-      unavailable: true,
+      isUnavailable: true,
       refresh: mocks.queue.refresh,
     });
   });
@@ -332,6 +360,9 @@ describe("useGardenCommitmentController", () => {
       commitment: commitmentFixture({
         onchainState: "READY_FOR_CONFIRMATION",
         confirmers: [TUNDE],
+        direction: "OFFER",
+        counterpartyKind: "GARDEN",
+        counterparty: MARIA,
       }),
     });
     mocks.mutationError = new CommitmentReasonPinError("Could not pin reason");

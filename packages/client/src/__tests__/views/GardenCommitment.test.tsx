@@ -207,10 +207,10 @@ function controller(
     linkable: true,
     linkableWorks: [],
     queue: {
-      pending: false,
+      hasPendingJob: false,
       sendFailed: false,
       failedJob: null,
-      unavailable: false,
+      isUnavailable: false,
       refresh: vi.fn(),
     },
     confirmation: {
@@ -406,13 +406,13 @@ describe("GardenCommitment", () => {
 
   it("renders pending, unreadable, and failed queue states", async () => {
     mockUseController.mockReturnValue(
-      controller({ actKind: null, queue: { ...controller().queue, pending: true } })
+      controller({ actKind: null, queue: { ...controller().queue, hasPendingJob: true } })
     );
     const view = render();
     expect(screen.getByText(/waiting to send from this phone/i)).toBeInTheDocument();
 
     mockUseController.mockReturnValue(
-      controller({ queue: { ...controller().queue, unavailable: true } })
+      controller({ queue: { ...controller().queue, isUnavailable: true } })
     );
     view.rerender(
       <MemoryRouter initialEntries={[`/home/${GARDEN}/commitments/9`]}>

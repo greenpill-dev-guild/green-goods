@@ -127,7 +127,7 @@ export function GardenCommitment() {
               isPending={isPending}
               isOnline={controller.isOnline}
               blockedReasonId={
-                controller.queue.unavailable ? "app.commitments.queueUnreadable" : null
+                controller.queue.isUnavailable ? "app.commitments.queueUnreadable" : null
               }
               secondary={
                 controller.linkable && act.kind === "addProof"
@@ -136,7 +136,7 @@ export function GardenCommitment() {
               }
               onRun={runAct}
             />
-          ) : controller.queue.pending ? (
+          ) : controller.queue.hasPendingJob ? (
             <p
               className="shrink-0 border-t border-stroke-soft-200 bg-bg-white-0 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] text-sm text-text-sub-600"
               role="status"
@@ -211,7 +211,9 @@ export function GardenCommitment() {
           chainId={controller.chainId}
           viewer={controller.viewer}
           canLink={
-            controller.linkable && !controller.queue.pending && !controller.queue.unavailable
+            controller.linkable &&
+            !controller.queue.hasPendingJob &&
+            !controller.queue.isUnavailable
           }
           onOpenWork={(workUID) => navigate(`../../work/${workUID}`, { relative: "path" })}
           onLink={(workUID, requirementIndex) => setLinkOpen({ workUID, requirementIndex })}

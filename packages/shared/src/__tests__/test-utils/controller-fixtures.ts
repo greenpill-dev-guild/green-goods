@@ -99,10 +99,10 @@ export function gardenCommitmentControllerFixture(
     canAskAgain: false,
     claimNeedsContext: false,
     queue: {
-      pending: false,
+      hasPendingJob: false,
       sendFailed: false,
       failedJob: null,
-      unavailable: false,
+      isUnavailable: false,
       refresh: () => undefined,
     },
     confirmation: {

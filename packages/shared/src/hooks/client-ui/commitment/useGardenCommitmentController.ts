@@ -278,10 +278,10 @@ export function useGardenCommitmentController(input: {
     ),
     claimNeedsContext: poolQuery.pool?.poolType === "PROTOCOL",
     queue: {
-      pending,
+      hasPendingJob: pending,
       sendFailed,
       failedJob: queueState.failedJobs.get(queueKey) ?? null,
-      unavailable: queueState.isUnavailable,
+      isUnavailable: queueState.isUnavailable,
       refresh: queueState.refresh,
     },
     confirmation: {
