@@ -5,7 +5,23 @@ import {
   toActionDetailContentId,
   toActionEditContentId,
 } from "../navigation/sheetRegistry";
-import { getActionsListSearch } from "./actions.utils";
+import { getActionLifecycleState, getActionsListSearch } from "./actions.utils";
+import type { Action } from "../../../types";
+import { localizeAction } from "../../../utils/action/translations";
+
+export function deriveActionDetailModel(action: Action, locale?: string) {
+  const lifecycle = getActionLifecycleState(action);
+  return {
+    displayAction: localizeAction(action, locale),
+    lifecycle,
+    lifecycleVariant:
+      lifecycle === "upcoming"
+        ? ("warning" as const)
+        : lifecycle === "active"
+          ? ("success" as const)
+          : ("neutral" as const),
+  };
+}
 
 export type ActionsRouteState =
   | {

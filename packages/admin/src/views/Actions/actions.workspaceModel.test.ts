@@ -5,6 +5,7 @@ import {
   Domain,
   getActionsListSearch,
   canManageActionsForRole,
+  deriveActionDetailModel,
   resolveActionsRouteState,
   restoreCreateActionDraft,
   restoreEditActionDraft,
@@ -12,6 +13,7 @@ import {
   serializeEditActionDraft,
   toActionDetailContentId,
   toActionEditContentId,
+  type Action,
 } from "@green-goods/shared";
 import { describe, expect, it } from "vitest";
 
@@ -108,5 +110,27 @@ describe("actions workspace model", () => {
     expect(canManageActionsForRole("deployer")).toBe(true);
     expect(canManageActionsForRole("operator")).toBe(false);
     expect(canManageActionsForRole("user")).toBe(false);
+  });
+
+  it("derives one localized lifecycle model for action detail surfaces", () => {
+    const action: Action = {
+      id: "42161-0xaction",
+      slug: "solar.audit",
+      startTime: Date.now() - 60_000,
+      endTime: Date.now() + 60_000,
+      title: "Solar audit",
+      description: "Document the system",
+      inputs: [],
+      capitals: [],
+      media: [],
+      domain: Domain.SOLAR,
+      createdAt: Date.now() - 120_000,
+    };
+
+    expect(deriveActionDetailModel(action, "en")).toMatchObject({
+      displayAction: { id: action.id, title: "Solar audit" },
+      lifecycle: "active",
+      lifecycleVariant: "success",
+    });
   });
 });
