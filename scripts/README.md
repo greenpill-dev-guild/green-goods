@@ -66,6 +66,8 @@ scripts/
 | `check-immutable-plan-reports.mjs` | `bun run check:immutable-plan-reports`, Supply Chain Guardrails | Reject edits, deletions, and renames of existing dated Plan Hub reports while allowing new correction artifacts |
 | `check-immutable-plan-reports.test.mjs` | `bun run test:review-guardrails` | Fixture tests for immutable dated report diff classification |
 | `check-source-structure.js` | `bun run check:source-structure` | File-size limits + frozen-allowlist policy |
+| `check-staged-modules.mjs` | `bun run check:staged-modules`, validation selector | Keep deferred Card Endow modules marked and isolated from live Client imports |
+| `check-staged-modules.test.mjs` | `bun run test:validation-system` | Positive and fail-closed fixtures for the staged-module boundary |
 | `check-test-quality.sh` | `bun run check:test-quality` | Detect tautological assertions, ungoverned skips, `@ts-nocheck`, and newly malformed Solidity test names |
 | `check-story-coverage.ts` | `design.yml` (via `packages/shared` script) | Storybook coverage policy per package |
 | `check-story-quality.ts` | `design.yml` (via `packages/shared` script) | Storybook story-quality lints |

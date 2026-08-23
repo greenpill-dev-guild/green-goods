@@ -462,6 +462,16 @@
       "capabilities": ["dependencies"]
     },
     {
+      "id": "staged-modules",
+      "command": "bun run check:staged-modules",
+      "risk": "deferred Card Endow code becomes live without an explicit activation decision",
+      "expectedSignal": "all staged Card Endow modules remain marked and have no live importer",
+      "freshness": "exact-inputs",
+      "budgetSeconds": 10,
+      "stopRule": "stop-dependent-checks",
+      "capabilities": []
+    },
+    {
       "id": "source-structure",
       "command": "bun run check:source-structure",
       "risk": "changed package source violates repository structure policy",

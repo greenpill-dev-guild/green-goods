@@ -221,6 +221,15 @@ test("a lockfile-only change retains package validation and dependency integrity
   );
 });
 
+test("client changes select the staged Card Endow boundary", () => {
+  const plan = selectValidation({
+    intent: "qa",
+    changedPaths: ["packages/client/src/views/Public/Vaults.tsx"],
+  });
+
+  assert.ok(ids(plan).includes("staged-modules"));
+});
+
 test("recognized root tests select their durable acceptance commands", () => {
   for (const [changedPath, checkId, command] of [
     ["scripts/lib/env-schema.test.mjs", "env-schema-test", "bun run test:env-schema"],
@@ -329,6 +338,7 @@ test("isolated client behavior accepts focused proof without forcing a package b
     "format",
     "lint",
     "client-test",
+    "staged-modules",
     "ontology",
     "browser-proof",
   ]);
@@ -681,6 +691,7 @@ test("push and ship scope client work to the exact impacted strict checks", () =
     "client-test-typecheck",
     "client-test",
     "client-build",
+    "staged-modules",
     "source-structure",
     "design-guardrails",
     "browser-proof",

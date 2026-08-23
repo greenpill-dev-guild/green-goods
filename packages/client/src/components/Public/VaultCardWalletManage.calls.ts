@@ -1,3 +1,9 @@
+/**
+ * Staged — not yet wired into the live checkout.
+ *
+ * Contract-call helpers for the staged Card Endow recovery-wallet surface. This module may be
+ * imported only by the other staged Card Endow modules until activation is explicitly scheduled.
+ */
 import {
   type Address,
   DEFAULT_WITHDRAW_MAX_LOSS_BPS,

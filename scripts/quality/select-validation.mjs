@@ -460,6 +460,12 @@ export function selectValidation(input = {}, options = {}) {
       if (surfaces.has(surface)) select(id, `strict-intent:${surface}:test-types`);
     }
   }
+  if (
+    !evidenceOnly &&
+    changedPaths.some((path) => path.startsWith("packages/client/src/"))
+  ) {
+    select("staged-modules", "client:staged-boundary");
+  }
   for (const rule of evidenceOnly ? [] : (policy.conditionalRules ?? [])) {
     const matchingPaths = changedPaths.filter((path) => {
       if (!groupMatches(path, rule)) return false;
