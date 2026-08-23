@@ -30,6 +30,10 @@ const sheetRegistryPath = resolve(
 const communityViewPath = resolve(srcDir, "views/Community/index.tsx");
 const profileViewPath = resolve(srcDir, "views/Profile/index.tsx");
 const canvasLayoutPath = resolve(srcDir, "components/Layout/CanvasLayout.tsx");
+const canvasControllerPath = resolve(
+  srcDir,
+  "../../shared/src/hooks/admin-ui/layout/useCanvasShellController.ts"
+);
 const rightSheetDescriptorPath = resolve(
   srcDir,
   "../../shared/src/hooks/admin-ui/layout/useAdminRightSheetDescriptor.tsx"
@@ -123,14 +127,16 @@ describe("route folding", () => {
     expect(sheetRegistry).toContain("ADMIN_ROUTE_SHEET_REGISTRY");
   });
 
-  it("global right sheet content is resolved through the admin sheet registry", () => {
+  it("global right sheet content is resolved through the canvas controller and registry", () => {
     const sheetRegistry = readSource(sheetRegistryPath);
     const canvasLayout = readSource(canvasLayoutPath);
+    const canvasController = readSource(canvasControllerPath);
     const rightSheetDescriptor = readSource(rightSheetDescriptorPath);
 
     expect(sheetRegistry).toContain("ADMIN_RIGHT_SHEET_REGISTRY");
     expect(sheetRegistry).toContain("notifications");
-    expect(canvasLayout).toContain("useAdminRightSheetDescriptor");
+    expect(canvasLayout).toContain("useCanvasShellController");
+    expect(canvasController).toContain("useAdminRightSheetDescriptor");
     expect(canvasLayout).not.toContain("RIGHT_SHEET_TITLES");
     expect(canvasLayout).toContain("AccountProfilePanel");
     expect(canvasLayout).toContain("AccountSettingsPanel");
