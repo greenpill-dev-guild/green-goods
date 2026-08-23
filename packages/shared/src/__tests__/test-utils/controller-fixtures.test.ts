@@ -5,6 +5,7 @@ import type {
   HubConfirmQueueController,
   PoolConsoleController,
 } from "../../hooks/admin-ui/pool";
+import type { ProofComposerController } from "../../hooks/client-ui/commitment";
 import {
   commitmentDialogControllerFixture,
   commitmentDetailFixture,
@@ -17,6 +18,7 @@ import {
   poolClaimRowFixture,
   poolConsoleControllerFixture,
   poolFixture,
+  proofComposerControllerFixture,
   claimFixture,
   toConfirmFixture,
 } from "./index";
@@ -40,6 +42,7 @@ describe("pool controller fixtures", () => {
       toConfirm: toConfirmFixture(),
     });
     const gardenCommitment = gardenCommitmentControllerFixture({ detail });
+    const proofComposer: ProofComposerController = proofComposerControllerFixture({ detail });
     const dialog: CommitmentDialogController = commitmentDialogControllerFixture({ commitment });
 
     expect(poolConsole.model.status).toBe("open");
@@ -54,6 +57,11 @@ describe("pool controller fixtures", () => {
     expect(dialog.can.cancel).toBe(true);
     expect(gardenCommitment.status).toBe("ready");
     expect(gardenCommitment.detail).toBe(detail);
+    expect(proofComposer.detail).toBe(detail);
+    expect(proofComposer.readiness("details")).toEqual({
+      canAdvance: false,
+      reason: "nothing",
+    });
     expect(dialog.confirmation).toEqual({
       allowed: false,
       path: null,

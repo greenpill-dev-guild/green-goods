@@ -9,17 +9,20 @@ import type {
 import type {
   GardenCommitmentActs,
   GardenCommitmentController,
+  ProofComposerController,
 } from "../../hooks/client-ui/commitment";
 import type { CommitmentsToConfirm } from "../../hooks/commitment-pooling/useCommitmentsToConfirm";
 import {
   DEMO_CHAIN_ID,
   DEMO_GARDEN,
+  MARIA,
   NOW,
   TUNDE,
 } from "../../modules/commitment-pooling/demo/demo-builders";
 import { selectPromiseKeptRate } from "../../modules/commitment-pooling/disclosure";
 import { selectCommitmentActPermissions } from "../../modules/commitment-pooling/commitment-act-permissions";
 import { selectPoolConsoleModel } from "../../modules/commitment-pooling/pool-console";
+import { selectProofReadiness } from "../../hooks/client-ui/commitment/proofReadiness";
 import {
   selectCommitmentSeat,
   selectConfirmationEligibility,
@@ -115,6 +118,71 @@ export function gardenCommitmentControllerFixture(
     isQueueing: false,
     isSending: false,
     acts: gardenCommitmentActs,
+    refetch: async () => undefined,
+    ...overrides,
+  };
+}
+
+export function proofComposerControllerFixture(
+  overrides: Partial<ProofComposerController> = {}
+): ProofComposerController {
+  const detail =
+    overrides.detail === undefined
+      ? commitmentDetailFixture({
+          commitment: commitmentFixture({ creator: TUNDE, leadProvider: TUNDE }),
+        })
+      : overrides.detail;
+  const media = overrides.media ?? [];
+  const audioNotes = overrides.audioNotes ?? [];
+  const note = overrides.note ?? "";
+  const links = overrides.links ?? [];
+  const credited = overrides.credited ?? [TUNDE];
+  const isProcessing = overrides.isProcessing ?? false;
+  const isRecording = overrides.isRecording ?? false;
+  const hasAnything =
+    media.length > 0 || audioNotes.length > 0 || note.trim().length > 0 || links.length > 0;
+
+  return {
+    status: detail ? "ready" : "notYours",
+    availability: { status: "available", capability: availableCapability },
+    isOnline: true,
+    viewer: TUNDE,
+    detail,
+    commitment: detail?.commitment ?? null,
+    metadata: { version: 1, title: "Repair tool handles" },
+    roster: [
+      { address: TUNDE, isLead: true },
+      { address: MARIA, isLead: false },
+    ],
+    media,
+    audioNotes,
+    note,
+    setNote: () => undefined,
+    links,
+    setLinks: () => undefined,
+    credited,
+    clientEvidenceId: "fixture-evidence-id",
+    isProcessing,
+    isRecording,
+    recordingElapsed: 0,
+    isPending: false,
+    linkInvalid: false,
+    imageUrls: [],
+    readiness: (beat) =>
+      selectProofReadiness({
+        beat,
+        isProcessing,
+        isRecording,
+        hasAnything,
+        creditedCount: credited.length,
+        links,
+      }),
+    toggleCredit: () => undefined,
+    toggleRecording: () => undefined,
+    pick: async () => ({ rejectedCount: 0 }),
+    removeMedia: () => undefined,
+    removeAudio: () => undefined,
+    submit: async () => true,
     refetch: async () => undefined,
     ...overrides,
   };
