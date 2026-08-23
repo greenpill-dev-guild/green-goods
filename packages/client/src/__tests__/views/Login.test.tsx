@@ -22,13 +22,19 @@ const mockLoginWithPasskey = vi.fn();
 const mockCreateAccount = vi.fn();
 const mockLoginWithWallet = vi.fn();
 const mockLoginWithEmbedded = vi.fn();
-const { mockClassifyPasskeyCeremonyContext } = vi.hoisted(() => ({
+const { mockClassifyPasskeyCeremonyContext, mockToastService } = vi.hoisted(() => ({
   mockClassifyPasskeyCeremonyContext: vi.fn(() => ({
     supported: true,
     reason: undefined as "rp_origin_mismatch" | undefined,
     rpId: "greengoods.app",
     origin: "https://greengoods.app",
   })),
+  mockToastService: {
+    info: vi.fn(),
+    success: vi.fn(),
+    error: vi.fn(),
+    show: vi.fn(),
+  },
 }));
 let mockHasStoredCredential = false;
 let mockAuthError: Error | null = null;
@@ -37,13 +43,71 @@ let mockIsAuthenticated = false;
 let mockAuthUserName: string | null = null;
 let mockStoredUsername: string | null = null;
 
-vi.mock("@green-goods/shared", () => ({
-  toastService: {
-    info: vi.fn(),
-    success: vi.fn(),
-    error: vi.fn(),
-    show: vi.fn(),
-  },
+vi.mock("../../../../shared/src/hooks/auth/useAuth", () => ({
+  useAuth: () => ({
+    loginWithPasskey: mockLoginWithPasskey,
+    createAccount: mockCreateAccount,
+    loginWithWallet: mockLoginWithWallet,
+    loginWithEmbedded: mockLoginWithEmbedded,
+    isAuthenticating: false,
+    isAuthenticated: mockIsAuthenticated,
+    isReady: true,
+    smartAccountAddress: null,
+    hasStoredCredential: mockHasStoredCredential,
+    userName: mockAuthUserName,
+    error: mockAuthError,
+  }),
+}));
+
+vi.mock("../../../../shared/src/providers/App", () => ({
+  useApp: () => ({
+    platform: "unknown" as const,
+    isMobile: false,
+    isInstalled: false,
+    isInstalling: false,
+    wasInstalled: false,
+    deferredPrompt: null,
+  }),
+}));
+
+vi.mock("../../../../shared/src/hooks/app/useInstallGuidance", () => ({
+  useInstallGuidance: () => ({
+    showInstallPrompt: false,
+    scenario: null,
+    installAction: null,
+    dismissInstallPrompt: vi.fn(),
+    openInBrowserUrl: null,
+  }),
+}));
+
+vi.mock("../../../../shared/src/config/passkeyServer", () => ({
+  classifyPasskeyCeremonyContext: mockClassifyPasskeyCeremonyContext,
+  isPasskeyServerEnabled: () => mockPasskeyServerEnabled,
+  normalizePasskeyAccountIdentifier: (value: string) =>
+    value.trim().replace(/^@+/, "").toLowerCase(),
+}));
+
+vi.mock("../../../../shared/src/modules/auth/session", () => ({
+  getStoredUsername: () => mockStoredUsername,
+}));
+vi.mock("../../../../shared/src/components/Toast/toast.service", () => ({
+  toastService: mockToastService,
+}));
+vi.mock("../../../../shared/src/modules/app/error-categories", () => ({
+  trackAuthError: vi.fn(),
+}));
+vi.mock("../../../../shared/src/utils/app/clipboard", () => ({
+  copyToClipboard: vi.fn(),
+}));
+vi.mock("../../../../shared/src/utils/debug", () => ({
+  debugError: vi.fn(),
+}));
+
+vi.mock("@green-goods/shared", async () => ({
+  ...(await vi.importActual<
+    typeof import("../../../../shared/src/hooks/client-ui/auth/useLoginScreenController")
+  >("../../../../shared/src/hooks/client-ui/auth/useLoginScreenController")),
+  toastService: mockToastService,
   copyToClipboard: vi.fn(),
   classifyPasskeyCeremonyContext: mockClassifyPasskeyCeremonyContext,
   isPasskeyServerEnabled: () => mockPasskeyServerEnabled,
