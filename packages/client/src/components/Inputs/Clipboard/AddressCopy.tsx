@@ -66,7 +66,7 @@ export function AddressCopy({
       <button
         type="button"
         onClick={handleCopy}
-        aria-labelledby={statusId}
+        aria-describedby={statusId}
         className={cn(
           "flex w-full items-center justify-between gap-3 rounded-[var(--radius-xl)] border border-stroke-soft-200 bg-bg-white-0 text-left shadow-sm tap-feedback transition-[background-color,border-color,box-shadow,transform] duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)]",
           "active:scale-[0.99]",
