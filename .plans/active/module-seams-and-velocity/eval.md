@@ -190,3 +190,30 @@ The consolidated receipt is `handoffs/wave-3-receipt.md`.
   255.97 and 332.46 seconds on the loaded capture machine, so quiet-machine targets remain unclaimed.
   No rendered UI behavior changed, and the unavailable local-server/authenticated-Brave path is not
   reported as passing.
+
+## Wave 4 Snapshot — 2026-08-23
+
+Wave 4 is complete at implementation SHA `61508165af52bdd9a227bc8a1ec626c65c219245`.
+The consolidated receipt is `handoffs/wave-4-receipt.md`.
+
+- Module health: all 21 committed Client/Admin rows are regraded A- or A. Pool, work submission,
+  work detail, wallet send/scanning, login, Canvas, Submit Work, action editing, account profile,
+  Cookie Jar outcomes, assessment/Hypercert transitions, route redirects, and Hub policies now have
+  direct controller, view-model, transition, or policy seams. The Card Endow state machine remains
+  the single named Wave 4 deferral; its staging guard proves that no live importer exists.
+- Direct proof: the boundary Quick Gate passed Shared 716 tests with five governed skips and Client
+  274 tests. Admin exposed one stale source-shape assertion after Canvas ownership moved into its
+  controller; the corrected focused routing suite passed 19/19. Current-source focused closure then
+  passed 5 Shared, 128 Client, and 38 Admin tests, with all three source/test typecheck pairs green.
+- Structure and stories: the exact Wave 4 range passes source structure across 67 source files and
+  preserves 12 frozen ceilings. Submit Work is split into a 300-line flow, 194-line step renderer,
+  141-line field renderer, 309-line controller, and 173-line media controller. Required Storybook
+  coverage is 254/254 and story-quality checks pass across 226 files.
+- Conditional consumers: validation-system 136/136, Agent 270/270 with one governed live skip,
+  Docs 28/28 plus its production build, ontology, design generation/tokens/vocabulary, staged
+  modules, test quality, guidance, supply-chain, and Plan Hub checks passed. Contract compilation,
+  2,050 Solidity tests, and the release gas boundary passed; the unchanged dual-chain script remains
+  blocked when this sandbox rejects `127.0.0.1:3012` with `EPERM`.
+- Blockers: authenticated Brave is unavailable, so visible UI verification is BLOCKED rather than
+  passing. The unchanged Indexer localhost evidence remains 277 passing, one pending, and nine
+  `EPERM 127.0.0.1` bind failures; it was not retried without a capability change.

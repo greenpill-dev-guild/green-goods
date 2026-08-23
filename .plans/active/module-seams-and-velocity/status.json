@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p1",
     "created_at": "2026-08-23T02:50:35.809Z",
-    "updated_at": "2026-08-23T21:21:03.000Z"
+    "updated_at": "2026-08-23T23:55:03.000Z"
   },
   "links": {
     "brief": "brief.md",
@@ -684,83 +684,93 @@
     "client_garden_pool_controller": {
       "machine_lane": "state_api",
       "owner": "codex",
-      "status": "todo",
+      "status": "passed",
       "branch": null,
       "depends_on": ["client_ui_barrel_and_garden_commitment_controller"],
-      "handoff": null
+      "handoff": "handoffs/wave-4-receipt.md",
+      "commit": "61508165af52bdd9a227bc8a1ec626c65c219245"
     },
     "client_claim_components_tests": {
       "machine_lane": "ui",
       "owner": "codex",
-      "status": "todo",
+      "status": "passed",
       "branch": null,
       "depends_on": ["client_garden_commitment_view_adoption"],
-      "handoff": null
+      "handoff": "handoffs/wave-4-receipt.md",
+      "commit": "61508165af52bdd9a227bc8a1ec626c65c219245"
     },
     "client_commitments_drawer_projection": {
       "machine_lane": "state_api",
       "owner": "codex",
-      "status": "todo",
+      "status": "passed",
       "branch": null,
       "depends_on": ["hub_confirm_queue_controller_suite"],
-      "handoff": null
+      "handoff": "handoffs/wave-4-receipt.md",
+      "commit": "61508165af52bdd9a227bc8a1ec626c65c219245"
     },
     "client_work_submission_flow_controller": {
       "machine_lane": "state_api",
       "owner": "codex",
-      "status": "todo",
+      "status": "passed",
       "branch": null,
       "depends_on": ["client_ui_barrel_and_garden_commitment_controller", "work_submit_command"],
-      "handoff": null
+      "handoff": "handoffs/wave-4-receipt.md",
+      "commit": "61508165af52bdd9a227bc8a1ec626c65c219245"
     },
     "client_work_detail_view_model": {
       "machine_lane": "state_api",
       "owner": "codex",
-      "status": "todo",
+      "status": "passed",
       "branch": null,
       "depends_on": ["client_ui_barrel_and_garden_commitment_controller"],
-      "handoff": null
+      "handoff": "handoffs/wave-4-receipt.md",
+      "commit": "61508165af52bdd9a227bc8a1ec626c65c219245"
     },
     "client_wallet_send_machine_and_scanner_port": {
       "machine_lane": "state_api",
       "owner": "codex",
-      "status": "todo",
+      "status": "passed",
       "branch": null,
       "depends_on": ["w0_receipt_debt_burndown"],
-      "handoff": null,
+      "handoff": "handoffs/wave-4-receipt.md",
+      "commit": "61508165af52bdd9a227bc8a1ec626c65c219245",
       "review_owner": "claude"
     },
     "client_login_controller": {
       "machine_lane": "state_api",
       "owner": "claude",
-      "status": "todo",
+      "status": "passed",
       "branch": null,
       "depends_on": ["w0_receipt_debt_burndown"],
-      "handoff": null
+      "handoff": "handoffs/wave-4-receipt.md",
+      "commit": "61508165af52bdd9a227bc8a1ec626c65c219245"
     },
     "client_public_surface_state_selector": {
       "machine_lane": "state_api",
       "owner": "codex",
-      "status": "todo",
+      "status": "passed",
       "branch": null,
       "depends_on": ["w0_receipt_debt_burndown"],
-      "handoff": null
+      "handoff": "handoffs/wave-4-receipt.md",
+      "commit": "61508165af52bdd9a227bc8a1ec626c65c219245"
     },
     "client_public_surface_state_adoption": {
       "machine_lane": "ui",
       "owner": "claude",
-      "status": "todo",
+      "status": "passed",
       "branch": null,
       "depends_on": ["client_public_surface_state_selector"],
-      "handoff": null
+      "handoff": "handoffs/wave-4-receipt.md",
+      "commit": "61508165af52bdd9a227bc8a1ec626c65c219245"
     },
     "card_endow_staging_check": {
       "machine_lane": "state_api",
       "owner": "codex",
-      "status": "todo",
+      "status": "passed",
       "branch": null,
       "depends_on": ["w0_receipt_debt_burndown"],
-      "handoff": null
+      "handoff": "handoffs/wave-4-receipt.md",
+      "commit": "61508165af52bdd9a227bc8a1ec626c65c219245"
     },
     "card_endow_state_machine": {
       "machine_lane": "ui",
@@ -774,91 +784,102 @@
     "client_interactive_components_tests": {
       "machine_lane": "ui",
       "owner": "codex",
-      "status": "todo",
+      "status": "passed",
       "branch": null,
       "depends_on": ["w0_receipt_debt_burndown"],
-      "handoff": null
+      "handoff": "handoffs/wave-4-receipt.md",
+      "commit": "61508165af52bdd9a227bc8a1ec626c65c219245"
     },
     "admin_canvas_shell_controller": {
       "machine_lane": "state_api",
       "owner": "claude",
-      "status": "todo",
+      "status": "passed",
       "branch": null,
       "depends_on": ["client_ui_barrel_and_garden_commitment_controller"],
-      "handoff": null
+      "handoff": "handoffs/wave-4-receipt.md",
+      "commit": "61508165af52bdd9a227bc8a1ec626c65c219245"
     },
     "admin_hub_workbench_policy": {
       "machine_lane": "state_api",
       "owner": "codex",
-      "status": "todo",
+      "status": "passed",
       "branch": null,
       "depends_on": ["w0_receipt_debt_burndown"],
-      "handoff": null
+      "handoff": "handoffs/wave-4-receipt.md",
+      "commit": "61508165af52bdd9a227bc8a1ec626c65c219245"
     },
     "admin_pool_setup_flow_composition": {
       "machine_lane": "ui",
       "owner": "codex",
-      "status": "todo",
+      "status": "passed",
       "branch": null,
       "depends_on": ["admin_pool_view_tests_typed"],
-      "handoff": null
+      "handoff": "handoffs/wave-4-receipt.md",
+      "commit": "61508165af52bdd9a227bc8a1ec626c65c219245"
     },
     "admin_seed_howmuch_and_dialog_tests": {
       "machine_lane": "ui",
       "owner": "codex",
-      "status": "todo",
+      "status": "passed",
       "branch": null,
       "depends_on": ["admin_pool_view_tests_typed"],
-      "handoff": null
+      "handoff": "handoffs/wave-4-receipt.md",
+      "commit": "61508165af52bdd9a227bc8a1ec626c65c219245"
     },
     "admin_submit_work_controller": {
       "machine_lane": "state_api",
       "owner": "codex",
-      "status": "todo",
+      "status": "passed",
       "branch": null,
       "depends_on": ["pool_controller_contracts_and_fixtures", "work_submit_command"],
-      "handoff": null,
+      "handoff": "handoffs/wave-4-receipt.md",
+      "commit": "61508165af52bdd9a227bc8a1ec626c65c219245",
       "review_owner": "claude"
     },
     "admin_action_editor_controller": {
       "machine_lane": "state_api",
       "owner": "codex",
-      "status": "todo",
+      "status": "passed",
       "branch": null,
       "depends_on": ["w0_receipt_debt_burndown"],
-      "handoff": null
+      "handoff": "handoffs/wave-4-receipt.md",
+      "commit": "61508165af52bdd9a227bc8a1ec626c65c219245"
     },
     "admin_cookie_jar_hook_outcomes": {
       "machine_lane": "state_api",
       "owner": "codex",
-      "status": "todo",
+      "status": "passed",
       "branch": null,
       "depends_on": ["sender_conformance"],
-      "handoff": null
+      "handoff": "handoffs/wave-4-receipt.md",
+      "commit": "61508165af52bdd9a227bc8a1ec626c65c219245"
     },
     "admin_assessment_hypercert_transitions": {
       "machine_lane": "state_api",
       "owner": "codex",
-      "status": "todo",
+      "status": "passed",
       "branch": null,
       "depends_on": ["w0_receipt_debt_burndown"],
-      "handoff": null
+      "handoff": "handoffs/wave-4-receipt.md",
+      "commit": "61508165af52bdd9a227bc8a1ec626c65c219245"
     },
     "admin_account_profile_controller": {
       "machine_lane": "state_api",
       "owner": "codex",
-      "status": "todo",
+      "status": "passed",
       "branch": null,
       "depends_on": ["client_ui_barrel_and_garden_commitment_controller"],
-      "handoff": null
+      "handoff": "handoffs/wave-4-receipt.md",
+      "commit": "61508165af52bdd9a227bc8a1ec626c65c219245"
     },
     "admin_route_registry_redirect_policy": {
       "machine_lane": "state_api",
       "owner": "codex",
-      "status": "todo",
+      "status": "passed",
       "branch": null,
       "depends_on": ["w0_receipt_debt_burndown"],
-      "handoff": null
+      "handoff": "handoffs/wave-4-receipt.md",
+      "commit": "61508165af52bdd9a227bc8a1ec626c65c219245"
     },
     "ix_event_builders_and_projection_assertions": {
       "machine_lane": "state_api",
@@ -1017,6 +1038,14 @@
       "status": "wave_3_complete",
       "branch": null,
       "note": "Completed all 18 Wave 3 Shared seam rows on develop; the exact 130-path critical checkpoint passed its 14 selected checks, with environment and dead-code baseline limits retained explicitly."
+    },
+    {
+      "timestamp": "2026-08-23T23:55:03.000Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "wave_4_complete",
+      "branch": null,
+      "note": "Completed all 21 committed Wave 4 Client/Admin rows on develop; retained Card Endow activation, authenticated Brave, Indexer localhost, and contract dual-chain localhost as explicit deferrals or blockers."
     }
   ]
 }
