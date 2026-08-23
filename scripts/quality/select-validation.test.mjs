@@ -505,6 +505,14 @@ test("Turbo consumer inputs ignore shared specs without hiding shared test utili
   const turbo = JSON.parse(readFileSync(new URL("../../turbo.json", import.meta.url), "utf8"));
   const sharedInputs = turbo.tasks["@green-goods/shared#test"].inputs;
   assert.ok(!sharedInputs.includes("../contracts/.generated/**"));
+  assert.ok(sharedInputs.includes("../client/src/**"));
+  assert.ok(sharedInputs.includes("../admin/src/**"));
+
+  for (const surface of ["shared", "client", "admin", "agent", "indexer"]) {
+    const inputs = turbo.tasks[`@green-goods/${surface}#test`].inputs;
+    assert.ok(inputs.includes("../../scripts/dev/node-cli.js"), `${surface}:node-cli`);
+    assert.ok(inputs.includes("../../scripts/lib/dev-shared.js"), `${surface}:dev-shared`);
+  }
 
   for (const surface of ["client", "admin", "agent"]) {
     const inputs = turbo.tasks[`@green-goods/${surface}#test`].inputs;

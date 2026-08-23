@@ -275,6 +275,20 @@
       "pull_request": "https://github.com/greenpill-dev-guild/green-goods/pull/760",
       "publication_status": "merged through the Wave 0 squash on develop; live CI passed"
     },
+    "w0_turbo_input_hardening": {
+      "machine_lane": "state_api",
+      "owner": "codex",
+      "status": "in_progress",
+      "branch": "fix/turbo-test-inputs",
+      "depends_on": ["w0_turbo_test_routing"],
+      "handoff": "handoffs/w0_turbo_input_hardening.md",
+      "tdd": {
+        "status": "green_recorded",
+        "red": "The focused Turbo-input regression failed because Shared omitted Client/Admin sources and all five package tasks omitted root test-runner helpers",
+        "green": "The focused case and the complete 130-test validation-system suite passed after the input graph was corrected"
+      },
+      "validation": "QA selector selected path-scoped format, lint, and the validation-system suite; all selected checks passed"
+    },
     "w0_turbo_guidance": {
       "machine_lane": "ui",
       "owner": "claude",

@@ -25,6 +25,7 @@
 | 12 | Start W0-G2 and W0-H only after their prerequisite commits merge into `develop`. | The Wave 0 stack merged with live CI green, so both lanes gained the required merged-parent provenance. |
 | 13 | Adopt Afo's corrected W0-F statement floors of 61 Shared, 63 Client, and 51 Admin, while keeping the other metrics at their measured integer floors. | The corrected values pass the clean baseline and preserve real enforcement; live Coverage Nightly proof remains a merge gate. |
 | 14 | Merge the ready Wave 0 stack without waiting for the quiet-machine timing matrix or a pre-merge Coverage Nightly dispatch. | Afo explicitly accepted both proof limits on 2026-08-22 to unblock Wave 1. The timing result remains unclaimed, and the first default-branch Coverage Nightly run remains a required post-merge observation. |
+| 15 | Close the two actionable Turbo input findings from merged PR #760 on a successor stacked lane before Wave 1. | Root test-runner helpers and consumer source scanned by Shared tests must affect Turbo hashes or later validation can reuse stale successes. |
 
 ## Research / Plan Gate
 
@@ -55,15 +56,16 @@
 4. [x] Dispatch and land Wave 0 parallel set 1: W0-A, W0-B, W0-C, W0-E, W0-F.
 5. [x] Dispatch and land W0-D after W0-B and W0-G1 after W0-C.
 6. [x] Land W0-G2 and burn down receipt debt in W0-H, then archive Validation System Optimization.
-7. [ ] Record the Wave 0 Module Health and Velocity snapshots and verify every Wave 0 exit signal.
-8. [ ] Land Wave 1 shared seams in order A and C, then B1, then B2.
-9. [ ] Land Wave 1 pooling controller contracts, direct suites, and typed view tests.
-10. [ ] Land the Wave 2 client controller, Community split, design review, Hasura planner, and pooling subpath lanes.
-11. [ ] Land Wave 3 shared ports, repositories, adapters, commands, transitions, hooks, providers, and shell contracts in dependency rounds.
-12. [ ] Land Wave 4 client and admin controller, view-model, state, and direct-test lanes.
-13. [ ] Land Wave 5 indexer event helpers, fixtures, delivery contracts, source split, automatic mined-log selection, and permission planner.
-14. [ ] Land Wave 6 Vitest projects, direct-tested-seam guard, and first coverage ratchet when due.
-15. [ ] Re-run the complete Module Health and Velocity procedures, attach fresh receipts, and close only the non-deferred program rows.
+7. [ ] Close W0 Turbo input hardening feedback on a successor stacked lane.
+8. [ ] Record the Wave 0 Module Health and Velocity snapshots and verify every Wave 0 exit signal.
+9. [ ] Land Wave 1 shared seams in order A and C, then B1, then B2.
+10. [ ] Land Wave 1 pooling controller contracts, direct suites, and typed view tests.
+11. [ ] Land the Wave 2 client controller, Community split, design review, Hasura planner, and pooling subpath lanes.
+12. [ ] Land Wave 3 shared ports, repositories, adapters, commands, transitions, hooks, providers, and shell contracts in dependency rounds.
+13. [ ] Land Wave 4 client and admin controller, view-model, state, and direct-test lanes.
+14. [ ] Land Wave 5 indexer event helpers, fixtures, delivery contracts, source split, automatic mined-log selection, and permission planner.
+15. [ ] Land Wave 6 Vitest projects, direct-tested-seam guard, and first coverage ratchet when due.
+16. [ ] Re-run the complete Module Health and Velocity procedures, attach fresh receipts, and close only the non-deferred program rows.
 
 ## Lane Lifecycle
 
