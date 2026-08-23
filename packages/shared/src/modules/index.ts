@@ -212,6 +212,7 @@ export {
 // DATA / IPFS
 // ============================================================================
 export {
+  createGatewayChain,
   // Upload context types
   type FileUploadContext,
   getFileByHash,
@@ -219,7 +220,11 @@ export {
   getIpfsInitStatus,
   initializeIpfs,
   initializeIpfsFromEnv,
+  type IpfsGateway,
   IPFS_FALLBACK_GATEWAYS,
+  type IpfsPinner,
+  type IpfsReadOptions,
+  ipfsPinner,
   type JsonUploadContext,
   resolveAvatarUrl,
   resolveImageUrl,
