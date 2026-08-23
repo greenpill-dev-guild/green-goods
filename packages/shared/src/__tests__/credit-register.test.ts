@@ -26,8 +26,8 @@ const VIEWER = "0x2222222222222222222222222222222222222222";
 const TOKEN = "0x3333333333333333333333333333333333333333";
 const CREDIT_REGISTRY = "0x8080808080808080808080808080808080808080";
 
-const mocks = vi.hoisted(() => ({
-  sender: { sendContractCall: vi.fn() },
+const mocks = await vi.hoisted(async () => ({
+  sender: (await import("@green-goods/shared/testing")).createMockTransactionSender(),
   senderAvailable: true,
   mutationErrorHandler: vi.fn(),
 }));
@@ -189,7 +189,7 @@ describe("Credit query and mutation boundaries", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.senderAvailable = true;
-    mocks.sender.sendContractCall.mockResolvedValue({ hash: "0xabc" });
+    mocks.sender.sendContractCall.mockResolvedValue({ hash: "0xabc", sponsored: true });
   });
 
   it("isolates every Credit query key by chain and viewer", () => {

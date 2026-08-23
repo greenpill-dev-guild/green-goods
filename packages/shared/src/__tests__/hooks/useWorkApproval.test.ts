@@ -72,12 +72,9 @@ vi.mock("../../utils/debug", () => ({
 }));
 
 // Mock useTransactionSender to avoid wagmi provider dependency
-const mockSender = {
-  sendContractCall: vi.fn().mockResolvedValue({ hash: "0xabc123", sponsored: true }),
-  supportsSponsorship: true,
-  supportsBatching: false,
-  authMode: "passkey" as const,
-};
+const mockSender = createMockTransactionSender({
+  result: { hash: "0xabc123", sponsored: true },
+});
 
 vi.mock("../../hooks/blockchain/useTransactionSender", () => ({
   useTransactionSender: vi.fn(() => mockSender),
@@ -94,6 +91,7 @@ import { Confidence, VerificationMethod } from "../../types/domain";
 import {
   createMockWork,
   createMockWorkApprovalDraft,
+  createMockTransactionSender,
   MOCK_ADDRESSES,
   MOCK_TX_HASH,
 } from "../test-utils";

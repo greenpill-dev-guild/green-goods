@@ -13,6 +13,8 @@ import enMessages from "../../i18n/en.json";
 // Re-export mock factories, offline helpers, and centralized barrel mock
 export * from "./mock-factories";
 export * from "./offline-helpers";
+export * from "./transaction-fakes";
+export { describeConformance, type ConformanceLaw } from "./conformance";
 export { createSharedBarrelMock } from "./shared-barrel-mock";
 
 // ============================================
