@@ -1,5 +1,18 @@
 import type { Address } from "../../types/domain";
 import { greenGoodsIndexer } from "../data/graphql-client";
+import {
+  address,
+  CLAIM_FIELDS,
+  COMMITMENT_FIELDS,
+  integer,
+  mapCommitment,
+  number,
+  optionalNumber,
+  queryRows,
+  type RawRow,
+  string,
+  strings,
+} from "./data-core";
 import { getCommitmentCycleId, getCommitmentId } from "./ids";
 import { deriveCommitmentState } from "./selectors";
 import type {
@@ -9,20 +22,9 @@ import type {
   CommitmentReadModel,
   CommitmentRequirementRecord,
   CommitmentWorkAttributionRecord,
+  FallbackConfirmationCandidate,
+  PoolClaimRequestRow,
 } from "./types";
-import {
-  CLAIM_FIELDS,
-  COMMITMENT_FIELDS,
-  type RawRow,
-  address,
-  integer,
-  mapCommitment,
-  number,
-  optionalNumber,
-  queryRows,
-  string,
-  strings,
-} from "./data-core";
 
 export async function getCommitments(input: {
   chainId: number;
@@ -346,4 +348,144 @@ export async function getCommitmentClaimRequests(
   return (
     await queryRows(query, variables, "CommitmentClaimRequest", "getCommitmentClaimRequests")
   ).map(mapClaim);
+}
+
+/**
+ * Every claim across a pool, in one state. The claim entity carries no pool
+ * field, so this is a join through the pool's commitments: pending claims sit
+ * only on commitments nobody has accepted yet, which keeps the first leg
+ * bounded; any other state reads the pool's whole history.
+ */
+export async function getPoolClaimRequests(input: {
+  chainId: number;
+  poolId: bigint;
+  state?: string;
+}): Promise<PoolClaimRequestRow[]> {
+  const stateClause = input.state === "PENDING" ? ", state: { _in: [OFFERED, REQUESTED] }" : "";
+  const commitmentQuery = `query PoolClaimCommitments($chainId: Int!, $poolId: numeric!) { Commitment(where: { chainId: { _eq: $chainId }, poolId: { _eq: $poolId }, creationSeen: { _eq: true }${stateClause} }, order_by: { commitmentId: desc }) { ${COMMITMENT_FIELDS} } }`;
+  const commitments = await mapCommitmentsWithCycleState(
+    await queryRows(
+      commitmentQuery,
+      { chainId: input.chainId, poolId: input.poolId.toString() },
+      "Commitment",
+      "getPoolClaimCommitments"
+    )
+  );
+  if (commitments.length === 0) return [];
+  const byId = new Map(commitments.map((commitment) => [commitment.id, commitment]));
+  const declarations = ["$ids: [String!]!"];
+  const clauses = ["commitmentEntityId: { _in: $ids }", "requestSeen: { _eq: true }"];
+  const variables: Record<string, unknown> = { ids: [...byId.keys()] };
+  if (input.state) {
+    declarations.push("$state: CommitmentClaimRequestState!");
+    clauses.push("state: { _eq: $state }");
+    variables.state = input.state;
+  }
+  const claimQuery = `query PoolClaimRequests(${declarations.join(", ")}) { CommitmentClaimRequest(where: { ${clauses.join(", ")} }, order_by: [{ requestedAt: desc }, { id: asc }]) { ${CLAIM_FIELDS} } }`;
+  const rows = await queryRows(
+    claimQuery,
+    variables,
+    "CommitmentClaimRequest",
+    "getPoolClaimRequests"
+  );
+  const result: PoolClaimRequestRow[] = [];
+  for (const row of rows) {
+    const claim = mapClaim(row);
+    const commitment = byId.get(getCommitmentId(claim.chainId, claim.commitmentId));
+    if (!commitment) continue;
+    result.push({ claim, commitment });
+  }
+  return result;
+}
+
+/**
+ * Commitments waiting for confirmation, each with its active roster, scoped
+ * to a pool, to a garden (its pool's garden), or, for the protocol stewards,
+ * to every opted-in commitment on the chain. The Confirm stage needs the
+ * roster to tell whether the ordinary path can still reach threshold
+ * (`selectOrdinaryConfirmationReachable`), and one query for every roster
+ * beats one per row.
+ */
+export async function getFallbackConfirmationCandidates(input: {
+  chainId: number;
+  poolId?: bigint;
+  garden?: Address;
+  protocolFallbackEnabled?: boolean;
+}): Promise<FallbackConfirmationCandidate[]> {
+  const declarations = ["$chainId: Int!", "$state: CommitmentOnchainState!"];
+  const clauses = [
+    "chainId: { _eq: $chainId }",
+    "creationSeen: { _eq: true }",
+    "state: { _eq: $state }",
+  ];
+  const variables: Record<string, unknown> = {
+    chainId: input.chainId,
+    state: "READY_FOR_CONFIRMATION",
+  };
+  if (input.poolId !== undefined) {
+    declarations.push("$poolId: numeric!");
+    clauses.push("poolId: { _eq: $poolId }");
+    variables.poolId = input.poolId.toString();
+  }
+  if (input.garden !== undefined) {
+    declarations.push("$garden: String!");
+    clauses.push("garden: { _eq: $garden }");
+    variables.garden = input.garden.toLowerCase();
+  }
+  if (input.protocolFallbackEnabled !== undefined) {
+    clauses.push(`protocolFallbackEnabled: { _eq: ${input.protocolFallbackEnabled} }`);
+  }
+  const query = `query FallbackCandidates(${declarations.join(", ")}) { Commitment(where: { ${clauses.join(", ")} }, order_by: { commitmentId: desc }) { ${COMMITMENT_FIELDS} } }`;
+  const commitments = (
+    await mapCommitmentsWithCycleState(
+      await queryRows(query, variables, "Commitment", "getFallbackCandidates")
+    )
+  ).filter((row) => row.creationSeen);
+  if (commitments.length === 0) return [];
+  const ids = commitments.map((commitment) => commitment.id);
+  const rosterQuery = `query FallbackRosters($ids: [String!]!) { CommitmentContributor(where: { commitmentEntityId: { _in: $ids }, additionSeen: { _eq: true }, active: { _eq: true } }) { commitmentEntityId contributor } }`;
+  const rosters = await queryRows(
+    rosterQuery,
+    { ids },
+    "CommitmentContributor",
+    "getFallbackRosters"
+  );
+  const byCommitment = new Map<string, Address[]>();
+  for (const row of rosters) {
+    const contributor = address(row.contributor);
+    if (!contributor) continue;
+    const key = String(row.commitmentEntityId);
+    byCommitment.set(key, [...(byCommitment.get(key) ?? []), contributor]);
+  }
+  return commitments.map((commitment) => ({
+    commitment,
+    activeContributors: byCommitment.get(commitment.id) ?? [],
+  }));
+}
+
+/**
+ * The commitments this account has already confirmed, as raw commitment ids.
+ *
+ * `ConfirmLib.confirmFulfillment` records `hasConfirmed[commitmentId][msg.sender]`
+ * and reverts `AlreadyConfirmed` on a repeat, and a commitment whose threshold is
+ * above one stays `READY_FOR_CONFIRMATION` after the first confirmation. The
+ * confirmer's identity is indexed: `ConfirmationRecorded` writes a
+ * `CommitmentEvent` audit row whose `actor` is the event's `confirmer`
+ * (`firstExplicitActor`), so the queue can leave out what this reader already
+ * signed instead of offering a transaction the chain refuses.
+ */
+export async function getViewerConfirmedCommitmentIds(input: {
+  chainId: number;
+  viewer: Address;
+}): Promise<string[]> {
+  const query = `query ViewerConfirmedCommitments($chainId: Int!, $actor: String!) { CommitmentEvent(where: { chainId: { _eq: $chainId }, eventType: { _eq: CONFIRMATION_RECORDED }, actor: { _eq: $actor } }) { commitmentId } }`;
+  const rows = await queryRows(
+    query,
+    { chainId: input.chainId, actor: input.viewer.toLowerCase() },
+    "CommitmentEvent",
+    "getViewerConfirmedCommitments"
+  );
+  return rows
+    .map((row) => (row.commitmentId === null ? null : String(row.commitmentId)))
+    .filter((id): id is string => id !== null);
 }

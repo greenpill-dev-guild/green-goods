@@ -250,10 +250,14 @@ export function parseWorkApprovalAttestation(
   };
 }
 
-/** Fetches garden assessment attestations from EAS */
+/**
+ * Garden assessment attestations under one schema: the v2 UID by default, or
+ * the v3 registration (`getEASConfig().ASSESSMENT_V3`) when `schemaUID` names it.
+ */
 export const getGardenAssessments = async (
   gardenAddress?: string,
-  chainId?: number | string
+  chainId?: number | string,
+  schemaUID?: string
 ): Promise<EASGardenAssessment[]> => {
   const QUERY = easGraphQL(/* GraphQL */ `
     query Attestations($where: AttestationWhereInput) {
@@ -267,25 +271,20 @@ export const getGardenAssessments = async (
     }
   `);
 
-  const easConfig = getEASConfig(chainId);
-  if (isZeroBytes32(easConfig.ASSESSMENT.uid)) return [];
+  const resolvedSchemaUID = schemaUID ?? getEASConfig(chainId).ASSESSMENT.uid;
+  if (isZeroBytes32(resolvedSchemaUID)) return [];
 
-  const schemaId = { equals: easConfig.ASSESSMENT.uid };
+  const schemaId = { equals: resolvedSchemaUID };
   const client = createEasClient(chainId);
 
   const { data, error } = await client.query(
     QUERY,
     {
-      where: gardenAddress
-        ? {
-            schemaId,
-            recipient: { equals: gardenAddress },
-            revoked: { equals: false },
-          }
-        : {
-            schemaId,
-            revoked: { equals: false },
-          },
+      where: {
+        schemaId,
+        revoked: { equals: false },
+        ...(gardenAddress ? { recipient: { equals: gardenAddress } } : {}),
+      },
     },
     "getGardenAssessments"
   );

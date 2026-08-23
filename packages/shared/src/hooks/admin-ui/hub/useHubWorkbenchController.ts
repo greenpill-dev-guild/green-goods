@@ -15,27 +15,21 @@ import {
   useSheetOrchestrator,
   useViewActions,
 } from "@green-goods/shared";
-import { useLocalizedRelativeTime } from "../../app/useLocalizedRelativeTime";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { useLocalizedRelativeTime } from "../../app/useLocalizedRelativeTime";
 import {
   type ActivityEvent,
-  type HubPipelineStage,
-  type SortDirection,
   buildHubViewActions,
   getSearchPlaceholder,
   getStageDescription,
   getStageTitle,
+  type HubPipelineStage,
   isRouteSheetContentId,
   resolveOpenSectionRoute,
+  type SortDirection,
 } from "./hub.utils";
-import {
-  filterAssessmentQueue,
-  filterCertificationQueue,
-  filterHistoryEvents,
-  filterPendingWorks,
-} from "./hub.filters";
 import {
   buildActionTitleMap,
   buildHubStageModel,
@@ -45,6 +39,8 @@ import {
   resolveHubRouteSelection,
   resolveHubRouteState,
 } from "./hub.workbenchModel";
+import { useHubConfirmStage } from "./useHubConfirmStage";
+import { useHubStageQueues } from "./useHubStageQueues";
 
 export function useHubWorkbenchController() {
   const { formatMessage } = useIntl();
@@ -54,10 +50,12 @@ export function useHubWorkbenchController() {
     workId: routedWorkIdParam,
     assessmentId: routedAssessmentIdParam,
     historyEventId: routedHistoryEventIdParam,
+    commitmentId: routeCommitmentId,
   } = useParams<{
     workId?: string;
     assessmentId?: string;
     historyEventId?: string;
+    commitmentId?: string;
   }>();
   const { searchParams, updateSearch } = useCanvasSearchParams();
   const { activeSheet, activeContentId, closeSheet, openSheet } = useSheetOrchestrator();
@@ -132,6 +130,9 @@ export function useHubWorkbenchController() {
   const canCertify = canReview;
   const canBrowseHistory = canManage || canReview;
 
+  const { chainId, viewer, toConfirm, handleOpenCommitment, handleCloseCommitment } =
+    useHubConfirmStage({ navigate, hubContext });
+
   const { stage, stages, stageCounts } = useMemo(
     () =>
       buildHubStageModel({
@@ -140,6 +141,8 @@ export function useHubWorkbenchController() {
         canAssess,
         canCertify,
         canBrowseHistory,
+        canConfirm: toConfirm.isSteward,
+        confirmCount: toConfirm.count,
         works,
         assessments,
         hypercerts,
@@ -152,6 +155,8 @@ export function useHubWorkbenchController() {
       canManage,
       hypercerts,
       requestedStage,
+      toConfirm.count,
+      toConfirm.isSteward,
       works,
     ]
   );
@@ -205,47 +210,28 @@ export function useHubWorkbenchController() {
 
   const normalizedSearch = normalizeHubSearch(debouncedSearch);
 
-  const pendingWorks = useMemo(
-    () => filterPendingWorks(works, actionsMap, normalizedSearch, sortDirection),
-    [actionsMap, normalizedSearch, sortDirection, works]
-  );
-
-  const assessmentQueue = useMemo(
-    () => filterAssessmentQueue(works, actionsMap, normalizedSearch),
-    [actionsMap, normalizedSearch, works]
-  );
-
-  const certificationQueue = useMemo(
-    () => filterCertificationQueue(assessments, hypercerts, normalizedSearch),
-    [assessments, hypercerts, normalizedSearch]
-  );
-
-  const historyEvents = useMemo(
-    () => filterHistoryEvents(derived.activityEvents, normalizedSearch, sortDirection),
-    [derived.activityEvents, normalizedSearch, sortDirection]
-  );
-
-  const historyEventMap = useMemo(
-    () => new Map(historyEvents.map((event) => [event.id, event])),
-    [historyEvents]
-  );
-
-  const selectedWork = useMemo(() => {
-    const resolvedId = routeWorkId ?? activeWorkDetailId;
-    return resolvedId ? works.find((work) => work.id === resolvedId) : undefined;
-  }, [activeWorkDetailId, routeWorkId, works]);
-
-  const selectedCertification = useMemo(() => {
-    const resolvedId = routeCertificationId ?? activeCertificationId;
-    return resolvedId
-      ? certificationQueue.find((assessment) => assessment.id === resolvedId)
-      : undefined;
-  }, [activeCertificationId, certificationQueue, routeCertificationId]);
-
-  const selectedHistoryEvent = useMemo(() => {
-    return routeHistoryEventId ? historyEventMap.get(routeHistoryEventId) : undefined;
-  }, [historyEventMap, routeHistoryEventId]);
-
+  const {
+    pendingWorks,
+    assessmentQueue,
+    certificationQueue,
+    historyEvents,
+    selectedWork,
+    selectedCertification,
+    selectedHistoryEvent,
+  } = useHubStageQueues({
+    works,
+    actionsMap,
+    normalizedSearch,
+    sortDirection,
+    assessments,
+    hypercerts,
+    activityEvents: derived.activityEvents,
+    routeWorkId,
+    activeWorkDetailId,
+    routeCertificationId,
+    activeCertificationId,
+    routeHistoryEventId,
+  });
   const { hasOpenHubInspector, persistedSelectedItem } = resolveHubRouteSelection({
     routeWorkId,
     routeCertificationId,
@@ -386,6 +372,7 @@ export function useHubWorkbenchController() {
     pendingWorks: pendingWorks.length,
     assessmentQueue: assessmentQueue.length,
     certificationQueue: certificationQueue.length,
+    confirmQueue: toConfirm.count,
     historyEvents: historyEvents.length,
   });
 
@@ -447,13 +434,18 @@ export function useHubWorkbenchController() {
     assessmentQueue,
     canManage,
     certificationQueue,
+    chainId,
+    toConfirm,
+    viewer,
     debouncedSearch,
     desktopActions,
     fetchingAssessments,
     gardenOptions,
     handleClearSearch,
+    handleCloseCommitment,
     handleCloseSheet,
     handleOpenCertification,
+    handleOpenCommitment,
     handleOpenHistoryEvent,
     handleOpenWorkDetail,
     handleRefresh,
@@ -474,6 +466,7 @@ export function useHubWorkbenchController() {
     routeSheetContentId,
     routeSheetCloseTo,
     routeCertificationId,
+    routeCommitmentId,
     routeHistoryEventId,
     routeWorkId,
     searchPlaceholder,

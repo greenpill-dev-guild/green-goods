@@ -3,12 +3,12 @@ import type { AdminSheetSide } from "../navigation/sheetRegistry";
 import {
   type HubPipelineStage,
   PIPELINE_STAGE_CONFIG,
-  SUBMIT_WORK_CONTENT_ID,
-  type SortDirection,
   parseCertificationContentId,
   parseSortDirection,
   parseWorkDetailContentId,
   resolvePipelineStageFromPath,
+  type SortDirection,
+  SUBMIT_WORK_CONTENT_ID,
   toCertificationContentId,
   toHistoryContentId,
   toWorkDetailContentId,
@@ -28,6 +28,10 @@ export interface HubStageModelInput {
   canAssess: boolean;
   canCertify: boolean;
   canBrowseHistory: boolean;
+  /** The reader stewards at least one garden: the Confirm stage exists only then. */
+  canConfirm?: boolean;
+  /** Ordinary plus fallback rows waiting on the reader (useCommitmentsToConfirm). */
+  confirmCount?: number;
   works: WorkStatusLike[];
   assessments: Pick<GardenAssessment, "id">[];
   hypercerts: HypercertLike[];
@@ -153,6 +157,8 @@ export function buildHubStageModel({
   canAssess,
   canCertify,
   canBrowseHistory,
+  canConfirm = false,
+  confirmCount = 0,
   works,
   assessments,
   hypercerts,
@@ -162,6 +168,7 @@ export function buildHubStageModel({
     work: works.filter((work) => work.status === "pending").length,
     assess: works.filter((work) => work.status === "approved").length,
     certify: assessments.filter((assessment) => !certifiedAssessmentIds.has(assessment.id)).length,
+    confirm: confirmCount,
     history: undefined,
   };
 
@@ -169,6 +176,7 @@ export function buildHubStageModel({
     work: canManage,
     assess: canAssess,
     certify: canCertify,
+    confirm: canConfirm,
     history: canBrowseHistory,
   };
 
@@ -256,11 +264,13 @@ export function getHubResultCount(
     pendingWorks: number;
     assessmentQueue: number;
     certificationQueue: number;
+    confirmQueue?: number;
     historyEvents: number;
   }
 ): number {
   if (stage === "work") return counts.pendingWorks;
   if (stage === "assess") return counts.assessmentQueue;
   if (stage === "certify") return counts.certificationQueue;
+  if (stage === "confirm") return counts.confirmQueue ?? 0;
   return counts.historyEvents;
 }

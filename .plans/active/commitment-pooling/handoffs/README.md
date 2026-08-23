@@ -20,10 +20,10 @@ order only, and a reader following the map could miss an active dispatch surface
 | `codex-release-engineering.md` | Phase A manifest, deployment/recovery tooling, courier, and verification | Codex | Active; no broadcast or Linear writes |
 | `fable-phase-a-release-review.md` | Final combined Phase A committed-range adversarial review | Fable 5 | Dispatched against `de7863391`; refresh required after candidate changes |
 | `claude-contracts-hardening.md` | Resolver wiring, cross-chain approach, and contract hardening follow-ups (PRD-799) | Claude | Runs alongside the contracts lane |
-| `claude-ui.md` | Shared UI lane framing that `claude-ui-client.md` and `claude-ui-admin.md` narrow | Claude | Blocked behind state/API |
-| `claude-ui-client.md` | Client PWA surfaces (PRD-724) | Claude | Blocked behind state/API |
-| `claude-ui-admin.md` | Admin cockpit surfaces (PRD-725) | Claude | Blocked behind state/API |
-| `claude-editorial.md` | Editorial / public website surfaces (PRD-726) | Claude | Blocked behind state/API |
+| `claude-ui.md` | Shared UI lane framing that `claude-ui-client.md` and `claude-ui-admin.md` narrow | Claude | Machine lane `in_progress` since the client gate commit (`a549877d1`, PR #749); each sub-lane dispatches narrowly |
+| `claude-ui-client.md` | Client PWA surfaces (PRD-724) | Claude | Narrowed D1 on PR #749 (`../prompt-client-loop.md`); D2 after it merges |
+| `claude-ui-admin.md` | Admin cockpit surfaces (PRD-725) | Claude | Narrowed dispatch prepared 2026-08-21 (`../prompt-admin-console.md`, § Narrowed dispatch option) in a worktree stacked on PR #749; the session records the gate in `status.json` as its first commit |
+| `claude-editorial.md` | Editorial / public website surfaces (PRD-726) | Claude | Backend readers merged (PR #745 / #746); UI on PR #748 |
 | `claude-community.md` | September Community interface work (PRD-682 track) | Claude | Follow-on wave |
 | `claude-docs.md` | Post-QA documentation polish (PRD-727) | Claude | Blocked until QA1 |
 | `claude-walkthrough-videos.md` | Post-certification walkthrough videos (PRD-728) | Claude | Blocked until QA2 |

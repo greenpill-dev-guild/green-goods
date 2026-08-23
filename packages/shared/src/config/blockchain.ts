@@ -10,6 +10,15 @@ import { getLocalArbitrumForkRpcUrl, shouldUseLocalArbitrumForkRpc } from "./loc
 // Export types
 export interface EASConfig {
   ASSESSMENT: { uid: string; schema: string };
+  /**
+   * Assessment v3. EAS schemas are immutable, so v3 was registered as a fresh
+   * UID beside the still-readable v2 record on the same resolver proxy, and a
+   * garden's assessments live under whichever one was current when they were
+   * recorded. The pooling module accepts either (ProofLib.sol:104-107), so a
+   * reader that wants every assessment has to ask for both. Zero when the chain
+   * has no v3 registration.
+   */
+  ASSESSMENT_V3: { uid: string; schema: string };
   WORK: { uid: string; schema: string };
   WORK_APPROVAL: { uid: string; schema: string };
   EAS: { address: string };
@@ -31,6 +40,8 @@ interface DeploymentConfig {
   schemas?: {
     assessmentSchemaUID?: string;
     assessmentSchema?: string;
+    assessmentV3SchemaUID?: string;
+    assessmentV3Schema?: string;
     workSchemaUID?: string;
     workSchema?: string;
     workApprovalSchemaUID?: string;
@@ -146,6 +157,12 @@ export function getEASConfig(chainId?: number | string): EASConfig {
         deployment.schemas?.assessmentSchemaUID ||
         "0x0000000000000000000000000000000000000000000000000000000000000000",
       schema: deployment.schemas?.assessmentSchema || "",
+    },
+    ASSESSMENT_V3: {
+      uid:
+        deployment.schemas?.assessmentV3SchemaUID ||
+        "0x0000000000000000000000000000000000000000000000000000000000000000",
+      schema: deployment.schemas?.assessmentV3Schema || "",
     },
     WORK: {
       uid:

@@ -1,16 +1,17 @@
 import {
-  RiAddLine,
-  RiCheckboxCircleLine,
-  RiCheckLine,
-  RiFileList3Line,
-  RiMedalLine,
-} from "@remixicon/react";
-import {
   type AdminHubRouteContext,
   adminRoutes,
   type MetaStripItem,
   type useGardenDerivedState,
 } from "@green-goods/shared";
+import {
+  RiAddLine,
+  RiCheckboxCircleLine,
+  RiCheckLine,
+  RiFileList3Line,
+  RiMedalLine,
+  RiShakeHandsLine,
+} from "@remixicon/react";
 import type { ViewAction } from "../../../components/Canvas/viewActions.types";
 import { resolveAdminWorkspaceSectionRoute } from "../navigation/workspaceNavigation";
 
@@ -18,7 +19,7 @@ import { resolveAdminWorkspaceSectionRoute } from "../navigation/workspaceNaviga
 // Types
 // ============================================================================
 
-export type HubPipelineStage = "work" | "assess" | "certify" | "history";
+export type HubPipelineStage = "work" | "assess" | "certify" | "confirm" | "history";
 export type SortDirection = "newest" | "oldest";
 export type ActivityEvent = ReturnType<typeof useGardenDerivedState>["activityEvents"][number];
 export {
@@ -109,6 +110,7 @@ export function buildHubHeaderStats({
 export function resolvePipelineStageFromPath(pathname: string): HubPipelineStage {
   if (pathname.startsWith("/hub/assess")) return "assess";
   if (pathname.startsWith("/hub/certify")) return "certify";
+  if (pathname.startsWith("/hub/confirm")) return "confirm";
   if (pathname.startsWith("/hub/history")) return "history";
   return "work";
 }
@@ -141,6 +143,13 @@ export const PIPELINE_STAGE_CONFIG = [
     icon: RiMedalLine,
   },
   {
+    // Commitments waiting on the steward's confirmation (uiux-spec §6.9).
+    id: "confirm" as const,
+    labelId: "cockpit.hub.tab.confirm",
+    defaultMessage: "Confirm",
+    icon: RiShakeHandsLine,
+  },
+  {
     id: "history" as const,
     labelId: "cockpit.hub.tab.history",
     defaultMessage: "History",
@@ -161,6 +170,7 @@ const STAGE_LABELS: Record<HubPipelineStage, { id: string; defaultMessage: strin
   work: { id: "cockpit.hub.tab.work", defaultMessage: "Work" },
   assess: { id: "cockpit.hub.tab.assess", defaultMessage: "Assess" },
   certify: { id: "cockpit.hub.tab.certify", defaultMessage: "Certify" },
+  confirm: { id: "cockpit.hub.tab.confirm", defaultMessage: "Confirm" },
   history: { id: "cockpit.hub.tab.history", defaultMessage: "History" },
 };
 
@@ -180,6 +190,10 @@ const STAGE_DESCRIPTIONS: Record<HubPipelineStage, { id: string; defaultMessage:
     id: "cockpit.hub.certify.placeholder.description",
     defaultMessage: "Certification bundles stay inside Hub until they are ready for minting.",
   },
+  confirm: {
+    id: "cockpit.hub.confirm.description",
+    defaultMessage: "Commitments kept and waiting for this garden to confirm them.",
+  },
   history: {
     id: "cockpit.hub.history.description",
     defaultMessage: "Audit the recent work, impact, and community decisions in this pipeline.",
@@ -192,6 +206,10 @@ const SEARCH_PLACEHOLDERS: Record<HubPipelineStage, { id: string; defaultMessage
   certify: {
     id: "cockpit.hub.search.certifyPlaceholder",
     defaultMessage: "Search certification bundles",
+  },
+  confirm: {
+    id: "cockpit.hub.search.confirmPlaceholder",
+    defaultMessage: "Search commitments to confirm",
   },
   history: { id: "cockpit.hub.search.historyPlaceholder", defaultMessage: "Search audit trail" },
 };

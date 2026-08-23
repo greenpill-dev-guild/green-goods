@@ -47,6 +47,10 @@ export default function GardenView() {
       <GardenSheetDescriptor
         hypercertId={garden.hypercertId}
         closeTo={garden.hypercertSheetCloseTo}
+        poolSeedOpen={garden.poolSeedOpen}
+        poolCommitmentId={garden.poolCommitmentId}
+        poolCloseTo={garden.poolSheetCloseTo}
+        gardenAddress={garden.selectedGarden?.id}
       />
 
       <CanvasRouteHeader
@@ -98,6 +102,19 @@ export default function GardenView() {
                 defaultMessage: "Activity",
               }),
             },
+            // The pool console is the steward's surface (uiux-spec §6.2): a
+            // gardener reads the pool in the client, never here.
+            ...(garden.canManage
+              ? [
+                  {
+                    id: "pool",
+                    label: formatMessage({
+                      id: "cockpit.garden.pool.tab",
+                      defaultMessage: "Pool",
+                    }),
+                  },
+                ]
+              : []),
           ]}
         />
       </CanvasRouteHeader>

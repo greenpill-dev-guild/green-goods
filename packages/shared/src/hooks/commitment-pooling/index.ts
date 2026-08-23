@@ -26,9 +26,11 @@ export type {
 export {
   buildCommitmentCreationPayload,
   COMMITMENT_COMPOSER_DEFAULTS,
+  COMMITMENT_COMPOSER_ERROR_IDS,
   commitmentComposerSchema,
   MAX_COMMITMENT_REQUIREMENTS,
   useCommitmentComposerForm,
+  useCommitmentComposerSession,
 } from "./useCommitmentComposerForm";
 export type { CommitmentCycleNameMap } from "./useCommitmentCycleNames";
 export { useCommitmentCycleNames } from "./useCommitmentCycleNames";
@@ -46,6 +48,10 @@ export type { CommitmentViewerRoles } from "./useCommitmentViewerRoles";
 export { useCommitmentProofDraft, useProofDraftSync } from "./useCommitmentProofDraft";
 export type { CommitmentProofDraftHandle, ProofDraftFiles } from "./useCommitmentProofDraft";
 export { useCommitmentReason } from "./useCommitmentReason";
+export { usePoolCharter } from "./usePoolCharter";
+export { usePoolClaimRequests } from "./usePoolClaimRequests";
+export type { ProtocolPool } from "./useProtocolPool";
+export { useProtocolPool } from "./useProtocolPool";
 export { useCommitmentJobs } from "./useCommitmentJobs";
 export type {
   CommitmentQueueState,
@@ -54,7 +60,11 @@ export type {
 export { useCommitmentQueueState } from "./useCommitmentQueueState";
 export type { CommitmentsInbox, InboxCommitment } from "./useCommitmentsInbox";
 export { useCommitmentsInbox } from "./useCommitmentsInbox";
-export type { CommitmentsToConfirm, ToConfirmGroup } from "./useCommitmentsToConfirm";
+export type {
+  CommitmentsToConfirm,
+  ToConfirmFallbackRow,
+  ToConfirmGroup,
+} from "./useCommitmentsToConfirm";
 export { useCommitmentsToConfirm } from "./useCommitmentsToConfirm";
 export type { CreditMutationInput } from "./useCredit";
 export {
@@ -78,6 +88,32 @@ export type {
   CommitmentReasonedMutationInput,
 } from "./useCommitmentMutations";
 export { useCommitmentMutation } from "./useCommitmentMutations";
+export type {
+  CommitmentAllocationBps,
+  CommitmentCycleTypeInput,
+  CommitmentPoolAction,
+  CommitmentPoolMutationCall,
+  CommitmentPoolMutationInput,
+  CommitmentPoolReasonedMutationInput,
+  CommitmentRecognitionPolicyBps,
+} from "./useCommitmentPoolMutations";
+export {
+  ALLOCATION_BPS_TOTAL,
+  assertCycleSplit,
+  commitmentPoolCallArgs,
+  DEFAULT_ALLOCATION_BPS,
+  DEFAULT_RECOGNITION_POLICY_BPS,
+  isValidCycleSplit,
+  resolveCommitmentPoolingModule,
+  useCommitmentPoolMutation,
+} from "./useCommitmentPoolMutations";
+export type {
+  PoolSetupOutcome,
+  PoolSetupSequenceState,
+  PoolSetupStepState,
+  PoolSetupStepStatus,
+} from "./useCommitmentPoolSetupSequence";
+export { useCommitmentPoolSetupSequence } from "./useCommitmentPoolSetupSequence";
 export type { SavedOffersApi } from "./useSavedOffers";
 export {
   useSavedOffer,

@@ -1,5 +1,4 @@
 import { useQuery } from "@tanstack/react-query";
-
 import { queryKeys, STALE_TIME_MEDIUM } from "../../config/query-keys";
 import {
   getCommitmentActivity,
@@ -12,9 +11,9 @@ import {
   getCommitmentHypercertBundle,
   getCommitmentPoolDetail,
   getCommitmentPools,
-  getCommitments,
   getCommitmentSeries,
   getCommitmentSeriesDetail,
+  getCommitments,
   getCommitmentWorkAttributionsByWork,
   getLinkedWorkUIDs,
   getNeedCommitments,
@@ -25,6 +24,7 @@ import {
   selectPoolParticipationSummary,
   selectPromiseKeptRate,
 } from "../../modules/commitment-pooling/disclosure";
+import { isPoolSteward } from "../../modules/commitment-pooling/steward-selectors";
 import type { Address } from "../../types/domain";
 import { useGardenRoles } from "../roles/useGardenRoles";
 import { useCommitmentPoolingAvailability } from "./useCommitmentPoolingAvailability";
@@ -62,29 +62,37 @@ export function useCommitmentPool(
   return { ...query, pool: query.data?.pool ?? null, detail: query.data ?? null, availability };
 }
 
-export function useCommitmentCycles(input: {
-  chainId: number;
-  poolId: bigint;
-  cycleType?: string;
-  state?: string;
-}) {
+export function useCommitmentCycles(
+  input: {
+    chainId: number;
+    poolId: bigint;
+    cycleType?: string;
+    state?: string;
+  },
+  /** A caller that may not know the pool yet gates here; the key stays the same. */
+  options: { enabled?: boolean } = {}
+) {
   const availability = useCommitmentPoolingAvailability(input);
   const filters = { cycleType: input.cycleType, state: input.state };
   const query = useQuery({
     queryKey: queryKeys.commitmentPooling.cycles(input.chainId, input.poolId, filters),
     queryFn: () => getCommitmentCycles(input),
-    enabled: availability.status === "available",
+    enabled: availability.status === "available" && options.enabled !== false,
     staleTime: STALE_TIME_MEDIUM,
   });
   return { ...query, cycles: query.data ?? [], availability };
 }
 
-export function useCommitmentCycle(input: { chainId: number; cycleId: bigint }) {
+export function useCommitmentCycle(
+  input: { chainId: number; cycleId: bigint },
+  /** A caller that may not know the cycle yet gates here; the key stays the same. */
+  options: { enabled?: boolean } = {}
+) {
   const availability = useCommitmentPoolingAvailability(input);
   const query = useQuery({
     queryKey: queryKeys.commitmentPooling.cycle(input.chainId, input.cycleId),
     queryFn: () => getCommitmentCycleDetail(input.chainId, input.cycleId),
-    enabled: availability.status === "available",
+    enabled: availability.status === "available" && options.enabled !== false,
     staleTime: STALE_TIME_MEDIUM,
   });
   return { ...query, cycle: query.data?.cycle ?? null, detail: query.data ?? null, availability };
@@ -323,8 +331,7 @@ export function usePoolMemberHistory(input: {
     !self ? input.viewer : undefined,
     input.chainId
   );
-  const isCurrentSteward =
-    roleQuery.roles.includes("operator") || roleQuery.roles.includes("owner");
+  const isCurrentSteward = isPoolSteward(roleQuery.roles);
   const canRead = Boolean(input.viewer && (self || isCurrentSteward));
   const query = useQuery({
     queryKey: queryKeys.commitmentPooling.memberHistory(

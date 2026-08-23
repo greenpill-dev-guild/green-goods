@@ -55,9 +55,10 @@ export interface CommitmentReadModel {
   /** Who recorded this on someone else's behalf. Null until creation is seen. */
   recordedBy?: Address | null;
   /**
-   * Whether the counterparty is a person or a garden. On an Offer a garden
-   * took up, the garden's stewards and owners are its ordinary confirmers
-   * (CreditLib.isOrdinaryConfirmer), not the garden address itself.
+   * Who took it up: a person or a garden account. Written at acceptance, null
+   * before. On an Offer a garden took up, the garden's stewards and owners are
+   * its ordinary confirmers (CreditLib.isOrdinaryConfirmer), not the garden
+   * address itself.
    */
   counterpartyKind?: keyof typeof CommitmentClaimType | null;
   /**
@@ -65,7 +66,8 @@ export interface CommitmentReadModel {
    * acceptance: the claimant's garden on a garden claim, the claimant's chosen
    * context on a personal one. The membership preflight and the proof path
    * read this, never the route, because on the protocol pool the route names
-   * the host garden and the provider may hold no hat there.
+   * the host garden and the provider may hold no hat there. Frozen at
+   * acceptance; null before.
    */
   providerGarden?: Address | null;
   /** Offer or Request. Null until creation is seen. */
@@ -74,6 +76,21 @@ export interface CommitmentReadModel {
   commitmentType?: keyof typeof CommitmentKind | null;
   /** Whether taking this up is open or steward-reviewed. Null until creation is seen. */
   claimMode?: keyof typeof CommitmentClaimMode | null;
+  /**
+   * Unix seconds, or null for none. A cycle-scoped commitment without its own
+   * date is due at the cycle's end (`selectDueLiveCommitments`).
+   */
+  dueDate?: bigint | null;
+  /** An assessment gate, and the attestation once one is attached. */
+  requiresAssessment?: boolean | null;
+  assessmentUID?: string | null;
+  /** A steward marked it ready with a recorded reason rather than the ordinary send. */
+  readyOverridden?: boolean;
+  /** The state a dispute froze, so a resolution can restore it; null outside a dispute. */
+  preDisputeState?: keyof typeof CommitmentOnchainState | null;
+  /** The words behind the latest dispute and cancellation, as CIDs. */
+  disputeReasonCID?: string | null;
+  cancelReasonCID?: string | null;
   /** Whether a team may be joined. Null until creation is seen. */
   contributorPolicy?: keyof typeof CommitmentContributorPolicy | null;
   /** The named confirmer group. Empty when confirmation follows the ordinary rule. */
@@ -344,3 +361,15 @@ export interface CommitmentEventRecord {
 }
 
 export type HexString = `0x${string}`;
+
+/** A pool-wide claim row: the request and the commitment it sits on. */
+export interface PoolClaimRequestRow {
+  claim: CommitmentClaimRequestRecord;
+  commitment: CommitmentReadModel;
+}
+
+/** A ready-for-confirmation commitment with the roster that bounds who may confirm it. */
+export interface FallbackConfirmationCandidate {
+  commitment: CommitmentReadModel;
+  activeContributors: Address[];
+}

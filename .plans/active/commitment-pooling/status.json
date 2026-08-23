@@ -243,7 +243,7 @@
       "status": "in_progress",
       "ready_when_dependencies_met": true,
       "manual_blocked": false,
-      "blocked_reason": "Narrowed client dispatch: Phase 0 + D1 + D2 of prompt-client-loop.md, built against fixtures and the local stack before hosted read-back; rendered live proof deferred to the hosted Envio deployment",
+      "blocked_reason": "Narrowed client dispatch: Phase 0 + D1 + D2 of prompt-client-loop.md, built against fixtures and the local stack before hosted read-back; rendered live proof deferred to the hosted Envio deployment. Narrowed admin dispatch: Phase 0 + D1 + D2 of prompt-admin-console.md, stacked on the client-loop branch (PR #749) and built against fixtures and the local stack before hosted read-back; rendered live proof deferred to the hosted Envio deployment; settlement, Operations, and the Hypercert ceremony stay gated",
       "branch": "feature/commitment-pooling-client-loop",
       "depends_on": ["state_api"],
       "handoff": "handoffs/claude-ui.md",
@@ -423,11 +423,11 @@
     "ui_admin": {
       "machine_lane": "ui",
       "owner": "claude",
-      "status": "blocked",
+      "status": "in_progress",
       "ready_when_dependencies_met": true,
-      "manual_blocked": true,
-      "blocked_reason": "PRD-789 is approved and published. Admin implementation waits for PRD-760 closure, amended state_api GREEN, authorized non-value broadcast, verified live indexer read-back, and scoped existing-admin fixes.",
-      "branch": "feature/commitment-pooling-admin-ui",
+      "manual_blocked": false,
+      "blocked_reason": "Narrowed admin dispatch: Phase 0 + D1 + D2 of prompt-admin-console.md, stacked on the client-loop branch (PR #749) and built against fixtures and the local stack before hosted read-back; rendered live proof deferred to the hosted Envio deployment; settlement, Operations, and the Hypercert ceremony stay gated",
+      "branch": "feature/commitment-pooling-admin-console",
       "depends_on": ["state_api"],
       "handoff": "handoffs/claude-ui-admin.md",
       "linear": {
@@ -1216,6 +1216,14 @@
       "status": "in_progress",
       "branch": "feature/commitment-pooling-client-loop",
       "note": "Narrowed client dispatch: Phase 0 + D1 + D2 of prompt-client-loop.md, built against fixtures and the local stack before hosted read-back; rendered live proof deferred to the hosted Envio deployment"
+    },
+    {
+      "timestamp": "2026-08-22T03:24:05.982Z",
+      "actor": "human",
+      "lane": "ui_admin",
+      "status": "in_progress",
+      "branch": "feature/commitment-pooling-admin-console",
+      "note": "Narrowed admin dispatch: Phase 0 + D1 + D2 of prompt-admin-console.md, stacked on the client-loop branch (PR #749) and built against fixtures and the local stack before hosted read-back; rendered live proof deferred to the hosted Envio deployment; settlement, Operations, and the Hypercert ceremony stay gated"
     }
   ]
 }

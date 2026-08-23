@@ -181,6 +181,12 @@ export default function HubView() {
                   selectedCertificationId={hub.selectedCertification?.id}
                   selectedHistoryEventId={hub.selectedHistoryEvent?.id}
                   canManage={hub.canManage}
+                  toConfirm={hub.toConfirm}
+                  chainId={hub.chainId}
+                  viewer={hub.viewer}
+                  selectedCommitmentId={hub.routeCommitmentId}
+                  onOpenCommitment={hub.handleOpenCommitment}
+                  onCloseCommitment={hub.handleCloseCommitment}
                   onOpenWorkDetail={hub.handleOpenWorkDetail}
                   onClearSearch={hub.handleClearSearch}
                   onOpenCertification={hub.handleOpenCertification}

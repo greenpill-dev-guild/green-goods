@@ -1,4 +1,4 @@
-import { type useCommunityWorkspaceController } from "@green-goods/shared";
+import { type Address, type useCommunityWorkspaceController } from "@green-goods/shared";
 import {
   RiCheckboxCircleLine,
   RiGroupLine,
@@ -13,6 +13,7 @@ import {
   CanvasWorkspaceLoadingState,
   CanvasWorkspaceSelectionGate,
 } from "@/components/Layout/CanvasRouteState";
+import { CommunityPools } from "./CommunityPools";
 import { CommunityTab } from "./CommunityTab";
 
 interface CommunityWorkspaceContentProps {
@@ -50,6 +51,20 @@ export function CommunityWorkspaceContent({ workspace }: CommunityWorkspaceConte
           })
         }
       />
+    );
+  }
+
+  // Pools is its own composition (an inner rail over two pool consoles), not
+  // a column in the members/coordination/endowment layout.
+  if (workspace.mode === "pools") {
+    return (
+      <div className="mt-4 min-h-0 flex-1">
+        <CommunityPools
+          chainId={workspace.garden.chainId}
+          garden={{ id: workspace.garden.id as Address, name: workspace.garden.name }}
+          canManage={workspace.canManage}
+        />
+      </div>
     );
   }
 

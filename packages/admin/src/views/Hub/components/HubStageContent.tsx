@@ -1,6 +1,14 @@
-import type { ActivityEvent, HubActionSummary, HubPipelineStage, Work } from "@green-goods/shared";
+import type {
+  ActivityEvent,
+  Address,
+  CommitmentsToConfirm,
+  HubActionSummary,
+  HubPipelineStage,
+  Work,
+} from "@green-goods/shared";
 import { HubAssessmentQueue } from "./HubAssessmentQueue";
 import { HubCertificationQueue } from "./HubCertificationQueue";
+import { HubConfirmQueue } from "./HubConfirmQueue";
 import { HubHistoryQueue } from "./HubHistoryQueue";
 import { HubWorkQueue } from "./HubWorkQueue";
 
@@ -31,6 +39,13 @@ interface HubStageContentProps {
   selectedCertificationId: string | undefined;
   selectedHistoryEventId: string | undefined;
   canManage: boolean;
+  /** The Confirm stage's queue (uiux-spec §6.9), read by the Hub controller. */
+  toConfirm: CommitmentsToConfirm;
+  chainId: number;
+  viewer?: Address;
+  selectedCommitmentId: string | undefined;
+  onOpenCommitment: (commitmentId: string) => void;
+  onCloseCommitment: () => void;
   onOpenWorkDetail: (workId: string) => void;
   onClearSearch: () => void;
   onOpenCertification: (assessmentId: string) => void;
@@ -56,6 +71,12 @@ export function HubStageContent({
   selectedCertificationId,
   selectedHistoryEventId,
   canManage,
+  toConfirm,
+  chainId,
+  viewer,
+  selectedCommitmentId,
+  onOpenCommitment,
+  onCloseCommitment,
   onOpenWorkDetail,
   onClearSearch,
   onOpenCertification,
@@ -88,6 +109,20 @@ export function HubStageContent({
         selectedGardenName={selectedGardenName}
         selectedWorkId={selectedWorkId}
         onOpenWorkDetail={onOpenWorkDetail}
+      />
+    );
+  }
+
+  if (stage === "confirm") {
+    return (
+      <HubConfirmQueue
+        toConfirm={toConfirm}
+        chainId={chainId}
+        viewer={viewer}
+        normalizedSearch={normalizedSearch}
+        selectedCommitmentId={selectedCommitmentId}
+        onOpenCommitment={onOpenCommitment}
+        onCloseCommitment={onCloseCommitment}
       />
     );
   }

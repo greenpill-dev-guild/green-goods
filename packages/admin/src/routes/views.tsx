@@ -148,6 +148,21 @@ export const adminCanvasRoutes: RouteObject[] = [
         lazy: createHypercertView,
       },
       {
+        // Commitments waiting on a steward's confirmation (uiux-spec §6.9).
+        // A row opens the commitment dialog in place, route-backed.
+        path: "confirm",
+        children: [
+          {
+            index: true,
+            lazy: hubView,
+          },
+          {
+            path: ":commitmentId",
+            lazy: hubView,
+          },
+        ],
+      },
+      {
         path: "certify",
         children: [
           {
@@ -220,6 +235,26 @@ export const adminCanvasRoutes: RouteObject[] = [
         lazy: gardenView,
       },
       {
+        // The steward's pool console (uiux-spec §6.2). The seeding console and
+        // the commitment inspector are route-backed dialogs over the Pool tab,
+        // the way the hypercert inspector sits over Impact.
+        path: "pool",
+        children: [
+          {
+            index: true,
+            lazy: gardenView,
+          },
+          {
+            path: "seed",
+            lazy: gardenView,
+          },
+          {
+            path: ":commitmentId",
+            lazy: gardenView,
+          },
+        ],
+      },
+      {
         path: "create",
         ...roleGatedRoute(["deployer"], createGardenView),
       },
@@ -276,6 +311,12 @@ export const adminCanvasRoutes: RouteObject[] = [
       },
       {
         path: "payouts",
+        lazy: communityView,
+      },
+      {
+        // Protocol pool plus this garden's pool (uiux-spec §6.8): a Community
+        // mode, never a fifth workspace or a top-level Pools route.
+        path: "pools",
         lazy: communityView,
       },
       {

@@ -91,6 +91,13 @@ export type CommitmentMutationCall =
  */
 export type CommitmentReasonedMutationInput =
   | {
+      action: "declineClaim";
+      commitmentId: bigint;
+      claimant: Address;
+      reason: string;
+      gardenAddress?: Address | null;
+    }
+  | {
       action: "cancelCommitment" | "raiseDispute";
       commitmentId: bigint;
       reason: string;
@@ -120,6 +127,7 @@ export type CommitmentMutationInput = CommitmentMutationCall | CommitmentReasone
  * not be pinned.
  */
 const CID_REASON_ACTIONS = new Set<CommitmentOnlineAction>([
+  "declineClaim",
   "cancelCommitment",
   "raiseDispute",
   "resolveDispute",

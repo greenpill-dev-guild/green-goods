@@ -2,9 +2,9 @@
 
 **Feature Slug**: `commitment-pooling`
 **Stage**: `active`
-**Status**: `ACTIVE: Pooling contracts and the complete pooling indexer read model are merged to develop. PRD-723 source implementation and local proof are complete. The hosted indexer still requires a manual Envio deploy, fresh full sync, and read-back before pooling queries become available; settlement/Celo selectors, client, admin, and editorial implementation remain gated. Celo Safe authority is frozen in the manifest and both fee reserves are funded; the ceremony is re-scoped to paused-safe-owned, so ownership transfer comes first, then the Safe-sent route, ping, and canary. Value release, audit, and external evidence remain separately blocked.`
+**Status**: `ACTIVE: Pooling contracts and the complete pooling indexer read model are merged to develop. PRD-723 source implementation and local proof are complete. The hosted indexer still requires a manual Envio deploy, fresh full sync, and read-back before pooling queries become available. The client D1 slice is on PR #749 and the editorial UI on PR #748; the admin console has a narrowed dispatch prepared (`prompt-admin-console.md`) in a worktree stacked on PR #749; settlement/Celo selectors and the Operations workspace remain gated. Celo Safe authority is frozen in the manifest and both fee reserves are funded; the ceremony is re-scoped to paused-safe-owned, so ownership transfer comes first, then the Safe-sent route, ping, and canary. Value release, audit, and external evidence remain separately blocked.`
 **Created**: `2026-07-03`
-**Last Updated**: `2026-08-16`
+**Last Updated**: `2026-08-21`
 
 Linear mirror: project [Commitment Pooling](https://linear.app/greenpill-dev-guild/project/commitment-pooling-4bc53572f354). Native phases: **Scope and Design** (2026-07-22), **Build** (2026-07-31), **Release** (2026-08-12), and **Follow On / Hardening** (2026-09-30). Operational checkpoints are separate: July dry run (2026-07-31) and Community plus settlement-evidence delivery (2026-09-30). **The full document map is the next section.** Community-specific diagrams, wireframes, journeys, and research operations live in `.plans/active/community-interface/`. The 2026-07-10/11 reconciliation, PRD-686/RESR-57 predicate, and null PRD-651/697 dates were live-verified historical state; current Linear convergence must be reread before any write. **Fourth-garden policy (Decision Log #29, 2026-07-18 — supersedes Decision Log #25 and Decision Log #27): no fourth garden is selected.** The slot is open, candidates are under consideration, and **no artifact names one**. The three named gardens cover all four action domains on their own. The earlier Decision Log #25→Decision Log #26→Decision Log #27 naming sequence is closed history; do not re-apply it.
 
@@ -14,10 +14,11 @@ Linear mirror: project [Commitment Pooling](https://linear.app/greenpill-dev-gui
 
 ## Document map
 
-Every file in this hub, by role — **181 files**: 36 at the hub root, 42 under `artifacts/`,
+Every file in this hub, by role — **182 files**: 37 at the hub root, 42 under `artifacts/`,
 25 under `handoffs/`, 22 under `hifi/`, 20 under `operations/`, 35 under `reports/` (including
-`reports/linear/`), and 1 under `evidence/`. Counts re-taken 2026-08-21; the previous 171 predated
-the client-UI review prompts and the editorial dispatch prompt.
+`reports/linear/`), and 1 under `evidence/`. Counts re-taken 2026-08-21 after the admin dispatch
+prompt landed; the previous 171 predated the client-UI review prompts and the editorial dispatch
+prompt.
 **This list is the index — if you add a document here, add its row.** Root files each get their own
 row; the six subtrees get one row apiece naming their own in-tree index, because the row for a
 subtree is only honest if that index actually enumerates the tree (this failed review on
@@ -50,6 +51,7 @@ subtree is only honest if that index actually enumerates the tree (this failed r
 | `review-prompt-client-ui-round5.md` | Round-5 client UI review brief; fixes in `5f0f99dee` | Review method — dated brief, not a spec |
 | `prompt-editorial-backend.md` | Codex dispatch prompt for the editorial backend readers (merged as PR #745 / #746) | Dispatch prompt — historical once merged |
 | `prompt-client-loop.md` | Claude Code dispatch prompt to finish the client PWA in a worktree: Phase 0 fixes, D1 close-the-loop (W2a, W4, DomainImpact rows, WFLOW, claims, W25), D2 Offer over time (W32, W34, W35); written from `reports/build-review-2026-08-21.md` | Dispatch prompt — re-verify its "Present state" before use |
+| `prompt-admin-console.md` | Claude Code dispatch prompt for the steward console in a worktree: Phase 0 shared foundation (pool/cycle mutations, resumable write chains, steward readers), D1 run-the-season (W7, W11, W8, W10, W13, W12), D2 close-the-season (W7C, W26, W9, W14, W7M); written 2026-08-21 from the build review plus a code read of `develop@bcf6adfc2` and PR #749; scope recorded in `handoffs/claude-ui-admin.md` § Narrowed dispatch option | Dispatch prompt — stacked on PR #749; the D1 PR opens after #749 lands; re-verify its "Present state" before use |
 | `reports/build-review-2026-08-21.md` | Layer-by-layer build review of the PRD-650 tree: status board, coverage tables, severity-ordered findings, tracking drift, ranked risks, next moves, and the commands run | Dated review evidence — findings carry file:line anchors as of `develop@665e8a573` |
 | `reports/client-loop-2026-08-21.md` | D1 session report for `feature/commitment-pooling-client-loop` (PR #749): built/not-built table keyed to every state id, the seven open decisions, and the demo-world addendum | Dated session evidence — the branch's own account of itself |
 | `reports/client-loop-review-2026-08-21.md` | Adversarial review of PR #749 at `603163d7b`: REQUEST_CHANGES on two blocking defects (route-derived claim/confirm garden; demo mode leaving the dev write path open), five non-blocking findings, gaps, and the lanes that came back clean | Dated review evidence — anchors are as of `603163d7b`; see the feedback ledger for what has since been fixed |
@@ -1871,10 +1873,10 @@ The **Lane** column below names execution sub-lanes for planning clarity. The ha
 | Client PWA: Garden tab pool flows, WalletDrawer panel, hero moments | `ui_client` | [PRD-724](https://linear.app/greenpill-dev-guild/issue/PRD-724) (historical PRD-675) | ⏳ |
 | Client PWA: exchange-pair picker/detail/feed/confirmation states, Offer-first template picker, and plain-language first-exposure copy (`uiux-spec.md` Appendix E; W28–W31) | `ui_client` | [PRD-724](https://linear.app/greenpill-dev-guild/issue/PRD-724) + [PRD-650](https://linear.app/greenpill-dev-guild/issue/PRD-650) | ⏳ |
 | Canonical Offer once/over-time prototype and visual-gallery pass: saved Offer metadata, finite availability, claim, Story, ask-again, rest/resume/retire, later-succession preview | `ui_client` + `ui_admin` + `editorial` | [PRD-789](https://linear.app/greenpill-dev-guild/issue/PRD-789) (Claude Code) | ✅ corrected, verified, and published 2026-08-02 |
-| Admin: Garden workspace pool console (cycles, seeding, claims, analog capture, assessment v3) | `ui_admin` | [PRD-725](https://linear.app/greenpill-dev-guild/issue/PRD-725) (historical PRD-676) | ⏳ |
-| Admin: Community workspace Pools mode + Hub confirmation queue | `ui_admin` | [PRD-725](https://linear.app/greenpill-dev-guild/issue/PRD-725) (historical PRD-677) | ⏳ |
+| Admin: Garden workspace pool console (cycles, seeding, claims, analog capture, assessment v3) | `ui_admin` | [PRD-725](https://linear.app/greenpill-dev-guild/issue/PRD-725) (historical PRD-676) | ⏳ narrowed dispatch prepared 2026-08-21 (`prompt-admin-console.md`: D1 console/cycles/seeding/claims, D2 capture/assessment) |
+| Admin: Community workspace Pools mode + Hub confirmation queue | `ui_admin` | [PRD-725](https://linear.app/greenpill-dev-guild/issue/PRD-725) (historical PRD-677) | ⏳ in the D1 scope of `prompt-admin-console.md` (W12, W13) |
 | Editorial: GardenDialog pool story + /impact aggregates | `editorial` | [PRD-726](https://linear.app/greenpill-dev-guild/issue/PRD-726) (historical PRD-678) | ⏳ |
-| Hypercert cut-over: fulfilled-commitment bundling + allocation presets (split ownership: shared metadata composer + selectors = `state_api`; `bundleKind`/`commitmentIds`/`needUIDs` entity fields = `indexer`; allocation step UI = `ui_admin`) | `state_api` + `indexer` + `ui_admin` | [PRD-722](https://linear.app/greenpill-dev-guild/issue/PRD-722), [PRD-723](https://linear.app/greenpill-dev-guild/issue/PRD-723), [PRD-725](https://linear.app/greenpill-dev-guild/issue/PRD-725) (historical PRD-679 split) | 🚧 backend complete; admin UI pending |
+| Hypercert cut-over: fulfilled-commitment bundling + allocation presets (split ownership: shared metadata composer + selectors = `state_api`; `bundleKind`/`commitmentIds`/`needUIDs` entity fields = `indexer`; allocation step UI = `ui_admin`) | `state_api` + `indexer` + `ui_admin` | [PRD-722](https://linear.app/greenpill-dev-guild/issue/PRD-722), [PRD-723](https://linear.app/greenpill-dev-guild/issue/PRD-723), [PRD-725](https://linear.app/greenpill-dev-guild/issue/PRD-725) (historical PRD-679 split) | 🚧 backend complete; admin UI is D2 of `prompt-admin-console.md` (W26 ceremony + `CreateHypercert` bundle toggle) |
 | G$ split-state settlement: SettlementModule + Celo Safes + multi-chain app | `settlement` | [PRD-686](https://linear.app/greenpill-dev-guild/issue/PRD-686) | ⏳ |
 | Exact same-address GardenAccount deployment, dedicated Garden-bound relay, and direct final 2-of-3 Celo Garden Safes | `contracts` + `release_ops` | [PRD-821](https://linear.app/greenpill-dev-guild/issue/PRD-821/give-each-celo-garden-safe-its-exact-arbitrum-gardenaccount-owner) | 🚧 active plan; exact bytecode/dependency and PRD-733 recovery-owner gates open |
 | Post-QA documentation polish: glossary, architecture, data boundaries, rollout language, operator/gardener task guides, screenshots, and recovery states | `docs` | [PRD-727](https://linear.app/greenpill-dev-guild/issue/PRD-727) (historical PRD-680/681 scope consolidated after QA Pass 1) | ⏳ |
@@ -1946,7 +1948,7 @@ does not begin against moving contracts or indexer queries.
     publication, and canonical-URL verification. Close the remaining PRD-760 fixture/chrome
     defects, then revalidate both artifact surfaces against the proven ABI/generated queries before
     client, admin, or editorial implementation begins.
-11. [ ] **Implement runtime interfaces:** build PRD-724 client PWA, PRD-725 admin, and PRD-726 editorial surfaces only after PRD-723 and PRD-760 close, using the frozen ABI, generated queries, and verified deployment output.
+11. [ ] **Implement runtime interfaces:** build PRD-724 client PWA, PRD-725 admin, and PRD-726 editorial surfaces only after PRD-723 and PRD-760 close, using the frozen ABI, generated queries, and verified deployment output. *(In progress as narrowed dispatches built against fixtures and the local stack: client D1 on PR #749, editorial UI on PR #748, admin prepared in `prompt-admin-console.md` in a worktree stacked on #749. The steward console is the critical path for every lane's rendered QA because every local pool is still NOT_READY with no cycle.)*
 12. [ ] **Develop/staging integration:** merge completed lanes in dependency order onto `develop`, verify the exact staging deployment URLs and source SHA, run targeted lane proof plus the Repo Quick Gate, and begin broad QA only from the verified staging build.
 13. [ ] **QA Pass 1 / deep QA (PRD-729):** run full human-flow, authenticated Brave, real-device PWA, offline/recovery, contract-indexer consistency, accessibility, locale, permissions, and regression review. Route defects back to their owning lanes and re-merge fixes to `develop`.
 14. [ ] **Post-QA documentation polish (PRD-727):** after QA Pass 1, reconcile architecture/glossary/reference prose, operator and gardener task guides, screenshots, accessible names, recovery instructions, translations, and every planned/live claim against the QA-tested product.
@@ -2099,6 +2101,11 @@ Machine-lane ownership mirrors `status.json`: Codex owns `contracts`, `state_api
 
 ### UI Admin (`feature/commitment-pooling-admin-ui`): PRD-725 (historical labels PRD-676/677/679 admin half)
 
+- [ ] Dispatch through `prompt-admin-console.md` (2026-08-21), stacked on PR #749: the session
+  records the gate in `status.json` `execution_sub_lanes.ui_admin` as its first commit; D1 runs the
+  season (W7, W11, W8, W10, W13, W12) and D2 closes it (W7C, W26, W9, W14, W7M); settlement and
+  Operations stay gated. The lane owns its shared Phase 0 (pool/cycle mutations, resumable write
+  chains, steward readers, `cockpit.*` pooling keys) in the named shared paths.
 - [ ] Admin tasks only; AdminDialog anatomy (side sheets retired); i18n; Storybook coverage
 - [ ] Add viewer-authorized series grouping and Story context without steward mutation of another
   person's holder metadata or lifecycle; keep person-level Story off editorial/public surfaces

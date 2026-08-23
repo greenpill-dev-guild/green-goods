@@ -10,10 +10,10 @@ export type AdminWorkspaceId =
   | "profile";
 
 export type AdminSignalPoolType = "hypercert" | "action";
-export type AdminHubMode = "work" | "assess" | "certify" | "history";
+export type AdminHubMode = "work" | "assess" | "certify" | "confirm" | "history";
 export type AdminHubView = AdminHubMode;
-export type AdminGardenMode = "health" | "activity" | "impact" | "settings";
-export type AdminCommunityMode = "members" | "coordination" | "endowment" | "payouts";
+export type AdminGardenMode = "health" | "activity" | "impact" | "settings" | "pool";
+export type AdminCommunityMode = "members" | "coordination" | "endowment" | "payouts" | "pools";
 export type AdminHubSort = "newest" | "oldest";
 
 export type AdminSearchValue = string | number | boolean | null | undefined;
@@ -138,6 +138,15 @@ export const adminRoutes = {
   hubCertify(context?: AdminHubRouteContext) {
     return this.hubMode("certify", context);
   },
+  hubConfirm(context?: AdminHubRouteContext) {
+    return this.hubMode("confirm", context);
+  },
+  hubConfirmDetail(commitmentId: string, context?: AdminHubRouteContext) {
+    return buildAdminHref(
+      `/hub/confirm/${encodeSegment(commitmentId)}`,
+      buildHubContextSearch(context)
+    );
+  },
   hubHistory(context?: AdminHubRouteContext) {
     return this.hubMode("history", context);
   },
@@ -188,6 +197,21 @@ export const adminRoutes = {
   gardenSettings(context?: AdminGardenRouteContext) {
     return this.gardenMode("settings", context);
   },
+  /** The steward's pool console (uiux-spec §6.2). */
+  gardenPool(context?: AdminGardenRouteContext) {
+    return this.gardenMode("pool", context);
+  },
+  /** The seeding console, a route-backed dialog over the pool tab (§6.3). */
+  gardenPoolSeed(context?: AdminGardenRouteContext) {
+    return buildAdminHref("/garden/pool/seed", buildGardenContextSearch(context));
+  },
+  /** One commitment, opened in the pool tab's inspector (§6.7). */
+  gardenPoolCommitment(commitmentId: string, context?: AdminGardenRouteContext) {
+    return buildAdminHref(
+      `/garden/pool/${encodeSegment(commitmentId)}`,
+      buildGardenContextSearch(context)
+    );
+  },
   gardenCreate() {
     return "/garden/create";
   },
@@ -214,6 +238,10 @@ export const adminRoutes = {
   },
   communityPayouts(context?: AdminCommunityRouteContext) {
     return this.communityMode("payouts", context);
+  },
+  /** Protocol pool plus this garden's pool (uiux-spec §6.8). */
+  communityPools(context?: AdminCommunityRouteContext) {
+    return this.communityMode("pools", context);
   },
   /** @deprecated Use communityEndowment. */
   communityTreasury(context?: AdminCommunityRouteContext) {

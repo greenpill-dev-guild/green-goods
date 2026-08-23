@@ -38,7 +38,7 @@ export type CommitmentSeat = "provider" | "confirmer" | "contributor" | "bystand
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 
 /** Absent, empty and zero-address all mean "nobody", so none of them may match a viewer. */
-function isSameAccount(left: Address | null | undefined, right: Address): boolean {
+export function isSameAccount(left: Address | null | undefined, right: Address): boolean {
   if (!left || left === ZERO_ADDRESS) return false;
   return left.toLowerCase() === right.toLowerCase();
 }

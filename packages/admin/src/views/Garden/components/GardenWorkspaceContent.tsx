@@ -25,6 +25,7 @@ import {
 } from "@/components/Layout/CanvasRouteState";
 import { OverviewTab } from "./OverviewTab";
 import { ImpactTab } from "./ImpactTab";
+import { GardenPoolTab } from "../Pool";
 
 interface GardenWorkspaceContentProps {
   workspace: ReturnType<typeof useGardenWorkspaceController>;
@@ -120,6 +121,14 @@ export function GardenWorkspaceContent({ workspace }: GardenWorkspaceContentProp
           assessmentCount30d={workspace.assessments.length}
           gardenerCount={workspace.garden.gardeners.length}
           treasuryBalance={workspace.treasuryBalance}
+        />
+      ) : null}
+
+      {workspace.view === "pool" ? (
+        <GardenPoolTab
+          garden={{ id: workspace.garden.id as Address, name: workspace.garden.name }}
+          chainId={workspace.garden.chainId}
+          canManage={workspace.canManage}
         />
       ) : null}
 
