@@ -5,3 +5,4 @@
 export * from "./types";
 export * from "./useWizardData";
 export * from "./wizardSteps";
+export * from "./wizardTransitions";

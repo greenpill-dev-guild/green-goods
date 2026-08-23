@@ -23,6 +23,7 @@ import { useNavigate } from "react-router-dom";
 import { isAddress } from "viem";
 import { useAccount } from "wagmi";
 import { useShallow } from "zustand/react/shallow";
+import { selectAssessmentDirtyState } from "../hypercerts/wizardTransitions";
 
 function useCreateAssessmentStepConfigs(): Step[] {
   const { formatMessage } = useIntl();
@@ -288,34 +289,12 @@ export function useCreateAssessmentController() {
   const isSubmitting = state.matches("submitting");
   const hasError = state.matches("error");
   const isSuccess = state.matches("success");
-  // Dirty = the operator has progressed past the first step or entered any
-  // meaningful field. Gates the confirm-before-discard on close (useDirtyClose).
-  // Suppressed while submitting/succeeded so the close-to-Hub flow isn't blocked.
-  const isDirty = useMemo(() => {
-    if (isSubmitting || isSuccess) return false;
-    if (currentStep > 0) return true;
-    // The default form seeds one empty SMART-outcome row so the wizard renders
-    // an editable row immediately (createDefaultAssessmentForm) — that
-    // placeholder is not operator input, or every untouched close would raise
-    // the discard confirm.
-    const hasMeaningfulSmartOutcome =
-      form.smartOutcomes.length > 1 ||
-      form.smartOutcomes.some(
-        (outcome) =>
-          outcome.description.trim().length > 0 ||
-          outcome.metric.trim().length > 0 ||
-          outcome.target !== 0
-      );
-    return (
-      form.title.trim().length > 0 ||
-      form.description.trim().length > 0 ||
-      form.location.trim().length > 0 ||
-      form.diagnosis.trim().length > 0 ||
-      hasMeaningfulSmartOutcome ||
-      form.selectedActionUIDs.length > 0 ||
-      form.sdgTargets.length > 0
-    );
-  }, [currentStep, form, isSubmitting, isSuccess]);
+  // The pure projection makes the close contract explicit and keeps the
+  // default placeholder outcome from counting as operator input.
+  const { isDirty, isPristine } = useMemo(
+    () => selectAssessmentDirtyState({ currentStep, form, isSubmitting, isSuccess }),
+    [currentStep, form, isSubmitting, isSuccess]
+  );
   const txError = useTxErrorMessages(state.context.error);
 
   useEffect(() => {
@@ -441,6 +420,7 @@ export function useCreateAssessmentController() {
     handleSubmit,
     hasError,
     isDirty,
+    isPristine,
     isSubmitting,
     normalizedGardenDomainMask,
     resetWorkflow,

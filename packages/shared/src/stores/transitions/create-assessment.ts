@@ -1,4 +1,5 @@
 import type { SmartOutcome } from "../../types/domain";
+import { transitionWizardStep } from "../../hooks/admin-ui/hypercerts/wizardTransitions";
 import type { CreateAssessmentFormState, CreateAssessmentStore } from "../useCreateAssessmentStore";
 
 export function setAssessmentFieldTransition<K extends keyof CreateAssessmentFormState>(
@@ -49,8 +50,20 @@ export function moveAssessmentStepTransition(
   state: CreateAssessmentStore,
   input: { direction?: -1 | 1; index?: number; totalSteps: number }
 ): Partial<CreateAssessmentStore> {
-  const requested = input.index ?? state.currentStep + (input.direction ?? 0);
-  return { currentStep: Math.min(Math.max(requested, 0), input.totalSteps - 1) };
+  const event =
+    input.index !== undefined
+      ? ({ type: "GO_TO", step: input.index } as const)
+      : input.direction === 1
+        ? ({ type: "NEXT" } as const)
+        : input.direction === -1
+          ? ({ type: "PREVIOUS" } as const)
+          : ({ type: "GO_TO", step: state.currentStep } as const);
+  return {
+    currentStep: transitionWizardStep(state.currentStep, event, {
+      first: 0,
+      last: input.totalSteps - 1,
+    }),
+  };
 }
 
 export function resetAssessmentTransition(

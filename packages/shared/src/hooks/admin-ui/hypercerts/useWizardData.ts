@@ -26,6 +26,7 @@ import { useIntl } from "react-intl";
 import { zeroAddress } from "viem";
 import { getErrorMessageKey, type HypercertCompletionData } from "./types";
 import { useValidationMessage, useWizardSteps } from "./wizardSteps";
+import { selectHypercertDirtyState } from "./wizardTransitions";
 
 interface UseWizardDataOptions {
   gardenId: string;
@@ -96,13 +97,15 @@ export function useWizardData({ gardenId, gardenName, onComplete }: UseWizardDat
   const isSubmitting = isHypercertMintingInProgress(mintingState.status);
 
   // Track if the operator has made changes worth protecting.
-  const hasUnsavedChanges = useMemo(() => {
-    // Pending chain/indexer confirmation is protected by preventRouteChange;
-    // confirmed mints have no draft left to guard.
-    if (["pending", "confirmed"].includes(mintingState.status)) return false;
-    // Block if user has selected attestations or moved past step 1
-    return selectedAttestationIds.length > 0 || currentStep > 1;
-  }, [selectedAttestationIds.length, currentStep, mintingState.status]);
+  const { isDirty, isPristine } = useMemo(
+    () =>
+      selectHypercertDirtyState({
+        currentStep,
+        mintingStatus: mintingState.status,
+        selectedAttestationIds,
+      }),
+    [currentStep, mintingState.status, selectedAttestationIds]
+  );
 
   // Confirm before navigating away from an in-progress mint. The shared hook
   // owns the React Router blocker + beforeunload guard and raises the confirm;
@@ -113,7 +116,7 @@ export function useWizardData({ gardenId, gardenName, onComplete }: UseWizardDat
     cancelClose: handleCancelLeave,
     confirmClose: handleConfirmLeave,
   } = useDirtyClose({
-    isDirty: hasUnsavedChanges,
+    isDirty,
     onClose: () => undefined,
     blockRouteChange: true,
     preventRouteChange: isSubmitting,
@@ -429,6 +432,8 @@ export function useWizardData({ gardenId, gardenName, onComplete }: UseWizardDat
     validationMessage,
 
     // Navigation guards
+    isDirty,
+    isPristine,
     showLeaveConfirm,
     handleConfirmLeave,
     handleCancelLeave,

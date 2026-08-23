@@ -3,7 +3,7 @@
  */
 
 import { QueryClientProvider } from "@tanstack/react-query";
-import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type { ComponentProps } from "react";
 import { IntlProvider } from "react-intl";
 import { RouterProvider, createMemoryRouter } from "react-router-dom";
@@ -159,6 +159,50 @@ describe("CreateHypercert dialog", () => {
     ).toBeInTheDocument();
     expect(screen.getByText("Role-Proven Garden")).toBeInTheDocument();
     expect(screen.queryByText("app.hypercerts.create.notFound")).not.toBeInTheDocument();
+  });
+
+  it("closes straight back to the Hub while the hypercert wizard is pristine", async () => {
+    let router: ReturnType<typeof renderCreateHypercert> | undefined;
+    await act(async () => {
+      router = renderCreateHypercert();
+      await Promise.resolve();
+    });
+
+    const dialog = await screen.findByRole("dialog", { name: "app.hypercerts.create.title" });
+    await act(async () => {
+      fireEvent.keyDown(dialog, { key: "Escape" });
+      await Promise.resolve();
+    });
+
+    await waitFor(() => expect(router?.state.location.pathname).toBe("/hub/work"));
+    expect(screen.queryByRole("button", { name: "Discard" })).not.toBeInTheDocument();
+  });
+
+  it("prompts before closing a dirty hypercert wizard and discards on confirmation", async () => {
+    let router: ReturnType<typeof renderCreateHypercert> | undefined;
+    await act(async () => {
+      router = renderCreateHypercert();
+      await Promise.resolve();
+    });
+
+    await act(async () => {
+      useHypercertWizardStore.getState().setSelectedAttestations(["attestation-1"]);
+      await Promise.resolve();
+    });
+
+    const dialog = await screen.findByRole("dialog", { name: "app.hypercerts.create.title" });
+    fireEvent.keyDown(dialog, { key: "Escape" });
+
+    expect(await screen.findByRole("button", { name: "Discard" })).toBeInTheDocument();
+    expect(router?.state.location.pathname).toBe("/hub/certify/create");
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Discard" }));
+      await Promise.resolve();
+    });
+
+    await waitFor(() => expect(router?.state.location.pathname).toBe("/hub/work"));
+    expect(useHypercertWizardStore.getState().selectedAttestationIds).toEqual([]);
   });
 
   it("blocks route navigation while hypercert minting is pending", async () => {

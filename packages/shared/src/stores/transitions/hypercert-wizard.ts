@@ -1,4 +1,5 @@
 import type { HypercertDraft } from "../../types/hypercerts";
+import { transitionWizardStep } from "../../hooks/admin-ui/hypercerts/wizardTransitions";
 import type { HypercertWizardStore, MintingState } from "../useHypercertWizardStore";
 
 const MIN_STEP = 1;
@@ -8,19 +9,46 @@ export function setHypercertStepTransition(
   _state: HypercertWizardStore,
   step: number
 ): Partial<HypercertWizardStore> {
-  return { currentStep: Math.min(Math.max(step, MIN_STEP), MAX_STEP) };
+  return {
+    currentStep: transitionWizardStep(
+      MIN_STEP,
+      { type: "GO_TO", step },
+      {
+        first: MIN_STEP,
+        last: MAX_STEP,
+      }
+    ),
+  };
 }
 
 export function nextHypercertStepTransition(
   state: HypercertWizardStore
 ): Partial<HypercertWizardStore> {
-  return { currentStep: Math.min(state.currentStep + 1, MAX_STEP) };
+  return {
+    currentStep: transitionWizardStep(
+      state.currentStep,
+      { type: "NEXT" },
+      {
+        first: MIN_STEP,
+        last: MAX_STEP,
+      }
+    ),
+  };
 }
 
 export function previousHypercertStepTransition(
   state: HypercertWizardStore
 ): Partial<HypercertWizardStore> {
-  return { currentStep: Math.max(state.currentStep - 1, MIN_STEP) };
+  return {
+    currentStep: transitionWizardStep(
+      state.currentStep,
+      { type: "PREVIOUS" },
+      {
+        first: MIN_STEP,
+        last: MAX_STEP,
+      }
+    ),
+  };
 }
 
 export function setSelectedAttestationsTransition(
