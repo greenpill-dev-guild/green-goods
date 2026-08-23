@@ -93,7 +93,7 @@ const FROZEN_ALLOWLIST = {
   "packages/shared/src/hooks/cookie-jar/useCampaignCookieJar.ts": 731,
   "packages/shared/src/hooks/index.ts": 604,
   "packages/shared/src/hooks/work/useWorkApproval.ts": 544,
-  "packages/shared/src/hooks/work/useWorkMutation.ts": 721,
+  "packages/shared/src/hooks/work/useWorkMutation.ts": 532,
   "packages/shared/src/index.ts": 1431,
   "packages/shared/src/modules/app/analytics-events.ts": 520,
   "packages/shared/src/modules/app/posthog.ts": 579,

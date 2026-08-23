@@ -2,7 +2,25 @@ import type { Action, Address, Work, WorkApprovalDraft, WorkDraft } from "../../
 import { getActionTitle } from "../../utils/action/parsers";
 import { resolveWorkSubmissionTitle } from "../../utils/work/workTitles";
 import { serviceWorkerManager } from "../app/service-worker";
-import { createOfflineTxHash, jobQueue } from "../job-queue";
+import { createOfflineTxHash, jobQueue, type JobQueueHandle } from "../job-queue";
+
+export interface WorkSubmissionDependencies {
+  queue: Pick<JobQueueHandle, "addJob">;
+  backgroundSync: Pick<typeof serviceWorkerManager, "requestBackgroundSync">;
+  newClientWorkId: () => string;
+}
+
+const defaultWorkSubmissionDependencies: WorkSubmissionDependencies = {
+  queue: jobQueue,
+  backgroundSync: serviceWorkerManager,
+  newClientWorkId: () => crypto.randomUUID(),
+};
+
+function resolveWorkSubmissionDependencies(
+  overrides: Partial<WorkSubmissionDependencies>
+): WorkSubmissionDependencies {
+  return { ...defaultWorkSubmissionDependencies, ...overrides };
+}
 
 /**
  * Consolidated work submission utility
@@ -23,8 +41,10 @@ export async function submitWorkToQueue(
   actions: Action[],
   chainId: number,
   images: File[],
-  userAddress: Address
+  userAddress: Address,
+  dependencies: Partial<WorkSubmissionDependencies> = {}
 ): Promise<{ txHash: `0x${string}`; jobId: string; clientWorkId: string }> {
+  const deps = resolveWorkSubmissionDependencies(dependencies);
   if (!gardenAddress) {
     throw new Error("Garden address is required");
   }
@@ -39,10 +59,10 @@ export async function submitWorkToQueue(
 
   const actionTitle = getActionTitle(actions, actionUID);
 
-  const clientWorkId = crypto.randomUUID();
+  const clientWorkId = deps.newClientWorkId();
 
   // Add job to queue - this handles both offline and online scenarios
-  const jobId = await jobQueue.addJob(
+  const jobId = await deps.queue.addJob(
     "work",
     {
       ...draft,
@@ -57,7 +77,7 @@ export async function submitWorkToQueue(
 
   // Progressive enhancement: request background sync so queued jobs can flush
   // when connectivity returns (supported browsers only).
-  void serviceWorkerManager.requestBackgroundSync();
+  void deps.backgroundSync.requestBackgroundSync();
 
   // Return an offline transaction hash for UI compatibility and clientWorkId for deduplication
   return { txHash: createOfflineTxHash(jobId), jobId, clientWorkId };
@@ -76,8 +96,10 @@ export async function submitApprovalToQueue(
   draft: WorkApprovalDraft,
   work: Work | undefined,
   chainId: number,
-  userAddress: Address
+  userAddress: Address,
+  dependencies: Partial<WorkSubmissionDependencies> = {}
 ): Promise<{ txHash: `0x${string}`; jobId: string }> {
+  const deps = resolveWorkSubmissionDependencies(dependencies);
   if (!draft.workUID) {
     throw new Error("Work UID is required");
   }
@@ -91,7 +113,7 @@ export async function submitApprovalToQueue(
   }
 
   // Add approval job to queue - this handles both offline and online scenarios
-  const jobId = await jobQueue.addJob(
+  const jobId = await deps.queue.addJob(
     "approval",
     {
       ...draft,
