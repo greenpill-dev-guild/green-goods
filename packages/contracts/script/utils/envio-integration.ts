@@ -43,6 +43,7 @@ interface DeploymentData {
   commitmentPoolingModule?: string;
   commitmentRegistry?: string;
   settlementModule?: string;
+  creditRegistry?: string;
   celoSettlementExecutor?: string;
   [key: string]: string | undefined;
 }
@@ -79,6 +80,7 @@ const INDEXER_MANAGED_CONTRACT_ORDER = [
   "CommitmentPoolingModule",
   "CommitmentRegistry",
   "SettlementModule",
+  "CreditRegistry",
   "CeloSettlementExecutor",
 ] as const;
 
@@ -93,7 +95,13 @@ const CELO_INDEXER_MANAGED_CONTRACT_ORDER = ["CeloSettlementExecutor"] as const;
 const DYNAMICALLY_REGISTERED_CONTRACTS = new Set<string>(["OctantVault"]);
 
 const ZERO_ADDRESS_LITERAL = "0x0000000000000000000000000000000000000000";
-const PINNED_POOLING_CONTRACTS = new Set<string>(["CommitmentPoolingModule", "CommitmentRegistry"]);
+const PINNED_RELEASE_CONTRACTS = new Map<string, keyof DeploymentData>([
+  ["CommitmentPoolingModule", "commitmentPoolingModule"],
+  ["CommitmentRegistry", "commitmentRegistry"],
+  ["SettlementModule", "settlementModule"],
+  ["CreditRegistry", "creditRegistry"],
+  ["CeloSettlementExecutor", "celoSettlementExecutor"],
+]);
 
 export interface ApplyDeploymentToChainParams {
   chains: EnvioChain[];
@@ -124,14 +132,13 @@ export function applyDeploymentToEnvioChains({
     chainId === CELO_CHAIN_ID ? CELO_INDEXER_MANAGED_CONTRACT_ORDER : INDEXER_MANAGED_CONTRACT_ORDER;
   const managedContracts = new Set<string>(managedContractOrder);
 
-  for (const name of PINNED_POOLING_CONTRACTS) {
+  for (const [name, deploymentKey] of PINNED_RELEASE_CONTRACTS) {
     const existingMatches = (existingChain?.contracts ?? []).filter((contract) => contract.name === name);
     if (existingMatches.length > 1) {
       throw new Error(`Chain ${chainId} contains duplicate ${name} entries`);
     }
 
-    const deploymentAddress =
-      name === "CommitmentPoolingModule" ? deployment.commitmentPoolingModule : deployment.commitmentRegistry;
+    const deploymentAddress = deployment[deploymentKey];
     const existingAddress = existingMatches[0]?.address;
     if (
       deploymentAddress &&
@@ -193,6 +200,7 @@ export function applyDeploymentToEnvioChains({
   upsertContract("CommitmentPoolingModule", deployment.commitmentPoolingModule);
   upsertContract("CommitmentRegistry", deployment.commitmentRegistry);
   upsertContract("SettlementModule", deployment.settlementModule);
+  upsertContract("CreditRegistry", deployment.creditRegistry);
   upsertContract("CeloSettlementExecutor", deployment.celoSettlementExecutor);
   // Some contracts may be absent in deployment JSON for specific chains.
   // In that case, we preserve existing config entries (including placeholders).

@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p1",
     "created_at": "2026-07-03",
-    "updated_at": "2026-08-21T22:58:13.035Z"
+    "updated_at": "2026-08-23T02:09:00.000Z"
   },
   "links": {
     "brief": "external-brief.md",
@@ -36,6 +36,7 @@
     "release_engineering_prompt": "reports/codex-deployment-release-session-prompt-2026-08-10.md",
     "release_engineering_review": "reports/phase-a-release-engineering-review-2026-08-11.md",
     "release_scope_correction": "reports/phase-a-release-scope-correction-2026-08-11.md",
+    "production_readiness_review": "reports/production-readiness-review-2026-08-22.md",
     "linear_update_pack": "reports/linear/linear-update-pack.md",
     "admin_prototype_follow_up": "reports/admin-prototype-follow-up-2026-08-11.md",
     "plan": "plan.todo.md",
@@ -106,6 +107,7 @@
     "depends_on_features": ["envio-hyperindex-v3-migration"]
   },
   "notes": [
+    "Production-readiness checkpoint 2026-08-22: contracts, indexer source/config, shared, and the critical repository gate pass. The core tier remains REQUEST_CHANGES because the hosted indexer serves the old schema, Arbitrum ownership is still with the deployment sender, and the corrected working candidate needs a clean committed SHA. Settlement remains COMMENT_ONLY and does not block the core tier while paused and unavailable; the live Celo protocol Safe is 1-of-4 and its ownership dry run fails closed. Full evidence and the authorized-operations order are in reports/production-readiness-review-2026-08-22.md. No broadcast, hosted deployment, cutover, Safe mutation, availability flip, ping, canary, value movement, or Linear write was authorized.",
     "Phase A release engineering was authorized on 2026-08-11 using the August 10 execution prompt and its recorded owner decisions. The pinned base and starting HEAD are 7a9c7eeef96b17c96d5a5f7e15d3e181223bbe6b; PR #694 merge c60b38dea and PR #695 merge bff3b274d are ancestors. This grants local implementation, simulation, read-only chain inspection, and PR preparation only. It grants no broadcast, deployment, Safe/Zodiac mutation, ownership transfer, value movement, indexer activation, message-only ping, canary, or Linear write.",
     "Commitments are module-native records; the commitment-pooling release adds exactly two EAS schemas (assessment v3, community testimony). No commitment EAS schema. The separate Needs layer adds four additional EAS schemas in .plans/active/community-interface/ per plan.todo.md register #28.",
     "CommitmentPoolingModule + non-transferable ERC-1155-style CommitmentRegistry; initial classId equals commitmentId and remains the authoritative promise-instance accounting identity. A future transferable voucher owns a separate adapter-level voucherClassId and never moves promise authority.",

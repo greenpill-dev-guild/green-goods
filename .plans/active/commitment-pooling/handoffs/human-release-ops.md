@@ -380,7 +380,9 @@ the `release:verify:safe:*` variants; those belong to the later ownership-transf
   approved **2-of-6** owner set. Repository policy now requires threshold >= 2 and owner count >= 3,
   so this exact set satisfies the guide. As of the 2026-08-21 decision it is the verified
   destination for the Arbitrum ownership boundaries; the ownership dry run re-reads it live and
-  passes. The Celo Safe at the same address is a different Safe, frozen separately as 2-of-4.
+  passes. The Celo Safe at the same address is a different Safe: the release target is frozen as
+  2-of-4, while the 2026-08-23 live dry run resolved it as 1-of-4 and failed closed until its
+  threshold is raised.
 - The approved GardenToken release inventory is all **18** finalized accounts (IDs 0–17), with
   protocol root token 0. The root-first Protocol plus seventeen-Garden backfill is complete and the
   separate boundary 19 has unpaused Commitment Pooling.
@@ -401,8 +403,11 @@ the `release:verify:safe:*` variants; those belong to the later ownership-transf
   that had to move are in
   [`../reports/celo-safe-authority-refreeze-2026-08-21.md`](../reports/celo-safe-authority-refreeze-2026-08-21.md).
 - The ceremony is re-scoped to `paused-safe-owned`: `ownershipTransferIncluded` and
-  `peerWiringIncluded` are both true, pool backfill and unpause stay excluded, and the manifest hash
-  is now `0x4609b6764f96eb128fcff11a19ab95232566e11cc9e2539f2385b05e033c3454`. No library,
+  `peerWiringIncluded` are both true, pool backfill and unpause stay excluded. The manifest was
+  refreshed during the 2026-08-23 production-readiness review to bind the statically pinned
+  CreditRegistry indexer configuration. The current manifest hash is
+  `0x0c442d179ff865a484c5c2bd2a03501950a982fe03177cbab9dcbd1fd731cca9`; it supersedes the
+  older living-handoff hash and can be reproduced with `bun run contracts:release:manifest`. No library,
   implementation, or proxy address moved with it. Enabling authority in the manifest is not an
   authorization to settle: ownership transfer, routing, and the canary each remain their own gate.
 - The hosted production indexer is the older deployment and is deliberately outside this contracts

@@ -40,7 +40,7 @@ graph LR
     Verify["verify:post-deploy\n:indexer"] -->|check| Runtime
 ```
 
-The Green Goods indexer uses Envio HyperIndex `3.2.1` to index on-chain events into a
+The Green Goods indexer uses Envio HyperIndex `3.6.1` to index on-chain events into a
 PostgreSQL-backed GraphQL API. Local validation and hosted release are separate operations:
 `envio dev` is the local runtime, `envio start` is for a production self-hosted runtime, and
 Envio Cloud deploys from an approved Git branch.

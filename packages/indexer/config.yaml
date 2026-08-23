@@ -229,9 +229,9 @@ chains:
         address: "0x66300dA4d3749bFc9F7326DB94e0DEb47A7a3959"
       - name: SettlementModule
         address: "0x15c8F6CF25abA2161cc04719b4C4a93c4146935D"
-      # Dynamic registration is fallback-only and starts at the binding block. Release activation must
-      # statically pin CreditRegistry with a start block at or before its deployment to retain initialize logs.
       - name: CreditRegistry
+        # Proxy deployed at block 493971794; chain start_block 433713812 retains initialization history.
+        address: "0xcfF1fdC12Bf130897dB0C9c74fB094C956196A34"
   - id: 11155111
     start_block: 10243363
     contracts:
