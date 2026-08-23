@@ -108,6 +108,7 @@ export function SeedStepHowMuch({
             options={[
               {
                 value: "open",
+                disabled: busy,
                 label: formatMessage({
                   id: "cockpit.garden.pool.seed.team.open",
                   defaultMessage: "Open team",
@@ -119,6 +120,7 @@ export function SeedStepHowMuch({
               },
               {
                 value: "lead",
+                disabled: busy,
                 label: formatMessage({
                   id: "cockpit.garden.pool.seed.team.lead",
                   defaultMessage: "Lead-managed team",
