@@ -10,14 +10,19 @@
  */
 
 import userEvent from "@testing-library/user-event";
+import { type ReactElement, useState } from "react";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Address } from "@green-goods/shared";
-import type { CommitmentPoolRecord } from "@green-goods/shared/commitment-pooling";
+import {
+  type CommitmentPoolRecord,
+  commitmentNeedsSeat,
+  selectCommitmentSeat,
+} from "@green-goods/shared/commitment-pooling";
 import { renderWithProviders, screen } from "../test-utils";
 
 /** The tab navigates into commitment detail, so it needs a router around it. */
-const render = (ui: React.ReactElement) => renderWithProviders(<MemoryRouter>{ui}</MemoryRouter>);
+const render = (ui: ReactElement) => renderWithProviders(<MemoryRouter>{ui}</MemoryRouter>);
 const mockNavigate = vi.fn();
 
 vi.mock("react-router-dom", async () => {
@@ -38,6 +43,7 @@ const mockUseReason = vi.fn();
 const mockFlush = vi.fn();
 const mockRetryJob = vi.fn();
 const mockDiscardJob = vi.fn();
+const mockUseGardenPoolController = vi.fn();
 
 const AVAILABLE = { status: "available", capability: {} } as const;
 const UNAVAILABLE = { status: "unavailable", reason: "not-integrated", capability: {} } as const;
@@ -120,6 +126,74 @@ function commitmentsResult(overrides: Record<string, unknown> = {}) {
   };
 }
 
+function useGardenPoolControllerMock(targetPool: CommitmentPoolRecord) {
+  const [selectedCycleId, setSelectedCycleId] = useState<bigint | null>(null);
+  const [direction, setDirection] = useState<"all" | "OFFER" | "REQUEST">("all");
+  const [busyJobId, setBusyJobId] = useState<string | null>(null);
+  const { cycles } = mockUseCommitmentCycles();
+  const queue = mockUseQueueState();
+  const commitments = mockUseCommitments();
+  const stewardsPool = mockUseHasRole().hasRole;
+  const ownsPool = mockUseHasRole().hasRole;
+  const ownCreations = queue.pendingCreates.filter(
+    (entry: { poolId: string }) => entry.poolId === targetPool.poolId.toString()
+  );
+  const rows = commitments.commitments
+    .filter(
+      (entry: ReturnType<typeof commitment>) => direction === "all" || entry.direction === direction
+    )
+    .map((entry: ReturnType<typeof commitment>) => {
+      const seat = selectCommitmentSeat({
+        commitment: entry as never,
+        contributors: [],
+        viewer: VIEWER,
+      });
+      return {
+        commitment: entry,
+        seat,
+        needsYou: commitmentNeedsSeat({ commitment: entry as never, seat }),
+      };
+    });
+  const poolState = targetPool.state ?? "UNKNOWN";
+  const runBusy = async (jobId: string, action: () => Promise<unknown>) => {
+    setBusyJobId(jobId);
+    try {
+      await action();
+    } finally {
+      setBusyJobId(null);
+      queue.refresh();
+    }
+  };
+
+  return {
+    chainId: 42161,
+    isOnline: mockUseOffline().isOnline,
+    cycles,
+    selectedCycleId,
+    setSelectedCycleId,
+    direction,
+    setDirection,
+    busyJobId,
+    ownCreations,
+    rows,
+    titleOf: () => null,
+    commitments,
+    poolState,
+    isParticipating: !["NOT_READY", "READY", "CLOSED", "COMPOSTED"].includes(poolState),
+    canCreate:
+      poolState === "OPEN" && (targetPool.poolType !== "PROTOCOL" || stewardsPool || ownsPool),
+    acts: {
+      flush: mockFlush,
+      retry: (jobId: string) =>
+        runBusy(jobId, async () => {
+          await mockRetryJob(jobId);
+          await mockFlush();
+        }),
+      discard: (jobId: string) => runBusy(jobId, () => mockDiscardJob(jobId)),
+    },
+  };
+}
+
 vi.mock("@green-goods/shared", async () => {
   const actual = await vi.importActual<typeof import("@green-goods/shared")>("@green-goods/shared");
   return {
@@ -135,6 +209,7 @@ vi.mock("@green-goods/shared", async () => {
     jobQueue: { retryJob: mockRetryJob, discardJob: mockDiscardJob },
     useOffline: () => mockUseOffline(),
     useHasRole: () => mockUseHasRole(),
+    useGardenPoolController: (...args: unknown[]) => mockUseGardenPoolController(...args),
   };
 });
 
@@ -170,6 +245,7 @@ describe("GardenPool", () => {
     mockDiscardJob.mockResolvedValue(undefined);
     mockFlush.mockResolvedValue(undefined);
     mockUseCommitments.mockReturnValue(commitmentsResult());
+    mockUseGardenPoolController.mockImplementation(useGardenPoolControllerMock);
   });
 
   const creation = (overrides: Record<string, unknown> = {}) => ({
