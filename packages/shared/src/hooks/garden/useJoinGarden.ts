@@ -12,7 +12,7 @@ import { readContract } from "@wagmi/core";
 import type { SmartAccountClient } from "permissionless";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useIntl } from "react-intl";
-import { type Address, encodeFunctionData, type Hex } from "viem";
+import { type Address, type Hex } from "viem";
 import { useWriteContract } from "wagmi";
 import { getWagmiConfig } from "../../config/appkit";
 import { DEFAULT_CHAIN_ID, getDefaultChain } from "../../config/blockchain";
@@ -29,11 +29,10 @@ import {
   trackNetworkError,
 } from "../../modules/app/error-tracking";
 import { logger } from "../../modules/app/logger";
-import { ensureAppKitWalletChain } from "../../modules/transactions/chain-guard";
 import {
-  assertLocalArbitrumForkSmartAccountsDisabled,
-  assertLocalArbitrumForkWallet,
-} from "../../modules/transactions/local-fork-safety";
+  createDefaultJoinGardenPorts,
+  joinGarden as submitJoinGarden,
+} from "../../modules/garden/join-garden-command";
 import type { Garden } from "../../types/domain";
 import { isAddressInList } from "../../utils/blockchain/address";
 
@@ -47,7 +46,6 @@ interface PasskeySession {
 }
 
 import { GardenAccountABI } from "../../utils/blockchain/contracts";
-import { simulateJoinGarden } from "../../utils/blockchain/simulation";
 import { isAlreadyGardenerError, parseContractError } from "../../utils/errors/contract-errors";
 import { isCancelledTxError } from "../../utils/errors/tx-error-classifier";
 import { useUser } from "../auth/useUser";
@@ -108,7 +106,7 @@ function getPendingJoins(): Record<string, { address: string; timestamp: number 
   }
 }
 
-function addPendingJoin(gardenId: string, userAddress: string) {
+function addPendingJoin(gardenId: string, userAddress: string, timestamp = Date.now()) {
   if (typeof window === "undefined") return;
   const pending = getPendingJoins();
   const existing = pending[gardenId];
@@ -119,7 +117,7 @@ function addPendingJoin(gardenId: string, userAddress: string) {
   ) {
     return;
   }
-  pending[gardenId] = { address: userAddress, timestamp: Date.now() };
+  pending[gardenId] = { address: userAddress, timestamp };
   localStorage.setItem(PENDING_JOINS_KEY, JSON.stringify(pending));
   notifyPendingJoinsChanged();
 }
@@ -282,56 +280,25 @@ export function useJoinGarden() {
       );
 
       try {
-        let txHash: string;
-
-        if (client?.account) {
-          assertLocalArbitrumForkSmartAccountsDisabled();
-
-          // Use smart account for passkey authentication (sponsored transaction)
-          txHash = await client.sendTransaction({
-            account: client.account,
-            chain: client.chain,
-            to: gardenAddress as `0x${string}`,
-            value: 0n,
-            data: encodeFunctionData({
-              abi: GardenAccountABI,
-              functionName: "joinGarden",
-              args: [],
-            }),
-          });
-        } else {
-          // Use wagmi for wallet authentication (user pays gas)
-          // Simulate first to catch errors before user pays gas
-          const simulation = await simulateJoinGarden(
-            gardenAddress as `0x${string}`,
-            targetAddress as `0x${string}`,
-            undefined,
-            chainId
-          );
-
-          if (!simulation.success) {
-            if (simulation.error) {
-              const error = new Error(simulation.error.message);
-              error.name = simulation.error.name;
-              throw error;
-            }
-            throw new Error("Transaction simulation failed. Please try again.");
-          }
-
-          await ensureAppKitWalletChain(chainId);
-          await assertLocalArbitrumForkWallet();
-
-          txHash = await writeContractAsync({
-            address: gardenAddress as `0x${string}`,
-            abi: GardenAccountABI,
-            functionName: "joinGarden",
-            args: [],
+        const txHash = await submitJoinGarden(
+          {
+            gardenAddress: gardenAddress as Hex,
+            userAddress: targetAddress as Hex,
             chainId,
-          });
-        }
-
-        // Store pending join for immediate UI feedback
-        addPendingJoin(gardenAddress, targetAddress);
+            smartAccountClient: client,
+          },
+          createDefaultJoinGardenPorts({
+            walletSend: ({ gardenAddress: targetGarden, chainId: targetChain }) =>
+              writeContractAsync({
+                address: targetGarden,
+                abi: GardenAccountABI,
+                functionName: "joinGarden",
+                args: [],
+                chainId: targetChain,
+              }),
+            recordPending: addPendingJoin,
+          })
+        );
 
         // Optimistic update: add user to garden's gardeners list
         queryClient.setQueryData(
