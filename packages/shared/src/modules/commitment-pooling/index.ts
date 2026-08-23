@@ -6,6 +6,7 @@ export * from "./credit";
 export * from "./cycle-metadata";
 export * from "./data-public-impact";
 export * from "./data-public-pools";
+export * from "./document-store";
 export { DEMO_POOLING_PARAM, isDemoPoolingActive } from "./demo/demo-mode";
 export * from "./disclosure";
 export * from "./evidence";

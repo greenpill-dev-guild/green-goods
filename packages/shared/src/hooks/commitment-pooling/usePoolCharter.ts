@@ -15,10 +15,13 @@ import { useQuery } from "@tanstack/react-query";
 import { queryKeys } from "../../config/query-keys";
 import { isResolvableMetadataCID } from "../../modules/commitment-pooling/metadata";
 import {
+  commitmentDocumentStore,
+  type CommitmentDocumentStore,
+} from "../../modules/commitment-pooling/document-store";
+import {
   type PoolCharterV1,
   parsePoolCharter,
 } from "../../modules/commitment-pooling/pool-charter";
-import { getJsonByHash } from "../../modules/data/ipfs/resolve";
 
 const IMMUTABLE = Number.POSITIVE_INFINITY;
 
@@ -29,11 +32,14 @@ export interface PoolCharterResolution {
   isUnavailable: boolean;
 }
 
-export function usePoolCharter(cid: string | null | undefined): PoolCharterResolution {
+export function usePoolCharter(
+  cid: string | null | undefined,
+  { documents = commitmentDocumentStore }: { documents?: CommitmentDocumentStore } = {}
+): PoolCharterResolution {
   const resolvable = isResolvableMetadataCID(cid);
   const query = useQuery({
     queryKey: queryKeys.commitmentPooling.poolCharter(resolvable ? cid.trim() : null),
-    queryFn: async () => parsePoolCharter(await getJsonByHash((cid as string).trim())),
+    queryFn: async () => parsePoolCharter(await documents.readJson((cid as string).trim())),
     enabled: resolvable,
     staleTime: IMMUTABLE,
     gcTime: IMMUTABLE,
