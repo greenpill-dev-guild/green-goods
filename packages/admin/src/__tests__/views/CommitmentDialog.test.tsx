@@ -2,6 +2,14 @@
  * @vitest-environment jsdom
  */
 
+import { type CommitmentDialogController, type CommitmentReadModel } from "@green-goods/shared";
+import {
+  availableCapability,
+  commitmentDetailFixture,
+  commitmentDialogControllerFixture,
+  commitmentFixture,
+  contributorFixture,
+} from "@green-goods/shared/testing";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, renderWithProviders, screen, waitFor, within } from "../test-utils";
 
@@ -10,13 +18,18 @@ const CREATOR = "0x1111111111111111111111111111111111111111" as const;
 const TAKER = "0x2222222222222222222222222222222222222222" as const;
 
 const mocks = vi.hoisted(() => ({
-  controller: {} as Record<string, unknown>,
+  controller: null as CommitmentDialogController | null,
   navigate: vi.fn(),
 }));
 
 vi.mock("@green-goods/shared", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@green-goods/shared")>();
-  return { ...actual, useCommitmentDialogController: () => mocks.controller };
+  const { createSharedBarrelMock } = await import("@green-goods/shared/testing");
+  return createSharedBarrelMock(
+    actual,
+    { useCommitmentDialogController: () => mocks.controller! },
+    { defaults: false }
+  );
 });
 
 vi.mock("react-router-dom", async (importOriginal) => {
@@ -53,8 +66,8 @@ vi.mock("@/components/AdminReasonDialog", () => ({
 
 const { CommitmentDialogPanel } = await import("@/views/Garden/Pool/CommitmentDialog");
 
-function commitment(overrides: Record<string, unknown> = {}) {
-  return {
+function commitment(overrides: Partial<CommitmentReadModel> = {}): CommitmentReadModel {
+  return commitmentFixture({
     id: "42161-9",
     chainId: 42161,
     commitmentId: 9n,
@@ -88,10 +101,12 @@ function commitment(overrides: Record<string, unknown> = {}) {
     readyOverridden: false,
     preDisputeState: null,
     ...overrides,
-  };
+  });
 }
 
-function can(overrides: Record<string, boolean> = {}) {
+function can(
+  overrides: Partial<CommitmentDialogController["can"]> = {}
+): CommitmentDialogController["can"] {
   return {
     cancel: false,
     markReady: false,
@@ -109,7 +124,12 @@ function can(overrides: Record<string, boolean> = {}) {
   };
 }
 
-function controller(overridesWithCommitment: Record<string, unknown> = {}) {
+type ControllerOverrides = Omit<Partial<CommitmentDialogController>, "commitment" | "detail"> & {
+  commitment?: Partial<CommitmentReadModel> | null;
+  detail?: CommitmentDialogController["detail"];
+};
+
+function controller(overridesWithCommitment: ControllerOverrides = {}): CommitmentDialogController {
   const { commitment: commitmentOverrides, ...overrides } = overridesWithCommitment;
   const acts = {
     cancel: vi.fn().mockResolvedValue("0x1"),
@@ -124,47 +144,32 @@ function controller(overridesWithCommitment: Record<string, unknown> = {}) {
     acceptClaim: vi.fn().mockResolvedValue("0x1"),
     declineClaim: vi.fn().mockResolvedValue("0x1"),
   };
-  const record =
-    commitmentOverrides === null
-      ? null
-      : commitment((commitmentOverrides as Record<string, unknown>) ?? {});
-  return {
+  const record = commitmentOverrides === null ? null : commitment(commitmentOverrides ?? {});
+  const detail =
+    overrides.detail === undefined
+      ? record
+        ? commitmentDetailFixture({
+            commitment: record,
+            contributors: [
+              contributorFixture({
+                id: "c-1",
+                commitmentId: 9n,
+                contributor: CREATOR,
+                active: true,
+                isLead: true,
+                evidenceCredits: 1,
+              }),
+            ],
+          })
+        : null
+      : overrides.detail;
+  return commitmentDialogControllerFixture({
     chainId: 42161,
     garden: GARDEN,
     viewer: "0x3333333333333333333333333333333333333333",
     isOnline: true,
-    availability: { status: "available" },
     commitment: record,
-    detail: {
-      commitment: record as ReturnType<typeof commitment>,
-      requirements: [],
-      contributors: [
-        {
-          id: "c-1",
-          chainId: 42161,
-          commitmentId: 9n,
-          contributor: CREATOR,
-          additionSeen: true,
-          active: true,
-          isLead: true,
-          approvedWorkCredits: 0,
-          evidenceCredits: 1,
-          uncountedLinkedWorkCount: 0,
-          requirementIndexes: [],
-          recognitionWeightBps: null,
-          addedBy: null,
-          addedAt: null,
-          removedBy: null,
-          removedAt: null,
-          updatedAt: 1,
-        },
-      ],
-      assignments: [],
-      workAttributions: [],
-      evidenceAttributions: [],
-      claimRequests: [],
-      counterpartCommitments: [],
-    },
+    detail,
     title: "Repair tool handles",
     note: null,
     cycle: null,
@@ -225,7 +230,7 @@ function controller(overridesWithCommitment: Record<string, unknown> = {}) {
     notFound: false,
     refetch: vi.fn(),
     ...overrides,
-  };
+  });
 }
 
 function renderPanel(commitmentId = "9") {
@@ -276,7 +281,7 @@ describe("CommitmentDialogPanel (W10)", () => {
       can: can({ cancel: true, markReady: true, sendForConfirmation: true }),
     });
     renderPanel();
-    const acts = mocks.controller.acts as Record<string, ReturnType<typeof vi.fn>>;
+    const acts = mocks.controller!.acts;
 
     fireEvent.click(screen.getByRole("button", { name: /mark ready/i }));
     fireEvent.click(
@@ -334,7 +339,7 @@ describe("CommitmentDialogPanel (W10)", () => {
         { name: /^confirm as garden fallback$/i }
       )
     );
-    const acts = mocks.controller.acts as Record<string, ReturnType<typeof vi.fn>>;
+    const acts = mocks.controller!.acts;
     await waitFor(() => expect(acts.confirmFallback).toHaveBeenCalledWith("because"));
   });
 
@@ -380,7 +385,7 @@ describe("CommitmentDialogPanel (W10)", () => {
     expect(within(dialog).queryByRole("radio", { name: /^kept/i })).not.toBeInTheDocument();
     fireEvent.click(within(dialog).getByRole("radio", { name: /cancelled/i }));
     fireEvent.click(within(dialog).getByRole("button", { name: /^resolve$/i }));
-    const acts = mocks.controller.acts as Record<string, ReturnType<typeof vi.fn>>;
+    const acts = mocks.controller!.acts;
     await waitFor(() => expect(acts.resolveDispute).toHaveBeenCalledWith("CANCELLED", "because"));
   });
 
@@ -411,8 +416,20 @@ describe("CommitmentDialogPanel (W10)", () => {
       commitment: { commitmentType: "DOMAIN_IMPACT" },
       can: can({ markReady: true }),
     });
-    (record.detail as { requirements: unknown[] }).requirements = [
-      { requirementIndex: 0, actionUID: 1n, requiredCount: 3, approvedCount: 1, domain: 0 },
+    record.detail!.requirements = [
+      {
+        id: "42161-9-0",
+        chainId: 42161,
+        commitmentId: 9n,
+        requirementIndex: 0,
+        creationSeen: true,
+        actionUID: 1n,
+        requiredCount: 3,
+        approvedCount: 1,
+        domain: 0,
+        createdAt: 1_755_000_000,
+        updatedAt: 1_755_000_000,
+      },
     ];
     mocks.controller = record;
     renderPanel();
@@ -429,14 +446,26 @@ describe("CommitmentDialogPanel (W10)", () => {
         { name: /^mark ready$/i }
       )
     );
-    const acts = mocks.controller.acts as Record<string, ReturnType<typeof vi.fn>>;
+    const acts = mocks.controller!.acts;
     await waitFor(() => expect(acts.markReady).toHaveBeenCalledWith("because"));
   });
 
   it("shows the override disabled when the chain's own gates are not clear", () => {
     const record = controller({ commitment: { commitmentType: "DOMAIN_IMPACT" } });
-    (record.detail as { requirements: unknown[] }).requirements = [
-      { requirementIndex: 0, actionUID: 1n, requiredCount: 3, approvedCount: 1, domain: 0 },
+    record.detail!.requirements = [
+      {
+        id: "42161-9-0",
+        chainId: 42161,
+        commitmentId: 9n,
+        requirementIndex: 0,
+        creationSeen: true,
+        actionUID: 1n,
+        requiredCount: 3,
+        approvedCount: 1,
+        domain: 0,
+        createdAt: 1_755_000_000,
+        updatedAt: 1_755_000_000,
+      },
     ];
     mocks.controller = record;
     renderPanel();
@@ -494,7 +523,11 @@ describe("CommitmentDialogPanel (W10)", () => {
       commitment: null,
       detail: null,
       unavailable: true,
-      availability: { status: "unavailable", reason: "not-integrated" },
+      availability: {
+        status: "unavailable",
+        reason: "not-integrated",
+        capability: availableCapability,
+      },
     });
     renderPanel();
     expect(screen.getByText(/not on this chain yet/i)).toBeInTheDocument();
@@ -522,7 +555,7 @@ describe("CommitmentDialogPanel (W10)", () => {
 
     // The next record is one this steward may not mark kept, so a carried-over
     // FULFILLED would submit an outcome its own dialog refuses to offer.
-    (mocks.controller as { can: unknown }).can = can({
+    mocks.controller!.can = can({
       resolveDispute: true,
       resolveFulfilled: false,
     });
@@ -533,7 +566,7 @@ describe("CommitmentDialogPanel (W10)", () => {
     const dialog = screen.getByRole("dialog", { name: /resolve the dispute/i });
     expect(within(dialog).queryByRole("radio", { name: /^kept/i })).not.toBeInTheDocument();
     fireEvent.click(within(dialog).getByRole("button", { name: /^resolve$/i }));
-    const acts = mocks.controller.acts as Record<string, ReturnType<typeof vi.fn>>;
+    const acts = mocks.controller!.acts;
     await waitFor(() =>
       expect(acts.resolveDispute).toHaveBeenCalledWith("RESTORE_PREVIOUS", "because")
     );
@@ -544,7 +577,19 @@ describe("CommitmentDialogPanel (W10)", () => {
       commitment: { requiresAssessment: true },
       can: can({ attachAssessment: true }),
       assessments: [
-        { id: "0xaaa", title: "Soil check", domain: "AGROFORESTRY", createdAt: 1_755_000_000 },
+        {
+          id: "0xaaa",
+          authorAddress: CREATOR,
+          gardenAddress: GARDEN,
+          title: "Soil check",
+          description: "Check the garden soil",
+          assessmentConfigCID: "bafy-soil-check",
+          domain: 0,
+          startDate: null,
+          endDate: null,
+          location: "Rocinha",
+          createdAt: 1_755_000_000,
+        },
       ],
     });
     const { rerender } = renderPanel("9");

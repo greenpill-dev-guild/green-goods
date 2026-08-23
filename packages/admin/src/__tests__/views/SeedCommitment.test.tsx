@@ -2,7 +2,17 @@
  * @vitest-environment jsdom
  */
 
-import { selectPoolConsoleModel } from "@green-goods/shared";
+import {
+  type CommitmentCycleRecord,
+  type CommitmentJobInput,
+  type PoolConsoleController,
+  selectPoolConsoleModel,
+} from "@green-goods/shared";
+import {
+  cycleFixture,
+  poolConsoleControllerFixture,
+  poolFixture,
+} from "@green-goods/shared/testing";
 import { useState } from "react";
 import { createMemoryRouter, RouterProvider } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -14,50 +24,58 @@ const CONFIRMER = "0x2222222222222222222222222222222222222222" as const;
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000" as const;
 const NOW = 1_756_000_000n;
 
+type SharedModule = typeof import("@green-goods/shared");
+type Enqueue = (input: CommitmentJobInput) => Promise<string>;
+
 const mocks = vi.hoisted(() => ({
-  enqueue: vi.fn(),
+  enqueue: vi.fn<Enqueue>(),
   protocolRegistered: true,
   settlementActive: false,
-  console: {} as Record<string, unknown>,
+  console: null as PoolConsoleController | null,
 }));
 
 vi.mock("@green-goods/shared", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@green-goods/shared")>();
-  return {
-    ...actual,
-    usePoolConsoleController: () => mocks.console,
-    useProtocolPool: () => ({
-      poolId: mocks.protocolRegistered ? 1n : null,
-      rootGarden: "0xcccccccccccccccccccccccccccccccccccccccc",
-      isRegistered: mocks.protocolRegistered,
-      isLoading: false,
-    }),
-    useSettlementAccount: () => ({
-      detail: mocks.settlementActive
-        ? { account: { active: true }, route: null }
-        : { account: null, route: null },
-      isLoading: false,
-    }),
-    useActions: () => ({ data: [{ id: "42161-44", title: "Prune trees" }] }),
-    useCommitmentJobs: () => ({
-      enqueue: mocks.enqueue,
-      isPending: false,
-      error: null,
-      viewer: VIEWER,
-    }),
-    useMediaQuery: () => true,
-  };
+  const { createSharedBarrelMock } = await import("@green-goods/shared/testing");
+  return createSharedBarrelMock(
+    actual,
+    {
+      usePoolConsoleController: () => mocks.console!,
+      useProtocolPool: (() => ({
+        poolId: mocks.protocolRegistered ? 1n : null,
+        rootGarden: "0xcccccccccccccccccccccccccccccccccccccccc",
+        isRegistered: mocks.protocolRegistered,
+        isLoading: false,
+      })) as unknown as SharedModule["useProtocolPool"],
+      useSettlementAccount: (() => ({
+        detail: mocks.settlementActive
+          ? { account: { active: true }, route: null }
+          : { account: null, route: null },
+        isLoading: false,
+      })) as unknown as SharedModule["useSettlementAccount"],
+      useActions: (() => ({
+        data: [{ id: "42161-44", title: "Prune trees" }],
+      })) as unknown as SharedModule["useActions"],
+      useCommitmentJobs: () => ({
+        enqueue: mocks.enqueue,
+        isPending: false,
+        error: null,
+        viewer: VIEWER,
+      }),
+      useMediaQuery: () => true,
+    },
+    { defaults: false }
+  );
 });
 
 const { SeedCommitmentDialog } = await import("@/views/Garden/Pool/Seed");
 
-function cycle(overrides: Record<string, unknown> = {}) {
-  return {
+function cycle(overrides: Partial<CommitmentCycleRecord> = {}): CommitmentCycleRecord {
+  return cycleFixture({
     id: "42161-12",
     chainId: 42161,
     cycleId: 12n,
     seedSeen: true,
-    poolId: 7n,
     poolEntityId: "42161-7",
     garden: null,
     gardenId: null,
@@ -86,11 +104,11 @@ function cycle(overrides: Record<string, unknown> = {}) {
     createdAt: 1,
     updatedAt: 2,
     ...overrides,
-  };
+  });
 }
 
-function consoleFor() {
-  const pool = {
+function consoleFor(): PoolConsoleController {
+  const pool = poolFixture({
     id: "42161-7",
     chainId: 42161,
     poolId: 7n,
@@ -124,19 +142,17 @@ function consoleFor() {
     commitmentsDue: 0n,
     createdAt: 1,
     updatedAt: 2,
-  };
+  });
   const cycles = [
     cycle(),
     cycle({ id: "42161-13", cycleId: 13n, cycleType: "CAMPAIGN", metadataCID: "bafy-13" }),
   ];
-  return {
+  return poolConsoleControllerFixture({
     chainId: 42161,
     garden: GARDEN,
     viewer: VIEWER,
     isOnline: true,
-    availability: { status: "available" },
     pool,
-    poolId: 7n,
     cycles,
     cycleNames: new Map([
       ["12", { status: "resolved", name: "Season of First Rains" }],
@@ -149,19 +165,15 @@ function consoleFor() {
     pauseReason: { reason: null, isLoading: false, isUnavailable: false },
     pendingCreates: [],
     queueUnavailable: false,
-    acts: {},
-    isActing: false,
-    isLoading: false,
-    isError: false,
     refetch: vi.fn(),
     model: selectPoolConsoleModel({
-      pool: pool as never,
-      cycles: cycles as never,
+      pool,
+      cycles,
       commitments: [],
       pendingClaimCount: 0,
       now: NOW,
     }),
-  };
+  });
 }
 
 function renderSeed(props: { protocolContext?: boolean } = {}) {
@@ -285,10 +297,9 @@ describe("SeedCommitmentDialog (W8)", () => {
     fireEvent.click(within(dialog()).getByRole("button", { name: /seed this commitment/i }));
 
     await waitFor(() => expect(mocks.enqueue).toHaveBeenCalledTimes(1));
-    const input = mocks.enqueue.mock.calls[0]?.[0] as {
-      act: string;
-      payload: Record<string, unknown>;
-    };
+    const input = mocks.enqueue.mock.calls[0]?.[0];
+    expect(input?.act).toBe("create");
+    if (!input || input.act !== "create") throw new Error("Expected a create commitment job");
     expect(input.act).toBe("create");
     expect(input.payload).toMatchObject({
       poolId: 7n,
@@ -325,7 +336,8 @@ describe("SeedCommitmentDialog (W8)", () => {
     await waitFor(() => expect(screen.getByTestId("seed-review")).toBeInTheDocument());
     fireEvent.click(within(dialog()).getByRole("button", { name: /seed this commitment/i }));
     await waitFor(() => expect(mocks.enqueue).toHaveBeenCalledTimes(1));
-    const input = mocks.enqueue.mock.calls[0]?.[0] as { payload: Record<string, unknown> };
+    const input = mocks.enqueue.mock.calls[0]?.[0];
+    if (!input || input.act !== "create") throw new Error("Expected a create commitment job");
     expect(input.payload.claimMode).toBe(1);
   });
 
@@ -363,7 +375,8 @@ describe("SeedCommitmentDialog (W8)", () => {
     await waitFor(() => expect(screen.getByTestId("seed-review")).toBeInTheDocument());
     fireEvent.click(within(dialog()).getByRole("button", { name: /seed this commitment/i }));
     await waitFor(() => expect(mocks.enqueue).toHaveBeenCalledTimes(1));
-    const input = mocks.enqueue.mock.calls[0]?.[0] as { payload: Record<string, unknown> };
+    const input = mocks.enqueue.mock.calls[0]?.[0];
+    if (!input || input.act !== "create") throw new Error("Expected a create commitment job");
     expect(input.payload.protocolFallbackEnabled).toBe(false);
   });
 

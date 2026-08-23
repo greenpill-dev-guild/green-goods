@@ -2,6 +2,8 @@
  * @vitest-environment jsdom
  */
 
+import type { CommitmentsToConfirm } from "@green-goods/shared";
+import { toConfirmFixture } from "@green-goods/shared/testing";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, renderWithProviders, screen, within } from "../test-utils";
 
@@ -10,24 +12,38 @@ const OTHER_GARDEN = "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb" as const;
 const ROOT = "0xcccccccccccccccccccccccccccccccccccccccc" as const;
 const VIEWER = "0x1111111111111111111111111111111111111111" as const;
 
+type SharedModule = typeof import("@green-goods/shared");
+type ProtocolPoolView = Pick<
+  ReturnType<SharedModule["useProtocolPool"]>,
+  "poolId" | "rootGarden" | "isRegistered" | "isLoading" | "isError" | "refetch"
+>;
+type OwnPoolsView = {
+  pools: Array<{ state: string; openSeasonCycleId: bigint | null }>;
+  isLoading: boolean;
+};
+
 const mocks = vi.hoisted(() => ({
-  protocolPool: {} as Record<string, unknown>,
-  toConfirm: {} as Record<string, unknown>,
-  ownPools: {} as Record<string, unknown>,
+  protocolPool: null as ProtocolPoolView | null,
+  toConfirm: null as CommitmentsToConfirm | null,
+  ownPools: null as OwnPoolsView | null,
   navigate: vi.fn(),
   poolTabGardens: [] as string[],
-  confirmQueueProps: [] as Record<string, unknown>[],
+  confirmQueueProps: [] as CommitmentsToConfirm[],
 }));
 
 vi.mock("@green-goods/shared", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@green-goods/shared")>();
-  return {
-    ...actual,
-    useProtocolPool: () => mocks.protocolPool,
-    useCommitmentsToConfirm: () => mocks.toConfirm,
-    useCommitmentPools: () => mocks.ownPools,
-    useUser: () => ({ primaryAddress: VIEWER }),
-  };
+  const { createSharedBarrelMock } = await import("@green-goods/shared/testing");
+  return createSharedBarrelMock(
+    actual,
+    {
+      useProtocolPool: (() => mocks.protocolPool!) as unknown as SharedModule["useProtocolPool"],
+      useCommitmentsToConfirm: () => mocks.toConfirm!,
+      useCommitmentPools: (() => mocks.ownPools!) as unknown as SharedModule["useCommitmentPools"],
+      useUser: (() => ({ primaryAddress: VIEWER })) as SharedModule["useUser"],
+    },
+    { defaults: false }
+  );
 });
 
 vi.mock("react-router-dom", async (importOriginal) => {
@@ -54,7 +70,7 @@ vi.mock("@/views/Garden/Pool", () => ({
   },
 }));
 vi.mock("@/views/Hub/components/HubConfirmQueue", () => ({
-  HubConfirmQueue: ({ toConfirm }: { toConfirm: Record<string, unknown> }) => {
+  HubConfirmQueue: ({ toConfirm }: { toConfirm: CommitmentsToConfirm }) => {
     mocks.confirmQueueProps.push(toConfirm);
     return <div data-testid="protocol-confirm-queue" />;
   },
@@ -85,17 +101,17 @@ describe("CommunityPools (W12)", () => {
       isError: false,
       refetch: vi.fn(),
     };
-    mocks.toConfirm = {
+    mocks.toConfirm = toConfirmFixture({
       groups: [],
       fallback: [],
+      disputed: [],
       count: 0,
       isSteward: true,
       isProtocolSteward: true,
-      availability: { status: "available" },
       isLoading: false,
       isError: false,
       refetch: vi.fn(),
-    };
+    });
     mocks.ownPools = {
       pools: [{ state: "OPEN", openSeasonCycleId: 12n }],
       isLoading: false,
@@ -126,14 +142,40 @@ describe("CommunityPools (W12)", () => {
     // A protocol steward who also stewards ordinary gardens carries those
     // gardens' own confirmations and disputes in the same object. Under a
     // heading promising no other garden's pool is browsed here, they are out.
-    const protocolRow = { path: "PROTOCOL_FALLBACK", garden: ROOT, gardenName: "Green Goods" };
-    mocks.toConfirm = {
-      ...mocks.toConfirm,
-      groups: [{ garden: OTHER_GARDEN, gardenName: "Awka", rows: [{}, {}] }],
-      fallback: [protocolRow, { path: "POOL_FALLBACK", garden: OTHER_GARDEN, gardenName: "Awka" }],
-      disputed: [{ garden: OTHER_GARDEN, gardenName: "Awka" }],
-      count: 5,
+    const fixture = toConfirmFixture();
+    const protocolRow = {
+      ...fixture.fallback[0]!,
+      path: "PROTOCOL_FALLBACK" as const,
+      garden: ROOT,
+      gardenName: "Green Goods",
     };
+    mocks.toConfirm = toConfirmFixture({
+      groups: [
+        {
+          garden: OTHER_GARDEN,
+          gardenName: "Awka",
+          rows: [fixture.groups[0]!.rows[0]!, fixture.groups[0]!.rows[0]!],
+        },
+      ],
+      fallback: [
+        protocolRow,
+        {
+          ...fixture.fallback[0]!,
+          path: "POOL_FALLBACK",
+          garden: OTHER_GARDEN,
+          gardenName: "Awka",
+        },
+      ],
+      disputed: [
+        {
+          ...fixture.disputed![0]!,
+          garden: OTHER_GARDEN,
+          gardenName: "Awka",
+        },
+      ],
+      count: 5,
+      isProtocolSteward: true,
+    });
     renderPools();
     const handed = mocks.confirmQueueProps.at(-1);
     expect(handed?.groups).toEqual([]);
@@ -145,7 +187,7 @@ describe("CommunityPools (W12)", () => {
   });
 
   it("keeps the protocol confirmations queue from a steward who does not steward the protocol garden", () => {
-    mocks.toConfirm = { ...mocks.toConfirm, isProtocolSteward: false };
+    mocks.toConfirm = { ...mocks.toConfirm!, isProtocolSteward: false };
     renderPools();
     expect(screen.queryByTestId("protocol-confirm-queue")).not.toBeInTheDocument();
     expect(screen.getByTestId("pool-tab")).toBeInTheDocument();
@@ -153,7 +195,7 @@ describe("CommunityPools (W12)", () => {
 
   it("says when no protocol pool is registered instead of rendering a console", () => {
     mocks.protocolPool = {
-      ...mocks.protocolPool,
+      ...mocks.protocolPool!,
       poolId: null,
       rootGarden: ROOT,
       isRegistered: false,
@@ -164,13 +206,13 @@ describe("CommunityPools (W12)", () => {
   });
 
   it("shows loading and read-error casts for the protocol read", () => {
-    mocks.protocolPool = { ...mocks.protocolPool, isLoading: true };
+    mocks.protocolPool = { ...mocks.protocolPool!, isLoading: true };
     const first = renderPools();
     expect(screen.getByRole("status")).toBeInTheDocument();
     first.unmount();
 
     const refetch = vi.fn();
-    mocks.protocolPool = { ...mocks.protocolPool, isLoading: false, isError: true, refetch };
+    mocks.protocolPool = { ...mocks.protocolPool!, isLoading: false, isError: true, refetch };
     renderPools();
     expect(screen.getByText(/couldn.t read the protocol pool/i)).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: /try again/i }));

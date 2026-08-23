@@ -2,7 +2,18 @@
  * @vitest-environment jsdom
  */
 
-import { type PoolConsoleController, selectPoolConsoleModel } from "@green-goods/shared";
+import {
+  type CommitmentPoolRecord,
+  type PoolConsoleController,
+  type PoolSetupSequenceState,
+  type PoolSetupStep,
+  selectPoolConsoleModel,
+} from "@green-goods/shared";
+import {
+  cycleFixture,
+  poolConsoleControllerFixture,
+  poolFixture,
+} from "@green-goods/shared/testing";
 import { useState } from "react";
 import { createMemoryRouter, RouterProvider } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -10,10 +21,13 @@ import { fireEvent, renderWithProviders, screen, waitFor, within } from "../test
 
 const GARDEN = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" as const;
 
+type SharedModule = typeof import("@green-goods/shared");
+type SetupSequence = ReturnType<SharedModule["useCommitmentPoolSetupSequence"]>;
+
 const mocks = vi.hoisted(() => ({
-  run: vi.fn(),
-  retry: vi.fn(),
-  reset: vi.fn(),
+  run: vi.fn<SetupSequence["run"]>(),
+  retry: vi.fn<SetupSequence["retry"]>(),
+  reset: vi.fn<SetupSequence["reset"]>(),
   state: {
     status: "idle",
     steps: [],
@@ -22,30 +36,34 @@ const mocks = vi.hoisted(() => ({
     failure: null,
     error: null,
     cycleId: null,
-  } as Record<string, unknown>,
+  } as PoolSetupSequenceState,
   pinPoolCharter: vi.fn(),
   pinCycleMetadata: vi.fn(),
 }));
 
 vi.mock("@green-goods/shared", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@green-goods/shared")>();
-  return {
-    ...actual,
-    useCommitmentPoolSetupSequence: () => ({
-      state: mocks.state,
-      run: mocks.run,
-      retry: mocks.retry,
-      reset: mocks.reset,
-    }),
-    pinPoolCharter: mocks.pinPoolCharter,
-    pinCycleMetadata: mocks.pinCycleMetadata,
-    useMediaQuery: () => true,
-  };
+  const { createSharedBarrelMock } = await import("@green-goods/shared/testing");
+  return createSharedBarrelMock(
+    actual,
+    {
+      useCommitmentPoolSetupSequence: () => ({
+        state: mocks.state,
+        run: mocks.run,
+        retry: mocks.retry,
+        reset: mocks.reset,
+      }),
+      pinPoolCharter: mocks.pinPoolCharter,
+      pinCycleMetadata: mocks.pinCycleMetadata,
+      useMediaQuery: () => true,
+    },
+    { defaults: false }
+  );
 });
 
 const { PoolSetupFlow } = await import("@/views/Garden/Pool/SetupFlow");
 
-const BASE_POOL = {
+const BASE_POOL: CommitmentPoolRecord = poolFixture({
   id: "42161-7",
   chainId: 42161,
   poolId: 7n,
@@ -79,48 +97,41 @@ const BASE_POOL = {
   commitmentsDue: 0n,
   createdAt: 1_700_000_000,
   updatedAt: 1_700_000_100,
+});
+
+type ControllerOverrides = Omit<Partial<PoolConsoleController>, "pool" | "poolId"> & {
+  pool?: CommitmentPoolRecord | null;
+  poolId?: bigint;
 };
 
-function controller(overrides: Partial<Record<keyof PoolConsoleController, unknown>> = {}) {
-  const pool = BASE_POOL;
-  const base = {
+function controller(overrides: ControllerOverrides = {}): PoolConsoleController {
+  const pool = overrides.pool === undefined ? BASE_POOL : overrides.pool;
+  const cycles = overrides.cycles ?? [];
+  const commitments = overrides.commitments ?? [];
+  return poolConsoleControllerFixture({
     chainId: 42161,
     garden: GARDEN,
     viewer: "0x1111111111111111111111111111111111111111",
-    isOnline: true,
-    availability: { status: "available" },
     pool,
-    poolId: 7n,
-    cycles: [],
-    cycleNames: new Map(),
-    commitments: [],
-    titles: new Map(),
-    claims: [],
-    charter: { charter: null, isLoading: false, isUnavailable: false },
-    pauseReason: { reason: null, isLoading: false, isUnavailable: false },
-    pendingCreates: [],
-    queueUnavailable: false,
-    acts: {},
-    isActing: false,
-    isLoading: false,
-    isError: false,
+    poolId: pool?.poolId,
+    cycles,
+    commitments,
     refetch: vi.fn().mockResolvedValue([]),
-  };
-  const merged = { ...base, ...overrides };
-  return {
-    ...merged,
-    model: selectPoolConsoleModel({
-      pool: merged.pool as never,
-      cycles: merged.cycles as never,
-      commitments: merged.commitments as never,
-      pendingClaimCount: 0,
-      now: 1_756_000_000n,
-    }),
-  };
+    ...overrides,
+    model:
+      overrides.model ??
+      selectPoolConsoleModel({
+        pool,
+        cycles,
+        commitments,
+        pendingClaimCount: overrides.claims?.length ?? 0,
+        now: 1_756_000_000n,
+      }),
+  });
 }
 
 function renderFlow(
-  props: { intent?: "first-run" | "season" | "campaign"; console?: unknown } = {}
+  props: { intent?: "first-run" | "season" | "campaign"; console?: PoolConsoleController } = {}
 ) {
   const onClose = vi.fn();
   const router = createMemoryRouter(
@@ -131,7 +142,7 @@ function renderFlow(
           <PoolSetupFlow
             open
             intent={props.intent ?? "first-run"}
-            console={(props.console ?? controller()) as PoolConsoleController}
+            console={props.console ?? controller()}
             onClose={onClose}
           />
         ),
@@ -229,7 +240,7 @@ describe("PoolSetupFlow (W11)", () => {
       name: "Season of First Rains",
       gardenAddress: GARDEN,
     });
-    const steps = mocks.run.mock.calls[0]?.[0] as Array<Record<string, unknown>>;
+    const steps = mocks.run.mock.calls[0]?.[0] as PoolSetupStep[];
     expect(steps.map((step) => step.action)).toEqual([
       "setPoolCharter",
       "setProviderOpenCommitmentCap",
@@ -332,7 +343,7 @@ describe("PoolSetupFlow (W11)", () => {
           <PoolSetupFlow
             open={open}
             intent="campaign"
-            console={pool as unknown as PoolConsoleController}
+            console={pool}
             onClose={() => setOpen(false)}
           />
         </>
@@ -374,40 +385,16 @@ describe("PoolSetupFlow (W11)", () => {
         nonTerminalCycleCount: 1n,
       },
       cycles: [
-        {
+        cycleFixture({
           id: "42161-12",
-          chainId: 42161,
           cycleId: 12n,
-          seedSeen: true,
           poolId: 7n,
-          poolEntityId: "42161-7",
-          garden: null,
-          gardenId: null,
           cycleType: "SEASON",
           state: "OPEN",
           startTime: 1n,
           endTime: 2n,
           metadataCID: "bafy-season",
-          gardenersBps: 6000,
-          treasuryBps: 1500,
-          operatorBps: 1000,
-          evaluatorBps: 500,
-          communityBps: 500,
-          funderBps: 500,
-          equalParticipationBps: 2000,
-          verifiedContributionBps: 8000,
-          liveCommitmentCount: 0n,
-          commitmentsAccepted: 0n,
-          commitmentsReadyForConfirmation: 0n,
-          commitmentsFulfilled: 0n,
-          commitmentsCancelled: 0n,
-          commitmentsExpired: 0n,
-          commitmentsDisputed: 0n,
-          commitmentsDue: 0n,
-          openCommitmentCount: 0n,
-          createdAt: 1,
-          updatedAt: 2,
-        },
+        }),
       ],
       cycleNames: new Map([["12", { status: "resolved", name: "Season of First Rains" }]]),
     });
@@ -432,7 +419,7 @@ describe("PoolSetupFlow (W11)", () => {
     next();
     fireEvent.click(within(dialog()).getByRole("button", { name: /^open campaign$/i }));
     await waitFor(() => expect(mocks.run).toHaveBeenCalledTimes(1));
-    const steps = mocks.run.mock.calls[0]?.[0] as Array<Record<string, unknown>>;
+    const steps = mocks.run.mock.calls[0]?.[0] as PoolSetupStep[];
     expect(steps.map((step) => step.action)).toEqual(["seedCycle", "openCycle"]);
     expect(steps[0]).toMatchObject({ cycle: { cycleType: "CAMPAIGN" } });
     expect(mocks.pinPoolCharter).not.toHaveBeenCalled();

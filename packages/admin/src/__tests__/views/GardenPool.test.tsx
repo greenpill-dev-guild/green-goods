@@ -2,7 +2,20 @@
  * @vitest-environment jsdom
  */
 
-import { type PoolConsoleController, selectPoolConsoleModel } from "@green-goods/shared";
+import {
+  type CommitmentCycleRecord,
+  type CommitmentPoolRecord,
+  type CommitmentReadModel,
+  type PoolConsoleActs,
+  type PoolConsoleController,
+  selectPoolConsoleModel,
+} from "@green-goods/shared";
+import {
+  commitmentFixture,
+  cycleFixture,
+  poolConsoleControllerFixture,
+  poolFixture,
+} from "@green-goods/shared/testing";
 import { createMemoryRouter, RouterProvider } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, renderWithProviders, screen, waitFor, within } from "../test-utils";
@@ -10,20 +23,27 @@ import { fireEvent, renderWithProviders, screen, waitFor, within } from "../test
 const GARDEN = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" as const;
 const CLAIMANT = "0x2222222222222222222222222222222222222222" as const;
 
+type SharedModule = typeof import("@green-goods/shared");
+
 const mocks = vi.hoisted(() => ({
-  controller: {} as Record<string, unknown>,
-  gardenController: {} as Record<string, unknown>,
+  controller: null as PoolConsoleController | null,
+  gardenController: null as ReturnType<typeof gardenController> | null,
   navigate: vi.fn(),
 }));
 
 vi.mock("@green-goods/shared", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@green-goods/shared")>();
-  return {
-    ...actual,
-    usePoolConsoleController: () => mocks.controller,
-    useGardenWorkspaceController: () => mocks.gardenController,
-    useMediaQuery: () => true,
-  };
+  const { createSharedBarrelMock } = await import("@green-goods/shared/testing");
+  return createSharedBarrelMock(
+    actual,
+    {
+      usePoolConsoleController: () => mocks.controller!,
+      useGardenWorkspaceController: (() =>
+        mocks.gardenController!) as unknown as SharedModule["useGardenWorkspaceController"],
+      useMediaQuery: () => true,
+    },
+    { defaults: false }
+  );
 });
 
 vi.mock("react-router-dom", async (importOriginal) => {
@@ -49,8 +69,8 @@ const { default: GardenView } = await import("@/views/Garden");
 
 const NOW = 1_756_000_000n;
 
-function pool(overrides: Record<string, unknown> = {}) {
-  return {
+function pool(overrides: Partial<CommitmentPoolRecord> = {}): CommitmentPoolRecord {
+  return poolFixture({
     id: "42161-7",
     chainId: 42161,
     poolId: 7n,
@@ -85,11 +105,11 @@ function pool(overrides: Record<string, unknown> = {}) {
     createdAt: 1_700_000_000,
     updatedAt: 1_700_000_100,
     ...overrides,
-  };
+  });
 }
 
-function cycle(overrides: Record<string, unknown> = {}) {
-  return {
+function cycle(overrides: Partial<CommitmentCycleRecord> = {}): CommitmentCycleRecord {
+  return cycleFixture({
     id: "42161-12",
     chainId: 42161,
     cycleId: 12n,
@@ -123,11 +143,11 @@ function cycle(overrides: Record<string, unknown> = {}) {
     createdAt: 1_700_000_000,
     updatedAt: 1_700_000_100,
     ...overrides,
-  };
+  });
 }
 
-function commitment(overrides: Record<string, unknown> = {}) {
-  return {
+function commitment(overrides: Partial<CommitmentReadModel> = {}): CommitmentReadModel {
+  return commitmentFixture({
     id: "42161-1",
     chainId: 42161,
     commitmentId: 1n,
@@ -151,11 +171,16 @@ function commitment(overrides: Record<string, unknown> = {}) {
     dueDate: NOW + 500n,
     metadataCID: "bafy-1",
     ...overrides,
-  };
+  });
 }
 
-function controller(overrides: Partial<Record<keyof PoolConsoleController, unknown>> = {}) {
-  const acts = {
+type ControllerOverrides = Omit<Partial<PoolConsoleController>, "pool" | "poolId"> & {
+  pool?: CommitmentPoolRecord | null;
+  poolId?: bigint;
+};
+
+function controller(overrides: ControllerOverrides = {}): PoolConsoleController {
+  const acts: PoolConsoleActs = {
     pause: vi.fn().mockResolvedValue("0x1"),
     resume: vi.fn().mockResolvedValue("0x1"),
     closePool: vi.fn().mockResolvedValue("0x1"),
@@ -169,46 +194,39 @@ function controller(overrides: Partial<Record<keyof PoolConsoleController, unkno
     declineClaim: vi.fn().mockResolvedValue("0x1"),
     saveSettings: vi.fn().mockResolvedValue(undefined),
   };
-  const base = {
+  const poolRecord = overrides.pool === undefined ? pool() : overrides.pool;
+  const cycles = overrides.cycles ?? [cycle()];
+  const commitments = overrides.commitments ?? [commitment()];
+  const claims = overrides.claims ?? [];
+  return poolConsoleControllerFixture({
     chainId: 42161,
     garden: GARDEN,
     viewer: "0x1111111111111111111111111111111111111111",
-    isOnline: true,
-    availability: { status: "available" },
-    pool: pool(),
-    poolId: 7n,
-    cycles: [cycle()],
+    pool: poolRecord,
+    poolId: poolRecord?.poolId,
+    cycles,
     cycleNames: new Map([["12", { status: "resolved", name: "Season of First Rains" }]]),
-    commitments: [commitment()],
+    commitments,
     titles: new Map([["bafy-1", { version: 1, title: "Prune the north beds" }]]),
-    claims: [],
+    claims,
     charter: {
       charter: { version: 1, purpose: "Neighbourly help in Rocinha" },
       isLoading: false,
       isUnavailable: false,
     },
-    pauseReason: { reason: null, isLoading: false, isUnavailable: false },
-    pendingCreates: [],
-    queueUnavailable: false,
     acts,
-    isActing: false,
-    isLoading: false,
-    isError: false,
     refetch: vi.fn(),
-  };
-  const merged = { ...base, ...overrides };
-  return {
-    ...merged,
+    ...overrides,
     model:
       overrides.model ??
       selectPoolConsoleModel({
-        pool: merged.pool as never,
-        cycles: merged.cycles as never,
-        commitments: merged.commitments as never,
-        pendingClaimCount: (merged.claims as unknown[]).length,
+        pool: poolRecord,
+        cycles,
+        commitments,
+        pendingClaimCount: claims.length,
         now: NOW,
       }),
-  };
+  });
 }
 
 function renderTab({ canManage = true }: { canManage?: boolean } = {}) {
@@ -230,6 +248,26 @@ function renderTab({ canManage = true }: { canManage?: boolean } = {}) {
     { initialEntries: ["/"] }
   );
   return renderWithProviders(<RouterProvider router={router} />);
+}
+
+function gardenController(canManage: boolean) {
+  return {
+    containerRef: { current: null },
+    selectedGarden: { id: GARDEN, name: "Rocinha" },
+    garden: { id: GARDEN, name: "Rocinha", gardeners: [], chainId: 42161 },
+    hypercertsLoading: false,
+    hypercerts: [],
+    view: "health",
+    derived: { overviewAlerts: [], impactBadge: { count: undefined } },
+    handleTabChange: vi.fn(),
+    desktopActions: [],
+    canManage,
+    hypercertId: undefined,
+    hypercertSheetCloseTo: "/garden/impact",
+    poolSeedOpen: false,
+    poolCommitmentId: undefined,
+    poolSheetCloseTo: "/garden/pool",
+  };
 }
 
 describe("GardenPoolTab (W7)", () => {
@@ -407,11 +445,7 @@ describe("GardenPoolTab (W7)", () => {
     const row = screen.getByTestId("pool-commitment-1");
     expect(within(row).getByText(/past due/i)).toBeInTheDocument();
     fireEvent.click(within(row).getByRole("button", { name: /expire now/i }));
-    await waitFor(() =>
-      expect(
-        (mocks.controller.acts as { expire: ReturnType<typeof vi.fn> }).expire
-      ).toHaveBeenCalledWith(1n)
-    );
+    await waitFor(() => expect(mocks.controller!.acts.expire).toHaveBeenCalledWith(1n));
     // Still listed as live: past due alone never renders Expired.
     expect(within(row).queryByText(/^expired$/i)).not.toBeInTheDocument();
   });
@@ -428,9 +462,9 @@ describe("GardenPoolTab (W7)", () => {
     expect(confirm).toBeEnabled();
     fireEvent.click(confirm);
     await waitFor(() =>
-      expect(
-        (mocks.controller.acts as { pause: ReturnType<typeof vi.fn> }).pause
-      ).toHaveBeenCalledWith("Seasonal flooding, back after the rains")
+      expect(mocks.controller!.acts.pause).toHaveBeenCalledWith(
+        "Seasonal flooding, back after the rains"
+      )
     );
   });
 
@@ -475,11 +509,7 @@ describe("GardenPoolTab (W7)", () => {
     expect(screen.queryByRole("button", { name: /^accept$/i })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /^pause/i })).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: /resume pool/i }));
-    await waitFor(() =>
-      expect(
-        (mocks.controller.acts as { resume: ReturnType<typeof vi.fn> }).resume
-      ).toHaveBeenCalled()
-    );
+    await waitFor(() => expect(mocks.controller!.acts.resume).toHaveBeenCalled());
   });
 
   it("accepts a claim directly and declines one with a reason, keyed to the stored claimant", async () => {
@@ -518,9 +548,7 @@ describe("GardenPoolTab (W7)", () => {
     expect(within(claims).getByText("Ride to the market on Saturday")).toBeInTheDocument();
     fireEvent.click(within(claims).getByRole("button", { name: /^accept$/i }));
     await waitFor(() =>
-      expect(
-        (mocks.controller.acts as { acceptClaim: ReturnType<typeof vi.fn> }).acceptClaim
-      ).toHaveBeenCalledWith(2n, CLAIMANT)
+      expect(mocks.controller!.acts.acceptClaim).toHaveBeenCalledWith(2n, CLAIMANT)
     );
 
     fireEvent.click(within(claims).getByRole("button", { name: /^decline/i }));
@@ -530,9 +558,7 @@ describe("GardenPoolTab (W7)", () => {
     });
     fireEvent.click(within(dialog).getByRole("button", { name: /decline request/i }));
     await waitFor(() =>
-      expect(
-        (mocks.controller.acts as { declineClaim: ReturnType<typeof vi.fn> }).declineClaim
-      ).toHaveBeenCalledWith(2n, CLAIMANT, "Crew is full")
+      expect(mocks.controller!.acts.declineClaim).toHaveBeenCalledWith(2n, CLAIMANT, "Crew is full")
     );
   });
 
@@ -552,11 +578,7 @@ describe("GardenPoolTab (W7)", () => {
     fireEvent.click(screen.getByRole("button", { name: /close pool/i }));
     const dialog = await screen.findByRole("alertdialog");
     fireEvent.click(within(dialog).getByRole("button", { name: /close pool/i }));
-    await waitFor(() =>
-      expect(
-        (mocks.controller.acts as { closePool: ReturnType<typeof vi.fn> }).closePool
-      ).toHaveBeenCalled()
-    );
+    await waitFor(() => expect(mocks.controller!.acts.closePool).toHaveBeenCalled());
   });
 
   it("disables every online act and says why when the device is offline", () => {
@@ -568,26 +590,6 @@ describe("GardenPoolTab (W7)", () => {
 });
 
 describe("Garden workspace Pool tab visibility", () => {
-  function gardenController(canManage: boolean) {
-    return {
-      containerRef: { current: null },
-      selectedGarden: { id: GARDEN, name: "Rocinha" },
-      garden: { id: GARDEN, name: "Rocinha", gardeners: [], chainId: 42161 },
-      hypercertsLoading: false,
-      hypercerts: [],
-      view: "health",
-      derived: { overviewAlerts: [], impactBadge: { count: undefined } },
-      handleTabChange: vi.fn(),
-      desktopActions: [],
-      canManage,
-      hypercertId: undefined,
-      hypercertSheetCloseTo: "/garden/impact",
-      poolSeedOpen: false,
-      poolCommitmentId: undefined,
-      poolSheetCloseTo: "/garden/pool",
-    };
-  }
-
   it("shows the Pool tab to a steward and not to a plain member", () => {
     mocks.gardenController = gardenController(true);
     const steward = renderWithProviders(<GardenView />);

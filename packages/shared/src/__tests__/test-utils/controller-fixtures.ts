@@ -10,7 +10,6 @@ import type { CommitmentsToConfirm } from "../../hooks/commitment-pooling/useCom
 import {
   DEMO_CHAIN_ID,
   DEMO_GARDEN,
-  MARIA,
   NOW,
   TUNDE,
 } from "../../modules/commitment-pooling/demo/demo-builders";
@@ -18,11 +17,7 @@ import { selectPromiseKeptRate } from "../../modules/commitment-pooling/disclosu
 import { selectCommitmentActPermissions } from "../../modules/commitment-pooling/commitment-act-permissions";
 import { selectPoolConsoleModel } from "../../modules/commitment-pooling/pool-console";
 import { selectConfirmationEligibility } from "../../modules/commitment-pooling/selectors";
-import type {
-  CommitmentPoolRecord,
-  CommitmentReadModel,
-  HexString,
-} from "../../modules/commitment-pooling/types";
+import type { CommitmentPoolRecord, HexString } from "../../modules/commitment-pooling/types";
 import {
   availableCapability,
   commitmentDetailFixture,
