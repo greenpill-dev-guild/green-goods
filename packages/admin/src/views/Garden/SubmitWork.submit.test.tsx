@@ -58,6 +58,94 @@ const heicToMocks = vi.hoisted(() => ({
 
 vi.mock("heic-to/csp", () => heicToMocks);
 
+vi.mock("../../../../shared/src/modules/work/media-processing", () => ({
+  normalizeWorkMediaFiles: async (files: File[]) => {
+    const accepted = [];
+    const rejected = [];
+    const converted = [];
+    for (const file of files) {
+      if (file.type === "text/plain") {
+        rejected.push({ file, reason: "unsupported", metadata: {} });
+        continue;
+      }
+      if (file.type === "image/heic" || file.name.endsWith(".heic")) {
+        if (!(await heicToMocks.isHeic(file))) {
+          rejected.push({ file, reason: "unsupported", metadata: {} });
+          continue;
+        }
+        const blob = await heicToMocks.heicTo({
+          blob: file,
+          type: "image/jpeg",
+          quality: 0.85,
+        });
+        const convertedFile = new File([blob], file.name.replace(/\.[^.]+$/, ".jpg"), {
+          type: "image/jpeg",
+          lastModified: file.lastModified,
+        });
+        accepted.push({ file: convertedFile, originalFile: file, converted: true, metadata: {} });
+        converted.push({ originalFile: file, file: convertedFile, metadata: {} });
+        continue;
+      }
+      accepted.push({ file, originalFile: file, converted: false, metadata: {} });
+    }
+    return { accepted, rejected, converted };
+  },
+}));
+
+vi.mock("../../../../shared/src/components/toast", () => ({
+  toastService: {
+    error: mockToastError,
+    info: mockToastInfo,
+    success: mockToastSuccess,
+  },
+  validationToasts: {
+    formError: mockValidationFormError,
+  },
+}));
+
+vi.mock("../../../../shared/src/hooks/blockchain/useBaseLists", () => ({
+  useActions: () => ({
+    data: mockState.actions,
+    isLoading: mockState.actionsLoading,
+  }),
+  useGardens: () => ({
+    data: [
+      {
+        id: gardenAddress,
+        name: "Green Goods Community Garden",
+        domainMask: 1 << Domain.AGRO,
+      },
+    ],
+    isLoading: false,
+  }),
+}));
+
+vi.mock("../../../../shared/src/hooks/garden/useAdminGardenWorkspaceSelection", () => ({
+  useAdminGardenWorkspaceSelection: () => ({ selectedGarden: mockState.selectedGarden }),
+}));
+
+vi.mock("../../../../shared/src/hooks/garden/useGardenPermissions", () => ({
+  useGardenPermissions: () => ({ canManageGarden: () => true }),
+}));
+
+vi.mock("../../../../shared/src/hooks/work/useWorkMutation", () => ({
+  useWorkMutation: mockUseWorkMutation,
+}));
+
+vi.mock("../../../../shared/src/utils/work/image-compression", () => ({
+  imageCompressor: mockImageCompressor,
+}));
+
+vi.mock("../../../../shared/src/modules/app/logger", () => {
+  const logger = {
+    debug: vi.fn(),
+    error: vi.fn(),
+    info: vi.fn(),
+    warn: vi.fn(),
+  };
+  return { createLogger: () => logger, logger };
+});
+
 vi.mock("@green-goods/shared/modules", () => ({
   validateWorkSubmissionContext: (
     gardenAddress: string | null,
@@ -82,6 +170,9 @@ vi.mock("@green-goods/shared/modules", () => ({
 vi.mock("@green-goods/shared", async () => {
   const React = await vi.importActual<typeof import("react")>("react");
   const { useForm } = await vi.importActual<typeof import("react-hook-form")>("react-hook-form");
+  const submitWorkController = await vi.importActual<
+    typeof import("../../../../shared/src/hooks/admin-ui/garden/useSubmitWorkController")
+  >("../../../../shared/src/hooks/admin-ui/garden/useSubmitWorkController");
 
   const Card = Object.assign(
     ({ children }: { children: React.ReactNode }) =>
@@ -134,6 +225,7 @@ vi.mock("@green-goods/shared", async () => {
       EDU: 2,
       WASTE: 3,
     },
+    getMinRequiredWorkImages: submitWorkController.getMinRequiredWorkImages,
     expandDomainMask: (mask: number) => {
       const domains: number[] = [];
       if (mask & 1) domains.push(0);
@@ -345,6 +437,7 @@ vi.mock("@green-goods/shared", async () => {
     useGardenPermissions: () => ({ canManageGarden: () => true }),
     useBeforeUnloadWhilePending: () => undefined,
     useStepFocus: () => ({ current: null }),
+    useSubmitWorkController: submitWorkController.useSubmitWorkController,
     useWorkForm: () =>
       useForm<Record<string, unknown>>({
         mode: "onChange",

@@ -253,11 +253,7 @@ export {
 export * from "./hooks/admin-ui/actions";
 export * from "./hooks/admin-ui/community/community.utils";
 export * from "./hooks/admin-ui/community/useCommunityWorkspaceController";
-export * from "./hooks/admin-ui/garden/garden.utils";
-export * from "./hooks/admin-ui/garden/useCreateGardenController";
-export * from "./hooks/admin-ui/garden/useGardenWorkspaceController";
-export * from "./hooks/admin-ui/garden/useManageMembersController";
-export * from "./hooks/admin-ui/garden/useResolvedWorkDetail";
+export * from "./hooks/admin-ui/garden";
 export * from "./modules/wallet/barcode-scanner";
 export * from "./modules/wallet/send-flow";
 export * from "./modules/work/submission-flow";
