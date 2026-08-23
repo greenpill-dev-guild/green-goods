@@ -23,7 +23,7 @@ export interface CreateGardenCommand {
   chainId: number;
 }
 
-export type GardenContractConfig = CreateGardenParams;
+type GardenContractConfig = CreateGardenParams;
 
 export interface CreateGardenPorts {
   reader: {

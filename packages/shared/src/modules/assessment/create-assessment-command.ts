@@ -21,13 +21,13 @@ export interface CreateAssessmentCommand {
   onReady(): void;
 }
 
-export interface AssessmentSchemaConfig {
+interface AssessmentSchemaConfig {
   easAddress: string;
   schemaUid: string;
   schema: string;
 }
 
-export interface AssessmentSchemaValue {
+interface AssessmentSchemaValue {
   name: string;
   value: string | number;
   type: string;
