@@ -256,8 +256,12 @@ export {
 // DATA / VAULTS
 // ============================================================================
 export {
+  createVaultRepository,
   getAllGardenVaults,
   getGardenVaults,
+  type RepositoryResult,
+  type VaultRepository,
+  vaultRepository,
   getVaultDeposits,
   getVaultEvents,
 } from "./data/vaults";
