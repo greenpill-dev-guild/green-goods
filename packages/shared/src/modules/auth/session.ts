@@ -20,6 +20,12 @@ import type { P256Credential } from "viem/account-abstraction";
 import type { AuthMode } from "../../types/auth";
 import { logger } from "../app/logger";
 
+export interface SessionStorage {
+  getItem(key: string): string | null;
+  setItem(key: string, value: string): void;
+  removeItem(key: string): void;
+}
+
 // ============================================================================
 // STORAGE KEYS
 // ============================================================================
@@ -46,18 +52,21 @@ export const SMART_ACCOUNT_ADDRESS_STORAGE_KEY = "greengoods_smart_account_addre
 export type { AuthMode } from "../../types/auth";
 
 /** Get the active auth mode */
-export function getAuthMode(): AuthMode {
-  return localStorage.getItem(AUTH_MODE_STORAGE_KEY) as AuthMode;
+export function getAuthMode(storage: SessionStorage = localStorage): AuthMode {
+  return storage.getItem(AUTH_MODE_STORAGE_KEY) as AuthMode;
 }
 
 /** Set the active auth mode */
-export function setAuthMode(mode: Exclude<AuthMode, null>): void {
-  localStorage.setItem(AUTH_MODE_STORAGE_KEY, mode);
+export function setAuthMode(
+  mode: Exclude<AuthMode, null>,
+  storage: SessionStorage = localStorage
+): void {
+  storage.setItem(AUTH_MODE_STORAGE_KEY, mode);
 }
 
 /** Clear the auth mode (on sign out) */
-export function clearAuthMode(): void {
-  localStorage.removeItem(AUTH_MODE_STORAGE_KEY);
+export function clearAuthMode(storage: SessionStorage = localStorage): void {
+  storage.removeItem(AUTH_MODE_STORAGE_KEY);
 }
 
 // ============================================================================
@@ -80,18 +89,18 @@ export function clearAuthMode(): void {
 export const SIGNED_OUT_STORAGE_KEY = "greengoods_signed_out";
 
 /** Mark that the user explicitly signed out; suppresses automatic restore. */
-export function setSignedOutSentinel(): void {
-  localStorage.setItem(SIGNED_OUT_STORAGE_KEY, "true");
+export function setSignedOutSentinel(storage: SessionStorage = localStorage): void {
+  storage.setItem(SIGNED_OUT_STORAGE_KEY, "true");
 }
 
 /** Re-enable automatic session restore (successful sign-in opts back in). */
-export function clearSignedOutSentinel(): void {
-  localStorage.removeItem(SIGNED_OUT_STORAGE_KEY);
+export function clearSignedOutSentinel(storage: SessionStorage = localStorage): void {
+  storage.removeItem(SIGNED_OUT_STORAGE_KEY);
 }
 
 /** Whether the user explicitly signed out and has not signed back in. */
-export function hasSignedOutSentinel(): boolean {
-  return localStorage.getItem(SIGNED_OUT_STORAGE_KEY) === "true";
+export function hasSignedOutSentinel(storage: SessionStorage = localStorage): boolean {
+  return storage.getItem(SIGNED_OUT_STORAGE_KEY) === "true";
 }
 
 // ============================================================================
@@ -99,23 +108,23 @@ export function hasSignedOutSentinel(): boolean {
 // ============================================================================
 
 /** Get stored username for Pimlico passkey server */
-export function getStoredUsername(): string | null {
-  return localStorage.getItem(USERNAME_STORAGE_KEY);
+export function getStoredUsername(storage: SessionStorage = localStorage): string | null {
+  return storage.getItem(USERNAME_STORAGE_KEY);
 }
 
 /** Store username for Pimlico passkey server */
-export function setStoredUsername(username: string): void {
-  localStorage.setItem(USERNAME_STORAGE_KEY, username);
+export function setStoredUsername(username: string, storage: SessionStorage = localStorage): void {
+  storage.setItem(USERNAME_STORAGE_KEY, username);
 }
 
 /** Clear stored username */
-export function clearStoredUsername(): void {
-  localStorage.removeItem(USERNAME_STORAGE_KEY);
+export function clearStoredUsername(storage: SessionStorage = localStorage): void {
+  storage.removeItem(USERNAME_STORAGE_KEY);
 }
 
 /** Check if there's a stored username (indicates existing account) */
-export function hasStoredUsername(): boolean {
-  return Boolean(localStorage.getItem(USERNAME_STORAGE_KEY));
+export function hasStoredUsername(storage: SessionStorage = localStorage): boolean {
+  return Boolean(storage.getItem(USERNAME_STORAGE_KEY));
 }
 
 // ============================================================================
@@ -123,13 +132,13 @@ export function hasStoredUsername(): boolean {
 // ============================================================================
 
 /** Store RP ID used during registration */
-export function setStoredRpId(rpId: string): void {
-  localStorage.setItem(RP_ID_STORAGE_KEY, rpId);
+export function setStoredRpId(rpId: string, storage: SessionStorage = localStorage): void {
+  storage.setItem(RP_ID_STORAGE_KEY, rpId);
 }
 
 /** Clear stored RP ID */
-export function clearStoredRpId(): void {
-  localStorage.removeItem(RP_ID_STORAGE_KEY);
+export function clearStoredRpId(storage: SessionStorage = localStorage): void {
+  storage.removeItem(RP_ID_STORAGE_KEY);
 }
 
 // ============================================================================
@@ -137,18 +146,23 @@ export function clearStoredRpId(): void {
 // ============================================================================
 
 /** Store the expected smart-account address for passkey account continuity. */
-export function setStoredSmartAccountAddress(address: Address): void {
-  localStorage.setItem(SMART_ACCOUNT_ADDRESS_STORAGE_KEY, address);
+export function setStoredSmartAccountAddress(
+  address: Address,
+  storage: SessionStorage = localStorage
+): void {
+  storage.setItem(SMART_ACCOUNT_ADDRESS_STORAGE_KEY, address);
 }
 
 /** Get the expected smart-account address for passkey account continuity. */
-export function getStoredSmartAccountAddress(): Address | null {
-  return localStorage.getItem(SMART_ACCOUNT_ADDRESS_STORAGE_KEY) as Address | null;
+export function getStoredSmartAccountAddress(
+  storage: SessionStorage = localStorage
+): Address | null {
+  return storage.getItem(SMART_ACCOUNT_ADDRESS_STORAGE_KEY) as Address | null;
 }
 
 /** Clear the expected smart-account address. */
-export function clearStoredSmartAccountAddress(): void {
-  localStorage.removeItem(SMART_ACCOUNT_ADDRESS_STORAGE_KEY);
+export function clearStoredSmartAccountAddress(storage: SessionStorage = localStorage): void {
+  storage.removeItem(SMART_ACCOUNT_ADDRESS_STORAGE_KEY);
 }
 
 // ============================================================================
@@ -159,18 +173,18 @@ export function clearStoredSmartAccountAddress(): void {
 export const EMBEDDED_ADDRESS_KEY = "greengoods_embedded_address";
 
 /** Store embedded wallet address in localStorage */
-export function setEmbeddedAddress(address: Address): void {
-  localStorage.setItem(EMBEDDED_ADDRESS_KEY, address);
+export function setEmbeddedAddress(address: Address, storage: SessionStorage = localStorage): void {
+  storage.setItem(EMBEDDED_ADDRESS_KEY, address);
 }
 
 /** Get stored embedded wallet address */
-export function getEmbeddedAddress(): Address | null {
-  return localStorage.getItem(EMBEDDED_ADDRESS_KEY) as Address | null;
+export function getEmbeddedAddress(storage: SessionStorage = localStorage): Address | null {
+  return storage.getItem(EMBEDDED_ADDRESS_KEY) as Address | null;
 }
 
 /** Clear stored embedded wallet address */
-export function clearEmbeddedAddress(): void {
-  localStorage.removeItem(EMBEDDED_ADDRESS_KEY);
+export function clearEmbeddedAddress(storage: SessionStorage = localStorage): void {
+  storage.removeItem(EMBEDDED_ADDRESS_KEY);
 }
 
 /**
@@ -180,10 +194,10 @@ export function clearEmbeddedAddress(): void {
  * silently restore a session, but the same-device credential cache should still
  * support the next user-initiated passkey login.
  */
-export function clearActiveSessionAuth(): void {
-  clearAuthMode();
-  clearEmbeddedAddress();
-  setSignedOutSentinel();
+export function clearActiveSessionAuth(storage: SessionStorage = localStorage): void {
+  clearAuthMode(storage);
+  clearEmbeddedAddress(storage);
+  setSignedOutSentinel(storage);
 }
 
 // ============================================================================
@@ -197,14 +211,14 @@ export function clearActiveSessionAuth(): void {
  * For regular logout, use clearAuthMode() instead to keep the credential.
  * Only use this for complete account deletion.
  */
-export function clearAllAuth(): void {
-  localStorage.removeItem(AUTH_MODE_STORAGE_KEY);
-  localStorage.removeItem(USERNAME_STORAGE_KEY);
-  localStorage.removeItem(CREDENTIAL_STORAGE_KEY);
-  localStorage.removeItem(RP_ID_STORAGE_KEY);
-  localStorage.removeItem(SMART_ACCOUNT_ADDRESS_STORAGE_KEY);
-  localStorage.removeItem(EMBEDDED_ADDRESS_KEY);
-  localStorage.removeItem(SIGNED_OUT_STORAGE_KEY);
+export function clearAllAuth(storage: SessionStorage = localStorage): void {
+  storage.removeItem(AUTH_MODE_STORAGE_KEY);
+  storage.removeItem(USERNAME_STORAGE_KEY);
+  storage.removeItem(CREDENTIAL_STORAGE_KEY);
+  storage.removeItem(RP_ID_STORAGE_KEY);
+  storage.removeItem(SMART_ACCOUNT_ADDRESS_STORAGE_KEY);
+  storage.removeItem(EMBEDDED_ADDRESS_KEY);
+  storage.removeItem(SIGNED_OUT_STORAGE_KEY);
 }
 
 // ============================================================================
@@ -283,20 +297,23 @@ interface StoredCredential {
  * Store passkey credential in localStorage.
  * Only stores id and publicKey (raw cannot be serialized).
  */
-export function setStoredCredential(credential: P256Credential): void {
+export function setStoredCredential(
+  credential: P256Credential,
+  storage: SessionStorage = localStorage
+): void {
   const storedData: StoredCredential = {
     id: credential.id,
     publicKey: credential.publicKey,
   };
-  localStorage.setItem(CREDENTIAL_STORAGE_KEY, JSON.stringify(storedData));
+  storage.setItem(CREDENTIAL_STORAGE_KEY, JSON.stringify(storedData));
 }
 
 /**
  * Get stored credential from localStorage.
  * Returns a P256Credential-compatible object (without raw).
  */
-export function getStoredCredential(): P256Credential | null {
-  const stored = localStorage.getItem(CREDENTIAL_STORAGE_KEY);
+export function getStoredCredential(storage: SessionStorage = localStorage): P256Credential | null {
+  const stored = storage.getItem(CREDENTIAL_STORAGE_KEY);
   if (!stored) return null;
 
   try {
@@ -309,7 +326,7 @@ export function getStoredCredential(): P256Credential | null {
     };
   } catch {
     logger.warn("[Session] Failed to parse stored credential, clearing...");
-    localStorage.removeItem(CREDENTIAL_STORAGE_KEY);
+    storage.removeItem(CREDENTIAL_STORAGE_KEY);
     return null;
   }
 }
@@ -317,13 +334,13 @@ export function getStoredCredential(): P256Credential | null {
 /**
  * Check if there's a stored credential.
  */
-export function hasStoredCredential(): boolean {
-  return localStorage.getItem(CREDENTIAL_STORAGE_KEY) !== null;
+export function hasStoredCredential(storage: SessionStorage = localStorage): boolean {
+  return storage.getItem(CREDENTIAL_STORAGE_KEY) !== null;
 }
 
 /**
  * Clear stored credential.
  */
-export function clearStoredCredential(): void {
-  localStorage.removeItem(CREDENTIAL_STORAGE_KEY);
+export function clearStoredCredential(storage: SessionStorage = localStorage): void {
+  storage.removeItem(CREDENTIAL_STORAGE_KEY);
 }

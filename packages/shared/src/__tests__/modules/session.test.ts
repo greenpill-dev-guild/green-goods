@@ -75,6 +75,15 @@ describe("modules/auth/session", () => {
   });
 
   describe("setAuthMode", () => {
+    it("can use an injected storage port without touching the browser singleton", () => {
+      const isolatedStorage = createMockLocalStorage();
+
+      setAuthMode("wallet", isolatedStorage);
+
+      expect(getAuthMode(isolatedStorage)).toBe("wallet");
+      expect(mockLocalStorage.setItem).not.toHaveBeenCalled();
+    });
+
     it("accepts 'embedded' as a valid auth mode", () => {
       setAuthMode("embedded");
       expect(mockLocalStorage.setItem).toHaveBeenCalledWith(AUTH_MODE_STORAGE_KEY, "embedded");
