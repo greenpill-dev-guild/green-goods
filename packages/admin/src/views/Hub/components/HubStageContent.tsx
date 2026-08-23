@@ -1,9 +1,10 @@
-import type {
-  ActivityEvent,
-  Address,
-  HubActionSummary,
-  HubPipelineStage,
-  Work,
+import {
+  type ActivityEvent,
+  type Address,
+  type HubActionSummary,
+  type HubPipelineStage,
+  selectHubStageContent,
+  type Work,
 } from "@green-goods/shared";
 import type { CommitmentsToConfirm } from "@green-goods/shared/commitment-pooling";
 import { HubAssessmentQueue } from "./HubAssessmentQueue";
@@ -82,7 +83,9 @@ export function HubStageContent({
   onOpenCertification,
   onOpenHistoryEvent,
 }: HubStageContentProps) {
-  if (stage === "work") {
+  const content = selectHubStageContent(stage);
+
+  if (content === "work") {
     return (
       <HubWorkQueue
         items={pendingWorks}
@@ -99,7 +102,7 @@ export function HubStageContent({
     );
   }
 
-  if (stage === "assess") {
+  if (content === "assess") {
     return (
       <HubAssessmentQueue
         items={assessmentQueue}
@@ -113,7 +116,7 @@ export function HubStageContent({
     );
   }
 
-  if (stage === "confirm") {
+  if (content === "confirm") {
     return (
       <HubConfirmQueue
         toConfirm={toConfirm}
@@ -127,7 +130,7 @@ export function HubStageContent({
     );
   }
 
-  if (stage === "certify") {
+  if (content === "certify") {
     return (
       <HubCertificationQueue
         items={certificationQueue}

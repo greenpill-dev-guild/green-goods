@@ -1,4 +1,9 @@
-import { adminRoutes, SkeletonGrid, type UserRole } from "@green-goods/shared";
+import {
+  type AdminIndexRedirectKind,
+  resolveAdminIndexRedirect,
+  SkeletonGrid,
+  type UserRole,
+} from "@green-goods/shared";
 import type { ComponentType } from "react";
 import { Navigate, type RouteObject, useLocation } from "react-router-dom";
 import RequireRole from "@/routes/RequireRole";
@@ -19,18 +24,6 @@ const createGardenView = lazyView(() => import("@/views/Garden/CreateGarden"));
 const createAssessmentView = lazyView(() => import("@/views/Hub/CreateAssessment"));
 const createHypercertView = lazyView(() => import("@/views/Hub/CreateHypercert"));
 const submitWorkView = lazyView(() => import("@/views/Garden/SubmitWork"));
-
-function preserveSearch(search: string, omitKeys: string[] = []): string {
-  if (!search) return "";
-
-  const params = new URLSearchParams(search);
-  for (const key of omitKeys) {
-    params.delete(key);
-  }
-
-  const nextSearch = params.toString();
-  return nextSearch ? `?${nextSearch}` : "";
-}
 
 function RoleGateSkeleton() {
   return (
@@ -55,51 +48,10 @@ function roleGatedBranch(allowedRoles: UserRole[], children: RouteObject[]): Rou
   };
 }
 
-const HubIndexRedirect = () => {
+function IndexRedirect({ kind }: { kind: AdminIndexRedirectKind }) {
   const location = useLocation();
-  return (
-    <Navigate to={`${adminRoutes.hubWork()}${preserveSearch(location.search, ["view"])}`} replace />
-  );
-};
-
-const GardenIndexRedirect = () => {
-  const location = useLocation();
-  return (
-    <Navigate
-      to={`${adminRoutes.gardenHealth()}${preserveSearch(location.search, ["view"])}`}
-      replace
-    />
-  );
-};
-
-const CommunityIndexRedirect = () => {
-  const location = useLocation();
-  return (
-    <Navigate
-      to={`${adminRoutes.communityMembers()}${preserveSearch(location.search, ["card", "pool"])}`}
-      replace
-    />
-  );
-};
-
-const GardenOverviewRedirect = () => {
-  const location = useLocation();
-  return (
-    <Navigate
-      to={`${adminRoutes.gardenHealth()}${preserveSearch(location.search, ["view"])}`}
-      replace
-    />
-  );
-};
-
-const GardenMembersRedirect = () => {
-  const location = useLocation();
-  // Manage Members is community-owned — old /garden/members links land on the
-  // canonical /community/members route with their garden context intact.
-  return (
-    <Navigate to={`${adminRoutes.communityMembers()}${preserveSearch(location.search)}`} replace />
-  );
-};
+  return <Navigate to={resolveAdminIndexRedirect(kind, location.search)} replace />;
+}
 
 export const adminCanvasRoutes: RouteObject[] = [
   {
@@ -107,7 +59,7 @@ export const adminCanvasRoutes: RouteObject[] = [
     children: [
       {
         index: true,
-        element: <HubIndexRedirect />,
+        element: <IndexRedirect kind="hub" />,
       },
       {
         // Submit Work is a creation/commit flow — its own full surface
@@ -195,7 +147,7 @@ export const adminCanvasRoutes: RouteObject[] = [
     children: [
       {
         index: true,
-        element: <GardenIndexRedirect />,
+        element: <IndexRedirect kind="garden" />,
       },
       {
         path: "health",
@@ -203,7 +155,7 @@ export const adminCanvasRoutes: RouteObject[] = [
       },
       {
         path: "overview",
-        element: <GardenOverviewRedirect />,
+        element: <IndexRedirect kind="garden-overview" />,
       },
       {
         path: "activity",
@@ -213,7 +165,7 @@ export const adminCanvasRoutes: RouteObject[] = [
         // Membership is community-owned — redirect retained so existing
         // /garden/members bookmarks and deep links do not 404.
         path: "members",
-        element: <GardenMembersRedirect />,
+        element: <IndexRedirect kind="garden-members" />,
       },
       {
         // Legacy /garden/impact remains canonical for outcome/proof readouts
@@ -265,7 +217,7 @@ export const adminCanvasRoutes: RouteObject[] = [
     children: [
       {
         index: true,
-        element: <CommunityIndexRedirect />,
+        element: <IndexRedirect kind="community" />,
       },
       {
         path: "members",

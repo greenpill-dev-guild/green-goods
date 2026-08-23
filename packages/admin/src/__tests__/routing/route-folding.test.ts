@@ -9,8 +9,9 @@
  * Pattern: readFileSync + string assertions (same as surface-classes.test.ts).
  */
 
-import { readFileSync, existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { resolveAdminIndexRedirect } from "@green-goods/shared";
 import { describe, expect, it } from "vitest";
 
 const srcDir = resolve(__dirname, "../../");
@@ -40,6 +41,25 @@ function readSource(path: string): string {
 }
 
 describe("route folding", () => {
+  it.each([
+    ["hub", "?garden=0x1&view=queue", "/hub/work?garden=0x1"],
+    ["garden", "?garden=0x1&view=overview", "/garden/health?garden=0x1"],
+    ["garden-overview", "?view=overview", "/garden/health"],
+    ["community", "?garden=0x1&card=c1&pool=p1", "/community/members?garden=0x1"],
+    ["garden-members", "?garden=0x1&card=c1", "/community/members?garden=0x1&card=c1"],
+  ] as const)("resolves the %s index redirect through one policy", (kind, search, expected) => {
+    expect(resolveAdminIndexRedirect(kind, search)).toBe(expected);
+  });
+
+  it("uses one index redirect component without route string concatenation", () => {
+    const routeViews = readSource(routeViewsPath);
+
+    expect(routeViews.match(/function IndexRedirect/g)).toHaveLength(1);
+    expect(routeViews.match(/<IndexRedirect kind=/g)).toHaveLength(5);
+    expect(routeViews).not.toContain("preserveSearch");
+    expect(routeViews).not.toMatch(/to=\{`\$\{adminRoutes\./);
+  });
+
   it("router has no top-level /assessments path (folded into /hub)", () => {
     const router = readSource(routerPath);
 

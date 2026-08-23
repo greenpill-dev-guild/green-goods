@@ -1,9 +1,10 @@
 import {
-  Alert,
-  type AdminHubRouteContext,
-  adminRoutes,
-  SheetBody,
   type ActivityEvent,
+  type AdminHubRouteContext,
+  Alert,
+  adminRoutes,
+  resolveHubSheetSelection,
+  SheetBody,
   type Work,
 } from "@green-goods/shared";
 import { useCallback, useMemo } from "react";
@@ -11,9 +12,9 @@ import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
 import { useRouteBackedLeftSheetConfig } from "@/components/Layout";
 import { WorkDetailPanel } from "@/views/Garden/WorkDetail";
+import { localizeCanonicalActionTitle } from "../actionDisplay";
 import { HubCertificationInspector } from "./HubCertificationInspector";
 import { HubHistoryInspector } from "./HubHistoryInspector";
-import { localizeCanonicalActionTitle } from "../actionDisplay";
 
 interface HubSheetDescriptorProps {
   routeSheetContentId: string | null;
@@ -95,13 +96,31 @@ export function HubSheetDescriptor({
     onNavigateToBase();
   }, [onBeforeClose, onNavigateToBase]);
 
+  const sheetSelection = useMemo(
+    () =>
+      resolveHubSheetSelection({
+        routeWorkId,
+        routeCertificationId,
+        routeHistoryEventId,
+        activeWorkDetailId,
+        hasSelectedCertification: Boolean(selectedCertification),
+        hasSelectedHistoryEvent: Boolean(selectedHistoryEvent),
+      }),
+    [
+      activeWorkDetailId,
+      routeCertificationId,
+      routeHistoryEventId,
+      routeWorkId,
+      selectedCertification,
+      selectedHistoryEvent,
+    ]
+  );
+
   const sheetDescriptor = useMemo(() => {
     // Submit Work is no longer a Hub inspector sheet — it owns its own route
     // (/hub/work/submit → submitWorkView). This descriptor only resolves the
     // read/review inspectors (work detail, certification, history).
-    const resolvedWorkDetailId = routeWorkId ?? activeWorkDetailId;
-
-    if (resolvedWorkDetailId) {
+    if (sheetSelection?.kind === "work") {
       return {
         title:
           (selectedWork?.title
@@ -109,16 +128,12 @@ export function HubSheetDescriptor({
             : undefined) ??
           formatMessage({ id: "app.work.detail.reviewTitle", defaultMessage: "Review Work" }),
         content: (
-          <WorkDetailPanel
-            workId={resolvedWorkDetailId}
-            layout="sheet"
-            onSuccess={handlePanelClose}
-          />
+          <WorkDetailPanel workId={sheetSelection.id} layout="sheet" onSuccess={handlePanelClose} />
         ),
       };
     }
 
-    if (routeCertificationId || selectedCertification) {
+    if (sheetSelection?.kind === "certification") {
       return {
         title:
           selectedCertification?.title ??
@@ -148,7 +163,7 @@ export function HubSheetDescriptor({
       };
     }
 
-    if (routeHistoryEventId || selectedHistoryEvent) {
+    if (sheetSelection?.kind === "history") {
       return {
         title:
           (selectedHistoryEvent?.title
@@ -181,10 +196,7 @@ export function HubSheetDescriptor({
     hubContext,
     isResolvingSelection,
     navigate,
-    activeWorkDetailId,
-    routeCertificationId,
-    routeHistoryEventId,
-    routeWorkId,
+    sheetSelection,
     selectedCertification,
     selectedHistoryEvent,
     selectedWork,
