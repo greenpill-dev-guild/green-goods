@@ -344,9 +344,12 @@ export function selectValidation(input = {}, options = {}) {
     ...pathRiskRules.map((rule) => rule.risk),
     ...hardRules.map((rule) => rule.risk),
   ]);
+  const localMerge = intent === "merge" && !ci;
+  const strictIntent = ["readiness", "push", "ship", "release"].includes(intent);
   const fullRepository =
-    ["readiness", "push", "ship", "release"].includes(intent) ||
-    (intent === "merge" && !ci);
+    ["readiness", "release"].includes(intent) ||
+    ((["push", "ship"].includes(intent) || localMerge) && changedPaths.length === 0);
+  const strictScope = strictIntent || fullRepository;
   const surfaces = impactedSurfaces(policy, changedPaths, fullRepository);
   const selected = new Set();
   const selectionReasons = new Map();
@@ -432,16 +435,18 @@ export function selectValidation(input = {}, options = {}) {
     }
   }
 
-  if (["readiness", "push", "ship", "release"].includes(intent)) {
-    select("abi-artifacts", "strict-intent");
-    select("contracts-verify-fast", "strict-intent");
-    for (const id of [
-      "shared-test-typecheck",
-      "client-test-typecheck",
-      "admin-test-typecheck",
-      "agent-test-typecheck",
+  if (strictScope) {
+    if (fullRepository || surfaces.has("contracts")) {
+      select("abi-artifacts", "strict-intent:contracts");
+      select("contracts-verify-fast", "strict-intent:contracts");
+    }
+    for (const [surface, id] of [
+      ["shared", "shared-test-typecheck"],
+      ["client", "client-test-typecheck"],
+      ["admin", "admin-test-typecheck"],
+      ["agent", "agent-test-typecheck"],
     ]) {
-      select(id, "strict-intent:test-types");
+      if (surfaces.has(surface)) select(id, `strict-intent:${surface}:test-types`);
     }
   }
   for (const rule of evidenceOnly ? [] : (policy.conditionalRules ?? [])) {
@@ -573,7 +578,7 @@ function materializeCheck(check, environment, mandatory, testPaths, context) {
   if (
     check.id === "format" &&
     !context.ci &&
-    ["push", "ship", "release"].includes(context.intent)
+    ["push", "ship", "merge", "release"].includes(context.intent)
   ) {
     command = "bun format";
   }
@@ -938,6 +943,10 @@ export function detectCliToolchain(options = {}) {
 function showHelp() {
   console.log(`Usage: node scripts/quality/select-validation.mjs [options]
 
+Scope: readiness and release always cover the full repository. Push, ship, and local merge use
+changed-path scope, falling back to the full repository only when no changed paths are found.
+CI-authoritative merge remains changed-path scoped.
+
 Options:
   --intent <intent>       diagnose|qa|review|checkpoint|readiness|push|ship|merge|release
   --checkpoint-scope <s>  lane|workspace; lane requires explicit changed paths
@@ -950,7 +959,7 @@ Options:
   --check <check-id>      Add an explicit acceptance check; repeatable
   --environment <name>    Environment profile label
   --capability k=true     Record an available/unavailable environment capability
-  --ci                    Make merge intent authoritative
+  --ci                    Make merge intent authoritative while preserving CI path scope
   --cancelled             Emit a terminal cancelled plan
   --json                  Emit JSON (default output is a readable summary)
   --help, -h              Show this help`);
