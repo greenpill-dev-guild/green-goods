@@ -32,23 +32,28 @@ flowchart TD
     PP --> FC[forge fmt]
     FC --> BF2[Biome Format workspace]
     BF2 --> Lint[oxlint + linters]
-    Lint --> |Pass| Push[Push Succeeds]
+    Lint --> SS[Source structure]
+    SS --> DG[Generated design artifacts]
+    DG --> |Pass| Push[Push Succeeds]
     Lint --> |Fail| Fix2[Fix Issues]
+    SS --> |Fail| Fix2
+    DG --> |Fail| Fix2
 ```
 
 ## What It Checks
 
-Git hooks enforce formatting and linting standards on every commit and push. The pre-commit hook formats staged files with Biome, and the pre-push hook runs both formatting and linting across the workspace.
+Git hooks enforce formatting, linting, source-structure, and generated-artifact standards before changes reach the repository. The pre-commit hook formats staged files with Biome. The pre-push hook runs workspace formatting and linting, checks changed package source against the file-size and TypeScript boundaries, and verifies that generated design artifacts match their source.
 
 ### What Hooks Do Not Cover
 
 Hooks intentionally skip expensive operations:
 
 - **Tests** are not run in pre-commit or pre-push (too slow for the feedback loop)
-- **Type checking** is deferred to CI (cross-package type resolution requires full build)
+- **Type checking** stays in the intent-aware validation selector and CI (cross-package type resolution requires full build)
+- **Storybook smoke checks** stay in the intent-aware validation selector and CI
 - **Contract compilation** is not triggered (adaptive build handles this during development)
 
-These checks run in CI via GitHub Actions workflows instead.
+The validation selector routes these checks to the appropriate package suites before CI repeats them.
 
 ## How It's Configured
 
@@ -78,7 +83,7 @@ This applies Biome formatting to all staged JavaScript/TypeScript/JSON files, ex
 
 ### Pre-Push
 
-The pre-push hook runs formatting and linting checks:
+The pre-push hook runs formatting, linting, source-structure, and generated-design checks:
 
 ```bash
 # .husky/pre-push (simplified)
@@ -86,9 +91,15 @@ $RUNNER check:foundry-version
 $RUNNER format:check
 $RUNNER format:contracts:check
 $RUNNER lint
+if git rev-parse --verify --quiet origin/develop >/dev/null; then
+  SOURCE_STRUCTURE_BASE_REF="${SOURCE_STRUCTURE_BASE_REF:-origin/develop}" $RUNNER check:source-structure
+else
+  $RUNNER check:source-structure
+fi
+$RUNNER check:design-generated
 ```
 
-The pre-push hook is non-mutating. When it fails, it prints the Bun commands that format the affected files before retrying the push.
+The pre-push hook is non-mutating. When `origin/develop` exists, the source-structure check uses it as the default base while preserving a caller-supplied `SOURCE_STRUCTURE_BASE_REF`. In clones without that remote ref, it falls back to checking working-tree changes. When a check fails, the hook prints the formatting, linting, and design-generation recovery commands before retrying the push.
 
 ### Shell Compatibility
 
