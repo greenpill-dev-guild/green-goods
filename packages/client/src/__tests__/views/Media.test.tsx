@@ -46,7 +46,7 @@ vi.mock("@green-goods/shared", () => ({
     size_bucket: "0-1mb",
     media_kind: file.type.startsWith("video/") ? "video" : "image",
   }),
-  normalizeWorkMediaFiles: vi.fn(async (files: File[]) => {
+  prepareWorkSubmission: vi.fn(async (files: File[]) => {
     const accepted = [];
     const converted = [];
 

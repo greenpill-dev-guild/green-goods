@@ -260,6 +260,7 @@ export * from "./hooks/admin-ui/garden/useManageMembersController";
 export * from "./hooks/admin-ui/garden/useResolvedWorkDetail";
 export * from "./modules/wallet/barcode-scanner";
 export * from "./modules/wallet/send-flow";
+export * from "./modules/work/submission-flow";
 export * from "./hooks/admin-ui/hub/hub.filters";
 export * from "./hooks/admin-ui/hub/hub.utils";
 export * from "./hooks/admin-ui/hub/hub.workbenchModel";
