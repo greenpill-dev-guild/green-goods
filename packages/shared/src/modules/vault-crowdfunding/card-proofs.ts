@@ -17,8 +17,8 @@ import {
   validateOctantVaultCardEndowManifest,
 } from "./manifest";
 import {
-  OctantVaultRouteManageProofInput,
-  OctantVaultRouteManageProofValidation,
+  type OctantVaultRouteManageProofInput,
+  type OctantVaultRouteManageProofValidation,
   validateOctantVaultRouteManageProof,
 } from "./route-manage";
 
