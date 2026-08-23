@@ -60,11 +60,15 @@ Hub validation are both observed.
 
 ## Validation Receipt
 
-- Tested implementation commit SHA: pending
-- Run at (UTC): pending
-- Exact command(s): pending
-- Result: pending
-- Validated paths: pending
-- Worktree identity command and result: pending
-- Evidence-only diff command and result (if applicable): not applicable
-- Evidence-only worktree-status command and result (if applicable): not applicable
+- Tested implementation commit SHA: `7ac942449693224459e0c78caa816df87dfdc169`
+- Run at (UTC): `2026-08-23T08:29:03Z`
+- Exact command(s): `node scripts/harness/plan-hub.mjs validate`; `node --test scripts/harness/plan-hub.test.mjs`; `node -e "const d=require('./scripts/data/plan-hub-validation-receipt-debt.json'); if(d.entries.length) process.exit(1); const s=require('./.plans/archive/validation-system-optimization/status.json'); if(s.workflow.resolution!=='completed'||s.workflow.overall_status!=='done') process.exit(1); console.log('receipt debt entries: 0; VSO archive: completed')"`.
+- Result: all 46 feature hubs validated; all 56 Plan Hub tests passed; the active debt array is
+  empty; the archived VSO hub reports `overall_status: done` and `resolution: completed`.
+- Validated paths: the three retained Celo and Commitment Pooling receipt handoffs,
+  `.plans/active/module-seams-and-velocity/{eval.md,plan.todo.md,status.json}`,
+  `.plans/archive/validation-system-optimization/**`, and
+  `scripts/data/plan-hub-validation-receipt-debt.json`.
+- Worktree identity command and result: `git status --porcelain=v1 --untracked-files=all -- .plans/active/celo-garden-account-safe-ownership/handoffs/codex-contracts.md .plans/active/commitment-pooling/handoffs/codex-contracts.md .plans/active/commitment-pooling/handoffs/codex-state-api.md .plans/active/module-seams-and-velocity/eval.md .plans/active/module-seams-and-velocity/plan.todo.md .plans/active/module-seams-and-velocity/status.json .plans/archive/validation-system-optimization scripts/data/plan-hub-validation-receipt-debt.json` → empty.
+- Evidence-only diff command and result (if applicable): `git diff --exit-code 7ac942449693224459e0c78caa816df87dfdc169..HEAD -- .plans/active/celo-garden-account-safe-ownership/handoffs/codex-contracts.md .plans/active/commitment-pooling/handoffs/codex-contracts.md .plans/active/commitment-pooling/handoffs/codex-state-api.md .plans/active/module-seams-and-velocity/eval.md .plans/active/module-seams-and-velocity/plan.todo.md .plans/active/module-seams-and-velocity/status.json .plans/archive/validation-system-optimization scripts/data/plan-hub-validation-receipt-debt.json` → empty, exit code 0.
+- Evidence-only worktree-status command and result (if applicable): `git status --porcelain=v1 --untracked-files=all -- .plans/active/celo-garden-account-safe-ownership/handoffs/codex-contracts.md .plans/active/commitment-pooling/handoffs/codex-contracts.md .plans/active/commitment-pooling/handoffs/codex-state-api.md .plans/active/module-seams-and-velocity/eval.md .plans/active/module-seams-and-velocity/plan.todo.md .plans/active/module-seams-and-velocity/status.json .plans/archive/validation-system-optimization scripts/data/plan-hub-validation-receipt-debt.json` → empty.
