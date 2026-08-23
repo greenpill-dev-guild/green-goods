@@ -10,6 +10,7 @@ import { createActor, fromPromise } from "xstate";
 
 import { AUTH_MODE_STORAGE_KEY } from "../../modules/auth/session";
 import { AuthProvider, useAuthContext } from "../../providers/Auth";
+import { defaultPasskeyAdapters } from "../../workflows/auth-passkey-adapters";
 import {
   authMachine,
   type PasskeyOperationInput,
@@ -21,6 +22,8 @@ import {
 const mocks = vi.hoisted(() => ({
   mockClearQueryClient: vi.fn(),
   mockClearServiceWorkerCaches: vi.fn(async () => undefined),
+  mockCreateAuthActor: vi.fn(),
+  mockCreateAuthServices: vi.fn(),
   mockDisconnect: vi.fn(async () => undefined),
   mockGetAppKit: vi.fn(),
   mockGetAuthActor: vi.fn(),
@@ -64,7 +67,12 @@ vi.mock("../../modules/app/service-worker", () => ({
 }));
 
 vi.mock("../../workflows/authActor", () => ({
+  createAuthActor: (...args: unknown[]) => mocks.mockCreateAuthActor(...args),
   getAuthActor: () => mocks.mockGetAuthActor(),
+}));
+
+vi.mock("../../workflows/authServices", () => ({
+  createAuthServices: (...args: unknown[]) => mocks.mockCreateAuthServices(...args),
 }));
 
 const TEST_WALLET = "0x0000000000000000000000000000000000000001" as Hex;
@@ -117,9 +125,9 @@ function setAccount(next: Partial<AccountState>) {
   accountState = { ...disconnectedAccount, ...next };
 }
 
-function renderAuth() {
+function renderAuth(adapters?: typeof defaultPasskeyAdapters) {
   function wrapper({ children }: { children: ReactNode }) {
-    return <AuthProvider>{children}</AuthProvider>;
+    return <AuthProvider adapters={adapters}>{children}</AuthProvider>;
   }
 
   return renderHook(() => useAuthContext(), { wrapper });
@@ -148,6 +156,18 @@ describe("AuthProvider wallet login bridge", () => {
     actor = createAuthTestActor();
     actor.start();
     mocks.mockGetAuthActor.mockReturnValue(actor);
+    mocks.mockCreateAuthActor.mockReturnValue(actor);
+    mocks.mockCreateAuthServices.mockReturnValue({ source: "test-auth-services" });
+  });
+
+  it("composes injected passkey adapters into a provider-owned auth actor", () => {
+    const view = renderAuth(defaultPasskeyAdapters);
+
+    expect(mocks.mockCreateAuthServices).toHaveBeenCalledWith(defaultPasskeyAdapters);
+    expect(mocks.mockCreateAuthActor).toHaveBeenCalledWith({ source: "test-auth-services" });
+    expect(mocks.mockGetAuthActor).not.toHaveBeenCalled();
+
+    view.unmount();
   });
 
   it("authenticates a manual wallet login after the passive restore guard has already been spent", async () => {

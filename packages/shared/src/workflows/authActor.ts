@@ -58,7 +58,7 @@ function getChainId(): number {
 /**
  * Create the auth actor with proper services injected
  */
-function createAuthActor() {
+export function createAuthActor(services: typeof authServices = authServices) {
   // Get chain ID at runtime
   const chainId = getChainId();
 
@@ -66,9 +66,9 @@ function createAuthActor() {
   const actor = createActor(
     authMachine.provide({
       actors: {
-        restoreSession: authServices.restoreSession,
-        registerPasskey: authServices.registerPasskey,
-        authenticatePasskey: authServices.authenticatePasskey,
+        restoreSession: services.restoreSession,
+        registerPasskey: services.registerPasskey,
+        authenticatePasskey: services.authenticatePasskey,
       },
     }),
     {
