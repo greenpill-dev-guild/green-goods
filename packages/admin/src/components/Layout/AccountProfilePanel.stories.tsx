@@ -7,7 +7,7 @@ import {
   withRouter,
   withSeededQueryClient,
 } from "../../../../shared/.storybook/decorators";
-import { AccountProfilePanel } from "./AccountProfilePanel";
+import { AccountProfilePanelContainer } from "./AccountProfilePanel";
 
 interface MockAccountProfilePanelProps {
   userRole: "deployer" | "operator" | "user";
@@ -62,9 +62,9 @@ function MockAccountProfilePanel({
   );
 }
 
-const meta: Meta<typeof AccountProfilePanel> = {
+const meta: Meta<typeof AccountProfilePanelContainer> = {
   title: "Admin/Shell/AccountProfilePanel",
-  component: AccountProfilePanel,
+  component: AccountProfilePanelContainer,
   tags: ["autodocs"],
   decorators: [
     withAdminIdentity,
@@ -87,7 +87,7 @@ const meta: Meta<typeof AccountProfilePanel> = {
 };
 
 export default meta;
-type Story = StoryObj<typeof AccountProfilePanel>;
+type Story = StoryObj<typeof AccountProfilePanelContainer>;
 
 export const Operator: Story = {
   tags: ["storybook-ci"],

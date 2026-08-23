@@ -19,7 +19,7 @@ import {
   withRouter,
   withSeededQueryClient,
 } from "../../../../shared/.storybook/decorators";
-import { AccountProfilePanel } from "./AccountProfilePanel";
+import { AccountProfilePanelContainer } from "./AccountProfilePanel";
 import { AccountSettingsPanel } from "./AccountSettingsPanel";
 
 interface RightSheetRegistryHarnessProps {
@@ -70,7 +70,7 @@ function StoryNotificationsPanel() {
 
 function RightSheetRegistryHarness({ initialContentId }: RightSheetRegistryHarnessProps) {
   const [contentId, setContentId] = useState<AdminRightSheetContentId | null>(initialContentId);
-  const renderAccountProfile = useCallback(() => <AccountProfilePanel />, []);
+  const renderAccountProfile = useCallback(() => <AccountProfilePanelContainer />, []);
   const renderAccountSettings = useCallback(() => <AccountSettingsPanel />, []);
   const renderNotifications = useCallback(() => <StoryNotificationsPanel />, []);
   const descriptor = useAdminRightSheetDescriptor({

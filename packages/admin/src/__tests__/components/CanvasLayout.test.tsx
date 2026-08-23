@@ -414,6 +414,7 @@ vi.mock("@/components/Layout/PageTransition", async () => {
 
 vi.mock("@/components/Layout/AccountProfilePanel", () => ({
   AccountProfilePanel: () => <div>Profile Panel</div>,
+  AccountProfilePanelContainer: () => <div>Profile Panel</div>,
 }));
 
 vi.mock("@/components/Layout/AccountSettingsPanel", () => ({

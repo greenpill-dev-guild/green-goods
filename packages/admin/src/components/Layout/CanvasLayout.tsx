@@ -38,7 +38,7 @@ import { AppBar, MainSheet } from "@/components/Shell";
 import { useLocation, useNavigate } from "react-router-dom";
 import { releaseStuckDialogArtifacts } from "./dialogCloseSafetyNet";
 import { LeftSheetProvider } from "./leftSheetChannel";
-import { AccountProfilePanel } from "./AccountProfilePanel";
+import { AccountProfilePanelContainer } from "./AccountProfilePanel";
 import { AccountSettingsPanel } from "./AccountSettingsPanel";
 import { AdminNotificationPanel } from "./AdminNotificationPanel";
 import { FabAwareNavigationBar, ProfiledNavigationBar } from "./canvasChromeProbe";
@@ -97,7 +97,7 @@ export function CanvasLayout() {
     },
     [activeContentId, activeSheet, closeSheet, openSheet]
   );
-  const renderAccountProfile = useCallback(() => <AccountProfilePanel />, []);
+  const renderAccountProfile = useCallback(() => <AccountProfilePanelContainer />, []);
   const renderAccountSettings = useCallback(() => <AccountSettingsPanel />, []);
   const renderNotifications = useCallback(
     () => <AdminNotificationPanel onCloseSheet={closeSheet} />,
