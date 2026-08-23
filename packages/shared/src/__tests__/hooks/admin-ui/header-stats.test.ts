@@ -10,7 +10,10 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { buildActionsHeaderStats } from "../../../hooks/admin-ui/actions/actions.utils";
-import { buildCommunityHeaderStats } from "../../../hooks/admin-ui/community/community.utils";
+import {
+  buildCommunityHeaderStats,
+  selectAllocationSplits,
+} from "../../../hooks/admin-ui/community/community.utils";
 import { buildGardenHeaderStats } from "../../../hooks/admin-ui/garden/garden.utils";
 import { buildHubHeaderStats } from "../../../hooks/admin-ui/hub/hub.utils";
 
@@ -157,6 +160,38 @@ describe("buildCommunityHeaderStats", () => {
       formatMessage: makeFormatMessage(),
     });
     expect(items.map((item) => item.id)).toEqual(["treasury"]);
+  });
+});
+
+describe("selectAllocationSplits", () => {
+  it("derives percentages from the most recent allocation", () => {
+    expect(
+      selectAllocationSplits([
+        {
+          cookieJarAmount: 1n,
+          fractionsAmount: 3n,
+          juiceboxAmount: 6n,
+        },
+        {
+          cookieJarAmount: 9n,
+          fractionsAmount: 0n,
+          juiceboxAmount: 1n,
+        },
+      ])
+    ).toEqual({ cookieJar: 10, fractions: 30, endowment: 60 });
+  });
+
+  it("returns null without a positive allocation total", () => {
+    expect(selectAllocationSplits([])).toBeNull();
+    expect(
+      selectAllocationSplits([
+        {
+          cookieJarAmount: 0n,
+          fractionsAmount: 0n,
+          juiceboxAmount: 0n,
+        },
+      ])
+    ).toBeNull();
   });
 });
 

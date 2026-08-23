@@ -55,7 +55,6 @@ const FROZEN_ALLOWLIST = {
   "packages/admin/src/components/Layout/CanvasLayout.tsx": 741,
   "packages/admin/src/views/Actions/ActionDetail.tsx": 545,
   "packages/admin/src/views/Actions/EditAction.tsx": 532,
-  "packages/admin/src/views/Community/components/CommunityTab.tsx": 830,
   "packages/admin/src/views/Garden/HypercertDetail.tsx": 501,
   "packages/admin/src/views/Garden/SubmitWork.tsx": 1170,
   "packages/agent/src/handlers/index.ts": 508,

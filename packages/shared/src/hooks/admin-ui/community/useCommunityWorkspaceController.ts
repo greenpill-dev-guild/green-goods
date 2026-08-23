@@ -234,6 +234,7 @@ export function useCommunityWorkspaceController() {
     garden,
     gardenId,
     gardenOptions,
+    hasVaults: derived.hasVaults,
     handleModeChange,
     handleSelectGarden,
     hypercerts,
@@ -249,14 +250,18 @@ export function useCommunityWorkspaceController() {
     pools,
     poolType,
     roleMembers,
+    roleSummary: derived.roleSummary,
     scheduleBackgroundRefetch,
     section,
     selectedItem,
     selectedGarden,
     selectedGardenAddress,
     setMemberSearch,
+    treasurySeverity: derived.treasurySeverity,
     vaultNetDeposited,
     vaultsLoading,
     visibleDirectory: derived.visibleDirectory,
   };
 }
+
+export type CommunityWorkspace = ReturnType<typeof useCommunityWorkspaceController>;

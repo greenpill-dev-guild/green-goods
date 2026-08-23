@@ -1,27 +1,19 @@
-import {
-  type Address,
-  PoolType,
-  useGardenOperations,
-  useGardenYieldWiringState,
-} from "@green-goods/shared";
-import { RiUserLine } from "@remixicon/react";
+import { type Address, PoolType, useGardenYieldWiringState } from "@green-goods/shared";
 import { IntlProvider } from "react-intl";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { renderWithProviders, screen } from "@/__tests__/test-utils";
-import { CommunityTab } from "@/views/Community/components/CommunityTab";
+import { CommunityCoordinationTab } from "@/views/Community/components/CommunityCoordinationTab";
+import type { CommunityCoordinationTabProps } from "@/views/Community/components/CommunityCoordinationTab";
 
 vi.mock("@green-goods/shared", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@green-goods/shared")>();
   return {
     ...actual,
-    useGardenOperations: vi.fn(),
     useGardenYieldWiringState: vi.fn(),
   };
 });
 
-vi.mock("@/components/Garden/AddMembersDialog", () => ({ AddMembersDialog: () => null }));
-vi.mock("@/components/Garden/ManageMembersDialog", () => ({ ManageMembersDialog: () => null }));
 vi.mock("@/views/Community/components/GovernancePanel", () => ({
   GovernancePanel: () => null,
 }));
@@ -73,21 +65,6 @@ const connectedWiringResult: ReturnType<typeof useGardenYieldWiringState> = {
 
 describe("Community coordination status actions", () => {
   beforeEach(() => {
-    vi.mocked(useGardenOperations).mockReturnValue({
-      addGardener: noop,
-      addOperator: noop,
-      addEvaluator: noop,
-      addOwner: noop,
-      addFunder: noop,
-      addCommunity: noop,
-      removeGardener: noop,
-      removeOperator: noop,
-      removeEvaluator: noop,
-      removeOwner: noop,
-      removeFunder: noop,
-      removeCommunity: noop,
-      isLoading: false,
-    } as unknown as ReturnType<typeof useGardenOperations>);
     vi.mocked(useGardenYieldWiringState).mockReturnValue(connectedWiringResult);
   });
 
@@ -109,18 +86,17 @@ describe("Community coordination status actions", () => {
         }}
       >
         <MemoryRouter>
-          <CommunityTab
-            mode="coordination"
-            garden={{ id: GARDEN_ID, name: "Test garden" }}
+          <CommunityCoordinationTab
+            garden={
+              {
+                id: GARDEN_ID,
+                name: "Test garden",
+                chainId: 42161,
+              } as CommunityCoordinationTabProps["garden"]
+            }
             gardenId={GARDEN_ID}
             canManage={true}
-            section={undefined}
-            selectedItem={null}
-            showSectionStateCard={false}
-            clearSection={noop}
-            closeMembersModal={noop}
-            community={{}}
-            communityLoading={false}
+            community={{} as CommunityCoordinationTabProps["community"]}
             pools={[
               {
                 poolType: PoolType.Hypercert,
@@ -137,33 +113,6 @@ describe("Community coordination status actions", () => {
             ]}
             createPools={noop}
             isCreatingPools={false}
-            vaultsLoading={false}
-            hasVaults={false}
-            vaultNetDeposited={0n}
-            treasurySeverity="none"
-            allocations={[]}
-            allocationsLoading={false}
-            roleSummary={[]}
-            roleMembers={{
-              gardener: [],
-              operator: [],
-              evaluator: [],
-              owner: [],
-              funder: [],
-              community: [],
-            }}
-            visibleDirectory={[]}
-            memberSearch=""
-            setMemberSearch={noop}
-            roleIcons={{
-              gardener: RiUserLine,
-              operator: RiUserLine,
-              evaluator: RiUserLine,
-              owner: RiUserLine,
-              funder: RiUserLine,
-              community: RiUserLine,
-            }}
-            scheduleBackgroundRefetch={noop}
           />
         </MemoryRouter>
       </IntlProvider>

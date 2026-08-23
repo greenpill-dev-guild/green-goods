@@ -118,7 +118,7 @@ export default function CommunityView() {
                 id: "cockpit.community.endowment",
                 defaultMessage: "Endowment",
               }),
-              count: community.derived.hasVaults ? 1 : undefined,
+              count: community.hasVaults ? 1 : undefined,
             },
             {
               id: "payouts",

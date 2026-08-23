@@ -4,6 +4,7 @@ import {
   formatTokenAmount,
   type MetaStripItem,
   type ViewAction,
+  type YieldAllocation,
 } from "@green-goods/shared";
 import { RiHandCoinLine, RiMoneyDollarCircleLine, RiUserAddLine } from "@remixicon/react";
 
@@ -65,6 +66,38 @@ export function buildCommunityHeaderStats({
   }
 
   return items;
+}
+
+type AllocationSplitInput = Pick<
+  YieldAllocation,
+  "cookieJarAmount" | "fractionsAmount" | "juiceboxAmount"
+>;
+
+export interface AllocationSplits {
+  cookieJar: number;
+  fractions: number;
+  endowment: number;
+}
+
+/** Derive the displayed split from the newest allocation event. */
+export function selectAllocationSplits(
+  allocations: readonly AllocationSplitInput[]
+): AllocationSplits | null {
+  const latestAllocation = allocations[0];
+  if (!latestAllocation) return null;
+
+  const total =
+    latestAllocation.cookieJarAmount +
+    latestAllocation.fractionsAmount +
+    latestAllocation.juiceboxAmount;
+  if (total <= 0n) return null;
+
+  const toPercent = (amount: bigint) => Number((amount * 1000n) / total) / 10;
+  return {
+    cookieJar: toPercent(latestAllocation.cookieJarAmount),
+    fractions: toPercent(latestAllocation.fractionsAmount),
+    endowment: toPercent(latestAllocation.juiceboxAmount),
+  };
 }
 
 export type CommunityWorkspaceMode = "members" | "coordination" | "endowment" | "payouts" | "pools";
