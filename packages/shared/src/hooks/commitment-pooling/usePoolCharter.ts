@@ -22,12 +22,14 @@ import { getJsonByHash } from "../../modules/data/ipfs/resolve";
 
 const IMMUTABLE = Number.POSITIVE_INFINITY;
 
-export function usePoolCharter(cid: string | null | undefined): {
+export interface PoolCharterResolution {
   charter: PoolCharterV1 | null;
   isLoading: boolean;
   /** The CID exists but its document could not be read or held no purpose. */
   isUnavailable: boolean;
-} {
+}
+
+export function usePoolCharter(cid: string | null | undefined): PoolCharterResolution {
   const resolvable = isResolvableMetadataCID(cid);
   const query = useQuery({
     queryKey: queryKeys.commitmentPooling.poolCharter(resolvable ? cid.trim() : null),

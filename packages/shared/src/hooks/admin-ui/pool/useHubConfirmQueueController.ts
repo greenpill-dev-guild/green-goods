@@ -21,47 +21,19 @@
 import { useMemo } from "react";
 
 import type { CommitmentReadModel } from "../../../modules/commitment-pooling/types";
-import type { Address } from "../../../types/domain";
 import { useOnlineStatus } from "../../app/useOnlineStatus";
 import { useCommitmentJobs } from "../../commitment-pooling/useCommitmentJobs";
 import { useCommitmentMetadata } from "../../commitment-pooling/useCommitmentMetadata";
 import { useCommitmentMutation } from "../../commitment-pooling/useCommitmentMutations";
 import type { CommitmentsToConfirm } from "../../commitment-pooling/useCommitmentsToConfirm";
-
-export type ConfirmQueueEligibility =
-  | "ORDINARY"
-  | "POOL_FALLBACK"
-  | "PROTOCOL_FALLBACK"
-  /** Frozen for review: the row carries Resolve, and no confirmation is on offer. */
-  | "DISPUTED";
-
-export interface ConfirmQueueRow {
-  commitment: CommitmentReadModel;
-  /** The garden whose authority the act uses: the party garden, or the fallback garden. */
-  garden: Address;
-  gardenName: string;
-  eligibility: ConfirmQueueEligibility;
-  title: string | null;
-  /**
-   * The garden that owns the commitment's pool, which the inspector needs to
-   * read the right pool and seat the reader in the right garden. Optional so a
-   * fixture may leave it out; falls back to `garden` when it is absent.
-   */
-  poolGarden?: Address | null;
-  /**
-   * Whether `TerminalLib.raiseDispute` would accept this reader — it admits a
-   * steward of the pool's own garden, never a protocol steward reaching in.
-   * Optional so a fixture may leave it out, and then read as permitted.
-   */
-  canDispute?: boolean;
-}
+import type { ConfirmQueueRow, HubConfirmQueueController } from "./controller.types";
 
 export function useHubConfirmQueueController(input: {
   chainId: number;
   toConfirm: CommitmentsToConfirm;
   /** The Hub's search term, already normalized. */
   search: string;
-}) {
+}): HubConfirmQueueController {
   const { chainId, toConfirm, search } = input;
   const isOnline = useOnlineStatus();
   const jobs = useCommitmentJobs({ chainId });
@@ -150,5 +122,3 @@ export function useHubConfirmQueueController(input: {
     acts,
   };
 }
-
-export type HubConfirmQueueController = ReturnType<typeof useHubConfirmQueueController>;

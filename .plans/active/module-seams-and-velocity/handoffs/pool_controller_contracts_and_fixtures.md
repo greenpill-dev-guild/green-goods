@@ -23,6 +23,8 @@ Respect `parent_only`, create no lane issue, and stop if W0-H is not passed.
 ## Allowed paths
 
 - `packages/shared/src/hooks/admin-ui/pool/**`
+- `packages/shared/src/hooks/commitment-pooling/usePoolCharter.ts` (`PoolCharterResolution`)
+- `packages/shared/src/hooks/commitment-pooling/useCommitmentReason.ts` (`CommitmentReasonResolution`)
 - `packages/shared/src/__tests__/test-utils/**`
 - `packages/admin/src/views/Garden/Pool/poolStoryControllers.ts`
 - This handoff's TDD and Validation Receipt sections

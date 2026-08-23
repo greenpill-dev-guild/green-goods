@@ -10,6 +10,7 @@ import {
   type CommitmentReadModel,
   DEFAULT_CHAIN_ID,
   type HubConfirmQueueController,
+  type OntologyChainCapability,
   type PoolConsoleController,
   selectPoolConsoleModel,
   selectPromiseKeptRate,
@@ -26,7 +27,15 @@ import {
 } from "./poolStoryCommitments";
 import { STORY_CYCLE_NAMES, STORY_CYCLES, storyPool } from "./poolStoryPools";
 
-const noop = async () => "0x0" as never;
+const noop = async (): Promise<`0x${string}`> => "0x0";
+const availableCapability: OntologyChainCapability = {
+  deployment: "deployed",
+  activation: "active",
+  integration: "integrated",
+  availability: "available",
+  evidence: [],
+  verified_at: "2026-08-23",
+};
 
 /** The real controller's shape over the fixtures above; acts resolve without sending. */
 export function storyPoolConsole(
@@ -57,7 +66,7 @@ export function storyPoolConsole(
     garden: STORY_GARDEN,
     viewer: STORY_STEWARD,
     isOnline: true,
-    availability: { status: "available", capability: {} as never },
+    availability: { status: "available", capability: availableCapability },
     model: selectPoolConsoleModel({
       pool,
       cycles,
@@ -86,7 +95,7 @@ export function storyPoolConsole(
     isActing: false,
     isLoading: false,
     isError: false,
-    refetch: async () => [] as never,
+    refetch: async () => [],
     ...overrides,
     ...(overrides.model ? { model: overrides.model } : {}),
     // After the spread on purpose: `pool` already folds in `overrides.pool`,
@@ -108,12 +117,12 @@ export function storyCommitmentDialog(
   const acts: CommitmentDialogController["acts"] = {
     cancel: noop,
     markReady: noop,
-    sendForConfirmation: async () => "job" as never,
+    sendForConfirmation: async () => "job",
     attachAssessment: noop,
     raiseDispute: noop,
     resolveDispute: noop,
     expire: noop,
-    confirmOrdinary: async () => "job" as never,
+    confirmOrdinary: async () => "job",
     confirmFallback: noop,
     acceptClaim: noop,
     declineClaim: noop,
@@ -123,7 +132,7 @@ export function storyCommitmentDialog(
     garden: STORY_GARDEN,
     viewer: STORY_STEWARD,
     isOnline: true,
-    availability: { status: "available", capability: {} as never },
+    availability: { status: "available", capability: availableCapability },
     commitment,
     detail: commitment
       ? {
@@ -244,7 +253,7 @@ export function storyCommitmentDialog(
     isError: false,
     unavailable: false,
     notFound: false,
-    refetch: async () => [] as never,
+    refetch: async () => [],
     ...overrides,
   };
 }
@@ -274,7 +283,7 @@ export function storyConfirmQueue(
     isError: false,
     isConfirming: false,
     isDisputing: false,
-    acts: { confirm: async () => "job" as never, notYet: noop },
+    acts: { confirm: async () => "job", notYet: noop },
     ...overrides,
   };
 }

@@ -25,12 +25,14 @@ import {
 
 const IMMUTABLE = Number.POSITIVE_INFINITY;
 
-export function useCommitmentReason(cid: string | null | undefined): {
+export interface CommitmentReasonResolution {
   reason: CommitmentReasonV1 | null;
   isLoading: boolean;
   /** The CID exists but its document could not be read or held no reason. */
   isUnavailable: boolean;
-} {
+}
+
+export function useCommitmentReason(cid: string | null | undefined): CommitmentReasonResolution {
   const resolvable = isResolvableMetadataCID(cid);
   const query = useQuery({
     queryKey: queryKeys.commitmentPooling.reason(resolvable ? cid.trim() : null),

@@ -19,6 +19,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { useCallback, useMemo } from "react";
+import type { CommitmentDialogController, DisputeResolutionKey } from "./controller.types";
 
 import { queryKeys, STALE_TIME_MEDIUM } from "../../../config/query-keys";
 import { selectCommitmentActKind } from "../../../modules/commitment-pooling/acts";
@@ -62,14 +63,12 @@ export const DISPUTE_RESOLUTION_CODE = {
   EXPIRED: 3,
 } as const;
 
-export type DisputeResolutionKey = keyof typeof DISPUTE_RESOLUTION_CODE;
-
 export function useCommitmentDialogController(input: {
   chainId: number;
   /** The pool's garden: the authority a garden fallback uses. */
   garden: Address;
   commitmentId: bigint;
-}) {
+}): CommitmentDialogController {
   const { chainId, garden, commitmentId } = input;
   const viewer = usePrimaryAddress() ?? undefined;
   const isOnline = useOnlineStatus();
@@ -333,5 +332,3 @@ export function useCommitmentDialogController(input: {
     refetch,
   };
 }
-
-export type CommitmentDialogController = ReturnType<typeof useCommitmentDialogController>;

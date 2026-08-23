@@ -135,9 +135,10 @@ function createDefaultHookMocks() {
  */
 export function createSharedBarrelMock(
   actual: SharedModule,
-  overrides: Record<string, unknown> = {}
+  overrides: Partial<SharedModule> = {},
+  options: { defaults?: boolean } = {}
 ): SharedModule {
-  const defaults = createDefaultHookMocks();
+  const defaults = options.defaults === false ? {} : createDefaultHookMocks();
 
   return {
     ...actual, // All real exports (types, utils, components)

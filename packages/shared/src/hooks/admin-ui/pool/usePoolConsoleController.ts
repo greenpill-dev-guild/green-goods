@@ -14,6 +14,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import type { PoolConsoleController } from "./controller.types";
 import { pinPoolCharter } from "../../../modules/commitment-pooling/pool-charter";
 import { selectPoolConsoleModel } from "../../../modules/commitment-pooling/pool-console";
 import { selectNextDueBoundary } from "../../../modules/commitment-pooling/steward-selectors";
@@ -35,7 +36,10 @@ import { usePoolCharter } from "../../commitment-pooling/usePoolCharter";
 import { usePoolClaimRequests } from "../../commitment-pooling/usePoolClaimRequests";
 import { useTimeout } from "../../utils/useTimeout";
 
-export function usePoolConsoleController(input: { chainId: number; garden: Address }) {
+export function usePoolConsoleController(input: {
+  chainId: number;
+  garden: Address;
+}): PoolConsoleController {
   const { chainId, garden } = input;
   const viewer = usePrimaryAddress() ?? undefined;
   const isOnline = useOnlineStatus();
@@ -211,5 +215,3 @@ export function usePoolConsoleController(input: { chainId: number; garden: Addre
     refetch,
   };
 }
-
-export type PoolConsoleController = ReturnType<typeof usePoolConsoleController>;
