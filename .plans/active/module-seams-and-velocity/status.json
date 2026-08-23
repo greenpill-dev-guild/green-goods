@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p1",
     "created_at": "2026-08-23T02:50:35.809Z",
-    "updated_at": "2026-08-23T09:25:00.000Z"
+    "updated_at": "2026-08-23T10:00:44.470Z"
   },
   "links": {
     "brief": "brief.md",
@@ -86,16 +86,16 @@
       "handoff": "handoffs/codex-state-api.md",
       "tdd": {
         "mode": "required",
-        "status": "pending",
+        "status": "green_recorded",
         "red": {
-          "command": "",
-          "evidence": ""
+          "command": "bun run --filter @green-goods/shared test -- src/__tests__/modules/job-queue.seam.test.ts src/__tests__/modules/job-queue.imports.test.ts src/__tests__/providers/JobQueueProvider.test.tsx",
+          "evidence": "Parent implementation: 3 suites failed; 3 tests failed and 17 passed. The seam was not constructable in Node, event-bus/media imports registered beforeunload, and the provider ignored an injected queue."
         },
         "green": {
-          "command": "",
-          "evidence": ""
+          "command": "bun run --filter @green-goods/shared test -- src/__tests__/modules/job-queue.seam.test.ts src/__tests__/modules/job-queue.imports.test.ts src/__tests__/modules/job-queue.core.test.ts src/__tests__/modules/job-queue.analytics.test.ts src/__tests__/modules/job-queue.commitment-policy.test.ts src/__tests__/modules/job-queue.db.test.ts src/__tests__/modules/job-queue.event-bus.test.ts src/__tests__/modules/job-queue.telemetry-privacy.test.ts src/__tests__/modules/media-resource-manager.test.ts src/__tests__/modules/work-submission.test.ts src/__tests__/providers/JobQueueProvider.test.tsx",
+          "evidence": "11 focused files passed 75/75; node seam passed 17/17, import lifecycle passed 3/3, and injected provider passed 18/18 without a whole-module queue mock."
         },
-        "note": "Execution sub-lanes carry behavior-specific TDD proof."
+        "note": "Execution proof belongs to jobqueue_create_deps; the state_api lane summary records the required RED/GREEN transition."
       },
       "skill_tags": ["tooling", "testing", "shared", "indexer"]
     },
@@ -320,10 +320,19 @@
     "jobqueue_create_deps": {
       "machine_lane": "state_api",
       "owner": "codex",
-      "status": "in_progress",
+      "status": "passed",
       "branch": "refactor/job-queue-dependencies",
       "depends_on": ["w0_receipt_debt_burndown"],
-      "handoff": "handoffs/jobqueue_create_deps.md"
+      "handoff": "handoffs/jobqueue_create_deps.md",
+      "commit": "a83be79670abc877ec4d8083d9a12e2fa5f715b1",
+      "tdd": {
+        "status": "green_recorded",
+        "red": "The parent failed all three new acceptance files: the queue was not constructable in Node, two imports attached unload listeners, and the provider ignored injection",
+        "green": "The focused queue/provider/wiring proof passed 11 files and 75 tests; the Node seam passed 17/17 and focused coverage cleared both file floors"
+      },
+      "validation": "Critical QA selector ready; format, lint, Shared full typecheck/test, Client/Admin/Agent suites, Agent typecheck, ontology, source structure, focused proof, coverage, listener and clean-tree checks passed",
+      "proof_limit": "A first Shared run under concurrent Shared/Client/Admin load timed out one dynamic import; the unchanged exact SHA then passed all 344 Shared files standalone, so cross-package concurrent timing robustness is not claimed",
+      "publication_status": "local stacked implementation commit validated; publication remains pending"
     },
     "sender_conformance": {
       "machine_lane": "state_api",
@@ -891,6 +900,14 @@
       "status": "linear_recorded",
       "branch": null,
       "note": "Recorded Linear parent/lane issue identifiers"
+    },
+    {
+      "timestamp": "2026-08-23T10:00:44.470Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "tdd_recorded",
+      "branch": null,
+      "note": "Execution proof belongs to jobqueue_create_deps; the state_api lane summary records the required RED/GREEN transition."
     }
   ]
 }
