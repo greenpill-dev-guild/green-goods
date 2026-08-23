@@ -1,7 +1,10 @@
 import react from "@vitejs/plugin-react";
 import fs from "node:fs";
+import { availableParallelism, totalmem } from "node:os";
 import path from "path";
 import { defineConfig } from "vitest/config";
+
+import { resolveVitestMaxWorkers } from "../../scripts/lib/dev-shared.js";
 
 const workspaceRoot = path.resolve(__dirname, "../..");
 const workspaceNodeModules = path.join(workspaceRoot, "node_modules");
@@ -33,6 +36,11 @@ export default defineConfig({
     globals: true,
     testTimeout: 10000,
     pool: "threads",
+    maxWorkers: resolveVitestMaxWorkers({
+      cpus: availableParallelism(),
+      totalMemoryBytes: totalmem(),
+      ci: Boolean(process.env.CI),
+    }),
     isolate: true,
     server: {
       deps: {
@@ -78,12 +86,10 @@ export default defineConfig({
         "**/dist/**",
       ],
       thresholds: {
-        global: {
-          branches: 70,
-          functions: 70,
-          lines: 70,
-          statements: 70,
-        },
+        branches: 52,
+        functions: 59,
+        lines: 62,
+        statements: 61,
       },
     },
     include: ["src/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}"],

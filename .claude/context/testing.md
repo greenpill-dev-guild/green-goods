@@ -30,7 +30,9 @@ Alias → `packages/shared/src/__tests__/test-utils/`. Import test helpers from 
 
 ## Coverage
 
-Enforced global thresholds live in each `vitest.config.ts` (source of truth): **shared** 70/70/70/70 · **admin** 70/70/70/70 · **client** 75 branches / 80 funcs·lines·stmts. Policy targets (not config-enforced): critical paths ≥80%, auth/crypto 100%. Contracts use Foundry, not Vitest — see `.claude/context/contracts.md` and `docs/docs/builders/testing/forge.mdx`. Report: `bun run test --coverage` → `coverage/index.html`.
+Enforced global thresholds live in each `vitest.config.ts` (branches/functions/lines/statements): **shared** 52/59/62/61 · **client** 56/62/64/63 · **admin** 47/44/53/51. Pull request Test jobs run plain `bun run test`; `.github/workflows/coverage-nightly.yml` enforces these floors nightly and after every push to `main`. Local coverage commands still generate `coverage/index.html`; CI omits HTML.
+
+The first ratchet review is 2026-09-22. Once coverage supports it, raise every configured metric by two percentage points and update the matching arrays in `scripts/quality/workflow-performance-parity.test.mjs` in the same change. Policy targets remain critical paths ≥80% and auth/crypto 100%. Contracts use Foundry, not Vitest — see `.claude/context/contracts.md` and `docs/docs/builders/testing/forge.mdx`.
 
 ## Critical paths (deepest coverage in `packages/shared/src/`)
 

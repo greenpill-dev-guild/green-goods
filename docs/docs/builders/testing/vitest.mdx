@@ -4,7 +4,7 @@ sidebar_label: Vitest
 slug: /builders/testing/vitest
 audience: developer
 owner: docs
-last_verified: 2026-03-08
+last_verified: 2026-08-23
 feature_status: Live
 source_of_truth:
   - packages/shared/package.json
@@ -46,7 +46,7 @@ graph TB
     end
 
     Support --> Packages
-    Packages --> Coverage["V8 Coverage\n70% threshold"]
+    Packages --> Coverage["V8 Coverage\nnightly package floors"]
 ```
 
 Unit and integration testing framework for all TypeScript packages. Each package has its own `vitest.config.ts` with package-specific aliases, environment settings, and coverage thresholds.
@@ -196,14 +196,21 @@ The default shared test command is intentionally hermetic. Live RPC coverage is 
 
 ## Coverage thresholds
 
-Coverage is enforced per package, not with one monorepo-wide threshold:
+Coverage is enforced per package, not with one monorepo-wide threshold. Pull request Test jobs run
+plain `bun run test` for fast feedback. The Coverage Nightly workflow runs on a daily schedule, after
+every push to `main`, and by manual dispatch; that workflow runs the package coverage scripts with
+`CI=true` and enforces the floors below.
 
 | Package | Branches | Functions | Lines | Statements |
 |---------|----------|-----------|-------|------------|
-| **shared** | 70 | 70 | 70 | 70 |
-| **admin** | 70 | 70 | 70 | 70 |
-| **client** | 75 | 80 | 80 | 80 |
+| **shared** | 52 | 59 | 62 | 61 |
+| **admin** | 47 | 44 | 53 | 51 |
+| **client** | 56 | 62 | 64 | 63 |
 | **agent** | 10 | 20 | 20 | 20 |
+
+The first ratchet review is scheduled for 2026-09-22. Once the measured coverage supports the
+change, raise each configured metric by two percentage points and update its parity-test array in
+the same commit. A floor change is incomplete if the Vitest config and parity fixture disagree.
 
 ## Resources
 

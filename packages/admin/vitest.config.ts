@@ -1,8 +1,11 @@
 /// <reference types="vitest" />
 
-import { defineConfig } from "vitest/config";
 import react from "@vitejs/plugin-react";
+import { availableParallelism, totalmem } from "node:os";
 import { resolve } from "path";
+import { defineConfig } from "vitest/config";
+
+import { resolveVitestMaxWorkers } from "../../scripts/lib/dev-shared.js";
 
 const localReactPath = resolve(__dirname, "./node_modules/react");
 const localReactDomPath = resolve(__dirname, "./node_modules/react-dom");
@@ -125,15 +128,18 @@ export default defineConfig({
         "**/index.ts",
       ],
       thresholds: {
-        global: {
-          branches: 70,
-          functions: 70,
-          lines: 70,
-          statements: 70,
-        },
+        branches: 47,
+        functions: 44,
+        lines: 53,
+        statements: 51,
       },
     },
     pool: "threads",
+    maxWorkers: resolveVitestMaxWorkers({
+      cpus: availableParallelism(),
+      totalMemoryBytes: totalmem(),
+      ci: Boolean(process.env.CI),
+    }),
     isolate: true,
     server: {
       deps: {

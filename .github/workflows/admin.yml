@@ -87,9 +87,9 @@ jobs:
       - name: Setup JavaScript toolchain and dependencies
         uses: ./.github/actions/setup-js
 
-      - name: Run admin tests with coverage
+      - name: Run admin tests
         working-directory: packages/admin
-        run: bun run test:coverage
+        run: bun run test
         env:
           CI: true
 

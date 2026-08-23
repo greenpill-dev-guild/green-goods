@@ -1,8 +1,8 @@
-import { render, screen, within } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createRef, type ReactNode } from "react";
 import { IntlProvider } from "react-intl";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@green-goods/shared", () => ({
   cn: (...values: Array<string | false | null | undefined>) => values.filter(Boolean).join(" "),
@@ -63,10 +63,25 @@ const members: GardenMember[] = Array.from({ length: 41 }, (_, index) => ({
   isGardener: true,
 }));
 
+afterEach(() => {
+  vi.restoreAllMocks();
+});
+
 describe("GardenGardeners", () => {
   it("virtualizes large member lists while preserving selection and list semantics", async () => {
     const user = userEvent.setup();
     const ref = createRef<HTMLUListElement>();
+    vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockReturnValue({
+      bottom: 600,
+      height: 600,
+      left: 0,
+      right: 640,
+      top: 0,
+      width: 640,
+      x: 0,
+      y: 0,
+      toJSON: () => ({}),
+    });
 
     render(
       <TestIntl>
@@ -75,11 +90,13 @@ describe("GardenGardeners", () => {
     );
 
     expect(ref.current?.tagName).toBe("UL");
-    const renderedRows = screen.getAllByRole("listitem");
-    expect(renderedRows.length).toBeGreaterThan(0);
-    expect(renderedRows.length).toBeLessThan(members.length);
-    expect(renderedRows[0]).toHaveAttribute("aria-posinset", "1");
-    expect(renderedRows[0]).toHaveAttribute("aria-setsize", "41");
+    await waitFor(() => {
+      const renderedRows = screen.getAllByRole("listitem");
+      expect(renderedRows.length).toBeGreaterThan(0);
+      expect(renderedRows.length).toBeLessThan(members.length);
+      expect(renderedRows[0]).toHaveAttribute("aria-posinset", "1");
+      expect(renderedRows[0]).toHaveAttribute("aria-setsize", "41");
+    });
 
     await user.click(screen.getByRole("button", { name: /Member 0/i }));
 

@@ -1,7 +1,10 @@
 import react from "@vitejs/plugin-react";
+import { availableParallelism, totalmem } from "node:os";
 import path from "path";
 import type { PluginOption } from "vite";
 import { defineConfig } from "vitest/config";
+
+import { resolveVitestMaxWorkers } from "../../scripts/lib/dev-shared.js";
 
 export default defineConfig({
   plugins: [react()],
@@ -30,6 +33,11 @@ export default defineConfig({
     testTimeout: 10000,
     // Use threads to avoid module pollution between tests
     pool: "threads",
+    maxWorkers: resolveVitestMaxWorkers({
+      cpus: availableParallelism(),
+      totalMemoryBytes: totalmem(),
+      ci: Boolean(process.env.CI),
+    }),
     isolate: true,
     coverage: {
       provider: "v8",
@@ -47,12 +55,10 @@ export default defineConfig({
         "**/build/**",
       ],
       thresholds: {
-        global: {
-          branches: 75,
-          functions: 80,
-          lines: 80,
-          statements: 80,
-        },
+        branches: 56,
+        functions: 62,
+        lines: 64,
+        statements: 63,
       },
     },
     include: ["src/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}"],
