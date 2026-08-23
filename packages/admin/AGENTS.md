@@ -92,9 +92,11 @@ foundations.
 - In QA Speed Mode, run the targeted view/component/model test when one covers the fix and capture authenticated rendered proof for visible UI. Use `bun run build` when route wiring, view imports, or build output could break; do not run Storybook checks unless shared primitives/stories/tokens moved.
 - Permission and role changes often originate in shared code; use the root quick verification
   loop when shared contracts or shared hooks move.
-- Follow root `AGENTS.md` section “Agentic Modern Web Standard” for browser proof. Admin QA that
-  depends on a session, wallet, passkey, or profile must use authenticated Brave; if that path is
-  unavailable, report browser QA as blocked.
+- Follow root `AGENTS.md` section “Agentic Modern Web Standard” for browser proof. Local admin QA uses
+  the authenticated Brave QA profile: Codex uses the Codex browser-extension path, and Claude uses
+  the Claude Code Chrome/Chromium extension path to claim the authenticated Brave profile/tab. Do
+  Do not use isolated Browser, Playwright, or DevTools MCP profiles for local QA.
+  If authenticated Brave access is blocked, stop and report QA as blocked.
 - **Tailwind v4 gotcha**: admin's content scan does not reach `packages/shared/src/`, so a shared component that uses utility classes in its JSX may render off-center, missing padding, or wrong width in admin even when it looks fine in Storybook. Before debugging the shared component, check root `AGENTS.md` → "Known Gotchas" — the fix is a fork into `packages/admin/src/components/Shell/` (the Canvas shell pattern) or inline styles inside the shared component, not utility classes in shared JSX.
 
 ## Validation

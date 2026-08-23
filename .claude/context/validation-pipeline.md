@@ -39,6 +39,12 @@ lives in `.cache/validation`, holds passes only, and any change to the command, 
 validated paths, or environment profile invalidates the fingerprint. A tampered store is rejected
 rather than trusted.
 
+`node scripts/dev/ci-local.js` renders and executes Ship intent by default. When Git identifies a
+non-empty change set, Ship is path-scoped to the affected package surfaces and their strict extras.
+An empty change set falls back to the full repository. Critical overrides remain mandatory, and
+merge, readiness, and release keep their selector-defined scope. Use `bun run test:fast` for a
+cache-aware full-scope iteration loop; keep the exact uncached `bun run test` for gates that name it.
+
 Never reuse failures. User cancellation is terminal: stop active validation, schedule nothing else,
 and report only evidence already collected. An unavailable browser, RPC, secret, service, or other
 capability produces `BLOCKED`, not passing; do not retry the identical check until that capability

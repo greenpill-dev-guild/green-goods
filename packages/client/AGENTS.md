@@ -43,9 +43,11 @@ should come from `@green-goods/shared`.
   rendered proof for visible UI. Build only when route wiring, render/build output, or PWA
   packaging behavior moves.
 - Route and rendering contract changes should get a build before PR/ship readiness, not only tests.
-- Follow root `AGENTS.md` section “Agentic Modern Web Standard” for browser proof. PWA QA that
-  depends on a session, wallet, passkey, installed app, or profile must use authenticated Brave; if
-  that path is unavailable, report browser QA as blocked.
+- Follow root `AGENTS.md` section “Agentic Modern Web Standard” for browser proof. Local PWA QA uses
+  the authenticated Brave QA profile: Codex uses the Codex browser-extension path, and Claude uses
+  the Claude Code Chrome/Chromium extension path to claim the authenticated Brave profile/tab. Do
+  Do not use isolated Browser, Playwright, or DevTools MCP profiles for local QA.
+  If authenticated Brave access is blocked, stop and report QA as blocked.
 
 ## Validation
 

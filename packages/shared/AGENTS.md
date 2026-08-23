@@ -41,9 +41,11 @@ types, i18n, and Storybook-backed shared UI building blocks.
   signatures, provider contracts, shared data shapes, or mutation flows can affect consumers.
 - When changing test helpers or hook contracts, keep tests aligned before downstream package fixes.
 - Storybook is the source of truth for shared UI foundations; keep stories aligned when primitives change.
-- Follow root `AGENTS.md` section “Agentic Modern Web Standard” for browser proof. Consumer QA that
-  depends on a session, wallet, passkey, installed app, or profile must use authenticated Brave; if
-  that path is unavailable, report browser QA as blocked.
+- Follow root `AGENTS.md` section “Agentic Modern Web Standard” for browser proof. Local consumer QA
+  uses the authenticated Brave QA profile: Codex uses the Codex browser-extension path, and Claude
+  uses the Claude Code Chrome/Chromium extension path to claim the authenticated Brave profile/tab.
+  Do not use isolated Browser, Playwright, or DevTools MCP profiles for local QA.
+  If authenticated Brave access is blocked, stop and report QA as blocked.
 - **Tailwind v4 gotcha**: utility classes authored in shared JSX (`mx-4`, `w-max`, `self-center`, etc.) are not in admin/client content scans and silently fail to generate in consuming apps. They will look correct in Storybook and broken in the running app. Use inline styles or CSS custom properties for layout in shared components, or apply the utility class in the consumer's JSX. Full detail and commit references in root `AGENTS.md` → "Known Gotchas".
 
 ## Validation
