@@ -27,7 +27,7 @@ function WithStoreState({
   useEffect(() => {
     reset();
     if (gardeners.length > 0) setField("gardeners", gardeners);
-    if (stewards.length > 0) setField("operators", stewards);
+    if (stewards.length > 0) setField("stewards", stewards);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- Storybook initializer: run once on mount only
   }, []);
 

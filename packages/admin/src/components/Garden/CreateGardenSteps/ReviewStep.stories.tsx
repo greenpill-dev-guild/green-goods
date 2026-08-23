@@ -30,7 +30,7 @@ function WithStoreState({ seed, children }: { seed: Seed; children: React.ReactN
     if (seed.domains !== undefined) setField("domains", seed.domains);
     if (seed.openJoining !== undefined) setField("openJoining", seed.openJoining);
     if (seed.gardeners !== undefined) setField("gardeners", seed.gardeners);
-    if (seed.stewards !== undefined) setField("operators", seed.stewards);
+    if (seed.stewards !== undefined) setField("stewards", seed.stewards);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- run once per story mount
   }, []);
 
