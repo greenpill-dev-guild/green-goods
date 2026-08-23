@@ -8,6 +8,14 @@ import {
   createDefaultAssessmentForm,
 } from "../hooks/assessment/useCreateAssessmentForm";
 import { CynefinPhase, Domain, type SmartOutcome } from "../types/domain";
+import {
+  addSmartOutcomeTransition,
+  moveAssessmentStepTransition,
+  removeSmartOutcomeTransition,
+  resetAssessmentTransition,
+  setAssessmentFieldTransition,
+  updateSmartOutcomeTransition,
+} from "./transitions/create-assessment";
 
 // Storage key for assessment creation flow persistence
 const CREATE_ASSESSMENT_STORAGE_KEY = "green-goods:create-assessment";
@@ -76,47 +84,21 @@ export const useCreateAssessmentStore = create<CreateAssessmentStore>()(
       form: createEmptyAssessmentForm(),
       currentStep: 0,
       setField: (field, value) =>
-        set((state) => ({
-          form: { ...state.form, [field]: value },
-        })),
-      addSmartOutcome: () =>
-        set((state) => ({
-          form: {
-            ...state.form,
-            smartOutcomes: [
-              ...state.form.smartOutcomes,
-              { description: "", metric: "", target: 0 },
-            ],
-          },
-        })),
-      removeSmartOutcome: (index) =>
-        set((state) => ({
-          form: {
-            ...state.form,
-            smartOutcomes: state.form.smartOutcomes.filter((_, i) => i !== index),
-          },
-        })),
+        set((state) => setAssessmentFieldTransition(state, { field, value })),
+      addSmartOutcome: () => set((state) => addSmartOutcomeTransition(state)),
+      removeSmartOutcome: (index) => set((state) => removeSmartOutcomeTransition(state, index)),
       updateSmartOutcome: (index, field, value) =>
-        set((state) => ({
-          form: {
-            ...state.form,
-            smartOutcomes: state.form.smartOutcomes.map((outcome, i) =>
-              i === index ? { ...outcome, [field]: value } : outcome
-            ),
-          },
-        })),
+        set((state) => updateSmartOutcomeTransition(state, { index, field, value })),
       nextStep: () =>
-        set((state) => ({
-          currentStep: Math.min(state.currentStep + 1, TOTAL_STEPS - 1),
-        })),
+        set((state) =>
+          moveAssessmentStepTransition(state, { direction: 1, totalSteps: TOTAL_STEPS })
+        ),
       previousStep: () =>
-        set((state) => ({
-          currentStep: Math.max(state.currentStep - 1, 0),
-        })),
+        set((state) =>
+          moveAssessmentStepTransition(state, { direction: -1, totalSteps: TOTAL_STEPS })
+        ),
       goToStep: (index) =>
-        set(() => ({
-          currentStep: Math.min(Math.max(index, 0), TOTAL_STEPS - 1),
-        })),
+        set((state) => moveAssessmentStepTransition(state, { index, totalSteps: TOTAL_STEPS })),
       isStepValid: (stepId) => {
         const { form } = get();
         const fields = assessmentStepFields[stepId];
@@ -127,11 +109,7 @@ export const useCreateAssessmentStore = create<CreateAssessmentStore>()(
         const stepFieldSet = new Set<string>(fields);
         return parseResult.error.issues.every((issue) => !stepFieldSet.has(String(issue.path[0])));
       },
-      reset: () =>
-        set({
-          form: createEmptyAssessmentForm(),
-          currentStep: 0,
-        }),
+      reset: () => set((state) => resetAssessmentTransition(state, createEmptyAssessmentForm())),
     }),
     {
       name: CREATE_ASSESSMENT_STORAGE_KEY,
