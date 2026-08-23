@@ -55,6 +55,16 @@ function normalizePaths(paths = []) {
 
 const packageSurfaces = ["contracts", "shared", "indexer", "client", "admin", "agent"];
 const allSurfaces = [...packageSurfaces, "docs"];
+const TURBO_TEST_INTENTS = new Set(["checkpoint", "readiness", "push", "ship", "merge"]);
+const TURBO_PACKAGES = new Map(
+  ["shared", "client", "admin", "agent", "indexer", "docs"].map((surface) => [
+    `${surface}-test`,
+    {
+      binary: surface === "docs" ? "../node_modules/.bin/turbo" : "../../node_modules/.bin/turbo",
+      packageName: `@green-goods/${surface}`,
+    },
+  ]),
+);
 
 function owningSurface(path) {
   if (path.startsWith("docs/")) return "docs";
@@ -567,7 +577,15 @@ function materializeCheck(check, environment, mandatory, testPaths, context) {
       ? testPaths[surface] ?? []
       : [];
   let command = check.command;
-  if (focusedPaths.length > 0) {
+  const turboPackage = TURBO_PACKAGES.get(check.id);
+  if (
+    !context.ci &&
+    focusedPaths.length === 0 &&
+    TURBO_TEST_INTENTS.has(context.intent) &&
+    turboPackage
+  ) {
+    command = `node ${turboPackage.binary} run test --filter=${turboPackage.packageName} --output-logs=new-only`;
+  } else if (focusedPaths.length > 0) {
     command =
       check.id === "contracts-test"
         ? focusedPaths.map((path) => `bun run test:match ${path}`).join(" && ")

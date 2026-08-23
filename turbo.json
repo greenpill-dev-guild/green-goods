@@ -19,12 +19,7 @@
     "@green-goods/shared#test": {
       "outputs": [],
       "env": ["VITE_*", "RUN_LIVE_RPC_TESTS"],
-      "inputs": [
-        "$TURBO_DEFAULT$",
-        "../contracts/abis/**",
-        "../contracts/deployments/**",
-        "../contracts/.generated/**"
-      ]
+      "inputs": ["$TURBO_DEFAULT$", "../contracts/abis/**", "../contracts/deployments/**"]
     },
     "@green-goods/client#test": {
       "outputs": [],
@@ -32,6 +27,9 @@
       "inputs": [
         "$TURBO_DEFAULT$",
         "../shared/src/**",
+        "!../shared/src/**/*.test.*",
+        "!../shared/src/**/*.spec.*",
+        "!../shared/src/**/*.stories.*",
         "../shared/package.json",
         "../contracts/abis/**",
         "../contracts/deployments/**"
@@ -43,6 +41,9 @@
       "inputs": [
         "$TURBO_DEFAULT$",
         "../shared/src/**",
+        "!../shared/src/**/*.test.*",
+        "!../shared/src/**/*.spec.*",
+        "!../shared/src/**/*.stories.*",
         "../shared/package.json",
         "../contracts/abis/**",
         "../contracts/deployments/**"
@@ -51,7 +52,14 @@
     "@green-goods/agent#test": {
       "outputs": [],
       "env": ["VITE_*"],
-      "inputs": ["$TURBO_DEFAULT$", "../shared/src/**", "../shared/package.json"]
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "../shared/src/**",
+        "!../shared/src/**/*.test.*",
+        "!../shared/src/**/*.spec.*",
+        "!../shared/src/**/*.stories.*",
+        "../shared/package.json"
+      ]
     },
     "@green-goods/indexer#test": {
       "outputs": [],

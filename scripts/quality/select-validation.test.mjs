@@ -19,6 +19,11 @@ function ids(plan) {
   return plan.checks.map((check) => check.id);
 }
 
+function turboTestCommand(surface) {
+  const binary = surface === "docs" ? "../node_modules/.bin/turbo" : "../../node_modules/.bin/turbo";
+  return `node ${binary} run test --filter=@green-goods/${surface} --output-logs=new-only`;
+}
+
 test("the durable Bun caller re-enters the selector under real Node", () => {
   const packageJson = JSON.parse(
     readFileSync(new URL("../../package.json", import.meta.url), "utf8"),
@@ -435,6 +440,89 @@ test("shared public API changes include direct consumers", () => {
     "design-guardrails",
     "ontology",
   ]);
+  for (const surface of ["shared", "client", "admin", "agent"]) {
+    assert.equal(
+      plan.checks.find((check) => check.id === `${surface}-test`)?.command,
+      turboTestCommand(surface),
+      surface,
+    );
+  }
+});
+
+test("eligible local package tests route through Turbo with package-relative binaries", () => {
+  for (const [intent, changedPaths, expectedSurfaces] of [
+    ["checkpoint", ["packages/client/src/components/Panel.tsx"], ["client"]],
+    ["readiness", ["docs/README.md"], ["shared", "client", "admin", "agent", "indexer", "docs"]],
+    ["push", ["packages/admin/src/views/Garden/SubmitWork.tsx"], ["admin"]],
+    ["ship", ["packages/agent/src/index.ts"], ["agent"]],
+    ["merge", ["packages/indexer/src/EventHandlers.ts"], ["indexer"]],
+  ]) {
+    const plan = selectValidation({ intent, changedPaths });
+    for (const surface of expectedSurfaces) {
+      assert.equal(
+        plan.checks.find((check) => check.id === `${surface}-test`)?.command,
+        turboTestCommand(surface),
+        `${intent}:${surface}`,
+      );
+    }
+    assert.equal(
+      plan.checks.find((check) => check.id === "contracts-test")?.command,
+      intent === "readiness" ? "bun run test" : undefined,
+      `${intent}:contracts`,
+    );
+  }
+});
+
+test("focused, CI, and release package tests keep their package scripts", () => {
+  const focused = selectValidation({
+    intent: "checkpoint",
+    changedPaths: ["packages/client/src/components/Panel.tsx"],
+    testPaths: { client: ["src/components/Panel.test.tsx"] },
+  });
+  assert.equal(
+    focused.checks.find((check) => check.id === "client-test")?.command,
+    "bun run test src/components/Panel.test.tsx",
+  );
+
+  const ci = selectValidation({
+    intent: "merge",
+    ci: true,
+    changedPaths: ["packages/admin/src/views/Garden/SubmitWork.tsx"],
+  });
+  assert.equal(ci.checks.find((check) => check.id === "admin-test")?.command, "bun run test");
+
+  const release = selectValidation({ intent: "release", changedPaths: ["docs/README.md"] });
+  for (const surface of ["shared", "client", "admin", "agent", "indexer", "contracts", "docs"]) {
+    assert.equal(
+      release.checks.find((check) => check.id === `${surface}-test`)?.command,
+      "bun run test",
+      surface,
+    );
+  }
+});
+
+test("Turbo consumer inputs ignore shared specs without hiding shared test utilities", () => {
+  const turbo = JSON.parse(readFileSync(new URL("../../turbo.json", import.meta.url), "utf8"));
+  const sharedInputs = turbo.tasks["@green-goods/shared#test"].inputs;
+  assert.ok(!sharedInputs.includes("../contracts/.generated/**"));
+
+  for (const surface of ["client", "admin", "agent"]) {
+    const inputs = turbo.tasks[`@green-goods/${surface}#test`].inputs;
+    assert.ok(inputs.includes("../shared/src/**"), surface);
+    assert.ok(inputs.includes("!../shared/src/**/*.test.*"), surface);
+    assert.ok(inputs.includes("!../shared/src/**/*.spec.*"), surface);
+    assert.ok(inputs.includes("!../shared/src/**/*.stories.*"), surface);
+    assert.ok(
+      inputs.every(
+        (input) =>
+          !input.startsWith("!") ||
+          !["__tests__", "__mocks__", "setupTests", "/testing/"].some((segment) =>
+            input.includes(segment),
+          ),
+      ),
+      `${surface} must not exclude shared test utilities by directory or setup name`,
+    );
+  }
 });
 
 test("CI owns merge intent and cannot be downgraded", () => {
@@ -612,7 +700,7 @@ test("strict intents preserve owning surface gates for test-only changes", () =>
       const packageTest = plan.checks.find((check) => check.id === `${surface}-test`);
       assert.equal(
         packageTest.command,
-        "bun run test",
+        turboTestCommand(surface),
         `${intent} must run the full ${surface} suite`,
       );
       assert.deepEqual(
@@ -695,6 +783,13 @@ test("critical Work path packages/shared/src/modules/work/submit.ts retains its 
         `${changedPath}:${checkId}`,
       );
     }
+    for (const surface of ["shared", "client", "admin", "agent"]) {
+      assert.equal(
+        plan.checks.find((check) => check.id === `${surface}-test`)?.command,
+        turboTestCommand(surface),
+        `${changedPath}:${surface}`,
+      );
+    }
     assert.ok(!ids(plan).includes("contracts-verify-fast"), changedPath);
   }
 });
@@ -727,9 +822,10 @@ test("contract artifacts select contract strict checks and impacted consumers", 
     "contracts-verify-fast",
   ]);
   assert.ok(plan.checks.every((check) => check.mandatory));
+  assert.equal(plan.checks.find((check) => check.id === "contracts-test").command, "bun run test");
 });
 
-test("local merge and merge --ci select identical checks with only format command differing", () => {
+test("local merge and merge --ci select identical checks while preserving CI package scripts", () => {
   const changedPaths = ["packages/admin/src/views/Garden/SubmitWork.tsx"];
   const local = selectValidation({ intent: "merge", changedPaths });
   const ci = selectValidation({ intent: "merge", ci: true, changedPaths });
@@ -749,9 +845,14 @@ test("local merge and merge --ci select identical checks with only format comman
   assert.deepEqual(ids(local), ids(ci));
   assert.equal(local.checks.find((check) => check.id === "format").command, "bun format");
   assert.equal(ci.checks.find((check) => check.id === "format").command, "bun run format:check");
+  assert.equal(
+    local.checks.find((check) => check.id === "admin-test").command,
+    turboTestCommand("admin"),
+  );
+  assert.equal(ci.checks.find((check) => check.id === "admin-test").command, "bun run test");
   assert.deepEqual(
-    local.checks.filter((check) => check.id !== "format"),
-    ci.checks.filter((check) => check.id !== "format"),
+    local.checks.filter((check) => !["format", "admin-test"].includes(check.id)),
+    ci.checks.filter((check) => !["format", "admin-test"].includes(check.id)),
   );
   assert.ok(local.checks.every((check) => check.mandatory));
   assert.ok(ci.checks.every((check) => check.mandatory));
@@ -817,6 +918,17 @@ test("readiness and release remain full scope while empty ship falls back to ful
     assert.deepEqual(plan.surfaces, allSurfaceNames, intent);
     assert.deepEqual(ids(plan), fullStrictChecks, intent);
     assert.ok(plan.checks.every((check) => check.mandatory), intent);
+    for (const surface of ["shared", "client", "admin", "agent", "indexer", "contracts", "docs"]) {
+      const expected =
+        intent === "readiness" && surface !== "contracts"
+          ? turboTestCommand(surface)
+          : "bun run test";
+      assert.equal(
+        plan.checks.find((check) => check.id === `${surface}-test`)?.command,
+        expected,
+        `${intent}:${surface}`,
+      );
+    }
   }
 
   for (const intent of ["push", "ship", "merge"]) {
@@ -828,6 +940,14 @@ test("readiness and release remain full scope while empty ship falls back to ful
       "bun format",
       intent,
     );
+    for (const surface of ["shared", "client", "admin", "agent", "indexer", "docs"]) {
+      assert.equal(
+        plan.checks.find((check) => check.id === `${surface}-test`)?.command,
+        turboTestCommand(surface),
+        `${intent}:${surface}`,
+      );
+    }
+    assert.equal(plan.checks.find((check) => check.id === "contracts-test")?.command, "bun run test");
     assert.ok(plan.checks.every((check) => check.mandatory), intent);
   }
 });
@@ -865,6 +985,20 @@ test("receipt inputs authorize only opt-in passing reuse", () => {
   assert.equal(receipt.cacheReuse.allowed, true);
   assert.equal(receipt.cacheReuse.optInRequired, true);
   assert.equal(receipt.cacheReuse.failuresCacheable, false);
+  assert.match(receipt.fingerprint, /^[a-f0-9]{64}$/);
+});
+
+test("receipt inputs fingerprint the materialized Turbo command", () => {
+  const plan = selectValidation({
+    intent: "checkpoint",
+    base: "base-sha",
+    head: "head-sha",
+    changedPaths: ["packages/client/src/components/Panel.tsx"],
+  });
+  const clientTest = plan.checks.find((check) => check.id === "client-test");
+  const receipt = buildReceiptInputs(plan, clientTest);
+
+  assert.equal(receipt.command, turboTestCommand("client"));
   assert.match(receipt.fingerprint, /^[a-f0-9]{64}$/);
 });
 
@@ -941,7 +1075,7 @@ test("deleted tests are not inferred as focused Vitest paths", (t) => {
   const plan = selectValidation({ intent: "checkpoint", ...gitInputs });
   const sharedTest = plan.checks.find((check) => check.id === "shared-test");
   assert.deepEqual(sharedTest.focusedPaths, []);
-  assert.equal(sharedTest.command, "bun run test");
+  assert.equal(sharedTest.command, turboTestCommand("shared"));
 });
 
 test("lane fingerprint ignores an unrelated dirty plan while workspace fingerprint remains broad", (t) => {
