@@ -3,7 +3,7 @@ import { getActionTitle } from "../../utils/action/parsers";
 import type { Action, Address, Work, WorkDraft } from "../../types/domain";
 import type { ProcessJobResult } from "../job-queue";
 import type { TransactionSender } from "../transactions/types";
-import type { SimulateWorkSubmissionParams } from "./simulate";
+import type { SimulateWorkSubmissionParams, SimulationDeps } from "./simulate";
 import { WorkSubmissionError, type WalletSubmissionStage } from "./wallet-submission/types";
 
 export interface SubmitWorkCommand {
@@ -68,6 +68,7 @@ export type SubmitWorkOutcome =
 
 export interface DefaultSubmitWorkPortOptions {
   sender: TransactionSender | null;
+  simulationDeps?: SimulationDeps;
   onWalletStage?: SubmitWorkPorts["onWalletStage"];
   onQueueFallback?: SubmitWorkPorts["onQueueFallback"];
 }
@@ -217,7 +218,7 @@ export function createDefaultSubmitWorkPorts(
     clock: { now: () => Date.now() },
     simulate: async (input) => {
       const { simulateWorkSubmission } = await import("./simulate");
-      return simulateWorkSubmission(input);
+      return simulateWorkSubmission(input, options.simulationDeps);
     },
     queue: {
       enqueue: async (input) => {
