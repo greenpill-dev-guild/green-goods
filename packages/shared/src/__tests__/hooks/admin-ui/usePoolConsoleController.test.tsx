@@ -298,6 +298,10 @@ describe("usePoolConsoleController", () => {
     expect(result.current.poolId).toBe(POOL_ID);
     expect(result.current.viewer).toBe(TUNDE);
     expect(result.current.isOnline).toBe(true);
+    expect(result.current.availability).toEqual({
+      status: "available",
+      capability: availableCapability,
+    });
     expect(result.current.cycles).toEqual([CYCLE]);
     expect(result.current.commitments).toEqual([COMMITMENT]);
     expect(result.current.claims).toEqual([CLAIM]);
