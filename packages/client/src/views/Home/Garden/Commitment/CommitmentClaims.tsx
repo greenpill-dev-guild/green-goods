@@ -1,8 +1,8 @@
+import { type Address } from "@green-goods/shared";
 import {
-  type Address,
   type CommitmentClaimRequestRecord,
   type CommitmentReadModel,
-} from "@green-goods/shared";
+} from "@green-goods/shared/commitment-pooling";
 
 import { type ClaimContext, ClaimContextSheet, type ClaimGardenOption } from "./ClaimContextSheet";
 import { ClaimDecisionPanel } from "./ClaimDecisionPanel";

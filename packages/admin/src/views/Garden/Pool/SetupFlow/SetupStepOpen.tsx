@@ -1,4 +1,5 @@
-import { Alert, type CommitmentCycleRecord, type PoolConsoleController } from "@green-goods/shared";
+import { Alert, type PoolConsoleController } from "@green-goods/shared";
+import { type CommitmentCycleRecord } from "@green-goods/shared/commitment-pooling";
 import { useIntl } from "react-intl";
 import { cycleName } from "../poolPresentation";
 import type { AllocationPercent, RecognitionPercent } from "./AllocationEditor";

@@ -1,8 +1,5 @@
-import {
-  type PoolClaimRequestRow,
-  type PoolConsoleController,
-  StatusBadge,
-} from "@green-goods/shared";
+import { type PoolConsoleController, StatusBadge } from "@green-goods/shared";
+import { type PoolClaimRequestRow } from "@green-goods/shared/commitment-pooling";
 import { useIntl } from "react-intl";
 import { AdminButton } from "@/components/AdminButton";
 import { AdminCard } from "@/components/AdminCard";

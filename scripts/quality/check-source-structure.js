@@ -94,7 +94,7 @@ const FROZEN_ALLOWLIST = {
   "packages/shared/src/hooks/index.ts": 604,
   "packages/shared/src/hooks/work/useWorkApproval.ts": 544,
   "packages/shared/src/hooks/work/useWorkMutation.ts": 532,
-  "packages/shared/src/index.ts": 1427,
+  "packages/shared/src/index.ts": 1424,
   "packages/shared/src/modules/app/analytics-events.ts": 520,
   "packages/shared/src/modules/app/posthog.ts": 579,
   "packages/shared/src/modules/data/eas.ts": 618,

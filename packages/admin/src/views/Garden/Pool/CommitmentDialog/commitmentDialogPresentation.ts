@@ -1,4 +1,8 @@
-import type { Address, CommitmentEventRecord, CommitmentReadModel } from "@green-goods/shared";
+import type { Address } from "@green-goods/shared";
+import type {
+  CommitmentEventRecord,
+  CommitmentReadModel,
+} from "@green-goods/shared/commitment-pooling";
 
 type FormatMessage = (
   descriptor: { id: string; defaultMessage: string },

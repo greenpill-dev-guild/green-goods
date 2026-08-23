@@ -1,4 +1,4 @@
-import type { CommitmentComposerValues } from "@green-goods/shared";
+import type { CommitmentComposerValues } from "@green-goods/shared/commitment-pooling";
 import { Controller, type UseFormReturn } from "react-hook-form";
 import { useIntl } from "react-intl";
 import { AdminChoiceGroup } from "@/components/AdminChoiceGroup";

@@ -1,3 +1,4 @@
+import { type PoolConsoleController } from "@green-goods/shared";
 import {
   type CommitmentCycleRecord,
   campaignSteps,
@@ -5,11 +6,10 @@ import {
   isPoolDocumentPinError,
   newSeasonSteps,
   openSeasonSteps,
-  type PoolConsoleController,
   type PoolSetupStep,
   pinCycleMetadata,
   pinPoolCharter,
-} from "@green-goods/shared";
+} from "@green-goods/shared/commitment-pooling";
 import {
   type AllocationPercent,
   type RecognitionPercent,

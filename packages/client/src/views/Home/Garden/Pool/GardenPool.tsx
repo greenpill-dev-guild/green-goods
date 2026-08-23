@@ -1,19 +1,21 @@
 import {
   type Address,
-  type CommitmentPoolRecord,
-  commitmentNeedsSeat,
   DEFAULT_CHAIN_ID,
   jobQueue,
-  selectCommitmentSeat,
-  useCommitmentCycles,
-  useCommitmentMetadata,
-  useCommitmentQueueState,
-  useCommitments,
   useHasRole,
   useJobQueue,
   useOffline,
   usePrimaryAddress,
 } from "@green-goods/shared";
+import {
+  type CommitmentPoolRecord,
+  commitmentNeedsSeat,
+  selectCommitmentSeat,
+  useCommitmentCycles,
+  useCommitmentMetadata,
+  useCommitmentQueueState,
+  useCommitments,
+} from "@green-goods/shared/commitment-pooling";
 import { RiHandHeartLine, RiInformationLine, RiSeedlingLine } from "@remixicon/react";
 import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";

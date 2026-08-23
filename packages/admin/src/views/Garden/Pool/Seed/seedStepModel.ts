@@ -3,7 +3,7 @@ import {
   type CommitmentComposerValues,
   type CommitmentCycleRecord,
   type CycleMetadataNameResolution,
-} from "@green-goods/shared";
+} from "@green-goods/shared/commitment-pooling";
 import type { ActionFlowStep } from "@/components/Layout/ActionFlowStepper";
 import { cycleName } from "../poolPresentation";
 

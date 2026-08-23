@@ -103,6 +103,10 @@ export default defineConfig({
         replacement: resolve(__dirname, "../shared/src/__tests__/test-utils"),
       },
       {
+        find: "@green-goods/shared/commitment-pooling",
+        replacement: resolve(__dirname, "../shared/src/commitment-pooling"),
+      },
+      {
         find: "@green-goods/shared",
         replacement: resolve(__dirname, "../shared/src"),
       },

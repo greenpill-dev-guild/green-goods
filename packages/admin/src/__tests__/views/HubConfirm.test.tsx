@@ -2,11 +2,8 @@
  * @vitest-environment jsdom
  */
 
-import {
-  type CommitmentReadModel,
-  type ConfirmQueueRow,
-  type HubConfirmQueueController,
-} from "@green-goods/shared";
+import { type ConfirmQueueRow, type HubConfirmQueueController } from "@green-goods/shared";
+import { type CommitmentReadModel } from "@green-goods/shared/commitment-pooling";
 import {
   commitmentFixture,
   hubConfirmQueueControllerFixture,

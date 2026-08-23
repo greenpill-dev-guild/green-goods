@@ -1,10 +1,10 @@
+import { useNavigateToTop } from "@green-goods/shared";
 import {
   useCommitment,
   useCommitmentMetadataFor,
   useCommitmentPool,
   useCommitmentWorkAttributionsForWork,
-  useNavigateToTop,
-} from "@green-goods/shared";
+} from "@green-goods/shared/commitment-pooling";
 import { RiHandHeartLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 

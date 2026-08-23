@@ -1,9 +1,8 @@
+import { type Action, DEFAULT_CHAIN_ID } from "@green-goods/shared";
 import {
-  type Action,
   COMMITMENT_COMPOSER_DEFAULTS,
-  DEFAULT_CHAIN_ID,
   useCommitmentComposerForm,
-} from "@green-goods/shared";
+} from "@green-goods/shared/commitment-pooling";
 import type { Meta, StoryObj } from "@storybook/react";
 import { useFieldArray } from "react-hook-form";
 import { STORYBOOK_ADMIN_ACTIONS } from "../../../../../../shared/.storybook/adminFixtures";

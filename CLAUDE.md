@@ -174,7 +174,7 @@ import { useAuth, useGardens } from '@green-goods/shared'; // correct
 import deployment from '../../../contracts/deployments/11155111-latest.json';
 ```
 
-**Shared Imports**: Import only from public paths declared in `packages/shared/package.json#exports`. Prefer the narrowest declared public subpath when it avoids unrelated runtime coupling; never import `@green-goods/shared/src/**` or another undeclared internal path.
+**Shared Imports**: Declared subpaths in `packages/shared/package.json#exports` are public API; deep `src/**` paths are not. Prefer the narrowest declared public subpath when it avoids unrelated runtime coupling.
 
 **Type System**: Domain types (`Garden`, `Work`, `Action`, `Address`) live in `@green-goods/shared`. Use `Address` type (not `string`) for Ethereum addresses.
 

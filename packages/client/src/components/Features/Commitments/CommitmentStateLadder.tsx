@@ -1,4 +1,5 @@
-import { Alert, cn, type CommitmentPoolingAvailability } from "@green-goods/shared";
+import { Alert, cn } from "@green-goods/shared";
+import { type CommitmentPoolingAvailability } from "@green-goods/shared/commitment-pooling";
 import { RiInboxLine, RiPlantLine, RiRefreshLine, RiWifiOffLine } from "@remixicon/react";
 import type React from "react";
 import { useIntl } from "react-intl";

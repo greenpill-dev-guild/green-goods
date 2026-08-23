@@ -1,4 +1,7 @@
-import { COMMITMENT_COMPOSER_DEFAULTS, useCommitmentComposerForm } from "@green-goods/shared";
+import {
+  COMMITMENT_COMPOSER_DEFAULTS,
+  useCommitmentComposerForm,
+} from "@green-goods/shared/commitment-pooling";
 import type { Meta, StoryObj } from "@storybook/react";
 import { useState } from "react";
 import { STORY_JOAO, STORY_MARIA } from "../poolStoryFixtures";

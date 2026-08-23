@@ -65,6 +65,19 @@ vi.mock("@green-goods/shared", async () => {
   };
 });
 
+vi.mock("@green-goods/shared/commitment-pooling", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@green-goods/shared/commitment-pooling")>()),
+  useCommitmentPools: () => mockUsePools(),
+  useCommitmentCycles: () => mockUseCycles(),
+  useCommitmentCycleNames: () => ({ byCycleId: new Map(), isLoading: false }),
+  useCommitmentJobs: () => ({
+    enqueue: mockEnqueue,
+    isPending: false,
+    error: null,
+    viewer: VIEWER,
+  }),
+}));
+
 // The view imports one public controller. These reader-edge mocks keep that
 // controller real while replacing only its external data sources.
 vi.mock("../../../../shared/src/hooks/app/useOffline", () => ({

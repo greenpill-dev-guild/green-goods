@@ -1,4 +1,5 @@
-import { type Action, Alert, type CommitmentComposerValues } from "@green-goods/shared";
+import { type Action, Alert } from "@green-goods/shared";
+import { type CommitmentComposerValues } from "@green-goods/shared/commitment-pooling";
 import { useIntl } from "react-intl";
 import { actionUIDOf, type SeedCycleOption } from "./seedStepModel";
 

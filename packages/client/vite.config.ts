@@ -500,6 +500,10 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
           __dirname,
           "../shared/src/modules/app/service-worker-registration.ts"
         ),
+        "@green-goods/shared/commitment-pooling": resolve(
+          __dirname,
+          "../shared/src/commitment-pooling"
+        ),
         "@green-goods/shared": resolve(__dirname, "../shared/src"),
         "@green-goods/shared/components": resolve(__dirname, "../shared/src/components"),
         "@green-goods/shared/hooks": resolve(__dirname, "../shared/src/hooks"),

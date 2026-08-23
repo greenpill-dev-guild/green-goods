@@ -2,12 +2,12 @@
  * @vitest-environment jsdom
  */
 
+import { type PoolConsoleController } from "@green-goods/shared";
 import {
   type CommitmentCycleRecord,
   type CommitmentJobInput,
-  type PoolConsoleController,
   selectPoolConsoleModel,
-} from "@green-goods/shared";
+} from "@green-goods/shared/commitment-pooling";
 import {
   cycleFixture,
   poolConsoleControllerFixture,
@@ -25,6 +25,7 @@ const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000" as const;
 const NOW = 1_756_000_000n;
 
 type SharedModule = typeof import("@green-goods/shared");
+type PoolingModule = typeof import("@green-goods/shared/commitment-pooling");
 type Enqueue = (input: CommitmentJobInput) => Promise<string>;
 
 const mocks = vi.hoisted(() => ({
@@ -41,28 +42,39 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
     actual,
     {
       usePoolConsoleController: () => mocks.console!,
+      useActions: (() => ({
+        data: [{ id: "42161-44", title: "Prune trees" }],
+      })) as unknown as SharedModule["useActions"],
+      useMediaQuery: () => true,
+    },
+    { defaults: false }
+  );
+});
+
+vi.mock("@green-goods/shared/commitment-pooling", async (importOriginal) => {
+  const actual = await importOriginal<PoolingModule>();
+  const { createSharedBarrelMock } = await import("@green-goods/shared/testing");
+  return createSharedBarrelMock(
+    actual,
+    {
       useProtocolPool: (() => ({
         poolId: mocks.protocolRegistered ? 1n : null,
         rootGarden: "0xcccccccccccccccccccccccccccccccccccccccc",
         isRegistered: mocks.protocolRegistered,
         isLoading: false,
-      })) as unknown as SharedModule["useProtocolPool"],
+      })) as unknown as PoolingModule["useProtocolPool"],
       useSettlementAccount: (() => ({
         detail: mocks.settlementActive
           ? { account: { active: true }, route: null }
           : { account: null, route: null },
         isLoading: false,
-      })) as unknown as SharedModule["useSettlementAccount"],
-      useActions: (() => ({
-        data: [{ id: "42161-44", title: "Prune trees" }],
-      })) as unknown as SharedModule["useActions"],
+      })) as unknown as PoolingModule["useSettlementAccount"],
       useCommitmentJobs: () => ({
         enqueue: mocks.enqueue,
         isPending: false,
         error: null,
         viewer: VIEWER,
       }),
-      useMediaQuery: () => true,
     },
     { defaults: false }
   );

@@ -1,9 +1,5 @@
-import {
-  type Address,
-  adminRoutes,
-  type CommitmentReadModel,
-  usePoolConsoleController,
-} from "@green-goods/shared";
+import { type Address, adminRoutes, usePoolConsoleController } from "@green-goods/shared";
+import { type CommitmentReadModel } from "@green-goods/shared/commitment-pooling";
 import { RiSeedlingLine } from "@remixicon/react";
 import { useCallback, useState } from "react";
 import { useIntl } from "react-intl";

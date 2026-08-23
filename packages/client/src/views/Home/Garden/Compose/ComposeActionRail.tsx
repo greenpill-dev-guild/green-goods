@@ -1,10 +1,8 @@
+import { type Action, cn, DomainBadge } from "@green-goods/shared";
 import {
-  type Action,
   type CommitmentComposerValues,
-  cn,
-  DomainBadge,
   MAX_COMMITMENT_REQUIREMENTS,
-} from "@green-goods/shared";
+} from "@green-goods/shared/commitment-pooling";
 import { RiAddLine, RiCloseLine } from "@remixicon/react";
 import { useMemo } from "react";
 import { type UseFormReturn, useWatch } from "react-hook-form";

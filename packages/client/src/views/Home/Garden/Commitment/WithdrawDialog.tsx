@@ -1,4 +1,5 @@
-import { Alert, DialogShell, MAX_REASON } from "@green-goods/shared";
+import { Alert, DialogShell } from "@green-goods/shared";
+import { MAX_REASON } from "@green-goods/shared/commitment-pooling";
 import { useState } from "react";
 import { useIntl } from "react-intl";
 

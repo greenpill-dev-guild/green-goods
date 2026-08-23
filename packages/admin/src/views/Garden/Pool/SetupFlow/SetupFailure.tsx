@@ -1,9 +1,9 @@
+import { Alert } from "@green-goods/shared";
 import {
-  Alert,
   isRetriablePoolSetupFailure,
   type PoolSetupAction,
   type PoolSetupFailure as PoolSetupFailureReason,
-} from "@green-goods/shared";
+} from "@green-goods/shared/commitment-pooling";
 import { RiShieldCheckLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 

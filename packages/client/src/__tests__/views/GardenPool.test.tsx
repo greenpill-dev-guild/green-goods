@@ -12,7 +12,8 @@
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { Address, CommitmentPoolRecord } from "@green-goods/shared";
+import type { Address } from "@green-goods/shared";
+import type { CommitmentPoolRecord } from "@green-goods/shared/commitment-pooling";
 import { renderWithProviders, screen } from "../test-utils";
 
 /** The tab navigates into commitment detail, so it needs a router around it. */
@@ -136,6 +137,15 @@ vi.mock("@green-goods/shared", async () => {
     useHasRole: () => mockUseHasRole(),
   };
 });
+
+vi.mock("@green-goods/shared/commitment-pooling", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@green-goods/shared/commitment-pooling")>()),
+  useCommitments: () => mockUseCommitments(),
+  useCommitmentCycles: () => mockUseCommitmentCycles(),
+  useCommitmentCycleNames: () => mockUseCommitmentCycleNames(),
+  useCommitmentQueueState: () => mockUseQueueState(),
+  useCommitmentReason: (cid: string | null) => mockUseReason(cid),
+}));
 
 const { GardenPool } = await import("../../views/Home/Garden/Pool");
 

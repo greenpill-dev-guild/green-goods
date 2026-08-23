@@ -88,6 +88,30 @@ vi.mock("@green-goods/shared", () => ({
   },
 }));
 
+vi.mock("@green-goods/shared/commitment-pooling", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@green-goods/shared/commitment-pooling")>()),
+  useCommitmentsInbox: () => ({
+    live: [],
+    settled: [],
+    liveActCount: 0,
+    settledActCount: 0,
+    totalActCount: 0,
+    availability: { status: "unknown-chain" },
+    isLoading: false,
+    isError: false,
+    refetch: vi.fn(),
+  }),
+  useCommitmentsToConfirm: () => ({
+    groups: [],
+    count: 0,
+    isSteward: false,
+    availability: { status: "unknown-chain" },
+    isLoading: false,
+    isError: false,
+    refetch: vi.fn(),
+  }),
+}));
+
 // Mock @tanstack/react-query
 vi.mock("@tanstack/react-query", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@tanstack/react-query")>();
@@ -100,7 +124,8 @@ vi.mock("@tanstack/react-query", async (importOriginal) => {
 });
 
 // Mock @remixicon/react
-vi.mock("@remixicon/react", () => ({
+vi.mock("@remixicon/react", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@remixicon/react")>()),
   RiFilterLine: (props: any) => createElement("span", { "data-testid": "filter-icon", ...props }),
 }));
 

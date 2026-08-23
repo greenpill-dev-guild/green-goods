@@ -4,12 +4,12 @@
  * pool console and Hub stories render.
  */
 
+import { DEFAULT_CHAIN_ID } from "@green-goods/shared";
 import {
   type CommitmentReadModel,
   type CommitmentsToConfirm,
-  DEFAULT_CHAIN_ID,
   type PoolClaimRequestRow,
-} from "@green-goods/shared";
+} from "@green-goods/shared/commitment-pooling";
 import { STORYBOOK_PRIMARY_ADMIN_GARDEN } from "../../../../../shared/.storybook/adminFixtures";
 import { daysAgo, daysFromNow } from "../../../../../shared/.storybook/fixtures";
 import { STORY_ANA, STORY_GARDEN, STORY_JOAO, STORY_MARIA } from "./poolStoryActors";

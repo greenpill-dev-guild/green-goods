@@ -1,19 +1,21 @@
 import {
   type Address,
   Alert,
-  buildCommitmentCreationPayload,
-  commitmentComposerSchema,
   logger,
   useActions,
+  useDirtyClose,
+  usePoolConsoleController,
+  useStepFocus,
+} from "@green-goods/shared";
+import {
+  buildCommitmentCreationPayload,
+  commitmentComposerSchema,
   useCommitmentComposerForm,
   useCommitmentComposerSession,
   useCommitmentJobs,
-  useDirtyClose,
-  usePoolConsoleController,
   useProtocolPool,
   useSettlementAccount,
-  useStepFocus,
-} from "@green-goods/shared";
+} from "@green-goods/shared/commitment-pooling";
 import { type ReactNode, useCallback, useId, useMemo, useState } from "react";
 import { useFieldArray } from "react-hook-form";
 import { useIntl } from "react-intl";

@@ -2,14 +2,13 @@
  * @vitest-environment jsdom
  */
 
+import { type PoolConsoleActs, type PoolConsoleController } from "@green-goods/shared";
 import {
   type CommitmentCycleRecord,
   type CommitmentPoolRecord,
   type CommitmentReadModel,
-  type PoolConsoleActs,
-  type PoolConsoleController,
   selectPoolConsoleModel,
-} from "@green-goods/shared";
+} from "@green-goods/shared/commitment-pooling";
 import {
   commitmentFixture,
   cycleFixture,

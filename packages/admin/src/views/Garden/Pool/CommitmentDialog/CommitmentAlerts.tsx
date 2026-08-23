@@ -1,8 +1,5 @@
-import {
-  Alert,
-  type CommitmentDialogController,
-  type CommitmentReadModel,
-} from "@green-goods/shared";
+import { Alert, type CommitmentDialogController } from "@green-goods/shared";
+import { type CommitmentReadModel } from "@green-goods/shared/commitment-pooling";
 import { useIntl } from "react-intl";
 import type { FallbackPath } from "./commitmentDialogPresentation";
 

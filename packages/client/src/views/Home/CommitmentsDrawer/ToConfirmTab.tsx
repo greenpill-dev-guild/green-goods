@@ -1,10 +1,9 @@
+import { StatusBadge, useOffline } from "@green-goods/shared";
 import {
   type CommitmentsToConfirm,
   isCapturedCommitment,
-  StatusBadge,
   useCommitmentMetadata,
-  useOffline,
-} from "@green-goods/shared";
+} from "@green-goods/shared/commitment-pooling";
 import { RiShieldCheckLine } from "@remixicon/react";
 import { useMemo } from "react";
 import { useIntl } from "react-intl";

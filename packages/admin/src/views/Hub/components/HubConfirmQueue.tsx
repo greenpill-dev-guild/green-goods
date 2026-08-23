@@ -1,7 +1,6 @@
 import {
   type Address,
   Alert,
-  type CommitmentsToConfirm,
   type ConfirmQueueEligibility,
   type ConfirmQueueRow,
   EmptyState,
@@ -9,6 +8,7 @@ import {
   StatusBadge,
   useHubConfirmQueueController,
 } from "@green-goods/shared";
+import { type CommitmentsToConfirm } from "@green-goods/shared/commitment-pooling";
 import { RiShakeHandsLine } from "@remixicon/react";
 import { type ReactNode, useState } from "react";
 import { useIntl } from "react-intl";

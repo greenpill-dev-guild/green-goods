@@ -2,7 +2,8 @@
  * @vitest-environment jsdom
  */
 
-import { type CommitmentDialogController, type CommitmentReadModel } from "@green-goods/shared";
+import { type CommitmentDialogController } from "@green-goods/shared";
+import { type CommitmentReadModel } from "@green-goods/shared/commitment-pooling";
 import {
   availableCapability,
   commitmentDetailFixture,

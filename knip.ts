@@ -52,6 +52,7 @@ const config: KnipConfig = {
       ],
       entry: [
         "src/index.ts",
+        "src/commitment-pooling/index.ts",
         "src/components/index.ts",
         "src/ontology/index.ts",
         "src/hooks/index.ts",

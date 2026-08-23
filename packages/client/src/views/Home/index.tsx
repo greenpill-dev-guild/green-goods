@@ -5,8 +5,6 @@ import {
   toastService,
   useArrivalState,
   useAuthState,
-  useCommitmentsInbox,
-  useCommitmentsToConfirm,
   useBrowserNavigation,
   useFilteredGardens,
   useGardens,
@@ -17,6 +15,10 @@ import {
   useTimeout,
   useUIStore,
 } from "@green-goods/shared";
+import {
+  useCommitmentsInbox,
+  useCommitmentsToConfirm,
+} from "@green-goods/shared/commitment-pooling";
 import { RiFilterLine } from "@remixicon/react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useRef, useState } from "react";

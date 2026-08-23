@@ -1,4 +1,5 @@
-import type { CommitmentDialogController, CommitmentReadModel } from "@green-goods/shared";
+import type { CommitmentDialogController } from "@green-goods/shared";
+import type { CommitmentReadModel } from "@green-goods/shared/commitment-pooling";
 import { useIntl } from "react-intl";
 import { shortAddress } from "../poolPresentation";
 import { railLabel } from "./commitmentDialogPresentation";

@@ -1,9 +1,9 @@
+import { Alert } from "@green-goods/shared";
 import {
-  Alert,
   type CommitmentComposerValues,
   type CommitmentCycleRecord,
   type CycleMetadataNameResolution,
-} from "@green-goods/shared";
+} from "@green-goods/shared/commitment-pooling";
 import { type RefObject, useEffect } from "react";
 import { useIntl } from "react-intl";
 

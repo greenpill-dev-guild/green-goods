@@ -2,13 +2,13 @@
  * @vitest-environment jsdom
  */
 
+import { type PoolConsoleController } from "@green-goods/shared";
 import {
   type CommitmentPoolRecord,
-  type PoolConsoleController,
   type PoolSetupSequenceState,
   type PoolSetupStep,
   selectPoolConsoleModel,
-} from "@green-goods/shared";
+} from "@green-goods/shared/commitment-pooling";
 import {
   cycleFixture,
   poolConsoleControllerFixture,
@@ -21,8 +21,8 @@ import { fireEvent, renderWithProviders, screen, waitFor, within } from "../test
 
 const GARDEN = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" as const;
 
-type SharedModule = typeof import("@green-goods/shared");
-type SetupSequence = ReturnType<SharedModule["useCommitmentPoolSetupSequence"]>;
+type PoolingModule = typeof import("@green-goods/shared/commitment-pooling");
+type SetupSequence = ReturnType<PoolingModule["useCommitmentPoolSetupSequence"]>;
 
 const mocks = vi.hoisted(() => ({
   run: vi.fn<SetupSequence["run"]>(),
@@ -47,6 +47,18 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
   return createSharedBarrelMock(
     actual,
     {
+      useMediaQuery: () => true,
+    },
+    { defaults: false }
+  );
+});
+
+vi.mock("@green-goods/shared/commitment-pooling", async (importOriginal) => {
+  const actual = await importOriginal<PoolingModule>();
+  const { createSharedBarrelMock } = await import("@green-goods/shared/testing");
+  return createSharedBarrelMock(
+    actual,
+    {
       useCommitmentPoolSetupSequence: () => ({
         state: mocks.state,
         run: mocks.run,
@@ -55,7 +67,6 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
       }),
       pinPoolCharter: mocks.pinPoolCharter,
       pinCycleMetadata: mocks.pinCycleMetadata,
-      useMediaQuery: () => true,
     },
     { defaults: false }
   );

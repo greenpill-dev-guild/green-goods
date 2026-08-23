@@ -8,7 +8,7 @@
 
 import { describe, expect, it } from "vitest";
 
-import { canLinkWork } from "@green-goods/shared";
+import { canLinkWork } from "@green-goods/shared/commitment-pooling";
 import {
   canJoinTeam,
   selectCommitmentAct,

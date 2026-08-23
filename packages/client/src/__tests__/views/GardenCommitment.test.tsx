@@ -9,14 +9,16 @@
 
 import type {
   Action,
-  CommitmentDetail,
-  CommitmentReadModel,
-  CommitmentRequirementRecord,
-  CommitmentWorkAttributionRecord,
   GardenCommitmentActs,
   GardenCommitmentController,
   Work,
 } from "@green-goods/shared";
+import type {
+  CommitmentDetail,
+  CommitmentReadModel,
+  CommitmentRequirementRecord,
+  CommitmentWorkAttributionRecord,
+} from "@green-goods/shared/commitment-pooling";
 import {
   claimFixture,
   commitmentDetailFixture,
@@ -66,6 +68,11 @@ vi.mock("@green-goods/shared", async () => {
     jobQueue: { retryJob: mockRetryJob, discardJob: mockDiscardJob },
   };
 });
+
+vi.mock("@green-goods/shared/commitment-pooling", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@green-goods/shared/commitment-pooling")>()),
+  useCommitmentReason: (...args: unknown[]) => mockReason(...args),
+}));
 
 const { GardenCommitment } = await import("../../views/Home/Garden/Commitment");
 

@@ -104,6 +104,33 @@ vi.mock("@green-goods/shared", () => ({
     createElement("button", { type: "button" }, address),
 }));
 
+vi.mock("@green-goods/shared/commitment-pooling", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@green-goods/shared/commitment-pooling")>()),
+  PUBLIC_HISTORY_PAGE_SIZE: 12,
+  usePublicGardenPool: () => ({
+    data: {
+      pool: null,
+      openSeason: null,
+      openCampaigns: [],
+      finishedCycles: [],
+      poolUnitSummaries: [],
+      cycleUnitSummaries: [],
+      finishedCycleTotal: 0,
+      hasCommitmentCertificates: false,
+      partialData: false,
+      unavailableSources: { commitmentPool: false, cycleMetadata: false },
+    },
+    isLoading: false,
+    isFetching: false,
+    isPlaceholderData: false,
+    refetch: () => Promise.resolve(),
+  }),
+  selectPublicPromiseKeptRate: () => ({
+    kind: "counts-only",
+    counts: { fulfilled: 0n, due: 0n },
+  }),
+}));
+
 vi.mock("@/components/Display", () => ({
   ImageWithFallback: ({ alt }: { alt?: string }) => createElement("img", { alt: alt ?? "" }),
 }));

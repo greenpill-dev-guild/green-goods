@@ -3,9 +3,9 @@ import {
   type CommitmentReadModel,
   type CommitmentSeat,
   selectCommitmentActKind,
-} from "@green-goods/shared";
+} from "@green-goods/shared/commitment-pooling";
 
-export { canJoinTeam } from "@green-goods/shared";
+export { canJoinTeam } from "@green-goods/shared/commitment-pooling";
 
 /**
  * How the commitment's one act is labelled.

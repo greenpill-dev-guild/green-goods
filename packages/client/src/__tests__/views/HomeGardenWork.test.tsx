@@ -73,7 +73,16 @@ vi.mock("@green-goods/shared", () => ({
   useWorks: (...args: unknown[]) => mockUseWorks(...args),
 }));
 
-vi.mock("@tanstack/react-query", () => ({
+vi.mock("@green-goods/shared/commitment-pooling", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@green-goods/shared/commitment-pooling")>()),
+  useCommitment: (...args: unknown[]) => mockUseCommitment(...args),
+  useCommitmentMetadataFor: () => ({ version: 1, title: "Prune the north beds" }),
+  useCommitmentWorkAttributionsForWork: (...args: unknown[]) => mockUseAttributions(...args),
+  useCommitmentPool: () => ({ pool: null }),
+}));
+
+vi.mock("@tanstack/react-query", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@tanstack/react-query")>()),
   useQueryClient: () => ({
     invalidateQueries: vi.fn(),
   }),

@@ -1,11 +1,11 @@
 import type {
   ActivityEvent,
   Address,
-  CommitmentsToConfirm,
   HubActionSummary,
   HubPipelineStage,
   Work,
 } from "@green-goods/shared";
+import type { CommitmentsToConfirm } from "@green-goods/shared/commitment-pooling";
 import { HubAssessmentQueue } from "./HubAssessmentQueue";
 import { HubCertificationQueue } from "./HubCertificationQueue";
 import { HubConfirmQueue } from "./HubConfirmQueue";

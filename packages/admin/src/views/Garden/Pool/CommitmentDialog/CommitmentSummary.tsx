@@ -1,4 +1,5 @@
-import { type CommitmentReadModel, StatusBadge } from "@green-goods/shared";
+import { StatusBadge } from "@green-goods/shared";
+import { type CommitmentReadModel } from "@green-goods/shared/commitment-pooling";
 import { useIntl } from "react-intl";
 import {
   commitmentStateChip,

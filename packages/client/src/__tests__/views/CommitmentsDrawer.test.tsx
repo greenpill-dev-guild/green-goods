@@ -106,6 +106,14 @@ vi.mock("@green-goods/shared", async () => {
   };
 });
 
+vi.mock("@green-goods/shared/commitment-pooling", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@green-goods/shared/commitment-pooling")>()),
+  useCommitmentPools: () => ({ pools: [{ poolId: 7n, garden: GARDEN }] }),
+  useCommitmentSeries: () => ({ series: [] }),
+  useCommitmentsInbox: () => mockUseCommitmentsInbox(),
+  useCommitmentsToConfirm: () => mockUseCommitmentsToConfirm(),
+}));
+
 const { CommitmentsDrawer } = await import("../../views/Home/CommitmentsDrawer");
 
 describe("CommitmentsDrawer", () => {

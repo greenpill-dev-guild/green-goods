@@ -1,7 +1,5 @@
 export type * from "./ontology/types";
 export * from "./ontology/query";
-export * from "./modules/commitment-pooling";
-export * from "./hooks/commitment-pooling";
 export * from "./hooks/client-ui";
 // COMPONENTS
 // ============================================================================

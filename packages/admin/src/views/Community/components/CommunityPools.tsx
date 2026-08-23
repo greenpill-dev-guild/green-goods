@@ -1,13 +1,10 @@
+import { type Address, adminRoutes, StatusBadge, useUser } from "@green-goods/shared";
 import {
-  type Address,
-  adminRoutes,
   type CommitmentsToConfirm,
-  StatusBadge,
   useCommitmentPools,
   useCommitmentsToConfirm,
   useProtocolPool,
-  useUser,
-} from "@green-goods/shared";
+} from "@green-goods/shared/commitment-pooling";
 import { RiArrowRightLine, RiRefreshLine } from "@remixicon/react";
 import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";

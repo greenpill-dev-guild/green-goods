@@ -11,6 +11,7 @@
   "types": "./src/index.ts",
   "exports": {
     ".": "./src/index.ts",
+    "./commitment-pooling": "./src/commitment-pooling/index.ts",
     "./components": "./src/components/index.ts",
     "./cards": "./src/components/Cards/index.ts",
     "./display": "./src/components/Display/index.ts",

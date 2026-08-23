@@ -1,10 +1,10 @@
+import { type Address } from "@green-goods/shared";
 import {
-  type Address,
   PUBLIC_HISTORY_PAGE_SIZE,
   type PublicGardenPoolData,
   selectPublicPromiseKeptRate,
   usePublicGardenPool,
-} from "@green-goods/shared";
+} from "@green-goods/shared/commitment-pooling";
 import { useState } from "react";
 import { type IntlShape, useIntl } from "react-intl";
 import { EditorialPanel } from "@/components/Public/atoms";

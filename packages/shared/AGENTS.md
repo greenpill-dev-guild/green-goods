@@ -25,7 +25,7 @@ types, i18n, and Storybook-backed shared UI building blocks.
 
 - All reusable hooks live here. Do not create parallel hooks in `client`, `admin`, or `agent`.
 - Shared UI primitives should be consumed through `@green-goods/shared`, not recreated in app packages.
-- Export public APIs through package barrels. Do not teach consumers deep import paths.
+- Declared subpaths in `package.json#exports` are public API; deep `src/**` paths are not. Prefer the narrowest declared public subpath when it avoids unrelated runtime coupling.
 - Use centralized query keys from `queryKeys`; do not invent ad-hoc query arrays.
 - Use `useCurrentChain()` or `DEFAULT_CHAIN_ID`, not wallet chain state, for application defaults.
 - Prefer event-driven invalidation over polling.

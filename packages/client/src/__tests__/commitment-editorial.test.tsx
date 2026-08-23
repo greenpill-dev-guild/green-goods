@@ -75,6 +75,12 @@ vi.mock("@green-goods/shared", async () => {
   };
 });
 
+vi.mock("@green-goods/shared/commitment-pooling", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@green-goods/shared/commitment-pooling")>()),
+  usePublicGardenPool: (...args: unknown[]) => mockUsePublicGardenPool(...args),
+  usePublicCommitmentImpact: (...args: unknown[]) => mockUsePublicCommitmentImpact(...args),
+}));
+
 import { EVIDENCE_KIND_LABELS } from "../components/Public/evidenceKinds";
 import { PublicCommitmentsBand } from "../components/Public/PublicCommitmentsBand";
 import { PublicEvidencePipeline } from "../components/Public/PublicEvidencePipeline";

@@ -449,6 +449,22 @@ test("shared public API changes include direct consumers", () => {
   }
 });
 
+test("declared shared subpath barrels classify as public source", () => {
+  const changedPath = "packages/shared/src/commitment-pooling/index.ts";
+  const plan = selectValidation({
+    intent: "checkpoint",
+    changedPaths: [changedPath],
+  });
+
+  assert.deepEqual(plan.changes, [
+    {
+      path: changedPath,
+      kind: "public-source",
+      surface: "shared",
+    },
+  ]);
+});
+
 test("eligible local package tests route through Turbo with package-relative binaries", () => {
   for (const [intent, changedPaths, expectedSurfaces] of [
     ["checkpoint", ["packages/client/src/components/Panel.tsx"], ["client"]],

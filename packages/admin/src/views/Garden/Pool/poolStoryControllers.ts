@@ -6,15 +6,17 @@
 
 import {
   type CommitmentDialogController,
-  type CommitmentPoolRecord,
-  type CommitmentReadModel,
   DEFAULT_CHAIN_ID,
   type HubConfirmQueueController,
   type OntologyChainCapability,
   type PoolConsoleController,
+} from "@green-goods/shared";
+import {
+  type CommitmentPoolRecord,
+  type CommitmentReadModel,
   selectPoolConsoleModel,
   selectPromiseKeptRate,
-} from "@green-goods/shared";
+} from "@green-goods/shared/commitment-pooling";
 import { STORYBOOK_PRIMARY_ADMIN_GARDEN } from "../../../../../shared/.storybook/adminFixtures";
 import { daysAgo } from "../../../../../shared/.storybook/fixtures";
 import { STORY_GARDEN, STORY_JOAO, STORY_MARIA, STORY_NOW, STORY_STEWARD } from "./poolStoryActors";

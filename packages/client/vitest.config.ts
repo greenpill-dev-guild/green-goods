@@ -120,6 +120,10 @@ export default defineConfig({
         replacement: path.resolve(__dirname, "../shared/src/__tests__/test-utils"),
       },
       {
+        find: "@green-goods/shared/commitment-pooling",
+        replacement: path.resolve(__dirname, "../shared/src/commitment-pooling"),
+      },
+      {
         find: "@green-goods/shared",
         replacement: path.resolve(__dirname, "../shared/src"),
       },

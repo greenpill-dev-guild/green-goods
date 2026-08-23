@@ -2,7 +2,7 @@ import type {
   CommitmentComposerValues,
   CommitmentCycleRecord,
   CycleMetadataNameResolution,
-} from "@green-goods/shared";
+} from "@green-goods/shared/commitment-pooling";
 import { RiHandHeartLine, RiLeafLine } from "@remixicon/react";
 import { type UseFormReturn, useWatch } from "react-hook-form";
 import { useIntl } from "react-intl";

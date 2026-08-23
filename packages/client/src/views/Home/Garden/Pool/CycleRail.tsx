@@ -1,4 +1,8 @@
-import { cn, type CommitmentCycleRecord, useCommitmentCycleNames } from "@green-goods/shared";
+import { cn } from "@green-goods/shared";
+import {
+  type CommitmentCycleRecord,
+  useCommitmentCycleNames,
+} from "@green-goods/shared/commitment-pooling";
 import { RiFlagLine, RiSunLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 

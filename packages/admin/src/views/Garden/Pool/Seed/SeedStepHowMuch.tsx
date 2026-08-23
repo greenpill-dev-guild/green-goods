@@ -1,4 +1,5 @@
-import type { Action, CommitmentComposerValues } from "@green-goods/shared";
+import type { Action } from "@green-goods/shared";
+import type { CommitmentComposerValues } from "@green-goods/shared/commitment-pooling";
 import { RiAddLine, RiCloseLine } from "@remixicon/react";
 import { Controller, type UseFieldArrayReturn, type UseFormReturn } from "react-hook-form";
 import { useIntl } from "react-intl";

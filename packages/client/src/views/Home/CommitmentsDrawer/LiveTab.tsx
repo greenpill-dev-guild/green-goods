@@ -1,13 +1,10 @@
+import { Alert, cn, type Garden, useOffline } from "@green-goods/shared";
 import {
-  Alert,
-  cn,
   type CommitmentPoolRecord,
   type CommitmentsInbox,
-  type Garden,
   type InboxCommitment,
   useCommitmentMetadata,
-  useOffline,
-} from "@green-goods/shared";
+} from "@green-goods/shared/commitment-pooling";
 import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 
