@@ -122,3 +122,26 @@ that those presentation artifacts were updated.
   connection with `EPERM`.
 - Measurement host: Apple ARM64, 10 logical processors, 24 GiB memory. Load average at capture was
   6.32/21.19/32.33, so quiet-machine suite timing targets remain deliberately unclaimed.
+
+## Wave 1 Snapshot — 2026-08-23
+
+Wave 1 is complete at implementation SHA `a60e9eca357a83387053001827700aa6904774a7`.
+The consolidated receipt is `handoffs/wave-1-receipt.md`.
+
+- Module health: the Job Queue now has a constructable dependency boundary and tested default
+  singleton; all three transaction senders share typed conformance laws; work submission,
+  simulation, passkey submission, and executor orchestration have direct injectable seams; both
+  pooling controllers have direct suites; Admin pooling views use typed controller fixtures.
+- Direct coverage: the six-file Wave 1 run passed 105/105 at 99.16% statements, 96.17% branches,
+  98.70% functions, and 99.40% lines. Pool Console retained 100% lines/functions; Hub Confirm, work
+  submit, and passkey submission were fully line-covered; simulation reached 98.66% lines and
+  96.05% branches.
+- Regression evidence: Shared focused B2 passed 118/118; Client passed 93 files / 865 tests; Admin
+  passed 94 files / 659 tests; Agent passed 25 files / 270 tests with one live test skipped. Shared
+  source/test typechecks, Agent typecheck, source structure, design, vocabulary, and ontology passed.
+- Exit invariants: `createJobQueue` is exported and wiring-tested; no
+  `vi.mock(...passkey-submission)` remains; Hub authority-garden mutants fail; the six Admin pooling
+  tests have no real `as never` cast or `Record<string, unknown>` controller bag.
+- Boundary blocker: the Repo Quick Gate is `BLOCKED`, not passing, because nine unrelated Indexer
+  metadata tests cannot bind `127.0.0.1` in this sandbox (`EPERM`) after 277 Indexer tests passed.
+  The unchanged environment failure was not retried and no quiet-machine velocity claim is made.

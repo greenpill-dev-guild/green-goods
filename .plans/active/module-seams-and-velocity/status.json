@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p1",
     "created_at": "2026-08-23T02:50:35.809Z",
-    "updated_at": "2026-08-23T15:44:16.000Z"
+    "updated_at": "2026-08-23T16:58:46.000Z"
   },
   "links": {
     "brief": "brief.md",
@@ -354,18 +354,35 @@
     "work_submit_command": {
       "machine_lane": "state_api",
       "owner": "codex",
-      "status": "todo",
+      "status": "passed",
       "branch": null,
       "depends_on": ["jobqueue_create_deps", "sender_conformance"],
-      "handoff": null
+      "handoff": "handoffs/wave-1-receipt.md",
+      "commit": "caf1d84ed52cba3a3f93a1b9ef9da4b4bc4c4d44",
+      "tdd": {
+        "status": "green_recorded",
+        "red": "The direct command suite failed before submitWorkCommand and its injectable ports existed.",
+        "green": "The focused work-mutation and command proof passed 56/56 and direct command coverage reached 100%."
+      },
+      "validation": "Critical selector checks, Shared typechecks, full Client/Admin/Agent consumers, source structure, ontology, and the Wave 1 direct coverage run passed.",
+      "publication_status": "integrated directly on develop"
     },
     "work_simulate_passkey_executor_deps": {
       "machine_lane": "state_api",
       "owner": "codex",
-      "status": "todo",
+      "status": "passed",
       "branch": null,
       "depends_on": ["jobqueue_create_deps", "sender_conformance"],
-      "handoff": null
+      "handoff": "handoffs/wave-1-receipt.md",
+      "commit": "a60e9eca357a83387053001827700aa6904774a7",
+      "tdd": {
+        "status": "green_recorded",
+        "red": "The direct simulation cache, passkey dependency, and executor extraction suites failed before their seams existed.",
+        "green": "Seven focused files passed 118/118 and the six production files cleared their 80/75 and 90/85 coverage floors."
+      },
+      "validation": "Format, lint, Shared source/test typechecks, Agent typecheck, focused and coverage tests, Client/Admin/Agent suites, source structure, design, vocabulary, and ontology passed.",
+      "proof_limit": "The aggregate Repo Quick Gate is BLOCKED by nine Indexer tests that cannot bind localhost in this sandbox; this is not recorded as passing.",
+      "publication_status": "integrated directly on develop"
     },
     "pool_controller_contracts_and_fixtures": {
       "machine_lane": "state_api",
@@ -404,18 +421,34 @@
     "hub_confirm_queue_controller_suite": {
       "machine_lane": "state_api",
       "owner": "codex",
-      "status": "todo",
+      "status": "passed",
       "branch": null,
       "depends_on": ["pool_controller_contracts_and_fixtures"],
-      "handoff": null
+      "handoff": "handoffs/wave-1-receipt.md",
+      "commit": "00810a70968615b631c3de90a09cd8995f6fdf88",
+      "tdd": {
+        "status": "green_recorded",
+        "red": "Changing confirmation or dispute authority from row.garden to row.poolGarden failed the named direct case 1/5.",
+        "green": "The restored controller suite passed 5/5 and the controller reached 100% line coverage."
+      },
+      "validation": "Ordering, metadata, search, authority, loading, pending, error, and missing-disputed behavior passed direct proof.",
+      "publication_status": "integrated directly on develop"
     },
     "admin_pool_view_tests_typed": {
       "machine_lane": "ui",
       "owner": "codex",
-      "status": "todo",
+      "status": "passed",
       "branch": null,
       "depends_on": ["pool_controller_contracts_and_fixtures"],
-      "handoff": null
+      "handoff": "handoffs/wave-1-receipt.md",
+      "commit": "fdf9849f30afeef80c88506bd15a9e545aa8390a",
+      "tdd": {
+        "status": "green_recorded",
+        "red": "Typed fixture adoption exposed the remaining untyped controller bags and unsafe casts in the six pooling view tests.",
+        "green": "The six view files retained their test names and counts using shared typed controller fixtures."
+      },
+      "validation": "Admin test typecheck and the full 94-file, 659-test Admin suite passed at the integrated Wave 1 SHA.",
+      "publication_status": "integrated directly on develop"
     },
     "app_telemetry_port": {
       "machine_lane": "state_api",
@@ -934,6 +967,14 @@
       "status": "reconciled",
       "branch": null,
       "note": "Confirmed PRs 754 through 760 merged, integrated the missing validated Wave 0 and Wave 1 stack directly on develop, and refreshed Pool Console proof at the final assertion commit."
+    },
+    {
+      "timestamp": "2026-08-23T16:58:46.000Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "wave_1_complete",
+      "branch": null,
+      "note": "Completed the Wave 1 mutation seams and pooling-controller batch on develop, recorded direct coverage and consumer proof, and retained the aggregate Indexer localhost failure as an environment blocker."
     }
   ]
 }
