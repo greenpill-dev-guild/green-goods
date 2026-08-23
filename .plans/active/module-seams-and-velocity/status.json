@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p1",
     "created_at": "2026-08-23T02:50:35.809Z",
-    "updated_at": "2026-08-23T10:05:00.000Z"
+    "updated_at": "2026-08-23T10:37:13.000Z"
   },
   "links": {
     "brief": "brief.md",
@@ -370,10 +370,19 @@
     "pool_controller_contracts_and_fixtures": {
       "machine_lane": "state_api",
       "owner": "codex",
-      "status": "in_progress",
+      "status": "passed",
       "branch": "refactor/pool-controller-contracts",
       "depends_on": ["w0_receipt_debt_burndown"],
-      "handoff": "handoffs/pool_controller_contracts_and_fixtures.md"
+      "handoff": "handoffs/pool_controller_contracts_and_fixtures.md",
+      "commit": "7266e90786a445b6169dde0dd1c4a85f6633301b",
+      "tdd": {
+        "status": "green_recorded",
+        "red": "The parent failed the new fixture acceptance test 1/1 because poolFixture was absent; removing story-controller as-never casts also exposed three concrete controller-shape mismatches",
+        "green": "The fixture acceptance test passed 2/2, the focused Shared pool set passed 74/74, and the six unchanged Admin pooling view files passed 65/65"
+      },
+      "validation": "QA selector ready; its format/lint, Shared typechecks, Client/Admin/Agent suites, Agent typecheck, ontology, source structure, direct fixture acceptance, focused Shared pool tests, direct Admin source/test typechecks, and zero-cast/controller-bag searches passed",
+      "proof_limit": "Admin typecheck:full is BLOCKED, not passing, by untouched Shared declaration-emission portability errors: TS2883 in passkeyServer, pimlico, command-palette, cookie-jar, ENS, and blockchain client files plus TS4058 in the two Hub controller files. The selector also names nonexistent controller-fixtures.ts; the direct controller-fixtures.test.ts acceptance command passed. This type-and-fixture lane adds no production coverage floor; direct controller coverage belongs to the dependent controller-suite lanes.",
+      "publication_status": "local stacked implementation commits validated; publication remains pending"
     },
     "pool_console_controller_suite": {
       "machine_lane": "state_api",
