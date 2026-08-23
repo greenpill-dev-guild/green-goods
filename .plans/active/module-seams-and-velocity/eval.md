@@ -145,3 +145,25 @@ The consolidated receipt is `handoffs/wave-1-receipt.md`.
 - Boundary blocker: the Repo Quick Gate is `BLOCKED`, not passing, because nine unrelated Indexer
   metadata tests cannot bind `127.0.0.1` in this sandbox (`EPERM`) after 277 Indexer tests passed.
   The unchanged environment failure was not retried and no quiet-machine velocity claim is made.
+
+## Wave 2 Snapshot — 2026-08-23
+
+Wave 2 is complete at implementation SHA `a5338a807836f7fb4f4be7d88c1215acfbbbe0a4`.
+The consolidated receipt is `handoffs/wave-2-receipt.md`.
+
+- Module health: the declared pooling subpath is consumed without Shared `src` deep imports; the
+  Shared root hook barrel is 604 lines; Garden Commitment and both composer flows have direct
+  controller/model seams; `CommunityTab.tsx` is deleted and its largest replacement is 279 lines;
+  the Hasura shell is 91 lines over a 260-line pure policy planner.
+- Direct proof: controller, view, Community, and Hasura focused suites passed; the Indexer boundary
+  suite passed 14/14; Shared story coverage is 249/249 and story quality passed.
+- Regression evidence: validation-system passed 132/132, including a committed patch above 1 MiB;
+  Shared passed 448/448 in 45.25 seconds, Client 195/195 in 51.30 seconds, Admin 72/72 in 40.79
+  seconds, and Agent 270/270. These are changed-path batch observations, not quiet-machine full-suite
+  claims.
+- Exit invariants: consumers use `@green-goods/shared/commitment-pooling`; only the Coordination
+  surface owns yield wiring and only Members dialogs own garden operations; restricted Hasura
+  policies are preserved; default Job Queue composition proof no longer cold-loads the full graph.
+- Boundary blockers: nine Indexer metadata tests cannot bind `127.0.0.1`; Docker is unavailable;
+  local app and Storybook servers cannot bind their ports; authenticated Brave proof is therefore
+  blocked. None is reported as passing or retried without a capability change.

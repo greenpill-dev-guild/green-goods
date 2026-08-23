@@ -45,7 +45,7 @@
 |---|---|---|
 | A green-by-default scoped validation harness | Wave 0 | complete |
 | Direct seams for high-risk mutations and pooling controllers | Wave 1 | complete |
-| Declared shared boundaries and smaller composition surfaces | Wave 2 | in progress |
+| Declared shared boundaries and smaller composition surfaces | Wave 2 | complete |
 | Every remaining shared module below A- regraded | Wave 3 | blocked on dependencies |
 | Every remaining client/admin module below A- regraded | Wave 4 | blocked on shared seams |
 | Every remaining indexer module below A- regraded | Wave 5 | held behind Wave 0 program start |
@@ -64,7 +64,7 @@
 8. [x] Record the Wave 0 Module Health and Velocity snapshots and verify every Wave 0 exit signal.
 9. [x] Complete the remaining Wave 1 shared seams in order A and C, then B1 and B2, as one integrated `develop` batch.
 10. [x] Complete the remaining Wave 1 pooling controller suites and typed view tests in the same batch.
-11. [ ] Complete Wave 2 client controllers, Community split and design pass, Hasura planner, and pooling subpath on `develop`.
+11. [x] Complete Wave 2 client controllers, Community split and design pass, Hasura planner, and pooling subpath on `develop`.
 12. [ ] Complete Wave 3 shared ports, repositories, adapters, commands, transitions, hooks, providers, and shell contracts in dependency rounds.
 13. [ ] Complete Wave 4 client and admin controller, view-model, state, and direct-test requirements.
 14. [ ] Complete Wave 5 indexer event helpers, fixtures, delivery contracts, source split, automatic mined-log selection, and permission planner.

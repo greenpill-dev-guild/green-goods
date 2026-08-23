@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p1",
     "created_at": "2026-08-23T02:50:35.809Z",
-    "updated_at": "2026-08-23T16:58:46.000Z"
+    "updated_at": "2026-08-23T19:13:07.000Z"
   },
   "links": {
     "brief": "brief.md",
@@ -603,58 +603,65 @@
     "commitment_pooling_subpath": {
       "machine_lane": "state_api",
       "owner": "codex",
-      "status": "todo",
+      "status": "passed",
       "branch": null,
       "depends_on": ["client_ui_barrel_and_garden_commitment_controller"],
-      "handoff": null
+      "handoff": "handoffs/wave-2-receipt.md",
+      "commit": "a5338a807836f7fb4f4be7d88c1215acfbbbe0a4"
     },
     "client_ui_barrel_and_garden_commitment_controller": {
       "machine_lane": "state_api",
       "owner": "codex",
-      "status": "todo",
+      "status": "passed",
       "branch": null,
       "depends_on": ["pool_controller_contracts_and_fixtures"],
-      "handoff": null
+      "handoff": "handoffs/wave-2-receipt.md",
+      "commit": "a5338a807836f7fb4f4be7d88c1215acfbbbe0a4"
     },
     "client_garden_commitment_view_adoption": {
       "machine_lane": "ui",
       "owner": "codex",
-      "status": "todo",
+      "status": "passed",
       "branch": null,
       "depends_on": ["client_ui_barrel_and_garden_commitment_controller"],
-      "handoff": null
+      "handoff": "handoffs/wave-2-receipt.md",
+      "commit": "a5338a807836f7fb4f4be7d88c1215acfbbbe0a4"
     },
     "client_proof_composer_controller": {
       "machine_lane": "state_api",
       "owner": "codex",
-      "status": "todo",
+      "status": "passed",
       "branch": null,
       "depends_on": ["client_ui_barrel_and_garden_commitment_controller", "composer_proof_drafts"],
-      "handoff": null
+      "handoff": "handoffs/wave-2-receipt.md",
+      "commit": "a5338a807836f7fb4f4be7d88c1215acfbbbe0a4"
     },
     "client_commitment_composer_controller": {
       "machine_lane": "state_api",
       "owner": "codex",
-      "status": "todo",
+      "status": "passed",
       "branch": null,
       "depends_on": ["client_ui_barrel_and_garden_commitment_controller"],
-      "handoff": null
+      "handoff": "handoffs/wave-2-receipt.md",
+      "commit": "a5338a807836f7fb4f4be7d88c1215acfbbbe0a4"
     },
     "admin_community_tab_split": {
       "machine_lane": "ui",
       "owner": "codex",
-      "status": "todo",
+      "status": "passed",
       "branch": null,
       "depends_on": ["pool_controller_contracts_and_fixtures"],
-      "handoff": null
+      "handoff": "handoffs/wave-2-receipt.md",
+      "commit": "a5338a807836f7fb4f4be7d88c1215acfbbbe0a4"
     },
     "admin_community_cockpit_polish": {
       "machine_lane": "ui",
       "owner": "claude",
-      "status": "todo",
+      "status": "passed",
       "branch": null,
       "depends_on": ["admin_community_tab_split"],
-      "handoff": null
+      "handoff": "handoffs/wave-2-receipt.md",
+      "commit": "a5338a807836f7fb4f4be7d88c1215acfbbbe0a4"
     },
     "client_garden_pool_controller": {
       "machine_lane": "state_api",
@@ -895,10 +902,11 @@
     "ix_hasura_permission_planner": {
       "machine_lane": "state_api",
       "owner": "codex",
-      "status": "todo",
+      "status": "passed",
       "branch": null,
       "depends_on": ["w0_receipt_debt_burndown"],
-      "handoff": null
+      "handoff": "handoffs/wave-2-receipt.md",
+      "commit": "a5338a807836f7fb4f4be7d88c1215acfbbbe0a4"
     },
     "ta_node_projects_shared": {
       "machine_lane": "state_api",
@@ -975,6 +983,14 @@
       "status": "wave_1_complete",
       "branch": null,
       "note": "Completed the Wave 1 mutation seams and pooling-controller batch on develop, recorded direct coverage and consumer proof, and retained the aggregate Indexer localhost failure as an environment blocker."
+    },
+    {
+      "timestamp": "2026-08-23T19:13:07.000Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "wave_2_complete",
+      "branch": null,
+      "note": "Completed the Wave 2 client-controller, Community split, pooling public-boundary, and Hasura planner batch on develop; retained Indexer, Docker, local-server, and authenticated-browser capability limits as explicit blockers."
     }
   ]
 }
