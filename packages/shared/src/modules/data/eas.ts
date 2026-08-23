@@ -250,12 +250,9 @@ export function parseWorkApprovalAttestation(
   };
 }
 
-/** Fetches garden assessment attestations from EAS */
 /**
- * Assessments recorded for a garden under one schema. Defaults to the v2 UID
- * the chain has always carried; pass `schemaUID` to read the v3 registration
- * instead (`getEASConfig().ASSESSMENT_V3`), which holds every assessment
- * recorded since it went live.
+ * Garden assessment attestations under one schema: the v2 UID by default, or
+ * the v3 registration (`getEASConfig().ASSESSMENT_V3`) when `schemaUID` names it.
  */
 export const getGardenAssessments = async (
   gardenAddress?: string,
@@ -283,16 +280,11 @@ export const getGardenAssessments = async (
   const { data, error } = await client.query(
     QUERY,
     {
-      where: gardenAddress
-        ? {
-            schemaId,
-            recipient: { equals: gardenAddress },
-            revoked: { equals: false },
-          }
-        : {
-            schemaId,
-            revoked: { equals: false },
-          },
+      where: {
+        schemaId,
+        revoked: { equals: false },
+        ...(gardenAddress ? { recipient: { equals: gardenAddress } } : {}),
+      },
     },
     "getGardenAssessments"
   );
