@@ -28,9 +28,12 @@ describe("job queue import lifecycle", () => {
   it("attaches beforeunload once through default lifecycle wiring", async () => {
     const addEventListener = vi.spyOn(window, "addEventListener");
 
+    // This is intentionally a cold import of the full default composition.
+    // Under a loaded multi-file batch, module transformation can exceed the
+    // generic test timeout before the lifecycle assertion executes.
     await import("../../modules/job-queue");
 
     expect(addEventListener.mock.calls.filter(([type]) => type === "beforeunload")).toHaveLength(1);
     addEventListener.mockRestore();
-  });
+  }, 30_000);
 });
