@@ -6,7 +6,11 @@ import {
   isWaitingReprobeThrottled,
 } from "../../modules/job-queue";
 import { isDiscardableJob } from "../../modules/job-queue/job-recovery";
-import { commitmentJobIdentity } from "../../modules/job-queue/queue-policy";
+import {
+  canonicalJobPayload,
+  commitmentJobIdentity,
+  toCommitmentJob,
+} from "../../modules/commitment-pooling/job-identity";
 import type { Job } from "../../types/job-queue";
 
 const GARDEN = "0x2222222222222222222222222222222222222222";
@@ -25,6 +29,29 @@ const job = (overrides: Partial<Job> = {}): Job => ({
 });
 
 describe("commitment queue retry policy", () => {
+  it("converts a persisted queue record at the commitment boundary", () => {
+    expect(
+      toCommitmentJob(
+        job({ meta: { submittedTxHash: "0xabc" } }),
+        42161,
+        "0x3333333333333333333333333333333333333333"
+      )
+    ).toMatchObject({
+      id: "job-1",
+      kind: "commitmentSeries",
+      chainId: 42161,
+      moduleAddress: "0x3333333333333333333333333333333333333333",
+      submittedTxHash: "0xabc",
+    });
+    expect(() =>
+      toCommitmentJob(job({ kind: "work" }), 42161, "0x3333333333333333333333333333333333333333")
+    ).toThrow("Unsupported commitment job kind: work");
+  });
+
+  it("canonicalizes bigint payloads at the pooling boundary", () => {
+    expect(canonicalJobPayload({ commitmentId: 9n })).toBe('{"commitmentId":{"__bigint":"9"}}');
+  });
+
   it("classifies exhausted unsynced jobs as terminal so they cannot win identity dedupe", () => {
     expect(isTerminallyFailedJob(job({ attempts: 5 }))).toBe(true);
     expect(isTerminallyFailedJob(job({ attempts: 4 }))).toBe(false);

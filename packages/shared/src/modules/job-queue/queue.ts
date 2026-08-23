@@ -1,8 +1,9 @@
 import type { Job, JobKindMap } from "../../types/job-queue";
+import { canonicalJobPayload, commitmentJobIdentity } from "../commitment-pooling/job-identity";
 import { JobMaintenance } from "./job-maintenance";
 import { createJobProcessor } from "./process-job";
 import type { FlushContext, FlushResult, JobQueueDependencies, JobQueueHandle } from "./ports";
-import { canonicalJobPayload, commitmentJobIdentity, isTerminallyFailedJob } from "./queue-policy";
+import { isTerminallyFailedJob } from "./queue-policy";
 import { createQueueReaders } from "./queue-readers";
 import { createJobRecovery } from "./job-recovery";
 

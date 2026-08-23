@@ -270,6 +270,33 @@ export interface TrackOptions {
   includeSessionId?: boolean;
 }
 
+export interface TelemetrySink {
+  capture(event: string, properties: Record<string, unknown>): void;
+}
+
+const posthogTelemetrySink: TelemetrySink = {
+  capture(event, properties) {
+    if (IS_DEV || !isPostHogReady()) {
+      if (IS_DEBUG && !IS_DEV) {
+        logger.warn("[PostHog] Not ready, skipping capture");
+      }
+      return;
+    }
+    posthog.capture(event, properties);
+  },
+};
+
+let telemetrySink: TelemetrySink = posthogTelemetrySink;
+
+/** Replace the event transport while preserving tracking policy and enrichment. */
+export function registerTelemetrySink(sink: TelemetrySink): () => void {
+  const previous = telemetrySink;
+  telemetrySink = sink;
+  return () => {
+    if (telemetrySink === sink) telemetrySink = previous;
+  };
+}
+
 /**
  * Track a custom event with automatic enrichment.
  *
@@ -305,16 +332,7 @@ export function track(
     logger.info(`[PostHog] track: ${event}`, enrichedProperties);
   }
 
-  // Skip in dev mode or if PostHog isn't ready
-  if (IS_DEV) return;
-  if (!isPostHogReady()) {
-    if (IS_DEBUG) {
-      logger.warn("[PostHog] Not ready, skipping capture");
-    }
-    return;
-  }
-
-  posthog.capture(event, enrichedProperties);
+  telemetrySink.capture(event, enrichedProperties);
 }
 
 // ============================================================================

@@ -10,10 +10,8 @@ import { jobQueueDB } from "./db";
 import { type Hex } from "viem";
 import {
   executeCommitmentJob,
+  toCommitmentJob,
   type CommitmentCreationPayload,
-  type CommitmentJob,
-  type CommitmentJobKind,
-  type CommitmentJobPayloadMap,
   type CommitmentSeriesJobPayload,
 } from "../commitment-pooling/jobs";
 import { isDemoPoolingActive } from "../commitment-pooling/demo/demo-mode";
@@ -278,17 +276,7 @@ export async function executeCommitmentQueueJob(
       ? { status: "unavailable", reason: published.reason }
       : { status: "waiting", reason: published.reason };
   }
-  const commitmentJob: CommitmentJob = {
-    id: jobId,
-    kind: job.kind as CommitmentJobKind,
-    payload: job.payload as CommitmentJobPayloadMap[CommitmentJobKind],
-    chainId,
-    moduleAddress,
-    userAddress: job.userAddress,
-    ...(typeof job.meta?.submittedTxHash === "string"
-      ? { submittedTxHash: job.meta.submittedTxHash as Hex }
-      : {}),
-  };
+  const commitmentJob = toCommitmentJob({ ...job, id: jobId }, chainId, moduleAddress);
 
   const chainReads = deps.reads ?? createCommitmentChainReads({ chainId, moduleAddress });
   const result = await executeCommitmentJob(commitmentJob, {
