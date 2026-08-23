@@ -1,5 +1,5 @@
-import react from "@vitejs/plugin-react";
 import { availableParallelism, totalmem } from "node:os";
+import react from "@vitejs/plugin-react";
 import path from "path";
 import type { PluginOption } from "vite";
 import { defineConfig } from "vitest/config";
@@ -122,6 +122,10 @@ export default defineConfig({
       {
         find: "@green-goods/shared/commitment-pooling",
         replacement: path.resolve(__dirname, "../shared/src/commitment-pooling"),
+      },
+      {
+        find: "@green-goods/shared/public",
+        replacement: path.resolve(__dirname, "../shared/src/hooks/public/publicSurfaceState.ts"),
       },
       {
         find: "@green-goods/shared",

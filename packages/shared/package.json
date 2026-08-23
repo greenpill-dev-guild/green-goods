@@ -12,6 +12,7 @@
   "exports": {
     ".": "./src/index.ts",
     "./commitment-pooling": "./src/commitment-pooling/index.ts",
+    "./public": "./src/hooks/public/publicSurfaceState.ts",
     "./components": "./src/components/index.ts",
     "./cards": "./src/components/Cards/index.ts",
     "./display": "./src/components/Display/index.ts",

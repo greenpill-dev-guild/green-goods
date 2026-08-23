@@ -28,6 +28,7 @@
     "paths": {
       "@/*": ["./src/*"],
       "@green-goods/shared/commitment-pooling": ["../shared/src/commitment-pooling/index.ts"],
+      "@green-goods/shared/public": ["../shared/src/hooks/public/publicSurfaceState.ts"],
       "@green-goods/shared": ["../shared/src/index.ts"],
       "@green-goods/shared/sentry": ["../shared/src/modules/app/sentry.ts"],
       "@green-goods/shared/components": ["../shared/src/components/index.ts"],

@@ -6,11 +6,12 @@ import {
   getOctantVaultCampaignCopy,
   getOctantVaultCampaigns,
   getOctantVaultCampaignTransactionState,
+  type OctantVaultCampaignManifest,
   useOctantVaultHarvestableYield,
   useOctantVaultStats,
   useOctantVaultStrategyApy,
-  type OctantVaultCampaignManifest,
 } from "@green-goods/shared";
+import { selectPublicSurfaceState } from "@green-goods/shared/public";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
 import { Link, Navigate, useLocation, useSearchParams } from "react-router-dom";
@@ -22,6 +23,7 @@ import {
 } from "@/components/Public/atoms";
 import { PublicEditorialHero } from "@/components/Public/PublicEditorialHero";
 import { PublicFooter } from "@/components/Public/PublicFooter";
+import { PublicSurfaceState } from "@/components/Public/PublicSurfaceState";
 import { VaultCheckoutDialog } from "@/components/Public/VaultCheckoutDialog";
 import { VaultManagePositionsPanel } from "@/components/Public/VaultManagePositionsPanel";
 import { getPublicHeroImage, publicCuration } from "@/content/publicCuration";
@@ -173,6 +175,11 @@ function CampaignVaultStats({ campaign }: { campaign: OctantVaultCampaignManifes
 
   const tokenAmount = formatTokenAmount(stats.totalAssets, decimals, 4, undefined, true);
   const usd = stats.usdCents !== null ? formatUsdCents(stats.usdCents) : null;
+  const surfaceState = selectPublicSurfaceState({
+    isLoading: stats.isLoading,
+    isError: false,
+    itemCount: stats.totalAssets > 0n ? 1 : 0,
+  });
 
   return (
     <dl
@@ -185,9 +192,22 @@ function CampaignVaultStats({ campaign }: { campaign: OctantVaultCampaignManifes
           defaultMessage: "Backed so far",
         })}
       </dt>
-      {stats.isLoading ? (
-        <dd className="mt-1 font-serif text-2xl leading-none text-text-soft-400">…</dd>
-      ) : stats.totalAssets > 0n ? (
+      <PublicSurfaceState
+        state={surfaceState}
+        container="dd"
+        loading={
+          <span className="mt-1 block font-serif text-2xl leading-none text-text-soft-400">…</span>
+        }
+        error={null}
+        empty={
+          <span className="mt-1 block font-serif text-xl leading-none text-text-soft-400">
+            {formatMessage({
+              id: "public.vaults.card.justLaunched",
+              defaultMessage: "Just launched. Be the first to endow.",
+            })}
+          </span>
+        }
+      >
         <dd className="mt-1 flex items-baseline gap-2">
           <span className="font-serif text-3xl leading-none text-text-strong-950">
             {usd ?? `${tokenAmount} ${donorSymbol}`}
@@ -198,14 +218,7 @@ function CampaignVaultStats({ campaign }: { campaign: OctantVaultCampaignManifes
             </span>
           ) : null}
         </dd>
-      ) : (
-        <dd className="mt-1 font-serif text-xl leading-none text-text-soft-400">
-          {formatMessage({
-            id: "public.vaults.card.justLaunched",
-            defaultMessage: "Just launched. Be the first to endow.",
-          })}
-        </dd>
-      )}
+      </PublicSurfaceState>
     </dl>
   );
 }

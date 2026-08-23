@@ -7,6 +7,7 @@ import {
   usePublicImpactEvidence,
   usePublicStats,
 } from "@green-goods/shared";
+import { selectPublicSurfaceState } from "@green-goods/shared/public";
 import type { PublicImpactEvidenceKind } from "@green-goods/shared/public-contracts";
 import { useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
@@ -26,6 +27,7 @@ import { PublicEvidenceDialog } from "@/components/Public/PublicEvidenceDialog";
 import { PublicEvidencePipeline } from "@/components/Public/PublicEvidencePipeline";
 import { PublicFooter } from "@/components/Public/PublicFooter";
 import { type PublicProofMarker, PublicProofMarkers } from "@/components/Public/PublicProofMarkers";
+import { PublicSurfaceState } from "@/components/Public/PublicSurfaceState";
 import { getPublicHeroImage, publicCuration } from "@/content/publicCuration";
 
 type KindFilter = "all" | PublicImpactEvidenceKind;
@@ -178,6 +180,11 @@ export default function ImpactPage() {
       totalPages: pages,
     };
   }, [slice?.records, kindFilter, domainFilter, gardenFilter, page]);
+  const evidenceState = selectPublicSurfaceState({
+    isLoading: evidence.isLoading,
+    isError: slice?.status === "error",
+    itemCount: filteredRecords.length,
+  });
 
   // If filters drop the result set below the current page, clamp page back
   // into range. Pure UI concern — don't reset to 1 on every filter change so
@@ -462,64 +469,70 @@ export default function ImpactPage() {
             </span>
           </nav>
 
-          {evidence.isLoading ? (
-            <div
-              className="mt-12 grid grid-cols-1 gap-12 sm:grid-cols-2 lg:grid-cols-3"
-              aria-hidden="true"
-            >
-              {[0, 1, 2, 3, 4, 5].map((i) => (
-                <div key={i} className="flex flex-col gap-4">
-                  <div className="aspect-[3/2] w-full animate-pulse bg-bg-weak-50" />
-                  <div className="h-3 w-24 animate-pulse bg-stroke-soft-200/60" />
-                  <div className="h-5 w-3/4 animate-pulse bg-stroke-soft-200/60" />
-                  <div className="h-3 w-1/2 animate-pulse bg-stroke-soft-200/40" />
-                </div>
-              ))}
-            </div>
-          ) : slice && slice.status === "error" ? (
-            <p className="mt-12 max-w-2xl border-l-2 border-text-soft-400 bg-bg-white-0 px-4 py-3 text-sm text-text-sub-600">
-              {formatMessage({
-                id: "public.impact.evidence.error",
-                defaultMessage:
-                  "Evidence is temporarily unavailable. Please try again in a few minutes.",
-              })}
-            </p>
-          ) : filteredRecords.length === 0 ? (
-            <div className="mt-12 max-w-2xl border-t border-stroke-soft-200 pt-6">
-              <p className="font-mono text-[10.5px] font-medium uppercase tracking-[0.18em] text-text-soft-400">
+          <PublicSurfaceState
+            state={evidenceState}
+            loading={
+              <div
+                className="mt-12 grid grid-cols-1 gap-12 sm:grid-cols-2 lg:grid-cols-3"
+                aria-hidden="true"
+              >
+                {[0, 1, 2, 3, 4, 5].map((i) => (
+                  <div key={i} className="flex flex-col gap-4">
+                    <div className="aspect-[3/2] w-full animate-pulse bg-bg-weak-50" />
+                    <div className="h-3 w-24 animate-pulse bg-stroke-soft-200/60" />
+                    <div className="h-5 w-3/4 animate-pulse bg-stroke-soft-200/60" />
+                    <div className="h-3 w-1/2 animate-pulse bg-stroke-soft-200/40" />
+                  </div>
+                ))}
+              </div>
+            }
+            error={
+              <p className="mt-12 max-w-2xl border-l-2 border-text-soft-400 bg-bg-white-0 px-4 py-3 text-sm text-text-sub-600">
                 {formatMessage({
-                  id: "public.impact.evidence.emptyKicker",
-                  defaultMessage: "Reading the ledger",
+                  id: "public.impact.evidence.error",
+                  defaultMessage:
+                    "Evidence is temporarily unavailable. Please try again in a few minutes.",
                 })}
               </p>
-              <p className="mt-2 font-serif text-xl italic text-text-sub-600 md:text-2xl">
-                {kindFilter !== "all" || domainFilter !== "all"
-                  ? formatMessage({
-                      id: "public.impact.evidence.emptyFiltered",
-                      defaultMessage: "No evidence matches this filter combination yet.",
-                    })
-                  : formatMessage({
-                      id: "public.impact.evidence.empty",
-                      defaultMessage: "Assessment evidence will appear here as Gardens publish it.",
-                    })}
-              </p>
-              {kindFilter !== "all" || domainFilter !== "all" ? (
-                <div className="mt-5">
-                  <button
-                    type="button"
-                    onClick={resetFilters}
-                    className="inline-flex cursor-pointer items-center gap-2 border-b border-primary-action/35 pb-0.5 text-sm font-medium text-primary-action transition-colors hover:border-primary-action-hover hover:text-primary-action-hover"
-                  >
-                    {formatMessage({
-                      id: "public.impact.evidence.resetFilters",
-                      defaultMessage: "Reset filters",
-                    })}
-                    <span aria-hidden="true">→</span>
-                  </button>
-                </div>
-              ) : null}
-            </div>
-          ) : (
+            }
+            empty={
+              <div className="mt-12 max-w-2xl border-t border-stroke-soft-200 pt-6">
+                <p className="font-mono text-[10.5px] font-medium uppercase tracking-[0.18em] text-text-soft-400">
+                  {formatMessage({
+                    id: "public.impact.evidence.emptyKicker",
+                    defaultMessage: "Reading the ledger",
+                  })}
+                </p>
+                <p className="mt-2 font-serif text-xl italic text-text-sub-600 md:text-2xl">
+                  {kindFilter !== "all" || domainFilter !== "all"
+                    ? formatMessage({
+                        id: "public.impact.evidence.emptyFiltered",
+                        defaultMessage: "No evidence matches this filter combination yet.",
+                      })
+                    : formatMessage({
+                        id: "public.impact.evidence.empty",
+                        defaultMessage:
+                          "Assessment evidence will appear here as Gardens publish it.",
+                      })}
+                </p>
+                {kindFilter !== "all" || domainFilter !== "all" ? (
+                  <div className="mt-5">
+                    <button
+                      type="button"
+                      onClick={resetFilters}
+                      className="inline-flex cursor-pointer items-center gap-2 border-b border-primary-action/35 pb-0.5 text-sm font-medium text-primary-action transition-colors hover:border-primary-action-hover hover:text-primary-action-hover"
+                    >
+                      {formatMessage({
+                        id: "public.impact.evidence.resetFilters",
+                        defaultMessage: "Reset filters",
+                      })}
+                      <span aria-hidden="true">→</span>
+                    </button>
+                  </div>
+                ) : null}
+              </div>
+            }
+          >
             <>
               <div className="mt-12 grid grid-cols-1 gap-12 sm:grid-cols-2 lg:grid-cols-3">
                 {pageRecords.map((record) => {
@@ -580,7 +593,7 @@ export default function ImpactPage() {
                 </nav>
               ) : null}
             </>
-          )}
+          </PublicSurfaceState>
 
           {slice?.partialData ? (
             <div className="mt-8 max-w-2xl border-t border-stroke-soft-200 pt-6">

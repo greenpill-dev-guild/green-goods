@@ -504,6 +504,10 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
           __dirname,
           "../shared/src/commitment-pooling"
         ),
+        "@green-goods/shared/public": resolve(
+          __dirname,
+          "../shared/src/hooks/public/publicSurfaceState.ts"
+        ),
         "@green-goods/shared": resolve(__dirname, "../shared/src"),
         "@green-goods/shared/components": resolve(__dirname, "../shared/src/components"),
         "@green-goods/shared/hooks": resolve(__dirname, "../shared/src/hooks"),
