@@ -22,6 +22,7 @@ export const MOCK_CLIENT_GARDEN = {
   location: "Nairobi",
   bannerImage: "",
   gardeners: [MOCK_CLIENT_USER_ADDRESS],
+  // The indexer field keeps the deployed `operators` wire name.
   operators: [],
   evaluators: [],
   owners: [],

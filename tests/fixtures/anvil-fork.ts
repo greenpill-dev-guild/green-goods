@@ -94,7 +94,7 @@ export interface AnvilForkContext {
   /** Pre-configured test accounts with signers */
   accounts: {
     deployer: TestAccountWithSigner;
-    operator: TestAccountWithSigner;
+    steward: TestAccountWithSigner;
     gardener1: TestAccountWithSigner;
     gardener2: TestAccountWithSigner;
     assessor: TestAccountWithSigner;
@@ -363,9 +363,9 @@ export async function startAnvilFork(options: ForkOptions = {}): Promise<AnvilFo
       address: TEST_ACCOUNTS.deployer.address,
       account: privateKeyToAccount(TEST_ACCOUNTS.deployer.privateKey),
     },
-    operator: {
-      address: TEST_ACCOUNTS.operator.address,
-      account: privateKeyToAccount(TEST_ACCOUNTS.operator.privateKey),
+    steward: {
+      address: TEST_ACCOUNTS.steward.address,
+      account: privateKeyToAccount(TEST_ACCOUNTS.steward.privateKey),
     },
     gardener1: {
       address: TEST_ACCOUNTS.gardener1.address,

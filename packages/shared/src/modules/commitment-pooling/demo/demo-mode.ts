@@ -77,8 +77,8 @@ export function demoViewer(): Address {
   if (!hasWindow()) return DEMO_VIEWER_ADDRESSES.user;
   const fromUrl = new URLSearchParams(window.location.search).get(DEV_MOCK_AUTH_PARAM);
   const stored = window.sessionStorage.getItem(DEV_MOCK_AUTH_STORAGE_KEY);
-  // `steward` is the role's former name, still accepted from saved QA links.
-  const role = (fromUrl ?? stored) === "steward" ? "steward" : (fromUrl ?? stored);
+  // `operator` is the role's former name, still accepted from saved QA links.
+  const role = (fromUrl ?? stored) === "operator" ? "steward" : (fromUrl ?? stored);
   if (role === "deployer" || role === "steward" || role === "user") {
     return DEMO_VIEWER_ADDRESSES[role];
   }

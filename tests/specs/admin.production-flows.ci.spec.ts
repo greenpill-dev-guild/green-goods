@@ -17,7 +17,7 @@ import { AdminTestHelper, TEST_URLS } from "../helpers/test-utils";
 const ADMIN_URL = TEST_URLS.admin;
 const ROUTE_SMOKE_TEST_TIMEOUT_MS = 90_000;
 const MOCK_DEPLOYER_ADDRESS = "0x2aa64E6d80390F5C017F0313cB908051BE2FD35e";
-const MOCK_OPERATOR_ADDRESS = "0x04D60647836bcA09c37B379550038BdaaFD82503";
+const MOCK_STEWARD_ADDRESS = "0x04D60647836bcA09c37B379550038BdaaFD82503";
 const TEST_GARDEN_ADDRESS = "0xabcd1234567890123456789012345678901234ef";
 const TEST_GARDEN_ID = "0x1234567890123456789012345678901234567890";
 const TEST_GARDEN_CONTEXT = `gardenAddress=${encodeURIComponent(TEST_GARDEN_ADDRESS)}`;
@@ -38,9 +38,10 @@ const MOCK_GARDEN = {
   description: "Fixture garden for admin production-flow route smoke",
   location: "Nairobi",
   bannerImage: "",
-  gardeners: [MOCK_OPERATOR_ADDRESS],
-  operators: [MOCK_OPERATOR_ADDRESS, MOCK_DEPLOYER_ADDRESS],
-  evaluators: [MOCK_OPERATOR_ADDRESS, MOCK_DEPLOYER_ADDRESS],
+  gardeners: [MOCK_STEWARD_ADDRESS],
+  // The indexer field keeps the deployed `operators` wire name.
+  operators: [MOCK_STEWARD_ADDRESS, MOCK_DEPLOYER_ADDRESS],
+  evaluators: [MOCK_STEWARD_ADDRESS, MOCK_DEPLOYER_ADDRESS],
   owners: [MOCK_DEPLOYER_ADDRESS],
   funders: [],
   communities: [],

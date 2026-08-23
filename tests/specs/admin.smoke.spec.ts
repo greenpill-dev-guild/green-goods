@@ -14,21 +14,22 @@ import { AdminTestHelper, TEST_URLS } from "../helpers/test-utils";
 
 const ADMIN_URL = TEST_URLS.admin;
 
-const MOCK_OPERATOR_ADDRESS = "0x04D60647836bcA09c37B379550038BdaaFD82503";
+const MOCK_STEWARD_ADDRESS = "0x04D60647836bcA09c37B379550038BdaaFD82503";
 const MOCK_GARDENS = [
   {
     id: "0x1234567890123456789012345678901234567890",
     chainId: 11155111,
     tokenAddress: "0xabcd1234567890123456789012345678901234ef",
     tokenID: "1",
-    name: "Mock Operator Garden",
+    name: "Mock Steward Garden",
     description: "Fixture garden for admin cockpit verification",
     location: "Nairobi",
     bannerImage: "",
     gardeners: ["0x2aa64E6d80390F5C017F0313cB908051BE2FD35e"],
-    operators: [MOCK_OPERATOR_ADDRESS],
+    // The indexer field keeps the deployed `operators` wire name.
+    operators: [MOCK_STEWARD_ADDRESS],
     evaluators: [],
-    owners: [MOCK_OPERATOR_ADDRESS],
+    owners: [MOCK_STEWARD_ADDRESS],
     funders: [],
     communities: [],
     openJoining: false,
@@ -154,9 +155,9 @@ async function mockAdminCockpitBackend(page: Page) {
   await mockSepoliaRpc(page);
 }
 
-async function setupMockOperator(page: Page) {
+async function setupMockSteward(page: Page) {
   const helper = new AdminTestHelper(page);
-  await helper.enableMockAuth("operator");
+  await helper.enableMockAuth("steward");
   await mockAdminCockpitBackend(page);
   return helper;
 }
@@ -173,20 +174,20 @@ test.describe("Admin Cockpit", () => {
     await expect(page.getByRole("button", { name: /connect wallet/i })).toBeVisible();
   });
 
-  test("renders the work cockpit for a mocked operator", async ({ page }) => {
-    const helper = await setupMockOperator(page);
+  test("renders the work cockpit for a mocked steward", async ({ page }) => {
+    const helper = await setupMockSteward(page);
 
-    await page.goto(helper.buildMockAuthPath("/hub", "operator"));
+    await page.goto(helper.buildMockAuthPath("/hub", "steward"));
     await helper.waitForPageLoad();
 
     await expect(page.getByText("Connect to continue")).toHaveCount(0);
-    await expect(page.getByText("Mock Operator Garden", { exact: true })).toBeVisible({
+    await expect(page.getByText("Mock Steward Garden", { exact: true })).toBeVisible({
       timeout: 15000,
     });
     // Hub is the workspace heading; its active pipeline stage appears in the tab rail below.
     await expect(page.getByRole("heading", { name: "Hub" })).toBeVisible();
     // The Hub tab rail renders pipeline stage tabs filtered by role
-    // capability. With mocked operator auth, canManage gates the work tab and
+    // capability. With mocked steward auth, canManage gates the work tab and
     // history is always visible; canAssess / canCertify depend on hats role
     // assignments that the mock cannot fake, so 1-4 tabs is acceptable.
     const tablist = page.getByRole("tablist");
@@ -198,15 +199,15 @@ test.describe("Admin Cockpit", () => {
   });
 
   test("keeps mock auth active across full reloads on other cockpit routes", async ({ page }) => {
-    const helper = await setupMockOperator(page);
+    const helper = await setupMockSteward(page);
 
-    await page.goto(helper.buildMockAuthPath("/hub", "operator"));
+    await page.goto(helper.buildMockAuthPath("/hub", "steward"));
     await helper.waitForPageLoad();
 
     await page.goto("/actions");
     await helper.waitForPageLoad();
 
-    // Actions is gated to deployers (commit 6e88d78e); mock operator without
+    // Actions is gated to deployers (commit 6e88d78e); mock steward without
     // deployer role lands on the Unauthorized state. Auth is still active —
     // the page renders the cockpit chrome, not the connect shell.
     await expect(page.getByText("Connect to continue")).toHaveCount(0);
@@ -222,7 +223,7 @@ test.describe("Admin Cockpit", () => {
     page,
   }) => {
     await page.setViewportSize({ width: 390, height: 844 });
-    const helper = await setupMockOperator(page);
+    const helper = await setupMockSteward(page);
 
     await page.goto(helper.buildMockAuthPath("/profile"));
     await helper.waitForPageLoad();
@@ -256,7 +257,7 @@ test.describe("Admin Cockpit", () => {
     page,
   }) => {
     await page.setViewportSize({ width: 1280, height: 900 });
-    const helper = await setupMockOperator(page);
+    const helper = await setupMockSteward(page);
 
     await page.goto(helper.buildMockAuthPath("/profile?tab=settings"));
     await helper.waitForPageLoad();

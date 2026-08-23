@@ -169,7 +169,7 @@ export interface CreateGardenParams {
   weightScheme?: 0 | 1 | 2;
   domainMask?: number;
   gardeners?: `0x${string}`[];
-  operators?: `0x${string}`[];
+  stewards?: `0x${string}`[];
 }
 
 /**
@@ -230,7 +230,7 @@ export interface WorkResult {
  */
 export interface ApproveWorkParams {
   gardenAddress: `0x${string}`;
-  operatorAccount: TestAccountWithSigner;
+  stewardAccount: TestAccountWithSigner;
   workUID: `0x${string}`;
   actionUID: bigint;
   approved: boolean;
@@ -285,7 +285,8 @@ export async function createGarden(
       weightScheme: params.weightScheme ?? 0,
       domainMask: params.domainMask ?? 15,
       gardeners: params.gardeners ?? [],
-      operators: params.operators ?? [account.address],
+      // mintGarden encodes this struct by field name — wire spelling.
+      operators: params.stewards ?? [account.address],
     };
 
     const txHash = await context.walletClient.writeContract({
@@ -376,7 +377,7 @@ export async function isGardener(
 }
 
 /**
- * Check if an address is an operator
+ * Check if an address is a steward
  */
 export async function isSteward(
   context: AnvilForkContext,
@@ -386,6 +387,7 @@ export async function isSteward(
   const result = await context.publicClient.readContract({
     address: gardenAddress,
     abi: GardenAccountABI,
+    // Deployed access function name — the role reads as Steward everywhere else.
     functionName: "isOperator",
     args: [address],
   });
@@ -521,7 +523,7 @@ export async function approveWork(
   context: AnvilForkContext,
   params: ApproveWorkParams
 ): Promise<ApprovalResult> {
-  const account = params.operatorAccount;
+  const account = params.stewardAccount;
 
   await context.testClient.impersonateAccount({ address: account.address });
 

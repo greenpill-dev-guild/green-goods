@@ -107,7 +107,7 @@ test.describe("Fork Integration Tests", () => {
         name: "E2E Test Garden",
         description: "Garden created during E2E test",
         bannerImage: "ipfs://test-banner",
-        operators: [anvilContext.accounts.operator.address],
+        stewards: [anvilContext.accounts.steward.address],
         gardeners: [anvilContext.accounts.gardener1.address],
       });
 
@@ -186,7 +186,7 @@ test.describe("Fork Integration Tests", () => {
         bannerImage: "ipfs://test",
       });
 
-      // Inject wallet auth (using deployer address who is an operator)
+      // Inject wallet auth (using deployer address who is a steward)
       await helper.injectWalletAuth(anvilContext.accounts.deployer.address);
 
       // Navigate to home
@@ -218,7 +218,7 @@ test.describe("Fork Integration Tests", () => {
         name: "Gardener Test Garden",
         description: "Testing gardener addition",
         bannerImage: "ipfs://test",
-        operators: [anvilContext.accounts.operator.address],
+        stewards: [anvilContext.accounts.steward.address],
       });
 
       // Initially, gardener2 should not be a gardener

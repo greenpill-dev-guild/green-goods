@@ -6,7 +6,7 @@
  *
  * Usage: add `?mockAuth=steward` to any admin URL in dev mode.
  * Values: deployer | steward | user | disconnected
- * `?mockAuth=steward` still resolves to steward so older QA links keep working.
+ * `?mockAuth=operator` still resolves to steward so older QA links keep working.
  *
  * Tree-shaken from production builds via the AuthGate DEV guard.
  */
@@ -23,7 +23,7 @@ import {
 export type DevMockAuthRole = "deployer" | "steward" | "user" | "disconnected";
 
 /** Role names this param used to accept, kept resolvable for saved QA links. */
-const LEGACY_MOCK_ROLE_ALIASES: Record<string, DevMockAuthRole> = { steward: "steward" };
+const LEGACY_MOCK_ROLE_ALIASES: Record<string, DevMockAuthRole> = { operator: "steward" };
 export const DEV_MOCK_AUTH_STORAGE_KEY = "greengoods_dev_mock_auth";
 
 export const DEV_MOCK_AUTH_ADDRESSES: Record<
