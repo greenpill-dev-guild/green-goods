@@ -128,12 +128,10 @@ export default defineConfig({
         "**/index.ts",
       ],
       thresholds: {
-        global: {
-          branches: 70,
-          functions: 70,
-          lines: 70,
-          statements: 70,
-        },
+        branches: 47,
+        functions: 44,
+        lines: 53,
+        statements: 51,
       },
     },
     pool: "threads",

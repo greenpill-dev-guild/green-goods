@@ -87,9 +87,9 @@ jobs:
       - name: Setup JavaScript toolchain and dependencies
         uses: ./.github/actions/setup-js
 
-      - name: Run client tests with coverage
+      - name: Run client tests
         working-directory: packages/client
-        run: bun run coverage
+        run: bun run test
         env:
           CI: true
 

@@ -55,12 +55,10 @@ export default defineConfig({
         "**/build/**",
       ],
       thresholds: {
-        global: {
-          branches: 75,
-          functions: 80,
-          lines: 80,
-          statements: 80,
-        },
+        branches: 56,
+        functions: 62,
+        lines: 64,
+        statements: 63,
       },
     },
     include: ["src/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}"],

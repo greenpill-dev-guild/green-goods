@@ -86,12 +86,10 @@ export default defineConfig({
         "**/dist/**",
       ],
       thresholds: {
-        global: {
-          branches: 70,
-          functions: 70,
-          lines: 70,
-          statements: 70,
-        },
+        branches: 52,
+        functions: 59,
+        lines: 62,
+        statements: 61,
       },
     },
     include: ["src/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}"],

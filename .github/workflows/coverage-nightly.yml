@@ -1,0 +1,48 @@
+name: Coverage Nightly
+
+# Pull requests run plain package tests for fast feedback. This lane enforces
+# the measured coverage floors nightly and after every push to main.
+on:
+  schedule:
+    - cron: "43 8 * * *"
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: coverage-nightly-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  coverage:
+    name: ${{ matrix.name }} Coverage
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Shared
+            package: shared
+            script: coverage
+          - name: Client
+            package: client
+            script: coverage
+          - name: Admin
+            package: admin
+            script: test:coverage
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+
+      - name: Setup JavaScript toolchain and dependencies
+        uses: ./.github/actions/setup-js
+
+      - name: Run ${{ matrix.name }} coverage
+        working-directory: packages/${{ matrix.package }}
+        run: bun run ${{ matrix.script }}
+        env:
+          CI: true
