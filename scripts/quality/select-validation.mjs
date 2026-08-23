@@ -83,6 +83,7 @@ function isValidationOnlyPath(path) {
 
 const directRootTestChecks = new Map([
   ["scripts/lib/env-schema.test.mjs", "env-schema-test"],
+  ["scripts/lib/dev-shared.test.mjs", "validation-system-test"],
   ["scripts/quality/select-validation.test.mjs", "validation-system-test"],
   ["scripts/dev/ci-local.test.mjs", "validation-system-test"],
   ["scripts/dev/surface-leases.test.mjs", "validation-system-test"],

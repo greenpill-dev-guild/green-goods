@@ -6,6 +6,10 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 import {
+  reexecUnderCompatibleNodeIfNeeded,
+  reexecUnderSystemNodeIfNeeded,
+} from "../lib/dev-shared.js";
+import {
   buildReceiptInputs,
   fingerprintReceiptInputs,
   resolveGitInputs,
@@ -307,6 +311,11 @@ export function applyCompatibilityFilters(plan, options) {
       automatedSeconds > plan.budget.targetSeconds,
   };
   return { ...plan, checks, status, budget, skipped };
+}
+
+export function isSupportedCiNodeVersion(version) {
+  const major = Number.parseInt(version.split(".")[0], 10);
+  return Number.isInteger(major) && major >= 22;
 }
 
 export function buildLocalValidationPlan(options, gitInputs, environment) {
@@ -722,6 +731,17 @@ async function main() {
 const isDirectRun =
   process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href;
 if (isDirectRun) {
+  reexecUnderSystemNodeIfNeeded({
+    scriptPath: fileURLToPath(import.meta.url),
+    sentinel: "GREEN_GOODS_CI_LOCAL_NODE_REEXEC",
+    cwd: projectRoot,
+  });
+  reexecUnderCompatibleNodeIfNeeded({
+    scriptPath: fileURLToPath(import.meta.url),
+    sentinel: "GREEN_GOODS_CI_LOCAL_COMPAT_REEXEC",
+    cwd: projectRoot,
+    isSupported: isSupportedCiNodeVersion,
+  });
   main().catch((error) => {
     console.error(`${colors.red}${error.message}${colors.reset}`);
     process.exitCode = 1;

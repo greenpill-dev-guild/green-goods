@@ -10,7 +10,7 @@ import http from "node:http";
 import https from "node:https";
 import path from "node:path";
 import { homedir } from "node:os";
-import { accessSync, constants, readdirSync, realpathSync } from "node:fs";
+import { accessSync, constants, readFileSync, readdirSync, realpathSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 
 /**
@@ -49,9 +49,14 @@ function isSupportedSystemNode(version) {
   return major !== null && major >= 22;
 }
 
+function miseDataDirectory() {
+  return process.env.MISE_DATA_DIR || path.join(homedir(), ".local/share/mise");
+}
+
 function nodeCandidates() {
   const executable = process.platform === "win32" ? "node.exe" : "node";
-  const candidates = [];
+  const miseData = miseDataDirectory();
+  const candidates = [path.join(miseData, "shims", executable)];
   if (process.env.NODE) candidates.push(process.env.NODE);
 
   const pathEntries = (process.env.PATH || "").split(path.delimiter);
@@ -62,9 +67,7 @@ function nodeCandidates() {
     candidates.push(path.join(entry, executable));
   }
 
-  candidates.push(path.join(homedir(), ".local/share/mise/shims", executable));
-
-  const miseNodeRoot = path.join(homedir(), ".local/share/mise/installs/node");
+  const miseNodeRoot = path.join(miseData, "installs/node");
   try {
     for (const version of readdirSync(miseNodeRoot).sort().reverse()) {
       candidates.push(path.join(miseNodeRoot, version, "bin", executable));
@@ -76,31 +79,136 @@ function nodeCandidates() {
   return candidates;
 }
 
-export function findSystemNode() {
-  const probed = [];
+export function findCompatibleNode({
+  isSupported = isSupportedSystemNode,
+  candidates = nodeCandidates(),
+  probe = probeNodeVersion,
+  exists = executableExists,
+} = {}) {
   const seen = new Set();
 
-  for (const candidate of nodeCandidates()) {
-    if (!executableExists(candidate)) continue;
+  for (const candidate of candidates) {
+    if (!exists(candidate)) continue;
 
     let key = candidate;
     try {
-      key = `${candidate}:${realpathSync(candidate)}`;
+      key = realpathSync(candidate);
     } catch {
       // Fall back to the literal candidate path.
     }
     if (seen.has(key)) continue;
     seen.add(key);
 
-    const version = probeNodeVersion(candidate);
+    let version = "";
+    try {
+      version = probe(candidate);
+    } catch {
+      continue;
+    }
     if (!version || version.startsWith("bun:")) continue;
-    const entry = { candidate, version };
-    probed.push(entry);
-    if (isSupportedSystemNode(version)) return candidate;
+    if (isSupported(version)) return candidate;
   }
 
-  if (probed.length > 0) return probed[0].candidate;
   return "";
+}
+
+export function findSystemNode() {
+  const candidates = nodeCandidates();
+  return (
+    findCompatibleNode({ isSupported: isSupportedSystemNode, candidates }) ||
+    findCompatibleNode({ isSupported: () => true, candidates })
+  );
+}
+
+function findMiseConfig(startDirectory) {
+  let directory = path.resolve(startDirectory || process.cwd());
+  while (true) {
+    try {
+      return readFileSync(path.join(directory, ".mise.toml"), "utf8");
+    } catch {
+      const parent = path.dirname(directory);
+      if (parent === directory) return "";
+      directory = parent;
+    }
+  }
+}
+
+function pinnedMiseTools(cwd) {
+  const tools = {};
+  let inTools = false;
+  for (const line of findMiseConfig(cwd).split("\n")) {
+    const section = line.match(/^\s*\[([^\]]+)]/);
+    if (section) {
+      inTools = section[1] === "tools";
+      continue;
+    }
+    if (!inTools) continue;
+    const tool = line.match(/^\s*(node|bun|foundry)\s*=\s*["']([^"']+)["']/);
+    if (tool) tools[tool[1]] = tool[2];
+  }
+  return tools;
+}
+
+function matchingToolchainPathEntries(node, cwd) {
+  const entries = [];
+  const tools = pinnedMiseTools(cwd);
+  const miseData = miseDataDirectory();
+  if (tools.bun) {
+    const bun = path.join(miseData, "installs/bun", tools.bun, "bin", "bun");
+    if (executableExists(bun)) entries.push(path.dirname(bun));
+  }
+  if (tools.foundry) {
+    for (const forge of [
+      path.join(miseData, "installs/foundry", tools.foundry, "forge"),
+      path.join(miseData, "installs/foundry", tools.foundry, "bin", "forge"),
+    ]) {
+      if (!executableExists(forge)) continue;
+      entries.push(path.dirname(forge));
+      break;
+    }
+  }
+  entries.push(path.dirname(node));
+  return entries;
+}
+
+function reexecEnvironment(node, cwd, sentinel) {
+  const pathEntries = [
+    ...matchingToolchainPathEntries(node, cwd),
+    ...(process.env.PATH || "").split(path.delimiter),
+  ].filter(Boolean);
+  return {
+    ...process.env,
+    [sentinel]: "1",
+    NODE: node,
+    npm_node_execpath: node,
+    PATH: [...new Set(pathEntries)].join(path.delimiter),
+  };
+}
+
+export function reexecUnderCompatibleNodeIfNeeded({
+  scriptPath,
+  sentinel,
+  cwd,
+  isSupported = isSupportedSystemNode,
+  spawn = spawnSync,
+  exit = (code) => process.exit(code),
+  candidates,
+  probe,
+  exists,
+}) {
+  if (process.env[sentinel] === "1") return false;
+  if (!process.versions.bun && isSupported(process.versions.node || "")) return false;
+
+  const compatibleNode = findCompatibleNode({ isSupported, candidates, probe, exists });
+  if (!compatibleNode) return false;
+  const result = spawn(compatibleNode, [scriptPath, ...process.argv.slice(2)], {
+    cwd,
+    env: reexecEnvironment(compatibleNode, cwd, sentinel),
+    stdio: "inherit",
+  });
+  if (result.error) return false;
+  exit(result.status ?? (result.signal ? 1 : 0));
+  return true;
 }
 
 /**
@@ -120,7 +228,7 @@ export function reexecUnderSystemNodeIfNeeded({ scriptPath, sentinel, cwd }) {
   if (!systemNode) return;
   const result = spawnSync(systemNode, [scriptPath, ...process.argv.slice(2)], {
     cwd,
-    env: { ...process.env, [sentinel]: "1" },
+    env: reexecEnvironment(systemNode, cwd, sentinel),
     stdio: "inherit",
   });
   if (result.error) return;

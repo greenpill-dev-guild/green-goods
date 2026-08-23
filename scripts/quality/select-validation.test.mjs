@@ -207,6 +207,11 @@ test("recognized root tests select their durable acceptance commands", () => {
   for (const [changedPath, checkId, command] of [
     ["scripts/lib/env-schema.test.mjs", "env-schema-test", "bun run test:env-schema"],
     [
+      "scripts/lib/dev-shared.test.mjs",
+      "validation-system-test",
+      "bun run test:validation-system",
+    ],
+    [
       "scripts/quality/select-validation.test.mjs",
       "validation-system-test",
       "bun run test:validation-system",

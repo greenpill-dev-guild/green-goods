@@ -8,10 +8,33 @@ import {
   applyCompatibilityFilters,
   buildLocalValidationPlan,
   executePlan,
+  isSupportedCiNodeVersion,
   loadPassingReceiptStore,
   parseArguments,
   savePassingReceiptStore,
 } from "./ci-local.js";
+
+test("ci-local re-entry is wired only inside the direct-run guard", () => {
+  const source = readFileSync(new URL("./ci-local.js", import.meta.url), "utf8");
+  const directRunGuard = source.indexOf("if (isDirectRun) {");
+  assert.notEqual(directRunGuard, -1);
+
+  const beforeGuard = source.slice(0, directRunGuard);
+  const guardedEntrypoint = source.slice(directRunGuard);
+  assert.doesNotMatch(beforeGuard, /reexecUnder(?:System|Compatible)NodeIfNeeded\(\{/);
+  assert.match(guardedEntrypoint, /reexecUnderSystemNodeIfNeeded\(\{/);
+  assert.match(guardedEntrypoint, /GREEN_GOODS_CI_LOCAL_NODE_REEXEC/);
+  assert.match(guardedEntrypoint, /reexecUnderCompatibleNodeIfNeeded\(\{/);
+  assert.match(guardedEntrypoint, /GREEN_GOODS_CI_LOCAL_COMPAT_REEXEC/);
+  assert.match(guardedEntrypoint, /isSupported: isSupportedCiNodeVersion/);
+});
+
+test("ci-local compatibility accepts Node 22 and newer", () => {
+  assert.equal(isSupportedCiNodeVersion("21.99.0"), false);
+  assert.equal(isSupportedCiNodeVersion("22.0.0"), true);
+  assert.equal(isSupportedCiNodeVersion("23.1.0"), true);
+  assert.equal(isSupportedCiNodeVersion("invalid"), false);
+});
 
 function plan(checks, status = "ready") {
   return {
