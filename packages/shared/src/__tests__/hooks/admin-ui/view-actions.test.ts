@@ -64,7 +64,7 @@ describe("buildHubViewActions — fixed primary", () => {
     expect(primaryIds(history)).toEqual(["submit-work"]);
   });
 
-  it("blanks role-gated actions for read-only operators", () => {
+  it("blanks role-gated actions for read-only stewards", () => {
     const actions = buildHubViewActions("work", false, false, vi.fn(), {
       gardenAddress: GARDEN,
     });

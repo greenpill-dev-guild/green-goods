@@ -1,17 +1,17 @@
 ---
 title: Managing Actions
 sidebar_label: Managing Actions
-slug: /community/operator-guide/managing-actions
-audience: operator
+slug: /community/steward-guide/managing-actions
+audience: steward
 owner: docs
 last_verified: 2026-04-07
 feature_status: Live
-goal: "Explain the current action workflow clearly, including the boundary between deployer-managed registry actions and operator-managed garden setup."
+goal: "Explain the current action workflow clearly, including the boundary between deployer-managed registry actions and steward-managed garden setup."
 difficulty: "standard"
 estimated_time: "10-20 minutes per action lifecycle update."
-prereqs: "Existing garden and operator permission."
+prereqs: "Existing garden and steward permission."
 next_steps: "./reviewing-work"
-persona_context: "Operators coordinating gardens, approvals, and governance/endowment execution."
+persona_context: "Stewards coordinating gardens, approvals, and governance/endowment execution."
 source_of_truth:
   - packages/admin/src/views/Actions/index.tsx
   - packages/admin/src/views/Actions/CreateAction.tsx
@@ -32,7 +32,7 @@ import {NextBestAction, StatusBadge, StepFlow} from "@site/src/components/docs";
 
 ## Overview
 
-Actions live in the shared Action Registry, and gardens expose them based on domain fit and timing. In the current admin app, **creating and editing action definitions is a deployer-level flow** under `/actions`. Operators still need to understand actions because domain choice, instructions, timing, and acceptance criteria directly shape what gardeners can submit.
+Actions live in the shared Action Registry, and gardens expose them based on domain fit and timing. In the current admin app, **creating and editing action definitions is a deployer-level flow** under `/actions`. Stewards still need to understand actions because domain choice, instructions, timing, and acceptance criteria directly shape what gardeners can submit.
 
 ## Action lifecycle
 
@@ -49,7 +49,7 @@ Actions live in the shared Action Registry, and gardens expose them based on dom
 
 <img src="/img/screenshots/admin-create-action.png" alt="Action creation form — define title, timeline, capitals, and media" style={{maxWidth: '100%', borderRadius: '8px', border: '1px solid var(--ifm-color-emphasis-300)'}} />
 
-## Operator standards
+## Steward standards
 
 - Use explicit acceptance criteria in instructions so review decisions stay consistent
 - Keep action windows realistic for field conditions, connectivity, and seasonality
@@ -59,7 +59,7 @@ Actions live in the shared Action Registry, and gardens expose them based on dom
 
 <NextBestAction
   title="Next best action"
-  why="Once actions are clear, the operator workflow becomes a review discipline problem."
+  why="Once actions are clear, the steward workflow becomes a review discipline problem."
   actionLabel="Reviewing Work"
   actionHref="./reviewing-work"
   alternatives={[

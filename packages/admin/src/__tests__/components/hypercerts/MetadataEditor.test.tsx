@@ -125,7 +125,7 @@ function createMockDraft(overrides: Partial<HypercertDraft> = {}): HypercertDraf
   return {
     id: "draft-1",
     gardenId: "0xGarden123",
-    operatorAddress: "0xOperator123",
+    stewardAddress: "0xSteward123",
     stepNumber: 2,
     attestationIds: [],
     title: "",

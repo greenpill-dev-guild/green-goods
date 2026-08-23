@@ -29,10 +29,10 @@ function GardenSelectorCheckbox({
       label={garden.name}
       description={formatMessage(
         {
-          id: "cockpit.community.cookies.operatorCount",
-          defaultMessage: "{count, plural, one {# operator} other {# operators}} - {address}",
+          id: "cockpit.community.cookies.stewardCount",
+          defaultMessage: "{count, plural, one {# steward} other {# stewards}} - {address}",
         },
-        { count: garden.operators.length, address: addressLabel }
+        { count: garden.stewards.length, address: addressLabel }
       )}
     />
   );

@@ -25,7 +25,7 @@ describe("stores/useCreateGardenStore", () => {
     store.setField("location", "Test City");
     store.setField("domains", [Domain.SOLAR, Domain.WASTE]);
     store.addGardener(GARDENER);
-    store.addOperator(OPERATOR);
+    store.addSteward(OPERATOR);
 
     const params = useCreateGardenStore.getState().getParams();
     expect(params).not.toBeNull();

@@ -28,15 +28,15 @@ const messages: Record<string, string> = {
   "app.admin.auth.requireRole": "To access this area, you need to be:",
   "app.admin.auth.requireDeployer":
     "Added to the deployment registry allowlist for contract management",
-  "app.admin.auth.requireOperator": "An operator of at least one garden for garden management",
+  "app.admin.auth.requireSteward": "A steward of at least one garden for garden management",
 };
 
 type RoleOverrides = {
-  role?: "deployer" | "operator" | "user";
+  role?: "deployer" | "steward" | "user";
   loading?: boolean;
   isDeployer?: boolean;
-  isOperator?: boolean;
-  operatorGardens?: Array<{ id: string; name: string }>;
+  isSteward?: boolean;
+  stewardGardens?: Array<{ id: string; name: string }>;
   deploymentPermissions?: {
     canDeploy?: boolean;
     isOwner?: boolean;
@@ -50,8 +50,8 @@ function buildRoleState(overrides: RoleOverrides = {}) {
     role: "user" as const,
     loading: false,
     isDeployer: false,
-    isOperator: false,
-    operatorGardens: [] as Array<{ id: string; name: string }>,
+    isSteward: false,
+    stewardGardens: [] as Array<{ id: string; name: string }>,
     deploymentPermissions: {
       canDeploy: false,
       isOwner: false,
@@ -121,12 +121,12 @@ describe("RequireRole", () => {
     expect(screen.queryByTestId("dashboard-layout-skeleton")).not.toBeInTheDocument();
   });
 
-  it("shows an unauthorized message without user guidance for operators", () => {
+  it("shows an unauthorized message without user guidance for stewards", () => {
     mockUseRole.mockReturnValue(
       buildRoleState({
-        role: "operator",
-        isOperator: true,
-        operatorGardens: [{ id: "1", name: "Test Garden" }],
+        role: "steward",
+        isSteward: true,
+        stewardGardens: [{ id: "1", name: "Test Garden" }],
       })
     );
 

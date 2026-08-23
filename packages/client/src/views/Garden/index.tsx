@@ -389,7 +389,7 @@ const Work: React.FC = () => {
       location: "",
       bannerImage: "",
       gardeners: [],
-      operators: [],
+      stewards: [],
       evaluators: [],
       owners: [],
       funders: [],

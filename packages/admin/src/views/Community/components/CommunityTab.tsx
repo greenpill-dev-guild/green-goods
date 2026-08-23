@@ -130,7 +130,7 @@ export function CommunityTab({
       roleSummary.filter(
         (entry) =>
           entry.count === 0 &&
-          (entry.role === "owner" || entry.role === "operator" || entry.role === "evaluator")
+          (entry.role === "owner" || entry.role === "steward" || entry.role === "evaluator")
       ),
     [roleSummary]
   );
@@ -168,7 +168,7 @@ export function CommunityTab({
   >(
     () => ({
       gardener: operations.addGardener,
-      operator: operations.addOperator,
+      steward: operations.addSteward,
       evaluator: operations.addEvaluator,
       owner: operations.addOwner,
       funder: operations.addFunder,
@@ -181,7 +181,7 @@ export function CommunityTab({
   >(
     () => ({
       gardener: operations.removeGardener,
-      operator: operations.removeOperator,
+      steward: operations.removeSteward,
       evaluator: operations.removeEvaluator,
       owner: operations.removeOwner,
       funder: operations.removeFunder,
@@ -514,7 +514,7 @@ export function CommunityTab({
                     const isCriticalEmpty =
                       entry.count === 0 &&
                       (entry.role === "owner" ||
-                        entry.role === "operator" ||
+                        entry.role === "steward" ||
                         entry.role === "evaluator");
                     return (
                       <Link
@@ -604,7 +604,7 @@ export function CommunityTab({
                           {
                             community: weightSchemeValues.community / 10_000,
                             gardener: weightSchemeValues.gardener / 10_000,
-                            operator: weightSchemeValues.operator / 10_000,
+                            steward: weightSchemeValues.steward / 10_000,
                           }
                         )}
                       </p>

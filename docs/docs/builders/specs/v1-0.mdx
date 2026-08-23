@@ -106,7 +106,7 @@ The numeric targets below came from the original Q1 2026 beta planning assumptio
 | **Vault TVL** | Total value locked in Octant Vaults | $20,000 |
 | **Active Gardeners** | Unique wallet addresses (including Smart Accounts via AI Agent) submitting verified actions in 30-day window | 150 users on a rolling 30-day basis |
 | **Reputation Density** | Number of active users holding a GreenWill "Steward" or "Sprout" badge | 32+ users |
-| **Verification Efficiency** | Percentage of submitted actions processed (Approved/Rejected) by Evaluators/Operators within 72 hours | >90% |
+| **Verification Efficiency** | Percentage of submitted actions processed (Approved/Rejected) by Evaluators/Stewards within 72 hours | >90% |
 | **Conviction Participation** | Percentage of token holders actively signaling/voting on yield allocation via Conviction Voting | >48% |
 | **Hypercerts Minted** | Number of ERC-1155 impact certificates created from verified actions | 12+ by end of Q1 2026 |
 | **Gardens Active** | Number of distinct Gardens using Arbitrum for impact reporting | 8+ by end of Q1 2026 |
@@ -133,7 +133,7 @@ The product architecture serves a 5-sided marketplace, ensuring checks and balan
 - **Key Interface:** AI Agent (WhatsApp/SMS) for reporting; PWA for deep management.
 - **Definition of Success:** Successfully logging work via a text message or photo and receiving payment notification without managing a crypto wallet.
 
-#### Persona B: The Garden Operator (The Steward)
+#### Persona B: The Garden Steward (The Steward)
 
 - **Profile:** Local chapter administrator or NGO program manager.
 - **Motivation:** Funding sustainability and coordinating local labor.
@@ -166,14 +166,14 @@ The product architecture serves a 5-sided marketplace, ensuring checks and balan
 | JTBD | User | Context | Job | Outcome |
 |------|------|---------|-----|---------|
 | Low Bandwidth Submission | Gardener | In the field with no data plan | Text a photo to the AI Agent | Labor logged even without a high-end smartphone |
-| Impact Report Aggregation | Operator | Quarter ends and reporting is due | Aggregate all verified actions into a single Impact Report | Mint a Hypercert bundle and sell it to the Octant Vault |
+| Impact Report Aggregation | Steward | Quarter ends and reporting is due | Aggregate all verified actions into a single Impact Report | Mint a Hypercert bundle and sell it to the Octant Vault |
 | Principal-Preserving Funding | Funder | Want to support a region without losing principal | Stake ETH in an Octant Vault | Yield acts as a perpetual endowment for the local community |
 | Impact Evaluation | Evaluator | A Garden claims "Biodiversity Increase" | Review aggregated data and sensor logs | Cryptographically sign an attestation verifying the claim |
 | Community Prioritization | Community Member | A Garden proposes a new project | Signal priority via Conviction Voting | Yield flows to the actions that matter most |
 
 ### 3.3 Use Cases
 
-- **PWA Impact Reporting:** An Operator uses the PWA to aggregate 500 individual tree planting actions into a "Q1 Reforestation Report." The system formats this data according to the Common Impact Data Standard (CIDS) for Karma GAP integration.
+- **PWA Impact Reporting:** A Steward uses the PWA to aggregate 500 individual tree planting actions into a "Q1 Reforestation Report." The system formats this data according to the Common Impact Data Standard (CIDS) for Karma GAP integration.
 - **Impact Reporting Certification:** An Evaluator receives the "Q1 Reforestation Report." They analyze the attached Silvi sensor data and satellite imagery. Satisfied with the quality, they sign the report using their Hats Protocol "Verifier" authority, certifying it for minting.
 - **Garden Revenue Tokenization:** A Garden mints a Hypercert based on the certified report. They list this Hypercert on the Revnet. The Octant Vault automatically purchases it using yield, and the revenue flows into the Garden's treasury, backing the value of the local Garden Token.
 - **Prioritization Signaling:** Community members stake their reputation (GreenWill Badges) on specific actions within the Garden's governance page, signaling that "Water Conservation" is a higher priority than "Planting" for the upcoming season.
@@ -388,7 +388,7 @@ Before launch, all action schemas must be validated with actual users in each do
 
 #### Solar Domain Validation
 
-- **Participants:** 3-5 Tech and Sun operators from Nigeria (including Anthony Amio and Mmeri Anosike) plus university coordinators
+- **Participants:** 3-5 Tech and Sun stewards from Nigeria (including Anthony Amio and Mmeri Anosike) plus university coordinators
 - **Duration:** 90 minutes per session, 2 sessions planned
 - **Validation Criteria:** Completing submission in under 5 minutes via PWA; AI Agent correctly parsing session type, user count, and energy reading; Switch smart meter readings being easily captured
 - **Fields to Validate:** `sessionType` options, `energyGenerated` capture method, `nodeUptime` format
@@ -459,10 +459,10 @@ Before launch, all action schemas must be validated with actual users in each do
 
 **Identity and Reputation:**
 - **GreenWill** — Reputation badge registry and claim surfaces based on user activity
-- **Hats Protocol** — Management of on-chain roles (e.g., Operator, Evaluator) and permissions
+- **Hats Protocol** — Management of on-chain roles (e.g., Steward, Evaluator) and permissions
 
 **Verification:**
-- **Operators** — Tools for initial data aggregation and verification
+- **Stewards** — Tools for initial data aggregation and verification
 - **Evaluators** — Admin Dashboard view for certifying Impact Reports
 - **Community Signaling** — Mechanism for beneficiaries to flag issues or upvote priorities
 
@@ -513,7 +513,7 @@ This mechanism creates sustainable funding independent of speculation:
 **A4: AI Agents can accurately parse natural language impact submissions.**
 
 - *Validation:* Measure Agri-Advisor accuracy rate on image identification and metadata extraction.
-- *Red Flag:* If error rate exceeds 15%, requiring Operator intervention on the majority of submissions.
+- *Red Flag:* If error rate exceeds 15%, requiring Steward intervention on the majority of submissions.
 
 **A5: Community members will participate in Conviction Voting without direct financial incentives.**
 
@@ -542,7 +542,7 @@ Green Goods v1 acts as a bridge. For the Gardener, it is a helpful WhatsApp cont
 
 1. **Capture/Input** — Photos, metadata, GPS, and voice notes via PWA or AI Agent.
 2. **Details/Structure** — CIDS-compliant action schema, attestation construction, and Hypercert metadata.
-3. **Review/Confirm** — Operator approval queue, Evaluator certification, and Hypercert minting.
+3. **Review/Confirm** — Steward approval queue, Evaluator certification, and Hypercert minting.
 
 ### 6.3 Key User Flows
 
@@ -555,9 +555,9 @@ Green Goods v1 acts as a bridge. For the Gardener, it is a helpful WhatsApp cont
 
 #### Flow 2: Impact Report Minting and Evaluation (High Trust)
 
-1. **Aggregate** — Operator selects 20 verified "Tree Planting" actions in the PWA and clicks "Create Report."
+1. **Aggregate** — Steward selects 20 verified "Tree Planting" actions in the PWA and clicks "Create Report."
 2. **Certify** — The Evaluator receives the report. They review the aggregated evidence (data + photos). They attest to the validity of the report using their Hats Protocol authority.
-3. **Mint** — The system now allows the Operator to mint the Hypercert, which references the Evaluator's certification attestation.
+3. **Mint** — The system now allows the Steward to mint the Hypercert, which references the Evaluator's certification attestation.
 
 #### Flow 3: Capital Formation and Allocation (Sustainability)
 
@@ -567,8 +567,8 @@ Green Goods v1 acts as a bridge. For the Gardener, it is a helpful WhatsApp cont
 
 #### Flow 4: Governance and Signaling (High Coordination)
 
-1. **Yield Allocation** — Garden members (operator, gardener, community member) vote via Conviction Voting to determine the split of yield to send to hypercerts.
-2. **Action Prioritization** — Garden operators and gardeners signal which specific actions (e.g., "Waste Cleanup") the Garden should prioritize. This signal directs the Operator's focus for the next cycle.
+1. **Yield Allocation** — Garden members (steward, gardener, community member) vote via Conviction Voting to determine the split of yield to send to hypercerts.
+2. **Action Prioritization** — Garden stewards and gardeners signal which specific actions (e.g., "Waste Cleanup") the Garden should prioritize. This signal directs the Steward's focus for the next cycle.
 
 ---
 
@@ -579,13 +579,13 @@ Green Goods v1 acts as a bridge. For the Gardener, it is a helpful WhatsApp cont
 | ID | Requirement | Description |
 |----|-------------|-------------|
 | FR-P-001 | AI Agent Interface | Integration of LLM wrapper (e.g., Twilio/OpenAI) to parse natural language submissions via WhatsApp/SMS |
-| FR-P-002 | Admin Dashboard | Comprehensive dashboard for Operators to manage submissions and for Evaluators to review and certify Impact Reports |
+| FR-P-002 | Admin Dashboard | Comprehensive dashboard for Stewards to manage submissions and for Evaluators to review and certify Impact Reports |
 | FR-P-003 | Octant Vaults | ERC-4626 Vault contracts configured to route yield to specific Garden Revnets |
 | FR-P-004 | Hypercerts Minting | Minting logic for verified impact claims as ERC-1155 certificates |
 | FR-P-005 | Revnet Configuration | Deployment of Juicebox V4 Revnets with configurable redemption rates (80-90%) and reserved rates |
 | FR-P-006 | Conviction Voting | Implementation of the Gardens Conviction Voting module for yield allocation and signaling action priorities |
 | FR-P-007 | GreenWill Badging | GreenWill badge registry and claim surfaces based on user activity thresholds |
-| FR-P-008 | Role Management | Integration with Hats Protocol to assign and manage on-chain permissions for Operators and Evaluators |
+| FR-P-008 | Role Management | Integration with Hats Protocol to assign and manage on-chain permissions for Stewards and Evaluators |
 | FR-P-009 | Smart Account Automation | Backend infrastructure to manage Safe accounts for users interacting solely via AI Agents |
 | FR-P-010 | Karma GAP Sync | Bi-directional sync between Green Goods actions and Karma GAP milestone updates |
 | FR-P-011 | Passkey Authentication | WebAuthn-based biometric login with Safe Smart Account deployment via Pimlico |
@@ -614,13 +614,13 @@ Green Goods v1 acts as a bridge. For the Gardener, it is a helpful WhatsApp cont
 | GG-FEAT-001 | PWA Offline-First Architecture | Critical | In Progress | 3 weeks | IndexedDB, Service Workers | Core to Last Mile access |
 | GG-FEAT-002 | Passkey Authentication | Critical | In Progress | 2 weeks | WebAuthn, Safe, Pimlico | Removes Privy dependency |
 | GG-FEAT-003 | AI Agent (WhatsApp/SMS) | High | Planned | 4 weeks | Twilio, OpenAI/Llama | Billions interface |
-| GG-FEAT-004 | Admin Dashboard v2 | High | Planned | 3 weeks | React, Envio | Operator verification queue |
+| GG-FEAT-004 | Admin Dashboard v2 | High | Planned | 3 weeks | React, Envio | Steward verification queue |
 | GG-FEAT-005 | Hypercerts Minting | High | Planned | 4 weeks | ERC-1155, IPFS | Aggregation + atomic mint |
 | GG-FEAT-006 | Octant Vault Integration | High | Planned | 4 weeks | ERC-4626, DeFi strategies | Yield-generating deposits |
 | GG-FEAT-007 | Revnet Configuration | Medium | Planned | 3 weeks | Juicebox V4 | Garden treasury management |
 | GG-FEAT-008 | Conviction Voting Module | Medium | Planned | 3 weeks | Gardens Protocol | Yield allocation governance |
 | GG-FEAT-009 | GreenWill Badging | Medium | Planned | 2 weeks | GreenWill registry | Reputation badges |
-| GG-FEAT-010 | Hats Protocol Roles | Medium | Planned | 2 weeks | Hats Protocol | Operator/Evaluator permissions |
+| GG-FEAT-010 | Hats Protocol Roles | Medium | Planned | 2 weeks | Hats Protocol | Steward/Evaluator permissions |
 | GG-FEAT-011 | Karma GAP Sync | High | In Progress | 2 weeks | EAS, Karma API | CIDS-compliant reporting |
 | GG-FEAT-012 | Localization (ES/PT) | Medium | In Progress | 2 weeks | i18n framework | Brazilian and LatAm access |
 | GG-FEAT-013 | Report Generator | Medium | Planned | 2 weeks | PDF, JSON export | Grant compliance automation |
@@ -913,7 +913,7 @@ This section assesses privacy risks and documents data handling practices.
 | Device Information | Analytics | Anonymized | Usage patterns |
 | Optional Profile (name, bio) | User-provided | IPFS with encryption | Identity |
 
-**Data Collected from Operators and Evaluators:**
+**Data Collected from Stewards and Evaluators:**
 
 | Data Type | Storage | Purpose |
 |-----------|---------|---------|
@@ -965,7 +965,7 @@ This section assesses privacy risks and documents data handling practices.
 
 - **Risk:** Photos may contain faces, license plates, or property features.
 - **Likelihood:** Medium | **Impact:** High | **Level:** High
-- **Mitigations:** Future AI face detection prompting user to retake; Operator review flagging PII before Hypercert minting; user guidance to avoid including faces; clear notice that IPFS photos are public.
+- **Mitigations:** Future AI face detection prompting user to retake; Steward review flagging PII before Hypercert minting; user guidance to avoid including faces; clear notice that IPFS photos are public.
 - **Residual Risk:** Users have responsibility with guidance provided.
 
 #### Blockchain Data Is Immutable
@@ -993,13 +993,13 @@ This section assesses privacy risks and documents data handling practices.
 
 - **Risk:** Uganda model assigns trees to students and may collect student names (minors' data).
 - **Likelihood:** Medium | **Impact:** High | **Level:** High
-- **Mitigations:** Student names as optional field allowing pseudonyms; no photos of minors required; school administrator as adult Operator; parental consent process for any minor data; student ID codes instead of names.
+- **Mitigations:** Student names as optional field allowing pseudonyms; no photos of minors required; school administrator as adult Steward; parental consent process for any minor data; student ID codes instead of names.
 - **Residual Risk:** Children's privacy requires extra care — default to minimal collection.
 
 ### 11.4 Data Subject Rights Implementation
 
 - **Right to Access** — Users can export all data via Profile settings (submitted actions, attestations, profile data).
-- **Right to Rectification** — Users can update profile data. Action data can be flagged for Operator correction via new attestation with correction reference (original is not deleted).
+- **Right to Rectification** — Users can update profile data. Action data can be flagged for Steward correction via new attestation with correction reference (original is not deleted).
 - **Right to Erasure** — Profile data: destroy encryption key (IPFS data becomes unreadable). On-chain attestations: content references become empty if IPFS unpinned. Analytics: deletion request to provider. **Limitation:** Full erasure not possible for blockchain data; users informed before signup.
 - **Right to Portability** — Data export in machine-readable JSON format (action history, attestation references, profile data).
 
@@ -1080,7 +1080,7 @@ This section assesses privacy risks and documents data handling practices.
 
 - **Unit Tests:** Jest for frontend components, Foundry for Solidity contracts
 - **Integration Tests:** End-to-end flows using Playwright
-- **UAT:** Structured testing with 5 Gardeners and 3 Operators per pilot Garden
+- **UAT:** Structured testing with 5 Gardeners and 3 Stewards per pilot Garden
 - **Pilot Program:** Live testing with Greenpill Nigeria, Brasil, and Cape Town chapters
 
 #### Device and Platform Coverage
@@ -1193,7 +1193,7 @@ This section assesses privacy risks and documents data handling practices.
 
 | ID | Risk | Likelihood | Impact | Mitigation |
 |----|------|------------|--------|------------|
-| R-T1 | AI Hallucination | High | Medium | Agent prompts include strict bounds; Agent stages data for Operator review, never finalizes directly |
+| R-T1 | AI Hallucination | High | Medium | Agent prompts include strict bounds; Agent stages data for Steward review, never finalizes directly |
 | R-T2 | Passkey Adoption Friction | Medium | High | Fallback to email magic link for devices without biometric support; clear onboarding guidance |
 | R-T3 | Pimlico Downtime | Low | High | Queue transactions locally; secondary bundler fallback; alert on sponsorship failures |
 | R-T4 | IPFS Pinning Failures | Medium | Medium | Pinata-backed uploads; retry logic with exponential backoff; local queue preservation |
@@ -1215,7 +1215,7 @@ This section assesses privacy risks and documents data handling practices.
 |----|------|------------|--------|------------|
 | R-G1 | Evaluator Collusion | Medium | High | Evaluators must stake reputation and tokens; Community Members can flag decisions; escalation to Protocol-level review |
 | R-G2 | Low Conviction Voting Participation | High | Medium | Low threshold for conviction to take effect; gamify with GreenWill badges; direct notification on pending votes |
-| R-G3 | Garden Operator Abandonment | Medium | High | Multi-sig requirement for Garden administration; succession planning in onboarding; Protocol can appoint interim steward |
+| R-G3 | Garden Steward Abandonment | Medium | High | Multi-sig requirement for Garden administration; succession planning in onboarding; Protocol can appoint interim steward |
 | R-G4 | Community Pay-to-Complain Dynamics | Medium | Medium | Signal staking requires reputation (GreenWill) not just tokens; anti-sybil checks on new accounts |
 
 ### 14.4 Regulatory and Legal Risks
@@ -1261,10 +1261,10 @@ The due dates below are original planning dates from the v1 draft. Reconfirm own
 |------|------------|
 | **Garden** | A community of gardeners rooted in a place, represented on-chain as an ERC-721 garden token whose ERC-6551 token-bound account holds the garden's treasury, role Hats, and metadata. (The original v1.0 framing as a Juicebox Revnet with its own token, treasury, and governance remains aspirational and is not deployed.) |
 | **Action** | A discrete unit of ecological work (e.g., planting a tree, cleaning a beach) that is captured, verified, and attested |
-| **Work** | One documented instance of an Action performed by a gardener — media, notes, and metadata submitted as an EAS Work attestation for operator review; approval records a separate Work Approval attestation. (The original "aggregate of Actions" framing inverted the cardinality and is retired.) |
-| **Work Approval** | A separate Operator decision attestation that approves or rejects an already-attested Work submission; Evaluators author Assessments, not Work decisions |
-| **Assessment** | An up-front baseline and strategy for a garden — domain, diagnosis, SMART outcome targets, selected Actions, reporting period — authored by an evaluator or operator before work begins, mirrored to a Karma GAP milestone when that module is active; explicitly not a review of submitted Work |
-| **Report** | An aggregated bundle of approved Actions formatted for grant compliance or Hypercert minting |
+| **Work** | One documented instance of an Action performed by a gardener — media, notes, and metadata submitted as an EAS Work attestation for steward review; approval records a separate Work Approval attestation. (The original "aggregate of Actions" framing inverted the cardinality and is retired.) |
+| **Work Approval** | A separate Steward decision attestation that approves or rejects an already-attested Work submission; Evaluators author Assessments, not Work decisions |
+| **Assessment** | An up-front baseline and strategy for a garden — domain, diagnosis, SMART outcome targets, selected Actions, reporting period — authored by an evaluator or steward before work begins, mirrored to a Karma GAP milestone when that module is active; explicitly not a review of submitted Work |
+| **Report** | Not a canonical entity. The aggregated bundle of approved Work described here ships as a **Hypercert**; a standalone exportable report artifact is still planned work (GG-FEAT-013) rather than a term the ontology tracks. |
 | **MDR pipeline (Monitoring–Data–Reporting)** | The protocol's internal term for the action capture-to-attestation-to-reporting pipeline. Distinct from the client submit wizard's MDR (Media–Details–Review) — see the [community glossary](/glossary#mdr-media-details-review). |
 | **Hypercert** | An ERC-1155 impact certificate that bundles verified Actions into a tradable asset |
 | **Revnet** | A Juicebox V4 project with programmatic issuance, redemption, and revenue routing |

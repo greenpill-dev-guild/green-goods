@@ -109,11 +109,11 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
   // Use shared hooks for reviewer garden detection and works fetching
   const { reviewerGardenIds } = useReviewerGardenIds(activeAddress);
   const {
-    data: operatorWorks = [],
-    isLoading: isLoadingOperatorWorks,
-    isFetching: isFetchingOperatorWorks,
-    isError: isErrorOperatorWorks,
-    refetch: refetchOperatorWorks,
+    data: stewardWorks = [],
+    isLoading: isLoadingStewardWorks,
+    isFetching: isFetchingStewardWorks,
+    isError: isErrorStewardWorks,
+    refetch: refetchStewardWorks,
   } = useReviewerWorks(reviewerGardenIds, activeAddress);
 
   // Include offline queued submissions so the Pending tab still reflects the
@@ -135,11 +135,11 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
   // recipient = garden; historical bot approvals may use recipient = gardener, so the
   // helper includes both garden ids and candidate gardeners.
   const approvalRecipients = useMemo(
-    () => collectApprovalRecipientsForWorks(reviewerGardenIds, operatorWorks || []),
-    [reviewerGardenIds, operatorWorks]
+    () => collectApprovalRecipientsForWorks(reviewerGardenIds, stewardWorks || []),
+    [reviewerGardenIds, stewardWorks]
   );
   const reviewExclusionQueryEnabled =
-    reviewerGardenIds.length > 0 && (operatorWorks || []).length > 0;
+    reviewerGardenIds.length > 0 && (stewardWorks || []).length > 0;
   const {
     data: reviewExclusionApprovals = [],
     isLoading: isLoadingReviewExclusionApprovals,
@@ -158,7 +158,7 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
   const isWaitingForReviewExclusionApprovals =
     reviewExclusionQueryEnabled && !isReviewExclusionReady && !isErrorReviewExclusionApprovals;
 
-  // Set of work IDs that have been approved/rejected by ANY operator
+  // Set of work IDs that have been approved/rejected by ANY steward
   const alreadyReviewedByAnyone = useMemo(
     () =>
       isReviewExclusionReady
@@ -167,16 +167,16 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
     [isReviewExclusionReady, reviewExclusionApprovals]
   );
 
-  const operatorWorksById = useMemo(() => buildWorkMap(operatorWorks || []), [operatorWorks]);
+  const stewardWorksById = useMemo(() => buildWorkMap(stewardWorks || []), [stewardWorks]);
 
   // Pending work needing your review (from gardens you operate): not reviewed by ANY
-  // operator and not your own submission — shared derivation, same as the arrival toast.
+  // steward and not your own submission — shared derivation, same as the arrival toast.
   const pendingNeedsReview = useMemo(
     () =>
       isReviewExclusionReady
-        ? filterPendingNeedsReview(operatorWorks || [], alreadyReviewedByAnyone, activeAddress)
+        ? filterPendingNeedsReview(stewardWorks || [], alreadyReviewedByAnyone, activeAddress)
         : [],
-    [operatorWorks, alreadyReviewedByAnyone, activeAddress, isReviewExclusionReady]
+    [stewardWorks, alreadyReviewedByAnyone, activeAddress, isReviewExclusionReady]
   );
 
   // Completed approvals (approved/rejected by you) - convert to Work shape for MinimalWorkCard
@@ -249,7 +249,7 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
   // Navigation handler - handles both Work and WorkApproval shapes
   const handleWorkClick = (work: Work | { workUID?: string; gardenAddress?: Address }) => {
     try {
-      const nav = resolveWorkNavigation(work, operatorWorksById);
+      const nav = resolveWorkNavigation(work, stewardWorksById);
       if (!nav) return;
 
       navigate(`/home/${nav.gardenId}/work/${nav.workId}`, {
@@ -275,7 +275,7 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
   // Combined refresh functions for each tab
   const handleRefreshPending = () => {
     hapticLight();
-    refetchOperatorWorks();
+    refetchStewardWorks();
     refetchMyWorks();
     refetchApprovals();
     refetchReviewExclusionApprovals();
@@ -289,16 +289,16 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
 
   // Combined error states
   const pendingQueryErrored =
-    hasError || isErrorOperatorWorks || isErrorMyWorks || isErrorReviewExclusionApprovals;
+    hasError || isErrorStewardWorks || isErrorMyWorks || isErrorReviewExclusionApprovals;
   const hasPendingError = pendingQueryErrored && filteredPending.length === 0;
   const hasCompletedError = hasError || isErrorMyApprovals;
 
   // Combined fetching states
   const isFetchingPending =
-    isFetchingOperatorWorks || isFetchingMyWorks || isFetchingReviewExclusionApprovals;
+    isFetchingStewardWorks || isFetchingMyWorks || isFetchingReviewExclusionApprovals;
   const isLoadingPending =
     (isLoading ||
-      isLoadingOperatorWorks ||
+      isLoadingStewardWorks ||
       isLoadingMyWorks ||
       isLoadingReviewExclusionApprovals ||
       isWaitingForReviewExclusionApprovals) &&

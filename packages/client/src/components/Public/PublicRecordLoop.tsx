@@ -19,7 +19,7 @@ const STEPS: readonly LoopStep[] = [
     defaultTitle: "Assess the place.",
     bodyId: "public.home.loop.assessBody",
     defaultBody:
-      "A Garden gathers gardeners, operators, evaluators, and (ideally) funders around a real place. Before work starts they record a baseline: what the place needs, and what good looks like.",
+      "A Garden gathers gardeners, stewards, evaluators, and (ideally) funders around a real place. Before work starts they record a baseline: what the place needs, and what good looks like.",
     to: "/impact",
   },
   {
@@ -28,7 +28,7 @@ const STEPS: readonly LoopStep[] = [
     defaultTitle: "Do the work.",
     bodyId: "public.home.loop.workBody",
     defaultBody:
-      "Gardeners submit Work from the field as a signed record with media, details, and metadata. Operators record approval or rejection separately.",
+      "Gardeners submit Work from the field as a signed record with media, details, and metadata. Stewards record approval or rejection separately.",
     to: "/actions",
   },
   {
@@ -37,7 +37,7 @@ const STEPS: readonly LoopStep[] = [
     defaultTitle: "Verify impact.",
     bodyId: "public.home.loop.verifyBody",
     defaultBody:
-      "Assessments define the baseline and evidence standard. Operator-approved Work can then be bundled into an Impact Certificate when that activation path is available.",
+      "Assessments define the baseline and evidence standard. Steward-approved Work can then be bundled into an Impact Certificate when that activation path is available.",
     to: "/impact",
   },
   {

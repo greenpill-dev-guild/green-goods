@@ -6,7 +6,7 @@ owner: docs
 last_verified: 2026-07-29
 feature_status: Live
 source_of_truth:
-  - docs/docs/community/operator-guide/creating-a-garden.mdx
+  - docs/docs/community/steward-guide/creating-a-garden.mdx
   - docs/docs/community/gardener-guide/joining-a-garden.mdx
 ---
 
@@ -16,7 +16,7 @@ Design resources, research materials, and product vision documents for Green Goo
 
 The page and current design practice are **live**. Commitment Pooling and Community Needs & Signals are **planned** until implementation and runtime proof exist. In this page, **reported** means an authorized executor recorded a Celo transaction reference; it does not prove receipt. **Oracle-confirmed** means an authenticated CCIP acknowledgment reported the bounded executor outcome for the expected execution key and attempt. The executor checks call success and exact balance deltas, but the acknowledgment tuple does not carry or authenticate a finalized receipt or exact `Transfer` logs. The outer transaction sender may be a scoped Zodiac executor. **Evidence-gated** behavior remains blocked until its named research or operational proof exists.
 
-**Researching impact methodology? Read these four in order.** The [Regenerative Design Framework](/reference/regenerative-design-framework) sets the design lens. The [Glossary](/glossary) defines the four action domains and the entities every record uses. [How It Works](/community/how-it-works) explains the work and approval attestations that count as evidence. [Reporting and GAP](/community/operator-guide/reporting-and-gap) shows how approved work rolls up into reports funders can read. The materials below are the source documents behind that chain.
+**Researching impact methodology? Read these four in order.** The [Regenerative Design Framework](/reference/regenerative-design-framework) sets the design lens. The [Glossary](/glossary) defines the four action domains and the entities every record uses. [How It Works](/community/how-it-works) explains the work and approval attestations that count as evidence. [Reporting and GAP](/community/steward-guide/reporting-and-gap) shows how approved work rolls up into reports funders can read. The materials below are the source documents behind that chain.
 
 ---
 
@@ -97,9 +97,9 @@ Green Goods uses a holistic framework for impact measurement:
 
 ### User Personas
 
-The page itself documents the live Green Goods design and research practice. The five scenarios below are **target personas and planned journeys** for Commitment Pooling and Community Needs & Signals; they are research inputs, not claims that those product flows are already available. Live feature documentation remains in the linked operator and gardener guides until implementation ships.
+The page itself documents the live Green Goods design and research practice. The five scenarios below are **target personas and planned journeys** for Commitment Pooling and Community Needs & Signals; they are research inputs, not claims that those product flows are already available. Live feature documentation remains in the linked steward and gardener guides until implementation ships.
 
-The planned surface boundary is explicit: Community Needs & Signals is an independent PWA at `community.greengoods.app` with Needs / Create / Profile; Need triage and evaluator lineage/export live in admin under `/community/needs`, pools and cycles stay in `/community/coordination`, and membership stays in `/community/members`; public funder discovery remains in existing Green Goods browser surfaces. A Need records a problem paired with a desired outcome and has no kind or domain field. Request and Offer describe the direction of a later commitment, not the Need itself. Need state keeps moderation (`none`, `acknowledged`, `merged`, `hidden`, `declined`) separate from progress (`open`, `committed`, `in-progress`, `addressed`). During commitment seeding, an operator may optionally select or prefill `domains[]`; serialization preserves the positional pairing between `domains[i]` and `requiredActionUIDs[i]`. A DomainImpact requirement pairs a registered action UID with a required count, and action UID `0` remains valid. The eventual implementation bound is set by contract-gas and indexer benchmarks, not presented as a four-action product rule.
+The planned surface boundary is explicit: Community Needs & Signals is an independent PWA at `community.greengoods.app` with Needs / Create / Profile; Need triage and evaluator lineage/export live in admin under `/community/needs`, pools and cycles stay in `/community/coordination`, and membership stays in `/community/members`; public funder discovery remains in existing Green Goods browser surfaces. A Need records a problem paired with a desired outcome and has no kind or domain field. Request and Offer describe the direction of a later commitment, not the Need itself. Need state keeps moderation (`none`, `acknowledged`, `merged`, `hidden`, `declined`) separate from progress (`open`, `committed`, `in-progress`, `addressed`). During commitment seeding, a steward may optionally select or prefill `domains[]`; serialization preserves the positional pairing between `domains[i]` and `requiredActionUIDs[i]`. A DomainImpact requirement pairs a registered action UID with a required count, and action UID `0` remains valid. The eventual implementation bound is set by contract-gas and indexer benchmarks, not presented as a four-action product rule.
 
 Planned commitments support a team from the start: one accountable lead plus zero or more contributors tied to approved Work or confirmed evidence. The roster freezes atomically on every transition to ReadyForConfirmation and on direct dispute resolution to Fulfilled, every team member is excluded from confirming their own delivery, and only the lead consumes the commitment register's accountable-provider slot. At certification, fulfilled commitments receive equal budgets inside the Hypercert gardener class; within each commitment, the cycle's opened policy, or the immutable cycle-less 20/80 default, divides units among eligible contributors with deterministic remainder handling. New commitments cannot become Ready or resolve directly to Fulfilled without verified contribution. An inconsistent legacy or indexed commitment with no eligible contributor blocks certificate expansion until governed migration or source-data correction restores canonical on-chain credit; there is no automatic lead or metadata-only fallback.
 
@@ -113,13 +113,13 @@ Settlement stays simple by making the garden account the funding boundary. Commi
 
 **What success feels like**: "I shared the work, kept my promise, and can see that the support arrived." The app never asks her to think about chains, attestations, or transaction mechanics.
 
-**What failure feels like**: A spinning loader after she submitted. She closes the app, unsure if her work was captured. She will not reopen it voluntarily -- she will ask her operator in person. If this happens twice, she stops using the app entirely.
+**What failure feels like**: A spinning loader after she submitted. She closes the app, unsure if her work was captured. She will not reopen it voluntarily -- she will ask her steward in person. If this happens twice, she stops using the app entirely.
 
 **Frustration points**: Long forms, confusing labels, any interruption to the capture-submit-done loop. If the app feels like a government form, she stops using it.
 
 **Design implication**: Every Gardener-facing decision must survive the "would Maria try again after this?" test.
 
-#### Operator: David
+#### Steward: David
 
 **Who he is**: Community coordinator managing a coastal restoration project in Muizenberg, Cape Town. Oversees 20 gardeners across waste collection and food systems actions. Web3-familiar but not a developer. Spends 2-4 hours per week on garden management.
 
@@ -131,13 +131,13 @@ Settlement stays simple by making the garden account the funding boundary. Commi
 
 **Frustration points**: One-at-a-time approval flows, configuration that requires reading Solidity, reports that need technical parsing before they are shareable.
 
-**Design implication**: Every Operator workflow must be measured by "could David finish this before his coffee gets cold?"
+**Design implication**: Every Steward workflow must be measured by "could David finish this before his coffee gets cold?"
 
 #### Evaluator: Dr. Chen
 
 **Who she is**: Environmental researcher partnered with AgroforestDAO in Minas Gerais, Brazil. Evaluates garden impact seasonally, not daily. Comfortable with data queries and attestation chains. Needs structured rubrics that map to academic and compliance frameworks.
 
-**Target journey (planned)**: At season close, Dr. Chen traces a community Need through its linked commitment, approved work, baseline and delta assessment, and testimony. Cross-domain commitments retain optional domain arrays and positional registry-validated action arrays rather than being forced into one category. She exports CSV or JSON evidence lineage and can distinguish evaluator conclusions, operator records, community witness statements, reported transfers, and oracle-verified settlement.
+**Target journey (planned)**: At season close, Dr. Chen traces a community Need through its linked commitment, approved work, baseline and delta assessment, and testimony. Cross-domain commitments retain optional domain arrays and positional registry-validated action arrays rather than being forced into one category. She exports CSV or JSON evidence lineage and can distinguish evaluator conclusions, steward records, community witness statements, reported transfers, and oracle-verified settlement.
 
 **What success feels like**: "I have a publishable dataset with cryptographic provenance that I can cite in a peer-reviewed journal." The data export maps cleanly to her research methodology.
 
@@ -165,7 +165,7 @@ Settlement stays simple by making the garden account the funding boundary. Commi
 
 **Who he is**: Local resident whose neighborhood benefits from a school garden program. He may not do formal fieldwork, but he can name what the community needs and describe what better would look like. He uses a smartphone with tech comfort similar to Maria and usually enters through a garden QR or gathering.
 
-**Target journey (planned)**: Kwame hears that elders need reliable market rides. He opens the independent Community PWA without signing in, reads the desired outcome, and chooses Support. On his first action he creates a passkey account; the action stays safely queued while the operator confirms membership. Membership persistence remains evidence-gated. Later he sees moderation and progress separately: the Need is acknowledged, a ride commitment is seeded, work is in progress, and neighbors have added testimony.
+**Target journey (planned)**: Kwame hears that elders need reliable market rides. He opens the independent Community PWA without signing in, reads the desired outcome, and chooses Support. On his first action he creates a passkey account; the action stays safely queued while the steward confirms membership. Membership persistence remains evidence-gated. Later he sees moderation and progress separately: the Need is acknowledged, a ride commitment is seeded, work is in progress, and neighbors have added testimony.
 
 **What success feels like**: "I said what mattered and can see what happened next." He does not need to understand the protocol — only that his words, the garden's response, and the resulting work remain connected.
 
@@ -175,9 +175,9 @@ Settlement stays simple by making the garden account the funding boundary. Commi
 
 **Design implication**: Community features must use plain Need and desired-outcome language, reserve Request / Offer for commitment direction, and show a legible need → promise → work → proof thread without protocol vocabulary.
 
-### Operator Context Profiles
+### Steward Context Profiles
 
-When the Operator archetype is ambiguous, these constraint profiles differentiate by garden domain. David is still the named Operator persona -- these describe the operational constraints he would face in different contexts.
+When the Steward archetype is ambiguous, these constraint profiles differentiate by garden domain. David is still the named Steward persona -- these describe the operational constraints he would face in different contexts.
 
 | Context | Representative Garden | Key Constraints | UX Implications |
 |---------|----------------------|-----------------|-----------------|
@@ -220,7 +220,7 @@ When the Operator archetype is ambiguous, these constraint profiles differentiat
 
 **Why**: Local communities know their needs best.
 
-**How**: Operator validation, garden autonomy, no central authority.
+**How**: Steward validation, garden autonomy, no central authority.
 
 ---
 
@@ -269,10 +269,10 @@ These targets are measured from the first instrumented pilot task through **2026
 |---|---|
 | At least 90% passkey onboarding completion | Participating gardeners who complete passkey setup divided by those who start their first authenticated action. |
 | At least 99% eligible offline-job sync success | Eligible queued jobs that reach confirmed submission divided by all eligible jobs that begin a normal send attempt; exclude user-cancelled jobs and time spent in `waiting_for_hat`. A separate retry-recovery cut may use only jobs that entered retry as both numerator population and denominator. |
-| At least 95% operator validation completion without data repair | Eligible triage, seeding, and confirmation tasks completed without a corrective data edit divided by observed eligible tasks. |
+| At least 95% steward validation completion without data repair | Eligible triage, seeding, and confirmation tasks completed without a corrective data edit divided by observed eligible tasks. |
 | Median field submission time at or below 2 minutes | Median from first input to locally saved/submitted state, compared with a separately measured pre-pilot baseline. Do not assume a five-minute baseline. |
 
-These targets do not establish product effectiveness on their own. Pair them with comprehension, operator workload, recovery-path observations, and participant correction of the resulting mandate artifacts.
+These targets do not establish product effectiveness on their own. Pair them with comprehension, steward workload, recovery-path observations, and participant correction of the resulting mandate artifacts.
 
 ---
 

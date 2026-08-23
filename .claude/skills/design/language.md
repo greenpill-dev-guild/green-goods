@@ -216,10 +216,10 @@ Two schemes control the personality of motion across the interface:
 
 | Scheme | When | Feel | Spring Character |
 |--------|------|------|-----------------|
-| **Standard** | Productivity, data-dense, operator cockpit | Efficient, professional, minimal overshoot | Spatial tokens as defined above |
+| **Standard** | Productivity, data-dense, steward cockpit | Efficient, professional, minimal overshoot | Spatial tokens as defined above |
 | **Expressive** | Hero moments, celebrations, onboarding, ritual | Playful, bouncy, delightful overshoot | Spatial tokens with +50% duration and higher overshoot |
 
-**Standard** is the default for the admin cockpit — operators scanning a review queue need motion that aids, not entertains. **Expressive** activates for hero moments (see § Hero Moments) — garden creation, first submission, hypercert minting.
+**Standard** is the default for the admin cockpit — stewards scanning a review queue need motion that aids, not entertains. **Expressive** activates for hero moments (see § Hero Moments) — garden creation, first submission, hypercert minting.
 
 The motion scheme is set at the surface level, not per-component. A "Ritual" paradigm surface uses Expressive; a "Command Surface" uses Standard.
 
@@ -400,7 +400,7 @@ Contextual page-level actions — client/spatial vocabulary, not a shipped admin
 
 ### Sheets
 
-> **Admin cockpit exception**: the operator cockpit (`packages/admin`) has **retired workspace side sheets** — the shared sheet renderers are deleted and every workspace action and detail/inspection flow is a centered `AdminDialog` (full-viewport scrim; bottom-sheet on mobile). The one sanctioned side sheet is **`AdminSideSheet`**, reserved for the three global AppBar surfaces (Profile, Settings, Notifications): right-docked and solid on desktop, AdminDialog-identical bottom sheet on mobile. See [prompt-contract.md § Overlays](./prompt-contract.md). The sheet motion below applies to the **client PWA's own sheet patterns** (wallet drawer, `PwaSheet`, mobile detail flows); `SheetBody` / `SheetFooter` / `SheetDivider` survive as layout primitives *inside* an `AdminDialog` or `AdminSideSheet` body.
+> **Admin cockpit exception**: the steward cockpit (`packages/admin`) has **retired workspace side sheets** — the shared sheet renderers are deleted and every workspace action and detail/inspection flow is a centered `AdminDialog` (full-viewport scrim; bottom-sheet on mobile). The one sanctioned side sheet is **`AdminSideSheet`**, reserved for the three global AppBar surfaces (Profile, Settings, Notifications): right-docked and solid on desktop, AdminDialog-identical bottom sheet on mobile. See [prompt-contract.md § Overlays](./prompt-contract.md). The sheet motion below applies to the **client PWA's own sheet patterns** (wallet drawer, `PwaSheet`, mobile detail flows); `SheetBody` / `SheetFooter` / `SheetDivider` survive as layout primitives *inside* an `AdminDialog` or `AdminSideSheet` body.
 
 Client detail surfaces that slide from the edge, anchored to their trigger (source-anchored interaction):
 

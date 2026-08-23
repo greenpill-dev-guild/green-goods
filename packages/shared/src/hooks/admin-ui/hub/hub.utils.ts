@@ -66,7 +66,7 @@ export interface HubHeaderStatsInput {
 /**
  * Inline MetaStrip items for the Hub header. The stage tab rail already shows
  * queue *depth* per stage, so the header complements it with queue *aging* —
- * the pending work an operator should triage first — rather than re-stating the
+ * the pending work a steward should triage first — rather than re-stating the
  * same per-stage counts. Returns [] before a garden is selected so the slot
  * stays clean on the selection gate. Stat shape (2 items): overdue (pending
  * work older than 72h) · waiting (older than 24h). Both are unfiltered (search
@@ -175,7 +175,7 @@ const STAGE_LABELS: Record<HubPipelineStage, { id: string; defaultMessage: strin
 };
 
 // Stage descriptions never name the garden — the AppBar's GardenChip already
-// declares which garden the operator is in. Re-stating it here would double the
+// declares which garden the steward is in. Re-stating it here would double the
 // chrome and steal a row of vertical space (see Rule 17).
 const STAGE_DESCRIPTIONS: Record<HubPipelineStage, { id: string; defaultMessage: string }> = {
   work: {
@@ -254,7 +254,7 @@ export function resolveOpenSectionRoute(
 // ============================================================================
 //
 // Stable trio: the same creation actions render on every stage, in the same
-// order, so button positions never shift as the operator moves between tabs.
+// order, so button positions never shift as the steward moves between tabs.
 // Submit work is the fixed primary across Work, Assess, Certify, and History;
 // the assessment and hypercert actions stay secondary so emphasis no longer
 // follows the active stage.

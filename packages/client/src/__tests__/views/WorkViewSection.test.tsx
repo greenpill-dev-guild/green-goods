@@ -149,11 +149,11 @@ describe("WorkViewSection — all WorkDisplayStatus values (#405)", () => {
     );
   });
 
-  it("shows operator-specific title for approved status", () => {
+  it("shows steward-specific title for approved status", () => {
     render(
       createElement(WorkViewSection, {
         ...baseProps,
-        viewingMode: "operator",
+        viewingMode: "steward",
         effectiveStatus: "approved" as WorkDisplayStatus,
       })
     );

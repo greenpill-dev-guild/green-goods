@@ -106,7 +106,7 @@ describe("actions workspace model", () => {
 
   it("keeps Actions management deployer-only", () => {
     expect(canManageActionsForRole("deployer")).toBe(true);
-    expect(canManageActionsForRole("operator")).toBe(false);
+    expect(canManageActionsForRole("steward")).toBe(false);
     expect(canManageActionsForRole("user")).toBe(false);
   });
 });

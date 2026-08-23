@@ -198,7 +198,7 @@ const parseDataToWorkApproval = (
 
   return {
     id: workApprovalUID,
-    operatorAddress: attestation.attester,
+    stewardAddress: attestation.attester,
     gardenerAddress: attestation.recipient,
     actionUID: toNumberFromField(actionUIDValue) ?? 0,
     workUID: (workUIDData?.value?.value as string) || "",
@@ -238,7 +238,7 @@ export function parseWorkApprovalAttestation(
 
   return {
     id: parsed.id,
-    operatorAddress: parsed.operatorAddress,
+    stewardAddress: parsed.stewardAddress,
     gardenerAddress: parsed.gardenerAddress,
     actionUID: parsed.actionUID,
     workUID: parsed.workUID,

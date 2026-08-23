@@ -209,6 +209,7 @@ export function useCreateGardenWorkflow() {
                 weightScheme: params.weightScheme,
                 domainMask: params.domainMask,
                 gardeners: params.gardeners,
+                // mintGarden encodes this struct by field name — wire spelling.
                 operators: params.operators,
               };
 
@@ -406,6 +407,7 @@ export function useCreateGardenWorkflow() {
       weightScheme: params.weightScheme,
       domainMask: params.domainMask,
       gardeners: params.gardeners,
+      // mintGarden encodes this struct by field name — wire spelling.
       operators: params.operators,
     };
 

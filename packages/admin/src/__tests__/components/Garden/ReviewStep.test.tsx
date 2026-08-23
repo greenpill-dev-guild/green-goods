@@ -48,7 +48,7 @@ describe("components/Garden/CreateGardenSteps/ReviewStep", () => {
     store.setField("slug", "river-garden");
     store.setField("description", "Protecting the river delta");
     store.setField("location", "Portland, Oregon");
-    store.addOperator(OPERATOR_AND_GARDENER);
+    store.addSteward(OPERATOR_AND_GARDENER);
     store.addGardener(OPERATOR_AND_GARDENER);
     store.addGardener(GARDENER);
   });
@@ -64,7 +64,7 @@ describe("components/Garden/CreateGardenSteps/ReviewStep", () => {
     expect(screen.getByText("Portland, Oregon")).toBeInTheDocument();
     expect(screen.getByText("Protecting the river delta")).toBeInTheDocument();
     expect(screen.getByText("Planned gardeners")).toBeInTheDocument();
-    expect(screen.getByText("Planned operators")).toBeInTheDocument();
+    expect(screen.getByText("Planned stewards")).toBeInTheDocument();
     expect(screen.getAllByText("river").length).toBeGreaterThan(0);
     expect(screen.getByText("meadow")).toBeInTheDocument();
     expect(

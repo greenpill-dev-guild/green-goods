@@ -43,7 +43,7 @@ export interface PublicGardenSummary {
   name: string;
   /** Slug derived from name — see header for limitations. */
   slug: string;
-  /** Free-text location set by the operator. */
+  /** Free-text location set by the steward. */
   location: string;
   bannerImage: string;
   description: string;
@@ -53,8 +53,8 @@ export interface PublicGardenSummary {
   actionCount: number;
   /** Distinct gardener addresses across all works for this garden. */
   contributorCount: number;
-  /** Operator addresses surfaced to the public detail page. */
-  operators: Address[];
+  /** Steward addresses surfaced to the public detail page. */
+  stewards: Address[];
   /** Evaluator addresses surfaced for the "Verified Site" credibility path. */
   evaluators: Address[];
 }
@@ -133,7 +133,7 @@ export function usePublicGardens(
               : fallbackSeconds,
           actionCount: stats?.actionCount ?? 0,
           contributorCount: stats?.contributors.size ?? 0,
-          operators: garden.operators ?? [],
+          stewards: garden.stewards ?? [],
           evaluators: garden.evaluators ?? [],
         };
       });

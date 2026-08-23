@@ -75,13 +75,13 @@ describe("Community coordination status actions", () => {
   beforeEach(() => {
     vi.mocked(useGardenOperations).mockReturnValue({
       addGardener: noop,
-      addOperator: noop,
+      addSteward: noop,
       addEvaluator: noop,
       addOwner: noop,
       addFunder: noop,
       addCommunity: noop,
       removeGardener: noop,
-      removeOperator: noop,
+      removeSteward: noop,
       removeEvaluator: noop,
       removeOwner: noop,
       removeFunder: noop,
@@ -146,7 +146,7 @@ describe("Community coordination status actions", () => {
             roleSummary={[]}
             roleMembers={{
               gardener: [],
-              operator: [],
+              steward: [],
               evaluator: [],
               owner: [],
               funder: [],
@@ -157,7 +157,7 @@ describe("Community coordination status actions", () => {
             setMemberSearch={noop}
             roleIcons={{
               gardener: RiUserLine,
-              operator: RiUserLine,
+              steward: RiUserLine,
               evaluator: RiUserLine,
               owner: RiUserLine,
               funder: RiUserLine,

@@ -13,7 +13,7 @@
  * - XState-based state management for predictable auth flows
  * - Client-only credential storage in localStorage
  * - Automatic session restoration on mount
- * - Wallet fallback for admin/operator users
+ * - Wallet fallback for admin/steward users
  * - External wallet tracking (available for switching)
  *
  * Usage:

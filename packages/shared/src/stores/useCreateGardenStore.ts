@@ -43,8 +43,8 @@ export interface CreateGardenStore {
   ) => void;
   addGardener: (address: string) => { success: boolean; error?: string };
   removeGardener: (index: number) => void;
-  addOperator: (address: string) => { success: boolean; error?: string };
-  removeOperator: (index: number) => void;
+  addSteward: (address: string) => { success: boolean; error?: string };
+  removeSteward: (index: number) => void;
   nextStep: () => void;
   previousStep: () => void;
   goToStep: (index: number) => void;
@@ -141,7 +141,7 @@ export const useCreateGardenStore = create<CreateGardenStore>()(
             gardeners: state.form.gardeners.filter((_, i) => i !== index),
           },
         })),
-      addOperator: (address) => {
+      addSteward: (address) => {
         const sanitized = sanitizeAddress(address);
         if (!isValidAddress(sanitized)) {
           return { success: false, error: "Enter a valid wallet address" };
@@ -164,7 +164,7 @@ export const useCreateGardenStore = create<CreateGardenStore>()(
 
         return { success: true };
       },
-      removeOperator: (index) =>
+      removeSteward: (index) =>
         set((state) => ({
           form: {
             ...state.form,

@@ -102,7 +102,7 @@ export function CampaignCookieJarPanelView(props: CampaignCookieJarPanelViewProp
         description={formatMessage({
           id: "cockpit.community.cookies.manageDescription",
           defaultMessage:
-            "Review the public link, update campaign metadata, and sync garden operator access.",
+            "Review the public link, update campaign metadata, and sync garden steward access.",
         })}
         size="lg"
         tone="community"

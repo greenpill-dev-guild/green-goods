@@ -10,7 +10,7 @@ import { expect, userEvent, waitFor, within } from "storybook/test";
 import {
   STORYBOOK_ADMIN_GARDENS,
   STORYBOOK_ADMIN_SHELL_SEEDS,
-  STORYBOOK_OPERATOR_ADDRESS,
+  STORYBOOK_STEWARD_ADDRESS,
   STORYBOOK_PRIMARY_ADMIN_GARDEN,
 } from "../../../../shared/.storybook/adminFixtures";
 import {
@@ -84,12 +84,12 @@ const STORYBOOK_SECONDARY_GARDEN_SEEDS: ReadonlyArray<readonly [QueryKey, unknow
   [queryKeys.conviction.strategies(STORYBOOK_SECONDARY_ADMIN_GARDEN_ID, DEFAULT_CHAIN_ID), []],
 ];
 
-const STORYBOOK_OPERATOR_ADDRESS_KEY = STORYBOOK_OPERATOR_ADDRESS.toLowerCase() as Address;
+const STORYBOOK_STEWARD_ADDRESS_KEY = STORYBOOK_STEWARD_ADDRESS.toLowerCase() as Address;
 
 const STORYBOOK_DEPLOYER_SEEDS: ReadonlyArray<readonly [QueryKey, unknown]> = [
   ...STORYBOOK_ADMIN_SHELL_SEEDS,
   [
-    queryKeys.role.deploymentPermissions(STORYBOOK_OPERATOR_ADDRESS_KEY, DEFAULT_CHAIN_ID),
+    queryKeys.role.deploymentPermissions(STORYBOOK_STEWARD_ADDRESS_KEY, DEFAULT_CHAIN_ID),
     { isOwner: true, isInAllowlist: true, canDeploy: true },
   ],
 ];

@@ -2,9 +2,9 @@
  * useUserCookieJars Hook Tests
  * @vitest-environment jsdom
  *
- * Tests the aggregation of cookie jars across all gardens where the user is an operator.
+ * Tests the aggregation of cookie jars across all gardens where the user is a steward.
  * This hook layers on top of useGardenCookieJars' multicall chain, adding:
- *   - Operator garden filtering via useRole + useGardens
+ *   - Steward garden filtering via useRole + useGardens
  *   - Batch jar address reads across multiple gardens
  */
 
@@ -27,7 +27,7 @@ const TEST_JAR_2 = "0x5555555555555555555555555555555555555555";
 const TEST_CURRENCY = "0x6666666666666666666666666666666666666666";
 
 // ── Mock state ──────────────────────────────────────────────────────────────
-const mockOperatorGardens: Array<{ id: string; name: string }> = [];
+const mockStewardGardens: Array<{ id: string; name: string }> = [];
 const mockGardens: Array<{ tokenAddress: string; id: string }> = [];
 
 let readContractsCallCount = 0;
@@ -66,7 +66,7 @@ vi.mock("../../../utils/blockchain/vaults", () => ({
 }));
 
 vi.mock("../../../hooks/gardener/useRole", () => ({
-  useRole: () => ({ operatorGardens: mockOperatorGardens }),
+  useRole: () => ({ stewardGardens: mockStewardGardens }),
 }));
 
 vi.mock("../../../hooks/blockchain/useBaseLists", () => ({
@@ -86,12 +86,12 @@ describe("hooks/cookie-jar/useUserCookieJars", () => {
     mockReadContractsCalls.length = 0;
     mockModuleAddress = TEST_MODULE;
     mockReadContractsResults.length = 0;
-    mockOperatorGardens.length = 0;
+    mockStewardGardens.length = 0;
     mockGardens.length = 0;
   });
 
-  it("returns empty when user has no operator gardens", () => {
-    mockOperatorGardens.length = 0;
+  it("returns empty when user has no steward gardens", () => {
+    mockStewardGardens.length = 0;
 
     const { result } = renderHook(() => useUserCookieJars(), {
       wrapper: createTestWrapper(),
@@ -101,7 +101,7 @@ describe("hooks/cookie-jar/useUserCookieJars", () => {
   });
 
   it("returns empty when gardens data not loaded", () => {
-    mockOperatorGardens.push({ id: TEST_GARDEN_1.toLowerCase(), name: "Garden 1" });
+    mockStewardGardens.push({ id: TEST_GARDEN_1.toLowerCase(), name: "Garden 1" });
     // mockGardens stays empty (data not loaded yet)
 
     const { result } = renderHook(() => useUserCookieJars(), {
@@ -111,8 +111,8 @@ describe("hooks/cookie-jar/useUserCookieJars", () => {
     expect(result.current.jars).toEqual([]);
   });
 
-  it("filters gardens to only those where user is operator", () => {
-    mockOperatorGardens.push({ id: TEST_GARDEN_1.toLowerCase(), name: "Garden 1" });
+  it("filters gardens to only those where user is steward", () => {
+    mockStewardGardens.push({ id: TEST_GARDEN_1.toLowerCase(), name: "Garden 1" });
     mockGardens.push(
       { tokenAddress: TEST_GARDEN_TOKEN_1, id: TEST_GARDEN_1 },
       { tokenAddress: NON_OPERATOR_TOKEN, id: NON_OPERATOR_GARDEN }
@@ -148,7 +148,7 @@ describe("hooks/cookie-jar/useUserCookieJars", () => {
       wrapper: createTestWrapper(),
     });
 
-    // The hook should only query for operator gardens (1 garden, not 2)
+    // The hook should only query for steward gardens (1 garden, not 2)
     expect(result.current.moduleConfigured).toBe(true);
     const jarAddressContracts = mockReadContractsCalls[0].contracts as Array<{
       args: readonly [string];
@@ -158,8 +158,8 @@ describe("hooks/cookie-jar/useUserCookieJars", () => {
     ]);
   });
 
-  it("aggregates jars across multiple operator gardens", () => {
-    mockOperatorGardens.push(
+  it("aggregates jars across multiple steward gardens", () => {
+    mockStewardGardens.push(
       { id: TEST_GARDEN_1.toLowerCase(), name: "Garden 1" },
       { id: TEST_GARDEN_2.toLowerCase(), name: "Garden 2" }
     );
@@ -232,7 +232,7 @@ describe("hooks/cookie-jar/useUserCookieJars", () => {
   });
 
   it("filters out zero-address jars across all gardens", () => {
-    mockOperatorGardens.push({ id: TEST_GARDEN_1.toLowerCase(), name: "Garden 1" });
+    mockStewardGardens.push({ id: TEST_GARDEN_1.toLowerCase(), name: "Garden 1" });
     mockGardens.push({ tokenAddress: TEST_GARDEN_TOKEN_1, id: TEST_GARDEN_1 });
 
     // Jar addresses include a zero address
@@ -269,7 +269,7 @@ describe("hooks/cookie-jar/useUserCookieJars", () => {
   });
 
   it("falls back to 18 decimals on failure", () => {
-    mockOperatorGardens.push({ id: TEST_GARDEN_1.toLowerCase(), name: "Garden 1" });
+    mockStewardGardens.push({ id: TEST_GARDEN_1.toLowerCase(), name: "Garden 1" });
     mockGardens.push({ tokenAddress: TEST_GARDEN_TOKEN_1, id: TEST_GARDEN_1 });
 
     mockReadContractsResults.push({
@@ -307,7 +307,7 @@ describe("hooks/cookie-jar/useUserCookieJars", () => {
   });
 
   it("sets loading state correctly across all steps", () => {
-    mockOperatorGardens.push({ id: TEST_GARDEN_1.toLowerCase(), name: "Garden 1" });
+    mockStewardGardens.push({ id: TEST_GARDEN_1.toLowerCase(), name: "Garden 1" });
     mockGardens.push({ tokenAddress: TEST_GARDEN_TOKEN_1, id: TEST_GARDEN_1 });
 
     // First step is loading

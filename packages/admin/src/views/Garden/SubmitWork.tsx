@@ -263,7 +263,7 @@ export interface SubmitWorkPanelProps {
   onCancel?: () => void;
   auth?: SubmitWorkAuthSnapshot;
   /**
-   * Reports whether the operator has user-meaningful content (typed form
+   * Reports whether the steward has user-meaningful content (typed form
    * fields or staged media) so the hosting dialog can guard accidental
    * closes. Selecting an action alone is one recoverable click — it does not
    * count as dirty (parity with Create Assessment's pristine-close contract).
@@ -460,7 +460,7 @@ function SubmitWorkPanelContent({
   }, [busy, onBusyChange]);
 
   // Auto-select when exactly one action is eligible — skip the Action chooser and
-  // land the operator straight on the Media step.
+  // land the steward straight on the Media step.
   useEffect(() => {
     if (!selectedActionId && availableActions.length === 1) {
       setSelectedActionId(availableActions[0].id);
@@ -816,7 +816,7 @@ function SubmitWorkPanelContent({
   };
   const goNext = async () => {
     if (busy) return;
-    // Gate the required photos at the Media step — otherwise the operator only
+    // Gate the required photos at the Media step — otherwise the steward only
     // learns at submit, after walking Details + Review. Reuses the inline media
     // Alert (role="alert"), not a deferred toast.
     if (activeStepId === "media") {

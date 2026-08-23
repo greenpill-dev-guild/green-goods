@@ -391,7 +391,8 @@ export async function getGardens(): Promise<Garden[]> {
         location: garden.location || "Unknown Location",
         bannerImage,
         gardeners: (garden.gardeners || []) as Address[],
-        operators: (garden.operators || []) as Address[],
+        // The indexer field keeps the deployed `operators` wire name.
+        stewards: (garden.operators || []) as Address[],
         evaluators: (garden.evaluators || []) as Address[],
         owners: (garden.owners || []) as Address[],
         funders: (garden.funders || []) as Address[],

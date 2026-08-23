@@ -2,7 +2,7 @@
  * PositionCard Vault Component Tests
  *
  * Tests the vault position card that displays deposit stats,
- * yield info, and operator management actions (harvest, emergency pause).
+ * yield info, and steward management actions (harvest, emergency pause).
  */
 
 import { screen } from "@testing-library/react";
@@ -143,7 +143,7 @@ describe("PositionCard", () => {
     });
   });
 
-  describe("operator management actions", () => {
+  describe("steward management actions", () => {
     it("does not show management buttons when canManage is false", () => {
       render(createElement(PositionCard, defaultProps));
 

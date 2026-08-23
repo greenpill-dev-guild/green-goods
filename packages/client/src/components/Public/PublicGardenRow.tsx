@@ -21,14 +21,14 @@ export interface PublicGardenRowProps {
 /**
  * Aggregate garden's people count. `contributorCount` from the indexer is
  * unique addresses across Work attestations (gardeners who submitted work).
- * Operators are also gardeners (per product semantics) but may not have
+ * Stewards are also gardeners (per product semantics) but may not have
  * submitted any work. Without the unique-address sets in scope, `max(...)`
  * is the safe approximation: when work exists, contributorCount typically
- * subsumes operators (operators submit work too); when work is sparse,
- * operators reflects who's involved.
+ * subsumes stewards (stewards submit work too); when work is sparse,
+ * stewards reflects who's involved.
  */
 function aggregateGardenerCount(garden: PublicGardenSummary): number {
-  return Math.max(garden.contributorCount, garden.operators.length);
+  return Math.max(garden.contributorCount, garden.stewards.length);
 }
 
 /**

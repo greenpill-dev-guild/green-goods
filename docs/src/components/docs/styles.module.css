@@ -40,9 +40,9 @@
   --docs-role-accent: var(--docs-role-gardener);
 }
 
-.roleCard[data-role-accent="operator"],
-.guideOpener[data-role-accent="operator"] {
-  --docs-role-accent: var(--docs-role-operator);
+.roleCard[data-role-accent="steward"],
+.guideOpener[data-role-accent="steward"] {
+  --docs-role-accent: var(--docs-role-steward);
 }
 
 .roleCard[data-role-accent="assessment"],
@@ -195,7 +195,7 @@
 }
 
 .pathNav {
-  --docs-role-accent: var(--docs-role-operator);
+  --docs-role-accent: var(--docs-role-steward);
 
   margin: 0.75rem 0 1.25rem;
   padding: 0.6rem;

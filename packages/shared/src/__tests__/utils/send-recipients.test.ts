@@ -22,7 +22,7 @@ function garden(partial: Partial<Garden>): Garden {
     tokenID: 0n,
     description: "",
     createdAt: 0,
-    operators: [],
+    stewards: [],
     gardeners: [],
     evaluators: [],
     owners: [],
@@ -53,12 +53,12 @@ describe("buildSendRecipientGroups", () => {
 
   it("merges roles for a member who holds several in one garden", () => {
     const [group] = buildSendRecipientGroups(
-      [garden({ gardeners: [ALICE], operators: [ALICE], owners: [ALICE] })],
+      [garden({ gardeners: [ALICE], stewards: [ALICE], owners: [ALICE] })],
       SELF
     );
     expect(group.members).toHaveLength(1);
-    // Canonical order: owner before operator before gardener.
-    expect(group.members[0].roles).toEqual(["owner", "operator", "gardener"]);
+    // Canonical order: owner before steward before gardener.
+    expect(group.members[0].roles).toEqual(["owner", "steward", "gardener"]);
   });
 
   it("drops gardens with no other members", () => {
@@ -72,7 +72,7 @@ describe("flattenRecipientMembers", () => {
     const groups = buildSendRecipientGroups(
       [
         garden({ id: "0xa", name: "A", gardeners: [ALICE] }),
-        garden({ id: "0xb", name: "B", operators: [ALICE, BOB] }),
+        garden({ id: "0xb", name: "B", stewards: [ALICE, BOB] }),
       ],
       SELF
     );

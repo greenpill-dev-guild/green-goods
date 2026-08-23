@@ -24,7 +24,7 @@ import {StatusBadge} from "@site/src/components/docs";
 
 <StatusBadge status="Live" />
 
-The admin package is the Green Goods operator canvas. This page is the single UI contract for `packages/admin`.
+The admin package is the Green Goods steward canvas. This page is the single UI contract for `packages/admin`.
 
 ## Purpose
 
@@ -94,7 +94,7 @@ The admin package is the Green Goods operator canvas. This page is the single UI
 
 ## Card And Selection Grammar
 
-- Use `WorkbenchCard` for workbench records, action queue items, assessment queue items, and other records operators scan, compare, and act on in a grid or list.
+- Use `WorkbenchCard` for workbench records, action queue items, assessment queue items, and other records stewards scan, compare, and act on in a grid or list.
 - Use `AdminCard` for compact modules, stats, settings, status panels, and supporting detail regions.
 - Use `AdminSelectableCard` for richer exclusive or multi-select choices where the option needs a title, description, icon, or metadata.
 - Use `AdminChoiceGroup` for compact single-select preferences and context switches inside dense panels.
@@ -150,7 +150,7 @@ Every variant shares one chrome — the action-flow reference anatomy — so sta
 
 ## Canvas UI Heuristics
 
-- Admin is an operator canvas. Use utility copy and operational hierarchy over marketing language.
+- Admin is a steward canvas. Use utility copy and operational hierarchy over marketing language.
 - Default page sequence is the `CanvasRouteFrame` + `CanvasRouteHeader` composition (`PageHeader` under the hood — views never import it directly), then the primary workspace, then any secondary inspector (`AdminDialog`, centered on desktop).
 - Start with layout and flow before introducing cards or elevated panels.
 - Cards and elevated surfaces are for discrete records, action targets, and bounded interaction zones. They are not the default page structure.
@@ -163,7 +163,7 @@ Every variant shares one chrome — the action-flow reference anatomy — so sta
 
 ## Unified Canvas Route Contract
 
-- Every primary route must answer one operator question, not three.
+- Every primary route must answer one steward question, not three.
 - The first viewport must show: route title, one short scope sentence, current garden context when applicable, one control row, and the first actionable content.
 - Default page anatomy is `CanvasRouteFrame` + `CanvasRouteHeader` -> one dominant workspace canvas -> optional secondary inspector (`AdminDialog`, centered on desktop, or a single rail).
 - Use one control grammar per route. Choose one of: stage tabs, view tabs, or a list toolbar. Do not stack multiple competing switchers and banners above the workspace.
@@ -172,8 +172,8 @@ Every variant shares one chrome — the action-flow reference anatomy — so sta
 - Summary metrics are optional and should appear only when they improve decisions. Cap summary strips at three items for operational routes.
 - Prefer layout, rows, and sections over card mosaics. Use cards only for discrete records, bounded workflows, or detail modules that need separation.
 - Default detail behavior is an inspector or secondary pane, not a new pile of inline cards.
-- Use utility copy. Titles identify the workspace. Descriptions explain scope, freshness, or what the operator can do next.
-- Keep imagery subordinate to status, title, and actions unless the operator is explicitly reviewing media itself.
+- Use utility copy. Titles identify the workspace. Descriptions explain scope, freshness, or what the steward can do next.
+- Keep imagery subordinate to status, title, and actions unless the steward is explicitly reviewing media itself.
 - Reduced-motion support is mandatory. Stage changes, row selection, and sheet open/close must retain state clarity without relying on travel or spring lift.
 - Route and tab changes should animate only the named route content group. AppBar, Navigation/FAB, and the canvas root stay visually stationary.
 
@@ -198,7 +198,7 @@ Use this as the default assembly order for a new or refreshed primary admin rout
 - `/hub` is the gold-standard canvas route for composition, depth, responsive adaptation, and tactile state behavior.
 - `/hub` defaults to one dominant workbench surface under the stage rail. Detail, review, and read-only handoff flows open as `AdminDialog` inspectors (`size="lg"`, workspace tone). Full-surface creation/commit flows (Submit Work, Create Assessment, Create Hypercert) open as an `AdminDialog` (`variant="flow"` + `ADMIN_FLOW_DIALOG_CLASS`) with a scrim — centered on desktop, full-width bottom sheet on mobile — hosting the shared `ActionFlowShell` grammar (pinned header + scrolling body + pinned footer). They are never fullscreen takeovers or non-modal routes.
 - Read-only Hub deep links (`/hub/work/:workId`, `/hub/certify/:assessmentId`, `/hub/history/:historyEventId`) are `AdminDialog` inspectors that render through the Hub controller and preserve shareable `gardenAddress` and `sort` query state. Full-surface creation/commit deep links (`/hub/work/submit`, `/hub/assess/create`, `/hub/certify/create`) open the action-flow dialog (full-width bottom sheet on mobile), not inspector sheets. Hub mode belongs to the path, not a `view` query parameter.
-- `Certify` stays visible for evaluator-only users as a read-only handoff state. Owner or operator authority unlocks mint actions.
+- `Certify` stays visible for evaluator-only users as a read-only handoff state. Owner or steward authority unlocks mint actions.
 - `/garden` is the situational overview of a single garden. Its primary object is health, activity, and impact state.
 - `/community` is the operations workspace for membership, treasury, pools, and yield. Only one of those modes should dominate the canvas at a time.
 - `/actions` is the action registry and lifecycle workspace. It should feel like a managed catalog, not a marketing gallery.
@@ -207,7 +207,7 @@ Use this as the default assembly order for a new or refreshed primary admin rout
 
 - `/hub`: stage navigation should reflect real operating modes rather than placeholder pipelines.
 - `/hub`: header chrome should keep the first actionable queue content within immediate reach.
-- `/garden`: large summary card grids before the operator reaches the actual overview or impact workspace.
+- `/garden`: large summary card grids before the steward reaches the actual overview or impact workspace.
 - `/garden`: mixing overview, impact, and settings as visually equivalent tabs without clearly changing page mode.
 - `/community`: a stat strip plus tab switcher plus contextual CTA banner plus card stack before the user reaches the active mode.
 - `/community`: treating treasury, members, pools, and yield as one blended page instead of four focused operational modes.

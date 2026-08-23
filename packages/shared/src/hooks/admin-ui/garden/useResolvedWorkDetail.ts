@@ -52,7 +52,7 @@ export function useResolvedWorkDetail(workId: string | undefined) {
 
   const canReview = garden ? gardenPermissions.canReviewGarden(garden) : false;
   const canApproveOrReject = garden
-    ? gardenPermissions.isOperatorOfGarden(garden) || gardenPermissions.isOwnerOfGarden(garden)
+    ? gardenPermissions.isStewardOfGarden(garden) || gardenPermissions.isOwnerOfGarden(garden)
     : false;
   const isReviewed = work?.status === "approved" || work?.status === "rejected";
 

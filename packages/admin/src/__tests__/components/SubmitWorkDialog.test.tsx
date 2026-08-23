@@ -77,7 +77,7 @@ const SELECTED_GARDEN: Garden = {
   location: "",
   bannerImage: "",
   gardeners: [],
-  operators: [OPERATOR],
+  stewards: [OPERATOR],
   owners: [],
   evaluators: [],
   funders: [],
@@ -204,7 +204,7 @@ function renderSubmitWork(actions: Action[] = []) {
   queryClient.setQueryData(queryKeys.gardens.byChain(DEFAULT_CHAIN_ID), [SELECTED_GARDEN]);
   queryClient.setQueryData(queryKeys.actions.byChain(DEFAULT_CHAIN_ID), actions);
   queryClient.setQueryData(
-    queryKeys.role.operatorGardens(OPERATOR.toLowerCase(), DEFAULT_CHAIN_ID),
+    queryKeys.role.stewardGardens(OPERATOR.toLowerCase(), DEFAULT_CHAIN_ID),
     [{ id: SELECTED_GARDEN.id, name: SELECTED_GARDEN.name }]
   );
   queryClient.setQueryData(
@@ -236,7 +236,7 @@ function renderSubmitWorkTree() {
   const queryClient = createTestQueryClient();
   queryClient.setQueryData(queryKeys.gardens.byChain(DEFAULT_CHAIN_ID), [SELECTED_GARDEN]);
   queryClient.setQueryData(
-    queryKeys.role.operatorGardens(OPERATOR.toLowerCase(), DEFAULT_CHAIN_ID),
+    queryKeys.role.stewardGardens(OPERATOR.toLowerCase(), DEFAULT_CHAIN_ID),
     [{ id: SELECTED_GARDEN.id, name: SELECTED_GARDEN.name }]
   );
   queryClient.setQueryData(

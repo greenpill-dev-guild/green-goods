@@ -9,12 +9,12 @@ import { useCurrentChain } from "../blockchain/useChainConfig";
 import { useDeploymentRegistry } from "../blockchain/useDeploymentRegistry";
 import { queryKeys } from "../../config/query-keys";
 
-const GET_OPERATOR_GARDENS = greenGoodsGraphQL(/* GraphQL */ `
-  query GetOperatorGardens($operator: [String!]!, $chainId: Int!) {
+const GET_STEWARD_GARDENS = greenGoodsGraphQL(/* GraphQL */ `
+  query GetStewardGardens($steward: [String!]!, $chainId: Int!) {
     Garden(
       where: {
         chainId: { _eq: $chainId }
-        _or: [{operators: {_contains: $operator}}, {owners: {_contains: $operator}}]
+        _or: [{stewards: {_contains: $steward}}, {owners: {_contains: $steward}}]
       }
     ) {
       id
@@ -23,42 +23,43 @@ const GET_OPERATOR_GARDENS = greenGoodsGraphQL(/* GraphQL */ `
   }
 `);
 
-interface OperatorGarden {
+interface StewardGarden {
   id: string;
   name: string;
 }
 
 /**
- * Fetches gardens where the given address is an operator
+ * Fetches gardens where the given address is a steward
+ * (the indexer still spells the membership field `operators`)
  */
-async function fetchOperatorGardens(address: string, chainId: number): Promise<OperatorGarden[]> {
+async function fetchStewardGardens(address: string, chainId: number): Promise<StewardGarden[]> {
   const { data, error } = await greenGoodsIndexer.query(
-    GET_OPERATOR_GARDENS,
-    { operator: [address.toLowerCase()], chainId },
-    "getOperatorGardens"
+    GET_STEWARD_GARDENS,
+    { steward: [address.toLowerCase()], chainId },
+    "getStewardGardens"
   );
 
   if (error) {
     // Surface the outage to React Query (isError) instead of masking it as an
     // empty list — a failed fetch and a genuine empty result must stay
     // distinguishable so the admin can show a retry state, not "no access".
-    logger.error("Failed to fetch operator gardens", { source: "useRole", error: error.message });
+    logger.error("Failed to fetch steward gardens", { source: "useRole", error: error.message });
     throw error;
   }
 
   return data?.Garden ?? [];
 }
 
-export type UserRole = "deployer" | "operator" | "user";
+export type UserRole = "deployer" | "steward" | "user";
 
 export interface RoleInfo {
   role: UserRole;
   isDeployer: boolean;
-  isOperator: boolean;
-  operatorGardens: OperatorGarden[];
+  isSteward: boolean;
+  stewardGardens: StewardGarden[];
   loading: boolean;
   /**
-   * True when the operator-gardens indexer query failed (network/indexer
+   * True when the steward-gardens indexer query failed (network/indexer
    * outage), as opposed to a successful query that genuinely returned none.
    * Lets the admin distinguish a retryable error from real "no access".
    */
@@ -77,7 +78,7 @@ export function useRole(): RoleInfo {
   // Single source of truth for the user's address — matches the rule every other
   // admin hook (useEligibleAdminGardens, useGardenPermissions, useEffectiveToolbarPermissions)
   // already follows. Without this, an attached wagmi EOA could outrank the
-  // authenticated smart account and produce zero operator gardens despite a
+  // authenticated smart account and produce zero steward gardens despite a
   // valid on-chain role grant.
   const address = usePrimaryAddress();
   const normalizedAddress = address?.toLowerCase();
@@ -86,36 +87,36 @@ export function useRole(): RoleInfo {
 
   const deploymentRegistry = useDeploymentRegistry();
 
-  // Use React Query for fetching operator gardens
+  // Use React Query for fetching steward gardens
   const {
-    data: operatorGardens = [],
+    data: stewardGardens = [],
     isLoading: isFetching,
     isError: gardensError,
   } = useQuery({
-    queryKey: queryKeys.role.operatorGardens(normalizedAddress ?? undefined, chainId),
-    queryFn: () => fetchOperatorGardens(normalizedAddress!, chainId),
+    queryKey: queryKeys.role.stewardGardens(normalizedAddress ?? undefined, chainId),
+    queryFn: () => fetchStewardGardens(normalizedAddress!, chainId),
     enabled: !!normalizedAddress && ready,
     staleTime: STALE_TIMES.baseLists,
     // Offline-first: prefer cached data
     networkMode: "offlineFirst",
   });
 
-  const isOperator = operatorGardens.length > 0;
+  const isSteward = stewardGardens.length > 0;
   const isDeployer = deploymentRegistry.canDeploy;
 
   // Determine primary role based on capabilities
   let role: UserRole = "user";
   if (isDeployer) {
     role = "deployer";
-  } else if (isOperator) {
-    role = "operator";
+  } else if (isSteward) {
+    role = "steward";
   }
 
   return {
     role,
     isDeployer,
-    isOperator,
-    operatorGardens,
+    isSteward,
+    stewardGardens,
     loading: !ready || isFetching || deploymentRegistry.loading,
     gardensError,
     deploymentPermissions: {

@@ -13,7 +13,7 @@ interface Seed {
   domains?: Domain[];
   openJoining?: boolean;
   gardeners?: string[];
-  operators?: string[];
+  stewards?: string[];
 }
 
 function WithStoreState({ seed, children }: { seed: Seed; children: React.ReactNode }) {
@@ -30,7 +30,7 @@ function WithStoreState({ seed, children }: { seed: Seed; children: React.ReactN
     if (seed.domains !== undefined) setField("domains", seed.domains);
     if (seed.openJoining !== undefined) setField("openJoining", seed.openJoining);
     if (seed.gardeners !== undefined) setField("gardeners", seed.gardeners);
-    if (seed.operators !== undefined) setField("operators", seed.operators);
+    if (seed.stewards !== undefined) setField("operators", seed.stewards);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- run once per story mount
   }, []);
 
@@ -73,7 +73,7 @@ export const MinimalGarden: Story = {
           domains: [Domain.AGRO],
           openJoining: true,
           gardeners: [],
-          operators: [],
+          stewards: [],
         }}
       >
         <Story />
@@ -98,7 +98,7 @@ export const WithPlannedTeam: Story = {
             "0x1111111111111111111111111111111111111111",
             "0x2222222222222222222222222222222222222222",
           ],
-          operators: ["0x3333333333333333333333333333333333333333"],
+          stewards: ["0x3333333333333333333333333333333333333333"],
         }}
       >
         <Story />
@@ -120,7 +120,7 @@ export const WithBanner: Story = {
           domains: [Domain.WASTE],
           openJoining: true,
           gardeners: [],
-          operators: [],
+          stewards: [],
         }}
       >
         <Story />

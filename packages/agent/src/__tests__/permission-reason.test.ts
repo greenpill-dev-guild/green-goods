@@ -3,8 +3,8 @@ import { publicPermissionReason } from "../handlers/permission-reason";
 
 describe("publicPermissionReason", () => {
   it("localizes safe permission reasons", () => {
-    expect(publicPermissionReason("es", "Address is not an operator for this garden")).toBe(
-      "Esta dirección no es operadora de este jardín."
+    expect(publicPermissionReason("es", "Address is not a steward for this garden")).toBe(
+      "Esta dirección no es steward de este jardín."
     );
     expect(publicPermissionReason("pt", "Garden contract not found at this address")).toBe(
       "Contrato do jardim não encontrado neste endereço."

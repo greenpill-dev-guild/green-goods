@@ -37,7 +37,7 @@ const SELECTED_GARDEN: Garden = {
   location: "",
   bannerImage: "",
   gardeners: [],
-  operators: [OPERATOR],
+  stewards: [OPERATOR],
   owners: [],
   evaluators: [],
   funders: [],
@@ -100,7 +100,7 @@ function renderCreateAssessment() {
   queryClient.setQueryData(queryKeys.gardens.byChain(DEFAULT_CHAIN_ID), [SELECTED_GARDEN]);
   queryClient.setQueryData(queryKeys.actions.byChain(DEFAULT_CHAIN_ID), []);
   queryClient.setQueryData(
-    queryKeys.role.operatorGardens(OPERATOR.toLowerCase(), DEFAULT_CHAIN_ID),
+    queryKeys.role.stewardGardens(OPERATOR.toLowerCase(), DEFAULT_CHAIN_ID),
     [{ id: SELECTED_GARDEN.id, name: SELECTED_GARDEN.name }]
   );
   queryClient.setQueryData(
@@ -220,7 +220,7 @@ describe("CreateAssessment dialog", () => {
     expect(endTrigger).toHaveAttribute("aria-expanded", "false");
   });
 
-  it("clears the persisted draft and in-memory form when the operator confirms Discard", async () => {
+  it("clears the persisted draft and in-memory form when the steward confirms Discard", async () => {
     await act(async () => {
       renderCreateAssessment();
       await Promise.resolve();

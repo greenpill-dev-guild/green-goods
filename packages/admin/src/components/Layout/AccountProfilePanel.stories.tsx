@@ -10,7 +10,7 @@ import {
 import { AccountProfilePanel } from "./AccountProfilePanel";
 
 interface MockAccountProfilePanelProps {
-  userRole: "deployer" | "operator" | "user";
+  userRole: "deployer" | "steward" | "user";
   displayName?: string;
   wallet?: string;
 }
@@ -89,7 +89,7 @@ const meta: Meta<typeof AccountProfilePanel> = {
 export default meta;
 type Story = StoryObj<typeof AccountProfilePanel>;
 
-export const Operator: Story = {
+export const Steward: Story = {
   tags: ["storybook-ci"],
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);

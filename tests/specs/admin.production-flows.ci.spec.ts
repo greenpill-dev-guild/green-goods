@@ -71,7 +71,7 @@ async function setupAdminRouteBackend(page: Page) {
 
     const query = getGraphQLQueryText(route);
 
-    if (query.includes("query GetOperatorGardens")) {
+    if (query.includes("query GetStewardGardens")) {
       return route.fulfill({
         status: 200,
         headers: GRAPHQL_HEADERS,

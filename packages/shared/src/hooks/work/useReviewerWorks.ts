@@ -61,7 +61,7 @@ export function useReviewerWorks(
   address: Address | undefined
 ): UseReviewerWorksResult {
   const { data, isLoading, isFetching, isSuccess, isError, refetch } = useQuery({
-    queryKey: queryKeys.operatorWorks.byAddress(address, reviewerGardenIds),
+    queryKey: queryKeys.stewardWorks.byAddress(address, reviewerGardenIds),
     queryFn: async (): Promise<ReviewerWorksResult> => {
       if (!address) return { works: [], failedGardenIds: [] };
 

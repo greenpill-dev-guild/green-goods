@@ -5,7 +5,7 @@
  * `$gardenId: String!` to match the indexer's `Hypercert.garden: String!`
  * column. A prior `$gardenId: ID!` declaration was rejected by Hasura
  * ("variable 'gardenId' is declared as 'ID!', but used where 'String' is
- * expected") and broke garden hypercert loading on every garden the operator
+ * expected") and broke garden hypercert loading on every garden the steward
  * switched to. Mocked-client unit tests don't exercise the real GraphQL
  * validator, so this test guards the query document string directly.
  */

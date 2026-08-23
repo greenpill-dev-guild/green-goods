@@ -36,11 +36,11 @@ Use `Address` from `@green-goods/shared`, not `string`, for Ethereum addresses.
 
 ```typescript
 // Bad
-interface Garden { tokenAddress: string; operators: string[]; }
+interface Garden { tokenAddress: string; stewards: string[]; }
 
 // Good
 import type { Address } from '@green-goods/shared';
-interface Garden { tokenAddress: Address; operators: Address[]; }
+interface Garden { tokenAddress: Address; stewards: Address[]; }
 ```
 
 ## Rule 11: Public Export Enforcement

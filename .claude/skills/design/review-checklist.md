@@ -19,9 +19,9 @@ Unified PR review flow combining all four design lenses. Run in order — each l
 
 | # | Check | Pass | Fix if Fail |
 |---|-------|------|-------------|
-| 1.1 | **Value flow visible?** User can trace how their action connects to the system | | Add contextual text showing chain: "Your submission → operator review → assessment → funding" |
+| 1.1 | **Value flow visible?** User can trace how their action connects to the system | | Add contextual text showing chain: "Your submission → steward review → assessment → funding" |
 | 1.2 | **Succession-appropriate?** Feature complexity matches garden maturity | | Use progressive disclosure — hide advanced controls behind expansion, not removal |
-| 1.3 | **Edge-enriched?** If at a stakeholder boundary, designed for bidirectional learning | | Add context from both sides: rejection shows operator's reasoning + past approved examples |
+| 1.3 | **Edge-enriched?** If at a stakeholder boundary, designed for bidirectional learning | | Add context from both sides: rejection shows steward's reasoning + past approved examples |
 | 1.4 | **Failure as succession?** Error/empty/rejection states guide toward renewal | | Replace "Error" with actionable context. Replace empty states with "Here's how to get started" |
 | 1.5 | **Growth-agnostic?** No engagement gamification, urgency manufacturing, or FOMO | | Remove countdown timers, streak indicators, competitive leaderboards, re-engagement cues |
 | 1.6 | **Capability-building?** Increases independence, not dependency | | Ask: "If the platform disappeared, would this feature's value persist?" If no, redesign |
@@ -53,11 +53,11 @@ Unified PR review flow combining all four design lenses. Run in order — each l
 
 | # | Check | Pass | Fix if Fail |
 |---|-------|------|-------------|
-| 3.1 | **Archetypes mapped?** Can name at least 3 user archetypes this surface serves | | Review the 15 archetypes in `ecosystem.md`. A card seen by Direct (gardener), Governing (operator), and Oblique (researcher) needs different emphasis |
+| 3.1 | **Archetypes mapped?** Can name at least 3 user archetypes this surface serves | | Review the 15 archetypes in `ecosystem.md`. A card seen by Direct (gardener), Governing (steward), and Oblique (researcher) needs different emphasis |
 | 3.2 | **Cascade visible?** Governing actions show blast radius before confirmation | | Add: "This will affect N gardeners" or "Rejecting this removes it from the assessment" before destructive actions |
 | 3.3 | **Autonomic actors surfaced?** On-chain state, sync status, and resolver activity are visible | | Show sync badges (queued/syncing/confirmed), transaction status, indexer freshness |
-| 3.4 | **Surrogate supported?** Can an operator act on behalf of a gardener? | | Check if flows work when user ≠ author (e.g., operator submitting for a gardener without a phone) |
-| 3.5 | **Multi-archetype transitions?** UI adapts when user changes role (gardener → operator) | | Role-switch should update available actions without full navigation. Use role context from Hats |
+| 3.4 | **Surrogate supported?** Can a steward act on behalf of a gardener? | | Check if flows work when user ≠ author (e.g., steward submitting for a gardener without a phone) |
+| 3.5 | **Multi-archetype transitions?** UI adapts when user changes role (gardener → steward) | | Role-switch should update available actions without full navigation. Use role context from Hats |
 
 ---
 
@@ -159,7 +159,7 @@ Each lens has a manual review pass. Some lenses also have automation that runs t
 |------|--------------|-----------|--------|
 | **1 — Regenerative** | Motivation filter + degen/regen pattern table | `bun run lint:vocab` — scans `packages/*/src/i18n/*.json` for `linter_enforced.terms` from `docs/docs/reference/banned-vocabulary.json`; prompt-only admin/client vocabulary is documentation, not a runtime check | **Wired** |
 | **2 — Spatial** | Paradigm declared, material thickness matches content density | Chromatic visual regression on paradigm-tagged stories; `@container` coverage lint | **Proposed** |
-| **3 — Ecosystem** | Archetype mapping, cascade visibility, surrogate flows | Playwright role-based flows (gardener / operator / evaluator / funder); vitest surrogate-path tests; indexer archetype-span checks | **Proposed** |
+| **3 — Ecosystem** | Archetype mapping, cascade visibility, surrogate flows | Playwright role-based flows (gardener / steward / evaluator / funder); vitest surrogate-path tests; indexer archetype-span checks | **Proposed** |
 | **4 — Compliance** | WCAG 2.1 AA, i18n readiness, responsive breakpoints | `@storybook/addon-a11y` (installed, not CI-gating); viewport tests at 320/768/1280; i18n-key coverage lint; `prefers-reduced-motion` vitest matcher | **Partial** — addon installed, no CI gate |
 | **Cross-cutting** | Token consistency across docs and implementation | `bun run check:design-tokens` — spec ↔ `theme.css` (shared) + `packages/admin/src/styles/admin-m3-tokens.css` / `admin-m3-components.css` + `token_version` declared in `design/SKILL.md` | **Wired** |
 
@@ -182,7 +182,7 @@ To move rows out of **Proposed** / **Partial**:
 - **Lens 2 — `@container` coverage**: adopt `eslint-plugin-css-query` or equivalent (not installed).
 - **Lens 4 — i18n key coverage**: adopt or build a lightweight lint that diffs keys across `en.json` / `es.json` / `pt.json`. No `intl-lint` package currently installed.
 - **Lens 4 — viewport tests**: Storybook `@viewport` at 320/768/1280 — depends on the `test-storybook` script above.
-- **Lens 3 — archetype-spanning Playwright flows**: Playwright is in the stack; missing is the gardener / operator / evaluator / funder + surrogate coverage.
+- **Lens 3 — archetype-spanning Playwright flows**: Playwright is in the stack; missing is the gardener / steward / evaluator / funder + surrogate coverage.
 
 ### Why automate
 

@@ -285,7 +285,7 @@ export function PublicCookieJarCard({
     if (jar.accessType === "allowlist") {
       return intl.formatMessage({
         id: "public.cookies.access.allowlist",
-        defaultMessage: "Operator allowlist",
+        defaultMessage: "Steward allowlist",
       });
     }
     if (jar.accessType === "erc721" || jar.accessType === "erc1155") {
@@ -748,7 +748,7 @@ function ClaimEligibilityNote({
         {formatMessage({
           id: "public.cookies.notEligible",
           defaultMessage:
-            "This jar is for garden operators on the campaign allowlist. Your wallet is not on the list yet.",
+            "This jar is for garden stewards on the campaign allowlist. Your wallet is not on the list yet.",
         })}
       </p>
     );

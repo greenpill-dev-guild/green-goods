@@ -162,7 +162,7 @@ describe("HubWorkCard", () => {
     const { container } = renderCard({ work }, "es");
 
     // Regression guard: the card used to render hardcoded English through the
-    // shared formatRelativeTime, so es/pt operators saw "1 day ago".
+    // shared formatRelativeTime, so es/pt stewards saw "1 day ago".
     const time = container.querySelector("time");
     expect(time).not.toBeNull();
     expect(time?.textContent ?? "").not.toMatch(/ago$/);

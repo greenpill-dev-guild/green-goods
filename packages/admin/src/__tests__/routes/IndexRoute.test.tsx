@@ -222,8 +222,8 @@ describe("IndexRoute", () => {
   });
 
   it("redirects to the hub when role-confirmed gardens land via the stale-base-list cross-check", () => {
-    // Simulates the operator/no-garden symptom: useGardens returned [] but
-    // useRole proved an operator garden, so useEligibleAdminGardens injected
+    // Simulates the steward/no-garden symptom: useGardens returned [] but
+    // useRole proved a steward garden, so useEligibleAdminGardens injected
     // a stub. IndexRoute must redirect to the hub instead of the no-access shell.
     mockEligibleAdminGardens.current = {
       ...mockEligibleAdminGardens.current,

@@ -194,7 +194,7 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
     () =>
       userAddress && gardensData
         ? gardensData.filter((garden: Garden) =>
-            isGardenMember(userAddress, garden.gardeners, garden.operators, garden.id)
+            isGardenMember(userAddress, garden.gardeners, garden.stewards, garden.id)
           )
         : [],
     // eslint-disable-next-line react-hooks/exhaustive-deps -- version counter is a deliberate cache-buster, not a read dependency
@@ -213,7 +213,7 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
 
     const isMember =
       isAddressInList(userAddress, communityGarden.gardeners) ||
-      isAddressInList(userAddress, communityGarden.operators);
+      isAddressInList(userAddress, communityGarden.stewards);
 
     return isMember ? null : communityGarden;
   }, [gardensData, rootGardenAddress, userAddress]);

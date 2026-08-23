@@ -4,7 +4,7 @@
  *
  * Tests the exported isGardenMember function from useJoinGarden.
  * This is a pure function (no hooks) that checks membership via:
- *   1. Actual list membership (gardeners/operators)
+ *   1. Actual list membership (gardeners/stewards)
  *   2. Pending join optimistic state (localStorage, 15-min TTL)
  */
 
@@ -88,11 +88,11 @@ describe("isGardenMember", () => {
     expect(isGardenMember(user, gardeners, [])).toBe(true);
   });
 
-  it("returns true when user is in operators list", () => {
+  it("returns true when user is in stewards list", () => {
     const user = "0x1111111111111111111111111111111111111111";
-    const operators = ["0x1111111111111111111111111111111111111111"];
+    const stewards = ["0x1111111111111111111111111111111111111111"];
 
-    expect(isGardenMember(user, [], operators)).toBe(true);
+    expect(isGardenMember(user, [], stewards)).toBe(true);
   });
 
   it("returns true for pending join within TTL (localStorage)", () => {

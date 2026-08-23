@@ -165,7 +165,7 @@ vi.mock("@green-goods/shared", async () => {
     // The reader is a gardener here: joining a team is open to the garden's
     // people, and the contract refuses a contributor from outside it.
     useGardens: () => ({
-      data: [{ id: GARDEN, name: "Rocinha Community Garden", gardeners: [VIEWER], operators: [] }],
+      data: [{ id: GARDEN, name: "Rocinha Community Garden", gardeners: [VIEWER], stewards: [] }],
     }),
     // The roles hook answers from the same role mock the tests already drive,
     // with the same shape the real one derives from chain.
@@ -177,7 +177,7 @@ vi.mock("@green-goods/shared", async () => {
     }) => {
       const role = (garden: string | undefined, kind: string) =>
         garden ? Boolean(mockUseHasRole(garden, input.viewer, kind).hasRole) : false;
-      const isSteward = role(input.routeGarden, "operator") || role(input.routeGarden, "owner");
+      const isSteward = role(input.routeGarden, "steward") || role(input.routeGarden, "owner");
       const counterpartyGarden =
         input.commitment?.direction === "OFFER" && input.commitment.counterpartyKind === "GARDEN"
           ? (input.commitment.counterparty ?? undefined)
@@ -190,15 +190,15 @@ vi.mock("@green-goods/shared", async () => {
       return {
         isSteward,
         isMemberHere: true,
-        stewardsPoolGarden: role(input.pool?.garden ?? undefined, "operator"),
+        stewardsPoolGarden: role(input.pool?.garden ?? undefined, "steward"),
         counterpartyGarden,
         stewardsCounterparty:
-          role(counterpartyGarden, "operator") || role(counterpartyGarden, "owner"),
+          role(counterpartyGarden, "steward") || role(counterpartyGarden, "owner"),
         garden: {
           id: GARDEN,
           name: "Rocinha Community Garden",
           gardeners: [VIEWER],
-          operators: [],
+          stewards: [],
         },
         claimGardens: { member: mine, stewarded: isSteward ? mine : [] },
       };
@@ -473,7 +473,7 @@ describe("GardenCommitment", () => {
       mockUseCommitment.mockReturnValue(browse());
       mockUsePool.mockReturnValue({ pool: { poolId: 7n, poolType: "PROTOCOL" } });
       mockUseHasRole.mockImplementation((_garden: unknown, _user: unknown, role: string) => ({
-        hasRole: role === "operator",
+        hasRole: role === "steward",
         isLoading: false,
       }));
       render();
@@ -526,7 +526,7 @@ describe("GardenCommitment", () => {
       const user = userEvent.setup();
       // Steward of the counterparty garden, asked by address and role.
       mockUseHasRole.mockImplementation((garden: unknown, _user: unknown, role: string) => ({
-        hasRole: String(garden).toLowerCase() === GARDEN.toLowerCase() && role === "operator",
+        hasRole: String(garden).toLowerCase() === GARDEN.toLowerCase() && role === "steward",
         isLoading: false,
       }));
       mockUseCommitment.mockReturnValue(takenByGarden());

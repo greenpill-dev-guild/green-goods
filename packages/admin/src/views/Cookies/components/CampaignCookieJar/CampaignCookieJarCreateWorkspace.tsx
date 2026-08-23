@@ -1,5 +1,5 @@
 import {
-  aggregateCampaignCookieJarOperators,
+  aggregateCampaignCookieJarStewards,
   ERC20_DECIMALS_ABI,
   ERC20_SYMBOL_ABI,
   formatTokenAmount,
@@ -148,7 +148,7 @@ export function CampaignCookieJarCreateWorkspace({
   const metadataUrlsValid = isValidCampaignCookieJarMetadataUrl(campaignImage);
   const aggregation = useMemo(
     () =>
-      aggregateCampaignCookieJarOperators({
+      aggregateCampaignCookieJarStewards({
         gardens: gardensForAggregation(gardens),
         selectedGardenIds,
         extraAddressesInput: extraAddresses,

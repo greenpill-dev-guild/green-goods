@@ -55,7 +55,7 @@ vi.mock("@green-goods/shared", () => ({
         location: "Test Location",
         bannerImage: "",
         gardeners: ["0x1234567890abcdef1234567890abcdef12345678"],
-        operators: [],
+        stewards: [],
         createdAt: Date.now(),
       },
     ],

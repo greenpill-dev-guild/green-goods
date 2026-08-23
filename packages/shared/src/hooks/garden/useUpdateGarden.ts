@@ -84,7 +84,7 @@ export function useUpdateGardenName() {
 }
 
 /**
- * Update a garden's description. Requires the operator role.
+ * Update a garden's description. Requires the steward role.
  * Calls `updateDescription(string)` on the GardenAccount contract.
  */
 export function useUpdateGardenDescription() {
@@ -98,7 +98,7 @@ export function useUpdateGardenDescription() {
 }
 
 /**
- * Update a garden's location. Requires the operator role.
+ * Update a garden's location. Requires the steward role.
  * Calls `updateLocation(string)` on the GardenAccount contract.
  */
 export function useUpdateGardenLocation() {
@@ -112,7 +112,7 @@ export function useUpdateGardenLocation() {
 }
 
 /**
- * Update a garden's banner image URL. Requires the operator role.
+ * Update a garden's banner image URL. Requires the steward role.
  * Calls `updateBannerImage(string)` on the GardenAccount contract.
  */
 export function useUpdateGardenBannerImage() {
@@ -126,7 +126,7 @@ export function useUpdateGardenBannerImage() {
 }
 
 /**
- * Update a garden's metadata. Requires the operator role.
+ * Update a garden's metadata. Requires the steward role.
  * Calls `updateMetadata(string)` on the GardenAccount contract.
  */
 export function useUpdateGardenMetadata() {
@@ -140,7 +140,7 @@ export function useUpdateGardenMetadata() {
 }
 
 /**
- * Toggle a garden's open joining setting. Requires the operator role.
+ * Toggle a garden's open joining setting. Requires the steward role.
  * Calls `setOpenJoining(bool)` on the GardenAccount contract.
  */
 export function useSetOpenJoining() {
@@ -188,7 +188,7 @@ export function useSetOpenJoining() {
 }
 
 /**
- * Set a garden's maximum number of gardeners. Requires the operator role.
+ * Set a garden's maximum number of gardeners. Requires the steward role.
  * Calls `setMaxGardeners(uint256)` on the GardenAccount contract.
  */
 export function useSetMaxGardeners() {

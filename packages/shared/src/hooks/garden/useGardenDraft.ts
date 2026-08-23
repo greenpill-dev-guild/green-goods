@@ -13,10 +13,10 @@ import type { Address } from "../../types/domain";
 // ---------------------------------------------------------------------------
 
 export interface GardenDraft {
-  /** Composite key: `garden_draft_${operatorAddress}` */
+  /** Composite key: `garden_draft_${stewardAddress}` */
   id: string;
-  /** Operator who created the draft */
-  operatorAddress: Address;
+  /** Steward who created the draft */
+  stewardAddress: Address;
   /** Form fields snapshot */
   form: CreateGardenFormState;
   /** Current wizard step index */
@@ -53,9 +53,9 @@ interface UseGardenDraftOptions {
 // Helpers
 // ---------------------------------------------------------------------------
 
-function buildDraftKey(operatorAddress?: string) {
-  if (!operatorAddress) return null;
-  return `garden_draft_${operatorAddress}`;
+function buildDraftKey(stewardAddress?: string) {
+  if (!stewardAddress) return null;
+  return `garden_draft_${stewardAddress}`;
 }
 
 function hasMeaningfulProgress(form: CreateGardenFormState): boolean {
@@ -77,7 +77,7 @@ function hasMeaningfulProgress(form: CreateGardenFormState): boolean {
 // ---------------------------------------------------------------------------
 
 export function useGardenDraft(
-  operatorAddress?: string,
+  stewardAddress?: string,
   options: UseGardenDraftOptions = {}
 ): UseGardenDraftResult {
   const { enabled = true, autoSaveDebounceMs = 2_000, autoSaveIntervalMs = 60_000 } = options;
@@ -85,9 +85,9 @@ export function useGardenDraft(
   const [isLoading, setIsLoading] = useState(false);
   const [lastSavedAt, setLastSavedAt] = useState<number | null>(null);
 
-  const draftKey = useMemo(() => buildDraftKey(operatorAddress), [operatorAddress]);
+  const draftKey = useMemo(() => buildDraftKey(stewardAddress), [stewardAddress]);
 
-  // Track request ID to handle race conditions when operatorAddress changes
+  // Track request ID to handle race conditions when stewardAddress changes
   const loadRequestIdRef = useRef(0);
 
   // Cache createdAt from first load to avoid redundant IDB reads on every save
@@ -160,7 +160,7 @@ export function useGardenDraft(
   }, [draftKey, enabled]);
 
   const saveDraft = useCallback(async () => {
-    if (!draftKey || !operatorAddress || !enabled) return null;
+    if (!draftKey || !stewardAddress || !enabled) return null;
 
     const state = useCreateGardenStore.getState();
     if (!hasMeaningfulProgress(state.form)) return null;
@@ -172,7 +172,7 @@ export function useGardenDraft(
 
     const draft: GardenDraft = {
       id: draftKey,
-      operatorAddress: operatorAddress as Address,
+      stewardAddress: stewardAddress as Address,
       form: state.form,
       currentStep: state.currentStep,
       createdAt,
@@ -197,7 +197,7 @@ export function useGardenDraft(
       });
       return null;
     }
-  }, [draftKey, operatorAddress, enabled]);
+  }, [draftKey, stewardAddress, enabled]);
 
   const clearDraft = useCallback(async () => {
     if (!draftKey) return;

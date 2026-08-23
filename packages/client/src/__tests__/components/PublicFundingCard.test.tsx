@@ -169,7 +169,7 @@ const garden = {
   contributorCount: 2,
   actionCount: 1,
   lastActivityAt: 1700000000,
-  operators: [],
+  stewards: [],
   evaluators: [],
 };
 

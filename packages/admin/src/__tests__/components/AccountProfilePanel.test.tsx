@@ -65,7 +65,7 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
     useGardenUrlSync: () => ({
       setGarden: accountProfilePanelMocks.setGarden,
     }),
-    useRole: () => ({ role: "operator" }),
+    useRole: () => ({ role: "steward" }),
     useSheetOrchestratorStore: <T,>(selector: (state: { closeSheet: () => void }) => T) =>
       selector({ closeSheet: accountProfilePanelMocks.closeSheet }),
   };

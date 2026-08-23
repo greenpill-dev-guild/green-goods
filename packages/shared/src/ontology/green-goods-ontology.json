@@ -1,8 +1,8 @@
 {
   "version": 1,
-  "description": "Machine-readable Green Goods ontology: canonical entities, controlled vocabularies with per-layer representations, EAS schemas, cross-layer constraints, and lifecycle state machines. scripts/quality/check-ontology.mjs (bun run check:ontology) drift-gates the declared code and documentation representations; bun run ontology:generate renders five deterministic reference, matrix, human, claims, and agent-manifest projections. Entity and persona prose stays human-canonical in docs/docs/reference/glossary-community.md — this file mirrors it and the checker locks the two together.",
+  "description": "Machine-readable Green Goods ontology: canonical entities, controlled vocabularies with per-layer representations and display labels, EAS schemas, cross-layer constraints, and lifecycle state machines. scripts/quality/check-ontology.mjs (bun run check:ontology) drift-gates the declared code and documentation representations; bun run ontology:generate renders five deterministic reference, matrix, human, claims, and agent-manifest projections. Entity and persona prose stays human-canonical in docs/docs/reference/glossary-community.md — this file mirrors it and the checker locks the two together.",
   "meta": {
-    "last_verified": "2026-08-21",
+    "last_verified": "2026-08-22",
     "excluded_from_v1": [
       "Impact-axes taxonomy — canon is maintained outside the repo; this public file carries only the four production action domains.",
       "ModuleDependency and ModuleSchemaKind from the commitment-pooling spec — module wiring plumbing, not domain vocabulary."
@@ -63,7 +63,8 @@
           "note": "one six-role hat tree per garden"
         }
       ],
-      "semantic_status": "canonical"
+      "semantic_status": "canonical",
+      "surfaces": ["admin", "client", "agent", "public", "docs"]
     },
     {
       "id": "action",
@@ -85,12 +86,13 @@
           "note": "gardens enable action domains via bitmask"
         }
       ],
-      "semantic_status": "canonical"
+      "semantic_status": "canonical",
+      "surfaces": ["admin", "client", "agent", "public", "docs"]
     },
     {
       "id": "work",
       "display": "Work",
-      "definition": "One documented instance of an Action performed by a gardener — media, notes, and metadata submitted as an EAS Work attestation for operator review; approval records a separate Work Approval attestation.",
+      "definition": "One documented instance of an Action performed by a gardener — media, notes, and metadata submitted as an EAS Work attestation for steward review; approval records a separate Work Approval attestation.",
       "layers": {
         "solidity": ["packages/contracts/src/resolvers/Work.sol"],
         "shared": ["packages/shared/src/types/domain.ts"],
@@ -108,12 +110,42 @@
           "note": "attestation recipient is the garden account"
         }
       ],
-      "semantic_status": "canonical"
+      "semantic_status": "canonical",
+      "surfaces": ["admin", "client", "agent", "public", "docs"]
+    },
+    {
+      "id": "work-approval",
+      "display": "Work Approval",
+      "definition": "The separate EAS attestation in which a garden steward records approval or rejection of a submitted Work, with feedback, confidence, and verification method. The Work record already exists; this decision never creates it.",
+      "layers": {
+        "solidity": ["packages/contracts/src/resolvers/WorkApproval.sol"],
+        "shared": ["packages/shared/src/types/domain.ts"],
+        "docs": "docs/docs/reference/glossary-community.md"
+      },
+      "indexer_note": "Not indexed by Envio — approval attestations are queried from EAS (easscan) per the indexing boundary.",
+      "relationships": [
+        {
+          "to": "work",
+          "kind": "reviews",
+          "note": "carried by workUID; the referenced Work attestation must already exist"
+        },
+        {
+          "to": "garden",
+          "kind": "recorded-in",
+          "note": "attestation recipient must match the reviewed Work's recipient garden"
+        },
+        {
+          "to": "attestation",
+          "kind": "recorded-as"
+        }
+      ],
+      "semantic_status": "canonical",
+      "surfaces": ["admin", "client", "public", "docs"]
     },
     {
       "id": "assessment",
       "display": "Assessment",
-      "definition": "An up-front baseline and strategy for a garden — domain, diagnosis, SMART outcome targets, selected Actions, reporting period — authored by an evaluator or operator before work begins, mirrored to a Karma GAP milestone when that module is active; explicitly not a review of submitted Work (that is Work Approval).",
+      "definition": "An up-front baseline and strategy for a garden — domain, diagnosis, SMART outcome targets, selected Actions, reporting period — authored by an evaluator or steward before work begins, mirrored to a Karma GAP milestone when that module is active; explicitly not a review of submitted Work (that is Work Approval).",
       "layers": {
         "solidity": ["packages/contracts/src/resolvers/Assessment.sol"],
         "shared": ["packages/shared/src/types/domain.ts"],
@@ -127,7 +159,8 @@
           "note": "sets the targets later Work is measured against"
         }
       ],
-      "semantic_status": "canonical"
+      "semantic_status": "canonical",
+      "surfaces": ["admin", "client", "public", "docs"]
     },
     {
       "id": "hypercert",
@@ -153,12 +186,13 @@
           "kind": "minted-for"
         }
       ],
-      "semantic_status": "canonical"
+      "semantic_status": "canonical",
+      "surfaces": ["admin", "client", "public", "docs"]
     },
     {
       "id": "vault",
       "display": "Vault",
-      "definition": "The garden's treasury. Funders deposit; the garden's Tokenbound Account holds; yield splits flow to operators / gardeners / community per configured ratios.",
+      "definition": "The garden's treasury. Funders deposit; the garden's Tokenbound Account holds; yield splits flow to stewards / gardeners / community per configured ratios.",
       "layers": {
         "solidity": ["packages/contracts/src/modules/Octant.sol"],
         "indexer": {
@@ -174,7 +208,8 @@
           "kind": "treasury-of"
         }
       ],
-      "semantic_status": "canonical"
+      "semantic_status": "canonical",
+      "surfaces": ["admin", "client", "public", "docs"]
     },
     {
       "id": "cookie-jar",
@@ -196,7 +231,8 @@
           "kind": "discretionary-fund-of"
         }
       ],
-      "semantic_status": "canonical"
+      "semantic_status": "canonical",
+      "surfaces": ["admin", "client", "public", "docs"]
     },
     {
       "id": "attestation",
@@ -218,12 +254,13 @@
           "kind": "records"
         }
       ],
-      "semantic_status": "canonical"
+      "semantic_status": "canonical",
+      "surfaces": ["admin", "client", "public", "docs"]
     },
     {
       "id": "hat",
       "display": "Hat",
-      "definition": "A Hats Protocol role token. Determines on-chain authority — operator hats can approve Work; gardener hats can submit Work; evaluator hats can attest.",
+      "definition": "A Hats Protocol role token. Determines on-chain authority — steward hats can approve Work; gardener hats can submit Work; evaluator hats can attest.",
       "layers": {
         "solidity": [
           "packages/contracts/src/modules/Hats.sol",
@@ -243,7 +280,8 @@
           "kind": "authority-in"
         }
       ],
-      "semantic_status": "canonical"
+      "semantic_status": "canonical",
+      "surfaces": ["admin", "client", "public", "docs"]
     },
     {
       "id": "season",
@@ -260,7 +298,8 @@
           "note": "implemented in Commitment Pooling; not yet integrated into the product surface"
         }
       ],
-      "semantic_status": "canonical"
+      "semantic_status": "canonical",
+      "surfaces": ["admin", "client", "agent", "public", "docs"]
     },
     {
       "id": "need",
@@ -284,7 +323,8 @@
           "note": "planned Need, NeedSignal, NeedStatus, and FundingAttribution schemas"
         }
       ],
-      "semantic_status": "canonical"
+      "semantic_status": "canonical",
+      "surfaces": ["community", "admin", "client", "public", "docs"]
     },
     {
       "id": "commitment-pool",
@@ -293,7 +333,10 @@
       "spec_source": ".plans/active/commitment-pooling/contract-spec.md",
       "layers": {
         "solidity": ["packages/contracts/src/interfaces/ICommitmentPoolingModule.sol"],
-        "indexer": { "file": "packages/indexer/schema.graphql", "type": "CommitmentPool" }
+        "indexer": {
+          "file": "packages/indexer/schema.graphql",
+          "type": "CommitmentPool"
+        }
       },
       "relationships": [
         {
@@ -301,7 +344,8 @@
           "kind": "anchored-to"
         }
       ],
-      "semantic_status": "canonical"
+      "semantic_status": "canonical",
+      "surfaces": ["admin", "client", "docs"]
     },
     {
       "id": "commitment-cycle",
@@ -310,7 +354,10 @@
       "spec_source": ".plans/active/commitment-pooling/contract-spec.md",
       "layers": {
         "solidity": ["packages/contracts/src/interfaces/ICommitmentPoolingModule.sol"],
-        "indexer": { "file": "packages/indexer/schema.graphql", "type": "CommitmentCycle" }
+        "indexer": {
+          "file": "packages/indexer/schema.graphql",
+          "type": "CommitmentCycle"
+        }
       },
       "relationships": [
         {
@@ -318,7 +365,8 @@
           "kind": "run-of"
         }
       ],
-      "semantic_status": "canonical"
+      "semantic_status": "canonical",
+      "surfaces": ["admin", "client", "docs"]
     },
     {
       "id": "commitment-series",
@@ -327,7 +375,10 @@
       "spec_source": ".plans/active/commitment-pooling/standing-commitments-spec.md",
       "layers": {
         "solidity": ["packages/contracts/src/interfaces/ICommitmentPoolingModule.sol"],
-        "indexer": { "file": "packages/indexer/schema.graphql", "type": "CommitmentSeries" }
+        "indexer": {
+          "file": "packages/indexer/schema.graphql",
+          "type": "CommitmentSeries"
+        }
       },
       "relationships": [
         {
@@ -340,7 +391,8 @@
           "note": "only explicit non-zero commitmentSeriesId links; Offer once uses zero"
         }
       ],
-      "semantic_status": "canonical"
+      "semantic_status": "canonical",
+      "surfaces": ["admin", "client", "docs"]
     },
     {
       "id": "commitment-provider-exposure",
@@ -354,7 +406,13 @@
           "type": "CommitmentProviderExposure"
         }
       },
-      "relationships": [{ "to": "commitment-pool", "kind": "aggregated-in" }]
+      "relationships": [
+        {
+          "to": "commitment-pool",
+          "kind": "aggregated-in"
+        }
+      ],
+      "surfaces": ["admin", "client", "docs"]
     },
     {
       "id": "commitment-unit-summary",
@@ -363,12 +421,22 @@
       "definition": "Exact-label pool or cycle totals for expected, approved, fulfilled, and open commitment units; unlike label hashes are never combined.",
       "spec_source": ".plans/active/commitment-pooling/contract-spec.md",
       "layers": {
-        "indexer": { "file": "packages/indexer/schema.graphql", "type": "CommitmentUnitSummary" }
+        "indexer": {
+          "file": "packages/indexer/schema.graphql",
+          "type": "CommitmentUnitSummary"
+        }
       },
       "relationships": [
-        { "to": "commitment-pool", "kind": "grouped-in" },
-        { "to": "commitment-cycle", "kind": "optionally-grouped-in" }
-      ]
+        {
+          "to": "commitment-pool",
+          "kind": "grouped-in"
+        },
+        {
+          "to": "commitment-cycle",
+          "kind": "optionally-grouped-in"
+        }
+      ],
+      "surfaces": ["admin", "client", "docs"]
     },
     {
       "id": "commitment-series-cycle-summary",
@@ -383,9 +451,16 @@
         }
       },
       "relationships": [
-        { "to": "commitment-series", "kind": "summarizes" },
-        { "to": "commitment-cycle", "kind": "scoped-to" }
-      ]
+        {
+          "to": "commitment-series",
+          "kind": "summarizes"
+        },
+        {
+          "to": "commitment-cycle",
+          "kind": "scoped-to"
+        }
+      ],
+      "surfaces": ["admin", "client", "docs"]
     },
     {
       "id": "commitment",
@@ -407,7 +482,7 @@
         {
           "to": "work",
           "kind": "fulfilled-by",
-          "note": "operator-curated workUID linkage with contributor attribution"
+          "note": "steward-curated workUID linkage with contributor attribution"
         },
         {
           "to": "commitment-series",
@@ -423,7 +498,8 @@
           "kind": "optionally-paid-through"
         }
       ],
-      "semantic_status": "canonical"
+      "semantic_status": "canonical",
+      "surfaces": ["admin", "client", "community", "docs"]
     },
     {
       "id": "commitment-contributor",
@@ -447,7 +523,8 @@
           "kind": "recognized-in"
         }
       ],
-      "semantic_status": "canonical"
+      "semantic_status": "canonical",
+      "surfaces": ["admin", "client", "community", "docs"]
     },
     {
       "id": "commitment-payout-plan",
@@ -476,7 +553,8 @@
           "kind": "pays"
         }
       ],
-      "semantic_status": "canonical"
+      "semantic_status": "canonical",
+      "surfaces": ["admin", "client", "docs"]
     }
   ],
   "personas": [
@@ -484,34 +562,122 @@
       "id": "gardener",
       "display": "Gardener",
       "hat": "gardener",
-      "definition": "A person doing regenerative Work in a garden. Submits Work, holds gardener Hats, receives credit toward Hypercerts and yield splits."
+      "definition": "A person doing regenerative Work in a garden. Submits Work, holds gardener Hats, receives credit toward Hypercerts and yield splits.",
+      "surfaces": ["admin", "client", "agent", "public", "docs"]
     },
     {
-      "id": "operator",
-      "display": "Operator",
-      "hat": "operator",
-      "definition": "A person who runs a garden — creates Actions, approves Work, configures Vault and Hat hierarchy. Holds operator Hats."
+      "id": "steward",
+      "display": "Steward",
+      "hat": "steward",
+      "definition": "A person who stewards a garden — creates Actions, approves Work, configures Vault and Hat hierarchy. Holds the garden's steward Hats (the deployed Operator role).",
+      "surfaces": ["admin", "client", "agent", "public", "docs"]
     },
     {
       "id": "evaluator",
       "display": "Evaluator",
       "hat": "evaluator",
-      "definition": "A person who authors or strengthens Assessments and attests impact methodology or outcomes. Evaluators do not approve or reject submitted Work; that authority belongs to Operators."
+      "definition": "A person who authors or strengthens Assessments and attests impact methodology or outcomes. Evaluators do not approve or reject submitted Work; that authority belongs to Stewards.",
+      "surfaces": ["admin", "client", "public", "docs"]
     },
     {
       "id": "funder",
       "display": "Funder",
       "hat": "funder",
-      "definition": "A person or org who deposits into a garden's Vault, holds Hypercert fractions, receives yield distributions per configured splits."
+      "definition": "A person or org who deposits into a garden's Vault, holds Hypercert fractions, receives yield distributions per configured splits.",
+      "surfaces": ["admin", "client", "public", "docs"]
     },
     {
       "id": "community-member",
       "display": "Community Member",
       "hat": "community",
-      "definition": "A local resident affected by a Garden's Work. Signals or attests that Work exists and is healthy, and helps prioritize future Actions through public signal and conviction flows."
+      "definition": "A local resident affected by a Garden's Work. Signals or attests that Work exists and is healthy, and helps prioritize future Actions through public signal and conviction flows.",
+      "surfaces": ["client", "public", "docs"]
     }
   ],
-  "personas_note": "The on-chain hat tree has six roles; the Owner hat carries full garden control but has no dedicated persona — owners act through the Operator surfaces.",
+  "personas_note": "The on-chain hat tree has six roles; the Owner hat carries full garden control but has no dedicated persona — owners act through the Steward surfaces.",
+  "supporting_terms_note": "Terms that appear in the community glossary's Term Reference section but are deliberately not canonical entities or personas. Declaring them here is what lets the docs-term-reference guard fail on an undeclared term instead of letting orphan nouns accumulate silently.",
+  "supporting_terms": [
+    {
+      "id": "domain",
+      "display": "Domain",
+      "reason": "The `domain` controlled vocabulary — the four action domains — not an entity."
+    },
+    {
+      "id": "eas",
+      "display": "EAS (Ethereum Attestation Service)",
+      "reason": "The external attestation protocol; the record it produces is the Attestation entity."
+    },
+    {
+      "id": "eight-forms-of-capital",
+      "display": "Eight Forms of Capital",
+      "reason": "The impact framework behind the `capital` vocabulary, not an entity."
+    },
+    {
+      "id": "impact-token",
+      "display": "Impact Token",
+      "reason": "The broader tokenized-impact concept; the Green Goods implementation of it is Hypercert."
+    },
+    {
+      "id": "indicator",
+      "display": "Indicator",
+      "reason": "The unit an outcome is measured in, carried inside Assessment fields rather than as its own record."
+    },
+    {
+      "id": "ipfs",
+      "display": "IPFS (InterPlanetary File System)",
+      "reason": "External storage protocol, referenced by CID from attestations."
+    },
+    {
+      "id": "karma-gap",
+      "display": "Karma GAP (Grantee Accountability Protocol)",
+      "reason": "External reporting protocol, tracked in the integration matrix rather than the entity set."
+    },
+    {
+      "id": "mdr",
+      "display": "MDR (Media-Details-Review)",
+      "reason": "The client's three-step submission workflow, not a domain record."
+    },
+    {
+      "id": "on-chain",
+      "display": "On-Chain",
+      "reason": "A property of where data lives, not something the protocol tracks."
+    },
+    {
+      "id": "outcome",
+      "display": "Outcome",
+      "reason": "A SMART target held inside an Assessment, not a separate record."
+    },
+    {
+      "id": "owner",
+      "display": "Owner",
+      "reason": "A `garden-role` member with no dedicated persona — see personas_note."
+    },
+    {
+      "id": "passkey",
+      "display": "Passkey",
+      "reason": "Authentication credential; account infrastructure, not domain vocabulary."
+    },
+    {
+      "id": "pwa",
+      "display": "PWA (Progressive Web App)",
+      "reason": "A delivery surface, listed under Surfaces rather than entities."
+    },
+    {
+      "id": "resolver",
+      "display": "Resolver",
+      "reason": "The contract that gates an attestation; declared per schema as `resolver`, not modelled as an entity."
+    },
+    {
+      "id": "schema",
+      "display": "Schema",
+      "reason": "The attestation template layer; the sidecar's `schemas` section is its canon."
+    },
+    {
+      "id": "smart-account",
+      "display": "Smart Account (Account Abstraction)",
+      "reason": "Wallet infrastructure, not domain vocabulary."
+    }
+  ],
   "vocabularies": [
     {
       "id": "capital",
@@ -726,7 +892,11 @@
       "canonical": {
         "ordered": true,
         "value_scheme": "index",
-        "members": ["Gardener", "Evaluator", "Operator", "Owner", "Funder", "Community"]
+        "members": ["Gardener", "Evaluator", "Operator", "Owner", "Funder", "Community"],
+        "display_labels": {
+          "Operator": "Steward"
+        },
+        "display_labels_note": "The Hats tree on Arbitrum was relabelled to \"… Steward\" on 2026-07-28 (packages/contracts/deployments/tx-plans/42161-steward-relabel-488705295-plan.json). The deployed GardenRole enum and the isOperator access functions keep the Operator wire name; every human-facing surface reads Steward."
       },
       "representations": [
         {
@@ -745,7 +915,7 @@
           "symbol": "GARDEN_ROLE_IDS",
           "extract": "ts-object-keys",
           "ordered": true,
-          "members": ["gardener", "evaluator", "operator", "owner", "funder", "community"],
+          "members": ["gardener", "evaluator", "steward", "owner", "funder", "community"],
           "values": [0, 1, 2, 3, 4, 5],
           "note": "Key order and numeric ids must track the Solidity enum exactly — these ids go into contract calls."
         }
@@ -1692,7 +1862,7 @@
     },
     {
       "id": "claim-mode",
-      "definition": "Whether claiming transitions immediately (Open) or awaits operator acceptance (ApprovalGated).",
+      "definition": "Whether claiming transitions immediately (Open) or awaits steward acceptance (ApprovalGated).",
       "spec_source": ".plans/active/commitment-pooling/contract-spec.md",
       "canonical": {
         "ordered": true,
@@ -1757,7 +1927,7 @@
     },
     {
       "id": "consideration-rail",
-      "definition": "Consideration reference rail: ArbitrumExternal records operator-paid jar/treasury payments; CeloSettlement is consumed only by the SettlementModule. Direction is carried by Commitment.payerGarden, not by the rail.",
+      "definition": "Consideration reference rail: ArbitrumExternal records steward-paid jar/treasury payments; CeloSettlement is consumed only by the SettlementModule. Direction is carried by Commitment.payerGarden, not by the rail.",
       "spec_source": ".plans/active/commitment-pooling/contract-spec.md",
       "canonical": {
         "ordered": true,
@@ -2251,7 +2421,7 @@
     },
     {
       "id": "failure-code",
-      "definition": "Stored settlement failure taxonomy used for deterministic recovery and operator rendering.",
+      "definition": "Stored settlement failure taxonomy used for deterministic recovery and steward rendering.",
       "spec_source": ".plans/active/commitment-pooling/settlement-spec.md",
       "canonical": {
         "ordered": true,
@@ -2653,6 +2823,7 @@
     "assessment": {
       "source": "packages/contracts/config/schemas.json",
       "name": "Green Goods Assessment v2",
+      "entity": "assessment",
       "revocable": false,
       "resolver": "packages/contracts/src/resolvers/Assessment.sol",
       "fields": [
@@ -2690,6 +2861,7 @@
     "work": {
       "source": "packages/contracts/config/schemas.json",
       "name": "Green Goods Work Submission",
+      "entity": "work",
       "revocable": false,
       "resolver": "packages/contracts/src/resolvers/Work.sol",
       "fields": [
@@ -2719,6 +2891,7 @@
     "workApproval": {
       "source": "packages/contracts/config/schemas.json",
       "name": "Green Goods Work Approval",
+      "entity": "work-approval",
       "revocable": false,
       "resolver": "packages/contracts/src/resolvers/WorkApproval.sol",
       "fields": [
@@ -2760,7 +2933,7 @@
       "name": "GreenGoodsBadge",
       "revocable": true,
       "resolver": null,
-      "note": "Registered via the standalone badge-schemas path outside config/schemas.json; the only revocable Green Goods schema, with no resolver.",
+      "note": "Registered via the standalone badge-schemas path outside config/schemas.json; the only revocable Green Goods schema, with no resolver. Records no canonical entity: GreenWill badging is a demonstration sidecar, not part of the v1 entity set.",
       "fields": [
         {
           "name": "badgeType",
@@ -2788,6 +2961,7 @@
     "assessmentV3": {
       "spec_source": ".plans/active/commitment-pooling/contract-spec.md",
       "name": "Green Goods Assessment v3",
+      "entity": "assessment",
       "revocable": false,
       "note": "Assessment v2 fields plus assessmentKind, cycleId, and baselineUID; one of exactly two new EAS registrations in the commitment-pooling track.",
       "fields": [
@@ -2839,7 +3013,7 @@
       "spec_source": ".plans/active/commitment-pooling/contract-spec.md",
       "name": "Green Goods Community Testimony",
       "revocable": false,
-      "note": "Community-Hat-gated testimony attached to a commitment; the second of exactly two new EAS registrations.",
+      "note": "Community-Hat-gated testimony attached to a commitment; the second of exactly two new EAS registrations. Records no canonical entity yet: community testimony is specified but has no entity until the surface is designed.",
       "fields": [
         {
           "name": "commitmentId",
@@ -2860,6 +3034,7 @@
     "need": {
       "spec_source": ".plans/active/community-interface/spec.md",
       "name": "Green Goods Need",
+      "entity": "need",
       "revocable": true,
       "planned_resolver": "NeedsResolver",
       "note": "Root Needs use EAS recipient as the canonical garden, refUID zero, and expirationTime zero. NeedsResolver authorizes the attester through the recipient garden's Community role.",
@@ -2886,6 +3061,7 @@
     "needSignal": {
       "spec_source": ".plans/active/community-interface/spec.md",
       "name": "Green Goods Need Signal",
+      "entity": "need",
       "revocable": true,
       "planned_resolver": "NeedsResolver",
       "note": "Child signal records use EAS recipient as the garden, refUID as the exact live same-garden Need, and expirationTime zero. Readers derive one current direction per attester through the canonical latest-winner rule.",
@@ -2900,9 +3076,10 @@
     "needStatus": {
       "spec_source": ".plans/active/community-interface/spec.md",
       "name": "Green Goods Need Status",
+      "entity": "need",
       "revocable": false,
       "planned_resolver": "NeedsResolver",
-      "note": "Operator-authored child moderation records use EAS recipient as the garden, refUID as the exact live same-garden Need, and expirationTime zero. mergedIntoNeedUID remains custom data because it is a second Need relationship.",
+      "note": "Steward-authored child moderation records use EAS recipient as the garden, refUID as the exact live same-garden Need, and expirationTime zero. mergedIntoNeedUID remains custom data because it is a second Need relationship.",
       "fields": [
         {
           "name": "status",
@@ -2926,6 +3103,7 @@
     "fundingAttribution": {
       "spec_source": ".plans/active/community-interface/spec.md",
       "name": "Green Goods Funding Attribution",
+      "entity": "need",
       "revocable": false,
       "planned_resolver": "FundingAttributionResolver",
       "note": "Ungated child funding records use EAS recipient as the garden, refUID as the exact live same-garden Need, and expirationTime zero. FundingAttributionResolver remains separate from NeedsResolver and the joined reader verifies canonical receipts before display.",
@@ -2975,7 +3153,7 @@
     {
       "id": "work-attester-role",
       "kind": "domain-range",
-      "statement": "A Work attestation's attester must be a gardener or operator of the recipient garden, and the referenced action must exist, be started, not be expired, and belong to a domain enabled on that garden.",
+      "statement": "A Work attestation's attester must be a gardener or steward of the recipient garden, and the referenced action must exist, be started, not be expired, and belong to a domain enabled on that garden.",
       "enforced_at": [
         {
           "file": "packages/contracts/src/resolvers/Work.sol",
@@ -2986,9 +3164,9 @@
       "source_status": "implemented"
     },
     {
-      "id": "approval-operator-only",
+      "id": "approval-steward-only",
       "kind": "domain-range",
-      "statement": "Only an operator of the garden may attest a Work Approval, and the approval's actionUID and recipient must match the referenced Work attestation.",
+      "statement": "Only a steward of the garden may attest a Work Approval, and the approval's actionUID and recipient must match the referenced Work attestation.",
       "enforced_at": [
         {
           "file": "packages/contracts/src/resolvers/WorkApproval.sol",
@@ -3014,7 +3192,7 @@
     {
       "id": "assessment-author-role",
       "kind": "domain-range",
-      "statement": "An Assessment attester must be an evaluator or operator of the recipient garden.",
+      "statement": "An Assessment attester must be an evaluator or steward of the recipient garden.",
       "enforced_at": [
         {
           "file": "packages/contracts/src/resolvers/Assessment.sol",
@@ -3214,7 +3392,7 @@
         "file": "packages/contracts/src/resolvers/Needs.sol",
         "symbol": "NeedsResolver"
       },
-      "statement": "Exactly four Needs schemas route through two resolvers: NeedsResolver accepts only Need, NeedSignal, and NeedStatus with schema-specific Community or Operator authorization, while the ungated FundingAttribution schema routes through FundingAttributionResolver; unknown schema branches fail closed.",
+      "statement": "Exactly four Needs schemas route through two resolvers: NeedsResolver accepts only Need, NeedSignal, and NeedStatus with schema-specific Community or Steward authorization, while the ungated FundingAttribution schema routes through FundingAttributionResolver; unknown schema branches fail closed.",
       "enforced_at": [],
       "holes": [],
       "source_status": "specified"
@@ -3284,7 +3462,7 @@
           "from": ["pending"],
           "to": ["approved", "rejected"],
           "layer": "on-chain",
-          "mechanism": "an Operator records a separate Work Approval attestation"
+          "mechanism": "a Steward records a separate Work Approval attestation"
         }
       ],
       "source_status": "implemented",
@@ -3294,7 +3472,7 @@
       "id": "commitment-pool",
       "vocabulary": "pool-state",
       "spec_source": ".plans/active/commitment-pooling/contract-spec.md",
-      "note": "Every pool state is on-chain; transitions are rare operator-console actions.",
+      "note": "Every pool state is on-chain; transitions are rare steward-console actions.",
       "states": [
         {
           "name": "None",
@@ -3528,7 +3706,7 @@
           "from": ["Offered", "Requested"],
           "to": ["Accepted"],
           "layer": "on-chain",
-          "mechanism": "claimCommitment (runtime kind must equal immutable claimType; Open mode transitions immediately, ApprovalGated waits for operator acceptClaim) → CommitmentAccepted; register records committed units"
+          "mechanism": "claimCommitment (runtime kind must equal immutable claimType; Open mode transitions immediately, ApprovalGated waits for steward acceptClaim) → CommitmentAccepted; register records committed units"
         },
         {
           "from": ["Accepted"],
@@ -3762,14 +3940,14 @@
         }
       },
       {
-        "ref": "persona:operator",
-        "label": "Garden Operator",
+        "ref": "persona:steward",
+        "label": "Garden Steward",
         "cells": {
           "Karma GAP": "Project Owner",
           "Hypercerts": "Creator",
           "Octant": "Vault Admin, TAM Operator",
           "Gardens V2": "Council Member",
-          "Hats Protocol": "Operator Hat"
+          "Hats Protocol": "Steward Hat"
         }
       },
       {
@@ -3859,11 +4037,6 @@
   ],
   "known_issues": [
     {
-      "id": "report-orphan-term",
-      "statement": "v1-0.mdx §16.1 defines a \"Report\" entity (aggregated bundle of approved work for grants/Hypercert minting) that is absent from the canonical entity set, the ERD, and the code. Formalize or retire the term when the reporting feature is actually designed — it overlaps Hypercert bundling today.",
-      "anchors": ["docs/docs/builders/specs/v1-0.mdx"]
-    },
-    {
       "id": "erd-stale-assessment-fields",
       "statement": "The ERD's GardenAssessment shape lists only notes and mediaURIs, while the shipped assessment carries the full strategy kernel (domain, diagnosis, SMART outcomes, selected action UIDs, reporting period, assessmentConfigCID).",
       "anchors": ["docs/docs/builders/architecture/erd.mdx"]
@@ -3872,6 +4045,14 @@
       "id": "missing-capital-mapping-fn",
       "statement": "No runtime mapping function exists between the numeric Capital enum and the lowercase CapitalType union; index-based bridges are unsafe because the two declared orders currently differ.",
       "anchors": ["packages/shared/src/types/domain.ts", "packages/shared/src/types/hypercerts.ts"]
+    },
+    {
+      "id": "community-surface-token",
+      "statement": "The glossary's Allowed surfaces column uses a `community` token on Need, Commitment, and Commitment Contributor, but the Surfaces table declares only four surfaces (admin, client, agent, public). Either promote the client's community section to a declared surface or fold the token into `client`; until then the sidecar carries it verbatim so the two sides stay locked.",
+      "anchors": [
+        "docs/docs/reference/glossary-community.md",
+        "packages/shared/src/ontology/green-goods-ontology.json"
+      ]
     }
   ]
 }

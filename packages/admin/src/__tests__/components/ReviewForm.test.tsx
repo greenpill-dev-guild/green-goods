@@ -62,7 +62,7 @@ vi.mock("@green-goods/shared", () => ({
 const messages = {
   "app.common.optional": "optional",
   "app.errors.contract.selfAttestation.action":
-    "Ask another garden operator to approve or reject this work",
+    "Ask another garden steward to approve or reject this work",
   "app.errors.contract.selfAttestation.message": "You cannot review your own work submission",
   "app.work.detail.approve": "Approve",
   "app.work.detail.approving": "Approving...",
@@ -74,7 +74,7 @@ const messages = {
   "app.work.detail.feedback": "Feedback",
   "app.work.detail.feedbackPlaceholder": "Add feedback for the gardener...",
   "app.work.detail.hint.lowConfidence": "Select a confidence level to approve this work.",
-  "app.work.detail.operatorReview": "Operator Review",
+  "app.work.detail.stewardReview": "Steward Review",
   "app.work.detail.reject": "Reject",
   "app.work.detail.rejecting": "Rejecting...",
   "app.work.detail.requiredForApproval": "required for approval",
@@ -82,11 +82,11 @@ const messages = {
   "app.work.detail.reviewBlocked.expiredMessage":
     "This action is no longer active, so new approval decisions are blocked.",
   "app.work.detail.reviewBlocked.expiredTitle": "Action expired",
-  "app.work.detail.reviewBlocked.operatorMessage":
-    "Only garden owners or operators can approve or reject work for this garden.",
-  "app.work.detail.reviewBlocked.operatorTitle": "Owner or operator access required",
+  "app.work.detail.reviewBlocked.stewardMessage":
+    "Only garden owners or stewards can approve or reject work for this garden.",
+  "app.work.detail.reviewBlocked.stewardTitle": "Owner or steward access required",
   "app.work.detail.reviewBlocked.selfReviewMessage":
-    "You submitted this work. Another garden operator must approve or reject it.",
+    "You submitted this work. Another garden steward must approve or reject it.",
   "app.work.detail.reviewBlocked.selfReviewTitle": "Independent review required",
   "app.work.detail.reviewSummary": "Review Summary",
   "app.work.detail.verificationMethods": "Verification methods",
@@ -130,7 +130,7 @@ describe("ReviewForm", () => {
     mockPrimaryAddress.mockReturnValue("0x9999999999999999999999999999999999999999");
   });
 
-  it("keeps verification method implicit for human operator reviews", async () => {
+  it("keeps verification method implicit for huma steward reviews", async () => {
     renderReviewForm();
 
     expect(screen.queryByText("Verification methods")).not.toBeInTheDocument();
@@ -157,11 +157,11 @@ describe("ReviewForm", () => {
     mockApprovalMutation.mutateAsync.mockRejectedValue(new Error("SelfAttestation"));
     mockParseAndFormatError.mockReturnValue({
       message:
-        "You cannot review your own work submission. Ask another garden operator to approve or reject this work",
+        "You cannot review your own work submission. Ask another garden steward to approve or reject this work",
       parsed: {
         isKnown: true,
         message: "You cannot review your own work submission",
-        action: "Ask another garden operator to approve or reject this work",
+        action: "Ask another garden steward to approve or reject this work",
         messageKey: "app.errors.contract.selfAttestation.message",
         actionKey: "app.errors.contract.selfAttestation.action",
       },
@@ -176,12 +176,12 @@ describe("ReviewForm", () => {
       expect(mockToastError).toHaveBeenCalledWith({
         title: "Decision failed",
         message:
-          "You cannot review your own work submission. Ask another garden operator to approve or reject this work",
+          "You cannot review your own work submission. Ask another garden steward to approve or reject this work",
       });
     });
   });
 
-  it("blocks an operator from reviewing their own submission", () => {
+  it("blocks a steward from reviewing their own submission", () => {
     mockPrimaryAddress.mockReturnValue(TEST_WORK.gardenerAddress);
 
     renderReviewForm();

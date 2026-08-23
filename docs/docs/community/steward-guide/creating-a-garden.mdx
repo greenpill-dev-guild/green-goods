@@ -1,19 +1,19 @@
 ---
 title: Create a Garden
 sidebar_label: Create a Garden
-slug: /community/operator-guide/creating-a-garden
+slug: /community/steward-guide/creating-a-garden
 description: "Deploy a Green Goods garden from admin with current details, domains, and initial team guidance."
-audience: operator
+audience: steward
 owner: docs
 last_verified: 2026-05-01
 feature_status: Live
 image: /img/social/creating-a-garden.webp
-goal: "Walk an operator through deploying a new garden end-to-end, including the deployer gate."
+goal: "Walk a steward through deploying a new garden end-to-end, including the deployer gate."
 difficulty: "standard"
 estimated_time: "10-25 minutes."
 prereqs: "Deployer access, a name and short description, a location, and a rough list of the first team."
 next_steps: "./making-an-assessment"
-persona_context: "Operators setting up a new garden so gardeners can start submitting work against it."
+persona_context: "Stewards setting up a new garden so gardeners can start submitting work against it."
 source_of_truth:
   - packages/admin/src/views/Garden/CreateGarden.tsx
   - packages/admin/src/components/Garden/CreateGardenSteps/DetailsStep.tsx
@@ -24,24 +24,24 @@ source_of_truth:
   - packages/contracts/src/tokens/Garden.sol
 keywords:
   - create garden
-  - operator
+  - steward
   - deployer
   - garden setup
 ---
 
-import {GuideOpener, NextBestAction, OperatorPathNav, StatusBadge} from "@site/src/components/docs";
+import {GuideOpener, NextBestAction, StewardPathNav, StatusBadge} from "@site/src/components/docs";
 
 # Create a Garden
 
 <StatusBadge status="Live" />
 
-<OperatorPathNav />
+<StewardPathNav />
 
 <GuideOpener
   image="/img/social/creating-a-garden.webp"
-  alt="An operator preparing garden setup materials beside maps and planting plans"
-  label="Operator chapter"
-  roleAccent="operator"
+  alt="A steward preparing garden setup materials beside maps and planting plans"
+  label="Steward chapter"
+  roleAccent="steward"
 >
   Set garden details, add the initial team, then deploy.
 </GuideOpener>
@@ -50,7 +50,7 @@ import {GuideOpener, NextBestAction, OperatorPathNav, StatusBadge} from "@site/s
 
 Create a new garden in Green Goods admin so the community has a place to join, submit work, and later report impact. Deployment creates the starting garden record; members, actions, and settings can still be updated after launch.
 
-Creating a garden is a deployer-level action. Existing garden operators do not need this page unless they are launching a new garden.
+Creating a garden is a deployer-level action. Existing garden stewards do not need this page unless they are launching a new garden.
 
 :::note Admin route
 The current admin create route is `/garden/create`. Use `https://admin.greengoods.app/garden/create` when you need to open the form directly.
@@ -65,7 +65,7 @@ Have these ready so you can finish in one pass:
 - A **banner image**, if you have one.
 - An **ENS subdomain** idea. The form suggests one from the garden name, but you can edit it.
 - The garden **domains**: Solar, Agroforestry, Education, or Waste. Domains decide which action templates gardeners can submit against later.
-- Initial **operators** and **gardeners** as `0x` addresses or ENS names. Passkey users may need to share the smart account address shown in Profile. You can add or fix members after launch.
+- Initial **stewards** and **gardeners** as `0x` addresses or ENS names. Passkey users may need to share the smart account address shown in Profile. You can add or fix members after launch.
 - A funded deployer wallet on Arbitrum for the deployment transaction.
 
 :::tip
@@ -93,7 +93,7 @@ The form saves draft progress locally as you move through it, but the deployment
 
 ### Step 3: Add the initial team
 
-1. Add the operators who should manage the garden.
+1. Add the stewards who should manage the garden.
 2. Add the gardeners who should be able to submit from day one.
 3. Use the exact address or ENS name each person uses in Green Goods. Passkey users may need to share the smart account address shown in Profile.
 4. You can leave either list empty and add members later from Garden Members.
@@ -117,7 +117,7 @@ The form saves draft progress locally as you move through it, but the deployment
 
 ## After launch
 
-- Verify the initial operators and gardeners in Garden Members.
+- Verify the initial stewards and gardeners in Garden Members.
 - Confirm the joining policy before sharing the garden link.
 - Add or activate the actions gardeners should submit against, based on the domains you enabled.
 - Make an assessment before the review queue grows, if the garden needs baseline context.

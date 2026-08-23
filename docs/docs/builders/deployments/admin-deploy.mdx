@@ -31,13 +31,13 @@ graph LR
 
     subgraph Access["Role-Based Access"]
         Hats["Hats Protocol\nwallet check"]
-        Roles["Deployer / Operator /\nGardener"]
+        Roles["Deployer / Steward /\nGardener"]
     end
 
     Host --> Access
 ```
 
-The admin dashboard is a Vite + React SPA for garden operators. It shares the same build toolchain and dependency chain as the client but targets desktop browsers and does not include service worker or offline-first capabilities.
+The admin dashboard is a Vite + React SPA for garden stewards. It shares the same build toolchain and dependency chain as the client but targets desktop browsers and does not include service worker or offline-first capabilities.
 
 <img src="/img/screenshots/admin-dashboard.png" alt="Admin Dashboard — garden overview with stats and recent activity" style={{maxWidth: '100%', borderRadius: '8px', border: '1px solid var(--ifm-color-emphasis-300)'}} />
 
@@ -111,7 +111,7 @@ Since the admin uses client-side routing (React Router), the hosting provider mu
 The admin dashboard uses Hats Protocol for role-based access control. Routes are protected by the `RequireRole` component which checks if the connected wallet wears the required hat:
 
 - **Deployer** -- Can deploy contracts and manage protocol settings
-- **Operator** -- Can create/manage gardens, actions, and assessments
+- **Steward** -- Can create/manage gardens, actions, and assessments
 - **Gardener** -- Can view and submit work (primarily a client-side role)
 
 Access checks happen client-side by querying the Hats contracts. The admin does not have its own auth backend.

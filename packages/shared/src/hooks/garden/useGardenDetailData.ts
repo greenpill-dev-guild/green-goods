@@ -55,8 +55,8 @@ export function useGardenDetailData(id: string | undefined) {
   const {
     addGardener,
     removeGardener,
-    addOperator,
-    removeOperator,
+    addSteward,
+    removeSteward,
     addEvaluator,
     removeEvaluator,
     addOwner,
@@ -122,7 +122,7 @@ export function useGardenDetailData(id: string | undefined) {
 
   const roleMembers: Record<GardenRole, Address[]> = {
     owner: garden?.owners ?? [],
-    operator: garden?.operators ?? [],
+    steward: garden?.stewards ?? [],
     evaluator: garden?.evaluators ?? [],
     gardener: garden?.gardeners ?? [],
     funder: garden?.funders ?? [],
@@ -131,7 +131,7 @@ export function useGardenDetailData(id: string | undefined) {
 
   const roleActions = {
     owner: { add: addOwner, remove: removeOwner },
-    operator: { add: addOperator, remove: removeOperator },
+    steward: { add: addSteward, remove: removeSteward },
     evaluator: { add: addEvaluator, remove: removeEvaluator },
     gardener: { add: addGardener, remove: removeGardener },
     funder: { add: addFunder, remove: removeFunder },

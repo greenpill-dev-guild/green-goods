@@ -54,7 +54,7 @@ darkColors:
   code-surface: "#292929"
 roleAccents:
   gardener: "#1A7544"
-  operator: "#335CFF"
+  steward: "#335CFF"
   assessment: "#7D52F4"
   funder: "#E6A819"
   builder: "#0F766E"
@@ -109,7 +109,7 @@ components:
 
 | Surface | Audience | Metaphor | Paradigm | Navigation |
 |---------|----------|----------|----------|------------|
-| **Docs** | Community members, gardeners, operators, funders, builders | Field manual and builder reference | Readable reference surface | Docusaurus navbar, sidebar, table of contents |
+| **Docs** | Community members, gardeners, stewards, funders, builders | Field manual and builder reference | Readable reference surface | Docusaurus navbar, sidebar, table of contents |
 
 **Hard rule:** Docs stay docs. Preserve Docusaurus structure, long-form readability, compact reference patterns, and clear sidebars. Do not import admin cockpit chrome, installed-PWA bottom navigation, or public-site marketing hero treatment unless the docs home explicitly needs a concise opening moment.
 
@@ -124,7 +124,7 @@ The docs site keeps its existing Docusaurus identity:
 - Code and inline reference text: IBM Plex Mono
 - Layout: neutral Docusaurus document shell with navbar, sidebar, article content, and table of contents
 - Accents: community green for community docs, builder teal for builder docs
-- Role accents: gardener green, operator blue, assessment violet, funder gold, builder teal
+- Role accents: gardener green, steward blue, assessment violet, funder gold, builder teal
 
 The docs dialect is quieter than the public browser site. It supports learning and reference, not campaign storytelling.
 
@@ -159,7 +159,7 @@ The docs dialect is quieter than the public browser site. It supports learning a
 - Keep docs copy calm, instructional, and source-aware.
 
 **Don't:**
-- Use admin-only language such as operator cockpit, workbench row, KPI tile, or utility copy as the docs design frame.
+- Use admin-only language such as steward cockpit, workbench row, KPI tile, or utility copy as the docs design frame.
 - Use installed-PWA chrome such as bottom `AppBar`, standalone-app safe areas, or PWA-only navigation.
 - Use public browser lookbook treatment, oversized marketing heroes, or editorial image-first pages unless the docs home explicitly calls for it.
 - Blend PWA and browser shell rules into docs examples; name the surface being documented.

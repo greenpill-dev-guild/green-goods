@@ -48,7 +48,7 @@ const eligibleJar = {
   metadata: {
     title: "Earth Week Cookie Jar",
     slug: "earth-week",
-    description: "Garden operator rewards for Earth Week.",
+    description: "Garden steward rewards for Earth Week.",
     image: "https://cdn.greengoods.app/campaigns/earth-week.webp",
     externalUrl: "https://greengoods.app/cookies?campaign=earth-week",
   },
@@ -266,7 +266,7 @@ describe("CookiesPage", () => {
     renderPage();
 
     expect(
-      (await screen.findAllByText("Garden operator rewards for Earth Week.")).length
+      (await screen.findAllByText("Garden steward rewards for Earth Week.")).length
     ).toBeGreaterThan(0);
     expect(
       screen.getByRole("img", { name: "Earth Week Cookie Jar campaign artwork" })

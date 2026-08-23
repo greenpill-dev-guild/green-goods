@@ -98,7 +98,7 @@ function ComposeCommitmentForm({ direction }: { direction: Direction }) {
   const { hasRole: stewardsPool, isLoading: stewardLoading } = useHasRole(
     pool?.garden as Address | undefined,
     (viewer ?? undefined) as Address | undefined,
-    "operator",
+    "steward",
     chainId
   );
   const { hasRole: ownsPool, isLoading: ownerLoading } = useHasRole(

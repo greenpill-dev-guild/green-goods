@@ -22,14 +22,14 @@ export interface EligibleAdminGardensResult {
   isLoaded: boolean;
   /**
    * True if the indexer errored for EITHER the base garden list or the
-   * address-filtered operator-gardens query (`useRole`). Both swallow the
+   * address-filtered steward-gardens query (`useRole`). Both swallow the
    * failure into []; without this flag an outage is indistinguishable from a
    * legitimate no-garden state, so the admin would show "no access" instead of
    * a retry.
    */
   isError: boolean;
   /**
-   * True when `useRole` reports operator gardens that the base list does not
+   * True when `useRole` reports steward gardens that the base list does not
    * yet expose (cache lag, indexer drift, or an outage). Consumers can use
    * this to keep the user on the canvas instead of redirecting to no-access.
    */
@@ -41,13 +41,13 @@ function compareGardenNames(a: Garden, b: Garden) {
 }
 
 /**
- * Project a partial operator-garden hint (from the role indexer query) into a
+ * Project a partial steward-garden hint (from the role indexer query) into a
  * minimal Garden record so the canvas can navigate to the garden even when the
  * full base-list entry is missing. Downstream detail queries fetch full state
- * directly; consumers that read from this object see the user as an operator
+ * directly; consumers that read from this object see the user as a steward
  * on the garden, which is the truth that the role query proved.
  */
-function stubGardenFromOperatorHint(
+function stubGardenFromStewardHint(
   hint: { id: string; name: string },
   chainId: number,
   address: Address
@@ -63,7 +63,7 @@ function stubGardenFromOperatorHint(
     location: "",
     bannerImage: "",
     gardeners: [],
-    operators: [address],
+    stewards: [address],
     evaluators: [],
     owners: [],
     funders: [],
@@ -80,7 +80,7 @@ export function useEligibleAdminGardens(): EligibleAdminGardensResult {
   const address = usePrimaryAddress();
   const chainId = useCurrentChain();
   const { data: gardens = [], isFetched, isError: baseListError } = useGardens();
-  const { role, operatorGardens, loading: roleLoading, gardensError: roleGardensError } = useRole();
+  const { role, stewardGardens, loading: roleLoading, gardensError: roleGardensError } = useRole();
   const lastGardenIdsByScope = useAdminStore((state) => state.lastGardenIdsByScope);
 
   const scopeKey = useMemo(() => getAdminGardenScopeKey(address, chainId), [address, chainId]);
@@ -93,7 +93,7 @@ export function useEligibleAdminGardens(): EligibleAdminGardensResult {
     const fromBaseList = gardens
       .filter((garden) => {
         return (
-          isAddressInList(address, garden.operators) ||
+          isAddressInList(address, garden.stewards) ||
           isAddressInList(address, garden.owners) ||
           isAddressInList(address, garden.evaluators)
         );
@@ -101,24 +101,24 @@ export function useEligibleAdminGardens(): EligibleAdminGardensResult {
       .slice()
       .sort(compareGardenNames);
 
-    if (operatorGardens.length === 0) {
+    if (stewardGardens.length === 0) {
       return { eligibleGardens: fromBaseList, hasStaleBaseList: false };
     }
 
-    // Cross-check: useRole proved the user has these operator gardens via the
+    // Cross-check: useRole proved the user has these steward gardens via the
     // indexer's address-filtered query. If any of them are missing from the
     // base list, that's cache lag or an outage — surface them anyway via
-    // minimal stubs so the operator can still reach the canvas.
+    // minimal stubs so the steward can still reach the canvas.
     const baseListIds = new Set(fromBaseList.map((g) => g.id.toLowerCase()));
-    const missing = operatorGardens.filter((og) => !baseListIds.has(og.id.toLowerCase()));
+    const missing = stewardGardens.filter((og) => !baseListIds.has(og.id.toLowerCase()));
     if (missing.length === 0) {
       return { eligibleGardens: fromBaseList, hasStaleBaseList: false };
     }
 
-    const stubs = missing.map((og) => stubGardenFromOperatorHint(og, chainId, address as Address));
+    const stubs = missing.map((og) => stubGardenFromStewardHint(og, chainId, address as Address));
     const merged = [...fromBaseList, ...stubs].sort(compareGardenNames);
     return { eligibleGardens: merged, hasStaleBaseList: true };
-  }, [address, gardens, operatorGardens, chainId]);
+  }, [address, gardens, stewardGardens, chainId]);
 
   const persistedGardenId = scopeKey ? lastGardenIdsByScope[scopeKey] : null;
 
@@ -137,12 +137,12 @@ export function useEligibleAdminGardens(): EligibleAdminGardensResult {
     resolvedDefaultGarden,
     persistedGardenId,
     scopeKey,
-    // The /garden/create route is RequireRole(["deployer"]); operators clicking
+    // The /garden/create route is RequireRole(["deployer"]); stewards clicking
     // a Create CTA would land on the unauthorized page. Match the gate exactly.
     canCreateGarden: role === "deployer",
     isLoaded: isFetched && !roleLoading,
     // A base-list outage is always retryable. A role-gardens outage is
-    // retryable for normal operators, but should not block the deployer-only
+    // retryable for normal stewards, but should not block the deployer-only
     // create-garden path when no garden exists yet.
     isError: baseListError || (roleGardensError && role !== "deployer"),
     hasStaleBaseList,

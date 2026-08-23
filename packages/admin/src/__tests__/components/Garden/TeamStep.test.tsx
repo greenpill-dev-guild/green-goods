@@ -55,19 +55,19 @@ describe("components/Garden/CreateGardenSteps/TeamStep", () => {
     });
   });
 
-  it("renders operator and gardener sections with advisory about overlap", () => {
+  it("renders steward and gardener sections with advisory about overlap", () => {
     render(
       <IntlProvider locale="en" messages={enMessages}>
         <TeamStep />
       </IntlProvider>
     );
 
-    expect(screen.getByLabelText("Operators")).toBeInTheDocument();
+    expect(screen.getByLabelText("Stewards")).toBeInTheDocument();
     expect(screen.getByLabelText("Gardeners")).toBeInTheDocument();
     expect(screen.getByText("Planned team members")).toBeInTheDocument();
     expect(
       screen.getByText(
-        "Note: Operators automatically have gardener access. You don't need to add them to both lists."
+        "Note: Stewards automatically have gardener access. You don't need to add them to both lists."
       )
     ).toBeInTheDocument();
   });

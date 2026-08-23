@@ -15,11 +15,11 @@ const MOCK_ADDRESSES: Address[] = [
 function WithStoreState({
   children,
   gardeners = [],
-  operators = [],
+  stewards = [],
 }: {
   children: React.ReactNode;
   gardeners?: Address[];
-  operators?: Address[];
+  stewards?: Address[];
 }) {
   const reset = useCreateGardenStore((s) => s.reset);
   const setField = useCreateGardenStore((s) => s.setField);
@@ -27,7 +27,7 @@ function WithStoreState({
   useEffect(() => {
     reset();
     if (gardeners.length > 0) setField("gardeners", gardeners);
-    if (operators.length > 0) setField("operators", operators);
+    if (stewards.length > 0) setField("operators", stewards);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- Storybook initializer: run once on mount only
   }, []);
 
@@ -51,7 +51,7 @@ export default meta;
 type Story = StoryObj<typeof TeamStep>;
 
 /**
- * Default empty state — no gardeners or operators added yet.
+ * Default empty state — no gardeners or stewards added yet.
  * Shows the advisory banner and empty input fields.
  */
 export const Default: Story = {
@@ -65,14 +65,14 @@ export const Default: Story = {
 };
 
 /**
- * Pre-populated with several gardeners and operators.
+ * Pre-populated with several gardeners and stewards.
  */
 export const WithMembers: Story = {
   decorators: [
     (Story) => (
       <WithStoreState
         gardeners={[MOCK_ADDRESSES[0], MOCK_ADDRESSES[1]]}
-        operators={[MOCK_ADDRESSES[2]]}
+        stewards={[MOCK_ADDRESSES[2]]}
       >
         <Story />
       </WithStoreState>
@@ -81,7 +81,7 @@ export const WithMembers: Story = {
 };
 
 /**
- * Only gardeners, no operators — common for smaller gardens.
+ * Only gardeners, no stewards — common for smaller gardens.
  */
 export const GardenersOnly: Story = {
   decorators: [
@@ -109,11 +109,11 @@ export const StateCatalog: Story = {
       </div>
 
       <div>
-        <h3 className="text-sm font-medium text-text-sub mb-2">With gardeners and operators</h3>
+        <h3 className="text-sm font-medium text-text-sub mb-2">With gardeners and stewards</h3>
         <div className="rounded-lg border border-stroke-soft p-4">
           <WithStoreState
             gardeners={[MOCK_ADDRESSES[0], MOCK_ADDRESSES[1]]}
-            operators={[MOCK_ADDRESSES[2]]}
+            stewards={[MOCK_ADDRESSES[2]]}
           >
             <TeamStep />
           </WithStoreState>
@@ -123,7 +123,7 @@ export const StateCatalog: Story = {
       <div>
         <h3 className="text-sm font-medium text-text-sub mb-2">Many members (scroll test)</h3>
         <div className="rounded-lg border border-stroke-soft p-4">
-          <WithStoreState gardeners={MOCK_ADDRESSES} operators={MOCK_ADDRESSES}>
+          <WithStoreState gardeners={MOCK_ADDRESSES} stewards={MOCK_ADDRESSES}>
             <TeamStep />
           </WithStoreState>
         </div>

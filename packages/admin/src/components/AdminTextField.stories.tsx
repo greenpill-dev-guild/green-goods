@@ -104,7 +104,7 @@ export const OutlinedAtSectionTop: Story = {
   render: () => (
     <section className="max-w-sm overflow-hidden rounded-[var(--m3-shape-md)] border border-[rgb(var(--m3-outline-variant))] p-0">
       <AdminTextField
-        label="Long campaign operator payout token label"
+        label="Long campaign steward payout token label"
         variant="outlined"
         defaultValue="0.25"
       />

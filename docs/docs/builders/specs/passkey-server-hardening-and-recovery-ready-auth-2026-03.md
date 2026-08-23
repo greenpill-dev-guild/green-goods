@@ -22,7 +22,7 @@ This spec defines how Green Goods should move from its current local-only passke
 - preserves the current passkey-first UX
 - supports multi-device login for the same smart account
 - minimizes Android RP ID and origin failures
-- prepares the auth stack for operator-assisted Kernel recovery
+- prepares the auth stack for steward-assisted Kernel recovery
 
 This is the delivery-facing companion to the account recovery design work and should be treated as the authentication foundation for any future recovery or signer-rotation work.
 
@@ -90,7 +90,7 @@ Today, account continuity depends too heavily on local browser state. That creat
 - keep passkey UX as a first-class onboarding path
 - reduce Android/WebAuthn support issues through canonical RP/origin discipline
 - make the auth model account-first rather than credential-first
-- prepare the authentication layer for operator-assisted recovery and future signer rotation
+- prepare the authentication layer for steward-assisted recovery and future signer rotation
 
 ## Non-goals
 
@@ -152,7 +152,7 @@ These decisions should be treated as settled unless explicitly revised.
 - one common auth origin
 - fewer Android/browser mismatches
 - simpler support and logging
-- cleaner documentation for users and operators
+- cleaner documentation for users and stewards
 
 ## Environment separation
 

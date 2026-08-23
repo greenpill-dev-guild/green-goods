@@ -95,7 +95,7 @@ export function HubCertificationQueue({
                   : formatMessage({
                       id: "cockpit.hub.certify.readOnlyDescription",
                       defaultMessage:
-                        "You can review the certification handoff here, but only garden owners or operators can mint the hypercert.",
+                        "You can review the certification handoff here, but only garden owners or stewards can mint the hypercert.",
                     })
               }
               meta={[

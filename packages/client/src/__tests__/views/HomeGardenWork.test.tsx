@@ -168,7 +168,7 @@ describe("Home garden work detail", () => {
         {
           id: "garden-1",
           owners: [],
-          operators: [],
+          stewards: [],
           evaluators: ["0x1111111111111111111111111111111111111111"],
         },
       ],
@@ -213,7 +213,7 @@ describe("Home garden work detail", () => {
     );
   });
 
-  it("shows approval mode for owner or operator access", () => {
+  it("shows approval mode for owner or steward access", () => {
     mockUseUser.mockReturnValue({
       user: { id: "0x3333333333333333333333333333333333333333" },
       smartAccountClient: null,
@@ -223,7 +223,7 @@ describe("Home garden work detail", () => {
         {
           id: "garden-1",
           owners: [],
-          operators: ["0x3333333333333333333333333333333333333333"],
+          stewards: ["0x3333333333333333333333333333333333333333"],
           evaluators: [],
         },
       ],
@@ -262,9 +262,9 @@ describe("Home garden work detail", () => {
       )
     );
 
-    expect(screen.getByTestId("work-view-mode")).toHaveTextContent("operator");
+    expect(screen.getByTestId("work-view-mode")).toHaveTextContent("steward");
     expect(mockUseWorkApprovalActions).toHaveBeenCalledWith(
-      expect.objectContaining({ viewingMode: "operator" })
+      expect.objectContaining({ viewingMode: "steward" })
     );
   });
 

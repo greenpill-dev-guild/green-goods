@@ -113,13 +113,13 @@ describe("useGardenDraft", () => {
   // ------------------------------------------
 
   describe("draftKey", () => {
-    it("returns correct key when operatorAddress provided", () => {
+    it("returns correct key when stewardAddress provided", () => {
       const { result } = renderHook(() => useGardenDraft(OPERATOR_ADDR));
 
       expect(result.current.draftKey).toBe(`garden_draft_${OPERATOR_ADDR}`);
     });
 
-    it("returns null when operatorAddress is missing", () => {
+    it("returns null when stewardAddress is missing", () => {
       const { result } = renderHook(() => useGardenDraft(undefined));
 
       expect(result.current.draftKey).toBeNull();
@@ -141,7 +141,7 @@ describe("useGardenDraft", () => {
       });
 
       expect(savedDraft).not.toBeNull();
-      expect(savedDraft.operatorAddress).toBe(OPERATOR_ADDR);
+      expect(savedDraft.stewardAddress).toBe(OPERATOR_ADDR);
       expect(savedDraft.form.name).toBe("My Garden");
       expect(savedDraft.currentStep).toBe(1);
       expect(result.current.lastSavedAt).toBeGreaterThan(0);
@@ -171,7 +171,7 @@ describe("useGardenDraft", () => {
       expect(savedDraft).toBeNull();
     });
 
-    it("returns null when operatorAddress is missing", async () => {
+    it("returns null when stewardAddress is missing", async () => {
       withProgress();
       const { result } = renderHook(() => useGardenDraft(undefined));
 

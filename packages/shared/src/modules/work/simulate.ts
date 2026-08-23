@@ -223,6 +223,7 @@ export async function simulateApprovalSubmission({
     const messageLower = errorLike.message?.toLowerCase() || "";
 
     if (
+      // These match the chain's own revert text, which still says "operator".
       messageLower.includes("notoperator") ||
       messageLower.includes("not an operator") ||
       messageLower.includes("notauthorized") ||
@@ -232,9 +233,7 @@ export async function simulateApprovalSubmission({
     }
 
     if (messageLower.includes("reverted") && !errorLike.cause?.reason) {
-      throw new Error(
-        "Transaction would fail. Make sure you're an operator of the selected garden."
-      );
+      throw new Error("Transaction would fail. Make sure you're a steward of the selected garden.");
     }
 
     if (errorLike.cause?.reason) {

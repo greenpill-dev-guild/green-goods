@@ -21,16 +21,16 @@ import { useQueueStatistics } from "../work/useWorks";
  * (a localStorage marker only proves "first time on this device"), and every cell where
  * tenure would change the message resolves to the same best action. Copy stays tenure-neutral.
  *
- * Reviewer scope: `review`/`operatorClear` sense operator gardens only. Evaluator gardens
+ * Reviewer scope: `review`/`stewardClear` sense steward gardens only. Evaluator gardens
  * would need the on-chain isEvaluator multicall, whose failure mode is a silent empty
  * array — indistinguishable from "not an evaluator" — so it cannot honestly gate a claim.
- * `operatorClear` copy must therefore scope its claim to "your gardens".
+ * `stewardClear` copy must therefore scope its claim to "your gardens".
  */
 export type ArrivalKind =
   | "queue"
   | "draft"
   | "review"
-  | "operatorClear"
+  | "stewardClear"
   | "gardener"
   | "signedIn"
   | "none";
@@ -41,12 +41,12 @@ export type ArrivalKind =
  *
  * `queue` is derived from the local job queue (offline-safe IndexedDB): unsynced or failed work
  * waiting to reach the chain. `review` is network-backed (EAS works + approvals) and its
- * readiness gates ONLY the operator branch — gardeners and roleless users never wait on it.
+ * readiness gates ONLY the steward branch — gardeners and roleless users never wait on it.
  */
 export interface ArrivalInputs {
   queue: { ready: boolean; hasPendingOrFailed: boolean };
   drafts: { ready: boolean; hasDraft: boolean };
-  gardens: { ready: boolean; isOperator: boolean; isGardener: boolean };
+  gardens: { ready: boolean; isSteward: boolean; isGardener: boolean };
   review: { ready: boolean; needsReviewCount: number };
 }
 
@@ -61,7 +61,7 @@ export interface ArrivalInputs {
  *
  * Ordering is local truth above network truth: the offline-safe IndexedDB sources (queue, drafts)
  * must stay above anything network-backed, or offline users would lose those toasts to the
- * silence discipline. That is also why `review` sits below `draft` — an operator with both an
+ * silence discipline. That is also why `review` sits below `draft` — a steward with both an
  * unfinished draft and submissions to review hears about their own device-local work first
  * (this session may be the only chance to recover it; review work is durable on-chain and
  * remains reachable via the Work Dashboard).
@@ -76,12 +76,12 @@ export function resolveArrivalKind(inputs: ArrivalInputs): ArrivalKind {
   if (drafts.hasDraft) return "draft";
 
   if (!gardens.ready) return "none";
-  if (gardens.isOperator) {
-    // Review truth gates only operators: an operator claim ("N need review" / "all clear")
+  if (gardens.isSteward) {
+    // Review truth gates only stewards: a steward claim ("N need review" / "all clear")
     // must be backed by settled works + approvals data, never asserted around an outage.
     if (!review.ready) return "none";
     if (review.needsReviewCount > 0) return "review";
-    return "operatorClear";
+    return "stewardClear";
   }
   if (gardens.isGardener) return "gardener";
 
@@ -117,23 +117,23 @@ export function useArrivalState(): ArrivalState {
   // One pass over gardens for role flags + routing ids. pendingJoinsVersion subscribes to
   // in-tab pending-join changes so this memo retriggers when a join confirms or expires
   // (matches providers/Work.tsx). Gardener-role detection is gardeners + pending joins only;
-  // operator detection is the operators array (no optimistic-join path exists for operators).
+  // steward detection is the stewards array (no optimistic-join path exists for stewards).
   const membership = useMemo(() => {
     const myGardenIds: string[] = [];
-    let isOperator = false;
+    let isSteward = false;
     let isGardener = false;
 
     if (normalizedAddress) {
       for (const garden of gardensQuery.data ?? []) {
-        const operatesGarden = isAddressInList(normalizedAddress, garden.operators);
+        const operatesGarden = isAddressInList(normalizedAddress, garden.stewards);
         const gardensIn = isGardenMember(normalizedAddress, garden.gardeners, [], garden.id);
-        if (operatesGarden) isOperator = true;
+        if (operatesGarden) isSteward = true;
         if (gardensIn) isGardener = true;
         if (operatesGarden || gardensIn) myGardenIds.push(garden.id);
       }
     }
 
-    return { myGardenIds, isOperator, isGardener };
+    return { myGardenIds, isSteward, isGardener };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- version counter is a deliberate cache-buster, not a read dependency
   }, [normalizedAddress, gardensQuery.data, pendingJoinsVersion]);
 
@@ -152,7 +152,7 @@ export function useArrivalState(): ArrivalState {
       },
       gardens: {
         ready: gardensQuery.isSuccess,
-        isOperator: membership.isOperator,
+        isSteward: membership.isSteward,
         isGardener: membership.isGardener,
       },
       review: {

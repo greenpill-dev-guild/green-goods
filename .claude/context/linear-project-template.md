@@ -135,7 +135,7 @@ Two records that are *not* dispatchable work, and must not be treated as such:
 Then the actual work, routed by team per `CLAUDE.md § Linear Workspace`:
 
 * **Research** (`RESR`) — synthesis, external brief, use cases, scenario packs.
-* **Community** (`COM`) — operator onboarding, surveys, gathering logistics.
+* **Community** (`COM`) — steward onboarding, surveys, gathering logistics.
 * **Product** (`PRD`) — build work, *if* you mirror it (see below).
 * **Evidence-gated follow-ons** — designed, parked, explicitly not authorized. Keep them in
   Backlog with no cycle and no due date, and say so in the body.

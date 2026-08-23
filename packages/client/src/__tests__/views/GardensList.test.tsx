@@ -63,7 +63,7 @@ vi.mock("@green-goods/shared", () => ({
   hapticLight: vi.fn(),
   hapticSuccess: vi.fn(),
   isAlreadyGardenerError: () => false,
-  isGardenMember: (address: string, gardeners: string[], _operators: string[], _id: string) =>
+  isGardenMember: (address: string, gardeners: string[], _stewards: string[], _id: string) =>
     gardeners.includes(address),
   parseAndFormatError: () => ({ title: "Error", message: "Something went wrong" }),
   queryKeys: { gardens: { all: ["gardens"] } },
@@ -192,7 +192,7 @@ describe("GardensList", () => {
         location: "Berlin",
         openJoining: true,
         gardeners: [MOCK_ADDRESS],
-        operators: [],
+        stewards: [],
       },
     ];
 
@@ -215,7 +215,7 @@ describe("GardensList", () => {
         location: longLocation,
         openJoining: true,
         gardeners: [MOCK_ADDRESS],
-        operators: [],
+        stewards: [],
       },
       {
         id: "0xgarden-joinable-long",
@@ -223,7 +223,7 @@ describe("GardensList", () => {
         location: longLocation,
         openJoining: true,
         gardeners: [],
-        operators: [],
+        stewards: [],
       },
     ];
 
@@ -259,7 +259,7 @@ describe("GardensList", () => {
         location: "",
         openJoining: true,
         gardeners: [],
-        operators: [],
+        stewards: [],
       },
     ];
 
@@ -279,7 +279,7 @@ describe("GardensList", () => {
         location: "",
         openJoining: true,
         gardeners: [],
-        operators: [],
+        stewards: [],
       },
     ];
 
@@ -298,7 +298,7 @@ describe("GardensList", () => {
         location: "",
         openJoining: false,
         gardeners: [],
-        operators: [],
+        stewards: [],
       },
     ];
 
@@ -319,7 +319,7 @@ describe("GardensList", () => {
         openJoining: true,
         // User is not in any garden's gardener list, so wasFirstJoin = true
         gardeners: [],
-        operators: [],
+        stewards: [],
       },
     ];
     mockJoinState.joinGarden.mockResolvedValue(undefined);
@@ -353,7 +353,7 @@ describe("GardensList", () => {
         location: "",
         openJoining: true,
         gardeners: [MOCK_ADDRESS],
-        operators: [],
+        stewards: [],
       },
       {
         id: "0xfresh",
@@ -361,7 +361,7 @@ describe("GardensList", () => {
         location: "",
         openJoining: true,
         gardeners: [],
-        operators: [],
+        stewards: [],
       },
     ];
     mockJoinState.joinGarden.mockResolvedValue(undefined);

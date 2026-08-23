@@ -63,7 +63,7 @@ vi.mock("@green-goods/shared", async () => {
           id: "0xgarden",
           name: "Garden Alpha",
           gardeners: [MEMBER],
-          operators: [SELF],
+          stewards: [SELF],
           evaluators: [],
           owners: [],
           funders: [],

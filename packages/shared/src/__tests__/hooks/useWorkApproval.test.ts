@@ -259,7 +259,7 @@ describe("hooks/work/useWorkApproval", () => {
     });
 
     it("keeps an unconfirmed wallet decision pending behind an expiring overlay", async () => {
-      // A timed-out receipt records the decision so the operator sees it landed,
+      // A timed-out receipt records the decision so the steward sees it landed,
       // but it must stay flagged pending and must expire, so a transaction that
       // is later dropped cannot leave the work looking resolved forever.
       (submitApprovalDirectly as any).mockResolvedValue({

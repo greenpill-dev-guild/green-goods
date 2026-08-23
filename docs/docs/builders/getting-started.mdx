@@ -203,7 +203,7 @@ account:
 The fork uses the real Arbitrum deployment artifact, but every write is mined
 only in local Anvil state. Restarting the fork resets local chain state.
 Passkey and smart-account writes are intentionally blocked in fork mode until
-local account-abstraction infrastructure exists. `?mockAuth=operator` only
+local account-abstraction infrastructure exists. `?mockAuth=steward` only
 changes UI auth state; it does not sign transactions and cannot replace the
 wallet step.
 
@@ -326,7 +326,7 @@ You can also run packages directly without PM2:
 
 ```bash
 bun run dev:client      # Gardener PWA
-bun run dev:admin       # Operator dashboard
+bun run dev:admin       # Steward dashboard
 bun run dev:docs        # Docusaurus site
 bun run dev:indexer     # Envio indexer (Docker Compose)
 bun run dev:contracts   # Anvil local chain

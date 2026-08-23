@@ -125,7 +125,7 @@ export function CreateListingDialog({
     }
   };
 
-  // Confirm-before-discard: pricing edits are unsaved operator input until the
+  // Confirm-before-discard: pricing edits are unsaved steward input until the
   // order is signed. Only the configure phase guards — once submission starts,
   // preventClose owns the close and a finished/failed run has nothing to lose.
   const dirtyClose = useDirtyClose({

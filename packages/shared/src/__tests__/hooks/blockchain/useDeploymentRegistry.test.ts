@@ -295,7 +295,7 @@ describe("useDeploymentRegistry", () => {
       mockWagmiAccount = { address: MOCK_ADDRESSES.deployer, isConnected: true };
       mockAuthContext = {
         ...mockAuthContext,
-        walletAddress: MOCK_ADDRESSES.operator,
+        walletAddress: MOCK_ADDRESSES.steward,
       };
 
       mockReadContract.mockResolvedValueOnce(MOCK_ADDRESSES.deployer).mockResolvedValueOnce(false);
@@ -317,11 +317,11 @@ describe("useDeploymentRegistry", () => {
       mockAuthContext = {
         isReady: true,
         isAuthenticated: true,
-        walletAddress: MOCK_ADDRESSES.operator,
+        walletAddress: MOCK_ADDRESSES.steward,
         smartAccountAddress: null,
       };
 
-      mockReadContract.mockResolvedValueOnce(MOCK_ADDRESSES.operator).mockResolvedValueOnce(false);
+      mockReadContract.mockResolvedValueOnce(MOCK_ADDRESSES.steward).mockResolvedValueOnce(false);
 
       const { result } = renderHook(() => useDeploymentRegistry(), {
         wrapper: createWrapper(),

@@ -2,13 +2,13 @@
 
 Stable vocabulary and never-use list for prompting AI design tools or coding agents to generate admin UI that aligns with the Green Goods cockpit.
 
-> **Companion**: The `client` surface uses a warmer, more expressive palette of vocabulary anchored in the root `DESIGN.md`. This file is admin-specific — operator cockpit framing.
+> **Companion**: The `client` surface uses a warmer, more expressive palette of vocabulary anchored in the root `DESIGN.md`. This file is admin-specific — steward cockpit framing.
 
 ## Stable Prompt Core
 
 Paste this sentence (or a trimmed version) into every AI design prompt for admin surfaces:
 
-> Green Goods admin is a **restrained operator cockpit** expressing the **Warm Earth** design language through M3 anatomy — not raw M3, and not the expressive client dialect. Use `CanvasLayout` with an admin `AppBar` top context bar, one dominant `MainSheet` workspace, a bottom `NavigationBar`, and **centered `AdminDialog` overlays for every workspace action and detail/inspection flow**. The only exception: the **three global AppBar surfaces (Profile, Settings, Notifications) open a right-docked `AdminSideSheet`** on desktop. Components follow **Material 3 anatomy** with **Plus Jakarta Sans**. Dense surfaces are **solid, not frosted**. **Workspace tint** is subtle atmosphere only. Prefer **workbench rows, lists, tabs, and inspectors** over nested cards. **Utility copy only.**
+> Green Goods admin is a **restrained steward cockpit** expressing the **Warm Earth** design language through M3 anatomy — not raw M3, and not the expressive client dialect. Use `CanvasLayout` with an admin `AppBar` top context bar, one dominant `MainSheet` workspace, a bottom `NavigationBar`, and **centered `AdminDialog` overlays for every workspace action and detail/inspection flow**. The only exception: the **three global AppBar surfaces (Profile, Settings, Notifications) open a right-docked `AdminSideSheet`** on desktop. Components follow **Material 3 anatomy** with **Plus Jakarta Sans**. Dense surfaces are **solid, not frosted**. **Workspace tint** is subtle atmosphere only. Prefer **workbench rows, lists, tabs, and inspectors** over nested cards. **Utility copy only.**
 
 ## Admin is Restrained Warm Earth, Not Raw M3
 
@@ -16,7 +16,7 @@ The admin cockpit and the client PWA are both Warm Earth. The difference is expr
 
 - **Shared baseline**: concentric geometry, spring motion tokens, role hierarchy (canvas/ink/stone/green accent), 4 disclosure layers, 5 Z-layers, material system.
 - **Admin subset**: Standard motion scheme (never Expressive); translucency restricted to the Navigation/FAB **Controlled Chrome** — flat 85% surface + 12px blur + warm ambient shadow + 1px ink ring (rules in `admin-m3-tokens.css`), never "liquid glass" — while every dialog and side-sheet surface is solid and `MainSheet` is transparent; transparent admin `AppBar` root over the workspace canvas; the reduced admin radius scale 4/8/12/16/9999 — every button is a pill, the large FAB is 16px; solid surfaces over blur everywhere else; no organic/hero shapes; no decorative color.
-- **Why**: operators scanning a queue need motion that aids, not entertains. The cockpit inherits warmth; it does not perform it.
+- **Why**: stewards scanning a queue need motion that aids, not entertains. The cockpit inherits warmth; it does not perform it.
 
 If you would not ship a move on Linear, GitHub, or Stripe Dashboard, it does not belong in the cockpit — regardless of what the Warm Earth language permits in client flows.
 
@@ -35,7 +35,7 @@ The canonical admin overlay is the centered **`AdminDialog`** (M3 basic dialog: 
 
 - **≥640px**: right-docked, full height, rounded inner (left) corners at 16px, slides in from the right edge; one shared width (`--canvas-right-sheet-width`, clamp 380–560px). Solid `--admin-surface-0` at elevation 2 (`--m3-elevation-2`) over the scrim — never glass.
 - **<640px**: identical presentation to AdminDialog's mobile bottom sheet. On mobile only the notification bell opens it — Profile and Settings live in the Profile tab (`/profile`, tabs **Account | Settings**; "Account" is the mobile name for the desktop Profile sheet content).
-- **Global chrome tone**: these surfaces are account chrome, not workspace content — they pass `tone="hub"` (neutral operator accent), never the active garden's tint.
+- **Global chrome tone**: these surfaces are account chrome, not workspace content — they pass `tone="hub"` (neutral steward accent), never the active garden's tint.
 - **Content contract**: panels own their body — compose `SheetBody` (scrolling middle) and optionally `SheetFooter` (pinned bar) inside the sheet; the shell adds no padding, so panel and shell padding never stack.
 - **Scope is enforced**: only `CanvasLayout` may render `<AdminSideSheet`, and the right-sheet registry is locked to the three content ids — `packages/admin/src/__tests__/components/AdminSideSheetStandard.guard.test.ts`. Adding a fourth side-sheet surface is a design decision, not a code edit.
 
@@ -57,7 +57,7 @@ The canonical admin overlay is the centered **`AdminDialog`** (M3 basic dialog: 
 
 ## Action Surfaces Confirm Before Discarding
 
-Any admin surface that holds **unsaved operator input** must guard its close:
+Any admin surface that holds **unsaved steward input** must guard its close:
 
 - **Confirm-before-discard.** Closing a dirty form via the dialog's X / scrim / Escape (or navigating away from a route-mounted flow) raises a confirm ("Discard changes?"). Wire it with the shared **`useDirtyClose`** hook + the admin **`DiscardChangesDialog`**. An explicit footer **Cancel** may still exit directly.
 - **In-flight async hard-blocks close.** While a submit / mint / transaction is pending, the dialog cannot be dismissed (`preventClose`) — no X, no scrim-close, no Escape — so a write in progress is never orphaned by an accidental close.
@@ -76,13 +76,13 @@ If a design tool emits a hero treatment in an admin screen, reject and regenerat
 
 ## Required Vocabulary
 
-> **Canonical glossary**: cross-surface domain terms (Garden, Action, Work, Assessment, Hypercert, Vault, Cookie Jar, Attestation, Hat, Season) and personas (Gardener, Operator, Evaluator, Funder, Community Member) live in [`docs/docs/reference/glossary-community.md § Design Vocabulary`](../../../docs/docs/reference/glossary-community.md#design-vocabulary). The table below is admin-specific component / cockpit vocabulary that does not live there.
+> **Canonical glossary**: cross-surface domain terms (Garden, Action, Work, Assessment, Hypercert, Vault, Cookie Jar, Attestation, Hat, Season) and personas (Gardener, Steward, Evaluator, Funder, Community Member) live in [`docs/docs/reference/glossary-community.md § Design Vocabulary`](../../../docs/docs/reference/glossary-community.md#design-vocabulary). The table below is admin-specific component / cockpit vocabulary that does not live there.
 
 Use these terms when describing admin UI:
 
 | Term | Meaning |
 |------|---------|
-| `restrained operator cockpit` | Admin identity anchor — always lead with this |
+| `restrained steward cockpit` | Admin identity anchor — always lead with this |
 | `CanvasLayout` | The top-level grid: AppBar + MainSheet + NavigationBar |
 | `command surface` | Hub and Actions — primary control surfaces |
 | `data landscape` | Garden — monitoring and exploration |
@@ -102,7 +102,7 @@ Use these terms when describing admin UI:
 The categories below are contract-specific framing — *why* admin output should reject these patterns. The exact phrase set is the glossary's job:
 
 - **Hero / celebration framing** — hero moments belong to the client PWA, never the cockpit.
-- **Marketing / promo framing** — admin is operator-internal; no banners, no landing-page energy.
+- **Marketing / promo framing** — admin is steward-internal; no banners, no landing-page energy.
 - **Gallery / mosaic / floating-stats framing** — admin shows workbench rows and inspectors, not curated visual layouts.
 - **Decorative gradient framing** — decoration without function; admin uses solid surfaces.
 - **Glass / liquid / frosted framing** — the only translucent chrome is the Navigation/FAB Controlled Chrome (flat 85% surface + 12px blur + warm shadow + 1px ink ring), never phrased as "liquid glass"; the AppBar root and `MainSheet` remain transparent; dense surfaces, every dialog, and the side sheet must be solid.
@@ -160,7 +160,7 @@ Admin copy is **utility-only**. Status language and task framing — never marke
 
 **Don't say:** "Welcome back!" / "Let's review some great work" / "You're crushing it"
 
-The admin speaks **about the work, to the operator**. The client speaks **to the community, about the work**. Same garden, different dialects. Cross-surface voice pillars and terminology live in the root [`DESIGN.md § Voice & Copy`](../../../DESIGN.md#voice--copy).
+The admin speaks **about the work, to the steward**. The client speaks **to the community, about the work**. Same garden, different dialects. Cross-surface voice pillars and terminology live in the root [`DESIGN.md § Voice & Copy`](../../../DESIGN.md#voice--copy).
 
 ## Canonical Component Palette
 

@@ -200,7 +200,7 @@ export function HubSheetDescriptor({
             onBeforeClose,
             // Hub deep-link inspectors carry forms and media evidence — render
             // at the richer `lg` dialog tier (QA refinement pass). `hub` tone
-            // keeps the operator-blue accent inside the portaled dialog.
+            // keeps the steward-blue accent inside the portaled dialog.
             size: "lg" as const,
             tone: "hub" as const,
           }

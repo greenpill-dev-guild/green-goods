@@ -1,29 +1,29 @@
 ---
-title: Operator Troubleshooting
+title: Steward Troubleshooting
 sidebar_label: Troubleshooting
-slug: /community/operator-guide/troubleshooting
-audience: operator
+slug: /community/steward-guide/troubleshooting
+audience: steward
 owner: docs
 last_verified: 2026-07-03
 feature_status: Live
-goal: "Complete Operator Troubleshooting with clear, role-specific next actions."
+goal: "Complete Steward Troubleshooting with clear, role-specific next actions."
 difficulty: "advanced"
 estimated_time: "10-30 minutes."
 prereqs: "Access to admin and relevant transaction hash or error output."
 next_steps: "/builders/deployments/status"
-persona_context: "Operators coordinating gardens, approvals, and governance/endowment execution."
+persona_context: "Stewards coordinating gardens, approvals, and governance/endowment execution."
 source_of_truth:
   - packages/admin/src/router.tsx
   - packages/shared/src/hooks/work/useBatchWorkApproval.ts
   - packages/contracts/deployments/42161-latest.json
 keywords:
-  - operator troubleshooting
+  - steward troubleshooting
   - admin errors
 ---
 
 import {FeatureState, NextBestAction, StatusBadge} from "@site/src/components/docs";
 
-# Operator Troubleshooting
+# Steward Troubleshooting
 
 <StatusBadge status="Live" />
 
@@ -69,6 +69,6 @@ Share these in incident reports:
   actionLabel="Check deployment status"
   actionHref="/builders/deployments/status"
   alternatives={[
-    {label: "Operator get started", href: "/community/operator-guide/creating-a-garden"},
+    {label: "Steward get started", href: "/community/steward-guide/creating-a-garden"},
   ]}
 />

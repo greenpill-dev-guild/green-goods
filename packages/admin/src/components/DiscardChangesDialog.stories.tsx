@@ -35,7 +35,7 @@ const meta: Meta<typeof DiscardChangesDialog> = {
 export default meta;
 type Story = StoryObj<typeof DiscardChangesDialog>;
 
-/** The prompt as an operator sees it when closing a dirty flow. */
+/** The prompt as a steward sees it when closing a dirty flow. */
 export const Open: Story = {
   args: {
     open: true,

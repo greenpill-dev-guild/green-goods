@@ -131,7 +131,7 @@ export function HubWorkCard({
   const mediaUrls = work.media ?? [];
   const totalMedia = mediaUrls.length;
 
-  // Relative age through react-intl so es/pt operators don't get English.
+  // Relative age through react-intl so es/pt stewards don't get English.
   // `numeric: "always"` keeps "1 day ago" rather than "yesterday" — the queue
   // reads as a uniform age column, not prose.
   const submittedAgeParts = getRelativeTimeParts(work.createdAt);

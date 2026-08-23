@@ -171,7 +171,7 @@ describe("components/Hypercerts/MarketplaceApprovalGate", () => {
       expect(screen.queryByTestId("gate-children")).not.toBeInTheDocument();
     });
 
-    it("invokes grantApprovals when the operator confirms the approval CTA", async () => {
+    it("invokes grantApprovals when the steward confirms the approval CTA", async () => {
       mockUseMarketplaceApprovals.mockReturnValue({
         ...DEFAULT_APPROVALS_STATE,
         approvals: { exchangeApproved: true, minterApproved: false },
@@ -212,7 +212,7 @@ describe("components/Hypercerts/MarketplaceApprovalGate", () => {
   });
 
   describe("state: failure", () => {
-    it("renders the approval mutation error and keeps the CTA available so the operator can retry", () => {
+    it("renders the approval mutation error and keeps the CTA available so the steward can retry", () => {
       mockUseMarketplaceApprovals.mockReturnValue({
         ...DEFAULT_APPROVALS_STATE,
         approvals: { exchangeApproved: false, minterApproved: false },

@@ -21,7 +21,7 @@ import React, { useMemo } from "react";
 import { useIntl } from "react-intl";
 import { WorkView, type WorkViewAction } from "@/components/Features/Work";
 
-type ViewingMode = "operator" | "gardener" | "viewer";
+type ViewingMode = "steward" | "gardener" | "viewer";
 
 type MetadataStatus = "idle" | "loading" | "success" | "error";
 
@@ -211,7 +211,7 @@ export const WorkViewSection: React.FC<WorkViewSectionProps> = ({
       });
     }
 
-    if (viewingMode === "operator") {
+    if (viewingMode === "steward") {
       if (effectiveStatus === "approved") {
         return intl.formatMessage({
           id: "app.home.workApproval.workApproved",
@@ -271,7 +271,7 @@ export const WorkViewSection: React.FC<WorkViewSectionProps> = ({
       });
     }
 
-    if (viewingMode === "operator") {
+    if (viewingMode === "steward") {
       if (effectiveStatus === "approved") {
         return intl.formatMessage({
           id: "app.home.workApproval.workHasBeenApproved",
@@ -293,8 +293,8 @@ export const WorkViewSection: React.FC<WorkViewSectionProps> = ({
     if (viewingMode === "gardener") {
       if (effectiveStatus === "approved") {
         return intl.formatMessage({
-          id: "app.home.work.approvedByOperator",
-          defaultMessage: "Your work has been approved by the garden operator",
+          id: "app.home.work.approvedBySteward",
+          defaultMessage: "Your work has been approved by the garden steward",
         });
       }
       if (effectiveStatus === "rejected") {

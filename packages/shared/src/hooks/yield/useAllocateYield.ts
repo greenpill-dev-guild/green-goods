@@ -15,7 +15,7 @@ import { useProgressiveInvalidation } from "../utils/useTimeout";
 
 /**
  * Mutation hook to trigger yield allocation via YieldSplitter.splitYield().
- * This is permissionless -- anyone can trigger it, not just operators.
+ * This is permissionless -- anyone can trigger it, not just stewards.
  * Resolves the YieldSplitter address from deployment config automatically.
  */
 export function useAllocateYield() {

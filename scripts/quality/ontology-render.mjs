@@ -63,6 +63,15 @@ function renderVocabulary(vocabulary) {
   lines.push(prose(vocabulary.definition));
   lines.push("");
   lines.push(`**Canonical members:** ${membersWithValues(vocabulary)}`);
+  if (vocabulary.canonical.display_labels) {
+    const labels = Object.entries(vocabulary.canonical.display_labels)
+      .map(([member, label]) => `\`${member}\` reads as **${label}**`)
+      .join(" · ");
+    lines.push("");
+    lines.push(`**Display labels:** ${labels}`);
+    lines.push("");
+    lines.push(prose(vocabulary.canonical.display_labels_note));
+  }
   if (vocabulary.canonical.value_scheme === "explicit") {
     lines.push("");
     lines.push("_Values are explicit (not index-derived) for this vocabulary._");
@@ -195,8 +204,8 @@ export function renderOntologyMdx(ontology, projections) {
 
   lines.push("## Entities");
   lines.push("");
-  lines.push("| Entity | Semantic status | Availability | Capability | Definition | Layers |");
-  lines.push("|---|---|---|---|---|---|");
+  lines.push("| Entity | Semantic status | Availability | Capability | Surfaces | Definition | Layers |");
+  lines.push("|---|---|---|---|---|---|---|");
   for (const entity of ontology.entities) {
     const capability = capabilityByRef.get(`entity:${entity.id}`);
     const layers = [];
@@ -206,20 +215,33 @@ export function renderOntologyMdx(ontology, projections) {
     if (entity.layers?.docs) layers.push("docs");
     if (entity.spec_source) layers.push("spec");
     lines.push(
-      `| **${esc(entity.display)}** | ${esc(entity.semantic_status)} | ${esc(capability.availability)} | ${esc(`${capability.implementation} · ${capability.deployment} · ${capability.activation} · ${capability.integration}`)} | ${esc(entity.definition)} | ${esc(layers.join(" · "))} |`
+      `| **${esc(entity.display)}** | ${esc(entity.semantic_status)} | ${esc(capability.availability)} | ${esc(`${capability.implementation} · ${capability.deployment} · ${capability.activation} · ${capability.integration}`)} | ${esc(entity.surfaces.join(" · "))} | ${esc(entity.definition)} | ${esc(layers.join(" · "))} |`
     );
   }
   lines.push("");
 
   lines.push("## Personas");
   lines.push("");
-  lines.push("| Persona | Hat | Definition |");
-  lines.push("|---|---|---|");
+  lines.push("| Persona | Hat | Surfaces | Definition |");
+  lines.push("|---|---|---|---|");
   for (const persona of ontology.personas) {
-    lines.push(`| **${esc(persona.display)}** | ${esc(persona.hat)} | ${esc(persona.definition)} |`);
+    lines.push(
+      `| **${esc(persona.display)}** | ${esc(persona.hat)} | ${esc(persona.surfaces.join(" · "))} | ${esc(persona.definition)} |`
+    );
   }
   lines.push("");
   lines.push(prose(ontology.personas_note));
+  lines.push("");
+
+  lines.push("## Supporting terms");
+  lines.push("");
+  lines.push(prose(ontology.supporting_terms_note));
+  lines.push("");
+  lines.push("| Term | Why it is not an entity |");
+  lines.push("|---|---|");
+  for (const term of ontology.supporting_terms) {
+    lines.push(`| **${esc(term.display)}** | ${esc(term.reason)} |`);
+  }
   lines.push("");
 
   const implementedVocabularies = ontology.vocabularies.filter(
@@ -648,6 +670,7 @@ export function renderAgentManifest(ontology, projections) {
       canonical: entity.display,
       definition: entity.definition,
       semantic_status: entity.semantic_status,
+      surfaces: entity.surfaces,
       aliases: humanByRef.get(ref)?.aliases ?? [],
       relationships: entity.relationships ?? [],
       maturity: capabilityByRef.get(ref),
@@ -663,6 +686,7 @@ export function renderAgentManifest(ontology, projections) {
       canonical: persona.display,
       definition: persona.definition,
       semantic_status: "canonical",
+      surfaces: persona.surfaces,
       aliases: humanByRef.get(ref)?.aliases ?? [],
       relationships: [],
       maturity: null,

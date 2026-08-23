@@ -246,7 +246,7 @@ class Blockchain {
       return {
         verified: cached.data,
         cachedAt: cached.timestamp,
-        reason: cached.data ? undefined : "Address is not an operator for this garden",
+        reason: cached.data ? undefined : "Address is not a steward for this garden",
       };
     }
 
@@ -263,7 +263,7 @@ class Blockchain {
 
       return {
         verified: isOp as boolean,
-        reason: isOp ? undefined : "Address is not an operator for this garden",
+        reason: isOp ? undefined : "Address is not a steward for this garden",
       };
     } catch (error) {
       const message = error instanceof Error ? error.message : "Unknown error";
@@ -271,7 +271,7 @@ class Blockchain {
         return { verified: false, reason: "Garden contract not found at this address" };
       }
       const errorName = error instanceof Error ? error.name : typeof error;
-      log.error({ gardenAddress, errorName }, "Operator verification failed");
+      log.error({ gardenAddress, errorName }, "Steward verification failed");
       return { verified: false };
     }
   }

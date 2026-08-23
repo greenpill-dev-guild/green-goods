@@ -222,7 +222,7 @@ describe("useENSReleaseName", () => {
       expect(toastService.error).toHaveBeenCalledWith(
         expect.objectContaining({
           description:
-            "Username changes are temporarily operator-assisted while we migrate the ENS sender.",
+            "Username changes are temporarily steward-assisted while we migrate the ENS sender.",
         })
       );
     });

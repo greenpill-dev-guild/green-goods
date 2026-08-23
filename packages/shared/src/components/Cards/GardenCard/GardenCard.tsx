@@ -42,14 +42,14 @@ export interface GardenCardData {
   description?: string;
   bannerImage?: string;
   gardeners?: string[];
-  operators?: string[];
+  stewards?: string[];
 }
 
 /** Translatable labels for the GardenCard component */
 export interface GardenCardLabels {
   members?: string;
-  operators?: string;
-  operatorHeading?: string;
+  stewards?: string;
+  stewardHeading?: string;
   /** Template for "and X others" - use {count} placeholder */
   andOthers?: string;
 }
@@ -57,8 +57,8 @@ export interface GardenCardLabels {
 /** Default English labels */
 const defaultLabels: Required<GardenCardLabels> = {
   members: "Members",
-  operators: "Operators",
-  operatorHeading: "Operators",
+  stewards: "Stewards",
+  stewardHeading: "Stewards",
   andOthers: "and {count} others",
 };
 
@@ -67,14 +67,14 @@ export interface GardenCardProps extends GardenCardVariantProps {
   selected?: boolean;
   className?: string;
   onClick?: () => void;
-  showOperators?: boolean;
+  showStewards?: boolean;
   showStats?: boolean;
   showDescription?: boolean;
   showBanner?: boolean;
   /** Translated labels - defaults to English */
   labels?: GardenCardLabels;
-  /** Render function for operator display name (for ENS resolution) */
-  renderOperatorName?: (address: string) => React.ReactNode;
+  /** Render function for steward display name (for ENS resolution) */
+  renderStewardName?: (address: string) => React.ReactNode;
 }
 
 export const GardenCard = React.forwardRef<HTMLDivElement, GardenCardProps>(
@@ -87,12 +87,12 @@ export const GardenCard = React.forwardRef<HTMLDivElement, GardenCardProps>(
       selected = false,
       className,
       onClick,
-      showOperators = false,
+      showStewards = false,
       showStats = true,
       showDescription = true,
       showBanner = true,
       labels: labelsProp,
-      renderOperatorName,
+      renderStewardName,
     },
     ref
   ) => {
@@ -100,19 +100,19 @@ export const GardenCard = React.forwardRef<HTMLDivElement, GardenCardProps>(
     const labels = { ...defaultLabels, ...labelsProp };
 
     const membership = React.useMemo(
-      () => buildGardenMemberSets(garden.gardeners || [], garden.operators || []),
-      [garden.gardeners, garden.operators]
+      () => buildGardenMemberSets(garden.gardeners || [], garden.stewards || []),
+      [garden.gardeners, garden.stewards]
     );
 
     const membersCount = membership.memberIds.size;
-    const operatorAddresses = React.useMemo(
-      () => Array.from(membership.operatorIds),
-      [membership.operatorIds]
+    const stewardAddresses = React.useMemo(
+      () => Array.from(membership.stewardIds),
+      [membership.stewardIds]
     );
-    const operatorCount = operatorAddresses.length;
+    const stewardCount = stewardAddresses.length;
 
     const classes = gardenCardVariants({ media, height, interactive });
-    const isMinimalSelection = height === "selection" && !showStats && !showOperators;
+    const isMinimalSelection = height === "selection" && !showStats && !showStewards;
     const mediaHeightClasses =
       isMinimalSelection && media === "small" ? "h-24" : "h-26 @[300px]:h-32 @[400px]:h-40";
 
@@ -200,14 +200,14 @@ export const GardenCard = React.forwardRef<HTMLDivElement, GardenCardProps>(
                   {membersCount} {labels.members}
                 </Badge>
 
-                {operatorCount > 0 && (
+                {stewardCount > 0 && (
                   <Badge
                     variant="outline"
                     tint="none"
                     className="border-0 p-0 text-xs font-medium leading-tight"
                     leadingIcon={<RiMapPinUserFill className="h-4 w-4 text-primary" />}
                   >
-                    {operatorCount} {labels.operators}
+                    {stewardCount} {labels.stewards}
                   </Badge>
                 )}
 
@@ -226,37 +226,37 @@ export const GardenCard = React.forwardRef<HTMLDivElement, GardenCardProps>(
               </div>
             )}
 
-            {/* Operators list */}
-            {showOperators && operatorCount > 0 && (
+            {/* Stewards list */}
+            {showStewards && stewardCount > 0 && (
               <div className="flex flex-col gap-1">
                 <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-text-sub-600">
                   <RiMapPinUserFill className="h-3.5 w-3.5 text-primary" />
-                  <span>{labels.operatorHeading}</span>
+                  <span>{labels.stewardHeading}</span>
                 </div>
                 <div className="flex flex-wrap items-center gap-1 text-xs text-text-sub-600">
-                  {operatorAddresses.slice(0, 2).map((operator) => {
-                    const operatorLabel = renderOperatorName
-                      ? renderOperatorName(operator)
-                      : formatAddress(operator, { variant: "card" });
+                  {stewardAddresses.slice(0, 2).map((steward) => {
+                    const stewardLabel = renderStewardName
+                      ? renderStewardName(steward)
+                      : formatAddress(steward, { variant: "card" });
                     return (
                       <Badge
-                        key={operator}
+                        key={steward}
                         variant="outline"
                         tint="none"
                         className="border-0 p-0 text-xs font-medium leading-tight"
                       >
                         <span
                           className="max-w-[10rem] truncate"
-                          title={typeof operatorLabel === "string" ? operatorLabel : operator}
+                          title={typeof stewardLabel === "string" ? stewardLabel : steward}
                         >
-                          {operatorLabel}
+                          {stewardLabel}
                         </span>
                       </Badge>
                     );
                   })}
-                  {operatorAddresses.length > 2 && (
+                  {stewardAddresses.length > 2 && (
                     <span className="text-xs text-text-sub-600">
-                      {labels.andOthers.replace("{count}", String(operatorAddresses.length - 2))}
+                      {labels.andOthers.replace("{count}", String(stewardAddresses.length - 2))}
                     </span>
                   )}
                 </div>

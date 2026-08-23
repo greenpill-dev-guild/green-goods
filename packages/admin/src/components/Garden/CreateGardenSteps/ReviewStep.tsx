@@ -139,23 +139,23 @@ export function ReviewStep() {
           <div>
             <dt className="label-xs text-text-soft">
               {formatMessage({
-                id: "app.garden.create.plannedOperators",
-                defaultMessage: "Planned operators",
+                id: "app.garden.create.plannedStewards",
+                defaultMessage: "Planned stewards",
               })}
             </dt>
             <dd>
               {form.operators.length === 0 ? (
                 <p className="mt-2 text-xs text-text-soft">
                   {formatMessage({
-                    id: "app.garden.create.noOperatorsYet",
-                    defaultMessage: "No operators assigned yet.",
+                    id: "app.garden.create.noStewardsYet",
+                    defaultMessage: "No stewards assigned yet.",
                   })}
                 </p>
               ) : (
                 <ul className="mt-2 space-y-1">
-                  {form.operators.map((operator) => (
-                    <li key={operator} className="text-xs text-text-strong">
-                      <EnsAddressText address={operator as Address} />
+                  {form.operators.map((steward) => (
+                    <li key={steward} className="text-xs text-text-strong">
+                      <EnsAddressText address={steward as Address} />
                     </li>
                   ))}
                 </ul>

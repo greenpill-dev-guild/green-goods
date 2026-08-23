@@ -25,9 +25,9 @@ const DEMO_POOLING_STORAGE_KEY = "greengoods_dev_mock_pooling";
 const DEV_MOCK_AUTH_STORAGE_KEY = "greengoods_dev_mock_auth";
 const DEV_MOCK_AUTH_PARAM = "mockAuth";
 
-export const DEMO_VIEWER_ADDRESSES: Record<"deployer" | "operator" | "user", Address> = {
+export const DEMO_VIEWER_ADDRESSES: Record<"deployer" | "steward" | "user", Address> = {
   deployer: "0x2aa64E6d80390F5C017F0313cB908051BE2FD35e",
-  operator: "0x04D60647836bcA09c37B379550038BdaaFD82503",
+  steward: "0x04D60647836bcA09c37B379550038BdaaFD82503",
   user: "0x1234567890123456789012345678901234567890",
 };
 
@@ -77,8 +77,9 @@ export function demoViewer(): Address {
   if (!hasWindow()) return DEMO_VIEWER_ADDRESSES.user;
   const fromUrl = new URLSearchParams(window.location.search).get(DEV_MOCK_AUTH_PARAM);
   const stored = window.sessionStorage.getItem(DEV_MOCK_AUTH_STORAGE_KEY);
-  const role = fromUrl ?? stored;
-  if (role === "deployer" || role === "operator" || role === "user") {
+  // `steward` is the role's former name, still accepted from saved QA links.
+  const role = (fromUrl ?? stored) === "steward" ? "steward" : (fromUrl ?? stored);
+  if (role === "deployer" || role === "steward" || role === "user") {
     return DEMO_VIEWER_ADDRESSES[role];
   }
   return DEMO_VIEWER_ADDRESSES.user;

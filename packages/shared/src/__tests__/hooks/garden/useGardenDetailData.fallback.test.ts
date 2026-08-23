@@ -42,8 +42,8 @@ vi.mock("../../../hooks/garden/useGardenOperations", () => ({
   useGardenOperations: () => ({
     addGardener: vi.fn(),
     removeGardener: vi.fn(),
-    addOperator: vi.fn(),
-    removeOperator: vi.fn(),
+    addSteward: vi.fn(),
+    removeSteward: vi.fn(),
     addEvaluator: vi.fn(),
     removeEvaluator: vi.fn(),
     addOwner: vi.fn(),
@@ -107,7 +107,7 @@ const recoveredGarden = {
   location: "",
   bannerImage: "",
   gardeners: [],
-  operators: [ADDR_USER],
+  stewards: [ADDR_USER],
   evaluators: [],
   owners: [],
   funders: [],
@@ -129,9 +129,9 @@ describe("useGardenDetailData eligible garden fallback", () => {
       isError: false,
     });
     mockUseGardenPermissions.mockReturnValue({
-      canManageGarden: vi.fn((garden) => garden.operators.includes(ADDR_USER)),
+      canManageGarden: vi.fn((garden) => garden.stewards.includes(ADDR_USER)),
       canReviewGarden: vi.fn(() => false),
-      canAddMembers: vi.fn((garden) => garden.operators.includes(ADDR_USER)),
+      canAddMembers: vi.fn((garden) => garden.stewards.includes(ADDR_USER)),
       isOwnerOfGarden: vi.fn(() => false),
     });
   });

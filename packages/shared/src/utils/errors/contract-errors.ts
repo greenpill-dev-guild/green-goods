@@ -13,7 +13,7 @@ interface ErrorInfo {
 const LOCALIZED_ERROR_FALLBACKS = {
   SelfAttestation: {
     message: "You cannot review your own work submission",
-    action: "Ask another garden operator to approve or reject this work",
+    action: "Ask another garden steward to approve or reject this work",
   },
 } as const;
 
@@ -29,7 +29,7 @@ const ERROR_SIGNATURES: Record<string, ErrorInfo> = {
   },
   "0xf3aeae14": {
     name: "NotGardenOperator",
-    message: "Only garden operators can perform this action",
+    message: "Only garden stewards can perform this action",
     recoverable: false,
     suggestedAction: "contact-support",
   },
@@ -42,7 +42,7 @@ const ERROR_SIGNATURES: Record<string, ErrorInfo> = {
   "0xdb926eba": {
     name: "InvalidInvite",
     message: "This garden is invite-only",
-    action: "Request an invite from a garden operator to join",
+    action: "Request an invite from a garden steward to join",
     recoverable: false,
     suggestedAction: "contact-support",
   },
@@ -59,14 +59,14 @@ const ERROR_SIGNATURES: Record<string, ErrorInfo> = {
   },
   "0x6055dca1": {
     name: "TooManyOperators",
-    message: "This garden has reached its maximum operator capacity",
+    message: "This garden has reached its maximum steward capacity",
     recoverable: false,
     suggestedAction: "contact-support",
   },
   "0xafbbf251": {
     name: "HatsEnabled",
     message: "Open joining is not available for this garden",
-    action: "Contact a garden operator to request access",
+    action: "Contact a garden steward to request access",
     recoverable: false,
     suggestedAction: "contact-support",
   },
@@ -119,7 +119,7 @@ const ERROR_SIGNATURES: Record<string, ErrorInfo> = {
   },
   "0x7862dfc0": {
     name: "NoOperatorsProvided",
-    message: "At least one operator is required to create a garden",
+    message: "At least one steward is required to create a garden",
     recoverable: false,
     suggestedAction: "contact-support",
   },
@@ -254,7 +254,7 @@ const ERROR_SIGNATURES: Record<string, ErrorInfo> = {
   // ============================================================================
   "0xb5d73c9b": {
     name: "NotAuthorizedAttester",
-    message: "You must be an evaluator or operator to submit assessments",
+    message: "You must be an evaluator or steward to submit assessments",
     recoverable: false,
     suggestedAction: "contact-support",
   },
@@ -748,7 +748,7 @@ export function parseContractError(error: unknown): ParsedContractError {
 
 /**
  * Check if an error is a "not a garden member" error
- * (user is neither a gardener nor an operator of the garden)
+ * (user is neither a gardener nor a steward of the garden)
  */
 export function isNotGardenMemberError(error: unknown): boolean {
   const parsed = parseContractError(error);

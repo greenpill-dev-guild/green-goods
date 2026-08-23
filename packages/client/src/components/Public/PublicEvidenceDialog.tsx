@@ -154,7 +154,7 @@ export function PublicEvidenceDialog({ open, onClose, record, garden }: PublicEv
     sourceRefs.push({
       label: formatMessage({
         id: "public.impact.dialog.refs.awaiting",
-        defaultMessage: "Awaiting operator review",
+        defaultMessage: "Awaiting steward review",
       }),
       pending: true,
     });

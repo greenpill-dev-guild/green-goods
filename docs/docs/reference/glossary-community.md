@@ -29,7 +29,7 @@ The canonical vocabulary for Green Goods. Every other doc, prompt contract, and 
 
 This glossary captures four kinds of vocabulary:
 
-1. **Domain entities** — 20 canonical concepts, each with an explicit maturity.
+1. **Domain entities** — 21 canonical concepts, each with an explicit maturity.
 2. **Personas** — the 5 people the system serves.
 3. **Surfaces** — the 4 places people interact with the system.
 4. **Banned vocabulary** — terms that violate the regenerative-design lens, partitioned into lint-enforced (cross-surface) and AI-prompt-only (admin-only / client-only).
@@ -42,19 +42,20 @@ The machine-readable companion (consumed by `bun run lint:vocab`) is [`docs/docs
 
 ## Domain Entities
 
-The 20 canonical concepts Green Goods uses across code, plans, product copy, and agent prompts. A canonical definition does not imply that its product surface is available; the maturity column keeps those facts separate.
+The 21 canonical concepts Green Goods uses across code, plans, product copy, and agent prompts. A canonical definition does not imply that its product surface is available; the maturity column keeps those facts separate.
 
 | Term | Type | Maturity | Allowed surfaces | Definition |
 |------|------|----------|------------------|------------|
 | **Garden** | entity | available | admin · client · agent · public · docs | A community of gardeners rooted in a place, represented on-chain as an ERC-721 garden token whose ERC-6551 token-bound account holds the garden's treasury, role Hats, and metadata. |
 | **Action** | entity | available | admin · client · agent · public · docs | A documented activity a gardener can perform — the unit of work template (e.g. "Plant native species", "Remove invasive growth"). |
-| **Work** | entity | available | admin · client · agent · public · docs | One documented instance of an Action performed by a gardener — media, notes, and metadata submitted as an EAS Work attestation for operator review; approval records a separate Work Approval attestation. |
-| **Assessment** | entity | available | admin · client · public · docs | An up-front baseline and strategy for a garden — domain, diagnosis, SMART outcome targets, selected Actions, reporting period — authored by an evaluator or operator before work begins, mirrored to a Karma GAP milestone when that module is active; explicitly not a review of submitted Work (that is Work Approval). |
+| **Work** | entity | available | admin · client · agent · public · docs | One documented instance of an Action performed by a gardener — media, notes, and metadata submitted as an EAS Work attestation for steward review; approval records a separate Work Approval attestation. |
+| **Work Approval** | entity | available | admin · client · public · docs | The separate EAS attestation in which a garden steward records approval or rejection of a submitted Work, with feedback, confidence, and verification method. The Work record already exists; this decision never creates it. |
+| **Assessment** | entity | available | admin · client · public · docs | An up-front baseline and strategy for a garden — domain, diagnosis, SMART outcome targets, selected Actions, reporting period — authored by an evaluator or steward before work begins, mirrored to a Karma GAP milestone when that module is active; explicitly not a review of submitted Work (that is Work Approval). |
 | **Hypercert** | entity | in build | admin · client · public · docs | An on-chain claim of impact bundling approved Work into a fractional impact certificate. Funders hold fractions; gardeners hold contribution credit. |
-| **Vault** | entity | available | admin · client · public · docs | The garden's treasury. Funders deposit; the garden's Tokenbound Account holds; yield splits flow to operators / gardeners / community per configured ratios. |
+| **Vault** | entity | available | admin · client · public · docs | The garden's treasury. Funders deposit; the garden's Tokenbound Account holds; yield splits flow to stewards / gardeners / community per configured ratios. |
 | **Cookie Jar** | entity | available | admin · client · public · docs | A garden-scoped emergency or discretionary fund with rate-limited withdrawals. Allowlisted members can claim within the configured cap. |
 | **Attestation** | entity | available | admin · client · public · docs | An EAS (Ethereum Attestation Service) record. Used for Work submissions, Assessment outcomes, and other off-chain-verifiable claims. |
-| **Hat** | entity | available | admin · client · public · docs | A Hats Protocol role token. Determines on-chain authority — operator hats can approve Work; gardener hats can submit Work; evaluator hats can attest. |
+| **Hat** | entity | available | admin · client · public · docs | A Hats Protocol role token. Determines on-chain authority — steward hats can approve Work; gardener hats can submit Work; evaluator hats can attest. |
 | **Season** | entity | planned | admin · client · agent · public · docs | A bounded period (typically a quarter) during which a garden runs a coordinated set of Actions and Assessments. Pacing primitive — never a countdown. |
 | **Need** | entity | planned | community · admin · client · public · docs | A community-authored statement of a place-based problem paired with a desired outcome. A Need can gather signals, moderation, linked commitments, and verified funding attribution without becoming a commitment or payment itself. |
 | **Commitment Pool** | entity | deployed, not available | admin · client · docs | A garden-anchored (or protocol root-garden) pool that registers, curates, and reconciles commitments under a charter. |
@@ -78,8 +79,8 @@ The 5 people Green Goods serves. Use the canonical form in copy, design prompts,
 | Term | Type | Allowed surfaces | Definition |
 |------|------|------------------|------------|
 | **Gardener** | persona | admin · client · agent · public · docs | A person doing regenerative Work in a garden. Submits Work, holds gardener Hats, receives credit toward Hypercerts and yield splits. |
-| **Operator** | persona | admin · client · agent · public · docs | A person who runs a garden — creates Actions, approves Work, configures Vault and Hat hierarchy. Holds operator Hats. |
-| **Evaluator** | persona | admin · client · public · docs | A person who authors or strengthens Assessments and attests impact methodology or outcomes. Evaluators do not approve or reject submitted Work; that authority belongs to Operators. |
+| **Steward** | persona | admin · client · agent · public · docs | A person who stewards a garden — creates Actions, approves Work, configures Vault and Hat hierarchy. Holds the garden's steward Hats (the deployed Operator role). |
+| **Evaluator** | persona | admin · client · public · docs | A person who authors or strengthens Assessments and attests impact methodology or outcomes. Evaluators do not approve or reject submitted Work; that authority belongs to Stewards. |
 | **Funder** | persona | admin · client · public · docs | A person or org who deposits into a garden's Vault, holds Hypercert fractions, receives yield distributions per configured splits. |
 | **Community Member** | persona | client · public · docs | A local resident affected by a Garden's Work. Signals or attests that Work exists and is healthy, and helps prioritize future Actions through public signal and conviction flows. |
 
@@ -91,7 +92,7 @@ The 4 places where people interact with Green Goods. Each has a canonical identi
 
 | Term | Type | Allowed surfaces | Definition |
 |------|------|------------------|------------|
-| **Admin** | surface | self | Operator cockpit. `packages/admin`. Restrained M3 v0.192 anatomy, Plus Jakarta Sans, transparent admin AppBar root, Controlled Chrome glass only on Navigation/FAB, solid dense surfaces everywhere else (dialogs and the account side sheet included). Litmus: appropriate for Linear / GitHub / Stripe Dashboard. |
+| **Admin** | surface | self | Steward cockpit. `packages/admin`. Restrained M3 v0.192 anatomy, Plus Jakarta Sans, transparent admin AppBar root, Controlled Chrome glass only on Navigation/FAB, solid dense surfaces everywhere else (dialogs and the account side sheet included). Litmus: appropriate for Linear / GitHub / Stripe Dashboard. |
 | **Client PWA** | surface | self | Gardener-facing app. `packages/client`. Warm Earth garden-journal feel, Inter typography, bottom AppBar (installed PWA) or SiteHeader hamburger (browser). Hero moments live here, never in admin. |
 | **Agent** | surface | self | Conversational gardener interface — telegram, SMS, WhatsApp. `packages/agent`. Natural-language Work submission, status pings, garden updates. No visual chrome. |
 | **Public browser** | surface | self | Public-facing web for funders / community members. Editorial typography (Fraunces / Lora / Newsreader for headlines, Inter for body). Garden discovery, impact pages, funding flows. Never appears in installed PWA. |
@@ -103,7 +104,7 @@ The 4 places where people interact with Green Goods. Each has a canonical identi
 This section is the anchor target for [`prompt-contract.md`](https://github.com/greenpill-dev-guild/green-goods/blob/main/.claude/skills/design/prompt-contract.md) (admin) and [`client-prompt-contract.md`](https://github.com/greenpill-dev-guild/green-goods/blob/main/.claude/skills/design/client-prompt-contract.md) (client). Every cross-surface domain term used in AI-prompt vocabulary lives in the three sections above:
 
 - **Domain Entities** (from Garden and Work through Needs and deployed Commitment Pooling concepts) — see [Domain Entities](#domain-entities).
-- **Personas** (Gardener, Operator, Evaluator, Funder, Community Member) — see [Personas](#personas).
+- **Personas** (Gardener, Steward, Evaluator, Funder, Community Member) — see [Personas](#personas).
 - **Surfaces** (Admin, Client PWA, Agent, Public browser) — see [Surfaces](#surfaces).
 
 Surface-specific component vocabulary (e.g. `CanvasLayout`, `MainSheet`, `RightSheet`, `AdminFab`, presentation-mode loaders, `PublicShell`, `AppShell`, `SiteHeader`) lives in the prompt-contracts themselves — those are admin / client component palettes, not cross-surface domain terms.
@@ -148,8 +149,8 @@ Source: `prompt_vocabulary_admin_banned` in [`banned-vocabulary.json`](https://g
 | `hero moment` | admin only | Hero moments are reserved for celebratory client PWA flows (garden creation, first work submission, Hypercert mint). The admin cockpit stays restrained. |
 | `gallery` | admin only | Marketing-page framing. Admin shows workbench rows, lists, and inspectors — not curated visual galleries. |
 | `decorative gradient` | admin only | Decoration without function. Admin uses solid surfaces; material treatment is reserved for Navigation/FAB. |
-| `marketing banner` | admin only | Promotional surface framing. Admin is operator-internal — no banners, no landing-page energy. |
-| `AppBar glass` / `glass outside Navigation/FAB` | admin only | The admin AppBar root stays transparent over the workspace canvas. Liquid / frosted material treatment is restricted to Navigation/FAB; dense data surfaces, dialogs, and the account side sheet must be solid for legibility and operator focus. |
+| `marketing banner` | admin only | Promotional surface framing. Admin is steward-internal — no banners, no landing-page energy. |
+| `AppBar glass` / `glass outside Navigation/FAB` | admin only | The admin AppBar root stays transparent over the workspace canvas. Liquid / frosted material treatment is restricted to Navigation/FAB; dense data surfaces, dialogs, and the account side sheet must be solid for legibility and steward focus. |
 
 The full prompt-vocabulary admin ban list (including `hero section`, `celebration`, `masonry gallery`, `ambient gradient wash`, `promo band`, `landing-page`, `dashboard card mosaic`, `feature cards`, `floating stats`, `stat chips floating above content`, `liquid`, `frosted`) lives in `prompt_vocabulary_admin_banned` of the JSON sidecar — they expand the categories above.
 
@@ -161,10 +162,11 @@ Source: `prompt_vocabulary_client_banned` in [`banned-vocabulary.json`](https://
 
 | Phrase | Banned in | Rationale |
 |--------|-----------|-----------|
-| `operator cockpit` | client only | Admin-surface framing. The client is a garden journal, not an operator cockpit. |
+| `operator cockpit` | client only | Admin-surface framing. The client is a garden journal, not a steward cockpit. |
+| `steward cockpit` | client only | Same framing under the role's current name — both spellings stay banned on the client. |
 | `utility copy` | client only | Admin-only voice register. Client copy is warm and narrative ("Let's see what's grown in your garden"), not terse task framing. |
 | `KPI tile` | client only | Dashboard framing. The client surfaces story and place, not key-performance-indicator tiles. |
-| `dashboard` | client only | Operator-cockpit framing. The client is a journal — it tells the story of the work. |
+| `dashboard` | client only | Steward-cockpit framing. The client is a journal — it tells the story of the work. |
 | `Plus Jakarta Sans` | client only | Admin-only typography. Client uses Inter throughout the PWA; editorial serif (Fraunces / Lora / Newsreader) appears only on the public browser site. |
 
 The full prompt-vocabulary client ban list (including `workbench row`, `inspector pattern`, `metric grid`, `trading floor`, `financial terminal`, `gamification`, `dark pattern`) lives in `prompt_vocabulary_client_banned` of the JSON sidecar.
@@ -184,7 +186,7 @@ The glossary file and the JSON sidecar are siblings — if you edit one without 
 
 ## Term Reference (Community-Facing Definitions)
 
-The structured tables above are the canonical vocabulary contract. The longer entries below are the community-facing prose definitions used in onboarding docs, FAQ answers, and gardener / operator guides. Both surfaces describe the same concepts — start with the tables for the contract, read the entries below for context.
+The structured tables above are the canonical vocabulary contract. The longer entries below are the community-facing prose definitions used in onboarding docs, FAQ answers, and gardener / steward guides. Both surfaces describe the same concepts — start with the tables for the contract, read the entries below for context.
 
 ---
 
@@ -207,7 +209,7 @@ A garden-scoped fund for small, frequent payouts. Supporters put money in, and a
 The category of regenerative work a garden does — *where* the work happens. Green Goods recognizes four action domains: **Agroforestry**, **Waste Management**, **Solar (Hub Development)**, and **Education** (the on-chain `Domain` enum: `SOLAR`, `AGRO`, `EDU`, `WASTE`). A domain is neither an outcome nor a form of capital — carbon and biodiversity, for example, are [outcomes](#outcome), not domains.
 
 ### EAS (Ethereum Attestation Service)
-A protocol for making on-chain and off-chain attestations about any subject. Green Goods uses EAS to create verifiable records of gardener work, operator approvals, and garden assessments. Learn more at [attest.sh](https://attest.sh).
+A protocol for making on-chain and off-chain attestations about any subject. Green Goods uses EAS to create verifiable records of gardener work, steward approvals, and garden assessments. Learn more at [attest.sh](https://attest.sh).
 
 ### Eight Forms of Capital
 A holistic framework for measuring wealth and impact beyond money:
@@ -225,7 +227,7 @@ Green Goods assessments track impact across all eight capitals.
 > The numbering above is presentational. The canonical machine ordering is the `Capital` enum: Social (0), Material (1), Financial (2), Living (3), Intellectual (4), Experiential (5), Spiritual (6), Cultural (7).
 
 ### Evaluator
-Impact assessors who create or strengthen garden Assessments and help make methods and outcome claims defensible. Evaluators do not approve or reject submitted Work; Operators hold that authority through Work Approval attestations.
+Impact assessors who create or strengthen garden Assessments and help make methods and outcome claims defensible. Evaluators do not approve or reject submitted Work; Stewards hold that authority through Work Approval attestations.
 
 ### Funder
 Capital allocators who deposit into Octant Vaults, purchase Hypercerts, and contribute to funding flows that sustain garden operations. Funders support regenerative work through yield-generating deposits and direct impact investment.
@@ -233,17 +235,19 @@ Capital allocators who deposit into Octant Vaults, purchase Hypercerts, and cont
 ### Garden
 A community hub for regenerative work, represented as an NFT using the ERC-6551 Tokenbound Account standard. Each Garden has its own smart contract account that can hold assets, manage members, and coordinate impact work. Gardens are localized to specific bioregions and serve as hubs for coordinating regenerative and community action.
 
-### Garden Operator {#operator}
-Trusted coordinators who manage gardens and validate gardener submissions. Operators review work submissions, approve or reject them with feedback, and oversee garden membership. Operators have elevated permissions within assigned gardens, and garden creation depends on current permission policy.
+<a id="operator"></a>
+
+### Garden Steward {#steward}
+Trusted coordinators who tend gardens and validate gardener submissions. Stewards review work submissions, approve or reject them with feedback, and oversee garden membership. Stewards have elevated permissions within assigned gardens, and garden creation depends on current permission policy. The deployed contracts still call this role `Operator`, and the old `#steward` anchor still resolves here.
 
 ### Gardener
 Community members who perform on-the-ground regenerative work. Gardeners submit work through the Green Goods PWA using the MDR (Media-Details-Review) workflow, documenting their contributions with photos and metrics. Gardeners can belong to multiple gardens and earn recognition for verified work.
 
 ### Hat
-A Hats Protocol role token that defines what someone can do in a garden. Operator hats can approve Work, gardener hats can submit Work, and evaluator hats can attest to impact. Because roles are on-chain tokens, permissions stay transparent and portable across the tools a garden uses.
+A Hats Protocol role token that defines what someone can do in a garden. Steward hats can approve Work, gardener hats can submit Work, and evaluator hats can attest to impact. Because roles are on-chain tokens, permissions stay transparent and portable across the tools a garden uses.
 
 ### Hypercert
-A semi-fungible token representing a claim of impact work. Hypercerts enable retroactive funding by allowing impact to be certified, tracked, and fractionally owned. In Green Goods, hypercert mint/list workflows are implemented but may be activation-pending depending on deployment and indexing status. Note: "Impact Tokens" are the broader concept (verified impact work tokenized via Karma GAP attestations), while Hypercerts are the specific tokenized certificates that represent fractional ownership of those impact claims. Learn more at [hypercerts.org](https://hypercerts.org) and [Mint and List Hypercerts](/community/operator-guide/creating-impact-certificates).
+A semi-fungible token representing a claim of impact work. Hypercerts enable retroactive funding by allowing impact to be certified, tracked, and fractionally owned. In Green Goods, hypercert mint/list workflows are implemented but may be activation-pending depending on deployment and indexing status. Note: "Impact Tokens" are the broader concept (verified impact work tokenized via Karma GAP attestations), while Hypercerts are the specific tokenized certificates that represent fractional ownership of those impact claims. Learn more at [hypercerts.org](https://hypercerts.org) and [Mint and List Hypercerts](/community/steward-guide/creating-impact-certificates).
 
 ### Impact Certificate
 The community-facing name for a [Hypercert](#hypercert): a bundle of a garden's approved Work, minted as a certificate that funders can hold fractions of. If you see "Impact Certificate" in the app and "Hypercert" in technical docs, they are the same thing.
@@ -258,7 +262,7 @@ A measurable signal of progress toward an [outcome](#outcome) — the unit a met
 A distributed file storage system. Green Goods stores work photos, metadata, and action instructions in IPFS through the Pinata-backed upload path, with content identifiers (CIDs) referenced in on-chain attestations.
 
 ### Karma GAP (Grantee Accountability Protocol)
-A standardized protocol for on-chain impact reporting. In Green Goods, Karma GAP integration is module-driven and deployment-dependent rather than something to assume on every chain by default. When that module is active, operators can sync approved work and garden/project state into GAP-compatible attestations.
+A standardized protocol for on-chain impact reporting. In Green Goods, Karma GAP integration is module-driven and deployment-dependent rather than something to assume on every chain by default. When that module is active, stewards can sync approved work and garden/project state into GAP-compatible attestations.
 
 ### MDR (Media-Details-Review)
 The three-step workflow for submitting work in the Green Goods PWA:
@@ -278,7 +282,7 @@ Data or transactions permanently recorded on a blockchain. Green Goods stores at
 The change an impact claim asserts — what will change and by how much. In Green Goods, outcomes are the SMART targets set in an [assessment](#assessment) and filled by approved work over the reporting period. Outcomes accrue to the [Eight Forms of Capital](#eight-forms-of-capital); they are not [domains](#domain).
 
 ### Owner
-Administrators with full control over garden configuration, role assignments, and governance settings. Owners can promote gardeners to operators, configure actions, and manage the garden's on-chain infrastructure.
+Administrators with full control over garden configuration, role assignments, and governance settings. Owners can promote gardeners to stewards, configure actions, and manage the garden's on-chain infrastructure.
 
 ### Passkey
 A cryptographic credential stored on your device (like Face ID or fingerprint) that enables passwordless authentication. Green Goods uses passkeys with Pimlico smart accounts to provide gardeners with a seamless, web2-like experience without managing private keys.
@@ -287,7 +291,7 @@ A cryptographic credential stored on your device (like Face ID or fingerprint) t
 A web application that can be installed on mobile devices and work offline. The Green Goods client is a PWA, enabling gardeners to document work in the field even without internet connectivity. Work is queued locally and synced when back online.
 
 ### Resolver
-Smart contracts that execute custom logic when attestations are created. Green Goods resolvers enforce permissions (only gardeners can submit, only operators can approve), emit events, and trigger Karma GAP integration for impact reporting.
+Smart contracts that execute custom logic when attestations are created. Green Goods resolvers enforce permissions (only gardeners can submit, only stewards can approve), emit events, and trigger Karma GAP integration for impact reporting.
 
 ### Schema
 A structured template that defines the format and revocability of an attestation. The ontology tracks six implemented schemas and four specified Community Needs schemas. `packages/contracts/config/schemas.json` and the standalone badge registration source are authoritative for implemented schema shape; a plan specification is not a registration.
@@ -299,13 +303,13 @@ A bounded period, typically a quarter, during which a garden runs a coordinated 
 A smart contract-based wallet that enables gasless transactions, social recovery, and improved UX. Green Goods gardeners use Kernel smart accounts powered by Pimlico, allowing them to submit work without paying gas fees or managing seed phrases.
 
 ### Vault
-A garden's long-term treasury, powered by Octant. Funders deposit assets that stay in place as principal, and the yield those assets generate is harvested and split to support operators, gardeners, and community initiatives. Depositors can withdraw their principal later; see [Endow a Garden](/community/funder-guide/funding-a-garden) for how it works.
+A garden's long-term treasury, powered by Octant. Funders deposit assets that stay in place as principal, and the yield those assets generate is harvested and split to support stewards, gardeners, and community initiatives. Depositors can withdraw their principal later; see [Endow a Garden](/community/funder-guide/funding-a-garden) for how it works.
 
 ### Work
 A specific instance of an [Action](#action) performed by a gardener, captured with photos, a description, and metrics, then submitted as its own EAS Work attestation for review. Approval or rejection is recorded later as a separate [Work Approval](#work-approval) attestation.
 
 ### Work Approval
-The separate attestation where an Operator reviews a Work submission and records approval or rejection, feedback, confidence, and verification method. The Work record already exists; this decision does not create it. Any downstream Karma GAP behavior remains module- and deployment-dependent.
+The separate attestation where a Steward reviews a Work submission and records approval or rejection, feedback, confidence, and verification method. The Work record already exists; this decision does not create it. Any downstream Karma GAP behavior remains module- and deployment-dependent.
 
 ### Work Submission
-Documentation of completed regenerative work submitted by a gardener. Work submissions follow the MDR workflow, store larger media or metadata by CID, and create their EAS Work attestation when submitted. Operator approval or rejection is a later, separate record.
+Documentation of completed regenerative work submitted by a gardener. Work submissions follow the MDR workflow, store larger media or metadata by CID, and create their EAS Work attestation when submitted. Steward approval or rejection is a later, separate record.

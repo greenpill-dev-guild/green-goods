@@ -378,7 +378,7 @@ export async function isGardener(
 /**
  * Check if an address is an operator
  */
-export async function isOperator(
+export async function isSteward(
   context: AnvilForkContext,
   gardenAddress: `0x${string}`,
   address: `0x${string}`

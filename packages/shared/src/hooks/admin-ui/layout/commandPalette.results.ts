@@ -103,7 +103,7 @@ export function buildCommandPaletteResults({
         defaultMessage: "Go to Pending Reviews",
       }),
       href: adminRoutes.hubWork(),
-      roles: ["deployer", "operator"],
+      roles: ["deployer", "steward"],
     },
     {
       id: "quick-create-garden",
@@ -122,7 +122,7 @@ export function buildCommandPaletteResults({
       }),
       actionId: "open-profile-sheet",
       icon: RiUserLine,
-      roles: ["deployer", "operator", "user"],
+      roles: ["deployer", "steward", "user"],
     },
     {
       id: "open-settings-sheet",
@@ -132,7 +132,7 @@ export function buildCommandPaletteResults({
       }),
       actionId: "open-settings-sheet",
       icon: RiSettings3Line,
-      roles: ["deployer", "operator", "user"],
+      roles: ["deployer", "steward", "user"],
     },
   ];
 

@@ -166,6 +166,7 @@ export interface User {
   privateKey: string;
   address: string;
   currentGarden?: string;
+  /** Persisted users.role value — `operator` is the stored spelling of the steward role. */
   role?: "gardener" | "operator";
   locale?: string;
   createdAt: number;
@@ -177,6 +178,7 @@ export interface CreateUserInput {
   privateKey: string;
   address: string;
   currentGarden?: string;
+  /** Persisted users.role value — `operator` is the stored spelling of the steward role. */
   role?: "gardener" | "operator";
   locale?: string;
 }

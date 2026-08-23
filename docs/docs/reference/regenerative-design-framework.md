@@ -31,7 +31,7 @@ A design framework for digital platforms that regenerate rather than extract —
 
 Show value flows end-to-end. In mycorrhizal networks, fungi redistribute nutrients between trees through underground connections — Mother Trees share resources with seedlings, flows shift seasonally toward need, and fungi actively move phosphorus from resource-rich to resource-poor patches (Simard, 2016; Current Biology, 2019).
 
-Green Goods implements mycorrhizal patterns: operators route verification to where it's needed (Mother Trees), more verified work attracts more funding (reciprocal reward), resources flow preferentially within gardens (kin recognition), conviction voting shifts allocation to current need (seasonal rebalancing), and vault yield routes from funders to garden operations (inequality-responsive redistribution).
+Green Goods implements mycorrhizal patterns: stewards route verification to where it's needed (Mother Trees), more verified work attracts more funding (reciprocal reward), resources flow preferentially within gardens (kin recognition), conviction voting shifts allocation to current need (seasonal rebalancing), and vault yield routes from funders to garden operations (inequality-responsive redistribution).
 
 **The design principle**: A forest floor is opaque. A digital platform doesn't have to be. Show gardeners the full chain from their photo to the funding it attracted. Show funders the chain from their deposit to specific verified impact. Name the MycoFi patterns: endosymbiotic finance, funder-builder intimacy, permaculture currencies.
 
@@ -46,7 +46,7 @@ Platform communities follow ecological succession stages. A pioneer garden needs
 | **Pioneer** | 1–3 gardeners, first actions | Maximum guidance, templates, defaults, quick wins |
 | **Intermediate** | 5–15 gardeners, regular submissions | Governance tools, action customization, dashboard analytics |
 | **Climax** | 20+ active, self-sustaining governance | Advanced governance, power-user tools, cross-garden features |
-| **Disturbance** | Operator leaves, funding disruption | Succession planning, data portability, community continuity |
+| **Disturbance** | Steward leaves, funding disruption | Succession planning, data portability, community continuity |
 
 This maps to the Greenpill chapter maturity model (L0 nascent → L1 social → L2 internal web3 → L3 community deployment) and to Octalysis motivation phases (Discovery → Onboarding → Scaffolding → Endgame). Progressive disclosure should follow succession stages, not arbitrary complexity tiers.
 
@@ -58,8 +58,8 @@ In ecology, transition zones between ecosystems (ecotones) exhibit the greatest 
 
 | Edge | What Meets | Design Opportunity |
 |------|-----------|-------------------|
-| **Gardener–Operator** | Field reality + management oversight | Review queue as bidirectional learning, not just approval |
-| **Operator–Evaluator** | Local context + formal methodology | Assessment creation — where local meets rigor |
+| **Gardener–Steward** | Field reality + management oversight | Review queue as bidirectional learning, not just approval |
+| **Steward–Evaluator** | Local context + formal methodology | Assessment creation — where local meets rigor |
 | **Funder–Garden** | Capital + labor | Vault/hypercert interface — money meets meaning |
 | **Online–Offline** | Connected + disconnected | Sync moment as informative reconnection, not invisible |
 | **Web3–Non-web3** | Blockchain + field workers | Passkey/smart account — most critical design edge |
@@ -72,7 +72,7 @@ In ecology, transition zones between ecosystems (ecotones) exhibit the greatest 
 
 Ecosystems don't prevent failure — they prepare for it as a generative event. The Lodgepole Pine carries serotinous cones that open only during fire. A machine breaks and stops. An ecosystem burns and *succeeds* — pioneer species colonize the cleared ground.
 
-When a work submission is rejected, the interface should treat this as clearing — showing what the operator saw, what could improve, and what past successful submissions looked like. When connectivity is lost, design for dormancy, not error. When an operator leaves, design for secondary succession (faster than primary because infrastructure persists). On-chain attestation history means a community's evidence survives platform disruption.
+When a work submission is rejected, the interface should treat this as clearing — showing what the steward saw, what could improve, and what past successful submissions looked like. When connectivity is lost, design for dormancy, not error. When a steward leaves, design for secondary succession (faster than primary because infrastructure persists). On-chain attestation history means a community's evidence survives platform disruption.
 
 **The design principle**: Frame all "negative" states as opportunities with context. Rejection = clearing. Disconnection = dormancy. Disturbance = renewal.
 
@@ -125,7 +125,7 @@ Three criteria of living systems: **autopoiesis** (self-making — the community
 
 ### Commons Governance (Ostrom)
 
-Elinor Ostrom's 8 design principles for managing commons — clearly defined boundaries, rules fitting local conditions, collective-choice arrangements, monitoring, graduated sanctions, conflict resolution, rights to organize, and nested enterprises. Green Goods implements most of these through Hats Protocol roles, per-garden config, conviction voting, operator review, and ERC-6551 tokenbound accounts. **Identified gap**: conflict resolution workflows (Principle 6).
+Elinor Ostrom's 8 design principles for managing commons — clearly defined boundaries, rules fitting local conditions, collective-choice arrangements, monitoring, graduated sanctions, conflict resolution, rights to organize, and nested enterprises. Green Goods implements most of these through Hats Protocol roles, per-garden config, conviction voting, steward review, and ERC-6551 tokenbound accounts. **Identified gap**: conflict resolution workflows (Principle 6).
 
 ### Regenerative Development (Regenesis Group)
 
@@ -197,7 +197,7 @@ Jeff Emmett & Jessica Zartler's mycorrhizal finance patterns — permaculture cu
 | Ostrom Principle 1 (boundaries) | Hats Protocol role membership |
 | Ostrom Principle 2 (local rules) | Per-garden config (weight, split, domain) |
 | Ostrom Principle 3 (collective choice) | Conviction voting signal pools |
-| Ostrom Principle 4 (monitoring) | Operator review, confidence levels |
+| Ostrom Principle 4 (monitoring) | Steward review, confidence levels |
 | Ostrom Principle 7 (self-governance) | ERC-6551 tokenbound garden accounts |
 | Ostrom Principle 8 (nesting) | Action < Garden < Network < Ecosystem |
 | Cosmo-localization | Open-source global contracts, local config |

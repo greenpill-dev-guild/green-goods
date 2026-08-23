@@ -159,19 +159,19 @@ export function usePendingJoinsVersion(): number {
 }
 
 /**
- * Check if user is a member of a garden (gardener or operator).
+ * Check if user is a member of a garden (gardener or steward).
  * Also checks pending joins for immediate UI feedback after successful transaction.
  */
 export function isGardenMember(
   userAddress: string | null | undefined,
   gardeners: string[] | null | undefined,
-  operators: string[] | null | undefined,
+  stewards: string[] | null | undefined,
   gardenId?: string
 ): boolean {
   if (!userAddress) return false;
 
   // Check actual membership
-  if (isAddressInList(userAddress, gardeners) || isAddressInList(userAddress, operators)) {
+  if (isAddressInList(userAddress, gardeners) || isAddressInList(userAddress, stewards)) {
     if (gardenId) removePendingJoin(gardenId); // Cleanup if confirmed
     return true;
   }

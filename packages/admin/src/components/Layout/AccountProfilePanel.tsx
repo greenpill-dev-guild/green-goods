@@ -36,9 +36,9 @@ const ROLE_LABEL_MESSAGES: Record<UserRole, { defaultMessage: string; id: string
     id: "cockpit.role.deployer",
     defaultMessage: "deployer",
   },
-  operator: {
-    id: "cockpit.role.operator",
-    defaultMessage: "operator",
+  steward: {
+    id: "cockpit.role.steward",
+    defaultMessage: "steward",
   },
   user: {
     id: "cockpit.role.user",

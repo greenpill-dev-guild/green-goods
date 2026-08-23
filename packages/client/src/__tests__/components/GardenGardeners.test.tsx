@@ -41,7 +41,7 @@ vi.mock("@/components/Inputs", () => ({
 import { GardenGardeners, type GardenMember } from "../../components/Features/Garden/Gardeners";
 
 const messages = {
-  "app.garden.gardeners.operatorBadge": "Operator",
+  "app.garden.gardeners.stewardBadge": "Steward",
   "app.garden.gardeners.registered": "Registered",
   "app.garden.gardeners.unknownUser": "Unknown user",
 };
@@ -59,7 +59,7 @@ const members: GardenMember[] = Array.from({ length: 41 }, (_, index) => ({
   account: `0x${index.toString(16).padStart(40, "0")}` as GardenMember["account"],
   username: `Member ${index}`,
   registeredAt: 1_700_000_000_000 + index,
-  isOperator: false,
+  isSteward: false,
   isGardener: true,
 }));
 

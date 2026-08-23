@@ -61,7 +61,7 @@ export function GardenPool({ pool }: GardenPoolProps) {
   const { hasRole: stewardsPool } = useHasRole(
     pool.garden as Address,
     (viewer ?? undefined) as Address | undefined,
-    "operator",
+    "steward",
     chainId
   );
   const { hasRole: ownsPool } = useHasRole(

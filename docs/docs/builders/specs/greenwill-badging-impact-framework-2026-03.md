@@ -1172,7 +1172,7 @@ If GreenWill starts there, it will feel native to Green Goods and can grow into 
 - `docs/docs/builders/specs/v1-0.mdx`
 - `docs/docs/builders/integrations/unlock.mdx`
 - `docs/docs/community/gardener-guide/earning-badges.mdx`
-- `docs/docs/community/operator-guide/earning-recognition.mdx`
+- `docs/docs/community/steward-guide/earning-recognition.mdx`
 - `docs/docs/community/evaluator-guide/earning-badges.mdx`
 - `docs/docs/community/funder-guide/earning-recognition.mdx`
 - `docs/docs/community/where-were-headed.mdx`

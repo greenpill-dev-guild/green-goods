@@ -16,7 +16,7 @@ import { publicKeys } from "./public";
 import { savedOffersKeys } from "./saved-offers";
 import { tokensKeys } from "./tokens";
 import { cookieJarKeys, vaultsKeys, yieldKeys } from "./vault";
-import { approvalsKeys, operatorWorksKeys, workApprovalsKeys, worksKeys } from "./work";
+import { approvalsKeys, stewardWorksKeys, workApprovalsKeys, worksKeys } from "./work";
 
 export const queryKeys = {
   all: ["greengoods"] as const,
@@ -24,7 +24,7 @@ export const queryKeys = {
   works: worksKeys,
   workApprovals: workApprovalsKeys,
   approvals: approvalsKeys,
-  operatorWorks: operatorWorksKeys,
+  stewardWorks: stewardWorksKeys,
   offline: offlineKeys,
   media: mediaKeys,
   gardens: gardensKeys,

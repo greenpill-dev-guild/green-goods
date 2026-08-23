@@ -216,7 +216,7 @@ describe("Home garden route", () => {
             },
           ],
           gardeners: [],
-          operators: [],
+          stewards: [],
           openJoining: false,
         },
       ],

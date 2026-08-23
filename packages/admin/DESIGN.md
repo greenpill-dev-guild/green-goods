@@ -31,7 +31,7 @@ typography:
 
 | Mode | Audiences | Metaphor | Paradigm | Navigation |
 |------|-----------|----------|----------|------------|
-| **Desktop cockpit** | Operators, Evaluators | Tending the garden — clipboard in hand | Command Surface | AppBar (top) + NavigationBar (bottom) + AdminFab |
+| **Desktop cockpit** | Stewards, Evaluators | Tending the garden — clipboard in hand | Command Surface | AppBar (top) + NavigationBar (bottom) + AdminFab |
 
 **Cockpit litmus test:** If inappropriate for Linear, GitHub, or Stripe's dashboard, it's inappropriate here.
 
@@ -92,7 +92,7 @@ CSS Grid with named areas:
 - **Plus Jakarta Sans** across everything — titles (600), body (400), labels (500)
 - Compressed cockpit scale: 22px/28px title-large for page and dialog titles · 14px body and labels · 12px meta · 11px inside chips only. No display or headline ramp — the route header title is title-large, never a display size.
 - Utility copy, status language, task framing — not marketing copy
-- Labels and timestamps are the most important typographic element (operators scan metadata)
+- Labels and timestamps are the most important typographic element (stewards scan metadata)
 
 ---
 
@@ -128,7 +128,7 @@ Components (20): AdminBadge, AdminButton, AdminCard, AdminCheckbox, AdminChoiceG
 
 ### Card and selection grammar
 
-- `WorkbenchCard` is for workbench records and action/assessment queue items that operators scan, compare, and act on in a grid or list.
+- `WorkbenchCard` is for workbench records and action/assessment queue items that stewards scan, compare, and act on in a grid or list.
 - `AdminCard` is for compact modules, stats, settings, status panels, and supporting detail regions.
 - `AdminSelectableCard` is for richer exclusive or multi-select choices where the option needs a title, description, icon, or metadata.
 - `AdminChoiceGroup` is for compact single-select preferences and context switches inside dense panels.

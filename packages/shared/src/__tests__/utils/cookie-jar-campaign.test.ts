@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  aggregateCampaignCookieJarOperators,
+  aggregateCampaignCookieJarStewards,
   buildCampaignCookieJarCampaigns,
   buildCampaignCookieJarMetadata,
   deriveCampaignCookieJarClaimState,
@@ -90,23 +90,23 @@ describe("cookie jar campaign utilities", () => {
     expect(result.invalidAddresses).toEqual(["nope"]);
   });
 
-  it("aggregates one operator per selected garden and dedupes manual extras", () => {
-    const result = aggregateCampaignCookieJarOperators({
+  it("aggregates one steward per selected garden and dedupes manual extras", () => {
+    const result = aggregateCampaignCookieJarStewards({
       gardens: [
         {
           id: GARDEN_A,
           name: "North Garden",
-          operators: [OPERATOR_A, OPERATOR_B],
+          stewards: [OPERATOR_A, OPERATOR_B],
         },
         {
           id: GARDEN_B,
           name: "South Garden",
-          operators: [OPERATOR_A],
+          stewards: [OPERATOR_A],
         },
         {
           id: GARDEN_C,
-          name: "No Operators",
-          operators: [],
+          name: "No Stewards",
+          stewards: [],
         },
       ],
       selectedGardenIds: [GARDEN_A, GARDEN_B, GARDEN_C],
@@ -115,7 +115,7 @@ describe("cookie jar campaign utilities", () => {
 
     expect(result.allowlist).toEqual([OPERATOR_A, OPERATOR_B, EXTRA]);
     expect(result.sources).toHaveLength(3);
-    expect(result.missingOperatorGardens.map((source) => source.gardenAddress)).toEqual([GARDEN_C]);
+    expect(result.missingStewardGardens.map((source) => source.gardenAddress)).toEqual([GARDEN_C]);
     expect(result.extraAllowlist).toEqual([OPERATOR_B, EXTRA]);
   });
 
@@ -123,7 +123,7 @@ describe("cookie jar campaign utilities", () => {
     const metadata = buildCampaignCookieJarMetadata({
       title: "Earth Week",
       slug: "earth-week",
-      description: "A seasonal campaign for garden operator rewards.",
+      description: "A seasonal campaign for garden steward rewards.",
       image: "ipfs://bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzd",
       externalUrl: "https://greengoods.app/cookies?campaign=earth-week",
       sourceGardens: [GARDEN_A, GARDEN_A, GARDEN_B],
@@ -133,7 +133,7 @@ describe("cookie jar campaign utilities", () => {
     });
 
     expect(metadata.sourceGardens).toEqual([GARDEN_A, GARDEN_B]);
-    expect(metadata.description).toBe("A seasonal campaign for garden operator rewards.");
+    expect(metadata.description).toBe("A seasonal campaign for garden steward rewards.");
     expect(metadata.image).toBe(
       "ipfs://bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzd"
     );

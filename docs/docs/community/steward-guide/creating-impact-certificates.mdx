@@ -1,19 +1,19 @@
 ---
 title: Mint Impact Certificate
 sidebar_label: Mint Impact Certificate
-slug: /community/operator-guide/creating-impact-certificates
+slug: /community/steward-guide/creating-impact-certificates
 description: "Mint a Hypercert-backed impact certificate from an assessment and approved garden work."
-audience: operator
+audience: steward
 owner: docs
 last_verified: 2026-05-01
 feature_status: Live
 image: /img/social/mint-impact-certificate.webp
-goal: "Help operators open the certification flow, select approved work, review certificate metadata, allocate units, and mint."
+goal: "Help stewards open the certification flow, select approved work, review certificate metadata, allocate units, and mint."
 difficulty: "standard"
 estimated_time: "20-40 minutes for a prepared claim."
-prereqs: "An assessment, approved work, operator permission, contributor addresses, and an available certification flow."
-next_steps: "/community/operator-guide/"
-persona_context: "Operators turning a defensible assessment and approval trail into an impact certificate."
+prereqs: "An assessment, approved work, steward permission, contributor addresses, and an available certification flow."
+next_steps: "/community/steward-guide/"
+persona_context: "Stewards turning a defensible assessment and approval trail into an impact certificate."
 source_of_truth:
   - packages/admin/src/views/Hub/CreateHypercert.tsx
   - packages/admin/src/components/Hypercerts/HypercertWizard/index.tsx
@@ -26,22 +26,22 @@ keywords:
   - impact certificate
   - hypercert
   - mint hypercert
-  - operator
+  - steward
   - certificate
 ---
 
-import {GuideOpener, OperatorPathNav, StatusBadge, StepFlow} from "@site/src/components/docs";
+import {GuideOpener, StewardPathNav, StatusBadge, StepFlow} from "@site/src/components/docs";
 
 # Mint Impact Certificate
 
 <StatusBadge status="Live" />
 
-<OperatorPathNav />
+<StewardPathNav />
 
 <GuideOpener
   image="/img/social/mint-impact-certificate.webp"
-  alt="An operator minting an impact certificate from verified garden work"
-  label="Operator chapter"
+  alt="A steward minting an impact certificate from verified garden work"
+  label="Steward chapter"
   roleAccent="assessment"
 >
   Bundle an assessment and approved work into a Hypercert-backed certificate.
@@ -53,7 +53,7 @@ Mint an impact certificate after the garden has an assessment and approved work 
 
 Use this page when the evidence is ready, not just when the queue is large. A good certificate groups work by a coherent impact claim, reporting period, or initiative.
 
-Owners and operators can mint. Evaluators and funders can inspect the evidence, but they cannot finalize the certificate unless they also have owner/operator authority.
+Owners and stewards can mint. Evaluators and funders can inspect the evidence, but they cannot finalize the certificate unless they also have owner/steward authority.
 
 ## Before you start
 
@@ -109,7 +109,7 @@ Start from the admin **Hub** workspace. The certification surface is labelled **
 ## If something goes wrong
 
 - **No garden selected.** Pick the garden in admin, then reopen the Certify workspace.
-- **No permission.** Ask the garden owner to add you as an owner or operator.
+- **No permission.** Ask the garden owner to add you as an owner or steward.
 - **No approved work.** Return to [Review and Approve Work](./reviewing-work) and clear the relevant submissions first.
 - **Assessment filter hides expected work.** Check the assessment domain and reporting window. The work may belong in a different assessment or certificate.
 - **Distribution validation fails.** Recheck contributor addresses and unit totals before trying to mint.

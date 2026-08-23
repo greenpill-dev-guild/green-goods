@@ -8,6 +8,7 @@ import type {
   EntityRelationship,
   OntologyCapability,
   OntologyChainCapability,
+  OntologySurface,
 } from "./types";
 
 const manifest = manifestJson as unknown as AgentOntologyManifest;
@@ -26,6 +27,11 @@ export function getOntologyTerm(query: string): AgentOntologyTerm | undefined {
 
 export function getOntologyRelationships(query: string): readonly EntityRelationship[] {
   return getOntologyTerm(query)?.relationships ?? [];
+}
+
+/** Product surfaces this term may appear on. Empty when the term is unknown. */
+export function getOntologySurfaces(query: string): readonly OntologySurface[] {
+  return getOntologyTerm(query)?.surfaces ?? [];
 }
 
 export function getOntologyMaturity(query: string): OntologyCapability | null | undefined {

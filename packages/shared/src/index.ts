@@ -1012,9 +1012,9 @@ export type {
   CampaignCookieJar,
   CampaignCookieJarCampaign,
   CampaignCookieJarMetadata,
-  CampaignCookieJarOperatorAggregation,
-  CampaignCookieJarOperatorPolicy,
-  CampaignCookieJarOperatorSource,
+  CampaignCookieJarStewardAggregation,
+  CampaignCookieJarStewardPolicy,
+  CampaignCookieJarStewardSource,
   CapitalType,
   // Blockchain types
   ChainId,
@@ -1247,7 +1247,7 @@ export {
   adminRoutes,
   aggregateBadges,
   // Work utilities
-  aggregateCampaignCookieJarOperators,
+  aggregateCampaignCookieJarStewards,
   annotateGardenSignalPools,
   assertMarketplaceReady,
   buildActionInstructionsV2,

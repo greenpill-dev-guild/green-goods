@@ -1,17 +1,17 @@
 ---
 title: Managing Endowments
 sidebar_label: Managing Endowments
-slug: /community/operator-guide/managing-endowments
-audience: operator
+slug: /community/steward-guide/managing-endowments
+audience: steward
 owner: docs
 last_verified: 2026-07-03
 feature_status: Live
-goal: "Guide operators through the current live vault workflow, with honest notes about chain availability and role boundaries."
+goal: "Guide stewards through the current live vault workflow, with honest notes about chain availability and role boundaries."
 difficulty: "standard"
 estimated_time: "15-30 minutes per operation."
 prereqs: "Endowment policy and signer permissions."
 next_steps: "./cookie-jars"
-persona_context: "Operators coordinating gardens, approvals, and governance/endowment execution."
+persona_context: "Stewards coordinating gardens, approvals, and governance/endowment execution."
 source_of_truth:
   - packages/admin/src/views/Garden/Vault.tsx
   - packages/shared/src/hooks/vault/useVaultDeposit.ts
@@ -49,7 +49,7 @@ graph TB
     subgraph Vault["Vault Operations"]
         Deposit["Deposits\nfund the garden"]
         Yield["Harvest + Split\nrouted impact yield"]
-        Withdraw["Withdrawals\noperator-controlled"]
+        Withdraw["Withdrawals\nsteward-controlled"]
     end
 
     Deposit --> Balance["Vault Balance"]
@@ -58,9 +58,9 @@ graph TB
 ```
 
 <FeatureState
-  title="Operator UI"
+  title="Steward UI"
   status="Live"
-  summary="Vault and endowment surfaces are live in admin. What an operator can do depends on wallet permissions, selected chain, and the vaults configured for that garden."
+  summary="Vault and endowment surfaces are live in admin. What a steward can do depends on wallet permissions, selected chain, and the vaults configured for that garden."
 />
 
 <FeatureState

@@ -22,7 +22,7 @@ export interface AdminSideSheetProps {
    * escaping CanvasLayout's `[data-tone]` scope, so the per-view accent
    * (`--tone-*`) is otherwise unset inside the sheet. The three global
    * surfaces are account chrome, not workspace content — they pass the
-   * neutral operator "hub" accent.
+   * neutral steward "hub" accent.
    */
   tone?: "hub" | "garden" | "community" | "actions" | "home";
 }

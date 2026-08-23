@@ -56,7 +56,7 @@ const meta: Meta<typeof AdminConfirmDialog> = {
     docs: {
       description: {
         component:
-          "The danger-variant `AdminConfirmDialog` that `PositionCard` opens when an operator taps **Emergency pause**. Rendered through a small state wrapper so the open → confirm/cancel surface is reviewable and browser-tested without seeding wagmi.",
+          "The danger-variant `AdminConfirmDialog` that `PositionCard` opens when a steward taps **Emergency pause**. Rendered through a small state wrapper so the open → confirm/cancel surface is reviewable and browser-tested without seeding wagmi.",
       },
     },
     a11y: {

@@ -6,13 +6,13 @@ Green Goods exists to make verified regenerative work fundable at scale. Every e
 
 ```
 Evidence Capture → Community Verification → Impact Certification → Community Thriving → Capital Formation
-(Gardener)         (Operator)               (Evaluator)           (Community)          (Funder)
+(Gardener)         (Steward)               (Evaluator)           (Community)          (Funder)
 ```
 
 **What we optimize for:**
 - Gardener submission friction below 2 minutes — this is the growth bottleneck
 - Data integrity of attestation chains — funders won't pay for unverifiable claims
-- Operator onboarding efficiency — operators are the distribution channel (B2B2C)
+- Steward onboarding efficiency — stewards are the distribution channel (B2B2C)
 - Self-sustaining economics — yield-backed vaults, not perpetual grants
 
 **What we do not optimize for:**
@@ -105,7 +105,7 @@ When agent values conflict, resolve in this order (highest priority first):
    - Build toward community self-sufficiency, not captive usage
    - **This means**: prefer portable records, exports, and clear reporting over trapped-in-platform workflows
    - **This means**: recognition should reflect capability and trust transitions, not addictive activity volume
-   - **This means**: if a workflow makes operators or funders faster but weakens community agency, revisit the tradeoff
+   - **This means**: if a workflow makes stewards or funders faster but weakens community agency, revisit the tradeoff
 
 7. **When genuinely uncertain, escalate**
    - Never guess on ambiguous tradeoffs
@@ -170,7 +170,7 @@ These past cases illustrate when escalation was the correct action:
 When evaluating whether a work submission constitutes "meaningful impact":
 
 1. **Minimum evidence per submission**: At least 1 photo + text description. Submissions with no photo or no text are incomplete and must not be attested.
-2. **Attestation validity**: The attestation must match its registered EAS schema UID. Operator approval must have confidence level >= `LOW` (the minimum threshold; higher is better but LOW is acceptable).
+2. **Attestation validity**: The attestation must match its registered EAS schema UID. Steward approval must have confidence level >= `LOW` (the minimum threshold; higher is better but LOW is acceptable).
 3. **No self-attestation**: The submitter of a work (`msg.sender` of the work attestation) must not be the same address as the approver (`msg.sender` of the approval attestation). This is enforced at the resolver level.
 4. **Traceability**: Every attested work must be traceable to a client-initiated submission (job queue entry with `clientWorkId` or direct transaction hash). No system-generated impact claims.
 

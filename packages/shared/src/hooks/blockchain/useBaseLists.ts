@@ -57,7 +57,7 @@ export const useGardens = createBaseListHook<Garden>(
   { networkMode: "offlineFirst" }
 );
 
-/** Loads gardener profiles for operator dashboards. */
+/** Loads gardener profiles for steward dashboards. */
 export const useGardeners = createBaseListHook<GardenerCard>(
   () => queryKeys.gardeners.all,
   getGardeners

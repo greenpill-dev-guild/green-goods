@@ -58,32 +58,32 @@ export function useEffectiveToolbarPermissions(): ToolbarPermissions {
 
     // Compute aggregated roles across the scope
     let hasAnyRole = false;
-    let isOperatorOrOwner = false;
+    let isStewardOrOwner = false;
 
     for (const garden of scope) {
-      const inOperators = isAddressInList(address, garden.operators);
+      const inStewards = isAddressInList(address, garden.stewards);
       const inGardeners = isAddressInList(address, garden.gardeners);
       const inOwners = isAddressInList(address, garden.owners);
       const inEvaluators = isAddressInList(address, garden.evaluators);
       const inFunders = isAddressInList(address, garden.funders);
       const inCommunities = isAddressInList(address, garden.communities);
 
-      if (inOperators || inGardeners || inOwners || inEvaluators || inFunders || inCommunities) {
+      if (inStewards || inGardeners || inOwners || inEvaluators || inFunders || inCommunities) {
         hasAnyRole = true;
       }
 
-      if (inOperators || inOwners) {
-        isOperatorOrOwner = true;
+      if (inStewards || inOwners) {
+        isStewardOrOwner = true;
       }
     }
 
     return {
       showWork: hasAnyRole,
-      showGarden: isOperatorOrOwner,
-      // Operators participate in Community: they manage roles, deposits, and
+      showGarden: isStewardOrOwner,
+      // Stewards participate in Community: they manage roles, deposits, and
       // payouts. Gating to deployer-or-owner only hid that surface from people
       // who do most of the day-to-day work.
-      showCommunity: isDeployer || isOperatorOrOwner,
+      showCommunity: isDeployer || isStewardOrOwner,
       showActions: isDeployer,
       isLoading: false,
     };

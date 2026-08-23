@@ -202,7 +202,7 @@ export function CanvasLayout() {
   // Left-inspector accent: the inspector content is workspace-scoped, so the
   // centered dialog keeps the active workspace tone (it portals out of
   // CanvasLayout's [data-tone] scope). Non-tone ids (e.g. "profile") fall back
-  // to the neutral operator "hub" accent. Literal branches keep this a valid
+  // to the neutral steward "hub" accent. Literal branches keep this a valid
   // AdminDialog tone regardless of the workspace-id type.
   const leftDialogTone: "hub" | "garden" | "community" | "actions" =
     workspaceId === "garden"
@@ -412,7 +412,7 @@ export function CanvasLayout() {
                 desktop, compact inset bottom sheet on mobile (where only the
                 notification bell can open it — Profile/Settings live in the
                 Profile tab there). The same orchestrator contentId drives
-                open/close. Tone is the neutral operator "hub" accent: this is
+                open/close. Tone is the neutral steward "hub" accent: this is
                 global account chrome, not workspace content, so it should not
                 inherit the active garden's tint, and the sheet portals out of
                 CanvasLayout's [data-tone] scope. */}

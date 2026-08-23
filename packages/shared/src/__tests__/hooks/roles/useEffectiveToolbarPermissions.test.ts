@@ -53,7 +53,7 @@ function makeGarden(id: string, overrides: Record<string, unknown> = {}) {
   return {
     id,
     name: `Garden ${id}`,
-    operators: [] as string[],
+    stewards: [] as string[],
     gardeners: [] as string[],
     owners: [] as string[],
     evaluators: [] as string[],
@@ -72,7 +72,7 @@ function setupDefaults(
     eligibleGardensError?: boolean;
     hasStaleBaseList?: boolean;
     isDeployer?: boolean;
-    isOperator?: boolean;
+    isSteward?: boolean;
     gardens?: ReturnType<typeof makeGarden>[];
   } = {}
 ) {
@@ -84,7 +84,7 @@ function setupDefaults(
     eligibleGardensError = false,
     hasStaleBaseList = false,
     isDeployer = false,
-    isOperator = false,
+    isSteward = false,
     gardens = [],
   } = overrides;
 
@@ -95,7 +95,7 @@ function setupDefaults(
   );
   mockUseRole.mockReturnValue({
     isDeployer,
-    isOperator,
+    isSteward,
     loading: roleLoading,
   });
   mockUseEligibleAdminGardens.mockReturnValue({
@@ -147,9 +147,9 @@ describe("useEffectiveToolbarPermissions", () => {
     expect(result.current.isLoading).toBe(false);
   });
 
-  it("operator sees Work + Garden + Community; Actions stays deployer-only", () => {
+  it("steward sees Work + Garden + Community; Actions stays deployer-only", () => {
     const gardenA = makeGarden("garden-a", {
-      operators: [ADDR_USER],
+      stewards: [ADDR_USER],
     });
 
     setupDefaults({ gardens: [gardenA] });
@@ -158,7 +158,7 @@ describe("useEffectiveToolbarPermissions", () => {
 
     expect(result.current.showWork).toBe(true);
     expect(result.current.showGarden).toBe(true);
-    // Operators participate in Community (role management, deposits, payouts).
+    // Stewards participate in Community (role management, deposits, payouts).
     expect(result.current.showCommunity).toBe(true);
     expect(result.current.showActions).toBe(false);
     expect(result.current.isLoading).toBe(false);
@@ -166,7 +166,7 @@ describe("useEffectiveToolbarPermissions", () => {
 
   it("deployer sees all 4 slots including Actions", () => {
     const gardenA = makeGarden("garden-a", {
-      operators: [ADDR_USER],
+      stewards: [ADDR_USER],
     });
 
     setupDefaults({ gardens: [gardenA], isDeployer: true });
@@ -196,9 +196,9 @@ describe("useEffectiveToolbarPermissions", () => {
     expect(result.current.isLoading).toBe(false);
   });
 
-  it("multi-garden union: operator in A + evaluator in B -> Work + Garden", () => {
+  it("multi-garden union: steward in A + evaluator in B -> Work + Garden", () => {
     const gardenA = makeGarden("garden-a", {
-      operators: [ADDR_USER],
+      stewards: [ADDR_USER],
     });
     const gardenB = makeGarden("garden-b", {
       evaluators: [ADDR_USER],
@@ -208,7 +208,7 @@ describe("useEffectiveToolbarPermissions", () => {
 
     const { result } = renderHook(() => useEffectiveToolbarPermissions());
 
-    // Union across all gardens: operator in A gives Garden + Community,
+    // Union across all gardens: steward in A gives Garden + Community,
     // evaluator in B gives Work.
     expect(result.current.showWork).toBe(true);
     expect(result.current.showGarden).toBe(true);
@@ -217,9 +217,9 @@ describe("useEffectiveToolbarPermissions", () => {
     expect(result.current.isLoading).toBe(false);
   });
 
-  it("single-garden scope: operator in A, evaluator in B, scope=B -> Work only", () => {
+  it("single-garden scope: steward in A, evaluator in B, scope=B -> Work only", () => {
     const gardenA = makeGarden("garden-a", {
-      operators: [ADDR_USER],
+      stewards: [ADDR_USER],
     });
     const gardenB = makeGarden("garden-b", {
       evaluators: [ADDR_USER],
@@ -258,7 +258,7 @@ describe("useEffectiveToolbarPermissions", () => {
 
   it("uses role-confirmed fallback gardens when the base list is stale", () => {
     const recoveredGarden = makeGarden("garden-recovered", {
-      operators: [ADDR_USER],
+      stewards: [ADDR_USER],
     });
 
     setupDefaults({
@@ -272,7 +272,7 @@ describe("useEffectiveToolbarPermissions", () => {
 
     expect(result.current.showWork).toBe(true);
     expect(result.current.showGarden).toBe(true);
-    // Recovered garden has user as operator -> Community visible.
+    // Recovered garden has user as steward -> Community visible.
     expect(result.current.showCommunity).toBe(true);
     expect(result.current.showActions).toBe(false);
     expect(result.current.isLoading).toBe(false);

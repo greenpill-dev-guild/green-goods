@@ -346,7 +346,7 @@ export function useWorkApproval() {
       }
 
       // A returned hash means the decision reached the chain, so record it —
-      // the operator should see that their action registered. Two things keep
+      // the steward should see that their action registered. Two things keep
       // that honest: a submission whose receipt never arrived stays visibly
       // pending, and every overlay carries a deadline. Once the deadline
       // lapses the indexer is authoritative again, so a dropped transaction

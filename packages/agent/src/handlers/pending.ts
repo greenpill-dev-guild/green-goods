@@ -11,7 +11,7 @@ export async function handlePending(message: InboundMessage, user: User): Promis
   if (user.role !== "operator") {
     return {
       response: {
-        text: agentMessage(message.locale, "pending.operatorOnly"),
+        text: agentMessage(message.locale, "pending.stewardOnly"),
       },
     };
   }

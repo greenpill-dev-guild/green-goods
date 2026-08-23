@@ -271,7 +271,7 @@ export default function ActionDetail() {
   const { formatMessage } = intl;
   const { role } = useRole();
   const { data: actions = [], isLoading } = useActions(DEFAULT_CHAIN_ID);
-  const canManageActions = role === "deployer" || role === "operator";
+  const canManageActions = role === "deployer" || role === "steward";
   const action = actions.find((record) => record.id === id);
   const listSearch = useMemo(
     () => getActionsListSearch(new URLSearchParams(location.search)),
@@ -460,7 +460,7 @@ export default function ActionDetail() {
                   {formatMessage({
                     id: "cockpit.actions.requirementsDescription",
                     defaultMessage:
-                      "Fields, media guidance, and review structure for operators and gardeners.",
+                      "Fields, media guidance, and review structure for stewards and gardeners.",
                   })}
                 </p>
                 <div className="space-y-2">

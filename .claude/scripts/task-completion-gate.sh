@@ -43,7 +43,7 @@ detect_scope() {
     echo "shared"
   elif printf '%s' "$text" | grep -Eiq 'client.*component|client.*view|PWA|service.worker'; then
     echo "client"
-  elif printf '%s' "$text" | grep -Eiq 'admin.*component|admin.*view|dashboard|operator'; then
+  elif printf '%s' "$text" | grep -Eiq 'admin.*component|admin.*view|dashboard|steward|operator'; then
     echo "admin"
   else
     echo ""

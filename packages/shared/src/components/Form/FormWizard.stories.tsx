@@ -6,7 +6,7 @@ import type { Step } from "./StepIndicator";
 
 const mockSteps: Step[] = [
   { id: "details", title: "Details", description: "Garden name, location, and description" },
-  { id: "team", title: "Team", description: "Add operators and gardeners" },
+  { id: "team", title: "Team", description: "Add stewards and gardeners" },
   { id: "actions", title: "Actions", description: "Configure regenerative actions" },
   { id: "review", title: "Review", description: "Review and deploy" },
 ];

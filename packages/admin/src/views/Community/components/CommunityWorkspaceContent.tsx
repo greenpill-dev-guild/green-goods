@@ -98,7 +98,7 @@ export function CommunityWorkspaceContent({ workspace }: CommunityWorkspaceConte
         setMemberSearch={workspace.setMemberSearch}
         roleIcons={{
           owner: RiShieldCheckLine,
-          operator: RiUserLine,
+          steward: RiUserLine,
           evaluator: RiCheckboxCircleLine,
           gardener: RiSeedlingLine,
           funder: RiMoneyDollarCircleLine,

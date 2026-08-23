@@ -1,7 +1,7 @@
 /**
  * Garden Operations Hook
  *
- * Provides functions to manage garden members (gardeners and operators).
+ * Provides functions to manage garden members (gardeners and stewards).
  * Uses the createGardenOperation factory for consistent behavior.
  * Includes transaction simulation and optimistic UI updates.
  */
@@ -35,7 +35,7 @@ function applyOptimisticUpdate(
 ): Garden[] {
   const roleFieldMap: Record<GardenRole, keyof Garden> = {
     gardener: "gardeners",
-    operator: "operators",
+    steward: "stewards",
     evaluator: "evaluators",
     owner: "owners",
     funder: "funders",
@@ -82,7 +82,7 @@ export function useGardenOperations(gardenId: string) {
   const roleLabels = useMemo<Record<GardenRole, string>>(
     () => ({
       gardener: formatMessage({ id: "app.roles.gardener" }),
-      operator: formatMessage({ id: "app.roles.operator" }),
+      steward: formatMessage({ id: "app.roles.steward" }),
       evaluator: formatMessage({ id: "app.roles.evaluator" }),
       owner: formatMessage({ id: "app.roles.owner" }),
       funder: formatMessage({ id: "app.roles.funder" }),
@@ -194,8 +194,8 @@ export function useGardenOperations(gardenId: string) {
       return {
         addGardener: notConnected,
         removeGardener: notConnected,
-        addOperator: notConnected,
-        removeOperator: notConnected,
+        addSteward: notConnected,
+        removeSteward: notConnected,
         addEvaluator: notConnected,
         removeEvaluator: notConnected,
         addOwner: notConnected,
@@ -245,12 +245,12 @@ export function useGardenOperations(gardenId: string) {
         "gardener",
         "remove"
       ),
-      addOperator: createOperationWrapper(
+      addSteward: createOperationWrapper(
         createGardenOperation(
           gardenId,
           {
-            ...GARDEN_OPERATIONS.addOperator,
-            messages: buildMessages("operator", "add"),
+            ...GARDEN_OPERATIONS.addSteward,
+            messages: buildMessages("steward", "add"),
           },
           walletClient,
           narrowedAddress,
@@ -259,15 +259,15 @@ export function useGardenOperations(gardenId: string) {
           setIsLoading,
           optimisticCallback
         ),
-        "operator",
+        "steward",
         "add"
       ),
-      removeOperator: createOperationWrapper(
+      removeSteward: createOperationWrapper(
         createGardenOperation(
           gardenId,
           {
-            ...GARDEN_OPERATIONS.removeOperator,
-            messages: buildMessages("operator", "remove"),
+            ...GARDEN_OPERATIONS.removeSteward,
+            messages: buildMessages("steward", "remove"),
           },
           walletClient,
           narrowedAddress,
@@ -276,7 +276,7 @@ export function useGardenOperations(gardenId: string) {
           setIsLoading,
           optimisticCallback
         ),
-        "operator",
+        "steward",
         "remove"
       ),
       addEvaluator: createOperationWrapper(

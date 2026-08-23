@@ -31,8 +31,8 @@ export function CampaignPayoutSection(props: CampaignCookieJarCreateFormProps) {
         />
         <FormField
           label={formatMessage({
-            id: "cockpit.community.cookies.claimAmountPerOperator",
-            defaultMessage: "Claim amount per operator",
+            id: "cockpit.community.cookies.claimAmountPerSteward",
+            defaultMessage: "Claim amount per steward",
           })}
           htmlFor="campaign-cookie-jar-claim-amount"
         >

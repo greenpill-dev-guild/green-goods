@@ -215,7 +215,7 @@ export const Default: Story = {
         </div>
         <div className="p-4 rounded-lg bg-bg-weak-50">
           <h4 className="font-medium text-sm">Members</h4>
-          <p className="text-sm text-text-sub-600 mt-1">12 gardeners, 3 operators</p>
+          <p className="text-sm text-text-sub-600 mt-1">12 gardeners, 3 stewards</p>
         </div>
       </div>
     </ModalDrawerDemo>

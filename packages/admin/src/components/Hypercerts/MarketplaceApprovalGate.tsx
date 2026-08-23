@@ -11,7 +11,7 @@ interface MarketplaceApprovalGateProps {
 
 /**
  * Gates marketplace features behind deployment-artifact readiness AND
- * one-time operator approvals. State matrix:
+ * one-time steward approvals. State matrix:
  *
  * - unavailable: deployment-artifact marketplace addresses are missing/zero
  *                on the active chain. Renders a warning alert and refuses

@@ -1,5 +1,5 @@
 import {
-  aggregateCampaignCookieJarOperators,
+  aggregateCampaignCookieJarStewards,
   buildCampaignCookieJarMetadata,
   diffCampaignCookieJarAllowlist,
   type CampaignCookieJarCampaign,
@@ -83,7 +83,7 @@ export function CampaignCookieJarPanel() {
   const syncMetadataUrlsValid = isValidCampaignCookieJarMetadataUrl(syncCampaignImage);
   const syncAggregation = useMemo(
     () =>
-      aggregateCampaignCookieJarOperators({
+      aggregateCampaignCookieJarStewards({
         gardens: gardensForAggregation(gardens),
         selectedGardenIds: syncGardenIds,
         extraAddressesInput: syncExtraAddresses,

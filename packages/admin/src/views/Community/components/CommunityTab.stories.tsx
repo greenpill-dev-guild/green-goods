@@ -20,7 +20,7 @@ const TREASURY_ASSET = "0xaf88d065e77c8cC2239327C5EDb3A432268e5831" as Address;
 
 const roleIcons = {
   owner: RiShieldCheckLine,
-  operator: RiUserLine,
+  steward: RiUserLine,
   evaluator: RiCheckboxCircleLine,
   gardener: RiUserLine,
   funder: RiMedalLine,
@@ -100,7 +100,7 @@ const meta: Meta<typeof CommunityTab> = {
     allocationsLoading: false,
     roleSummary: [
       { role: "owner", count: 1, firstMember: OWNER },
-      { role: "operator", count: 2, firstMember: OPERATOR_A },
+      { role: "steward", count: 2, firstMember: OPERATOR_A },
       { role: "evaluator", count: 0 },
       { role: "gardener", count: 2, firstMember: GARDENER_A },
       { role: "funder", count: 0 },
@@ -108,7 +108,7 @@ const meta: Meta<typeof CommunityTab> = {
     ],
     roleMembers: {
       owner: [OWNER],
-      operator: [OPERATOR_A],
+      steward: [OPERATOR_A],
       evaluator: [],
       gardener: [GARDENER_A],
       funder: [],
@@ -116,7 +116,7 @@ const meta: Meta<typeof CommunityTab> = {
     },
     visibleDirectory: [
       { address: OWNER, roles: ["owner"] },
-      { address: OPERATOR_A, roles: ["operator"] },
+      { address: OPERATOR_A, roles: ["steward"] },
       { address: GARDENER_A, roles: ["gardener"] },
     ],
     memberSearch: "",

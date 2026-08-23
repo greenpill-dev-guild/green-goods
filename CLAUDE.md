@@ -154,8 +154,8 @@ PostHog hosts **three separate projects**, and the connector defaults to one at 
 
 | Surface in the bug report | Project | ID | When to pick |
 |---|---|---|---|
-| PWA, installed app, client, website, editorial, `/home/*`, `/gardens`, `/actions`, `/fund`, `/impact`, `/cookies`, `/glossary` | **App** | `163591` | Default for end-user / gardener / operator reports. |
-| Admin cockpit, `Admin*` components, `Hub`, `MainSheet`, `/dashboard`, operator-facing tooling | **Admin** | `262122` | When the user mentions admin routes/components. |
+| PWA, installed app, client, website, editorial, `/home/*`, `/gardens`, `/actions`, `/fund`, `/impact`, `/cookies`, `/glossary` | **App** | `163591` | Default for end-user / gardener / steward reports. |
+| Admin cockpit, `Admin*` components, `Hub`, `MainSheet`, `/dashboard`, steward-facing tooling | **Admin** | `262122` | When the user mentions admin routes/components. |
 | Telegram bot, WhatsApp, SMS, agent/messaging runtime | **Agent** | `262124` | When the report names a chat channel or `packages/agent/**`. |
 
 Classify the surface (ask if ambiguous) → `switch-project` → query; if the first project returns nothing relevant, try the next likely one before concluding "no data". Authoritative IDs + surface mapping: [docs/routines/README.md § PostHog projects](docs/routines/README.md). Curated-question library + privacy boundaries: [docs/routines/posthog-questions.md](docs/routines/posthog-questions.md).
@@ -200,7 +200,7 @@ Frontend runtime patterns (feature availability via `isGreenWillDeployed`, local
 
 Full skill: `design` (direction; `design/implementation.md` for build guidance — dialogs, runbook, Storybook, i18n). Load explicitly when paradigm, layout composition, a new view, tokens, or PR review is at stake. Canonical spec: `.claude/skills/design/language.md` · index: `.claude/skills/design/quick-reference.md` · map: `.claude/skills/design/ARCHITECTURE.md`.
 
-**Surface identities (never mix)**: **Admin** = restrained operator cockpit — strict M3 anatomy, Plus Jakarta Sans, `Admin*` wrappers; litmus: appropriate for Linear / GitHub / Stripe Dashboard? **Client PWA** = warm garden-journal — full Warm Earth expression, Inter, hero moments live here and never in admin. **Shared** = primitives + tokens in `src/styles/theme.css`; all React hooks live here.
+**Surface identities (never mix)**: **Admin** = restrained steward cockpit — strict M3 anatomy, Plus Jakarta Sans, `Admin*` wrappers; litmus: appropriate for Linear / GitHub / Stripe Dashboard? **Client PWA** = warm garden-journal — full Warm Earth expression, Inter, hero moments live here and never in admin. **Shared** = primitives + tokens in `src/styles/theme.css`; all React hooks live here.
 
 **Tokens**: never hardcode `cubic-bezier`, `duration`, or raw color/radius values — use `--spring-*`, `--color-*`, `--radius-*`, `--color-material-*` + `--blur-material-*`. Concentricity: `child_radius = parent_radius − padding`. 4-role volume hierarchy (canvas / ink / stone / accent green) — flooding the screen with green is the #1 failure mode; `--color-primary` resolves to the **tertiary accent** role, do not rename. (Deliberate one-line copies; canonical spec: `language.md`.)
 

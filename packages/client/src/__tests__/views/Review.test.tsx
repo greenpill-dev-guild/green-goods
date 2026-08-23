@@ -122,7 +122,7 @@ const baseGarden: Garden = {
   location: "Bogota",
   bannerImage: "",
   gardeners: [],
-  operators: [],
+  stewards: [],
   evaluators: [],
   owners: [],
   funders: [],

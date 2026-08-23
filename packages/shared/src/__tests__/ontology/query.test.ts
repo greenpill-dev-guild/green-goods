@@ -5,6 +5,7 @@ import {
   getOntologyMaturity,
   getOntologyRelationships,
   getOntologySafeClaims,
+  getOntologySurfaces,
   getOntologyTerm,
   listOntologyTerms,
 } from "../../ontology/query";
@@ -15,6 +16,13 @@ describe("ontology query seam", () => {
     expect(getOntologyTerm("entity:work")?.canonical).toBe("Work");
     expect(getOntologyTerm("Impact Certificate")?.id).toBe("hypercert");
     expect(getOntologyTerm("not-a-term")).toBeUndefined();
+  });
+
+  it("tells an agent which surfaces a term belongs on", () => {
+    expect(getOntologySurfaces("Work")).toContain("agent");
+    expect(getOntologySurfaces("Commitment Payout Plan")).not.toContain("agent");
+    expect(getOntologySurfaces("Work Approval")).toEqual(["admin", "client", "public", "docs"]);
+    expect(getOntologySurfaces("not-a-term")).toEqual([]);
   });
 
   it("keeps protocol deployment separate from product availability", () => {
@@ -28,6 +36,11 @@ describe("ontology query seam", () => {
       expect.arrayContaining([expect.objectContaining({ to: "garden", kind: "raised-in" })])
     );
     expect(listOntologyTerms().length).toBeGreaterThan(20);
-    expect(getOntologyManifestVersion()).toEqual({ version: 1, verified_at: "2026-08-21" });
+    // The exact date is owned by the sidecar and locked byte-for-byte by
+    // `bun run check:ontology`; pinning the literal here only churns the test.
+    expect(getOntologyManifestVersion()).toEqual({
+      version: 1,
+      verified_at: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/),
+    });
   });
 });

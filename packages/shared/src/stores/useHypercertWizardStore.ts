@@ -46,8 +46,8 @@ function validateDraft(draft: unknown): HypercertDraft | null {
     return null;
   }
 
-  if (typeof d.operatorAddress !== "string" || !isAddress(d.operatorAddress)) {
-    logger.warn("[HypercertWizardStore] Invalid draft: invalid operatorAddress");
+  if (typeof d.stewardAddress !== "string" || !isAddress(d.stewardAddress)) {
+    logger.warn("[HypercertWizardStore] Invalid draft: invalid stewardAddress");
     return null;
   }
 
@@ -221,7 +221,7 @@ export interface HypercertWizardStore {
    * @returns true if draft loaded successfully, false if validation failed
    */
   loadDraft: (draft: HypercertDraft) => boolean;
-  toDraft: (gardenId: string, operatorAddress: string) => HypercertDraft;
+  toDraft: (gardenId: string, stewardAddress: string) => HypercertDraft;
 }
 
 const emptyOutcomes: OutcomeMetrics = {
@@ -406,24 +406,24 @@ export const useHypercertWizardStore = create<HypercertWizardStore>()(
     /**
      * Converts the current wizard state to a HypercertDraft for persistence.
      *
-     * Draft ID format: `hypercert_draft_{gardenId}_{checksummedOperatorAddress}`
+     * Draft ID format: `hypercert_draft_{gardenId}_{checksummedStewardAddress}`
      *
-     * @throws Error if operatorAddress is not a valid Ethereum address
+     * @throws Error if stewardAddress is not a valid Ethereum address
      */
-    toDraft: (gardenId, operatorAddress) => {
-      // Validate operatorAddress is a valid Ethereum address
-      if (!isAddress(operatorAddress)) {
-        throw new Error(`Invalid operator address: ${operatorAddress}`);
+    toDraft: (gardenId, stewardAddress) => {
+      // Validate stewardAddress is a valid Ethereum address
+      if (!isAddress(stewardAddress)) {
+        throw new Error(`Invalid steward address: ${stewardAddress}`);
       }
 
       // Normalize/canonicalize the address to checksum format
-      const canonicalAddress = getAddress(operatorAddress);
+      const canonicalAddress = getAddress(stewardAddress);
 
       const state = get();
       return {
         id: state.draftId || `hypercert_draft_${gardenId}_${canonicalAddress}`,
         gardenId,
-        operatorAddress: canonicalAddress,
+        stewardAddress: canonicalAddress,
         stepNumber: state.currentStep,
         attestationIds: state.selectedAttestationIds,
         title: state.title,

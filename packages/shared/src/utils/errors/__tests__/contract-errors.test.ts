@@ -49,7 +49,7 @@ describe("parseContractError", () => {
       raw: "0x9bce3284",
       name: "SelfAttestation",
       message: "You cannot review your own work submission",
-      action: "Ask another garden operator to approve or reject this work",
+      action: "Ask another garden steward to approve or reject this work",
       messageKey: "app.errors.contract.selfAttestation.message",
       actionKey: "app.errors.contract.selfAttestation.action",
       isKnown: true,
@@ -368,6 +368,7 @@ describe("parseAndFormatError", () => {
     const result = parseAndFormatError(error);
 
     expect(result.parsed.name).toBe("NotGardenOperator");
+    // The title is derived from the deployed error name `NotGardenOperator`.
     expect(result.title).toContain("Garden Operator");
   });
 

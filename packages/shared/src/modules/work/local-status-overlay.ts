@@ -7,7 +7,7 @@
  *
  * The overlay exists only to cover indexer lag. It must not outlive that
  * purpose — a cached "approved" that survives a dropped transaction shows an
- * operator a decision that never landed on chain.
+ * steward a decision that never landed on chain.
  *
  * @module modules/work/local-status-overlay
  */

@@ -43,17 +43,17 @@ export function CampaignCreateReview(props: CampaignCookieJarCreateFormProps) {
           />
           <ReviewLine
             label={formatMessage({
-              id: "cockpit.community.cookies.generatedOperators",
-              defaultMessage: "Generated operators",
+              id: "cockpit.community.cookies.generatedStewards",
+              defaultMessage: "Generated stewards",
             })}
             value={aggregation.allowlist.length}
           />
           <ReviewLine
             label={formatMessage({
-              id: "cockpit.community.cookies.missingOperators",
-              defaultMessage: "Missing operators",
+              id: "cockpit.community.cookies.missingStewards",
+              defaultMessage: "Missing stewards",
             })}
-            value={aggregation.missingOperatorGardens.length}
+            value={aggregation.missingStewardGardens.length}
           />
           <ReviewLine
             label={formatMessage({
@@ -96,9 +96,9 @@ export function CampaignCreateReview(props: CampaignCookieJarCreateFormProps) {
                 {
                   id: "cockpit.community.cookies.mobileReviewSummary",
                   defaultMessage:
-                    "{gardens, plural, one {# garden} other {# gardens}} - {operators, plural, one {# operator} other {# operators}}",
+                    "{gardens, plural, one {# garden} other {# gardens}} - {stewards, plural, one {# steward} other {# stewards}}",
                 },
-                { gardens: aggregation.sources.length, operators: aggregation.allowlist.length }
+                { gardens: aggregation.sources.length, stewards: aggregation.allowlist.length }
               )}
             </p>
           </div>

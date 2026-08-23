@@ -1,6 +1,11 @@
 /**
  * Garden role definitions shared across hooks and utilities.
  *
+ * Role keys are the in-repo name; the deployed Solidity enum and its access
+ * functions keep the older `Operator` wire name, which is why `steward` maps to
+ * `isOperator` below. The sidecar records the divergence under
+ * `garden-role.canonical.display_labels`.
+ *
  * Centralized configuration for all 6 garden roles:
  * - Role IDs (for contract calls)
  * - Role functions (for contract view calls)
@@ -12,7 +17,7 @@
 export const GARDEN_ROLE_IDS = {
   gardener: 0,
   evaluator: 1,
-  operator: 2,
+  steward: 2,
   owner: 3,
   funder: 4,
   community: 5,
@@ -23,7 +28,8 @@ export type GardenRole = keyof typeof GARDEN_ROLE_IDS;
 export const GARDEN_ROLE_FUNCTIONS = {
   gardener: "isGardener",
   evaluator: "isEvaluator",
-  operator: "isOperator",
+  // Deployed contract function name — never rename this value.
+  steward: "isOperator",
   owner: "isOwner",
   funder: "isFunder",
   community: "isCommunity",
@@ -35,7 +41,7 @@ export const GARDEN_ROLE_FUNCTIONS = {
  */
 export const GARDEN_ROLE_ORDER: readonly GardenRole[] = [
   "owner",
-  "operator",
+  "steward",
   "evaluator",
   "gardener",
   "funder",
@@ -54,7 +60,7 @@ export type RoleColorScheme = "warning" | "info" | "feature" | "success" | "prim
  */
 export const GARDEN_ROLE_COLORS: Record<GardenRole, RoleColorScheme> = {
   owner: "warning",
-  operator: "info",
+  steward: "info",
   evaluator: "feature",
   gardener: "success",
   funder: "primary",
@@ -101,9 +107,9 @@ export const GARDEN_ROLE_I18N_KEYS: Record<GardenRole, { singular: string; plura
     singular: "app.roles.gardener",
     plural: "app.roles.gardener.plural",
   },
-  operator: {
-    singular: "app.roles.operator",
-    plural: "app.roles.operator.plural",
+  steward: {
+    singular: "app.roles.steward",
+    plural: "app.roles.steward.plural",
   },
   evaluator: {
     singular: "app.roles.evaluator",

@@ -3,21 +3,21 @@ import {useLocation} from "@docusaurus/router";
 import styles from "./styles.module.css";
 
 const OPERATOR_PATH_ITEMS = [
-  {label: "Create a Garden", href: "/community/operator-guide/creating-a-garden"},
-  {label: "Make an Assessment", href: "/community/operator-guide/making-an-assessment"},
-  {label: "Review and Approve Work", href: "/community/operator-guide/reviewing-work"},
+  {label: "Create a Garden", href: "/community/steward-guide/creating-a-garden"},
+  {label: "Make an Assessment", href: "/community/steward-guide/making-an-assessment"},
+  {label: "Review and Approve Work", href: "/community/steward-guide/reviewing-work"},
   {
     label: "Mint Impact Certificate",
-    href: "/community/operator-guide/creating-impact-certificates",
+    href: "/community/steward-guide/creating-impact-certificates",
   },
 ];
 
-export function OperatorPathNav() {
+export function StewardPathNav() {
   const {pathname} = useLocation();
 
   return (
-    <nav className={styles.pathNav} aria-label="Operator guide path">
-      <span className={styles.pathNavLabel}>Operator path</span>
+    <nav className={styles.pathNav} aria-label="Steward guide path">
+      <span className={styles.pathNavLabel}>Steward path</span>
       <ol className={styles.pathNavList}>
         {OPERATOR_PATH_ITEMS.map((item, index) => {
           const active = pathname === item.href;

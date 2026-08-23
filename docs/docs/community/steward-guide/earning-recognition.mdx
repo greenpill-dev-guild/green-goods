@@ -1,22 +1,22 @@
 ---
 title: "Earning Recognition & Rewards"
 sidebar_label: "Earning Recognition"
-slug: /community/operator-guide/earning-recognition
+slug: /community/steward-guide/earning-recognition
 audience: all
 owner: docs
 last_verified: 2026-03-01
 feature_status: Live
-goal: "Help operators understand how their garden management builds on-chain reputation and community recognition."
+goal: "Help stewards understand how their garden management builds on-chain reputation and community recognition."
 difficulty: "standard"
 estimated_time: "5 minutes."
 prereqs: "Active management of at least one garden."
 next_steps: "/community/how-it-works"
-persona_context: "Operators building reputation through consistent, high-quality garden management."
+persona_context: "Stewards building reputation through consistent, high-quality garden management."
 source_of_truth:
   - packages/shared/src/modules/data/eas.ts
   - packages/shared/src/hooks/roles/useGardenRoles.ts
 keywords:
-  - operator reputation
+  - steward reputation
   - recognition
   - rewards
   - garden management
@@ -36,11 +36,11 @@ import {
 
 ## Overview
 
-Operator reputation is built through the on-chain record of your garden management activities. Every work approval, assessment, and governance action you take creates verifiable attestations that demonstrate your commitment to the community. Over time, this record becomes a portable, provable track record of impact coordination.
+Steward reputation is built through the on-chain record of your garden management activities. Every work approval, assessment, and governance action you take creates verifiable attestations that demonstrate your commitment to the community. Over time, this record becomes a portable, provable track record of impact coordination.
 
 ```mermaid
 graph TB
-    subgraph Reputation["Operator Reputation"]
+    subgraph Reputation["Steward Reputation"]
         Reviews["Review Volume\napprovals + rejections"]
         Health["Garden Health\nactive gardeners"]
         Contributions["Assessment\nContributions"]
@@ -65,21 +65,21 @@ graph TB
 - **Review volume and quality** — consistent, timely reviews with actionable feedback
 - **Assessment quality** — well-structured evaluations that map impact to the Eight Forms of Capital
 - **Garden health** — active membership, regular submissions, and transparent governance
-- **Attestation history** — the cumulative on-chain record of all your operator actions
+- **Attestation history** — the cumulative on-chain record of all your steward actions
 
 <FeatureState
   title="Formal reputation scoring"
   status="Planned"
-  summary="Structured reputation metrics and visual badges for operators are planned for a future release. Current recognition is based on raw attestation history."
+  summary="Structured reputation metrics and visual badges for stewards are planned for a future release. Current recognition is based on raw attestation history."
 />
 
 ## Best Practices
 
-- Maintain a regular review cadence — gardens with responsive operators attract and retain more gardeners
+- Maintain a regular review cadence — gardens with responsive stewards attract and retain more gardeners
 - Document your reasoning when approving or rejecting edge-case submissions — this builds trust with your community
 - Keep your garden's actions up to date and clearly described to reduce submission quality issues
 - Participate in cross-garden coordination to extend your reputation beyond a single community
-- Share your attestation history when applying for grants or new operator roles — it serves as a verifiable resume
+- Share your attestation history when applying for grants or new steward roles — it serves as a verifiable resume
 
 ## What's Next
 
@@ -89,7 +89,7 @@ graph TB
   actionLabel="How It Works"
   actionHref="/community/how-it-works"
   alternatives={[
-    {label: "Managing Certificates", href: "/community/operator-guide/managing-certificates"},
-    {label: "Managing Payouts", href: "/community/operator-guide/managing-payouts"},
+    {label: "Managing Certificates", href: "/community/steward-guide/managing-certificates"},
+    {label: "Managing Payouts", href: "/community/steward-guide/managing-payouts"},
   ]}
 />

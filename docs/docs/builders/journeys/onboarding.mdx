@@ -27,7 +27,7 @@ How a new participant arrives, gets an on-chain identity, and joins their first 
 ## Personas
 
 - **A: Gardener** — primary subject. Either path delivers a smart account, a `gardener` role, and a current-garden assignment.
-- **B: Operator** — separate path. Operators authenticate via wallet (AppKit) directly into the admin dashboard and gain operator role from on-chain hat membership; they do not pass through the gardener onboarding flow.
+- **B: Steward** — separate path. Stewards authenticate via wallet (AppKit) directly into the admin dashboard and gain steward role from on-chain hat membership; they do not pass through the gardener onboarding flow.
 
 ## State machine
 
@@ -62,7 +62,7 @@ stateDiagram-v2
 | --- | --- | --- |
 | Client PWA | `packages/client/src/views/Login/index.tsx` | User opens the PWA URL. `useInstallGuidance` decides whether to prompt install. |
 | Telegram bot | `packages/agent/src/handlers/start.ts` | User sends `/start` in Telegram (or any first message). |
-| Admin dashboard | `packages/admin/src/views/Profile/index.tsx` | Operator opens admin URL, connects wallet via AppKit. |
+| Admin dashboard | `packages/admin/src/views/Profile/index.tsx` | Steward opens admin URL, connects wallet via AppKit. |
 
 ## Steps
 

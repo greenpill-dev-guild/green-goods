@@ -25,7 +25,7 @@ describe("components/Cards/GardenCard", () => {
     location: "San Francisco, CA",
     bannerImage: "https://example.com/garden.jpg",
     gardeners: ["0xGardener1", "0xGardener2", "0xGardener3"],
-    operators: ["0xOperator1"],
+    stewards: ["0xSteward1"],
     createdAt: Date.now(),
   };
 
@@ -39,7 +39,7 @@ describe("components/Cards/GardenCard", () => {
     expect(screen.getByText("Community Garden")).toBeInTheDocument();
     expect(screen.getByText("San Francisco, CA")).toBeInTheDocument();
     expect(screen.getByText(/4\s+Members/)).toBeInTheDocument();
-    expect(screen.getByText(/1\s+Operators/)).toBeInTheDocument();
+    expect(screen.getByText(/1\s+Stewards/)).toBeInTheDocument();
     expect(screen.getByText("A beautiful community garden in the city center")).toBeInTheDocument();
   });
 
@@ -75,7 +75,7 @@ describe("components/Cards/GardenCard", () => {
           media="small"
           height="selection"
           showStats={false}
-          showOperators={false}
+          showStewards={false}
         />
       </Wrapper>
     );

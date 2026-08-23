@@ -51,7 +51,7 @@ export default function ProfileView() {
     () =>
       formatMessage({
         id: "cockpit.profile.description",
-        defaultMessage: "Manage your canvas identity, appearance, and operator preferences.",
+        defaultMessage: "Manage your canvas identity, appearance, and steward preferences.",
       }),
     [formatMessage]
   );

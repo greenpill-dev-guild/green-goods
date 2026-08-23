@@ -15,6 +15,8 @@ import {
   normalizeDocText,
   parseCapitalsNote,
   parseCanonicalEntityCounts,
+  parseClientGlossaryTerms,
+  parseGlossaryAnchors,
   parseGlossaryTable,
   parseGraphqlEnum,
   parseSolidityEnum,
@@ -27,6 +29,8 @@ import {
   parseTsStringEnum,
   parseTsUnion,
   reconcileBaseline,
+  slugifyHeading,
+  parseTermReferenceHeadings,
   splitTableRow,
   sourceContainsSymbol,
   titleCase,
@@ -296,8 +300,8 @@ Intro text.
 ## Personas
 `;
   assert.deepEqual(parseGlossaryTable(source, "Domain Entities"), [
-    { name: "Garden", definition: "A community of gardeners." },
-    { name: "Action", definition: "The unit of work template." },
+    { name: "Garden", surfaces: "admin · client", definition: "A community of gardeners." },
+    { name: "Action", surfaces: "admin", definition: "The unit of work template." },
   ]);
 });
 
@@ -313,8 +317,8 @@ test("parseGlossaryTable includes unbolded rows so they surface as drift", () =>
 ---
 `;
   assert.deepEqual(parseGlossaryTable(source, "Domain Entities"), [
-    { name: "Garden", definition: "A community of gardeners." },
-    { name: "Ghost", definition: "An undeclared row." },
+    { name: "Garden", surfaces: "admin", definition: "A community of gardeners." },
+    { name: "Ghost", surfaces: "admin", definition: "An undeclared row." },
   ]);
 });
 
@@ -325,6 +329,67 @@ test("parseCanonicalEntityCounts finds every prose count", () => {
     ),
     [17, 17]
   );
+});
+
+test("slugifyHeading matches the anchors the docs already link to", () => {
+  assert.equal(slugifyHeading("Smart Account (Account Abstraction)"), "smart-account-account-abstraction");
+  assert.equal(slugifyHeading("MDR (Media-Details-Review)"), "mdr-media-details-review");
+  assert.equal(slugifyHeading("PWA (Progressive Web App)"), "pwa-progressive-web-app");
+  assert.equal(slugifyHeading("**Cookie Jar**"), "cookie-jar");
+});
+
+test("parseTermReferenceHeadings prefers an explicit anchor over the slug", () => {
+  const source = [
+    "## Term Reference (Community-Facing Definitions)",
+    "",
+    "### Garden Operator {#operator}",
+    "Trusted coordinators.",
+    "",
+    "### Work Approval",
+    "The review decision.",
+  ].join("\n");
+  assert.deepEqual(parseTermReferenceHeadings(source), [
+    { display: "Garden Operator", anchor: "operator" },
+    { display: "Work Approval", anchor: "work-approval" },
+  ]);
+});
+
+test("parseTermReferenceHeadings returns null when the section is absent", () => {
+  assert.equal(parseTermReferenceHeadings("## Personas\n\n### Gardener\n"), null);
+});
+
+test("parseGlossaryAnchors collects explicit and slugified anchors at every level", () => {
+  const anchors = parseGlossaryAnchors("# Glossary\n## Domain Entities\n### Garden Operator {#operator}\n");
+  assert.ok(anchors.has("glossary"));
+  assert.ok(anchors.has("domain-entities"));
+  assert.ok(anchors.has("operator"));
+  assert.ok(!anchors.has("garden-operator"));
+});
+
+test("parseClientGlossaryTerms reads ids and docs anchors from the TERMS array", () => {
+  const source = [
+    "const TERMS: readonly GlossaryTerm[] = [",
+    "  {",
+    '    id: "cookieJar",',
+    '    defaultLabel: "Cookie Jar",',
+    '    docsPath: "/glossary#cookie-jar",',
+    "  },",
+    "  {",
+    '    id: "work",',
+    '    docsPath: "/glossary#work",',
+    "  },",
+    "] as const;",
+    "",
+    'const DOCS_BASE = "https://docs.greengoods.app";',
+  ].join("\n");
+  assert.deepEqual(parseClientGlossaryTerms(source), [
+    { id: "cookieJar", docsPath: "/glossary#cookie-jar" },
+    { id: "work", docsPath: "/glossary#work" },
+  ]);
+});
+
+test("parseClientGlossaryTerms returns null when the array is not found", () => {
+  assert.equal(parseClientGlossaryTerms("const OTHER = [];"), null);
 });
 
 test("splitTableRow honors escaped pipes", () => {
@@ -482,10 +547,21 @@ const miniOntology = {
       semantic_status: "canonical",
       definition: "A community of gardeners.",
       layers: { solidity: ["a.sol"], docs: "g.md" },
+      surfaces: ["admin", "client"],
     },
   ],
-  personas: [{ id: "gardener", display: "Gardener", hat: "gardener", definition: "Does work." }],
+  personas: [
+    {
+      id: "gardener",
+      display: "Gardener",
+      hat: "gardener",
+      definition: "Does work.",
+      surfaces: ["client"],
+    },
+  ],
   personas_note: "Owner has no persona.",
+  supporting_terms_note: "Glossary-only terms.",
+  supporting_terms: [{ id: "outcome", display: "Outcome", reason: "Lives inside an Assessment." }],
   vocabularies: [
     {
       id: "domain",
@@ -521,6 +597,7 @@ const miniOntology = {
       source_status: "implemented",
       source: "schemas.json",
       name: "Work",
+      entity: "garden",
       revocable: false,
       resolver: "w.sol",
       fields: [{ name: "actionUID", type: "uint256" }],
@@ -725,6 +802,84 @@ test("planned arrival covers vocabularies, constraints, and state machines", () 
   ]);
   assert.equal(sourceContainsSymbol("// NeedsResolver\ncontract Other {}", "NeedsResolver"), false);
   assert.equal(sourceContainsSymbol("contract NeedsResolver {}", "NeedsResolver"), true);
+});
+
+test("integrity rejects missing, unknown, and duplicated surfaces", () => {
+  const broken = structuredClone(miniOntology);
+  broken.entities[0].surfaces = ["admin", "dashboard", "admin"];
+  delete broken.personas[0].surfaces;
+
+  const errors = checkSidecarIntegrity(broken, () => true);
+  assert.ok(errors.includes('entity garden: unknown surface "dashboard"'));
+  assert.ok(errors.includes('entity garden: duplicate surface "admin"'));
+  assert.ok(
+    errors.includes("persona gardener: surfaces is required and must list at least one surface")
+  );
+});
+
+test("integrity rejects display labels that are not canonical members or carry no reason", () => {
+  const broken = structuredClone(miniOntology);
+  broken.vocabularies[0].canonical.display_labels = { WATER: "Water", SOLAR: "SOLAR" };
+
+  const errors = checkSidecarIntegrity(broken, () => true);
+  assert.ok(errors.includes('vocabulary domain: display_labels key "WATER" is not a canonical member'));
+  assert.ok(
+    errors.includes('vocabulary domain: display_labels["SOLAR"] repeats the wire name — drop the entry')
+  );
+  assert.ok(
+    errors.includes("vocabulary domain: display_labels requires display_labels_note explaining the divergence")
+  );
+});
+
+test("integrity accepts a documented display label and rejects an orphan note", () => {
+  const labelled = structuredClone(miniOntology);
+  labelled.vocabularies[0].canonical.display_labels = { SOLAR: "Solar Infrastructure" };
+  labelled.vocabularies[0].canonical.display_labels_note = "Deployed enum keeps the short name.";
+  assert.deepEqual(
+    checkSidecarIntegrity(labelled, () => true).filter((error) => error.includes("display_labels")),
+    []
+  );
+
+  const orphan = structuredClone(miniOntology);
+  orphan.vocabularies[0].canonical.display_labels_note = "Explains nothing.";
+  assert.ok(
+    checkSidecarIntegrity(orphan, () => true).includes(
+      "vocabulary domain: display_labels_note declared without display_labels"
+    )
+  );
+});
+
+test("integrity rejects an unknown schema entity and an unexplained missing one", () => {
+  const broken = structuredClone(miniOntology);
+  broken.schemas.work.entity = "nowhere";
+  broken.schemas.orphan = {
+    source_status: "implemented",
+    source: "schemas.json",
+    name: "Orphan",
+    revocable: false,
+    resolver: null,
+    fields: [],
+  };
+
+  const errors = checkSidecarIntegrity(broken, () => true);
+  assert.ok(errors.includes('schema work: entity "nowhere" is not a canonical entity'));
+  assert.ok(
+    errors.includes(
+      'schema orphan: no entity back-reference — declare "entity" or explain the gap in "note"'
+    )
+  );
+});
+
+test("integrity rejects incomplete and duplicated supporting terms", () => {
+  const broken = structuredClone(miniOntology);
+  broken.supporting_terms = [
+    { id: "outcome", display: "Outcome", reason: "Lives inside an Assessment." },
+    { id: "outcome", display: "Outcome", reason: "" },
+  ];
+
+  const errors = checkSidecarIntegrity(broken, () => true);
+  assert.ok(errors.includes('supporting_terms: duplicate id "outcome"'));
+  assert.ok(errors.includes("supporting term outcome: reason is required"));
 });
 
 test("projection integrity requires capability and human coverage", () => {

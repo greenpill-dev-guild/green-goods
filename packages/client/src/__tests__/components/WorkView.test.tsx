@@ -63,7 +63,7 @@ const mockGarden = {
   location: "Test Location",
   bannerImage: "",
   gardeners: [],
-  operators: [],
+  stewards: [],
   createdAt: Date.now(),
 };
 

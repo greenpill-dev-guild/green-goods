@@ -1,6 +1,6 @@
 export {Hero} from "./Hero";
 export {GuideOpener} from "./GuideOpener";
-export {OperatorPathNav} from "./OperatorPathNav";
+export {StewardPathNav} from "./StewardPathNav";
 export {RolePathCard} from "./RolePathCard";
 export {StepFlow} from "./StepFlow";
 export {StatusBadge, type FeatureStatus} from "./StatusBadge";

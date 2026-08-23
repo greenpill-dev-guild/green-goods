@@ -8,7 +8,7 @@ import { fn } from "storybook/test";
 // `useReadContracts` reads for the shutdown / deposit-limit diagnostic.
 // All of those are driven by wagmi's internal query cache, which we
 // cannot seed without intercepting wagmi internals. This harness
-// mirrors the visual structure with plain props so the operator states
+// mirrors the visual structure with plain props so the steward states
 // (harvesting, paused, legacy misconfiguration, read-only) are all
 // reviewable. Treat as a design-system surface, NOT as a
 // real-component behavior test.
@@ -150,7 +150,7 @@ const meta: Meta<typeof PositionCardHarness> = {
     docs: {
       description: {
         component:
-          "⚠ **Visual harness** — not the real `PositionCard`. Renders the same per-asset card (net deposited, accruing yield, depositor/harvest counts, deposit/withdraw/harvest/pause controls) with plain props so every operator state is reviewable. The real component reads from half a dozen wagmi + React Query hooks; those reactive paths are not exercised here.",
+          "⚠ **Visual harness** — not the real `PositionCard`. Renders the same per-asset card (net deposited, accruing yield, depositor/harvest counts, deposit/withdraw/harvest/pause controls) with plain props so every steward state is reviewable. The real component reads from half a dozen wagmi + React Query hooks; those reactive paths are not exercised here.",
       },
     },
   },

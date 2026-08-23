@@ -72,7 +72,7 @@ function makeGarden({
     lastActivityAt,
     actionCount: 5,
     contributorCount: 3,
-    operators: [],
+    stewards: [],
     evaluators: [],
   };
 }

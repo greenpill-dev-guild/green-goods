@@ -138,15 +138,15 @@ export function CampaignCookieJarCreatedState({
               />
               <ReviewLine
                 label={formatMessage({
-                  id: "cockpit.community.cookies.claimAmountPerOperator",
-                  defaultMessage: "Claim amount per operator",
+                  id: "cockpit.community.cookies.claimAmountPerSteward",
+                  defaultMessage: "Claim amount per steward",
                 })}
                 value={`${formatTokenAmount(jar.fixedAmount, jar.decimals, 4)} ${jar.symbol}`}
               />
               <ReviewLine
                 label={formatMessage({
-                  id: "cockpit.community.cookies.generatedOperators",
-                  defaultMessage: "Generated operators",
+                  id: "cockpit.community.cookies.generatedStewards",
+                  defaultMessage: "Generated stewards",
                 })}
                 value={jar.allowlist.length}
               />

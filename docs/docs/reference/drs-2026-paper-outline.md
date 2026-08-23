@@ -44,7 +44,7 @@ How can regenerative design principles — developed for the built environment, 
 ### 1.4 Contribution
 - First published framework for regenerative digital interaction design
 - Seven principles synthesized from 11 traditions, with auditable checklists
-- Evidence from a live platform (Green Goods) serving gardeners, operators, evaluators, funders, and community members
+- Evidence from a live platform (Green Goods) serving gardeners, stewards, evaluators, funders, and community members
 - Honest engagement with critiques (vagueness, greenwashing, cultural appropriation, measurement)
 
 ---
@@ -141,7 +141,7 @@ The Degen/Regen Pattern Table as design anti-pattern reference.
 
 ### 4.1 Platform Description
 - Offline-first PWA for documenting, verifying, and funding regenerative work
-- Five-sided marketplace: gardeners, operators, evaluators, funders, community
+- Five-sided marketplace: gardeners, stewards, evaluators, funders, community
 - On-chain attestation chain: work → approval → assessment → hypercert → funding
 - Conviction voting governance, Hats Protocol roles, ERC-6551 tokenbound gardens
 - Deployed across Nigeria, South Africa, Brazil, Kenya
@@ -154,7 +154,7 @@ For each principle, show the specific Green Goods feature that implements it, wi
 |---|---|---|
 | Mycelium visible | Attestation chain traceability | [flow diagram] |
 | Succession | Chapter maturity model L0-L3 | [progressive disclosure comparison] |
-| Edges | Review queue as ecotone | [gardener-operator interaction] |
+| Edges | Review queue as ecotone | [gardener-steward interaction] |
 | Failure as succession | Rejection with context | [rejection feedback UI] |
 | Growth-agnostic | No engagement gamification | [absence of streaks/notifications] |
 | Capability | Walkaway Test compliance | [data portability, EAS persistence] |

@@ -34,7 +34,7 @@ function createValidForm(overrides: Partial<CreateGardenFormData> = {}): CreateG
     openJoining: false,
     domains: [Domain.SOLAR, Domain.AGRO, Domain.EDU, Domain.WASTE],
     gardeners: [VALID_ADDRESS],
-    operators: [VALID_ADDRESS_2],
+    stewards: [VALID_ADDRESS_2],
     ...overrides,
   };
 }
@@ -61,11 +61,11 @@ describe("createGardenSchema", () => {
       expect(result.success).toBe(true);
     });
 
-    it("accepts multiple gardeners and operators", () => {
+    it("accepts multiple gardeners and stewards", () => {
       const result = createGardenSchema.safeParse(
         createValidForm({
           gardeners: [VALID_ADDRESS, VALID_ADDRESS_2],
-          operators: [VALID_ADDRESS],
+          stewards: [VALID_ADDRESS],
         })
       );
 
@@ -98,8 +98,8 @@ describe("createGardenSchema", () => {
       expect(result.success).toBe(true);
     });
 
-    it("accepts empty operators array", () => {
-      const result = createGardenSchema.safeParse(createValidForm({ operators: [] }));
+    it("accepts empty stewards array", () => {
+      const result = createGardenSchema.safeParse(createValidForm({ stewards: [] }));
       expect(result.success).toBe(true);
     });
 
@@ -232,8 +232,8 @@ describe("gardenStepFields", () => {
     ]);
   });
 
-  it("team step validates gardeners, operators, openJoining", () => {
-    expect(gardenStepFields.team).toEqual(["gardeners", "operators", "openJoining"]);
+  it("team step validates gardeners, stewards, openJoining", () => {
+    expect(gardenStepFields.team).toEqual(["gardeners", "stewards", "openJoining"]);
   });
 
   it("review step has no fields to validate", () => {
@@ -258,6 +258,6 @@ describe("createDefaultGardenForm", () => {
     expect(defaults.openJoining).toBe(false);
     expect(defaults.domains).toEqual([]);
     expect(defaults.gardeners).toEqual([]);
-    expect(defaults.operators).toEqual([]);
+    expect(defaults.stewards).toEqual([]);
   });
 });

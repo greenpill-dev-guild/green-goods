@@ -40,14 +40,14 @@ export function useMarketplaceApprovals(): UseMarketplaceApprovalsResult {
   const chainId = useAdminStore((state: AdminState) => state.selectedChainId) || DEFAULT_CHAIN_ID;
   const queryClient = useQueryClient();
 
-  const operator = (smartAccountAddress || eoaAddress) as Address | undefined;
+  const steward = (smartAccountAddress || eoaAddress) as Address | undefined;
 
   const { data, isLoading, error } = useQuery({
-    queryKey: queryKeys.marketplace.approvals(operator ?? ("" as Address), chainId),
-    queryFn: operator
+    queryKey: queryKeys.marketplace.approvals(steward ?? ("" as Address), chainId),
+    queryFn: steward
       ? () => {
-          logger.debug("[useMarketplaceApprovals] Checking approvals", { operator, chainId });
-          return checkMarketplaceApprovals(operator, chainId);
+          logger.debug("[useMarketplaceApprovals] Checking approvals", { steward, chainId });
+          return checkMarketplaceApprovals(steward, chainId);
         }
       : skipToken,
     staleTime: STALE_TIME_RARE,
@@ -57,15 +57,15 @@ export function useMarketplaceApprovals(): UseMarketplaceApprovalsResult {
 
   const grantMutation = useMutation({
     mutationFn: async () => {
-      if (!operator) throw new Error("Connect a wallet first");
+      if (!steward) throw new Error("Connect a wallet first");
 
-      const txs = await buildApprovalTransactions(operator, chainId);
+      const txs = await buildApprovalTransactions(steward, chainId);
 
       const publicClient = createPublicClientForChain(chainId);
 
       // Execute approval transactions sequentially
       if (txs.grantExchange) {
-        logger.info("[useMarketplaceApprovals] Granting exchange approval", { operator, chainId });
+        logger.info("[useMarketplaceApprovals] Granting exchange approval", { steward, chainId });
         if (smartAccountClient) {
           assertLocalArbitrumForkSmartAccountsDisabled();
 
@@ -81,7 +81,7 @@ export function useMarketplaceApprovals(): UseMarketplaceApprovalsResult {
           const hash = await walletClient.sendTransaction({
             to: txs.grantExchange.to,
             data: txs.grantExchange.data,
-            account: operator,
+            account: steward,
             chain: getChain(chainId),
           });
           await publicClient.waitForTransactionReceipt({ hash, timeout: TX_RECEIPT_TIMEOUT_MS });
@@ -89,7 +89,7 @@ export function useMarketplaceApprovals(): UseMarketplaceApprovalsResult {
       }
 
       if (txs.approveMinter) {
-        logger.info("[useMarketplaceApprovals] Granting minter approval", { operator, chainId });
+        logger.info("[useMarketplaceApprovals] Granting minter approval", { steward, chainId });
         if (smartAccountClient) {
           assertLocalArbitrumForkSmartAccountsDisabled();
 
@@ -105,7 +105,7 @@ export function useMarketplaceApprovals(): UseMarketplaceApprovalsResult {
           const hash = await walletClient.sendTransaction({
             to: txs.approveMinter.to,
             data: txs.approveMinter.data,
-            account: operator,
+            account: steward,
             chain: getChain(chainId),
           });
           await publicClient.waitForTransactionReceipt({ hash, timeout: TX_RECEIPT_TIMEOUT_MS });
@@ -120,7 +120,7 @@ export function useMarketplaceApprovals(): UseMarketplaceApprovalsResult {
     },
     onError: (error) => {
       logger.error("[useMarketplaceApprovals] Failed to grant approvals", {
-        operator,
+        steward,
         chainId,
         error: error instanceof Error ? error.message : String(error),
       });

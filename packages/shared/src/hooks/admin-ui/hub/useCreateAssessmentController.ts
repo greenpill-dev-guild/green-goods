@@ -288,7 +288,7 @@ export function useCreateAssessmentController() {
   const isSubmitting = state.matches("submitting");
   const hasError = state.matches("error");
   const isSuccess = state.matches("success");
-  // Dirty = the operator has progressed past the first step or entered any
+  // Dirty = the steward has progressed past the first step or entered any
   // meaningful field. Gates the confirm-before-discard on close (useDirtyClose).
   // Suppressed while submitting/succeeded so the close-to-Hub flow isn't blocked.
   const isDirty = useMemo(() => {
@@ -296,7 +296,7 @@ export function useCreateAssessmentController() {
     if (currentStep > 0) return true;
     // The default form seeds one empty SMART-outcome row so the wizard renders
     // an editable row immediately (createDefaultAssessmentForm) — that
-    // placeholder is not operator input, or every untouched close would raise
+    // placeholder is not steward input, or every untouched close would raise
     // the discard confirm.
     const hasMeaningfulSmartOutcome =
       form.smartOutcomes.length > 1 ||

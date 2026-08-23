@@ -38,7 +38,7 @@ export interface CommitmentAllocationBps {
   gardeners: number;
   treasury: number;
   /** The on-chain name of the steward class; UI copy renders it as "steward". */
-  operator: number;
+  steward: number;
   evaluator: number;
   community: number;
   funder: number;
@@ -57,7 +57,7 @@ export const ALLOCATION_BPS_TOTAL = 10_000;
 export const DEFAULT_ALLOCATION_BPS: CommitmentAllocationBps = {
   gardeners: 6000,
   treasury: 1500,
-  operator: 1000,
+  steward: 1000,
   evaluator: 500,
   community: 500,
   funder: 500,
@@ -135,7 +135,7 @@ export function isValidCycleSplit(input: {
     allocation: sumsToTotal([
       allocation.gardeners,
       allocation.treasury,
-      allocation.operator,
+      allocation.steward,
       allocation.evaluator,
       allocation.community,
       allocation.funder,

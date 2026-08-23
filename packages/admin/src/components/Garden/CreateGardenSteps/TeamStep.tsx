@@ -13,13 +13,13 @@ export function TeamStep() {
   const form = useCreateGardenStore((s) => s.form);
   const addGardener = useCreateGardenStore((s) => s.addGardener);
   const removeGardener = useCreateGardenStore((s) => s.removeGardener);
-  const addOperator = useCreateGardenStore((s) => s.addOperator);
-  const removeOperator = useCreateGardenStore((s) => s.removeOperator);
+  const addSteward = useCreateGardenStore((s) => s.addSteward);
+  const removeSteward = useCreateGardenStore((s) => s.removeSteward);
   const { formatMessage } = useIntl();
 
-  // Use shared hook for both gardener and operator inputs
+  // Use shared hook for both gardener and steward inputs
   const gardenerInput = useAddressInput(addGardener, formatMessage);
-  const operatorInput = useAddressInput(addOperator, formatMessage);
+  const stewardInput = useAddressInput(addSteward, formatMessage);
 
   return (
     <div className="space-y-5">
@@ -39,59 +39,59 @@ export function TeamStep() {
         </p>
         <p className="mt-1">
           {formatMessage({
-            id: "app.admin.garden.create.teamAdvisory.operatorNote",
+            id: "app.admin.garden.create.teamAdvisory.stewardNote",
             defaultMessage:
-              "Note: Operators automatically have gardener access. You don't need to add them to both lists.",
+              "Note: Stewards automatically have gardener access. You don't need to add them to both lists.",
           })}
         </p>
       </div>
 
-      {/* Operators section — shown first since they have broader permissions */}
+      {/* Stewards section — shown first since they have broader permissions */}
       <div>
         <label
           className="mb-2 block text-sm font-medium text-text-strong"
-          htmlFor="create-garden-operator-address"
+          htmlFor="create-garden-steward-address"
         >
-          {formatMessage({ id: "app.roles.operator.plural", defaultMessage: "Garden operators" })}
+          {formatMessage({ id: "app.roles.steward.plural", defaultMessage: "Garden stewards" })}
         </label>
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
           <TextInput
             surface="admin"
-            id="create-garden-operator-address"
-            value={operatorInput.input}
-            onChange={(event) => operatorInput.setInput(event.target.value)}
+            id="create-garden-steward-address"
+            value={stewardInput.input}
+            onChange={(event) => stewardInput.setInput(event.target.value)}
             placeholder={formatMessage({
               id: "admin.team.addressPlaceholder",
               defaultMessage: "0x... or vitalik.eth",
             })}
-            aria-invalid={!!operatorInput.error}
-            invalid={!!operatorInput.error}
-            aria-describedby="operator-error"
+            aria-invalid={!!stewardInput.error}
+            invalid={!!stewardInput.error}
+            aria-describedby="steward-error"
             className="flex-1 font-mono"
           />
           <AdminButton
             variant="tonal"
             size="sm"
-            onClick={operatorInput.handleAdd}
-            disabled={operatorInput.shouldResolveEns && operatorInput.resolvingEns}
+            onClick={stewardInput.handleAdd}
+            disabled={stewardInput.shouldResolveEns && stewardInput.resolvingEns}
             leadingIcon={<RiAddLine />}
           >
             {formatMessage({ id: "app.common.add", defaultMessage: "Add" })}
           </AdminButton>
         </div>
-        {operatorInput.shouldResolveEns && (
+        {stewardInput.shouldResolveEns && (
           <p className="mt-2 text-xs text-text-soft">
-            {operatorInput.resolvingEns ? (
+            {stewardInput.resolvingEns ? (
               formatMessage({
                 id: "app.admin.garden.create.resolvingEns",
                 defaultMessage: "Resolving ENS name...",
               })
-            ) : operatorInput.resolvedAddress ? (
+            ) : stewardInput.resolvedAddress ? (
               <FormattedMessage
                 id="app.admin.garden.create.ensResolved"
                 defaultMessage="Resolves to {address}"
                 values={{
-                  address: <EnsAddressText address={operatorInput.resolvedAddress as Address} />,
+                  address: <EnsAddressText address={stewardInput.resolvedAddress as Address} />,
                 }}
               />
             ) : (
@@ -104,22 +104,22 @@ export function TeamStep() {
         )}
         {/* Always render to reserve space and prevent layout shift */}
         <p
-          id="operator-error"
+          id="steward-error"
           role="alert"
           className="mt-1 block min-h-[1.25rem] text-xs text-error-dark"
         >
-          {operatorInput.error || "\u00A0"}
+          {stewardInput.error || "\u00A0"}
         </p>
         <ul className="mt-1.5 space-y-1.5">
-          {form.operators.map((operator) => (
+          {form.operators.map((steward) => (
             <li
-              key={operator}
+              key={steward}
               className="flex items-center justify-between rounded-lg border border-stroke-soft bg-bg-white px-3 py-2.5 text-xs font-mono text-text-sub"
             >
-              <EnsAddressText address={operator as Address} />
+              <EnsAddressText address={steward as Address} />
               <button
                 type="button"
-                onClick={() => removeOperator(form.operators.indexOf(operator))}
+                onClick={() => removeSteward(form.operators.indexOf(steward))}
                 className="min-h-11 min-w-11 flex items-center justify-center rounded-md text-text-soft transition hover:bg-bg-white hover:text-error-dark"
                 aria-label={formatMessage({ id: "app.common.remove", defaultMessage: "Remove" })}
               >

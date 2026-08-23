@@ -14,11 +14,11 @@ describe("useCreateGardenStore", () => {
     resetCreateGardenStore();
   });
 
-  it("allows planning the same address as both operator and gardener", () => {
+  it("allows planning the same address as both steward and gardener", () => {
     const store = useCreateGardenStore.getState();
     const normalized = getAddress(MEMBER);
 
-    expect(store.addOperator(MEMBER)).toEqual({ success: true });
+    expect(store.addSteward(MEMBER)).toEqual({ success: true });
     expect(store.addGardener(MEMBER)).toEqual({ success: true });
 
     const { form } = useCreateGardenStore.getState();

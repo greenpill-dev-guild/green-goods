@@ -208,8 +208,8 @@ describe("selectDueLiveCommitments", () => {
 });
 
 describe("isPoolSteward", () => {
-  it("is the garden's operator or owner Hat, nothing else", () => {
-    expect(isPoolSteward(["operator"])).toBe(true);
+  it("is the garden's steward or owner Hat, nothing else", () => {
+    expect(isPoolSteward(["steward"])).toBe(true);
     expect(isPoolSteward(["owner"])).toBe(true);
     expect(isPoolSteward(["gardener", "owner"])).toBe(true);
     expect(isPoolSteward(["gardener"])).toBe(false);

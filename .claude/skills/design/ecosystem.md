@@ -14,15 +14,15 @@ Archetypes categorize relationships by **function**, not identity. Unlike person
 |---|-----------|-----------|-------------------|
 | 1 | **Direct** | Engages the solution directly and personally | Gardener submitting work via MDR flow |
 | 2 | **Indirect** | Experiences the solution through another's use | Neighbor whose street is cleaner because gardeners documented waste collection |
-| 3 | **Intermediary** | Enables others to engage through their own engagement | Operator onboarding gardeners (B2B2C distribution channel) |
-| 4 | **Governing** | Engagement significantly affects another's quality of engagement | Operator approving/rejecting work; Owner assigning roles via Hats |
-| 5 | **Dependent** | Engages as enabled by another user | Gardener depends on Operator creating garden and actions first |
+| 3 | **Intermediary** | Enables others to engage through their own engagement | Steward onboarding gardeners (B2B2C distribution channel) |
+| 4 | **Governing** | Engagement significantly affects another's quality of engagement | Steward approving/rejecting work; Owner assigning roles via Hats |
+| 5 | **Dependent** | Engages as enabled by another user | Gardener depends on Steward creating garden and actions first |
 | 6 | **Terminal** | The focus of another's use — not a user themselves | Community whose impact is being measured |
-| 7 | **Surrogate** | Engages as a stand-in for another | Operator submitting work on behalf of a gardener without a phone |
-| 8 | **Serial** | Engages in a chain of others engaging | Attestation chain: Gardener → Operator → Evaluator → Funder |
+| 7 | **Surrogate** | Engages as a stand-in for another | Steward submitting work on behalf of a gardener without a phone |
+| 8 | **Serial** | Engages in a chain of others engaging | Attestation chain: Gardener → Steward → Evaluator → Funder |
 | 9 | **Parallel** | Engages alongside others who engage similarly | Multiple gardeners submitting to the same action |
 | 10 | **Complementary** | Engages alongside others who engage differently | Gardener and Funder both interact with the same Hypercert — one created it, the other purchases it |
-| 11 | **Generative** | Engagement alters the solution itself | Operator configuring new actions, creating assessment frameworks |
+| 11 | **Generative** | Engagement alters the solution itself | Steward configuring new actions, creating assessment frameworks |
 | 12 | **Oblique** | Engages through byproducts of others' engagements | Researcher finding attestation data on EAS explorer — never touched Green Goods |
 | 13 | **Ambient** | Engages through the solution's effect on their environment | Community members benefiting from regenerative work without knowing attestations exist |
 | 14 | **Autonomic** | Engages automatically, without conscious awareness | On-chain contracts, indexer, EAS resolver — non-human actors processing attestations |
@@ -53,7 +53,7 @@ Archetypes categorize relationships by **function**, not identity. Unlike person
             ┌─────────────┘    └─────────────┐
             │                                │
       GOVERNING                        AUTONOMIC
-    Operators (approve)              EAS Resolver
+    Stewards (approve)              EAS Resolver
     Owners (assign roles)            Envio Indexer
     Hats Protocol                    Smart Contracts
             │                        Job Queue
@@ -61,16 +61,16 @@ Archetypes categorize relationships by **function**, not identity. Unlike person
             │                     enforces rules on
       DEPENDENT                           │
     Gardeners                        all Direct Users
-    (need operator setup)
+    (need steward setup)
 ```
 
-**Multi-archetype nexus**: David (Operator) occupies four archetypes simultaneously:
+**Multi-archetype nexus**: David (Steward) occupies four archetypes simultaneously:
 - **Direct** — uses admin dashboard
 - **Governing** — approves/rejects work, shaping Maria's experience
 - **Intermediary** — onboards gardeners (B2B2C channel)
 - **Generative** — creates actions and assessment frameworks, reshaping what the system *is*
 
-Each archetype has different UX needs. Governing-David needs blast radius awareness (who does this approval affect?). Intermediary-David needs onboarding efficiency (how fast can he get a gardener started?). Designing for one flat "Operator" persona misses the relational complexity.
+Each archetype has different UX needs. Governing-David needs blast radius awareness (who does this approval affect?). Intermediary-David needs onboarding efficiency (how fast can he get a gardener started?). Designing for one flat "Steward" persona misses the relational complexity.
 
 ---
 
@@ -104,11 +104,11 @@ These meta-frictions explain why design teams systematically miss ecosystem comp
 
 | Friction | What It Hides | Green Goods Manifestation |
 |----------|--------------|--------------------------|
-| **Availability** | Who gets studied is constrained by who we scope as "users" | We study gardeners and operators. We never study community members who benefit from garden work but never open the app. |
-| **Dissonant Knowledge** | Systemic insights that don't fit organizational frames get dismissed as scope creep | If we discover operators submit work on behalf of gardeners (Surrogate), that insight has no slot in our persona model. |
+| **Availability** | Who gets studied is constrained by who we scope as "users" | We study gardeners and stewards. We never study community members who benefit from garden work but never open the app. |
+| **Dissonant Knowledge** | Systemic insights that don't fit organizational frames get dismissed as scope creep | If we discover stewards submit work on behalf of gardeners (Surrogate), that insight has no slot in our persona model. |
 | **Entrenched Praxis** | Habitual methods reproduce simplistic models | One persona per role. One journey map per persona. The method itself encodes the 1:1 assumption. |
 
-**Breaking the cycle**: The archetype cards give teams shared vocabulary for systemic observations. "This is a Surrogate User pattern" is more actionable than "sometimes operators do stuff for gardeners."
+**Breaking the cycle**: The archetype cards give teams shared vocabulary for systemic observations. "This is a Surrogate User pattern" is more actionable than "sometimes stewards do stuff for gardeners."
 
 ---
 
@@ -133,10 +133,10 @@ When one user's action affects another user's experience, make the cascade visib
 
 | Action | Cascade | UI Pattern |
 |--------|---------|-----------|
-| Operator rejects work | Gardener sees rejection; Funder's verified count decreases | Confirmation shows: "Maria will see this rejection. Q2 verified count: 47 → 46." |
-| Owner removes operator role | All gardeners in that garden lose their reviewer | Warning: "12 gardeners will have no active reviewer." |
+| Steward rejects work | Gardener sees rejection; Funder's verified count decreases | Confirmation shows: "Maria will see this rejection. Q2 verified count: 47 → 46." |
+| Owner removes steward role | All gardeners in that garden lose their reviewer | Warning: "12 gardeners will have no active reviewer." |
 | Evaluator publishes assessment | Assessment becomes part of garden's Hypercert metadata | Preview: "This assessment will appear in the impact certificate Amara purchased." |
-| Gardener submits work | Enters operator's review queue; adds to garden's pending count | Confirmation: "David will review this. Currently 3 pending in his queue." |
+| Gardener submits work | Enters steward's review queue; adds to garden's pending count | Confirmation: "David will review this. Currently 3 pending in his queue." |
 
 **Design rule**: The higher the governing power, the more cascade context is mandatory. Owners see full blast radius. Gardeners see only their own downstream (submission → pending → approved).
 
@@ -146,7 +146,7 @@ On-chain contracts, indexers, and resolvers are Autonomic Users — non-human ac
 
 | Autonomic Actor | What It Does | Surface Pattern |
 |-----------------|-------------|-----------------|
-| **EAS Resolver** | Validates attestation schema | Status indicator: "Verifying schema..." → "Confirmed" or "Schema mismatch — contact operator" |
+| **EAS Resolver** | Validates attestation schema | Status indicator: "Verifying schema..." → "Confirmed" or "Schema mismatch — contact steward" |
 | **Envio Indexer** | Materializes on-chain events | Sync indicator: "Last indexed: 2 min ago" (staleness, not loading spinner) |
 | **Job Queue** | Queues offline submissions | SyncStatusBar: "3 queued · will sync when online" |
 | **Smart Contracts** | Enforce role-based access | Permission indicator: "Your role: Gardener · Can submit work, cannot approve" |
@@ -168,12 +168,12 @@ Users shift between archetypes during a session. Design for the transition, not 
 
 ### 5. Surrogate User Support
 
-When one person acts on behalf of another (operator submitting for a gardener), the interface must distinguish the surrogate from the direct user. This pattern exists in the field but has no designed support.
+When one person acts on behalf of another (steward submitting for a gardener), the interface must distinguish the surrogate from the direct user. This pattern exists in the field but has no designed support.
 
 ```
 ┌─────────────────────────────────────┐
 │  Submitting as:  Maria Okafor       │
-│  Submitted by:   David (Operator)   │
+│  Submitted by:   David (Steward)   │
 │  ─────────────────────────────────  │
 │  [Photo] [Details] [Submit]         │
 └─────────────────────────────────────┘

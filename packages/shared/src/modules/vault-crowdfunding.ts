@@ -447,12 +447,12 @@ export interface OctantVaultCardEndowFallbackFundingStep {
   provider: OctantVaultCardProvider;
   paymentMethod: "card";
   chainId: number;
-  destinationAddress: Address;
-  tokenAddress: Address;
+  destinationAddress: `0x${string}`; // 0x literal, not Address: hasAddress proves it above
+  tokenAddress: `0x${string}`; // and the card-onramp SDK requires the template type
   tokenSymbol: string;
   tokenDecimals: number;
   amount: string;
-  receiverAddress: Address;
+  receiverAddress: `0x${string}`; // (abitype's Register widens Address to string in client)
 }
 
 export interface OctantVaultCardEndowFallbackReceiptExpectation {
@@ -1422,8 +1422,8 @@ export function prepareOctantVaultCardEndowFallbackPlan({
   }
 
   const vaultAddress = vault?.vaultAddress as Address;
-  const tokenAddress = asset?.address as Address;
-  const receiver = receiverAddress as Address;
+  const tokenAddress = asset?.address as `0x${string}`;
+  const receiver = receiverAddress as `0x${string}`;
   const baseUnitAmount = amount as string;
 
   return {

@@ -145,7 +145,7 @@ describe("modules/data/eas", () => {
       const mockAttestations = [
         {
           id: "0xApproval1",
-          attester: "0xOperator",
+          attester: "0xSteward",
           recipient: "0xGardener",
           time: 1700000000,
           decodedDataJson: JSON.stringify([

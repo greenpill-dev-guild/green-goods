@@ -300,7 +300,7 @@ describe("WorkDashboard", () => {
     expect(screen.queryByText("Loading pending work...")).not.toBeInTheDocument();
   });
 
-  it("waits for review-exclusion approvals before showing operator work as needing review", () => {
+  it("waits for review-exclusion approvals before showing steward work as needing review", () => {
     mockReviewerGardenIds = ["garden-1"];
     mockReviewerWorksState = {
       data: [

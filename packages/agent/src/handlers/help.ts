@@ -14,7 +14,7 @@ export async function handleHelp(
   let helpText = agentMessage(message.locale, "help.basic");
 
   if (isOperator) {
-    helpText += agentMessage(message.locale, "help.operator");
+    helpText += agentMessage(message.locale, "help.steward");
   }
 
   helpText += agentMessage(message.locale, "help.footer");

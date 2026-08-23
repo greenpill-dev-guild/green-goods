@@ -35,7 +35,7 @@ const meta: Meta<typeof ReviewForm> = {
     docs: {
       description: {
         component:
-          "Operator review form for a work submission. Real component wired through `useWorkApproval` with a mock auth identity + mock wagmi connector, so render states (blocked / actionable / reviewed / expired) are real but the submit path is inert.",
+          "Steward review form for a work submission. Real component wired through `useWorkApproval` with a mock auth identity + mock wagmi connector, so render states (blocked / actionable / reviewed / expired) are real but the submit path is inert.",
       },
     },
   },

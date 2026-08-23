@@ -312,7 +312,7 @@ export const WorkIntro: React.FC<WorkIntroProps> = ({
                   height="selection"
                   selected
                   showDescription={true}
-                  showOperators={false}
+                  showStewards={false}
                   showStats={false}
                 />
               </CarouselItem>
@@ -392,7 +392,7 @@ export const WorkIntro: React.FC<WorkIntroProps> = ({
                   height="selection"
                   selected={garden.id === selectedGardenAddress}
                   showDescription={true}
-                  showOperators={false}
+                  showStewards={false}
                   showStats={false}
                 />
               </CarouselItem>

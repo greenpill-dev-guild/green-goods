@@ -26,7 +26,7 @@ const TEST_GARDENS: Garden[] = [
     bannerImage: "",
     createdAt: 1,
     gardeners: [],
-    operators: [],
+    stewards: [],
   },
   {
     id: "0x2222222222222222222222222222222222222222",
@@ -39,7 +39,7 @@ const TEST_GARDENS: Garden[] = [
     bannerImage: "",
     createdAt: 2,
     gardeners: [],
-    operators: [],
+    stewards: [],
   },
 ];
 
