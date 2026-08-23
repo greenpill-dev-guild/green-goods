@@ -17,6 +17,7 @@ export * from "./pool-charter";
 export * from "./pool-console";
 export * from "./pool-lifecycle";
 export * from "./pool-setup";
+export * from "./proof-draft-repository";
 export * from "./reasons";
 export * from "./selectors";
 export * from "./settlement";

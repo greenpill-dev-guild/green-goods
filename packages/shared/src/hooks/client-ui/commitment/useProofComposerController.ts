@@ -10,8 +10,11 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { selectCommitmentActKind } from "../../../modules/commitment-pooling/acts";
+import {
+  type ProofDraftRepository,
+  proofDraftRepository,
+} from "../../../modules/commitment-pooling/proof-draft-repository";
 import { selectCommitmentSeat } from "../../../modules/commitment-pooling/selectors";
-import { mediaResourceManager } from "../../../modules/job-queue/media-resource-manager";
 import { isVideoFile, prepareMediaForUpload } from "../../../modules/work/media-processing";
 import type { Address } from "../../../types/domain";
 import { imageCompressor } from "../../../utils/work/image-compression";
@@ -36,6 +39,7 @@ export interface UseProofComposerControllerInput {
   chainId: number;
   commitmentId: bigint | null;
   routeGarden: Address | string | null | undefined;
+  draftRepository?: ProofDraftRepository;
 }
 
 function sameAddress(left: Address, right: Address): boolean {
@@ -46,6 +50,7 @@ export function useProofComposerController(
   input: UseProofComposerControllerInput
 ): ProofComposerController {
   const { isOnline } = useOffline();
+  const draftRepository = input.draftRepository ?? proofDraftRepository;
   const viewer = (usePrimaryAddress() as Address | null) ?? null;
   const routeGarden = (input.routeGarden as Address | null | undefined) ?? null;
   const query = useCommitment(
@@ -58,6 +63,7 @@ export function useProofComposerController(
     chainId: input.chainId,
     viewer,
     commitmentId: input.commitmentId,
+    repository: draftRepository,
   });
 
   const [media, setMedia] = useState<File[]>([]);
@@ -87,7 +93,7 @@ export function useProofComposerController(
   const recording = useAudioRecording({
     onRecordingComplete: (file) => setAudioNotes((current) => [...current, file]),
   });
-  useEffect(() => () => mediaResourceManager.cleanupUrls("proof"), []);
+  useEffect(() => () => draftRepository.revoke("proof"), [draftRepository]);
 
   const detail = query.detail;
   const roster = useMemo<ProofRosterMember[]>(
@@ -192,7 +198,7 @@ export function useProofComposerController(
           ...(audioNotes.length > 0 ? { audioNotes } : {}),
         },
       });
-      mediaResourceManager.cleanupUrls("proof");
+      draftRepository.revoke("proof");
       setQueued(true);
       await draft.clear();
       return true;
@@ -205,6 +211,7 @@ export function useProofComposerController(
     credited,
     detail,
     draft,
+    draftRepository,
     jobs,
     links,
     media,
@@ -221,9 +228,10 @@ export function useProofComposerController(
     status = "closed";
   else if (queued) status = "queued";
 
-  const imageUrls = media
-    .filter((file) => !isVideoFile(file))
-    .map((file) => mediaResourceManager.getOrCreateUrl(file, "proof"));
+  const imageUrls = draftRepository.previewUrls(
+    "proof",
+    media.filter((file) => !isVideoFile(file))
+  );
 
   return {
     status,
