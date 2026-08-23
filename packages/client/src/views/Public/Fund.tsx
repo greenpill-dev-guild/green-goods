@@ -346,28 +346,6 @@ function getGardenVaultSummary(
   );
 }
 
-/**
- * Fund — public garden funding gateway.
- *
- * Editorial recomposition:
- *   Hero → § 01 Vault overview → § 02 Ways to support (Donate first,
- *   Endow second) with always-visible tax / risk disclosures → § 03 Compact
- *   garden grid with per-card Donate + Endow CTAs and the wallet-owned
- *   Manage Endowments panel entry → optional receipt / stale-link banner
- *   → Footer.
- *
- * Behavior contract:
- * - `?intent=<id>` triggers receipt mode (reads X-GG-Receipt-Token from session).
- * - `?garden=<id-or-slug>` resolves via `publicGardenHelpers.deriveSlug`. Stale,
- *   missing, zero-match, or ambiguous queries fall back to the regular Fund
- *   layout with a localized non-blocking message.
- * - Each Garden row exposes Donate and Endow CTAs that open PublicFundingCard
- *   (single editorial card with amount-first input, visual token picker, and
- *   inline wallet-connect through the smart submit button) with the matching
- *   intent pre-set. Donate leads; Endow follows.
- * - `?manage=endowments` opens the wallet-owned public endowment panel.
- * - No public address lookup or admin controls.
- */
 function FundPageContent() {
   const { formatMessage } = useIntl();
   const { data: gardens = [], isLoading, isError } = usePublicGardens();

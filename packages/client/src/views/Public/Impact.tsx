@@ -93,23 +93,6 @@ function recordMatchesDomain(record: PublicImpactEvidenceRecord, filterId: strin
 }
 
 /**
- * Impact — credible public evidence ledger.
- *
- * Editorial recomposition:
- *   Hero ("See how Garden work becomes evidence.") → § 01 Proof markers →
- *   § 02 commitments band (protocol-wide pool aggregates) → § 03 evidence
- *   pipeline (Assessment → Commitment → Work → Confirmation → Impact
- *   Certificate) → § 04 image-forward evidence grid with combined Kind +
- *   Domain filter row + Prev / Next pagination → optional source dialog →
- *   Footer.
- *
- * Cycle order on the pipeline figure follows the user's correction:
- * Assessment first, then Work, then Impact Certificate, with the cycle
- * looping back to a new Assessment. The ledger's record kinds stay the three
- * attestation-backed ones; the two commitment stages are narrative only.
- */
-
-/**
  * Visible cards per page in the evidence grid. 12 fills 4×3 desktop /
  * 6×2 tablet / 12×1 mobile uniformly.
  */

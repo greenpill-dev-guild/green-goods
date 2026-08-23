@@ -1,16 +1,14 @@
-import { type FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { type IntlShape, useIntl } from "react-intl";
 import { toastService, validationToasts } from "../../../components/toast";
 import { isOfflineTxHash } from "../../../modules/job-queue/queue-policy";
 import { logger } from "../../../modules/app/logger";
-import { normalizeWorkMediaFiles } from "../../../modules/work/media-processing";
 import { validateWorkSubmissionContext } from "../../../modules/work/work-submission";
 import type { AuthStateValue } from "../../../providers/Auth";
 import type { Action, Address, Domain } from "../../../types/domain";
 import { findActionByUID, getActionTitle, parseActionUID } from "../../../utils/action/parsers";
 import { compareAddresses } from "../../../utils/blockchain/address";
 import { expandDomainMask } from "../../../utils/domain";
-import { imageCompressor } from "../../../utils/work/image-compression";
 import { useActions, useGardens } from "../../blockchain/useBaseLists";
 import { useAdminGardenWorkspaceSelection } from "../../garden/useAdminGardenWorkspaceSelection";
 import { useGardenPermissions } from "../../garden/useGardenPermissions";
@@ -18,58 +16,19 @@ import { useBeforeUnloadWhilePending } from "../../utils/useBeforeUnloadWhilePen
 import { useStepFocus } from "../../utils/useStepFocus";
 import { useWorkForm } from "../../work/useWorkForm";
 import { useWorkMutation } from "../../work/useWorkMutation";
+import { useSubmitWorkMediaController } from "./useSubmitWorkMediaController";
 
 export type SubmitWorkAuthSnapshot = Pick<AuthStateValue, "authMode" | "isAuthenticated"> & {
   primaryAddress: Address | null | undefined;
-};
-
-export type SubmitWorkMediaFeedback = {
-  variant: "warning" | "error";
-  message: string;
 };
 
 export type SubmitWorkStepId = "action" | "media" | "details" | "review";
 
 export const SUBMIT_WORK_STEP_IDS: SubmitWorkStepId[] = ["action", "media", "details", "review"];
 
-const ADMIN_WORK_MEDIA_COMPRESSION_THRESHOLD_KB = 1024;
-const ADMIN_WORK_MEDIA_COMPRESSION_OPTIONS = {
-  maxSizeMB: 0.8,
-  maxWidthOrHeight: 2048,
-  initialQuality: 0.8,
-  useWebWorker: true,
-} as const;
-
 export function getMinRequiredWorkImages(action: Action | null) {
   if (!action?.mediaInfo?.required) return 0;
   return action.mediaInfo.minImageCount ?? 1;
-}
-
-async function compressAdminWorkMediaFiles(
-  files: File[],
-  onProgress: (progress: number) => void
-): Promise<File[]> {
-  const filesToCompress = files
-    .map((file, index) => ({ file, index }))
-    .filter(({ file }) =>
-      imageCompressor.shouldCompress(file, ADMIN_WORK_MEDIA_COMPRESSION_THRESHOLD_KB)
-    );
-
-  if (filesToCompress.length === 0) return files;
-
-  const compressed = await imageCompressor.compressImages(
-    filesToCompress.map(({ file }) => file),
-    ADMIN_WORK_MEDIA_COMPRESSION_OPTIONS,
-    onProgress
-  );
-
-  const preparedFiles = files.slice();
-  compressed.forEach((result, compressedIndex) => {
-    const originalIndex = filesToCompress[compressedIndex]?.index;
-    if (originalIndex !== undefined) preparedFiles[originalIndex] = result.file;
-  });
-
-  return preparedFiles;
 }
 
 function browserIsOffline() {
@@ -133,8 +92,6 @@ export function useSubmitWorkController({
   );
 
   const [selectedActionId, setSelectedActionId] = useState("");
-  const selectedActionIdRef = useRef(selectedActionId);
-  selectedActionIdRef.current = selectedActionId;
   const selectedAction = useMemo<Action | null>(() => {
     if (!selectedActionId) return null;
     const action = findActionByUID(actions, parseActionUID(selectedActionId));
@@ -146,10 +103,18 @@ export function useSubmitWorkController({
   );
 
   const form = useWorkForm(selectedAction?.inputs);
-  const [images, setImages] = useState<File[]>([]);
-  const [progressMessage, setProgressMessage] = useState("");
-  const [mediaFeedback, setMediaFeedback] = useState<SubmitWorkMediaFeedback | null>(null);
-  const [isPreparingMedia, setIsPreparingMedia] = useState(false);
+  const media = useSubmitWorkMediaController(selectedActionId, formatMessage);
+  const {
+    handleFilesChange,
+    images,
+    isPreparingMedia,
+    mediaFeedback,
+    removeImage,
+    resetMedia,
+    setMediaFeedback,
+    setProgressMessage,
+    progressMessage,
+  } = media;
   const submitIntentRef = useRef(false);
   const [currentStep, setCurrentStep] = useState(1);
 
@@ -262,124 +227,13 @@ export function useSubmitWorkController({
   const handleActionChange = (actionId: string) => {
     setSelectedActionId(actionId);
     form.reset();
-    setImages([]);
-    setMediaFeedback(null);
-    setProgressMessage("");
+    resetMedia();
     mutation.reset();
   };
 
   const handleSelectAction = (actionId: string) => {
     if (actionId && actionId !== selectedActionId) handleActionChange(actionId);
   };
-
-  const handleFilesChange = useCallback(
-    async (newFiles: File[]) => {
-      setMediaFeedback(null);
-      if (newFiles.length === 0) return;
-
-      const actionIdAtStart = selectedActionIdRef.current;
-      const isCurrentAction = () => selectedActionIdRef.current === actionIdAtStart;
-      setIsPreparingMedia(true);
-      setProgressMessage(formatMessage({ id: "admin.fileUpload.processing" }, { progress: 0 }));
-
-      try {
-        const normalized = await normalizeWorkMediaFiles(newFiles, {
-          onHeicConversionStarted: () =>
-            setProgressMessage(formatMessage({ id: "app.garden.upload.convertingHeic" })),
-        });
-        if (!isCurrentAction()) return;
-
-        const acceptedFiles = normalized.accepted.map((item) => item.file);
-        if (acceptedFiles.length > 0) {
-          const preparedFiles = await compressAdminWorkMediaFiles(acceptedFiles, (progress) => {
-            setProgressMessage(
-              formatMessage(
-                { id: "admin.fileUpload.processing", defaultMessage: "Processing... {progress}%" },
-                { progress: Math.round(progress) }
-              )
-            );
-          });
-          if (!isCurrentAction()) return;
-          setImages((previous) => [...previous, ...preparedFiles]);
-        }
-
-        const unsupportedCount = normalized.rejected.filter(
-          (item) => item.reason === "unsupported"
-        ).length;
-        const conversionFailureCount = normalized.rejected.filter(
-          (item) => item.reason === "heic_conversion_failed"
-        ).length;
-        const messages: string[] = [];
-
-        if (unsupportedCount > 0) {
-          const message = formatMessage(
-            {
-              id: "app.garden.upload.unsupportedMediaMessage",
-              defaultMessage:
-                "{count, plural, one {That file is not a supported photo or video.} other {# files are not supported photos or videos.}}",
-            },
-            { count: unsupportedCount }
-          );
-          messages.push(message);
-          toastService.info({
-            title: formatMessage({
-              id: "app.garden.upload.unsupportedMediaTitle",
-              defaultMessage: "Some files were not added",
-            }),
-            message,
-            context: "admin media upload",
-          });
-        }
-
-        if (conversionFailureCount > 0) {
-          const message = formatMessage(
-            {
-              id: "app.garden.upload.conversionFailedMessage",
-              defaultMessage:
-                "{count, plural, one {Try that photo again or choose a different image.} other {Try those photos again or choose different images.}}",
-            },
-            { count: conversionFailureCount }
-          );
-          messages.push(message);
-          toastService.error({
-            title: formatMessage({
-              id: "app.garden.upload.conversionFailedTitle",
-              defaultMessage: "HEIC photo could not be converted",
-            }),
-            message,
-            context: "admin media upload",
-          });
-        }
-
-        if (messages.length > 0) {
-          setMediaFeedback({
-            variant: conversionFailureCount > 0 ? "error" : "warning",
-            message: messages.join(" "),
-          });
-        }
-      } catch (error) {
-        logger.error("Admin media processing failed", { error });
-        const message = formatMessage({
-          id: "app.garden.upload.compressionFailedMessage",
-          defaultMessage: "Try fewer or smaller images, or check your connection.",
-        });
-        setMediaFeedback({ variant: "error", message });
-        toastService.error({
-          title: formatMessage({
-            id: "app.garden.upload.compressionFailedTitle",
-            defaultMessage: "Couldn't process those images",
-          }),
-          message,
-          context: "admin media upload",
-          error,
-        });
-      } finally {
-        setIsPreparingMedia(false);
-        setProgressMessage("");
-      }
-    },
-    [formatMessage]
-  );
 
   const goBack = () => {
     if (!busy) setCurrentStep((step) => Math.max(1, step - 1));
@@ -439,8 +293,7 @@ export function useSubmitWorkController({
     mutation,
     phaseRef,
     progressMessage,
-    removeImage: (index: number) =>
-      setImages((previous) => previous.filter((_, imageIndex) => imageIndex !== index)),
+    removeImage,
     resetMutation: mutation.reset,
     selectDomain: setActionDomain,
     selectedAction,

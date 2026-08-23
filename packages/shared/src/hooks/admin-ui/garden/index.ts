@@ -4,3 +4,4 @@ export * from "./useGardenWorkspaceController";
 export * from "./useManageMembersController";
 export * from "./useResolvedWorkDetail";
 export * from "./useSubmitWorkController";
+export * from "./useSubmitWorkMediaController";

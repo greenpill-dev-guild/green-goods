@@ -68,13 +68,6 @@ interface CapitalEntry {
   defaultBody: string;
 }
 
-/**
- * Eight forms of value. Surfaced on /actions so visitors know the work is
- * measured across a wider lens than dollars or carbon. Order chosen so the
- * grid reads outward from the most material (Living, Material) toward the
- * most felt (Cultural, Spiritual). Mirrors the Capital enum in
- * `packages/shared/src/types/domain.ts`.
- */
 const CAPITALS: readonly CapitalEntry[] = [
   {
     id: "living",

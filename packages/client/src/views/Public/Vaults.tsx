@@ -28,9 +28,6 @@ import { VaultCheckoutDialog } from "@/components/Public/VaultCheckoutDialog";
 import { VaultManagePositionsPanel } from "@/components/Public/VaultManagePositionsPanel";
 import { getPublicHeroImage, publicCuration } from "@/content/publicCuration";
 
-const MANAGE_POSITIONS_PARAM = "manage";
-const MANAGE_POSITIONS_VALUE = "positions";
-
 const copyFieldMessageIds = {
   headline: "headline",
   summary: "summary",
@@ -154,13 +151,6 @@ function CampaignPreviewNote() {
   );
 }
 
-/**
- * On-chain crowdfunding signal for a campaign card: how much the dedicated Octant
- * vault currently holds. Reads through a public client without requiring a wallet
- * runtime) and degrades gracefully; it renders nothing on error or when no vault
- * route exists. Supporter/donor counts are a follow-up (not indexed for these
- * mainnet vaults yet).
- */
 function CampaignVaultStats({ campaign }: { campaign: OctantVaultCampaignManifest }) {
   const { formatMessage } = useIntl();
   const decimals = campaign.vault?.asset?.decimals ?? 18;
@@ -483,7 +473,7 @@ export function VaultsPageContent({
   const { formatMessage } = useIntl();
   const campaigns = useMemo(() => campaignItems ?? getOctantVaultCampaigns(), [campaignItems]);
   const [searchParams, setSearchParams] = useSearchParams();
-  const managing = searchParams.get(MANAGE_POSITIONS_PARAM) === MANAGE_POSITIONS_VALUE;
+  const managing = searchParams.get("manage") === "positions";
   const [isManagePanelOpen, setManagePanelOpen] = useState(managing);
   const isManagePanelClosePendingRef = useRef(false);
   const [selectedCampaign, setSelectedCampaign] = useState<OctantVaultCampaignManifest | null>(
@@ -508,8 +498,6 @@ export function VaultsPageContent({
   const handleClose = useCallback(() => {
     setSelectedCampaign(null);
   }, []);
-  // Open the route-local management surface. Only `?manage=positions` enters the URL
-  // Never an address, email, or any owner identifier.
   const openManage = useCallback(() => {
     setSelectedCampaign(null);
     isManagePanelClosePendingRef.current = false;
@@ -517,7 +505,7 @@ export function VaultsPageContent({
     setSearchParams(
       (prev) => {
         const next = new URLSearchParams(prev);
-        next.set(MANAGE_POSITIONS_PARAM, MANAGE_POSITIONS_VALUE);
+        next.set("manage", "positions");
         return next;
       },
       { replace: false }
@@ -532,7 +520,7 @@ export function VaultsPageContent({
       }
 
       setManagePanelOpen(false);
-      if (searchParams.get(MANAGE_POSITIONS_PARAM) === MANAGE_POSITIONS_VALUE) {
+      if (searchParams.get("manage") === "positions") {
         isManagePanelClosePendingRef.current = true;
       }
     },
@@ -542,9 +530,9 @@ export function VaultsPageContent({
     if (!isManagePanelClosePendingRef.current) return;
 
     isManagePanelClosePendingRef.current = false;
-    if (searchParams.get(MANAGE_POSITIONS_PARAM) === MANAGE_POSITIONS_VALUE) {
+    if (searchParams.get("manage") === "positions") {
       const next = new URLSearchParams(searchParams);
-      next.delete(MANAGE_POSITIONS_PARAM);
+      next.delete("manage");
       setSearchParams(next, { replace: true, preventScrollReset: true });
     }
   }, [searchParams, setSearchParams]);
@@ -667,8 +655,6 @@ export function VaultsPageContent({
 
       <PublicFooter variant="soil" />
 
-      {/* Management and checkout each mount their own wallet runtime, so render at
-          most one at a time to avoid nesting two AppKit providers. */}
       {shouldRenderManagePanel ? (
         <VaultManagePositionsPanel
           open={isManagePanelOpen}

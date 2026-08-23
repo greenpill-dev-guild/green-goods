@@ -1,20 +1,12 @@
 import {
-  type Action,
-  DEFAULT_CHAIN_ID,
   findActionByUID,
-  type Garden,
-  getSafeMediaMetadata,
-  getWorkMediaId,
   logger,
-  mediaResourceManager,
   parseContractError,
   toastService,
   track,
-  useActionTranslation,
   useAudioRecording,
   useDraftAutoSave,
   useDraftResume,
-  useGardenTranslation,
   useJoinGarden,
   useOffline,
   useTimeout,
@@ -24,12 +16,13 @@ import {
   useWorkSelection,
   WorkTab,
 } from "@green-goods/shared";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import { useIntl } from "react-intl";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { canProceedWithWorkSubmission } from "../../../modules/work/submission-flow";
+import { useWorkMediaLifecycle } from "./useWorkMediaLifecycle";
+import { useWorkSubmissionPresentationModel } from "./useWorkSubmissionPresentationModel";
 
-type MediaSurface = "media" | "review";
 type MediaJourneyEvent =
   | "work_media_preview_failed"
   | "work_media_removed"
@@ -64,10 +57,6 @@ export function useWorkSubmissionFlowController({
   const setAudioNotes = useWorkFlowStore((state) => state.setAudioNotes);
   const { isOnline, pendingCount, syncStatus } = useOffline();
   const { set: scheduleNavigation } = useTimeout();
-  const [brokenMediaIds, setBrokenMediaIds] = useState<Set<string>>(() => new Set());
-  const brokenMediaIdsRef = useRef(brokenMediaIds);
-  const mediaClickRef = useRef<(() => void) | null>(null);
-  const cameraClickRef = useRef<(() => void) | null>(null);
   const {
     actions,
     gardens,
@@ -111,22 +100,12 @@ export function useWorkSubmissionFlowController({
     });
 
   useEffect(() => {
-    brokenMediaIdsRef.current = brokenMediaIds;
-  }, [brokenMediaIds]);
-  useEffect(() => {
     ensureWorkSubmissionJourneyId();
   }, [ensureWorkSubmissionJourneyId]);
   useEffect(() => {
     const state = location.state as { gardenId?: string } | null;
     if (state?.gardenId && gardens.length > 0) setGardenAddressStable(state.gardenId);
   }, [gardens.length, location.state, setGardenAddressStable]);
-  useEffect(
-    () => () => {
-      mediaResourceManager.cleanupUrls("work-draft");
-      mediaResourceManager.cleanupUrls("work-draft-video");
-    },
-    []
-  );
   useEffect(() => {
     if (!submissionCompleted) return;
     clearActiveDraft().catch((error) => {
@@ -141,198 +120,22 @@ export function useWorkSubmissionFlowController({
     }, 800);
   }, [clearActiveDraft, form, homeRoute, navigate, scheduleNavigation, submissionCompleted]);
 
-  const selectedAction = useMemo(
-    () => (typeof actionUID === "number" ? findActionByUID(actions, actionUID) : null),
-    [actionUID, actions]
-  );
-  const { translatedAction } = useActionTranslation(selectedAction);
-  const selectedGarden = useMemo(
-    () =>
-      gardenAddress
-        ? (gardens.find((garden) => garden.id === gardenAddress) ??
-          (joinableCommunityGarden?.id === gardenAddress ? joinableCommunityGarden : null))
-        : null,
-    [gardenAddress, gardens, joinableCommunityGarden]
-  );
-  const { translatedGarden } = useGardenTranslation(selectedGarden);
-  const mediaConfig = useMemo(() => {
-    const defaults = {
-      title: intl.formatMessage({ id: "app.garden.upload.title", defaultMessage: "Upload Media" }),
-      description: intl.formatMessage({
-        id: "app.garden.submit.tab.media.instruction",
-        defaultMessage: "Please take a clear photo of the plants in the garden",
-      }),
-      required: false,
-      needed: [] as string[],
-      optional: [] as string[],
-      maxImageCount: 0,
-      minImageCount: undefined as number | undefined,
-    };
-    if (!translatedAction?.mediaInfo) return defaults;
-    const {
-      needed = [],
-      optional = [],
-      maxImageCount = 0,
-      minImageCount,
-      ...rest
-    } = translatedAction.mediaInfo;
-    return {
-      ...defaults,
-      ...rest,
-      needed: Array.isArray(needed) ? needed : [],
-      optional: Array.isArray(optional) ? optional : [],
-      maxImageCount,
-      minImageCount,
-    };
-  }, [intl, translatedAction]);
-  const minRequired = mediaConfig.required ? (mediaConfig.minImageCount ?? 1) : 0;
-  const detailsConfig = useMemo(() => {
-    const defaults = {
-      title: intl.formatMessage({
-        id: "app.garden.details.title",
-        defaultMessage: "Enter Details",
-      }),
-      description: intl.formatMessage({
-        id: "app.garden.submit.tab.details.instruction",
-        defaultMessage: "Provide detailed information and feedback",
-      }),
-      feedbackPlaceholder: intl.formatMessage({
-        id: "app.garden.details.feedbackPlaceholder",
-        defaultMessage: "Provide feedback or any observations",
-      }),
-    };
-    return translatedAction?.details ? { ...defaults, ...translatedAction.details } : defaults;
-  }, [intl, translatedAction]);
-  const reviewConfig = useMemo(() => {
-    const defaults = {
-      title: intl.formatMessage({ id: "app.garden.review.title", defaultMessage: "Review Work" }),
-      description: intl.formatMessage({
-        id: "app.garden.submit.tab.review.instruction",
-        defaultMessage: "Check if the information is correct",
-      }),
-    };
-    return translatedAction?.review ? { ...defaults, ...translatedAction.review } : defaults;
-  }, [intl, translatedAction]);
-  const detailInputs = useMemo(() => translatedAction?.inputs ?? [], [translatedAction]);
-  const reviewData = useMemo(() => {
-    const garden: Garden = translatedGarden || {
-      id: gardenAddress || "",
-      chainId: DEFAULT_CHAIN_ID,
-      tokenAddress: "",
-      tokenID: 0n,
-      name: intl.formatMessage({ id: "app.garden.unknown", defaultMessage: "Unknown Garden" }),
-      description: "",
-      location: "",
-      bannerImage: "",
-      gardeners: [],
-      operators: [],
-      evaluators: [],
-      owners: [],
-      funders: [],
-      communities: [],
-      assessments: [],
-      works: [],
-      createdAt: Date.now(),
-    };
-    const action: Action = translatedAction || {
-      id: `${DEFAULT_CHAIN_ID}-${actionUID ?? 0}`,
-      slug: "",
-      domain: selectedDomain,
-      startTime: Date.now(),
-      endTime: Date.now(),
-      title: intl.formatMessage({ id: "app.action.selected", defaultMessage: "Selected Action" }),
-      instructions: "",
-      capitals: [],
-      media: ["/images/no-image-placeholder.png"],
-      createdAt: Date.now(),
-      description: "",
-      inputs: detailInputs,
-      mediaInfo: mediaConfig,
-      details: detailsConfig,
-      review: reviewConfig,
-    };
-    return { action, garden };
-  }, [
+  const { detailInputs, detailsConfig, mediaConfig, minRequired, reviewConfig, reviewData } =
+    useWorkSubmissionPresentationModel({
+      actions,
+      gardens,
+      joinableCommunityGarden,
+      actionUID,
+      gardenAddress,
+      selectedDomain,
+    });
+  const media = useWorkMediaLifecycle({
     actionUID,
-    detailInputs,
-    detailsConfig,
-    gardenAddress,
-    intl,
-    mediaConfig,
-    reviewConfig,
-    selectedDomain,
-    translatedAction,
-    translatedGarden,
-  ]);
-
-  const markMediaPreviewFailed = useCallback(
-    (file: File, surface: MediaSurface) => {
-      const mediaId = getWorkMediaId(file);
-      if (brokenMediaIdsRef.current.has(mediaId)) return;
-      const journeyId = ensureWorkSubmissionJourneyId();
-      setBrokenMediaIds((previous) => {
-        const next = new Set(previous).add(mediaId);
-        brokenMediaIdsRef.current = next;
-        return next;
-      });
-      trackMediaJourneyEvent("work_media_preview_failed", {
-        work_submission_journey_id: journeyId,
-        source: surface,
-        auth_mode: authMode,
-        action_uid: actionUID,
-        submission_phase: surface,
-        parsed_error_family: "preview_failed",
-        broken_count: brokenMediaIdsRef.current.size,
-        ...getSafeMediaMetadata(file),
-      });
-    },
-    [actionUID, authMode, ensureWorkSubmissionJourneyId, trackMediaJourneyEvent]
-  );
-  const removeMedia = useCallback(
-    (file: File, surface: MediaSurface) => {
-      const mediaId = getWorkMediaId(file);
-      const journeyId = ensureWorkSubmissionJourneyId();
-      setImages((previous) => previous.filter((item) => getWorkMediaId(item) !== mediaId));
-      setBrokenMediaIds((previous) => {
-        if (!previous.has(mediaId)) return previous;
-        const next = new Set(previous);
-        next.delete(mediaId);
-        brokenMediaIdsRef.current = next;
-        return next;
-      });
-      trackMediaJourneyEvent("work_media_removed", {
-        work_submission_journey_id: journeyId,
-        source: surface,
-        auth_mode: authMode,
-        action_uid: actionUID,
-        submission_phase: surface,
-        file_count: 1,
-        broken_count: brokenMediaIdsRef.current.size,
-        ...getSafeMediaMetadata(file),
-      });
-    },
-    [actionUID, authMode, ensureWorkSubmissionJourneyId, setImages, trackMediaJourneyEvent]
-  );
-  const removeBrokenMedia = useCallback(
-    (surface: MediaSurface) => {
-      const ids = new Set(brokenMediaIdsRef.current);
-      if (ids.size === 0) return;
-      const journeyId = ensureWorkSubmissionJourneyId();
-      setImages((previous) => previous.filter((file) => !ids.has(getWorkMediaId(file))));
-      setBrokenMediaIds(new Set());
-      brokenMediaIdsRef.current = new Set();
-      trackMediaJourneyEvent("work_broken_media_removed", {
-        work_submission_journey_id: journeyId,
-        source: surface,
-        auth_mode: authMode,
-        action_uid: actionUID,
-        submission_phase: surface,
-        file_count: ids.size,
-        broken_count: ids.size,
-      });
-    },
-    [actionUID, authMode, ensureWorkSubmissionJourneyId, setImages, trackMediaJourneyEvent]
-  );
+    authMode,
+    ensureJourneyId: ensureWorkSubmissionJourneyId,
+    setImages,
+    trackEvent: trackMediaJourneyEvent,
+  });
   const joinCommunityGarden = useCallback(async () => {
     if (!joinableCommunityGarden?.id) return;
     try {
@@ -433,8 +236,8 @@ export function useWorkSubmissionFlowController({
     ...selection,
     ...form,
     audioNotes,
-    brokenMediaIds,
-    cameraClickRef,
+    brokenMediaIds: media.brokenMediaIds,
+    cameraClickRef: media.cameraClickRef,
     canProceed,
     changeTab,
     detailsConfig,
@@ -444,7 +247,7 @@ export function useWorkSubmissionFlowController({
       handleContinueDraft,
       startFresh: async () => {
         await handleStartFresh();
-        setBrokenMediaIds(new Set());
+        media.resetBrokenMedia();
         useWorkFlowStore.getState().reset();
         form.reset();
       },
@@ -459,14 +262,14 @@ export function useWorkSubmissionFlowController({
     isRecording: audio.isRecording,
     isWalletRequestExpired,
     joinCommunityGarden,
-    markMediaPreviewFailed,
-    mediaClickRef,
+    markMediaPreviewFailed: media.markMediaPreviewFailed,
+    mediaClickRef: media.mediaClickRef,
     mediaConfig,
     minRequired,
     queueStatusMessage,
     recordingElapsed: audio.elapsed,
-    removeBrokenMedia,
-    removeMedia,
+    removeBrokenMedia: media.removeBrokenMedia,
+    removeMedia: media.removeMedia,
     reviewConfig,
     reviewData,
     setAudioNotes,
