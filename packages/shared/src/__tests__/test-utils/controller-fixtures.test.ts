@@ -57,8 +57,8 @@ describe("pool controller fixtures", () => {
     });
   });
 
-  it("can omit the default shared hook mocks", async () => {
-    const actual = await import("../../index");
+  it("can omit the default shared hook mocks", () => {
+    const actual = { useAuth: () => "actual" };
     const withoutDefaults = createSharedBarrelMock(actual, {}, { defaults: false });
     const withDefaults = createSharedBarrelMock(actual);
 
