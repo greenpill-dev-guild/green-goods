@@ -403,6 +403,46 @@ describe("CommitmentDialogPanel (W10)", () => {
     ).toBeInTheDocument();
   });
 
+  // ConfirmLib.markReadyForConfirmation waives the requirement counters and the
+  // commitment type both, so the override is the only recovery a stalled
+  // Work-backed record has. Hiding the row left it with none.
+  it("offers the steward override on a Work-backed record, in its own words", async () => {
+    const record = controller({
+      commitment: { commitmentType: "DOMAIN_IMPACT" },
+      can: can({ markReady: true }),
+    });
+    (record.detail as { requirements: unknown[] }).requirements = [
+      { requirementIndex: 0, actionUID: 1n, requiredCount: 3, approvedCount: 1, domain: 0 },
+    ];
+    mocks.controller = record;
+    renderPanel();
+
+    expect(screen.getByText(/work still outstanding/i)).toBeInTheDocument();
+    expect(screen.queryByText(/recipient can.t confirm/i)).not.toBeInTheDocument();
+
+    const markReady = screen.getByRole("button", { name: /mark ready/i });
+    expect(markReady).toBeEnabled();
+    fireEvent.click(markReady);
+    fireEvent.click(
+      within(screen.getByRole("dialog", { name: /mark ready with override/i })).getByRole(
+        "button",
+        { name: /^mark ready$/i }
+      )
+    );
+    const acts = mocks.controller.acts as Record<string, ReturnType<typeof vi.fn>>;
+    await waitFor(() => expect(acts.markReady).toHaveBeenCalledWith("because"));
+  });
+
+  it("shows the override disabled when the chain's own gates are not clear", () => {
+    const record = controller({ commitment: { commitmentType: "DOMAIN_IMPACT" } });
+    (record.detail as { requirements: unknown[] }).requirements = [
+      { requirementIndex: 0, actionUID: 1n, requiredCount: 3, approvedCount: 1, domain: 0 },
+    ];
+    mocks.controller = record;
+    renderPanel();
+    expect(screen.getByRole("button", { name: /mark ready/i })).toBeDisabled();
+  });
+
   it("shows the empty assessment state instead of another garden's records", () => {
     mocks.controller = controller({
       commitment: { requiresAssessment: true },

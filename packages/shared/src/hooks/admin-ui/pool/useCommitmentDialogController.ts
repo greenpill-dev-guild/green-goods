@@ -7,26 +7,31 @@
  * allow. The admin dialog renders from this and never asks the chain or the
  * indexer itself.
  *
- * Eligibility follows the contract: ordinary confirmation through the
- * reader's seat; a garden fallback only while the ordinary path is
- * unreachable and the reader currently stewards the commitment's own garden;
- * a protocol fallback only when the commitment opted in and the reader
- * currently stewards the registered protocol garden; never for anyone on the
- * roster. Local authority is tested first, so a dual-role steward renders the
- * garden path.
+ * Eligibility follows the contract: ordinary confirmation through the reader's
+ * seat; a garden fallback only while the ordinary path is unreachable and the
+ * reader currently stewards the commitment's own garden; a protocol fallback
+ * only when the commitment opted in and the reader currently stewards the
+ * registered protocol garden; never for anyone on the roster. Local authority
+ * is tested first, so a dual-role steward renders the garden path.
  *
  * @module hooks/admin-ui/pool/useCommitmentDialogController
  */
 
+import { useQuery } from "@tanstack/react-query";
 import { useCallback, useMemo } from "react";
 
+import { queryKeys, STALE_TIME_MEDIUM } from "../../../config/query-keys";
 import { selectCommitmentActKind } from "../../../modules/commitment-pooling/acts";
+import { getViewerConfirmedCommitmentIds } from "../../../modules/commitment-pooling/data";
 import {
   selectCommitmentSeat,
   selectConfirmationEligibility,
 } from "../../../modules/commitment-pooling/selectors";
 import {
   isPoolSteward,
+  selectCommitmentActPermissions,
+  selectCommitmentDisputeAuthority,
+  selectCommitmentOverrideReadiness,
   selectCommitmentSubmissionReadiness,
   selectDueLiveCommitments,
   selectOrdinaryConfirmationReachable,
@@ -95,6 +100,18 @@ export function useCommitmentDialogController(input: {
   const queue = useCommitmentQueueState(viewer);
   const mutation = useCommitmentMutation({ chainId });
   const jobs = useCommitmentJobs({ chainId });
+  // What this reader already signed: `confirmFulfillment` reverts
+  // `AlreadyConfirmed` on a repeat, and a threshold above one keeps the record
+  // ready in between. Same key as the Hub queue's read, so both share one answer.
+  const confirmed = useQuery({
+    queryKey: queryKeys.commitmentPooling.activity(chainId, {
+      actor: viewer,
+      eventType: "CONFIRMATION_RECORDED",
+    }),
+    queryFn: () => getViewerConfirmedCommitmentIds({ chainId, viewer: viewer as Address }),
+    enabled: Boolean(viewer) && commitment?.onchainState === "READY_FOR_CONFIRMATION",
+    staleTime: STALE_TIME_MEDIUM,
+  });
 
   const activeContributors = useMemo<Address[]>(
     () => (detail?.contributors ?? []).filter((row) => row.active).map((row) => row.contributor),
@@ -138,7 +155,7 @@ export function useCommitmentDialogController(input: {
             state: commitment.onchainState,
             viewer,
             contributors: activeContributors,
-            alreadyConfirmed: false,
+            alreadyConfirmed: (confirmed.data ?? []).includes(commitment.commitmentId.toString()),
             ordinaryEligible:
               seat !== null && selectCommitmentActKind({ commitment, seat }) === "confirm",
             ordinaryReachable,
@@ -155,6 +172,7 @@ export function useCommitmentDialogController(input: {
       ordinaryReachable,
       isLocalSteward,
       isProtocolSteward,
+      confirmed.data,
     ]
   );
 
@@ -171,87 +189,48 @@ export function useCommitmentDialogController(input: {
   const hasPendingJob = commitment
     ? queue.pendingCommitmentIds.has(commitment.commitmentId.toString())
     : false;
-  const readiness = selectCommitmentSubmissionReadiness({
+  const readinessInput = {
     detail,
     pool,
     cycle: cycleQuery.cycle,
     ordinaryReachable,
     protocolPoolRegistered: protocolPool.isRegistered,
-  });
-  /**
-   * What this steward may do to this record, each a plain boolean derived
-   * from state, authority and the contract's own gates, so a disabled
-   * control never offers a call that would revert.
-   */
-  const can = useMemo(() => {
-    if (!commitment || !viewer) {
-      return {
-        cancel: false,
-        markReady: false,
-        sendForConfirmation: false,
-        attachAssessment: false,
-        raiseDispute: false,
-        resolveDispute: false,
-        resolveFulfilled: false,
-        expire: false,
-        confirmOrdinary: false,
-        confirmFallback: false,
-        acceptClaim: false,
-        declineClaim: false,
-      };
-    }
-    const state = commitment.onchainState;
-    const evidenceOnly =
-      (detail?.requirements.length ?? 0) === 0 && commitment.commitmentType !== "DOMAIN_IMPACT";
-    const steward = isLocalSteward;
-    const accepted = state === "ACCEPTED";
-    // The three states raiseDispute accepts (TerminalLib.sol:91-96).
-    const disputable =
-      state === "ACCEPTED" || state === "READY_FOR_CONFIRMATION" || state === "EXPIRED";
-    const live = state === "ACCEPTED" || state === "READY_FOR_CONFIRMATION";
-    return {
-      cancel: steward && accepted, // a pause never winds down (TerminalLib.sol:11-12)
-      markReady: steward && accepted && evidenceOnly && !poolPaused,
-      sendForConfirmation:
-        (steward || seat === "provider" || seat === "confirmer") &&
-        evidenceOnly &&
-        readiness.ready &&
-        !hasPendingJob,
-      attachAssessment:
-        steward &&
-        accepted &&
-        commitment.requiresAssessment === true &&
-        !commitment.assessmentUID &&
-        !commitment.contributorsFrozen,
-      raiseDispute: (steward || seat === "provider" || seat === "confirmer") && disputable,
-      resolveDispute: steward && state === "DISPUTED",
-      // Fulfilled resolution is a confirmation: never by a contributor, never
-      // for a record that had already expired.
-      resolveFulfilled:
-        steward && state === "DISPUTED" && !onRoster && commitment.preDisputeState !== "EXPIRED",
-      expire: isDue && live,
-      confirmOrdinary:
-        confirmation.allowed && confirmation.path === "ORDINARY" && !poolPaused && !hasPendingJob,
-      confirmFallback:
-        confirmation.allowed &&
-        (confirmation.path === "POOL_FALLBACK" || confirmation.path === "PROTOCOL_FALLBACK") &&
-        !poolPaused,
-      acceptClaim: steward && (state === "OFFERED" || state === "REQUESTED") && !poolPaused,
-      declineClaim: steward && (state === "OFFERED" || state === "REQUESTED") && !poolPaused,
-    };
-  }, [
+  };
+  const readiness = selectCommitmentSubmissionReadiness(readinessInput);
+  const overrideReadiness = selectCommitmentOverrideReadiness(readinessInput);
+  // A read that errored says nothing about the pool or cycle being Open.
+  const poolUnread = poolsQuery.isError;
+  const cycleUnread =
+    cycleQuery.isError && Boolean(commitment?.cycleId && commitment.cycleId !== 0n);
+  const disputeAuthorized = commitment
+    ? selectCommitmentDisputeAuthority({
+        viewer,
+        creator: commitment.creator,
+        counterparty: commitment.counterparty,
+        confirmers: commitment.confirmers,
+        isPoolSteward: isLocalSteward,
+      })
+    : false;
+
+  // Twelve plain booleans off already-derived state: cheaper to recompute than
+  // to memoise behind a fifteen-entry dependency list.
+  const can = selectCommitmentActPermissions({
     commitment,
     viewer,
-    detail?.requirements.length,
-    isLocalSteward,
-    poolPaused,
-    seat,
-    hasPendingJob,
+    requirementCount: detail?.requirements.length ?? 0,
+    isPoolSteward: isLocalSteward,
+    isParty: seat === "provider" || seat === "confirmer",
+    disputeAuthorized,
     onRoster,
+    poolPaused,
+    poolUnread,
+    cycleUnread,
+    submissionReady: readiness.ready,
+    overrideReady: overrideReadiness.ready,
+    hasPendingJob,
     isDue,
     confirmation,
-    readiness.ready,
-  ]);
+  });
 
   const acts = useMemo(
     () => ({
@@ -303,13 +282,21 @@ export function useCommitmentDialogController(input: {
   );
 
   const refetch = useCallback(
-    () => Promise.all([detailQuery.refetch(), activity.refetch()]),
-    [detailQuery, activity]
+    () =>
+      Promise.all([
+        detailQuery.refetch(),
+        activity.refetch(),
+        poolsQuery.refetch(),
+        cycleQuery.refetch(),
+      ]),
+    [detailQuery, activity, poolsQuery, cycleQuery]
   );
 
   // A query that never ran leaves no record; that is unavailable, not missing.
   const unavailable = detailQuery.availability.status !== "available";
-  const isError = detailQuery.isError || activity.isError;
+  // The pool and the cycle carry gates of their own, so a failure in either is
+  // a failed read of this record rather than a detail the panel may render past.
+  const isError = detailQuery.isError || activity.isError || poolUnread || cycleUnread;
   return {
     chainId,
     garden,

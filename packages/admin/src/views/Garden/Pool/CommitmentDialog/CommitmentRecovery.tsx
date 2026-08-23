@@ -14,7 +14,10 @@ export function CommitmentRecovery({
   actDisabled,
   onOpenDialog,
 }: {
-  /** No work requirements and no impact gate: proof alone carries the record. */
+  /**
+   * No work requirements and no impact gate: proof alone carries the record.
+   * Chooses the override's wording; a work-backed record gets the same act.
+   */
   evidenceOnly: boolean;
   can: CommitmentDialogController["can"];
   actDisabled: boolean;
@@ -31,36 +34,53 @@ export function CommitmentRecovery({
         defaultMessage: "Recovery",
       })}
     >
-      {evidenceOnly ? (
-        <div className="flex flex-wrap items-center justify-between gap-2 rounded-[var(--m3-shape-md)] bg-[rgb(var(--m3-surface-container-highest))] px-3 py-2">
-          <p className="min-w-0 text-sm">
-            <span className="font-medium text-text-strong">
-              {formatMessage({
-                id: "cockpit.garden.pool.commitment.accepted.cannotConfirm",
-                defaultMessage: "Recipient can’t confirm?",
-              })}
-            </span>{" "}
-            <span className="text-text-soft">
-              {formatMessage({
-                id: "cockpit.garden.pool.commitment.accepted.cannotConfirmHint",
-                defaultMessage: "A steward can mark it ready with a recorded reason.",
-              })}
-            </span>
-          </p>
-          <AdminButton
-            type="button"
-            variant="outlined"
-            size="sm"
-            onClick={() => onOpenDialog("mark-ready")}
-            disabled={actDisabled || !can.markReady}
-          >
-            {formatMessage({
-              id: "cockpit.garden.pool.commitment.act.markReady",
-              defaultMessage: "Mark ready…",
-            })}
-          </AdminButton>
-        </div>
-      ) : null}
+      {/*
+        The override is the only recovery a stalled record has, and a
+        work-backed one stalls the more often of the two: the chain lets a
+        steward waive the outstanding requirements (ConfirmLib.markReadyForConfirmation
+        never reads them) while credit, cycle, freshness and confirmer gates all
+        still hold. `evidenceOnly` picks which story to tell, never whether to
+        offer the act.
+      */}
+      <div className="flex flex-wrap items-center justify-between gap-2 rounded-[var(--m3-shape-md)] bg-[rgb(var(--m3-surface-container-highest))] px-3 py-2">
+        <p className="min-w-0 text-sm">
+          <span className="font-medium text-text-strong">
+            {evidenceOnly
+              ? formatMessage({
+                  id: "cockpit.garden.pool.commitment.accepted.cannotConfirm",
+                  defaultMessage: "Recipient can’t confirm?",
+                })
+              : formatMessage({
+                  id: "cockpit.garden.pool.commitment.accepted.workStalled",
+                  defaultMessage: "Work still outstanding?",
+                })}
+          </span>{" "}
+          <span className="text-text-soft">
+            {evidenceOnly
+              ? formatMessage({
+                  id: "cockpit.garden.pool.commitment.accepted.cannotConfirmHint",
+                  defaultMessage: "A steward can mark it ready with a recorded reason.",
+                })
+              : formatMessage({
+                  id: "cockpit.garden.pool.commitment.accepted.workStalledHint",
+                  defaultMessage:
+                    "A steward can mark it ready with a recorded reason. The credit already verified still counts.",
+                })}
+          </span>
+        </p>
+        <AdminButton
+          type="button"
+          variant="outlined"
+          size="sm"
+          onClick={() => onOpenDialog("mark-ready")}
+          disabled={actDisabled || !can.markReady}
+        >
+          {formatMessage({
+            id: "cockpit.garden.pool.commitment.act.markReady",
+            defaultMessage: "Mark ready…",
+          })}
+        </AdminButton>
+      </div>
       {can.attachAssessment ? (
         <div className="flex flex-wrap items-center justify-between gap-2 rounded-[var(--m3-shape-md)] bg-[rgb(var(--m3-surface-container-highest))] px-3 py-2">
           <p className="min-w-0 text-sm">

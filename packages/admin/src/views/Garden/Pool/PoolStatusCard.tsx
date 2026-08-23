@@ -50,7 +50,12 @@ export function PoolStatusCard({
   const { formatMessage } = useIntl();
   const { model, isOnline, isActing, acts } = pool;
   const chip = poolStatusChip(model.status, model.season !== null, formatMessage);
-  const preOpen = model.status === "not-ready" || model.status === "ready";
+  // Only a pool that has never been marked ready hands the charter and the cap
+  // to the first-run flow. From Ready onward `setPoolCharter` and
+  // `setProviderOpenCommitmentCap` carry no state guard (`PoolsLib`), and the
+  // Start season flow asks for neither, so a steward who reopened an archived
+  // pool or left setup half-way corrects them from here.
+  const inSetup = model.status === "not-ready";
   const running = model.status === "open" || model.status === "paused";
   const offline = !isOnline;
   const cap = pool.pool?.providerOpenCommitmentCap ?? 0n;
@@ -222,13 +227,13 @@ export function PoolStatusCard({
         </p>
       ) : null}
 
-      {offline && !preOpen ? (
+      {offline && !inSetup ? (
         <p className="text-xs text-warning-dark" role="status">
           {offlineNote}
         </p>
       ) : null}
 
-      {!preOpen && model.status !== "closed" && model.status !== "composted" ? (
+      {!inSetup && model.status !== "closed" && model.status !== "composted" ? (
         <div className="flex flex-wrap items-center gap-2">
           <AdminButton
             type="button"

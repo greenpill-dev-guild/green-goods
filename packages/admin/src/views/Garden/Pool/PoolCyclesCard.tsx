@@ -47,7 +47,10 @@ export function PoolCyclesCard({
           "{made, plural, one {# commitment} other {# commitments}} · {kept} kept · runs through {end}",
       },
       {
-        made: (cycle.commitmentsAccepted + cycle.commitmentsFulfilled).toString(),
+        // `commitmentsAccepted` is the lifetime milestone: every commitment
+        // ever accepted in this cycle, the kept ones included. Adding the
+        // fulfilled count on top would count each kept promise twice.
+        made: cycle.commitmentsAccepted.toString(),
         kept: cycle.commitmentsFulfilled.toString(),
         end: formatUnixDate(cycle.endTime, locale, "—"),
       }

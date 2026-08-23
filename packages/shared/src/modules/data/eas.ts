@@ -251,9 +251,16 @@ export function parseWorkApprovalAttestation(
 }
 
 /** Fetches garden assessment attestations from EAS */
+/**
+ * Assessments recorded for a garden under one schema. Defaults to the v2 UID
+ * the chain has always carried; pass `schemaUID` to read the v3 registration
+ * instead (`getEASConfig().ASSESSMENT_V3`), which holds every assessment
+ * recorded since it went live.
+ */
 export const getGardenAssessments = async (
   gardenAddress?: string,
-  chainId?: number | string
+  chainId?: number | string,
+  schemaUID?: string
 ): Promise<EASGardenAssessment[]> => {
   const QUERY = easGraphQL(/* GraphQL */ `
     query Attestations($where: AttestationWhereInput) {
@@ -267,10 +274,10 @@ export const getGardenAssessments = async (
     }
   `);
 
-  const easConfig = getEASConfig(chainId);
-  if (isZeroBytes32(easConfig.ASSESSMENT.uid)) return [];
+  const resolvedSchemaUID = schemaUID ?? getEASConfig(chainId).ASSESSMENT.uid;
+  if (isZeroBytes32(resolvedSchemaUID)) return [];
 
-  const schemaId = { equals: easConfig.ASSESSMENT.uid };
+  const schemaId = { equals: resolvedSchemaUID };
   const client = createEasClient(chainId);
 
   const { data, error } = await client.query(

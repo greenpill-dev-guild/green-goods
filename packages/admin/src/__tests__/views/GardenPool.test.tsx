@@ -277,8 +277,29 @@ describe("GardenPoolTab (W7)", () => {
     expect(screen.getByText(/not taking commitments yet/i)).toBeInTheDocument();
     expect(screen.getByText(/agreement not written yet/i)).toBeInTheDocument();
     expect(screen.getByText(/commitment limit not set/i)).toBeInTheDocument();
+    // Before the pool is ready the first-run flow owns the charter and the cap.
+    expect(screen.queryByRole("button", { name: /edit pool/i })).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: /set up commitments/i }));
     expect(screen.getByTestId("pool-setup-flow")).toHaveTextContent("first-run");
+  });
+
+  it("keeps the pool settings reachable while the pool is ready but not open yet", async () => {
+    // Ready is reached by reopening an archived pool, or by closing the
+    // first-run flow half-way. The contract accepts setPoolCharter and
+    // setProviderOpenCommitmentCap there, and Start season asks for neither,
+    // so this is the steward's only way to correct them before opening.
+    mocks.controller = controller({
+      pool: pool({ state: "READY", openSeasonCycleId: null, nonTerminalCycleCount: 0n }),
+      cycles: [],
+      commitments: [],
+    });
+    renderTab();
+
+    fireEvent.click(screen.getByRole("button", { name: /edit pool/i }));
+    const dialog = await screen.findByRole("dialog");
+    expect(
+      within(dialog).getByLabelText(/how many commitments one person can hold at once/i)
+    ).toBeInTheDocument();
   });
 
   it("offers a season on a set-up pool with none running", () => {
@@ -320,6 +341,18 @@ describe("GardenPoolTab (W7)", () => {
     expect(screen.getByText(/taking commitments/i)).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: /start campaign/i }));
     expect(screen.getByTestId("pool-setup-flow")).toHaveTextContent("campaign");
+  });
+
+  it("counts the commitments a cycle carried once, not the kept ones twice", () => {
+    // commitmentsAccepted is the lifetime milestone and already includes every
+    // commitment that went on to be kept; adding fulfilled on top read three
+    // accepted, two kept as five.
+    mocks.controller = controller({
+      cycles: [cycle({ commitmentsAccepted: 3n, commitmentsFulfilled: 2n })],
+    });
+    renderTab();
+    expect(screen.getByText(/3 commitments/)).toHaveTextContent(/2 kept/);
+    expect(screen.queryByText(/5 commitments/)).not.toBeInTheDocument();
   });
 
   it("groups commitments under Open · Confirmed · Past and opens a row in the inspector", () => {

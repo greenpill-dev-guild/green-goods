@@ -63,6 +63,7 @@ const mocks = vi.hoisted(() => ({
   getCommitmentFunding: vi.fn(),
   getCommitmentActivity: vi.fn(),
   getPoolMemberHistory: vi.fn(),
+  getViewerConfirmedCommitmentIds: vi.fn(),
   viewer: "0x2222222222222222222222222222222222222222" as string | null,
   jobs: { enqueue: vi.fn(), isPending: false },
   queueState: { pendingCommitmentIds: new Set<string>() },
@@ -89,6 +90,7 @@ vi.mock("../modules/commitment-pooling/data", () => ({
   getCommitmentFunding: mocks.getCommitmentFunding,
   getCommitmentActivity: mocks.getCommitmentActivity,
   getPoolMemberHistory: mocks.getPoolMemberHistory,
+  getViewerConfirmedCommitmentIds: mocks.getViewerConfirmedCommitmentIds,
 }));
 
 vi.mock("../hooks/roles/useGardenRoles", () => ({
@@ -767,6 +769,7 @@ describe("useCommitmentDialogController", () => {
       cycle: { cycleId: 12n, state: "OPEN", endTime: null },
     });
     mocks.getCommitmentActivity.mockResolvedValue([]);
+    mocks.getViewerConfirmedCommitmentIds.mockResolvedValue([]);
   });
 
   it("keeps cancellation open while the pool is paused, and holds readying and confirming back", async () => {
@@ -857,6 +860,150 @@ describe("useCommitmentDialogController", () => {
         cycle: { cycleId: 12n, state: "OPEN", endTime: null },
       });
     }
+  });
+
+  // ConfirmLib.markReadyForConfirmation never reads the commitment type or the
+  // requirement counters, so the steward override is the promised recovery for a
+  // Work-backed record whose requirements stalled — and the only one it has.
+  it("offers the steward override on a stalled DomainImpact record, on the gates freezeAndReady keeps", async () => {
+    const stalled = {
+      commitmentType: "DOMAIN_IMPACT",
+      // The confirmer must stay reachable, so the taker cannot be on the roster.
+      counterparty: TAKER,
+    };
+    const requirements = [{ requirementIndex: 0, requiredCount: 3, approvedCount: 1 }];
+
+    mocks.getCommitmentDetail.mockResolvedValue({
+      ...detail(stalled),
+      requirements,
+    });
+    const offered = render();
+    await waitFor(() => expect(offered.result.current.commitment).not.toBeNull());
+    expect(offered.result.current.can.markReady).toBe(true);
+    // The waiver stops at the proof policy: ordinary submission still refuses.
+    expect(offered.result.current.can.sendForConfirmation).toBe(false);
+    offered.unmount();
+
+    // freezeAndReady still reverts NoEligibleContributors without verified credit.
+    mocks.getCommitmentDetail.mockResolvedValue({
+      ...detail(stalled, [
+        {
+          contributor: LEAD,
+          active: true,
+          isLead: true,
+          approvedWorkCredits: 0,
+          evidenceCredits: 0,
+          uncountedLinkedWorkCount: 0,
+        },
+      ]),
+      requirements,
+    });
+    const uncredited = render();
+    await waitFor(() => expect(uncredited.result.current.commitment).not.toBeNull());
+    expect(uncredited.result.current.can.markReady).toBe(false);
+    uncredited.unmount();
+
+    // And RecognitionPolicyUnavailable once the cycle has closed.
+    mocks.getCommitmentDetail.mockResolvedValue({ ...detail(stalled), requirements });
+    mocks.getCommitmentCycleDetail.mockResolvedValue({
+      cycle: { cycleId: 12n, state: "RECONCILED", endTime: null },
+    });
+    const closed = render();
+    await waitFor(() => expect(closed.result.current.commitment).not.toBeNull());
+    expect(closed.result.current.can.markReady).toBe(false);
+    closed.unmount();
+  });
+
+  // ConfirmLib.confirmFulfillment reverts AlreadyConfirmed on a repeat, and a
+  // threshold above one keeps the record ready in between.
+  it("stops offering ordinary confirmation to a confirmer who already signed", async () => {
+    mocks.getCommitmentDetail.mockResolvedValue(
+      detail({
+        onchainState: "READY_FOR_CONFIRMATION",
+        state: "READY_FOR_CONFIRMATION",
+        derivedState: "READY_FOR_CONFIRMATION",
+        direction: "REQUEST",
+        creator: STEWARD,
+        leadProvider: TAKER,
+        counterparty: TAKER,
+        confirmationThreshold: 2,
+        contributorsFrozen: true,
+      })
+    );
+
+    const first = render();
+    await waitFor(() => expect(first.result.current.confirmation.allowed).toBe(true));
+    expect(first.result.current.can.confirmOrdinary).toBe(true);
+    first.unmount();
+
+    mocks.getViewerConfirmedCommitmentIds.mockResolvedValue(["9"]);
+    const again = render();
+    await waitFor(() => expect(again.result.current.commitment).not.toBeNull());
+    await waitFor(() => expect(again.result.current.confirmation.reason).toBe("already-confirmed"));
+    expect(again.result.current.can.confirmOrdinary).toBe(false);
+  });
+
+  // GuardLib.requirePoolState(Open) and freezeAndReady's Open-cycle check both
+  // gate on state a failed read cannot report, so the acts wait for the read.
+  it("fails closed on the acts a failed pool or cycle read cannot vouch for", async () => {
+    mocks.getCommitmentDetail.mockResolvedValue(
+      detail({ onchainState: "OFFERED", state: "OFFERED" })
+    );
+    mocks.getCommitmentPools.mockRejectedValue(new Error("indexer down"));
+    const noPool = render();
+    await waitFor(() => expect(noPool.result.current.isError).toBe(true));
+    expect(noPool.result.current.poolPaused).toBe(false);
+    expect(noPool.result.current.can.acceptClaim).toBe(false);
+    expect(noPool.result.current.can.declineClaim).toBe(false);
+    noPool.unmount();
+
+    mocks.getCommitmentPools.mockResolvedValue([{ ...pool, state: "OPEN" }]);
+    mocks.getCommitmentDetail.mockResolvedValue(detail());
+    mocks.getCommitmentCycleDetail.mockRejectedValue(new Error("indexer down"));
+    const noCycle = render();
+    await waitFor(() => expect(noCycle.result.current.isError).toBe(true));
+    expect(noCycle.result.current.can.sendForConfirmation).toBe(false);
+    expect(noCycle.result.current.can.markReady).toBe(false);
+    // The wind-down path a pause never blocks is untouched by an unread cycle.
+    expect(noCycle.result.current.can.cancel).toBe(true);
+  });
+
+  // TerminalLib.raiseDispute takes the creator, the counterparty, a named
+  // confirmer or a pool steward. On a garden-claimed Request the lead provider
+  // is `requestedBy` and the counterparty is the claiming garden, so the lead is
+  // none of the four — and normalizeConfirmers has dropped them from the group.
+  it("withholds a dispute from a lead provider the contract would reject", async () => {
+    const gardenClaimed = {
+      direction: "REQUEST",
+      counterpartyKind: "GARDEN",
+      creator: TAKER,
+      leadProvider: STEWARD,
+      counterparty: ACCOUNT,
+      confirmers: [],
+    };
+    mocks.roles.mockReturnValue({ roles: [], isLoading: false, error: null });
+    mocks.getCommitmentDetail.mockResolvedValue(detail(gardenClaimed));
+
+    const lead = render();
+    await waitFor(() => expect(lead.result.current.commitment).not.toBeNull());
+    expect(lead.result.current.seat).toBe("provider");
+    expect(lead.result.current.can.raiseDispute).toBe(false);
+    lead.unmount();
+
+    // The same record read by its creator, who the contract does authorize.
+    mocks.getCommitmentDetail.mockResolvedValue(detail({ ...gardenClaimed, creator: STEWARD }));
+    const creator = render();
+    await waitFor(() => expect(creator.result.current.commitment).not.toBeNull());
+    expect(creator.result.current.can.raiseDispute).toBe(true);
+    creator.unmount();
+
+    // As is a named confirmer who is neither party.
+    mocks.getCommitmentDetail.mockResolvedValue(
+      detail({ ...gardenClaimed, confirmers: [STEWARD] })
+    );
+    const named = render();
+    await waitFor(() => expect(named.result.current.commitment).not.toBeNull());
+    expect(named.result.current.can.raiseDispute).toBe(true);
   });
 
   it("reports a failed timeline read instead of rendering an empty one", async () => {

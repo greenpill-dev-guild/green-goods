@@ -89,17 +89,34 @@ const SEASON = {
  * would, and the reader answers from it, so "what landed" is only ever what
  * the fake chain holds.
  */
+type FakeCycle = {
+  state: number;
+  allocation?: typeof MODEL_ONE;
+  recognitionPolicy?: typeof RECOGNITION;
+};
+
+/** A cycle that has not opened carries zeroed snapshots, as the struct does. */
+const NO_ALLOCATION = {
+  gardeners: 0,
+  treasury: 0,
+  operator: 0,
+  evaluator: 0,
+  community: 0,
+  funder: 0,
+};
+const NO_RECOGNITION = { equalParticipationBps: 0, verifiedContributionBps: 0 };
+
 function fakeChain(initial: {
   poolState: number;
   charterCID?: string;
   cap?: bigint;
-  cycles?: Record<string, { state: number }>;
+  cycles?: Record<string, FakeCycle>;
 }) {
   const chain = {
     poolState: initial.poolState,
     charterCID: initial.charterCID ?? "",
     cap: initial.cap ?? 0n,
-    cycles: new Map(Object.entries(initial.cycles ?? {})),
+    cycles: new Map<string, FakeCycle>(Object.entries(initial.cycles ?? {})),
     nextCycleId: 40n,
     seededByHash: new Map<string, bigint>(),
     hashes: 0,
@@ -114,7 +131,12 @@ function fakeChain(initial: {
     readProviderCap: async () => chain.cap,
     readCycle: async (cycleId: bigint) => {
       const cycle = chain.cycles.get(cycleId.toString());
-      return { state: cycle?.state ?? 0, poolId: POOL_ID };
+      return {
+        state: cycle?.state ?? 0,
+        poolId: POOL_ID,
+        allocation: cycle?.allocation ?? NO_ALLOCATION,
+        recognitionPolicy: cycle?.recognitionPolicy ?? NO_RECOGNITION,
+      };
     },
     readSeededCycleId: async (hash: string) => chain.seededByHash.get(hash) ?? null,
   };
@@ -140,7 +162,12 @@ function fakeChain(initial: {
         break;
       }
       case "openCycle":
-        chain.cycles.set(String(call.args[0]), { state: CYCLE.OPEN });
+        // The contract snapshots both structs here and never lets them move.
+        chain.cycles.set(String(call.args[0]), {
+          state: CYCLE.OPEN,
+          allocation: call.args[1] as typeof MODEL_ONE,
+          recognitionPolicy: call.args[2] as typeof RECOGNITION,
+        });
         break;
     }
     return { hash, sponsored: false };
@@ -329,6 +356,96 @@ describe("useCommitmentPoolSetupSequence", () => {
     expect(sentFunctions()).toEqual(["openCycle"]);
     // The pool was open before the run; the step is reported landed, not sent.
     expect(alreadyOpen.result.current.state.landed).toEqual(["openPool", "openCycle"]);
+  });
+
+  it("refuses an open cycle whose stored terms are not the ones this run planned", async () => {
+    // Another steward opened the same seeded season on a different split while
+    // this flow was up. Both snapshots are fixed at open, so reading OPEN is
+    // not this step landing: the planned terms were never stored and never can be.
+    const other = fakeChain({
+      poolState: POOL.OPEN,
+      cycles: {
+        "13": {
+          state: CYCLE.OPEN,
+          allocation: { ...MODEL_ONE, gardeners: 5000, treasury: 2500 },
+          recognitionPolicy: RECOGNITION,
+        },
+      },
+    });
+    mocks.sender.sendContractCall.mockImplementation(async (call) => other.apply(call));
+    const { result } = renderSequence(other.reader);
+
+    await act(async () => {
+      await result.current.run(
+        openSeasonSteps({
+          poolId: POOL_ID,
+          cycleId: 13n,
+          allocation: MODEL_ONE,
+          recognitionPolicy: RECOGNITION,
+        })
+      );
+    });
+
+    expect(result.current.state.status).toBe("failed");
+    expect(result.current.state.failedStep).toBe("openCycle");
+    expect(result.current.state.failure).toBe("cycle-terms-mismatch");
+    // The pool was open already, so that step is landed; nothing was sent, and
+    // no retry is offered because no repeat can rewrite an opened cycle.
+    expect(result.current.state.landed).toEqual(["openPool"]);
+    expect(mocks.sender.sendContractCall).not.toHaveBeenCalled();
+    expect(isRetriablePoolSetupFailure(result.current.state.failure)).toBe(false);
+
+    // The recognition policy is half of the snapshot and refuses on its own.
+    const policy = fakeChain({
+      poolState: POOL.OPEN,
+      cycles: {
+        "14": {
+          state: CYCLE.OPEN,
+          allocation: MODEL_ONE,
+          recognitionPolicy: { equalParticipationBps: 2000, verifiedContributionBps: 8000 },
+        },
+      },
+    });
+    const second = renderSequence(policy.reader);
+    await act(async () => {
+      await second.result.current.run(
+        openSeasonSteps({
+          poolId: POOL_ID,
+          cycleId: 14n,
+          allocation: MODEL_ONE,
+          recognitionPolicy: RECOGNITION,
+        })
+      );
+    });
+    expect(second.result.current.state.failure).toBe("cycle-terms-mismatch");
+  });
+
+  it("still reports an open cycle landed when it carries exactly the planned terms", async () => {
+    // The other half of the guard: a cycle this run already opened, judged
+    // again on a retry, must not be refused as somebody else's.
+    const { reader, apply } = fakeChain({
+      poolState: POOL.OPEN,
+      cycles: {
+        "13": { state: CYCLE.OPEN, allocation: MODEL_ONE, recognitionPolicy: RECOGNITION },
+      },
+    });
+    mocks.sender.sendContractCall.mockImplementation(async (call) => apply(call));
+    const { result } = renderSequence(reader);
+
+    await act(async () => {
+      await result.current.run(
+        openSeasonSteps({
+          poolId: POOL_ID,
+          cycleId: 13n,
+          allocation: MODEL_ONE,
+          recognitionPolicy: RECOGNITION,
+        })
+      );
+    });
+
+    expect(result.current.state.status).toBe("complete");
+    expect(result.current.state.landed).toEqual(["openPool", "openCycle"]);
+    expect(mocks.sender.sendContractCall).not.toHaveBeenCalled();
   });
 
   it("seeds and opens a campaign beside the open season", async () => {

@@ -108,14 +108,58 @@ describe("createPoolChainReader", () => {
     );
   });
 
-  it("reads the cycle through getCycle", async () => {
-    mocks.readContract.mockResolvedValue({ state: 1, poolId: 7n });
+  it("reads the cycle through getCycle, snapshots and all", async () => {
+    // An open cycle carries the allocation and recognition policy `openCycle`
+    // stored; the sequence compares them before it calls the step landed.
+    mocks.readContract.mockResolvedValue({
+      state: 2,
+      poolId: 7n,
+      allocation: {
+        gardeners: 6000,
+        treasury: 1500,
+        operator: 1000,
+        evaluator: 500,
+        community: 500,
+        funder: 500,
+      },
+      recognitionPolicy: { equalParticipationBps: 2000, verifiedContributionBps: 8000 },
+    });
 
-    expect(await createPoolChainReader(42161).readCycle(12n)).toEqual({ state: 1, poolId: 7n });
+    expect(await createPoolChainReader(42161).readCycle(12n)).toEqual({
+      state: 2,
+      poolId: 7n,
+      allocation: {
+        gardeners: 6000,
+        treasury: 1500,
+        operator: 1000,
+        evaluator: 500,
+        community: 500,
+        funder: 500,
+      },
+      recognitionPolicy: { equalParticipationBps: 2000, verifiedContributionBps: 8000 },
+    });
     expect(mocks.readContract).toHaveBeenCalledWith(
       { mocked: true },
       expect.objectContaining({ address: MODULE, functionName: "getCycle", args: [12n] })
     );
+  });
+
+  it("reads a seeded cycle's empty snapshots as zeroes", async () => {
+    mocks.readContract.mockResolvedValue({ state: 1, poolId: 7n });
+
+    expect(await createPoolChainReader(42161).readCycle(12n)).toEqual({
+      state: 1,
+      poolId: 7n,
+      allocation: {
+        gardeners: 0,
+        treasury: 0,
+        operator: 0,
+        evaluator: 0,
+        community: 0,
+        funder: 0,
+      },
+      recognitionPolicy: { equalParticipationBps: 0, verifiedContributionBps: 0 },
+    });
   });
 
   it("finds the seeded cycle id in the receipt's CycleSeeded log for this pool", async () => {

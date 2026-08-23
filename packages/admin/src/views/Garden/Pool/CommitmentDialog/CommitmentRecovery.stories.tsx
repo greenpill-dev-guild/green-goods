@@ -12,7 +12,7 @@ const meta: Meta<typeof CommitmentRecovery> = {
     docs: {
       description: {
         component:
-          "What a steward can do while a commitment sits accepted and the ordinary path has stalled: mark it ready, attach the assessment it waits on, or call it off. Each act records a reason, and the member reads that reason rather than the bare state.",
+          "What a steward can do while a commitment sits accepted and the ordinary path has stalled: mark it ready, attach the assessment it waits on, or call it off. Each act records a reason, and the member reads that reason rather than the bare state. The override reads differently for a proof-only record than for a Work-backed one, but both are offered it.",
       },
     },
   },
@@ -43,6 +43,10 @@ export const AssessmentRequired: Story = {
   },
 };
 
+/**
+ * A Work-backed record whose requirements stalled. The override is the only
+ * recovery the chain offers it, so the row is here too — in its own words.
+ */
 export const WorkBacked: Story = {
   args: { evidenceOnly: false },
 };

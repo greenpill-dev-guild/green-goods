@@ -98,6 +98,18 @@ function failureMessage(
         defaultMessage:
           "The chain could not be read, so setup stopped where it was. What landed stays landed; try again when the connection is steady.",
       });
+    case "cycle-terms-mismatch":
+      return isCampaign
+        ? formatMessage({
+            id: "cockpit.garden.pool.setup.failure.termsMismatchCampaign",
+            defaultMessage:
+              "This campaign is already open, on a different split from the one written here. A split is fixed the moment a cycle opens, so it cannot be changed now. Close this and read the terms it carries on the pool tab.",
+          })
+        : formatMessage({
+            id: "cockpit.garden.pool.setup.failure.termsMismatchSeason",
+            defaultMessage:
+              "This season is already open, on a different split from the one written here. A split is fixed the moment a cycle opens, so it cannot be changed now. Close this and read the terms it carries on the pool tab.",
+          });
     case "seed-unconfirmed":
       return isCampaign
         ? formatMessage({

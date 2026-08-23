@@ -19,12 +19,39 @@ import {
   CommitmentRegistryABI,
   getNetworkContracts,
 } from "../../utils/blockchain/contracts";
+import type { CommitmentAllocationBps, CommitmentRecognitionPolicyBps } from "./pool-lifecycle";
 import type { PoolChainReader } from "./pool-setup";
 
 type RawStruct = Record<string, unknown>;
 
 function asRecord(value: unknown): RawStruct {
   return value && typeof value === "object" ? (value as RawStruct) : {};
+}
+
+function bps(value: unknown): number {
+  return Number((value as bigint | number | undefined) ?? 0);
+}
+
+/** The `AllocationBps` snapshot `openCycle` stored; all zeroes before it. */
+function allocationOf(value: unknown): CommitmentAllocationBps {
+  const raw = asRecord(value);
+  return {
+    gardeners: bps(raw.gardeners),
+    treasury: bps(raw.treasury),
+    operator: bps(raw.operator),
+    evaluator: bps(raw.evaluator),
+    community: bps(raw.community),
+    funder: bps(raw.funder),
+  };
+}
+
+/** The `RecognitionPolicy` snapshot beside it, read the same way. */
+function recognitionPolicyOf(value: unknown): CommitmentRecognitionPolicyBps {
+  const raw = asRecord(value);
+  return {
+    equalParticipationBps: bps(raw.equalParticipationBps),
+    verifiedContributionBps: bps(raw.verifiedContributionBps),
+  };
 }
 
 export function createPoolChainReader(chainId: number): PoolChainReader {
@@ -70,6 +97,8 @@ export function createPoolChainReader(chainId: number): PoolChainReader {
       return {
         state: Number(cycle.state ?? 0),
         poolId: BigInt((cycle.poolId as bigint | number | undefined) ?? 0),
+        allocation: allocationOf(cycle.allocation),
+        recognitionPolicy: recognitionPolicyOf(cycle.recognitionPolicy),
       };
     },
     async readSeededCycleId(hash: Hex, poolId) {

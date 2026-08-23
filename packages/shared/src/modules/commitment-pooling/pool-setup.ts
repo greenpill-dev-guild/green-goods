@@ -12,8 +12,9 @@
  * predicate over the module's own reads (`getPool`, `getCycle`, the
  * register's cap, the `CycleSeeded` log of the seeding receipt), never over
  * what the app remembers sending, so a write that was mined but reported as
- * failed is recognised on retry and only the unlanded call is sent again. The
- * sequence hook runs the steps; this module plans them and judges them.
+ * failed is recognised on retry and only the unlanded call is sent again. This
+ * module plans the steps and names the failures they stop on;
+ * `pool-setup-verdicts.ts` judges them and the sequence hook runs them.
  *
  * @module modules/commitment-pooling/pool-setup
  */
@@ -23,30 +24,8 @@ import type { Hex } from "viem";
 import type {
   CommitmentAllocationBps,
   CommitmentCycleTypeInput,
-  CommitmentPoolMutationCall,
   CommitmentRecognitionPolicyBps,
 } from "./pool-lifecycle";
-
-/** `ICommitmentPoolingModule.PoolState`, by code. */
-export const POOL_STATE_CODE = {
-  NONE: 0,
-  NOT_READY: 1,
-  READY: 2,
-  OPEN: 3,
-  PAUSED: 4,
-  CLOSED: 5,
-  COMPOSTED: 6,
-} as const;
-
-/** `ICommitmentPoolingModule.CycleState`, by code. */
-export const CYCLE_STATE_CODE = {
-  NONE: 0,
-  SEEDED: 1,
-  OPEN: 2,
-  RECONCILED: 3,
-  COMPOSTED: 4,
-  CANCELLED: 5,
-} as const;
 
 export interface PoolChainPoolRead {
   state: number;
@@ -58,6 +37,13 @@ export interface PoolChainPoolRead {
 export interface PoolChainCycleRead {
   state: number;
   poolId: bigint;
+  /**
+   * The two snapshots `openCycle` writes. Both read as zeroes until the cycle
+   * opens and are immutable for the rest of its life (`CyclesLib.openCycle`),
+   * so an Open cycle carrying other terms can never be corrected to these.
+   */
+  allocation: CommitmentAllocationBps;
+  recognitionPolicy: CommitmentRecognitionPolicyBps;
 }
 
 /** What the sequence reads from the chain. The default reads the module. */
@@ -119,6 +105,7 @@ export type PoolSetupFailure =
   | "pool-paused"
   | "cycle-id-unknown"
   | "cycle-terminal"
+  | "cycle-terms-mismatch"
   | "send-failed"
   | "not-confirmed"
   | "read-failed"
@@ -133,6 +120,10 @@ export type PoolSetupFailure =
  * any later read — so once a `seedCycle` outcome is unknown, sending it again
  * risks a second, orphaned cycle. That run fails closed and the steward
  * refetches the pool instead.
+ *
+ * `cycle-terms-mismatch` is absent for the opposite reason: the cycle is
+ * already open on someone else's terms, and both snapshots are immutable, so
+ * no repeat of the run can ever store the planned ones.
  */
 const RETRIABLE_FAILURES = new Set<PoolSetupFailure>([
   "send-failed",
@@ -236,107 +227,6 @@ export interface PoolSetupRunContext {
   cycleId: bigint | null;
 }
 
-export type PoolStepVerdict = { landed: boolean; refused?: PoolSetupFailure };
-
-const POOL_STATES_AT_LEAST_READY = new Set<number>([
-  POOL_STATE_CODE.READY,
-  POOL_STATE_CODE.OPEN,
-  POOL_STATE_CODE.PAUSED,
-]);
-const POOL_STATES_FINISHED = new Set<number>([POOL_STATE_CODE.CLOSED, POOL_STATE_CODE.COMPOSTED]);
-const CYCLE_STATES_TERMINAL = new Set<number>([
-  CYCLE_STATE_CODE.RECONCILED,
-  CYCLE_STATE_CODE.COMPOSTED,
-  CYCLE_STATE_CODE.CANCELLED,
-]);
-
-/** The cycle an `openCycle` step targets, once known. */
-export function resolveStepCycleId(
-  step: Extract<PoolSetupStep, { action: "openCycle" }>,
-  context: PoolSetupRunContext
-): bigint | null {
-  return step.cycleId === "seeded" ? context.cycleId : step.cycleId;
-}
-
-/**
- * Whether a step has already taken effect on chain. Asked before every send
- * and again after it, so the sequence's record of what landed is only ever
- * what the module reports.
- */
-export async function judgeStep(
-  step: PoolSetupStep,
-  reader: PoolChainReader,
-  context: PoolSetupRunContext
-): Promise<PoolStepVerdict> {
-  switch (step.action) {
-    case "setPoolCharter": {
-      const pool = await reader.readPool(step.poolId);
-      return { landed: pool.charterCID === step.charterCID };
-    }
-    case "setProviderOpenCommitmentCap":
-      return { landed: (await reader.readProviderCap(step.poolId)) === step.cap };
-    case "markPoolReady": {
-      const pool = await reader.readPool(step.poolId);
-      if (POOL_STATES_FINISHED.has(pool.state)) return { landed: false, refused: "pool-closed" };
-      return { landed: POOL_STATES_AT_LEAST_READY.has(pool.state) };
-    }
-    case "seedCycle": {
-      if (context.cycleId !== null) {
-        const cycle = await reader.readCycle(context.cycleId);
-        return {
-          landed: cycle.state === CYCLE_STATE_CODE.SEEDED || cycle.state === CYCLE_STATE_CODE.OPEN,
-        };
-      }
-      if (step.refuseIfPoolHasLiveCycle) {
-        const pool = await reader.readPool(step.poolId);
-        if (pool.nonTerminalCycleCount > 0) return { landed: false, refused: "existing-cycle" };
-      }
-      return { landed: false };
-    }
-    case "openPool": {
-      const pool = await reader.readPool(step.poolId);
-      if (pool.state === POOL_STATE_CODE.OPEN) return { landed: true };
-      if (pool.state === POOL_STATE_CODE.PAUSED) return { landed: false, refused: "pool-paused" };
-      if (POOL_STATES_FINISHED.has(pool.state)) return { landed: false, refused: "pool-closed" };
-      return { landed: false };
-    }
-    case "openCycle": {
-      const cycleId = resolveStepCycleId(step, context);
-      if (cycleId === null) return { landed: false, refused: "cycle-id-unknown" };
-      const cycle = await reader.readCycle(cycleId);
-      if (cycle.state === CYCLE_STATE_CODE.OPEN) return { landed: true };
-      if (CYCLE_STATES_TERMINAL.has(cycle.state))
-        return { landed: false, refused: "cycle-terminal" };
-      return { landed: false };
-    }
-  }
-}
-
-/** The contract call a step sends, once its cycle id is known. */
-export function stepToCall(
-  step: PoolSetupStep,
-  context: PoolSetupRunContext
-): CommitmentPoolMutationCall | null {
-  switch (step.action) {
-    case "setPoolCharter":
-      return { action: "setPoolCharter", poolId: step.poolId, charterCID: step.charterCID };
-    case "setProviderOpenCommitmentCap":
-      return { action: "setProviderOpenCommitmentCap", poolId: step.poolId, cap: step.cap };
-    case "markPoolReady":
-      return { action: "markPoolReady", poolId: step.poolId };
-    case "seedCycle":
-      return { action: "seedCycle", poolId: step.poolId, ...step.cycle };
-    case "openPool":
-      return { action: "openPool", poolId: step.poolId };
-    case "openCycle": {
-      const cycleId = resolveStepCycleId(step, context);
-      if (cycleId === null) return null;
-      return {
-        action: "openCycle",
-        cycleId,
-        allocation: step.allocation,
-        recognitionPolicy: step.recognitionPolicy,
-      };
-    }
-  }
-}
+// The judging half lives beside this one for file-length reasons; it stays
+// part of this module's surface so callers keep importing from one place.
+export * from "./pool-setup-verdicts";
