@@ -10,15 +10,13 @@ import {
   hasOctantEthereumChainId,
   hasPositiveBaseUnitAmount,
   hasText,
+  type OctantVaultCampaignManifest,
+  type OctantVaultCampaignManifestStatus,
+  type OctantVaultManifestField,
   unique,
   validateOctantVaultCampaignManifest,
   validateOctantVaultCardEndowManifest,
   validateOctantVaultWalletEndowManifest,
-} from "./manifest";
-import type {
-  OctantVaultCampaignManifest,
-  OctantVaultCampaignManifestStatus,
-  OctantVaultManifestField,
 } from "./manifest";
 
 export const OCTANT_VAULT_ROUTE_MANAGEMENT_URL = "/vaults?manage=positions" as const;

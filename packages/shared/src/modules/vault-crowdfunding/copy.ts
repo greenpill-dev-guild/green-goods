@@ -2,16 +2,14 @@ import enMessages from "../../i18n/en.json";
 import {
   EVMAVERICKS_REQUIRED_MANIFEST_FIELDS,
   GREENPILL_NYC_REQUIRED_MANIFEST_FIELDS,
+  type KnownOctantVaultCampaignSlug,
   OCTANT_V2_ETHEREUM_CHAIN_ID,
-} from "./manifest";
-import type {
-  KnownOctantVaultCampaignSlug,
-  OctantVaultCampaignAssetManifest,
-  OctantVaultCampaignManifest,
-  OctantVaultCampaignSlug,
-  OctantVaultManifestField,
-  OctantVaultStrategyFactoryEvidence,
-  OctantVaultYieldSource,
+  type OctantVaultCampaignAssetManifest,
+  type OctantVaultCampaignManifest,
+  type OctantVaultCampaignSlug,
+  type OctantVaultManifestField,
+  type OctantVaultStrategyFactoryEvidence,
+  type OctantVaultYieldSource,
 } from "./manifest";
 
 export interface OctantVaultCampaignCopy {

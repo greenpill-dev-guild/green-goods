@@ -10,18 +10,16 @@ import {
 } from "./card-endow";
 import {
   addressesMatch,
-  hasAddress,
   hasText,
-  hasTransactionHash,
+  type OctantVaultCampaignManifest,
   transactionHashesMatch,
   unique,
   validateOctantVaultCardEndowManifest,
 } from "./manifest";
-import type { OctantVaultCampaignManifest } from "./manifest";
-import { validateOctantVaultRouteManageProof } from "./route-manage";
-import type {
+import {
   OctantVaultRouteManageProofInput,
   OctantVaultRouteManageProofValidation,
+  validateOctantVaultRouteManageProof,
 } from "./route-manage";
 
 export type OctantVaultCardDonateIntentKind = "card_donate";

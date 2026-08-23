@@ -2,12 +2,11 @@ import type { Address } from "../../types/domain";
 import {
   addressesMatch,
   hasAddress,
-  hasOctantEthereumChainId,
   hasPositiveShareBalance,
   hasText,
+  type OctantVaultCampaignManifest,
   validateOctantVaultCardEndowManifest,
 } from "./manifest";
-import type { OctantVaultCampaignManifest } from "./manifest";
 
 export type OctantVaultCardEndowIntentKind = "card_endow";
 

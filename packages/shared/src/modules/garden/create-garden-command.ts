@@ -1,6 +1,5 @@
 import { waitForTransactionReceipt } from "@wagmi/core";
-import type { WalletClient } from "viem";
-import { formatEther } from "viem";
+import { formatEther, type WalletClient } from "viem";
 import { getWagmiConfig } from "../../config/appkit";
 import { getChain } from "../../config/chains";
 import type { CreateGardenParams } from "../../types/contracts";

@@ -3,9 +3,9 @@ import {
   hasAddress,
   hasOctantEthereumChainId,
   hasText,
+  type OctantVaultCampaignManifest,
   validateOctantVaultWalletEndowManifest,
 } from "./manifest";
-import type { OctantVaultCampaignManifest } from "./manifest";
 
 export type OctantVaultWalletEndowIntentKind = "wallet_endow";
 

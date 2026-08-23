@@ -25,7 +25,7 @@ export {
   mapWorkAttribution,
   rowsByIds,
 } from "./data-commitment-mappers";
-import { getCommitmentCycleId, getCommitmentId } from "./ids";
+import { getCommitmentId } from "./ids";
 import type {
   CommitmentClaimRequestRecord,
   CommitmentContributorRecord,

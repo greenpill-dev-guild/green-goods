@@ -173,8 +173,8 @@ function mapVaultEvent(row: VaultEventRow): VaultEvent {
     vaultAddress: address(row.vaultAddress),
     eventType: row.eventType as VaultEventType,
     actor: address(row.actor),
-    amount: row.amount == null ? null : bigint(row.amount),
-    shares: row.shares == null ? null : bigint(row.shares),
+    amount: row.amount === null || row.amount === undefined ? null : bigint(row.amount),
+    shares: row.shares === null || row.shares === undefined ? null : bigint(row.shares),
     txHash: txHash as `0x${string}`,
     timestamp: row.timestamp ?? 0,
   };
