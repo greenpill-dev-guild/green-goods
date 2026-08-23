@@ -113,9 +113,9 @@ jobs:
       - name: Setup JavaScript toolchain and dependencies
         uses: ./.github/actions/setup-js
 
-      - name: Run shared tests with coverage
+      - name: Run shared tests
         working-directory: packages/shared
-        run: bun run coverage
+        run: bun run test
         env:
           CI: true
 

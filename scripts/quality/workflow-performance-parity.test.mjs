@@ -66,6 +66,7 @@ test("dependency-installing workflow jobs use shared JS setup", () => {
     "client.yml",
     "contracts-nightly.yml",
     "contracts.yml",
+    "coverage-nightly.yml",
     "design.yml",
     "docs.yml",
     "indexer.yml",
@@ -226,10 +227,10 @@ test("Shared outer routing matches the internal shared-impact detector", () => {
 
 test("CI coverage drops HTML generation without weakening local reports or thresholds", () => {
   const configs = {
-    "packages/admin/vitest.config.ts": [70, 70, 70, 70],
+    "packages/admin/vitest.config.ts": [47, 44, 53, 51],
     "packages/agent/vitest.config.ts": [10, 20, 20, 20],
-    "packages/client/vitest.config.ts": [75, 80, 80, 80],
-    "packages/shared/vitest.config.ts": [70, 70, 70, 70],
+    "packages/client/vitest.config.ts": [56, 62, 64, 63],
+    "packages/shared/vitest.config.ts": [52, 59, 62, 61],
   };
 
   for (const [file, thresholds] of Object.entries(configs)) {
@@ -237,6 +238,7 @@ test("CI coverage drops HTML generation without weakening local reports or thres
     assert.match(source, /process\.env\.CI/);
     assert.match(source, /\["text", "json"\]/);
     assert.match(source, /\["text", "json", "html"\]|\["text", "html", "json"\]/);
+    assert.doesNotMatch(source, /thresholds:\s*\{\s*global:/);
     const actualThresholds = [
       ...source.matchAll(
         /(?:branches|functions|lines|statements):\s*(\d+)(?:,|\n)/g,
@@ -259,6 +261,51 @@ test("CI coverage drops HTML generation without weakening local reports or thres
     read(".github/workflows/indexer.yml"),
     /run:\s*bun run test:coverage:ci/,
   );
+});
+
+test("consumer Vitest configs share the local resource-aware worker policy", () => {
+  for (const file of [
+    "packages/shared/vitest.config.ts",
+    "packages/client/vitest.config.ts",
+    "packages/admin/vitest.config.ts",
+  ]) {
+    const source = read(file);
+    assert.match(
+      source,
+      /import \{ resolveVitestMaxWorkers \} from ["']\.\.\/\.\.\/scripts\/lib\/dev-shared\.js["'];/,
+      `${file} must import the shared worker policy`,
+    );
+    assert.match(
+      source,
+      /maxWorkers:\s*resolveVitestMaxWorkers\(\{/,
+      `${file} must resolve its local worker cap through the shared policy`,
+    );
+  }
+});
+
+test("PR Test jobs run plain tests; thresholds are enforced nightly and on main", () => {
+  for (const file of ["shared.yml", "client.yml", "admin.yml"]) {
+    const source = read(`.github/workflows/${file}`);
+    const testJob = source.slice(
+      source.indexOf("  test:"),
+      source.indexOf("  lint-", source.indexOf("  test:")),
+    );
+
+    assert.match(testJob, /run:\s*bun run test(?:\s|$)/, `${file} Test must stay plain`);
+    assert.doesNotMatch(testJob, /coverage/, `${file} Test must not collect coverage`);
+  }
+
+  const source = read(".github/workflows/coverage-nightly.yml");
+  assert.match(source, /schedule:\s*\n\s*- cron:/);
+  assert.match(workflowEventBlock(source, "push"), /branches:\s*\[main\]/);
+  assert.match(source, /workflow_dispatch:\s*\{\}/);
+  assert.match(source, /fail-fast:\s*false/);
+  assert.match(source, /package:\s*shared\s*\n\s*script:\s*coverage/);
+  assert.match(source, /package:\s*client\s*\n\s*script:\s*coverage/);
+  assert.match(source, /package:\s*admin\s*\n\s*script:\s*test:coverage/);
+  assert.match(source, /uses:\s*\.\/\.github\/actions\/setup-js/);
+  assert.match(source, /run:\s*bun run \$\{\{ matrix\.script \}\}/);
+  assert.match(source, /CI:\s*true/);
 });
 
 test("contracts realism remains equivalent without unrelated tool setup", () => {

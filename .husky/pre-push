@@ -34,6 +34,7 @@ on_failure() {
   echo "   To fix locally, run:"
   echo "     bun run format && bun run format:contracts"
   echo "     bun run lint"
+  echo "     bun run design:generate"
   echo "   Then commit (or amend) and push again."
   exit $status
 }
@@ -48,6 +49,18 @@ $RUNNER format:contracts:check
 # 2. Lint check (non-mutating)
 echo "🔎 Running linter..."
 $RUNNER lint
+
+# 3. Source structure check (scoped to commits being pushed when possible)
+echo "🏗️  Checking source structure..."
+if git rev-parse --verify --quiet origin/develop >/dev/null; then
+  SOURCE_STRUCTURE_BASE_REF="${SOURCE_STRUCTURE_BASE_REF:-origin/develop}" $RUNNER check:source-structure
+else
+  $RUNNER check:source-structure
+fi
+
+# 4. Generated design artifact check
+echo "🎨 Checking generated design artifacts..."
+$RUNNER check:design-generated
 
 trap - EXIT
 echo "✅ Pre-push checks passed!"

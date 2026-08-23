@@ -9,12 +9,14 @@
  * itself under a non-Bun Node and then launches the requested local CLI.
  */
 
-import { accessSync, constants, readdirSync, realpathSync } from "node:fs";
-import { homedir } from "node:os";
+import { accessSync, constants, realpathSync } from "node:fs";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
-import { reexecUnderSystemNodeIfNeeded } from "../lib/dev-shared.js";
+import {
+  reexecUnderCompatibleNodeIfNeeded,
+  reexecUnderSystemNodeIfNeeded,
+} from "../lib/dev-shared.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -44,74 +46,6 @@ function executableExists(candidate) {
   } catch {
     return false;
   }
-}
-
-function findCompatibleNode() {
-  const executable = process.platform === "win32" ? "node.exe" : "node";
-  const pathEntries = (process.env.PATH || "").split(path.delimiter).filter(Boolean);
-  const candidates = [process.execPath];
-  if (process.env.NODE) candidates.push(process.env.NODE);
-
-  for (const entry of pathEntries) {
-    if (entry.includes("bun-node") || entry.includes(`${path.sep}.bun${path.sep}bin`)) continue;
-    candidates.push(path.join(entry, executable));
-  }
-
-  const miseShim = path.join(homedir(), ".local/share/mise/shims", executable);
-  candidates.push(miseShim);
-
-  const miseNodeRoot = path.join(homedir(), ".local/share/mise/installs/node");
-  try {
-    for (const version of readdirSync(miseNodeRoot).sort().reverse()) {
-      candidates.push(path.join(miseNodeRoot, version, "bin", executable));
-    }
-  } catch {
-    // mise is optional; PATH candidates above are enough on most machines.
-  }
-
-  const seen = new Set();
-  for (const candidate of candidates) {
-    if (!executableExists(candidate)) continue;
-    const key = `${candidate}:${realpathSync(candidate)}`;
-    if (seen.has(key)) continue;
-    seen.add(key);
-
-    const probe = spawnSync(
-      candidate,
-      ["-p", "process.versions.bun ? `bun:${process.versions.bun}` : process.versions.node"],
-      {
-        encoding: "utf8",
-        timeout: 2_000,
-      }
-    );
-    const version = (probe.stdout || "").trim();
-    if (version.startsWith("bun:")) continue;
-    if (version && isSupportedNodeVersion(version)) return candidate;
-  }
-
-  return "";
-}
-
-function reexecUnderCompatibleNodeIfNeeded() {
-  if (!process.versions.bun && isSupportedNodeVersion(process.versions.node)) return;
-  if (process.env.GREEN_GOODS_NODE_CLI_COMPAT_REEXEC === "1") return;
-
-  const compatibleNode = findCompatibleNode();
-  if (!compatibleNode || compatibleNode === realpathSync(process.execPath)) return;
-
-  const result = spawnSync(compatibleNode, [__filename, ...process.argv.slice(2)], {
-    cwd: process.cwd(),
-    env: {
-      ...process.env,
-      GREEN_GOODS_NODE_CLI_COMPAT_REEXEC: "1",
-      NODE: compatibleNode,
-      npm_node_execpath: compatibleNode,
-    },
-    stdio: "inherit",
-  });
-
-  if (result.error) return;
-  process.exit(result.status ?? (result.signal ? 1 : 0));
 }
 
 function assertCompatibleNode() {
@@ -160,7 +94,12 @@ function nodeFirstPath() {
 const [command, ...args] = process.argv.slice(2);
 if (!command || command === "--help" || command === "-h") usage(command ? 0 : 1);
 
-reexecUnderCompatibleNodeIfNeeded();
+reexecUnderCompatibleNodeIfNeeded({
+  scriptPath: __filename,
+  sentinel: "GREEN_GOODS_NODE_CLI_COMPAT_REEXEC",
+  cwd: process.cwd(),
+  isSupported: isSupportedNodeVersion,
+});
 assertCompatibleNode();
 
 const cliPath = resolveLocalCli(command);

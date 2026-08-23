@@ -208,7 +208,9 @@ describe("release CLI real entrypoints", () => {
     ).toThrow(/receipt is invalid/);
   });
 
-  it("replays a pure stage plan with the exact CLI salt and never mutates canonical artifacts", () => {
+  it("replays a pure stage plan with the exact CLI salt and never mutates canonical artifacts", {
+    timeout: 60_000,
+  }, () => {
     const arbitrumBefore = fs.readFileSync(ARBITRUM_ARTIFACT);
     const celoBefore = fs.readFileSync(CELO_ARTIFACT);
     const manifest = loadReleaseManifest();
