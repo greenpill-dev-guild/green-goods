@@ -70,11 +70,78 @@ and blockers.
 
 ## Validation Receipt
 
-- Tested implementation commit SHA: pending
-- Run at (UTC): pending
-- Exact command(s): pending
-- Result: pending
-- Validated paths: pending
-- Worktree identity command and result: pending
-- Evidence-only diff command and result (if applicable): pending
-- Evidence-only worktree-status command and result (if applicable): pending
+- Tested implementation commit SHA: `0c49a77986802e4bf457eed343f1e3192ba29a3b`
+- Run at (UTC): `2026-08-23T10:56:32Z`
+- Exact command(s):
+  - `bun run validation:plan -- --intent qa --changed packages/shared/src/__tests__/hooks/admin-ui/usePoolConsoleController.test.tsx --json`
+  - `bunx @biomejs/biome format --no-errors-on-unmatched 'packages/shared/src/__tests__/hooks/admin-ui/usePoolConsoleController.test.tsx'`
+  - `bunx @biomejs/biome lint --no-errors-on-unmatched 'packages/shared/src/__tests__/hooks/admin-ui/usePoolConsoleController.test.tsx'`
+  - `(cd packages/shared && bun run typecheck:tests)`
+  - `(cd packages/shared && bun run test src/__tests__/hooks/admin-ui/usePoolConsoleController.test.tsx)`
+  - `bun run --filter @green-goods/shared coverage -- src/__tests__/hooks/admin-ui/usePoolConsoleController.test.tsx --coverage.include=src/hooks/admin-ui/pool/usePoolConsoleController.ts --coverage.reporter=text`
+  - `bun run --filter @green-goods/shared typecheck:full`
+  - `SOURCE_STRUCTURE_BASE_REF=c00ea6ef64de134379ca6bec1f9c93a4fc31c43a bun run check:source-structure`
+  - `node -e '<read the suite and reject as-never, Record-string-unknown, and whole-Shared-barrel mock patterns>'`
+  - `git diff --exit-code c00ea6ef64de134379ca6bec1f9c93a4fc31c43a -- packages/shared/src/hooks/admin-ui/pool/usePoolConsoleController.ts`
+- Result: selector status `ready`; all four selected checks passed. The focused suite passed 11/11;
+  focused V8 coverage was 98.5% statements (66/67), 90.9% branches (40/44), 100%
+  functions (25/25), and 100% lines (61/61). Shared source and test typechecks passed, source
+  structure reported no changed non-test source, all three static searches were empty, and the
+  production controller matched the stacked parent exactly.
+- Validated paths:
+  - `packages/shared/src/__tests__/hooks/admin-ui/usePoolConsoleController.test.tsx`
+  - `packages/shared/src/hooks/admin-ui/pool/usePoolConsoleController.ts`
+- Worktree identity command and result: `git status --porcelain=v1 --untracked-files=all --
+  packages/shared/src/__tests__/hooks/admin-ui/usePoolConsoleController.test.tsx
+  packages/shared/src/hooks/admin-ui/pool/usePoolConsoleController.ts` returned no output at the
+  tested SHA.
+- Evidence-only diff command and result (if applicable): `git diff --exit-code
+  0c49a77986802e4bf457eed343f1e3192ba29a3b..HEAD --
+  packages/shared/src/__tests__/hooks/admin-ui/usePoolConsoleController.test.tsx
+  packages/shared/src/hooks/admin-ui/pool/usePoolConsoleController.ts packages/shared/package.json
+  packages/shared/vitest.config.ts scripts/dev/node-cli.js scripts/lib/dev-shared.js
+  scripts/quality/select-validation.mjs` exited 0 with no output.
+- Evidence-only worktree-status command and result (if applicable): `git status
+  --porcelain=v1 --untracked-files=all --
+  packages/shared/src/__tests__/hooks/admin-ui/usePoolConsoleController.test.tsx
+  packages/shared/src/hooks/admin-ui/pool/usePoolConsoleController.ts packages/shared/package.json
+  packages/shared/vitest.config.ts scripts/dev/node-cli.js scripts/lib/dev-shared.js
+  scripts/quality/select-validation.mjs` returned no output.
+
+## Test-only mutation proof
+
+- Timer condition mutant: changing `if (delay <= 0) return` to `if (delay > 0) return` made the
+  focused timer case fail because zero 30-second controller timers were armed instead of one.
+- No-pool settings mutant: replacing `requirePool()` with `poolId ?? 0n` made the no-pool case fail
+  because `saveSettings` resolved instead of rejecting with `This garden has no commitment pool`.
+- Both mutants were reverted immediately. The committed production controller is identical to the
+  stacked parent.
+
+## Acceptance evidence
+
+- The suite exercises all 12 typed acts: five pool lifecycle acts, three cycle acts, three claim or
+  expiry acts, and `saveSettings`.
+- `saveSettings` proves unchanged-value elision, pin then charter then cap ordering, exact payloads,
+  and a pin rejection stopping both writes.
+- The due-row case starts empty, observes one 30-second controller timer, reveals the due row after
+  the timer fires, and observes no second 30-second arm. A separate case proves unmount clears the
+  controller timer.
+- Real commitment-pooling query hooks consume exact pre-seeded pools, cycles, commitments, and pool
+  claims keys. The suite proves pool and dependent loading/error composition plus all four refetch
+  readers.
+
+## Selector contract
+
+| Check | Risk | Expected signal | Freshness | Stop rule | Result |
+|---|---|---|---|---|---|
+| format | Unformatted tracked files produce misleading package failures | Repository formatting is unchanged | exact inputs | stop dependent checks | passed, one file checked |
+| lint | Static defects cross package boundaries | Repository lint rules pass | exact inputs | stop dependent checks | passed; Biome reported zero applicable lint files |
+| shared test typecheck | Tests and stories violate strict TypeScript | Test and story graph has no errors | exact inputs and toolchain | stop dependent checks | passed |
+| shared test | Shared behavior regresses direct consumers | Focused Shared tests pass | exact inputs and toolchain | stop dependent checks | passed 11/11 |
+
+## Proof limits
+
+- This is a test-only lane. It changes no production behavior and makes no browser, integration,
+  network, or performance claim.
+- Error composition is driven through real React Query cache-state transitions; remote reader
+  retry policy is outside this controller boundary.

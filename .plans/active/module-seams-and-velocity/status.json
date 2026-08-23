@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p1",
     "created_at": "2026-08-23T02:50:35.809Z",
-    "updated_at": "2026-08-23T10:45:00.000Z"
+    "updated_at": "2026-08-23T10:56:32.000Z"
   },
   "links": {
     "brief": "brief.md",
@@ -387,10 +387,19 @@
     "pool_console_controller_suite": {
       "machine_lane": "state_api",
       "owner": "codex",
-      "status": "in_progress",
+      "status": "passed",
       "branch": "test/pool-console-controller",
       "depends_on": ["pool_controller_contracts_and_fixtures"],
-      "handoff": "handoffs/pool_console_controller_suite.md"
+      "handoff": "handoffs/pool_console_controller_suite.md",
+      "commit": "0c49a77986802e4bf457eed343f1e3192ba29a3b",
+      "tdd": {
+        "status": "green_recorded",
+        "red": "The timer-condition mutant failed because no 30-second controller timer was armed; the saveSettings guard mutant failed because the no-pool call resolved instead of rejecting.",
+        "green": "The focused controller suite passed 11/11 with all 12 acts executed and 100% line and function coverage."
+      },
+      "validation": "QA selector ready; every selected check, focused suite and coverage, Shared full typecheck, source structure, static searches, timer cleanup, and exact parent-source comparison passed",
+      "proof_limit": "Test-only lane: no production, browser, integration, network, or performance claim; error composition uses real React Query cache-state transitions rather than remote retry behavior",
+      "publication_status": "local stacked implementation commit validated; publication remains pending"
     },
     "hub_confirm_queue_controller_suite": {
       "machine_lane": "state_api",
