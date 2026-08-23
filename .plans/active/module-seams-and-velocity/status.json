@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p1",
     "created_at": "2026-08-23T02:50:35.809Z",
-    "updated_at": "2026-08-23T10:37:13.000Z"
+    "updated_at": "2026-08-23T10:45:00.000Z"
   },
   "links": {
     "brief": "brief.md",
@@ -387,10 +387,10 @@
     "pool_console_controller_suite": {
       "machine_lane": "state_api",
       "owner": "codex",
-      "status": "todo",
-      "branch": null,
+      "status": "in_progress",
+      "branch": "test/pool-console-controller",
       "depends_on": ["pool_controller_contracts_and_fixtures"],
-      "handoff": null
+      "handoff": "handoffs/pool_console_controller_suite.md"
     },
     "hub_confirm_queue_controller_suite": {
       "machine_lane": "state_api",
