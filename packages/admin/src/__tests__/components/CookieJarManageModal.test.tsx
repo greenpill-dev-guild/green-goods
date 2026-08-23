@@ -48,11 +48,20 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
           withdrawalInterval: 3600n,
           minDeposit: 0n,
           isPaused: false,
-          emergencyWithdrawalEnabled: false,
+          emergencyWithdrawalEnabled: true,
         },
       ],
       isLoading: false,
       moduleConfigured: true,
+    }),
+    useGardens: () => ({
+      data: [
+        {
+          id: "0xgarden",
+          tokenAddress: "0xgarden",
+          name: "Rocinha",
+        },
+      ],
     }),
   };
 });
@@ -97,6 +106,11 @@ const defaultProps = {
 describe("CookieJarManageModal", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockPause.mockReset();
+    mockUnpause.mockReset();
+    mockEmergencyWithdraw.mockReset();
+    mockUpdateMaxWithdrawal.mockReset();
+    mockUpdateInterval.mockReset();
   });
 
   it("shows edit buttons next to max withdrawal and cooldown when canManage is true", () => {
@@ -251,5 +265,31 @@ describe("CookieJarManageModal", () => {
 
     // After success, edit button should be back (not the input)
     expect(screen.getAllByRole("button", { name: /edit max withdrawal/i }).length).toBe(1);
+  });
+
+  it("keeps max withdrawal editing open after a failed mutation", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<CookieJarManageModal {...defaultProps} />);
+
+    await user.click(screen.getByRole("button", { name: /edit max withdrawal/i }));
+    const input = screen.getByRole("textbox");
+    await user.clear(input);
+    await user.type(input, "3");
+    await user.click(screen.getByRole("button", { name: /confirm max withdrawal/i }));
+
+    expect(mockUpdateMaxWithdrawal).toHaveBeenCalled();
+    expect(screen.getByRole("textbox")).toHaveValue("3");
+  });
+
+  it("keeps the emergency confirmation open after a failed mutation", async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<CookieJarManageModal {...defaultProps} isOwner />);
+
+    await user.click(screen.getByRole("button", { name: "Emergency Withdraw" }));
+    const confirmButtons = screen.getAllByRole("button", { name: "Emergency Withdraw" });
+    await user.click(confirmButtons.at(-1)!);
+
+    expect(mockEmergencyWithdraw).toHaveBeenCalled();
+    expect(screen.getByText(/Take 5 USDC from/i)).toBeInTheDocument();
   });
 });
