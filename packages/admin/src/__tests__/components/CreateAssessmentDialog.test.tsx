@@ -375,8 +375,10 @@ describe("CreateAssessment dialog", () => {
     // Pristine form: Escape must not raise the discard confirm — it exits
     // directly to the Hub workbench the flow was launched from (controller
     // handleCancel → adminRoutes.hub → the default /hub/work stage).
+    await waitFor(() => {
+      expect(router?.state.location.pathname).toBe("/hub/work");
+      expect(screen.queryByRole("dialog", { name: "Submit Assessment" })).not.toBeInTheDocument();
+    });
     expect(screen.queryByRole("button", { name: "Discard" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("dialog", { name: "Submit Assessment" })).not.toBeInTheDocument();
-    expect(router?.state.location.pathname).toBe("/hub/work");
   });
 });

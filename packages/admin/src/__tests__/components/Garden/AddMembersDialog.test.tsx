@@ -85,11 +85,12 @@ describe("components/Garden/AddMembersDialog", () => {
   });
 
   it("stages resolved addresses into the reserved list and clears the input", async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     render(createElement(AddMembersDialog, defaultProps));
 
     const input = screen.getByLabelText(/Ethereum Address or ENS Name/);
-    await user.type(input, ADDRESS_A);
+    await user.click(input);
+    await user.paste(ADDRESS_A);
     await user.click(screen.getByRole("button", { name: "Add" }));
 
     await waitFor(() => {
@@ -101,13 +102,15 @@ describe("components/Garden/AddMembersDialog", () => {
   });
 
   it("commits the staged batch for the selected role and closes on success", async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     render(createElement(AddMembersDialog, defaultProps));
 
     const input = screen.getByLabelText(/Ethereum Address or ENS Name/);
-    await user.type(input, ADDRESS_A);
+    await user.click(input);
+    await user.paste(ADDRESS_A);
     await user.click(screen.getByRole("button", { name: "Add" }));
-    await user.type(input, ADDRESS_B);
+    await user.click(input);
+    await user.paste(ADDRESS_B);
 
     // Typed-but-unstaged address folds into the batch — one staged + one typed.
     await user.click(screen.getByRole("button", { name: "Add 2 members" }));
@@ -123,7 +126,7 @@ describe("components/Garden/AddMembersDialog", () => {
   });
 
   it("keeps failed writes staged for retry and stays open", async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     const onAdd = vi
       .fn()
       .mockResolvedValueOnce({ success: false })
@@ -131,9 +134,11 @@ describe("components/Garden/AddMembersDialog", () => {
     render(createElement(AddMembersDialog, { ...defaultProps, onAdd }));
 
     const input = screen.getByLabelText(/Ethereum Address or ENS Name/);
-    await user.type(input, ADDRESS_A);
+    await user.click(input);
+    await user.paste(ADDRESS_A);
     await user.click(screen.getByRole("button", { name: "Add" }));
-    await user.type(input, ADDRESS_B);
+    await user.click(input);
+    await user.paste(ADDRESS_B);
     await user.click(screen.getByRole("button", { name: "Add 2 members" }));
 
     // First write failed → its address stays staged, the dialog stays open.
@@ -146,10 +151,12 @@ describe("components/Garden/AddMembersDialog", () => {
   });
 
   it("submits a typed address directly without requiring the stage step", async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     render(createElement(AddMembersDialog, defaultProps));
 
-    await user.type(screen.getByLabelText(/Ethereum Address or ENS Name/), ADDRESS_A);
+    const input = screen.getByLabelText(/Ethereum Address or ENS Name/);
+    await user.click(input);
+    await user.paste(ADDRESS_A);
     await user.click(screen.getByRole("button", { name: "Add 1 member" }));
 
     await waitFor(() => {
@@ -158,10 +165,12 @@ describe("components/Garden/AddMembersDialog", () => {
   });
 
   it("keeps invalid typed entries from becoming commit-ready", async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     render(createElement(AddMembersDialog, defaultProps));
 
-    await user.type(screen.getByLabelText(/Ethereum Address or ENS Name/), "not-a-wallet");
+    const input = screen.getByLabelText(/Ethereum Address or ENS Name/);
+    await user.click(input);
+    await user.paste("not-a-wallet");
 
     expect(screen.getByRole("button", { name: "Add" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Add 0 members" })).toBeDisabled();
@@ -169,11 +178,12 @@ describe("components/Garden/AddMembersDialog", () => {
   });
 
   it("confirms before discarding a staged batch on dialog dismiss", async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     render(createElement(AddMembersDialog, defaultProps));
 
     const input = screen.getByLabelText(/Ethereum Address or ENS Name/);
-    await user.type(input, ADDRESS_A);
+    await user.click(input);
+    await user.paste(ADDRESS_A);
     await user.click(screen.getByRole("button", { name: "Add" }));
     await waitFor(() => {
       expect(screen.getByTestId("staged-address")).toBeInTheDocument();
@@ -195,10 +205,12 @@ describe("components/Garden/AddMembersDialog", () => {
   });
 
   it("lets the footer Cancel exit directly without a discard confirm", async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     render(createElement(AddMembersDialog, defaultProps));
 
-    await user.type(screen.getByLabelText(/Ethereum Address or ENS Name/), ADDRESS_A);
+    const input = screen.getByLabelText(/Ethereum Address or ENS Name/);
+    await user.click(input);
+    await user.paste(ADDRESS_A);
     await user.click(screen.getByRole("button", { name: "Cancel" }));
 
     expect(screen.queryByText("Discard changes?")).not.toBeInTheDocument();

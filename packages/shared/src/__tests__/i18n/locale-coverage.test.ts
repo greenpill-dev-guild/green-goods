@@ -80,6 +80,14 @@ const descriptorIdPropNames = new Set([
   "ariaLabelId",
   "actionLabelId",
 ]);
+const sourceMessageTriggerTokens = [
+  "formatMessage",
+  "defineMessage",
+  "defineMessages",
+  "FormattedMessage",
+  "defaultMessage",
+  ...descriptorIdPropNames,
+];
 const allowedIdenticalLocalizedKeys = new Set([
   "app.admin.nav.cookieJars",
   "app.community.weightScheme.linear",
@@ -271,6 +279,10 @@ function walkSourceFiles(dir: string, files: string[] = []): string[] {
   return files;
 }
 
+function containsSourceMessageTrigger(source: string): boolean {
+  return sourceMessageTriggerTokens.some((token) => source.includes(token));
+}
+
 function collectSourceMessageRefs(): SourceMessageRef[] {
   const refs = new Map<string, SourceMessageRef>();
 
@@ -285,7 +297,10 @@ function collectSourceMessageRefs(): SourceMessageRef[] {
   };
 
   for (const file of sourceRoots.flatMap((root) => walkSourceFiles(root))) {
-    const source = parse(fs.readFileSync(file, "utf8"), {
+    const contents = fs.readFileSync(file, "utf8");
+    if (!containsSourceMessageTrigger(contents)) continue;
+
+    const source = parse(contents, {
       sourceFilename: file,
       sourceType: "unambiguous",
       plugins: file.endsWith(".tsx") ? ["typescript", "jsx"] : ["typescript"],
@@ -428,6 +443,19 @@ describe("i18n locale coverage", () => {
   });
 
   describe("Source usage coverage", () => {
+    it("recognizes every direct source message form before parsing", () => {
+      const directForms = [
+        'intl.formatMessage({ id: "app.direct.format" })',
+        'defineMessage({ id: "app.direct.define" })',
+        'defineMessages({ direct: { id: "app.direct.group" } })',
+        'const descriptor = { id: "app.direct.descriptor", defaultMessage: "Direct" }',
+        'const config = { titleId: "app.direct.title" }',
+        '<FormattedMessage id="app.direct.component" />',
+      ];
+
+      expect(directForms.every(containsSourceMessageTrigger)).toBe(true);
+    });
+
     it("should include every statically declared source message id in all locales", () => {
       const refs = collectSourceMessageRefs();
       const catalogs: Record<string, LocaleCatalog> = { en, es, pt };
