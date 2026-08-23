@@ -26,7 +26,7 @@
     "dev:doctor": "node scripts/dev/doctor.js",
     "ci:local": "node scripts/dev/ci-local.js",
     "validation:plan": "node scripts/dev/node-cli.js scripts/quality/select-validation.mjs",
-    "test:validation-system": "node scripts/dev/node-cli.js node --test scripts/quality/select-validation.test.mjs scripts/dev/ci-local.test.mjs scripts/dev/surface-leases.test.mjs scripts/quality/ci-gate.test.mjs scripts/quality/workflow-performance-parity.test.mjs",
+    "test:validation-system": "node scripts/dev/node-cli.js node --test scripts/lib/dev-shared.test.mjs scripts/quality/select-validation.test.mjs scripts/dev/ci-local.test.mjs scripts/dev/surface-leases.test.mjs scripts/quality/ci-gate.test.mjs scripts/quality/workflow-performance-parity.test.mjs",
     "env:template:init": "node scripts/dev/env-template-init.js",
     "env:sync": "node scripts/dev/env-sync.js",
     "env:bootstrap": "node scripts/dev/env-bootstrap.js",
