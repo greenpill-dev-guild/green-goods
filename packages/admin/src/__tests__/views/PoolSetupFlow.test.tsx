@@ -4,7 +4,9 @@
 
 import { type PoolConsoleController } from "@green-goods/shared";
 import {
+  type CommitmentCycleRecord,
   type CommitmentPoolRecord,
+  PoolDocumentPinError,
   type PoolSetupSequenceState,
   type PoolSetupStep,
   selectPoolConsoleModel,
@@ -15,8 +17,9 @@ import {
   poolFixture,
 } from "@green-goods/shared/testing";
 import { useState } from "react";
-import { createMemoryRouter, RouterProvider } from "react-router-dom";
+import { createMemoryRouter, RouterProvider, useNavigate } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { STEPS_BY_INTENT, type StepId } from "@/views/Garden/Pool/SetupFlow/setupFlowModel";
 import { fireEvent, renderWithProviders, screen, waitFor, within } from "../test-utils";
 
 const GARDEN = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" as const;
@@ -142,7 +145,11 @@ function controller(overrides: ControllerOverrides = {}): PoolConsoleController 
 }
 
 function renderFlow(
-  props: { intent?: "first-run" | "season" | "campaign"; console?: PoolConsoleController } = {}
+  props: {
+    intent?: keyof typeof STEPS_BY_INTENT;
+    console?: PoolConsoleController;
+    cycle?: CommitmentCycleRecord;
+  } = {}
 ) {
   const onClose = vi.fn();
   const router = createMemoryRouter(
@@ -153,6 +160,7 @@ function renderFlow(
           <PoolSetupFlow
             open
             intent={props.intent ?? "first-run"}
+            cycle={props.cycle}
             console={props.console ?? controller()}
             onClose={onClose}
           />
@@ -161,8 +169,32 @@ function renderFlow(
     ],
     { initialEntries: ["/garden/pool"] }
   );
+  const rendered = renderWithProviders(<RouterProvider router={router} />);
+  return { onClose, ...rendered };
+}
+
+function renderRoutedFlow() {
+  function RoutedFlow() {
+    const navigate = useNavigate();
+    return (
+      <PoolSetupFlow
+        open
+        intent="first-run"
+        console={controller()}
+        onClose={() => navigate("/hub")}
+      />
+    );
+  }
+
+  const router = createMemoryRouter(
+    [
+      { path: "/garden/pool", element: <RoutedFlow /> },
+      { path: "/hub", element: <p>Hub workspace</p> },
+    ],
+    { initialEntries: ["/garden/pool"] }
+  );
   renderWithProviders(<RouterProvider router={router} />);
-  return { onClose };
+  return router;
 }
 
 function dialog() {
@@ -179,6 +211,31 @@ async function fillHow() {
   });
   const capField = within(dialog()).getByLabelText(/how many commitments/i);
   fireEvent.change(capField, { target: { value: "24" } });
+}
+
+function assertStep(step: StepId) {
+  if (step === "how") {
+    expect(within(dialog()).getByLabelText(/what this pool is for/i)).toBeInTheDocument();
+  } else if (step === "cycle") {
+    expect(within(dialog()).getByLabelText(/^name/i)).toBeInTheDocument();
+  } else if (step === "split") {
+    expect(within(dialog()).getByText(/total: 100 %/i)).toBeInTheDocument();
+  } else {
+    expect(within(dialog()).getByRole("button", { name: /^open/i })).toBeInTheDocument();
+  }
+}
+
+function makePreparedCycle(type: "SEASON" | "CAMPAIGN") {
+  return cycleFixture({
+    id: `42161-${type.toLowerCase()}`,
+    cycleId: type === "SEASON" ? 50n : 51n,
+    poolId: 7n,
+    cycleType: type,
+    state: "SEEDED",
+    startTime: 1n,
+    endTime: 2n,
+    metadataCID: `bafy-${type.toLowerCase()}`,
+  });
 }
 
 function fillCycle() {
@@ -215,6 +272,66 @@ describe("PoolSetupFlow (W11)", () => {
       error: null,
       cycleId: 40n,
     });
+  });
+
+  it.each(
+    Object.entries(STEPS_BY_INTENT)
+  )("composes the declared %s steps in order", async (intent, steps) => {
+    const cycle =
+      intent === "open-season"
+        ? makePreparedCycle("SEASON")
+        : intent === "open-campaign"
+          ? makePreparedCycle("CAMPAIGN")
+          : undefined;
+    renderFlow({ intent: intent as keyof typeof STEPS_BY_INTENT, cycle });
+
+    for (const [index, step] of steps.entries()) {
+      assertStep(step as StepId);
+      if (step === "how") await fillHow();
+      if (step === "cycle") fillCycle();
+      if (index < steps.length - 1) next();
+    }
+  });
+
+  it.each([
+    ["cycle", "The name could not be stored", mocks.pinCycleMetadata],
+    ["charter", "The agreement could not be stored", mocks.pinPoolCharter],
+  ] as const)("keeps the form open when the %s pin fails", async (document, message, pin) => {
+    pin.mockRejectedValueOnce(new PoolDocumentPinError(document, new Error("offline")));
+    renderFlow();
+    await fillHow();
+    next();
+    fillCycle();
+    next();
+    next();
+    fireEvent.click(within(dialog()).getByRole("button", { name: /^open season$/i }));
+
+    expect(await within(dialog()).findByText(new RegExp(message, "i"))).toBeInTheDocument();
+    expect(mocks.run).not.toHaveBeenCalled();
+    expect(dialog()).toBeInTheDocument();
+  });
+
+  it("closes pristine state without a discard prompt", async () => {
+    const router = renderRoutedFlow();
+    fireEvent.click(within(dialog()).getByRole("button", { name: /^cancel$/i }));
+    await waitFor(() => expect(router.state.location.pathname).toBe("/hub"));
+    expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
+  });
+
+  it("keeps editing or discards after a dirty close request", async () => {
+    const router = renderRoutedFlow();
+    await fillHow();
+    fireEvent.click(within(dialog()).getByRole("button", { name: /^cancel$/i }));
+    const discardDialog = await screen.findByRole("alertdialog");
+    expect(router.state.location.pathname).toBe("/garden/pool");
+    fireEvent.click(within(discardDialog).getByRole("button", { name: /keep editing/i }));
+    await waitFor(() => expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument());
+
+    fireEvent.click(within(dialog()).getByRole("button", { name: /^cancel$/i }));
+    fireEvent.click(
+      within(screen.getByRole("alertdialog")).getByRole("button", { name: /discard/i })
+    );
+    await waitFor(() => expect(router.state.location.pathname).toBe("/hub"));
   });
 
   it("keeps Continue disabled while the split does not total 100 %", async () => {
