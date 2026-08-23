@@ -10,7 +10,7 @@ import {
 } from "../../types/gardens-community";
 import { annotateGardenSignalPools } from "../../utils/blockchain/garden-yield-wiring";
 import { logger } from "../app/logger";
-import { GQLClient } from "./graphql-client";
+import { GQLClient, type GraphQLReader } from "./graphql-client";
 
 // ---------------------------------------------------------------------------
 // Client cache (one per chain)
@@ -134,11 +134,10 @@ interface StrategyNode {
 export async function getGardenCommunityFromSubgraph(
   communityAddress: Address,
   gardenAddress: Address,
-  chainId: number
+  chainId: number,
+  reader: GraphQLReader = getClient(chainId)
 ): Promise<GardenCommunity | null> {
-  const client = getClient(chainId);
-
-  const { data, error } = await client.query<RegistryCommunityResponse>(
+  const { data, error } = await reader.query<RegistryCommunityResponse>(
     GARDEN_COMMUNITY_QUERY,
     { communityAddress: communityAddress.toLowerCase() },
     "getGardenCommunity"
@@ -195,11 +194,10 @@ export async function getGardenPoolsFromSubgraph(
   communityAddress: Address,
   gardenAddress: Address,
   chainId: number,
-  typedHypercertPoolAddress?: Address | null
+  typedHypercertPoolAddress?: Address | null,
+  reader: GraphQLReader = getClient(chainId)
 ): Promise<GardenSignalPool[]> {
-  const client = getClient(chainId);
-
-  const { data, error } = await client.query<CVStrategiesResponse>(
+  const { data, error } = await reader.query<CVStrategiesResponse>(
     GARDEN_POOLS_QUERY,
     { communityAddress: communityAddress.toLowerCase() },
     "getGardenPools"
@@ -258,11 +256,10 @@ interface CVProposalsResponse {
  */
 export async function getConvictionWeightsFromSubgraph(
   poolAddress: Address,
-  chainId: number
+  chainId: number,
+  reader: GraphQLReader = getClient(chainId)
 ): Promise<ConvictionWeight[]> {
-  const client = getClient(chainId);
-
-  const { data, error } = await client.query<CVProposalsResponse>(
+  const { data, error } = await reader.query<CVProposalsResponse>(
     CONVICTION_WEIGHTS_QUERY,
     { strategyId: poolAddress.toLowerCase() },
     "getConvictionWeights"
@@ -303,11 +300,10 @@ interface RegisteredHypercertsResponse {
  */
 export async function getRegisteredHypercertsFromSubgraph(
   poolAddress: Address,
-  chainId: number
+  chainId: number,
+  reader: GraphQLReader = getClient(chainId)
 ): Promise<bigint[]> {
-  const client = getClient(chainId);
-
-  const { data, error } = await client.query<RegisteredHypercertsResponse>(
+  const { data, error } = await reader.query<RegisteredHypercertsResponse>(
     REGISTERED_HYPERCERTS_QUERY,
     { strategyId: poolAddress.toLowerCase() },
     "getRegisteredHypercerts"
@@ -377,7 +373,8 @@ interface MemberPowerResponse {
 export async function getMemberPowerFromSubgraph(
   poolAddress: Address,
   voterAddress: Address,
-  chainId: number
+  chainId: number,
+  reader: GraphQLReader = getClient(chainId)
 ): Promise<MemberPower> {
   const empty: MemberPower = {
     totalStake: 0n,
@@ -386,9 +383,7 @@ export async function getMemberPowerFromSubgraph(
     allocations: [],
   };
 
-  const client = getClient(chainId);
-
-  const { data, error } = await client.query<MemberPowerResponse>(
+  const { data, error } = await reader.query<MemberPowerResponse>(
     MEMBER_POWER_QUERY,
     {
       strategyId: poolAddress.toLowerCase(),
@@ -449,11 +444,10 @@ interface ConvictionStrategiesResponse {
  */
 export async function getConvictionStrategiesFromSubgraph(
   communityAddress: Address,
-  chainId: number
+  chainId: number,
+  reader: GraphQLReader = getClient(chainId)
 ): Promise<Address[]> {
-  const client = getClient(chainId);
-
-  const { data, error } = await client.query<ConvictionStrategiesResponse>(
+  const { data, error } = await reader.query<ConvictionStrategiesResponse>(
     CONVICTION_STRATEGIES_QUERY,
     { communityAddress: communityAddress.toLowerCase() },
     "getConvictionStrategies"

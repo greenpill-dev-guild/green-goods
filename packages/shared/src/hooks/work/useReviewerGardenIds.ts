@@ -41,7 +41,7 @@ interface UseReviewerGardenIdsResult {
 export function useReviewerGardenIds(address: Address | undefined): UseReviewerGardenIdsResult {
   const { data: gardens = [] } = useQuery({
     queryKey: queryKeys.gardens.byChain(DEFAULT_CHAIN_ID),
-    queryFn: getGardens,
+    queryFn: () => getGardens(),
     staleTime: STALE_TIME_SLOW,
     retry: DEFAULT_RETRY_COUNT,
   });

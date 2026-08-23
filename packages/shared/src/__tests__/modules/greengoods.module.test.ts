@@ -6,7 +6,6 @@
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-// Mock GraphQL client - use vi.hoisted to ensure mockQuery is available before vi.mock hoisting
 const { mockQuery, mockResolveIPFSUrl, mockGetFileByHash } = vi.hoisted(() => ({
   mockQuery: vi.fn(),
   mockResolveIPFSUrl: vi.fn((cid: string) => `https://ipfs.io/ipfs/${cid}`),
@@ -27,14 +26,9 @@ const { mockQuery, mockResolveIPFSUrl, mockGetFileByHash } = vi.hoisted(() => ({
   })),
 }));
 
-vi.mock("../../modules/data/graphql-client", () => ({
-  greenGoodsIndexer: {
-    query: mockQuery,
-  },
-}));
-
 // Mock config
-vi.mock("../../config/blockchain", () => ({
+vi.mock("../../config/blockchain", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../../config/blockchain")>()),
   DEFAULT_CHAIN_ID: 11155111,
 }));
 
@@ -50,8 +44,11 @@ vi.mock("../../modules/data/graphql", () => ({
 }));
 
 import { getActions, getGardens, parseIndexerDomain } from "../../modules/data/greengoods";
+import type { GraphQLReader } from "../../modules/data/graphql-client";
 import { Domain } from "../../types/domain";
 import { instructionTemplates } from "../../utils/action/templates";
+
+const reader = { query: mockQuery } as GraphQLReader;
 
 describe("modules/data/greengoods", () => {
   beforeEach(() => {
@@ -85,7 +82,7 @@ describe("modules/data/greengoods", () => {
         data: { Garden: mockGardens },
       });
 
-      const result = await getGardens();
+      const result = await getGardens(reader);
 
       expect(result).toBeDefined();
       expect(Array.isArray(result)).toBe(true);
@@ -136,7 +133,7 @@ describe("modules/data/greengoods", () => {
         data: { Garden: mockGardens },
       });
 
-      const result = await getGardens();
+      const result = await getGardens(reader);
 
       expect(result).toHaveLength(2);
       expect(result[0].openJoining).toBe(true);
@@ -169,7 +166,7 @@ describe("modules/data/greengoods", () => {
         data: { Garden: mockGardens },
       });
 
-      const result = await getGardens();
+      const result = await getGardens(reader);
 
       expect(result).toHaveLength(1);
       expect(result[0].openJoining).toBe(false);
@@ -180,7 +177,7 @@ describe("modules/data/greengoods", () => {
         error: { message: "Indexer unavailable" },
       });
 
-      const result = await getGardens();
+      const result = await getGardens(reader);
 
       expect(result).toEqual([]);
     });
@@ -190,7 +187,7 @@ describe("modules/data/greengoods", () => {
         data: { Garden: [] },
       });
 
-      const result = await getGardens();
+      const result = await getGardens(reader);
 
       expect(result).toEqual([]);
     });
@@ -224,7 +221,7 @@ describe("modules/data/greengoods", () => {
         },
       });
 
-      const result = await getGardens();
+      const result = await getGardens(reader);
 
       expect(result).toHaveLength(1);
       expect(result[0].domainMask).toBe(5);
@@ -259,7 +256,7 @@ describe("modules/data/greengoods", () => {
         data: { Action: mockActions },
       });
 
-      const result = await getActions();
+      const result = await getActions(reader);
 
       expect(result).toBeDefined();
       expect(Array.isArray(result)).toBe(true);
@@ -288,7 +285,7 @@ describe("modules/data/greengoods", () => {
         data: { Action: mockActions },
       });
 
-      const result = await getActions();
+      const result = await getActions(reader);
 
       expect(result).toHaveLength(1);
       expect(result[0].domain).toBeNull();
@@ -299,7 +296,7 @@ describe("modules/data/greengoods", () => {
         error: { message: "Connection refused" },
       });
 
-      const result = await getActions();
+      const result = await getActions(reader);
 
       expect(result).toEqual([]);
     });
@@ -325,7 +322,7 @@ describe("modules/data/greengoods", () => {
         data: { Action: mockActions },
       });
 
-      const result = await getActions();
+      const result = await getActions(reader);
 
       expect(result).toBeDefined();
       expect(result.length).toBe(1);
@@ -357,7 +354,7 @@ describe("modules/data/greengoods", () => {
       });
       mockGetFileByHash.mockRejectedValueOnce(new Error("timeout"));
 
-      const result = await getActions();
+      const result = await getActions(reader);
 
       expect(result).toHaveLength(1);
       expect(result[0].description).toBe(instructionTemplates["solar.site_setup"].description);

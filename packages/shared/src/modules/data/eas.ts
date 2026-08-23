@@ -1,17 +1,15 @@
 import { getEASConfig } from "../../config/blockchain";
-import type { WorkApproval } from "../../types/domain";
 import type {
   EASAttestationRaw,
-  EASDecodedField,
   EASGardenAssessment,
   EASWork,
   EASWorkApproval,
 } from "../../types/eas-responses";
 import { isZeroBytes32 } from "../../utils/blockchain/vaults";
-import { logger } from "../app/logger";
+import { parseDataToGardenAssessment, parseDataToWork, parseDataToWorkApproval } from "./eas-parse";
+export { parseWorkApprovalAttestation } from "./eas-parse";
 import { easGraphQL } from "./graphql";
-import { createEasClient } from "./graphql-client";
-import { resolveIPFSUrl } from "./ipfs";
+import { createEasClient, type GraphQLReader } from "./graphql-client";
 
 /** Custom error for EAS fetch failures - allows React Query to properly retry/error */
 export class EASFetchError extends Error {
@@ -26,238 +24,14 @@ export class EASFetchError extends Error {
 }
 
 /**
- * Value that can be converted to a number from EAS decoded fields
- * Handles various formats: number, bigint, hex string, or nested value objects
- */
-type NumberConvertibleValue =
-  | number
-  | bigint
-  | string
-  | { hex: string }
-  | { value: NumberConvertibleValue }
-  | null
-  | undefined;
-
-/**
- * Converts various EAS field value formats to a number.
- * Handles: raw numbers, bigints, hex strings, and nested value objects.
- */
-const toNumberFromField = (value: NumberConvertibleValue): number | null => {
-  if (value === undefined || value === null) return null;
-  if (typeof value === "number") return value;
-  if (typeof value === "bigint") return Number(value);
-  if (typeof value === "string") {
-    if (value.startsWith("0x")) {
-      try {
-        return Number(BigInt(value));
-      } catch (error) {
-        logger.debug("Failed to parse hex string to BigInt", { error, value });
-        return null;
-      }
-    }
-    const parsed = Number(value);
-    return Number.isNaN(parsed) ? null : parsed;
-  }
-  if (typeof value === "object") {
-    if ("hex" in value && typeof value.hex === "string") {
-      try {
-        return Number(BigInt(value.hex));
-      } catch (error) {
-        logger.debug("Failed to parse hex object to BigInt", { error, hex: value.hex });
-        return null;
-      }
-    }
-    if ("value" in value) {
-      return toNumberFromField(value.value);
-    }
-  }
-  return null;
-};
-
-const parseDataToGardenAssessment = (
-  gardenAssessmentUID: string,
-  attestation: {
-    attester: string;
-    recipient: string;
-    time: number;
-  },
-  decodedDataJson: string | EASDecodedField[]
-): EASGardenAssessment => {
-  const fields: EASDecodedField[] = Array.isArray(decodedDataJson)
-    ? decodedDataJson
-    : JSON.parse(decodedDataJson ?? "[]");
-  const findField = (name: string) => fields.find((field) => field.name === name);
-  const readValue = (name: string): unknown => findField(name)?.value?.value;
-  const readString = (name: string): string => (readValue(name) as string) ?? "";
-
-  const title = readString("title");
-  const description = readString("description");
-  const assessmentConfigCID = readString("assessmentConfigCID");
-  const domainRaw = readValue("domain") as NumberConvertibleValue;
-  const domain = toNumberFromField(domainRaw) ?? 0;
-  const startDateRaw = readValue("startDate") as NumberConvertibleValue;
-  const endDateRaw = readValue("endDate") as NumberConvertibleValue;
-  const location = readString("location");
-
-  const startDate = toNumberFromField(startDateRaw);
-  const endDate = toNumberFromField(endDateRaw);
-
-  return {
-    id: gardenAssessmentUID,
-    authorAddress: attestation.attester,
-    gardenAddress: attestation.recipient,
-    title,
-    description,
-    assessmentConfigCID,
-    domain,
-    startDate,
-    endDate,
-    location,
-    createdAt: attestation.time,
-  };
-};
-
-const parseDataToWork = (
-  workUID: string,
-  attestation: {
-    attester: string;
-    recipient: string;
-    time: number;
-  },
-  decodedDataJson: string
-): EASWork => {
-  const data: EASDecodedField[] = JSON.parse(decodedDataJson);
-
-  // Safely extract media with error handling
-  const mediaData = data.find((d) => d.name === "media");
-  const mediaCIDs: string[] = (mediaData?.value?.value as string[]) || [];
-
-  // Resolve IPFS CIDs to gateway URLs
-  const media = mediaCIDs.map((cid: string) => resolveIPFSUrl(cid));
-
-  // Safely extract optional fields with null handling
-  const feedbackData = data.find((d) => d.name === "feedback");
-  const metadataData = data.find((d) => d.name === "metadata");
-  const titleData = data.find((d) => d.name === "title");
-  const actionUIDData = data.find((d) => d.name === "actionUID");
-
-  // Handle actionUID which can be a number, hex string, or object with hex property
-  const actionUIDValue = actionUIDData?.value?.value as NumberConvertibleValue;
-  const actionUIDHex = actionUIDData?.value?.hex as string | undefined;
-  const actionUID = toNumberFromField(actionUIDHex ?? actionUIDValue) ?? 0;
-
-  return {
-    id: workUID,
-    gardenerAddress: attestation.attester,
-    gardenAddress: attestation.recipient,
-    actionUID,
-    title: (titleData?.value?.value as string) || "Untitled Work",
-    feedback: (feedbackData?.value?.value as string) || "",
-    metadata: (metadataData?.value?.value as string) || "",
-    media, // Now returns proper gateway URLs
-    createdAt: attestation.time,
-  };
-};
-
-const parseDataToWorkApproval = (
-  workApprovalUID: string,
-  attestation: {
-    attester: string;
-    recipient: string;
-    time: number;
-  },
-  decodedDataJson: string
-): EASWorkApproval => {
-  const data: EASDecodedField[] = JSON.parse(decodedDataJson);
-
-  // Helper to find field by name
-  const findField = (name: string) => data.find((d) => d.name === name);
-
-  // Safely extract fields with null/undefined handling
-  const feedbackData = findField("feedback");
-  const actionUIDData = findField("actionUID");
-  const workUIDData = findField("workUID");
-  const approvedData = findField("approved");
-
-  const actionUIDValue = actionUIDData?.value?.value as NumberConvertibleValue;
-
-  // Parse approved field robustly - handle boolean, string, or number
-  const rawApproved = approvedData?.value?.value;
-  let approved = false;
-  if (typeof rawApproved === "boolean") {
-    approved = rawApproved;
-  } else if (typeof rawApproved === "string") {
-    approved = rawApproved.toLowerCase() === "true" || rawApproved === "1";
-  } else if (typeof rawApproved === "number") {
-    approved = rawApproved !== 0;
-  }
-
-  const confidenceData = findField("confidence");
-  const verificationMethodData = findField("verificationMethod");
-  const reviewNotesCIDData = findField("reviewNotesCID");
-
-  return {
-    id: workApprovalUID,
-    operatorAddress: attestation.attester,
-    gardenerAddress: attestation.recipient,
-    actionUID: toNumberFromField(actionUIDValue) ?? 0,
-    workUID: (workUIDData?.value?.value as string) || "",
-    approved,
-    feedback: (feedbackData?.value?.value as string) || "",
-    confidence: toNumberFromField(confidenceData?.value?.value as NumberConvertibleValue) ?? 0,
-    verificationMethod:
-      toNumberFromField(verificationMethodData?.value?.value as NumberConvertibleValue) ?? 0,
-    reviewNotesCID: (reviewNotesCIDData?.value?.value as string) || "",
-    createdAt: attestation.time,
-  };
-};
-
-interface WorkApprovalAttestationRecord {
-  id: string;
-  attester: string;
-  recipient: string;
-  timeCreated: number;
-  decodedDataJson: string;
-}
-
-/**
- * Converts an EAS attestation record into the canonical WorkApproval domain model.
- */
-export function parseWorkApprovalAttestation(
-  attestation: WorkApprovalAttestationRecord
-): WorkApproval {
-  const parsed = parseDataToWorkApproval(
-    attestation.id,
-    {
-      attester: attestation.attester,
-      recipient: attestation.recipient,
-      time: attestation.timeCreated,
-    },
-    attestation.decodedDataJson
-  );
-
-  return {
-    id: parsed.id,
-    operatorAddress: parsed.operatorAddress,
-    gardenerAddress: parsed.gardenerAddress,
-    actionUID: parsed.actionUID,
-    workUID: parsed.workUID,
-    approved: parsed.approved,
-    feedback: parsed.feedback,
-    confidence: parsed.confidence,
-    verificationMethod: parsed.verificationMethod,
-    createdAt: parsed.createdAt * 1000, // Parser returns seconds, UI expects ms
-  };
-}
-
-/**
  * Garden assessment attestations under one schema: the v2 UID by default, or
  * the v3 registration (`getEASConfig().ASSESSMENT_V3`) when `schemaUID` names it.
  */
 export const getGardenAssessments = async (
   gardenAddress?: string,
   chainId?: number | string,
-  schemaUID?: string
+  schemaUID?: string,
+  reader: GraphQLReader = createEasClient(chainId)
 ): Promise<EASGardenAssessment[]> => {
   const QUERY = easGraphQL(/* GraphQL */ `
     query Attestations($where: AttestationWhereInput) {
@@ -275,9 +49,7 @@ export const getGardenAssessments = async (
   if (isZeroBytes32(resolvedSchemaUID)) return [];
 
   const schemaId = { equals: resolvedSchemaUID };
-  const client = createEasClient(chainId);
-
-  const { data, error } = await client.query(
+  const { data, error } = await reader.query(
     QUERY,
     {
       where: {
@@ -318,7 +90,8 @@ export const getGardenAssessments = async (
 /** Queries work attestations for a garden or multiple gardens */
 export const getWorks = async (
   gardenAddress?: string | string[],
-  chainId?: number | string
+  chainId?: number | string,
+  reader: GraphQLReader = createEasClient(chainId)
 ): Promise<EASWork[]> => {
   const QUERY = easGraphQL(/* GraphQL */ `
     query Attestations($where: AttestationWhereInput) {
@@ -336,8 +109,6 @@ export const getWorks = async (
   if (isZeroBytes32(easConfig.WORK.uid)) return [];
 
   const schemaId = { equals: easConfig.WORK.uid };
-  const client = createEasClient(chainId);
-
   // Handle both single address and array of addresses
   let recipientCondition;
   if (Array.isArray(gardenAddress)) {
@@ -354,7 +125,7 @@ export const getWorks = async (
     ...(recipientCondition ? { recipient: recipientCondition } : {}),
   };
 
-  const { data, error } = await client.query(QUERY, { where }, "getWorks");
+  const { data, error } = await reader.query(QUERY, { where }, "getWorks");
 
   if (error) {
     throw new EASFetchError(`Failed to fetch works: ${error.message}`, "getWorks", error);
@@ -373,7 +144,8 @@ export const getWorks = async (
 /** Retrieves work attestations submitted by a specific gardener */
 export const getWorksByGardener = async (
   gardenerAddress?: string,
-  chainId?: number | string
+  chainId?: number | string,
+  reader: GraphQLReader = createEasClient(chainId)
 ): Promise<EASWork[]> => {
   if (!gardenerAddress) return [];
 
@@ -392,9 +164,7 @@ export const getWorksByGardener = async (
   const easConfig = getEASConfig(chainId);
   if (isZeroBytes32(easConfig.WORK.uid)) return [];
 
-  const client = createEasClient(chainId);
-
-  const { data, error } = await client.query(
+  const { data, error } = await reader.query(
     QUERY,
     {
       where: {
@@ -442,7 +212,8 @@ export const getWorksByGardener = async (
  */
 export const getWorkApprovals = async (
   gardenerAddress?: string,
-  chainId?: number | string
+  chainId?: number | string,
+  reader: GraphQLReader = createEasClient(chainId)
 ): Promise<EASWorkApproval[]> => {
   const QUERY = easGraphQL(/* GraphQL */ `
     query Attestations($where: AttestationWhereInput) {
@@ -460,9 +231,7 @@ export const getWorkApprovals = async (
   if (isZeroBytes32(easConfig.WORK_APPROVAL.uid)) return [];
 
   const schemaId = { equals: easConfig.WORK_APPROVAL.uid };
-  const client = createEasClient(chainId);
-
-  const { data, error } = await client.query(
+  const { data, error } = await reader.query(
     QUERY,
     {
       where: gardenerAddress
@@ -506,7 +275,8 @@ export const getWorkApprovals = async (
  */
 export const getWorkApprovalsByUIDs = async (
   uids: string[],
-  chainId?: number | string
+  chainId?: number | string,
+  reader: GraphQLReader = createEasClient(chainId)
 ): Promise<EASWorkApproval[]> => {
   if (uids.length === 0) return [];
 
@@ -525,9 +295,7 @@ export const getWorkApprovalsByUIDs = async (
   const easConfig = getEASConfig(chainId);
   if (isZeroBytes32(easConfig.WORK_APPROVAL.uid)) return [];
 
-  const client = createEasClient(chainId);
-
-  const { data, error } = await client.query(
+  const { data, error } = await reader.query(
     QUERY,
     {
       where: {
@@ -566,7 +334,8 @@ export const getWorkApprovalsByUIDs = async (
  */
 export const getWorksByUIDs = async (
   uids: string[],
-  chainId?: number | string
+  chainId?: number | string,
+  reader: GraphQLReader = createEasClient(chainId)
 ): Promise<EASWork[]> => {
   if (uids.length === 0) return [];
 
@@ -585,9 +354,7 @@ export const getWorksByUIDs = async (
   const easConfig = getEASConfig(chainId);
   if (isZeroBytes32(easConfig.WORK.uid)) return [];
 
-  const client = createEasClient(chainId);
-
-  const { data, error } = await client.query(
+  const { data, error } = await reader.query(
     QUERY,
     {
       where: {

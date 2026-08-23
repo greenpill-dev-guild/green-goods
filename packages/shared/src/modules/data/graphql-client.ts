@@ -51,11 +51,19 @@ export function withTimeout<T>(
   });
 }
 
+export interface GraphQLReader {
+  query<TData, TVariables extends Record<string, unknown> = Record<string, unknown>>(
+    document: TypedDocumentNode<TData, TVariables> | RequestDocument,
+    variables?: TVariables,
+    operationName?: string
+  ): Promise<{ data: TData; error?: undefined } | { data?: undefined; error: Error }>;
+}
+
 /**
  * Lightweight GraphQL client wrapper using graphql-request
  * Provides a consistent interface for all GraphQL operations
  */
-export class GQLClient {
+export class GQLClient implements GraphQLReader {
   private client: GraphQLClient;
 
   constructor(url: string) {

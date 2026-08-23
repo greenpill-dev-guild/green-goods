@@ -103,7 +103,7 @@ export function useSuspenseGardeners() {
 
   return useSuspenseQuery({
     queryKey,
-    queryFn: getGardeners,
+    queryFn: () => getGardeners(),
     staleTime: STALE_TIMES.baseLists,
     gcTime: GC_TIMES.baseLists,
     initialData: () => queryClient.getQueryData<GardenerCard[]>(queryKey),

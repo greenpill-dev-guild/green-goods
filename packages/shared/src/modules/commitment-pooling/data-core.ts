@@ -1,5 +1,5 @@
 import type { Address } from "../../types/domain";
-import { greenGoodsIndexer } from "../data/graphql-client";
+import { greenGoodsIndexer, type GraphQLReader } from "../data/graphql-client";
 import { deriveCommitmentState } from "./selectors";
 import type {
   CommitmentCycleRecord,
@@ -111,13 +111,10 @@ export async function queryRows(
   query: string,
   variables: Record<string, unknown>,
   field: string,
-  operationName: string
+  operationName: string,
+  reader: GraphQLReader = greenGoodsIndexer
 ): Promise<RawRow[]> {
-  const result = await greenGoodsIndexer.query<Record<string, RawRow[]>>(
-    query,
-    variables,
-    operationName
-  );
+  const result = await reader.query<Record<string, RawRow[]>>(query, variables, operationName);
   if (result.error) throw result.error;
   return result.data?.[field] ?? [];
 }

@@ -19,7 +19,7 @@ import {
 import { defaultTemplate, instructionTemplates } from "../../utils/action/templates";
 import { logger } from "../app/logger";
 import { greenGoodsGraphQL } from "./graphql";
-import { greenGoodsIndexer } from "./graphql-client";
+import { greenGoodsIndexer, type GraphQLReader } from "./graphql-client";
 import { getFileByHash, resolveIPFSUrl } from "./ipfs";
 
 const ACTION_INSTRUCTIONS_TIMEOUT_MS = 5_000;
@@ -188,7 +188,7 @@ async function parseInstructionMetadata(
 }
 
 /** Fetches action definitions from the indexer and enriches media + UI config. */
-export async function getActions(): Promise<Action[]> {
+export async function getActions(reader: GraphQLReader = greenGoodsIndexer): Promise<Action[]> {
   try {
     const chainId = DEFAULT_CHAIN_ID;
     const QUERY = greenGoodsGraphQL(/* GraphQL */ `
@@ -209,7 +209,7 @@ export async function getActions(): Promise<Action[]> {
       }
     `);
 
-    const { data, error } = await greenGoodsIndexer.query(QUERY, { chainId }, "getActions");
+    const { data, error } = await reader.query(QUERY, { chainId }, "getActions");
 
     if (error) {
       logger.error("[getActions] Indexer query failed", { error: error.message });
@@ -317,7 +317,7 @@ export async function getActions(): Promise<Action[]> {
 }
 
 /** Returns gardens with resolved banner assets for the current chain. */
-export async function getGardens(): Promise<Garden[]> {
+export async function getGardens(reader: GraphQLReader = greenGoodsIndexer): Promise<Garden[]> {
   try {
     const chainId = DEFAULT_CHAIN_ID;
     const QUERY = greenGoodsGraphQL(/* GraphQL */ `
@@ -347,7 +347,7 @@ export async function getGardens(): Promise<Garden[]> {
       }
     `);
 
-    const { data, error } = await greenGoodsIndexer.query(QUERY, { chainId }, "getGardens");
+    const { data, error } = await reader.query(QUERY, { chainId }, "getGardens");
 
     if (error) {
       logger.error("[getGardens] Indexer query failed", { error: error.message });
@@ -410,7 +410,9 @@ export async function getGardens(): Promise<Garden[]> {
 }
 
 /** Retrieves gardener registrations for operator views. */
-export async function getGardeners(): Promise<GardenerCard[]> {
+export async function getGardeners(
+  reader: GraphQLReader = greenGoodsIndexer
+): Promise<GardenerCard[]> {
   try {
     const chainId = DEFAULT_CHAIN_ID;
     const QUERY = greenGoodsGraphQL(/* GraphQL */ `
@@ -424,7 +426,7 @@ export async function getGardeners(): Promise<GardenerCard[]> {
       }
     `);
 
-    const { data, error } = await greenGoodsIndexer.query(QUERY, { chainId }, "getGardeners");
+    const { data, error } = await reader.query(QUERY, { chainId }, "getGardeners");
 
     if (error) {
       logger.error("[getGardeners] Indexer query failed", { error: error.message });
