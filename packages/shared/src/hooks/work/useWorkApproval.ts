@@ -32,6 +32,7 @@ import {
   createDefaultSubmitApprovalPorts,
   submitApproval,
 } from "../../modules/work/submit-approval-command";
+import type { JobQueueHandle } from "../../modules/job-queue/ports";
 import type { Work, WorkApprovalDraft } from "../../types/domain";
 import { hapticError, hapticSuccess } from "../../utils/app/haptics";
 import { DEBUG_ENABLED, debugLog } from "../../utils/debug";
@@ -56,7 +57,9 @@ interface ApprovalMutationResult {
 const PENDING_AUTO_CLEAR_MS = LOCAL_OVERLAY_GRACE_MS;
 type PendingWork = OverlayWork;
 
-export function useWorkApproval() {
+export function useWorkApproval(
+  dependencies: { jobQueue?: Pick<JobQueueHandle, "processJob"> } = {}
+) {
   const { formatMessage } = useIntl();
   const { authMode, primaryAddress } = useUser();
   const sender = useTransactionSender();
@@ -94,7 +97,7 @@ export function useWorkApproval() {
 
       const result = await submitApproval(
         { authMode, draft, work, chainId, userAddress: primaryAddress },
-        createDefaultSubmitApprovalPorts(sender)
+        createDefaultSubmitApprovalPorts(sender, dependencies)
       );
       return { hash: result.hash, confirmed: result.confirmed };
     },

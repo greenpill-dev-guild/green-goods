@@ -17,6 +17,7 @@ const workMutationStoreMocks = vi.hoisted(() => ({
   setSubmissionCompleted: vi.fn(),
   ensureWorkSubmissionJourneyId: vi.fn(() => "journey-123"),
 }));
+const queueProcessJob = vi.fn();
 
 // Mock modules
 vi.mock("../../modules/work/wallet-submission", () => ({
@@ -25,13 +26,6 @@ vi.mock("../../modules/work/wallet-submission", () => ({
 
 vi.mock("../../modules/work/work-submission", () => ({
   submitWorkToQueue: vi.fn(),
-}));
-
-vi.mock("../../modules/job-queue", () => ({
-  isOfflineTxHash: (txHash: string) => txHash.startsWith("0xoffline_"),
-  jobQueue: {
-    processJob: vi.fn(),
-  },
 }));
 
 vi.mock("../../modules/work/simulate", () => ({
@@ -165,7 +159,6 @@ vi.mock("../../utils/errors/contract-errors", () => ({
 
 import { walletProgressToasts, workToasts } from "../../components/toast";
 import { useWorkMutation } from "../../hooks/work/useWorkMutation";
-import { jobQueue } from "../../modules/job-queue";
 import { submitWorkDirectly } from "../../modules/work/wallet-submission";
 import { WorkSubmissionError } from "../../modules/work/wallet-submission/types";
 import { submitWorkToQueue } from "../../modules/work/work-submission";
@@ -391,7 +384,7 @@ describe("hooks/work/useWorkMutation", () => {
         clientWorkId: "work-abc",
       });
 
-      mock(jobQueue.processJob).mockResolvedValue({
+      queueProcessJob.mockResolvedValue({
         success: true,
         txHash: MOCK_TX_HASH,
         skipped: false,
@@ -403,6 +396,7 @@ describe("hooks/work/useWorkMutation", () => {
             ...defaultOptions,
             authMode: "passkey",
             userAddress: MOCK_ADDRESSES.smartAccount,
+            dependencies: { jobQueue: { processJob: queueProcessJob } },
           }),
         { wrapper: createWrapper() }
       );
@@ -416,7 +410,7 @@ describe("hooks/work/useWorkMutation", () => {
       });
 
       expect(submitWorkToQueue).toHaveBeenCalled();
-      expect(jobQueue.processJob).toHaveBeenCalledWith("job-abc", {
+      expect(queueProcessJob).toHaveBeenCalledWith("job-abc", {
         transactionSender: mockSender,
       });
       expect(txHash).toBe(MOCK_TX_HASH);
@@ -452,7 +446,7 @@ describe("hooks/work/useWorkMutation", () => {
       });
 
       expect(submitWorkToQueue).toHaveBeenCalled();
-      expect(jobQueue.processJob).not.toHaveBeenCalled();
+      expect(queueProcessJob).not.toHaveBeenCalled();
       expect(txHash).toBe("0xoffline_xyz");
     });
   });

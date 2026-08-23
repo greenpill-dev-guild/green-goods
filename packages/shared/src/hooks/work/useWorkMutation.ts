@@ -33,7 +33,8 @@ import {
   WorkSubmissionError,
   type WalletSubmissionStage,
 } from "../../modules/work/wallet-submission/types";
-import { isOfflineTxHash } from "../../modules/job-queue";
+import { isOfflineTxHash } from "../../modules/job-queue/queue-policy";
+import type { JobQueueHandle } from "../../modules/job-queue/ports";
 import { createDefaultSubmitWorkPorts, submitWork } from "../../modules/work/submit-work-command";
 import { useUIStore } from "../../stores/useUIStore";
 import { useWorkFlowStore } from "../../stores/useWorkFlowStore";
@@ -68,6 +69,9 @@ export interface UseWorkMutationOptions {
   onSuccess?: (txHash: `0x${string}` | string) => void;
   onError?: (error: unknown) => void;
   onSettled?: () => void;
+  dependencies?: {
+    jobQueue?: Pick<JobQueueHandle, "processJob">;
+  };
 }
 
 /**
@@ -95,6 +99,7 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
     onSuccess,
     onError,
     onSettled,
+    dependencies,
   } = options;
   const sender = useTransactionSender();
   const chainId = DEFAULT_CHAIN_ID;
@@ -124,7 +129,6 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
     mutationFn: async ({ draft, images }: { draft: WorkDraft; images: File[] }) => {
       const workSubmissionJourneyId = useWorkFlowStore.getState().ensureWorkSubmissionJourneyId();
 
-      // Validate required context before submission
       if (!gardenAddress) {
         throw new Error("Garden must be selected before submitting work");
       }
@@ -168,6 +172,7 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
         },
         createDefaultSubmitWorkPorts({
           sender,
+          jobQueue: dependencies?.jobQueue,
           onWalletStage: (stage, message) => {
             if (
               stage === "confirming" &&
@@ -212,7 +217,6 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
         });
       }
 
-      // Track submission started
       const actionTitle = getActionTitle(actions, actionUID);
       addBreadcrumb("work_submission_started", {
         gardenAddress,
@@ -279,7 +283,6 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
         }
       }
 
-      // --- Toasts ---
       const isOffline = !navigator.onLine;
 
       if (allowOfflineQueue && isOffline) {

@@ -15,6 +15,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 // Mock modules
 const mockUseUser = vi.fn();
+const queueProcessJob = vi.fn();
 
 vi.mock("../../hooks/auth/useUser", () => ({
   useUser: () => mockUseUser(),
@@ -26,12 +27,6 @@ vi.mock("../../modules/work/wallet-submission", () => ({
 
 vi.mock("../../modules/work/work-submission", () => ({
   submitApprovalToQueue: vi.fn(),
-}));
-
-vi.mock("../../modules/job-queue", () => ({
-  jobQueue: {
-    processJob: vi.fn(),
-  },
 }));
 
 vi.mock("../../components/toast", () => ({
@@ -84,7 +79,6 @@ import { toastService } from "../../components/toast";
 import { queryKeys } from "../../config/query-keys";
 import { useWorkApproval } from "../../hooks/work/useWorkApproval";
 import en from "../../i18n/en.json";
-import { jobQueue } from "../../modules/job-queue";
 import { submitApprovalDirectly } from "../../modules/work/wallet-submission";
 import { submitApprovalToQueue } from "../../modules/work/work-submission";
 import { Confidence, VerificationMethod } from "../../types/domain";
@@ -144,9 +138,12 @@ describe("hooks/work/useWorkApproval", () => {
     it("calls submitApprovalDirectly for wallet users", async () => {
       (submitApprovalDirectly as any).mockResolvedValue(MOCK_CONFIRMED_APPROVAL_RESULT);
 
-      const { result } = renderHook(() => useWorkApproval(), {
-        wrapper: createWrapper(),
-      });
+      const { result } = renderHook(
+        () => useWorkApproval({ jobQueue: { processJob: queueProcessJob } }),
+        {
+          wrapper: createWrapper(),
+        }
+      );
 
       const work = createMockWork();
       const draft = createMockWorkApprovalDraft({ approved: true });
@@ -182,9 +179,12 @@ describe("hooks/work/useWorkApproval", () => {
       const workQueryKey = queryKeys.works.merged(work.gardenAddress, 11155111);
       queryClient.setQueryData(workQueryKey, [work]);
 
-      const { result } = renderHook(() => useWorkApproval(), {
-        wrapper: createWrapper(),
-      });
+      const { result } = renderHook(
+        () => useWorkApproval({ jobQueue: { processJob: queueProcessJob } }),
+        {
+          wrapper: createWrapper(),
+        }
+      );
 
       let approvalPromise!: ReturnType<typeof result.current.mutateAsync>;
       act(() => {
@@ -224,9 +224,12 @@ describe("hooks/work/useWorkApproval", () => {
       queryClient.setQueryData(mergedKey, [work]);
       queryClient.setQueryData(onlineKey, [work]);
 
-      const { result } = renderHook(() => useWorkApproval(), {
-        wrapper: createWrapper(),
-      });
+      const { result } = renderHook(
+        () => useWorkApproval({ jobQueue: { processJob: queueProcessJob } }),
+        {
+          wrapper: createWrapper(),
+        }
+      );
 
       await act(async () => {
         await result.current.mutateAsync({ draft, work });
@@ -377,15 +380,16 @@ describe("hooks/work/useWorkApproval", () => {
         jobId: "job-approval-1",
       });
 
-      (jobQueue.processJob as any).mockResolvedValue({
+      queueProcessJob.mockResolvedValue({
         success: true,
         txHash: MOCK_TX_HASH,
         skipped: false,
       });
 
-      const { result } = renderHook(() => useWorkApproval(), {
-        wrapper: createWrapper(),
-      });
+      const { result } = renderHook(
+        () => useWorkApproval({ jobQueue: { processJob: queueProcessJob } }),
+        { wrapper: createWrapper() }
+      );
 
       const work = createMockWork();
       const draft = createMockWorkApprovalDraft({ approved: true });
@@ -401,7 +405,7 @@ describe("hooks/work/useWorkApproval", () => {
         11155111,
         MOCK_ADDRESSES.smartAccount
       );
-      expect(jobQueue.processJob).toHaveBeenCalledWith("job-approval-1", {
+      expect(queueProcessJob).toHaveBeenCalledWith("job-approval-1", {
         transactionSender: mockSender,
       });
       expect(result_data?.hash).toBe(MOCK_TX_HASH);
@@ -433,7 +437,7 @@ describe("hooks/work/useWorkApproval", () => {
       });
 
       expect(result_data?.hash).toBe("0xoffline_xyz");
-      expect(jobQueue.processJob).not.toHaveBeenCalled();
+      expect(queueProcessJob).not.toHaveBeenCalled();
     });
   });
 
@@ -558,15 +562,16 @@ describe("hooks/work/useWorkApproval", () => {
         jobId: "job-conf-1",
       });
 
-      (jobQueue.processJob as any).mockResolvedValue({
+      queueProcessJob.mockResolvedValue({
         success: true,
         txHash: MOCK_TX_HASH,
         skipped: false,
       });
 
-      const { result } = renderHook(() => useWorkApproval(), {
-        wrapper: createWrapper(),
-      });
+      const { result } = renderHook(
+        () => useWorkApproval({ jobQueue: { processJob: queueProcessJob } }),
+        { wrapper: createWrapper() }
+      );
 
       const work = createMockWork();
       const draft = createMockWorkApprovalDraft({
@@ -633,7 +638,7 @@ describe("hooks/work/useWorkApproval", () => {
         MOCK_ADDRESSES.smartAccount
       );
       // Offline: processJob should not be called
-      expect(jobQueue.processJob).not.toHaveBeenCalled();
+      expect(queueProcessJob).not.toHaveBeenCalled();
     });
 
     it("passes confidence through wallet direct submission", async () => {
@@ -676,15 +681,16 @@ describe("hooks/work/useWorkApproval", () => {
         jobId: "job-notes-1",
       });
 
-      (jobQueue.processJob as any).mockResolvedValue({
+      queueProcessJob.mockResolvedValue({
         success: true,
         txHash: MOCK_TX_HASH,
         skipped: false,
       });
 
-      const { result } = renderHook(() => useWorkApproval(), {
-        wrapper: createWrapper(),
-      });
+      const { result } = renderHook(
+        () => useWorkApproval({ jobQueue: { processJob: queueProcessJob } }),
+        { wrapper: createWrapper() }
+      );
 
       const work = createMockWork();
       const draft = createMockWorkApprovalDraft({

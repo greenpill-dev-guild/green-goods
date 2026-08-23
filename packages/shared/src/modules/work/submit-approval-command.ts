@@ -1,6 +1,6 @@
 import type { SmartAccountClient } from "permissionless";
 import type { Address, Work, WorkApprovalDraft } from "../../types/domain";
-import type { ProcessJobResult } from "../job-queue";
+import type { JobQueueHandle, ProcessJobResult } from "../job-queue";
 import type { TransactionSender } from "../transactions/types";
 
 export interface SubmitApprovalCommand {
@@ -102,7 +102,8 @@ export async function submitBatchApprovals(
 }
 
 export function createDefaultSubmitApprovalPorts(
-  sender: TransactionSender | null
+  sender: TransactionSender | null,
+  dependencies: { jobQueue?: Pick<JobQueueHandle, "processJob"> } = {}
 ): SubmitApprovalPorts {
   return {
     connectivity: { isOnline: () => navigator.onLine },
@@ -116,8 +117,8 @@ export function createDefaultSubmitApprovalPorts(
         return submitApprovalToQueue(draft, work, chainId, userAddress);
       },
       process: async (jobId, transactionSender) => {
-        const { jobQueue } = await import("../job-queue");
-        return jobQueue.processJob(jobId, { transactionSender });
+        const queue = dependencies.jobQueue ?? (await import("../job-queue")).jobQueue;
+        return queue.processJob(jobId, { transactionSender });
       },
     },
     sender,

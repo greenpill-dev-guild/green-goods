@@ -1,7 +1,7 @@
 import { parseContractError } from "../../utils/errors/contract-errors";
 import { getActionTitle } from "../../utils/action/parsers";
 import type { Action, Address, Work, WorkDraft } from "../../types/domain";
-import type { ProcessJobResult } from "../job-queue";
+import type { JobQueueHandle, ProcessJobResult } from "../job-queue";
 import type { TransactionSender } from "../transactions/types";
 import type { SimulateWorkSubmissionParams, SimulationDeps } from "./simulate";
 import { WorkSubmissionError, type WalletSubmissionStage } from "./wallet-submission/types";
@@ -68,6 +68,7 @@ export type SubmitWorkOutcome =
 
 export interface DefaultSubmitWorkPortOptions {
   sender: TransactionSender | null;
+  jobQueue?: Pick<JobQueueHandle, "processJob">;
   simulationDeps?: SimulationDeps;
   onWalletStage?: SubmitWorkPorts["onWalletStage"];
   onQueueFallback?: SubmitWorkPorts["onQueueFallback"];
@@ -234,8 +235,8 @@ export function createDefaultSubmitWorkPorts(
         );
       },
       process: async (jobId, sender) => {
-        const { jobQueue } = await import("../job-queue");
-        return jobQueue.processJob(jobId, { transactionSender: sender });
+        const queue = options.jobQueue ?? (await import("../job-queue")).jobQueue;
+        return queue.processJob(jobId, { transactionSender: sender });
       },
     },
     direct: {
