@@ -432,8 +432,7 @@ export function agentRateLimitMessage(locale: string | undefined, type: RateLimi
 }
 
 export function agentRoleLabel(locale: string | undefined, role: User["role"]): string {
-  // `operator` is the persisted users.role value for the steward role — see types.ts.
-  return agentMessage(locale, role === "operator" ? "role.steward" : "role.gardener");
+  return agentMessage(locale, role === "steward" ? "role.steward" : "role.gardener");
 }
 
 export function agentSessionLabel(locale: string | undefined, step?: SessionStep): string {

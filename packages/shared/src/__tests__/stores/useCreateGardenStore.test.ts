@@ -22,7 +22,7 @@ describe("useCreateGardenStore", () => {
     expect(store.addGardener(MEMBER)).toEqual({ success: true });
 
     const { form } = useCreateGardenStore.getState();
-    expect(form.operators).toContain(normalized);
+    expect(form.stewards).toContain(normalized);
     expect(form.gardeners).toContain(normalized);
   });
 

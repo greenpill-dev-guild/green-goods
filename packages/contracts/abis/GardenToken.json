@@ -120,7 +120,7 @@
             "internalType": "address[]"
           },
           {
-            "name": "operators",
+            "name": "stewards",
             "type": "address[]",
             "internalType": "address[]"
           }
@@ -387,7 +387,7 @@
             "internalType": "address[]"
           },
           {
-            "name": "operators",
+            "name": "stewards",
             "type": "address[]",
             "internalType": "address[]"
           }

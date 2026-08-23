@@ -72,11 +72,11 @@ contract MockHatsModuleForJoin is IHatsModule {
     }
 
     function isOperatorOf(address garden, address account) external view returns (bool) {
-        return roles[garden][account][uint8(GardenRole.Operator)];
+        return roles[garden][account][uint8(GardenRole.Steward)];
     }
 
     function isStewardOf(address garden, address account) external view returns (bool) {
-        return roles[garden][account][uint8(GardenRole.Operator)];
+        return roles[garden][account][uint8(GardenRole.Steward)];
     }
 
     function isOwnerOf(address garden, address account) external view returns (bool) {

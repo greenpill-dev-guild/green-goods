@@ -138,7 +138,7 @@ contract GardenMintingIntegrationTest is Test, ERC6551Helper {
             weightScheme: IGardensModule.WeightScheme.Linear,
             domainMask: 0,
             gardeners: new address[](0),
-            operators: new address[](0)
+            stewards: new address[](0)
         });
 
         vm.prank(multisig);
@@ -223,7 +223,7 @@ contract GardenMintingIntegrationTest is Test, ERC6551Helper {
             weightScheme: IGardensModule.WeightScheme.Linear,
             domainMask: 0,
             gardeners: new address[](0),
-            operators: new address[](0)
+            stewards: new address[](0)
         });
 
         vm.prank(multisig);
@@ -290,7 +290,7 @@ contract GardenMintingIntegrationTest is Test, ERC6551Helper {
             weightScheme: IGardensModule.WeightScheme.Linear,
             domainMask: 0,
             gardeners: new address[](0),
-            operators: new address[](0)
+            stewards: new address[](0)
         });
     }
 }

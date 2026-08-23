@@ -888,15 +888,11 @@
     },
     {
       "id": "garden-role",
-      "definition": "The six per-garden Hats roles that gate every protocol permission.",
+      "definition": "The six per-garden Hats roles that gate every protocol permission. The enum member name is compile-time only — GardenRole never appears in the ABI, so callers pass the pinned index.",
       "canonical": {
         "ordered": true,
         "value_scheme": "index",
-        "members": ["Gardener", "Evaluator", "Operator", "Owner", "Funder", "Community"],
-        "display_labels": {
-          "Operator": "Steward"
-        },
-        "display_labels_note": "The Hats tree on Arbitrum was relabelled to \"… Steward\" on 2026-07-28 (packages/contracts/deployments/tx-plans/42161-steward-relabel-488705295-plan.json). The deployed GardenRole enum and the isOperator access functions keep the Operator wire name; every human-facing surface reads Steward."
+        "members": ["Gardener", "Evaluator", "Steward", "Owner", "Funder", "Community"]
       },
       "representations": [
         {
@@ -906,7 +902,7 @@
           "symbol": "GardenRole",
           "extract": "solidity-enum",
           "ordered": true,
-          "members": ["Gardener", "Evaluator", "Operator", "Owner", "Funder", "Community"]
+          "members": ["Gardener", "Evaluator", "Steward", "Owner", "Funder", "Community"]
         },
         {
           "id": "shared-ids",

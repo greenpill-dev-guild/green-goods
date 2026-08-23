@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { GardenTokenABI } from "../../utils/blockchain/contracts";
 
 describe("utils/blockchain/contracts GardenToken ABI compatibility", () => {
-  it("includes gardeners/operators in mintGarden config tuple", () => {
+  it("includes gardeners/stewards in mintGarden config tuple", () => {
     const mintGarden = (GardenTokenABI as readonly Record<string, unknown>[]).find(
       (item) => item.type === "function" && item.name === "mintGarden"
     );
@@ -14,6 +14,6 @@ describe("utils/blockchain/contracts GardenToken ABI compatibility", () => {
     const fieldNames = tuple.map((field) => field.name);
 
     expect(fieldNames).toContain("gardeners");
-    expect(fieldNames).toContain("operators");
+    expect(fieldNames).toContain("stewards");
   });
 });

@@ -28,7 +28,7 @@ const mockFormState = {
   metadata: "",
   openJoining: false,
   gardeners: [] as string[],
-  operators: [] as string[],
+  stewards: [] as string[],
 };
 
 let mockStoreState = {

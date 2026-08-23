@@ -70,12 +70,12 @@ describe("User Management", () => {
     const gardenAddress = "0x" + "9".repeat(40);
     await db.updateUser("telegram", platformId, {
       currentGarden: gardenAddress,
-      role: "operator",
+      role: "steward",
     });
 
     const updated = await db.getUser("telegram", platformId);
     expect(updated?.currentGarden).toBe(gardenAddress);
-    expect(updated?.role).toBe("operator");
+    expect(updated?.role).toBe("steward");
   });
 
   it("updates a user's last known locale independently of role and garden", async () => {

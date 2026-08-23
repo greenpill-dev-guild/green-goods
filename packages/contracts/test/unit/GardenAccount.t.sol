@@ -239,7 +239,7 @@ contract GardenAccountTest is Test, ERC6551Helper {
             weightScheme: IGardensModule.WeightScheme.Linear,
             domainMask: 0,
             gardeners: new address[](0),
-            operators: new address[](0)
+            stewards: new address[](0)
         });
         gardenAddress = gardenToken.mintGarden(config);
         vm.stopPrank();
@@ -312,7 +312,7 @@ contract GardenAccountTest is Test, ERC6551Helper {
             weightScheme: IGardensModule.WeightScheme.Linear,
             domainMask: 0,
             gardeners: new address[](0),
-            operators: new address[](0)
+            stewards: new address[](0)
         });
 
         vm.prank(multisig);

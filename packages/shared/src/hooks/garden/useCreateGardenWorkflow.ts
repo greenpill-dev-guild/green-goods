@@ -209,8 +209,7 @@ export function useCreateGardenWorkflow() {
                 weightScheme: params.weightScheme,
                 domainMask: params.domainMask,
                 gardeners: params.gardeners,
-                // mintGarden encodes this struct by field name — wire spelling.
-                operators: params.operators,
+                stewards: params.stewards,
               };
 
               // Estimate CCIP fee for ENS registration (if slug provided and ENS module configured)
@@ -407,8 +406,7 @@ export function useCreateGardenWorkflow() {
       weightScheme: params.weightScheme,
       domainMask: params.domainMask,
       gardeners: params.gardeners,
-      // mintGarden encodes this struct by field name — wire spelling.
-      operators: params.operators,
+      stewards: params.stewards,
     };
 
     const { publicClient } = createClients(currentChainId);

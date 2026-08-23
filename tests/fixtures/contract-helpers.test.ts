@@ -92,8 +92,7 @@ describe("fork contract helpers", () => {
       weightScheme: 0,
       domainMask: 15,
       gardeners: [],
-      // mintGarden encodes this struct by field name — wire spelling.
-      operators: [DEPLOYER_ADDRESS],
+      stewards: [DEPLOYER_ADDRESS],
     });
     expect(result.address).toBe(GARDEN_ACCOUNT_ADDRESS);
     expect(result.tokenId).toBe(42n);

@@ -130,17 +130,13 @@ Category of regenerative work — where the work happens. Four production domain
 
 ### `garden-role`
 
-The six per-garden Hats roles that gate every protocol permission.
+The six per-garden Hats roles that gate every protocol permission. The enum member name is compile-time only — GardenRole never appears in the ABI, so callers pass the pinned index.
 
-**Canonical members:** Gardener (0) · Evaluator (1) · Operator (2) · Owner (3) · Funder (4) · Community (5)
-
-**Display labels:** `Operator` reads as **Steward**
-
-The Hats tree on Arbitrum was relabelled to "… Steward" on 2026-07-28 (packages/contracts/deployments/tx-plans/42161-steward-relabel-488705295-plan.json). The deployed GardenRole enum and the isOperator access functions keep the Operator wire name; every human-facing surface reads Steward.
+**Canonical members:** Gardener (0) · Evaluator (1) · Steward (2) · Owner (3) · Funder (4) · Community (5)
 
 | Representation | Layer | Source | Expected members | Note |
 |---|---|---|---|---|
-| solidity | solidity | <code>packages/contracts/src/interfaces/IHatsModule.sol · GardenRole</code> | <code>Gardener, Evaluator, Operator, Owner, Funder, Community</code> |  |
+| solidity | solidity | <code>packages/contracts/src/interfaces/IHatsModule.sol · GardenRole</code> | <code>Gardener, Evaluator, Steward, Owner, Funder, Community</code> |  |
 | shared-ids | shared | <code>packages/shared/src/utils/blockchain/garden-roles.ts · GARDEN_ROLE_IDS</code> | <code>gardener=0, evaluator=1, steward=2, owner=3, funder=4, community=5</code> | Key order and numeric ids must track the Solidity enum exactly — these ids go into contract calls. |
 
 ### `transfer-restriction`

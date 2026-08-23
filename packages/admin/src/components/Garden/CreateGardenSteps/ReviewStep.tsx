@@ -144,7 +144,7 @@ export function ReviewStep() {
               })}
             </dt>
             <dd>
-              {form.operators.length === 0 ? (
+              {form.stewards.length === 0 ? (
                 <p className="mt-2 text-xs text-text-soft">
                   {formatMessage({
                     id: "app.garden.create.noStewardsYet",
@@ -153,7 +153,7 @@ export function ReviewStep() {
                 </p>
               ) : (
                 <ul className="mt-2 space-y-1">
-                  {form.operators.map((steward) => (
+                  {form.stewards.map((steward) => (
                     <li key={steward} className="text-xs text-text-strong">
                       <EnsAddressText address={steward as Address} />
                     </li>

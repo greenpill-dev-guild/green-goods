@@ -285,8 +285,7 @@ export async function createGarden(
       weightScheme: params.weightScheme ?? 0,
       domainMask: params.domainMask ?? 15,
       gardeners: params.gardeners ?? [],
-      // mintGarden encodes this struct by field name — wire spelling.
-      operators: params.stewards ?? [account.address],
+      stewards: params.stewards ?? [account.address],
     };
 
     const txHash = await context.walletClient.writeContract({

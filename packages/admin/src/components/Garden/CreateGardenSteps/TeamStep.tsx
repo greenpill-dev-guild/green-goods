@@ -111,7 +111,7 @@ export function TeamStep() {
           {stewardInput.error || "\u00A0"}
         </p>
         <ul className="mt-1.5 space-y-1.5">
-          {form.operators.map((steward) => (
+          {form.stewards.map((steward) => (
             <li
               key={steward}
               className="flex items-center justify-between rounded-lg border border-stroke-soft bg-bg-white px-3 py-2.5 text-xs font-mono text-text-sub"
@@ -119,7 +119,7 @@ export function TeamStep() {
               <EnsAddressText address={steward as Address} />
               <button
                 type="button"
-                onClick={() => removeSteward(form.operators.indexOf(steward))}
+                onClick={() => removeSteward(form.stewards.indexOf(steward))}
                 className="min-h-11 min-w-11 flex items-center justify-center rounded-md text-text-soft transition hover:bg-bg-white hover:text-error-dark"
                 aria-label={formatMessage({ id: "app.common.remove", defaultMessage: "Remove" })}
               >

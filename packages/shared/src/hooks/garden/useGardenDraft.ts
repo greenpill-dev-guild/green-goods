@@ -68,7 +68,7 @@ function hasMeaningfulProgress(form: CreateGardenFormState): boolean {
     form.metadata.trim().length > 0 ||
     form.openJoining ||
     form.gardeners.length > 0 ||
-    form.operators.length > 0
+    form.stewards.length > 0
   );
 }
 

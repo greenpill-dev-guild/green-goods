@@ -114,8 +114,8 @@ contract GasBenchmarks is Test, ERC6551Helper {
     /// @notice Benchmark: mintGarden with Hats tree creation (most expensive operation)
     function testGas_mintGarden() public {
         address[] memory gardeners = new address[](0);
-        address[] memory operators = new address[](1);
-        operators[0] = address(0x5001);
+        address[] memory stewards = new address[](1);
+        stewards[0] = address(0x5001);
 
         GardenToken.GardenConfig memory config = GardenToken.GardenConfig({
             name: "Gas Test Garden",
@@ -128,7 +128,7 @@ contract GasBenchmarks is Test, ERC6551Helper {
             weightScheme: IGardensModule.WeightScheme.Linear,
             domainMask: 0,
             gardeners: new address[](0),
-            operators: new address[](0)
+            stewards: new address[](0)
         });
 
         uint256 gasBefore = gasleft();
@@ -146,8 +146,8 @@ contract GasBenchmarks is Test, ERC6551Helper {
         for (uint256 i = 0; i < 5; i++) {
             gardeners[i] = address(uint160(0x7001 + i));
         }
-        address[] memory operators = new address[](1);
-        operators[0] = address(0x5001);
+        address[] memory stewards = new address[](1);
+        stewards[0] = address(0x5001);
 
         GardenToken.GardenConfig memory config = GardenToken.GardenConfig({
             name: "Garden With Gardeners",
@@ -160,7 +160,7 @@ contract GasBenchmarks is Test, ERC6551Helper {
             weightScheme: IGardensModule.WeightScheme.Linear,
             domainMask: 0,
             gardeners: gardeners,
-            operators: operators
+            stewards: stewards
         });
 
         uint256 gasBefore = gasleft();
@@ -178,8 +178,8 @@ contract GasBenchmarks is Test, ERC6551Helper {
 
         for (uint256 i = 0; i < 5; i++) {
             address[] memory gardeners = new address[](0);
-            address[] memory operators = new address[](1);
-            operators[0] = address(uint160(0x5001 + i));
+            address[] memory stewards = new address[](1);
+            stewards[0] = address(uint160(0x5001 + i));
 
             configs[i] = GardenToken.GardenConfig({
                 name: string(abi.encodePacked("Batch Garden ", _uint2str(i))),
@@ -192,7 +192,7 @@ contract GasBenchmarks is Test, ERC6551Helper {
                 weightScheme: IGardensModule.WeightScheme.Linear,
                 domainMask: 0,
                 gardeners: gardeners,
-                operators: operators
+                stewards: stewards
             });
         }
 
@@ -242,7 +242,7 @@ contract GasBenchmarks is Test, ERC6551Helper {
 
         address user = address(0x6001);
         uint256 gasBefore = gasleft();
-        adapter.grantRole(garden, user, IHatsModule.GardenRole.Operator);
+        adapter.grantRole(garden, user, IHatsModule.GardenRole.Steward);
         uint256 gasUsed = gasBefore - gasleft();
 
         emit log_named_uint("Gas: grantRole(Operator) - cascading 3 mints", gasUsed);
@@ -301,7 +301,7 @@ contract GasBenchmarks is Test, ERC6551Helper {
         assertLt(gasUsed, MAX_BATCH_GRANT_5_GARDENERS_GAS, "Gas budget exceeded for batch grant 5 gardeners");
     }
 
-    /// @notice Benchmark: grantRoles batch — 5 operators (each cascades to 3 mints)
+    /// @notice Benchmark: grantRoles batch — 5 stewards (each cascades to 3 mints)
     function testGas_batchGrant5Operators() public {
         _setupGardenForRoles();
 
@@ -309,16 +309,16 @@ contract GasBenchmarks is Test, ERC6551Helper {
         IHatsModule.GardenRole[] memory roles = new IHatsModule.GardenRole[](5);
         for (uint256 i = 0; i < 5; i++) {
             accounts[i] = address(uint160(0x6001 + i));
-            roles[i] = IHatsModule.GardenRole.Operator;
+            roles[i] = IHatsModule.GardenRole.Steward;
         }
 
         uint256 gasBefore = gasleft();
         adapter.grantRoles(garden, accounts, roles);
         uint256 gasUsed = gasBefore - gasleft();
 
-        emit log_named_uint("Gas: grantRoles (5 operators, cascading)", gasUsed);
+        emit log_named_uint("Gas: grantRoles (5 stewards, cascading)", gasUsed);
         emit log_named_uint("Gas: per operator in batch of 5", gasUsed / 5);
-        assertLt(gasUsed, MAX_BATCH_GRANT_5_OPERATORS_GAS, "Gas budget exceeded for batch grant 5 operators");
+        assertLt(gasUsed, MAX_BATCH_GRANT_5_OPERATORS_GAS, "Gas budget exceeded for batch grant 5 stewards");
     }
 
     // =========================================================================
@@ -429,8 +429,8 @@ contract GasBenchmarks is Test, ERC6551Helper {
 
     function _setupGardenForRoles() internal {
         address[] memory gardeners = new address[](0);
-        address[] memory operators = new address[](1);
-        operators[0] = address(0x5001);
+        address[] memory stewards = new address[](1);
+        stewards[0] = address(0x5001);
 
         GardenToken.GardenConfig memory config = GardenToken.GardenConfig({
             name: "Benchmark Garden",
@@ -443,7 +443,7 @@ contract GasBenchmarks is Test, ERC6551Helper {
             weightScheme: IGardensModule.WeightScheme.Linear,
             domainMask: 0,
             gardeners: gardeners,
-            operators: operators
+            stewards: stewards
         });
 
         garden = gardenToken.mintGarden(config);

@@ -24,7 +24,7 @@ export interface CreateGardenFormState {
   openJoining: boolean;
   domains: Domain[];
   gardeners: Address[];
-  operators: Address[];
+  stewards: Address[];
 }
 
 export interface CreateGardenStep {
@@ -59,7 +59,7 @@ export interface CreateGardenStore {
 
 const defaultSteps: CreateGardenStep[] = [
   { id: "details", title: "Garden details", description: "Name, location & media" },
-  { id: "team", title: "Community", description: "Gardeners & operators" },
+  { id: "team", title: "Community", description: "Gardeners & stewards" },
   { id: "review", title: "Review & deploy", description: "Confirm your setup" },
 ];
 
@@ -74,7 +74,7 @@ export function createEmptyGardenForm(): CreateGardenFormState {
     openJoining: false,
     domains: [],
     gardeners: [],
-    operators: [],
+    stewards: [],
   };
 }
 
@@ -151,14 +151,14 @@ export const useCreateGardenStore = create<CreateGardenStore>()(
         const { form } = get();
 
         // Check if already an operator (case-insensitive via checksummed comparison)
-        if (form.operators.includes(validAddress)) {
+        if (form.stewards.includes(validAddress)) {
           return { success: false, error: "Address already added as operator" };
         }
 
         set((state) => ({
           form: {
             ...state.form,
-            operators: [...state.form.operators, validAddress],
+            stewards: [...state.form.stewards, validAddress],
           },
         }));
 
@@ -168,7 +168,7 @@ export const useCreateGardenStore = create<CreateGardenStore>()(
         set((state) => ({
           form: {
             ...state.form,
-            operators: state.form.operators.filter((_, i) => i !== index),
+            stewards: state.form.stewards.filter((_, i) => i !== index),
           },
         })),
       nextStep: () =>
@@ -239,7 +239,7 @@ export const useCreateGardenStore = create<CreateGardenStore>()(
           weightScheme: WeightScheme.Linear,
           domainMask: form.domains.reduce((mask, d) => mask | (1 << d), 0),
           gardeners: form.gardeners,
-          operators: form.operators,
+          stewards: form.stewards,
         } satisfies CreateGardenParams;
       },
     }),

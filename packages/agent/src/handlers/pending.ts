@@ -8,7 +8,7 @@ import type { HandlerResult, InboundMessage, User } from "../types";
 import { formatAddress } from "./utils";
 
 export async function handlePending(message: InboundMessage, user: User): Promise<HandlerResult> {
-  if (user.role !== "operator") {
+  if (user.role !== "steward") {
     return {
       response: {
         text: agentMessage(message.locale, "pending.stewardOnly"),

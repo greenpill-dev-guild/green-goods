@@ -31,7 +31,7 @@ describe("stores/useCreateGardenStore", () => {
     expect(params).not.toBeNull();
     expect(params?.domainMask).toBe((1 << Domain.SOLAR) | (1 << Domain.WASTE));
     expect(params?.gardeners).toEqual([GARDENER]);
-    expect(params?.operators).toEqual([getAddress(OPERATOR)]);
+    expect(params?.stewards).toEqual([getAddress(OPERATOR)]);
   });
 
   it("treats details step as invalid when no domains are selected", () => {

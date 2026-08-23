@@ -107,7 +107,7 @@ contract ArbitrumFullProtocolE2EForkTest is ForkTestBase {
             weightScheme: IGardensModule.WeightScheme.Exponential,
             domainMask: 0x0F,
             gardeners: new address[](0),
-            operators: new address[](0)
+            stewards: new address[](0)
         });
 
         address garden = gardenToken.mintGarden(config);
@@ -177,7 +177,7 @@ contract ArbitrumFullProtocolE2EForkTest is ForkTestBase {
             weightScheme: IGardensModule.WeightScheme.Linear,
             domainMask: 0x01,
             gardeners: new address[](0),
-            operators: new address[](0)
+            stewards: new address[](0)
         });
 
         vm.expectRevert(GardenToken.HatsModuleNotSet.selector);
@@ -211,7 +211,7 @@ contract ArbitrumFullProtocolE2EForkTest is ForkTestBase {
             weightScheme: IGardensModule.WeightScheme.Linear,
             domainMask: 0x01,
             gardeners: new address[](0),
-            operators: new address[](0)
+            stewards: new address[](0)
         });
 
         configs[1] = GardenToken.GardenConfig({
@@ -225,7 +225,7 @@ contract ArbitrumFullProtocolE2EForkTest is ForkTestBase {
             weightScheme: IGardensModule.WeightScheme.Exponential,
             domainMask: 0x03,
             gardeners: new address[](0),
-            operators: new address[](0)
+            stewards: new address[](0)
         });
 
         configs[2] = GardenToken.GardenConfig({
@@ -239,7 +239,7 @@ contract ArbitrumFullProtocolE2EForkTest is ForkTestBase {
             weightScheme: IGardensModule.WeightScheme.Power,
             domainMask: 0x0F,
             gardeners: new address[](0),
-            operators: new address[](0)
+            stewards: new address[](0)
         });
 
         address[] memory accounts = gardenToken.batchMintGardens(configs);
@@ -296,7 +296,7 @@ contract ArbitrumFullProtocolE2EForkTest is ForkTestBase {
             weightScheme: IGardensModule.WeightScheme.Linear,
             domainMask: 0x0F,
             gardeners: new address[](0),
-            operators: new address[](0)
+            stewards: new address[](0)
         });
 
         address garden = gardenToken.mintGarden(config);
@@ -372,7 +372,7 @@ contract ArbitrumFullProtocolE2EForkTest is ForkTestBase {
         address gardenB = _mintTestGarden("Arb Garden B", 0x0F);
         address gardenB_operator = makeAddr("gardenB_operator");
         address gardenB_gardener = makeAddr("gardenB_gardener");
-        _grantGardenRole(gardenB, gardenB_operator, IHatsModule.GardenRole.Operator);
+        _grantGardenRole(gardenB, gardenB_operator, IHatsModule.GardenRole.Steward);
         _grantGardenRole(gardenB, gardenB_gardener, IHatsModule.GardenRole.Gardener);
 
         // Submit work on garden B as its gardener

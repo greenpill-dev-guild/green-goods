@@ -465,7 +465,7 @@ abstract contract ForkTestBase is DeploymentBase, ERC6551Helper {
             weightScheme: IGardensModule.WeightScheme.Linear,
             domainMask: domainMask,
             gardeners: new address[](0),
-            operators: new address[](0)
+            stewards: new address[](0)
         });
         return gardenToken.mintGarden(config);
     }
@@ -523,7 +523,7 @@ abstract contract ForkTestBase is DeploymentBase, ERC6551Helper {
         returns (address gardenAccount, uint256 actionUID)
     {
         gardenAccount = _mintTestGarden(name, 0x0F);
-        _grantGardenRole(gardenAccount, forkOperator, IHatsModule.GardenRole.Operator);
+        _grantGardenRole(gardenAccount, forkOperator, IHatsModule.GardenRole.Steward);
         _grantGardenRole(gardenAccount, forkGardener, IHatsModule.GardenRole.Gardener);
         _grantGardenRole(gardenAccount, forkEvaluator, IHatsModule.GardenRole.Evaluator);
         actionUID = _registerTestAction();

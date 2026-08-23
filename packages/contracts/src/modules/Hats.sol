@@ -239,7 +239,7 @@ contract HatsModule is IGardenAccessControl, IHatsModule, OwnableUpgradeable, Re
     /// @inheritdoc IGardenAccessControl
     /// @dev Checks if account wears the operator hat for msg.sender (the garden)
     function isOperator(address account) external view override returns (bool) {
-        return _checkRole(msg.sender, account, GardenRole.Operator);
+        return _checkRole(msg.sender, account, GardenRole.Steward);
     }
 
     /// @inheritdoc IGardenAccessControl
@@ -282,7 +282,7 @@ contract HatsModule is IGardenAccessControl, IHatsModule, OwnableUpgradeable, Re
     }
 
     function isStewardOf(address garden, address account) public view override returns (bool) {
-        return _checkRole(garden, account, GardenRole.Operator);
+        return _checkRole(garden, account, GardenRole.Steward);
     }
 
     function isOperatorOf(address garden, address account) public view override returns (bool) {
@@ -662,14 +662,14 @@ contract HatsModule is IGardenAccessControl, IHatsModule, OwnableUpgradeable, Re
             }
         }
 
-        if (role == GardenRole.Operator) {
+        if (role == GardenRole.Steward) {
             _syncProjectAdmin(garden, account, true);
             _grantSubRole(garden, account, GardenRole.Evaluator, "evaluator");
             _grantSubRole(garden, account, GardenRole.Gardener, "gardener");
         } else if (role == GardenRole.Owner) {
             // Only grant Operator as sub-role; Operator's own sub-grants
             // (Evaluator + Gardener) are handled recursively by _grantSubRole
-            _grantSubRole(garden, account, GardenRole.Operator, "operator");
+            _grantSubRole(garden, account, GardenRole.Steward, "operator");
         }
 
         // Best-effort conviction power sync on role grant
@@ -686,7 +686,7 @@ contract HatsModule is IGardenAccessControl, IHatsModule, OwnableUpgradeable, Re
         try hats.mintHat(hatId, account) {
             emit RoleGranted(garden, account, role);
             // Recursively grant sub-roles for Operator (Evaluator + Gardener + GAP sync)
-            if (role == GardenRole.Operator) {
+            if (role == GardenRole.Steward) {
                 _syncProjectAdmin(garden, account, true);
                 _grantSubRole(garden, account, GardenRole.Gardener, "gardener");
             }
@@ -712,7 +712,7 @@ contract HatsModule is IGardenAccessControl, IHatsModule, OwnableUpgradeable, Re
             hats.transferHat(hatId, account, burnAddr);
         }
         emit RoleRevoked(garden, account, role);
-        if (role == GardenRole.Operator) {
+        if (role == GardenRole.Steward) {
             _syncProjectAdmin(garden, account, false);
         }
         // Best-effort conviction power sync -- sync failure MUST NOT revert role revocation.
@@ -772,7 +772,7 @@ contract HatsModule is IGardenAccessControl, IHatsModule, OwnableUpgradeable, Re
     function _getHatId(address garden, GardenRole role) internal view returns (uint256) {
         GardenHats storage config = gardenHats[garden];
         if (role == GardenRole.Owner) return config.ownerHatId;
-        if (role == GardenRole.Operator) return config.operatorHatId;
+        if (role == GardenRole.Steward) return config.operatorHatId;
         if (role == GardenRole.Evaluator) return config.evaluatorHatId;
         if (role == GardenRole.Gardener) return config.gardenerHatId;
         if (role == GardenRole.Funder) return config.funderHatId;
