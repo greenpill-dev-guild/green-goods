@@ -167,3 +167,26 @@ The consolidated receipt is `handoffs/wave-2-receipt.md`.
 - Boundary blockers: nine Indexer metadata tests cannot bind `127.0.0.1`; Docker is unavailable;
   local app and Storybook servers cannot bind their ports; authenticated Brave proof is therefore
   blocked. None is reported as passing or retried without a capability change.
+
+## Wave 3 Snapshot — 2026-08-23
+
+Wave 3 is complete at implementation SHA `6a037ab3984606f44a4596c0f4f2fcc5f6285861`.
+The consolidated receipt is `handoffs/wave-3-receipt.md`.
+
+- Module health: all 18 remaining Shared rows are regraded A- or A. Telemetry, reads, document and
+  proof persistence, vault/yield, translation, auth/session, store transitions, and mutation flows
+  now have explicit ports, repositories, commands, or pure transition seams. Domain hooks and Work,
+  Auth, and App providers retain compatibility defaults only at their composition edges.
+- Direct proof: the selected Shared batch passed 34 files / 226 tests; the shell contracts passed
+  43/43; the five garden/assessment/action command suites passed 15/15. Source and test typechecks,
+  source structure, design, vocabulary, ontology, test-quality, Plan Hub, and Storybook checks passed.
+- Regression evidence: Client passed 93 files / 833 tests, Admin passed 95 files / 665 tests, and
+  Agent passed 270 tests with one governed live-test skip. The exact critical checkpoint selected 14
+  checks for 130 changed paths and completed successfully.
+- Exit invariants: no Wave 3-internal command/type export remains in the dead-code advisory; required
+  Storybook coverage is 249/249; `WorkProvider` is 65 lines; provider orchestration and UI shell state
+  are directly testable without broad module mocks.
+- Velocity: Shared focused proof took 19.73 seconds. Concurrent full Client and Admin consumers took
+  255.97 and 332.46 seconds on the loaded capture machine, so quiet-machine targets remain unclaimed.
+  No rendered UI behavior changed, and the unavailable local-server/authenticated-Brave path is not
+  reported as passing.

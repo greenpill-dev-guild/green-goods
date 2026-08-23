@@ -46,8 +46,8 @@
 | A green-by-default scoped validation harness | Wave 0 | complete |
 | Direct seams for high-risk mutations and pooling controllers | Wave 1 | complete |
 | Declared shared boundaries and smaller composition surfaces | Wave 2 | complete |
-| Every remaining shared module below A- regraded | Wave 3 | blocked on dependencies |
-| Every remaining client/admin module below A- regraded | Wave 4 | blocked on shared seams |
+| Every remaining shared module below A- regraded | Wave 3 | complete |
+| Every remaining client/admin module below A- regraded | Wave 4 | in progress |
 | Every remaining indexer module below A- regraded | Wave 5 | held behind Wave 0 program start |
 | DOM-free project routing and enforceable direct-test architecture | Wave 6 | blocked on Wave 0 seam work |
 | Module Health and Velocity targets with fresh receipts | Program exit | blocked on all committed waves |
@@ -65,7 +65,7 @@
 9. [x] Complete the remaining Wave 1 shared seams in order A and C, then B1 and B2, as one integrated `develop` batch.
 10. [x] Complete the remaining Wave 1 pooling controller suites and typed view tests in the same batch.
 11. [x] Complete Wave 2 client controllers, Community split and design pass, Hasura planner, and pooling subpath on `develop`.
-12. [ ] Complete Wave 3 shared ports, repositories, adapters, commands, transitions, hooks, providers, and shell contracts in dependency rounds.
+12. [x] Complete Wave 3 shared ports, repositories, adapters, commands, transitions, hooks, providers, and shell contracts in dependency rounds.
 13. [ ] Complete Wave 4 client and admin controller, view-model, state, and direct-test requirements.
 14. [ ] Complete Wave 5 indexer event helpers, fixtures, delivery contracts, source split, automatic mined-log selection, and permission planner.
 15. [ ] Complete Wave 6 Vitest projects, direct-tested-seam guard, and the coverage ratchet when due.
