@@ -23,17 +23,18 @@ import {
   trackWorkApprovalSuccess,
   trackWorkRejectionSuccess,
 } from "../../modules/app/analytics-events";
-import { jobQueue } from "../../modules/job-queue";
 import {
   LOCAL_OVERLAY_GRACE_MS,
   type OverlayWork,
   overlayDeadline,
 } from "../../modules/work/local-status-overlay";
-import { submitApprovalDirectly } from "../../modules/work/wallet-submission";
-import { submitApprovalToQueue } from "../../modules/work/work-submission";
+import {
+  createDefaultSubmitApprovalPorts,
+  submitApproval,
+} from "../../modules/work/submit-approval-command";
 import type { Work, WorkApprovalDraft } from "../../types/domain";
 import { hapticError, hapticSuccess } from "../../utils/app/haptics";
-import { DEBUG_ENABLED, debugLog, debugWarn } from "../../utils/debug";
+import { DEBUG_ENABLED, debugLog } from "../../utils/debug";
 import { createMutationErrorHandler } from "../../utils/errors/mutation-error-handler";
 import { useUser } from "../auth/useUser";
 import { useTransactionSender } from "../blockchain/useTransactionSender";
@@ -82,17 +83,6 @@ export function useWorkApproval() {
 
   const mutation = useMutation({
     mutationFn: async ({ draft, work }: UseWorkApprovalParams): Promise<ApprovalMutationResult> => {
-      // Pre-flight validation — catch invalid states before hitting the chain
-      if (!draft.workUID) {
-        throw new Error("Work UID is required for approval");
-      }
-      if (!work.gardenAddress) {
-        throw new Error("Garden address is missing from work data");
-      }
-      if (work.status === "approved" || work.status === "rejected") {
-        throw new Error(`This work has already been ${work.status}`);
-      }
-
       if (DEBUG_ENABLED) {
         debugLog("[useWorkApproval] Starting approval submission", {
           authMode,
@@ -102,85 +92,11 @@ export function useWorkApproval() {
         });
       }
 
-      if (authMode === "wallet") {
-        // Direct wallet submission
-        if (DEBUG_ENABLED) {
-          debugLog("[useWorkApproval] Using direct wallet submission", {
-            chainId,
-            workUID: draft.workUID,
-          });
-        }
-        const { hash, confirmed } = await submitApprovalDirectly(
-          draft,
-          work.gardenAddress,
-          work.gardenerAddress,
-          chainId
-        );
-        return { hash, confirmed };
-      }
-
-      // Non-wallet path: queue + inline processing via TransactionSender
-      const userAddress = primaryAddress;
-
-      if (DEBUG_ENABLED) {
-        debugLog("[useWorkApproval] Queuing approval for sponsored flow", {
-          chainId,
-          workUID: draft.workUID,
-          approved: draft.approved,
-          userAddress,
-          authMode,
-        });
-      }
-
-      // Validate user address for queue operations
-      if (!userAddress) {
-        throw new Error("User address is required for approval submission");
-      }
-
-      const { txHash: offlineTxHash, jobId } = await submitApprovalToQueue(
-        draft,
-        work,
-        chainId,
-        userAddress
+      const result = await submitApproval(
+        { authMode, draft, work, chainId, userAddress: primaryAddress },
+        createDefaultSubmitApprovalPorts(sender)
       );
-
-      if (DEBUG_ENABLED) {
-        debugLog("[useWorkApproval] Approval queued", {
-          jobId,
-          workUID: draft.workUID,
-          isOnline: navigator.onLine,
-        });
-      }
-
-      if (navigator.onLine && sender) {
-        try {
-          const result = await jobQueue.processJob(jobId, { transactionSender: sender });
-          if (DEBUG_ENABLED) {
-            debugLog("[useWorkApproval] Inline processing attempt finished", {
-              jobId,
-              success: result.success,
-              skipped: result.skipped,
-              error: result.error,
-            });
-          }
-          if (result.success && result.txHash) {
-            return { hash: result.txHash as `0x${string}` };
-          }
-          // If processing failed (not skipped), propagate the error
-          if (!result.success && result.error && !result.skipped) {
-            throw new Error(result.error);
-          }
-          // If skipped (e.g., already processed), return offline hash as pending
-        } catch (error) {
-          if (DEBUG_ENABLED) {
-            debugWarn("[useWorkApproval] Inline approval processing threw", { jobId, error });
-          }
-          // Re-throw to trigger onError handler and show user feedback
-          throw error;
-        }
-      }
-
-      return { hash: offlineTxHash };
+      return { hash: result.hash, confirmed: result.confirmed };
     },
     onMutate: async (variables) => {
       if (!variables) return;

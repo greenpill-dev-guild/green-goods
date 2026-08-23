@@ -17,9 +17,12 @@ import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
 import { trackContractError } from "../../modules/app/error-tracking";
 import { track } from "../../modules/app/posthog";
 import { type OverlayWork, overlayDeadline } from "../../modules/work/local-status-overlay";
-import { submitBatchApprovalsWithPasskey } from "../../modules/work/passkey-submission";
-import { submitBatchApprovalsDirectly } from "../../modules/work/wallet-submission";
-import type { Work, WorkApprovalDraft } from "../../types/domain";
+import {
+  type BatchApprovalItem,
+  createDefaultSubmitBatchApprovalsPorts,
+  submitBatchApprovals,
+} from "../../modules/work/submit-approval-command";
+import type { Work } from "../../types/domain";
 import { hapticError, hapticSuccess } from "../../utils/app/haptics";
 import { DEBUG_ENABLED, debugLog } from "../../utils/debug";
 import { parseAndFormatError } from "../../utils/errors/contract-errors";
@@ -27,16 +30,6 @@ import { useUser } from "../auth/useUser";
 import { INDEXER_LAG_SCHEDULE_MS, queryKeys } from "../../config/query-keys";
 import { useSafeMutation } from "../utils/useSafeMutation";
 import { useProgressiveInvalidation } from "../utils/useTimeout";
-
-interface BatchApprovalItem {
-  draft: WorkApprovalDraft;
-  work: Work;
-}
-
-interface BatchApprovalResult {
-  hash: `0x${string}`;
-  count: number;
-}
 
 /**
  * Hook for submitting multiple work approvals in a single transaction.
@@ -96,11 +89,7 @@ export function useBatchWorkApproval() {
   );
 
   const mutation = useMutation({
-    mutationFn: async (items: BatchApprovalItem[]): Promise<BatchApprovalResult> => {
-      if (items.length === 0) {
-        throw new Error("No items to approve");
-      }
-
+    mutationFn: async (items: BatchApprovalItem[]) => {
       if (DEBUG_ENABLED) {
         debugLog("[useBatchWorkApproval] Starting batch approval", {
           authMode,
@@ -109,29 +98,10 @@ export function useBatchWorkApproval() {
         });
       }
 
-      const approvals = items.map(({ draft, work }) => ({
-        draft,
-        gardenAddress: work.gardenAddress,
-        gardenerAddress: work.gardenerAddress,
-      }));
-
-      if (authMode === "wallet") {
-        const hash = await submitBatchApprovalsDirectly(approvals, chainId);
-        return { hash, count: items.length };
-      }
-
-      // Passkey mode
-      if (!smartAccountClient) {
-        throw new Error("Smart account not available. Please re-authenticate.");
-      }
-
-      const hash = await submitBatchApprovalsWithPasskey({
-        client: smartAccountClient,
-        approvals: approvals.map(({ draft, gardenAddress }) => ({ draft, gardenAddress })),
-        chainId,
-      });
-
-      return { hash, count: items.length };
+      return submitBatchApprovals(
+        { authMode, items, chainId },
+        createDefaultSubmitBatchApprovalsPorts(smartAccountClient)
+      );
     },
 
     onMutate: async (items) => {
