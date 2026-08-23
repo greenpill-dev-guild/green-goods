@@ -20,7 +20,7 @@
 
 import { useMemo } from "react";
 
-import type { CommitmentReadModel } from "../../../modules/commitment-pooling/types";
+import { selectConfirmQueueRows } from "../../../modules/commitment-pooling/confirm-queue";
 import { useOnlineStatus } from "../../app/useOnlineStatus";
 import { useCommitmentJobs } from "../../commitment-pooling/useCommitmentJobs";
 import { useCommitmentMetadata } from "../../commitment-pooling/useCommitmentMetadata";
@@ -50,48 +50,8 @@ export function useHubConfirmQueueController(input: {
   const metadata = useCommitmentMetadata(commitments);
 
   const rows = useMemo<ConfirmQueueRow[]>(() => {
-    const titleOf = (commitment: CommitmentReadModel) =>
-      (commitment.metadataCID && metadata.byCID.get(commitment.metadataCID.trim())?.title) ?? null;
-    const ordinary = toConfirm.groups.flatMap((group) =>
-      group.rows.map((row) => ({
-        commitment: row.commitment,
-        garden: group.garden,
-        gardenName: group.gardenName,
-        eligibility: "ORDINARY" as const,
-        title: titleOf(row.commitment),
-        poolGarden: row.poolGarden,
-        canDispute: row.canDispute,
-      }))
-    );
-    const fallback = toConfirm.fallback.map((row) => ({
-      commitment: row.commitment,
-      garden: row.garden,
-      gardenName: row.gardenName,
-      eligibility: row.path,
-      title: titleOf(row.commitment),
-      poolGarden: row.poolGarden,
-      canDispute: row.canDispute,
-    }));
-    // A disputed row's garden is already the pool's own, because only that
-    // pool's steward may resolve it.
-    const disputed = (toConfirm.disputed ?? []).map((row) => ({
-      commitment: row.commitment,
-      garden: row.garden,
-      gardenName: row.gardenName,
-      eligibility: "DISPUTED" as const,
-      title: titleOf(row.commitment),
-      poolGarden: row.garden,
-      canDispute: true,
-    }));
-    const all = [...ordinary, ...fallback, ...disputed];
-    const needle = search.trim().toLowerCase();
-    if (!needle) return all;
-    return all.filter(
-      (row) =>
-        (row.title ?? "").toLowerCase().includes(needle) ||
-        row.gardenName.toLowerCase().includes(needle)
-    );
-  }, [toConfirm.groups, toConfirm.fallback, toConfirm.disputed, metadata.byCID, search]);
+    return selectConfirmQueueRows({ toConfirm, byCID: metadata.byCID, search });
+  }, [toConfirm, metadata.byCID, search]);
 
   const acts = useMemo(
     () => ({

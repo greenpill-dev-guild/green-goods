@@ -2,6 +2,7 @@ export * from "../../hooks/public/usePublicCommitmentImpact";
 export * from "../../hooks/public/usePublicGardenPool";
 export * from "./account-profiles";
 export * from "./acts";
+export * from "./confirm-queue";
 export * from "./credit";
 export * from "./cycle-metadata";
 export * from "./data-public-impact";

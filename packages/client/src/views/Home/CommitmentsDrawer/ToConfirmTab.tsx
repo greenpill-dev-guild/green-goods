@@ -2,6 +2,7 @@ import { StatusBadge, useOffline } from "@green-goods/shared";
 import {
   type CommitmentsToConfirm,
   isCapturedCommitment,
+  selectConfirmQueueRows,
   useCommitmentMetadata,
 } from "@green-goods/shared/commitment-pooling";
 import { RiShieldCheckLine } from "@remixicon/react";
@@ -35,6 +36,23 @@ export function ToConfirmTab({ toConfirm, onOpenCommitment }: ToConfirmTabProps)
       [toConfirm.groups]
     )
   );
+  const groups = useMemo(() => {
+    const rows = selectConfirmQueueRows({
+      toConfirm,
+      byCID,
+      search: "",
+      include: ["ORDINARY"],
+    });
+    return rows.reduce<Array<{ garden: string; gardenName: string; rows: typeof rows }>>(
+      (result, row) => {
+        const group = result.find((candidate) => candidate.garden === row.garden);
+        if (group) group.rows.push(row);
+        else result.push({ garden: row.garden, gardenName: row.gardenName, rows: [row] });
+        return result;
+      },
+      []
+    );
+  }, [toConfirm, byCID]);
 
   return (
     <CommitmentStateLadder
@@ -56,7 +74,7 @@ export function ToConfirmTab({ toConfirm, onOpenCommitment }: ToConfirmTabProps)
         {formatMessage({ id: "app.commitments.toConfirm.intro" })}
       </p>
 
-      {toConfirm.groups.map((group) => (
+      {groups.map((group) => (
         <div key={group.garden} data-component="ToConfirmGroup">
           <h4
             className="mb-2 truncate text-xs font-medium uppercase tracking-wide text-text-soft-400"
@@ -70,12 +88,8 @@ export function ToConfirmTab({ toConfirm, onOpenCommitment }: ToConfirmTabProps)
               return (
                 <div key={row.commitment.id} className="space-y-1">
                   <CommitmentRow
-                    row={row}
-                    title={
-                      row.commitment.metadataCID
-                        ? (byCID.get(row.commitment.metadataCID)?.title ?? null)
-                        : null
-                    }
+                    row={{ commitment: row.commitment, seat: "confirmer", needsYou: true }}
+                    title={row.title}
                     onOpen={(id) => onOpenCommitment(group.garden, id)}
                   />
                   <div className="flex gap-1 px-1">
