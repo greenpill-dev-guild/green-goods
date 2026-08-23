@@ -347,6 +347,22 @@ existing regression surfaces.
 - bun run --filter @green-goods/contracts lint:check
 - bun run --filter @green-goods/contracts test
 
+## Terminal Validation Receipt — 2026-08-23
+
+- Tested implementation commit SHA: `8fd3311980b28d71d48f72fe41c99d15276de912`
+- Run at (UTC): `2026-08-23T08:02:46Z`
+- Exact command(s): all twelve commands in `## Exact Bun commands` above.
+- Result: seven focused Solidity surfaces passed 192 tests total, including 60 cold boundary cases
+  and 28 storage-layout tests; all 15 storage baselines matched; 289 script tests passed; full build
+  and lint passed; the package wrapper passed 2,050 Solidity tests, all 3 release-gas fixtures, and
+  289 script tests.
+- Validated paths: `packages/contracts/src`, `test`, `script`, Foundry/Bun configuration, storage
+  baselines, generated production artifacts, and contract validation entrypoints.
+- Worktree identity command and result: `git status --porcelain=v1 --untracked-files=all --
+  packages/contracts` → empty.
+- Evidence-only diff command and result (if applicable): not applicable.
+- Evidence-only worktree-status command and result (if applicable): not applicable.
+
 Run these deployment commands from packages/contracts; they remain simulation/transaction-plan
 only until separately authorized. Commands are stage-gated: no invocation may assume that a
 separate pure-simulation process changed chain state. The AssessmentResolver target already exists.

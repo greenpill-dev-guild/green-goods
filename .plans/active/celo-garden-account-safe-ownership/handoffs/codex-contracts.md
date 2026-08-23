@@ -113,24 +113,21 @@ G$ movement, canaries, application UI, package-level env files, or raw Forge com
 
 ## Validation Receipt
 
-- Tested implementation commit SHA: unavailable; Git cannot load its Homebrew `pcre2` dependency
-  inside this sandbox, so no candidate identity is claimed.
-- Run at (UTC): `2026-08-15T21:04:51Z`
-- Exact command(s):
-  - `bun ../../node_modules/typescript/bin/tsc --noEmit -p tsconfig.json`
-  - focused Vitest over `celo-garden-accounts.test.ts`, `garden-safe-owners.test.ts`, and
-    `release-operator.test.ts`
-  - `bun script/deploy/celo-garden-accounts.ts plan`
-  - `node scripts/harness/plan-hub.mjs validate`
-- Result: TypeScript pass; 23/26 focused tests pass and the three remaining fixtures stop at
-  sandbox-only `spawnSync git EPERM`; offline planning stops only on the missing reviewed raw
-  CREATE2 bundle and missing production coordinator artifact; 42 feature hubs validate.
-- Validated paths: new coordinator, relay/codec/router contracts and unit fixture; Celo account
-  and final Safe operator scripts/tests; release operator; package scripts; active plan hub.
-- Worktree identity command and result: `/opt/homebrew/bin/git status --short --branch` cannot run
-  because the sandbox blocks its `libpcre2-8.0.dylib`; branch and clean-candidate proof remain open.
-- Evidence-only diff command and result (if applicable): not applicable
-- Evidence-only worktree-status command and result (if applicable): not applicable
+- Tested implementation commit SHA: `8fd3311980b28d71d48f72fe41c99d15276de912`
+- Run at (UTC): `2026-08-23T08:02:46Z`
+- Exact command(s): `bun run --filter @green-goods/contracts test:match --
+  test/unit/GardenAccountRelay.t.sol -vv`; `bun run --filter @green-goods/contracts test:script --
+  script/deploy/celo-garden-accounts.test.ts script/deploy/garden-safe-owners.test.ts
+  script/release-operator.test.ts`.
+- Result: relay unit/fuzz/invariant proof passed 16/16, including 256 invariant runs with 128,000
+  calls each; max-calldata proposal/finalization gas was 124,680/55,580 below 500,000. The three
+  focused operator suites passed 31/31.
+- Validated paths: Garden account coordinator, relay/codec/router contracts and unit/invariant
+  tests; Celo account and final-Safe operator scripts/tests; release operator and package wrappers.
+- Worktree identity command and result: `git status --porcelain=v1 --untracked-files=all --
+  packages/contracts` → empty.
+- Evidence-only diff command and result (if applicable): not applicable.
+- Evidence-only worktree-status command and result (if applicable): not applicable.
 
 ## Risks / Blockers
 

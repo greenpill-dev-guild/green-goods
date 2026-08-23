@@ -36,3 +36,19 @@ fixture proof alone.
 
 No selector/workflow drift found: the parity fixtures cover trigger, setup, coverage, and formatting
 ownership, and a repository-wide search found no stale references to the removed cache.
+
+## Terminal Validation Receipt — 2026-08-23
+
+- Tested implementation commit SHA: `8fd3311980b28d71d48f72fe41c99d15276de912`
+- Run at (UTC): `2026-08-23T08:02:46Z`
+- Exact command(s): `bun run test:validation-system`; `node --test
+  scripts/quality/ci-gate.test.mjs scripts/quality/workflow-performance-parity.test.mjs`.
+- Result: 130/130 integrated validation tests and 40/40 focused CI/workflow tests passed. Live
+  GitHub Actions at cumulative Wave 0 SHA `05ff122782ae1eed7e69b534492ad355aad72885`
+  succeeded for Agent, Admin, Client, Shared, Docs, Supply Chain Guardrails, and CI Gate.
+- Validated paths: all VSO selector, local runner, workflow, toolchain, guidance, and guardrail
+  inputs plus their tests.
+- Worktree identity command and result: `git status --porcelain=v1 --untracked-files=all -- scripts
+  .github package.json turbo.json .mise.toml AGENTS.md CLAUDE.md .claude` → empty.
+- Evidence-only diff command and result (if applicable): not applicable.
+- Evidence-only worktree-status command and result (if applicable): not applicable.

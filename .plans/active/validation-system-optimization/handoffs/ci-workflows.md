@@ -61,6 +61,16 @@ touched. See the deferred profiling note in `plan.todo.md`.
 
 ## Validation Receipt
 
-Live GitHub Actions proof recorded at `fb835410`. The cache removal is proven by fixtures only; it
-lands without live evidence because re-running workflows is outside this hub's boundary, and its
-next live sample arrives with the following push.
+- Tested implementation commit SHA: `8fd3311980b28d71d48f72fe41c99d15276de912`
+- Run at (UTC): `2026-08-23T08:02:46Z`
+- Exact command(s): `node --test scripts/quality/ci-gate.test.mjs
+  scripts/quality/workflow-performance-parity.test.mjs`.
+- Result: 40/40 CI Gate and workflow parity tests passed. Live GitHub Actions on cumulative Wave 0
+  SHA `05ff122782ae1eed7e69b534492ad355aad72885` also passed Agent, Admin, Client, Shared, Docs,
+  Supply Chain Guardrails, and CI Gate (run IDs 32622463566–32622463606).
+- Validated paths: `.github/actions/setup-js`, `.github/workflows/**`, `scripts/quality/ci-gate.mjs`,
+  its test, workflow parity test, selector workflow mapping, and root toolchain declarations.
+- Worktree identity command and result: `git status --porcelain=v1 --untracked-files=all --
+  .github scripts/quality package.json .mise.toml` → empty.
+- Evidence-only diff command and result (if applicable): not applicable.
+- Evidence-only worktree-status command and result (if applicable): not applicable.
