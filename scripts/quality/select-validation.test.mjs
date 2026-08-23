@@ -1072,6 +1072,32 @@ test("git inputs include dirty and untracked paths and fingerprint their content
   );
 });
 
+test("git inputs fingerprint committed patches larger than Node's default buffer", (t) => {
+  const directory = mkdtempSync(join(tmpdir(), "validation-large-diff-selector-"));
+  t.after(() => rmSync(directory, { recursive: true, force: true }));
+  const git = (...args) => execFileSync("git", args, { cwd: directory, stdio: "ignore" });
+  git("init");
+  git("config", "user.email", "validation@example.com");
+  git("config", "user.name", "Validation Test");
+  git("config", "commit.gpgsign", "false");
+  mkdirSync(join(directory, "packages/client/src"), { recursive: true });
+  const sourcePath = join(directory, "packages/client/src/large-fixture.ts");
+  writeFileSync(sourcePath, "export const baseline = true;\n");
+  git("add", ".");
+  git("commit", "-m", "test: seed large diff fixture");
+
+  writeFileSync(sourcePath, `export const payload = "${"x".repeat(1_100_000)}";\n`);
+  git("add", ".");
+  git("commit", "-m", "test: add large diff fixture");
+
+  const inputs = resolveGitInputs(
+    { changedPaths: [], base: "HEAD~1", head: "HEAD" },
+    { cwd: directory },
+  );
+  assert.deepEqual(inputs.changedPaths, ["packages/client/src/large-fixture.ts"]);
+  assert.match(inputs.workingCopyFingerprint, /^[a-f0-9]{64}$/);
+});
+
 test("deleted tests are not inferred as focused Vitest paths", (t) => {
   const directory = mkdtempSync(join(tmpdir(), "validation-deleted-test-selector-"));
   t.after(() => rmSync(directory, { recursive: true, force: true }));

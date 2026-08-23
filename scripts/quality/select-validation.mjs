@@ -9,6 +9,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 const scriptDirectory = dirname(fileURLToPath(import.meta.url));
 const projectRoot = resolve(scriptDirectory, "../..");
 const defaultPolicyPath = resolve(projectRoot, "scripts/data/validation-policy.json");
+const GIT_OUTPUT_MAX_BUFFER = 16 * 1024 * 1024;
 
 export function loadPolicy(policyPath = defaultPolicyPath) {
   const policy = JSON.parse(readFileSync(policyPath, "utf8"));
@@ -834,11 +835,15 @@ export function parseCliArgs(argv) {
 }
 
 function gitOutput(args, cwd = projectRoot) {
-  return execFileSync("git", args, { cwd, encoding: "utf8" }).trim();
+  return execFileSync("git", args, {
+    cwd,
+    encoding: "utf8",
+    maxBuffer: GIT_OUTPUT_MAX_BUFFER,
+  }).trim();
 }
 
 function gitRawOutput(args, cwd = projectRoot) {
-  return execFileSync("git", args, { cwd });
+  return execFileSync("git", args, { cwd, maxBuffer: GIT_OUTPUT_MAX_BUFFER });
 }
 
 function lines(value) {
