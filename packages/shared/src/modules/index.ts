@@ -201,11 +201,19 @@ export {
 export {
   type AssessmentMetadataPrefill,
   checkAttestationsBundled,
+  createHypercertRepository,
   domainToActionDomain,
   filterAttestationsByAssessment,
   getApprovedAttestations,
   getGardenHypercerts,
   getHypercertById,
+  type HypercertDocuments,
+  type HypercertEas,
+  type HypercertIndexer,
+  type HypercertRepository,
+  hypercertRepository,
+  type HypercertRepositoryDependencies,
+  type HypercertSdk,
   prefillMetadataFromAssessment,
 } from "./data/hypercerts";
 // ============================================================================

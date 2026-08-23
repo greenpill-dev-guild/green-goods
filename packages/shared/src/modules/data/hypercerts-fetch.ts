@@ -5,7 +5,7 @@ import type {
   HypercertStatus,
 } from "../../types/hypercerts";
 import { logger } from "../app/logger";
-import { GQLClient, greenGoodsIndexer } from "./graphql-client";
+import { GQLClient, greenGoodsIndexer, type GraphQLReader } from "./graphql-client";
 import { getHypercertMetadataFromIpfs, normalizeHypercertStatus } from "./hypercerts-metadata";
 
 // =============================================================================
@@ -300,11 +300,12 @@ export async function hydrateHypercertRecords(
  */
 export async function getHypercertClaims(
   hypercertId: string,
-  limit = 100
+  limit = 100,
+  reader: GraphQLReader = greenGoodsIndexer
 ): Promise<
   { id: string; claimant: Address; units: bigint; claimedAt: number; txHash: `0x${string}` }[]
 > {
-  const { data, error } = await greenGoodsIndexer.query(
+  const { data, error } = await reader.query(
     HYPERCERT_CLAIMS_QUERY,
     { hypercertId, limit },
     "getHypercertClaims"
@@ -339,9 +340,10 @@ export async function getGardenHypercerts(
   gardenId: string,
   chainId: number,
   status?: HypercertStatus,
-  limit = 50
+  limit = 50,
+  reader: GraphQLReader = greenGoodsIndexer
 ): Promise<HypercertRecord[]> {
-  const { data, error } = await greenGoodsIndexer.query(
+  const { data, error } = await reader.query(
     GARDEN_HYPERCERTS_QUERY,
     { gardenId, chainId, limit },
     "getGardenHypercerts"
@@ -395,7 +397,10 @@ export async function getGardenHypercerts(
  * Note: Attestation data is stored as UIDs only in the Envio schema.
  * To get full attestation details, use getApprovedAttestations() with the garden ID.
  */
-export async function getHypercertById(hypercertId: string): Promise<HypercertRecord | null> {
+export async function getHypercertById(
+  hypercertId: string,
+  reader: GraphQLReader = greenGoodsIndexer
+): Promise<HypercertRecord | null> {
   // Lazy import to avoid circular dependency (hypercerts-attestations imports from this file)
   const { getAttestationsByUIDs } = await import("./hypercerts-attestations");
 
@@ -408,7 +413,7 @@ export async function getHypercertById(hypercertId: string): Promise<HypercertRe
     return null;
   }
 
-  const { data, error } = await greenGoodsIndexer.query(
+  const { data, error } = await reader.query(
     HYPERCERT_DETAIL_QUERY,
     { id: hypercertId, chainId },
     "getHypercertById"
@@ -431,7 +436,7 @@ export async function getHypercertById(hypercertId: string): Promise<HypercertRe
   const hypercertIdStr = String(record.id ?? "");
 
   // Fetch claims separately (Envio doesn't support entity arrays)
-  const claims = await getHypercertClaims(hypercertIdStr);
+  const claims = await getHypercertClaims(hypercertIdStr, 100, reader);
 
   // attestationUIDs are stored but attestation details must be fetched from EAS
   const attestationUIDs = (record.attestationUIDs as string[] | null | undefined) ?? [];
