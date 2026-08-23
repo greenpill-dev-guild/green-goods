@@ -20,7 +20,7 @@ import { useCallback, useMemo } from "react";
 
 import { queryKeys } from "../../config/query-keys";
 import { useJobQueueEvents } from "../../modules/job-queue/event-bus";
-import { jobQueueDB } from "../../modules/job-queue/db";
+import { jobQueue } from "../../modules/job-queue";
 import { isDiscardableJob } from "../../modules/job-queue/job-recovery";
 import { isTerminallyFailedJob } from "../../modules/job-queue/queue-policy";
 import { COMMITMENT_JOB_KINDS } from "../../modules/commitment-pooling/jobs";
@@ -98,7 +98,7 @@ export function useCommitmentQueueState(viewer?: Address | null): CommitmentQueu
     queryKey,
     enabled: Boolean(viewer),
     queryFn: async () => {
-      const all = await jobQueueDB.getJobs({ userAddress: viewer as string });
+      const all = await jobQueue.getJobs(viewer as string);
       return all.filter((job) => COMMITMENT_JOB_KINDS.includes(job.kind as never));
     },
     staleTime: Number.POSITIVE_INFINITY,

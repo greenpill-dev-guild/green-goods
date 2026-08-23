@@ -6,7 +6,7 @@ import { useAuth } from "../hooks/auth/useAuth";
 import { usePrimaryAddress } from "../hooks/auth/usePrimaryAddress";
 import { useTransactionSender } from "../hooks/blockchain/useTransactionSender";
 import { queryInvalidation, queryKeys } from "../config/query-keys";
-import { jobQueue, jobQueueEventBus } from "../modules/job-queue";
+import { jobQueue, type JobQueueHandle } from "../modules/job-queue";
 import { logger } from "../modules/app/logger";
 import { useUIStore } from "../stores/useUIStore";
 import type {
@@ -48,6 +48,7 @@ export const useQueueFlush = () => {
 
 interface JobQueueProviderProps {
   children: React.ReactNode;
+  queue?: JobQueueHandle;
 }
 
 const EMPTY_QUEUE_STATS: QueueStats = { total: 0, pending: 0, failed: 0, synced: 0 };
@@ -65,7 +66,7 @@ interface Work {
   [key: string]: unknown;
 }
 
-const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children }) => {
+const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children, queue = jobQueue }) => {
   const { authMode } = useAuth();
   const sender = useTransactionSender();
 
@@ -106,7 +107,7 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children }) =>
       }
 
       try {
-        const newStats = await jobQueue.getStats(currentUserAddress);
+        const newStats = await queue.getStats(currentUserAddress);
         if (signal?.aborted) return;
         setStats((previousStats) =>
           areQueueStatsEqual(previousStats, newStats) ? previousStats : newStats
@@ -117,7 +118,7 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children }) =>
         logger.warn("[JobQueueProvider] refreshStats failed", { error });
       }
     },
-    [currentUserAddress, setOfflineBannerVisibleIfChanged]
+    [currentUserAddress, queue, setOfflineBannerVisibleIfChanged]
   );
 
   // Helper to invalidate multiple query keys
@@ -262,8 +263,8 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children }) =>
     void refreshStats(abortController.signal);
 
     // Subscribe to events
-    const unsubscribe = jobQueue.subscribe(handleQueueEvent);
-    const unsubscribeSyncCompleted = jobQueueEventBus.on("queue:sync-completed", () => {
+    const unsubscribe = queue.subscribe(handleQueueEvent);
+    const unsubscribeSyncCompleted = queue.onSyncCompleted(() => {
       setIsProcessing(false);
       void refreshStats(abortController.signal);
     });
@@ -273,7 +274,7 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children }) =>
       unsubscribe();
       unsubscribeSyncCompleted();
     };
-  }, [currentUserAddress, refreshStats, setOfflineBannerVisibleIfChanged]);
+  }, [currentUserAddress, queue, refreshStats, setOfflineBannerVisibleIfChanged]);
 
   useEffect(() => {
     if (!sender || !currentUserAddress) {
@@ -294,7 +295,7 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children }) =>
 
       isFlushInProgressRef.current = true;
       try {
-        await jobQueue.flush({ transactionSender: sender, userAddress: currentUserAddress });
+        await queue.flush({ transactionSender: sender, userAddress: currentUserAddress });
         if (!abortController.signal.aborted) {
           await refreshStats(abortController.signal);
         }
@@ -330,7 +331,7 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children }) =>
     };
 
     window.addEventListener("online", handleOnline);
-    const unsubscribeBackgroundSync = jobQueueEventBus.on("background:sync-requested", () => {
+    const unsubscribeBackgroundSync = queue.onBackgroundSyncRequested(() => {
       if (authMode === "passkey" || authMode === "embedded") {
         void attemptFlush();
       }
@@ -341,7 +342,7 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children }) =>
       window.removeEventListener("online", handleOnline);
       unsubscribeBackgroundSync();
     };
-  }, [sender, authMode, currentUserAddress, refreshStats]);
+  }, [sender, authMode, currentUserAddress, queue, refreshStats]);
 
   // Context value - useMemo kept here as it's passed to Provider (cross-boundary)
   const contextValue: JobQueueContextValue = React.useMemo(
@@ -361,7 +362,7 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children }) =>
         }
 
         try {
-          const result = await jobQueue.flush({
+          const result = await queue.flush({
             transactionSender: sender ?? null,
             userAddress: currentUserAddress,
           });
@@ -394,19 +395,19 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children }) =>
       },
       hasPendingJobs: () => {
         if (!currentUserAddress) return Promise.resolve(false);
-        return jobQueue.hasPendingJobs(currentUserAddress);
+        return queue.hasPendingJobs(currentUserAddress);
       },
       getPendingCount: () => {
         if (!currentUserAddress) return Promise.resolve(0);
-        return jobQueue.getPendingCount(currentUserAddress);
+        return queue.getPendingCount(currentUserAddress);
       },
     }),
-    [stats, isProcessing, lastEvent, currentUserAddress, sender, refreshStats]
+    [stats, isProcessing, lastEvent, currentUserAddress, sender, queue, refreshStats]
   );
 
   return <JobQueueContext.Provider value={contextValue}>{children}</JobQueueContext.Provider>;
 };
 
-export const JobQueueProvider: React.FC<JobQueueProviderProps> = ({ children }) => {
-  return <JobQueueProviderInner>{children}</JobQueueProviderInner>;
+export const JobQueueProvider: React.FC<JobQueueProviderProps> = ({ children, queue }) => {
+  return <JobQueueProviderInner queue={queue ?? jobQueue}>{children}</JobQueueProviderInner>;
 };

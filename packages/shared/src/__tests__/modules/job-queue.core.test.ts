@@ -50,7 +50,12 @@ vi.mock("../../config/blockchain", async (importOriginal) => {
   };
 });
 
-import { jobQueue, jobQueueDB } from "../../modules/job-queue";
+import {
+  createDefaultJobQueueDependencies,
+  jobQueue,
+  jobQueueDB,
+  jobQueueEventBus,
+} from "../../modules/job-queue";
 import { encodeWorkData } from "../../utils/eas/encoders";
 
 // Test user address for scoped queue operations
@@ -82,6 +87,10 @@ function createMockFile(content: string, name: string, type: string): File {
 }
 
 describe("modules/job-queue", () => {
+  it("wires the exported event bus into the default queue dependencies", () => {
+    expect(createDefaultJobQueueDependencies().events).toBe(jobQueueEventBus);
+  });
+
   beforeEach(() => {
     try {
       Object.defineProperty(globalThis.navigator, "onLine", {

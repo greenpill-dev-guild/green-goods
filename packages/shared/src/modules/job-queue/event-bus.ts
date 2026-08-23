@@ -1,24 +1,12 @@
 import React from "react";
-import type { Job } from "../../types/job-queue";
 import { logger } from "../app/logger";
+import type { JobQueueEventMap, JobQueueEventType } from "./ports";
 
 /**
  * Event Bus for Job Queue
  * Replaces polling with event-driven updates for better performance
  */
 
-// Extended event types for more granular control
-interface JobQueueEventMap {
-  "job:added": { jobId: string; job: Job };
-  "job:processing": { jobId: string; job: Job };
-  "job:completed": { jobId: string; job: Job; txHash: string };
-  "job:failed": { jobId: string; job: Job; error: string };
-  "queue:sync-completed": { result: { processed: number; failed: number; skipped: number } };
-  "offline:status-changed": { isOnline: boolean };
-  "background:sync-requested": { source: "service-worker"; timestamp: number };
-}
-
-type JobQueueEventType = keyof JobQueueEventMap;
 type JobQueueEventData<T extends JobQueueEventType> = JobQueueEventMap[T];
 
 // Type-safe event listener
@@ -140,11 +128,4 @@ export function useJobQueueEvents<T extends JobQueueEventType>(
     return unsubscribe;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [typesKey, ...deps]);
-}
-
-// Cleanup event bus on page unload
-if (typeof window !== "undefined") {
-  window.addEventListener("beforeunload", () => {
-    jobQueueEventBus.removeAllListeners();
-  });
 }

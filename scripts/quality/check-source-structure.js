@@ -100,7 +100,6 @@ const FROZEN_ALLOWLIST = {
   "packages/shared/src/modules/data/eas.ts": 618,
   "packages/shared/src/modules/data/marketplace.ts": 550,
   "packages/shared/src/modules/job-queue/db.ts": 540,
-  "packages/shared/src/modules/job-queue/index.ts": 545,
   "packages/shared/src/modules/vault-crowdfunding.ts": 1646,
   "packages/shared/src/providers/Auth.tsx": 739,
   "packages/shared/src/public-contracts/index.ts": 698,

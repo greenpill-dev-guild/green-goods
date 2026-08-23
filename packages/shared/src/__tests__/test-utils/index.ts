@@ -14,6 +14,7 @@ import enMessages from "../../i18n/en.json";
 export * from "./mock-factories";
 export * from "./offline-helpers";
 export * from "./transaction-fakes";
+export * from "./job-queue-fakes";
 export { describeConformance, type ConformanceLaw } from "./conformance";
 export { createSharedBarrelMock } from "./shared-barrel-mock";
 
