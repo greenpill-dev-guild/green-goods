@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p1",
     "created_at": "2026-08-23T02:50:35.809Z",
-    "updated_at": "2026-08-23T08:24:07.882Z"
+    "updated_at": "2026-08-23T08:46:24.000Z"
   },
   "links": {
     "brief": "brief.md",
@@ -278,16 +278,19 @@
     "w0_turbo_input_hardening": {
       "machine_lane": "state_api",
       "owner": "codex",
-      "status": "in_progress",
+      "status": "passed",
       "branch": "fix/turbo-test-inputs",
       "depends_on": ["w0_turbo_test_routing"],
       "handoff": "handoffs/w0_turbo_input_hardening.md",
+      "commit": "693f1895bb001b6292da4d94548db07697bc30f0",
       "tdd": {
         "status": "green_recorded",
         "red": "The focused Turbo-input regression failed because Shared omitted Client/Admin sources and all five package tasks omitted root test-runner helpers",
         "green": "The focused case and the complete 130-test validation-system suite passed after the input graph was corrected"
       },
-      "validation": "QA selector selected path-scoped format, lint, and the validation-system suite; all selected checks passed"
+      "validation": "Focused RED/GREEN passed; validation-system 130/130, every push-selector check, Plan Hub 46 hubs and 56/56 fixtures, and the deterministic root build passed",
+      "proof_limit": "The additional full test run passed 2,050 Solidity tests and 278 contract script tests, but the dual-chain lifecycle suite was environment-blocked because this sandbox rejects localhost Anvil connections with EPERM",
+      "publication_status": "local stacked commit validated; publication remains pending"
     },
     "w0_turbo_guidance": {
       "machine_lane": "ui",

@@ -88,3 +88,35 @@ GitHub reports PRs #754 through #760 merged into `develop` at squash commit
 `91e1ae904cc28af61cd0b203fce2f798fb31d4c8`. The Celo and Commitment Pooling handoffs retain their
 exact commands and clean-path evidence. The W0-H handoff preserves the VSO closeout evidence after
 the repository archive command compacts that completed hub.
+
+## Wave 0 Snapshot — 2026-08-23
+
+Wave 0 is complete for execution purposes. The two private Claude artifact URLs could not be opened
+from this environment, so this repository snapshot is the durable source evidence; no claim is made
+that those presentation artifacts were updated.
+
+- Selector: a changed admin view selected three owning/consumer probes (`admin-test-typecheck`,
+  `admin-test`, and `admin-build`), within the six-probe ceiling. The complete plan contains eight
+  checks after adding hygiene, source-structure, design, and browser gates.
+- Toolchain: `node scripts/dev/ci-local.js --quick --plan-json` returned `ready` with Node 22.22.1,
+  Bun 1.3.14, and Foundry 1.7.1.
+- Push guards: `.husky/pre-push` invokes both `check:source-structure` and
+  `check:design-generated`.
+- Load-sensitive tests: the W0-E receipt records 25/25 loaded focused runs and five green full admin
+  backgrounds. It retains the accepted proof limit that no equivalent pre-change loaded RED was
+  reproduced.
+- Coverage: pull-request workflows run plain `bun run test`; `coverage-nightly.yml` owns
+  `test:coverage`. Measured statement/branch/function/line coverage is Shared
+  61.12/52.17/59.17/62.65, Client 63.36/56.92/62.29/64.95, and Admin
+  51.54/47.07/44.87/53.24.
+- Turbo: the W0-G1 receipt records an Agent cold pass of 270 tests followed by a full-cache warm
+  pass in 146 ms. The successor W0-I regression now proves root test-runner helpers and Shared's
+  Client/Admin source consumers participate in test-task hashes.
+- Plan Hub: 46 feature hubs validate, 56/56 Plan Hub tests pass, receipt debt is zero, and
+  Validation System Optimization is archived as completed.
+- Integrated proof: the deterministic Sepolia root build passed. The full test run passed 2,050
+  Solidity tests, the release gas boundary, and 278 contract script tests, but the dual-chain
+  lifecycle suite is environment-blocked because this sandbox rejects its localhost Anvil
+  connection with `EPERM`.
+- Measurement host: Apple ARM64, 10 logical processors, 24 GiB memory. Load average at capture was
+  6.32/21.19/32.33, so quiet-machine suite timing targets remain deliberately unclaimed.

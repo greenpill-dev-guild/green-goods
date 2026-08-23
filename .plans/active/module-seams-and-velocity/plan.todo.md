@@ -26,6 +26,7 @@
 | 13 | Adopt Afo's corrected W0-F statement floors of 61 Shared, 63 Client, and 51 Admin, while keeping the other metrics at their measured integer floors. | The corrected values pass the clean baseline and preserve real enforcement; live Coverage Nightly proof remains a merge gate. |
 | 14 | Merge the ready Wave 0 stack without waiting for the quiet-machine timing matrix or a pre-merge Coverage Nightly dispatch. | Afo explicitly accepted both proof limits on 2026-08-22 to unblock Wave 1. The timing result remains unclaimed, and the first default-branch Coverage Nightly run remains a required post-merge observation. |
 | 15 | Close the two actionable Turbo input findings from merged PR #760 on a successor stacked lane before Wave 1. | Root test-runner helpers and consumer source scanned by Shared tests must affect Turbo hashes or later validation can reuse stale successes. |
+| 16 | Accept the repository-owned Wave 0 snapshot as the execution gate while the two private Claude artifacts are inaccessible from this environment. | Fresh local receipts preserve every observed signal and proof limit without blocking the approved implementation program on an external presentation surface. |
 
 ## Research / Plan Gate
 
@@ -39,8 +40,8 @@
 
 | Requirement | Waves | Status |
 |---|---|---|
-| A green-by-default scoped validation harness | Wave 0 | in progress |
-| Direct seams for high-risk mutations and pooling controllers | Wave 1 | blocked on Wave 0 |
+| A green-by-default scoped validation harness | Wave 0 | complete |
+| Direct seams for high-risk mutations and pooling controllers | Wave 1 | in progress |
 | Declared shared boundaries and smaller composition surfaces | Wave 2 | blocked on Wave 1 |
 | Every remaining shared module below A- regraded | Wave 3 | blocked on dependencies |
 | Every remaining client/admin module below A- regraded | Wave 4 | blocked on shared seams |
@@ -56,8 +57,8 @@
 4. [x] Dispatch and land Wave 0 parallel set 1: W0-A, W0-B, W0-C, W0-E, W0-F.
 5. [x] Dispatch and land W0-D after W0-B and W0-G1 after W0-C.
 6. [x] Land W0-G2 and burn down receipt debt in W0-H, then archive Validation System Optimization.
-7. [ ] Close W0 Turbo input hardening feedback on a successor stacked lane.
-8. [ ] Record the Wave 0 Module Health and Velocity snapshots and verify every Wave 0 exit signal.
+7. [x] Close W0 Turbo input hardening feedback on a successor stacked lane.
+8. [x] Record the Wave 0 Module Health and Velocity snapshots and verify every Wave 0 exit signal.
 9. [ ] Land Wave 1 shared seams in order A and C, then B1, then B2.
 10. [ ] Land Wave 1 pooling controller contracts, direct suites, and typed view tests.
 11. [ ] Land the Wave 2 client controller, Community split, design review, Hasura planner, and pooling subpath lanes.
