@@ -2,6 +2,7 @@ export type * from "./ontology/types";
 export * from "./ontology/query";
 export * from "./modules/commitment-pooling";
 export * from "./hooks/commitment-pooling";
+export * from "./hooks/client-ui";
 // COMPONENTS
 // ============================================================================
 export type {
@@ -272,12 +273,7 @@ export * from "./hooks/admin-ui/hub/useCreateHypercertController";
 export * from "./hooks/admin-ui/hub/useHubWorkbenchController";
 export * from "./hooks/admin-ui/pool";
 export * from "./hooks/admin-ui/hypercerts";
-export * from "./hooks/admin-ui/layout/accountSheet.events";
-export * from "./hooks/admin-ui/layout/commandPalette.results";
-export * from "./hooks/admin-ui/layout/useAdminRightSheetDescriptor";
-export * from "./hooks/admin-ui/layout/useCommandPaletteController";
-export * from "./hooks/admin-ui/layout/useCommandPaletteData";
-export * from "./hooks/admin-ui/layout/useCommandPaletteShortcuts";
+export * from "./hooks/admin-ui/layout";
 export * from "./hooks/admin-ui/navigation/sheetRegistry";
 export * from "./hooks/admin-ui/navigation/workspaceNavigation";
 export * from "./hooks/admin-ui/navigation/workspaceViews";

@@ -6,6 +6,10 @@ import type {
   PoolConsoleActs,
   PoolConsoleController,
 } from "../../hooks/admin-ui/pool";
+import type {
+  GardenCommitmentActs,
+  GardenCommitmentController,
+} from "../../hooks/client-ui/commitment";
 import type { CommitmentsToConfirm } from "../../hooks/commitment-pooling/useCommitmentsToConfirm";
 import {
   DEMO_CHAIN_ID,
@@ -16,7 +20,10 @@ import {
 import { selectPromiseKeptRate } from "../../modules/commitment-pooling/disclosure";
 import { selectCommitmentActPermissions } from "../../modules/commitment-pooling/commitment-act-permissions";
 import { selectPoolConsoleModel } from "../../modules/commitment-pooling/pool-console";
-import { selectConfirmationEligibility } from "../../modules/commitment-pooling/selectors";
+import {
+  selectCommitmentSeat,
+  selectConfirmationEligibility,
+} from "../../modules/commitment-pooling/selectors";
 import type { CommitmentPoolRecord, HexString } from "../../modules/commitment-pooling/types";
 import {
   availableCapability,
@@ -29,6 +36,89 @@ import {
 
 const successfulTransaction = async (): Promise<HexString> => "0x0";
 const successfulJob = async (): Promise<string> => "fixture-job";
+
+const gardenCommitmentActs: GardenCommitmentActs = {
+  claim: successfulJob,
+  claimPersonal: successfulJob,
+  linkWork: successfulJob,
+  sendForConfirmation: successfulJob,
+  confirm: successfulJob,
+  notYet: successfulTransaction,
+  join: successfulTransaction,
+  withdraw: successfulTransaction,
+  acceptClaim: successfulTransaction,
+  declineClaim: successfulTransaction,
+};
+
+export function gardenCommitmentControllerFixture(
+  overrides: Partial<GardenCommitmentController> = {}
+): GardenCommitmentController {
+  const detail = overrides.detail === undefined ? commitmentDetailFixture() : overrides.detail;
+  const pool = overrides.pool === undefined ? poolFixture() : overrides.pool;
+  const viewer = overrides.viewer === undefined ? TUNDE : overrides.viewer;
+  const seat =
+    overrides.seat ??
+    (detail
+      ? selectCommitmentSeat({
+          commitment: detail.commitment,
+          contributors: detail.contributors
+            .filter((row) => row.active)
+            .map((row) => row.contributor),
+          viewer: viewer ?? undefined,
+        })
+      : null);
+  return {
+    chainId: DEMO_CHAIN_ID,
+    routeGarden: DEMO_GARDEN,
+    viewer,
+    isOnline: true,
+    status: detail ? "ready" : "notFound",
+    availability: { status: "available", capability: availableCapability },
+    detail,
+    metadata: { version: 1, title: "Repair tool handles" },
+    pool,
+    works: [],
+    actions: [],
+    roles: {
+      isSteward: false,
+      stewardsPoolGarden: false,
+      counterpartyGarden: undefined,
+      stewardsCounterparty: false,
+      garden: undefined,
+      isMemberHere: false,
+      claimGardens: { member: [], stewarded: [] },
+    },
+    seat,
+    actGarden: detail?.commitment.providerGarden ?? DEMO_GARDEN,
+    actKind: null,
+    joinable: false,
+    linkable: false,
+    linkableWorks: [],
+    ownRequest: null,
+    pendingClaimRequests: [],
+    canAskAgain: false,
+    claimNeedsContext: false,
+    queue: {
+      pending: false,
+      sendFailed: false,
+      failedJob: null,
+      unavailable: false,
+      refresh: () => undefined,
+    },
+    confirmation: {
+      phase: "ask",
+      canNotYet: false,
+      gardenAddress: DEMO_GARDEN,
+      membershipNotRequired: false,
+    },
+    pinFailed: false,
+    isQueueing: false,
+    isSending: false,
+    acts: gardenCommitmentActs,
+    refetch: async () => undefined,
+    ...overrides,
+  };
+}
 
 const poolActs: PoolConsoleActs = {
   pause: successfulTransaction,

@@ -12,6 +12,7 @@ import {
   contributorFixture,
   createSharedBarrelMock,
   cycleFixture,
+  gardenCommitmentControllerFixture,
   hubConfirmQueueControllerFixture,
   poolClaimRowFixture,
   poolConsoleControllerFixture,
@@ -38,6 +39,7 @@ describe("pool controller fixtures", () => {
     const confirmQueue: HubConfirmQueueController = hubConfirmQueueControllerFixture({
       toConfirm: toConfirmFixture(),
     });
+    const gardenCommitment = gardenCommitmentControllerFixture({ detail });
     const dialog: CommitmentDialogController = commitmentDialogControllerFixture({ commitment });
 
     expect(poolConsole.model.status).toBe("open");
@@ -50,6 +52,8 @@ describe("pool controller fixtures", () => {
       "DISPUTED",
     ]);
     expect(dialog.can.cancel).toBe(true);
+    expect(gardenCommitment.status).toBe("ready");
+    expect(gardenCommitment.detail).toBe(detail);
     expect(dialog.confirmation).toEqual({
       allowed: false,
       path: null,
