@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p1",
     "created_at": "2026-08-23T02:50:35.809Z",
-    "updated_at": "2026-08-23T08:52:00.000Z"
+    "updated_at": "2026-08-23T09:20:48.000Z"
   },
   "links": {
     "brief": "brief.md",
@@ -328,10 +328,19 @@
     "sender_conformance": {
       "machine_lane": "state_api",
       "owner": "codex",
-      "status": "in_progress",
+      "status": "passed",
       "branch": "test/transaction-sender-conformance",
       "depends_on": ["w0_receipt_debt_burndown"],
-      "handoff": "handoffs/sender_conformance.md"
+      "handoff": "handoffs/sender_conformance.md",
+      "commit": "8fe5f6cba756470123b3bceb54cef556e245bcbf",
+      "tdd": {
+        "status": "green_recorded",
+        "red": "The focused conformance suite failed because Passkey transport ran without the injectable safety guard",
+        "green": "All three sender suites passed one conformance table and all eight named typed-fake migrations retained their test counts"
+      },
+      "validation": "Selector ready; direct sender and migration proof 198 passed/5 explicit skips, focused production coverage exceeded 92% statements and branches, shared typecheck plus Client/Admin/Agent and ontology checks passed",
+      "proof_limit": "The out-of-lane JobQueueProvider legacy mock is deferred to jobqueue_create_deps and the pre-existing useContractTxSender transfer ABI remains deferred; program-wide legacy-mock and one-ABI exits are not claimed",
+      "publication_status": "local stacked implementation commit validated; publication remains pending"
     },
     "work_submit_command": {
       "machine_lane": "state_api",
