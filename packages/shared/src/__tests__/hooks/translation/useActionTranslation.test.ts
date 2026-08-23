@@ -17,15 +17,6 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 // Mocks
 // ============================================
 
-vi.mock("../../../modules/translation/browser-translator", () => ({
-  browserTranslator: {
-    get isSupported() {
-      return false;
-    },
-    translate: vi.fn(),
-  },
-}));
-
 vi.mock("../../../modules/app/logger", () => ({
   logger: {
     error: vi.fn(),

@@ -221,7 +221,6 @@ export {
 // ============================================================================
 export {
   createGatewayChain,
-  // Upload context types
   type FileUploadContext,
   getFileByHash,
   getIPFSFallbackGateways,
@@ -421,8 +420,14 @@ export {
 // ============================================================================
 // TRANSLATION
 // ============================================================================
-export { browserTranslator } from "./translation/browser-translator";
-export { translationCache } from "./translation/db";
+export {
+  browserTranslator,
+  createBrowserTranslator,
+  type DetectedTranslatorApi,
+  detectTranslatorApi,
+  type Translator,
+} from "./translation/browser-translator";
+export { type TranslationCache, translationCache } from "./translation/db";
 export { runTranslationDiagnostics } from "./translation/diagnostics";
 // ============================================================================
 // WORK / BOT SUBMISSION
