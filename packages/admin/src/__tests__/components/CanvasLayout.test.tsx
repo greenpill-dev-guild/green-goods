@@ -379,6 +379,37 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
     ensureBaseLists: mockEnsureBaseLists,
   };
 });
+vi.mock("@green-goods/shared/hooks/auth/useAuth", () => ({
+  useAuth: () => mockAuthState.current,
+}));
+vi.mock("@green-goods/shared/hooks/garden/useAdminGardenWorkspaceSelection", () => ({
+  useAdminGardenWorkspaceSelection: () => ({
+    eligibleGardens: mockEligibleAdminGardens.current.eligibleGardens,
+    selectedGarden: mockEligibleAdminGardens.current.resolvedDefaultGarden,
+    setSelectedGarden: mockSetSelectedGarden,
+    gardenOptions: mockEligibleAdminGardens.current.eligibleGardens.map((garden) => ({
+      id: garden.id,
+      name: garden.name,
+      location: garden.location,
+    })),
+    handleSelectGarden: vi.fn(),
+  }),
+}));
+vi.mock("@green-goods/shared/hooks/garden/useEligibleAdminGardens", () => ({
+  useEligibleAdminGardens: () => mockEligibleAdminGardens.current,
+}));
+vi.mock("@green-goods/shared/hooks/navigation/useGardenUrlSync", () => ({
+  useGardenUrlSync: mockUseGardenUrlSync,
+}));
+vi.mock("@green-goods/shared/hooks/roles/useEffectiveToolbarPermissions", () => ({
+  useEffectiveToolbarPermissions: () => ({
+    showWork: true,
+    showGarden: true,
+    showCommunity: true,
+    showActions: true,
+    isLoading: false,
+  }),
+}));
 vi.mock("@green-goods/shared/profile-avatar", () => ({
   useResolvedProfileAvatar: () => ({
     avatarUri: "https://cdn.example/avatar.webp",
