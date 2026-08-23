@@ -257,6 +257,19 @@ export function majorVersion(version) {
   return match ? Number.parseInt(match[1], 10) : null;
 }
 
+const VITEST_WORKER_MEMORY_BYTES = 2 * 1024 ** 3;
+
+export function resolveVitestMaxWorkers({ cpus, totalMemoryBytes, ci, share = 1 }) {
+  if (ci) return undefined;
+
+  const cpuLimit = Math.max(2, Math.floor(cpus) - 1);
+  const memoryLimit = Math.floor(totalMemoryBytes / VITEST_WORKER_MEMORY_BYTES);
+  const packageShare = Math.max(1, Math.floor(share));
+  const sharedLimit = Math.floor(Math.min(cpuLimit, memoryLimit) / packageShare);
+
+  return Math.min(cpuLimit, Math.max(2, sharedLimit));
+}
+
 /**
  * GET a URL, resolving with `{ ok, statusCode? | error? }`. Self-signed certs
  * are accepted (vite-plugin-mkcert generates one per dev session).

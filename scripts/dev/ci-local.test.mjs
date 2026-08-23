@@ -11,8 +11,11 @@ import {
   isSupportedCiNodeVersion,
   loadPassingReceiptStore,
   parseArguments,
+  resolveVitestBatchEnvironment,
   savePassingReceiptStore,
 } from "./ci-local.js";
+
+const GIBIBYTE = 1024 ** 3;
 
 test("ci-local re-entry is wired only inside the direct-run guard", () => {
   const source = readFileSync(new URL("./ci-local.js", import.meta.url), "utf8");
@@ -281,10 +284,17 @@ function groupedPlan(specs) {
 }
 
 function overlapTracker() {
-  const state = { active: 0, peak: 0, captured: new Map(), order: [] };
+  const state = {
+    active: 0,
+    peak: 0,
+    captured: new Map(),
+    environments: new Map(),
+    order: [],
+  };
   const runCheck = async (check, options = {}) => {
     state.order.push(check.id);
     state.captured.set(check.id, options.captureOutput === true);
+    state.environments.set(check.id, options.environment);
     state.active += 1;
     state.peak = Math.max(state.peak, state.active);
     await new Promise((resolve) => setTimeout(resolve, 15));
@@ -308,6 +318,61 @@ test("adjacent checks sharing a concurrency group run together", async () => {
   assert.equal(state.peak, 2);
   assert.equal(state.captured.get("client-test"), true);
   assert.equal(state.captured.get("admin-test"), true);
+});
+
+test("batched package tests receive a worker cap divided by batch size", () => {
+  const environment = resolveVitestBatchEnvironment(
+    [
+      { id: "client-test" },
+      { id: "admin-test" },
+    ],
+    {
+      cpus: 10,
+      totalMemoryBytes: 16 * GIBIBYTE,
+      ci: false,
+    },
+  );
+
+  assert.deepEqual(environment, { VITEST_MAX_WORKERS: "4" });
+});
+
+test("batched worker environment leaves CI unchanged and preserves explicit overrides", () => {
+  const batch = [{ id: "client-test" }, { id: "admin-test" }];
+  const resources = {
+    cpus: 10,
+    totalMemoryBytes: 16 * GIBIBYTE,
+    ci: true,
+  };
+
+  assert.deepEqual(resolveVitestBatchEnvironment(batch, resources), {});
+  assert.deepEqual(
+    resolveVitestBatchEnvironment(batch, {
+      ...resources,
+      explicitMaxWorkers: "3",
+    }),
+    { VITEST_MAX_WORKERS: "3" },
+  );
+});
+
+test("every member of a concurrent test batch receives the resolved worker environment", async () => {
+  const { state, runCheck } = overlapTracker();
+  await executePlan(
+    groupedPlan([
+      { id: "client-test", group: "package-tests-surface" },
+      { id: "admin-test", group: "package-tests-surface" },
+    ]),
+    {
+      runCheck,
+      resolveBatchEnvironment: () => ({ VITEST_MAX_WORKERS: "2" }),
+    },
+  );
+
+  assert.deepEqual(state.environments.get("client-test"), {
+    VITEST_MAX_WORKERS: "2",
+  });
+  assert.deepEqual(state.environments.get("admin-test"), {
+    VITEST_MAX_WORKERS: "2",
+  });
 });
 
 test("different groups, ungrouped checks, and blocked members never batch", async () => {

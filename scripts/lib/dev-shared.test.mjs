@@ -7,7 +7,39 @@ import test from "node:test";
 import {
   findCompatibleNode,
   reexecUnderCompatibleNodeIfNeeded,
+  resolveVitestMaxWorkers,
 } from "./dev-shared.js";
+
+const GIBIBYTE = 1024 ** 3;
+
+test("local Vitest workers respect CPU, memory, and concurrent package share", () => {
+  const cases = [
+    {
+      name: "16 GB and 10 cores",
+      input: { cpus: 10, totalMemoryBytes: 16 * GIBIBYTE, ci: false },
+      expected: 8,
+    },
+    {
+      name: "8 GB is memory bound",
+      input: { cpus: 10, totalMemoryBytes: 8 * GIBIBYTE, ci: false },
+      expected: 4,
+    },
+    {
+      name: "CI keeps its existing worker policy",
+      input: { cpus: 10, totalMemoryBytes: 16 * GIBIBYTE, ci: true },
+      expected: undefined,
+    },
+    {
+      name: "three concurrent packages share the local cap",
+      input: { cpus: 10, totalMemoryBytes: 16 * GIBIBYTE, ci: false, share: 3 },
+      expected: 2,
+    },
+  ];
+
+  for (const { name, input, expected } of cases) {
+    assert.equal(resolveVitestMaxWorkers(input), expected, name);
+  }
+});
 
 test("compatible Node selection honors candidate order and skips Bun shims", () => {
   const versions = new Map([

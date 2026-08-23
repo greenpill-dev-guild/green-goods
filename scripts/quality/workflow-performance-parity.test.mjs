@@ -261,6 +261,26 @@ test("CI coverage drops HTML generation without weakening local reports or thres
   );
 });
 
+test("consumer Vitest configs share the local resource-aware worker policy", () => {
+  for (const file of [
+    "packages/shared/vitest.config.ts",
+    "packages/client/vitest.config.ts",
+    "packages/admin/vitest.config.ts",
+  ]) {
+    const source = read(file);
+    assert.match(
+      source,
+      /import \{ resolveVitestMaxWorkers \} from ["']\.\.\/\.\.\/scripts\/lib\/dev-shared\.js["'];/,
+      `${file} must import the shared worker policy`,
+    );
+    assert.match(
+      source,
+      /maxWorkers:\s*resolveVitestMaxWorkers\(\{/,
+      `${file} must resolve its local worker cap through the shared policy`,
+    );
+  }
+});
+
 test("contracts realism remains equivalent without unrelated tool setup", () => {
   const source = read(".github/workflows/contracts.yml");
   const realism = source.slice(

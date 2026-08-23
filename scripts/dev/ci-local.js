@@ -2,12 +2,14 @@
 
 import { spawn } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
+import { availableParallelism, totalmem } from "node:os";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 import {
   reexecUnderCompatibleNodeIfNeeded,
   reexecUnderSystemNodeIfNeeded,
+  resolveVitestMaxWorkers,
 } from "../lib/dev-shared.js";
 import {
   buildReceiptInputs,
@@ -349,6 +351,27 @@ function envForCheck(check) {
   return common;
 }
 
+export function resolveVitestBatchEnvironment(
+  batch,
+  {
+    cpus = availableParallelism(),
+    totalMemoryBytes = totalmem(),
+    ci = Boolean(process.env.CI),
+    explicitMaxWorkers = process.env.VITEST_MAX_WORKERS,
+  } = {},
+) {
+  if (batch.length < 2 || !batch.every((check) => check.id.endsWith("-test"))) return {};
+  if (explicitMaxWorkers) return { VITEST_MAX_WORKERS: explicitMaxWorkers };
+
+  const maxWorkers = resolveVitestMaxWorkers({
+    cpus,
+    totalMemoryBytes,
+    ci,
+    share: batch.length,
+  });
+  return maxWorkers === undefined ? {} : { VITEST_MAX_WORKERS: String(maxWorkers) };
+}
+
 function elapsedSeconds(start) {
   return Number(((Date.now() - start) / 1000).toFixed(3));
 }
@@ -388,7 +411,10 @@ async function runAbiArtifactCheck() {
   return { ok: problems.length === 0, exitCode: problems.length === 0 ? 0 : 1, details: problems };
 }
 
-export async function runCommandCheck(check, { signal, captureOutput = false } = {}) {
+export async function runCommandCheck(
+  check,
+  { signal, captureOutput = false, environment = {} } = {},
+) {
   const start = Date.now();
   if (check.builtin === "abiArtifacts") {
     const result = await runAbiArtifactCheck();
@@ -416,7 +442,7 @@ export async function runCommandCheck(check, { signal, captureOutput = false } =
       // capture instead, so their logs replay in plan order rather than
       // interleaving into noise.
       stdio: captureOutput ? ["ignore", "pipe", "pipe"] : "inherit",
-      env: { ...process.env, ...envForCheck(check) },
+      env: { ...process.env, ...envForCheck(check), ...environment },
       detached: process.platform !== "win32",
     });
     let output = "";
@@ -466,6 +492,8 @@ export async function executePlan(plan, options = {}) {
   const receiptStore = options.receiptStore ?? new Map();
   const reusePassingReceipts = options.reusePassingReceipts === true;
   const concurrency = options.concurrency !== false;
+  const resolveBatchEnvironment =
+    options.resolveBatchEnvironment ?? resolveVitestBatchEnvironment;
 
   if (plan.status === "cancelled" || signal?.aborted) {
     return { status: "cancelled", exitCode: 130, results, blocked };
@@ -555,8 +583,11 @@ export async function executePlan(plan, options = {}) {
     }
 
     options.onBatchStart?.(batch);
+    const environment = resolveBatchEnvironment(batch);
     const settled = await Promise.all(
-      batch.map((member) => runCheck(member, { signal, captureOutput: true })),
+      batch.map((member) =>
+        runCheck(member, { signal, captureOutput: true, environment }),
+      ),
     );
     for (const [position, member] of batch.entries()) {
       const evidence = {
