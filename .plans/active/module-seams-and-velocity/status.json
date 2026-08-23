@@ -1,0 +1,867 @@
+{
+  "version": 2,
+  "feature": {
+    "slug": "module-seams-and-velocity",
+    "title": "Module Seams and Velocity",
+    "kind": "feature",
+    "stage": "active"
+  },
+  "workflow": {
+    "overall_status": "active",
+    "priority": "p1",
+    "created_at": "2026-08-23T02:50:35.809Z",
+    "updated_at": "2026-08-23T04:48:54.000Z"
+  },
+  "links": {
+    "brief": "brief.md",
+    "spec": "spec.md",
+    "plan": "plan.todo.md",
+    "eval": "eval.md"
+  },
+  "linear": {
+    "parentIssue": "PRD-831",
+    "project": null,
+    "initiative": null,
+    "syncDirection": "plans_to_linear_visibility",
+    "laneSyncMode": "parent_only",
+    "lastSyncedAt": "2026-08-23T03:03:51.256Z",
+    "lanes": {}
+  },
+  "taxonomy": {
+    "initiative": "engineering-quality",
+    "tracks": ["ops", "shared", "client", "admin", "indexer", "docs"],
+    "work_types": ["implementation", "qa"],
+    "surfaces": [
+      ".husky",
+      ".github/workflows",
+      "scripts/dev",
+      "scripts/lib",
+      "scripts/quality",
+      "scripts/data",
+      "packages/shared",
+      "packages/client",
+      "packages/admin",
+      "packages/indexer",
+      "packages/contracts/script",
+      "package.json",
+      "turbo.json",
+      ".claude",
+      "CLAUDE.md"
+    ],
+    "depends_on_features": ["validation-system-optimization"]
+  },
+  "notes": [
+    "This hub owns the module-seam and test-architecture program. Validation System Optimization remains active until W0-H replaces its receipt debt and archives it.",
+    "One execution sub-lane owns one worktree and one pull request. Future handoff paths are recorded when dependencies become dispatchable so prompts reflect the merged parent state.",
+    "No dependency installation, contract broadcast, coverage-gate weakening, receipt-expiry extension, or package-level env file is authorized.",
+    "Claude reviews every Codex lane. Afo approves critical-surface merges."
+  ],
+  "lanes": {
+    "ui": {
+      "owner": "claude",
+      "status": "in_progress",
+      "branch": null,
+      "depends_on": [],
+      "handoff": "handoffs/claude-ui.md",
+      "tdd": {
+        "mode": "required",
+        "status": "pending",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
+        "note": "Execution sub-lanes carry behavior-specific TDD proof."
+      },
+      "skill_tags": ["ui", "design", "testing"]
+    },
+    "state_api": {
+      "owner": "codex",
+      "status": "in_progress",
+      "branch": null,
+      "depends_on": [],
+      "handoff": "handoffs/codex-state-api.md",
+      "tdd": {
+        "mode": "required",
+        "status": "pending",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
+        "note": "Execution sub-lanes carry behavior-specific TDD proof."
+      },
+      "skill_tags": ["tooling", "testing", "shared", "indexer"]
+    },
+    "contracts": {
+      "owner": "codex",
+      "status": "n/a",
+      "branch": null,
+      "depends_on": [],
+      "handoff": "handoffs/codex-contracts.md",
+      "tdd": {
+        "mode": "not_applicable",
+        "status": "green_recorded",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
+        "note": "Contract source and redeployment work are deferred. Contract script tests remain owned by state_api execution lanes."
+      },
+      "skill_tags": ["contracts"]
+    },
+    "qa_pass_1": {
+      "owner": "claude",
+      "status": "blocked",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": false,
+      "branch": null,
+      "depends_on": ["ui", "state_api", "contracts"],
+      "handoff": "handoffs/claude-qa-pass-1.md",
+      "skill_tags": ["review", "testing"]
+    },
+    "qa_pass_2": {
+      "owner": "codex",
+      "status": "blocked",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": false,
+      "branch": null,
+      "depends_on": ["qa_pass_1"],
+      "handoff": "handoffs/codex-qa-pass-2.md",
+      "skill_tags": ["review", "testing"]
+    }
+  },
+  "execution_sub_lanes": {
+    "w0_prepush_static_checks": {
+      "machine_lane": "state_api",
+      "owner": "claude",
+      "status": "passed",
+      "branch": "perf/prepush-static-checks",
+      "depends_on": [],
+      "handoff": "handoffs/w0_prepush_static_checks.md",
+      "commit": "c354ee7a2690f97cfa8ae49598bfa5e281bd210f",
+      "tdd": {
+        "status": "green_recorded",
+        "red": "The parent hook accepted a 360-line package source fixture",
+        "green": "The new hook check rejected and named the fixture; clean added-check cost was 1.47 seconds"
+      },
+      "validation": "POSIX syntax, base default/override/fallback, source structure, design generation, docs build, and clean committed receipt passed",
+      "pull_request": "https://github.com/greenpill-dev-guild/green-goods/pull/754",
+      "publication_status": "#754 ready for review against develop; live CI passed"
+    },
+    "w0_toolchain_reexec": {
+      "machine_lane": "state_api",
+      "owner": "codex",
+      "status": "passed",
+      "branch": "fix/ci-local-toolchain-reexec",
+      "depends_on": [],
+      "handoff": "handoffs/w0_toolchain_reexec.md",
+      "commit": "28754385cf91ea5c7e75358504540e12c2b04d8b",
+      "pre_stack_validation_commit": "285837e93930a2d32a8ff7e8fd060881a56f7794",
+      "tdd": {
+        "status": "green_recorded",
+        "red": "Agent-shell ci-local plan was blocked on stale Node/Bun before re-exec wiring",
+        "green": "Both documented entrypoints returned ready with the pinned toolchain; sentinel and Node 22+ regression tests passed"
+      },
+      "validation": "114/114 validation-system tests; both ci-local entrypoints ready on Node 22.22.1, Bun 1.3.14, Foundry 1.7.1; clean committed receipt",
+      "review": "Codex lead challenge review passed; human and Claude review remain pending",
+      "pull_request": "https://github.com/greenpill-dev-guild/green-goods/pull/755",
+      "publication_status": "stacked #755 ready for review against perf/prepush-static-checks; live CI passed"
+    },
+    "w0_path_scoped_strict_intents": {
+      "machine_lane": "state_api",
+      "owner": "codex",
+      "status": "passed",
+      "branch": "perf/path-scoped-strict-intents",
+      "depends_on": [],
+      "handoff": "handoffs/w0_path_scoped_strict_intents.md",
+      "commit": "c4d9c2a56c0410a74888aef384368e399bfbf265",
+      "pre_stack_validation_commit": "652db4e84326f5c981e7b8e52cf47259101fb48b",
+      "tdd": {
+        "status": "green_recorded",
+        "red": "The new local-merge invariant failed 48/49 because local merge still selected admin-test-typecheck",
+        "green": "Focused selector suite passed 49/49 with exact accepted ID sets"
+      },
+      "validation": "49/49 selector tests and 113/113 validation-system tests; exact strict-scope invariants passed; clean committed receipt",
+      "review": "Codex lead challenge review passed; human and Claude review remain pending",
+      "pull_request": "https://github.com/greenpill-dev-guild/green-goods/pull/756",
+      "publication_status": "stacked #756 ready for review against perf/vitest-worker-cap; live CI passed"
+    },
+    "w0_vitest_worker_cap": {
+      "machine_lane": "state_api",
+      "owner": "codex",
+      "status": "in_progress",
+      "branch": "perf/vitest-worker-cap",
+      "depends_on": ["w0_toolchain_reexec"],
+      "handoff": "handoffs/w0_vitest_worker_cap.md",
+      "commit": "35e42cc29d9256379aa36512eba38114a1f61057",
+      "pre_stack_validation_commit": "8c8ca6b2c8241e455db5a9d4a1da0d734a414dd5",
+      "tdd": {
+        "status": "green_recorded",
+        "red": "Focused tests failed before the worker helper and batch environment existed",
+        "green": "Focused tests passed 45/45; CI and explicit override runtime behavior passed"
+      },
+      "validation": "Functional package and validation-system proof passed on a clean committed tree",
+      "proof_limit": "Host never became credibly quiet; base-versus-lane single-package and consumer-batch timing claims remain unproven",
+      "pull_request": "https://github.com/greenpill-dev-guild/green-goods/pull/757",
+      "publication_status": "stacked #757 ready for review against fix/ci-local-toolchain-reexec; live CI passed; quiet-machine timing proof limit accepted by Afo"
+    },
+    "w0_load_sensitive_tests": {
+      "machine_lane": "state_api",
+      "owner": "codex",
+      "status": "passed",
+      "branch": "test/load-sensitive-tests",
+      "depends_on": [],
+      "handoff": "handoffs/w0_load_sensitive_tests.md",
+      "commit": "ffbed3546cd3d798ff449407f1b35bece479a29c",
+      "pre_stack_validation_commit": "87e6d6495feab686a75178ed478440a425df2599",
+      "tdd": {
+        "status": "proof_limit",
+        "red": "No pre-change loaded failure reproduced in the bounded characterization run",
+        "green": "All five focused files passed 5/5 loaded repetitions; all five background admin suites passed 659/659"
+      },
+      "validation": "Clean committed focused proof, 25/25 post-edit loaded runs, five green full admin backgrounds, and exact 4,568-reference filtered/unfiltered locale equivalence",
+      "proof_limit": "The exact pre-change admin-load RED did not reproduce; supporting locale evidence came from non-equivalent baseline coverage load",
+      "pull_request": "https://github.com/greenpill-dev-guild/green-goods/pull/758",
+      "publication_status": "stacked #758 ready for review against perf/turbo-test-routing; live CI passed"
+    },
+    "w0_coverage_floors_nightly": {
+      "machine_lane": "state_api",
+      "owner": "claude",
+      "status": "in_progress",
+      "branch": "ci/coverage-floors-nightly",
+      "depends_on": [],
+      "handoff": "handoffs/w0_coverage_floors_nightly.md",
+      "commit": "05ff122782ae1eed7e69b534492ad355aad72885",
+      "pre_stack_validation_commit": "359eaf1ba3d48e483031f77d0fb4eb7060c70749",
+      "measurement_sha": "ca9704ce6e2b96fc08317b775d00b93675a3ffcd",
+      "tdd": {
+        "status": "green_recorded",
+        "red": "All package tests passed before the old flattened 70/75/80 nominal floors failed on coverage",
+        "green": "All package tests and approved measured floors passed under Node 22.22.1 and Bun 1.3.14"
+      },
+      "validation": "Shared 61.12/52.17/59.17/62.65; Client 63.36/56.92/62.29/64.95; Admin 51.54/47.07/44.87/53.24 for statements/branches/functions/lines; parity 14/14 and validation system 108/108",
+      "proof_limit": "Local PR-path timing was inconsistent under host contention, so no speed improvement is claimed from local timings",
+      "pull_request": "https://github.com/greenpill-dev-guild/green-goods/pull/759",
+      "stack_rewrite_validation": "incremental diff is clean; combined workflow parity 16/16 and validation-system suite 130/130 passed",
+      "publication_status": "stacked #759 ready for review against test/load-sensitive-tests; all replacement CI passed; first live Coverage Nightly run deferred to post-merge by Afo"
+    },
+    "w0_turbo_test_routing": {
+      "machine_lane": "state_api",
+      "owner": "codex",
+      "status": "passed",
+      "branch": "perf/turbo-test-routing",
+      "depends_on": ["w0_path_scoped_strict_intents"],
+      "handoff": "handoffs/w0_turbo_test_routing.md",
+      "commit": "c7dfa0ca3348d5552c017771f893532be60be059",
+      "pre_stack_validation_commit": "8df13d8ef35735411f74b54ffae6e2f42176290c",
+      "tdd": {
+        "status": "green_recorded",
+        "red": "Eight new selector and Turbo-input assertions failed before implementation",
+        "green": "Selector tests passed 53/53 and the durable validation-system suite passed 117/117"
+      },
+      "validation": "Agent cold run passed 270 tests, the warm repeat hit full Turbo cache in 146 ms, and a historical runtime-hook diff selected Shared plus all three consumers under the current config",
+      "proof_limit": "The pasted ci-local test-only consumer example contradicts W0-C/D6 because focused shared tests are Shared-only and consumer inputs deliberately exclude test files",
+      "pull_request": "https://github.com/greenpill-dev-guild/green-goods/pull/760",
+      "publication_status": "stacked #760 ready for review against perf/path-scoped-strict-intents; live CI passed"
+    },
+    "w0_turbo_guidance": {
+      "machine_lane": "ui",
+      "owner": "claude",
+      "status": "blocked",
+      "branch": "docs/turbo-test-guidance",
+      "depends_on": ["w0_turbo_test_routing"],
+      "handoff": "handoffs/w0_turbo_guidance.md",
+      "blocked_reason": "The handoff requires W0-G1 to merge into develop; its stacked draft is published as PR #760 and awaits prerequisite review and merge"
+    },
+    "w0_receipt_debt_burndown": {
+      "machine_lane": "state_api",
+      "owner": "claude",
+      "status": "blocked",
+      "branch": "chore/receipt-debt-burndown",
+      "depends_on": [
+        "w0_toolchain_reexec",
+        "w0_path_scoped_strict_intents",
+        "w0_turbo_test_routing"
+      ],
+      "handoff": "handoffs/w0_receipt_debt_burndown.md",
+      "blocked_reason": "The handoff requires W0-B, W0-C, and W0-G1 to merge into develop; drafts #755, #756, and stacked #760 await review and merge"
+    },
+    "jobqueue_create_deps": {
+      "machine_lane": "state_api",
+      "owner": "codex",
+      "status": "todo",
+      "branch": null,
+      "depends_on": ["w0_receipt_debt_burndown"],
+      "handoff": "handoffs/jobqueue_create_deps.md"
+    },
+    "sender_conformance": {
+      "machine_lane": "state_api",
+      "owner": "codex",
+      "status": "todo",
+      "branch": null,
+      "depends_on": ["w0_receipt_debt_burndown"],
+      "handoff": "handoffs/sender_conformance.md"
+    },
+    "work_submit_command": {
+      "machine_lane": "state_api",
+      "owner": "codex",
+      "status": "todo",
+      "branch": null,
+      "depends_on": ["jobqueue_create_deps", "sender_conformance"],
+      "handoff": null
+    },
+    "work_simulate_passkey_executor_deps": {
+      "machine_lane": "state_api",
+      "owner": "codex",
+      "status": "todo",
+      "branch": null,
+      "depends_on": ["jobqueue_create_deps", "sender_conformance"],
+      "handoff": null
+    },
+    "pool_controller_contracts_and_fixtures": {
+      "machine_lane": "state_api",
+      "owner": "codex",
+      "status": "todo",
+      "branch": null,
+      "depends_on": ["w0_receipt_debt_burndown"],
+      "handoff": "handoffs/pool_controller_contracts_and_fixtures.md"
+    },
+    "pool_console_controller_suite": {
+      "machine_lane": "state_api",
+      "owner": "codex",
+      "status": "todo",
+      "branch": null,
+      "depends_on": ["pool_controller_contracts_and_fixtures"],
+      "handoff": null
+    },
+    "hub_confirm_queue_controller_suite": {
+      "machine_lane": "state_api",
+      "owner": "codex",
+      "status": "todo",
+      "branch": null,
+      "depends_on": ["pool_controller_contracts_and_fixtures"],
+      "handoff": null
+    },
+    "admin_pool_view_tests_typed": {
+      "machine_lane": "ui",
+      "owner": "codex",
+      "status": "todo",
+      "branch": null,
+      "depends_on": ["pool_controller_contracts_and_fixtures"],
+      "handoff": null
+    },
+    "app_telemetry_port": {
+      "machine_lane": "state_api",
+      "owner": "codex",
+      "status": "todo",
+      "branch": null,
+      "depends_on": ["w0_receipt_debt_burndown"],
+      "handoff": null
+    },
+    "pooling_job_shape": {
+      "machine_lane": "state_api",
+      "owner": "codex",
+      "status": "todo",
+      "branch": null,
+      "depends_on": ["jobqueue_create_deps"],
+      "handoff": null
+    },
+    "indexer_reader_port": {
+      "machine_lane": "state_api",
+      "owner": "codex",
+      "status": "todo",
+      "branch": null,
+      "depends_on": ["w0_receipt_debt_burndown"],
+      "handoff": null
+    },
+    "pool_read_repository": {
+      "machine_lane": "state_api",
+      "owner": "codex",
+      "status": "todo",
+      "branch": null,
+      "depends_on": ["indexer_reader_port"],
+      "handoff": null
+    },
+    "ipfs_conformance": {
+      "machine_lane": "state_api",
+      "owner": "codex",
+      "status": "todo",
+      "branch": null,
+      "depends_on": ["app_telemetry_port"],
+      "handoff": null
+    },
+    "pool_documents_adapter": {
+      "machine_lane": "state_api",
+      "owner": "codex",
+      "status": "todo",
+      "branch": null,
+      "depends_on": ["ipfs_conformance"],
+      "handoff": null
+    },
+    "hypercert_repository": {
+      "machine_lane": "state_api",
+      "owner": "codex",
+      "status": "todo",
+      "branch": null,
+      "depends_on": ["indexer_reader_port", "ipfs_conformance"],
+      "handoff": null
+    },
+    "vault_yield_repository": {
+      "machine_lane": "state_api",
+      "owner": "codex",
+      "status": "todo",
+      "branch": null,
+      "depends_on": ["indexer_reader_port"],
+      "handoff": null
+    },
+    "translation_port": {
+      "machine_lane": "state_api",
+      "owner": "codex",
+      "status": "todo",
+      "branch": null,
+      "depends_on": ["app_telemetry_port"],
+      "handoff": null
+    },
+    "auth_session_adapters": {
+      "machine_lane": "state_api",
+      "owner": "codex",
+      "status": "todo",
+      "branch": null,
+      "depends_on": ["app_telemetry_port"],
+      "handoff": null
+    },
+    "composer_proof_drafts": {
+      "machine_lane": "state_api",
+      "owner": "codex",
+      "status": "todo",
+      "branch": null,
+      "depends_on": ["jobqueue_create_deps"],
+      "handoff": null
+    },
+    "vault_crowdfunding_commands": {
+      "machine_lane": "state_api",
+      "owner": "codex",
+      "status": "todo",
+      "branch": null,
+      "depends_on": ["w0_receipt_debt_burndown"],
+      "handoff": null
+    },
+    "stores_domain_transitions": {
+      "machine_lane": "state_api",
+      "owner": "codex",
+      "status": "todo",
+      "branch": null,
+      "depends_on": ["w0_receipt_debt_burndown"],
+      "handoff": null
+    },
+    "work_approval_command": {
+      "machine_lane": "state_api",
+      "owner": "codex",
+      "status": "todo",
+      "branch": null,
+      "depends_on": ["work_submit_command", "sender_conformance"],
+      "handoff": null
+    },
+    "garden_assessment_action_commands": {
+      "machine_lane": "state_api",
+      "owner": "codex",
+      "status": "todo",
+      "branch": null,
+      "depends_on": ["work_approval_command"],
+      "handoff": null
+    },
+    "domain_hooks_thin": {
+      "machine_lane": "state_api",
+      "owner": "codex",
+      "status": "todo",
+      "branch": null,
+      "depends_on": [
+        "jobqueue_create_deps",
+        "indexer_reader_port",
+        "pool_read_repository",
+        "hypercert_repository",
+        "vault_yield_repository"
+      ],
+      "handoff": null
+    },
+    "providers_thin": {
+      "machine_lane": "state_api",
+      "owner": "codex",
+      "status": "todo",
+      "branch": null,
+      "depends_on": ["jobqueue_create_deps", "auth_session_adapters"],
+      "handoff": null
+    },
+    "ui_shell_contracts": {
+      "machine_lane": "ui",
+      "owner": "claude",
+      "status": "todo",
+      "branch": null,
+      "depends_on": ["w0_receipt_debt_burndown"],
+      "handoff": null
+    },
+    "commitment_pooling_subpath": {
+      "machine_lane": "state_api",
+      "owner": "codex",
+      "status": "todo",
+      "branch": null,
+      "depends_on": ["client_ui_barrel_and_garden_commitment_controller"],
+      "handoff": null
+    },
+    "client_ui_barrel_and_garden_commitment_controller": {
+      "machine_lane": "state_api",
+      "owner": "codex",
+      "status": "todo",
+      "branch": null,
+      "depends_on": ["pool_controller_contracts_and_fixtures"],
+      "handoff": null
+    },
+    "client_garden_commitment_view_adoption": {
+      "machine_lane": "ui",
+      "owner": "codex",
+      "status": "todo",
+      "branch": null,
+      "depends_on": ["client_ui_barrel_and_garden_commitment_controller"],
+      "handoff": null
+    },
+    "client_proof_composer_controller": {
+      "machine_lane": "state_api",
+      "owner": "codex",
+      "status": "todo",
+      "branch": null,
+      "depends_on": ["client_ui_barrel_and_garden_commitment_controller", "composer_proof_drafts"],
+      "handoff": null
+    },
+    "client_commitment_composer_controller": {
+      "machine_lane": "state_api",
+      "owner": "codex",
+      "status": "todo",
+      "branch": null,
+      "depends_on": ["client_ui_barrel_and_garden_commitment_controller"],
+      "handoff": null
+    },
+    "admin_community_tab_split": {
+      "machine_lane": "ui",
+      "owner": "codex",
+      "status": "todo",
+      "branch": null,
+      "depends_on": ["pool_controller_contracts_and_fixtures"],
+      "handoff": null
+    },
+    "admin_community_cockpit_polish": {
+      "machine_lane": "ui",
+      "owner": "claude",
+      "status": "todo",
+      "branch": null,
+      "depends_on": ["admin_community_tab_split"],
+      "handoff": null
+    },
+    "client_garden_pool_controller": {
+      "machine_lane": "state_api",
+      "owner": "codex",
+      "status": "todo",
+      "branch": null,
+      "depends_on": ["client_ui_barrel_and_garden_commitment_controller"],
+      "handoff": null
+    },
+    "client_claim_components_tests": {
+      "machine_lane": "ui",
+      "owner": "codex",
+      "status": "todo",
+      "branch": null,
+      "depends_on": ["client_garden_commitment_view_adoption"],
+      "handoff": null
+    },
+    "client_commitments_drawer_projection": {
+      "machine_lane": "state_api",
+      "owner": "codex",
+      "status": "todo",
+      "branch": null,
+      "depends_on": ["hub_confirm_queue_controller_suite"],
+      "handoff": null
+    },
+    "client_work_submission_flow_controller": {
+      "machine_lane": "state_api",
+      "owner": "codex",
+      "status": "todo",
+      "branch": null,
+      "depends_on": ["client_ui_barrel_and_garden_commitment_controller", "work_submit_command"],
+      "handoff": null
+    },
+    "client_work_detail_view_model": {
+      "machine_lane": "state_api",
+      "owner": "codex",
+      "status": "todo",
+      "branch": null,
+      "depends_on": ["client_ui_barrel_and_garden_commitment_controller"],
+      "handoff": null
+    },
+    "client_wallet_send_machine_and_scanner_port": {
+      "machine_lane": "state_api",
+      "owner": "codex",
+      "status": "todo",
+      "branch": null,
+      "depends_on": ["w0_receipt_debt_burndown"],
+      "handoff": null,
+      "review_owner": "claude"
+    },
+    "client_login_controller": {
+      "machine_lane": "state_api",
+      "owner": "claude",
+      "status": "todo",
+      "branch": null,
+      "depends_on": ["w0_receipt_debt_burndown"],
+      "handoff": null
+    },
+    "client_public_surface_state_selector": {
+      "machine_lane": "state_api",
+      "owner": "codex",
+      "status": "todo",
+      "branch": null,
+      "depends_on": ["w0_receipt_debt_burndown"],
+      "handoff": null
+    },
+    "client_public_surface_state_adoption": {
+      "machine_lane": "ui",
+      "owner": "claude",
+      "status": "todo",
+      "branch": null,
+      "depends_on": ["client_public_surface_state_selector"],
+      "handoff": null
+    },
+    "card_endow_staging_check": {
+      "machine_lane": "state_api",
+      "owner": "codex",
+      "status": "todo",
+      "branch": null,
+      "depends_on": ["w0_receipt_debt_burndown"],
+      "handoff": null
+    },
+    "card_endow_state_machine": {
+      "machine_lane": "ui",
+      "owner": "claude",
+      "status": "n/a",
+      "branch": null,
+      "depends_on": ["card_endow_staging_check", "sender_conformance"],
+      "handoff": null,
+      "blocked_reason": "Deferred until Card Endow activation is explicitly scheduled."
+    },
+    "client_interactive_components_tests": {
+      "machine_lane": "ui",
+      "owner": "codex",
+      "status": "todo",
+      "branch": null,
+      "depends_on": ["w0_receipt_debt_burndown"],
+      "handoff": null
+    },
+    "admin_canvas_shell_controller": {
+      "machine_lane": "state_api",
+      "owner": "claude",
+      "status": "todo",
+      "branch": null,
+      "depends_on": ["client_ui_barrel_and_garden_commitment_controller"],
+      "handoff": null
+    },
+    "admin_hub_workbench_policy": {
+      "machine_lane": "state_api",
+      "owner": "codex",
+      "status": "todo",
+      "branch": null,
+      "depends_on": ["w0_receipt_debt_burndown"],
+      "handoff": null
+    },
+    "admin_pool_setup_flow_composition": {
+      "machine_lane": "ui",
+      "owner": "codex",
+      "status": "todo",
+      "branch": null,
+      "depends_on": ["admin_pool_view_tests_typed"],
+      "handoff": null
+    },
+    "admin_seed_howmuch_and_dialog_tests": {
+      "machine_lane": "ui",
+      "owner": "codex",
+      "status": "todo",
+      "branch": null,
+      "depends_on": ["admin_pool_view_tests_typed"],
+      "handoff": null
+    },
+    "admin_submit_work_controller": {
+      "machine_lane": "state_api",
+      "owner": "codex",
+      "status": "todo",
+      "branch": null,
+      "depends_on": ["pool_controller_contracts_and_fixtures", "work_submit_command"],
+      "handoff": null,
+      "review_owner": "claude"
+    },
+    "admin_action_editor_controller": {
+      "machine_lane": "state_api",
+      "owner": "codex",
+      "status": "todo",
+      "branch": null,
+      "depends_on": ["w0_receipt_debt_burndown"],
+      "handoff": null
+    },
+    "admin_cookie_jar_hook_outcomes": {
+      "machine_lane": "state_api",
+      "owner": "codex",
+      "status": "todo",
+      "branch": null,
+      "depends_on": ["sender_conformance"],
+      "handoff": null
+    },
+    "admin_assessment_hypercert_transitions": {
+      "machine_lane": "state_api",
+      "owner": "codex",
+      "status": "todo",
+      "branch": null,
+      "depends_on": ["w0_receipt_debt_burndown"],
+      "handoff": null
+    },
+    "admin_account_profile_controller": {
+      "machine_lane": "state_api",
+      "owner": "codex",
+      "status": "todo",
+      "branch": null,
+      "depends_on": ["client_ui_barrel_and_garden_commitment_controller"],
+      "handoff": null
+    },
+    "admin_route_registry_redirect_policy": {
+      "machine_lane": "state_api",
+      "owner": "codex",
+      "status": "todo",
+      "branch": null,
+      "depends_on": ["w0_receipt_debt_burndown"],
+      "handoff": null
+    },
+    "ix_event_builders_and_projection_assertions": {
+      "machine_lane": "state_api",
+      "owner": "codex",
+      "status": "todo",
+      "branch": null,
+      "depends_on": ["w0_receipt_debt_burndown"],
+      "handoff": null
+    },
+    "ix_settlement_message_fixtures": {
+      "machine_lane": "state_api",
+      "owner": "codex",
+      "status": "todo",
+      "branch": null,
+      "depends_on": ["ix_event_builders_and_projection_assertions"],
+      "handoff": null
+    },
+    "ix_celo_executor_redelivery": {
+      "machine_lane": "state_api",
+      "owner": "codex",
+      "status": "todo",
+      "branch": null,
+      "depends_on": ["ix_settlement_message_fixtures"],
+      "handoff": null
+    },
+    "ix_credit_registry_delivery_contracts": {
+      "machine_lane": "state_api",
+      "owner": "codex",
+      "status": "todo",
+      "branch": null,
+      "depends_on": ["ix_event_builders_and_projection_assertions"],
+      "handoff": null
+    },
+    "ix_yield_cluster_separation": {
+      "machine_lane": "state_api",
+      "owner": "codex",
+      "status": "todo",
+      "branch": null,
+      "depends_on": ["ix_event_builders_and_projection_assertions"],
+      "handoff": null
+    },
+    "ix_helpers_types_split": {
+      "machine_lane": "state_api",
+      "owner": "codex",
+      "status": "todo",
+      "branch": null,
+      "depends_on": ["ix_yield_cluster_separation"],
+      "handoff": null
+    },
+    "ix_contract_events_auto_select": {
+      "machine_lane": "state_api",
+      "owner": "codex",
+      "status": "todo",
+      "branch": null,
+      "depends_on": ["w0_path_scoped_strict_intents"],
+      "handoff": null,
+      "review_owner": "claude"
+    },
+    "ix_hasura_permission_planner": {
+      "machine_lane": "state_api",
+      "owner": "codex",
+      "status": "todo",
+      "branch": null,
+      "depends_on": ["w0_receipt_debt_burndown"],
+      "handoff": null
+    },
+    "ta_node_projects_shared": {
+      "machine_lane": "state_api",
+      "owner": "codex",
+      "status": "todo",
+      "branch": null,
+      "depends_on": ["w0_vitest_worker_cap", "w0_load_sensitive_tests"],
+      "handoff": null
+    },
+    "ta_node_projects_admin_client": {
+      "machine_lane": "state_api",
+      "owner": "codex",
+      "status": "todo",
+      "branch": null,
+      "depends_on": ["ta_node_projects_shared"],
+      "handoff": null
+    },
+    "ta_direct_tested_seam_rule": {
+      "machine_lane": "state_api",
+      "owner": "codex",
+      "status": "todo",
+      "branch": null,
+      "depends_on": ["w0_receipt_debt_burndown"],
+      "handoff": null,
+      "review_owner": "claude"
+    },
+    "ta_coverage_ratchet": {
+      "machine_lane": "state_api",
+      "owner": "claude",
+      "status": "todo",
+      "branch": null,
+      "depends_on": ["w0_coverage_floors_nightly"],
+      "handoff": null,
+      "due_date": "2026-09-22"
+    }
+  },
+  "history": [
+    {
+      "timestamp": "2026-08-23T02:50:35.809Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "scaffolded",
+      "branch": null,
+      "note": "Scaffolded the accepted module-seams and velocity program and reconciled Wave 0 against develop@ca9704ce6."
+    },
+    {
+      "timestamp": "2026-08-23T03:03:51.257Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "linear_recorded",
+      "branch": null,
+      "note": "Recorded Linear parent/lane issue identifiers"
+    }
+  ]
+}
