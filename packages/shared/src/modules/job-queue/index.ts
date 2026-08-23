@@ -1,8 +1,4 @@
-import { createDefaultJobQueueDependencies } from "./default-dependencies";
-import { createJobQueue } from "./queue";
-
-export const jobQueue = createJobQueue(createDefaultJobQueueDependencies());
-
+export { jobQueue } from "./default-instance";
 export { createDefaultJobQueueDependencies } from "./default-dependencies";
 export { createJobQueue } from "./queue";
 export type {

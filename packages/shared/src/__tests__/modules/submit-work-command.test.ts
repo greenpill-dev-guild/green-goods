@@ -3,11 +3,15 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const defaultAdapters = vi.hoisted(() => ({
+  simulate: vi.fn(),
   enqueue: vi.fn(),
   process: vi.fn(),
   direct: vi.fn(),
 }));
 
+vi.mock("../../modules/work/simulate", () => ({
+  simulateWorkSubmission: defaultAdapters.simulate,
+}));
 vi.mock("../../modules/work/work-submission", () => ({
   submitWorkToQueue: defaultAdapters.enqueue,
 }));
@@ -99,6 +103,7 @@ function createPorts(overrides: PortOverrides = {}) {
 describe("submitWork", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    defaultAdapters.simulate.mockResolvedValue(undefined);
     defaultAdapters.enqueue.mockResolvedValue({
       txHash: QUEUED_HASH,
       jobId: "job-default",
@@ -359,6 +364,10 @@ describe("submitWork", () => {
     });
     await expect(ports.direct.submitWork(resolved, onWalletStage)).resolves.toBe(DIRECT_HASH);
 
+    expect(defaultAdapters.simulate).toHaveBeenCalledWith(
+      expect.objectContaining({ actionTitle: "Repair paths" }),
+      expect.objectContaining({ getPublicClient: expect.any(Function) })
+    );
     expect(defaultAdapters.enqueue).toHaveBeenCalledWith(
       resolved.draft,
       resolved.gardenAddress,
