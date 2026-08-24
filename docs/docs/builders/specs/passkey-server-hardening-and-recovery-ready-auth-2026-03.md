@@ -167,7 +167,8 @@ gardener registers a new credential, and the new public key produces a new accou
 distinction matters for future recovery and signer-rotation work, which turns on what actually
 determines the address.
 
-The authoritative path is `buildSmartAccount` in `packages/shared/src/workflows/auth-passkey-adapters.ts`:
+The authoritative path is `buildSmartAccountFromCredential` in
+`packages/shared/src/workflows/authServices.ts`:
 `toWebAuthnAccount({ credential, rpId })` becomes the owner passed to `toKernelSmartAccount`, and it
 is the credential's public key and authenticator id that land in Kernel's validator data and so in
 the counterfactual address. `account-profiles.ts` is a useful cross-check for what is *not* an input
@@ -206,7 +207,8 @@ before the namespace is shared, not after:
    comes first because it is the only step that can destroy something. Any passkey a gardener
    registered on staging today lives under `rp.id = staging.greengoods.app`, and staging runs against
    mainnet, so that credential may control a real smart account holding real hats and commitments.
-   Deleting the override strands it in both directions at once: `authenticateFromCache` re-requests
+   Deleting the override strands it in both directions at once: `authenticatePasskeyFromLocalCache`
+   re-requests
    the stored credential with the freshly resolved apex RP, which the authenticator will not match,
    and moving Pimlico projects removes the server-side lookup for it. Enumerate those accounts first,
    and for each either confirm it holds nothing worth keeping, migrate what it holds, or keep a
