@@ -1,29 +1,9 @@
 import assert from "assert";
-import { Addresses, createTestIndexer, GardenAccount, GardenToken, indexedAddress } from "./v3";
+import { assertGardenProjection, assertRoleArrays } from "./helpers/projections";
+import { addr, CHAINS, mockEvent } from "./helpers/events";
+import { createTestIndexer, GardenAccount, GardenToken, indexedAddress } from "./v3";
 
-const CHAIN_ID = 42161;
-
-function addr(index: number): string {
-  return Addresses.mockAddresses[index] || `0x${index.toString().padStart(40, "0")}`;
-}
-
-function txHash(index: number): string {
-  return `0x${index.toString(16).padStart(64, "0")}`;
-}
-
-function mockEvent(
-  chainId: number,
-  timestamp: number,
-  opts: { srcAddress?: string; txHash?: string; logIndex?: number; blockNumber?: number } = {}
-) {
-  return {
-    chainId,
-    block: { timestamp, number: opts.blockNumber ?? 0 },
-    srcAddress: opts.srcAddress,
-    transaction: { hash: opts.txHash ?? txHash(timestamp) },
-    logIndex: opts.logIndex,
-  };
-}
+const CHAIN_ID = CHAINS.arbitrum;
 
 // ============================================================================
 // GARDEN TOKEN HANDLERS
@@ -72,19 +52,20 @@ describe("GardenToken.GardenMinted", () => {
     const result = await GardenToken.GardenMinted.processEvent({ event, mockDb });
     const garden = await result.Garden.get(gardenAddress);
 
-    assert.ok(garden);
-    assert.equal(garden.id, gardenAddress);
-    assert.equal(garden.chainId, CHAIN_ID);
-    assert.equal(garden.name, "My Garden");
-    assert.equal(garden.description, "A community garden");
-    assert.equal(garden.location, "Berlin");
-    assert.equal(garden.bannerImage, "ipfs://bafk-banner");
-    assert.equal(garden.openJoining, true);
-    assert.equal(garden.initialized, true);
-    assert.equal(garden.tokenAddress, tokenContract);
-    assert.equal(garden.tokenID, 42n);
-    assert.equal(garden.createdAt, 1000);
-    assert.equal(garden.gapProjectUID, undefined);
+    assertGardenProjection(garden, {
+      id: gardenAddress,
+      chainId: CHAIN_ID,
+      name: "My Garden",
+      description: "A community garden",
+      location: "Berlin",
+      bannerImage: "ipfs://bafk-banner",
+      openJoining: true,
+      initialized: true,
+      tokenAddress: tokenContract,
+      tokenID: 42n,
+      createdAt: 1000,
+      gapProjectUID: undefined,
+    });
   });
 
   it("initializes all role arrays as empty", async () => {
@@ -105,13 +86,14 @@ describe("GardenToken.GardenMinted", () => {
     const result = await GardenToken.GardenMinted.processEvent({ event, mockDb });
     const garden = await result.Garden.get(gardenAddress);
 
-    assert.ok(garden);
-    assert.deepEqual(garden.gardeners, []);
-    assert.deepEqual(garden.operators, []);
-    assert.deepEqual(garden.evaluators, []);
-    assert.deepEqual(garden.owners, []);
-    assert.deepEqual(garden.funders, []);
-    assert.deepEqual(garden.communities, []);
+    assertRoleArrays(garden, {
+      gardeners: [],
+      operators: [],
+      evaluators: [],
+      owners: [],
+      funders: [],
+      communities: [],
+    });
   });
 });
 
