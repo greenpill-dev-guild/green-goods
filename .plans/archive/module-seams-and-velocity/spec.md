@@ -1,5 +1,7 @@
 # Module Seams and Velocity Spec
 
+> **Archived record:** implementation is closed. Operational handoffs, artifacts, and lane files were removed; preserved reports and any references below describe historical execution, not live work.
+
 ## Summary
 
 This program improves agentic delivery speed by fixing module boundaries before optimizing the test

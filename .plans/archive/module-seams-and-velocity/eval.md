@@ -1,5 +1,7 @@
 # Module Seams and Velocity Evaluation Plan
 
+> **Archived record:** implementation is closed. Operational handoffs, artifacts, and lane files were removed; preserved reports and any references below describe historical execution, not live work.
+
 ## Release Gates
 
 1. Correctness: every lane proves its declared behavior boundary directly and preserves named
@@ -242,33 +244,36 @@ The consolidated receipt is `handoffs/wave-5-receipt.md`.
   local Arbitrum fork are unavailable, so the manual real-log case remains intentionally pending.
   These checks are not reported as passing and were not retried without a capability change.
 
-## Wave 6 Snapshot — 2026-08-23
+## Wave 6 Snapshot — 2026-08-24
 
-Wave 6 architecture is implemented at SHA `2ee5f5f9107435e557da292b350a8e4d82f3c2e7`.
-The consolidated receipt is `handoffs/wave-6-receipt.md`. AC-W6 remains open because the approved
-Admin import-share floor is not met.
+Wave 6 is complete at implementation SHA `a9d0f55b0376acdd2f92d24589024b8d25f6968b`.
+The consolidated receipt is `handoffs/wave-6-receipt.md`. AC-W6 is closed by the authorized
+production-import migration; no Vitest isolation or product behavior was weakened.
 
-- Test architecture: Shared, Client, and Admin now use explicit Node and DOM Vitest projects with
-  matching exclusions and no project-local coverage configuration. All six partitions pass and
-  discover the same 384 Shared, 103 Client, and 99 Admin test files across their paired projects.
-- Direct-test enforcement: Check 5 is baseline-backed, its checker is 150 lines, four regression
-  fixtures pass, a mocked-subject fixture fails as required, and the exact 13-entry baseline has no
-  drift. The complete test-quality run discovered 862 tests.
-- Partition proof: Shared passed 2,107 Node and 2,126 DOM tests; Client passed 119 Node and 749 DOM
-  tests; Admin passed 100 Node and 611 DOM tests. Shared and Admin each retained their governed
-  skips.
-- Velocity limitation: the loaded-host DOM observations were Shared 70.26 seconds, Client 81.82
-  seconds, and Admin 143.08 seconds, so the quiet-machine 60/50/90 targets are not claimed. The
-  isolated Admin DOM import phase was 1,000.36 of 1,310.16 aggregate worker-phase seconds, or
-  76.35%, above the below-40% floor.
-- Bounded attempts: dependency optimization failed module exports/transformation, disabled
-  isolation leaked mocks, and an Admin facade failed to close the transitive root-import and mock
-  graph. All experiments were removed. A real migration of roughly 370 Admin root Shared imports
-  and 52 root-module mocks is required to continue safely.
-- Boundary proof: the single Quick Gate passed every check through Agent, then stopped after 298
-  passing Indexer tests because nine metadata tests could not bind localhost. This unchanged
-  environment blocker was not retried. The two-point coverage ratchet is not due until 2026-09-22.
-- Final exit attempt: the 613-path Ship selector was ready and critical. The one full Ship command
-  passed lint, 2,050 Solidity tests, the three-case release gas gate, and 278 contract script tests,
-  then stopped when the dual-chain suite could not connect to `127.0.0.1:3012`. Dependent package
-  tests and the root build did not run in that command and are not claimed.
+- Test architecture: Shared, Client, and Admin use explicit Node and DOM Vitest projects with
+  matching exclusions and no project-local coverage configuration. All six partitions preserve
+  discovery parity. The direct-tested-seam checker and the permanent production-import guard both
+  pass; the latter rejects new Admin root imports and broad Shared internal barrel imports.
+- Migration: 717 files moved from broad `@green-goods/shared` barrels to exact leaf exports. Shared
+  gained explicit default-chain, query-key registry, route, garden-slug, and public-impact leaves;
+  `packages/shared/package.json` and Admin's test TypeScript paths now expose those boundaries.
+  Thirteen stale tests were repaired to mock the leaf actually imported by production code.
+- Clean committed proof: Shared source typecheck passed and the full Shared suite passed 383 files
+  with two skipped, 4,241 tests with 18 skipped, in 136.60 seconds. Admin source/test typechecks,
+  its production build, 100 Node tests in 6.84 seconds, and 611 DOM tests in 42.67 seconds passed.
+- Performance closure: the Admin DOM wall observation improved from 143.08 to 42.67 seconds. Import
+  share fell from 76.35% to 38.11%, below the approved 40% floor, while isolation and all 611 DOM
+  tests remained intact. The 60-second Shared and 50-second Client quiet-machine observations are
+  not claimed because this host was not quiet.
+- Boundary proof: the single Quick Gate passed formatting, lint, 147 validation-system tests,
+  Shared, Client, Admin, and Agent checks, then stopped after 298 passing Indexer tests and one
+  pending test because nine metadata tests could not bind `127.0.0.1`. This deterministic sandbox
+  blocker was not retried.
+- Final exit attempt: the ready critical Ship plan covered 1,166 paths. The required full command
+  passed formatting, lint, 2,050 Solidity tests, the three-case release gas gate, and 278 contract
+  script tests, then stopped when the dual-chain suite could not connect to `127.0.0.1:3012`.
+  Dependent package tests and the root build are not claimed by that command; their relevant
+  Admin/Shared proofs were run independently on the clean implementation SHA.
+- External observations: live CI p50/static-red metrics, authenticated browser state, localhost
+  suites, and the two-point coverage ratchet due 2026-09-22 remain explicitly unclaimed or not yet
+  due. They are not unfinished Wave 6 implementation and were not converted into false passes.

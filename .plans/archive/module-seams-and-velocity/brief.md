@@ -1,5 +1,7 @@
 # Module Seams and Velocity
 
+> **Archived record:** implementation is closed. Operational handoffs, artifacts, and lane files were removed; preserved reports and any references below describe historical execution, not live work.
+
 **Slug**: `module-seams-and-velocity`
 **Stage**: `active`
 **Priority**: `p1`
