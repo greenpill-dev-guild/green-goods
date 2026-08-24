@@ -9,6 +9,7 @@ import {
   SettlementModule,
 } from "./v3";
 import { settlementMessage } from "./helpers/settlement-messages";
+import { assertRelationshipInEitherOrder } from "./helpers/delivery";
 import { executorConfiguration, sourceConfiguration } from "../src/handlers/settlement-projections";
 
 const CHAIN_ID = 42161;
@@ -376,11 +377,7 @@ describe("settlement lifecycle projections", () => {
 
   it("reconciles a reverse-ordered batch command and acknowledgment to every child", async () => {
     const message = settlementMessage(100, { isBatch: true, subjectId: 50n });
-    let mockDb = createTestIndexer();
-    seedSourceLane(mockDb);
-    mockDb = await processEvents(mockDb, [
-      payoutPlanCreated(40n, 400n, 1),
-      payoutPlanFinalized(40n, 2n, 2),
+    const commandAndAcknowledgment = [
       SettlementModule.SettlementCommandDispatched.createMockEvent({
         ...message.source.dispatched,
         mockEventData: mockEvent(3),
@@ -389,6 +386,8 @@ describe("settlement lifecycle projections", () => {
         ...message.source.acknowledged(),
         mockEventData: mockEvent(4),
       }),
+    ];
+    const batchAndChildren = [
       SettlementModule.BatchCreated.createMockEvent({
         batchId: 50n,
         executorGarden: addr(1),
@@ -401,23 +400,44 @@ describe("settlement lifecycle projections", () => {
       }),
       queued(40n, 400n, 51n, addr(20), 180n, 6),
       queued(40n, 400n, 52n, addr(22), 120n, 7),
-    ]);
+    ];
+    const [projection] = await assertRelationshipInEitherOrder({
+      relationship: commandAndAcknowledgment,
+      entity: batchAndChildren,
+      read: async (ordered) => {
+        let db = createTestIndexer();
+        seedSourceLane(db);
+        db = await processEvents(db, [
+          payoutPlanCreated(40n, 400n, 1),
+          payoutPlanFinalized(40n, 2n, 2),
+          ...ordered,
+        ]);
+        const batch = await db.SettlementBatch.get(`${CHAIN_ID}-50`);
+        const first = await db.Disbursement.get(`${CHAIN_ID}-51`);
+        const second = await db.Disbursement.get(`${CHAIN_ID}-52`);
+        const plan = await db.CommitmentPayoutPlan.get(`${CHAIN_ID}-40`);
+        const acknowledgment = await db.SettlementMessage.get(
+          `${CHAIN_ID}-${message.ids.acknowledgmentMessageId}`
+        );
+        return {
+          batchState: batch?.state,
+          firstState: first?.state,
+          secondState: second?.state,
+          firstBatchId: first?.batchId,
+          confirmedPayoutCount: plan?.confirmedPayoutCount,
+          planStatus: plan?.status,
+          acknowledgmentStatus: acknowledgment?.status,
+        };
+      },
+    });
 
-    const batch = await mockDb.SettlementBatch.get(`${CHAIN_ID}-50`);
-    const first = await mockDb.Disbursement.get(`${CHAIN_ID}-51`);
-    const second = await mockDb.Disbursement.get(`${CHAIN_ID}-52`);
-    const plan = await mockDb.CommitmentPayoutPlan.get(`${CHAIN_ID}-40`);
-    assert.equal(batch?.state, "CONFIRMED");
-    assert.equal(first?.state, "CONFIRMED");
-    assert.equal(second?.state, "CONFIRMED");
-    assert.equal(first?.batchId, 50n);
-    assert.equal(plan?.confirmedPayoutCount, 2);
-    assert.equal(plan?.status, "COMPLETE");
-    assert.equal(
-      (await mockDb.SettlementMessage.get(`${CHAIN_ID}-${message.ids.acknowledgmentMessageId}`))
-        ?.status,
-      "ACKNOWLEDGED"
-    );
+    assert.equal(projection.batchState, "CONFIRMED");
+    assert.equal(projection.firstState, "CONFIRMED");
+    assert.equal(projection.secondState, "CONFIRMED");
+    assert.equal(projection.firstBatchId, 50n);
+    assert.equal(projection.confirmedPayoutCount, 2);
+    assert.equal(projection.planStatus, "COMPLETE");
+    assert.equal(projection.acknowledgmentStatus, "ACKNOWLEDGED");
   });
 
   it("preserves retry history and ignores duplicate or stale acknowledgments idempotently", async () => {

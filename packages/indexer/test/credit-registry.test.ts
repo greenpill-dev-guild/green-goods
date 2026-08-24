@@ -9,6 +9,7 @@ import {
   processEvents,
   SettlementModule,
 } from "./v3";
+import { assertConvergesUnderDelivery, assertRelationshipInEitherOrder } from "./helpers/delivery";
 
 const CHAIN_ID = 42161;
 const START_BLOCK = 433_713_812;
@@ -177,68 +178,84 @@ describe("CreditRegistry read model", () => {
       logIndex: events.partial.logIndex,
       params: { ...events.partial.params },
     };
-    let canonical = await project([...Object.values(events), stalePartial, staleDisbursement]);
-    let reverse = await project([
-      events.repaid,
-      events.recovered,
-      events.partial,
-      events.defaulted,
-      events.disbursed,
-      events.approved,
-      events.requested,
-      stalePartial,
-      staleDisbursement,
-    ]);
-    canonical = await CreditRegistry.RepaymentRecorded.processEvent({
-      event: duplicatePartial,
-      mockDb: canonical,
-    });
-    reverse = await CreditRegistry.RepaymentRecorded.processEvent({
-      event: duplicatePartial,
-      mockDb: reverse,
+    const deliveryEvents = { ...events, stalePartial, staleDisbursement, duplicatePartial };
+    const [projection] = await assertConvergesUnderDelivery({
+      events: deliveryEvents,
+      orders: [
+        [
+          "requested",
+          "approved",
+          "disbursed",
+          "partial",
+          "defaulted",
+          "recovered",
+          "repaid",
+          "stalePartial",
+          "staleDisbursement",
+          "duplicatePartial",
+        ],
+        [
+          "repaid",
+          "recovered",
+          "partial",
+          "defaulted",
+          "disbursed",
+          "approved",
+          "requested",
+          "stalePartial",
+          "staleDisbursement",
+          "duplicatePartial",
+        ],
+      ],
+      read: async (ordered) => {
+        const db = await project(ordered);
+        return {
+          loan: await db.Loan.get(`${CHAIN_ID}-12`),
+          stats: await db.CreditPoolStats.get(`${CHAIN_ID}-7`),
+          partialAmount: (await db.LoanEvent.get(`${CHAIN_ID}-${txHash(13)}-0`))?.amount,
+        };
+      },
     });
 
-    const canonicalLoan = await canonical.Loan.get(`${CHAIN_ID}-12`);
-    const reverseLoan = await reverse.Loan.get(`${CHAIN_ID}-12`);
-    const canonicalStats = await canonical.CreditPoolStats.get(`${CHAIN_ID}-7`);
-    const reverseStats = await reverse.CreditPoolStats.get(`${CHAIN_ID}-7`);
-
-    assert.deepEqual(reverseLoan, canonicalLoan);
-    assert.deepEqual(reverseStats, canonicalStats);
-    assert.equal(reverseLoan?.repaidAmount, 100n);
-    assert.equal(reverseLoan?.outstanding, 0n);
-    assert.equal((await reverse.LoanEvent.get(`${CHAIN_ID}-${txHash(13)}-0`))?.amount, 40n);
+    assert.equal(projection?.loan?.repaidAmount, 100n);
+    assert.equal(projection?.loan?.outstanding, 0n);
+    assert.equal(projection?.partialAmount, 40n);
   });
 
   it("joins the settlement relationship in either order and leaves other rails unbound", async () => {
-    for (const relationshipFirst of [true, false]) {
-      const loanId = relationshipFirst ? 21n : 22n;
-      const disbursementId = relationshipFirst ? 501n : 502n;
-      const events = loanLifecycle(loanId);
-      events.disbursed = CreditRegistry.LoanDisbursed.createMockEvent({
-        loanId,
-        rail: 3n,
-        token: addr(4),
-        amount: 100n,
-        disbursementId,
-        executionRef: txHash(Number(disbursementId)),
-        recordedBy: addr(5),
-        mockEventData: mockEvent(22),
-      });
-      const relationship = SettlementModule.LoanPrincipalQueued.createMockEvent({
-        disbursementId,
-        creditRegistry: CREDIT_REGISTRY,
-        loanId,
-        mockEventData: { ...mockEvent(21), srcAddress: undefined },
-      });
-      const ordered = relationshipFirst
-        ? [events.requested, events.approved, relationship, events.disbursed]
-        : [events.requested, events.approved, events.disbursed, relationship];
-      const mockDb = await project(ordered);
-      const loan = await mockDb.Loan.get(`${CHAIN_ID}-${loanId}`);
-      assert.equal(loan?.disbursementId, disbursementId);
-      assert.equal(loan?.settlementRelationshipEntityId, `${CHAIN_ID}-${disbursementId}`);
-    }
+    const loanId = 21n;
+    const disbursementId = 501n;
+    const events = loanLifecycle(loanId);
+    events.disbursed = CreditRegistry.LoanDisbursed.createMockEvent({
+      loanId,
+      rail: 3n,
+      token: addr(4),
+      amount: 100n,
+      disbursementId,
+      executionRef: txHash(Number(disbursementId)),
+      recordedBy: addr(5),
+      mockEventData: mockEvent(22),
+    });
+    const relationship = SettlementModule.LoanPrincipalQueued.createMockEvent({
+      disbursementId,
+      creditRegistry: CREDIT_REGISTRY,
+      loanId,
+      mockEventData: { ...mockEvent(21), srcAddress: undefined },
+    });
+    const [projection] = await assertRelationshipInEitherOrder({
+      relationship,
+      entity: events.disbursed,
+      read: async (ordered) => {
+        const db = await project([events.requested, events.approved, ...ordered]);
+        const loan = await db.Loan.get(`${CHAIN_ID}-${loanId}`);
+        return {
+          disbursementId: loan?.disbursementId,
+          settlementRelationshipEntityId: loan?.settlementRelationshipEntityId,
+        };
+      },
+    });
+    assert.equal(projection.disbursementId, disbursementId);
+    assert.equal(projection.settlementRelationshipEntityId, `${CHAIN_ID}-${disbursementId}`);
 
     const jar = loanLifecycle(23n);
     const mockDb = await project([jar.requested, jar.approved, jar.disbursed]);
