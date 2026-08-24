@@ -1,4 +1,4 @@
-import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
+import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import type { Address } from "../../types/domain";
 import type { YieldAllocation } from "../../types/gardens-community";
 import type { GardenVault, VaultDeposit, VaultEvent, VaultEventType } from "../../types/vaults";

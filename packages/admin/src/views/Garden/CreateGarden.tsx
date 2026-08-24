@@ -1,4 +1,6 @@
-import { adminRoutes, TxInlineFeedback, useCreateGardenController } from "@green-goods/shared";
+import { TxInlineFeedback } from "@green-goods/shared/components/feedback/TxInlineFeedback";
+import { useCreateGardenController } from "@green-goods/shared/hooks/admin-ui/garden/useCreateGardenController";
+import { adminRoutes } from "@green-goods/shared/utils/navigation/admin-routes";
 import { useIntl } from "react-intl";
 import { AdminButton } from "@/components/AdminButton";
 import { DetailsStep } from "@/components/Garden/CreateGardenSteps/DetailsStep";

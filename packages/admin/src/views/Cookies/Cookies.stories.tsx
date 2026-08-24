@@ -15,14 +15,11 @@ import {
   ADMIN_ROUTE_STORY_QUERY_OPTIONS,
   StorybookAdminCanvasRoute,
 } from "../storybookCanvasHarness";
-import {
-  buildCampaignCookieJarMetadata,
-  DEFAULT_CHAIN_ID,
-  queryKeys,
-  type Address,
-  type CampaignCookieJarCampaign,
-  type Garden,
-} from "@green-goods/shared";
+import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
+import { queryKeys } from "@green-goods/shared/config/query-keys/registry";
+import type { CampaignCookieJarCampaign } from "@green-goods/shared/types/cookie-jar";
+import type { Address, Garden } from "@green-goods/shared/types/domain";
+import { buildCampaignCookieJarMetadata } from "@green-goods/shared/utils/cookie-jar-campaign";
 
 const STORYBOOK_CAMPAIGN_JAR = "0x7777777777777777777777777777777777777777" as Address;
 

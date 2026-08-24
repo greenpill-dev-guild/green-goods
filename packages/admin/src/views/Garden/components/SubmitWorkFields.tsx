@@ -1,10 +1,7 @@
-import {
-  FormField,
-  NativeSelect,
-  Textarea,
-  type useWorkForm,
-  type WorkInput,
-} from "@green-goods/shared";
+import { NativeSelect, Textarea } from "@green-goods/shared/components/Form/ControlPrimitives";
+import { FormField } from "@green-goods/shared/components/Form/FormFieldWrapper";
+import type { useWorkForm } from "@green-goods/shared/hooks/work/useWorkForm";
+import type { WorkInput } from "@green-goods/shared/types/domain";
 import { Controller } from "react-hook-form";
 import { useIntl } from "react-intl";
 import { AdminButton } from "@/components/AdminButton";

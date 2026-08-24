@@ -1,11 +1,11 @@
+import type { MetaStripItem } from "../../../components/Canvas/MetaStrip";
+import type { ViewAction } from "../../../components/Canvas/viewActions.types";
+import type { YieldAllocation } from "../../../types/gardens-community";
+import { formatTokenAmount } from "../../../utils/blockchain/vaults";
 import {
   type AdminCommunityRouteContext,
   adminRoutes,
-  formatTokenAmount,
-  type MetaStripItem,
-  type ViewAction,
-  type YieldAllocation,
-} from "@green-goods/shared";
+} from "../../../utils/navigation/admin-routes";
 import { RiHandCoinLine, RiMoneyDollarCircleLine, RiUserAddLine } from "@remixicon/react";
 
 /**

@@ -1,11 +1,9 @@
-import {
-  ACTION_CAPITAL_LABEL_IDS,
-  DOMAIN_CONFIG,
-  type Action,
-  deriveActionDetailModel,
-  formatDateTime,
-  StatusBadge,
-} from "@green-goods/shared";
+import { StatusBadge } from "@green-goods/shared/components/StatusBadge";
+import { DOMAIN_CONFIG } from "@green-goods/shared/config/domain";
+import { ACTION_CAPITAL_LABEL_IDS } from "@green-goods/shared/hooks/admin-ui/actions/actions.utils";
+import { deriveActionDetailModel } from "@green-goods/shared/hooks/admin-ui/actions/actions.workspaceModel";
+import type { Action } from "@green-goods/shared/types/domain";
+import { formatDateTime } from "@green-goods/shared/utils/time";
 import { RiEditLine, RiFileListLine, RiImageLine } from "@remixicon/react";
 import { type ReactNode } from "react";
 import { useIntl } from "react-intl";

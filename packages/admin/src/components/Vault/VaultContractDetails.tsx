@@ -1,14 +1,11 @@
-import {
-  AAVE_V3_POOL,
-  type Address,
-  Card,
-  getBlockExplorerAddressUrl,
-  getNetworkContracts,
-  getVaultAssetSymbol,
-  isZeroAddress,
-  useCurrentChain,
-  useGardenVaults,
-} from "@green-goods/shared";
+import { Card } from "@green-goods/shared/components/Cards/CardBase";
+import { useCurrentChain } from "@green-goods/shared/hooks/blockchain/useChainConfig";
+import { useGardenVaults } from "@green-goods/shared/hooks/vault/useGardenVaults";
+import type { Address } from "@green-goods/shared/types/domain";
+import { isZeroAddress } from "@green-goods/shared/utils/blockchain/address";
+import { getNetworkContracts } from "@green-goods/shared/utils/blockchain/contracts";
+import { AAVE_V3_POOL, getVaultAssetSymbol } from "@green-goods/shared/utils/blockchain/vaults";
+import { getBlockExplorerAddressUrl } from "@green-goods/shared/utils/eas/explorers";
 import { RiExternalLinkLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { EnsAddressText } from "@/components/EnsAddressText";

@@ -1,4 +1,4 @@
-import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
+import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import type { GardenVault, VaultDeposit, VaultEvent } from "../../types/vaults";
 import { logger } from "../app/logger";
 import { type RepositoryResult, vaultRepository } from "./vault-repository";

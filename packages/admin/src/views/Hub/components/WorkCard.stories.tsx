@@ -1,4 +1,5 @@
-import type { Address, EASWork } from "@green-goods/shared";
+import type { Address } from "@green-goods/shared/types/domain";
+import type { EASWork } from "@green-goods/shared/types/eas-responses";
 import type { Meta, StoryObj } from "@storybook/react";
 import { withRouter } from "../../../../../shared/.storybook/decorators";
 import { FIXTURE_WORK_MEDIA, daysAgo } from "../../../../../shared/.storybook/fixtures";

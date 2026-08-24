@@ -72,50 +72,64 @@ vi.mock("@/components/Shell", () => ({
   ),
 }));
 
-vi.mock("@green-goods/shared", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@green-goods/shared")>();
-  return {
-    ...actual,
-    GardenChip: () => <div>Garden Chip</div>,
-    useAdminStore: (
-      selector: (state: {
-        selectedGarden: null;
-        setSelectedGarden: typeof mockSetSelectedGarden;
-      }) => unknown
-    ) =>
-      selector({
-        selectedGarden: null,
-        setSelectedGarden: mockSetSelectedGarden,
-      }),
-    useAuth: () => ({
-      isAuthenticated: true,
-      eoaAddress: "0x1234567890123456789012345678901234567890",
-      isReady: true,
-      authMode: "wallet",
-      signOut: vi.fn(),
+vi.mock("@green-goods/shared/components/Canvas/GardenChip", () => ({
+  GardenChip: () => <div>Garden Chip</div>,
+}));
+
+vi.mock("@green-goods/shared/hooks/auth/useAuth", () => ({
+  useAuth: () => ({
+    isAuthenticated: true,
+    eoaAddress: "0x1234567890123456789012345678901234567890",
+    isReady: true,
+    authMode: "wallet",
+    signOut: vi.fn(),
+  }),
+}));
+
+vi.mock("@green-goods/shared/hooks/garden/useAdminGardenWorkspaceSelection", () => ({
+  // CanvasLayout also calls useAdminGardenWorkspaceSelection directly
+  // (independent of useEligibleAdminGardens above) — unstubbed, it falls
+  // through to the real hook, which chains into useAdminGardenContext ->
+  // usePrimaryAddress -> wagmi's useAccount(), and this test has no
+  // WagmiProvider.
+  useAdminGardenWorkspaceSelection: () => ({
+    eligibleGardens: mockEligibleAdminGardens.current.eligibleGardens,
+    selectedGarden: mockEligibleAdminGardens.current.resolvedDefaultGarden,
+    setSelectedGarden: vi.fn(),
+    gardenOptions: mockEligibleAdminGardens.current.eligibleGardens.map((g) => ({
+      id: g.id,
+      name: g.name,
+      location: g.location,
+    })),
+    handleSelectGarden: vi.fn(),
+  }),
+}));
+
+vi.mock("@green-goods/shared/hooks/garden/useEligibleAdminGardens", () => ({
+  useEligibleAdminGardens: () => mockEligibleAdminGardens.current,
+}));
+
+vi.mock("@green-goods/shared/hooks/navigation/useGardenUrlSync", () => ({
+  useGardenUrlSync: mockUseGardenUrlSync,
+}));
+
+vi.mock("@green-goods/shared/hooks/roles/useEffectiveToolbarPermissions", () => ({
+  useEffectiveToolbarPermissions: () => mockPermissions.current,
+}));
+
+vi.mock("@green-goods/shared/stores/useAdminStore", () => ({
+  useAdminStore: (
+    selector: (state: {
+      selectedGarden: null;
+      setSelectedGarden: typeof mockSetSelectedGarden;
+    }) => unknown
+  ) =>
+    selector({
+      selectedGarden: null,
+      setSelectedGarden: mockSetSelectedGarden,
     }),
-    useEligibleAdminGardens: () => mockEligibleAdminGardens.current,
-    // CanvasLayout also calls useAdminGardenWorkspaceSelection directly
-    // (independent of useEligibleAdminGardens above) — unstubbed, it falls
-    // through to the real hook, which chains into useAdminGardenContext ->
-    // usePrimaryAddress -> wagmi's useAccount(), and this test has no
-    // WagmiProvider.
-    useAdminGardenWorkspaceSelection: () => ({
-      eligibleGardens: mockEligibleAdminGardens.current.eligibleGardens,
-      selectedGarden: mockEligibleAdminGardens.current.resolvedDefaultGarden,
-      setSelectedGarden: vi.fn(),
-      gardenOptions: mockEligibleAdminGardens.current.eligibleGardens.map((g) => ({
-        id: g.id,
-        name: g.name,
-        location: g.location,
-      })),
-      handleSelectGarden: vi.fn(),
-    }),
-    useEffectiveToolbarPermissions: () => mockPermissions.current,
-    useGardenUrlSync: mockUseGardenUrlSync,
-    useStaleGardenGuard: mockUseStaleGardenGuard,
-  };
-});
+  useStaleGardenGuard: mockUseStaleGardenGuard,
+}));
 
 vi.mock("../../../../shared/src/hooks/auth/useAuth", () => ({
   useAuth: () => ({
@@ -144,7 +158,7 @@ vi.mock("../../../../shared/src/hooks/roles/useEffectiveToolbarPermissions", () 
   useEffectiveToolbarPermissions: () => mockPermissions.current,
 }));
 
-vi.mock("@green-goods/shared/profile-avatar", () => ({
+vi.mock("@green-goods/shared/hooks/profile/useProfileAvatar", () => ({
   useResolvedProfileAvatar: () => ({
     avatarUri: null,
     error: null,

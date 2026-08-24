@@ -1,11 +1,11 @@
 /** @vitest-environment jsdom */
 
-import type { Action } from "@green-goods/shared";
+import type { Action } from "@green-goods/shared/types/domain";
 import {
   COMMITMENT_COMPOSER_DEFAULTS,
   type CommitmentComposerValues,
   useCommitmentComposerForm,
-} from "@green-goods/shared/commitment-pooling";
+} from "@green-goods/shared/hooks/commitment-pooling/useCommitmentComposerForm";
 import { useState } from "react";
 import { useFieldArray } from "react-hook-form";
 import { describe, expect, it } from "vitest";

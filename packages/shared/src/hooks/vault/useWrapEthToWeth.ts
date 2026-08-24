@@ -1,7 +1,7 @@
 import { useMutation } from "@tanstack/react-query";
 import { getAddress } from "viem";
 import type { Address } from "../../types/domain";
-import { WETH_DEPOSIT_ABI } from "../../utils/blockchain/abis";
+import { WETH_DEPOSIT_ABI } from "../../utils/blockchain/abis/erc20";
 import { createMutationErrorHandler } from "../../utils/errors/mutation-error-handler";
 import { useUser } from "../auth/useUser";
 import { useTransactionSender } from "../blockchain/useTransactionSender";

@@ -1,22 +1,24 @@
+import type { Step } from "../../../components/Form/StepIndicator";
+import { toastService } from "../../../components/Toast/toast.service";
+import { useCreateAssessmentStore } from "../../../stores/useCreateAssessmentStore";
+import type {
+  Address,
+  CreateAssessmentForm as WorkflowAssessmentForm,
+} from "../../../types/domain";
+import { compareAddresses } from "../../../utils/blockchain/address";
+import { adminRoutes } from "../../../utils/navigation/admin-routes";
 import {
-  type Address,
-  adminRoutes,
   assessmentStepFields,
-  compareAddresses,
   type CreateAssessmentFormData,
-  type Step,
-  toastService,
-  useAdminGardenContext,
   useCreateAssessmentForm,
-  useCreateAssessmentStore,
-  useCreateAssessmentWorkflow,
-  useFormWizardStepValidation,
-  useGardenDomains,
-  useGardenPermissions,
-  useGardens,
-  useTxErrorMessages,
-  type CreateAssessmentForm as WorkflowAssessmentForm,
-} from "@green-goods/shared";
+} from "../../assessment/useCreateAssessmentForm";
+import { useCreateAssessmentWorkflow } from "../../assessment/useCreateAssessmentWorkflow";
+import { useGardens } from "../../blockchain/useBaseLists";
+import { useAdminGardenContext } from "../../garden/useAdminGardenContext";
+import { useGardenDomains } from "../../garden/useGardenDomains";
+import { useGardenPermissions } from "../../garden/useGardenPermissions";
+import { useFormWizardStepValidation } from "../../ui/useFormWizardStepValidation";
+import { useTxErrorMessages } from "../../utils/useTxErrorMessages";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";

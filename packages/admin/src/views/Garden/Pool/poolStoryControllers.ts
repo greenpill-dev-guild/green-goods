@@ -4,19 +4,19 @@
  * real hook hands its view. Acts resolve without sending anything.
  */
 
-import {
-  type CommitmentDialogController,
-  DEFAULT_CHAIN_ID,
-  type HubConfirmQueueController,
-  type OntologyChainCapability,
-  type PoolConsoleController,
-} from "@green-goods/shared";
-import {
-  type CommitmentPoolRecord,
-  type CommitmentReadModel,
-  selectPoolConsoleModel,
-  selectPromiseKeptRate,
-} from "@green-goods/shared/commitment-pooling";
+import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
+import type {
+  CommitmentDialogController,
+  HubConfirmQueueController,
+  PoolConsoleController,
+} from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
+import type { OntologyChainCapability } from "@green-goods/shared/ontology/types";
+import { selectPromiseKeptRate } from "@green-goods/shared/modules/commitment-pooling/disclosure";
+import { selectPoolConsoleModel } from "@green-goods/shared/modules/commitment-pooling/pool-console";
+import type {
+  CommitmentPoolRecord,
+  CommitmentReadModel,
+} from "@green-goods/shared/modules/commitment-pooling/types-core";
 import { STORYBOOK_PRIMARY_ADMIN_GARDEN } from "../../../../../shared/.storybook/adminFixtures";
 import { daysAgo } from "../../../../../shared/.storybook/fixtures";
 import { STORY_GARDEN, STORY_JOAO, STORY_MARIA, STORY_NOW, STORY_STEWARD } from "./poolStoryActors";

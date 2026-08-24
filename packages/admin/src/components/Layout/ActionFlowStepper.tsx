@@ -8,7 +8,7 @@
 // `data-tone` dialog, falling back to green elsewhere — same token pattern as
 // AdminButton. Lives in packages/admin so the admin Tailwind scan reaches its
 // utility classes (shared/src is not scanned here).
-import { cn } from "@green-goods/shared";
+import { cn } from "@green-goods/shared/utils/styles/cn";
 import { RiCheckLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 

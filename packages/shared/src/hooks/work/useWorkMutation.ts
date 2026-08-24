@@ -15,7 +15,7 @@ import {
   walletProgressToasts,
   workToasts,
 } from "../../components/toast";
-import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
+import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import {
   trackWorkSubmissionFailed,
   trackWorkSubmissionStarted,
@@ -43,7 +43,8 @@ import { getActionTitle } from "../../utils/action/parsers";
 import { hapticError, hapticSuccess } from "../../utils/app/haptics";
 import { DEBUG_ENABLED, debugError, debugLog } from "../../utils/debug";
 import { parseAndFormatError } from "../../utils/errors/contract-errors";
-import { INDEXER_LAG_SCHEDULE_MS, queryKeys } from "../../config/query-keys";
+import { INDEXER_LAG_SCHEDULE_MS } from "../../config/query-keys/constants";
+import { worksKeys } from "../../config/query-keys/work";
 import { useTransactionSender } from "../blockchain/useTransactionSender";
 import { useSafeMutation } from "../utils/useSafeMutation";
 import { useProgressiveInvalidation, useTimeout } from "../utils/useTimeout";
@@ -115,10 +116,10 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
     useCallback(() => {
       if (lastGardenRef.current) {
         queryClient.invalidateQueries({
-          queryKey: queryKeys.works.online(lastGardenRef.current, chainId),
+          queryKey: worksKeys.online(lastGardenRef.current, chainId),
         });
         queryClient.invalidateQueries({
-          queryKey: queryKeys.works.merged(lastGardenRef.current, chainId),
+          queryKey: worksKeys.merged(lastGardenRef.current, chainId),
         });
       }
     }, [queryClient, chainId]),
@@ -198,7 +199,7 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
           },
           onQueueFallback: (optimisticWork) => {
             queryClient.setQueryData(
-              queryKeys.works.merged(gardenAddress, chainId),
+              worksKeys.merged(gardenAddress, chainId),
               (old: Work[] = []) => [optimisticWork, ...old]
             );
           },
@@ -244,12 +245,10 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
       let previousMerged: Work[] | undefined;
       if (gardenAddress) {
         await queryClient.cancelQueries({
-          queryKey: queryKeys.works.merged(gardenAddress, chainId),
+          queryKey: worksKeys.merged(gardenAddress, chainId),
         });
 
-        previousMerged = queryClient.getQueryData<Work[]>(
-          queryKeys.works.merged(gardenAddress, chainId)
-        );
+        previousMerged = queryClient.getQueryData<Work[]>(worksKeys.merged(gardenAddress, chainId));
 
         if (allowOfflineQueue && !isWalletOnline) {
           // Insert an optimistic Work entry so it appears instantly in lists
@@ -269,10 +268,10 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
             status: "pending",
           };
 
-          queryClient.setQueryData(
-            queryKeys.works.merged(gardenAddress, chainId),
-            (old: Work[] = []) => [optimisticWork, ...old]
-          );
+          queryClient.setQueryData(worksKeys.merged(gardenAddress, chainId), (old: Work[] = []) => [
+            optimisticWork,
+            ...old,
+          ]);
 
           if (DEBUG_ENABLED) {
             debugLog("[WorkMutation] Inserted optimistic work entry", {
@@ -338,10 +337,10 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
       // Invalidate work queries so lists reflect the new submission
       if (gardenAddress) {
         queryClient.invalidateQueries({
-          queryKey: queryKeys.works.online(gardenAddress, chainId),
+          queryKey: worksKeys.online(gardenAddress, chainId),
         });
         queryClient.invalidateQueries({
-          queryKey: queryKeys.works.merged(gardenAddress, chainId),
+          queryKey: worksKeys.merged(gardenAddress, chainId),
         });
 
         // Schedule progressive follow-up invalidations for indexer lag
@@ -383,10 +382,7 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
 
       // Rollback optimistic cache insertion
       if (context?.previousMerged && gardenAddress) {
-        queryClient.setQueryData(
-          queryKeys.works.merged(gardenAddress, chainId),
-          context.previousMerged
-        );
+        queryClient.setQueryData(worksKeys.merged(gardenAddress, chainId), context.previousMerged);
         if (DEBUG_ENABLED) {
           debugLog("[WorkMutation] Rolled back optimistic work entry");
         }

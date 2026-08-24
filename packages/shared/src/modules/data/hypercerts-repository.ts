@@ -6,7 +6,7 @@ import type {
   HypercertStatus,
 } from "../../types/hypercerts";
 import { logger } from "../app/logger";
-import { getJsonByHash } from "./ipfs";
+import { getJsonByHash } from "./ipfs/resolve";
 import {
   getApprovedAttestations,
   getAttestationsByUIDs,

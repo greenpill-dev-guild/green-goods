@@ -1,12 +1,12 @@
+import { Alert } from "@green-goods/shared/components/Alert";
+import { SheetBody } from "@green-goods/shared/components/Canvas/SheetBody";
+import type { ActivityEvent } from "@green-goods/shared/hooks/admin-ui/hub/hub.utils";
+import { resolveHubSheetSelection } from "@green-goods/shared/hooks/admin-ui/hub/hub.workbenchModel";
+import type { Work } from "@green-goods/shared/types/domain";
 import {
-  type ActivityEvent,
   type AdminHubRouteContext,
-  Alert,
   adminRoutes,
-  resolveHubSheetSelection,
-  SheetBody,
-  type Work,
-} from "@green-goods/shared";
+} from "@green-goods/shared/utils/navigation/admin-routes";
 import { useCallback, useMemo } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";

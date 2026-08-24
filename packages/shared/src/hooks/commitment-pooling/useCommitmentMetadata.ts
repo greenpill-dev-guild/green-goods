@@ -18,7 +18,7 @@
 import { useQueries } from "@tanstack/react-query";
 import { useMemo } from "react";
 
-import { queryKeys } from "../../config/query-keys";
+import { commitmentPoolingKeys } from "../../config/query-keys/commitment-pooling";
 import {
   commitmentDocumentStore,
   type CommitmentDocumentStore,
@@ -56,7 +56,7 @@ export function useCommitmentMetadata(
 
   const results = useQueries({
     queries: cids.map((cid) => ({
-      queryKey: queryKeys.commitmentPooling.metadata(cid),
+      queryKey: commitmentPoolingKeys.metadata(cid),
       queryFn: async () => parseCommitmentMetadata(await documents.readJson(cid)),
       staleTime: IMMUTABLE,
       gcTime: IMMUTABLE,

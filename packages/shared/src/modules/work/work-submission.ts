@@ -2,7 +2,9 @@ import type { Action, Address, Work, WorkApprovalDraft, WorkDraft } from "../../
 import { getActionTitle } from "../../utils/action/parsers";
 import { resolveWorkSubmissionTitle } from "../../utils/work/workTitles";
 import { serviceWorkerManager } from "../app/service-worker";
-import { createOfflineTxHash, jobQueue, type JobQueueHandle } from "../job-queue";
+import { jobQueue } from "../job-queue/default-instance";
+import type { JobQueueHandle } from "../job-queue/ports";
+import { createOfflineTxHash } from "../job-queue/queue-policy";
 
 export interface WorkSubmissionDependencies {
   queue: Pick<JobQueueHandle, "addJob">;

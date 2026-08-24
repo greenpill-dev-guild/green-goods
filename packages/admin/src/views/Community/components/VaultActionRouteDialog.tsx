@@ -1,11 +1,9 @@
-import {
-  type Address,
-  Alert,
-  adminRoutes,
-  useAdminGardenWorkspaceSelection,
-  useGardens,
-  useGardenVaults,
-} from "@green-goods/shared";
+import { Alert } from "@green-goods/shared/components/Alert";
+import { useGardens } from "@green-goods/shared/hooks/blockchain/useBaseLists";
+import { useAdminGardenWorkspaceSelection } from "@green-goods/shared/hooks/garden/useAdminGardenWorkspaceSelection";
+import { useGardenVaults } from "@green-goods/shared/hooks/vault/useGardenVaults";
+import type { Address } from "@green-goods/shared/types/domain";
+import { adminRoutes } from "@green-goods/shared/utils/navigation/admin-routes";
 import { useCallback, useMemo } from "react";
 import { useIntl } from "react-intl";
 import { useLocation, useNavigate } from "react-router-dom";

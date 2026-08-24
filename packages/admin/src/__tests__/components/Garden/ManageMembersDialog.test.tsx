@@ -9,17 +9,14 @@ import { fireEvent, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createElement } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { Address, GardenRole } from "@green-goods/shared";
+import type { Address } from "@green-goods/shared/types/domain";
+import type { GardenRole } from "@green-goods/shared/utils/blockchain/garden-roles";
 import { renderWithProviders as render } from "../../test-utils";
 
-vi.mock("@green-goods/shared", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@green-goods/shared")>();
-  return {
-    ...actual,
-    AddressDisplay: ({ address, className }: { address: string; className?: string }) =>
-      createElement("span", { className, "data-testid": "address-display" }, address.slice(0, 10)),
-  };
-});
+vi.mock("@green-goods/shared/components/AddressDisplay", () => ({
+  AddressDisplay: ({ address, className }: { address: string; className?: string }) =>
+    createElement("span", { className, "data-testid": "address-display" }, address.slice(0, 10)),
+}));
 
 import { ManageMembersDialog } from "../../../components/Garden/ManageMembersDialog";
 

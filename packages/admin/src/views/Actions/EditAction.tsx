@@ -1,8 +1,5 @@
-import {
-  fromDateTimeLocalValue,
-  toDateTimeLocalValue,
-  useActionEditorController,
-} from "@green-goods/shared";
+import { useActionEditorController } from "@green-goods/shared/hooks/admin-ui/actions/useActionEditorController";
+import { fromDateTimeLocalValue, toDateTimeLocalValue } from "@green-goods/shared/utils/time";
 import { useIntl } from "react-intl";
 import { InstructionsBuilder } from "@/components/Action/InstructionsBuilder";
 import { ActionTranslationEditor } from "@/components/Action/ActionTranslationEditor";

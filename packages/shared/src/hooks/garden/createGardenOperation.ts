@@ -20,7 +20,7 @@ import {
 import { ensureAppKitWalletChain } from "../../modules/transactions/chain-guard";
 import { assertLocalArbitrumForkWallet } from "../../modules/transactions/local-fork-safety";
 import type { Address } from "../../types/domain";
-import { HATS_MODULE_ABI } from "../../utils/blockchain/abis";
+import { HATS_MODULE_ABI } from "../../utils/blockchain/abis/hats";
 import { fetchHatsModuleAddress } from "../../utils/blockchain/garden-hats";
 import { GARDEN_ROLE_IDS, type GardenRole } from "../../utils/blockchain/garden-roles";
 import { simulateTransaction } from "../../utils/blockchain/simulation";

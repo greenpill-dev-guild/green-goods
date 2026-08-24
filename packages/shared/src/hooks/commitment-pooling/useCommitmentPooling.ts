@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
-import { queryKeys, STALE_TIME_MEDIUM } from "../../config/query-keys";
+import { STALE_TIME_MEDIUM } from "../../config/query-keys/constants";
+import { commitmentPoolingKeys } from "../../config/query-keys/commitment-pooling";
 import {
   getCommitmentActivity,
   getCommitmentClaimRequests,
@@ -32,7 +33,7 @@ import { useCommitmentPoolingAvailability } from "./useCommitmentPoolingAvailabi
 export function useCommitmentPools(input: { chainId: number; garden?: Address }) {
   const availability = useCommitmentPoolingAvailability(input);
   const query = useQuery({
-    queryKey: queryKeys.commitmentPooling.pools(input.chainId, input.garden),
+    queryKey: commitmentPoolingKeys.pools(input.chainId, input.garden),
     queryFn: () => getCommitmentPools(input.chainId, input.garden),
     enabled: availability.status === "available",
     staleTime: STALE_TIME_MEDIUM,
@@ -54,7 +55,7 @@ export function useCommitmentPool(
 ) {
   const availability = useCommitmentPoolingAvailability(input);
   const query = useQuery({
-    queryKey: queryKeys.commitmentPooling.pool(input.chainId, input.poolId),
+    queryKey: commitmentPoolingKeys.pool(input.chainId, input.poolId),
     queryFn: () => getCommitmentPoolDetail(input.chainId, input.poolId),
     enabled: availability.status === "available" && options.enabled !== false,
     staleTime: STALE_TIME_MEDIUM,
@@ -75,7 +76,7 @@ export function useCommitmentCycles(
   const availability = useCommitmentPoolingAvailability(input);
   const filters = { cycleType: input.cycleType, state: input.state };
   const query = useQuery({
-    queryKey: queryKeys.commitmentPooling.cycles(input.chainId, input.poolId, filters),
+    queryKey: commitmentPoolingKeys.cycles(input.chainId, input.poolId, filters),
     queryFn: () => getCommitmentCycles(input),
     enabled: availability.status === "available" && options.enabled !== false,
     staleTime: STALE_TIME_MEDIUM,
@@ -90,7 +91,7 @@ export function useCommitmentCycle(
 ) {
   const availability = useCommitmentPoolingAvailability(input);
   const query = useQuery({
-    queryKey: queryKeys.commitmentPooling.cycle(input.chainId, input.cycleId),
+    queryKey: commitmentPoolingKeys.cycle(input.chainId, input.cycleId),
     queryFn: () => getCommitmentCycleDetail(input.chainId, input.cycleId),
     enabled: availability.status === "available" && options.enabled !== false,
     staleTime: STALE_TIME_MEDIUM,
@@ -117,7 +118,7 @@ export function useCommitments(
 ) {
   const availability = useCommitmentPoolingAvailability(input);
   const query = useQuery({
-    queryKey: queryKeys.commitmentPooling.commitments(input.chainId, input),
+    queryKey: commitmentPoolingKeys.commitments(input.chainId, input),
     queryFn: () => getCommitments(input),
     enabled: availability.status === "available" && options.enabled !== false,
     staleTime: STALE_TIME_MEDIUM,
@@ -132,7 +133,7 @@ export function useCommitment(
 ) {
   const availability = useCommitmentPoolingAvailability(input);
   const query = useQuery({
-    queryKey: queryKeys.commitmentPooling.commitment(input.chainId, input.commitmentId),
+    queryKey: commitmentPoolingKeys.commitment(input.chainId, input.commitmentId),
     queryFn: () => getCommitmentDetail(input.chainId, input.commitmentId),
     enabled: availability.status === "available" && options.enabled !== false,
     staleTime: STALE_TIME_MEDIUM,
@@ -154,7 +155,7 @@ export function useLinkedWorkUIDs(input: { chainId: number; workUIDs: readonly s
   const availability = useCommitmentPoolingAvailability(input);
   const key = [...input.workUIDs].map((uid) => uid.toLowerCase()).sort();
   const query = useQuery({
-    queryKey: queryKeys.commitmentPooling.linkedWorks(input.chainId, key),
+    queryKey: commitmentPoolingKeys.linkedWorks(input.chainId, key),
     queryFn: () => getLinkedWorkUIDs(input.chainId, key),
     enabled: availability.status === "available" && key.length > 0,
     staleTime: STALE_TIME_MEDIUM,
@@ -175,7 +176,7 @@ export function useCommitmentWorkAttributionsForWork(input: {
   const availability = useCommitmentPoolingAvailability(input);
   const workUID = input.workUID?.toLowerCase() ?? null;
   const query = useQuery({
-    queryKey: queryKeys.commitmentPooling.workAttributions(input.chainId, workUID),
+    queryKey: commitmentPoolingKeys.workAttributions(input.chainId, workUID),
     queryFn: () => getCommitmentWorkAttributionsByWork(input.chainId, workUID as string),
     enabled: availability.status === "available" && Boolean(workUID),
     staleTime: STALE_TIME_MEDIUM,
@@ -190,7 +191,7 @@ export function useCommitmentClaimRequests(input: {
 }) {
   const availability = useCommitmentPoolingAvailability(input);
   const query = useQuery({
-    queryKey: queryKeys.commitmentPooling.claims(input.chainId, input.commitmentId, input.state),
+    queryKey: commitmentPoolingKeys.claims(input.chainId, input.commitmentId, input.state),
     queryFn: () => getCommitmentClaimRequests(input.chainId, input.commitmentId, input.state),
     enabled: availability.status === "available",
     staleTime: STALE_TIME_MEDIUM,
@@ -206,7 +207,7 @@ export function useCommitmentSeries(input: {
 }) {
   const availability = useCommitmentPoolingAvailability(input);
   const query = useQuery({
-    queryKey: queryKeys.commitmentPooling.seriesList(input.chainId, input),
+    queryKey: commitmentPoolingKeys.seriesList(input.chainId, input),
     queryFn: () => getCommitmentSeries(input),
     enabled: availability.status === "available",
     staleTime: STALE_TIME_MEDIUM,
@@ -217,7 +218,7 @@ export function useCommitmentSeries(input: {
 export function useCommitmentSeriesDetail(input: { chainId: number; seriesId: bigint }) {
   const availability = useCommitmentPoolingAvailability(input);
   const query = useQuery({
-    queryKey: queryKeys.commitmentPooling.series(input.chainId, input.seriesId),
+    queryKey: commitmentPoolingKeys.series(input.chainId, input.seriesId),
     queryFn: () => getCommitmentSeriesDetail(input.chainId, input.seriesId),
     enabled: availability.status === "available",
     staleTime: STALE_TIME_MEDIUM,
@@ -228,7 +229,7 @@ export function useCommitmentSeriesDetail(input: { chainId: number; seriesId: bi
 export function useNeedCommitments(input: { chainId: number; needUID: string }) {
   const availability = useCommitmentPoolingAvailability(input);
   const query = useQuery({
-    queryKey: queryKeys.commitmentPooling.need(input.chainId, input.needUID),
+    queryKey: commitmentPoolingKeys.need(input.chainId, input.needUID),
     queryFn: () => getNeedCommitments(input.chainId, input.needUID),
     enabled: availability.status === "available" && input.needUID.length > 0,
     staleTime: STALE_TIME_MEDIUM,
@@ -244,7 +245,7 @@ export function useCommitmentExchange(input: {
 }) {
   const availability = useCommitmentPoolingAvailability(input);
   const query = useQuery({
-    queryKey: queryKeys.commitmentPooling.exchange(
+    queryKey: commitmentPoolingKeys.exchange(
       input.chainId,
       input.poolId,
       input.commitmentIdA,
@@ -261,7 +262,7 @@ export function useCommitmentExchange(input: {
 export function useCommitmentHypercertBundle(input: { chainId: number; hypercertId: bigint }) {
   const availability = useCommitmentPoolingAvailability(input);
   const query = useQuery({
-    queryKey: queryKeys.commitmentPooling.hypercertBundle(input.chainId, input.hypercertId),
+    queryKey: commitmentPoolingKeys.hypercertBundle(input.chainId, input.hypercertId),
     queryFn: () => getCommitmentHypercertBundle(input.chainId, input.hypercertId),
     enabled: availability.status === "available",
     staleTime: STALE_TIME_MEDIUM,
@@ -276,7 +277,7 @@ export function useCommitmentFunding(input: {
 }) {
   const availability = useCommitmentPoolingAvailability(input);
   const query = useQuery({
-    queryKey: queryKeys.commitmentPooling.funding(input.chainId, input.commitmentId, input.funder),
+    queryKey: commitmentPoolingKeys.funding(input.chainId, input.commitmentId, input.funder),
     queryFn: () => getCommitmentFunding(input.chainId, input.commitmentId, input.funder),
     enabled: availability.status === "available",
     staleTime: STALE_TIME_MEDIUM,
@@ -294,7 +295,7 @@ export function useCommitmentActivity(input: {
 }) {
   const availability = useCommitmentPoolingAvailability(input);
   const query = useQuery({
-    queryKey: queryKeys.commitmentPooling.activity(input.chainId, input),
+    queryKey: commitmentPoolingKeys.activity(input.chainId, input),
     queryFn: () => getCommitmentActivity(input),
     enabled: availability.status === "available",
     staleTime: STALE_TIME_MEDIUM,
@@ -334,7 +335,7 @@ export function usePoolMemberHistory(input: {
   const isCurrentSteward = isPoolSteward(roleQuery.roles);
   const canRead = Boolean(input.viewer && (self || isCurrentSteward));
   const query = useQuery({
-    queryKey: queryKeys.commitmentPooling.memberHistory(
+    queryKey: commitmentPoolingKeys.memberHistory(
       input.chainId,
       input.poolId,
       input.account,

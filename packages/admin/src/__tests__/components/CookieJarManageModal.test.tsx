@@ -13,58 +13,66 @@ const mockEmergencyWithdraw = vi.fn();
 const mockUpdateMaxWithdrawal = vi.fn();
 const mockUpdateInterval = vi.fn();
 
-vi.mock("@green-goods/shared", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@green-goods/shared")>();
-  return {
-    ...actual,
-    cn: (...classes: Array<string | false | null | undefined>) => classes.filter(Boolean).join(" "),
-    formatTokenAmount: (value: bigint, decimals = 18) =>
-      `${Number(value) / 10 ** decimals}`.replace(/\.0$/, ""),
-    getVaultAssetSymbol: () => "USDC",
-    useCookieJarPause: () => ({ mutate: mockPause, isPending: false }),
-    useCookieJarUnpause: () => ({ mutate: mockUnpause, isPending: false }),
-    useCookieJarEmergencyWithdraw: () => ({
-      mutate: mockEmergencyWithdraw,
-      isPending: false,
-    }),
-    useCookieJarUpdateMaxWithdrawal: () => ({
-      mutate: mockUpdateMaxWithdrawal,
-      isPending: false,
-    }),
-    useCookieJarUpdateInterval: () => ({
-      mutate: mockUpdateInterval,
-      isPending: false,
-    }),
-    useGardenCookieJars: () => ({
-      jars: [
-        {
-          jarAddress: "0xjar1",
-          gardenAddress: "0xgarden",
-          assetAddress: "0xasset",
-          balance: 5000000n,
-          currency: "0xasset",
-          decimals: 6,
-          maxWithdrawal: 1000000n,
-          withdrawalInterval: 3600n,
-          minDeposit: 0n,
-          isPaused: false,
-          emergencyWithdrawalEnabled: true,
-        },
-      ],
-      isLoading: false,
-      moduleConfigured: true,
-    }),
-    useGardens: () => ({
-      data: [
-        {
-          id: "0xgarden",
-          tokenAddress: "0xgarden",
-          name: "Rocinha",
-        },
-      ],
-    }),
-  };
-});
+vi.mock("@green-goods/shared/hooks/blockchain/useBaseLists", () => ({
+  useGardens: () => ({
+    data: [
+      {
+        id: "0xgarden",
+        tokenAddress: "0xgarden",
+        name: "Rocinha",
+      },
+    ],
+  }),
+}));
+
+vi.mock("@green-goods/shared/hooks/cookie-jar/useCookieJarAdmin", () => ({
+  useCookieJarPause: () => ({ mutate: mockPause, isPending: false }),
+  useCookieJarUnpause: () => ({ mutate: mockUnpause, isPending: false }),
+  useCookieJarEmergencyWithdraw: () => ({
+    mutate: mockEmergencyWithdraw,
+    isPending: false,
+  }),
+  useCookieJarUpdateMaxWithdrawal: () => ({
+    mutate: mockUpdateMaxWithdrawal,
+    isPending: false,
+  }),
+  useCookieJarUpdateInterval: () => ({
+    mutate: mockUpdateInterval,
+    isPending: false,
+  }),
+}));
+
+vi.mock("@green-goods/shared/hooks/cookie-jar/useGardenCookieJars", () => ({
+  useGardenCookieJars: () => ({
+    jars: [
+      {
+        jarAddress: "0xjar1",
+        gardenAddress: "0xgarden",
+        assetAddress: "0xasset",
+        balance: 5000000n,
+        currency: "0xasset",
+        decimals: 6,
+        maxWithdrawal: 1000000n,
+        withdrawalInterval: 3600n,
+        minDeposit: 0n,
+        isPaused: false,
+        emergencyWithdrawalEnabled: true,
+      },
+    ],
+    isLoading: false,
+    moduleConfigured: true,
+  }),
+}));
+
+vi.mock("@green-goods/shared/utils/blockchain/vaults", () => ({
+  formatTokenAmount: (value: bigint, decimals = 18) =>
+    `${Number(value) / 10 ** decimals}`.replace(/\.0$/, ""),
+  getVaultAssetSymbol: () => "USDC",
+}));
+
+vi.mock("@green-goods/shared/utils/styles/cn", () => ({
+  cn: (...classes: Array<string | false | null | undefined>) => classes.filter(Boolean).join(" "),
+}));
 
 vi.mock("@remixicon/react", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@remixicon/react")>();

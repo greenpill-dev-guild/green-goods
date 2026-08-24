@@ -1,7 +1,7 @@
 import { parseContractError } from "../../utils/errors/contract-errors";
 import { getActionTitle } from "../../utils/action/parsers";
 import type { Action, Address, Work, WorkDraft } from "../../types/domain";
-import type { JobQueueHandle, ProcessJobResult } from "../job-queue";
+import type { JobQueueHandle, ProcessJobResult } from "../job-queue/ports";
 import type { TransactionSender } from "../transactions/types";
 import type { SimulateWorkSubmissionParams, SimulationDeps } from "./simulate";
 import { WorkSubmissionError, type WalletSubmissionStage } from "./wallet-submission/types";

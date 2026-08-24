@@ -3,21 +3,17 @@
  */
 
 import userEvent from "@testing-library/user-event";
-import type { AccountProfileController, Address, Garden } from "@green-goods/shared";
+import type { AccountProfileController } from "@green-goods/shared/hooks/admin-ui/layout/useAccountProfileController";
+import type { Address, Garden } from "@green-goods/shared/types/domain";
 import { describe, expect, it, vi } from "vitest";
 import { AccountProfilePanel } from "@/components/Layout/AccountProfilePanel";
 import { render, screen } from "../test-utils";
 
-vi.mock("@green-goods/shared", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@green-goods/shared")>();
-  return {
-    ...actual,
-    AddressDisplay: ({ address }: { address: Address }) => <span>{address}</span>,
-  };
-});
+vi.mock("@green-goods/shared/components/AddressDisplay", () => ({
+  AddressDisplay: ({ address }: { address: Address }) => <span>{address}</span>,
+}));
 
-vi.mock("@green-goods/shared/profile-avatar", () => ({
-  getProfileAvatarStageMessage: () => null,
+vi.mock("@green-goods/shared/hooks/profile/useProfileAvatar", () => ({
   useProfileAvatarEditor: () => ({
     clear: vi.fn(),
     continueAfterReconnect: vi.fn(),
@@ -34,6 +30,10 @@ vi.mock("@green-goods/shared/profile-avatar", () => ({
     record: null,
     source: "fallback",
   }),
+}));
+
+vi.mock("@green-goods/shared/modules/profile-avatar/editor-messages", () => ({
+  getProfileAvatarStageMessage: () => null,
 }));
 
 const gardenOne = {

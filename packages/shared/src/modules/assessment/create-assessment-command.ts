@@ -5,7 +5,7 @@ import { getEASConfig } from "../../config/blockchain";
 import type { AssessmentWorkflowParams } from "../../types/domain";
 import { getNetworkContracts } from "../../utils/blockchain/contracts";
 import { isZeroBytes32 } from "../../utils/blockchain/vaults";
-import { uploadFileToIPFS, uploadJSONToIPFS } from "../data/ipfs";
+import { uploadFileToIPFS, uploadJSONToIPFS } from "../data/ipfs/upload";
 import { ensureAppKitWalletChain } from "../transactions/chain-guard";
 
 const DOMAIN_MAP: Record<string, number> = {

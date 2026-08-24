@@ -2,17 +2,14 @@ import { useMemo } from "react";
 import { useReadContracts } from "wagmi";
 import type { CookieJar } from "../../types/cookie-jar";
 import type { Address, Garden } from "../../types/domain";
-import {
-  COOKIE_JAR_ABI,
-  COOKIE_JAR_MODULE_ABI,
-  ERC20_DECIMALS_ABI,
-} from "../../utils/blockchain/abis";
+import { COOKIE_JAR_ABI, COOKIE_JAR_MODULE_ABI } from "../../utils/blockchain/abis/cookie-jar";
+import { ERC20_DECIMALS_ABI } from "../../utils/blockchain/abis/erc20";
 import { getNetworkContracts } from "../../utils/blockchain/contracts";
 import { ZERO_ADDRESS } from "../../utils/blockchain/vaults";
 import { useGardens } from "../blockchain/useBaseLists";
 import { useCurrentChain } from "../blockchain/useChainConfig";
 import { useRole } from "../gardener/useRole";
-import { STALE_TIME_MEDIUM } from "../../config/query-keys";
+import { STALE_TIME_MEDIUM } from "../../config/query-keys/constants";
 
 function getGardenAccountAddress(garden: Garden): Address {
   return garden.id.toLowerCase() as Address;

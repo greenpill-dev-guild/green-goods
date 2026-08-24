@@ -1,4 +1,4 @@
-import type { PoolConsoleController } from "@green-goods/shared";
+import type { PoolConsoleController } from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
 import { RiRefreshLine, RiWifiOffLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { AdminButton } from "@/components/AdminButton";

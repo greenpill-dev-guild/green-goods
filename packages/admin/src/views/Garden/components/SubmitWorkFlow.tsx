@@ -1,11 +1,11 @@
+import { Alert } from "@green-goods/shared/components/Alert";
+import { TxInlineFeedback } from "@green-goods/shared/components/feedback/TxInlineFeedback";
 import {
-  Alert,
-  adminRoutes,
   getMinRequiredWorkImages,
   type SubmitWorkAuthSnapshot,
-  TxInlineFeedback,
   useSubmitWorkController,
-} from "@green-goods/shared";
+} from "@green-goods/shared/hooks/admin-ui/garden/useSubmitWorkController";
+import { adminRoutes } from "@green-goods/shared/utils/navigation/admin-routes";
 import { RiSeedlingLine, RiUploadCloudLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";

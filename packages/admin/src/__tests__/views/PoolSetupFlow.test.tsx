@@ -2,20 +2,21 @@
  * @vitest-environment jsdom
  */
 
-import { type PoolConsoleController } from "@green-goods/shared";
-import {
-  type CommitmentCycleRecord,
-  type CommitmentPoolRecord,
-  PoolDocumentPinError,
-  type PoolSetupSequenceState,
-  type PoolSetupStep,
-  selectPoolConsoleModel,
-} from "@green-goods/shared/commitment-pooling";
+import type { PoolConsoleController } from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
 import {
   cycleFixture,
-  poolConsoleControllerFixture,
   poolFixture,
-} from "@green-goods/shared/testing";
+} from "@green-goods/shared/__tests__/test-utils/commitment-pooling-fixtures";
+import { poolConsoleControllerFixture } from "@green-goods/shared/__tests__/test-utils/controller-fixtures";
+import type { PoolSetupSequenceState } from "@green-goods/shared/hooks/commitment-pooling/useCommitmentPoolSetupSequence";
+import { PoolDocumentPinError } from "@green-goods/shared/modules/commitment-pooling/pool-charter";
+import { selectPoolConsoleModel } from "@green-goods/shared/modules/commitment-pooling/pool-console";
+import type { PoolSetupStep } from "@green-goods/shared/modules/commitment-pooling/pool-setup";
+import type {
+  CommitmentCycleRecord,
+  CommitmentPoolRecord,
+} from "@green-goods/shared/modules/commitment-pooling/types-core";
+
 import { useState } from "react";
 import { createMemoryRouter, RouterProvider, useNavigate } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -44,35 +45,49 @@ const mocks = vi.hoisted(() => ({
   pinCycleMetadata: vi.fn(),
 }));
 
-vi.mock("@green-goods/shared", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@green-goods/shared")>();
-  const { createSharedBarrelMock } = await import("@green-goods/shared/testing");
-  return createSharedBarrelMock(
-    actual,
-    {
-      useMediaQuery: () => true,
-    },
-    { defaults: false }
-  );
-});
+vi.mock("@green-goods/shared/hooks/ui/useMediaQuery", () => ({
+  useMediaQuery: () => true,
+}));
 
-vi.mock("@green-goods/shared/commitment-pooling", async (importOriginal) => {
-  const actual = await importOriginal<PoolingModule>();
-  const { createSharedBarrelMock } = await import("@green-goods/shared/testing");
-  return createSharedBarrelMock(
-    actual,
-    {
+vi.mock(
+  "@green-goods/shared/hooks/commitment-pooling/useCommitmentPoolSetupSequence",
+  async (importOriginal) => {
+    const actual =
+      await importOriginal<
+        typeof import("@green-goods/shared/hooks/commitment-pooling/useCommitmentPoolSetupSequence")
+      >();
+    return {
+      ...actual,
       useCommitmentPoolSetupSequence: () => ({
         state: mocks.state,
         run: mocks.run,
         retry: mocks.retry,
         reset: mocks.reset,
       }),
-      pinPoolCharter: mocks.pinPoolCharter,
-      pinCycleMetadata: mocks.pinCycleMetadata,
-    },
-    { defaults: false }
-  );
+    };
+  }
+);
+
+vi.mock("@green-goods/shared/modules/commitment-pooling/cycle-metadata", async (importOriginal) => {
+  const actual =
+    await importOriginal<
+      typeof import("@green-goods/shared/modules/commitment-pooling/cycle-metadata")
+    >();
+  return {
+    ...actual,
+    pinCycleMetadata: mocks.pinCycleMetadata,
+  };
+});
+
+vi.mock("@green-goods/shared/modules/commitment-pooling/pool-charter", async (importOriginal) => {
+  const actual =
+    await importOriginal<
+      typeof import("@green-goods/shared/modules/commitment-pooling/pool-charter")
+    >();
+  return {
+    ...actual,
+    pinPoolCharter: mocks.pinPoolCharter,
+  };
 });
 
 const { PoolSetupFlow } = await import("@/views/Garden/Pool/SetupFlow");

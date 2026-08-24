@@ -32,34 +32,68 @@ vi.mock("react-router-dom", async () => {
   };
 });
 
-vi.mock("@green-goods/shared", () => ({
+vi.mock("../../../utils/navigation/admin-routes", () => ({
   adminRoutes: {
     actions: () => "/actions",
   },
+}));
+
+vi.mock("../../../utils/action/translations", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../../../utils/action/translations")>()),
   buildActionInstructionsV2: vi.fn(() => ({ version: 2, fields: [] })),
+}));
+
+vi.mock("../../../types/domain", () => ({
   Domain: { SOLAR: 0, AGRO: 1, EDU: 2, WASTE: 3 },
+}));
+
+vi.mock("../../../hooks/admin-ui/actions/actions.utils", () => ({
   getActionsListSearch: vi.fn(() => ({})),
+}));
+
+vi.mock("../../../utils/blockchain/contracts", () => ({
   getNetworkContracts: vi.fn(() => ({
     gardenToken: "0x1111111111111111111111111111111111111111",
   })),
+}));
+
+vi.mock("../../../modules/app/logger", () => ({
   logger: { error: (...args: unknown[]) => mockLoggerError(...args) },
+}));
+
+vi.mock("../../../utils/errors/contract-errors", () => ({
   // Minimal double: the controller only forwards `.name` as the parsed family.
   parseContractError: (error: unknown) => ({
     name: (error as { name?: string } | null)?.name ?? "Unknown",
   }),
+}));
+
+vi.mock("../../../components/Toast/toast.service", () => ({
   toastService: {
     loading: (...args: unknown[]) => mockToastLoading(...args),
     dismiss: (...args: unknown[]) => mockToastDismiss(...args),
     error: (...args: unknown[]) => mockToastError(...args),
   },
+}));
+
+vi.mock("../../../modules/app/analytics-events", () => ({
   trackAdminActionCreateFailed: (...args: unknown[]) => mockTrackFailed(...args),
   trackAdminActionCreateStarted: (...args: unknown[]) => mockTrackStarted(...args),
   trackAdminActionCreateSuccess: (...args: unknown[]) => mockTrackSuccess(...args),
+}));
+
+vi.mock("../../../modules/data/ipfs/upload", () => ({
   uploadFileToIPFS: (...args: unknown[]) => mockUploadFileToIPFS(...args),
+}));
+
+vi.mock("../../../hooks/action/useActionOperations", () => ({
   useActionOperations: () => ({
     registerAction: (...args: unknown[]) => mockRegisterAction(...args),
     isLoading: false,
   }),
+}));
+
+vi.mock("../../../hooks/ui/useFormWizardStepValidation", () => ({
   useFormWizardStepValidation: ({
     onBack,
     onValidNext,
@@ -70,6 +104,9 @@ vi.mock("@green-goods/shared", () => ({
     handleBack: () => onBack?.(),
     handleNext: () => onValidNext(),
   }),
+}));
+
+vi.mock("../../../stores/useSheetOrchestratorStore", () => ({
   useSheetOrchestratorStore: Object.assign(
     (selector: (state: Record<string, unknown>) => unknown) =>
       selector({

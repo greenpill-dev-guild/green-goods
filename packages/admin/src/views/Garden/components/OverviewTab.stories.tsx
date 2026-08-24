@@ -1,4 +1,8 @@
-import type { ActivityFilter, GardenActivityEvent, GardenRange } from "@green-goods/shared";
+import type {
+  ActivityFilter,
+  GardenActivityEvent,
+  GardenRange,
+} from "@green-goods/shared/types/garden-detail";
 import type { Meta, StoryObj } from "@storybook/react";
 import { fn } from "storybook/test";
 import { hoursAgo } from "../../../../../shared/.storybook/fixtures";

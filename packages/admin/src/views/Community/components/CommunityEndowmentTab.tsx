@@ -1,9 +1,7 @@
-import {
-  type Address,
-  Alert,
-  type CommunityWorkspace,
-  formatTokenAmount,
-} from "@green-goods/shared";
+import { Alert } from "@green-goods/shared/components/Alert";
+import type { CommunityWorkspace } from "@green-goods/shared/hooks/admin-ui/community/useCommunityWorkspaceController";
+import type { Address } from "@green-goods/shared/types/domain";
+import { formatTokenAmount } from "@green-goods/shared/utils/blockchain/vaults";
 import { useIntl } from "react-intl";
 import { AdminCard } from "@/components/AdminCard";
 import { VaultContractDetails } from "@/components/Vault";

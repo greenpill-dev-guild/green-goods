@@ -1,14 +1,14 @@
+import { AddressDisplay } from "@green-goods/shared/components/AddressDisplay";
+import { Alert } from "@green-goods/shared/components/Alert";
+import type { CommunityWorkspace } from "@green-goods/shared/hooks/admin-ui/community/useCommunityWorkspaceController";
+import { useGardenYieldWiringState } from "@green-goods/shared/hooks/yield/useGardenYieldWiringState";
+import type { Address } from "@green-goods/shared/types/domain";
 import {
-  type Address,
-  AddressDisplay,
-  adminRoutes,
-  Alert,
-  type CommunityWorkspace,
   PoolType,
-  useGardenYieldWiringState,
   WEIGHT_SCHEME_VALUES,
   WeightScheme,
-} from "@green-goods/shared";
+} from "@green-goods/shared/types/gardens-community";
+import { adminRoutes } from "@green-goods/shared/utils/navigation/admin-routes";
 import { RiArrowRightSLine, RiCheckLine, RiQuestionLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";

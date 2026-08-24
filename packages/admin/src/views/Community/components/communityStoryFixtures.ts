@@ -1,10 +1,7 @@
-import {
-  type Address,
-  type GardenRole,
-  PoolType,
-  type RoleDirectoryEntry,
-  type YieldAllocation,
-} from "@green-goods/shared";
+import type { Address } from "@green-goods/shared/types/domain";
+import type { RoleDirectoryEntry } from "@green-goods/shared/types/garden-detail";
+import { PoolType, type YieldAllocation } from "@green-goods/shared/types/gardens-community";
+import type { GardenRole } from "@green-goods/shared/utils/blockchain/garden-roles";
 import type { CommunityMembersTabProps } from "./CommunityMembersTab";
 
 export const STORY_GARDEN_ID = "0x1234567890123456789012345678901234567890" as Address;

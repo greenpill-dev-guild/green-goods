@@ -70,6 +70,10 @@ vi.mock("../../config/blockchain", async (importOriginal) => ({
   DEFAULT_CHAIN_ID: 11155111,
 }));
 
+vi.mock("../../config/default-chain", () => ({
+  DEFAULT_CHAIN_ID: 11155111,
+}));
+
 import { queueToasts } from "../../components/toast";
 import { queryKeys } from "../../config/query-keys";
 import { useAuth } from "../../hooks/auth/useAuth";

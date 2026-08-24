@@ -1,13 +1,15 @@
+import { NotificationPanel } from "@green-goods/shared/components/Canvas/NotificationPanel";
 import {
-  NOTIFICATIONS_SHEET_CONTENT_ID,
-  NotificationPanel,
-  PROFILE_SHEET_CONTENT_ID,
-  SETTINGS_SHEET_CONTENT_ID,
   isAdminRightSheetContentId,
   toAccountSheetContentId,
   useAdminRightSheetDescriptor,
+} from "@green-goods/shared/hooks/admin-ui/layout/useAdminRightSheetDescriptor";
+import {
   type AdminRightSheetContentId,
-} from "@green-goods/shared";
+  NOTIFICATIONS_SHEET_CONTENT_ID,
+  PROFILE_SHEET_CONTENT_ID,
+  SETTINGS_SHEET_CONTENT_ID,
+} from "@green-goods/shared/hooks/admin-ui/navigation/sheetRegistry";
 import type { Meta, StoryObj } from "@storybook/react";
 import { useCallback, useState } from "react";
 import { expect, userEvent, waitFor, within } from "storybook/test";

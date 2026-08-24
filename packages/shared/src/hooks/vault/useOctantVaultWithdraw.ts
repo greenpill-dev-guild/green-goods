@@ -21,9 +21,9 @@ import { readContract } from "@wagmi/core";
 import { useIntl } from "react-intl";
 import { toastService } from "../../components/toast";
 import { getWagmiConfig } from "../../config/appkit";
-import { queryKeys } from "../../config/query-keys";
+import { vaultsKeys } from "../../config/query-keys/vault";
 import type { Address } from "../../types/domain";
-import { OCTANT_VAULT_ABI } from "../../utils/blockchain/abis";
+import { OCTANT_VAULT_ABI } from "../../utils/blockchain/abis/octant";
 import {
   getOctantVaultRedeemCallShape,
   OCTANT_VAULT_REDEEM_CALL_SHAPES,
@@ -166,7 +166,7 @@ export function useOctantVaultRedeem(options: VaultMutationOptions = {}) {
       const owner = (params.owner ?? primaryAddress ?? "").toLowerCase();
       if (owner) {
         queryClient.invalidateQueries({
-          queryKey: queryKeys.vaults.octantPositions(owner, params.chainId),
+          queryKey: vaultsKeys.octantPositions(owner, params.chainId),
         });
       }
     },

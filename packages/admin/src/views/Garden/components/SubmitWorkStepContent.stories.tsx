@@ -1,4 +1,5 @@
-import { Capital, Domain, type Action, type SubmitWorkController } from "@green-goods/shared";
+import type { SubmitWorkController } from "@green-goods/shared/hooks/admin-ui/garden/useSubmitWorkController";
+import { type Action, Capital, Domain } from "@green-goods/shared/types/domain";
 import type { Meta, StoryObj } from "@storybook/react";
 import { fn } from "storybook/test";
 import { withAdminPrimitiveFrame, withI18n } from "../../../../../shared/.storybook/decorators";

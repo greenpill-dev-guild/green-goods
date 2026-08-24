@@ -1,14 +1,15 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useRef, useState } from "react";
 
-import { queryKeys, STALE_TIME_MEDIUM } from "../../config/query-keys";
-import {
-  savedOfferPersistenceAfterFailure,
-  type SavedOfferApiError,
-  type SavedOfferPayloadV1,
-  type SavedOfferPersistenceState,
-  type SavedOfferRecord,
-} from "../../public-contracts/saved-offers";
+import { STALE_TIME_MEDIUM } from "../../config/query-keys/constants";
+import { savedOffersKeys } from "../../config/query-keys/saved-offers";
+import type {
+  SavedOfferApiError,
+  SavedOfferPayloadV1,
+  SavedOfferPersistenceState,
+  SavedOfferRecord,
+} from "../../public-contracts/saved-offers/types";
+import { savedOfferPersistenceAfterFailure } from "../../public-contracts/saved-offers/validation";
 
 export type SavedOffersApi = {
   list(): Promise<SavedOfferRecord[]>;
@@ -23,7 +24,7 @@ export type SavedOffersApi = {
 
 export function useSavedOffers(input: { chainId: number; api?: SavedOffersApi }) {
   const query = useQuery({
-    queryKey: queryKeys.savedOffers.list(input.chainId),
+    queryKey: savedOffersKeys.list(input.chainId),
     queryFn: () => input.api!.list(),
     enabled: Boolean(input.api),
     staleTime: STALE_TIME_MEDIUM,
@@ -37,7 +38,7 @@ export function useSavedOffer(input: {
   api?: SavedOffersApi;
 }) {
   return useQuery({
-    queryKey: queryKeys.savedOffers.record(input.chainId, input.savedOfferId),
+    queryKey: savedOffersKeys.record(input.chainId, input.savedOfferId),
     queryFn: () => input.api!.get(input.savedOfferId),
     enabled: Boolean(input.api && input.savedOfferId),
     staleTime: STALE_TIME_MEDIUM,
@@ -70,12 +71,9 @@ export function useSavedOfferPersistence(input: {
       return input.api.put(request.payload.savedOfferId, request.payload, request.expectedVersion);
     },
     onSuccess: (record, _request, context) => {
-      queryClient.setQueryData(
-        queryKeys.savedOffers.record(input.chainId, record.savedOfferId),
-        record
-      );
+      queryClient.setQueryData(savedOffersKeys.record(input.chainId, record.savedOfferId), record);
       void queryClient.invalidateQueries({
-        queryKey: queryKeys.savedOffers.list(input.chainId),
+        queryKey: savedOffersKeys.list(input.chainId),
       });
       if (context.operationId === latestOperation.current) setState("SAVED_REMOTE");
     },
@@ -110,10 +108,10 @@ export function useSavedOfferPersistence(input: {
     },
     onSuccess: ({ savedOfferId }, _request, context) => {
       queryClient.removeQueries({
-        queryKey: queryKeys.savedOffers.record(input.chainId, savedOfferId),
+        queryKey: savedOffersKeys.record(input.chainId, savedOfferId),
       });
       void queryClient.invalidateQueries({
-        queryKey: queryKeys.savedOffers.list(input.chainId),
+        queryKey: savedOffersKeys.list(input.chainId),
       });
       if (context.operationId === latestOperation.current) setState("LOCAL_DRAFT");
     },

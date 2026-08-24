@@ -27,7 +27,7 @@ const mockContracts = vi.hoisted(() => ({
   hypercertsModule: "0x6666666666666666666666666666666666666666" as Address,
   strategyHypercertFractionOffer: "0x7777777777777777777777777777777777777777" as Address,
 }));
-vi.mock("../../../config", () => ({
+vi.mock("../../../config/pimlico", () => ({
   createPublicClientForChain: vi.fn().mockReturnValue({
     readContract: (...args: unknown[]) => mockReadContract(...args),
   }),

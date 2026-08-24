@@ -1,4 +1,6 @@
-import { ActionBannerFallback, type Domain, ImageWithFallback } from "@green-goods/shared";
+import { ActionBannerFallback } from "@green-goods/shared/components/Display/ActionBannerFallback";
+import { ImageWithFallback } from "@green-goods/shared/components/Display/ImageWithFallback";
+import type { Domain } from "@green-goods/shared/types/domain";
 
 interface ActionDetailMediaTileProps {
   src?: string;

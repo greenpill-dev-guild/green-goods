@@ -1,4 +1,4 @@
-import { cycleFixture } from "@green-goods/shared/testing";
+import { cycleFixture } from "@green-goods/shared/__tests__/test-utils/commitment-pooling-fixtures";
 import { describe, expect, it } from "vitest";
 import {
   actionUIDOf,

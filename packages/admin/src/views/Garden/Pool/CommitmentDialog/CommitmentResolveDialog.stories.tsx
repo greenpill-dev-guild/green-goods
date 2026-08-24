@@ -1,4 +1,4 @@
-import type { DisputeResolutionKey } from "@green-goods/shared";
+import type { DisputeResolutionKey } from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
 import type { Meta, StoryObj } from "@storybook/react";
 import { type ComponentProps, useState } from "react";
 import { storyCommitmentDialog } from "../poolStoryFixtures";

@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import { creditInvalidationKeys, queryKeys, STALE_TIME_MEDIUM } from "../../config/query-keys";
+import { STALE_TIME_MEDIUM } from "../../config/query-keys/constants";
+import { creditInvalidationKeys, creditKeys } from "../../config/query-keys/credit";
 import {
   getCreditLoan,
   getCreditLoansForSubject,
@@ -31,7 +32,7 @@ export function useCreditLoan(input: {
 }) {
   const viewer = input.viewer ?? ZERO_ADDRESS;
   const { data: rawLoan, ...query } = useQuery({
-    queryKey: queryKeys.credit.loan(input.chainId, input.loanId, viewer),
+    queryKey: creditKeys.loan(input.chainId, input.loanId, viewer),
     queryFn: () => getCreditLoan(input.chainId, input.loanId),
     enabled: Boolean(input.viewer),
     staleTime: STALE_TIME_MEDIUM,
@@ -55,7 +56,7 @@ export function useCreditSubjectLoans(input: {
   const authorized = Boolean(input.viewer && (viewerIsSubject || input.isCurrentSteward));
   const viewer = input.viewer ?? ZERO_ADDRESS;
   const { data: rawLoans, ...query } = useQuery({
-    queryKey: queryKeys.credit.subjectLoans(input.chainId, input.poolId, input.subject, viewer),
+    queryKey: creditKeys.subjectLoans(input.chainId, input.poolId, input.subject, viewer),
     queryFn: () => getCreditLoansForSubject(input.chainId, input.poolId, input.subject),
     enabled: authorized,
     staleTime: STALE_TIME_MEDIUM,
@@ -79,7 +80,7 @@ export function useCreditSubjectLoans(input: {
 
 export function useCreditPoolStats(input: { chainId: number; poolId: bigint }) {
   const query = useQuery({
-    queryKey: queryKeys.credit.poolStats(input.chainId, input.poolId),
+    queryKey: creditKeys.poolStats(input.chainId, input.poolId),
     queryFn: () => getCreditPoolStats(input.chainId, input.poolId),
     staleTime: STALE_TIME_MEDIUM,
   });
@@ -92,7 +93,7 @@ export function useLoanPrincipalRelationship(input: {
 }) {
   const disbursementId = input.disbursementId ?? 0n;
   const query = useQuery({
-    queryKey: queryKeys.credit.settlementRelationship(input.chainId, disbursementId),
+    queryKey: creditKeys.settlementRelationship(input.chainId, disbursementId),
     queryFn: () => getLoanPrincipalRelationship(input.chainId, disbursementId),
     enabled: disbursementId !== 0n,
     staleTime: STALE_TIME_MEDIUM,

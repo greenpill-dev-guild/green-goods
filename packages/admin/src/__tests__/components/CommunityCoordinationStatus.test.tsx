@@ -1,4 +1,6 @@
-import { type Address, PoolType, useGardenYieldWiringState } from "@green-goods/shared";
+import { useGardenYieldWiringState } from "@green-goods/shared/hooks/yield/useGardenYieldWiringState";
+import type { Address } from "@green-goods/shared/types/domain";
+import { PoolType } from "@green-goods/shared/types/gardens-community";
 import { IntlProvider } from "react-intl";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -6,13 +8,9 @@ import { renderWithProviders, screen } from "@/__tests__/test-utils";
 import { CommunityCoordinationTab } from "@/views/Community/components/CommunityCoordinationTab";
 import type { CommunityCoordinationTabProps } from "@/views/Community/components/CommunityCoordinationTab";
 
-vi.mock("@green-goods/shared", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@green-goods/shared")>();
-  return {
-    ...actual,
-    useGardenYieldWiringState: vi.fn(),
-  };
-});
+vi.mock("@green-goods/shared/hooks/yield/useGardenYieldWiringState", () => ({
+  useGardenYieldWiringState: vi.fn(),
+}));
 
 vi.mock("@/views/Community/components/GovernancePanel", () => ({
   GovernancePanel: () => null,

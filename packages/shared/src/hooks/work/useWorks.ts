@@ -1,16 +1,18 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
+import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import { GC_TIMES, STALE_TIMES } from "../../config/react-query";
 import { logger } from "../../modules/app/logger";
 import { getWorkApprovals, getWorks } from "../../modules/data/eas";
-import { jobQueue, jobQueueDB } from "../../modules/job-queue";
+import { jobQueueDB } from "../../modules/job-queue/db";
+import { jobQueue } from "../../modules/job-queue/default-instance";
 import { jobQueueEventBus, useJobQueueEvents } from "../../modules/job-queue/event-bus";
 import { type OverlayWork, resolveWorkStatus } from "../../modules/work/local-status-overlay";
 import type { Work, WorkCard, WorkDisplayStatus } from "../../types/domain";
 import type { Job, WorkJobPayload } from "../../types/job-queue";
 import { useMerged } from "../app/useMerged";
 import { usePrimaryAddress } from "../auth/usePrimaryAddress";
-import { queryKeys } from "../../config/query-keys";
+import { queueKeys } from "../../config/query-keys/misc";
+import { worksKeys } from "../../config/query-keys/work";
 
 // Throttle approval-fetch warnings to avoid console spam (at most once per 10s)
 let _lastApprovalWarnAt = 0;
@@ -75,9 +77,7 @@ async function computeWorksWithStatus(
   const approvalMap = new Map(approvals.map((approval) => [approval.workUID, approval]));
 
   // Preserve optimistic updates that are still covering indexer lag
-  const cachedWorks = queryClient.getQueryData<OverlayWork[]>(
-    queryKeys.works.merged(gardenId, chainId)
-  );
+  const cachedWorks = queryClient.getQueryData<OverlayWork[]>(worksKeys.merged(gardenId, chainId));
   const cachedMap = new Map((cachedWorks ?? []).map((w) => [w.id, w]));
 
   return works.map((work) => {
@@ -118,7 +118,7 @@ export function useWorks(gardenId: string, options: UseWorksOptions = {}) {
   // Online-only mode: Simple query without offline job queue integration
   // ─────────────────────────────────────────────────────────────────────────
   const onlineOnlyQuery = useQuery({
-    queryKey: queryKeys.works.merged(gardenId, chainId),
+    queryKey: worksKeys.merged(gardenId, chainId),
     queryFn: async () => {
       const onlineWorks = await getWorks(gardenId, chainId);
       return computeWorksWithStatus(onlineWorks, chainId, queryClient, gardenId);
@@ -132,9 +132,9 @@ export function useWorks(gardenId: string, options: UseWorksOptions = {}) {
   // Offline mode: Merged online + offline with job queue integration
   // ─────────────────────────────────────────────────────────────────────────
   const merged = useMerged<WorkCard[], Job<WorkJobPayload>[], Work[]>({
-    onlineKey: queryKeys.works.online(gardenId, chainId),
-    offlineKey: queryKeys.works.offline(gardenId),
-    mergedKey: queryKeys.works.merged(gardenId, chainId),
+    onlineKey: worksKeys.online(gardenId, chainId),
+    offlineKey: worksKeys.offline(gardenId),
+    mergedKey: worksKeys.merged(gardenId, chainId),
     enabled: offline && !!gardenId,
     fetchOnline: () => getWorks(gardenId, chainId),
     fetchOffline: async () => {
@@ -164,7 +164,7 @@ export function useWorks(gardenId: string, options: UseWorksOptions = {}) {
 
       // Preserve optimistic updates that are still covering indexer lag
       const cachedWorks = queryClient.getQueryData<OverlayWork[]>(
-        queryKeys.works.merged(gardenId, chainId)
+        worksKeys.merged(gardenId, chainId)
       );
       const cachedMap = new Map((cachedWorks ?? []).map((w) => [w.id, w]));
 
@@ -237,7 +237,7 @@ export function useWorks(gardenId: string, options: UseWorksOptions = {}) {
     if (offline && "job" in data && data.job.kind === "work") {
       const jobGardenId = (data.job.payload as WorkJobPayload).gardenAddress;
       if (jobGardenId === gardenId) {
-        queryClient.invalidateQueries({ queryKey: queryKeys.works.online(gardenId, chainId) });
+        queryClient.invalidateQueries({ queryKey: worksKeys.online(gardenId, chainId) });
       }
     }
   });
@@ -285,7 +285,7 @@ export function usePendingWorksCount() {
   const primaryAddress = usePrimaryAddress();
 
   const query = useQuery({
-    queryKey: queryKeys.queue.pendingCount(),
+    queryKey: queueKeys.pendingCount(),
     queryFn: async () => {
       // Only count jobs for the current user
       if (!primaryAddress) return 0;
@@ -300,7 +300,7 @@ export function usePendingWorksCount() {
 
   // Listen to events to update count
   useJobQueueEvents(["job:added", "job:completed", "job:failed"], () => {
-    queryClient.invalidateQueries({ queryKey: queryKeys.queue.pendingCount() });
+    queryClient.invalidateQueries({ queryKey: queueKeys.pendingCount() });
   });
 
   return query;
@@ -315,7 +315,7 @@ export function useQueueStatistics() {
   const primaryAddress = usePrimaryAddress();
 
   const query = useQuery({
-    queryKey: queryKeys.queue.stats(),
+    queryKey: queueKeys.stats(),
     queryFn: async () => {
       // Only get stats for the current user
       if (!primaryAddress) {
@@ -330,7 +330,7 @@ export function useQueueStatistics() {
 
   // Listen to events to update stats
   useJobQueueEvents(["job:added", "job:completed", "job:failed", "queue:sync-completed"], () => {
-    queryClient.invalidateQueries({ queryKey: queryKeys.queue.stats() });
+    queryClient.invalidateQueries({ queryKey: queueKeys.stats() });
   });
 
   return query;

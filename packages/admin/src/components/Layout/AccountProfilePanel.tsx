@@ -1,15 +1,15 @@
+import { AddressDisplay } from "@green-goods/shared/components/AddressDisplay";
+import { SheetBody } from "@green-goods/shared/components/Canvas/SheetBody";
+import { SheetDivider } from "@green-goods/shared/components/Canvas/SheetDivider";
+import { SheetFooter } from "@green-goods/shared/components/Canvas/SheetFooter";
+import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
 import {
-  AddressDisplay,
-  SheetBody,
-  SheetDivider,
-  SheetFooter,
-  cn,
-  DEFAULT_CHAIN_ID,
-  getBlockExplorerAddressUrl,
   type AccountProfileController,
-  type Address,
   useAccountProfileController,
-} from "@green-goods/shared";
+} from "@green-goods/shared/hooks/admin-ui/layout/useAccountProfileController";
+import type { Address } from "@green-goods/shared/types/domain";
+import { getBlockExplorerAddressUrl } from "@green-goods/shared/utils/eas/explorers";
+import { cn } from "@green-goods/shared/utils/styles/cn";
 import {
   RiExternalLinkLine,
   RiLogoutBoxLine,

@@ -1,9 +1,7 @@
-import {
-  type Address,
-  type CommunityWorkspace,
-  type GardenRole,
-  useGardenOperations,
-} from "@green-goods/shared";
+import type { CommunityWorkspace } from "@green-goods/shared/hooks/admin-ui/community/useCommunityWorkspaceController";
+import { useGardenOperations } from "@green-goods/shared/hooks/garden/useGardenOperations";
+import type { Address } from "@green-goods/shared/types/domain";
+import type { GardenRole } from "@green-goods/shared/utils/blockchain/garden-roles";
 import { useEffect, useMemo, useState } from "react";
 import { AddMembersDialog } from "@/components/Garden/AddMembersDialog";
 import { ManageMembersDialog } from "@/components/Garden/ManageMembersDialog";

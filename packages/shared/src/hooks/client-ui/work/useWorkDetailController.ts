@@ -2,29 +2,27 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { useLocation, useNavigate, useOutletContext, useParams } from "react-router-dom";
+import { toastService } from "../../../components/Toast/toast.service";
+import { DEFAULT_CHAIN_ID } from "../../../config/default-chain";
+import { worksKeys } from "../../../config/query-keys/work";
+import { jobQueue } from "../../../modules/job-queue/default-instance";
+import { isUserAddress } from "../../../utils/blockchain/address";
+import { isValidAttestationId, openEASExplorer } from "../../../utils/eas/explorers";
 import {
-  DEFAULT_CHAIN_ID,
   downloadWorkData,
   downloadWorkMedia,
-  isUserAddress,
-  isValidAttestationId,
-  jobQueue,
-  openEASExplorer,
-  queryKeys,
   shareWork,
-  toastService,
-  useActions,
-  useGardenPermissions,
-  useGardens,
-  useNavigateToTop,
-  useOffline,
-  useTransactionSender,
-  useUser,
-  useWorkApprovalActions,
-  useWorkMetadata,
-  useWorks,
   type WorkData,
-} from "@green-goods/shared";
+} from "../../../utils/work/workActions";
+import { useNavigateToTop } from "../../app/useNavigateToTop";
+import { useOffline } from "../../app/useOffline";
+import { useUser } from "../../auth/useUser";
+import { useActions, useGardens } from "../../blockchain/useBaseLists";
+import { useTransactionSender } from "../../blockchain/useTransactionSender";
+import { useGardenPermissions } from "../../garden/useGardenPermissions";
+import { useWorkApprovalActions } from "../../work/useWorkApprovalActions";
+import { useWorkMetadata } from "../../work/useWorkMetadata";
+import { useWorks } from "../../work/useWorks";
 
 export type WorkViewingMode = "operator" | "gardener" | "viewer";
 
@@ -108,8 +106,8 @@ export function useWorkDetailController() {
         });
         return;
       }
-      queryClient.invalidateQueries({ queryKey: queryKeys.works.merged(gardenId, chainId) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.works.offline(gardenId) });
+      queryClient.invalidateQueries({ queryKey: worksKeys.merged(gardenId, chainId) });
+      queryClient.invalidateQueries({ queryKey: worksKeys.offline(gardenId) });
       toastService.success({
         title: intl.formatMessage({
           id: "app.home.work.retrySuccess",

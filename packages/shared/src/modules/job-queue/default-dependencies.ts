@@ -1,4 +1,4 @@
-import { DEFAULT_CHAIN_ID } from "../../config";
+import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import { getOntologyChainMaturity } from "../../ontology/query";
 import type { ApprovalJobPayload, Job, WorkJobPayload } from "../../types/job-queue";
 import { isZeroAddress } from "../../utils/blockchain/address";

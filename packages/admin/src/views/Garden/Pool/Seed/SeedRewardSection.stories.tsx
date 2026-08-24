@@ -1,7 +1,7 @@
 import {
   COMMITMENT_COMPOSER_DEFAULTS,
   useCommitmentComposerForm,
-} from "@green-goods/shared/commitment-pooling";
+} from "@green-goods/shared/hooks/commitment-pooling/useCommitmentComposerForm";
 import type { Meta, StoryObj } from "@storybook/react";
 import { userEvent, within } from "storybook/test";
 import { STORY_GARDEN } from "../poolStoryFixtures";

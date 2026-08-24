@@ -16,7 +16,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useRef } from "react";
 import { useIntl } from "react-intl";
 import { toastService } from "../../components/toast";
-import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
+import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import {
   trackWorkApprovalFailed,
   trackWorkApprovalStarted,
@@ -39,7 +39,8 @@ import { DEBUG_ENABLED, debugLog } from "../../utils/debug";
 import { createMutationErrorHandler } from "../../utils/errors/mutation-error-handler";
 import { useUser } from "../auth/useUser";
 import { useTransactionSender } from "../blockchain/useTransactionSender";
-import { INDEXER_LAG_SCHEDULE_MS, queryKeys } from "../../config/query-keys";
+import { INDEXER_LAG_SCHEDULE_MS } from "../../config/query-keys/constants";
+import { approvalsKeys, workApprovalsKeys, worksKeys } from "../../config/query-keys/work";
 import { useSafeMutation } from "../utils/useSafeMutation";
 import { useProgressiveInvalidation, useTimeout } from "../utils/useTimeout";
 
@@ -73,13 +74,13 @@ export function useWorkApproval(
     useCallback(() => {
       if (lastGardenRef.current) {
         queryClient.invalidateQueries({
-          queryKey: queryKeys.works.online(lastGardenRef.current, chainId),
+          queryKey: worksKeys.online(lastGardenRef.current, chainId),
         });
         queryClient.invalidateQueries({
-          queryKey: queryKeys.works.merged(lastGardenRef.current, chainId),
+          queryKey: worksKeys.merged(lastGardenRef.current, chainId),
         });
       }
-      queryClient.invalidateQueries({ queryKey: queryKeys.approvals.all });
+      queryClient.invalidateQueries({ queryKey: approvalsKeys.all });
     }, [queryClient, chainId]),
     INDEXER_LAG_SCHEDULE_MS
   );
@@ -125,18 +126,18 @@ export function useWorkApproval(
 
       // Cancel any outgoing refetches to avoid overwriting optimistic update
       await queryClient.cancelQueries({
-        queryKey: queryKeys.works.merged(work.gardenAddress, chainId),
+        queryKey: worksKeys.merged(work.gardenAddress, chainId),
       });
       await queryClient.cancelQueries({
-        queryKey: queryKeys.works.online(work.gardenAddress, chainId),
+        queryKey: worksKeys.online(work.gardenAddress, chainId),
       });
 
       // Snapshot previous state for rollback on error
       const previousMerged = queryClient.getQueryData<Work[]>(
-        queryKeys.works.merged(work.gardenAddress, chainId)
+        worksKeys.merged(work.gardenAddress, chainId)
       );
       const previousOnline = queryClient.getQueryData<Work[]>(
-        queryKeys.works.online(work.gardenAddress, chainId)
+        worksKeys.online(work.gardenAddress, chainId)
       );
 
       // Wallet mode leaves indexed work untouched while the signature is pending.
@@ -150,7 +151,7 @@ export function useWorkApproval(
         const pendingUntilMs = Date.now() + PENDING_AUTO_CLEAR_MS;
 
         queryClient.setQueryData(
-          queryKeys.works.merged(work.gardenAddress, chainId),
+          worksKeys.merged(work.gardenAddress, chainId),
           (old: Work[] = []) =>
             old.map((w) =>
               w.id === draft.workUID
@@ -165,7 +166,7 @@ export function useWorkApproval(
         );
 
         queryClient.setQueryData(
-          queryKeys.works.online(work.gardenAddress, chainId),
+          worksKeys.online(work.gardenAddress, chainId),
           (old: Work[] = []) =>
             old.map((w) =>
               w.id === draft.workUID
@@ -183,7 +184,7 @@ export function useWorkApproval(
         // Uses dedicated timer so it isn't cancelled by the indexer lag follow-up.
         scheduleAutoClear(() => {
           queryClient.setQueryData(
-            queryKeys.works.merged(work.gardenAddress, chainId),
+            worksKeys.merged(work.gardenAddress, chainId),
             (old: PendingWork[] = []) =>
               old.map((w) =>
                 w.id === draft.workUID && w._isPending && (w._pendingUntilMs ?? 0) <= Date.now()
@@ -192,7 +193,7 @@ export function useWorkApproval(
               )
           );
           queryClient.setQueryData(
-            queryKeys.works.online(work.gardenAddress, chainId),
+            worksKeys.online(work.gardenAddress, chainId),
             (old: PendingWork[] = []) =>
               old.map((w) =>
                 w.id === draft.workUID && w._isPending && (w._pendingUntilMs ?? 0) <= Date.now()
@@ -290,14 +291,8 @@ export function useWorkApproval(
               : w
           );
 
-        queryClient.setQueryData(
-          queryKeys.works.merged(work.gardenAddress, chainId),
-          recordDecision
-        );
-        queryClient.setQueryData(
-          queryKeys.works.online(work.gardenAddress, chainId),
-          recordDecision
-        );
+        queryClient.setQueryData(worksKeys.merged(work.gardenAddress, chainId), recordDecision);
+        queryClient.setQueryData(worksKeys.online(work.gardenAddress, chainId), recordDecision);
 
         if (DEBUG_ENABLED) {
           debugLog("[useWorkApproval] Recorded decision", {
@@ -353,16 +348,16 @@ export function useWorkApproval(
       if (variables) {
         // Immediate invalidation for responsive UX
         queryClient.invalidateQueries({
-          queryKey: queryKeys.works.online(variables.work.gardenAddress, chainId),
+          queryKey: worksKeys.online(variables.work.gardenAddress, chainId),
         });
         queryClient.invalidateQueries({
-          queryKey: queryKeys.works.merged(variables.work.gardenAddress, chainId),
+          queryKey: worksKeys.merged(variables.work.gardenAddress, chainId),
         });
         queryClient.invalidateQueries({
-          queryKey: queryKeys.workApprovals.all,
+          queryKey: workApprovalsKeys.all,
         });
         queryClient.invalidateQueries({
-          queryKey: queryKeys.approvals.all,
+          queryKey: approvalsKeys.all,
         });
 
         // Schedule progressive follow-up invalidations for indexer lag (non-blocking)
@@ -387,13 +382,13 @@ export function useWorkApproval(
       // Rollback optimistic updates using context from onMutate
       if (context?.previousMerged && variables) {
         queryClient.setQueryData(
-          queryKeys.works.merged(variables.work.gardenAddress, chainId),
+          worksKeys.merged(variables.work.gardenAddress, chainId),
           context.previousMerged
         );
       }
       if (context?.previousOnline && variables) {
         queryClient.setQueryData(
-          queryKeys.works.online(variables.work.gardenAddress, chainId),
+          worksKeys.online(variables.work.gardenAddress, chainId),
           context.previousOnline
         );
       }

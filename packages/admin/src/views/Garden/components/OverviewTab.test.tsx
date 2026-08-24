@@ -2,7 +2,7 @@
  * @vitest-environment jsdom
  */
 
-import type { GardenActivityEvent } from "@green-goods/shared";
+import type { GardenActivityEvent } from "@green-goods/shared/types/garden-detail";
 import pt from "@green-goods/shared/i18n/pt.json";
 import { render, screen } from "@testing-library/react";
 import { IntlProvider } from "react-intl";

@@ -1,16 +1,15 @@
+import { NativeSelect, TextInput } from "@green-goods/shared/components/Form/ControlPrimitives";
+import { FormField } from "@green-goods/shared/components/Form/FormFieldWrapper";
+import { useDirtyClose } from "@green-goods/shared/hooks/admin-ui/useDirtyClose";
+import { useEnsAddress } from "@green-goods/shared/hooks/blockchain/useEnsAddress";
+import { logger } from "@green-goods/shared/modules/app/logger";
+import type { Address } from "@green-goods/shared/types/domain";
+import { resolveEnsAddress } from "@green-goods/shared/utils/blockchain/ens";
 import {
-  type Address,
-  FormField,
   GARDEN_ROLE_ORDER,
   type GardenRole,
-  logger,
-  NativeSelect,
-  parseAndFormatError,
-  resolveEnsAddress,
-  TextInput,
-  useDirtyClose,
-  useEnsAddress,
-} from "@green-goods/shared";
+} from "@green-goods/shared/utils/blockchain/garden-roles";
+import { parseAndFormatError } from "@green-goods/shared/utils/errors/contract-errors";
 import { RiAddLine, RiClipboardLine, RiCloseLine } from "@remixicon/react";
 import { useMemo, useState } from "react";
 import { FormattedMessage, useIntl } from "react-intl";

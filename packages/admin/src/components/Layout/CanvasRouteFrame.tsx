@@ -1,4 +1,4 @@
-import { cn } from "@green-goods/shared";
+import { cn } from "@green-goods/shared/utils/styles/cn";
 import { forwardRef, type ComponentProps, type ComponentPropsWithoutRef } from "react";
 import { PageHeader } from "./PageHeader";
 

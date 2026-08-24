@@ -2,7 +2,10 @@
  * @vitest-environment jsdom
  */
 
-import { adminRoutes, getAdminWorkspaceForPath } from "@green-goods/shared";
+import {
+  adminRoutes,
+  getAdminWorkspaceForPath,
+} from "@green-goods/shared/utils/navigation/admin-routes";
 import { describe, expect, it, vi } from "vitest";
 import { screen, waitFor } from "../test-utils";
 import { findRoute, lazyOf, renderAdminCanvasRoute } from "./pooling-route-harness";

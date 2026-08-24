@@ -1,11 +1,9 @@
-import {
-  type Domain,
-  Alert,
-  FileUploadField,
-  FormField,
-  type SubmitWorkController,
-  Textarea,
-} from "@green-goods/shared";
+import { Alert } from "@green-goods/shared/components/Alert";
+import { FileUploadField } from "@green-goods/shared/components/FileUploadField";
+import { Textarea } from "@green-goods/shared/components/Form/ControlPrimitives";
+import { FormField } from "@green-goods/shared/components/Form/FormFieldWrapper";
+import type { SubmitWorkController } from "@green-goods/shared/hooks/admin-ui/garden/useSubmitWorkController";
+import type { Domain } from "@green-goods/shared/types/domain";
 import { useIntl } from "react-intl";
 import { AdminTabRail } from "@/components/AdminTabRail";
 import { AdminTextField } from "@/components/AdminTextField";

@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { Hex } from "viem";
 import { useReadContract } from "wagmi";
-import { queryKeys } from "../../config/query-keys";
+import { commitmentPoolingKeys } from "../../config/query-keys/commitment-pooling";
 import { selectCommitmentPoolingAvailability } from "../../modules/commitment-pooling/selectors";
 import { selectOperationsCapabilities } from "../../modules/commitment-pooling/settlement";
 import { isPoolSteward } from "../../modules/commitment-pooling/steward-selectors";
@@ -134,7 +134,7 @@ export function useSettlementMutation(options: { chainId?: number } = {}) {
       return result.hash;
     },
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: queryKeys.commitmentPooling.all(chainId) });
+      await queryClient.invalidateQueries({ queryKey: commitmentPoolingKeys.all(chainId) });
     },
     onError: (error, input) => {
       const parsed = parseContractError(error);

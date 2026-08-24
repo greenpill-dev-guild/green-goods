@@ -5,13 +5,10 @@
  * Covers metadata display, minting states, and navigation.
  */
 
-import type {
-  Address,
-  AllowlistEntry,
-  EASGardenAssessment,
-  HypercertMetadata,
-  MintingState,
-} from "@green-goods/shared";
+import type { MintingState } from "@green-goods/shared/stores/useHypercertWizardStore";
+import type { Address } from "@green-goods/shared/types/domain";
+import type { EASGardenAssessment } from "@green-goods/shared/types/eas-responses";
+import type { AllowlistEntry, HypercertMetadata } from "@green-goods/shared/types/hypercerts";
 import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createElement } from "react";
@@ -23,45 +20,50 @@ const { mockUseEnsName } = vi.hoisted(() => ({
 }));
 
 // Mock dependencies
-vi.mock("@green-goods/shared/utils", () => ({
+vi.mock("@green-goods/shared/utils/styles/cn", () => ({
   cn: (...args: unknown[]) => args.filter(Boolean).join(" "),
 }));
 
-vi.mock("@green-goods/shared", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@green-goods/shared")>();
-  return {
-    ...actual,
-    DEFAULT_CHAIN_ID: 11155111,
-    getNetworkConfig: () => ({
-      blockExplorer: "https://sepolia.etherscan.io",
-    }),
-    copyToClipboard: vi.fn().mockResolvedValue(true),
-    formatAddress: (
-      address: string,
-      options: { ensName?: string | null; variant?: "default" | "card" | "long" } = {}
-    ) => {
-      const ensName = options.ensName?.trim();
-      if (ensName?.toLowerCase().endsWith(".greengoods.eth")) {
-        return ensName.slice(0, -".greengoods.eth".length);
-      }
-      if (ensName) return ensName;
+vi.mock("@green-goods/shared/components/Display/ImageWithFallback", () => ({
+  ImageWithFallback: ({ src, alt, className }: { src: string; alt: string; className?: string }) =>
+    createElement("img", { src, alt, className, "data-testid": "hypercert-image" }),
+}));
 
-      const start = options.variant === "default" ? 6 : options.variant === "long" ? 8 : 4;
-      const end = options.variant === "default" ? 4 : options.variant === "long" ? 6 : 3;
-      return `${address.slice(0, start)}...${address.slice(-end)}`;
-    },
-    useEnsName: (address: Address | null | undefined) => mockUseEnsName(address),
-    ImageWithFallback: ({
-      src,
-      alt,
-      className,
-    }: {
-      src: string;
-      alt: string;
-      className?: string;
-    }) => createElement("img", { src, alt, className, "data-testid": "hypercert-image" }),
-  };
-});
+vi.mock("@green-goods/shared/config/blockchain", () => ({
+  DEFAULT_CHAIN_ID: 11155111,
+  getNetworkConfig: () => ({
+    blockExplorer: "https://sepolia.etherscan.io",
+  }),
+}));
+
+vi.mock("@green-goods/shared/config/default-chain", () => ({
+  DEFAULT_CHAIN_ID: 11155111,
+}));
+
+vi.mock("@green-goods/shared/hooks/blockchain/useEnsName", () => ({
+  useEnsName: (address: Address | null | undefined) => mockUseEnsName(address),
+}));
+
+vi.mock("@green-goods/shared/utils/app/clipboard", () => ({
+  copyToClipboard: vi.fn().mockResolvedValue(true),
+}));
+
+vi.mock("@green-goods/shared/utils/app/text", () => ({
+  formatAddress: (
+    address: string,
+    options: { ensName?: string | null; variant?: "default" | "card" | "long" } = {}
+  ) => {
+    const ensName = options.ensName?.trim();
+    if (ensName?.toLowerCase().endsWith(".greengoods.eth")) {
+      return ensName.slice(0, -".greengoods.eth".length);
+    }
+    if (ensName) return ensName;
+
+    const start = options.variant === "default" ? 6 : options.variant === "long" ? 8 : 4;
+    const end = options.variant === "default" ? 4 : options.variant === "long" ? 6 : 3;
+    return `${address.slice(0, start)}...${address.slice(-end)}`;
+  },
+}));
 
 // Mock the DistributionChart and MintProgress components
 vi.mock("../../../components/Hypercerts/DistributionChart", () => ({

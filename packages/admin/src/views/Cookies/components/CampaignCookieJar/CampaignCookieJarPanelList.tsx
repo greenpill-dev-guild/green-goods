@@ -1,9 +1,7 @@
-import {
-  type CampaignCookieJarCampaign,
-  type Garden,
-  FormField,
-  TextInput,
-} from "@green-goods/shared";
+import { TextInput } from "@green-goods/shared/components/Form/ControlPrimitives";
+import { FormField } from "@green-goods/shared/components/Form/FormFieldWrapper";
+import type { CampaignCookieJarCampaign } from "@green-goods/shared/types/cookie-jar";
+import type { Garden } from "@green-goods/shared/types/domain";
 import type { IntlShape } from "react-intl";
 import { AdminCard } from "@/components/AdminCard";
 import { CampaignJarListRow } from "./CampaignJarListRow";

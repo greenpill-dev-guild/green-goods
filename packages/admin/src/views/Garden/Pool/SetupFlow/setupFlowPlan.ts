@@ -1,15 +1,17 @@
-import { type PoolConsoleController } from "@green-goods/shared";
+import type { PoolConsoleController } from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
+import { pinCycleMetadata } from "@green-goods/shared/modules/commitment-pooling/cycle-metadata";
 import {
-  type CommitmentCycleRecord,
+  isPoolDocumentPinError,
+  pinPoolCharter,
+} from "@green-goods/shared/modules/commitment-pooling/pool-charter";
+import {
   campaignSteps,
   firstRunSetupSteps,
-  isPoolDocumentPinError,
   newSeasonSteps,
   openSeasonSteps,
   type PoolSetupStep,
-  pinCycleMetadata,
-  pinPoolCharter,
-} from "@green-goods/shared/commitment-pooling";
+} from "@green-goods/shared/modules/commitment-pooling/pool-setup";
+import type { CommitmentCycleRecord } from "@green-goods/shared/modules/commitment-pooling/types-core";
 import {
   type AllocationPercent,
   type RecognitionPercent,

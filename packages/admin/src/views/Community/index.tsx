@@ -1,10 +1,8 @@
-import {
-  buildCommunityHeaderStats,
-  MetaStrip,
-  type Address,
-  useCommunityWorkspaceController,
-  useMediaQuery,
-} from "@green-goods/shared";
+import { MetaStrip } from "@green-goods/shared/components/Canvas/MetaStrip";
+import { buildCommunityHeaderStats } from "@green-goods/shared/hooks/admin-ui/community/community.utils";
+import { useCommunityWorkspaceController } from "@green-goods/shared/hooks/admin-ui/community/useCommunityWorkspaceController";
+import { useMediaQuery } from "@green-goods/shared/hooks/ui/useMediaQuery";
+import type { Address } from "@green-goods/shared/types/domain";
 import { useMemo } from "react";
 import { AdminTabRail } from "@/components/AdminTabRail";
 import { AdminViewActions } from "@/components/AdminViewActions";

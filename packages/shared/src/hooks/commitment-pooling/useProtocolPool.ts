@@ -17,7 +17,8 @@ import { useQuery } from "@tanstack/react-query";
 import { readContract } from "@wagmi/core";
 
 import { getWagmiConfig } from "../../config/appkit";
-import { queryKeys, STALE_TIME_MEDIUM } from "../../config/query-keys";
+import { STALE_TIME_MEDIUM } from "../../config/query-keys/constants";
+import { commitmentPoolingKeys } from "../../config/query-keys/commitment-pooling";
 import type { Address } from "../../types/domain";
 import { isZeroAddress } from "../../utils/blockchain/address";
 import { CommitmentPoolingModuleABI, getNetworkContracts } from "../../utils/blockchain/contracts";
@@ -58,7 +59,7 @@ export function useProtocolPool(input: { chainId: number }) {
   const availability = useCommitmentPoolingAvailability(input);
   const moduleAddress = getNetworkContracts(input.chainId).commitmentPoolingModule;
   const query = useQuery({
-    queryKey: queryKeys.commitmentPooling.protocolPool(input.chainId),
+    queryKey: commitmentPoolingKeys.protocolPool(input.chainId),
     queryFn: () => readProtocolPool(input.chainId),
     enabled: availability.status === "available" && !isZeroAddress(moduleAddress),
     staleTime: STALE_TIME_MEDIUM,

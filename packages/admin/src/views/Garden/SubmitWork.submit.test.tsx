@@ -146,7 +146,7 @@ vi.mock("../../../../shared/src/modules/app/logger", () => {
   return { createLogger: () => logger, logger };
 });
 
-vi.mock("@green-goods/shared/modules", () => ({
+vi.mock("@green-goods/shared/modules/work/work-submission", () => ({
   validateWorkSubmissionContext: (
     gardenAddress: string | null,
     actionUID: number | null,
@@ -167,24 +167,8 @@ vi.mock("@green-goods/shared/modules", () => ({
   },
 }));
 
-vi.mock("@green-goods/shared", async () => {
+vi.mock("@green-goods/shared/components/Alert", async () => {
   const React = await vi.importActual<typeof import("react")>("react");
-  const { useForm } = await vi.importActual<typeof import("react-hook-form")>("react-hook-form");
-  const submitWorkController = await vi.importActual<
-    typeof import("../../../../shared/src/hooks/admin-ui/garden/useSubmitWorkController")
-  >("../../../../shared/src/hooks/admin-ui/garden/useSubmitWorkController");
-
-  const Card = Object.assign(
-    ({ children }: { children: React.ReactNode }) =>
-      React.createElement("div", { "data-testid": "card" }, children),
-    {
-      Body: ({ children }: { children: React.ReactNode }) =>
-        React.createElement("div", null, children),
-      Footer: ({ children, className }: { children: React.ReactNode; className?: string }) =>
-        React.createElement("div", { className }, children),
-    }
-  );
-
   return {
     Alert: ({
       children,
@@ -201,39 +185,62 @@ vi.mock("@green-goods/shared", async () => {
         children,
         action
       ),
-    compareAddresses: (a: string | null | undefined, b: string | null | undefined) =>
-      Boolean(a && b && a.toLowerCase() === b.toLowerCase()),
-    adminRoutes: {
-      gardenSettings: () => "/garden/settings",
-      hub: () => "/hub",
-    },
+  };
+});
+
+vi.mock("@green-goods/shared/components/Canvas/SheetBody", async () => {
+  const React = await vi.importActual<typeof import("react")>("react");
+  return {
+    SheetBody: ({ children }: { children: React.ReactNode }) =>
+      React.createElement("div", null, children),
+  };
+});
+
+vi.mock("@green-goods/shared/components/Canvas/SheetFooter", async () => {
+  const React = await vi.importActual<typeof import("react")>("react");
+  return {
+    SheetFooter: ({ children }: { children: React.ReactNode }) =>
+      React.createElement("div", null, children),
+  };
+});
+
+vi.mock("@green-goods/shared/components/Cards/CardBase", async () => {
+  const React = await vi.importActual<typeof import("react")>("react");
+  const Card = Object.assign(
+    ({ children }: { children: React.ReactNode }) =>
+      React.createElement("div", { "data-testid": "card" }, children),
+    {
+      Body: ({ children }: { children: React.ReactNode }) =>
+        React.createElement("div", null, children),
+      Footer: ({ children, className }: { children: React.ReactNode; className?: string }) =>
+        React.createElement("div", { className }, children),
+    }
+  );
+  return {
     Card,
-    cn: (...classes: Array<string | false | null | undefined>) => classes.filter(Boolean).join(" "),
-    Capital: {
-      SOCIAL: 0,
-      MATERIAL: 1,
-      FINANCIAL: 2,
-      LIVING: 3,
-      INTELLECTUAL: 4,
-      EXPERIENTIAL: 5,
-      SPIRITUAL: 6,
-      CULTURAL: 7,
-    },
-    Domain: {
-      SOLAR: 0,
-      AGRO: 1,
-      EDU: 2,
-      WASTE: 3,
-    },
-    getMinRequiredWorkImages: submitWorkController.getMinRequiredWorkImages,
-    expandDomainMask: (mask: number) => {
-      const domains: number[] = [];
-      if (mask & 1) domains.push(0);
-      if (mask & 2) domains.push(1);
-      if (mask & 4) domains.push(2);
-      if (mask & 8) domains.push(3);
-      return domains;
-    },
+  };
+});
+
+vi.mock("@green-goods/shared/components/feedback/TxInlineFeedback", async () => {
+  const React = await vi.importActual<typeof import("react")>("react");
+  return {
+    TxInlineFeedback: ({
+      visible,
+      title,
+      message,
+      action,
+    }: {
+      visible: boolean;
+      title: string;
+      message: string;
+      action?: React.ReactNode;
+    }) => (visible ? React.createElement("div", { role: "alert" }, title, message, action) : null),
+  };
+});
+
+vi.mock("@green-goods/shared/components/FileUploadField", async () => {
+  const React = await vi.importActual<typeof import("react")>("react");
+  return {
     FileUploadField: ({
       onFilesChange,
       currentFiles = [],
@@ -279,10 +286,32 @@ vi.mock("@green-goods/shared", async () => {
           )
         )
       ),
-    findActionByUID: (actions: Action[], uid: number | null) =>
-      uid === null
-        ? null
-        : (actions.find((action) => Number(action.id.split("-").pop()) === uid) ?? null),
+  };
+});
+
+vi.mock("@green-goods/shared/components/Form/ControlPrimitives", async () => {
+  const React = await vi.importActual<typeof import("react")>("react");
+  return {
+    NativeSelect: ({
+      invalid: _invalid,
+      surface: _surface,
+      ...props
+    }: React.SelectHTMLAttributes<HTMLSelectElement> & { invalid?: boolean; surface?: string }) =>
+      React.createElement("select", props),
+    Textarea: ({
+      invalid: _invalid,
+      surface: _surface,
+      ...props
+    }: React.TextareaHTMLAttributes<HTMLTextAreaElement> & {
+      invalid?: boolean;
+      surface?: string;
+    }) => React.createElement("textarea", props),
+  };
+});
+
+vi.mock("@green-goods/shared/components/Form/FormFieldWrapper", async () => {
+  const React = await vi.importActual<typeof import("react")>("react");
+  return {
     FormField: ({
       children,
       label,
@@ -303,72 +332,12 @@ vi.mock("@green-goods/shared", async () => {
         children,
         error ? React.createElement("p", null, error) : null
       ),
-    getActionTitle: (actions: Action[], uid: number | null, fallback = "Unknown Action") =>
-      uid === null
-        ? fallback
-        : (actions.find((action) => Number(action.id.split("-").pop()) === uid)?.title ?? fallback),
-    localizeAction: (action: Action) => action,
-    imageCompressor: mockImageCompressor,
-    isOfflineTxHash: (txHash: string) => txHash.startsWith("0xoffline_"),
-    logger: {
-      error: vi.fn(),
-    },
-    NativeSelect: ({
-      invalid: _invalid,
-      surface: _surface,
-      ...props
-    }: React.SelectHTMLAttributes<HTMLSelectElement> & { invalid?: boolean; surface?: string }) =>
-      React.createElement("select", props),
-    normalizeWorkMediaFiles: async (files: File[]) => {
-      const accepted = [];
-      const rejected = [];
-      const converted = [];
-      for (const file of files) {
-        if (file.type === "text/plain") {
-          rejected.push({
-            file,
-            reason: "unsupported",
-            metadata: {},
-          });
-          continue;
-        }
-        if (file.type === "image/heic" || file.name.endsWith(".heic")) {
-          const isHeic = await heicToMocks.isHeic(file);
-          if (!isHeic) {
-            rejected.push({ file, reason: "unsupported", metadata: {} });
-            continue;
-          }
-          const blob = await heicToMocks.heicTo({
-            blob: file,
-            type: "image/jpeg",
-            quality: 0.85,
-          });
-          const convertedFile = new File([blob], file.name.replace(/\.[^.]+$/, ".jpg"), {
-            type: "image/jpeg",
-            lastModified: file.lastModified,
-          });
-          accepted.push({
-            file: convertedFile,
-            originalFile: file,
-            converted: true,
-            metadata: {},
-          });
-          converted.push({ originalFile: file, file: convertedFile, metadata: {} });
-          continue;
-        }
-        accepted.push({ file, originalFile: file, converted: false, metadata: {} });
-      }
-      return { accepted, rejected, converted };
-    },
-    parseActionUID: (compositeId: string | undefined | null) => {
-      if (!compositeId) return null;
-      const uid = Number(String(compositeId).split("-").pop());
-      return Number.isFinite(uid) ? uid : null;
-    },
-    SheetBody: ({ children }: { children: React.ReactNode }) =>
-      React.createElement("div", null, children),
-    SheetFooter: ({ children }: { children: React.ReactNode }) =>
-      React.createElement("div", null, children),
+  };
+});
+
+vi.mock("@green-goods/shared/components/Surface/Surface", async () => {
+  const React = await vi.importActual<typeof import("react")>("react");
+  return {
     Surface: ({
       children,
       as: As = "div",
@@ -387,57 +356,78 @@ vi.mock("@green-goods/shared", async () => {
         { className, "data-region": dataRegion, "aria-labelledby": ariaLabelledby },
         children
       ),
-    Textarea: ({
-      invalid: _invalid,
-      surface: _surface,
-      ...props
-    }: React.TextareaHTMLAttributes<HTMLTextAreaElement> & {
-      invalid?: boolean;
-      surface?: string;
-    }) => React.createElement("textarea", props),
-    TxInlineFeedback: ({
-      visible,
-      title,
-      message,
-      action,
-    }: {
-      visible: boolean;
-      title: string;
-      message: string;
-      action?: React.ReactNode;
-    }) => (visible ? React.createElement("div", { role: "alert" }, title, message, action) : null),
-    useMediaQuery: () => true,
-    useWorkMutation: mockUseWorkMutation,
-    toastService: {
-      error: mockToastError,
-      info: mockToastInfo,
-      success: mockToastSuccess,
-    },
-    validationToasts: {
-      formError: mockValidationFormError,
-    },
-    useAdminGardenWorkspaceSelection: () => ({
-      selectedGarden: mockState.selectedGarden,
-    }),
-    useGardens: () => ({
-      data: [
-        {
-          id: gardenAddress,
-          name: "Green Goods Community Garden",
-          domainMask: 1 << Domain.AGRO,
-        },
-      ],
-    }),
-    useActions: () => ({
-      data: mockState.actions,
-      isLoading: mockState.actionsLoading,
-    }),
-    useAuthState: () => ({ isAuthenticated: true, authMode: "wallet" }),
-    useUser: () => ({ authMode: "wallet", primaryAddress: gardenAddress }),
-    useGardenPermissions: () => ({ canManageGarden: () => true }),
-    useBeforeUnloadWhilePending: () => undefined,
-    useStepFocus: () => ({ current: null }),
+  };
+});
+
+vi.mock("@green-goods/shared/components/Toast/presets/validation", () => ({
+  validationToasts: {
+    formError: mockValidationFormError,
+  },
+}));
+
+vi.mock("@green-goods/shared/components/Toast/toast.service", () => ({
+  toastService: {
+    error: mockToastError,
+    info: mockToastInfo,
+    success: mockToastSuccess,
+  },
+}));
+
+vi.mock("@green-goods/shared/hooks/admin-ui/garden/useSubmitWorkController", async () => {
+  const submitWorkController = await vi.importActual<
+    typeof import("../../../../shared/src/hooks/admin-ui/garden/useSubmitWorkController")
+  >("../../../../shared/src/hooks/admin-ui/garden/useSubmitWorkController");
+  return {
+    getMinRequiredWorkImages: submitWorkController.getMinRequiredWorkImages,
     useSubmitWorkController: submitWorkController.useSubmitWorkController,
+  };
+});
+
+vi.mock("@green-goods/shared/hooks/auth/useUser", () => ({
+  useUser: () => ({ authMode: "wallet", primaryAddress: gardenAddress }),
+}));
+
+vi.mock("@green-goods/shared/hooks/blockchain/useBaseLists", () => ({
+  useGardens: () => ({
+    data: [
+      {
+        id: gardenAddress,
+        name: "Green Goods Community Garden",
+        domainMask: 1 << Domain.AGRO,
+      },
+    ],
+  }),
+  useActions: () => ({
+    data: mockState.actions,
+    isLoading: mockState.actionsLoading,
+  }),
+}));
+
+vi.mock("@green-goods/shared/hooks/garden/useAdminGardenWorkspaceSelection", () => ({
+  useAdminGardenWorkspaceSelection: () => ({
+    selectedGarden: mockState.selectedGarden,
+  }),
+}));
+
+vi.mock("@green-goods/shared/hooks/garden/useGardenPermissions", () => ({
+  useGardenPermissions: () => ({ canManageGarden: () => true }),
+}));
+
+vi.mock("@green-goods/shared/hooks/ui/useMediaQuery", () => ({
+  useMediaQuery: () => true,
+}));
+
+vi.mock("@green-goods/shared/hooks/utils/useBeforeUnloadWhilePending", () => ({
+  useBeforeUnloadWhilePending: () => undefined,
+}));
+
+vi.mock("@green-goods/shared/hooks/utils/useStepFocus", () => ({
+  useStepFocus: () => ({ current: null }),
+}));
+
+vi.mock("@green-goods/shared/hooks/work/useWorkForm", async () => {
+  const { useForm } = await vi.importActual<typeof import("react-hook-form")>("react-hook-form");
+  return {
     useWorkForm: () =>
       useForm<Record<string, unknown>>({
         mode: "onChange",
@@ -445,6 +435,153 @@ vi.mock("@green-goods/shared", async () => {
       }),
   };
 });
+
+vi.mock("@green-goods/shared/hooks/work/useWorkMutation", () => ({
+  useWorkMutation: mockUseWorkMutation,
+}));
+
+vi.mock("@green-goods/shared/modules/app/logger", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@green-goods/shared/modules/app/logger")>();
+  return {
+    ...actual,
+    logger: {
+      ...actual.logger,
+      error: vi.fn(),
+    },
+  };
+});
+
+vi.mock("@green-goods/shared/modules/job-queue/queue-policy", async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import("@green-goods/shared/modules/job-queue/queue-policy")>();
+  return {
+    ...actual,
+    isOfflineTxHash: (txHash: string) => txHash.startsWith("0xoffline_"),
+  };
+});
+
+vi.mock("@green-goods/shared/modules/work/media-processing", () => ({
+  normalizeWorkMediaFiles: async (files: File[]) => {
+    const accepted = [];
+    const rejected = [];
+    const converted = [];
+    for (const file of files) {
+      if (file.type === "text/plain") {
+        rejected.push({
+          file,
+          reason: "unsupported",
+          metadata: {},
+        });
+        continue;
+      }
+      if (file.type === "image/heic" || file.name.endsWith(".heic")) {
+        const isHeic = await heicToMocks.isHeic(file);
+        if (!isHeic) {
+          rejected.push({ file, reason: "unsupported", metadata: {} });
+          continue;
+        }
+        const blob = await heicToMocks.heicTo({
+          blob: file,
+          type: "image/jpeg",
+          quality: 0.85,
+        });
+        const convertedFile = new File([blob], file.name.replace(/\.[^.]+$/, ".jpg"), {
+          type: "image/jpeg",
+          lastModified: file.lastModified,
+        });
+        accepted.push({
+          file: convertedFile,
+          originalFile: file,
+          converted: true,
+          metadata: {},
+        });
+        converted.push({ originalFile: file, file: convertedFile, metadata: {} });
+        continue;
+      }
+      accepted.push({ file, originalFile: file, converted: false, metadata: {} });
+    }
+    return { accepted, rejected, converted };
+  },
+}));
+
+vi.mock("@green-goods/shared/providers/Auth", () => ({
+  useAuthState: () => ({ isAuthenticated: true, authMode: "wallet" }),
+}));
+
+vi.mock("@green-goods/shared/types/domain", () => ({
+  Capital: {
+    SOCIAL: 0,
+    MATERIAL: 1,
+    FINANCIAL: 2,
+    LIVING: 3,
+    INTELLECTUAL: 4,
+    EXPERIENTIAL: 5,
+    SPIRITUAL: 6,
+    CULTURAL: 7,
+  },
+  Domain: {
+    SOLAR: 0,
+    AGRO: 1,
+    EDU: 2,
+    WASTE: 3,
+  },
+}));
+
+vi.mock("@green-goods/shared/utils/action/parsers", () => ({
+  findActionByUID: (actions: Action[], uid: number | null) =>
+    uid === null
+      ? null
+      : (actions.find((action) => Number(action.id.split("-").pop()) === uid) ?? null),
+  getActionTitle: (actions: Action[], uid: number | null, fallback = "Unknown Action") =>
+    uid === null
+      ? fallback
+      : (actions.find((action) => Number(action.id.split("-").pop()) === uid)?.title ?? fallback),
+  parseActionUID: (compositeId: string | undefined | null) => {
+    if (!compositeId) return null;
+    const uid = Number(String(compositeId).split("-").pop());
+    return Number.isFinite(uid) ? uid : null;
+  },
+}));
+
+vi.mock("@green-goods/shared/utils/action/translations", () => ({
+  localizeAction: (action: Action) => action,
+}));
+
+vi.mock("@green-goods/shared/utils/blockchain/address", async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import("@green-goods/shared/utils/blockchain/address")>();
+  return {
+    ...actual,
+    compareAddresses: (a: string | null | undefined, b: string | null | undefined) =>
+      Boolean(a && b && a.toLowerCase() === b.toLowerCase()),
+  };
+});
+
+vi.mock("@green-goods/shared/utils/domain", () => ({
+  expandDomainMask: (mask: number) => {
+    const domains: number[] = [];
+    if (mask & 1) domains.push(0);
+    if (mask & 2) domains.push(1);
+    if (mask & 4) domains.push(2);
+    if (mask & 8) domains.push(3);
+    return domains;
+  },
+}));
+
+vi.mock("@green-goods/shared/utils/navigation/admin-routes", () => ({
+  adminRoutes: {
+    gardenSettings: () => "/garden/settings",
+    hub: () => "/hub",
+  },
+}));
+
+vi.mock("@green-goods/shared/utils/styles/cn", () => ({
+  cn: (...classes: Array<string | false | null | undefined>) => classes.filter(Boolean).join(" "),
+}));
+
+vi.mock("@green-goods/shared/utils/work/image-compression", () => ({
+  imageCompressor: mockImageCompressor,
+}));
 
 function createAction(mediaInfo: Partial<NonNullable<Action["mediaInfo"]>> = {}): Action {
   return {

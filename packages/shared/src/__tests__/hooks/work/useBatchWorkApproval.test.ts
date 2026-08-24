@@ -81,6 +81,10 @@ vi.mock("../../../config/blockchain", () => ({
   }),
 }));
 
+vi.mock("../../../config/default-chain", () => ({
+  DEFAULT_CHAIN_ID: 11155111,
+}));
+
 // Auth mode mock state
 let mockAuthMode: "wallet" | "passkey" | "embedded" | null = "wallet";
 let mockSmartAccountClient: FakeSmartAccountClient | null = null;

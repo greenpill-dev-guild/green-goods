@@ -9,7 +9,7 @@ import {
 } from "@green-goods/shared/testing";
 import { expect, vi } from "vitest";
 import type { Hex } from "viem";
-import { DEFAULT_CHAIN_ID } from "../../../config/blockchain";
+import { DEFAULT_CHAIN_ID } from "../../../config/default-chain";
 import { EmbeddedSender } from "../embedded-sender";
 import { PasskeySender } from "../passkey-sender";
 import type { ContractCall, TransactionSender } from "../types";

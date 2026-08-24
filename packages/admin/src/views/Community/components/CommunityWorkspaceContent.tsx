@@ -1,4 +1,6 @@
-import { type Address, type CommunityWorkspace, ErrorBoundary } from "@green-goods/shared";
+import { ErrorBoundary } from "@green-goods/shared/components/ErrorBoundary/ErrorBoundary";
+import type { CommunityWorkspace } from "@green-goods/shared/hooks/admin-ui/community/useCommunityWorkspaceController";
+import type { Address } from "@green-goods/shared/types/domain";
 import { useIntl } from "react-intl";
 import {
   CanvasRouteErrorState,

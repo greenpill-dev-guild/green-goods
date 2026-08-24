@@ -1,10 +1,8 @@
-import {
-  cn,
-  formatAddress,
-  type Address,
-  useCopyToClipboard,
-  useEnsName,
-} from "@green-goods/shared";
+import { useEnsName } from "@green-goods/shared/hooks/blockchain/useEnsName";
+import { useCopyToClipboard } from "@green-goods/shared/hooks/utils/useCopyToClipboard";
+import type { Address } from "@green-goods/shared/types/domain";
+import { formatAddress } from "@green-goods/shared/utils/app/text";
+import { cn } from "@green-goods/shared/utils/styles/cn";
 import { RiCheckLine, RiFileCopyLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 

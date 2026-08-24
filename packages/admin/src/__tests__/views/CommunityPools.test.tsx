@@ -2,8 +2,9 @@
  * @vitest-environment jsdom
  */
 
-import type { CommitmentsToConfirm } from "@green-goods/shared/commitment-pooling";
-import { toConfirmFixture } from "@green-goods/shared/testing";
+import { toConfirmFixture } from "@green-goods/shared/__tests__/test-utils/commitment-pooling-fixtures";
+import type { CommitmentsToConfirm } from "@green-goods/shared/hooks/commitment-pooling/useCommitmentsToConfirm";
+
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, renderWithProviders, screen, within } from "../test-utils";
 
@@ -12,7 +13,7 @@ const OTHER_GARDEN = "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb" as const;
 const ROOT = "0xcccccccccccccccccccccccccccccccccccccccc" as const;
 const VIEWER = "0x1111111111111111111111111111111111111111" as const;
 
-type SharedModule = typeof import("@green-goods/shared");
+type UserModule = typeof import("@green-goods/shared/hooks/auth/useUser");
 type PoolingModule = typeof import("@green-goods/shared/commitment-pooling");
 type ProtocolPoolView = Pick<
   ReturnType<PoolingModule["useProtocolPool"]>,
@@ -32,30 +33,47 @@ const mocks = vi.hoisted(() => ({
   confirmQueueProps: [] as CommitmentsToConfirm[],
 }));
 
-vi.mock("@green-goods/shared", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@green-goods/shared")>();
-  const { createSharedBarrelMock } = await import("@green-goods/shared/testing");
-  return createSharedBarrelMock(
-    actual,
-    {
-      useUser: (() => ({ primaryAddress: VIEWER })) as SharedModule["useUser"],
-    },
-    { defaults: false }
-  );
-});
+vi.mock("@green-goods/shared/hooks/auth/useUser", () => ({
+  useUser: (() => ({ primaryAddress: VIEWER })) as UserModule["useUser"],
+}));
 
-vi.mock("@green-goods/shared/commitment-pooling", async (importOriginal) => {
-  const actual = await importOriginal<PoolingModule>();
-  const { createSharedBarrelMock } = await import("@green-goods/shared/testing");
-  return createSharedBarrelMock(
-    actual,
-    {
-      useProtocolPool: (() => mocks.protocolPool!) as unknown as PoolingModule["useProtocolPool"],
-      useCommitmentsToConfirm: () => mocks.toConfirm!,
+vi.mock(
+  "@green-goods/shared/hooks/commitment-pooling/useCommitmentPooling",
+  async (importOriginal) => {
+    const actual =
+      await importOriginal<
+        typeof import("@green-goods/shared/hooks/commitment-pooling/useCommitmentPooling")
+      >();
+    return {
+      ...actual,
       useCommitmentPools: (() => mocks.ownPools!) as unknown as PoolingModule["useCommitmentPools"],
-    },
-    { defaults: false }
-  );
+    };
+  }
+);
+
+vi.mock(
+  "@green-goods/shared/hooks/commitment-pooling/useCommitmentsToConfirm",
+  async (importOriginal) => {
+    const actual =
+      await importOriginal<
+        typeof import("@green-goods/shared/hooks/commitment-pooling/useCommitmentsToConfirm")
+      >();
+    return {
+      ...actual,
+      useCommitmentsToConfirm: () => mocks.toConfirm!,
+    };
+  }
+);
+
+vi.mock("@green-goods/shared/hooks/commitment-pooling/useProtocolPool", async (importOriginal) => {
+  const actual =
+    await importOriginal<
+      typeof import("@green-goods/shared/hooks/commitment-pooling/useProtocolPool")
+    >();
+  return {
+    ...actual,
+    useProtocolPool: (() => mocks.protocolPool!) as unknown as PoolingModule["useProtocolPool"],
+  };
 });
 
 vi.mock("react-router-dom", async (importOriginal) => {

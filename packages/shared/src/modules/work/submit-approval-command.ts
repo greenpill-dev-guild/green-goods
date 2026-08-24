@@ -1,6 +1,6 @@
 import type { SmartAccountClient } from "permissionless";
 import type { Address, Work, WorkApprovalDraft } from "../../types/domain";
-import type { JobQueueHandle, ProcessJobResult } from "../job-queue";
+import type { JobQueueHandle, ProcessJobResult } from "../job-queue/ports";
 import type { TransactionSender } from "../transactions/types";
 
 export interface SubmitApprovalCommand {

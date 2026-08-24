@@ -6,7 +6,7 @@ import { getWagmiConfig } from "../../../config/appkit";
 import { getEASConfig } from "../../../config/blockchain";
 import { getChain } from "../../../config/chains";
 import { queryClient } from "../../../config/react-query";
-import { queryKeys } from "../../../config/query-keys";
+import { worksKeys } from "../../../config/query-keys/work";
 import { trackWalletSubmissionTiming } from "../../../modules/app/analytics-events";
 import { ensureWagmiWalletChain } from "../../../modules/transactions/chain-guard";
 import { assertLocalArbitrumForkWallet } from "../../../modules/transactions/local-fork-safety";
@@ -164,11 +164,11 @@ export async function submitWorkDirectly(
     createdAt: Math.floor(Date.now() / 1000),
   };
 
-  queryClient.setQueryData<EASWork[]>(queryKeys.works.online(gardenAddress, chainId), (old) => [
+  queryClient.setQueryData<EASWork[]>(worksKeys.online(gardenAddress, chainId), (old) => [
     optimisticWork,
     ...(old || []),
   ]);
-  queryClient.setQueryData<EASWork[]>(queryKeys.works.merged(gardenAddress, chainId), (old) => [
+  queryClient.setQueryData<EASWork[]>(worksKeys.merged(gardenAddress, chainId), (old) => [
     optimisticWork,
     ...(old || []),
   ]);
@@ -176,7 +176,7 @@ export async function submitWorkDirectly(
   const userAddress = walletClient.account?.address;
   if (userAddress) {
     queryClient.invalidateQueries({
-      queryKey: queryKeys.works.mineByUser(userAddress),
+      queryKey: worksKeys.mineByUser(userAddress),
       exact: false,
     });
   }
@@ -184,10 +184,7 @@ export async function submitWorkDirectly(
   onProgress?.("syncing", "Syncing with blockchain...");
 
   await pollQueriesAfterTransaction({
-    queryKeys: [
-      queryKeys.works.online(gardenAddress, chainId),
-      queryKeys.works.merged(gardenAddress, chainId),
-    ],
+    queryKeys: [worksKeys.online(gardenAddress, chainId), worksKeys.merged(gardenAddress, chainId)],
     baseDelay: 1000,
     maxDelay: 4000,
     maxAttempts: 4,

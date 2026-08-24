@@ -1,4 +1,5 @@
-import type { WorkFormData, WorkInput } from "@green-goods/shared";
+import type { WorkFormData } from "@green-goods/shared/hooks/work/useWorkForm";
+import type { WorkInput } from "@green-goods/shared/types/domain";
 import type { Meta, StoryObj } from "@storybook/react";
 import { useForm } from "react-hook-form";
 import { withAdminPrimitiveFrame, withI18n } from "../../../../../shared/.storybook/decorators";

@@ -1,12 +1,13 @@
+import type {
+  ActivityEvent,
+  HubPipelineStage,
+} from "@green-goods/shared/hooks/admin-ui/hub/hub.utils";
 import {
-  type ActivityEvent,
-  type Address,
   type HubActionSummary,
-  type HubPipelineStage,
   selectHubStageContent,
-  type Work,
-} from "@green-goods/shared";
-import type { CommitmentsToConfirm } from "@green-goods/shared/commitment-pooling";
+} from "@green-goods/shared/hooks/admin-ui/hub/hub.workbenchModel";
+import type { Address, Work } from "@green-goods/shared/types/domain";
+import type { CommitmentsToConfirm } from "@green-goods/shared/hooks/commitment-pooling/useCommitmentsToConfirm";
 import { HubAssessmentQueue } from "./HubAssessmentQueue";
 import { HubCertificationQueue } from "./HubCertificationQueue";
 import { HubConfirmQueue } from "./HubConfirmQueue";

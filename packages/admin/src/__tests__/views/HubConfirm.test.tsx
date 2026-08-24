@@ -2,13 +2,17 @@
  * @vitest-environment jsdom
  */
 
-import { type ConfirmQueueRow, type HubConfirmQueueController } from "@green-goods/shared";
-import { type CommitmentReadModel } from "@green-goods/shared/commitment-pooling";
+import type {
+  ConfirmQueueRow,
+  HubConfirmQueueController,
+} from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
 import {
   commitmentFixture,
-  hubConfirmQueueControllerFixture,
   toConfirmFixture,
-} from "@green-goods/shared/testing";
+} from "@green-goods/shared/__tests__/test-utils/commitment-pooling-fixtures";
+import { hubConfirmQueueControllerFixture } from "@green-goods/shared/__tests__/test-utils/controller-fixtures";
+import type { CommitmentReadModel } from "@green-goods/shared/modules/commitment-pooling/types-core";
+
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, renderWithProviders, screen, waitFor, within } from "../test-utils";
 
@@ -20,15 +24,9 @@ const mocks = vi.hoisted(() => ({
   queue: null as HubConfirmQueueController | null,
 }));
 
-vi.mock("@green-goods/shared", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@green-goods/shared")>();
-  const { createSharedBarrelMock } = await import("@green-goods/shared/testing");
-  return createSharedBarrelMock(
-    actual,
-    { useHubConfirmQueueController: () => mocks.queue! },
-    { defaults: false }
-  );
-});
+vi.mock("@green-goods/shared/hooks/admin-ui/pool/useHubConfirmQueueController", () => ({
+  useHubConfirmQueueController: () => mocks.queue!,
+}));
 
 vi.mock("@/views/Garden/Pool/CommitmentDialog", () => ({
   CommitmentDialogPanel: ({ commitmentId, garden }: { commitmentId: string; garden: string }) => (

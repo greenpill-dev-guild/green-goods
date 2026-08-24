@@ -30,13 +30,9 @@ const mockOrchestrator = vi.hoisted(() => ({
   onNavigateArrive: vi.fn().mockReturnValue(null),
 }));
 
-vi.mock("@green-goods/shared", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@green-goods/shared")>();
-  return {
-    ...actual,
-    useSheetOrchestrator: () => mockOrchestrator,
-  };
-});
+vi.mock("@green-goods/shared/hooks/navigation/useSheetOrchestrator", () => ({
+  useSheetOrchestrator: () => mockOrchestrator,
+}));
 
 // Stub document.startViewTransition for jsdom
 const mockStartViewTransition = vi.fn((callback: () => void) => {

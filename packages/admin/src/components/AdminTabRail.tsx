@@ -1,4 +1,4 @@
-import { cn } from "@green-goods/shared";
+import { cn } from "@green-goods/shared/utils/styles/cn";
 import { type ComponentType, type KeyboardEvent, type ReactNode, useCallback, useRef } from "react";
 import { useIntl } from "react-intl";
 

@@ -6,13 +6,9 @@ import RequireRole from "@/routes/RequireRole";
 
 const mockUseRole = vi.fn();
 
-vi.mock("@green-goods/shared", async (importOriginal) => {
-  const actual = await importOriginal<Record<string, unknown>>();
-  return {
-    ...actual,
-    useRole: () => mockUseRole(),
-  };
-});
+vi.mock("@green-goods/shared/hooks/gardener/useRole", () => ({
+  useRole: () => mockUseRole(),
+}));
 
 vi.mock("react-router-dom", async () => {
   const actual = await vi.importActual<typeof import("react-router-dom")>("react-router-dom");

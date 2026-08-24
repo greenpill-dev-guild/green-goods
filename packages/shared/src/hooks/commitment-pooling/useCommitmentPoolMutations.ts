@@ -27,7 +27,7 @@
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
-import { queryKeys } from "../../config/query-keys";
+import { commitmentPoolingKeys } from "../../config/query-keys/commitment-pooling";
 import { isDemoPoolingActive } from "../../modules/commitment-pooling/demo/demo-mode";
 import {
   type CommitmentPoolAction,
@@ -141,15 +141,15 @@ export function useCommitmentPoolMutation(options: { chainId?: number } = {}) {
       return result.hash;
     },
     onSuccess: async (_hash, input) => {
-      await queryClient.invalidateQueries({ queryKey: queryKeys.commitmentPooling.all(chainId) });
+      await queryClient.invalidateQueries({ queryKey: commitmentPoolingKeys.all(chainId) });
       if ("poolId" in input) {
         await queryClient.invalidateQueries({
-          queryKey: queryKeys.commitmentPooling.pool(chainId, input.poolId),
+          queryKey: commitmentPoolingKeys.pool(chainId, input.poolId),
         });
       }
       if ("cycleId" in input) {
         await queryClient.invalidateQueries({
-          queryKey: queryKeys.commitmentPooling.cycle(chainId, input.cycleId),
+          queryKey: commitmentPoolingKeys.cycle(chainId, input.cycleId),
         });
       }
     },

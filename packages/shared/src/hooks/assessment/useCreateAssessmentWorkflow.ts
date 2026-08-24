@@ -15,14 +15,15 @@ import {
   createAssessment,
   createDefaultCreateAssessmentPorts,
 } from "../../modules/assessment/create-assessment-command";
-import { getIpfsInitStatus } from "../../modules/data/ipfs";
+import { getIpfsInitStatus } from "../../modules/data/ipfs/client";
 import { type AdminState, useAdminStore } from "../../stores/useAdminStore";
 import type { Address } from "../../types/domain";
 import {
   type AssessmentWorkflowParams,
   createAssessmentMachine,
 } from "../../workflows/createAssessment";
-import { INDEXER_LAG_SCHEDULE_MS, queryInvalidation } from "../../config/query-keys";
+import { INDEXER_LAG_SCHEDULE_MS } from "../../config/query-keys/constants";
+import { queryInvalidation } from "../../config/query-keys/invalidation";
 import { useProgressiveInvalidation } from "../utils/useTimeout";
 import { useAssessmentDraft } from "./useAssessmentDraft";
 

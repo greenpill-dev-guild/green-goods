@@ -1,4 +1,4 @@
-import type { GardenRange, TabBadgeSeverity } from "@green-goods/shared";
+import type { GardenRange, TabBadgeSeverity } from "@green-goods/shared/types/garden-detail";
 
 export const RANGE_OPTIONS: GardenRange[] = ["7d", "30d", "90d"];
 

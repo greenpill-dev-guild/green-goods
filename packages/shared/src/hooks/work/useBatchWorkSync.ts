@@ -11,12 +11,15 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { getWalletClient, waitForTransactionReceipt } from "@wagmi/core";
 import { queueToasts } from "../../components/toast";
 import { getWagmiConfig } from "../../config/appkit";
-import { DEFAULT_CHAIN_ID, getEASConfig } from "../../config/blockchain";
+import { getEASConfig } from "../../config/blockchain";
+import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import { getChain } from "../../config/chains";
 import { trackContractError } from "../../modules/app/error-tracking";
 import { logger } from "../../modules/app/logger";
 import { ensureWagmiWalletChain } from "../../modules/transactions/chain-guard";
-import { jobQueue, jobQueueDB, jobQueueEventBus } from "../../modules/job-queue";
+import { jobQueueDB } from "../../modules/job-queue/db";
+import { jobQueue } from "../../modules/job-queue/default-instance";
+import { jobQueueEventBus } from "../../modules/job-queue/event-bus";
 import { assertLocalArbitrumForkWallet } from "../../modules/transactions/local-fork-safety";
 import type { WorkDraft } from "../../types/domain";
 import type { Job, WorkJobPayload } from "../../types/job-queue";
@@ -26,7 +29,8 @@ import { buildBatchWorkAttestTx } from "../../utils/eas/transaction-builder";
 import { resolveWorkSubmissionTitle } from "../../utils/work/workTitles";
 import { usePrimaryAddress } from "../auth/usePrimaryAddress";
 import { useUser } from "../auth/useUser";
-import { queryKeys } from "../../config/query-keys";
+import { queueKeys } from "../../config/query-keys/misc";
+import { worksKeys } from "../../config/query-keys/work";
 
 interface BatchWorkSyncResult {
   hash?: `0x${string}`;
@@ -183,24 +187,24 @@ export function useBatchWorkSync() {
         queueToasts.syncSuccess(count);
       }
 
-      queryClient.invalidateQueries({ queryKey: queryKeys.queue.pendingCount() });
-      queryClient.invalidateQueries({ queryKey: queryKeys.queue.stats() });
-      queryClient.invalidateQueries({ queryKey: queryKeys.queue.uploading() });
-      queryClient.invalidateQueries({ queryKey: queryKeys.works.all });
+      queryClient.invalidateQueries({ queryKey: queueKeys.pendingCount() });
+      queryClient.invalidateQueries({ queryKey: queueKeys.stats() });
+      queryClient.invalidateQueries({ queryKey: queueKeys.uploading() });
+      queryClient.invalidateQueries({ queryKey: worksKeys.all });
 
       if (primaryAddress) {
         queryClient.invalidateQueries({
-          queryKey: queryKeys.works.mineByUser(primaryAddress),
+          queryKey: worksKeys.mineByUser(primaryAddress),
           exact: false,
         });
       }
 
       for (const gardenAddress of gardens) {
         queryClient.invalidateQueries({
-          queryKey: queryKeys.works.online(gardenAddress, chainId),
+          queryKey: worksKeys.online(gardenAddress, chainId),
         });
         queryClient.invalidateQueries({
-          queryKey: queryKeys.works.merged(gardenAddress, chainId),
+          queryKey: worksKeys.merged(gardenAddress, chainId),
         });
       }
     },

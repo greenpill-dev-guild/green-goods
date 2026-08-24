@@ -1,9 +1,7 @@
-import {
-  FabProvider,
-  GardenChip,
-  RefreshActionProvider,
-  useCanvasShellController,
-} from "@green-goods/shared";
+import { FabProvider } from "@green-goods/shared/components/Canvas/FabContext";
+import { GardenChip } from "@green-goods/shared/components/Canvas/GardenChip";
+import { RefreshActionProvider } from "@green-goods/shared/components/Canvas/RefreshActionContext";
+import { useCanvasShellController } from "@green-goods/shared/hooks/admin-ui/layout/useCanvasShellController";
 import { memo, useCallback, useMemo } from "react";
 import { useIntl } from "react-intl";
 import { AdminSideSheet } from "@/components/AdminSideSheet";

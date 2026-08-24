@@ -4,12 +4,12 @@
  * pool console and Hub stories render.
  */
 
-import { DEFAULT_CHAIN_ID } from "@green-goods/shared";
-import {
-  type CommitmentReadModel,
-  type CommitmentsToConfirm,
-  type PoolClaimRequestRow,
-} from "@green-goods/shared/commitment-pooling";
+import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
+import type { CommitmentsToConfirm } from "@green-goods/shared/hooks/commitment-pooling/useCommitmentsToConfirm";
+import type {
+  CommitmentReadModel,
+  PoolClaimRequestRow,
+} from "@green-goods/shared/modules/commitment-pooling/types-core";
 import { STORYBOOK_PRIMARY_ADMIN_GARDEN } from "../../../../../shared/.storybook/adminFixtures";
 import { daysAgo, daysFromNow } from "../../../../../shared/.storybook/fixtures";
 import { STORY_ANA, STORY_GARDEN, STORY_JOAO, STORY_MARIA } from "./poolStoryActors";

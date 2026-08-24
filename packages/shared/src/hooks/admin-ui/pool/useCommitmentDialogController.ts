@@ -21,7 +21,8 @@ import { useQuery } from "@tanstack/react-query";
 import { useCallback, useMemo } from "react";
 import type { CommitmentDialogController, DisputeResolutionKey } from "./controller.types";
 
-import { queryKeys, STALE_TIME_MEDIUM } from "../../../config/query-keys";
+import { STALE_TIME_MEDIUM } from "../../../config/query-keys/constants";
+import { commitmentPoolingKeys } from "../../../config/query-keys/commitment-pooling";
 import { selectCommitmentActKind } from "../../../modules/commitment-pooling/acts";
 import { getViewerConfirmedCommitmentIds } from "../../../modules/commitment-pooling/data";
 import {
@@ -103,7 +104,7 @@ export function useCommitmentDialogController(input: {
   // `AlreadyConfirmed` on a repeat, and a threshold above one keeps the record
   // ready in between. Same key as the Hub queue's read, so both share one answer.
   const confirmed = useQuery({
-    queryKey: queryKeys.commitmentPooling.activity(chainId, {
+    queryKey: commitmentPoolingKeys.activity(chainId, {
       actor: viewer,
       eventType: "CONFIRMATION_RECORDED",
     }),

@@ -6,7 +6,7 @@ import type {
   EASWorkApproval,
 } from "../../types/eas-responses";
 import { logger } from "../app/logger";
-import { resolveIPFSUrl } from "./ipfs";
+import { resolveIPFSUrl } from "./ipfs/resolve";
 
 type NumberConvertibleValue =
   | number

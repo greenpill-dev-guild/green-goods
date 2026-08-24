@@ -1,22 +1,24 @@
+import { Textarea } from "@green-goods/shared/components/Form/ControlPrimitives";
+import { browserTranslator } from "@green-goods/shared/modules/translation/browser-translator";
+import type {
+  ActionInstructionConfig,
+  ActionInstructionInputTranslation,
+  ActionInstructionTranslationData,
+  ActionTranslationLocale,
+  ActionTranslationMap,
+  ActionTranslationRecord,
+  WorkInput,
+} from "@green-goods/shared/types/domain";
 import {
   ACTION_TRANSLATION_LOCALES,
-  type ActionInstructionConfig,
-  type ActionInstructionInputTranslation,
-  type ActionInstructionTranslationData,
-  type ActionTranslationLocale,
-  type ActionTranslationMap,
-  type ActionTranslationRecord,
-  browserTranslator,
-  cn,
   createActionTranslationDraft,
   getActionSourceHash,
   hasActionTranslationContent,
   hasCompleteActionTranslationContent,
   markStaleActionTranslations,
   normalizeActionTranslations,
-  Textarea,
-  type WorkInput,
-} from "@green-goods/shared";
+} from "@green-goods/shared/utils/action/translations";
+import { cn } from "@green-goods/shared/utils/styles/cn";
 import { RiCheckboxCircleLine, RiRefreshLine, RiTranslate2 } from "@remixicon/react";
 import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";

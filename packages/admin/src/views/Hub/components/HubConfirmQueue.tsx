@@ -1,14 +1,14 @@
-import {
-  type Address,
-  Alert,
-  type ConfirmQueueEligibility,
-  type ConfirmQueueRow,
-  EmptyState,
-  EmptyStateShell,
-  StatusBadge,
-  useHubConfirmQueueController,
-} from "@green-goods/shared";
-import { type CommitmentsToConfirm } from "@green-goods/shared/commitment-pooling";
+import { Alert } from "@green-goods/shared/components/Alert";
+import { EmptyStateShell } from "@green-goods/shared/components/Canvas/EmptyStateShell";
+import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
+import { StatusBadge } from "@green-goods/shared/components/StatusBadge";
+import type {
+  ConfirmQueueEligibility,
+  ConfirmQueueRow,
+} from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
+import { useHubConfirmQueueController } from "@green-goods/shared/hooks/admin-ui/pool/useHubConfirmQueueController";
+import type { Address } from "@green-goods/shared/types/domain";
+import type { CommitmentsToConfirm } from "@green-goods/shared/hooks/commitment-pooling/useCommitmentsToConfirm";
 import { RiShakeHandsLine } from "@remixicon/react";
 import { type ReactNode, useState } from "react";
 import { useIntl } from "react-intl";

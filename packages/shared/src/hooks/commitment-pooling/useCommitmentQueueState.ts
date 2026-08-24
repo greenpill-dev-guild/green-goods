@@ -18,9 +18,9 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useMemo } from "react";
 
-import { queryKeys } from "../../config/query-keys";
+import { commitmentPoolingKeys } from "../../config/query-keys/commitment-pooling";
 import { useJobQueueEvents } from "../../modules/job-queue/event-bus";
-import { jobQueue } from "../../modules/job-queue";
+import { jobQueue } from "../../modules/job-queue/default-instance";
 import { isDiscardableJob } from "../../modules/job-queue/job-recovery";
 import { isTerminallyFailedJob } from "../../modules/job-queue/queue-policy";
 import { COMMITMENT_JOB_KINDS } from "../../modules/commitment-pooling/jobs";
@@ -89,7 +89,7 @@ function commitmentIdOf(job: Job): string | null {
  */
 export function useCommitmentQueueState(viewer?: Address | null): CommitmentQueueState {
   const queryClient = useQueryClient();
-  const queryKey = useMemo(() => queryKeys.commitmentPooling.queueState(viewer), [viewer]);
+  const queryKey = useMemo(() => commitmentPoolingKeys.queueState(viewer), [viewer]);
 
   // One query per reader rather than one per mount. Home, the sheet and the
   // detail screen all ask, and react-query serves them from a single read

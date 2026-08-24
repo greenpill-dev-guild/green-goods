@@ -1,10 +1,10 @@
 import { useReadContracts } from "wagmi";
 import type { Address } from "../../types/domain";
-import { YIELD_SPLITTER_ABI } from "../../utils/blockchain/abis";
+import { YIELD_SPLITTER_ABI } from "../../utils/blockchain/abis/yield";
 import { getNetworkContracts } from "../../utils/blockchain/contracts";
 import { isZeroAddress } from "../../utils/blockchain/address";
 import { useCurrentChain } from "../blockchain/useChainConfig";
-import { STALE_TIME_MEDIUM } from "../../config/query-keys";
+import { STALE_TIME_MEDIUM } from "../../config/query-keys/constants";
 
 interface UsePendingYieldOptions {
   enabled?: boolean;

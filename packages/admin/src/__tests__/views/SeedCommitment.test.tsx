@@ -2,17 +2,16 @@
  * @vitest-environment jsdom
  */
 
-import { type PoolConsoleController } from "@green-goods/shared";
-import {
-  type CommitmentCycleRecord,
-  type CommitmentJobInput,
-  selectPoolConsoleModel,
-} from "@green-goods/shared/commitment-pooling";
+import type { PoolConsoleController } from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
 import {
   cycleFixture,
-  poolConsoleControllerFixture,
   poolFixture,
-} from "@green-goods/shared/testing";
+} from "@green-goods/shared/__tests__/test-utils/commitment-pooling-fixtures";
+import { poolConsoleControllerFixture } from "@green-goods/shared/__tests__/test-utils/controller-fixtures";
+import type { CommitmentJobInput } from "@green-goods/shared/hooks/commitment-pooling/useCommitmentJobs";
+import { selectPoolConsoleModel } from "@green-goods/shared/modules/commitment-pooling/pool-console";
+import type { CommitmentCycleRecord } from "@green-goods/shared/modules/commitment-pooling/types-core";
+
 import { useState } from "react";
 import { createMemoryRouter, RouterProvider } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -24,7 +23,7 @@ const CONFIRMER = "0x2222222222222222222222222222222222222222" as const;
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000" as const;
 const NOW = 1_756_000_000n;
 
-type SharedModule = typeof import("@green-goods/shared");
+type ActionsModule = typeof import("@green-goods/shared/hooks/blockchain/useBaseLists");
 type PoolingModule = typeof import("@green-goods/shared/commitment-pooling");
 type Enqueue = (input: CommitmentJobInput) => Promise<string>;
 
@@ -35,50 +34,73 @@ const mocks = vi.hoisted(() => ({
   console: null as PoolConsoleController | null,
 }));
 
-vi.mock("@green-goods/shared", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@green-goods/shared")>();
-  const { createSharedBarrelMock } = await import("@green-goods/shared/testing");
-  return createSharedBarrelMock(
-    actual,
-    {
-      usePoolConsoleController: () => mocks.console!,
-      useActions: (() => ({
-        data: [{ id: "42161-44", title: "Prune trees" }],
-      })) as unknown as SharedModule["useActions"],
-      useMediaQuery: () => true,
-    },
-    { defaults: false }
-  );
-});
+vi.mock("@green-goods/shared/hooks/admin-ui/pool/usePoolConsoleController", () => ({
+  usePoolConsoleController: () => mocks.console!,
+}));
 
-vi.mock("@green-goods/shared/commitment-pooling", async (importOriginal) => {
-  const actual = await importOriginal<PoolingModule>();
-  const { createSharedBarrelMock } = await import("@green-goods/shared/testing");
-  return createSharedBarrelMock(
-    actual,
-    {
-      useProtocolPool: (() => ({
-        poolId: mocks.protocolRegistered ? 1n : null,
-        rootGarden: "0xcccccccccccccccccccccccccccccccccccccccc",
-        isRegistered: mocks.protocolRegistered,
-        isLoading: false,
-      })) as unknown as PoolingModule["useProtocolPool"],
-      useSettlementAccount: (() => ({
-        detail: mocks.settlementActive
-          ? { account: { active: true }, route: null }
-          : { account: null, route: null },
-        isLoading: false,
-      })) as unknown as PoolingModule["useSettlementAccount"],
+vi.mock("@green-goods/shared/hooks/blockchain/useBaseLists", () => ({
+  useActions: (() => ({
+    data: [{ id: "42161-44", title: "Prune trees" }],
+  })) as unknown as ActionsModule["useActions"],
+}));
+
+vi.mock("@green-goods/shared/hooks/ui/useMediaQuery", () => ({
+  useMediaQuery: () => true,
+}));
+
+vi.mock(
+  "@green-goods/shared/hooks/commitment-pooling/useCommitmentJobs",
+  async (importOriginal) => {
+    const actual =
+      await importOriginal<
+        typeof import("@green-goods/shared/hooks/commitment-pooling/useCommitmentJobs")
+      >();
+    return {
+      ...actual,
       useCommitmentJobs: () => ({
         enqueue: mocks.enqueue,
         isPending: false,
         error: null,
         viewer: VIEWER,
       }),
-    },
-    { defaults: false }
-  );
+    };
+  }
+);
+
+vi.mock("@green-goods/shared/hooks/commitment-pooling/useProtocolPool", async (importOriginal) => {
+  const actual =
+    await importOriginal<
+      typeof import("@green-goods/shared/hooks/commitment-pooling/useProtocolPool")
+    >();
+  return {
+    ...actual,
+    useProtocolPool: (() => ({
+      poolId: mocks.protocolRegistered ? 1n : null,
+      rootGarden: "0xcccccccccccccccccccccccccccccccccccccccc",
+      isRegistered: mocks.protocolRegistered,
+      isLoading: false,
+    })) as unknown as PoolingModule["useProtocolPool"],
+  };
 });
+
+vi.mock(
+  "@green-goods/shared/hooks/commitment-pooling/useSettlementQueries",
+  async (importOriginal) => {
+    const actual =
+      await importOriginal<
+        typeof import("@green-goods/shared/hooks/commitment-pooling/useSettlementQueries")
+      >();
+    return {
+      ...actual,
+      useSettlementAccount: (() => ({
+        detail: mocks.settlementActive
+          ? { account: { active: true }, route: null }
+          : { account: null, route: null },
+        isLoading: false,
+      })) as unknown as PoolingModule["useSettlementAccount"],
+    };
+  }
+);
 
 const { SeedCommitmentDialog } = await import("@/views/Garden/Pool/Seed");
 

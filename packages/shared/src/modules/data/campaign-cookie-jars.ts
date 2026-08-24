@@ -1,9 +1,11 @@
 import { createPublicClient, http } from "viem";
-import { DEFAULT_CHAIN_ID, getNetworkConfig } from "../../config/blockchain";
+import { getNetworkConfig } from "../../config/blockchain";
+import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import { logger } from "../../modules/app/logger";
 import type { CampaignCookieJarCampaign, IndexedCampaignCookieJar } from "../../types/cookie-jar";
 import type { Address } from "../../types/domain";
-import { DEPLOYMENT_REGISTRY_ABI, COOKIE_JAR_FACTORY_ABI } from "../../utils/blockchain/abis";
+import { COOKIE_JAR_FACTORY_ABI } from "../../utils/blockchain/abis/cookie-jar";
+import { DEPLOYMENT_REGISTRY_ABI } from "../../utils/blockchain/abis/deployment-registry";
 import { isZeroAddress } from "../../utils/blockchain/address";
 import { getChain, getNetworkContracts } from "../../utils/blockchain/contracts";
 import {

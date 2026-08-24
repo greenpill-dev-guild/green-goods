@@ -3,11 +3,11 @@
  * shared read models return them on the frozen Storybook clock.
  */
 
-import { DEFAULT_CHAIN_ID } from "@green-goods/shared";
-import {
-  type CommitmentCycleRecord,
-  type CommitmentPoolRecord,
-} from "@green-goods/shared/commitment-pooling";
+import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
+import type {
+  CommitmentCycleRecord,
+  CommitmentPoolRecord,
+} from "@green-goods/shared/modules/commitment-pooling/types-core";
 import { daysAgo, daysFromNow } from "../../../../../shared/.storybook/fixtures";
 import { STORY_GARDEN } from "./poolStoryActors";
 

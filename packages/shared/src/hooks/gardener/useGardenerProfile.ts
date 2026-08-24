@@ -2,12 +2,12 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useIntl } from "react-intl";
 import { encodeFunctionData } from "viem";
 import { toastService } from "../../components/toast";
-import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
+import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import { logger } from "../../modules/app/logger";
 import { assertLocalArbitrumForkSmartAccountsDisabled } from "../../modules/transactions/local-fork-safety";
 import { parseAndFormatError } from "../../utils/errors/contract-errors";
 import { useAuth } from "../auth/useAuth";
-import { queryKeys } from "../../config/query-keys";
+import { gardenerProfileKeys } from "../../config/query-keys/identity";
 
 // GardenerAccount ABI (minimal - just the functions we need)
 const GARDENER_ACCOUNT_ABI = [
@@ -127,7 +127,7 @@ export function useGardenerProfile() {
 
   // TODO: Replace with GraphQL query once indexer supports gardener profiles
   const profileQuery = useQuery({
-    queryKey: queryKeys.gardenerProfile.byAddress(smartAccountAddress ?? "", DEFAULT_CHAIN_ID),
+    queryKey: gardenerProfileKeys.byAddress(smartAccountAddress ?? "", DEFAULT_CHAIN_ID),
     queryFn: async () => {
       if (!smartAccountAddress) return null;
       return null as GardenerProfile | null;
@@ -173,7 +173,7 @@ export function useGardenerProfile() {
       return txHash;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.gardenerProfile.all });
+      queryClient.invalidateQueries({ queryKey: gardenerProfileKeys.all });
       toastService.success({
         title: formatMessage({
           id: "app.gardener.profile.update.success.title",
@@ -236,7 +236,7 @@ export function useGardenerProfile() {
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.gardenerProfile.all });
+      queryClient.invalidateQueries({ queryKey: gardenerProfileKeys.all });
       toastService.success({
         title: config.successTitle,
         message: config.successMessage,

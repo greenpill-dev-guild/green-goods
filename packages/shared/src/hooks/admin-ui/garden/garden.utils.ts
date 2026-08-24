@@ -1,9 +1,6 @@
-import {
-  type AdminGardenRouteContext,
-  adminRoutes,
-  type MetaStripItem,
-  type ViewAction,
-} from "@green-goods/shared";
+import type { MetaStripItem } from "../../../components/Canvas/MetaStrip";
+import type { ViewAction } from "../../../components/Canvas/viewActions.types";
+import { type AdminGardenRouteContext, adminRoutes } from "../../../utils/navigation/admin-routes";
 import { RiExternalLinkLine, RiSettings3Line } from "@remixicon/react";
 
 /**

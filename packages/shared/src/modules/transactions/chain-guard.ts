@@ -1,6 +1,6 @@
 import { getAccount, switchChain, type Config } from "@wagmi/core";
 import { getWagmiConfig } from "../../config/appkit";
-import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
+import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import { getChainName } from "../../config/chains";
 
 const USER_REJECTED_REQUEST = 4001;

@@ -1,10 +1,8 @@
-import {
-  adminRoutes,
-  Alert,
-  type CommunityWorkspace,
-  EmptyState,
-  type GardenRole,
-} from "@green-goods/shared";
+import { Alert } from "@green-goods/shared/components/Alert";
+import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
+import type { CommunityWorkspace } from "@green-goods/shared/hooks/admin-ui/community/useCommunityWorkspaceController";
+import type { GardenRole } from "@green-goods/shared/utils/blockchain/garden-roles";
+import { adminRoutes } from "@green-goods/shared/utils/navigation/admin-routes";
 import { RiArrowRightSLine, RiGroupLine, RiUserSettingsLine } from "@remixicon/react";
 import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";

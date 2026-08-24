@@ -1,4 +1,6 @@
-import { Alert, type PoolConsoleController, StatusBadge } from "@green-goods/shared";
+import { Alert } from "@green-goods/shared/components/Alert";
+import { StatusBadge } from "@green-goods/shared/components/StatusBadge";
+import type { PoolConsoleController } from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
 import { RiCheckLine, RiCloseLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { AdminButton } from "@/components/AdminButton";

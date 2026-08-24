@@ -1,4 +1,5 @@
-import { type Address, useCreateGardenStore } from "@green-goods/shared";
+import { useCreateGardenStore } from "@green-goods/shared/stores/useCreateGardenStore";
+import type { Address } from "@green-goods/shared/types/domain";
 import type { Meta, StoryObj } from "@storybook/react";
 import { useEffect } from "react";
 import { TeamStep } from "./TeamStep";

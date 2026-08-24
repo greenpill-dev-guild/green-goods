@@ -7,7 +7,7 @@ import { useAuthContext } from "../../providers/Auth";
 import { usePrimaryAddress } from "../auth/usePrimaryAddress";
 import { useCurrentChain } from "../blockchain/useChainConfig";
 import { useDeploymentRegistry } from "../blockchain/useDeploymentRegistry";
-import { queryKeys } from "../../config/query-keys";
+import { roleKeys } from "../../config/query-keys/identity";
 
 const GET_OPERATOR_GARDENS = greenGoodsGraphQL(/* GraphQL */ `
   query GetOperatorGardens($operator: [String!]!, $chainId: Int!) {
@@ -92,7 +92,7 @@ export function useRole(): RoleInfo {
     isLoading: isFetching,
     isError: gardensError,
   } = useQuery({
-    queryKey: queryKeys.role.operatorGardens(normalizedAddress ?? undefined, chainId),
+    queryKey: roleKeys.operatorGardens(normalizedAddress ?? undefined, chainId),
     queryFn: () => fetchOperatorGardens(normalizedAddress!, chainId),
     enabled: !!normalizedAddress && ready,
     staleTime: STALE_TIMES.baseLists,

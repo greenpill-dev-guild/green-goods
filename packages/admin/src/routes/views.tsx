@@ -1,9 +1,9 @@
+import { SkeletonGrid } from "@green-goods/shared/components/Skeleton";
 import {
   type AdminIndexRedirectKind,
   resolveAdminIndexRedirect,
-  SkeletonGrid,
-  type UserRole,
-} from "@green-goods/shared";
+} from "@green-goods/shared/hooks/admin-ui/navigation/workspaceNavigation";
+import type { UserRole } from "@green-goods/shared/hooks/gardener/useRole";
 import type { ComponentType } from "react";
 import { Navigate, type RouteObject, useLocation } from "react-router-dom";
 import RequireRole from "@/routes/RequireRole";

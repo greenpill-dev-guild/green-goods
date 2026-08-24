@@ -9,15 +9,13 @@ import type { ComponentProps } from "react";
 import { IntlProvider } from "react-intl";
 import { RouterProvider, createMemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import {
-  AuthContext,
-  DEFAULT_CHAIN_ID,
-  queryKeys,
-  useAdminStore,
-  useCreateAssessmentStore,
-  type Garden,
-} from "@green-goods/shared";
-import { createTestQueryClient } from "@green-goods/shared/testing";
+import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
+import { queryKeys } from "@green-goods/shared/config/query-keys/registry";
+import { AuthContext } from "@green-goods/shared/providers/Auth";
+import { useAdminStore } from "@green-goods/shared/stores/useAdminStore";
+import { useCreateAssessmentStore } from "@green-goods/shared/stores/useCreateAssessmentStore";
+import type { Garden } from "@green-goods/shared/types/domain";
+import { createTestQueryClient } from "@green-goods/shared/__tests__/test-utils/query-client";
 import CreateAssessment from "@/views/Hub/CreateAssessment";
 
 const createAssessmentControllerOverride = vi.hoisted(() => ({
@@ -55,16 +53,22 @@ vi.mock("wagmi", () => ({
   useWalletClient: () => ({ data: undefined }),
 }));
 
-vi.mock("@green-goods/shared", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@green-goods/shared")>();
-  return {
-    ...actual,
-    useCreateAssessmentController: (() =>
-      createAssessmentControllerOverride.current
-        ? createAssessmentControllerOverride.current()
-        : actual.useCreateAssessmentController()) as typeof actual.useCreateAssessmentController,
-  };
-});
+vi.mock(
+  "@green-goods/shared/hooks/admin-ui/hub/useCreateAssessmentController",
+  async (importOriginal) => {
+    const actual =
+      await importOriginal<
+        typeof import("@green-goods/shared/hooks/admin-ui/hub/useCreateAssessmentController")
+      >();
+    return {
+      ...actual,
+      useCreateAssessmentController: (() =>
+        createAssessmentControllerOverride.current
+          ? createAssessmentControllerOverride.current()
+          : actual.useCreateAssessmentController()) as typeof actual.useCreateAssessmentController,
+    };
+  }
+);
 
 const authContextValue: AuthContextValue = {
   authMode: "wallet",

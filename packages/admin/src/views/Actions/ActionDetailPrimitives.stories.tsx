@@ -1,4 +1,4 @@
-import { Domain } from "@green-goods/shared";
+import { Domain } from "@green-goods/shared/types/domain";
 import type { Meta, StoryObj } from "@storybook/react";
 import { withAdminPrimitiveFrame } from "../../../../shared/.storybook/decorators";
 import { ActionDetailMediaTile } from "./ActionDetailPrimitives";

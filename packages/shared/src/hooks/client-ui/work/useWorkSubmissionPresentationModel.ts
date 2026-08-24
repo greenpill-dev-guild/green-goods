@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { useIntl } from "react-intl";
-import { DEFAULT_CHAIN_ID } from "../../../config/blockchain";
+import { DEFAULT_CHAIN_ID } from "../../../config/default-chain";
 import type { Action, Domain, Garden } from "../../../types/domain";
 import { findActionByUID } from "../../../utils/action/parsers";
 import { useActionTranslation } from "../../translation/useActionTranslation";

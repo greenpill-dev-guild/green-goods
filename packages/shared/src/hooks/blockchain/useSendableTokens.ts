@@ -13,11 +13,12 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { createPublicClientForChain } from "../../config/pimlico";
-import { queryKeys } from "../../config/query-keys";
+import { tokensKeys } from "../../config/query-keys/tokens";
 import { STALE_TIME_FAST } from "../../config/query-keys/constants";
 import { buildSendableTokens, type SendableToken } from "../../config/tokens";
 import type { Address } from "../../types/domain";
-import { ERC20_BALANCE_ABI, GARDENS_MODULE_ABI } from "../../utils/blockchain/abis";
+import { GARDENS_MODULE_ABI } from "../../utils/blockchain/abis/conviction";
+import { ERC20_BALANCE_ABI } from "../../utils/blockchain/abis/erc20";
 import { isZeroAddress } from "../../utils/blockchain/address";
 import { getNetworkContracts } from "../../utils/blockchain/contracts";
 
@@ -62,7 +63,7 @@ export function useSendableTokens(
   const enabled = Boolean(account && chainId);
 
   const query = useQuery({
-    queryKey: queryKeys.tokens.balances(accountKey, chainId ?? 0),
+    queryKey: tokensKeys.balances(accountKey, chainId ?? 0),
     enabled,
     staleTime: STALE_TIME_FAST,
     queryFn: async (): Promise<SendableTokenBalance[]> => {

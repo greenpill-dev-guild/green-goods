@@ -87,6 +87,10 @@ vi.mock("../../config/blockchain", () => ({
   }),
 }));
 
+vi.mock("../../config/default-chain", () => ({
+  DEFAULT_CHAIN_ID: 11155111,
+}));
+
 vi.mock("../../modules/work/work-submission", () => ({
   validateWorkSubmissionContext: vi.fn(() => []),
 }));

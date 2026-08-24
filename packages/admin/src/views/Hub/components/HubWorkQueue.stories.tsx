@@ -1,4 +1,5 @@
-import { Domain, type Address, type HubActionSummary, type Work } from "@green-goods/shared";
+import type { HubActionSummary } from "@green-goods/shared/hooks/admin-ui/hub/hub.workbenchModel";
+import { type Address, Domain, type Work } from "@green-goods/shared/types/domain";
 import type { Meta, StoryObj } from "@storybook/react";
 import { fn } from "storybook/test";
 import { FIXTURE_WORK_MEDIA, daysAgo } from "../../../../../shared/.storybook/fixtures";

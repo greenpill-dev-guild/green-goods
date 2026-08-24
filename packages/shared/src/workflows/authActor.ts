@@ -35,7 +35,7 @@
 import { createActor } from "xstate";
 import { ENV } from "../lib/env";
 
-import { DEFAULT_CHAIN_ID } from "../config/blockchain";
+import { DEFAULT_CHAIN_ID } from "../config/default-chain";
 import { logger } from "../modules/app/logger";
 import { authMachine } from "./authMachine";
 import { authServices } from "./authServices";

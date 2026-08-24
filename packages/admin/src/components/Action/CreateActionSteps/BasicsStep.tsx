@@ -1,4 +1,6 @@
-import { type CreateActionFormData, FormField, NativeSelect, TextInput } from "@green-goods/shared";
+import { NativeSelect, TextInput } from "@green-goods/shared/components/Form/ControlPrimitives";
+import { FormField } from "@green-goods/shared/components/Form/FormFieldWrapper";
+import type { CreateActionFormData } from "@green-goods/shared/hooks/action/useActionForm";
 import type { UseFormReturn } from "react-hook-form";
 import { useIntl } from "react-intl";
 

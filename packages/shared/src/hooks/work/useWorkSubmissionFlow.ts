@@ -9,7 +9,8 @@ import {
 import type { Control, FormState, UseFormRegister, UseFormSetValue } from "react-hook-form";
 import { useShallow } from "zustand/react/shallow";
 import { validationToasts } from "../../components/toast";
-import { DEFAULT_CHAIN_ID, getDefaultChain } from "../../config/blockchain";
+import { getDefaultChain } from "../../config/blockchain";
+import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import { validateWorkSubmissionContext } from "../../modules/work/work-submission";
 import { useWorkFlowStore } from "../../stores/useWorkFlowStore";
 import { WorkTab } from "../../stores/workFlowTypes";

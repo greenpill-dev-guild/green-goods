@@ -1,4 +1,5 @@
-import { isRouteSheetRestorable, useSheetOrchestrator } from "@green-goods/shared";
+import { isRouteSheetRestorable } from "@green-goods/shared/hooks/admin-ui/navigation/sheetRegistry";
+import { useSheetOrchestrator } from "@green-goods/shared/hooks/navigation/useSheetOrchestrator";
 import { useEffect, useRef } from "react";
 import { useLocation, useOutlet } from "react-router-dom";
 

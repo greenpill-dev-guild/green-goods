@@ -1,10 +1,8 @@
-import {
-  type Address,
-  cn,
-  getNetworkConfig,
-  toastService,
-  useCopyToClipboard,
-} from "@green-goods/shared";
+import { toastService } from "@green-goods/shared/components/Toast/toast.service";
+import { getNetworkConfig } from "@green-goods/shared/config/blockchain";
+import { useCopyToClipboard } from "@green-goods/shared/hooks/utils/useCopyToClipboard";
+import type { Address } from "@green-goods/shared/types/domain";
+import { cn } from "@green-goods/shared/utils/styles/cn";
 import {
   RiCheckLine,
   RiExternalLinkLine,

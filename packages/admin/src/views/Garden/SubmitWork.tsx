@@ -1,10 +1,8 @@
-import {
-  adminRoutes,
-  type SubmitWorkAuthSnapshot,
-  useAuthState,
-  useDirtyClose,
-  useUser,
-} from "@green-goods/shared";
+import type { SubmitWorkAuthSnapshot } from "@green-goods/shared/hooks/admin-ui/garden/useSubmitWorkController";
+import { useDirtyClose } from "@green-goods/shared/hooks/admin-ui/useDirtyClose";
+import { useUser } from "@green-goods/shared/hooks/auth/useUser";
+import { useAuthState } from "@green-goods/shared/providers/Auth";
+import { adminRoutes } from "@green-goods/shared/utils/navigation/admin-routes";
 import { useCallback, useState } from "react";
 import { useIntl } from "react-intl";
 import { useLocation, useNavigate } from "react-router-dom";

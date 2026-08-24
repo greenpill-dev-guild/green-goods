@@ -3,7 +3,7 @@ import { RiAlertLine, RiCloseLine, RiLoader4Line } from "@remixicon/react";
 import type { CSSProperties, ReactNode } from "react";
 import { useIntl } from "react-intl";
 import { logger } from "../../modules/app/logger";
-import { cn } from "../../utils";
+import { cn } from "../../utils/styles/cn";
 
 export interface ConfirmDialogProps {
   isOpen: boolean;

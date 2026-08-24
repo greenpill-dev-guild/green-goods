@@ -15,7 +15,8 @@ import { useIntl } from "react-intl";
 import { type Address, type Hex } from "viem";
 import { useWriteContract } from "wagmi";
 import { getWagmiConfig } from "../../config/appkit";
-import { DEFAULT_CHAIN_ID, getDefaultChain } from "../../config/blockchain";
+import { getDefaultChain } from "../../config/blockchain";
+import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import {
   trackGardenJoinAlreadyMember,
   trackGardenJoinCancelled,
@@ -49,7 +50,7 @@ import { GardenAccountABI } from "../../utils/blockchain/contracts";
 import { isAlreadyGardenerError, parseContractError } from "../../utils/errors/contract-errors";
 import { isCancelledTxError } from "../../utils/errors/tx-error-classifier";
 import { useUser } from "../auth/useUser";
-import { queryKeys } from "../../config/query-keys";
+import { gardensKeys } from "../../config/query-keys/garden";
 import { useDelayedInvalidation } from "../utils/useTimeout";
 
 /**
@@ -228,7 +229,7 @@ export function useJoinGarden() {
 
   // Memoized invalidation callback for gardens
   const invalidateGardens = useCallback(
-    () => queryClient.invalidateQueries({ queryKey: queryKeys.gardens.byChain(chainId) }),
+    () => queryClient.invalidateQueries({ queryKey: gardensKeys.byChain(chainId) }),
     [queryClient, chainId]
   );
 
@@ -275,9 +276,7 @@ export function useJoinGarden() {
       }));
 
       // Snapshot for rollback on error (before the try so it's visible in catch)
-      const previousGardens = queryClient.getQueryData<Garden[]>(
-        queryKeys.gardens.byChain(chainId)
-      );
+      const previousGardens = queryClient.getQueryData<Garden[]>(gardensKeys.byChain(chainId));
 
       try {
         const txHash = await submitJoinGarden(
@@ -302,7 +301,7 @@ export function useJoinGarden() {
 
         // Optimistic update: add user to garden's gardeners list
         queryClient.setQueryData(
-          queryKeys.gardens.byChain(chainId),
+          gardensKeys.byChain(chainId),
           (oldGardens: Garden[] | undefined) => {
             if (!oldGardens) return oldGardens;
             return oldGardens.map((garden) => {
@@ -357,7 +356,7 @@ export function useJoinGarden() {
 
         // Rollback optimistic update
         if (previousGardens) {
-          queryClient.setQueryData(queryKeys.gardens.byChain(chainId), previousGardens);
+          queryClient.setQueryData(gardensKeys.byChain(chainId), previousGardens);
         }
         removePendingJoin(gardenAddress);
 

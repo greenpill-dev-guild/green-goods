@@ -1,13 +1,11 @@
-import {
-  extractErrorMessage,
-  FileUploadField,
-  FormField,
-  logger,
-  resolveIPFSUrl,
-  toastService,
-  TextInput,
-  uploadFileToIPFS,
-} from "@green-goods/shared";
+import { FileUploadField } from "@green-goods/shared/components/FileUploadField";
+import { TextInput } from "@green-goods/shared/components/Form/ControlPrimitives";
+import { FormField } from "@green-goods/shared/components/Form/FormFieldWrapper";
+import { toastService } from "@green-goods/shared/components/Toast/toast.service";
+import { logger } from "@green-goods/shared/modules/app/logger";
+import { resolveIPFSUrl } from "@green-goods/shared/modules/data/ipfs/resolve";
+import { uploadFileToIPFS } from "@green-goods/shared/modules/data/ipfs/upload";
+import { extractErrorMessage } from "@green-goods/shared/utils/errors/extract-message";
 import { useState } from "react";
 import { useIntl } from "react-intl";
 import { AdminButton } from "@/components/AdminButton";

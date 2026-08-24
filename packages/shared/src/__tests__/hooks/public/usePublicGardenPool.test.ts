@@ -26,6 +26,10 @@ vi.mock("../../../modules/commitment-pooling/document-store", () => ({
 }));
 vi.mock("../../../config/blockchain", () => ({ DEFAULT_CHAIN_ID: 42161 }));
 
+vi.mock("../../../config/default-chain", () => ({
+  DEFAULT_CHAIN_ID: 42161,
+}));
+
 import { usePublicGardenPool } from "../../../hooks/public/usePublicGardenPool";
 import { getPublicGardenPool } from "../../../modules/commitment-pooling/data-public-pools";
 import type { Address } from "../../../types/domain";

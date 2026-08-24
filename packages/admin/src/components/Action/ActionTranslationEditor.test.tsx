@@ -1,8 +1,10 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { IntlProvider } from "react-intl";
 import { describe, expect, it, vi } from "vitest";
-import type { ActionTranslationMap } from "@green-goods/shared";
-import { defaultTemplate, getActionSourceHash } from "@green-goods/shared";
+import type { ActionTranslationMap } from "@green-goods/shared/types/domain";
+import { defaultTemplate } from "@green-goods/shared/utils/action/templates";
+import { getActionSourceHash } from "@green-goods/shared/utils/action/translations";
+
 import { ActionTranslationEditor } from "./ActionTranslationEditor";
 
 function renderEditor(value: ActionTranslationMap = {}, onChange = vi.fn()) {

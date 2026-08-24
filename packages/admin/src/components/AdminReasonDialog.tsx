@@ -1,4 +1,5 @@
-import { cn, logger } from "@green-goods/shared";
+import { logger } from "@green-goods/shared/modules/app/logger";
+import { cn } from "@green-goods/shared/utils/styles/cn";
 import { RiAlertLine } from "@remixicon/react";
 import { type ReactNode, useEffect, useId, useState } from "react";
 import { useIntl } from "react-intl";

@@ -1,4 +1,6 @@
-import { type Address, type FunderLeaderboardEntry, formatTokenAmount } from "@green-goods/shared";
+import type { Address } from "@green-goods/shared/types/domain";
+import type { FunderLeaderboardEntry } from "@green-goods/shared/types/vaults";
+import { formatTokenAmount } from "@green-goods/shared/utils/blockchain/vaults";
 import { RiArrowDownSLine, RiArrowUpSLine } from "@remixicon/react";
 import type { Meta, StoryObj } from "@storybook/react";
 import { useState } from "react";

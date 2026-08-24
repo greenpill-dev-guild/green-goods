@@ -4,7 +4,10 @@ import {
   CampaignCookieJarCreateWorkspace,
   CampaignCookieJarPanel,
 } from "./components/CampaignCookieJarPanel";
-import { adminRoutes, useMediaQuery, useViewActions, type ViewAction } from "@green-goods/shared";
+import { useViewActions } from "@green-goods/shared/components/Canvas/useViewActions";
+import type { ViewAction } from "@green-goods/shared/components/Canvas/viewActions.types";
+import { useMediaQuery } from "@green-goods/shared/hooks/ui/useMediaQuery";
+import { adminRoutes } from "@green-goods/shared/utils/navigation/admin-routes";
 import { RiAddLine } from "@remixicon/react";
 import { useMemo } from "react";
 import { useIntl } from "react-intl";

@@ -9,11 +9,12 @@ import type {
   CookieJarUpdateIntervalParams,
   CookieJarUpdateMaxWithdrawalParams,
 } from "../../types/cookie-jar";
-import { COOKIE_JAR_ABI } from "../../utils/blockchain/abis";
+import { COOKIE_JAR_ABI } from "../../utils/blockchain/abis/cookie-jar";
 import { createMutationErrorHandler } from "../../utils/errors/mutation-error-handler";
 import { useCurrentChain } from "../blockchain/useChainConfig";
 import { useTransactionSender } from "../blockchain/useTransactionSender";
-import { INDEXER_LAG_SCHEDULE_MS, queryInvalidation } from "../../config/query-keys";
+import { INDEXER_LAG_SCHEDULE_MS } from "../../config/query-keys/constants";
+import { queryInvalidation } from "../../config/query-keys/invalidation";
 import { useProgressiveInvalidation } from "../utils/useTimeout";
 
 export function useCookieJarPause(gardenAddress: Address) {

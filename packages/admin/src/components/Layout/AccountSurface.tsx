@@ -1,4 +1,5 @@
-import { cn, type AccountSheetTab } from "@green-goods/shared";
+import type { AccountSheetTab } from "@green-goods/shared/hooks/admin-ui/layout/accountSheet.events";
+import { cn } from "@green-goods/shared/utils/styles/cn";
 import { AdminTabRail } from "@/components/AdminTabRail";
 import { useIntl } from "react-intl";
 import { AccountProfilePanelContainer } from "./AccountProfilePanel";

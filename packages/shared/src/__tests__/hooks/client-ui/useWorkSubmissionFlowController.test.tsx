@@ -14,31 +14,64 @@ const mocks = vi.hoisted(() => ({
   reset: vi.fn(),
 }));
 
-vi.mock("@green-goods/shared", () => ({
-  DEFAULT_CHAIN_ID: 11155111,
+vi.mock("../../../stores/workFlowTypes", () => ({
   WorkTab: { Intro: "Intro", Media: "Media", Details: "Details", Review: "Review" },
+}));
+
+vi.mock("../../../utils/action/parsers", () => ({
   findActionByUID: () => null,
-  getSafeMediaMetadata: () => ({}),
-  getWorkMediaId: (file: File) => file.name,
+}));
+
+vi.mock("../../../modules/app/logger", () => ({
   logger: { error: vi.fn() },
-  mediaResourceManager: { cleanupUrls: vi.fn() },
+}));
+
+vi.mock("../../../utils/errors/contract-errors", () => ({
   parseContractError: () => ({ name: "UnknownError" }),
+}));
+
+vi.mock("../../../components/Toast/toast.service", () => ({
   toastService: { error: vi.fn(), success: vi.fn() },
+}));
+
+vi.mock("../../../modules/app/posthog", () => ({
   track: vi.fn(),
-  useActionTranslation: () => ({ translatedAction: null }),
+}));
+
+vi.mock("../../../hooks/utils/useAudioRecording", () => ({
   useAudioRecording: () => ({ isRecording: false, elapsed: 0, toggle: vi.fn() }),
+}));
+
+vi.mock("../../../hooks/work/useDraftAutoSave", () => ({
   useDraftAutoSave: () => ({ saveOnExit: vi.fn() }),
+}));
+
+vi.mock("../../../hooks/work/useDraftResume", () => ({
   useDraftResume: () => ({
     showDraftDialog: false,
     handleContinueDraft: vi.fn(),
     handleStartFresh: vi.fn(),
     clearActiveDraft: vi.fn(),
   }),
-  useGardenTranslation: () => ({ translatedGarden: null }),
+}));
+
+vi.mock("../../../hooks/garden/useJoinGarden", () => ({
   useJoinGarden: () => ({ joinGarden: vi.fn(), isJoining: false, joiningGardenId: null }),
+}));
+
+vi.mock("../../../hooks/app/useOffline", () => ({
   useOffline: () => ({ isOnline: true, pendingCount: 0, syncStatus: "idle" }),
+}));
+
+vi.mock("../../../hooks/utils/useTimeout", () => ({
   useTimeout: () => ({ set: vi.fn() }),
+}));
+
+vi.mock("../../../hooks/auth/useUser", () => ({
   useUser: () => ({ authMode: "wallet" }),
+}));
+
+vi.mock("../../../stores/useWorkFlowStore", () => ({
   useWorkFlowStore: Object.assign(
     (selector: (state: Record<string, unknown>) => unknown) =>
       selector({
@@ -51,6 +84,9 @@ vi.mock("@green-goods/shared", () => ({
       }),
     { getState: () => ({ audioNotes: [], reset: mocks.reset }) }
   ),
+}));
+
+vi.mock("../../../providers/Work", () => ({
   useWorkFormContext: () => ({
     state: { isValid: true, isSubmitting: false },
     images: [],
@@ -79,6 +115,29 @@ vi.mock("@green-goods/shared", () => ({
     setActionUID: vi.fn(),
     gardenAddress: mocks.gardenAddress,
     setGardenAddress: vi.fn(),
+  }),
+}));
+
+vi.mock("../../../hooks/client-ui/work/useWorkMediaLifecycle", () => ({
+  useWorkMediaLifecycle: () => ({
+    brokenMediaIds: new Set(),
+    cameraClickRef: { current: null },
+    markMediaPreviewFailed: vi.fn(),
+    mediaClickRef: { current: null },
+    removeBrokenMedia: vi.fn(),
+    removeMedia: vi.fn(),
+    resetBrokenMedia: vi.fn(),
+  }),
+}));
+
+vi.mock("../../../hooks/client-ui/work/useWorkSubmissionPresentationModel", () => ({
+  useWorkSubmissionPresentationModel: () => ({
+    detailInputs: [],
+    detailsConfig: {},
+    mediaConfig: { required: false },
+    minRequired: 0,
+    reviewConfig: {},
+    reviewData: {},
   }),
 }));
 

@@ -10,28 +10,61 @@ import { IntlProvider } from "react-intl";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { en as enMessages } from "@green-goods/shared";
+import { default as enMessages } from "@green-goods/shared/i18n/en.json";
 
 // ── Mock state ──────────────────────────────────────────
 
 const mockRegisterAction = vi.fn();
 const mockNavigate = vi.fn();
 
-vi.mock("@green-goods/shared", () => ({
+vi.mock("@green-goods/shared/components/Button", () => ({
+  Button: ({
+    children,
+    loading,
+    ...props
+  }: React.ButtonHTMLAttributes<HTMLButtonElement> & { loading?: boolean }) =>
+    React.createElement("button", props, loading ? "Loading..." : children),
+}));
+
+vi.mock("@green-goods/shared/components/ErrorBoundary/ErrorBoundary", () => ({
+  ErrorBoundary: ({ children }: { children: React.ReactNode }) => children,
+}));
+
+vi.mock("@green-goods/shared/components/Form/StepIndicator", () => ({
+  StepIndicator: () => null,
+}));
+
+vi.mock("@green-goods/shared/components/Surface/Surface", () => ({
+  Surface: ({
+    as: Component = "div",
+    children,
+    ...props
+  }: React.HTMLAttributes<HTMLElement> & { as?: React.ElementType }) =>
+    React.createElement(Component, props, children),
+}));
+
+vi.mock("@green-goods/shared/components/Toast/toast.service", () => ({
+  toastService: { loading: vi.fn(), dismiss: vi.fn(), error: vi.fn() },
+}));
+
+vi.mock("@green-goods/shared/config/blockchain", () => ({
   DEFAULT_CHAIN_ID: 42161,
-  Domain: { SOLAR: 0, AGRO: 1, EDU: 2, WASTE: 3 },
+}));
+
+vi.mock("@green-goods/shared/config/default-chain", () => ({
+  DEFAULT_CHAIN_ID: 42161,
+}));
+
+vi.mock("@green-goods/shared/config/domain", () => ({
   DOMAIN_CONFIG: {
     0: { labelId: "app.domain.tab.solar" },
     1: { labelId: "app.domain.tab.agro" },
     2: { labelId: "app.domain.tab.education" },
     3: { labelId: "app.domain.tab.waste" },
   },
-  cn: (...args: unknown[]) => args.filter(Boolean).join(" "),
-  adminRoutes: {
-    actions: () => "/actions",
-  },
-  getActionsListSearch: () => ({}),
-  en: {},
+}));
+
+vi.mock("@green-goods/shared/hooks/action/useActionForm", () => ({
   createActionSchema: {
     // Minimal Zod-compatible schema mock for zodResolver
     _def: { typeName: "ZodObject" },
@@ -41,35 +74,20 @@ vi.mock("@green-goods/shared", () => ({
     parse: vi.fn().mockReturnValue({}),
     spa: vi.fn().mockResolvedValue({ success: true, data: {} }),
   },
-  defaultTemplate: {
-    title: "Work Submission",
-    description: "",
-    feedbackPlaceholder: "",
-    inputs: [],
-  },
-  logger: { error: vi.fn(), info: vi.fn(), warn: vi.fn() },
-  toastService: { loading: vi.fn(), dismiss: vi.fn(), error: vi.fn() },
-  uploadFileToIPFS: vi.fn(),
-  Button: ({
-    children,
-    loading,
-    ...props
-  }: React.ButtonHTMLAttributes<HTMLButtonElement> & { loading?: boolean }) =>
-    React.createElement("button", props, loading ? "Loading..." : children),
-  Surface: ({
-    as: Component = "div",
-    children,
-    ...props
-  }: React.HTMLAttributes<HTMLElement> & { as?: React.ElementType }) =>
-    React.createElement(Component, props, children),
-  ErrorBoundary: ({ children }: { children: React.ReactNode }) => children,
-  useStepFocus: () => ({ current: null }),
-  useDirtyClose: () => ({
-    onOpenChange: vi.fn(),
-    confirmOpen: false,
-    cancelClose: vi.fn(),
-    confirmClose: vi.fn(),
+}));
+
+vi.mock("@green-goods/shared/hooks/action/useActionOperations", () => ({
+  useActionOperations: () => ({
+    registerAction: mockRegisterAction,
+    isLoading: false,
   }),
+}));
+
+vi.mock("@green-goods/shared/hooks/admin-ui/actions/actions.utils", () => ({
+  getActionsListSearch: () => ({}),
+}));
+
+vi.mock("@green-goods/shared/hooks/admin-ui/actions/useCreateActionController", () => ({
   useCreateActionController: () => ({
     currentStep: 0,
     domainOptions: [],
@@ -91,25 +109,18 @@ vi.mock("@green-goods/shared", () => ({
       { id: "review", title: "Review", description: "Confirm and submit" },
     ],
   }),
-  useActionOperations: () => ({
-    registerAction: mockRegisterAction,
-    isLoading: false,
+}));
+
+vi.mock("@green-goods/shared/hooks/admin-ui/useDirtyClose", () => ({
+  useDirtyClose: () => ({
+    onOpenChange: vi.fn(),
+    confirmOpen: false,
+    cancelClose: vi.fn(),
+    confirmClose: vi.fn(),
   }),
-  useSheetOrchestratorStore: Object.assign(
-    (selector: (state: Record<string, unknown>) => unknown) =>
-      selector({
-        setFormState: vi.fn(),
-        clearViewState: vi.fn(),
-        restoreViewState: vi.fn(() => null),
-      }),
-    {
-      getState: () => ({
-        setFormState: vi.fn(),
-        clearViewState: vi.fn(),
-        restoreViewState: vi.fn(() => null),
-      }),
-    }
-  ),
+}));
+
+vi.mock("@green-goods/shared/hooks/ui/useFormWizardStepValidation", () => ({
   useFormWizardStepValidation: ({
     currentStep,
     steps,
@@ -155,7 +166,67 @@ vi.mock("@green-goods/shared", () => ({
       },
     };
   },
-  StepIndicator: () => null,
+}));
+
+vi.mock("@green-goods/shared/hooks/utils/useStepFocus", () => ({
+  useStepFocus: () => ({ current: null }),
+}));
+
+vi.mock("@green-goods/shared/i18n/en.json", () => ({
+  default: {},
+}));
+
+vi.mock("@green-goods/shared/modules/app/logger", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@green-goods/shared/modules/app/logger")>();
+  return {
+    ...actual,
+    logger: { error: vi.fn(), info: vi.fn(), warn: vi.fn() },
+  };
+});
+
+vi.mock("@green-goods/shared/modules/data/ipfs/upload", () => ({
+  uploadFileToIPFS: vi.fn(),
+}));
+
+vi.mock("@green-goods/shared/stores/useSheetOrchestratorStore", () => ({
+  useSheetOrchestratorStore: Object.assign(
+    (selector: (state: Record<string, unknown>) => unknown) =>
+      selector({
+        setFormState: vi.fn(),
+        clearViewState: vi.fn(),
+        restoreViewState: vi.fn(() => null),
+      }),
+    {
+      getState: () => ({
+        setFormState: vi.fn(),
+        clearViewState: vi.fn(),
+        restoreViewState: vi.fn(() => null),
+      }),
+    }
+  ),
+}));
+
+vi.mock("@green-goods/shared/types/domain", () => ({
+  Domain: { SOLAR: 0, AGRO: 1, EDU: 2, WASTE: 3 },
+}));
+
+vi.mock("@green-goods/shared/utils/action/templates", () => ({
+  defaultTemplate: {
+    title: "Work Submission",
+    description: "",
+    feedbackPlaceholder: "",
+    inputs: [],
+  },
+}));
+
+vi.mock("@green-goods/shared/utils/navigation/admin-routes", () => ({
+  adminRoutes: {
+    actions: () => "/actions",
+  },
+}));
+
+vi.mock("@green-goods/shared/utils/styles/cn", () => ({
+  cn: (...args: unknown[]) => args.filter(Boolean).join(" "),
 }));
 
 vi.mock("@hookform/resolvers/zod", () => ({
@@ -242,7 +313,7 @@ vi.mock("@/components/Layout/PageHeader", () => ({
     ),
 }));
 
-vi.mock("@green-goods/shared/utils", () => ({
+vi.mock("@green-goods/shared/utils/styles/cn", () => ({
   cn: (...args: unknown[]) => args.filter(Boolean).join(" "),
 }));
 

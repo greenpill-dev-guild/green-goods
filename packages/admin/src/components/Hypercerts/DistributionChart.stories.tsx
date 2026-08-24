@@ -1,4 +1,6 @@
-import { type Address, type AllowlistEntry, TOTAL_UNITS } from "@green-goods/shared";
+import { TOTAL_UNITS } from "@green-goods/shared/lib/hypercerts/constants";
+import type { Address } from "@green-goods/shared/types/domain";
+import type { AllowlistEntry } from "@green-goods/shared/types/hypercerts";
 import type { Meta, StoryObj } from "@storybook/react";
 import { DistributionChart } from "./DistributionChart";
 

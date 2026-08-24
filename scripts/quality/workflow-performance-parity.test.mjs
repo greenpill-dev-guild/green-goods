@@ -26,6 +26,22 @@ function workflowSources() {
     .map((file) => [file, read(`.github/workflows/${file}`)]);
 }
 
+function sourceFiles(relativeDirectory) {
+  const directory = join(root, relativeDirectory);
+  return readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
+    const relativePath = join(relativeDirectory, entry.name);
+    return entry.isDirectory()
+      ? sourceFiles(relativePath)
+      : /\.(?:ts|tsx)$/.test(entry.name)
+        ? [relativePath]
+        : [];
+  });
+}
+
+function withoutComments(source) {
+  return source.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, "");
+}
+
 test("shared JS setup pins the toolchain and installs from the frozen lockfile", () => {
   const action = read(".github/actions/setup-js/action.yml");
 
@@ -303,6 +319,50 @@ test("consumer Vitest projects separate Node and DOM without project coverage", 
     );
     assert.match(source, /name:\s*["']node["']/);
     assert.match(source, /name:\s*["']dom["']/);
+  }
+});
+
+test("Admin and Shared keep the production import seams that protect isolated tests", () => {
+  const broadAdminBarrels =
+    /@green-goods\/shared\/(?:components|config|constants|hooks|i18n|mocks|modules|profile-avatar|providers|public-contracts|stores|testing|types|utils|workflows)(?=["'])/;
+  const exactSharedRoot =
+    /(?:from\s+|import\s*\(|import\s+|vi\.mock\s*\()\s*["']@green-goods\/shared["']/;
+
+  for (const file of sourceFiles("packages/admin/src")) {
+    const source = withoutComments(read(file));
+    assert.doesNotMatch(source, exactSharedRoot, `${file} must import a declared Shared leaf`);
+    assert.doesNotMatch(source, broadAdminBarrels, `${file} must not restore a broad Shared barrel`);
+  }
+
+  const internalBarrels =
+    /from\s+["'][^"']*\/(?:config(?:\/query-keys)?|modules(?:\/data\/ipfs|\/job-queue|\/marketplace)?|public-contracts(?:\/saved-offers)?|utils(?:\/blockchain\/abis)?)["']/;
+  for (const file of sourceFiles("packages/shared/src")) {
+    if (
+      file.includes("/__tests__/") ||
+      file.includes("/__mocks__/") ||
+      /\.(?:test|spec|stories)\.(?:ts|tsx)$/.test(file) ||
+      file.endsWith("/index.ts")
+    ) {
+      continue;
+    }
+
+    const source = withoutComments(read(file));
+    assert.doesNotMatch(source, exactSharedRoot, `${file} must not self-import the package root`);
+    assert.doesNotMatch(
+      source,
+      /from\s+["'][^"']*config\/query-keys\/registry["']/,
+      `${file} must import domain query-key leaves`,
+    );
+    assert.doesNotMatch(
+      source,
+      internalBarrels,
+      `${file} must import an internal leaf instead of a high-fanout barrel`,
+    );
+    assert.doesNotMatch(
+      source,
+      /DEFAULT_CHAIN_ID[^\n]*from\s+["'][^"']*config\/blockchain["']/,
+      `${file} must import DEFAULT_CHAIN_ID from config/default-chain`,
+    );
   }
 });
 

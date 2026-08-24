@@ -6,11 +6,8 @@ import { toastService } from "../../components/toast";
 import { getWagmiConfig } from "../../config/appkit";
 import type { OctantVaultWalletEndowPreparedTransaction } from "../../modules/vault-crowdfunding";
 import type { Address } from "../../types/domain";
-import {
-  ERC20_ALLOWANCE_ABI,
-  ERC20_BALANCE_ABI,
-  OCTANT_VAULT_ABI,
-} from "../../utils/blockchain/abis";
+import { ERC20_ALLOWANCE_ABI, ERC20_BALANCE_ABI } from "../../utils/blockchain/abis/erc20";
+import { OCTANT_VAULT_ABI } from "../../utils/blockchain/abis/octant";
 import { createMutationErrorHandler } from "../../utils/errors/mutation-error-handler";
 import { useUser } from "../auth/useUser";
 import { useTransactionSender } from "../blockchain/useTransactionSender";

@@ -12,7 +12,7 @@
  */
 
 import { useQuery } from "@tanstack/react-query";
-import { queryKeys } from "../../config/query-keys";
+import { commitmentPoolingKeys } from "../../config/query-keys/commitment-pooling";
 import { isResolvableMetadataCID } from "../../modules/commitment-pooling/metadata";
 import {
   commitmentDocumentStore,
@@ -38,7 +38,7 @@ export function usePoolCharter(
 ): PoolCharterResolution {
   const resolvable = isResolvableMetadataCID(cid);
   const query = useQuery({
-    queryKey: queryKeys.commitmentPooling.poolCharter(resolvable ? cid.trim() : null),
+    queryKey: commitmentPoolingKeys.poolCharter(resolvable ? cid.trim() : null),
     queryFn: async () => parsePoolCharter(await documents.readJson((cid as string).trim())),
     enabled: resolvable,
     staleTime: IMMUTABLE,

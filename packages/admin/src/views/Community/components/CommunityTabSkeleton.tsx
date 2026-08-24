@@ -1,4 +1,4 @@
-import type { CommunityWorkspace } from "@green-goods/shared";
+import type { CommunityWorkspace } from "@green-goods/shared/hooks/admin-ui/community/useCommunityWorkspaceController";
 import { useIntl } from "react-intl";
 
 export type CommunityTabSkeletonProps = Pick<CommunityWorkspace, "mode">;

@@ -2,8 +2,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useSignMessage } from "wagmi";
 import type { Address } from "../../types/domain";
-import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
-import { queryKeys } from "../../config/query-keys";
+import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
+import { profileAvatarKeys } from "../../config/query-keys/identity";
 import { usePrimaryAddress } from "../auth/usePrimaryAddress";
 import { useAuth } from "../auth/useAuth";
 import { useCurrentChain } from "../blockchain/useChainConfig";
@@ -43,7 +43,7 @@ export function useProfileAvatar(address?: Address | null, chainId = DEFAULT_CHA
   const primaryAddress = usePrimaryAddress();
   const targetAddress = address ?? primaryAddress;
   return useQuery({
-    queryKey: queryKeys.profileAvatars.record(chainId, targetAddress ?? ""),
+    queryKey: profileAvatarKeys.record(chainId, targetAddress ?? ""),
     queryFn: () => profileAvatarTransport.get(chainId, targetAddress!),
     enabled: Boolean(targetAddress),
   });
@@ -178,7 +178,7 @@ export function useProfileAvatarEditor(chainIdOrOptions?: number | ProfileAvatar
           },
           getFactoryArgs,
         });
-        queryClient.setQueryData(queryKeys.profileAvatars.record(chainId, address), record);
+        queryClient.setQueryData(profileAvatarKeys.record(chainId, address), record);
         if (isCurrentOperation()) {
           setDraft(null);
           setError(null);

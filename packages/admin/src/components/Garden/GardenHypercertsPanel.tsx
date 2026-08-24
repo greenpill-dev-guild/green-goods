@@ -1,11 +1,9 @@
-import {
-  type Address,
-  Card,
-  EmptyState,
-  adminRoutes,
-  formatDate,
-  type HypercertRecord,
-} from "@green-goods/shared";
+import { Card } from "@green-goods/shared/components/Cards/CardBase";
+import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
+import type { Address } from "@green-goods/shared/types/domain";
+import type { HypercertRecord } from "@green-goods/shared/types/hypercerts";
+import { adminRoutes } from "@green-goods/shared/utils/navigation/admin-routes";
+import { formatDate } from "@green-goods/shared/utils/time";
 import { RiAwardLine, RiExternalLinkLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";

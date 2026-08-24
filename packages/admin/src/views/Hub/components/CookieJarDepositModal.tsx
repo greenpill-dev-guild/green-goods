@@ -1,16 +1,16 @@
+import { TxInlineFeedback } from "@green-goods/shared/components/feedback/TxInlineFeedback";
+import { TextInput } from "@green-goods/shared/components/Form/ControlPrimitives";
+import { FormField } from "@green-goods/shared/components/Form/FormFieldWrapper";
+import { useUser } from "@green-goods/shared/hooks/auth/useUser";
+import { useCookieJarDeposit } from "@green-goods/shared/hooks/cookie-jar/useCookieJarDeposit";
+import { useGardenCookieJars } from "@green-goods/shared/hooks/cookie-jar/useGardenCookieJars";
+import { useTxErrorMessages } from "@green-goods/shared/hooks/utils/useTxErrorMessages";
+import type { Address } from "@green-goods/shared/types/domain";
 import {
-  type Address,
   formatTokenAmount,
-  FormField,
   getVaultAssetSymbol,
-  TextInput,
-  TxInlineFeedback,
-  useCookieJarDeposit,
-  useGardenCookieJars,
-  useTxErrorMessages,
-  useUser,
   validateDecimalInput,
-} from "@green-goods/shared";
+} from "@green-goods/shared/utils/blockchain/vaults";
 import { AdminButton } from "@/components/AdminButton";
 import { AdminChoiceGroup } from "@/components/AdminChoiceGroup";
 import { AdminDialog } from "@/components/AdminDialog";

@@ -1,12 +1,15 @@
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { queueToasts, toastService } from "../components/toast";
-import { DEFAULT_CHAIN_ID } from "../config/blockchain";
+import { DEFAULT_CHAIN_ID } from "../config/default-chain";
 import { queryClient } from "../config/react-query";
 import { useAuth } from "../hooks/auth/useAuth";
 import { usePrimaryAddress } from "../hooks/auth/usePrimaryAddress";
 import { useTransactionSender } from "../hooks/blockchain/useTransactionSender";
-import { queryInvalidation, queryKeys } from "../config/query-keys";
-import { jobQueue, type JobQueueHandle } from "../modules/job-queue";
+import { queryInvalidation } from "../config/query-keys/invalidation";
+import { queueKeys } from "../config/query-keys/misc";
+import { approvalsKeys, workApprovalsKeys, worksKeys } from "../config/query-keys/work";
+import { jobQueue } from "../modules/job-queue/default-instance";
+import type { JobQueueHandle } from "../modules/job-queue/ports";
 import { logger } from "../modules/app/logger";
 import { useUIStore } from "../stores/useUIStore";
 import type {
@@ -187,14 +190,14 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children, queu
         // Invalidate work approvals to show the new approval
         if (currentUserAddress) {
           queryClient.invalidateQueries({
-            queryKey: queryKeys.workApprovals.byAttester(currentUserAddress, DEFAULT_CHAIN_ID),
+            queryKey: workApprovalsKeys.byAttester(currentUserAddress, DEFAULT_CHAIN_ID),
           });
         }
-        queryClient.invalidateQueries({ queryKey: queryKeys.approvals.all });
+        queryClient.invalidateQueries({ queryKey: approvalsKeys.all });
 
         // Update work status in cache if available
         const workUID = approvalPayload.workUID;
-        queryClient.setQueriesData<Work[]>({ queryKey: queryKeys.works.all }, (oldWorks) => {
+        queryClient.setQueriesData<Work[]>({ queryKey: worksKeys.all }, (oldWorks) => {
           // Defensive shape check: cached values can be undefined or
           // (rarely) a non-array if a hook stuffed something unexpected
           // into the same query-key namespace. Bail without mutating.
@@ -219,8 +222,8 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children, queu
         const workPayload = event.job.payload as WorkJobPayload;
         const gardenId = workPayload.gardenAddress;
         const chainId = (event.job.chainId as number) || DEFAULT_CHAIN_ID;
-        queryClient.invalidateQueries({ queryKey: queryKeys.works.offline(gardenId) });
-        queryClient.invalidateQueries({ queryKey: queryKeys.works.merged(gardenId, chainId) });
+        queryClient.invalidateQueries({ queryKey: worksKeys.offline(gardenId) });
+        queryClient.invalidateQueries({ queryKey: worksKeys.merged(gardenId, chainId) });
       } else if (event.job.kind === "approval") {
         queueToasts.jobFailed("approval", event.error);
       }
@@ -241,8 +244,8 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children, queu
       }
 
       // Update global counts
-      queryClient.invalidateQueries({ queryKey: queryKeys.queue.pendingCount() });
-      queryClient.invalidateQueries({ queryKey: queryKeys.queue.stats() });
+      queryClient.invalidateQueries({ queryKey: queueKeys.pendingCount() });
+      queryClient.invalidateQueries({ queryKey: queueKeys.stats() });
     };
 
     // Handler map for cleaner event routing

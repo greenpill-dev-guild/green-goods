@@ -1,6 +1,6 @@
 import type { SendableTokenBalance } from "../../hooks/blockchain/useSendableTokens";
-import type { Address } from "../../types";
-import { validateDecimalInput } from "../../utils";
+import type { Address } from "../../types/domain";
+import { validateDecimalInput } from "../../utils/blockchain/vaults";
 import type { GardenRole } from "../../utils/blockchain/garden-roles";
 import { parseUnits } from "viem";
 

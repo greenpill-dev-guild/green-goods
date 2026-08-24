@@ -1,5 +1,20 @@
 // Dependency-light public route contracts: no UI frameworks, browser globals, or package-root imports.
 
+import { derivePublicGardenSlug } from "./garden-slug";
+
+export { derivePublicGardenSlug } from "./garden-slug";
+export {
+  createPublicImpactSlice,
+  PUBLIC_IMPACT_DEFAULT_PAGE_SIZE,
+  PUBLIC_IMPACT_GARDEN_FETCH_CAP,
+  PUBLIC_IMPACT_RECORD_FETCH_CAP,
+  type PublicImpactEvidenceKind,
+  type PublicImpactEvidenceRecord,
+  type PublicImpactGardenSource,
+  type PublicImpactSlice,
+} from "./public-impact";
+export { PUBLIC_AGENT_ROUTES } from "./routes";
+
 export {
   PUBLIC_UPLOAD_SIGN_ALLOWED_CATEGORIES,
   validatePublicUploadSignRequest,
@@ -274,15 +289,6 @@ export type ThirdwebNormalizedFundingEvent = {
   occurredAt: string;
 };
 
-export const PUBLIC_AGENT_ROUTES = {
-  subscribe: "/public/subscribe",
-  fundingIntents: "/public/funding-intents",
-  fundingIntentProof: "/public/funding-intents/proof",
-  fundingIntentReceipt: "/public/funding-intents/:id",
-  uploadSign: "/api/uploads/sign",
-  thirdwebWebhook: "/webhooks/thirdweb",
-} as const;
-
 export type PublicFundingAvailabilityState = "live" | "comingSoon" | "hidden" | "disabled";
 export type PublicFundingAvailabilityReasonCode =
   | "no_destination"
@@ -522,18 +528,6 @@ export type FundGardenResolution =
       query: string;
     };
 
-export function derivePublicGardenSlug(name: string | undefined, addressOrId: string): string {
-  const fallback = addressOrId.trim().toLowerCase();
-  const trimmed = (name ?? "").trim();
-  if (!trimmed) return fallback;
-  const slugified = trimmed.toLowerCase().replace(/[^a-z0-9]+/g, "-");
-  let start = 0;
-  while (start < slugified.length && slugified.charCodeAt(start) === 45) start++;
-  let end = slugified.length;
-  while (end > start && slugified.charCodeAt(end - 1) === 45) end--;
-  return slugified.slice(start, end) || fallback;
-}
-
 export function resolveFundGardenReference(
   reference: string | undefined,
   gardens: readonly PublicGardenLookupItem[]
@@ -584,115 +578,5 @@ export function resolveFundGardenReference(
     reason: "not_found",
     messageId: "public.fund.garden.notFound",
     query,
-  };
-}
-
-export const PUBLIC_IMPACT_DEFAULT_PAGE_SIZE = 12;
-export const PUBLIC_IMPACT_GARDEN_FETCH_CAP = 50;
-export const PUBLIC_IMPACT_RECORD_FETCH_CAP = 100;
-
-export type PublicImpactGardenSource = {
-  id: string;
-  address?: string;
-  name: string;
-  location?: string;
-  latestActivityAt?: number;
-};
-
-/**
- * Tag identifying which stage of the regenerative cycle a record represents.
- *
- * Cycle order on the public Impact ledger: **Assessment → Work → Impact
- * Certificate → (next) Assessment**. The kinds let the UI filter and group
- * records by stage and show the cycle figure with honest counts per kind.
- */
-export type PublicImpactEvidenceKind = "assessment" | "work" | "certificate";
-
-export type PublicImpactEvidenceRecord = {
-  /** Namespaced id (`assessment:0x…` / `work:0x…` / `certificate:tokenId`) so
-   * records from different sources can't collide on a shared list. */
-  id: string;
-  kind: PublicImpactEvidenceKind;
-  gardenId: string;
-  gardenName: string;
-  title: string;
-  domain?: string | number;
-  summary?: string;
-  timeWindow?: { start?: number | null; end?: number | null };
-  /** Image URLs from the underlying record. Populated for `work` (EAS media)
-   * and `certificate` (Hypercert imageUri). Assessments only carry an IPFS
-   * config CID, so they fall back to the Garden image when rendered. */
-  media?: readonly string[];
-  /** EAS UID for assessment + work; absent for certificates. */
-  easUid?: string;
-  /** Hypercert id when `kind === "certificate"`. */
-  hypercertId?: string;
-  sourceAvailable: boolean;
-  createdAt: number;
-};
-
-export type PublicImpactSlice = {
-  records: PublicImpactEvidenceRecord[];
-  page: number;
-  pageSize: number;
-  totalFetchedRecords: number;
-  partialData: boolean;
-  sourceLimitReached: boolean;
-  status: "loading" | "empty" | "ready" | "partial" | "error";
-  errorCode?: "eas_unavailable";
-};
-
-export function createPublicImpactSlice(input: {
-  gardens: readonly PublicImpactGardenSource[];
-  records: readonly PublicImpactEvidenceRecord[];
-  page?: number;
-  pageSize?: number;
-  easFailed?: boolean;
-  partialData?: boolean;
-}): PublicImpactSlice {
-  const page = Math.max(1, input.page ?? 1);
-  const pageSize = Math.max(1, input.pageSize ?? PUBLIC_IMPACT_DEFAULT_PAGE_SIZE);
-  const sortedGardens = [...input.gardens].sort((left, right) => {
-    const activityDelta = (right.latestActivityAt ?? 0) - (left.latestActivityAt ?? 0);
-    if (activityDelta !== 0) return activityDelta;
-    return (left.address ?? left.id).localeCompare(right.address ?? right.id);
-  });
-  const cappedGardenIds = new Set(
-    sortedGardens.slice(0, PUBLIC_IMPACT_GARDEN_FETCH_CAP).map((garden) => garden.id)
-  );
-  const scopedRecords = input.records
-    .filter((record) => cappedGardenIds.has(record.gardenId))
-    .sort((left, right) => right.createdAt - left.createdAt)
-    .slice(0, PUBLIC_IMPACT_RECORD_FETCH_CAP);
-
-  const start = (page - 1) * pageSize;
-  const pageRecords = scopedRecords.slice(start, start + pageSize);
-  const sourceLimitReached =
-    input.gardens.length > PUBLIC_IMPACT_GARDEN_FETCH_CAP ||
-    input.records.filter((record) => cappedGardenIds.has(record.gardenId)).length >
-      PUBLIC_IMPACT_RECORD_FETCH_CAP;
-  const partialData = Boolean(input.partialData || sourceLimitReached);
-
-  if (input.easFailed) {
-    return {
-      records: pageRecords,
-      page,
-      pageSize,
-      totalFetchedRecords: scopedRecords.length,
-      partialData: true,
-      sourceLimitReached,
-      status: "error",
-      errorCode: "eas_unavailable",
-    };
-  }
-
-  return {
-    records: pageRecords,
-    page,
-    pageSize,
-    totalFetchedRecords: scopedRecords.length,
-    partialData,
-    sourceLimitReached,
-    status: scopedRecords.length === 0 ? "empty" : partialData ? "partial" : "ready",
   };
 }

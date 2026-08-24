@@ -1,21 +1,16 @@
-import {
-  cn,
-  DOMAIN_COLORS,
-  Domain,
-  GARDEN_NAME_MAX_LENGTH,
-  imageCompressor,
-  logger,
-  resolveIPFSUrl,
-  suggestSlug,
-  Textarea,
-  TextInput,
-  toastService,
-  uploadFileToIPFS,
-  useCreateGardenStore,
-  FileUploadField,
-  useSlugAvailability,
-  validateSlug,
-} from "@green-goods/shared";
+import { FileUploadField } from "@green-goods/shared/components/FileUploadField";
+import { Textarea, TextInput } from "@green-goods/shared/components/Form/ControlPrimitives";
+import { toastService } from "@green-goods/shared/components/Toast/toast.service";
+import { useSlugAvailability } from "@green-goods/shared/hooks/ens/useSlugAvailability";
+import { GARDEN_NAME_MAX_LENGTH } from "@green-goods/shared/hooks/garden/useCreateGardenForm";
+import { logger } from "@green-goods/shared/modules/app/logger";
+import { resolveIPFSUrl } from "@green-goods/shared/modules/data/ipfs/resolve";
+import { uploadFileToIPFS } from "@green-goods/shared/modules/data/ipfs/upload";
+import { useCreateGardenStore } from "@green-goods/shared/stores/useCreateGardenStore";
+import { Domain, DOMAIN_COLORS } from "@green-goods/shared/types/domain";
+import { suggestSlug, validateSlug } from "@green-goods/shared/utils/blockchain/ens";
+import { cn } from "@green-goods/shared/utils/styles/cn";
+import { imageCompressor } from "@green-goods/shared/utils/work/image-compression";
 import { RiCheckLine, RiCloseLine, RiLoader4Line } from "@remixicon/react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";

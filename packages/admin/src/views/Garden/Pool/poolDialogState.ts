@@ -1,7 +1,7 @@
 import type {
   CommitmentCycleRecord,
   PoolClaimRequestRow,
-} from "@green-goods/shared/commitment-pooling";
+} from "@green-goods/shared/modules/commitment-pooling/types-core";
 import type { PoolSetupIntent } from "./SetupFlow";
 
 /** Which setup or open flow is running, and over which cycle. */

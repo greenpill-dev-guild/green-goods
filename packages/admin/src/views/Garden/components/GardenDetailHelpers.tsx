@@ -1,15 +1,11 @@
-import {
-  Card,
-  DOMAIN_COLORS,
-  DOMAIN_LABEL_IDS,
-  type Domain,
-  expandDomainMask,
-  GardenBannerFallback,
-  ImageWithFallback,
-  resolveIPFSUrl,
-  type TabBadgeSeverity,
-  type TabBadgeState,
-} from "@green-goods/shared";
+import { Card } from "@green-goods/shared/components/Cards/CardBase";
+import { GardenBannerFallback } from "@green-goods/shared/components/Display/GardenBannerFallback";
+import { ImageWithFallback } from "@green-goods/shared/components/Display/ImageWithFallback";
+import { resolveIPFSUrl } from "@green-goods/shared/modules/data/ipfs/resolve";
+import { type Domain, DOMAIN_COLORS } from "@green-goods/shared/types/domain";
+import type { TabBadgeSeverity, TabBadgeState } from "@green-goods/shared/types/garden-detail";
+import { expandDomainMask } from "@green-goods/shared/utils/domain";
+import { DOMAIN_LABEL_IDS } from "@green-goods/shared/utils/garden-detail";
 import { AdminButton } from "@/components/AdminButton";
 import { AdminCard } from "@/components/AdminCard";
 import { AdminTooltip } from "@/components/AdminTooltip";

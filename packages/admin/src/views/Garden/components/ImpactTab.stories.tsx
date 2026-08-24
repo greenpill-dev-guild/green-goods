@@ -1,4 +1,5 @@
-import type { Address, HypercertRecord } from "@green-goods/shared";
+import type { Address } from "@green-goods/shared/types/domain";
+import type { HypercertRecord } from "@green-goods/shared/types/hypercerts";
 import type { Meta, StoryObj } from "@storybook/react";
 import { fn } from "storybook/test";
 import { daysAgo, hoursAgo } from "../../../../../shared/.storybook/fixtures";

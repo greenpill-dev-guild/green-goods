@@ -1,4 +1,4 @@
-import { type Address, type Garden } from "@green-goods/shared";
+import type { Address, Garden } from "@green-goods/shared/types/domain";
 import { parseUnits } from "viem";
 
 export const PUBLIC_COOKIE_BASE_URL = "https://greengoods.app/cookies";

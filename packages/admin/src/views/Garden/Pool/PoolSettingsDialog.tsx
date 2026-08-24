@@ -1,5 +1,8 @@
-import { Alert, logger, type PoolConsoleController, useDirtyClose } from "@green-goods/shared";
-import { isPoolDocumentPinError } from "@green-goods/shared/commitment-pooling";
+import { Alert } from "@green-goods/shared/components/Alert";
+import type { PoolConsoleController } from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
+import { useDirtyClose } from "@green-goods/shared/hooks/admin-ui/useDirtyClose";
+import { logger } from "@green-goods/shared/modules/app/logger";
+import { isPoolDocumentPinError } from "@green-goods/shared/modules/commitment-pooling/pool-charter";
 import { useEffect, useId, useState } from "react";
 import { useIntl } from "react-intl";
 import { AdminButton } from "@/components/AdminButton";

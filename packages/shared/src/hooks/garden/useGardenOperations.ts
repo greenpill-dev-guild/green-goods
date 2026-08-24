@@ -10,11 +10,11 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { useAccount, useWalletClient } from "wagmi";
-import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
+import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import type { Garden } from "../../types/domain";
 import type { GardenRole } from "../../utils/blockchain/garden-roles";
 import { useToastAction } from "../app/useToastAction";
-import { queryKeys } from "../../config/query-keys";
+import { gardensKeys } from "../../config/query-keys/garden";
 import {
   createGardenOperation,
   GARDEN_OPERATIONS,
@@ -116,7 +116,7 @@ export function useGardenOperations(gardenId: string) {
   // Create optimistic update callback that modifies the cache
   const createOptimisticCallback = useCallback(
     (): OptimisticUpdateCallback => (update) => {
-      const queryKey = queryKeys.gardens.byChain(chainId);
+      const queryKey = gardensKeys.byChain(chainId);
 
       // Get current cache data
       const previousData = queryClient.getQueryData<Garden[]>(queryKey);
@@ -140,7 +140,7 @@ export function useGardenOperations(gardenId: string) {
   // Rollback optimistic update on failure
   const rollbackOptimisticUpdate = useCallback(
     (memberType: GardenRole, operationType: "add" | "remove", targetAddress: string) => {
-      const queryKey = queryKeys.gardens.byChain(chainId);
+      const queryKey = gardensKeys.byChain(chainId);
       const currentData = queryClient.getQueryData<Garden[]>(queryKey);
       if (!currentData) return;
 

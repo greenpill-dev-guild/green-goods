@@ -1,4 +1,4 @@
-import { cn } from "@green-goods/shared";
+import { cn } from "@green-goods/shared/utils/styles/cn";
 import { RiCheckLine } from "@remixicon/react";
 import * as React from "react";
 import type { ReactNode } from "react";

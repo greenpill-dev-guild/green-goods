@@ -1,4 +1,4 @@
-import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
+import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import { isGardenHiddenEverywhere } from "../../config/garden-visibility";
 import {
   type Action,
@@ -20,7 +20,7 @@ import { defaultTemplate, instructionTemplates } from "../../utils/action/templa
 import { logger } from "../app/logger";
 import { greenGoodsGraphQL } from "./graphql";
 import { greenGoodsIndexer, type GraphQLReader } from "./graphql-client";
-import { getFileByHash, resolveIPFSUrl } from "./ipfs";
+import { getFileByHash, resolveIPFSUrl } from "./ipfs/resolve";
 
 const ACTION_INSTRUCTIONS_TIMEOUT_MS = 5_000;
 

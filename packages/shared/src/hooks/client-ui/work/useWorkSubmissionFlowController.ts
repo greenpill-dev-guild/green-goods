@@ -1,21 +1,18 @@
-import {
-  findActionByUID,
-  logger,
-  parseContractError,
-  toastService,
-  track,
-  useAudioRecording,
-  useDraftAutoSave,
-  useDraftResume,
-  useJoinGarden,
-  useOffline,
-  useTimeout,
-  useUser,
-  useWorkFlowStore,
-  useWorkFormContext,
-  useWorkSelection,
-  WorkTab,
-} from "@green-goods/shared";
+import { toastService } from "../../../components/Toast/toast.service";
+import { logger } from "../../../modules/app/logger";
+import { track } from "../../../modules/app/posthog";
+import { useWorkFormContext, useWorkSelection } from "../../../providers/Work";
+import { useWorkFlowStore } from "../../../stores/useWorkFlowStore";
+import { WorkTab } from "../../../stores/workFlowTypes";
+import { findActionByUID } from "../../../utils/action/parsers";
+import { parseContractError } from "../../../utils/errors/contract-errors";
+import { useOffline } from "../../app/useOffline";
+import { useUser } from "../../auth/useUser";
+import { useJoinGarden } from "../../garden/useJoinGarden";
+import { useAudioRecording } from "../../utils/useAudioRecording";
+import { useTimeout } from "../../utils/useTimeout";
+import { useDraftAutoSave } from "../../work/useDraftAutoSave";
+import { useDraftResume } from "../../work/useDraftResume";
 import { useCallback, useEffect, useMemo } from "react";
 import { useIntl } from "react-intl";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";

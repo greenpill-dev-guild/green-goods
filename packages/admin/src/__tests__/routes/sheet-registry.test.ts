@@ -10,7 +10,7 @@ import {
   toActionEditContentId,
   toHistoryContentId,
   toWorkDetailContentId,
-} from "@green-goods/shared";
+} from "@green-goods/shared/hooks/admin-ui/navigation/sheetRegistry";
 
 describe("admin sheet registry", () => {
   it("registers global right sheet content", () => {

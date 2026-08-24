@@ -1,4 +1,4 @@
-import type { GardenRole } from "@green-goods/shared";
+import type { GardenRole } from "@green-goods/shared/utils/blockchain/garden-roles";
 import {
   RiCheckboxCircleLine,
   RiGroupLine,

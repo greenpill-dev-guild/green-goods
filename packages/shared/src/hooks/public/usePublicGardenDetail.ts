@@ -32,9 +32,10 @@
 
 import { useQuery } from "@tanstack/react-query";
 
-import { DEFAULT_CHAIN_ID, getEASConfig } from "../../config/blockchain";
+import { getEASConfig } from "../../config/blockchain";
+import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import { isGardenPubliclyVisible } from "../../config/garden-visibility";
-import { queryKeys } from "../../config/query-keys";
+import { publicKeys } from "../../config/query-keys/public";
 import { STALE_TIME_RARE } from "../../config/query-keys/constants";
 import { logger } from "../../modules/app/logger";
 import { getGardenAssessments, getWorks } from "../../modules/data/eas";
@@ -115,7 +116,7 @@ export function usePublicGardenDetail(
   const lookup = slugOrAddress?.trim().toLowerCase() ?? "";
 
   return useQuery({
-    queryKey: queryKeys.public.gardenDetail(lookup || "none", chainId),
+    queryKey: publicKeys.gardenDetail(lookup || "none", chainId),
     enabled: lookup.length > 0,
     queryFn: async (): Promise<PublicGardenDetail> => {
       // Resolve against the public set only. Without this, a garden curated

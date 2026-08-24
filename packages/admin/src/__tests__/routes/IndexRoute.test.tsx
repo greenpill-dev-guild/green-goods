@@ -49,39 +49,41 @@ vi.mock("@/components/Shell", () => ({
   ),
 }));
 
-vi.mock("@green-goods/shared", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@green-goods/shared")>();
-  return {
-    ...actual,
-    useAuth: () => mockAuthState.current,
-    useEligibleAdminGardens: () => mockEligibleAdminGardens.current,
-    useAdminAccessState: () => {
-      const auth = mockAuthState.current;
-      const eligible = mockEligibleAdminGardens.current;
-      if (!auth.isReady || (auth.isAuthenticated && !eligible.isLoaded)) {
-        return { status: "checking" };
-      }
-      if (auth.authMode === "embedded") {
-        return { status: "embedded-wallet", signOut: auth.signOut };
-      }
-      if (!auth.isAuthenticated || !auth.eoaAddress) {
-        return { status: "disconnected" };
-      }
-      if (eligible.eligibleGardens.length > 0) {
-        return {
-          status: "ready",
-          eligibleGardens: eligible.eligibleGardens,
-          resolvedDefaultGarden: eligible.resolvedDefaultGarden,
-          hasStaleBaseList: eligible.hasStaleBaseList,
-        };
-      }
-      if (eligible.isError) {
-        return { status: "indexer-error" };
-      }
-      return { status: "no-access", canCreateGarden: eligible.canCreateGarden };
-    },
-  };
-});
+vi.mock("@green-goods/shared/hooks/admin-ui/useAdminAccessState", () => ({
+  useAdminAccessState: () => {
+    const auth = mockAuthState.current;
+    const eligible = mockEligibleAdminGardens.current;
+    if (!auth.isReady || (auth.isAuthenticated && !eligible.isLoaded)) {
+      return { status: "checking" };
+    }
+    if (auth.authMode === "embedded") {
+      return { status: "embedded-wallet", signOut: auth.signOut };
+    }
+    if (!auth.isAuthenticated || !auth.eoaAddress) {
+      return { status: "disconnected" };
+    }
+    if (eligible.eligibleGardens.length > 0) {
+      return {
+        status: "ready",
+        eligibleGardens: eligible.eligibleGardens,
+        resolvedDefaultGarden: eligible.resolvedDefaultGarden,
+        hasStaleBaseList: eligible.hasStaleBaseList,
+      };
+    }
+    if (eligible.isError) {
+      return { status: "indexer-error" };
+    }
+    return { status: "no-access", canCreateGarden: eligible.canCreateGarden };
+  },
+}));
+
+vi.mock("@green-goods/shared/hooks/auth/useAuth", () => ({
+  useAuth: () => mockAuthState.current,
+}));
+
+vi.mock("@green-goods/shared/hooks/garden/useEligibleAdminGardens", () => ({
+  useEligibleAdminGardens: () => mockEligibleAdminGardens.current,
+}));
 
 vi.mock("react-router-dom", async (importOriginal) => {
   const actual = await importOriginal<typeof import("react-router-dom")>();

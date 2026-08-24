@@ -69,77 +69,100 @@ vi.mock("@/components/Shell", () => ({
   ),
 }));
 
-vi.mock("@green-goods/shared", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@green-goods/shared")>();
-  return {
-    ...actual,
-    cn: (...args: unknown[]) => args.filter(Boolean).join(" "),
-    Button: (props: React.ButtonHTMLAttributes<HTMLButtonElement>) => <button {...props} />,
-    GardenChip: () => <div>Garden Chip</div>,
-    useAdminStore: (selector: (state: any) => unknown) =>
-      selector({
-        selectedGarden: null,
-        setSelectedGarden: vi.fn(),
-      }),
-    useAuth: () => ({
-      isAuthenticated: true,
-      eoaAddress: "0x1234567890123456789012345678901234567890",
-      isReady: true,
-      authMode: "wallet",
-      signOut: vi.fn(),
-    }),
-    useEligibleAdminGardens: () => mockEligibleAdminGardens.current,
-    // CanvasLayout also calls useAdminGardenWorkspaceSelection directly
-    // (independent of useEligibleAdminGardens above) — unstubbed, it falls
-    // through to the real hook, which chains into useAdminGardenContext ->
-    // usePrimaryAddress -> wagmi's useAccount(), and this test has no
-    // WagmiProvider.
-    useAdminGardenWorkspaceSelection: () => ({
-      eligibleGardens: mockEligibleAdminGardens.current.eligibleGardens,
-      selectedGarden: mockEligibleAdminGardens.current.resolvedDefaultGarden,
+vi.mock("@green-goods/shared/components/Button", () => ({
+  Button: (props: React.ButtonHTMLAttributes<HTMLButtonElement>) => <button {...props} />,
+}));
+
+vi.mock("@green-goods/shared/components/Canvas/GardenChip", () => ({
+  GardenChip: () => <div>Garden Chip</div>,
+}));
+
+vi.mock("@green-goods/shared/hooks/admin-ui/useAdminAccessState", () => ({
+  useAdminAccessState: () => {
+    const eligible = mockEligibleAdminGardens.current;
+    if (!eligible.isLoaded) {
+      return { status: "checking" };
+    }
+    if (eligible.eligibleGardens.length > 0) {
+      return {
+        status: "ready",
+        eligibleGardens: eligible.eligibleGardens,
+        resolvedDefaultGarden: eligible.resolvedDefaultGarden,
+        hasStaleBaseList: false,
+      };
+    }
+    return { status: "no-access", canCreateGarden: eligible.canCreateGarden };
+  },
+}));
+
+vi.mock("@green-goods/shared/hooks/auth/useAuth", () => ({
+  useAuth: () => ({
+    isAuthenticated: true,
+    eoaAddress: "0x1234567890123456789012345678901234567890",
+    isReady: true,
+    authMode: "wallet",
+    signOut: vi.fn(),
+  }),
+}));
+
+vi.mock("@green-goods/shared/hooks/garden/useAdminGardenWorkspaceSelection", () => ({
+  // CanvasLayout also calls useAdminGardenWorkspaceSelection directly
+  // (independent of useEligibleAdminGardens above) — unstubbed, it falls
+  // through to the real hook, which chains into useAdminGardenContext ->
+  // usePrimaryAddress -> wagmi's useAccount(), and this test has no
+  // WagmiProvider.
+  useAdminGardenWorkspaceSelection: () => ({
+    eligibleGardens: mockEligibleAdminGardens.current.eligibleGardens,
+    selectedGarden: mockEligibleAdminGardens.current.resolvedDefaultGarden,
+    setSelectedGarden: vi.fn(),
+    gardenOptions: mockEligibleAdminGardens.current.eligibleGardens.map((g) => ({
+      id: g.id,
+      name: g.name,
+      location: g.location,
+    })),
+    handleSelectGarden: vi.fn(),
+  }),
+}));
+
+vi.mock("@green-goods/shared/hooks/garden/useEligibleAdminGardens", () => ({
+  useEligibleAdminGardens: () => mockEligibleAdminGardens.current,
+}));
+
+vi.mock("@green-goods/shared/hooks/navigation/useGardenUrlSync", () => ({
+  useGardenUrlSync: () => ({
+    gardenId: null,
+    tab: null,
+    item: null,
+    setGarden: vi.fn(),
+    setTab: vi.fn(),
+    setFilter: vi.fn(),
+    openItem: vi.fn(),
+    closeItem: vi.fn(),
+  }),
+}));
+
+vi.mock("@green-goods/shared/hooks/roles/useEffectiveToolbarPermissions", () => ({
+  useEffectiveToolbarPermissions: () => ({
+    showWork: true,
+    showGarden: true,
+    showCommunity: true,
+    showActions: true,
+    isLoading: false,
+  }),
+}));
+
+vi.mock("@green-goods/shared/stores/useAdminStore", () => ({
+  useAdminStore: (selector: (state: any) => unknown) =>
+    selector({
+      selectedGarden: null,
       setSelectedGarden: vi.fn(),
-      gardenOptions: mockEligibleAdminGardens.current.eligibleGardens.map((g) => ({
-        id: g.id,
-        name: g.name,
-        location: g.location,
-      })),
-      handleSelectGarden: vi.fn(),
     }),
-    useAdminAccessState: () => {
-      const eligible = mockEligibleAdminGardens.current;
-      if (!eligible.isLoaded) {
-        return { status: "checking" };
-      }
-      if (eligible.eligibleGardens.length > 0) {
-        return {
-          status: "ready",
-          eligibleGardens: eligible.eligibleGardens,
-          resolvedDefaultGarden: eligible.resolvedDefaultGarden,
-          hasStaleBaseList: false,
-        };
-      }
-      return { status: "no-access", canCreateGarden: eligible.canCreateGarden };
-    },
-    useEffectiveToolbarPermissions: () => ({
-      showWork: true,
-      showGarden: true,
-      showCommunity: true,
-      showActions: true,
-      isLoading: false,
-    }),
-    useGardenUrlSync: () => ({
-      gardenId: null,
-      tab: null,
-      item: null,
-      setGarden: vi.fn(),
-      setTab: vi.fn(),
-      setFilter: vi.fn(),
-      openItem: vi.fn(),
-      closeItem: vi.fn(),
-    }),
-    useStaleGardenGuard: vi.fn(),
-  };
-});
+  useStaleGardenGuard: vi.fn(),
+}));
+
+vi.mock("@green-goods/shared/utils/styles/cn", () => ({
+  cn: (...args: unknown[]) => args.filter(Boolean).join(" "),
+}));
 
 vi.mock("../../../../shared/src/hooks/auth/useAuth", () => ({
   useAuth: () => ({
@@ -174,7 +197,7 @@ vi.mock("../../../../shared/src/hooks/roles/useEffectiveToolbarPermissions", () 
   }),
 }));
 
-vi.mock("@green-goods/shared/profile-avatar", () => ({
+vi.mock("@green-goods/shared/hooks/profile/useProfileAvatar", () => ({
   useResolvedProfileAvatar: () => ({
     avatarUri: null,
     error: null,

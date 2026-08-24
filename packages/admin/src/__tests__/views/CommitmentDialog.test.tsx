@@ -2,15 +2,16 @@
  * @vitest-environment jsdom
  */
 
-import { type CommitmentDialogController } from "@green-goods/shared";
-import { type CommitmentReadModel } from "@green-goods/shared/commitment-pooling";
+import type { CommitmentDialogController } from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
 import {
   availableCapability,
   commitmentDetailFixture,
-  commitmentDialogControllerFixture,
   commitmentFixture,
   contributorFixture,
-} from "@green-goods/shared/testing";
+} from "@green-goods/shared/__tests__/test-utils/commitment-pooling-fixtures";
+import { commitmentDialogControllerFixture } from "@green-goods/shared/__tests__/test-utils/controller-fixtures";
+import type { CommitmentReadModel } from "@green-goods/shared/modules/commitment-pooling/types-core";
+
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, renderWithProviders, screen, waitFor, within } from "../test-utils";
 
@@ -23,15 +24,9 @@ const mocks = vi.hoisted(() => ({
   navigate: vi.fn(),
 }));
 
-vi.mock("@green-goods/shared", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@green-goods/shared")>();
-  const { createSharedBarrelMock } = await import("@green-goods/shared/testing");
-  return createSharedBarrelMock(
-    actual,
-    { useCommitmentDialogController: () => mocks.controller! },
-    { defaults: false }
-  );
-});
+vi.mock("@green-goods/shared/hooks/admin-ui/pool/useCommitmentDialogController", () => ({
+  useCommitmentDialogController: () => mocks.controller!,
+}));
 
 vi.mock("react-router-dom", async (importOriginal) => {
   const actual = await importOriginal<typeof import("react-router-dom")>();

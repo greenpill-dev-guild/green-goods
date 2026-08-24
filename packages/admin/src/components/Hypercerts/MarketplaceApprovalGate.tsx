@@ -1,4 +1,6 @@
-import { Alert, getMarketplaceReadiness, useMarketplaceApprovals } from "@green-goods/shared";
+import { Alert } from "@green-goods/shared/components/Alert";
+import { useMarketplaceApprovals } from "@green-goods/shared/hooks/hypercerts/useMarketplaceApprovals";
+import { getMarketplaceReadiness } from "@green-goods/shared/utils/blockchain/contracts";
 import { RiAlertLine, RiCheckLine, RiLoader4Line, RiShieldCheckLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { AdminButton } from "../AdminButton";

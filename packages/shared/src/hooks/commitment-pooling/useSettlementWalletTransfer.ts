@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
-import { queryKeys } from "../../config/query-keys";
+import { commitmentPoolingKeys } from "../../config/query-keys/commitment-pooling";
 import { isGardenerDeliveryEnabled } from "../../modules/commitment-pooling/account-profiles";
 import type { Address } from "../../types/domain";
 import { parseContractError } from "../../utils/errors/contract-errors";
@@ -66,7 +66,7 @@ export function useSettlementWalletTransfer(options: {
     },
     onSuccess: async () => {
       await queryClient.invalidateQueries({
-        queryKey: queryKeys.commitmentPooling.settlementConfiguration(options.chainId),
+        queryKey: commitmentPoolingKeys.settlementConfiguration(options.chainId),
       });
     },
     onError: (error, input) => {

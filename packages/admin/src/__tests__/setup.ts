@@ -32,7 +32,7 @@ if (typeof Element !== "undefined") Element.prototype.scrollIntoView = vi.fn();
 import "@green-goods/shared/__tests__/setupTests.base";
 
 // Import MSW server for GraphQL mocking
-import { server } from "@green-goods/shared/mocks";
+import { server } from "@green-goods/shared/__mocks__/server/server";
 
 // Admin-specific: Start MSW server for API mocking
 beforeAll(() => {

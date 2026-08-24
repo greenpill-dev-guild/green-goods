@@ -11,7 +11,7 @@
 
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { resolveAdminIndexRedirect } from "@green-goods/shared";
+import { resolveAdminIndexRedirect } from "@green-goods/shared/hooks/admin-ui/navigation/workspaceNavigation";
 import { describe, expect, it } from "vitest";
 
 const srcDir = resolve(__dirname, "../../");

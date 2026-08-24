@@ -3,7 +3,7 @@ import {
   type CommitmentAllocationBps,
   type CommitmentRecognitionPolicyBps,
   isValidCycleSplit,
-} from "@green-goods/shared/commitment-pooling";
+} from "@green-goods/shared/modules/commitment-pooling/pool-lifecycle";
 import { RiCheckLine, RiErrorWarningLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { AdminChoiceGroup } from "@/components/AdminChoiceGroup";

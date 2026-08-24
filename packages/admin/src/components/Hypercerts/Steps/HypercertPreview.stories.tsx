@@ -1,12 +1,11 @@
+import { TOTAL_UNITS } from "@green-goods/shared/lib/hypercerts/constants";
 import {
   type Address,
-  type AllowlistEntry,
   CynefinPhase,
   Domain,
   type GardenAssessment,
-  type HypercertMetadata,
-  TOTAL_UNITS,
-} from "@green-goods/shared";
+} from "@green-goods/shared/types/domain";
+import type { AllowlistEntry, HypercertMetadata } from "@green-goods/shared/types/hypercerts";
 import type { Meta, StoryObj } from "@storybook/react";
 import { fn } from "storybook/test";
 import { withRouter } from "../../../../../shared/.storybook/decorators";

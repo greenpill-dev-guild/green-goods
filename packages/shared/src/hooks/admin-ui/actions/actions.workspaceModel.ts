@@ -1,4 +1,4 @@
-import { adminRoutes } from "@green-goods/shared";
+import { adminRoutes } from "../../../utils/navigation/admin-routes";
 import {
   ACTION_CREATE_CONTENT_ID,
   decodePathSegment,
@@ -6,7 +6,7 @@ import {
   toActionEditContentId,
 } from "../navigation/sheetRegistry";
 import { getActionLifecycleState, getActionsListSearch } from "./actions.utils";
-import type { Action } from "../../../types";
+import type { Action } from "../../../types/domain";
 import { localizeAction } from "../../../utils/action/translations";
 
 export function deriveActionDetailModel(action: Action, locale?: string) {

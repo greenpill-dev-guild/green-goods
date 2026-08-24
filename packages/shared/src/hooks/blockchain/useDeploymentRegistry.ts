@@ -1,7 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { createPublicClient, http } from "viem";
 import { useAccount } from "wagmi";
-import { DEFAULT_CHAIN_ID, getNetworkConfig } from "../../config/blockchain";
+import { getNetworkConfig } from "../../config/blockchain";
+import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import { STALE_TIMES } from "../../config/react-query";
 import { logger } from "../../modules/app/logger";
 import { useAuthContext } from "../../providers/Auth";
@@ -9,8 +10,8 @@ import { type AdminState, useAdminStore } from "../../stores/useAdminStore";
 import type { Address } from "../../types/domain";
 import { compareAddresses, isZeroAddress } from "../../utils/blockchain/address";
 import { getChain, getNetworkContracts } from "../../utils/blockchain/contracts";
-import { queryKeys } from "../../config/query-keys";
-import { DEPLOYMENT_REGISTRY_ABI } from "../../utils/blockchain/abis";
+import { roleKeys } from "../../config/query-keys/identity";
+import { DEPLOYMENT_REGISTRY_ABI } from "../../utils/blockchain/abis/deployment-registry";
 
 export { DEPLOYMENT_REGISTRY_ABI };
 
@@ -89,7 +90,7 @@ export function useDeploymentRegistry(): DeploymentRegistryPermissions {
   const chainId = selectedChainId || DEFAULT_CHAIN_ID;
 
   const { data, isLoading, error } = useQuery({
-    queryKey: queryKeys.role.deploymentPermissions(normalizedAddress ?? undefined, chainId),
+    queryKey: roleKeys.deploymentPermissions(normalizedAddress ?? undefined, chainId),
     queryFn: () => fetchDeploymentPermissions(normalizedAddress!, chainId),
     enabled: !!normalizedAddress && ready,
     staleTime: STALE_TIMES.baseLists,
@@ -142,7 +143,7 @@ export function useDeploymentAllowlist(enabled: boolean): DeploymentAllowlistRes
   const chainId = selectedChainId || DEFAULT_CHAIN_ID;
 
   const { data, isLoading, error } = useQuery({
-    queryKey: queryKeys.role.allowlist(chainId),
+    queryKey: roleKeys.allowlist(chainId),
     queryFn: () => fetchDeploymentAllowlist(chainId),
     enabled,
     staleTime: STALE_TIMES.baseLists,

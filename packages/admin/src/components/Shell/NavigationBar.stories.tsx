@@ -1,7 +1,7 @@
 import { RiAppsLine, RiHammerLine, RiSeedlingLine, RiTeamLine } from "@remixicon/react";
 import type { Meta, StoryObj } from "@storybook/react";
 import { expect, fn, userEvent, within } from "storybook/test";
-import type { ToolbarSlot } from "@green-goods/shared";
+import type { ToolbarSlot } from "@green-goods/shared/components/Canvas/NavigationBar";
 import { withCanvasFrame } from "../../../../shared/.storybook/decorators";
 import { NavigationBar } from "./NavigationBar";
 

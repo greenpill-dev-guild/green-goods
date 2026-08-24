@@ -1,12 +1,14 @@
 import {
+  WorkCard as SharedWorkCard,
+  type WorkCardData,
+} from "@green-goods/shared/components/Cards/WorkCard/WorkCard";
+import { useEnsName } from "@green-goods/shared/hooks/blockchain/useEnsName";
+import { resolveIPFSUrl } from "@green-goods/shared/modules/data/ipfs/resolve";
+import type { Work } from "@green-goods/shared/types/domain";
+import {
   type AdminHubRouteContext,
   adminRoutes,
-  resolveIPFSUrl,
-  useEnsName,
-  WorkCardComponent as SharedWorkCard,
-  type WorkCardData,
-  type Work,
-} from "@green-goods/shared";
+} from "@green-goods/shared/utils/navigation/admin-routes";
 import { RiCheckboxCircleLine, RiCloseLine } from "@remixicon/react";
 import type React from "react";
 import { useIntl } from "react-intl";

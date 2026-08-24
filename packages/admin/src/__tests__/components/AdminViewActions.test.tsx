@@ -1,4 +1,4 @@
-import type { ViewAction } from "@green-goods/shared";
+import type { ViewAction } from "@green-goods/shared/components/Canvas/viewActions.types";
 import { RiHandCoinLine, RiUserAddLine } from "@remixicon/react";
 import { render, screen } from "@testing-library/react";
 import { IntlProvider } from "react-intl";

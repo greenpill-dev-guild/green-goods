@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useState } from "react";
-import { DEFAULT_CHAIN_ID } from "../../../config/blockchain";
-import { jobQueue } from "../../../modules/job-queue";
+import { DEFAULT_CHAIN_ID } from "../../../config/default-chain";
+import { jobQueue } from "../../../modules/job-queue/default-instance";
 import { useJobQueue } from "../../../providers/JobQueue";
 import type { Address } from "../../../types/domain";
 import { useOffline } from "../../app/useOffline";

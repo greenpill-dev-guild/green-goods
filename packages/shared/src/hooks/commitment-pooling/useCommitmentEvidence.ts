@@ -15,7 +15,7 @@
 import { useQueries } from "@tanstack/react-query";
 import { useMemo } from "react";
 
-import { queryKeys } from "../../config/query-keys";
+import { commitmentPoolingKeys } from "../../config/query-keys/commitment-pooling";
 import {
   commitmentDocumentStore,
   type CommitmentDocumentStore,
@@ -79,7 +79,7 @@ export function useCommitmentEvidence(
 
   const results = useQueries({
     queries: rows.map((row) => ({
-      queryKey: queryKeys.commitmentPooling.evidence(row.cid),
+      queryKey: commitmentPoolingKeys.evidence(row.cid),
       queryFn: async () => parseCommitmentEvidenceDocument(await documents.readJson(row.cid)),
       staleTime: IMMUTABLE,
       gcTime: IMMUTABLE,

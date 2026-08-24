@@ -1,4 +1,6 @@
-import { type Address, type CommunityWorkspace, selectAllocationSplits } from "@green-goods/shared";
+import { selectAllocationSplits } from "@green-goods/shared/hooks/admin-ui/community/community.utils";
+import type { CommunityWorkspace } from "@green-goods/shared/hooks/admin-ui/community/useCommunityWorkspaceController";
+import type { Address } from "@green-goods/shared/types/domain";
 import { useIntl } from "react-intl";
 import { AdminCard } from "@/components/AdminCard";
 import { CookieJarPayoutPanel } from "@/views/Hub/components/CookieJarPayoutPanel";

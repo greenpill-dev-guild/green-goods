@@ -31,7 +31,7 @@ vi.mock("../../../hooks/roles/useHasRole", () => ({
 vi.mock("../../../providers/JobQueue", () => ({
   useJobQueue: () => ({ flush: mocks.flush }),
 }));
-vi.mock("../../../modules/job-queue", () => ({
+vi.mock("../../../modules/job-queue/default-instance", () => ({
   jobQueue: { retryJob: mocks.retryJob, discardJob: mocks.discardJob },
 }));
 vi.mock("../../../commitment-pooling", async (importOriginal) => ({

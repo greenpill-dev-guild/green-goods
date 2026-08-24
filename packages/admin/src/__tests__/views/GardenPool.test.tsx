@@ -2,19 +2,23 @@
  * @vitest-environment jsdom
  */
 
-import { type PoolConsoleActs, type PoolConsoleController } from "@green-goods/shared";
-import {
-  type CommitmentCycleRecord,
-  type CommitmentPoolRecord,
-  type CommitmentReadModel,
-  selectPoolConsoleModel,
-} from "@green-goods/shared/commitment-pooling";
+import type {
+  PoolConsoleActs,
+  PoolConsoleController,
+} from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
 import {
   commitmentFixture,
   cycleFixture,
-  poolConsoleControllerFixture,
   poolFixture,
-} from "@green-goods/shared/testing";
+} from "@green-goods/shared/__tests__/test-utils/commitment-pooling-fixtures";
+import { poolConsoleControllerFixture } from "@green-goods/shared/__tests__/test-utils/controller-fixtures";
+import { selectPoolConsoleModel } from "@green-goods/shared/modules/commitment-pooling/pool-console";
+import type {
+  CommitmentCycleRecord,
+  CommitmentPoolRecord,
+  CommitmentReadModel,
+} from "@green-goods/shared/modules/commitment-pooling/types-core";
+
 import { createMemoryRouter, RouterProvider } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, renderWithProviders, screen, waitFor, within } from "../test-utils";
@@ -22,7 +26,8 @@ import { fireEvent, renderWithProviders, screen, waitFor, within } from "../test
 const GARDEN = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" as const;
 const CLAIMANT = "0x2222222222222222222222222222222222222222" as const;
 
-type SharedModule = typeof import("@green-goods/shared");
+type GardenWorkspaceModule =
+  typeof import("@green-goods/shared/hooks/admin-ui/garden/useGardenWorkspaceController");
 
 const mocks = vi.hoisted(() => ({
   controller: null as PoolConsoleController | null,
@@ -30,20 +35,18 @@ const mocks = vi.hoisted(() => ({
   navigate: vi.fn(),
 }));
 
-vi.mock("@green-goods/shared", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@green-goods/shared")>();
-  const { createSharedBarrelMock } = await import("@green-goods/shared/testing");
-  return createSharedBarrelMock(
-    actual,
-    {
-      usePoolConsoleController: () => mocks.controller!,
-      useGardenWorkspaceController: (() =>
-        mocks.gardenController!) as unknown as SharedModule["useGardenWorkspaceController"],
-      useMediaQuery: () => true,
-    },
-    { defaults: false }
-  );
-});
+vi.mock("@green-goods/shared/hooks/admin-ui/garden/useGardenWorkspaceController", () => ({
+  useGardenWorkspaceController: (() =>
+    mocks.gardenController!) as unknown as GardenWorkspaceModule["useGardenWorkspaceController"],
+}));
+
+vi.mock("@green-goods/shared/hooks/admin-ui/pool/usePoolConsoleController", () => ({
+  usePoolConsoleController: () => mocks.controller!,
+}));
+
+vi.mock("@green-goods/shared/hooks/ui/useMediaQuery", () => ({
+  useMediaQuery: () => true,
+}));
 
 vi.mock("react-router-dom", async (importOriginal) => {
   const actual = await importOriginal<typeof import("react-router-dom")>();

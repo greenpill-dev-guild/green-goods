@@ -1,6 +1,6 @@
 import { RiImageLine } from "@remixicon/react";
 import React, { useEffect, useRef, useState } from "react";
-import { getIPFSFallbackGateways } from "../../modules/data/ipfs";
+import { getIPFSFallbackGateways } from "../../modules/data/ipfs/resolve";
 import { cn } from "../../utils/styles/cn";
 
 /**

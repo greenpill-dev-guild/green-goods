@@ -1,4 +1,4 @@
-import { type Action, Domain } from "@green-goods/shared";
+import { type Action, Domain } from "@green-goods/shared/types/domain";
 import type { Meta, StoryObj } from "@storybook/react";
 import { SubmitWorkReview } from "./SubmitWorkReview";
 

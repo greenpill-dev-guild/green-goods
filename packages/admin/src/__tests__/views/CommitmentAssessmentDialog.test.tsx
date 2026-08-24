@@ -1,7 +1,7 @@
 /** @vitest-environment jsdom */
 
-import type { CommitmentDialogController } from "@green-goods/shared";
-import { commitmentDialogControllerFixture } from "@green-goods/shared/testing";
+import type { CommitmentDialogController } from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
+import { commitmentDialogControllerFixture } from "@green-goods/shared/__tests__/test-utils/controller-fixtures";
 import { describe, expect, it, vi } from "vitest";
 import { CommitmentAssessmentDialog } from "@/views/Garden/Pool/CommitmentDialog/CommitmentAssessmentDialog";
 import { fireEvent, renderWithProviders, screen, waitFor } from "../test-utils";

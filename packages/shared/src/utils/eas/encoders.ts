@@ -1,7 +1,7 @@
 import { SchemaEncoder } from "@ethereum-attestation-service/eas-sdk";
 import { getEASConfig } from "../../config/blockchain";
 import { trackUploadBatchProgress, trackUploadError } from "../../modules/app/error-tracking";
-import { uploadFileToIPFS, uploadJSONToIPFS } from "../../modules/data/ipfs";
+import { uploadFileToIPFS, uploadJSONToIPFS } from "../../modules/data/ipfs/upload";
 import type { Domain, WorkApprovalDraft, WorkDraft, WorkMetadata } from "../../types/domain";
 
 /**

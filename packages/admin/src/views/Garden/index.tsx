@@ -1,9 +1,7 @@
-import {
-  buildGardenHeaderStats,
-  MetaStrip,
-  useGardenWorkspaceController,
-  useMediaQuery,
-} from "@green-goods/shared";
+import { MetaStrip } from "@green-goods/shared/components/Canvas/MetaStrip";
+import { buildGardenHeaderStats } from "@green-goods/shared/hooks/admin-ui/garden/garden.utils";
+import { useGardenWorkspaceController } from "@green-goods/shared/hooks/admin-ui/garden/useGardenWorkspaceController";
+import { useMediaQuery } from "@green-goods/shared/hooks/ui/useMediaQuery";
 import { useMemo } from "react";
 import { AdminTabRail } from "@/components/AdminTabRail";
 import { AdminViewActions } from "@/components/AdminViewActions";

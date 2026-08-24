@@ -1,21 +1,19 @@
-import {
-  type Address,
-  Alert,
-  logger,
-  useActions,
-  useDirtyClose,
-  usePoolConsoleController,
-  useStepFocus,
-} from "@green-goods/shared";
+import { Alert } from "@green-goods/shared/components/Alert";
+import { usePoolConsoleController } from "@green-goods/shared/hooks/admin-ui/pool/usePoolConsoleController";
+import { useDirtyClose } from "@green-goods/shared/hooks/admin-ui/useDirtyClose";
+import { useActions } from "@green-goods/shared/hooks/blockchain/useBaseLists";
+import { useStepFocus } from "@green-goods/shared/hooks/utils/useStepFocus";
+import { logger } from "@green-goods/shared/modules/app/logger";
+import type { Address } from "@green-goods/shared/types/domain";
 import {
   buildCommitmentCreationPayload,
   commitmentComposerSchema,
   useCommitmentComposerForm,
   useCommitmentComposerSession,
-  useCommitmentJobs,
-  useProtocolPool,
-  useSettlementAccount,
-} from "@green-goods/shared/commitment-pooling";
+} from "@green-goods/shared/hooks/commitment-pooling/useCommitmentComposerForm";
+import { useCommitmentJobs } from "@green-goods/shared/hooks/commitment-pooling/useCommitmentJobs";
+import { useProtocolPool } from "@green-goods/shared/hooks/commitment-pooling/useProtocolPool";
+import { useSettlementAccount } from "@green-goods/shared/hooks/commitment-pooling/useSettlementQueries";
 import { type ReactNode, useCallback, useId, useMemo, useState } from "react";
 import { useFieldArray } from "react-hook-form";
 import { useIntl } from "react-intl";

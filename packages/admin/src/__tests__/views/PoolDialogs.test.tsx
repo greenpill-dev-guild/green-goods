@@ -1,6 +1,6 @@
 /** @vitest-environment jsdom */
 
-import { poolConsoleControllerFixture } from "@green-goods/shared/testing";
+import { poolConsoleControllerFixture } from "@green-goods/shared/__tests__/test-utils/controller-fixtures";
 import { type ReactNode } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { fireEvent, renderWithProviders, screen, waitFor } from "../test-utils";

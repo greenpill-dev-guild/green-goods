@@ -32,6 +32,10 @@ vi.mock("../../config/blockchain", async (importOriginal) => ({
   DEFAULT_CHAIN_ID: 11155111,
 }));
 
+vi.mock("../../config/default-chain", () => ({
+  DEFAULT_CHAIN_ID: 11155111,
+}));
+
 // Mock IPFS
 vi.mock("../../modules/data/ipfs", () => ({
   resolveIPFSUrl: mockResolveIPFSUrl,

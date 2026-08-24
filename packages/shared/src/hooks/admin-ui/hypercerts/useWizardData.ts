@@ -1,26 +1,26 @@
+import { toastService } from "../../../components/Toast/toast.service";
+import { DEFAULT_CHAIN_ID } from "../../../config/default-chain";
+import { getSDGLabel } from "../../../config/sdg";
+import { formatHypercertMetadata } from "../../../lib/hypercerts/metadata";
+import { logger } from "../../../modules/app/logger";
+import { prefillMetadataFromAssessment } from "../../../modules/data/hypercerts-metadata";
+import { useAdminStore } from "../../../stores/useAdminStore";
 import {
-  categorizeError,
-  DEFAULT_CHAIN_ID,
-  formatHypercertMetadata,
-  getSDGLabel,
-  type HypercertAttestation,
-  logger,
-  prefillMetadataFromAssessment,
-  toastService,
-  useAdminStore,
-  useAuth,
-  useCreateHypercertWorkflow,
-  useGardenAssessments,
-  useHypercertAllowlist,
-  useHypercertAttestations,
-  useHypercertContributorWeights,
-  useHypercertDraft,
-  useHypercerts,
   isHypercertMintingInProgress,
-  useDirtyClose,
   useHypercertWizardStore,
-  useMintHypercert,
-} from "@green-goods/shared";
+} from "../../../stores/useHypercertWizardStore";
+import type { HypercertAttestation } from "../../../types/hypercerts";
+import { categorizeError } from "../../../utils/errors/categorize-error";
+import { useGardenAssessments } from "../../assessment/useGardenAssessments";
+import { useAuth } from "../../auth/useAuth";
+import { useAttestations as useHypercertAttestations } from "../../hypercerts/useAttestations";
+import { useCreateHypercertWorkflow } from "../../hypercerts/useCreateHypercertWorkflow";
+import { useHypercertAllowlist } from "../../hypercerts/useHypercertAllowlist";
+import { useHypercertContributorWeights } from "../../hypercerts/useHypercertContributorWeights";
+import { useHypercertDraft } from "../../hypercerts/useHypercertDraft";
+import { useHypercerts } from "../../hypercerts/useHypercerts";
+import { useMintHypercert } from "../../hypercerts/useMintHypercert";
+import { useDirtyClose } from "../useDirtyClose";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { zeroAddress } from "viem";

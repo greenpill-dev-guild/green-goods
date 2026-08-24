@@ -18,39 +18,82 @@ vi.mock("@tanstack/react-query", async (importOriginal) => ({
   useQueryClient: () => ({ invalidateQueries: vi.fn() }),
 }));
 
-vi.mock("@green-goods/shared", () => ({
+vi.mock("../../../config/default-chain", () => ({
   DEFAULT_CHAIN_ID: 11155111,
+}));
+
+vi.mock("../../../utils/work/workActions", () => ({
   downloadWorkData: vi.fn(),
   downloadWorkMedia: vi.fn(),
-  isUserAddress: (...args: unknown[]) => mocks.isUserAddress(...args),
-  isValidAttestationId: () => false,
-  jobQueue: { processJob: vi.fn() },
-  openEASExplorer: vi.fn(),
-  queryKeys: {
-    works: {
-      merged: (...args: unknown[]) => ["works", "merged", ...args],
-      offline: (...args: unknown[]) => ["works", "offline", ...args],
-    },
-  },
   shareWork: vi.fn(),
+}));
+
+vi.mock("../../../utils/blockchain/address", () => ({
+  isUserAddress: (...args: unknown[]) => mocks.isUserAddress(...args),
+}));
+
+vi.mock("../../../utils/eas/explorers", () => ({
+  isValidAttestationId: () => false,
+  openEASExplorer: vi.fn(),
+}));
+
+vi.mock("../../../modules/job-queue/default-instance", () => ({
+  jobQueue: { processJob: vi.fn() },
+}));
+
+vi.mock("../../../config/query-keys/work", () => ({
+  worksKeys: {
+    merged: (...args: unknown[]) => ["works", "merged", ...args],
+    offline: (...args: unknown[]) => ["works", "offline", ...args],
+  },
+}));
+
+vi.mock("../../../components/Toast/toast.service", () => ({
   toastService: { error: vi.fn(), success: vi.fn() },
+}));
+
+vi.mock("../../../hooks/blockchain/useBaseLists", () => ({
   useActions: () => ({ data: [] }),
-  useGardenPermissions: () => ({ canManageGarden: mocks.canManageGarden }),
   useGardens: () => ({
     data: [{ id: "garden-1" }],
     isLoading: false,
   }),
+}));
+
+vi.mock("../../../hooks/garden/useGardenPermissions", () => ({
+  useGardenPermissions: () => ({ canManageGarden: mocks.canManageGarden }),
+}));
+
+vi.mock("../../../hooks/app/useNavigateToTop", () => ({
   useNavigateToTop: () => mocks.navigateToTop,
+}));
+
+vi.mock("../../../hooks/app/useOffline", () => ({
   useOffline: () => ({ isOnline: true }),
+}));
+
+vi.mock("../../../hooks/blockchain/useTransactionSender", () => ({
   useTransactionSender: () => null,
+}));
+
+vi.mock("../../../hooks/auth/useUser", () => ({
   useUser: () => ({ user: mocks.userId ? { id: mocks.userId } : null }),
+}));
+
+vi.mock("../../../hooks/work/useWorkApprovalActions", () => ({
   useWorkApprovalActions: ({ viewingMode }: { viewingMode: string }) => ({ viewingMode }),
+}));
+
+vi.mock("../../../hooks/work/useWorkMetadata", () => ({
   useWorkMetadata: () => ({
     error: null,
     metadata: null,
     retryFetch: vi.fn(),
     status: "idle",
   }),
+}));
+
+vi.mock("../../../hooks/work/useWorks", () => ({
   useWorks: () => ({
     works: [
       {

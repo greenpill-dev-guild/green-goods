@@ -10,7 +10,7 @@
 import { encodeFunctionData } from "viem";
 import { fromPromise } from "xstate";
 
-import { createPublicClientForChain } from "../../../config";
+import { createPublicClientForChain } from "../../../config/pimlico";
 import { getChain } from "../../../config/chains";
 import { logger } from "../../../modules/app/logger";
 import {
@@ -20,7 +20,10 @@ import {
 import { ensureAppKitWalletChain } from "../../../modules/transactions/chain-guard";
 import type { Address } from "../../../types/domain";
 import { isZeroAddress } from "../../../utils/blockchain/address";
-import { GARDENS_MODULE_ABI, HYPERCERT_SIGNAL_POOL_ABI } from "../../../utils/blockchain/abis";
+import {
+  GARDENS_MODULE_ABI,
+  HYPERCERT_SIGNAL_POOL_ABI,
+} from "../../../utils/blockchain/abis/conviction";
 import { getNetworkContracts } from "../../../utils/blockchain/contracts";
 import type { RegisterInSignalPoolInput } from "../../../workflows/mintHypercert";
 import { RECEIPT_POLLING_TIMEOUT_MS, withTimeout } from "../hypercert-utils";

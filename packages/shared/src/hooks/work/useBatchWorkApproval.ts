@@ -13,7 +13,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useRef } from "react";
 import { toastService } from "../../components/toast";
-import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
+import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import { trackContractError } from "../../modules/app/error-tracking";
 import { track } from "../../modules/app/posthog";
 import { type OverlayWork, overlayDeadline } from "../../modules/work/local-status-overlay";
@@ -27,7 +27,8 @@ import { hapticError, hapticSuccess } from "../../utils/app/haptics";
 import { DEBUG_ENABLED, debugLog } from "../../utils/debug";
 import { parseAndFormatError } from "../../utils/errors/contract-errors";
 import { useUser } from "../auth/useUser";
-import { INDEXER_LAG_SCHEDULE_MS, queryKeys } from "../../config/query-keys";
+import { INDEXER_LAG_SCHEDULE_MS } from "../../config/query-keys/constants";
+import { approvalsKeys, workApprovalsKeys, worksKeys } from "../../config/query-keys/work";
 import { useSafeMutation } from "../utils/useSafeMutation";
 import { useProgressiveInvalidation } from "../utils/useTimeout";
 
@@ -80,10 +81,10 @@ export function useBatchWorkApproval() {
   const { start: scheduleFollowUp } = useProgressiveInvalidation(
     useCallback(() => {
       for (const addr of lastGardenAddressesRef.current) {
-        queryClient.invalidateQueries({ queryKey: queryKeys.works.online(addr, chainId) });
-        queryClient.invalidateQueries({ queryKey: queryKeys.works.merged(addr, chainId) });
+        queryClient.invalidateQueries({ queryKey: worksKeys.online(addr, chainId) });
+        queryClient.invalidateQueries({ queryKey: worksKeys.merged(addr, chainId) });
       }
-      queryClient.invalidateQueries({ queryKey: queryKeys.approvals.all });
+      queryClient.invalidateQueries({ queryKey: approvalsKeys.all });
     }, [queryClient, chainId]),
     INDEXER_LAG_SCHEDULE_MS
   );
@@ -117,10 +118,10 @@ export function useBatchWorkApproval() {
       const gardenAddresses = [...new Set(items.map((i) => i.work.gardenAddress))];
       for (const addr of gardenAddresses) {
         await queryClient.cancelQueries({
-          queryKey: queryKeys.works.merged(addr, chainId),
+          queryKey: worksKeys.merged(addr, chainId),
         });
         await queryClient.cancelQueries({
-          queryKey: queryKeys.works.online(addr, chainId),
+          queryKey: worksKeys.online(addr, chainId),
         });
       }
 
@@ -129,11 +130,11 @@ export function useBatchWorkApproval() {
       for (const addr of gardenAddresses) {
         previousStates.set(
           `merged-${addr}`,
-          queryClient.getQueryData<Work[]>(queryKeys.works.merged(addr, chainId))
+          queryClient.getQueryData<Work[]>(worksKeys.merged(addr, chainId))
         );
         previousStates.set(
           `online-${addr}`,
-          queryClient.getQueryData<Work[]>(queryKeys.works.online(addr, chainId))
+          queryClient.getQueryData<Work[]>(worksKeys.online(addr, chainId))
         );
       }
 
@@ -154,14 +155,8 @@ export function useBatchWorkApproval() {
               : w
           );
 
-        queryClient.setQueryData(
-          queryKeys.works.merged(work.gardenAddress, chainId),
-          applyOptimistic
-        );
-        queryClient.setQueryData(
-          queryKeys.works.online(work.gardenAddress, chainId),
-          applyOptimistic
-        );
+        queryClient.setQueryData(worksKeys.merged(work.gardenAddress, chainId), applyOptimistic);
+        queryClient.setQueryData(worksKeys.online(work.gardenAddress, chainId), applyOptimistic);
       }
 
       // Show loading toast
@@ -209,24 +204,18 @@ export function useBatchWorkApproval() {
               : w
           );
 
-        queryClient.setQueryData(
-          queryKeys.works.merged(work.gardenAddress, chainId),
-          recordDecision
-        );
-        queryClient.setQueryData(
-          queryKeys.works.online(work.gardenAddress, chainId),
-          recordDecision
-        );
+        queryClient.setQueryData(worksKeys.merged(work.gardenAddress, chainId), recordDecision);
+        queryClient.setQueryData(worksKeys.online(work.gardenAddress, chainId), recordDecision);
       }
 
       // Invalidate queries
       const gardenAddresses = [...new Set(items.map((i) => i.work.gardenAddress))];
       for (const addr of gardenAddresses) {
-        queryClient.invalidateQueries({ queryKey: queryKeys.works.online(addr, chainId) });
-        queryClient.invalidateQueries({ queryKey: queryKeys.works.merged(addr, chainId) });
+        queryClient.invalidateQueries({ queryKey: worksKeys.online(addr, chainId) });
+        queryClient.invalidateQueries({ queryKey: worksKeys.merged(addr, chainId) });
       }
-      queryClient.invalidateQueries({ queryKey: queryKeys.workApprovals.all });
-      queryClient.invalidateQueries({ queryKey: queryKeys.approvals.all });
+      queryClient.invalidateQueries({ queryKey: workApprovalsKeys.all });
+      queryClient.invalidateQueries({ queryKey: approvalsKeys.all });
 
       // Schedule progressive follow-up invalidations for indexer lag (non-blocking)
       lastGardenAddressesRef.current = gardenAddresses;
@@ -263,10 +252,10 @@ export function useBatchWorkApproval() {
           const prevMerged = context.previousStates.get(`merged-${addr}`);
           const prevOnline = context.previousStates.get(`online-${addr}`);
           if (prevMerged) {
-            queryClient.setQueryData(queryKeys.works.merged(addr, chainId), prevMerged);
+            queryClient.setQueryData(worksKeys.merged(addr, chainId), prevMerged);
           }
           if (prevOnline) {
-            queryClient.setQueryData(queryKeys.works.online(addr, chainId), prevOnline);
+            queryClient.setQueryData(worksKeys.online(addr, chainId), prevOnline);
           }
         }
       }

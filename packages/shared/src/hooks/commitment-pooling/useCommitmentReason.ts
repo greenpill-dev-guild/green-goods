@@ -19,7 +19,7 @@ import {
   type CommitmentDocumentStore,
 } from "../../modules/commitment-pooling/document-store";
 import { isResolvableMetadataCID } from "../../modules/commitment-pooling/metadata";
-import { queryKeys } from "../../config/query-keys";
+import { commitmentPoolingKeys } from "../../config/query-keys/commitment-pooling";
 import {
   type CommitmentReasonV1,
   parseCommitmentReason,
@@ -40,7 +40,7 @@ export function useCommitmentReason(
 ): CommitmentReasonResolution {
   const resolvable = isResolvableMetadataCID(cid);
   const query = useQuery({
-    queryKey: queryKeys.commitmentPooling.reason(resolvable ? cid.trim() : null),
+    queryKey: commitmentPoolingKeys.reason(resolvable ? cid.trim() : null),
     queryFn: async () => {
       const key = (cid as string).trim();
       return parseCommitmentReason(await documents.readJson(key));

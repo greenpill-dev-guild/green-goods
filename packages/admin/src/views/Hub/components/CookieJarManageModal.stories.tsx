@@ -1,7 +1,7 @@
 import { AdminButton } from "@/components/AdminButton";
 import { AdminCard } from "@/components/AdminCard";
 import { AdminDialog } from "@/components/AdminDialog";
-import { formatTokenAmount } from "@green-goods/shared";
+import { formatTokenAmount } from "@green-goods/shared/utils/blockchain/vaults";
 import { RiPencilLine } from "@remixicon/react";
 import type { Meta, StoryObj } from "@storybook/react";
 import { fn } from "storybook/test";

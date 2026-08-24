@@ -21,27 +21,49 @@ vi.mock("wagmi", () => ({
   useReadContracts: (...args: unknown[]) => mockUseReadContracts(...args),
 }));
 
-vi.mock("@green-goods/shared", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@green-goods/shared")>();
+vi.mock("@green-goods/shared/hooks/auth/useUser", () => ({
+  useUser: () => ({ primaryAddress: "0xUserAddress1234567890abcdef1234567890abcdef" }),
+}));
+
+vi.mock("@green-goods/shared/hooks/vault/useEmergencyPause", () => ({
+  useEmergencyPause: () => ({ mutate: mockPauseMutate, isPending: false }),
+}));
+
+vi.mock("@green-goods/shared/hooks/vault/useEnableAutoAllocate", () => ({
+  useEnableAutoAllocate: () => ({ mutate: mockEnableAutoAllocateMutate, isPending: false }),
+}));
+
+vi.mock("@green-goods/shared/hooks/vault/useHarvest", () => ({
+  useHarvest: () => ({ mutate: mockHarvestMutate, isPending: false }),
+}));
+
+vi.mock("@green-goods/shared/hooks/vault/useVaultPreview", () => ({
+  useVaultPreview: (...args: unknown[]) => mockUseVaultPreview(...args),
+}));
+
+vi.mock("@green-goods/shared/utils/blockchain/abis/octant", () => ({
+  OCTANT_VAULT_ABI: [],
+}));
+
+vi.mock("@green-goods/shared/utils/blockchain/address", async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import("@green-goods/shared/utils/blockchain/address")>();
   return {
     ...actual,
-    formatTokenAmount: (value: bigint, decimals?: number) => {
-      if (value === 0n) return "0";
-      // Simple formatting for tests
-      return `${Number(value) / 10 ** (decimals ?? 18)}`;
-    },
-    getNetDeposited: (deposited: bigint, withdrawn: bigint) => deposited - withdrawn,
-    getVaultAssetDecimals: () => 18,
-    getVaultAssetSymbol: () => "USDC",
-    OCTANT_VAULT_ABI: [],
     ZERO_ADDRESS: "0x0000000000000000000000000000000000000000",
-    useEnableAutoAllocate: () => ({ mutate: mockEnableAutoAllocateMutate, isPending: false }),
-    useEmergencyPause: () => ({ mutate: mockPauseMutate, isPending: false }),
-    useHarvest: () => ({ mutate: mockHarvestMutate, isPending: false }),
-    useUser: () => ({ primaryAddress: "0xUserAddress1234567890abcdef1234567890abcdef" }),
-    useVaultPreview: (...args: unknown[]) => mockUseVaultPreview(...args),
   };
 });
+
+vi.mock("@green-goods/shared/utils/blockchain/vaults", () => ({
+  formatTokenAmount: (value: bigint, decimals?: number) => {
+    if (value === 0n) return "0";
+    // Simple formatting for tests
+    return `${Number(value) / 10 ** (decimals ?? 18)}`;
+  },
+  getNetDeposited: (deposited: bigint, withdrawn: bigint) => deposited - withdrawn,
+  getVaultAssetDecimals: () => 18,
+  getVaultAssetSymbol: () => "USDC",
+}));
 
 import { PositionCard } from "../../components/Vault/PositionCard";
 

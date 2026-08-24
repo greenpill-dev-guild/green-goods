@@ -21,7 +21,7 @@ import { Capital, Domain } from "../../types/domain";
 import { ActionRegistryABI, getNetworkContracts } from "../../utils/blockchain/contracts";
 import { parseContractError } from "../../utils/errors/contract-errors";
 import { useToastAction } from "../app/useToastAction";
-import { queryKeys } from "../../config/query-keys";
+import { actionsKeys } from "../../config/query-keys/garden";
 import { useDelayedInvalidation } from "../utils/useTimeout";
 
 /** Delay before refetching after transaction to allow indexer sync */
@@ -55,7 +55,7 @@ export function useActionOperations(chainId: number) {
   // Schedule background refetch to sync with indexer
   const { start: scheduleBackgroundRefetch } = useDelayedInvalidation(
     useCallback(
-      () => queryClient.invalidateQueries({ queryKey: queryKeys.actions.byChain(chainId) }),
+      () => queryClient.invalidateQueries({ queryKey: actionsKeys.byChain(chainId) }),
       [queryClient, chainId]
     ),
     INDEXER_SYNC_DELAY_MS

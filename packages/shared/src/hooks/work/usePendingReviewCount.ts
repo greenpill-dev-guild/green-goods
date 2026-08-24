@@ -17,7 +17,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
 
-import { DEFAULT_RETRY_COUNT, queryKeys, STALE_TIME_MEDIUM } from "../../config/query-keys";
+import { DEFAULT_RETRY_COUNT, STALE_TIME_MEDIUM } from "../../config/query-keys/constants";
+import { approvalsKeys } from "../../config/query-keys/work";
 import type { Address } from "../../types/domain";
 import { isAddressInList } from "../../utils/blockchain/address";
 import {
@@ -85,7 +86,7 @@ export function usePendingReviewCount(address: Address | undefined): PendingRevi
   );
 
   const approvalsQuery = useQuery({
-    queryKey: queryKeys.approvals.forWorkReview(approvalRecipients),
+    queryKey: approvalsKeys.forWorkReview(approvalRecipients),
     queryFn: () => fetchApprovalsByRecipients(approvalRecipients),
     enabled: isOperator && worksTrustworthy && works.length > 0,
     staleTime: STALE_TIME_MEDIUM,

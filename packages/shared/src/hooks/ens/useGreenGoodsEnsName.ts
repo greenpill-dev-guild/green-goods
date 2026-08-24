@@ -11,8 +11,9 @@
 import { useQuery } from "@tanstack/react-query";
 import { type Address, isAddress, zeroAddress } from "viem";
 
-import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
-import { queryKeys, STALE_TIME_RARE } from "../../config/query-keys";
+import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
+import { STALE_TIME_RARE } from "../../config/query-keys/constants";
+import { ensKeys } from "../../config/query-keys/identity";
 import { logger } from "../../modules/app/logger";
 import {
   createClients,
@@ -33,7 +34,7 @@ export function useGreenGoodsEnsName(address?: Address | null) {
   const ensAddress = contracts.greenGoodsENS as Address;
 
   return useQuery<string | null>({
-    queryKey: queryKeys.ens.protocolName(normalizedAddress ?? ""),
+    queryKey: ensKeys.protocolName(normalizedAddress ?? ""),
     queryFn: async () => {
       if (!normalizedAddress || !ensAddress || ensAddress === zeroAddress) {
         return null;

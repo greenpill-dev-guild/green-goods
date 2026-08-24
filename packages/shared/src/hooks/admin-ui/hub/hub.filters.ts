@@ -1,4 +1,5 @@
-import { formatAddress, type Work } from "@green-goods/shared";
+import type { Work } from "../../../types/domain";
+import { formatAddress } from "../../../utils/app/text";
 import type { ActivityEvent, SortDirection } from "./hub.utils";
 import type { HubActionSummary } from "./hub.workbenchModel";
 

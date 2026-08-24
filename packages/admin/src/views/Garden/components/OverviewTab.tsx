@@ -1,14 +1,14 @@
-import {
-  type ActivityFilter,
-  type AdminWorkspaceSectionTab,
-  Card,
-  EmptyState,
-  type GardenActivityEvent,
-  type GardenDetailTab,
-  type GardenRange,
-  type TabBadgeSeverity,
-} from "@green-goods/shared";
-import { useLocalizedRelativeTime } from "@green-goods/shared/hooks";
+import { Card } from "@green-goods/shared/components/Cards/CardBase";
+import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
+import type { AdminWorkspaceSectionTab } from "@green-goods/shared/hooks/admin-ui/navigation/workspaceNavigation";
+import type {
+  ActivityFilter,
+  GardenActivityEvent,
+  GardenDetailTab,
+  GardenRange,
+  TabBadgeSeverity,
+} from "@green-goods/shared/types/garden-detail";
+import { useLocalizedRelativeTime } from "@green-goods/shared/hooks/app/useLocalizedRelativeTime";
 import { RiArrowRightSLine, RiTimeLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
