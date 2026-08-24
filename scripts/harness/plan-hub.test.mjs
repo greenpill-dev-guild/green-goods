@@ -1,3 +1,5 @@
+/** @direct-test-command ./plan-hub.mjs */
+
 import assert from "node:assert/strict";
 import { spawn, spawnSync } from "node:child_process";
 import {

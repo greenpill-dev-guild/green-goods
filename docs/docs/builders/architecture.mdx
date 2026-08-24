@@ -4,7 +4,7 @@ sidebar_position: 3
 slug: /builders/architecture
 audience: developer
 owner: docs
-last_verified: 2026-04-25
+last_verified: 2026-08-24
 feature_status: Live
 source_of_truth:
   - AGENTS.md
@@ -14,6 +14,7 @@ source_of_truth:
   - packages/admin/AGENTS.md
   - packages/shared/AGENTS.md
   - packages/indexer/AGENTS.md
+  - scripts/data/module-seam-registry.json
 ---
 
 import {NextBestAction, StatusBadge} from "@site/src/components/docs";
@@ -43,6 +44,18 @@ Green Goods is an **offline-first, single-chain** platform for documenting regen
 - **Separation of concerns** across packages with strict import boundaries.
 - **Offline-first** -- the client PWA works without internet and syncs when connected.
 - **Graceful degradation** -- optional contract modules fail silently via `try/catch`.
+
+## Module depth and seam governance
+
+Green Goods aims for deep modules: coherent behavior behind a small interface that creates leverage
+for callers and locality for maintainers. Package, trust, protocol, process, and deployment
+boundaries remain explicit; substitution seams are added only where behavior genuinely varies.
+
+Architecture candidates stay in the owning Plan Hub until a human selects them. Selected critical
+modules and hotspots can enter `scripts/data/module-seam-registry.json`, then advance from
+`SELECTED` to `IMPLEMENTED` and finally `CERTIFIED` after direct proof, production composition,
+consumer wiring, applicable adapter conformance, integration evidence, and fingerprint freshness
+are reconciled. Coverage is a separate outer-loop floor, not architecture certification.
 
 ## System context
 

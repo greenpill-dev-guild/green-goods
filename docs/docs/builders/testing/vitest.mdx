@@ -28,7 +28,7 @@ import {NextBestAction, StatusBadge} from "@site/src/components/docs";
 
 ```mermaid
 graph TB
-    CMD["bun run test"] -->|vitest| Runner["Vitest Runner\njsdom + threads"]
+    CMD["bun run test"] -->|vitest projects| Runner["Vitest Runner\nNode + DOM, isolated threads"]
 
     subgraph Packages
         S["shared\nhooks, modules, utils"]
@@ -65,9 +65,9 @@ Each package has its own `vitest.config.ts`:
 
 | Package | Environment | Setup File | Key Aliases |
 |---------|-------------|------------|-------------|
-| **shared** | `jsdom` | `src/__tests__/setupTests.ts` | EAS SDK mock, WalletConnect mock, React dedup |
-| **admin** | `jsdom` | `src/__tests__/setup.ts` | `@green-goods/shared` subpath aliases |
-| **client** | `jsdom` | `src/__tests__/setup.ts` | Similar to admin |
+| **shared** | Node + `jsdom` projects | `src/__tests__/setupTests.ts` | Curated DOM-free Node globs; DOM owns the remainder |
+| **admin** | Node + `jsdom` projects | `src/__tests__/setup.ts` | `.ts` tests in Node; `.tsx`/`.jsx` tests in DOM |
+| **client** | Node + `jsdom` projects | `src/__tests__/setupTests.ts` | `.ts` tests in Node; `.tsx`/`.jsx` tests in DOM |
 | **agent** | `node` | `src/__tests__/setup.ts` | Node-specific mocks |
 
 All packages use:
@@ -76,6 +76,11 @@ All packages use:
 - **10-second timeout** per test
 
 The `agent` package is the exception: it runs in the `node` environment with `fileParallelism: false`, and its coverage thresholds are intentionally lower than the frontend/shared packages.
+
+Shared, admin, and client keep `isolate: true` and split DOM-free tests into Node projects so pure
+module proof does not pay for browser globals. Shared uses a curated Node allowlist because some
+`.ts` tests still depend on DOM setup; admin and client route `.ts` to Node and `.tsx`/`.jsx` to DOM.
+Project discovery must preserve the intended union exactly once.
 
 ### React Deduplication
 
@@ -127,6 +132,20 @@ vi.mock("@tanstack/react-query", () => ({
 ```
 
 This pattern lets tests verify exact query keys, enabled conditions, and queryFn behavior without hitting real APIs.
+
+Do not mock a test's own subject. A direct subject test imports the subject outside every mock
+factory through its real relative or declared package specifier, while mocks isolate only its
+dependencies. `bun run check:test-quality` enforces this rule and reconciles certified critical
+seams with `scripts/data/module-seam-registry.json`.
+
+Keep these proof types separate:
+
+- **Direct test**: exercises the subject's interface without mocking the subject.
+- **Conformance test**: proves production and local/test adapters obey the same observable contract.
+- **Consumer wiring**: proves a real caller uses the declared interface.
+- **Production composition**: proves defaults and runtime identity are assembled at the intended root.
+- **Coverage floor**: catches broad execution regressions; it does not certify interface depth,
+  adapter fidelity, consumer reachability, or production composition.
 
 ### Per-Package Notes
 

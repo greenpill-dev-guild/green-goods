@@ -11,6 +11,11 @@ One command for change review. Three passes over one resolved scope, then a verd
 `--fix` is explicitly requested. Evidence/diagnosis review is targeted by default; full production
 readiness is a separate, explicit intent.
 
+When the candidate changes module shape, public exports, dependency direction, composition, or test
+seams, read [`../../context/codebase-architecture.md`](../../context/codebase-architecture.md). Apply
+that shared depth, locality, leverage, export-taxonomy, and proof model to the changed design. Route
+repository-wide architecture opportunity discovery to `plan`; this skill judges a resolved change.
+
 It answers three questions with fresh evidence: **regression safety** (Pass 1), **requirement closure**
 (Pass 2), and the user's requested **evidence or readiness level** (Pass 3). `APPROVE` is reserved for
 an explicit production-quality, approval, PR/merge-readiness, or equivalent request whose full
@@ -73,7 +78,7 @@ Correctness of what changed. Prioritize high-signal risk areas:
 **Structural lenses** — apply when the diff shows the signal, not ritually:
 
 - *Boundary/placement*: hook or module landing outside its owning package; first-time cross-package import; layering breaks (`contracts → shared → indexer → client/admin/agent`); a public surface becoming a junk drawer. Prefer the smallest structural fix; never prescribe new layers without a deletion story.
-- *Coherence*: new wrapper/abstraction with one call site and no concrete pressure; near-duplicate of adjacent code (flag only when divergence creates real maintenance risk); a function accumulating unrelated concerns. Don't equate size with bad design; confirm harm before reporting. The canonical quality bar is [`values.md § Implementation Quality Contract`](../../context/values.md) — judge against it, don't restate textbook principles.
+- *Coherence*: new wrapper/abstraction with one call site and no concrete pressure; near-duplicate of adjacent code (flag only when divergence creates real maintenance risk); a function accumulating unrelated concerns. Don't equate size with bad design; confirm harm before reporting. Require a concrete failure or repeated maintenance cost and explain where complexity returns under the deletion test before recommending an abstraction. Leaf exports may improve graph control without proving module depth. The canonical quality bar is [`values.md § Implementation Quality Contract`](../../context/values.md) — judge against it, don't restate textbook principles.
 - *State and invariant*: financial state machines, mutable dependency identity, retry or grace
   windows, cross-chain acknowledgments, asynchronous projections, or upgradeable storage → build
   the risk-triggered matrix from `.claude/context/testing.md` and apply the domain rules in

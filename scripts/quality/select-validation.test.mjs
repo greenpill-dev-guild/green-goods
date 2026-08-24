@@ -80,6 +80,52 @@ test("skill and documented skill-inventory changes select direct guidance contra
   }
 });
 
+test("architecture evidence reviews select only the three safe guidance checks", () => {
+  const probes = [
+    ".claude/skills/plan/SKILL.md",
+    ".claude/skills/review/SKILL.md",
+    ".claude/skills/audit/SKILL.md",
+    ".claude/skills/module-seams-review/SKILL.md",
+    ".claude/context/codebase-architecture.md",
+    "scripts/data/module-seam-registry.json",
+    "scripts/quality/check-direct-tested-seams.mjs",
+  ];
+
+  for (const changedPath of probes) {
+    const plan = selectValidation({ intent: "review", changedPaths: [changedPath] });
+    assert.deepEqual(
+      [...ids(plan)].sort(),
+      ["agent-guidance", "test-quality", "validation-system-test"],
+      changedPath,
+    );
+    assert.deepEqual(plan.surfaces, [], changedPath);
+  }
+});
+
+test("architecture ship intent retains mandatory repository gates", () => {
+  const plan = selectValidation({
+    intent: "ship",
+    changedPaths: [
+      ".claude/context/codebase-architecture.md",
+      "scripts/data/module-seam-registry.json",
+      "scripts/quality/check-direct-tested-seams.mjs",
+    ],
+  });
+
+  for (const checkId of [
+    "format",
+    "lint",
+    "agent-guidance",
+    "test-quality",
+    "validation-system-test",
+    "supply-chain",
+  ]) {
+    const check = plan.checks.find((candidate) => candidate.id === checkId);
+    assert.ok(check, checkId);
+    assert.equal(check.mandatory, true, checkId);
+  }
+});
+
 // Regression: Biome exits non-zero when it handles none of the supplied paths.
 // A Markdown-, Solidity-, or YAML-only change is exactly that case, so without
 // the flag the scoped format check failed and fail-fast killed the whole plan
@@ -1207,10 +1253,19 @@ test("deleted tests are not inferred as focused Vitest paths", (t) => {
     "packages/shared/src/__tests__/removed.test.ts",
   ]);
 
-  const plan = selectValidation({ intent: "checkpoint", ...gitInputs });
+  const plan = selectValidation({
+    intent: "checkpoint",
+    checkpointScope: "lane",
+    ...gitInputs,
+  });
   const sharedTest = plan.checks.find((check) => check.id === "shared-test");
   assert.deepEqual(sharedTest.focusedPaths, []);
   assert.equal(sharedTest.command, turboTestCommand("shared"));
+  for (const checkId of ["format", "lint"]) {
+    const check = plan.checks.find((candidate) => candidate.id === checkId);
+    assert.ok(check, checkId);
+    assert.doesNotMatch(check.command, /removed\.test\.ts/, checkId);
+  }
 });
 
 test("lane fingerprint ignores an unrelated dirty plan while workspace fingerprint remains broad", (t) => {

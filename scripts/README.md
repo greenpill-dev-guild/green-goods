@@ -61,7 +61,7 @@ scripts/
 | `drift-check.test.mjs` | `bun run test:review-guardrails` | Fixture tests for drift checker warning normalization, routing, and dirty-tree context |
 | `check-guidance-links.mjs` | `bun run check:guidance-links`, Supply Chain Guardrails | Guidance drift guard: links/scripts resolve, deleted commands and guides have no live consumers, changed fences have language tags, and the command banner remains aligned |
 | `check-guidance-links.test.mjs` | `bun run test:review-guardrails` | Fixture tests for deleted command/guide consumers, retirement notices, renames, and fenced-language checks |
-| `check-skill-behavior-contracts.mjs` | `bun run check:skill-behavior`, `bun run agentic:check`, Supply Chain Guardrails | Deterministic scenarios for critical audit, module-seams review, contract-review, browser-proof, evidence, plan-lifecycle, and Ship-activation guidance contracts |
+| `check-skill-behavior-contracts.mjs` | `bun run check:skill-behavior`, `bun run agentic:check`, Supply Chain Guardrails | Deterministic scenarios for architecture routing, candidate selection, registry freshness, critical audit, module-seams review, contract-review, browser-proof, evidence, plan-lifecycle, and Ship-activation guidance contracts |
 | `check-skill-behavior-contracts.test.mjs` | `bun run test:review-guardrails`, Supply Chain Guardrails | Positive live-source coverage and negative mutations proving each critical guidance scenario fails closed |
 | `check-immutable-plan-reports.mjs` | `bun run check:immutable-plan-reports`, Supply Chain Guardrails | Reject edits, deletions, and renames of existing dated Plan Hub reports while allowing new correction artifacts |
 | `check-immutable-plan-reports.test.mjs` | `bun run test:review-guardrails` | Fixture tests for immutable dated report diff classification |
@@ -69,8 +69,8 @@ scripts/
 | `check-staged-modules.mjs` | `bun run check:staged-modules`, validation selector | Keep deferred Card Endow modules marked and isolated from live Client imports |
 | `check-staged-modules.test.mjs` | `bun run test:validation-system` | Positive and fail-closed fixtures for the staged-module boundary |
 | `check-test-quality.sh` | `bun run check:test-quality` | Detect tautological assertions, ungoverned skips, `@ts-nocheck`, malformed new Solidity test names, and direct-test seam drift |
-| `check-direct-tested-seams.mjs` | `bun run check:test-quality` | Require subject-named tests to import their module directly without mocking it, with an exact legacy baseline |
-| `check-direct-tested-seams.test.mjs` | `bun run test:validation-system` | Fixture proof for direct imports, mocked-subject rejection, and exact/stale baseline handling |
+| `check-direct-tested-seams.mjs` | `bun run check:test-quality` | Resolve real package exports, require direct non-self-mocking subject proof, and validate selected/certified seam registry paths, composition, consumers, proof categories, and evidence fingerprints |
+| `check-direct-tested-seams.test.mjs` | `bun run test:validation-system` | Fixture proof for export-map resolution, self-mocking rejection, missing/duplicate registry evidence, lifecycle gates, fingerprint freshness, and exact-baseline shrinkage |
 | `check-story-coverage.ts` | `design.yml` (via `packages/shared` script) | Storybook coverage policy per package |
 | `check-story-quality.ts` | `design.yml` (via `packages/shared` script) | Storybook story-quality lints |
 | `check-docs-design-parity.mjs` | `bun run check:docs-design-parity` | `docs/DESIGN.md` ↔ `docs/src/css/custom.css` role-accent + section-accent parity (light + dark) |
@@ -157,6 +157,7 @@ scripts/
 - `css-custom-property-baseline.tsv` — audited baseline of unresolved legacy CSS custom properties; consumed by `design/check-css-custom-properties.mjs`.
 - `ontology-drift-baseline.json` — audited burn-down baseline of known ontology drift (owner/expires/note per entry); consumed by `quality/check-ontology.mjs`.
 - `direct-tested-seam-baseline.json` — exact burn-down baseline for legacy tests that do not yet prove their named module seam; consumed by `quality/check-direct-tested-seams.mjs`.
+- `module-seam-registry.json` — selected hotspots and certified critical TypeScript/JavaScript seams with export, production composition, consumer, proof, review-date, and deterministic fingerprint evidence; consumed by `quality/check-direct-tested-seams.mjs`.
 
 ## Companion locations
 

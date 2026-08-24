@@ -13,7 +13,9 @@ Systematic repo-health analysis: dead code detection, dependency health, invaria
 
 Prefer `/review` first. This skill is for broader repo-health drift, not for every change or every question.
 
-**References**: See `CLAUDE.md` for codebase patterns and `.claude/context/*.md` for per-package invariants.
+**References**: See `CLAUDE.md` for codebase patterns and `.claude/context/*.md` for per-package invariants. Read [`../../context/codebase-architecture.md`](../../context/codebase-architecture.md)
+when measurable drift exposes architecture friction; use it to classify the signal, not to design a
+replacement.
 
 **Context mode**: `context: fork` -- read-only subagent, report generation included. Never edit files during an audit; return findings in the response and let the user decide. Do not create or mutate Linear records during analysis — after the user approves specific findings for tracking, route them into Linear Issues, not GitHub's issue tracker.
 
@@ -23,10 +25,13 @@ Prefer `/review` first. This skill is for broader repo-health drift, not for eve
 - dependency health and outdated package surfacing
 - concrete invariant drift against repo rules
 - brittle runtime or maintenance hotspots with direct evidence
+- measurable architecture friction such as repeated cross-module edits, unstable import/mock
+  graphs, duplicated policy, or untestable composition, reported as an observation only
 
 ## What This Skill Does Not Own
 
-- abstract architecture or design-soundness judgment (`/review`'s boundary + coherence lenses)
+- architecture candidate selection or interface design (`plan`)
+- design-soundness judgment for a resolved change (`review`)
 - PR-scoped correctness review (`review`)
 - implementation or refactor orchestration
 
@@ -37,7 +42,9 @@ These are mandatory:
 - only report issues with concrete runtime, correctness, or clear maintenance cost
 - do not recommend new abstractions, patterns, or layers from this skill
 - do not treat file size alone as a finding
-- if a structural concern is mostly about design judgment, route it to `/review` (boundary/coherence lenses) instead of reporting it here
+- if a structural concern is a repository-wide improvement opportunity, report the measured
+  friction and route selection/design to `plan`; if it is about whether one resolved change is
+  sound, route it to `review`
 - cap medium and low-severity findings to the highest-signal set a human can act on
 
 ---
@@ -358,7 +365,9 @@ negative coverage when behavior changed, and run one final recurrence sweep befo
 
 ## Boundary
 
-If it's about *what's broken, dead, or drifted* — audit. If it's about *whether one change is sound* — `/review` (its coherence and boundary lenses replaced the retired `principles`/`architecture` skills).
+If it is about *what is broken, dead, drifted, or measurably brittle* — audit. Audit may identify
+architecture friction but never prescribe the refactor. Repository-wide opportunity selection and
+interface design route to `plan`; whether one resolved change is sound routes to `review`.
 
 ## Related Skills
 

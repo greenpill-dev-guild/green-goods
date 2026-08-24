@@ -1,0 +1,158 @@
+{
+  "version": 2,
+  "feature": {
+    "slug": "codebase-architecture-skills",
+    "title": "Codebase Architecture Skills and Seam Governance",
+    "kind": "feature",
+    "stage": "active"
+  },
+  "workflow": {
+    "overall_status": "active",
+    "priority": "p1",
+    "created_at": "2026-08-24T20:01:54.686Z",
+    "updated_at": "2026-08-24T20:43:03.682Z"
+  },
+  "links": {
+    "brief": "brief.md",
+    "spec": "spec.md",
+    "plan": "plan.todo.md",
+    "eval": "eval.md"
+  },
+  "linear": {
+    "parentIssue": "PRD-835",
+    "project": null,
+    "initiative": null,
+    "syncDirection": "plans_to_linear_visibility",
+    "lastSyncedAt": "2026-08-24T20:07:55.873Z",
+    "laneSyncMode": "parent_only",
+    "operationalCheckpoints": {
+      "coverage_ratchet": "2026-09-22"
+    },
+    "lanes": {}
+  },
+  "taxonomy": {
+    "initiative": "engineering-quality",
+    "tracks": ["shared", "docs", "ops"],
+    "work_types": ["implementation", "hardening", "maintenance", "qa"],
+    "surfaces": ["shared", "docs", "tooling"],
+    "depends_on_features": []
+  },
+  "notes": [
+    "Historical predecessor: .plans/archive/module-seams-and-velocity/; do not reopen or rewrite it.",
+    "Coordinate AGENTS/CLAUDE references with client-structure-and-agent-guides without editing that hub.",
+    "Linear is parent-only; candidates and execution detail stay in this hub.",
+    "The hub remains active through the 2026-09-22 coverage ratchet checkpoint.",
+    "Implementation stays on the current develop branch; no branch or PR fan-out."
+  ],
+  "lanes": {
+    "ui": {
+      "owner": "claude",
+      "status": "n/a",
+      "branch": null,
+      "depends_on": [],
+      "handoff": "handoffs/claude-ui.md",
+      "tdd": {
+        "mode": "not_applicable",
+        "status": "pending",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
+        "note": "No UI behavior changes are in scope."
+      },
+      "skill_tags": ["documentation"]
+    },
+    "state_api": {
+      "owner": "codex",
+      "status": "in_progress",
+      "branch": null,
+      "depends_on": [],
+      "handoff": "handoffs/codex-state-api.md",
+      "tdd": {
+        "mode": "required",
+        "status": "green_recorded",
+        "red": {
+          "command": "node --test scripts/quality/check-direct-tested-seams.test.mjs scripts/quality/select-validation.test.mjs",
+          "evidence": "RED: new checker fixtures failed 7 of 11 before export-map, registry, and fingerprint support; architecture selector fixtures failed 2 of 2 before runInEvidence routing."
+        },
+        "green": {
+          "command": "bun run test:validation-system && bun run check:test-quality",
+          "evidence": "GREEN: validation-system passed 162 of 162; test-quality found 0 direct-seam violations and 4 fresh certified registry entries."
+        },
+        "note": ""
+      },
+      "skill_tags": ["documentation", "tooling", "review"]
+    },
+    "contracts": {
+      "owner": "codex",
+      "status": "n/a",
+      "branch": null,
+      "depends_on": [],
+      "handoff": "handoffs/codex-contracts.md",
+      "tdd": {
+        "mode": "not_applicable",
+        "status": "pending",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
+        "note": "Registry v1 is TypeScript/JavaScript-only; no Solidity changes."
+      },
+      "skill_tags": ["contracts"]
+    },
+    "qa_pass_1": {
+      "owner": "codex",
+      "status": "blocked",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": false,
+      "branch": null,
+      "depends_on": ["state_api"],
+      "handoff": "handoffs/claude-qa-pass-1.md",
+      "skill_tags": ["testing", "review"]
+    },
+    "qa_pass_2": {
+      "owner": "codex",
+      "status": "blocked",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": false,
+      "branch": null,
+      "depends_on": ["qa_pass_1"],
+      "handoff": "handoffs/codex-qa-pass-2.md",
+      "skill_tags": ["testing", "review"]
+    }
+  },
+  "history": [
+    {
+      "timestamp": "2026-08-24T20:01:54.693Z",
+      "actor": "human",
+      "lane": "system",
+      "status": "scaffolded",
+      "branch": null,
+      "note": "Scaffolded the approved successor hub directly on develop."
+    },
+    {
+      "timestamp": "2026-08-24T20:07:55.874Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "linear_recorded",
+      "branch": null,
+      "note": "Recorded Linear parent/lane issue identifiers"
+    },
+    {
+      "timestamp": "2026-08-24T20:43:03.683Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "tdd_recorded",
+      "branch": null,
+      "note": "Recorded RED/GREEN TDD proof"
+    }
+  ]
+}

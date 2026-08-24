@@ -172,9 +172,20 @@
     {
       "check": "agent-guidance",
       "runInQa": true,
+      "runInEvidence": true,
       "exact": [
         "AGENTS.md",
         "CLAUDE.md",
+        ".claude/context/codebase-architecture.md",
+        ".claude/skills/plan/SKILL.md",
+        ".claude/skills/review/SKILL.md",
+        ".claude/skills/audit/SKILL.md",
+        ".claude/skills/module-seams-review/SKILL.md",
+        ".claude/skills/module-seams-review/references/review-matrix.md",
+        "scripts/data/module-seam-registry.json",
+        "scripts/data/direct-tested-seam-baseline.json",
+        "scripts/quality/check-direct-tested-seams.mjs",
+        "scripts/quality/check-direct-tested-seams.test.mjs",
         "scripts/quality/check-codex-docs.js",
         "scripts/quality/check-guidance-links.mjs",
         "scripts/quality/check-skill-behavior-contracts.mjs",
@@ -183,6 +194,38 @@
         "docs/docs/builders/agentic/spec-engineering.mdx"
       ],
       "prefixes": [".claude/skills/"]
+    },
+    {
+      "check": "test-quality",
+      "runInEvidence": true,
+      "exact": [
+        ".claude/context/codebase-architecture.md",
+        ".claude/skills/plan/SKILL.md",
+        ".claude/skills/review/SKILL.md",
+        ".claude/skills/audit/SKILL.md",
+        ".claude/skills/module-seams-review/SKILL.md",
+        ".claude/skills/module-seams-review/references/review-matrix.md",
+        "scripts/data/module-seam-registry.json",
+        "scripts/data/direct-tested-seam-baseline.json",
+        "scripts/quality/check-direct-tested-seams.mjs",
+        "scripts/quality/check-direct-tested-seams.test.mjs"
+      ]
+    },
+    {
+      "check": "validation-system-test",
+      "runInEvidence": true,
+      "exact": [
+        ".claude/context/codebase-architecture.md",
+        ".claude/skills/plan/SKILL.md",
+        ".claude/skills/review/SKILL.md",
+        ".claude/skills/audit/SKILL.md",
+        ".claude/skills/module-seams-review/SKILL.md",
+        ".claude/skills/module-seams-review/references/review-matrix.md",
+        "scripts/data/module-seam-registry.json",
+        "scripts/data/direct-tested-seam-baseline.json",
+        "scripts/quality/check-direct-tested-seams.mjs",
+        "scripts/quality/check-direct-tested-seams.test.mjs"
+      ]
     },
     {
       "check": "browser-proof",
@@ -218,6 +261,16 @@
       "risk": "validation selector or workflow routing changes are not exercised by their durable regression suite",
       "expectedSignal": "the validation-system regression suite passes",
       "freshness": "exact-inputs-and-toolchain",
+      "budgetSeconds": 30,
+      "stopRule": "stop-dependent-checks",
+      "capabilities": ["dependencies"]
+    },
+    {
+      "id": "test-quality",
+      "command": "bun run check:test-quality",
+      "risk": "direct-test seams, registry evidence, or test architecture can drift behind passing suites",
+      "expectedSignal": "test-quality and certified seam guardrails pass without baseline debt",
+      "freshness": "exact-test-guidance-registry-inputs-and-toolchain",
       "budgetSeconds": 30,
       "stopRule": "stop-dependent-checks",
       "capabilities": ["dependencies"]

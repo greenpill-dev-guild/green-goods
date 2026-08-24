@@ -26,7 +26,55 @@ const liveSources = loadSkillBehaviorSources();
 test("live guidance satisfies every skill behavior contract", () => {
   const report = evaluateSkillBehaviorContracts(liveSources);
   assert.deepEqual(report.failures, []);
-  assert.equal(report.results.length, 7);
+  assert.equal(report.results.length, 12);
+});
+test("architecture plan contract fails without human candidate selection", () => {
+  const sources = replaceRequiredMarker(
+    liveSources,
+    ".claude/skills/plan/SKILL.md",
+    /Stop for human selection/i,
+    "Select automatically",
+  );
+
+  assert.deepEqual(failedScenarioIds(evaluateSkillBehaviorContracts(sources)), [
+    "plan-architecture-mode-requires-deletion-test-and-human-selection",
+  ]);
+});
+test("architecture review contract fails without the deletion-test requirement", () => {
+  const sources = replaceRequiredMarker(
+    liveSources,
+    ".claude/skills/review/SKILL.md",
+    /deletion test/i,
+    "preferred style",
+  );
+
+  assert.deepEqual(failedScenarioIds(evaluateSkillBehaviorContracts(sources)), [
+    "review-architecture-needs-concrete-harm-and-deletion-story",
+  ]);
+});
+test("architecture audit contract fails when it prescribes the refactor", () => {
+  const sources = replaceRequiredMarker(
+    liveSources,
+    ".claude/skills/audit/SKILL.md",
+    /friction but never prescribe the refactor/i,
+    "friction and prescribe the refactor",
+  );
+
+  assert.deepEqual(failedScenarioIds(evaluateSkillBehaviorContracts(sources)), [
+    "audit-observes-friction-without-prescribing-refactors",
+  ]);
+});
+test("seam certification contract fails without registry freshness", () => {
+  const sources = replaceRequiredMarker(
+    liveSources,
+    ".claude/skills/module-seams-review/SKILL.md",
+    /evidence fingerprint/i,
+    "evidence note",
+  );
+
+  assert.deepEqual(failedScenarioIds(evaluateSkillBehaviorContracts(sources)), [
+    "module-seams-review-reconciles-registry-freshness-and-proof-types",
+  ]);
 });
 test("module-seams review contract fails without the read-only boundary", () => {
   const sources = replaceRequiredMarker(

@@ -4,13 +4,15 @@ sidebar_position: 3
 slug: /builders/architecture/modular-approach
 audience: developer
 owner: docs
-last_verified: 2026-03-07
+last_verified: 2026-08-24
 feature_status: Live
 source_of_truth:
   - packages/contracts/src/modules
   - packages/contracts/src/tokens/Garden.sol
   - packages/contracts/src/registries/Action.sol
   - package.json
+  - packages/shared/package.json
+  - scripts/data/module-seam-registry.json
 ---
 
 import {NextBestAction, StatusBadge} from "@site/src/components/docs";
@@ -127,9 +129,29 @@ graph TD
 ### Import rules
 
 - **All React hooks** live in `@green-goods/shared`. Client and admin only contain components and views.
-- **Barrel imports only**: `import { useAuth } from "@green-goods/shared"` -- never deep paths.
+- **Declared specifiers only**: consumers import paths declared in the owning package's
+  `package.json#exports`. Prefer the narrow stable-domain or composition specifier that matches the
+  caller; never import `packages/shared/src/**` internals.
+- **Export taxonomy**: public specifiers are stable-domain, composition, compatibility, or
+  internal-candidate. Compatibility exports need named consumers and a deletion condition;
+  internal candidates stay private until a real caller and stability decision justify publication.
+- **Leaf exports control graphs**: a narrow leaf can reduce test imports and mock coupling, but it
+  does not by itself prove that the module has a deep interface or coherent ownership.
 - **Deployment artifacts**: `import deployment from '../../../contracts/deployments/11155111-latest.json'` -- never hardcode addresses.
 - **No cross-frontend imports**: Client cannot import from admin, and vice versa.
+
+### Module seams and certification
+
+A boundary separates package ownership, trust, process, protocol, or deployment. A seam is a place
+where behavior can vary without editing its caller. They often meet, but they are not the same:
+legitimate boundaries do not automatically need injected ports.
+
+Architecture work tracks `OBSERVED -> CANDIDATE -> SELECTED -> IMPLEMENTED -> CERTIFIED`, with
+`DEFERRED` available before selection. Candidate details live in the owning Plan Hub. The machine
+registry at `scripts/data/module-seam-registry.json` contains only human-selected hotspots and
+certified critical seams. Certification requires declared package exports, production composition,
+real consumers, direct subject proof, adapter conformance where applicable, integration evidence,
+and a fresh deterministic evidence fingerprint.
 
 ## Hats Protocol role tree
 
