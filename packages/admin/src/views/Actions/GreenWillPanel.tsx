@@ -1,13 +1,11 @@
-import {
-  type Address,
-  DEFAULT_CHAIN_ID,
-  FormInput,
-  formatDate,
-  useEnsName,
-  useGreenWillBadgeDefinitions,
-  useGreenWillBadges,
-  useGreenWillRecentGrants,
-} from "@green-goods/shared";
+import { FormInput } from "@green-goods/shared/components/Form/FormInput";
+import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
+import { useEnsName } from "@green-goods/shared/hooks/blockchain/useEnsName";
+import { useGreenWillBadgeDefinitions } from "@green-goods/shared/hooks/greenwill/useGreenWillBadgeDefinitions";
+import { useGreenWillBadges } from "@green-goods/shared/hooks/greenwill/useGreenWillBadges";
+import { useGreenWillRecentGrants } from "@green-goods/shared/hooks/greenwill/useGreenWillRecentGrants";
+import type { Address } from "@green-goods/shared/types/domain";
+import { formatDate } from "@green-goods/shared/utils/time";
 import { AdminCard } from "@/components/AdminCard";
 import { RiAwardLine } from "@remixicon/react";
 import { useState } from "react";

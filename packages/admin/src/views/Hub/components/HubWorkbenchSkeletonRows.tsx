@@ -1,4 +1,4 @@
-import { WorkbenchList } from "@green-goods/shared";
+import { WorkbenchList } from "@green-goods/shared/components/Canvas/WorkbenchList";
 
 export function HubWorkbenchSkeletonRows({
   count,

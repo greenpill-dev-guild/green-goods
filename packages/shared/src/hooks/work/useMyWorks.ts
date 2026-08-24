@@ -7,13 +7,13 @@
  */
 
 import { useQuery } from "@tanstack/react-query";
-import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
+import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import { getWorksByGardener } from "../../modules/data/eas";
 import { filterByTimeRange, sortByCreatedAt, type TimeFilter } from "../../utils/time";
 import { deduplicateById, mergeAndDeduplicateByClientId } from "../../utils/work/deduplication";
 import { fetchOfflineWorks } from "../../utils/work/offline";
 import { useUser } from "../auth/useUser";
-import { queryKeys } from "../../config/query-keys";
+import { worksKeys } from "../../config/query-keys/work";
 import type { Work } from "../../types/domain";
 
 export interface UseMyWorksOptions {
@@ -72,7 +72,7 @@ export function useMyWorks(options: UseMyWorksOptions = {}) {
   const activeAddress = user?.id;
 
   return useQuery({
-    queryKey: queryKeys.works.mine(
+    queryKey: worksKeys.mine(
       activeAddress,
       chainId,
       includeOffline,

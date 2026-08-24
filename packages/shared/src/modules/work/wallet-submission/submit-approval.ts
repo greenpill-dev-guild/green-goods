@@ -6,7 +6,7 @@ import { getWagmiConfig } from "../../../config/appkit";
 import { getEASConfig } from "../../../config/blockchain";
 import { getChain } from "../../../config/chains";
 import { queryClient } from "../../../config/react-query";
-import { queryKeys } from "../../../config/query-keys";
+import { workApprovalsKeys, worksKeys } from "../../../config/query-keys/work";
 import { ANALYTICS_EVENTS } from "../../../modules/app/analytics-events";
 import { track } from "../../../modules/app/posthog";
 import { ensureWagmiWalletChain } from "../../../modules/transactions/chain-guard";
@@ -114,7 +114,7 @@ export async function submitApprovalDirectly(
       createdAt: Math.floor(Date.now() / 1000),
     };
 
-    queryClient.setQueryData<EASWorkApproval[]>(queryKeys.workApprovals.all, (old) => [
+    queryClient.setQueryData<EASWorkApproval[]>(workApprovalsKeys.all, (old) => [
       optimisticApproval,
       ...(old || []),
     ]);
@@ -122,7 +122,7 @@ export async function submitApprovalDirectly(
     onProgress?.("syncing", "Syncing with blockchain...");
 
     await pollQueriesAfterTransaction({
-      queryKeys: [queryKeys.workApprovals.all, queryKeys.works.all],
+      queryKeys: [workApprovalsKeys.all, worksKeys.all],
       baseDelay: 1000,
       maxDelay: 4000,
       maxAttempts: 4,

@@ -17,7 +17,7 @@
     "start": "node --env-file-if-exists=../../.env ./node_modules/envio/bin.mjs start",
     "stop": "docker ps -q --filter label=dev.envio.config-hash | xargs -r docker stop",
     "doctor": "node ../../scripts/dev/doctor.js --profile full",
-    "check:indexing-boundary": "node --test scripts/check-indexing-boundary.test.mjs && node scripts/check-indexing-boundary.mjs",
+    "check:indexing-boundary": "node --test scripts/check-indexing-boundary.test.mjs scripts/hasura-permissions.test.mjs && node scripts/check-indexing-boundary.mjs",
     "db:up": "node ../../scripts/dev/node-cli.js envio local docker up",
     "db:down": "docker ps -q --filter label=dev.envio.config-hash | xargs -r docker stop",
     "test": "bun run codegen && GG_RUN_FULL_INDEXER_TEST_SUITE=1 bun run mocha",

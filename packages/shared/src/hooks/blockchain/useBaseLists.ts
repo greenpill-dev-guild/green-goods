@@ -1,9 +1,10 @@
 import { type QueryKey, type UseQueryResult, useQuery } from "@tanstack/react-query";
-import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
+import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import { GC_TIMES, STALE_TIMES } from "../../config/react-query";
 import { getActions, getGardeners, getGardens } from "../../modules/data/greengoods";
 import type { Action, Garden, GardenerCard } from "../../types/domain";
-import { queryKeys } from "../../config/query-keys";
+import { actionsKeys, gardensKeys } from "../../config/query-keys/garden";
+import { gardenersKeys } from "../../config/query-keys/identity";
 
 /**
  * Factory function for creating base list hooks with consistent caching behavior.
@@ -45,20 +46,17 @@ function createBaseListHook<T>(
 
 /** Fetches and caches the catalog of actions for the active chain. */
 export const useActions = createBaseListHook<Action>(
-  (chainId) => queryKeys.actions.byChain(chainId),
+  (chainId) => actionsKeys.byChain(chainId),
   getActions,
   { staleTime: STALE_TIMES.actions, gcTime: GC_TIMES.baseLists }
 );
 
 /** Retrieves gardens scoped to the active chain and keeps the list warm. */
 export const useGardens = createBaseListHook<Garden>(
-  (chainId) => queryKeys.gardens.byChain(chainId),
+  (chainId) => gardensKeys.byChain(chainId),
   getGardens,
   { networkMode: "offlineFirst" }
 );
 
 /** Loads gardener profiles for operator dashboards. */
-export const useGardeners = createBaseListHook<GardenerCard>(
-  () => queryKeys.gardeners.all,
-  getGardeners
-);
+export const useGardeners = createBaseListHook<GardenerCard>(() => gardenersKeys.all, getGardeners);

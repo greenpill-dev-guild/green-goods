@@ -36,7 +36,7 @@ export interface WorkMediaProcessingResult {
   converted: ConvertedWorkMediaFile[];
 }
 
-interface NormalizeWorkMediaOptions {
+export interface NormalizeWorkMediaOptions {
   jpegQuality?: number;
   onHeicConversionStarted?: (file: File) => void;
   onHeicConversionSucceeded?: (originalFile: File, convertedFile: File) => void;

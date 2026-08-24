@@ -1,30 +1,4 @@
-import {
-  Alert,
-  ConfidenceSelector,
-  cn,
-  DEFAULT_CHAIN_ID,
-  downloadWorkData,
-  downloadWorkMedia,
-  isValidAttestationId,
-  jobQueue,
-  openEASExplorer,
-  queryKeys,
-  isUserAddress as sharedIsUserAddress,
-  shareWork,
-  toastService,
-  useActions,
-  useGardenPermissions,
-  useGardens,
-  useNavigateToTop,
-  useOffline,
-  useTransactionSender,
-  useUser,
-  useWorkApprovalActions,
-  useWorkMetadata,
-  useWorks,
-  type WorkData,
-} from "@green-goods/shared";
-import { useQueryClient } from "@tanstack/react-query";
+import { Alert, ConfidenceSelector, cn, useWorkDetailController } from "@green-goods/shared";
 import {
   RiCheckLine,
   RiCloseLine,
@@ -32,9 +6,8 @@ import {
   RiLoader4Line,
   RiUploadCloudLine,
 } from "@remixicon/react";
-import React, { useMemo, useState } from "react";
+import React from "react";
 import { useIntl } from "react-intl";
-import { useLocation, useNavigate, useOutletContext, useParams } from "react-router-dom";
 
 import { Button } from "@/components/Actions";
 import { WorkViewSkeleton } from "@/components/Features/Work";
@@ -45,56 +18,13 @@ import { WorkViewSection } from "./WorkViewSection";
 
 export const GardenWork: React.FC = () => {
   const intl = useIntl();
-  const { id: gardenIdParam, workId } = useParams<{ id: string; workId: string }>();
-  const { gardenId: gardenIdFromContext } = (useOutletContext() as { gardenId?: string }) || {};
-  const navigateToTop = useNavigateToTop();
-  const navigate = useNavigate();
-  const location = useLocation();
-  const queryClient = useQueryClient();
-  const { isOnline } = useOffline();
-  const chainId = DEFAULT_CHAIN_ID;
-  const { data: gardens = [], isLoading: gardensLoading } = useGardens();
-  const gardenId = (gardenIdFromContext || gardenIdParam) as string;
-  const garden = gardens.find((g) => g.id === gardenId);
-  const { data: actions = [] } = useActions(chainId);
-  const { works: mergedWorks } = useWorks(gardenId || "", { offline: true });
-  const work = mergedWorks.find((w) => w.id === (workId || ""));
-
-  // Metadata loading (with retry support)
   const {
-    metadata: workMetadata,
-    status: metadataStatus,
-    error: metadataError,
-    retryFetch: handleRetryMetadataFetch,
-  } = useWorkMetadata(work?.metadata);
-
-  const matchedAction = useMemo(() => {
-    if (!work) return null;
-    const compositeId = `${chainId}-${work.actionUID}`;
-    return actions.find((a) => a.id === compositeId) ?? null;
-  }, [actions, chainId, work]);
-  const actionTitle = matchedAction?.title ?? null;
-  const isActionExpired = matchedAction ? matchedAction.endTime <= Date.now() / 1000 : false;
-  const { user } = useUser();
-  const transactionSender = useTransactionSender();
-  const activeAddress = user?.id;
-  const gardenPermissions = useGardenPermissions();
-  const [isRetrying, setIsRetrying] = useState(false);
-
-  // Determine user role and viewing mode
-  const viewingMode = useMemo<"operator" | "gardener" | "viewer">(() => {
-    if (!garden || !work) return "viewer";
-
-    const canApproveWork = gardenPermissions.canManageGarden(garden);
-    const isGardener = sharedIsUserAddress(work.gardenerAddress, activeAddress);
-
-    if (canApproveWork) return "operator";
-    if (isGardener) return "gardener";
-    return "viewer";
-  }, [garden, work, activeAddress, gardenPermissions]);
-
-  // Approval interaction state (extracted to shared hook)
-  const {
+    actionTitle,
+    back: handleBack,
+    canViewAttestation,
+    chainId,
+    downloadData: handleDownloadData,
+    downloadMedia: handleDownloadMedia,
     feedbackMode,
     inlineFeedback,
     setInlineFeedback,
@@ -105,172 +35,25 @@ export const GardenWork: React.FC = () => {
     handleRejectPress,
     handleCancelFeedback,
     handleSubmitApproval,
-    workApprovalMutation,
-  } = useWorkApprovalActions({
-    work,
-    gardenId: garden?.id,
-    chainId,
+    isActionExpired,
+    isOfflineWork,
+    isOnline,
+    isRetrying,
+    gardensLoading,
+    garden,
+    gardenId,
+    metadataError,
+    metadataStatus,
+    onChainWorkId,
+    retry: handleRetry,
+    retryMetadata: handleRetryMetadataFetch,
+    share: handleShare,
+    viewAttestation: handleViewAttestation,
     viewingMode,
-    onApprovalComplete: (gId) => navigateToTop(`/home/${gId || gardenIdParam || ""}`),
-  });
-
-  const isOfflineWork =
-    work?.id.startsWith("0xoffline_") || (work?.id && !work.id.startsWith("0x"));
-
-  const handleRetry = async () => {
-    if (!transactionSender || !work) return;
-
-    setIsRetrying(true);
-    try {
-      const result = await jobQueue.processJob(work.id, { transactionSender });
-
-      if (result.success) {
-        // Invalidate the work caches explicitly so the UI updates without
-        // depending solely on the JobQueue event bus reaching this component.
-        queryClient.invalidateQueries({ queryKey: queryKeys.works.merged(gardenId, chainId) });
-        queryClient.invalidateQueries({ queryKey: queryKeys.works.offline(gardenId) });
-        toastService.success({
-          title: intl.formatMessage({
-            id: "app.home.work.retrySuccess",
-            defaultMessage: "Your work was sent",
-          }),
-          message: intl.formatMessage({
-            id: "app.home.work.retrySuccessMessage",
-            defaultMessage: "Saved to the garden record.",
-          }),
-          context: "work upload",
-        });
-      } else {
-        toastService.error({
-          title: intl.formatMessage({
-            id: "app.home.work.retryFailed",
-            defaultMessage: "Sending failed",
-          }),
-          message:
-            result.error ||
-            intl.formatMessage({
-              id: "app.home.work.retryFailedMessage",
-              defaultMessage: "Please try again.",
-            }),
-          context: "work upload",
-        });
-      }
-    } catch (error) {
-      toastService.error({
-        title: intl.formatMessage({
-          id: "app.home.work.retryError",
-          defaultMessage: "Couldn't send your work",
-        }),
-        message:
-          error instanceof Error
-            ? error.message
-            : intl.formatMessage({
-                id: "app.home.work.unknownError",
-                defaultMessage: "Something went wrong",
-              }),
-        context: "work upload",
-      });
-    } finally {
-      setIsRetrying(false);
-    }
-  };
-
-  // Build a WorkData object from the current work + metadata context
-  const buildWorkData = (): WorkData | null => {
-    if (!work) return null;
-    return {
-      id: work.id,
-      title: work.feedback || `Work ${work.id}`,
-      description: work.feedback,
-      status: work.status,
-      createdAt: work.createdAt,
-      media: work.media || [],
-      metadata: workMetadata,
-      feedback: work.feedback,
-      gardenId: garden?.id || "",
-    };
-  };
-
-  // Helper functions for work actions
-  const handleDownloadMedia = async () => {
-    const workData = buildWorkData();
-    if (!workData) return;
-    try {
-      await downloadWorkMedia(workData);
-    } catch (error) {
-      toastService.error({
-        title: intl.formatMessage({
-          id: "app.home.work.downloadMediaFailed",
-          defaultMessage: "Failed to download media",
-        }),
-        message: error instanceof Error ? error.message : "Unknown error",
-        context: "work media download",
-      });
-    }
-  };
-
-  const handleDownloadData = () => {
-    const workData = buildWorkData();
-    if (!workData) return;
-    try {
-      downloadWorkData(workData);
-    } catch (error) {
-      toastService.error({
-        title: intl.formatMessage({
-          id: "app.home.work.downloadDataFailed",
-          defaultMessage: "Failed to download data",
-        }),
-        message: error instanceof Error ? error.message : "Unknown error",
-        context: "work data download",
-      });
-    }
-  };
-
-  const handleShare = async () => {
-    const workData = buildWorkData();
-    if (!workData) return;
-    try {
-      await shareWork(workData);
-    } catch (error) {
-      toastService.error({
-        title: intl.formatMessage({
-          id: "app.home.work.shareFailed",
-          defaultMessage: "Failed to share work",
-        }),
-        message: error instanceof Error ? error.message : "Unknown error",
-        context: "work sharing",
-      });
-    }
-  };
-
-  const onChainWorkId = work?.id && isValidAttestationId(work.id) ? work.id : null;
-  const handleViewAttestation = () => {
-    if (onChainWorkId) openEASExplorer(chainId, onChainWorkId);
-  };
-
-  const handleBack = () => {
-    const state = (location.state as { from?: string; returnTo?: string } | null | undefined) ?? {};
-    const from = state.from;
-    if (from === "dashboard") {
-      navigateToTop("/home");
-      return;
-    }
-    if (state.returnTo) {
-      navigateToTop(state.returnTo);
-      return;
-    }
-    // Always navigate to the garden if we have a gardenId, rather than
-    // relying on browser history which may go to /home instead
-    if (gardenId) {
-      navigateToTop(`/home/${gardenId}`);
-      return;
-    }
-    if (window.history.length > 1) {
-      navigate(-1);
-      return;
-    }
-    navigateToTop("/home");
-  };
+    work,
+    workMetadata,
+    workApprovalMutation,
+  } = useWorkDetailController();
 
   if (!work)
     return (
@@ -300,7 +83,6 @@ export const GardenWork: React.FC = () => {
       id: "app.home.work.unknownAction",
       defaultMessage: "Unknown Action",
     });
-  const canViewAttestation = onChainWorkId !== null;
 
   // Retry footer for offline work
   const retryFooter =
@@ -320,7 +102,7 @@ export const GardenWork: React.FC = () => {
           </p>
           <Button
             onClick={handleRetry}
-            disabled={isRetrying || !navigator.onLine}
+            disabled={isRetrying || !isOnline}
             label={
               isRetrying
                 ? intl.formatMessage({
@@ -344,7 +126,7 @@ export const GardenWork: React.FC = () => {
               )
             }
           />
-          {!navigator.onLine && (
+          {!isOnline && (
             <p className="text-xs text-warning-base mt-2 text-center">
               {intl.formatMessage({
                 id: "app.home.work.offlineNotice",

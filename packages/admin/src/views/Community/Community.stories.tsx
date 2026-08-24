@@ -188,7 +188,5 @@ export const YieldPayouts: Story = {
   decorators: communityDecorators(),
 };
 
-// People tab retired — "Manage members" now opens ManageMembersDialog from
-// CommunityTab rather than a browsable Community tab. /community/members
-// still resolves (legacy path, see routes/views.tsx) and renders CommunityView
-// with that dialog, so the dialog carries the story instead of this route.
+// Member-directory and member-dialog states live in their focused component
+// stories; this route catalog keeps only the payout and inspector journeys.

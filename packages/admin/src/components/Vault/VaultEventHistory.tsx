@@ -1,14 +1,14 @@
+import { getNetworkConfig } from "@green-goods/shared/config/blockchain";
+import { useCurrentChain } from "@green-goods/shared/hooks/blockchain/useChainConfig";
+import { useVaultEvents } from "@green-goods/shared/hooks/vault/useVaultEvents";
+import type { Address } from "@green-goods/shared/types/domain";
+import { formatAddress } from "@green-goods/shared/utils/app/text";
 import {
-  type Address,
-  formatAddress,
-  formatDateTime,
   formatTokenAmount,
-  getNetworkConfig,
   getVaultAssetDecimals,
   getVaultAssetSymbol,
-  useCurrentChain,
-  useVaultEvents,
-} from "@green-goods/shared";
+} from "@green-goods/shared/utils/blockchain/vaults";
+import { formatDateTime } from "@green-goods/shared/utils/time";
 import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { EnsAddressText } from "@/components/EnsAddressText";

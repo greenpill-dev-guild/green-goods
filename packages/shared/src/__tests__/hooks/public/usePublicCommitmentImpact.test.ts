@@ -17,6 +17,10 @@ vi.mock("../../../modules/app/logger", () => ({
 }));
 vi.mock("../../../config/blockchain", () => ({ DEFAULT_CHAIN_ID: 42161 }));
 
+vi.mock("../../../config/default-chain", () => ({
+  DEFAULT_CHAIN_ID: 42161,
+}));
+
 import { usePublicCommitmentImpact } from "../../../hooks/public/usePublicCommitmentImpact";
 import { getPublicCommitmentImpact } from "../../../modules/commitment-pooling/data-public-impact";
 

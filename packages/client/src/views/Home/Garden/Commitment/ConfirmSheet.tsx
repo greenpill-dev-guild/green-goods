@@ -1,15 +1,12 @@
+import { type Address, AddressDisplay, Alert, DialogShell } from "@green-goods/shared";
 import {
-  type Address,
-  AddressDisplay,
-  Alert,
   type CommitmentContributorRecord,
   type CommitmentReadModel,
   type CommitmentRequirementRecord,
-  DialogShell,
   useCommitmentNotYetDraft,
   type EvidenceAttributionRow,
   useCommitmentEvidence,
-} from "@green-goods/shared";
+} from "@green-goods/shared/commitment-pooling";
 import {
   RiCheckboxCircleFill,
   RiCheckLine,

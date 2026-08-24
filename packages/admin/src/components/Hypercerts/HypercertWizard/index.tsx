@@ -1,14 +1,14 @@
-import {
-  Alert,
-  ErrorBoundary,
-  logger,
-  TOTAL_UNITS,
-  toastService,
-  useStepFocus,
-  useWizardData,
-  type HypercertCompletionData,
-  type HypercertWizardProps,
-} from "@green-goods/shared";
+import { Alert } from "@green-goods/shared/components/Alert";
+import { ErrorBoundary } from "@green-goods/shared/components/ErrorBoundary/ErrorBoundary";
+import { toastService } from "@green-goods/shared/components/Toast/toast.service";
+import type {
+  HypercertCompletionData,
+  HypercertWizardProps,
+} from "@green-goods/shared/hooks/admin-ui/hypercerts/types";
+import { useWizardData } from "@green-goods/shared/hooks/admin-ui/hypercerts/useWizardData";
+import { useStepFocus } from "@green-goods/shared/hooks/utils/useStepFocus";
+import { TOTAL_UNITS } from "@green-goods/shared/lib/hypercerts/constants";
+import { logger } from "@green-goods/shared/modules/app/logger";
 import { useIntl } from "react-intl";
 import { AdminButton } from "@/components/AdminButton";
 import { AdminConfirmDialog } from "@/components/AdminDialog";

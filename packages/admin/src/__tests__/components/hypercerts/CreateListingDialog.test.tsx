@@ -9,22 +9,14 @@ const mockReset = vi.fn();
 const mockUseCreateListing = vi.fn();
 const mockLoggerError = vi.fn();
 
-vi.mock("@green-goods/shared", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@green-goods/shared")>();
+vi.mock("@green-goods/shared/components/Alert", () => ({
+  Alert: ({ children }: { children: ReactNode }) =>
+    createElement("div", { role: "alert" }, children),
+}));
+
+vi.mock("@green-goods/shared/hooks/admin-ui/useDirtyClose", async () => {
   const { useState } = await import("react");
   return {
-    ...actual,
-    Alert: ({ children }: { children: ReactNode }) =>
-      createElement("div", { role: "alert" }, children),
-    LISTING_DEFAULTS: {
-      durationDays: 30,
-      sellLeftover: false,
-      maxUnitAmount: 1000n,
-    },
-    logger: {
-      error: (...args: unknown[]) => mockLoggerError(...args),
-    },
-    useCreateListing: (...args: unknown[]) => mockUseCreateListing(...args),
     // Faithful state-mode reimplementation of useDirtyClose minus the
     // router-bound useBlocker (renderWithProviders has no data router).
     useDirtyClose: ({ isDirty, onClose }: { isDirty: boolean; onClose: () => void }) => {
@@ -45,6 +37,29 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
     },
   };
 });
+
+vi.mock("@green-goods/shared/hooks/hypercerts/useCreateListing", () => ({
+  useCreateListing: (...args: unknown[]) => mockUseCreateListing(...args),
+}));
+
+vi.mock("@green-goods/shared/modules/app/logger", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@green-goods/shared/modules/app/logger")>();
+  return {
+    ...actual,
+    logger: {
+      ...actual.logger,
+      error: (...args: unknown[]) => mockLoggerError(...args),
+    },
+  };
+});
+
+vi.mock("@green-goods/shared/types/hypercerts", () => ({
+  LISTING_DEFAULTS: {
+    durationDays: 30,
+    sellLeftover: false,
+    maxUnitAmount: 1000n,
+  },
+}));
 
 // Stub the confirm to a plain element. The real DiscardChangesDialog mounts the
 // Radix AdminConfirmDialog stack, whose portal content flickers out when opened

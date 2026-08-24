@@ -7,33 +7,30 @@
  * @vitest-environment jsdom
  */
 
-import type { MintingState } from "@green-goods/shared";
+import type { MintingState } from "@green-goods/shared/stores/useHypercertWizardStore";
 import { screen } from "@testing-library/react";
 import { createElement } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { renderWithProviders as render } from "../../test-utils";
 
 // Mock cn utility
-vi.mock("@green-goods/shared/utils", () => ({
+vi.mock("@green-goods/shared/utils/styles/cn", () => ({
   cn: (...args: unknown[]) => args.filter(Boolean).join(" "),
 }));
 
 // Mock only the specific functions we need
-vi.mock("@green-goods/shared", () => ({
-  cn: (...args: unknown[]) => args.filter(Boolean).join(" "),
+vi.mock("@green-goods/shared/config/blockchain", () => ({
   DEFAULT_CHAIN_ID: 11155111,
   getNetworkConfig: () => ({
     blockExplorer: "https://sepolia.etherscan.io",
   }),
-  getBlockchainErrorI18nKey: (error: string) => `app.errors.blockchain.${error}`,
-  classifyTxError: (error: unknown) => ({
-    kind: "unknown" as const,
-    severity: "error" as const,
-    titleKey: "app.txFeedback.failed.title",
-    messageKey: "app.errors.blockchain.unknown.message",
-    rawMessage: String(error),
-  }),
-  isMeaningfulTxErrorMessage: (msg: string | null | undefined) => Boolean(msg?.trim()),
+}));
+
+vi.mock("@green-goods/shared/config/default-chain", () => ({
+  DEFAULT_CHAIN_ID: 11155111,
+}));
+
+vi.mock("@green-goods/shared/hooks/utils/useTxErrorMessages", () => ({
   useTxErrorMessages: (error: unknown) => ({
     view: {
       kind: "unknown" as const,
@@ -43,6 +40,25 @@ vi.mock("@green-goods/shared", () => ({
     title: "Transaction failed",
     message: String(error || "Something went wrong. Please try again."),
   }),
+}));
+
+vi.mock("@green-goods/shared/utils/errors/blockchain-errors", () => ({
+  getBlockchainErrorI18nKey: (error: string) => `app.errors.blockchain.${error}`,
+}));
+
+vi.mock("@green-goods/shared/utils/errors/tx-error-classifier", () => ({
+  classifyTxError: (error: unknown) => ({
+    kind: "unknown" as const,
+    severity: "error" as const,
+    titleKey: "app.txFeedback.failed.title",
+    messageKey: "app.errors.blockchain.unknown.message",
+    rawMessage: String(error),
+  }),
+  isMeaningfulTxErrorMessage: (msg: string | null | undefined) => Boolean(msg?.trim()),
+}));
+
+vi.mock("@green-goods/shared/utils/styles/cn", () => ({
+  cn: (...args: unknown[]) => args.filter(Boolean).join(" "),
 }));
 
 import { MintProgress } from "../../../components/Hypercerts/Steps/MintProgress";

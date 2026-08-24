@@ -1,0 +1,13 @@
+{
+  "requiredTables": ["CommitmentPool", "Disbursement"],
+  "metadata": {
+    "metadata": {
+      "sources": [
+        {
+          "name": "default",
+          "tables": [{ "table": { "schema": "public", "name": "Disbursement" } }]
+        }
+      ]
+    }
+  }
+}

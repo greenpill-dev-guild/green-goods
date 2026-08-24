@@ -9,6 +9,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 const scriptDirectory = dirname(fileURLToPath(import.meta.url));
 const projectRoot = resolve(scriptDirectory, "../..");
 const defaultPolicyPath = resolve(projectRoot, "scripts/data/validation-policy.json");
+const GIT_OUTPUT_MAX_BUFFER = 16 * 1024 * 1024;
 
 export function loadPolicy(policyPath = defaultPolicyPath) {
   const policy = JSON.parse(readFileSync(policyPath, "utf8"));
@@ -41,6 +42,16 @@ function validatePolicy(policy) {
   for (const rule of [...(policy.conditionalRules ?? []), ...(policy.criticalOverrides ?? [])]) {
     for (const id of rule.checks ?? [rule.check]) {
       if (!ids.has(id)) throw new Error(`Validation rule references unknown check ${id}`);
+    }
+    if (rule.intents !== undefined) {
+      if (!Array.isArray(rule.intents) || rule.intents.length === 0) {
+        throw new Error("Validation rule intents must be a non-empty array");
+      }
+      for (const intent of rule.intents) {
+        if (!policy.intentOrder.includes(intent)) {
+          throw new Error(`Validation rule references unknown intent ${intent}`);
+        }
+      }
     }
   }
 }
@@ -459,7 +470,14 @@ export function selectValidation(input = {}, options = {}) {
       if (surfaces.has(surface)) select(id, `strict-intent:${surface}:test-types`);
     }
   }
+  if (
+    !evidenceOnly &&
+    changedPaths.some((path) => path.startsWith("packages/client/src/"))
+  ) {
+    select("staged-modules", "client:staged-boundary");
+  }
   for (const rule of evidenceOnly ? [] : (policy.conditionalRules ?? [])) {
+    if (rule.intents && !rule.intents.includes(intent)) continue;
     const matchingPaths = changedPaths.filter((path) => {
       if (!groupMatches(path, rule)) return false;
       if (rule.exact?.includes(path)) return true;
@@ -474,7 +492,13 @@ export function selectValidation(input = {}, options = {}) {
       return true;
     });
     if (matchingPaths.length === 0) continue;
-    if (intent === "qa" && !["browser-proof", "ontology"].includes(rule.check)) continue;
+    if (
+      intent === "qa" &&
+      rule.runInQa !== true &&
+      !["browser-proof", "ontology"].includes(rule.check)
+    ) {
+      continue;
+    }
     select(rule.check, `conditional:${rule.check}`);
   }
 
@@ -834,11 +858,15 @@ export function parseCliArgs(argv) {
 }
 
 function gitOutput(args, cwd = projectRoot) {
-  return execFileSync("git", args, { cwd, encoding: "utf8" }).trim();
+  return execFileSync("git", args, {
+    cwd,
+    encoding: "utf8",
+    maxBuffer: GIT_OUTPUT_MAX_BUFFER,
+  }).trim();
 }
 
 function gitRawOutput(args, cwd = projectRoot) {
-  return execFileSync("git", args, { cwd });
+  return execFileSync("git", args, { cwd, maxBuffer: GIT_OUTPUT_MAX_BUFFER });
 }
 
 function lines(value) {

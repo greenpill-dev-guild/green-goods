@@ -68,11 +68,6 @@ vi.mock("../../utils/blockchain/polling", () => ({
   TX_RECEIPT_TIMEOUT_MS: 120_000,
 }));
 
-vi.mock("../../modules/work/simulate", () => ({
-  simulateWorkSubmission: vi.fn(),
-  simulateApprovalSubmission: vi.fn(),
-}));
-
 vi.mock("../../utils/debug", () => ({
   DEBUG_ENABLED: false,
   debugLog: vi.fn(),

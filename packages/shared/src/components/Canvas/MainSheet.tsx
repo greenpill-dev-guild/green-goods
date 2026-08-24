@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { cn } from "../../utils";
+import { cn } from "../../utils/styles/cn";
 
 export interface MainSheetProps {
   /** Children rendered inside the main sheet content zone */

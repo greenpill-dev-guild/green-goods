@@ -10,25 +10,28 @@
  */
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
-
-const mocks = vi.hoisted(() => ({
-  uploadJSONToIPFS: vi.fn(),
-}));
-
-vi.mock("../modules/data/ipfs/upload", () => ({ uploadJSONToIPFS: mocks.uploadJSONToIPFS }));
-
-const {
+import type { CommitmentDocumentStore } from "../modules/commitment-pooling/document-store";
+import {
   buildPoolCharter,
   isPoolDocumentPinError,
   parsePoolCharter,
   pinPoolCharter,
   POOL_CHARTER_VERSION,
   PoolDocumentPinError,
-} = await import("../modules/commitment-pooling/pool-charter");
-const { buildCycleMetadata, CYCLE_METADATA_VERSION, parseCycleMetadata, pinCycleMetadata } =
-  await import("../modules/commitment-pooling/cycle-metadata");
+} from "../modules/commitment-pooling/pool-charter";
+import {
+  buildCycleMetadata,
+  CYCLE_METADATA_VERSION,
+  parseCycleMetadata,
+  pinCycleMetadata,
+} from "../modules/commitment-pooling/cycle-metadata";
 
 const GARDEN = "0x2222222222222222222222222222222222222222" as const;
+const pinJson = vi.fn();
+const documents: CommitmentDocumentStore = {
+  pinJson,
+  readJson: vi.fn(),
+};
 
 describe("buildPoolCharter", () => {
   it("shapes a versioned document from the steward's sentence", () => {
@@ -59,28 +62,31 @@ describe("buildPoolCharter", () => {
 
 describe("pinPoolCharter", () => {
   beforeEach(() => {
-    mocks.uploadJSONToIPFS.mockReset();
+    pinJson.mockReset();
   });
 
   it("pins the versioned document and returns its CID", async () => {
-    mocks.uploadJSONToIPFS.mockResolvedValue({ cid: "bafy-charter" });
+    pinJson.mockResolvedValue("bafy-charter");
 
-    const cid = await pinPoolCharter({
-      purpose: "Neighbourly help in Rocinha",
-      gardenAddress: GARDEN,
-    });
+    const cid = await pinPoolCharter(
+      {
+        purpose: "Neighbourly help in Rocinha",
+        gardenAddress: GARDEN,
+      },
+      documents
+    );
 
     expect(cid).toBe("bafy-charter");
-    expect(mocks.uploadJSONToIPFS).toHaveBeenCalledWith(
+    expect(pinJson).toHaveBeenCalledWith(
       { version: POOL_CHARTER_VERSION, purpose: "Neighbourly help in Rocinha" },
       expect.objectContaining({ gardenAddress: GARDEN, metadataType: "commitment-pool-charter" })
     );
   });
 
   it("surfaces a pin failure as its own error so the step stays open with a retry", async () => {
-    mocks.uploadJSONToIPFS.mockRejectedValue(new Error("gateway down"));
+    pinJson.mockRejectedValue(new Error("gateway down"));
 
-    const failure = await pinPoolCharter({ purpose: "Neighbourly help" }).catch(
+    const failure = await pinPoolCharter({ purpose: "Neighbourly help" }, documents).catch(
       (error: unknown) => error
     );
 
@@ -92,7 +98,7 @@ describe("pinPoolCharter", () => {
 
 describe("cycle metadata write side", () => {
   beforeEach(() => {
-    mocks.uploadJSONToIPFS.mockReset();
+    pinJson.mockReset();
   });
 
   it("shapes the document the cycle rail already reads", () => {
@@ -106,21 +112,24 @@ describe("cycle metadata write side", () => {
   });
 
   it("pins the cycle name and returns its CID", async () => {
-    mocks.uploadJSONToIPFS.mockResolvedValue({ cid: "bafy-season" });
+    pinJson.mockResolvedValue("bafy-season");
 
-    const cid = await pinCycleMetadata({ name: "Season of First Rains", gardenAddress: GARDEN });
+    const cid = await pinCycleMetadata(
+      { name: "Season of First Rains", gardenAddress: GARDEN },
+      documents
+    );
 
     expect(cid).toBe("bafy-season");
-    expect(mocks.uploadJSONToIPFS).toHaveBeenCalledWith(
+    expect(pinJson).toHaveBeenCalledWith(
       { version: CYCLE_METADATA_VERSION, name: "Season of First Rains" },
       expect.objectContaining({ gardenAddress: GARDEN, metadataType: "commitment-cycle" })
     );
   });
 
   it("reports a failed cycle-name pin the same way as a failed charter pin", async () => {
-    mocks.uploadJSONToIPFS.mockRejectedValue(new Error("gateway down"));
+    pinJson.mockRejectedValue(new Error("gateway down"));
 
-    const failure = await pinCycleMetadata({ name: "Seedling swap" }).catch(
+    const failure = await pinCycleMetadata({ name: "Seedling swap" }, documents).catch(
       (error: unknown) => error
     );
 

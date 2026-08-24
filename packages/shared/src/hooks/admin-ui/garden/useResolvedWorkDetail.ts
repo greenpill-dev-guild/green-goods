@@ -1,13 +1,10 @@
-import {
-  DEFAULT_CHAIN_ID,
-  compareAddresses,
-  useActions,
-  useAdminGardenContext,
-  useGardenPermissions,
-  useGardens,
-  useWorks,
-  type WorkMetadata,
-} from "@green-goods/shared";
+import { DEFAULT_CHAIN_ID } from "../../../config/default-chain";
+import type { WorkMetadata } from "../../../types/domain";
+import { compareAddresses } from "../../../utils/blockchain/address";
+import { useActions, useGardens } from "../../blockchain/useBaseLists";
+import { useAdminGardenContext } from "../../garden/useAdminGardenContext";
+import { useGardenPermissions } from "../../garden/useGardenPermissions";
+import { useWorks } from "../../work/useWorks";
 import { useEffect, useMemo } from "react";
 
 export function parseWorkMetadata(metadataStr: string): Partial<WorkMetadata> | null {

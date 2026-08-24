@@ -8,7 +8,6 @@ import {
   toastService,
   useActions,
   useBrowserNavigation,
-  useCommitmentPools,
   useConvictionStrategies,
   useGardeners,
   useGardens,
@@ -24,6 +23,7 @@ import {
   useVaultDeposits,
   useWorks,
 } from "@green-goods/shared";
+import { useCommitmentPools } from "@green-goods/shared/commitment-pooling";
 import {
   RiCalendarEventFill,
   RiErrorWarningLine,

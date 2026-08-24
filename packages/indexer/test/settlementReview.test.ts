@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 
 import { Addresses, createTestIndexer, processEvents, SettlementModule } from "./v3";
+import { settlementMessage } from "./helpers/settlement-messages";
 
 const CHAIN_ID = 42161;
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
@@ -81,50 +82,6 @@ function fundingWithdrawn(fundingId: bigint, commitmentId: bigint, timestamp: nu
   });
 }
 
-function settlementCommand(
-  eventName: "SettlementCommandDispatched" | "SettlementCommandRetried",
-  executionKey: string,
-  commandMessageId: string,
-  subjectId: bigint,
-  attempt: bigint,
-  timestamp: number
-) {
-  return SettlementModule[eventName].createMockEvent({
-    executionKey,
-    commandMessageId,
-    isBatch: false,
-    subjectId,
-    attempt,
-    destinationChainSelector: 16_688_752_181_858_512n,
-    destinationExecutor: address(80),
-    destinationGasLimit: 600_000n,
-    protocolVersion: 1n,
-    commandPayloadHash: hash(timestamp + 100),
-    fee: 3n,
-    mockEventData: eventData(timestamp),
-  });
-}
-
-function settlementAcknowledged(
-  executionKey: string,
-  acknowledgmentMessageId: string,
-  commandMessageId: string,
-  subjectId: bigint,
-  success: boolean,
-  timestamp: number
-) {
-  return SettlementModule.SettlementAcknowledged.createMockEvent({
-    executionKey,
-    acknowledgmentMessageId,
-    originatingCommandMessageId: commandMessageId,
-    isBatch: false,
-    subjectId,
-    success,
-    failureCode: success ? 0n : 8n,
-    mockEventData: eventData(timestamp),
-  });
-}
-
 describe("Settlement review regressions", () => {
   it("indexes FundingWithdrawn in normal, duplicate, and reverse pledge order", async () => {
     const pledge = SettlementModule.FundingPledged.createMockEvent({
@@ -160,6 +117,7 @@ describe("Settlement review regressions", () => {
 
   it("applies a pre-existing successful acknowledgment when a refund is queued", async () => {
     let db = createTestIndexer();
+    const message = settlementMessage(601, { subjectId: 91n });
     const pledge = SettlementModule.FundingPledged.createMockEvent({
       fundingId: 61n,
       commitmentId: 51n,
@@ -171,13 +129,7 @@ describe("Settlement review regressions", () => {
       mockEventData: eventData(1),
     });
     const acknowledgment = SettlementModule.SettlementAcknowledged.createMockEvent({
-      executionKey: hash(601),
-      acknowledgmentMessageId: hash(602),
-      originatingCommandMessageId: hash(603),
-      isBatch: false,
-      subjectId: 91n,
-      success: true,
-      failureCode: 0n,
+      ...message.source.acknowledged(),
       mockEventData: eventData(3),
     });
     const refund = SettlementModule.DisbursementQueued.createMockEvent({
@@ -248,10 +200,7 @@ describe("Settlement review regressions", () => {
     const fundingId = 64n;
     const commitmentId = 54n;
     const disbursementId = 94n;
-    const firstKey = hash(640);
-    const firstCommand = hash(641);
-    const retryKey = hash(642);
-    const retryCommand = hash(643);
+    const message = settlementMessage(640, { subjectId: disbursementId });
     const pledge = SettlementModule.FundingPledged.createMockEvent({
       fundingId,
       commitmentId,
@@ -277,43 +226,30 @@ describe("Settlement review regressions", () => {
       amount: 100n,
       mockEventData: eventData(2),
     });
-    const firstDispatched = settlementCommand(
-      "SettlementCommandDispatched",
-      firstKey,
-      firstCommand,
-      disbursementId,
-      0n,
-      3
-    );
+    const firstDispatched = SettlementModule.SettlementCommandDispatched.createMockEvent({
+      ...message.source.dispatched,
+      mockEventData: eventData(3),
+    });
     const requeued = SettlementModule.DisbursementRequeued.createMockEvent({
       disbursementId,
       attempt: 1n,
       mockEventData: eventData(5),
     });
-    const retryDispatched = settlementCommand(
-      "SettlementCommandRetried",
-      retryKey,
-      retryCommand,
-      disbursementId,
-      1n,
-      6
-    );
-    const success = settlementAcknowledged(
-      retryKey,
-      hash(644),
-      retryCommand,
-      disbursementId,
-      true,
-      7
-    );
-    const olderFailure = settlementAcknowledged(
-      firstKey,
-      hash(645),
-      firstCommand,
-      disbursementId,
-      false,
-      4
-    );
+    const retryDispatched = SettlementModule.SettlementCommandRetried.createMockEvent({
+      ...message.source.retried,
+      mockEventData: eventData(6),
+    });
+    const success = SettlementModule.SettlementAcknowledged.createMockEvent({
+      ...message.source.acknowledged({ retry: true }),
+      mockEventData: eventData(7),
+    });
+    const olderFailure = SettlementModule.SettlementAcknowledged.createMockEvent({
+      ...message.source.acknowledged({
+        success: false,
+        acknowledgmentMessageId: message.ids.duplicateAcknowledgmentMessageId,
+      }),
+      mockEventData: eventData(4),
+    });
     for (const [api, event] of [
       [SettlementModule.FundingPledged, pledge],
       [SettlementModule.DisbursementQueued, refund],
@@ -339,6 +275,7 @@ describe("Settlement review regressions", () => {
 
   it("keeps cancelled disbursements terminal when an acknowledgment arrives later", async () => {
     let db = createTestIndexer();
+    const message = settlementMessage(950, { subjectId: 95n });
     const queued = SettlementModule.DisbursementQueued.createMockEvent({
       disbursementId: 95n,
       commitmentId: 55n,
@@ -361,7 +298,10 @@ describe("Settlement review regressions", () => {
       reasonCID: "ipfs://cancelled",
       mockEventData: eventData(2),
     });
-    const acknowledgment = settlementAcknowledged(hash(950), hash(951), hash(952), 95n, true, 3);
+    const acknowledgment = SettlementModule.SettlementAcknowledged.createMockEvent({
+      ...message.source.acknowledged(),
+      mockEventData: eventData(3),
+    });
     db = await SettlementModule.DisbursementQueued.processEvent({ event: queued, mockDb: db });
     db = await SettlementModule.DisbursementCancelled.processEvent({
       event: cancelled,
@@ -378,8 +318,7 @@ describe("Settlement review regressions", () => {
 
   it("does not let stranded-subject failure regress confirmed children", async () => {
     let db = createTestIndexer();
-    const executionKey = hash(960);
-    const commandMessageId = hash(961);
+    const message = settlementMessage(960, { subjectId: 96n });
     const queued = SettlementModule.DisbursementQueued.createMockEvent({
       disbursementId: 96n,
       commitmentId: 56n,
@@ -395,24 +334,16 @@ describe("Settlement review regressions", () => {
       amount: 100n,
       mockEventData: eventData(1),
     });
-    const dispatched = settlementCommand(
-      "SettlementCommandDispatched",
-      executionKey,
-      commandMessageId,
-      96n,
-      0n,
-      2
-    );
-    const confirmed = settlementAcknowledged(
-      executionKey,
-      hash(962),
-      commandMessageId,
-      96n,
-      true,
-      3
-    );
+    const dispatched = SettlementModule.SettlementCommandDispatched.createMockEvent({
+      ...message.source.dispatched,
+      mockEventData: eventData(2),
+    });
+    const confirmed = SettlementModule.SettlementAcknowledged.createMockEvent({
+      ...message.source.acknowledged(),
+      mockEventData: eventData(3),
+    });
     const stranded = SettlementModule.StrandedSubjectFailed.createMockEvent({
-      executionKey,
+      executionKey: message.ids.executionKey,
       isBatch: false,
       subjectId: 96n,
       retiredExecutor: address(80),

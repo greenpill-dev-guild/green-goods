@@ -1,4 +1,5 @@
-import { cn, type PendingCommitmentCreation, StatusBadge } from "@green-goods/shared";
+import { cn, StatusBadge } from "@green-goods/shared";
+import { type PendingCommitmentCreation } from "@green-goods/shared/commitment-pooling";
 import { RiDeleteBinLine, RiRefreshLine, RiSeedlingLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 

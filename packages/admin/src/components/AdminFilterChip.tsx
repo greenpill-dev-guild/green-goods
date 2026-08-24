@@ -1,6 +1,6 @@
 import { RiCheckLine } from "@remixicon/react";
 import { type ComponentType } from "react";
-import { cn } from "@green-goods/shared";
+import { cn } from "@green-goods/shared/utils/styles/cn";
 
 // ============================================================================
 // Types

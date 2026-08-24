@@ -1,4 +1,5 @@
-import { isDemoPoolingActive, logger, queryClient } from "@green-goods/shared";
+import { logger, queryClient } from "@green-goods/shared";
+import { isDemoPoolingActive } from "@green-goods/shared/commitment-pooling";
 // Note: Service worker is registered by vite-plugin-pwa (registerType: "autoUpdate")
 // Auto-update logic (foreground checks + controllerchange reload) is in main.tsx
 import type { Query } from "@tanstack/react-query";

@@ -1,9 +1,7 @@
-import {
-  type Address,
-  type FunderLeaderboardEntry,
-  formatTokenAmount,
-  useEnsName,
-} from "@green-goods/shared";
+import { useEnsName } from "@green-goods/shared/hooks/blockchain/useEnsName";
+import type { Address } from "@green-goods/shared/types/domain";
+import type { FunderLeaderboardEntry } from "@green-goods/shared/types/vaults";
+import { formatTokenAmount } from "@green-goods/shared/utils/blockchain/vaults";
 import { RiLeafLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { formatEnsAddressName } from "@/components/EnsAddressText";

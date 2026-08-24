@@ -49,6 +49,10 @@ vi.mock("../../../config/blockchain", () => ({
   getDefaultChain: () => ({ chainId: 11155111, rootGarden: null }),
 }));
 
+vi.mock("../../../config/default-chain", () => ({
+  DEFAULT_CHAIN_ID: 11155111,
+}));
+
 vi.mock("wagmi", () => ({
   useWriteContract: () => ({ writeContractAsync: vi.fn(), isPending: false }),
 }));

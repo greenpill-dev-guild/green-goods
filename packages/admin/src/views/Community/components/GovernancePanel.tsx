@@ -1,16 +1,15 @@
+import { ConvictionMeter } from "@green-goods/shared/components/Conviction/ConvictionMeter";
 import {
-  adminRoutes,
-  ConvictionMeter,
-  EmptyState,
-  type GardenSignalPool,
-  PoolType,
-  StatusBadge,
-  useConvictionProposalsForPool,
-  useConvictionWeightAllocator,
-  usePrimaryAddress,
   WeightAllocator,
   type WeightAllocatorProposal,
-} from "@green-goods/shared";
+} from "@green-goods/shared/components/Conviction/WeightAllocator";
+import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
+import { StatusBadge } from "@green-goods/shared/components/StatusBadge";
+import { usePrimaryAddress } from "@green-goods/shared/hooks/auth/usePrimaryAddress";
+import { useConvictionProposalsForPool } from "@green-goods/shared/hooks/conviction/useConvictionProposalsForPool";
+import { useConvictionWeightAllocator } from "@green-goods/shared/hooks/conviction/useConvictionWeightAllocator";
+import { type GardenSignalPool, PoolType } from "@green-goods/shared/types/gardens-community";
+import { adminRoutes } from "@green-goods/shared/utils/navigation/admin-routes";
 import { RiArrowRightSLine, RiUserVoiceLine } from "@remixicon/react";
 import { useMemo } from "react";
 import { useIntl } from "react-intl";

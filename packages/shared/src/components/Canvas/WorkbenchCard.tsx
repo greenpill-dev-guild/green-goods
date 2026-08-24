@@ -1,5 +1,5 @@
 import { type ComponentType } from "react";
-import { cn } from "../../utils";
+import { cn } from "../../utils/styles/cn";
 import { getStatusToneClasses, type WorkbenchTone } from "./WorkbenchRow";
 
 export interface WorkbenchCardProps {

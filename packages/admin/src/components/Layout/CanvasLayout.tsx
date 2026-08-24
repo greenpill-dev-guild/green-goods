@@ -1,44 +1,14 @@
-import {
-  FabProvider,
-  RefreshActionProvider,
-  GardenChip,
-  ACCOUNT_TAB_SEARCH_PARAM,
-  ADMIN_WORKSPACE_VIEWS,
-  NOTIFICATIONS_SHEET_CONTENT_ID,
-  OPEN_ACCOUNT_SHEET_EVENT,
-  parseAccountSheetTab,
-  PROFILE_SHEET_CONTENT_ID,
-  SETTINGS_SHEET_CONTENT_ID,
-  toAccountSheetContentId,
-  useAdminGardenWorkspaceSelection,
-  useAdminRightSheetDescriptor,
-  useAuth,
-  useEligibleAdminGardens,
-  useEffectiveToolbarPermissions,
-  useGardenUrlSync,
-  adminRoutes,
-  getAdminWorkspaceForPath,
-  getAdminWorkspaceRoot,
-  useDocumentEvent,
-  useMediaQuery,
-  useSheetOrchestrator,
-  compareAddresses,
-  type AccountSheetTab,
-  type AdminRightSheetContentId,
-  type OpenAccountSheetEventDetail,
-  type ToolbarSlot,
-} from "@green-goods/shared";
-import { useCanvasChromeProbe } from "@green-goods/shared/hooks/admin-ui/useCanvasChromeProbe";
-import { useResolvedProfileAvatar } from "@green-goods/shared/profile-avatar";
-import { RiUserLine } from "@remixicon/react";
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { FabProvider } from "@green-goods/shared/components/Canvas/FabContext";
+import { GardenChip } from "@green-goods/shared/components/Canvas/GardenChip";
+import { RefreshActionProvider } from "@green-goods/shared/components/Canvas/RefreshActionContext";
+import { useCanvasShellController } from "@green-goods/shared/hooks/admin-ui/layout/useCanvasShellController";
+import { memo, useCallback, useMemo } from "react";
 import { useIntl } from "react-intl";
 import { AdminSideSheet } from "@/components/AdminSideSheet";
 import { AppBar, MainSheet } from "@/components/Shell";
-import { useLocation, useNavigate } from "react-router-dom";
 import { releaseStuckDialogArtifacts } from "./dialogCloseSafetyNet";
 import { LeftSheetProvider } from "./leftSheetChannel";
-import { AccountProfilePanel } from "./AccountProfilePanel";
+import { AccountProfilePanelContainer } from "./AccountProfilePanel";
 import { AccountSettingsPanel } from "./AccountSettingsPanel";
 import { AdminNotificationPanel } from "./AdminNotificationPanel";
 import { FabAwareNavigationBar, ProfiledNavigationBar } from "./canvasChromeProbe";
@@ -60,259 +30,61 @@ StableAppBar.displayName = "StableAppBar";
  */
 export function CanvasLayout() {
   const intl = useIntl();
-  const navigate = useNavigate();
-  const location = useLocation();
-  const { isAuthenticated, eoaAddress, isReady, authMode } = useAuth();
-  const { eligibleGardens, isLoaded: eligibleGardensLoaded } = useEligibleAdminGardens();
-  const { selectedGarden } = useAdminGardenWorkspaceSelection();
-  const { avatarUri: profileImageSrc } = useResolvedProfileAvatar();
-
-  const [searchOpen, setSearchOpen] = useState(false);
-  const isDesktop = useMediaQuery("(min-width: 600px)");
-  const usesFloatingFabNavigation = useMediaQuery("(max-width: 1023px)");
-  const permissions = useEffectiveToolbarPermissions();
-  const { showWork, showGarden, showCommunity, showActions } = permissions;
-  const { setGarden } = useGardenUrlSync();
-
-  // Sheet orchestrator — manages pane-scoped sheets
-  const orchestrator = useSheetOrchestrator();
-  const { activeContentId, activeSheet, closeSheet, openSheet } = orchestrator;
-  const pendingDesktopAccountTabRef = useRef<AccountSheetTab | null>(null);
-  const openRightSheetContent = useCallback(
-    (contentId: AdminRightSheetContentId) => {
-      openSheet("right", contentId);
-    },
-    [openSheet]
-  );
-  // Toggle: clicking the same trigger that opened the sheet should close it.
-  // Plain open is kept above for callers (event handlers, redirect bridge) that
-  // need to force-open a specific content id without toggling.
-  const toggleRightSheetContent = useCallback(
-    (contentId: AdminRightSheetContentId) => {
-      if (activeSheet === "right" && activeContentId === contentId) {
-        closeSheet();
-      } else {
-        openSheet("right", contentId);
-      }
-    },
-    [activeContentId, activeSheet, closeSheet, openSheet]
-  );
-  const renderAccountProfile = useCallback(() => <AccountProfilePanel />, []);
+  const renderAccountProfile = useCallback(() => <AccountProfilePanelContainer />, []);
   const renderAccountSettings = useCallback(() => <AccountSettingsPanel />, []);
   const renderNotifications = useCallback(
-    () => <AdminNotificationPanel onCloseSheet={closeSheet} />,
-    [closeSheet]
+    (closeSheet: () => void) => <AdminNotificationPanel onCloseSheet={closeSheet} />,
+    []
   );
-  const rightSheetDescriptor = useAdminRightSheetDescriptor({
-    contentId: activeContentId,
+  const controller = useCanvasShellController({
+    releaseDialogArtifacts: releaseStuckDialogArtifacts,
     renderAccountProfile,
     renderAccountSettings,
     renderNotifications,
   });
-
-  useEffect(() => {
-    if (activeSheet === "right" && rightSheetDescriptor === null) {
-      closeSheet();
-    }
-  }, [activeSheet, closeSheet, rightSheetDescriptor]);
-
-  useEffect(() => {
-    const handler = (event: Event) => {
-      const detail = (event as CustomEvent<OpenAccountSheetEventDetail>).detail;
-      openRightSheetContent(toAccountSheetContentId(detail?.tab ?? "profile"));
-    };
-
-    window.addEventListener(OPEN_ACCOUNT_SHEET_EVENT, handler as EventListener);
-    return () => window.removeEventListener(OPEN_ACCOUNT_SHEET_EVENT, handler as EventListener);
-  }, [openRightSheetContent]);
-
-  // Safety net for the "page frozen until refresh" lockup (see
-  // dialogCloseSafetyNet.ts): runs after each navigation — an action dialog
-  // that closes by navigating away can unmount mid-close and leave Radix's
-  // body pointer-events lock stuck. No-op while any dialog is open.
-  useEffect(() => {
-    if (typeof document === "undefined") return;
-    releaseStuckDialogArtifacts(document);
-  }, [location.pathname]);
-
-  // …and when the tab becomes visible again: hidden tabs freeze CSS
-  // animations, so a close that happened in the background never fired
-  // animationend — its exit node and the body lock are still here.
-  useDocumentEvent("visibilitychange", () => {
-    if (document.visibilityState === "visible") {
-      releaseStuckDialogArtifacts(document);
-    }
-  });
-
-  const handleOpenSearch = useCallback(() => setSearchOpen(true), []);
-  const openProfile = useCallback(
-    () => toggleRightSheetContent(PROFILE_SHEET_CONTENT_ID),
-    [toggleRightSheetContent]
-  );
-  const openSettings = useCallback(
-    () => toggleRightSheetContent(SETTINGS_SHEET_CONTENT_ID),
-    [toggleRightSheetContent]
-  );
-  const openNotifications = useCallback(
-    () => toggleRightSheetContent(NOTIFICATIONS_SHEET_CONTENT_ID),
-    [toggleRightSheetContent]
-  );
-  const toolbarVisibility = useMemo(
-    () => ({ showWork, showGarden, showCommunity, showActions }),
-    [showActions, showCommunity, showGarden, showWork]
-  );
-
-  // Build toolbar slots — visibility driven by role-adaptive permissions
-  const slots: ToolbarSlot[] = useMemo(
-    () => [
-      ...ADMIN_WORKSPACE_VIEWS.map((view) => ({
-        id: view.id,
-        label: view.label,
-        labelId: view.labelId,
-        icon: view.icon,
-        path: view.rootPath,
-        visible: toolbarVisibility[view.permission],
-      })),
-      {
-        id: "profile",
-        label: "Profile",
-        labelId: "cockpit.nav.profile",
-        icon: RiUserLine,
-        path: adminRoutes.profile(),
-        visible: true,
-        mobileOnly: true,
-      },
-    ],
-    [toolbarVisibility]
-  );
-
-  // Determine active path and workspace identity from current route
-  const { activePath, workspaceId, rawWorkspaceId } = useMemo(() => {
-    const rawActivePath = getAdminWorkspaceRoot(location.pathname);
-    const nextWorkspaceId = getAdminWorkspaceForPath(location.pathname);
-    const shouldNormalizeDesktopProfile = isDesktop && nextWorkspaceId === "profile";
-
-    return {
-      activePath: shouldNormalizeDesktopProfile ? adminRoutes.hub() : rawActivePath,
-      workspaceId: shouldNormalizeDesktopProfile ? "hub" : nextWorkspaceId,
-      rawWorkspaceId: nextWorkspaceId,
-    } as const;
-  }, [isDesktop, location.pathname]);
-
-  // Left-inspector accent: the inspector content is workspace-scoped, so the
-  // centered dialog keeps the active workspace tone (it portals out of
-  // CanvasLayout's [data-tone] scope). Non-tone ids (e.g. "profile") fall back
-  // to the neutral operator "hub" accent. Literal branches keep this a valid
-  // AdminDialog tone regardless of the workspace-id type.
-  const leftDialogTone: "hub" | "garden" | "community" | "actions" =
-    workspaceId === "garden"
-      ? "garden"
-      : workspaceId === "community"
-        ? "community"
-        : workspaceId === "actions"
-          ? "actions"
-          : "hub";
-
-  const isCoreWorkspace =
-    activePath === "/hub" || activePath === "/garden" || activePath === "/community";
-  const noEligibleGardens = eligibleGardens.length === 0;
-  const visibleSlotCount = useMemo(() => slots.filter((slot) => slot.visible).length, [slots]);
-  const handleNavigate = useCallback((path: string) => navigate(path), [navigate]);
-  const gardenList = useMemo(
-    () => eligibleGardens.map((garden) => ({ id: garden.id, name: garden.name })),
-    [eligibleGardens]
-  );
-  const chipGarden = useMemo(
-    () => (selectedGarden ? { id: selectedGarden.id, name: selectedGarden.name } : null),
-    [selectedGarden]
-  );
-  const handleSelectGarden = useCallback(
-    (garden: { id: string; name: string } | null) => {
-      if (garden) {
-        const fullGarden = eligibleGardens.find((eligibleGarden) =>
-          compareAddresses(eligibleGarden.id, garden.id)
-        );
-        setGarden(fullGarden ?? null);
-      } else {
-        setGarden(null);
-      }
-    },
-    [eligibleGardens, setGarden]
-  );
-  const handleCreateGarden = useCallback(() => navigate(adminRoutes.gardenCreate()), [navigate]);
-  const gardenChipNode = useMemo(
-    () => (
-      <GardenChip
-        gardens={gardenList}
-        selectedGarden={chipGarden}
-        onSelectGarden={handleSelectGarden}
-        onCreateGarden={handleCreateGarden}
-        showCreateGardenAction={false}
-      />
-    ),
-    [chipGarden, gardenList, handleCreateGarden, handleSelectGarden]
-  );
-
-  useCanvasChromeProbe("CanvasLayout", {
+  const {
     activePath,
-    pathname: location.pathname,
+    activeSheet,
+    closeSheet,
+    isDesktop,
+    leftDialogTone,
+    navigate: handleNavigate,
+    openNotifications,
+    openProfile,
+    openSearch: handleOpenSearch,
+    openSettings,
+    profileImageSrc,
+    rightSheetDescriptor,
+    searchOpen,
+    setSearchOpen,
+    slots,
     usesFloatingFabNavigation,
     visibleSlotCount,
     workspaceId,
-  });
+  } = controller;
 
-  useEffect(() => {
-    if (!isDesktop || rawWorkspaceId !== "profile") {
-      return;
-    }
-
-    const requestedTab = parseAccountSheetTab(
-      new URLSearchParams(location.search).get(ACCOUNT_TAB_SEARCH_PARAM)
-    );
-
-    pendingDesktopAccountTabRef.current = requestedTab;
-    navigate(adminRoutes.hub(), { replace: true });
-  }, [isDesktop, location.search, navigate, rawWorkspaceId]);
-
-  useEffect(() => {
-    if (!isDesktop || rawWorkspaceId === "profile") {
-      return;
-    }
-
-    const pendingTab = pendingDesktopAccountTabRef.current;
-    if (!pendingTab) {
-      return;
-    }
-
-    openRightSheetContent(toAccountSheetContentId(pendingTab));
-    pendingDesktopAccountTabRef.current = null;
-  }, [isDesktop, openRightSheetContent, rawWorkspaceId]);
-
-  // Redirect users with no gardens to home — they see the garden creation CTA there.
-  // Hoisted above the early-return ladder below so hook count stays stable across renders.
-  useEffect(() => {
-    if (!isReady) return;
-    if (authMode === "embedded") return;
-    if (!isAuthenticated || !eoaAddress) return;
-    if (!eligibleGardensLoaded) return;
-    if (noEligibleGardens && isCoreWorkspace) {
-      navigate("/", { replace: true });
-    }
-  }, [
-    isReady,
-    authMode,
-    isAuthenticated,
-    eoaAddress,
-    eligibleGardensLoaded,
-    noEligibleGardens,
-    isCoreWorkspace,
-    navigate,
-  ]);
+  const gardenChipNode = useMemo(
+    () => (
+      <GardenChip
+        gardens={controller.gardens}
+        selectedGarden={controller.selectedGarden}
+        onSelectGarden={controller.selectGarden}
+        onCreateGarden={controller.createGarden}
+        showCreateGardenAction={false}
+      />
+    ),
+    [
+      controller.createGarden,
+      controller.gardens,
+      controller.selectGarden,
+      controller.selectedGarden,
+    ]
+  );
 
   // Shared spinner — covers every authenticated in-app route while auth and
   // eligible-garden state resolve. Toolbar permissions are fail-open while they
   // load, so they must not block the shell from painting.
-  if (!isReady || (isAuthenticated && !eligibleGardensLoaded)) {
+  if (controller.isLoading) {
     return (
       <div
         className="flex min-h-screen items-center justify-center bg-bg-weak px-6"

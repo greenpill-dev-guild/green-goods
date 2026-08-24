@@ -10,7 +10,8 @@
 
 import { useQuery } from "@tanstack/react-query";
 
-import { queryKeys, STALE_TIME_MEDIUM } from "../../config/query-keys";
+import { STALE_TIME_MEDIUM } from "../../config/query-keys/constants";
+import { commitmentPoolingKeys } from "../../config/query-keys/commitment-pooling";
 import { getPoolClaimRequests } from "../../modules/commitment-pooling/data";
 import { useCommitmentPoolingAvailability } from "./useCommitmentPoolingAvailability";
 
@@ -21,7 +22,7 @@ export function usePoolClaimRequests(
 ) {
   const availability = useCommitmentPoolingAvailability(input);
   const query = useQuery({
-    queryKey: queryKeys.commitmentPooling.poolClaims(input.chainId, input.poolId, input.state),
+    queryKey: commitmentPoolingKeys.poolClaims(input.chainId, input.poolId, input.state),
     queryFn: () => getPoolClaimRequests(input),
     enabled: availability.status === "available" && options.enabled !== false,
     staleTime: STALE_TIME_MEDIUM,

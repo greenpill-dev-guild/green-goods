@@ -1,4 +1,5 @@
-import { formatTokenAmount, useFunderLeaderboard } from "@green-goods/shared";
+import { useFunderLeaderboard } from "@green-goods/shared/hooks/vault/useFunderLeaderboard";
+import { formatTokenAmount } from "@green-goods/shared/utils/blockchain/vaults";
 import { RiArrowDownSLine, RiArrowUpSLine } from "@remixicon/react";
 import { useState } from "react";
 import { useIntl } from "react-intl";

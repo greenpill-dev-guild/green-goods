@@ -8,7 +8,7 @@
 
 import { type Address, isAddress } from "viem";
 import { resolveEnsName } from "../../utils/blockchain/ens";
-import { queryKeys } from "../../config/query-keys";
+import { ensKeys } from "../../config/query-keys/identity";
 import { type UseEnsQueryOptions, type UseEnsQueryResult, useEnsQuery } from "./useEnsQuery";
 
 /**
@@ -30,7 +30,7 @@ export function useEnsName(
   return useEnsQuery(
     address,
     (normalizedAddress, opts) => resolveEnsName(normalizedAddress, opts),
-    queryKeys.ens.name(address?.toLowerCase() ?? ""),
+    ensKeys.name(address?.toLowerCase() ?? ""),
     {
       ...options,
       validator: isAddress,

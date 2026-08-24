@@ -25,7 +25,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useMemo, useRef, useState } from "react";
 import type { Hex } from "viem";
 
-import { queryKeys } from "../../config/query-keys";
+import { commitmentPoolingKeys } from "../../config/query-keys/commitment-pooling";
 import { createPoolChainReader } from "../../modules/commitment-pooling/pool-chain-reads";
 import {
   assertCycleSplit,
@@ -186,17 +186,17 @@ export function useCommitmentPoolSetupSequence(
       };
       const invalidate = async () => {
         await queryClient.invalidateQueries({
-          queryKey: queryKeys.commitmentPooling.all(chainId),
+          queryKey: commitmentPoolingKeys.all(chainId),
         });
         const poolIds = new Set(steps.map((step) => step.poolId.toString()));
         for (const poolId of poolIds) {
           await queryClient.invalidateQueries({
-            queryKey: queryKeys.commitmentPooling.pool(chainId, poolId),
+            queryKey: commitmentPoolingKeys.pool(chainId, poolId),
           });
         }
         if (context.cycleId !== null) {
           await queryClient.invalidateQueries({
-            queryKey: queryKeys.commitmentPooling.cycle(chainId, context.cycleId),
+            queryKey: commitmentPoolingKeys.cycle(chainId, context.cycleId),
           });
         }
       };

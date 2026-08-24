@@ -14,10 +14,12 @@
 
 import { useQuery } from "@tanstack/react-query";
 
-import { demoDocumentFor } from "../../modules/commitment-pooling/demo/demo-gate";
-import { getJsonByHash } from "../../modules/data/ipfs/resolve";
+import {
+  commitmentDocumentStore,
+  type CommitmentDocumentStore,
+} from "../../modules/commitment-pooling/document-store";
 import { isResolvableMetadataCID } from "../../modules/commitment-pooling/metadata";
-import { queryKeys } from "../../config/query-keys";
+import { commitmentPoolingKeys } from "../../config/query-keys/commitment-pooling";
 import {
   type CommitmentReasonV1,
   parseCommitmentReason,
@@ -25,18 +27,23 @@ import {
 
 const IMMUTABLE = Number.POSITIVE_INFINITY;
 
-export function useCommitmentReason(cid: string | null | undefined): {
+export interface CommitmentReasonResolution {
   reason: CommitmentReasonV1 | null;
   isLoading: boolean;
   /** The CID exists but its document could not be read or held no reason. */
   isUnavailable: boolean;
-} {
+}
+
+export function useCommitmentReason(
+  cid: string | null | undefined,
+  { documents = commitmentDocumentStore }: { documents?: CommitmentDocumentStore } = {}
+): CommitmentReasonResolution {
   const resolvable = isResolvableMetadataCID(cid);
   const query = useQuery({
-    queryKey: queryKeys.commitmentPooling.reason(resolvable ? cid.trim() : null),
+    queryKey: commitmentPoolingKeys.reason(resolvable ? cid.trim() : null),
     queryFn: async () => {
       const key = (cid as string).trim();
-      return parseCommitmentReason((await demoDocumentFor(key)) ?? (await getJsonByHash(key)));
+      return parseCommitmentReason(await documents.readJson(key));
     },
     enabled: resolvable,
     staleTime: IMMUTABLE,

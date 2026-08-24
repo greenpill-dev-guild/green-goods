@@ -1,12 +1,11 @@
 import {
-  CynefinPhase,
-  cn,
-  Domain,
   NativeSelect,
   Textarea,
   TextInput,
-  useCreateAssessmentStore,
-} from "@green-goods/shared";
+} from "@green-goods/shared/components/Form/ControlPrimitives";
+import { useCreateAssessmentStore } from "@green-goods/shared/stores/useCreateAssessmentStore";
+import { CynefinPhase, Domain } from "@green-goods/shared/types/domain";
+import { cn } from "@green-goods/shared/utils/styles/cn";
 import { RiAddLine, RiDeleteBinLine } from "@remixicon/react";
 import { useMemo } from "react";
 import { type IntlShape, useIntl } from "react-intl";

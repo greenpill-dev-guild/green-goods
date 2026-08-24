@@ -1,4 +1,5 @@
-import type { Address, CommitmentReadModel } from "@green-goods/shared";
+import type { Address } from "@green-goods/shared";
+import type { CommitmentReadModel } from "@green-goods/shared/commitment-pooling";
 import type { Meta, StoryObj } from "@storybook/react";
 import { useState } from "react";
 import { expect, fn, within } from "storybook/test";

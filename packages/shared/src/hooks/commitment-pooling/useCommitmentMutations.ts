@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { Hex } from "viem";
 
-import { queryKeys } from "../../config/query-keys";
+import { commitmentPoolingKeys } from "../../config/query-keys/commitment-pooling";
 import { getOntologyChainMaturity } from "../../ontology/query";
 import type { DeclaredConsiderationInput } from "../../modules/commitment-pooling/jobs";
 import { pinCommitmentReason } from "../../modules/commitment-pooling/reasons";
@@ -230,15 +230,15 @@ export function useCommitmentMutation(options: { chainId?: number } = {}) {
       return result.hash;
     },
     onSuccess: async (_hash, input) => {
-      await queryClient.invalidateQueries({ queryKey: queryKeys.commitmentPooling.all(chainId) });
+      await queryClient.invalidateQueries({ queryKey: commitmentPoolingKeys.all(chainId) });
       if ("commitmentId" in input) {
         await queryClient.invalidateQueries({
-          queryKey: queryKeys.commitmentPooling.commitment(chainId, input.commitmentId),
+          queryKey: commitmentPoolingKeys.commitment(chainId, input.commitmentId),
         });
       }
       if ("seriesId" in input) {
         await queryClient.invalidateQueries({
-          queryKey: queryKeys.commitmentPooling.series(chainId, input.seriesId),
+          queryKey: commitmentPoolingKeys.series(chainId, input.seriesId),
         });
       }
     },

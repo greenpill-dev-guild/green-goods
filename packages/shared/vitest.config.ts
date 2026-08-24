@@ -10,6 +10,12 @@ const workspaceRoot = path.resolve(__dirname, "../..");
 const workspaceNodeModules = path.join(workspaceRoot, "node_modules");
 const rootReactPath = path.join(workspaceNodeModules, "react");
 const rootReactDomPath = path.join(workspaceNodeModules, "react-dom");
+const allTestFiles = "src/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}";
+const nodeTestFiles = [
+  "src/__tests__/*.test.ts",
+  "src/__tests__/{utils,modules,config,workflows,lib,types,i18n,public-contracts,ontology,styles}/**/*.test.ts",
+  "src/{modules,utils}/**/*.test.ts",
+];
 
 function escapeRegex(input: string): string {
   return input.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -92,8 +98,26 @@ export default defineConfig({
         statements: 61,
       },
     },
-    include: ["src/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}"],
     exclude: ["node_modules/", "dist/", "**/*.d.ts"],
+    projects: [
+      {
+        extends: true,
+        test: {
+          name: "node",
+          environment: "node",
+          include: nodeTestFiles,
+        },
+      },
+      {
+        extends: true,
+        test: {
+          name: "dom",
+          environment: "jsdom",
+          include: [allTestFiles],
+          exclude: ["node_modules/", "dist/", "**/*.d.ts", ...nodeTestFiles],
+        },
+      },
+    ],
   },
   resolve: {
     dedupe: ["react", "react-dom", "multiformats", "uint8arrays"],

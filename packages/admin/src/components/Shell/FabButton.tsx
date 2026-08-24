@@ -1,4 +1,5 @@
-import { cn, type FabAction, type FabConfig } from "@green-goods/shared";
+import type { FabAction, FabConfig } from "@green-goods/shared/components/Canvas/NavigationBar";
+import { cn } from "@green-goods/shared/utils/styles/cn";
 import { RiAddLine } from "@remixicon/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";

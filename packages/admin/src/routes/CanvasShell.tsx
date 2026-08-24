@@ -1,4 +1,5 @@
-import { ensureBaseLists, useAdminAccessState } from "@green-goods/shared";
+import { useAdminAccessState } from "@green-goods/shared/hooks/admin-ui/useAdminAccessState";
+import { ensureBaseLists } from "@green-goods/shared/hooks/blockchain/prefetch";
 import { useEffect } from "react";
 import { ScrollRestoration } from "react-router-dom";
 import { AdminAccessStateRenderer } from "@/components/Layout/AdminAccessStateRenderer";

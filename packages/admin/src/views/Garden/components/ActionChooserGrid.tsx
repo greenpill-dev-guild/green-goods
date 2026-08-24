@@ -1,4 +1,4 @@
-import { type Action, Capital } from "@green-goods/shared";
+import { type Action, Capital } from "@green-goods/shared/types/domain";
 import { RiImageLine } from "@remixicon/react";
 import { type KeyboardEvent, useRef, useState } from "react";
 import { useIntl } from "react-intl";

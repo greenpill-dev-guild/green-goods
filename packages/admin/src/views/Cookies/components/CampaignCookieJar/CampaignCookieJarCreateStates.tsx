@@ -1,10 +1,8 @@
-import {
-  formatTokenAmount,
-  type Address,
-  FormField,
-  TextInput,
-  useCampaignCookieJar,
-} from "@green-goods/shared";
+import { TextInput } from "@green-goods/shared/components/Form/ControlPrimitives";
+import { FormField } from "@green-goods/shared/components/Form/FormFieldWrapper";
+import { useCampaignCookieJar } from "@green-goods/shared/hooks/cookie-jar/useCampaignCookieJar";
+import type { Address } from "@green-goods/shared/types/domain";
+import { formatTokenAmount } from "@green-goods/shared/utils/blockchain/vaults";
 import {
   RiAddLine,
   RiArrowLeftLine,

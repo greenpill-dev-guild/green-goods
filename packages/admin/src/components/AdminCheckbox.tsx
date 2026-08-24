@@ -1,5 +1,5 @@
 import * as React from "react";
-import { cn } from "@green-goods/shared";
+import { cn } from "@green-goods/shared/utils/styles/cn";
 
 // ============================================================================
 // Types

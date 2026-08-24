@@ -1,7 +1,7 @@
 import { RiCloseLine, RiSearchLine } from "@remixicon/react";
 import { type ReactNode } from "react";
 import { useIntl } from "react-intl";
-import { cn } from "@green-goods/shared";
+import { cn } from "@green-goods/shared/utils/styles/cn";
 
 // ============================================================================
 // Types

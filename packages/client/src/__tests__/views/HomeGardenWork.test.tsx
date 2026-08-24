@@ -11,6 +11,7 @@ const mockUseUser = vi.fn();
 const mockCanManageGarden = vi.fn();
 const mockIsUserAddress = vi.fn();
 const mockUseWorkApprovalActions = vi.fn();
+const mockUseWorkDetailController = vi.fn();
 const mockUseAttributions = vi.fn();
 const mockUseCommitment = vi.fn();
 const mockWorkViewSectionProps: { current: Record<string, unknown> | null } = { current: null };
@@ -69,11 +70,21 @@ vi.mock("@green-goods/shared", () => ({
     isPending: false,
   }),
   useWorkApprovalActions: (...args: unknown[]) => mockUseWorkApprovalActions(...args),
+  useWorkDetailController: () => mockUseWorkDetailController(),
   useWorkMetadata: () => ({ metadata: null, isLoading: false, error: null, retryFetch: vi.fn() }),
   useWorks: (...args: unknown[]) => mockUseWorks(...args),
 }));
 
-vi.mock("@tanstack/react-query", () => ({
+vi.mock("@green-goods/shared/commitment-pooling", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@green-goods/shared/commitment-pooling")>()),
+  useCommitment: (...args: unknown[]) => mockUseCommitment(...args),
+  useCommitmentMetadataFor: () => ({ version: 1, title: "Prune the north beds" }),
+  useCommitmentWorkAttributionsForWork: (...args: unknown[]) => mockUseAttributions(...args),
+  useCommitmentPool: () => ({ pool: null }),
+}));
+
+vi.mock("@tanstack/react-query", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@tanstack/react-query")>()),
   useQueryClient: () => ({
     invalidateQueries: vi.fn(),
   }),
@@ -131,6 +142,32 @@ describe("Home garden work detail", () => {
       handleSubmitApproval: vi.fn(),
       workApprovalMutation: { mutate: vi.fn(), isPending: false },
     });
+    mockUseWorkDetailController.mockReturnValue({
+      ...mockUseWorkApprovalActions(),
+      actionTitle: null,
+      back: () => mockNavigate("/home/garden-1"),
+      canViewAttestation: false,
+      chainId: 11155111,
+      downloadData: vi.fn(),
+      downloadMedia: vi.fn(),
+      garden: undefined,
+      gardenId: "garden-1",
+      gardensLoading: false,
+      isActionExpired: false,
+      isOfflineWork: false,
+      isOnline: true,
+      isRetrying: false,
+      metadataError: null,
+      metadataStatus: "idle",
+      onChainWorkId: null,
+      retry: vi.fn(),
+      retryMetadata: vi.fn(),
+      share: vi.fn(),
+      viewAttestation: vi.fn(),
+      viewingMode: "viewer",
+      work: undefined,
+      workMetadata: null,
+    });
   });
 
   it("falls back to the route garden id when back navigation state is missing", () => {
@@ -187,6 +224,11 @@ describe("Home garden work detail", () => {
       ],
     });
     mockCanManageGarden.mockReturnValue(false);
+    mockUseWorkDetailController.mockReturnValue({
+      ...mockUseWorkDetailController(),
+      viewingMode: "viewer",
+      work: mockUseWorks().works[0],
+    });
 
     render(
       createElement(
@@ -208,9 +250,6 @@ describe("Home garden work detail", () => {
     );
 
     expect(screen.getByTestId("work-view-mode")).toHaveTextContent("viewer");
-    expect(mockUseWorkApprovalActions).toHaveBeenCalledWith(
-      expect.objectContaining({ viewingMode: "viewer" })
-    );
   });
 
   it("shows approval mode for owner or operator access", () => {
@@ -242,6 +281,11 @@ describe("Home garden work detail", () => {
       ],
     });
     mockCanManageGarden.mockReturnValue(true);
+    mockUseWorkDetailController.mockReturnValue({
+      ...mockUseWorkDetailController(),
+      viewingMode: "operator",
+      work: mockUseWorks().works[0],
+    });
 
     render(
       createElement(
@@ -263,9 +307,6 @@ describe("Home garden work detail", () => {
     );
 
     expect(screen.getByTestId("work-view-mode")).toHaveTextContent("operator");
-    expect(mockUseWorkApprovalActions).toHaveBeenCalledWith(
-      expect.objectContaining({ viewingMode: "operator" })
-    );
   });
 
   it("names the commitment a work fulfils, read-only, with a way to it", () => {
@@ -286,6 +327,12 @@ describe("Home garden work detail", () => {
     });
     mockUseCommitment.mockReturnValue({
       detail: { commitment: { commitmentId: 9n, unitLabel: "hours", targetUnits: 6n } },
+    });
+    mockUseWorkDetailController.mockReturnValue({
+      ...mockUseWorkDetailController(),
+      canViewAttestation: true,
+      onChainWorkId: "0x" + "ab".repeat(32),
+      work: mockUseWorks().works[0],
     });
 
     render(

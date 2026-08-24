@@ -62,6 +62,24 @@ test("docs-only QA stays on the docs surface", () => {
   assert.equal(plan.budget.withinTarget, true);
 });
 
+test("skill and documented skill-inventory changes select direct guidance contracts", () => {
+  for (const changedPath of [
+    ".claude/skills/module-seams-review/SKILL.md",
+    "scripts/quality/check-skill-behavior-contracts.mjs",
+    "docs/docs/builders/agentic/claude-code.mdx",
+  ]) {
+    const plan = selectValidation({ intent: "qa", changedPaths: [changedPath] });
+    const guidance = plan.checks.find((check) => check.id === "agent-guidance");
+
+    assert.ok(guidance, changedPath);
+    assert.equal(
+      guidance.command,
+      "bun run check:codex-guidance && bun run check:skill-behavior && bun run check:guidance-links",
+    );
+    assert.ok(guidance.selectedBy.includes("conditional:agent-guidance"), changedPath);
+  }
+});
+
 // Regression: Biome exits non-zero when it handles none of the supplied paths.
 // A Markdown-, Solidity-, or YAML-only change is exactly that case, so without
 // the flag the scoped format check failed and fail-fast killed the whole plan
@@ -221,6 +239,15 @@ test("a lockfile-only change retains package validation and dependency integrity
   );
 });
 
+test("client changes select the staged Card Endow boundary", () => {
+  const plan = selectValidation({
+    intent: "qa",
+    changedPaths: ["packages/client/src/views/Public/Vaults.tsx"],
+  });
+
+  assert.ok(ids(plan).includes("staged-modules"));
+});
+
 test("recognized root tests select their durable acceptance commands", () => {
   for (const [changedPath, checkId, command] of [
     ["scripts/lib/env-schema.test.mjs", "env-schema-test", "bun run test:env-schema"],
@@ -329,6 +356,7 @@ test("isolated client behavior accepts focused proof without forcing a package b
     "format",
     "lint",
     "client-test",
+    "staged-modules",
     "ontology",
     "browser-proof",
   ]);
@@ -449,6 +477,22 @@ test("shared public API changes include direct consumers", () => {
   }
 });
 
+test("declared shared subpath barrels classify as public source", () => {
+  const changedPath = "packages/shared/src/commitment-pooling/index.ts";
+  const plan = selectValidation({
+    intent: "checkpoint",
+    changedPaths: [changedPath],
+  });
+
+  assert.deepEqual(plan.changes, [
+    {
+      path: changedPath,
+      kind: "public-source",
+      surface: "shared",
+    },
+  ]);
+});
+
 test("eligible local package tests route through Turbo with package-relative binaries", () => {
   for (const [intent, changedPaths, expectedSurfaces] of [
     ["checkpoint", ["packages/client/src/components/Panel.tsx"], ["client"]],
@@ -505,6 +549,14 @@ test("Turbo consumer inputs ignore shared specs without hiding shared test utili
   const turbo = JSON.parse(readFileSync(new URL("../../turbo.json", import.meta.url), "utf8"));
   const sharedInputs = turbo.tasks["@green-goods/shared#test"].inputs;
   assert.ok(!sharedInputs.includes("../contracts/.generated/**"));
+  assert.ok(sharedInputs.includes("../client/src/**"));
+  assert.ok(sharedInputs.includes("../admin/src/**"));
+
+  for (const surface of ["shared", "client", "admin", "agent", "indexer"]) {
+    const inputs = turbo.tasks[`@green-goods/${surface}#test`].inputs;
+    assert.ok(inputs.includes("../../scripts/dev/node-cli.js"), `${surface}:node-cli`);
+    assert.ok(inputs.includes("../../scripts/lib/dev-shared.js"), `${surface}:dev-shared`);
+  }
 
   for (const surface of ["client", "admin", "agent"]) {
     const inputs = turbo.tasks[`@green-goods/${surface}#test`].inputs;
@@ -570,6 +622,61 @@ test("missing required environment capability is explicitly blocked", () => {
   const blocked = plan.checks.filter((check) => check.state === "blocked");
   assert.ok(blocked.length > 0);
   assert.ok(blocked.every((check) => check.blockedBy.includes("foundry")));
+});
+
+test("conditional validation rules honor their declared intents", () => {
+  const policy = structuredClone(loadPolicy());
+  policy.conditionalRules.push({
+    check: "indexer-test",
+    exact: ["docs/strict-indexer-probe.md"],
+    intents: ["ship"],
+  });
+
+  const checkpoint = selectValidation(
+    { intent: "checkpoint", changedPaths: ["docs/strict-indexer-probe.md"] },
+    { policy },
+  );
+  assert.ok(!ids(checkpoint).includes("indexer-test"));
+
+  const ship = selectValidation(
+    { intent: "ship", changedPaths: ["docs/strict-indexer-probe.md"] },
+    { policy },
+  );
+  assert.ok(ids(ship).includes("indexer-test"));
+});
+
+test("strict indexer contract changes select the real event integration", () => {
+  const probes = [
+    "packages/indexer/config.yaml",
+    "packages/indexer/schema.graphql",
+    "packages/indexer/test/helpers/local-contract-events.ts",
+    "packages/contracts/abis/SettlementModule.json",
+    "packages/contracts/deployments/42161-latest.json",
+    "packages/indexer/src/handlers/settlement.ts",
+  ];
+
+  for (const changedPath of probes) {
+    for (const intent of ["ship", "merge", "readiness", "release"]) {
+      const plan = selectValidation({ intent, changedPaths: [changedPath] });
+      const integration = plan.checks.find((check) => check.id === "indexer-contract-events");
+      assert.ok(integration, `${intent}: ${changedPath}`);
+      assert.equal(integration.command, "bun run test:contract-events");
+      assert.equal(integration.cwd, "packages/indexer");
+      assert.equal(integration.budgetSeconds, 480);
+      assert.deepEqual(integration.capabilities, [
+        "dependencies",
+        "indexerCodegen",
+        "foundry",
+        "docker",
+        "arbitrumFork",
+      ]);
+    }
+
+    for (const intent of ["qa", "checkpoint"]) {
+      const plan = selectValidation({ intent, changedPaths: [changedPath] });
+      assert.ok(!ids(plan).includes("indexer-contract-events"), `${intent}: ${changedPath}`);
+    }
+  }
 });
 
 test("exact toolchain parity is enforced only for tools selected checks need", () => {
@@ -657,6 +764,7 @@ test("push and ship scope client work to the exact impacted strict checks", () =
     "client-test-typecheck",
     "client-test",
     "client-build",
+    "staged-modules",
     "source-structure",
     "design-guardrails",
     "browser-proof",
@@ -817,6 +925,7 @@ test("contract artifacts select contract strict checks and impacted consumers", 
     "admin-build",
     "indexer-test",
     "indexer-build",
+    "indexer-contract-events",
     "contracts-build",
     "contracts-test",
     "contracts-verify-fast",
@@ -1046,6 +1155,32 @@ test("git inputs include dirty and untracked paths and fingerprint their content
     changedTrailingWhitespace.workingCopyFingerprint,
     trailingWhitespace.workingCopyFingerprint,
   );
+});
+
+test("git inputs fingerprint committed patches larger than Node's default buffer", (t) => {
+  const directory = mkdtempSync(join(tmpdir(), "validation-large-diff-selector-"));
+  t.after(() => rmSync(directory, { recursive: true, force: true }));
+  const git = (...args) => execFileSync("git", args, { cwd: directory, stdio: "ignore" });
+  git("init");
+  git("config", "user.email", "validation@example.com");
+  git("config", "user.name", "Validation Test");
+  git("config", "commit.gpgsign", "false");
+  mkdirSync(join(directory, "packages/client/src"), { recursive: true });
+  const sourcePath = join(directory, "packages/client/src/large-fixture.ts");
+  writeFileSync(sourcePath, "export const baseline = true;\n");
+  git("add", ".");
+  git("commit", "-m", "test: seed large diff fixture");
+
+  writeFileSync(sourcePath, `export const payload = "${"x".repeat(1_100_000)}";\n`);
+  git("add", ".");
+  git("commit", "-m", "test: add large diff fixture");
+
+  const inputs = resolveGitInputs(
+    { changedPaths: [], base: "HEAD~1", head: "HEAD" },
+    { cwd: directory },
+  );
+  assert.deepEqual(inputs.changedPaths, ["packages/client/src/large-fixture.ts"]);
+  assert.match(inputs.workingCopyFingerprint, /^[a-f0-9]{64}$/);
 });
 
 test("deleted tests are not inferred as focused Vitest paths", (t) => {

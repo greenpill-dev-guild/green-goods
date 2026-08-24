@@ -1,0 +1,92 @@
+{
+  "requiredTables": ["A", "B", "C"],
+  "initialMetadata": {
+    "metadata": {
+      "sources": [
+        {
+          "name": "default",
+          "tables": [
+            {
+              "table": { "schema": "public", "name": "A" },
+              "select_permissions": [
+                {
+                  "role": "public",
+                  "permission": { "columns": "*", "filter": {}, "allow_aggregations": true }
+                }
+              ]
+            },
+            { "table": { "schema": "public", "name": "B" } }
+          ]
+        }
+      ]
+    }
+  },
+  "afterPartialMetadata": {
+    "metadata": {
+      "sources": [
+        {
+          "name": "default",
+          "tables": [
+            {
+              "table": { "schema": "public", "name": "A" },
+              "select_permissions": [
+                {
+                  "role": "public",
+                  "permission": { "columns": "*", "filter": {}, "allow_aggregations": true }
+                }
+              ]
+            },
+            {
+              "table": { "schema": "public", "name": "B" },
+              "select_permissions": [
+                {
+                  "role": "public",
+                  "permission": { "columns": "*", "filter": {}, "allow_aggregations": true }
+                }
+              ]
+            },
+            { "table": { "schema": "public", "name": "C" } }
+          ]
+        }
+      ]
+    }
+  },
+  "completeMetadata": {
+    "metadata": {
+      "sources": [
+        {
+          "name": "default",
+          "tables": [
+            {
+              "table": { "schema": "public", "name": "A" },
+              "select_permissions": [
+                {
+                  "role": "public",
+                  "permission": { "columns": "*", "filter": {}, "allow_aggregations": true }
+                }
+              ]
+            },
+            {
+              "table": { "schema": "public", "name": "B" },
+              "select_permissions": [
+                {
+                  "role": "public",
+                  "permission": { "columns": "*", "filter": {}, "allow_aggregations": true }
+                }
+              ]
+            },
+            {
+              "table": { "schema": "public", "name": "C" },
+              "select_permissions": [
+                {
+                  "role": "public",
+                  "permission": { "columns": "*", "filter": {}, "allow_aggregations": true }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

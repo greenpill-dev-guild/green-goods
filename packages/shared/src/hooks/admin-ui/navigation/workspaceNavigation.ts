@@ -1,6 +1,13 @@
-import { type Address, adminRoutes } from "@green-goods/shared";
+import type { Address } from "../../../types/domain";
+import { adminRoutes } from "../../../utils/navigation/admin-routes";
 
 export type AdminWorkspaceSectionTab = "overview" | "impact" | "work" | "community";
+export type AdminIndexRedirectKind =
+  | "hub"
+  | "garden"
+  | "community"
+  | "garden-overview"
+  | "garden-members";
 
 interface AdminWorkspaceSectionRouteOptions {
   tab: AdminWorkspaceSectionTab;
@@ -9,6 +16,28 @@ interface AdminWorkspaceSectionRouteOptions {
   hubSort?: "newest" | "oldest";
   gardenId?: Address | string;
   gardenAddress?: Address | string;
+}
+
+function preserveAdminSearch(search: string, omitKeys: string[] = []): string {
+  if (!search) return "";
+
+  const params = new URLSearchParams(search);
+  for (const key of omitKeys) params.delete(key);
+  const nextSearch = params.toString();
+  return nextSearch ? `?${nextSearch}` : "";
+}
+
+export function resolveAdminIndexRedirect(kind: AdminIndexRedirectKind, search: string): string {
+  if (kind === "hub") {
+    return `${adminRoutes.hubWork()}${preserveAdminSearch(search, ["view"])}`;
+  }
+  if (kind === "garden" || kind === "garden-overview") {
+    return `${adminRoutes.gardenHealth()}${preserveAdminSearch(search, ["view"])}`;
+  }
+  if (kind === "community") {
+    return `${adminRoutes.communityMembers()}${preserveAdminSearch(search, ["card", "pool"])}`;
+  }
+  return `${adminRoutes.communityMembers()}${preserveAdminSearch(search)}`;
 }
 
 export function resolveAdminWorkspaceSectionRoute(options: AdminWorkspaceSectionRouteOptions) {

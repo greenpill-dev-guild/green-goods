@@ -38,6 +38,9 @@ vi.mock("../modules/job-queue/db", () => ({
     storeClientSeriesIdMapping: vi.fn(),
   },
 }));
+vi.mock("../modules/job-queue/commitment-chain-reads", () => ({
+  createCommitmentChainReads: () => ({}),
+}));
 vi.mock("../modules/commitment-pooling/jobs", async () => {
   const actual = await vi.importActual<typeof import("../modules/commitment-pooling/jobs")>(
     "../modules/commitment-pooling/jobs"

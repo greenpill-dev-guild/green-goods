@@ -48,7 +48,7 @@ export const CommitmentRegistryABI = ICommitmentRegistryABIJson as Abi;
 export const SettlementModuleABI = ISettlementModuleABIJson as Abi;
 
 // Re-export ERC20_ALLOWANCE_ABI from abis barrel for backward compatibility
-export { ERC20_ALLOWANCE_ABI } from "./abis";
+export { ERC20_ALLOWANCE_ABI } from "./abis/erc20";
 
 type DeploymentJsonValue =
   | string

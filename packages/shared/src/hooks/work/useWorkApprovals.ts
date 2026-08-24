@@ -1,11 +1,13 @@
 import { useQuery } from "@tanstack/react-query";
-import { DEFAULT_CHAIN_ID, getEASConfig } from "../../config/blockchain";
+import { getEASConfig } from "../../config/blockchain";
+import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import { logger } from "../../modules/app/logger";
 import { parseWorkApprovalAttestation } from "../../modules/data/eas";
 import { easGraphQL } from "../../modules/data/graphql";
 import { createEasClient } from "../../modules/data/graphql-client";
 import { type WorkApproval } from "../../types/domain";
-import { queryKeys, STALE_TIME_MEDIUM, STALE_TIME_RARE } from "../../config/query-keys";
+import { STALE_TIME_MEDIUM, STALE_TIME_RARE } from "../../config/query-keys/constants";
+import { workApprovalsKeys } from "../../config/query-keys/work";
 
 // Enhanced work approval interface for UI
 export interface EnhancedWorkApproval extends WorkApproval {
@@ -90,7 +92,7 @@ export function useWorkApprovals(attesterAddress?: string) {
 
   // Online work approvals query (where user is attester)
   const onlineApprovalsQuery = useQuery({
-    queryKey: queryKeys.workApprovals.byAttester(attesterAddress, chainId),
+    queryKey: workApprovalsKeys.byAttester(attesterAddress, chainId),
     queryFn: () => getWorkApprovalsByAttester(attesterAddress!, chainId),
     enabled: !!attesterAddress,
     staleTime: STALE_TIME_MEDIUM, // 30 seconds for approval updates

@@ -8,13 +8,10 @@ import { createMemoryRouter, MemoryRouter, RouterProvider } from "react-router-d
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { act, renderWithProviders, screen, waitFor } from "../test-utils";
 import userEvent from "@testing-library/user-event";
-import {
-  type Address,
-  type AdminAccessState,
-  type EligibleAdminGardensResult,
-  type Garden,
-  useSheetOrchestratorStore,
-} from "@green-goods/shared";
+import type { AdminAccessState } from "@green-goods/shared/hooks/admin-ui/useAdminAccessState";
+import type { EligibleAdminGardensResult } from "@green-goods/shared/hooks/garden/useEligibleAdminGardens";
+import { useSheetOrchestratorStore } from "@green-goods/shared/stores/useSheetOrchestratorStore";
+import type { Address, Garden } from "@green-goods/shared/types/domain";
 
 const {
   mockUseGardenUrlSync,
@@ -243,143 +240,210 @@ vi.mock("@/components/Shell", () => ({
   ),
 }));
 
-vi.mock("@green-goods/shared", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@green-goods/shared")>();
-  return {
-    ...actual,
-    GardenChip: (props: {
-      gardens: Array<{ id: string; name: string }>;
-      selectedGarden: { id: string; name: string } | null;
-      onSelectGarden: (garden: { id: string; name: string } | null) => void;
-      showCreateGardenAction?: boolean;
-    }) => {
-      mockGardenChipProps(props);
-      return (
-        <div>
-          <div>Garden Chip</div>
-          {props.gardens.map((garden) => (
-            <button key={garden.id} type="button" onClick={() => props.onSelectGarden(garden)}>
-              Select {garden.name}
-            </button>
-          ))}
-          <button type="button" onClick={() => props.onSelectGarden(null)}>
-            Select All Gardens
+vi.mock("@green-goods/shared/components/Canvas/GardenChip", () => ({
+  GardenChip: (props: {
+    gardens: Array<{ id: string; name: string }>;
+    selectedGarden: { id: string; name: string } | null;
+    onSelectGarden: (garden: { id: string; name: string } | null) => void;
+    showCreateGardenAction?: boolean;
+  }) => {
+    mockGardenChipProps(props);
+    return (
+      <div>
+        <div>Garden Chip</div>
+        {props.gardens.map((garden) => (
+          <button key={garden.id} type="button" onClick={() => props.onSelectGarden(garden)}>
+            Select {garden.name}
           </button>
-        </div>
-      );
-    },
-    useAdminStore: (
-      selector: (state: {
-        selectedGarden: null;
-        setSelectedGarden: typeof mockSetSelectedGarden;
-      }) => unknown
-    ) =>
-      selector({
-        selectedGarden: null,
-        setSelectedGarden: mockSetSelectedGarden,
-      }),
-    useAuth: () => mockAuthState.current,
-    useOffline: () => ({ isOnline: true }),
-    NotificationPanel: ({
-      items = [],
-      sections = [],
-      scopeLabel,
-      isLoading = false,
-    }: {
-      items?: Array<{ id: string; title: string }>;
-      sections?: Array<{ id: string; title: string; items: Array<{ id: string; title: string }> }>;
-      scopeLabel?: string;
-      isLoading?: boolean;
-    }) => {
-      const allItems = [...items, ...sections.flatMap((section) => section.items)];
-      return (
-        <div
-          data-testid="notification-panel"
-          data-count={String(allItems.length)}
-          data-loading={String(isLoading)}
-        >
-          {scopeLabel ? <div>{scopeLabel}</div> : null}
-          {allItems.map((item) => (
-            <div key={item.id}>{item.title}</div>
-          ))}
-        </div>
-      );
-    },
-    formatRelativeTime: () => "5 minutes ago",
-    useAdminGardenWorkspaceSelection: () => ({
-      eligibleGardens: mockEligibleAdminGardens.current.eligibleGardens,
-      selectedGarden: mockEligibleAdminGardens.current.resolvedDefaultGarden,
-      setSelectedGarden: mockSetSelectedGarden,
-      gardenOptions: mockEligibleAdminGardens.current.eligibleGardens.map((garden) => ({
-        id: garden.id,
-        name: garden.name,
-        location: garden.location,
-      })),
-      handleSelectGarden: vi.fn(),
-    }),
-    useEligibleAdminGardens: () => mockEligibleAdminGardens.current,
-    useEffectiveToolbarPermissions: () => ({
-      showWork: true,
-      showGarden: true,
-      showCommunity: true,
-      showActions: true,
-      isLoading: false,
-    }),
-    useGardenDetailData: (id?: string) => ({
-      garden: id ? { id: "garden-1", name: "Garden One", chainId: 10 } : undefined,
-      fetching: false,
-      error: null,
-      assessments: [],
-      fetchingAssessments: false,
-      assessmentsError: null,
-      roleMembers: {
-        owner: [],
-        operator: [],
-        evaluator: [],
-        gardener: [],
-        funder: [],
-        community: [],
+        ))}
+        <button type="button" onClick={() => props.onSelectGarden(null)}>
+          Select All Gardens
+        </button>
+      </div>
+    );
+  },
+}));
+
+vi.mock("@green-goods/shared/components/Canvas/NotificationPanel", () => ({
+  NotificationPanel: ({
+    items = [],
+    sections = [],
+    scopeLabel,
+    isLoading = false,
+  }: {
+    items?: Array<{ id: string; title: string }>;
+    sections?: Array<{ id: string; title: string; items: Array<{ id: string; title: string }> }>;
+    scopeLabel?: string;
+    isLoading?: boolean;
+  }) => {
+    const allItems = [...items, ...sections.flatMap((section) => section.items)];
+    return (
+      <div
+        data-testid="notification-panel"
+        data-count={String(allItems.length)}
+        data-loading={String(isLoading)}
+      >
+        {scopeLabel ? <div>{scopeLabel}</div> : null}
+        {allItems.map((item) => (
+          <div key={item.id}>{item.title}</div>
+        ))}
+      </div>
+    );
+  },
+}));
+
+vi.mock("@green-goods/shared/hooks/admin-ui/useAdminAccessState", () => ({
+  useAdminAccessState: () => mockAdminAccessState.current,
+}));
+
+vi.mock("@green-goods/shared/hooks/app/useOffline", () => ({
+  useOffline: () => ({ isOnline: true }),
+}));
+
+vi.mock("@green-goods/shared/hooks/auth/useAuth", () => ({
+  useAuth: () => mockAuthState.current,
+}));
+
+vi.mock("@green-goods/shared/hooks/blockchain/prefetch", () => ({
+  ensureBaseLists: mockEnsureBaseLists,
+}));
+
+vi.mock("@green-goods/shared/hooks/garden/useAdminGardenWorkspaceSelection", () => ({
+  useAdminGardenWorkspaceSelection: () => ({
+    eligibleGardens: mockEligibleAdminGardens.current.eligibleGardens,
+    selectedGarden: mockEligibleAdminGardens.current.resolvedDefaultGarden,
+    setSelectedGarden: mockSetSelectedGarden,
+    gardenOptions: mockEligibleAdminGardens.current.eligibleGardens.map((garden) => ({
+      id: garden.id,
+      name: garden.name,
+      location: garden.location,
+    })),
+    handleSelectGarden: vi.fn(),
+  }),
+}));
+
+vi.mock("@green-goods/shared/hooks/garden/useEligibleAdminGardens", () => ({
+  useEligibleAdminGardens: () => mockEligibleAdminGardens.current,
+}));
+
+vi.mock("@green-goods/shared/hooks/garden/useGardenDerivedState", () => ({
+  useGardenDerivedState: ({
+    openSection,
+  }: {
+    openSection: (tab: "work", section: string) => void;
+  }) => ({
+    overviewAlerts: [
+      {
+        key: "work-critical",
+        severity: "critical",
+        label: "3 work submissions need review",
+        onAction: () => openSection("work", "queue"),
       },
-      gardenVaults: [],
-      vaultsLoading: false,
-      vaultNetDeposited: 0n,
-      allocations: [],
-      allocationsLoading: false,
-      works: [],
-      worksLoading: false,
-      hypercerts: [],
-      hypercertsLoading: false,
+    ],
+    activityEvents: [
+      {
+        id: "activity-1",
+        title: "Impact report minted",
+        description: "Hypercert created",
+        timestamp: Date.now(),
+        href: "/garden/impact/hypercerts/hc-1",
+      },
+    ],
+  }),
+}));
+
+vi.mock("@green-goods/shared/hooks/garden/useGardenDetailData", () => ({
+  useGardenDetailData: (id?: string) => ({
+    garden: id ? { id: "garden-1", name: "Garden One", chainId: 10 } : undefined,
+    fetching: false,
+    error: null,
+    assessments: [],
+    fetchingAssessments: false,
+    assessmentsError: null,
+    roleMembers: {
+      owner: [],
+      operator: [],
+      evaluator: [],
+      gardener: [],
+      funder: [],
+      community: [],
+    },
+    gardenVaults: [],
+    vaultsLoading: false,
+    vaultNetDeposited: 0n,
+    allocations: [],
+    allocationsLoading: false,
+    works: [],
+    worksLoading: false,
+    hypercerts: [],
+    hypercertsLoading: false,
+  }),
+}));
+
+vi.mock("@green-goods/shared/hooks/navigation/useGardenUrlSync", () => ({
+  useGardenUrlSync: mockUseGardenUrlSync,
+}));
+
+vi.mock("@green-goods/shared/hooks/roles/useEffectiveToolbarPermissions", () => ({
+  useEffectiveToolbarPermissions: () => ({
+    showWork: true,
+    showGarden: true,
+    showCommunity: true,
+    showActions: true,
+    isLoading: false,
+  }),
+}));
+
+vi.mock("@green-goods/shared/stores/useAdminStore", () => ({
+  useAdminStore: (
+    selector: (state: {
+      selectedGarden: null;
+      setSelectedGarden: typeof mockSetSelectedGarden;
+    }) => unknown
+  ) =>
+    selector({
+      selectedGarden: null,
+      setSelectedGarden: mockSetSelectedGarden,
     }),
-    useGardenDerivedState: ({
-      openSection,
-    }: {
-      openSection: (tab: "work", section: string) => void;
-    }) => ({
-      overviewAlerts: [
-        {
-          key: "work-critical",
-          severity: "critical",
-          label: "3 work submissions need review",
-          onAction: () => openSection("work", "queue"),
-        },
-      ],
-      activityEvents: [
-        {
-          id: "activity-1",
-          title: "Impact report minted",
-          description: "Hypercert created",
-          timestamp: Date.now(),
-          href: "/garden/impact/hypercerts/hc-1",
-        },
-      ],
-    }),
-    useGardenUrlSync: mockUseGardenUrlSync,
-    useStaleGardenGuard: mockUseStaleGardenGuard,
-    useAdminAccessState: () => mockAdminAccessState.current,
-    ensureBaseLists: mockEnsureBaseLists,
-  };
+  useStaleGardenGuard: mockUseStaleGardenGuard,
+}));
+
+vi.mock("@green-goods/shared/utils/relativeTime", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@green-goods/shared/utils/relativeTime")>();
+  return { ...actual, formatRelativeTime: () => "5 minutes ago" };
 });
-vi.mock("@green-goods/shared/profile-avatar", () => ({
+vi.mock("@green-goods/shared/hooks/auth/useAuth", () => ({
+  useAuth: () => mockAuthState.current,
+}));
+vi.mock("@green-goods/shared/hooks/garden/useAdminGardenWorkspaceSelection", () => ({
+  useAdminGardenWorkspaceSelection: () => ({
+    eligibleGardens: mockEligibleAdminGardens.current.eligibleGardens,
+    selectedGarden: mockEligibleAdminGardens.current.resolvedDefaultGarden,
+    setSelectedGarden: mockSetSelectedGarden,
+    gardenOptions: mockEligibleAdminGardens.current.eligibleGardens.map((garden) => ({
+      id: garden.id,
+      name: garden.name,
+      location: garden.location,
+    })),
+    handleSelectGarden: vi.fn(),
+  }),
+}));
+vi.mock("@green-goods/shared/hooks/garden/useEligibleAdminGardens", () => ({
+  useEligibleAdminGardens: () => mockEligibleAdminGardens.current,
+}));
+vi.mock("@green-goods/shared/hooks/navigation/useGardenUrlSync", () => ({
+  useGardenUrlSync: mockUseGardenUrlSync,
+}));
+vi.mock("@green-goods/shared/hooks/roles/useEffectiveToolbarPermissions", () => ({
+  useEffectiveToolbarPermissions: () => ({
+    showWork: true,
+    showGarden: true,
+    showCommunity: true,
+    showActions: true,
+    isLoading: false,
+  }),
+}));
+vi.mock("@green-goods/shared/hooks/profile/useProfileAvatar", () => ({
   useResolvedProfileAvatar: () => ({
     avatarUri: "https://cdn.example/avatar.webp",
     error: null,
@@ -414,6 +478,7 @@ vi.mock("@/components/Layout/PageTransition", async () => {
 
 vi.mock("@/components/Layout/AccountProfilePanel", () => ({
   AccountProfilePanel: () => <div>Profile Panel</div>,
+  AccountProfilePanelContainer: () => <div>Profile Panel</div>,
 }));
 
 vi.mock("@/components/Layout/AccountSettingsPanel", () => ({

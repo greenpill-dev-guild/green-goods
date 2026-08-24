@@ -9,17 +9,12 @@ import { fireEvent, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createElement } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { Address } from "@green-goods/shared";
+import type { Address } from "@green-goods/shared/types/domain";
 import { renderWithProviders as render } from "../../test-utils";
 
-vi.mock("@green-goods/shared", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@green-goods/shared")>();
+vi.mock("@green-goods/shared/hooks/admin-ui/useDirtyClose", async () => {
   const { useState } = await import("react");
   return {
-    ...actual,
-    // Hex-only tests: ENS lookups stay inert so no network/query wiring is hit.
-    useEnsAddress: () => ({ data: undefined, isFetching: false }),
-    resolveEnsAddress: vi.fn(async () => null),
     // Faithful state-mode reimplementation of useDirtyClose minus the
     // router-bound useBlocker (renderWithProviders has no data router).
     useDirtyClose: ({ isDirty, onClose }: { isDirty: boolean; onClose: () => void }) => {
@@ -40,6 +35,15 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
     },
   };
 });
+
+vi.mock("@green-goods/shared/hooks/blockchain/useEnsAddress", () => ({
+  // Hex-only tests: ENS lookups stay inert so no network/query wiring is hit.
+  useEnsAddress: () => ({ data: undefined, isFetching: false }),
+}));
+
+vi.mock("@green-goods/shared/utils/blockchain/ens", () => ({
+  resolveEnsAddress: vi.fn(async () => null),
+}));
 
 vi.mock("@/components/EnsAddressText", () => ({
   EnsAddressText: ({ address }: { address: string }) =>

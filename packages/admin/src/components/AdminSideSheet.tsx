@@ -2,7 +2,7 @@ import { RiCloseLine } from "@remixicon/react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { type KeyboardEventHandler, type ReactNode, useEffect, useState } from "react";
 import { useIntl } from "react-intl";
-import { cn } from "@green-goods/shared";
+import { cn } from "@green-goods/shared/utils/styles/cn";
 
 // ============================================================================
 // Types

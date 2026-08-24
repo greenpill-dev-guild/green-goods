@@ -3,9 +3,9 @@ import {
   type CommitmentReadModel,
   type CommitmentSeat,
   selectCommitmentActKind,
-} from "@green-goods/shared";
+} from "@green-goods/shared/commitment-pooling";
 
-export { canJoinTeam } from "@green-goods/shared";
+export { canJoinTeam } from "@green-goods/shared/commitment-pooling";
 
 /**
  * How the commitment's one act is labelled.
@@ -32,12 +32,16 @@ const LABELS: Record<CommitmentActKind, { labelId: string; destructive?: boolean
   offerAgain: { labelId: "app.commitment.act.offerAgain" },
 };
 
+export function commitmentActForKind(kind: CommitmentActKind | null): CommitmentAct | null {
+  if (!kind) return null;
+  return { kind, ...LABELS[kind] };
+}
+
 export function selectCommitmentAct(input: {
   commitment: Pick<CommitmentReadModel, "derivedState" | "claimMode">;
   seat: CommitmentSeat | null;
   hasPendingJob?: boolean;
 }): CommitmentAct | null {
   const kind = selectCommitmentActKind(input);
-  if (!kind) return null;
-  return { kind, ...LABELS[kind] };
+  return commitmentActForKind(kind);
 }

@@ -1,9 +1,10 @@
 import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
-import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
+import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import { GC_TIMES, STALE_TIMES } from "../../config/react-query";
 import { getActions, getGardeners, getGardens } from "../../modules/data/greengoods";
 import type { Action, Garden, GardenerCard } from "../../types/domain";
-import { queryKeys } from "../../config/query-keys";
+import { actionsKeys, gardensKeys } from "../../config/query-keys/garden";
+import { gardenersKeys } from "../../config/query-keys/identity";
 
 /**
  * Suspense-enabled hooks for base lists
@@ -50,7 +51,7 @@ export function useSuspenseGardens(chainId: number = DEFAULT_CHAIN_ID) {
   }
 
   const queryClient = useQueryClient();
-  const queryKey = queryKeys.gardens.byChain(chainId);
+  const queryKey = gardensKeys.byChain(chainId);
 
   return useSuspenseQuery({
     queryKey,
@@ -80,7 +81,7 @@ export function useSuspenseActions(chainId: number = DEFAULT_CHAIN_ID) {
   }
 
   const queryClient = useQueryClient();
-  const queryKey = queryKeys.actions.byChain(chainId);
+  const queryKey = actionsKeys.byChain(chainId);
 
   return useSuspenseQuery({
     queryKey,
@@ -99,11 +100,11 @@ export function useSuspenseActions(chainId: number = DEFAULT_CHAIN_ID) {
  */
 export function useSuspenseGardeners() {
   const queryClient = useQueryClient();
-  const queryKey = queryKeys.gardeners.all;
+  const queryKey = gardenersKeys.all;
 
   return useSuspenseQuery({
     queryKey,
-    queryFn: getGardeners,
+    queryFn: () => getGardeners(),
     staleTime: STALE_TIMES.baseLists,
     gcTime: GC_TIMES.baseLists,
     initialData: () => queryClient.getQueryData<GardenerCard[]>(queryKey),

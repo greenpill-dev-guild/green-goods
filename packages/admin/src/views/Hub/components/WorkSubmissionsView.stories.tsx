@@ -1,4 +1,4 @@
-import type { Address, Work } from "@green-goods/shared";
+import type { Address, Work } from "@green-goods/shared/types/domain";
 import type { Meta, StoryObj } from "@storybook/react";
 import { fn } from "storybook/test";
 import { withAdminIdentity, withRouter } from "../../../../../shared/.storybook/decorators";

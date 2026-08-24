@@ -1,11 +1,13 @@
-import { mediaResourceManager } from "@green-goods/shared";
+import { mediaResourceManager } from "@green-goods/shared/modules/job-queue/media-resource-manager";
 import { useOnlineStatus } from "@green-goods/shared/hooks/app/useOnlineStatus";
+import {
+  useProfileAvatarEditor,
+  useResolvedProfileAvatar,
+} from "@green-goods/shared/hooks/profile/useProfileAvatar";
 import {
   getProfileAvatarFailureMessage,
   getProfileAvatarStageMessage,
-  useProfileAvatarEditor,
-  useResolvedProfileAvatar,
-} from "@green-goods/shared/profile-avatar";
+} from "@green-goods/shared/modules/profile-avatar/editor-messages";
 import { RiCameraLine, RiDeleteBinLine, RiImageAddLine, RiLoader4Line } from "@remixicon/react";
 import { useEffect, useId, useState } from "react";
 import { useIntl } from "react-intl";

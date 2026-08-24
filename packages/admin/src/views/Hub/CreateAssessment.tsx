@@ -1,11 +1,9 @@
-import {
-  Alert,
-  ErrorBoundary,
-  TxInlineFeedback,
-  useCreateAssessmentController,
-  useDirtyClose,
-  useStepFocus,
-} from "@green-goods/shared";
+import { Alert } from "@green-goods/shared/components/Alert";
+import { ErrorBoundary } from "@green-goods/shared/components/ErrorBoundary/ErrorBoundary";
+import { TxInlineFeedback } from "@green-goods/shared/components/feedback/TxInlineFeedback";
+import { useCreateAssessmentController } from "@green-goods/shared/hooks/admin-ui/hub/useCreateAssessmentController";
+import { useDirtyClose } from "@green-goods/shared/hooks/admin-ui/useDirtyClose";
+import { useStepFocus } from "@green-goods/shared/hooks/utils/useStepFocus";
 import type { ReactNode } from "react";
 import { useIntl } from "react-intl";
 import { AdminButton } from "@/components/AdminButton";

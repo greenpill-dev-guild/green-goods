@@ -1,4 +1,7 @@
-import { type Address, type AllowlistEntry, TOTAL_UNITS, useEnsName } from "@green-goods/shared";
+import { useEnsName } from "@green-goods/shared/hooks/blockchain/useEnsName";
+import { TOTAL_UNITS } from "@green-goods/shared/lib/hypercerts/constants";
+import type { Address } from "@green-goods/shared/types/domain";
+import type { AllowlistEntry } from "@green-goods/shared/types/hypercerts";
 import { useMemo } from "react";
 import { useIntl } from "react-intl";
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";

@@ -1,9 +1,6 @@
-import {
-  type AdminHubRouteContext,
-  adminRoutes,
-  type MetaStripItem,
-  type useGardenDerivedState,
-} from "@green-goods/shared";
+import type { MetaStripItem } from "../../../components/Canvas/MetaStrip";
+import { type AdminHubRouteContext, adminRoutes } from "../../../utils/navigation/admin-routes";
+import type { useGardenDerivedState } from "../../garden/useGardenDerivedState";
 import {
   RiAddLine,
   RiCheckboxCircleLine,

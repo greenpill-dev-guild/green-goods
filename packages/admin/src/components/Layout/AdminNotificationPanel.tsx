@@ -1,14 +1,16 @@
 import {
   NotificationPanel,
-  resolveAdminWorkspaceSectionRoute,
-  useAdminGardenWorkspaceSelection,
-  useGardenDerivedState,
-  useGardenDetailData,
-  type AdminWorkspaceSectionTab,
   type NotificationPanelItem,
   type NotificationPanelSection,
-} from "@green-goods/shared";
-import { useLocalizedRelativeTime } from "@green-goods/shared/hooks";
+} from "@green-goods/shared/components/Canvas/NotificationPanel";
+import {
+  type AdminWorkspaceSectionTab,
+  resolveAdminWorkspaceSectionRoute,
+} from "@green-goods/shared/hooks/admin-ui/navigation/workspaceNavigation";
+import { useAdminGardenWorkspaceSelection } from "@green-goods/shared/hooks/garden/useAdminGardenWorkspaceSelection";
+import { useGardenDerivedState } from "@green-goods/shared/hooks/garden/useGardenDerivedState";
+import { useGardenDetailData } from "@green-goods/shared/hooks/garden/useGardenDetailData";
+import { useLocalizedRelativeTime } from "@green-goods/shared/hooks/app/useLocalizedRelativeTime";
 import { useCallback, useMemo } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";

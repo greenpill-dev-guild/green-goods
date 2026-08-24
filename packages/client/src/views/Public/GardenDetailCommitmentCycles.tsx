@@ -1,8 +1,8 @@
+import { cn } from "@green-goods/shared";
 import {
   type CommitmentUnitSummaryRecord,
-  cn,
   type PublicCommitmentCycleRecord,
-} from "@green-goods/shared";
+} from "@green-goods/shared/commitment-pooling";
 import { useEffect, useRef } from "react";
 import { type IntlShape, useIntl } from "react-intl";
 import { EditorialHeading, EditorialKicker } from "@/components/Public/atoms";

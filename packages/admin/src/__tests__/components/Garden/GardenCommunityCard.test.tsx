@@ -2,16 +2,13 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 import { MemoryRouter } from "react-router-dom";
 import { renderWithProviders, screen } from "@/__tests__/test-utils";
 
-vi.mock("@green-goods/shared", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@green-goods/shared")>();
-  return {
-    ...actual,
-    useGardenYieldWiringState: vi.fn(),
-  };
-});
+vi.mock("@green-goods/shared/hooks/yield/useGardenYieldWiringState", () => ({
+  useGardenYieldWiringState: vi.fn(),
+}));
 
 import { GardenCommunityCard } from "../../../components/Garden/GardenCommunityCard";
-import { PoolType, useGardenYieldWiringState } from "@green-goods/shared";
+import { useGardenYieldWiringState } from "@green-goods/shared/hooks/yield/useGardenYieldWiringState";
+import { PoolType } from "@green-goods/shared/types/gardens-community";
 
 const GARDEN_ID = "0x1111111111111111111111111111111111111111";
 const HYPERCERT_POOL = "0x2222222222222222222222222222222222222222";

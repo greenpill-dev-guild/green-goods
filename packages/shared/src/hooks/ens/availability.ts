@@ -1,7 +1,7 @@
 import { type Address, type PublicClient, createPublicClient, http, zeroAddress } from "viem";
 import { mainnet, sepolia } from "viem/chains";
 
-import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
+import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import { getRpcUrl } from "../../utils/blockchain/chain-registry";
 import { GreenGoodsENSABI } from "../../utils/blockchain/contracts";
 

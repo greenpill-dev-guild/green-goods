@@ -1,10 +1,8 @@
-import {
-  AudioPlayer,
-  EmptyState,
-  ImagePreviewDialog,
-  ImageWithFallback,
-  resolveIPFSUrl,
-} from "@green-goods/shared";
+import { AudioPlayer } from "@green-goods/shared/components/Audio/AudioPlayer";
+import { ImagePreviewDialog } from "@green-goods/shared/components/Dialog/ImagePreviewDialog";
+import { ImageWithFallback } from "@green-goods/shared/components/Display/ImageWithFallback";
+import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
+import { resolveIPFSUrl } from "@green-goods/shared/modules/data/ipfs/resolve";
 import { RiImageLine, RiZoomInLine } from "@remixicon/react";
 import { AdminButton } from "@/components/AdminButton";
 import { useState } from "react";

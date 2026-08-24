@@ -2,7 +2,7 @@
  * @vitest-environment jsdom
  */
 
-import type { Address, Work } from "@green-goods/shared";
+import type { Address, Work } from "@green-goods/shared/types/domain";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { IntlProvider } from "react-intl";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -18,45 +18,96 @@ const { mockApprovalMutation, mockPrimaryAddress, mockParseAndFormatError, mockT
     mockToastError: vi.fn(),
   }));
 
-vi.mock("@green-goods/shared", () => ({
+vi.mock("@green-goods/shared/components/Audio/AudioRecorder", () => ({
   AudioRecorder: () => <div data-testid="audio-recorder" />,
-  compareAddresses: (a?: Address, b?: Address) => a?.toLowerCase() === b?.toLowerCase(),
+}));
+
+vi.mock("@green-goods/shared/components/ErrorBoundary/ErrorBoundary", () => ({
+  ErrorBoundary: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+}));
+
+vi.mock("@green-goods/shared/components/Form/ConfidenceSelector", () => ({
+  ConfidenceSelector: ({ onChange }: { value: number; onChange: (value: number) => void }) => (
+    <button type="button" onClick={() => onChange(2)}>
+      Set medium confidence
+    </button>
+  ),
+}));
+
+vi.mock("@green-goods/shared/components/Form/ControlPrimitives", () => ({
+  Textarea: ({
+    surface: _surface,
+    ...props
+  }: React.ComponentProps<"textarea"> & { surface?: string }) => <textarea {...props} />,
+}));
+
+vi.mock("@green-goods/shared/components/Toast/toast.service", () => ({
+  toastService: {
+    error: mockToastError,
+  },
+}));
+
+vi.mock("@green-goods/shared/hooks/auth/usePrimaryAddress", () => ({
+  usePrimaryAddress: () => mockPrimaryAddress(),
+}));
+
+vi.mock("@green-goods/shared/hooks/blockchain/useEnsName", () => ({
+  useEnsName: () => ({ data: undefined }),
+}));
+
+vi.mock("@green-goods/shared/hooks/work/useWorkApproval", () => ({
+  useWorkApproval: () => mockApprovalMutation,
+}));
+
+vi.mock("@green-goods/shared/modules/app/logger", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@green-goods/shared/modules/app/logger")>();
+  return {
+    ...actual,
+    logger: {
+      error: vi.fn(),
+    },
+  };
+});
+
+vi.mock("@green-goods/shared/modules/data/ipfs/upload", () => ({
+  uploadFileToIPFS: vi.fn(),
+  uploadJSONToIPFS: vi.fn(),
+}));
+
+vi.mock("@green-goods/shared/types/domain", () => ({
   Confidence: {
     NONE: 0,
     LOW: 1,
     MEDIUM: 2,
     HIGH: 3,
   },
-  ConfidenceSelector: ({ onChange }: { value: number; onChange: (value: number) => void }) => (
-    <button type="button" onClick={() => onChange(2)}>
-      Set medium confidence
-    </button>
-  ),
-  ErrorBoundary: ({ children }: { children: React.ReactNode }) => <>{children}</>,
   VerificationMethod: {
     HUMAN: 1,
     IOT: 2,
     ONCHAIN: 4,
     AGENT: 8,
   },
-  cn: (...values: Array<string | false | null | undefined>) => values.filter(Boolean).join(" "),
+}));
+
+vi.mock("@green-goods/shared/utils/app/text", () => ({
   formatAddress: (address: string) => `${address.slice(0, 6)}...${address.slice(-4)}`,
-  logger: {
-    error: vi.fn(),
-  },
+}));
+
+vi.mock("@green-goods/shared/utils/blockchain/address", async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import("@green-goods/shared/utils/blockchain/address")>();
+  return {
+    ...actual,
+    compareAddresses: (a?: Address, b?: Address) => a?.toLowerCase() === b?.toLowerCase(),
+  };
+});
+
+vi.mock("@green-goods/shared/utils/errors/contract-errors", () => ({
   parseAndFormatError: (...args: unknown[]) => mockParseAndFormatError(...args),
-  Textarea: ({
-    surface: _surface,
-    ...props
-  }: React.ComponentProps<"textarea"> & { surface?: string }) => <textarea {...props} />,
-  toastService: {
-    error: mockToastError,
-  },
-  uploadFileToIPFS: vi.fn(),
-  uploadJSONToIPFS: vi.fn(),
-  useEnsName: () => ({ data: undefined }),
-  usePrimaryAddress: () => mockPrimaryAddress(),
-  useWorkApproval: () => mockApprovalMutation,
+}));
+
+vi.mock("@green-goods/shared/utils/styles/cn", () => ({
+  cn: (...values: Array<string | false | null | undefined>) => values.filter(Boolean).join(" "),
 }));
 
 const messages = {

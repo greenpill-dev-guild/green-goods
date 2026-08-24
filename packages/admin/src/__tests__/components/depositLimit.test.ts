@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getDepositLimitLabel } from "@green-goods/shared";
+import { getDepositLimitLabel } from "@green-goods/shared/utils/blockchain/vaults";
 
 describe("getDepositLimitLabel", () => {
   it("renders uint256 max deposit limits as Unlimited", () => {

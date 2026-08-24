@@ -2,76 +2,18 @@
  * @vitest-environment jsdom
  */
 
-import { describe, expect, it, vi } from "vitest";
-import { render, screen } from "../test-utils";
 import userEvent from "@testing-library/user-event";
-import type { Address, Garden } from "@green-goods/shared";
+import type { AccountProfileController } from "@green-goods/shared/hooks/admin-ui/layout/useAccountProfileController";
+import type { Address, Garden } from "@green-goods/shared/types/domain";
+import { describe, expect, it, vi } from "vitest";
 import { AccountProfilePanel } from "@/components/Layout/AccountProfilePanel";
+import { render, screen } from "../test-utils";
 
-const accountProfilePanelMocks = vi.hoisted(() => ({
-  closeSheet: vi.fn(),
-  gardenOne: {
-    id: "0x1111111111111111111111111111111111111111",
-    name: "Garden One",
-    location: "Quito",
-  } as Garden,
-  gardenTwo: {
-    id: "0x2222222222222222222222222222222222222222",
-    name: "Garden Two",
-    location: "Lisbon",
-  } as Garden,
-  setGarden: vi.fn(),
+vi.mock("@green-goods/shared/components/AddressDisplay", () => ({
+  AddressDisplay: ({ address }: { address: Address }) => <span>{address}</span>,
 }));
 
-vi.mock("@green-goods/shared", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@green-goods/shared")>();
-  return {
-    ...actual,
-    AddressDisplay: ({ address }: { address: Address }) => <span>{address}</span>,
-    useAuthActions: () => ({ signOut: vi.fn() }),
-    useAuthState: () => ({
-      authMode: "wallet",
-      eoaAddress: "0x9999999999999999999999999999999999999999" as Address,
-    }),
-    useEligibleAdminGardens: () => ({
-      eligibleGardens: [accountProfilePanelMocks.gardenOne, accountProfilePanelMocks.gardenTwo],
-      resolvedDefaultGarden: accountProfilePanelMocks.gardenOne,
-      persistedGardenId: null,
-      scopeKey: "test",
-      canCreateGarden: true,
-      isLoaded: true,
-    }),
-    useAdminGardenWorkspaceSelection: () => ({
-      eligibleGardens: [accountProfilePanelMocks.gardenOne, accountProfilePanelMocks.gardenTwo],
-      selectedGarden: accountProfilePanelMocks.gardenOne,
-      setSelectedGarden: vi.fn(),
-      gardenOptions: [accountProfilePanelMocks.gardenOne, accountProfilePanelMocks.gardenTwo],
-      handleSelectGarden: vi.fn(),
-    }),
-    useAuth: () => ({
-      authMode: "wallet",
-      eoaAddress: "0x9999999999999999999999999999999999999999" as Address,
-      isAuthenticated: true,
-      isReady: true,
-      signOut: vi.fn(),
-    }),
-    useEnsAvatar: () => ({ data: null }),
-    useEnsName: () => ({ data: null }),
-    useOffline: () => ({ isOnline: true }),
-    mediaResourceManager: {
-      cleanupUrls: vi.fn(),
-      getOrCreateUrl: vi.fn(() => "blob:preview"),
-    },
-    useGardenUrlSync: () => ({
-      setGarden: accountProfilePanelMocks.setGarden,
-    }),
-    useRole: () => ({ role: "operator" }),
-    useSheetOrchestratorStore: <T,>(selector: (state: { closeSheet: () => void }) => T) =>
-      selector({ closeSheet: accountProfilePanelMocks.closeSheet }),
-  };
-});
-vi.mock("@green-goods/shared/profile-avatar", () => ({
-  getProfileAvatarStageMessage: () => null,
+vi.mock("@green-goods/shared/hooks/profile/useProfileAvatar", () => ({
   useProfileAvatarEditor: () => ({
     clear: vi.fn(),
     continueAfterReconnect: vi.fn(),
@@ -90,23 +32,64 @@ vi.mock("@green-goods/shared/profile-avatar", () => ({
   }),
 }));
 
-describe("AccountProfilePanel", () => {
-  it("offers the same accessible avatar editor from the account inspector", () => {
-    render(<AccountProfilePanel />);
+vi.mock("@green-goods/shared/modules/profile-avatar/editor-messages", () => ({
+  getProfileAvatarStageMessage: () => null,
+}));
 
+const gardenOne = {
+  id: "0x1111111111111111111111111111111111111111",
+  name: "Garden One",
+  location: "Quito",
+} as Garden;
+
+const gardenTwo = {
+  id: "0x2222222222222222222222222222222222222222",
+  name: "Garden Two",
+  location: "Lisbon",
+} as Garden;
+
+function createController(
+  overrides: Partial<AccountProfileController> = {}
+): AccountProfileController {
+  return {
+    authMethodLabel: "Wallet",
+    avatarFallback: "0X",
+    eligibleGardens: [gardenOne, gardenTwo],
+    eoaAddress: "0x9999999999999999999999999999999999999999" as Address,
+    headline: "0x9999...9999",
+    roleLabel: "operator",
+    selectedGardenChoiceId: gardenOne.id,
+    selectGarden: vi.fn(),
+    signOut: vi.fn(),
+    ...overrides,
+  } satisfies AccountProfileController;
+}
+
+describe("AccountProfilePanel", () => {
+  it("renders the typed account fixture and accessible avatar editor", () => {
+    render(<AccountProfilePanel controller={createController()} />);
+
+    expect(screen.getByText("0x9999...9999")).toBeVisible();
     expect(screen.getByRole("button", { name: /edit profile photo/i })).toBeVisible();
   });
 
-  it("switches garden context and closes the account sheet", async () => {
+  it("delegates garden selection to the controller", async () => {
     const user = userEvent.setup();
+    const controller = createController();
 
-    render(<AccountProfilePanel />);
-
+    render(<AccountProfilePanel controller={controller} />);
     await user.click(screen.getByRole("radio", { name: "Garden Two" }));
 
-    expect(accountProfilePanelMocks.setGarden).toHaveBeenCalledWith(
-      accountProfilePanelMocks.gardenTwo
-    );
-    expect(accountProfilePanelMocks.closeSheet).toHaveBeenCalledTimes(1);
+    expect(controller.selectGarden).toHaveBeenCalledWith(gardenTwo.id);
+  });
+
+  it("delegates sign out to the controller", async () => {
+    const user = userEvent.setup();
+    const controller = createController();
+
+    render(<AccountProfilePanel controller={controller} />);
+    await user.click(screen.getByRole("button", { name: "Disconnect" }));
+
+    expect(controller.signOut).toHaveBeenCalledTimes(1);
   });
 });

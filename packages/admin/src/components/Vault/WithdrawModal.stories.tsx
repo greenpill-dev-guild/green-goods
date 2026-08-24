@@ -1,4 +1,5 @@
-import type { Address, GardenVault } from "@green-goods/shared";
+import type { Address } from "@green-goods/shared/types/domain";
+import type { GardenVault } from "@green-goods/shared/types/vaults";
 import type { Meta, StoryObj } from "@storybook/react";
 import { fn } from "storybook/test";
 import { withAdminIdentity } from "../../../../shared/.storybook/decorators";

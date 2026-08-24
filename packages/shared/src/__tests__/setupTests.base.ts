@@ -222,7 +222,7 @@ export function setupTestEnvironment() {
 
   // Cleanup after each test
   afterEach(() => {
-    cleanup();
+    if (typeof document !== "undefined") cleanup();
     vi.clearAllMocks();
 
     // Reset fetch mock to strict default — unexpected calls throw

@@ -1,9 +1,9 @@
+import type { Action } from "@green-goods/shared/types/domain";
+import { instructionTemplates } from "@green-goods/shared/utils/action/templates";
 import {
-  type Action,
   getReviewedActionTranslation,
-  instructionTemplates,
   localizeAction,
-} from "@green-goods/shared";
+} from "@green-goods/shared/utils/action/translations";
 import enMessages from "@green-goods/shared/i18n/en";
 import type { IntlShape } from "react-intl";
 

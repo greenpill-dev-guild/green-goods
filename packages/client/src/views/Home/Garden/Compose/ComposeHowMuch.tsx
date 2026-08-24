@@ -1,4 +1,5 @@
-import { type Action, type CommitmentComposerValues, cn } from "@green-goods/shared";
+import { type Action, cn } from "@green-goods/shared";
+import { type CommitmentComposerValues } from "@green-goods/shared/commitment-pooling";
 import { type UseFormReturn, useWatch } from "react-hook-form";
 import { useIntl } from "react-intl";
 

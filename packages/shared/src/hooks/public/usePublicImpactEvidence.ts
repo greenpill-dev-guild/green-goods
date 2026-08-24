@@ -18,9 +18,9 @@
  */
 
 import { useQuery } from "@tanstack/react-query";
-import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
+import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import { isGardenPubliclyVisible } from "../../config/garden-visibility";
-import { queryKeys } from "../../config/query-keys";
+import { publicKeys } from "../../config/query-keys/public";
 import { STALE_TIME_RARE } from "../../config/query-keys/constants";
 import { logger } from "../../modules/app/logger";
 import { getGardenAssessments, getWorks } from "../../modules/data/eas";
@@ -32,7 +32,7 @@ import {
   PUBLIC_IMPACT_GARDEN_FETCH_CAP,
   type PublicImpactEvidenceRecord,
   type PublicImpactSlice,
-} from "../../public-contracts";
+} from "../../public-contracts/public-impact";
 import type { Domain } from "../../types/domain";
 
 export interface UsePublicImpactEvidenceOptions {
@@ -47,7 +47,7 @@ export function usePublicImpactEvidence(options: UsePublicImpactEvidenceOptions 
   const pageSize = Math.max(1, options.pageSize ?? PUBLIC_IMPACT_DEFAULT_PAGE_SIZE);
 
   return useQuery({
-    queryKey: queryKeys.public.impactEvidence(chainId, page, pageSize),
+    queryKey: publicKeys.impactEvidence(chainId, page, pageSize),
     queryFn: async (): Promise<PublicImpactSlice> => {
       const gardens = await getGardens();
       // Same predicate the archive and the proof counters use. A garden hidden

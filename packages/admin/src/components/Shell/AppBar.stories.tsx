@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { expect, fn, userEvent, within } from "storybook/test";
-import { GardenChip } from "@green-goods/shared";
+import { GardenChip } from "@green-goods/shared/components/Canvas/GardenChip";
 import { withCanvasFrame } from "../../../../shared/.storybook/decorators";
 import { AppBar } from "./AppBar";
 

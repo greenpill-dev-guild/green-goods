@@ -1,9 +1,7 @@
-import {
-  Alert,
-  adminRoutes,
-  useResolvedWorkDetail,
-  type WorkDisplayStatus,
-} from "@green-goods/shared";
+import { Alert } from "@green-goods/shared/components/Alert";
+import { useResolvedWorkDetail } from "@green-goods/shared/hooks/admin-ui/garden/useResolvedWorkDetail";
+import type { WorkDisplayStatus } from "@green-goods/shared/types/domain";
+import { adminRoutes } from "@green-goods/shared/utils/navigation/admin-routes";
 import { RiCheckboxCircleLine, RiCloseLine, RiTimeLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { useParams } from "react-router-dom";

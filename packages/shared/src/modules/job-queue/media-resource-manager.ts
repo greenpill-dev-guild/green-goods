@@ -142,10 +142,3 @@ class MediaResourceManager {
 
 // Export singleton instance
 export const mediaResourceManager = new MediaResourceManager();
-
-// Cleanup on page unload to prevent memory leaks
-if (typeof window !== "undefined") {
-  window.addEventListener("beforeunload", () => {
-    mediaResourceManager.cleanupAll();
-  });
-}

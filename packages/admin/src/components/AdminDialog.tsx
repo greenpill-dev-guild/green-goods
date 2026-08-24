@@ -9,7 +9,8 @@ import {
   useState,
 } from "react";
 import { useIntl } from "react-intl";
-import { cn, logger } from "@green-goods/shared";
+import { logger } from "@green-goods/shared/modules/app/logger";
+import { cn } from "@green-goods/shared/utils/styles/cn";
 import { AdminButton } from "./AdminButton";
 
 // ============================================================================

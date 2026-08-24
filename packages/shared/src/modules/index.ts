@@ -201,25 +201,37 @@ export {
 export {
   type AssessmentMetadataPrefill,
   checkAttestationsBundled,
+  createHypercertRepository,
   domainToActionDomain,
   filterAttestationsByAssessment,
   getApprovedAttestations,
   getGardenHypercerts,
   getHypercertById,
+  type HypercertDocuments,
+  type HypercertEas,
+  type HypercertIndexer,
+  type HypercertRepository,
+  hypercertRepository,
+  type HypercertRepositoryDependencies,
+  type HypercertSdk,
   prefillMetadataFromAssessment,
 } from "./data/hypercerts";
 // ============================================================================
 // DATA / IPFS
 // ============================================================================
 export {
-  // Upload context types
+  createGatewayChain,
   type FileUploadContext,
   getFileByHash,
   getIPFSFallbackGateways,
   getIpfsInitStatus,
   initializeIpfs,
   initializeIpfsFromEnv,
+  type IpfsGateway,
   IPFS_FALLBACK_GATEWAYS,
+  type IpfsPinner,
+  type IpfsReadOptions,
+  ipfsPinner,
   type JsonUploadContext,
   resolveAvatarUrl,
   resolveImageUrl,
@@ -243,8 +255,12 @@ export {
 // DATA / VAULTS
 // ============================================================================
 export {
+  createVaultRepository,
   getAllGardenVaults,
   getGardenVaults,
+  type RepositoryResult,
+  type VaultRepository,
+  vaultRepository,
   getVaultDeposits,
   getVaultEvents,
 } from "./data/vaults";
@@ -404,8 +420,14 @@ export {
 // ============================================================================
 // TRANSLATION
 // ============================================================================
-export { browserTranslator } from "./translation/browser-translator";
-export { translationCache } from "./translation/db";
+export {
+  browserTranslator,
+  createBrowserTranslator,
+  type DetectedTranslatorApi,
+  detectTranslatorApi,
+  type Translator,
+} from "./translation/browser-translator";
+export { type TranslationCache, translationCache } from "./translation/db";
 export { runTranslationDiagnostics } from "./translation/diagnostics";
 // ============================================================================
 // WORK / BOT SUBMISSION

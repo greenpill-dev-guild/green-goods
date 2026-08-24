@@ -1,9 +1,9 @@
+import { AddressDisplay } from "@green-goods/shared";
 import {
-  AddressDisplay,
   type CommitmentContributorRecord,
   type CommitmentReadModel,
   type CommitmentSeat,
-} from "@green-goods/shared";
+} from "@green-goods/shared/commitment-pooling";
 import { useIntl } from "react-intl";
 
 export interface CommitmentPeopleProps {

@@ -18,9 +18,11 @@
 import { useQueries } from "@tanstack/react-query";
 import { useMemo } from "react";
 
-import { queryKeys } from "../../config/query-keys";
-import { demoDocumentFor } from "../../modules/commitment-pooling/demo/demo-gate";
-import { getJsonByHash } from "../../modules/data/ipfs/resolve";
+import { commitmentPoolingKeys } from "../../config/query-keys/commitment-pooling";
+import {
+  commitmentDocumentStore,
+  type CommitmentDocumentStore,
+} from "../../modules/commitment-pooling/document-store";
 import {
   type CommitmentMetadataV1,
   isResolvableMetadataCID,
@@ -38,7 +40,8 @@ export interface CommitmentMetadataMap {
 }
 
 export function useCommitmentMetadata(
-  commitments: readonly { metadataCID?: string | null }[]
+  commitments: readonly { metadataCID?: string | null }[],
+  { documents = commitmentDocumentStore }: { documents?: CommitmentDocumentStore } = {}
 ): CommitmentMetadataMap {
   const cids = useMemo(() => {
     const unique = new Set<string>();
@@ -53,9 +56,8 @@ export function useCommitmentMetadata(
 
   const results = useQueries({
     queries: cids.map((cid) => ({
-      queryKey: queryKeys.commitmentPooling.metadata(cid),
-      queryFn: async () =>
-        parseCommitmentMetadata((await demoDocumentFor(cid)) ?? (await getJsonByHash(cid))),
+      queryKey: commitmentPoolingKeys.metadata(cid),
+      queryFn: async () => parseCommitmentMetadata(await documents.readJson(cid)),
       staleTime: IMMUTABLE,
       gcTime: IMMUTABLE,
       // A caption is not worth hammering a gateway for.
@@ -76,11 +78,12 @@ export function useCommitmentMetadata(
 }
 
 /** The one-commitment case, which the detail screen wants. */
-export function useCommitmentMetadataFor(commitment?: {
-  metadataCID?: string | null;
-}): CommitmentMetadataV1 | null {
+export function useCommitmentMetadataFor(
+  commitment?: { metadataCID?: string | null },
+  options: { documents?: CommitmentDocumentStore } = {}
+): CommitmentMetadataV1 | null {
   const list = useMemo(() => (commitment ? [commitment] : []), [commitment]);
-  const { byCID } = useCommitmentMetadata(list);
+  const { byCID } = useCommitmentMetadata(list, options);
   if (!isResolvableMetadataCID(commitment?.metadataCID)) return null;
   return byCID.get(commitment.metadataCID.trim()) ?? null;
 }

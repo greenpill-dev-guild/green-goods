@@ -1,4 +1,7 @@
-import { type CreateActionFormData, cn, FileUploadField, FormField } from "@green-goods/shared";
+import { FileUploadField } from "@green-goods/shared/components/FileUploadField";
+import { FormField } from "@green-goods/shared/components/Form/FormFieldWrapper";
+import type { CreateActionFormData } from "@green-goods/shared/hooks/action/useActionForm";
+import { cn } from "@green-goods/shared/utils/styles/cn";
 import type { UseFormReturn } from "react-hook-form";
 import { useIntl } from "react-intl";
 import { AdminCheckbox } from "../../AdminCheckbox";

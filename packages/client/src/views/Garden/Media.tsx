@@ -8,7 +8,7 @@ import {
   getSafeMediaMetadata,
   getWorkMediaId,
   isVideoFile,
-  normalizeWorkMediaFiles,
+  prepareWorkSubmission,
   toastService,
   track,
 } from "@green-goods/shared";
@@ -236,7 +236,7 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
     setCompressionProgress(0);
 
     try {
-      const normalized = await normalizeWorkMediaFiles(fileArray, {
+      const normalized = await prepareWorkSubmission(fileArray, {
         onHeicConversionStarted: (file) => {
           trackWorkMediaJourneyEvent("work_media_heic_conversion_started", {
             work_submission_journey_id: journeyId,

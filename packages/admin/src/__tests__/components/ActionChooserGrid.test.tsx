@@ -2,7 +2,7 @@
  * @vitest-environment jsdom
  */
 
-import { type Action, Capital, Domain } from "@green-goods/shared";
+import { type Action, Capital, Domain } from "@green-goods/shared/types/domain";
 import ptMessages from "@green-goods/shared/i18n/pt.json";
 import { render, screen } from "@testing-library/react";
 import { IntlProvider } from "react-intl";

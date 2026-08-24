@@ -6,14 +6,15 @@
  */
 import { skipToken, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useWalletClient } from "wagmi";
-import { createPublicClientForChain, DEFAULT_CHAIN_ID } from "../../config";
+import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
+import { createPublicClientForChain } from "../../config/pimlico";
 import { getChain } from "../../config/chains";
 import { logger } from "../../modules/app/logger";
 import {
   buildApprovalTransactions,
   checkMarketplaceApprovals,
   type MarketplaceApprovals,
-} from "../../modules/marketplace";
+} from "../../modules/marketplace/approvals";
 import {
   assertLocalArbitrumForkSmartAccountsDisabled,
   assertLocalArbitrumForkWallet,
@@ -23,7 +24,9 @@ import { type AdminState, useAdminStore } from "../../stores/useAdminStore";
 import type { Address } from "../../types/domain";
 import { TX_RECEIPT_TIMEOUT_MS } from "../../utils/blockchain/polling";
 import { useAuth } from "../auth/useAuth";
-import { queryInvalidation, queryKeys, STALE_TIME_RARE } from "../../config/query-keys";
+import { STALE_TIME_RARE } from "../../config/query-keys/constants";
+import { queryInvalidation } from "../../config/query-keys/invalidation";
+import { marketplaceKeys } from "../../config/query-keys/hypercert";
 
 export interface UseMarketplaceApprovalsResult {
   approvals: MarketplaceApprovals | null;
@@ -43,7 +46,7 @@ export function useMarketplaceApprovals(): UseMarketplaceApprovalsResult {
   const operator = (smartAccountAddress || eoaAddress) as Address | undefined;
 
   const { data, isLoading, error } = useQuery({
-    queryKey: queryKeys.marketplace.approvals(operator ?? ("" as Address), chainId),
+    queryKey: marketplaceKeys.approvals(operator ?? ("" as Address), chainId),
     queryFn: operator
       ? () => {
           logger.debug("[useMarketplaceApprovals] Checking approvals", { operator, chainId });

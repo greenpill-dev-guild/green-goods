@@ -1,4 +1,4 @@
-import { type UserRole, useRole } from "@green-goods/shared";
+import { useRole, type UserRole } from "@green-goods/shared/hooks/gardener/useRole";
 import { useIntl } from "react-intl";
 import { Outlet } from "react-router-dom";
 

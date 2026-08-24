@@ -1,12 +1,12 @@
+import { Card } from "@green-goods/shared/components/Cards/CardBase";
+import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
+import { useGardenCookieJars } from "@green-goods/shared/hooks/cookie-jar/useGardenCookieJars";
+import type { CookieJar } from "@green-goods/shared/types/cookie-jar";
+import type { Address } from "@green-goods/shared/types/domain";
 import {
-  type Address,
-  Card,
-  EmptyState,
   formatTokenAmount,
-  type CookieJar,
   getVaultAssetSymbol,
-  useGardenCookieJars,
-} from "@green-goods/shared";
+} from "@green-goods/shared/utils/blockchain/vaults";
 import { RiCupLine, RiHandCoinLine, RiWalletLine } from "@remixicon/react";
 import { useEffect, useRef, useState } from "react";
 import { useIntl } from "react-intl";

@@ -1,7 +1,7 @@
-import {
-  type CampaignCookieJarPayoutAsset,
-  type CampaignCookieJarPayoutAssetId,
-} from "@green-goods/shared";
+import type {
+  CampaignCookieJarPayoutAsset,
+  CampaignCookieJarPayoutAssetId,
+} from "@green-goods/shared/utils/cookie-jar-campaign";
 import { useIntl } from "react-intl";
 import { AdminChoiceGroup } from "@/components/AdminChoiceGroup";
 import { EnsAddressText } from "@/components/EnsAddressText";

@@ -1,4 +1,5 @@
-import { cn, FormField } from "@green-goods/shared";
+import { FormField } from "@green-goods/shared/components/Form/FormFieldWrapper";
+import { cn } from "@green-goods/shared/utils/styles/cn";
 import * as React from "react";
 import { useId } from "react";
 

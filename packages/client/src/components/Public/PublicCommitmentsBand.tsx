@@ -2,10 +2,12 @@ import {
   DEFAULT_CHAIN_ID,
   formatTokenAmount,
   getCampaignCookieJarPayoutAssets,
-  selectPublicPromiseKeptRate,
   useInViewReveal,
-  usePublicCommitmentImpact,
 } from "@green-goods/shared";
+import {
+  selectPublicPromiseKeptRate,
+  usePublicCommitmentImpact,
+} from "@green-goods/shared/commitment-pooling";
 import { useIntl } from "react-intl";
 import {
   EditorialHeading,

@@ -23,7 +23,7 @@ import { createTestQueryClient, renderHookWithProviders } from "./test-utils";
 
 const POOL_ID = 7n;
 
-const mocks = vi.hoisted(() => ({
+const mocks = await vi.hoisted(async () => ({
   capability: {
     deployment: "deployed",
     activation: "active",
@@ -32,7 +32,7 @@ const mocks = vi.hoisted(() => ({
     evidence: [],
     verified_at: "2026-08-16",
   } as unknown,
-  sender: { sendContractCall: vi.fn() },
+  sender: (await import("@green-goods/shared/testing")).createMockTransactionSender(),
   mutationErrorHandler: vi.fn(),
 }));
 
@@ -141,7 +141,7 @@ function fakeChain(initial: {
     readSeededCycleId: async (hash: string) => chain.seededByHash.get(hash) ?? null,
   };
   const apply = (call: { functionName: string; args: readonly unknown[] }) => {
-    const hash = `0xhash${++chain.hashes}`;
+    const hash = `0xhash${++chain.hashes}` as `0x${string}`;
     switch (call.functionName) {
       case "setPoolCharter":
         chain.charterCID = String(call.args[1]);

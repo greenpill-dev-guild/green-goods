@@ -1,4 +1,4 @@
-import { NativeSelect } from "@green-goods/shared";
+import { NativeSelect } from "@green-goods/shared/components/Form/ControlPrimitives";
 import { useIntl } from "react-intl";
 
 export interface AdminSortOption {

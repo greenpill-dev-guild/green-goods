@@ -1,7 +1,6 @@
 import type { Address } from "../../types/domain";
 import { logger } from "../app/logger";
-import { getJsonByHash } from "../data/ipfs";
-import { demoDocumentFor } from "./demo/demo-gate";
+import { commitmentDocumentStore, type CommitmentDocumentStore } from "./document-store";
 import { PoolDocumentPinError } from "./pool-charter";
 
 export const CYCLE_METADATA_VERSION = 1;
@@ -49,19 +48,20 @@ export function buildCycleMetadata(input: { name: string }): CycleMetadataV1 {
  * call; a failure is a `PoolDocumentPinError` so the seeding step stays open
  * with the name typed and offers to pin again, and nothing is sent.
  */
-export async function pinCycleMetadata(input: {
-  name: string;
-  gardenAddress?: Address | null;
-}): Promise<string> {
+export async function pinCycleMetadata(
+  input: {
+    name: string;
+    gardenAddress?: Address | null;
+  },
+  store: CommitmentDocumentStore = commitmentDocumentStore
+): Promise<string> {
   const document = buildCycleMetadata(input);
   try {
-    const { uploadJSONToIPFS } = await import("../data/ipfs/upload");
-    const { cid } = await uploadJSONToIPFS(document as unknown as Record<string, unknown>, {
+    return await store.pinJson(document as unknown as Record<string, unknown>, {
       source: "commitment-cycle-metadata",
       gardenAddress: input.gardenAddress ?? undefined,
       metadataType: "commitment-cycle",
     });
-    return cid;
   } catch (error) {
     throw new PoolDocumentPinError("cycle", error);
   }
@@ -74,13 +74,12 @@ function isResolvableCycleMetadataCID(cid: string | null | undefined): cid is st
 }
 
 export async function resolveCycleMetadataName(
-  metadataCID: string | null | undefined
+  metadataCID: string | null | undefined,
+  store: CommitmentDocumentStore = commitmentDocumentStore
 ): Promise<CycleMetadataNameResolution> {
   if (!isResolvableCycleMetadataCID(metadataCID)) return { status: "missing", name: null };
   try {
-    const metadata = parseCycleMetadata(
-      (await demoDocumentFor(metadataCID)) ?? (await getJsonByHash(metadataCID))
-    );
+    const metadata = parseCycleMetadata(await store.readJson(metadataCID));
     return metadata
       ? { status: "resolved", name: metadata.name }
       : { status: "unavailable", name: null };

@@ -7,33 +7,66 @@ const mockUseGardenVaults = vi.fn();
 const mockUseGardenPermissions = vi.fn();
 const mockUseLocation = vi.fn();
 
-vi.mock("@green-goods/shared", () => ({
-  cn: (...classes: Array<string | false | null | undefined>) => classes.filter(Boolean).join(" "),
+vi.mock("@green-goods/shared/hooks/auth/useUser", () => ({
+  useUser: () => ({ primaryAddress: "0x1234567890123456789012345678901234567890" }),
+}));
+
+vi.mock("@green-goods/shared/hooks/blockchain/useBaseLists", () => ({
+  useGardens: () => mockUseGardens(),
+}));
+
+vi.mock("@green-goods/shared/hooks/blockchain/useChainConfig", () => ({
+  useCurrentChain: () => 11155111,
+}));
+
+vi.mock("@green-goods/shared/hooks/garden/useAdminGardenWorkspaceSelection", () => ({
+  useAdminGardenWorkspaceSelection: () => ({
+    selectedGarden: { id: "garden-1", name: "Alpha Garden" },
+  }),
+}));
+
+vi.mock("@green-goods/shared/hooks/garden/useGardenPermissions", () => ({
+  useGardenPermissions: () => mockUseGardenPermissions(),
+}));
+
+vi.mock("@green-goods/shared/hooks/vault/useGardenVaults", () => ({
+  useGardenVaults: (...args: unknown[]) => mockUseGardenVaults(...args),
+}));
+
+vi.mock("@green-goods/shared/stores/useAdminStore", () => ({
+  useAdminStore: (selector: (state: any) => any) =>
+    selector({
+      selectedGarden: { id: "garden-1", name: "Alpha Garden" },
+    }),
+}));
+
+vi.mock("@green-goods/shared/utils/blockchain/abis/octant", () => ({
+  OCTANT_MODULE_ABI: [],
+}));
+
+vi.mock("@green-goods/shared/utils/blockchain/contracts", () => ({
+  getNetworkContracts: () => ({ octantModule: "0x1111111111111111111111111111111111111111" }),
+}));
+
+vi.mock("@green-goods/shared/utils/blockchain/vaults", () => ({
+  getNetDeposited: (deposited: bigint, withdrawn: bigint) =>
+    deposited > withdrawn ? deposited - withdrawn : 0n,
+  formatTokenAmount: (value: bigint, decimals = 18) =>
+    `${Number(value) / 10 ** decimals}`.replace(/\.0$/, ""),
+  getVaultAssetSymbol: () => "WETH",
+}));
+
+vi.mock("@green-goods/shared/utils/navigation/admin-routes", () => ({
   adminRoutes: {
     communityEndowment: (search?: Record<string, string>) => {
       const query = search ? new URLSearchParams(search).toString() : "";
       return query ? `/community/endowment?${query}` : "/community/endowment";
     },
   },
-  useAdminStore: (selector: (state: any) => any) =>
-    selector({
-      selectedGarden: { id: "garden-1", name: "Alpha Garden" },
-    }),
-  useAdminGardenWorkspaceSelection: () => ({
-    selectedGarden: { id: "garden-1", name: "Alpha Garden" },
-  }),
-  useGardens: () => mockUseGardens(),
-  useGardenVaults: (...args: unknown[]) => mockUseGardenVaults(...args),
-  useGardenPermissions: () => mockUseGardenPermissions(),
-  useUser: () => ({ primaryAddress: "0x1234567890123456789012345678901234567890" }),
-  useCurrentChain: () => 11155111,
-  getNetworkContracts: () => ({ octantModule: "0x1111111111111111111111111111111111111111" }),
-  OCTANT_MODULE_ABI: [],
-  getNetDeposited: (deposited: bigint, withdrawn: bigint) =>
-    deposited > withdrawn ? deposited - withdrawn : 0n,
-  formatTokenAmount: (value: bigint, decimals = 18) =>
-    `${Number(value) / 10 ** decimals}`.replace(/\.0$/, ""),
-  getVaultAssetSymbol: () => "WETH",
+}));
+
+vi.mock("@green-goods/shared/utils/styles/cn", () => ({
+  cn: (...classes: Array<string | false | null | undefined>) => classes.filter(Boolean).join(" "),
 }));
 
 vi.mock("wagmi", () => ({

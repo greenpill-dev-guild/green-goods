@@ -9,18 +9,19 @@ import type {
   CookieJarUpdateIntervalParams,
   CookieJarUpdateMaxWithdrawalParams,
 } from "../../types/cookie-jar";
-import { COOKIE_JAR_ABI } from "../../utils/blockchain/abis";
+import { COOKIE_JAR_ABI } from "../../utils/blockchain/abis/cookie-jar";
 import { createMutationErrorHandler } from "../../utils/errors/mutation-error-handler";
 import { useCurrentChain } from "../blockchain/useChainConfig";
-import { useContractTxSender } from "../blockchain/useContractTxSender";
-import { INDEXER_LAG_SCHEDULE_MS, queryInvalidation } from "../../config/query-keys";
+import { useTransactionSender } from "../blockchain/useTransactionSender";
+import { INDEXER_LAG_SCHEDULE_MS } from "../../config/query-keys/constants";
+import { queryInvalidation } from "../../config/query-keys/invalidation";
 import { useProgressiveInvalidation } from "../utils/useTimeout";
 
 export function useCookieJarPause(gardenAddress: Address) {
   const { formatMessage } = useIntl();
   const queryClient = useQueryClient();
   const chainId = useCurrentChain();
-  const sendContractTx = useContractTxSender();
+  const sender = useTransactionSender();
   const handleError = createMutationErrorHandler({
     source: "useCookieJarPause",
     toastContext: "cookie jar pause",
@@ -47,12 +48,15 @@ export function useCookieJarPause(gardenAddress: Address) {
 
   return useMutation({
     mutationFn: async (params: CookieJarAdminParams) => {
-      return sendContractTx({
+      if (!sender) throw new Error("Transaction sender is unavailable");
+      const result = await sender.sendContractCall({
         address: params.jarAddress,
         abi: COOKIE_JAR_ABI,
         functionName: "pause",
         args: [],
+        chainId,
       });
+      return result.hash;
     },
     onMutate: () => {
       const toastId = toastService.loading({
@@ -85,7 +89,7 @@ export function useCookieJarUnpause(gardenAddress: Address) {
   const { formatMessage } = useIntl();
   const queryClient = useQueryClient();
   const chainId = useCurrentChain();
-  const sendContractTx = useContractTxSender();
+  const sender = useTransactionSender();
   const handleError = createMutationErrorHandler({
     source: "useCookieJarUnpause",
     toastContext: "cookie jar unpause",
@@ -112,12 +116,15 @@ export function useCookieJarUnpause(gardenAddress: Address) {
 
   return useMutation({
     mutationFn: async (params: CookieJarAdminParams) => {
-      return sendContractTx({
+      if (!sender) throw new Error("Transaction sender is unavailable");
+      const result = await sender.sendContractCall({
         address: params.jarAddress,
         abi: COOKIE_JAR_ABI,
         functionName: "unpause",
         args: [],
+        chainId,
       });
+      return result.hash;
     },
     onMutate: () => {
       const toastId = toastService.loading({
@@ -150,7 +157,7 @@ export function useCookieJarUpdateMaxWithdrawal(gardenAddress: Address) {
   const { formatMessage } = useIntl();
   const queryClient = useQueryClient();
   const chainId = useCurrentChain();
-  const sendContractTx = useContractTxSender();
+  const sender = useTransactionSender();
   const handleError = createMutationErrorHandler({
     source: "useCookieJarUpdateMaxWithdrawal",
     toastContext: "cookie jar update max withdrawal",
@@ -177,12 +184,15 @@ export function useCookieJarUpdateMaxWithdrawal(gardenAddress: Address) {
 
   return useMutation({
     mutationFn: async (params: CookieJarUpdateMaxWithdrawalParams) => {
-      return sendContractTx({
+      if (!sender) throw new Error("Transaction sender is unavailable");
+      const result = await sender.sendContractCall({
         address: params.jarAddress,
         abi: COOKIE_JAR_ABI,
         functionName: "updateMaxWithdrawalAmount",
         args: [params.maxWithdrawal],
+        chainId,
       });
+      return result.hash;
     },
     onMutate: () => {
       const toastId = toastService.loading({
@@ -215,7 +225,7 @@ export function useCookieJarUpdateInterval(gardenAddress: Address) {
   const { formatMessage } = useIntl();
   const queryClient = useQueryClient();
   const chainId = useCurrentChain();
-  const sendContractTx = useContractTxSender();
+  const sender = useTransactionSender();
   const handleError = createMutationErrorHandler({
     source: "useCookieJarUpdateInterval",
     toastContext: "cookie jar update interval",
@@ -242,12 +252,15 @@ export function useCookieJarUpdateInterval(gardenAddress: Address) {
 
   return useMutation({
     mutationFn: async (params: CookieJarUpdateIntervalParams) => {
-      return sendContractTx({
+      if (!sender) throw new Error("Transaction sender is unavailable");
+      const result = await sender.sendContractCall({
         address: params.jarAddress,
         abi: COOKIE_JAR_ABI,
         functionName: "updateWithdrawalInterval",
         args: [params.withdrawalInterval],
+        chainId,
       });
+      return result.hash;
     },
     onMutate: () => {
       const toastId = toastService.loading({
@@ -280,7 +293,7 @@ export function useCookieJarEmergencyWithdraw(gardenAddress: Address) {
   const { formatMessage } = useIntl();
   const queryClient = useQueryClient();
   const chainId = useCurrentChain();
-  const sendContractTx = useContractTxSender();
+  const sender = useTransactionSender();
   const handleError = createMutationErrorHandler({
     source: "useCookieJarEmergencyWithdraw",
     toastContext: "cookie jar emergency withdraw",
@@ -307,12 +320,15 @@ export function useCookieJarEmergencyWithdraw(gardenAddress: Address) {
 
   return useMutation({
     mutationFn: async (params: CookieJarEmergencyWithdrawParams) => {
-      return sendContractTx({
+      if (!sender) throw new Error("Transaction sender is unavailable");
+      const result = await sender.sendContractCall({
         address: params.jarAddress,
         abi: COOKIE_JAR_ABI,
         functionName: "emergencyWithdraw",
         args: [params.tokenAddress, params.amount],
+        chainId,
       });
+      return result.hash;
     },
     onMutate: () => {
       const toastId = toastService.loading({

@@ -4,35 +4,24 @@
  * Provides helper functions and wrappers for testing React hooks and components.
  */
 
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { type QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { type RenderHookOptions, renderHook } from "@testing-library/react";
 import { createElement, type ReactNode } from "react";
 import { IntlProvider } from "react-intl";
 import enMessages from "../../i18n/en.json";
+import { createTestQueryClient, getTestQueryClient } from "./query-client";
+
+export { createTestQueryClient, resetTestQueryClient } from "./query-client";
 
 // Re-export mock factories, offline helpers, and centralized barrel mock
 export * from "./mock-factories";
 export * from "./offline-helpers";
+export * from "./transaction-fakes";
+export * from "./job-queue-fakes";
+export * from "./commitment-pooling-fixtures";
+export * from "./controller-fixtures";
+export { describeConformance, type ConformanceLaw } from "./conformance";
 export { createSharedBarrelMock } from "./shared-barrel-mock";
-
-// ============================================
-// Query Client Factory
-// ============================================
-
-export function createTestQueryClient(): QueryClient {
-  return new QueryClient({
-    defaultOptions: {
-      queries: {
-        retry: false,
-        gcTime: 0,
-        staleTime: 0,
-      },
-      mutations: {
-        retry: false,
-      },
-    },
-  });
-}
 
 // ============================================
 // Test Wrapper Components
@@ -210,22 +199,6 @@ const silentIntlErrorHandler = (err: unknown) => {
   throw err;
 };
 
-// Shared QueryClient for test wrappers — avoids recreating per render.
-// Reset between tests via afterEach in setup files.
-let sharedTestQueryClient: QueryClient | null = null;
-function getTestQueryClient(): QueryClient {
-  if (!sharedTestQueryClient) {
-    sharedTestQueryClient = createTestQueryClient();
-  }
-  return sharedTestQueryClient;
-}
-
-/** Reset the shared test QueryClient (call in afterEach) */
-export function resetTestQueryClient(): void {
-  sharedTestQueryClient?.clear();
-  sharedTestQueryClient = null;
-}
-
 /**
  * Wrapper component that provides QueryClient and IntlProvider
  * Used by renderWithQuery for component testing
@@ -267,4 +240,3 @@ import { vi } from "vitest";
 
 // Re-export testing library for convenience
 export * from "@testing-library/react";
-export { default as userEvent } from "@testing-library/user-event";

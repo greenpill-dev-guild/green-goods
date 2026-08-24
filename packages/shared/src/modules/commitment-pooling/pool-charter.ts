@@ -16,6 +16,7 @@
  */
 
 import type { Address } from "../../types/domain";
+import { commitmentDocumentStore, type CommitmentDocumentStore } from "./document-store";
 
 /** Bumped only for a change old readers cannot understand. */
 export const POOL_CHARTER_VERSION = 1;
@@ -89,19 +90,20 @@ export function isPoolDocumentPinError(error: unknown): error is PoolDocumentPin
  * for the pinning client. Content addressing makes a retry cheap: identical
  * words pin to the identical CID.
  */
-export async function pinPoolCharter(input: {
-  purpose: string;
-  gardenAddress?: Address | null;
-}): Promise<string> {
+export async function pinPoolCharter(
+  input: {
+    purpose: string;
+    gardenAddress?: Address | null;
+  },
+  store: CommitmentDocumentStore = commitmentDocumentStore
+): Promise<string> {
   const document = buildPoolCharter(input);
   try {
-    const { uploadJSONToIPFS } = await import("../data/ipfs/upload");
-    const { cid } = await uploadJSONToIPFS(document as unknown as Record<string, unknown>, {
+    return await store.pinJson(document as unknown as Record<string, unknown>, {
       source: "commitment-pool-charter",
       gardenAddress: input.gardenAddress ?? undefined,
       metadataType: "commitment-pool-charter",
     });
-    return cid;
   } catch (error) {
     throw new PoolDocumentPinError("charter", error);
   }

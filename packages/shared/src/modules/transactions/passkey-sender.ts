@@ -14,19 +14,28 @@ import { logger } from "../app/logger";
 import { assertLocalArbitrumForkSmartAccountsDisabled } from "./local-fork-safety";
 import type { ContractCall, TransactionSender, TxResult } from "./types";
 
+export interface PasskeySenderDeps {
+  assertWriteSafety?: () => Promise<void>;
+}
+
 export class PasskeySender implements TransactionSender {
   readonly supportsSponsorship = true;
   readonly supportsBatching = false;
   readonly authMode = "passkey" as const;
 
   private client: SmartAccountClient;
+  private deps: PasskeySenderDeps;
 
-  constructor(smartAccountClient: SmartAccountClient) {
+  constructor(smartAccountClient: SmartAccountClient, deps?: PasskeySenderDeps) {
     this.client = smartAccountClient;
+    this.deps = deps ?? {
+      assertWriteSafety: async () => assertLocalArbitrumForkSmartAccountsDisabled(),
+    };
+    this.deps.assertWriteSafety ??= async () => assertLocalArbitrumForkSmartAccountsDisabled();
   }
 
   async sendContractCall(call: ContractCall): Promise<TxResult> {
-    assertLocalArbitrumForkSmartAccountsDisabled();
+    await this.deps.assertWriteSafety?.();
 
     const data = encodeFunctionData({
       abi: call.abi,

@@ -1,10 +1,10 @@
+import { AppBar } from "@green-goods/shared/components/Canvas/AppBar";
+import { GardenChip } from "@green-goods/shared/components/Canvas/GardenChip";
+import { MainSheet } from "@green-goods/shared/components/Canvas/MainSheet";
 import {
-  AppBar,
-  GardenChip,
-  MainSheet,
   NavigationBar,
   type ToolbarSlot,
-} from "@green-goods/shared";
+} from "@green-goods/shared/components/Canvas/NavigationBar";
 import { RiAppsLine, RiHammerLine, RiSeedlingLine, RiTeamLine } from "@remixicon/react";
 import type { Meta, StoryObj } from "@storybook/react";
 import { useMemo, useState } from "react";

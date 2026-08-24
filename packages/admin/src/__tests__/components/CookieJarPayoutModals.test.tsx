@@ -1,6 +1,6 @@
 import { fireEvent } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { Address } from "@green-goods/shared";
+import type { Address } from "@green-goods/shared/types/domain";
 import { renderWithProviders, screen } from "../test-utils";
 
 const cookieJarMutationState = vi.hoisted(() => ({
@@ -16,46 +16,51 @@ const GARDEN_ADDRESS = "0x1111111111111111111111111111111111111111" as Address;
 const JAR_ADDRESS = "0x2222222222222222222222222222222222222222" as Address;
 const ASSET_ADDRESS = "0x3333333333333333333333333333333333333333" as Address;
 
-vi.mock("@green-goods/shared", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@green-goods/shared")>();
-  return {
-    ...actual,
-    useUser: () => ({ primaryAddress: "0x9999999999999999999999999999999999999999" }),
-    useGardenCookieJars: () => ({
-      jars: [
-        {
-          jarAddress: JAR_ADDRESS,
-          gardenAddress: GARDEN_ADDRESS,
-          assetAddress: ASSET_ADDRESS,
-          balance: 5_000_000n,
-          currency: ASSET_ADDRESS,
-          decimals: 6,
-          maxWithdrawal: 1_000_000n,
-          withdrawalInterval: 3600n,
-          // Non-zero on-chain minimum (mirrors the jar's hardcoded MIN_DEPOSIT
-          // constant) — the modal must ignore it, never gate deposits on it.
-          minDeposit: 5_000_000_000n,
-          isPaused: false,
-          emergencyWithdrawalEnabled: false,
-        },
-      ],
-      isLoading: false,
-      moduleConfigured: true,
-    }),
-    useCookieJarDeposit: () => ({
-      error: null,
-      isPending: cookieJarMutationState.depositPending,
-      mutate: cookieJarMutationState.depositMutate,
-      reset: cookieJarMutationState.depositReset,
-    }),
-    useCookieJarWithdraw: () => ({
-      error: null,
-      isPending: cookieJarMutationState.withdrawPending,
-      mutate: cookieJarMutationState.withdrawMutate,
-      reset: cookieJarMutationState.withdrawReset,
-    }),
-  };
-});
+vi.mock("@green-goods/shared/hooks/auth/useUser", () => ({
+  useUser: () => ({ primaryAddress: "0x9999999999999999999999999999999999999999" }),
+}));
+
+vi.mock("@green-goods/shared/hooks/cookie-jar/useCookieJarDeposit", () => ({
+  useCookieJarDeposit: () => ({
+    error: null,
+    isPending: cookieJarMutationState.depositPending,
+    mutate: cookieJarMutationState.depositMutate,
+    reset: cookieJarMutationState.depositReset,
+  }),
+}));
+
+vi.mock("@green-goods/shared/hooks/cookie-jar/useCookieJarWithdraw", () => ({
+  useCookieJarWithdraw: () => ({
+    error: null,
+    isPending: cookieJarMutationState.withdrawPending,
+    mutate: cookieJarMutationState.withdrawMutate,
+    reset: cookieJarMutationState.withdrawReset,
+  }),
+}));
+
+vi.mock("@green-goods/shared/hooks/cookie-jar/useGardenCookieJars", () => ({
+  useGardenCookieJars: () => ({
+    jars: [
+      {
+        jarAddress: JAR_ADDRESS,
+        gardenAddress: GARDEN_ADDRESS,
+        assetAddress: ASSET_ADDRESS,
+        balance: 5_000_000n,
+        currency: ASSET_ADDRESS,
+        decimals: 6,
+        maxWithdrawal: 1_000_000n,
+        withdrawalInterval: 3600n,
+        // Non-zero on-chain minimum (mirrors the jar's hardcoded MIN_DEPOSIT
+        // constant) — the modal must ignore it, never gate deposits on it.
+        minDeposit: 5_000_000_000n,
+        isPaused: false,
+        emergencyWithdrawalEnabled: false,
+      },
+    ],
+    isLoading: false,
+    moduleConfigured: true,
+  }),
+}));
 
 vi.mock("wagmi", () => ({
   useBalance: () => ({

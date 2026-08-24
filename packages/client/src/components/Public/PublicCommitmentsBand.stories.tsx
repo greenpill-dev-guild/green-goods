@@ -1,4 +1,5 @@
-import { type PublicCommitmentImpactRecord, queryKeys } from "@green-goods/shared";
+import { queryKeys } from "@green-goods/shared";
+import { type PublicCommitmentImpactRecord } from "@green-goods/shared/commitment-pooling";
 import type { Meta, StoryObj } from "@storybook/react";
 import { withRouter, withSeededQueryClient } from "../../../../shared/.storybook/decorators";
 import { PublicCommitmentsBand } from "./PublicCommitmentsBand";

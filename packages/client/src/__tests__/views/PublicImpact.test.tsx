@@ -74,6 +74,11 @@ vi.mock("@green-goods/shared", async () => {
   };
 });
 
+vi.mock("@green-goods/shared/commitment-pooling", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@green-goods/shared/commitment-pooling")>()),
+  usePublicCommitmentImpact: () => mockUsePublicCommitmentImpact(),
+}));
+
 import ImpactPage from "../../views/Public/Impact";
 
 const messages: Record<string, string> = {

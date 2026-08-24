@@ -1,4 +1,4 @@
-import type { CommitmentDialogController } from "@green-goods/shared";
+import type { CommitmentDialogController } from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
 import { useIntl } from "react-intl";
 import { formatUnixDate, shortAddress } from "../poolPresentation";
 import { eventLabel } from "./commitmentDialogPresentation";

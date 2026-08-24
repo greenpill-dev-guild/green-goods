@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react";
-import type { AccountSheetTab } from "@green-goods/shared";
+import type { AccountSheetTab } from "@green-goods/shared/hooks/admin-ui/layout/accountSheet.events";
 import { type ComponentProps, useState } from "react";
 import { fn } from "storybook/test";
 import { STORYBOOK_ADMIN_SHELL_SEEDS } from "../../../../shared/.storybook/adminFixtures";

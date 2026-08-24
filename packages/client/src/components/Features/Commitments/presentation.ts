@@ -2,7 +2,7 @@ import type {
   CommitmentDerivedState,
   CommitmentReadModel,
   CommitmentSeat,
-} from "@green-goods/shared";
+} from "@green-goods/shared/commitment-pooling";
 
 /**
  * How a commitment's state and the reader's relationship to it are said in the

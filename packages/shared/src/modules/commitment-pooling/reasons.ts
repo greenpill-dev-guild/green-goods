@@ -17,6 +17,7 @@
  */
 
 import type { Address } from "../../types/domain";
+import { commitmentDocumentStore, type CommitmentDocumentStore } from "./document-store";
 
 /** Bumped only for a change old readers cannot understand. */
 export const COMMITMENT_REASON_VERSION = 1;
@@ -97,21 +98,22 @@ export function isCommitmentReasonPinError(error: unknown): error is CommitmentR
  * client. Content addressing makes a retry cheap: identical words pin to the
  * identical CID.
  */
-export async function pinCommitmentReason(input: {
-  reason: string;
-  gardenAddress?: Address | null;
-  /** Which surface is pinning, for upload tracking. */
-  source: string;
-}): Promise<string> {
+export async function pinCommitmentReason(
+  input: {
+    reason: string;
+    gardenAddress?: Address | null;
+    /** Which surface is pinning, for upload tracking. */
+    source: string;
+  },
+  store: CommitmentDocumentStore = commitmentDocumentStore
+): Promise<string> {
   const document = buildCommitmentReason(input.reason);
   try {
-    const { uploadJSONToIPFS } = await import("../data/ipfs/upload");
-    const { cid } = await uploadJSONToIPFS(document as unknown as Record<string, unknown>, {
+    return await store.pinJson(document as unknown as Record<string, unknown>, {
       source: `commitment-reason:${input.source}`,
       gardenAddress: input.gardenAddress ?? undefined,
       metadataType: "commitment-reason",
     });
-    return cid;
   } catch (error) {
     throw new CommitmentReasonPinError(error);
   }

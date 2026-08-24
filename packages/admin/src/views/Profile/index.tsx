@@ -1,8 +1,8 @@
 import {
   ACCOUNT_TAB_SEARCH_PARAM,
-  parseAccountSheetTab,
   type AccountSheetTab,
-} from "@green-goods/shared";
+  parseAccountSheetTab,
+} from "@green-goods/shared/hooks/admin-ui/layout/accountSheet.events";
 import { useEffect, useMemo } from "react";
 import { useIntl } from "react-intl";
 import { useSearchParams } from "react-router-dom";

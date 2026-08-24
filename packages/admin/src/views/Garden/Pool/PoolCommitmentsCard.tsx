@@ -1,8 +1,6 @@
-import {
-  type CommitmentReadModel,
-  type PoolConsoleController,
-  StatusBadge,
-} from "@green-goods/shared";
+import { StatusBadge } from "@green-goods/shared/components/StatusBadge";
+import type { PoolConsoleController } from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
+import type { CommitmentReadModel } from "@green-goods/shared/modules/commitment-pooling/types-core";
 import { RiArrowRightSLine, RiSeedlingLine } from "@remixicon/react";
 import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";

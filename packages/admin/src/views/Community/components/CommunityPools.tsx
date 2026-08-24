@@ -1,13 +1,13 @@
+import { StatusBadge } from "@green-goods/shared/components/StatusBadge";
+import { useUser } from "@green-goods/shared/hooks/auth/useUser";
+import type { Address } from "@green-goods/shared/types/domain";
+import { adminRoutes } from "@green-goods/shared/utils/navigation/admin-routes";
+import { useCommitmentPools } from "@green-goods/shared/hooks/commitment-pooling/useCommitmentPooling";
 import {
-  type Address,
-  adminRoutes,
   type CommitmentsToConfirm,
-  StatusBadge,
-  useCommitmentPools,
   useCommitmentsToConfirm,
-  useProtocolPool,
-  useUser,
-} from "@green-goods/shared";
+} from "@green-goods/shared/hooks/commitment-pooling/useCommitmentsToConfirm";
+import { useProtocolPool } from "@green-goods/shared/hooks/commitment-pooling/useProtocolPool";
 import { RiArrowRightLine, RiRefreshLine } from "@remixicon/react";
 import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";

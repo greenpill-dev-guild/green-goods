@@ -4,7 +4,7 @@
  */
 
 import { render, screen } from "@testing-library/react";
-import { FormField } from "@green-goods/shared";
+import { FormField } from "@green-goods/shared/components/Form/FormFieldWrapper";
 import { describe, expect, it } from "vitest";
 
 describe("FormField", () => {

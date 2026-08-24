@@ -1,4 +1,5 @@
 import { type PublicGardenSummary, useInViewReveal, usePublicGardens } from "@green-goods/shared";
+import { selectPublicSurfaceState } from "@green-goods/shared/public";
 import { useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { useNavigationType } from "react-router-dom";
@@ -11,6 +12,7 @@ import {
 import { PublicEditorialHero } from "@/components/Public/PublicEditorialHero";
 import { PublicFooter } from "@/components/Public/PublicFooter";
 import { PublicGardenCard } from "@/components/Public/PublicGardenCard";
+import { PublicSurfaceState } from "@/components/Public/PublicSurfaceState";
 import { getPublicHeroImage, publicCuration } from "@/content/publicCuration";
 import { focusRememberedGardenCard } from "./garden-return-focus";
 
@@ -25,7 +27,7 @@ import { focusRememberedGardenCard } from "./garden-return-focus";
  */
 export default function GardensGallery() {
   const { formatMessage } = useIntl();
-  const { data: gardens = [], isLoading } = usePublicGardens();
+  const { data: gardens = [], isLoading, isError } = usePublicGardens();
   const [query, setQuery] = useState("");
   const navigationType = useNavigationType();
   const { ref: archiveRef, revealed: archiveRevealed } = useInViewReveal<HTMLElement>();
@@ -48,6 +50,11 @@ export default function GardensGallery() {
       return haystack.includes(q);
     });
   }, [gardens, query]);
+  const surfaceState = selectPublicSurfaceState({
+    isLoading,
+    isError,
+    itemCount: filtered.length,
+  });
 
   return (
     <>
@@ -146,43 +153,56 @@ export default function GardensGallery() {
           {/* Reserve a stable height so filtering down to a single result
               does not collapse the page and shift the footer up. */}
           <div className="min-h-[60vh]">
-            {isLoading ? (
-              <div className="mt-12 grid grid-cols-1 gap-12 sm:grid-cols-2 lg:grid-cols-3">
-                {[0, 1, 2, 3, 4, 5].map((i) => (
-                  <div
-                    key={i}
-                    className="aspect-[3/2] w-full animate-pulse bg-editorial-warm"
-                    aria-hidden="true"
-                  />
-                ))}
-              </div>
-            ) : filtered.length === 0 ? (
-              <div className="mt-12">
-                <p className="font-serif text-2xl italic text-text-soft-400">
-                  {query.trim().length > 0
-                    ? formatMessage(
-                        {
-                          id: "public.gardens.noMatches",
-                          defaultMessage: 'No Gardens match "{query}".',
-                        },
-                        { query: query.trim() }
-                      )
-                    : formatMessage({
-                        id: "public.gardens.empty",
-                        defaultMessage: "Gardens will appear here as they come online.",
-                      })}
-                </p>
-                <div className="mt-6">
-                  <EditorialDivider />
+            <PublicSurfaceState
+              state={surfaceState}
+              loading={
+                <div className="mt-12 grid grid-cols-1 gap-12 sm:grid-cols-2 lg:grid-cols-3">
+                  {[0, 1, 2, 3, 4, 5].map((i) => (
+                    <div
+                      key={i}
+                      className="aspect-[3/2] w-full animate-pulse bg-editorial-warm"
+                      aria-hidden="true"
+                    />
+                  ))}
                 </div>
-              </div>
-            ) : (
+              }
+              error={
+                <p className="mt-12 font-serif text-2xl italic text-text-soft-400">
+                  {formatMessage({
+                    id: "public.surface.error",
+                    defaultMessage:
+                      "This public record is temporarily unavailable. Please try again.",
+                  })}
+                </p>
+              }
+              empty={
+                <div className="mt-12">
+                  <p className="font-serif text-2xl italic text-text-soft-400">
+                    {query.trim().length > 0
+                      ? formatMessage(
+                          {
+                            id: "public.gardens.noMatches",
+                            defaultMessage: 'No Gardens match "{query}".',
+                          },
+                          { query: query.trim() }
+                        )
+                      : formatMessage({
+                          id: "public.gardens.empty",
+                          defaultMessage: "Gardens will appear here as they come online.",
+                        })}
+                  </p>
+                  <div className="mt-6">
+                    <EditorialDivider />
+                  </div>
+                </div>
+              }
+            >
               <div className="mt-12 grid grid-cols-1 gap-12 sm:grid-cols-2 lg:grid-cols-3">
                 {filtered.map((garden: PublicGardenSummary) => (
                   <PublicGardenCard key={garden.id} garden={garden} />
                 ))}
               </div>
-            )}
+            </PublicSurfaceState>
           </div>
         </div>
       </section>

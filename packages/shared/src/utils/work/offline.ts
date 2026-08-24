@@ -7,7 +7,7 @@
  */
 
 import { jobToWork } from "../../hooks/work/useWorks";
-import { jobQueueDB } from "../../modules/job-queue";
+import { jobQueueDB } from "../../modules/job-queue/db";
 import type { Work } from "../../types/domain";
 import type { Job, WorkJobPayload } from "../../types/job-queue";
 

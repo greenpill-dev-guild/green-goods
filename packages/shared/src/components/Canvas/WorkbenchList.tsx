@@ -1,5 +1,5 @@
 import type { HTMLAttributes } from "react";
-import { cn } from "../../utils";
+import { cn } from "../../utils/styles/cn";
 
 export function WorkbenchList({
   children,

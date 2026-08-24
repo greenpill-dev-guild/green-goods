@@ -3,7 +3,7 @@
  * @vitest-environment jsdom
  */
 
-import type { EASWork } from "@green-goods/shared";
+import type { EASWork } from "@green-goods/shared/types/eas-responses";
 import pt from "@green-goods/shared/i18n/pt.json";
 import { render, screen } from "@testing-library/react";
 import { IntlProvider } from "react-intl";
@@ -11,13 +11,9 @@ import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
 import { WorkCard } from "@/views/Hub/components/WorkCard";
 
-vi.mock("@green-goods/shared", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@green-goods/shared")>();
-  return {
-    ...actual,
-    useEnsName: () => ({ data: undefined }),
-  };
-});
+vi.mock("@green-goods/shared/hooks/blockchain/useEnsName", () => ({
+  useEnsName: () => ({ data: undefined }),
+}));
 
 describe("WorkCard", () => {
   it("localizes canonical action titles in Portuguese", () => {

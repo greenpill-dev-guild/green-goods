@@ -3,9 +3,10 @@ import { useIntl } from "react-intl";
 import { toastService } from "../../components/toast";
 import type { Address } from "../../types/domain";
 import { GardenAccountABI } from "../../utils/blockchain/contracts";
+import { updateGarden } from "../../modules/garden/update-garden-command";
 import { createMutationErrorHandler } from "../../utils/errors/mutation-error-handler";
 import { useContractTxSender } from "../blockchain/useContractTxSender";
-import { queryKeys } from "../../config/query-keys";
+import { gardensKeys } from "../../config/query-keys/garden";
 
 interface UpdateGardenStringParam {
   gardenAddress: Address;
@@ -42,12 +43,15 @@ function useGardenStringMutation(
 
   return useMutation({
     mutationFn: async (params: UpdateGardenStringParam) => {
-      return sendContractTx({
-        address: params.gardenAddress,
-        abi: GardenAccountABI,
-        functionName,
-        args: [params.value],
-      });
+      return updateGarden(
+        {
+          gardenAddress: params.gardenAddress,
+          abi: GardenAccountABI,
+          functionName,
+          value: params.value,
+        },
+        { sender: sendContractTx }
+      );
     },
     onMutate: () => {
       const toastId = toastService.loading({
@@ -60,7 +64,7 @@ function useGardenStringMutation(
       toastService.success({
         title: formatMessage({ id: successMessageId, defaultMessage: "Updated" }),
       });
-      queryClient.invalidateQueries({ queryKey: queryKeys.gardens.all });
+      queryClient.invalidateQueries({ queryKey: gardensKeys.all });
     },
     onError: (error, _params, context) => {
       if (context?.toastId) toastService.dismiss(context.toastId);
@@ -154,12 +158,15 @@ export function useSetOpenJoining() {
 
   return useMutation({
     mutationFn: async (params: UpdateGardenBoolParam) => {
-      return sendContractTx({
-        address: params.gardenAddress,
-        abi: GardenAccountABI,
-        functionName: "setOpenJoining",
-        args: [params.value],
-      });
+      return updateGarden(
+        {
+          gardenAddress: params.gardenAddress,
+          abi: GardenAccountABI,
+          functionName: "setOpenJoining",
+          value: params.value,
+        },
+        { sender: sendContractTx }
+      );
     },
     onMutate: () => {
       const toastId = toastService.loading({
@@ -178,7 +185,7 @@ export function useSetOpenJoining() {
           defaultMessage: "Joining settings updated",
         }),
       });
-      queryClient.invalidateQueries({ queryKey: queryKeys.gardens.all });
+      queryClient.invalidateQueries({ queryKey: gardensKeys.all });
     },
     onError: (error, _params, context) => {
       if (context?.toastId) toastService.dismiss(context.toastId);
@@ -202,12 +209,15 @@ export function useSetMaxGardeners() {
 
   return useMutation({
     mutationFn: async (params: UpdateGardenNumberParam) => {
-      return sendContractTx({
-        address: params.gardenAddress,
-        abi: GardenAccountABI,
-        functionName: "setMaxGardeners",
-        args: [BigInt(params.value)],
-      });
+      return updateGarden(
+        {
+          gardenAddress: params.gardenAddress,
+          abi: GardenAccountABI,
+          functionName: "setMaxGardeners",
+          value: BigInt(params.value),
+        },
+        { sender: sendContractTx }
+      );
     },
     onMutate: () => {
       const toastId = toastService.loading({
@@ -226,7 +236,7 @@ export function useSetMaxGardeners() {
           defaultMessage: "Max gardeners updated",
         }),
       });
-      queryClient.invalidateQueries({ queryKey: queryKeys.gardens.all });
+      queryClient.invalidateQueries({ queryKey: gardensKeys.all });
     },
     onError: (error, _params, context) => {
       if (context?.toastId) toastService.dismiss(context.toastId);

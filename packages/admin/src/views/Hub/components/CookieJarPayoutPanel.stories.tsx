@@ -1,4 +1,5 @@
-import { Card, formatTokenAmount } from "@green-goods/shared";
+import { Card } from "@green-goods/shared/components/Cards/CardBase";
+import { formatTokenAmount } from "@green-goods/shared/utils/blockchain/vaults";
 import { AdminButton } from "@/components/AdminButton";
 import { AdminCard } from "@/components/AdminCard";
 import { RiHandCoinLine, RiWalletLine } from "@remixicon/react";

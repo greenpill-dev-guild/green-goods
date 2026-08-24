@@ -73,6 +73,23 @@ export interface HubWorkspaceStateInput {
   hasOpenHubInspector: boolean;
 }
 
+export type HubStageContentKind = "work" | "assess" | "confirm" | "certify" | "history";
+
+export interface HubSheetSelectionInput {
+  routeWorkId?: string;
+  routeCertificationId?: string;
+  routeHistoryEventId?: string;
+  activeWorkDetailId: string | null;
+  hasSelectedCertification: boolean;
+  hasSelectedHistoryEvent: boolean;
+}
+
+export type HubSheetSelection =
+  | { kind: "work"; id: string }
+  | { kind: "certification" }
+  | { kind: "history" }
+  | null;
+
 type ActionTitleLike = {
   id: string | number | bigint;
   title: string;
@@ -86,6 +103,25 @@ export interface HubActionSummary {
 
 export function normalizeHubSearch(searchTerm: string): string {
   return searchTerm.trim().toLowerCase();
+}
+
+export function selectHubStageContent(stage: HubPipelineStage): HubStageContentKind {
+  return stage;
+}
+
+export function resolveHubSheetSelection({
+  routeWorkId,
+  routeCertificationId,
+  routeHistoryEventId,
+  activeWorkDetailId,
+  hasSelectedCertification,
+  hasSelectedHistoryEvent,
+}: HubSheetSelectionInput): HubSheetSelection {
+  const workId = routeWorkId ?? activeWorkDetailId;
+  if (workId) return { kind: "work", id: workId };
+  if (routeCertificationId || hasSelectedCertification) return { kind: "certification" };
+  if (routeHistoryEventId || hasSelectedHistoryEvent) return { kind: "history" };
+  return null;
 }
 
 export function buildActionTitleMap(actions: ActionTitleLike[]) {

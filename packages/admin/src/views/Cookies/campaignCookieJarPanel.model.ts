@@ -1,12 +1,11 @@
-import {
-  derivePublicGardenSlug,
-  normalizeCampaignMetadataUrl,
-  type Address,
-  type CampaignCookieJarCampaign,
-  type CampaignCookieJarMetadata,
-  type CreateCampaignCookieJarParams,
-  type Garden,
-} from "@green-goods/shared";
+import { derivePublicGardenSlug } from "@green-goods/shared/public-contracts/garden-slug";
+import type {
+  CampaignCookieJarCampaign,
+  CampaignCookieJarMetadata,
+  CreateCampaignCookieJarParams,
+} from "@green-goods/shared/types/cookie-jar";
+import type { Address, Garden } from "@green-goods/shared/types/domain";
+import { normalizeCampaignMetadataUrl } from "@green-goods/shared/utils/cookie-jar-campaign";
 
 const PUBLIC_COOKIE_BASE_URL = "https://greengoods.app/cookies";
 

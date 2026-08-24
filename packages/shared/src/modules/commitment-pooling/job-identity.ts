@@ -7,13 +7,64 @@ import {
   type Hex,
 } from "viem";
 import type { Address } from "../../types/domain";
-import type {
-  CommitmentCreationPayload,
-  CommitmentJobKind,
-  CommitmentJobPayloadMap,
-  CommitmentSeriesJobPayload,
-  WorkLinkJobPayload,
+import type { Job } from "../../types/job-queue";
+import {
+  COMMITMENT_JOB_KINDS,
+  type CommitmentJob,
+  type CommitmentCreationPayload,
+  type CommitmentJobKind,
+  type CommitmentJobPayloadMap,
+  type CommitmentSeriesJobPayload,
+  type WorkLinkJobPayload,
 } from "./job-types";
+
+export function commitmentJobIdentity(kind: string, payload: unknown): string | null {
+  if (!payload || typeof payload !== "object") return null;
+  const value = payload as Record<string, unknown>;
+  switch (kind) {
+    case "commitmentSeries":
+      return typeof value.clientSeriesId === "string" ? `${kind}:${value.clientSeriesId}` : null;
+    case "commitment":
+      return typeof value.clientCommitmentId === "string"
+        ? `${kind}:${value.clientCommitmentId}`
+        : null;
+    case "workLink":
+      return typeof value.operationKey === "string" ? `${kind}:${value.operationKey}` : null;
+    case "claim":
+      return `${kind}:${String(value.commitmentId)}:${String(value.kind)}:${String(value.gardenContext).toLowerCase()}`;
+    case "evidence":
+      return `${kind}:${String(value.commitmentId)}:${
+        typeof value.clientEvidenceId === "string" ? value.clientEvidenceId : String(value.cid)
+      }`;
+    case "confirmation":
+      return `${kind}:${String(value.action)}:${String(value.commitmentId)}`;
+    default:
+      return null;
+  }
+}
+
+export function canonicalJobPayload(payload: unknown): string {
+  return JSON.stringify(payload, (_key, value) =>
+    typeof value === "bigint" ? { __bigint: value.toString() } : value
+  );
+}
+
+export function toCommitmentJob(job: Job, chainId: number, moduleAddress: Address): CommitmentJob {
+  if (!COMMITMENT_JOB_KINDS.includes(job.kind as CommitmentJobKind)) {
+    throw new Error(`Unsupported commitment job kind: ${job.kind}`);
+  }
+  return {
+    id: job.id,
+    kind: job.kind as CommitmentJobKind,
+    payload: job.payload as CommitmentJobPayloadMap[CommitmentJobKind],
+    chainId,
+    moduleAddress,
+    userAddress: job.userAddress,
+    ...(typeof job.meta?.submittedTxHash === "string"
+      ? { submittedTxHash: job.meta.submittedTxHash as Hex }
+      : {}),
+  };
+}
 
 function identityKey(input: {
   domain: string;

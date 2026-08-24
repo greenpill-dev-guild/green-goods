@@ -31,30 +31,31 @@ const READY_ADDRESSES = {
   strategyHypercertFractionOffer: "0xecab24cade0261fc6513ca13bb3d10f760af3da8",
 } as const;
 
-vi.mock("@green-goods/shared", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@green-goods/shared")>();
-  return {
-    ...actual,
-    DEFAULT_CHAIN_ID: 42161,
-    Alert: ({
-      variant,
-      title,
-      children,
-    }: {
-      variant: string;
-      title?: string;
-      children: ReactNode;
-    }) =>
-      createElement(
-        "div",
-        { role: variant === "error" ? "alert" : "status", "data-variant": variant },
-        title ? createElement("p", null, title) : null,
-        children
-      ),
-    useMarketplaceApprovals: (...args: unknown[]) => mockUseMarketplaceApprovals(...args),
-    getMarketplaceReadiness: (...args: unknown[]) => mockGetMarketplaceReadiness(...args),
-  };
-});
+vi.mock("@green-goods/shared/components/Alert", () => ({
+  Alert: ({ variant, title, children }: { variant: string; title?: string; children: ReactNode }) =>
+    createElement(
+      "div",
+      { role: variant === "error" ? "alert" : "status", "data-variant": variant },
+      title ? createElement("p", null, title) : null,
+      children
+    ),
+}));
+
+vi.mock("@green-goods/shared/config/blockchain", () => ({
+  DEFAULT_CHAIN_ID: 42161,
+}));
+
+vi.mock("@green-goods/shared/config/default-chain", () => ({
+  DEFAULT_CHAIN_ID: 42161,
+}));
+
+vi.mock("@green-goods/shared/hooks/hypercerts/useMarketplaceApprovals", () => ({
+  useMarketplaceApprovals: (...args: unknown[]) => mockUseMarketplaceApprovals(...args),
+}));
+
+vi.mock("@green-goods/shared/utils/blockchain/contracts", () => ({
+  getMarketplaceReadiness: (...args: unknown[]) => mockGetMarketplaceReadiness(...args),
+}));
 
 import { MarketplaceApprovalGate } from "../../../components/Hypercerts/MarketplaceApprovalGate";
 

@@ -1,12 +1,12 @@
+import { useGardenYieldWiringState } from "@green-goods/shared/hooks/yield/useGardenYieldWiringState";
+import type { Address } from "@green-goods/shared/types/domain";
 import {
-  type Address,
   DEFAULT_SPLIT_CONFIG,
-  formatDate,
-  formatTokenAmount,
   MIN_YIELD_THRESHOLD_USD,
-  useGardenYieldWiringState,
   type YieldAllocation,
-} from "@green-goods/shared";
+} from "@green-goods/shared/types/gardens-community";
+import { formatTokenAmount } from "@green-goods/shared/utils/blockchain/vaults";
+import { formatDate } from "@green-goods/shared/utils/time";
 import { RiAlertLine, RiPieChart2Line, RiQuestionLine } from "@remixicon/react";
 import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";

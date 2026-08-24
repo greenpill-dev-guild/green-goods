@@ -42,6 +42,7 @@ import {
   FAILED_DELETE_ALERT_THRESHOLD,
   JobMaintenance,
 } from "../../modules/job-queue/job-maintenance";
+import { createFakeJobQueueAnalytics } from "../test-utils/job-queue-fakes";
 
 const sensitiveJobId = "job-sensitive-id";
 const sensitiveDraftId = "draft-sensitive-id";
@@ -147,14 +148,22 @@ describe("job queue telemetry privacy across storage and maintenance", () => {
       loadFailedDeleteIds: vi.fn(async () => [sensitiveJobId]),
       saveFailedDeleteIds: vi.fn(async () => undefined),
     };
+    const analytics = createFakeJobQueueAnalytics();
+    analytics.privateEvent = (event, properties) =>
+      telemetryMocks.track(event, properties, { includeSessionId: false });
+    const maintenanceLogger = { debug: vi.fn(), warn: vi.fn() };
     const thresholdMaintenance = new JobMaintenance(
-      maintenanceDB as unknown as ConstructorParameters<typeof JobMaintenance>[0]
+      maintenanceDB as unknown as ConstructorParameters<typeof JobMaintenance>[0],
+      analytics,
+      maintenanceLogger
     );
     thresholdMaintenance.failedDeleteCount = FAILED_DELETE_ALERT_THRESHOLD - 1;
     await thresholdMaintenance.trackFailedDelete(sensitiveJobId);
 
     const cleanupMaintenance = new JobMaintenance(
-      maintenanceDB as unknown as ConstructorParameters<typeof JobMaintenance>[0]
+      maintenanceDB as unknown as ConstructorParameters<typeof JobMaintenance>[0],
+      analytics,
+      maintenanceLogger
     );
     await cleanupMaintenance.cleanupOrphanedSyncedJobs();
 

@@ -1,12 +1,10 @@
-import {
-  Alert,
-  EmptyState,
-  EmptyStateShell,
-  type HubActionSummary,
-  type Work,
-  hoursSince,
-  useEnsName,
-} from "@green-goods/shared";
+import { Alert } from "@green-goods/shared/components/Alert";
+import { EmptyStateShell } from "@green-goods/shared/components/Canvas/EmptyStateShell";
+import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
+import type { HubActionSummary } from "@green-goods/shared/hooks/admin-ui/hub/hub.workbenchModel";
+import { useEnsName } from "@green-goods/shared/hooks/blockchain/useEnsName";
+import type { Work } from "@green-goods/shared/types/domain";
+import { hoursSince } from "@green-goods/shared/utils/garden-detail";
 import { RiCheckboxCircleLine, RiSearchLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { formatEnsAddressName } from "@/components/EnsAddressText";

@@ -1,11 +1,11 @@
+import { buildCommandPaletteResults } from "@green-goods/shared/hooks/admin-ui/layout/commandPalette.results";
+import { groupCommandPaletteResults } from "@green-goods/shared/hooks/admin-ui/layout/useCommandPaletteData";
 import {
-  buildCommandPaletteResults,
-  Domain,
-  groupCommandPaletteResults,
   type Action,
+  Domain,
   type Garden,
   type GardenAssessment,
-} from "@green-goods/shared";
+} from "@green-goods/shared/types/domain";
 import type { IntlShape } from "react-intl";
 import { describe, expect, it } from "vitest";
 

@@ -5,7 +5,9 @@
  * Covers mode selection, allowlist editing, validation, and accessibility.
  */
 
-import type { Address, AllowlistEntry, DistributionMode } from "@green-goods/shared";
+import type { DistributionMode } from "@green-goods/shared/lib/hypercerts/distribution";
+import type { Address } from "@green-goods/shared/types/domain";
+import type { AllowlistEntry } from "@green-goods/shared/types/hypercerts";
 import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createElement } from "react";
@@ -17,38 +19,43 @@ const { mockUseEnsName } = vi.hoisted(() => ({
 }));
 
 // Mock dependencies — use importOriginal to preserve `cn` and other utilities
-vi.mock("@green-goods/shared", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@green-goods/shared")>();
-  return {
-    ...actual,
-    TOTAL_UNITS: 100000000n,
-    copyToClipboard: vi.fn().mockResolvedValue(true),
-    useEnsName: (address: Address | null | undefined) => mockUseEnsName(address),
-    // Mock FormInput for address editing
-    // Workaround for vitest hoisting: vi.mock calls are hoisted above imports,
-    // so top-level `import React from 'react'` isn't available in the mock factory.
-    FormInput: ({
-      value,
+vi.mock("@green-goods/shared/components/Form/FormInput", () => ({
+  // Mock FormInput for address editing
+  // Workaround for vitest hoisting: vi.mock calls are hoisted above imports,
+  // so top-level `import React from 'react'` isn't available in the mock factory.
+  FormInput: ({
+    value,
+    onChange,
+    placeholder,
+    ...props
+  }: {
+    value?: string;
+    onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
+    placeholder?: string;
+    [key: string]: unknown;
+  }) => {
+    const React = require("react");
+    return React.createElement("input", {
+      type: "text",
+      value: value ?? "",
       onChange,
       placeholder,
-      ...props
-    }: {
-      value?: string;
-      onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
-      placeholder?: string;
-      [key: string]: unknown;
-    }) => {
-      const React = require("react");
-      return React.createElement("input", {
-        type: "text",
-        value: value ?? "",
-        onChange,
-        placeholder,
-        "data-testid": props["data-testid"] ?? "form-input",
-      });
-    },
-  };
-});
+      "data-testid": props["data-testid"] ?? "form-input",
+    });
+  },
+}));
+
+vi.mock("@green-goods/shared/hooks/blockchain/useEnsName", () => ({
+  useEnsName: (address: Address | null | undefined) => mockUseEnsName(address),
+}));
+
+vi.mock("@green-goods/shared/lib/hypercerts/constants", () => ({
+  TOTAL_UNITS: 100000000n,
+}));
+
+vi.mock("@green-goods/shared/utils/app/clipboard", () => ({
+  copyToClipboard: vi.fn().mockResolvedValue(true),
+}));
 
 // Mock the DistributionChart component
 vi.mock("../../../components/Hypercerts/DistributionChart", () => ({

@@ -9,9 +9,9 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, renderHook } from "@testing-library/react";
 import { createElement, type ReactNode } from "react";
-import type { Abi } from "viem";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { MOCK_ADDRESSES, MOCK_TX_HASH } from "../../test-utils/mock-factories";
+import { MOCK_CONTRACT_ABI } from "../../test-utils/transaction-fakes";
 
 // ============================================
 // Mocks
@@ -67,25 +67,12 @@ import { useContractTxSender } from "../../../hooks/blockchain/useContractTxSend
 // Test helpers
 // ============================================
 
-const TEST_ABI: Abi = [
-  {
-    type: "function",
-    name: "transfer",
-    inputs: [
-      { name: "to", type: "address", internalType: "address" },
-      { name: "amount", type: "uint256", internalType: "uint256" },
-    ],
-    outputs: [{ name: "", type: "bool", internalType: "bool" }],
-    stateMutability: "nonpayable",
-  },
-];
-
 // Use a valid 20-byte hex address for ABI encoding (viem validates address args)
 const VALID_RECIPIENT = "0x1111111111111111111111111111111111111111" as const;
 
 const TEST_REQUEST = {
   address: "0x3333333333333333333333333333333333333333" as `0x${string}`,
-  abi: TEST_ABI,
+  abi: MOCK_CONTRACT_ABI,
   functionName: "transfer",
   args: [VALID_RECIPIENT, 1000n] as readonly unknown[],
 };

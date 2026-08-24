@@ -1,5 +1,5 @@
 import type { CSSProperties } from "react";
-import { cn } from "../utils";
+import { cn } from "../utils/styles/cn";
 
 export interface SkeletonTextProps {
   lines?: number;

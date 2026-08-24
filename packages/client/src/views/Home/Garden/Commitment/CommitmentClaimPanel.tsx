@@ -1,11 +1,9 @@
+import { type Address, AddressDisplay, StatusBadge } from "@green-goods/shared";
 import {
-  type Address,
-  AddressDisplay,
   type CommitmentClaimRequestRecord,
   type CommitmentReadModel,
-  StatusBadge,
   useCommitmentReason,
-} from "@green-goods/shared";
+} from "@green-goods/shared/commitment-pooling";
 import { RiArrowLeftLine, RiRefreshLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 

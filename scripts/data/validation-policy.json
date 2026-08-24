@@ -85,6 +85,20 @@
       "contains": ["/src/"]
     },
     {
+      "check": "indexer-contract-events",
+      "intents": ["ship", "merge", "readiness", "release"],
+      "exact": [
+        "packages/indexer/config.yaml",
+        "packages/indexer/schema.graphql",
+        "packages/indexer/test/helpers/local-contract-events.ts"
+      ],
+      "prefixes": [
+        "packages/contracts/abis/",
+        "packages/contracts/deployments/",
+        "packages/indexer/src/handlers/"
+      ]
+    },
+    {
       "check": "design-guardrails",
       "exact": ["DESIGN.md", "docs/DESIGN.md"],
       "prefixes": [
@@ -154,6 +168,21 @@
         "scripts/quality/",
         "scripts/harness/"
       ]
+    },
+    {
+      "check": "agent-guidance",
+      "runInQa": true,
+      "exact": [
+        "AGENTS.md",
+        "CLAUDE.md",
+        "scripts/quality/check-codex-docs.js",
+        "scripts/quality/check-guidance-links.mjs",
+        "scripts/quality/check-skill-behavior-contracts.mjs",
+        "docs/docs/builders/agentic/claude-code.mdx",
+        "docs/docs/builders/agentic/context-engineering.mdx",
+        "docs/docs/builders/agentic/spec-engineering.mdx"
+      ],
+      "prefixes": [".claude/skills/"]
     },
     {
       "check": "browser-proof",
@@ -407,6 +436,17 @@
       "capabilities": ["dependencies", "indexerCodegen"]
     },
     {
+      "id": "indexer-contract-events",
+      "command": "bun run test:contract-events",
+      "cwd": "packages/indexer",
+      "risk": "contract ABI or indexed event compatibility drifts from mined logs",
+      "expectedSignal": "real mined-log integration passes after starting the local fork with bun run dev:contracts:arbitrum-fork",
+      "freshness": "exact-inputs-and-toolchain-and-local-fork",
+      "budgetSeconds": 480,
+      "stopRule": "stop-dependent-checks",
+      "capabilities": ["dependencies", "indexerCodegen", "foundry", "docker", "arbitrumFork"]
+    },
+    {
       "id": "contracts-build",
       "command": "bun run build",
       "cwd": "packages/contracts",
@@ -462,6 +502,16 @@
       "capabilities": ["dependencies"]
     },
     {
+      "id": "staged-modules",
+      "command": "bun run check:staged-modules",
+      "risk": "deferred Card Endow code becomes live without an explicit activation decision",
+      "expectedSignal": "all staged Card Endow modules remain marked and have no live importer",
+      "freshness": "exact-inputs",
+      "budgetSeconds": 10,
+      "stopRule": "stop-dependent-checks",
+      "capabilities": []
+    },
+    {
       "id": "source-structure",
       "command": "bun run check:source-structure",
       "risk": "changed package source violates repository structure policy",
@@ -490,6 +540,16 @@
       "budgetSeconds": 20,
       "stopRule": "stop-dependent-checks",
       "capabilities": []
+    },
+    {
+      "id": "agent-guidance",
+      "command": "bun run check:codex-guidance && bun run check:skill-behavior && bun run check:guidance-links",
+      "risk": "agent skill routing, behavior contracts, or documented guidance inventory drifts",
+      "expectedSignal": "Codex guidance, skill behavior, and guidance links agree with the canonical skill tree",
+      "freshness": "exact-guidance-inputs-and-toolchain",
+      "budgetSeconds": 30,
+      "stopRule": "stop-dependent-checks",
+      "capabilities": ["dependencies"]
     },
     {
       "id": "supply-chain",

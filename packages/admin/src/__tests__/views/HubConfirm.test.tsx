@@ -2,6 +2,17 @@
  * @vitest-environment jsdom
  */
 
+import type {
+  ConfirmQueueRow,
+  HubConfirmQueueController,
+} from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
+import {
+  commitmentFixture,
+  toConfirmFixture,
+} from "@green-goods/shared/__tests__/test-utils/commitment-pooling-fixtures";
+import { hubConfirmQueueControllerFixture } from "@green-goods/shared/__tests__/test-utils/controller-fixtures";
+import type { CommitmentReadModel } from "@green-goods/shared/modules/commitment-pooling/types-core";
+
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, renderWithProviders, screen, waitFor, within } from "../test-utils";
 
@@ -10,13 +21,12 @@ const ROOT = "0xcccccccccccccccccccccccccccccccccccccccc" as const;
 const MARIA = "0x1111111111111111111111111111111111111111" as const;
 
 const mocks = vi.hoisted(() => ({
-  queue: {} as Record<string, unknown>,
+  queue: null as HubConfirmQueueController | null,
 }));
 
-vi.mock("@green-goods/shared", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@green-goods/shared")>();
-  return { ...actual, useHubConfirmQueueController: () => mocks.queue };
-});
+vi.mock("@green-goods/shared/hooks/admin-ui/pool/useHubConfirmQueueController", () => ({
+  useHubConfirmQueueController: () => mocks.queue!,
+}));
 
 vi.mock("@/views/Garden/Pool/CommitmentDialog", () => ({
   CommitmentDialogPanel: ({ commitmentId, garden }: { commitmentId: string; garden: string }) => (
@@ -49,8 +59,8 @@ vi.mock("@/components/AdminReasonDialog", () => ({
 
 const { HubConfirmQueue } = await import("@/views/Hub/components/HubConfirmQueue");
 
-function commitment(overrides: Record<string, unknown> = {}) {
-  return {
+function commitment(overrides: Partial<CommitmentReadModel> = {}): CommitmentReadModel {
+  return commitmentFixture({
     id: "42161-9",
     chainId: 42161,
     commitmentId: 9n,
@@ -75,10 +85,10 @@ function commitment(overrides: Record<string, unknown> = {}) {
     contributorsFrozen: true,
     metadataCID: "bafy-9",
     ...overrides,
-  };
+  });
 }
 
-function row(overrides: Record<string, unknown> = {}) {
+function row(overrides: Partial<ConfirmQueueRow> = {}): ConfirmQueueRow {
   return {
     commitment: commitment(),
     garden: GARDEN_A,
@@ -89,35 +99,29 @@ function row(overrides: Record<string, unknown> = {}) {
   };
 }
 
-function queue(overrides: Record<string, unknown> = {}) {
-  return {
+function queue(overrides: Partial<HubConfirmQueueController> = {}): HubConfirmQueueController {
+  return hubConfirmQueueControllerFixture({
     rows: [],
-    isOnline: true,
-    isLoading: false,
-    isError: false,
-    isConfirming: false,
-    isDisputing: false,
     acts: {
       confirm: vi.fn().mockResolvedValue("job"),
       notYet: vi.fn().mockResolvedValue("0x1"),
     },
     ...overrides,
-  };
+  });
 }
 
 const refetchToConfirm = vi.fn();
-const toConfirm = {
+const toConfirm = toConfirmFixture({
   groups: [],
   fallback: [],
   disputed: [],
   count: 0,
   isSteward: true,
   isProtocolSteward: false,
-  availability: { status: "available" },
   isLoading: false,
   isError: false,
   refetch: refetchToConfirm,
-} as never;
+});
 
 function renderQueue(props: Partial<Parameters<typeof HubConfirmQueue>[0]> = {}) {
   const onOpen = vi.fn();
@@ -168,7 +172,7 @@ describe("HubConfirmQueue (W13)", () => {
     expect(within(item).getByText(/1 of 2 confirmed/i)).toBeInTheDocument();
     expect(within(item).getByText(/^ordinary$/i)).toBeInTheDocument();
     fireEvent.click(within(item).getByRole("button", { name: /^confirm$/i }));
-    const acts = mocks.queue.acts as { confirm: ReturnType<typeof vi.fn> };
+    const acts = mocks.queue!.acts;
     await waitFor(() =>
       expect(acts.confirm).toHaveBeenCalledWith(expect.objectContaining({ garden: GARDEN_A }))
     );
@@ -216,7 +220,7 @@ describe("HubConfirmQueue (W13)", () => {
         name: /raise dispute/i,
       })
     );
-    const acts = mocks.queue.acts as { notYet: ReturnType<typeof vi.fn> };
+    const acts = mocks.queue!.acts;
     await waitFor(() =>
       expect(acts.notYet).toHaveBeenCalledWith(
         expect.objectContaining({ garden: GARDEN_A }),

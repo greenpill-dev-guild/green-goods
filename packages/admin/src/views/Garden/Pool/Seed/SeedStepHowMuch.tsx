@@ -1,4 +1,5 @@
-import type { Action, CommitmentComposerValues } from "@green-goods/shared";
+import type { Action } from "@green-goods/shared/types/domain";
+import type { CommitmentComposerValues } from "@green-goods/shared/hooks/commitment-pooling/useCommitmentComposerForm";
 import { RiAddLine, RiCloseLine } from "@remixicon/react";
 import { Controller, type UseFieldArrayReturn, type UseFormReturn } from "react-hook-form";
 import { useIntl } from "react-intl";
@@ -107,6 +108,7 @@ export function SeedStepHowMuch({
             options={[
               {
                 value: "open",
+                disabled: busy,
                 label: formatMessage({
                   id: "cockpit.garden.pool.seed.team.open",
                   defaultMessage: "Open team",
@@ -118,6 +120,7 @@ export function SeedStepHowMuch({
               },
               {
                 value: "lead",
+                disabled: busy,
                 label: formatMessage({
                   id: "cockpit.garden.pool.seed.team.lead",
                   defaultMessage: "Lead-managed team",

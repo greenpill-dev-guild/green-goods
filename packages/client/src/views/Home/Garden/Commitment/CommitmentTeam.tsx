@@ -1,12 +1,10 @@
+import { type Action, type Address, AddressDisplay } from "@green-goods/shared";
 import {
-  type Action,
-  type Address,
-  AddressDisplay,
   type CommitmentContributorRecord,
   type CommitmentReadModel,
   type CommitmentRequirementRecord,
   type CommitmentSeat,
-} from "@green-goods/shared";
+} from "@green-goods/shared/commitment-pooling";
 import { RiGroupLine, RiLockLine, RiUserAddLine, RiWifiOffLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 

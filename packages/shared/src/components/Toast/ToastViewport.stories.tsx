@@ -6,7 +6,7 @@ import { toastService } from "./toast.service";
 const meta: Meta<typeof ToastViewport> = {
   title: "Shared/Feedback/ToastViewport",
   component: ToastViewport,
-  tags: ["autodocs"],
+  tags: ["autodocs", "storybook-ci"],
   argTypes: {
     position: {
       control: "select",

@@ -15,14 +15,17 @@
 import { useQueries } from "@tanstack/react-query";
 import { useMemo } from "react";
 
-import { queryKeys } from "../../config/query-keys";
-import { demoDocumentFor } from "../../modules/commitment-pooling/demo/demo-gate";
+import { commitmentPoolingKeys } from "../../config/query-keys/commitment-pooling";
+import {
+  commitmentDocumentStore,
+  type CommitmentDocumentStore,
+} from "../../modules/commitment-pooling/document-store";
 import {
   type CommitmentEvidenceDocumentV1,
   parseCommitmentEvidenceDocument,
 } from "../../modules/commitment-pooling/evidence";
 import { isResolvableMetadataCID } from "../../modules/commitment-pooling/metadata";
-import { getJsonByHash, resolveIPFSUrl } from "../../modules/data/ipfs/resolve";
+import { resolveIPFSUrl } from "../../modules/data/ipfs/resolve";
 import type { Address } from "../../types/domain";
 
 /** Content at a CID is the same bytes forever. */
@@ -53,7 +56,10 @@ function address(value: unknown): Address | null {
   return typeof value === "string" && value.startsWith("0x") ? (value as Address) : null;
 }
 
-export function useCommitmentEvidence(attributions: readonly EvidenceAttributionRow[] = []): {
+export function useCommitmentEvidence(
+  attributions: readonly EvidenceAttributionRow[] = [],
+  { documents = commitmentDocumentStore }: { documents?: CommitmentDocumentStore } = {}
+): {
   evidence: ResolvedEvidence[];
   isLoading: boolean;
 } {
@@ -73,11 +79,8 @@ export function useCommitmentEvidence(attributions: readonly EvidenceAttribution
 
   const results = useQueries({
     queries: rows.map((row) => ({
-      queryKey: queryKeys.commitmentPooling.evidence(row.cid),
-      queryFn: async () =>
-        parseCommitmentEvidenceDocument(
-          (await demoDocumentFor(row.cid)) ?? (await getJsonByHash(row.cid))
-        ),
+      queryKey: commitmentPoolingKeys.evidence(row.cid),
+      queryFn: async () => parseCommitmentEvidenceDocument(await documents.readJson(row.cid)),
       staleTime: IMMUTABLE,
       gcTime: IMMUTABLE,
       retry: 1,

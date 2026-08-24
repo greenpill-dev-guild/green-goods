@@ -1,12 +1,10 @@
+import { DEFAULT_CHAIN_ID, useGardens, usePrimaryAddress } from "@green-goods/shared";
 import {
-  DEFAULT_CHAIN_ID,
   useCommitmentPools,
   useCommitmentSeries,
   useCommitmentsInbox,
   useCommitmentsToConfirm,
-  useGardens,
-  usePrimaryAddress,
-} from "@green-goods/shared";
+} from "@green-goods/shared/commitment-pooling";
 import { RiArchiveLine, RiPulseLine, RiShieldCheckLine } from "@remixicon/react";
 import React, { useCallback, useState } from "react";
 import { useIntl } from "react-intl";

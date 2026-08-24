@@ -1,4 +1,7 @@
-import { Alert, DEFAULT_CHAIN_ID, getNetworkConfig, useTradeHistory } from "@green-goods/shared";
+import { Alert } from "@green-goods/shared/components/Alert";
+import { getNetworkConfig } from "@green-goods/shared/config/blockchain";
+import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
+import { useTradeHistory } from "@green-goods/shared/hooks/hypercerts/useTradeHistory";
 import { RiExternalLinkLine, RiHistoryLine, RiLoader4Line } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { formatEther } from "viem";

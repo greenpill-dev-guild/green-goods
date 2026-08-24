@@ -6,6 +6,7 @@
 #   2. Ungoverned or expired test skips
 #   3. Type-safety bypasses: @ts-nocheck in test files
 #   4. Newly added or renamed Solidity tests use the canonical naming format
+#   5. Direct-tested seams import their subject and never mock that subject
 
 set -euo pipefail
 
@@ -146,6 +147,18 @@ if [ "$SOLIDITY_NAME_STATUS" -eq 1 ]; then
 elif [ "$SOLIDITY_NAME_STATUS" -ne 0 ]; then
   echo "ERROR: Solidity test-name checker could not run (exit $SOLIDITY_NAME_STATUS)."
   exit "$SOLIDITY_NAME_STATUS"
+fi
+echo ""
+
+# ── Check 5: Direct-tested seam integrity ───────────────────────
+echo "--- Check 5: Direct-tested seam integrity ---"
+DIRECT_SEAM_STATUS=0
+node "$REPO_ROOT/scripts/quality/check-direct-tested-seams.mjs" || DIRECT_SEAM_STATUS=$?
+if [ "$DIRECT_SEAM_STATUS" -eq 1 ]; then
+  VIOLATIONS=$((VIOLATIONS + 1))
+elif [ "$DIRECT_SEAM_STATUS" -ne 0 ]; then
+  echo "ERROR: Direct-tested seam checker could not run (exit $DIRECT_SEAM_STATUS)."
+  exit "$DIRECT_SEAM_STATUS"
 fi
 echo ""
 

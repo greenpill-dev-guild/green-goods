@@ -1,12 +1,10 @@
-import {
-  Alert,
-  cn,
-  EmptyState,
-  EmptyStateShell,
-  formatDateTime,
-  type ActivityEvent,
-} from "@green-goods/shared";
-import { useLocalizedRelativeTime } from "@green-goods/shared/hooks";
+import { Alert } from "@green-goods/shared/components/Alert";
+import { EmptyStateShell } from "@green-goods/shared/components/Canvas/EmptyStateShell";
+import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
+import type { ActivityEvent } from "@green-goods/shared/hooks/admin-ui/hub/hub.utils";
+import { cn } from "@green-goods/shared/utils/styles/cn";
+import { formatDateTime } from "@green-goods/shared/utils/time";
+import { useLocalizedRelativeTime } from "@green-goods/shared/hooks/app/useLocalizedRelativeTime";
 import {
   RiArrowRightLine,
   RiCheckboxCircleLine,

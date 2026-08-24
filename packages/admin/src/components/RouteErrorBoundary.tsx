@@ -1,4 +1,5 @@
-import { logger, trackErrorBoundary } from "@green-goods/shared";
+import { trackErrorBoundary } from "@green-goods/shared/modules/app/error-events";
+import { logger } from "@green-goods/shared/modules/app/logger";
 import { AdminButton } from "@/components/AdminButton";
 import { RiAlertLine, RiArrowLeftLine, RiRefreshLine, RiWifiOffLine } from "@remixicon/react";
 import { type ReactNode, useEffect } from "react";

@@ -1,10 +1,10 @@
+import type { ConfirmQueueEligibility } from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
+import type { CycleMetadataNameResolution } from "@green-goods/shared/modules/commitment-pooling/cycle-metadata";
+import type { PoolConsoleStatus } from "@green-goods/shared/modules/commitment-pooling/pool-console";
 import type {
   CommitmentCycleRecord,
   CommitmentReadModel,
-  ConfirmQueueEligibility,
-  CycleMetadataNameResolution,
-  PoolConsoleStatus,
-} from "@green-goods/shared";
+} from "@green-goods/shared/modules/commitment-pooling/types-core";
 
 type FormatMessage = (
   descriptor: { id: string; defaultMessage: string },

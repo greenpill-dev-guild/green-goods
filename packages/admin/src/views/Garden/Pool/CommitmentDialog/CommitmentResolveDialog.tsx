@@ -1,4 +1,7 @@
-import type { CommitmentDialogController, DisputeResolutionKey } from "@green-goods/shared";
+import type {
+  CommitmentDialogController,
+  DisputeResolutionKey,
+} from "@green-goods/shared/hooks/admin-ui/pool/controller.types";
 import { useIntl } from "react-intl";
 import { AdminChoiceGroup } from "@/components/AdminChoiceGroup";
 import { AdminReasonDialog } from "@/components/AdminReasonDialog";

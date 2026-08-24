@@ -1,4 +1,6 @@
-import { Alert, Card, adminRoutes } from "@green-goods/shared";
+import { Alert } from "@green-goods/shared/components/Alert";
+import { Card } from "@green-goods/shared/components/Cards/CardBase";
+import { adminRoutes } from "@green-goods/shared/utils/navigation/admin-routes";
 import { RiArrowRightSLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";

@@ -1,22 +1,21 @@
+import { AudioRecorder } from "@green-goods/shared/components/Audio/AudioRecorder";
+import { ErrorBoundary } from "@green-goods/shared/components/ErrorBoundary/ErrorBoundary";
+import { ConfidenceSelector } from "@green-goods/shared/components/Form/ConfidenceSelector";
+import { Textarea } from "@green-goods/shared/components/Form/ControlPrimitives";
+import { toastService } from "@green-goods/shared/components/Toast/toast.service";
+import { usePrimaryAddress } from "@green-goods/shared/hooks/auth/usePrimaryAddress";
+import { useEnsName } from "@green-goods/shared/hooks/blockchain/useEnsName";
+import { useWorkApproval } from "@green-goods/shared/hooks/work/useWorkApproval";
+import { logger } from "@green-goods/shared/modules/app/logger";
+import { uploadFileToIPFS, uploadJSONToIPFS } from "@green-goods/shared/modules/data/ipfs/upload";
 import {
-  AudioRecorder,
-  compareAddresses,
   Confidence,
-  ConfidenceSelector,
-  ErrorBoundary,
-  logger,
-  parseAndFormatError,
-  Textarea,
-  toastService,
-  uploadFileToIPFS,
-  uploadJSONToIPFS,
-  useEnsName,
-  usePrimaryAddress,
-  useWorkApproval,
   VerificationMethod,
   type Work,
   type WorkApprovalDraft,
-} from "@green-goods/shared";
+} from "@green-goods/shared/types/domain";
+import { compareAddresses } from "@green-goods/shared/utils/blockchain/address";
+import { parseAndFormatError } from "@green-goods/shared/utils/errors/contract-errors";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useState } from "react";
 import { Controller, useForm } from "react-hook-form";

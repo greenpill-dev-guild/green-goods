@@ -1,4 +1,5 @@
-import { createActionResolver, type CreateActionFormData } from "@green-goods/shared";
+import type { CreateActionFormData } from "@green-goods/shared/hooks/action/useActionForm";
+import { createActionResolver } from "@green-goods/shared/hooks/admin-ui/actions/createAction.utils";
 import type { Meta, StoryObj } from "@storybook/react";
 import { useForm } from "react-hook-form";
 import { InstructionsStep } from "./InstructionsStep";

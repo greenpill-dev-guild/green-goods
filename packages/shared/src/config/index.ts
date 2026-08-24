@@ -23,7 +23,6 @@ export type {
   NetworkConfig,
 } from "./blockchain";
 export {
-  DEFAULT_CHAIN_ID,
   getDefaultChain,
   getEASConfig,
   getEasGraphqlUrl,
@@ -31,6 +30,7 @@ export {
   getNetworkConfig,
   isGreenWillDeployed,
 } from "./blockchain";
+export { DEFAULT_CHAIN_ID, resolveDefaultChainId } from "./default-chain";
 export type { SupportedChainId } from "./chains";
 // From chains.ts
 export {

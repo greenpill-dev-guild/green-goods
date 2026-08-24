@@ -45,7 +45,7 @@ interface Garden { tokenAddress: Address; operators: Address[]; }
 
 ## Rule 11: Public Export Enforcement
 
-Import only from public paths declared in `packages/shared/package.json#exports`. Prefer the narrowest declared subpath when it avoids pulling unrelated runtime code. Internal code within `packages/shared/src/` uses relative imports.
+Declared subpaths in `packages/shared/package.json#exports` are public API; deep `src/**` paths are not. Prefer the narrowest declared public subpath when it avoids unrelated runtime coupling. Internal code within `packages/shared/src/` uses relative imports.
 
 ```typescript
 // Bad: undeclared source-internal path

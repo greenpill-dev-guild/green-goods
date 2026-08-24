@@ -1,0 +1,20 @@
+{
+  "requiredTables": ["CommitmentPool"],
+  "metadata": {
+    "metadata": {
+      "sources": [
+        {
+          "name": "default",
+          "tables": [
+            {
+              "table": { "schema": "public", "name": "CommitmentPool" },
+              "select_permissions": [
+                { "role": "public", "permission": { "columns": "*", "filter": {} } }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

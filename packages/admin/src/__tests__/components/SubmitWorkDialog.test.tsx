@@ -14,16 +14,12 @@ import { IntlProvider } from "react-intl";
 import type { ComponentProps } from "react";
 import { RouterProvider, createMemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import {
-  AuthContext,
-  DEFAULT_CHAIN_ID,
-  Domain,
-  queryKeys,
-  useAdminStore,
-  type Action,
-  type Garden,
-} from "@green-goods/shared";
-import { createTestQueryClient } from "@green-goods/shared/testing";
+import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
+import { queryKeys } from "@green-goods/shared/config/query-keys/registry";
+import { AuthContext } from "@green-goods/shared/providers/Auth";
+import { useAdminStore } from "@green-goods/shared/stores/useAdminStore";
+import { type Action, Domain, type Garden } from "@green-goods/shared/types/domain";
+import { createTestQueryClient } from "@green-goods/shared/__tests__/test-utils/query-client";
 import SubmitWork from "@/views/Garden/SubmitWork";
 
 const OPERATOR = "0x9999999999999999999999999999999999999999";
@@ -141,8 +137,13 @@ vi.mock("wagmi", () => ({
 // SubmitWorkPanel resolves its auth snapshot through the auth state machine
 // (useAuthState/useUser), which needs the full AuthProvider tree — stub just
 // those two reads; everything else stays real.
-vi.mock("@green-goods/shared", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@green-goods/shared")>();
+vi.mock("@green-goods/shared/hooks/auth/useUser", () => ({
+  useUser: () => ({ primaryAddress: OPERATOR }),
+}));
+
+vi.mock("@green-goods/shared/hooks/blockchain/useBaseLists", async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import("@green-goods/shared/hooks/blockchain/useBaseLists")>();
   const React = await import("react");
   const useOverrideSnapshot = (key: "gardens" | "actions") =>
     React.useSyncExternalStore(
@@ -150,11 +151,8 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
       () => dataHookOverride.state[key],
       () => dataHookOverride.state[key]
     );
-
   return {
     ...actual,
-    useAuthState: () => ({ isAuthenticated: true, authMode: "wallet" }),
-    useUser: () => ({ primaryAddress: OPERATOR }),
     useGardens: ((...args) => {
       const override = useOverrideSnapshot("gardens");
       return override ? override : actual.useGardens(...args);
@@ -163,10 +161,26 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
       const override = useOverrideSnapshot("actions");
       return override ? override : actual.useActions(...args);
     }) as typeof actual.useActions,
+  };
+});
+
+vi.mock("@green-goods/shared/hooks/work/useWorkMutation", async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import("@green-goods/shared/hooks/work/useWorkMutation")>();
+  return {
+    ...actual,
     useWorkMutation: ((options) =>
       workMutationOverride.current
         ? workMutationOverride.current()
         : actual.useWorkMutation(options)) as typeof actual.useWorkMutation,
+  };
+});
+
+vi.mock("@green-goods/shared/providers/Auth", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@green-goods/shared/providers/Auth")>();
+  return {
+    ...actual,
+    useAuthState: () => ({ isAuthenticated: true, authMode: "wallet" }),
   };
 });
 

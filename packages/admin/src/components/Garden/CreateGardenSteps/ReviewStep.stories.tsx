@@ -1,4 +1,5 @@
-import { Domain, useCreateGardenStore } from "@green-goods/shared";
+import { useCreateGardenStore } from "@green-goods/shared/stores/useCreateGardenStore";
+import { Domain } from "@green-goods/shared/types/domain";
 import type { Meta, StoryObj } from "@storybook/react";
 import { useEffect } from "react";
 import { FIXTURE_IMAGE_BANNER } from "../../../../../shared/.storybook/fixtures";

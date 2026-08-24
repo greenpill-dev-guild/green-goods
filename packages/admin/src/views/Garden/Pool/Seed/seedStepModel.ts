@@ -1,9 +1,9 @@
 import {
   COMMITMENT_COMPOSER_ERROR_IDS,
   type CommitmentComposerValues,
-  type CommitmentCycleRecord,
-  type CycleMetadataNameResolution,
-} from "@green-goods/shared";
+} from "@green-goods/shared/hooks/commitment-pooling/useCommitmentComposerForm";
+import type { CycleMetadataNameResolution } from "@green-goods/shared/modules/commitment-pooling/cycle-metadata";
+import type { CommitmentCycleRecord } from "@green-goods/shared/modules/commitment-pooling/types-core";
 import type { ActionFlowStep } from "@/components/Layout/ActionFlowStepper";
 import { cycleName } from "../poolPresentation";
 

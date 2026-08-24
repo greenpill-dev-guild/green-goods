@@ -15,8 +15,10 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { draftDB } from "../../modules/job-queue/draft-db";
-import { mediaResourceManager } from "../../modules/job-queue/media-resource-manager";
+import {
+  type ProofDraftRepository,
+  proofDraftRepository,
+} from "../../modules/commitment-pooling/proof-draft-repository";
 import {
   type CommitmentProofDraft,
   commitmentProofDraftKey,
@@ -47,7 +49,9 @@ export function useCommitmentProofDraft(input: {
   chainId: number;
   viewer: Address | null | undefined;
   commitmentId: bigint | null;
+  repository?: ProofDraftRepository;
 }): CommitmentProofDraftHandle {
+  const repository = input.repository ?? proofDraftRepository;
   const key =
     input.viewer && input.commitmentId !== null
       ? commitmentProofDraftKey({
@@ -69,9 +73,8 @@ export function useCommitmentProofDraft(input: {
     if (!key || restoredFor.current === key) return;
     restoredFor.current = key;
     let cancelled = false;
-    void draftDB.getImagesForDraft(key).then((images) => {
+    void repository.load(key).then((files) => {
       if (cancelled) return;
-      const files = images.map((image) => image.file);
       setSavedFiles({
         media: files.filter((file) => !file.type.startsWith("audio/")),
         audioNotes: files.filter((file) => file.type.startsWith("audio/")),
@@ -81,7 +84,7 @@ export function useCommitmentProofDraft(input: {
     return () => {
       cancelled = true;
     };
-  }, [key]);
+  }, [key, repository]);
 
   const saveWords = useCallback(
     (draft: Omit<CommitmentProofDraft, "updatedAt">) => {
@@ -93,17 +96,16 @@ export function useCommitmentProofDraft(input: {
   const saveFiles = useCallback(
     async (files: ProofDraftFiles) => {
       if (!key) return;
-      await draftDB.setImagesForDraft(key, [...files.media, ...files.audioNotes]);
+      await repository.save(key, [...files.media, ...files.audioNotes]);
     },
-    [key]
+    [key, repository]
   );
 
   const clear = useCallback(async () => {
     if (!key) return;
     clearDraft(key);
-    await draftDB.setImagesForDraft(key, []);
-    mediaResourceManager.cleanupUrls(key);
-  }, [key, clearDraft]);
+    await repository.clear(key);
+  }, [key, clearDraft, repository]);
 
   return { key, saved, savedFiles, isRestored, saveWords, saveFiles, clear };
 }

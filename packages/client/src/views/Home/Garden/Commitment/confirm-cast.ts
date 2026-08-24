@@ -1,4 +1,7 @@
-import { type CommitmentReadModel, isCapturedCommitment } from "@green-goods/shared";
+import {
+  type CommitmentReadModel,
+  isCapturedCommitment,
+} from "@green-goods/shared/commitment-pooling";
 
 export type ConfirmCast = "offer" | "support" | "request" | "request-work" | "captured";
 

@@ -1,9 +1,8 @@
+import { AddressDisplay, type Address } from "@green-goods/shared";
 import {
-  AddressDisplay,
-  type Address,
   type CommitmentClaimRequestRecord,
   MAX_REASON,
-} from "@green-goods/shared";
+} from "@green-goods/shared/commitment-pooling";
 import { useState } from "react";
 import { useIntl } from "react-intl";
 

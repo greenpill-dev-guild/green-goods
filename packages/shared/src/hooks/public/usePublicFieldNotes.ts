@@ -29,9 +29,9 @@
 
 import { useQuery } from "@tanstack/react-query";
 
-import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
+import { DEFAULT_CHAIN_ID } from "../../config/default-chain";
 import { isGardenPubliclyVisible } from "../../config/garden-visibility";
-import { queryKeys } from "../../config/query-keys";
+import { publicKeys } from "../../config/query-keys/public";
 import { STALE_TIME_RARE } from "../../config/query-keys/constants";
 import { getWorks } from "../../modules/data/eas";
 import { getGardens } from "../../modules/data/greengoods";
@@ -83,7 +83,7 @@ export function usePublicFieldNotes(opts: UsePublicFieldNotesOptions = {}) {
   const volume = opts.volume;
 
   return useQuery({
-    queryKey: queryKeys.public.fieldNotes(chainId, {
+    queryKey: publicKeys.fieldNotes(chainId, {
       gardenAddress: gardenAddress?.toLowerCase(),
       volume,
       limit,

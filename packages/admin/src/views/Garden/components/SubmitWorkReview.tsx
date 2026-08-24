@@ -4,7 +4,7 @@
 // from the react-hook-form snapshot; media previews use object URLs revoked on
 // unmount. Each section header carries an Edit control that jumps back to its
 // step so a value can be corrected without walking the flow again.
-import type { Action } from "@green-goods/shared";
+import type { Action } from "@green-goods/shared/types/domain";
 import { AdminCard } from "@/components/AdminCard";
 import { type ReactNode, useEffect, useMemo } from "react";
 import { useIntl } from "react-intl";

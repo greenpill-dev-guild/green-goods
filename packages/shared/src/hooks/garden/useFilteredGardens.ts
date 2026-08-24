@@ -1,5 +1,5 @@
-import type { Garden } from "../../types";
-import { gardenHasMember } from "../../utils";
+import type { Garden } from "../../types/domain";
+import { gardenHasMember } from "../../utils/app/garden";
 
 export type GardenFilterScope = "all" | "mine";
 export type GardenSortOrder = "default" | "name" | "recent";

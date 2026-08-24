@@ -1,20 +1,19 @@
+import { useViewActions } from "../../../components/Canvas/useViewActions";
+import type { ViewAction } from "../../../components/Canvas/viewActions.types";
+import { DEFAULT_CHAIN_ID } from "../../../config/default-chain";
+import { ALL_GARDENS_KEY, useGardenStateStore } from "../../../stores/useGardenStateStore";
+import { Domain } from "../../../types/domain";
+import { adminRoutes } from "../../../utils/navigation/admin-routes";
 import {
   type ActionFiltersState,
   type ActionSortOrder,
-  ALL_GARDENS_KEY,
-  adminRoutes,
-  DEFAULT_CHAIN_ID,
-  Domain,
-  useActions,
   useFilteredActions,
-  useGardenStateStore,
-  useMediaQuery,
-  useRole,
-  useSheetOrchestrator,
-  useUrlFilters,
-  useViewActions,
-  type ViewAction,
-} from "@green-goods/shared";
+} from "../../action/useFilteredActions";
+import { useUrlFilters } from "../../app/useUrlFilters";
+import { useActions } from "../../blockchain/useBaseLists";
+import { useRole, type UserRole } from "../../gardener/useRole";
+import { useSheetOrchestrator } from "../../navigation/useSheetOrchestrator";
+import { useMediaQuery } from "../../ui/useMediaQuery";
 import { RiAddLine } from "@remixicon/react";
 import { useCallback, useEffect, useMemo } from "react";
 import { useIntl } from "react-intl";
@@ -27,7 +26,6 @@ import {
 } from "./actions.utils";
 import { isActionsRouteSheetContentId } from "../navigation/sheetRegistry";
 import { resolveActionsRouteState } from "./actions.workspaceModel";
-import type { UserRole } from "../../gardener/useRole";
 
 export function canManageActionsForRole(role: UserRole): boolean {
   return role === "deployer";

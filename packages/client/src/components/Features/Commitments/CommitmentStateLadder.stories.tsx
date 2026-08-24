@@ -1,4 +1,4 @@
-import type { CommitmentPoolingAvailability } from "@green-goods/shared";
+import type { CommitmentPoolingAvailability } from "@green-goods/shared/commitment-pooling";
 import type { Meta, StoryObj } from "@storybook/react";
 import { expect, fn, within } from "storybook/test";
 import { CommitmentStateLadder } from "./CommitmentStateLadder";

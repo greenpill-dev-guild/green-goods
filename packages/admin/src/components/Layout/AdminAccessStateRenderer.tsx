@@ -1,9 +1,7 @@
-import {
-  adminRoutes,
-  queryKeys,
-  useCurrentChain,
-  type AdminAccessState,
-} from "@green-goods/shared";
+import { queryKeys } from "@green-goods/shared/config/query-keys/registry";
+import type { AdminAccessState } from "@green-goods/shared/hooks/admin-ui/useAdminAccessState";
+import { useCurrentChain } from "@green-goods/shared/hooks/blockchain/useChainConfig";
+import { adminRoutes } from "@green-goods/shared/utils/navigation/admin-routes";
 import { AppBar, MainSheet } from "@/components/Shell";
 import { useQueryClient } from "@tanstack/react-query";
 import type { ReactNode } from "react";

@@ -1,9 +1,9 @@
-import {
-  cn,
-  useCanvasMobileChromeHidden,
-  type NavigationBarProps,
-  type ToolbarSlot,
-} from "@green-goods/shared";
+import type {
+  NavigationBarProps,
+  ToolbarSlot,
+} from "@green-goods/shared/components/Canvas/NavigationBar";
+import { useCanvasMobileChromeHidden } from "@green-goods/shared/components/Canvas/useCanvasMobileChromeHidden";
+import { cn } from "@green-goods/shared/utils/styles/cn";
 import { type CSSProperties, useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { FabButton } from "./FabButton";

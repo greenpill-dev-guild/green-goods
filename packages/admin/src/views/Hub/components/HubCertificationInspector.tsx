@@ -1,11 +1,11 @@
+import { Alert } from "@green-goods/shared/components/Alert";
+import { SheetBody } from "@green-goods/shared/components/Canvas/SheetBody";
+import { SheetFooter } from "@green-goods/shared/components/Canvas/SheetFooter";
 import {
-  Alert,
   HUB_CERTIFY_STATUS_CLASSNAME,
   HUB_META_PILL_CLASSNAME,
-  SheetBody,
-  SheetFooter,
-} from "@green-goods/shared";
-import { useLocalizedRelativeTime } from "@green-goods/shared/hooks";
+} from "@green-goods/shared/hooks/admin-ui/hub/hub.utils";
+import { useLocalizedRelativeTime } from "@green-goods/shared/hooks/app/useLocalizedRelativeTime";
 import { AdminCard } from "@/components/AdminCard";
 import { RiExternalLinkLine } from "@remixicon/react";
 import { useIntl } from "react-intl";

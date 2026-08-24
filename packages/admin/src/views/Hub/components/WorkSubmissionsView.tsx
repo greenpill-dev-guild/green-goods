@@ -1,12 +1,10 @@
-import {
-  type AdminHubRouteContext,
-  Card,
-  cn,
-  EmptyState,
-  useWorks,
-  type Work,
-} from "@green-goods/shared";
-import { useLocalizedRelativeTime } from "@green-goods/shared/hooks";
+import { Card } from "@green-goods/shared/components/Cards/CardBase";
+import { EmptyState } from "@green-goods/shared/components/ListPrimitives";
+import { useWorks } from "@green-goods/shared/hooks/work/useWorks";
+import type { Work } from "@green-goods/shared/types/domain";
+import type { AdminHubRouteContext } from "@green-goods/shared/utils/navigation/admin-routes";
+import { cn } from "@green-goods/shared/utils/styles/cn";
+import { useLocalizedRelativeTime } from "@green-goods/shared/hooks/app/useLocalizedRelativeTime";
 import {
   RiCheckboxCircleLine,
   RiCloseLine,

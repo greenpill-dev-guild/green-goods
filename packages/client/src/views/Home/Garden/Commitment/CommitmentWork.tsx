@@ -1,11 +1,9 @@
+import { type Action, StatusBadge, type Work } from "@green-goods/shared";
 import {
-  type Action,
   type CommitmentReadModel,
   type CommitmentRequirementRecord,
   type CommitmentWorkAttributionRecord,
-  StatusBadge,
-  type Work,
-} from "@green-goods/shared";
+} from "@green-goods/shared/commitment-pooling";
 import { RiLinkM } from "@remixicon/react";
 import { useIntl } from "react-intl";
 

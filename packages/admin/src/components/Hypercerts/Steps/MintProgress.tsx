@@ -1,10 +1,8 @@
-import {
-  cn,
-  DEFAULT_CHAIN_ID,
-  getNetworkConfig,
-  type MintingState,
-  useTxErrorMessages,
-} from "@green-goods/shared";
+import { getNetworkConfig } from "@green-goods/shared/config/blockchain";
+import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
+import { useTxErrorMessages } from "@green-goods/shared/hooks/utils/useTxErrorMessages";
+import type { MintingState } from "@green-goods/shared/stores/useHypercertWizardStore";
+import { cn } from "@green-goods/shared/utils/styles/cn";
 import { RiCheckLine, RiCloseLine, RiLoader4Line } from "@remixicon/react";
 import { useEffect, useMemo, useRef } from "react";
 import { useIntl } from "react-intl";

@@ -1,10 +1,10 @@
+import { SheetBody } from "@green-goods/shared/components/Canvas/SheetBody";
+import { SheetFooter } from "@green-goods/shared/components/Canvas/SheetFooter";
 import {
-  HUB_HISTORY_STATUS_CLASSNAME,
-  SheetBody,
-  SheetFooter,
   type ActivityEvent,
-} from "@green-goods/shared";
-import { useLocalizedRelativeTime } from "@green-goods/shared/hooks";
+  HUB_HISTORY_STATUS_CLASSNAME,
+} from "@green-goods/shared/hooks/admin-ui/hub/hub.utils";
+import { useLocalizedRelativeTime } from "@green-goods/shared/hooks/app/useLocalizedRelativeTime";
 import { AdminCard } from "@/components/AdminCard";
 import { RiExternalLinkLine } from "@remixicon/react";
 import { useIntl } from "react-intl";

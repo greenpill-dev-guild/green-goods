@@ -23,36 +23,3 @@ export function isWaitingReprobeThrottled(job: Job, now: number = Date.now()): b
       now - job.lastAttemptAt < COMMITMENT_WAITING_REPROBE_MS
   );
 }
-
-export function commitmentJobIdentity(kind: string, payload: unknown): string | null {
-  if (!payload || typeof payload !== "object") return null;
-  const value = payload as Record<string, unknown>;
-  switch (kind) {
-    case "commitmentSeries":
-      return typeof value.clientSeriesId === "string" ? `${kind}:${value.clientSeriesId}` : null;
-    case "commitment":
-      return typeof value.clientCommitmentId === "string"
-        ? `${kind}:${value.clientCommitmentId}`
-        : null;
-    case "workLink":
-      return typeof value.operationKey === "string" ? `${kind}:${value.operationKey}` : null;
-    case "claim":
-      return `${kind}:${String(value.commitmentId)}:${String(value.kind)}:${String(value.gardenContext).toLowerCase()}`;
-    case "evidence":
-      // The client id names one composition before its CID exists; a record
-      // queued before client ids keeps the CID it was queued with.
-      return `${kind}:${String(value.commitmentId)}:${
-        typeof value.clientEvidenceId === "string" ? value.clientEvidenceId : String(value.cid)
-      }`;
-    case "confirmation":
-      return `${kind}:${String(value.action)}:${String(value.commitmentId)}`;
-    default:
-      return null;
-  }
-}
-
-export function canonicalJobPayload(payload: unknown): string {
-  return JSON.stringify(payload, (_key, value) =>
-    typeof value === "bigint" ? { __bigint: value.toString() } : value
-  );
-}

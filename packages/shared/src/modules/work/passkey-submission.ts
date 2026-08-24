@@ -1,5 +1,5 @@
 import type { SmartAccountClient } from "permissionless";
-import { getEASConfig } from "../../config/blockchain";
+import { getEASConfig, type EASConfig } from "../../config/blockchain";
 import { assertLocalArbitrumForkSmartAccountsDisabled } from "../transactions/local-fork-safety";
 import type { WorkApprovalDraft, WorkDraft } from "../../types/domain";
 import { debugError, debugLog } from "../../utils/debug";
@@ -11,6 +11,14 @@ import {
 } from "../../utils/eas/transaction-builder";
 import { resolveWorkSubmissionTitle } from "../../utils/work/workTitles";
 import { simulateWorkSubmission } from "./simulate";
+
+export interface PasskeySubmissionDeps {
+  simulate?: typeof simulateWorkSubmission;
+  encodeWork?: typeof encodeWorkData;
+  encodeApproval?: typeof encodeWorkApprovalData;
+  assertSmartAccountsAllowed?: typeof assertLocalArbitrumForkSmartAccountsDisabled;
+  easConfig?: EASConfig;
+}
 
 function assertSmartAccount(
   client: SmartAccountClient | null
@@ -34,15 +42,18 @@ export interface PasskeyWorkSubmissionParams {
 }
 
 /** Submits a work attestation via the passkey smart account flow. */
-export async function submitWorkWithPasskey({
-  client,
-  draft,
-  gardenAddress,
-  actionUID,
-  actionTitle,
-  chainId,
-  images,
-}: PasskeyWorkSubmissionParams): Promise<`0x${string}`> {
+export async function submitWorkWithPasskey(
+  {
+    client,
+    draft,
+    gardenAddress,
+    actionUID,
+    actionTitle,
+    chainId,
+    images,
+  }: PasskeyWorkSubmissionParams,
+  deps: PasskeySubmissionDeps = {}
+): Promise<`0x${string}`> {
   debugLog("[PasskeySubmission] Submitting work via passkey", {
     gardenAddress,
     actionUID,
@@ -53,16 +64,17 @@ export async function submitWorkWithPasskey({
 
   // TypeScript doesn't understand that client is now guaranteed to be non-null after assertion
   const smartClient = client as SmartAccountClient;
-  const smartAccount = smartClient.account;
-  if (!smartAccount) {
-    throw new Error("Passkey session is not ready. Please re-authenticate and try again.");
-  }
+  const smartAccount = smartClient.account!;
 
-  const easConfig = getEASConfig(chainId);
+  const easConfig = deps.easConfig ?? getEASConfig(chainId);
+  const simulate = deps.simulate ?? simulateWorkSubmission;
+  const encodeWork = deps.encodeWork ?? encodeWorkData;
+  const assertSmartAccountsAllowed =
+    deps.assertSmartAccountsAllowed ?? assertLocalArbitrumForkSmartAccountsDisabled;
 
   try {
     debugLog("[PasskeySubmission] Simulating transaction before upload...");
-    await simulateWorkSubmission({
+    await simulate({
       draft,
       gardenAddress,
       actionUID,
@@ -77,7 +89,7 @@ export async function submitWorkWithPasskey({
     throw error;
   }
 
-  const attestationData = await encodeWorkData(
+  const attestationData = await encodeWork(
     {
       ...draft,
       title: resolveWorkSubmissionTitle({ draftTitle: draft.title, actionTitle, actionUID }),
@@ -93,7 +105,7 @@ export async function submitWorkWithPasskey({
 
   const txParams = buildWorkAttestTx(easConfig, gardenAddress as `0x${string}`, attestationData);
 
-  assertLocalArbitrumForkSmartAccountsDisabled();
+  assertSmartAccountsAllowed();
 
   const hash = await smartClient.sendTransaction({
     account: smartAccount,
@@ -114,12 +126,10 @@ export interface PasskeyApprovalSubmissionParams {
 }
 
 /** Submits a work approval attestation using the authenticated passkey session. */
-export async function submitApprovalWithPasskey({
-  client,
-  draft,
-  gardenAddress,
-  chainId,
-}: PasskeyApprovalSubmissionParams): Promise<`0x${string}`> {
+export async function submitApprovalWithPasskey(
+  { client, draft, gardenAddress, chainId }: PasskeyApprovalSubmissionParams,
+  deps: PasskeySubmissionDeps = {}
+): Promise<`0x${string}`> {
   debugLog("[PasskeySubmission] Submitting approval via passkey", {
     gardenAddress,
     chainId,
@@ -130,8 +140,11 @@ export async function submitApprovalWithPasskey({
   // TypeScript doesn't understand that client is now guaranteed to be non-null after assertion
   const smartClient = client as SmartAccountClient;
 
-  const easConfig = getEASConfig(chainId);
-  const attestationData = encodeWorkApprovalData(draft, chainId);
+  const easConfig = deps.easConfig ?? getEASConfig(chainId);
+  const encodeApproval = deps.encodeApproval ?? encodeWorkApprovalData;
+  const assertSmartAccountsAllowed =
+    deps.assertSmartAccountsAllowed ?? assertLocalArbitrumForkSmartAccountsDisabled;
+  const attestationData = encodeApproval(draft, chainId);
 
   const txParams = buildApprovalAttestTx(
     easConfig,
@@ -139,7 +152,7 @@ export async function submitApprovalWithPasskey({
     attestationData
   );
 
-  assertLocalArbitrumForkSmartAccountsDisabled();
+  assertSmartAccountsAllowed();
 
   const hash = await smartClient.sendTransaction({
     account: smartClient.account!,
@@ -171,12 +184,10 @@ export interface PasskeyBatchApprovalParams {
  * @returns Transaction hash
  * @throws Error if approvals array is empty
  */
-export async function submitBatchApprovalsWithPasskey({
-  client,
-  approvals,
-  chainId,
-  signal,
-}: PasskeyBatchApprovalParams): Promise<`0x${string}`> {
+export async function submitBatchApprovalsWithPasskey(
+  { client, approvals, chainId, signal }: PasskeyBatchApprovalParams,
+  deps: PasskeySubmissionDeps = {}
+): Promise<`0x${string}`> {
   // Check for abort before starting
   if (signal?.aborted) {
     throw new DOMException("Batch approval aborted", "AbortError");
@@ -196,7 +207,10 @@ export async function submitBatchApprovalsWithPasskey({
   assertSmartAccount(client);
 
   const smartClient = client as SmartAccountClient;
-  const easConfig = getEASConfig(chainId);
+  const easConfig = deps.easConfig ?? getEASConfig(chainId);
+  const encodeApproval = deps.encodeApproval ?? encodeWorkApprovalData;
+  const assertSmartAccountsAllowed =
+    deps.assertSmartAccountsAllowed ?? assertLocalArbitrumForkSmartAccountsDisabled;
 
   // Check abort again before encoding (could be expensive for large batches)
   if (signal?.aborted) {
@@ -206,7 +220,7 @@ export async function submitBatchApprovalsWithPasskey({
   // Encode all approvals
   const encodedApprovals = approvals.map(({ draft, gardenAddress }) => ({
     gardenAddress: gardenAddress as `0x${string}`,
-    attestationData: encodeWorkApprovalData(draft, chainId),
+    attestationData: encodeApproval(draft, chainId),
   }));
 
   // Build batch transaction
@@ -217,7 +231,7 @@ export async function submitBatchApprovalsWithPasskey({
     throw new DOMException("Batch approval aborted", "AbortError");
   }
 
-  assertLocalArbitrumForkSmartAccountsDisabled();
+  assertSmartAccountsAllowed();
 
   const hash = await smartClient.sendTransaction({
     account: smartClient.account!,

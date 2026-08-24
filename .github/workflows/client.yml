@@ -26,6 +26,8 @@ on:
       - "scripts/lib/env-parity.d.mts"
       - "scripts/dev/env-check.js"
       - "scripts/quality/check-source-structure.js"
+      - "scripts/quality/check-staged-modules.mjs"
+      - "scripts/quality/check-staged-modules.test.mjs"
       - ".github/actions/setup-js/action.yml"
       - ".github/actions/setup-playwright/action.yml"
       - ".github/workflows/client.yml"
@@ -53,6 +55,8 @@ on:
       - "scripts/lib/env-parity.d.mts"
       - "scripts/dev/env-check.js"
       - "scripts/quality/check-source-structure.js"
+      - "scripts/quality/check-staged-modules.mjs"
+      - "scripts/quality/check-staged-modules.test.mjs"
       - ".github/actions/setup-js/action.yml"
       - ".github/actions/setup-playwright/action.yml"
       - ".github/workflows/client.yml"
@@ -116,6 +120,9 @@ jobs:
 
       - name: Check test quality
         run: bun run check:test-quality
+
+      - name: Check staged client modules
+        run: bun run check:staged-modules
 
       - name: Run client lint
         working-directory: packages/client

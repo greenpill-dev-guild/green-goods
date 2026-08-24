@@ -1,13 +1,16 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { track } from "../../modules/app/posthog";
+import { registerTelemetrySink, track } from "../../modules/app/posthog";
 
 describe("modules/posthog throttling", () => {
   it("throttles frequent identical events", () => {
-    const log = vi.spyOn(console, "log").mockImplementation(() => {});
-    track("unique_event_once", {}); // allowed
-    const firstCalls = log.mock.calls.length;
-    track("unique_event_once", {}); // throttled
-    expect(log.mock.calls.length).toBe(firstCalls); // no new log for second call
+    const sink = { capture: vi.fn() };
+    const unregister = registerTelemetrySink(sink);
+
+    track("storage_estimate", {});
+    track("storage_estimate", {});
+
+    expect(sink.capture).toHaveBeenCalledOnce();
+    unregister();
   });
 });

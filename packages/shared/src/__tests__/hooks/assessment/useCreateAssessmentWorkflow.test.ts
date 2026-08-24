@@ -78,8 +78,11 @@ vi.mock("../../../hooks/assessment/useAssessmentDraft", () => ({
   }),
 }));
 
-vi.mock("../../../modules/data/ipfs", () => ({
+vi.mock("../../../modules/data/ipfs/client", () => ({
   getIpfsInitStatus: () => ({ status: mocks.ipfsStatus }),
+}));
+
+vi.mock("../../../modules/data/ipfs/upload", () => ({
   uploadFileToIPFS: mocks.uploadFile,
   uploadJSONToIPFS: mocks.uploadJson,
 }));

@@ -1,16 +1,13 @@
 import { PostHogProvider } from "posthog-js/react";
-import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useContext, useMemo, useRef, useState } from "react";
 import { IntlProvider } from "react-intl";
 
 import enMessages from "../i18n/en.json";
 import esMessages from "../i18n/es.json";
 import ptMessages from "../i18n/pt.json";
 import { toastService } from "../components/toast";
-import {
-  registerGlobalProperties,
-  restoreExceptionTopLevelProps,
-  track,
-} from "../modules/app/posthog";
+import { restoreExceptionTopLevelProps, track } from "../modules/app/posthog";
+import { useAppLifecycle } from "../hooks/app/useAppLifecycle";
 import { queryClient } from "../config/react-query";
 import { logger } from "../modules/app/logger";
 import { serviceWorkerManager } from "../modules/app/service-worker";
@@ -322,25 +319,15 @@ export const AppProvider = ({
     }
   }, [deferredPrompt, resetInstallAttempt, startInstallAttempt]);
 
-  useEffect(() => {
-    // Only run install check if not already detected as installed during initialization
-    // This prevents state changes that could trigger redirects mid-render
-    if (installState === "idle") {
-      handleInstallCheck(null);
-    }
-
-    window.addEventListener("beforeinstallprompt", handleBeforeInstall);
-    window.addEventListener("appinstalled", handleAppInstalled);
-
-    return () => {
-      window.removeEventListener("beforeinstallprompt", handleBeforeInstall);
-      window.removeEventListener("appinstalled", handleAppInstalled);
-    };
-  }, [handleAppInstalled, handleBeforeInstall, handleInstallCheck, installState]);
-
-  useEffect(() => {
-    return () => resetInstallAttempt();
-  }, [resetInstallAttempt]);
+  const checkInstall = useCallback(() => handleInstallCheck(null), [handleInstallCheck]);
+  useAppLifecycle({
+    posthogEnabled: Boolean(apiKey),
+    shouldCheckInstall: installState === "idle",
+    checkInstall,
+    handleBeforeInstall,
+    handleAppInstalled,
+    resetInstallAttempt,
+  });
 
   const isMobile = isMobilePlatform();
   const isInstalled = installState === "installed";
@@ -391,40 +378,6 @@ export const AppProvider = ({
       </IntlProvider>
     </AppContext.Provider>
   );
-
-  // Register global PostHog properties after PostHog initializes
-  useEffect(() => {
-    if (!apiKey) return;
-
-    let isMounted = true;
-    let timeoutId: ReturnType<typeof setTimeout>;
-    let attemptCount = 0;
-    const maxAttempts = 10;
-
-    const tryRegister = () => {
-      if (!isMounted) return;
-
-      // Try to register - returns true if successful
-      const success = registerGlobalProperties();
-
-      if (success || attemptCount >= maxAttempts) {
-        return; // Done - either success or max attempts reached
-      }
-
-      // Exponential backoff: 100ms, 200ms, 400ms, 800ms, etc.
-      const delay = Math.min(100 * Math.pow(2, attemptCount), 2000);
-      attemptCount += 1;
-      timeoutId = setTimeout(tryRegister, delay);
-    };
-
-    // Start first attempt after initial delay
-    timeoutId = setTimeout(tryRegister, 100);
-
-    return () => {
-      isMounted = false;
-      clearTimeout(timeoutId);
-    };
-  }, [apiKey]);
 
   // Only wrap with PostHogProvider if API key is available
   if (apiKey) {

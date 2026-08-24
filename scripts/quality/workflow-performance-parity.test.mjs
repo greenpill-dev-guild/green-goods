@@ -26,6 +26,22 @@ function workflowSources() {
     .map((file) => [file, read(`.github/workflows/${file}`)]);
 }
 
+function sourceFiles(relativeDirectory) {
+  const directory = join(root, relativeDirectory);
+  return readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
+    const relativePath = join(relativeDirectory, entry.name);
+    return entry.isDirectory()
+      ? sourceFiles(relativePath)
+      : /\.(?:ts|tsx)$/.test(entry.name)
+        ? [relativePath]
+        : [];
+  });
+}
+
+function withoutComments(source) {
+  return source.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, "");
+}
+
 test("shared JS setup pins the toolchain and installs from the frozen lockfile", () => {
   const action = read(".github/actions/setup-js/action.yml");
 
@@ -281,6 +297,111 @@ test("consumer Vitest configs share the local resource-aware worker policy", () 
       `${file} must resolve its local worker cap through the shared policy`,
     );
   }
+});
+
+test("consumer Vitest projects separate Node and DOM without project coverage", () => {
+  for (const file of [
+    "packages/shared/vitest.config.ts",
+    "packages/client/vitest.config.ts",
+    "packages/admin/vitest.config.ts",
+  ]) {
+    const source = read(file);
+    assert.equal(source.match(/\bprojects\s*:/g)?.length, 1, `${file} must declare projects once`);
+    assert.equal(
+      source.match(/\bcoverage\s*:/g)?.length,
+      1,
+      `${file} must keep coverage only at the root`,
+    );
+    assert.equal(
+      source.match(/extends:\s*true/g)?.length,
+      2,
+      `${file} projects must inherit the root config`,
+    );
+    assert.match(source, /name:\s*["']node["']/);
+    assert.match(source, /name:\s*["']dom["']/);
+  }
+});
+
+test("Admin and Shared keep the production import seams that protect isolated tests", () => {
+  const declaredSharedImports = new Set(
+    Object.keys(JSON.parse(read("packages/shared/package.json")).exports).map((specifier) =>
+      specifier === "."
+        ? "@green-goods/shared"
+        : `@green-goods/shared/${specifier.replace(/^\.\//, "")}`,
+    ),
+  );
+  const broadAdminBarrels =
+    /@green-goods\/shared\/(?:components|config|constants|hooks|i18n|mocks|modules|profile-avatar|providers|public-contracts|stores|testing|types|utils|workflows)(?=["'])/;
+  const exactSharedRoot =
+    /(?:from\s+|import\s*\(|import\s+|vi\.mock\s*\()\s*["']@green-goods\/shared["']/;
+  const sharedImportPattern =
+    /(?:from\s+|import\s*\(\s*|import\s+|vi\.(?:mock|importActual)\s*\(\s*)["'](@green-goods\/shared(?:\/[^"']+)?)["']/g;
+  const deepRelativeSharedSource =
+    /(?:from\s+|import\s*\(|vi\.(?:mock|importActual)\s*\()\s*["'][^"']*shared\/src\//;
+
+  for (const file of sourceFiles("packages/admin/src")) {
+    const source = withoutComments(read(file));
+    assert.doesNotMatch(source, exactSharedRoot, `${file} must import a declared Shared leaf`);
+    assert.doesNotMatch(source, broadAdminBarrels, `${file} must not restore a broad Shared barrel`);
+    for (const match of source.matchAll(sharedImportPattern)) {
+      assert.ok(
+        declaredSharedImports.has(match[1]),
+        `${file} imports undeclared Shared specifier ${match[1]}`,
+      );
+    }
+    assert.doesNotMatch(
+      source,
+      deepRelativeSharedSource,
+      `${file} must not bypass Shared package exports with a deep-relative import`,
+    );
+  }
+
+  const internalBarrels =
+    /from\s+["'][^"']*\/(?:config(?:\/query-keys)?|modules(?:\/data\/ipfs|\/job-queue|\/marketplace)?|public-contracts(?:\/saved-offers)?|utils(?:\/blockchain\/abis)?)["']/;
+  for (const file of sourceFiles("packages/shared/src")) {
+    if (
+      file.includes("/__tests__/") ||
+      file.includes("/__mocks__/") ||
+      /\.(?:test|spec|stories)\.(?:ts|tsx)$/.test(file) ||
+      file.endsWith("/index.ts")
+    ) {
+      continue;
+    }
+
+    const source = withoutComments(read(file));
+    assert.doesNotMatch(source, exactSharedRoot, `${file} must not self-import the package root`);
+    assert.doesNotMatch(
+      source,
+      /from\s+["'][^"']*config\/query-keys\/registry["']/,
+      `${file} must import domain query-key leaves`,
+    );
+    assert.doesNotMatch(
+      source,
+      internalBarrels,
+      `${file} must import an internal leaf instead of a high-fanout barrel`,
+    );
+    assert.doesNotMatch(
+      source,
+      /DEFAULT_CHAIN_ID[^\n]*from\s+["'][^"']*config\/blockchain["']/,
+      `${file} must import DEFAULT_CHAIN_ID from config/default-chain`,
+    );
+  }
+});
+
+test("test quality Check 5 enforces direct-tested seams", () => {
+  const source = read("scripts/quality/check-test-quality.sh");
+  assert.match(source, /Check 5: Direct-tested seam integrity/);
+  assert.match(source, /scripts\/quality\/check-direct-tested-seams\.mjs/);
+});
+
+test("Client CI keeps staged modules isolated", () => {
+  const source = read(".github/workflows/client.yml");
+  for (const event of ["push", "pull_request"]) {
+    const trigger = workflowEventBlock(source, event);
+    assert.match(trigger, /scripts\/quality\/check-staged-modules\.mjs/);
+    assert.match(trigger, /scripts\/quality\/check-staged-modules\.test\.mjs/);
+  }
+  assert.match(source, /name: Check staged client modules\n\s+run: bun run check:staged-modules/);
 });
 
 test("PR Test jobs run plain tests; thresholds are enforced nightly and on main", () => {
