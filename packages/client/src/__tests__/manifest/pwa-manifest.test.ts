@@ -21,13 +21,19 @@ describe("PWA manifest branding", () => {
     ]);
   });
 
-  it("brands staging as a distinct QA-installable app", () => {
+  it("presents the staging build as the beta, distinguished by color not wording", () => {
     const branding = createPwaManifestBranding("staging");
 
+    // Unchanged on purpose: this is the installed-app identity. If it ever
+    // moves, every phone with the app gets a second icon instead of a rename.
     expect(branding.manifestId).toBe("/?gg_pwa=staging");
-    expect(branding.name).toBe("Green Goods Staging");
-    expect(branding.shortName).toBe("GG Staging");
-    expect(branding.description).toBe("Staging PWA for Green Goods QA.");
+    expect(branding.name).toBe("Green Goods");
+    expect(branding.shortName).toBe("Green Goods");
+    expect(branding.description).toBe(
+      "Green Goods beta. Real gardens, real records, ahead of the public release."
+    );
+    // The distinction users actually see.
+    expect(branding.themeColor).not.toBe(createPwaManifestBranding("production").themeColor);
     expect(branding.themeColor).toBe("#111b13");
     expect(branding.backgroundColor).toBe("#111b13");
     expect(branding.browserIcon).toBe("staging-icon-192.png");
