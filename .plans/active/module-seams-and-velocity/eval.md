@@ -268,3 +268,7 @@ Admin import-share floor is not met.
 - Boundary proof: the single Quick Gate passed every check through Agent, then stopped after 298
   passing Indexer tests because nine metadata tests could not bind localhost. This unchanged
   environment blocker was not retried. The two-point coverage ratchet is not due until 2026-09-22.
+- Final exit attempt: the 613-path Ship selector was ready and critical. The one full Ship command
+  passed lint, 2,050 Solidity tests, the three-case release gas gate, and 278 contract script tests,
+  then stopped when the dual-chain suite could not connect to `127.0.0.1:3012`. Dependent package
+  tests and the root build did not run in that command and are not claimed.

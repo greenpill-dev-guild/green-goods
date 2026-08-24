@@ -90,3 +90,20 @@ scope, not a safe Vitest configuration change. Isolation and test correctness re
   limits remain as previously recorded and were not retried.
 - This wave changes test architecture and guidance, not rendered product UI, so authenticated
   browser proof is not applicable.
+
+## Final Program Exit Attempt
+
+At `2026-08-24T03:34:17Z`, the program-wide selector rendered a ready, critical Ship plan for 613
+changed paths. The full exit command `bun format && bun lint && bun run test && bun run build` was
+invoked exactly once.
+
+- Formatting made no changes. Biome reported read-only `EPERM` diagnostics for two `.codex` files
+  but completed; lint passed, including the Foundry version and Solidity format checks.
+- Contract source typecheck and all 2,050 Solidity tests passed. The release gas gate passed its
+  three production-artifact boundary fixtures.
+- Contract script tests reached 23 passing files and 278 passing tests. The dual-chain lifecycle
+  suite then failed before its 11 tests could run because the sandbox rejected
+  `127.0.0.1:3012` with `connect EPERM`.
+- The `&&` pipeline stopped at that deterministic environment blocker, so the remaining package
+  tests and root build did not run in this final command. They are not reported as passing. The
+  unchanged localhost check was not retried.
