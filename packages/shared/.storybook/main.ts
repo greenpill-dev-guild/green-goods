@@ -2,44 +2,11 @@ import type { StorybookConfig } from "@storybook/react-vite";
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import type { Plugin } from "vite";
-import { readFileSync } from "fs";
 import { resolve, dirname } from "path";
 import { fileURLToPath } from "url";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-
-/**
- * Storybook alias map for `@green-goods/shared`, derived from the package's own
- * `exports` field.
- *
- * The declared subpaths are the public API (CLAUDE.md Rule 11), so they are the
- * only correct source for this map. A hand-maintained list was kept here
- * previously and drifted: it guessed that every subpath lives at
- * `src/<subpath>`, which is false for fourteen of them — `./public` resolves to
- * `src/hooks/public/publicSurfaceState.ts`, `./cards` to
- * `src/components/Cards/`, `./toast` to `src/components/toast.ts`, `./testing`
- * into `src/__tests__/`, and so on. Those guesses pointed at paths that do not
- * exist, so any story importing one failed to resolve.
- *
- * Keys are emitted longest-first because Vite matches object aliases by prefix:
- * `.../mocks/browser` has to be tried before `.../mocks`, and
- * `.../styles/utilities.css` before `.../styles`, or the shorter key would
- * swallow the longer path and rewrite it to a nonsense target.
- */
-function sharedSubpathAliases(sharedDir: string): Record<string, string> {
-  const { exports: declared } = JSON.parse(
-    readFileSync(resolve(sharedDir, "package.json"), "utf8"),
-  ) as { exports: Record<string, string> };
-
-  return Object.entries(declared)
-    .filter(([subpath]) => subpath !== ".")
-    .sort(([a], [b]) => b.length - a.length)
-    .reduce<Record<string, string>>((aliases, [subpath, target]) => {
-      aliases[`@green-goods/shared/${subpath.slice(2)}`] = resolve(sharedDir, target);
-      return aliases;
-    }, {});
-}
 const isStaticBuild = process.env.STORYBOOK_STATIC_BUILD === "true";
 const addons: NonNullable<StorybookConfig["addons"]> = [
   "@storybook/addon-a11y",
@@ -142,10 +109,19 @@ const config: StorybookConfig = {
     config.resolve = config.resolve || {};
     config.resolve.alias = {
       ...config.resolve.alias,
-      // Declared subpaths first, longest-first; the bare package name below is
-      // the fallback for the root export only.
-      ...sharedSubpathAliases(resolve(sharedSrc, "..")),
       "@green-goods/shared": sharedSrc,
+      "@green-goods/shared/components": resolve(sharedSrc, "components"),
+      "@green-goods/shared/hooks": resolve(sharedSrc, "hooks"),
+      "@green-goods/shared/providers": resolve(sharedSrc, "providers"),
+      "@green-goods/shared/modules": resolve(sharedSrc, "modules"),
+      "@green-goods/shared/utils": resolve(sharedSrc, "utils"),
+      "@green-goods/shared/config": resolve(sharedSrc, "config"),
+      "@green-goods/shared/types": resolve(sharedSrc, "types"),
+      "@green-goods/shared/stores": resolve(sharedSrc, "stores"),
+      "@green-goods/shared/mocks": resolve(sharedSrc, "mocks"),
+      "@green-goods/shared/i18n": resolve(sharedSrc, "i18n"),
+      "@green-goods/shared/workflows": resolve(sharedSrc, "workflows"),
+      "@green-goods/shared/constants": resolve(sharedSrc, "constants"),
       "@green-goods/contracts/deployments": resolve(contractsDir, "deployments"),
       "@green-goods/contracts/abis": resolve(contractsDir, "abis"),
     };
