@@ -61,7 +61,7 @@ scripts/
 | `drift-check.test.mjs` | `bun run test:review-guardrails` | Fixture tests for drift checker warning normalization, routing, and dirty-tree context |
 | `check-guidance-links.mjs` | `bun run check:guidance-links`, Supply Chain Guardrails | Guidance drift guard: links/scripts resolve, deleted commands and guides have no live consumers, changed fences have language tags, and the command banner remains aligned |
 | `check-guidance-links.test.mjs` | `bun run test:review-guardrails` | Fixture tests for deleted command/guide consumers, retirement notices, renames, and fenced-language checks |
-| `check-skill-behavior-contracts.mjs` | `bun run check:skill-behavior`, `bun run agentic:check`, Supply Chain Guardrails | Deterministic scenarios for critical audit, contract-review, browser-proof, evidence, plan-lifecycle, and Ship-activation guidance contracts |
+| `check-skill-behavior-contracts.mjs` | `bun run check:skill-behavior`, `bun run agentic:check`, Supply Chain Guardrails | Deterministic scenarios for critical audit, module-seams review, contract-review, browser-proof, evidence, plan-lifecycle, and Ship-activation guidance contracts |
 | `check-skill-behavior-contracts.test.mjs` | `bun run test:review-guardrails`, Supply Chain Guardrails | Positive live-source coverage and negative mutations proving each critical guidance scenario fails closed |
 | `check-immutable-plan-reports.mjs` | `bun run check:immutable-plan-reports`, Supply Chain Guardrails | Reject edits, deletions, and renames of existing dated Plan Hub reports while allowing new correction artifacts |
 | `check-immutable-plan-reports.test.mjs` | `bun run test:review-guardrails` | Fixture tests for immutable dated report diff classification |

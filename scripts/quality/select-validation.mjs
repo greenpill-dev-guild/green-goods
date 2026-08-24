@@ -492,7 +492,13 @@ export function selectValidation(input = {}, options = {}) {
       return true;
     });
     if (matchingPaths.length === 0) continue;
-    if (intent === "qa" && !["browser-proof", "ontology"].includes(rule.check)) continue;
+    if (
+      intent === "qa" &&
+      rule.runInQa !== true &&
+      !["browser-proof", "ontology"].includes(rule.check)
+    ) {
+      continue;
+    }
     select(rule.check, `conditional:${rule.check}`);
   }
 

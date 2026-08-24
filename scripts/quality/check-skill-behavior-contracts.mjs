@@ -11,6 +11,7 @@ export const SOURCE_PATHS = [
   "AGENTS.md",
   ".claude/context/values.md",
   ".claude/skills/audit/SKILL.md",
+  ".claude/skills/module-seams-review/SKILL.md",
   ".claude/skills/plan/SKILL.md",
   ".claude/skills/review/SKILL.md",
   ".claude/skills/ship/SKILL.md",
@@ -44,6 +45,38 @@ export function extractMarkdownSection(markdown, heading) {
 }
 
 const contracts = [
+  {
+    id: "module-seams-review-is-pinned-read-only-and-direct",
+    summary:
+      "Module-seams review pins the candidate, stays read-only, and rejects mock-only subject proof.",
+    requirements: [
+      {
+        file: ".claude/skills/module-seams-review/SKILL.md",
+        section: "Read-only boundary",
+        pattern: /Do not edit files[\s\S]{0,220}explicit human scope lock/i,
+        marker: "read-only scope-lock boundary",
+      },
+      {
+        file: ".claude/skills/module-seams-review/SKILL.md",
+        section: "Scope and candidate",
+        pattern: /Pin the exact `base\.\.head` range[\s\S]{0,220}Never replace it/i,
+        marker: "pinned candidate range",
+      },
+      {
+        file: ".claude/skills/module-seams-review/SKILL.md",
+        section: "3. Review direct-test and mock fidelity",
+        pattern:
+          /own specifier[\s\S]{0,180}must\s+not mock that same specifier/i,
+        marker: "direct subject proof rule",
+      },
+      {
+        file: ".claude/skills/module-seams-review/SKILL.md",
+        section: "Validation",
+        pattern: /An unavailable[\s\S]{0,220}is\s+`BLOCKED`[\s\S]{0,120}do not retry/i,
+        marker: "blocked environment evidence rule",
+      },
+    ],
+  },
   {
     id: "audit-read-only-scope-lock",
     summary: "Audit stays read-only until a human locks numbered findings.",

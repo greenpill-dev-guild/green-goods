@@ -62,6 +62,24 @@ test("docs-only QA stays on the docs surface", () => {
   assert.equal(plan.budget.withinTarget, true);
 });
 
+test("skill and documented skill-inventory changes select direct guidance contracts", () => {
+  for (const changedPath of [
+    ".claude/skills/module-seams-review/SKILL.md",
+    "scripts/quality/check-skill-behavior-contracts.mjs",
+    "docs/docs/builders/agentic/claude-code.mdx",
+  ]) {
+    const plan = selectValidation({ intent: "qa", changedPaths: [changedPath] });
+    const guidance = plan.checks.find((check) => check.id === "agent-guidance");
+
+    assert.ok(guidance, changedPath);
+    assert.equal(
+      guidance.command,
+      "bun run check:codex-guidance && bun run check:skill-behavior && bun run check:guidance-links",
+    );
+    assert.ok(guidance.selectedBy.includes("conditional:agent-guidance"), changedPath);
+  }
+});
+
 // Regression: Biome exits non-zero when it handles none of the supplied paths.
 // A Markdown-, Solidity-, or YAML-only change is exactly that case, so without
 // the flag the scoped format check failed and fail-fast killed the whole plan

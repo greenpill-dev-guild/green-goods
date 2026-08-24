@@ -170,6 +170,21 @@
       ]
     },
     {
+      "check": "agent-guidance",
+      "runInQa": true,
+      "exact": [
+        "AGENTS.md",
+        "CLAUDE.md",
+        "scripts/quality/check-codex-docs.js",
+        "scripts/quality/check-guidance-links.mjs",
+        "scripts/quality/check-skill-behavior-contracts.mjs",
+        "docs/docs/builders/agentic/claude-code.mdx",
+        "docs/docs/builders/agentic/context-engineering.mdx",
+        "docs/docs/builders/agentic/spec-engineering.mdx"
+      ],
+      "prefixes": [".claude/skills/"]
+    },
+    {
       "check": "browser-proof",
       "match": "all",
       "prefixes": ["packages/client/src/", "packages/admin/src/"],
@@ -525,6 +540,16 @@
       "budgetSeconds": 20,
       "stopRule": "stop-dependent-checks",
       "capabilities": []
+    },
+    {
+      "id": "agent-guidance",
+      "command": "bun run check:codex-guidance && bun run check:skill-behavior && bun run check:guidance-links",
+      "risk": "agent skill routing, behavior contracts, or documented guidance inventory drifts",
+      "expectedSignal": "Codex guidance, skill behavior, and guidance links agree with the canonical skill tree",
+      "freshness": "exact-guidance-inputs-and-toolchain",
+      "budgetSeconds": 30,
+      "stopRule": "stop-dependent-checks",
+      "capabilities": ["dependencies"]
     },
     {
       "id": "supply-chain",
