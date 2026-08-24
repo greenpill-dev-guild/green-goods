@@ -1,15 +1,15 @@
 import { PWA_MANIFEST_ID } from "./pwa-routing";
 
-export type PwaManifestFlavor = "production" | "staging";
+type PwaManifestFlavor = "production" | "staging";
 
-export interface PwaManifestIcon {
+interface PwaManifestIcon {
   src: string;
   sizes: string;
   type: "image/png";
   purpose?: "any" | "maskable";
 }
 
-export interface PwaAppleTouchIcon {
+interface PwaAppleTouchIcon {
   sizes: string;
   src: string;
 }
