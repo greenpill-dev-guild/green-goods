@@ -131,5 +131,9 @@ describe("Hasura permission shell boundary", () => {
     assert.doesNotMatch(shell, /allow_aggregations|pg_create_select_permission|pg_drop_select_permission/);
     assert.match(shell, /node "\$PLANNER" plan/);
     assert.match(shell, /node "\$PLANNER" requests/);
+    assert.match(
+      shell,
+      /-d '\{"query":"\{ __schema \{ queryType \{ fields \{ name \} \} \} \}"\}'/,
+    );
   });
 });

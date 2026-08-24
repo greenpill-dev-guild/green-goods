@@ -131,33 +131,6 @@ vi.mock("@green-goods/shared/stores/useAdminStore", () => ({
   useStaleGardenGuard: mockUseStaleGardenGuard,
 }));
 
-vi.mock("../../../../shared/src/hooks/auth/useAuth", () => ({
-  useAuth: () => ({
-    isAuthenticated: true,
-    eoaAddress: "0x1234567890123456789012345678901234567890",
-    isReady: true,
-    authMode: "wallet",
-  }),
-}));
-
-vi.mock("../../../../shared/src/hooks/garden/useEligibleAdminGardens", () => ({
-  useEligibleAdminGardens: () => mockEligibleAdminGardens.current,
-}));
-
-vi.mock("../../../../shared/src/hooks/garden/useAdminGardenWorkspaceSelection", () => ({
-  useAdminGardenWorkspaceSelection: () => ({
-    selectedGarden: mockEligibleAdminGardens.current.resolvedDefaultGarden,
-  }),
-}));
-
-vi.mock("../../../../shared/src/hooks/navigation/useGardenUrlSync", () => ({
-  useGardenUrlSync: mockUseGardenUrlSync,
-}));
-
-vi.mock("../../../../shared/src/hooks/roles/useEffectiveToolbarPermissions", () => ({
-  useEffectiveToolbarPermissions: () => mockPermissions.current,
-}));
-
 vi.mock("@green-goods/shared/hooks/profile/useProfileAvatar", () => ({
   useResolvedProfileAvatar: () => ({
     avatarUri: null,

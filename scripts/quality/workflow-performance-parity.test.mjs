@@ -323,15 +323,37 @@ test("consumer Vitest projects separate Node and DOM without project coverage", 
 });
 
 test("Admin and Shared keep the production import seams that protect isolated tests", () => {
+  const declaredSharedImports = new Set(
+    Object.keys(JSON.parse(read("packages/shared/package.json")).exports).map((specifier) =>
+      specifier === "."
+        ? "@green-goods/shared"
+        : `@green-goods/shared/${specifier.replace(/^\.\//, "")}`,
+    ),
+  );
   const broadAdminBarrels =
     /@green-goods\/shared\/(?:components|config|constants|hooks|i18n|mocks|modules|profile-avatar|providers|public-contracts|stores|testing|types|utils|workflows)(?=["'])/;
   const exactSharedRoot =
     /(?:from\s+|import\s*\(|import\s+|vi\.mock\s*\()\s*["']@green-goods\/shared["']/;
+  const sharedImportPattern =
+    /(?:from\s+|import\s*\(\s*|import\s+|vi\.(?:mock|importActual)\s*\(\s*)["'](@green-goods\/shared(?:\/[^"']+)?)["']/g;
+  const deepRelativeSharedSource =
+    /(?:from\s+|import\s*\(|vi\.(?:mock|importActual)\s*\()\s*["'][^"']*shared\/src\//;
 
   for (const file of sourceFiles("packages/admin/src")) {
     const source = withoutComments(read(file));
     assert.doesNotMatch(source, exactSharedRoot, `${file} must import a declared Shared leaf`);
     assert.doesNotMatch(source, broadAdminBarrels, `${file} must not restore a broad Shared barrel`);
+    for (const match of source.matchAll(sharedImportPattern)) {
+      assert.ok(
+        declaredSharedImports.has(match[1]),
+        `${file} imports undeclared Shared specifier ${match[1]}`,
+      );
+    }
+    assert.doesNotMatch(
+      source,
+      deepRelativeSharedSource,
+      `${file} must not bypass Shared package exports with a deep-relative import`,
+    );
   }
 
   const internalBarrels =
@@ -370,6 +392,16 @@ test("test quality Check 5 enforces direct-tested seams", () => {
   const source = read("scripts/quality/check-test-quality.sh");
   assert.match(source, /Check 5: Direct-tested seam integrity/);
   assert.match(source, /scripts\/quality\/check-direct-tested-seams\.mjs/);
+});
+
+test("Client CI keeps staged modules isolated", () => {
+  const source = read(".github/workflows/client.yml");
+  for (const event of ["push", "pull_request"]) {
+    const trigger = workflowEventBlock(source, event);
+    assert.match(trigger, /scripts\/quality\/check-staged-modules\.mjs/);
+    assert.match(trigger, /scripts\/quality\/check-staged-modules\.test\.mjs/);
+  }
+  assert.match(source, /name: Check staged client modules\n\s+run: bun run check:staged-modules/);
 });
 
 test("PR Test jobs run plain tests; thresholds are enforced nightly and on main", () => {

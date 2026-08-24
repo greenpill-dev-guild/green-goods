@@ -134,42 +134,6 @@ vi.mock("wagmi", () => ({
   usePublicClient: () => undefined,
 }));
 
-vi.mock("../../../../shared/src/hooks/blockchain/useBaseLists", async (importOriginal) => {
-  const actual =
-    await importOriginal<typeof import("../../../../shared/src/hooks/blockchain/useBaseLists")>();
-  const React = await import("react");
-  const useOverrideSnapshot = (key: "gardens" | "actions") =>
-    React.useSyncExternalStore(
-      dataHookOverride.subscribe,
-      () => dataHookOverride.state[key],
-      () => dataHookOverride.state[key]
-    );
-
-  return {
-    ...actual,
-    useGardens: ((...args) => {
-      const override = useOverrideSnapshot("gardens");
-      return override ? override : actual.useGardens(...args);
-    }) as typeof actual.useGardens,
-    useActions: ((...args) => {
-      const override = useOverrideSnapshot("actions");
-      return override ? override : actual.useActions(...args);
-    }) as typeof actual.useActions,
-  };
-});
-
-vi.mock("../../../../shared/src/hooks/work/useWorkMutation", async (importOriginal) => {
-  const actual =
-    await importOriginal<typeof import("../../../../shared/src/hooks/work/useWorkMutation")>();
-  return {
-    ...actual,
-    useWorkMutation: ((options) =>
-      workMutationOverride.current
-        ? workMutationOverride.current()
-        : actual.useWorkMutation(options)) as typeof actual.useWorkMutation,
-  };
-});
-
 // SubmitWorkPanel resolves its auth snapshot through the auth state machine
 // (useAuthState/useUser), which needs the full AuthProvider tree — stub just
 // those two reads; everything else stays real.

@@ -47,7 +47,7 @@ export HASURA_REQUIRED_TABLES_JSON="$tables_json"
 
 schema_check=$(curl -s -X POST "${HASURA_URL}/v1/graphql" \
   -H "content-type: application/json" \
-  -d '{"query":"{ __schema { queryType { fields { name } } }"}' 2>/dev/null)
+  -d '{"query":"{ __schema { queryType { fields { name } } } }"}' 2>/dev/null)
 if [ "${TRACK_HASURA_FORCE:-0}" != "1" ] && \
   printf '%s' "$schema_check" | node "$PLANNER" roots-present; then
   exit 0

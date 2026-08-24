@@ -4,8 +4,8 @@ import userEvent from "@testing-library/user-event";
 import { type ReactNode, useCallback, useRef, useState } from "react";
 import { IntlProvider, useIntl } from "react-intl";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { Domain } from "../../../../shared/src/types/domain";
-import { resolveIPFSUrl } from "../../../../shared/src/modules/data/ipfs/resolve";
+import { resolveIPFSUrl } from "@green-goods/shared/modules/data/ipfs/resolve";
+import { Domain } from "@green-goods/shared/types/domain";
 import {
   GardenSettingsEditor,
   type GardenSettingsEditorHandle,

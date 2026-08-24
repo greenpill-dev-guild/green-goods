@@ -68,18 +68,10 @@ export function restoreExceptionTopLevelProps(event: CaptureResult | null): Capt
 // APP VERSION AND ENVIRONMENT
 // ============================================================================
 
-/**
- * Get the app version from environment variable or package.json.
- * Falls back to "unknown" if not available.
- */
 export function getAppVersion(): string {
   return import.meta.env.VITE_APP_VERSION || "unknown";
 }
 
-/**
- * Get the current chain ID from environment.
- * @returns The chain ID if valid, null if missing or invalid
- */
 export function getChainId(): number | null {
   const chainId = import.meta.env.VITE_CHAIN_ID;
   if (!chainId) return null;
@@ -90,9 +82,6 @@ export function getChainId(): number | null {
   return parsed;
 }
 
-/**
- * Common testnet chain IDs.
- */
 const TESTNET_CHAIN_IDS = new Set([
   11155111, // Ethereum Sepolia
   421614, // Arbitrum Sepolia
@@ -101,9 +90,6 @@ const TESTNET_CHAIN_IDS = new Set([
   44787, // Celo Alfajores
 ]);
 
-/**
- * Known mainnet chain IDs.
- */
 const MAINNET_CHAIN_IDS = new Set([
   1, // Ethereum Mainnet
   42161, // Arbitrum One
@@ -112,18 +98,12 @@ const MAINNET_CHAIN_IDS = new Set([
   10, // Optimism
 ]);
 
-/**
- * Determine if the current chain is a testnet.
- */
 function isTestnetEnvironment(chainId?: number | null): boolean {
   const chain = chainId ?? getChainId();
   if (chain === null) return false;
   return TESTNET_CHAIN_IDS.has(chain);
 }
 
-/**
- * Determine if the current chain is a known mainnet.
- */
 function isMainnetEnvironment(chainId?: number | null): boolean {
   const chain = chainId ?? getChainId();
   if (chain === null) return false;

@@ -32,8 +32,6 @@ interface ActionTranslationEditorProps {
   onChange: (translations: ActionTranslationMap) => void;
 }
 
-type TranslationScope = "media" | "details" | "review";
-
 const LOCALE_LABELS: Record<ActionTranslationLocale, { id: string; defaultMessage: string }> = {
   es: { id: "app.admin.actions.translations.spanish", defaultMessage: "Spanish" },
   pt: { id: "app.admin.actions.translations.portuguese", defaultMessage: "Portuguese" },
@@ -50,7 +48,7 @@ function createEmptyRecord(sourceHash: string): ActionTranslationRecord {
 
 function updateScope(
   data: ActionInstructionTranslationData,
-  scope: TranslationScope,
+  scope: "media" | "details" | "review",
   updater: (
     scopeData: NonNullable<NonNullable<ActionInstructionTranslationData["uiConfig"]>[typeof scope]>
   ) => NonNullable<NonNullable<ActionInstructionTranslationData["uiConfig"]>[typeof scope]>
@@ -266,7 +264,7 @@ export function ActionTranslationEditor({
     updateActiveData((data) => ({ ...data, [key]: nextValue }));
   };
   const updateScopedField = (
-    scope: TranslationScope,
+    scope: "media" | "details" | "review",
     key: string,
     nextValue: string | string[]
   ) => {

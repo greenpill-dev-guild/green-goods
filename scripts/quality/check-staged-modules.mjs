@@ -23,9 +23,13 @@ function sourceFiles(directory) {
   });
 }
 
-function resolveImport(importer, specifier) {
-  if (!specifier.startsWith(".")) return null;
-  const base = resolve(dirname(importer), specifier);
+function resolveImport(root, importer, specifier) {
+  const base = specifier.startsWith("@/")
+    ? resolve(root, "packages/client/src", specifier.slice(2))
+    : specifier.startsWith(".")
+      ? resolve(dirname(importer), specifier)
+      : null;
+  if (!base) return null;
   const candidates = [
     base,
     ...SOURCE_EXTENSIONS.map((extension) => `${base}${extension}`),
@@ -57,7 +61,7 @@ export function auditStagedModules(root) {
   for (const importer of sourceFiles(resolve(root, "packages/client/src"))) {
     if (stagedAbsolute.has(importer)) continue;
     for (const specifier of importSpecifiers(readFileSync(importer, "utf8"))) {
-      const imported = resolveImport(importer, specifier);
+      const imported = resolveImport(root, importer, specifier);
       if (!imported || !stagedAbsolute.has(imported)) continue;
       findings.push(
         `${relative(root, importer)} imports staged module ${relative(root, imported)}`
