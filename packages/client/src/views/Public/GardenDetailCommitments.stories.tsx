@@ -1,4 +1,5 @@
-import { type Address, queryKeys } from "@green-goods/shared";
+import type { Address } from "@green-goods/shared/types/domain";
+import { queryKeys } from "@green-goods/shared/config/query-keys/registry";
 import {
   type CommitmentUnitSummaryRecord,
   PUBLIC_HISTORY_PAGE_SIZE,

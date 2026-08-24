@@ -12,7 +12,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 // Mock the current shared auth state hook
 const mockUseAuthState = vi.fn();
 
-vi.mock("@green-goods/shared", () => ({
+vi.mock("@green-goods/shared/hooks/auth/useAuth", () => ({
   useAuthState: () => mockUseAuthState(),
 }));
 

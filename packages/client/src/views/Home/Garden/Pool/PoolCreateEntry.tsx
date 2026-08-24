@@ -1,4 +1,5 @@
-import { cn, useWindowEvent } from "@green-goods/shared";
+import { cn } from "@green-goods/shared/utils/styles/cn";
+import { useWindowEvent } from "@green-goods/shared/hooks/utils/useEventListener";
 import { RiAddLine, RiCloseLine } from "@remixicon/react";
 import { useEffect, useRef, useState } from "react";
 import { useIntl } from "react-intl";

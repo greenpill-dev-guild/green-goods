@@ -6,12 +6,12 @@
  * @vitest-environment jsdom
  */
 
-import type { ProofComposerController } from "@green-goods/shared";
+import type { ProofComposerController } from "@green-goods/shared/hooks/client-ui/commitment/proof-controller.types";
 import {
   commitmentDetailFixture,
   commitmentFixture,
-  proofComposerControllerFixture,
-} from "@green-goods/shared/testing";
+} from "@green-goods/shared/__tests__/test-utils/commitment-pooling-fixtures";
+import { proofComposerControllerFixture } from "@green-goods/shared/__tests__/test-utils/controller-fixtures";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -24,12 +24,26 @@ const GARDEN = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" as const;
 const mockUseController = vi.fn();
 let controller: ProofComposerController;
 
-vi.mock("@green-goods/shared", async () => {
-  const actual = await vi.importActual<typeof import("@green-goods/shared")>("@green-goods/shared");
+vi.mock("@green-goods/shared/config/default-chain", async (importOriginal) => {
   return {
-    ...actual,
+    ...(await importOriginal()),
     DEFAULT_CHAIN_ID: 42161,
-    useProofComposerController: (...args: unknown[]) => mockUseController(...args),
+  };
+});
+
+vi.mock(
+  "@green-goods/shared/hooks/client-ui/commitment/useProofComposerController",
+  async (importOriginal) => {
+    return {
+      ...(await importOriginal()),
+      useProofComposerController: (...args: unknown[]) => mockUseController(...args),
+    };
+  }
+);
+
+vi.mock("@green-goods/shared/hooks/app/useOffline", async (importOriginal) => {
+  return {
+    ...(await importOriginal()),
     useOffline: () => ({ isOnline: true, pendingCount: 0, syncStatus: "idle" }),
   };
 });

@@ -1,4 +1,5 @@
-import { type Action, type Address, AddressDisplay } from "@green-goods/shared";
+import type { Action, Address } from "@green-goods/shared/types/domain";
+import { AddressDisplay } from "@green-goods/shared/components/AddressDisplay";
 import {
   type CommitmentContributorRecord,
   type CommitmentReadModel,

@@ -1,4 +1,4 @@
-import { HydrationFallback } from "@green-goods/shared/components";
+import { HydrationFallback } from "@green-goods/shared/components/HydrationFallback";
 import { lazy, Suspense } from "react";
 import { Outlet } from "react-router-dom";
 import { PwaUpdateNotifier } from "@/components/Communication/PwaUpdateNotifier";

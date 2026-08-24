@@ -1,6 +1,11 @@
 "use client";
 
-import { CarouselContext, type CarouselProps, cn, useCarousel } from "@green-goods/shared";
+import {
+  CarouselContext,
+  type CarouselProps,
+  useCarousel,
+} from "@green-goods/shared/hooks/app/useCarousel";
+import { cn } from "@green-goods/shared/utils/styles/cn";
 import useEmblaCarousel, { type UseEmblaCarouselType } from "embla-carousel-react";
 import * as React from "react";
 import { ImagePreviewDialog } from "@/components/Dialogs";

@@ -1,4 +1,7 @@
-import { Alert, cn, type Garden, useOffline } from "@green-goods/shared";
+import { Alert } from "@green-goods/shared/components/Alert";
+import { cn } from "@green-goods/shared/utils/styles/cn";
+import type { Garden } from "@green-goods/shared/types/domain";
+import { useOffline } from "@green-goods/shared/hooks/app/useOffline";
 import {
   type CommitmentPoolRecord,
   type CommitmentsInbox,

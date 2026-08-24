@@ -11,7 +11,7 @@ import { createElement } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 // Mock @green-goods/shared
-vi.mock("@green-goods/shared", () => ({
+vi.mock("@green-goods/shared/utils/styles/cn", () => ({
   cn: (...args: unknown[]) => args.filter(Boolean).join(" "),
 }));
 

@@ -1,28 +1,29 @@
+import type { Address } from "@green-goods/shared/types/domain";
+import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
+import { GardenBannerFallback } from "@green-goods/shared/components/Display/GardenBannerFallback";
+import { GardenTab, useGardenTabs } from "@green-goods/shared/hooks/garden/useGardenTabs";
+import { ImageWithFallback } from "@green-goods/shared/components/Display/ImageWithFallback";
 import {
-  type Address,
-  DEFAULT_CHAIN_ID,
-  GardenBannerFallback,
-  GardenTab,
-  ImageWithFallback,
   isGardenMember,
-  toastService,
+  useJoinGarden,
+  usePendingJoinsVersion,
+} from "@green-goods/shared/hooks/garden/useJoinGarden";
+import { toastService } from "@green-goods/shared/components/Toast/toast.service";
+import {
   useActions,
-  useBrowserNavigation,
-  useConvictionStrategies,
   useGardeners,
   useGardens,
-  useGardenTabs,
-  useGardenVaults,
-  useHasRole,
-  useJoinGarden,
-  useNavigateToTop,
-  usePendingJoinsVersion,
-  useScrollToTop,
-  useUIStore,
-  useUser,
-  useVaultDeposits,
-  useWorks,
-} from "@green-goods/shared";
+} from "@green-goods/shared/hooks/blockchain/useBaseLists";
+import { useBrowserNavigation } from "@green-goods/shared/hooks/app/useBrowserNavigation";
+import { useConvictionStrategies } from "@green-goods/shared/hooks/conviction/useConvictionStrategies";
+import { useGardenVaults } from "@green-goods/shared/hooks/vault/useGardenVaults";
+import { useHasRole } from "@green-goods/shared/hooks/roles/useHasRole";
+import { useNavigateToTop } from "@green-goods/shared/hooks/app/useNavigateToTop";
+import { useScrollToTop } from "@green-goods/shared/hooks/app/useScrollToTop";
+import { useUIStore } from "@green-goods/shared/stores/useUIStore";
+import { useUser } from "@green-goods/shared/hooks/auth/useUser";
+import { useVaultDeposits } from "@green-goods/shared/hooks/vault/useVaultDeposits";
+import { useWorks } from "@green-goods/shared/hooks/work/useWorks";
 import { useCommitmentPools } from "@green-goods/shared/commitment-pooling";
 import {
   RiCalendarEventFill,

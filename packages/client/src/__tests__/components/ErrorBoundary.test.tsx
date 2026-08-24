@@ -22,8 +22,12 @@ vi.mock("../../components/Actions", () => ({
 }));
 
 // Mock shared barrel to avoid WalletConnect/shared dependency chain resolution
-vi.mock("@green-goods/shared", () => ({
+vi.mock("@green-goods/shared/modules/app/error-events", () => ({
   trackErrorBoundary: vi.fn(),
+}));
+
+vi.mock("@green-goods/shared/modules/app/logger", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@green-goods/shared/modules/app/logger")>()),
   logger: {
     error: vi.fn(),
     warn: vi.fn(),

@@ -1,4 +1,5 @@
-import { APP_NAME, cn } from "@green-goods/shared";
+import { APP_NAME } from "@green-goods/shared/config/app";
+import { cn } from "@green-goods/shared/utils/styles/cn";
 import { useIntl } from "react-intl";
 
 import type { LoadingState } from "@/components/Layout";

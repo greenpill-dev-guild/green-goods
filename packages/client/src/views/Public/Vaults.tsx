@@ -1,16 +1,16 @@
+import { formatApy } from "@green-goods/shared/utils/blockchain/aave";
+import { formatTokenAmount } from "@green-goods/shared/utils/blockchain/vaults";
+import { formatUsdCents } from "@green-goods/shared/utils/blockchain/price-feeds";
 import {
-  formatApy,
-  formatTokenAmount,
-  formatUsdCents,
   getOctantVaultAssetDisplayPolicy,
   getOctantVaultCampaignCopy,
   getOctantVaultCampaigns,
-  getOctantVaultCampaignTransactionState,
-  type OctantVaultCampaignManifest,
-  useOctantVaultHarvestableYield,
-  useOctantVaultStats,
-  useOctantVaultStrategyApy,
-} from "@green-goods/shared";
+} from "@green-goods/shared/modules/vault-crowdfunding/copy";
+import { getOctantVaultCampaignTransactionState } from "@green-goods/shared/modules/vault-crowdfunding/route-manage";
+import type { OctantVaultCampaignManifest } from "@green-goods/shared/modules/vault-crowdfunding/manifest";
+import { useOctantVaultHarvestableYield } from "@green-goods/shared/hooks/vault/useOctantVaultHarvestableYield";
+import { useOctantVaultStats } from "@green-goods/shared/hooks/vault/useOctantVaultStats";
+import { useOctantVaultStrategyApy } from "@green-goods/shared/hooks/vault/useOctantVaultStrategyApy";
 import { selectPublicSurfaceState } from "@green-goods/shared/public";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { FormattedMessage, useIntl } from "react-intl";

@@ -1,36 +1,36 @@
 import * as Dialog from "@radix-ui/react-dialog";
+import type { Address } from "@green-goods/shared/types/domain";
+import { Alert } from "@green-goods/shared/components/Alert";
+import { cn } from "@green-goods/shared/utils/styles/cn";
 import {
-  type Address,
-  Alert,
-  cn,
   DEFAULT_WITHDRAW_MAX_LOSS_BPS,
   formatTokenAmount,
+  validateDecimalInput,
+} from "@green-goods/shared/utils/blockchain/vaults";
+import {
   type PublicEndowmentAssetTotal,
   type PublicEndowmentGardenGroup,
   type PublicEndowmentPosition,
-  truncateAddress,
-  useAuth,
-  useDebouncedValue,
   usePublicEndowmentPositions,
-  useTxErrorMessages,
-  useUser,
-  useVaultPreview,
-  useVaultWithdraw,
-  useWalletConnectDismissGuard,
-  validateDecimalInput,
-} from "@green-goods/shared";
+} from "@green-goods/shared/hooks/public/usePublicEndowmentPositions";
+import { truncateAddress } from "@green-goods/shared/utils/blockchain/address";
+import { useAuth } from "@green-goods/shared/hooks/auth/useAuth";
+import { useDebouncedValue } from "@green-goods/shared/hooks/utils/useDebouncedValue";
+import { useTxErrorMessages } from "@green-goods/shared/hooks/utils/useTxErrorMessages";
+import { useUser } from "@green-goods/shared/hooks/auth/useUser";
+import { useVaultPreview } from "@green-goods/shared/hooks/vault/useVaultPreview";
+import { useVaultWithdraw } from "@green-goods/shared/hooks/vault/useVaultWithdraw";
+import { useWalletConnectDismissGuard } from "@green-goods/shared/hooks/auth/useWalletModalOpen";
 import { RiCloseLine } from "@remixicon/react";
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { formatUnits, parseUnits } from "viem";
 import { EditorialGhostButton } from "./atoms";
-
 export interface PublicEndowmentPanelProps {
   open: boolean;
   onExitComplete?: () => void;
   onOpenChange: (open: boolean) => void;
 }
-
 function formatDisplayAmount(value: bigint, decimals: number, symbol: string): string {
   return `${formatTokenAmount(value, decimals, 4, undefined, true)} ${symbol}`;
 }

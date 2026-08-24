@@ -1,4 +1,4 @@
-import { AddressDisplay } from "@green-goods/shared";
+import { AddressDisplay } from "@green-goods/shared/components/AddressDisplay";
 import {
   type CommitmentContributorRecord,
   type CommitmentReadModel,

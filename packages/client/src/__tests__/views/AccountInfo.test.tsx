@@ -14,7 +14,7 @@ let mockWalletAddress: string | null = null;
 let mockEmbeddedAddress: string | null = null;
 const mockSignOut = vi.fn();
 
-vi.mock("@green-goods/shared", () => ({
+vi.mock("@green-goods/shared/hooks/auth/useAuth", () => ({
   useAuthState: () => ({
     authMode: mockAuthMode,
     credential: { id: "test-cred" },
@@ -24,10 +24,25 @@ vi.mock("@green-goods/shared", () => ({
   useAuthActions: () => ({
     signOut: mockSignOut,
   }),
+}));
+
+vi.mock("@green-goods/shared/hooks/auth/usePrimaryAddress", () => ({
   usePrimaryAddress: () => mockSmartAccountAddress || mockWalletAddress || mockEmbeddedAddress,
+}));
+
+vi.mock("@green-goods/shared/hooks/blockchain/useEnsName", () => ({
   useEnsName: () => ({ data: null }),
+}));
+
+vi.mock("@green-goods/shared/utils/debug", () => ({
   debugError: vi.fn(),
+}));
+
+vi.mock("@green-goods/shared/utils/app/haptics", () => ({
   hapticLight: vi.fn(),
+}));
+
+vi.mock("@green-goods/shared/components/Toast/toast.service", () => ({
   toastService: {
     success: vi.fn(),
     error: vi.fn(),
@@ -54,7 +69,7 @@ vi.mock("@/components/Inputs", () => ({
   AddressCopy: () => createElement("span", null, "address-copy"),
 }));
 
-import messages from "../../../../shared/src/i18n/en.json";
+import messages from "@green-goods/shared/i18n/en.json";
 import { AccountInfo } from "../../views/Profile/AccountInfo";
 
 function renderAccountInfo() {

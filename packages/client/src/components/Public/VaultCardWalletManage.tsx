@@ -6,17 +6,19 @@
  * card-funding rollout — see .plans/archive/nyc-vault-crowdfunding/brief.md. Do not
  * remove as "dead code".
  */
+import type { Address } from "@green-goods/shared/types/domain";
+import { formatTokenAmount } from "@green-goods/shared/utils/blockchain/vaults";
+import { getOctantVaultCampaignBySlug } from "@green-goods/shared/modules/vault-crowdfunding/copy";
 import {
-  type Address,
-  formatTokenAmount,
-  getOctantVaultCampaignBySlug,
   getOctantVaultPendingFundedCardWalletRefs,
   type OctantVaultCardWalletPositionRef,
-  type OctantVaultPosition,
   rememberOctantVaultCardWalletPosition,
-  truncateAddress,
+} from "@green-goods/shared/modules/octant-vault-card-wallet-cache";
+import {
+  type OctantVaultPosition,
   useOctantVaultPositions,
-} from "@green-goods/shared";
+} from "@green-goods/shared/hooks/vault/useOctantVaultPositions";
+import { truncateAddress } from "@green-goods/shared/utils/blockchain/address";
 import { type FormEvent, useCallback, useId, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import {
@@ -41,11 +43,9 @@ import {
   readCardWalletMaxRedeemable,
 } from "./VaultCardWalletManage.calls";
 import { PositionsList, VaultPositionRowView } from "./VaultManagePositionsPanel";
-
 function getThirdwebClientId(): string {
   return import.meta.env.VITE_THIRDWEB_CLIENT_ID?.trim() ?? "";
 }
-
 function getThirdwebChain(chainId: number) {
   return chainId === ethereum.id ? ethereum : defineChain(chainId);
 }

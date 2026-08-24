@@ -1,4 +1,4 @@
-import { Alert } from "@green-goods/shared";
+import { Alert } from "@green-goods/shared/components/Alert";
 import {
   type CommitmentComposerValues,
   type CommitmentCycleRecord,

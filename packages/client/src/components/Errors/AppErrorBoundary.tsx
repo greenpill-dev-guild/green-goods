@@ -1,4 +1,8 @@
-import { en, es, logger, pt, trackErrorBoundary } from "@green-goods/shared";
+import en from "@green-goods/shared/i18n/en";
+import es from "@green-goods/shared/i18n/es";
+import { logger } from "@green-goods/shared/modules/app/logger";
+import pt from "@green-goods/shared/i18n/pt";
+import { trackErrorBoundary } from "@green-goods/shared/modules/app/error-events";
 import {
   RiBugLine,
   RiCheckLine,
@@ -10,12 +14,9 @@ import {
 } from "@remixicon/react";
 import { Component, type ErrorInfo, type ReactNode } from "react";
 import { Button } from "../Actions";
-
 type Messages = typeof en;
 type Locale = "en" | "es" | "pt";
-
 const messages: Record<Locale, Messages> = { en, es, pt };
-
 // Recoverable: new SW activated and old dynamic-import chunks 404. One reload pulls the
 // fresh HTML+chunks and the user never needs to see an error screen.
 const CHUNK_ERROR_PATTERNS: RegExp[] = [
@@ -25,7 +26,6 @@ const CHUNK_ERROR_PATTERNS: RegExp[] = [
   /importing a module script failed/i,
   /unable to preload css/i,
 ];
-
 // Non-recoverable via reload: render loop / hook order bug. Reloading would loop forever,
 // so we offer a hard reset (clear caches + IDB) instead.
 const LOOP_ERROR_PATTERNS: RegExp[] = [

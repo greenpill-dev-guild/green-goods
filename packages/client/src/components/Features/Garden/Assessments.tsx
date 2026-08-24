@@ -1,11 +1,11 @@
-import {
-  type AssessmentAttachment,
-  type CynefinPhase,
-  DOMAIN_LABEL_IDS,
-  formatDateRange,
-  type GardenAssessment,
-  resolveIPFSUrl,
-} from "@green-goods/shared";
+import type {
+  AssessmentAttachment,
+  CynefinPhase,
+  GardenAssessment,
+} from "@green-goods/shared/types/domain";
+import { DOMAIN_LABEL_IDS } from "@green-goods/shared/utils/garden-detail";
+import { formatDateRange } from "@green-goods/shared/utils/time";
+import { resolveIPFSUrl } from "@green-goods/shared/modules/data/ipfs/resolve";
 import {
   RiCalendarLine,
   RiErrorWarningLine,

@@ -1,14 +1,16 @@
 import {
   PUBLIC_IMPACT_RECORD_FETCH_CAP,
-  type PublicGardenSummary,
+  type PublicImpactEvidenceKind,
   type PublicImpactEvidenceRecord,
-  useInViewReveal,
+} from "@green-goods/shared/public-contracts/public-impact";
+import {
+  type PublicGardenSummary,
   usePublicGardens,
-  usePublicImpactEvidence,
-  usePublicStats,
-} from "@green-goods/shared";
+} from "@green-goods/shared/hooks/public/usePublicGardens";
+import { useInViewReveal } from "@green-goods/shared/hooks/ui/useInViewReveal";
+import { usePublicImpactEvidence } from "@green-goods/shared/hooks/public/usePublicImpactEvidence";
+import { usePublicStats } from "@green-goods/shared/hooks/public/usePublicStats";
 import { selectPublicSurfaceState } from "@green-goods/shared/public";
-import type { PublicImpactEvidenceKind } from "@green-goods/shared/public-contracts";
 import { useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import {
@@ -29,9 +31,7 @@ import { PublicFooter } from "@/components/Public/PublicFooter";
 import { type PublicProofMarker, PublicProofMarkers } from "@/components/Public/PublicProofMarkers";
 import { PublicSurfaceState } from "@/components/Public/PublicSurfaceState";
 import { getPublicHeroImage, publicCuration } from "@/content/publicCuration";
-
 type KindFilter = "all" | PublicImpactEvidenceKind;
-
 interface KindEntry {
   id: KindFilter;
   domain: EditorialDomain;

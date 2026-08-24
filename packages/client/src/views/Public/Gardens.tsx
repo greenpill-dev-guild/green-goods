@@ -1,4 +1,8 @@
-import { type PublicGardenSummary, useInViewReveal, usePublicGardens } from "@green-goods/shared";
+import {
+  type PublicGardenSummary,
+  usePublicGardens,
+} from "@green-goods/shared/hooks/public/usePublicGardens";
+import { useInViewReveal } from "@green-goods/shared/hooks/ui/useInViewReveal";
 import { selectPublicSurfaceState } from "@green-goods/shared/public";
 import { useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";

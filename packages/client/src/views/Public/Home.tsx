@@ -1,4 +1,5 @@
-import { useApp, usePublicStats } from "@green-goods/shared";
+import { useApp } from "@green-goods/shared/providers/App";
+import { usePublicStats } from "@green-goods/shared/hooks/public/usePublicStats";
 import { useIntl } from "react-intl";
 import {
   EditorialGhostLink,

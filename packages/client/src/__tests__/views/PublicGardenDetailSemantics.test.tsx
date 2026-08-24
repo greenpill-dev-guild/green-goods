@@ -41,13 +41,27 @@ const mockGardens = [
   },
 ];
 
-vi.mock("@green-goods/shared", () => ({
+vi.mock("@green-goods/shared/utils/styles/cn", () => ({
   cn: (...args: unknown[]) => args.filter(Boolean).join(" "),
+}));
+
+vi.mock("@green-goods/shared/config/default-chain", () => ({
   DEFAULT_CHAIN_ID: 42161,
-  getRelativeTimeParts: () => ({ value: -3, unit: "day" }),
+}));
+
+vi.mock("@green-goods/shared/utils/eas/explorers", () => ({
   getEASExplorerUrl: (chainId: number, uid: string) => `https://explorer.example/${chainId}/${uid}`,
+}));
+
+vi.mock("@green-goods/shared/utils/app/text", () => ({
   formatAddress: (address: string) => address,
+}));
+
+vi.mock("@green-goods/shared/hooks/blockchain/useEnsName", () => ({
   useEnsName: () => ({ data: null }),
+}));
+
+vi.mock("@green-goods/shared/hooks/public/usePublicGardens", () => ({
   publicGardenHelpers: {
     deriveSlug: (name: string) =>
       name
@@ -56,6 +70,9 @@ vi.mock("@green-goods/shared", () => ({
         .replace(/^-|-$/g, ""),
   },
   usePublicGardens: () => ({ data: mockGardens, isLoading: false }),
+}));
+
+vi.mock("@green-goods/shared/hooks/public/usePublicGardenDetail", () => ({
   usePublicGardenDetail: () => ({
     data: {
       garden: {
@@ -75,31 +92,17 @@ vi.mock("@green-goods/shared", () => ({
     },
     isLoading: false,
   }),
+}));
+
+vi.mock("@green-goods/shared/hooks/hypercerts/useHypercerts", () => ({
   useHypercerts: () => ({ hypercerts: [], isLoading: false }),
-  // Pre-launch: no pool registered, so § 02 renders its readiness copy.
-  PUBLIC_HISTORY_PAGE_SIZE: 12,
-  usePublicGardenPool: () => ({
-    data: {
-      pool: null,
-      openSeason: null,
-      openCampaigns: [],
-      finishedCycles: [],
-      poolUnitSummaries: [],
-      cycleUnitSummaries: [],
-      finishedCycleTotal: 0,
-      hasCommitmentCertificates: false,
-      partialData: false,
-      unavailableSources: { commitmentPool: false, cycleMetadata: false },
-    },
-    isLoading: false,
-    isFetching: false,
-    isPlaceholderData: false,
-    refetch: () => Promise.resolve(),
-  }),
-  selectPublicPromiseKeptRate: () => ({ kind: "counts-only", counts: { fulfilled: 0n, due: 0n } }),
+}));
+
+vi.mock("@green-goods/shared/hooks/ui/useInViewReveal", () => ({
   useInViewReveal: () => ({ ref: { current: null }, revealed: true }),
-  // A <button>, matching the real component and the main suite's stub. A <span>
-  // here is what let a button-inside-a-button reach the browser last time.
+}));
+
+vi.mock("@green-goods/shared/components/AddressDisplay", () => ({
   AddressDisplay: ({ address }: { address: Address }) =>
     createElement("button", { type: "button" }, address),
 }));

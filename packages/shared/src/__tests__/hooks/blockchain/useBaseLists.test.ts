@@ -22,9 +22,9 @@ const mockGetGardens = vi.fn();
 const mockGetGardeners = vi.fn();
 
 vi.mock("../../../modules/data/greengoods", () => ({
-  getActions: () => mockGetActions(),
-  getGardens: () => mockGetGardens(),
-  getGardeners: () => mockGetGardeners(),
+  getActions: (...args: unknown[]) => mockGetActions(...args),
+  getGardens: (...args: unknown[]) => mockGetGardens(...args),
+  getGardeners: (...args: unknown[]) => mockGetGardeners(...args),
 }));
 
 vi.mock("../../../config/blockchain", () => ({
@@ -93,6 +93,7 @@ describe("useBaseLists", () => {
         expect(result.current.data).toHaveLength(2);
       });
       expect(result.current.data).toEqual(mockActions);
+      expect(mockGetActions).toHaveBeenCalledWith();
     });
 
     it("uses the correct query key based on chain ID", async () => {
@@ -197,6 +198,7 @@ describe("useBaseLists", () => {
         expect(result.current.data).toHaveLength(2);
       });
       expect(result.current.data).toEqual(mockGardens);
+      expect(mockGetGardens).toHaveBeenCalledWith();
     });
 
     it("caches with chain-specific query key", async () => {
@@ -248,6 +250,7 @@ describe("useBaseLists", () => {
         expect(result.current.data).toHaveLength(2);
       });
       expect(result.current.data).toEqual(mockGardenersList);
+      expect(mockGetGardeners).toHaveBeenCalledWith();
     });
 
     it("uses the gardeners.all query key (no chain scoping)", async () => {

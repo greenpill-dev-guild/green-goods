@@ -24,6 +24,24 @@ remains only `REFERENCED` or `BLOCKED`.
 | Compatibility export | real consumers and deletion condition | permanent duplicate policy, divergent defaults, no bounded retirement path |
 | Large composition file | responsibilities and change reasons, not line count alone | unrelated state identities, side effects, and policies cannot be isolated |
 
+Classify a public specifier as `stable-domain`, `composition`, `compatibility`, or
+`internal-candidate`. A leaf export is graph control, not automatic evidence of module depth.
+
+## Registry reconciliation
+
+For every selected or certified entry in `scripts/data/module-seam-registry.json`, verify:
+
+- stable ID, owner, lifecycle, criticality, module path, and public specifier;
+- export-map resolution through the owning package's actual `package.json#exports`;
+- production composition roots and materially affected direct consumers;
+- direct, conformance, and integration proof paths without conflating their claims;
+- reviewed date and deterministic evidence fingerprint freshness;
+- owning Plan Hub candidate/lifecycle state and parent-only tracking closure.
+
+`SELECTED` may legitimately lack certification proof. `CERTIFIED` may not. Static checker success
+does not prove depth, adapter fidelity, runtime reachability, production wiring, or coverage quality;
+state which of those required human or executed evidence.
+
 ## Seam and composition quality
 
 | Seam type | Required production trace | Direct proof questions |

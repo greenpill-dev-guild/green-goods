@@ -1,4 +1,6 @@
-import { Alert, jobQueue, useJobQueue } from "@green-goods/shared";
+import { Alert } from "@green-goods/shared/components/Alert";
+import { jobQueue } from "@green-goods/shared/modules/job-queue/default-instance";
+import { useJobQueue } from "@green-goods/shared/providers/JobQueue";
 import { RiDeleteBinLine, RiRefreshLine } from "@remixicon/react";
 import { useState } from "react";
 import { useIntl } from "react-intl";

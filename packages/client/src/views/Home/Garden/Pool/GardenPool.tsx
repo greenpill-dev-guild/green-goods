@@ -1,4 +1,7 @@
-import { type GardenPoolDirection, useGardenPoolController } from "@green-goods/shared";
+import {
+  type GardenPoolDirection,
+  useGardenPoolController,
+} from "@green-goods/shared/hooks/client-ui/pool/useGardenPoolController";
 import { type CommitmentPoolRecord } from "@green-goods/shared/commitment-pooling";
 import { RiHandHeartLine, RiInformationLine, RiSeedlingLine } from "@remixicon/react";
 import { useIntl } from "react-intl";

@@ -53,7 +53,7 @@ vi.mock("@/components/Inputs", () => ({
 }));
 
 // Import after mocks
-import type { WorkInput } from "@green-goods/shared";
+import type { WorkInput } from "@green-goods/shared/types/domain";
 import { WorkDetails } from "../../views/Garden/Details";
 
 const messages: Record<string, string> = {

@@ -14,6 +14,11 @@ readiness validation, finding closure, false-positive controls, and verdicts. Re
 [`../audit/SKILL.md`](../audit/SKILL.md) only when the user also asks for dead code, dependency
 health, or broad repository drift. Do not duplicate those audit lanes here.
 
+Read [`../../context/codebase-architecture.md`](../../context/codebase-architecture.md) for the
+canonical depth, locality, leverage, dependency-category, export-taxonomy, and proof model. The
+checker validates declared evidence and graph facts; this review remains responsible for judging
+whether the interface is coherent and deep enough to certify.
+
 Read [`references/review-matrix.md`](references/review-matrix.md) for the detailed inspection matrix.
 Load the nearest package `AGENTS.md` files and the relevant package context under
 `.claude/context/`. For test architecture, also read `.claude/context/testing.md`; for explicit
@@ -59,6 +64,11 @@ side effects, state identity, and direct subject tests. Review declared exports 
 deep imports, wrong-way package dependencies, broad barrels that materially increase coupling, and
 duplicate composition or singleton ownership.
 
+Classify every reviewed export as stable-domain, composition, compatibility, or
+internal-candidate. Reconcile human-selected critical seams and hotspots with
+`scripts/data/module-seam-registry.json`: IDs, lifecycle, paths, package exports, production roots,
+consumers, proof paths, review date, and evidence fingerprint must match the pinned candidate.
+
 Do not report a barrel, wrapper, interface, or large file merely because it exists. Report concrete
 harm: accidental dependency loading, mock instability, public-surface drift, duplicated policy,
 state bifurcation, slow import graphs, or an inability to test behavior directly.
@@ -83,6 +93,10 @@ asynchronous projections, or terminal state, apply the risk-triggered matrix fro
 A subject test must import the module through its own specifier outside every mock factory and must
 not mock that same specifier. A consumer test, re-exported barrel import, mock-factory import, typed
 fixture, snapshot, or passing full suite is not a substitute for direct behavior proof.
+
+Keep the proof categories explicit: direct subject behavior, adapter conformance, consumer wiring,
+production composition, and coverage. None substitutes for another. A `SELECTED` registry entry may
+still be awaiting proof; a `CERTIFIED` entry may not have missing, stale, or self-mocking proof.
 
 For every changed production import boundary, compare test mock specifiers with the specifiers
 production now imports. Identify stale whole-module mocks, transitive mock leakage, tests that pass
@@ -127,6 +141,12 @@ Map every authoritative requirement to `SATISFIED`, `MISSING`, `BLOCKED`, or `OU
 path and proof level. Then perform a bounded recurrence sweep for each confirmed root-cause class
 across the changed scope and direct consumers. Record checked-unaffected paths. Do not say "no other
 instances" without a declared search boundary.
+
+Also reconcile documentation and tracking closure: the canonical architecture context, skill
+contracts, builder docs, owning Plan Hub, and parent-only Linear mirror must describe the same
+lifecycle and proof categories. Disclose checker limits, including that static import/path checks do
+not prove module depth, adapter fidelity, runtime reachability, deployed behavior, or useful
+coverage.
 
 ## Validation
 

@@ -1,4 +1,4 @@
-import type { PublicImpactEvidenceKind } from "@green-goods/shared/public-contracts";
+import type { PublicImpactEvidenceKind } from "@green-goods/shared/public-contracts/public-impact";
 import type { MessageDescriptor } from "react-intl";
 
 /**

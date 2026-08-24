@@ -63,14 +63,24 @@ const mockUsePublicImpactEvidence = vi.fn();
 const mockUsePublicGardens = vi.fn();
 const mockUsePublicCommitmentImpact = vi.fn();
 
-vi.mock("@green-goods/shared", async () => {
-  const actual = await vi.importActual<typeof import("@green-goods/shared")>("@green-goods/shared");
+vi.mock("@green-goods/shared/hooks/public/usePublicStats", async (importOriginal) => {
   return {
-    ...actual,
+    ...(await importOriginal()),
     usePublicStats: () => mockUsePublicStats(),
+  };
+});
+
+vi.mock("@green-goods/shared/hooks/public/usePublicImpactEvidence", async (importOriginal) => {
+  return {
+    ...(await importOriginal()),
     usePublicImpactEvidence: () => mockUsePublicImpactEvidence(),
+  };
+});
+
+vi.mock("@green-goods/shared/hooks/public/usePublicGardens", async (importOriginal) => {
+  return {
+    ...(await importOriginal()),
     usePublicGardens: () => mockUsePublicGardens(),
-    usePublicCommitmentImpact: () => mockUsePublicCommitmentImpact(),
   };
 });
 

@@ -1,17 +1,16 @@
+import type { Address, Garden } from "@green-goods/shared/types/domain";
+import { formatAddress } from "@green-goods/shared/utils/app/text";
 import {
-  type Address,
-  formatAddress,
-  type Garden,
-  GardenCardComponent as SharedGardenCard,
+  GardenCard as SharedGardenCard,
   type GardenCardProps as SharedGardenCardProps,
   gardenCardVariants,
-  useEnsName,
-  useGreenGoodsEnsName,
-} from "@green-goods/shared";
+} from "@green-goods/shared/components/Cards/GardenCard/GardenCard";
+import { useEnsName } from "@green-goods/shared/hooks/blockchain/useEnsName";
+import { useGreenGoodsEnsName } from "@green-goods/shared/hooks/ens/useGreenGoodsEnsName";
 import * as React from "react";
 import { useIntl } from "react-intl";
 export { gardenCardVariants };
-export type { GardenCardVariantProps } from "@green-goods/shared";
+export type { GardenCardVariantProps } from "@green-goods/shared/components/Cards/GardenCard/GardenCard";
 
 export type GardenCardOptions = {
   showOperators?: boolean;

@@ -1,4 +1,7 @@
-import { type Action, cn, useActions, useInViewReveal } from "@green-goods/shared";
+import type { Action } from "@green-goods/shared/types/domain";
+import { cn } from "@green-goods/shared/utils/styles/cn";
+import { useActions } from "@green-goods/shared/hooks/blockchain/useBaseLists";
+import { useInViewReveal } from "@green-goods/shared/hooks/ui/useInViewReveal";
 import { selectPublicSurfaceState } from "@green-goods/shared/public";
 import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";

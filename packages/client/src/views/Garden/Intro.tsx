@@ -1,12 +1,7 @@
-import {
-  type Action,
-  Domain,
-  expandDomainMask,
-  type Garden,
-  hapticSelection,
-  hasDomain,
-  localizeAction,
-} from "@green-goods/shared";
+import { type Action, Domain, type Garden } from "@green-goods/shared/types/domain";
+import { expandDomainMask, hasDomain } from "@green-goods/shared/utils/domain";
+import { hapticSelection } from "@green-goods/shared/utils/app/haptics";
+import { localizeAction } from "@green-goods/shared/utils/action/translations";
 import { RiHammerFill, RiLoader4Line, RiPlantFill, RiUserAddLine } from "@remixicon/react";
 import React, { useMemo } from "react";
 import { useIntl } from "react-intl";

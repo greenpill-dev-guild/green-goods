@@ -1,16 +1,18 @@
+import { formatApy } from "@green-goods/shared/utils/blockchain/aave";
+import { formatTokenAmount } from "@green-goods/shared/utils/blockchain/vaults";
 import {
-  formatApy,
-  formatTokenAmount,
   type PublicGardenSummary,
+  usePublicGardens,
+} from "@green-goods/shared/hooks/public/usePublicGardens";
+import {
   type PublicGardenVaultSummary,
   type PublicVaultSummary,
   type PublicVaultSummaryAsset,
-  useInViewReveal,
-  usePublicGardens,
   usePublicVaultSummary,
-} from "@green-goods/shared";
+} from "@green-goods/shared/hooks/public/usePublicVaultSummary";
+import { useInViewReveal } from "@green-goods/shared/hooks/ui/useInViewReveal";
 import { selectPublicSurfaceState } from "@green-goods/shared/public";
-import type { PublicFundingIntentKind } from "@green-goods/shared/public-contracts";
+import type { PublicFundingIntentKind } from "@green-goods/shared/public-contracts/core";
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { useSearchParams } from "react-router-dom";
@@ -30,13 +32,11 @@ import { PublicSurfaceState } from "@/components/Public/PublicSurfaceState";
 import { getPublicHeroImage, publicCuration } from "@/content/publicCuration";
 import WalletRuntimeProviders from "@/routes/WalletRuntimeProviders";
 import { resolveGardenQuery } from "@/views/Public/garden-query-resolution";
-
 const PublicFundingCard = lazy(() =>
   import("@/components/Public/PublicFundingCard").then((module) => ({
     default: module.PublicFundingCard,
   }))
 );
-
 interface SupportPathProps {
   numeral: string;
   titleId: string;

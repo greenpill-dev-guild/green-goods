@@ -1,4 +1,5 @@
-import { type Address, type Work, compareAddresses } from "@green-goods/shared";
+import type { Address, Work } from "@green-goods/shared/types/domain";
+import { compareAddresses } from "@green-goods/shared/utils/blockchain/address";
 
 /**
  * Build a lookup map of work by ID for efficient access.

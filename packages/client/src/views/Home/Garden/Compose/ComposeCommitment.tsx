@@ -2,11 +2,11 @@ import {
   COMPOSER_BEATS,
   type ComposerBeat,
   type ComposerBlockedReason,
-  DEFAULT_CHAIN_ID,
-  DialogShell,
   selectBeatValidity,
-  useCommitmentComposerController,
-} from "@green-goods/shared";
+} from "@green-goods/shared/hooks/client-ui/commitment/composerBeats";
+import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
+import { DialogShell } from "@green-goods/shared/components/Dialog/ConfirmDialog";
+import { useCommitmentComposerController } from "@green-goods/shared/hooks/client-ui/commitment/useCommitmentComposerController";
 import { useCallback, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { Navigate, useNavigate, useParams, useSearchParams } from "react-router-dom";

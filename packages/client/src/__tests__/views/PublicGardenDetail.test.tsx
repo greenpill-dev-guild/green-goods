@@ -62,28 +62,74 @@ const mockUseHypercerts = vi.fn();
 const mockUsePublicGardenPool = vi.fn();
 const mockUseApp = vi.fn();
 
-vi.mock("@green-goods/shared", async () => {
-  const actual = await vi.importActual<typeof import("@green-goods/shared")>("@green-goods/shared");
+vi.mock("@green-goods/shared/hooks/public/usePublicGardens", async (importOriginal) => {
   return {
-    ...actual,
+    ...(await importOriginal()),
     usePublicGardens: (...args: unknown[]) => mockUsePublicGardens(...args),
+  };
+});
+
+vi.mock("@green-goods/shared/hooks/public/usePublicGardenDetail", async (importOriginal) => {
+  return {
+    ...(await importOriginal()),
     usePublicGardenDetail: (...args: unknown[]) => mockUsePublicGardenDetail(...args),
+  };
+});
+
+vi.mock("@green-goods/shared/hooks/hypercerts/useHypercerts", async (importOriginal) => {
+  return {
+    ...(await importOriginal()),
     useHypercerts: (...args: unknown[]) => mockUseHypercerts(...args),
-    usePublicGardenPool: (...args: unknown[]) => mockUsePublicGardenPool(...args),
+  };
+});
+
+vi.mock("@green-goods/shared/providers/App", async (importOriginal) => {
+  return {
+    ...(await importOriginal()),
     useApp: () => mockUseApp(),
-    // Real AddressDisplay resolves ENS through wagmi, which needs a provider
-    // this suite deliberately does not stand up. It renders a <button> (popover
-    // tooltip trigger) whether or not the copy affordance is on — the stub keeps
-    // that shape, because a span-shaped stub is what let a button-inside-a-button
-    // reach the browser.
+  };
+});
+
+vi.mock("@green-goods/shared/components/AddressDisplay", async (importOriginal) => {
+  return {
+    ...(await importOriginal()),
     AddressDisplay: ({ address }: { address: Address }) =>
       createElement("button", { type: "button", "data-testid": "address" }, address),
+  };
+});
+
+vi.mock("@green-goods/shared/hooks/blockchain/useEnsName", async (importOriginal) => {
+  return {
+    ...(await importOriginal()),
     useEnsName: () => ({ data: null }),
+  };
+});
+
+vi.mock("@green-goods/shared/utils/app/text", async (importOriginal) => {
+  return {
+    ...(await importOriginal()),
     formatAddress: (address: string) => `${address.slice(0, 4)}…${address.slice(-3)}`,
-    getRelativeTimeParts: () => ({ value: -3, unit: "day" }),
+  };
+});
+
+vi.mock("@green-goods/shared/utils/eas/explorers", async (importOriginal) => {
+  return {
+    ...(await importOriginal()),
     getEASExplorerUrl: (chainId: number, uid: string) =>
       `https://explorer.example/${chainId}/${uid}`,
+  };
+});
+
+vi.mock("@green-goods/shared/config/default-chain", async (importOriginal) => {
+  return {
+    ...(await importOriginal()),
     DEFAULT_CHAIN_ID: 42161,
+  };
+});
+
+vi.mock("@green-goods/shared/hooks/app/useInstallGuidance", async (importOriginal) => {
+  return {
+    ...(await importOriginal()),
     useInstallGuidance: () => ({
       scenario: "desktop",
       primaryAction: { type: "continue-in-browser", label: "Open on Mobile" },

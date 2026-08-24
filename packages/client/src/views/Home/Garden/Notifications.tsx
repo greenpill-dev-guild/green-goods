@@ -1,11 +1,8 @@
-import {
-  cn,
-  formatAddress,
-  type Garden,
-  useEnsName,
-  useNavigateToTop,
-  type Work,
-} from "@green-goods/shared";
+import { cn } from "@green-goods/shared/utils/styles/cn";
+import { formatAddress } from "@green-goods/shared/utils/app/text";
+import type { Garden, Work } from "@green-goods/shared/types/domain";
+import { useEnsName } from "@green-goods/shared/hooks/blockchain/useEnsName";
+import { useNavigateToTop } from "@green-goods/shared/hooks/app/useNavigateToTop";
 import { RiAlertFill, RiSeedlingFill } from "@remixicon/react";
 import type React from "react";
 import { useIntl } from "react-intl";

@@ -1,18 +1,17 @@
+import type { Address } from "@green-goods/shared/types/domain";
+import { ConfirmDialog } from "@green-goods/shared/components/Dialog/ConfirmDialog";
 import {
-  type Address,
-  ConfirmDialog,
   formatTokenAmount,
-  type GardenVault,
   getVaultAssetDecimals,
   getVaultAssetSymbol,
-  useDebouncedValue,
-  useOffline,
-  useUser,
-  useVaultPreview,
-  useVaultWithdraw,
-  type VaultDeposit,
   validateDecimalInput,
-} from "@green-goods/shared";
+} from "@green-goods/shared/utils/blockchain/vaults";
+import type { GardenVault, VaultDeposit } from "@green-goods/shared/types/vaults";
+import { useDebouncedValue } from "@green-goods/shared/hooks/utils/useDebouncedValue";
+import { useOffline } from "@green-goods/shared/hooks/app/useOffline";
+import { useUser } from "@green-goods/shared/hooks/auth/useUser";
+import { useVaultPreview } from "@green-goods/shared/hooks/vault/useVaultPreview";
+import { useVaultWithdraw } from "@green-goods/shared/hooks/vault/useVaultWithdraw";
 import { RiLoader4Line } from "@remixicon/react";
 import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";

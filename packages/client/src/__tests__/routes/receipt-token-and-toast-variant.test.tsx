@@ -38,7 +38,7 @@ function createWindowLike(pathname: string, search: string, hash: string): Windo
   } as unknown as Window;
 }
 
-describe("Root receipt-token bootstrap", () => {
+describe("receipt-token bootstrap", () => {
   beforeEach(() => {
     window.sessionStorage.clear();
     window.history.replaceState({}, "", "/");

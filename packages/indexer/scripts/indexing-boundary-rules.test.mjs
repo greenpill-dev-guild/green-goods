@@ -29,7 +29,7 @@ function productionChains() {
   ];
 }
 
-describe("indexing boundary pinned pooling contracts", () => {
+describe("indexing boundary rules", () => {
   it("accepts the canonical production release pins case-insensitively", () => {
     assert.deepEqual(
       validatePinnedPoolingContracts(productionChains()),

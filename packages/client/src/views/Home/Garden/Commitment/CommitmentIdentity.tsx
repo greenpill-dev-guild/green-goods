@@ -1,4 +1,4 @@
-import { StatusBadge } from "@green-goods/shared";
+import { StatusBadge } from "@green-goods/shared/components/StatusBadge";
 import {
   type CommitmentContributorRecord,
   type CommitmentMetadataV1,

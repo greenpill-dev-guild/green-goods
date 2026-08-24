@@ -1,16 +1,12 @@
-import {
-  type Address,
-  cn,
-  ConfirmDialog,
-  DEFAULT_CHAIN_ID,
-  type DraftWithImages,
-  findActionByUID,
-  logger,
-  toastService,
-  useActions,
-  useDrafts,
-  useGardens,
-} from "@green-goods/shared";
+import type { Address } from "@green-goods/shared/types/domain";
+import { cn } from "@green-goods/shared/utils/styles/cn";
+import { ConfirmDialog } from "@green-goods/shared/components/Dialog/ConfirmDialog";
+import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
+import { type DraftWithImages, useDrafts } from "@green-goods/shared/hooks/work/useDrafts";
+import { findActionByUID } from "@green-goods/shared/utils/action/parsers";
+import { logger } from "@green-goods/shared/modules/app/logger";
+import { toastService } from "@green-goods/shared/components/Toast/toast.service";
+import { useActions, useGardens } from "@green-goods/shared/hooks/blockchain/useBaseLists";
 import { RiAlertLine, RiDraftLine, RiLoader4Line, RiRefreshLine } from "@remixicon/react";
 import React, { useState } from "react";
 import { useIntl } from "react-intl";

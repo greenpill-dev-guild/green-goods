@@ -4,7 +4,7 @@
  * Side-effect module: initializes IPFS upload/gateway settings from environment.
  * Imported as `import "@/config"` in main.tsx.
  */
-import { initializeIpfsFromEnv } from "@green-goods/shared";
+import { initializeIpfsFromEnv } from "@green-goods/shared/modules/data/ipfs/client";
 
 // Initialize IPFS upload/gateway settings from environment
 void initializeIpfsFromEnv({

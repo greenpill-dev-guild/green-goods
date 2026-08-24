@@ -1,4 +1,5 @@
-import { formatTokenAmount, type SendableTokenBalance } from "@green-goods/shared";
+import { formatTokenAmount } from "@green-goods/shared/utils/blockchain/vaults";
+import type { SendableTokenBalance } from "@green-goods/shared/hooks/blockchain/useSendableTokens";
 import {
   RiErrorWarningLine,
   RiSendPlaneLine,

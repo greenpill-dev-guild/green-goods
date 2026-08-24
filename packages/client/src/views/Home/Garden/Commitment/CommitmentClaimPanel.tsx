@@ -1,4 +1,6 @@
-import { type Address, AddressDisplay, StatusBadge } from "@green-goods/shared";
+import type { Address } from "@green-goods/shared/types/domain";
+import { AddressDisplay } from "@green-goods/shared/components/AddressDisplay";
+import { StatusBadge } from "@green-goods/shared/components/StatusBadge";
 import {
   type CommitmentClaimRequestRecord,
   type CommitmentReadModel,

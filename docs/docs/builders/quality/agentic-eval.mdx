@@ -4,7 +4,7 @@ sidebar_label: Agentic Eval
 slug: /builders/quality/agentic-eval
 audience: developer
 owner: docs
-last_verified: 2026-08-18
+last_verified: 2026-08-24
 feature_status: Live
 source_of_truth:
   - AGENTS.md
@@ -154,7 +154,22 @@ For iterative agent work, use the fastest honest loop:
 - `bash scripts/quality/check-test-quality.sh` when touching test governance
 - broader package or repo gates only once the local loop is green
 
-Coverage remains a scheduled floor on package CI and pre-merge validation, not the per-change inner loop.
+Coverage remains an outer-loop regression floor, not the per-change inner loop and not a universal
+pre-merge gate. Package coverage floors run in the scheduled Coverage Nightly workflow, on pushes to
+the default branch, and by manual dispatch. An explicit full readiness or release review may select
+coverage evidence when its policy requires it, but ordinary pull-request Test jobs run plain tests.
+
+Track validation velocity as separate signals rather than one blended duration:
+
+- **Inner loop**: time to the targeted direct behavior signal while editing.
+- **Checkpoint**: time for the selector-chosen package and consumer graph after a coherent batch.
+- **Coverage freshness**: age and exact SHA of the latest outer-loop coverage receipt.
+- **Push workflow**: live wall time for the workflows selected by the complete changed path set.
+- **Static red rate**: percentage of live CI failures caused by deterministic static checks rather
+  than behavior tests or environment capability.
+
+Comparable measurements use the same toolchain, environment profile, entrypoint, and source inputs.
+Do not substitute a warm cache, loaded-host best run, local timing, or historical unrelated CI run.
 
 ## Running & Troubleshooting
 

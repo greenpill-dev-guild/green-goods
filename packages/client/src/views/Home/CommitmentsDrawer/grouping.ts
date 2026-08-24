@@ -1,4 +1,4 @@
-import type { Garden } from "@green-goods/shared";
+import type { Garden } from "@green-goods/shared/types/domain";
 import type { CommitmentPoolRecord, InboxCommitment } from "@green-goods/shared/commitment-pooling";
 
 export interface GardenGroup {

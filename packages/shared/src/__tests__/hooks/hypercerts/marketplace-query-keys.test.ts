@@ -1,5 +1,5 @@
 /**
- * useMarketplaceApprovals Hook Tests
+ * Marketplace Query-Key Tests
  *
  * Verifies query key safety when operator is undefined (C3 fix).
  * The hook uses `enabled: Boolean(operator)` to prevent execution,

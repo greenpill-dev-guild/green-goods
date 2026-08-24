@@ -14,17 +14,15 @@
  */
 import {
   buildPublicFundingAvailabilityKey,
-  PUBLIC_AGENT_ROUTES,
   type SubmitFundingIntentProofResponse,
-} from "@green-goods/shared/public-contracts";
-import {
-  prepareOctantVaultCardEndowFallbackPlan,
-  getOctantVaultAssetDisplayPolicy,
-  rememberOctantVaultCardWalletPosition,
-  useTimeout,
-  type Address,
-  type OctantVaultCampaignManifest,
-} from "@green-goods/shared";
+} from "@green-goods/shared/public-contracts/core";
+import { PUBLIC_AGENT_ROUTES } from "@green-goods/shared/public-contracts/routes";
+import { prepareOctantVaultCardEndowFallbackPlan } from "@green-goods/shared/modules/vault-crowdfunding/route-manage";
+import { getOctantVaultAssetDisplayPolicy } from "@green-goods/shared/modules/vault-crowdfunding/copy";
+import { rememberOctantVaultCardWalletPosition } from "@green-goods/shared/modules/octant-vault-card-wallet-cache";
+import { useTimeout } from "@green-goods/shared/hooks/utils/useTimeout";
+import type { Address } from "@green-goods/shared/types/domain";
+import type { OctantVaultCampaignManifest } from "@green-goods/shared/modules/vault-crowdfunding/manifest";
 import { type FormEvent, useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import {

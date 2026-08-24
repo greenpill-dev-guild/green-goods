@@ -1,15 +1,11 @@
-import {
-  type Address,
-  cn,
-  copyToClipboard,
-  formatAddress,
-  type Garden,
-  type GardenerCard,
-  toastService,
-  useEnsAvatar,
-  useEnsName,
-  useGreenGoodsEnsName,
-} from "@green-goods/shared";
+import type { Address, Garden, GardenerCard } from "@green-goods/shared/types/domain";
+import { cn } from "@green-goods/shared/utils/styles/cn";
+import { copyToClipboard } from "@green-goods/shared/utils/app/clipboard";
+import { formatAddress } from "@green-goods/shared/utils/app/text";
+import { toastService } from "@green-goods/shared/components/Toast/toast.service";
+import { useEnsAvatar } from "@green-goods/shared/hooks/blockchain/useEnsAvatar";
+import { useEnsName } from "@green-goods/shared/hooks/blockchain/useEnsName";
+import { useGreenGoodsEnsName } from "@green-goods/shared/hooks/ens/useGreenGoodsEnsName";
 import * as Dialog from "@radix-ui/react-dialog";
 import {
   RiCalendarEventFill,

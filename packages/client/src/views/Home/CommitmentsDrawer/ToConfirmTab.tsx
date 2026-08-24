@@ -1,4 +1,5 @@
-import { StatusBadge, useOffline } from "@green-goods/shared";
+import { StatusBadge } from "@green-goods/shared/components/StatusBadge";
+import { useOffline } from "@green-goods/shared/hooks/app/useOffline";
 import {
   type CommitmentsToConfirm,
   isCapturedCommitment,

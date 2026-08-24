@@ -1,4 +1,5 @@
-import type { Garden, GardenFilterScope } from "@green-goods/shared";
+import type { Garden } from "@green-goods/shared/types/domain";
+import type { GardenFilterScope } from "@green-goods/shared/hooks/garden/useFilteredGardens";
 import { RiRefreshLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { GardenCard, GardenCardSkeleton } from "@/components/Cards";

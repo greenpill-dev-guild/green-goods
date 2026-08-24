@@ -6,12 +6,24 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const mockUseGardens = vi.fn();
 
-vi.mock("@green-goods/shared", () => ({
+vi.mock("@green-goods/shared/config/default-chain", () => ({
   DEFAULT_CHAIN_ID: 42161,
+}));
+
+vi.mock("@green-goods/shared/utils/garden-detail", () => ({
   DOMAIN_LABEL_IDS: { 1: "app.domain.tab.agro" },
+}));
+
+vi.mock("@green-goods/shared/utils/time", () => ({
   formatDateRange: (start: number, end: number, fallback: string) =>
     start || end ? "Nov 14, 2023 – Mar 9, 2024" : fallback,
+}));
+
+vi.mock("@green-goods/shared/modules/data/ipfs/resolve", () => ({
   resolveIPFSUrl: (cid: string) => `https://gateway.test/ipfs/${cid}`,
+}));
+
+vi.mock("@green-goods/shared/hooks/blockchain/useBaseLists", () => ({
   useGardens: (...args: unknown[]) => mockUseGardens(...args),
 }));
 

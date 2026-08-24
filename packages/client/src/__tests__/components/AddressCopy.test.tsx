@@ -11,16 +11,30 @@ const mocks = vi.hoisted(() => ({
   reset: null as null | (() => void),
 }));
 
-vi.mock("@green-goods/shared", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("@green-goods/shared")>()),
-  copyToClipboard: (...args: unknown[]) => mocks.copy(...args),
-  toastService: { success: mocks.success, error: mocks.error },
-  useTimeout: () => ({
-    set: (callback: () => void) => {
-      mocks.reset = callback;
-    },
-  }),
-}));
+vi.mock("@green-goods/shared/utils/app/clipboard", async (importOriginal) => {
+  return {
+    ...(await importOriginal()),
+    copyToClipboard: (...args: unknown[]) => mocks.copy(...args),
+  };
+});
+
+vi.mock("@green-goods/shared/components/Toast/toast.service", async (importOriginal) => {
+  return {
+    ...(await importOriginal()),
+    toastService: { success: mocks.success, error: mocks.error },
+  };
+});
+
+vi.mock("@green-goods/shared/hooks/utils/useTimeout", async (importOriginal) => {
+  return {
+    ...(await importOriginal()),
+    useTimeout: () => ({
+      set: (callback: () => void) => {
+        mocks.reset = callback;
+      },
+    }),
+  };
+});
 
 const { AddressCopy } = await import("@/components/Inputs/Clipboard/AddressCopy");
 const ADDRESS = "0x1111111111111111111111111111111111111111" as const;

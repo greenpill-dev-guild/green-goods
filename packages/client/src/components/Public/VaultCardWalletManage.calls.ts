@@ -4,12 +4,12 @@
  * Contract-call helpers for the staged Card Endow recovery-wallet surface. This module may be
  * imported only by the other staged Card Endow modules until activation is explicitly scheduled.
  */
+import type { Address } from "@green-goods/shared/types/domain";
+import { DEFAULT_WITHDRAW_MAX_LOSS_BPS } from "@green-goods/shared/utils/blockchain/vaults";
 import {
-  type Address,
-  DEFAULT_WITHDRAW_MAX_LOSS_BPS,
   OCTANT_VAULT_REDEEM_CALL_SHAPES,
   type OctantVaultRedeemCallVariant,
-} from "@green-goods/shared";
+} from "@green-goods/shared/utils/blockchain/octant-vault-redeem";
 import { getContract, prepareContractCall, readContract } from "thirdweb";
 
 type VaultContract = ReturnType<typeof getContract>;

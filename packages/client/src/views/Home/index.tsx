@@ -1,20 +1,18 @@
-import {
-  cn,
-  DEFAULT_CHAIN_ID,
-  queryKeys,
-  toastService,
-  useArrivalState,
-  useAuthState,
-  useBrowserNavigation,
-  useFilteredGardens,
-  useGardens,
-  useLoadingWithMinDuration,
-  useNavigateToTop,
-  useOffline,
-  usePrimaryAddress,
-  useTimeout,
-  useUIStore,
-} from "@green-goods/shared";
+import { cn } from "@green-goods/shared/utils/styles/cn";
+import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
+import { queryKeys } from "@green-goods/shared/config/query-keys/registry";
+import { toastService } from "@green-goods/shared/components/Toast/toast.service";
+import { useArrivalState } from "@green-goods/shared/hooks/app/useArrivalState";
+import { useAuthState } from "@green-goods/shared/hooks/auth/useAuth";
+import { useBrowserNavigation } from "@green-goods/shared/hooks/app/useBrowserNavigation";
+import { useFilteredGardens } from "@green-goods/shared/hooks/garden/useFilteredGardens";
+import { useGardens } from "@green-goods/shared/hooks/blockchain/useBaseLists";
+import { useLoadingWithMinDuration } from "@green-goods/shared/hooks/app/useLoadingWithMinDuration";
+import { useNavigateToTop } from "@green-goods/shared/hooks/app/useNavigateToTop";
+import { useOffline } from "@green-goods/shared/hooks/app/useOffline";
+import { usePrimaryAddress } from "@green-goods/shared/hooks/auth/usePrimaryAddress";
+import { useTimeout } from "@green-goods/shared/hooks/utils/useTimeout";
+import { useUIStore } from "@green-goods/shared/stores/useUIStore";
 import {
   useCommitmentsInbox,
   useCommitmentsToConfirm,

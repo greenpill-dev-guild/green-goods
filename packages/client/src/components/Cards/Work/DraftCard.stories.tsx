@@ -1,4 +1,5 @@
-import type { Address, DraftWithImages } from "@green-goods/shared";
+import type { Address } from "@green-goods/shared/types/domain";
+import type { DraftWithImages } from "@green-goods/shared/hooks/work/useDrafts";
 import type { Meta, StoryObj } from "@storybook/react";
 import { expect, userEvent, within } from "storybook/test";
 import { DraftCard } from "./DraftCard";

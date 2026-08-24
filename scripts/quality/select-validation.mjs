@@ -53,6 +53,11 @@ function validatePolicy(policy) {
         }
       }
     }
+    for (const flag of ["runInQa", "runInEvidence"]) {
+      if (rule[flag] !== undefined && typeof rule[flag] !== "boolean") {
+        throw new Error(`Validation rule ${flag} must be boolean`);
+      }
+    }
   }
 }
 
@@ -476,7 +481,8 @@ export function selectValidation(input = {}, options = {}) {
   ) {
     select("staged-modules", "client:staged-boundary");
   }
-  for (const rule of evidenceOnly ? [] : (policy.conditionalRules ?? [])) {
+  for (const rule of policy.conditionalRules ?? []) {
+    if (evidenceOnly && rule.runInEvidence !== true) continue;
     if (rule.intents && !rule.intents.includes(intent)) continue;
     const matchingPaths = changedPaths.filter((path) => {
       if (!groupMatches(path, rule)) return false;
@@ -522,6 +528,7 @@ export function selectValidation(input = {}, options = {}) {
           intent,
           ci,
           changedPaths,
+          deletedPaths,
           checkpointScope: checkpointScope.effective,
         }),
         selectedBy: [...(selectionReasons.get(check.id) ?? [])],
@@ -617,6 +624,10 @@ function materializeCheck(check, environment, mandatory, testPaths, context) {
   }
   const laneCheckpoint =
     context.intent === "checkpoint" && context.checkpointScope === "lane";
+  const deletedPaths = new Set(context.deletedPaths ?? []);
+  const existingChangedPaths = context.changedPaths.filter(
+    (path) => !deletedPaths.has(path),
+  );
   if (
     check.id === "format" &&
     !context.ci &&
@@ -632,7 +643,10 @@ function materializeCheck(check, environment, mandatory, testPaths, context) {
     // Biome exits non-zero when every supplied path is one it does not handle,
     // which a Markdown-only or Solidity-only change always is. Without this the
     // scoped format check fails and fail-fast stops the rest of the plan.
-    command = `bunx @biomejs/biome format --no-errors-on-unmatched ${context.changedPaths.map(shellQuote).join(" ")}`;
+    command =
+      existingChangedPaths.length > 0
+        ? `bunx @biomejs/biome format --no-errors-on-unmatched ${existingChangedPaths.map(shellQuote).join(" ")}`
+        : `node -e "console.log('format: no existing changed paths')"`;
   }
   if (check.id === "lint" && (context.intent === "qa" || laneCheckpoint)) {
     const lintablePrefixes = [
@@ -643,7 +657,7 @@ function materializeCheck(check, environment, mandatory, testPaths, context) {
       "packages/agent/src/",
       "packages/contracts/script/",
     ];
-    const sourcePaths = context.changedPaths.filter((path) =>
+    const sourcePaths = existingChangedPaths.filter((path) =>
       [".js", ".jsx", ".mjs", ".cjs", ".ts", ".tsx"].some(
         (extension) => path.endsWith(extension),
       ) &&
@@ -653,7 +667,9 @@ function materializeCheck(check, environment, mandatory, testPaths, context) {
     command =
       sourcePaths.length > 0
         ? `bun --bun run oxlint ${sourcePaths.map(shellQuote).join(" ")} --deny-warnings`
-        : `bunx @biomejs/biome lint --no-errors-on-unmatched ${context.changedPaths.map(shellQuote).join(" ")}`;
+        : existingChangedPaths.length > 0
+          ? `bunx @biomejs/biome lint --no-errors-on-unmatched ${existingChangedPaths.map(shellQuote).join(" ")}`
+          : `node -e "console.log('lint: no existing changed paths')"`;
   }
   let budgetSeconds = focusedPaths.length > 0 ? Math.min(check.budgetSeconds, 60) : check.budgetSeconds;
   if (

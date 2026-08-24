@@ -1,4 +1,7 @@
-import { type PublicGardenSummary, publicGardenHelpers } from "@green-goods/shared";
+import {
+  type PublicGardenSummary,
+  publicGardenHelpers,
+} from "@green-goods/shared/hooks/public/usePublicGardens";
 
 export type ResolutionStatus = "absent" | "match" | "stale" | "ambiguous";
 

@@ -1,4 +1,6 @@
-import { Button, type ButtonProps, useAuth, useUser } from "@green-goods/shared";
+import { Button, type ButtonProps } from "@green-goods/shared/components/Button";
+import { useAuth } from "@green-goods/shared/hooks/auth/useAuth";
+import { useUser } from "@green-goods/shared/hooks/auth/useUser";
 import type { ReactNode } from "react";
 import { useIntl } from "react-intl";
 

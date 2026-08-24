@@ -31,7 +31,7 @@ import {
   selectPromiseKeptRate,
   selectRequirementProgress,
   type CommitmentReadModel,
-} from "../modules/commitment-pooling";
+} from "../commitment-pooling";
 
 const ACCOUNT = "0xABCDEFabcdefABCDEFabcdefABCDEFabcdefABCD";
 

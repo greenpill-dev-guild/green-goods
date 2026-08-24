@@ -1,4 +1,5 @@
-import { JobQueueProvider, WorkProvider } from "@green-goods/shared";
+import { JobQueueProvider } from "@green-goods/shared/providers/JobQueue";
+import { WorkProvider } from "@green-goods/shared/providers/Work";
 import { useLayoutEffect } from "react";
 import { Outlet, ScrollRestoration, useLocation } from "react-router-dom";
 import { OfflineIndicator } from "@/components/Communication";

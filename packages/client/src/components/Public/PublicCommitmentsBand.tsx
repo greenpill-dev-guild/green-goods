@@ -1,9 +1,7 @@
-import {
-  DEFAULT_CHAIN_ID,
-  formatTokenAmount,
-  getCampaignCookieJarPayoutAssets,
-  useInViewReveal,
-} from "@green-goods/shared";
+import { DEFAULT_CHAIN_ID } from "@green-goods/shared/config/default-chain";
+import { formatTokenAmount } from "@green-goods/shared/utils/blockchain/vaults";
+import { getCampaignCookieJarPayoutAssets } from "@green-goods/shared/utils/cookie-jar-campaign";
+import { useInViewReveal } from "@green-goods/shared/hooks/ui/useInViewReveal";
 import {
   selectPublicPromiseKeptRate,
   usePublicCommitmentImpact,

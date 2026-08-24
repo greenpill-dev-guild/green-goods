@@ -1,13 +1,13 @@
+import type { Address } from "@green-goods/shared/types/domain";
 import {
-  type Address,
   buildRecipientDirectory,
   flattenRecipientMembers,
   sharedGardenNames,
-  useEnsAddress,
-  useGardens,
-  useRecentRecipients,
-  useUser,
-} from "@green-goods/shared";
+} from "@green-goods/shared/utils/app/send-recipients";
+import { useEnsAddress } from "@green-goods/shared/hooks/blockchain/useEnsAddress";
+import { useGardens } from "@green-goods/shared/hooks/blockchain/useBaseLists";
+import { useRecentRecipients } from "@green-goods/shared/hooks/blockchain/useRecentRecipients";
+import { useUser } from "@green-goods/shared/hooks/auth/useUser";
 import {
   RiArrowLeftLine,
   RiArrowRightSLine,

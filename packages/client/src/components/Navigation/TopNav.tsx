@@ -1,4 +1,6 @@
-import { cn, type Garden, useOffline, type Work } from "@green-goods/shared";
+import { cn } from "@green-goods/shared/utils/styles/cn";
+import type { Garden, Work } from "@green-goods/shared/types/domain";
+import { useOffline } from "@green-goods/shared/hooks/app/useOffline";
 import {
   RiArrowLeftFill,
   RiBankLine,

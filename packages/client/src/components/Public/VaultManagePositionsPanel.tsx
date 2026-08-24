@@ -1,20 +1,22 @@
+import type { Address } from "@green-goods/shared/types/domain";
+import { Alert } from "@green-goods/shared/components/Alert";
+import { cn } from "@green-goods/shared/utils/styles/cn";
+import { formatAddress } from "@green-goods/shared/utils/app/text";
 import {
-  type Address,
-  Alert,
-  cn,
-  formatAddress,
   formatTokenAmount,
-  type OctantVaultPosition,
-  useAuth,
-  useEnsName,
-  useOctantVaultPositions,
-  useOctantVaultRedeem,
-  useTxErrorMessages,
-  useUser,
-  useWalletConnectDismissGuard,
   normalizeDecimalInput,
   validateDecimalInput,
-} from "@green-goods/shared";
+} from "@green-goods/shared/utils/blockchain/vaults";
+import {
+  type OctantVaultPosition,
+  useOctantVaultPositions,
+} from "@green-goods/shared/hooks/vault/useOctantVaultPositions";
+import { useAuth } from "@green-goods/shared/hooks/auth/useAuth";
+import { useEnsName } from "@green-goods/shared/hooks/blockchain/useEnsName";
+import { useOctantVaultRedeem } from "@green-goods/shared/hooks/vault/useOctantVaultWithdraw";
+import { useTxErrorMessages } from "@green-goods/shared/hooks/utils/useTxErrorMessages";
+import { useUser } from "@green-goods/shared/hooks/auth/useUser";
+import { useWalletConnectDismissGuard } from "@green-goods/shared/hooks/auth/useWalletModalOpen";
 import * as Dialog from "@radix-ui/react-dialog";
 import { RiCloseLine } from "@remixicon/react";
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
@@ -27,7 +29,6 @@ import {
   getAddressExplorerUrl,
   getEthereumNetworkLabel,
 } from "./vaultCheckoutShell";
-
 export interface VaultManagePositionsPanelProps {
   open: boolean;
   onExitComplete?: () => void;
@@ -35,7 +36,6 @@ export interface VaultManagePositionsPanelProps {
   /** Endow CTA target — closes the panel and returns to browse. */
   onEndow?: () => void;
 }
-
 const EXIT_ANIMATION_BUFFER_MS = 50;
 const EXIT_ANIMATION_FALLBACK_MS = 300;
 

@@ -1,16 +1,18 @@
+import { Alert } from "@green-goods/shared/components/Alert";
+import { useAccessibleCookieJars } from "@green-goods/shared/hooks/cookie-jar/useAccessibleCookieJars";
+import { ConfirmDialog } from "@green-goods/shared/components/Dialog/ConfirmDialog";
+import type { CookieJar } from "@green-goods/shared/types/cookie-jar";
 import {
-  Alert,
-  useAccessibleCookieJars,
-  ConfirmDialog,
-  type CookieJar,
   formatTokenAmount,
-  FormattedAmountInput,
   getVaultAssetSymbol,
-  useCookieJarWithdraw,
+} from "@green-goods/shared/utils/blockchain/vaults";
+import {
+  FormattedAmountInput,
   useFormattedAmountInput,
-  useGardens,
-  useOffline,
-} from "@green-goods/shared";
+} from "@green-goods/shared/components/Form/FormattedAmountInput";
+import { useCookieJarWithdraw } from "@green-goods/shared/hooks/cookie-jar/useCookieJarWithdraw";
+import { useGardens } from "@green-goods/shared/hooks/blockchain/useBaseLists";
+import { useOffline } from "@green-goods/shared/hooks/app/useOffline";
 import {
   RiArrowDownSLine,
   RiErrorWarningLine,

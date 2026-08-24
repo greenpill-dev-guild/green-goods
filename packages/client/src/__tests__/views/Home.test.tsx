@@ -11,42 +11,46 @@ import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // Mock the shared barrel — Home imports all hooks/stores/utils from @green-goods/shared
-vi.mock("@green-goods/shared", () => ({
+vi.mock("@green-goods/shared/utils/styles/cn", () => ({
   cn: (...args: unknown[]) => args.filter(Boolean).join(" "),
+}));
+
+vi.mock("@green-goods/shared/config/query-keys/registry", () => ({
   queryKeys: { gardens: { all: ["gardens"] } },
+}));
+
+vi.mock("@green-goods/shared/components/Toast/toast.service", () => ({
   toastService: { info: vi.fn(), error: vi.fn(), success: vi.fn() },
+}));
+
+vi.mock("@green-goods/shared/hooks/app/useArrivalState", () => ({
   useArrivalState: () => ({ kind: "none", myGardenIds: [], needsReviewCount: 0 }),
+}));
+
+vi.mock("@green-goods/shared/hooks/auth/useAuth", () => ({
   useAuthState: () => ({
     isAuthenticated: true,
   }),
+}));
+
+vi.mock("@green-goods/shared/hooks/app/useBrowserNavigation", () => ({
   useBrowserNavigation: vi.fn(),
+}));
+
+vi.mock("@green-goods/shared/config/default-chain", () => ({
   DEFAULT_CHAIN_ID: 42161,
-  useCommitmentsInbox: () => ({
-    live: [],
-    settled: [],
-    liveActCount: 0,
-    settledActCount: 0,
-    totalActCount: 0,
-    availability: { status: "unknown-chain" },
-    isLoading: false,
-    isError: false,
-    refetch: vi.fn(),
-  }),
-  useCommitmentsToConfirm: () => ({
-    groups: [],
-    count: 0,
-    isSteward: false,
-    availability: { status: "unknown-chain" },
-    isLoading: false,
-    isError: false,
-    refetch: vi.fn(),
-  }),
+}));
+
+vi.mock("@green-goods/shared/hooks/garden/useFilteredGardens", () => ({
   useFilteredGardens: (gardens: unknown[]) => ({
     filteredGardens: gardens,
     myGardensCount: 1,
     isFilterActive: false,
     activeFilterCount: 0,
   }),
+}));
+
+vi.mock("@green-goods/shared/hooks/blockchain/useBaseLists", () => ({
   useGardens: () => ({
     data: [
       {
@@ -64,19 +68,37 @@ vi.mock("@green-goods/shared", () => ({
     isError: false,
     refetch: vi.fn(),
   }),
+}));
+
+vi.mock("@green-goods/shared/hooks/app/useLoadingWithMinDuration", () => ({
   useLoadingWithMinDuration: () => ({
     showSkeleton: false,
     timedOut: false,
     reset: vi.fn(),
   }),
+}));
+
+vi.mock("@green-goods/shared/hooks/app/useNavigateToTop", () => ({
   useNavigateToTop: () => vi.fn(),
+}));
+
+vi.mock("@green-goods/shared/hooks/app/useOffline", () => ({
   useOffline: () => ({ isOnline: true }),
+}));
+
+vi.mock("@green-goods/shared/hooks/auth/usePrimaryAddress", () => ({
   usePrimaryAddress: () => "0x1234567890abcdef1234567890abcdef12345678",
+}));
+
+vi.mock("@green-goods/shared/hooks/utils/useTimeout", () => ({
   useTimeout: () => ({
     set: vi.fn(),
     clear: vi.fn(),
     isPending: vi.fn(() => false),
   }),
+}));
+
+vi.mock("@green-goods/shared/stores/useUIStore", () => ({
   useUIStore: (selector: (s: any) => any) => {
     const state = {
       isGardenFilterOpen: false,

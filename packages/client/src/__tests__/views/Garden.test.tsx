@@ -77,83 +77,20 @@ const mockGardens = [
 
 // The component imports everything from @green-goods/shared barrel.
 // Must mock the barrel directly — deep-path mocks don't intercept barrel imports.
-vi.mock("@green-goods/shared", () => ({
-  // config
+vi.mock("@green-goods/shared/config/default-chain", () => ({
   DEFAULT_CHAIN_ID: 11155111,
-  // hooks
-  useAudioRecording: vi.fn(() => ({
-    isRecording: false,
-    isRequesting: false,
-    elapsed: 0,
-    error: null,
-    toggle: vi.fn(),
-    stop: vi.fn(),
-  })),
-  useActionTranslation: () => ({ translatedAction: null }),
-  useDraftAutoSave: () => ({ saveOnExit: vi.fn().mockResolvedValue(undefined) }),
-  useDraftResume: () => ({
-    showDraftDialog: false,
-    handleContinueDraft: vi.fn(),
-    handleStartFresh: vi.fn().mockResolvedValue(undefined),
-    clearActiveDraft: vi.fn().mockResolvedValue(undefined),
-  }),
-  useGardenTranslation: () => ({ translatedGarden: null }),
-  useUser: () => ({ authMode: "wallet" }),
-  useJoinGarden: () => ({
-    joinGarden: vi.fn(),
-    isJoining: false,
-    joiningGardenId: null,
-  }),
-  // providers
-  useWorkFormContext: () => ({
-    ...mockForm,
-    workMutation: { isPending: false, isError: false },
-  }),
-  useWorkSelection: () => ({
-    actions: mockActions,
-    gardens: mockGardens,
-    hasJoinedGardens: mockGardens.length > 0,
-    joinableCommunityGarden: null,
-    isLoading: false,
-    activeTab: "Intro",
-    setActiveTab: mockSetActiveTab,
-    selectedDomain: null,
-    setSelectedDomain: mockSetSelectedDomain,
-    actionUID: mockSelection.actionUID,
-    setActionUID: mockSelection.setActionUID,
-    gardenAddress: mockSelection.gardenAddress,
-    setGardenAddress: mockSelection.setGardenAddress,
-  }),
+}));
+
+vi.mock("@green-goods/shared/stores/workFlowTypes", () => ({
   WorkTab: {
     Intro: "Intro",
     Media: "Media",
     Details: "Details",
     Review: "Review",
   },
-  // stores
-  useWorkFlowStore: Object.assign(
-    (selector: (state: typeof mockWorkFlowState) => unknown) => selector(mockWorkFlowState),
-    { getState: () => mockWorkFlowState }
-  ),
-  // utils
-  findActionByUID: () => ({
-    id: "action-1",
-    title: "Test Action",
-    description: "Test description",
-    inputs: [],
-    mediaInfo: { required: false, maxImageCount: 5 },
-  }),
-  parseContractError: () => ({
-    raw: "",
-    name: "UnknownError",
-    message: "Transaction failed. Please try again.",
-    isKnown: false,
-    recoverable: true,
-    suggestedAction: "retry",
-  }),
-  // offline + timers
-  useOffline: () => ({ isOnline: true, pendingCount: 0, syncStatus: "idle" }),
-  useTimeout: () => ({ set: vi.fn(), clear: vi.fn(), isPending: false }),
+}));
+
+vi.mock("@green-goods/shared/hooks/client-ui/work/useWorkSubmissionFlowController", () => ({
   useWorkSubmissionFlowController: () => ({
     ...mockForm,
     ...mockSelection,
@@ -201,20 +138,10 @@ vi.mock("@green-goods/shared", () => ({
     toggleAudioRecording: vi.fn(),
     workSubmissionJourneyId: "journey-123",
   }),
-  // analytics
+}));
+
+vi.mock("@green-goods/shared/modules/app/posthog", () => ({
   track: vi.fn(),
-  toastService: { success: vi.fn(), error: vi.fn() },
-  // modules
-  logger: { error: vi.fn(), warn: vi.fn(), info: vi.fn(), debug: vi.fn() },
-  mediaResourceManager: {
-    cleanupUrls: vi.fn(),
-    cleanupAll: vi.fn(),
-    getOrCreateUrl: vi.fn(),
-    createUrl: vi.fn(),
-    createUrls: vi.fn(),
-    cleanupUrl: vi.fn(),
-    getStats: vi.fn(() => ({ totalUrls: 0, trackedIds: 0 })),
-  },
 }));
 
 // Mock child components to simplify

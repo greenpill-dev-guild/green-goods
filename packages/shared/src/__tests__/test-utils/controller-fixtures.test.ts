@@ -8,17 +8,19 @@ import type {
 import type { ProofComposerController } from "../../hooks/client-ui/commitment";
 import {
   commitmentDialogControllerFixture,
+  gardenCommitmentControllerFixture,
+  hubConfirmQueueControllerFixture,
+  poolConsoleControllerFixture,
+  proofComposerControllerFixture,
+} from "./controller-fixtures";
+import {
   commitmentDetailFixture,
   commitmentFixture,
   contributorFixture,
   createSharedBarrelMock,
   cycleFixture,
-  gardenCommitmentControllerFixture,
-  hubConfirmQueueControllerFixture,
   poolClaimRowFixture,
-  poolConsoleControllerFixture,
   poolFixture,
-  proofComposerControllerFixture,
   claimFixture,
   toConfirmFixture,
 } from "./index";

@@ -4,8 +4,11 @@ import { createElement } from "react";
 import { IntlProvider } from "react-intl";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-vi.mock("@green-goods/shared", () => ({
+vi.mock("@green-goods/shared/utils/styles/cn", () => ({
   cn: (...args: unknown[]) => args.filter(Boolean).join(" "),
+}));
+
+vi.mock("@green-goods/shared/utils/relativeTime", () => ({
   formatRelativeTime: () => "2 hours ago",
 }));
 

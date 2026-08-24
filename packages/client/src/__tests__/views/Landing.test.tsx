@@ -14,7 +14,7 @@ const renderWithIntl = (element: ReactElement) =>
   render(createElement(IntlProvider, { locale: "en", messages: {} }, element));
 
 // Mock @green-goods/shared
-vi.mock("@green-goods/shared", () => ({
+vi.mock("@green-goods/shared/components/Toast/toast.service", () => ({
   toastService: { success: vi.fn(), error: vi.fn() },
 }));
 

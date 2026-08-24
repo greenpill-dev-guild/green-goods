@@ -1,4 +1,4 @@
-import type { PublicImpactEvidenceRecord } from "@green-goods/shared";
+import type { PublicImpactEvidenceRecord } from "@green-goods/shared/public-contracts/public-impact";
 import type { Meta, StoryObj } from "@storybook/react";
 import { IntlProvider } from "react-intl";
 import { PublicEvidenceCard } from "./PublicEvidenceCard";

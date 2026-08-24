@@ -35,7 +35,7 @@ function createBaseListHook<T>(
 
     return useQuery({
       queryKey,
-      queryFn: fetchFn,
+      queryFn: () => fetchFn(),
       staleTime: options?.staleTime ?? STALE_TIMES.baseLists,
       gcTime: options?.gcTime ?? GC_TIMES.baseLists,
       placeholderData: (previousData) => previousData ?? [],

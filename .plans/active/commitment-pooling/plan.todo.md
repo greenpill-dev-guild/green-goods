@@ -14,11 +14,11 @@ Linear mirror: project [Commitment Pooling](https://linear.app/greenpill-dev-gui
 
 ## Document map
 
-Every file in this hub, by role — **182 files**: 37 at the hub root, 42 under `artifacts/`,
-25 under `handoffs/`, 22 under `hifi/`, 20 under `operations/`, 35 under `reports/` (including
-`reports/linear/`), and 1 under `evidence/`. Counts re-taken 2026-08-21 after the admin dispatch
-prompt landed; the previous 171 predated the client-UI review prompts and the editorial dispatch
-prompt.
+Every file in this hub, by role — **191 files**: 41 at the hub root, 42 under `artifacts/`,
+25 under `handoffs/`, 22 under `hifi/`, 20 under `operations/`, 40 under `reports/` (including
+`reports/linear/`), and 1 under `evidence/`. Counts re-taken 2026-08-24 when the QA Wave 1
+dispatch prompt landed; the previous 182 predated the commitment-walk generator/caption/curation
+files and the 2026-08-22 report wave.
 **This list is the index — if you add a document here, add its row.** Root files each get their own
 row; the six subtrees get one row apiece naming their own in-tree index, because the row for a
 subtree is only honest if that index actually enumerates the tree (this failed review on
@@ -52,6 +52,7 @@ subtree is only honest if that index actually enumerates the tree (this failed r
 | `prompt-editorial-backend.md` | Codex dispatch prompt for the editorial backend readers (merged as PR #745 / #746) | Dispatch prompt — historical once merged |
 | `prompt-client-loop.md` | Claude Code dispatch prompt to finish the client PWA in a worktree: Phase 0 fixes, D1 close-the-loop (W2a, W4, DomainImpact rows, WFLOW, claims, W25), D2 Offer over time (W32, W34, W35); written from `reports/build-review-2026-08-21.md` | Dispatch prompt — re-verify its "Present state" before use |
 | `prompt-admin-console.md` | Claude Code dispatch prompt for the steward console in a worktree: Phase 0 shared foundation (pool/cycle mutations, resumable write chains, steward readers), D1 run-the-season (W7, W11, W8, W10, W13, W12), D2 close-the-season (W7C, W26, W9, W14, W7M); written 2026-08-21 from the build review plus a code read of `develop@bcf6adfc2` and PR #749; scope recorded in `handoffs/claude-ui-admin.md` § Narrowed dispatch option | Dispatch prompt — stacked on PR #749; the D1 PR opens after #749 lands; re-verify its "Present state" before use |
+| `prompt-qa-functional.md` | Agent dispatch prompt for QA Pass 1 · Wave 1 (functional QA across client PWA, steward console, and editorial): Mode A fixture & regression (unattended) or Mode B co-piloted production live loop (two sanctioned test gardens, `dev:prod:mirror`, Afo signs every prompt under the friendly-window protocol); tier-labeled coverage, routed defects, no fixes; written and finalized 2026-08-24 from `develop@cc8722a7e` after #748/#749/#752 merged. Wave 2 (human experience QA) lives in `handoffs/claude-qa-pass-1.md` | Dispatch prompt — re-verify its "Present state" before use |
 | `reports/build-review-2026-08-21.md` | Layer-by-layer build review of the PRD-650 tree: status board, coverage tables, severity-ordered findings, tracking drift, ranked risks, next moves, and the commands run | Dated review evidence — findings carry file:line anchors as of `develop@665e8a573` |
 | `reports/client-loop-2026-08-21.md` | D1 session report for `feature/commitment-pooling-client-loop` (PR #749): built/not-built table keyed to every state id, the seven open decisions, and the demo-world addendum | Dated session evidence — the branch's own account of itself |
 | `reports/client-loop-review-2026-08-21.md` | Adversarial review of PR #749 at `603163d7b`: REQUEST_CHANGES on two blocking defects (route-derived claim/confirm garden; demo mode leaving the dev write path open), five non-blocking findings, gaps, and the lanes that came back clean | Dated review evidence — anchors are as of `603163d7b`; see the feedback ledger for what has since been fixed |

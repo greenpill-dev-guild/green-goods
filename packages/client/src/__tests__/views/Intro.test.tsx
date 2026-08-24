@@ -11,16 +11,26 @@ import { IntlProvider } from "react-intl";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 // Mock only the runtime helpers WorkIntro needs.
-vi.mock("@green-goods/shared", () => {
+vi.mock("@green-goods/shared/types/domain", () => {
   const Domain = {
     SOLAR: 0,
     AGRO: 1,
     EDU: 2,
     WASTE: 3,
   } as const;
-
   return {
     Domain,
+  };
+});
+
+vi.mock("@green-goods/shared/utils/domain", () => {
+  const Domain = {
+    SOLAR: 0,
+    AGRO: 1,
+    EDU: 2,
+    WASTE: 3,
+  } as const;
+  return {
     expandDomainMask: (mask: number) => {
       const domains: Domain[] = [];
       if (mask & 1) domains.push(Domain.SOLAR);
@@ -30,10 +40,16 @@ vi.mock("@green-goods/shared", () => {
       return domains;
     },
     hasDomain: (mask: number, domain: Domain) => (mask & (1 << domain)) !== 0,
-    hapticSelection: vi.fn(),
-    localizeAction: (action: Action) => action,
   };
 });
+
+vi.mock("@green-goods/shared/utils/app/haptics", () => ({
+  hapticSelection: vi.fn(),
+}));
+
+vi.mock("@green-goods/shared/utils/action/translations", () => ({
+  localizeAction: (action: Action) => action,
+}));
 
 // Mock child components used by WorkIntro
 vi.mock("@/components/Actions", () => ({
@@ -127,7 +143,7 @@ vi.mock("@/components/Navigation", () => ({
 }));
 
 // Import after mocks
-import { type Action, type Address, Domain, type Garden } from "@green-goods/shared";
+import { type Action, type Address, Domain, type Garden } from "@green-goods/shared/types/domain";
 import { WorkIntro } from "../../views/Garden/Intro";
 
 const messages: Record<string, string> = {

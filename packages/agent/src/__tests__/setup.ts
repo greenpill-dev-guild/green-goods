@@ -829,64 +829,6 @@ vi.mock("bun:sqlite", () => ({
   Database: InMemoryDatabase,
 }));
 
-// Mock @green-goods/shared completely (do NOT use importActual - it triggers browser library initialization)
-// The agent only uses a small subset of the shared package.
-vi.mock("@green-goods/shared", () => ({
-  // Blockchain functions used by agent
-  getDefaultChain: () => ({ id: 11155111, name: "Sepolia" }),
-  getNetworkConfig: (chainId: number, alchemyKey: string) => ({
-    chainId,
-    rpcUrl: `https://example.invalid/${chainId}/${alchemyKey}`,
-  }),
-  // Both bot functions resolve a bare tx hash (Hex), matching bot-submission.ts.
-  submitApprovalBot: vi.fn().mockResolvedValue("0x" + "0".repeat(64)),
-  submitWorkBot: vi.fn().mockResolvedValue("0x" + "0".repeat(64)),
-
-  // Config constants
-  DEFAULT_CHAIN_ID: 11155111,
-  SUPPORTED_CHAINS: [{ id: 11155111, name: "Sepolia" }],
-
-  // Type guards and utilities
-  isAddress: (value: string) => /^0x[a-fA-F0-9]{40}$/.test(value),
-  getAddress: (address: string) => address.toLowerCase(),
-  zeroAddress: "0x0000000000000000000000000000000000000000",
-
-  // Hypercerts constants (for work submission)
-  TOTAL_UNITS: 100000000n,
-  TransferRestrictions: {
-    AllowAll: 0,
-    DisallowAll: 1,
-    FromCreatorOnly: 2,
-  },
-
-  // Action domains
-  ACTION_DOMAINS: ["biodiversity", "water", "soil", "carbon", "air", "community"],
-
-  // Error utilities
-  parseContractError: vi.fn(() => ({
-    raw: "0x00000000",
-    name: "UnknownError",
-    message: "Unknown error",
-    isKnown: false,
-    recoverable: true,
-    suggestedAction: "retry",
-  })),
-  formatErrorForToast: vi.fn(() => ({ title: "Error", message: "Unknown error" })),
-  parseAndFormatError: vi.fn(() => ({
-    title: "Error",
-    message: "Unknown error",
-    parsed: { name: "UnknownError", isKnown: false },
-  })),
-
-  // Logger (noop for tests)
-  logger: {
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-    debug: vi.fn(),
-  },
-}));
-
 // Mock only external dependencies that can't run in unit tests
 vi.mock("pino", () => ({
   default: () => mockLogger,

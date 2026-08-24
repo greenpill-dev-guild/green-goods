@@ -1,14 +1,16 @@
 import { describe, expect, it } from "vitest";
 import {
-  buildPublicFundingAvailabilityKey,
   createProviderProofRegistry,
   createPublicImpactSlice,
   derivePublicGardenSlug,
-  PUBLIC_FUNDING_AVAILABILITY_REASON_SEMANTICS,
   PUBLIC_AGENT_ROUTES,
   resolveFundGardenReference,
-  type Address,
 } from "../public-contracts";
+import {
+  buildPublicFundingAvailabilityKey,
+  PUBLIC_FUNDING_AVAILABILITY_REASON_SEMANTICS,
+  type Address,
+} from "../public-contracts/core";
 
 const gardenA = "0x1111111111111111111111111111111111111111" as Address;
 const gardenB = "0x2222222222222222222222222222222222222222" as Address;

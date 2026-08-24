@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { readFileSync, readdirSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join, resolve } from "node:path";
 import test from "node:test";
 
@@ -322,38 +322,59 @@ test("consumer Vitest projects separate Node and DOM without project coverage", 
   }
 });
 
-test("Admin and Shared keep the production import seams that protect isolated tests", () => {
+test("Admin, Client, and Shared keep the production import seams that protect isolated tests", () => {
+  const sharedExports = JSON.parse(read("packages/shared/package.json")).exports;
   const declaredSharedImports = new Set(
-    Object.keys(JSON.parse(read("packages/shared/package.json")).exports).map((specifier) =>
+    Object.keys(sharedExports).map((specifier) =>
       specifier === "."
         ? "@green-goods/shared"
         : `@green-goods/shared/${specifier.replace(/^\.\//, "")}`,
     ),
   );
-  const broadAdminBarrels =
+  const publicContractsBarrelTarget = sharedExports["./public-contracts"];
+  for (const [specifier, target] of Object.entries(sharedExports)) {
+    if (specifier.startsWith("./public-contracts/")) {
+      assert.ok(
+        existsSync(join(root, "packages/shared", target)),
+        `${specifier} must target an existing public-contracts leaf`,
+      );
+      assert.notEqual(
+        target,
+        publicContractsBarrelTarget,
+        `${specifier} must target a real leaf instead of aliasing the public-contracts barrel`,
+      );
+    }
+  }
+  const broadConsumerBarrels =
     /@green-goods\/shared\/(?:components|config|constants|hooks|i18n|mocks|modules|profile-avatar|providers|public-contracts|stores|testing|types|utils|workflows)(?=["'])/;
   const exactSharedRoot =
-    /(?:from\s+|import\s*\(|import\s+|vi\.mock\s*\()\s*["']@green-goods\/shared["']/;
+    /(?:from\s+|import\s*\(|import\s+|vi\.(?:mock|importActual)\s*\()\s*["']@green-goods\/shared["']/;
   const sharedImportPattern =
     /(?:from\s+|import\s*\(\s*|import\s+|vi\.(?:mock|importActual)\s*\(\s*)["'](@green-goods\/shared(?:\/[^"']+)?)["']/g;
   const deepRelativeSharedSource =
     /(?:from\s+|import\s*\(|vi\.(?:mock|importActual)\s*\()\s*["'][^"']*shared\/src\//;
 
-  for (const file of sourceFiles("packages/admin/src")) {
-    const source = withoutComments(read(file));
-    assert.doesNotMatch(source, exactSharedRoot, `${file} must import a declared Shared leaf`);
-    assert.doesNotMatch(source, broadAdminBarrels, `${file} must not restore a broad Shared barrel`);
-    for (const match of source.matchAll(sharedImportPattern)) {
-      assert.ok(
-        declaredSharedImports.has(match[1]),
-        `${file} imports undeclared Shared specifier ${match[1]}`,
+  for (const consumerDirectory of ["packages/admin/src", "packages/client/src"]) {
+    for (const file of sourceFiles(consumerDirectory)) {
+      const source = withoutComments(read(file));
+      assert.doesNotMatch(source, exactSharedRoot, `${file} must import a declared Shared leaf`);
+      assert.doesNotMatch(
+        source,
+        broadConsumerBarrels,
+        `${file} must not restore a broad Shared barrel`,
+      );
+      for (const match of source.matchAll(sharedImportPattern)) {
+        assert.ok(
+          declaredSharedImports.has(match[1]),
+          `${file} imports undeclared Shared specifier ${match[1]}`,
+        );
+      }
+      assert.doesNotMatch(
+        source,
+        deepRelativeSharedSource,
+        `${file} must not bypass Shared package exports with a deep-relative import`,
       );
     }
-    assert.doesNotMatch(
-      source,
-      deepRelativeSharedSource,
-      `${file} must not bypass Shared package exports with a deep-relative import`,
-    );
   }
 
   const internalBarrels =

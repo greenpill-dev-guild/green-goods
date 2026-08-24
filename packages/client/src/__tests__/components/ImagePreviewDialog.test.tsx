@@ -16,14 +16,6 @@ vi.mock("@/components/Display", () => ({
   ),
 }));
 
-vi.mock("@green-goods/shared", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@green-goods/shared")>();
-  return {
-    ...actual,
-    cn: (...args: any[]) => args.filter(Boolean).join(" "),
-  };
-});
-
 import { ImagePreviewDialog } from "../../components/Dialogs/ImagePreviewDialog";
 
 const IMAGES = [

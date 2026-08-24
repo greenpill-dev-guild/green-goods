@@ -162,6 +162,31 @@
       "expect": "clean"
     },
     {
+      "id": "architecture-plan-01",
+      "query": "Scan the codebase for architecture opportunities that would deepen modules, reduce coupling, and improve agentic coding velocity. Rank the best candidates before we choose one.",
+      "expect": "plan"
+    },
+    {
+      "id": "architecture-review-01",
+      "query": "Review this PR's new module boundary and adapter interface. Is the change structurally sound, deep enough, and production quality?",
+      "expect": "review"
+    },
+    {
+      "id": "architecture-audit-01",
+      "query": "Audit the whole repo for measurable drift, brittle hotspots, dead code, dependency problems, and recurring architecture friction. Do not design refactors yet.",
+      "expect": "audit"
+    },
+    {
+      "id": "module-seams-review-01",
+      "query": "Perform a pinned read-only certification of our critical module seams, public exports, composition roots, direct tests, adapter conformance, and registry freshness.",
+      "expect": "module-seams-review"
+    },
+    {
+      "id": "architecture-clean-01",
+      "query": "Implement the approved cleanup scope now: remove dead code, deduplicate the helpers, strengthen the types, and clear the legacy compatibility layer.",
+      "expect": "clean"
+    },
+    {
       "id": "none-01",
       "query": "Rename the variable gardenId to gardenAddress in useGardens and update the call sites",
       "expect": "none"

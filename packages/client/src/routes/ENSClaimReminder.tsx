@@ -1,11 +1,9 @@
-import {
-  type Address,
-  toastService,
-  useGreenGoodsEnsName,
-  usePrimaryAddress,
-  useProtocolMemberStatus,
-  useTimeout,
-} from "@green-goods/shared";
+import type { Address } from "@green-goods/shared/types/domain";
+import { toastService } from "@green-goods/shared/components/Toast/toast.service";
+import { useGreenGoodsEnsName } from "@green-goods/shared/hooks/ens/useGreenGoodsEnsName";
+import { usePrimaryAddress } from "@green-goods/shared/hooks/auth/usePrimaryAddress";
+import { useProtocolMemberStatus } from "@green-goods/shared/hooks/ens/useProtocolMemberStatus";
+import { useTimeout } from "@green-goods/shared/hooks/utils/useTimeout";
 import { useEffect, useRef } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";

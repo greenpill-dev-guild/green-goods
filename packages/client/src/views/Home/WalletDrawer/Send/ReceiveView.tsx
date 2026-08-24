@@ -1,4 +1,6 @@
-import { type Address, AddressDisplay, useUser } from "@green-goods/shared";
+import type { Address } from "@green-goods/shared/types/domain";
+import { AddressDisplay } from "@green-goods/shared/components/AddressDisplay";
+import { useUser } from "@green-goods/shared/hooks/auth/useUser";
 import { RiWallet3Line } from "@remixicon/react";
 import { QRCodeSVG } from "qrcode.react";
 import { useIntl } from "react-intl";

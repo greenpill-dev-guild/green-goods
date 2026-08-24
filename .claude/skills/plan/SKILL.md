@@ -1,7 +1,7 @@
 ---
 name: plan
 user-invocable: false
-description: Planning & Execution — fires passively when the user describes planning or orchestration intent. Creates structured implementation plans, checks progress, executes in batches, manages lifecycle, and coordinates mixed Claude+Codex agent teams. Fire when the user says 'plan this', 'break down X', 'orchestrate', 'coordinate a team', 'parallel lanes', 'spawn teammates', 'fire off agents', 'mixed agent team', or describes cross-package / multi-lane implementation work.
+description: Planning, architecture opportunity discovery, and execution for Green Goods. Creates structured implementation plans, checks progress, manages lifecycle, and coordinates explicitly requested agent teams. Also use when the user asks to improve architecture, deepen modules, reduce coupling, improve testability, or increase agentic coding velocity across a codebase.
 argument-hint: "[feature-name]"
 ---
 
@@ -12,6 +12,10 @@ Planning lifecycle for Green Goods: create plans, check progress, execute in bat
 **References**: See `CLAUDE.md` for entry points, agent routing, and Green Goods conventions.
 
 This is a primary judgment surface. When placement, boundaries, or deletion questions dominate, weigh them directly inside the planning work (layering rules live in CLAUDE.md and `.claude/context/*.md`) rather than bouncing the user to a separate command.
+
+For architecture work, read [`../../context/codebase-architecture.md`](../../context/codebase-architecture.md)
+and use its vocabulary and candidate lifecycle. This skill owns repository-wide opportunity
+discovery and design of human-selected improvements; it does not certify an implemented seam.
 
 ---
 
@@ -44,6 +48,15 @@ Action: run `bash .claude/scripts/check-agent-teams-readiness.sh` → compose te
 - "maybe we should...", "what if we...", "I'm thinking about..."
 - Vision or exploration phase — route through [brainstorm.md](./brainstorm.md)
 
+### Architecture opportunity signals → Architecture mode
+
+- "improve the architecture", "deepen modules", "find better seams", or "reduce coupling"
+- improve testability, locality, or agentic coding velocity through structural change
+- find architecture hotspots or choose what architecture work to do next
+
+Action: follow **Architecture Opportunity Mode** below. Do not route broad opportunity discovery to
+`review`, and do not begin implementation before the human selects a candidate.
+
 ### Lifecycle / maintenance signals → Audit mode
 
 - "check progress on [plan]", "what's in flight?", "what plans are still relevant?"
@@ -57,6 +70,31 @@ Action: run `bash .claude/scripts/check-agent-teams-readiness.sh` → compose te
 ---
 
 ## Part 1: Create Plan
+
+### Architecture Opportunity Mode
+
+1. **Scope the scan.** Prefer the user-named subsystem. Otherwise inspect a bounded recent history
+   and let repeatedly changed paths, recurring test/mocking friction, and cross-file navigation cost
+   identify hotspots. State the search boundary.
+2. **Read domain decisions.** Load the nearest package guides, applicable context, Plan Hub, and
+   existing decision records before proposing a change.
+3. **Rank three to six candidate cards.** Use every field required by
+   `codebase-architecture.md`: concrete friction, current interface, deletion-test result,
+   dependency category, before/after shape, locality/leverage effect, test migration, risk,
+   confidence, and rejected overarchitecture.
+4. **Stop for human selection.** Unselected and deferred cards remain in the owning Plan Hub. Do not
+   add them to the machine registry or prescribe their implementation as settled work.
+5. **Design the selected interface.** Use design-it-twice only for a protected, cross-package, or
+   caller-facing interface with two materially different viable shapes. No mandatory HTML report
+   or subagent fan-out is required.
+6. **Route accepted implementation.** Record `SELECTED`, the chosen interface, migration, proof,
+   and risk in the owning Plan Hub. A selected critical module or hotspot may then enter
+   `scripts/data/module-seam-registry.json`; implementation advances it to `IMPLEMENTED`, and the
+   read-only `module-seams-review` certifies it as `CERTIFIED` only with fresh evidence.
+
+Architecture mode is discovery and design, not a license for blanket layering. Prefer the smallest
+change that creates concrete locality or leverage, and reject candidates that fail the deletion
+test.
 
 ### Phase 1: Understanding & Validation
 
