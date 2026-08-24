@@ -116,17 +116,20 @@ describe("config/passkeyServer", () => {
       });
     });
 
-    // Staging shares production's passkeys on purpose: it deploys under
-    // `staging.greengoods.app` with no RP override, so the apex RP resolves and
-    // one gardener keeps one credential and one smart-account address across
-    // both origins. The address is derived from `{credential, rpId}`, so a
-    // narrower RP here would silently hand pilot gardeners a second account.
-    it("shares the apex RP ID with named subdomains of the production origin", () => {
+    // Pins the property the pending staging rollout depends on: with no RP
+    // override, a subdomain resolves the apex RP rather than its own hostname.
+    // Staging still sets an override today, so this describes the code, not the
+    // deployment. A narrower RP would not change the address formula (`rpId` is
+    // a signing-ceremony parameter and never enters Kernel's validator data);
+    // it would keep the browser from offering the existing credential at all,
+    // so the gardener registers a new one and that new public key gives them a
+    // second account. Tightening `matchesRpId` to an exact hostname comparison
+    // is what this case is here to catch.
+    it("resolves the apex RP ID for subdomains of the production origin", () => {
       for (const origin of [
         "https://greengoods.app",
         "https://www.greengoods.app",
         "https://staging.greengoods.app",
-        "https://staging-admin.greengoods.app",
       ]) {
         expect(
           classifyPasskeyCeremonyContext({
@@ -141,20 +144,27 @@ describe("config/passkeyServer", () => {
       }
     });
 
-    // Characterization, not endorsement. The spec approves four origins; the
-    // check trusts every subdomain, so an unapproved one passes too. Closing
-    // that gap is an open decision (see the spec's "Approved origins versus
-    // enforced origins"), and this case is what will fail if it is closed.
+    // Characterization, not endorsement. The check trusts every subdomain, so
+    // hosts the spec does not approve pass it too. `staging-admin` is the live
+    // example: it is deliberately outside the rollout because `packages/admin`
+    // has no passkey entrypoint, yet the check still admits it. Closing that
+    // gap is an open decision (see the spec's "Approved origins versus enforced
+    // origins"), and these are the cases that will fail if it is closed.
     it("currently trusts any production subdomain, approved or not", () => {
-      expect(
-        classifyPasskeyCeremonyContext({
-          env: { PROD: true },
-          location: locationFor("https://unapproved.greengoods.app"),
-        })
-      ).toMatchObject({
-        supported: true,
-        rpId: "greengoods.app",
-      });
+      for (const origin of [
+        "https://unapproved.greengoods.app",
+        "https://staging-admin.greengoods.app",
+      ]) {
+        expect(
+          classifyPasskeyCeremonyContext({
+            env: { PROD: true },
+            location: locationFor(origin),
+          })
+        ).toMatchObject({
+          supported: true,
+          rpId: "greengoods.app",
+        });
+      }
     });
 
     // Sharing the RP with the named staging alias must not extend to the
