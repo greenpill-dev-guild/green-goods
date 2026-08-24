@@ -135,20 +135,35 @@ These decisions should be treated as settled unless explicitly revised.
 4. In-app browsers and unsupported webviews are not passkey-capable environments for Green Goods.
 5. The smart-account address is first-class stored account state.
 6. Passkey-server credential discovery replaces local-only credential lookup.
-7. Localhost is isolated from production passkey credentials. Staging is not — see the revision below.
+7. Localhost is isolated from production passkey credentials. Staging is isolated today, but is
+   decided to join the production namespace pending rollout — see the revision below.
 
-### Revision 2026-08-23 — staging shares the production passkey namespace
+### Revision 2026-08-23 — staging shares the production passkey namespace (PENDING ROLLOUT)
+
+**Status: decided, not yet applied.** Staging still sets `VITE_PASSKEY_RP_ID=staging.greengoods.app`
+and still uses a separate Pimlico project. Until the rollout steps below are executed and verified,
+production credential lookup on staging returns nothing and a gardener who tries is led into
+creating a second account. Do not read the rest of this section as a description of live behaviour.
 
 Decision 7 originally isolated staging as well. That is revised for the commitment pooling pilot,
 which runs on staging against Arbitrum mainnet with real gardens and real gardeners.
 
-A smart-account address is derived from `{credential, rpId}`, so an isolated staging RP ID does not
-merely mean a second login — it means a second address, with none of the gardener's hats, garden
-membership, or attestation history. Pilot commitments written from staging would be attributed to a
-throwaway identity on mainnet. One account across both origins is the point of the pilot, so staging
-now runs under the production RP ID and the production passkey-server project.
+An isolated staging RP ID does not merely mean a second login. It means a second address, with none
+of the gardener's hats, garden membership, or attestation history, so pilot commitments written from
+staging would be attributed to a throwaway identity on mainnet.
 
-What this changes:
+The mechanism is credential replacement, not an address formula. `rpId` is a ceremony parameter that
+viem's `toWebAuthnAccount` uses when requesting a signature; it does not enter Kernel's validator
+data, so it is not an input to the counterfactual address. The address follows the credential's
+public key and authenticator id. A narrower RP ID causes a second address indirectly: the browser
+will not surface a `greengoods.app` credential to a `staging.greengoods.app` ceremony, so the
+gardener registers a new credential, and the new public key produces a new account. This
+distinction matters for future recovery and signer-rotation work, which turns on what actually
+determines the address. The address-determining inputs are modelled in
+`packages/shared/src/modules/commitment-pooling/account-profiles.ts`, which lists factory,
+implementation, initializer, passkey profile and salt, and no RP ID.
+
+What this changes once applied:
 
 - `staging.greengoods.app` and `staging-admin.greengoods.app` are approved passkey origins.
 - Staging sets no `VITE_PASSKEY_RP_ID`, so it resolves the apex `greengoods.app` like production.
@@ -174,8 +189,16 @@ before the namespace is shared, not after:
 1. Vercel deployment access protection on `staging.greengoods.app` and `staging-admin.greengoods.app`.
    `robots.txt` is a crawl hint, not access control, and must not be counted as one. Staging-specific
    `Disallow: /` is still worth setting, as a second layer rather than the first.
-2. Confirmation that both staging builds omit `VITE_PASSKEY_RP_ID` and resolve the apex RP.
-3. Confirmation that both staging builds use the production Pimlico project.
+2. Both staging aliases added to the passkey server's `expectedOrigin` allowlist. A ceremony run from
+   staging sends that staging URL as the response origin, and this spec requires an explicit
+   server-side allowlist with no wildcard, so the server rejects the verification until both are
+   listed. Sharing the RP ID and the Pimlico project is not sufficient on its own, and the client-side
+   `classifyPasskeyCeremonyContext` tests prove nothing about this: they cover the browser check only.
+3. Confirmation that both staging builds omit `VITE_PASSKEY_RP_ID` and resolve the apex RP.
+4. Confirmation that both staging builds use the production Pimlico project.
+
+Only after all four hold, and after a real end-to-end sign-in on a staging alias with a production
+passkey has been observed, may this section be restated as live behaviour.
 
 #### Approved origins versus enforced origins
 
@@ -211,11 +234,13 @@ surface and is deliberately not settled by this revision.
 
 ## Environment separation
 
-- one passkey server project shared by production and staging (see the 2026-08-23 revision above)
+- one passkey server project shared by production and staging, once the 2026-08-23 revision above is
+  rolled out; separate projects until then
 - localhost development passkey server project or local mock
 
-Production credentials must never be created from preview URLs or localhost. They may be created
-from the named staging aliases, which are approved origins in the production namespace.
+Production credentials must never be created from preview URLs or localhost. Once that rollout
+completes, they may be created from the named staging aliases, which become approved origins in the
+production namespace.
 
 ---
 
