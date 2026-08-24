@@ -27,7 +27,7 @@ order only, and a reader following the map could miss an active dispatch surface
 | `claude-community.md` | September Community interface work (PRD-682 track) | Claude | Follow-on wave |
 | `claude-docs.md` | Post-QA documentation polish (PRD-727) | Claude | Blocked until QA1 |
 | `claude-walkthrough-videos.md` | Post-certification walkthrough videos (PRD-728) | Claude | Blocked until QA2 |
-| `claude-qa-pass-1.md` | Staging QA pass 1 (PRD-729) | Claude | Blocked until runtime UI lands |
+| `claude-qa-pass-1.md` | Staging QA pass 1 (PRD-729), split 2026-08-24 into Wave 1 agent functional QA (dispatched via `../prompt-qa-functional.md`) and Wave 2 human experience QA | Claude (Wave 1) + Afolabi Aiyeloja (Wave 2) | D1 surfaces merged; lane manually gated — Wave 1 dispatchable pre-gate as evidence |
 | `codex-qa-pass-2.md` | QA pass 2 (PRD-730) | Codex | Blocked until docs polish lands |
 | `claude-standing-artifacts.md` | **Completed** 2026-08-02 Offer-once / Offer-over-time artifact convergence record | Claude | Closed — historical record |
 | `claude-offer-vocabulary-correction.md` | **Completed** PRD-789 sweep retiring `Practice` in favour of Offer once / Offer over time | Claude | Closed 2026-08-02 — historical record |
