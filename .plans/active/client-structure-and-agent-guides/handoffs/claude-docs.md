@@ -1,50 +1,47 @@
 # Docs Lane Handoff
 
-Status: partial working-copy receipt; the lane remains open in `status.json`
+Status: Phase 3 guidance consolidation implemented; the docs lane remains open for Phase 4 source-structure enforcement and its UI dependency.
 
-This working-copy slice applies the accepted agent-guidance consolidation and deterministic
-architecture checks. The lane is not complete: it still depends on the UI lane, the changes are
-uncommitted, and the truthful TypeScript build gate is blocked on the `GardenAssessment` model
-decision recorded in `handoffs/codex-state-api.md`.
+## Completed Phase 3 scope
 
-## Implemented
+- `AGENTS.md` is the agent-neutral entry contract with one validation summary, early package routing,
+  common commands, criticality, PostHog routing, and canonical architecture/validation links.
+- `CLAUDE.md` contains Claude-specific entrypoints, tool routing, output/scope behavior, Codex
+  dispatch, health-skill routing, and session continuity instead of copying shared policy.
+- Every package guide uses the same validation shape: targeted QA, package loop, conditional proof,
+  and broader-impact escalation. Package-specific domain and security rules remain local.
+- Contracts no longer permit a partial test pass on testnet; every selector-required test must pass.
+- `check-codex-docs.js` rejects near-verbatim policy blocks copied between root `AGENTS.md` and
+  `CLAUDE.md`, while ignoring short shared labels and unrelated guidance.
+- The architecture context link remains present in both agent entrypoints.
 
-- The CI gate now runs the source-structure fixtures and the live architecture checker before it
-  polls the package workflows.
-- `check-react-patterns.js` now enforces Green Goods package dependency direction, production
-  dependency declarations, package-manifest cycles, shared export targets, and exported consumer
-  hooks. Its existing shared-import and Zustand rules remain intact.
-- `check-react-patterns.test.mjs` provides negative fixtures for each new boundary.
-- Root and package agent guides use neutral agent-facing titles, keep the root `AGENTS.md` as the
-  shared contract, and point duplicated authenticated-browser policy back to that canonical rule.
-- Builder and testing documentation now reflects the current skill inventory, symlinked shared
-  skill tree, configured Codex model, Bun-wrapped Foundry commands, Playwright setup, and test
-  entrypoints.
-- `check-codex-docs.js` now verifies derived facts instead of relying on prose review alone,
-  including skill inventory, model config parity, package paths, shared hook/store inventory, and
-  testing commands.
+## TDD receipt
 
-## Deliberately deferred
+- RED: `node --test scripts/quality/check-codex-docs.test.mjs` failed because
+  `findNearDuplicatePolicyBlocks` was not exported.
+- GREEN: the same command passed three fixtures covering near-copy detection, short/unrelated prose,
+  and one-report-per-block behavior.
 
-- File-level TypeScript import-cycle enforcement and formal shared-domain layering need AST/module
-  resolution support; the current check does not pretend to prove them.
-- Full root-guide compression and package structure cleanup remain in the parent plan.
-- The TypeScript `tsc -b` gate was restored rather than left red. A truthful candidate config finds
-  87 client and 61 admin errors, with the central ambiguity being legacy assessment fields in the
-  UI versus the canonical `GardenAssessment` v2 shape.
+## Deliberately retained boundaries
 
-## Fresh validation
+- Service ports and operational variants stay in `scripts/README.md` and builder docs rather than a
+  second volatile inventory in root guidance.
+- The Contracts guide remains longer because its deployment, upgrade, storage, and security rules
+  are legitimate package-specific boundaries; only its development/validation contract was leveled.
+- Phase 4 structure enforcement, the TypeScript build lane, client layout work, and final QA passes
+  remain outside this Phase 3 slice.
 
-- `node --test scripts/quality/select-validation.test.mjs scripts/dev/ci-local.test.mjs scripts/quality/ci-gate.test.mjs scripts/quality/check-react-patterns.test.mjs` — 74 passed.
-- `node scripts/quality/check-react-patterns.js` — 0 blocking violations.
-- `bun run check:codex-guidance` — passed. A deliberate stale skill-count probe failed before the
-  correct count was restored.
-- `bun run check:guidance-links` — 59 guidance files passed.
-- `bun run test:review-guardrails` — 85 passed.
-- `node docs/scripts/docs-audit.mjs --ci` — no warnings.
-- `node scripts/harness/plan-hub.mjs validate` — 44 hubs passed before this receipt update.
+## Validation receipt
 
-`bun run test` is not a passing receipt for this slice: the pre-change baseline reached 2,050
-passing contract tests, then `test:script` hit two existing five-second release-test timeouts. Do
-not present this working copy as merge-ready until those baseline failures are resolved or proven
-unrelated under a fresh Ship Gate.
+- PASS: the exact-path Ship selector chose 26 mandatory checks for the guidance and package-guide
+  scope; `node scripts/dev/ci-local.js --intent ship ...` passed format, lint, ABI, Shared, Client,
+  Admin, Agent, Indexer, Contracts, Docs, agent-guidance, and supply-chain gates.
+- PASS: `bun run test:review-guardrails`, including the three new duplicate-policy fixtures.
+- PASS: `bun run test:validation-system` — 162 tests passed.
+- PASS: `bun run drift:check -- --scope guidance` — no guidance drift findings.
+- BLOCKED external evidence: the single `bun run eval:skills` run received incomplete,
+  non-parseable JSON from the Claude/Haiku evaluator after its built-in retry. Deterministic trigger
+  and behavior contracts remain green; the semantic run was not repeated to avoid extra model
+  spend.
+- Known non-blocking output: Foundry could not write its user cache inside the sandbox, and existing
+  test/build warnings remained visible; all selected checks still exited successfully.

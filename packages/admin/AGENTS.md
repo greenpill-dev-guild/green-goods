@@ -92,15 +92,13 @@ foundations.
 - In QA Speed Mode, run the targeted view/component/model test when one covers the fix and capture authenticated rendered proof for visible UI. Use `bun run build` when route wiring, view imports, or build output could break; do not run Storybook checks unless shared primitives/stories/tokens moved.
 - Permission and role changes often originate in shared code; use the root quick verification
   loop when shared contracts or shared hooks move.
-- Follow root `AGENTS.md` section “Agentic Modern Web Standard” for browser proof. Local admin QA uses
-  the authenticated Brave QA profile: Codex uses the Codex browser-extension path, and Claude uses
-  the Claude Code Chrome/Chromium extension path to claim the authenticated Brave profile/tab. Do
-  Do not use isolated Browser, Playwright, or DevTools MCP profiles for local QA.
-  If authenticated Brave access is blocked, stop and report QA as blocked.
+- Visible changes follow root `AGENTS.md` section “Agentic Modern Web Standard”; if its
+  authenticated Brave path is unavailable, report browser QA as `BLOCKED`.
 - **Tailwind v4 gotcha**: admin's content scan does not reach `packages/shared/src/`, so a shared component that uses utility classes in its JSX may render off-center, missing padding, or wrong width in admin even when it looks fine in Storybook. Before debugging the shared component, check root `AGENTS.md` → "Known Gotchas" — the fix is a fork into `packages/admin/src/components/Shell/` (the Canvas shell pattern) or inline styles inside the shared component, not utility classes in shared JSX.
 
 ## Validation
 
-- QA Speed Mode: targeted admin test or rendered proof; add `bun run build` for route/view/build risk
-- Package loop: `bun run test && bun run build`
-- Broader impact: from repo root run `node scripts/dev/ci-local.js --quick`
+- QA Speed Mode: targeted admin test plus rendered proof for visible behavior; add `bun run build` only for route, view-import, or build-output risk.
+- Package loop: `bun run test && bun run build`.
+- Conditional proof: Storybook checks apply only when shared primitives, stories, or tokens move.
+- Broader impact: run the root Repo Quick Gate when shared hooks, permissions, or public contracts move.

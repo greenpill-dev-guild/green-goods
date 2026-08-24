@@ -1,9 +1,19 @@
 # Validation Pipeline (shared core)
 
-Single definition of the repo's validation commands. Skills reference this file
-instead of restating the pipeline, so a change to the gate (adding a step,
-renaming a script) happens in exactly one place. The intent ladder that decides
-*which* rung to run lives in `CLAUDE.md § Validation Intent Ladder`.
+Single definition of the repo's validation intent ladder and commands. Skills and agent guides
+reference this file instead of restating the pipeline, so routing or command changes happen in
+exactly one place.
+
+## Fast honest development loop
+
+1. Run the targeted test or observable proof for the behavior being changed.
+2. Add package typecheck or build only when types, routing, rendering, generated output, or a
+   runtime contract moved.
+3. Run the Repo Quick Gate after a coherent cross-package batch or shared public-interface change.
+4. Run the full Ship Gate once, when the work reaches explicit readiness intent.
+
+Coverage stays an outer-loop regression floor. It does not replace direct behavior, consumer
+wiring, production composition, or a fresh readiness gate.
 
 ## Select before executing
 

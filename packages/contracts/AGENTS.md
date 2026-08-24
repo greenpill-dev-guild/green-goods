@@ -9,6 +9,13 @@ The contracts package contains Solidity smart contracts for the Green Goods prot
 - `bun run lint`
 - `bun run test:audit:full`
 
+## Validation
+
+- QA Speed Mode: run `bun run test:match -- test/<path>.t.sol`; add `bun run build:target -- src/<path>.sol` when the compiled contract surface moves.
+- Package loop: `bun run test`.
+- Conditional proof: storage, size, fork, script, release, and deployment checks come from the root selector and must all pass when selected.
+- Broader impact: run the root Repo Quick Gate when ABI or deployment artifacts change downstream consumers.
+
 ## Deployment Script Defaults
 
 - Use package scripts for deploys, upgrades, migrations, and verification. Do not hand operators raw
@@ -397,7 +404,7 @@ deployments/
 ### Pre-Flight Checks
 
 ```bash
-bun run test                                              # >= 80% pass (testnet), 100% (mainnet)
+bun run test                                              # all selected tests pass
 bun run build                                             # Clean compilation, no errors
 bun script/deploy.ts core --network sepolia               # Dry run (omit --broadcast)
 ```
@@ -426,7 +433,7 @@ For new contract work, deployment artifacts move through phases:
 
 ### Pre-Broadcast Red Flags (Block Broadcast)
 
-- Test pass rate < 80% (testnet) or < 100% (mainnet)
+- Any required selected test fails
 - Compiler errors or warnings
 - Missing deploy command or unsafe dry-run for the target module
 - Bad required network config, manager defaults, or deployer wallet inputs
@@ -529,11 +536,11 @@ Describe expected reverts in the scenario (`revertsWhen...`); do not create a se
 every newly added or renamed test must use a canonical category. Rename a legacy test when its
 behavior is materially edited; do not churn unrelated tests solely for naming cleanup.
 
-### Coverage Targets
+### Evidence Expectations
 
-- **Testnet:** 80% pass rate acceptable
-- **Mainnet:** 100% tests must pass
-- **Critical paths:** Storage gaps, access control, attestation validation
+All selected tests must pass on testnet and mainnet paths. Coverage measures execution but never
+turns known failures into acceptable evidence. Storage gaps, access control, attestation validation,
+upgrade safety, and value-moving paths require their selector-chosen critical proof.
 
 ## Critical Rules
 

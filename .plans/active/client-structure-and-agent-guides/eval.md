@@ -5,7 +5,8 @@
 1. **Correctness**: a deliberate type error in any client or admin source file fails `bun run build`.
 2. **No suppression**: the 132 errors are fixed, not excluded, `@ts-ignore`d, or allowlisted.
 3. **Regression safety**: no runtime behavior changes; the existing client and admin suites stay green.
-4. **Evidence quality**: every phase records the command and output that proves it, per `CLAUDE.md`.
+4. **Evidence quality**: every phase records the command and output that proves it, per
+   `AGENTS.md` § Validation and `.claude/context/validation-pipeline.md`.
 5. **Human judgment**: open decisions A–D are resolved by the maintainer, not assumed by an agent.
 
 ## Acceptance Checks
@@ -23,9 +24,9 @@
 | AC-7 | Staged code | All three staged components carry the marker, have a story, and appear in the typecheck | `ui` | |
 | AC-8 | Dead code | `WorkCard`, `WorkCardProps`, `WorkCardItem`, `AvatarRootProps`, `AvatarVariantProps` are gone; `MinimalWorkCard` still renders in `WorkListTab` and `Features/Garden/Work` | `ui` | |
 | AC-9 | Name collision | Exactly one `buttonVariants` export exists across client and shared | `ui` | |
-| AC-10 | Guide neutrality | No "Codex Guide" title or Codex-specific instruction remains in root or package `AGENTS.md`; Codex mechanics live in `.codex/` | `docs` | |
-| AC-11 | Guide dedupe | No section body appears near-verbatim in both `AGENTS.md` and `CLAUDE.md`; one validation section, not three | `docs` | |
-| AC-12 | Guide completeness | `AGENTS.md` contains a commands table, Git Workflow, Key Patterns, Criticality Matrix, environment/chain, service ports, and PostHog routing | `docs` | |
+| AC-10 | Guide neutrality | No "Codex Guide" title or Codex-specific instruction remains in root or package `AGENTS.md`; Codex mechanics live in `.codex/` | `docs` | PASS: `bun run check:codex-guidance`; root and package titles inspected |
+| AC-11 | Guide dedupe | No section body appears near-verbatim in both `AGENTS.md` and `CLAUDE.md`; one validation section, not three | `docs` | PASS: duplicate-policy RED/GREEN; 3 focused fixtures and `bun run test:review-guardrails` |
+| AC-12 | Guide completeness without bloat | `AGENTS.md` exposes common commands, package routing, criticality, environment/chain invariants, PostHog routing, and canonical architecture/validation/service links without duplicating volatile port or documentation inventories | `docs` | PASS: 26-check Ship plan, `check:guidance-links` (62 files), and guidance drift scope |
 | AC-13 | Gate teeth | A deliberately misnamed and a deliberately misplaced fixture each fail `bun run check:source-structure`; the real tree passes | `docs` | |
 | AC-14 | Gate respects staged | A file carrying the staged marker is not flagged by the dead-export scan | `docs` | |
 
@@ -37,8 +38,9 @@
 - **E2E / Playwright**: not applicable.
 - **Manual checks**: none required. Every gate here is a command.
 - **TDD proof**: Phase 1's RED is already captured (the probe passing today, recorded in `spec.md`
-  § Research Evidence). GREEN is AC-1. Phase 4's RED is a misnamed fixture failing the new rule.
-  Phases 2 and 3 record `not_applicable` with the note that they are refactor and documentation.
+  § Research Evidence). GREEN is AC-1. Phase 3 prose is documentation, while its duplicate-policy
+  checker has a focused missing-export RED and three-fixture GREEN receipt. Phase 4's RED is a
+  misnamed fixture failing the new structure rule. Phase 2 remains `not_applicable` as a refactor.
 
 ## Known Evidence Limits
 
@@ -51,7 +53,7 @@
 
 ## Validation Ladder Selection
 
-Per `CLAUDE.md` § Validation Intent Ladder, this work is **Ship Gate** — it touches build
+Per `AGENTS.md` § Validation and `.claude/context/validation-pipeline.md`, this work is **Ship Gate** — it touches build
 configuration, a shared domain type, and security-sensitive surfaces (`AGENTS.md`,
 `scripts/quality/**`). QA Speed Mode is not sufficient for any phase.
 

@@ -41,16 +41,13 @@ types, i18n, and Storybook-backed shared UI building blocks.
   signatures, provider contracts, shared data shapes, or mutation flows can affect consumers.
 - When changing test helpers or hook contracts, keep tests aligned before downstream package fixes.
 - Storybook is the source of truth for shared UI foundations; keep stories aligned when primitives change.
-- Follow root `AGENTS.md` section “Agentic Modern Web Standard” for browser proof. Local consumer QA
-  uses the authenticated Brave QA profile: Codex uses the Codex browser-extension path, and Claude
-  uses the Claude Code Chrome/Chromium extension path to claim the authenticated Brave profile/tab.
-  Do not use isolated Browser, Playwright, or DevTools MCP profiles for local QA.
-  If authenticated Brave access is blocked, stop and report QA as blocked.
+- Visible consumer changes follow root `AGENTS.md` section “Agentic Modern Web Standard”; if its
+  authenticated Brave path is unavailable, report browser QA as `BLOCKED`.
 - **Tailwind v4 gotcha**: utility classes authored in shared JSX (`mx-4`, `w-max`, `self-center`, etc.) are not in admin/client content scans and silently fail to generate in consuming apps. They will look correct in Storybook and broken in the running app. Use inline styles or CSS custom properties for layout in shared components, or apply the utility class in the consumer's JSX. Full detail and commit references in root `AGENTS.md` → "Known Gotchas".
 
 ## Validation
 
-- QA Speed Mode: targeted `bun run test -- src/...`; add `bun run typecheck` when shared types/contracts move
-- Package loop: `bun run test && bun run typecheck`
-- UI/stories touched: `bun run check:stories`
-- Cross-package impact: from repo root run `node scripts/dev/ci-local.js --quick`
+- QA Speed Mode: targeted `bun run test -- src/...`; add `bun run typecheck` when shared types or contracts move.
+- Package loop: `bun run test && bun run typecheck`.
+- Conditional proof: run `bun run check:stories` for shared UI or story changes.
+- Broader impact: run the root Repo Quick Gate when public exports, hooks, providers, data shapes, or mutation flows affect consumers.

@@ -43,14 +43,12 @@ should come from `@green-goods/shared`.
   rendered proof for visible UI. Build only when route wiring, render/build output, or PWA
   packaging behavior moves.
 - Route and rendering contract changes should get a build before PR/ship readiness, not only tests.
-- Follow root `AGENTS.md` section “Agentic Modern Web Standard” for browser proof. Local PWA QA uses
-  the authenticated Brave QA profile: Codex uses the Codex browser-extension path, and Claude uses
-  the Claude Code Chrome/Chromium extension path to claim the authenticated Brave profile/tab. Do
-  Do not use isolated Browser, Playwright, or DevTools MCP profiles for local QA.
-  If authenticated Brave access is blocked, stop and report QA as blocked.
+- Visible changes follow root `AGENTS.md` section “Agentic Modern Web Standard”; if its
+  authenticated Brave path is unavailable, report browser QA as `BLOCKED`.
 
 ## Validation
 
-- QA Speed Mode: targeted `bun run test -- src/...` or rendered proof; add `bun run build` only for route/render/PWA build risk
-- Package loop: `bun run test && bun run build`
-- Shared impact or cross-package changes: from repo root run `node scripts/dev/ci-local.js --quick`
+- QA Speed Mode: targeted `bun run test -- src/...` plus rendered proof for visible behavior; add `bun run build` only for route, render, or PWA build risk.
+- Package loop: `bun run test && bun run build`.
+- Conditional proof: typecheck/build and browser evidence follow the selector and the root validation pipeline.
+- Broader impact: run the root Repo Quick Gate when shared contracts or cross-package behavior moves.

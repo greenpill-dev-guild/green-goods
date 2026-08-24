@@ -61,7 +61,7 @@
     "check:test-quality": "bash scripts/quality/check-test-quality.sh",
     "check:foundry-version": "node scripts/contracts/check-foundry-version.mjs",
     "check:solidity-test-names": "node scripts/contracts/check-solidity-test-names.mjs",
-    "test:review-guardrails": "node scripts/dev/node-cli.js node --test scripts/quality/check-guidance-links.test.mjs scripts/quality/check-skill-behavior-contracts.test.mjs scripts/quality/check-immutable-plan-reports.test.mjs scripts/design/check-guidance-examples.test.mjs scripts/contracts/check-foundry-version.test.mjs scripts/contracts/check-solidity-test-names.test.mjs",
+    "test:review-guardrails": "node scripts/dev/node-cli.js node --test scripts/quality/check-codex-docs.test.mjs scripts/quality/check-guidance-links.test.mjs scripts/quality/check-skill-behavior-contracts.test.mjs scripts/quality/check-immutable-plan-reports.test.mjs scripts/design/check-guidance-examples.test.mjs scripts/contracts/check-foundry-version.test.mjs scripts/contracts/check-solidity-test-names.test.mjs",
     "check:dead-code": "bun --bun node_modules/.bin/knip",
     "lint:vocab": "bash scripts/design/check-vocab.sh",
     "lint:rules": "node scripts/quality/check-react-patterns.js",

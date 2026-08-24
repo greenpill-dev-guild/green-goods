@@ -4,7 +4,7 @@
 **Stage**: `active`
 **Status**: `ACTIVE`
 **Created**: `2026-08-19`
-**Last Updated**: `2026-08-21`
+**Last Updated**: `2026-08-24`
 
 ## Decision Log
 
@@ -32,7 +32,7 @@
 - [x] Identify the existing repo pattern to mirror (`.claude/context/*.md` canonical-source; `check-source-structure.js` frozen allowlist)
 - [x] List human judgment points before implementation (`spec.md` § Human Judgment Points)
 - [x] Define what is out of scope (`brief.md` § Scope Notes)
-- [ ] Choose the lightest honest validation commands (see `eval.md`)
+- [x] Choose the lightest honest validation commands (see `eval.md`)
 
 ## Open Decisions — resolve before the phase that needs them
 
@@ -56,7 +56,7 @@ Config first, then errors by cluster, then flip the command last.
 - [ ] **1.3** `packages/client/tsconfig.app.json`: exclude `**/*.stories.tsx`, raise `target`/`lib` to ES2022, resolve open decision B.
 - [ ] **1.4** `packages/shared/tsconfig.json`: add `composite: true` (required for `tsc -b` to reference it). Add `packages/admin/tsconfig.test.json` mirroring 1.2, **and add it to `packages/admin/tsconfig.json` references** (that file currently lists only app + node, so a new project is invisible to `tsc -b` without the entry). Admin's test error surface is unmeasured — expect it to appear here.
 - [x] **1.5** Fix the `GardenAssessment` cluster — 46 of client's 80 errors, in `views/Home/Garden/Assessment.tsx` (27) and `components/Features/Garden/Assessments.tsx` (19). Resolve open decision A first, then enumerate the shared type's consumers across admin and indexer before editing.
-- [ ] **1.6** Fix the `Address` cluster — ~30 sites using `string` where `` `0x${string}` `` is required. This is the `CLAUDE.md` `Address` invariant.
+- [ ] **1.6** Fix the `Address` cluster — ~30 sites using `string` where `` `0x${string}` `` is required. This is the root `AGENTS.md` `Address` invariant.
 - [ ] **1.7** Fix the remaining client errors (~4 files, single-digit counts each).
 - [ ] **1.8** Fix admin's 52 real errors.
 - [ ] **1.8b** Fix the test-project errors surfaced by 1.2 and 1.4 — ~79 in client `src/__tests__/**`, admin count unknown. These have never been type-checked. Gated on decision E: this step disappears entirely if `-p tsconfig.app.json` is chosen.
@@ -71,7 +71,7 @@ Lands after Phase 1 so the restored typecheck catches every broken import.
 - [ ] **2.2** Resolve the `config.ts` / `config/` ambiguity: move `src/config.ts` → `src/config/ipfs.ts`, add `src/config/index.ts` that re-exports and runs the side effect, update `main.tsx:17`.
 - [ ] **2.2b** Finish the original "all configs in the config folder" ask: `src/router.config.tsx` is a 9 KB file literally named `.config` sitting at `src/` root, with `src/router.tsx` (384 bytes) as a thin wrapper that only does `import { appRoutes } from "./router.config"`. Either move it to `src/config/routes.tsx`, or fold the 384-byte wrapper into it and keep one file. Consumers to update: `router.tsx`, `views/PublicBrowserSurfaces.stories.tsx`, and a doc reference in `components/Errors/RouteErrorBoundary.tsx`.
 - [ ] **2.3** Rename 8 kebab-case modules to camelCase: `config/pwa-routing` → `pwaRouting`, `config/pwa-manifest` → `pwaManifest`, `routes/presentation-mode` → `presentationMode`, `routes/receipt-token` → `receiptToken`, `routes/toast-variant` → `toastVariant`, `views/Home/arrival-toast` → `arrivalToast`, `views/Home/WorkDashboard/work-dashboard-utils` → `workDashboardUtils`, `views/Public/garden-query-resolution` → `gardenQueryResolution`. Use `git mv` so history follows.
-- [ ] **2.4** Dedupe the identical scroll constant: `views/Home/CommitmentsDrawer/classnames.ts` and `views/Home/WalletDrawer/classnames.ts` both export `"min-h-0 flex-1 overflow-y-auto"`. Collapse to one constant — **client-local** (e.g. `src/styles/`), *not* `@green-goods/shared`. Tailwind v4 does not scan `packages/shared/src/` from the client build, so a class string moved there may not generate (see the gotcha in `CLAUDE.md`). Low risk in this specific case — `min-h-0`, `flex-1`, and `overflow-y-auto` each appear in 12 / 50 / 26 other client files — but the rule holds regardless.
+- [ ] **2.4** Dedupe the identical scroll constant: `views/Home/CommitmentsDrawer/classnames.ts` and `views/Home/WalletDrawer/classnames.ts` both export `"min-h-0 flex-1 overflow-y-auto"`. Collapse to one constant — **client-local** (e.g. `src/styles/`), *not* `@green-goods/shared`. Tailwind v4 does not scan `packages/shared/src/` from the client build, so a class string moved there may not generate (see the gotcha in root `AGENTS.md`). Low risk in this specific case — `min-h-0`, `flex-1`, and `overflow-y-auto` each appear in 12 / 50 / 26 other client files — but the rule holds regardless.
 - [ ] **2.5** Placement fixes (documented per maintainer request):
   - `styles/pwaDrawerStyles.ts` + `styles/pwaStatusStyles.ts` — TS modules in an otherwise-CSS folder.
   - `views/Garden/mediaAnalytics.ts` — analytics in a view folder; all other analytics lives in `shared/src/modules/app/analytics-events.ts`.
@@ -86,14 +86,21 @@ Lands after Phase 1 so the restored typecheck catches every broken import.
 
 ## Phase 3 — Agent guide (lane: `docs`)
 
-- [ ] **3.0** **Do this first — Phase 3 will red CI otherwise.** `scripts/quality/check-codex-docs.js` runs in CI (`.github/workflows/supply-chain-guardrails.yml:145`) and hard-codes AGENTS.md section headings: it calls `getSection(rootGuide, "Validation Ladder")` to validate commands (line 203), checks for a canonical Implementation Quality Contract reference (line 168) that its own comment locates in `§ Codex Workflow` (line 251), and asserts the package-guide list is present (line 199). Steps 3.1 and 3.2 rename exactly those headings. Update the gate and the guide in the same commit.
-- [ ] **3.1** Retitle root and package guides from "Codex Guide" to agent-neutral; rename "Codex Workflow" / "Codex Notes" sections. Move Codex-specific mechanics to `.codex/`.
-- [ ] **3.2** Collapse the three overlapping validation sections ("Validation Selection Contract" L116, "Validation Intent Ladder" L138, "Validation Ladder" L218) into one, pointing at `.claude/context/validation-pipeline.md` as canonical.
-- [ ] **3.3** Dedupe against `CLAUDE.md`: move shared policy into `.claude/context/*.md`, leave both guides as thin routers. Affects Multi-Agent Repo Safety, Verify Before Claiming Success, Known Gotchas, Scripts, Supply-chain, Design Language, Agentic Modern Web Standard, UI Regression Debugging.
-- [ ] **3.4** Add the missing sections: commands table, Git Workflow, Key Patterns, Criticality Matrix, Environment / chain selection, local service ports, PostHog project routing, Documentation map.
-- [ ] **3.5** Reorder: Package Guides index moves near the top (the preamble's first instruction points at it, but it currently sits at line 238 of 285). Retire "Test Suite Speed Follow-Up".
-- [ ] **3.6** Level the package guides — `packages/client/AGENTS.md` duplicates two long Brave-QA paragraphs verbatim from root; contracts is 605 lines against indexer's 43.
-- [ ] **3.7** Extend `scripts/quality/check-codex-docs.js` (rename to match the agent-neutral framing; update both callers — `package.json` `check:codex-guidance` and `supply-chain-guardrails.yml:145`) so it also detects near-verbatim duplicated blocks between `AGENTS.md` and `CLAUDE.md`, not just that referenced commands exist. Duplication is what drifts; the current gate cannot see it.
+- [x] **3.0** Update the existing CI guidance checker and the guide headings in the same change.
+- [x] **3.1** Keep root and package guides agent-neutral; reduce `CLAUDE.md` to Claude-specific entrypoints, tools, and dispatch behavior.
+- [x] **3.2** Collapse root validation policy into one concise section and make `.claude/context/validation-pipeline.md` canonical for the full ladder and commands.
+- [x] **3.3** Remove near-verbatim shared policy from `CLAUDE.md`; keep shared rules in `AGENTS.md` or `.claude/context/*.md`.
+- [x] **3.4** Add only durable entry routers: common commands, criticality, package guides, PostHog routing, architecture, and validation. Link service operations and changing reference inventories instead of copying ports and documentation maps into root guidance.
+- [x] **3.5** Move the Package Guides index near the top and retire the parked "Test Suite Speed Follow-Up" section.
+- [x] **3.6** Give every package the same compact validation shape: targeted QA, package loop, conditional proof, and broader-impact escalation. Replace repeated Brave policy with a root link and retain package-specific security/domain material.
+- [x] **3.7** Extend `scripts/quality/check-codex-docs.js` with tested near-verbatim policy detection between `AGENTS.md` and `CLAUDE.md`.
+
+### Phase 3 implementation note — 2026-08-24
+
+The accepted implementation deliberately avoids copying Git, service-port, environment, and
+documentation inventories into another root section. Existing root invariants and canonical links
+remain authoritative. Package leveling applies to the development/validation contract; it does not
+flatten the Contracts guide's legitimate security and deployment detail merely to match line counts.
 
 ## Phase 4 — Enforcement (lane: `docs`, after Phase 2)
 
@@ -115,14 +122,14 @@ Extends `scripts/quality/check-source-structure.js`, already wired into every pa
 | No `modules/` dir, no kebab-case filenames in client | `ui` | 2.1, 2.3 | ⏳ |
 | Staged components carry a marker and a story | `ui` | 2.8 | ⏳ |
 | Dead exports removed; `buttonVariants` collision resolved | `ui` | 2.6, 2.7 | ⏳ |
-| `AGENTS.md` agent-neutral, deduped, complete | `docs` | 3.1–3.7 | ⏳ |
+| `AGENTS.md` agent-neutral, deduped, complete | `docs` | 3.1–3.7 | ✅ Phase 3 |
 | Structure gate enforces placement, naming, layering | `docs` | 4.1–4.6 | ⏳ |
 
 ## TDD / Proof Order
 
 - [ ] Phase 1's behavior boundary is the build gate itself. RED = the probe passing today (already captured in `spec.md`); GREEN = step 1.10, the same probe failing the build.
 - [ ] Phase 2 is a refactor with no behavior change — proof is the restored typecheck plus the existing client suite staying green. Record lane TDD mode as `not_applicable` with that note.
-- [ ] Phase 3 is documentation — `not_applicable`.
+- [x] Phase 3 prose is documentation; the new duplicate-policy guard used RED/GREEN fixture proof recorded in the docs handoff.
 - [ ] Phase 4 adds a gate; RED = the new rule failing on a deliberately misnamed/misplaced fixture, GREEN = the tree passing.
 - [ ] Record machine-readable proof with `node scripts/harness/plan-hub.mjs record-tdd`
 
@@ -140,15 +147,15 @@ Extends `scripts/quality/check-source-structure.js`, already wired into every pa
 
 - [ ] Use `git mv` for every rename so history follows
 - [ ] No user-facing strings change — confirm `lint:vocab` is untouched
-- [ ] Confirm Tailwind class-scanning is unaffected by any file move (see the shared-scan gotcha in `CLAUDE.md`)
+- [ ] Confirm Tailwind class-scanning is unaffected by any file move (see the shared-scan gotcha in root `AGENTS.md`)
 - [ ] Record `not_applicable` TDD mode with a concrete note
 - [ ] Write `handoffs/claude-ui.md`
 
 ### Docs (Phases 3–4)
 
-- [ ] `AGENTS.md` and `scripts/quality/**` are security-sensitive surfaces — call them out in the PR summary
+- [x] `AGENTS.md` and `scripts/quality/**` are security-sensitive surfaces — call them out in the PR summary
 - [ ] Run the extended gate tree-wide before wiring it to fail
-- [ ] Write `handoffs/claude-docs.md`
+- [x] Write `handoffs/claude-docs.md` for the completed Phase 3 slice; keep the lane open for Phase 4
 
 ### QA Pass 1
 
