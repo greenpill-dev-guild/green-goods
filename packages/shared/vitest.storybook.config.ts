@@ -115,6 +115,13 @@ export default defineConfig({
               sharedSrc,
               "commitment-pooling",
             ),
+            // Declared in package.json#exports but not shaped like
+            // `src/<subpath>`, so it needs an explicit entry, above the bare
+            // package key that would otherwise claim it.
+            "@green-goods/shared/public": resolve(
+              sharedSrc,
+              "hooks/public/publicSurfaceState.ts",
+            ),
             "@green-goods/shared": sharedSrc,
             "@green-goods/shared/components": resolve(sharedSrc, "components"),
             "@green-goods/shared/hooks": resolve(sharedSrc, "hooks"),
